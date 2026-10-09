@@ -620,7 +620,7 @@ type isGetRunnerScopedTokenInput_Scope interface {
 
 type GetRunnerScopedTokenInput_RunId struct {
 	// Run id — yields a token scoped to the run's parent
-	// session, valid for every ExecutionContext in that session (multi-turn).
+	// session, valid for every run in that session (multi-turn).
 	RunId string `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3,oneof"`
 }
 
@@ -755,7 +755,7 @@ func (*TokenRenewal) Descriptor() ([]byte, []int) {
 type GetRunnerScopedTokenOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Stigmer-signed token scoped to the requested work. The runner presents it
-	// for ExecutionContext reads in place of its unscoped bootstrap token.
+	// to fetch a run's values in place of its unscoped bootstrap token.
 	RunnerScopedToken string `protobuf:"bytes,1,opt,name=runner_scoped_token,json=runnerScopedToken,proto3" json:"runner_scoped_token,omitempty"`
 	// Token type for runner_scoped_token. "Bearer" when a token is present,
 	// empty otherwise.

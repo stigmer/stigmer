@@ -80,7 +80,7 @@ public final class ApiResourceKindProto extends com.google.protobuf.GeneratedFil
       "source_tier_unspecified\020\000\022\017\n\013open_source" +
       "\020\001\022\016\n\ncloud_only\020\002\022\016\n\nenterprise\020\003*A\n\017Pl" +
       "atformIdValue\022!\n\035platform_id_value_unspe" +
-      "cified\020\000\022\013\n\007stigmer\020\001*\247\022\n\017ApiResourceKin" +
+      "cified\020\000\022\013\n\007stigmer\020\001*\354\021\n\017ApiResourceKin" +
       "d\022\035\n\031api_resource_kind_unknown\020\000\022[\n\024api_" +
       "resource_version\020\001\032A\252\377+=\010\001\020\001\032\022ApiResourc" +
       "eVersion\"\024API Resource Version*\003ver8\001@\002J" +
@@ -115,40 +115,39 @@ public final class ApiResourceKindProto extends com.google.protobuf.GeneratedFil
       "hannel\020/\032=\252\377+9\010\001\020\001\032\014AgentChannel\"\rAgent " +
       "Channel*\003ach8\001@\001J\r\010\002\020\001:\003\001\004\005B\002\004\005\022F\n\013chann" +
       "el_app\0200\0325\252\377+1\010\001\020\001\032\nChannelApp\"\013Channel " +
-      "App*\005chapp8\001@\001J\007\010\002\020\004:\001\004\022R\n\021execution_con" +
-      "text\0206\032;\252\377+7\010\001\020\001\032\020ExecutionContext\"\021Exec" +
-      "ution Context*\004ectx@\001J\004\010\004\020\001\022@\n\010schedule\020" +
-      "8\0322\252\377+.\010\001\020\001\032\010Schedule\"\010Schedule*\003sch8\001@\001" +
-      "J\013\010\002\020\001:\002\001\004B\001\004\022m\n\006memory\0209\032a\252\377+]\010\001\020\001\032\006Mem" +
-      "ory\"\006Memory*\003mem8\001@\001J>\010\002\020\004\"8\n\020identity_a" +
-      "ccount\022\007subject\032\033subject_identity_accoun" +
-      "t_id\022B\n\006plugin\020:\0326\252\377+2\010\001\020\001\032\006Plugin\"\006Plug" +
-      "in*\003plg0\001@\001J\023\010\002\020\001*\006\020\001\030\001 \001:\002\001\004B\001\004\022\202\001\n\005vau" +
-      "lt\020;\032w\252\377+s\010\001\020\001\032\005Vault\"\005Vault*\003vlt8\001@\001JV\010" +
-      "\002\020\004\"$\n\020identity_account\022\006person\032\006person " +
-      "\001\" \n\014organization\022\torg_owned\032\003org \001*\002\030\001:" +
-      "\001\007B\001\007\022D\n\005score\020=\0329\252\377+5\010\001\020\001\032\005Score\"\005Score" +
-      "*\003scr8\001@\001J\030\010\003\020\001\032\022\n\003run\022\003run\032\006run_id\022V\n\te" +
-      "valuator\020>\032G\252\377+C\010\001\020\001\032\tEvaluator\"\tEvaluat" +
-      "or*\003evl8\001@\001J\036\010\003\020\004\032\030\n\005agent\022\005agent\032\010agent" +
-      "_id\022-\n\004plan\020F\032#\252\377+\037\010\004\020\001\032\004Plan\"\004Plan*\003pln" +
-      "8\001@\002J\004\010\005\020\004\022E\n\014subscription\020G\0323\252\377+/\010\004\020\001\032\014" +
-      "Subscription\"\014Subscription*\003sub8\001@\002J\004\010\002\020" +
-      "\004\0226\n\007license\020H\032)\252\377+%\010\004\020\001\032\007License\"\007Licen" +
-      "se*\003lic8\001@\002J\004\010\005\020\004\"\004\010-\020-\"\004\0101\0201\"\004\0102\0202\"\004\0103\020" +
-      "3\"\004\0104\0204\"\004\0105\0205\"\004\0107\0207\"\004\010<\020<*\016agent_instanc" +
-      "e*\tdatastore*\010workflow*\021workflow_instanc" +
-      "e*\014workflow_run*\013environment*\010artifact*\007" +
-      "project:\205\001\n\tkind_meta\022!.google.protobuf." +
-      "EnumValueOptions\030\365\277\005 \001(\0132C.ai.stigmer.co" +
-      "mmons.apiresource.apiresourcekind.ApiRes" +
-      "ourceKindMetaR\010kindMetaB\364\001B\024ApiResourceK" +
-      "indProtoP\001\242\002\005ASCAA\252\002.Ai.Stigmer.Commons." +
-      "Apiresource.Apiresourcekind\312\002.Ai\\Stigmer" +
-      "\\Commons\\Apiresource\\Apiresourcekind\342\002:A" +
-      "i\\Stigmer\\Commons\\Apiresource\\Apiresourc" +
-      "ekind\\GPBMetadata\352\0022Ai::Stigmer::Commons" +
-      "::Apiresource::Apiresourcekindb\006proto3"
+      "App*\005chapp8\001@\001J\007\010\002\020\004:\001\004\022@\n\010schedule\0208\0322\252" +
+      "\377+.\010\001\020\001\032\010Schedule\"\010Schedule*\003sch8\001@\001J\013\010\002" +
+      "\020\001:\002\001\004B\001\004\022m\n\006memory\0209\032a\252\377+]\010\001\020\001\032\006Memory\"" +
+      "\006Memory*\003mem8\001@\001J>\010\002\020\004\"8\n\020identity_accou" +
+      "nt\022\007subject\032\033subject_identity_account_id" +
+      "\022B\n\006plugin\020:\0326\252\377+2\010\001\020\001\032\006Plugin\"\006Plugin*\003" +
+      "plg0\001@\001J\023\010\002\020\001*\006\020\001\030\001 \001:\002\001\004B\001\004\022\202\001\n\005vault\020;" +
+      "\032w\252\377+s\010\001\020\001\032\005Vault\"\005Vault*\003vlt8\001@\001JV\010\002\020\004\"" +
+      "$\n\020identity_account\022\006person\032\006person \001\" \n" +
+      "\014organization\022\torg_owned\032\003org \001*\002\030\001:\001\007B\001" +
+      "\007\022D\n\005score\020=\0329\252\377+5\010\001\020\001\032\005Score\"\005Score*\003sc" +
+      "r8\001@\001J\030\010\003\020\001\032\022\n\003run\022\003run\032\006run_id\022V\n\tevalu" +
+      "ator\020>\032G\252\377+C\010\001\020\001\032\tEvaluator\"\tEvaluator*\003" +
+      "evl8\001@\001J\036\010\003\020\004\032\030\n\005agent\022\005agent\032\010agent_id\022" +
+      "-\n\004plan\020F\032#\252\377+\037\010\004\020\001\032\004Plan\"\004Plan*\003pln8\001@\002" +
+      "J\004\010\005\020\004\022E\n\014subscription\020G\0323\252\377+/\010\004\020\001\032\014Subs" +
+      "cription\"\014Subscription*\003sub8\001@\002J\004\010\002\020\004\0226\n" +
+      "\007license\020H\032)\252\377+%\010\004\020\001\032\007License\"\007License*\003" +
+      "lic8\001@\002J\004\010\005\020\004\"\004\010-\020-\"\004\0101\0201\"\004\0102\0202\"\004\0103\0203\"\004\010" +
+      "4\0204\"\004\0105\0205\"\004\0106\0206\"\004\0107\0207\"\004\010<\020<*\016agent_insta" +
+      "nce*\tdatastore*\010workflow*\021workflow_insta" +
+      "nce*\014workflow_run*\013environment*\021executio" +
+      "n_context*\010artifact*\007project:\205\001\n\tkind_me" +
+      "ta\022!.google.protobuf.EnumValueOptions\030\365\277" +
+      "\005 \001(\0132C.ai.stigmer.commons.apiresource.a" +
+      "piresourcekind.ApiResourceKindMetaR\010kind" +
+      "MetaB\364\001B\024ApiResourceKindProtoP\001\242\002\005ASCAA\252" +
+      "\002.Ai.Stigmer.Commons.Apiresource.Apireso" +
+      "urcekind\312\002.Ai\\Stigmer\\Commons\\Apiresourc" +
+      "e\\Apiresourcekind\342\002:Ai\\Stigmer\\Commons\\A" +
+      "piresource\\Apiresourcekind\\GPBMetadata\352\002" +
+      "2Ai::Stigmer::Commons::Apiresource::Apir" +
+      "esourcekindb\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

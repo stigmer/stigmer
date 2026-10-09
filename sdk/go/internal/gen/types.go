@@ -52,13 +52,6 @@ type ListResult struct {
 	TotalPages int32
 }
 
-// EnvVarInput describes a single environment variable.
-type EnvVarInput struct {
-	Value       string
-	IsSecret    bool
-	Description string
-}
-
 // ResourceRefFromProto creates a ResourceRef from a proto ApiResourceReference.
 func ResourceRefFromProto(r *apiresource.ApiResourceReference) ResourceRef {
 	if r == nil {

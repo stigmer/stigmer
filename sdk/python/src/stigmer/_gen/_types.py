@@ -67,12 +67,3 @@ class ListResult:
     entries: list[search_io_pb2.SearchResult] = field(default_factory=list)
     total_count: int = 0
     total_pages: int = 0
-
-
-@dataclass
-class EnvVarInput:
-    """A single environment variable."""
-
-    value: str = ""
-    is_secret: bool = False
-    description: str = ""

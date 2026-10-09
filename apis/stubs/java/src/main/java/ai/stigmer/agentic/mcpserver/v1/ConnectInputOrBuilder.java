@@ -34,65 +34,6 @@ public interface ConnectInputOrBuilder extends
 
   /**
    * <pre>
-   * Optional environment variable values for one-time use, ahead of the
-   * caller's My vault.
-   * </pre>
-   *
-   * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 2 [json_name = "runtimeEnv"];</code>
-   */
-  int getRuntimeEnvCount();
-  /**
-   * <pre>
-   * Optional environment variable values for one-time use, ahead of the
-   * caller's My vault.
-   * </pre>
-   *
-   * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 2 [json_name = "runtimeEnv"];</code>
-   */
-  boolean containsRuntimeEnv(
-      java.lang.String key);
-  /**
-   * Use {@link #getRuntimeEnvMap()} instead.
-   */
-  @java.lang.Deprecated
-  java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue>
-  getRuntimeEnv();
-  /**
-   * <pre>
-   * Optional environment variable values for one-time use, ahead of the
-   * caller's My vault.
-   * </pre>
-   *
-   * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 2 [json_name = "runtimeEnv"];</code>
-   */
-  java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue>
-  getRuntimeEnvMap();
-  /**
-   * <pre>
-   * Optional environment variable values for one-time use, ahead of the
-   * caller's My vault.
-   * </pre>
-   *
-   * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 2 [json_name = "runtimeEnv"];</code>
-   */
-  /* nullable */
-ai.stigmer.agentic.executioncontext.v1.ExecutionValue getRuntimeEnvOrDefault(
-      java.lang.String key,
-      /* nullable */
-ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
-  /**
-   * <pre>
-   * Optional environment variable values for one-time use, ahead of the
-   * caller's My vault.
-   * </pre>
-   *
-   * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 2 [json_name = "runtimeEnv"];</code>
-   */
-  ai.stigmer.agentic.executioncontext.v1.ExecutionValue getRuntimeEnvOrThrow(
-      java.lang.String key);
-
-  /**
-   * <pre>
    * Organization context for credential resolution.
    *
    * The caller's My vault in this organization is the one connect reads.
@@ -118,4 +59,26 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
    */
   com.google.protobuf.ByteString
       getOrgBytes();
+
+  /**
+   * <pre>
+   * The run whose planned values for this server the connect uses, in place
+   * of the caller's My vault.
+   * </pre>
+   *
+   * <code>string run_id = 4 [json_name = "runId"];</code>
+   * @return The runId.
+   */
+  java.lang.String getRunId();
+  /**
+   * <pre>
+   * The run whose planned values for this server the connect uses, in place
+   * of the caller's My vault.
+   * </pre>
+   *
+   * <code>string run_id = 4 [json_name = "runId"];</code>
+   * @return The bytes for runId.
+   */
+  com.google.protobuf.ByteString
+      getRunIdBytes();
 }

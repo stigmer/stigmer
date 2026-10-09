@@ -11,6 +11,8 @@ import ai.stigmer.agentic.vault.v1.ConnectLinkControllerGrpc;
 import ai.stigmer.agentic.vault.v1.ConnectLinkInfo;
 import ai.stigmer.agentic.vault.v1.ConnectLinkTokenInput;
 import ai.stigmer.agentic.vault.v1.CreateConnectLinkInput;
+import ai.stigmer.agentic.vault.v1.ExecutionValues;
+import ai.stigmer.agentic.vault.v1.FetchExecutionValuesInput;
 import ai.stigmer.agentic.vault.v1.GetMyVaultInput;
 import ai.stigmer.agentic.vault.v1.GetVaultByExternalIdInput;
 import ai.stigmer.agentic.vault.v1.ListVaultsRequest;
@@ -25,6 +27,7 @@ import ai.stigmer.agentic.vault.v1.Vault;
 import ai.stigmer.agentic.vault.v1.VaultCommandControllerGrpc;
 import ai.stigmer.agentic.vault.v1.VaultList;
 import ai.stigmer.agentic.vault.v1.VaultQueryControllerGrpc;
+import ai.stigmer.agentic.vault.v1.VaultValueControllerGrpc;
 import ai.stigmer.commons.apiresource.ApiResourceDeleteInput;
 import ai.stigmer.commons.apiresource.ApiResourceId;
 import ai.stigmer.commons.apiresource.UpdateVisibilityInput;
@@ -37,11 +40,13 @@ public final class VaultClient {
     private final VaultCommandControllerGrpc.VaultCommandControllerBlockingStub command;
     private final ConnectLinkControllerGrpc.ConnectLinkControllerBlockingStub connectLink;
     private final VaultQueryControllerGrpc.VaultQueryControllerBlockingStub query;
+    private final VaultValueControllerGrpc.VaultValueControllerBlockingStub vaultValue;
 
     VaultClient(Channel channel) {
         this.command = VaultCommandControllerGrpc.newBlockingStub(channel);
         this.connectLink = ConnectLinkControllerGrpc.newBlockingStub(channel);
         this.query = VaultQueryControllerGrpc.newBlockingStub(channel);
+        this.vaultValue = VaultValueControllerGrpc.newBlockingStub(channel);
     }
 
     public Vault create(VaultInput input) {
@@ -161,6 +166,12 @@ public final class VaultClient {
     public VaultList list(ListVaultsRequest input) {
         try {
             return query.list(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public ExecutionValues fetchValues(FetchExecutionValuesInput input) {
+        try {
+            return vaultValue.fetchValues(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 }

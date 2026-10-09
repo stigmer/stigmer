@@ -62,7 +62,7 @@
           "inputFullType": "ai.stigmer.agentic.mcpserver.v1.ConnectInput",
           "outputType": "McpServer",
           "outputFullType": "ai.stigmer.agentic.mcpserver.v1.McpServer",
-          "description": "Start a connect operation without waiting for it: discovery runs\n server-side, and the caller observes progress by\n polling the resource.\n\n Returns the McpServer immediately with status.connect_status describing\n the accepted operation (phase CONNECTING, plus a warning when no runner\n appears to be polling the task queue). Poll get/getByReference until\n status.connect_status reaches a terminal phase; results land in\n status.discovered_capabilities exactly as with the blocking connect.\n\n Idempotent while an operation is in flight: a startConnect that finds a\n live CONNECTING operation attaches to it (the in-flight operation's\n runtime_env wins) instead of starting a second workflow. A CONNECTING\n entry orphaned by a backend restart is reconciled against Temporal\n before a new operation starts."
+          "description": "Start a connect operation without waiting for it: discovery runs\n server-side, and the caller observes progress by\n polling the resource.\n\n Returns the McpServer immediately with status.connect_status describing\n the accepted operation (phase CONNECTING, plus a warning when no runner\n appears to be polling the task queue). Poll get/getByReference until\n status.connect_status reaches a terminal phase; results land in\n status.discovered_capabilities exactly as with the blocking connect.\n\n Idempotent while an operation is in flight: a startConnect that finds a\n live CONNECTING operation attaches to it (the in-flight operation's\n values serve it) instead of starting a second workflow. A CONNECTING\n entry orphaned by a backend restart is reconciled against Temporal\n before a new operation starts."
         },
         {
           "name": "DisconnectOAuth",
@@ -148,7 +148,7 @@
     },
     {
       "name": "ConnectInput",
-      "description": "ConnectInput is the request for the connect RPC.",
+      "description": "ConnectInput is the request for the connect and startConnect RPCs.\n\n A connect reads the caller's My vault in org, the one vault connect\n reads; the server's address and declared keys are matched as a run's\n are. A value is saved to a vault before a connect, never sent with it\n (`stigmer vault set-secret`). A sign-in saved into a shared vault is not\n read here: it serves the runs that use that vault.",
       "protoType": "ai.stigmer.agentic.mcpserver.v1.ConnectInput",
       "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/io.proto",
       "fields": [
@@ -166,23 +166,6 @@
           }
         },
         {
-          "name": "RuntimeEnv",
-          "jsonName": "runtimeEnv",
-          "protoField": "runtime_env",
-          "type": {
-            "kind": "map",
-            "keyType": {
-              "kind": "string"
-            },
-            "valueType": {
-              "kind": "message",
-              "messageType": "ExecutionValue"
-            }
-          },
-          "description": "Optional environment variable values for one-time use, ahead of the\n caller's My vault.",
-          "required": false
-        },
-        {
           "name": "Org",
           "jsonName": "org",
           "protoField": "org",
@@ -194,6 +177,16 @@
           "validation": {
             "minLength": 1
           }
+        },
+        {
+          "name": "RunId",
+          "jsonName": "runId",
+          "protoField": "run_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The run whose planned values for this server the connect uses, in place\n of the caller's My vault.",
+          "required": false
         }
       ]
     },
@@ -296,7 +289,6 @@
               "agent_share",
               "agent_channel",
               "channel_app",
-              "execution_context",
               "schedule",
               "memory",
               "plugin",
@@ -569,11 +561,6 @@
           "name": "channel_app",
           "number": 48,
           "description": "Customer-owned messaging-platform app (e.g. a Slack app) that agent\n channels can install through instead of the shared platform app."
-        },
-        {
-          "name": "execution_context",
-          "number": 54,
-          "description": "User-owned runtime context for managing execution state."
         },
         {
           "name": "schedule",

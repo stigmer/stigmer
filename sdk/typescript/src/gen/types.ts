@@ -36,10 +36,3 @@ export interface ListResult {
   readonly totalCount: number;
   readonly totalPages: number;
 }
-
-/** A single environment variable. */
-export interface EnvVarInput {
-  readonly value: string;
-  readonly isSecret?: boolean;
-  readonly description?: string;
-}

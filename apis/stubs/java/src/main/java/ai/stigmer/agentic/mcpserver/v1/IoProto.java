@@ -37,11 +37,6 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_mcpserver_v1_ConnectInput_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_agentic_mcpserver_v1_ConnectInput_RuntimeEnvEntry_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_agentic_mcpserver_v1_ConnectInput_RuntimeEnvEntry_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_mcpserver_v1_GetOAuthGrantStatusInput_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -71,47 +66,40 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
   static {
     java.lang.String[] descriptorData = {
       "\n(ai/stigmer/agentic/mcpserver/v1/io.pro" +
-      "to\022\037ai.stigmer.agentic.mcpserver.v1\0321ai/" +
-      "stigmer/agentic/executioncontext/v1/spec" +
-      ".proto\032\033buf/validate/validate.proto\"+\n\013M" +
-      "cpServerId\022\034\n\005value\030\001 \001(\tB\006\272H\003\310\001\001R\005value" +
-      "\"\254\002\n\014ConnectInput\022*\n\rmcp_server_id\030\001 \001(\t" +
-      "B\006\272H\003\310\001\001R\013mcpServerId\022^\n\013runtime_env\030\002 \003" +
-      "(\0132=.ai.stigmer.agentic.mcpserver.v1.Con" +
-      "nectInput.RuntimeEnvEntryR\nruntimeEnv\022\031\n" +
-      "\003org\030\003 \001(\tB\007\272H\004r\002\020\001R\003org\032u\n\017RuntimeEnvEn" +
-      "try\022\020\n\003key\030\001 \001(\tR\003key\022L\n\005value\030\002 \001(\01326.a" +
-      "i.stigmer.agentic.executioncontext.v1.Ex" +
-      "ecutionValueR\005value:\0028\001\"^\n\030GetOAuthGrant" +
-      "StatusInput\022\'\n\013resource_id\030\001 \001(\tB\006\272H\003\310\001\001" +
-      "R\nresourceId\022\031\n\003org\030\002 \001(\tB\007\272H\004r\002\020\001R\003org\"" +
-      "\234\002\n\031GetOAuthGrantStatusOutput\022\034\n\tconnect" +
-      "ed\030\001 \001(\010R\tconnected\0225\n\027access_token_expi" +
-      "res_at\030\002 \001(\003R\024accessTokenExpiresAt\022$\n\016ta" +
-      "rget_env_var\030\003 \001(\tR\014targetEnvVar\022\037\n\013auth" +
-      "_method\030\004 \001(\tR\nauthMethod\022c\n\021connection_" +
-      "health\030\005 \001(\01626.ai.stigmer.agentic.mcpser" +
-      "ver.v1.OAuthConnectionHealthR\020connection" +
-      "Health\"Z\n\024DisconnectOAuthInput\022\'\n\013resour" +
-      "ce_id\030\001 \001(\tB\006\272H\003\310\001\001R\nresourceId\022\031\n\003org\030\002" +
-      " \001(\tB\007\272H\004r\002\020\001R\003org\";\n\025DisconnectOAuthOut" +
-      "put\022\"\n\014disconnected\030\001 \001(\010R\014disconnected*" +
-      "\355\001\n\025OAuthConnectionHealth\022\'\n#OAUTH_CONNE" +
-      "CTION_HEALTH_UNSPECIFIED\020\000\022#\n\037OAUTH_CONN" +
-      "ECTION_HEALTH_HEALTHY\020\001\022)\n%OAUTH_CONNECT" +
-      "ION_HEALTH_TOKEN_EXPIRED\020\002\0225\n1OAUTH_CONN" +
-      "ECTION_HEALTH_TOKEN_EXPIRED_REFRESHABLE\020" +
-      "\003\022$\n OAUTH_CONNECTION_HEALTH_NO_GRANT\020\004B" +
-      "\252\001B\007IoProtoP\001\242\002\004ASAM\252\002\037Ai.Stigmer.Agenti" +
-      "c.Mcpserver.V1\312\002\037Ai\\Stigmer\\Agentic\\Mcps" +
-      "erver\\V1\342\002+Ai\\Stigmer\\Agentic\\Mcpserver\\" +
-      "V1\\GPBMetadata\352\002#Ai::Stigmer::Agentic::M" +
-      "cpserver::V1b\006proto3"
+      "to\022\037ai.stigmer.agentic.mcpserver.v1\032\033buf" +
+      "/validate/validate.proto\"+\n\013McpServerId\022" +
+      "\034\n\005value\030\001 \001(\tB\006\272H\003\310\001\001R\005value\"\177\n\014Connect" +
+      "Input\022*\n\rmcp_server_id\030\001 \001(\tB\006\272H\003\310\001\001R\013mc" +
+      "pServerId\022\031\n\003org\030\003 \001(\tB\007\272H\004r\002\020\001R\003org\022\025\n\006" +
+      "run_id\030\004 \001(\tR\005runIdJ\004\010\002\020\003R\013runtime_env\"^" +
+      "\n\030GetOAuthGrantStatusInput\022\'\n\013resource_i" +
+      "d\030\001 \001(\tB\006\272H\003\310\001\001R\nresourceId\022\031\n\003org\030\002 \001(\t" +
+      "B\007\272H\004r\002\020\001R\003org\"\234\002\n\031GetOAuthGrantStatusOu" +
+      "tput\022\034\n\tconnected\030\001 \001(\010R\tconnected\0225\n\027ac" +
+      "cess_token_expires_at\030\002 \001(\003R\024accessToken" +
+      "ExpiresAt\022$\n\016target_env_var\030\003 \001(\tR\014targe" +
+      "tEnvVar\022\037\n\013auth_method\030\004 \001(\tR\nauthMethod" +
+      "\022c\n\021connection_health\030\005 \001(\01626.ai.stigmer" +
+      ".agentic.mcpserver.v1.OAuthConnectionHea" +
+      "lthR\020connectionHealth\"Z\n\024DisconnectOAuth" +
+      "Input\022\'\n\013resource_id\030\001 \001(\tB\006\272H\003\310\001\001R\nreso" +
+      "urceId\022\031\n\003org\030\002 \001(\tB\007\272H\004r\002\020\001R\003org\";\n\025Dis" +
+      "connectOAuthOutput\022\"\n\014disconnected\030\001 \001(\010" +
+      "R\014disconnected*\355\001\n\025OAuthConnectionHealth" +
+      "\022\'\n#OAUTH_CONNECTION_HEALTH_UNSPECIFIED\020" +
+      "\000\022#\n\037OAUTH_CONNECTION_HEALTH_HEALTHY\020\001\022)" +
+      "\n%OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED\020" +
+      "\002\0225\n1OAUTH_CONNECTION_HEALTH_TOKEN_EXPIR" +
+      "ED_REFRESHABLE\020\003\022$\n OAUTH_CONNECTION_HEA" +
+      "LTH_NO_GRANT\020\004B\252\001B\007IoProtoP\001\242\002\004ASAM\252\002\037Ai" +
+      ".Stigmer.Agentic.Mcpserver.V1\312\002\037Ai\\Stigm" +
+      "er\\Agentic\\Mcpserver\\V1\342\002+Ai\\Stigmer\\Age" +
+      "ntic\\Mcpserver\\V1\\GPBMetadata\352\002#Ai::Stig" +
+      "mer::Agentic::Mcpserver::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
-          ai.stigmer.agentic.executioncontext.v1.SpecProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
         });
     internal_static_ai_stigmer_agentic_mcpserver_v1_McpServerId_descriptor =
@@ -125,13 +113,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_mcpserver_v1_ConnectInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_mcpserver_v1_ConnectInput_descriptor,
-        new java.lang.String[] { "McpServerId", "RuntimeEnv", "Org", });
-    internal_static_ai_stigmer_agentic_mcpserver_v1_ConnectInput_RuntimeEnvEntry_descriptor =
-      internal_static_ai_stigmer_agentic_mcpserver_v1_ConnectInput_descriptor.getNestedType(0);
-    internal_static_ai_stigmer_agentic_mcpserver_v1_ConnectInput_RuntimeEnvEntry_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_agentic_mcpserver_v1_ConnectInput_RuntimeEnvEntry_descriptor,
-        new java.lang.String[] { "Key", "Value", });
+        new java.lang.String[] { "McpServerId", "Org", "RunId", });
     internal_static_ai_stigmer_agentic_mcpserver_v1_GetOAuthGrantStatusInput_descriptor =
       getDescriptor().getMessageType(2);
     internal_static_ai_stigmer_agentic_mcpserver_v1_GetOAuthGrantStatusInput_fieldAccessorTable = new
@@ -157,7 +139,6 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
         internal_static_ai_stigmer_agentic_mcpserver_v1_DisconnectOAuthOutput_descriptor,
         new java.lang.String[] { "Disconnected", });
     descriptor.resolveAllFeaturesImmutable();
-    ai.stigmer.agentic.executioncontext.v1.SpecProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();

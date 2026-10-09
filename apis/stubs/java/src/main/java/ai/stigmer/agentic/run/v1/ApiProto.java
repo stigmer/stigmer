@@ -47,6 +47,16 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_run_v1_RunCredentials_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_run_v1_RunValueSource_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_run_v1_RunValueSource_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_run_v1_RunValueDeclarer_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_run_v1_RunValueDeclarer_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_run_v1_SetupProgress_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -144,8 +154,22 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
       "TodosEntry\022\020\n\003key\030\001 \001(\tR\003key\0229\n\005value\030\002 " +
       "\001(\0132#.ai.stigmer.agentic.run.v1.TodoItem" +
       "R\005value:\0028\001J\004\010\n\020\013J\004\010\014\020\rR\016callback_tokenR" +
-      "\020resolved_context\"8\n\016RunCredentials\022\033\n\006p" +
-      "erson\030\001 \001(\tH\000R\006person\210\001\001B\t\n\007_person\"4\n\rS" +
+      "\020resolved_context\"}\n\016RunCredentials\022\033\n\006p" +
+      "erson\030\001 \001(\tH\000R\006person\210\001\001\022C\n\007sources\030\002 \003(" +
+      "\0132).ai.stigmer.agentic.run.v1.RunValueSo" +
+      "urceR\007sourcesB\t\n\007_person\"\257\002\n\016RunValueSou" +
+      "rce\022\020\n\003key\030\001 \001(\tR\003key\022G\n\010declarer\030\002 \001(\0132" +
+      "+.ai.stigmer.agentic.run.v1.RunValueDecl" +
+      "arerR\010declarer\022A\n\006origin\030\003 \001(\0162).ai.stig" +
+      "mer.agentic.run.v1.RunValueOriginR\006origi" +
+      "n\022\031\n\010vault_id\030\004 \001(\tR\007vaultId\022\024\n\005entry\030\005 " +
+      "\001(\tR\005entry\022\024\n\005login\030\006 \001(\010R\005login\022\027\n\007sign" +
+      "_in\030\007 \001(\010R\006signIn\022\037\n\013plain_value\030\010 \001(\tR\n" +
+      "plainValue\"\266\001\n\020RunValueDeclarer\022C\n\004kind\030" +
+      "\001 \001(\0162/.ai.stigmer.agentic.run.v1.RunVal" +
+      "ueDeclarerKindR\004kind\022\022\n\004name\030\002 \001(\tR\004name" +
+      "\022\"\n\rmcp_server_id\030\003 \001(\tR\013mcpServerId\022%\n\016" +
+      "repository_url\030\004 \001(\tR\rrepositoryUrl\"4\n\rS" +
       "etupProgress\022#\n\rcurrent_phase\030\001 \001(\tR\014cur" +
       "rentPhase\"\234\001\n\026RecalledMemoriesReport\022)\n\020" +
       "selection_active\030\001 \001(\010R\017selectionActive\022" +
@@ -200,15 +224,27 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_run_v1_RunCredentials_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_RunCredentials_descriptor,
-        new java.lang.String[] { "Person", });
-    internal_static_ai_stigmer_agentic_run_v1_SetupProgress_descriptor =
+        new java.lang.String[] { "Person", "Sources", });
+    internal_static_ai_stigmer_agentic_run_v1_RunValueSource_descriptor =
       getDescriptor().getMessageType(3);
+    internal_static_ai_stigmer_agentic_run_v1_RunValueSource_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_run_v1_RunValueSource_descriptor,
+        new java.lang.String[] { "Key", "Declarer", "Origin", "VaultId", "Entry", "Login", "SignIn", "PlainValue", });
+    internal_static_ai_stigmer_agentic_run_v1_RunValueDeclarer_descriptor =
+      getDescriptor().getMessageType(4);
+    internal_static_ai_stigmer_agentic_run_v1_RunValueDeclarer_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_run_v1_RunValueDeclarer_descriptor,
+        new java.lang.String[] { "Kind", "Name", "McpServerId", "RepositoryUrl", });
+    internal_static_ai_stigmer_agentic_run_v1_SetupProgress_descriptor =
+      getDescriptor().getMessageType(5);
     internal_static_ai_stigmer_agentic_run_v1_SetupProgress_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_SetupProgress_descriptor,
         new java.lang.String[] { "CurrentPhase", });
     internal_static_ai_stigmer_agentic_run_v1_RecalledMemoriesReport_descriptor =
-      getDescriptor().getMessageType(4);
+      getDescriptor().getMessageType(6);
     internal_static_ai_stigmer_agentic_run_v1_RecalledMemoriesReport_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_RecalledMemoriesReport_descriptor,

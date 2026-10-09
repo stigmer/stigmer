@@ -12,7 +12,6 @@ public class GeneratedClient {
     public final ApiKeyClient apiKey;
     public final ChannelAppClient channelapp;
     public final EvaluatorClient evaluator;
-    public final ExecutionContextClient executionContext;
     public final IamPolicyClient iamPolicy;
     public final IdentityAccountClient identityAccount;
     public final IdentityProviderClient identityProvider;
@@ -42,7 +41,6 @@ public class GeneratedClient {
         this.apiKey = new ApiKeyClient(channel);
         this.channelapp = new ChannelAppClient(channel);
         this.evaluator = new EvaluatorClient(channel);
-        this.executionContext = new ExecutionContextClient(channel);
         this.iamPolicy = new IamPolicyClient(channel);
         this.identityAccount = new IdentityAccountClient(channel);
         this.identityProvider = new IdentityProviderClient(channel);

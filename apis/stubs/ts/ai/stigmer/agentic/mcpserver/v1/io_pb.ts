@@ -4,8 +4,6 @@
 
 import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
-import type { ExecutionValue } from "../../executioncontext/v1/spec_pb.js";
-import { file_ai_stigmer_agentic_executioncontext_v1_spec } from "../../executioncontext/v1/spec_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
 import type { Message } from "@bufbuild/protobuf";
 
@@ -13,7 +11,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/mcpserver/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_mcpserver_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL2lvLnByb3RvEh9haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxIiQKC01jcFNlcnZlcklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiggIKDENvbm5lY3RJbnB1dBIdCg1tY3Bfc2VydmVyX2lkGAEgASgJQga6SAPIAQESUgoLcnVudGltZV9lbnYYAiADKAsyPS5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkNvbm5lY3RJbnB1dC5SdW50aW1lRW52RW50cnkSFAoDb3JnGAMgASgJQge6SARyAhABGmkKD1J1bnRpbWVFbnZFbnRyeRILCgNrZXkYASABKAkSRQoFdmFsdWUYAiABKAsyNi5haS5zdGlnbWVyLmFnZW50aWMuZXhlY3V0aW9uY29udGV4dC52MS5FeGVjdXRpb25WYWx1ZToCOAEiTQoYR2V0T0F1dGhHcmFudFN0YXR1c0lucHV0EhsKC3Jlc291cmNlX2lkGAEgASgJQga6SAPIAQESFAoDb3JnGAIgASgJQge6SARyAhABIs8BChlHZXRPQXV0aEdyYW50U3RhdHVzT3V0cHV0EhEKCWNvbm5lY3RlZBgBIAEoCBIfChdhY2Nlc3NfdG9rZW5fZXhwaXJlc19hdBgCIAEoAxIWCg50YXJnZXRfZW52X3ZhchgDIAEoCRITCgthdXRoX21ldGhvZBgEIAEoCRJRChFjb25uZWN0aW9uX2hlYWx0aBgFIAEoDjI2LmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuT0F1dGhDb25uZWN0aW9uSGVhbHRoIkkKFERpc2Nvbm5lY3RPQXV0aElucHV0EhsKC3Jlc291cmNlX2lkGAEgASgJQga6SAPIAQESFAoDb3JnGAIgASgJQge6SARyAhABIi0KFURpc2Nvbm5lY3RPQXV0aE91dHB1dBIUCgxkaXNjb25uZWN0ZWQYASABKAgq7QEKFU9BdXRoQ29ubmVjdGlvbkhlYWx0aBInCiNPQVVUSF9DT05ORUNUSU9OX0hFQUxUSF9VTlNQRUNJRklFRBAAEiMKH09BVVRIX0NPTk5FQ1RJT05fSEVBTFRIX0hFQUxUSFkQARIpCiVPQVVUSF9DT05ORUNUSU9OX0hFQUxUSF9UT0tFTl9FWFBJUkVEEAISNQoxT0FVVEhfQ09OTkVDVElPTl9IRUFMVEhfVE9LRU5fRVhQSVJFRF9SRUZSRVNIQUJMRRADEiQKIE9BVVRIX0NPTk5FQ1RJT05fSEVBTFRIX05PX0dSQU5UEARiBnByb3RvMw", [file_ai_stigmer_agentic_executioncontext_v1_spec, file_buf_validate_validate]);
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL2lvLnByb3RvEh9haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxIiQKC01jcFNlcnZlcklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiZgoMQ29ubmVjdElucHV0Eh0KDW1jcF9zZXJ2ZXJfaWQYASABKAlCBrpIA8gBARIUCgNvcmcYAyABKAlCB7pIBHICEAESDgoGcnVuX2lkGAQgASgJSgQIAhADUgtydW50aW1lX2VudiJNChhHZXRPQXV0aEdyYW50U3RhdHVzSW5wdXQSGwoLcmVzb3VyY2VfaWQYASABKAlCBrpIA8gBARIUCgNvcmcYAiABKAlCB7pIBHICEAEizwEKGUdldE9BdXRoR3JhbnRTdGF0dXNPdXRwdXQSEQoJY29ubmVjdGVkGAEgASgIEh8KF2FjY2Vzc190b2tlbl9leHBpcmVzX2F0GAIgASgDEhYKDnRhcmdldF9lbnZfdmFyGAMgASgJEhMKC2F1dGhfbWV0aG9kGAQgASgJElEKEWNvbm5lY3Rpb25faGVhbHRoGAUgASgOMjYuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5PQXV0aENvbm5lY3Rpb25IZWFsdGgiSQoURGlzY29ubmVjdE9BdXRoSW5wdXQSGwoLcmVzb3VyY2VfaWQYASABKAlCBrpIA8gBARIUCgNvcmcYAiABKAlCB7pIBHICEAEiLQoVRGlzY29ubmVjdE9BdXRoT3V0cHV0EhQKDGRpc2Nvbm5lY3RlZBgBIAEoCCrtAQoVT0F1dGhDb25uZWN0aW9uSGVhbHRoEicKI09BVVRIX0NPTk5FQ1RJT05fSEVBTFRIX1VOU1BFQ0lGSUVEEAASIwofT0FVVEhfQ09OTkVDVElPTl9IRUFMVEhfSEVBTFRIWRABEikKJU9BVVRIX0NPTk5FQ1RJT05fSEVBTFRIX1RPS0VOX0VYUElSRUQQAhI1CjFPQVVUSF9DT05ORUNUSU9OX0hFQUxUSF9UT0tFTl9FWFBJUkVEX1JFRlJFU0hBQkxFEAMSJAogT0FVVEhfQ09OTkVDVElPTl9IRUFMVEhfTk9fR1JBTlQQBGIGcHJvdG8z", [file_buf_validate_validate]);
 
 /**
  * McpServerId wraps an MCP server resource identifier.
@@ -41,7 +39,13 @@ export const McpServerIdSchema: GenMessage<McpServerId> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_mcpserver_v1_io, 0);
 
 /**
- * ConnectInput is the request for the connect RPC.
+ * ConnectInput is the request for the connect and startConnect RPCs.
+ *
+ * A connect reads the caller's My vault in org, the one vault connect
+ * reads; the server's address and declared keys are matched as a run's
+ * are. A value is saved to a vault before a connect, never sent with it
+ * (`stigmer vault set-secret`). A sign-in saved into a shared vault is not
+ * read here: it serves the runs that use that vault.
  *
  * @generated from message ai.stigmer.agentic.mcpserver.v1.ConnectInput
  */
@@ -55,14 +59,6 @@ export type ConnectInput = Message<"ai.stigmer.agentic.mcpserver.v1.ConnectInput
   mcpServerId: string;
 
   /**
-   * Optional environment variable values for one-time use, ahead of the
-   * caller's My vault.
-   *
-   * @generated from field: map<string, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> runtime_env = 2;
-   */
-  runtimeEnv: { [key: string]: ExecutionValue };
-
-  /**
    * Organization context for credential resolution.
    *
    * The caller's My vault in this organization is the one connect reads.
@@ -72,6 +68,14 @@ export type ConnectInput = Message<"ai.stigmer.agentic.mcpserver.v1.ConnectInput
    * @generated from field: string org = 3;
    */
   org: string;
+
+  /**
+   * The run whose planned values for this server the connect uses, in place
+   * of the caller's My vault.
+   *
+   * @generated from field: string run_id = 4;
+   */
+  runId: string;
 };
 
 /**

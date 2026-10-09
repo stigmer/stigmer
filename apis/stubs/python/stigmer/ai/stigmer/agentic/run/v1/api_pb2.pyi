@@ -102,10 +102,44 @@ class RunStatus(_message.Message):
     def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., messages: _Optional[_Iterable[_Union[_message_pb2.AgentMessage, _Mapping]]] = ..., phase: _Optional[_Union[_enum_pb2.RunPhase, str]] = ..., sub_agent_runs: _Optional[_Iterable[_Union[_subagent_pb2.SubAgentRun, _Mapping]]] = ..., error: _Optional[str] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., todos: _Optional[_Mapping[str, _todo_pb2.TodoItem]] = ..., pending_approvals: _Optional[_Iterable[_Union[_approval_pb2.PendingApproval, _Mapping]]] = ..., approval_event_stream: _Optional[_Union[_approval_pb2.ApprovalEventStream, _Mapping]] = ..., context_info: _Optional[_Union[_context_pb2.ContextInfo, _Mapping]] = ..., artifacts: _Optional[_Iterable[_Union[_artifact_pb2.RunArtifact, _Mapping]]] = ..., workspace_write_backs: _Optional[_Iterable[_Union[_writeback_pb2.WorkspaceWriteBack, _Mapping]]] = ..., setup_progress: _Optional[_Union[SetupProgress, _Mapping]] = ..., streaming_usage: _Optional[_Union[_usage_pb2.StreamingUsageSummary, _Mapping]] = ..., structured_output: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., file_change_sets: _Optional[_Iterable[_Union[_filereview_pb2.FileChangeSet, _Mapping]]] = ..., file_review_event_stream: _Optional[_Union[_filereview_pb2.FileReviewEventStream, _Mapping]] = ..., file_change_progress: _Optional[_Union[_filereview_pb2.FileChangeProgress, _Mapping]] = ..., recalled_memories_report: _Optional[_Union[RecalledMemoriesReport, _Mapping]] = ..., agent_id: _Optional[str] = ..., agent_version_hash: _Optional[str] = ..., declared_preferences: _Optional[_Union[_spec_pb2.DeclaredPreferences, _Mapping]] = ..., recalled_memories: _Optional[_Union[_spec_pb2.RecalledMemories, _Mapping]] = ..., run_config: _Optional[_Union[_invocation_pb2.RunConfig, _Mapping]] = ..., approval_mode: _Optional[_Union[_enum_pb2.ApprovalMode, str]] = ..., credentials: _Optional[_Union[RunCredentials, _Mapping]] = ...) -> None: ...
 
 class RunCredentials(_message.Message):
-    __slots__ = ("person",)
+    __slots__ = ("person", "sources")
     PERSON_FIELD_NUMBER: _ClassVar[int]
+    SOURCES_FIELD_NUMBER: _ClassVar[int]
     person: str
-    def __init__(self, person: _Optional[str] = ...) -> None: ...
+    sources: _containers.RepeatedCompositeFieldContainer[RunValueSource]
+    def __init__(self, person: _Optional[str] = ..., sources: _Optional[_Iterable[_Union[RunValueSource, _Mapping]]] = ...) -> None: ...
+
+class RunValueSource(_message.Message):
+    __slots__ = ("key", "declarer", "origin", "vault_id", "entry", "login", "sign_in", "plain_value")
+    KEY_FIELD_NUMBER: _ClassVar[int]
+    DECLARER_FIELD_NUMBER: _ClassVar[int]
+    ORIGIN_FIELD_NUMBER: _ClassVar[int]
+    VAULT_ID_FIELD_NUMBER: _ClassVar[int]
+    ENTRY_FIELD_NUMBER: _ClassVar[int]
+    LOGIN_FIELD_NUMBER: _ClassVar[int]
+    SIGN_IN_FIELD_NUMBER: _ClassVar[int]
+    PLAIN_VALUE_FIELD_NUMBER: _ClassVar[int]
+    key: str
+    declarer: RunValueDeclarer
+    origin: _enum_pb2.RunValueOrigin
+    vault_id: str
+    entry: str
+    login: bool
+    sign_in: bool
+    plain_value: str
+    def __init__(self, key: _Optional[str] = ..., declarer: _Optional[_Union[RunValueDeclarer, _Mapping]] = ..., origin: _Optional[_Union[_enum_pb2.RunValueOrigin, str]] = ..., vault_id: _Optional[str] = ..., entry: _Optional[str] = ..., login: bool = ..., sign_in: bool = ..., plain_value: _Optional[str] = ...) -> None: ...
+
+class RunValueDeclarer(_message.Message):
+    __slots__ = ("kind", "name", "mcp_server_id", "repository_url")
+    KIND_FIELD_NUMBER: _ClassVar[int]
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    MCP_SERVER_ID_FIELD_NUMBER: _ClassVar[int]
+    REPOSITORY_URL_FIELD_NUMBER: _ClassVar[int]
+    kind: _enum_pb2.RunValueDeclarerKind
+    name: str
+    mcp_server_id: str
+    repository_url: str
+    def __init__(self, kind: _Optional[_Union[_enum_pb2.RunValueDeclarerKind, str]] = ..., name: _Optional[str] = ..., mcp_server_id: _Optional[str] = ..., repository_url: _Optional[str] = ...) -> None: ...
 
 class SetupProgress(_message.Message):
     __slots__ = ("current_phase",)

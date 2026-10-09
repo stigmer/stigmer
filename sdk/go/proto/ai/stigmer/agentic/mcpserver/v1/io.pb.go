@@ -8,7 +8,6 @@ package mcpserverv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/executioncontext/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -148,21 +147,27 @@ func (x *McpServerId) GetValue() string {
 	return ""
 }
 
-// ConnectInput is the request for the connect RPC.
+// ConnectInput is the request for the connect and startConnect RPCs.
+//
+// A connect reads the caller's My vault in org, the one vault connect
+// reads; the server's address and declared keys are matched as a run's
+// are. A value is saved to a vault before a connect, never sent with it
+// (`stigmer vault set-secret`). A sign-in saved into a shared vault is not
+// read here: it serves the runs that use that vault.
 type ConnectInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// System-generated ID of the MCP server to connect to.
 	// Obtained from McpServer.metadata.id (e.g., via getByReference).
 	McpServerId string `protobuf:"bytes,1,opt,name=mcp_server_id,json=mcpServerId,proto3" json:"mcp_server_id,omitempty"`
-	// Optional environment variable values for one-time use, ahead of the
-	// caller's My vault.
-	RuntimeEnv map[string]*v1.ExecutionValue `protobuf:"bytes,2,rep,name=runtime_env,json=runtimeEnv,proto3" json:"runtime_env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// Organization context for credential resolution.
 	//
 	// The caller's My vault in this organization is the one connect reads.
 	//
 	// Required: the backend rejects the request when this field is empty.
-	Org           string `protobuf:"bytes,3,opt,name=org,proto3" json:"org,omitempty"`
+	Org string `protobuf:"bytes,3,opt,name=org,proto3" json:"org,omitempty"`
+	// The run whose planned values for this server the connect uses, in place
+	// of the caller's My vault.
+	RunId         string `protobuf:"bytes,4,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -204,16 +209,16 @@ func (x *ConnectInput) GetMcpServerId() string {
 	return ""
 }
 
-func (x *ConnectInput) GetRuntimeEnv() map[string]*v1.ExecutionValue {
-	if x != nil {
-		return x.RuntimeEnv
-	}
-	return nil
-}
-
 func (x *ConnectInput) GetOrg() string {
 	if x != nil {
 		return x.Org
+	}
+	return ""
+}
+
+func (x *ConnectInput) GetRunId() string {
+	if x != nil {
+		return x.RunId
 	}
 	return ""
 }
@@ -471,17 +476,13 @@ var File_ai_stigmer_agentic_mcpserver_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"(ai/stigmer/agentic/mcpserver/v1/io.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\"+\n" +
+	"(ai/stigmer/agentic/mcpserver/v1/io.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a\x1bbuf/validate/validate.proto\"+\n" +
 	"\vMcpServerId\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xac\x02\n" +
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x7f\n" +
 	"\fConnectInput\x12*\n" +
-	"\rmcp_server_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vmcpServerId\x12^\n" +
-	"\vruntime_env\x18\x02 \x03(\v2=.ai.stigmer.agentic.mcpserver.v1.ConnectInput.RuntimeEnvEntryR\n" +
-	"runtimeEnv\x12\x19\n" +
-	"\x03org\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x1au\n" +
-	"\x0fRuntimeEnvEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12L\n" +
-	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01\"^\n" +
+	"\rmcp_server_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vmcpServerId\x12\x19\n" +
+	"\x03org\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12\x15\n" +
+	"\x06run_id\x18\x04 \x01(\tR\x05runIdJ\x04\b\x02\x10\x03R\vruntime_env\"^\n" +
 	"\x18GetOAuthGrantStatusInput\x12'\n" +
 	"\vresource_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\n" +
 	"resourceId\x12\x19\n" +
@@ -520,7 +521,7 @@ func file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDescGZIP() []byte {
 }
 
 var file_ai_stigmer_agentic_mcpserver_v1_io_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_ai_stigmer_agentic_mcpserver_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_ai_stigmer_agentic_mcpserver_v1_io_proto_goTypes = []any{
 	(OAuthConnectionHealth)(0),        // 0: ai.stigmer.agentic.mcpserver.v1.OAuthConnectionHealth
 	(*McpServerId)(nil),               // 1: ai.stigmer.agentic.mcpserver.v1.McpServerId
@@ -529,18 +530,14 @@ var file_ai_stigmer_agentic_mcpserver_v1_io_proto_goTypes = []any{
 	(*GetOAuthGrantStatusOutput)(nil), // 4: ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput
 	(*DisconnectOAuthInput)(nil),      // 5: ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput
 	(*DisconnectOAuthOutput)(nil),     // 6: ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput
-	nil,                               // 7: ai.stigmer.agentic.mcpserver.v1.ConnectInput.RuntimeEnvEntry
-	(*v1.ExecutionValue)(nil),         // 8: ai.stigmer.agentic.executioncontext.v1.ExecutionValue
 }
 var file_ai_stigmer_agentic_mcpserver_v1_io_proto_depIdxs = []int32{
-	7, // 0: ai.stigmer.agentic.mcpserver.v1.ConnectInput.runtime_env:type_name -> ai.stigmer.agentic.mcpserver.v1.ConnectInput.RuntimeEnvEntry
-	0, // 1: ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput.connection_health:type_name -> ai.stigmer.agentic.mcpserver.v1.OAuthConnectionHealth
-	8, // 2: ai.stigmer.agentic.mcpserver.v1.ConnectInput.RuntimeEnvEntry.value:type_name -> ai.stigmer.agentic.executioncontext.v1.ExecutionValue
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	0, // 0: ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput.connection_health:type_name -> ai.stigmer.agentic.mcpserver.v1.OAuthConnectionHealth
+	1, // [1:1] is the sub-list for method output_type
+	1, // [1:1] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_mcpserver_v1_io_proto_init() }
@@ -554,7 +551,7 @@ func file_ai_stigmer_agentic_mcpserver_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   7,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

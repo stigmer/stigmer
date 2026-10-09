@@ -22,11 +22,10 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
-from ai.stigmer.agentic.executioncontext.v1 import spec_pb2 as ai_dot_stigmer_dot_agentic_dot_executioncontext_dot_v1_dot_spec__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n(ai/stigmer/agentic/mcpserver/v1/io.proto\x12\x1f\x61i.stigmer.agentic.mcpserver.v1\x1a\x31\x61i/stigmer/agentic/executioncontext/v1/spec.proto\x1a\x1b\x62uf/validate/validate.proto\"+\n\x0bMcpServerId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xac\x02\n\x0c\x43onnectInput\x12*\n\rmcp_server_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0bmcpServerId\x12^\n\x0bruntime_env\x18\x02 \x03(\x0b\x32=.ai.stigmer.agentic.mcpserver.v1.ConnectInput.RuntimeEnvEntryR\nruntimeEnv\x12\x19\n\x03org\x18\x03 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x1au\n\x0fRuntimeEnvEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12L\n\x05value\x18\x02 \x01(\x0b\x32\x36.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x02\x38\x01\"^\n\x18GetOAuthGrantStatusInput\x12\'\n\x0bresource_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\nresourceId\x12\x19\n\x03org\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\"\x9c\x02\n\x19GetOAuthGrantStatusOutput\x12\x1c\n\tconnected\x18\x01 \x01(\x08R\tconnected\x12\x35\n\x17\x61\x63\x63\x65ss_token_expires_at\x18\x02 \x01(\x03R\x14\x61\x63\x63\x65ssTokenExpiresAt\x12$\n\x0etarget_env_var\x18\x03 \x01(\tR\x0ctargetEnvVar\x12\x1f\n\x0b\x61uth_method\x18\x04 \x01(\tR\nauthMethod\x12\x63\n\x11\x63onnection_health\x18\x05 \x01(\x0e\x32\x36.ai.stigmer.agentic.mcpserver.v1.OAuthConnectionHealthR\x10\x63onnectionHealth\"Z\n\x14\x44isconnectOAuthInput\x12\'\n\x0bresource_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\nresourceId\x12\x19\n\x03org\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\";\n\x15\x44isconnectOAuthOutput\x12\"\n\x0c\x64isconnected\x18\x01 \x01(\x08R\x0c\x64isconnected*\xed\x01\n\x15OAuthConnectionHealth\x12\'\n#OAUTH_CONNECTION_HEALTH_UNSPECIFIED\x10\x00\x12#\n\x1fOAUTH_CONNECTION_HEALTH_HEALTHY\x10\x01\x12)\n%OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED\x10\x02\x12\x35\n1OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED_REFRESHABLE\x10\x03\x12$\n OAUTH_CONNECTION_HEALTH_NO_GRANT\x10\x04\x42\xcf\x01\n#com.ai.stigmer.agentic.mcpserver.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAM\xaa\x02\x1f\x41i.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1f\x41i\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n(ai/stigmer/agentic/mcpserver/v1/io.proto\x12\x1f\x61i.stigmer.agentic.mcpserver.v1\x1a\x1b\x62uf/validate/validate.proto\"+\n\x0bMcpServerId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x7f\n\x0c\x43onnectInput\x12*\n\rmcp_server_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0bmcpServerId\x12\x19\n\x03org\x18\x03 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12\x15\n\x06run_id\x18\x04 \x01(\tR\x05runIdJ\x04\x08\x02\x10\x03R\x0bruntime_env\"^\n\x18GetOAuthGrantStatusInput\x12\'\n\x0bresource_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\nresourceId\x12\x19\n\x03org\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\"\x9c\x02\n\x19GetOAuthGrantStatusOutput\x12\x1c\n\tconnected\x18\x01 \x01(\x08R\tconnected\x12\x35\n\x17\x61\x63\x63\x65ss_token_expires_at\x18\x02 \x01(\x03R\x14\x61\x63\x63\x65ssTokenExpiresAt\x12$\n\x0etarget_env_var\x18\x03 \x01(\tR\x0ctargetEnvVar\x12\x1f\n\x0b\x61uth_method\x18\x04 \x01(\tR\nauthMethod\x12\x63\n\x11\x63onnection_health\x18\x05 \x01(\x0e\x32\x36.ai.stigmer.agentic.mcpserver.v1.OAuthConnectionHealthR\x10\x63onnectionHealth\"Z\n\x14\x44isconnectOAuthInput\x12\'\n\x0bresource_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\nresourceId\x12\x19\n\x03org\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\";\n\x15\x44isconnectOAuthOutput\x12\"\n\x0c\x64isconnected\x18\x01 \x01(\x08R\x0c\x64isconnected*\xed\x01\n\x15OAuthConnectionHealth\x12\'\n#OAUTH_CONNECTION_HEALTH_UNSPECIFIED\x10\x00\x12#\n\x1fOAUTH_CONNECTION_HEALTH_HEALTHY\x10\x01\x12)\n%OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED\x10\x02\x12\x35\n1OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED_REFRESHABLE\x10\x03\x12$\n OAUTH_CONNECTION_HEALTH_NO_GRANT\x10\x04\x42\xcf\x01\n#com.ai.stigmer.agentic.mcpserver.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAM\xaa\x02\x1f\x41i.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1f\x41i\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -36,8 +35,6 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._serialized_options = b'\n#com.ai.stigmer.agentic.mcpserver.v1B\007IoProtoP\001\242\002\004ASAM\252\002\037Ai.Stigmer.Agentic.Mcpserver.V1\312\002\037Ai\\Stigmer\\Agentic\\Mcpserver\\V1\342\002+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\352\002#Ai::Stigmer::Agentic::Mcpserver::V1'
   _globals['_MCPSERVERID'].fields_by_name['value']._loaded_options = None
   _globals['_MCPSERVERID'].fields_by_name['value']._serialized_options = b'\272H\003\310\001\001'
-  _globals['_CONNECTINPUT_RUNTIMEENVENTRY']._loaded_options = None
-  _globals['_CONNECTINPUT_RUNTIMEENVENTRY']._serialized_options = b'8\001'
   _globals['_CONNECTINPUT'].fields_by_name['mcp_server_id']._loaded_options = None
   _globals['_CONNECTINPUT'].fields_by_name['mcp_server_id']._serialized_options = b'\272H\003\310\001\001'
   _globals['_CONNECTINPUT'].fields_by_name['org']._loaded_options = None
@@ -50,20 +47,18 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_DISCONNECTOAUTHINPUT'].fields_by_name['resource_id']._serialized_options = b'\272H\003\310\001\001'
   _globals['_DISCONNECTOAUTHINPUT'].fields_by_name['org']._loaded_options = None
   _globals['_DISCONNECTOAUTHINPUT'].fields_by_name['org']._serialized_options = b'\272H\004r\002\020\001'
-  _globals['_OAUTHCONNECTIONHEALTH']._serialized_start=1042
-  _globals['_OAUTHCONNECTIONHEALTH']._serialized_end=1279
-  _globals['_MCPSERVERID']._serialized_start=157
-  _globals['_MCPSERVERID']._serialized_end=200
-  _globals['_CONNECTINPUT']._serialized_start=203
-  _globals['_CONNECTINPUT']._serialized_end=503
-  _globals['_CONNECTINPUT_RUNTIMEENVENTRY']._serialized_start=386
-  _globals['_CONNECTINPUT_RUNTIMEENVENTRY']._serialized_end=503
-  _globals['_GETOAUTHGRANTSTATUSINPUT']._serialized_start=505
-  _globals['_GETOAUTHGRANTSTATUSINPUT']._serialized_end=599
-  _globals['_GETOAUTHGRANTSTATUSOUTPUT']._serialized_start=602
-  _globals['_GETOAUTHGRANTSTATUSOUTPUT']._serialized_end=886
-  _globals['_DISCONNECTOAUTHINPUT']._serialized_start=888
-  _globals['_DISCONNECTOAUTHINPUT']._serialized_end=978
-  _globals['_DISCONNECTOAUTHOUTPUT']._serialized_start=980
-  _globals['_DISCONNECTOAUTHOUTPUT']._serialized_end=1039
+  _globals['_OAUTHCONNECTIONHEALTH']._serialized_start=817
+  _globals['_OAUTHCONNECTIONHEALTH']._serialized_end=1054
+  _globals['_MCPSERVERID']._serialized_start=106
+  _globals['_MCPSERVERID']._serialized_end=149
+  _globals['_CONNECTINPUT']._serialized_start=151
+  _globals['_CONNECTINPUT']._serialized_end=278
+  _globals['_GETOAUTHGRANTSTATUSINPUT']._serialized_start=280
+  _globals['_GETOAUTHGRANTSTATUSINPUT']._serialized_end=374
+  _globals['_GETOAUTHGRANTSTATUSOUTPUT']._serialized_start=377
+  _globals['_GETOAUTHGRANTSTATUSOUTPUT']._serialized_end=661
+  _globals['_DISCONNECTOAUTHINPUT']._serialized_start=663
+  _globals['_DISCONNECTOAUTHINPUT']._serialized_end=753
+  _globals['_DISCONNECTOAUTHOUTPUT']._serialized_start=755
+  _globals['_DISCONNECTOAUTHOUTPUT']._serialized_end=814
 # @@protoc_insertion_point(module_scope)

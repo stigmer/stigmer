@@ -184,14 +184,6 @@ public enum ApiResourceKind
   channel_app(48),
   /**
    * <pre>
-   * User-owned runtime context for managing execution state.
-   * </pre>
-   *
-   * <code>execution_context = 54 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
-   */
-  execution_context(54),
-  /**
-   * <pre>
    * Recurring trigger that runs an agent on a cron schedule.
    * </pre>
    *
@@ -463,14 +455,6 @@ public enum ApiResourceKind
   public static final int channel_app_VALUE = 48;
   /**
    * <pre>
-   * User-owned runtime context for managing execution state.
-   * </pre>
-   *
-   * <code>execution_context = 54 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
-   */
-  public static final int execution_context_VALUE = 54;
-  /**
-   * <pre>
    * Recurring trigger that runs an agent on a cron schedule.
    * </pre>
    *
@@ -607,7 +591,6 @@ public enum ApiResourceKind
       case 46: return agent_share;
       case 47: return agent_channel;
       case 48: return channel_app;
-      case 54: return execution_context;
       case 56: return schedule;
       case 57: return memory;
       case 58: return plugin;
