@@ -51,31 +51,43 @@ export function registerRunTools(server: McpServer, target: BackendTarget): stri
               "applies. `agent` (and `org`, when given) must name the session's agent, or the call " +
               "is refused; neither is sent with the turn.",
           ),
-        secrets: z
-          .record(z.string())
+        vaults: z
+          .array(z.string())
           .optional()
           .describe(
-            "Values (name → value) a new conversation's runs use ahead of every vault, kept sealed for " +
-              "the conversation's life. Only when starting a new conversation (no session_id). Every " +
-              "key the agent declares that is not passed here is found in the caller's My vault, then " +
-              "the agent's vaults the caller may use. A value passed here goes through the calling " +
-              "model's context, so pass only what that model may see; save a real secret in a vault " +
-              "instead (`stigmer vault set-secret <NAME> --mine`) and leave it out of this call.",
+            "Shared vaults a new conversation uses, in order, after the caller's My vault: each a " +
+              "vault slug in `org`, or `org/slug`. Only when starting a new conversation (no " +
+              "session_id); a conversation keeps the vaults it was started with. The server refuses a " +
+              "vault that does not exist or that the caller may not use.",
           ),
-        // The argument's former name, kept in the schema only so a caller
-        // still sending it is refused: the tool input is a non-strict object,
+        include_my_vault: z
+          .boolean()
+          .optional()
+          .describe(
+            "Whether each turn of a new conversation uses the caller's own My vault first (default " +
+              "true). Pass false to run on the listed vaults only. Only when starting a new " +
+              "conversation (no session_id).",
+          ),
+        // Two former arguments, kept in the schema only so a caller still
+        // sending one is refused: the tool input is a non-strict object,
         // which would otherwise drop it and start the run without the values.
+        secrets: z
+          .unknown()
+          .optional()
+          .describe("Not accepted: a run takes its keys from vaults. A call that passes it is refused."),
         runtime_env: z
           .unknown()
           .optional()
-          .describe("Not accepted: renamed to `secrets`. A call that passes it is refused."),
+          .describe("Not accepted: a run takes its keys from vaults. A call that passes it is refused."),
       },
     },
     (args, extra) =>
       textOrError(async () => {
-        if (args.runtime_env !== undefined) {
+        const retired = args.secrets !== undefined ? "secrets" : args.runtime_env !== undefined ? "runtime_env" : "";
+        if (retired !== "") {
           throw new Error(
-            "run_agent no longer takes runtime_env: pass the same name → value map as `secrets`.",
+            `run_agent no longer takes ${retired}: a run takes its keys from vaults. Save each key in ` +
+              "a vault (`stigmer vault set-secret <NAME> --mine` for your own) and name shared ones in `vaults`.",
           );
         }
         return runAgent(target.serverAddress, resolveToken(extra, target.apiKey), {
@@ -83,7 +95,8 @@ export function registerRunTools(server: McpServer, target: BackendTarget): stri
           agent: args.agent,
           message: args.message,
           sessionId: args.session_id,
-          secrets: args.secrets,
+          vaults: args.vaults,
+          includeMyVault: args.include_my_vault,
         });
       }),
   );

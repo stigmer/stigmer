@@ -75,7 +75,7 @@ the assistant polls the observation tools.
 
 | Tool | Description |
 | --- | --- |
-| `run_agent` | Start a run of an agent (new session or `session_id` follow-up); `secrets` ride a new session, kept sealed for its life. |
+| `run_agent` | Start a run of an agent (new session or `session_id` follow-up); a new session uses the caller's My vault unless `include_my_vault` is false, then the shared `vaults` it names. |
 | `get_run` | Poll a run: phase, message tail (compact view) or full record, pending approvals. |
 | `submit_run_approval` | Approve / skip / reject a tool call a run is waiting on. |
 | `cancel_run` | Gracefully cancel a run (`run_*`) by ID. |
