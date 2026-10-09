@@ -16,10 +16,10 @@ module iam
 # - Org Members/Viewers: No access (administrative resource)
 #
 # `owner` is computed, never stored: an invitation is the organization's,
-# managed by its current admins and its parent's, as a team is, so a
-# creator who is demoted below admin or removed loses control of their
-# links with the role. The
-# creator is recorded in the audit trail (kind_meta `owner_type` NONE).
+# managed by its current admins and its parent's, so a creator who is
+# demoted below admin or removed loses control of their links with the
+# role, as a team's creator does. The creator is recorded in the audit
+# trail (kind_meta `owner_type` NONE).
 #
 # FGA tuple on creation:
 # - invitation:<inv_id>#organization@organization:acme
