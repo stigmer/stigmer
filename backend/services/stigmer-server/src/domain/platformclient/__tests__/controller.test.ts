@@ -56,7 +56,11 @@ import {
 } from "../../../pipeline/steps/references.js";
 import type { Store } from "../../../store/interface.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
-import { reservedSlugMessage, systemManagedMessage } from "../constants.js";
+import {
+  reservedSlugMessage,
+  signInRoleNotGrantableMessage,
+  systemManagedMessage,
+} from "../constants.js";
 import { registerPlatformClientServices } from "../controller.js";
 import { hashClientSecret } from "../credentials.js";
 import { newResourcePlatformClientStore } from "../resource-store.js";
@@ -263,6 +267,38 @@ describe("PlatformClient chains", () => {
       ),
     );
     expect(noProvision.code).toBe(Code.InvalidArgument);
+  });
+
+  it("refuses a sign-in role an organization cannot grant, on create and on update, and admits every one it can", async () => {
+    for (const role of [IamRole.participant, IamRole.editor, IamRole.user]) {
+      const created = await refusal(
+        command.create(input(`Role ${IamRole[role]}`, { signInRole: role })),
+      );
+      expect(created.code, IamRole[role]).toBe(Code.InvalidArgument);
+      expect(created.rawMessage, IamRole[role]).toBe(
+        signInRoleNotGrantableMessage(role),
+      );
+    }
+
+    const stored = (await command.create(input("Dashboard"))).platformClient;
+    if (stored?.spec === undefined) throw new Error("create answered no spec");
+    for (const role of [IamRole.participant, IamRole.editor, IamRole.user]) {
+      const edit = clone(PlatformClientSchema, stored);
+      edit.spec = clone(PlatformClientSpecSchema, stored.spec);
+      edit.spec.signInRole = role;
+      const updated = await refusal(command.update(edit));
+      expect(updated.code, IamRole[role]).toBe(Code.InvalidArgument);
+      expect(updated.rawMessage, IamRole[role]).toBe(
+        signInRoleNotGrantableMessage(role),
+      );
+    }
+
+    for (const role of [IamRole.admin, IamRole.member, IamRole.viewer]) {
+      const created = await command.create(
+        input(`Granted ${IamRole[role]}`, { signInRole: role }),
+      );
+      expect(created.platformClient?.spec?.signInRole).toBe(role);
+    }
   });
 
   it("stores a bare vault slug under the client's organization, recording who attached it", async () => {

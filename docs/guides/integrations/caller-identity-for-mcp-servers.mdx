@@ -154,3 +154,15 @@ anyone who can reach your endpoint directly can send any header they like.
 Always pair the identity headers with a shared secret, as in the preceding
 example, and reject requests that fail the secret check before reading anything
 else. Use this pattern only for MCP servers you operate yourself.
+
+## Who asserts the email
+
+For a `stigmer_user`, the value is the email the person's sign-in asserted, and
+the server takes it as given. On a server where organizations bring their own
+identity provider, that includes every one of those providers: an organization's
+provider can sign a person in with any email it chooses.
+
+So the email identifies a person only to an MCP server whose operator trusts
+every identity provider of every organization the Stigmer server serves. If you
+serve organizations whose providers you do not control, grant by something those
+providers cannot choose, or keep privileged tools out of their reach.

@@ -277,6 +277,20 @@ export function newChildOrganizations(store: Store): ChildOrganizations {
         (child) => child.metadata?.id ?? "",
       );
     },
+    async listIdsBeingDeleted(parentId) {
+      const children = await childrenOf(store, parentId);
+      if (children.length === 0) {
+        return [];
+      }
+      const pending = new Set(
+        (await store.organizationDeletions.list())
+          .filter((row) => row.phase === "pending")
+          .map((row) => row.org),
+      );
+      return children
+        .map((child) => child.metadata?.id ?? "")
+        .filter((id) => pending.has(id));
+    },
   };
 }
 

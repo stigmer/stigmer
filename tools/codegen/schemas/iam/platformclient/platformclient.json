@@ -112,7 +112,7 @@
           "user"
         ]
       },
-      "description": "The role an account mintUserToken creates receives on the client's owning\n organization.\n\n A client's accounts belong to its owning organization alone, so an\n account's creation is its first sign-in there: the role is granted once,\n when the account is created. Accounts that already exist keep the roles\n they hold, and changing this setting later does not reach them.\n Unspecified (iam_role_unspecified) grants nothing. Requires\n create_accounts_on_sign_in. The owner role is refused: ownership is\n assigned explicitly.",
+      "description": "The role an account mintUserToken creates receives on the client's owning\n organization.\n\n A client's accounts belong to its owning organization alone, so an\n account's creation is its first sign-in there: the role is granted once,\n when the account is created. Accounts that already exist keep the roles\n they hold, and changing this setting later does not reach them.\n Unspecified (iam_role_unspecified) grants nothing. Requires\n create_accounts_on_sign_in. The owner role is refused: ownership is\n assigned explicitly. A role an organization cannot be granted (one its\n kind's grantable roles do not list) is refused with INVALID_ARGUMENT.",
       "required": false
     }
   ]

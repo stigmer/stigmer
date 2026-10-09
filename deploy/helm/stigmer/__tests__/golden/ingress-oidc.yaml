@@ -370,9 +370,8 @@ spec:
             - name: artifacts
               containerPort: 7235
           # Native gRPC probes on the unified port (the health service is
-          # tokenless-exempt for exactly this, stigmer#974); the cloud's
-          # production timings. Startup covers a search-index rebuild on a
-          # large adopted database.
+          # tokenless-exempt for exactly this, stigmer#974). Startup covers
+          # a search-index rebuild on a large adopted database.
           startupProbe:
             grpc:
               port: 7234
@@ -720,13 +719,13 @@ metadata:
   annotations:
     nginx.ingress.kubernetes.io/backend-protocol: GRPC
 spec:
-  ingressClassName: nginx
+  ingressClassName: "nginx"
   tls:
     - hosts:
-        - stigmer.example.com
+        - "stigmer.example.com"
       secretName: "stigmer-api-tls"
   rules:
-    - host: stigmer.example.com
+    - host: "stigmer.example.com"
       http:
         paths:
           - path: /
@@ -750,13 +749,13 @@ metadata:
     helm.sh/chart: stigmer-<CHART_VERSION>
     app.kubernetes.io/component: stigmer
 spec:
-  ingressClassName: nginx
+  ingressClassName: "nginx"
   tls:
     - hosts:
-        - artifacts.stigmer.example.com
+        - "artifacts.stigmer.example.com"
       secretName: "stigmer-artifacts-tls"
   rules:
-    - host: artifacts.stigmer.example.com
+    - host: "artifacts.stigmer.example.com"
       http:
         paths:
           - path: /

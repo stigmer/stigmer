@@ -419,7 +419,8 @@ public interface IdentityProviderSpecOrBuilder extends
    * that already signed in there. Unspecified (iam_role_unspecified) grants
    * nothing. The owner role is refused with
    * `identity_provider.sign_in_role_not_owner`: ownership is assigned
-   * explicitly.
+   * explicitly. A role an organization cannot be granted (one its kind's
+   * grantable roles do not list) is refused with INVALID_ARGUMENT.
    * </pre>
    *
    * <code>.ai.stigmer.iam.v1.IamRole sign_in_role = 14 [json_name = "signInRole"];</code>
@@ -437,7 +438,8 @@ public interface IdentityProviderSpecOrBuilder extends
    * that already signed in there. Unspecified (iam_role_unspecified) grants
    * nothing. The owner role is refused with
    * `identity_provider.sign_in_role_not_owner`: ownership is assigned
-   * explicitly.
+   * explicitly. A role an organization cannot be granted (one its kind's
+   * grantable roles do not list) is refused with INVALID_ARGUMENT.
    * </pre>
    *
    * <code>.ai.stigmer.iam.v1.IamRole sign_in_role = 14 [json_name = "signInRole"];</code>

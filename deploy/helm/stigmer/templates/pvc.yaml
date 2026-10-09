@@ -26,7 +26,7 @@ spec:
   accessModes:
     - ReadWriteOnce
   {{- with $claim.spec.storageClass }}
-  storageClassName: {{ . }}
+  storageClassName: {{ . | quote }}
   {{- end }}
   resources:
     requests:

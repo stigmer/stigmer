@@ -34,6 +34,9 @@
  *   - the worker factory types extension workers implement
  *   - the Postgres driver constructor, for a composition that shares ONE
  *     database with this chain
+ *   - the page loop every paged lane runs (readPage, listPageFingerprint,
+ *     LIST_PAGE_MAX_SIZE and their types), for an extension that pages
+ *     its own table
  *
  * The package publishes to npm in lockstep with every other @stigmer/*
  * package: this file

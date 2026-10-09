@@ -79,6 +79,24 @@ app.kubernetes.io/component: {{ .component }}
 {{- end -}}
 {{- end -}}
 
+{{- /* Temporal's host alone: everything before the last colon, an IPv6 literal's brackets dropped. */ -}}
+{{- define "stigmer.temporalHost" -}}
+{{- $hostPort := include "stigmer.temporalHostPort" . -}}
+{{- if contains ":" $hostPort -}}
+{{- join ":" (initial (splitList ":" $hostPort)) | trimPrefix "[" | trimSuffix "]" -}}
+{{- else -}}
+{{- $hostPort -}}
+{{- end -}}
+{{- end -}}
+
+{{- /* Temporal's port alone: everything after the last colon; empty when the address names none. */ -}}
+{{- define "stigmer.temporalPort" -}}
+{{- $hostPort := include "stigmer.temporalHostPort" . -}}
+{{- if contains ":" $hostPort -}}
+{{- last (splitList ":" $hostPort) -}}
+{{- end -}}
+{{- end -}}
+
 {{- define "stigmer.temporalNamespace" -}}
 {{- if .Values.temporal.enabled -}}default{{- else -}}{{ .Values.externalTemporal.namespace }}{{- end -}}
 {{- end -}}

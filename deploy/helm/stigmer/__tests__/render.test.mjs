@@ -42,7 +42,15 @@
  *     waiting for its key and how to give it one, and say nothing of it once
  *     the key is named or when there is no sign-in (stigmer/stigmer#1468);
  *   - an install that states its unauthenticated exposure on purpose is told,
- *     in the notes, that whoever reaches it controls Stigmer.
+ *     in the notes, that whoever reaches it controls Stigmer;
+ *   - the notes' upgrade names this chart's version, so `--reuse-values`
+ *     reuses the values with the chart they were written for;
+ *   - sign-in whose public URL is plain HTTP on a host other than localhost
+ *     is warned of in the notes, never refused (TLS may end in front of the
+ *     Ingress);
+ *   - Temporal's address splits at its last colon, an IPv6 literal's
+ *     brackets dropped, and hosts, class names and storage classes render
+ *     as the strings they were.
  *
  * Goldens live in `golden/<profile>.yaml` with the chart version replaced by
  * a placeholder so a release-pin bump does not churn them. Regenerate with
@@ -367,7 +375,7 @@ test("the notes tell a sign-in install that the runner waits for its key, and on
   );
   assert.ok(
     signInFirst.includes(
-      `helm upgrade ${RELEASE} oci://ghcr.io/stigmer/charts/stigmer -n default --reuse-values --set runner.stigmerToken.existingSecret=stigmer-runner-token`,
+      `helm upgrade ${RELEASE} oci://ghcr.io/stigmer/charts/stigmer -n default --version ${readChart().version} --reuse-values --set runner.stigmerToken.existingSecret=stigmer-runner-token`,
     ),
     `the notes show the upgrade that names the key:\n${signInFirst}`,
   );
@@ -535,6 +543,96 @@ test("the notes warn an install that states its unauthenticated exposure on purp
   assert.ok(!flagOnly.includes(WARNING), `nothing is exposed, so nothing to warn of:\n${flagOnly}`);
   assert.ok(!renderNotes("bundled").includes(WARNING));
   assert.ok(!renderNotes("ingress-oidc").includes(WARNING), "sign-in is on");
+});
+
+test("the notes warn a sign-in install whose public URL is plain HTTP, and only it", () => {
+  const WARNING = "Sign-in runs over plain HTTP";
+  const plain = renderNotes("ingress-oidc", { sets: ["ingress.api.tlsSecretName="] });
+  assert.ok(plain.includes(WARNING), `the notes warn:\n${plain}`);
+  assert.ok(
+    plain.includes("http://stigmer.example.com/auth/callback"),
+    `the notes name the plain redirect URI:\n${plain}`,
+  );
+  const plainUrl = renderNotes("ingress-oidc", { sets: ["server.publicUrl=http://stigmer.internal"] });
+  assert.ok(plainUrl.includes(WARNING), `a plain public URL set by hand is warned of too:\n${plainUrl}`);
+
+  assert.ok(!renderNotes("ingress-oidc").includes(WARNING), "the API lane has TLS");
+  const local = renderNotes("bundled", {
+    sets: ["server.oidc.issuer=https://issuer.example.com", "server.oidc.audience=https://stigmer.example.com"],
+  });
+  assert.ok(local.includes("Authentication is on"), local);
+  assert.ok(!local.includes(WARNING), `localhost is the providers' own exception:\n${local}`);
+  assert.ok(!renderNotes("bundled").includes(WARNING), "no sign-in, no redirect URI");
+});
+
+test("Temporal's address splits at its last colon, an IPv6 literal's brackets dropped", () => {
+  const coordinates = (hostPort) => {
+    const pod = findOne(
+      renderProfile("byo", { sets: [`externalTemporal.hostPort=${hostPort}`] }),
+      "Deployment",
+      RELEASE,
+    ).spec.template.spec;
+    const env = envMap(containerNamed(pod, "wait-for-dependencies", { init: true }));
+    return [env.get("TEMPORAL_HOST")?.value, env.get("TEMPORAL_PORT")?.value];
+  };
+  assert.deepEqual(coordinates("temporal.internal:7233"), ["temporal.internal", "7233"]);
+  assert.deepEqual(coordinates("[fd00::1]:7233"), ["fd00::1", "7233"]);
+  const bundled = envMap(
+    containerNamed(
+      findOne(renderProfile("bundled"), "Deployment", RELEASE).spec.template.spec,
+      "wait-for-dependencies",
+      { init: true },
+    ),
+  );
+  assert.deepEqual(
+    [bundled.get("TEMPORAL_HOST")?.value, bundled.get("TEMPORAL_PORT")?.value],
+    [`${RELEASE}-temporal`, "7233"],
+  );
+});
+
+test("hosts, the ingress class and storage classes render as the strings they were", () => {
+  const scratch = mkdtempSync(join(tmpdir(), "stigmer-chart-values-"));
+  try {
+    const values = join(scratch, "values.yaml");
+    writeFileSync(
+      values,
+      [
+        "ingress:",
+        '  className: "0123"',
+        "  api:",
+        '    host: "*.stigmer.example.com"',
+        "  artifacts:",
+        '    host: "true"',
+        "artifacts:",
+        "  persistence:",
+        '    storageClass: "0123"',
+        "postgres:",
+        "  persistence:",
+        '    storageClass: "true"',
+        "",
+      ].join("\n"),
+    );
+    const docs = renderProfile("ingress-oidc", { valuesFiles: [values] });
+    const ingresses = findAll(docs, "Ingress");
+    assert.deepEqual(ingresses.map((ingress) => ingress.spec.ingressClassName), ["0123", "0123"]);
+    assert.deepEqual(
+      ingresses.map((ingress) => ingress.spec.rules[0].host).sort(),
+      ["*.stigmer.example.com", "true"],
+    );
+    assert.deepEqual(
+      ingresses.map((ingress) => ingress.spec.tls[0].hosts[0]).sort(),
+      ["*.stigmer.example.com", "true"],
+    );
+    const claims = findAll(docs, "PersistentVolumeClaim");
+    assert.ok(
+      claims.some((claim) => claim.spec.storageClassName === "0123"),
+      "the artifacts claim keeps its storage class as a string",
+    );
+    const postgres = findOne(docs, "StatefulSet", `${RELEASE}-postgres`);
+    assert.equal(postgres.spec.volumeClaimTemplates[0].spec.storageClassName, "true");
+  } finally {
+    rmSync(scratch, { recursive: true, force: true });
+  }
 });
 
 test("the byo profile renders no bundled Postgres or Temporal", () => {

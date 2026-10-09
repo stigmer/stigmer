@@ -9,14 +9,19 @@
  * liveness and origin refusals on every request its tokens bear (pinned
  * cross-edition by platformclient-enforcement.conformance.test.ts). The
  * sentences open source adds — a server that cannot mint, the guest
- * method's edition refusal, the mismatched-account guard — follow the
- * house style (single-quoted handles).
+ * method's edition refusal, the mismatched-account guard, a sign-in role
+ * no organization grants — follow the house style (single-quoted
+ * handles).
  *
  * One inherited sentence was changed on purpose: the expired-secret
  * refusal told integrators to rotate, which never helps, because rotating
  * leaves the expiry as it is (steps.ts, newRotateClientCredentialsStep).
  * It now names the one fix and who can apply it (stigmer/stigmer#1254).
  */
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+
+import { grantableRolesFor } from "../../pipeline/apiresource-meta.js";
 
 /** The kind's name as the shared error constructors render it. */
 export const PLATFORM_CLIENT_KIND_NAME = "PlatformClient";
@@ -86,6 +91,20 @@ export function noAccountMessage(externalUserId: string, org: string): string {
 
 export const OWNER_SIGN_IN_ROLE_MESSAGE =
   "sign_in_role cannot be 'owner'; organization ownership must be assigned explicitly.";
+
+/**
+ * A sign-in role the organization kind does not grant
+ * (`kind_meta.authorization.grantable_roles`): every first sign-in would
+ * fail to grant it, so it is refused when the client is saved, and by
+ * the mint for a row stored before that rule. The roles offered are the
+ * grantable ones but owner, which the contract refuses on its own.
+ */
+export function signInRoleNotGrantableMessage(role: IamRole): string {
+  const offered = grantableRolesFor(ApiResourceKind.organization)
+    .filter((grantable) => grantable !== IamRole.owner)
+    .map((grantable) => `'${IamRole[grantable]}'`);
+  return `sign_in_role '${IamRole[role] ?? String(role)}' cannot be granted on an organization; set one of ${offered.join(", ")}, or leave it unset to grant nothing.`;
+}
 
 export const PROVISIONING_FAILED_MESSAGE =
   "Account provisioning failed. No partial account was left behind; the request is safe to retry.";

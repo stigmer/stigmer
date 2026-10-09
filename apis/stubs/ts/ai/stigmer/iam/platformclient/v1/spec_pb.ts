@@ -167,7 +167,8 @@ export type PlatformClientSpec = Message<"ai.stigmer.iam.platformclient.v1.Platf
    * they hold, and changing this setting later does not reach them.
    * Unspecified (iam_role_unspecified) grants nothing. Requires
    * create_accounts_on_sign_in. The owner role is refused: ownership is
-   * assigned explicitly.
+   * assigned explicitly. A role an organization cannot be granted (one its
+   * kind's grantable roles do not list) is refused with INVALID_ARGUMENT.
    *
    * @generated from field: ai.stigmer.iam.v1.IamRole sign_in_role = 12;
    */

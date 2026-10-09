@@ -1,10 +1,9 @@
 /**
- * The generic OIDC identity verifier (verification is OSS, the issuer is
- * configuration) — the second OSS entry on the
- * chassis's verifier chain, the TS rendering of the cloud's Nimbus
- * JwtDecoders.fromOidcIssuerLocation + audience validator stack. Stigmer
- * Cloud points STIGMER_OIDC_ISSUER at Auth0 and registers NO code here;
- * any self-host points it at their own issuer (Keycloak, Okta, Dex, …).
+ * The generic OIDC identity verifier (verification is code, the issuer is
+ * configuration) — the second entry on the chassis's verifier chain: it
+ * proves a token against the issuer's discovery document and keys and
+ * checks its audience. Every edition points STIGMER_OIDC_ISSUER at its own
+ * identity provider (Keycloak, Okta, Dex, …) and registers no code here.
  *
  * Claim rule: a JWT-shaped token (three non-empty dot-separated segments)
  * whose `iss` is this lane's issuer, compared exactly, as discovery
@@ -17,8 +16,8 @@
  * routes the token; it grants nothing, because a claimed token is then
  * verified whole against this issuer's keys. A JWT-shaped token with no
  * readable string `iss` is malformed and THROWS "invalid token". A claimed
- * token that fails verification THROWS (identity.ts contract) with the
- * Java classifyAuthError copy, byte-pinned:
+ * token that fails verification THROWS (identity.ts contract) with this
+ * copy, byte-pinned:
  *
  *   - expiry → "token has expired"
  *   - audience mismatch → "token audience does not match the expected audience"
