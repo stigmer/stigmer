@@ -7,8 +7,7 @@
  *     for byte, on every decorator;
  *   - every scope class: the organization itself (by id), an
  *     organization-scoped row and a parent-scoped execution (by the row's
- *     organization), an execution context (owner-only, decided by its
- *     row's organization), an owner-only kind and an unscoped one (inside);
+ *     organization), an owner-only kind and an unscoped one (inside);
  *   - a missing row reaches the inner driver, so not-found stays not-found;
  *   - the one admitted path and its limits: a blueprint the bound
  *     organization's own parent shares at visibility_child_orgs, for a read
@@ -256,30 +255,6 @@ describe("the rule, for a caller bound to one organization", () => {
       ).toBe("inside");
     }
     expect(f.reads).toEqual([]);
-  });
-
-  it("decides an execution context, owner-only but its run's, by the row's organization", async () => {
-    const f = fixture([
-      row("execution_context", "ectx_a", ALPHA),
-      row("execution_context", "ectx_b", BETA),
-    ]);
-    const binding = newCredentialBinding(f.deps);
-    const caller = boundTo(ALPHA);
-    const verdictOf = (id: string) =>
-      binding.verdict(caller, {
-        kind: ApiResourceKind.execution_context,
-        id,
-        permission: VIEW,
-      });
-    expect(await verdictOf("ectx_a")).toBe("inside");
-    expect(await verdictOf("ectx_b")).toBe("outside");
-    expect(
-      await binding.keepsEntry(
-        caller,
-        ApiResourceKind.execution_context,
-        entry("ectx_b", BETA),
-      ),
-    ).toBe(false);
   });
 
   it("decides an API key by the organization it is limited to: a bound credential manages only the keys limited where it is", async () => {

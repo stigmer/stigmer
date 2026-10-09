@@ -2,8 +2,8 @@
  * Pins what a schedule update does to its vaults, end to end over a real
  * store: the update chain's own steps (BuildUpdateState, the vault
  * attachments step with the schedule's options, PersistScheduleUpdate)
- * write the row, and the run's credential resolver reads it the way a fire
- * does.
+ * write the row, and the run's credential resolver plans and opens a fire's
+ * values from it.
  *
  *   - who attached each vault survives the update's persist: a vault an
  *     update adds is recorded as the updater's, and a fire uses it checked
@@ -20,7 +20,7 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunSchema, RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ScheduleStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/status_pb";
@@ -169,14 +169,16 @@ async function updateAs(writer: string, input: Schedule): Promise<Schedule> {
   return storedSchedule();
 }
 
-/** Resolves `keys` the way the schedule's next fire does. */
+/** Plans `keys` the way the schedule's next fire does, then opens them as its runner's fetch does. */
 async function fire(...keys: string[]): Promise<Record<string, string>> {
   const session = create(SessionSchema, { metadata: { id: "ses_fire", org: ORG } });
   await rig.store.saveResource(ApiResourceKind.session, "ses_fire", SessionSchema, session);
-  const values = await resolver.resolveForRun({
-    execution: create(RunSchema, {
-      metadata: { id: "run_fire", org: ORG, labels: { [SCHEDULE_ID_LABEL_KEY]: SCHEDULE_ID } },
-    }),
+  const execution = create(RunSchema, {
+    metadata: { id: "run_fire", org: ORG, labels: { [SCHEDULE_ID_LABEL_KEY]: SCHEDULE_ID } },
+    spec: { target: { case: "sessionId", value: "ses_fire" } },
+  });
+  const sources = await resolver.planRun({
+    execution,
     session,
     agentSpec: create(AgentSpecSchema, {
       env: Object.fromEntries(keys.map((key) => [key, { isSecret: true }])),
@@ -185,7 +187,9 @@ async function fire(...keys: string[]): Promise<Record<string, string>> {
     agentOrg: ORG,
     tools: [],
   });
-  return Object.fromEntries([...values].map(([key, value]) => [key, value.value]));
+  execution.status = create(RunStatusSchema, { credentials: { sources } });
+  const values = await resolver.openRun(execution);
+  return Object.fromEntries(Object.entries(values.agent).map(([key, value]) => [key, value.value]));
 }
 
 async function refusalOf(promise: Promise<unknown>): Promise<ConnectError> {

@@ -502,7 +502,6 @@ describe("McpServer's status and disconnect read the caller's sign-in at the ser
       logger: silentLogger,
       authorizer: deps.authorizer,
       engineState: unused("engineState"),
-      executionContext: unused("executionContext"),
       runnerAuth: unused("runnerAuth"),
       vaults: rig.vaults,
       vaultResolver: unused("vaultResolver"),

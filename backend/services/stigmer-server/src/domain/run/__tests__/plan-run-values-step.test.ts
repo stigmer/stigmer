@@ -1,31 +1,31 @@
 /**
- * The ExecutionContext builder's ASSEMBLY test: what the builder hands the
- * vault resolver and what it persists. Which login or secret fills each key
- * is the resolver's one rule, pinned in domain/vault/__tests__/resolve.test.ts;
+ * The run value planner's ASSEMBLY test: what the planner hands the vault
+ * resolver and what it records. Which login or secret fills each key is the
+ * resolver's one rule, pinned in domain/vault/__tests__/resolve.test.ts;
  * here the resolver is a recording stub.
  *
- * The builder's inputs are the execution alone: the session it loads by the
+ * The planner's inputs are the execution alone: the session it loads by the
  * target oneof's session id, the agent the turn's stamp names (a turn with
  * no stamp declares no agent half, whatever its session pins), at the
  * version the turn recorded (never the agent's head, so recovery after an
- * author's edit resolves for what the turn ran; a recorded version that no
+ * author's edit plans for what the turn ran; a recorded version that no
  * longer resolves refuses, naming it), the agent's own organization (a
  * parent organization's agent's, not the run's; none when its row cannot
- * be read), and every MCP server the run uses,
- * the agent's and the session's (a server that cannot be found is
- * skipped; a store fault reading one fails the build; one tool name the
- * agent and the conversation use for two different servers refuses the
- * build, as does one side naming a server that is gone, and the very
- * same server is one tool). The context it
- * persists carries exactly the resolver's values,
- * and a resolver refusal reaches the caller with its code.
+ * be read), and every MCP server the run uses, the agent's and the
+ * session's (a server that cannot be found is skipped; a store fault
+ * reading one fails the plan; one tool name the agent and the conversation
+ * use for two different servers refuses the plan, as does one side naming
+ * a server that is gone, and the very same server is one tool). The plan
+ * it records is exactly the resolver's source manifest, written onto the
+ * run's status before Persist and nowhere else, and a resolver refusal
+ * reaches the caller with its code.
  *
- * And StampRunCredentials, the create step before the builder: the run's
+ * And StampRunCredentials, the create step before the planner: the run's
  * person is the platform's one rule for a first-party human operator,
  * recorded once; a schedule fire, a runner, a PlatformClient user token and
- * the server acting as itself record none, and a client-sent value is
- * discarded. The record survives the runner's status writes, so recover
- * reads the person create recorded.
+ * the server acting as itself record none, and a client-sent value (its
+ * sources included) is discarded. The record survives the runner's status
+ * writes, so recover reads the person and the manifest create recorded.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -38,12 +38,10 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentVersionEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
 import type { AgentVersionEntry } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
-import type { ExecutionContext } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
-import { ExecutionValueSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Run, RunValueSource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunSchema, RunValueSourceSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase, RunValueOrigin } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunUpdateStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
@@ -57,12 +55,12 @@ import { SqliteStore } from "../../../store/sqlite/store.js";
 import type { Store } from "../../../store/interface.js";
 import type { RunCredentialInput } from "../../vault/resolve.js";
 
-import type { ExecutionContextBuilderDeps } from "../create-execution-context-step.js";
+import type { RunValuePlannerDeps } from "../plan-run-values-step.js";
 import {
-  buildAndPersistExecutionContext,
-  newCreateExecutionContextStep,
+  newPlanRunValuesStep,
   newStampRunCredentialsStep,
-} from "../create-execution-context-step.js";
+  planRunValues,
+} from "../plan-run-values-step.js";
 import { applyUpdateStatusMerge } from "../update-status.js";
 
 const silentLogger = createLogger({
@@ -77,7 +75,7 @@ let dir: string;
 let store: Store;
 
 beforeAll(async () => {
-  dir = mkdtempSync(path.join(tmpdir(), "run-ecbuilder-test-"));
+  dir = mkdtempSync(path.join(tmpdir(), "run-planner-test-"));
   store = SqliteStore.open(path.join(dir, "stigmer.db"));
   for (const slug of ["linear", "notion"]) {
     await store.saveResource(
@@ -101,26 +99,27 @@ afterAll(() => {
   rmSync(dir, { recursive: true, force: true });
 });
 
-/** The values a resolver stub answers with. */
-function values(entries: Record<string, string>) {
-  return new Map(
-    Object.entries(entries).map(([key, value]) => [
+/** The manifest a resolver stub answers with: each key a secret by its name in one vault. */
+function sources(keys: Record<string, string>): RunValueSource[] {
+  return Object.entries(keys).map(([key, vaultId]) =>
+    create(RunValueSourceSchema, {
       key,
-      create(ExecutionValueSchema, { value, isSecret: true }),
-    ]),
+      origin: RunValueOrigin.VAULT,
+      vaultId,
+      entry: key,
+    }),
   );
 }
 
-/** Builder deps over a recording resolver; the agent loads by its recorded version. */
+/** Planner deps over a recording resolver; the agent loads by its recorded version. */
 function deps(opts: {
   readonly session: Session;
   readonly version?: () => Promise<AgentVersionEntry>;
   readonly head?: () => Promise<ReturnType<typeof create<typeof AgentSchema>>>;
-  readonly resolve?: (input: RunCredentialInput) => Promise<ReturnType<typeof values>>;
+  readonly resolve?: (input: RunCredentialInput) => Promise<RunValueSource[]>;
   readonly asked: RunCredentialInput[];
-  readonly createdEcs: ExecutionContext[];
   readonly store?: Store;
-}): ExecutionContextBuilderDeps {
+}): RunValuePlannerDeps {
   return {
     store: opts.store ?? store,
     logger: silentLogger,
@@ -139,22 +138,19 @@ function deps(opts: {
       },
     }),
     sessionLoader: () => ({ get: async () => opts.session }),
-    executionContextCreator: () => ({
-      create: async (ec) => {
-        opts.createdEcs.push(ec);
-        return ec;
-      },
-    }),
-    executionContextDeleter: () => ({
-      delete: () => Promise.reject(new Error("unused on the create path")),
-    }),
     vaultResolver: {
-      resolveForRun: async (input) => {
+      planRun: async (input) => {
         opts.asked.push(input);
-        return opts.resolve === undefined ? values({}) : opts.resolve(input);
+        return opts.resolve === undefined ? [] : opts.resolve(input);
       },
-      resolveForConnect: async () => {
-        throw new Error("the run builder never asks the connect lane's question");
+      openRun: async () => {
+        throw new Error("the planner never opens a value");
+      },
+      planConnect: async () => {
+        throw new Error("the run planner never asks the connect lane's question");
+      },
+      openConnect: async () => {
+        throw new Error("the planner never opens a value");
       },
     },
   };
@@ -171,9 +167,8 @@ function turn(id: string, status: Record<string, unknown> = {}): Run {
 }
 
 describe("the builder hands the resolver the run's whole picture", () => {
-  it("passes the session, the recorded version's spec, the agent's name and every server the run uses, and persists the resolver's values", async () => {
+  it("passes the session, the recorded version's spec, the agent's name and every server the run uses, and answers the resolver's manifest", async () => {
     const asked: RunCredentialInput[] = [];
-    const createdEcs: ExecutionContext[] = [];
     const session = create(SessionSchema, {
       metadata: { id: "ses_rec", org: ORG },
       spec: {
@@ -183,7 +178,7 @@ describe("the builder hands the resolver the run's whole picture", () => {
         ],
       },
     });
-    await buildAndPersistExecutionContext(
+    const planned = await planRunValues(
       deps({
         session,
         version: async () =>
@@ -194,9 +189,8 @@ describe("the builder hands the resolver the run's whole picture", () => {
               mcpServerUsages: [{ mcpServerRef: { org: ORG, slug: "linear" } }],
             },
           }),
-        resolve: async () => values({ RECORDED_KEY: "from-a-vault" }),
+        resolve: async () => sources({ RECORDED_KEY: "vlt_team" }),
         asked,
-        createdEcs,
       }),
       turn("aex_assembly", { agentId: "agt_rec", agentVersionHash: RECORDED_HASH }),
     );
@@ -211,14 +205,12 @@ describe("the builder hands the resolver the run's whole picture", () => {
       "linear",
       "notion",
     ]);
-    const ec = createdEcs[0]!;
-    expect(ec.spec?.executionId).toBe("aex_assembly");
-    expect(ec.metadata?.org).toBe(ORG);
-    expect(Object.keys(ec.spec?.data ?? {})).toEqual(["RECORDED_KEY"]);
-    expect(ec.spec?.data["RECORDED_KEY"]?.value).toBe("from-a-vault");
+    expect(planned.map((entry) => [entry.key, entry.vaultId, entry.entry])).toEqual([
+      ["RECORDED_KEY", "vlt_team", "RECORDED_KEY"],
+    ]);
   });
 
-  it("fails the build on a store fault reading a server the run uses, rather than running without it", async () => {
+  it("fails the plan on a store fault reading a server the run uses, rather than running without it", async () => {
     const faulty = new Proxy(store, {
       get(target, prop, receiver) {
         if (prop === "listResources") {
@@ -231,14 +223,13 @@ describe("the builder hands the resolver the run's whole picture", () => {
       },
     });
     const asked: RunCredentialInput[] = [];
-    const failure = await buildAndPersistExecutionContext(
+    const failure = await planRunValues(
       deps({
         session: create(SessionSchema, {
           metadata: { id: "ses_rec", org: ORG },
           spec: { mcpServerUsages: [{ mcpServerRef: { org: ORG, slug: "notion" } }] },
         }),
         asked,
-        createdEcs: [],
         store: faulty,
       }),
       turn("aex_server_fault"),
@@ -249,7 +240,7 @@ describe("the builder hands the resolver the run's whole picture", () => {
 
   it("looks up no server for a usage that names no tool, never matching one by an empty name", async () => {
     const asked: RunCredentialInput[] = [];
-    await buildAndPersistExecutionContext(
+    await planRunValues(
       deps({
         session: create(SessionSchema, {
           metadata: { id: "ses_rec", org: ORG },
@@ -261,7 +252,6 @@ describe("the builder hands the resolver the run's whole picture", () => {
           },
         }),
         asked,
-        createdEcs: [],
       }),
       turn("aex_unnamed_tool"),
     );
@@ -270,14 +260,13 @@ describe("the builder hands the resolver the run's whole picture", () => {
 
   it("looks up no server by name when neither the usage nor the run names an organization", async () => {
     const asked: RunCredentialInput[] = [];
-    await buildAndPersistExecutionContext(
+    await planRunValues(
       deps({
         session: create(SessionSchema, {
           metadata: { id: "ses_rec", org: ORG },
           spec: { mcpServerUsages: [{ mcpServerRef: { slug: "notion" } }] },
         }),
         asked,
-        createdEcs: [],
       }),
       create(RunSchema, {
         metadata: { id: "aex_no_org" },
@@ -302,14 +291,13 @@ describe("the builder hands the resolver the run's whole picture", () => {
       ],
     ] as const) {
       const asked: RunCredentialInput[] = [];
-      await buildAndPersistExecutionContext(
+      await planRunValues(
         deps({
           session: create(SessionSchema, { metadata: { id: "ses_rec", org: ORG } }),
           head: parentAgent,
           version,
           asked,
-          createdEcs: [],
-        }),
+          }),
         turn(id, status),
       );
       expect(asked[0]?.agentName, id).toBe("Parent Agent");
@@ -319,7 +307,7 @@ describe("the builder hands the resolver the run's whole picture", () => {
 
   it("names the agent by its id, and gives no organization, when its current row cannot be read", async () => {
     const asked: RunCredentialInput[] = [];
-    await buildAndPersistExecutionContext(
+    await planRunValues(
       deps({
         session: create(SessionSchema, { metadata: { id: "ses_rec", org: ORG } }),
         version: async () =>
@@ -328,7 +316,6 @@ describe("the builder hands the resolver the run's whole picture", () => {
           throw new Error("the agent row is gone");
         },
         asked,
-        createdEcs: [],
       }),
       turn("aex_nameless", { agentId: "agt_rec", agentVersionHash: RECORDED_HASH }),
     );
@@ -338,7 +325,7 @@ describe("the builder hands the resolver the run's whole picture", () => {
 
   it("declares no agent half for a turn with no stamp, whatever its session pins", async () => {
     const asked: RunCredentialInput[] = [];
-    await buildAndPersistExecutionContext(
+    await planRunValues(
       deps({
         session: create(SessionSchema, {
           metadata: { id: "ses_rec", org: ORG },
@@ -349,7 +336,6 @@ describe("the builder hands the resolver the run's whole picture", () => {
           throw new Error("an unstamped turn loads no agent");
         },
         asked,
-        createdEcs: [],
       }),
       turn("aex_unstamped"),
     );
@@ -357,9 +343,8 @@ describe("the builder hands the resolver the run's whole picture", () => {
     expect(asked[0]?.agentName).toBe("");
   });
 
-  it("a resolver refusal reaches the caller with its code, and nothing is persisted", async () => {
-    const createdEcs: ExecutionContext[] = [];
-    const failure = await buildAndPersistExecutionContext(
+  it("a resolver refusal reaches the caller with its code", async () => {
+    const failure = await planRunValues(
       deps({
         session: create(SessionSchema, { metadata: { id: "ses_rec", org: ORG } }),
         resolve: async () => {
@@ -369,23 +354,20 @@ describe("the builder hands the resolver the run's whole picture", () => {
           );
         },
         asked: [],
-        createdEcs,
       }),
       turn("aex_refused"),
     ).catch((e: unknown) => e);
     expect(failure).toBeInstanceOf(ConnectError);
     expect((failure as ConnectError).code).toBe(Code.FailedPrecondition);
-    expect(createdEcs).toEqual([]);
   });
 
   it("refuses a turn with no session id before reading anything", async () => {
-    const createdEcs: ExecutionContext[] = [];
-    const failure = await buildAndPersistExecutionContext(
+    const asked: RunCredentialInput[] = [];
+    const failure = await planRunValues(
       {
         ...deps({
           session: create(SessionSchema, {}),
-          asked: [],
-          createdEcs,
+          asked,
         }),
         sessionLoader: () => ({
           get: async () => {
@@ -398,7 +380,7 @@ describe("the builder hands the resolver the run's whole picture", () => {
     expect((failure as Error).message).toBe(
       "resolve session: no session_id on execution",
     );
-    expect(createdEcs).toEqual([]);
+    expect(asked).toEqual([]);
   });
 });
 
@@ -424,8 +406,8 @@ describe("a tool name the agent and the conversation both use", () => {
     agentRef: { org: string; slug: string },
     sessionRef: { org: string; slug: string },
     asked: RunCredentialInput[],
-  ): Promise<void> {
-    return buildAndPersistExecutionContext(
+  ): Promise<RunValueSource[]> {
+    return planRunValues(
       deps({
         session: create(SessionSchema, {
           metadata: { id: "ses_rec", org: ORG },
@@ -437,7 +419,6 @@ describe("a tool name the agent and the conversation both use", () => {
             specSnapshot: { mcpServerUsages: [{ mcpServerRef: agentRef }] },
           }),
         asked,
-        createdEcs: [],
       }),
       turn("aex_same_name", { agentId: "agt_rec", agentVersionHash: RECORDED_HASH }),
     );
@@ -445,7 +426,7 @@ describe("a tool name the agent and the conversation both use", () => {
 
   it("refuses the run when the name points at two different servers, naming it, before asking for any value", async () => {
     // The runner keeps the conversation's server under a shared name, so a
-    // login judged for the agent's server would reach another one.
+    // login planned for the agent's server would reach another one.
     const asked: RunCredentialInput[] = [];
     const failure = await both(
       { org: ORG, slug: "linear" },
@@ -459,7 +440,7 @@ describe("a tool name the agent and the conversation both use", () => {
     expect(asked).toEqual([]);
   });
 
-  it("refuses when one side names a server that is gone: the conversation's would run unjudged", async () => {
+  it("refuses when one side names a server that is gone: the conversation's would run unplanned", async () => {
     for (const [agentRef, sessionRef] of [
       [{ org: ORG, slug: "linear" }, { org: "nowhere", slug: "linear" }],
       [{ org: "nowhere", slug: "linear" }, { org: ORG, slug: "linear" }],
@@ -483,14 +464,13 @@ describe("the agent the turn recorded", () => {
   const session = create(SessionSchema, { metadata: { id: "ses_rec", org: ORG } });
 
   it("refuses, naming the version, when the recorded version no longer resolves", async () => {
-    const failure = await buildAndPersistExecutionContext(
+    const failure = await planRunValues(
       deps({
         session,
         version: async () => {
           throw new ConnectError("agent version not found", Code.NotFound);
         },
         asked: [],
-        createdEcs: [],
       }),
       turn("aex_gone", { agentId: "agt_rec", agentVersionHash: RECORDED_HASH }),
     ).catch((e: unknown) => e);
@@ -499,14 +479,13 @@ describe("the agent the turn recorded", () => {
   });
 
   it("keeps a recorded-version load failure that is not a status as its message, naming the version", async () => {
-    const failure = await buildAndPersistExecutionContext(
+    const failure = await planRunValues(
       deps({
         session,
         version: async () => {
           throw new Error("socket hang up");
         },
         asked: [],
-        createdEcs: [],
       }),
       turn("aex_fault", { agentId: "agt_rec", agentVersionHash: RECORDED_HASH }),
     ).catch((e: unknown) => e);
@@ -515,14 +494,13 @@ describe("the agent the turn recorded", () => {
   });
 
   it("loads a turn that recorded its agent without a version as the agent is now, keeping a refusal's code", async () => {
-    const failure = await buildAndPersistExecutionContext(
+    const failure = await planRunValues(
       deps({
         session,
         head: async () => {
           throw new ConnectError("agent not found", Code.NotFound);
         },
         asked: [],
-        createdEcs: [],
       }),
       turn("aex_unversioned", { agentId: "agt_rec" }),
     ).catch((e: unknown) => e);
@@ -531,14 +509,13 @@ describe("the agent the turn recorded", () => {
   });
 
   it("keeps a head-load failure that is not a status as its message, for a turn that recorded no version", async () => {
-    const failure = await buildAndPersistExecutionContext(
+    const failure = await planRunValues(
       deps({
         session,
         head: async () => {
           throw new Error("socket hang up");
         },
         asked: [],
-        createdEcs: [],
       }),
       turn("aex_unversioned_fault", { agentId: "agt_rec" }),
     ).catch((e: unknown) => e);
@@ -549,10 +526,13 @@ describe("the agent the turn recorded", () => {
 });
 
 describe("StampRunCredentials", () => {
-  async function stamped(caller: CallerIdentity, sent?: string): Promise<Run> {
+  async function stamped(
+    caller: CallerIdentity,
+    sent?: { person?: string; sources?: RunValueSource[] },
+  ): Promise<Run> {
     const execution = create(RunSchema, {
       metadata: { id: "aex_stamp", org: ORG },
-      status: sent === undefined ? {} : { credentials: { person: sent } },
+      status: sent === undefined ? {} : { credentials: sent },
     });
     const ctx = new RequestContext(RunSchema, execution, caller, ApiResourceKind.run);
     await newStampRunCredentialsStep().execute(ctx);
@@ -571,22 +551,32 @@ describe("StampRunCredentials", () => {
       testCallerIdentity({ identityId: "system", callerClass: "internal" }),
       { ...testCallerIdentity({ identityId: "ida_fire" }), origin: "in-process" as const },
     ]) {
-      const run = await stamped(caller, "ida_forged");
+      const run = await stamped(caller, { person: "ida_forged" });
       expect(run.status?.credentials).toBeDefined();
       expect(run.status?.credentials?.person).toBeUndefined();
     }
   });
 
-  it("the create step resolves for the stamped person, and the record survives the runner's status writes for recover", async () => {
+  it("discards a client-sent manifest: a caller cannot name the vault entries its run fetches", async () => {
+    const run = await stamped(testCallerIdentity({ identityId: "ida_ana" }), {
+      sources: sources({ STOLEN_KEY: "vlt_someone_elses" }),
+    });
+    expect(run.status?.credentials?.sources).toEqual([]);
+  });
+});
+
+describe("PlanRunValues, the create step", () => {
+  async function planned(): Promise<{ run: Run; asked: RunCredentialInput[] }> {
     const asked: RunCredentialInput[] = [];
-    const execution = await stamped(testCallerIdentity({ identityId: "ida_ana" }));
-    execution.spec = create(RunSchema, {
+    const execution = create(RunSchema, {
+      metadata: { id: "aex_stamp", org: ORG },
       spec: { target: { case: "sessionId", value: "ses_rec" }, message: "hi" },
-    }).spec;
-    const builder = deps({
+      status: { credentials: { person: "ida_ana" } },
+    });
+    const planner = deps({
       session: create(SessionSchema, { metadata: { id: "ses_rec", org: ORG } }),
+      resolve: async () => sources({ LINEAR_API_KEY: "vlt_team" }),
       asked,
-      createdEcs: [],
     });
     const ctx = new RequestContext(
       RunSchema,
@@ -594,21 +584,41 @@ describe("StampRunCredentials", () => {
       testCallerIdentity({ identityId: "ida_ana" }),
       ApiResourceKind.run,
     );
-    await newCreateExecutionContextStep(builder).execute(ctx);
-    expect(asked[0]?.execution.status?.credentials?.person).toBe("ida_ana");
+    const before = await store.listResources(ApiResourceKind.run);
+    await newPlanRunValuesStep(planner).execute(ctx);
+    // The step writes nothing anywhere: the manifest rides the run's own
+    // row, which Persist writes after it.
+    expect(await store.listResources(ApiResourceKind.run)).toEqual(before);
+    return { run: ctx.newState, asked };
+  }
 
+  it("plans for the stamped person and stamps the manifest on the run's status", async () => {
+    const { run, asked } = await planned();
+    expect(asked[0]?.execution.status?.credentials?.person).toBe("ida_ana");
+    expect(run.status?.credentials?.person).toBe("ida_ana");
+    expect(run.status?.credentials?.sources.map((entry) => entry.key)).toEqual([
+      "LINEAR_API_KEY",
+    ]);
+  });
+
+  it("keeps the person and the manifest through the runner's status writes, for recover", async () => {
+    const { run } = await planned();
     // The runner's status write replaces its own fields wholesale and never
-    // the server's: the person is still there for recover.
+    // the server's: the person and the manifest are still there.
     applyUpdateStatusMerge(
-      ctx.newState,
+      run,
       create(RunUpdateStatusInputSchema, {
         runId: "aex_stamp",
-        status: { phase: RunPhase.RUN_FAILED },
+        status: {
+          phase: RunPhase.RUN_FAILED,
+          credentials: { person: "ida_forged", sources: sources({ STOLEN_KEY: "vlt_x" }) },
+        },
       }),
       silentLogger,
     );
-    expect(ctx.newState.status?.credentials?.person).toBe("ida_ana");
-    await buildAndPersistExecutionContext(builder, ctx.newState);
-    expect(asked[1]?.execution.status?.credentials?.person).toBe("ida_ana");
+    expect(run.status?.credentials?.person).toBe("ida_ana");
+    expect(run.status?.credentials?.sources.map((entry) => entry.key)).toEqual([
+      "LINEAR_API_KEY",
+    ]);
   });
 });

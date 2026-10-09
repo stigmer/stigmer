@@ -107,7 +107,7 @@ function lifecycleDeps(store: Store): LifecycleDeps {
     recoverSerializer: new KeyedSerializer(),
     broker: untouchable("broker"),
     engineState: untouchable("engineState"),
-    executionContextBuilder: untouchable("executionContextBuilder"),
+    runValuePlanner: untouchable("runValuePlanner"),
     gateSteps: new Map(),
     statusObservers: [],
     sandboxLane: untouchable("sandboxLane"),

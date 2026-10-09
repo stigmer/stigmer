@@ -4,8 +4,8 @@
  * built-in authorization posture, admits its bearer AS THE HUMAN WHO
  * ASKED — for a run, the person the execution row's creator stamp
  * names, for exactly as long as that execution lives; for an MCP
- * connect, the person the connect's ExecutionContext row was created by,
- * for as long as that row exists — in the `runner` caller class, bound
+ * connect, the person the connect's attempt row records as having started
+ * it, for as long as that row exists — in the `runner` caller class, bound
  * to the execution's organization (a run belongs to one, so its
  * credential works there alone). A
  * clockless token bound to a connect is a shape no mint produces and is
@@ -45,7 +45,6 @@ import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
@@ -112,7 +111,6 @@ afterAll(dropPostgresFixture);
 describe.each(
   driverFixtures([
     ApiResourceKind.run,
-    ApiResourceKind.execution_context,
     ApiResourceKind.identity_account,
   ]),
 )("the runner-subject verifier on $name", (fixture) => {
@@ -160,25 +158,22 @@ describe.each(
       );
     }
 
-    /** The connect lane's ephemeral EC, created as `createdBy` (connect.ts `prepareConnect`). */
+    /** The connect lane's attempt, recorded for `createdBy` (connect.ts `prepareConnect`). */
     async function connectContext(
       executionId: string,
       createdBy: string,
     ): Promise<void> {
-      await opened.store.saveResource(
-        ApiResourceKind.execution_context,
-        `ectx_${executionId}`,
-        ExecutionContextSchema,
-        create(ExecutionContextSchema, {
-          metadata: {
-            id: `ectx_${executionId}`,
-            name: `exec-ctx-${executionId}`,
-            org: "acme",
-          },
-          spec: { executionId },
-          status: { audit: { specAudit: { createdBy: { id: createdBy } } } },
-        }),
-      );
+      const now = Math.floor(Date.now() / 1000);
+      await opened.store.connectAttempts.create({
+        id: executionId,
+        org: "acme",
+        createdBy,
+        person: createdBy,
+        mcpServerId: "mcps_carols",
+        runId: "",
+        createdAt: now,
+        expiresAt: now + 600,
+      });
     }
 
     function verifier() {
@@ -276,7 +271,7 @@ describe.each(
     describe("the connect token admits its bearer as the person who asked for the connect", () => {
       const connectId = newConnectExecutionId("mcps_carols");
 
-      it("the connect lane's clocked token resolves through the connect's ExecutionContext row: its creator, class runner", async () => {
+      it("the connect lane's clocked token resolves through the connect's attempt row: its creator, class runner", async () => {
         await connectContext(connectId, CAROL);
         const { token } = service.mint(connectId, 300);
         expect(await verifier().verify(token)).toEqual({
