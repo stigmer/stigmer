@@ -109,7 +109,7 @@ describe("showRunScores", () => {
       },
     });
     expect(asked).toEqual(["run_1"]);
-    const parsed = JSON.parse(written) as Array<{ spec: { name: string } }>;
+    const parsed = JSON.parse(written) as Array<{ spec: { metric: string } }>;
     expect(parsed.map((score) => score.spec.metric)).toEqual(["feedback"]);
   });
 });
