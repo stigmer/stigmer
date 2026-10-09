@@ -204,7 +204,8 @@ A link signs in only through your Organization's own login app for the address
 (**Settings → OAuth Apps**, with the address listed), so the vendor's consent
 page shows your app's name to your customer. Stigmer's own apps, and the client
 Stigmer registers with a tool's login server, are never used for a link: they
-would ask your customer to trust Stigmer, not you.
+would ask your customer to trust Stigmer, not you. For the same reason a login
+app whose client ID is one Stigmer signs in with is refused for a link.
 
 From your backend, with a key that may edit the vault, make a link and send the
 customer to its `url`:

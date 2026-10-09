@@ -1601,6 +1601,13 @@ export function describeStoreContract(
       await registrations.forget("https://login.test", "https://app.test/cb", "client-1");
       expect(await registrations.find("https://login.test", "https://app.test/cb")).toBeUndefined();
     });
+
+    it("says whether a client id is one it keeps with any login server", async () => {
+      const registrations = fx.store.oauthClientRegistrations;
+      await registrations.save("https://login.test", "https://app.test/cb", "client-kept", NOW);
+      expect(await registrations.holds("client-kept")).toBe(true);
+      expect(await registrations.holds("client-never")).toBe(false);
+    });
   });
 
   describe("connect links", () => {

@@ -486,6 +486,8 @@ export interface OAuthClientRegistrationStore {
   save(loginServer: string, redirectUri: string, clientId: string, now: string): Promise<string>;
   /** Drops the pair's client while it is still `clientId` (one the login server has forgotten). Idempotent. */
   forget(loginServer: string, redirectUri: string, clientId: string): Promise<void>;
+  /** Whether `clientId` is a client Stigmer keeps with any login server. */
+  holds(clientId: string): Promise<boolean>;
 }
 
 /** A Connect link as stored: its secret only as a SHA-256. Times are Unix seconds. */

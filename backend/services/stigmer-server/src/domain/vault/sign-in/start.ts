@@ -180,11 +180,8 @@ export async function startSignIn(deps: SignInDeps, start: SignInStart): Promise
 
   const app =
     start.connectLink !== ""
-      ? await findOrganizationLoginApp(deps, start.org, address)
+      ? await linkLoginApp(deps, start.org, address)
       : await findLoginApp(deps, start.org, address);
-  if (app === undefined && start.connectLink !== "") {
-    throw linkNeedsOrganizationApp(address);
-  }
   const planned =
     app !== undefined
       ? throughApp(app, redirectUri, pkce, state)
@@ -254,6 +251,41 @@ export function linkNeedsOrganizationApp(address: string): Error {
   return failedPreconditionError(
     `a Connect link signs in only through the organization's own login app: add one in Settings that lists ${address}`,
   );
+}
+
+/**
+ * The organization's own login app for a Connect link's address, or the
+ * refusal. The app must be the organization's own client too: an app whose
+ * client id is one Stigmer signs in with (a catalog entry's, Stigmer's
+ * metadata document, or a client Stigmer keeps with a login server) would
+ * send a stranger's code, under Stigmer's name, to whatever token URL the
+ * app's admin chose.
+ */
+export async function linkLoginApp(deps: SignInDeps, org: string, address: string): Promise<AppLogin> {
+  const app = await findOrganizationLoginApp(deps, org, address);
+  if (app === undefined) {
+    throw linkNeedsOrganizationApp(address);
+  }
+  if (await isStigmersClient(deps, app.clientId)) {
+    throw failedPreconditionError(
+      `a Connect link's login app must use the organization's own client: the app for ${address} uses a client id Stigmer signs in with`,
+    );
+  }
+  return app;
+}
+
+/** Whether a client id is one Stigmer itself signs in with. */
+async function isStigmersClient(deps: SignInDeps, clientId: string): Promise<boolean> {
+  if (clientId === "") return false;
+  if (deps.clientDocumentUrl !== "" && clientId === deps.clientDocumentUrl) return true;
+  for (const credentials of deps.loginProviders.values()) {
+    if (credentials.clientId === clientId) return true;
+  }
+  try {
+    return await deps.clientRegistrations.holds(clientId);
+  } catch (error) {
+    throw internalError(error, "failed to read the clients Stigmer keeps");
+  }
 }
 
 /** The pieces of a sign-in its client decides. */

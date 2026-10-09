@@ -332,7 +332,12 @@ describe("a Connect link", () => {
   it("whose spend loses a race answers NOT_FOUND and saves nothing", async () => {
     const token = await made();
     const state = (await startConnectLink(rig.deps(), tokenInput(token))).state;
-    const deps = rig.deps({ connectLinks: withOverrides(rig.store.connectLinks, { spend: () => Promise.resolve(false) }) });
+    // Another completion spends the link first.
+    const lost = async (tokenHash: string, now: number) => {
+      await rig.store.connectLinks.spend(tokenHash, now);
+      return false;
+    };
+    const deps = rig.deps({ connectLinks: withOverrides(rig.store.connectLinks, { spend: lost }) });
     await expectRefusal(
       completeConnectLink(deps, create(CompleteConnectLinkInputSchema, { token, state, code: "code" })),
       Code.NotFound,

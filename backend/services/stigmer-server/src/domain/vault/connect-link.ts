@@ -80,11 +80,11 @@ import {
 import { refuseBoundElsewhere } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import { PENDING_OAUTH_STATE_TTL_MS, ResourceNotFoundError } from "../../store/interface.js";
 import type { ConnectLinkRecord, ConnectLinkStore, PendingOAuthState } from "../../store/interface.js";
-import { findOrganizationAppProvider, findOrganizationLoginApp } from "./login-app.js";
+import { findOrganizationAppProvider } from "./login-app.js";
 import { isMyVault } from "./service.js";
 import type { VaultService } from "./service.js";
 import { finishSignIn } from "./sign-in/complete.js";
-import { hostOf, linkNeedsOrganizationApp, signInAddress, startSignIn } from "./sign-in/start.js";
+import { hostOf, linkLoginApp, signInAddress, startSignIn } from "./sign-in/start.js";
 import type { SignInDeps } from "./sign-in/start.js";
 
 /** How long a link lives when its maker does not say: 30 minutes. */
@@ -130,10 +130,7 @@ export async function createConnectLink(
   }
   const address = signInAddress(input.address);
   const returnUrl = checkedReturnUrl(input.returnUrl);
-  const app = await findOrganizationLoginApp(deps, input.org, address);
-  if (app === undefined) {
-    throw linkNeedsOrganizationApp(address);
-  }
+  const app = await linkLoginApp(deps, input.org, address);
   if (app.unavailable !== undefined) {
     throw failedPreconditionError(app.unavailable);
   }
@@ -241,7 +238,13 @@ export async function completeConnectLink(
 
   const spentAt = nowSeconds();
   if (!(await deps.connectLinks.spend(link.tokenHash, spentAt))) {
-    throw unknownLink();
+    // Another completion spent it (NOT_FOUND, as for any used link), or it
+    // lapsed since it was read: the customer goes back with reason=expired.
+    const lapsed = await deps.connectLinks.findUsable(link.tokenHash, spentAt - LAPSED_LINK_GRACE_SECONDS);
+    if (lapsed === undefined) {
+      throw unknownLink();
+    }
+    return outcome(lapsed, "expired");
   }
   try {
     await finishSignIn(deps, pending, input.code, vault, creatorOf(link));
@@ -305,7 +308,8 @@ export function checkedReturnUrl(input: string): string {
   if (url.username !== "" || url.password !== "") {
     throw invalidArgumentError("return_url must not carry a user name or password");
   }
-  return url.href;
+  // Kept as the integrator wrote it: a signed URL must come back unchanged.
+  return input;
 }
 
 /**
@@ -314,13 +318,17 @@ export function checkedReturnUrl(input: string): string {
  * signed), so the outcome is appended to it rather than re-serialized.
  */
 function outcome(link: ConnectLinkRecord, failure: ConnectLinkFailure | undefined): CompleteConnectLinkOutput {
-  const url = new URL(link.returnUrl);
   const added = new URLSearchParams({ [CONNECT_OUTCOME_PARAM]: failure === undefined ? "connected" : "error" });
   if (failure !== undefined) {
     added.set("reason", failure);
   }
-  url.search = url.search === "" ? `?${added}` : `${url.search}&${added}`;
-  return create(CompleteConnectLinkOutputSchema, { returnUrl: url.href });
+  // Appended as text before any fragment: parsing and re-serializing the
+  // URL would re-encode what the maker wrote.
+  const hashAt = link.returnUrl.indexOf("#");
+  const base = hashAt === -1 ? link.returnUrl : link.returnUrl.slice(0, hashAt);
+  const fragment = hashAt === -1 ? "" : link.returnUrl.slice(hashAt);
+  const joiner = !base.includes("?") ? "?" : base.endsWith("?") || base.endsWith("&") ? "" : "&";
+  return create(CompleteConnectLinkOutputSchema, { returnUrl: `${base}${joiner}${added}${fragment}` });
 }
 
 /** The link behind a secret, usable now, or NOT_FOUND. */

@@ -1332,6 +1332,7 @@ async function migrateToV19(client: PoolClient): Promise<void> {
       used_at BIGINT NOT NULL DEFAULT 0
     );
 
+    CREATE INDEX idx_oauth_client_registration_client ON oauth_client_registration (client_id);
     CREATE INDEX idx_connect_link_vault ON connect_link (vault_id);
     CREATE INDEX idx_connect_link_org ON connect_link (org);
     CREATE INDEX idx_connect_link_expires ON connect_link (expires_at);

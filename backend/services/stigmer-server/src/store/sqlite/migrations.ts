@@ -1309,6 +1309,7 @@ function migrateToV24(db: DatabaseSync): void {
       used_at    INTEGER NOT NULL DEFAULT 0
     ) WITHOUT ROWID;
 
+    CREATE INDEX idx_oauth_client_registration_client ON oauth_client_registration (client_id);
     CREATE INDEX idx_connect_link_vault ON connect_link (vault_id);
     CREATE INDEX idx_connect_link_org ON connect_link (org);
     CREATE INDEX idx_connect_link_expires ON connect_link (expires_at);

@@ -1807,6 +1807,14 @@ class SqliteOAuthClientRegistrationStore
       )
       .run(loginServer, redirectUri, clientId);
   }
+
+  async holds(clientId: string): Promise<boolean> {
+    return (
+      this.open()
+        .prepare(`SELECT 1 FROM oauth_client_registration WHERE client_id = ? LIMIT 1`)
+        .get(clientId) !== undefined
+    );
+  }
 }
 
 const CONNECT_LINK_COLUMNS =

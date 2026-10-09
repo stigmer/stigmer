@@ -1732,6 +1732,14 @@ class PostgresOAuthClientRegistrationStore
       [loginServer, redirectUri, clientId],
     );
   }
+
+  async holds(clientId: string): Promise<boolean> {
+    const result = await this.open().query(
+      `SELECT 1 FROM oauth_client_registration WHERE client_id = $1 LIMIT 1`,
+      [clientId],
+    );
+    return result.rows.length > 0;
+  }
 }
 
 const CONNECT_LINK_COLUMNS =

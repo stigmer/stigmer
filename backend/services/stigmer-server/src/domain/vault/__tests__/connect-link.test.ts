@@ -156,6 +156,39 @@ describe("creating a link", () => {
     expect(rig.requests).toEqual([]);
   });
 
+  it.each([
+    ["a catalog entry's", "gh-client", {}],
+    ["Stigmer's metadata document", "https://stigmer.example/v1/oauth/client.json", {}],
+    ["a client Stigmer keeps with a login server", "dcr-kept", { kept: true }],
+  ] as const)("refuses an organization app that borrows %s client id, at creation and at start", async (_what, clientId, how) => {
+    await seedSharedVault(rig);
+    const deps = rig.deps({
+      loginProviders: new Map([["github", { clientId: "gh-client", clientSecret: "gh-secret" }]]),
+      clientDocumentUrl: "https://stigmer.example/v1/oauth/client.json",
+    });
+    const refusal = `a Connect link's login app must use the organization's own client: the app for ${VENDOR_ADDRESS} uses a client id Stigmer signs in with`;
+    await seedOrganizationApp(rig, { clientId });
+    if ("kept" in how) {
+      await rig.store.oauthClientRegistrations.save("https://login.linear.example", "http://127.0.0.1:8234/auth/oauth/callback", clientId, new Date().toISOString());
+    }
+    await expectRefusal(
+      createConnectLink(deps, create(CreateConnectLinkInputSchema, { org: ORG, vaultId: "vlt_shared", address: VENDOR_ADDRESS, returnUrl: RETURN_URL }), alice),
+      Code.FailedPrecondition,
+      refusal,
+    );
+  });
+
+  it("refuses at start when the organization's app came to borrow a client id Stigmer signs in with", async () => {
+    await seeded();
+    const link = await makeLink();
+    await rig.store.oauthClientRegistrations.save("https://login.linear.example", "http://127.0.0.1:8234/auth/oauth/callback", "vendor-client", new Date().toISOString());
+    await expectRefusal(
+      startConnectLink(rig.deps(), tokenInput(link.token)),
+      Code.FailedPrecondition,
+      "a Connect link's login app must use the organization's own client",
+    );
+  });
+
   it("refuses an organization app its vendor has not approved", async () => {
     await seedSharedVault(rig);
     await seedOrganizationApp(rig, { approval: VendorApprovalStatus.PENDING });
@@ -256,12 +289,44 @@ describe("using a link", () => {
     expect(rig.requestsTo("https://login.vendor.example/token")).toEqual([]);
   });
 
-  it("keeps the return URL's own query byte for byte and appends the outcome", async () => {
+  it("sends a customer back with reason=expired when the link lapses between its read and its spend", async () => {
     await seeded();
-    const signed = "https://helpdesk.example/done?x=a%20b&sig=ab~c&y=1/2";
+    const link = await makeLink();
+    const state = (await startConnectLink(rig.deps(), tokenInput(link.token))).state;
+    const links = rig.store.connectLinks;
+    const lapsing = new Proxy(links, {
+      get(target, prop, receiver) {
+        if (prop === "spend") return () => Promise.resolve(false);
+        const value = Reflect.get(target, prop, receiver) as unknown;
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+    const done = await completeConnectLink(
+      rig.deps({ connectLinks: lapsing }),
+      create(CompleteConnectLinkInputSchema, { token: link.token, state, code: "code", error: "" }),
+    );
+    expect(done.returnUrl).toBe(`${RETURN_URL}?stigmer_connect=error&reason=expired`);
+    expect(await vaultLogin(rig, "vlt_shared", VENDOR_ADDRESS)).toBeUndefined();
+  });
+
+  it("keeps the return URL byte for byte, as its maker wrote it, and appends the outcome", async () => {
+    await seeded();
+    const signed = "https://helpdesk.example:443/done?x=a%20b&sig=ab~c&y=1/2&n=café";
     const link = await makeLink({ returnUrl: signed });
     const done = await finish(link.token, (await startConnectLink(rig.deps(), tokenInput(link.token))).state);
     expect(done.returnUrl).toBe(`${signed}&stigmer_connect=connected`);
+  });
+
+  it("adds the outcome before a fragment, and to a URL with no query", async () => {
+    await seeded();
+    for (const [returnUrl, expected] of [
+      ["https://helpdesk.example/done#tab", "https://helpdesk.example/done?stigmer_connect=connected#tab"],
+      ["https://helpdesk.example/done?", "https://helpdesk.example/done?stigmer_connect=connected"],
+    ] as const) {
+      const link = await makeLink({ returnUrl });
+      const done = await finish(link.token, (await startConnectLink(rig.deps(), tokenInput(link.token))).state);
+      expect(done.returnUrl).toBe(expected);
+    }
   });
 
   it("whose organization app is gone refuses at start, never falling back to Stigmer's own app", async () => {
