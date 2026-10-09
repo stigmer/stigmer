@@ -211,6 +211,12 @@ describe("the retired-names tables", () => {
     ["agent_execution", "run"],
     ["agent_run", "run"],
   ];
+  // Enums born after the rename, under their run names: no stored or
+  // in-flight payload ever spelled them another way.
+  const BORN_AS_RUN = new Set([
+    "ai.stigmer.agentic.run.v1.RunValueDeclarerKind",
+    "ai.stigmer.agentic.run.v1.RunValueOrigin",
+  ]);
 
   function crossingNames(): { fields: Map<string, string>; values: Map<string, string> } {
     const fields = new Map<string, string>();
@@ -225,7 +231,8 @@ describe("the retired-names tables", () => {
           fields.set(retired, field.name);
           fields.set(jsonSpelling(retired), field.jsonName);
         }
-        for (const value of field.enum?.values ?? []) {
+        const enumValues = field.enum !== undefined && BORN_AS_RUN.has(field.enum.typeName) ? [] : (field.enum?.values ?? []);
+        for (const value of enumValues) {
           if (field.enum?.typeName.endsWith(".ApiResourceKind") && value.name === "run") {
             for (const [before, now] of KIND_VALUE_BEFORE) values.set(before, now);
           } else if (/(^|_)(RUN|runs?)(_|$)/.test(value.name)) {

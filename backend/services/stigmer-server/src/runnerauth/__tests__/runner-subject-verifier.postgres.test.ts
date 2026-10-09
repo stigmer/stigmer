@@ -271,6 +271,12 @@ describe.each(
     describe("the connect token admits its bearer as the person who asked for the connect", () => {
       const connectId = newConnectExecutionId("mcps_carols");
 
+      // The shared Postgres database keeps attempt rows between arms: each
+      // arm ends its own, as the connect lane does when it settles.
+      afterEach(async () => {
+        await opened.store.connectAttempts.delete(connectId);
+      });
+
       it("the connect lane's clocked token resolves through the connect's attempt row: its creator, class runner", async () => {
         await connectContext(connectId, CAROL);
         const { token } = service.mint(connectId, 300);

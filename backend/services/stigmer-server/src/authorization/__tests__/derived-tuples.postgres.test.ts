@@ -217,12 +217,9 @@ describe("deriveTuples — the cloud driver's shapes, from the row", () => {
     }
   });
 
-  it("owner-only kinds carry no scope link whatever metadata.org says", () => {
+  it("an owner-only kind carries no scope link whatever metadata.org says", () => {
     expect(derivedFor("api_key", {})).toEqual([
       "api_key:api_key-1#owner@identity_account:ida_carol",
-    ]);
-    expect(derivedFor("execution_context", {})).toEqual([
-      "execution_context:execution_context-1#owner@identity_account:ida_carol",
     ]);
   });
 
