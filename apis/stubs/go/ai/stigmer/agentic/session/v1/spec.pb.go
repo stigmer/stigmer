@@ -134,33 +134,24 @@ type SessionSpec struct {
 	// Vaults whose logins and secrets this conversation's runs use, in order:
 	// the first vault holding a match wins. At most 20.
 	//
-	// A conversation that lists vaults uses exactly those. One that lists
-	// none uses the My vault of the person sending each turn, then the
-	// agent's vaults that person may use. A My vault cannot be listed: a
-	// conversation can have several people, and each person's own vault
-	// serves only their own turns.
-	Vaults []*apiresource.ApiResourceReference `protobuf:"bytes,15,rep,name=vaults,proto3" json:"vaults,omitempty"`
-	// Secrets this conversation's runs use, by name, ahead of every vault.
-	//
-	// This is how an integrator hands a run a key without saving it in a
-	// vault. The values are kept sealed for the conversation's life, can be
-	// replaced by an update at any time, are never returned by a read, and
-	// are destroyed with the conversation.
+	// The conversation uses exactly these, in order, after the sender's My
+	// vault when include_my_vault is set. A My vault cannot be listed: set
+	// include_my_vault, which gives each sender their own.
 	//
 	// An update built on an older read than the stored conversation (it
-	// echoes an older status.audit.spec_audit.updated_at) removes nothing it
-	// could not have seen: the values it omits are kept, and so are the
-	// vaults the conversation lists. Read the conversation again to remove a
-	// value or change its vaults.
-	Secrets map[string]string `protobuf:"bytes,16,rep,name=secrets,proto3" json:"secrets,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// Logins this conversation's runs use, by the address of the tool or Git
-	// host each is for, ahead of every vault.
+	// echoes an older status.audit.spec_audit.updated_at) keeps the stored
+	// vaults and include_my_vault: read the conversation again to change
+	// which vaults it uses.
+	Vaults []*apiresource.ApiResourceReference `protobuf:"bytes,15,rep,name=vaults,proto3" json:"vaults,omitempty"`
+	// Whether each turn also uses its sender's own My vault, first, ahead of
+	// the listed vaults. Off unless the caller sets it.
 	//
-	// Kept, replaced and destroyed as secrets are. Addresses are normalized
-	// as a vault's are.
-	Connections   map[string]string `protobuf:"bytes,17,rep,name=connections,proto3" json:"connections,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// Each person who sends a turn uses their own My vault, never another's.
+	// A turn with no person, or one that runs another organization's agent,
+	// ignores it.
+	IncludeMyVault bool `protobuf:"varint,18,opt,name=include_my_vault,json=includeMyVault,proto3" json:"include_my_vault,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *SessionSpec) Reset() {
@@ -277,25 +268,18 @@ func (x *SessionSpec) GetVaults() []*apiresource.ApiResourceReference {
 	return nil
 }
 
-func (x *SessionSpec) GetSecrets() map[string]string {
+func (x *SessionSpec) GetIncludeMyVault() bool {
 	if x != nil {
-		return x.Secrets
+		return x.IncludeMyVault
 	}
-	return nil
-}
-
-func (x *SessionSpec) GetConnections() map[string]string {
-	if x != nil {
-		return x.Connections
-	}
-	return nil
+	return false
 }
 
 var File_ai_stigmer_agentic_session_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"(ai/stigmer/agentic/session/v1/spec.proto\x12\x1dai.stigmer.agentic.session.v1\x1a+ai/stigmer/agentic/mcpserver/v1/usage.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xa2\x0e\n" +
+	"(ai/stigmer/agentic/session/v1/spec.proto\x12\x1dai.stigmer.agentic.session.v1\x1a+ai/stigmer/agentic/mcpserver/v1/usage.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xed\v\n" +
 	"\vSessionSpec\x12\xbb\x01\n" +
 	"\tagent_ref\x18\x0e \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBh\xbaHa\xba\x01^\n" +
 	"\x16session_agent_ref.kind\x123agent_ref must reference a resource with kind=agent\x1a\x0fthis.kind == 40\xe0\x85,(R\bagentRef\x12\x18\n" +
@@ -315,18 +299,11 @@ const file_ai_stigmer_agentic_session_v1_spec_proto_rawDesc = "" +
 	"cursorMode\x12Y\n" +
 	"\x10execution_target\x18\f \x01(\x0e2..ai.stigmer.agentic.session.v1.ExecutionTargetR\x0fexecutionTarget\x12\xae\x01\n" +
 	"\x06vaults\x18\x0f \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB`\xbaHY\x92\x01V\x10\x14\"R\xba\x01O\n" +
-	"\vvaults.kind\x12/vaults must reference resources with kind=vault\x1a\x0fthis.kind == 59\xe0\x85,;R\x06vaults\x12\x86\x01\n" +
-	"\asecrets\x18\x10 \x03(\v27.ai.stigmer.agentic.session.v1.SessionSpec.SecretsEntryB3\xbaH0\x9a\x01-\x10d\"\x1fr\x1d\x18\x80\x012\x18^[A-Za-z_][A-Za-z0-9_]*$*\br\x06\x10\x01\x18\x80\x80\x04R\asecrets\x12z\n" +
-	"\vconnections\x18\x11 \x03(\v2;.ai.stigmer.agentic.session.v1.SessionSpec.ConnectionsEntryB\x1b\xbaH\x18\x9a\x01\x15\x10d\"\ar\x05\x10\x01\x18\x80\x10*\br\x06\x10\x01\x18\x80\x80\x04R\vconnections\x1a;\n" +
+	"\vvaults.kind\x12/vaults must reference resources with kind=vault\x1a\x0fthis.kind == 59\xe0\x85,;R\x06vaults\x12(\n" +
+	"\x10include_my_vault\x18\x12 \x01(\bR\x0eincludeMyVault\x1a;\n" +
 	"\rMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a:\n" +
-	"\fSecretsEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a>\n" +
-	"\x10ConnectionsEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\x01\x10\x02R\x11agent_instance_idB\x99\x02\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\x01\x10\x02J\x04\b\x10\x10\x11J\x04\b\x11\x10\x12R\x11agent_instance_idR\asecretsR\vconnectionsB\x99\x02\n" +
 	"!com.ai.stigmer.agentic.session.v1B\tSpecProtoP\x01ZPgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
 
 var (
@@ -341,36 +318,32 @@ func file_ai_stigmer_agentic_session_v1_spec_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_session_v1_spec_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_session_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_ai_stigmer_agentic_session_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_ai_stigmer_agentic_session_v1_spec_proto_goTypes = []any{
 	(*SessionSpec)(nil),                      // 0: ai.stigmer.agentic.session.v1.SessionSpec
 	nil,                                      // 1: ai.stigmer.agentic.session.v1.SessionSpec.MetadataEntry
-	nil,                                      // 2: ai.stigmer.agentic.session.v1.SessionSpec.SecretsEntry
-	nil,                                      // 3: ai.stigmer.agentic.session.v1.SessionSpec.ConnectionsEntry
-	(*apiresource.ApiResourceReference)(nil), // 4: ai.stigmer.commons.apiresource.ApiResourceReference
-	(*WorkspaceEntry)(nil),                   // 5: ai.stigmer.agentic.session.v1.WorkspaceEntry
-	(*v1.McpServerUsage)(nil),                // 6: ai.stigmer.agentic.mcpserver.v1.McpServerUsage
-	(Harness)(0),                             // 7: ai.stigmer.agentic.session.v1.Harness
-	(CursorMode)(0),                          // 8: ai.stigmer.agentic.session.v1.CursorMode
-	(ExecutionTarget)(0),                     // 9: ai.stigmer.agentic.session.v1.ExecutionTarget
+	(*apiresource.ApiResourceReference)(nil), // 2: ai.stigmer.commons.apiresource.ApiResourceReference
+	(*WorkspaceEntry)(nil),                   // 3: ai.stigmer.agentic.session.v1.WorkspaceEntry
+	(*v1.McpServerUsage)(nil),                // 4: ai.stigmer.agentic.mcpserver.v1.McpServerUsage
+	(Harness)(0),                             // 5: ai.stigmer.agentic.session.v1.Harness
+	(CursorMode)(0),                          // 6: ai.stigmer.agentic.session.v1.CursorMode
+	(ExecutionTarget)(0),                     // 7: ai.stigmer.agentic.session.v1.ExecutionTarget
 }
 var file_ai_stigmer_agentic_session_v1_spec_proto_depIdxs = []int32{
-	4,  // 0: ai.stigmer.agentic.session.v1.SessionSpec.agent_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	1,  // 1: ai.stigmer.agentic.session.v1.SessionSpec.metadata:type_name -> ai.stigmer.agentic.session.v1.SessionSpec.MetadataEntry
-	5,  // 2: ai.stigmer.agentic.session.v1.SessionSpec.workspace_entries:type_name -> ai.stigmer.agentic.session.v1.WorkspaceEntry
-	6,  // 3: ai.stigmer.agentic.session.v1.SessionSpec.mcp_server_usages:type_name -> ai.stigmer.agentic.mcpserver.v1.McpServerUsage
-	4,  // 4: ai.stigmer.agentic.session.v1.SessionSpec.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	7,  // 5: ai.stigmer.agentic.session.v1.SessionSpec.harness:type_name -> ai.stigmer.agentic.session.v1.Harness
-	8,  // 6: ai.stigmer.agentic.session.v1.SessionSpec.cursor_mode:type_name -> ai.stigmer.agentic.session.v1.CursorMode
-	9,  // 7: ai.stigmer.agentic.session.v1.SessionSpec.execution_target:type_name -> ai.stigmer.agentic.session.v1.ExecutionTarget
-	4,  // 8: ai.stigmer.agentic.session.v1.SessionSpec.vaults:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	2,  // 9: ai.stigmer.agentic.session.v1.SessionSpec.secrets:type_name -> ai.stigmer.agentic.session.v1.SessionSpec.SecretsEntry
-	3,  // 10: ai.stigmer.agentic.session.v1.SessionSpec.connections:type_name -> ai.stigmer.agentic.session.v1.SessionSpec.ConnectionsEntry
-	11, // [11:11] is the sub-list for method output_type
-	11, // [11:11] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	2, // 0: ai.stigmer.agentic.session.v1.SessionSpec.agent_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	1, // 1: ai.stigmer.agentic.session.v1.SessionSpec.metadata:type_name -> ai.stigmer.agentic.session.v1.SessionSpec.MetadataEntry
+	3, // 2: ai.stigmer.agentic.session.v1.SessionSpec.workspace_entries:type_name -> ai.stigmer.agentic.session.v1.WorkspaceEntry
+	4, // 3: ai.stigmer.agentic.session.v1.SessionSpec.mcp_server_usages:type_name -> ai.stigmer.agentic.mcpserver.v1.McpServerUsage
+	2, // 4: ai.stigmer.agentic.session.v1.SessionSpec.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	5, // 5: ai.stigmer.agentic.session.v1.SessionSpec.harness:type_name -> ai.stigmer.agentic.session.v1.Harness
+	6, // 6: ai.stigmer.agentic.session.v1.SessionSpec.cursor_mode:type_name -> ai.stigmer.agentic.session.v1.CursorMode
+	7, // 7: ai.stigmer.agentic.session.v1.SessionSpec.execution_target:type_name -> ai.stigmer.agentic.session.v1.ExecutionTarget
+	2, // 8: ai.stigmer.agentic.session.v1.SessionSpec.vaults:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	9, // [9:9] is the sub-list for method output_type
+	9, // [9:9] is the sub-list for method input_type
+	9, // [9:9] is the sub-list for extension type_name
+	9, // [9:9] is the sub-list for extension extendee
+	0, // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_session_v1_spec_proto_init() }
@@ -386,7 +359,7 @@ func file_ai_stigmer_agentic_session_v1_spec_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_session_v1_spec_proto_rawDesc), len(file_ai_stigmer_agentic_session_v1_spec_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

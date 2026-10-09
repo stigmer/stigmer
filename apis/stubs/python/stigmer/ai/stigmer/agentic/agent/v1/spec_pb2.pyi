@@ -15,7 +15,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class AgentSpec(_message.Message):
-    __slots__ = ("description", "icon_url", "instructions", "mcp_server_usages", "skill_refs", "sub_agents", "env", "tools", "disallowed_tools", "hooks", "run_config", "harness", "vaults")
+    __slots__ = ("description", "icon_url", "instructions", "mcp_server_usages", "skill_refs", "sub_agents", "env", "tools", "disallowed_tools", "hooks", "run_config", "harness")
     class EnvEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -35,7 +35,6 @@ class AgentSpec(_message.Message):
     HOOKS_FIELD_NUMBER: _ClassVar[int]
     RUN_CONFIG_FIELD_NUMBER: _ClassVar[int]
     HARNESS_FIELD_NUMBER: _ClassVar[int]
-    VAULTS_FIELD_NUMBER: _ClassVar[int]
     description: str
     icon_url: str
     instructions: str
@@ -48,8 +47,7 @@ class AgentSpec(_message.Message):
     hooks: _containers.RepeatedCompositeFieldContainer[HookSource]
     run_config: _invocation_pb2.RunConfig
     harness: _enum_pb2.Harness
-    vaults: _containers.RepeatedCompositeFieldContainer[_io_pb2.ApiResourceReference]
-    def __init__(self, description: _Optional[str] = ..., icon_url: _Optional[str] = ..., instructions: _Optional[str] = ..., mcp_server_usages: _Optional[_Iterable[_Union[_usage_pb2.McpServerUsage, _Mapping]]] = ..., skill_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., sub_agents: _Optional[_Iterable[_Union[SubAgent, _Mapping]]] = ..., env: _Optional[_Mapping[str, _declaration_pb2.EnvVarDeclaration]] = ..., tools: _Optional[_Iterable[str]] = ..., disallowed_tools: _Optional[_Iterable[str]] = ..., hooks: _Optional[_Iterable[_Union[HookSource, _Mapping]]] = ..., run_config: _Optional[_Union[_invocation_pb2.RunConfig, _Mapping]] = ..., harness: _Optional[_Union[_enum_pb2.Harness, str]] = ..., vaults: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ...) -> None: ...
+    def __init__(self, description: _Optional[str] = ..., icon_url: _Optional[str] = ..., instructions: _Optional[str] = ..., mcp_server_usages: _Optional[_Iterable[_Union[_usage_pb2.McpServerUsage, _Mapping]]] = ..., skill_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., sub_agents: _Optional[_Iterable[_Union[SubAgent, _Mapping]]] = ..., env: _Optional[_Mapping[str, _declaration_pb2.EnvVarDeclaration]] = ..., tools: _Optional[_Iterable[str]] = ..., disallowed_tools: _Optional[_Iterable[str]] = ..., hooks: _Optional[_Iterable[_Union[HookSource, _Mapping]]] = ..., run_config: _Optional[_Union[_invocation_pb2.RunConfig, _Mapping]] = ..., harness: _Optional[_Union[_enum_pb2.Harness, str]] = ...) -> None: ...
 
 class HookSource(_message.Message):
     __slots__ = ("plugin", "inline")

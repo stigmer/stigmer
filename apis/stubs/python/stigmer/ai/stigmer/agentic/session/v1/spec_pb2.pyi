@@ -13,22 +13,8 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class SessionSpec(_message.Message):
-    __slots__ = ("agent_ref", "subject", "harness_state_id", "harness_state_id_history", "metadata", "workspace_entries", "mcp_server_usages", "skill_refs", "harness", "cursor_mode", "execution_target", "vaults", "secrets", "connections")
+    __slots__ = ("agent_ref", "subject", "harness_state_id", "harness_state_id_history", "metadata", "workspace_entries", "mcp_server_usages", "skill_refs", "harness", "cursor_mode", "execution_target", "vaults", "include_my_vault")
     class MetadataEntry(_message.Message):
-        __slots__ = ("key", "value")
-        KEY_FIELD_NUMBER: _ClassVar[int]
-        VALUE_FIELD_NUMBER: _ClassVar[int]
-        key: str
-        value: str
-        def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
-    class SecretsEntry(_message.Message):
-        __slots__ = ("key", "value")
-        KEY_FIELD_NUMBER: _ClassVar[int]
-        VALUE_FIELD_NUMBER: _ClassVar[int]
-        key: str
-        value: str
-        def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
-    class ConnectionsEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
         VALUE_FIELD_NUMBER: _ClassVar[int]
@@ -47,8 +33,7 @@ class SessionSpec(_message.Message):
     CURSOR_MODE_FIELD_NUMBER: _ClassVar[int]
     EXECUTION_TARGET_FIELD_NUMBER: _ClassVar[int]
     VAULTS_FIELD_NUMBER: _ClassVar[int]
-    SECRETS_FIELD_NUMBER: _ClassVar[int]
-    CONNECTIONS_FIELD_NUMBER: _ClassVar[int]
+    INCLUDE_MY_VAULT_FIELD_NUMBER: _ClassVar[int]
     agent_ref: _io_pb2.ApiResourceReference
     subject: str
     harness_state_id: str
@@ -61,6 +46,5 @@ class SessionSpec(_message.Message):
     cursor_mode: _enum_pb2.CursorMode
     execution_target: _enum_pb2.ExecutionTarget
     vaults: _containers.RepeatedCompositeFieldContainer[_io_pb2.ApiResourceReference]
-    secrets: _containers.ScalarMap[str, str]
-    connections: _containers.ScalarMap[str, str]
-    def __init__(self, agent_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., subject: _Optional[str] = ..., harness_state_id: _Optional[str] = ..., harness_state_id_history: _Optional[_Iterable[str]] = ..., metadata: _Optional[_Mapping[str, str]] = ..., workspace_entries: _Optional[_Iterable[_Union[_workspace_pb2.WorkspaceEntry, _Mapping]]] = ..., mcp_server_usages: _Optional[_Iterable[_Union[_usage_pb2.McpServerUsage, _Mapping]]] = ..., skill_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., harness: _Optional[_Union[_enum_pb2.Harness, str]] = ..., cursor_mode: _Optional[_Union[_enum_pb2.CursorMode, str]] = ..., execution_target: _Optional[_Union[_enum_pb2.ExecutionTarget, str]] = ..., vaults: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., secrets: _Optional[_Mapping[str, str]] = ..., connections: _Optional[_Mapping[str, str]] = ...) -> None: ...
+    include_my_vault: bool
+    def __init__(self, agent_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., subject: _Optional[str] = ..., harness_state_id: _Optional[str] = ..., harness_state_id_history: _Optional[_Iterable[str]] = ..., metadata: _Optional[_Mapping[str, str]] = ..., workspace_entries: _Optional[_Iterable[_Union[_workspace_pb2.WorkspaceEntry, _Mapping]]] = ..., mcp_server_usages: _Optional[_Iterable[_Union[_usage_pb2.McpServerUsage, _Mapping]]] = ..., skill_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., harness: _Optional[_Union[_enum_pb2.Harness, str]] = ..., cursor_mode: _Optional[_Union[_enum_pb2.CursorMode, str]] = ..., execution_target: _Optional[_Union[_enum_pb2.ExecutionTarget, str]] = ..., vaults: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., include_my_vault: bool = ...) -> None: ...

@@ -20,7 +20,7 @@ Agent ──► Session ──► Run
 | **Session** | Container runtime | Names the agent (`agent_ref`) and pins the version it resolved. Groups related runs into a conversational context. Maintains state across multiple runs. |
 | **Run** | Container run (`docker run`) | A single run of the session's agent, at the pinned version. Produces messages, tool calls, and results. |
 
-The Agent resource is the only one users author directly in YAML. Sessions and Runs are created via the API or CLI at runtime. The agent declares the environment keys it needs (`env`); values come from vaults when a run starts: the conversation's own values and vaults, the sender's My vault and the agent's vaults they may use, or, for a run no person sent, the vaults its schedule, share, channel or platform client names.
+The Agent resource is the only one users author directly in YAML. Sessions and Runs are created via the API or CLI at runtime. The agent declares the environment keys it needs (`env`); values come from vaults when a run starts: the sender's My vault when the conversation includes it and the vaults the conversation lists, or, for a run no person sent, the vaults its conversation and its schedule, share, channel or platform client name.
 
 ## Documentation Index
 

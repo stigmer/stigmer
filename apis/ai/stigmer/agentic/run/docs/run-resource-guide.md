@@ -80,7 +80,7 @@ No request sets an approval mode: it is a fact of the lane the turn came through
 
 ### A Conversation's Own Values
 
-A turn's secrets and logins come from vaults and from its conversation's own values; a run carries none of its own. A first turn hands a new conversation its values on `session_spec.secrets` and `session_spec.connections` (and a repository's own `token`); a later change is a session update. They are sealed for the conversation's life, shown as `***REDACTED***` on every read, used ahead of every vault, and destroyed with the conversation. `status.credentials.person` records whose turn it was, which decides whether the sender's My vault applies.
+A turn's secrets and logins come from vaults; neither a run nor a conversation carries its own, except a repository's `token`. A first turn names the conversation's vaults on `session_spec.vaults` and sets `session_spec.include_my_vault` to use the sender's My vault first; a later change is a session update. A repository's token is sealed for the conversation's life, shown as `***REDACTED***` on every read, and destroyed with the conversation. `status.credentials.person` records whose turn it was, which decides whose My vault applies.
 
 ### Approval Control
 

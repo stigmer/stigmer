@@ -42,7 +42,6 @@ public final class AgentInput {
     private final java.util.List<HookSourceInput> hooks;
     private final RunConfigInput runConfig;
     private final Harness harness;
-    private final java.util.List<ResourceRef> vaults;
 
     private AgentInput(Builder builder) {
         this.id = builder.id;
@@ -64,7 +63,6 @@ public final class AgentInput {
         this.hooks = builder.hooks;
         this.runConfig = builder.runConfig;
         this.harness = builder.harness;
-        this.vaults = builder.vaults;
     }
 
     Agent toProto() {
@@ -115,12 +113,6 @@ public final class AgentInput {
         }
         if (this.harness != null) {
             spec.setHarness(this.harness);
-        }
-        if (this.vaults != null) {
-            for (ResourceRef item : this.vaults) {
-                spec.addVaults(item.toProto().toBuilder()
-                    .setKind(ApiResourceKind.vault).build());
-            }
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name);
@@ -174,7 +166,6 @@ public final class AgentInput {
         private java.util.List<HookSourceInput> hooks;
         private RunConfigInput runConfig;
         private Harness harness;
-        private java.util.List<ResourceRef> vaults;
 
         private Builder() {}
 
@@ -202,7 +193,6 @@ public final class AgentInput {
         public Builder hooks(java.util.List<HookSourceInput> hooks) { this.hooks = hooks; return this; }
         public Builder runConfig(RunConfigInput runConfig) { this.runConfig = runConfig; return this; }
         public Builder harness(Harness harness) { this.harness = harness; return this; }
-        public Builder vaults(java.util.List<ResourceRef> vaults) { this.vaults = vaults; return this; }
 
         public AgentInput build() { return new AgentInput(this); }
     }

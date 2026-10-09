@@ -292,7 +292,6 @@ const agent = await stigmer.agent.apply({
   hooks: [],
   runConfig: {},
   harness: "...",
-  vaults: [],
 });
 ```
 </Tab>
@@ -315,7 +314,6 @@ agent, err := client.Agent.Apply(ctx, &stigmer.AgentInput{
   Hooks:           []stigmer.HookSourceInput{},
   RunConfig:       &stigmer.RunConfigInput{},
   Harness:         "...",
-  Vaults:          []stigmer.ResourceRef{},
 })
 ```
 </Tab>
@@ -338,7 +336,6 @@ agent = client.agents.apply(AgentInput(
     hooks=[],
     run_config=None,
     harness="...",
-    vaults=[],
 ))
 ```
 </Tab>
@@ -361,7 +358,6 @@ Agent agent = client.agents().apply(AgentInput.builder()
     .hooks(List.of())
     .runConfig(null)
     .harness("...")
-    .vaults(List.of())
     .build());
 ```
 </Tab>
@@ -395,7 +391,6 @@ const agent = await stigmer.agent.create({
   hooks: [],
   runConfig: {},
   harness: "...",
-  vaults: [],
 });
 ```
 </Tab>
@@ -418,7 +413,6 @@ agent, err := client.Agent.Create(ctx, &stigmer.AgentInput{
   Hooks:           []stigmer.HookSourceInput{},
   RunConfig:       &stigmer.RunConfigInput{},
   Harness:         "...",
-  Vaults:          []stigmer.ResourceRef{},
 })
 ```
 </Tab>
@@ -441,7 +435,6 @@ agent = client.agents.create(AgentInput(
     hooks=[],
     run_config=None,
     harness="...",
-    vaults=[],
 ))
 ```
 </Tab>
@@ -464,7 +457,6 @@ Agent agent = client.agents().create(AgentInput.builder()
     .hooks(List.of())
     .runConfig(null)
     .harness("...")
-    .vaults(List.of())
     .build());
 ```
 </Tab>
@@ -498,7 +490,6 @@ const agent = await stigmer.agent.update({
   hooks: [],
   runConfig: {},
   harness: "...",
-  vaults: [],
 });
 ```
 </Tab>
@@ -521,7 +512,6 @@ agent, err := client.Agent.Update(ctx, &stigmer.AgentInput{
   Hooks:           []stigmer.HookSourceInput{},
   RunConfig:       &stigmer.RunConfigInput{},
   Harness:         "...",
-  Vaults:          []stigmer.ResourceRef{},
 })
 ```
 </Tab>
@@ -544,7 +534,6 @@ agent = client.agents.update(AgentInput(
     hooks=[],
     run_config=None,
     harness="...",
-    vaults=[],
 ))
 ```
 </Tab>
@@ -567,7 +556,6 @@ Agent agent = client.agents().update(AgentInput.builder()
     .hooks(List.of())
     .runConfig(null)
     .harness("...")
-    .vaults(List.of())
     .build());
 ```
 </Tab>
@@ -734,7 +722,6 @@ Input for creating or updating an Agent.
     hooks: { type: "HookSourceInput[]", description: "Hooks that run around this agent's tool calls, and its sub-agents' calls.", typeDescriptionLink: "#hooksourceinput" },
     runConfig: { type: "RunConfigInput", description: "The author's run defaults: the model, speed tier, thinking and run bounds a turn on this agent uses unless the message or the surface it came through sets its own (RunConfig has the rule).", typeDescriptionLink: "#runconfiginput" },
     harness: { type: "Harness", description: "The engine this agent's run defaults were chosen for, and the engine a new conversation on this agent starts on when the person or the surface starting it names neither an engine nor a model (a turn that names a model but no engine starts on native, the engine its name was checked against).", typeDescriptionLink: "#harness" },
-    vaults: { type: "ResourceRef[]", description: "Shared vaults this agent's conversations use after the person's own My vault, for people who may use them.", typeDescriptionLink: "#resourceref" },
   }}
 />
 

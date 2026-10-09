@@ -286,8 +286,7 @@ const session = await stigmer.session.apply({
   cursorMode: "...",
   executionTarget: "...",
   vaults: [],
-  secrets: {},
-  connections: {},
+  includeMyVault: false,
 });
 ```
 </Tab>
@@ -310,8 +309,7 @@ session, err := client.Session.Apply(ctx, &stigmer.SessionInput{
   CursorMode:            "...",
   ExecutionTarget:       "...",
   Vaults:                []stigmer.ResourceRef{},
-  Secrets:               map[string]string{},
-  Connections:           map[string]string{},
+  IncludeMyVault:        false,
 })
 ```
 </Tab>
@@ -334,8 +332,7 @@ session = client.sessions.apply(SessionInput(
     cursor_mode="...",
     execution_target="...",
     vaults=[],
-    secrets={},
-    connections={},
+    include_my_vault=False,
 ))
 ```
 </Tab>
@@ -358,8 +355,7 @@ Session session = client.sessions().apply(SessionInput.builder()
     .cursorMode("...")
     .executionTarget("...")
     .vaults(List.of())
-    .secrets(Map.of())
-    .connections(Map.of())
+    .includeMyVault(false)
     .build());
 ```
 </Tab>
@@ -393,8 +389,7 @@ const session = await stigmer.session.create({
   cursorMode: "...",
   executionTarget: "...",
   vaults: [],
-  secrets: {},
-  connections: {},
+  includeMyVault: false,
 });
 ```
 </Tab>
@@ -417,8 +412,7 @@ session, err := client.Session.Create(ctx, &stigmer.SessionInput{
   CursorMode:            "...",
   ExecutionTarget:       "...",
   Vaults:                []stigmer.ResourceRef{},
-  Secrets:               map[string]string{},
-  Connections:           map[string]string{},
+  IncludeMyVault:        false,
 })
 ```
 </Tab>
@@ -441,8 +435,7 @@ session = client.sessions.create(SessionInput(
     cursor_mode="...",
     execution_target="...",
     vaults=[],
-    secrets={},
-    connections={},
+    include_my_vault=False,
 ))
 ```
 </Tab>
@@ -465,8 +458,7 @@ Session session = client.sessions().create(SessionInput.builder()
     .cursorMode("...")
     .executionTarget("...")
     .vaults(List.of())
-    .secrets(Map.of())
-    .connections(Map.of())
+    .includeMyVault(false)
     .build());
 ```
 </Tab>
@@ -500,8 +492,7 @@ const session = await stigmer.session.update({
   cursorMode: "...",
   executionTarget: "...",
   vaults: [],
-  secrets: {},
-  connections: {},
+  includeMyVault: false,
 });
 ```
 </Tab>
@@ -524,8 +515,7 @@ session, err := client.Session.Update(ctx, &stigmer.SessionInput{
   CursorMode:            "...",
   ExecutionTarget:       "...",
   Vaults:                []stigmer.ResourceRef{},
-  Secrets:               map[string]string{},
-  Connections:           map[string]string{},
+  IncludeMyVault:        false,
 })
 ```
 </Tab>
@@ -548,8 +538,7 @@ session = client.sessions.update(SessionInput(
     cursor_mode="...",
     execution_target="...",
     vaults=[],
-    secrets={},
-    connections={},
+    include_my_vault=False,
 ))
 ```
 </Tab>
@@ -572,8 +561,7 @@ Session session = client.sessions().update(SessionInput.builder()
     .cursorMode("...")
     .executionTarget("...")
     .vaults(List.of())
-    .secrets(Map.of())
-    .connections(Map.of())
+    .includeMyVault(false)
     .build());
 ```
 </Tab>
@@ -691,8 +679,7 @@ Input for creating or updating a Session.
     cursorMode: { type: "CursorMode", description: "Cursor SDK agent mode for this session.", typeDescriptionLink: "#cursormode" },
     executionTarget: { type: "ExecutionTarget", description: "Where session activities are executed — local client or cloud sandbox.", typeDescriptionLink: "#executiontarget" },
     vaults: { type: "ResourceRef[]", description: "Vaults whose logins and secrets this conversation's runs use, in order: the first vault holding a match wins.", typeDescriptionLink: "#resourceref" },
-    secrets: { type: "Record<string, string>", description: "Secrets this conversation's runs use, by name, ahead of every vault." },
-    connections: { type: "Record<string, string>", description: "Logins this conversation's runs use, by the address of the tool or Git host each is for, ahead of every vault." },
+    includeMyVault: { type: "boolean", description: "Whether each turn also uses its sender's own My vault, first, ahead of the listed vaults." },
   }}
 />
 

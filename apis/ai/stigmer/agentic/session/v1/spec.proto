@@ -196,11 +196,14 @@ message SessionSpec {
   // Vaults whose logins and secrets this conversation's runs use, in order:
   // the first vault holding a match wins. At most 20.
   //
-  // A conversation that lists vaults uses exactly those. One that lists
-  // none uses the My vault of the person sending each turn, then the
-  // agent's vaults that person may use. A My vault cannot be listed: a
-  // conversation can have several people, and each person's own vault
-  // serves only their own turns.
+  // The conversation uses exactly these, in order, after the sender's My
+  // vault when include_my_vault is set. A My vault cannot be listed: set
+  // include_my_vault, which gives each sender their own.
+  //
+  // An update built on an older read than the stored conversation (it
+  // echoes an older status.audit.spec_audit.updated_at) keeps the stored
+  // vaults and include_my_vault: read the conversation again to change
+  // which vaults it uses.
   //
   // @internal
   // The reference rule asks can_use of the writer for each vault a write
@@ -217,60 +220,17 @@ message SessionSpec {
     }
   ];
 
-  // Secrets this conversation's runs use, by name, ahead of every vault.
-  //
-  // This is how an integrator hands a run a key without saving it in a
-  // vault. The values are kept sealed for the conversation's life, can be
-  // replaced by an update at any time, are never returned by a read, and
-  // are destroyed with the conversation.
-  //
-  // An update built on an older read than the stored conversation (it
-  // echoes an older status.audit.spec_audit.updated_at) removes nothing it
-  // could not have seen: the values it omits are kept, and so are the
-  // vaults the conversation lists. Read the conversation again to remove a
-  // value or change its vaults.
-  //
-  // @internal
-  // Sealed through the server's SecretService. A read shows the redaction
-  // marker for each value, and a write that sends the marker back keeps the
-  // stored value, so the runner's per-turn session writes never clear them.
-  map<string, string> secrets = 16 [(buf.validate.field).map = {
-    max_pairs: 100
-    keys: {
-      string: {
-        pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
-        max_len: 128
-      }
-    }
-    values: {
-      string: {
-        min_len: 1
-        max_len: 65536
-      }
-    }
-  }];
+  // Fields 16 and 17 held secrets and logins handed to one conversation
+  // until a conversation's values moved to vaults; a key is saved in a
+  // vault, and the conversation names the vault.
+  reserved 16, 17;
+  reserved "secrets", "connections";
 
-  // Logins this conversation's runs use, by the address of the tool or Git
-  // host each is for, ahead of every vault.
+  // Whether each turn also uses its sender's own My vault, first, ahead of
+  // the listed vaults. Off unless the caller sets it.
   //
-  // Kept, replaced and destroyed as secrets are. Addresses are normalized
-  // as a vault's are.
-  //
-  // @internal
-  // Sealed and redacted as secrets are.
-  map<string, string> connections = 17 [(buf.validate.field).map = {
-    max_pairs: 100
-    keys: {
-      string: {
-        min_len: 1
-        max_len: 2048
-      }
-    }
-    values: {
-      string: {
-        min_len: 1
-        max_len: 65536
-      }
-    }
-  }];
+  // Each person who sends a turn uses their own My vault, never another's.
+  // A turn with no person, or one that runs another organization's agent,
+  // ignores it.
+  bool include_my_vault = 18;
 }

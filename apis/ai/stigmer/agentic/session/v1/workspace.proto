@@ -60,7 +60,7 @@ message LocalPathSource {
 //
 // A private repository is cloned with the entry's own token when it carries
 // one, else with a login saved for the repository's host (github.com) in the
-// conversation's vaults. The entry's own token is used only for an
+// vaults the conversation uses. The entry's own token is used only for an
 // https://github.com repository: a session write carrying a token for any
 // other repository is refused.
 //
@@ -126,6 +126,8 @@ message GitRepoSource {
   // repositories refuse it: save the token in a vault the schedule names.
   //
   // @internal
-  // Sealed and redacted with the session's own secrets (SessionSpec.secrets).
+  // Sealed through the server's SecretService. A read shows the redaction
+  // marker, and a write that sends the marker back keeps the stored token,
+  // so the runner's per-turn session writes never clear it.
   string token = 6 [(buf.validate.field).string.max_len = 65536];
 }

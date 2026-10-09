@@ -194,8 +194,7 @@ public final class RunInput {
         private final CursorMode cursorMode;
         private final ExecutionTarget executionTarget;
         private final java.util.List<ResourceRef> vaults;
-        private final java.util.Map<String, String> secrets;
-        private final java.util.Map<String, String> connections;
+        private final boolean includeMyVault;
 
         private SessionSpecInput(Builder builder) {
             this.agentRef = builder.agentRef;
@@ -210,8 +209,7 @@ public final class RunInput {
             this.cursorMode = builder.cursorMode;
             this.executionTarget = builder.executionTarget;
             this.vaults = builder.vaults;
-            this.secrets = builder.secrets;
-            this.connections = builder.connections;
+            this.includeMyVault = builder.includeMyVault;
         }
 
         SessionSpec toProto() {
@@ -263,12 +261,7 @@ public final class RunInput {
                         .setKind(ApiResourceKind.vault).build());
                 }
             }
-            if (this.secrets != null && !this.secrets.isEmpty()) {
-                builder.putAllSecrets(this.secrets);
-            }
-            if (this.connections != null && !this.connections.isEmpty()) {
-                builder.putAllConnections(this.connections);
-            }
+            builder.setIncludeMyVault(this.includeMyVault);
             return builder.build();
         }
 
@@ -287,8 +280,7 @@ public final class RunInput {
             private CursorMode cursorMode;
             private ExecutionTarget executionTarget;
             private java.util.List<ResourceRef> vaults;
-            private java.util.Map<String, String> secrets;
-            private java.util.Map<String, String> connections;
+            private boolean includeMyVault;
 
             private Builder() {}
 
@@ -304,8 +296,7 @@ public final class RunInput {
             public Builder cursorMode(CursorMode cursorMode) { this.cursorMode = cursorMode; return this; }
             public Builder executionTarget(ExecutionTarget executionTarget) { this.executionTarget = executionTarget; return this; }
             public Builder vaults(java.util.List<ResourceRef> vaults) { this.vaults = vaults; return this; }
-            public Builder secrets(java.util.Map<String, String> secrets) { this.secrets = secrets; return this; }
-            public Builder connections(java.util.Map<String, String> connections) { this.connections = connections; return this; }
+            public Builder includeMyVault(boolean includeMyVault) { this.includeMyVault = includeMyVault; return this; }
 
             public SessionSpecInput build() { return new SessionSpecInput(this); }
         }

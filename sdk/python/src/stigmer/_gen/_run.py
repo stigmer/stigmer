@@ -250,8 +250,7 @@ class SessionSpecInput:
     cursor_mode: int = 0
     execution_target: int = 0
     vaults: list[ResourceRef] = field(default_factory=list)
-    secrets: dict[str, str] = field(default_factory=dict)
-    connections: dict[str, str] = field(default_factory=dict)
+    include_my_vault: bool = False
 
     def _to_proto(self) -> session_spec_pb2.SessionSpec:
         msg = session_spec_pb2.SessionSpec(
@@ -260,6 +259,7 @@ class SessionSpecInput:
             harness=self.harness,
             cursor_mode=self.cursor_mode,
             execution_target=self.execution_target,
+            include_my_vault=self.include_my_vault,
         )
         if self.agent_ref is not None and (self.agent_ref.org or self.agent_ref.slug):
             _ref = self.agent_ref._to_proto()
@@ -281,10 +281,6 @@ class SessionSpecInput:
             _ref = ref._to_proto()
             _ref.kind = 59
             msg.vaults.append(_ref)
-        if self.secrets:
-            msg.secrets.update(self.secrets)
-        if self.connections:
-            msg.connections.update(self.connections)
         return msg
 
 

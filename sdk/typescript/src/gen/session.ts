@@ -108,8 +108,7 @@ export interface SessionInput {
   cursorMode?: CursorMode;
   executionTarget?: ExecutionTarget;
   vaults?: ResourceRef[];
-  secrets?: Record<string, string>;
-  connections?: Record<string, string>;
+  includeMyVault?: boolean;
 }
 
 /** SDK input type for WorkspaceEntry. */
@@ -214,8 +213,7 @@ export function buildSessionProto(input: SessionInput): Session {
       cursorMode: input.cursorMode,
       executionTarget: input.executionTarget,
       vaults,
-      secrets: input.secrets,
-      connections: input.connections,
+      includeMyVault: input.includeMyVault,
     })),
   }) as Session;
 }
@@ -294,7 +292,6 @@ export function toSessionUpdateInput(resource: Session): SessionInput {
     cursorMode: spec.cursorMode || undefined,
     executionTarget: spec.executionTarget || undefined,
     vaults: toResourceRefInputs(spec.vaults),
-    secrets: Object.keys(spec.secrets ?? {}).length > 0 ? { ...spec.secrets } : undefined,
-    connections: Object.keys(spec.connections ?? {}).length > 0 ? { ...spec.connections } : undefined,
+    includeMyVault: spec.includeMyVault || undefined,
   };
 }

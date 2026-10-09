@@ -198,7 +198,7 @@ private static final long serialVersionUID = 0L;
    * User-provided inputs for this run.
    * Contains: the conversation (session_id or a new session_spec), message,
    * run_config and the per-message intents. A turn's logins and secrets
-   * come from its session's own values and the vaults the server resolves
+   * come from the vaults its conversation uses, which the server resolves
    * for it (RunStatus.credentials records whose run it was).
    * </pre>
    *
@@ -214,7 +214,7 @@ private static final long serialVersionUID = 0L;
    * User-provided inputs for this run.
    * Contains: the conversation (session_id or a new session_spec), message,
    * run_config and the per-message intents. A turn's logins and secrets
-   * come from its session's own values and the vaults the server resolves
+   * come from the vaults its conversation uses, which the server resolves
    * for it (RunStatus.credentials records whose run it was).
    * </pre>
    *
@@ -230,7 +230,7 @@ private static final long serialVersionUID = 0L;
    * User-provided inputs for this run.
    * Contains: the conversation (session_id or a new session_spec), message,
    * run_config and the per-message intents. A turn's logins and secrets
-   * come from its session's own values and the vaults the server resolves
+   * come from the vaults its conversation uses, which the server resolves
    * for it (RunStatus.credentials records whose run it was).
    * </pre>
    *
@@ -1084,7 +1084,7 @@ private static final long serialVersionUID = 0L;
      * User-provided inputs for this run.
      * Contains: the conversation (session_id or a new session_spec), message,
      * run_config and the per-message intents. A turn's logins and secrets
-     * come from its session's own values and the vaults the server resolves
+     * come from the vaults its conversation uses, which the server resolves
      * for it (RunStatus.credentials records whose run it was).
      * </pre>
      *
@@ -1099,7 +1099,7 @@ private static final long serialVersionUID = 0L;
      * User-provided inputs for this run.
      * Contains: the conversation (session_id or a new session_spec), message,
      * run_config and the per-message intents. A turn's logins and secrets
-     * come from its session's own values and the vaults the server resolves
+     * come from the vaults its conversation uses, which the server resolves
      * for it (RunStatus.credentials records whose run it was).
      * </pre>
      *
@@ -1118,7 +1118,7 @@ private static final long serialVersionUID = 0L;
      * User-provided inputs for this run.
      * Contains: the conversation (session_id or a new session_spec), message,
      * run_config and the per-message intents. A turn's logins and secrets
-     * come from its session's own values and the vaults the server resolves
+     * come from the vaults its conversation uses, which the server resolves
      * for it (RunStatus.credentials records whose run it was).
      * </pre>
      *
@@ -1142,7 +1142,7 @@ private static final long serialVersionUID = 0L;
      * User-provided inputs for this run.
      * Contains: the conversation (session_id or a new session_spec), message,
      * run_config and the per-message intents. A turn's logins and secrets
-     * come from its session's own values and the vaults the server resolves
+     * come from the vaults its conversation uses, which the server resolves
      * for it (RunStatus.credentials records whose run it was).
      * </pre>
      *
@@ -1164,7 +1164,7 @@ private static final long serialVersionUID = 0L;
      * User-provided inputs for this run.
      * Contains: the conversation (session_id or a new session_spec), message,
      * run_config and the per-message intents. A turn's logins and secrets
-     * come from its session's own values and the vaults the server resolves
+     * come from the vaults its conversation uses, which the server resolves
      * for it (RunStatus.credentials records whose run it was).
      * </pre>
      *
@@ -1193,7 +1193,7 @@ private static final long serialVersionUID = 0L;
      * User-provided inputs for this run.
      * Contains: the conversation (session_id or a new session_spec), message,
      * run_config and the per-message intents. A turn's logins and secrets
-     * come from its session's own values and the vaults the server resolves
+     * come from the vaults its conversation uses, which the server resolves
      * for it (RunStatus.credentials records whose run it was).
      * </pre>
      *
@@ -1214,7 +1214,7 @@ private static final long serialVersionUID = 0L;
      * User-provided inputs for this run.
      * Contains: the conversation (session_id or a new session_spec), message,
      * run_config and the per-message intents. A turn's logins and secrets
-     * come from its session's own values and the vaults the server resolves
+     * come from the vaults its conversation uses, which the server resolves
      * for it (RunStatus.credentials records whose run it was).
      * </pre>
      *
@@ -1230,7 +1230,7 @@ private static final long serialVersionUID = 0L;
      * User-provided inputs for this run.
      * Contains: the conversation (session_id or a new session_spec), message,
      * run_config and the per-message intents. A turn's logins and secrets
-     * come from its session's own values and the vaults the server resolves
+     * come from the vaults its conversation uses, which the server resolves
      * for it (RunStatus.credentials records whose run it was).
      * </pre>
      *
@@ -1249,7 +1249,7 @@ private static final long serialVersionUID = 0L;
      * User-provided inputs for this run.
      * Contains: the conversation (session_id or a new session_spec), message,
      * run_config and the per-message intents. A turn's logins and secrets
-     * come from its session's own values and the vaults the server resolves
+     * come from the vaults its conversation uses, which the server resolves
      * for it (RunStatus.credentials records whose run it was).
      * </pre>
      *

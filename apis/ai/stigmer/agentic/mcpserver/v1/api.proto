@@ -19,11 +19,11 @@ import "buf/validate/validate.proto";
 // Lifecycle:
 // 1. Create McpServer definition (this resource) with server type and env requirements
 // 2. Reference in Agent via mcp_server_usages
-// 3. Provide the declared values through the session's own values or a vault
-//    the run resolves (the session's vaults, the vaults of the schedule,
-//    PlatformClient, share or channel it came through, or the person's My
-//    vault and the agent's vaults); a sign-in saves its login in a vault as a
-//    connection at the server's address
+// 3. Provide the declared values through a vault the run resolves (the
+//    sender's My vault when the session includes it and the session's
+//    vaults, or the vaults of the schedule, PlatformClient, share or channel
+//    it came through); a sign-in saves its login in a vault as a connection
+//    at the server's address
 // 4. Agent runner resolves McpServer, gets the values, starts server
 message McpServer {
   // API version for this resource type.

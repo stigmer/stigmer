@@ -38,7 +38,7 @@ type Run struct {
 	// User-provided inputs for this run.
 	// Contains: the conversation (session_id or a new session_spec), message,
 	// run_config and the per-message intents. A turn's logins and secrets
-	// come from its session's own values and the vaults the server resolves
+	// come from the vaults its conversation uses, which the server resolves
 	// for it (RunStatus.credentials records whose run it was).
 	Spec *RunSpec `protobuf:"bytes,4,opt,name=spec,proto3" json:"spec,omitempty"`
 	// System-managed run state and results.

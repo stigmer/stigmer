@@ -105,8 +105,7 @@ type SessionInput struct {
 	CursorMode            sessionv1.CursorMode
 	ExecutionTarget       sessionv1.ExecutionTarget
 	Vaults                []ResourceRef
-	Secrets               map[string]string
-	Connections           map[string]string
+	IncludeMyVault        bool
 }
 
 func (i *SessionInput) toProto() (*sessionv1.Session, error) {
@@ -159,8 +158,7 @@ func (i *SessionInput) toProto() (*sessionv1.Session, error) {
 		ref.Kind = apiresourcekind.ApiResourceKind_vault
 		resource.Spec.Vaults = append(resource.Spec.Vaults, ref)
 	}
-	resource.Spec.Secrets = i.Secrets
-	resource.Spec.Connections = i.Connections
+	resource.Spec.IncludeMyVault = i.IncludeMyVault
 	return resource, nil
 }
 
@@ -199,8 +197,7 @@ func SessionInputFromProto(p *sessionv1.Session) *SessionInput {
 		for _, r := range s.GetVaults() {
 			input.Vaults = append(input.Vaults, resourceRefFromProto(r))
 		}
-		input.Secrets = s.GetSecrets()
-		input.Connections = s.GetConnections()
+		input.IncludeMyVault = s.GetIncludeMyVault()
 	}
 	return input
 }
