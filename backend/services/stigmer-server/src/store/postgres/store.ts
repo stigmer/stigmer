@@ -1689,6 +1689,14 @@ class PostgresPendingOAuthStateStore implements PendingOAuthStateStore {
     );
     return result.rowCount ?? 0;
   }
+
+  async deleteByConnectLink(tokenHash: string): Promise<number> {
+    const result = await this.open().query(
+      `DELETE FROM pending_oauth_state WHERE connect_link = $1`,
+      [tokenHash],
+    );
+    return result.rowCount ?? 0;
+  }
 }
 
 class PostgresOAuthClientRegistrationStore
@@ -1733,12 +1741,12 @@ class PostgresOAuthClientRegistrationStore
     );
   }
 
-  async holds(clientId: string): Promise<boolean> {
-    const result = await this.open().query(
-      `SELECT 1 FROM oauth_client_registration WHERE client_id = $1 LIMIT 1`,
+  async loginServersHolding(clientId: string): Promise<readonly string[]> {
+    const result = await this.open().query<{ login_server: string }>(
+      `SELECT DISTINCT login_server FROM oauth_client_registration WHERE client_id = $1`,
       [clientId],
     );
-    return result.rows.length > 0;
+    return result.rows.map((row) => row.login_server);
   }
 }
 

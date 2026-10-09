@@ -1742,6 +1742,13 @@ class SqlitePendingOAuthStateStore implements PendingOAuthStateStore {
       .run(org);
     return Number(result.changes);
   }
+
+  async deleteByConnectLink(tokenHash: string): Promise<number> {
+    const result = this.open()
+      .prepare(`DELETE FROM pending_oauth_state WHERE connect_link = ?`)
+      .run(tokenHash);
+    return Number(result.changes);
+  }
 }
 
 function pendingOAuthStateOf(row: PendingOAuthStateRow): PendingOAuthState {
@@ -1808,12 +1815,11 @@ class SqliteOAuthClientRegistrationStore
       .run(loginServer, redirectUri, clientId);
   }
 
-  async holds(clientId: string): Promise<boolean> {
-    return (
-      this.open()
-        .prepare(`SELECT 1 FROM oauth_client_registration WHERE client_id = ? LIMIT 1`)
-        .get(clientId) !== undefined
-    );
+  async loginServersHolding(clientId: string): Promise<readonly string[]> {
+    const rows = this.open()
+      .prepare(`SELECT DISTINCT login_server FROM oauth_client_registration WHERE client_id = ?`)
+      .all(clientId) as Array<{ login_server: string }>;
+    return rows.map((row) => row.login_server);
   }
 }
 

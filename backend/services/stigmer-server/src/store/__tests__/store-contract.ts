@@ -1558,6 +1558,16 @@ export function describeStoreContract(
       ).toBe(0);
     });
 
+    it("removes the states a Connect link began, and no other", async () => {
+      await fx.store.pendingOAuthStates.save({ ...state, state: "link-1", connectLink: "hash-a" });
+      await fx.store.pendingOAuthStates.save({ ...state, state: "link-2", connectLink: "hash-a" });
+      await fx.store.pendingOAuthStates.save({ ...state, state: "other-link", connectLink: "hash-b" });
+      await fx.store.pendingOAuthStates.save({ ...state, state: "person", connectLink: "" });
+      expect(await fx.store.pendingOAuthStates.deleteByConnectLink("hash-a")).toBe(2);
+      expect(await fx.store.pendingOAuthStates.getAndDelete("other-link")).toBeDefined();
+      expect(await fx.store.pendingOAuthStates.getAndDelete("person")).toBeDefined();
+    });
+
     it("unknown states return undefined; cleanupExpired reports the count removed", async () => {
       expect(
         await fx.store.pendingOAuthStates.getAndDelete("ghost"),
@@ -1602,11 +1612,13 @@ export function describeStoreContract(
       expect(await registrations.find("https://login.test", "https://app.test/cb")).toBeUndefined();
     });
 
-    it("says whether a client id is one it keeps with any login server", async () => {
+    it("answers the login servers it keeps a client id with", async () => {
       const registrations = fx.store.oauthClientRegistrations;
       await registrations.save("https://login.test", "https://app.test/cb", "client-kept", NOW);
-      expect(await registrations.holds("client-kept")).toBe(true);
-      expect(await registrations.holds("client-never")).toBe(false);
+      await registrations.save("https://login.test", "http://127.0.0.1:17237/cb", "client-kept", NOW);
+      await registrations.save("https://other.test", "https://app.test/cb", "client-kept", NOW);
+      expect([...(await registrations.loginServersHolding("client-kept"))].sort()).toEqual(["https://login.test", "https://other.test"]);
+      expect(await registrations.loginServersHolding("client-never")).toEqual([]);
     });
   });
 

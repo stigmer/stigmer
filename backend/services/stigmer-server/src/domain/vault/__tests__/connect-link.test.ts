@@ -161,7 +161,7 @@ describe("creating a link", () => {
   it.each([
     ["a catalog entry's", "gh-client", {}],
     ["Stigmer's metadata document", "https://stigmer.example/v1/oauth/client.json", {}],
-    ["a client Stigmer keeps with a login server", "dcr-kept", { kept: true }],
+    ["a client Stigmer keeps with the app's own login server", "dcr-kept", { kept: true }],
   ] as const)("refuses at creation an organization app that borrows %s client id", async (_what, clientId, how) => {
     await seedSharedVault(rig);
     const deps = rig.deps({
@@ -171,7 +171,8 @@ describe("creating a link", () => {
     const refusal = `a Connect link's login app must use the organization's own client: the app for ${VENDOR_ADDRESS} uses a client id Stigmer signs in with`;
     await seedOrganizationApp(rig, { clientId });
     if ("kept" in how) {
-      await rig.store.oauthClientRegistrations.save("https://login.linear.example", "http://127.0.0.1:8234/auth/oauth/callback", clientId, new Date().toISOString());
+      // Kept with the login server the app sends people to.
+      await rig.store.oauthClientRegistrations.save("https://login.vendor.example", "http://127.0.0.1:8234/auth/oauth/callback", clientId, new Date().toISOString());
     }
     await expectRefusal(
       createConnectLink(deps, create(CreateConnectLinkInputSchema, { org: ORG, vaultId: "vlt_shared", address: VENDOR_ADDRESS, returnUrl: RETURN_URL }), alice),
@@ -180,10 +181,19 @@ describe("creating a link", () => {
     );
   });
 
+  it("takes an app whose client id another login server answered a registration with: that cannot lock an organization out", async () => {
+    await seeded();
+    // Any member's sign-in at a login server they run can make it answer
+    // with someone else's public client id.
+    await rig.store.oauthClientRegistrations.save("https://login.attacker.example", "http://127.0.0.1:8234/auth/oauth/callback", "vendor-client", new Date().toISOString());
+    const link = await makeLink();
+    expect((await startConnectLink(rig.deps(), tokenInput(link.token))).authorizationUrl.startsWith("https://login.vendor.example/")).toBe(true);
+  });
+
   it("refuses at start when the organization's app came to borrow a client id Stigmer signs in with", async () => {
     await seeded();
     const link = await makeLink();
-    await rig.store.oauthClientRegistrations.save("https://login.linear.example", "http://127.0.0.1:8234/auth/oauth/callback", "vendor-client", new Date().toISOString());
+    await rig.store.oauthClientRegistrations.save("https://login.vendor.example", "http://127.0.0.1:8234/auth/oauth/callback", "vendor-client", new Date().toISOString());
     await expectRefusal(
       startConnectLink(rig.deps(), tokenInput(link.token)),
       Code.FailedPrecondition,
@@ -347,6 +357,15 @@ describe("using a link", () => {
       Code.FailedPrecondition,
       "a Connect link signs in only through the organization's own login app",
     );
+  });
+
+  it("keeps one live sign-in: a new start replaces the last, whose return then answers reason=expired", async () => {
+    await seeded();
+    const link = await makeLink();
+    const first = (await startConnectLink(rig.deps(), tokenInput(link.token))).state;
+    const second = (await startConnectLink(rig.deps(), tokenInput(link.token))).state;
+    expect((await finish(link.token, first)).returnUrl).toBe(`${RETURN_URL}?stigmer_connect=error&reason=expired`);
+    expect((await finish(link.token, second)).returnUrl).toBe(`${RETURN_URL}?stigmer_connect=connected`);
   });
 
   it("re-checks its maker as the caller class and bound organization that made it", async () => {

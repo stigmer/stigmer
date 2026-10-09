@@ -332,7 +332,7 @@ describe("a Connect link", () => {
   it("is a fault, not a refusal, when the clients Stigmer keeps cannot be read", async () => {
     await seedSharedVault(rig);
     await seedOrganizationApp(rig);
-    const failing = withOverrides(rig.store.oauthClientRegistrations, { holds: fault });
+    const failing = withOverrides(rig.store.oauthClientRegistrations, { loginServersHolding: fault });
     await expectRefusal(
       createConnectLink(
         rig.deps({ clientRegistrations: failing }),

@@ -219,8 +219,13 @@ export async function startSignIn(deps: SignInDeps, start: SignInStart): Promise
   }
   try {
     // Every start sweeps the states nobody finished (they live ten
-    // minutes), so starts a public link allows cannot grow the table.
+    // minutes), and a Connect link keeps one live state: its new start
+    // replaces the last, so the starts anyone holding a link may make
+    // cannot grow the table.
     await deps.pendingOAuthStates.cleanupExpired();
+    if (start.connectLink !== "") {
+      await deps.pendingOAuthStates.deleteByConnectLink(start.connectLink);
+    }
     await deps.pendingOAuthStates.save(sealed);
   } catch (error) {
     throw internalError(error, "failed to save pending OAuth state");
@@ -257,16 +262,19 @@ export function linkNeedsOrganizationApp(address: string): Error {
  * The organization's own login app for a Connect link's address, or the
  * refusal. The app must be the organization's own client too: an app whose
  * client id is one Stigmer signs in with (a catalog entry's, Stigmer's
- * metadata document, or a client Stigmer keeps with a login server) would
- * send a stranger's code, under Stigmer's name, to whatever token URL the
- * app's admin chose.
+ * metadata document, or a client Stigmer keeps with the login server the
+ * app sends people to) would send a stranger's code, under Stigmer's name,
+ * to whatever token URL the app's admin chose. A client Stigmer keeps with
+ * another login server says nothing about this app: that table takes what
+ * any login server answers, so matching it everywhere would let one
+ * organization's sign-in lock another's links out.
  */
 export async function linkLoginApp(deps: SignInDeps, org: string, address: string): Promise<AppLogin> {
   const app = await findOrganizationLoginApp(deps, org, address);
   if (app === undefined) {
     throw linkNeedsOrganizationApp(address);
   }
-  if (await isStigmersClient(deps, app.clientId)) {
+  if (await isStigmersClient(deps, app)) {
     throw failedPreconditionError(
       `a Connect link's login app must use the organization's own client: the app for ${address} uses a client id Stigmer signs in with`,
     );
@@ -274,17 +282,26 @@ export async function linkLoginApp(deps: SignInDeps, org: string, address: strin
   return app;
 }
 
-/** Whether a client id is one Stigmer itself signs in with. */
-async function isStigmersClient(deps: SignInDeps, clientId: string): Promise<boolean> {
+/** Whether an app's client id is one Stigmer itself signs in with at the app's login server. */
+async function isStigmersClient(deps: SignInDeps, app: AppLogin): Promise<boolean> {
+  const clientId = app.clientId;
   if (deps.clientDocumentUrl !== "" && clientId === deps.clientDocumentUrl) return true;
   for (const credentials of deps.loginProviders.values()) {
     if (credentials.clientId === clientId) return true;
   }
+  let keptAt: readonly string[];
   try {
-    return await deps.clientRegistrations.holds(clientId);
+    keptAt = await deps.clientRegistrations.loginServersHolding(clientId);
   } catch (error) {
     throw internalError(error, "failed to read the clients Stigmer keeps");
   }
+  const appOrigins = new Set([originOf(app.authorizationUrl), originOf(app.tokenUrl)].filter((origin) => origin !== ""));
+  return keptAt.some((loginServer) => appOrigins.has(originOf(loginServer)));
+}
+
+/** A URL's origin, or "" for one that does not parse (never equal to a real origin). */
+function originOf(value: string): string {
+  return URL.canParse(value) ? new URL(value).origin : "";
 }
 
 /** The pieces of a sign-in its client decides. */
