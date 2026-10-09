@@ -68,7 +68,7 @@ export interface OAuthRedirectUriInputs {
   readonly port: number;
 }
 
-/** The callback URL the McpServer OAuth flows use, and where it came from. */
+/** The callback URL every sign-in returns to (the vault's sign-in and Connect links), and where it came from. */
 export function resolveOAuthRedirectUri(
   inputs: OAuthRedirectUriInputs,
 ): OAuthRedirectUriResolution {

@@ -62,6 +62,14 @@ export class NoSignInClientError extends Error {
   }
 }
 
+/** The login server refused or failed Stigmer's registration: thrown with its own words. */
+export class ClientRegistrationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ClientRegistrationError";
+  }
+}
+
 /**
  * The key a login server's registrations are kept under: its issuer, which
  * discovery has checked is the issuer the document was read for, so no
@@ -136,12 +144,12 @@ async function register(
   metadata: AuthServerMetadata,
   redirectUri: string,
 ): Promise<SignInClient> {
-  const registered = await registerClient(
-    metadata.registrationEndpoint,
-    redirectUri,
-    CLIENT_NAME,
-    deps.fetchImpl,
-  );
+  let registered;
+  try {
+    registered = await registerClient(metadata.registrationEndpoint, redirectUri, CLIENT_NAME, deps.fetchImpl);
+  } catch (error) {
+    throw new ClientRegistrationError(error instanceof Error ? error.message : String(error));
+  }
   const key = loginServerKey(metadata);
   const kept = await deps.registrations.save(
     key,

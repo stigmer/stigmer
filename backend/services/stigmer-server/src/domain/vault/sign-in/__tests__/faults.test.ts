@@ -19,7 +19,7 @@
  *     store fault reading an app propagates.
  */
 import { create } from "@bufbuild/protobuf";
-import { Code } from "@connectrpc/connect";
+import { Code, ConnectError } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
@@ -109,6 +109,24 @@ describe("the login server", () => {
     rig.levers.forgotten.add(new URL(first.authorizationUrl).searchParams.get("client_id")!);
     rig.levers.failRegistrations = true;
     await expectRefusal(start(MCP_ADDRESS), Code.FailedPrecondition, `registering Stigmer with the login server for ${MCP_ADDRESS} failed`);
+  });
+
+  it("a fault keeping Stigmer's client is the server's, never blamed on the login server", async () => {
+    const registrations = rig.store.oauthClientRegistrations;
+    const failing = new Proxy(registrations, {
+      get(target, prop, receiver) {
+        if (prop === "find") return () => Promise.reject(new Error("disk gone"));
+        const value = Reflect.get(target, prop, receiver) as unknown;
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+    const refused = await start(MCP_ADDRESS, { clientRegistrations: failing }).then(
+      () => undefined,
+      (error: unknown) => error,
+    );
+    expect(refused).toBeInstanceOf(ConnectError);
+    expect((refused as ConnectError).code).toBe(Code.Internal);
+    expect((refused as ConnectError).rawMessage).not.toContain("registering Stigmer");
   });
 
   it("a pre-flight that cannot reach the login page proceeds", async () => {

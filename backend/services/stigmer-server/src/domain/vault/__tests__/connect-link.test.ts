@@ -242,6 +242,14 @@ describe("using a link", () => {
     expect(rig.requestsTo("https://login.vendor.example/token")).toEqual([]);
   });
 
+  it("keeps the return URL's own query byte for byte and appends the outcome", async () => {
+    await seeded();
+    const signed = "https://helpdesk.example/done?x=a%20b&sig=ab~c&y=1/2";
+    const link = await makeLink({ returnUrl: signed });
+    const done = await finish(link.token, (await startConnectLink(rig.deps(), tokenInput(link.token))).state);
+    expect(done.returnUrl).toBe(`${signed}&stigmer_connect=connected`);
+  });
+
   it("re-checks its maker as the caller class and bound organization that made it", async () => {
     await seeded();
     const machine: CallerIdentity = { ...alice, callerClass: "machine", boundOrg: ORG };

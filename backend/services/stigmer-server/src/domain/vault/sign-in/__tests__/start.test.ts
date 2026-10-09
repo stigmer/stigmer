@@ -126,7 +126,7 @@ describe("registration with a discovered login server", () => {
     );
   });
 
-  it("drops a client the login server forgot at the pre-flight, registers again once, and refuses a second refusal", async () => {
+  it("drops a client the login server forgot at the pre-flight and registers again once; a refusal of anything else re-registers nothing", async () => {
     const first = await start(MCP_ADDRESS);
     const forgotten = params(first).get("client_id")!;
     rig.levers.forgotten.add(forgotten);
@@ -134,10 +134,11 @@ describe("registration with a discovered login server", () => {
     expect(registrations()).toHaveLength(2);
     expect(params(again).get("client_id")).not.toBe(forgotten);
 
-    // A login server that refuses every client: one new registration, then the refusal.
+    // A refusal no new client cures (a redirect it does not allow): the
+    // shared client stands, and the person reads the refusal.
     rig.levers.rejectAuthorize = true;
     await expectRefusal(start(MCP_ADDRESS), Code.FailedPrecondition, "rejected the sign-in request before showing a login page");
-    expect(registrations()).toHaveLength(3);
+    expect(registrations()).toHaveLength(2);
   });
 
   it("drops a client the login server forgot at the exchange's invalid_client, so the next sign-in registers anew", async () => {
@@ -149,6 +150,14 @@ describe("registration with a discovered login server", () => {
     rig.levers.forgotten.clear();
     await start(MCP_ADDRESS);
     expect(registrations()).toHaveLength(2);
+  });
+
+  it("reports a login app's invalid_client as the exchange's failure, never as a forgotten client", async () => {
+    await seedOrganizationApp(rig);
+    const started = await start(VENDOR_ADDRESS);
+    rig.levers.tokenBodies.push({ status: 401, body: { error: "invalid_client", error_description: "bad client secret" } });
+    await expectRefusal(complete(started.state), Code.Unavailable, "token exchange failed");
+    expect(await myLogin(rig, alice, VENDOR_ADDRESS)).toBeUndefined();
   });
 
   it("a login server taking a Client ID Metadata Document gets its URL as the client id and no registration", async () => {

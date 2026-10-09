@@ -21,7 +21,7 @@
  * sends the browser on to the integrator's return URL. An unknown, expired
  * or used link answers NOT_FOUND, which both say the same way.
  */
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import { isNotFound } from "@stigmer/sdk";
 import {
@@ -90,6 +90,16 @@ export function useConnectLink(token: string | null): UseConnectLinkReturn {
   const stigmer = useStigmer();
   const [isStarting, setIsStarting] = useState(false);
   const [startError, setStartError] = useState<Error | null>(null);
+
+  // Back from the login page may restore this page from the back-forward
+  // cache with its last state: Continue is offered again.
+  useEffect(() => {
+    const restored = (event: PageTransitionEvent) => {
+      if (event.persisted) setIsStarting(false);
+    };
+    window.addEventListener("pageshow", restored);
+    return () => window.removeEventListener("pageshow", restored);
+  }, []);
 
   const { data: info, isLoading, error: readError } = useFetch(
     token

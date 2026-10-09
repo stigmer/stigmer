@@ -4,6 +4,8 @@
  *   secret with the state its sign-in started with for the callback page
  *   and sends the browser to the login page; a login page that is not an
  *   https address is never visited;
+ * - Back from the login page into a page the browser kept offers Continue
+ *   again;
  * - a link the server no longer knows (unknown, expired or used) says so,
  *   and offers nothing to click;
  * - the pending link answers only for the state it started with;
@@ -129,6 +131,21 @@ describe("ConnectLinkView", () => {
     expect(await screen.findByText(/The login page's address is not an https address/)).toBeTruthy();
     expect(assign).not.toHaveBeenCalled();
     expect(sessionStorage.getItem(CONNECT_LINK_PENDING_KEY)).toBeNull();
+  });
+
+  it("offers Continue again when Back from the login page restores the page from the back-forward cache", async () => {
+    render(<ConnectLinkView token={TOKEN} />, { wrapper: providers({ dead: false, completed: [] }) });
+    const button = await screen.findByRole("button", { name: "Continue" });
+    fireEvent.click(button);
+    await waitFor(() => expect(assign).toHaveBeenCalled());
+    expect((button as HTMLButtonElement).disabled).toBe(true);
+
+    const restored = new Event("pageshow");
+    Object.defineProperty(restored, "persisted", { value: true });
+    act(() => {
+      window.dispatchEvent(restored);
+    });
+    expect((screen.getByRole("button", { name: "Continue" }) as HTMLButtonElement).disabled).toBe(false);
   });
 
   it("says a dead link has expired or was used, and offers nothing to click", async () => {

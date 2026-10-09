@@ -1,6 +1,6 @@
 /**
- * The three sign-in demos on the integrations pages (BYOA setup, the
- * marketplace connect tour, the OAuth connect flow) mount with their preview
+ * The two sign-in demos on the integrations pages (the marketplace connect
+ * tour, the OAuth connect flow) mount with their preview
  * fixtures, which answer My vault's read with an empty vault: the console
  * views they replay offer to sign in or paste a token, never a saved value.
  * The management shell lists Vaults in its Configuration group, where the

@@ -99,7 +99,13 @@ export async function finishSignIn(
       opened.resource,
     );
   } catch (error) {
-    if (error instanceof TokenEndpointError && error.oauthError === "invalid_client") {
+    // A kept registration the login server no longer knows; a login app's
+    // invalid_client (a wrong secret) is the app's, reported as it came.
+    if (
+      error instanceof TokenEndpointError &&
+      error.oauthError === "invalid_client" &&
+      opened.clientRegistration !== ""
+    ) {
       await forgetClient(deps.clientRegistrations, opened.clientRegistration, opened.redirectUri, opened.clientId);
       throw failedPreconditionError(
         `the login server for ${address} no longer knows Stigmer's client: sign in again`,

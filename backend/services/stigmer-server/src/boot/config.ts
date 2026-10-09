@@ -166,7 +166,8 @@ export interface ServerConfig {
    */
   readonly loginProviders: LoginProviderSettings;
   /**
-   * The OAuth callback URL for the McpServer OAuth Connect flows
+   * The OAuth callback URL every sign-in returns to (the vault's sign-in
+   * and Connect links)
    * (STIGMER_OAUTH_REDIRECT_URI; Go config.go OAuthRedirectURI). Unset, a
    * server that serves the web console on its unified port derives the
    * console's own callback page on the origin browsers reach it on:

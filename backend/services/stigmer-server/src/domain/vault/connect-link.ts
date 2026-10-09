@@ -308,13 +308,18 @@ export function checkedReturnUrl(input: string): string {
   return url.href;
 }
 
-/** The return URL with the outcome added: connected, or an error and its reason. */
+/**
+ * The return URL with the outcome appended: connected, or an error and its
+ * reason. The integrator's own query is kept byte for byte (it may be
+ * signed), so the outcome is appended to it rather than re-serialized.
+ */
 function outcome(link: ConnectLinkRecord, failure: ConnectLinkFailure | undefined): CompleteConnectLinkOutput {
   const url = new URL(link.returnUrl);
-  url.searchParams.set(CONNECT_OUTCOME_PARAM, failure === undefined ? "connected" : "error");
+  const added = new URLSearchParams({ [CONNECT_OUTCOME_PARAM]: failure === undefined ? "connected" : "error" });
   if (failure !== undefined) {
-    url.searchParams.set("reason", failure);
+    added.set("reason", failure);
   }
+  url.search = url.search === "" ? `?${added}` : `${url.search}&${added}`;
   return create(CompleteConnectLinkOutputSchema, { returnUrl: url.href });
 }
 

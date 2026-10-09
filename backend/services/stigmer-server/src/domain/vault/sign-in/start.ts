@@ -69,6 +69,7 @@ import { findLoginApp } from "../login-app.js";
 import type { AppLogin } from "../login-app.js";
 import type { LoginProviderSettings } from "../login-providers.js";
 import {
+  ClientRegistrationError,
   NoSignInClientError,
   canObtainClient,
   obtainClient,
@@ -362,9 +363,11 @@ async function throughLoginServer(
 
   let authorizationUrl = urlFor(client.clientId);
   let rejection = await preflight(deps, authorizationUrl, address);
-  if (rejection !== undefined && client.registration !== "" && !client.fresh) {
-    // A kept client the login server refuses outright is one it has
-    // forgotten: register a new one, once.
+  if (rejection !== undefined && client.registration !== "" && !client.fresh && refusesTheClient(rejection)) {
+    // A kept client the login server refuses as unknown is one it has
+    // forgotten: register a new one, once. Any other refusal (a redirect
+    // the login server does not allow) a new client would not cure, and
+    // re-registering would churn the client every organization shares.
     deps.logger.info("The login server refused a kept client; registering a new one", { address });
     try {
       client = await replaceClient(clientDeps, metadata, redirectUri, client);
@@ -397,12 +400,25 @@ async function throughLoginServer(
   };
 }
 
+/**
+ * Nothing to sign in with, the login server's refusal of a registration,
+ * or a fault keeping the client (the store's, answered as a fault, never
+ * blamed on the login server).
+ */
 function clientRefusal(address: string, error: unknown): Error {
   if (error instanceof NoSignInClientError) {
     return noLoginRefusal(address, error.message);
   }
-  return failedPreconditionError(
-    `registering Stigmer with the login server for ${address} failed: ${error instanceof Error ? error.message : String(error)}`,
+  if (error instanceof ClientRegistrationError) {
+    return failedPreconditionError(`registering Stigmer with the login server for ${address} failed: ${error.message}`);
+  }
+  return internalError(error, "failed to keep Stigmer's client for the login server");
+}
+
+/** Whether a pre-flight refusal is about the client itself, the one refusal a new registration can cure. */
+function refusesTheClient(rejection: AuthorizeRejection): boolean {
+  return /invalid_client|unknown client|client.{0,20}not (found|registered|recognized)/i.test(
+    `${rejection.vendorDetail} ${rejection.bodySnippet}`,
   );
 }
 

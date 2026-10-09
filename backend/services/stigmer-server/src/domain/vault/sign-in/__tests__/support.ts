@@ -205,8 +205,11 @@ export function openSignInRig(): SignInRig {
       if (levers.authorizeUnreachable) {
         throw new Error("connect ECONNRESET");
       }
-      return levers.rejectAuthorize || levers.forgotten.has(parsed.searchParams.get("client_id") ?? "")
-        ? json(400, { error: "invalid_client", error_description: "unknown client" })
+      if (levers.forgotten.has(parsed.searchParams.get("client_id") ?? "")) {
+        return json(400, { error: "invalid_client", error_description: "unknown client" });
+      }
+      return levers.rejectAuthorize
+        ? json(400, { error: "invalid_request", error_description: "redirect_uri is not allowed" })
         : new Response("login page", { status: 200 });
     }
     if (url === "https://login.vendor.example/userinfo") {
