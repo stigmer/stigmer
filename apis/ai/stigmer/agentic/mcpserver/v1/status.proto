@@ -16,8 +16,9 @@ import "google/protobuf/timestamp.proto";
 //    actually provides, with each tool's destructive annotation. Populated by
 //    the connect flow: the backend delegates to the runner via a Temporal
 //    workflow, which connects to the MCP server and enumerates tools/resources.
-// 3. OAuth enrichment — vendor approval status and BYOA resolution chain results,
-//    populated by the backend enricher at query time. Never persisted.
+// 3. OAuth enrichment — the vendor approval status of the login app for the
+//    server's address, populated by the backend enricher at query time.
+//    Never persisted.
 // 4. Connect operation state — the lifecycle of the most recent connect
 //    (discovery) operation. Persisted, unlike oauth_status: it is what
 //    clients poll after startConnect returns.

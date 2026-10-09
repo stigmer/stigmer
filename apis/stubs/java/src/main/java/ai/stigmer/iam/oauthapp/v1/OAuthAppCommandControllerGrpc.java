@@ -242,9 +242,9 @@ public final class OAuthAppCommandControllerGrpc {
     /**
      * <pre>
      * Delete an OAuth app.
-     * Refused while any McpServer's McpServerAuth.oauth_app_ref resolves to
-     * this OAuth app. Returns the deleted OAuthApp, its client_secret redacted
-     * like every read.
+     * Its addresses are released: a sign-in at them uses Stigmer's own login
+     * app or the address's login server from then on. Returns the deleted
+     * OAuthApp, its client_secret redacted like every read.
      * </pre>
      */
     default void delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request,
@@ -326,9 +326,9 @@ public final class OAuthAppCommandControllerGrpc {
     /**
      * <pre>
      * Delete an OAuth app.
-     * Refused while any McpServer's McpServerAuth.oauth_app_ref resolves to
-     * this OAuth app. Returns the deleted OAuthApp, its client_secret redacted
-     * like every read.
+     * Its addresses are released: a sign-in at them uses Stigmer's own login
+     * app or the address's login server from then on. Returns the deleted
+     * OAuthApp, its client_secret redacted like every read.
      * </pre>
      */
     public void delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request,
@@ -394,9 +394,9 @@ public final class OAuthAppCommandControllerGrpc {
     /**
      * <pre>
      * Delete an OAuth app.
-     * Refused while any McpServer's McpServerAuth.oauth_app_ref resolves to
-     * this OAuth app. Returns the deleted OAuthApp, its client_secret redacted
-     * like every read.
+     * Its addresses are released: a sign-in at them uses Stigmer's own login
+     * app or the address's login server from then on. Returns the deleted
+     * OAuthApp, its client_secret redacted like every read.
      * </pre>
      */
     public ai.stigmer.iam.oauthapp.v1.OAuthApp delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request) throws io.grpc.StatusException {
@@ -461,9 +461,9 @@ public final class OAuthAppCommandControllerGrpc {
     /**
      * <pre>
      * Delete an OAuth app.
-     * Refused while any McpServer's McpServerAuth.oauth_app_ref resolves to
-     * this OAuth app. Returns the deleted OAuthApp, its client_secret redacted
-     * like every read.
+     * Its addresses are released: a sign-in at them uses Stigmer's own login
+     * app or the address's login server from then on. Returns the deleted
+     * OAuthApp, its client_secret redacted like every read.
      * </pre>
      */
     public ai.stigmer.iam.oauthapp.v1.OAuthApp delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request) {
@@ -531,9 +531,9 @@ public final class OAuthAppCommandControllerGrpc {
     /**
      * <pre>
      * Delete an OAuth app.
-     * Refused while any McpServer's McpServerAuth.oauth_app_ref resolves to
-     * this OAuth app. Returns the deleted OAuthApp, its client_secret redacted
-     * like every read.
+     * Its addresses are released: a sign-in at them uses Stigmer's own login
+     * app or the address's login server from then on. Returns the deleted
+     * OAuthApp, its client_secret redacted like every read.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.oauthapp.v1.OAuthApp> delete(

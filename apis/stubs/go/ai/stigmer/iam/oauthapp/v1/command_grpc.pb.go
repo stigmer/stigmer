@@ -46,9 +46,9 @@ type OAuthAppCommandControllerClient interface {
 	Update(ctx context.Context, in *OAuthApp, opts ...grpc.CallOption) (*OAuthApp, error)
 	// Delete an OAuth app.
 	//
-	// Refused while any McpServer's McpServerAuth.oauth_app_ref resolves to
-	// this OAuth app. Returns the deleted OAuthApp, its client_secret redacted
-	// like every read.
+	// Its addresses are released: a sign-in at them uses Stigmer's own login
+	// app or the address's login server from then on. Returns the deleted
+	// OAuthApp, its client_secret redacted like every read.
 	Delete(ctx context.Context, in *apiresource.ApiResourceDeleteInput, opts ...grpc.CallOption) (*OAuthApp, error)
 }
 
@@ -120,9 +120,9 @@ type OAuthAppCommandControllerServer interface {
 	Update(context.Context, *OAuthApp) (*OAuthApp, error)
 	// Delete an OAuth app.
 	//
-	// Refused while any McpServer's McpServerAuth.oauth_app_ref resolves to
-	// this OAuth app. Returns the deleted OAuthApp, its client_secret redacted
-	// like every read.
+	// Its addresses are released: a sign-in at them uses Stigmer's own login
+	// app or the address's login server from then on. Returns the deleted
+	// OAuthApp, its client_secret redacted like every read.
 	Delete(context.Context, *apiresource.ApiResourceDeleteInput) (*OAuthApp, error)
 }
 

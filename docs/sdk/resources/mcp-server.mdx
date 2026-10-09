@@ -6,8 +6,9 @@ title: MCP Server
 
 An MCP Server defines a reusable tool provider that agents can connect to via the
 Model Context Protocol. It declares the server type (stdio or HTTP), connection
-details, and required environment variables. When a server supports OAuth, the
-`auth` block configures automated token acquisition via an OAuthApp reference.
+details, and required environment variables. When an HTTP server takes a
+sign-in, the `auth` block names the variable its login fills; the sign-in itself
+starts from the server's address and saves into a vault.
 Connecting discovers the server's tools; a tool the server marks destructive
 (`destructiveHint: true`) asks for approval before it runs.
 
@@ -950,10 +951,8 @@ OAuthStatus holds system-derived OAuth enrichment state for an MCP server.
 
 <TypeTable
   type={{
-    vendorApprovalStatus: { type: "VendorApprovalStatus", description: "Vendor marketplace/app-review approval status for this MCP server's OAuth app.", typeDescriptionLink: "#vendorapprovalstatus" },
-    vendorApprovalDocsUrl: { type: "string", description: "Documentation URL for users who want to bring their own OAuth app credentials while the platform's OAuth app is pending vendor approval." },
-    effectiveOauthSource: { type: "OAuthAppSource", description: "NEVER POPULATED (see the message comment): the caller's active org is client-side context, so no backend can evaluate the resolution chain at read time.", typeDescriptionLink: "#oauthappsource" },
-    effectiveOauthAppId: { type: "string", description: "NEVER POPULATED (see the message comment)." },
+    vendorApprovalStatus: { type: "VendorApprovalStatus", description: "Vendor marketplace/app-review approval status of the login app the organization keeps for this server's address.", typeDescriptionLink: "#vendorapprovalstatus" },
+    vendorApprovalDocsUrl: { type: "string", description: "Documentation URL for users while the login app is pending vendor approval." },
   }}
 />
 
@@ -996,14 +995,4 @@ Lifecycle status of an OAuthApp's vendor marketplace approval.
 | `VENDOR_APPROVAL_STATUS_PENDING` | The OAuth app has been submitted to the vendor for review and is awaiting approval. |
 | `VENDOR_APPROVAL_STATUS_APPROVED` | The vendor has approved the OAuth app. |
 | `VENDOR_APPROVAL_STATUS_REJECTED` | The vendor rejected the OAuth app. |
-
-### OAuthAppSource
-
-OAuthAppSource identifies where the effective OAuth app for an MCP server was resolved from.
-
-| Value | Description |
-|-------|-------------|
-| `OAUTH_APP_SOURCE_PLATFORM` | The platform-default OAuthApp is in use (McpServerAuth.oauth_app_ref). |
-| `OAUTH_APP_SOURCE_ORG_OVERRIDE` | An org-level BYOA override is in use (OAuthAppOverride binding). |
-| `OAUTH_APP_SOURCE_NONE` | No OAuthApp is available. |
 
