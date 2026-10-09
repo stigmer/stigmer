@@ -211,7 +211,12 @@ describe("Run scores", () => {
       "no criterion of a clean run failed",
     ).toBe(true);
 
-    const rated = await clients.scoreCommand.create(makeFeedback(org, runId, false, "picked the wrong label"));
+    // The caller's id is never kept: the server mints the score's own.
+    const chosen = makeFeedback(org, runId, false, "picked the wrong label");
+    chosen.metadata = { ...chosen.metadata, id: "scr_chosenbythecaller0000000000" };
+    const rated = await clients.scoreCommand.create(chosen);
+    expect(rated.metadata?.id).not.toBe("scr_chosenbythecaller0000000000");
+    expect(rated.metadata?.id).toMatch(/^scr_[0-9a-z]{26}$/);
     expect(rated.spec?.metric).toBe(FEEDBACK);
     expect(rated.spec?.sessionId).toBe(sessionIdOf(run));
     expect(rated.status?.state).toBe(ScoreState.graded);
