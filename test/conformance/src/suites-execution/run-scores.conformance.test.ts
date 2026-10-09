@@ -38,7 +38,7 @@ import {
   anthropicToolUse,
   type AnthropicMessageBody,
 } from "@stigmer/test-support/mock-llm";
-import { expectGrpcCode } from "../contract/errors";
+import { expectGrpcCode, grpcCodeOf } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import type { McpToolFixture } from "../harness/mcp-server";
@@ -59,7 +59,6 @@ import {
   RUN_HEALTH,
   SCORE_CREATE_DENIED_MESSAGE,
   SCORE_EXISTS_REASON,
-  SCORE_UPDATE_HUMAN_ONLY_MESSAGE,
   STRUCTURED_OUTPUT_DELIVERED,
   awaitRunHealth,
   editedFeedback,
@@ -235,12 +234,16 @@ describe("Run scores", () => {
     expect(changed.spec?.value).toEqual({ case: "passed", value: true });
     expect(changed.spec?.comment).toBe("fine after all");
 
-    const verdict = await expectGrpcCode(
+    // A check's verdict is final on every edition. Where the server derives
+    // an owner for it from the operator's stamp (open source), the update
+    // reaches the chain and is refused with the copy; where it has no owner
+    // (the hosted edition), authorization refuses it first.
+    const verdict = await grpcCodeOf(
       () => clients.scoreCommand.update(editedFeedback(health, true, "")),
-      Code.FailedPrecondition,
       "changing a check's verdict",
     );
-    expect(verdict.rawMessage).toBe(SCORE_UPDATE_HUMAN_ONLY_MESSAGE);
+    expect([Code.FailedPrecondition, Code.PermissionDenied]).toContain(verdict);
+    expect((await clients.scoreQuery.get({ value: health.metadata!.id })).spec?.value).toEqual(health.spec?.value);
 
     const session = await clients.scoreQuery.listBySession({ sessionId: sessionIdOf(run) });
     expect(session.items.map((s) => s.spec?.metric).sort()).toEqual([FEEDBACK, RUN_HEALTH]);
@@ -319,10 +322,10 @@ describe("Run scores", () => {
     const enforcing = await enforcingLaneOf(target);
     if (enforcing.lane === undefined) return ctx.skip(enforcing.reason);
     const lane = enforcing.lane;
-    if (lane.llmProxy === undefined) {
-      throw new Error(`target "${target.name}" lends an enforcing lane with no runner (no llmProxy)`);
-    }
-    const laneMock = lane.llmProxy();
+    // A lane with an engine of its own scripts its own runner's model; where
+    // the lane is the primary (the hosted edition), the primary's runner
+    // dials the target's model.
+    const laneMock = lane.llmProxy?.() ?? mock;
     const tenancy = await lane.provisionTenancy();
     fixtures.defer(() => lane.cleanupTenancy(tenancy));
     const member = await lane.provisionMember(tenancy);
