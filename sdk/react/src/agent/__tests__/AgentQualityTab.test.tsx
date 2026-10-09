@@ -108,6 +108,14 @@ describe("AgentQualityTab", () => {
     expect(mock.evaluator.update.mock.calls[0]?.[0]).toMatchObject({ id: "evl_1", monthlyLimitUsd: 30, sampleRate: 0.5 });
   });
 
+  it("warns that a limit below one grade's maximum cost grades no run", async () => {
+    render(<AgentQualityTab agent={agent} editable />, { wrapper: wrap(client(stored())) });
+    const limit = await screen.findByLabelText("Monthly limit (USD, estimated model spend)");
+    expect(screen.queryByText(/a limit\s+below \$0\.25 grades no run/)).toBeNull();
+    fireEvent.change(limit, { target: { value: "0.1" } });
+    expect(screen.getByText(/a limit\s+below \$0\.25 grades no run/)).toBeDefined();
+  });
+
   it("changes the sample and the model, and shows a refused save", async () => {
     const mock = client(stored());
     mock.evaluator.update.mockRejectedValueOnce(new Error("unauthorized to update evaluator"));

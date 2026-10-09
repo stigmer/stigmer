@@ -2,8 +2,9 @@
  * Pins the Quality tab's conversions: a sample rate reads as "one in N
  * runs" and N writes back as 1/N, clamped to 1..100; a new evaluator's
  * input carries the agent and its organization, an update addresses the
- * stored evaluator by id; a limit is a positive, finite amount up to the
- * contract's ceiling.
+ * stored evaluator by id; a stored rate that is not a whole one in N is
+ * kept unless N changes; a limit is a positive, finite amount up to the
+ * contract's ceiling, and one below a grade's maximum cost grades no run.
  */
 import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
@@ -11,6 +12,7 @@ import { EvaluatorSchema } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1
 import {
   DEFAULT_GRADING_SETTINGS,
   evaluatorInputOf,
+  gradesNoRun,
   isValidLimit,
   settingsOf,
 } from "../grading-settings";
@@ -51,5 +53,22 @@ describe("grading settings", () => {
     expect(isValidLimit(0)).toBe(false);
     expect(isValidLimit(Number.NaN)).toBe(false);
     expect(isValidLimit(100_001)).toBe(false);
+  });
+
+  it("says a limit below one grade's maximum cost grades no run", () => {
+    expect(gradesNoRun(0.1)).toBe(true);
+    expect(gradesNoRun(0.25)).toBe(false);
+    expect(gradesNoRun(0)).toBe(false);
+  });
+
+  it("keeps a stored rate that is not a whole one in N unless N changes", () => {
+    const evaluator = create(EvaluatorSchema, {
+      metadata: { id: "evl_1", org: "org_acme" },
+      spec: { agentId: "agt_1", enabled: true, sampleRate: 0.004, monthlyLimitUsd: 10 },
+    });
+    const shown = settingsOf(evaluator);
+    expect(shown.oneIn).toBe(100);
+    expect(evaluatorInputOf(AGENT, { ...shown, modelName: "claude-haiku-4-5" }, evaluator).sampleRate).toBe(0.004);
+    expect(evaluatorInputOf(AGENT, { ...shown, oneIn: 50 }, evaluator).sampleRate).toBe(0.02);
   });
 });

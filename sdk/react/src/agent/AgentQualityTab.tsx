@@ -10,6 +10,7 @@ import { useSaveEvaluator } from "../evaluator/useSaveEvaluator.js";
 import {
   DEFAULT_GRADING_SETTINGS,
   MAX_ONE_IN,
+  gradesNoRun,
   isValidLimit,
   settingsOf,
   type GradingSettings,
@@ -193,6 +194,12 @@ function QualityForm({
               spending limit reached&rdquo; until next month. The estimate is the
               model&apos;s cost before any platform pricing.
             </p>
+            {gradesNoRun(limit) && (
+              <p className="stg:text-xs stg:text-destructive">
+                Each grade sets aside up to $0.25 before it starts, so a limit
+                below $0.25 grades no run.
+              </p>
+            )}
           </div>
           <div className="stg:flex stg:flex-col stg:gap-1">
             <span className={LABEL_CLASS}>Judge model</span>

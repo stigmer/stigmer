@@ -326,6 +326,20 @@ describe("start-judge", () => {
     expect(created).toHaveLength(3);
   });
 
+  it("adopts the judge run beside members' runs of the same name, whichever the store lists first", async () => {
+    await seedRun("run_1");
+    const grading = {
+      mintGradingCaller: async () => ({ identityId: "ida_grading", callerClass: "grading", issuer: "stigmer", rawToken: "t" }),
+    };
+    await seedRun("run_a_lookalike", { name: judgeRunName("run_1"), labels: { [GRADES_RUN_LABEL]: "run_1" }, createdBy: "ida_member" });
+    await seedRun("run_m_judge", { name: judgeRunName("run_1"), labels: { [GRADES_RUN_LABEL]: "run_1" }, createdBy: "ida_grading" });
+    await seedRun("run_z_lookalike", { name: judgeRunName("run_1") });
+    expect(await activities({ gradingCaller: grading })[START_JUDGE_ACTIVITY_NAME]("run_1", TICKET)).toEqual({
+      kind: "started",
+      judgeRunId: "run_m_judge",
+    });
+  });
+
   it("throws what Temporal should retry: a lost race with no winner, a caller fault, a create fault, an unknown refusal", async () => {
     await seedRun("run_1");
     const lostRace = activities({ runs: { create: () => Promise.reject(new ConnectError("exists", Code.AlreadyExists)) } });

@@ -46,6 +46,7 @@
  * Proven by __tests__/judge-activities.test.ts and the grade-run workflow
  * test.
  */
+import { fromBinary } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { ApplicationFailure } from "@temporalio/common";
 
@@ -104,7 +105,6 @@ import type { ScoreWrite, ScoreWriteDeps } from "../../domain/score/record.js";
 import type { GradingCallerMint } from "../../extensions/grading-caller.js";
 import { GradingCallerRefusedError } from "../../extensions/grading-caller.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
-import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import {
@@ -334,7 +334,8 @@ async function evaluatorOf(
  * The id of the judge run an earlier attempt created, found by its fixed
  * name and adopted only when it carries the judge label naming the judged
  * run and, when a caller was minted, was created by that caller (the
- * module header).
+ * module header). Every run of that name is read, since run names are not
+ * unique: a member's run of the same name never hides the judge's.
  */
 async function findJudgeRun(
   store: Store,
@@ -342,21 +343,27 @@ async function findJudgeRun(
   org: string,
   caller: CallerIdentity | undefined,
 ): Promise<string | undefined> {
-  const found = await findResourceBySlug(
-    store,
+  const rows = await store.findAllByField(
     ApiResourceKind.run,
-    RunSchema,
+    "metadata.slug",
     judgeRunName(judgedRunId),
-    org,
+    RunSchema,
   );
-  if (found === undefined || found.metadata?.labels[GRADES_RUN_LABEL] !== judgedRunId) {
-    return undefined;
+  for (const row of rows) {
+    const found = fromBinary(RunSchema, row);
+    if (
+      found.metadata?.org !== org ||
+      found.metadata.labels[GRADES_RUN_LABEL] !== judgedRunId
+    ) {
+      continue;
+    }
+    const creator = found.status?.audit?.specAudit?.createdBy?.id ?? "";
+    if (caller !== undefined && creator !== caller.identityId) {
+      continue;
+    }
+    return found.metadata.id;
   }
-  const creator = found.status?.audit?.specAudit?.createdBy?.id ?? "";
-  if (caller !== undefined && creator !== caller.identityId) {
-    return undefined;
-  }
-  return found.metadata.id;
+  return undefined;
 }
 
 /**

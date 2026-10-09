@@ -78,7 +78,7 @@ Agent's **Quality** tab. There they choose:
   Which runs are picked is fixed by each run's id.
 - **A monthly limit**: the most grading may spend in a calendar month (UTC), in
   US dollars of estimated model cost. Each grade sets aside its maximum cost,
-  $0.25, before it starts.
+  $0.25, before it starts, so a limit below $0.25 grades no run.
 - **The judge's model**: the platform's default unless you pick one.
 
 The judge's cost is charged to the Organization the run belongs to, as a run of
@@ -87,6 +87,11 @@ is out of credit, the run says **not graded: spending limit reached** or **not
 graded: out of credit**, and the Quality tab shows the same reason. A run that
 could not be graded never reads as a failure. The tab also shows this month's
 spend and how many runs were graded.
+
+In Stigmer Cloud the judge acts as a system account of the Organization. On a
+self-hosted Stigmer with sign-in, it acts as the person who switched grading on,
+and grades only the runs that person can see: a run they cannot see says **not
+graded: grading cannot act for this agent**.
 
 The judge sees the run's request, its tool calls and its final answer, and has
 no tools of its own: it cannot act on what it reads. Its instructions and the

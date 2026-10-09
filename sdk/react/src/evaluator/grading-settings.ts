@@ -4,14 +4,18 @@
  * conversions are unit-testable without React.
  *
  * The sample rate is shown as "one in N runs", N from 1 to 100, so a
- * person never types a fraction; the monthly limit is US dollars of
- * estimated model spend.
+ * person never types a fraction; a rate set through the API that is not a
+ * whole one in N is kept on save unless N is changed. The monthly limit is
+ * US dollars of estimated model spend.
  */
 import type { Evaluator } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
 import type { EvaluatorInput } from "@stigmer/sdk";
 
 /** The largest N in "one in N runs". */
 export const MAX_ONE_IN = 100;
+
+/** The most one grade may spend, which it sets aside before it starts. */
+export const GRADE_MAX_COST_USD = 0.25;
 
 /** The settings a person edits on the Quality tab. */
 export interface GradingSettings {
@@ -56,15 +60,32 @@ export function evaluatorInputOf(
     org: existing?.metadata?.org ?? agent.org,
     agentId: agent.id,
     enabled: settings.enabled,
-    sampleRate: 1 / clampOneIn(settings.oneIn),
+    sampleRate: sampleRateOf(settings, existing),
     monthlyLimitUsd: settings.monthlyLimitUsd,
     modelName: settings.modelName,
   };
 }
 
+/**
+ * Whether a valid limit is below one grade's maximum cost, so that every
+ * sampled run is refused as "spending limit reached".
+ */
+export function gradesNoRun(usd: number): boolean {
+  return isValidLimit(usd) && usd < GRADE_MAX_COST_USD;
+}
+
 /** Whether a limit a person typed can be saved. */
 export function isValidLimit(usd: number): boolean {
   return Number.isFinite(usd) && usd > 0 && usd <= 100_000;
+}
+
+/** The rate to save: the stored one while N is unchanged, else 1/N. */
+function sampleRateOf(settings: GradingSettings, existing: Evaluator | null): number {
+  const oneIn = clampOneIn(settings.oneIn);
+  if (existing !== null && settingsOf(existing).oneIn === oneIn && (existing.spec?.sampleRate ?? 0) > 0) {
+    return existing.spec?.sampleRate ?? 0;
+  }
+  return 1 / oneIn;
 }
 
 function clampOneIn(value: number): number {
