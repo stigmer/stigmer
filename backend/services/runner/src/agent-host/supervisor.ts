@@ -180,6 +180,8 @@ export class AgentHostSupervisor {
       for (const [harness, config] of this.booted) {
         await peer.call("boot", { harness, config: this.wireConfig(config, token) });
       }
+      // The last harness shut down while this host started: end it, never adopt it.
+      if (this.stopping) throw new Error("the agent host was stopped while it started");
     } catch (err) {
       peer.close();
       started.kill();
@@ -229,6 +231,7 @@ export class AgentHostSupervisor {
   }
 
   private scheduleRestart(how: string): void {
+    if (this.stopping) return;
     this.log(`[agent-host] the agent host ${how}; restarting in ${this.nextDelay}ms`);
     // A start (a turn's, or the next attempt's) and a stop each clear this
     // timer, so when it fires the host is neither running nor stopped.
@@ -282,7 +285,7 @@ export class AgentHostSupervisor {
  * never reach a stdout that carries the manager's protocol (`main.ts`
  * sends `console.log` to stderr in that mode).
  *
- * `env` is what the host and every process it starts see (`host-env.ts`).
+ * `env` is what the host and every process it starts see (`environment.ts`).
  */
 export function processHostStarter(env: () => NodeJS.ProcessEnv): HostStarter {
   return () => {

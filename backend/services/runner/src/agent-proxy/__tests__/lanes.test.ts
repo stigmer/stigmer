@@ -15,7 +15,10 @@
  *  - a forwarding runner that holds no Stigmer credential: 503;
  *  - with an Azure identity and no Foundry key, the call carries the
  *    identity's token;
- *  - the Vertex endpoint for each kind of region, as the Vertex SDK names it.
+ *  - the Vertex endpoint for each kind of region, as the Vertex SDK names it;
+ *  - a path that names another origin (a scheme, or `//`) stays on the
+ *    lane's own host: the runner's key never leaves for a host the agent
+ *    host names.
  */
 
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -48,7 +51,7 @@ vi.mock("@azure/identity", () => ({
 import { testConfig } from "../../__test-utils__/config-fixture.js";
 import { FakeUpstream } from "../../__test-utils__/fake-upstream.js";
 import type { Config } from "../../config.js";
-import { vertexBase } from "../lanes.js";
+import { laneUrl, vertexBase } from "../lanes.js";
 import { AgentProxy } from "../server.js";
 
 const HOST_TOKEN = "host-token-lanes";
@@ -179,6 +182,41 @@ describe("a lane the runner's cloud identity cannot serve", () => {
     const { status, message } = await ask("/v1/proxy/llm/foundry/v1/messages");
     expect(status).toBe(502);
     expect(message).toBe("Failed to acquire an Azure token for Microsoft Foundry: ChainedTokenCredential authentication failed");
+  });
+});
+
+describe("a path that names another origin", () => {
+  const elsewhere = new FakeUpstream();
+  beforeAll(() => elsewhere.start());
+  afterAll(() => elsewhere.stop());
+
+  it("stays on each lane's own host, the runner's key with it", async () => {
+    const away = new URL(elsewhere.url);
+    setEnv({
+      ANTHROPIC_FOUNDRY_BASE_URL: `${upstream.url}/anthropic/`,
+      ANTHROPIC_FOUNDRY_API_KEY: "foundry-key-stays-home",
+      ANTHROPIC_BASE_URL: upstream.url,
+      ANTHROPIC_API_KEY: "anthropic-key-stays-home",
+      OPENAI_BASE_URL: `${upstream.url}/v1`,
+      OPENAI_API_KEY: "openai-key-stays-home",
+    });
+    for (const path of [
+      `/v1/proxy/llm/foundry/${elsewhere.url}/v1/messages`,
+      `/v1/proxy/llm/foundry//${away.host}/v1/messages`,
+      `/v1/proxy/llm/anthropic/${elsewhere.url}/v1/messages`,
+      `/v1/proxy/llm/anthropic//${away.host}/v1/messages`,
+      `/v1/proxy/llm/openai/v1/${elsewhere.url}/x`,
+    ]) {
+      await ask(path);
+    }
+    expect(elsewhere.received, "a request reached the other origin").toEqual([]);
+    expect(upstream.received.length).toBe(5);
+  });
+
+  it("is refused when the joined URL would leave the lane's origin or its path", () => {
+    expect(laneUrl("https://res.services.ai.azure.com/anthropic/", "/v1/messages").toString()).toBe("https://res.services.ai.azure.com/anthropic/v1/messages");
+    expect(() => laneUrl("https://api.anthropic.com", "@elsewhere.example/v1/messages")).toThrow("the lane's path must stay under the lane's own endpoint");
+    expect(() => laneUrl("https://res.services.ai.azure.com/anthropic", "/../other/v1/messages")).toThrow("the lane's path must stay under the lane's own endpoint");
   });
 });
 

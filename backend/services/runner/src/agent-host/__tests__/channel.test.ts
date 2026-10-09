@@ -2,8 +2,10 @@
  * The agent host's channel and peer (`agent-host/channel.ts`).
  *
  * Pinned:
- *  - a stream carries whole lines however its bytes are chunked, and a line
- *    past the size cap closes the channel instead of being buffered;
+ *  - a stream carries whole lines however its bytes are chunked, a
+ *    character split between chunks included, and a line past the size cap,
+ *    counted in bytes, closes the channel instead of being delivered or
+ *    buffered;
  *  - a call is answered by exactly its result, a handler's rejection is the
  *    caller's error, and every pending call rejects when the channel closes;
  *  - a peer that sends a line that is not JSON, or of an unknown kind, is
@@ -45,6 +47,39 @@ describe("the stream channel", () => {
     input.write(":3}\n");
 
     expect(lines).toEqual(['{"a":1}', '{"b":2}', '{"c":3}']);
+  });
+
+  it("decodes a character split between chunks", () => {
+    const input = new PassThrough();
+    const channel = streamChannel(input, new PassThrough());
+    const lines: string[] = [];
+    channel.onLine((line) => lines.push(line));
+
+    const bytes = Buffer.from('{"t":"é"}\n');
+    const split = bytes.indexOf(0xc3) + 1;
+    input.write(bytes.subarray(0, split));
+    input.write(bytes.subarray(split));
+
+    expect(lines).toEqual(['{"t":"é"}']);
+  });
+
+  it("counts the cap in bytes, and refuses a whole line past it as well as a partial one", () => {
+    for (const write of [
+      (input: PassThrough) => input.write("é".repeat(6)),
+      (input: PassThrough) => input.write(`${"é".repeat(6)}\n`),
+    ]) {
+      const input = new PassThrough();
+      const channel = streamChannel(input, new PassThrough(), 11);
+      const lines: string[] = [];
+      const reasons: Error[] = [];
+      channel.onLine((line) => lines.push(line));
+      channel.onClose((reason) => reasons.push(reason));
+
+      write(input);
+
+      expect(lines).toEqual([]);
+      expect(reasons.map((r) => r.message)).toEqual(["agent host channel: a message exceeded 11 bytes"]);
+    }
   });
 
   it("closes rather than buffer a line past the cap", () => {

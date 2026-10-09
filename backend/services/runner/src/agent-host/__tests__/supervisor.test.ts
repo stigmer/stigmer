@@ -8,7 +8,9 @@
  *    next turn, after the backoff; a host that served longer than the
  *    longest delay is restarted after the first delay again; a start that
  *    fails is retried on the same backoff, and the default log says so;
- *  - shutting down a harness that was never booted touches nothing;
+ *  - shutting down a harness that was never booted touches nothing; a host
+ *    whose start was under way when the last harness shut down is ended,
+ *    not adopted, and nothing restarts it;
  *  - a call from the host for a turn the runner is not running is refused;
  *  - the production starter runs this build's entry in its agent-host mode
  *    under the runner's own Node, from source under tsx; a host that cannot
@@ -119,6 +121,32 @@ describe("the supervisor's edges", () => {
 
     expect(hosts.hosts, "the turn's start, and no second one from the timer").toHaveLength(2);
     await supervisor.shutdown("deep-agent");
+  });
+
+  it("ends a host whose start was under way when the last harness shut down, and restarts nothing", async () => {
+    const log: string[] = [];
+    const hosts = inProcessHosts();
+    let release: () => void = () => {};
+    const held = new Promise<void>((resolve) => (release = resolve));
+    let starts = 0;
+    const start: HostStarter = async () => {
+      starts += 1;
+      const started = await hosts.start();
+      if (starts === 2) await held;
+      return started;
+    };
+    const supervisor = new AgentHostSupervisor({ proxy: PROXY, start, firstRestartDelayMs: 5, log: (m) => void log.push(m) });
+    await supervisor.boot("deep-agent", testConfig());
+
+    hosts.hosts[0]!.close(new Error("crashed"));
+    await until(() => hosts.hosts.length === 2, "the restart's host");
+    await supervisor.shutdown("deep-agent");
+    release();
+
+    await until(() => hosts.hosts[1]!.closed, "the late host to be ended");
+    await new Promise((resolve) => setTimeout(resolve, 40));
+    expect(hosts.hosts, "no further start").toHaveLength(2);
+    expect(log).toEqual(["[agent-host] the agent host exited (crashed); restarting in 5ms"]);
   });
 
   it("touches nothing when a harness that was never booted shuts down", async () => {

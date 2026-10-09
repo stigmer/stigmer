@@ -66,15 +66,24 @@ export function readBody(req: Readable, limit = MAX_REQUEST_BYTES): Promise<Buff
 }
 
 /**
+ * The scope header a forwarding lane passes to the platform's proxy: the
+ * execution id, which the local proxy has checked names a live turn
+ * (`server.ts`). Any other `x-stigmer-*` header the host sets is its own
+ * claim, unchecked here, and the platform authorizes and meters by those.
+ */
+const CHECKED_SCOPE = "x-stigmer-execution-id";
+
+/**
  * The host's request headers a lane forwards: everything but the
- * connection's, the host's credential, and (unless `keepScope`) the
- * `x-stigmer-*` scope headers, which only the platform's proxy reads.
+ * connection's, the host's credential, and the `x-stigmer-*` scope headers,
+ * which only the platform's proxy reads; with `keepScope`, the checked
+ * execution id still passes.
  */
 export function forwardableHeaders(headers: IncomingHttpHeaders, keepScope: boolean): Record<string, string | string[]> {
   const out: Record<string, string | string[]> = {};
   for (const [name, value] of Object.entries(headers)) {
     if (value === undefined || HOP_BY_HOP.has(name) || HOST_CREDENTIAL.has(name)) continue;
-    if (!keepScope && name.startsWith("x-stigmer-")) continue;
+    if (name.startsWith("x-stigmer-") && !(keepScope && name === CHECKED_SCOPE)) continue;
     out[name] = value;
   }
   return out;

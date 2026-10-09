@@ -39,12 +39,19 @@ export interface LineChannel {
   close(reason?: Error): void;
 }
 
-/** A channel over a readable and a writable stream: the host's fd 3 in both processes. */
-export function streamChannel(input: Readable, output: Writable): LineChannel {
+/**
+ * A channel over a readable and a writable stream: the host's fd 3 in both
+ * processes. Bytes are held as they arrive and only the new chunk is scanned
+ * for the newline, so a message costs time in proportion to its size; the
+ * cap counts bytes, and a line is decoded whole, so a character split
+ * between chunks arrives intact.
+ */
+export function streamChannel(input: Readable, output: Writable, maxMessageBytes: number = MAX_MESSAGE_BYTES): LineChannel {
   const lineListeners: ((line: string) => void)[] = [];
   const closeListeners: ((reason: Error) => void)[] = [];
   let closed = false;
-  let buffered = "";
+  let pending: Buffer[] = [];
+  let pendingBytes = 0;
 
   const close = (reason: Error = new Error("agent host channel closed")): void => {
     if (closed) return;
@@ -54,19 +61,27 @@ export function streamChannel(input: Readable, output: Writable): LineChannel {
     output.destroy();
     for (const listener of closeListeners) listener(reason);
   };
+  const tooLarge = (): void => close(new Error(`agent host channel: a message exceeded ${maxMessageBytes} bytes`));
 
-  input.setEncoding("utf8");
-  input.on("data", (chunk: string) => {
-    buffered += chunk;
-    let newline = buffered.indexOf("\n");
+  input.on("data", (chunk: Buffer) => {
+    let start = 0;
+    let newline = chunk.indexOf(0x0a);
     while (newline !== -1) {
-      const line = buffered.slice(0, newline);
-      buffered = buffered.slice(newline + 1);
+      if (pendingBytes + newline - start > maxMessageBytes) return tooLarge();
+      const piece = chunk.subarray(start, newline);
+      const line = (pending.length === 0 ? piece : Buffer.concat([...pending, piece])).toString("utf8");
+      pending = [];
+      pendingBytes = 0;
+      start = newline + 1;
       if (line.length > 0) for (const listener of lineListeners) listener(line);
       if (closed) return;
-      newline = buffered.indexOf("\n");
+      newline = chunk.indexOf(0x0a, start);
     }
-    if (buffered.length > MAX_MESSAGE_BYTES) close(new Error(`agent host channel: a message exceeded ${MAX_MESSAGE_BYTES} bytes`));
+    if (start < chunk.length) {
+      pending.push(chunk.subarray(start));
+      pendingBytes += chunk.length - start;
+    }
+    if (pendingBytes > maxMessageBytes) tooLarge();
   });
   input.on("end", () => close());
   input.on("error", (err) => close(err));

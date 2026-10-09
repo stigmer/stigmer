@@ -16,7 +16,8 @@
  *    and the platform's scope headers do not, and the provider's answer
  *    comes back unchanged — status, headers and stream;
  *  - forward (a runner behind the Stigmer platform's proxy): the runner's
- *    control-plane token replaces the host's, the scope headers pass, and
+ *    control-plane token replaces the host's, the execution id passes (the
+ *    one scope header the proxy checks) and no other scope header does, and
  *    only the platform's lanes are served.
  */
 
@@ -315,11 +316,14 @@ describe("forward: a runner behind the Stigmer platform's proxy", () => {
   });
 
   it("swaps the host's token for the runner's and keeps the scope the platform authorizes by", async () => {
-    await call(proxy, "/v1/proxy/llm/anthropic/v1/messages", { headers: { ...asHost, "x-api-key": HOST_TOKEN } });
+    await call(proxy, "/v1/proxy/llm/anthropic/v1/messages", {
+      headers: { ...asHost, "x-api-key": HOST_TOKEN, "x-stigmer-mcp-server-id": "mcp-the-host-names", "x-stigmer-caller-kind": "operator" },
+    });
 
     expect(upstream.last.path).toBe("/v1/proxy/llm/anthropic/v1/messages");
     expect(upstream.last.headers.authorization).toBe(`Bearer ${RUNNER_TOKEN}`);
     expect(upstream.last.headers["x-stigmer-execution-id"]).toBe(EXECUTION);
+    expect(Object.keys(upstream.last.headers).filter((h) => h.startsWith("x-stigmer-")), "only the checked scope passes").toEqual(["x-stigmer-execution-id"]);
     expect(JSON.stringify(upstream.last.headers)).not.toContain(HOST_TOKEN);
   });
 

@@ -417,7 +417,7 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
  * A Vertex client bound to its lane. The client cannot acquire a Google
  * token (the host has no Google identity), so its auth client is a stub
  * that adds nothing and names a placeholder project; the lane adds the
- * runner's token and its real project (`agent-proxy/lanes/vertex.ts`). The
+ * runner's token and its real project (`agent-proxy/lanes.ts`). The
  * Vertex client reads exactly `projectId` and `getRequestHeaders()` off its
  * auth client, so the stub is the SDK's documented `authClient` seam.
  */

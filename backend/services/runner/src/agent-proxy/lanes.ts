@@ -7,9 +7,10 @@
  *  - Forward, when the runner talks to the Stigmer platform's proxy
  *    (`config.proxyEndpoint` set): the call goes to the same path there,
  *    with the host's token replaced by the runner's control-plane token,
- *    read per request so rotation stays the runner's. The scope headers the
- *    host's clients stamp (`X-Stigmer-Execution-Id`) pass through, because
- *    the platform's proxy authorizes and meters by them.
+ *    read per request so rotation stays the runner's. The execution id the
+ *    host's clients stamp (`X-Stigmer-Execution-Id`) passes through, because
+ *    the platform's proxy authorizes and meters by it and `server.ts` has
+ *    checked it names a live turn; no other scope header does.
  *  - Terminate, when the runner calls its providers itself: the call goes
  *    to the provider with the operator's key, or signed with the runner's
  *    ambient cloud identity — exactly the credential the runner's own model
@@ -75,7 +76,7 @@ export async function modelUpstream(
       throw new LaneRefusal(404, `the ${lane} lane is not served: this runner's model calls go through the Stigmer platform`);
     }
     return {
-      url: new URL(`${trimSlash(config.proxyEndpoint)}/v1/proxy/llm/${lane}${rest}`),
+      url: laneUrl(config.proxyEndpoint, `/v1/proxy/llm/${lane}${rest}`),
       method,
       headers: { ...forwardableHeaders(req.headers, true), authorization: `Bearer ${runnerToken(config)}` },
       body,
@@ -84,9 +85,9 @@ export async function modelUpstream(
   const headers = forwardableHeaders(req.headers, false);
   switch (lane) {
     case "anthropic":
-      return { url: new URL(`${anthropicBase()}${rest}`), method, headers: { ...headers, "x-api-key": getRunnerSecret("ANTHROPIC_API_KEY") ?? "" }, body };
+      return { url: laneUrl(anthropicBase(), rest), method, headers: { ...headers, "x-api-key": getRunnerSecret("ANTHROPIC_API_KEY") ?? "" }, body };
     case "openai":
-      return { url: new URL(`${openAiBase()}${stripV1(rest)}`), method, headers: { ...headers, authorization: `Bearer ${getRunnerSecret("OPENAI_API_KEY") ?? ""}` }, body };
+      return { url: laneUrl(openAiBase(), stripV1(rest)), method, headers: { ...headers, authorization: `Bearer ${getRunnerSecret("OPENAI_API_KEY") ?? ""}` }, body };
     case "bedrock":
       return bedrockUpstream(rest, method, headers, body);
     case "vertex":
@@ -118,7 +119,7 @@ export function checkpointUpstream(config: Config, rest: string, req: IncomingMe
     throw new LaneRefusal(404, "the checkpoint lane is not served: this runner checkpoints locally");
   }
   return {
-    url: new URL(`${trimSlash(config.checkpointerProxyEndpoint)}/v1/proxy/checkpoints${rest}`),
+    url: laneUrl(config.checkpointerProxyEndpoint, `/v1/proxy/checkpoints${rest}`),
     method: req.method ?? "GET",
     headers: { ...forwardableHeaders(req.headers, false), authorization: `Bearer ${runnerToken(config)}` },
     body,
@@ -148,8 +149,7 @@ function stripV1(rest: string): string {
 async function bedrockUpstream(rest: string, method: string, headers: Record<string, string | string[]>, body: Buffer): Promise<Upstream> {
   const region = process.env.AWS_REGION?.trim();
   if (!region) throw new LaneRefusal(500, "the bedrock lane needs AWS_REGION on the runner");
-  const base = trimSlash(process.env.ANTHROPIC_BEDROCK_BASE_URL?.trim() || `https://bedrock-runtime.${region}.amazonaws.com`);
-  const url = new URL(`${base}${rest}`);
+  const url = laneUrl(process.env.ANTHROPIC_BEDROCK_BASE_URL?.trim() || `https://bedrock-runtime.${region}.amazonaws.com`, rest);
   const bearer = getRunnerSecret("AWS_BEARER_TOKEN_BEDROCK");
   if (bearer) return { url, method, headers: { ...headers, authorization: `Bearer ${bearer}` }, body };
   // No bearer token: sign with the runner's AWS identity, through the
@@ -186,7 +186,7 @@ async function vertexUpstream(rest: string, method: string, headers: Record<stri
   // The host's client names a placeholder project (`shared/model-lanes.ts`);
   // the project is the runner's identity's to say.
   const path = rest.replace(/^\/projects\/[^/]+\//, `/projects/${encodeURIComponent(project)}/`);
-  const url = new URL(`${vertexBase(region)}${path}`);
+  const url = laneUrl(vertexBase(region), path);
   return { url, method, headers: { ...headers, ...Object.fromEntries(authHeaders.entries()) }, body };
 }
 
@@ -212,7 +212,7 @@ async function foundryUpstream(rest: string, method: string, headers: Record<str
   const resource = process.env.ANTHROPIC_FOUNDRY_RESOURCE?.trim();
   if (!explicit && !resource) throw new LaneRefusal(500, "the foundry lane needs ANTHROPIC_FOUNDRY_RESOURCE or ANTHROPIC_FOUNDRY_BASE_URL on the runner");
   const base = explicit || `https://${resource}.services.ai.azure.com/anthropic/`;
-  const url = new URL(rest.replace(/^\/+/, ""), base.endsWith("/") ? base : `${base}/`);
+  const url = laneUrl(base, rest);
   const key = getRunnerSecret("ANTHROPIC_FOUNDRY_API_KEY")?.trim();
   if (key) return { url, method, headers: { ...headers, "x-api-key": key }, body };
   azureToken ??= import("@azure/identity").then(({ DefaultAzureCredential, getBearerTokenProvider }) =>
@@ -233,6 +233,21 @@ function runnerToken(config: Config): string {
   const token = config.stigmerTokenRef.current;
   if (!token) throw new LaneRefusal(503, "the runner holds no Stigmer credential to forward this call with");
   return token;
+}
+
+/**
+ * `base` with the host's `path` (which starts with `/`) appended, on
+ * `base`'s own origin and under its own path. The path is the agent host's
+ * to choose; the origin never is, so a path that would resolve elsewhere (a
+ * scheme, `//`, `..`) is refused before any credential is attached.
+ */
+export function laneUrl(base: string, path: string): URL {
+  const root = new URL(trimSlash(base));
+  const url = new URL(`${trimSlash(base)}${path}`);
+  if (url.origin !== root.origin || !url.pathname.startsWith(root.pathname)) {
+    throw new LaneRefusal(400, "the lane's path must stay under the lane's own endpoint");
+  }
+  return url;
 }
 
 function trimSlash(url: string): string {
