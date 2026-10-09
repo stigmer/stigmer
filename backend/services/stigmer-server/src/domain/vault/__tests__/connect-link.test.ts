@@ -5,7 +5,9 @@
  *
  *   - creation refuses My vault, an address the organization has no login
  *     app of its own for (Stigmer's app and Stigmer's client at a login
- *     server are never lent to a link), an app its vendor has not approved,
+ *     server are never lent to a link), an app that borrows a client id
+ *     Stigmer signs in with (refused again at start), an app its vendor has
+ *     not approved,
  *     a return URL that is not https (http only for this machine) or
  *     carries credentials, and a vault of another organization; it answers the
  *     console's page for the link and keeps only the secret's SHA-256;
@@ -160,7 +162,7 @@ describe("creating a link", () => {
     ["a catalog entry's", "gh-client", {}],
     ["Stigmer's metadata document", "https://stigmer.example/v1/oauth/client.json", {}],
     ["a client Stigmer keeps with a login server", "dcr-kept", { kept: true }],
-  ] as const)("refuses an organization app that borrows %s client id, at creation and at start", async (_what, clientId, how) => {
+  ] as const)("refuses at creation an organization app that borrows %s client id", async (_what, clientId, how) => {
     await seedSharedVault(rig);
     const deps = rig.deps({
       loginProviders: new Map([["github", { clientId: "gh-client", clientSecret: "gh-secret" }]]),
