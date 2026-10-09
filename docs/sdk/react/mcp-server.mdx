@@ -955,6 +955,9 @@ The component handles three scenarios:
 3. **No opener, no fallback**: shows a message asking the user to
    return to the main window.
 
+When the login page refused (`error`), the refusal is passed to the
+page that started the sign-in, so its wait ends at once, and shown here.
+
 Platform builders create a route in their application that renders
 this component:
 
