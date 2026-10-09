@@ -7,7 +7,7 @@ import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 //
 // The composer and the Config facet (SetupTab) are replaced with
 // prop-capturing probes so the tests assert exactly what `audience="endUser"`
-// maps to: a locked agent, unwired MCP/skill/session-variable pickers, and a
+// maps to: a locked agent, unwired MCP/skill/vault pickers, and a
 // read-only Config facet. The Config facet lives in the session panel's rail,
 // so the probe is reached by opening the panel (chip) and picking Config.
 // The molecules' own behavior is covered by their co-located tests.
@@ -57,8 +57,6 @@ const stubWorkspace = {
   clear: vi.fn(),
 };
 
-const stubSessionVariables = { entries: [], isEmpty: true, clear: vi.fn() };
-
 const stubNewSessionFlow = {
   harness: "native" as const,
   setHarness: vi.fn(),
@@ -83,7 +81,6 @@ const stubNewSessionFlow = {
   skillRefs: [],
   setSkillRefs: vi.fn(),
   workspace: stubWorkspace,
-  sessionVariables: stubSessionVariables,
   isSubmitting: false,
   submitError: null,
   submit: vi.fn(),
@@ -95,7 +92,7 @@ vi.mock("../useNewSessionFlow", () => ({
 
 const stubConv = {
   org: "acme",
-  session: { spec: {} },
+  session: { spec: {} } as Record<string, unknown>,
   isLoading: false,
   loadError: null,
   completedRuns: [],
@@ -106,7 +103,7 @@ const stubConv = {
   sendFollowUp: vi.fn(),
   canSendFollowUp: true,
   isSending: false,
-  sendError: null,
+  sendError: null as Error | null,
   clearSendError: vi.fn(),
   retryLastSend: vi.fn(),
   pendingUserMessage: null,
@@ -150,12 +147,10 @@ const stubSessionPageFlow = {
   skillRefs: [],
   setSkillRefs: vi.fn(),
   workspace: stubWorkspace,
-  sessionVariables: stubSessionVariables,
   autoApproveAll: false,
   setAutoApproveAll: vi.fn(),
   submitApproval: vi.fn(),
   handleSubmit: vi.fn(),
-  submitError: null as Error | null,
   displayRun: null,
   allRuns: [],
   sandboxWorkspaceRoot: undefined,
@@ -205,7 +200,8 @@ beforeEach(() => {
   composerProps.length = 0;
   setupTabProps.length = 0;
   threadProps.length = 0;
-  stubSessionPageFlow.submitError = null;
+  stubConv.sendError = null;
+  stubConv.session = { spec: {} };
 });
 
 afterEach(() => {
@@ -227,7 +223,7 @@ describe("NewSessionViewer — audience wiring", () => {
     expect(props.lockAgent).toBe(false);
     expect(props.onMcpServerUsagesChange).toBeDefined();
     expect(props.onSkillRefsChange).toBeDefined();
-    expect(props.sessionVariables).toBeDefined();
+    expect(props.enableVaultPicker).toBe(true);
     expect(openedConfigFacet().mutations).toBeDefined();
   });
 
@@ -245,7 +241,7 @@ describe("NewSessionViewer — audience wiring", () => {
     expect(props.lockAgent).toBe(true);
     expect(props.onMcpServerUsagesChange).toBeUndefined();
     expect(props.onSkillRefsChange).toBeUndefined();
-    expect(props.sessionVariables).toBeUndefined();
+    expect(props.enableVaultPicker).toBe(false);
     // End-user controls survive the curation.
     expect(props.showHarnessSelector).toBe(true);
     expect(props.showInteractionModePicker).toBe(true);
@@ -265,20 +261,35 @@ describe("NewSessionViewer — audience wiring", () => {
     expect(lastComposerProps().lockAgent).toBe(false);
   });
 
-  it("forwards getSessionSecrets and defaultHarness to the flow", () => {
-    const getSessionSecrets = vi.fn();
+  it("forwards the host's vault choice and defaultHarness to the flow, and the vault choice to the composer", () => {
+    const vaults = [{ org: "acme", slug: "support-tools" }];
     render(
       <NewSessionViewer
         org="acme"
         onSessionCreated={vi.fn()}
-        getSessionSecrets={getSessionSecrets}
+        includeMyVault={false}
+        vaults={vaults}
         defaultHarness="cursor"
       />,
     );
 
     expect(mockUseNewSessionFlow).toHaveBeenCalledWith(
-      expect.objectContaining({ getSessionSecrets, defaultHarness: "cursor" }),
+      expect.objectContaining({ includeMyVault: false, vaults, defaultHarness: "cursor" }),
     );
+    expect(lastComposerProps()).toMatchObject({ initialIncludeMyVault: false, initialVaultRefs: vaults });
+  });
+
+  it.each([
+    ["integrator", true],
+    ["endUser", true],
+    ["guest", false],
+  ] as const)("a %s conversation includes My vault by default: %s", (audience, includes) => {
+    render(
+      <NewSessionViewer org="acme" onSessionCreated={vi.fn()} audience={audience} initialAgentRef={AGENT_REF} />,
+    );
+
+    expect(mockUseNewSessionFlow).toHaveBeenCalledWith(expect.objectContaining({ includeMyVault: includes }));
+    expect(lastComposerProps().initialIncludeMyVault).toBe(includes);
   });
 
   it("guest: pure chat — every picker hidden, attachments and workspace off", () => {
@@ -295,7 +306,7 @@ describe("NewSessionViewer — audience wiring", () => {
     expect(props.lockAgent).toBe(true);
     expect(props.onMcpServerUsagesChange).toBeUndefined();
     expect(props.onSkillRefsChange).toBeUndefined();
-    expect(props.sessionVariables).toBeUndefined();
+    expect(props.enableVaultPicker).toBe(false);
     // Guest-only restrictions on top of the endUser curation.
     expect(props.showHarnessSelector).toBe(false);
     expect(props.showInteractionModePicker).toBe(false);
@@ -355,7 +366,7 @@ describe("SessionViewer — audience wiring", () => {
     expect(props.lockAgent).toBe(false);
     expect(props.onMcpServerUsagesChange).toBeDefined();
     expect(props.onSkillRefsChange).toBeDefined();
-    expect(props.sessionVariables).toBeDefined();
+    expect(props.enableVaultPicker).toBe(true);
     expect(openedConfigFacet().mutations).toBeDefined();
   });
 
@@ -366,7 +377,7 @@ describe("SessionViewer — audience wiring", () => {
     expect(props.lockAgent).toBe(true);
     expect(props.onMcpServerUsagesChange).toBeUndefined();
     expect(props.onSkillRefsChange).toBeUndefined();
-    expect(props.sessionVariables).toBeUndefined();
+    expect(props.enableVaultPicker).toBe(false);
     // End-user controls survive the curation.
     expect(props.showInteractionModePicker).toBe(true);
     expect(openedConfigFacet().mutations).toBeUndefined();
@@ -379,7 +390,7 @@ describe("SessionViewer — audience wiring", () => {
     expect(props.lockAgent).toBe(true);
     expect(props.onMcpServerUsagesChange).toBeUndefined();
     expect(props.onSkillRefsChange).toBeUndefined();
-    expect(props.sessionVariables).toBeUndefined();
+    expect(props.enableVaultPicker).toBe(false);
     // Guest-only restrictions on top of the endUser curation.
     expect(props.showInteractionModePicker).toBe(false);
     expect(props.showModelSelector).toBe(false);
@@ -421,15 +432,18 @@ describe("SessionViewer — audience wiring", () => {
     expect(lastThreadProps().onApprovalSubmit).toBeDefined();
   });
 
-  it("forwards getSessionSecrets to the flow", () => {
-    const getSessionSecrets = vi.fn();
-    render(
-      <SessionViewer sessionId="ses_1" org="acme" getSessionSecrets={getSessionSecrets} />,
-    );
+  it("hands the composer the conversation's vault choice and who created it", () => {
+    stubConv.session = {
+      spec: { includeMyVault: true, vaults: [{ org: "acme", slug: "support-tools", kind: 59 }] },
+      status: { audit: { specAudit: { createdBy: { id: "ida_creator" } } } },
+    };
+    render(<SessionViewer sessionId="ses_1" org="acme" />);
 
-    expect(mockUseSessionPageFlow).toHaveBeenCalledWith(
-      expect.objectContaining({ getSessionSecrets }),
-    );
+    expect(lastComposerProps()).toMatchObject({
+      initialIncludeMyVault: true,
+      initialVaultRefs: [{ org: "acme", slug: "support-tools" }],
+      vaultPickCreatorId: "ida_creator",
+    });
   });
 
   it("threads accessSlot into the Config facet, not the header", () => {
@@ -449,12 +463,12 @@ describe("SessionViewer — audience wiring", () => {
     expect(facet.accessSlot).toBeDefined();
   });
 
-  it("renders the flow's submitError through the send-error banner", () => {
-    stubSessionPageFlow.submitError = new Error("token mint failed");
+  it("renders the conversation's send error through the send-error banner", () => {
+    stubConv.sendError = new Error("the run could not start");
     render(<SessionViewer sessionId="ses_1" org="acme" />);
 
     const alert = screen.getByRole("alert");
-    expect(alert.textContent).toContain("token mint failed");
+    expect(alert.textContent).toContain("the run could not start");
   });
 });
 

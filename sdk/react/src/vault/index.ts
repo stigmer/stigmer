@@ -17,7 +17,9 @@ export type { VaultListPanelProps } from "./VaultListPanel.js";
 export { CreateVaultForm } from "./CreateVaultForm.js";
 export type { CreateVaultFormProps } from "./CreateVaultForm.js";
 export { VaultPicker, MY_VAULT_LABEL } from "./VaultPicker.js";
-export type { VaultPickerProps } from "./VaultPicker.js";
+export type { VaultPickerProps, VaultPickerMyVault } from "./VaultPicker.js";
+export type { ConversationVaults } from "./conversationVaults.js";
+
 export { EnvVarForm } from "./EnvVarForm.js";
 export type {
   EnvVarFormProps,
@@ -26,11 +28,7 @@ export type {
 } from "./EnvVarForm.js";
 export type { EnvVarInput } from "./types.js";
 export { diffEnv } from "./diffEnv.js";
-export { useSessionEnvPool } from "./useSessionEnvPool.js";
-export type {
-  SessionEnvPoolInput,
-  UseSessionEnvPoolReturn,
-} from "./useSessionEnvPool.js";
+
 export { SYSTEM_ENV_VAR_KEYS } from "./systemEnvVars.js";
 export { useToolCredentialsReadiness } from "./useToolCredentialsReadiness.js";
 export type { ToolCredentialsReadiness } from "./useToolCredentialsReadiness.js";

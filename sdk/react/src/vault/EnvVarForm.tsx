@@ -32,7 +32,11 @@ export interface EnvVarFormVariable {
 
 /** Options reported by the form alongside the collected values on submit. */
 export interface EnvVarFormSubmitOptions {
-  /** Whether the user chose to save these values in My vault. */
+  /**
+   * Whether the values are to be saved in My vault. Always `true` unless
+   * the form offers its save toggle (`unsavedScope`) and the person turned
+   * it off.
+   */
   readonly saveForFuture: boolean;
 }
 
@@ -72,47 +76,40 @@ export interface EnvVarFormProps {
 
   /**
    * Overrides the default submit button label. When omitted, the
-   * button shows `"Save"` while the save toggle is on, and otherwise
+   * button shows `"Save"` while the values are to be saved, and otherwise
    * names where the unsaved values are used (`unsavedScope`).
    */
   readonly submitLabel?: string;
   /**
-   * Where values the person chooses not to save are used, which the
-   * form says beside the toggle and on the submit button:
-   * - `"conversation"` (default): kept sealed for the conversation and
-   *   used by all of its turns, a teammate's included when the
-   *   conversation is shared.
-   * - `"connection"`: used for one connection to a tool and not kept.
-   * @default "conversation"
+   * Offer the "Save in My vault" toggle, naming where values the person
+   * chooses not to save are used: `"connection"`, one connection to a
+   * tool, not kept. Omitted, the form has no toggle and always saves: a
+   * conversation never keeps values of its own, so a value typed for a
+   * chat is saved in My vault.
    */
-  readonly unsavedScope?: "conversation" | "connection";
+  readonly unsavedScope?: "connection";
   /**
    * Overrides the default cancel button label (`"Back"`).
    */
   readonly cancelLabel?: string;
   /**
-   * Initial state of the "Save in My vault" toggle.
-   * Platform builders can override this to match their default
-   * secret-persistence policy.
+   * Initial state of the "Save in My vault" toggle, when the form offers
+   * one (`unsavedScope`).
    * @default true
    */
   readonly defaultSaveForFuture?: boolean;
   /**
    * When `true`, the save toggle is hidden and the form always uses
-   * `defaultSaveForFuture` as the submit value. Useful for platform
-   * builders who want to enforce a single persistence policy.
+   * `defaultSaveForFuture` as the submit value. Only meaningful with
+   * `unsavedScope`; without it there is no toggle.
    * @default false
    */
   readonly hideSaveToggle?: boolean;
   /**
-   * Pre-fill values from the session env pool.
+   * Pre-fill values from another source the host holds.
    *
-   * When provided, fields whose keys are in this record are
-   * pre-populated with the pool's value. A subtle indicator shows
-   * that the value was provided by another source in the session.
-   *
-   * Platform builders who use `useSessionEnvPool` can pass
-   * `pool.getAvailableValue` to look up pre-fill values.
+   * When provided, fields whose keys return a value are pre-populated
+   * with it, and a subtle indicator says the value was pre-filled.
    */
   readonly poolValues?: (key: string) => EnvVarInput | undefined;
   /** Additional CSS class names for the root container. */
@@ -133,12 +130,11 @@ export interface EnvVarFormProps {
  * password field with a visibility toggle. The form validates that
  * all fields are non-empty before allowing submission.
  *
- * A "Save in My vault" toggle (on by default) lets the user choose
- * between saving the values in their My vault and keeping them where
- * `unsavedScope` says: the conversation (sealed, used by all of its
- * turns) or one connection. The toggle state is
- * reported via `onSubmit` so the caller can route to the
- * appropriate codepath.
+ * With `unsavedScope`, a "Save in My vault" toggle (on by default) lets
+ * the user choose between saving the values in their My vault and using
+ * them for one connection only. The toggle state is reported via
+ * `onSubmit` so the caller can route to the appropriate codepath.
+ * Without it the form always saves.
  *
  * This is a **pure presentational component** with no knowledge of
  * vaults, sessions, or orchestration. It
@@ -158,27 +154,19 @@ export interface EnvVarFormProps {
  *     { key: "GITHUB_TOKEN", isSecret: true, description: "Personal access token" },
  *     { key: "REPO_OWNER", isSecret: false },
  *   ]}
+ *   unsavedScope="connection"
  *   onSubmit={(values, { saveForFuture }) => {
  *     if (saveForFuture) saveToMyVault(values);
- *     else useForThisConversation(values);
+ *     connect(values);
  *   }}
  *   onCancel={() => console.log("cancelled")}
  * />
  * ```
  */
-/**
- * What the form says about values the person chooses not to save. A
- * conversation keeps them sealed for its life and every turn uses them,
- * so the copy never promises a single use there.
- */
+/** What the form says about values the person chooses not to save. */
 const UNSAVED_COPY: Readonly<
-  Record<"conversation" | "connection", { readonly submit: string; readonly note: string }>
+  Record<"connection", { readonly submit: string; readonly note: string }>
 > = {
-  conversation: {
-    submit: "Use in this conversation",
-    note:
-      "Kept sealed for this conversation and used by its turns, including a teammate's turns if you share it. Not saved in My vault.",
-  },
   connection: {
     submit: "Use for this connection",
     note: "Used for this connection only. Not saved.",
@@ -197,7 +185,7 @@ export function EnvVarForm({
   cancelLabel = "Back",
   defaultSaveForFuture = true,
   hideSaveToggle = false,
-  unsavedScope = "conversation",
+  unsavedScope,
   poolValues,
   className,
   ariaLabel,
@@ -219,7 +207,9 @@ export function EnvVarForm({
     return keys;
   });
   const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set());
-  const [saveForFuture, setSaveForFuture] = useState(defaultSaveForFuture);
+  // Without a scope for unsaved values there is nowhere else for them to
+  // go: the form saves.
+  const [saveForFuture, setSaveForFuture] = useState(unsavedScope === undefined ? true : defaultSaveForFuture);
   const firstInputRef = useRef<HTMLInputElement>(null);
   const fields = useScrollShadows();
 
@@ -268,7 +258,7 @@ export function EnvVarForm({
 
   const resolvedSubmitLabel =
     submitLabel ??
-    (saveForFuture ? "Save" : UNSAVED_COPY[unsavedScope].submit);
+    (saveForFuture || unsavedScope === undefined ? "Save" : UNSAVED_COPY[unsavedScope].submit);
 
   return (
     <form
@@ -368,7 +358,7 @@ export function EnvVarForm({
                 )}
                 {prefilledKeys.has(variable.key) && (
                   <p className="stg:text-[0.55rem] stg:text-primary-muted">
-                    Pre-filled from session variables
+                    Pre-filled
                   </p>
                 )}
               </div>
@@ -380,7 +370,7 @@ export function EnvVarForm({
       </div>
 
       {/* Save toggle */}
-      {!hideSaveToggle && (
+      {unsavedScope !== undefined && !hideSaveToggle && (
         <div className="stg:flex stg:items-start stg:gap-2 stg:pt-0.5">
           <button
             id={toggleId}

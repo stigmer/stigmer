@@ -6,14 +6,14 @@ import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_p
 import type { AgentResolution } from "../agent/index.js";
 import { useApprovalDefaults } from "../approval-defaults-context.js";
 import { useWorkspaceEntries, type UseWorkspaceEntriesReturn } from "../workspace/index.js";
-import { useSessionVariables, type UseSessionVariablesReturn } from "../run/useSessionVariables.js";
+
 import type { SessionComposerSubmitContext, InteractionModeOption } from "../composer/index.js";
 import { fromProtoInteractionMode } from "../composer/index.js";
 import { fromProtoHarness, type HarnessOption } from "../models/harness.js";
 import { Harness, ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { fromProtoExecutionTarget, type ExecutionTargetOption } from "./execution-target.js";
 import { useSessionConversation, type UseSessionConversationReturn } from "./useSessionConversation.js";
-import { resolveSessionSecrets, type SessionSecretsProvider } from "./session-secrets.js";
+
 import { agentRefOfSession, isSameAgent } from "./agentRefOfSession.js";
 import { useSessionAgentVersion, type UseSessionAgentVersionReturn } from "./useSessionAgentVersion.js";
 import { usePersistedModel, type UsePersistedModelReturn } from "./usePersistedModel.js";
@@ -37,23 +37,6 @@ export interface UseSessionPageFlowOptions {
   readonly sessionId: string;
   /** Organization id (a slug is also accepted). */
   readonly org: string;
-  /**
-   * Supplies host-app environment variables for every follow-up
-   * run. Evaluated once per follow-up, at send time, so
-   * short-lived credentials stay fresh.
-   *
-   * Host values win over composer-collected env on key collisions. If
-   * the provider throws, the follow-up is aborted before any optimistic
-   * UI or session mutation and the error surfaces via
-   * {@link UseSessionPageFlowReturn.submitError}. See
-   * {@link SessionSecretsProvider}.
-   *
-   * The values are written to the conversation's own secrets by a
-   * session update before the run. Not evaluated for the `"guest"`
-   * audience: a share-link guest cannot write them, and the share's
-   * vaults are what a guest's runs use.
-   */
-  readonly getSessionSecrets?: SessionSecretsProvider;
   /**
    * Who this flow serves. `"guest"` adapts the orchestration to the
    * guest principal's permission model: the agent reads behind the
@@ -196,8 +179,6 @@ export interface UseSessionPageFlowReturn {
 
   /** Workspace entries manager (synced from session on load). */
   readonly workspace: UseWorkspaceEntriesReturn;
-  /** Session variables (per-execution secrets) manager. */
-  readonly sessionVariables: UseSessionVariablesReturn;
 
   /**
    * Session-scoped "auto-approve tool calls" state (stigmer/stigmer#816).
@@ -247,10 +228,9 @@ export interface UseSessionPageFlowReturn {
 
   /**
    * Submit a follow-up message. Handles agent override resolution
-   * (if the user changed the agent mid-session), evaluates the host
-   * runtime-env provider, and delegates to `conv.sendFollowUp` with
-   * all managed state. Never rejects — pre-send failures land in
-   * {@link submitError}.
+   * (if the user changed the agent mid-session) and delegates to
+   * `conv.sendFollowUp` with all managed state. Never rejects: a failed
+   * send lands in `conv.sendError`.
    */
   readonly handleSubmit: (
     message: string,
@@ -258,16 +238,6 @@ export interface UseSessionPageFlowReturn {
     context?: SessionComposerSubmitContext,
   ) => Promise<void>;
 
-  /**
-   * Error from the most recent follow-up's pre-send work (agent
-   * override resolution, host runtime-env evaluation), or `null`.
-   *
-   * Distinct from `conv.sendError`, which covers the create-execution
-   * RPC itself. Kept as the raw `Error` so consumers can render
-   * contextual guidance (e.g. secret-flow errors). Cleared at the
-   * start of each submission.
-   */
-  readonly submitError: Error | null;
 
   /**
    * The most relevant run for sidebar display — the active
@@ -331,7 +301,7 @@ export interface UseSessionPageFlowReturn {
 export function useSessionPageFlow(
   options: UseSessionPageFlowOptions,
 ): UseSessionPageFlowReturn {
-  const { sessionId, org, getSessionSecrets } = options;
+  const { sessionId, org } = options;
   const isGuest = options.audience === "guest";
   // Guests never carry a client pin: guest run config is owned by
   // the server-side share policy, and the no-modelName guest invariant
@@ -393,7 +363,7 @@ export function useSessionPageFlow(
   ] as const;
 
   const workspace = useWorkspaceEntries();
-  const sessionVariables = useSessionVariables();
+
   const [mcpServerUsages, setMcpServerUsages] = useState<McpServerUsageInput[]>([]);
   const [skillRefs, setSkillRefs] = useState<ResourceRef[]>([]);
   const initialSyncDone = useRef(false);
@@ -617,54 +587,26 @@ export function useSessionPageFlow(
   // Follow-up submission with agent override
   // -------------------------------------------------------------------------
 
-  const [submitError, setSubmitError] = useState<Error | null>(null);
-
   const handleSubmit = useCallback(
     async (
       message: string,
       selectedModel?: string,
       context?: SessionComposerSubmitContext,
     ) => {
-      setSubmitError(null);
-
-      // Pre-send work runs before conv.sendFollowUp so a failure here
-      // aborts cleanly: no optimistic pending message, no session
-      // mutation. The composer fires this handler without awaiting it,
-      // so a rejection would otherwise be an unhandled rejection —
-      // failures must land in submitError instead.
-      //
       // The agent override is tri-state: `undefined` leaves the session's
       // agent and its pinned version alone; a reference rebinds the session
       // to that agent (no version, so the server pins its current one);
       // `null` clears it to the built-in assistant.
       let agentRefOverride: ResourceRef | null | undefined;
-      let secrets: SessionComposerSubmitContext["secrets"];
-
-      try {
-        if (resolution && agentRef) {
-          if (!isSameAgent(agentRef, sessionAgentRef)) {
-            agentRefOverride = { org: agentRef.org, slug: agentRef.slug };
-          }
-        } else if (agentCleared && sessionAgentRef) {
-          agentRefOverride = null;
+      if (resolution && agentRef) {
+        if (!isSameAgent(agentRef, sessionAgentRef)) {
+          agentRefOverride = { org: agentRef.org, slug: agentRef.slug };
         }
-
-        // Evaluated per follow-up so short-lived host credentials are
-        // current; host values win over composer-collected values. A guest
-        // sends none: the values are written to the conversation, a write
-        // a share-link guest may not make, and a guest brings no values
-        // anyway (the share's vaults are what its runs use).
-        if (!isGuest) {
-          secrets = getSessionSecrets
-            ? await resolveSessionSecrets(getSessionSecrets, context?.secrets)
-            : context?.secrets;
-        }
-      } catch (err) {
-        setSubmitError(err instanceof Error ? err : new Error(String(err)));
-        return;
+      } else if (agentCleared && sessionAgentRef) {
+        agentRefOverride = null;
       }
 
-      conv.sendFollowUp(message, {
+      await conv.sendFollowUp(message, {
         agentRef: agentRefOverride,
         // The owner pin wins over everything the user or the SDK
         // resolved (#664), its tier and thinking as the surface set them.
@@ -678,8 +620,11 @@ export function useSessionPageFlow(
           : undefined,
         mcpServerUsages: mcpServerUsages.length > 0 ? mcpServerUsages : undefined,
         skillRefs: skillRefs.length > 0 ? skillRefs : undefined,
-        secrets,
-        vaults: context?.vaults,
+        // A guest never changes which vaults the conversation uses: the
+        // write is the creator's, and the share's vaults are what a
+        // guest's runs use.
+        vaults: isGuest ? undefined : context?.vaults,
+        includeMyVault: isGuest ? undefined : context?.includeMyVault,
         attachments: context?.attachments,
         interactionMode: context?.interactionMode,
         serviceTier: pinnedModelName ? pinnedServiceTier : context?.serviceTier,
@@ -691,10 +636,8 @@ export function useSessionPageFlow(
         workspaceFileRefs: context?.workspaceFileRefs,
         supersedesRunId: context?.supersedesRunId,
       });
-
-      sessionVariables.clear();
     },
-    [conv.sendFollowUp, modelId, pinnedModelName, pinnedServiceTier, pinnedThinkingMode, workspace, mcpServerUsages, skillRefs, sessionVariables.clear, resolution, agentRef, agentCleared, sessionAgentRef, autoApproveAll, getSessionSecrets, isGuest],
+    [conv.sendFollowUp, modelId, pinnedModelName, pinnedServiceTier, pinnedThinkingMode, workspace, mcpServerUsages, skillRefs, resolution, agentRef, agentCleared, sessionAgentRef, autoApproveAll, isGuest],
   );
 
   // -------------------------------------------------------------------------
@@ -742,12 +685,11 @@ export function useSessionPageFlow(
     skillRefs,
     setSkillRefs,
     workspace,
-    sessionVariables,
     autoApproveAll,
     setAutoApproveAll,
     submitApproval,
     handleSubmit,
-    submitError,
+
     displayRun,
     allRuns,
     sandboxWorkspaceRoot,

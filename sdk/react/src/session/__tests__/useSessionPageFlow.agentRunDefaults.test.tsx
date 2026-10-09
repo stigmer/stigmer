@@ -55,10 +55,6 @@ vi.mock("../../workspace", () => ({
   }),
 }));
 
-vi.mock("../../run/useSessionVariables", () => ({
-  useSessionVariables: () => ({ variables: [], isEmpty: true, clear: vi.fn() }),
-}));
-
 vi.mock("../usePersistedModel", () => ({
   usePersistedModel: () => ["remembered-model", vi.fn()] as const,
 }));

@@ -58,22 +58,8 @@ export interface AgentEnvFormProps {
   /** Prevents interaction with all form inputs when `true`. */
   readonly disabled?: boolean;
   /**
-   * Initial state of the "Save in My vault" toggle.
-   * Platform builders can override this to match their default
-   * secret-persistence policy.
-   * @default true
-   */
-  readonly defaultSaveForFuture?: boolean;
-  /**
-   * When `true`, the save toggle is hidden and the form always uses
-   * `defaultSaveForFuture` as the submit value. Useful for platform
-   * builders who want to enforce a single persistence policy.
-   * @default false
-   */
-  readonly hideSaveToggle?: boolean;
-  /**
-   * Lookup function for pre-filling fields from the session env pool.
-   * Passed through to {@link EnvVarForm}.
+   * Lookup function for pre-filling fields from another source the host
+   * holds. Passed through to {@link EnvVarForm}.
    */
   readonly poolValues?: EnvVarFormProps["poolValues"];
   /** Additional CSS class names for the root container. */
@@ -85,8 +71,9 @@ export interface AgentEnvFormProps {
  *
  * This is a thin wrapper around {@link EnvVarForm} that provides
  * agent-specific defaults: the agent name as the form title, and a
- * contextual description. All rendering, validation, and toggle
- * behavior is delegated to `EnvVarForm`.
+ * contextual description. All rendering and validation is delegated to
+ * `EnvVarForm`. It offers no save toggle: a value typed for an agent is
+ * saved in My vault, since a conversation keeps no values of its own.
  *
  * @example
  * ```tsx
@@ -96,10 +83,7 @@ export interface AgentEnvFormProps {
  *     { key: "GITHUB_TOKEN", isSecret: true, description: "Personal access token" },
  *     { key: "REPO_OWNER", isSecret: false },
  *   ]}
- *   onSubmit={(values, { saveForFuture }) => {
- *     if (saveForFuture) saveToEnvironment(values);
- *     else useForThisConversation(values);
- *   }}
+ *   onSubmit={(values) => saveToMyVault(values)}
  *   onCancel={() => console.log("cancelled")}
  * />
  * ```
@@ -108,7 +92,7 @@ export function AgentEnvForm({ agentName, ...rest }: AgentEnvFormProps) {
   return (
     <EnvVarForm
       title={agentName}
-      description="Enter required credentials to use this agent."
+      description="Enter required credentials to use this agent. They are saved in My vault."
       ariaLabel={`Configure ${agentName}`}
       {...rest}
     />

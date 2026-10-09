@@ -45,7 +45,10 @@ export interface SharedAgentChatProps {
    * RPC (pair with `createGuestAuth`); `"org"` uses the authenticated
    * `getSharedProfileForMember` RPC and requires a `StigmerProvider`
    * whose client carries a signed-in org member's token. The chat
-   * presentation is identical either way.
+   * presentation is identical either way; what differs is whose keys the
+   * conversation reads: a member is a person on their own token, so their
+   * conversation includes their own My vault, while a public visitor
+   * brings none and the share's vaults are all its runs use.
    *
    * @default "public"
    */
@@ -213,6 +216,7 @@ export function SharedAgentChat({
           <NewSessionViewer
             org={org}
             audience="guest"
+            includeMyVault={sharingAudience === "org"}
             initialAgentRef={agentRef}
             enableGitHub={false}
             heading={heading ?? `Chat with ${profile.name || slug}`}

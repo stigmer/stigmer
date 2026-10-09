@@ -8,15 +8,14 @@ import { useModelRegistry } from "../models/index.js";
 import { parseModelKey } from "../models/registry.js";
 import { DEFAULT_HARNESS, type HarnessOption } from "../models/harness.js";
 import { useWorkspaceEntries, type UseWorkspaceEntriesReturn } from "../workspace/index.js";
-import { useSessionVariables, type UseSessionVariablesReturn } from "../run/useSessionVariables.js";
+
 import type { SessionComposerSubmitContext } from "../composer/index.js";
 import { useCreateRun } from "../run/useCreateRun.js";
 import type { ExecutionTargetOption } from "./execution-target.js";
 import { useExecutionTarget } from "../execution-target-context.js";
 import { useApprovalDefaults } from "../approval-defaults-context.js";
 import { useRunnerAdapter } from "../runner-adapter.js";
-import { resolveSessionSecrets, type SessionSecretsProvider } from "./session-secrets.js";
-import type { SessionAudience } from "./audience.js";
+import { includesMyVaultByDefault, type SessionAudience } from "./audience.js";
 import { assertValidRunConfig, type SessionRunConfig } from "./run-config.js";
 import {
   agentHarnessOf,
@@ -77,23 +76,20 @@ export interface UseNewSessionFlowOptions {
    */
   readonly executionTarget?: ExecutionTargetOption;
   /**
-   * Supplies host-app environment variables for the session's first
-   * run. Evaluated once per submission, at submit time, so
-   * short-lived credentials stay fresh; evaluated **before** the session
-   * is created so a credential failure never strands an empty session.
-   *
-   * Host values win over composer-collected env on key collisions. If
-   * the provider throws, the submission fails and the error surfaces
-   * via {@link UseNewSessionFlowReturn.submitError} / {@link onError}.
-   * See {@link SessionSecretsProvider}.
-   *
-   * The values are sealed on the conversation for its whole life. Not
-   * evaluated for the `"guest"` audience, whose first turn carries no
-   * values at all: a share-link guest brings none, and the share's
-   * vaults are what a guest's runs use (the follow-up rule of
-   * `useSessionPageFlow`).
+   * Whether the created conversation includes its sender's own My vault,
+   * read first, ahead of {@link vaults}. A pick the person makes in the
+   * composer's vault picker (`SessionComposerSubmitContext.includeMyVault`)
+   * wins. Defaults to on for the `"integrator"` and `"endUser"` audiences
+   * and off for `"guest"`: a share-link guest brings no keys, and the
+   * share's vaults are what its runs use.
    */
-  readonly getSessionSecrets?: SessionSecretsProvider;
+  readonly includeMyVault?: boolean;
+  /**
+   * Shared vaults the created conversation uses, in order, after the
+   * sender's My vault when it is included. A pick the person makes in the
+   * composer's vault picker (`SessionComposerSubmitContext.vaults`) wins.
+   */
+  readonly vaults?: readonly ResourceRef[];
   /**
    * Harness pre-selected for new sessions when the user has not made an
    * explicit choice yet (e.g. an embedder whose agents primarily run
@@ -174,8 +170,8 @@ export interface UseNewSessionFlowOptions {
    * Personalization, not authorization: anyone who can create the session
    * can set this (the same trust level as authoring the first message).
    * Hidden from the conversation thread, not from the API — `session.get`
-   * returns it, so never put secrets here; secrets belong in the
-   * session's own `secrets` or in a vault. Large values bloat every prompt.
+   * returns it, so never put secrets here; secrets belong in a vault.
+   * Large values bloat every prompt.
    */
   readonly sessionContext?: string;
   /**
@@ -251,8 +247,6 @@ export interface UseNewSessionFlowReturn {
 
   /** Workspace entries manager (git repos and local paths). */
   readonly workspace: UseWorkspaceEntriesReturn;
-  /** Session variables (per-execution secrets) manager. */
-  readonly sessionVariables: UseSessionVariablesReturn;
 
   /**
    * Pre-arm "auto-approve tool calls" for the session this surface will
@@ -277,7 +271,7 @@ export interface UseNewSessionFlowReturn {
    * Create a session with the first run.
    *
    * Composes all managed state (agent, workspace, MCP servers, skills,
-   * model, session variables) into a single bootstrap RPC —
+   * model, the vaults the conversation uses) into a single bootstrap RPC —
    * `run.create` with an embedded session spec — then calls
    * `onSessionCreated` on success.
    *
@@ -296,8 +290,8 @@ export interface UseNewSessionFlowReturn {
  *
  * Manages all the state required to configure and submit a new session:
  * model selection (with localStorage persistence), agent resolution,
- * MCP server/skill selection, workspace entries, and session
- * variables. On submission, creates the session and its first run
+ * MCP server/skill selection, workspace entries, and the vaults the
+ * conversation uses. On submission, creates the session and its first run
  * with a single one-call bootstrap RPC (`run.create` with an
  * embedded session spec), then notifies the consumer via
  * `onSessionCreated`.
@@ -326,7 +320,7 @@ export interface UseNewSessionFlowReturn {
  *   onMcpServerUsagesChange={flow.setMcpServerUsages}
  *   skillRefs={flow.skillRefs}
  *   onSkillRefsChange={flow.setSkillRefs}
-   *   sessionVariables={flow.sessionVariables}
+
  *   defaultModelId={flow.modelId}
  *   onModelChange={flow.setModelId}
  * />
@@ -339,7 +333,8 @@ export function useNewSessionFlow(
     org,
     onSessionCreated,
     onError,
-    getSessionSecrets,
+    includeMyVault: includeMyVaultOption,
+    vaults: vaultsOption,
     defaultHarness,
     metadata,
     sessionContext,
@@ -436,7 +431,6 @@ export function useNewSessionFlow(
   const { getModel, isLoading: isModelsLoading } = useModelRegistry({ harness });
   const { create: createExecution } = useCreateRun();
   const workspace = useWorkspaceEntries();
-  const sessionVariables = useSessionVariables();
 
   const [modelId, setModelIdRaw] = useState<string | undefined>(undefined);
   // The model the person picked on this surface (the composer's picker),
@@ -571,18 +565,14 @@ export function useNewSessionFlow(
       setSubmitError(null);
 
       try {
-        // Host env is evaluated per submission (short-lived credentials)
-        // and before session creation, so a credential failure can never
-        // strand an empty session. Without a provider the composer env
-        // passes through untouched — no extra await on the hot path. A
-        // guest's conversation carries none: the values would be sealed
-        // on it for its life, and a guest brings no values (the share's
-        // vaults are what its runs use), as on every follow-up.
-        const secrets = isGuest
-          ? undefined
-          : getSessionSecrets
-            ? await resolveSessionSecrets(getSessionSecrets, context?.secrets)
-            : context?.secrets;
+        // The vaults the conversation uses: the person's pick in the
+        // composer when they made one, else what the host set up. The pick
+        // carries both halves together, so neither is mixed from two
+        // sources.
+        const includeMyVault = context?.includeMyVault
+          ?? includeMyVaultOption
+          ?? includesMyVaultByDefault(options.audience ?? "integrator");
+        const vaults = context?.vaults ?? vaultsOption;
 
         const sessionSpecBase = {
           workspaceEntries: workspace.hasEntries
@@ -590,8 +580,9 @@ export function useNewSessionFlow(
             : undefined,
           mcpServerUsages: mcpServerUsages.length > 0 ? mcpServerUsages : undefined,
           skillRefs: skillRefs.length > 0 ? skillRefs : undefined,
-          vaults: context?.vaults?.length ? context.vaults : undefined,
-          secrets,
+          vaults: vaults?.length ? [...vaults] : undefined,
+          // Only an included My vault travels; off is the wire default.
+          includeMyVault: includeMyVault || undefined,
           // The typed-wins merge happens downstream in useCreateRun;
           // both fields are forwarded verbatim here.
           metadata,
@@ -666,7 +657,6 @@ export function useNewSessionFlow(
           await adapter.onSessionOpened(sessionId);
         }
 
-        sessionVariables.clear();
         onSessionCreated(sessionId);
       } catch (err) {
         const detail = getUserMessage(err, "Failed to start session");
@@ -684,7 +674,9 @@ export function useNewSessionFlow(
       executionTarget,
       autoApproveAll,
       adapter,
-      getSessionSecrets,
+      includeMyVaultOption,
+      vaultsOption,
+      options.audience,
       effectiveModelId,
       pinnedModelName,
       pinnedServiceTier,
@@ -698,7 +690,6 @@ export function useNewSessionFlow(
       resolution,
       isAgentLoading,
       createExecution,
-      sessionVariables,
       onSessionCreated,
       onError,
     ],
@@ -720,7 +711,6 @@ export function useNewSessionFlow(
     skillRefs,
     setSkillRefs,
     workspace,
-    sessionVariables,
     autoApproveAll,
     setAutoApproveAll,
     isSubmitting,

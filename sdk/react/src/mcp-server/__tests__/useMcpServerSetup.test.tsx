@@ -1,24 +1,24 @@
 /**
  * useMcpServerSetup walks each attached server from loading to ready: a
  * server whose credentials are missing waits in needsSetup until they are
- * submitted (saved in My vault, or kept for this conversation only) or
- * until the session's env pool covers them. A ready server becomes a usage
- * that attaches the whole server: no per-tool selection rides on it, because
+ * saved in My vault, or until the pool (the platform's own keys) or My
+ * vault, when included, covers them. A ready server becomes a usage that
+ * attaches the whole server: no per-tool selection rides on it, because
  * the agent's own tool lists decide which tools a session may call. A token
  * for the server's login variable (here an `Authorization: Bearer ${VAR}`
  * header) is saved as a login at the server's address, not as a secret by
  * name, and a login already saved at that address counts as the variable.
- * reset forgets every server and every one-time value. A conversation that
- * lists vaults reads only those: their secrets and logins count, My vault's
- * do not (nor a connected sign-in grant, which is My vault's), a listed
- * vault's sign-in counts only for the server that started it, and values
- * saved in My vault also reach the conversation as its own one-time values.
- * When the listed vaults change, every server already added is evaluated
- * again over them (one mid-submit is left to land), and values already kept as the conversation's own still
- * count. An answer for a vault pick changed again while it was read never
- * lands, and the newer pick's still settles the server. A server that
- * cannot be read holds its error. My vault is stubbed so these tests pin the hook's
- * transitions, not the vault hook's RPCs.
+ * reset forgets every server. The hook reads exactly the vaults the
+ * conversation uses: My vault's secrets, logins and sign-in grant count
+ * only while it is included, a listed vault's secrets and logins count, a
+ * listed vault's sign-in counts only for the server that started it, and a
+ * typed value is saved in My vault whatever the conversation uses. When the
+ * conversation's vault choice changes, every server already added is
+ * evaluated again over it (one mid-submit is left to land). An answer for a
+ * choice changed again while it was read never lands, and the newer
+ * choice's still settles the server. A server that cannot be read holds its
+ * error. My vault is stubbed so these tests pin the hook's transitions, not
+ * the vault hook's RPCs.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderHook, act, waitFor, cleanup } from "@testing-library/react";
@@ -27,6 +27,7 @@ import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError, createRouterTransport } from "@connectrpc/connect";
 import { Stigmer } from "@stigmer/sdk";
 import type { ResourceRef } from "@stigmer/sdk";
+import { MY_VAULT_ONLY, type ConversationVaults } from "../../vault/conversationVaults";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
 import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
 import { VaultSchema, type Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
@@ -143,7 +144,8 @@ function vaultHolding(secrets: readonly string[], addresses: readonly string[] =
   });
 }
 
-const LISTED: ResourceRef[] = [{ org: ORG, slug: "team" }];
+/** A conversation that leaves My vault out and lists the team vault. */
+const LISTED: ConversationVaults = { includeMyVault: false, vaults: [{ org: ORG, slug: "team" }] };
 
 function wrapper({ children }: { readonly children: ReactNode }) {
   const client = new Stigmer({
@@ -177,9 +179,9 @@ const WHOLE_SERVER_USAGE = {
   mcpServerRef: { org: ORG, slug: "zendesk", kind: ApiResourceKind.mcp_server },
 };
 
-async function addNeedingSetup(poolKeys?: Set<string>, vaults?: readonly ResourceRef[]) {
+async function addNeedingSetup(poolKeys?: Set<string>, choice?: ConversationVaults) {
   const hook = renderHook(
-    ({ pool }: { pool?: Set<string> }) => useMcpServerSetup(ORG, pool, vaults),
+    ({ pool }: { pool?: Set<string> }) => useMcpServerSetup(ORG, pool, choice),
     { wrapper, initialProps: { pool: poolKeys } },
   );
   await act(() => hook.result.current.addServer(REF));
@@ -188,47 +190,25 @@ async function addNeedingSetup(poolKeys?: Set<string>, vaults?: readonly Resourc
 }
 
 describe("useMcpServerSetup", () => {
-  it("readies a server for this conversation only and attaches it whole", async () => {
-    const { result } = await addNeedingSetup();
-
-    await act(() =>
-      result.current.submitEnvVars(
-        REF,
-        {
-          ZENDESK_TOKEN: { value: "t", isSecret: true },
-          ZENDESK_SUBDOMAIN: { value: "acme", isSecret: true },
-        },
-        { saveForFuture: false },
-      ),
-    );
-
-    expect(result.current.entries["acme/zendesk"]?.status).toBe("ready");
-    expect(myVault.setSecrets).not.toHaveBeenCalled();
-    expect(myVault.setConnection).not.toHaveBeenCalled();
-    expect(result.current.pendingOneTimeValues).toEqual({
-      ZENDESK_TOKEN: { value: "t", isSecret: true },
-      ZENDESK_SUBDOMAIN: { value: "acme", isSecret: true },
-    });
-    expect(result.current.usageInputs).toEqual([WHOLE_SERVER_USAGE]);
-  });
-
   it("readies a server after saving its login at its address and its other secret by name in My vault", async () => {
     const { result } = await addNeedingSetup();
 
-    await act(() =>
-      result.current.submitEnvVars(REF, {
+    let saved = false;
+    await act(async () => {
+      saved = await result.current.submitEnvVars(REF, {
         ZENDESK_TOKEN: { value: "t", isSecret: true },
         ZENDESK_SUBDOMAIN: { value: "acme", isSecret: true },
-      }),
-    );
+      });
+    });
 
+    expect(saved).toBe(true);
     expect(myVault.setConnection).toHaveBeenCalledWith("https://zendesk.example/mcp", "t");
     expect(myVault.setSecrets).toHaveBeenCalledWith({ ZENDESK_SUBDOMAIN: "acme" });
     expect(result.current.entries["acme/zendesk"]?.status).toBe("ready");
     expect(result.current.usageInputs).toEqual([WHOLE_SERVER_USAGE]);
   });
 
-  it("readies a waiting server once the session's env pool covers its credentials", async () => {
+  it("readies a waiting server once the pool covers its credentials", async () => {
     const hook = await addNeedingSetup();
 
     hook.rerender({ pool: new Set(["ZENDESK_TOKEN", "ZENDESK_SUBDOMAIN"]) });
@@ -251,7 +231,7 @@ describe("useMcpServerSetup", () => {
     }
   });
 
-  it("counts only the vaults a conversation lists, never My vault's secrets or logins", async () => {
+  it("counts My vault's secrets and logins only while the conversation includes My vault", async () => {
     myVault.vault = vaultHolding(["ZENDESK_SUBDOMAIN"], ["https://zendesk.example/mcp"]);
     teamVault = vaultHolding([]);
     try {
@@ -274,7 +254,7 @@ describe("useMcpServerSetup", () => {
     expect(result.current.usageInputs).toEqual([WHOLE_SERVER_USAGE]);
   });
 
-  it("gives a My vault sign-in no credit when the conversation lists vaults", async () => {
+  it("gives a My vault sign-in no credit when the conversation leaves My vault out", async () => {
     const mine = renderHook(() => useMcpServerSetup(ORG), { wrapper });
     await act(() => mine.result.current.addServer(LINEAR_REF));
     expect(mine.result.current.entries["acme/linear"]?.status).toBe("ready");
@@ -315,7 +295,7 @@ describe("useMcpServerSetup", () => {
     expect(grantReads).toEqual([]);
   });
 
-  it("keeps values saved in My vault as the conversation's own when it lists vaults", async () => {
+  it("saves typed values in My vault even when the conversation leaves My vault out", async () => {
     teamVault = vaultHolding([]);
     const { result } = await addNeedingSetup(undefined, LISTED);
     const values = {
@@ -328,10 +308,35 @@ describe("useMcpServerSetup", () => {
     expect(myVault.setConnection).toHaveBeenCalledWith("https://zendesk.example/mcp", "t");
     expect(myVault.setSecrets).toHaveBeenCalledWith({ ZENDESK_SUBDOMAIN: "acme" });
     expect(result.current.entries["acme/zendesk"]?.status).toBe("ready");
-    expect(result.current.pendingOneTimeValues).toEqual(values);
   });
 
-  it("readies a waiting server once the values typed for a conversation that lists vaults cover it", async () => {
+  it("readies a waiting server once My vault, when included, comes to hold what it lacks", async () => {
+    const hook = await addNeedingSetup(undefined, MY_VAULT_ONLY);
+    try {
+      myVault.vault = vaultHolding(["ZENDESK_SUBDOMAIN"], ["https://zendesk.example/mcp"]);
+      hook.rerender({ pool: undefined });
+      await waitFor(() => expect(hook.result.current.entries["acme/zendesk"]?.status).toBe("ready"));
+    } finally {
+      myVault.vault = null;
+    }
+  });
+
+  it("keeps a server waiting when My vault comes to hold what it lacks but the conversation leaves it out", async () => {
+    teamVault = vaultHolding([]);
+    const hook = await addNeedingSetup(undefined, LISTED);
+    try {
+      myVault.vault = vaultHolding(["ZENDESK_SUBDOMAIN"], ["https://zendesk.example/mcp"]);
+      hook.rerender({ pool: undefined });
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+      expect(hook.result.current.entries["acme/zendesk"]?.status).toBe("needsSetup");
+    } finally {
+      myVault.vault = null;
+    }
+  });
+
+  it("readies a waiting server once the pool covers what the listed vaults lack", async () => {
     teamVault = vaultHolding(["ZENDESK_SUBDOMAIN"]);
     const hook = await addNeedingSetup(undefined, LISTED);
 
@@ -350,36 +355,28 @@ describe("useMcpServerSetup", () => {
     );
   });
 
-  it("reset forgets every server and every one-time value", async () => {
+  it("reset forgets every server", async () => {
     const { result } = await addNeedingSetup();
-    await act(() =>
-      result.current.submitEnvVars(
-        REF,
-        { ZENDESK_TOKEN: { value: "t", isSecret: true }, ZENDESK_SUBDOMAIN: { value: "a", isSecret: true } },
-        { saveForFuture: false },
-      ),
-    );
     act(() => result.current.reset());
     expect(result.current.entries).toEqual({});
-    expect(result.current.pendingOneTimeValues).toEqual({});
   });
 
-  it("evaluates every added server again when the conversation's vaults change", async () => {
+  it("evaluates every added server again when the conversation's vault choice changes", async () => {
     myVault.vault = vaultHolding(["ZENDESK_SUBDOMAIN"], ["https://zendesk.example/mcp"]);
     teamVault = vaultHolding([]);
     try {
       const hook = renderHook(
-        ({ vaults }: { vaults: readonly ResourceRef[] }) => useMcpServerSetup(ORG, undefined, vaults),
-        { wrapper, initialProps: { vaults: [] as readonly ResourceRef[] } },
+        ({ choice }: { choice: ConversationVaults }) => useMcpServerSetup(ORG, undefined, choice),
+        { wrapper, initialProps: { choice: MY_VAULT_ONLY } },
       );
       await act(() => hook.result.current.addServer(REF));
       expect(hook.result.current.entries["acme/zendesk"]?.status).toBe("ready");
 
-      // Now the conversation reads only the team vault, which holds nothing.
-      hook.rerender({ vaults: LISTED });
+      // Now the conversation leaves My vault out and reads only the team vault, which holds nothing.
+      hook.rerender({ choice: LISTED });
       await waitFor(() => expect(hook.result.current.entries["acme/zendesk"]?.status).toBe("needsSetup"));
 
-      hook.rerender({ vaults: [] });
+      hook.rerender({ choice: MY_VAULT_ONLY });
       await waitFor(() => expect(hook.result.current.entries["acme/zendesk"]?.status).toBe("ready"));
     } finally {
       myVault.vault = null;
@@ -391,25 +388,25 @@ describe("useMcpServerSetup", () => {
     teamVault = vaultHolding([]);
     try {
       const hook = renderHook(
-        ({ vaults }: { vaults: readonly ResourceRef[] }) => useMcpServerSetup(ORG, undefined, vaults),
-        { wrapper, initialProps: { vaults: [] as readonly ResourceRef[] } },
+        ({ choice }: { choice: ConversationVaults }) => useMcpServerSetup(ORG, undefined, choice),
+        { wrapper, initialProps: { choice: MY_VAULT_ONLY } },
       );
       await act(() => hook.result.current.addServer(REF));
       expect(hook.result.current.entries["acme/zendesk"]?.status).toBe("ready");
 
-      // The team vault is picked, then the pick goes back to none; both server reads hang.
+      // The team vault alone is picked, then the pick goes back to My vault alone; both server reads hang.
       let answerFirst = (): void => undefined;
       let answerSecond = (): void => undefined;
       const readsBefore = serverReads.length;
       serverRead = new Promise<void>((resolve) => {
         answerFirst = resolve;
       });
-      hook.rerender({ vaults: LISTED });
+      hook.rerender({ choice: LISTED });
       await waitFor(() => expect(serverReads.length).toBe(readsBefore + 1));
       serverRead = new Promise<void>((resolve) => {
         answerSecond = resolve;
       });
-      hook.rerender({ vaults: [] });
+      hook.rerender({ choice: MY_VAULT_ONLY });
       await waitFor(() => expect(serverReads.length).toBe(readsBefore + 2));
 
       // The team vault's answer (nothing saved there) lands first and is dropped.
@@ -446,18 +443,18 @@ describe("useMcpServerSetup", () => {
       }),
     );
     const hook = renderHook(
-      ({ vaults }: { vaults: readonly ResourceRef[] }) => useMcpServerSetup(ORG, undefined, vaults),
-      { wrapper, initialProps: { vaults: LISTED } },
+      ({ choice }: { choice: ConversationVaults }) => useMcpServerSetup(ORG, undefined, choice),
+      { wrapper, initialProps: { choice: LISTED } },
     );
     await act(() => hook.result.current.addServer(REF));
-    let submitted: Promise<void> = Promise.resolve();
+    let submitted: Promise<boolean> = Promise.resolve(true);
     act(() => {
       submitted = hook.result.current.submitEnvVars(REF, { ZENDESK_SUBDOMAIN: { value: "a", isSecret: true } });
     });
     expect(hook.result.current.entries["acme/zendesk"]?.status).toBe("submitting");
 
     const readsBefore = serverReads.length;
-    hook.rerender({ vaults: [] });
+    hook.rerender({ choice: MY_VAULT_ONLY });
     expect(serverReads.length).toBe(readsBefore);
     expect(hook.result.current.entries["acme/zendesk"]?.status).toBe("submitting");
 
@@ -466,27 +463,5 @@ describe("useMcpServerSetup", () => {
       await submitted;
     });
     expect(hook.result.current.entries["acme/zendesk"]?.status).toBe("ready");
-  });
-
-  it("keeps a server ready across a change of vaults when the conversation's own values cover it", async () => {
-    teamVault = vaultHolding([]);
-    const hook = renderHook(
-      ({ vaults }: { vaults: readonly ResourceRef[] }) => useMcpServerSetup(ORG, undefined, vaults),
-      { wrapper, initialProps: { vaults: LISTED } },
-    );
-    await act(() => hook.result.current.addServer(REF));
-    await act(() =>
-      hook.result.current.submitEnvVars(
-        REF,
-        { ZENDESK_TOKEN: { value: "t", isSecret: true }, ZENDESK_SUBDOMAIN: { value: "a", isSecret: true } },
-        { saveForFuture: false },
-      ),
-    );
-    expect(hook.result.current.entries["acme/zendesk"]?.status).toBe("ready");
-
-    const readsBefore = serverReads.length;
-    hook.rerender({ vaults: [{ org: ORG, slug: "other" }] });
-    await waitFor(() => expect(serverReads.length).toBe(readsBefore + 1));
-    await waitFor(() => expect(hook.result.current.entries["acme/zendesk"]?.status).toBe("ready"));
   });
 });

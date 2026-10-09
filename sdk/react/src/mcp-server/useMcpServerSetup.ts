@@ -11,6 +11,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { useStigmer } from "../hooks.js";
 import { useMyVault } from "../vault/useMyVault.js";
 import { toolLoginKeyOf, vaultLoginServes } from "../vault/address.js";
+import { MY_VAULT_ONLY, conversationVaultsKey, type ConversationVaults } from "../vault/conversationVaults.js";
 import { saveToMyVault, savedKeysFor } from "./useMcpServerCredentials.js";
 import { diffEnv } from "../vault/diffEnv.js";
 import { toError } from "../internal/toError.js";
@@ -32,24 +33,6 @@ export type {
 
 export { toServerKey } from "./mcpServerSetupReducer.js";
 
-/** Options for {@link UseMcpServerSetupReturn.submitEnvVars}. */
-export interface SubmitMcpEnvVarsOptions {
-  /**
-   * When `true` (default), the provided values are saved to the user's
-   * My vault. Subsequent sessions using the same MCP server
-   * will reuse these credentials. A conversation that lists vaults never
-   * reads My vault, so there the values also become its own secrets
-   * (`pendingOneTimeValues`).
-   *
-   * When `false`, the values are collected as `pendingOneTimeValues` for
-   * this conversation only — nothing is saved in a vault and no network
-   * calls are made here. They become the conversation's own secrets.
-   *
-   * @default true
-   */
-  readonly saveForFuture?: boolean;
-}
-
 /** Return value of {@link useMcpServerSetup}. */
 export interface UseMcpServerSetupReturn {
   /**
@@ -65,8 +48,8 @@ export interface UseMcpServerSetupReturn {
    * Add an MCP server to the setup flow.
    *
    * Fetches the full server resource, checks `env` declarations against
-   * My vault (or, when the conversation lists vaults, only those vaults),
-   * and resolves the entry to either `ready`
+   * the vaults the conversation uses (My vault when included, then the
+   * listed vaults), and resolves the entry to either `ready`
    * (no credentials needed or all present) or `needsSetup` (missing
    * variables). Also extracts the server's discovered tools.
    *
@@ -84,26 +67,25 @@ export interface UseMcpServerSetupReturn {
   readonly removeServer: (ref: ResourceRef) => void;
 
   /**
-   * Complete credential collection for a server in `needsSetup` status.
-   *
-   * Behavior depends on `options.saveForFuture`:
-   * - `true` (default) — Saves values to the My vault via
-   *   `setSecrets` / `setConnection`. The server transitions to `ready`.
-   * - `false` — Accumulates values into {@link pendingOneTimeValues}
-   *   without API calls. The server transitions to `ready` immediately.
+   * Complete credential collection for a server in `needsSetup` status:
+   * the values are saved in My vault (`setSecrets` / `setConnection`), the
+   * one place a value the person types goes, and the server transitions
+   * to `ready`. A conversation reads them when it includes My vault; the
+   * composer includes it for the person who may change the conversation's
+   * vaults. Resolves `true` once the values are saved, `false` when the
+   * save failed (the entry carries the error).
    *
    * Must only be called when the entry is in `needsSetup` status.
    */
   readonly submitEnvVars: (
     ref: ResourceRef,
     values: Record<string, EnvVarInput>,
-    options?: SubmitMcpEnvVarsOptions,
-  ) => Promise<void>;
+  ) => Promise<boolean>;
 
   /** Clear the error on a specific server entry without changing its phase. */
   readonly clearError: (ref: ResourceRef) => void;
 
-  /** Reset all entries and pending one-time values to initial state. */
+  /** Reset all entries to the initial state. */
   readonly reset: () => void;
 
   /**
@@ -120,15 +102,6 @@ export interface UseMcpServerSetupReturn {
    * user-provided credentials before the session can be created.
    */
   readonly needsSetupCount: number;
-
-  /**
-   * Accumulated one-time env vars from servers whose credentials were
-   * submitted with `saveForFuture: false`.
-   *
-   * Consumed imperatively at session creation time and merged into
-   * the conversation's own secrets. Cleared on {@link reset}.
-   */
-  readonly pendingOneTimeValues: Record<string, EnvVarInput>;
 
   /**
    * Ready servers as `McpServerUsageInput[]` for session creation.
@@ -148,16 +121,11 @@ export interface UseMcpServerSetupReturn {
  * MCP servers selected in the {@link McpServerPicker}.
  *
  * When a user toggles an MCP server ON, this hook fetches the server's
- * full resource, checks its `env` declarations against My vault
- * (via {@link diffEnv}), and determines whether credentials are
- * needed. It also extracts the server's discovered tools for display.
- *
- * The hook supports two credential delivery paths via the `saveForFuture`
- * option on {@link submitEnvVars}:
- * - **Saved** — secrets are saved in My vault for
- *   reuse across sessions.
- * - **One-time** — secrets are collected as `pendingOneTimeValues` for a
- *   single conversation, never saved in a vault.
+ * full resource, checks its `env` declarations against the vaults the
+ * conversation uses (via {@link diffEnv}), and determines whether
+ * credentials are needed. It also extracts the server's discovered tools
+ * for display. A value the person types is saved in My vault
+ * ({@link submitEnvVars}); a conversation never carries values of its own.
  *
  * State is managed by `useReducer(mcpServerSetupReducer)` — a per-server
  * state machine with four phases:
@@ -172,22 +140,17 @@ export interface UseMcpServerSetupReturn {
  * Pass `null` as `org` to disable all operations (stable no-op).
  *
  * @param org - Organization id (a slug is also accepted). Pass `null` to disable.
- * @param poolKeys - Optional set of env-var keys already available
- *   from the session env pool (manual secrets, one-time env vars from
- *   other components). When provided, servers whose `env` keys
- *   are fully covered by `poolKeys` + My vault auto-resolve to
- *   `ready` without prompting. Reactive — when `poolKeys` changes,
- *   `needsSetup` entries are re-evaluated.
- * @param conversationVaults - The vaults the conversation lists, when it
- *   lists any. Such a conversation uses only those vaults, so only their
- *   keys and logins count as saved (not My vault's), and values the person
- *   saves in My vault also reach the conversation as its own secrets
- *   (`pendingOneTimeValues`). `poolKeys` must then leave My vault's names
- *   out. A sign-in counts only when a listed vault holds it (a sign-in
- *   from the picker there is saved into the first listed vault), never My
- *   vault's grant, which such a run never reads. Reactive — when the listed
- *   vaults change, every server already added is evaluated again over
- *   them; values kept as the conversation's own still count.
+ * @param poolKeys - Optional set of env-var keys filled elsewhere (the
+ *   platform's own keys, which the runner sets). Servers whose `env` keys
+ *   are fully covered by `poolKeys` and the vaults the run reads
+ *   auto-resolve to `ready` without prompting. Reactive — when `poolKeys`
+ *   changes, `needsSetup` entries are re-evaluated.
+ * @param conversationVaults - The vaults the conversation uses (its
+ *   sender's My vault when included, then the listed vaults). Only what
+ *   they hold counts as saved, and My vault's sign-in grant counts only
+ *   when My vault is included. Omitted, the run is taken to read My vault
+ *   alone. Reactive — when the choice changes, every server already added
+ *   is evaluated again over it.
  *
  * @example
  * ```tsx
@@ -197,7 +160,7 @@ export interface UseMcpServerSetupReturn {
  *   submitEnvVars,
  *   allReady,
  *   usageInputs,
- * } = useMcpServerSetup("acme", pool.availableKeys);
+ * } = useMcpServerSetup("acme");
  *
  * // When user toggles a server ON in the picker:
  * await addServer({ org: "acme", slug: "github", kind: ApiResourceKind.mcp_server });
@@ -212,24 +175,20 @@ export interface UseMcpServerSetupReturn {
 export function useMcpServerSetup(
   org: string | null,
   poolKeys?: Set<string>,
-  conversationVaults?: readonly ResourceRef[],
+  conversationVaults: ConversationVaults = MY_VAULT_ONLY,
 ): UseMcpServerSetupReturn {
   const stigmer = useStigmer();
   const myVault = useMyVault(org);
-  // Keyed by content (org and slug, all a read uses): hosts pass a fresh
-  // array per render, and the callbacks below must not churn with it.
-  const vaultsKey = (conversationVaults ?? []).map((ref) => `${ref.org}/${ref.slug}`).join(",");
-  const listedVaults = useMemo<readonly ResourceRef[]>(
-    () => conversationVaults ?? [],
-    [vaultsKey],
-  );
+  // Keyed by content: hosts pass a fresh choice per render, and the
+  // callbacks below must not churn with it.
+  const vaultsKey = conversationVaultsKey(conversationVaults);
+  const choice = useMemo<ConversationVaults>(() => conversationVaults, [vaultsKey]);
 
   const [entries, dispatch] = useReducer(
     mcpServerSetupReducer,
     INITIAL_MCP_SETUP_STATE,
   );
 
-  const oneTimeValuesRef = useRef<Record<string, EnvVarInput>>({});
   const entriesRef = useRef(entries);
   entriesRef.current = entries;
 
@@ -277,12 +236,12 @@ export function useMcpServerSetup(
           return;
         }
 
-        // A conversation that lists vaults reads only those; one that
-        // lists none reads My vault.
-        const existingKeys =
-          listedVaults.length > 0
-            ? await listedVaultKeysFor(stigmer, mcpServer, listedVaults, org)
-            : savedKeysFor(mcpServer, myVault.vault);
+        // The run reads exactly the vaults the conversation uses: My vault
+        // when included, then the listed vaults.
+        const existingKeys = await listedVaultKeysFor(stigmer, mcpServer, choice.vaults, org);
+        if (choice.includeMyVault) {
+          for (const key of savedKeysFor(mcpServer, myVault.vault)) existingKeys.add(key);
+        }
 
         // Carried onto the entry so consumers can tell a healthy grant
         // that merely lacks tool discovery (offer bare discovery,
@@ -290,11 +249,10 @@ export function useMcpServerSetup(
         let oauthConnectionHealth: OAuthConnectionHealth | undefined;
 
         // The grant read is My vault's alone, so it credits only a
-        // conversation that reads My vault. One that lists vaults counts a
-        // login only where a listed vault holds one serving this server,
-        // which listedVaultKeysFor has already weighed.
+        // conversation that includes My vault. A login a listed vault holds
+        // serving this server is already weighed by listedVaultKeysFor.
         const auth = mcpServer.spec?.auth;
-        if (auth?.targetEnvVar && mcpServer.metadata?.id && listedVaults.length === 0) {
+        if (auth?.targetEnvVar && mcpServer.metadata?.id && choice.includeMyVault) {
           try {
             const grantStatus = await stigmer.mcpServer.getOAuthGrantStatus(
               create(GetOAuthGrantStatusInputSchema, {
@@ -312,10 +270,7 @@ export function useMcpServerSetup(
           }
         }
 
-        // Values already kept as the conversation's own serve whatever
-        // vaults it lists.
-        const coveredKeys = new Set([...(poolKeys ?? []), ...Object.keys(oneTimeValuesRef.current)]);
-        const allMissing = diffEnv(envDeclarations, existingKeys, coveredKeys);
+        const allMissing = diffEnv(envDeclarations, existingKeys, poolKeys);
         const requiredMissing = allMissing.filter((v) => !v.optional);
 
         if (requiredMissing.length === 0) {
@@ -341,7 +296,7 @@ export function useMcpServerSetup(
         settle({ type: "SET_ERROR", key, error: toError(err) });
       }
     },
-    [org, stigmer, myVault.vault, poolKeys, listedVaults],
+    [org, stigmer, myVault.vault, poolKeys, choice],
   );
 
   // -------------------------------------------------------------------------
@@ -360,8 +315,7 @@ export function useMcpServerSetup(
     async (
       ref: ResourceRef,
       values: Record<string, EnvVarInput>,
-      options?: SubmitMcpEnvVarsOptions,
-    ): Promise<void> => {
+    ): Promise<boolean> => {
       if (!org) {
         throw new Error(
           "useMcpServerSetup: cannot submit env vars when org is null.",
@@ -380,27 +334,18 @@ export function useMcpServerSetup(
         );
       }
 
-      const saveForFuture = options?.saveForFuture ?? true;
-
       dispatch({ type: "SUBMIT_START", key });
-
-      if (!saveForFuture) {
-        Object.assign(oneTimeValuesRef.current, values);
-        dispatch({ type: "SUBMIT_DONE", key });
-        return;
-      }
 
       try {
         await saveToMyVault(myVault, values, entry.mcpServer);
-        // A conversation that lists vaults never reads My vault: the values
-        // saved there for later conversations reach this one as its own.
-        if (listedVaults.length > 0) Object.assign(oneTimeValuesRef.current, values);
         dispatch({ type: "SUBMIT_DONE", key });
+        return true;
       } catch (err) {
         dispatch({ type: "SUBMIT_FAIL", key, error: toError(err) });
+        return false;
       }
     },
-    [org, entries, myVault, listedVaults],
+    [org, entries, myVault],
   );
 
   // -------------------------------------------------------------------------
@@ -413,47 +358,34 @@ export function useMcpServerSetup(
 
   const reset = useCallback((): void => {
     dispatch({ type: "RESET" });
-    oneTimeValuesRef.current = {};
   }, []);
 
   // -------------------------------------------------------------------------
-  // Pool re-evaluation — auto-resolve needsSetup entries when pool changes
+  // Pool re-evaluation — auto-resolve needsSetup entries when the pool or
+  // My vault covers more
   // -------------------------------------------------------------------------
 
+  // The listed vaults were read when the server was added; since then only
+  // the pool, and My vault when the conversation includes it, can cover
+  // more of what a server still lacks.
   useEffect(() => {
-    if (!poolKeys || poolKeys.size === 0) return;
-
     for (const [key, entry] of Object.entries(entriesRef.current)) {
       if (entry.status !== "needsSetup") continue;
-
-      const envDeclarations = entry.mcpServer.spec?.env;
-      if (!envDeclarations) continue;
-
-      // The listed vaults were read when the server was added; since then
-      // only the pool can cover more of what it still lacks.
-      if (listedVaults.length > 0) {
-        const stillMissing = entry.missingVariables.filter((v) => !poolKeys.has(v.key));
-        if (stillMissing.length === entry.missingVariables.length) continue;
-        dispatch({ type: "POOL_RESOLVE", key, missingVariables: stillMissing });
-        continue;
-      }
-
-      const allMissing = diffEnv(
-        envDeclarations,
-        savedKeysFor(entry.mcpServer, myVault.vault),
-        poolKeys,
+      const myVaultKeys = choice.includeMyVault ? savedKeysFor(entry.mcpServer, myVault.vault) : new Set<string>();
+      const stillMissing = entry.missingVariables.filter(
+        (v) => !(poolKeys?.has(v.key) ?? false) && !myVaultKeys.has(v.key),
       );
-      const requiredMissing = allMissing.filter((v) => !v.optional);
-      dispatch({ type: "POOL_RESOLVE", key, missingVariables: requiredMissing });
+      if (stillMissing.length === entry.missingVariables.length) continue;
+      dispatch({ type: "POOL_RESOLVE", key, missingVariables: stillMissing });
     }
-  }, [poolKeys, myVault.vault, listedVaults]);
+  }, [poolKeys, myVault.vault, choice]);
 
   // -------------------------------------------------------------------------
   // Vault re-evaluation — evaluate every server again when the vaults change
   // -------------------------------------------------------------------------
 
   // Which vaults a run reads decides what counts as saved, so each server
-  // already added is evaluated again over the new pick. Keyed by content:
+  // already added is evaluated again over the new choice. Keyed by content:
   // only a change of vaults does this. A server mid-submit is left to land.
   const evaluatedVaultsKey = useRef(vaultsKey);
   useEffect(() => {
@@ -513,13 +445,12 @@ export function useMcpServerSetup(
     reset,
     allReady,
     needsSetupCount,
-    pendingOneTimeValues: oneTimeValuesRef.current,
     usageInputs,
   };
 }
 
 /**
- * The variables the vaults a conversation lists fill for a server: their
+ * The variables the shared vaults a conversation lists fill for a server: their
  * secrets by name, plus the server's login variable when one of them holds
  * a connection that serves this server ({@link vaultLoginServes}: a sign-in
  * started from it, or a pasted login at an HTTP server's own URL). A vault

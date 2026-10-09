@@ -47,7 +47,6 @@ export type {
 export { useMcpServerSetup, toServerKey } from "./useMcpServerSetup.js";
 export type {
   UseMcpServerSetupReturn,
-  SubmitMcpEnvVarsOptions,
   McpServerSetupEntry,
   McpServerSetupPhase,
   McpServerSetupState,

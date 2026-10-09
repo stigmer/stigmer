@@ -3,9 +3,9 @@
  * presented to.
  *
  * - `"integrator"` (default) — the full configuration surface: agent
- *   picker, MCP servers, skills, and session variables. The presentation
- *   used by the Stigmer Console, where the person at the keyboard is
- *   composing the session's configuration.
+ *   picker, MCP servers, skills, and the vaults the conversation uses.
+ *   The presentation used by the Stigmer Console, where the person at
+ *   the keyboard is composing the session's configuration.
  * - `"endUser"` — a curated, product-embedded chat. The agent (and its
  *   MCP servers, skills, and identity) is configured upstream by the
  *   embedding platform; the end user chats, picks a model, toggles
@@ -45,6 +45,19 @@
  * presentation means without breaking embedders.
  */
 export type SessionAudience = "integrator" | "endUser" | "guest" | "observer";
+
+/**
+ * Whether a conversation started for this audience includes its sender's
+ * own My vault when the host says nothing. A person chatting in the
+ * Console or in an app that embeds Stigmer for its signed-in users brings
+ * their own keys; a share-link guest brings none, so the share's vaults
+ * are all its runs use. A host overrides it (`includeMyVault`), as the
+ * shared-agent page does for a member chatting through an
+ * organization-audience link.
+ */
+export function includesMyVaultByDefault(audience: SessionAudience): boolean {
+  return audience !== "guest";
+}
 
 /**
  * Whether the session organisms offer the session panel surface.

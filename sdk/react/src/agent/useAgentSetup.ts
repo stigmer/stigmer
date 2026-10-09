@@ -14,6 +14,7 @@ import { toError } from "../internal/toError.js";
 import { useMyVault } from "../vault/useMyVault.js";
 import { valuesOf } from "../vault/types.js";
 import { toolLoginKeyOf, vaultLoginServes } from "../vault/address.js";
+import { MY_VAULT_ONLY, conversationVaultsKey, type ConversationVaults } from "../vault/conversationVaults.js";
 import { useOrganizationId } from "./usePersonalKeys.js";
 import { diffEnv } from "../vault/diffEnv.js";
 import {
@@ -42,44 +43,30 @@ interface ServerReadings {
 /**
  * Reads the agent's MCP servers once, and judges its OAuth servers. The
  * rule is the composer's own MCP path's (`useMcpServerSetup`): a server
- * whose `spec.auth.targetEnvVar` is set is satisfied by a connected grant;
- * a grant read that fails leaves it pending, fail-closed, so the row offers
- * Sign in rather than pretending; a server that cannot be read is the
- * resolution's error, thrown to the caller's catch.
+ * whose `spec.auth.targetEnvVar` is set is satisfied by a login in a vault
+ * the run reads; a grant read that fails leaves it pending, fail-closed, so
+ * the row offers Sign in rather than pretending; a server that cannot be
+ * read is the resolution's error, thrown to the caller's catch.
  *
- * The grant read is My vault's alone, and reports only a sign-in made for
- * that very server. A conversation that lists vaults (`listedVaults` not
- * `null`) never reads My vault, so there a server is satisfied only when a
- * listed vault holds a login that serves it ({@link vaultLoginServes}), the
- * grant is not consulted, and a sign-in still owed is to be saved into the
- * first listed vault (`vault` on the pending sign-in), where the run will
- * look for it. One that lists none also counts every login in `ownVaults`
- * (My vault, then the agent's vaults the person may use) that serves the
- * server, as the run does: a login pasted at an HTTP tool's URL, which the
- * grant reports as no grant, and a sign-in kept in the agent's shared
- * vault, which the grant never sees. A grant whose token expired keeps the
- * server pending whatever else holds a login: the run meets that sign-in
- * in My vault first.
+ * `readVaults` are the vaults the run reads, as the person can see them
+ * (My vault first when the conversation includes it, then the listed
+ * vaults); a login in any of them that serves the server counts
+ * ({@link vaultLoginServes}). `readsMyVault` says whether My vault's grant
+ * is consulted too: it reports only a sign-in made for that very server,
+ * and a grant whose token expired keeps the server pending whatever else
+ * holds a login, because the run meets that sign-in in My vault first.
+ * Every sign-in still owed is saved in My vault.
  */
 async function readServers(
   stigmer: Stigmer,
   org: string,
   agent: Agent,
-  listedVaults: readonly Vault[] | null,
-  ownVaults: readonly Vault[],
+  readVaults: readonly Vault[],
+  readsMyVault: boolean,
 ): Promise<ServerReadings> {
   const servers: McpServer[] = [];
   const pendingSignIns: PendingSignIn[] = [];
   const signInVariables = new Set<string>();
-  const firstListed = listedVaults?.[0];
-  const signInVault =
-    firstListed === undefined
-      ? undefined
-      : {
-          id: firstListed.metadata?.id ?? "",
-          org: firstListed.metadata?.org ?? org,
-          name: firstListed.metadata?.name || firstListed.metadata?.slug || "",
-        };
   for (const usage of agent.spec?.mcpServerUsages ?? []) {
     const ref = usage.mcpServerRef;
     if (!ref) continue;
@@ -90,64 +77,30 @@ async function readServers(
     if (!auth?.targetEnvVar || id === "") continue;
     signInVariables.add(auth.targetEnvVar);
     let health = OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_NO_GRANT;
-    let connected = false;
-    if (listedVaults !== null) {
-      connected = listedVaults.some((vault) => vaultLoginServes(vault.spec?.connections ?? {}, server));
-    } else {
+    let granted = false;
+    if (readsMyVault) {
       try {
         const grant = await stigmer.mcpServer.getOAuthGrantStatus(
           create(GetOAuthGrantStatusInputSchema, { resourceId: id, org }),
         );
         health = grant.connectionHealth;
-        connected = grant.connected;
+        granted = grant.connected;
       } catch {
         // Fail closed: an unreadable grant is a sign-in still owed.
       }
-      connected =
-        (connected || ownVaults.some((vault) => vaultLoginServes(vault.spec?.connections ?? {}, server))) &&
-        health !== OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED;
     }
+    const connected =
+      (granted || readVaults.some((vault) => vaultLoginServes(vault.spec?.connections ?? {}, server))) &&
+      health !== OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED;
     if (connected) continue;
     pendingSignIns.push({
       ref: { org: ref.org || server.metadata?.org || org, slug: ref.slug || server.metadata?.slug || "" },
       id,
       name: server.metadata?.name || server.metadata?.slug || ref.slug,
       health,
-      ...(signInVault === undefined ? {} : { vault: signInVault }),
     });
   }
   return { servers, pendingSignIns, signInVariables };
-}
-
-/**
- * The keys a run of `agent` would find for this person. A conversation that
- * lists vaults uses only those, so only what they hold counts. Without one:
- * My vault's, then the agent's shared vaults the person can see (a vault
- * they may not view is one their run may not use either). A vault fills a
- * key by a secret of its name, or, for a tool's login key, by a login that
- * serves that tool under the run's rule ({@link vaultLoginServes}). Names
- * and connection kinds only: no read returns a value.
- */
-function savedKeysOf(
-  ownVaults: readonly Vault[],
-  listedVaults: readonly Vault[] | null,
-  servers: readonly McpServer[],
-): Set<string> {
-  return keysHeldBy(listedVaults ?? ownVaults, servers);
-}
-
-/**
- * The vaults a run of `agent` reads for this person when the conversation
- * lists none: My vault, then the agent's vaults the person can see. Read
- * once per resolution, for its sign-ins and its keys alike.
- */
-async function ownVaultsOf(stigmer: Stigmer, agent: Agent, myVault: Vault | null): Promise<Vault[]> {
-  const agentOrg = agent.metadata?.org || "";
-  const agentVaults = await readableVaults(
-    stigmer,
-    (agent.spec?.vaults ?? []).map((ref) => ({ org: ref.org || agentOrg, slug: ref.slug })),
-  );
-  return myVault === null ? agentVaults : [myVault, ...agentVaults];
 }
 
 /** The vaults among `refs` this person can read; the others their run cannot use. */
@@ -209,23 +162,6 @@ export type {
   PendingSignIn,
 } from "./agentSetupReducer.js";
 
-/** Options for {@link UseAgentSetupReturn.submitEnvVars}. */
-export interface SubmitEnvVarsOptions {
-  /**
-   * When `true` (default), the provided values are saved in the user's
-   * My vault. Every conversation the user starts reads the keys an agent
-   * declares from there, so later conversations reuse them without asking
-   * again.
-   *
-   * When `false`, the values are kept for this conversation only, as its
-   * own secrets — nothing is saved in a vault. This path is instant (no
-   * network calls).
-   *
-   * @default true
-   */
-  readonly saveForFuture?: boolean;
-}
-
 /** Return value of {@link useAgentSetup}. */
 export interface UseAgentSetupReturn {
   /**
@@ -255,19 +191,16 @@ export interface UseAgentSetupReturn {
   readonly resolveAgent: (ref: ResourceRef) => Promise<AgentSetupResult>;
 
   /**
-   * Complete the env var collection flow for the pending agent.
-   *
-   * Behavior depends on `options.saveForFuture`:
-   * - `true` (default) — Saves the provided values in My vault.
-   *   Returns `{ resolution: { mode: "saved" } }`.
-   * - `false` — Collects values for this conversation without any API calls.
-   *   Returns `{ resolution: { mode: "oneTime", values } }`.
+   * Complete the env var collection flow for the pending agent: the values
+   * are saved in My vault, the one place a value the person types goes,
+   * and the agent resolves as `{ mode: "saved" }`. A conversation reads
+   * them when it includes My vault; the composer includes it for the
+   * person who may change the conversation's vaults.
    *
    * Must only be called when `state.status === "needsEnvVars"`.
    */
   readonly submitEnvVars: (
     values: Record<string, EnvVarInput>,
-    options?: SubmitEnvVarsOptions,
   ) => Promise<AgentSetupReadyResult>;
 
   /**
@@ -298,12 +231,8 @@ export interface UseAgentSetupReturn {
  * identifies the missing variables so the caller can render
  * {@link AgentEnvForm}.
  *
- * The hook supports two secret delivery paths via the `saveForFuture`
- * option on {@link submitEnvVars}:
- * - **Saved** — secrets are saved in My vault, where every conversation
- *   the user starts reads the keys the agent declares.
- * - **One-time** — values are returned for this conversation only, as its
- *   own secrets, never saved in a vault.
+ * A value the person types is saved in My vault ({@link submitEnvVars});
+ * a conversation never carries values of its own.
  *
  * State is managed by a `useReducer` state machine with five phases:
  * `idle → resolving → needsEnvVars → submitting → ready`.
@@ -315,60 +244,46 @@ export interface UseAgentSetupReturn {
  * Pass `null` as `org` to disable all operations (stable no-op).
  *
  * @param org - Organization id (a slug is also accepted). Pass `null` to disable.
- * @param poolKeys - Optional set of env-var keys already available
- *   from the session env pool (manual secrets, one-time env vars from
- *   other components). When provided, agents whose `env` keys
- *   are fully covered by `poolKeys` + My vault auto-resolve to
- *   `ready` without prompting. Reactive — when `poolKeys` changes,
- *   `needsEnvVars` is re-evaluated.
- * @param conversationVaults - The vaults the conversation lists, when it
- *   lists any. Such a conversation uses only those vaults, so only their
- *   keys and logins count as saved (not My vault's or the agent's vaults'),
- *   a sign-in counts only when one of them holds a login serving the server
- *   (never a My vault grant), each pending sign-in names the first listed
- *   vault as where to save it (`PendingSignIn.vault`), and values the
- *   person saves in My vault also reach the conversation as its own
- *   secrets (`oneTime`). `poolKeys` must then leave My vault's names out.
- *   Reactive — when the listed vaults change, an agent already resolved is
- *   resolved again over them, keeping the values the conversation holds.
+ * @param poolKeys - Optional set of env-var keys filled elsewhere (the
+ *   platform's own keys, which the runner sets). Agents whose `env` keys
+ *   are fully covered by `poolKeys` and the vaults the run reads
+ *   auto-resolve to `ready` without prompting. Reactive — when `poolKeys`
+ *   changes, `needsEnvVars` is re-evaluated.
+ * @param conversationVaults - The vaults the conversation uses (its
+ *   sender's My vault when included, then the listed vaults). Only what
+ *   they hold counts as saved, and My vault's sign-in grant counts only
+ *   when My vault is included. Omitted, the run is taken to read My vault
+ *   alone. Reactive — when the choice changes, an agent already resolved
+ *   is resolved again over it.
  *
  * @example
  * ```tsx
- * const { state, resolveAgent, submitEnvVars } = useAgentSetup("acme", pool.availableKeys);
+ * const { state, resolveAgent, submitEnvVars } = useAgentSetup("acme");
  *
  * const result = await resolveAgent({ org: "acme", slug: "code-reviewer" });
  *
  * if (result.status === "needsEnvVars") {
  *   // Render AgentEnvForm with result.missingVariables
- *   // On form submit:
- *   const ready = await submitEnvVars(formValues, { saveForFuture: true });
- *   // ready.resolution.mode === "saved" | "oneTime"
+ *   // On form submit, the values are saved in My vault:
+ *   const ready = await submitEnvVars(formValues);
+ *   // ready.resolution.mode === "saved"
  * }
  * ```
  */
 export function useAgentSetup(
   org: string | null,
   poolKeys?: Set<string>,
-  conversationVaults?: readonly ResourceRef[],
+  conversationVaults: ConversationVaults = MY_VAULT_ONLY,
 ): UseAgentSetupReturn {
   const stigmer = useStigmer();
   const myVault = useMyVault(org);
   const orgId = useOrganizationId(org ?? "");
-  // Keyed by content (org and slug, all a read uses): hosts pass a fresh
-  // array per render, and the callbacks below must not churn with it.
-  const vaultsKey = (conversationVaults ?? []).map((ref) => `${ref.org}/${ref.slug}`).join(",");
-  const listedVaults = useMemo<readonly ResourceRef[]>(
-    () => conversationVaults ?? [],
-    [vaultsKey],
-  );
+  // Keyed by content: hosts pass a fresh choice per render, and the
+  // callbacks below must not churn with it.
+  const vaultsKey = conversationVaultsKey(conversationVaults);
+  const choice = useMemo<ConversationVaults>(() => conversationVaults, [vaultsKey]);
 
   const [state, dispatch] = useReducer(agentSetupReducer, INITIAL_STATE);
-
-  // The values this conversation already holds for the agent as its own
-  // secrets (a `oneTime` resolution's). They serve whatever vaults the
-  // conversation lists, so resolving the same agent again (a sign-in
-  // landing, the vault pick changing) counts them and keeps them.
-  const ownValuesRef = useRef<{ readonly agent: string; readonly values: Record<string, EnvVarInput> } | null>(null);
 
   // The latest resolution's number. An answer that lands after a newer
   // resolution started (the vault pick changed meanwhile) or after a reset
@@ -378,7 +293,6 @@ export function useAgentSetup(
   const clearError = useCallback(() => dispatch({ type: "CLEAR_ERROR" }), []);
   const reset = useCallback(() => {
     resolutionRef.current += 1;
-    ownValuesRef.current = null;
     dispatch({ type: "RESET" });
   }, []);
 
@@ -400,13 +314,7 @@ export function useAgentSetup(
         if (turn === resolutionRef.current) dispatch(action);
       };
 
-      const agentKey = `${ref.org}/${ref.slug}`;
-      if (ownValuesRef.current?.agent !== agentKey) ownValuesRef.current = null;
-      const ownValues = ownValuesRef.current?.values ?? {};
-      const coveredKeys = new Set([...(poolKeys ?? []), ...Object.keys(ownValues)]);
-      // Ready: the values the conversation holds for the agent ride on.
-      const readyAs = (resolution: AgentResolution): AgentResolution =>
-        Object.keys(ownValues).length > 0 ? { mode: "oneTime", values: ownValues } : resolution;
+      const coveredKeys = new Set(poolKeys ?? []);
 
       try {
         const agent = await stigmer.agent.getByReference(ref);
@@ -417,27 +325,27 @@ export function useAgentSetup(
         // the last sign-in lands, `signInCompleted` resolves again and the
         // branches below run with the grant in place. The variables those
         // sign-ins fill leave the declarations here and are never typed.
-        // A conversation that lists vaults reads only those, once, for its
-        // logins and its secret names alike.
-        const listed =
-          listedVaults.length > 0
-            ? await readableVaults(stigmer, listedVaults.map((v) => ({ org: v.org || org, slug: v.slug })))
-            : null;
-        // Without listed vaults, the run reads My vault and the agent's
-        // vaults for its logins too, unless the agent is of another
-        // organization, which reads neither.
-        const ownVaults = listed === null ? await ownVaultsOf(stigmer, agent, myVault.vault) : [];
+        // The run reads exactly the vaults the conversation uses, read
+        // once here for its logins and its secret names alike: My vault
+        // first when included, unless the agent is of another
+        // organization, whose runs never read it; then the listed vaults.
         const foreign = (agent.metadata?.org ?? "") !== orgId;
+        const readsMyVault = choice.includeMyVault && !foreign;
+        const listed = await readableVaults(
+          stigmer,
+          choice.vaults.map((v) => ({ org: v.org || org, slug: v.slug })),
+        );
+        const readVaults = readsMyVault && myVault.vault !== null ? [myVault.vault, ...listed] : listed;
         const { servers, pendingSignIns, signInVariables } = await readServers(
           stigmer,
           org,
           agent,
-          listed,
-          foreign ? [] : ownVaults,
+          readVaults,
+          readsMyVault,
         );
         const envDeclarations = agent.spec?.env ? typedDeclarations(agent.spec.env, signInVariables) : undefined;
         if (pendingSignIns.length > 0) {
-          const existingKeys = savedKeysOf(ownVaults, listed, servers);
+          const existingKeys = keysHeldBy(readVaults, servers);
           const missingVariables = envDeclarations
             ? diffEnv(envDeclarations, existingKeys, coveredKeys)
             : [];
@@ -460,10 +368,10 @@ export function useAgentSetup(
 
         // No env declarations — agent is immediately ready (direct mode).
         // Nor is anything asked of an agent of another organization: a run
-        // reads none of the person's keys for it, so a key saved here
-        // would never reach it.
+        // never reads My vault for it, so a key saved here would never
+        // reach it.
         if (!envDeclarations || Object.keys(envDeclarations).length === 0 || foreign) {
-          const resolution = readyAs({ mode: "direct" });
+          const resolution: AgentResolution = { mode: "direct" };
           settle({
             type: "RESOLVE_READY",
             agentRef: ref,
@@ -473,16 +381,14 @@ export function useAgentSetup(
           return { status: "ready", agentRef: ref, agentName, resolution };
         }
 
-        // The agent declares keys. A run with no vaults of its own reads
-        // them from the person's My vault, then the agent's vaults the
-        // person may use; one that lists vaults reads only those. Keys
-        // already saved where the run reads need nothing.
-        const existingKeys = savedKeysOf(ownVaults, listed, servers);
+        // The agent declares keys. Keys already saved where the run reads
+        // need nothing.
+        const existingKeys = keysHeldBy(readVaults, servers);
         const savedOnlyMissing = diffEnv(envDeclarations, existingKeys);
         const missingVariables = diffEnv(envDeclarations, existingKeys, coveredKeys);
 
         if (savedOnlyMissing.length === 0) {
-          const resolution = readyAs({ mode: "saved" });
+          const resolution: AgentResolution = { mode: "saved" };
           settle({
             type: "RESOLVE_READY",
             agentRef: ref,
@@ -493,9 +399,8 @@ export function useAgentSetup(
         }
 
         if (missingVariables.length === 0) {
-          // The session's variables cover the remaining keys; their
-          // values become the conversation's own secrets at submit.
-          const resolution = readyAs({ mode: "direct" });
+          // Keys filled elsewhere (the platform's own) cover the rest.
+          const resolution: AgentResolution = { mode: "direct" };
           settle({
             type: "RESOLVE_READY",
             agentRef: ref,
@@ -526,11 +431,11 @@ export function useAgentSetup(
         throw err;
       }
     },
-    [org, orgId, stigmer, myVault.vault, poolKeys, listedVaults],
+    [org, orgId, stigmer, myVault.vault, poolKeys, choice],
   );
 
   // -------------------------------------------------------------------------
-  // Vault re-evaluation — resolve again when the conversation's vaults change
+  // Vault re-evaluation — resolve again when the conversation's vault choice changes
   // -------------------------------------------------------------------------
 
   // Which vaults a run reads decides what counts as saved and which
@@ -581,7 +486,6 @@ export function useAgentSetup(
   const submitEnvVars = useCallback(
     async (
       values: Record<string, EnvVarInput>,
-      options?: SubmitEnvVarsOptions,
     ): Promise<AgentSetupReadyResult> => {
       if (state.status !== "needsEnvVars") {
         throw new Error(
@@ -604,38 +508,11 @@ export function useAgentSetup(
       }
 
       const { agentRef, agentName } = state;
-      const saveForFuture = options?.saveForFuture ?? true;
-      const agentKey = `${agentRef.org}/${agentRef.slug}`;
-      const held = ownValuesRef.current?.agent === agentKey ? ownValuesRef.current.values : {};
-      const ownValues = { ...held, ...values };
-      const keepOwn = (): AgentResolution => {
-        ownValuesRef.current = { agent: agentKey, values: ownValues };
-        return { mode: "oneTime", values: ownValues };
-      };
-
-      // ----- One-time path: no API calls, instant result -----
-      if (!saveForFuture) {
-        const resolution = keepOwn();
-        dispatch({
-          type: "SUBMIT_READY",
-          agentRef,
-          agentName,
-          resolution,
-        });
-        return { status: "ready", agentRef, agentName, resolution };
-      }
-
-      // ----- Save path: save in My vault -----
       dispatch({ type: "SUBMIT_START" });
 
       try {
         await myVault.setSecrets(valuesOf(values));
-
-        // A conversation that lists vaults never reads My vault: the values
-        // saved there for later conversations reach this one as its own,
-        // beside those it already held.
-        const resolution: AgentResolution =
-          listedVaults.length > 0 || Object.keys(held).length > 0 ? keepOwn() : { mode: "saved" };
+        const resolution: AgentResolution = { mode: "saved" };
         dispatch({
           type: "SUBMIT_READY",
           agentRef,
@@ -648,7 +525,7 @@ export function useAgentSetup(
         throw err;
       }
     },
-    [org, myVault, state, listedVaults],
+    [org, myVault, state],
   );
 
   const signInCompleted = useCallback(

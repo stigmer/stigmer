@@ -23,7 +23,7 @@ import { ScrollFade } from "../internal/ScrollFade.js";
 import { McpServerConfigPanel } from "./McpServerConfigPanel.js";
 import type { McpServerSetupEntry } from "./mcpServerSetupReducer.js";
 import { useMcpServerConnect } from "./useMcpServerConnect.js";
-import { type SignInVault, useMcpServerOAuthConnect } from "./useMcpServerOAuthConnect.js";
+import { useMcpServerOAuthConnect } from "./useMcpServerOAuthConnect.js";
 import { OrgSlugText } from "../organization/OrgSlugText.js";
 import { useOrgIdForRef } from "../organization/useOrgRefs.js";
 // ---------------------------------------------------------------------------
@@ -67,12 +67,11 @@ export interface McpServerSetupIntegration {
     options: EnvVarFormSubmitOptions,
   ) => void;
   /**
-   * The shared vault a sign-in started here is saved into: in a
-   * conversation that lists vaults, the first of them, the only place its
-   * runs read a login from (the setup counts a sign-in only there).
-   * Omitted, a sign-in is saved in My vault.
+   * Called when a sign-in started here lands, saved in the person's My
+   * vault: the composer includes My vault in a conversation that left it
+   * out, so the next turn uses the login just made.
    */
-  readonly signInVault?: SignInVault;
+  readonly onSignedIn?: (ref: ResourceRef) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -148,8 +147,8 @@ export interface McpServerPickerProps {
    */
   readonly initialServerKey?: string;
   /**
-   * Lookup function for pre-filling credential fields from the session
-   * env pool. Passed through to {@link McpServerConfigPanel}'s
+   * Lookup function for pre-filling credential fields from another source
+   * the host holds. Passed through to {@link McpServerConfigPanel}'s
    * credentials form. When a field's key returns a value, the field is
    * pre-populated.
    */
@@ -504,11 +503,8 @@ export function McpServerPicker({
               }
 
               try {
-                await oauth.startOAuth(
-                  serverId,
-                  connectOrg,
-                  setup.signInVault === undefined ? undefined : { vault: setup.signInVault },
-                );
+                await oauth.startOAuth(serverId, connectOrg);
+                setup.onSignedIn?.(ref);
                 setup.onServerAdded(ref);
               } catch {
                 // error state managed by oauth hook

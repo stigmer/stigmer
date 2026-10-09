@@ -1,15 +1,14 @@
 /**
- * Where an agent's declared keys come from once nothing else supplies them:
- * the person's My vault, then the agent's own vaults they may use. Setup
- * creates nothing per agent. Pinned: an agent whose keys My vault (or one of
- * the agent's vaults) already holds resolves `saved` without asking, and
+ * Where an agent's declared keys come from: exactly the vaults the
+ * conversation uses, the person's My vault when it includes it, then the
+ * shared vaults it lists. Setup creates nothing per agent. Pinned: an agent
+ * whose keys My vault already holds resolves `saved` without asking, and
  * saving typed values writes them to My vault through `setSecrets` naming
- * `mine`, with no other resource written; values kept for this conversation only
- * resolve `oneTime`, carrying them and writing nothing. An agent of another
- * organization resolves `direct`, asking nothing and writing nothing. A
- * conversation that lists vaults reads only those: their keys count, My
- * vault's do not, and values saved in My vault also reach the conversation
- * as its own (`oneTime`).
+ * `mine`, with no other resource written, whatever the conversation uses.
+ * An agent of another organization resolves `direct`, asking nothing and
+ * writing nothing. My vault's keys count only while the conversation
+ * includes it; a listed vault's keys count; a vault the conversation does
+ * not use counts for nothing.
  */
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -128,7 +127,7 @@ describe("useAgentSetup and the person's vaults", () => {
     // My vault's read must have settled before a save.
     await waitFor(async () => {
       await act(async () => {
-        await result.current.submitEnvVars({ API_TOKEN: { value: "t", isSecret: true } }, { saveForFuture: true });
+        await result.current.submitEnvVars({ API_TOKEN: { value: "t", isSecret: true } });
       });
     });
 
@@ -137,30 +136,6 @@ describe("useAgentSetup and the person's vaults", () => {
       expect(result.current.state.resolution).toEqual({ mode: "saved" });
     }
     expect(writes).toEqual(["vault.setSecrets:mine:API_TOKEN"]);
-  });
-
-  it("keeps values for this conversation only, resolving oneTime with them and writing nothing", async () => {
-    const writes: Writes = [];
-    const { result } = renderHook(() => useAgentSetup(ACME_ID), {
-      wrapper: wrapper(client(writes, [])),
-    });
-
-    await act(async () => {
-      await result.current.resolveAgent({ org: "acme", slug: "reviewer" });
-    });
-    expect(result.current.state.status).toBe("needsEnvVars");
-    await act(async () => {
-      await result.current.submitEnvVars({ API_TOKEN: { value: "t", isSecret: true } }, { saveForFuture: false });
-    });
-
-    expect(result.current.state.status).toBe("ready");
-    if (result.current.state.status === "ready") {
-      expect(result.current.state.resolution).toEqual({
-        mode: "oneTime",
-        values: { API_TOKEN: { value: "t", isSecret: true } },
-      });
-    }
-    expect(writes).toEqual([]);
   });
 
   it("asks nothing of an agent of another organization, whose runs read none of the person's keys", async () => {
@@ -189,38 +164,29 @@ describe("useAgentSetup and the person's vaults", () => {
     expect(writes).toEqual([]);
   });
 
-  it("resolves saved when a vault the agent names holds the key the person's My vault lacks", async () => {
+  it("asks for a key that only a shared vault the conversation does not use holds", async () => {
     const writes: Writes = [];
-    const withVault = create(AgentSchema, {
-      ...REVIEWER,
-      spec: create(AgentSpecSchema, {
-        env: REVIEWER.spec?.env,
-        vaults: [{ org: ACME_ID, slug: "team" }],
-      }),
-    });
     const { result } = renderHook(() => useAgentSetup(ACME_ID), {
-      wrapper: wrapper(client(writes, [], withVault, ["API_TOKEN"])),
+      wrapper: wrapper(client(writes, [], REVIEWER, ["API_TOKEN"])),
     });
 
     await act(async () => {
       await result.current.resolveAgent({ org: "acme", slug: "reviewer" });
     });
 
-    expect(result.current.state.status).toBe("ready");
-    if (result.current.state.status === "ready") {
-      expect(result.current.state.resolution).toEqual({ mode: "saved" });
-    }
+    expect(result.current.state.status).toBe("needsEnvVars");
     expect(writes).toEqual([]);
   });
 
-  it("counts only the vaults a conversation lists, never My vault's keys", async () => {
+  it("counts My vault's keys only while the conversation includes My vault", async () => {
     const writes: Writes = [];
     const listed = [{ org: ACME_ID, slug: "team" }];
     const { result, rerender } = renderHook(
-      ({ vaults }: { vaults?: { org: string; slug: string }[] }) => useAgentSetup(ACME_ID, undefined, vaults),
-      { wrapper: wrapper(client(writes, ["API_TOKEN"])), initialProps: {} },
+      ({ includeMyVault }: { includeMyVault: boolean }) =>
+        useAgentSetup(ACME_ID, undefined, { includeMyVault, vaults: listed }),
+      { wrapper: wrapper(client(writes, ["API_TOKEN"])), initialProps: { includeMyVault: true } },
     );
-    // My vault holds the key: without listed vaults the agent is ready.
+    // My vault holds the key: while it is included the agent is ready.
     await waitFor(async () => {
       await act(async () => {
         await result.current.resolveAgent({ org: "acme", slug: "reviewer" });
@@ -228,7 +194,7 @@ describe("useAgentSetup and the person's vaults", () => {
       expect(result.current.state.status).toBe("ready");
     });
 
-    rerender({ vaults: listed });
+    rerender({ includeMyVault: false });
     await act(async () => {
       await result.current.resolveAgent({ org: "acme", slug: "reviewer" });
     });
@@ -241,9 +207,10 @@ describe("useAgentSetup and the person's vaults", () => {
 
   it("resolves saved when a vault the conversation lists holds the key", async () => {
     const writes: Writes = [];
-    const { result } = renderHook(() => useAgentSetup(ACME_ID, undefined, [{ org: ACME_ID, slug: "team" }]), {
-      wrapper: wrapper(client(writes, [], REVIEWER, ["API_TOKEN"])),
-    });
+    const { result } = renderHook(
+      () => useAgentSetup(ACME_ID, undefined, { includeMyVault: false, vaults: [{ org: ACME_ID, slug: "team" }] }),
+      { wrapper: wrapper(client(writes, [], REVIEWER, ["API_TOKEN"])) },
+    );
 
     await act(async () => {
       await result.current.resolveAgent({ org: "acme", slug: "reviewer" });
@@ -255,11 +222,12 @@ describe("useAgentSetup and the person's vaults", () => {
     }
   });
 
-  it("keeps values saved in My vault as the conversation's own when it lists vaults", async () => {
+  it("saves typed values in My vault even when the conversation leaves My vault out", async () => {
     const writes: Writes = [];
-    const { result } = renderHook(() => useAgentSetup(ACME_ID, undefined, [{ org: ACME_ID, slug: "team" }]), {
-      wrapper: wrapper(client(writes, [])),
-    });
+    const { result } = renderHook(
+      () => useAgentSetup(ACME_ID, undefined, { includeMyVault: false, vaults: [{ org: ACME_ID, slug: "team" }] }),
+      { wrapper: wrapper(client(writes, [])) },
+    );
 
     await act(async () => {
       await result.current.resolveAgent({ org: "acme", slug: "reviewer" });
@@ -267,16 +235,13 @@ describe("useAgentSetup and the person's vaults", () => {
     expect(result.current.state.status).toBe("needsEnvVars");
     await waitFor(async () => {
       await act(async () => {
-        await result.current.submitEnvVars({ API_TOKEN: { value: "t", isSecret: true } }, { saveForFuture: true });
+        await result.current.submitEnvVars({ API_TOKEN: { value: "t", isSecret: true } });
       });
     });
 
     expect(result.current.state.status).toBe("ready");
     if (result.current.state.status === "ready") {
-      expect(result.current.state.resolution).toEqual({
-        mode: "oneTime",
-        values: { API_TOKEN: { value: "t", isSecret: true } },
-      });
+      expect(result.current.state.resolution).toEqual({ mode: "saved" });
     }
     expect(writes).toEqual(["vault.setSecrets:mine:API_TOKEN"]);
   });

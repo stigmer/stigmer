@@ -48,15 +48,6 @@ vi.mock("../../workspace", () => ({
   useWorkspaceEntries: () => mockWorkspace,
 }));
 
-const mockSessionVariables = {
-  variables: [],
-  isEmpty: true,
-  clear: vi.fn(),
-};
-vi.mock("../../run/useSessionVariables", () => ({
-  useSessionVariables: () => mockSessionVariables,
-}));
-
 // Honors `enabled` like the real hook: disabled → no persisted model. Guest
 // isolation depends on this contract (usePersistedModel has its own tests).
 const usePersistedModelSpy = vi.fn(
@@ -120,23 +111,23 @@ describe("useSessionPageFlow — guest audience", () => {
     expect(mockSendFollowUp.mock.calls[0][1].agentRef).toBeUndefined();
   });
 
-  it("sends no secrets and never asks the host for them", async () => {
-    // Secrets are written to the conversation, which a share-link guest
-    // may not do; the share's vaults are what a guest's runs use.
-    const getSessionSecrets = vi.fn().mockResolvedValue({ PLATFORM_TOKEN: "t" });
+  it("never changes which vaults the conversation uses", async () => {
+    // Which vaults a conversation uses is its creator's to write; the
+    // share's vaults are what a guest's runs use.
     const { result } = renderHook(() =>
-      useSessionPageFlow({ ...OPTS, audience: "guest", getSessionSecrets }),
+      useSessionPageFlow({ ...OPTS, audience: "guest" }),
     );
 
     await act(async () => {
       await result.current.handleSubmit("follow up", undefined, {
-        secrets: { USER_VAR: "typed" },
+        includeMyVault: true,
+        vaults: [{ org: "acme", slug: "support-tools" }],
       });
     });
 
-    expect(getSessionSecrets).not.toHaveBeenCalled();
     expect(mockSendFollowUp).toHaveBeenCalledTimes(1);
-    expect(mockSendFollowUp.mock.calls[0][1].secrets).toBeUndefined();
+    expect(mockSendFollowUp.mock.calls[0][1].includeMyVault).toBeUndefined();
+    expect(mockSendFollowUp.mock.calls[0][1].vaults).toBeUndefined();
   });
 
   it("disables model persistence — a Console-stored model must not leak in", () => {

@@ -7,7 +7,6 @@ import type { HarnessOption } from "../../models/harness.js";
 import { HARNESS_META } from "../../models/harness.js";
 import { Switch } from "../../switch/Switch.js";
 import type { ExecutionTargetOption } from "../execution-target.js";
-import type { UseSessionVariablesReturn } from "../../run/useSessionVariables.js";
 import { useExportTranscript } from "../useExportTranscript.js";
 import {
   FACET_ROW_BUTTON,
@@ -52,7 +51,6 @@ export interface SetupTabProps {
   readonly agentRef: ResourceRef | null;
   readonly mcpServerUsages: readonly McpServerUsageInput[];
   readonly skillRefs: readonly ResourceRef[];
-  readonly sessionVariables: UseSessionVariablesReturn | null;
   readonly harness: HarnessOption;
   readonly executionTarget: ExecutionTargetOption | undefined;
   readonly modelId: string | undefined;
@@ -91,7 +89,7 @@ export interface SetupTabProps {
 /**
  * Persistent session configuration panel (Config facet) — shows run config
  * (harness, model, target, and the session-level auto-approve switch), agent,
- * MCP servers, skills, session variables, transcript export, and the host's
+ * MCP servers, skills, transcript export, and the host's
  * access management control (via `accessSlot`).
  *
  * Rendered in the session panel's shared facet vocabulary (see
@@ -108,7 +106,6 @@ export function SetupTab({
   agentRef,
   mcpServerUsages,
   skillRefs,
-  sessionVariables,
   harness,
   executionTarget,
   modelId,
@@ -117,8 +114,6 @@ export function SetupTab({
   mutations,
   accessSlot,
 }: SetupTabProps) {
-  const hasSessionVars = sessionVariables != null && !sessionVariables.isEmpty;
-
   return (
     <div className="stg:flex stg:flex-col stg:gap-5">
       <RunConfigSection
@@ -139,10 +134,6 @@ export function SetupTab({
         skillRefs={skillRefs}
         onRemove={mutations?.onRemoveSkill}
       />
-
-      {hasSessionVars && (
-        <SessionVarsSection entries={sessionVariables.entries} />
-      )}
 
       {sessionId && <TranscriptSection sessionId={sessionId} />}
 
@@ -305,39 +296,6 @@ function SkillsSection({
       ) : (
         <FacetEmptyHint>No skills attached.</FacetEmptyHint>
       )}
-    </FacetSection>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Session Variables (ephemeral, only shown when entries exist)
-// ---------------------------------------------------------------------------
-
-function SessionVarsSection({
-  entries,
-}: {
-  entries: UseSessionVariablesReturn["entries"];
-}) {
-  return (
-    <FacetSection heading="Session Variables" annotation="next message only">
-      {entries.map((entry) => (
-        <FacetRow
-          key={entry.id}
-          meta={
-            entry.isSecret ? (
-              "********"
-            ) : (
-              <span className="stg:inline-block stg:max-w-[140px] stg:truncate stg:align-bottom">
-                {entry.value}
-              </span>
-            )
-          }
-        >
-          <span className="stg:truncate stg:font-medium">
-            {entry.key || "(unnamed)"}
-          </span>
-        </FacetRow>
-      ))}
     </FacetSection>
   );
 }

@@ -1,7 +1,5 @@
 import type { ResourceRef } from "@stigmer/sdk";
-import type { EnvVarInput } from "../vault/types.js";
 import type { OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
-import type { SignInVault } from "../mcp-server/useMcpServerOAuthConnect.js";
 import type { AgentEnvFormVariable } from "./AgentEnvForm.js";
 
 // ---------------------------------------------------------------------------
@@ -10,10 +8,10 @@ import type { AgentEnvFormVariable } from "./AgentEnvForm.js";
 
 /**
  * One MCP server the agent uses that authenticates by OAuth and has no
- * usable grant in the organization. The agent is not ready until each is
+ * login in the vaults the run reads. The agent is not ready until each is
  * signed in: run would start and fail at the first tool call, so the
- * composer asks first, the way it asks for a missing variable. Grants are
- * per organization today, so one colleague's sign-in serves everyone.
+ * composer asks first, the way it asks for a missing variable. A sign-in
+ * is saved in the person's My vault.
  */
 export interface PendingSignIn {
   /** The server's reference, for the row's own read. */
@@ -24,12 +22,6 @@ export interface PendingSignIn {
   readonly name: string;
   /** The grant's health as the backend graded it; `NO_GRANT` when none exists. */
   readonly health: OAuthConnectionHealth;
-  /**
-   * The vault the sign-in must be saved into: the first vault the
-   * conversation lists, when it lists any (such a conversation reads its
-   * logins only from them). Absent, the sign-in is saved in My vault.
-   */
-  readonly vault?: SignInVault;
 }
 
 // ---------------------------------------------------------------------------
@@ -43,24 +35,17 @@ export interface PendingSignIn {
  * Every mode starts the conversation on the agent itself (the session's
  * `agentRef`); the mode says where the keys the agent declares come from:
  *
- * - `"saved"` — The user's vaults hold every declared key (saved in My
- *   vault just now or earlier, or in a vault the agent attaches). Each run
- *   reads them from there.
- * - `"oneTime"` — Values were collected but **not** saved in a vault. They
- *   become the conversation's own secrets (`session_spec.secrets`).
+ * - `"saved"` — The vaults the conversation uses hold every declared key
+ *   (saved in My vault just now or earlier, or in a vault the
+ *   conversation lists). Each run reads them from there.
  * - `"direct"` — Nothing is needed from the user: the agent declares no
- *   keys, or the session's variables cover the ones it does.
+ *   keys, the platform fills the ones it does, or the agent is another
+ *   organization's, whose runs never read My vault.
  */
 export type AgentResolution =
   | {
-      /** The user's vaults hold every key the agent declares. */
+      /** The vaults the conversation uses hold every key the agent declares. */
       readonly mode: "saved";
-    }
-  | {
-      /** Values were collected but not saved in a vault — the conversation keeps them. */
-      readonly mode: "oneTime";
-      /** Collected values, written as the conversation's own secrets. */
-      readonly values: Record<string, EnvVarInput>;
     }
   | {
       /** Nothing is needed from the user's vaults. */

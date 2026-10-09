@@ -15,7 +15,6 @@ const BASE_PROPS: SetupTabProps = {
   agentRef: null,
   mcpServerUsages: [],
   skillRefs: [],
-  sessionVariables: null,
   harness: "native",
   executionTarget: undefined,
   modelId: undefined,

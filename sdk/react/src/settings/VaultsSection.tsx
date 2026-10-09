@@ -4,9 +4,9 @@
  * The Vaults settings page: the caller's own My vault, and the
  * organization's shared vaults.
  *
- * My vault holds a person's own logins and secrets; a chat they start uses
- * it unless the conversation lists vaults of its own, a chat with an agent
- * of another organization never does, and nobody else's run ever does, an
+ * My vault holds a person's own logins and secrets; a chat that includes
+ * it uses it for that person's own messages, a chat with an agent of
+ * another organization never does, and nobody else's run ever does, an
  * admin's included. It is
  * created by the server on the first save, so the page never creates it.
  * A login a sign-in saved can be renewed from here ("Sign in again"); a new
@@ -65,10 +65,10 @@ function MyVaultCard({ org }: { org: string }) {
         </span>
       </div>
       <p className="stg:text-muted-foreground stg:mb-4 stg:text-xs">
-        Your own logins and secrets. Chats you start use them unless the
-        conversation lists vaults of its own, and a chat with an agent of
-        another organization never does; nobody else&apos;s chats ever do.
-        Saved values can be replaced but are never shown again.
+        Your own logins and secrets. A chat that includes My vault uses them
+        for the messages you send, never a teammate&apos;s, and a chat with
+        an agent of another organization never does. Saved values can be
+        replaced but are never shown again.
       </p>
 
       {myVault.isLoading ? (

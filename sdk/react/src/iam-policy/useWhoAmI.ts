@@ -15,6 +15,18 @@ export interface UseWhoAmIReturn {
   readonly error: Error | null;
 }
 
+/** Options for {@link useWhoAmI}. */
+export interface UseWhoAmIOptions {
+  /**
+   * `false` holds the hook idle: no request, `account` stays `null`. A
+   * surface that needs the caller only in some states (a guest token
+   * cannot make this read) keeps the hook mounted and switches it here.
+   *
+   * @default true
+   */
+  readonly enabled?: boolean;
+}
+
 /**
  * Data hook that fetches the current authenticated user's
  * {@link IdentityAccount} via `identityAccount.whoAmI()`.
@@ -33,10 +45,11 @@ export interface UseWhoAmIReturn {
  * const myId = account?.metadata?.id;
  * ```
  */
-export function useWhoAmI(): UseWhoAmIReturn {
+export function useWhoAmI(options?: UseWhoAmIOptions): UseWhoAmIReturn {
+  const enabled = options?.enabled ?? true;
   const stigmer = useStigmer();
   const [account, setAccount] = useState<IdentityAccount | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(enabled);
   const [error, setError] = useState<Error | null>(null);
 
   const cacheRef = useRef<{
@@ -45,6 +58,10 @@ export function useWhoAmI(): UseWhoAmIReturn {
   } | null>(null);
 
   useEffect(() => {
+    if (!enabled) {
+      setIsLoading(false);
+      return;
+    }
     if (cacheRef.current?.client === stigmer && cacheRef.current.account) {
       setAccount(cacheRef.current.account);
       setIsLoading(false);
@@ -72,7 +89,7 @@ export function useWhoAmI(): UseWhoAmIReturn {
     return () => {
       cancelled.current = true;
     };
-  }, [stigmer]);
+  }, [stigmer, enabled]);
 
   return { account, isLoading, error };
 }

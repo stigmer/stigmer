@@ -47,10 +47,6 @@ vi.mock("../../workspace", () => ({
   useWorkspaceEntries: () => mockWorkspace,
 }));
 
-vi.mock("../../run/useSessionVariables", () => ({
-  useSessionVariables: () => ({ variables: [], isEmpty: true, clear: vi.fn() }),
-}));
-
 // Honors `enabled` like the real hook (contract pinned by its own tests).
 vi.mock("../usePersistedModel", () => ({
   usePersistedModel: (opts?: { enabled?: boolean }) =>

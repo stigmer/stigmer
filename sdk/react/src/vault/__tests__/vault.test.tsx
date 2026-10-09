@@ -3,8 +3,11 @@
  * - useMyVault answers `null` before the first save (the server's NOT_FOUND
  *   is a state, not an error), reads entry names and addresses only, and
  *   every write names `mine` so the server creates My vault on first save;
- * - VaultPicker never offers My vault unless the surface may name it (a
- *   schedule its owner sets up), and keeps the order the person chose;
+ * - VaultPicker never offers My vault as a listed vault unless the surface
+ *   may name it (a schedule its owner sets up), and keeps the order the
+ *   person chose; a conversation's picker shows My vault as a fixed first
+ *   row with a tick, even before My vault exists, never in the list, and
+ *   read-only when disabled;
  * - VaultEntriesEditor never shows a value: replacing asks for a new one
  *   from scratch and sends it with the entry's name.
  */
@@ -131,6 +134,42 @@ describe("VaultPicker", () => {
 
     fireEvent.change(screen.getByLabelText("Add vault"), { target: { value: "my-vault-ana" } });
     expect(onChange).toHaveBeenCalledWith([{ org: ORG, slug: "my-vault-ana" }]);
+  });
+
+  it("shows a conversation's My vault as a ticked first row, before it exists, never as a listed vault", async () => {
+    const onChange = vi.fn();
+    const onMyVaultChange = vi.fn();
+    const { rerender } = render(
+      <VaultPicker
+        org={ORG}
+        value={[]}
+        onChange={onChange}
+        myVault={{ checked: true, onChange: onMyVaultChange }}
+      />,
+      { wrapper: providers(clientWith({ mine: null })) },
+    );
+    expect(await screen.findByRole("option", { name: "Support tools" })).toBeTruthy();
+    const tick = screen.getByRole("checkbox", { name: /My vault/ }) as HTMLInputElement;
+    expect(tick.checked).toBe(true);
+    expect(screen.queryByRole("option", { name: "My vault" })).toBeNull();
+
+    fireEvent.click(tick);
+    expect(onMyVaultChange).toHaveBeenCalledWith(false);
+    expect(onChange).not.toHaveBeenCalled();
+
+    rerender(
+      <VaultPicker
+        org={ORG}
+        value={[]}
+        onChange={onChange}
+        myVault={{ checked: false, onChange: onMyVaultChange }}
+        disabled
+      />,
+    );
+    const readOnly = screen.getByRole("checkbox", { name: /My vault/ }) as HTMLInputElement;
+    expect(readOnly.checked).toBe(false);
+    expect(readOnly.disabled).toBe(true);
+    expect((screen.getByLabelText("Add vault") as HTMLSelectElement).disabled).toBe(true);
   });
 });
 
