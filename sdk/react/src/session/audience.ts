@@ -70,19 +70,16 @@ export function includesMyVaultByDefault(audience: SessionAudience): boolean {
  * health flags.
  */
 export function showsRunScores(audience: SessionAudience): boolean {
-  switch (audience) {
-    case "integrator":
-    case "observer":
-      return true;
-    case "endUser":
-    case "guest":
-      return false;
-    default: {
-      const unknown: never = audience;
-      return unknown;
-    }
-  }
+  return SHOWS_RUN_SCORES[audience];
 }
+
+/** Keyed by every audience, so the compiler holds the answer exhaustive. */
+const SHOWS_RUN_SCORES: Readonly<Record<SessionAudience, boolean>> = {
+  integrator: true,
+  observer: true,
+  endUser: false,
+  guest: false,
+};
 
 /**
  * Whether the session organisms offer the session panel surface.

@@ -69,10 +69,14 @@ export function RunScores({ runId, className }: RunScoresProps) {
     void rate(passed, note);
   };
 
-  const onSubmitComment = (event: FormEvent<HTMLFormElement>): void => {
+  // The note rides the thumb it was opened for; the form renders only
+  // once a thumb is set, so it hands that thumb in.
+  const onSubmitComment = (
+    event: FormEvent<HTMLFormElement>,
+    passed: boolean,
+  ): void => {
     event.preventDefault();
-    if (thumbs === undefined) return;
-    void rate(thumbs, comment.trim());
+    void rate(passed, comment.trim());
     setCommentOpen(false);
   };
 
@@ -95,7 +99,7 @@ export function RunScores({ runId, className }: RunScoresProps) {
       </div>
       {commentOpen && thumbs !== undefined && (
         <form
-          onSubmit={onSubmitComment}
+          onSubmit={(event) => onSubmitComment(event, thumbs)}
           className="stg:flex stg:items-center stg:gap-2"
         >
           <input
@@ -168,53 +172,45 @@ function ThumbButton({
 
 function HealthChip({ view }: { readonly view: RunHealthView }) {
   const [open, setOpen] = useState(false);
-  switch (view.kind) {
-    case "pending":
-    case "healthy":
-      return null;
-    case "not-graded":
-      return (
-        <span className="stg:ml-1 stg:text-xs stg:text-muted-foreground-subtle">
-          Not graded{view.reason !== "" ? `: ${view.reason}` : ""}
-        </span>
-      );
-    case "flagged": {
-      const label = `${view.flags.length} ${view.flags.length === 1 ? "flag" : "flags"}`;
-      return (
-        <span className="stg:ml-1 stg:inline-flex stg:flex-col stg:gap-1">
-          <button
-            type="button"
-            aria-expanded={open}
-            onClick={() => setOpen((value) => !value)}
-            className={cn(
-              "stg:inline-flex stg:h-6 stg:items-center stg:rounded-full stg:border stg:border-border stg:px-2 stg:text-xs stg:text-warning",
-              "stg:hover:bg-accent-hover stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-            )}
-          >
-            {label}
-          </button>
-          {open && (
-            <ul
-              className={cn(
-                UNSTYLED_LIST,
-                "stg:flex stg:flex-col stg:gap-0.5 stg:text-xs stg:text-muted-foreground",
-              )}
-            >
-              {view.flags.map((flag) => (
-                <li key={flag.name}>
-                  {flag.reason !== "" ? flag.reason : flag.name}
-                </li>
-              ))}
-            </ul>
-          )}
-        </span>
-      );
-    }
-    default: {
-      const unknown: never = view;
-      return unknown;
-    }
+  if (view.kind === "pending" || view.kind === "healthy") return null;
+  if (view.kind === "not-graded") {
+    return (
+      <span className="stg:ml-1 stg:text-xs stg:text-muted-foreground-subtle">
+        Not graded{view.reason !== "" ? `: ${view.reason}` : ""}
+      </span>
+    );
   }
+  // Narrowed to "flagged": a kind added to the union fails to compile here.
+  const label = `${view.flags.length} ${view.flags.length === 1 ? "flag" : "flags"}`;
+  return (
+    <span className="stg:ml-1 stg:inline-flex stg:flex-col stg:gap-1">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+        className={cn(
+          "stg:inline-flex stg:h-6 stg:items-center stg:rounded-full stg:border stg:border-border stg:px-2 stg:text-xs stg:text-warning",
+          "stg:hover:bg-accent-hover stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+        )}
+      >
+        {label}
+      </button>
+      {open && (
+        <ul
+          className={cn(
+            UNSTYLED_LIST,
+            "stg:flex stg:flex-col stg:gap-0.5 stg:text-xs stg:text-muted-foreground",
+          )}
+        >
+          {view.flags.map((flag) => (
+            <li key={flag.name}>
+              {flag.reason !== "" ? flag.reason : flag.name}
+            </li>
+          ))}
+        </ul>
+      )}
+    </span>
+  );
 }
 
 function ThumbIcon({ up }: { readonly up: boolean }) {

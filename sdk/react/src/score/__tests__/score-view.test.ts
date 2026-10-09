@@ -153,4 +153,12 @@ describe("scoresByRun", () => {
     expect(grouped.get("run_a")).toHaveLength(2);
     expect(grouped.get("run_b")).toEqual([b]);
   });
+
+  it("files no score that names no run", () => {
+    const grouped = scoresByRun([
+      health("", []),
+      feedback("run_a", "ida_1", true),
+    ]);
+    expect([...grouped.keys()]).toEqual(["run_a"]);
+  });
 });

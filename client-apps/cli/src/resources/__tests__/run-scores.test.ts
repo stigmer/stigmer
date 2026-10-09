@@ -1,8 +1,9 @@
 // Pins the `runs scores` view: one row per score with who gave it and its
 // value in words (up/down for a person, pass/fail for the checks, "not
 // graded" with its reason, never a failing value), the failed checks'
-// reasons as flags, the list asked for by run id, and -o json carrying the
-// scores' own envelopes.
+// reasons as flags, the list asked for by run id, -o json and -o yaml
+// carrying the scores' own envelopes, the table written to stdout by
+// default, and `stigmer get score <id>` reading one score by its id only.
 
 import { create } from "@bufbuild/protobuf";
 import { ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
@@ -15,8 +16,10 @@ import {
 import { ScoreListSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
 import type { ListScoresByRunRequest } from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
 import type { Stigmer } from "@stigmer/sdk";
-import { describe, expect, it } from "vitest";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { describe, expect, it, vi } from "vitest";
 
+import { getterFor } from "../get-bindings.js";
 import { renderScoresTable, showRunScores } from "../run-scores.js";
 
 const thumbsDown: Score = create(ScoreSchema, {
@@ -83,6 +86,16 @@ describe("renderScoresTable", () => {
     expect(out).not.toMatch(/\bfail\b/);
   });
 
+  it("leaves the value empty for a graded score that carries none, and names an unattributed rater as nobody", () => {
+    const bare = create(ScoreSchema, {
+      spec: { runId: "run_1", metric: "feedback", source: ScoreSource.human },
+      status: { state: ScoreState.graded },
+    });
+    const out = renderScoresTable([bare]);
+    expect(out).toContain("feedback");
+    expect(out).not.toMatch(/\b(up|down|pass|fail)\b/);
+  });
+
   it("says so when the run has no scores", () => {
     expect(renderScoresTable([])).toContain("No scores found");
   });
@@ -111,5 +124,49 @@ describe("showRunScores", () => {
     expect(asked).toEqual(["run_1"]);
     const parsed = JSON.parse(written) as Array<{ spec: { metric: string } }>;
     expect(parsed.map((score) => score.spec.metric)).toEqual(["feedback"]);
+  });
+
+  it("renders yaml as the scores' envelopes", async () => {
+    let written = "";
+    await showRunScores(clientReturning([health], []), "run_1", "yaml", {
+      write: (text) => {
+        written += text;
+      },
+    });
+    expect(written).toContain("id: scr_2");
+    expect(written).toContain("metric: run-health");
+    expect(written).toContain("source: score_source_check");
+  });
+
+  it("writes the table to stdout when no stream is given", async () => {
+    const write = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    let out: string;
+    try {
+      await showRunScores(clientReturning([thumbsDown], []), "run_1", "table");
+      out = write.mock.calls.map((call) => String(call[0])).join("");
+    } finally {
+      write.mockRestore();
+    }
+    expect(out).toContain("METRIC");
+    expect(out).toContain("picked the wrong label");
+  });
+});
+
+describe("get score", () => {
+  it("reads a score by its id through the score client", async () => {
+    const getter = getterFor(ApiResourceKind.score);
+    expect(getter).toBeDefined();
+    const asked: string[] = [];
+    const client = {
+      score: {
+        get: async (id: string) => {
+          asked.push(id);
+          return thumbsDown;
+        },
+      },
+    } as unknown as Stigmer;
+    const got = await getter!(client, { kind: "id", id: "scr_1" });
+    expect(asked).toEqual(["scr_1"]);
+    expect(got.message).toBe(thumbsDown);
   });
 });

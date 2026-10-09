@@ -69,19 +69,15 @@ function scoreRow(score: Score): string[] {
   ];
 }
 
+/** Who gave a score, in words; keyed by every source, so it stays exhaustive. */
+const SOURCE_LABELS: Readonly<Record<ScoreSource, string>> = {
+  [ScoreSource.unspecified]: "",
+  [ScoreSource.check]: "check",
+  [ScoreSource.human]: "person",
+};
+
 function sourceLabel(source: ScoreSource): string {
-  switch (source) {
-    case ScoreSource.human:
-      return "person";
-    case ScoreSource.check:
-      return "check";
-    case ScoreSource.unspecified:
-      return "";
-    default: {
-      const unknown: never = source;
-      return String(unknown);
-    }
-  }
+  return SOURCE_LABELS[source];
 }
 
 function valueLabel(score: Score): string {
