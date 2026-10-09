@@ -3,15 +3,16 @@
  *
  * Key behaviors ported from Python:
  * - Idempotent: detects existing .git and skips re-clone
- * - GitHub token injection via HTTPS URL (x-access-token), only for a URL whose
- *   host is github.com itself (isGitHubHttpsUrl)
+ * - A repository's token (the run's repository values, matched to this
+ *   entry by its name and URL) reaches only the clone's network commands,
+ *   and only for a URL whose host is github.com itself (isGitHubHttpsUrl):
+ *   it is handed to each such command through git's per-command
+ *   configuration and stored nowhere (../git-credential.ts). The remote URL
+ *   is always the clean one, and `.git` holds no token.
  * - Token is never logged; sanitized in error messages
- * - GITHUB_TOKEN reported in consumedKeys whenever it serves the clone, on
- *   the cloning turn and on every reuse: the agent's shell receives it
- *   (shell-env.ts shellRunValues), because the clone already put it in the
- *   shell's reach (the remote URL locally, the credential store in cloud)
+ * - Reuse scrubs what earlier runners stored: a token in the origin URL, a
+ *   repo-local `.git-credentials` file and the `store` helper naming it
  * - Multi-entry mode: clones into target_subdir
- * - Credential store configuration for git push/writeback
  * - Every value interpolated into a git command is shell-quoted (shellQuote)
  */
 
@@ -22,76 +23,60 @@ import {
   type GitMetadata,
   type WorkspaceBackend,
 } from "../types.js";
+import { maskToken, runNetworkGit } from "../git-credential.js";
 
 export interface GitProvisionOptions {
   url: string;
   branch?: string;
   backend: WorkspaceBackend;
-  envVars: Record<string, string>;
+  /** The repository's token from the run's values; absent for a public clone. */
+  token?: string;
   isLocalMode: boolean;
   targetSubdir?: string;
-  configureCredentials?: boolean;
+  /** Whether write-back may push this clone (a cloud workspace). */
+  writeBack?: boolean;
 }
 
 /** The one host the executing user's GitHub token is ever sent to. */
 const GITHUB_HOST = "github.com";
 
-/** The run value a GitHub clone authenticates with. */
-export const GITHUB_TOKEN_KEY = "GITHUB_TOKEN";
+/** The credential file earlier runners kept inside the clone; reuse deletes it. */
+const LEGACY_CREDENTIAL_FILE = ".git-credentials";
 
 export async function provisionGit(options: GitProvisionOptions): Promise<ProvisionResult> {
-  const { url, branch, backend, envVars, isLocalMode, targetSubdir, configureCredentials } = options;
+  const { url, branch, backend, targetSubdir, writeBack } = options;
 
   const cloneDir = targetSubdir
     ? join(backend.rootDir, targetSubdir)
     : backend.rootDir;
+  const token = options.token && isGitHubHttpsUrl(url) ? options.token : "";
 
   const gitExists = await backend.exists(
     targetSubdir ? join(targetSubdir, ".git") : ".git",
   );
 
   if (gitExists) {
-    return reuseExistingRepo(cloneDir, url, backend, envVars, configureCredentials, targetSubdir);
-  }
-
-  const githubToken = envVars[GITHUB_TOKEN_KEY];
-  const consumedKeys: string[] = [];
-  let cloneUrl = url;
-
-  if (githubToken && isGitHubHttpsUrl(url)) {
-    cloneUrl = injectToken(url, githubToken);
-    consumedKeys.push(GITHUB_TOKEN_KEY);
+    return reuseExistingRepo(cloneDir, url, backend, token, writeBack);
   }
 
   try {
-    await cloneInPlace(backend, cloneDir, cloneUrl, branch);
+    await cloneInPlace(backend, cloneDir, stripToken(url), branch, token);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    const sanitized = githubToken
-      ? message.replaceAll(githubToken, "***")
-      : message;
     throw new WorkspaceProvisionError(
       "git_repo",
-      `Git clone failed: ${sanitized}`,
+      `Git clone failed: ${maskToken(message, token)}`,
       { cause: err instanceof Error ? err : undefined, transient: true },
     );
   }
 
-  let metadata = await extractGitMetadata(cloneDir, url, backend, targetSubdir);
-
-  if (configureCredentials && githubToken && isGitHubHttpsUrl(url)) {
-    const configured = await configureGitCredentialStore(backend, cloneDir, url, githubToken);
-    if (configured) {
-      metadata = { ...metadata, gitCredentialsConfigured: true };
-    }
-  }
+  const metadata = await extractGitMetadata(cloneDir, url, backend, writeBack === true && token !== "");
 
   await addGitExcludes(backend, targetSubdir);
 
   return {
     rootDir: cloneDir,
     sourceType: "git_repo",
-    consumedKeys,
     workspaceDescription: describeClone(url, metadata.branch),
     gitMetadata: metadata,
     entryName: "",
@@ -114,37 +99,58 @@ async function reuseExistingRepo(
   cloneDir: string,
   url: string,
   backend: WorkspaceBackend,
-  envVars: Record<string, string>,
-  configureCredentials?: boolean,
-  targetSubdir?: string,
+  token: string,
+  writeBack: boolean | undefined,
 ): Promise<ProvisionResult> {
-  let metadata = await extractGitMetadata(cloneDir, url, backend, targetSubdir);
-
-  // The token counts as consumed only where the clone holds it, as on the
-  // cloning turn: the credential store configured here (cloud), or the
-  // origin remote the clone wrote with this very token (local). A clone
-  // made without a token, or a store that failed to configure, holds none.
-  const githubToken = envVars[GITHUB_TOKEN_KEY];
-  let tokenInClone = false;
-  if (githubToken && isGitHubHttpsUrl(url)) {
-    if (configureCredentials) {
-      tokenInClone = await configureGitCredentialStore(backend, cloneDir, url, githubToken);
-      if (tokenInClone) {
-        metadata = { ...metadata, gitCredentialsConfigured: true };
-      }
-    } else {
-      tokenInClone = await originCarries(backend, cloneDir, injectToken(url, githubToken));
-    }
-  }
+  await scrubStoredCredentials(backend, cloneDir);
+  const metadata = await extractGitMetadata(cloneDir, url, backend, writeBack === true && token !== "");
 
   return {
     rootDir: cloneDir,
     sourceType: "git_repo",
-    consumedKeys: tokenInClone ? [GITHUB_TOKEN_KEY] : [],
     workspaceDescription: describeClone(url, metadata.branch),
     gitMetadata: metadata,
     entryName: "",
   };
+}
+
+/**
+ * Removes every token an earlier runner stored in a clone: a token-bearing
+ * origin URL is rewritten clean, the repo-local `.git-credentials` file is
+ * deleted, and the repo-local `store` helper that named it is unset (only
+ * that one; a helper the owner set is left alone). Each step is non-fatal:
+ * a clone with nothing stored is the common case.
+ */
+async function scrubStoredCredentials(backend: WorkspaceBackend, cloneDir: string): Promise<void> {
+  const exec = (cmd: string) => backend.execute(cmd, { cwd: cloneDir });
+  try {
+    const origin = (await exec("git remote get-url origin")).trim();
+    const clean = stripToken(origin);
+    if (clean !== origin) {
+      await exec(`git remote set-url origin ${shellQuote(clean)}`);
+    }
+  } catch (err) {
+    console.warn(`[git] Could not read or clean the origin remote (non-fatal): ${err instanceof Error ? err.message.split("\n")[0] : err}`);
+  }
+  const credFile = join(cloneDir, ".git", LEGACY_CREDENTIAL_FILE);
+  try {
+    if (await backend.exists(credFile)) {
+      await exec(`rm -f ${shellQuote(credFile)}`);
+    }
+  } catch (err) {
+    console.warn(`[git] Could not remove the stored credential file (non-fatal): ${err}`);
+  }
+  try {
+    const helpers = (await exec("git config --local --get-all credential.helper").catch(() => ""))
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line !== "");
+    if (helpers.some((helper) => helper.startsWith("store --file=") && helper.endsWith(LEGACY_CREDENTIAL_FILE))) {
+      await exec(`git config --local --unset-all credential.helper ${shellQuote(`^store --file=.*${LEGACY_CREDENTIAL_FILE}$`)}`);
+    }
+  } catch (err) {
+    console.warn(`[git] Could not unset the stored credential helper (non-fatal): ${err}`);
+  }
 }
 
 /**
@@ -153,26 +159,28 @@ async function reuseExistingRepo(
  * `git clone` refuses to write into a non-empty target, but cloud workspace
  * mounts are not guaranteed empty — a freshly provisioned ext4 PersistentVolume
  * ships a `lost+found` directory at its root. We therefore reproduce clone
- * semantics in place: init the repo, add the (token-injected) origin remote,
- * fetch all branches, and check out the requested branch (or the remote's
- * default branch when none is requested). The result is identical to a clone —
- * a working tree on a tracking branch — but tolerant of pre-existing content.
+ * semantics in place: init the repo, add the (clean) origin remote, fetch
+ * all branches, and check out the requested branch (or the remote's default
+ * branch when none is requested). The result is identical to a clone — a
+ * working tree on a tracking branch — but tolerant of pre-existing content.
+ * The token reaches the two commands that talk to the network, and only them.
  */
 async function cloneInPlace(
   backend: WorkspaceBackend,
   cloneDir: string,
   cloneUrl: string,
   branch: string | undefined,
+  token: string,
 ): Promise<void> {
   await backend.execute(`git init -q ${shellQuote(cloneDir)}`);
 
   const exec = (cmd: string) => backend.execute(cmd, { cwd: cloneDir });
   await exec(`git remote add origin ${shellQuote(cloneUrl)}`);
-  await exec("git fetch --quiet origin");
+  await runNetworkGit(backend, "git fetch --quiet origin", { cwd: cloneDir, token });
 
   const targetBranch = branch && branch.length > 0
     ? branch
-    : await resolveDefaultBranch(backend, cloneDir);
+    : await resolveDefaultBranch(backend, cloneDir, token);
 
   // No target branch means the remote has no branches (empty repository).
   // Leave the initialized repo as-is, matching `git clone` of an empty repo.
@@ -189,11 +197,11 @@ async function cloneInPlace(
 async function resolveDefaultBranch(
   backend: WorkspaceBackend,
   cloneDir: string,
+  token: string,
 ): Promise<string> {
-  const exec = (cmd: string) => backend.execute(cmd, { cwd: cloneDir });
   try {
-    await exec("git remote set-head origin --auto");
-    const ref = (await exec("git symbolic-ref --short refs/remotes/origin/HEAD")).trim();
+    await runNetworkGit(backend, "git remote set-head origin --auto", { cwd: cloneDir, token });
+    const ref = (await backend.execute("git symbolic-ref --short refs/remotes/origin/HEAD", { cwd: cloneDir })).trim();
     return ref.replace(/^origin\//, "");
   } catch {
     return "";
@@ -204,9 +212,8 @@ async function extractGitMetadata(
   cloneDir: string,
   url: string,
   backend: WorkspaceBackend,
-  targetSubdir?: string,
+  writeBackReady: boolean,
 ): Promise<GitMetadata> {
-  const cwd = targetSubdir ?? undefined;
   let branchName = "";
   let headSha = "";
 
@@ -222,21 +229,8 @@ async function extractGitMetadata(
     repoUrl: stripToken(url),
     branch: branchName,
     baseCommit: headSha,
-    gitCredentialsConfigured: false,
+    writeBackReady,
   };
-}
-
-/** Whether the clone's origin remote is exactly `remoteUrl`; a failed read is "no". */
-async function originCarries(
-  backend: WorkspaceBackend,
-  cloneDir: string,
-  remoteUrl: string,
-): Promise<boolean> {
-  try {
-    return (await backend.execute("git remote get-url origin", { cwd: cloneDir })).trim() === remoteUrl;
-  } catch {
-    return false;
-  }
 }
 
 /**
@@ -267,52 +261,6 @@ async function addGitExcludes(backend: WorkspaceBackend, targetSubdir?: string):
 }
 
 /**
- * Configure git credential store for push operations.
- *
- * Three-step process (each step is non-fatal):
- * 1. Clean the remote URL — remove any embedded token from the origin remote
- * 2. Set credential.helper to `store` with a repo-local credential file
- * 3. Write the credential entry to the file
- *
- * Using repo-local config (not --global) keeps credentials scoped to
- * the workspace and avoids polluting the host git config.
- */
-async function configureGitCredentialStore(
-  backend: WorkspaceBackend,
-  cloneDir: string,
-  url: string,
-  token: string,
-): Promise<boolean> {
-  const exec = (cmd: string) => backend.execute(cmd, { cwd: cloneDir });
-  const credFile = join(cloneDir, ".git", ".git-credentials");
-  const cleanUrl = stripToken(url);
-
-  try {
-    await exec(`git remote set-url origin ${shellQuote(cleanUrl)}`);
-  } catch (err) {
-    console.warn(`[git] Failed to clean remote URL (non-fatal): ${err}`);
-    return false;
-  }
-
-  try {
-    await exec(`git config credential.helper ${shellQuote(`store --file=${credFile}`)}`);
-  } catch (err) {
-    console.warn(`[git] Failed to configure credential helper (non-fatal): ${err}`);
-    return false;
-  }
-
-  const credEntry = `https://x-access-token:${token}@github.com\n`;
-  try {
-    await backend.writeFile(credFile, credEntry);
-  } catch (err) {
-    console.warn(`[git] Failed to write credential file (non-fatal): ${err}`);
-    return false;
-  }
-
-  return true;
-}
-
-/**
  * Whether `url` is an HTTPS URL whose host is exactly github.com, the only URL
  * the GitHub token may travel in. The host is read from the parsed URL: a
  * substring test would hand the token to any URL that merely mentions
@@ -328,14 +276,6 @@ function isGitHubHttpsUrl(url: string): boolean {
   return parsed.protocol === "https:" && parsed.hostname === GITHUB_HOST;
 }
 
-/** Sets the URL's credentials to the token (replacing any it carried). */
-function injectToken(url: string, token: string): string {
-  const parsed = new URL(url);
-  parsed.username = "x-access-token";
-  parsed.password = token;
-  return parsed.toString();
-}
-
 /**
  * Quotes one value for a POSIX shell, so it reaches git as a single argument
  * whatever it contains: a quote inside a URL, a branch name or a path cannot
@@ -345,6 +285,7 @@ function shellQuote(value: string): string {
   return `'${value.replaceAll("'", `'\\''`)}'`;
 }
 
+/** `url` with any credentials it carries removed. */
 function stripToken(url: string): string {
-  return url.replace(/https:\/\/[^@]+@/, "https://");
+  return url.replace(/https:\/\/[^@/]+@/, "https://");
 }

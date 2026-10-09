@@ -17,7 +17,7 @@
 import { execFile } from "node:child_process";
 import { readFile, writeFile, access, mkdir } from "node:fs/promises";
 import { join, isAbsolute, resolve, relative } from "node:path";
-import type { WorkspaceBackend } from "./types.js";
+import type { ExecuteOptions, WorkspaceBackend } from "./types.js";
 import {
   classifyPlatformPath,
   resolvePlatformCommand,
@@ -33,14 +33,18 @@ export class LocalWorkspaceBackend implements WorkspaceBackend {
     this.platformDir = platformDir;
   }
 
-  async execute(command: string, options?: { cwd?: string }): Promise<string> {
+  async execute(command: string, options?: ExecuteOptions): Promise<string> {
     const cwd = options?.cwd
       ? (isAbsolute(options.cwd) ? options.cwd : join(this.rootDir, options.cwd))
       : this.rootDir;
 
     let resolvedCommand = command;
-    const env: Record<string, string> | undefined = this.platformDir
-      ? { ...process.env as Record<string, string>, [STIGMER_PLATFORM_DIR_ENV]: this.platformDir }
+    const env: Record<string, string> | undefined = this.platformDir || options?.env
+      ? {
+          ...process.env as Record<string, string>,
+          ...(this.platformDir ? { [STIGMER_PLATFORM_DIR_ENV]: this.platformDir } : {}),
+          ...options?.env,
+        }
       : undefined;
 
     if (this.platformDir) {

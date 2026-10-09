@@ -12,13 +12,17 @@ export interface GitMetadata {
   readonly repoUrl: string;
   readonly branch: string;
   readonly baseCommit: string;
-  readonly gitCredentialsConfigured: boolean;
+  /**
+   * Whether write-back may push this clone: a cloud workspace whose
+   * repository has a token this turn. Local workspaces are never written
+   * back.
+   */
+  readonly writeBackReady: boolean;
 }
 
 export interface ProvisionResult {
   readonly rootDir: string;
   readonly sourceType: SourceType;
-  readonly consumedKeys: readonly string[];
   readonly workspaceDescription: string;
   readonly fileTree?: string;
   readonly gitMetadata?: GitMetadata;
@@ -59,10 +63,21 @@ export class WorkspaceProvisionError extends Error {
  * through their read-only `.stigmer/` route over the same dir
  * (`activities/execute-deep-agent/platform-route.ts`).
  */
+/** Per-command options for {@link WorkspaceBackend.execute}. */
+export interface ExecuteOptions {
+  readonly cwd?: string;
+  readonly env?: Readonly<Record<string, string>>;
+}
+
 export interface WorkspaceBackend {
   readonly rootDir: string;
   readonly platformDir?: string;
-  execute(command: string, options?: { cwd?: string }): Promise<string>;
+  /**
+   * Runs `command` in a shell. `env` adds variables to that one child
+   * process only (the git credential rides there, workspace/git-credential.ts);
+   * the runner's own environment is never changed.
+   */
+  execute(command: string, options?: ExecuteOptions): Promise<string>;
   readFile(path: string): Promise<string>;
   writeFile(path: string, content: string): Promise<void>;
   writeFileBuffer(path: string, content: Buffer): Promise<void>;

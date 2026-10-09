@@ -17,6 +17,7 @@ import type { ProvisionResult, WorkspaceBackend } from "./types.js";
 import { LocalWorkspaceBackend } from "./local-backend.js";
 import { ensurePlatformDir } from "./platform-dir.js";
 import { resolveSessionWorkspaceRoot } from "./session-root.js";
+import type { RepositoryToken } from "../run-values.js";
 
 /**
  * The two runner settings provisioning reads. A `Pick` over `Config` rather
@@ -48,8 +49,9 @@ export interface SessionWorkspaceProvision {
 /**
  * Provision the session's workspace entries for a LOCAL agent.
  *
- * Clones git-repo entries (using the user's GITHUB_TOKEN from the resolved
- * execution environment) and mounts local-path entries, then returns the
+ * Clones git-repo entries (each with its own repository token from the
+ * run's values, handed to the clone's network commands alone) and mounts
+ * local-path entries, then returns the
  * directories the agent should operate in — along with the provision results
  * and backend the git write-back coordinator needs. A session with no
  * workspace entries gets its own empty per-session directory (see
@@ -62,7 +64,7 @@ export interface SessionWorkspaceProvision {
 export async function provisionSessionWorkspace(
   config: SessionProvisionConfig,
   session: Session,
-  envVars: Record<string, string>,
+  repositories: readonly RepositoryToken[],
   sessionId: string,
 ): Promise<SessionWorkspaceProvision> {
   const entries = session.spec?.workspaceEntries ?? [];
@@ -85,7 +87,7 @@ export async function provisionSessionWorkspace(
   const results = await provisioner.provisionAll(
     entries.map((entry) => ({ name: entry.name, source: entry.source })),
     backend,
-    envVars,
+    repositories,
     config.mode === "local",
     config.mode !== "local",
   );
