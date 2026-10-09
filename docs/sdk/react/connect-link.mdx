@@ -45,9 +45,9 @@ Finishes a Connect link's sign-in on the console's callback page: hands
 the login page's code and state (or its error) to the server, and sends
 the browser on to the URL the server answers, the integrator's return URL
 with `stigmer_connect=connected` or `stigmer_connect=error`. The link is
-forgotten once the server has answered for it (the return URL, or a link
-it no longer knows); a failure on the way (the network, an unavailable
-server) keeps it, so a reload of the page tries again. When the server
+forgotten once the server has answered for it (the return URL, or any
+refusal); a failure on the way (the network, an unavailable server) keeps
+it, so a reload of the page tries again. When the server
 saved the login but its answer was lost, the reload finds the link spent
 and says it was already used: the login is saved, and nothing trusted
 says where to send the customer back.

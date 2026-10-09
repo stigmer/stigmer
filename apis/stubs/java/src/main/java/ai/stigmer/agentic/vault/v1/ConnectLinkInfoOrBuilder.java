@@ -12,7 +12,8 @@ public interface ConnectLinkInfoOrBuilder extends
 
   /**
    * <pre>
-   * Who the customer signs in with ("GitHub", or the address's host).
+   * Who the customer signs in with: the provider of the organization's login
+   * app for the address ("Slack"), or the address's host.
    * </pre>
    *
    * <code>string provider_name = 1 [json_name = "providerName"];</code>
@@ -21,7 +22,8 @@ public interface ConnectLinkInfoOrBuilder extends
   java.lang.String getProviderName();
   /**
    * <pre>
-   * Who the customer signs in with ("GitHub", or the address's host).
+   * Who the customer signs in with: the provider of the organization's login
+   * app for the address ("Slack"), or the address's host.
    * </pre>
    *
    * <code>string provider_name = 1 [json_name = "providerName"];</code>

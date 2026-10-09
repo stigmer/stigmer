@@ -2990,5 +2990,8 @@ describe("v24: a sign-in starts from an address", () => {
       "expires_at",
       "used_at",
     ]);
+    // Every new link sweeps expired ones by expiry.
+    const indexes = (db.prepare(`PRAGMA index_list(connect_link)`).all() as Array<{ name: string }>).map((i) => i.name);
+    expect(indexes).toEqual(expect.arrayContaining(["idx_connect_link_expires", "idx_connect_link_vault", "idx_connect_link_org"]));
   });
 });

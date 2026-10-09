@@ -72,7 +72,8 @@ func (x *ConnectLinkTokenInput) GetToken() string {
 // What a Connect link is for.
 type ConnectLinkInfo struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Who the customer signs in with ("GitHub", or the address's host).
+	// Who the customer signs in with: the provider of the organization's login
+	// app for the address ("Slack"), or the address's host.
 	ProviderName string `protobuf:"bytes,1,opt,name=provider_name,json=providerName,proto3" json:"provider_name,omitempty"`
 	// The address the customer signs in to.
 	Address string `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`

@@ -42,7 +42,8 @@ export const ConnectLinkTokenInputSchema: GenMessage<ConnectLinkTokenInput> = /*
  */
 export type ConnectLinkInfo = Message<"ai.stigmer.agentic.vault.v1.ConnectLinkInfo"> & {
   /**
-   * Who the customer signs in with ("GitHub", or the address's host).
+   * Who the customer signs in with: the provider of the organization's login
+   * app for the address ("Slack"), or the address's host.
    *
    * @generated from field: string provider_name = 1;
    */
@@ -182,7 +183,7 @@ export const CompleteConnectLinkOutputSchema: GenMessage<CompleteConnectLinkOutp
  */
 export const ConnectLinkController: GenService<{
   /**
-   * What a Connect link is for, to show before the customer continues.
+   * Get what a Connect link is for, to show before the customer continues.
    *
    * @generated from rpc ai.stigmer.agentic.vault.v1.ConnectLinkController.getConnectLink
    */

@@ -51,7 +51,7 @@ Vault vault = client.vaults().get("vlt_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`get`](#get) | Get a vault by ID. |
 | [`getByExternalId`](#getbyexternalid) | Get a shared vault by the integrator's own id for it. |
 | [`getByReference`](#getbyreference) | Get a vault by its organization-scoped reference (org/slug). |
-| [`getConnectLink`](#getconnectlink) | What a Connect link is for, to show before the customer continues. |
+| [`getConnectLink`](#getconnectlink) | Get what a Connect link is for, to show before the customer continues. |
 | [`getMine`](#getmine) | Get the caller's own My vault in an organization. |
 | [`list`](#list) | List the vaults the caller can see in an organization: their own My vault and the shared vaults they may view. |
 | [`create`](#create) | Create a shared vault in an organization. |
@@ -199,7 +199,7 @@ Vault vault = client.vaults().getByReference(ApiResourceReference.builder()
 
 ### getConnectLink
 
-What a Connect link is for, to show before the customer continues.
+Get what a Connect link is for, to show before the customer continues.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -1196,7 +1196,7 @@ What a Connect link is for.
 
 <TypeTable
   type={{
-    providerName: { type: "string", description: "Who the customer signs in with (\"GitHub\", or the address's host)." },
+    providerName: { type: "string", description: "Who the customer signs in with: the provider of the organization's login app for the address (\"Slack\"), or the address's host." },
     address: { type: "string", description: "The address the customer signs in to." },
     organizationName: { type: "string", description: "The name of the organization the login is saved for." },
   }}

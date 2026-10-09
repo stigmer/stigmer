@@ -60,7 +60,8 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object providerName_ = "";
   /**
    * <pre>
-   * Who the customer signs in with ("GitHub", or the address's host).
+   * Who the customer signs in with: the provider of the organization's login
+   * app for the address ("Slack"), or the address's host.
    * </pre>
    *
    * <code>string provider_name = 1 [json_name = "providerName"];</code>
@@ -81,7 +82,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Who the customer signs in with ("GitHub", or the address's host).
+   * Who the customer signs in with: the provider of the organization's login
+   * app for the address ("Slack"), or the address's host.
    * </pre>
    *
    * <code>string provider_name = 1 [json_name = "providerName"];</code>
@@ -545,7 +547,8 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object providerName_ = "";
     /**
      * <pre>
-     * Who the customer signs in with ("GitHub", or the address's host).
+     * Who the customer signs in with: the provider of the organization's login
+     * app for the address ("Slack"), or the address's host.
      * </pre>
      *
      * <code>string provider_name = 1 [json_name = "providerName"];</code>
@@ -565,7 +568,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Who the customer signs in with ("GitHub", or the address's host).
+     * Who the customer signs in with: the provider of the organization's login
+     * app for the address ("Slack"), or the address's host.
      * </pre>
      *
      * <code>string provider_name = 1 [json_name = "providerName"];</code>
@@ -586,7 +590,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Who the customer signs in with ("GitHub", or the address's host).
+     * Who the customer signs in with: the provider of the organization's login
+     * app for the address ("Slack"), or the address's host.
      * </pre>
      *
      * <code>string provider_name = 1 [json_name = "providerName"];</code>
@@ -603,7 +608,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Who the customer signs in with ("GitHub", or the address's host).
+     * Who the customer signs in with: the provider of the organization's login
+     * app for the address ("Slack"), or the address's host.
      * </pre>
      *
      * <code>string provider_name = 1 [json_name = "providerName"];</code>
@@ -617,7 +623,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Who the customer signs in with ("GitHub", or the address's host).
+     * Who the customer signs in with: the provider of the organization's login
+     * app for the address ("Slack"), or the address's host.
      * </pre>
      *
      * <code>string provider_name = 1 [json_name = "providerName"];</code>

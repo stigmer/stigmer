@@ -51,7 +51,7 @@ class ConnectLinkControllerServicer(object):
     """
 
     def getConnectLink(self, request, context):
-        """What a Connect link is for, to show before the customer continues.
+        """Get what a Connect link is for, to show before the customer continues.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

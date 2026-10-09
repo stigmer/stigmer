@@ -132,6 +132,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 describe("useGitHubConnection", () => {
@@ -220,6 +221,29 @@ describe("useGitHubConnection", () => {
     expect(sessionStorage.getItem(STATE_KEY)).toBeNull();
   });
 
+  it("starts no shell sign-in when the browser refuses storage, and says what to change", async () => {
+    const server: Server = { mine: null, reads: 0, calls: [] };
+    const openUrl = vi.fn();
+    const { result } = renderHook(() => useGitHubConnection(ORG, { openUrl }), {
+      wrapper: wrapperFor(clientFor(server)),
+    });
+    vi.stubGlobal("sessionStorage", {
+      getItem: () => null,
+      setItem: () => {
+        throw new DOMException("denied", "SecurityError");
+      },
+      removeItem: () => {
+        throw new DOMException("denied", "SecurityError");
+      },
+    });
+    await act(async () => {
+      await expect(result.current.connect()).rejects.toThrow("Allow this site to store data");
+    });
+    expect(server.calls).toEqual([]);
+    expect(openUrl).not.toHaveBeenCalled();
+    expect(result.current.connectError?.message).toContain("does not let the page remember the sign-in");
+  });
+
   it("reports a shell that cannot open the login page, and ends connecting", async () => {
     const server: Server = { mine: null, reads: 0, calls: [] };
     const openUrl = vi.fn(async () => {
@@ -263,8 +287,14 @@ describe("useGitHubConnection", () => {
     const server: Server = { mine: vaultWith("GitHub @octocat"), reads: 0, calls: [] };
     const { result } = renderHook(() => useGitHubConnection(ORG), { wrapper: wrapperFor(clientFor(server)) });
     await waitFor(() => expect(result.current.isConnected).toBe(true));
-    vi.spyOn(Storage.prototype, "removeItem").mockImplementation(() => {
-      throw new DOMException("denied", "SecurityError");
+    vi.stubGlobal("sessionStorage", {
+      getItem: () => null,
+      setItem: () => {
+        throw new DOMException("denied", "SecurityError");
+      },
+      removeItem: () => {
+        throw new DOMException("denied", "SecurityError");
+      },
     });
     act(() => result.current.disconnect());
     await waitFor(() => expect(server.calls).toContain("removeConnections:mine:github.com"));

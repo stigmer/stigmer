@@ -31,10 +31,13 @@
  * fails makes the link usable again, since nothing was saved. The saved
  * login's `saved_by` is the link's creator, and a link's sign-in never keeps
  * a refresh token an earlier sign-in left (every customer's saver is the
- * creator). Once the login page has been shown, the customer is sent back
- * to the return URL whatever happens, with `stigmer_connect=connected` or
- * `stigmer_connect=error&reason=...`, a link that expired while they were
- * on the login page included (`reason=expired`).
+ * creator). Once the login page has returned with the link's state, the
+ * customer is sent back to the return URL whatever happens, with
+ * `stigmer_connect=connected` or `stigmer_connect=error&reason=...`, a link
+ * that expired while they were on the login page included
+ * (`reason=expired`). A return without the state (a login page that drops
+ * it, against RFC 6749) carries nothing that names the link, so the
+ * console shows the login page's answer and sends no one anywhere.
  *
  * Proven by __tests__/connect-link.test.ts and the sign-in conformance suite.
  */

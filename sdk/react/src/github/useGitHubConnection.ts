@@ -25,6 +25,7 @@ import { useMyVault } from "../vault/useMyVault.js";
 import { GITHUB_HOST } from "../vault/address.js";
 import { toError } from "../internal/toError.js";
 import { checkedLoginPageUrl } from "../internal/loginPageUrl.js";
+import { SESSION_REFUSED_MESSAGE, canKeepInSession } from "../internal/sessionKeeping.js";
 import { closeOAuthPopup, openOAuthPopup } from "../internal/oauthPopup.js";
 import {
   completeSignInInput,
@@ -182,6 +183,11 @@ export function useGitHubConnection(
     }
     setConnectError(null);
     if (openUrl) {
+      if (!canKeepInSession()) {
+        const refused = new Error(SESSION_REFUSED_MESSAGE);
+        setConnectError(refused);
+        throw refused;
+      }
       setIsConnecting(true);
       try {
         const started = await stigmer.vault.startSignIn(

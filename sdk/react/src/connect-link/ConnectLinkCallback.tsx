@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import { cn } from "@stigmer/theme";
-import { getUserMessage, isNotFound } from "@stigmer/sdk";
+import { getUserMessage, isNotFound, isTransientStreamError } from "@stigmer/sdk";
 import { CompleteConnectLinkInputSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/connect_link_pb";
 import { useStigmer } from "../hooks.js";
 import { isBrowserDestination } from "../internal/loginPageUrl.js";
@@ -28,9 +28,9 @@ export interface ConnectLinkCallbackProps {
  * the login page's code and state (or its error) to the server, and sends
  * the browser on to the URL the server answers, the integrator's return URL
  * with `stigmer_connect=connected` or `stigmer_connect=error`. The link is
- * forgotten once the server has answered for it (the return URL, or a link
- * it no longer knows); a failure on the way (the network, an unavailable
- * server) keeps it, so a reload of the page tries again. When the server
+ * forgotten once the server has answered for it (the return URL, or any
+ * refusal); a failure on the way (the network, an unavailable server) keeps
+ * it, so a reload of the page tries again. When the server
  * saved the login but its answer was lost, the reload finds the link spent
  * and says it was already used: the login is saved, and nothing trusted
  * says where to send the customer back.
@@ -70,7 +70,10 @@ export function ConnectLinkCallback({ token, className }: ConnectLinkCallbackPro
         })
         .catch((err: unknown) => {
           const failed = toError(err);
-          if (isNotFound(failed)) clearPendingConnectLinkToken();
+          // A refusal is the server's last word on this return; only a
+          // failure on the way (the network, an unavailable server) is
+          // worth the reload that tries again.
+          if (!isTransientStreamError(failed)) clearPendingConnectLinkToken();
           setFailure(failed);
         });
     }

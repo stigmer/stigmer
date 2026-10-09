@@ -50,6 +50,7 @@ interface World {
   readonly startRefused?: boolean;
   readonly loginPage?: string;
   readonly completeUnavailable?: boolean;
+  readonly completeRefused?: boolean;
   readonly returnUrl?: string;
   readonly completed: CompleteConnectLinkInput[];
 }
@@ -80,6 +81,9 @@ function providers(world: World) {
           world.completed.push(input);
           if (world.dead) throw new ConnectError("Connect link not found", Code.NotFound);
           if (world.completeUnavailable === true) throw new ConnectError("upstream connect error", Code.Unavailable);
+          if (world.completeRefused === true) {
+            throw new ConnectError("this sign-in was not started by this Connect link", Code.FailedPrecondition);
+          }
           return create(CompleteConnectLinkOutputSchema, {
             returnUrl: world.returnUrl ?? "https://helpdesk.example/done?stigmer_connect=connected",
           });
@@ -170,6 +174,27 @@ describe("useConnectLink", () => {
     expect(assign).not.toHaveBeenCalled();
   });
 
+  it("starts nothing in a tab whose storage refuses writes, and says what to change", async () => {
+    const world: World = { dead: false, completed: [] };
+    const { result } = renderHook(() => useConnectLink(TOKEN), { wrapper: providers(world) });
+    await waitFor(() => expect(result.current.info).not.toBeNull());
+    vi.stubGlobal("sessionStorage", {
+      getItem: () => null,
+      setItem: () => {
+        throw new DOMException("denied", "SecurityError");
+      },
+      removeItem: () => {
+        throw new DOMException("denied", "SecurityError");
+      },
+    });
+    await act(() => result.current.start());
+    expect(result.current.error?.message).toBe(
+      "This browser does not let the page remember the sign-in it starts. Allow this site to store data, then try again.",
+    );
+    expect(result.current.isStarting).toBe(false);
+    expect(assign).not.toHaveBeenCalled();
+  });
+
   it("with no link starts nothing", async () => {
     const { result } = renderHook(() => useConnectLink(null), { wrapper: providers({ dead: false, completed: [] }) });
     await act(() => result.current.start());
@@ -236,6 +261,15 @@ describe("ConnectLinkCallback", () => {
     });
     expect(await screen.findByText(/the app's return address is not an https address/)).toBeTruthy();
     expect(replace).not.toHaveBeenCalled();
+    expect(pendingConnectLinkToken("st")).toBeNull();
+  });
+
+  it("forgets the link when the server refuses the return outright, and says why", async () => {
+    keepPendingLink();
+    render(<ConnectLinkCallback token={TOKEN} />, {
+      wrapper: providers({ dead: false, completeRefused: true, completed: [] }),
+    });
+    expect(await screen.findByText(/not started by this Connect link/)).toBeTruthy();
     expect(pendingConnectLinkToken("st")).toBeNull();
   });
 });

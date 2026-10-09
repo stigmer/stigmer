@@ -188,7 +188,7 @@ public final class ConnectLinkControllerGrpc {
 
     /**
      * <pre>
-     * What a Connect link is for, to show before the customer continues.
+     * Get what a Connect link is for, to show before the customer continues.
      * </pre>
      */
     default void getConnectLink(ai.stigmer.agentic.vault.v1.ConnectLinkTokenInput request,
@@ -268,7 +268,7 @@ public final class ConnectLinkControllerGrpc {
 
     /**
      * <pre>
-     * What a Connect link is for, to show before the customer continues.
+     * Get what a Connect link is for, to show before the customer continues.
      * </pre>
      */
     public void getConnectLink(ai.stigmer.agentic.vault.v1.ConnectLinkTokenInput request,
@@ -331,7 +331,7 @@ public final class ConnectLinkControllerGrpc {
 
     /**
      * <pre>
-     * What a Connect link is for, to show before the customer continues.
+     * Get what a Connect link is for, to show before the customer continues.
      * </pre>
      */
     public ai.stigmer.agentic.vault.v1.ConnectLinkInfo getConnectLink(ai.stigmer.agentic.vault.v1.ConnectLinkTokenInput request) throws io.grpc.StatusException {
@@ -391,7 +391,7 @@ public final class ConnectLinkControllerGrpc {
 
     /**
      * <pre>
-     * What a Connect link is for, to show before the customer continues.
+     * Get what a Connect link is for, to show before the customer continues.
      * </pre>
      */
     public ai.stigmer.agentic.vault.v1.ConnectLinkInfo getConnectLink(ai.stigmer.agentic.vault.v1.ConnectLinkTokenInput request) {
@@ -451,7 +451,7 @@ public final class ConnectLinkControllerGrpc {
 
     /**
      * <pre>
-     * What a Connect link is for, to show before the customer continues.
+     * Get what a Connect link is for, to show before the customer continues.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.vault.v1.ConnectLinkInfo> getConnectLink(

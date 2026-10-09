@@ -22,7 +22,7 @@ export const ConnectLinkController = {
   typeName: "ai.stigmer.agentic.vault.v1.ConnectLinkController",
   methods: {
     /**
-     * What a Connect link is for, to show before the customer continues.
+     * Get what a Connect link is for, to show before the customer continues.
      *
      * @generated from rpc ai.stigmer.agentic.vault.v1.ConnectLinkController.getConnectLink
      */

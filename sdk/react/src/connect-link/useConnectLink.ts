@@ -30,6 +30,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/connect_link_pb";
 import { useStigmer } from "../hooks.js";
 import { checkedLoginPageUrl } from "../internal/loginPageUrl.js";
+import { SESSION_REFUSED_MESSAGE, canKeepInSession } from "../internal/sessionKeeping.js";
 import { useFetch } from "../internal/useFetch.js";
 import { toError } from "../internal/toError.js";
 
@@ -111,8 +112,12 @@ export function useConnectLink(token: string | null): UseConnectLinkReturn {
 
   const start = useCallback(async () => {
     if (!token) return;
-    setIsStarting(true);
     setStartError(null);
+    if (!canKeepInSession()) {
+      setStartError(new Error(SESSION_REFUSED_MESSAGE));
+      return;
+    }
+    setIsStarting(true);
     try {
       const started = await stigmer.vault.startConnectLink(create(ConnectLinkTokenInputSchema, { token }));
       const loginPage = checkedLoginPageUrl(started.authorizationUrl);

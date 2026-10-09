@@ -37,7 +37,7 @@ const (
 // else is asked. An unknown, expired or used link answers NOT_FOUND, the same
 // for all three, so a guessed or forwarded link learns nothing.
 type ConnectLinkControllerClient interface {
-	// What a Connect link is for, to show before the customer continues.
+	// Get what a Connect link is for, to show before the customer continues.
 	GetConnectLink(ctx context.Context, in *ConnectLinkTokenInput, opts ...grpc.CallOption) (*ConnectLinkInfo, error)
 	// Start the sign-in a Connect link is for. Answers the login page to send
 	// the customer to; it returns them to the console's callback page.
@@ -100,7 +100,7 @@ func (c *connectLinkControllerClient) CompleteConnectLink(ctx context.Context, i
 // else is asked. An unknown, expired or used link answers NOT_FOUND, the same
 // for all three, so a guessed or forwarded link learns nothing.
 type ConnectLinkControllerServer interface {
-	// What a Connect link is for, to show before the customer continues.
+	// Get what a Connect link is for, to show before the customer continues.
 	GetConnectLink(context.Context, *ConnectLinkTokenInput) (*ConnectLinkInfo, error)
 	// Start the sign-in a Connect link is for. Answers the login page to send
 	// the customer to; it returns them to the console's callback page.
