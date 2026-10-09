@@ -329,6 +329,21 @@ describe("a Connect link", () => {
     await expectRefusal(startConnectLink(deps, tokenInput(token)), Code.Internal, "");
   });
 
+  it("is a fault, not a refusal, when the clients Stigmer keeps cannot be read", async () => {
+    await seedSharedVault(rig);
+    await seedOrganizationApp(rig);
+    const failing = withOverrides(rig.store.oauthClientRegistrations, { holds: fault });
+    await expectRefusal(
+      createConnectLink(
+        rig.deps({ clientRegistrations: failing }),
+        create(CreateConnectLinkInputSchema, { org: ORG, vaultId: "vlt_shared", address: VENDOR_ADDRESS, returnUrl: "https://helpdesk.example/done" }),
+        alice,
+      ),
+      Code.Internal,
+      "",
+    );
+  });
+
   it("whose spend loses a race answers NOT_FOUND and saves nothing", async () => {
     const token = await made();
     const state = (await startConnectLink(rig.deps(), tokenInput(token))).state;

@@ -276,7 +276,6 @@ export async function linkLoginApp(deps: SignInDeps, org: string, address: strin
 
 /** Whether a client id is one Stigmer itself signs in with. */
 async function isStigmersClient(deps: SignInDeps, clientId: string): Promise<boolean> {
-  if (clientId === "") return false;
   if (deps.clientDocumentUrl !== "" && clientId === deps.clientDocumentUrl) return true;
   for (const credentials of deps.loginProviders.values()) {
     if (credentials.clientId === clientId) return true;
