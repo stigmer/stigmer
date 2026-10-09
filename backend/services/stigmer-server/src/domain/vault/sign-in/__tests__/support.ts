@@ -79,6 +79,10 @@ export interface Levers {
   forgotten: Set<string>;
   /** The discovered login server refuses every client at authorize (a redirect-host allowlist). */
   rejectAuthorize: boolean;
+  /** The authorize endpoint cannot be reached (the pre-flight is inconclusive). */
+  authorizeUnreachable: boolean;
+  /** Registrations answer HTTP 500. */
+  failRegistrations: boolean;
   /** The protected resource's document names another resource. */
   foreignResource: boolean;
   /** The account the userinfo endpoint answers; undefined answers 404. */
@@ -116,6 +120,8 @@ export function openSignInRig(): SignInRig {
     noRegistration: false,
     forgotten: new Set(),
     rejectAuthorize: false,
+    authorizeUnreachable: false,
+    failRegistrations: false,
     foreignResource: false,
     account: undefined,
   };
@@ -184,10 +190,16 @@ export function openSignInRig(): SignInRig {
       });
     }
     if (url === `${LOGIN_SERVER}/register`) {
+      if (levers.failRegistrations) {
+        return json(500, { error: "server_error" });
+      }
       registrations += 1;
       return json(201, { client_id: `dcr-client-${registrations}` });
     }
     if (parsed.origin + parsed.pathname === `${LOGIN_SERVER}/authorize`) {
+      if (levers.authorizeUnreachable) {
+        throw new Error("connect ECONNRESET");
+      }
       return levers.rejectAuthorize || levers.forgotten.has(parsed.searchParams.get("client_id") ?? "")
         ? json(400, { error: "invalid_client", error_description: "unknown client" })
         : new Response("login page", { status: 200 });

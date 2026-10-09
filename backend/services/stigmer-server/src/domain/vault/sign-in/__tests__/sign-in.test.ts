@@ -290,6 +290,9 @@ describe("Stigmer's OAuth client document", () => {
       response_types: ["code"],
       token_endpoint_auth_method: "none",
     });
+    const head = await fetch(`http://127.0.0.1:${port}/v1/oauth/client.json`, { method: "HEAD" });
+    expect(head.status).toBe(200);
+    expect(await head.text()).toBe("");
     expect((await fetch(`http://127.0.0.1:${port}/v1/oauth/client.json`, { method: "POST" })).status).toBe(405);
   });
 });

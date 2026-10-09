@@ -51,19 +51,15 @@ export function newNormalizeAddressesStep(): PipelineStep<typeof OAuthAppSchema>
     name: "NormalizeAddresses",
     execute(ctx: RequestContext<typeof OAuthAppSchema>): void {
       const spec = ctx.newState.spec;
-      if (spec === undefined) {
-        return;
-      }
       const normalized: string[] = [];
-      for (const [index, address] of spec.addresses.entries()) {
+      for (const [index, address] of (spec?.addresses ?? []).entries()) {
         let value: string;
         try {
           value = normalizeAddress(address);
         } catch (error) {
-          if (error instanceof InvalidAddressError) {
-            throw invalidArgumentError(`spec.addresses[${index}]: ${error.message}`);
-          }
-          throw error;
+          throw error instanceof InvalidAddressError
+            ? invalidArgumentError(`spec.addresses[${index}]: ${error.message}`)
+            : error;
         }
         if (normalized.includes(value)) {
           throw invalidArgumentError(
@@ -72,7 +68,9 @@ export function newNormalizeAddressesStep(): PipelineStep<typeof OAuthAppSchema>
         }
         normalized.push(value);
       }
-      spec.addresses = normalized;
+      if (spec !== undefined) {
+        spec.addresses = normalized;
+      }
     },
   };
 }

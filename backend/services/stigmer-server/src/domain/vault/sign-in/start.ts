@@ -158,10 +158,7 @@ export function signInAddress(input: string): string {
   try {
     return normalizeAddress(input);
   } catch (error) {
-    if (error instanceof InvalidAddressError) {
-      throw invalidArgumentError(error.message);
-    }
-    throw error;
+    throw error instanceof InvalidAddressError ? invalidArgumentError(error.message) : error;
   }
 }
 

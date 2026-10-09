@@ -5,8 +5,9 @@
  * so a vault whose name claim is missing or held by another row goes too;
  * a member's departure from one organization does the same there alone; a My vault row that does not decode
  * fails the account's deletion before any vault goes, and the retry after
- * the repair deletes them all; and a name that cannot be released after
- * the row is gone is logged, never failing the delete.
+ * the repair deletes them all; and a name that cannot be released, or a
+ * Connect link that cannot be removed, after the row is gone is logged,
+ * never failing the delete.
  */
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -17,9 +18,16 @@ import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb"
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
+import { RequestContext } from "../../../pipeline/request-context.js";
+import { EXISTING_RESOURCE_KEY } from "../../../pipeline/steps/load-existing.js";
 import type { Store } from "../../../store/interface.js";
 
-import { deleteAllMyVaultsOf, deleteMyVaultOf, releaseVaultNames } from "../delete.js";
+import {
+  deleteAllMyVaultsOf,
+  deleteMyVaultOf,
+  newDeleteVaultConnectLinksStep,
+  releaseVaultNames,
+} from "../delete.js";
 import type { VaultDeleteDeps } from "../delete.js";
 import { loadVault } from "../service.js";
 import type { VaultService } from "../service.js";
@@ -205,5 +213,28 @@ describe("releaseVaultNames", () => {
       }),
     );
     expect(errors).toEqual(["vault deleted but a name it held could not be released"]);
+  });
+});
+
+describe("the Connect links of a deleted vault", () => {
+  it("are removed with it, and one that cannot be is logged, never failing the delete", async () => {
+    const errors: string[] = [];
+    const store = {
+      connectLinks: {
+        deleteByVault: async () => {
+          throw new Error("links table gone");
+        },
+      },
+    } as unknown as Store;
+    const logger = {
+      ...silentLogger,
+      error: (message: string) => {
+        errors.push(message);
+      },
+    };
+    const ctx = new RequestContext(VaultSchema, create(VaultSchema), ana);
+    ctx.set(EXISTING_RESOURCE_KEY, create(VaultSchema, { metadata: { id: "vlt_gone", org: "acme" } }));
+    await newDeleteVaultConnectLinksStep<typeof VaultSchema>(store, logger).execute(ctx);
+    expect(errors).toEqual(["vault deleted but its Connect links could not be removed"]);
   });
 });
