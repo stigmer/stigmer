@@ -17,7 +17,7 @@ public interface ExecutionValuesOrBuilder extends
    * tool of the run declares.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.DeliveredValue&gt; agent = 1 [json_name = "agent"];</code>
+   * <code>map&lt;string, string&gt; agent = 1 [json_name = "agent"];</code>
    */
   int getAgentCount();
   /**
@@ -27,7 +27,7 @@ public interface ExecutionValuesOrBuilder extends
    * tool of the run declares.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.DeliveredValue&gt; agent = 1 [json_name = "agent"];</code>
+   * <code>map&lt;string, string&gt; agent = 1 [json_name = "agent"];</code>
    */
   boolean containsAgent(
       java.lang.String key);
@@ -35,7 +35,7 @@ public interface ExecutionValuesOrBuilder extends
    * Use {@link #getAgentMap()} instead.
    */
   @java.lang.Deprecated
-  java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValue>
+  java.util.Map<java.lang.String, java.lang.String>
   getAgent();
   /**
    * <pre>
@@ -44,9 +44,9 @@ public interface ExecutionValuesOrBuilder extends
    * tool of the run declares.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.DeliveredValue&gt; agent = 1 [json_name = "agent"];</code>
+   * <code>map&lt;string, string&gt; agent = 1 [json_name = "agent"];</code>
    */
-  java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValue>
+  java.util.Map<java.lang.String, java.lang.String>
   getAgentMap();
   /**
    * <pre>
@@ -55,13 +55,13 @@ public interface ExecutionValuesOrBuilder extends
    * tool of the run declares.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.DeliveredValue&gt; agent = 1 [json_name = "agent"];</code>
+   * <code>map&lt;string, string&gt; agent = 1 [json_name = "agent"];</code>
    */
   /* nullable */
-ai.stigmer.agentic.vault.v1.DeliveredValue getAgentOrDefault(
+java.lang.String getAgentOrDefault(
       java.lang.String key,
       /* nullable */
-ai.stigmer.agentic.vault.v1.DeliveredValue defaultValue);
+java.lang.String defaultValue);
   /**
    * <pre>
    * The agent's own keys, for its shell and hooks: secrets by name and plain
@@ -69,9 +69,9 @@ ai.stigmer.agentic.vault.v1.DeliveredValue defaultValue);
    * tool of the run declares.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.DeliveredValue&gt; agent = 1 [json_name = "agent"];</code>
+   * <code>map&lt;string, string&gt; agent = 1 [json_name = "agent"];</code>
    */
-  ai.stigmer.agentic.vault.v1.DeliveredValue getAgentOrThrow(
+  java.lang.String getAgentOrThrow(
       java.lang.String key);
 
   /**

@@ -1111,8 +1111,7 @@
               "kind": "string"
             },
             "valueType": {
-              "kind": "message",
-              "messageType": "DeliveredValue"
+              "kind": "string"
             }
           },
           "description": "The agent's own keys, for its shell and hooks: secrets by name and plain\n defaults, never a connection or a repository's token, and never a key a\n tool of the run declares.",

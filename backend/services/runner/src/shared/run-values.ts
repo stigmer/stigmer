@@ -72,20 +72,12 @@ export class RunValuesRefusedError extends Error {
 
 /** The fetch's answer as the runner keeps it. */
 export function runValuesOf(answer: ExecutionValues): RunValues {
-  const agent: Record<string, string> = {};
-  for (const [key, delivered] of Object.entries(answer.agent)) {
-    agent[key] = delivered.value;
-  }
   const tools = new Map<string, ToolValueGroup>();
   for (const tool of answer.tools) {
-    const values: Record<string, string> = {};
-    for (const [key, delivered] of Object.entries(tool.values)) {
-      values[key] = delivered.value;
-    }
-    tools.set(tool.mcpServerId, { url: tool.url, values });
+    tools.set(tool.mcpServerId, { url: tool.url, values: { ...tool.values } });
   }
   return {
-    agent,
+    agent: { ...answer.agent },
     tools,
     repositories: answer.repositories.map(({ name, url, token }) => ({ name, url, token })),
   };

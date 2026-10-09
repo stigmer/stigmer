@@ -42,11 +42,6 @@ public final class ValuesProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_vault_v1_ExecutionValues_AgentEntry_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_agentic_vault_v1_DeliveredValue_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_agentic_vault_v1_DeliveredValue_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_vault_v1_ToolValues_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -75,34 +70,30 @@ public final class ValuesProto extends com.google.protobuf.GeneratedFile {
       "mer/commons/rpc/method_options.proto\032\033bu" +
       "f/validate/validate.proto\"G\n\031FetchExecut" +
       "ionValuesInput\022*\n\014execution_id\030\001 \001(\tB\007\272H" +
-      "\004r\002\020\001R\013executionId\"\331\002\n\017ExecutionValues\022M" +
+      "\004r\002\020\001R\013executionId\"\254\002\n\017ExecutionValues\022M" +
       "\n\005agent\030\001 \003(\01327.ai.stigmer.agentic.vault" +
       ".v1.ExecutionValues.AgentEntryR\005agent\022=\n" +
       "\005tools\030\002 \003(\0132\'.ai.stigmer.agentic.vault." +
       "v1.ToolValuesR\005tools\022Q\n\014repositories\030\003 \003" +
       "(\0132-.ai.stigmer.agentic.vault.v1.Reposit" +
-      "oryValuesR\014repositories\032e\n\nAgentEntry\022\020\n" +
-      "\003key\030\001 \001(\tR\003key\022A\n\005value\030\002 \001(\0132+.ai.stig" +
-      "mer.agentic.vault.v1.DeliveredValueR\005val" +
-      "ue:\0028\001\"C\n\016DeliveredValue\022\024\n\005value\030\001 \001(\tR" +
-      "\005value\022\033\n\tis_secret\030\002 \001(\010R\010isSecret\"\367\001\n\n" +
-      "ToolValues\022\"\n\rmcp_server_id\030\001 \001(\tR\013mcpSe" +
-      "rverId\022\020\n\003url\030\002 \001(\tR\003url\022K\n\006values\030\003 \003(\013" +
-      "23.ai.stigmer.agentic.vault.v1.ToolValue" +
-      "s.ValuesEntryR\006values\032f\n\013ValuesEntry\022\020\n\003" +
-      "key\030\001 \001(\tR\003key\022A\n\005value\030\002 \001(\0132+.ai.stigm" +
-      "er.agentic.vault.v1.DeliveredValueR\005valu" +
-      "e:\0028\001\"N\n\020RepositoryValues\022\022\n\004name\030\001 \001(\tR" +
-      "\004name\022\020\n\003url\030\002 \001(\tR\003url\022\024\n\005token\030\003 \001(\tR\005" +
-      "token2\221\001\n\024VaultValueController\022y\n\013fetchV" +
-      "alues\0226.ai.stigmer.agentic.vault.v1.Fetc" +
-      "hExecutionValuesInput\032,.ai.stigmer.agent" +
-      "ic.vault.v1.ExecutionValues\"\004\320\270\030\001B\236\001B\013Va" +
-      "luesProtoP\001\242\002\004ASAV\252\002\033Ai.Stigmer.Agentic." +
-      "Vault.V1\312\002\033Ai\\Stigmer\\Agentic\\Vault\\V1\342\002" +
-      "\'Ai\\Stigmer\\Agentic\\Vault\\V1\\GPBMetadata" +
-      "\352\002\037Ai::Stigmer::Agentic::Vault::V1b\006prot" +
-      "o3"
+      "oryValuesR\014repositories\0328\n\nAgentEntry\022\020\n" +
+      "\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005value:\0028" +
+      "\001\"\312\001\n\nToolValues\022\"\n\rmcp_server_id\030\001 \001(\tR" +
+      "\013mcpServerId\022\020\n\003url\030\002 \001(\tR\003url\022K\n\006values" +
+      "\030\003 \003(\01323.ai.stigmer.agentic.vault.v1.Too" +
+      "lValues.ValuesEntryR\006values\0329\n\013ValuesEnt" +
+      "ry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005val" +
+      "ue:\0028\001\"N\n\020RepositoryValues\022\022\n\004name\030\001 \001(\t" +
+      "R\004name\022\020\n\003url\030\002 \001(\tR\003url\022\024\n\005token\030\003 \001(\tR" +
+      "\005token2\221\001\n\024VaultValueController\022y\n\013fetch" +
+      "Values\0226.ai.stigmer.agentic.vault.v1.Fet" +
+      "chExecutionValuesInput\032,.ai.stigmer.agen" +
+      "tic.vault.v1.ExecutionValues\"\004\320\270\030\001B\236\001B\013V" +
+      "aluesProtoP\001\242\002\004ASAV\252\002\033Ai.Stigmer.Agentic" +
+      ".Vault.V1\312\002\033Ai\\Stigmer\\Agentic\\Vault\\V1\342" +
+      "\002\'Ai\\Stigmer\\Agentic\\Vault\\V1\\GPBMetadat" +
+      "a\352\002\037Ai::Stigmer::Agentic::Vault::V1b\006pro" +
+      "to3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -128,14 +119,8 @@ public final class ValuesProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_vault_v1_ExecutionValues_AgentEntry_descriptor,
         new java.lang.String[] { "Key", "Value", });
-    internal_static_ai_stigmer_agentic_vault_v1_DeliveredValue_descriptor =
-      getDescriptor().getMessageType(2);
-    internal_static_ai_stigmer_agentic_vault_v1_DeliveredValue_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_agentic_vault_v1_DeliveredValue_descriptor,
-        new java.lang.String[] { "Value", "IsSecret", });
     internal_static_ai_stigmer_agentic_vault_v1_ToolValues_descriptor =
-      getDescriptor().getMessageType(3);
+      getDescriptor().getMessageType(2);
     internal_static_ai_stigmer_agentic_vault_v1_ToolValues_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_vault_v1_ToolValues_descriptor,
@@ -147,7 +132,7 @@ public final class ValuesProto extends com.google.protobuf.GeneratedFile {
         internal_static_ai_stigmer_agentic_vault_v1_ToolValues_ValuesEntry_descriptor,
         new java.lang.String[] { "Key", "Value", });
     internal_static_ai_stigmer_agentic_vault_v1_RepositoryValues_descriptor =
-      getDescriptor().getMessageType(4);
+      getDescriptor().getMessageType(3);
     internal_static_ai_stigmer_agentic_vault_v1_RepositoryValues_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_vault_v1_RepositoryValues_descriptor,

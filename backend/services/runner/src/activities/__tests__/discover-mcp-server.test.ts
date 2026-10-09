@@ -844,7 +844,7 @@ function makeMockStigmerClient(opts: {
     : [{
         mcpServerId: opts.mcpServer?.metadata?.id ?? "",
         url,
-        values: Object.fromEntries(Object.entries(opts.values).map(([key, value]) => [key, { value, isSecret: true }])),
+        values: { ...opts.values },
       }];
   return {
     getMcpServer: vi.fn().mockResolvedValue(opts.mcpServer),

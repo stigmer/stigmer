@@ -786,7 +786,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
         await runCredentialOf(people.member, created.metadata!.id),
       );
       const fetched = await fetchRunValues(runner, created.metadata!.id);
-      expect(fetched.agent.RAS_BRIDGE_KEY?.value).toBe("member-value");
+      expect(fetched.agent.RAS_BRIDGE_KEY).toBe("member-value");
       expect(
         fetched.agent.RAS_FOUNDER_ONLY_KEY,
         "the founder's own key never reaches the member's run",

@@ -70,19 +70,19 @@ private static final long serialVersionUID = 0L;
   public static final int AGENT_FIELD_NUMBER = 1;
   private static final class AgentDefaultEntryHolder {
     static final com.google.protobuf.MapEntry<
-        java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValue> defaultEntry =
+        java.lang.String, java.lang.String> defaultEntry =
             com.google.protobuf.MapEntry
-            .<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValue>newDefaultInstance(
+            .<java.lang.String, java.lang.String>newDefaultInstance(
                 ai.stigmer.agentic.vault.v1.ValuesProto.internal_static_ai_stigmer_agentic_vault_v1_ExecutionValues_AgentEntry_descriptor, 
                 com.google.protobuf.WireFormat.FieldType.STRING,
                 "",
-                com.google.protobuf.WireFormat.FieldType.MESSAGE,
-                ai.stigmer.agentic.vault.v1.DeliveredValue.getDefaultInstance());
+                com.google.protobuf.WireFormat.FieldType.STRING,
+                "");
   }
   @SuppressWarnings("serial")
   private com.google.protobuf.MapField<
-      java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValue> agent_;
-  private com.google.protobuf.MapField<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValue>
+      java.lang.String, java.lang.String> agent_;
+  private com.google.protobuf.MapField<java.lang.String, java.lang.String>
   internalGetAgent() {
     if (agent_ == null) {
       return com.google.protobuf.MapField.emptyMapField(
@@ -100,7 +100,7 @@ private static final long serialVersionUID = 0L;
    * tool of the run declares.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.DeliveredValue&gt; agent = 1 [json_name = "agent"];</code>
+   * <code>map&lt;string, string&gt; agent = 1 [json_name = "agent"];</code>
    */
   @java.lang.Override
   public boolean containsAgent(
@@ -113,7 +113,7 @@ private static final long serialVersionUID = 0L;
    */
   @java.lang.Override
   @java.lang.Deprecated
-  public java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValue> getAgent() {
+  public java.util.Map<java.lang.String, java.lang.String> getAgent() {
     return getAgentMap();
   }
   /**
@@ -123,10 +123,10 @@ private static final long serialVersionUID = 0L;
    * tool of the run declares.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.DeliveredValue&gt; agent = 1 [json_name = "agent"];</code>
+   * <code>map&lt;string, string&gt; agent = 1 [json_name = "agent"];</code>
    */
   @java.lang.Override
-  public java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValue> getAgentMap() {
+  public java.util.Map<java.lang.String, java.lang.String> getAgentMap() {
     return internalGetAgent().getMap();
   }
   /**
@@ -136,16 +136,16 @@ private static final long serialVersionUID = 0L;
    * tool of the run declares.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.DeliveredValue&gt; agent = 1 [json_name = "agent"];</code>
+   * <code>map&lt;string, string&gt; agent = 1 [json_name = "agent"];</code>
    */
   @java.lang.Override
   public /* nullable */
-ai.stigmer.agentic.vault.v1.DeliveredValue getAgentOrDefault(
+java.lang.String getAgentOrDefault(
       java.lang.String key,
       /* nullable */
-ai.stigmer.agentic.vault.v1.DeliveredValue defaultValue) {
+java.lang.String defaultValue) {
     if (key == null) { throw new NullPointerException("map key"); }
-    java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValue> map =
+    java.util.Map<java.lang.String, java.lang.String> map =
         internalGetAgent().getMap();
     return map.containsKey(key) ? map.get(key) : defaultValue;
   }
@@ -156,13 +156,13 @@ ai.stigmer.agentic.vault.v1.DeliveredValue defaultValue) {
    * tool of the run declares.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.DeliveredValue&gt; agent = 1 [json_name = "agent"];</code>
+   * <code>map&lt;string, string&gt; agent = 1 [json_name = "agent"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.agentic.vault.v1.DeliveredValue getAgentOrThrow(
+  public java.lang.String getAgentOrThrow(
       java.lang.String key) {
     if (key == null) { throw new NullPointerException("map key"); }
-    java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValue> map =
+    java.util.Map<java.lang.String, java.lang.String> map =
         internalGetAgent().getMap();
     if (!map.containsKey(key)) {
       throw new java.lang.IllegalArgumentException();
@@ -327,9 +327,9 @@ ai.stigmer.agentic.vault.v1.DeliveredValue defaultValue) {
     if (size != -1) return size;
 
     size = 0;
-    for (java.util.Map.Entry<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValue> entry
+    for (java.util.Map.Entry<java.lang.String, java.lang.String> entry
          : internalGetAgent().getMap().entrySet()) {
-      com.google.protobuf.MapEntry<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValue>
+      com.google.protobuf.MapEntry<java.lang.String, java.lang.String>
       agent__ = AgentDefaultEntryHolder.defaultEntry.newBuilderForType()
           .setKey(entry.getKey())
           .setValue(entry.getValue())
@@ -628,7 +628,8 @@ ai.stigmer.agentic.vault.v1.DeliveredValue defaultValue) {
     private void buildPartial0(ai.stigmer.agentic.vault.v1.ExecutionValues result) {
       int from_bitField0_ = bitField0_;
       if (((from_bitField0_ & 0x00000001) != 0)) {
-        result.agent_ = internalGetAgent().build(AgentDefaultEntryHolder.defaultEntry);
+        result.agent_ = internalGetAgent();
+        result.agent_.makeImmutable();
       }
     }
 
@@ -726,10 +727,10 @@ ai.stigmer.agentic.vault.v1.DeliveredValue defaultValue) {
               done = true;
               break;
             case 10: {
-              com.google.protobuf.MapEntry<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValue>
+              com.google.protobuf.MapEntry<java.lang.String, java.lang.String>
               agent__ = input.readMessage(
                   AgentDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
-              internalGetMutableAgent().ensureBuilderMap().put(
+              internalGetMutableAgent().getMutableMap().put(
                   agent__.getKey(), agent__.getValue());
               bitField0_ |= 0x00000001;
               break;
@@ -777,40 +778,31 @@ ai.stigmer.agentic.vault.v1.DeliveredValue defaultValue) {
     }
     private int bitField0_;
 
-    private static final class AgentConverter implements com.google.protobuf.MapFieldBuilder.Converter<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValueOrBuilder, ai.stigmer.agentic.vault.v1.DeliveredValue> {
-      @java.lang.Override
-      public ai.stigmer.agentic.vault.v1.DeliveredValue build(ai.stigmer.agentic.vault.v1.DeliveredValueOrBuilder val) {
-        if (val instanceof ai.stigmer.agentic.vault.v1.DeliveredValue) { return (ai.stigmer.agentic.vault.v1.DeliveredValue) val; }
-        return ((ai.stigmer.agentic.vault.v1.DeliveredValue.Builder) val).build();
-      }
-
-      @java.lang.Override
-      public com.google.protobuf.MapEntry<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValue> defaultEntry() {
-        return AgentDefaultEntryHolder.defaultEntry;
-      }
-    };
-    private static final AgentConverter agentConverter = new AgentConverter();
-
-    private com.google.protobuf.MapFieldBuilder<
-        java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValueOrBuilder, ai.stigmer.agentic.vault.v1.DeliveredValue, ai.stigmer.agentic.vault.v1.DeliveredValue.Builder> agent_;
-    private com.google.protobuf.MapFieldBuilder<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValueOrBuilder, ai.stigmer.agentic.vault.v1.DeliveredValue, ai.stigmer.agentic.vault.v1.DeliveredValue.Builder>
+    private com.google.protobuf.MapField<
+        java.lang.String, java.lang.String> agent_;
+    private com.google.protobuf.MapField<java.lang.String, java.lang.String>
         internalGetAgent() {
       if (agent_ == null) {
-        return new com.google.protobuf.MapFieldBuilder<>(agentConverter);
+        return com.google.protobuf.MapField.emptyMapField(
+            AgentDefaultEntryHolder.defaultEntry);
       }
       return agent_;
     }
-    private com.google.protobuf.MapFieldBuilder<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValueOrBuilder, ai.stigmer.agentic.vault.v1.DeliveredValue, ai.stigmer.agentic.vault.v1.DeliveredValue.Builder>
+    private com.google.protobuf.MapField<java.lang.String, java.lang.String>
         internalGetMutableAgent() {
       if (agent_ == null) {
-        agent_ = new com.google.protobuf.MapFieldBuilder<>(agentConverter);
+        agent_ = com.google.protobuf.MapField.newMapField(
+            AgentDefaultEntryHolder.defaultEntry);
+      }
+      if (!agent_.isMutable()) {
+        agent_ = agent_.copy();
       }
       bitField0_ |= 0x00000001;
       onChanged();
       return agent_;
     }
     public int getAgentCount() {
-      return internalGetAgent().ensureBuilderMap().size();
+      return internalGetAgent().getMap().size();
     }
     /**
      * <pre>
@@ -819,20 +811,20 @@ ai.stigmer.agentic.vault.v1.DeliveredValue defaultValue) {
      * tool of the run declares.
      * </pre>
      *
-     * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.DeliveredValue&gt; agent = 1 [json_name = "agent"];</code>
+     * <code>map&lt;string, string&gt; agent = 1 [json_name = "agent"];</code>
      */
     @java.lang.Override
     public boolean containsAgent(
         java.lang.String key) {
       if (key == null) { throw new NullPointerException("map key"); }
-      return internalGetAgent().ensureBuilderMap().containsKey(key);
+      return internalGetAgent().getMap().containsKey(key);
     }
     /**
      * Use {@link #getAgentMap()} instead.
      */
     @java.lang.Override
     @java.lang.Deprecated
-    public java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValue> getAgent() {
+    public java.util.Map<java.lang.String, java.lang.String> getAgent() {
       return getAgentMap();
     }
     /**
@@ -842,11 +834,11 @@ ai.stigmer.agentic.vault.v1.DeliveredValue defaultValue) {
      * tool of the run declares.
      * </pre>
      *
-     * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.DeliveredValue&gt; agent = 1 [json_name = "agent"];</code>
+     * <code>map&lt;string, string&gt; agent = 1 [json_name = "agent"];</code>
      */
     @java.lang.Override
-    public java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValue> getAgentMap() {
-      return internalGetAgent().getImmutableMap();
+    public java.util.Map<java.lang.String, java.lang.String> getAgentMap() {
+      return internalGetAgent().getMap();
     }
     /**
      * <pre>
@@ -855,17 +847,18 @@ ai.stigmer.agentic.vault.v1.DeliveredValue defaultValue) {
      * tool of the run declares.
      * </pre>
      *
-     * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.DeliveredValue&gt; agent = 1 [json_name = "agent"];</code>
+     * <code>map&lt;string, string&gt; agent = 1 [json_name = "agent"];</code>
      */
     @java.lang.Override
     public /* nullable */
-ai.stigmer.agentic.vault.v1.DeliveredValue getAgentOrDefault(
+java.lang.String getAgentOrDefault(
         java.lang.String key,
         /* nullable */
-ai.stigmer.agentic.vault.v1.DeliveredValue defaultValue) {
+java.lang.String defaultValue) {
       if (key == null) { throw new NullPointerException("map key"); }
-      java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValueOrBuilder> map = internalGetMutableAgent().ensureBuilderMap();
-      return map.containsKey(key) ? agentConverter.build(map.get(key)) : defaultValue;
+      java.util.Map<java.lang.String, java.lang.String> map =
+          internalGetAgent().getMap();
+      return map.containsKey(key) ? map.get(key) : defaultValue;
     }
     /**
      * <pre>
@@ -874,21 +867,23 @@ ai.stigmer.agentic.vault.v1.DeliveredValue defaultValue) {
      * tool of the run declares.
      * </pre>
      *
-     * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.DeliveredValue&gt; agent = 1 [json_name = "agent"];</code>
+     * <code>map&lt;string, string&gt; agent = 1 [json_name = "agent"];</code>
      */
     @java.lang.Override
-    public ai.stigmer.agentic.vault.v1.DeliveredValue getAgentOrThrow(
+    public java.lang.String getAgentOrThrow(
         java.lang.String key) {
       if (key == null) { throw new NullPointerException("map key"); }
-      java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValueOrBuilder> map = internalGetMutableAgent().ensureBuilderMap();
+      java.util.Map<java.lang.String, java.lang.String> map =
+          internalGetAgent().getMap();
       if (!map.containsKey(key)) {
         throw new java.lang.IllegalArgumentException();
       }
-      return agentConverter.build(map.get(key));
+      return map.get(key);
     }
     public Builder clearAgent() {
       bitField0_ = (bitField0_ & ~0x00000001);
-      internalGetMutableAgent().clear();
+      internalGetMutableAgent().getMutableMap()
+          .clear();
       return this;
     }
     /**
@@ -898,12 +893,12 @@ ai.stigmer.agentic.vault.v1.DeliveredValue defaultValue) {
      * tool of the run declares.
      * </pre>
      *
-     * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.DeliveredValue&gt; agent = 1 [json_name = "agent"];</code>
+     * <code>map&lt;string, string&gt; agent = 1 [json_name = "agent"];</code>
      */
     public Builder removeAgent(
         java.lang.String key) {
       if (key == null) { throw new NullPointerException("map key"); }
-      internalGetMutableAgent().ensureBuilderMap()
+      internalGetMutableAgent().getMutableMap()
           .remove(key);
       return this;
     }
@@ -911,10 +906,10 @@ ai.stigmer.agentic.vault.v1.DeliveredValue defaultValue) {
      * Use alternate mutation accessors instead.
      */
     @java.lang.Deprecated
-    public java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValue>
+    public java.util.Map<java.lang.String, java.lang.String>
         getMutableAgent() {
       bitField0_ |= 0x00000001;
-      return internalGetMutableAgent().ensureMessageMap();
+      return internalGetMutableAgent().getMutableMap();
     }
     /**
      * <pre>
@@ -923,14 +918,14 @@ ai.stigmer.agentic.vault.v1.DeliveredValue defaultValue) {
      * tool of the run declares.
      * </pre>
      *
-     * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.DeliveredValue&gt; agent = 1 [json_name = "agent"];</code>
+     * <code>map&lt;string, string&gt; agent = 1 [json_name = "agent"];</code>
      */
     public Builder putAgent(
         java.lang.String key,
-        ai.stigmer.agentic.vault.v1.DeliveredValue value) {
+        java.lang.String value) {
       if (key == null) { throw new NullPointerException("map key"); }
       if (value == null) { throw new NullPointerException("map value"); }
-      internalGetMutableAgent().ensureBuilderMap()
+      internalGetMutableAgent().getMutableMap()
           .put(key, value);
       bitField0_ |= 0x00000001;
       return this;
@@ -942,42 +937,14 @@ ai.stigmer.agentic.vault.v1.DeliveredValue defaultValue) {
      * tool of the run declares.
      * </pre>
      *
-     * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.DeliveredValue&gt; agent = 1 [json_name = "agent"];</code>
+     * <code>map&lt;string, string&gt; agent = 1 [json_name = "agent"];</code>
      */
     public Builder putAllAgent(
-        java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValue> values) {
-      for (java.util.Map.Entry<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValue> e : values.entrySet()) {
-        if (e.getKey() == null || e.getValue() == null) {
-          throw new NullPointerException();
-        }
-      }
-      internalGetMutableAgent().ensureBuilderMap()
+        java.util.Map<java.lang.String, java.lang.String> values) {
+      internalGetMutableAgent().getMutableMap()
           .putAll(values);
       bitField0_ |= 0x00000001;
       return this;
-    }
-    /**
-     * <pre>
-     * The agent's own keys, for its shell and hooks: secrets by name and plain
-     * defaults, never a connection or a repository's token, and never a key a
-     * tool of the run declares.
-     * </pre>
-     *
-     * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.DeliveredValue&gt; agent = 1 [json_name = "agent"];</code>
-     */
-    public ai.stigmer.agentic.vault.v1.DeliveredValue.Builder putAgentBuilderIfAbsent(
-        java.lang.String key) {
-      java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValueOrBuilder> builderMap = internalGetMutableAgent().ensureBuilderMap();
-      ai.stigmer.agentic.vault.v1.DeliveredValueOrBuilder entry = builderMap.get(key);
-      if (entry == null) {
-        entry = ai.stigmer.agentic.vault.v1.DeliveredValue.newBuilder();
-        builderMap.put(key, entry);
-      }
-      if (entry instanceof ai.stigmer.agentic.vault.v1.DeliveredValue) {
-        entry = ((ai.stigmer.agentic.vault.v1.DeliveredValue) entry).toBuilder();
-        builderMap.put(key, entry);
-      }
-      return (ai.stigmer.agentic.vault.v1.DeliveredValue.Builder) entry;
     }
 
     private java.util.List<ai.stigmer.agentic.vault.v1.ToolValues> tools_ =

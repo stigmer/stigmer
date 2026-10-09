@@ -20,8 +20,8 @@ import {
 } from "../run-values.js";
 
 const ANSWER = create(ExecutionValuesSchema, {
-  agent: { AGENT_KEY: { value: "agent-secret", isSecret: true }, LOG_LEVEL: { value: "debug", isSecret: false } },
-  tools: [{ mcpServerId: "mcp_linear", url: "https://mcp.linear.app/mcp", values: { LINEAR_TOKEN: { value: "lin", isSecret: true } } }],
+  agent: { AGENT_KEY: "agent-secret", LOG_LEVEL: "debug" },
+  tools: [{ mcpServerId: "mcp_linear", url: "https://mcp.linear.app/mcp", values: { LINEAR_TOKEN: "lin" } }],
   repositories: [{ name: "app", url: "https://github.com/acme/app.git", token: "ghp_app" }],
 });
 

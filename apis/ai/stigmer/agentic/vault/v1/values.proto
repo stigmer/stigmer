@@ -58,23 +58,13 @@ message ExecutionValues {
   // The agent's own keys, for its shell and hooks: secrets by name and plain
   // defaults, never a connection or a repository's token, and never a key a
   // tool of the run declares.
-  map<string, DeliveredValue> agent = 1;
+  map<string, string> agent = 1;
 
   // Each tool's keys, by tool.
   repeated ToolValues tools = 2;
 
   // Each repository's token, for its clone and write-back only.
   repeated RepositoryValues repositories = 3;
-}
-
-// DeliveredValue is one value as an execution receives it.
-message DeliveredValue {
-  // The value.
-  string value = 1;
-
-  // Whether the value is secret. Only a plain declaration's own default is
-  // not.
-  bool is_secret = 2;
 }
 
 // ToolValues are the values of one tool (an MCP server) of the execution.
@@ -88,7 +78,7 @@ message ToolValues {
   string url = 2;
 
   // The tool's keys and their values.
-  map<string, DeliveredValue> values = 3;
+  map<string, string> values = 3;
 }
 
 // RepositoryValues is the token of one repository the execution clones.

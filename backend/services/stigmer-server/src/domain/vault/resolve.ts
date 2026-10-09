@@ -93,9 +93,10 @@
  * answered grouped by declarer: the agent's, each tool's with the URL the
  * fetch read, each repository's token.
  *
- * Every value is secret unless it is a plain declaration's own default:
- * whatever came from a vault, a connection, a sign-in or a repository's
- * token is secret, whatever its declaration says.
+ * A manifest names where a value lives and carries no value, except a
+ * plain declaration's own default, a fixed setting of the agent or tool
+ * that is no secret. What the fetch answers is the values alone: whoever
+ * receives one treats every value as secret.
  *
  * The connect lane has no conversation: planConnect reads the connecting
  * person's My vault only (a sign-in saved into a shared vault serves the
@@ -126,13 +127,11 @@ import type { Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
 import { VaultConnectionSource } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
 import {
-  DeliveredValueSchema,
   ExecutionValuesSchema,
   RepositoryValuesSchema,
   ToolValuesSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
 import type {
-  DeliveredValue,
   ExecutionValues,
   ToolValues,
 } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
@@ -701,10 +700,6 @@ function vaultLabel(vault: Vault): string {
   return `vault '${vault.metadata?.name || vault.metadata?.slug || vault.metadata?.id || ""}'`;
 }
 
-function delivered(value: string, isSecret: boolean): DeliveredValue {
-  return create(DeliveredValueSchema, { value, isSecret });
-}
-
 const NO_REPOSITORY_TOKENS: ReadonlyMap<string, SealedValue> = new Map();
 
 export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
@@ -1106,10 +1101,10 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
 
     for (const entry of entries) {
       const declarer = entry.declarer;
-      let value: DeliveredValue;
+      let value: string;
       switch (entry.origin) {
         case RunValueOrigin.DECLARATION:
-          value = delivered(entry.plainValue, false);
+          value = entry.plainValue;
           break;
         case RunValueOrigin.REPOSITORY_TOKEN: {
           const sealed = scope.repositoryTokens.get(
@@ -1118,7 +1113,7 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
           if (sealed?.present !== true) {
             throw unopenable(entry, "the conversation no longer holds that repository's token");
           }
-          value = delivered(await sealed.open(), true);
+          value = await sealed.open();
           break;
         }
         case RunValueOrigin.MY_VAULT:
@@ -1154,13 +1149,13 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
               renewal = openLogin(entry, vault.vault, vault.label, connection, scope.actor);
               renewals.set(once, renewal);
             }
-            value = delivered(await renewal, true);
+            value = await renewal;
           } else {
             const secret = sealed.secrets.get(entry.entry);
             if (secret?.present !== true) {
               throw unopenable(entry, `${vault.label} no longer holds a secret named ${entry.entry}`);
             }
-            value = delivered(await secret.open(), true);
+            value = await secret.open();
           }
           break;
         }
@@ -1192,7 +1187,7 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
             create(RepositoryValuesSchema, {
               name: declarer.name,
               url: declarer.repositoryUrl,
-              token: value.value,
+              token: value,
             }),
           );
           break;

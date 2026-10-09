@@ -592,14 +592,14 @@ describe("connect (blocking lane)", () => {
     await saveApiKey(harness, teammate, "teammate-key");
     const server = await seedServer({ env: true });
     await connect(harness.deps, connectInput(server.metadata!.id));
-    expect(fetched[0]?.tools.map((tool) => [tool.mcpServerId, tool.values["API_KEY"]?.value])).toEqual([
+    expect(fetched[0]?.tools.map((tool) => [tool.mcpServerId, tool.values["API_KEY"]])).toEqual([
       [server.metadata!.id, "caller-key"],
     ]);
     expect(fetched[0]?.agent).toEqual({});
 
     // The teammate's own connect reads the teammate's vault.
     await connectRpc(harness.deps, connectInput(server.metadata!.id), teammate, "");
-    expect(fetched[1]?.tools[0]?.values["API_KEY"]?.value).toBe("teammate-key");
+    expect(fetched[1]?.tools[0]?.values["API_KEY"]).toBe("teammate-key");
 
     // Once the connect settled, its credential binds nothing and reads nothing.
     const settled = harness.engine.startedInputs[0]!;

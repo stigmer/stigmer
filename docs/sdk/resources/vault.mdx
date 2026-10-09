@@ -1348,7 +1348,7 @@ ExecutionValues are one execution's values, grouped by who declared them: each d
 
 <TypeTable
   type={{
-    agent: { type: "Record<string, DeliveredValueInput>", description: "The agent's own keys, for its shell and hooks: secrets by name and plain defaults, never a connection or a repository's token, and never a key a tool of the run declares." },
+    agent: { type: "Record<string, string>", description: "The agent's own keys, for its shell and hooks: secrets by name and plain defaults, never a connection or a repository's token, and never a key a tool of the run declares." },
     tools: { type: "ToolValuesInput[]", description: "Each tool's keys, by tool." },
     repositories: { type: "RepositoryValuesInput[]", description: "Each repository's token, for its clone and write-back only." },
   }}

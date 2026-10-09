@@ -189,7 +189,7 @@ async function fire(...keys: string[]): Promise<Record<string, string>> {
   });
   execution.status = create(RunStatusSchema, { credentials: { sources } });
   const values = await resolver.openRun(execution);
-  return Object.fromEntries(Object.entries(values.agent).map(([key, value]) => [key, value.value]));
+  return { ...values.agent };
 }
 
 async function refusalOf(promise: Promise<unknown>): Promise<ConnectError> {

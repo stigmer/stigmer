@@ -21,23 +21,15 @@ class ExecutionValues(_message.Message):
         KEY_FIELD_NUMBER: _ClassVar[int]
         VALUE_FIELD_NUMBER: _ClassVar[int]
         key: str
-        value: DeliveredValue
-        def __init__(self, key: _Optional[str] = ..., value: _Optional[_Union[DeliveredValue, _Mapping]] = ...) -> None: ...
+        value: str
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
     AGENT_FIELD_NUMBER: _ClassVar[int]
     TOOLS_FIELD_NUMBER: _ClassVar[int]
     REPOSITORIES_FIELD_NUMBER: _ClassVar[int]
-    agent: _containers.MessageMap[str, DeliveredValue]
+    agent: _containers.ScalarMap[str, str]
     tools: _containers.RepeatedCompositeFieldContainer[ToolValues]
     repositories: _containers.RepeatedCompositeFieldContainer[RepositoryValues]
-    def __init__(self, agent: _Optional[_Mapping[str, DeliveredValue]] = ..., tools: _Optional[_Iterable[_Union[ToolValues, _Mapping]]] = ..., repositories: _Optional[_Iterable[_Union[RepositoryValues, _Mapping]]] = ...) -> None: ...
-
-class DeliveredValue(_message.Message):
-    __slots__ = ("value", "is_secret")
-    VALUE_FIELD_NUMBER: _ClassVar[int]
-    IS_SECRET_FIELD_NUMBER: _ClassVar[int]
-    value: str
-    is_secret: bool
-    def __init__(self, value: _Optional[str] = ..., is_secret: bool = ...) -> None: ...
+    def __init__(self, agent: _Optional[_Mapping[str, str]] = ..., tools: _Optional[_Iterable[_Union[ToolValues, _Mapping]]] = ..., repositories: _Optional[_Iterable[_Union[RepositoryValues, _Mapping]]] = ...) -> None: ...
 
 class ToolValues(_message.Message):
     __slots__ = ("mcp_server_id", "url", "values")
@@ -46,15 +38,15 @@ class ToolValues(_message.Message):
         KEY_FIELD_NUMBER: _ClassVar[int]
         VALUE_FIELD_NUMBER: _ClassVar[int]
         key: str
-        value: DeliveredValue
-        def __init__(self, key: _Optional[str] = ..., value: _Optional[_Union[DeliveredValue, _Mapping]] = ...) -> None: ...
+        value: str
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
     MCP_SERVER_ID_FIELD_NUMBER: _ClassVar[int]
     URL_FIELD_NUMBER: _ClassVar[int]
     VALUES_FIELD_NUMBER: _ClassVar[int]
     mcp_server_id: str
     url: str
-    values: _containers.MessageMap[str, DeliveredValue]
-    def __init__(self, mcp_server_id: _Optional[str] = ..., url: _Optional[str] = ..., values: _Optional[_Mapping[str, DeliveredValue]] = ...) -> None: ...
+    values: _containers.ScalarMap[str, str]
+    def __init__(self, mcp_server_id: _Optional[str] = ..., url: _Optional[str] = ..., values: _Optional[_Mapping[str, str]] = ...) -> None: ...
 
 class RepositoryValues(_message.Message):
     __slots__ = ("name", "url", "token")

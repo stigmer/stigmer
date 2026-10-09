@@ -59,7 +59,7 @@ public interface ToolValuesOrBuilder extends
    * The tool's keys and their values.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.DeliveredValue&gt; values = 3 [json_name = "values"];</code>
+   * <code>map&lt;string, string&gt; values = 3 [json_name = "values"];</code>
    */
   int getValuesCount();
   /**
@@ -67,7 +67,7 @@ public interface ToolValuesOrBuilder extends
    * The tool's keys and their values.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.DeliveredValue&gt; values = 3 [json_name = "values"];</code>
+   * <code>map&lt;string, string&gt; values = 3 [json_name = "values"];</code>
    */
   boolean containsValues(
       java.lang.String key);
@@ -75,36 +75,36 @@ public interface ToolValuesOrBuilder extends
    * Use {@link #getValuesMap()} instead.
    */
   @java.lang.Deprecated
-  java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValue>
+  java.util.Map<java.lang.String, java.lang.String>
   getValues();
   /**
    * <pre>
    * The tool's keys and their values.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.DeliveredValue&gt; values = 3 [json_name = "values"];</code>
+   * <code>map&lt;string, string&gt; values = 3 [json_name = "values"];</code>
    */
-  java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValue>
+  java.util.Map<java.lang.String, java.lang.String>
   getValuesMap();
   /**
    * <pre>
    * The tool's keys and their values.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.DeliveredValue&gt; values = 3 [json_name = "values"];</code>
+   * <code>map&lt;string, string&gt; values = 3 [json_name = "values"];</code>
    */
   /* nullable */
-ai.stigmer.agentic.vault.v1.DeliveredValue getValuesOrDefault(
+java.lang.String getValuesOrDefault(
       java.lang.String key,
       /* nullable */
-ai.stigmer.agentic.vault.v1.DeliveredValue defaultValue);
+java.lang.String defaultValue);
   /**
    * <pre>
    * The tool's keys and their values.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.DeliveredValue&gt; values = 3 [json_name = "values"];</code>
+   * <code>map&lt;string, string&gt; values = 3 [json_name = "values"];</code>
    */
-  ai.stigmer.agentic.vault.v1.DeliveredValue getValuesOrThrow(
+  java.lang.String getValuesOrThrow(
       java.lang.String key);
 }

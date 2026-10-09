@@ -297,8 +297,7 @@ describe("vault resolution — a person's run", () => {
     expect(sources.map((source) => source.key)).toEqual(["DECLARED_KEY"]);
     const fetched = await fetchedValuesOf(execution.metadata!.id);
     expect(Object.keys(fetched.agent), "the runner receives only the declared key").toEqual(["DECLARED_KEY"]);
-    expect(fetched.agent.DECLARED_KEY?.isSecret, "a vault's value is a secret").toBe(true);
-    expect(fetched.agent.DECLARED_KEY?.value).toBe("kept");
+    expect(fetched.agent.DECLARED_KEY).toBe("kept");
   });
 
   it("a plain setting carries its value in the declaration; a vault secret of the same name takes its place", async () => {
@@ -324,7 +323,7 @@ describe("vault resolution — a person's run", () => {
       value: "acme",
       isSecret: false,
     });
-    expect(fetched.agent.OVERRIDDEN_SETTING).toMatchObject({ value: "from-my-vault", isSecret: true });
+    expect(fetched.agent.OVERRIDDEN_SETTING).toBe("from-my-vault");
   });
 
   it("[rpc:RunCommandController.create] a required key found nowhere refuses the create naming the key and what the conversation lacks; an optional one stays absent", async () => {
@@ -412,7 +411,7 @@ describe("vault resolution — a person's run", () => {
     const run = await runWith(org, { env, includeMyVault: true });
     const runId = run.execution.metadata!.id;
     const fetched = await fetchedValuesOf(runId);
-    expect(fetched.agent.API_TOKEN).toMatchObject({ value: secretValue, isSecret: true });
+    expect(fetched.agent.API_TOKEN).toBe(secretValue);
     expect(fetched.agent.PLAIN_KEY, "a declaration's own plain value is not secret").toMatchObject({
       value: "plain-value",
       isSecret: false,
@@ -457,10 +456,10 @@ describe("vault resolution — a person's run", () => {
     const { execution } = await runWith(org, { env: { ROTATED_KEY: {} }, includeMyVault: true });
     const runId = execution.metadata!.id;
 
-    expect((await fetchedValuesOf(runId)).agent.ROTATED_KEY?.value).toBe("before-rotation");
+    expect((await fetchedValuesOf(runId)).agent.ROTATED_KEY).toBe("before-rotation");
     await clients.vaultCommand.setSecrets(setSecretsInput(myVaultTarget(org), { ROTATED_KEY: "after-rotation" }));
     expect(
-      (await fetchedValuesOf(runId)).agent.ROTATED_KEY?.value,
+      (await fetchedValuesOf(runId)).agent.ROTATED_KEY,
       "the fetch opens the vault as it is now",
     ).toBe("after-rotation");
   });
@@ -598,7 +597,7 @@ describe("vault resolution — recover", () => {
     expect(agentSourceOf(replanned, "RUN_KEY")?.origin, "from the recorded person's My vault, as it is now").toBe(
       RunValueOrigin.MY_VAULT,
     );
-    expect((await fetchedValuesOf(executionId)).agent.RUN_KEY?.value, "the runner fetches the fixed value").toBe(
+    expect((await fetchedValuesOf(executionId)).agent.RUN_KEY, "the runner fetches the fixed value").toBe(
       "fixed-value",
     );
     const recovered = await clients.agentExecutionQuery.get({ value: executionId });

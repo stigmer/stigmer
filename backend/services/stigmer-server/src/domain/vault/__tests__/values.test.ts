@@ -202,12 +202,10 @@ async function seedAttempt(
 
 function grouped(values: ExecutionValues): Record<string, Record<string, string>> {
   const out: Record<string, Record<string, string>> = {
-    agent: Object.fromEntries(Object.entries(values.agent).map(([key, value]) => [key, value.value])),
+    agent: { ...values.agent },
   };
   for (const group of values.tools) {
-    out[group.mcpServerId] = Object.fromEntries(
-      Object.entries(group.values).map(([key, value]) => [key, value.value]),
-    );
+    out[group.mcpServerId] = { ...group.values };
   }
   return out;
 }

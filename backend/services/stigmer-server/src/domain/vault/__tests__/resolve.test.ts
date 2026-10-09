@@ -345,11 +345,11 @@ function flatten(values: ExecutionValues): Record<string, string> {
     flat[key] = value;
   };
   for (const [key, value] of Object.entries(values.agent)) {
-    put(key, value.value);
+    put(key, value);
   }
   for (const tool of values.tools) {
     for (const [key, value] of Object.entries(tool.values)) {
-      put(key, value.value);
+      put(key, value);
     }
   }
   for (const repository of values.repositories) {
@@ -365,12 +365,12 @@ async function resolve(init: ResolveInit): Promise<Record<string, string>> {
 /** One tool's values, by its server id. */
 function toolValues(values: ExecutionValues, tool: McpServer): Record<string, string> {
   const group = values.tools.find((entry) => entry.mcpServerId === tool.metadata!.id);
-  return Object.fromEntries(Object.entries(group?.values ?? {}).map(([key, value]) => [key, value.value]));
+  return { ...group?.values };
 }
 
 /** The agent's own values. */
 function agentValues(values: ExecutionValues): Record<string, string> {
-  return Object.fromEntries(Object.entries(values.agent).map(([key, value]) => [key, value.value]));
+  return { ...values.agent };
 }
 
 async function refusal(promise: Promise<unknown>): Promise<ConnectError> {
@@ -929,42 +929,41 @@ describe("what reaches an agent or a surface of another organization", () => {
 // Which values are secret
 // ---------------------------------------------------------------------------
 
-describe("which values a run receives as secret", () => {
+describe("which value fills a plain declaration", () => {
   const PLAIN = { value: "acme-default" };
 
-  /** A key's delivered value and its secret flag, wherever its declarer is. */
-  function deliveredAt(values: ExecutionValues, key: string): { value: string; isSecret: boolean } | undefined {
+  /** A key's delivered value, wherever its declarer is. */
+  function deliveredAt(values: ExecutionValues, key: string): string | undefined {
     const value =
       values.agent[key] ?? values.tools.map((tool) => tool.values[key]).find((entry) => entry !== undefined);
     if (value !== undefined) {
-      return { value: value.value, isSecret: value.isSecret };
+      return value;
     }
-    const repository = key === CLONE_TOKEN_KEY ? values.repositories[0] : undefined;
-    return repository === undefined ? undefined : { value: repository.token, isSecret: true };
+    return key === CLONE_TOKEN_KEY ? values.repositories[0]?.token : undefined;
   }
 
-  it("a plain declaration's own value stays plain; a vault secret filling it is secret", async () => {
+  it("a plain declaration's own value is delivered, and a vault secret of its name wins over it", async () => {
     const fromDeclaration = await open({
       run: runOf({ person: ANA }),
       agentSpec: agent({ WORKSPACE: PLAIN }),
     });
-    expect(deliveredAt(fromDeclaration, "WORKSPACE")).toEqual({ value: "acme-default", isSecret: false });
+    expect(deliveredAt(fromDeclaration, "WORKSPACE")).toBe("acme-default");
 
     await anasVault({ WORKSPACE: "ana-workspace", BARE: "ana-bare" });
     const fromVault = await open({
       run: runOf({ person: ANA }),
       agentSpec: agent({ WORKSPACE: PLAIN, BARE: {} }),
     });
-    expect(deliveredAt(fromVault, "WORKSPACE")).toEqual({ value: "ana-workspace", isSecret: true });
-    expect(deliveredAt(fromVault, "BARE")).toEqual({ value: "ana-bare", isSecret: true });
+    expect(deliveredAt(fromVault, "WORKSPACE")).toBe("ana-workspace");
+    expect(deliveredAt(fromVault, "BARE")).toBe("ana-bare");
   });
 
-  it("a repository's own token is secret, and so is a listed vault's secret filling a plain declaration", async () => {
+  it("a repository's own token fills its clone, and a listed vault's secret fills a plain declaration", async () => {
     const own = await open({
       run: runOf({ person: ANA }),
       session: sessionOf({ repo: { url: "https://github.com/acme/app", token: "repo-own" } }),
     });
-    expect(deliveredAt(own, "GITHUB_TOKEN")).toEqual({ value: "repo-own", isSecret: true });
+    expect(deliveredAt(own, "GITHUB_TOKEN")).toBe("repo-own");
 
     const team = await seedSharedVault(rig.store, ORG, "integrator", { secrets: { WORKSPACE: "cust" } });
     mayUse.add(`${ADMIN}:${team.metadata!.id}`);
@@ -973,10 +972,10 @@ describe("which values a run receives as secret", () => {
       session: sessionOf({ vaults: ["integrator"], attachers: { [team.metadata!.id]: ADMIN } }),
       agentSpec: agent({ WORKSPACE: PLAIN }),
     });
-    expect(deliveredAt(attached, "WORKSPACE")).toEqual({ value: "cust", isSecret: true });
+    expect(deliveredAt(attached, "WORKSPACE")).toBe("cust");
   });
 
-  it("a connection's token is secret even where the tool declares its login key plain", async () => {
+  it("a connection's token fills a login even where the tool declares its login key plain", async () => {
     const mine = await anasVault({});
     await rig.vaults.setConnection(
       mine,
@@ -988,16 +987,16 @@ describe("which values a run receives as secret", () => {
       run: runOf({ person: ANA }),
       tools: [tool("linear", { target: "LINEAR_TOKEN", env: { LINEAR_TOKEN: { value: "plain-but-a-login" } } })],
     });
-    expect(deliveredAt(values, "LINEAR_TOKEN")).toEqual({ value: "by-address", isSecret: true });
+    expect(deliveredAt(values, "LINEAR_TOKEN")).toBe("by-address");
   });
 
-  it("the connect lane keeps a plain default plain and marks a My vault value secret", async () => {
+  it("the connect lane delivers a plain default, and a My vault value over it", async () => {
     await anasVault({ TEAM: "ana-team" });
     const linear = tool("linear", { env: { TEAM: PLAIN } });
     const bens = await resolver.openConnect({ orgId: ORG, person: BEN, server: linear });
-    expect(deliveredAt(bens, "TEAM")).toEqual({ value: "acme-default", isSecret: false });
+    expect(deliveredAt(bens, "TEAM")).toBe("acme-default");
     const anas = await resolver.openConnect({ orgId: ORG, person: ANA, server: linear });
-    expect(deliveredAt(anas, "TEAM")).toEqual({ value: "ana-team", isSecret: true });
+    expect(deliveredAt(anas, "TEAM")).toBe("ana-team");
   });
 });
 

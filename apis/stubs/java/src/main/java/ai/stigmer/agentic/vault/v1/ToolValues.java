@@ -167,19 +167,19 @@ private static final long serialVersionUID = 0L;
   public static final int VALUES_FIELD_NUMBER = 3;
   private static final class ValuesDefaultEntryHolder {
     static final com.google.protobuf.MapEntry<
-        java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValue> defaultEntry =
+        java.lang.String, java.lang.String> defaultEntry =
             com.google.protobuf.MapEntry
-            .<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValue>newDefaultInstance(
+            .<java.lang.String, java.lang.String>newDefaultInstance(
                 ai.stigmer.agentic.vault.v1.ValuesProto.internal_static_ai_stigmer_agentic_vault_v1_ToolValues_ValuesEntry_descriptor, 
                 com.google.protobuf.WireFormat.FieldType.STRING,
                 "",
-                com.google.protobuf.WireFormat.FieldType.MESSAGE,
-                ai.stigmer.agentic.vault.v1.DeliveredValue.getDefaultInstance());
+                com.google.protobuf.WireFormat.FieldType.STRING,
+                "");
   }
   @SuppressWarnings("serial")
   private com.google.protobuf.MapField<
-      java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValue> values_;
-  private com.google.protobuf.MapField<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValue>
+      java.lang.String, java.lang.String> values_;
+  private com.google.protobuf.MapField<java.lang.String, java.lang.String>
   internalGetValues() {
     if (values_ == null) {
       return com.google.protobuf.MapField.emptyMapField(
@@ -195,7 +195,7 @@ private static final long serialVersionUID = 0L;
    * The tool's keys and their values.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.DeliveredValue&gt; values = 3 [json_name = "values"];</code>
+   * <code>map&lt;string, string&gt; values = 3 [json_name = "values"];</code>
    */
   @java.lang.Override
   public boolean containsValues(
@@ -208,7 +208,7 @@ private static final long serialVersionUID = 0L;
    */
   @java.lang.Override
   @java.lang.Deprecated
-  public java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValue> getValues() {
+  public java.util.Map<java.lang.String, java.lang.String> getValues() {
     return getValuesMap();
   }
   /**
@@ -216,10 +216,10 @@ private static final long serialVersionUID = 0L;
    * The tool's keys and their values.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.DeliveredValue&gt; values = 3 [json_name = "values"];</code>
+   * <code>map&lt;string, string&gt; values = 3 [json_name = "values"];</code>
    */
   @java.lang.Override
-  public java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValue> getValuesMap() {
+  public java.util.Map<java.lang.String, java.lang.String> getValuesMap() {
     return internalGetValues().getMap();
   }
   /**
@@ -227,16 +227,16 @@ private static final long serialVersionUID = 0L;
    * The tool's keys and their values.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.DeliveredValue&gt; values = 3 [json_name = "values"];</code>
+   * <code>map&lt;string, string&gt; values = 3 [json_name = "values"];</code>
    */
   @java.lang.Override
   public /* nullable */
-ai.stigmer.agentic.vault.v1.DeliveredValue getValuesOrDefault(
+java.lang.String getValuesOrDefault(
       java.lang.String key,
       /* nullable */
-ai.stigmer.agentic.vault.v1.DeliveredValue defaultValue) {
+java.lang.String defaultValue) {
     if (key == null) { throw new NullPointerException("map key"); }
-    java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValue> map =
+    java.util.Map<java.lang.String, java.lang.String> map =
         internalGetValues().getMap();
     return map.containsKey(key) ? map.get(key) : defaultValue;
   }
@@ -245,13 +245,13 @@ ai.stigmer.agentic.vault.v1.DeliveredValue defaultValue) {
    * The tool's keys and their values.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.DeliveredValue&gt; values = 3 [json_name = "values"];</code>
+   * <code>map&lt;string, string&gt; values = 3 [json_name = "values"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.agentic.vault.v1.DeliveredValue getValuesOrThrow(
+  public java.lang.String getValuesOrThrow(
       java.lang.String key) {
     if (key == null) { throw new NullPointerException("map key"); }
-    java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValue> map =
+    java.util.Map<java.lang.String, java.lang.String> map =
         internalGetValues().getMap();
     if (!map.containsKey(key)) {
       throw new java.lang.IllegalArgumentException();
@@ -300,9 +300,9 @@ ai.stigmer.agentic.vault.v1.DeliveredValue defaultValue) {
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(url_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(2, url_);
     }
-    for (java.util.Map.Entry<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValue> entry
+    for (java.util.Map.Entry<java.lang.String, java.lang.String> entry
          : internalGetValues().getMap().entrySet()) {
-      com.google.protobuf.MapEntry<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValue>
+      com.google.protobuf.MapEntry<java.lang.String, java.lang.String>
       values__ = ValuesDefaultEntryHolder.defaultEntry.newBuilderForType()
           .setKey(entry.getKey())
           .setValue(entry.getValue())
@@ -550,7 +550,8 @@ ai.stigmer.agentic.vault.v1.DeliveredValue defaultValue) {
         result.url_ = url_;
       }
       if (((from_bitField0_ & 0x00000004) != 0)) {
-        result.values_ = internalGetValues().build(ValuesDefaultEntryHolder.defaultEntry);
+        result.values_ = internalGetValues();
+        result.values_.makeImmutable();
       }
     }
 
@@ -616,10 +617,10 @@ ai.stigmer.agentic.vault.v1.DeliveredValue defaultValue) {
               break;
             } // case 18
             case 26: {
-              com.google.protobuf.MapEntry<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValue>
+              com.google.protobuf.MapEntry<java.lang.String, java.lang.String>
               values__ = input.readMessage(
                   ValuesDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
-              internalGetMutableValues().ensureBuilderMap().put(
+              internalGetMutableValues().getMutableMap().put(
                   values__.getKey(), values__.getValue());
               bitField0_ |= 0x00000004;
               break;
@@ -835,60 +836,51 @@ ai.stigmer.agentic.vault.v1.DeliveredValue defaultValue) {
       return this;
     }
 
-    private static final class ValuesConverter implements com.google.protobuf.MapFieldBuilder.Converter<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValueOrBuilder, ai.stigmer.agentic.vault.v1.DeliveredValue> {
-      @java.lang.Override
-      public ai.stigmer.agentic.vault.v1.DeliveredValue build(ai.stigmer.agentic.vault.v1.DeliveredValueOrBuilder val) {
-        if (val instanceof ai.stigmer.agentic.vault.v1.DeliveredValue) { return (ai.stigmer.agentic.vault.v1.DeliveredValue) val; }
-        return ((ai.stigmer.agentic.vault.v1.DeliveredValue.Builder) val).build();
-      }
-
-      @java.lang.Override
-      public com.google.protobuf.MapEntry<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValue> defaultEntry() {
-        return ValuesDefaultEntryHolder.defaultEntry;
-      }
-    };
-    private static final ValuesConverter valuesConverter = new ValuesConverter();
-
-    private com.google.protobuf.MapFieldBuilder<
-        java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValueOrBuilder, ai.stigmer.agentic.vault.v1.DeliveredValue, ai.stigmer.agentic.vault.v1.DeliveredValue.Builder> values_;
-    private com.google.protobuf.MapFieldBuilder<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValueOrBuilder, ai.stigmer.agentic.vault.v1.DeliveredValue, ai.stigmer.agentic.vault.v1.DeliveredValue.Builder>
+    private com.google.protobuf.MapField<
+        java.lang.String, java.lang.String> values_;
+    private com.google.protobuf.MapField<java.lang.String, java.lang.String>
         internalGetValues() {
       if (values_ == null) {
-        return new com.google.protobuf.MapFieldBuilder<>(valuesConverter);
+        return com.google.protobuf.MapField.emptyMapField(
+            ValuesDefaultEntryHolder.defaultEntry);
       }
       return values_;
     }
-    private com.google.protobuf.MapFieldBuilder<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValueOrBuilder, ai.stigmer.agentic.vault.v1.DeliveredValue, ai.stigmer.agentic.vault.v1.DeliveredValue.Builder>
+    private com.google.protobuf.MapField<java.lang.String, java.lang.String>
         internalGetMutableValues() {
       if (values_ == null) {
-        values_ = new com.google.protobuf.MapFieldBuilder<>(valuesConverter);
+        values_ = com.google.protobuf.MapField.newMapField(
+            ValuesDefaultEntryHolder.defaultEntry);
+      }
+      if (!values_.isMutable()) {
+        values_ = values_.copy();
       }
       bitField0_ |= 0x00000004;
       onChanged();
       return values_;
     }
     public int getValuesCount() {
-      return internalGetValues().ensureBuilderMap().size();
+      return internalGetValues().getMap().size();
     }
     /**
      * <pre>
      * The tool's keys and their values.
      * </pre>
      *
-     * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.DeliveredValue&gt; values = 3 [json_name = "values"];</code>
+     * <code>map&lt;string, string&gt; values = 3 [json_name = "values"];</code>
      */
     @java.lang.Override
     public boolean containsValues(
         java.lang.String key) {
       if (key == null) { throw new NullPointerException("map key"); }
-      return internalGetValues().ensureBuilderMap().containsKey(key);
+      return internalGetValues().getMap().containsKey(key);
     }
     /**
      * Use {@link #getValuesMap()} instead.
      */
     @java.lang.Override
     @java.lang.Deprecated
-    public java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValue> getValues() {
+    public java.util.Map<java.lang.String, java.lang.String> getValues() {
       return getValuesMap();
     }
     /**
@@ -896,49 +888,52 @@ ai.stigmer.agentic.vault.v1.DeliveredValue defaultValue) {
      * The tool's keys and their values.
      * </pre>
      *
-     * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.DeliveredValue&gt; values = 3 [json_name = "values"];</code>
+     * <code>map&lt;string, string&gt; values = 3 [json_name = "values"];</code>
      */
     @java.lang.Override
-    public java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValue> getValuesMap() {
-      return internalGetValues().getImmutableMap();
+    public java.util.Map<java.lang.String, java.lang.String> getValuesMap() {
+      return internalGetValues().getMap();
     }
     /**
      * <pre>
      * The tool's keys and their values.
      * </pre>
      *
-     * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.DeliveredValue&gt; values = 3 [json_name = "values"];</code>
+     * <code>map&lt;string, string&gt; values = 3 [json_name = "values"];</code>
      */
     @java.lang.Override
     public /* nullable */
-ai.stigmer.agentic.vault.v1.DeliveredValue getValuesOrDefault(
+java.lang.String getValuesOrDefault(
         java.lang.String key,
         /* nullable */
-ai.stigmer.agentic.vault.v1.DeliveredValue defaultValue) {
+java.lang.String defaultValue) {
       if (key == null) { throw new NullPointerException("map key"); }
-      java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValueOrBuilder> map = internalGetMutableValues().ensureBuilderMap();
-      return map.containsKey(key) ? valuesConverter.build(map.get(key)) : defaultValue;
+      java.util.Map<java.lang.String, java.lang.String> map =
+          internalGetValues().getMap();
+      return map.containsKey(key) ? map.get(key) : defaultValue;
     }
     /**
      * <pre>
      * The tool's keys and their values.
      * </pre>
      *
-     * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.DeliveredValue&gt; values = 3 [json_name = "values"];</code>
+     * <code>map&lt;string, string&gt; values = 3 [json_name = "values"];</code>
      */
     @java.lang.Override
-    public ai.stigmer.agentic.vault.v1.DeliveredValue getValuesOrThrow(
+    public java.lang.String getValuesOrThrow(
         java.lang.String key) {
       if (key == null) { throw new NullPointerException("map key"); }
-      java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValueOrBuilder> map = internalGetMutableValues().ensureBuilderMap();
+      java.util.Map<java.lang.String, java.lang.String> map =
+          internalGetValues().getMap();
       if (!map.containsKey(key)) {
         throw new java.lang.IllegalArgumentException();
       }
-      return valuesConverter.build(map.get(key));
+      return map.get(key);
     }
     public Builder clearValues() {
       bitField0_ = (bitField0_ & ~0x00000004);
-      internalGetMutableValues().clear();
+      internalGetMutableValues().getMutableMap()
+          .clear();
       return this;
     }
     /**
@@ -946,12 +941,12 @@ ai.stigmer.agentic.vault.v1.DeliveredValue defaultValue) {
      * The tool's keys and their values.
      * </pre>
      *
-     * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.DeliveredValue&gt; values = 3 [json_name = "values"];</code>
+     * <code>map&lt;string, string&gt; values = 3 [json_name = "values"];</code>
      */
     public Builder removeValues(
         java.lang.String key) {
       if (key == null) { throw new NullPointerException("map key"); }
-      internalGetMutableValues().ensureBuilderMap()
+      internalGetMutableValues().getMutableMap()
           .remove(key);
       return this;
     }
@@ -959,24 +954,24 @@ ai.stigmer.agentic.vault.v1.DeliveredValue defaultValue) {
      * Use alternate mutation accessors instead.
      */
     @java.lang.Deprecated
-    public java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValue>
+    public java.util.Map<java.lang.String, java.lang.String>
         getMutableValues() {
       bitField0_ |= 0x00000004;
-      return internalGetMutableValues().ensureMessageMap();
+      return internalGetMutableValues().getMutableMap();
     }
     /**
      * <pre>
      * The tool's keys and their values.
      * </pre>
      *
-     * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.DeliveredValue&gt; values = 3 [json_name = "values"];</code>
+     * <code>map&lt;string, string&gt; values = 3 [json_name = "values"];</code>
      */
     public Builder putValues(
         java.lang.String key,
-        ai.stigmer.agentic.vault.v1.DeliveredValue value) {
+        java.lang.String value) {
       if (key == null) { throw new NullPointerException("map key"); }
       if (value == null) { throw new NullPointerException("map value"); }
-      internalGetMutableValues().ensureBuilderMap()
+      internalGetMutableValues().getMutableMap()
           .put(key, value);
       bitField0_ |= 0x00000004;
       return this;
@@ -986,40 +981,14 @@ ai.stigmer.agentic.vault.v1.DeliveredValue defaultValue) {
      * The tool's keys and their values.
      * </pre>
      *
-     * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.DeliveredValue&gt; values = 3 [json_name = "values"];</code>
+     * <code>map&lt;string, string&gt; values = 3 [json_name = "values"];</code>
      */
     public Builder putAllValues(
-        java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValue> values) {
-      for (java.util.Map.Entry<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValue> e : values.entrySet()) {
-        if (e.getKey() == null || e.getValue() == null) {
-          throw new NullPointerException();
-        }
-      }
-      internalGetMutableValues().ensureBuilderMap()
+        java.util.Map<java.lang.String, java.lang.String> values) {
+      internalGetMutableValues().getMutableMap()
           .putAll(values);
       bitField0_ |= 0x00000004;
       return this;
-    }
-    /**
-     * <pre>
-     * The tool's keys and their values.
-     * </pre>
-     *
-     * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.DeliveredValue&gt; values = 3 [json_name = "values"];</code>
-     */
-    public ai.stigmer.agentic.vault.v1.DeliveredValue.Builder putValuesBuilderIfAbsent(
-        java.lang.String key) {
-      java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.DeliveredValueOrBuilder> builderMap = internalGetMutableValues().ensureBuilderMap();
-      ai.stigmer.agentic.vault.v1.DeliveredValueOrBuilder entry = builderMap.get(key);
-      if (entry == null) {
-        entry = ai.stigmer.agentic.vault.v1.DeliveredValue.newBuilder();
-        builderMap.put(key, entry);
-      }
-      if (entry instanceof ai.stigmer.agentic.vault.v1.DeliveredValue) {
-        entry = ((ai.stigmer.agentic.vault.v1.DeliveredValue) entry).toBuilder();
-        builderMap.put(key, entry);
-      }
-      return (ai.stigmer.agentic.vault.v1.DeliveredValue.Builder) entry;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.vault.v1.ToolValues)
