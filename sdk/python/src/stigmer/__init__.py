@@ -38,7 +38,6 @@ from ._gen._agent import (
     SubAgentInput,
 )
 from ._gen._apikey import ApiKeyClient, ApiKeyInput
-from ._gen._executioncontext import ExecutionContextClient, ExecutionContextInput
 from ._gen._iampolicy import ApiResourceRefInput, IamPolicyClient, IamPolicyInput
 from ._gen._identityaccount import IdentityAccountClient, IdentityAccountInput
 from ._gen._identityprovider import IdentityProviderClient, IdentityProviderInput
@@ -77,7 +76,6 @@ from ._skill import MAX_INLINE_ARTIFACT_BYTES, RoutedSkillClient
 
 from ._gen._types import (
     DeleteResourceInput,
-    EnvVarInput,
     ListParams,
     ListResult,
     Page,
@@ -133,7 +131,6 @@ __all__ = [
     # Resource clients
     "AgentClient",
     "ApiKeyClient",
-    "ExecutionContextClient",
     "IamPolicyClient",
     "IdentityAccountClient",
     "IdentityProviderClient",
@@ -152,8 +149,6 @@ __all__ = [
     "ApiResourceRefInput",
     "AttachmentInput",
     "DeleteResourceInput",
-    "EnvVarInput",
-    "ExecutionContextInput",
     "GitRepoSourceInput",
     "HttpServerConfigInput",
     "IamPolicyInput",

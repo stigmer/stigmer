@@ -7,7 +7,6 @@ This directory contains Protocol Buffer definitions for Stigmer's APIs.
 The `apis/` directory houses all `.proto` files that define:
 - Agent definitions and configurations
 - Agent runs, schedules and sessions
-- Execution contexts and environments
 - IAM policies and permissions
 - Common types and resources
 
@@ -18,7 +17,6 @@ apis/
 ├── ai/stigmer/agentic/           # Agentic AI APIs
 │   ├── agent/                    # Agent definitions
 │   ├── environment/              # Execution environments
-│   ├── executioncontext/         # Execution context management
 │   ├── mcpserver/                # MCP server definitions
 │   ├── run/                      # Run tracking
 │   ├── schedule/                 # Scheduled runs

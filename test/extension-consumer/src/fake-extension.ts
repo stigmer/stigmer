@@ -849,8 +849,9 @@ const credentialProvider: RunnerCredentialProvider = {
   // The optional capability methods: the four edition-policy
   // touchpoints a composition may take over — the platform exchange, the
   // bootstrap credential fields, the sandbox-provisioning mint, and the
-  // ExecutionContext decrypt trust decision. All optional; this consumer
-  // proves the shapes compile against the exports map alone.
+  // trust decision for a runner's fetch of an execution's values. All
+  // optional; this consumer proves the shapes compile against the exports
+  // map alone.
   exchangeScopedToken: async (
     request: RunnerScopedTokenRequest,
   ): Promise<RunnerScopedTokenExchange> => {
@@ -865,7 +866,7 @@ const credentialProvider: RunnerCredentialProvider = {
   }),
   mintSandboxCredential: (request: SandboxCredentialRequest): string =>
     `fake-${request.scope}-token`,
-  authorizeExecutionContextRead: async (): Promise<boolean> => false,
+  authorizeExecutionValuesRead: async (): Promise<boolean> => false,
   // The fifth capability: decrypt-key resolution for the
   // server-managed rpk_ payload keys the bootstrap arm above hands out.
   resolvePayloadKey: async (keyId: string): Promise<Buffer | undefined> =>
