@@ -561,7 +561,7 @@ Input for creating or updating an OAuth App.
     vendorApprovalStatus: { type: "VendorApprovalStatus", description: "Vendor marketplace/app-review approval status for this OAuth app.", typeDescriptionLink: "#vendorapprovalstatus" },
     vendorApprovalDocsUrl: { type: "string", description: "Documentation URL explaining how users can bring their own OAuth app credentials or personal access tokens for this vendor while the platform's OAuth app is pending approval." },
     tokenEndpointAuthMethod: { type: "TokenEndpointAuthMethod", description: "How the client secret is presented to the vendor's token endpoint during authorization-code exchange and refresh.", typeDescriptionLink: "#tokenendpointauthmethod" },
-    addresses: { type: "string[]", description: "The addresses this app signs in to: a tool's URL (https://mcp.slack.com/mcp) or a Git host (github.com), normalized as a vault connection's address is." },
+    addresses: { type: "string[]", description: "The addresses this app signs in to: a tool's URL (Slack's MCP endpoint at mcp.slack.com/mcp, over https) or a Git host (github.com), normalized as a vault connection's address is." },
   }}
 />
 

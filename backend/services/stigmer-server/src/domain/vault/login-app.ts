@@ -21,7 +21,11 @@
  * Every secret this returns is opened in process only; nothing here reaches
  * a client.
  *
- * Proven by __tests__/login-app.test.ts and the sign-in conformance suite.
+ * Proven by sign-in/__tests__/start.test.ts (the order),
+ * sign-in/__tests__/person.test.ts (an app its vendor has not approved, the
+ * app a renewal presents), sign-in/__tests__/faults.test.ts (a lookup that
+ * fails), oauthapp/__tests__/oauthapp.test.ts (an app found by its
+ * addresses) and the sign-in conformance suite.
  */
 import { OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
 import type { OAuthApp } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";

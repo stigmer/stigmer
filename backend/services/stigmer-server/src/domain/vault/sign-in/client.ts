@@ -20,7 +20,9 @@
  *      `invalid_client`).
  *   3. Neither: refused, naming the address and what helps.
  *
- * Proven by __tests__/client.test.ts and the sign-in conformance suite.
+ * Proven by __tests__/start.test.ts (one registration per login server, a
+ * forgotten client registered again, the metadata document's URL) and the
+ * sign-in conformance suite.
  */
 import type { OutboundFetch } from "@stigmer/outbound/egress";
 

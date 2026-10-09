@@ -102,8 +102,9 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object address_ = "";
   /**
    * <pre>
-   * The address to sign in to: a tool's URL (https://mcp.linear.app/mcp) or
-   * a Git host (github.com), in any shape setConnection accepts.
+   * The address to sign in to: a tool's URL (Linear's MCP endpoint at
+   * mcp.linear.app/mcp, over https) or a Git host (github.com), in any shape
+   * setConnection accepts.
    * </pre>
    *
    * <code>string address = 2 [json_name = "address", (.buf.validate.field) = { ... }</code>
@@ -124,8 +125,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The address to sign in to: a tool's URL (https://mcp.linear.app/mcp) or
-   * a Git host (github.com), in any shape setConnection accepts.
+   * The address to sign in to: a tool's URL (Linear's MCP endpoint at
+   * mcp.linear.app/mcp, over https) or a Git host (github.com), in any shape
+   * setConnection accepts.
    * </pre>
    *
    * <code>string address = 2 [json_name = "address", (.buf.validate.field) = { ... }</code>
@@ -745,8 +747,9 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object address_ = "";
     /**
      * <pre>
-     * The address to sign in to: a tool's URL (https://mcp.linear.app/mcp) or
-     * a Git host (github.com), in any shape setConnection accepts.
+     * The address to sign in to: a tool's URL (Linear's MCP endpoint at
+     * mcp.linear.app/mcp, over https) or a Git host (github.com), in any shape
+     * setConnection accepts.
      * </pre>
      *
      * <code>string address = 2 [json_name = "address", (.buf.validate.field) = { ... }</code>
@@ -766,8 +769,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The address to sign in to: a tool's URL (https://mcp.linear.app/mcp) or
-     * a Git host (github.com), in any shape setConnection accepts.
+     * The address to sign in to: a tool's URL (Linear's MCP endpoint at
+     * mcp.linear.app/mcp, over https) or a Git host (github.com), in any shape
+     * setConnection accepts.
      * </pre>
      *
      * <code>string address = 2 [json_name = "address", (.buf.validate.field) = { ... }</code>
@@ -788,8 +792,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The address to sign in to: a tool's URL (https://mcp.linear.app/mcp) or
-     * a Git host (github.com), in any shape setConnection accepts.
+     * The address to sign in to: a tool's URL (Linear's MCP endpoint at
+     * mcp.linear.app/mcp, over https) or a Git host (github.com), in any shape
+     * setConnection accepts.
      * </pre>
      *
      * <code>string address = 2 [json_name = "address", (.buf.validate.field) = { ... }</code>
@@ -806,8 +811,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The address to sign in to: a tool's URL (https://mcp.linear.app/mcp) or
-     * a Git host (github.com), in any shape setConnection accepts.
+     * The address to sign in to: a tool's URL (Linear's MCP endpoint at
+     * mcp.linear.app/mcp, over https) or a Git host (github.com), in any shape
+     * setConnection accepts.
      * </pre>
      *
      * <code>string address = 2 [json_name = "address", (.buf.validate.field) = { ... }</code>
@@ -821,8 +827,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The address to sign in to: a tool's URL (https://mcp.linear.app/mcp) or
-     * a Git host (github.com), in any shape setConnection accepts.
+     * The address to sign in to: a tool's URL (Linear's MCP endpoint at
+     * mcp.linear.app/mcp, over https) or a Git host (github.com), in any shape
+     * setConnection accepts.
      * </pre>
      *
      * <code>string address = 2 [json_name = "address", (.buf.validate.field) = { ... }</code>

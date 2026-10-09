@@ -44,9 +44,9 @@ public enum SignInReturn
   desktop(2),
   /**
    * <pre>
-   * A page the desktop app serves on this machine, at
-   * http://127.0.0.1:&lt;loopback_port&gt;/auth/oauth/callback (RFC 8252 section
-   * 7.3, for apps on the person's own computer).
+   * A page the desktop app serves on this machine: the path
+   * /auth/oauth/callback over plain http on 127.0.0.1 at loopback_port
+   * (RFC 8252 section 7.3, for apps on the person's own computer).
    * </pre>
    *
    * <code>loopback = 3;</code>
@@ -91,9 +91,9 @@ public enum SignInReturn
   public static final int desktop_VALUE = 2;
   /**
    * <pre>
-   * A page the desktop app serves on this machine, at
-   * http://127.0.0.1:&lt;loopback_port&gt;/auth/oauth/callback (RFC 8252 section
-   * 7.3, for apps on the person's own computer).
+   * A page the desktop app serves on this machine: the path
+   * /auth/oauth/callback over plain http on 127.0.0.1 at loopback_port
+   * (RFC 8252 section 7.3, for apps on the person's own computer).
    * </pre>
    *
    * <code>loopback = 3;</code>

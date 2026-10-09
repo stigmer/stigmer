@@ -141,7 +141,7 @@ describe("Connect link conformance — creation", () => {
       Code.InvalidArgument,
       "an http return URL off this machine",
     );
-    expect(plainHttp.rawMessage).toBe("return_url must be an https URL (http only for localhost or 127.0.0.1)");
+    expect(plainHttp.rawMessage).toBe("return_url must be an https URL (http only for localhost, 127.0.0.1 or [::1])");
 
     await expectGrpcCode(
       () => clients.vaultCommand.createConnectLink({ org, vaultId, address, returnUrl: RETURN_URL, expiresInSeconds: 30 }),

@@ -349,8 +349,9 @@ export type StartSignInInput = Message<"ai.stigmer.agentic.vault.v1.StartSignInI
   vault?: VaultTarget;
 
   /**
-   * The address to sign in to: a tool's URL (https://mcp.linear.app/mcp) or
-   * a Git host (github.com), in any shape setConnection accepts.
+   * The address to sign in to: a tool's URL (Linear's MCP endpoint at
+   * mcp.linear.app/mcp, over https) or a Git host (github.com), in any shape
+   * setConnection accepts.
    *
    * @generated from field: string address = 2;
    */
@@ -513,7 +514,7 @@ export type CreateConnectLinkInput = Message<"ai.stigmer.agentic.vault.v1.Create
 
   /**
    * Where the customer is sent once the sign-in is over: an absolute https
-   * URL (http only for localhost or 127.0.0.1), with no user name or
+   * URL (http only for localhost, 127.0.0.1 or [::1]), with no user name or
    * password in it. Stigmer adds stigmer_connect=connected, or
    * stigmer_connect=error with a short reason.
    *
@@ -598,9 +599,9 @@ export enum SignInReturn {
   desktop = 2,
 
   /**
-   * A page the desktop app serves on this machine, at
-   * http://127.0.0.1:<loopback_port>/auth/oauth/callback (RFC 8252 section
-   * 7.3, for apps on the person's own computer).
+   * A page the desktop app serves on this machine: the path
+   * /auth/oauth/callback over plain http on 127.0.0.1 at loopback_port
+   * (RFC 8252 section 7.3, for apps on the person's own computer).
    *
    * @generated from enum value: loopback = 3;
    */

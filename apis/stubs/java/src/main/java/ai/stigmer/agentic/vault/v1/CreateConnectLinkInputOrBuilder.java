@@ -75,7 +75,7 @@ public interface CreateConnectLinkInputOrBuilder extends
   /**
    * <pre>
    * Where the customer is sent once the sign-in is over: an absolute https
-   * URL (http only for localhost or 127.0.0.1), with no user name or
+   * URL (http only for localhost, 127.0.0.1 or [::1]), with no user name or
    * password in it. Stigmer adds stigmer_connect=connected, or
    * stigmer_connect=error with a short reason.
    * </pre>
@@ -87,7 +87,7 @@ public interface CreateConnectLinkInputOrBuilder extends
   /**
    * <pre>
    * Where the customer is sent once the sign-in is over: an absolute https
-   * URL (http only for localhost or 127.0.0.1), with no user name or
+   * URL (http only for localhost, 127.0.0.1 or [::1]), with no user name or
    * password in it. Stigmer adds stigmer_connect=connected, or
    * stigmer_connect=error with a short reason.
    * </pre>

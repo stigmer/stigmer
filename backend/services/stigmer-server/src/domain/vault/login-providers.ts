@@ -16,7 +16,9 @@
  * a catalog entry is never read across organizations, because it is no
  * organization's row.
  *
- * Proven by __tests__/login-app.test.ts.
+ * Proven by sign-in/__tests__/start.test.ts (the GitHub entry switched on
+ * and off) and sign-in/__tests__/person.test.ts (its secret from the
+ * deployment's settings on renewal).
  */
 import { normalizeAddress } from "./address.js";
 import { GITHUB_HOST } from "./constants.js";

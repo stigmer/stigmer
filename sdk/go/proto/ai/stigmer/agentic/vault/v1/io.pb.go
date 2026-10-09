@@ -37,9 +37,9 @@ const (
 	// The console's callback page, which hands the result on to the desktop
 	// app (the page opens the app's own link).
 	SignInReturn_desktop SignInReturn = 2
-	// A page the desktop app serves on this machine, at
-	// http://127.0.0.1:<loopback_port>/auth/oauth/callback (RFC 8252 section
-	// 7.3, for apps on the person's own computer).
+	// A page the desktop app serves on this machine: the path
+	// /auth/oauth/callback over plain http on 127.0.0.1 at loopback_port
+	// (RFC 8252 section 7.3, for apps on the person's own computer).
 	SignInReturn_loopback SignInReturn = 3
 )
 
@@ -704,8 +704,9 @@ type StartSignInInput struct {
 	// The vault the login is saved into: a shared vault the caller may edit,
 	// or the caller's own My vault.
 	Vault *VaultTarget `protobuf:"bytes,1,opt,name=vault,proto3" json:"vault,omitempty"`
-	// The address to sign in to: a tool's URL (https://mcp.linear.app/mcp) or
-	// a Git host (github.com), in any shape setConnection accepts.
+	// The address to sign in to: a tool's URL (Linear's MCP endpoint at
+	// mcp.linear.app/mcp, over https) or a Git host (github.com), in any shape
+	// setConnection accepts.
 	Address string `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
 	// Where the login page sends the person back to. Unset means web.
 	ReturnTo SignInReturn `protobuf:"varint,3,opt,name=return_to,json=returnTo,proto3,enum=ai.stigmer.agentic.vault.v1.SignInReturn" json:"return_to,omitempty"`
@@ -974,7 +975,7 @@ type CreateConnectLinkInput struct {
 	// The address the customer signs in to: a tool's URL or a Git host.
 	Address string `protobuf:"bytes,3,opt,name=address,proto3" json:"address,omitempty"`
 	// Where the customer is sent once the sign-in is over: an absolute https
-	// URL (http only for localhost or 127.0.0.1), with no user name or
+	// URL (http only for localhost, 127.0.0.1 or [::1]), with no user name or
 	// password in it. Stigmer adds stigmer_connect=connected, or
 	// stigmer_connect=error with a short reason.
 	ReturnUrl string `protobuf:"bytes,4,opt,name=return_url,json=returnUrl,proto3" json:"return_url,omitempty"`

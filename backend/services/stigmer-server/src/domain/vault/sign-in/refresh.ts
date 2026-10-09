@@ -30,7 +30,7 @@
  * sign-in was made (RFC 8707).
  *
  * Proven by __tests__/token-refresh.test.ts (the expiry arithmetic) and
- * __tests__/renewal.test.ts (renewal written through the vault, rotation,
+ * __tests__/person.test.ts (renewal written through the vault, rotation,
  * the guarded write-back, the no-refresh-token refusal, the app's secret
  * presented or withheld, another app's secret never sent, `resource` on a
  * public client's renewal).

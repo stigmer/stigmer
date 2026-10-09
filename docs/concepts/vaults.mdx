@@ -228,9 +228,10 @@ A Connect link:
 - **Is checked when you make it.** An address nothing can sign in to (no login
   app for it, and no login server it names) is refused then, so a customer is
   never sent to a dead end. The return URL must be an `https` address (`http`
-  only for `localhost`).
-- **Acts for you.** The saved login records you as the one who saved it, and the
-  link stops working if you lose the right to edit the vault.
+  only for `localhost`, `127.0.0.1` or `[::1]`).
+- **Acts for you.** The saved login records you as the one who saved it. If you
+  lose the right to edit the vault, the customer can still open the link, but
+  Continue and the finished sign-in are refused, so nothing is saved.
 
 Only the link's fingerprint is stored, so treat the `url` like a password: send
 it to that customer only.

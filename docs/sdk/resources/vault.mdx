@@ -1114,7 +1114,7 @@ Input for starting a sign-in at an address.
 <TypeTable
   type={{
     vault: { type: "VaultTargetInput", description: "The vault the login is saved into: a shared vault the caller may edit, or the caller's own My vault.", required: true },
-    address: { type: "string", description: "The address to sign in to: a tool's URL (https://mcp.linear.app/mcp) or a Git host (github.com), in any shape setConnection accepts." },
+    address: { type: "string", description: "The address to sign in to: a tool's URL (Linear's MCP endpoint at mcp.linear.app/mcp, over https) or a Git host (github.com), in any shape setConnection accepts." },
     returnTo: { type: "SignInReturn", description: "Where the login page sends the person back to.", typeDescriptionLink: "#signinreturn" },
     loopbackPort: { type: "number", description: "The port of the desktop app's page, for return_to loopback only." },
   }}
@@ -1164,7 +1164,7 @@ Input for making a Connect link: a one-time page an integrator sends its custome
     org: { type: "string", description: "Organization the vault belongs to, by slug or id." },
     vaultId: { type: "string", description: "The shared vault the login is saved into, by id." },
     address: { type: "string", description: "The address the customer signs in to: a tool's URL or a Git host." },
-    returnUrl: { type: "string", description: "Where the customer is sent once the sign-in is over: an absolute https URL (http only for localhost or 127.0.0.1), with no user name or password in it." },
+    returnUrl: { type: "string", description: "Where the customer is sent once the sign-in is over: an absolute https URL (http only for localhost, 127.0.0.1 or [::1]), with no user name or password in it." },
     expiresInSeconds: { type: "number", description: "How long the link stays usable, in seconds: 60 to 86400 (a day)." },
   }}
 />
@@ -1314,5 +1314,5 @@ SignInReturn says where the login page sends the person back to once they have s
 |-------|-------------|
 | `web` | The console's callback page on this deployment. |
 | `desktop` | The console's callback page, which hands the result on to the desktop app (the page opens the app's own link). |
-| `loopback` | A page the desktop app serves on this machine, at http://127.0.0.1:<loopback_port>/auth/oauth/callback (RFC 8252 section 7.3, for apps on the person's own computer). |
+| `loopback` | A page the desktop app serves on this machine: the path /auth/oauth/callback over plain http on 127.0.0.1 at loopback_port (RFC 8252 section 7.3, for apps on the person's own computer). |
 

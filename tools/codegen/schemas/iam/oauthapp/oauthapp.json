@@ -144,7 +144,7 @@
           "kind": "string"
         }
       },
-      "description": "The addresses this app signs in to: a tool's URL\n (https://mcp.slack.com/mcp) or a Git host (github.com), normalized as a\n vault connection's address is. A sign-in started at one of them uses\n this app. An address may belong to only one app in the organization.",
+      "description": "The addresses this app signs in to: a tool's URL (Slack's MCP endpoint\n at mcp.slack.com/mcp, over https) or a Git host (github.com), normalized\n as a vault connection's address is. A sign-in started at one of them uses\n this app. An address may belong to only one app in the organization.",
       "required": false,
       "validation": {
         "minItems": 1,

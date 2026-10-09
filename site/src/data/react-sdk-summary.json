@@ -72,8 +72,8 @@
     },
     {
       "slug": "connect-link",
-      "title": "connect-link",
-      "description": "",
+      "title": "Connect link",
+      "description": "The page and callback a Connect link's customer signs in through, with no Stigmer account.",
       "hooks": 1,
       "components": 2
     },

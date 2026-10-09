@@ -42,8 +42,9 @@ public interface StartSignInInputOrBuilder extends
 
   /**
    * <pre>
-   * The address to sign in to: a tool's URL (https://mcp.linear.app/mcp) or
-   * a Git host (github.com), in any shape setConnection accepts.
+   * The address to sign in to: a tool's URL (Linear's MCP endpoint at
+   * mcp.linear.app/mcp, over https) or a Git host (github.com), in any shape
+   * setConnection accepts.
    * </pre>
    *
    * <code>string address = 2 [json_name = "address", (.buf.validate.field) = { ... }</code>
@@ -52,8 +53,9 @@ public interface StartSignInInputOrBuilder extends
   java.lang.String getAddress();
   /**
    * <pre>
-   * The address to sign in to: a tool's URL (https://mcp.linear.app/mcp) or
-   * a Git host (github.com), in any shape setConnection accepts.
+   * The address to sign in to: a tool's URL (Linear's MCP endpoint at
+   * mcp.linear.app/mcp, over https) or a Git host (github.com), in any shape
+   * setConnection accepts.
    * </pre>
    *
    * <code>string address = 2 [json_name = "address", (.buf.validate.field) = { ... }</code>

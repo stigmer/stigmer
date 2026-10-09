@@ -262,7 +262,7 @@ export function checkedReturnUrl(input: string): string {
   const local = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
   if (url.protocol !== "https:" && !(url.protocol === "http:" && local)) {
     throw invalidArgumentError(
-      "return_url must be an https URL (http only for localhost or 127.0.0.1)",
+      "return_url must be an https URL (http only for localhost, 127.0.0.1 or [::1])",
     );
   }
   if (url.username !== "" || url.password !== "") {

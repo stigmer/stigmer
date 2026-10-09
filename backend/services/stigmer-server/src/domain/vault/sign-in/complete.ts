@@ -27,7 +27,8 @@
  * the egress guard; otherwise "Signed in at HOST". A failed read only
  * shortens the description.
  *
- * Proven by __tests__/complete.test.ts and the sign-in conformance suite.
+ * Proven by __tests__/person.test.ts, __tests__/faults.test.ts and the
+ * sign-in conformance suite.
  */
 import type { Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 

@@ -41,8 +41,8 @@
  * (`fetchImpl`), which matters because any member may name any address.
  * The handshake's secrets rest sealed (`sealPendingOAuthState`).
  *
- * Proven by __tests__/start.test.ts, __tests__/client.test.ts and the
- * sign-in conformance suite.
+ * Proven by __tests__/start.test.ts, __tests__/person.test.ts,
+ * __tests__/faults.test.ts and the sign-in conformance suite.
  */
 import { randomBytes } from "node:crypto";
 

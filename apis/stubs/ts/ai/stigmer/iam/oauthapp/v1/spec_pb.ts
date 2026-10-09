@@ -139,9 +139,9 @@ export type OAuthAppSpec = Message<"ai.stigmer.iam.oauthapp.v1.OAuthAppSpec"> & 
   tokenEndpointAuthMethod: TokenEndpointAuthMethod;
 
   /**
-   * The addresses this app signs in to: a tool's URL
-   * (https://mcp.slack.com/mcp) or a Git host (github.com), normalized as a
-   * vault connection's address is. A sign-in started at one of them uses
+   * The addresses this app signs in to: a tool's URL (Slack's MCP endpoint
+   * at mcp.slack.com/mcp, over https) or a Git host (github.com), normalized
+   * as a vault connection's address is. A sign-in started at one of them uses
    * this app. An address may belong to only one app in the organization.
    *
    * @generated from field: repeated string addresses = 12;

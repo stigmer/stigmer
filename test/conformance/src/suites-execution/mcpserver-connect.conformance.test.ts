@@ -162,10 +162,10 @@ describe("McpServer connect conformance — a sign-in fills the servers at its a
       );
     }
     // Every request that reached the tool surface carried the login.
+    const initializes = mcpTools.capturedRequests().filter((r) => r.method === "initialize");
+    expect(initializes.length).toBeGreaterThan(0);
     expect(
-      mcpTools.capturedRequests().filter((r) => r.method === "initialize").every((r) =>
-        String(r.headers.authorization ?? "").startsWith("Bearer mock-access-token-"),
-      ),
+      initializes.every((r) => String(r.headers.authorization ?? "").startsWith("Bearer mock-access-token-")),
     ).toBe(true);
 
     const err = await expectGrpcCode(

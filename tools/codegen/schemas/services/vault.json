@@ -427,7 +427,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "The address to sign in to: a tool's URL (https://mcp.linear.app/mcp) or\n a Git host (github.com), in any shape setConnection accepts.",
+          "description": "The address to sign in to: a tool's URL (Linear's MCP endpoint at\n mcp.linear.app/mcp, over https) or a Git host (github.com), in any shape\n setConnection accepts.",
           "required": false,
           "validation": {
             "minLength": 1,
@@ -631,7 +631,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Where the customer is sent once the sign-in is over: an absolute https\n URL (http only for localhost or 127.0.0.1), with no user name or\n password in it. Stigmer adds stigmer_connect=connected, or\n stigmer_connect=error with a short reason.",
+          "description": "Where the customer is sent once the sign-in is over: an absolute https\n URL (http only for localhost, 127.0.0.1 or [::1]), with no user name or\n password in it. Stigmer adds stigmer_connect=connected, or\n stigmer_connect=error with a short reason.",
           "required": false,
           "validation": {
             "minLength": 1,
@@ -1105,7 +1105,7 @@
         {
           "name": "loopback",
           "number": 3,
-          "description": "A page the desktop app serves on this machine, at\n http://127.0.0.1:\u003cloopback_port\u003e/auth/oauth/callback (RFC 8252 section\n 7.3, for apps on the person's own computer)."
+          "description": "A page the desktop app serves on this machine: the path\n /auth/oauth/callback over plain http on 127.0.0.1 at loopback_port\n (RFC 8252 section 7.3, for apps on the person's own computer)."
         }
       ]
     },

@@ -89,6 +89,11 @@ const DOMAIN_META: Record<string, { title: string; description: string }> = {
     description:
       "Hooks and components for My vault and shared vaults, their secrets and logins, the vault picker, and the session value pool.",
   },
+  "connect-link": {
+    title: "Connect link",
+    description:
+      "The page and callback a Connect link's customer signs in through, with no Stigmer account.",
+  },
   workspace: {
     title: "Workspace",
     description:
