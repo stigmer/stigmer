@@ -4,9 +4,10 @@
  * result for the connect workflow.
  *
  * The one step of the `stigmer/mcp-server/connect` workflow. The activity
- * hydrates the MCP server spec via gRPC, resolves environment variables from
- * a pre-created ExecutionContext, and connects using MultiServerMCPClient
- * for transport management.
+ * hydrates the MCP server spec via gRPC, fetches the connect's values from
+ * their vaults (`VaultValueController.fetchValues`, the same fetch a run's
+ * turn makes), and connects using MultiServerMCPClient for transport
+ * management.
  *
  * Each tool carries `destructiveHint`: true only when the server's own MCP
  * annotation says `destructiveHint: true`. The approval default asks before
@@ -18,8 +19,10 @@
  * so a server that annotates nothing gates nothing.
  *
  * Security: Temporal input carries only IDs (mcp_server_id,
- * execution_context_id) — no secret values ever appear in workflow history.
- * The activity resolves secrets from the backend-created ExecutionContext.
+ * execution_context_id, which names the connect attempt) and the attempt's
+ * credential — no secret values ever appear in workflow history. The
+ * activity fetches the values when it runs, and the server answers only
+ * that credential.
  *
  * Activity contract:
  *   Name:   "DiscoverMcpServerCapabilities"
@@ -30,7 +33,7 @@
 import { MultiServerMCPClient } from "@langchain/mcp-adapters";
 import { activityStarted, activityFinished } from "../idle-watchdog.js";
 import { StigmerClient } from "../client/stigmer-client.js";
-import { mcpServerToResolved, type ResolvedMcpServer } from "../shared/mcp-resolver.js";
+import { dialedUrlOf, mcpServerToResolved, type ResolvedMcpServer } from "../shared/mcp-resolver.js";
 import { toMcpClientConfig } from "../shared/mcp-manager.js";
 import {
   assertTransportAllowed,
@@ -47,6 +50,8 @@ import {
 } from "../shared/platform-server-address.js";
 import { startHeartbeat } from "../shared/heartbeat.js";
 import { withTimeout } from "../shared/with-timeout.js";
+import { fetchRunValues, RunValuesRefusedError, type ToolValueGroup } from "../shared/run-values.js";
+import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
 import type { Config } from "../config.js";
 
@@ -72,29 +77,19 @@ import type { Config } from "../config.js";
 const HTTP_INIT_TIMEOUT_MS = 30_000;
 const STDIO_INIT_TIMEOUT_MS = 270_000;
 
-/**
- * The server-side secret-redaction sentinel. Byte-for-byte the value both
- * editions substitute for secret values a caller may not decrypt
- * (`SecretEncryptionService.REDACTED_MARKER` in stigmer-cloud,
- * `RedactedMarker` in the OSS server). Discovery dialing an
- * endpoint with a redacted credential is guaranteed to fail confusingly
- * (e.g. `Authorization: Bearer ***REDACTED***` → 401 → SSE-fallback limbo),
- * so it is refused up front with an actionable error instead.
- */
-const REDACTED_MARKER = "***REDACTED***";
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface DiscoverMcpServerInput {
   mcpServerId: string;
+  /** The connect attempt whose values discovery fetches; absent when the server declares nothing. */
   executionContextId?: string | null;
   /**
-   * Execution-scoped token unlocking the connect EC's decrypted credentials
-   * (oss#535). Minted by the OSS handler and carried with the work item —
+   * The runner credential bound to the connect attempt, the fetch's
+   * authority. Minted by the OSS handler and carried with the work item —
    * discovery has no execution of its own to exchange for one. Absent on
-   * cloud, where the ambient connect_sandbox credential decrypts.
+   * cloud, where the ambient connect_sandbox credential is bound to it.
    */
   executionContextToken?: string | null;
   invokerIdentityAccountId?: string | null;
@@ -122,8 +117,8 @@ export interface DiscoverMcpServerOutput {
 
 /**
  * Raised when the credentials a server declares could not be delivered to
- * discovery — the ExecutionContext read failed, came back empty, or returned
- * redacted values (issue #239).
+ * discovery — the value fetch was refused or failed, or answered nothing for
+ * a server that requires values (issue #239).
  *
  * Exists because the alternative is strictly worse: proceeding without the
  * declared credentials either dies later as an opaque
@@ -186,7 +181,7 @@ export async function discoverMcpServer(
 
   const declaredEnv = mcpServer.spec.env ?? {};
   // A key the platform fills for this transport is not a credential the
-  // connect flow must deliver, so it never makes an empty EC a failure.
+  // connect must deliver, so its absence from the fetch is never a failure.
   const platformFillsAddress =
     platformServerAddress(mcpServer.spec.serverType.case, deps.platformEndpoints) !== null;
   const credentialDeclarations = platformFillsAddress
@@ -198,6 +193,7 @@ export async function discoverMcpServer(
     stigmerClient,
     executionContextId ?? null,
     executionContextToken ?? null,
+    mcpServer,
     slug,
     credentialDeclarations,
   );
@@ -246,33 +242,32 @@ export async function discoverMcpServer(
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Resolve the discovery env from the connect flow's ExecutionContext,
- * failing CLOSED when a server's declared credentials cannot be delivered.
+ * Fetch the discovery env from the connect's values, failing CLOSED when a
+ * server's declared credentials cannot be delivered.
  *
- * The strictness is keyed on whether the server declares any NON-OPTIONAL
- * env var ("credentials expected"):
+ * The fetch answers the values grouped by declarer; discovery takes its own
+ * server's group and nothing else, and only while the server still dials
+ * the URL the group was checked against.
  *
- * - Credentials expected + the EC read errors, or the EC is missing/empty →
- *   {@link CredentialResolutionError}. The backend only creates a connect EC
- *   when it resolved credentials to deliver, so an unreadable or empty EC is
- *   a delivery failure (auth/scope refusal, transient backend error), never a
- *   normal state. Limping ahead was issue #239's failure mode: discovery died
+ * - The server refuses the fetch for a reason the person fixes (a required
+ *   key in no vault the connect reads, a sign-in that cannot be renewed) →
+ *   {@link CredentialResolutionError} carrying the server's sentence.
+ * - Credentials expected (the server declares a NON-OPTIONAL env var) and
+ *   the fetch fails otherwise, or answers nothing for this server →
+ *   {@link CredentialResolutionError}: a delivery failure, never a normal
+ *   state. Limping ahead was issue #239's failure mode: discovery died
  *   later as an opaque PlaceholderResolutionError or a doomed dial.
- * - Any delivered value equal to the redaction sentinel →
- *   {@link CredentialResolutionError}, regardless of optionality. A redacted
- *   value means the server-side decrypt gate refused THIS runner's credential
- *   class/scope and fell closed to redaction — dialing with the literal
- *   sentinel can only produce a misleading 401.
- * - No non-optional declarations → the old lenient path (warn and continue):
+ * - No non-optional declarations → the lenient path (warn and continue):
  *   servers declaring nothing (or only optional/injected keys like the
- *   caller-identity family) legitimately discover without an EC. A
+ *   caller-identity family) legitimately discover without values. A
  *   STIGMER_SERVER_ADDRESS the platform fills for the server's transport is
  *   left out of the count by the caller (platform-server-address.ts).
  */
 async function resolveEnvVarsForDiscovery(
   client: StigmerClient,
-  executionContextId: string | null,
-  executionContextToken: string | null,
+  connectId: string | null,
+  connectToken: string | null,
+  mcpServer: McpServer,
   slug: string,
   declaredEnv: Record<string, EnvVarDeclaration>,
 ): Promise<Record<string, string>> {
@@ -281,72 +276,53 @@ async function resolveEnvVarsForDiscovery(
     .map(([key]) => key);
   const credentialsExpected = requiredKeys.length > 0;
 
-  if (!executionContextId) return {};
+  if (!connectId) return {};
 
-  let execCtx: Awaited<ReturnType<typeof client.getExecutionContextByExecutionId>>;
+  let group: ToolValueGroup | undefined;
   try {
-    // The payload-carried token authenticates the read on OSS (oss#535);
+    // The payload-carried token authenticates the fetch on OSS (oss#535);
     // undefined on cloud, where the ambient credential applies instead.
-    execCtx = await client.getExecutionContextByExecutionId(
-      executionContextId,
-      executionContextToken ?? undefined,
-    );
+    const values = await fetchRunValues(client, connectId, connectToken ?? undefined);
+    group = values.tools.get(mcpServer.metadata?.id ?? "");
   } catch (err) {
+    if (err instanceof RunValuesRefusedError) {
+      throw new CredentialResolutionError(`MCP server '${slug}': ${err.message}`);
+    }
     const cause = err instanceof Error ? err.message : String(err);
     if (credentialsExpected) {
       throw new CredentialResolutionError(
         `Could not resolve the credentials MCP server '${slug}' requires ` +
-        `(${requiredKeys.join(", ")}): the connect credential store was ` +
-        `unreadable (${cause}). This is a platform-side delivery failure, ` +
+        `(${requiredKeys.join(", ")}): the connect's values could not be ` +
+        `fetched (${cause}). This is a platform-side delivery failure, ` +
         `not a problem with your credentials — retry the connect, and if it ` +
-        `persists, re-run the OAuth sign-in or re-enter the credentials.`,
+        `persists, re-run the sign-in or save the credentials again.`,
       );
     }
-    console.warn(
-      `[DiscoverMcpServer] Failed to resolve ExecutionContext '${executionContextId}': ` +
-      `${cause}`,
-    );
+    console.warn(`[DiscoverMcpServer] Failed to fetch the values of connect '${connectId}': ${cause}`);
     return {};
   }
 
-  const data = execCtx?.spec?.data ?? {};
-  if (Object.keys(data).length === 0) {
+  if (group !== undefined && group.url !== dialedUrlOf(mcpServer)) {
+    throw new CredentialResolutionError(
+      `MCP server '${slug}' changed its URL while it was connecting, so its values were not sent. Connect again.`,
+    );
+  }
+  if (group === undefined || Object.keys(group.values).length === 0) {
     if (credentialsExpected) {
       throw new CredentialResolutionError(
         `MCP server '${slug}' requires ${requiredKeys.join(", ")}, but the ` +
-        `connect flow delivered no credentials. Re-run the OAuth sign-in ` +
-        `(or re-enter the credentials) and connect again.`,
+        `connect delivered no credentials. Sign in again (or save the ` +
+        `credentials again) and connect again.`,
       );
     }
-    console.warn(
-      `[DiscoverMcpServer] ExecutionContext '${executionContextId}' not found ` +
-      `or empty — MCP server may not require environment variables`,
-    );
     return {};
   }
 
-  const redactedKeys = Object.entries(data)
-    .filter(([, execValue]) => execValue.value === REDACTED_MARKER)
-    .map(([key]) => key);
-  if (redactedKeys.length > 0) {
-    throw new CredentialResolutionError(
-      `The credentials for MCP server '${slug}' were delivered redacted ` +
-      `(${redactedKeys.join(", ")}): the platform refused to decrypt them ` +
-      `for this runner. This is a platform-side authorization failure — ` +
-      `retry the connect, and report it if it persists.`,
-    );
-  }
-
-  const envVars: Record<string, string> = {};
-  for (const [key, execValue] of Object.entries(data)) {
-    envVars[key] = execValue.value;
-  }
-
   console.log(
-    `[DiscoverMcpServer] Resolved ${Object.keys(envVars).length} env var(s) ` +
-    `from ExecutionContext '${executionContextId}'`,
+    `[DiscoverMcpServer] Fetched ${Object.keys(group.values).length} value(s) ` +
+    `for connect '${connectId}'`,
   );
-  return envVars;
+  return { ...group.values };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

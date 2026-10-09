@@ -242,10 +242,9 @@ export async function createStigmerRunnerManager(
   // `runnerTokenRef` mirrors the coordinator's proxy credential for gRPC use:
   // the minted runner token (token_type=embedded_runner) once adopted, tracking
   // the control-plane token in lockstep before that. StigmerClient authenticates
-  // ExecutionContext reads with it so cloud's runner-class decrypt gate
-  // recognizes the desktop runner — its control-plane token
-  // is the user's own Auth0 token, which the server treats as a browsing user
-  // and answers with redacted secrets. Pre-mint the ref equals the control-plane
+  // value fetches with it so cloud's runner-class gate recognizes the desktop
+  // runner — its control-plane token is the user's own Auth0 token, which the
+  // server treats as a browsing user and refuses. Pre-mint the ref equals the control-plane
   // token, which is exactly what the client would fall back to anyway.
   const runnerTokenRef: TokenRef = { current: options.stigmerToken ?? null };
   const baseConfig = mapManagerOptionsToConfig(options, tokenRef, runnerTokenRef);

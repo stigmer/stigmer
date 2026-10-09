@@ -4,7 +4,7 @@
  * The runner never verifies signatures — the server does that. It only needs
  * to look at its own token's `token_type` claim to decide which credential
  * flow applies (e.g. "do I hold an unscoped bootstrap credential that must be
- * exchanged for a scoped one before an ExecutionContext read?"), and the
+ * exchanged for a scoped one before a value fetch?"), and the
  * attach waiter checks a pushed token's shape and expiry before it starts a
  * runner with it (`src/attach/push.ts`). Claim names
  * and values mirror the server's single source of truth,

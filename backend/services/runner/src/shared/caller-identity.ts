@@ -138,35 +138,23 @@ export function resolveCallerIdentity(
 }
 
 /**
- * Return a NEW env map with the reserved caller-identity keys set —
- * platform values are authoritative over same-named user entries (a user
- * env var must never be able to impersonate a caller).
+ * The reserved caller-identity keys, as values an MCP server may declare.
+ * They are platform values, authoritative over a same-named run value: the
+ * MCP resolution spreads them over each server's own group, so no vault
+ * entry can impersonate a caller.
  *
- * Call this on the env map handed to MCP resolution ONLY — never on the
- * map that reaches agent subprocess environments. Per-server opt-in is
- * enforced downstream by filterEnvToDeclaredKeys.
+ * Hand them to MCP resolution ONLY — never to the agent's shell or hooks.
+ * Per-server opt-in is enforced downstream by filterEnvToDeclaredKeys.
  */
-export function injectCallerIdentityEnv(
-  envVars: Record<string, string>,
+export function callerIdentityValues(
   identity: CallerIdentity,
   sessionId: string,
 ): Record<string, string> {
-  const reserved: Record<string, string> = {
+  return {
     [CALLER_IDENTITY_KIND_ENV_KEY]: identity.kind,
     [CALLER_IDENTITY_VALUE_ENV_KEY]: identity.value,
     [SESSION_ID_ENV_KEY]: sessionId,
   };
-
-  for (const [key, value] of Object.entries(reserved)) {
-    if (key in envVars && envVars[key] !== value) {
-      console.info(
-        `Platform env var '${key}' overrides value from ExecutionContext ` +
-        `(caller-identity vars are authoritative)`,
-      );
-    }
-  }
-
-  return { ...envVars, ...reserved };
 }
 
 /**

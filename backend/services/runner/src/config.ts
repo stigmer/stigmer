@@ -191,9 +191,9 @@ export interface Config {
   /**
    * Shared reference to the runner credential (the roots bind it): the
    * server-minted runner token once adopted, tracking the control-plane token
-   * in lockstep before that. StigmerClient authenticates ExecutionContext
-   * reads with it so the server's runner-class decrypt gate recognizes a
-   * desktop runner (see stigmer-client.ts).
+   * in lockstep before that. StigmerClient authenticates value fetches with
+   * it so the server's runner-class gate recognizes a desktop runner (see
+   * stigmer-client.ts).
    */
   readonly stigmerRunnerTokenRef?: Readonly<TokenRef>;
   /**

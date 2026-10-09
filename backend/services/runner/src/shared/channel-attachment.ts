@@ -135,7 +135,7 @@ export function synthesizeChannelAttachment(
     slug: CHANNEL_ATTACHMENT_SLUG,
     destructiveTools: [],
     discoveredToolNames: null,
-    declaredEnvKeys: [],
+    serverId: "",
     pluginOrigin: null,
     discoveredCapabilitiesEmpty: false,
   };
