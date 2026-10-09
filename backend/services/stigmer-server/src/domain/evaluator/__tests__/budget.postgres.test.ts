@@ -107,7 +107,8 @@ async function read(store: Store, id: string): Promise<Evaluator> {
 }
 
 describe.each(fixtures)("the grading budget ($name)", (fixture) => {
-  it.skipIf(fixture.skip)("reserves a cap per grade and refuses the one that would pass the limit", async () => {
+  describe.skipIf(fixture.skip)("reserve and settle", () => {
+  it("reserves a cap per grade and refuses the one that would pass the limit", async () => {
     const { store, close } = await fixture.open();
     try {
       const id = await seedEvaluator(store, 0.6);
@@ -124,7 +125,7 @@ describe.each(fixtures)("the grading budget ($name)", (fixture) => {
     }
   });
 
-  it.skipIf(fixture.skip)("admits the grade that reaches the limit exactly", async () => {
+  it("admits the grade that reaches the limit exactly", async () => {
     const { store, close } = await fixture.open();
     try {
       const id = await seedEvaluator(store, 10);
@@ -137,7 +138,7 @@ describe.each(fixtures)("the grading budget ($name)", (fixture) => {
     }
   });
 
-  it.skipIf(fixture.skip)("never passes the limit under twenty concurrent reservations", async () => {
+  it("never passes the limit under twenty concurrent reservations", async () => {
     const { store, close } = await fixture.open();
     try {
       const id = await seedEvaluator(store, 5 * CAP);
@@ -153,7 +154,7 @@ describe.each(fixtures)("the grading budget ($name)", (fixture) => {
     }
   });
 
-  it.skipIf(fixture.skip)("reserves nothing for a disabled or deleted evaluator", async () => {
+  it("reserves nothing for a disabled or deleted evaluator", async () => {
     const { store, close } = await fixture.open();
     try {
       const id = await seedEvaluator(store, 10, false);
@@ -165,7 +166,7 @@ describe.each(fixtures)("the grading budget ($name)", (fixture) => {
     }
   });
 
-  it.skipIf(fixture.skip)("settles the cap and the spend, and counts the grade", async () => {
+  it("settles the cap and the spend, and counts the grade", async () => {
     const { store, close } = await fixture.open();
     try {
       const id = await seedEvaluator(store, 10);
@@ -185,7 +186,7 @@ describe.each(fixtures)("the grading budget ($name)", (fixture) => {
     }
   });
 
-  it.skipIf(fixture.skip)("lands a grade reserved in one month and settled in the next in the new month", async () => {
+  it("lands a grade reserved in one month and settled in the next in the new month", async () => {
     const { store, close } = await fixture.open();
     try {
       const id = await seedEvaluator(store, 10);
@@ -200,5 +201,6 @@ describe.each(fixtures)("the grading budget ($name)", (fixture) => {
     } finally {
       await close();
     }
+  });
   });
 });
