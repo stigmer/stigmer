@@ -2,7 +2,8 @@
  * The shared sign-in at an address: it starts at the address for the
  * destination named (My vault, or a shared vault by id), sends the popup to
  * the login page, and completes with what the callback page handed back; a
- * blocked popup starts nothing; a failed callback says why, closes the
+ * blocked popup starts nothing; a login page that is not an https address
+ * is never visited; a failed callback says why, closes the
  * popup and goes idle; clearing the error mid-sign-in cancels the wait and
  * records nothing; and the start input says where the login page returns
  * (the console, the desktop bridge, or a loopback port).
@@ -53,7 +54,7 @@ afterEach(() => {
   popupModule.closeOAuthPopup.mockClear();
 });
 
-function render(started: StartSignInInput[], completed: string[]) {
+function render(started: StartSignInInput[], completed: string[], loginPage = "https://login.example/authorize") {
   const client = new Stigmer({
     baseUrl: "/",
     getAccessToken: () => "t",
@@ -61,7 +62,7 @@ function render(started: StartSignInInput[], completed: string[]) {
       service(VaultCommandController, {
         startSignIn: (input) => {
           started.push(input);
-          return create(StartSignInOutputSchema, { authorizationUrl: "https://login.example/authorize", state: "st-1" });
+          return create(StartSignInOutputSchema, { authorizationUrl: loginPage, state: "st-1" });
         },
         completeSignIn: (input) => {
           completed.push(`${input.state}:${input.code}`);
@@ -115,6 +116,20 @@ describe("useVaultSignIn", () => {
 });
 
 describe("useVaultSignIn when the sign-in does not finish", () => {
+  it("never sends the popup to a login page that is not an https address", async () => {
+    popup.opened.location.href = "";
+    const completed: string[] = [];
+    const { result } = render([], completed, "javascript:alert(document.domain)//");
+    await act(async () => {
+      await expect(result.current.signIn("github.com", { org: "org_acme" })).rejects.toThrow(
+        "The login page's address is not an https address",
+      );
+    });
+    expect(popup.opened.location.href).toBe("");
+    expect(completed).toEqual([]);
+    expect(popupModule.closeOAuthPopup).toHaveBeenCalledWith(popup.opened);
+  });
+
   it("a failed callback says why, closes the popup and goes idle", async () => {
     popup.callback = "error";
     const { result } = render([], []);

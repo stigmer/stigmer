@@ -12,7 +12,7 @@ import { DEAD_CONNECT_LINK_MESSAGE, clearPendingConnectLinkToken } from "./useCo
 
 /** Props for {@link ConnectLinkCallback}. */
 export interface ConnectLinkCallbackProps {
-  /** The secret of the link this tab started (`pendingConnectLinkToken()`). */
+  /** The secret of the link this tab started, as `pendingConnectLinkToken(state)` answers for the return's state. */
   readonly token: string;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
@@ -20,15 +20,18 @@ export interface ConnectLinkCallbackProps {
 
 /**
  * Finishes a Connect link's sign-in on the console's callback page: hands
- * the login page's code and state (or its error) to the server, forgets the
- * link, and sends the browser on to the URL the server answers, the
- * integrator's return URL with `stigmer_connect=connected` or
- * `stigmer_connect=error`.
+ * the login page's code and state (or its error) to the server, and sends
+ * the browser on to the URL the server answers, the integrator's return URL
+ * with `stigmer_connect=connected` or `stigmer_connect=error`. The link is
+ * forgotten once the server has answered for it (the return URL, or a link
+ * it no longer knows); a failure on the way (the network, an unavailable
+ * server) keeps it, so a reload of the page tries again.
  *
- * Render it in place of `OAuthCallbackHandler` when the page has no opener
- * and this tab started a link (`pendingConnectLinkToken()`), inside a
- * `StigmerProvider` with no token: the call is public. A link that no
- * longer works says so; nothing trusted says where to send the person back.
+ * Render it in place of `OAuthCallbackHandler` when the return's `state` is
+ * the one this tab's link started with (`pendingConnectLinkToken(state)`
+ * answers its secret), inside a `StigmerProvider` with no token: the call is
+ * public. A link that no longer works says so; nothing trusted says where to
+ * send the person back.
  */
 export function ConnectLinkCallback({ token, className }: ConnectLinkCallbackProps) {
   const stigmer = useStigmer();
@@ -54,8 +57,9 @@ export function ConnectLinkCallback({ token, className }: ConnectLinkCallbackPro
           window.location.replace(answer.returnUrl);
         })
         .catch((err: unknown) => {
-          clearPendingConnectLinkToken();
-          setFailure(toError(err));
+          const failed = toError(err);
+          if (isNotFound(failed)) clearPendingConnectLinkToken();
+          setFailure(failed);
         });
     }
   }, [stigmer, token]);

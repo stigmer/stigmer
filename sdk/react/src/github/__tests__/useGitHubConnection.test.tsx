@@ -13,7 +13,9 @@
  *   callback, a refused one included, ends connecting and re-reads My vault.
  * - A blocked popup is reported, never thrown; reconcile re-reads My vault.
  * - A sign-in that fails, in the popup or opening the shell's browser, is
- *   reported as connectError and ends connecting; the popup is closed.
+ *   reported as connectError and ends connecting; the popup is closed. A
+ *   sign-in cancelled by disconnect is no failure: nothing is reported. A
+ *   login page that is not an https address is never opened.
  * - Disconnect removes the `github.com` login from My vault; a removal the
  *   server refuses is reported as disconnectError, and the hook still
  *   reports connected.
@@ -36,11 +38,14 @@ import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { useGitHubConnection } from "../useGitHubConnection";
 
-const popup = vi.hoisted(() => ({ blocked: false, declined: false, closed: vi.fn() }));
+const popup = vi.hoisted(() => ({ blocked: false, declined: false, untilCancelled: false, closed: vi.fn() }));
 vi.mock("../../internal/oauthPopup.js", () => ({
   openOAuthPopup: vi.fn(() => (popup.blocked ? null : { location: { href: "" }, closed: false, close: vi.fn() })),
   popupBlockedError: vi.fn(() => new Error("blocked")),
   waitForOAuthCallback: vi.fn(async (_popup: unknown, _state: string, onDispose: (dispose: () => void) => void) => {
+    if (popup.untilCancelled) {
+      return new Promise((_resolve, reject) => onDispose(() => reject(new Error("OAuth flow was cancelled."))));
+    }
     onDispose(() => {});
     if (popup.declined) throw new Error("access_denied: the person declined");
     return { code: "code-1", state: "st-1" };
@@ -66,6 +71,7 @@ interface Server {
   reads: number;
   calls: string[];
   refuseRemove?: boolean;
+  loginPage?: string;
 }
 
 function clientFor(server: Server) {
@@ -91,7 +97,10 @@ function clientFor(server: Server) {
           server.calls.push(
             `start:${req.address}:${req.vault?.org}:${req.vault?.vault.case}:${SignInReturn[req.returnTo]}:${req.loopbackPort}`,
           );
-          return create(StartSignInOutputSchema, { authorizationUrl: "https://github.com/login/oauth/authorize", state: "st-1" });
+          return create(StartSignInOutputSchema, {
+            authorizationUrl: server.loginPage ?? "https://github.com/login/oauth/authorize",
+            state: "st-1",
+          });
         },
         completeSignIn: (req) => {
           server.calls.push(`complete:${req.code}:${req.state}`);
@@ -116,6 +125,7 @@ function wrapperFor(client: Stigmer) {
 beforeEach(() => {
   popup.blocked = false;
   popup.declined = false;
+  popup.untilCancelled = false;
   popup.closed.mockClear();
   sessionStorage.clear();
 });
@@ -177,6 +187,35 @@ describe("useGitHubConnection", () => {
     expect(result.current.connectError?.message).toContain("access_denied");
     expect(result.current.isConnecting).toBe(false);
     expect(popup.closed).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports nothing when disconnect cancels a sign-in in progress", async () => {
+    popup.untilCancelled = true;
+    const server: Server = { mine: null, reads: 0, calls: [] };
+    const { result } = renderHook(() => useGitHubConnection(ORG), { wrapper: wrapperFor(clientFor(server)) });
+    let pending: Promise<unknown> | undefined;
+    act(() => {
+      pending = result.current.connect().catch((err: unknown) => err);
+    });
+    await waitFor(() => expect(result.current.isConnecting).toBe(true));
+    await waitFor(() => expect(server.calls).toHaveLength(1));
+    act(() => result.current.disconnect());
+    expect(await pending).toBeInstanceOf(Error);
+    expect(result.current.connectError).toBeNull();
+    expect(result.current.isConnecting).toBe(false);
+  });
+
+  it("never opens a login page that is not an https address in the shell's browser", async () => {
+    const server: Server = { mine: null, reads: 0, calls: [], loginPage: "javascript:alert(1)//" };
+    const openUrl = vi.fn();
+    const { result } = renderHook(() => useGitHubConnection(ORG, { openUrl }), {
+      wrapper: wrapperFor(clientFor(server)),
+    });
+    await act(async () => {
+      await expect(result.current.connect()).rejects.toThrow("The login page's address is not an https address");
+    });
+    expect(openUrl).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem(STATE_KEY)).toBeNull();
   });
 
   it("reports a shell that cannot open the login page, and ends connecting", async () => {

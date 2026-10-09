@@ -204,7 +204,7 @@ describe("discoverForResource: what the documents say", () => {
     ["token_endpoint", { ...VALID_METADATA, token_endpoint: "http://auth.example.com/token" }],
     ["registration_endpoint", { ...VALID_METADATA, registration_endpoint: "data:text/plain,x" }],
   ];
-  it.each(unsafeEndpoint)("refuses a %s that is neither https nor loopback http", async (field, body) => {
+  it.each(unsafeEndpoint)("refuses %s when it is neither https nor loopback http", async (field, body) => {
     const { fetchImpl } = serving({ "https://auth.example.com/.well-known/oauth-authorization-server": body });
     await expect(discoverForResource("https://auth.example.com", fetchImpl)).rejects.toThrow(
       `authorization server at https://auth.example.com/.well-known/oauth-authorization-server: its ${field} must be an https URL (http only for localhost, 127.0.0.1 or [::1])`,

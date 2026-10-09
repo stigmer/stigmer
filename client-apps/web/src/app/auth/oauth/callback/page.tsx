@@ -26,9 +26,12 @@ const DESKTOP_SIGN_IN_DEEP_LINK = "stigmer://oauth/callback";
  * - `source=desktop`: the sign-in was started by Stigmer Desktop in the
  *   system browser. The page hands the code and state on to the app through
  *   its deep link, and the app finishes the sign-in with its own session.
- * - No opener and a Connect link this tab started: the SDK's
+ * - The return's `state` is the one a Connect link this tab started with
+ *   (`pendingConnectLinkToken(state)` answers the link's secret): the SDK's
  *   `ConnectLinkCallback` finishes the link's sign-in and sends the browser
- *   on to the integrator's return URL.
+ *   on to the integrator's return URL. The state decides, never
+ *   `window.opener`: an integrator may open the link in a window of its
+ *   own, whose opener a browser lets this page see.
  * - Otherwise a popup: the SDK's `OAuthCallbackHandler` posts the code and
  *   state back to the page that opened it.
  */
@@ -51,12 +54,14 @@ function subscribeToNothing(): () => void {
 }
 
 function CallbackRouter() {
-  const fromDesktop = useSearchParams().get("source") === "desktop";
+  const params = useSearchParams();
+  const fromDesktop = params.get("source") === "desktop";
+  const state = params.get("state");
   const mode = useSyncExternalStore<CallbackMode | null>(
     subscribeToNothing,
     () => {
       if (fromDesktop) return "desktop";
-      const token = hasOpener() ? null : pendingConnectLinkToken();
+      const token = pendingConnectLinkToken(state);
       return token !== null ? `${CONNECT_LINK_MODE}${token}` : "popup";
     },
     () => null,
@@ -66,14 +71,6 @@ function CallbackRouter() {
   if (mode === "desktop") return <DesktopSignInBridge />;
   if (mode === "popup") return <OAuthCallbackHandler className="min-h-screen" />;
   return <ConnectLinkCompletion token={mode.slice(CONNECT_LINK_MODE.length)} />;
-}
-
-function hasOpener(): boolean {
-  try {
-    return window.opener != null && !window.opener.closed;
-  } catch {
-    return false;
-  }
 }
 
 /**

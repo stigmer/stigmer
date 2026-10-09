@@ -24,6 +24,7 @@ import { useStigmer } from "../hooks.js";
 import { useMyVault } from "../vault/useMyVault.js";
 import { GITHUB_HOST } from "../vault/address.js";
 import { toError } from "../internal/toError.js";
+import { checkedLoginPageUrl } from "../internal/loginPageUrl.js";
 import { closeOAuthPopup, openOAuthPopup } from "../internal/oauthPopup.js";
 import {
   completeSignInInput,
@@ -166,6 +167,8 @@ export function useGitHubConnection(
   const myVaultRef = useRef(myVault);
   myVaultRef.current = myVault;
   const disposeRef = useRef<(() => void) | null>(null);
+  // Set when disconnect cancels a popup sign-in: its rejection is no failure.
+  const cancelledRef = useRef(false);
 
   useEffect(() => () => disposeRef.current?.(), []);
 
@@ -184,8 +187,9 @@ export function useGitHubConnection(
         const started = await stigmer.vault.startSignIn(
           startSignInInput(GITHUB_HOST, { org }, returnTo ?? { kind: "desktop" }),
         );
+        const loginPage = checkedLoginPageUrl(started.authorizationUrl);
         sessionStorage.setItem(STORAGE_KEY_STATE, started.state);
-        await openUrl(started.authorizationUrl);
+        await openUrl(loginPage);
       } catch (err) {
         setIsConnecting(false);
         setConnectError(toError(err));
@@ -202,13 +206,17 @@ export function useGitHubConnection(
     }
     setPopupBlocked(false);
     setIsConnecting(true);
+    cancelledRef.current = false;
     try {
       await runPopupSignIn(stigmer, popup, GITHUB_HOST, { org }, () => {}, (dispose) => {
         disposeRef.current = dispose;
       });
     } catch (err) {
-      closeOAuthPopup(popup);
-      setConnectError(toError(err));
+      if (!cancelledRef.current) {
+        closeOAuthPopup(popup);
+        setConnectError(toError(err));
+      }
+      cancelledRef.current = false;
       throw err;
     } finally {
       disposeRef.current = null;
@@ -253,8 +261,11 @@ export function useGitHubConnection(
 
   const disconnect = useCallback(() => {
     sessionStorage.removeItem(STORAGE_KEY_STATE);
-    disposeRef.current?.();
-    disposeRef.current = null;
+    if (disposeRef.current) {
+      cancelledRef.current = true;
+      disposeRef.current();
+      disposeRef.current = null;
+    }
     setIsConnecting(false);
     setDisconnectError(null);
     if (myVaultRef.current.connectionAddresses.has(GITHUB_HOST)) {

@@ -28,6 +28,7 @@ import {
   type CompleteSignInOutput,
 } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
 import { useStigmer } from "../hooks.js";
+import { checkedLoginPageUrl } from "../internal/loginPageUrl.js";
 import { toError } from "../internal/toError.js";
 import {
   closeOAuthPopup,
@@ -98,7 +99,7 @@ export async function runPopupSignIn(
 ): Promise<CompleteSignInOutput> {
   onPhase("starting");
   const started = await stigmer.vault.startSignIn(startSignInInput(address, destination));
-  popup.location.href = started.authorizationUrl;
+  popup.location.href = checkedLoginPageUrl(started.authorizationUrl);
   onPhase("awaiting-callback");
   const { code, state } = await waitForOAuthCallback(popup, started.state, onDispose);
   onPhase("completing");

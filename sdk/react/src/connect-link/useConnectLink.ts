@@ -12,9 +12,12 @@
  * ancestor for the transport.
  *
  * The flow is a full-page redirect, not a popup: {@link useConnectLink}'s
- * `start` keeps the secret in this tab's session storage and sends the
- * browser to the login page; the login page returns to the console's
- * callback page, where {@link ConnectLinkCallback} finishes the sign-in and
+ * `start` keeps the secret in this tab's session storage beside the state
+ * the server started the sign-in with, and sends the browser to the login
+ * page; the login page returns to the console's callback page, which hands
+ * the return to {@link ConnectLinkCallback} only when its `state` is that
+ * one ({@link pendingConnectLinkToken}), so a popup's return in the same
+ * tab is never taken for the link's. The callback finishes the sign-in and
  * sends the browser on to the integrator's return URL. An unknown, expired
  * or used link answers NOT_FOUND, which both say the same way.
  */
@@ -26,20 +29,29 @@ import {
   type ConnectLinkInfo,
 } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/connect_link_pb";
 import { useStigmer } from "../hooks.js";
+import { checkedLoginPageUrl } from "../internal/loginPageUrl.js";
 import { useFetch } from "../internal/useFetch.js";
 import { toError } from "../internal/toError.js";
 
-/** The session-storage key a started link's secret waits under for the callback page. */
-export const CONNECT_LINK_TOKEN_KEY = "stigmer:connect-link:token";
+/** The session-storage key a started link's secret and state wait under for the callback page. */
+export const CONNECT_LINK_PENDING_KEY = "stigmer:connect-link:pending";
 
 /** What a person reads when a link no longer works. */
 export const DEAD_CONNECT_LINK_MESSAGE =
   "This link has expired or was already used: ask the app that sent it for a new one.";
 
-/** The secret of the Connect link this tab started, or `null`. */
-export function pendingConnectLinkToken(): string | null {
+/**
+ * The secret of the Connect link this tab started whose sign-in returned
+ * with `state`, or `null`: the callback page's test for whether a return is
+ * the link's.
+ */
+export function pendingConnectLinkToken(state: string | null): string | null {
+  if (state === null || state === "") return null;
   try {
-    return sessionStorage.getItem(CONNECT_LINK_TOKEN_KEY);
+    const pending = JSON.parse(sessionStorage.getItem(CONNECT_LINK_PENDING_KEY) ?? "null") as unknown;
+    if (typeof pending !== "object" || pending === null) return null;
+    const { token, state: started } = pending as { token?: unknown; state?: unknown };
+    return typeof token === "string" && token !== "" && started === state ? token : null;
   } catch {
     return null;
   }
@@ -48,7 +60,7 @@ export function pendingConnectLinkToken(): string | null {
 /** Forgets the Connect link this tab started. */
 export function clearPendingConnectLinkToken(): void {
   try {
-    sessionStorage.removeItem(CONNECT_LINK_TOKEN_KEY);
+    sessionStorage.removeItem(CONNECT_LINK_PENDING_KEY);
   } catch {
     // Storage unavailable: nothing was kept.
   }
@@ -93,8 +105,9 @@ export function useConnectLink(token: string | null): UseConnectLinkReturn {
     setStartError(null);
     try {
       const started = await stigmer.vault.startConnectLink(create(ConnectLinkTokenInputSchema, { token }));
-      sessionStorage.setItem(CONNECT_LINK_TOKEN_KEY, token);
-      window.location.assign(started.authorizationUrl);
+      const loginPage = checkedLoginPageUrl(started.authorizationUrl);
+      sessionStorage.setItem(CONNECT_LINK_PENDING_KEY, JSON.stringify({ token, state: started.state }));
+      window.location.assign(loginPage);
     } catch (err) {
       setStartError(toError(err));
       setIsStarting(false);

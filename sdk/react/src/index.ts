@@ -1596,7 +1596,7 @@ export {
   useConnectLink,
   pendingConnectLinkToken,
   clearPendingConnectLinkToken,
-  CONNECT_LINK_TOKEN_KEY,
+  CONNECT_LINK_PENDING_KEY,
   DEAD_CONNECT_LINK_MESSAGE,
   ConnectLinkView,
   ConnectLinkCallback,
