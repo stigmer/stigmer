@@ -78,6 +78,7 @@ class ScoreInput:
     passed: bool | None = None
     criteria: list[ScoreCriterionInput] = field(default_factory=list)
     comment: str = ""
+    judge_model: str = ""
 
     def _to_proto(self) -> api_pb2.Score:
         spec = spec_pb2.ScoreSpec(
@@ -87,6 +88,7 @@ class ScoreInput:
             source=self.source,
             evaluator_version=self.evaluator_version,
             comment=self.comment,
+            judge_model=self.judge_model,
         )
         for item in self.criteria:
             spec.criteria.append(item._to_proto())

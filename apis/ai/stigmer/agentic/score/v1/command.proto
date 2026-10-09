@@ -28,8 +28,8 @@ service ScoreCommandController {
   // In-handler enforcement, in order (the score domain's create chain):
   // 1. GuardScoreSource: score_source_human only from a first-party
   //    person (any of their own credentials, an API key included);
-  //    score_source_check only from the server itself. Everything else
-  //    is refused.
+  //    score_source_check and score_source_judge only from the server
+  //    itself. Everything else is refused.
   // 2. AuthorizeResolvedTarget: can_view on the run, before the run is
   //    read, so a caller who cannot see a run learns nothing about
   //    whether it exists.
@@ -40,8 +40,8 @@ service ScoreCommandController {
   //
   // Error Cases:
   //
-  // - INVALID_ARGUMENT: metric and source disagree, or a comment on a
-  //   non-feedback score
+  // - INVALID_ARGUMENT: metric and source disagree, a comment on a
+  //   non-feedback score, or a judge model on a non-judge score
   // - FAILED_PRECONDITION: the run is not completed, or the organization
   //   is not the run's
   // - ALREADY_EXISTS: this person already rated this run; the error

@@ -53,7 +53,7 @@ public interface ScoreSpecOrBuilder extends
   /**
    * <pre>
    * What is measured: `feedback` for a person's thumbs, `run-health` for
-   * the free checks.
+   * the free checks, `judge` for an AI judge's verdict.
    * </pre>
    *
    * <code>string metric = 3 [json_name = "metric", (.buf.validate.field) = { ... }</code>
@@ -63,7 +63,7 @@ public interface ScoreSpecOrBuilder extends
   /**
    * <pre>
    * What is measured: `feedback` for a person's thumbs, `run-health` for
-   * the free checks.
+   * the free checks, `judge` for an AI judge's verdict.
    * </pre>
    *
    * <code>string metric = 3 [json_name = "metric", (.buf.validate.field) = { ... }</code>
@@ -115,8 +115,8 @@ public interface ScoreSpecOrBuilder extends
 
   /**
    * <pre>
-   * True when the run passed: thumbs up, or every applicable check
-   * passed.
+   * True when the run passed: thumbs up, every applicable check passed,
+   * or no rubric failed.
    * </pre>
    *
    * <code>bool passed = 6 [json_name = "passed"];</code>
@@ -125,8 +125,8 @@ public interface ScoreSpecOrBuilder extends
   boolean hasPassed();
   /**
    * <pre>
-   * True when the run passed: thumbs up, or every applicable check
-   * passed.
+   * True when the run passed: thumbs up, every applicable check passed,
+   * or no rubric failed.
    * </pre>
    *
    * <code>bool passed = 6 [json_name = "passed"];</code>
@@ -197,6 +197,26 @@ public interface ScoreSpecOrBuilder extends
    */
   com.google.protobuf.ByteString
       getCommentBytes();
+
+  /**
+   * <pre>
+   * The model that gave a judge's verdict. Example: "claude-sonnet-4-6".
+   * </pre>
+   *
+   * <code>string judge_model = 9 [json_name = "judgeModel", (.buf.validate.field) = { ... }</code>
+   * @return The judgeModel.
+   */
+  java.lang.String getJudgeModel();
+  /**
+   * <pre>
+   * The model that gave a judge's verdict. Example: "claude-sonnet-4-6".
+   * </pre>
+   *
+   * <code>string judge_model = 9 [json_name = "judgeModel", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for judgeModel.
+   */
+  com.google.protobuf.ByteString
+      getJudgeModelBytes();
 
   ai.stigmer.agentic.score.v1.ScoreSpec.ValueCase getValueCase();
 }

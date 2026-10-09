@@ -35,6 +35,14 @@ public enum ScoreState
    * <code>score_state_not_graded = 2;</code>
    */
   score_state_not_graded(2),
+  /**
+   * <pre>
+   * The run was picked for grading and the grade is not in yet.
+   * </pre>
+   *
+   * <code>score_state_pending = 3;</code>
+   */
+  score_state_pending(3),
   UNRECOGNIZED(-1),
   ;
 
@@ -67,6 +75,14 @@ public enum ScoreState
    * <code>score_state_not_graded = 2;</code>
    */
   public static final int score_state_not_graded_VALUE = 2;
+  /**
+   * <pre>
+   * The run was picked for grading and the grade is not in yet.
+   * </pre>
+   *
+   * <code>score_state_pending = 3;</code>
+   */
+  public static final int score_state_pending_VALUE = 3;
 
 
   public final int getNumber() {
@@ -96,6 +112,7 @@ public enum ScoreState
       case 0: return score_state_unspecified;
       case 1: return score_state_graded;
       case 2: return score_state_not_graded;
+      case 3: return score_state_pending;
       default: return null;
     }
   }

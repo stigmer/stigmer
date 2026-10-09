@@ -82,6 +82,7 @@ export interface ScoreInput {
   passed?: boolean;
   criteria?: ScoreCriterionInput[];
   comment?: string;
+  judgeModel?: string;
 }
 
 /** SDK input type for ScoreCriterion. */
@@ -109,6 +110,7 @@ export function buildScoreProto(input: ScoreInput): Score {
     evaluatorVersion: input.evaluatorVersion,
     criteria,
     comment: input.comment,
+    judgeModel: input.judgeModel,
   }));
   if (input.passed !== undefined) {
     spec.value = { case: "passed", value: input.passed };
@@ -169,5 +171,6 @@ export function toScoreUpdateInput(resource: Score): ScoreInput {
     passed: spec.value?.case === "passed" ? spec.value.value : undefined,
     criteria: spec.criteria?.length ? spec.criteria.map(toScoreCriterionInput) : undefined,
     comment: spec.comment || undefined,
+    judgeModel: spec.judgeModel || undefined,
   };
 }

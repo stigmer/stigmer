@@ -39,6 +39,7 @@ private static final long serialVersionUID = 0L;
     evaluatorVersion_ = "";
     criteria_ = java.util.Collections.emptyList();
     comment_ = "";
+    judgeModel_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -199,7 +200,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * What is measured: `feedback` for a person's thumbs, `run-health` for
-   * the free checks.
+   * the free checks, `judge` for an AI judge's verdict.
    * </pre>
    *
    * <code>string metric = 3 [json_name = "metric", (.buf.validate.field) = { ... }</code>
@@ -221,7 +222,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * What is measured: `feedback` for a person's thumbs, `run-health` for
-   * the free checks.
+   * the free checks, `judge` for an AI judge's verdict.
    * </pre>
    *
    * <code>string metric = 3 [json_name = "metric", (.buf.validate.field) = { ... }</code>
@@ -320,8 +321,8 @@ private static final long serialVersionUID = 0L;
   public static final int PASSED_FIELD_NUMBER = 6;
   /**
    * <pre>
-   * True when the run passed: thumbs up, or every applicable check
-   * passed.
+   * True when the run passed: thumbs up, every applicable check passed,
+   * or no rubric failed.
    * </pre>
    *
    * <code>bool passed = 6 [json_name = "passed"];</code>
@@ -333,8 +334,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * True when the run passed: thumbs up, or every applicable check
-   * passed.
+   * True when the run passed: thumbs up, every applicable check passed,
+   * or no rubric failed.
    * </pre>
    *
    * <code>bool passed = 6 [json_name = "passed"];</code>
@@ -456,6 +457,53 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int JUDGE_MODEL_FIELD_NUMBER = 9;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object judgeModel_ = "";
+  /**
+   * <pre>
+   * The model that gave a judge's verdict. Example: "claude-sonnet-4-6".
+   * </pre>
+   *
+   * <code>string judge_model = 9 [json_name = "judgeModel", (.buf.validate.field) = { ... }</code>
+   * @return The judgeModel.
+   */
+  @java.lang.Override
+  public java.lang.String getJudgeModel() {
+    java.lang.Object ref = judgeModel_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      judgeModel_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * The model that gave a judge's verdict. Example: "claude-sonnet-4-6".
+   * </pre>
+   *
+   * <code>string judge_model = 9 [json_name = "judgeModel", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for judgeModel.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getJudgeModelBytes() {
+    java.lang.Object ref = judgeModel_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      judgeModel_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -494,6 +542,9 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(comment_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 8, comment_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(judgeModel_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 9, judgeModel_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -537,6 +588,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(comment_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(8, comment_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(judgeModel_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(9, judgeModel_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -565,6 +619,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getCriteriaList())) return false;
     if (!getComment()
         .equals(other.getComment())) return false;
+    if (!getJudgeModel()
+        .equals(other.getJudgeModel())) return false;
     if (!getValueCase().equals(other.getValueCase())) return false;
     switch (valueCase_) {
       case 6:
@@ -601,6 +657,8 @@ private static final long serialVersionUID = 0L;
     }
     hash = (37 * hash) + COMMENT_FIELD_NUMBER;
     hash = (53 * hash) + getComment().hashCode();
+    hash = (37 * hash) + JUDGE_MODEL_FIELD_NUMBER;
+    hash = (53 * hash) + getJudgeModel().hashCode();
     switch (valueCase_) {
       case 6:
         hash = (37 * hash) + PASSED_FIELD_NUMBER;
@@ -758,6 +816,7 @@ private static final long serialVersionUID = 0L;
       }
       bitField0_ = (bitField0_ & ~0x00000040);
       comment_ = "";
+      judgeModel_ = "";
       valueCase_ = 0;
       value_ = null;
       return this;
@@ -824,6 +883,9 @@ private static final long serialVersionUID = 0L;
       }
       if (((from_bitField0_ & 0x00000080) != 0)) {
         result.comment_ = comment_;
+      }
+      if (((from_bitField0_ & 0x00000100) != 0)) {
+        result.judgeModel_ = judgeModel_;
       }
     }
 
@@ -896,6 +958,11 @@ private static final long serialVersionUID = 0L;
       if (!other.getComment().isEmpty()) {
         comment_ = other.comment_;
         bitField0_ |= 0x00000080;
+        onChanged();
+      }
+      if (!other.getJudgeModel().isEmpty()) {
+        judgeModel_ = other.judgeModel_;
+        bitField0_ |= 0x00000100;
         onChanged();
       }
       switch (other.getValueCase()) {
@@ -981,6 +1048,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000080;
               break;
             } // case 66
+            case 74: {
+              judgeModel_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000100;
+              break;
+            } // case 74
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1201,7 +1273,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * What is measured: `feedback` for a person's thumbs, `run-health` for
-     * the free checks.
+     * the free checks, `judge` for an AI judge's verdict.
      * </pre>
      *
      * <code>string metric = 3 [json_name = "metric", (.buf.validate.field) = { ... }</code>
@@ -1222,7 +1294,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * What is measured: `feedback` for a person's thumbs, `run-health` for
-     * the free checks.
+     * the free checks, `judge` for an AI judge's verdict.
      * </pre>
      *
      * <code>string metric = 3 [json_name = "metric", (.buf.validate.field) = { ... }</code>
@@ -1244,7 +1316,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * What is measured: `feedback` for a person's thumbs, `run-health` for
-     * the free checks.
+     * the free checks, `judge` for an AI judge's verdict.
      * </pre>
      *
      * <code>string metric = 3 [json_name = "metric", (.buf.validate.field) = { ... }</code>
@@ -1262,7 +1334,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * What is measured: `feedback` for a person's thumbs, `run-health` for
-     * the free checks.
+     * the free checks, `judge` for an AI judge's verdict.
      * </pre>
      *
      * <code>string metric = 3 [json_name = "metric", (.buf.validate.field) = { ... }</code>
@@ -1277,7 +1349,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * What is measured: `feedback` for a person's thumbs, `run-health` for
-     * the free checks.
+     * the free checks, `judge` for an AI judge's verdict.
      * </pre>
      *
      * <code>string metric = 3 [json_name = "metric", (.buf.validate.field) = { ... }</code>
@@ -1465,8 +1537,8 @@ private static final long serialVersionUID = 0L;
 
     /**
      * <pre>
-     * True when the run passed: thumbs up, or every applicable check
-     * passed.
+     * True when the run passed: thumbs up, every applicable check passed,
+     * or no rubric failed.
      * </pre>
      *
      * <code>bool passed = 6 [json_name = "passed"];</code>
@@ -1477,8 +1549,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * True when the run passed: thumbs up, or every applicable check
-     * passed.
+     * True when the run passed: thumbs up, every applicable check passed,
+     * or no rubric failed.
      * </pre>
      *
      * <code>bool passed = 6 [json_name = "passed"];</code>
@@ -1492,8 +1564,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * True when the run passed: thumbs up, or every applicable check
-     * passed.
+     * True when the run passed: thumbs up, every applicable check passed,
+     * or no rubric failed.
      * </pre>
      *
      * <code>bool passed = 6 [json_name = "passed"];</code>
@@ -1509,8 +1581,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * True when the run passed: thumbs up, or every applicable check
-     * passed.
+     * True when the run passed: thumbs up, every applicable check passed,
+     * or no rubric failed.
      * </pre>
      *
      * <code>bool passed = 6 [json_name = "passed"];</code>
@@ -1925,6 +1997,98 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       comment_ = value;
       bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object judgeModel_ = "";
+    /**
+     * <pre>
+     * The model that gave a judge's verdict. Example: "claude-sonnet-4-6".
+     * </pre>
+     *
+     * <code>string judge_model = 9 [json_name = "judgeModel", (.buf.validate.field) = { ... }</code>
+     * @return The judgeModel.
+     */
+    public java.lang.String getJudgeModel() {
+      java.lang.Object ref = judgeModel_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        judgeModel_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The model that gave a judge's verdict. Example: "claude-sonnet-4-6".
+     * </pre>
+     *
+     * <code>string judge_model = 9 [json_name = "judgeModel", (.buf.validate.field) = { ... }</code>
+     * @return The bytes for judgeModel.
+     */
+    public com.google.protobuf.ByteString
+        getJudgeModelBytes() {
+      java.lang.Object ref = judgeModel_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        judgeModel_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The model that gave a judge's verdict. Example: "claude-sonnet-4-6".
+     * </pre>
+     *
+     * <code>string judge_model = 9 [json_name = "judgeModel", (.buf.validate.field) = { ... }</code>
+     * @param value The judgeModel to set.
+     * @return This builder for chaining.
+     */
+    public Builder setJudgeModel(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      judgeModel_ = value;
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The model that gave a judge's verdict. Example: "claude-sonnet-4-6".
+     * </pre>
+     *
+     * <code>string judge_model = 9 [json_name = "judgeModel", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearJudgeModel() {
+      judgeModel_ = getDefaultInstance().getJudgeModel();
+      bitField0_ = (bitField0_ & ~0x00000100);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The model that gave a judge's verdict. Example: "claude-sonnet-4-6".
+     * </pre>
+     *
+     * <code>string judge_model = 9 [json_name = "judgeModel", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes for judgeModel to set.
+     * @return This builder for chaining.
+     */
+    public Builder setJudgeModelBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      judgeModel_ = value;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }

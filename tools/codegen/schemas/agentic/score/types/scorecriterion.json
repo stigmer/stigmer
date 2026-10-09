@@ -41,7 +41,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Why, in counts, tool names and step numbers; never a quote of what\n anyone typed.",
+      "description": "Why the criterion has its result.",
       "required": false,
       "validation": {
         "maxLength": 500

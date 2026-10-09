@@ -36,20 +36,21 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
   static {
     java.lang.String[] descriptorData = {
       "\n&ai/stigmer/agentic/score/v1/enum.proto" +
-      "\022\033ai.stigmer.agentic.score.v1*[\n\013ScoreSo" +
+      "\022\033ai.stigmer.agentic.score.v1*s\n\013ScoreSo" +
       "urce\022\034\n\030score_source_unspecified\020\000\022\026\n\022sc" +
       "ore_source_check\020\001\022\026\n\022score_source_human" +
-      "\020\002*]\n\nScoreState\022\033\n\027score_state_unspecif" +
-      "ied\020\000\022\026\n\022score_state_graded\020\001\022\032\n\026score_s" +
-      "tate_not_graded\020\002*\222\001\n\017CriterionResult\022 \n" +
-      "\034criterion_result_unspecified\020\000\022\033\n\027crite" +
-      "rion_result_passed\020\001\022\033\n\027criterion_result" +
-      "_failed\020\002\022#\n\037criterion_result_not_applic" +
-      "able\020\003B\234\001B\tEnumProtoP\001\242\002\004ASAS\252\002\033Ai.Stigm" +
-      "er.Agentic.Score.V1\312\002\033Ai\\Stigmer\\Agentic" +
-      "\\Score\\V1\342\002\'Ai\\Stigmer\\Agentic\\Score\\V1\\" +
-      "GPBMetadata\352\002\037Ai::Stigmer::Agentic::Scor" +
-      "e::V1b\006proto3"
+      "\020\002\022\026\n\022score_source_judge\020\003*v\n\nScoreState" +
+      "\022\033\n\027score_state_unspecified\020\000\022\026\n\022score_s" +
+      "tate_graded\020\001\022\032\n\026score_state_not_graded\020" +
+      "\002\022\027\n\023score_state_pending\020\003*\222\001\n\017Criterion" +
+      "Result\022 \n\034criterion_result_unspecified\020\000" +
+      "\022\033\n\027criterion_result_passed\020\001\022\033\n\027criteri" +
+      "on_result_failed\020\002\022#\n\037criterion_result_n" +
+      "ot_applicable\020\003B\234\001B\tEnumProtoP\001\242\002\004ASAS\252\002" +
+      "\033Ai.Stigmer.Agentic.Score.V1\312\002\033Ai\\Stigme" +
+      "r\\Agentic\\Score\\V1\342\002\'Ai\\Stigmer\\Agentic\\" +
+      "Score\\V1\\GPBMetadata\352\002\037Ai::Stigmer::Agen" +
+      "tic::Score::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n&ai/stigmer/agentic/score/v1/enum.proto\x12\x1b\x61i.stigmer.agentic.score.v1*[\n\x0bScoreSource\x12\x1c\n\x18score_source_unspecified\x10\x00\x12\x16\n\x12score_source_check\x10\x01\x12\x16\n\x12score_source_human\x10\x02*]\n\nScoreState\x12\x1b\n\x17score_state_unspecified\x10\x00\x12\x16\n\x12score_state_graded\x10\x01\x12\x1a\n\x16score_state_not_graded\x10\x02*\x92\x01\n\x0f\x43riterionResult\x12 \n\x1c\x63riterion_result_unspecified\x10\x00\x12\x1b\n\x17\x63riterion_result_passed\x10\x01\x12\x1b\n\x17\x63riterion_result_failed\x10\x02\x12#\n\x1f\x63riterion_result_not_applicable\x10\x03\x42\xbd\x01\n\x1f\x63om.ai.stigmer.agentic.score.v1B\tEnumProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1b\x41i.Stigmer.Agentic.Score.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Score\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Score\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Score::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n&ai/stigmer/agentic/score/v1/enum.proto\x12\x1b\x61i.stigmer.agentic.score.v1*s\n\x0bScoreSource\x12\x1c\n\x18score_source_unspecified\x10\x00\x12\x16\n\x12score_source_check\x10\x01\x12\x16\n\x12score_source_human\x10\x02\x12\x16\n\x12score_source_judge\x10\x03*v\n\nScoreState\x12\x1b\n\x17score_state_unspecified\x10\x00\x12\x16\n\x12score_state_graded\x10\x01\x12\x1a\n\x16score_state_not_graded\x10\x02\x12\x17\n\x13score_state_pending\x10\x03*\x92\x01\n\x0f\x43riterionResult\x12 \n\x1c\x63riterion_result_unspecified\x10\x00\x12\x1b\n\x17\x63riterion_result_passed\x10\x01\x12\x1b\n\x17\x63riterion_result_failed\x10\x02\x12#\n\x1f\x63riterion_result_not_applicable\x10\x03\x42\xbd\x01\n\x1f\x63om.ai.stigmer.agentic.score.v1B\tEnumProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1b\x41i.Stigmer.Agentic.Score.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Score\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Score\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Score::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -33,9 +33,9 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n\037com.ai.stigmer.agentic.score.v1B\tEnumProtoP\001\242\002\004ASAS\252\002\033Ai.Stigmer.Agentic.Score.V1\312\002\033Ai\\Stigmer\\Agentic\\Score\\V1\342\002\'Ai\\Stigmer\\Agentic\\Score\\V1\\GPBMetadata\352\002\037Ai::Stigmer::Agentic::Score::V1'
   _globals['_SCORESOURCE']._serialized_start=71
-  _globals['_SCORESOURCE']._serialized_end=162
-  _globals['_SCORESTATE']._serialized_start=164
-  _globals['_SCORESTATE']._serialized_end=257
-  _globals['_CRITERIONRESULT']._serialized_start=260
-  _globals['_CRITERIONRESULT']._serialized_end=406
+  _globals['_SCORESOURCE']._serialized_end=186
+  _globals['_SCORESTATE']._serialized_start=188
+  _globals['_SCORESTATE']._serialized_end=306
+  _globals['_CRITERIONRESULT']._serialized_start=309
+  _globals['_CRITERIONRESULT']._serialized_end=455
 # @@protoc_insertion_point(module_scope)

@@ -136,6 +136,7 @@
               "plugin",
               "vault",
               "score",
+              "evaluator",
               "plan",
               "subscription",
               "license"
@@ -418,6 +419,11 @@
           "name": "score",
           "number": 61,
           "description": "One grade of a finished run: a person's thumbs or a free run-health\n check."
+        },
+        {
+          "name": "evaluator",
+          "number": 62,
+          "description": "AI grading switched on for one agent: its sample rate, monthly spending\n limit and judge model."
         },
         {
           "name": "plan",

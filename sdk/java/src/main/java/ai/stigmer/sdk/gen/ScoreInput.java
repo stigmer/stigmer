@@ -26,6 +26,7 @@ public final class ScoreInput {
     private final Boolean passed;
     private final java.util.List<ScoreCriterionInput> criteria;
     private final String comment;
+    private final String judgeModel;
 
     private ScoreInput(Builder builder) {
         this.id = builder.id;
@@ -42,6 +43,7 @@ public final class ScoreInput {
         this.passed = builder.passed;
         this.criteria = builder.criteria;
         this.comment = builder.comment;
+        this.judgeModel = builder.judgeModel;
     }
 
     Score toProto() {
@@ -71,6 +73,9 @@ public final class ScoreInput {
         }
         if (this.comment != null) {
             spec.setComment(this.comment);
+        }
+        if (this.judgeModel != null) {
+            spec.setJudgeModel(this.judgeModel);
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name);
@@ -114,6 +119,7 @@ public final class ScoreInput {
         private Boolean passed;
         private java.util.List<ScoreCriterionInput> criteria;
         private String comment;
+        private String judgeModel;
 
         private Builder() {}
 
@@ -136,6 +142,7 @@ public final class ScoreInput {
         public Builder passed(boolean passed) { this.passed = passed; return this; }
         public Builder criteria(java.util.List<ScoreCriterionInput> criteria) { this.criteria = criteria; return this; }
         public Builder comment(String comment) { this.comment = comment; return this; }
+        public Builder judgeModel(String judgeModel) { this.judgeModel = judgeModel; return this; }
 
         public ScoreInput build() { return new ScoreInput(this); }
     }

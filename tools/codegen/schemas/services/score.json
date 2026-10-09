@@ -157,6 +157,11 @@
           "name": "score_state_not_graded",
           "number": 2,
           "description": "The run could not be graded; the reason says why."
+        },
+        {
+          "name": "score_state_pending",
+          "number": 3,
+          "description": "The run was picked for grading and the grade is not in yet."
         }
       ]
     },
@@ -201,6 +206,11 @@
           "name": "score_source_human",
           "number": 2,
           "description": "A person who can see the run."
+        },
+        {
+          "name": "score_source_judge",
+          "number": 3,
+          "description": "An AI judge grading the run against Stigmer's standard rubrics, switched\n on per agent by its evaluator."
         }
       ]
     },
@@ -227,7 +237,7 @@
       ]
     }
   ],
-  "resourceDescription": "Score is one grade of a finished run.\n\n A run carries a score for each thing measured: a person's thumbs up or\n down on the final answer, and the free run-health checks the platform\n runs when a run completes. Anyone who can see the run sees its scores.",
+  "resourceDescription": "Score is one grade of a finished run.\n\n A run carries a score for each thing measured: a person's thumbs up or\n down on the final answer, the free run-health checks the platform runs\n when a run completes, and an AI judge's verdict where the run's agent has\n AI grading switched on. Anyone who can see the run sees its scores.",
   "statusType": {
     "name": "ScoreStatus",
     "description": "ScoreStatus contains system-managed state for a score.",
@@ -243,7 +253,8 @@
           "enumType": "ai.stigmer.agentic.score.v1.ScoreState",
           "enumValues": [
             "score_state_graded",
-            "score_state_not_graded"
+            "score_state_not_graded",
+            "score_state_pending"
           ]
         },
         "description": "Whether the score carries a grade.",

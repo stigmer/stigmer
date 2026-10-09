@@ -1,8 +1,8 @@
 A Score is one grade of a finished run. A run carries a score for each thing
 measured, its metric: a person's thumbs up or down on the final answer
-(`feedback`), and the free checks Stigmer runs when a run completes
-(`run-health`). Anyone who
-can see the run sees its scores.
+(`feedback`), the free checks Stigmer runs when a run completes
+(`run-health`), and an AI judge's verdict when the run's agent has AI grading
+switched on (`judge`). Anyone who can see the run sees its scores.
 
 Scores are written by people rating a run and by the platform — you never
 author one as a manifest. The shape below is what `get` and the list

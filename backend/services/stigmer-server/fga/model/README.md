@@ -113,6 +113,8 @@ A run holds nothing of its own: its one direct relation is the `session` link, e
 
 A score (`agentic/score.fga`) is seen through its run (`can_view: can_view from run`) but is not its run's whole: the person who rated owns the rating (`OWNER_ATTRIBUTION_TYPE_DIRECT`), edits it while they can still see the run (`can_edit: owner and can_view`), and the run's owner deletes any score on it. Its lists are asked on the run or the session, never through the list read scope.
 
+An evaluator (`agentic/evaluator.fga`) has no relation of its own but its `agent` link: it is viewed, edited and deleted by whoever views or edits its agent (`can_view from agent`, `can_edit from agent`), and has no owner (`OWNER_ATTRIBUTION_TYPE_NONE`), because the agent's owner already includes the organization's admins. It is read by its id or by its agent, never through the list read scope.
+
 ### Bounded by the Organization (every direct grant)
 
 Every organization-scoped type admits its direct subjects only while they belong to the object's organization:
@@ -285,6 +287,7 @@ fga/
 │       ├── agent_channel.fga       # An agent's distribution channels (owner-scoped)
 │       ├── agent_share.fga         # An agent's shared pages (owner-scoped)
 │       ├── channel_app.fga         # Bring-your-own channel provider apps (restricted)
+│       ├── evaluator.fga           # An agent's AI grading settings (the agent's access)
 │       ├── execution_context.fga   # Ephemeral runtime contexts (owner-only)
 │       ├── mcp_server.fga          # MCP tool servers (open access)
 │       ├── memory.fga              # An identity's memories (subject-only)

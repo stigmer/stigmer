@@ -1,0 +1,141 @@
+# Store tests for evaluators: an agent's AI grading settings are seen and
+# changed exactly by whoever sees and edits the agent.
+#
+# An evaluator carries a single parent link
+#   evaluator#agent@agent:<id>
+# and no owner tuple (OWNER_ATTRIBUTION_TYPE_NONE).
+#
+# Run with:
+#   fga model test --tests evaluator-agent-access.fga.yaml
+#
+# Scenario: org "acme" has admin alice, member bob (owns the triage agent,
+# visible to the organization), member dave (editor on the agent) and
+# member carol (no grant, sees the agent through its organization
+# visibility). bob's private agent has an evaluator too; carol cannot see
+# it. "rival" is another org whose admin eve must see nothing.
+name: evaluator-agent-access
+model_file: ../../src/authorization/model/data/authorization-model.json
+
+tuples:
+  # --- Org roles ---
+  - user: identity_account:alice
+    relation: admin
+    object: organization:acme
+  - user: identity_account:alice
+    relation: affiliated
+    object: organization:acme
+  - user: identity_account:bob
+    relation: member
+    object: organization:acme
+  - user: identity_account:bob
+    relation: affiliated
+    object: organization:acme
+  - user: identity_account:carol
+    relation: member
+    object: organization:acme
+  - user: identity_account:carol
+    relation: affiliated
+    object: organization:acme
+  - user: identity_account:dave
+    relation: member
+    object: organization:acme
+  - user: identity_account:dave
+    relation: affiliated
+    object: organization:acme
+  - user: identity_account:eve
+    relation: admin
+    object: organization:rival
+  - user: identity_account:eve
+    relation: affiliated
+    object: organization:rival
+
+  # --- bob's organization-visible agent, dave its editor ---
+  - user: organization:acme
+    relation: organization
+    object: agent:triage
+  - user: identity_account:bob
+    relation: owner
+    object: agent:triage
+  - user: identity_account:dave
+    relation: editor
+    object: agent:triage
+  - user: organization:acme#viewer
+    relation: viewer
+    object: agent:triage
+  - user: agent:triage
+    relation: agent
+    object: evaluator:triage-grading
+
+  # --- bob's private agent ---
+  - user: organization:acme
+    relation: organization
+    object: agent:private
+  - user: identity_account:bob
+    relation: owner
+    object: agent:private
+  - user: agent:private
+    relation: agent
+    object: evaluator:private-grading
+
+tests:
+  - name: the agent's owner and its editor configure its grading
+    check:
+      - user: identity_account:bob
+        object: evaluator:triage-grading
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+      - user: identity_account:dave
+        object: evaluator:triage-grading
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+
+  - name: an organization admin configures every agent's grading, private ones included
+    check:
+      - user: identity_account:alice
+        object: evaluator:triage-grading
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+      - user: identity_account:alice
+        object: evaluator:private-grading
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+
+  - name: a member who only sees the agent sees its grading and cannot change it
+    check:
+      - user: identity_account:carol
+        object: evaluator:triage-grading
+        assertions:
+          can_view: true
+          can_edit: false
+          can_delete: false
+
+  - name: a member who cannot see a private agent cannot see its grading
+    check:
+      - user: identity_account:carol
+        object: evaluator:private-grading
+        assertions:
+          can_view: false
+          can_edit: false
+          can_delete: false
+      - user: identity_account:dave
+        object: evaluator:private-grading
+        assertions:
+          can_view: false
+          can_edit: false
+
+  - name: another organization's admin sees nothing
+    check:
+      - user: identity_account:eve
+        object: evaluator:triage-grading
+        assertions:
+          can_view: false
+          can_edit: false
+          can_delete: false
