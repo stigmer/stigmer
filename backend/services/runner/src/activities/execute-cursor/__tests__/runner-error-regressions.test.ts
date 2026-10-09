@@ -1,18 +1,17 @@
 /**
  * Regression tests for runner execution pipeline fixes.
  *
- * Covers three bugs discovered while running the daily-notification plan:
+ * Covers bugs discovered while running the daily-notification plan:
  *
  * 1. Model pricing loaded too late (resolveModelId before ensurePricingLoaded)
- * 2. MCP connect-backfill proto serialization (plain object instead of
- *    create(ExecutionValueSchema, ...))
- * 3. Session slug re-validation on full update
+ * 2. Session slug re-validation on full update
+ *
+ * A third, the connect backfill's value serialization, went with the values
+ * a connect carried: a connect now names its run and carries none.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { ConnectInputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
-import { ExecutionValueSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. Model pricing: resolveModelId must succeed after ensureLoaded
@@ -69,46 +68,7 @@ describe("model pricing ordering regression", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 2. Connect-backfill: ExecutionValue must be a proto message, not a plain object
-// ─────────────────────────────────────────────────────────────────────────────
-
-describe("connect-backfill proto serialization regression", () => {
-  it("ConnectInput.runtimeEnv serializes correctly with create(ExecutionValueSchema)", () => {
-    const input = create(ConnectInputSchema, {
-      mcpServerId: "test-id",
-      org: "test-org",
-    });
-
-    // This is the FIXED pattern — uses create(ExecutionValueSchema, ...)
-    input.runtimeEnv["POSTGRES_URL"] = create(ExecutionValueSchema, {
-      value: "postgresql://localhost/test",
-      isSecret: true,
-    });
-
-    // Verify the message is a proper proto message, not a plain object
-    expect(input.runtimeEnv["POSTGRES_URL"].value).toBe("postgresql://localhost/test");
-    expect(input.runtimeEnv["POSTGRES_URL"].isSecret).toBe(true);
-    expect(input.runtimeEnv["POSTGRES_URL"].$typeName).toBe(
-      "ai.stigmer.agentic.executioncontext.v1.ExecutionValue",
-    );
-  });
-
-  it("plain object assignment would fail serialization (documents the bug)", () => {
-    const input = create(ConnectInputSchema, {
-      mcpServerId: "test-id",
-      org: "test-org",
-    });
-
-    // This was the BUGGY pattern — plain object cast with `as any`
-    input.runtimeEnv["KEY"] = { value: "val" } as any;
-
-    // The plain object lacks $typeName, proving it's not a proper proto message
-    expect((input.runtimeEnv["KEY"] as any).$typeName).toBeUndefined();
-  });
-});
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 3. Session slug: clearing slug before update avoids re-validation failure
+// 2. Session slug: clearing slug before update avoids re-validation failure
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("session slug clearing regression", () => {

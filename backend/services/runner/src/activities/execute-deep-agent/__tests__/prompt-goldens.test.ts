@@ -103,16 +103,14 @@ const PROVISION_RESULTS: readonly ProvisionResult[] = [
   {
     rootDir: "/ws/app",
     sourceType: "git_repo",
-    consumedKeys: [],
     workspaceDescription: "The payments service, cloned from git.",
     entryName: "app",
-    gitMetadata: { repoUrl: "https://github.com/acme/payments", branch: "main", baseCommit: "0123456789abcdef", gitCredentialsConfigured: true },
+    gitMetadata: { repoUrl: "https://github.com/acme/payments", branch: "main", baseCommit: "0123456789abcdef", writeBackReady: true },
     fileTree: "app/\n  src/\n  README.md",
   },
   {
     rootDir: "/ws/docs",
     sourceType: "local_path",
-    consumedKeys: [],
     workspaceDescription: "The docs folder on the user's machine.",
     entryName: "docs",
   },

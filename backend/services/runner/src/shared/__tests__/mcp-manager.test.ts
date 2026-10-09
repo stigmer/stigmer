@@ -32,7 +32,7 @@ function makeServer(overrides: Partial<ResolvedMcpServer>): ResolvedMcpServer {
     connectionType: "stdio",
     destructiveTools: [],
     discoveredToolNames: null,
-    declaredEnvKeys: [],
+    serverId: "",
     pluginOrigin: null,
     discoveredCapabilitiesEmpty: false,
     ...overrides,

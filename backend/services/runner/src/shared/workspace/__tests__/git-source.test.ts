@@ -1,6 +1,15 @@
+/**
+ * Pins the git workspace source: the clone-in-place flow, default-branch
+ * resolution, idempotent reuse, and how a repository's token reaches git —
+ * through the environment of the two network commands only, for a
+ * github.com URL only, never in a remote URL, argv or a file — plus the
+ * reuse scrub of what earlier runners stored, the git version floor, shell
+ * quoting, error sanitization, multi-entry subdirectories and git excludes.
+ */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mockWorkspaceBackend } from "../../../__test-utils__/mock-workspace.js";
 import { provisionGit } from "../sources/git.js";
+import { forgetGitVersion } from "../git-credential.js";
 import { WorkspaceProvisionError } from "../types.js";
 
 /**
@@ -18,9 +27,10 @@ function routingExecute(opts: {
   defaultRef?: string;
   fail?: (cmd: string) => Error | undefined;
 } = {}) {
-  return vi.fn(async (cmd: string) => {
+  return vi.fn(async (cmd: string, _options?: { cwd?: string; env?: Record<string, string> }) => {
     const failErr = opts.fail?.(cmd);
     if (failErr) throw failErr;
+    if (cmd === "git --version") return "git version 2.39.5\n";
     if (cmd.includes("rev-parse --abbrev-ref")) return opts.branch ?? "main\n";
     if (cmd.includes("rev-parse HEAD")) return opts.sha ?? "abc123\n";
     if (cmd.includes("symbolic-ref")) return opts.defaultRef ?? "origin/main\n";
@@ -39,7 +49,6 @@ function makeOptions(overrides: Record<string, unknown> = {}) {
     url: "https://github.com/org/repo.git",
     branch: "main",
     backend: mockWorkspaceBackend({ execute: routingExecute() }),
-    envVars: {} as Record<string, string>,
     isLocalMode: true,
     ...overrides,
   };
@@ -49,6 +58,7 @@ describe("provisionGit", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.spyOn(console, "log").mockImplementation(() => {});
+    forgetGitVersion();
   });
 
   // ── Clone-in-place command flow ───────────────────────────────────
@@ -132,88 +142,78 @@ describe("provisionGit", () => {
     expect(calls(backend).some((c) => c.includes("git fetch"))).toBe(false);
   });
 
-  it("returns empty consumedKeys when reusing existing repo", async () => {
-    const backend = mockWorkspaceBackend({
-      exists: vi.fn().mockResolvedValue(true),
-      execute: routingExecute(),
-    });
-    const result = await provisionGit(makeOptions({ backend }));
-    expect(result.consumedKeys).toEqual([]);
-  });
+  // ── The repository's token ────────────────────────────────────────
 
-  it("reports GITHUB_TOKEN consumed on reuse only where the clone holds it", async () => {
-    // Every turn after the first reuses the clone: what the workspace
-    // consumed must match what the clone holds, on any turn.
-    const TOKEN = "ghp_secret123";
-    const withToken = "https://x-access-token:ghp_secret123@github.com/org/repo.git";
-    const reuse = async (opts: { configureCredentials: boolean; origin?: string; failStore?: boolean }) => {
-      const backend = mockWorkspaceBackend({
-        exists: vi.fn().mockResolvedValue(true),
-        execute: vi.fn(async (cmd: string) => {
-          if (cmd.includes("remote get-url origin")) {
-            if (opts.origin === undefined) throw new Error("no origin");
-            return `${opts.origin}\n`;
-          }
-          if (opts.failStore === true && cmd.includes("credential.helper")) {
-            throw new Error("config locked");
-          }
-          if (cmd.includes("rev-parse --abbrev-ref")) return "main\n";
-          if (cmd.includes("rev-parse HEAD")) return "abc123\n";
-          return "";
-        }),
+  const TOKEN = "ghp_secret123";
+
+  /** Every (command, env) the backend ran. */
+  function runs(backend: ReturnType<typeof mockWorkspaceBackend>): Array<{ cmd: string; env?: Record<string, string> }> {
+    return (backend.execute as ReturnType<typeof vi.fn>).mock.calls.map((args: unknown[]) => ({
+      cmd: args[0] as string,
+      env: (args[1] as { env?: Record<string, string> } | undefined)?.env,
+    }));
+  }
+
+  it("hands the token to the fetch and set-head alone, through their environment, never argv or the remote URL", async () => {
+    const backend = mockWorkspaceBackend({ execute: routingExecute() });
+    await provisionGit(makeOptions({ backend, branch: "", token: TOKEN }));
+
+    const withEnv = runs(backend).filter((run) => run.env !== undefined);
+    expect(withEnv.map((run) => run.cmd)).toEqual(["git fetch --quiet origin", "git remote set-head origin --auto"]);
+    const basic = Buffer.from(`x-access-token:${TOKEN}`).toString("base64");
+    for (const run of withEnv) {
+      expect(run.env).toEqual({
+        GIT_CONFIG_COUNT: "1",
+        GIT_CONFIG_KEY_0: "http.https://github.com/.extraheader",
+        GIT_CONFIG_VALUE_0: `AUTHORIZATION: basic ${basic}`,
       });
-      return (await provisionGit(makeOptions({
-        backend,
-        envVars: { GITHUB_TOKEN: TOKEN },
-        isLocalMode: !opts.configureCredentials,
-        configureCredentials: opts.configureCredentials,
-      }))).consumedKeys;
-    };
-    // Cloud: the store configured here holds it; a store that failed holds none.
-    expect(await reuse({ configureCredentials: true })).toEqual(["GITHUB_TOKEN"]);
-    expect(await reuse({ configureCredentials: true, failStore: true })).toEqual([]);
-    // Local: the origin the clone wrote with this token holds it; a clone
-    // made without a token, or with another, holds none; an unreadable origin none.
-    expect(await reuse({ configureCredentials: false, origin: withToken })).toEqual(["GITHUB_TOKEN"]);
-    expect(await reuse({ configureCredentials: false, origin: "https://github.com/org/repo.git" })).toEqual([]);
-    expect(
-      await reuse({ configureCredentials: false, origin: "https://x-access-token:old@github.com/org/repo.git" }),
-    ).toEqual([]);
-    expect(await reuse({ configureCredentials: false })).toEqual([]);
+    }
+    for (const run of runs(backend)) expect(run.cmd).not.toContain(TOKEN);
+    expect(calls(backend)).toContain("git remote add origin 'https://github.com/org/repo.git'");
   });
 
-  // ── GitHub token injection ────────────────────────────────────────
-
-  it("injects GitHub token into the origin remote URL", async () => {
+  it("writes no file holding the token: no credential store, no helper", async () => {
     const backend = mockWorkspaceBackend({ execute: routingExecute() });
-    await provisionGit(makeOptions({
-      backend,
-      envVars: { GITHUB_TOKEN: "ghp_secret123" },
-    }));
+    const result = await provisionGit(makeOptions({ backend, token: TOKEN, isLocalMode: false, writeBack: true }));
 
-    const remoteAdd = calls(backend).find((c) => c.includes("git remote add origin"));
-    expect(remoteAdd).toBeDefined();
-    expect(remoteAdd!).toContain("x-access-token:ghp_secret123@github.com");
+    const written = (backend.writeFile as ReturnType<typeof vi.fn>).mock.calls.map((args: unknown[]) => String(args[1]));
+    for (const content of written) expect(content).not.toContain(TOKEN);
+    expect(calls(backend).some((c) => c.includes("credential.helper"))).toBe(false);
+    expect(result.gitMetadata?.writeBackReady, "a cloud clone with a token may be written back").toBe(true);
   });
 
-  it("adds GITHUB_TOKEN to consumedKeys when used", async () => {
-    const result = await provisionGit(makeOptions({
-      envVars: { GITHUB_TOKEN: "ghp_secret123" },
-    }));
-    expect(result.consumedKeys).toContain("GITHUB_TOKEN");
+  it("is ready for write-back only in cloud mode with a token", async () => {
+    const ready = async (overrides: Record<string, unknown>) =>
+      (await provisionGit(makeOptions(overrides))).gitMetadata?.writeBackReady;
+    expect(await ready({ token: TOKEN, writeBack: false })).toBe(false);
+    expect(await ready({ writeBack: true })).toBe(false);
+    expect(await ready({ token: TOKEN, writeBack: true })).toBe(true);
   });
 
-  it("does not inject token for non-GitHub URLs", async () => {
+  it("strips credentials a GitHub URL already carries from the remote", async () => {
     const backend = mockWorkspaceBackend({ execute: routingExecute() });
-    const result = await provisionGit(makeOptions({
-      backend,
-      url: "https://gitlab.com/org/repo.git",
-      envVars: { GITHUB_TOKEN: "ghp_secret123" },
-    }));
+    await provisionGit(makeOptions({ backend, url: "https://someone:pw@github.com/org/repo.git", token: TOKEN }));
 
-    const remoteAdd = calls(backend).find((c) => c.includes("git remote add origin"));
-    expect(remoteAdd!).not.toContain("x-access-token");
-    expect(result.consumedKeys).toEqual([]);
+    expect(calls(backend)).toContain("git remote add origin 'https://github.com/org/repo.git'");
+  });
+
+  it("refuses a clone that needs a token on a git older than 2.31, naming the floor", async () => {
+    const execute = vi.fn(async (cmd: string) => (cmd === "git --version" ? "git version 2.30.2\n" : ""));
+    const backend = mockWorkspaceBackend({ execute });
+
+    await expect(provisionGit(makeOptions({ backend, token: TOKEN }))).rejects.toThrow(
+      /this runner's git is 2\.30\.2; handing a repository's token to git without storing it needs git 2\.31 or newer/i,
+    );
+    expect(calls(backend).some((c) => c.includes("git fetch"))).toBe(false);
+  });
+
+  it("clones a public repository on an older git: no token, no floor", async () => {
+    const execute = vi.fn(async (cmd: string) => (cmd === "git --version" ? "git version 2.30.2\n" : ""));
+    const backend = mockWorkspaceBackend({ execute });
+
+    await provisionGit(makeOptions({ backend }));
+
+    expect(calls(backend)).toContain("git fetch --quiet origin");
   });
 
   // A URL that only mentions github.com is not GitHub: the token would travel
@@ -225,43 +225,74 @@ describe("provisionGit", () => {
     ["plain http", "http://github.com/org/repo.git"],
   ];
 
-  it.each(lookalikes)("does not inject the token for %s", async (_label, url) => {
+  it.each(lookalikes)("never hands the token to git for %s", async (_label, url) => {
     const backend = mockWorkspaceBackend({ execute: routingExecute() });
-    const result = await provisionGit(makeOptions({
-      backend,
-      url,
-      envVars: { GITHUB_TOKEN: "ghp_secret123" },
-    }));
+    const result = await provisionGit(makeOptions({ backend, url, token: TOKEN, writeBack: true }));
 
-    for (const cmd of calls(backend)) expect(cmd).not.toContain("ghp_secret123");
-    expect(result.consumedKeys).toEqual([]);
+    for (const run of runs(backend)) {
+      expect(run.cmd).not.toContain(TOKEN);
+      expect(run.env).toBeUndefined();
+    }
+    expect(result.gitMetadata!.writeBackReady).toBe(false);
   });
 
-  it.each(lookalikes)("does not store credentials for %s", async (_label, url) => {
-    const backend = mockWorkspaceBackend({ execute: routingExecute() });
-    const result = await provisionGit(makeOptions({
-      backend,
-      url,
-      envVars: { GITHUB_TOKEN: "ghp_secret123" },
-      configureCredentials: true,
-    }));
+  // ── Reuse scrubs what earlier runners stored ──────────────────────
 
-    expect(result.gitMetadata!.gitCredentialsConfigured).toBe(false);
-    const written = (backend.writeFile as ReturnType<typeof vi.fn>).mock.calls
-      .map((args: unknown[]) => String(args[1]));
-    for (const content of written) expect(content).not.toContain("ghp_secret123");
+  function reusing(origin: string, stored: { credFile?: boolean; helper?: string } = {}) {
+    return mockWorkspaceBackend({
+      exists: vi.fn(async (path: string) => path.endsWith(".git") || (stored.credFile === true && path.endsWith(".git-credentials"))),
+      execute: vi.fn(async (cmd: string) => {
+        if (cmd.includes("remote get-url origin")) return `${origin}\n`;
+        if (cmd.includes("--get-all credential.helper")) return stored.helper ? `${stored.helper}\n` : "";
+        if (cmd.includes("rev-parse --abbrev-ref")) return "main\n";
+        if (cmd.includes("rev-parse HEAD")) return "abc123\n";
+        return "";
+      }),
+    });
+  }
+
+  it("rewrites a token-bearing origin clean, deletes the stored file and unsets the store helper", async () => {
+    const backend = reusing(`https://x-access-token:${TOKEN}@github.com/org/repo.git`, {
+      credFile: true,
+      helper: "store --file=/tmp/test-workspace/.git/.git-credentials",
+    });
+
+    await provisionGit(makeOptions({ backend, token: TOKEN }));
+
+    const cmds = calls(backend);
+    expect(cmds).toContain("git remote set-url origin 'https://github.com/org/repo.git'");
+    expect(cmds).toContain("rm -f '/tmp/test-workspace/.git/.git-credentials'");
+    expect(cmds.some((c) => c.startsWith("git config --local --unset-all credential.helper"))).toBe(true);
+    expect(cmds.some((c) => c.includes("git fetch")), "reuse fetches nothing").toBe(false);
   });
 
-  it("replaces credentials a GitHub URL already carries with the token", async () => {
-    const backend = mockWorkspaceBackend({ execute: routingExecute() });
-    await provisionGit(makeOptions({
-      backend,
-      url: "https://someone@github.com/org/repo.git",
-      envVars: { GITHUB_TOKEN: "ghp_secret123" },
-    }));
+  it("leaves a clean clone, and a helper the owner set, alone", async () => {
+    const backend = reusing("https://github.com/org/repo.git", { helper: "osxkeychain" });
 
-    const remoteAdd = calls(backend).find((c) => c.includes("git remote add origin"));
-    expect(remoteAdd).toBe("git remote add origin 'https://x-access-token:ghp_secret123@github.com/org/repo.git'");
+    await provisionGit(makeOptions({ backend }));
+
+    const cmds = calls(backend);
+    expect(cmds.some((c) => c.includes("set-url"))).toBe(false);
+    expect(cmds.some((c) => c.startsWith("rm "))).toBe(false);
+    expect(cmds.some((c) => c.includes("--unset-all"))).toBe(false);
+  });
+
+  it("keeps going when the scrub cannot read the clone", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const backend = mockWorkspaceBackend({
+      exists: vi.fn().mockResolvedValue(true),
+      execute: vi.fn(async (cmd: string) => {
+        if (cmd.includes("get-url") || cmd.startsWith("rm ")) throw new Error("locked");
+        if (cmd.includes("--get-all")) return "store --file=/x/.git/.git-credentials\n";
+        if (cmd.includes("--unset-all")) throw new Error("locked");
+        return "";
+      }),
+    });
+
+    const result = await provisionGit(makeOptions({ backend }));
+
+    expect(result.sourceType).toBe("git_repo");
+    expect(warn).toHaveBeenCalledTimes(3);
   });
 
   // ── Shell quoting ─────────────────────────────────────────────────
@@ -301,7 +332,7 @@ describe("provisionGit", () => {
     try {
       await provisionGit(makeOptions({
         backend,
-        envVars: { GITHUB_TOKEN: "ghp_secret" },
+        token: "ghp_secret",
       }));
       expect.unreachable("provisionGit should have thrown");
     } catch (err) {
@@ -434,106 +465,5 @@ describe("provisionGit", () => {
     const result = await provisionGit(makeOptions({ backend }));
     expect(result.gitMetadata!.branch).toBe("");
     expect(result.gitMetadata!.baseCommit).toBe("");
-  });
-
-  // ── Credential configuration ─────────────────────────────────────
-
-  it("configures git credentials when configureCredentials=true and token is present", async () => {
-    const backend = mockWorkspaceBackend({ execute: routingExecute() });
-
-    const result = await provisionGit(makeOptions({
-      backend,
-      envVars: { GITHUB_TOKEN: "ghp_testtoken" },
-      configureCredentials: true,
-    }));
-
-    expect(result.gitMetadata!.gitCredentialsConfigured).toBe(true);
-
-    const cmds = calls(backend);
-    const setUrlCall = cmds.find((c) => c.includes("git remote set-url"));
-    expect(setUrlCall).toBeDefined();
-    expect(setUrlCall!).toContain("https://github.com/org/repo.git");
-    expect(setUrlCall!).not.toContain("ghp_testtoken");
-
-    const configCall = cmds.find((c) => c.includes("credential.helper"));
-    expect(configCall).toBeDefined();
-    expect(configCall!).toContain("store --file=");
-    expect(configCall!).toContain(".git-credentials");
-
-    expect(backend.writeFile).toHaveBeenCalledWith(
-      expect.stringContaining(".git-credentials"),
-      expect.stringContaining("x-access-token:ghp_testtoken@github.com"),
-    );
-  });
-
-  it("does not configure credentials when configureCredentials is false", async () => {
-    const backend = mockWorkspaceBackend({ execute: routingExecute() });
-
-    const result = await provisionGit(makeOptions({
-      backend,
-      envVars: { GITHUB_TOKEN: "ghp_testtoken" },
-      configureCredentials: false,
-    }));
-
-    expect(result.gitMetadata!.gitCredentialsConfigured).toBe(false);
-    expect(calls(backend).some((c) => c.includes("credential.helper"))).toBe(false);
-  });
-
-  it("does not configure credentials when no GITHUB_TOKEN", async () => {
-    const result = await provisionGit(makeOptions({
-      envVars: {},
-      configureCredentials: true,
-    }));
-
-    expect(result.gitMetadata!.gitCredentialsConfigured).toBe(false);
-  });
-
-  it("does not configure credentials for non-GitHub URLs", async () => {
-    const result = await provisionGit(makeOptions({
-      url: "https://gitlab.com/org/repo.git",
-      envVars: { GITHUB_TOKEN: "ghp_testtoken" },
-      configureCredentials: true,
-    }));
-
-    expect(result.gitMetadata!.gitCredentialsConfigured).toBe(false);
-  });
-
-  it("configures credentials on existing repo reuse", async () => {
-    const backend = mockWorkspaceBackend({
-      exists: vi.fn().mockResolvedValue(true),
-      execute: routingExecute(),
-    });
-
-    const result = await provisionGit(makeOptions({
-      backend,
-      envVars: { GITHUB_TOKEN: "ghp_reuse" },
-      configureCredentials: true,
-    }));
-
-    expect(result.gitMetadata!.gitCredentialsConfigured).toBe(true);
-    expect(calls(backend).some((c) => c.includes("git init")), "the reuse path, not a fresh clone").toBe(false);
-  });
-
-  it("handles credential setup failure gracefully", async () => {
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const backend = mockWorkspaceBackend({
-      execute: routingExecute({
-        fail: (cmd) => (cmd.includes("git remote set-url")
-          ? new Error("permission denied")
-          : undefined),
-      }),
-    });
-
-    const result = await provisionGit(makeOptions({
-      backend,
-      envVars: { GITHUB_TOKEN: "ghp_fail" },
-      configureCredentials: true,
-    }));
-
-    expect(result.gitMetadata!.gitCredentialsConfigured).toBe(false);
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining("[git] Failed to clean remote URL"),
-    );
-    warnSpy.mockRestore();
   });
 });

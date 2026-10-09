@@ -1,6 +1,7 @@
 /**
  * Unit tests for the caller identity: the reserved env keys, the
- * precedence chain, the authoritative injection, and the discovery
+ * precedence chain, the reserved values (authoritative over a run value in
+ * MCP resolution, mcp-resolver.test.ts), and the discovery
  * sentinel that keeps identity-templating servers discoverable.
  */
 
@@ -14,7 +15,7 @@ import {
   SYSTEM_CREATOR_SENTINEL,
   anonymousCallerIdentity,
   injectAnonymousCallerIdentityForDiscovery,
-  injectCallerIdentityEnv,
+  callerIdentityValues,
   resolveCallerIdentity,
 } from "../caller-identity.js";
 import {
@@ -107,36 +108,22 @@ describe("resolveCallerIdentity precedence", () => {
   });
 });
 
-describe("injectCallerIdentityEnv", () => {
+describe("callerIdentityValues", () => {
   const identity = { kind: "whatsapp_phone", value: "919800000001" };
 
-  it("returns a NEW map with the reserved keys set — input never mutated", () => {
-    const input = { GRIST_API_KEY: "secret" };
-    const result = injectCallerIdentityEnv(input, identity, "sess_1");
-
-    expect(result).toEqual({
-      GRIST_API_KEY: "secret",
+  it("are the three reserved keys, and nothing else", () => {
+    expect(callerIdentityValues(identity, "sess_1")).toEqual({
       [CALLER_IDENTITY_KIND_ENV_KEY]: "whatsapp_phone",
       [CALLER_IDENTITY_VALUE_ENV_KEY]: "919800000001",
       [SESSION_ID_ENV_KEY]: "sess_1",
     });
-    expect(input).toEqual({ GRIST_API_KEY: "secret" });
-  });
-
-  it("platform values are authoritative — a user env var cannot impersonate a caller", () => {
-    const result = injectCallerIdentityEnv(
-      { [CALLER_IDENTITY_VALUE_ENV_KEY]: "999999999999" },
-      identity,
-      "sess_1",
-    );
-    expect(result[CALLER_IDENTITY_VALUE_ENV_KEY]).toBe("919800000001");
   });
 
   it("the reserved keys can never hit the unresolved-placeholder silent-skip path", () => {
     // At runtime PlaceholderResolutionError is caught and the server
-    // silently dropped from the execution — always-present injection makes
+    // silently dropped from the execution — always-present values make
     // that unreachable for these keys, whatever the identity resolved to.
-    const env = injectCallerIdentityEnv({}, anonymousCallerIdentity(), "");
+    const env = callerIdentityValues(anonymousCallerIdentity(), "");
     const headers = resolveHeaders(
       {
         "X-Stigmer-Caller-Kind": `\${${CALLER_IDENTITY_KIND_ENV_KEY}}`,

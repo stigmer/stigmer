@@ -1,8 +1,8 @@
 /**
  * Pins the native harness's hook setup (`hooks-setup.ts`): no evaluator for
  * an agent without hooks this engine runs; a hook's `${user_config.KEY}`
- * resolved from the run's values for the agent shell, a missing one
- * refusing the turn by name; a shell-form hook with no `bash` on the hook's
+ * resolved from the agent's own run values, a missing one refusing the turn
+ * by name (and by the MCP server whose value it is); a shell-form hook with no `bash` on the hook's
  * PATH refusing the turn; and Claude's `permission_mode` for the turn.
  */
 
@@ -10,14 +10,13 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { create } from "@bufbuild/protobuf";
-import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
 import { HookGroupSchema, HookHandlerSchema, type HookGroup } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { turnInputFixture } from "../../../__test-utils__/turn-input-fixture.js";
 import type { TurnHookSource, TurnInput } from "../../../harness/types.js";
 import type { ResolvedMcpServer } from "../../../shared/mcp-resolver.js";
+import type { RunValues } from "../../../shared/run-values.js";
 import type { MountedPlugin } from "../../../shared/plugin-mount.js";
 import { buildHookEvaluator, HookSetupError, permissionModeOf } from "../hooks-setup.js";
 
@@ -32,18 +31,13 @@ function groups(...handlers: { command: string; args?: string[] }[]): HookGroup[
 
 function input(
   sources: TurnHookSource[],
-  extra: { declare?: string[]; values?: Record<string, string>; workspaceDir?: string } = {},
+  extra: { agent?: Record<string, string>; tools?: RunValues["tools"]; workspaceDir?: string } = {},
 ): TurnInput {
-  const base = turnInputFixture({
+  return turnInputFixture({
     ...(extra.workspaceDir !== undefined ? { workspaceDir: extra.workspaceDir } : {}),
     hooks: { sources, pluginServers: new Map() },
-    environment: { envVars: extra.values ?? {}, secretKeys: new Set() },
+    environment: { agent: extra.agent ?? {}, tools: extra.tools ?? new Map(), repositories: [] },
   });
-  const spec = create(AgentSpecSchema, {
-    instructions: "You are the fixture agent.",
-    env: Object.fromEntries((extra.declare ?? []).map((key) => [key, create(EnvVarDeclarationSchema, {})])),
-  });
-  return { ...base, blueprint: { ...base.blueprint, agent: { ...base.blueprint.agent!, spec } } };
 }
 
 afterEach(() => vi.unstubAllEnvs());
@@ -57,7 +51,7 @@ describe("buildHookEvaluator", () => {
 
   it("builds an evaluator when every value a hook reads is the run's", async () => {
     const hooks = await buildHookEvaluator(
-      input([{ plugin: mounted, format: "claude-code", groups: groups({ command: "check", args: ["${user_config.API_TOKEN}"] }) }], { declare: ["API_TOKEN"], values: { API_TOKEN: "t" } }),
+      input([{ plugin: mounted, format: "claude-code", groups: groups({ command: "check", args: ["${user_config.API_TOKEN}"] }) }], { agent: { API_TOKEN: "t" } }),
       sink,
       tools,
       180_000,
@@ -66,7 +60,7 @@ describe("buildHookEvaluator", () => {
   });
 
   it("refuses the turn when a hook reads a value the run does not give the agent", async () => {
-    const undeclared = input([{ plugin: mounted, format: "claude-code", groups: groups({ command: "check", args: ["${user_config.API_TOKEN}"] }) }], { values: { API_TOKEN: "t" } });
+    const undeclared = input([{ plugin: mounted, format: "claude-code", groups: groups({ command: "check", args: ["${user_config.API_TOKEN}"] }) }]);
     await expect(buildHookEvaluator(undeclared, sink, tools, 180_000)).rejects.toThrow(
       new HookSetupError(
         "A hook of the plugin 'safety' reads the variable API_TOKEN, which this run does not give the agent. Declare API_TOKEN in the agent's env and set its value, then run again.",
@@ -77,11 +71,11 @@ describe("buildHookEvaluator", () => {
   });
 
   it("names the MCP server that keeps a variable a hook reads", async () => {
+    // The value is in the GitHub tool's group, never the agent's.
     const base = input([{ plugin: mounted, format: "claude-code", groups: groups({ command: "check", args: ["${user_config.API_TOKEN}"] }) }], {
-      declare: ["API_TOKEN"],
-      values: { API_TOKEN: "t" },
+      tools: new Map([["mcp_github", { url: "https://api.githubcopilot.com/mcp/", values: { API_TOKEN: "t" } }]]),
     });
-    const server = { slug: "github", declaredEnvKeys: ["API_TOKEN"] } as Partial<ResolvedMcpServer> as ResolvedMcpServer;
+    const server = { slug: "github", serverId: "mcp_github" } as Partial<ResolvedMcpServer> as ResolvedMcpServer;
     const claimed: TurnInput = { ...base, mcp: { ...base.mcp, servers: [server] } };
     await expect(buildHookEvaluator(claimed, sink, tools, 180_000)).rejects.toThrow(
       new HookSetupError(
@@ -89,6 +83,8 @@ describe("buildHookEvaluator", () => {
           "and gives neither the agent's shell nor its hooks. Give the hook a variable of its own, then run again.",
       ),
     );
+    // A tool that did not resolve this turn is named by its id: its value is still never the agent's.
+    await expect(buildHookEvaluator(base, sink, tools, 180_000)).rejects.toThrow("keeps for its MCP server 'mcp_github'");
   });
 
   it("refuses a shell-form command that reads user_config, and judges only the events it runs", async () => {

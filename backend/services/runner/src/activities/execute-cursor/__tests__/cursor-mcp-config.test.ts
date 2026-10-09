@@ -15,7 +15,7 @@ function server(overrides: Partial<ResolvedMcpServer>): ResolvedMcpServer {
     discoveredCapabilitiesEmpty: false,
     destructiveTools: [],
     discoveredToolNames: null,
-    declaredEnvKeys: [],
+    serverId: "",
     pluginOrigin: null,
     ...overrides,
   };

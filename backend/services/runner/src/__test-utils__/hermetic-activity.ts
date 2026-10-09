@@ -101,6 +101,7 @@ import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message
 import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentVersionEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
+import { ExecutionValuesSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
 import type { StigmerClient } from "../client/stigmer-client.js";
 import {
   registerWorkerShutdownSignal,
@@ -411,9 +412,8 @@ export class ExecutionRecord {
         this.sessionUpdates.push(clone(SessionSchema, session));
         return session;
       }),
-      getExecutionContextByExecutionId: vi.fn(async () => {
-        throw new ConnectError("execution context not found", Code.NotFound);
-      }),
+      // A run whose agent and tools declare nothing: the fetch answers no values.
+      fetchExecutionValues: vi.fn(async () => create(ExecutionValuesSchema)),
       ...overrides,
     } as Partial<StigmerClient>);
   }

@@ -56,21 +56,20 @@ function makeCoordinator(
   const provisionResult: ProvisionResult = {
     rootDir: workDir,
     sourceType: "git_repo",
-    consumedKeys: [],
     workspaceDescription: "integration",
     entryName: "repo",
     gitMetadata: {
       repoUrl: "https://github.com/acme/repo.git",
       branch: "main",
       baseCommit: git(workDir, ["rev-parse", "main"]).trim(),
-      gitCredentialsConfigured: true,
+      writeBackReady: true,
     },
   };
   return new WriteBackCoordinator({
     writeBacks,
     executionId,
     sessionId: SESSION_ID,
-    githubToken: "ghp_test",
+    repositories: [{ name: "repo", url: "https://github.com/acme/repo.git", token: "ghp_test" }],
     provisionResults: [provisionResult],
     workspaceEntries: [
       {
@@ -78,7 +77,7 @@ function makeCoordinator(
         source: {
           source: {
             case: "gitRepo" as const,
-            value: { writeBackMode: GitWriteBackMode.GIT_WRITE_BACK_BRANCH_AND_PR },
+            value: { writeBackMode: GitWriteBackMode.GIT_WRITE_BACK_BRANCH_AND_PR, url: "https://github.com/acme/repo.git" },
           },
         },
       } as any,

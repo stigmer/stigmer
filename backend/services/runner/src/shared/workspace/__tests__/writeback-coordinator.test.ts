@@ -13,6 +13,7 @@ import {
   AGENT_GIT_AUTHOR_NAME,
   AGENT_GIT_AUTHOR_EMAIL,
 } from "../git-identity.js";
+import { forgetGitVersion } from "../git-credential.js";
 
 const SESSION_ID = "ses-01test";
 const SESSION_BRANCH = `stigmer/${SESSION_ID}`;
@@ -30,7 +31,6 @@ function makeProvisionResult(overrides: Partial<ProvisionResult> = {}): Provisio
   return {
     rootDir: "/workspace/my-app",
     sourceType: "git_repo",
-    consumedKeys: [],
     workspaceDescription: "test",
     entryName: "my-app",
     gitMetadata: {
@@ -38,7 +38,7 @@ function makeProvisionResult(overrides: Partial<ProvisionResult> = {}): Provisio
       repoUrl: "https://github.com/acme/my-app.git",
       branch: "main",
       baseCommit: "abc123",
-      gitCredentialsConfigured: true,
+      writeBackReady: true,
     },
     ...overrides,
   };
@@ -50,7 +50,7 @@ function makeWorkspaceEntry(name: string, writeBackMode: GitWriteBackMode = GitW
     source: {
       source: {
         case: "gitRepo" as const,
-        value: { writeBackMode },
+        value: { writeBackMode, url: `https://github.com/acme/${name}.git` },
       },
     },
     $typeName: "ai.stigmer.agentic.session.v1.WorkspaceEntry" as const,
@@ -72,6 +72,7 @@ function mockWorkspaceBackend(responses: Record<string, string> = {}): Workspace
     "git rev-parse HEAD": "abc123def456",
     "git push": "",
     "git diff --stat main...HEAD": " 1 file changed",
+    "git --version": "git version 2.39.5",
     ...responses,
   };
 
@@ -103,7 +104,11 @@ function makeCoordinator(opts: {
     writeBacks: opts.sb,
     executionId: opts.executionId ?? "exec-12345678rest",
     sessionId: opts.sessionId ?? SESSION_ID,
-    githubToken: opts.githubToken ?? "ghp_plumbed_token",
+    repositories: (opts.workspaceEntries ?? [makeWorkspaceEntry("my-app")]).map((entry) => ({
+      name: entry.name,
+      url: entry.source.source.value.url,
+      token: opts.githubToken ?? "ghp_plumbed_token",
+    })),
     provisionResults: opts.provisionResults ?? [makeProvisionResult()],
     workspaceEntries: opts.workspaceEntries ?? [makeWorkspaceEntry("my-app")],
     workspaceBackend: opts.backend ?? mockWorkspaceBackend(),
@@ -144,6 +149,7 @@ describe("WriteBackCoordinator", () => {
   beforeEach(() => {
     ({ sb, status } = makeStatusBuilder());
     mockGithubApi();
+    forgetGitVersion();
   });
 
   afterEach(() => {
@@ -168,7 +174,7 @@ describe("WriteBackCoordinator", () => {
           repoUrl: "https://github.com/acme/my-app.git",
           branch: "main",
           baseCommit: "abc",
-          gitCredentialsConfigured: false,
+          writeBackReady: false,
         },
       })],
     });
@@ -239,6 +245,50 @@ describe("WriteBackCoordinator", () => {
     await coord.finalize();
 
     expect(status.workspaceWriteBacks).toHaveLength(0);
+  });
+
+  // ── The repository's token ─────────────────────────────────────────
+
+  it("hands the entry's own token to ls-remote, fetch and push alone, through their environment", async () => {
+    // The session branch lives only on the remote: ls-remote finds it, fetch
+    // brings it, push appends — the three network commands of a cycle.
+    const backend = mockWorkspaceBackend({ "git ls-remote --heads origin": "abc refs/heads/x" });
+    const coord = makeCoordinator({ sb, backend, githubToken: "ghp_entry_token" });
+
+    await coord.finalize();
+
+    const runs = (backend.execute as ReturnType<typeof vi.fn>).mock.calls
+      .map((c: any) => ({ cmd: c[0] as string, env: (c[1] as { env?: Record<string, string> } | undefined)?.env }));
+    const withEnv = runs.filter((run) => run.env !== undefined).map((run) => run.cmd.replace(/^cd \S+ && /, ""));
+    expect(withEnv).toEqual([
+      `git ls-remote --heads origin ${SESSION_BRANCH}`,
+      `git fetch origin ${SESSION_BRANCH}`,
+      `git push -u origin ${SESSION_BRANCH}`,
+    ]);
+    const basic = Buffer.from("x-access-token:ghp_entry_token").toString("base64");
+    for (const run of runs.filter((r) => r.env !== undefined)) {
+      expect(run.env?.GIT_CONFIG_VALUE_0).toBe(`AUTHORIZATION: basic ${basic}`);
+    }
+    for (const run of runs) expect(run.cmd).not.toContain("ghp_entry_token");
+  });
+
+  it("takes each entry's token by its name and URL, never another entry's", async () => {
+    const backend = mockWorkspaceBackend();
+    const coord = new WriteBackCoordinator({
+      writeBacks: sb,
+      executionId: "exec-12345678rest",
+      sessionId: SESSION_ID,
+      repositories: [{ name: "my-app", url: "https://github.com/acme/other.git", token: "ghp_other" }],
+      provisionResults: [makeProvisionResult()],
+      workspaceEntries: [makeWorkspaceEntry("my-app")],
+      workspaceBackend: backend,
+    });
+
+    await coord.finalize();
+
+    const envs = (backend.execute as ReturnType<typeof vi.fn>).mock.calls.map((c: any) => c[1]?.env);
+    expect(envs.every((env: unknown) => env === undefined), "a token for another URL is not this entry's").toBe(true);
+    expect(status.workspaceWriteBacks[0]?.error).toContain("No GitHub token available");
   });
 
   // ── Session-branch idempotency ──────────────────────────────────────

@@ -20,7 +20,7 @@ export function mockStigmerClient(overrides: MockMethods = {}): StigmerClient {
       signal: RunControlSignal.UNSPECIFIED,
     }),
     getExecution: vi.fn().mockResolvedValue({}),
-    getExecutionContextByExecutionId: vi.fn().mockResolvedValue({}),
+    fetchExecutionValues: vi.fn().mockResolvedValue({ agent: {}, tools: [], repositories: [] }),
     // No scoped token by default — the OSS/local shape (no runner credential).
     acquireScopedRunnerToken: vi.fn().mockResolvedValue(undefined),
     getRunnerScopedToken: vi.fn().mockResolvedValue(undefined),
