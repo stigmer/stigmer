@@ -16,8 +16,8 @@
  *
  *   - verify fails CLOSED: any failure — forged, expired, wrong lane, a
  *     lane the implementation does not provide — throws InvalidTokenError,
- *     and the caller's only correct reaction is to fall back to redaction
- *     (the executioncontext decrypt lane's posture, oss#535).
+ *     and the caller's only correct reaction is to refuse what the token
+ *     would have unlocked (the values fetch's posture, oss#535).
  *   - mint on a PROVIDED lane without a signing key throws
  *     MintingDisabledError, which the platform exchange RPC maps to the
  *     presence-based "not minted" response the runner handles — degraded,
@@ -37,8 +37,8 @@
  * Beyond the mint/verify primitives, an edition's runner credentials
  * surface at four OSS-owned touchpoints whose POLICY is edition-specific:
  * the platform scoped-token exchange, the bootstrap credential response,
- * the token baked into a provisioned sandbox, and the ExecutionContext
- * decrypt trust decision. Each is an OPTIONAL method here; each OSS call
+ * the token baked into a provisioned sandbox, and the values fetch's
+ * trust decision. Each is an OPTIONAL method here; each OSS call
  * site falls back to today's exact behavior when the method is absent,
  * and the OSS default provider defines none of these POLICY capabilities
  * — empty-composition behavior is byte-identical by construction (the
@@ -134,8 +134,8 @@ export interface RunnerBootstrapCredentials {
  * nothing rather than minting unattributed).
  *
  * The connect scope binds `executionId` to one connect's synthetic id
- * (domain/mcpserver/connect-execution-id.ts), whose ExecutionContext row
- * the connect lane has already created AS `callerIdentityId`: the runner
+ * (domain/mcpserver/connect-execution-id.ts), whose attempt the connect
+ * lane has already recorded for `callerIdentityId`: the runner
  * in a connect sandbox reads the McpServer, and classifies its tools
  * through the proxy, with this credential, so it must act as the person
  * who asked for the connect (stigmer/stigmer#1474). An implementation
@@ -177,8 +177,8 @@ export type MemoryCaptureDecision =
 
 /**
  * Mints and verifies runner credentials per lane. Implementations must be
- * stateless-safe for concurrent use (they gate every ExecutionContext
- * decrypt and every execution dispatch).
+ * stateless-safe for concurrent use (they gate every values fetch and
+ * every execution dispatch).
  */
 export interface RunnerCredentialProvider {
   /**

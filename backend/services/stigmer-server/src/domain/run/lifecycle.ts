@@ -668,9 +668,9 @@ export async function resumeExecution(
  * NOT Temporal reset: the runner activity RETURNS its FAILED result, so a
  * reset replays the preserved failure instead of re-dispatching, issue
  * #200; continuity is carried by the harness state, not Temporal
- * history). Order rationale: terminate BEFORE EC recreation (a still-live
- * old workflow's cleanup must not delete the new EC); recreate EC BEFORE
- * workflow start (the runner's setup needs env); start BEFORE the phase
+ * history). Order rationale: terminate BEFORE the re-plan (a still-live
+ * old workflow must not fetch under the new plan); re-plan BEFORE workflow
+ * start (the runner's setup fetches by it); start BEFORE the phase
  * update (a failed start leaves the execution FAILED — recover retries).
  *
  * One recover of an execution runs at a time (stigmer#1672): the chain runs

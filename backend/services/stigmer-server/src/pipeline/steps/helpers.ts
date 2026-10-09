@@ -52,8 +52,7 @@ export async function findResourceBySlug<Desc extends DescMessage>(
  * widened to every kind that has a reference lane. A slug is unique only
  * WITHIN an org, so an org-less reference resolves globally and the first
  * match wins: for an org-scoped kind that crosses tenant boundaries, and
- * for an owner-only kind (the execution context) it let a caller name a
- * slug and receive whichever organization's row matched first. Every kind
+ * for an owner-only kind it let a caller name a slug and receive whichever organization's row matched first. Every kind
  * with a reference lane is served per organization, so the rule is the
  * same for all of them. The message matches the cloud edition verbatim
  * (cross-edition error contract); the kind name comes from kind_meta.

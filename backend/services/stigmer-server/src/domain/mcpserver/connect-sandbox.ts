@@ -22,10 +22,9 @@
  * proxy with the credential baked into its sandbox, so it is minted for
  * that person, scoped to this one connect (`scope: "connect"`,
  * runnerauth/runner-credential-provider.ts). On the OSS execution-scoped
- * lane the binding resolves the person from the connect's ExecutionContext
- * row (runnerauth/bound-execution.ts, the `mcp-connect` binding), which is
- * why prepareConnect always creates that row when a lane is composed, even
- * for a server that declares no env. A composed mintSandboxCredential
+ * lane the binding resolves the person from the connect's attempt row
+ * (runnerauth/bound-execution.ts, the `mcp-connect` binding), which
+ * prepareConnect records for every connect. A composed mintSandboxCredential
  * capability mints its own edition's equivalent from the same request.
  *
  * Failure posture: provisioning is CRITICAL here. A connect whose sandbox
@@ -71,8 +70,8 @@ const SHARED_RUNNER_ROUTE: ConnectRoute = Object.freeze({
 /**
  * Resolves where a connect runs, provisioning its sandbox when a lane is
  * composed. Throws Unavailable when provisioning fails; the caller has not
- * started a run yet, so nothing else needs undoing but its own
- * ExecutionContext.
+ * started a run yet, so nothing else needs undoing but its own connect
+ * attempt.
  */
 export async function acquireConnectRoute(
   lane: SandboxLane,

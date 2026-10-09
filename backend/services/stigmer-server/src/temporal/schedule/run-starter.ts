@@ -486,7 +486,7 @@ export class RunStarter {
         // Cloud deliberately omits the org (its token scope step forces it
         // from the validated claim); OSS has no token, so the schedule's
         // own org is stamped directly — it is load-bearing for the session
-        // and execution context.
+        // and the run's value plan.
         org: schedule.metadata?.org ?? "",
         // The audit link AND how the credential resolver finds the
         // schedule's vaults — see SCHEDULE_ID_LABEL_KEY.

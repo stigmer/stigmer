@@ -27,10 +27,7 @@
  *     bound organization itself. The child's rows stay outside;
  *   - a row of an organization-scoped or parent-scoped kind whose
  *     `metadata.org` is the bound organization (every such row carries it,
- *     an execution included, docs/single-organization.md), and an
- *     execution context whose `metadata.org` is: the kind is owner-only,
- *     but each row is its run's (or connect's) and holds that
- *     organization's resolved vault values;
+ *     an execution included, docs/single-organization.md);
  *   - an API key limited to the bound organization (`spec.bound_org`): a
  *     key is its owner's, but a bound credential manages only the keys
  *     limited where it is, never an unlimited key or one limited elsewhere;

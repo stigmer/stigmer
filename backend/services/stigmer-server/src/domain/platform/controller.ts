@@ -23,9 +23,8 @@
  *   - Under trusted-local (the laptop: one caller, nothing to separate)
  *     the arms below mint a clocked token for any caller naming an
  *     execution. The token is the LANE DISCRIMINATOR that lets the
- *     ExecutionContext read RPCs redact by default without breaking the
- *     runner, not a trust boundary — there is no identity for it to
- *     change.
+ *     values fetch answer only a runner, not a trust boundary — there is
+ *     no identity for it to change.
  *   - Under the built-in authorization posture the same token is an
  *     IDENTITY: the runner-subject verifier admits its bearer as the
  *     human whose run it is (runnerauth/runner-subject-verifier.ts). A
@@ -90,7 +89,7 @@ export interface PlatformControllerDeps {
   readonly temporalNamespace: string;
   /**
    * Mints the execution-scoped tokens getRunnerScopedToken hands to
-   * runners for the ExecutionContext decrypt lane (oss#535). Keyless
+   * runners for the values fetch (oss#535). Keyless
    * yields the presence-based "not minted" response. (Go also tolerates a
    * nil service in tests; the composition root here always wires one — a
    * keyless instance is the modeled disabled state.)
@@ -271,13 +270,12 @@ async function getRunnerBootstrapConfig(
 
 /**
  * Go GetRunnerScopedToken (oss#535): mints a token scoped to one unit of
- * dispatched work, accepted by the ExecutionContext getByExecutionId
- * decrypt lane.
+ * dispatched work, accepted by the values fetch
+ * (VaultValueController.fetchValues).
  *
  * Arms:
- *   - run_id: minted. The id IS the ExecutionContext's
- *     spec.execution_id, so the token binds directly to
- *     the one EC it may decrypt. (Cloud scopes agent tokens to the parent
+ *   - run_id: minted, bound to the run, so the token fetches that one
+ *     run's values. (Cloud scopes agent tokens to the parent
  *     session for warm-pool multi-turn reuse; OSS runners exchange
  *     immediately before each read, so the tighter per-execution binding
  *     costs nothing.)

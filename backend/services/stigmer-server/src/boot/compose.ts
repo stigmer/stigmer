@@ -295,10 +295,10 @@ export interface ComposedServer {
    */
   temporalManager: TemporalManager;
   /**
-   * The runner-token service (exposed for boot tests and for the
-   * executioncontext decrypt-lane tests, which mint scope-bound tokens
-   * against the SAME key the server verifies with; the mint side is the
-   * platform controller's getRunnerScopedToken).
+   * The runner-token service (exposed for boot tests and for the values
+   * fetch's tests, which mint scope-bound tokens against the SAME key the
+   * server verifies with; the mint side is the platform controller's
+   * getRunnerScopedToken).
    */
   runnerAuthService: RunnerAuthService;
   /**
@@ -623,7 +623,7 @@ export async function composeServer(
     : undefined;
   // Stage: runner credentials. The concrete service is
   // constructed and exposed UNCONDITIONALLY — its boot-fatal key posture
-  // is a cross-domain invariant, and the boot/EC-decrypt tests
+  // is a cross-domain invariant, and the boot and values-fetch tests
   // mint against the server's own key through it. The provider over it is
   // the edition's whole credential story in one object: a composed
   // driver; otherwise, under the built-in authorization posture, open
@@ -868,12 +868,12 @@ export async function composeServer(
   //   - Encryption key failure → WARN and continue with a keyless
   //     pass-through v1 codec. Plaintext at rest is tolerable (the write
   //     steps WARN per request, oss#394); refusing to boot over it is not.
-  //   - Runner-token key failure → FATAL (throw). The EC read RPCs redact
-  //     by default, so a server that cannot mint runner tokens would hand
-  //     every execution redaction markers instead of its secrets — the
-  //     exact silent-junk failure the oss#405 fail-loud doctrine forbids.
-  //     (The verify side is the executioncontext decrypt lane; the mint
-  //     side is the platform controller's getRunnerScopedToken.)
+  //   - Runner-token key failure → FATAL (throw). The values fetch
+  //     answers only a runner credential, so a server that cannot mint
+  //     runner tokens would start every execution without its secrets — the
+  //     silent failure the oss#405 fail-loud doctrine forbids. (The verify
+  //     side is the values fetch, domain/vault/values.ts; the mint side is
+  //     the platform controller's getRunnerScopedToken.)
   //
   // The versioned-codec seam: the
   // built-in v1 codec installs HERE, never in the registry (a default

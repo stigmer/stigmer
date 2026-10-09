@@ -5,8 +5,8 @@
  * `apikey` and `oidc`. It admits the bearer of an execution-scoped runner
  * token AS THE HUMAN WHO ASKED: for a run, the person the execution row's
  * creator stamp names, for as long as that run lives; for an MCP
- * connect, the person who asked for the connect, whose stamp the
- * connect's ExecutionContext row carries for as long as that row exists
+ * connect, the person who asked for the connect, whom the connect's
+ * attempt row records for as long as that row exists
  * — in the `runner` caller class either way (runnerauth.ts header: the
  * lane the token gains under this posture; bound-execution.ts: the two
  * bindings and what "lives" means for each).

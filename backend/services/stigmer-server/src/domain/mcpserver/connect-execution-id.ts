@@ -3,17 +3,16 @@
  * shape, built here by the connect lane and recognized here by the
  * runner-credential lane, so the two can never drift apart.
  *
- * A connect is not an execution: it has no Run row. What it has is an ephemeral ExecutionContext
- * (connect.ts `createConnectExecutionContext`) whose `spec.execution_id`
- * must name SOMETHING for the decrypt lane's binding check
- * (executioncontext/resolve-values-for-caller.ts: the token's
- * `execution_id` claim must equal the EC's), and this id is that
- * something — an id that names no resource kind, so the contract's
+ * A connect is not an execution: it has no Run row. What it has is a
+ * connect attempt (connect-attempt.ts) whose id must name SOMETHING for
+ * the values fetch's binding check (vault/values.ts: the token's
+ * `execution_id` claim must equal the execution asked for), and this id is
+ * that something — an id that names no resource kind, so the contract's
  * `kind_meta` prefix table (pipeline/apiresource-meta.ts) cannot mistake
  * it for a row. The runner-credential lane reads it the other way round
  * (runnerauth/bound-execution.ts `boundExecutionKindOf`): an id this
- * predicate recognizes is a connect binding, resolved through the EC row
- * whose `spec.execution_id` it is. Keep the builder and the predicate
+ * predicate recognizes is a connect binding, resolved through the attempt
+ * row of that id. Keep the builder and the predicate
  * together; a second copy of the prefix anywhere would be the drift this
  * module exists to prevent.
  */

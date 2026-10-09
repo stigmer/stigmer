@@ -29,7 +29,8 @@
  *     UI never flashes FAILED.
  *   - Cancellation cleanup on a non-cancellable scope (Go's disconnected
  *     context): CANCELLED persist (quiet terminal, NO status.error —
- *     stigmer#282), EC delete.
+ *     stigmer#282), and the retired cleanup call for runs started before
+ *     values were fetched from vaults.
  *   - Stop and failure copy (stigmer#980): the runner cannot tell a Pause
  *     from a Cancel (both reach its activity as the same cancellation), so
  *     this workflow, which knows which stop it runs, writes the stop row
