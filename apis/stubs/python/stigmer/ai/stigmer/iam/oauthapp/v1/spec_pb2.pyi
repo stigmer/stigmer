@@ -29,7 +29,7 @@ TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_BASIC: TokenEndpointAuthMethod
 TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_POST: TokenEndpointAuthMethod
 
 class OAuthAppSpec(_message.Message):
-    __slots__ = ("provider", "client_id", "client_secret", "authorization_url", "token_url", "scopes", "userinfo_url", "scope_parameter_name", "vendor_approval_status", "vendor_approval_docs_url", "token_endpoint_auth_method")
+    __slots__ = ("provider", "client_id", "client_secret", "authorization_url", "token_url", "scopes", "userinfo_url", "scope_parameter_name", "vendor_approval_status", "vendor_approval_docs_url", "token_endpoint_auth_method", "addresses")
     PROVIDER_FIELD_NUMBER: _ClassVar[int]
     CLIENT_ID_FIELD_NUMBER: _ClassVar[int]
     CLIENT_SECRET_FIELD_NUMBER: _ClassVar[int]
@@ -41,6 +41,7 @@ class OAuthAppSpec(_message.Message):
     VENDOR_APPROVAL_STATUS_FIELD_NUMBER: _ClassVar[int]
     VENDOR_APPROVAL_DOCS_URL_FIELD_NUMBER: _ClassVar[int]
     TOKEN_ENDPOINT_AUTH_METHOD_FIELD_NUMBER: _ClassVar[int]
+    ADDRESSES_FIELD_NUMBER: _ClassVar[int]
     provider: str
     client_id: str
     client_secret: str
@@ -52,4 +53,5 @@ class OAuthAppSpec(_message.Message):
     vendor_approval_status: VendorApprovalStatus
     vendor_approval_docs_url: str
     token_endpoint_auth_method: TokenEndpointAuthMethod
-    def __init__(self, provider: _Optional[str] = ..., client_id: _Optional[str] = ..., client_secret: _Optional[str] = ..., authorization_url: _Optional[str] = ..., token_url: _Optional[str] = ..., scopes: _Optional[_Iterable[str]] = ..., userinfo_url: _Optional[str] = ..., scope_parameter_name: _Optional[str] = ..., vendor_approval_status: _Optional[_Union[VendorApprovalStatus, str]] = ..., vendor_approval_docs_url: _Optional[str] = ..., token_endpoint_auth_method: _Optional[_Union[TokenEndpointAuthMethod, str]] = ...) -> None: ...
+    addresses: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, provider: _Optional[str] = ..., client_id: _Optional[str] = ..., client_secret: _Optional[str] = ..., authorization_url: _Optional[str] = ..., token_url: _Optional[str] = ..., scopes: _Optional[_Iterable[str]] = ..., userinfo_url: _Optional[str] = ..., scope_parameter_name: _Optional[str] = ..., vendor_approval_status: _Optional[_Union[VendorApprovalStatus, str]] = ..., vendor_approval_docs_url: _Optional[str] = ..., token_endpoint_auth_method: _Optional[_Union[TokenEndpointAuthMethod, str]] = ..., addresses: _Optional[_Iterable[str]] = ...) -> None: ...

@@ -2,7 +2,9 @@
  * Pins the web app shell's run zone: a /runs/<id> path shows nothing of its
  * own and hands the run off to the session it ran in, once that session is
  * resolved, without a page load. A run that resolves to no session says the
- * run was not found; a failed read offers a retry instead. Off the run zone, the page's own content renders. The
+ * run was not found; a failed read offers a retry instead. Off the run zone, the page's own content renders.
+ * A public route (a Connect link's page, the sign-in callback a popup returns
+ * to) renders with no sidebar, which would read a session it does not have. The
  * run-not-found state, the sidebars and the session zone are stubbed; their
  * wiring is pinned in their own suites.
  */
@@ -60,7 +62,7 @@ vi.mock("@/domain/runs/RunLoadFailed", () => ({
 }));
 vi.mock("@/domain/session/SessionLauncher", () => ({ SessionLauncher: () => null }));
 vi.mock("@/domain/session/SessionPage", () => ({ SessionPageInner: () => null }));
-vi.mock("../Sidebar", () => ({ Sidebar: () => null }));
+vi.mock("../Sidebar", () => ({ Sidebar: () => <nav>sidebar</nav> }));
 vi.mock("../ManagementSidebar", () => ({ ManagementSidebar: () => null }));
 vi.mock("../DesktopAppBanner", () => ({
   DesktopAppBanner: () => null,
@@ -131,5 +133,18 @@ describe("web AppShell — the run zone", () => {
     expect(screen.getByText("page content")).toBeTruthy();
     expect(screen.queryByText("not found")).toBeNull();
     expect(shell.resolving).toEqual([]);
+  });
+});
+
+describe("web AppShell — the public routes", () => {
+  it.each(["/connect/a-link-secret", "/auth/oauth/callback", "/invite/abc"])("renders %s with no sidebar", (path) => {
+    renderShell(path);
+    expect(screen.getByText("page content")).toBeTruthy();
+    expect(screen.queryByText("sidebar")).toBeNull();
+  });
+
+  it("renders the sidebar on a signed-in route", () => {
+    renderShell("/dashboard");
+    expect(screen.getByText("sidebar")).toBeTruthy();
   });
 });

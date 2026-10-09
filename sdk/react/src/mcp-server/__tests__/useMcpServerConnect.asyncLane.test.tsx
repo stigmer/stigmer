@@ -1,6 +1,6 @@
 // Pins the connect hook's ride on the async connect lane (stigmer#425):
 // startConnect + poll on a backend that serves it, and the blocking-RPC
-// fallback on one that does not (the byoaEditionDegradation idiom — every
+// fallback on one that does not (an edition-degradation pin — every
 // OTHER mcp-server test in this suite exercises the fallback implicitly, this
 // file pins BOTH lanes explicitly so neither can regress silently). The
 // protocol's own edge cases (deadlines, rehydration codes) are pinned in

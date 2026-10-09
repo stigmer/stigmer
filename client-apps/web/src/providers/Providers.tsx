@@ -26,8 +26,11 @@ import { loadRuntimeConfig } from "@/config/runtime-config";
  * the initial load, optionally authenticated after an OIDC return).
  * `/desktop/` holds the pages that hand a Stigmer Desktop user back to the
  * app from the system browser, whose web session is not the app's.
+ * `/connect/` is a Connect link's page, for someone with no Stigmer account,
+ * and `/auth/oauth/callback` is where every sign-in's login page returns: a
+ * popup needs no session there, and a Connect link's customer has none.
  */
-const PUBLIC_ROUTES = ["/login", "/invite/", "/desktop/"] as const;
+const PUBLIC_ROUTES = ["/login", "/invite/", "/desktop/", "/connect/", "/auth/oauth/callback"] as const;
 
 /**
  * Routes rendered with AuthProvider but WITHOUT AuthGuard — auth is

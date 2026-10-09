@@ -107,29 +107,23 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
       "\"\222\001\n\032DiscoveredResourceTemplate\022!\n\014uri_t" +
       "emplate\030\001 \001(\tR\013uriTemplate\022\022\n\004name\030\002 \001(\t" +
       "R\004name\022 \n\013description\030\003 \001(\tR\013description" +
-      "\022\033\n\tmime_type\030\004 \001(\tR\010mimeType\"\312\002\n\013OAuthS" +
+      "\022\033\n\tmime_type\030\004 \001(\tR\010mimeType\"\352\001\n\013OAuthS" +
       "tatus\022f\n\026vendor_approval_status\030\001 \001(\01620." +
       "ai.stigmer.iam.oauthapp.v1.VendorApprova" +
       "lStatusR\024vendorApprovalStatus\0227\n\030vendor_" +
       "approval_docs_url\030\002 \001(\tR\025vendorApprovalD" +
-      "ocsUrl\022e\n\026effective_oauth_source\030\003 \001(\0162/" +
-      ".ai.stigmer.agentic.mcpserver.v1.OAuthAp" +
-      "pSourceR\024effectiveOauthSource\0223\n\026effecti" +
-      "ve_oauth_app_id\030\004 \001(\tR\023effectiveOauthApp" +
-      "Id*\202\001\n\014ConnectPhase\022\035\n\031connect_phase_uns" +
-      "pecified\020\000\022\034\n\030connect_phase_connecting\020\001" +
-      "\022\033\n\027connect_phase_succeeded\020\002\022\030\n\024connect" +
-      "_phase_failed\020\003*K\n\017ValidationState\022 \n\034va" +
-      "lidation_state_unspecified\020\000\022\t\n\005valid\020\001\022" +
-      "\013\n\007invalid\020\002*\217\001\n\016OAuthAppSource\022 \n\034OAUTH" +
-      "_APP_SOURCE_UNSPECIFIED\020\000\022\035\n\031OAUTH_APP_S" +
-      "OURCE_PLATFORM\020\001\022!\n\035OAUTH_APP_SOURCE_ORG" +
-      "_OVERRIDE\020\002\022\031\n\025OAUTH_APP_SOURCE_NONE\020\003B\256" +
-      "\001B\013StatusProtoP\001\242\002\004ASAM\252\002\037Ai.Stigmer.Age" +
-      "ntic.Mcpserver.V1\312\002\037Ai\\Stigmer\\Agentic\\M" +
-      "cpserver\\V1\342\002+Ai\\Stigmer\\Agentic\\Mcpserv" +
-      "er\\V1\\GPBMetadata\352\002#Ai::Stigmer::Agentic" +
-      "::Mcpserver::V1b\006proto3"
+      "ocsUrlJ\004\010\003\020\004J\004\010\004\020\005R\026effective_oauth_sour" +
+      "ceR\026effective_oauth_app_id*\202\001\n\014ConnectPh" +
+      "ase\022\035\n\031connect_phase_unspecified\020\000\022\034\n\030co" +
+      "nnect_phase_connecting\020\001\022\033\n\027connect_phas" +
+      "e_succeeded\020\002\022\030\n\024connect_phase_failed\020\003*" +
+      "K\n\017ValidationState\022 \n\034validation_state_u" +
+      "nspecified\020\000\022\t\n\005valid\020\001\022\013\n\007invalid\020\002B\256\001B" +
+      "\013StatusProtoP\001\242\002\004ASAM\252\002\037Ai.Stigmer.Agent" +
+      "ic.Mcpserver.V1\312\002\037Ai\\Stigmer\\Agentic\\Mcp" +
+      "server\\V1\342\002+Ai\\Stigmer\\Agentic\\Mcpserver" +
+      "\\V1\\GPBMetadata\352\002#Ai::Stigmer::Agentic::" +
+      "Mcpserver::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -174,7 +168,7 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_mcpserver_v1_OAuthStatus_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_mcpserver_v1_OAuthStatus_descriptor,
-        new java.lang.String[] { "VendorApprovalStatus", "VendorApprovalDocsUrl", "EffectiveOauthSource", "EffectiveOauthAppId", });
+        new java.lang.String[] { "VendorApprovalStatus", "VendorApprovalDocsUrl", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.StatusProto.getDescriptor();
     ai.stigmer.iam.oauthapp.v1.SpecProto.getDescriptor();

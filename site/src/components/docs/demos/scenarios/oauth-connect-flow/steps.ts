@@ -24,11 +24,9 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import {
   GetOAuthGrantStatusOutputSchema,
-  GetOrgOAuthAppOutputSchema,
   OAuthConnectionHealth,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { samples } from "@stigmer/react/test";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { GetOAuthGrantStatusOutput } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
@@ -75,21 +73,14 @@ function buildGitHubBase(): McpServer {
       }),
     },
     auth: create(McpServerAuthSchema, {
-      oauthAppRef: {
-        org: "stigmer",
-        kind: ApiResourceKind.oauth_app,
-        slug: "github-oauth",
-      },
       targetEnvVar: "GITHUB_ACCESS_TOKEN",
       tokenLifetimeHint: "8h",
       scopeHints: ["repo", "read:org", "read:user"],
     }),
   });
 
-  // No oauth_status block: the platform app is approved, so a real backend
-  // leaves it absent (presence signals a vendor gate). The PLATFORM source
-  // is client-derived from spec.auth.oauth_app_ref plus the mocked
-  // getOrgOAuthApp (NO_ORG_OVERRIDE) response.
+  // No oauth_status block: no organization app gates this address, so a
+  // real backend leaves it absent (presence signals a vendor gate).
   server.status = create(McpServerStatusSchema, {
     validationState: ValidationState.valid,
   });
@@ -162,14 +153,6 @@ export const HEALTHY_GRANT = create(GetOAuthGrantStatusOutputSchema, {
   authMethod: "vendor_oauth",
   connectionHealth:
     OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_HEALTHY,
-});
-
-// ---------------------------------------------------------------------------
-// Org OAuth app fixture (no BYOA override)
-// ---------------------------------------------------------------------------
-
-export const NO_ORG_OVERRIDE = create(GetOrgOAuthAppOutputSchema, {
-  hasOverride: false,
 });
 
 // ---------------------------------------------------------------------------

@@ -21,8 +21,6 @@
 // each is plain contract now, enforced strictly so a regression to the old
 // gap turns the suite red:
 //
-//   - initiateOAuthConnect authorizes BEFORE the lane's auth-block
-//     precondition (Java checked the precondition first);
 //   - unknown ids on the authorize-first family answer the uniform NOT_FOUND
 //     (Java answered PERMISSION_DENIED, an artifact of its missing load steps).
 //
@@ -53,6 +51,7 @@ import { makeAgent, agentRefOf } from "../support/agents";
 import { makeSlackAgentChannel } from "../support/agentchannels";
 import { makeMcpServer } from "../support/mcpservers";
 import { makeSession } from "../support/sessions";
+import { makeSharedVault, vaultTarget } from "../support/vaults";
 import { uniqueName } from "../support/naming";
 
 let target: TargetProfile;
@@ -122,7 +121,7 @@ describe("direct-handler authorization — outsider denials (on the enforcing la
     expect(after.spec?.subject).toBe("owner's subject");
   });
 
-  it("[rpc:McpServerCommandController.connect] [rpc:McpServerCommandController.startConnect] [rpc:McpServerQueryController.getOAuthGrantStatus] [rpc:McpServerCommandController.disconnectOAuth] [rpc:McpServerCommandController.initiateOAuthConnect] the MCP connect lanes refuse an outsider with their annotation copies", async (ctx) => {
+  it("[rpc:McpServerCommandController.connect] [rpc:McpServerCommandController.startConnect] [rpc:McpServerQueryController.getOAuthGrantStatus] [rpc:McpServerCommandController.disconnectOAuth] the MCP connect lanes refuse an outsider with their annotation copies", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const { org } = await lane.provisionTenancy();
     const outsider = await lane.provisionIdentity();
@@ -138,7 +137,7 @@ describe("direct-handler authorization — outsider denials (on the enforcing la
     // Ordering pin on the two engine-backed lanes: connect and startConnect
     // load and authorize BEFORE they check the engine (connect.ts,
     // start-connect.ts), the authorize-before-precondition order the run gate
-    // and initiateOAuthConnect keep, so an outsider hears the denial on every
+    // keeps, so an outsider hears the denial on every
     // target — a Temporal-less server included, where the engine arm used to
     // answer FAILED_PRECONDITION first and disclose engine state.
     for (const [name, op] of [
@@ -183,24 +182,38 @@ describe("direct-handler authorization — outsider denials (on the enforcing la
       );
       expect(denied.rawMessage, `${rpc} annotation copy`).toBe(copy);
     }
+  });
 
-    // initiateOAuthConnect authorizes BEFORE the lane's auth-block
-    // precondition: an outsider on a server without an auth block is refused
-    // by the annotation, not by the precondition. Pinned by code AND copy so a
-    // reorder of the two steps shows here (the retired Java edition checked
-    // the precondition first and answered FAILED_PRECONDITION).
-    const denied = await expectGrpcCode(
+  it("[rpc:VaultCommandController.startSignIn] [rpc:VaultCommandController.createConnectLink] a sign-in and a Connect link refuse an outsider naming someone else's shared vault, before any login server is asked", async (ctx) => {
+    const lane = laneOrSkip(ctx);
+    const { org } = await lane.provisionTenancy();
+    const outsider = await lane.provisionIdentity();
+    const vault = await clients.vaultCommand.create(makeSharedVault({ org, name: uniqueName("authz-vault") }));
+    fixtures.defer(() => clients.vaultCommand.delete({ resourceId: vault.metadata!.id }));
+    const vaultId = vault.metadata!.id;
+    // A Git host with no login app: were authorization to come second, the
+    // answer would be the no-login refusal, not the denial.
+    const address = "git.conformance.test";
+
+    const signIn = await expectGrpcCode(
+      () => outsider.vaultCommand.startSignIn({ vault: vaultTarget(org, vaultId), address }),
+      Code.PermissionDenied,
+      "outsider startSignIn into a foreign shared vault",
+    );
+    expect(signIn.rawMessage).toBe("unauthorized to save a sign-in in this vault");
+
+    const link = await expectGrpcCode(
       () =>
-        outsider.mcpServerCommand.initiateOAuthConnect({
-          mcpServerId: id,
+        outsider.vaultCommand.createConnectLink({
           org,
+          vaultId,
+          address,
+          returnUrl: "https://integrator.test/back",
         }),
       Code.PermissionDenied,
-      "outsider initiateOAuthConnect on a foreign server",
+      "outsider createConnectLink on a foreign shared vault",
     );
-    expect(denied.rawMessage, "initiateOAuthConnect annotation copy").toBe(
-      "unauthorized to initiate oauth connect for mcp server",
-    );
+    expect(link.rawMessage).toBe("unauthorized to make a Connect link for this vault");
   });
 
   it("[rpc:AgentChannelCommandController.initiateInstall] [rpc:AgentChannelCommandController.completeInstall] the channel install pair refuses an outsider with its annotation copy (the arm both editions declare)", async (ctx) => {

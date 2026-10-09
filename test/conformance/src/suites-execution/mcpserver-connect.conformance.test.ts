@@ -1,20 +1,15 @@
-// Conformance suite for the McpServer connect lanes and the engine-backed
-// half of the OAuth handshake (Class B).
-// Domain: agentic / mcpserver — the connect/OAuth facet, engine-backed half.
+// Conformance suite for the McpServer connect lanes (Class B).
+// Domain: agentic / mcpserver — the connect facet, engine-backed.
 //
-// Two facets share this file because they share one dependency: the Temporal
-// engine the execution target provisions.
-//
-// 1. connect / startConnect — tool discovery through the runner's connect
-//    workflow against the McpToolFixture, including the deterministic
-//    workflow-ID attach semantics (one discovery run shared by concurrent
-//    connects) and the refresh-on-connect OAuth pre-flight.
-// 2. completeOAuthConnect / getOAuthGrantStatus / disconnectOAuth happy paths
-//    — the sign-in saves the login as a connection at the server's address
-//    in the signer's My vault, and status and disconnect read and remove the
-//    caller's own. They ride the engine-backed target with the connect lane
-//    they complete; the initiate lanes and Layer-1 guards (genuinely
-//    engine-free) live in suites/mcpserver-oauth.conformance.test.ts.
+// connect / startConnect — tool discovery through the runner's connect
+// workflow against the McpToolFixture, including the deterministic
+// workflow-ID attach semantics (one discovery run shared by concurrent
+// connects) and the use of a sign-in: a sign-in at an address fills every
+// HTTP server whose URL is that address and none at another, and an expired
+// one is renewed before discovery (with the address as its `resource`, as
+// the sign-in was made). The sign-in itself, its status and its disconnect
+// are engine-free and live in suites/vault-sign-in.conformance.test.ts and
+// suites/mcpserver-oauth.conformance.test.ts.
 //
 // What discovery stores about each tool: its name, its schema, and
 // destructive_hint, true exactly when the server's MCP annotations declare
@@ -28,10 +23,7 @@
 import { Code } from "@connectrpc/connect";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
-import { VaultConnectionSource } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
 import { ConnectPhase } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
-import { TokenEndpointAuthMethod } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
-import { createHash } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
@@ -46,15 +38,9 @@ import {
 } from "../harness/mcp-server";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { MockOAuthAuthorizationServer } from "@stigmer/test-support/oauth-authorization-server";
-import { HERMETIC_OAUTH_REDIRECT_URI } from "@stigmer/test-support/server-process";
 import { requireLlmProxy, requireMcpFixture } from "../support/runs";
 import { myVaultTarget, setSecretsInput } from "../support/vaults";
-import {
-  makeHttpMcpServer,
-  makeOAuthMcpServer,
-  type OAuthMcpServerOptions,
-} from "../support/mcpservers";
-import { makeOAuthApp, type OAuthAppOptions } from "../support/oauthapps";
+import { makeHttpMcpServer, makeOAuthMcpServer } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 
@@ -79,6 +65,7 @@ afterEach(async () => {
   mockLlm.reset();
   mcpTools.releaseHolds();
   mcpTools.resetCaptured();
+  mcpTools.requireOAuth(undefined);
   await fixtures.cleanup();
 });
 
@@ -95,42 +82,27 @@ const TARGET_ENV_VAR = "CONF_OAUTH_TOKEN";
 const CONNECT_SETTLE_TIMEOUT_MS = 90_000;
 const CONNECT_SETTLE_POLL_MS = 500;
 
-async function createOAuthMcpServer(opts: Omit<OAuthMcpServerOptions, "targetEnvVar">) {
+async function createOAuthMcpServer(org: string, url: string) {
   const created = await clients.mcpServerCommand.create(
-    makeOAuthMcpServer({ ...opts, targetEnvVar: TARGET_ENV_VAR }),
+    makeOAuthMcpServer({ org, name: uniqueName("signin-tool"), url, targetEnvVar: TARGET_ENV_VAR }),
   );
   fixtures.defer(() => clients.mcpServerCommand.delete({ resourceId: created.metadata!.id }));
   return created;
 }
 
-async function createVendorOAuthApp(org: string, name: string, opts: OAuthAppOptions = {}) {
-  const created = await clients.oauthAppCommand.create(
-    makeOAuthApp(org, name, { tokenUrl: mockAs.tokenEndpoint(), ...opts }),
-  );
-  fixtures.defer(() => clients.oauthAppCommand.delete({ resourceId: created.metadata!.id }));
-  return created;
-}
-
-// Runs the full DCR handshake (initiate → complete) against the mock
-// authorization server. `url` optionally makes the server a real (fixture)
-// HTTP MCP endpoint so a follow-up connect can discover tools.
-async function completeDcrHandshake(org: string, name: string, opts: { url?: string } = {}) {
-  const server = await createOAuthMcpServer({
-    org,
-    name,
-    discoveryUrl: mockAs.origin(),
-    ...(opts.url !== undefined ? { url: opts.url } : {}),
+// Puts the fixture behind the mock login server (the hosted OAuth posture:
+// a credential-less request is challenged, and the fixture's own RFC 9728
+// document names this test's login server), then signs the caller in at
+// `address` into their My vault, which is removed with the test.
+async function signInAtFixture(org: string, address: string) {
+  mcpTools.requireOAuth({
+    resourceMetadataUrl: `${new URL(address).origin}/.well-known/oauth-protected-resource${new URL(address).pathname}`,
+    authorizationServerOrigin: mockAs.issuer(),
   });
-  const initiated = await clients.mcpServerCommand.initiateOAuthConnect({
-    mcpServerId: server.metadata!.id,
-    org,
-  });
-  const completed = await clients.mcpServerCommand.completeOAuthConnect({
-    mcpServerId: server.metadata!.id,
-    state: initiated.state,
-    authorizationCode: "conformance-auth-code",
-  });
-  return { server, initiated, completed };
+  const started = await clients.vaultCommand.startSignIn({ vault: myVaultTarget(org), address });
+  await clients.vaultCommand.completeSignIn({ state: started.state, code: "conformance-auth-code" });
+  const mine = await clients.vaultQuery.getMine({ org });
+  fixtures.defer(() => clients.vaultCommand.delete({ resourceId: mine.metadata!.id }));
 }
 
 // The mixed surface the hint arms connect: one tool marked destructive, two
@@ -173,324 +145,35 @@ async function pollConnectPhase(mcpServerId: string, want: ConnectPhase) {
   );
 }
 
-describe("McpServer connect conformance — OAuth handshake completion", () => {
-  it("[rpc:McpServerCommandController.completeOAuthConnect] refuses an unknown state parameter (FailedPrecondition, pinned copy)", async () => {
-    const err = await expectGrpcCode(
-      () =>
-        clients.mcpServerCommand.completeOAuthConnect({
-          mcpServerId: "mcp_x",
-          state: "never-issued-state",
-          authorizationCode: "code",
-        }),
-      Code.FailedPrecondition,
-      "complete with unknown state",
-    );
-    expect(err.rawMessage).toBe(
-      "no pending OAuth state found for the given state parameter (expired or already used)",
-    );
-  });
-
-  it("[rpc:McpServerCommandController.completeOAuthConnect] consumes the state atomically: a second complete with the same state refuses", async () => {
+describe("McpServer connect conformance — a sign-in fills the servers at its address", () => {
+  it("[rpc:McpServerCommandController.connect] one sign-in at an address lets every server at that address connect, and no server at another", async () => {
     const { org } = await target.provisionTenancy();
-    const { server, initiated } = await completeDcrHandshake(org, uniqueName("dcrdouble"));
+    const address = mcpTools.url();
+    const first = await createOAuthMcpServer(org, address);
+    const second = await createOAuthMcpServer(org, address);
+    const elsewhere = await createOAuthMcpServer(org, mcpTools.url([ECHO_TOOL_NAME, FAIL_TOOL_NAME]));
 
-    const err = await expectGrpcCode(
-      () =>
-        clients.mcpServerCommand.completeOAuthConnect({
-          mcpServerId: server.metadata!.id,
-          state: initiated.state,
-          authorizationCode: "conformance-auth-code",
-        }),
-      Code.FailedPrecondition,
-      "second complete with a consumed state",
-    );
-    expect(err.rawMessage).toBe(
-      "no pending OAuth state found for the given state parameter (expired or already used)",
-    );
-  });
+    await signInAtFixture(org, address);
 
-  it("[rpc:McpServerCommandController.completeOAuthConnect] refuses a state minted for a different server — and the mismatch consumes the state", async () => {
-    const { org } = await target.provisionTenancy();
-    const serverA = await createOAuthMcpServer({
-      org,
-      name: uniqueName("mismatchA"),
-      discoveryUrl: mockAs.origin(),
-    });
-    const serverB = await createOAuthMcpServer({
-      org,
-      name: uniqueName("mismatchB"),
-      discoveryUrl: mockAs.origin(),
-    });
-    const initiated = await clients.mcpServerCommand.initiateOAuthConnect({
-      mcpServerId: serverA.metadata!.id,
-      org,
-    });
-
-    const mismatch = await expectGrpcCode(
-      () =>
-        clients.mcpServerCommand.completeOAuthConnect({
-          mcpServerId: serverB.metadata!.id,
-          state: initiated.state,
-          authorizationCode: "code",
-        }),
-      Code.FailedPrecondition,
-      "complete against the wrong server",
-    );
-    expect(mismatch.rawMessage).toBe("state parameter does not match the requested mcp_server_id");
-
-    // GetAndDelete consumed the row before the mismatch check, so even the
-    // RIGHT server can no longer complete with this state — the price of the
-    // atomic single-use contract, pinned deliberately.
-    const consumed = await expectGrpcCode(
-      () =>
-        clients.mcpServerCommand.completeOAuthConnect({
-          mcpServerId: serverA.metadata!.id,
-          state: initiated.state,
-          authorizationCode: "code",
-        }),
-      Code.FailedPrecondition,
-      "complete after a mismatch consumed the state",
-    );
-    expect(consumed.rawMessage).toBe(
-      "no pending OAuth state found for the given state parameter (expired or already used)",
-    );
-  });
-
-  it("[rpc:McpServerCommandController.completeOAuthConnect] maps a token-endpoint failure to Unavailable", async () => {
-    const { org } = await target.provisionTenancy();
-    const server = await createOAuthMcpServer({
-      org,
-      name: uniqueName("tokfail"),
-      discoveryUrl: mockAs.origin(),
-    });
-    const initiated = await clients.mcpServerCommand.initiateOAuthConnect({
-      mcpServerId: server.metadata!.id,
-      org,
-    });
-    mockAs.tokenStatus = 502;
-
-    const err = await expectGrpcCode(
-      () =>
-        clients.mcpServerCommand.completeOAuthConnect({
-          mcpServerId: server.metadata!.id,
-          state: initiated.state,
-          authorizationCode: "code",
-        }),
-      Code.Unavailable,
-      "complete with failing token endpoint",
-    );
-    expect(err.rawMessage).toContain("token exchange failed:");
-    expect(err.rawMessage).toContain("returned HTTP 502");
-  });
-
-  it("[rpc:McpServerCommandController.completeOAuthConnect] DCR happy path: exchanges with the sealed PKCE verifier as a public client and records the grant", async () => {
-    const { org } = await target.provisionTenancy();
-    const name = uniqueName("dcrhappy");
-    const { server, initiated, completed } = await completeDcrHandshake(org, name);
-
-    expect(completed.connected).toBe(true);
-    expect(completed.targetEnvVar).toBe(TARGET_ENV_VAR);
-
-    // The exchange the vendor saw: authorization_code grant, the DCR client,
-    // no secret on any channel (public client), and a code_verifier whose
-    // S256 hash is EXACTLY the code_challenge initiate put in the auth URL —
-    // the full PKCE chain, proven end to end.
-    expect(mockAs.capturedTokenRequests()).toHaveLength(1);
-    const exchange = mockAs.capturedTokenRequests()[0]!;
-    expect(exchange.grantType).toBe("authorization_code");
-    expect(exchange.code).toBe("conformance-auth-code");
-    expect(exchange.clientId).toBe("mock-dcr-client-1");
-    expect(exchange.redirectUri).toBe(HERMETIC_OAUTH_REDIRECT_URI);
-    expect(exchange.secretChannel).toBe("none");
-    const challenge = new URL(initiated.authorizationUrl).searchParams.get("code_challenge");
-    expect(exchange.codeVerifier).toBeDefined();
-    expect(createHash("sha256").update(exchange.codeVerifier!).digest("base64url")).toBe(challenge);
-
-    // The grant is visible through the status read.
-    const status = await clients.mcpServerQuery.getOAuthGrantStatus({
-      resourceId: server.metadata!.id,
-      org,
-    });
-    expect(status.connected).toBe(true);
-    expect(status.targetEnvVar).toBe(TARGET_ENV_VAR);
-    expect(status.authMethod).toBe("mcp_oauth");
-    expect(status.connectionHealth).toBe(OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_HEALTHY);
-
-    // The login rests in the signer's My vault, a sign-in connection at the
-    // server's address, and no read shows its token or its refresh token.
-    const mine = await clients.vaultQuery.getMine({ org });
-    fixtures.defer(() => clients.vaultCommand.delete({ resourceId: mine.metadata!.id }));
-    const connections = Object.values(mine.spec?.connections ?? {});
-    expect(connections).toHaveLength(1);
-    expect(connections[0]!.source).toBe(VaultConnectionSource.sign_in);
-    expect(connections[0]!.signIn?.authMethod).toBe("mcp_oauth");
-    expect(connections[0]!.token, "a read never shows the token").toBe("");
-    expect(connections[0]!.signIn?.refreshToken ?? "", "nor the refresh token").toBe("");
-  });
-
-  it("[rpc:McpServerCommandController.completeOAuthConnect] vendor happy path: presents the client secret via Basic by default and via the form body on client_secret_post", async () => {
-    const { org } = await target.provisionTenancy();
-
-    const basicApp = await createVendorOAuthApp(org, uniqueName("vbasic"));
-    const basicServer = await createOAuthMcpServer({
-      org,
-      name: uniqueName("vbasicsrv"),
-      oauthAppSlug: basicApp.metadata!.slug,
-      // A local program keeps its sign-in at its login server's address.
-      discoveryUrl: "https://vendor-basic.example.com",
-    });
-    const basicInit = await clients.mcpServerCommand.initiateOAuthConnect({
-      mcpServerId: basicServer.metadata!.id,
-      org,
-    });
-    const basicDone = await clients.mcpServerCommand.completeOAuthConnect({
-      mcpServerId: basicServer.metadata!.id,
-      state: basicInit.state,
-      authorizationCode: "vendor-code",
-    });
-    expect(basicDone.connected).toBe(true);
-
-    const postApp = await createVendorOAuthApp(org, uniqueName("vpost"), {
-      tokenEndpointAuthMethod: TokenEndpointAuthMethod.CLIENT_SECRET_POST,
-    });
-    const postServer = await createOAuthMcpServer({
-      org,
-      name: uniqueName("vpostsrv"),
-      oauthAppSlug: postApp.metadata!.slug,
-      // A local program keeps its sign-in at its login server's address.
-      discoveryUrl: "https://vendor-post.example.com",
-    });
-    const postInit = await clients.mcpServerCommand.initiateOAuthConnect({
-      mcpServerId: postServer.metadata!.id,
-      org,
-    });
-    await clients.mcpServerCommand.completeOAuthConnect({
-      mcpServerId: postServer.metadata!.id,
-      state: postInit.state,
-      authorizationCode: "vendor-code",
-    });
-
-    // RFC 6749 §2.3: exactly one credential channel per request.
-    expect(mockAs.capturedTokenRequests()).toHaveLength(2);
-    const basicExchange = mockAs.capturedTokenRequests()[0]!;
-    const postExchange = mockAs.capturedTokenRequests()[1]!;
-    expect(basicExchange.secretChannel).toBe("basic");
-    expect(basicExchange.clientSecret).toBe("conformance-client-secret");
-    expect(postExchange.secretChannel).toBe("post");
-    expect(postExchange.clientSecret).toBe("conformance-client-secret");
-
-    // The vendor grant records its auth method.
-    const status = await clients.mcpServerQuery.getOAuthGrantStatus({
-      resourceId: basicServer.metadata!.id,
-      org,
-    });
-    expect(status.authMethod).toBe("vendor_oauth");
-  });
-
-  it("[rpc:McpServerCommandController.completeOAuthConnect] re-connect replaces the login at the server's address instead of adding a second", async () => {
-    const { org } = await target.provisionTenancy();
-    const { server } = await completeDcrHandshake(org, uniqueName("dcrreuse"));
-
-    const again = await clients.mcpServerCommand.initiateOAuthConnect({
-      mcpServerId: server.metadata!.id,
-      org,
-    });
-    await clients.mcpServerCommand.completeOAuthConnect({
-      mcpServerId: server.metadata!.id,
-      state: again.state,
-      authorizationCode: "second-code",
-    });
-
-    const mine = await clients.vaultQuery.getMine({ org });
-    fixtures.defer(() => clients.vaultCommand.delete({ resourceId: mine.metadata!.id }));
+    for (const server of [first, second]) {
+      const connected = await clients.mcpServerCommand.connect({ mcpServerId: server.metadata!.id, org });
+      expect(connected.status?.connectStatus?.phase, `${server.metadata!.name} at the address`).toBe(
+        ConnectPhase.succeeded,
+      );
+    }
+    // Every request that reached the tool surface carried the login.
+    const initializes = mcpTools.capturedRequests().filter((r) => r.method === "initialize");
+    expect(initializes.length).toBeGreaterThan(0);
     expect(
-      Object.keys(mine.spec?.connections ?? {}),
-      "re-connect must replace, not accumulate, logins",
-    ).toHaveLength(1);
-  });
-});
+      initializes.every((r) => String(r.headers.authorization ?? "").startsWith("Bearer mock-access-token-")),
+    ).toBe(true);
 
-describe("McpServer connect conformance — grant health boundaries", () => {
-  it("[rpc:McpServerQueryController.getOAuthGrantStatus] reports HEALTHY for a token without an expiry (expires_in absent means never expires)", async () => {
-    const { org } = await target.provisionTenancy();
-    mockAs.tokenExpiresIn = undefined;
-    const { server } = await completeDcrHandshake(org, uniqueName("noexpiry"));
-
-    const status = await clients.mcpServerQuery.getOAuthGrantStatus({
-      resourceId: server.metadata!.id,
-      org,
-    });
-
-    expect(status.connected).toBe(true);
-    expect(status.accessTokenExpiresAt).toBe(0n);
-    expect(status.connectionHealth).toBe(OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_HEALTHY);
-  });
-
-  it("[rpc:McpServerQueryController.getOAuthGrantStatus] reports TOKEN_EXPIRED_REFRESHABLE inside the 60s refresh buffer when a refresh token exists", async () => {
-    const { org } = await target.provisionTenancy();
-    // 30s < the 60s buffer: the grant is born already inside the refresh
-    // window — the boundary lever, no clock manipulation needed.
-    mockAs.tokenExpiresIn = 30;
-    mockAs.issueRefreshToken = true;
-    const { server } = await completeDcrHandshake(org, uniqueName("refreshable"));
-
-    const status = await clients.mcpServerQuery.getOAuthGrantStatus({
-      resourceId: server.metadata!.id,
-      org,
-    });
-
-    expect(status.connected).toBe(true);
-    expect(status.connectionHealth).toBe(
-      OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED_REFRESHABLE,
+    const err = await expectGrpcCode(
+      () => clients.mcpServerCommand.connect({ mcpServerId: elsewhere.metadata!.id, org }),
+      Code.FailedPrecondition,
+      "a server at another address",
     );
-  });
-
-  it("[rpc:McpServerQueryController.getOAuthGrantStatus] reports TOKEN_EXPIRED when the vendor issued no refresh token", async () => {
-    const { org } = await target.provisionTenancy();
-    mockAs.tokenExpiresIn = 30;
-    mockAs.issueRefreshToken = false;
-    const { server } = await completeDcrHandshake(org, uniqueName("norefresh"));
-
-    const status = await clients.mcpServerQuery.getOAuthGrantStatus({
-      resourceId: server.metadata!.id,
-      org,
-    });
-
-    // The sign-in record holds the refresh token itself, so "refreshable"
-    // means one was issued (stigmer/stigmer#863 was health keyed off a
-    // variable name recorded whether or not the vendor issued a token).
-    expect(status.connected).toBe(true);
-    expect(status.connectionHealth).toBe(OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED);
-  });
-});
-
-describe("McpServer connect conformance — disconnect teardown", () => {
-  it("[rpc:McpServerCommandController.disconnectOAuth] removes the login from the caller's My vault, then answers false on repeat", async () => {
-    const { org } = await target.provisionTenancy();
-    const { server } = await completeDcrHandshake(org, uniqueName("teardown"));
-
-    const first = await clients.mcpServerCommand.disconnectOAuth({
-      resourceId: server.metadata!.id,
-      org,
-    });
-    expect(first.disconnected).toBe(true);
-
-    const status = await clients.mcpServerQuery.getOAuthGrantStatus({
-      resourceId: server.metadata!.id,
-      org,
-    });
-    expect(status.connected).toBe(false);
-    expect(status.connectionHealth).toBe(OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_NO_GRANT);
-
-    const mine = await clients.vaultQuery.getMine({ org });
-    fixtures.defer(() => clients.vaultCommand.delete({ resourceId: mine.metadata!.id }));
-    expect(Object.keys(mine.spec?.connections ?? {}), "the login and its tokens are gone").toEqual([]);
-
-    const second = await clients.mcpServerCommand.disconnectOAuth({
-      resourceId: server.metadata!.id,
-      org,
-    });
-    expect(second.disconnected).toBe(false);
+    expect(err.rawMessage).toContain(elsewhere.metadata!.name);
   });
 });
 
@@ -690,48 +373,39 @@ describe("McpServer connect conformance — async startConnect", () => {
 });
 
 describe("McpServer connect conformance — refresh-on-connect pre-flight", () => {
-  it("[rpc:McpServerCommandController.connect] refreshes an expired grant through the refresh_token grant before discovering", async () => {
+  it("[rpc:McpServerCommandController.connect] renews an expired sign-in through the refresh_token grant, naming the address as resource, before discovering", async () => {
     const { org } = await target.provisionTenancy();
-    // Handshake leaves a grant already inside the 60s refresh window, with a
-    // refresh token to redeem.
+    const address = mcpTools.url();
+    const server = await createOAuthMcpServer(org, address);
+    // The sign-in is born inside the 60s renewal window, with a refresh
+    // token to redeem.
     mockAs.tokenExpiresIn = 30;
     mockAs.issueRefreshToken = true;
-    const { server } = await completeDcrHandshake(org, uniqueName("refresh"), {
-      url: mcpTools.url(),
-    });
-    // The refreshed token should be born healthy.
+    await signInAtFixture(org, address);
+    // The renewed token should be born healthy.
     mockAs.tokenExpiresIn = 3600;
 
-    const connected = await clients.mcpServerCommand.connect({
-      mcpServerId: server.metadata!.id,
-      org,
-    });
+    const connected = await clients.mcpServerCommand.connect({ mcpServerId: server.metadata!.id, org });
 
     expect(connected.status?.connectStatus?.phase).toBe(ConnectPhase.succeeded);
-
-    // The vendor saw the refresh: a refresh_token grant redeeming the token
-    // the handshake issued, as the same public client.
     const refresh = mockAs.capturedTokenRequests().at(-1)!;
     expect(refresh.grantType).toBe("refresh_token");
     expect(refresh.refreshToken).toBe("mock-refresh-token-1");
     expect(refresh.clientId).toBe("mock-dcr-client-1");
     expect(refresh.secretChannel).toBe("none");
+    expect(refresh.resource, "renewed for the address it was signed in for").toBe(address);
 
-    // And the grant's recorded expiry advanced out of the refresh window.
-    const status = await clients.mcpServerQuery.getOAuthGrantStatus({
-      resourceId: server.metadata!.id,
-      org,
-    });
+    const status = await clients.mcpServerQuery.getOAuthGrantStatus({ resourceId: server.metadata!.id, org });
     expect(status.connectionHealth).toBe(OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_HEALTHY);
   });
 
   it("[rpc:McpServerCommandController.connect] surfaces a failing renewal as FailedPrecondition naming the sign-in and asking to sign in again", async () => {
     const { org } = await target.provisionTenancy();
+    const address = mcpTools.url();
+    const server = await createOAuthMcpServer(org, address);
     mockAs.tokenExpiresIn = 30;
     mockAs.issueRefreshToken = true;
-    const { server } = await completeDcrHandshake(org, uniqueName("refreshfail"), {
-      url: mcpTools.url(),
-    });
+    await signInAtFixture(org, address);
     mockAs.tokenStatus = 500;
 
     const err = await expectGrpcCode(
@@ -744,13 +418,13 @@ describe("McpServer connect conformance — refresh-on-connect pre-flight", () =
     expect(err.rawMessage).toContain("Sign in again");
   });
 
-  it("[rpc:McpServerCommandController.connect] refuses connect when the sign-in has expired and the vendor issued no refresh token", async () => {
+  it("[rpc:McpServerCommandController.connect] refuses connect when the sign-in has expired and the login server issued no refresh token", async () => {
     const { org } = await target.provisionTenancy();
+    const address = mcpTools.url();
+    const server = await createOAuthMcpServer(org, address);
     mockAs.tokenExpiresIn = 30;
     mockAs.issueRefreshToken = false;
-    const { server } = await completeDcrHandshake(org, uniqueName("norefreshconnect"), {
-      url: mcpTools.url(),
-    });
+    await signInAtFixture(org, address);
     const exchangesBeforeConnect = mockAs.capturedTokenRequests().length;
 
     // An expired login that cannot be renewed refuses before any connect run
@@ -763,9 +437,8 @@ describe("McpServer connect conformance — refresh-on-connect pre-flight", () =
     );
     expect(err.rawMessage).toContain("has expired and no refresh token is available");
     expect(err.rawMessage).toContain("Sign in again");
-    expect(
-      mockAs.capturedTokenRequests().length,
-      "no renewal attempt must reach the vendor",
-    ).toBe(exchangesBeforeConnect);
+    expect(mockAs.capturedTokenRequests().length, "no renewal attempt must reach the login server").toBe(
+      exchangesBeforeConnect,
+    );
   });
 });

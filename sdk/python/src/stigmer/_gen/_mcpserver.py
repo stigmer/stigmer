@@ -73,33 +73,9 @@ class McpServerClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def initiate_o_auth_connect(self, input: io_pb2.InitiateOAuthConnectInput) -> io_pb2.InitiateOAuthConnectOutput:
-        try:
-            return self._command.initiateOAuthConnect(input)
-        except grpc.RpcError as e:
-            raise wrap_error(e) from e
-
-    def complete_o_auth_connect(self, input: io_pb2.CompleteOAuthConnectInput) -> io_pb2.CompleteOAuthConnectOutput:
-        try:
-            return self._command.completeOAuthConnect(input)
-        except grpc.RpcError as e:
-            raise wrap_error(e) from e
-
     def disconnect_o_auth(self, input: io_pb2.DisconnectOAuthInput) -> io_pb2.DisconnectOAuthOutput:
         try:
             return self._command.disconnectOAuth(input)
-        except grpc.RpcError as e:
-            raise wrap_error(e) from e
-
-    def set_org_o_auth_app(self, input: io_pb2.SetOrgOAuthAppInput) -> io_pb2.SetOrgOAuthAppOutput:
-        try:
-            return self._command.setOrgOAuthApp(input)
-        except grpc.RpcError as e:
-            raise wrap_error(e) from e
-
-    def delete_org_o_auth_app(self, input: io_pb2.DeleteOrgOAuthAppInput) -> io_pb2.DeleteOrgOAuthAppOutput:
-        try:
-            return self._command.deleteOrgOAuthApp(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
@@ -120,12 +96,6 @@ class McpServerClient:
     def get_o_auth_grant_status(self, input: io_pb2.GetOAuthGrantStatusInput) -> io_pb2.GetOAuthGrantStatusOutput:
         try:
             return self._query.getOAuthGrantStatus(input)
-        except grpc.RpcError as e:
-            raise wrap_error(e) from e
-
-    def get_org_o_auth_app(self, input: io_pb2.GetOrgOAuthAppInput) -> io_pb2.GetOrgOAuthAppOutput:
-        try:
-            return self._query.getOrgOAuthApp(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
@@ -251,24 +221,17 @@ class HttpServerConfigInput:
 class McpServerAuthInput:
     """SDK input type for McpServerAuth."""
 
-    oauth_app_ref: ResourceRef | None = None
     target_env_var: str = ""
     token_lifetime_hint: str = ""
     scope_hints: list[str] = field(default_factory=list)
-    discovery_url: str = ""
     oauth_only: bool = False
 
     def _to_proto(self) -> spec_pb2.McpServerAuth:
         msg = spec_pb2.McpServerAuth(
             target_env_var=self.target_env_var,
             token_lifetime_hint=self.token_lifetime_hint,
-            discovery_url=self.discovery_url,
             oauth_only=self.oauth_only,
         )
-        if self.oauth_app_ref is not None and (self.oauth_app_ref.org or self.oauth_app_ref.slug):
-            _ref = self.oauth_app_ref._to_proto()
-            _ref.kind = 22
-            msg.oauth_app_ref.CopyFrom(_ref)
         if self.scope_hints:
             msg.scope_hints.extend(self.scope_hints)
         return msg

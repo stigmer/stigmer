@@ -32,11 +32,6 @@ class McpServerQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.GetOAuthGrantStatusInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.GetOAuthGrantStatusOutput.FromString,
                 _registered_method=True)
-        self.getOrgOAuthApp = channel.unary_unary(
-                '/ai.stigmer.agentic.mcpserver.v1.McpServerQueryController/getOrgOAuthApp',
-                request_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.GetOrgOAuthAppInput.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.GetOrgOAuthAppOutput.FromString,
-                _registered_method=True)
 
 
 class McpServerQueryControllerServicer(object):
@@ -62,38 +57,15 @@ class McpServerQueryControllerServicer(object):
 
     def getOAuthGrantStatus(self, request, context):
         """Check whether the authenticated user has a sign-in for an MCP server in
-        their My vault in the specified org that a run would use: one this
-        server's sign-in saved at the server's current address. A pasted login
-        and a sign-in saved into a shared vault are read through the vault's own
+        their My vault in the specified org: a sign-in saved at the server's
+        address, whichever tool or page started it. A pasted login and a
+        sign-in saved into a shared vault are read through the vault's own
         RPCs.
 
         Returns sign-in metadata (connected status, token expiry, auth method)
         without exposing any secret token values. The frontend uses this to
         render the correct OAuth state in the MCP server detail page and
         session composer.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def getOrgOAuthApp(self, request, context):
-        """Query whether an org has a BYOA override for a resource.
-
-        Returns override metadata (existence, OAuthApp ID, client_id) without
-        exposing secrets. The frontend uses this to show which credential
-        source is active and to offer override management options to org admins.
-
-        Edition scoping: hosted-only, together with setOrgOAuthApp and
-        deleteOrgOAuthApp — the three org-OAuth-app RPCs are ONE capability.
-        The OSS server answers UNIMPLEMENTED for all of them by design: its
-        flat OAuthApp store has no override binding, its OAuth resolution has
-        no override level to consult, and BYOA's clone-from-platform-template
-        model has no template to clone (self-hosted users apply their own
-        OAuthApp and reference it from spec.auth.oauth_app_ref — a strictly
-        more powerful path). Clients probe the capability through THIS RPC:
-        an UNIMPLEMENTED answer means "hide every BYOA affordance" (see the
-        SDK's useOrgOAuthApp.isSupported). Never implement one RPC of the
-        surface without the other two and the client-side gate.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -116,11 +88,6 @@ def add_McpServerQueryControllerServicer_to_server(servicer, server):
                     servicer.getOAuthGrantStatus,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.GetOAuthGrantStatusInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.GetOAuthGrantStatusOutput.SerializeToString,
-            ),
-            'getOrgOAuthApp': grpc.unary_unary_rpc_method_handler(
-                    servicer.getOrgOAuthApp,
-                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.GetOrgOAuthAppInput.FromString,
-                    response_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.GetOrgOAuthAppOutput.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -205,33 +172,6 @@ class McpServerQueryController(object):
             '/ai.stigmer.agentic.mcpserver.v1.McpServerQueryController/getOAuthGrantStatus',
             ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.GetOAuthGrantStatusInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.GetOAuthGrantStatusOutput.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def getOrgOAuthApp(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/ai.stigmer.agentic.mcpserver.v1.McpServerQueryController/getOrgOAuthApp',
-            ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.GetOrgOAuthAppInput.SerializeToString,
-            ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.GetOrgOAuthAppOutput.FromString,
             options,
             channel_credentials,
             insecure,

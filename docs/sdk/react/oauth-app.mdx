@@ -57,8 +57,8 @@ state.
 Deletes an OAuth app by its resource ID. Returns the deleted
 `OAuthApp` on success, its client secret redacted like every
 read, so callers can confirm which app was removed. The deletion is
-permanent, and the server refuses it while an MCP server's
-`oauth_app_ref` still resolves to the app.
+permanent and lets go of the addresses the app signed in to; sign-ins
+made with it keep working until their tokens need renewing.
 
 **Signature**
 
@@ -92,9 +92,8 @@ that the caller may view.
 
 Returns the organization's OAuthApps that a `get` would return to the
 caller: the organization's admins see every app, anyone granted viewer on
-an app sees that app, and other members and viewers see none. In practice
-these are the BYOA OAuth apps created through the "Bring your own app"
-flow on MCP server detail pages.
+an app sees that app, and other members and viewers see none. Each app
+lists the addresses it signs in to; a sign-in at one of them uses it.
 
 Pass `null` for `org` to skip fetching (stable no-op). Useful when
 the active organization has not been resolved yet.
@@ -179,8 +178,9 @@ await update({
 Form for creating a new OAuth app within an organization.
 
 Collects the required OAuth configuration: **name**, **provider**,
-**client ID**, **client secret**, **authorization URL**, and
-**token URL**. An expandable "Advanced" section provides optional
+**client ID**, **client secret**, **authorization URL**, **token URL**,
+and the **addresses** the app signs in to (a tool's URL or a Git host; a
+sign-in at one of them uses this app). An expandable "Advanced" section provides optional
 fields for scopes, userinfo URL, scope parameter name, token endpoint
 auth method, and vendor approval settings.
 

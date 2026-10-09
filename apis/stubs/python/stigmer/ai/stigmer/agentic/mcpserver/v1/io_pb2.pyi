@@ -4,7 +4,7 @@ from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
-from collections.abc import Iterable as _Iterable, Mapping as _Mapping
+from collections.abc import Mapping as _Mapping
 from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
@@ -45,48 +45,6 @@ class ConnectInput(_message.Message):
     org: str
     def __init__(self, mcp_server_id: _Optional[str] = ..., runtime_env: _Optional[_Mapping[str, _spec_pb2.ExecutionValue]] = ..., org: _Optional[str] = ...) -> None: ...
 
-class InitiateOAuthConnectInput(_message.Message):
-    __slots__ = ("mcp_server_id", "org", "vault_id")
-    MCP_SERVER_ID_FIELD_NUMBER: _ClassVar[int]
-    ORG_FIELD_NUMBER: _ClassVar[int]
-    VAULT_ID_FIELD_NUMBER: _ClassVar[int]
-    mcp_server_id: str
-    org: str
-    vault_id: str
-    def __init__(self, mcp_server_id: _Optional[str] = ..., org: _Optional[str] = ..., vault_id: _Optional[str] = ...) -> None: ...
-
-class InitiateOAuthConnectOutput(_message.Message):
-    __slots__ = ("authorization_url", "state", "scopes", "provider_name")
-    AUTHORIZATION_URL_FIELD_NUMBER: _ClassVar[int]
-    STATE_FIELD_NUMBER: _ClassVar[int]
-    SCOPES_FIELD_NUMBER: _ClassVar[int]
-    PROVIDER_NAME_FIELD_NUMBER: _ClassVar[int]
-    authorization_url: str
-    state: str
-    scopes: _containers.RepeatedScalarFieldContainer[str]
-    provider_name: str
-    def __init__(self, authorization_url: _Optional[str] = ..., state: _Optional[str] = ..., scopes: _Optional[_Iterable[str]] = ..., provider_name: _Optional[str] = ...) -> None: ...
-
-class CompleteOAuthConnectInput(_message.Message):
-    __slots__ = ("mcp_server_id", "authorization_code", "state")
-    MCP_SERVER_ID_FIELD_NUMBER: _ClassVar[int]
-    AUTHORIZATION_CODE_FIELD_NUMBER: _ClassVar[int]
-    STATE_FIELD_NUMBER: _ClassVar[int]
-    mcp_server_id: str
-    authorization_code: str
-    state: str
-    def __init__(self, mcp_server_id: _Optional[str] = ..., authorization_code: _Optional[str] = ..., state: _Optional[str] = ...) -> None: ...
-
-class CompleteOAuthConnectOutput(_message.Message):
-    __slots__ = ("connected", "target_env_var", "token_lifetime_hint")
-    CONNECTED_FIELD_NUMBER: _ClassVar[int]
-    TARGET_ENV_VAR_FIELD_NUMBER: _ClassVar[int]
-    TOKEN_LIFETIME_HINT_FIELD_NUMBER: _ClassVar[int]
-    connected: bool
-    target_env_var: str
-    token_lifetime_hint: str
-    def __init__(self, connected: bool = ..., target_env_var: _Optional[str] = ..., token_lifetime_hint: _Optional[str] = ...) -> None: ...
-
 class GetOAuthGrantStatusInput(_message.Message):
     __slots__ = ("resource_id", "org")
     RESOURCE_ID_FIELD_NUMBER: _ClassVar[int]
@@ -122,53 +80,3 @@ class DisconnectOAuthOutput(_message.Message):
     DISCONNECTED_FIELD_NUMBER: _ClassVar[int]
     disconnected: bool
     def __init__(self, disconnected: bool = ...) -> None: ...
-
-class SetOrgOAuthAppInput(_message.Message):
-    __slots__ = ("resource_id", "org", "client_id", "client_secret")
-    RESOURCE_ID_FIELD_NUMBER: _ClassVar[int]
-    ORG_FIELD_NUMBER: _ClassVar[int]
-    CLIENT_ID_FIELD_NUMBER: _ClassVar[int]
-    CLIENT_SECRET_FIELD_NUMBER: _ClassVar[int]
-    resource_id: str
-    org: str
-    client_id: str
-    client_secret: str
-    def __init__(self, resource_id: _Optional[str] = ..., org: _Optional[str] = ..., client_id: _Optional[str] = ..., client_secret: _Optional[str] = ...) -> None: ...
-
-class SetOrgOAuthAppOutput(_message.Message):
-    __slots__ = ("oauth_app_id",)
-    OAUTH_APP_ID_FIELD_NUMBER: _ClassVar[int]
-    oauth_app_id: str
-    def __init__(self, oauth_app_id: _Optional[str] = ...) -> None: ...
-
-class GetOrgOAuthAppInput(_message.Message):
-    __slots__ = ("resource_id", "org")
-    RESOURCE_ID_FIELD_NUMBER: _ClassVar[int]
-    ORG_FIELD_NUMBER: _ClassVar[int]
-    resource_id: str
-    org: str
-    def __init__(self, resource_id: _Optional[str] = ..., org: _Optional[str] = ...) -> None: ...
-
-class GetOrgOAuthAppOutput(_message.Message):
-    __slots__ = ("has_override", "oauth_app_id", "client_id")
-    HAS_OVERRIDE_FIELD_NUMBER: _ClassVar[int]
-    OAUTH_APP_ID_FIELD_NUMBER: _ClassVar[int]
-    CLIENT_ID_FIELD_NUMBER: _ClassVar[int]
-    has_override: bool
-    oauth_app_id: str
-    client_id: str
-    def __init__(self, has_override: bool = ..., oauth_app_id: _Optional[str] = ..., client_id: _Optional[str] = ...) -> None: ...
-
-class DeleteOrgOAuthAppInput(_message.Message):
-    __slots__ = ("resource_id", "org")
-    RESOURCE_ID_FIELD_NUMBER: _ClassVar[int]
-    ORG_FIELD_NUMBER: _ClassVar[int]
-    resource_id: str
-    org: str
-    def __init__(self, resource_id: _Optional[str] = ..., org: _Optional[str] = ...) -> None: ...
-
-class DeleteOrgOAuthAppOutput(_message.Message):
-    __slots__ = ("deleted",)
-    DELETED_FIELD_NUMBER: _ClassVar[int]
-    deleted: bool
-    def __init__(self, deleted: bool = ...) -> None: ...

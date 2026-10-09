@@ -38,7 +38,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceDeleteInput",
           "outputType": "OAuthApp",
           "outputFullType": "ai.stigmer.iam.oauthapp.v1.OAuthApp",
-          "description": "Delete an OAuth app.\n\n Refused while any McpServer's McpServerAuth.oauth_app_ref resolves to\n this OAuth app. Returns the deleted OAuthApp, its client_secret redacted\n like every read."
+          "description": "Delete an OAuth app.\n\n Its addresses are released: a sign-in at them uses Stigmer's own login\n app or the address's login server from then on. Returns the deleted\n OAuthApp, its client_secret redacted like every read."
         }
       ]
     },

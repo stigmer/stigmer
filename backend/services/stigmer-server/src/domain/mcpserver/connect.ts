@@ -38,7 +38,6 @@ import type { Authorizer } from "../../extensions/authorizer.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import { authorizeDirect } from "../../pipeline/steps/authorize.js";
 import { refuseBoundElsewhere } from "../../pipeline/steps/refuse-bound-elsewhere.js";
-import type { SecretService } from "../../encryption/encryption.js";
 import {
   failedPreconditionError,
   internalError,
@@ -49,10 +48,7 @@ import {
 import type { RunnerCredentialProvider } from "../../runnerauth/runner-credential-provider.js";
 import { TOKEN_TYPE_EXECUTION_SCOPED } from "../../runnerauth/runnerauth.js";
 import type { SandboxLane } from "../../sandbox/lane.js";
-import type {
-  PendingOAuthStateStore,
-  Store,
-} from "../../store/interface.js";
+import type { Store } from "../../store/interface.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import { toolRequirements } from "../vault/resolve.js";
 import type { VaultResolver } from "../vault/resolve.js";
@@ -72,10 +68,6 @@ import type {
   McpServerConnectEngine,
   McpServerEngineStateProvider,
 } from "./engine.js";
-export {
-  loadOAuthAppClientCredentials,
-  tokenAuthMethodFromSpec,
-} from "./oauth/refresh.js";
 
 /**
  * A connect budget: the workflow run timeout in milliseconds plus its Go
@@ -166,14 +158,11 @@ export interface ConnectExecutionContextClient {
 }
 
 /**
- * Dependencies of the connect/OAuth slice — Go's optional
- * SetConnectDependencies/SetOAuthDependencies fields, made REQUIRED
- * constructor-style parameters per the composition-root idiom
- * (guidelines §4): "Temporal is down" is the engine-state provider's
- * modeled state, never a missing dependency. A deliberate consequence:
- * the OAuth RPCs work on a Temporal-less server where Go's composition
- * gate refuses completeOAuthConnect — disclosed, deliberately unpinned
- * divergence.
+ * Dependencies of the connect slice — Go's optional
+ * SetConnectDependencies fields, made REQUIRED constructor-style
+ * parameters per the composition-root idiom (guidelines §4): "Temporal is
+ * down" is the engine-state provider's modeled state, never a missing
+ * dependency.
  */
 export interface McpServerConnectDeps {
   readonly store: Store;
@@ -188,8 +177,8 @@ export interface McpServerConnectDeps {
   readonly executionContext: ConnectExecutionContextClient;
   readonly runnerAuth: RunnerCredentialProvider;
   /**
-   * The vault door: a sign-in saves its login here, and status and
-   * disconnect read and remove the caller's own connection.
+   * The vault door: sign-in status and disconnect read and remove the
+   * caller's own connection at the server's address.
    */
   readonly vaults: VaultService;
   /**
@@ -200,9 +189,6 @@ export interface McpServerConnectDeps {
    * runs that use that vault, never connect.
    */
   readonly vaultResolver: VaultResolver;
-  readonly pendingOAuthStates: PendingOAuthStateStore;
-  readonly secretService: SecretService;
-  readonly oauthRedirectUri: string;
   /**
    * The composed sandbox lane (sandbox/lane.ts): disabled, a connect runs
    * on the shared runner queue; enabled, every connect provisions its own
@@ -212,9 +198,7 @@ export interface McpServerConnectDeps {
   readonly sandboxLane: SandboxLane;
   /**
    * The ONE fetch this slice dials user-supplied URLs with: the MCP
-   * endpoint probed at save time and the login server reached on Sign in
-   * (discovery, registration, the authorize preflight, token exchange and
-   * refresh). Composed at the root under the edition's egress policy
+   * endpoint probed at save time. Composed at the root under the edition's egress policy
    * (`drivers.outboundEgress`); no module here holds a `fetch` of its own.
    */
   readonly outboundFetch: OutboundFetch;

@@ -208,8 +208,8 @@ describe("extractEmbeds", () => {
   });
 
   it("ignores commented-out embeds when composed with cleanContent", () => {
-    const body = '{/* <ScenarEmbed id="retired-tour" /> */}\n<DemoByoaSetup />';
-    expect(extractEmbeds(cleanContent(body))).toEqual(["DemoByoaSetup"]);
+    const body = '{/* <ScenarEmbed id="retired-tour" /> */}\n<DemoOAuthConnectFlow />';
+    expect(extractEmbeds(cleanContent(body))).toEqual(["DemoOAuthConnectFlow"]);
   });
 });
 

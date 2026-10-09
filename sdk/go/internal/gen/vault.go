@@ -15,14 +15,16 @@ import (
 
 // VaultClient provides operations on vault resources.
 type VaultClient struct {
-	command vaultv1.VaultCommandControllerClient
-	query   vaultv1.VaultQueryControllerClient
+	command     vaultv1.VaultCommandControllerClient
+	connectLink vaultv1.ConnectLinkControllerClient
+	query       vaultv1.VaultQueryControllerClient
 }
 
 func NewVaultClient(conn grpc.ClientConnInterface) *VaultClient {
 	return &VaultClient{
-		command: vaultv1.NewVaultCommandControllerClient(conn),
-		query:   vaultv1.NewVaultQueryControllerClient(conn),
+		command:     vaultv1.NewVaultCommandControllerClient(conn),
+		connectLink: vaultv1.NewConnectLinkControllerClient(conn),
+		query:       vaultv1.NewVaultQueryControllerClient(conn),
 	}
 }
 
@@ -75,6 +77,36 @@ func (v *VaultClient) SetConnection(ctx context.Context, input *vaultv1.SetVault
 
 func (v *VaultClient) RemoveConnections(ctx context.Context, input *vaultv1.RemoveVaultConnectionsInput) (*vaultv1.Vault, error) {
 	resp, err := v.command.RemoveConnections(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (v *VaultClient) StartSignIn(ctx context.Context, input *vaultv1.StartSignInInput) (*vaultv1.StartSignInOutput, error) {
+	resp, err := v.command.StartSignIn(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (v *VaultClient) CompleteSignIn(ctx context.Context, input *vaultv1.CompleteSignInInput) (*vaultv1.CompleteSignInOutput, error) {
+	resp, err := v.command.CompleteSignIn(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (v *VaultClient) CreateConnectLink(ctx context.Context, input *vaultv1.CreateConnectLinkInput) (*vaultv1.ConnectLink, error) {
+	resp, err := v.command.CreateConnectLink(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (v *VaultClient) GetConnectLink(ctx context.Context, input *vaultv1.ConnectLinkTokenInput) (*vaultv1.ConnectLinkInfo, error) {
+	resp, err := v.connectLink.GetConnectLink(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (v *VaultClient) StartConnectLink(ctx context.Context, input *vaultv1.ConnectLinkTokenInput) (*vaultv1.StartConnectLinkOutput, error) {
+	resp, err := v.connectLink.StartConnectLink(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (v *VaultClient) CompleteConnectLink(ctx context.Context, input *vaultv1.CompleteConnectLinkInput) (*vaultv1.CompleteConnectLinkOutput, error) {
+	resp, err := v.connectLink.CompleteConnectLink(ctx, input)
 	return resp, wrapErr(err)
 }
 
@@ -148,8 +180,7 @@ type VaultConnectionSignInInput struct {
 	AuthMethod    string
 	TokenEndpoint string
 	RefreshToken  string
-	McpServerId   string
-	LocalProgram  bool
+	LoginApp      string
 }
 
 func (i *VaultInput) toProto() (*vaultv1.Vault, error) {
@@ -239,8 +270,7 @@ func (i *VaultConnectionSignInInput) toProto() (*vaultv1.VaultConnectionSignIn, 
 		AuthMethod:    i.AuthMethod,
 		TokenEndpoint: i.TokenEndpoint,
 		RefreshToken:  i.RefreshToken,
-		McpServerId:   i.McpServerId,
-		LocalProgram:  i.LocalProgram,
+		LoginApp:      i.LoginApp,
 	}, nil
 }
 
@@ -318,7 +348,6 @@ func vaultConnectionSignInInputFromProto(p *vaultv1.VaultConnectionSignIn) *Vaul
 	input.AuthMethod = p.GetAuthMethod()
 	input.TokenEndpoint = p.GetTokenEndpoint()
 	input.RefreshToken = p.GetRefreshToken()
-	input.McpServerId = p.GetMcpServerId()
-	input.LocalProgram = p.GetLocalProgram()
+	input.LoginApp = p.GetLoginApp()
 	return input
 }

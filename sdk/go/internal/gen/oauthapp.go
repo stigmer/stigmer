@@ -99,6 +99,7 @@ type OAuthAppInput struct {
 	VendorApprovalStatus    oauthappv1.VendorApprovalStatus
 	VendorApprovalDocsUrl   string
 	TokenEndpointAuthMethod oauthappv1.TokenEndpointAuthMethod
+	Addresses               []string
 }
 
 func (i *OAuthAppInput) toProto() (*oauthappv1.OAuthApp, error) {
@@ -126,6 +127,7 @@ func (i *OAuthAppInput) toProto() (*oauthappv1.OAuthApp, error) {
 	resource.Spec.VendorApprovalStatus = i.VendorApprovalStatus
 	resource.Spec.VendorApprovalDocsUrl = i.VendorApprovalDocsUrl
 	resource.Spec.TokenEndpointAuthMethod = i.TokenEndpointAuthMethod
+	resource.Spec.Addresses = i.Addresses
 	return resource, nil
 }
 
@@ -155,6 +157,7 @@ func OAuthAppInputFromProto(p *oauthappv1.OAuthApp) *OAuthAppInput {
 		input.VendorApprovalStatus = s.GetVendorApprovalStatus()
 		input.VendorApprovalDocsUrl = s.GetVendorApprovalDocsUrl()
 		input.TokenEndpointAuthMethod = s.GetTokenEndpointAuthMethod()
+		input.Addresses = s.GetAddresses()
 	}
 	return input
 }

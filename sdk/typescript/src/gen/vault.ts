@@ -8,7 +8,8 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { VaultSchema, type Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import { VaultCommandController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/command_pb";
-import { SetVaultSecretsInputSchema, RemoveVaultSecretsInputSchema, SetVaultConnectionInputSchema, RemoveVaultConnectionsInputSchema, GetMyVaultInputSchema, GetVaultByExternalIdInputSchema, ListVaultsRequestSchema, VaultListSchema, type SetVaultSecretsInput, type RemoveVaultSecretsInput, type SetVaultConnectionInput, type RemoveVaultConnectionsInput, type GetMyVaultInput, type GetVaultByExternalIdInput, type ListVaultsRequest, type VaultList } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
+import { ConnectLinkController, ConnectLinkTokenInputSchema, ConnectLinkInfoSchema, StartConnectLinkOutputSchema, CompleteConnectLinkInputSchema, CompleteConnectLinkOutputSchema, type ConnectLinkTokenInput, type ConnectLinkInfo, type StartConnectLinkOutput, type CompleteConnectLinkInput, type CompleteConnectLinkOutput } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/connect_link_pb";
+import { SetVaultSecretsInputSchema, RemoveVaultSecretsInputSchema, SetVaultConnectionInputSchema, RemoveVaultConnectionsInputSchema, StartSignInInputSchema, StartSignInOutputSchema, CompleteSignInInputSchema, CompleteSignInOutputSchema, CreateConnectLinkInputSchema, ConnectLinkSchema, GetMyVaultInputSchema, GetVaultByExternalIdInputSchema, ListVaultsRequestSchema, VaultListSchema, type SetVaultSecretsInput, type RemoveVaultSecretsInput, type SetVaultConnectionInput, type RemoveVaultConnectionsInput, type StartSignInInput, type StartSignInOutput, type CompleteSignInInput, type CompleteSignInOutput, type CreateConnectLinkInput, type ConnectLink, type GetMyVaultInput, type GetVaultByExternalIdInput, type ListVaultsRequest, type VaultList } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
 import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
 import { VaultSpecSchema, VaultConnectionSource, VaultSecretSchema, VaultConnectionSignInSchema, VaultConnectionSchema, type VaultSecret, type VaultConnectionSignIn, type VaultConnection } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -19,10 +20,12 @@ import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/ap
 /** Provides operations on vault resources. */
 export class VaultClient {
   private readonly command: Client<typeof VaultCommandController>;
+  private readonly connectLink: Client<typeof ConnectLinkController>;
   private readonly query: Client<typeof VaultQueryController>;
 
   constructor(transport: Transport) {
     this.command = createClient(VaultCommandController, transport);
+    this.connectLink = createClient(ConnectLinkController, transport);
     this.query = createClient(VaultQueryController, transport);
   }
 
@@ -75,6 +78,42 @@ export class VaultClient {
   async removeConnections(input: RemoveVaultConnectionsInput): Promise<Vault> {
     try {
       return await this.command.removeConnections(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async startSignIn(input: StartSignInInput): Promise<StartSignInOutput> {
+    try {
+      return await this.command.startSignIn(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async completeSignIn(input: CompleteSignInInput): Promise<CompleteSignInOutput> {
+    try {
+      return await this.command.completeSignIn(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async createConnectLink(input: CreateConnectLinkInput): Promise<ConnectLink> {
+    try {
+      return await this.command.createConnectLink(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async getConnectLink(input: ConnectLinkTokenInput): Promise<ConnectLinkInfo> {
+    try {
+      return await this.connectLink.getConnectLink(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async startConnectLink(input: ConnectLinkTokenInput): Promise<StartConnectLinkOutput> {
+    try {
+      return await this.connectLink.startConnectLink(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async completeConnectLink(input: CompleteConnectLinkInput): Promise<CompleteConnectLinkOutput> {
+    try {
+      return await this.connectLink.completeConnectLink(input);
     } catch (e) { throw wrapError(e); }
   }
 
@@ -155,8 +194,7 @@ export interface VaultConnectionSignInInput {
   authMethod?: string;
   tokenEndpoint?: string;
   refreshToken?: string;
-  mcpServerId?: string;
-  localProgram?: boolean;
+  loginApp?: string;
 }
 
 function buildVaultSecretProto(input: VaultSecretInput) {
@@ -175,8 +213,7 @@ function buildVaultConnectionSignInProto(input: VaultConnectionSignInInput) {
     authMethod: input.authMethod,
     tokenEndpoint: input.tokenEndpoint,
     refreshToken: input.refreshToken,
-    mcpServerId: input.mcpServerId,
-    localProgram: input.localProgram,
+    loginApp: input.loginApp,
   }));
 }
 
@@ -240,8 +277,7 @@ function toVaultConnectionSignInInput(msg: VaultConnectionSignIn): VaultConnecti
     authMethod: msg.authMethod || undefined,
     tokenEndpoint: msg.tokenEndpoint || undefined,
     refreshToken: msg.refreshToken || undefined,
-    mcpServerId: msg.mcpServerId || undefined,
-    localProgram: msg.localProgram || undefined,
+    loginApp: msg.loginApp || undefined,
   };
 }
 

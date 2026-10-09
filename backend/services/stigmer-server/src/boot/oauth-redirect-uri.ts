@@ -1,13 +1,11 @@
 /**
- * Where an MCP server's OAuth Sign in comes back to, on a server that was
- * not told.
+ * Where a sign-in comes back to, on a server that was not told.
  *
- * `STIGMER_OAUTH_REDIRECT_URI` is the callback URL the McpServer OAuth
- * Connect flows hand the vendor's login server; the cloud sets it to its
- * console's callback page. A local install (`stigmer up`, the desktop app,
- * the all-in-one image) never set it, and `initiateOAuthConnect` refuses
- * without it, so every Sign in surface the console offers was dead on a
- * local install. A server that serves the console on its unified port knows
+ * `STIGMER_OAUTH_REDIRECT_URI` is the callback URL a sign-in hands the
+ * login server; the cloud sets it to its console's callback page. A local
+ * install (`stigmer up`, the desktop app, the all-in-one image) never set
+ * it, and `startSignIn` refuses without it, so every Sign in surface the
+ * console offers was dead on a local install. A server that serves the console on its unified port knows
  * where that console is: the callback is the console's callback page on the
  * origin browsers reach the unified port on.
  *
@@ -56,7 +54,7 @@ export type OAuthRedirectUriResolution =
       readonly uri: string;
       readonly from: DerivedOAuthRedirectOrigin;
     }
-  /** Nothing to hand the login server; initiate refuses with the pinned copy. */
+  /** Nothing to hand the login server; a console sign-in refuses with the pinned copy. */
   | { readonly kind: "absent" };
 
 export interface OAuthRedirectUriInputs {
@@ -70,7 +68,7 @@ export interface OAuthRedirectUriInputs {
   readonly port: number;
 }
 
-/** The callback URL the McpServer OAuth flows use, and where it came from. */
+/** The callback URL every sign-in returns to (the vault's sign-in and Connect links), and where it came from. */
 export function resolveOAuthRedirectUri(
   inputs: OAuthRedirectUriInputs,
 ): OAuthRedirectUriResolution {

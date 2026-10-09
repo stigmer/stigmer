@@ -42,6 +42,9 @@ import {
 import type {
   AuditRecord,
   BootstrapStateStore,
+  ConnectLinkRecord,
+  ConnectLinkStore,
+  OAuthClientRegistrationStore,
   ResourceNameClaim,
   ResourceNameEntry,
   ResourceNameKey,
@@ -158,6 +161,8 @@ export class SqliteStore implements Store {
   readonly bootstrapState: BootstrapStateStore;
   readonly resourceNames: ResourceNameStore;
   readonly pendingOAuthStates: PendingOAuthStateStore;
+  readonly oauthClientRegistrations: OAuthClientRegistrationStore;
+  readonly connectLinks: ConnectLinkStore;
   readonly organizationDeletions: OrganizationDeletionStore;
 
   private db: DatabaseSync | undefined;
@@ -180,6 +185,10 @@ export class SqliteStore implements Store {
     this.pendingOAuthStates = new SqlitePendingOAuthStateStore(() =>
       this.open(),
     );
+    this.oauthClientRegistrations = new SqliteOAuthClientRegistrationStore(
+      () => this.open(),
+    );
+    this.connectLinks = new SqliteConnectLinkStore(() => this.open());
     this.organizationDeletions = new SqliteOrganizationDeletionStore(() =>
       this.open(),
     );
@@ -1565,6 +1574,14 @@ class SqliteResourceNameStore implements ResourceNameStore {
     });
   }
 
+  async releaseName(key: ResourceNameKey, id: string): Promise<void> {
+    this.open()
+      .prepare(
+        `DELETE FROM resource_names WHERE kind = ? AND org = ? AND name = ? AND id = ?`,
+      )
+      .run(key.kind, key.org, key.name, id);
+  }
+
   private transaction<T>(fn: (db: DatabaseSync) => T): T {
     const db = this.open();
     db.exec("BEGIN IMMEDIATE");
@@ -1609,8 +1626,35 @@ function nameHolderOf(db: DatabaseSync, key: ResourceNameKey): ResourceNameEntry
 }
 
 // =============================================================================
-// MCP pending OAuth state (Go pkg/domain/mcpserver/oauth/pending_state_store.go)
+// Sign-in pending state, registered clients and Connect links
 // =============================================================================
+
+const PENDING_OAUTH_STATE_COLUMNS = `state, code_verifier, client_id, client_secret, token_endpoint,
+  identity_account_id, auth_method, token_auth_method, redirect_uri, org, vault_id,
+  address, login_app, resource, client_registration, connect_link, provider_name,
+  userinfo_url, created_at`;
+
+interface PendingOAuthStateRow {
+  state: string;
+  code_verifier: string;
+  client_id: string;
+  client_secret: string;
+  token_endpoint: string;
+  identity_account_id: string;
+  auth_method: string;
+  token_auth_method: string;
+  redirect_uri: string;
+  org: string;
+  vault_id: string;
+  address: string;
+  login_app: string;
+  resource: string;
+  client_registration: string;
+  connect_link: string;
+  provider_name: string;
+  userinfo_url: string;
+  created_at: number;
+}
 
 class SqlitePendingOAuthStateStore implements PendingOAuthStateStore {
   constructor(private readonly open: () => DatabaseSync) {}
@@ -1620,11 +1664,8 @@ class SqlitePendingOAuthStateStore implements PendingOAuthStateStore {
       state.createdAt !== 0 ? state.createdAt : Math.floor(Date.now() / 1000);
     this.open()
       .prepare(
-        `INSERT INTO pending_oauth_state (
-          state, code_verifier, client_id, client_secret, token_endpoint,
-          mcp_server_id, identity_account_id, target_env_var, auth_method,
-          token_auth_method, redirect_uri, org, vault_id, tool_address, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO pending_oauth_state (${PENDING_OAUTH_STATE_COLUMNS})
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         state.state,
@@ -1632,15 +1673,19 @@ class SqlitePendingOAuthStateStore implements PendingOAuthStateStore {
         state.clientId,
         state.clientSecret,
         state.tokenEndpoint,
-        state.mcpServerId,
         state.identityAccountId,
-        state.targetEnvVar,
         state.authMethod,
         state.tokenAuthMethod,
         state.redirectUri,
         state.org,
         state.vaultId,
-        state.toolAddress,
+        state.address,
+        state.loginApp,
+        state.resource,
+        state.clientRegistration,
+        state.connectLink,
+        state.providerName,
+        state.userinfoUrl,
         createdAt,
       );
   }
@@ -1657,31 +1702,9 @@ class SqlitePendingOAuthStateStore implements PendingOAuthStateStore {
     try {
       const row = db
         .prepare(
-          `SELECT state, code_verifier, client_id, client_secret, token_endpoint,
-            mcp_server_id, identity_account_id, target_env_var, auth_method,
-            token_auth_method, redirect_uri, org, vault_id, tool_address, created_at
-           FROM pending_oauth_state
-           WHERE state = ?`,
+          `SELECT ${PENDING_OAUTH_STATE_COLUMNS} FROM pending_oauth_state WHERE state = ?`,
         )
-        .get(stateParam) as
-        | {
-            state: string;
-            code_verifier: string;
-            client_id: string;
-            client_secret: string;
-            token_endpoint: string;
-            mcp_server_id: string;
-            identity_account_id: string;
-            target_env_var: string;
-            auth_method: string;
-            token_auth_method: string;
-            redirect_uri: string;
-            org: string;
-            vault_id: string;
-            tool_address: string;
-            created_at: number;
-          }
-        | undefined;
+        .get(stateParam) as PendingOAuthStateRow | undefined;
 
       if (row === undefined) {
         db.exec("COMMIT");
@@ -1697,24 +1720,7 @@ class SqlitePendingOAuthStateStore implements PendingOAuthStateStore {
       if (ageMs > PENDING_OAUTH_STATE_TTL_MS) {
         return undefined; // expired: deleted on the way out, never redeemed
       }
-
-      return {
-        state: row.state,
-        codeVerifier: row.code_verifier,
-        clientId: row.client_id,
-        clientSecret: row.client_secret,
-        tokenEndpoint: row.token_endpoint,
-        mcpServerId: row.mcp_server_id,
-        identityAccountId: row.identity_account_id,
-        targetEnvVar: row.target_env_var,
-        authMethod: row.auth_method,
-        tokenAuthMethod: row.token_auth_method,
-        redirectUri: row.redirect_uri,
-        org: row.org,
-        vaultId: row.vault_id,
-        toolAddress: row.tool_address,
-        createdAt: row.created_at,
-      };
+      return pendingOAuthStateOf(row);
     } catch (error) {
       db.exec("ROLLBACK");
       throw error;
@@ -1736,6 +1742,189 @@ class SqlitePendingOAuthStateStore implements PendingOAuthStateStore {
       .run(org);
     return Number(result.changes);
   }
+
+  async deleteByConnectLink(tokenHash: string): Promise<number> {
+    const result = this.open()
+      .prepare(`DELETE FROM pending_oauth_state WHERE connect_link = ?`)
+      .run(tokenHash);
+    return Number(result.changes);
+  }
+}
+
+function pendingOAuthStateOf(row: PendingOAuthStateRow): PendingOAuthState {
+  return {
+    state: row.state,
+    codeVerifier: row.code_verifier,
+    clientId: row.client_id,
+    clientSecret: row.client_secret,
+    tokenEndpoint: row.token_endpoint,
+    identityAccountId: row.identity_account_id,
+    authMethod: row.auth_method,
+    tokenAuthMethod: row.token_auth_method,
+    redirectUri: row.redirect_uri,
+    org: row.org,
+    vaultId: row.vault_id,
+    address: row.address,
+    loginApp: row.login_app,
+    resource: row.resource,
+    clientRegistration: row.client_registration,
+    connectLink: row.connect_link,
+    providerName: row.provider_name,
+    userinfoUrl: row.userinfo_url,
+    createdAt: row.created_at,
+  };
+}
+
+class SqliteOAuthClientRegistrationStore
+  implements OAuthClientRegistrationStore
+{
+  constructor(private readonly open: () => DatabaseSync) {}
+
+  async find(loginServer: string, redirectUri: string): Promise<string | undefined> {
+    const row = this.open()
+      .prepare(
+        `SELECT client_id FROM oauth_client_registration
+         WHERE login_server = ? AND redirect_uri = ?`,
+      )
+      .get(loginServer, redirectUri) as { client_id: string } | undefined;
+    return row?.client_id;
+  }
+
+  async save(
+    loginServer: string,
+    redirectUri: string,
+    clientId: string,
+    now: string,
+  ): Promise<string> {
+    const db = this.open();
+    db.prepare(
+      `INSERT OR IGNORE INTO oauth_client_registration
+         (login_server, redirect_uri, client_id, created_at)
+       VALUES (?, ?, ?, ?)`,
+    ).run(loginServer, redirectUri, clientId, now);
+    const kept = await this.find(loginServer, redirectUri);
+    return kept ?? clientId;
+  }
+
+  async forget(loginServer: string, redirectUri: string, clientId: string): Promise<void> {
+    this.open()
+      .prepare(
+        `DELETE FROM oauth_client_registration
+         WHERE login_server = ? AND redirect_uri = ? AND client_id = ?`,
+      )
+      .run(loginServer, redirectUri, clientId);
+  }
+
+  async loginServersHolding(clientId: string): Promise<readonly string[]> {
+    const rows = this.open()
+      .prepare(`SELECT DISTINCT login_server FROM oauth_client_registration WHERE client_id = ?`)
+      .all(clientId) as Array<{ login_server: string }>;
+    return rows.map((row) => row.login_server);
+  }
+}
+
+const CONNECT_LINK_COLUMNS =
+  "token_hash, org, vault_id, address, return_url, created_by, created_by_class, created_by_bound_org, created_at, expires_at, used_at";
+
+interface ConnectLinkRow {
+  token_hash: string;
+  org: string;
+  vault_id: string;
+  address: string;
+  return_url: string;
+  created_by: string;
+  created_by_class: string;
+  created_by_bound_org: string;
+  created_at: number;
+  expires_at: number;
+  used_at: number;
+}
+
+class SqliteConnectLinkStore implements ConnectLinkStore {
+  constructor(private readonly open: () => DatabaseSync) {}
+
+  async create(link: ConnectLinkRecord): Promise<void> {
+    this.open()
+      .prepare(
+        `INSERT INTO connect_link (${CONNECT_LINK_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        link.tokenHash,
+        link.org,
+        link.vaultId,
+        link.address,
+        link.returnUrl,
+        link.createdBy,
+        link.createdByClass,
+        link.createdByBoundOrg,
+        link.createdAt,
+        link.expiresAt,
+        link.usedAt,
+      );
+  }
+
+  async findUsable(tokenHash: string, now: number): Promise<ConnectLinkRecord | undefined> {
+    const row = this.open()
+      .prepare(
+        `SELECT ${CONNECT_LINK_COLUMNS} FROM connect_link
+         WHERE token_hash = ? AND used_at = 0 AND expires_at > ?`,
+      )
+      .get(tokenHash, now) as ConnectLinkRow | undefined;
+    return row === undefined ? undefined : connectLinkOf(row);
+  }
+
+  async spend(tokenHash: string, now: number): Promise<boolean> {
+    const result = this.open()
+      .prepare(
+        `UPDATE connect_link SET used_at = ?
+         WHERE token_hash = ? AND used_at = 0 AND expires_at > ?`,
+      )
+      .run(now, tokenHash, now);
+    return Number(result.changes) === 1;
+  }
+
+  async restore(tokenHash: string, usedAt: number): Promise<void> {
+    this.open()
+      .prepare(`UPDATE connect_link SET used_at = 0 WHERE token_hash = ? AND used_at = ?`)
+      .run(tokenHash, usedAt);
+  }
+
+  async deleteExpired(now: number): Promise<number> {
+    const result = this.open()
+      .prepare(`DELETE FROM connect_link WHERE expires_at <= ?`)
+      .run(now);
+    return Number(result.changes);
+  }
+
+  async deleteByVault(vaultId: string): Promise<number> {
+    const result = this.open()
+      .prepare(`DELETE FROM connect_link WHERE vault_id = ?`)
+      .run(vaultId);
+    return Number(result.changes);
+  }
+
+  async deleteByOrg(org: string): Promise<number> {
+    const result = this.open()
+      .prepare(`DELETE FROM connect_link WHERE org = ?`)
+      .run(org);
+    return Number(result.changes);
+  }
+}
+
+function connectLinkOf(row: ConnectLinkRow): ConnectLinkRecord {
+  return {
+    tokenHash: row.token_hash,
+    org: row.org,
+    vaultId: row.vault_id,
+    address: row.address,
+    returnUrl: row.return_url,
+    createdBy: row.created_by,
+    createdByClass: row.created_by_class,
+    createdByBoundOrg: row.created_by_bound_org,
+    createdAt: Number(row.created_at),
+    expiresAt: Number(row.expires_at),
+    usedAt: Number(row.used_at),
+  };
 }
 
 // =============================================================================

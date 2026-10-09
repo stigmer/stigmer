@@ -396,8 +396,8 @@ pages:
     fate: keep
     diataxis: explanation
     teaches:
-      The internals behind OAuth tool connections — DCR vs vendor mode,
-      credential storage split, refresh mechanics.
+      The internals behind OAuth tool connections — how the login for an
+      address is found, credential storage, refresh mechanics.
     medium: diagram
     why:
       Backend resolution chains and credential flows are structure; the page's
@@ -407,14 +407,12 @@ pages:
     fate: keep
     diataxis: how-to
     teaches:
-      When and how to override the platform OAuth app with your Organization's
-      own registration.
+      When and how to add your Organization's own OAuth app for the addresses
+      it signs in to.
     medium: screenshot-journey
     why:
       The most console-centric integrations page — a form procedure quoted by
       exact UI labels, read at the reader's pace.
-    embeds:
-      DemoByoaSetup: replace
 
   guides/integrations/caller-identity-for-mcp-servers:
     fate: keep

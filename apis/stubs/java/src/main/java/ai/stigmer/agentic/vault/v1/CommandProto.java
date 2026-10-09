@@ -42,7 +42,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "r/commons/apiresource/io.proto\0328ai/stigm" +
       "er/commons/apiresource/rpc_service_optio" +
       "ns.proto\032+ai/stigmer/commons/rpc/method_" +
-      "options.proto2\337\010\n\026VaultCommandController" +
+      "options.proto2\215\014\n\026VaultCommandController" +
       "\022\244\001\n\006create\022\".ai.stigmer.agentic.vault.v" +
       "1.Vault\032\".ai.stigmer.agentic.vault.v1.Va" +
       "ult\"R\302\270\030N\0104\020\036\"\014metadata.org*:unauthorize" +
@@ -70,11 +70,22 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "lt\"\004\320\270\030\001\022w\n\021removeConnections\0228.ai.stigm" +
       "er.agentic.vault.v1.RemoveVaultConnectio" +
       "nsInput\032\".ai.stigmer.agentic.vault.v1.Va" +
-      "ult\"\004\320\270\030\001\032\004\240\377+;B\237\001B\014CommandProtoP\001\242\002\004ASA" +
-      "V\252\002\033Ai.Stigmer.Agentic.Vault.V1\312\002\033Ai\\Sti" +
-      "gmer\\Agentic\\Vault\\V1\342\002\'Ai\\Stigmer\\Agent" +
-      "ic\\Vault\\V1\\GPBMetadata\352\002\037Ai::Stigmer::A" +
-      "gentic::Vault::V1b\006proto3"
+      "ult\"\004\320\270\030\001\022r\n\013startSignIn\022-.ai.stigmer.ag" +
+      "entic.vault.v1.StartSignInInput\032..ai.sti" +
+      "gmer.agentic.vault.v1.StartSignInOutput\"" +
+      "\004\320\270\030\001\022{\n\016completeSignIn\0220.ai.stigmer.age" +
+      "ntic.vault.v1.CompleteSignInInput\0321.ai.s" +
+      "tigmer.agentic.vault.v1.CompleteSignInOu" +
+      "tput\"\004\320\270\030\001\022\272\001\n\021createConnectLink\0223.ai.st" +
+      "igmer.agentic.vault.v1.CreateConnectLink" +
+      "Input\032(.ai.stigmer.agentic.vault.v1.Conn" +
+      "ectLink\"F\302\270\030B\010\002\020;\"\010vault_id*2unauthorize" +
+      "d to make a Connect link for this vault\032" +
+      "\004\240\377+;B\237\001B\014CommandProtoP\001\242\002\004ASAV\252\002\033Ai.Sti" +
+      "gmer.Agentic.Vault.V1\312\002\033Ai\\Stigmer\\Agent" +
+      "ic\\Vault\\V1\342\002\'Ai\\Stigmer\\Agentic\\Vault\\V" +
+      "1\\GPBMetadata\352\002\037Ai::Stigmer::Agentic::Va" +
+      "ult::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

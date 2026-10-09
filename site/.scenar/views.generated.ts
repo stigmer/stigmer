@@ -49,7 +49,6 @@ import { ManagementShell } from "../src/components/docs/demos/views/ManagementSh
 import { ResourceListPage } from "../src/components/docs/demos/views/ResourceListPage";
 import { WidgetsSidebar } from "../src/components/docs/demos/views/WidgetsSidebar";
 import { ApprovalFlowPlayback } from "../src/components/docs/demos/scenarios/approval-flow-playback/index";
-import { ByoaSetup } from "../src/components/docs/demos/scenarios/byoa-setup/index";
 import { MarketplaceConnectTour } from "../src/components/docs/demos/scenarios/marketplace-connect-tour/index";
 import { OAuthConnectFlow } from "../src/components/docs/demos/scenarios/oauth-connect-flow/index";
 import { ToolCallsPlayback } from "../src/components/docs/demos/scenarios/tool-calls-playback/index";
@@ -102,7 +101,6 @@ export const generatedViews = {
   ResourceListPage,
   WidgetsSidebar,
   ApprovalFlowPlayback,
-  ByoaSetup,
   MarketplaceConnectTour,
   OAuthConnectFlow,
   ToolCallsPlayback,

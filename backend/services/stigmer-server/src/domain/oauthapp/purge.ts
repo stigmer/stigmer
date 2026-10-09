@@ -2,8 +2,7 @@
  * The OAuth app's purge (domain/organization/purge/kind-purge.ts): every
  * OAuth app of an organization being deleted, removed with its delete
  * chain's cleanup (controller.ts `deleteOAuthApp`: the row, its access, its
- * sealed client secret's backing state) and without its refusal of an app
- * an MCP server references: the servers go first.
+ * sealed client secret's backing state, its address claims).
  */
 import { OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
 import { OAuthAppCommandController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/command_pb";
@@ -15,6 +14,7 @@ import { newDeleteResourceStep } from "../../pipeline/steps/delete.js";
 import type { SecretService } from "../../encryption/encryption.js";
 import { newDestroySecretBackingStateStep } from "../../pipeline/steps/secret-cleanup.js";
 import { newKindPurge } from "../organization/purge/kind-purge.js";
+import { newReleaseAddressesStep } from "./addresses.js";
 import type {
   KindPurge,
   KindPurgeDeps,
@@ -41,6 +41,7 @@ export function newOAuthAppPurge(deps: OAuthAppPurgeDeps): KindPurge {
         deps.logger,
         (app) => (app.spec === undefined ? [] : [app.spec.clientSecret]),
       ),
+      newReleaseAddressesStep<DeleteInput>(deps.store, deps.logger),
     ],
   });
 }

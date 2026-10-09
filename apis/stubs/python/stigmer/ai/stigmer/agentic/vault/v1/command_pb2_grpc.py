@@ -57,6 +57,21 @@ class VaultCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_io__pb2.RemoveVaultConnectionsInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_api__pb2.Vault.FromString,
                 _registered_method=True)
+        self.startSignIn = channel.unary_unary(
+                '/ai.stigmer.agentic.vault.v1.VaultCommandController/startSignIn',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_io__pb2.StartSignInInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_io__pb2.StartSignInOutput.FromString,
+                _registered_method=True)
+        self.completeSignIn = channel.unary_unary(
+                '/ai.stigmer.agentic.vault.v1.VaultCommandController/completeSignIn',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_io__pb2.CompleteSignInInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_io__pb2.CompleteSignInOutput.FromString,
+                _registered_method=True)
+        self.createConnectLink = channel.unary_unary(
+                '/ai.stigmer.agentic.vault.v1.VaultCommandController/createConnectLink',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_io__pb2.CreateConnectLinkInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_io__pb2.ConnectLink.FromString,
+                _registered_method=True)
 
 
 class VaultCommandControllerServicer(object):
@@ -138,6 +153,49 @@ class VaultCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def startSignIn(self, request, context):
+        """Start a sign-in at an address, to save the login in a vault.
+
+        Answers the login page to send the person to. When they have signed in,
+        the page they return to calls completeSignIn with what the login page
+        handed back. The sign-in must be completed within ten minutes.
+
+        The login fills every HTTP tool whose URL is the address, and a Git
+        host's login serves clones from that host.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def completeSignIn(self, request, context):
+        """Finish a sign-in: exchange the code the login page handed back and save
+        the login in the vault the sign-in was started for, replacing any login
+        saved at the address.
+
+        Only the person who started the sign-in may finish it.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def createConnectLink(self, request, context):
+        """Make a Connect link: a one-time page where someone without a Stigmer
+        account signs in at an address, and the login is saved into a shared
+        vault.
+
+        An integrator makes one for each customer's vault and sends the
+        customer to its url. The customer sees one Stigmer page with a
+        Continue button, then the login page, then returns to return_url.
+
+        Refused for My vault, and for an address the organization has no
+        approved login app of its own for: a link signs in only through the
+        organization's app (its name on the vendor's consent page), never
+        through Stigmer's own apps or Stigmer's client at a login server.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_VaultCommandControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -180,6 +238,21 @@ def add_VaultCommandControllerServicer_to_server(servicer, server):
                     servicer.removeConnections,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_io__pb2.RemoveVaultConnectionsInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_api__pb2.Vault.SerializeToString,
+            ),
+            'startSignIn': grpc.unary_unary_rpc_method_handler(
+                    servicer.startSignIn,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_io__pb2.StartSignInInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_io__pb2.StartSignInOutput.SerializeToString,
+            ),
+            'completeSignIn': grpc.unary_unary_rpc_method_handler(
+                    servicer.completeSignIn,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_io__pb2.CompleteSignInInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_io__pb2.CompleteSignInOutput.SerializeToString,
+            ),
+            'createConnectLink': grpc.unary_unary_rpc_method_handler(
+                    servicer.createConnectLink,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_io__pb2.CreateConnectLinkInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_io__pb2.ConnectLink.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -399,6 +472,87 @@ class VaultCommandController(object):
             '/ai.stigmer.agentic.vault.v1.VaultCommandController/removeConnections',
             ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_io__pb2.RemoveVaultConnectionsInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_api__pb2.Vault.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def startSignIn(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.vault.v1.VaultCommandController/startSignIn',
+            ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_io__pb2.StartSignInInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_io__pb2.StartSignInOutput.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def completeSignIn(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.vault.v1.VaultCommandController/completeSignIn',
+            ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_io__pb2.CompleteSignInInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_io__pb2.CompleteSignInOutput.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def createConnectLink(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.vault.v1.VaultCommandController/createConnectLink',
+            ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_io__pb2.CreateConnectLinkInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_io__pb2.ConnectLink.FromString,
             options,
             channel_credentials,
             insecure,

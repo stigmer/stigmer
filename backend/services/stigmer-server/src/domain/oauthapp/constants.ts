@@ -32,15 +32,3 @@ export const PRESERVE_NO_EXISTING_SECRET_MESSAGE =
 export const CIPHERTEXT_SHAPED_SECRET_MESSAGE =
   "client_secret must be plaintext — values carrying the 'enc:' " +
   "encryption prefix are not accepted from clients";
-
-/**
- * Go FailedPreconditionError format for the referential delete-block:
- * "cannot delete OAuthApp '%s/%s': referenced by MCP server '%s'".
- */
-export function deleteBlockedByMcpServerMessage(
-  org: string,
-  slug: string,
-  mcpServerName: string,
-): string {
-  return `cannot delete OAuthApp '${org}/${slug}': referenced by MCP server '${mcpServerName}'`;
-}

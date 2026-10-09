@@ -15,7 +15,7 @@ import { desktopBillingDeepLink } from "@/auth/desktop/billing-return";
  * Stripe was sent back with, and the app's billing page picks up from
  * there: a saved card reopens the plan the person was choosing. The state
  * itself lives on the server; the query carries nothing it can be trusted
- * for. It follows the GitHub desktop bridge (`auth/github/callback`).
+ * for. It follows the sign-in's desktop bridge (`auth/oauth/callback`).
  */
 export default function DesktopBillingReturnPage() {
   return (

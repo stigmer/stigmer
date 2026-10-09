@@ -10,6 +10,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
 import { useCreateOAuthApp } from "./useCreateOAuthApp.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
+import { MAX_ADDRESSES, parseAddressList } from "./addresses.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -31,8 +32,9 @@ export interface CreateOAuthAppFormProps {
  * Form for creating a new OAuth app within an organization.
  *
  * Collects the required OAuth configuration: **name**, **provider**,
- * **client ID**, **client secret**, **authorization URL**, and
- * **token URL**. An expandable "Advanced" section provides optional
+ * **client ID**, **client secret**, **authorization URL**, **token URL**,
+ * and the **addresses** the app signs in to (a tool's URL or a Git host; a
+ * sign-in at one of them uses this app). An expandable "Advanced" section provides optional
  * fields for scopes, userinfo URL, scope parameter name, token endpoint
  * auth method, and vendor approval settings.
  *
@@ -69,6 +71,7 @@ export function CreateOAuthAppForm({
   const [clientSecret, setClientSecret] = useState("");
   const [authorizationUrl, setAuthorizationUrl] = useState("");
   const [tokenUrl, setTokenUrl] = useState("");
+  const [addresses, setAddresses] = useState("");
 
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [scopes, setScopes] = useState("");
@@ -88,6 +91,7 @@ export function CreateOAuthAppForm({
   const trimmedClientSecret = clientSecret.trim();
   const trimmedAuthUrl = authorizationUrl.trim();
   const trimmedTokenUrl = tokenUrl.trim();
+  const parsedAddresses = parseAddressList(addresses);
 
   const canSubmit =
     trimmedName !== "" &&
@@ -96,6 +100,8 @@ export function CreateOAuthAppForm({
     trimmedClientSecret !== "" &&
     trimmedAuthUrl !== "" &&
     trimmedTokenUrl !== "" &&
+    parsedAddresses.length > 0 &&
+    parsedAddresses.length <= MAX_ADDRESSES &&
     !isCreating;
 
   const handleSubmit = useCallback(
@@ -118,6 +124,7 @@ export function CreateOAuthAppForm({
           clientSecret: trimmedClientSecret,
           authorizationUrl: trimmedAuthUrl,
           tokenUrl: trimmedTokenUrl,
+          addresses: parsedAddresses,
           ...(parsedScopes.length > 0 && { scopes: parsedScopes }),
           ...(userinfoUrl.trim() && { userinfoUrl: userinfoUrl.trim() }),
           ...(scopeParameterName.trim() && {
@@ -148,6 +155,7 @@ export function CreateOAuthAppForm({
       trimmedClientSecret,
       trimmedAuthUrl,
       trimmedTokenUrl,
+      parsedAddresses,
       scopes,
       userinfoUrl,
       scopeParameterName,
@@ -223,6 +231,17 @@ export function CreateOAuthAppForm({
           onChange={setTokenUrl}
           placeholder="https://vendor.com/oauth/token"
           hint="Vendor's OAuth token exchange endpoint"
+          disabled={isCreating}
+          required
+        />
+
+        <FormField
+          id={`${baseId}-addresses`}
+          label="Addresses"
+          value={addresses}
+          onChange={setAddresses}
+          placeholder="https://mcp.slack.com/mcp, github.com"
+          hint={`Comma-separated: the tool URLs or Git hosts this app signs in to (up to ${MAX_ADDRESSES})`}
           disabled={isCreating}
           required
         />
@@ -346,7 +365,7 @@ export function CreateOAuthAppForm({
                 label="Vendor approval docs URL"
                 value={vendorApprovalDocsUrl}
                 onChange={setVendorApprovalDocsUrl}
-                placeholder="https://docs.example.com/byoa"
+                placeholder="https://docs.example.com/oauth-app"
                 hint="Help link shown when vendor approval is pending"
                 disabled={isCreating}
               />

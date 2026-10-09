@@ -6,6 +6,10 @@
  * Lane priority follows Go's if-chain (server.go:812-836):
  *
  *   1. exact match  /v1/proxy/model-registry       (registry proxy)
+ *      exact match  /v1/oauth/client.json          (Stigmer's OAuth client
+ *                                                   document; absent unless
+ *                                                   the port has a public
+ *                                                   https origin)
  *   2. prefix       /v1/skill-artifacts            (the skill transfer
  *                                                   lane)
  *   3. guarded      console statics                (GET/HEAD only, never RPC
@@ -35,6 +39,7 @@ import {
   KEEPALIVE_PING_TIMEOUT_MS,
   MAX_MESSAGE_BYTES,
   MODEL_REGISTRY_PATH,
+  OAUTH_CLIENT_DOCUMENT_PATH,
   SHUTDOWN_DRAIN_TIMEOUT_MS,
   SKILL_ARTIFACTS_PATH_PREFIX,
 } from "./constants.js";
@@ -57,6 +62,12 @@ export interface UnifiedPortServerOptions {
   interceptors: Interceptor[];
   /** Lane 1: bundled + refreshed model registry proxy. */
   modelRegistryLane: LaneHandler;
+  /**
+   * Stigmer's OAuth Client ID Metadata Document, served beside lane 1.
+   * Present only when the port has a public https origin a login server
+   * can fetch it from; absent, the path falls through to the adapter's 404.
+   */
+  oauthClientDocumentLane?: LaneHandler;
   /**
    * Lane 2: skill artifact transfer (#675). When absent, the prefix falls
    * through to the adapter's 404, which is also what Go answers for
@@ -95,6 +106,10 @@ export function createUnifiedPortServer(
 
     if (path === MODEL_REGISTRY_PATH) {
       options.modelRegistryLane(request, response);
+      return;
+    }
+    if (options.oauthClientDocumentLane !== undefined && path === OAUTH_CLIENT_DOCUMENT_PATH) {
+      options.oauthClientDocumentLane(request, response);
       return;
     }
     if (

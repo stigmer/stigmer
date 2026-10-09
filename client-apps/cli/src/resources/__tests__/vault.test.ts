@@ -4,7 +4,8 @@
 // `mine`, with the organization as resolved, empty included; a reference
 // resolved to its id first, and before any value is read), that a removal is
 // staged (warning naming the entries and the vault, nothing sent until
-// performed), and that no rendering ever carries a value. The controller is faked to
+// performed), that a Connect link is made for a shared vault resolved to its
+// id, and that no rendering ever carries a value. The controller is faked to
 // capture the exact requests.
 
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -14,7 +15,10 @@ import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { type Vault, VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import { VaultCommandController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/command_pb";
+import { timestampFromMs } from "@bufbuild/protobuf/wkt";
+import { ConnectLinkSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
 import type {
+  CreateConnectLinkInput,
   RemoveVaultConnectionsInput,
   RemoveVaultSecretsInput,
   SetVaultConnectionInput,
@@ -23,6 +27,7 @@ import type {
 import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  createConnectLink,
   createSharedVault,
   readValue,
   planRemoveConnections,
@@ -55,6 +60,7 @@ interface Recorded {
   setSecrets?: SetVaultSecretsInput;
   removeSecrets?: RemoveVaultSecretsInput;
   setConnection?: SetVaultConnectionInput;
+  connectLink?: CreateConnectLinkInput;
   referenceLookups: string[];
 }
 
@@ -104,6 +110,13 @@ function fakeController(
         removeConnections: async (req: RemoveVaultConnectionsInput) => {
           rec.removeConnections = req;
           return SHARED;
+        },
+        createConnectLink: async (req: CreateConnectLinkInput) => {
+          rec.connectLink = req;
+          return create(ConnectLinkSchema, {
+            url: "https://console.example/connect/secret-token",
+            expiresAt: timestampFromMs(Date.parse("2026-10-09T12:30:00Z")),
+          });
         },
         create: async (req: Vault) => {
           rec.created = req;
@@ -371,5 +384,38 @@ describe("showMyVault, more", () => {
     const text = JSON.stringify(await showMyVault(fakeController({ mine: two }).fn, "acme"));
     expect(text.indexOf("ALPHA")).toBeLessThan(text.indexOf("ZED"));
     expect(text.indexOf("https://a.example/mcp")).toBeLessThan(text.indexOf("https://b.example/mcp"));
+  });
+});
+
+describe("createConnectLink", () => {
+  it("resolves the shared vault to its id and sends the address, return URL and lifetime", async () => {
+    const { fn, rec } = fakeController();
+    const result = await createConnectLink(fn, "acme", "support-tools", {
+      address: "https://mcp.linear.app/mcp",
+      returnUrl: "https://helpdesk.example/done",
+      expiresInSeconds: 3600,
+    });
+    expect(rec.referenceLookups).toEqual(["ref:acme/support-tools"]);
+    expect(rec.connectLink).toMatchObject({
+      org: "org_acme",
+      vaultId: "vlt_1",
+      address: "https://mcp.linear.app/mcp",
+      returnUrl: "https://helpdesk.example/done",
+      expiresInSeconds: 3600,
+    });
+    const text = JSON.stringify(result);
+    expect(text).toContain("https://console.example/connect/secret-token");
+    expect(text).toContain("2026-10-09T12:30:00.000Z");
+    expect(text).toContain("send it only to the customer");
+  });
+
+  it("leaves the lifetime to the server when none is given", async () => {
+    const { fn, rec } = fakeController();
+    await createConnectLink(fn, "acme", "vlt_1", {
+      address: "github.com",
+      returnUrl: "https://helpdesk.example/done",
+    });
+    expect(rec.referenceLookups).toEqual(["id:vlt_1"]);
+    expect(rec.connectLink?.expiresInSeconds).toBe(0);
   });
 });

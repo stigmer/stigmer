@@ -3,8 +3,6 @@ syntax = "proto3";
 package ai.stigmer.agentic.mcpserver.v1;
 
 import "ai/stigmer/agentic/vault/v1/declaration.proto";
-import "ai/stigmer/commons/apiresource/field_options.proto";
-import "ai/stigmer/commons/apiresource/io.proto";
 import "buf/validate/validate.proto";
 
 // McpServerSpec defines the configurable properties of an MCP server.
@@ -13,6 +11,12 @@ import "buf/validate/validate.proto";
 // This is the "Template" layer — declares capabilities and requirements.
 // The overview.md file provides the SDK-facing description and example YAML.
 message McpServerSpec {
+  option (buf.validate.message).cel = {
+    id: "mcp_server.local_program_no_auth"
+    message: "a local program takes its keys as environment variables: declare them in env"
+    expression: "!has(this.stdio) || !has(this.auth)"
+  };
+
   // Human-readable description for marketplace display and documentation.
   // Should explain what this MCP server does and its primary use cases.
   // Example: "GitHub MCP server for repository operations, code search, and PR management"
@@ -76,14 +80,15 @@ message McpServerSpec {
   // 0 if unknown or non-GitHub repository.
   int32 github_stars = 13;
 
-  // OAuth authentication configuration for automated credential acquisition.
-  // When set, the MCP server's Connect page offers an OAuth flow instead of
-  // (or in addition to) manual credential entry.
+  // Sign-in configuration: the tool takes a login saved at its address.
+  // When set, the MCP server's Connect page offers a sign-in instead of
+  // (or in addition to) manual credential entry. Only an HTTP server may
+  // carry it.
   //
   // A sign-in saves the access token as a connection at this server's
-  // address in the signer's vault (My vault unless a shared vault is named),
-  // and a run fills the env var named by auth.target_env_var from it. That
-  // env var must also be declared in env.
+  // address in a vault (the signer's My vault unless a shared vault is
+  // named), and a run fills the env var named by auth.target_env_var from
+  // it. That env var must also be declared in env.
   McpServerAuth auth = 14;
 
   // Field 7 held default_enabled_tools and field 11 pinned_tool_approvals:
@@ -202,54 +207,31 @@ message HttpServerConfig {
   }];
 }
 
-// McpServerAuth configures automated credential acquisition via OAuth.
+// McpServerAuth says that the tool signs in at its address.
 //
 // @internal
-// Two authentication modes are determined by the presence of oauth_app_ref:
+// A sign-in is started from an address (VaultCommandController.startSignIn),
+// never from this block, and it saves the access token as a connection at
+// that address in a vault; a run fills target_env_var from the login saved
+// at the tool's http.url. Which OAuth client signs in is found by the
+// address, in one order: the organization's own OAuthApp listing the
+// address, then Stigmer's built-in login app for it, then the address's own
+// login server found by the MCP Authorization specification (RFC 9728
+// protected resource metadata, then a Client ID Metadata Document where the
+// login server supports one, else RFC 7591 Dynamic Client Registration,
+// registered once per login server). A refresh token, when the login server
+// issues one, is sealed on the connection's sign-in record and never
+// reaches a run.
 //
-// - When oauth_app_ref is empty: the MCP server implements the MCP
-//   Authorization specification (RFC 8414 discovery, RFC 7591 Dynamic Client
-//   Registration, OAuth 2.1 with PKCE). Stigmer auto-discovers everything
-//   from the server URL. No OAuthApp resource is needed — credentials are
-//   obtained automatically via DCR.
-//
-// - When oauth_app_ref is set: the MCP server requires pre-registered OAuth
-//   app credentials from a specific vendor (Slack, Salesforce, Figma, etc.).
-//   The referenced OAuthApp holds the client_id, client_secret, and endpoint
-//   URLs needed for the authorization code flow.
-//
-// In both cases, the acquired access token is saved as a connection at the
-// server's address in the signer's vault. A refresh token (if issued by the
-// vendor) is sealed on the connection's sign-in record with the expiry,
-// client id and token endpoint renewals use; it never reaches a run.
-//
-// Token lifecycle:
-// - Pre-flight check before a run: if the access token is expired,
-//   the backend uses the refresh token to obtain a new one automatically.
-// - If the refresh token is also expired: run fails with a clear
-//   error, and the user re-authenticates from the MCP server Connect page.
+// Only an HTTP server carries this block: a local program (stdio) takes its
+// keys as environment variables declared in env.
 message McpServerAuth {
-  // Reference to an OAuthApp for vendor-specific OAuth.
-  //
-  // When empty: the server supports the MCP Authorization spec (DCR + PKCE).
-  // Stigmer discovers the authorization server metadata, registers a client
-  // via DCR, and performs the authorization code flow with PKCE — all
-  // automatically at connect time.
-  //
-  // When set: Stigmer uses the referenced OAuthApp's client credentials to
-  // perform the OAuth authorization code flow with the vendor on behalf of
-  // the user. The OAuthApp must belong to the same organization as the
-  // McpServer: an OAuth app holds vendor credentials and is never
-  // shared with child organizations, so no cross-organization reference to one is
-  // accepted.
-  ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [
-    (ai.stigmer.commons.apiresource.reference_kind) = oauth_app,
-    (buf.validate.field).cel = {
-      id: "oauth_app_ref.kind"
-      message: "oauth_app_ref must reference a resource with kind=oauth_app"
-      expression: "this.slug == '' || this.kind == 22"
-    }
-  ];
+  // Field 1 held oauth_app_ref, the OAuth app a sign-in used, and field 7
+  // held discovery_url, the login server of a local program. A login app is
+  // now found by the address it signs in to (OAuthAppSpec.addresses), and a
+  // local program has no sign-in.
+  reserved 1, 7;
+  reserved "oauth_app_ref", "discovery_url";
 
   // The env var the signed-in access token fills.
   // Must correspond to an entry in env. A sign-in saves the token as a
@@ -263,36 +245,15 @@ message McpServerAuth {
   // Empty means unknown. Examples: "1h", "2h", "90d", "never".
   string token_lifetime_hint = 3;
 
-  // Optional scope hints for UI display before the OAuth flow starts.
-  // For DCR servers: shown to the user since actual scopes are discovered
-  // at connect time during authorization server metadata retrieval.
-  // For vendor OAuth: informational (scopes are defined on the OAuthApp).
+  // Optional scope hints for UI display before a sign-in starts. Display
+  // only: a sign-in requests the scopes the login server's metadata or the
+  // login app publishes.
   repeated string scope_hints = 4;
 
   // Fields 5, 6, 8, 9 moved to OAuthStatus in status.proto.
   // These were read-only, query-time-enriched fields that belong in status
   // (system-observed state), not spec (user-declared intent).
   reserved 5, 6, 8, 9;
-
-  // URL of the login server for a stdio server: where DCR discovery looks,
-  // and the address its sign-ins are saved at.
-  //
-  // HTTP servers do not need this: the platform derives the discovery
-  // endpoint from http.url (fetching /.well-known/oauth-authorization-server
-  // relative to the server URL), and saves a sign-in at http.url.
-  //
-  // Stdio servers have no URL, so a sign-in needs this field whether or not
-  // oauth_app_ref is set: it is the address the login is saved at in the
-  // signer's vault, and the address a run finds it by. A stdio server with
-  // OAuth and no discovery_url is refused at sign-in. Without
-  // oauth_app_ref it is also the base URL of the vendor's OAuth
-  // authorization server that DCR discovers from.
-  //
-  // Discovery resolution priority (without oauth_app_ref; vendor OAuth uses
-  // the OAuthApp's endpoints and discovers nothing):
-  //   1. discovery_url (if set — used for both stdio and HTTP)
-  //   2. http.url (default for HTTP servers)
-  string discovery_url = 7;
 
   // Whether the server's endpoint rejects manually-entered static tokens.
   //

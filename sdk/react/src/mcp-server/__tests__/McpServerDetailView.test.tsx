@@ -14,6 +14,7 @@ import { createRouterTransport, ConnectError, Code } from "@connectrpc/connect";
 import { Stigmer } from "@stigmer/sdk";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
+import { VaultCommandController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/command_pb";
 import {
   OAuthConnectionHealth,
   GetOAuthGrantStatusOutputSchema,
@@ -107,7 +108,7 @@ function buildOAuthServer(): McpServer {
 
 /**
  * Grant-status fixture for the given health. `connected: true` reflects the
- * two-act persistence contract: completeOAuthConnect stores the grant before
+ * two-act persistence contract: completeSignIn saves the login before
  * the chained discovery runs, so a grant can exist with zero discovered tools.
  */
 function grantStatus(health: OAuthConnectionHealth) {
@@ -363,7 +364,7 @@ describe("McpServerDetailView — signed in but undiscovered (oss#229)", () => {
 
   it("runs bare discovery from the Tools tab action — never the OAuth popup", async () => {
     const connect = vi.fn(() => buildConnectedServer());
-    const initiateOAuthConnect = vi.fn(() => {
+    const startSignIn = vi.fn(() => {
       throw new ConnectError("must not relaunch OAuth", Code.FailedPrecondition);
     });
 
@@ -379,10 +380,8 @@ describe("McpServerDetailView — signed in but undiscovered (oss#229)", () => {
             OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_HEALTHY,
           ),
         });
-        router.service(McpServerCommandController, {
-          connect,
-          initiateOAuthConnect,
-        });
+        router.service(McpServerCommandController, { connect });
+        router.service(VaultCommandController, { startSignIn });
       },
     );
 
@@ -393,7 +392,7 @@ describe("McpServerDetailView — signed in but undiscovered (oss#229)", () => {
     fireEvent.click(discover);
 
     await waitFor(() => expect(connect).toHaveBeenCalledTimes(1));
-    expect(initiateOAuthConnect).not.toHaveBeenCalled();
+    expect(startSignIn).not.toHaveBeenCalled();
   });
 
   it("keeps re-auth ahead of discovery when the token is expired", async () => {

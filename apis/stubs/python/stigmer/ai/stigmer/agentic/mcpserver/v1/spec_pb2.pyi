@@ -1,6 +1,4 @@
 from ai.stigmer.agentic.vault.v1 import declaration_pb2 as _declaration_pb2
-from ai.stigmer.commons.apiresource import field_options_pb2 as _field_options_pb2
-from ai.stigmer.commons.apiresource import io_pb2 as _io_pb2
 from buf.validate import validate_pb2 as _validate_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
@@ -76,17 +74,13 @@ class HttpServerConfig(_message.Message):
     def __init__(self, url: _Optional[str] = ..., headers: _Optional[_Mapping[str, str]] = ..., query_params: _Optional[_Mapping[str, str]] = ..., timeout_seconds: _Optional[int] = ...) -> None: ...
 
 class McpServerAuth(_message.Message):
-    __slots__ = ("oauth_app_ref", "target_env_var", "token_lifetime_hint", "scope_hints", "discovery_url", "oauth_only")
-    OAUTH_APP_REF_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("target_env_var", "token_lifetime_hint", "scope_hints", "oauth_only")
     TARGET_ENV_VAR_FIELD_NUMBER: _ClassVar[int]
     TOKEN_LIFETIME_HINT_FIELD_NUMBER: _ClassVar[int]
     SCOPE_HINTS_FIELD_NUMBER: _ClassVar[int]
-    DISCOVERY_URL_FIELD_NUMBER: _ClassVar[int]
     OAUTH_ONLY_FIELD_NUMBER: _ClassVar[int]
-    oauth_app_ref: _io_pb2.ApiResourceReference
     target_env_var: str
     token_lifetime_hint: str
     scope_hints: _containers.RepeatedScalarFieldContainer[str]
-    discovery_url: str
     oauth_only: bool
-    def __init__(self, oauth_app_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., target_env_var: _Optional[str] = ..., token_lifetime_hint: _Optional[str] = ..., scope_hints: _Optional[_Iterable[str]] = ..., discovery_url: _Optional[str] = ..., oauth_only: bool = ...) -> None: ...
+    def __init__(self, target_env_var: _Optional[str] = ..., token_lifetime_hint: _Optional[str] = ..., scope_hints: _Optional[_Iterable[str]] = ..., oauth_only: bool = ...) -> None: ...

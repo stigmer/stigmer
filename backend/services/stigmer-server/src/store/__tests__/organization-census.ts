@@ -56,6 +56,10 @@ export const CENSUS_TABLES: Readonly<Record<string, CensusClass>> = {
   search_index: "org-column",
   schedule_runs: "org-column",
   pending_oauth_state: "org-column",
+  connect_link: "org-column",
+  // A registered OAuth client is the login server's, shared by every
+  // organization: it names none.
+  oauth_client_registration: "none",
   schema_version: "none",
   // SQLite's own bookkeeping and the FTS5 shadow tables behind search_index.
   sqlite_sequence: "none",

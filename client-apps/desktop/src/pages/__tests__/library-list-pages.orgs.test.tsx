@@ -40,7 +40,6 @@ interface ConnectDialogProps {
   slug: string;
   activeOrg: string;
   open: boolean;
-  onOpenDetails: () => void;
 }
 
 const page = vi.hoisted(() => ({
@@ -232,7 +231,7 @@ describe("desktop McpServerListPage — organizations", () => {
     expect(location()).toBe("/library/mcp-servers/shared-team/triage");
   });
 
-  it("connects by the server's org id and opens its details at the slug URL", () => {
+  it("connects by the server's org id", () => {
     renderPage(McpServerListPage);
 
     fireEvent.click(screen.getByRole("button", { name: "Connect Triage" }));
@@ -242,10 +241,5 @@ describe("desktop McpServerListPage — organizations", () => {
       activeOrg: "org_acme",
       open: true,
     });
-
-    act(() => page.connect.at(-1)?.onOpenDetails());
-
-    expect(location()).toBe("/library/mcp-servers/shared-team/triage");
-    expect(page.connect.at(-1)?.open).toBe(false);
   });
 });

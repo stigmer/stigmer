@@ -5,8 +5,8 @@
  * reports only a sign-in made for that server and kept in My vault, so the
  * composer must count the rest itself, or it refuses an agent the server
  * would run. Pinned: a token pasted at the HTTP tool's own URL in My vault
- * satisfies the server though the grant reports no grant; a sign-in made
- * for the server and kept in a vault the conversation lists satisfies it
+ * satisfies the server though the grant reports no grant; a sign-in at the
+ * server's address kept in a vault the conversation lists satisfies it
  * too; a grant whose token expired keeps it pending whatever else holds a
  * login; a conversation that leaves My vault out counts neither its login
  * nor its grant; an agent of another organization never reads My vault.
@@ -50,7 +50,7 @@ const linear = create(McpServerSchema, {
   },
 });
 
-/** A vault holding one login at Linear's URL: pasted, or a sign-in made by `signedInBy`. */
+/** A vault holding one login at Linear's URL: pasted, or a sign-in made through `signedInBy` (a login app, "" for the address's own login server). */
 function vaultWithLogin(slug: string, signedInBy?: string): Vault {
   return create(VaultSchema, {
     metadata: { id: `vlt_${slug}`, org: ORG, slug, name: slug },
@@ -60,7 +60,7 @@ function vaultWithLogin(slug: string, signedInBy?: string): Vault {
         [LINEAR_URL]:
           signedInBy === undefined
             ? { source: VaultConnectionSource.pasted }
-            : { source: VaultConnectionSource.sign_in, signIn: { mcpServerId: signedInBy } },
+            : { source: VaultConnectionSource.sign_in, signIn: { loginApp: signedInBy } },
       },
     },
   });
@@ -154,7 +154,7 @@ describe("useAgentSetup counts the logins a run reads", () => {
   });
 
   it("counts a sign-in made for the server and kept in a vault the conversation lists", async () => {
-    const state = await resolveSettled({ mine: null, shared: vaultWithLogin("team", "mcp_linear") });
+    const state = await resolveSettled({ mine: null, shared: vaultWithLogin("team", "") });
     expect(state).toMatchObject({ status: "ready", resolution: { mode: "direct" } });
   });
 
@@ -173,7 +173,7 @@ describe("useAgentSetup counts the logins a run reads", () => {
 
   it("counts neither My vault's login nor its grant when the conversation leaves My vault out", async () => {
     const state = await resolveSettled({
-      mine: vaultWithLogin("mine", "mcp_linear"),
+      mine: vaultWithLogin("mine", ""),
       health: OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_HEALTHY,
       includeMyVault: false,
     });

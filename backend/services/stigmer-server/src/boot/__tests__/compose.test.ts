@@ -324,7 +324,7 @@ describe("the MCP OAuth callback", () => {
       ).toEqual([
         [
           "warn",
-          "STIGMER_OAUTH_REDIRECT_URI is not set — OAuth Connect flows for MCP servers are unavailable (initiateOAuthConnect will refuse)",
+          "STIGMER_OAUTH_REDIRECT_URI is not set — sign-ins through the console and Connect links are unavailable (startSignIn will refuse)",
         ],
       ]);
     } finally {

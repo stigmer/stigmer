@@ -1,0 +1,415 @@
+/**
+ * Connect links: a one-time page an integrator sends its customer, where
+ * the customer signs in at an address and the login is saved into the
+ * integrator's vault for that customer, with no Stigmer account involved.
+ *
+ * `createConnectLink` (VaultCommandController, can_edit on the vault) makes
+ * one: a shared vault only (My vault is its person's own, and a link is for
+ * someone else), an address something can sign in to (a login app, or a
+ * login server it leads to that gives Stigmer a client, asked without
+ * registering anything, so a link never sends a customer to a dead end), and
+ * a return URL that is an absolute https URL (http only for this machine)
+ * with no credentials in it. The link lives 30 minutes unless asked
+ * otherwise, a day at most. Its secret is 32 random bytes; only its SHA-256
+ * is stored, as a platform client's secret is
+ * (domain/platformclient/credentials.ts).
+ *
+ * `ConnectLinkController` serves the page, every method public with the
+ * link's secret as the authority (the share link's `getSharedProfile`
+ * precedent), kept in its own service so the anonymous surface is one file
+ * to audit. An unknown, expired or used link answers NOT_FOUND, the same for
+ * all three. The link's creator must still be able to edit the vault when
+ * the link starts and when it completes, as an invitation's creator's
+ * standing is re-checked when it is redeemed. The sign-in itself is the
+ * shared start and completion (sign-in/start.ts, sign-in/complete.ts), its
+ * pending state bound to the link and to no signer; the person door refuses
+ * such a state, and this door refuses any state that is not its link's.
+ *
+ * Completion spends the link before the code is exchanged (record before
+ * grant, as an invitation is marked redeemed before its grant is written),
+ * so two completions racing save at most one login; a sign-in that then
+ * fails makes the link usable again, since nothing was saved. The saved
+ * login's `saved_by` is the link's creator, and a link's sign-in never keeps
+ * a refresh token an earlier sign-in left (every customer's saver is the
+ * creator). Once the login page has returned with the link's state, the
+ * customer is sent back to the return URL whatever happens, with
+ * `stigmer_connect=connected` or `stigmer_connect=error&reason=...`, a link
+ * that expired while they were on the login page included
+ * (`reason=expired`). A return without the state (a login page that drops
+ * it, against RFC 6749) carries nothing that names the link, so the
+ * console shows the login page's answer and sends no one anywhere.
+ *
+ * Proven by __tests__/connect-link.test.ts and the sign-in conformance suite.
+ */
+import { createHash, randomBytes } from "node:crypto";
+
+import { create } from "@bufbuild/protobuf";
+import { timestampFromMs } from "@bufbuild/protobuf/wkt";
+import { Code, ConnectError } from "@connectrpc/connect";
+
+import type { Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
+import {
+  CompleteConnectLinkOutputSchema,
+  ConnectLinkInfoSchema,
+  StartConnectLinkOutputSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/vault/v1/connect_link_pb";
+import type {
+  CompleteConnectLinkInput,
+  CompleteConnectLinkOutput,
+  ConnectLinkInfo,
+  ConnectLinkTokenInput,
+  StartConnectLinkOutput,
+} from "@stigmer/protos/ai/stigmer/agentic/vault/v1/connect_link_pb";
+import { ConnectLinkSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
+import type {
+  ConnectLink,
+  CreateConnectLinkInput,
+} from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+
+import type { Authorizer } from "../../extensions/authorizer.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
+import {
+  failedPreconditionError,
+  internalError,
+  invalidArgumentError,
+  notFoundError,
+} from "../../pipeline/errors.js";
+import { refuseBoundElsewhere } from "../../pipeline/steps/refuse-bound-elsewhere.js";
+import { PENDING_OAUTH_STATE_TTL_MS, ResourceNotFoundError } from "../../store/interface.js";
+import type { ConnectLinkRecord, ConnectLinkStore, PendingOAuthState } from "../../store/interface.js";
+import { findOrganizationAppProvider } from "./login-app.js";
+import { isMyVault } from "./service.js";
+import type { VaultService } from "./service.js";
+import { finishSignIn } from "./sign-in/complete.js";
+import { hostOf, linkLoginApp, signInAddress, startSignIn } from "./sign-in/start.js";
+import type { SignInDeps } from "./sign-in/start.js";
+
+/** How long a link lives when its maker does not say: 30 minutes. */
+export const CONNECT_LINK_DEFAULT_LIFETIME_SECONDS = 30 * 60;
+
+/** The console page a link opens, before the link's secret. */
+export const CONNECT_LINK_PAGE_PATH = "/connect/";
+
+/** The query parameter the return URL carries the outcome in. */
+export const CONNECT_OUTCOME_PARAM = "stigmer_connect";
+
+/** How long past its expiry a link is kept: a sign-in's pending state lifetime, in seconds. */
+const LAPSED_LINK_GRACE_SECONDS = Math.ceil(PENDING_OAUTH_STATE_TTL_MS / 1000);
+
+/** Why a link's sign-in did not save, as the return URL says it. */
+export type ConnectLinkFailure = "denied" | "provider_error" | "expired" | "failed" | "not_allowed";
+
+/** What a Connect link needs from the composition. */
+export interface ConnectLinkDeps extends SignInDeps {
+  readonly vaults: VaultService;
+  readonly authorizer: Authorizer;
+  readonly connectLinks: ConnectLinkStore;
+}
+
+/** Makes a Connect link; the caller's can_edit on the vault was asked by the annotation. */
+export async function createConnectLink(
+  deps: ConnectLinkDeps,
+  input: CreateConnectLinkInput,
+  caller: CallerIdentity,
+): Promise<ConnectLink> {
+  if (caller.identityId === "") {
+    throw new ConnectError("a Connect link is made by a signed-in caller", Code.Unauthenticated);
+  }
+  refuseBoundElsewhere(caller, input.org);
+  const vault = await deps.vaults.findById(input.vaultId);
+  if (vault === undefined || (vault.metadata?.org ?? "") !== input.org) {
+    throw notFoundError("vault", input.vaultId);
+  }
+  if (isMyVault(vault)) {
+    throw failedPreconditionError(
+      "a Connect link saves into a shared vault: My vault is its person's own, and a link is for someone else",
+    );
+  }
+  const address = signInAddress(input.address);
+  const returnUrl = checkedReturnUrl(input.returnUrl);
+  const app = await linkLoginApp(deps, input.org, address);
+  if (app.unavailable !== undefined) {
+    throw failedPreconditionError(app.unavailable);
+  }
+  const pageOrigin = consolePageOrigin(deps.oauthRedirectUri);
+
+  const now = nowSeconds();
+  const lifetime =
+    input.expiresInSeconds > 0 ? input.expiresInSeconds : CONNECT_LINK_DEFAULT_LIFETIME_SECONDS;
+  const token = randomBytes(32).toString("base64url");
+  const record: ConnectLinkRecord = {
+    tokenHash: hashLinkToken(token),
+    org: input.org,
+    vaultId: input.vaultId,
+    address,
+    returnUrl,
+    createdBy: caller.identityId,
+    createdByClass: caller.callerClass,
+    createdByBoundOrg: caller.boundOrg ?? "",
+    createdAt: now,
+    expiresAt: now + lifetime,
+    usedAt: 0,
+  };
+  // Links expire unused more often than they are spent; each new one
+  // sweeps the dead ones (nothing else reads them). A link stays for a
+  // pending state's lifetime past its expiry, so a customer still on the
+  // login page when it lapsed is sent back with reason=expired.
+  await deps.connectLinks.deleteExpired(now - LAPSED_LINK_GRACE_SECONDS);
+  await deps.connectLinks.create(record);
+  deps.logger.info("Connect link created", {
+    org: input.org,
+    vault: input.vaultId,
+    address,
+    expires_at: record.expiresAt,
+  });
+  return create(ConnectLinkSchema, {
+    url: `${pageOrigin}${CONNECT_LINK_PAGE_PATH}${token}`,
+    expiresAt: timestampFromMs(record.expiresAt * 1000),
+  });
+}
+
+/** What a link is for. Public: the link's secret is the authority. */
+export async function getConnectLink(
+  deps: ConnectLinkDeps,
+  input: ConnectLinkTokenInput,
+): Promise<ConnectLinkInfo> {
+  const link = await usableLink(deps, input.token);
+  const name = await findOrganizationAppProvider(deps.store, link.org, link.address);
+  return create(ConnectLinkInfoSchema, {
+    providerName: name ?? hostOf(link.address),
+    address: link.address,
+    organizationName: await organizationName(deps, link.org),
+  });
+}
+
+/** Starts a link's sign-in. Public: the link's secret is the authority. */
+export async function startConnectLink(
+  deps: ConnectLinkDeps,
+  input: ConnectLinkTokenInput,
+): Promise<StartConnectLinkOutput> {
+  const link = await usableLink(deps, input.token);
+  if ((await linkVault(deps, link)) === undefined) {
+    throw unknownLink();
+  }
+  const started = await startSignIn(deps, {
+    org: link.org,
+    vaultId: link.vaultId,
+    address: link.address,
+    returnTo: { kind: "web" },
+    signer: "",
+    connectLink: link.tokenHash,
+  });
+  return create(StartConnectLinkOutputSchema, {
+    authorizationUrl: started.authorizationUrl,
+    state: started.state,
+  });
+}
+
+/**
+ * Finishes a link's sign-in and spends the link. Public: the link's secret
+ * is the authority, and the state must be the one this link started.
+ */
+export async function completeConnectLink(
+  deps: ConnectLinkDeps,
+  input: CompleteConnectLinkInput,
+): Promise<CompleteConnectLinkOutput> {
+  const now = nowSeconds();
+  const link = await deps.connectLinks.findUsable(hashLinkToken(input.token), now);
+  if (link === undefined) {
+    return lapsedOnTheLoginPage(deps, input, now);
+  }
+  const pending = input.state === "" ? undefined : await consume(deps, input.state);
+  if (pending !== undefined && pending.connectLink !== link.tokenHash) {
+    throw failedPreconditionError("this sign-in was not started by this Connect link");
+  }
+  if (input.error !== "") {
+    return outcome(link, input.error === "access_denied" ? "denied" : "provider_error");
+  }
+  if (pending === undefined) {
+    return outcome(link, "expired");
+  }
+  const vault = await linkVault(deps, link);
+  if (vault === undefined) {
+    return outcome(link, "not_allowed");
+  }
+
+  const spentAt = nowSeconds();
+  if (!(await deps.connectLinks.spend(link.tokenHash, spentAt))) {
+    // Another completion spent it (NOT_FOUND, as for any used link), or it
+    // lapsed since it was read: the customer goes back with reason=expired.
+    const lapsed = await deps.connectLinks.findUsable(link.tokenHash, spentAt - LAPSED_LINK_GRACE_SECONDS);
+    if (lapsed === undefined) {
+      throw unknownLink();
+    }
+    return outcome(lapsed, "expired");
+  }
+  try {
+    await finishSignIn(deps, pending, input.code, vault, creatorOf(link));
+  } catch (error) {
+    await deps.connectLinks.restore(link.tokenHash, spentAt);
+    deps.logger.warn("A Connect link's sign-in failed after the login page; the link stays usable", {
+      org: link.org,
+      vault: link.vaultId,
+      address: link.address,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return outcome(link, "failed");
+  }
+  return outcome(link, undefined);
+}
+
+/**
+ * A link that expired while its customer was on the login page: unused, out
+ * of time by no more than a sign-in's pending state lives, and returning
+ * with a state this link started, which proves the customer began in time.
+ * The customer is sent back with `reason=expired`; anything else is the
+ * same NOT_FOUND as an unknown or used link.
+ */
+async function lapsedOnTheLoginPage(
+  deps: ConnectLinkDeps,
+  input: CompleteConnectLinkInput,
+  now: number,
+): Promise<CompleteConnectLinkOutput> {
+  const lapsed = await deps.connectLinks.findUsable(hashLinkToken(input.token), now - LAPSED_LINK_GRACE_SECONDS);
+  if (lapsed === undefined || input.state === "") {
+    throw unknownLink();
+  }
+  const pending = await consume(deps, input.state);
+  if (pending?.connectLink !== lapsed.tokenHash) {
+    throw unknownLink();
+  }
+  return outcome(lapsed, "expired");
+}
+
+/** The base64url SHA-256 a link is stored and found by. */
+export function hashLinkToken(token: string): string {
+  return createHash("sha256").update(token).digest("base64url");
+}
+
+/**
+ * The return URL, checked: absolute, https (http only for localhost,
+ * 127.0.0.1 or [::1]), and no user name or password in it. The rule is said
+ * without repeating the value.
+ */
+export function checkedReturnUrl(input: string): string {
+  if (!URL.canParse(input)) {
+    throw invalidArgumentError("return_url must be an absolute https URL");
+  }
+  const url = new URL(input);
+  const local = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
+  if (url.protocol !== "https:" && !(url.protocol === "http:" && local)) {
+    throw invalidArgumentError(
+      "return_url must be an https URL (http only for localhost, 127.0.0.1 or [::1])",
+    );
+  }
+  if (url.username !== "" || url.password !== "") {
+    throw invalidArgumentError("return_url must not carry a user name or password");
+  }
+  // Kept as the integrator wrote it: a signed URL must come back unchanged.
+  return input;
+}
+
+/**
+ * The return URL with the outcome appended: connected, or an error and its
+ * reason. The integrator's own query is kept byte for byte (it may be
+ * signed), so the outcome is appended to it rather than re-serialized.
+ */
+function outcome(link: ConnectLinkRecord, failure: ConnectLinkFailure | undefined): CompleteConnectLinkOutput {
+  const added = new URLSearchParams({ [CONNECT_OUTCOME_PARAM]: failure === undefined ? "connected" : "error" });
+  if (failure !== undefined) {
+    added.set("reason", failure);
+  }
+  // Appended as text before any fragment: parsing and re-serializing the
+  // URL would re-encode what the maker wrote.
+  const hashAt = link.returnUrl.indexOf("#");
+  const base = hashAt === -1 ? link.returnUrl : link.returnUrl.slice(0, hashAt);
+  const fragment = hashAt === -1 ? "" : link.returnUrl.slice(hashAt);
+  const joiner = !base.includes("?") ? "?" : base.endsWith("?") || base.endsWith("&") ? "" : "&";
+  return create(CompleteConnectLinkOutputSchema, { returnUrl: `${base}${joiner}${added}${fragment}` });
+}
+
+/** The link behind a secret, usable now, or NOT_FOUND. */
+async function usableLink(deps: ConnectLinkDeps, token: string): Promise<ConnectLinkRecord> {
+  const link = await deps.connectLinks.findUsable(hashLinkToken(token), nowSeconds());
+  if (link === undefined) {
+    throw unknownLink();
+  }
+  return link;
+}
+
+/** The same answer for an unknown, an expired and a used link. */
+function unknownLink(): ConnectError {
+  return new ConnectError("Connect link not found: it has expired or was already used", Code.NotFound);
+}
+
+/**
+ * The link's vault, while it is still in the link's organization and the
+ * link's creator may still edit it; undefined otherwise.
+ */
+async function linkVault(deps: ConnectLinkDeps, link: ConnectLinkRecord): Promise<Vault | undefined> {
+  const vault = await deps.vaults.findById(link.vaultId);
+  if (vault === undefined || (vault.metadata?.org ?? "") !== link.org) {
+    return undefined;
+  }
+  const decision = await deps.authorizer.authorize(creatorOf(link), {
+    permission: IamPermission.can_edit,
+    resourceKind: ApiResourceKind.vault,
+    resourceId: link.vaultId,
+  });
+  if (decision.kind === "unavailable") {
+    throw internalError(decision.cause, "failed to check the Connect link's maker");
+  }
+  return decision.kind === "allow" ? vault : undefined;
+}
+
+/**
+ * The link's creator, as the identity the save and the re-check act as: the
+ * class and the bound organization of the credential that made the link, so
+ * an authorizer answers the re-check as it answered the creation.
+ */
+function creatorOf(link: ConnectLinkRecord): CallerIdentity {
+  return {
+    identityId: link.createdBy,
+    callerClass: link.createdByClass,
+    issuer: "",
+    rawToken: "",
+    ...(link.createdByBoundOrg === "" ? {} : { boundOrg: link.createdByBoundOrg }),
+  };
+}
+
+async function consume(deps: ConnectLinkDeps, state: string): Promise<PendingOAuthState | undefined> {
+  try {
+    return await deps.pendingOAuthStates.getAndDelete(state);
+  } catch (error) {
+    throw internalError(error, "failed to load pending OAuth state");
+  }
+}
+
+async function organizationName(deps: ConnectLinkDeps, org: string): Promise<string> {
+  try {
+    const organization = await deps.store.getResource(ApiResourceKind.organization, org, OrganizationSchema);
+    return organization.metadata?.name ?? "";
+  } catch (error) {
+    if (error instanceof ResourceNotFoundError) {
+      return "";
+    }
+    throw error;
+  }
+}
+
+/** The console's origin, from its callback page: where a link's page is served. */
+function consolePageOrigin(oauthRedirectUri: string): string {
+  if (!URL.canParse(oauthRedirectUri)) {
+    throw failedPreconditionError(
+      "Connect links need the console's address: STIGMER_OAUTH_REDIRECT_URI is not set",
+    );
+  }
+  return new URL(oauthRedirectUri).origin;
+}
+
+function nowSeconds(): number {
+  return Math.floor(Date.now() / 1000);
+}

@@ -94,20 +94,20 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "SignInR\006signIn\022 \n\013description\030\004 \001(\tR\013des" +
       "cription\022\031\n\010saved_by\030\005 \001(\tR\007savedBy\0225\n\010s" +
       "aved_at\030\006 \001(\0132\032.google.protobuf.Timestam" +
-      "pR\007savedAt\"\211\002\n\025VaultConnectionSignIn\022\035\n\n" +
+      "pR\007savedAt\"\207\002\n\025VaultConnectionSignIn\022\035\n\n" +
       "expires_at\030\001 \001(\003R\texpiresAt\022\033\n\tclient_id" +
       "\030\002 \001(\tR\010clientId\022\037\n\013auth_method\030\003 \001(\tR\na" +
       "uthMethod\022%\n\016token_endpoint\030\004 \001(\tR\rtoken" +
       "Endpoint\022#\n\rrefresh_token\030\005 \001(\tR\014refresh" +
-      "Token\022\"\n\rmcp_server_id\030\006 \001(\tR\013mcpServerI" +
-      "d\022#\n\rlocal_program\030\007 \001(\010R\014localProgram*Y" +
-      "\n\025VaultConnectionSource\022\'\n#vault_connect" +
-      "ion_source_unspecified\020\000\022\n\n\006pasted\020\001\022\013\n\007" +
-      "sign_in\020\002B\234\001B\tSpecProtoP\001\242\002\004ASAV\252\002\033Ai.St" +
-      "igmer.Agentic.Vault.V1\312\002\033Ai\\Stigmer\\Agen" +
-      "tic\\Vault\\V1\342\002\'Ai\\Stigmer\\Agentic\\Vault\\" +
-      "V1\\GPBMetadata\352\002\037Ai::Stigmer::Agentic::V" +
-      "ault::V1b\006proto3"
+      "Token\022\033\n\tlogin_app\030\010 \001(\tR\010loginAppJ\004\010\006\020\007" +
+      "J\004\010\007\020\010R\rmcp_server_idR\rlocal_program*Y\n\025" +
+      "VaultConnectionSource\022\'\n#vault_connectio" +
+      "n_source_unspecified\020\000\022\n\n\006pasted\020\001\022\013\n\007si" +
+      "gn_in\020\002B\234\001B\tSpecProtoP\001\242\002\004ASAV\252\002\033Ai.Stig" +
+      "mer.Agentic.Vault.V1\312\002\033Ai\\Stigmer\\Agenti" +
+      "c\\Vault\\V1\342\002\'Ai\\Stigmer\\Agentic\\Vault\\V1" +
+      "\\GPBMetadata\352\002\037Ai::Stigmer::Agentic::Vau" +
+      "lt::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -150,7 +150,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_vault_v1_VaultConnectionSignIn_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_vault_v1_VaultConnectionSignIn_descriptor,
-        new java.lang.String[] { "ExpiresAt", "ClientId", "AuthMethod", "TokenEndpoint", "RefreshToken", "McpServerId", "LocalProgram", });
+        new java.lang.String[] { "ExpiresAt", "ClientId", "AuthMethod", "TokenEndpoint", "RefreshToken", "LoginApp", });
     descriptor.resolveAllFeaturesImmutable();
     build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.TimestampProto.getDescriptor();

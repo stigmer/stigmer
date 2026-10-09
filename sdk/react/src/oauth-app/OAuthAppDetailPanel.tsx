@@ -13,6 +13,7 @@ import { useUpdateOAuthApp } from "./useUpdateOAuthApp.js";
 import { useDeleteOAuthApp } from "./useDeleteOAuthApp.js";
 import { PermissionGate } from "../iam-policy/PermissionGate.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
+import { parseAddressList } from "./addresses.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -90,6 +91,7 @@ export function OAuthAppDetailPanel({
     spec?.authorizationUrl ?? "",
   );
   const [tokenUrl, setTokenUrl] = useState(spec?.tokenUrl ?? "");
+  const [addresses, setAddresses] = useState(spec?.addresses.join(", ") ?? "");
   const [scopes, setScopes] = useState(spec?.scopes.join(", ") ?? "");
   const [userinfoUrl, setUserinfoUrl] = useState(spec?.userinfoUrl ?? "");
   const [scopeParameterName, setScopeParameterName] = useState(
@@ -111,6 +113,7 @@ export function OAuthAppDetailPanel({
     setClientSecret("");
     setAuthorizationUrl(spec?.authorizationUrl ?? "");
     setTokenUrl(spec?.tokenUrl ?? "");
+    setAddresses(spec?.addresses.join(", ") ?? "");
     setScopes(spec?.scopes.join(", ") ?? "");
     setUserinfoUrl(spec?.userinfoUrl ?? "");
     setScopeParameterName(spec?.scopeParameterName ?? "");
@@ -151,6 +154,7 @@ export function OAuthAppDetailPanel({
           clientSecret: clientSecret.trim() || mapped.clientSecret,
           authorizationUrl: authorizationUrl.trim(),
           tokenUrl: tokenUrl.trim(),
+          addresses: parseAddressList(addresses),
           scopes: parsedScopes.length > 0 ? parsedScopes : undefined,
           userinfoUrl: userinfoUrl.trim() || undefined,
           scopeParameterName: scopeParameterName.trim() || undefined,
@@ -172,7 +176,7 @@ export function OAuthAppDetailPanel({
     },
     [
       oauthApp, provider, clientId, clientSecret, authorizationUrl, tokenUrl,
-      scopes, userinfoUrl, scopeParameterName, tokenEndpointAuthMethod,
+      addresses, scopes, userinfoUrl, scopeParameterName, tokenEndpointAuthMethod,
       vendorApprovalStatus, vendorApprovalDocsUrl, update, clearUpdateError,
       onUpdated,
     ],
@@ -374,6 +378,16 @@ export function OAuthAppDetailPanel({
             required
           />
           <FieldInput
+            id={`${baseId}-addresses`}
+            label="Addresses"
+            value={addresses}
+            onChange={setAddresses}
+            placeholder="https://mcp.slack.com/mcp, github.com"
+            hint="Comma-separated: the tool URLs or Git hosts this app signs in to"
+            disabled={isUpdating}
+            required
+          />
+          <FieldInput
             id={`${baseId}-scopes`}
             label="Scopes"
             value={scopes}
@@ -469,7 +483,7 @@ export function OAuthAppDetailPanel({
             label="Vendor approval docs URL"
             value={vendorApprovalDocsUrl}
             onChange={setVendorApprovalDocsUrl}
-            placeholder="https://docs.example.com/byoa"
+            placeholder="https://docs.example.com/oauth-app"
             hint="Help link shown when vendor approval is pending"
             disabled={isUpdating}
           />
@@ -587,6 +601,7 @@ function ViewMode({
       <Field label="Client secret" value="••••••••" />
       <Field label="Authorization URL" value={spec?.authorizationUrl} mono />
       <Field label="Token URL" value={spec?.tokenUrl} mono />
+      <Field label="Addresses" value={spec?.addresses.join(", ")} mono />
       {spec?.scopes && spec.scopes.length > 0 && (
         <Field label="Scopes" value={spec.scopes.join(", ")} mono />
       )}

@@ -58,6 +58,23 @@ stigmer vault remove-secret LINEAR_API_KEY --mine --force
 
 ## Subcommands
 
+### stigmer vault connect-link
+
+make a one-time page where someone without a Stigmer account signs in at an
+address and the login is saved into a shared vault
+
+```bash
+stigmer vault connect-link <vault> [flags]
+```
+
+| Flag           | Type     | Default | Description                                      |
+| -------------- | -------- | ------- | ------------------------------------------------ |
+| `--address`    | `string` |         | the tool's URL or Git host to sign in to         |
+| `--expires-in` | `string` |         | how long the link works: 30m (default) up to 24h |
+| `--json`       | `bool`   |         | emit the result as JSON                          |
+| `--quiet`      | `bool`   |         | print only the status line                       |
+| `--return-url` | `string` |         | where to send them afterwards (https)            |
+
 ### stigmer vault create
 
 create a shared vault in the organization (organization admins)

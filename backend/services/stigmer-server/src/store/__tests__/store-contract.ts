@@ -1428,6 +1428,18 @@ export function describeStoreContract(
       expect((await names().claim(key("acme"), "org_c", T1)).claimed).toBe(true);
     });
 
+    it("releaseName lets go of one name while its resource holds it, and leaves its other names", async () => {
+      const address = (name: string) => ({ kind: "oauth_app_address", org: "org_a", name });
+      await names().claim(address("https://a.test/mcp"), "oap_1", T0);
+      await names().claim(address("github.com"), "oap_1", T0);
+      await names().releaseName(address("https://a.test/mcp"), "oap_2");
+      expect(await names().resolve(address("https://a.test/mcp"), T1), "another resource cannot release it").toMatchObject({ id: "oap_1" });
+      await names().releaseName(address("https://a.test/mcp"), "oap_1");
+      await names().releaseName(address("https://a.test/mcp"), "oap_1");
+      expect(await names().resolve(address("https://a.test/mcp"), T1)).toBeUndefined();
+      expect(await names().resolve(address("github.com"), T1)).toMatchObject({ id: "oap_1" });
+    });
+
     // The two cases below make the engine refuse a write by binding NULL to
     // a NOT NULL column (the types forbid it, so the value is cast): the one
     // refusal both engines raise on demand. Each proves the write's earlier
@@ -1472,15 +1484,19 @@ export function describeStoreContract(
       clientId: "client-1",
       clientSecret: "",
       tokenEndpoint: "https://example.test/token",
-      mcpServerId: "mcp_1",
       identityAccountId: "ida_1",
-      targetEnvVar: "TOKEN",
       authMethod: "mcp_oauth",
       tokenAuthMethod: "",
       redirectUri: "http://127.0.0.1/cb",
       org: "acme",
       vaultId: "",
-      toolAddress: "https://mcp.example.test/mcp",
+      address: "https://mcp.example.test/mcp",
+      loginApp: "",
+      resource: "",
+      clientRegistration: "",
+      connectLink: "",
+      providerName: "",
+      userinfoUrl: "",
       createdAt: 0,
     };
 
@@ -1508,12 +1524,22 @@ export function describeStoreContract(
       ).toBe("");
     });
 
-    it("keeps the tool's address the sign-in started at", async () => {
-      await fx.store.pendingOAuthStates.save(state);
+    it("keeps every field a sign-in records, byte for byte", async () => {
+      const recorded: PendingOAuthState = {
+        ...state,
+        identityAccountId: "",
+        address: "https://mcp.example.test/mcp",
+        loginApp: "org:oap_1",
+        resource: "https://mcp.example.test/mcp",
+        clientRegistration: "https://login.example.test",
+        connectLink: "link-hash",
+        providerName: "Example",
+        userinfoUrl: "https://login.example.test/userinfo",
+        createdAt: Math.floor(Date.now() / 1000),
+      };
+      await fx.store.pendingOAuthStates.save(recorded);
 
-      expect(
-        (await fx.store.pendingOAuthStates.getAndDelete("state-1"))?.toolAddress,
-      ).toBe("https://mcp.example.test/mcp");
+      expect(await fx.store.pendingOAuthStates.getAndDelete("state-1")).toEqual(recorded);
     });
 
     it("an expired state is deleted on redemption and returns undefined", async () => {
@@ -1532,6 +1558,16 @@ export function describeStoreContract(
       ).toBe(0);
     });
 
+    it("removes the states a Connect link began, and no other", async () => {
+      await fx.store.pendingOAuthStates.save({ ...state, state: "link-1", connectLink: "hash-a" });
+      await fx.store.pendingOAuthStates.save({ ...state, state: "link-2", connectLink: "hash-a" });
+      await fx.store.pendingOAuthStates.save({ ...state, state: "other-link", connectLink: "hash-b" });
+      await fx.store.pendingOAuthStates.save({ ...state, state: "person", connectLink: "" });
+      expect(await fx.store.pendingOAuthStates.deleteByConnectLink("hash-a")).toBe(2);
+      expect(await fx.store.pendingOAuthStates.getAndDelete("other-link")).toBeDefined();
+      expect(await fx.store.pendingOAuthStates.getAndDelete("person")).toBeDefined();
+    });
+
     it("unknown states return undefined; cleanupExpired reports the count removed", async () => {
       expect(
         await fx.store.pendingOAuthStates.getAndDelete("ghost"),
@@ -1548,6 +1584,90 @@ export function describeStoreContract(
       expect(
         await fx.store.pendingOAuthStates.getAndDelete("state-1"),
       ).toBeDefined();
+    });
+  });
+
+  describe("oauth client registrations", () => {
+    const NOW = "2026-10-09T10:00:00.000Z";
+
+    it("keeps one client per login server and redirect, the first saved winning", async () => {
+      const registrations = fx.store.oauthClientRegistrations;
+      expect(await registrations.find("https://login.test", "https://app.test/cb")).toBeUndefined();
+      expect(await registrations.save("https://login.test", "https://app.test/cb", "client-1", NOW)).toBe("client-1");
+      expect(
+        await registrations.save("https://login.test", "https://app.test/cb", "client-2", NOW),
+        "a racing registration reads the kept client",
+      ).toBe("client-1");
+      expect(await registrations.save("https://login.test", "http://127.0.0.1:17237/cb", "client-3", NOW)).toBe("client-3");
+      expect(await registrations.find("https://login.test", "https://app.test/cb")).toBe("client-1");
+    });
+
+    it("forgets a client only while it is still the one kept", async () => {
+      const registrations = fx.store.oauthClientRegistrations;
+      await registrations.save("https://login.test", "https://app.test/cb", "client-1", NOW);
+      await registrations.forget("https://login.test", "https://app.test/cb", "client-stale");
+      expect(await registrations.find("https://login.test", "https://app.test/cb")).toBe("client-1");
+      await registrations.forget("https://login.test", "https://app.test/cb", "client-1");
+      await registrations.forget("https://login.test", "https://app.test/cb", "client-1");
+      expect(await registrations.find("https://login.test", "https://app.test/cb")).toBeUndefined();
+    });
+
+    it("answers the login servers it keeps a client id with", async () => {
+      const registrations = fx.store.oauthClientRegistrations;
+      await registrations.save("https://login.test", "https://app.test/cb", "client-kept", NOW);
+      await registrations.save("https://login.test", "http://127.0.0.1:17237/cb", "client-kept", NOW);
+      await registrations.save("https://other.test", "https://app.test/cb", "client-kept", NOW);
+      expect([...(await registrations.loginServersHolding("client-kept"))].sort()).toEqual(["https://login.test", "https://other.test"]);
+      expect(await registrations.loginServersHolding("client-never")).toEqual([]);
+    });
+  });
+
+  describe("connect links", () => {
+    const NOW = 1_800_000_000;
+    const link = {
+      tokenHash: "hash-1",
+      org: "org_a",
+      vaultId: "vlt_1",
+      address: "https://mcp.example.test/mcp",
+      returnUrl: "https://app.example.test/back",
+      createdBy: "ida_1",
+      createdByClass: "machine",
+      createdByBoundOrg: "org_a",
+      createdAt: NOW,
+      expiresAt: NOW + 1800,
+      usedAt: 0,
+    };
+
+    it("finds a link only while it is unused and unexpired", async () => {
+      const links = fx.store.connectLinks;
+      await links.create(link);
+      expect(await links.findUsable("hash-1", NOW)).toEqual(link);
+      expect(await links.findUsable("hash-1", NOW + 1800), "expired at its expiry").toBeUndefined();
+      expect(await links.findUsable("ghost", NOW)).toBeUndefined();
+    });
+
+    it("spends a link once, and restores it for a failed sign-in", async () => {
+      const links = fx.store.connectLinks;
+      await links.create(link);
+      expect(await links.spend("hash-1", NOW + 5)).toBe(true);
+      expect(await links.spend("hash-1", NOW + 6), "a link is spent once").toBe(false);
+      expect(await links.findUsable("hash-1", NOW + 6)).toBeUndefined();
+      await links.restore("hash-1", NOW + 99);
+      expect(await links.findUsable("hash-1", NOW + 6), "restore needs the spend's own time").toBeUndefined();
+      await links.restore("hash-1", NOW + 5);
+      expect(await links.findUsable("hash-1", NOW + 6)).toMatchObject({ usedAt: 0 });
+      expect(await links.spend("hash-1", NOW + 1800), "an expired link cannot be spent").toBe(false);
+    });
+
+    it("removes expired links, a vault's links and an organization's links", async () => {
+      const links = fx.store.connectLinks;
+      await links.create(link);
+      await links.create({ ...link, tokenHash: "hash-2", vaultId: "vlt_2", expiresAt: NOW + 10 });
+      await links.create({ ...link, tokenHash: "hash-3", org: "org_b", vaultId: "vlt_3" });
+      expect(await links.deleteExpired(NOW + 10)).toBe(1);
+      expect(await links.deleteByVault("vlt_1")).toBe(1);
+      expect(await links.deleteByOrg("org_a")).toBe(0);
+      expect(await links.deleteByOrg("org_b")).toBe(1);
     });
   });
 
@@ -1671,15 +1791,19 @@ export function describeStoreContract(
           clientId: "client-1",
           clientSecret: "",
           tokenEndpoint: "https://example.test/token",
-          mcpServerId: "mcp_1",
           identityAccountId: "ida_1",
-          targetEnvVar: "TOKEN",
           authMethod: "mcp_oauth",
           tokenAuthMethod: "",
           redirectUri: "http://127.0.0.1/cb",
           org,
           vaultId: "",
-          toolAddress: "",
+          address: "",
+          loginApp: "",
+          resource: "",
+          clientRegistration: "",
+          connectLink: "",
+          providerName: "",
+          userinfoUrl: "",
           createdAt: 0,
         });
       }

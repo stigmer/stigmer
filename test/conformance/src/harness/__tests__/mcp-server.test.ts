@@ -120,7 +120,7 @@ describe("McpToolFixture tool surfaces", () => {
 });
 
 describe("the OAuth posture's metadata document", () => {
-  it("serves the RFC 9728 document naming the login server only when the posture names one, and never a metadata document otherwise", async () => {
+  it("serves the RFC 9728 document naming the login server only when the posture names one, each naming the resource its URL describes, and never a metadata document otherwise", async () => {
     const origin = new URL(fixture.url()).origin;
     try {
       fixture.requireOAuth({ resourceMetadataUrl: `${origin}/.well-known/oauth-protected-resource` });
@@ -133,7 +133,11 @@ describe("the OAuth posture's metadata document", () => {
       });
       const served = await fetch(`${origin}/.well-known/oauth-protected-resource`);
       expect(served.status).toBe(200);
-      expect(await served.json()).toEqual({ resource: fixture.url(), authorization_servers: ["http://127.0.0.1:1/login"] });
+      expect(await served.json()).toEqual({ resource: origin, authorization_servers: ["http://127.0.0.1:1/login"] });
+      // The path-suffixed document names the fixture's URL, the identifier
+      // its own URL was built from.
+      const suffixed = await fetch(`${origin}/.well-known/oauth-protected-resource/mcp`);
+      expect(await suffixed.json()).toEqual({ resource: fixture.url(), authorization_servers: ["http://127.0.0.1:1/login"] });
       // The challenge itself is unchanged by the document.
       const challenged = await fetch(fixture.url(), {
         method: "POST",

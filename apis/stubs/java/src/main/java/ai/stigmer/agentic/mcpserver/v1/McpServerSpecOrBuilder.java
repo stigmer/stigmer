@@ -266,14 +266,15 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
 
   /**
    * <pre>
-   * OAuth authentication configuration for automated credential acquisition.
-   * When set, the MCP server's Connect page offers an OAuth flow instead of
-   * (or in addition to) manual credential entry.
+   * Sign-in configuration: the tool takes a login saved at its address.
+   * When set, the MCP server's Connect page offers a sign-in instead of
+   * (or in addition to) manual credential entry. Only an HTTP server may
+   * carry it.
    *
    * A sign-in saves the access token as a connection at this server's
-   * address in the signer's vault (My vault unless a shared vault is named),
-   * and a run fills the env var named by auth.target_env_var from it. That
-   * env var must also be declared in env.
+   * address in a vault (the signer's My vault unless a shared vault is
+   * named), and a run fills the env var named by auth.target_env_var from
+   * it. That env var must also be declared in env.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>
@@ -282,14 +283,15 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
   boolean hasAuth();
   /**
    * <pre>
-   * OAuth authentication configuration for automated credential acquisition.
-   * When set, the MCP server's Connect page offers an OAuth flow instead of
-   * (or in addition to) manual credential entry.
+   * Sign-in configuration: the tool takes a login saved at its address.
+   * When set, the MCP server's Connect page offers a sign-in instead of
+   * (or in addition to) manual credential entry. Only an HTTP server may
+   * carry it.
    *
    * A sign-in saves the access token as a connection at this server's
-   * address in the signer's vault (My vault unless a shared vault is named),
-   * and a run fills the env var named by auth.target_env_var from it. That
-   * env var must also be declared in env.
+   * address in a vault (the signer's My vault unless a shared vault is
+   * named), and a run fills the env var named by auth.target_env_var from
+   * it. That env var must also be declared in env.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>
@@ -298,14 +300,15 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
   ai.stigmer.agentic.mcpserver.v1.McpServerAuth getAuth();
   /**
    * <pre>
-   * OAuth authentication configuration for automated credential acquisition.
-   * When set, the MCP server's Connect page offers an OAuth flow instead of
-   * (or in addition to) manual credential entry.
+   * Sign-in configuration: the tool takes a login saved at its address.
+   * When set, the MCP server's Connect page offers a sign-in instead of
+   * (or in addition to) manual credential entry. Only an HTTP server may
+   * carry it.
    *
    * A sign-in saves the access token as a connection at this server's
-   * address in the signer's vault (My vault unless a shared vault is named),
-   * and a run fills the env var named by auth.target_env_var from it. That
-   * env var must also be declared in env.
+   * address in a vault (the signer's My vault unless a shared vault is
+   * named), and a run fills the env var named by auth.target_env_var from
+   * it. That env var must also be declared in env.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>

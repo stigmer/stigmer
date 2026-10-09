@@ -1,5 +1,7 @@
-// `stigmer vault` dispatch: create a shared vault, show your own, and save or
-// remove the secrets (by name) and logins (by address) a vault holds.
+// `stigmer vault` dispatch: create a shared vault, show your own, save or
+// remove the secrets (by name) and logins (by address) a vault holds, and make
+// a Connect link that lets someone without a Stigmer account sign in and save
+// a login into a shared vault.
 //
 // A vault is write-only: no RPC returns a saved value, so nothing here ever
 // prints one, and a value never rides the command line by default — it is
@@ -23,6 +25,7 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { type Vault, VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import { VaultCommandController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/command_pb";
 import {
+  CreateConnectLinkInputSchema,
   GetMyVaultInputSchema,
   RemoveVaultConnectionsInputSchema,
   RemoveVaultSecretsInputSchema,
@@ -139,6 +142,41 @@ export async function createSharedVault(
   result.hint(
     `Only the organization's admins may use it until it is shared. Add a key with: stigmer vault set-secret <NAME> --vault ${created.metadata?.slug ?? "<slug>"}`,
   );
+  return result;
+}
+
+/**
+ * Make a Connect link for a shared vault: a one-time page where someone
+ * without a Stigmer account signs in at `address`, the login is saved into
+ * the vault, and they are sent back to `returnUrl`. The server refuses My
+ * vault, an address the organization has no login app of its own for, and a
+ * return URL that is not https. The link carries its own secret, so the result prints it once and
+ * says to send it only to its customer.
+ */
+export async function createConnectLink(
+  controller: ControllerFn,
+  org: string,
+  ref: string,
+  options: { readonly address: string; readonly returnUrl: string; readonly expiresInSeconds?: number },
+): Promise<CommandResult> {
+  // A reference always resolves to a vault by id: a link names a shared vault.
+  const { target, label } = await targetOf(controller, org, { kind: "ref", ref });
+  const link = await controller(VaultCommandController).createConnectLink(
+    create(CreateConnectLinkInputSchema, {
+      org: target.org,
+      vaultId: target.vault.case === "id" ? target.vault.value : "",
+      address: options.address,
+      returnUrl: options.returnUrl,
+      expiresInSeconds: options.expiresInSeconds ?? 0,
+    }),
+  );
+  const result = CommandResult.success(`Connect link for ${options.address} into ${label}`);
+  const section = result.addSection();
+  section.field("URL", link.url);
+  if (link.expiresAt !== undefined) {
+    section.field("Expires", timestampDate(link.expiresAt).toISOString());
+  }
+  result.hint("The link works once and carries its own secret: send it only to the customer it is for.");
   return result;
 }
 

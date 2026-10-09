@@ -33,3 +33,10 @@ export { SYSTEM_ENV_VAR_KEYS } from "./systemEnvVars.js";
 export { useToolCredentialsReadiness } from "./useToolCredentialsReadiness.js";
 export type { ToolCredentialsReadiness } from "./useToolCredentialsReadiness.js";
 export { normalizeAddress, toolAddressOf, toolLoginKeyOf, gitHostOf, GITHUB_HOST } from "./address.js";
+export { useVaultSignIn } from "./useVaultSignIn.js";
+export type {
+  SignInDestination,
+  SignInReturnTo,
+  UseVaultSignInReturn,
+  VaultSignInPhase,
+} from "./useVaultSignIn.js";

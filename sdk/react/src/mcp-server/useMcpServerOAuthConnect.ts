@@ -5,19 +5,16 @@ import { create } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
 import { StigmerError, connectAndWait, getUserMessage, isPermissionDenied } from "@stigmer/sdk";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import {
-  InitiateOAuthConnectInputSchema,
-  CompleteOAuthConnectInputSchema,
-  ConnectInputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
+import { ConnectInputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 import {
   openOAuthPopup,
   popupBlockedError,
-  waitForOAuthCallback,
   closeOAuthPopup,
 } from "../internal/oauthPopup.js";
+import { toolAddressOf } from "../vault/address.js";
+import { runPopupSignIn } from "../vault/useVaultSignIn.js";
 
 // Re-exported for compatibility: these constants and the message type now
 // live in the shared popup machinery (internal/oauthPopup.ts) because the
@@ -41,8 +38,8 @@ export type OAuthConnectPhase =
  * User-facing message for an OAuth connect failure, honest about *where*
  * the chain broke.
  *
- * The flow persists state in two acts: `completeOAuthConnect` stores the
- * grant ("Connected" from then on), and only afterwards does the chained
+ * The flow persists state in two acts: `completeSignIn` saves the login
+ * ("Connected" from then on), and only afterwards does the chained
  * `connect` run tool discovery. A failure in the `"connecting"` phase
  * therefore means sign-in itself SUCCEEDED — presenting the raw RPC error
  * alone reads as if OAuth failed and sends users back through the popup
@@ -72,7 +69,7 @@ export function getOAuthConnectErrorMessage(
  * organization).
  */
 export interface SignInVault {
-  /** The vault's id (`metadata.id`), sent as `vault_id`. */
+  /** The vault's id (`metadata.id`). */
   readonly id: string;
   /** The vault's organization id (`metadata.org`). */
   readonly org: string;
@@ -106,10 +103,11 @@ export function signInVaultRefusalMessage(vault: SignInVault): string {
 /** Return value of {@link useMcpServerOAuthConnect}. */
 export interface UseMcpServerOAuthConnectReturn {
   /**
-   * Start the OAuth connect flow for an MCP server.
+   * Start the sign-in for an MCP server: a sign-in at the server's address
+   * (its URL), which fills every tool at that address.
    *
-   * Opens a popup for the OAuth consent screen, waits for the callback,
-   * exchanges the authorization code for tokens, then chains to the
+   * Opens a popup for the login page, waits for the callback, has the
+   * server exchange the code and save the login, then chains to the
    * `connect` RPC for tool discovery. A sign-in saved into a shared vault
    * (`options.vault`) chains no discovery: the connect lane reads only My
    * vault.
@@ -152,18 +150,15 @@ export interface UseMcpServerOAuthConnectReturn {
  * Action hook that orchestrates the full OAuth popup flow for MCP servers.
  *
  * Handles the complete lifecycle:
- * 1. Calls `initiateOAuthConnect` to get the authorization URL
- * 2. Opens a popup window to the OAuth consent screen
- * 3. Listens for the callback via `window.postMessage`
- * 4. Calls `completeOAuthConnect` to exchange the code for tokens
- * 5. Chains to `connect` for tool discovery
+ * 1. Reads the server's address (its URL; a local program has none and
+ *    takes its keys as secrets)
+ * 2. Runs the vault's sign-in at that address in a popup
+ *    (`startSignIn`, the login page, `completeSignIn`; vault/useVaultSignIn.ts)
+ * 3. Chains to `connect` for tool discovery
  *
- * The popup is opened **synchronously** before the `initiateOAuthConnect`
- * RPC to avoid browser popup blockers. A blank page is shown briefly
- * while the RPC resolves, then the popup navigates to the auth URL.
- *
- * Popup plumbing (callback wait, COOP fallbacks, cancellation) lives in
- * the shared `internal/oauthPopup.ts` machinery.
+ * The popup is opened **synchronously** before any RPC to avoid browser
+ * popup blockers. A blank page is shown briefly while the RPCs resolve,
+ * then the popup navigates to the login page.
  *
  * @example
  * ```tsx
@@ -195,7 +190,7 @@ export function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn {
   const cancelledRef = useRef(false);
   // Mirrors the phase state for the catch block: React state reads would be
   // stale inside the async flow, and failedPhase must record exactly where
-  // the chain broke (completeOAuthConnect vs the chained connect).
+  // the chain broke (completeSignIn vs the chained connect).
   const phaseRef = useRef<OAuthConnectPhase>("idle");
 
   const advancePhase = useCallback((next: OAuthConnectPhase) => {
@@ -244,41 +239,32 @@ export function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn {
       popupRef.current = popup;
 
       try {
-        const initOutput = await stigmer.mcpServer.initiateOAuthConnect(
-          create(InitiateOAuthConnectInputSchema, {
-            mcpServerId,
-            org: vault?.org ?? org,
-            vaultId: vault?.id ?? "",
-          }),
-        );
-
-        popup.location.href = initOutput.authorizationUrl;
-        advancePhase("awaiting-callback");
-
-        const { code, state } = await waitForOAuthCallback(
+        const signedInServer = await stigmer.mcpServer.get(mcpServerId);
+        const address = toolAddressOf(signedInServer);
+        if (address === null) {
+          throw new Error(
+            "This tool has no address to sign in at: a local program, or a URL holding a ${VAR} placeholder, takes its keys as secrets instead.",
+          );
+        }
+        await runPopupSignIn(
+          stigmer,
           popup,
-          initOutput.state,
+          address,
+          { org: vault?.org ?? org, vaultId: vault?.id },
+          (step) => {
+            if (step === "awaiting-callback") advancePhase("awaiting-callback");
+            if (step === "completing") advancePhase("completing");
+          },
           (dispose) => {
             cleanupRef.current = dispose;
           },
         );
 
-        advancePhase("completing");
-
-        await stigmer.mcpServer.completeOAuthConnect(
-          create(CompleteOAuthConnectInputSchema, {
-            mcpServerId,
-            authorizationCode: code,
-            state,
-          }),
-        );
-
         if (vault !== undefined) {
           // The connect lane reads only My vault, so discovery could not
           // use this sign-in: it serves the runs that use the vault.
-          const server = await stigmer.mcpServer.get(mcpServerId);
           advancePhase("done");
-          return server;
+          return signedInServer;
         }
 
         advancePhase("connecting");

@@ -80,7 +80,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Optional OIDC UserInfo endpoint for fetching user profile data.\n When set, Stigmer calls this endpoint after token acquisition to\n retrieve the user's display name and avatar for the connected account.\n Omit for vendors that do not support a standard userinfo endpoint.",
+      "description": "Optional endpoint that answers who signed in (an OIDC UserInfo\n endpoint, or a vendor's equivalent such as GitHub's /user).\n When set, Stigmer calls it once after the sign-in, with the new token,\n and describes the saved login by the account's login, preferred user\n name or email (\"Slack @ana\"). Omit for vendors without one.",
       "required": false
     },
     {
@@ -133,6 +133,23 @@
       },
       "description": "How the client secret is presented to the vendor's token endpoint\n during authorization-code exchange and refresh.\n\n RFC 6749 §2.3.1 requires authorization servers to support HTTP Basic,\n but some vendors' token endpoints accept only client_secret_post\n (e.g. HubSpot advertises token_endpoint_auth_methods_supported:\n [\"client_secret_post\"]). Exactly one method is ever used per request —\n RFC 6749 §2.3 forbids presenting credentials through more than one\n channel at once, and some servers reject requests that do.\n\n UNSPECIFIED is treated as CLIENT_SECRET_BASIC for backwards\n compatibility, preserving the historical behavior byte-for-byte.",
       "required": false
+    },
+    {
+      "name": "Addresses",
+      "jsonName": "addresses",
+      "protoField": "addresses",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "The addresses this app signs in to: a tool's URL (Slack's MCP endpoint\n at mcp.slack.com/mcp, over https) or a Git host (github.com), normalized\n as a vault connection's address is. A sign-in started at one of them uses\n this app. An address may belong to only one app in the organization.",
+      "required": false,
+      "validation": {
+        "minItems": 1,
+        "maxItems": 20
+      }
     }
   ]
 }

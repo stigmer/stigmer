@@ -55,23 +55,13 @@
       "required": false
     },
     {
-      "name": "McpServerId",
-      "jsonName": "mcpServerId",
-      "protoField": "mcp_server_id",
+      "name": "LoginApp",
+      "jsonName": "loginApp",
+      "protoField": "login_app",
       "type": {
         "kind": "string"
       },
-      "description": "The MCP server the sign-in was started from, by id. The sign-in fills\n that server's login only.",
-      "required": false
-    },
-    {
-      "name": "LocalProgram",
-      "jsonName": "localProgram",
-      "protoField": "local_program",
-      "type": {
-        "kind": "bool"
-      },
-      "description": "Whether the MCP server was a local program (stdio) when the sign-in\n completed; false for an HTTP server. The sign-in fills that server's\n login only while it is still the same kind: a server switched between\n an HTTP server and a local program needs a new sign-in. Set by the\n server.",
+      "description": "The login app the sign-in used, so a renewal presents the same client:\n \"org:\u003cOAuthApp id\u003e\" for an organization's app, \"stigmer:\u003ckey\u003e\" for one of\n Stigmer's built-in login apps, and empty for a client registered with\n the address's own login server, which has no secret. Set by the server.",
       "required": false
     }
   ]

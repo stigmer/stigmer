@@ -68,9 +68,6 @@ export class LocalTarget implements TargetProfile {
     // No channel runtime in this edition — the suite pins the
     // documented refusal copy on every runtime lane.
     channelMessaging: false,
-    // The org BYOA lane is UNIMPLEMENTED on OSS by design (stigmer#558) —
-    // the TS port must reproduce the three refusals byte-for-byte.
-    orgOAuthAppConfiguration: false,
     // No billing engine at all — executions run unmetered (the edition
     // boundary).
     billingGates: false,

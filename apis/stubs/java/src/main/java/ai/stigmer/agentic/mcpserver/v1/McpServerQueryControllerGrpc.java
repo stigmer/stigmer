@@ -108,37 +108,6 @@ public final class McpServerQueryControllerGrpc {
     return getGetOAuthGrantStatusMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput,
-      ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput> getGetOrgOAuthAppMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "getOrgOAuthApp",
-      requestType = ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput.class,
-      responseType = ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput,
-      ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput> getGetOrgOAuthAppMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput, ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput> getGetOrgOAuthAppMethod;
-    if ((getGetOrgOAuthAppMethod = McpServerQueryControllerGrpc.getGetOrgOAuthAppMethod) == null) {
-      synchronized (McpServerQueryControllerGrpc.class) {
-        if ((getGetOrgOAuthAppMethod = McpServerQueryControllerGrpc.getGetOrgOAuthAppMethod) == null) {
-          McpServerQueryControllerGrpc.getGetOrgOAuthAppMethod = getGetOrgOAuthAppMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput, ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getOrgOAuthApp"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput.getDefaultInstance()))
-              .setSchemaDescriptor(new McpServerQueryControllerMethodDescriptorSupplier("getOrgOAuthApp"))
-              .build();
-        }
-      }
-    }
-    return getGetOrgOAuthAppMethod;
-  }
-
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -230,9 +199,9 @@ public final class McpServerQueryControllerGrpc {
     /**
      * <pre>
      * Check whether the authenticated user has a sign-in for an MCP server in
-     * their My vault in the specified org that a run would use: one this
-     * server's sign-in saved at the server's current address. A pasted login
-     * and a sign-in saved into a shared vault are read through the vault's own
+     * their My vault in the specified org: a sign-in saved at the server's
+     * address, whichever tool or page started it. A pasted login and a
+     * sign-in saved into a shared vault are read through the vault's own
      * RPCs.
      * Returns sign-in metadata (connected status, token expiry, auth method)
      * without exposing any secret token values. The frontend uses this to
@@ -243,30 +212,6 @@ public final class McpServerQueryControllerGrpc {
     default void getOAuthGrantStatus(ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetOAuthGrantStatusMethod(), responseObserver);
-    }
-
-    /**
-     * <pre>
-     * Query whether an org has a BYOA override for a resource.
-     * Returns override metadata (existence, OAuthApp ID, client_id) without
-     * exposing secrets. The frontend uses this to show which credential
-     * source is active and to offer override management options to org admins.
-     * Edition scoping: hosted-only, together with setOrgOAuthApp and
-     * deleteOrgOAuthApp — the three org-OAuth-app RPCs are ONE capability.
-     * The OSS server answers UNIMPLEMENTED for all of them by design: its
-     * flat OAuthApp store has no override binding, its OAuth resolution has
-     * no override level to consult, and BYOA's clone-from-platform-template
-     * model has no template to clone (self-hosted users apply their own
-     * OAuthApp and reference it from spec.auth.oauth_app_ref — a strictly
-     * more powerful path). Clients probe the capability through THIS RPC:
-     * an UNIMPLEMENTED answer means "hide every BYOA affordance" (see the
-     * SDK's useOrgOAuthApp.isSupported). Never implement one RPC of the
-     * surface without the other two and the client-side gate.
-     * </pre>
-     */
-    default void getOrgOAuthApp(ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetOrgOAuthAppMethod(), responseObserver);
     }
   }
 
@@ -330,9 +275,9 @@ public final class McpServerQueryControllerGrpc {
     /**
      * <pre>
      * Check whether the authenticated user has a sign-in for an MCP server in
-     * their My vault in the specified org that a run would use: one this
-     * server's sign-in saved at the server's current address. A pasted login
-     * and a sign-in saved into a shared vault are read through the vault's own
+     * their My vault in the specified org: a sign-in saved at the server's
+     * address, whichever tool or page started it. A pasted login and a
+     * sign-in saved into a shared vault are read through the vault's own
      * RPCs.
      * Returns sign-in metadata (connected status, token expiry, auth method)
      * without exposing any secret token values. The frontend uses this to
@@ -344,31 +289,6 @@ public final class McpServerQueryControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getGetOAuthGrantStatusMethod(), getCallOptions()), request, responseObserver);
-    }
-
-    /**
-     * <pre>
-     * Query whether an org has a BYOA override for a resource.
-     * Returns override metadata (existence, OAuthApp ID, client_id) without
-     * exposing secrets. The frontend uses this to show which credential
-     * source is active and to offer override management options to org admins.
-     * Edition scoping: hosted-only, together with setOrgOAuthApp and
-     * deleteOrgOAuthApp — the three org-OAuth-app RPCs are ONE capability.
-     * The OSS server answers UNIMPLEMENTED for all of them by design: its
-     * flat OAuthApp store has no override binding, its OAuth resolution has
-     * no override level to consult, and BYOA's clone-from-platform-template
-     * model has no template to clone (self-hosted users apply their own
-     * OAuthApp and reference it from spec.auth.oauth_app_ref — a strictly
-     * more powerful path). Clients probe the capability through THIS RPC:
-     * an UNIMPLEMENTED answer means "hide every BYOA affordance" (see the
-     * SDK's useOrgOAuthApp.isSupported). Never implement one RPC of the
-     * surface without the other two and the client-side gate.
-     * </pre>
-     */
-    public void getOrgOAuthApp(ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getGetOrgOAuthAppMethod(), getCallOptions()), request, responseObserver);
     }
   }
 
@@ -416,9 +336,9 @@ public final class McpServerQueryControllerGrpc {
     /**
      * <pre>
      * Check whether the authenticated user has a sign-in for an MCP server in
-     * their My vault in the specified org that a run would use: one this
-     * server's sign-in saved at the server's current address. A pasted login
-     * and a sign-in saved into a shared vault are read through the vault's own
+     * their My vault in the specified org: a sign-in saved at the server's
+     * address, whichever tool or page started it. A pasted login and a
+     * sign-in saved into a shared vault are read through the vault's own
      * RPCs.
      * Returns sign-in metadata (connected status, token expiry, auth method)
      * without exposing any secret token values. The frontend uses this to
@@ -429,30 +349,6 @@ public final class McpServerQueryControllerGrpc {
     public ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput getOAuthGrantStatus(ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getGetOAuthGrantStatusMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Query whether an org has a BYOA override for a resource.
-     * Returns override metadata (existence, OAuthApp ID, client_id) without
-     * exposing secrets. The frontend uses this to show which credential
-     * source is active and to offer override management options to org admins.
-     * Edition scoping: hosted-only, together with setOrgOAuthApp and
-     * deleteOrgOAuthApp — the three org-OAuth-app RPCs are ONE capability.
-     * The OSS server answers UNIMPLEMENTED for all of them by design: its
-     * flat OAuthApp store has no override binding, its OAuth resolution has
-     * no override level to consult, and BYOA's clone-from-platform-template
-     * model has no template to clone (self-hosted users apply their own
-     * OAuthApp and reference it from spec.auth.oauth_app_ref — a strictly
-     * more powerful path). Clients probe the capability through THIS RPC:
-     * an UNIMPLEMENTED answer means "hide every BYOA affordance" (see the
-     * SDK's useOrgOAuthApp.isSupported). Never implement one RPC of the
-     * surface without the other two and the client-side gate.
-     * </pre>
-     */
-    public ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput getOrgOAuthApp(ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput request) throws io.grpc.StatusException {
-      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getGetOrgOAuthAppMethod(), getCallOptions(), request);
     }
   }
 
@@ -500,9 +396,9 @@ public final class McpServerQueryControllerGrpc {
     /**
      * <pre>
      * Check whether the authenticated user has a sign-in for an MCP server in
-     * their My vault in the specified org that a run would use: one this
-     * server's sign-in saved at the server's current address. A pasted login
-     * and a sign-in saved into a shared vault are read through the vault's own
+     * their My vault in the specified org: a sign-in saved at the server's
+     * address, whichever tool or page started it. A pasted login and a
+     * sign-in saved into a shared vault are read through the vault's own
      * RPCs.
      * Returns sign-in metadata (connected status, token expiry, auth method)
      * without exposing any secret token values. The frontend uses this to
@@ -513,30 +409,6 @@ public final class McpServerQueryControllerGrpc {
     public ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput getOAuthGrantStatus(ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getGetOAuthGrantStatusMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Query whether an org has a BYOA override for a resource.
-     * Returns override metadata (existence, OAuthApp ID, client_id) without
-     * exposing secrets. The frontend uses this to show which credential
-     * source is active and to offer override management options to org admins.
-     * Edition scoping: hosted-only, together with setOrgOAuthApp and
-     * deleteOrgOAuthApp — the three org-OAuth-app RPCs are ONE capability.
-     * The OSS server answers UNIMPLEMENTED for all of them by design: its
-     * flat OAuthApp store has no override binding, its OAuth resolution has
-     * no override level to consult, and BYOA's clone-from-platform-template
-     * model has no template to clone (self-hosted users apply their own
-     * OAuthApp and reference it from spec.auth.oauth_app_ref — a strictly
-     * more powerful path). Clients probe the capability through THIS RPC:
-     * an UNIMPLEMENTED answer means "hide every BYOA affordance" (see the
-     * SDK's useOrgOAuthApp.isSupported). Never implement one RPC of the
-     * surface without the other two and the client-side gate.
-     * </pre>
-     */
-    public ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput getOrgOAuthApp(ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getGetOrgOAuthAppMethod(), getCallOptions(), request);
     }
   }
 
@@ -586,9 +458,9 @@ public final class McpServerQueryControllerGrpc {
     /**
      * <pre>
      * Check whether the authenticated user has a sign-in for an MCP server in
-     * their My vault in the specified org that a run would use: one this
-     * server's sign-in saved at the server's current address. A pasted login
-     * and a sign-in saved into a shared vault are read through the vault's own
+     * their My vault in the specified org: a sign-in saved at the server's
+     * address, whichever tool or page started it. A pasted login and a
+     * sign-in saved into a shared vault are read through the vault's own
      * RPCs.
      * Returns sign-in metadata (connected status, token expiry, auth method)
      * without exposing any secret token values. The frontend uses this to
@@ -601,37 +473,11 @@ public final class McpServerQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getGetOAuthGrantStatusMethod(), getCallOptions()), request);
     }
-
-    /**
-     * <pre>
-     * Query whether an org has a BYOA override for a resource.
-     * Returns override metadata (existence, OAuthApp ID, client_id) without
-     * exposing secrets. The frontend uses this to show which credential
-     * source is active and to offer override management options to org admins.
-     * Edition scoping: hosted-only, together with setOrgOAuthApp and
-     * deleteOrgOAuthApp — the three org-OAuth-app RPCs are ONE capability.
-     * The OSS server answers UNIMPLEMENTED for all of them by design: its
-     * flat OAuthApp store has no override binding, its OAuth resolution has
-     * no override level to consult, and BYOA's clone-from-platform-template
-     * model has no template to clone (self-hosted users apply their own
-     * OAuthApp and reference it from spec.auth.oauth_app_ref — a strictly
-     * more powerful path). Clients probe the capability through THIS RPC:
-     * an UNIMPLEMENTED answer means "hide every BYOA affordance" (see the
-     * SDK's useOrgOAuthApp.isSupported). Never implement one RPC of the
-     * surface without the other two and the client-side gate.
-     * </pre>
-     */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput> getOrgOAuthApp(
-        ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getGetOrgOAuthAppMethod(), getCallOptions()), request);
-    }
   }
 
   private static final int METHODID_GET = 0;
   private static final int METHODID_GET_BY_REFERENCE = 1;
   private static final int METHODID_GET_OAUTH_GRANT_STATUS = 2;
-  private static final int METHODID_GET_ORG_OAUTH_APP = 3;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -661,10 +507,6 @@ public final class McpServerQueryControllerGrpc {
         case METHODID_GET_OAUTH_GRANT_STATUS:
           serviceImpl.getOAuthGrantStatus((ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput>) responseObserver);
-          break;
-        case METHODID_GET_ORG_OAUTH_APP:
-          serviceImpl.getOrgOAuthApp((ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -705,13 +547,6 @@ public final class McpServerQueryControllerGrpc {
               ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput,
               ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput>(
                 service, METHODID_GET_OAUTH_GRANT_STATUS)))
-        .addMethod(
-          getGetOrgOAuthAppMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
-            new MethodHandlers<
-              ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput,
-              ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput>(
-                service, METHODID_GET_ORG_OAUTH_APP)))
         .build();
   }
 
@@ -763,7 +598,6 @@ public final class McpServerQueryControllerGrpc {
               .addMethod(getGetMethod())
               .addMethod(getGetByReferenceMethod())
               .addMethod(getGetOAuthGrantStatusMethod())
-              .addMethod(getGetOrgOAuthAppMethod())
               .build();
         }
       }

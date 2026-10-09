@@ -42,6 +42,8 @@ export interface OAuthCallbackMessage {
   readonly type: typeof OAUTH_CALLBACK_MESSAGE_TYPE;
   readonly code: string;
   readonly state: string;
+  /** The login page's refusal (`error_description`, else `error`); set when it sent no code. */
+  readonly error?: string;
 }
 
 /**
@@ -120,9 +122,12 @@ export function popupBlockedError(): Error {
  * 2. A {@link OAUTH_BROADCAST_CHANNEL} BroadcastChannel — works even when
  *    COOP headers sever the opener reference.
  *
- * Rejects on state mismatch, missing code, timeout, user-closed popup
- * (legacy transport only — see {@link POPUP_CLOSED_GRACE_MS}), or
- * cancellation via the `onDispose` handle.
+ * A callback for another state is another flow's (a second tab's sign-in,
+ * or a return that reached the shared page without its opener) and is
+ * ignored. Rejects on the login page's refusal for this state, missing
+ * code, timeout, user-closed popup (legacy transport only — see
+ * {@link POPUP_CLOSED_GRACE_MS}), or cancellation via the `onDispose`
+ * handle.
  *
  * @param popup - The popup opened by {@link openOAuthPopup}.
  * @param expectedState - The `state` returned by the initiate RPC; the
@@ -172,13 +177,11 @@ export function waitForOAuthCallback(
     function validateAndSettle(data: OAuthCallbackMessage | undefined) {
       if (data?.type !== OAUTH_CALLBACK_MESSAGE_TYPE) return;
 
-      if (data.state !== expectedState) {
-        settle(
-          new Error(
-            "OAuth state mismatch — the callback did not match the " +
-              "initiated flow. Please try again.",
-          ),
-        );
+      // Another flow's callback: its own wait takes it.
+      if (data.state !== expectedState) return;
+
+      if (data.error) {
+        settle(new Error(`The login page did not sign you in: ${data.error}`));
         return;
       }
 

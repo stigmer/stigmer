@@ -122,10 +122,26 @@ describe("waitForOAuthCallback", () => {
     await expect(wait).resolves.toBeDefined();
   });
 
-  it("rejects on state mismatch", async () => {
+  it("ignores a callback for another state: it is another flow's", async () => {
+    vi.useFakeTimers();
     const wait = waitForOAuthCallback(fakePopup(), "state-1", () => {});
-    postWindowMessage(validMessage("state-WRONG"));
-    await expect(wait).rejects.toThrow(/state mismatch/i);
+    const settled = vi.fn();
+    wait.then(settled, settled);
+
+    postWindowMessage(validMessage("state-OTHER"));
+    FakeBroadcastChannel.deliver({ type: OAUTH_CALLBACK_MESSAGE_TYPE, code: "", state: "state-OTHER", error: "access_denied" });
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(settled).not.toHaveBeenCalled();
+
+    postWindowMessage(validMessage("state-1"));
+    await vi.runOnlyPendingTimersAsync();
+    await expect(wait).resolves.toEqual({ code: "auth-code-123", state: "state-1" });
+  });
+
+  it("rejects at once with the login page's refusal for its own state", async () => {
+    const wait = waitForOAuthCallback(fakePopup(), "state-1", () => {});
+    FakeBroadcastChannel.deliver({ type: OAUTH_CALLBACK_MESSAGE_TYPE, code: "", state: "state-1", error: "The user denied access" });
+    await expect(wait).rejects.toThrow("The login page did not sign you in: The user denied access");
   });
 
   it("rejects when the callback carries no code", async () => {

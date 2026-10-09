@@ -2,6 +2,15 @@
 
 package ai.stigmer.sdk.gen;
 
+import ai.stigmer.agentic.vault.v1.CompleteConnectLinkInput;
+import ai.stigmer.agentic.vault.v1.CompleteConnectLinkOutput;
+import ai.stigmer.agentic.vault.v1.CompleteSignInInput;
+import ai.stigmer.agentic.vault.v1.CompleteSignInOutput;
+import ai.stigmer.agentic.vault.v1.ConnectLink;
+import ai.stigmer.agentic.vault.v1.ConnectLinkControllerGrpc;
+import ai.stigmer.agentic.vault.v1.ConnectLinkInfo;
+import ai.stigmer.agentic.vault.v1.ConnectLinkTokenInput;
+import ai.stigmer.agentic.vault.v1.CreateConnectLinkInput;
 import ai.stigmer.agentic.vault.v1.GetMyVaultInput;
 import ai.stigmer.agentic.vault.v1.GetVaultByExternalIdInput;
 import ai.stigmer.agentic.vault.v1.ListVaultsRequest;
@@ -9,6 +18,9 @@ import ai.stigmer.agentic.vault.v1.RemoveVaultConnectionsInput;
 import ai.stigmer.agentic.vault.v1.RemoveVaultSecretsInput;
 import ai.stigmer.agentic.vault.v1.SetVaultConnectionInput;
 import ai.stigmer.agentic.vault.v1.SetVaultSecretsInput;
+import ai.stigmer.agentic.vault.v1.StartConnectLinkOutput;
+import ai.stigmer.agentic.vault.v1.StartSignInInput;
+import ai.stigmer.agentic.vault.v1.StartSignInOutput;
 import ai.stigmer.agentic.vault.v1.Vault;
 import ai.stigmer.agentic.vault.v1.VaultCommandControllerGrpc;
 import ai.stigmer.agentic.vault.v1.VaultList;
@@ -23,10 +35,12 @@ import io.grpc.StatusRuntimeException;
 /** Provides operations on vault resources. */
 public final class VaultClient {
     private final VaultCommandControllerGrpc.VaultCommandControllerBlockingStub command;
+    private final ConnectLinkControllerGrpc.ConnectLinkControllerBlockingStub connectLink;
     private final VaultQueryControllerGrpc.VaultQueryControllerBlockingStub query;
 
     VaultClient(Channel channel) {
         this.command = VaultCommandControllerGrpc.newBlockingStub(channel);
+        this.connectLink = ConnectLinkControllerGrpc.newBlockingStub(channel);
         this.query = VaultQueryControllerGrpc.newBlockingStub(channel);
     }
 
@@ -81,6 +95,42 @@ public final class VaultClient {
     public Vault removeConnections(RemoveVaultConnectionsInput input) {
         try {
             return command.removeConnections(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public StartSignInOutput startSignIn(StartSignInInput input) {
+        try {
+            return command.startSignIn(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public CompleteSignInOutput completeSignIn(CompleteSignInInput input) {
+        try {
+            return command.completeSignIn(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public ConnectLink createConnectLink(CreateConnectLinkInput input) {
+        try {
+            return command.createConnectLink(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public ConnectLinkInfo getConnectLink(ConnectLinkTokenInput input) {
+        try {
+            return connectLink.getConnectLink(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public StartConnectLinkOutput startConnectLink(ConnectLinkTokenInput input) {
+        try {
+            return connectLink.startConnectLink(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public CompleteConnectLinkOutput completeConnectLink(CompleteConnectLinkInput input) {
+        try {
+            return connectLink.completeConnectLink(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

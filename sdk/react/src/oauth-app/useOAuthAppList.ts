@@ -26,9 +26,8 @@ export interface UseOAuthAppListReturn {
  *
  * Returns the organization's OAuthApps that a `get` would return to the
  * caller: the organization's admins see every app, anyone granted viewer on
- * an app sees that app, and other members and viewers see none. In practice
- * these are the BYOA OAuth apps created through the "Bring your own app"
- * flow on MCP server detail pages.
+ * an app sees that app, and other members and viewers see none. Each app
+ * lists the addresses it signs in to; a sign-in at one of them uses it.
  *
  * Pass `null` for `org` to skip fetching (stable no-op). Useful when
  * the active organization has not been resolved yet.

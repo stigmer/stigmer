@@ -200,8 +200,9 @@ describe("useConnectSlackChannel", () => {
     expect(result.current.phase).toBe("idle");
   });
 
-  it("rejects on state mismatch from the callback", async () => {
-    const client = createMockStigmer();
+  it("ignores a callback for another state, and completes on its own", async () => {
+    const completeInstall = vi.fn().mockResolvedValue({});
+    const client = createMockStigmer({ completeInstall });
 
     const { result } = renderHook(() => useConnectSlackChannel(), {
       wrapper: wrapper(client),
@@ -217,9 +218,14 @@ describe("useConnectSlackChannel", () => {
       expect(result.current.phase).toBe("awaiting-callback"),
     );
     act(() => deliverCallback("state-FORGED"));
+    await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+    expect(result.current.phase).toBe("awaiting-callback");
+    expect(result.current.error).toBeNull();
+    expect(completeInstall).not.toHaveBeenCalled();
 
-    await waitFor(() => expect(result.current.error).toBeTruthy());
-    expect(result.current.error?.message).toMatch(/state mismatch/i);
+    act(() => deliverCallback("state-1"));
+    await waitFor(() => expect(result.current.phase).toBe("done"));
+    expect(completeInstall).toHaveBeenCalledTimes(1);
   });
 
   it("clearError cancels an in-flight flow without recording an error", async () => {

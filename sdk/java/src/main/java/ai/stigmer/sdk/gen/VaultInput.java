@@ -252,8 +252,7 @@ public final class VaultInput {
         private final String authMethod;
         private final String tokenEndpoint;
         private final String refreshToken;
-        private final String mcpServerId;
-        private final boolean localProgram;
+        private final String loginApp;
 
         private VaultConnectionSignInInput(Builder builder) {
             this.expiresAt = builder.expiresAt;
@@ -261,8 +260,7 @@ public final class VaultInput {
             this.authMethod = builder.authMethod;
             this.tokenEndpoint = builder.tokenEndpoint;
             this.refreshToken = builder.refreshToken;
-            this.mcpServerId = builder.mcpServerId;
-            this.localProgram = builder.localProgram;
+            this.loginApp = builder.loginApp;
         }
 
         VaultConnectionSignIn toProto() {
@@ -280,10 +278,9 @@ public final class VaultInput {
             if (this.refreshToken != null) {
                 builder.setRefreshToken(this.refreshToken);
             }
-            if (this.mcpServerId != null) {
-                builder.setMcpServerId(this.mcpServerId);
+            if (this.loginApp != null) {
+                builder.setLoginApp(this.loginApp);
             }
-            builder.setLocalProgram(this.localProgram);
             return builder.build();
         }
 
@@ -295,8 +292,7 @@ public final class VaultInput {
             private String authMethod;
             private String tokenEndpoint;
             private String refreshToken;
-            private String mcpServerId;
-            private boolean localProgram;
+            private String loginApp;
 
             private Builder() {}
 
@@ -305,8 +301,7 @@ public final class VaultInput {
             public Builder authMethod(String authMethod) { this.authMethod = authMethod; return this; }
             public Builder tokenEndpoint(String tokenEndpoint) { this.tokenEndpoint = tokenEndpoint; return this; }
             public Builder refreshToken(String refreshToken) { this.refreshToken = refreshToken; return this; }
-            public Builder mcpServerId(String mcpServerId) { this.mcpServerId = mcpServerId; return this; }
-            public Builder localProgram(boolean localProgram) { this.localProgram = localProgram; return this; }
+            public Builder loginApp(String loginApp) { this.loginApp = loginApp; return this; }
 
             public VaultConnectionSignInInput build() { return new VaultConnectionSignInInput(this); }
         }

@@ -28,6 +28,9 @@ const (
 	VaultCommandController_RemoveSecrets_FullMethodName     = "/ai.stigmer.agentic.vault.v1.VaultCommandController/removeSecrets"
 	VaultCommandController_SetConnection_FullMethodName     = "/ai.stigmer.agentic.vault.v1.VaultCommandController/setConnection"
 	VaultCommandController_RemoveConnections_FullMethodName = "/ai.stigmer.agentic.vault.v1.VaultCommandController/removeConnections"
+	VaultCommandController_StartSignIn_FullMethodName       = "/ai.stigmer.agentic.vault.v1.VaultCommandController/startSignIn"
+	VaultCommandController_CompleteSignIn_FullMethodName    = "/ai.stigmer.agentic.vault.v1.VaultCommandController/completeSignIn"
+	VaultCommandController_CreateConnectLink_FullMethodName = "/ai.stigmer.agentic.vault.v1.VaultCommandController/createConnectLink"
 )
 
 // VaultCommandControllerClient is the client API for VaultCommandController service.
@@ -71,6 +74,34 @@ type VaultCommandControllerClient interface {
 	SetConnection(ctx context.Context, in *SetVaultConnectionInput, opts ...grpc.CallOption) (*Vault, error)
 	// Remove logins from a vault by address.
 	RemoveConnections(ctx context.Context, in *RemoveVaultConnectionsInput, opts ...grpc.CallOption) (*Vault, error)
+	// Start a sign-in at an address, to save the login in a vault.
+	//
+	// Answers the login page to send the person to. When they have signed in,
+	// the page they return to calls completeSignIn with what the login page
+	// handed back. The sign-in must be completed within ten minutes.
+	//
+	// The login fills every HTTP tool whose URL is the address, and a Git
+	// host's login serves clones from that host.
+	StartSignIn(ctx context.Context, in *StartSignInInput, opts ...grpc.CallOption) (*StartSignInOutput, error)
+	// Finish a sign-in: exchange the code the login page handed back and save
+	// the login in the vault the sign-in was started for, replacing any login
+	// saved at the address.
+	//
+	// Only the person who started the sign-in may finish it.
+	CompleteSignIn(ctx context.Context, in *CompleteSignInInput, opts ...grpc.CallOption) (*CompleteSignInOutput, error)
+	// Make a Connect link: a one-time page where someone without a Stigmer
+	// account signs in at an address, and the login is saved into a shared
+	// vault.
+	//
+	// An integrator makes one for each customer's vault and sends the
+	// customer to its url. The customer sees one Stigmer page with a
+	// Continue button, then the login page, then returns to return_url.
+	//
+	// Refused for My vault, and for an address the organization has no
+	// approved login app of its own for: a link signs in only through the
+	// organization's app (its name on the vendor's consent page), never
+	// through Stigmer's own apps or Stigmer's client at a login server.
+	CreateConnectLink(ctx context.Context, in *CreateConnectLinkInput, opts ...grpc.CallOption) (*ConnectLink, error)
 }
 
 type vaultCommandControllerClient struct {
@@ -161,6 +192,36 @@ func (c *vaultCommandControllerClient) RemoveConnections(ctx context.Context, in
 	return out, nil
 }
 
+func (c *vaultCommandControllerClient) StartSignIn(ctx context.Context, in *StartSignInInput, opts ...grpc.CallOption) (*StartSignInOutput, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(StartSignInOutput)
+	err := c.cc.Invoke(ctx, VaultCommandController_StartSignIn_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *vaultCommandControllerClient) CompleteSignIn(ctx context.Context, in *CompleteSignInInput, opts ...grpc.CallOption) (*CompleteSignInOutput, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CompleteSignInOutput)
+	err := c.cc.Invoke(ctx, VaultCommandController_CompleteSignIn_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *vaultCommandControllerClient) CreateConnectLink(ctx context.Context, in *CreateConnectLinkInput, opts ...grpc.CallOption) (*ConnectLink, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ConnectLink)
+	err := c.cc.Invoke(ctx, VaultCommandController_CreateConnectLink_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // VaultCommandControllerServer is the server API for VaultCommandController service.
 // All implementations should embed UnimplementedVaultCommandControllerServer
 // for forward compatibility.
@@ -202,6 +263,34 @@ type VaultCommandControllerServer interface {
 	SetConnection(context.Context, *SetVaultConnectionInput) (*Vault, error)
 	// Remove logins from a vault by address.
 	RemoveConnections(context.Context, *RemoveVaultConnectionsInput) (*Vault, error)
+	// Start a sign-in at an address, to save the login in a vault.
+	//
+	// Answers the login page to send the person to. When they have signed in,
+	// the page they return to calls completeSignIn with what the login page
+	// handed back. The sign-in must be completed within ten minutes.
+	//
+	// The login fills every HTTP tool whose URL is the address, and a Git
+	// host's login serves clones from that host.
+	StartSignIn(context.Context, *StartSignInInput) (*StartSignInOutput, error)
+	// Finish a sign-in: exchange the code the login page handed back and save
+	// the login in the vault the sign-in was started for, replacing any login
+	// saved at the address.
+	//
+	// Only the person who started the sign-in may finish it.
+	CompleteSignIn(context.Context, *CompleteSignInInput) (*CompleteSignInOutput, error)
+	// Make a Connect link: a one-time page where someone without a Stigmer
+	// account signs in at an address, and the login is saved into a shared
+	// vault.
+	//
+	// An integrator makes one for each customer's vault and sends the
+	// customer to its url. The customer sees one Stigmer page with a
+	// Continue button, then the login page, then returns to return_url.
+	//
+	// Refused for My vault, and for an address the organization has no
+	// approved login app of its own for: a link signs in only through the
+	// organization's app (its name on the vendor's consent page), never
+	// through Stigmer's own apps or Stigmer's client at a login server.
+	CreateConnectLink(context.Context, *CreateConnectLinkInput) (*ConnectLink, error)
 }
 
 // UnimplementedVaultCommandControllerServer should be embedded to have
@@ -234,6 +323,15 @@ func (UnimplementedVaultCommandControllerServer) SetConnection(context.Context, 
 }
 func (UnimplementedVaultCommandControllerServer) RemoveConnections(context.Context, *RemoveVaultConnectionsInput) (*Vault, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RemoveConnections not implemented")
+}
+func (UnimplementedVaultCommandControllerServer) StartSignIn(context.Context, *StartSignInInput) (*StartSignInOutput, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method StartSignIn not implemented")
+}
+func (UnimplementedVaultCommandControllerServer) CompleteSignIn(context.Context, *CompleteSignInInput) (*CompleteSignInOutput, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CompleteSignIn not implemented")
+}
+func (UnimplementedVaultCommandControllerServer) CreateConnectLink(context.Context, *CreateConnectLinkInput) (*ConnectLink, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateConnectLink not implemented")
 }
 func (UnimplementedVaultCommandControllerServer) testEmbeddedByValue() {}
 
@@ -399,6 +497,60 @@ func _VaultCommandController_RemoveConnections_Handler(srv interface{}, ctx cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _VaultCommandController_StartSignIn_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StartSignInInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VaultCommandControllerServer).StartSignIn(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VaultCommandController_StartSignIn_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VaultCommandControllerServer).StartSignIn(ctx, req.(*StartSignInInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VaultCommandController_CompleteSignIn_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CompleteSignInInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VaultCommandControllerServer).CompleteSignIn(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VaultCommandController_CompleteSignIn_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VaultCommandControllerServer).CompleteSignIn(ctx, req.(*CompleteSignInInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VaultCommandController_CreateConnectLink_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateConnectLinkInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VaultCommandControllerServer).CreateConnectLink(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VaultCommandController_CreateConnectLink_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VaultCommandControllerServer).CreateConnectLink(ctx, req.(*CreateConnectLinkInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // VaultCommandController_ServiceDesc is the grpc.ServiceDesc for VaultCommandController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -437,6 +589,18 @@ var VaultCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "removeConnections",
 			Handler:    _VaultCommandController_RemoveConnections_Handler,
+		},
+		{
+			MethodName: "startSignIn",
+			Handler:    _VaultCommandController_StartSignIn_Handler,
+		},
+		{
+			MethodName: "completeSignIn",
+			Handler:    _VaultCommandController_CompleteSignIn_Handler,
+		},
+		{
+			MethodName: "createConnectLink",
+			Handler:    _VaultCommandController_CreateConnectLink_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

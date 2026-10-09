@@ -37,7 +37,7 @@ private static final long serialVersionUID = 0L;
     authMethod_ = "";
     tokenEndpoint_ = "";
     refreshToken_ = "";
-    mcpServerId_ = "";
+    loginApp_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -262,72 +262,57 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int MCP_SERVER_ID_FIELD_NUMBER = 6;
+  public static final int LOGIN_APP_FIELD_NUMBER = 8;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object mcpServerId_ = "";
+  private volatile java.lang.Object loginApp_ = "";
   /**
    * <pre>
-   * The MCP server the sign-in was started from, by id. The sign-in fills
-   * that server's login only.
+   * The login app the sign-in used, so a renewal presents the same client:
+   * "org:&lt;OAuthApp id&gt;" for an organization's app, "stigmer:&lt;key&gt;" for one of
+   * Stigmer's built-in login apps, and empty for a client registered with
+   * the address's own login server, which has no secret. Set by the server.
    * </pre>
    *
-   * <code>string mcp_server_id = 6 [json_name = "mcpServerId"];</code>
-   * @return The mcpServerId.
+   * <code>string login_app = 8 [json_name = "loginApp"];</code>
+   * @return The loginApp.
    */
   @java.lang.Override
-  public java.lang.String getMcpServerId() {
-    java.lang.Object ref = mcpServerId_;
+  public java.lang.String getLoginApp() {
+    java.lang.Object ref = loginApp_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      mcpServerId_ = s;
+      loginApp_ = s;
       return s;
     }
   }
   /**
    * <pre>
-   * The MCP server the sign-in was started from, by id. The sign-in fills
-   * that server's login only.
+   * The login app the sign-in used, so a renewal presents the same client:
+   * "org:&lt;OAuthApp id&gt;" for an organization's app, "stigmer:&lt;key&gt;" for one of
+   * Stigmer's built-in login apps, and empty for a client registered with
+   * the address's own login server, which has no secret. Set by the server.
    * </pre>
    *
-   * <code>string mcp_server_id = 6 [json_name = "mcpServerId"];</code>
-   * @return The bytes for mcpServerId.
+   * <code>string login_app = 8 [json_name = "loginApp"];</code>
+   * @return The bytes for loginApp.
    */
   @java.lang.Override
   public com.google.protobuf.ByteString
-      getMcpServerIdBytes() {
-    java.lang.Object ref = mcpServerId_;
+      getLoginAppBytes() {
+    java.lang.Object ref = loginApp_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      mcpServerId_ = b;
+      loginApp_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
     }
-  }
-
-  public static final int LOCAL_PROGRAM_FIELD_NUMBER = 7;
-  private boolean localProgram_ = false;
-  /**
-   * <pre>
-   * Whether the MCP server was a local program (stdio) when the sign-in
-   * completed; false for an HTTP server. The sign-in fills that server's
-   * login only while it is still the same kind: a server switched between
-   * an HTTP server and a local program needs a new sign-in. Set by the
-   * server.
-   * </pre>
-   *
-   * <code>bool local_program = 7 [json_name = "localProgram"];</code>
-   * @return The localProgram.
-   */
-  @java.lang.Override
-  public boolean getLocalProgram() {
-    return localProgram_;
   }
 
   private byte memoizedIsInitialized = -1;
@@ -359,11 +344,8 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(refreshToken_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 5, refreshToken_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(mcpServerId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 6, mcpServerId_);
-    }
-    if (localProgram_ != false) {
-      output.writeBool(7, localProgram_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(loginApp_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 8, loginApp_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -390,12 +372,8 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(refreshToken_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(5, refreshToken_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(mcpServerId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(6, mcpServerId_);
-    }
-    if (localProgram_ != false) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeBoolSize(7, localProgram_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(loginApp_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(8, loginApp_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -422,10 +400,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getTokenEndpoint())) return false;
     if (!getRefreshToken()
         .equals(other.getRefreshToken())) return false;
-    if (!getMcpServerId()
-        .equals(other.getMcpServerId())) return false;
-    if (getLocalProgram()
-        != other.getLocalProgram()) return false;
+    if (!getLoginApp()
+        .equals(other.getLoginApp())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -448,11 +424,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getTokenEndpoint().hashCode();
     hash = (37 * hash) + REFRESH_TOKEN_FIELD_NUMBER;
     hash = (53 * hash) + getRefreshToken().hashCode();
-    hash = (37 * hash) + MCP_SERVER_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getMcpServerId().hashCode();
-    hash = (37 * hash) + LOCAL_PROGRAM_FIELD_NUMBER;
-    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
-        getLocalProgram());
+    hash = (37 * hash) + LOGIN_APP_FIELD_NUMBER;
+    hash = (53 * hash) + getLoginApp().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -594,8 +567,7 @@ private static final long serialVersionUID = 0L;
       authMethod_ = "";
       tokenEndpoint_ = "";
       refreshToken_ = "";
-      mcpServerId_ = "";
-      localProgram_ = false;
+      loginApp_ = "";
       return this;
     }
 
@@ -645,10 +617,7 @@ private static final long serialVersionUID = 0L;
         result.refreshToken_ = refreshToken_;
       }
       if (((from_bitField0_ & 0x00000020) != 0)) {
-        result.mcpServerId_ = mcpServerId_;
-      }
-      if (((from_bitField0_ & 0x00000040) != 0)) {
-        result.localProgram_ = localProgram_;
+        result.loginApp_ = loginApp_;
       }
     }
 
@@ -687,13 +656,10 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000010;
         onChanged();
       }
-      if (!other.getMcpServerId().isEmpty()) {
-        mcpServerId_ = other.mcpServerId_;
+      if (!other.getLoginApp().isEmpty()) {
+        loginApp_ = other.loginApp_;
         bitField0_ |= 0x00000020;
         onChanged();
-      }
-      if (other.getLocalProgram() != false) {
-        setLocalProgram(other.getLocalProgram());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -746,16 +712,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000010;
               break;
             } // case 42
-            case 50: {
-              mcpServerId_ = input.readStringRequireUtf8();
+            case 66: {
+              loginApp_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000020;
               break;
-            } // case 50
-            case 56: {
-              localProgram_ = input.readBool();
-              bitField0_ |= 0x00000040;
-              break;
-            } // case 56
+            } // case 66
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1188,23 +1149,25 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private java.lang.Object mcpServerId_ = "";
+    private java.lang.Object loginApp_ = "";
     /**
      * <pre>
-     * The MCP server the sign-in was started from, by id. The sign-in fills
-     * that server's login only.
+     * The login app the sign-in used, so a renewal presents the same client:
+     * "org:&lt;OAuthApp id&gt;" for an organization's app, "stigmer:&lt;key&gt;" for one of
+     * Stigmer's built-in login apps, and empty for a client registered with
+     * the address's own login server, which has no secret. Set by the server.
      * </pre>
      *
-     * <code>string mcp_server_id = 6 [json_name = "mcpServerId"];</code>
-     * @return The mcpServerId.
+     * <code>string login_app = 8 [json_name = "loginApp"];</code>
+     * @return The loginApp.
      */
-    public java.lang.String getMcpServerId() {
-      java.lang.Object ref = mcpServerId_;
+    public java.lang.String getLoginApp() {
+      java.lang.Object ref = loginApp_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        mcpServerId_ = s;
+        loginApp_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
@@ -1212,21 +1175,23 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The MCP server the sign-in was started from, by id. The sign-in fills
-     * that server's login only.
+     * The login app the sign-in used, so a renewal presents the same client:
+     * "org:&lt;OAuthApp id&gt;" for an organization's app, "stigmer:&lt;key&gt;" for one of
+     * Stigmer's built-in login apps, and empty for a client registered with
+     * the address's own login server, which has no secret. Set by the server.
      * </pre>
      *
-     * <code>string mcp_server_id = 6 [json_name = "mcpServerId"];</code>
-     * @return The bytes for mcpServerId.
+     * <code>string login_app = 8 [json_name = "loginApp"];</code>
+     * @return The bytes for loginApp.
      */
     public com.google.protobuf.ByteString
-        getMcpServerIdBytes() {
-      java.lang.Object ref = mcpServerId_;
+        getLoginAppBytes() {
+      java.lang.Object ref = loginApp_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        mcpServerId_ = b;
+        loginApp_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
@@ -1234,109 +1199,59 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The MCP server the sign-in was started from, by id. The sign-in fills
-     * that server's login only.
+     * The login app the sign-in used, so a renewal presents the same client:
+     * "org:&lt;OAuthApp id&gt;" for an organization's app, "stigmer:&lt;key&gt;" for one of
+     * Stigmer's built-in login apps, and empty for a client registered with
+     * the address's own login server, which has no secret. Set by the server.
      * </pre>
      *
-     * <code>string mcp_server_id = 6 [json_name = "mcpServerId"];</code>
-     * @param value The mcpServerId to set.
+     * <code>string login_app = 8 [json_name = "loginApp"];</code>
+     * @param value The loginApp to set.
      * @return This builder for chaining.
      */
-    public Builder setMcpServerId(
+    public Builder setLoginApp(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      mcpServerId_ = value;
+      loginApp_ = value;
       bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * The MCP server the sign-in was started from, by id. The sign-in fills
-     * that server's login only.
+     * The login app the sign-in used, so a renewal presents the same client:
+     * "org:&lt;OAuthApp id&gt;" for an organization's app, "stigmer:&lt;key&gt;" for one of
+     * Stigmer's built-in login apps, and empty for a client registered with
+     * the address's own login server, which has no secret. Set by the server.
      * </pre>
      *
-     * <code>string mcp_server_id = 6 [json_name = "mcpServerId"];</code>
+     * <code>string login_app = 8 [json_name = "loginApp"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearMcpServerId() {
-      mcpServerId_ = getDefaultInstance().getMcpServerId();
+    public Builder clearLoginApp() {
+      loginApp_ = getDefaultInstance().getLoginApp();
       bitField0_ = (bitField0_ & ~0x00000020);
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * The MCP server the sign-in was started from, by id. The sign-in fills
-     * that server's login only.
+     * The login app the sign-in used, so a renewal presents the same client:
+     * "org:&lt;OAuthApp id&gt;" for an organization's app, "stigmer:&lt;key&gt;" for one of
+     * Stigmer's built-in login apps, and empty for a client registered with
+     * the address's own login server, which has no secret. Set by the server.
      * </pre>
      *
-     * <code>string mcp_server_id = 6 [json_name = "mcpServerId"];</code>
-     * @param value The bytes for mcpServerId to set.
+     * <code>string login_app = 8 [json_name = "loginApp"];</code>
+     * @param value The bytes for loginApp to set.
      * @return This builder for chaining.
      */
-    public Builder setMcpServerIdBytes(
+    public Builder setLoginAppBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      mcpServerId_ = value;
+      loginApp_ = value;
       bitField0_ |= 0x00000020;
-      onChanged();
-      return this;
-    }
-
-    private boolean localProgram_ ;
-    /**
-     * <pre>
-     * Whether the MCP server was a local program (stdio) when the sign-in
-     * completed; false for an HTTP server. The sign-in fills that server's
-     * login only while it is still the same kind: a server switched between
-     * an HTTP server and a local program needs a new sign-in. Set by the
-     * server.
-     * </pre>
-     *
-     * <code>bool local_program = 7 [json_name = "localProgram"];</code>
-     * @return The localProgram.
-     */
-    @java.lang.Override
-    public boolean getLocalProgram() {
-      return localProgram_;
-    }
-    /**
-     * <pre>
-     * Whether the MCP server was a local program (stdio) when the sign-in
-     * completed; false for an HTTP server. The sign-in fills that server's
-     * login only while it is still the same kind: a server switched between
-     * an HTTP server and a local program needs a new sign-in. Set by the
-     * server.
-     * </pre>
-     *
-     * <code>bool local_program = 7 [json_name = "localProgram"];</code>
-     * @param value The localProgram to set.
-     * @return This builder for chaining.
-     */
-    public Builder setLocalProgram(boolean value) {
-
-      localProgram_ = value;
-      bitField0_ |= 0x00000040;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Whether the MCP server was a local program (stdio) when the sign-in
-     * completed; false for an HTTP server. The sign-in fills that server's
-     * login only while it is still the same kind: a server switched between
-     * an HTTP server and a local program needs a new sign-in. Set by the
-     * server.
-     * </pre>
-     *
-     * <code>bool local_program = 7 [json_name = "localProgram"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearLocalProgram() {
-      bitField0_ = (bitField0_ & ~0x00000040);
-      localProgram_ = false;
       onChanged();
       return this;
     }
