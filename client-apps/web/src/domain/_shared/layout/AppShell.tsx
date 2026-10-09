@@ -25,11 +25,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const desktopBanner = useDesktopBannerState();
 
   const isManagementZone = pathname.startsWith("/settings");
+  // The public routes render no sidebar: they hold no session (a Connect
+  // link's customer, a sign-in's popup returning) and the sidebar reads one.
   const isPublicZone =
     pathname.startsWith("/invite/") ||
     pathname.startsWith("/login") ||
     pathname.startsWith("/chat/") ||
-    pathname.startsWith("/desktop/");
+    pathname.startsWith("/desktop/") ||
+    pathname.startsWith("/connect/") ||
+    pathname.startsWith("/auth/oauth/callback");
 
   // Close the sidebar overlay when the route changes on mobile viewports.
   // Desktop keeps the sidebar open across navigations.
