@@ -247,8 +247,12 @@ Where the native harness's models are served when the runner talks to providers 
 | Variable | Applies to | Required | Default | Purpose |
 |----------|-----------|----------|---------|---------|
 | `STIGMER_ANTHROPIC_BACKEND` | Anthropic models | No | `public` | Where Anthropic models are served: `public` (Anthropic's API), `vertex`, `bedrock` or `foundry`. An unknown value stops the runner at startup. |
+| `OPENAI_BASE_URL` | OpenAI models | No | `https://api.openai.com/v1` | The OpenAI SDK's own variable: an OpenAI-compatible endpoint, including its `/v1`. |
 | `CLOUD_ML_REGION` | `vertex` | Yes (vertex) | _(none)_ | The Vertex AI region, or `global`. Credentials come from Application Default Credentials. |
+| `ANTHROPIC_VERTEX_PROJECT_ID` | `vertex` | No | _(the credentials' project)_ | The Google Cloud project the Vertex calls are billed to. |
+| `ANTHROPIC_VERTEX_BASE_URL` | `vertex` | No | _(the region's endpoint)_ | A Vertex endpoint instead of the one the region names. |
 | `AWS_REGION` | `bedrock` | Yes (bedrock) | _(none)_ | The Bedrock region; the runner never assumes one. |
+| `ANTHROPIC_BEDROCK_BASE_URL` | `bedrock` | No | `https://bedrock-runtime.<region>.amazonaws.com` | A Bedrock runtime endpoint instead of the region's. |
 | `AWS_BEARER_TOKEN_BEDROCK` | `bedrock` | No | _(the AWS credential chain)_ | A Bedrock API key, instead of the AWS chain (environment keys, IAM role / IRSA). Taken into the credential store at boot. |
 | `STIGMER_BEDROCK_INFERENCE_PREFIX` | `bedrock` | No | _(none)_ | The inference-profile geography (`us`, `eu`, `global`, …) for models Bedrock serves only through a profile. |
 | `STIGMER_BEDROCK_MODEL_MAP` | `bedrock` | No | _(none)_ | Overrides, `canonical=bedrockId` pairs separated by commas; consulted before the built-in mapping. A malformed value stops the runner at startup. |
