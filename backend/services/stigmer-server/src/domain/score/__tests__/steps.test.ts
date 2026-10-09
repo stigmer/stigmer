@@ -403,6 +403,25 @@ describe("ValidateScoreUpdate", () => {
     }
   });
 
+  it("keeps a rating's name and labels as created", async () => {
+    for (const mutate of [
+      (s: Score) => (s.metadata!.name = "renamed"),
+      (s: Score) => (s.metadata!.labels = { team: "support" }),
+    ]) {
+      const next = feedback();
+      mutate(next);
+      const failure = await refusal(() =>
+        step.execute(updateCtx(feedback(), next)),
+      );
+      expect(failure.rawMessage).toBe(SCORE_UPDATE_FIELDS_MESSAGE);
+    }
+    const labelled = feedback();
+    labelled.metadata!.labels = { team: "support" };
+    const same = feedback();
+    same.metadata!.labels = { team: "support" };
+    expect(() => step.execute(updateCtx(labelled, same))).not.toThrow();
+  });
+
   it("refuses removing the thumbs", async () => {
     const failure = await refusal(() =>
       step.execute(updateCtx(feedback(), feedback({ passed: undefined }))),

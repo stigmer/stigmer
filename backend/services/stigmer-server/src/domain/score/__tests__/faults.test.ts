@@ -142,9 +142,10 @@ describe("the create chain's reads", () => {
 
   it("answers a store fault reading the run's scores INTERNAL", async () => {
     const fault = await failureOf(() =>
-      newCheckScoreUniqueStep(storeFailing("queryResources")).execute(
-        scoreCtx(feedback()),
-      ),
+      newCheckScoreUniqueStep(
+        storeFailing("queryResources"),
+        silentLogger,
+      ).execute(scoreCtx(feedback())),
     );
     expect(fault.code).toBe(Code.Internal);
   });
@@ -188,7 +189,7 @@ describe("a chain built wrong", () => {
     expect(
       (
         await failureOf(() =>
-          newCheckScoreUniqueStep(temp.store).execute(
+          newCheckScoreUniqueStep(temp.store, silentLogger).execute(
             scoreCtx(feedback({ spec: false })),
           ),
         )
@@ -226,13 +227,16 @@ describe("the list lanes", () => {
     );
     const failing = storeFailing("queryResources");
     expect(
-      (await failureOf(() => newListScoresByRunStep(failing).execute(byRun)))
-        .code,
+      (
+        await failureOf(() =>
+          newListScoresByRunStep(failing, silentLogger).execute(byRun),
+        )
+      ).code,
     ).toBe(Code.Internal);
     expect(
       (
         await failureOf(() =>
-          newListScoresBySessionStep(failing).execute(bySession),
+          newListScoresBySessionStep(failing, silentLogger).execute(bySession),
         )
       ).code,
     ).toBe(Code.Internal);
@@ -257,8 +261,20 @@ describe("the list lanes", () => {
         return typeof value === "function" ? value.bind(target) : value;
       },
     });
-    const scores = await listRunScores(withBadRow, "run_1");
+    const warnings: Array<{ message: string; fields: unknown }> = [];
+    const logger = {
+      ...silentLogger,
+      warn: (message: string, fields?: unknown) => {
+        warnings.push({ message, fields });
+      },
+    };
+    const scores = await listRunScores(withBadRow, logger, "run_1");
     expect(scores.map((score) => score.metadata?.id)).toEqual(["scr_good"]);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]?.fields).toMatchObject({
+      scoreId: "scr_bad",
+      runId: "run_1",
+    });
   });
 });
 

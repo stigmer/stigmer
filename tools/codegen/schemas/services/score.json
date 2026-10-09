@@ -22,7 +22,7 @@
           "inputFullType": "ai.stigmer.agentic.score.v1.Score",
           "outputType": "Score",
           "outputFullType": "ai.stigmer.agentic.score.v1.Score",
-          "description": "Update a person's rating: its value and comment.\n\n Only feedback is editable, and only by the person who gave it; a\n check's verdict never changes."
+          "description": "Update a person's rating: its value and comment.\n\n Only feedback is editable, and only by the person who gave it, and only\n its value and comment: every other field, the score's name and labels\n included, stays as created. A check's verdict never changes."
         },
         {
           "name": "Delete",

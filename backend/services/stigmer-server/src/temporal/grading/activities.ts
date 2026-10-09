@@ -11,8 +11,13 @@
  * one when its start passes its deadline, and Temporal may have accepted
  * that start all the same. A run deleted before it was graded has nothing
  * to score; one deleted while its score was being written (after the run
- * delete's cascade listed the run's scores) has the score removed again,
- * so grading leaves no score whose run is gone.
+ * delete's cascade listed the run's scores) has the score removed again
+ * when this activity reads the run after recording. One order still leaves
+ * a score behind: the delete's cascade lists before the write, this read
+ * finds the run still there, and the run's row goes after it. Such a score
+ * is seen by nobody, since its visibility is its run's, and goes with its
+ * organization's purge (domain/score/cascade.ts says the same of a
+ * person's rating).
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 
@@ -67,7 +72,7 @@ export function createGradingActivities(
       if (run === undefined) {
         return GRADE_RUN_GONE;
       }
-      const existing = await existingRunHealth(deps.store, runId);
+      const existing = await existingRunHealth(deps, runId);
       if (existing?.status?.state === ScoreState.graded) {
         return GRADE_ALREADY_GRADED;
       }
@@ -82,7 +87,7 @@ export function createGradingActivities(
       if (run === undefined) {
         return GRADE_RUN_GONE;
       }
-      if ((await existingRunHealth(deps.store, runId)) !== undefined) {
+      if ((await existingRunHealth(deps, runId)) !== undefined) {
         return GRADE_ALREADY_GRADED;
       }
       deps.logger.warn("run not graded", { runId, reason });
@@ -104,10 +109,10 @@ async function loadRun(store: Store, runId: string): Promise<Run | undefined> {
 
 /** The run's run-health score from this version of the checks, if any. */
 async function existingRunHealth(
-  store: Store,
+  deps: GradingActivityDeps,
   runId: string,
 ): Promise<Score | undefined> {
-  const scores = await listRunScores(store, runId);
+  const scores = await listRunScores(deps.store, deps.logger, runId);
   return scores.find(
     (score) =>
       score.spec?.metric === RUN_HEALTH_METRIC &&
@@ -173,7 +178,7 @@ async function record(
   if ((await loadRun(deps.store, runId)) !== undefined) {
     return outcome;
   }
-  const written = await existingRunHealth(deps.store, runId);
+  const written = await existingRunHealth(deps, runId);
   if (written !== undefined) {
     await deleteScore(deps, written.metadata?.id ?? "");
   }

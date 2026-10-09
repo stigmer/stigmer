@@ -191,8 +191,9 @@ public final class ScoreCommandControllerGrpc {
     /**
      * <pre>
      * Update a person's rating: its value and comment.
-     * Only feedback is editable, and only by the person who gave it; a
-     * check's verdict never changes.
+     * Only feedback is editable, and only by the person who gave it, and only
+     * its value and comment: every other field, the score's name and labels
+     * included, stays as created. A check's verdict never changes.
      * </pre>
      */
     default void update(ai.stigmer.agentic.score.v1.Score request,
@@ -264,8 +265,9 @@ public final class ScoreCommandControllerGrpc {
     /**
      * <pre>
      * Update a person's rating: its value and comment.
-     * Only feedback is editable, and only by the person who gave it; a
-     * check's verdict never changes.
+     * Only feedback is editable, and only by the person who gave it, and only
+     * its value and comment: every other field, the score's name and labels
+     * included, stays as created. A check's verdict never changes.
      * </pre>
      */
     public void update(ai.stigmer.agentic.score.v1.Score request,
@@ -324,8 +326,9 @@ public final class ScoreCommandControllerGrpc {
     /**
      * <pre>
      * Update a person's rating: its value and comment.
-     * Only feedback is editable, and only by the person who gave it; a
-     * check's verdict never changes.
+     * Only feedback is editable, and only by the person who gave it, and only
+     * its value and comment: every other field, the score's name and labels
+     * included, stays as created. A check's verdict never changes.
      * </pre>
      */
     public ai.stigmer.agentic.score.v1.Score update(ai.stigmer.agentic.score.v1.Score request) throws io.grpc.StatusException {
@@ -382,8 +385,9 @@ public final class ScoreCommandControllerGrpc {
     /**
      * <pre>
      * Update a person's rating: its value and comment.
-     * Only feedback is editable, and only by the person who gave it; a
-     * check's verdict never changes.
+     * Only feedback is editable, and only by the person who gave it, and only
+     * its value and comment: every other field, the score's name and labels
+     * included, stays as created. A check's verdict never changes.
      * </pre>
      */
     public ai.stigmer.agentic.score.v1.Score update(ai.stigmer.agentic.score.v1.Score request) {
@@ -441,8 +445,9 @@ public final class ScoreCommandControllerGrpc {
     /**
      * <pre>
      * Update a person's rating: its value and comment.
-     * Only feedback is editable, and only by the person who gave it; a
-     * check's verdict never changes.
+     * Only feedback is editable, and only by the person who gave it, and only
+     * its value and comment: every other field, the score's name and labels
+     * included, stays as created. A check's verdict never changes.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.score.v1.Score> update(

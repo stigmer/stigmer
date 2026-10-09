@@ -70,10 +70,11 @@ function scoreRow(score: Score): string[] {
 }
 
 /**
- * A person's comment as one table cell. A comment reaches the server from
- * any client, not only the console's one-line box, so a newline would break
- * the table and an escape sequence would reach every other viewer's
- * terminal: each run of control characters becomes one space.
+ * Text another person wrote (a comment, a profile name) or a check's
+ * reason, as one table cell. It reaches the server from any client, not
+ * only the console's one-line box, so a newline would break the table and
+ * an escape sequence would reach every other viewer's terminal: each run of
+ * control characters becomes one space.
  */
 function oneLine(text: string): string {
   return text.replace(/[\u0000-\u001f\u007f-\u009f]+/g, " ").trim();
@@ -109,7 +110,7 @@ function valueLabel(score: Score): string {
 function flagsOf(score: Score): string {
   return (score.spec?.criteria ?? [])
     .filter((criterion) => criterion.result === CriterionResult.failed)
-    .map((criterion) => `${criterion.name}: ${criterion.reason}`)
+    .map((criterion) => oneLine(`${criterion.name}: ${criterion.reason}`))
     .join("; ");
 }
 
@@ -119,7 +120,7 @@ function byLabel(score: Score): string {
     return "platform";
   }
   const actor = score.status?.audit?.specAudit?.createdBy;
-  return actor?.displayName || actor?.email || actor?.id || "";
+  return oneLine(actor?.displayName || actor?.email || actor?.id || "");
 }
 
 function defaultStreams(): ScoresStreams {

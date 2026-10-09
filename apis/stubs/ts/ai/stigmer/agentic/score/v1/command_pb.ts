@@ -41,8 +41,9 @@ export const ScoreCommandController: GenService<{
   /**
    * Update a person's rating: its value and comment.
    *
-   * Only feedback is editable, and only by the person who gave it; a
-   * check's verdict never changes.
+   * Only feedback is editable, and only by the person who gave it, and only
+   * its value and comment: every other field, the score's name and labels
+   * included, stays as created. A check's verdict never changes.
    *
    * @generated from rpc ai.stigmer.agentic.score.v1.ScoreCommandController.update
    */

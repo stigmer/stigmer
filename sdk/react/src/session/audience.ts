@@ -66,8 +66,9 @@ export function includesMyVaultByDefault(audience: SessionAudience): boolean {
  * reviewing is for. An embedding product's end users and a share-link's
  * visitors see neither: the server admits no rating from either (a
  * PlatformClient user or a visitor is not a first-party person who can own
- * one), and an integrator's own customers should not read the agent's
- * health flags.
+ * one). Hiding the health flags from them is a display choice of this
+ * surface, not a permission: the score lists serve whoever can view the
+ * run, as the run itself does.
  */
 export function showsRunScores(audience: SessionAudience): boolean {
   return SHOWS_RUN_SCORES[audience];

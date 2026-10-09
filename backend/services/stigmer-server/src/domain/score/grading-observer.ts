@@ -43,8 +43,15 @@ import { notGradedRunHealthScore } from "./run-health.js";
 /** The bound on a grading start, in milliseconds (module header). */
 export const GRADING_START_DEADLINE_MS = 2_000;
 
-/** A grading run spans seconds; this bounds a stuck one. */
-const GRADE_RUN_EXECUTION_TIMEOUT = "10 minutes";
+/**
+ * A grading run spans seconds; this bounds a stuck one, with room for both
+ * activities' whole retry budgets (temporal/grading/workflows/grade-run.ts:
+ * five one-minute attempts each, plus backoff), so the not-graded record is
+ * never cut off mid-flight. A run no grading worker picks up ends here with
+ * no score: every composition registers the worker (boot/compose.ts), so
+ * that is a deployment without the server's own workers.
+ */
+const GRADE_RUN_EXECUTION_TIMEOUT = "30 minutes";
 
 export interface GradingObserverDeps {
   /** The engine's current client; undefined until its first connect. */

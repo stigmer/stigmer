@@ -141,7 +141,7 @@ async function createScore(
     )
     .addStep(newLoadScoredRunStep(deps.store))
     .addStep(newResolveScoreDefaultsStep())
-    .addStep(newCheckScoreUniqueStep(deps.store))
+    .addStep(newCheckScoreUniqueStep(deps.store, deps.logger))
     .addStep(newResolveSlugStep())
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
@@ -265,7 +265,7 @@ async function listByRun(
       newAuthorizeStep(ScoreQueryController.method.listByRun, deps.authorizer),
     )
     .addStep(newValidateProtoStep())
-    .addStep(newListScoresByRunStep(deps.store))
+    .addStep(newListScoresByRunStep(deps.store, deps.logger))
     .build()
     .execute(reqCtx);
   return chainResult<ScoreList>(reqCtx.get(LIST_RESULT_KEY), "score list");
@@ -295,7 +295,7 @@ async function listBySession(
       ),
     )
     .addStep(newValidateProtoStep())
-    .addStep(newListScoresBySessionStep(deps.store))
+    .addStep(newListScoresBySessionStep(deps.store, deps.logger))
     .build()
     .execute(reqCtx);
   return chainResult<ScoreList>(reqCtx.get(LIST_RESULT_KEY), "score list");

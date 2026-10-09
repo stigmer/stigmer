@@ -52,8 +52,9 @@ class ScoreCommandControllerServicer(object):
     def update(self, request, context):
         """Update a person's rating: its value and comment.
 
-        Only feedback is editable, and only by the person who gave it; a
-        check's verdict never changes.
+        Only feedback is editable, and only by the person who gave it, and only
+        its value and comment: every other field, the score's name and labels
+        included, stays as created. A check's verdict never changes.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

@@ -57,7 +57,7 @@ export function newRunScoreCascade(deps: RunScoreCascadeDeps): RunScoreCascade {
       let ids: string[];
       try {
         // A stored score always carries its id: BuildNewState mints it.
-        ids = (await listRunScores(deps.store, runId)).map(
+        ids = (await listRunScores(deps.store, deps.logger, runId)).map(
           (score) => score.metadata?.id ?? "",
         );
       } catch (error) {

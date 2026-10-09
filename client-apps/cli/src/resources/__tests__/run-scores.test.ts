@@ -83,6 +83,21 @@ describe("renderScoresTable", () => {
     expect(out.split("\n").filter((line) => line.includes("line two"))).toHaveLength(1);
   });
 
+  it("prints another person's profile name and a check's reason as one line each", () => {
+    const named = clone(ScoreSchema, thumbsDown);
+    const createdBy = named.status?.audit?.specAudit?.createdBy;
+    if (createdBy !== undefined) {
+      createdBy.displayName = "Priya\u001b[2J\nSharma";
+    }
+    const flagged = clone(ScoreSchema, health);
+    for (const criterion of flagged.spec?.criteria ?? []) {
+      criterion.reason = `${criterion.reason}\n\u001b[31mred`;
+    }
+    const out = renderScoresTable([named, flagged]);
+    expect(out).toContain("Priya [2J Sharma");
+    expect(out).not.toMatch(/[\u0000-\u0009\u000b-\u001f\u007f-\u009f]/);
+  });
+
   it("shows a check's verdict with each failed check's reason as a flag", () => {
     const out = renderScoresTable([health]);
     expect(out).toMatch(/\bfail\b/);

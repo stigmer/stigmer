@@ -39,6 +39,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import type { CallerIdentity } from "../../extensions/identity.js";
+import type { Logger } from "../../boot/logger.js";
 import {
   isFirstPartyHumanOperator,
   isServerComposedRequest,
@@ -299,6 +300,7 @@ export function newResolveScoreDefaultsStep(): PipelineStep<
  */
 export function newCheckScoreUniqueStep(
   store: Store,
+  logger: Logger,
 ): PipelineStep<typeof ScoreSchema> {
   return {
     name: "CheckScoreUnique",
@@ -312,7 +314,7 @@ export function newCheckScoreUniqueStep(
       }
       let existing: Score[];
       try {
-        existing = await listRunScores(store, spec.runId);
+        existing = await listRunScores(store, logger, spec.runId);
       } catch (error) {
         throw internalError(error, "failed to read the run's scores");
       }
@@ -384,7 +386,8 @@ export function newInitializeScoreStateStep(): PipelineStep<
 
 /**
  * ValidateScoreUpdate: only a person's feedback changes, and only its
- * value and comment. Refusing every other source here is what keeps a
+ * value and comment: its name and labels, which BuildUpdateState would
+ * take from the request, stay as created. Refusing every other source here is what keeps a
  * check's verdict final even where the open-source edition derives an
  * owner for it from the operator's stamp (derived-tuples.ts). The
  * feedback still needs thumbs after the edit.
@@ -415,7 +418,9 @@ export function newValidateScoreUpdateStep(): PipelineStep<typeof ScoreSchema> {
         after.metric !== before.metric ||
         after.source !== before.source ||
         after.evaluatorVersion !== before.evaluatorVersion ||
-        after.criteria.length !== 0
+        after.criteria.length !== 0 ||
+        ctx.newState.metadata?.name !== existing.metadata?.name ||
+        !sameLabels(ctx.newState.metadata?.labels, existing.metadata?.labels)
       ) {
         throw failedPreconditionError(SCORE_UPDATE_FIELDS_MESSAGE);
       }
@@ -426,6 +431,17 @@ export function newValidateScoreUpdateStep(): PipelineStep<typeof ScoreSchema> {
   };
 }
 
+function sameLabels(
+  a: Readonly<Record<string, string>> | undefined,
+  b: Readonly<Record<string, string>> | undefined,
+): boolean {
+  const left = Object.entries(a ?? {});
+  return (
+    left.length === Object.keys(b ?? {}).length &&
+    left.every(([key, value]) => (b ?? {})[key] === value)
+  );
+}
+
 /**
  * ListScoresByRun: every score of the run, newest first. The Authorize
  * step already asked can_view on the run, and a score's visibility is its
@@ -433,6 +449,7 @@ export function newValidateScoreUpdateStep(): PipelineStep<typeof ScoreSchema> {
  */
 export function newListScoresByRunStep(
   store: Store,
+  logger: Logger,
 ): PipelineStep<typeof ListScoresByRunRequestSchema> {
   return {
     name: "ListScoresByRun",
@@ -441,7 +458,7 @@ export function newListScoresByRunStep(
     ): Promise<void> {
       let scores: Score[];
       try {
-        scores = await listRunScores(store, ctx.input.runId);
+        scores = await listRunScores(store, logger, ctx.input.runId);
       } catch (error) {
         throw internalError(error, "failed to list the run's scores");
       }
@@ -460,6 +477,7 @@ export function newListScoresByRunStep(
  */
 export function newListScoresBySessionStep(
   store: Store,
+  logger: Logger,
 ): PipelineStep<typeof ListScoresBySessionRequestSchema> {
   return {
     name: "ListScoresBySession",
@@ -468,7 +486,7 @@ export function newListScoresBySessionStep(
     ): Promise<void> {
       let scores: Score[];
       try {
-        scores = await listSessionScores(store, ctx.input.sessionId);
+        scores = await listSessionScores(store, logger, ctx.input.sessionId);
       } catch (error) {
         throw internalError(error, "failed to list the session's scores");
       }
