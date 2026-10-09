@@ -1152,7 +1152,11 @@ export async function composeServer(
         config: gradingTemporalConfig,
         recorder: scoreRecorder,
         deleter: scoreDeleter,
+        // Resolved when a judge activity runs, which needs a live engine:
+        // the execution conformance's AI-judge suite runs them.
+        /* v8 ignore next -- @preserve: called only by a judge activity on a live engine */
         judgeRuns: () => requireInProcess().judgeRunCreator,
+        /* v8 ignore next -- @preserve: called only by a judge activity on a live engine */
         judgeSessions: () => requireInProcess().judgeSessionDeleter,
         gradingCaller,
         logger,

@@ -23,7 +23,11 @@ import { ScoreListSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { MessageThread } from "../../run/MessageThread";
-import { PENDING_POLL_FIRST_MS } from "../useSessionScores";
+import {
+  PENDING_POLL_CAP_MS,
+  PENDING_POLL_FIRST_MS,
+  PENDING_POLL_LIMIT_MS,
+} from "../useSessionScores";
 
 afterEach(() => {
   cleanup();
@@ -135,6 +139,21 @@ describe("the judge chip", () => {
       await vi.advanceTimersByTimeAsync(PENDING_POLL_FIRST_MS * 4);
     });
     expect(mock.score.listBySession.mock.calls.length, "no poll once nothing is pending").toBe(calls);
+  });
+
+  it("stops asking once a grade has stayed pending past the poll's limit", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const mock = client([[judge(ScoreState.pending)]]);
+    render(<MessageThread runs={[completedRun()]} runScores />, { wrapper: wrap(mock) });
+    expect(await screen.findByText("Judge: grading…")).toBeDefined();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(PENDING_POLL_LIMIT_MS + PENDING_POLL_CAP_MS * 2);
+    });
+    const calls = mock.score.listBySession.mock.calls.length;
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(PENDING_POLL_CAP_MS * 3);
+    });
+    expect(mock.score.listBySession.mock.calls.length, "no poll past the limit").toBe(calls);
   });
 
   it("shows no chip for a run with no judge score", async () => {

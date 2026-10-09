@@ -60,9 +60,14 @@ import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenanc
 
 import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
+import { createInProcessClients } from "../../../boot/inprocess.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { reserve } from "../../../domain/evaluator/budget.js";
-import { EVALUATOR_EXISTS_REASON } from "../../../domain/evaluator/constants.js";
+import {
+  EVALUATOR_AGENT_IMMUTABLE_MESSAGE,
+  EVALUATOR_EXISTS_REASON,
+  evaluatorOrgMismatchMessage,
+} from "../../../domain/evaluator/constants.js";
 import {
   JUDGE_COST_CAP_REASON,
   JUDGE_LIMIT_REACHED_REASON,
@@ -77,6 +82,7 @@ import {
 import {
   GRADES_RUN_LABEL,
   PER_GRADE_CAP_USD,
+  judgeRunRequest,
 } from "../../../domain/score/judge/judge-run.js";
 import {
   DID_THE_TASK,
@@ -89,7 +95,7 @@ import type {
   ScoreDeleter,
   ScoreRecorder,
 } from "../../../domain/score/ports.js";
-import { replaceUnlessGraded } from "../../../domain/score/record.js";
+import { replaceUnlessGraded, sameWriterScore } from "../../../domain/score/record.js";
 import {
   baseConfig,
   silentLogger,
@@ -114,6 +120,7 @@ let evaluators: Client<typeof EvaluatorCommandController>;
 let evaluatorQuery: Client<typeof EvaluatorQueryController>;
 let agents: Client<typeof AgentCommandController>;
 let org: string;
+let wireBase: string;
 
 beforeAll(async () => {
   dir = mkdtempSync(path.join(tmpdir(), "judge-composed-test-"));
@@ -124,7 +131,8 @@ beforeAll(async () => {
     host: "127.0.0.1",
   });
   const port = await server.start();
-  const transport = createGrpcTransport({ baseUrl: `http://127.0.0.1:${port}` });
+  wireBase = `http://127.0.0.1:${port}`;
+  const transport = createGrpcTransport({ baseUrl: wireBase });
   wire = createClient(ScoreCommandController, transport);
   scores = createClient(ScoreQueryController, transport);
   evaluators = createClient(EvaluatorCommandController, transport);
@@ -267,6 +275,23 @@ describe("judge scores", () => {
 });
 
 describe("replaceUnlessGraded", () => {
+  it("throws a recorder fault that is no refusal, and finds no same-writer score for a score with no spec", async () => {
+    const run = await seedRun();
+    const faulty = { ...writeDeps(), recorder: { record: () => Promise.reject(new Error("socket closed")) } };
+    await expect(replaceUnlessGraded(faulty, pendingJudgeScore(run))).rejects.toThrow("socket closed");
+    const internal = { ...writeDeps(), recorder: { record: () => Promise.reject(new ConnectError("boom", Code.Internal)) } };
+    await expect(replaceUnlessGraded(internal, pendingJudgeScore(run))).rejects.toThrow("boom");
+    expect(await sameWriterScore(writeDeps(), create(ScoreSchema, {}))).toBeUndefined();
+  });
+
+  it("keeps the score there when a writer keeps losing its race", async () => {
+    const run = await seedRun();
+    // Every create is refused and no score is ever there to judge: the race
+    // never settles, and the write leaves things as they are.
+    const losing = { ...writeDeps(), recorder: { record: () => Promise.reject(new ConnectError("exists", Code.AlreadyExists)) } };
+    expect(await replaceUnlessGraded(losing, pendingJudgeScore(run))).toBe("kept");
+  });
+
   it("keeps the grade in the stigmer#2057 interleave: a placeholder written before the grade's create is replaced", async () => {
     const runId = (await seedRun()).metadata!.id;
     // The observer's late fallback lands between the activity's read and its create.
@@ -327,6 +352,43 @@ async function newEvaluator(agentId: string, spec: { sampleRate?: number; monthl
 }
 
 describe("evaluators", () => {
+  it("are deleted over the wire, refuse another organization and another agent, and are created in process with no target question", async () => {
+    const agentId = await newAgent();
+    const otherOrg = (
+      await createClient(OrganizationCommandController, createGrpcTransport({ baseUrl: wireBase })).create({
+        apiVersion: "tenancy.stigmer.ai/v1",
+        kind: "Organization",
+        metadata: { name: "Judge Other Org" },
+      })
+    ).metadata!.id;
+    const elsewhere = await failureOf(
+      evaluators.create({
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind: "Evaluator",
+        metadata: { org: otherOrg },
+        spec: { agentId, enabled: true, sampleRate: 1, monthlyLimitUsd: 10 },
+      }),
+    );
+    expect(elsewhere.code).toBe(Code.FailedPrecondition);
+    expect(elsewhere.rawMessage).toBe(evaluatorOrgMismatchMessage(org));
+
+    const created = await createClient(EvaluatorCommandController, server.inProcessTransport).create({
+      apiVersion: "agentic.stigmer.ai/v1",
+      kind: "Evaluator",
+      metadata: { org },
+      spec: { agentId, enabled: true, sampleRate: 1, monthlyLimitUsd: 10 },
+    });
+    const moved = await failureOf(
+      evaluators.update({ ...created, spec: { ...created.spec!, agentId: await newAgent() } }),
+    );
+    expect(moved.code).toBe(Code.FailedPrecondition);
+    expect(moved.rawMessage).toBe(EVALUATOR_AGENT_IMMUTABLE_MESSAGE);
+
+    const deleted = await evaluators.delete({ value: created.metadata!.id });
+    expect(deleted.metadata?.id).toBe(created.metadata!.id);
+    expect((await failureOf(evaluatorQuery.get({ value: created.metadata!.id }))).code).toBe(Code.NotFound);
+  });
+
   it("one per agent, read by agent, updated without losing the month's spend, and gone with the agent", async () => {
     const agentId = await newAgent();
     const created = await newEvaluator(agentId);
@@ -394,6 +456,27 @@ const VERDICT: JsonObject = {
 async function evaluatorStatus(evaluatorId: string) {
   return (await server.store.getResource(ApiResourceKind.evaluator, evaluatorId, EvaluatorSchema)).status;
 }
+
+describe("the judge's in-process lane", () => {
+  it("creates the judge run through the run's chain as the caller it is given, terminates as the server, and deletes the session", async () => {
+    const { judgeRunCreator, judgeSessionDeleter } = createInProcessClients(server.routes, silentLogger).clients;
+    const judged = await seedRun();
+    // No engine here: the create reaches the run's chain and fails at its
+    // workflow start, which is enough to prove the lane carries the caller.
+    await expect(
+      judgeRunCreator.create(
+        judgeRunRequest({ judged, modelName: "", message: "grade", verdictSchema: {} }),
+        { identityId: "ida_someone", callerClass: "user", issuer: "", rawToken: "" },
+      ),
+    ).rejects.toBeInstanceOf(ConnectError);
+    await expect(judgeRunCreator.terminate(judged.metadata!.id, "past its budget")).rejects.toMatchObject({
+      code: Code.FailedPrecondition,
+    });
+    const sessionId = judged.spec?.target.case === "sessionId" ? judged.spec.target.value : "";
+    await judgeSessionDeleter.delete(sessionId);
+    await expect(server.store.getResource(ApiResourceKind.session, sessionId, SessionSchema)).rejects.toThrow();
+  });
+});
 
 describe("the judge's activities", () => {
   it("grade a sampled run: pending, one judge run, the verdict, the session gone and the budget settled", async () => {

@@ -16,7 +16,13 @@
  * the workflow saw; an execution from before the patch ends after run
  * health.
  */
-import { ActivityFailure, ApplicationFailure, CancelledFailure } from "@temporalio/common";
+import {
+  ActivityFailure,
+  ApplicationFailure,
+  CancelledFailure,
+  TimeoutFailure,
+  TimeoutType,
+} from "@temporalio/common";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -172,14 +178,42 @@ describe("gradeRun", () => {
           ApplicationFailure.create({ message: "at capacity", type: JUDGE_BUSY_FAILURE_TYPE }),
         ),
       )
-      .mockRejectedValueOnce(new Error("the start broke"));
-    await gradeRun("run_a");
-    await gradeRun("run_b");
-    await gradeRun("run_c");
+      .mockRejectedValueOnce(new Error("the start broke"))
+      // The ten minutes ran out mid-retry: a timeout whose cause is the
+      // last attempt's capacity refusal is still busy.
+      .mockRejectedValueOnce(
+        new ActivityFailure(
+          "start timed out",
+          START_JUDGE_ACTIVITY_NAME,
+          "1",
+          undefined,
+          "worker",
+          // The SDK sets a timeout's cause from the history's failure.
+          Object.assign(
+            new TimeoutFailure("schedule to close", undefined, TimeoutType.SCHEDULE_TO_CLOSE),
+            { cause: ApplicationFailure.create({ message: "at capacity", type: JUDGE_BUSY_FAILURE_TYPE }) },
+          ),
+        ),
+      )
+      .mockRejectedValueOnce(
+        new ActivityFailure(
+          "start failed",
+          START_JUDGE_ACTIVITY_NAME,
+          "1",
+          undefined,
+          "worker",
+          ApplicationFailure.create({ message: "store down", type: "Error" }),
+        ),
+      );
+    for (const runId of ["run_a", "run_b", "run_c", "run_d", "run_e"]) {
+      await gradeRun(runId);
+    }
     expect(seam.activities[RECORD_JUDGE_ACTIVITY_NAME].mock.calls.map((call) => [call[0], call[3]])).toEqual([
       ["run_a", "cannot-act"],
       ["run_b", "busy"],
       ["run_c", "not-started"],
+      ["run_d", "busy"],
+      ["run_e", "not-started"],
     ]);
   });
 

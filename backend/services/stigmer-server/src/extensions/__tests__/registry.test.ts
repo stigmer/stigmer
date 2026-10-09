@@ -330,6 +330,30 @@ describe("resolveExtensions — merge semantics", () => {
     );
   });
 
+  it("resolves one GradingCallerMint and throws on a second, naming both units", () => {
+    const mint = {
+      mintGradingCaller: () =>
+        Promise.resolve({
+          identityId: "ida_grading",
+          callerClass: "grading",
+          issuer: "stigmer",
+          rawToken: "jwt",
+        }),
+    };
+    expect(
+      resolveExtensions([{ name: "iam", drivers: { gradingCaller: mint } }]).drivers.gradingCaller,
+    ).toBe(mint);
+    expect(resolveExtensions([]).drivers.gradingCaller).toBeUndefined();
+    expect(() =>
+      resolveExtensions([
+        { name: "mint-a", drivers: { gradingCaller: mint } },
+        { name: "mint-b", drivers: { gradingCaller: mint } },
+      ]),
+    ).toThrowError(
+      /extension 'mint-b' registers a GradingCallerMint, but 'mint-a' already did/,
+    );
+  });
+
   it("merges secret codecs as a version-keyed map across units", () => {
     const v2 = fakeCodec("v2");
     const v3 = fakeCodec("v3");

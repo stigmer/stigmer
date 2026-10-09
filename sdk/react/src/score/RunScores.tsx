@@ -237,31 +237,25 @@ const RESULT_LABELS: Readonly<Record<CriterionResult, string>> = {
 
 function JudgeChip({ view }: { readonly view: JudgeView }) {
   const [open, setOpen] = useState(false);
-  switch (view.kind) {
-    case "none":
-      return null;
-    case "grading":
-      return (
-        <span
-          role="status"
-          className="stg:ml-1 stg:text-xs stg:text-muted-foreground-subtle"
-        >
-          Judge: grading…
-        </span>
-      );
-    case "not-graded":
-      return (
-        <span className="stg:ml-1 stg:text-xs stg:text-muted-foreground-subtle">
-          Judge: not graded{view.reason !== "" ? `: ${view.reason}` : ""}
-        </span>
-      );
-    case "graded":
-      break;
-    default: {
-      const exhaustive: never = view;
-      return exhaustive;
-    }
+  if (view.kind === "none") return null;
+  if (view.kind === "grading") {
+    return (
+      <span
+        role="status"
+        className="stg:ml-1 stg:text-xs stg:text-muted-foreground-subtle"
+      >
+        Judge: grading…
+      </span>
+    );
   }
+  if (view.kind === "not-graded") {
+    return (
+      <span className="stg:ml-1 stg:text-xs stg:text-muted-foreground-subtle">
+        Judge: not graded{view.reason !== "" ? `: ${view.reason}` : ""}
+      </span>
+    );
+  }
+  // Narrowed to "graded": a kind added to the union fails to compile here.
   const label = view.passed
     ? "Judge: passed"
     : `Judge: ${view.failed} of ${view.criteria.length} failed`;

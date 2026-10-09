@@ -123,21 +123,12 @@ export async function settle(
         live.status = status;
         status.reservedUsd = dollars(Math.max(0, status.reservedUsd - capUsd));
         status.spentUsd = dollars(status.spentUsd + Math.max(0, spentUsd));
-        switch (end.kind) {
-          case "graded":
-            status.graded += 1;
-            status.lastNotGradedReason = "";
-            break;
-          case "not-graded":
-            status.notGraded += 1;
-            status.lastNotGradedReason = end.reason;
-            break;
-          case "gone":
-            break;
-          default: {
-            const exhaustive: never = end;
-            throw new Error(`unknown grade end: ${JSON.stringify(exhaustive)}`);
-          }
+        if (end.kind === "graded") {
+          status.graded += 1;
+          status.lastNotGradedReason = "";
+        } else if (end.kind === "not-graded") {
+          status.notGraded += 1;
+          status.lastNotGradedReason = end.reason;
         }
         bumpStatusAudit(status);
       },

@@ -19,7 +19,11 @@ import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { AgentQualityTab } from "../AgentQualityTab";
 
 vi.mock("../../models/ModelSelector.js", () => ({
-  ModelSelector: () => <span>model picker</span>,
+  ModelSelector: ({ onValueChange }: { onValueChange: (modelId: string) => void }) => (
+    <button type="button" onClick={() => onValueChange("claude-haiku-4-5")}>
+      pick a model
+    </button>
+  ),
 }));
 
 afterEach(() => {
@@ -102,6 +106,25 @@ describe("AgentQualityTab", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(mock.evaluator.update).toHaveBeenCalledTimes(1));
     expect(mock.evaluator.update.mock.calls[0]?.[0]).toMatchObject({ id: "evl_1", monthlyLimitUsd: 30, sampleRate: 0.5 });
+  });
+
+  it("changes the sample and the model, and shows a refused save", async () => {
+    const mock = client(stored());
+    mock.evaluator.update.mockRejectedValueOnce(new Error("unauthorized to update evaluator"));
+    render(<AgentQualityTab agent={agent} editable />, { wrapper: wrap(mock) });
+    fireEvent.change(await screen.findByLabelText("Grade one in N runs"), { target: { value: "4" } });
+    fireEvent.click(screen.getByRole("button", { name: "pick a model" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(await screen.findByRole("alert")).toBeDefined();
+    expect(screen.getByRole("alert").textContent).toContain("unauthorized to update evaluator");
+    expect(mock.evaluator.update.mock.calls[0]?.[0]).toMatchObject({ sampleRate: 0.25, modelName: "claude-haiku-4-5" });
+  });
+
+  it("shows a read that failed for another reason than grading being off", async () => {
+    const mock = client(stored());
+    mock.evaluator.getByAgent = vi.fn().mockRejectedValue(new Error("server unavailable"));
+    render(<AgentQualityTab agent={agent} />, { wrapper: wrap(mock) });
+    expect(await screen.findByText(/server unavailable/)).toBeDefined();
   });
 
   it("offers no save and disables the controls when read-only", async () => {

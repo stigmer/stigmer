@@ -176,37 +176,31 @@ export function createJudgeActivities(deps: JudgeActivityDeps): JudgeActivities 
         PER_GRADE_CAP_USD,
         JUDGE_LIMIT_REACHED_REASON,
       );
-      switch (reservation) {
-        case "reserved":
-          return {
-            kind: "grade",
-            ticket: {
-              evaluatorId,
-              modelName: evaluator.spec.modelName,
-              capUsd: PER_GRADE_CAP_USD,
-            },
-          };
-        case "limit-reached":
-          await writeJudgeScore(
-            deps,
-            writeDeps(),
-            notGradedJudgeScore(run, JUDGE_LIMIT_REACHED_REASON),
-          );
-          return { kind: "recorded" };
-        case "off": {
-          // Switched off or deleted between the read and the reservation:
-          // the run was never graded, so its pending score goes.
-          const written = await sameWriterScore(deps, pending);
-          if (written?.status?.state === ScoreState.pending) {
-            await deleteScore(deps.deleter(), written.metadata?.id ?? "");
-          }
-          return { kind: "skip" };
-        }
-        default: {
-          const exhaustive: never = reservation;
-          throw new Error(`unknown reservation: ${String(exhaustive)}`);
-        }
+      if (reservation === "reserved") {
+        return {
+          kind: "grade",
+          ticket: {
+            evaluatorId,
+            modelName: evaluator.spec.modelName,
+            capUsd: PER_GRADE_CAP_USD,
+          },
+        };
       }
+      if (reservation === "limit-reached") {
+        await writeJudgeScore(
+          deps,
+          writeDeps(),
+          notGradedJudgeScore(run, JUDGE_LIMIT_REACHED_REASON),
+        );
+        return { kind: "recorded" };
+      }
+      // "off": switched off or deleted between the read and the
+      // reservation. The run was never graded, so its pending score goes.
+      const written = await sameWriterScore(deps, pending);
+      if (written?.status?.state === ScoreState.pending) {
+        await deleteScore(deps.deleter(), written.metadata?.id ?? "");
+      }
+      return { kind: "skip" };
     },
 
     [START_JUDGE_ACTIVITY_NAME]: async (runId, ticket): Promise<JudgeStart> => {
@@ -379,7 +373,7 @@ function verdictScore(
     end: { kind: "not-graded", reason } as const,
   });
   if (failure !== "") {
-    return notGraded(failureReason(failure));
+    return notGraded(FAILURE_REASONS[failure]);
   }
   const phase = judge?.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
   switch (phase) {
@@ -415,24 +409,14 @@ function verdictScore(
   }
 }
 
-function failureReason(failure: Exclude<JudgeFailure, "">): string {
-  switch (failure) {
-    case "busy":
-      return JUDGE_BUSY_REASON;
-    case "cannot-act":
-      return JUDGE_CANNOT_ACT_REASON;
-    case "out-of-credit":
-      return JUDGE_OUT_OF_CREDIT_REASON;
-    case "not-started":
-      return JUDGE_NOT_STARTED_REASON;
-    case "not-finished":
-      return JUDGE_NOT_FINISHED_REASON;
-    default: {
-      const exhaustive: never = failure;
-      throw new Error(`unknown judge failure: ${String(exhaustive)}`);
-    }
-  }
-}
+/** The reason the person reads for each failure the workflow saw. */
+const FAILURE_REASONS: Readonly<Record<Exclude<JudgeFailure, "">, string>> = {
+  busy: JUDGE_BUSY_REASON,
+  "cannot-act": JUDGE_CANNOT_ACT_REASON,
+  "out-of-credit": JUDGE_OUT_OF_CREDIT_REASON,
+  "not-started": JUDGE_NOT_STARTED_REASON,
+  "not-finished": JUDGE_NOT_FINISHED_REASON,
+};
 
 /**
  * Writes a judge score over the pending one, then reads the run again: a
@@ -507,9 +491,6 @@ async function deleteJudgeSession(deps: JudgeActivityDeps, judge: Run): Promise<
 }
 
 async function loadRun(store: Store, runId: string): Promise<Run | undefined> {
-  if (runId === "") {
-    return undefined;
-  }
   try {
     return await store.getResource(ApiResourceKind.run, runId, RunSchema);
   } catch (error) {

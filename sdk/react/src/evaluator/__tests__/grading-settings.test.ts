@@ -35,6 +35,7 @@ describe("grading settings", () => {
     expect(evaluatorInputOf(AGENT, { ...DEFAULT_GRADING_SETTINGS, oneIn: 4 }, null).sampleRate).toBe(0.25);
     expect(evaluatorInputOf(AGENT, { ...DEFAULT_GRADING_SETTINGS, oneIn: 0 }, null).sampleRate).toBe(1);
     expect(evaluatorInputOf(AGENT, { ...DEFAULT_GRADING_SETTINGS, oneIn: 500 }, null).sampleRate).toBe(0.01);
+    expect(evaluatorInputOf(AGENT, { ...DEFAULT_GRADING_SETTINGS, oneIn: Number.NaN }, null).sampleRate).toBe(0.1);
   });
 
   it("creates for the agent in its organization, and updates the stored evaluator by id", () => {
