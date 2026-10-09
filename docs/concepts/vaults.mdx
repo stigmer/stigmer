@@ -79,17 +79,22 @@ the same name takes its place. A secret declaration cannot carry a value.
 
 ## Which vaults a run uses
 
-Every message in a [Session](/docs/concepts/sessions) is one run. When it
+Every message in a [Session](/docs/concepts/sessions) is one run. A conversation
+uses exactly the vaults it was started with, and nothing else. When a run
 starts, Stigmer looks for each key the run needs in these places, in order, and
 the first one holding a match wins:
 
-1. **The conversation's own values.** An integrator can hand a conversation keys
-   directly, without saving them in a vault (below).
-2. **The vaults the conversation lists.** A conversation that lists vaults uses
-   exactly those.
-3. **For a person's chat that lists none:** that person's My vault, then the
-   shared vaults the Agent's editor attached to the Agent, for a person who may
-   use them.
+1. **My vault of the person who sent the message**, when the conversation
+   includes it (`include_my_vault`). In a conversation shared with teammates,
+   each person's message uses their own My vault, never anyone else's.
+2. **The vaults the conversation lists**, in order.
+
+The console, the CLI and Stigmer's own MCP tools include My vault in every
+conversation they start for a person, and let you leave it out. The API leaves
+it out unless the caller sets it, so an integrator calling with an admin's key
+never reaches that admin's own keys. An Agent carries no vaults: it is a
+blueprint, and a team key reaches a conversation only when someone picks its
+vault.
 
 An Agent of another Organization, one shared with yours, reads no My vault at
 all: your keys never reach it. A tool of another Organization that your own
@@ -116,9 +121,10 @@ may still use it, so taking away someone's access stops every surface they
 attached the vault to.
 
 A My vault can be attached only to its owner's own Schedule, which the owner
-sets up for their own work. A conversation, an Agent, a share, a channel and a
+sets up for their own work. A conversation, a share, a channel and a
 PlatformClient refuse it, because a conversation can have several people and
-each person's own vault serves only their own messages.
+each person's own vault serves only their own messages: a conversation includes
+My vault instead, and each sender then uses their own.
 
 While a Schedule names its owner's My vault, only the owner who created it may
 change what it runs, because its runs use that person's credentials. Anyone else
@@ -151,9 +157,9 @@ records that editor as having attached each one.
 - **Any other key** is filled by a secret with its name, then by the
   declaration's own `value`.
 - **A private repository's clone** takes a token only for an `https` repository
-  on `github.com`: the repository's own token when the conversation gave one,
-  then the `github.com` login, then a `GITHUB_TOKEN` secret. A token given to
-  any other repository is refused.
+  on `github.com`: the repository's own token when the conversation gave one
+  ([below](#a-repositorys-own-token)), then the `github.com` login, then a
+  `GITHUB_TOKEN` secret. A token given to any other repository is refused.
 
 A tool's address is its full URL with the scheme and host lowercased, a default
 port and one trailing slash dropped, and any query or fragment dropped, so
@@ -164,25 +170,22 @@ host is its bare host name.
 ### A missing key stops the run before it starts
 
 When a required key is in none of these places, the run is refused before it
-starts, naming the key, what needs it, and who must act: "linear needs
-LINEAR_API_KEY: add LINEAR_API_KEY to My vault", or, for a scheduled run,
-"linear needs LINEAR_API_KEY: ask the owner of schedule 'nightly' to attach a
-vault that holds LINEAR_API_KEY". An optional key that nobody holds is simply
-absent.
+starts, naming the key, what needs it, and what the conversation lacks: "linear
+needs LINEAR_API_KEY: add LINEAR_API_KEY to My vault" when the conversation
+includes My vault; "add LINEAR_API_KEY to one of this conversation's vaults, or
+include My vault in this conversation" when it lists vaults but leaves My vault
+out; or, for a scheduled run, "linear needs LINEAR_API_KEY: ask the owner of
+schedule 'nightly' to attach a vault that holds LINEAR_API_KEY". An optional key
+that nobody holds is simply absent.
 
-## Values for one conversation
+## A repository's own token
 
-An integrator that keeps keys in its own system can hand them to a conversation
-directly. A Session's `secrets` (by name), `connections` (by address) and a
-repository entry's `token` are kept sealed for that conversation's life, used
-ahead of every vault, replaceable by an update at any time, never returned by a
-read, and destroyed with the conversation. Every turn of the conversation uses
-them, including turns sent by people the conversation is shared with. Its own
-secrets are delivered to each run whether or not anything declares them, but the
-runner still hands a tool or the shell only the keys declared for it
-([below](#where-the-values-reach)): an undeclared secret reaches neither. Values
-you enter in the console without saving them in My vault are these, and so are
-the CLI's `--env` and `--secret` flags on `stigmer run`.
+A conversation holds no keys of its own, with one exception: a repository entry
+may carry a `token` for cloning that repository. It is kept sealed for the
+conversation's life, replaceable by an update, never returned by a read, and
+destroyed with the conversation. Every other key a conversation needs lives in a
+vault: a key you type into the console is saved in My vault, and
+`stigmer run --vault` names the vaults a run from a terminal uses.
 
 An integrator that keeps one vault per customer creates a shared vault with an
 `external_id`, finds it again with that ID, and names it on each Session.
