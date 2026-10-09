@@ -6,8 +6,9 @@
 // stubs capture requests so the tests assert the exact protos the tools send
 // (slug→reference resolution and a missing agent's not-found, the turn's
 // target, a follow-up refused when it names another agent or organization
-// than the session's, the vaults a new conversation names and an empty vault
-// entry refused before anything starts, approval enum mapping) and
+// than the session's, the vaults a new conversation names, an empty or
+// malformed vault entry refused before anything starts, a follow-up refused
+// when it names vaults or include_my_vault, approval enum mapping) and
 // script run state (running vs terminal, long message histories) to
 // exercise the compact projection and the cancel short-circuit. A scripted
 // RPC failure per method pins the error copy each tool returns when the
@@ -273,6 +274,24 @@ describe("run tools integration", () => {
     expect(createdRun).toBeUndefined();
   });
 
+  it.each(["acme/", "/support-tools", "acme/support/tools"])(
+    "run_agent refuses the vault entry %j, which names no vault, and starts nothing",
+    async (entry) => {
+      const result = await callTool("run_agent", {
+        org: "acme",
+        agent: "code-reviewer",
+        message: "triage the queue",
+        vaults: [entry],
+      });
+      expect(result.isError).toBe(true);
+      expect(result.content[0]?.text).toContain(
+        `vaults: "${entry}" is not a vault name; name each vault by slug or org/slug.`,
+      );
+      expect(agentLookups).toBe(0);
+      expect(createdRun).toBeUndefined();
+    },
+  );
+
   it.each(["secrets", "runtime_env"])(
     "run_agent refuses the former %s argument, naming vaults, and starts nothing",
     async (argument) => {
@@ -323,14 +342,16 @@ describe("run tools integration", () => {
     expect(createdRun?.metadata?.org).toBe("");
   });
 
-  it("run_agent refuses vaults on a follow-up and starts nothing", async () => {
-    createdRun = undefined;
+  it.each([
+    ["vaults", { vaults: ["support-tools"] }],
+    ["include_my_vault alone", { include_my_vault: false }],
+  ])("run_agent refuses %s on a follow-up and starts nothing", async (_case, choice) => {
     const result = await callTool("run_agent", {
       org: "acme",
       agent: "code-reviewer",
       message: "again",
       session_id: "ses_42",
-      vaults: ["support-tools"],
+      ...choice,
     });
     expect(result.isError).toBe(true);
     expect(result.content[0]?.text).toContain("keeps the vaults it was started with");

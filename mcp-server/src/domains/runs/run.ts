@@ -157,18 +157,22 @@ export async function runAgent(
 /**
  * A vault named as `agent` names an agent: `org/slug`, or a slug in `org`
  * (empty `org` leaves the reference relative, which the server resolves to
- * the conversation's organization).
+ * the conversation's organization). An entry with an empty part (`acme/`,
+ * `/x`) or more than one `/` is refused here, before anything starts.
  */
 function vaultReference(ref: string, org: string): ApiResourceReference {
   const trimmed = ref.trim();
   if (trimmed === "") {
     throw new Error("vaults: an entry is empty; name each vault by slug or org/slug.");
   }
-  const slash = trimmed.indexOf("/");
+  const parts = trimmed.split("/");
+  if (parts.length > 2 || parts.some((part) => part === "")) {
+    throw new Error(`vaults: "${trimmed}" is not a vault name; name each vault by slug or org/slug.`);
+  }
   return createMessage(ApiResourceReferenceSchema, {
     kind: ApiResourceKind.vault,
-    org: slash > 0 ? trimmed.slice(0, slash) : org,
-    slug: slash > 0 ? trimmed.slice(slash + 1) : trimmed,
+    org: parts.length === 2 ? parts[0] : org,
+    slug: parts.length === 2 ? parts[1] : trimmed,
   });
 }
 
