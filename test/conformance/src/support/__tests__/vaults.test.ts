@@ -3,18 +3,18 @@
 //   an empty entry set, the external id), the two entry-write targets (the
 //   caller's own My vault by `mine`, a vault by id), and each entry write's
 //   input carrying its target and its names, values or addresses.
-// - The `vaults` option of every surface builder (agent, share, schedule,
-//   session, a run's new session) names each vault by slug with the vault
-//   kind, and a builder given none sets no list.
+// - The `vaults` option of every surface builder (share, schedule,
+//   session) names each vault by slug with the vault kind, and a builder
+//   given none sets no list; a session's includeMyVault is set only when
+//   given.
 // - A schedule's repository carries the token a fixture gives it, and a
-//   run's first-turn secrets ride its new session, refused beside an
-//   existing session id.
+//   run's first-turn My vault choice rides its new session, refused beside
+//   an existing session id.
 // Pure: hand-built shapes, no target.
 // Domain: conformance support (vaults).
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { describe, expect, it } from "vitest";
 
-import { makeAgentSpec } from "../agents";
 import { makeAgentShare } from "../agentshares";
 import { makeAgentExecution } from "../runs";
 import { makeSchedule } from "../schedules";
@@ -71,16 +71,14 @@ describe("the vaults option of the surface builders", () => {
   const slugs = ["support-tools", "handbook"];
 
   it("names each vault by slug with the vault kind, and sets no list when none is given", () => {
-    expect(makeAgentSpec({ vaults: slugs }).vaults).toEqual(VAULT_REFS);
-    expect(makeAgentSpec({}).vaults).toBeUndefined();
-
     expect(makeAgentShare("acme", "bot", { vaults: slugs }).spec?.vaults).toEqual(VAULT_REFS);
     expect(makeAgentShare("acme", "bot").spec?.vaults).toBeUndefined();
 
-    expect(makeSessionSpec({ vaults: slugs, secrets: { K: "v" } })).toMatchObject({
+    expect(makeSessionSpec({ vaults: slugs, includeMyVault: true })).toMatchObject({
       vaults: VAULT_REFS,
-      secrets: { K: "v" },
+      includeMyVault: true,
     });
+    expect(makeSessionSpec({}).includeMyVault).toBeUndefined();
 
     const schedule = makeSchedule("acme", "nightly", "bot", {
       vaults: slugs,
@@ -103,13 +101,13 @@ describe("the vaults option of the surface builders", () => {
     });
   });
 
-  it("puts a run's first-turn secrets on its new session and refuses them beside a session id", () => {
-    const run = makeAgentExecution({ org: "acme", name: "r", sessionSecrets: { K: "v" } });
+  it("puts a run's first-turn My vault choice on its new session and refuses it beside a session id", () => {
+    const run = makeAgentExecution({ org: "acme", name: "r", includeMyVault: true });
     const target = run.spec?.target;
     expect(target?.case).toBe("sessionSpec");
-    expect(target?.case === "sessionSpec" ? target.value.secrets : undefined).toEqual({ K: "v" });
+    expect(target?.case === "sessionSpec" ? target.value.includeMyVault : undefined).toBe(true);
     expect(() =>
-      makeAgentExecution({ org: "acme", name: "r", sessionId: "ses_1", sessionSecrets: { K: "v" } }),
+      makeAgentExecution({ org: "acme", name: "r", sessionId: "ses_1", includeMyVault: true }),
     ).toThrow(/sessionId excludes/);
   });
 });

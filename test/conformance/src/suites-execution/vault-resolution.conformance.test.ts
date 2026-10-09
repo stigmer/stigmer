@@ -4,36 +4,37 @@
 // start, exercised through Run and Schedule. The contract:
 //   - what a run needs is what its agent and its tools declare (and a token
 //     for each repository it clones); a vault's key nobody declares never
-//     reaches the run, while the conversation's own secrets all do (the
-//     caller handed them to this conversation);
-//   - values come from, in order: the conversation's own values, the
-//     conversation's vaults; then, for a run with a person whose
-//     conversation lists no vaults, their My vault and the agent's vaults;
-//     for a run with no person (a schedule's), only the schedule's vaults;
+//     reaches the run;
+//   - values come from, in order: the sender's My vault when the
+//     conversation includes it (include_my_vault), then the conversation's
+//     vaults; a conversation that leaves My vault out never reads it; for a
+//     run with no person (a schedule's), only the schedule's vaults;
 //   - a plain setting may carry its value in the declaration, and a vault
 //     secret of the same name takes its place;
 //   - a required key found nowhere refuses the create with
-//     FAILED_PRECONDITION naming the key and who must act; an optional one
-//     stays absent;
-//   - a conversation's own secrets are sealed on the session and every read
-//     shows the redaction marker;
+//     FAILED_PRECONDITION naming the key and what the conversation lacks;
+//     an optional one stays absent;
+//   - a repository's own token is sealed on the session: every read shows
+//     the redaction marker, and a write sending it back keeps it; a stale
+//     write keeps the stored vault choice;
 //   - recover rebuilds the context from the recorded agent version and the
 //     vaults as they are now ("fix the key, then recover").
 //
-// The two-person arms (a member's run uses their own My vault, never a
-// teammate's; an agent's shared vault serves only people who may use it; a
+// The two-person arms (each sender's turn uses their own My vault, never a
+// teammate's; a run reads only the vaults its conversation chose; a
 // revoked use stops a schedule's next fire) run on the enforcing execution
 // lane in runner-as-subject.conformance.test.ts.
 //
 // Observation strategy: the ExecutionContext is created SYNCHRONOUSLY inside
 // the create pipeline, so it exists the instant create() returns; a held
 // mock-LLM turn keeps the run non-terminal (and its ephemeral context alive)
-// while getByExecutionId reads it. Every value that came from a vault or the
-// conversation's own values comes back with is_secret set and its value
+// while getByExecutionId reads it. Every value that came from a vault comes
+// back with is_secret set and its value
 // redacted, whatever its declaration says; only a declaration's own plain
 // default reads plain. An arm proves such a value is there by the marker,
 // and proves WHICH value the run received through the agent's shell, which
 // prints the decrypted value into the next model request.
+import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
@@ -42,6 +43,7 @@ import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ScheduleFireOutcome } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
+import { WorkspaceEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import { agentRefOf, makeAgent } from "../support/agents";
 import {
   awaitPhase,
@@ -55,7 +57,7 @@ import { makeHttpMcpServer } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";
 import { pollUntil } from "../support/run-poll";
 import { makeSchedule } from "../support/schedules";
-import { makeSession } from "../support/sessions";
+import { makeSession, makeSessionSpec } from "../support/sessions";
 import {
   type EnvVarDeclarationInit,
   makeSharedVault,
@@ -65,7 +67,7 @@ import {
 } from "../support/vaults";
 import { createTarget, type TargetProfile } from "../targets";
 
-// The redaction marker every read shows in place of a conversation's own value.
+// The redaction marker every read shows in place of a sealed value.
 const REDACTED_MARKER = "***REDACTED***";
 
 // Holds a run's single turn open so the run stays non-terminal (and its
@@ -125,13 +127,13 @@ async function sharedVaultWith(org: string, secrets: Record<string, string>) {
 interface RunSetup {
   // The agent's declarations: what the run needs.
   env: Record<string, EnvVarDeclarationInit>;
-  // The conversation's own secrets.
-  sessionSecrets?: Record<string, string>;
+  // Whether the conversation includes its sender's My vault.
+  includeMyVault?: boolean;
   // The conversation's vaults, by slug.
   sessionVaults?: string[];
 }
 
-/** Agent -> session (its own values and vaults). */
+/** Agent -> session (the vaults it uses). */
 async function agentAndSession(org: string, setup: RunSetup) {
   const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("agent"), env: setup.env }));
   fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
@@ -141,7 +143,7 @@ async function agentAndSession(org: string, setup: RunSetup) {
       org,
       name: uniqueName("session"),
       agentRef: agentRefOf(agent),
-      ...(setup.sessionSecrets !== undefined ? { secrets: setup.sessionSecrets } : {}),
+      ...(setup.includeMyVault !== undefined ? { includeMyVault: setup.includeMyVault } : {}),
       ...(setup.sessionVaults !== undefined ? { vaults: setup.sessionVaults } : {}),
     }),
   );
@@ -175,7 +177,7 @@ async function shellOutputOf(org: string, setup: RunSetup, command: string): Pro
     .join("\n");
 }
 
-/** Agent -> session (its own values and vaults) -> a held run; answers the run and its context's values. */
+/** Agent -> session (the vaults it uses) -> a held run; answers the run and its context's values. */
 async function runWith(org: string, setup: RunSetup) {
   const { agent, session } = await agentAndSession(org, setup);
 
@@ -192,12 +194,36 @@ async function runWith(org: string, setup: RunSetup) {
   return { agent, session, execution, data: context.spec?.data ?? {} };
 }
 
+/** Creates a run on a new conversation of a fresh agent declaring `env`; answers the refusal, or undefined when it started. */
+async function refusalOfFirstTurn(
+  org: string,
+  env: Record<string, EnvVarDeclarationInit>,
+  sessionSpec: { includeMyVault?: boolean; vaults?: string[] },
+): Promise<ConnectError | undefined> {
+  const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("agent-missing"), env }));
+  fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
+  try {
+    const created = await clients.agentExecutionCommand.create(
+      makeAgentExecution({
+        org,
+        name: uniqueName("aex-missing"),
+        agentRef: agentRefOf(agent),
+        sessionSpec: makeSessionSpec(sessionSpec),
+      }),
+    );
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: created.metadata!.id }));
+    return undefined;
+  } catch (error) {
+    return ConnectError.from(error);
+  }
+}
+
 describe("vault resolution — a person's run", () => {
-  it("[rpc:RunCommandController.create] a key the agent declares is filled from the run's person's My vault", async () => {
+  it("[rpc:RunCommandController.create] a key the agent declares is filled from the sender's My vault when the conversation includes it", async () => {
     const { org } = await target.provisionTenancy();
     await saveToMyVault(org, { MINE_KEY: "my-value" });
 
-    const { data } = await runWith(org, { env: { MINE_KEY: {} } });
+    const { data } = await runWith(org, { env: { MINE_KEY: {} }, includeMyVault: true });
 
     // My vault is the only place holding it: the marker is the proof it is
     // there, and a vault's value is a secret whatever the declaration says.
@@ -205,42 +231,46 @@ describe("vault resolution — a person's run", () => {
     expect(data.MINE_KEY?.value).toBe(REDACTED_MARKER);
   });
 
-  it("the conversation's own secret wins over My vault for a declared key", async () => {
+  it("a conversation that leaves My vault out never reads it", async () => {
+    const { org } = await target.provisionTenancy();
+    await saveToMyVault(org, { MY_ONLY_KEY: "never" });
+
+    const { data } = await runWith(org, { env: { MY_ONLY_KEY: { optional: true } } });
+
+    expect(data.MY_ONLY_KEY, "include_my_vault is off on the wire unless the caller sets it").toBeUndefined();
+  });
+
+  it("My vault comes first, ahead of the vaults the conversation lists", async () => {
     const { org } = await target.provisionTenancy();
     await saveToMyVault(org, { PRECEDENCE_KEY: "from-my-vault" });
+    const team = await sharedVaultWith(org, { PRECEDENCE_KEY: "from-the-team-vault", LISTED_ONLY_KEY: "listed-value" });
 
     // Both candidates are secrets, so which one won shows only where the
     // runner holds it decrypted: the agent's shell.
     const shell = await shellOutputOf(
       org,
       {
-        env: { PRECEDENCE_KEY: {}, SESSION_ONLY_KEY: {} },
-        sessionSecrets: { PRECEDENCE_KEY: "from-the-session", SESSION_ONLY_KEY: "session-value" },
+        env: { PRECEDENCE_KEY: {}, LISTED_ONLY_KEY: {} },
+        includeMyVault: true,
+        sessionVaults: [team.slug],
       },
-      'echo "PRECEDENCE=[$PRECEDENCE_KEY] ONLY=[$SESSION_ONLY_KEY]"',
+      'echo "PRECEDENCE=[$PRECEDENCE_KEY] ONLY=[$LISTED_ONLY_KEY]"',
     );
 
-    expect(shell, "the conversation's own value comes first").toContain("PRECEDENCE=[from-the-session]");
-    expect(shell, "My vault's value never reached the run").not.toContain("from-my-vault");
-    expect(shell).toContain("ONLY=[session-value]");
+    expect(shell, "the sender's own value comes first").toContain("PRECEDENCE=[from-my-vault]");
+    expect(shell, "the listed vault's value lost to it").not.toContain("from-the-team-vault");
+    expect(shell, "a listed vault fills what My vault lacks").toContain("ONLY=[listed-value]");
   });
 
-  it("a vault's keys reach the run only when declared; the conversation's own secrets all do", async () => {
+  it("a vault's keys reach the run only when declared", async () => {
     const { org } = await target.provisionTenancy();
     await saveToMyVault(org, { DECLARED_KEY: "kept", UNDECLARED_VAULT_KEY: "dropped" });
 
-    const { data } = await runWith(org, {
-      env: { DECLARED_KEY: {} },
-      sessionSecrets: { UNDECLARED_SESSION_KEY: "handed-to-this-conversation" },
-    });
+    const { data } = await runWith(org, { env: { DECLARED_KEY: {} }, includeMyVault: true });
 
-    expect(Object.keys(data).sort()).toEqual(["DECLARED_KEY", "UNDECLARED_SESSION_KEY"]);
+    expect(Object.keys(data)).toEqual(["DECLARED_KEY"]);
     expect(data.DECLARED_KEY?.isSecret, "the declared vault key is kept, as a secret").toBe(true);
     expect(data.DECLARED_KEY?.value).toBe(REDACTED_MARKER);
-    // A conversation's own secret is delivered as a secret: the user-shaped
-    // read shows it redacted, which is the proof it is there.
-    expect(data.UNDECLARED_SESSION_KEY?.isSecret, "the caller handed it to this conversation").toBe(true);
-    expect(data.UNDECLARED_SESSION_KEY?.value).toBe("***REDACTED***");
   });
 
   it("a plain setting carries its value in the declaration; a vault secret of the same name takes its place", async () => {
@@ -252,6 +282,7 @@ describe("vault resolution — a person's run", () => {
         WORKSPACE_SETTING: { value: "acme" },
         OVERRIDDEN_SETTING: { value: "the-default" },
       },
+      includeMyVault: true,
     });
 
     expect(data.WORKSPACE_SETTING?.value, "the declaration's own value").toBe("acme");
@@ -262,37 +293,37 @@ describe("vault resolution — a person's run", () => {
     expect(data.OVERRIDDEN_SETTING?.value).toBe(REDACTED_MARKER);
   });
 
-  it("[rpc:RunCommandController.create] a required key found nowhere refuses the create naming the key and who must act; an optional one stays absent", async () => {
+  it("[rpc:RunCommandController.create] a required key found nowhere refuses the create naming the key and what the conversation lacks; an optional one stays absent", async () => {
     const { org } = await target.provisionTenancy();
     await saveToMyVault(org, { PROVIDED_KEY: "present" });
+    const team = await sharedVaultWith(org, { OTHER_KEY: "unrelated" });
+    const env = { PROVIDED_KEY: {}, REQUIRED_MISSING_KEY: {}, OPTIONAL_MISSING_KEY: { optional: true } };
 
-    const agent = await clients.agentCommand.create(
-      makeAgent({
-        org,
-        name: uniqueName("agent-missing"),
-        env: { PROVIDED_KEY: {}, REQUIRED_MISSING_KEY: {}, OPTIONAL_MISSING_KEY: { optional: true } },
-      }),
-    );
-    fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
-
-    let refused: ConnectError | undefined;
-    try {
-      const created = await clients.agentExecutionCommand.create(
-        makeAgentExecution({ org, name: uniqueName("aex-missing"), agentRef: agentRefOf(agent) }),
-      );
-      fixtures.defer(() => clients.agentExecutionCommand.delete({ value: created.metadata!.id }));
-    } catch (error) {
-      refused = ConnectError.from(error);
-    }
-    expect(refused?.code, "a missing required key refuses the create before the run starts").toBe(
+    const included = await refusalOfFirstTurn(org, env, { includeMyVault: true });
+    expect(included?.code, "a missing required key refuses the create before the run starts").toBe(
       Code.FailedPrecondition,
     );
-    expect(refused?.rawMessage).toContain("needs REQUIRED_MISSING_KEY");
-    expect(refused?.rawMessage).toContain("add REQUIRED_MISSING_KEY to My vault");
-    expect(refused?.rawMessage, "an optional key is never what refuses").not.toContain("OPTIONAL_MISSING_KEY");
+    expect(included?.rawMessage).toContain("needs REQUIRED_MISSING_KEY");
+    expect(included?.rawMessage).toContain("add REQUIRED_MISSING_KEY to My vault");
+    expect(included?.rawMessage, "an optional key is never what refuses").not.toContain("OPTIONAL_MISSING_KEY");
+
+    const listed = await refusalOfFirstTurn(org, env, { vaults: [team.slug] });
+    expect(listed?.code).toBe(Code.FailedPrecondition);
+    expect(listed?.rawMessage).toContain(
+      "add REQUIRED_MISSING_KEY to one of this conversation's vaults, or include My vault in this conversation",
+    );
+
+    const none = await refusalOfFirstTurn(org, env, {});
+    expect(none?.code).toBe(Code.FailedPrecondition);
+    expect(none?.rawMessage).toContain(
+      "this conversation uses no vaults: include My vault in it, or list a vault that holds PROVIDED_KEY",
+    );
 
     // With an optional key still missing, the run starts and completes.
-    const optionalOnly = await runWith(org, { env: { PROVIDED_KEY: {}, OPTIONAL_MISSING_KEY: { optional: true } } });
+    const optionalOnly = await runWith(org, {
+      env: { PROVIDED_KEY: {}, OPTIONAL_MISSING_KEY: { optional: true } },
+      includeMyVault: true,
+    });
     expect(optionalOnly.data.PROVIDED_KEY?.isSecret).toBe(true);
     expect(optionalOnly.data.PROVIDED_KEY?.value).toBe(REDACTED_MARKER);
     expect(optionalOnly.data.OPTIONAL_MISSING_KEY, "an unprovided optional key is absent").toBeUndefined();
@@ -301,7 +332,7 @@ describe("vault resolution — a person's run", () => {
     expect(final.status?.phase).toBe(RunPhase.RUN_COMPLETED);
   });
 
-  it("a conversation that lists vaults uses exactly those: My vault is not read", async () => {
+  it("a conversation that lists vaults and leaves My vault out uses exactly those", async () => {
     const { org } = await target.provisionTenancy();
     await saveToMyVault(org, { LISTED_KEY: "from-my-vault", MY_ONLY_KEY: "never" });
     const team = await sharedVaultWith(org, { LISTED_KEY: "from-the-team-vault" });
@@ -314,7 +345,7 @@ describe("vault resolution — a person's run", () => {
     // With My vault unread (below), the listed vault is the only source left.
     expect(data.LISTED_KEY?.isSecret, "the listed vault fills the key").toBe(true);
     expect(data.LISTED_KEY?.value).toBe(REDACTED_MARKER);
-    expect(data.MY_ONLY_KEY, "My vault is not read when the conversation lists vaults").toBeUndefined();
+    expect(data.MY_ONLY_KEY, "My vault is not read when the conversation leaves it out").toBeUndefined();
   });
 
   it("[rpc:SessionCommandController.create] a conversation cannot list anyone's own My vault", async () => {
@@ -332,6 +363,7 @@ describe("vault resolution — a person's run", () => {
     }
     expect(refused?.code).toBe(Code.FailedPrecondition);
     expect(refused?.rawMessage).toContain("a My vault cannot be attached to a conversation");
+    expect(refused?.rawMessage, "the refusal names the door that serves it").toContain("include My vault in it instead");
   });
 
   it("[rpc:ExecutionContextQueryController.getByExecutionId] a secret keeps is_secret and its value is redacted on the user-shaped read", async () => {
@@ -342,6 +374,7 @@ describe("vault resolution — a person's run", () => {
 
     const { data } = await runWith(org, {
       env: { API_TOKEN: { isSecret: true }, PLAIN_KEY: { value: "plain-value" }, PLAIN_DECLARED_KEY: {} },
+      includeMyVault: true,
     });
 
     expect(data.API_TOKEN?.isSecret, "a secret declaration delivers a secret").toBe(true);
@@ -351,55 +384,49 @@ describe("vault resolution — a person's run", () => {
     expect(data.PLAIN_DECLARED_KEY?.value, "and no user-shaped read returns it").not.toBe(plainDeclaredValue);
   });
 
-  it("[rpc:SessionQueryController.get] a conversation's own secrets are sealed: every read shows the marker, and a write sending it back keeps the value", async () => {
+  it("[rpc:SessionCommandController.update] a repository's token is sealed and kept by a write sending the marker back; a stale write keeps the stored vault choice", async () => {
     const { org } = await target.provisionTenancy();
-    const { session, execution, data } = await runWith(org, {
-      env: { OWN_KEY: {} },
-      sessionSecrets: { OWN_KEY: "own-value" },
-    });
-    expect(data.OWN_KEY?.isSecret, "the run carries the conversation's own value, as a secret").toBe(true);
-    expect(data.OWN_KEY?.value).toBe(REDACTED_MARKER);
-
-    const read = await clients.sessionQuery.get({ value: session.metadata!.id });
-    expect(read.spec?.secrets.OWN_KEY, "a read shows the marker, never the value").toBe(REDACTED_MARKER);
-
-    // Sending back what a read showed keeps the stored value: the next turn
-    // still receives it. Every read of that turn's context shows the marker
-    // too, so the proof is its agent's shell, which holds the real value.
-    mock.releaseHolds();
-    const updated = await clients.sessionCommand.update(read);
-    expect(updated.spec?.secrets.OWN_KEY).toBe(REDACTED_MARKER);
-    // The first turn finishes before the second is scripted, so it can never
-    // claim the second turn's shell call.
-    await awaitTerminal(clients, execution.metadata!.id);
-
-    mock.enqueue(anthropicToolUse("call_own", "execute", { command: 'echo "OWN=[$OWN_KEY]"' }));
-    mock.enqueue(anthropicText("Done."));
-    const second = await clients.agentExecutionCommand.create(
-      makeAgentExecution({
-        org,
-        name: uniqueName("aex-second"),
-        sessionId: session.metadata!.id,
-        autoApproveAll: true,
+    const input = makeSession({ org, name: uniqueName("session-repo-token"), includeMyVault: true });
+    input.spec!.workspaceEntries = [
+      create(WorkspaceEntrySchema, {
+        name: "app",
+        source: { source: { case: "gitRepo", value: { url: "https://github.com/acme/app", token: "ghp-own-token" } } },
       }),
-    );
-    const secondId = second.metadata!.id;
-    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: secondId }));
-    const final = await awaitTerminal(clients, secondId);
-    expect(
-      final.status?.phase,
-      `execution ${secondId} should complete; error: ${final.status?.error || "(none)"}`,
-    ).toBe(RunPhase.RUN_COMPLETED);
-    const shell = mock
-      .scriptedRequests()
-      .map((request) => JSON.stringify(request.body))
-      .join("\n");
-    expect(shell, "the marker kept the sealed value").toContain("OWN=[own-value]");
-    expect(shell, "the run never received the marker as the value").not.toContain(`OWN=[${REDACTED_MARKER}]`);
+    ];
+    const created = await clients.sessionCommand.create(input);
+    fixtures.defer(() => clients.sessionCommand.delete({ value: created.metadata!.id }));
+    const tokenOf = (session: typeof created): string | undefined => {
+      const source = session.spec?.workspaceEntries[0]?.source?.source;
+      return source?.case === "gitRepo" ? source.value.token : undefined;
+    };
+
+    // The read a runner takes when its turn starts, written back after.
+    const turnStartRead = await clients.sessionQuery.get({ value: created.metadata!.id });
+    expect(tokenOf(turnStartRead), "a read shows the marker, never the token").toBe(REDACTED_MARKER);
+    expect(turnStartRead.spec?.includeMyVault).toBe(true);
+
+    // The creator leaves My vault out mid-turn.
+    const fresh = await clients.sessionQuery.get({ value: created.metadata!.id });
+    fresh.spec!.includeMyVault = false;
+    const changed = await clients.sessionCommand.update(fresh);
+    expect(changed.spec?.includeMyVault).toBe(false);
+
+    // The runner's after-turn write echoes the older read: it keeps the
+    // stored choice and the stored token.
+    const afterTurn = await clients.sessionCommand.update(turnStartRead);
+    expect(afterTurn.spec?.includeMyVault, "a stale write never switches My vault back").toBe(false);
+    expect(tokenOf(afterTurn)).toBe(REDACTED_MARKER);
+
+    // A current write sending the marker back is accepted only when a token
+    // is stored behind it: the token survived both writes.
+    const current = await clients.sessionQuery.get({ value: created.metadata!.id });
+    const kept = await clients.sessionCommand.update(current);
+    expect(tokenOf(kept), "the marker kept the sealed token").toBe(REDACTED_MARKER);
   });
 
-  it("[rpc:RunCommandController.create] a first turn's own secrets ride its new conversation, never the run", async () => {
+  it("[rpc:RunCommandController.create] a first turn's My vault choice rides its new conversation", async () => {
     const { org } = await target.provisionTenancy();
+    await saveToMyVault(org, { FIRST_TURN_KEY: "first-turn-value" });
     const agent = await clients.agentCommand.create(
       makeAgent({ org, name: uniqueName("agent-first-turn"), env: { FIRST_TURN_KEY: {} } }),
     );
@@ -411,7 +438,7 @@ describe("vault resolution — a person's run", () => {
         org,
         name: uniqueName("aex-first-turn"),
         agentRef: agentRefOf(agent),
-        sessionSecrets: { FIRST_TURN_KEY: "first-turn-value" },
+        includeMyVault: true,
       }),
     );
     fixtures.defer(async () => {
@@ -420,12 +447,12 @@ describe("vault resolution — a person's run", () => {
     });
 
     const context = await clients.executionContextQuery.getByExecutionId({ executionId: execution.metadata!.id });
-    expect(context.spec?.data.FIRST_TURN_KEY?.isSecret, "the first turn's own value reaches its run").toBe(true);
+    expect(context.spec?.data.FIRST_TURN_KEY?.isSecret, "the first turn reads its sender's My vault").toBe(true);
     expect(context.spec?.data.FIRST_TURN_KEY?.value).toBe(REDACTED_MARKER);
     const stored = await clients.agentExecutionQuery.get({ value: execution.metadata!.id });
     expect(stored.spec?.target.case, "the run keeps only the session's id").toBe("sessionId");
     const session = await clients.sessionQuery.get({ value: sessionIdOf(stored) });
-    expect(session.spec?.secrets.FIRST_TURN_KEY).toBe(REDACTED_MARKER);
+    expect(session.spec?.includeMyVault, "the choice is the conversation's").toBe(true);
   });
 });
 
@@ -464,7 +491,7 @@ describe("vault resolution — recover", () => {
         org,
         name: uniqueName("aex-recover-keys"),
         agentRef: agentRefOf(v1),
-        sessionSpec: { subject: "recover keys" },
+        sessionSpec: { subject: "recover keys", includeMyVault: true },
       }),
     );
     const executionId = execution.metadata!.id;
@@ -512,6 +539,7 @@ describe("vault resolution — the agent's shell", () => {
   async function shellOfRun(serverOn: "session" | "agent"): Promise<string> {
     const { org } = await target.provisionTenancy();
     const mcp = requireMcpFixture(target);
+    await saveToMyVault(org, { SHELL_AGENT_KEY: "agent-visible-value", SHELL_MCP_ONLY_KEY: "mcp-only-value" });
 
     const server = await clients.mcpServerCommand.create(
       makeHttpMcpServer({
@@ -538,7 +566,7 @@ describe("vault resolution — the agent's shell", () => {
         org,
         name: uniqueName("shell-session"),
         agentRef: agentRefOf(agent),
-        secrets: { SHELL_AGENT_KEY: "agent-visible-value", SHELL_MCP_ONLY_KEY: "mcp-only-value" },
+        includeMyVault: true,
         ...(serverOn === "session" ? { mcpServerRefs: [server.metadata!.slug] } : {}),
       }),
     );
@@ -607,7 +635,13 @@ describe("vault resolution — the agent's shell", () => {
     mock.enqueue(anthropicToolUse("call_proof", "execute", { command: 'echo "PROOF=[$SHELL_PROOF_TOKEN]"' }));
     mock.enqueue(anthropicText("Done."));
     const execution = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-secret-proof"), agentRef: agentRefOf(agent), autoApproveAll: true }),
+      makeAgentExecution({
+        org,
+        name: uniqueName("aex-secret-proof"),
+        agentRef: agentRefOf(agent),
+        includeMyVault: true,
+        autoApproveAll: true,
+      }),
     );
     const executionId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));

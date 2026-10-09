@@ -71,9 +71,6 @@ export interface AgentSpecOptions {
   // agent needs. A secret is found by its name in a vault when a run starts;
   // a plain setting may carry its own value (support/vaults.ts).
   env?: Record<string, EnvVarDeclarationInit>;
-  // Shared vault slugs the agent's conversations use after a person's own My
-  // vault, for people who may use them (spec.vaults).
-  vaults?: string[];
   // The author's run defaults (spec.run_config) and the engine they were
   // chosen for (spec.harness). A model needs an engine; the server checks
   // both at save.
@@ -110,7 +107,6 @@ export function makeAgentSpec(opts: AgentSpecOptions = {}): InitShape<typeof Age
     ...(opts.runConfig !== undefined ? { runConfig: opts.runConfig } : {}),
     ...(opts.harness !== undefined ? { harness: opts.harness } : {}),
     ...(opts.hooks !== undefined ? { hooks: opts.hooks } : {}),
-    ...(opts.vaults !== undefined ? { vaults: opts.vaults.map((slug) => ({ slug, kind: ApiResourceKind.vault })) } : {}),
   };
 }
 

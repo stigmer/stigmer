@@ -58,11 +58,10 @@ export interface AgentExecutionOptions {
   // gates apply; true = the run never pauses for approval. The top of the
   // approval-policy chain.
   autoApproveAll?: boolean;
-  // The new conversation's own secrets (session_spec.secrets), ahead of every
-  // vault: sealed on the session the turn creates, never on the run. Only a
-  // turn that starts a conversation carries them; a later change is a
-  // session update.
-  sessionSecrets?: Record<string, string>;
+  // Whether the new conversation uses each sender's My vault, first
+  // (session_spec.include_my_vault). Only a turn that starts a
+  // conversation carries it; a later change is a session update.
+  includeMyVault?: boolean;
   // The settings this message asks for (spec.run_config): model, tier,
   // thinking, bounds. Left unset by default: the agent's defaults and the
   // engine's choose; the server records what the turn ran with on
@@ -116,19 +115,19 @@ function executionTarget(
   opts: AgentExecutionOptions,
 ): Pick<NonNullable<InitShape<typeof RunSchema>["spec"]>, "target"> {
   if (opts.sessionId !== undefined) {
-    if (opts.agentRef !== undefined || opts.sessionSpec !== undefined || opts.sessionSecrets !== undefined) {
+    if (opts.agentRef !== undefined || opts.sessionSpec !== undefined || opts.includeMyVault !== undefined) {
       throw new Error(
-        "makeAgentExecution: sessionId excludes agentRef, sessionSpec and sessionSecrets (spec.target is a oneof; an existing session's secrets change by session update)",
+        "makeAgentExecution: sessionId excludes agentRef, sessionSpec and includeMyVault (spec.target is a oneof; an existing session's vault choice changes by session update)",
       );
     }
     return { target: { case: "sessionId", value: opts.sessionId } };
   }
-  if (opts.agentRef === undefined && opts.sessionSpec === undefined && opts.sessionSecrets === undefined) {
+  if (opts.agentRef === undefined && opts.sessionSpec === undefined && opts.includeMyVault === undefined) {
     return {};
   }
   const sessionSpec = create(SessionSpecSchema, opts.sessionSpec ?? {});
-  if (opts.sessionSecrets !== undefined) {
-    sessionSpec.secrets = { ...sessionSpec.secrets, ...opts.sessionSecrets };
+  if (opts.includeMyVault !== undefined) {
+    sessionSpec.includeMyVault = opts.includeMyVault;
   }
   if (opts.agentRef !== undefined) {
     sessionSpec.agentRef = create(ApiResourceReferenceSchema, makeAgentRef(opts.agentRef));

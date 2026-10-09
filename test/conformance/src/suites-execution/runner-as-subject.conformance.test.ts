@@ -41,14 +41,16 @@
 //     member and the connect token admits the runner as the member for the
 //     secret read from the member's My vault (stigmer#1137's connect half).
 //     A key the run's agent declares is filled from the TURN SENDER's My
-//     vault: a member's turn on the founder's org-visible agent reads the
+//     vault when the conversation includes it: a member's turn on the
+//     founder's org-visible agent reads the
 //     member's saved value, never the founder's saved after it (stigmer#1198:
 //     a person's own logins and secrets serve only their own runs). (The
 //     sharper form, a teammate's turn in someone else's session, needs a
 //     per-session viewer grant, which open source's organization-only grant
 //     scope refuses; the server's resolver unit arms pin that the person is
-//     the turn's recorded person.) A shared vault an agent lists serves a
-//     person's run only when that person may use it, and a schedule's
+//     the turn's recorded person.) A run reads only the vaults its
+//     conversation chose: an agent carries none, so a usable team vault
+//     serves a member's run only once the conversation lists it, and a schedule's
 //     vault stops serving its fires once the account that attached it may
 //     no longer use it. A member's run with memory
 //     on, whose agent calls `remember`, writes a Memory whose subject is the
@@ -106,6 +108,7 @@ import {
 } from "../support/runs";
 import { makeApiKey, plaintextKeyOf } from "../support/apikeys";
 import { makeSchedule } from "../support/schedules";
+import { makeSessionSpec } from "../support/sessions";
 import { organizationRole } from "../support/iampolicies";
 import { makeSharedVault, myVaultTarget, setSecretsInput, vaultTarget } from "../support/vaults";
 import { pollUntil } from "../support/run-poll";
@@ -712,7 +715,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
       expect(new Set(carried)).toEqual(new Set(["member-credential"]));
     });
 
-    it("[rpc:RunCommandController.create] a key the agent declares is filled from the turn sender's My vault, never the agent author's saved after it", async (ctx) => {
+    it("[rpc:RunCommandController.create] a key the agent declares is filled from the turn sender's My vault when the conversation includes it, never the agent author's saved after it", async (ctx) => {
       const { lane, mock } = laneOrSkip(ctx);
       const people = await provisionPeople(lane);
 
@@ -763,6 +766,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
           org: people.org,
           name: uniqueName("ras-bridge"),
           agentRef: agentRefOf(agent),
+          includeMyVault: true,
           autoApproveAll: true,
         }),
       );
@@ -806,13 +810,12 @@ describe.skipIf(!runnerActsAsRunCreator)(
       );
     });
 
-    it("[rpc:RunCommandController.create] an agent's shared vault serves a person's run only when that person may use it", async (ctx) => {
+    it("[rpc:RunCommandController.create] a run reads only the vaults its conversation chose: an agent carries none", async (ctx) => {
       const { lane, mock } = laneOrSkip(ctx);
       const people = await provisionPeople(lane);
 
-      // The founder (an admin) keeps the team's key in a PRIVATE shared
-      // vault and attaches it to an org-visible agent: admins may use it,
-      // a member may not until it is shared with the organization.
+      // The founder (an admin) keeps the team's key in a shared vault every
+      // member may use, and authors an org-visible agent that declares it.
       const team = await people.founder.vaultCommand.create(
         makeSharedVault({ org: people.org, name: uniqueName("ras-team") }),
       );
@@ -824,11 +827,14 @@ describe.skipIf(!runnerActsAsRunCreator)(
           RAS_TEAM_KEY: "team-value",
         }),
       );
+      await people.founder.vaultCommand.updateVisibility({
+        resourceId: team.metadata!.id,
+        visibility: ApiResourceVisibility.visibility_org,
+      });
       const input = makeAgent({
         org: people.org,
         name: uniqueName("ras-team-agent"),
         env: { RAS_TEAM_KEY: {} },
-        vaults: [team.metadata!.slug],
       });
       input.metadata = {
         ...input.metadata,
@@ -839,32 +845,33 @@ describe.skipIf(!runnerActsAsRunCreator)(
         people.founder.agentCommand.delete({ value: agent.metadata!.id }),
       );
 
-      // The member may not use the private vault: the required key is
-      // nowhere they may look, and the create refuses naming it.
+      // A conversation that names only the member's own My vault never
+      // reaches the team's vault, however usable: the create refuses.
       await expectGrpcCode(
         () =>
           people.member.agentExecutionCommand.create(
             makeAgentExecution({
               org: people.org,
-              name: uniqueName("ras-team-denied"),
+              name: uniqueName("ras-team-unpicked"),
               agentRef: agentRefOf(agent),
+              includeMyVault: true,
             }),
           ),
         Code.FailedPrecondition,
-        "a member's run on an agent whose vault they may not use",
+        "a member's run on a conversation that did not pick the team's vault",
       );
 
-      // Shared with the organization, the vault serves the member's run.
-      await people.founder.vaultCommand.updateVisibility({
-        resourceId: team.metadata!.id,
-        visibility: ApiResourceVisibility.visibility_org,
-      });
+      // Picked by the conversation, the vault serves the member's run.
       mock.enqueue(anthropicText("Working..."), { delayMs: 30_000 });
       const created = await people.member.agentExecutionCommand.create(
         makeAgentExecution({
           org: people.org,
-          name: uniqueName("ras-team-allowed"),
+          name: uniqueName("ras-team-picked"),
           agentRef: agentRefOf(agent),
+          sessionSpec: makeSessionSpec({
+            subject: "team vault picked",
+            vaults: [team.metadata!.slug],
+          }),
         }),
       );
       fixtures.defer(async () => {

@@ -53,11 +53,13 @@ export interface SessionSpecOptions {
   // when it is a git work tree the runner runs its turns in file-review capture
   // mode (the file-review suites attach a harness GitWorkspace here).
   localWorkspaces?: LocalWorkspaceOption[];
-  // Vault slugs the conversation lists (spec.vaults), in order: a
-  // conversation that lists vaults uses exactly those.
+  // Vault slugs the conversation lists (spec.vaults), in order: the
+  // conversation uses exactly those, after the sender's My vault when
+  // includeMyVault is set.
   vaults?: string[];
-  // The conversation's own secrets (spec.secrets), sealed on the session.
-  secrets?: Record<string, string>;
+  // Whether each turn also uses its sender's My vault, first
+  // (spec.include_my_vault). Omitted = off, the wire default.
+  includeMyVault?: boolean;
 }
 
 export interface LocalWorkspaceOption {
@@ -82,7 +84,7 @@ export function makeSessionSpec(opts: SessionSpecOptions = {}): InitShape<typeof
     skillRefs: (opts.skillRefs ?? []).map((slug) => ({ slug, kind: ApiResourceKind.skill })),
     ...(opts.localWorkspaces !== undefined ? { workspaceEntries: localWorkspaceEntries(opts.localWorkspaces) } : {}),
     ...(opts.vaults !== undefined ? { vaults: opts.vaults.map((slug) => ({ slug, kind: ApiResourceKind.vault })) } : {}),
-    ...(opts.secrets !== undefined ? { secrets: opts.secrets } : {}),
+    ...(opts.includeMyVault !== undefined ? { includeMyVault: opts.includeMyVault } : {}),
   };
 }
 

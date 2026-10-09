@@ -29,7 +29,7 @@ export interface McpServerSpecOptions {
   // filters the merged execution environment to before handing it to the stdio
   // child (mcp-resolver.ts filterEnvToDeclaredKeys). A stdio server that needs
   // configuration declares the key here and the run supplies the value (a
-  // vault, the conversation's own secrets, or the declaration's plain value);
+  // vault the conversation uses, or the declaration's plain value);
   // the runner's own process env is never inherited by design.
   env?: Record<string, EnvVarDeclarationInit>;
 }
