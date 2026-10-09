@@ -651,23 +651,55 @@
           "this": {}
         },
         "owner": {
-          "tupleToUserset": {
-            "computedUserset": {
-              "relation": "admin"
-            },
-            "tupleset": {
-              "relation": "organization"
-            }
+          "union": {
+            "child": [
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "admin"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "parent_admin"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
           }
         },
         "viewer": {
-          "tupleToUserset": {
-            "computedUserset": {
-              "relation": "admin"
-            },
-            "tupleset": {
-              "relation": "organization"
-            }
+          "union": {
+            "child": [
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "admin"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "parent_admin"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
           }
         }
       },

@@ -61,7 +61,6 @@ spec:
           # The addresses arrive as env and the script reads them quoted, so
           # nothing from values is spliced into shell text. pg_isready reads
           # PGHOST, PGPORT and PGUSER itself.
-          {{- $temporal := splitList ":" (include "stigmer.temporalHostPort" .) }}
           env:
             - name: PGHOST
               value: {{ include "stigmer.postgresHost" . | quote }}
@@ -70,9 +69,9 @@ spec:
             - name: PGUSER
               value: {{ include "stigmer.postgresUser" . | quote }}
             - name: TEMPORAL_HOST
-              value: {{ index $temporal 0 | quote }}
+              value: {{ include "stigmer.temporalHost" . | quote }}
             - name: TEMPORAL_PORT
-              value: {{ index $temporal 1 | quote }}
+              value: {{ include "stigmer.temporalPort" . | quote }}
           command:
             - bash
             - -c
@@ -105,9 +104,8 @@ spec:
             - name: artifacts
               containerPort: 7235
           # Native gRPC probes on the unified port (the health service is
-          # tokenless-exempt for exactly this, stigmer#974); the cloud's
-          # production timings. Startup covers a search-index rebuild on a
-          # large adopted database.
+          # tokenless-exempt for exactly this, stigmer#974). Startup covers
+          # a search-index rebuild on a large adopted database.
           startupProbe:
             grpc:
               port: 7234

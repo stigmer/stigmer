@@ -68,6 +68,12 @@ export interface ListPageRequest {
  * when undefined) in the list index's order, newest first, ties broken by
  * id in byte order, at most `limit` of them (every one when undefined).
  * Each row carries the cursor a later read continues after.
+ *
+ * `after` comes from the client's page token: opaque, but not signed, so
+ * its `createdAt` and `id` are whatever text the client sent. A source over
+ * typed columns validates them and refuses a malformed one with
+ * `invalidArgumentError("invalid page_token")`, the loop's own answer for
+ * a token it cannot read.
  */
 export type ListPageSource = (
   after: ListIndexCursor | undefined,

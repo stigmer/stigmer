@@ -128,7 +128,8 @@ type PlatformClientSpec struct {
 	// they hold, and changing this setting later does not reach them.
 	// Unspecified (iam_role_unspecified) grants nothing. Requires
 	// create_accounts_on_sign_in. The owner role is refused: ownership is
-	// assigned explicitly.
+	// assigned explicitly. A role an organization cannot be granted (one its
+	// kind's grantable roles do not list) is refused with INVALID_ARGUMENT.
 	SignInRole    v1.IamRole `protobuf:"varint,12,opt,name=sign_in_role,json=signInRole,proto3,enum=ai.stigmer.iam.v1.IamRole" json:"sign_in_role,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

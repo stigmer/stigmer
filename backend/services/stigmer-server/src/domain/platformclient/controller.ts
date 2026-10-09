@@ -108,6 +108,7 @@ import {
   newRefuseReservedSlugStep,
   newRefuseSystemManagedStep,
   newRotateClientCredentialsStep,
+  newValidateSignInRoleStep,
   parkedClientSecret,
   redactPlatformClient,
   storedClientOf,
@@ -193,6 +194,7 @@ async function createClient(
     )
     .addStep(newResolveSlugStep())
     .addStep(newValidateProtoStep())
+    .addStep(newValidateSignInRoleStep())
     .addStep(newValidateVisibilityStep())
     .addStep(newRefuseReservedSlugStep())
     .addStep(newCheckDuplicateStep(deps.clients))
@@ -245,6 +247,7 @@ async function updateClient(
       ),
     )
     .addStep(newValidateProtoStep())
+    .addStep(newValidateSignInRoleStep())
     .addStep(newResolveSlugStep({ update: true }))
     .addStep(newLoadExistingClientStep(deps.clients))
     .addStep(

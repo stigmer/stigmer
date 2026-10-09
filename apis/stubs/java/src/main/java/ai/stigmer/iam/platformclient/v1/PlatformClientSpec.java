@@ -562,7 +562,8 @@ private static final long serialVersionUID = 0L;
    * they hold, and changing this setting later does not reach them.
    * Unspecified (iam_role_unspecified) grants nothing. Requires
    * create_accounts_on_sign_in. The owner role is refused: ownership is
-   * assigned explicitly.
+   * assigned explicitly. A role an organization cannot be granted (one its
+   * kind's grantable roles do not list) is refused with INVALID_ARGUMENT.
    * </pre>
    *
    * <code>.ai.stigmer.iam.v1.IamRole sign_in_role = 12 [json_name = "signInRole"];</code>
@@ -582,7 +583,8 @@ private static final long serialVersionUID = 0L;
    * they hold, and changing this setting later does not reach them.
    * Unspecified (iam_role_unspecified) grants nothing. Requires
    * create_accounts_on_sign_in. The owner role is refused: ownership is
-   * assigned explicitly.
+   * assigned explicitly. A role an organization cannot be granted (one its
+   * kind's grantable roles do not list) is refused with INVALID_ARGUMENT.
    * </pre>
    *
    * <code>.ai.stigmer.iam.v1.IamRole sign_in_role = 12 [json_name = "signInRole"];</code>
@@ -2539,7 +2541,8 @@ private static final long serialVersionUID = 0L;
      * they hold, and changing this setting later does not reach them.
      * Unspecified (iam_role_unspecified) grants nothing. Requires
      * create_accounts_on_sign_in. The owner role is refused: ownership is
-     * assigned explicitly.
+     * assigned explicitly. A role an organization cannot be granted (one its
+     * kind's grantable roles do not list) is refused with INVALID_ARGUMENT.
      * </pre>
      *
      * <code>.ai.stigmer.iam.v1.IamRole sign_in_role = 12 [json_name = "signInRole"];</code>
@@ -2559,7 +2562,8 @@ private static final long serialVersionUID = 0L;
      * they hold, and changing this setting later does not reach them.
      * Unspecified (iam_role_unspecified) grants nothing. Requires
      * create_accounts_on_sign_in. The owner role is refused: ownership is
-     * assigned explicitly.
+     * assigned explicitly. A role an organization cannot be granted (one its
+     * kind's grantable roles do not list) is refused with INVALID_ARGUMENT.
      * </pre>
      *
      * <code>.ai.stigmer.iam.v1.IamRole sign_in_role = 12 [json_name = "signInRole"];</code>
@@ -2584,7 +2588,8 @@ private static final long serialVersionUID = 0L;
      * they hold, and changing this setting later does not reach them.
      * Unspecified (iam_role_unspecified) grants nothing. Requires
      * create_accounts_on_sign_in. The owner role is refused: ownership is
-     * assigned explicitly.
+     * assigned explicitly. A role an organization cannot be granted (one its
+     * kind's grantable roles do not list) is refused with INVALID_ARGUMENT.
      * </pre>
      *
      * <code>.ai.stigmer.iam.v1.IamRole sign_in_role = 12 [json_name = "signInRole"];</code>
@@ -2606,7 +2611,8 @@ private static final long serialVersionUID = 0L;
      * they hold, and changing this setting later does not reach them.
      * Unspecified (iam_role_unspecified) grants nothing. Requires
      * create_accounts_on_sign_in. The owner role is refused: ownership is
-     * assigned explicitly.
+     * assigned explicitly. A role an organization cannot be granted (one its
+     * kind's grantable roles do not list) is refused with INVALID_ARGUMENT.
      * </pre>
      *
      * <code>.ai.stigmer.iam.v1.IamRole sign_in_role = 12 [json_name = "signInRole"];</code>
@@ -2631,7 +2637,8 @@ private static final long serialVersionUID = 0L;
      * they hold, and changing this setting later does not reach them.
      * Unspecified (iam_role_unspecified) grants nothing. Requires
      * create_accounts_on_sign_in. The owner role is refused: ownership is
-     * assigned explicitly.
+     * assigned explicitly. A role an organization cannot be granted (one its
+     * kind's grantable roles do not list) is refused with INVALID_ARGUMENT.
      * </pre>
      *
      * <code>.ai.stigmer.iam.v1.IamRole sign_in_role = 12 [json_name = "signInRole"];</code>

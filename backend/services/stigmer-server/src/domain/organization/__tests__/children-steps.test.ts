@@ -307,6 +307,34 @@ describe("the child-organization lookups", () => {
     ]);
   });
 
+  it("listIdsBeingDeleted lists only the children whose delete is pending: never a live child, an accepted one, or another parent's", async () => {
+    const rig = fakeStore({
+      indexed: [
+        indexedRow(org("org_live", "org_p")),
+        indexedRow(org("org_pending", "org_p")),
+        indexedRow(org("org_accepted", "org_p")),
+        indexedRow(org("org_other", "org_q")),
+      ],
+      pending: ["org_pending", "org_other"],
+      deleting: ["org_accepted"],
+    });
+    const children = newChildOrganizations(rig.store);
+    expect(await children.listIdsBeingDeleted("org_p")).toEqual(["org_pending"]);
+    expect(await children.listIdsBeingDeleted(""), "no parent, no children").toEqual([]);
+    expect(
+      await newChildOrganizations(fakeStore({ indexed: [indexedRow(org("org_live", "org_p"))] }).store).listIdsBeingDeleted(
+        "org_p",
+      ),
+      "nothing is being deleted",
+    ).toEqual([]);
+  });
+
+  it("listIdsBeingDeleted lets a fault in the index read propagate", async () => {
+    await expect(
+      newChildOrganizations(fakeStore({ queryFault: STORE_DOWN }).store).listIdsBeingDeleted("org_p"),
+    ).rejects.toBe(STORE_DOWN);
+  });
+
   it("isChildOf answers false for an empty, self or missing organization, and lets a fault propagate", async () => {
     const rig = fakeStore({ rows: [org("org_c", "org_p"), { id: "org_down", fault: STORE_DOWN }] });
     expect(await isChildOf(rig.store, "org_c", "org_p")).toBe(true);
