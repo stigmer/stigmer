@@ -87,7 +87,7 @@ Two settings control what `mintUserToken` does with a user it meets:
 - `create_accounts_on_sign_in: true`, `sign_in_role: viewer` (or `member`, `admin`)
 - Stigmer creates an IdentityAccount and grants `sign_in_role` on the PlatformClient's owning organization, once, when it creates the account
 - Simplest setup — new users can immediately interact with org resources
-- `sign_in_role` requires `create_accounts_on_sign_in`, and `owner` is refused. Accounts that already exist keep their roles: changing the setting later does not reach them
+- `sign_in_role` requires `create_accounts_on_sign_in`, and `owner` is refused. A role an organization cannot be granted (`participant`, `editor`, `user`) is refused with `INVALID_ARGUMENT` on create and update, and by `mintUserToken` before it creates an account for a client stored with one. Accounts that already exist keep their roles: changing the setting later does not reach them
 
 ## Authorization
 
