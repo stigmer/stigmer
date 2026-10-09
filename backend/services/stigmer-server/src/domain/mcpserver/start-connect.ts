@@ -3,17 +3,17 @@
  * pkg/domain/mcpserver/controller/start_connect.go: begin a connect
  * operation and return without waiting for it (stigmer/stigmer#425).
  *
- * Everything that needs the caller's identity — OAuth refresh pre-flight,
- * the caller's vault resolution, ExecutionContext creation, token
+ * Everything that needs the caller's identity — the check that the
+ * caller's My vault holds what the tool needs, the connect attempt, token
  * minting — runs synchronously here via prepareConnect, exactly as in the
  * blocking connect. Only awaiting the workflow moves to a detached settle
- * task, which records the terminal connect_status and cleans up the
- * ExecutionContext when the run finishes. Clients poll
+ * task, which records the terminal connect_status and ends the connect
+ * attempt when the run finishes. Clients poll
  * get/getByReference until connect_status reaches a terminal phase.
  *
  * Idempotent while an operation is in flight, at two layers: a fast path
  * (a live CONNECTING record whose workflow Temporal reports as running
- * returns immediately, before any ExecutionContext is created) and the
+ * returns immediately, before any attempt is recorded) and the
  * authoritative deterministic-workflow-ID refusal, turned into the same
  * attach semantics. A CONNECTING record whose run is NOT running (the
  * backend restarted before its awaiter could settle, or Temporal lost the
@@ -22,7 +22,7 @@
  *
  * With a sandbox lane composed the run is served by a connect sandbox
  * provisioned for this connect (connect-sandbox.ts): the settle task
- * releases it with the ExecutionContext, and every arm that never hands a
+ * releases it with the connect attempt, and every arm that never hands a
  * run to the settler (a start failure, an attach) releases it at once.
  *
  * Proven by mcpserver-connect.conformance.test.ts
@@ -55,11 +55,11 @@ import {
   ASYNC_CONNECT_TIMEOUT,
   BEST_EFFORT_CONNECT_GET_BUFFER_MS,
   acquireConnectRouteFor,
-  deleteConnectExecutionContext,
   mapConnectFailure,
   prepareConnect,
 } from "./connect.js";
 import type { McpServerConnectDeps } from "./connect.js";
+import { endConnectAttempt } from "./connect-attempt.js";
 import type { ConnectRoute } from "./connect-sandbox.js";
 import type { ConnectRun, McpServerConnectEngine } from "./engine.js";
 
@@ -76,6 +76,7 @@ export async function startConnect(
   deps: McpServerConnectDeps,
   input: ConnectInput,
   identity: CallerIdentity,
+  bearer: string,
 ): Promise<McpServer> {
   const mcpServerId = input.mcpServerId;
   if (mcpServerId === "") {
@@ -131,7 +132,14 @@ export async function startConnect(
     }
   }
 
-  const prepared = await prepareConnect(deps, mcpServer, input, identity);
+  const prepared = await prepareConnect(
+    deps,
+    mcpServer,
+    input,
+    identity,
+    bearer,
+    ASYNC_CONNECT_TIMEOUT,
+  );
 
   let route: ConnectRoute;
   try {
@@ -141,13 +149,7 @@ export async function startConnect(
       caller: identity,
     });
   } catch (error) {
-    if (prepared.ecResourceId !== "") {
-      await deleteConnectExecutionContext(
-        deps,
-        prepared.ecResourceId,
-        prepared.executionId,
-      );
-    }
+    await endConnectAttempt(deps.store, deps.logger, prepared.executionId);
     throw error;
   }
 
@@ -172,13 +174,7 @@ export async function startConnect(
     );
   } catch (error) {
     await route.release();
-    if (prepared.ecResourceId !== "") {
-      await deleteConnectExecutionContext(
-        deps,
-        prepared.ecResourceId,
-        prepared.executionId,
-      );
-    }
+    await endConnectAttempt(deps.store, deps.logger, prepared.executionId);
     deps.logger.error("Failed to start MCP connect workflow", {
       mcp_server_id: mcpServerId,
       error: error instanceof Error ? error.message : String(error),
@@ -188,16 +184,10 @@ export async function startConnect(
 
   if (run.attached) {
     // Lost the residual race to another lane: its run, its sandbox and
-    // its CONNECTING record stand, and the route and ExecutionContext
+    // its CONNECTING record stand, and the route and connect attempt
     // prepared here are unused.
     await route.release();
-    if (prepared.ecResourceId !== "") {
-      await deleteConnectExecutionContext(
-        deps,
-        prepared.ecResourceId,
-        prepared.executionId,
-      );
-    }
+    await endConnectAttempt(deps.store, deps.logger, prepared.executionId);
     try {
       return await deps.store.getResource(
         ApiResourceKind.mcp_server,
@@ -243,14 +233,13 @@ function detachSettle(
   mcpServer: McpServer,
   run: ConnectRun,
   route: ConnectRoute,
-  prepared: { readonly ecResourceId: string; readonly executionId: string },
+  prepared: { readonly executionId: string },
 ): void {
   void settleConnectAsync(
     deps,
     mcpServer,
     run,
     route,
-    prepared.ecResourceId,
     prepared.executionId,
   ).catch((error: unknown) => {
     deps.logger.warn("Async connect settle task failed unexpectedly", {
@@ -262,8 +251,8 @@ function detachSettle(
 
 /**
  * Awaits a connect workflow off the request path, records the terminal
- * connect_status (with results on success), and cleans up the ephemeral
- * ExecutionContext (Go settleConnectAsync).
+ * connect_status (with results on success), and ends the connect attempt
+ * (Go settleConnectAsync).
  *
  * The bounded wait follows the startBestEffortConnect pattern: the
  * workflow's own WorkflowRunTimeout is the deadline that should fire
@@ -279,7 +268,6 @@ async function settleConnectAsync(
   mcpServer: McpServer,
   run: ConnectRun,
   route: ConnectRoute,
-  ecResourceId: string,
   executionId: string,
 ): Promise<void> {
   const mcpServerId = mcpServer.metadata?.id ?? "";
@@ -337,9 +325,7 @@ async function settleConnectAsync(
     });
   } finally {
     await route.release();
-    if (ecResourceId !== "") {
-      await deleteConnectExecutionContext(deps, ecResourceId, executionId);
-    }
+    await endConnectAttempt(deps.store, deps.logger, executionId);
   }
 }
 

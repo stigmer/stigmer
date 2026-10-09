@@ -655,11 +655,8 @@ function declaresKind(kind: ApiResourceKind): boolean {
   }
 }
 
-/** Whether rows of `kind` belong to one organization: organization-scoped, scoped to a parent that is, or an execution context (its run's). */
+/** Whether rows of `kind` belong to one organization: organization-scoped, or scoped to a parent that is. */
 export function belongsToAnOrganization(kind: ApiResourceKind): boolean {
-  if (kind === ApiResourceKind.execution_context) {
-    return true;
-  }
   const scope = getKindMeta(kind).authorization?.scopeType;
   return (
     scope === AuthorizationScopeType.ORGANIZATION ||

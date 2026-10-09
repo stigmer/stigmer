@@ -2,9 +2,8 @@
  * Server-side activity implementations for the agent-execution worker —
  * ports pkg/domain/agentexecution/temporal/activities (update_status_impl,
  * load_execution, read_harness_state_id) and
- * registers DeleteExecutionContext, the server's own delete of the run's
- * context through the context's delete chain
- * (domain/executioncontext/internal-delete.ts, stigmer#1647).
+ * registers the retired DeleteExecutionContext name with a body that does
+ * nothing, for the runs whose history still calls it (names.ts).
  *
  * Payload boundary: statuses and
  * executions cross as proto-JSON — the TS default payload converter
@@ -33,11 +32,7 @@
  * cloud composition left a hung, never-FAILED execution (stigmer#979).
  *
  * The reads (LoadAgentExecution, ReadHarnessStateId) stay store-direct:
- * pure reads with Java `findById` parity — no chain to bypass. The
- * ExecutionContext delete is not a read: it rides the context's own delete
- * chain over the in-process transport (domain/executioncontext/
- * internal-delete.ts), because a bare store delete skipped the chain's
- * cleanup event and left the search row (stigmer#1647).
+ * pure reads with Java `findById` parity — no chain to bypass.
  */
 import { create, toJson } from "@bufbuild/protobuf";
 import type { JsonValue } from "@bufbuild/protobuf";
@@ -55,13 +50,11 @@ import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
-import { deleteExecutionContextForExecution } from "../../domain/executioncontext/internal-delete.js";
-import type { ExecutionContextDeleter } from "../../domain/executioncontext/internal-delete.js";
-import { DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME } from "../../domain/executioncontext/temporal/delete-execution-context.js";
 import type { Store } from "../../store/interface.js";
 import {
   LOAD_AGENT_EXECUTION_ACTIVITY_NAME,
   READ_HARNESS_STATE_ID_ACTIVITY_NAME,
+  RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME,
   UPDATE_EXECUTION_STATUS_ACTIVITY_NAME,
 } from "./names.js";
 import { decodeRunStatusJson } from "./execution-json.js";
@@ -89,13 +82,6 @@ export interface AgentExecutionActivityDeps {
    * lazily like the RunStarter's create edge).
    */
   readonly statusWriter: () => ExecutionStatusWriter;
-  /**
-   * The server's own delete of a run's ExecutionContext, read per call (the
-   * same boot cycle as the status edge): the context's delete chain over
-   * the in-process transport, so its cleanup and search-row delete run on
-   * the run-end delete too (stigmer#1647).
-   */
-  readonly executionContextDeleter: () => ExecutionContextDeleter;
 }
 
 /**
@@ -192,15 +178,7 @@ export function createAgentExecutionActivities(
       return session.spec?.harnessStateId ?? "";
     },
 
-    /** The server's own delete of the run's context, a local activity. */
-    [DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME]: async (
-      executionId: string,
-    ): Promise<void> => {
-      await deleteExecutionContextForExecution(
-        { store, deleter: deps.executionContextDeleter, logger },
-        executionId,
-        "run-end",
-      );
-    },
+    /** The retired run-end cleanup: nothing is stored to delete (names.ts). */
+    [RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME]: async (): Promise<void> => {},
   };
 }

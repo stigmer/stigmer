@@ -2,8 +2,8 @@
  * The execution a runner credential is bound to — the ONE reader every
  * consumer of the binding goes through, so the verifier (who is this
  * runner acting as?), the memory-capture capability (which session is
- * this run's?) and the ExecutionContext decrypt lane (may a run
- * credential still decrypt?) cannot answer "is this run live" three ways.
+ * this run's?) and the values fetch (may this credential still read the
+ * execution's values?) cannot answer "is this run live" three ways.
  *
  * A credential binds exactly TWO things, and the lane's vocabulary
  * names them (`BoundExecutionKind`):
@@ -11,15 +11,15 @@
  *   - an agent execution — a RUN, whose row is the person's run and whose
  *     liveness is its phase;
  *   - an MCP connect (`mcp-connect`) — not an execution at all, but the
- *     ephemeral ExecutionContext the connect lane creates for one
- *     discovery (domain/mcpserver/connect.ts), named by the synthetic id
+ *     connect attempt the connect lane records for one discovery
+ *     (domain/mcpserver/connect-attempt.ts), named by the synthetic id
  *     that module and this one recognize through one predicate
- *     (domain/mcpserver/connect-execution-id.ts). The row is created AS
- *     THE PERSON who asked for the connect, so its creator stamp is who
- *     the runner acts as when it reads that connect's secrets; the lane
- *     deletes the row when the connect settles, so the row's existence IS
- *     the binding's liveness, and the token's own clock (every connect
- *     token carries `exp`) bounds a row a crash left behind.
+ *     (domain/mcpserver/connect-execution-id.ts). The row records the
+ *     person who asked for the connect, who the runner acts as when it
+ *     reads that connect's values; the lane deletes the row when the
+ *     connect settles, so the row's existence IS the binding's liveness,
+ *     and its own expiry and the token's clock (every connect token
+ *     carries `exp`) bound a row a crash left behind.
  *
  * Two questions, two functions, because the callers pay differently:
  *
@@ -33,9 +33,8 @@
  *   - `loadBoundExecution(store, id)`: the row's facts the lane needs and
  *     nothing else — the creator stamp the verifier resolves a person
  *     from, the org and session the capture capability scopes with, and
- *     LIVENESS. One read (a primary key for a run; the EC's indexed
- *     `spec.execution_id` for a connect, the read `getByExecutionId`
- *     already makes); a missing row is `undefined` (the credential is
+ *     LIVENESS. One read (a primary key for a run, and for a connect's
+ *     attempt); a missing row is `undefined` (the credential is
  *     invalid — the run is not the caller's to learn about); any other
  *     store failure propagates as the fault it is (the store-fault
  *     mapping), so an outage never reads as a bad credential.
@@ -55,20 +54,15 @@
  * One more rule both no-`exp` lanes share, `bindsARun(kind)`: a RUN
  * credential — the no-`exp` token the dispatch mints (runnerauth.ts) —
  * may bind only a run. No mint produces a clockless token for a connect,
- * so a token shaped that way is refused by the verifier and falls closed
- * to redaction on the decrypt lane, through this one predicate rather
- * than two restatements of it.
+ * so a token shaped that way is refused by the verifier and by the values
+ * fetch, through this one predicate rather than two restatements of it.
  */
 import type { Message } from "@bufbuild/protobuf";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
-import type { ExecutionContext } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { isTerminalExecutionPhase } from "../domain/run/phases.js";
-import { findExecutionContextsForExecution } from "../domain/executioncontext/contexts-for-execution.js";
-import type { ExecutionContextLookupStore } from "../domain/executioncontext/contexts-for-execution.js";
 import { isConnectExecutionId } from "../domain/mcpserver/connect-execution-id.js";
 import { kindByIdPrefix } from "../pipeline/apiresource-meta.js";
 import { auditOf } from "../pipeline/steps/defaults.js";
@@ -94,8 +88,7 @@ export interface BoundExecution {
   readonly live: boolean;
 }
 
-export type BoundExecutionStore = Pick<Store, "getResource"> &
-  ExecutionContextLookupStore;
+export type BoundExecutionStore = Pick<Store, "getResource" | "connectAttempts">;
 
 export function boundExecutionKindOf(
   executionId: string,
@@ -162,19 +155,21 @@ export async function loadBoundExecution(
       };
     }
     case "mcp-connect": {
-      // The connect's ExecutionContext, by the execution id it was
-      // created for — the same indexed read getByExecutionId makes. The
-      // row is deleted when the connect settles, so its presence is the
-      // liveness; the token's clock is enforced by `verify` before this.
-      const row = await getExecutionContextRow(store, executionId);
-      if (row === undefined) {
+      // The connect's attempt, by its id. The row is deleted when the
+      // connect settles, so its presence is the liveness; the token's
+      // clock is enforced by `verify` before this.
+      const attempt = await store.connectAttempts.findLive(
+        executionId,
+        Math.floor(now / 1000),
+      );
+      if (attempt === undefined) {
         return undefined;
       }
       return {
         kind,
         executionId,
-        org: row.metadata?.org ?? "",
-        createdBy: creatorStampOf(ExecutionContextSchema, row),
+        org: attempt.org,
+        createdBy: attempt.createdBy,
         sessionId: "",
         live: true,
       };
@@ -198,10 +193,7 @@ function isLive(terminal: boolean, completedAt: string, now: number): boolean {
   return now - finishedAt < RUN_CREDENTIAL_GRACE_AFTER_TERMINAL_MS;
 }
 
-/** The schemas whose rows a binding can resolve to. */
-type BoundRowSchema = typeof RunSchema | typeof ExecutionContextSchema;
-
-function creatorStampOf(schema: BoundRowSchema, row: Message): string {
+function creatorStampOf(schema: typeof RunSchema, row: Message): string {
   return auditOf(schema, row)?.specAudit?.createdBy?.id ?? "";
 }
 
@@ -219,18 +211,4 @@ async function getRow<Desc extends typeof RunSchema>(
     }
     throw error;
   }
-}
-
-/**
- * The connect's ExecutionContext, the one the connect lane created for it.
- * None, or more than one, binds nothing: a lookup by run id never chooses
- * between two rows (contexts-for-execution.ts), so an ambiguous binding
- * fails closed as an invalid credential.
- */
-async function getExecutionContextRow(
-  store: BoundExecutionStore,
-  executionId: string,
-): Promise<ExecutionContext | undefined> {
-  const contexts = await findExecutionContextsForExecution(store, executionId);
-  return contexts.length === 1 ? contexts[0] : undefined;
 }

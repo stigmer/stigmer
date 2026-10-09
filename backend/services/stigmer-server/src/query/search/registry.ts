@@ -20,7 +20,6 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import { agentSearchExtractor } from "../../domain/agent/search-extractor.js";
 import { agentExecutionSearchExtractor } from "../../domain/run/search-extractor.js";
-import { executionContextSearchExtractor } from "../../domain/executioncontext/search-extractor.js";
 import { mcpServerSearchExtractor } from "../../domain/mcpserver/search-extractor.js";
 import { organizationSearchExtractor } from "../../domain/organization/search-extractor.js";
 import { pluginSearchExtractor } from "../../domain/plugin/search-extractor.js";
@@ -102,7 +101,6 @@ export function newSearchableResourceRegistry(): SearchableResourceRegistry {
   return new SearchableResourceRegistry([
     agentSearchExtractor,
     agentExecutionSearchExtractor,
-    executionContextSearchExtractor,
     mcpServerSearchExtractor,
     organizationSearchExtractor,
     pluginSearchExtractor,

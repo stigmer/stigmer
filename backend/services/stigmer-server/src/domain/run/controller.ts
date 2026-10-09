@@ -112,11 +112,11 @@ import {
 } from "./create-steps.js";
 import type { SandboxLane } from "../../sandbox/lane.js";
 import { newEnsureSessionSandboxStep } from "../../sandbox/steps.js";
-import type { ExecutionContextBuilderDeps } from "./create-execution-context-step.js";
+import type { RunValuePlannerDeps } from "./plan-run-values-step.js";
 import {
-  newCreateExecutionContextStep,
+  newPlanRunValuesStep,
   newStampRunCredentialsStep,
-} from "./create-execution-context-step.js";
+} from "./plan-run-values-step.js";
 import { newResolveRunAgentStep } from "./resolve-run-agent.js";
 import type { AgentExecutionTemporalConfig } from "./temporal/config.js";
 import type { ExecutionEngineStateProvider } from "./engine.js";
@@ -233,8 +233,8 @@ export interface AgentExecutionControllerDeps {
    * the routes↔clients cycle resolves at request time).
    */
   readonly sessionCreator: SessionCreatorProvider;
-  /** The shared EC-builder deps (create's step 16 + recover's recreate). */
-  readonly executionContextBuilder: ExecutionContextBuilderDeps;
+  /** The shared value-planner deps (create's plan step + recover's re-plan). */
+  readonly runValuePlanner: RunValuePlannerDeps;
   /**
    * The composed slot registrations — this domain
    * splices the create, recover, and submit-approval slots.
@@ -270,7 +270,7 @@ export function registerAgentExecutionServices(
     recoverSerializer: deps.recoverSerializer,
     broker: deps.broker,
     engineState: deps.engineState,
-    executionContextBuilder: deps.executionContextBuilder,
+    runValuePlanner: deps.runValuePlanner,
     gateSteps: deps.gateSteps,
     statusObservers: deps.statusObservers,
     sandboxLane: deps.sandboxLane,
@@ -348,7 +348,7 @@ export function registerAgentExecutionServices(
  * down engine orphans nothing) → the pre-side-effect gate slot (empty in
  * OSS) → the side-effecting steps (session bootstrap, which re-takes the
  * stamp from the session it creates; preference/memory snapshots; initial
- * phase; the ExecutionContext with merged env; attachment validation) →
+ * phase; the source manifest of the run's values; attachment validation) →
  * Persist → IndexSearch → StartWorkflow (after persist; a start failure
  * marks the execution FAILED, recoverable via Recover).
  */
@@ -441,7 +441,7 @@ async function createExecution(
     )
     .addStep(newSetInitialPhaseStep())
     .addStep(newStampRunCredentialsStep())
-    .addStep(newCreateExecutionContextStep(deps.executionContextBuilder))
+    .addStep(newPlanRunValuesStep(deps.runValuePlanner))
     .addStep(newProcessAttachmentsStep(deps.logger))
     .addStep(newPersistStep(deps.store))
     .addStep(

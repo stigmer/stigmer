@@ -1,15 +1,19 @@
 /**
- * The ExecutionContext builder: resolves the values a run needs and
- * persists them as the run's ExecutionContext, which the runner reads.
- * Shared by the create pipeline (newCreateExecutionContextStep) and the
- * recover pipeline (lifecycle.ts's recreate step): recovery rebuilds the
- * context because the failed run's workflow cleanup deleted it, and
- * re-resolving from the CURRENT vaults is the desired semantics ("fix the
- * API key, then recover"). The agent is not re-resolved: it is the agent
- * and version the turn recorded (status.agent_id, agent_version_hash,
- * stamped by ResolveRunAgent), read through getVersion, so recovery after
- * an author's edit, or after the session was repointed, rebuilds from the
- * agent the turn ran.
+ * The run's value planner: decides where every value a run needs lives
+ * and records it on the run as its source manifest
+ * (RunStatus.credentials.sources), which the runner fetches the values by
+ * when the run's work starts (VaultValueController.fetchValues). Nothing
+ * is written outside the run's own row, so a create that fails afterwards
+ * leaves nothing behind, and no value is opened here.
+ *
+ * Shared by the create pipeline (newPlanRunValuesStep, before Persist) and
+ * the recover pipeline (lifecycle.ts's re-plan step, which writes the new
+ * manifest onto the stored run): planning again from the CURRENT vaults is
+ * the desired semantics ("fix the API key, then recover"). The agent is not
+ * re-resolved: it is the agent and version the turn recorded
+ * (status.agent_id, agent_version_hash, stamped by ResolveRunAgent), read
+ * through getVersion, so recovery after an author's edit, or after the
+ * session was repointed, plans for the agent the turn ran.
  *
  * Inputs: the session by the execution's session_id (its own values, its
  * vaults, its workspace entries and its own MCP servers), and the agent
@@ -21,25 +25,26 @@
  * agent. No stamp is the built-in assistant: no agent, and the session's
  * own MCP servers are the whole tool set.
  *
- * Which value fills each key is the vault resolver's one rule
- * (domain/vault/resolve.ts): the session's own values, its vaults, the
- * surface's vaults for a run with no person, the person's My vault and the
- * agent's vaults otherwise; a required key found nowhere refuses the create
- * naming who must act. An agent and a conversation that use one tool name
- * for two different servers (or one of them gone) refuse the create,
- * naming it: the runner keeps the conversation's server under a shared
- * name, so values judged for the agent's would reach another server. The
- * run's person is the one recorded on the run at
- * create (RunStatus.credentials, stamped by StampRunCredentials), read from
- * the persisted row, so recovery uses the person create used, never the
- * recovering caller.
+ * Which entry fills each key is the vault resolver's one rule
+ * (domain/vault/resolve.ts): the session's own repository tokens, its
+ * vaults, the surface's vaults for a run with no person, and the person's
+ * My vault; a required key found nowhere refuses the create naming who
+ * must act. An agent and a conversation that use one tool name for two
+ * different servers (or one of them gone) refuse the create, naming it:
+ * the runner keeps the conversation's server under a shared name, so
+ * values planned for the agent's would reach another server. The run's
+ * person is the one recorded on the run at create (RunStatus.credentials,
+ * stamped by StampRunCredentials), read from the run, so recovery uses
+ * the person create used, never the recovering caller.
+ *
+ * The manifest is server-only like the person: StampRunCredentials
+ * discards a client-sent value before this step writes it, and status
+ * writes never change it (update-status.ts copies named fields only).
  */
 import { create } from "@bufbuild/protobuf";
 import { ConnectError } from "@connectrpc/connect";
 
 import type { AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import type { ExecutionContext } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
-import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
@@ -47,7 +52,7 @@ import {
   RunCredentialsSchema,
   RunStatusSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { Run, RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { Run, RunSchema, RunValueSource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -58,7 +63,6 @@ import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
 import type { Store } from "../../store/interface.js";
 import type { VaultResolver } from "../vault/resolve.js";
 import { runPersonOfCaller } from "../vault/resolve.js";
-import type { ExecutionContextDeleter } from "../executioncontext/internal-delete.js";
 
 import type { AgentLoader } from "./create-steps.js";
 import { sessionIdOf } from "./target.js";
@@ -66,37 +70,28 @@ import { sessionIdOf } from "./target.js";
 export { SCHEDULE_ID_LABEL_KEY } from "../vault/resolve.js";
 
 // ---------------------------------------------------------------------------
-// The narrow in-process edges the builder consumes (lazy providers).
+// The narrow in-process edges the planner consumes (lazy providers).
 // ---------------------------------------------------------------------------
 
 export interface SessionLoader {
   get(sessionId: string): Promise<Session>;
 }
-export interface ExecutionContextCreator {
-  create(ec: ExecutionContext): Promise<ExecutionContext>;
-}
 
-export interface ExecutionContextBuilderDeps {
+export interface RunValuePlannerDeps {
   readonly store: Store;
   readonly logger: Logger;
   readonly agentLoader: () => AgentLoader;
   readonly sessionLoader: () => SessionLoader;
-  readonly executionContextCreator: () => ExecutionContextCreator;
-  /**
-   * The server's own delete of a context, through its delete chain: the
-   * recover step removes the interrupted run's stale context with it
-   * before recreating one (stigmer#1647).
-   */
-  readonly executionContextDeleter: () => ExecutionContextDeleter;
-  /** The one rule for which login or secret fills each key (domain/vault/resolve.ts). */
+  /** The one rule for where each value lives (domain/vault/resolve.ts). */
   readonly vaultResolver: VaultResolver;
 }
 
 /**
  * StampRunCredentials: records whose turn this is, once, at create, by the
  * platform's one rule for a first-party human operator. Runs after the
- * status is built and before the context is: the builder reads it from the
- * row, here and on recover. A client-sent value is discarded.
+ * status is built and before the plan is: the planner reads it from the
+ * run, here and on recover. A client-sent value, its sources included, is
+ * discarded.
  */
 export function newStampRunCredentialsStep(): PipelineStep<typeof RunSchema> {
   return {
@@ -112,27 +107,30 @@ export function newStampRunCredentialsStep(): PipelineStep<typeof RunSchema> {
   };
 }
 
-/** CreateExecutionContext — the create pipeline's step over the shared builder. */
-export function newCreateExecutionContextStep(
-  deps: ExecutionContextBuilderDeps,
+/** PlanRunValues: the create pipeline's step over the shared planner, before Persist. */
+export function newPlanRunValuesStep(
+  deps: RunValuePlannerDeps,
 ): PipelineStep<typeof RunSchema> {
   return {
-    name: "CreateExecutionContext",
+    name: "PlanRunValues",
     async execute(ctx) {
-      await buildAndPersistExecutionContext(deps, ctx.newState);
+      const execution = ctx.newState;
+      const sources = await planRunValues(deps, execution);
+      (execution.status ??= create(RunStatusSchema)).credentials ??= create(RunCredentialsSchema);
+      execution.status.credentials.sources = sources;
     },
   };
 }
 
 /**
- * Resolves the run's values and persists a fresh ExecutionContext, via the
- * execution's session_id and its agent stamp: the same inputs on create
- * and on recover. Failures throw; the create pipeline surfaces them as-is.
+ * Plans the run's values via the execution's session_id and its agent
+ * stamp: the same inputs on create and on recover. Failures throw; the
+ * create pipeline surfaces them as-is.
  */
-export async function buildAndPersistExecutionContext(
-  deps: ExecutionContextBuilderDeps,
+export async function planRunValues(
+  deps: RunValuePlannerDeps,
   execution: Run,
-): Promise<void> {
+): Promise<RunValueSource[]> {
   const executionId = execution.metadata?.id ?? "";
   const executionOrg = execution.metadata?.org ?? "";
 
@@ -161,7 +159,7 @@ export async function buildAndPersistExecutionContext(
     findServer,
   );
 
-  const values = await deps.vaultResolver.resolveForRun({
+  const sources = await deps.vaultResolver.planRun({
     execution,
     session,
     agentSpec,
@@ -169,37 +167,11 @@ export async function buildAndPersistExecutionContext(
     agentOrg,
     tools,
   });
-
-  const ec = create(ExecutionContextSchema, {
-    apiVersion: "agentic.stigmer.ai/v1",
-    kind: "ExecutionContext",
-    metadata: {
-      name: `exec-ctx-${executionId}`,
-      org: executionOrg,
-    },
-    spec: {
-      executionId,
-      data: Object.fromEntries(values),
-    },
-  });
-  let created: ExecutionContext;
-  try {
-    created = await deps.executionContextCreator().create(ec);
-  } catch (error) {
-    if (error instanceof ConnectError) {
-      throw goWrappedStatusError(
-        `create execution context for ${executionId}`,
-        error,
-      );
-    }
-    chainError(`create execution context for ${executionId}`, error);
-  }
-
-  deps.logger.info("Successfully created execution context", {
-    executionContextId: created.metadata?.id ?? "",
+  deps.logger.info("Planned the run's values", {
     executionId,
-    dataEntries: values.size,
+    entries: sources.length,
   });
+  return sources;
 }
 
 /**
@@ -227,7 +199,7 @@ function chainError(prefix: string, error: unknown): never {
  * is an invariant, not a shape.
  */
 async function loadRunSession(
-  deps: ExecutionContextBuilderDeps,
+  deps: RunValuePlannerDeps,
   execution: Run,
 ): Promise<Session> {
   const sessionId = sessionIdOf(execution.spec);
@@ -257,7 +229,7 @@ async function loadRunSession(
  * prefix, naming the version when one was recorded.
  */
 async function loadRunAgent(
-  deps: ExecutionContextBuilderDeps,
+  deps: RunValuePlannerDeps,
   agentId: string,
   versionHash: string,
 ): Promise<{ spec: AgentSpec | undefined; name: string; org: string | undefined }> {
@@ -295,7 +267,7 @@ async function loadRunAgent(
  * organization, or its id and no organization when it cannot be read.
  */
 async function agentNameAndOrgOf(
-  deps: ExecutionContextBuilderDeps,
+  deps: RunValuePlannerDeps,
   agentId: string,
 ): Promise<{ name: string; org: string | undefined }> {
   try {
@@ -314,12 +286,12 @@ type ServerFinder = (usage: McpServerUsage) => Promise<McpServer | undefined>;
 
 /**
  * Finds the server a usage names, by slug in the usage's org or the
- * execution's, reading each server once per build. A server that is gone
- * is undefined; a store fault fails the build, so a run never starts
+ * execution's, reading each server once per plan. A server that is gone
+ * is undefined; a store fault fails the plan, so a run never starts
  * quietly without a tool it uses.
  */
 function serverFinder(
-  deps: ExecutionContextBuilderDeps,
+  deps: RunValuePlannerDeps,
   executionOrg: string,
 ): ServerFinder {
   const found = new Map<string, Promise<McpServer | undefined>>();
@@ -350,8 +322,8 @@ function serverFinder(
 /**
  * Refuses a run whose agent and conversation use one tool name for two
  * different servers. The runner keeps the conversation's server under a
- * shared name and this build keeps the agent's, so the values judged here
- * would go to a server nobody judged. One side naming a server that is
+ * shared name and this plan keeps the agent's, so the values planned here
+ * would go to a server nobody planned for. One side naming a server that is
  * gone counts as different: the conversation's server would run unjudged.
  * Both naming the very same server is one tool, used once; both gone is
  * left to the runner's own refusal.

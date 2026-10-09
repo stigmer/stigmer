@@ -256,16 +256,18 @@ export interface RunnerCredentialProvider {
   mintRunCredential?(executionId: string): string;
 
   /**
-   * The ExecutionContext decrypt trust decision for getByExecutionId
-   * (`executionId` is the EC's spec.execution_id). When present, it IS
-   * the entire decision — the implementation owns its lane set and scope
-   * bindings (the cloud's session/connect scope rules, including
-   * any resource loads through its own clients); absent, the decrypt gate
-   * keeps the OSS decision (execution_scoped verify + binding equality).
-   * True decrypts; false redacts; never throws for an unrecognized or
-   * invalid token — redaction-as-success is the pinned contract.
+   * The trust decision for VaultValueController.fetchValues: whether the
+   * bearer may read the values of `executionId` (a run's id or a tool
+   * connect's attempt id). When present, it IS the entire decision — the
+   * implementation owns its lane set and scope bindings (the cloud's
+   * session/connect scope rules, including any resource loads through its
+   * own clients); absent, the fetch keeps the OSS decision (execution_scoped
+   * verify, binding equality and the bound execution's liveness). True
+   * allows; false refuses with PERMISSION_DENIED; it never throws for an
+   * unrecognized or invalid token (a throw is a composition fault, logged
+   * and refused the same way).
    */
-  authorizeExecutionContextRead?(
+  authorizeExecutionValuesRead?(
     rawToken: string,
     executionId: string,
   ): Promise<boolean>;

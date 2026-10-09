@@ -72,8 +72,8 @@ export interface ConnectedExecutionEngine {
 /**
  * The slim workflow-start input (Go
  * workflows.InvokeAgentExecutionWorkflowInput plus the dispatch
- * coordinates the engine resolves): only orchestration coordinates —
- * secrets were already resolved into the ExecutionContext.
+ * coordinates the engine resolves): only orchestration coordinates — the
+ * runner fetches the run's values from their vaults when its work starts.
  */
 export interface StartInvokeWorkflowInput {
   readonly executionId: string;
@@ -131,7 +131,7 @@ export type ExecutionEngineStateProvider = () => ExecutionEngineState;
  * not connected. Placed after input validation but before the first
  * side-effecting step, so a malformed request still gets InvalidArgument
  * first and a down engine orphans nothing (no auto-created session, no
- * ExecutionContext, no execution record).
+ * execution record).
  */
 export function newEnsureEngineAvailableStep(
   engineState: ExecutionEngineStateProvider,

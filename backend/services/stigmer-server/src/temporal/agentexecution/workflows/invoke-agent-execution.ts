@@ -69,6 +69,7 @@ import {
   isCancellation,
   log,
   proxyActivities,
+  patched,
   proxyLocalActivities,
   setHandler,
   sleep,
@@ -106,10 +107,12 @@ import {
   LOAD_AGENT_EXECUTION_ACTIVITY_NAME,
   MEMO_ACTIVITY_TASK_QUEUE,
   READ_HARNESS_STATE_ID_ACTIVITY_NAME,
+  RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME,
   SIGNAL_APPROVAL_GATE_RESOLVED,
   SIGNAL_PAUSE,
   SIGNAL_RESUME,
   UPDATE_EXECUTION_STATUS_ACTIVITY_NAME,
+  VALUES_FETCHED_PATCH_ID,
 } from "../names.js";
 import {
   getErrorFromResult,
@@ -118,7 +121,6 @@ import {
   type RunnerActivityResult,
 } from "../runner-result.js";
 import type { InvokeAgentExecutionWorkflowInput } from "../workflow-input.js";
-import { DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME } from "../../../domain/executioncontext/temporal/delete-execution-context.js";
 
 // ─── Loop-safety bounds (invoke_workflow_impl.go, values are contract) ──
 
@@ -319,7 +321,7 @@ interface LocalActivities {
     executionId: string,
   ) => Promise<JsonValue>;
   [READ_HARNESS_STATE_ID_ACTIVITY_NAME]: (sessionId: string) => Promise<string>;
-  [DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME]: (
+  [RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME]: (
     executionId: string,
   ) => Promise<void>;
 }
@@ -401,7 +403,7 @@ export async function invokeAgentExecution(
       });
     }
 
-    await deleteExecutionContext(executionId);
+    await retiredContextCleanup(executionId);
     throw ApplicationFailure.create({
       message: "Workflow execution failed",
       cause: flowError instanceof Error ? flowError : new Error(String(flowError)),
@@ -413,7 +415,7 @@ export async function invokeAgentExecution(
     { executionId },
   );
 
-  await deleteExecutionContext(executionId);
+  await retiredContextCleanup(executionId);
 }
 
 // ─── Signal buffering (Go's buffered signal channels) ───────────────────
@@ -1017,13 +1019,13 @@ async function updateStatusOnFailure(
 /**
  * Cancellation cleanup on a non-cancellable scope (Go's disconnected
  * context): every operation is best-effort and independent — the
- * execution must reach CANCELLED and secrets (ExecutionContext) must be
- * cleaned up regardless.
+ * execution must reach CANCELLED regardless (and, on a run started before
+ * values were fetched from vaults, its retired cleanup call made again).
  */
 async function handleCancellation(executionId: string): Promise<void> {
   await CancellationScope.nonCancellable(async () => {
     await updateStatusOnCancellation(executionId);
-    await deleteExecutionContext(executionId);
+    await retiredContextCleanup(executionId);
   });
 }
 
@@ -1150,28 +1152,25 @@ async function readHarnessStateId(sessionId: string): Promise<string> {
 }
 
 /**
- * Deletes the ephemeral ExecutionContext (fully-merged environment incl.
- * secrets) on a non-cancellable scope so cleanup runs even after
- * cancellation. Best-effort; the delete activity itself never throws on
- * missing contexts (domain/executioncontext/internal-delete.ts, which
- * deletes through the context's delete chain). A failed cleanup is never
- * retried — no TTL sweep exists (oss#892; the retired Go server's log
- * claimed one that never did) — the row stays encrypted at rest (oss#535)
- * and this WARN is the operator's signal.
+ * The retired run-end cleanup (names.ts
+ * RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME): a run started before
+ * values were fetched from vaults has this local activity in its history at
+ * each of its three call sites, so a replay of it makes the call again; a
+ * new run records VALUES_FETCHED_PATCH_ID and makes none. Best-effort on a
+ * non-cancellable scope, as it always was.
  */
-async function deleteExecutionContext(executionId: string): Promise<void> {
+async function retiredContextCleanup(executionId: string): Promise<void> {
+  if (patched(VALUES_FETCHED_PATCH_ID)) {
+    return;
+  }
   await CancellationScope.nonCancellable(async () => {
     try {
-      await localActivities[DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME](executionId);
-      log.info("ExecutionContext cleaned up", { executionId });
+      await localActivities[RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME](executionId);
     } catch (error) {
-      log.warn(
-        "ExecutionContext cleanup failed — nothing retries it; any remaining row stays encrypted at rest (operator cleanup)",
-        {
-          executionId,
-          error: errorMessage(error),
-        },
-      );
+      log.warn("The retired run-end cleanup failed; nothing is stored to clean", {
+        executionId,
+        error: errorMessage(error),
+      });
     }
   });
 }

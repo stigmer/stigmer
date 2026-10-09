@@ -126,7 +126,6 @@ import { newVaultService } from "../domain/vault/service.js";
 import { deleteAllMyVaultsOf } from "../domain/vault/delete.js";
 import { newMyVaultDeparture } from "../domain/iampolicy/departure.js";
 import type { OrganizationDepartureHandler } from "../domain/iampolicy/grant-path.js";
-import { registerExecutionContextServices } from "../domain/executioncontext/controller.js";
 import { registerGitHubServices } from "../domain/github/controller.js";
 import { registerMemoryServices } from "../domain/memory/controller.js";
 import { newRunScoreCascade } from "../domain/score/cascade.js";
@@ -1137,10 +1136,6 @@ export async function composeServer(
         // hooks, and the broadcast reach the run's terminal writes
         // by construction — the worker composes none of them itself.
         statusWriter: () => requireInProcess().executionStatusWriter,
-        // The run-end delete of the run's ExecutionContext rides the same
-        // lane: the context's own delete chain (stigmer#1647).
-        executionContextDeleter: () =>
-          requireInProcess().executionContextDeleter,
         temporalConfig,
       }),
       newScheduleWorkerFactory({
@@ -1689,6 +1684,14 @@ export async function composeServer(
         clientDocumentUrl,
         outboundFetch,
       },
+      // The runner's fetch of a run's or a connect's values
+      // (domain/vault/values.ts).
+      values: {
+        store,
+        logger,
+        runnerAuth: runnerCredentials,
+        vaultResolver,
+      },
     });
     // OAuthApp shares the one SecretService instance every secret kind
     // seals with.
@@ -1728,14 +1731,6 @@ export async function composeServer(
         now: () => new Date(),
       },
       guestTokenMinting: extensions.drivers.guestTokenMinting,
-    });
-    registerExecutionContextServices(router, {
-      store,
-      logger,
-      authorizer,
-      secretService,
-      runnerAuthService: runnerCredentials,
-      authorizationLifecycle,
     });
     registerAgentServices(router, {
       store,
@@ -1855,15 +1850,11 @@ export async function composeServer(
       sandboxLane,
       temporalConfig,
       sessionCreator: () => requireInProcess().executionSessionCreator,
-      executionContextBuilder: {
+      runValuePlanner: {
         store,
         logger,
         agentLoader: () => requireInProcess().executionAgentLoader,
         sessionLoader: () => requireInProcess().executionSessionLoader,
-        executionContextCreator: () =>
-          requireInProcess().executionContextCreator,
-        executionContextDeleter: () =>
-          requireInProcess().executionContextDeleter,
         vaultResolver,
       },
     });
@@ -1884,12 +1875,6 @@ export async function composeServer(
         engineState: mcpServerEngineState,
         vaults: vaultService,
         vaultResolver,
-        executionContext: {
-          create: (ec, caller) =>
-            requireInProcess().connectExecutionContextClient.create(ec, caller),
-          delete: (input) =>
-            requireInProcess().connectExecutionContextClient.delete(input),
-        },
         runnerAuth: runnerCredentials,
         sandboxLane,
         outboundFetch,
