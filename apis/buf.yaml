@@ -47,5 +47,7 @@ breaking:
       - ai/stigmer/agentic/executioncontext/v1/spec.proto
     FIELD_NO_DELETE:
       - ai/stigmer/agentic/mcpserver/v1/io.proto
+    MESSAGE_NO_DELETE:
+      - ai/stigmer/agentic/mcpserver/v1/io.proto
     ENUM_VALUE_NO_DELETE:
       - ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto
