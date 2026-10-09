@@ -1,5 +1,5 @@
 /**
- * Score domain constants: the measures M1 writes and the refusal copy the
+ * Score domain constants: the metrics the server writes and the refusal copy the
  * create and update chains answer with. The copy is wire contract: the
  * console and the CLI show it as given, and the conformance suite pins
  * it.
