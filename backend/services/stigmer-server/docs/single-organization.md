@@ -127,6 +127,13 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 | ScheduleQueryController.getByReference | org |
 | ScheduleQueryController.list | org |
 
+## `ai.stigmer.agentic.score.v1`
+
+| Method | Fills |
+|---|---|
+| ScoreCommandController.create | metadata.org |
+| ScoreCommandController.update | metadata.org |
+
 ## `ai.stigmer.agentic.session.v1`
 
 | Method | Fills |

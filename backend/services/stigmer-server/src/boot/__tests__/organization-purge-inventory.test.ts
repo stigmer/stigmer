@@ -70,6 +70,7 @@ describe("the core's kind purges", () => {
       platformClients: newResourcePlatformClientStore(fx.store),
       accounts: newResourceIdentityAccountStore(fx.store),
       accountLifecycle: undefined,
+      runScores: { deleteScoresOfRun: async () => {} },
     });
     const kinds = [purges.quiesce.kind, ...purges.content.map((p) => p.kind)];
     expect(new Set(kinds).size, "no kind is purged twice").toBe(kinds.length);

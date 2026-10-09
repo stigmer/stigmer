@@ -51,6 +51,8 @@ import type { PlatformClientStore } from "../domain/platformclient/store.js";
 import { newPluginPurge } from "../domain/plugin/purge.js";
 import type { ClockProvider } from "../domain/schedule/clock.js";
 import { newSchedulePurge } from "../domain/schedule/purge.js";
+import type { RunScoreCascade } from "../domain/score/cascade.js";
+import { newScorePurge } from "../domain/score/purge.js";
 import { newSessionPurge } from "../domain/session/purge.js";
 import { newSkillPurge } from "../domain/skill/purge.js";
 import type { SecretService } from "../encryption/encryption.js";
@@ -82,6 +84,8 @@ export interface CoreKindPurgeDeps extends KindPurgeDeps {
   readonly accounts: IdentityAccountStore;
   /** The identity-account controller's lifecycle (the composed driver, or open source's role lifecycle). */
   readonly accountLifecycle: ResourceAuthorizationLifecycle | undefined;
+  /** Removes a run's scores; the session purge's run cascade calls it. */
+  readonly runScores: RunScoreCascade;
 }
 
 /** The core's kind purges, by stage. */
@@ -96,7 +100,10 @@ export function newCoreKindPurges(deps: CoreKindPurgeDeps): CoreKindPurges {
   return {
     quiesce: newSchedulePurge(deps),
     content: [
-      // Runs before the sessions they belong to.
+      // Scores before the runs they grade, runs before the sessions they
+      // belong to: each row's access is cleaned while its parent still
+      // links it to the organization.
+      newScorePurge(deps),
       newAgentExecutionPurge(deps),
       newSessionPurge(deps),
       // A blueprint's shares and channels before the blueprint; a channel
@@ -135,6 +142,7 @@ export function newCoreKindPurges(deps: CoreKindPurgeDeps): CoreKindPurges {
  */
 export const CORE_PURGED_KINDS: ReadonlySet<ApiResourceKind> = new Set([
   ApiResourceKind.schedule,
+  ApiResourceKind.score,
   ApiResourceKind.run,
   ApiResourceKind.session,
   ApiResourceKind.agent_share,
