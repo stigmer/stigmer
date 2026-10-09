@@ -257,8 +257,7 @@ type IdentityProviderSpec struct {
 	// that already signed in there. Unspecified (iam_role_unspecified) grants
 	// nothing. The owner role is refused with
 	// `identity_provider.sign_in_role_not_owner`: ownership is assigned
-	// explicitly. A role an organization cannot be granted (one its kind's
-	// grantable roles do not list) is refused with INVALID_ARGUMENT.
+	// explicitly.
 	SignInRole    v1.IamRole `protobuf:"varint,14,opt,name=sign_in_role,json=signInRole,proto3,enum=ai.stigmer.iam.v1.IamRole" json:"sign_in_role,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

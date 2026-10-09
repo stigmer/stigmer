@@ -270,6 +270,13 @@ describe("PlatformClient chains", () => {
   });
 
   it("refuses a sign-in role an organization cannot grant, on create and on update, and admits every one it can", async () => {
+    const editor = await refusal(
+      command.create(input("Pinned copy", { signInRole: IamRole.editor })),
+    );
+    expect(editor.rawMessage).toBe(
+      "sign_in_role 'editor' cannot be granted on an organization; set one of 'admin', 'member', 'viewer', or leave it unset to grant nothing.",
+    );
+
     for (const role of [IamRole.participant, IamRole.editor, IamRole.user]) {
       const created = await refusal(
         command.create(input(`Role ${IamRole[role]}`, { signInRole: role })),

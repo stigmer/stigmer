@@ -210,6 +210,9 @@ and an install exposed with sign-in off (stigmer.validateExposure).
 {{- if and (not .Values.temporal.enabled) (not .Values.externalTemporal.hostPort) -}}
 {{- fail "\n\ntemporal.enabled is false but externalTemporal.hostPort is empty. Name the Temporal frontend the server and runner should dial (externalTemporal.hostPort, with externalTemporal.namespace), or leave temporal.enabled true for the bundled one.\n" -}}
 {{- end -}}
+{{- if and (not .Values.temporal.enabled) (not (regexMatch "^(\\[[0-9A-Fa-f:.]+\\]|[^:\\[\\]]+):[0-9]+$" .Values.externalTemporal.hostPort)) -}}
+{{- fail (printf "\n\nexternalTemporal.hostPort '%s' is not host:port. Name the host and the port, such as temporal.internal:7233, with an IPv6 address in brackets ([fd00::1]:7233): the server, the runner and the init container dial exactly that.\n" .Values.externalTemporal.hostPort) -}}
+{{- end -}}
 {{- $ttls := .Values.externalTemporal.tls -}}
 {{- if and .Values.temporal.enabled (or $ttls.enabled .Values.externalTemporal.apiKey.existingSecret) -}}
 {{- fail "\n\nexternalTemporal.tls and externalTemporal.apiKey authenticate an external Temporal, but temporal.enabled is true and the bundled Temporal speaks neither. Set temporal.enabled=false with externalTemporal.hostPort, or drop the TLS and API-key values.\n" -}}
