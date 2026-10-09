@@ -7,8 +7,12 @@
 // organization and slug, because a conversation stores references, never
 // ids; a slug is sent as written, and the server's reference rule refuses a
 // vault that does not exist or that the caller may not use, so nothing is
-// read twice. A repeated vault is sent once, in its first position: the
-// first vault holding a key wins, so a second mention would change nothing.
+// read twice. A reference that is no form at all (`acme/`, `/x`, `a/b/c`) is
+// refused here, before anything is sent. A vault written the same way twice
+// is sent once, in its first position: the first vault holding a key wins,
+// so a second mention would change nothing. The same vault written two ways
+// (by id and by slug, or by organization id and slug) is sent as given, each
+// time: harmless, for the same reason.
 
 import { create } from "@bufbuild/protobuf";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -25,7 +29,8 @@ export type VaultReader = Pick<Stigmer, "vault">;
 
 /**
  * Resolve each `--vault` reference to the reference the conversation stores,
- * in order, each vault once. An empty reference is a usage error.
+ * in order, a reference written twice once. An empty or malformed reference
+ * is a usage error.
  */
 export async function resolveRunVaults(
   client: VaultReader,
@@ -37,6 +42,10 @@ export async function resolveRunVaults(
   for (const raw of refs) {
     if (raw.trim() === "") {
       throw new UsageError("invalid --vault value: empty; name a vault by id, org/slug or slug");
+    }
+    const parts = raw.trim().split("/");
+    if (parts.length > 2 || parts.some((part) => part === "")) {
+      throw new UsageError(`invalid --vault value '${raw}': name a vault by id, org/slug or slug`);
     }
     const parsed = parseReference(raw, org, idPrefixesFor(ApiResourceKind.vault));
     let refOrg: string;

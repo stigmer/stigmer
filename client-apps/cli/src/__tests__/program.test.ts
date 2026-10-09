@@ -1,10 +1,35 @@
-// The CLI's command tree: what buildProgram registers, and how a retired
-// command or run option is answered (commander's error plus one pointer line,
-// never an alias that still works).
+// The CLI's command tree: what buildProgram registers, how a retired command
+// or run option is answered (commander's error plus one pointer line, never an
+// alias that still works, and never a retired option's value), and that the
+// run command's vault flags reach the wire: My vault unless --no-my-vault.
 
 import { describe, expect, it } from "vitest";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { Stigmer } from "@stigmer/sdk";
+import type { Command } from "commander";
+import { type AgentExecOptions, toAgentExecFlags } from "../commands/agent-exec-flags.js";
 import { buildProgram, RETIRED_COMMANDS, RETIRED_OPTIONS } from "../program.js";
+import { type ControllerFn, createAgentRun } from "../resources/run/create.js";
+import { prepareAgentExec } from "../resources/run/prepare.js";
 import { VERSION } from "../version.js";
+
+// prepareAgentExec touches client.run only to upload attachments; these
+// runs attach nothing.
+const STUB_CLIENT = { run: {} } as unknown as Stigmer;
+
+function RUN_HINT(option: string): string {
+  return RETIRED_OPTIONS.get("run")?.get(option) ?? `no retired run option ${option}`;
+}
+
+// A program whose errors are captured instead of exiting: `subcommand`'s too,
+// since commander copies exitOverride to a command only when it is created.
+function capturedProgram(subcommand = "run"): { program: Command; stderr: () => string } {
+  const program = buildProgram();
+  let stderr = "";
+  program.exitOverride().configureOutput({ writeErr: (text) => void (stderr += text) });
+  program.commands.find((command) => command.name() === subcommand)?.exitOverride();
+  return { program, stderr: () => stderr };
+}
 
 describe("buildProgram", () => {
   it("registers the foundational commands", () => {
@@ -96,39 +121,94 @@ describe("buildProgram", () => {
   });
 
   it("answers a retired run option with the vault command that replaced it", async () => {
-    const program = buildProgram();
-    let stderr = "";
-    program.exitOverride().configureOutput({ writeErr: (text) => void (stderr += text) });
-    program.commands.find((command) => command.name() === "run")?.exitOverride();
+    const { program, stderr } = capturedProgram();
     await expect(
       program.parseAsync(["run", "acme/support", "--secret", "TOKEN=abc"], { from: "user" }),
     ).rejects.toMatchObject({ code: "commander.unknownOption" });
-    expect(stderr).toContain("unknown option '--secret'");
-    expect(stderr).toContain(`${RETIRED_OPTIONS.get("--secret")}\n`);
-    expect(stderr).toContain("stigmer vault set-secret NAME --mine");
+    expect(stderr()).toContain("unknown option '--secret'");
+    expect(stderr()).toContain(`${RUN_HINT("--secret")}\n`);
+    expect(stderr()).toContain("stigmer vault set-secret NAME --mine");
   });
 
-  it("never echoes the value of a retired option written with '='", async () => {
-    const program = buildProgram();
-    let stderr = "";
-    program.exitOverride().configureOutput({ writeErr: (text) => void (stderr += text) });
-    program.commands.find((command) => command.name() === "run")?.exitOverride();
+  it.each([
+    ["a plain value", "--env=TOKEN=sk-live-123", "sk-live-123"],
+    ["a value holding a quote", "--env=TOKEN=ab'cd-secret", "cd-secret"],
+    ["a value holding a newline", "--secret=TOKEN=first\nsecond-secret", "second-secret"],
+  ])("never echoes any part of a retired option's value written with '=' (%s)", async (_case, arg, leaked) => {
+    const { program, stderr } = capturedProgram();
+    await expect(program.parseAsync(["run", "-m", "hi", arg], { from: "user" })).rejects.toMatchObject({
+      code: "commander.unknownOption",
+    });
+    expect(stderr()).toContain(RUN_HINT(arg.slice(0, arg.indexOf("="))));
+    expect(stderr()).not.toContain(leaked);
+    expect(stderr()).not.toContain("TOKEN");
+  });
+
+  it("gives the run hint on run only: another command meeting --secret answers with commander's error", async () => {
+    const { program, stderr } = capturedProgram("resume");
     await expect(
-      program.parseAsync(["run", "-m", "hi", "--env=TOKEN=sk-live-123"], { from: "user" }),
+      program.parseAsync(["resume", "ses_01hzzzzzzzzzzzzzzzzzzzzzzz", "--secret", "x"], { from: "user" }),
     ).rejects.toMatchObject({ code: "commander.unknownOption" });
-    expect(stderr).toContain("unknown option '--env'");
-    expect(stderr).toContain(RETIRED_OPTIONS.get("--env") ?? "missing");
-    expect(stderr).not.toContain("sk-live-123");
+    expect(stderr()).toContain("unknown option '--secret'");
+    expect(stderr()).not.toContain("stigmer vault set-secret");
   });
 
   it("names every retired run option and keeps none on the run command", () => {
     const program = buildProgram();
     const run = program.commands.find((command) => command.name() === "run");
     const flags = run?.options.map((option) => option.long) ?? [];
-    expect([...RETIRED_OPTIONS.keys()].sort()).toEqual(["--env", "--env-file", "--secret", "--secret-file"]);
-    for (const retired of RETIRED_OPTIONS.keys()) expect(flags).not.toContain(retired);
+    const retired = [...(RETIRED_OPTIONS.get("run")?.keys() ?? [])];
+    expect([...RETIRED_OPTIONS.keys()]).toEqual(["run"]);
+    expect(retired.sort()).toEqual(["--env", "--env-file", "--secret", "--secret-file"]);
+    for (const option of retired) expect(flags).not.toContain(option);
     expect(flags).toEqual(expect.arrayContaining(["--vault", "--no-my-vault"]));
   });
+
+  it.each([
+    [[] as string[], true, []],
+    [["--no-my-vault", "--vault", "ci-keys"], false, ["acme/ci-keys"]],
+    [["--vault", "support-tools", "--vault", "platform/shared"], true, ["acme/support-tools", "platform/shared"]],
+  ])(
+    "sends the vault choice the run's flags parse to (%j), through commander to the wire",
+    async (flags, includeMyVault, vaults) => {
+      const program = buildProgram();
+      const run = program.commands.find((command) => command.name() === "run");
+      let parsed: AgentExecOptions | undefined;
+      run?.action((_agent: string | undefined, options: AgentExecOptions) => {
+        parsed = options;
+      });
+      await program.parseAsync(["run", "-m", "hi", ...flags], { from: "user" });
+      if (parsed === undefined) throw new Error("run's action did not run");
+
+      const prepared = await prepareAgentExec(toAgentExecFlags(parsed), STUB_CLIENT, undefined, { org: "acme" });
+      let sent: Run | undefined;
+      const controller = (() => ({
+        create: (run: Run) => {
+          sent = run;
+          return Promise.resolve(run);
+        },
+      })) as unknown as ControllerFn;
+      await createAgentRun(controller, {
+        orgId: "acme",
+        message: prepared.message,
+        vaults: prepared.vaults,
+        includeMyVault: prepared.includeMyVault,
+        attachments: [],
+        workspaceFileRefs: [],
+        workspaceEntries: [],
+        model: "",
+        mode: "",
+        serviceTier: "",
+        thinking: "",
+        autoApproveAll: false,
+        harness: "",
+      });
+      const target = sent?.spec?.target;
+      const spec = target?.case === "sessionSpec" ? target.value : undefined;
+      expect(spec?.includeMyVault).toBe(includeMyVault);
+      expect(spec?.vaults.map((ref) => `${ref.org}/${ref.slug}`)).toEqual(vaults);
+    },
+  );
 
   it("reports a semver-shaped version", () => {
     expect(VERSION).toMatch(/^\d+\.\d+\.\d+/);

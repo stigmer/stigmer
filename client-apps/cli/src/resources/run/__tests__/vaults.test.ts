@@ -1,10 +1,10 @@
 // `stigmer run --vault`: how each reference becomes the reference a new
 // conversation stores. Pins the three forms the vault verbs accept (id,
 // org/slug, slug in the run's organization), that an id is looked up for its
-// organization and slug, that order is kept and a repeat is sent once, and
-// that an empty reference is refused before anything is sent, and that an id
-// naming a vault without a slug is refused (a conversation names vaults by
-// organization and slug).
+// organization and slug, that order is kept and a repeat is sent once, that
+// an empty or malformed reference (`acme/`, `/x`, `a/b/c`) is refused before
+// anything is read or sent, and that an id naming a vault without a slug is
+// refused (a conversation names vaults by organization and slug).
 
 import { describe, expect, it } from "vitest";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -55,6 +55,17 @@ describe("resolveRunVaults", () => {
     await expect(refused).rejects.toBeInstanceOf(UsageError);
     await expect(refused).rejects.toThrow(`vault '${VAULT_ID}' has no slug`);
   });
+
+  it.each(["acme/", "/support-tools", "acme/support/tools", "/"])(
+    "refuses %j, which is no form a vault is named by, and reads nothing",
+    async (ref) => {
+      const lookups: string[] = [];
+      const refused = resolveRunVaults(reader(lookups), [ref], "acme");
+      await expect(refused).rejects.toBeInstanceOf(UsageError);
+      await expect(refused).rejects.toThrow(`invalid --vault value '${ref}': name a vault by id, org/slug or slug`);
+      expect(lookups).toEqual([]);
+    },
+  );
 
   it("refuses an empty reference", async () => {
     await expect(resolveRunVaults(reader(), [" "], "acme")).rejects.toBeInstanceOf(UsageError);
