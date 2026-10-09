@@ -45,6 +45,8 @@ const ALL_TABLES = [
   "schedule_runs",
   "resource_names",
   "pending_oauth_state",
+  "oauth_client_registration",
+  "connect_link",
 ] as const;
 
 describe.skipIf(testDatabaseAdminUrl() === undefined)(

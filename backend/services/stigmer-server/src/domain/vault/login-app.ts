@@ -97,6 +97,25 @@ export async function findLoginApp(
 }
 
 /**
+ * Who a sign-in at an address is with, by the same order as
+ * `findLoginApp`, without opening any secret: the organization's app's
+ * provider, else the catalog entry's name, else undefined. For a page
+ * anyone holding a link may read.
+ */
+export async function findLoginAppName(
+  deps: Pick<LoginAppDeps, "store" | "loginProviders">,
+  org: string,
+  address: string,
+): Promise<string | undefined> {
+  const app = await findOrganizationApp(deps.store, org, address);
+  if (app !== undefined) {
+    return app.spec?.provider ?? "";
+  }
+  const provider = loginProviderFor(address);
+  return provider !== undefined && deps.loginProviders.has(provider.key) ? provider.name : undefined;
+}
+
+/**
  * The login app a sign-in recorded (`login_app`), read live so an admin's
  * fix to the app applies at once: undefined for a public client ("") and for
  * an app that is gone or switched off.

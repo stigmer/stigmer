@@ -95,7 +95,6 @@ async function run(incoming: McpServer, fake: FakeFetch, existing?: McpServer): 
 function expectCompleted(state: McpServer): void {
   expect(state.spec?.auth?.targetEnvVar).toBe(VARIABLE);
   expect(state.spec?.auth?.oauthOnly).toBe(true);
-  expect(state.spec?.auth?.discoveryUrl).toBe("");
   expect(state.spec?.auth?.scopeHints).toEqual([]);
   expect(state.spec?.env[VARIABLE]).toMatchObject({ isSecret: true, optional: false });
   expect(state.spec?.env[VARIABLE]?.description).toContain("Sign in fills it");
@@ -215,9 +214,9 @@ describe("CompleteEndpointAuth: carry-over on update, three questions in order",
   it("drops the label when the author alters the derived trio: their auth is theirs now", async () => {
     const fake = answering(401, { "www-authenticate": CHALLENGE });
     const altered = completedRow();
-    altered.spec!.auth!.discoveryUrl = "https://login.vendor.test";
+    altered.spec!.auth!.scopeHints = ["read"];
     const ctx = await run(altered, fake, completedRow());
-    expect(ctx.newState.spec?.auth?.discoveryUrl).toBe("https://login.vendor.test");
+    expect(ctx.newState.spec?.auth?.scopeHints).toEqual(["read"]);
     expect(ctx.newState.metadata?.labels[MCP_AUTH_LABEL]).toBeUndefined();
     expect(fake.calls).toHaveLength(0);
   });

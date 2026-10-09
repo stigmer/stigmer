@@ -14,7 +14,7 @@
  * Proven by mcpserver-oauth.conformance.test.ts (guards + no-login
  * idempotence, CONFORMANCE_TARGET=local),
  * mcpserver-connect.conformance.test.ts (teardown,
- * CONFORMANCE_TARGET=local-execution) and __tests__/sign-in-vault.test.ts.
+ * CONFORMANCE_TARGET=local-execution) and ../vault/sign-in/__tests__/person.test.ts.
  */
 import { create } from "@bufbuild/protobuf";
 

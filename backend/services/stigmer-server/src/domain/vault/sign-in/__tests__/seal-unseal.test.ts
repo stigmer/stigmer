@@ -9,11 +9,11 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { SecretService } from "../../../encryption/encryption.js";
-import { createLogger } from "../../../boot/logger.js";
-import type { PendingOAuthState } from "../../../store/interface.js";
-import { sealPendingOAuthState } from "../initiate-oauth-connect.js";
-import { unsealPendingOAuthState } from "../complete-oauth-connect.js";
+import { SecretService } from "../../../../encryption/encryption.js";
+import { createLogger } from "../../../../boot/logger.js";
+import type { PendingOAuthState } from "../../../../store/interface.js";
+import { sealPendingOAuthState } from "../start.js";
+import { unsealPendingOAuthState } from "../complete.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -33,11 +33,15 @@ function pendingState(
     clientId: "client-1",
     clientSecret: "vendor-secret",
     tokenEndpoint: "https://auth.example.com/token",
-    mcpServerId: "mcps_1",
     identityAccountId: "",
     vaultId: "",
-    toolAddress: "",
-    targetEnvVar: "TOKEN",
+    address: "",
+    loginApp: "",
+    resource: "",
+    clientRegistration: "",
+    connectLink: "",
+    providerName: "",
+    userinfoUrl: "",
     authMethod: "vendor_oauth",
     tokenAuthMethod: "client_secret_basic",
     redirectUri: "http://cb",

@@ -68,7 +68,7 @@ import {
 } from "../connect.js";
 import type { McpServerConnectDeps } from "../connect.js";
 import { isConnectExecutionId } from "../connect-execution-id.js";
-import { newSignInFreshener } from "../oauth/refresh.js";
+import { newSignInFreshener } from "../../vault/sign-in/refresh.js";
 import {
   RUNNER_QUEUE_WARNING,
   startConnect as startConnectRpc,
@@ -260,7 +260,7 @@ function makeHarness(options: HarnessOptions = {}): Harness {
     secretService,
     vaults,
     platformClients: { findById: async () => undefined },
-    freshener: newSignInFreshener({ vaults, store, secretService, logger: silentLogger }),
+    freshener: newSignInFreshener({ loginProviders: new Map(), vaults, store, secretService, logger: silentLogger }),
   });
   const harness: Harness = {
     engine,
@@ -289,9 +289,6 @@ function makeHarness(options: HarnessOptions = {}): Harness {
       runnerAuth,
       vaults,
       vaultResolver: resolver,
-      pendingOAuthStates: store.pendingOAuthStates,
-      secretService,
-      oauthRedirectUri: "http://127.0.0.1:8234/auth/oauth/callback",
       sandboxLane,
       // No arm in this harness dials out; a call is a test bug, not a network.
       outboundFetch: async () => {

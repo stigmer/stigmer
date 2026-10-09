@@ -868,7 +868,7 @@ test("the missing-organization probe creates an agent in an organization nobody 
 });
 
 const DERIVED =
-  "STIGMER_OAUTH_REDIRECT_URI is not set — deriving the served console's callback for MCP server OAuth Connect";
+  "STIGMER_OAUTH_REDIRECT_URI is not set — deriving the served console's callback for sign-ins";
 
 test("the server's log reads in its pretty form and as NDJSON, and other output is skipped", () => {
   const text = [
@@ -909,7 +909,7 @@ test("a callback derived from the compose file's default address fails, naming b
 });
 
 test("a boot that logs no derived callback fails", () => {
-  const log = '{"level":"warn","time":"t","message":"STIGMER_OAUTH_REDIRECT_URI is not set — OAuth Connect flows for MCP servers are unavailable (initiateOAuthConnect will refuse)"}';
+  const log = '{"level":"warn","time":"t","message":"STIGMER_OAUTH_REDIRECT_URI is not set — sign-ins through the console and Connect links are unavailable (startSignIn will refuse)"}';
   assert.throws(() => assertOAuthCallbackFromPublicOrigin(log, "http://127.0.0.1:7234"), /logged no derived OAuth callback/);
 });
 

@@ -244,7 +244,7 @@ describe("refreshTokenIfExpired", () => {
       authMethod: "mcp_oauth",
       tokenEndpoint: "https://vendor.example/token",
       refreshToken,
-      mcpServerId: "mcps_1",
+      loginApp: "",
     };
   }
   const ADDRESS = "https://vendor.example/mcp";

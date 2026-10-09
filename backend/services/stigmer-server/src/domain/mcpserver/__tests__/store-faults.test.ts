@@ -6,12 +6,9 @@
  * that tells a client the server does not exist (stigmer/stigmer#1345).
  *
  * The surfaces: connect, startConnect (its first load, and the attach arm's
- * re-read after this lane lost the start race), initiateOAuthConnect,
- * completeOAuthConnect, and updateVisibility's load step, reached through the
- * registered handler on an in-process router. completeOAuthConnect loads
- * after the pending state is consumed and before the code is exchanged, so
- * its fault copy sends the user back through the connect flow and its
- * token endpoint is never reached. The composed suites
+ * re-read after this lane lost the start race), and updateVisibility's load
+ * step, reached through the registered handler on an in-process router.
+ * The composed suites
  * reach only a real store, which cannot fail selectively, so each surface
  * runs here against a store whose read throws. Every other dependency is
  * untouchable: a load that fails must stop the call before any of them.
@@ -25,18 +22,12 @@ import type { ConnectError } from "@connectrpc/connect";
 import { Code, createClient, createRouterTransport } from "@connectrpc/connect";
 import { describe, expect, it, vi } from "vitest";
 
-import type { OutboundFetch } from "@stigmer/outbound/egress";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
-import {
-  CompleteOAuthConnectInputSchema,
-  ConnectInputSchema,
-  InitiateOAuthConnectInputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
+import { ConnectInputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 
 import { createLogger } from "../../../boot/logger.js";
-import { SecretService } from "../../../encryption/encryption.js";
 import { createApiResourceInterceptor } from "../../../pipeline/interceptors/apiresource.js";
 import { createVerifierChainInterceptor } from "../../../pipeline/interceptors/auth.js";
 import {
@@ -47,18 +38,12 @@ import {
 } from "../../../pipeline/__tests__/support.js";
 import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
 import { ResourceNotFoundError } from "../../../store/interface.js";
-import type {
-  PendingOAuthState,
-  PendingOAuthStateStore,
-  Store,
-} from "../../../store/interface.js";
+import type { Store } from "../../../store/interface.js";
 
-import { completeOAuthConnect } from "../complete-oauth-connect.js";
 import type { McpServerConnectDeps } from "../connect.js";
 import { connect } from "../connect.js";
 import { registerMcpServerServices } from "../controller.js";
 import type { ConnectRun, McpServerConnectEngine } from "../engine.js";
-import { initiateOAuthConnect } from "../initiate-oauth-connect.js";
 import { startConnect } from "../start-connect.js";
 
 const silentLogger = createLogger({
@@ -72,8 +57,6 @@ const ORG = "acme";
 
 const NOT_FOUND_COPY = `mcp_server not found: ${SERVER_ID}`;
 const LOAD_FAULT_COPY = "failed to load mcp server";
-const CALLBACK_FAULT_COPY =
-  "failed to load mcp server — please retry the connect flow";
 
 const MISSING = (): Error =>
   new ResourceNotFoundError(`mcp_server/${SERVER_ID}`);
@@ -96,59 +79,19 @@ function connectDeps(
     runnerAuth: untouchable("runnerAuth"),
     vaults: untouchable("vaults"),
     vaultResolver: untouchable("vaultResolver"),
-    pendingOAuthStates: untouchable("pendingOAuthStates"),
-    secretService: untouchable("secretService"),
     // The external-runner posture: no connect sandbox is provisioned.
     sandboxLane: { enabled: false },
-    oauthRedirectUri: "http://127.0.0.1:8234/auth/oauth/callback",
     outboundFetch: untouchable("outboundFetch"),
     ...overrides,
   };
 }
-
-/**
- * A plaintext pending state for SERVER_ID, started by the test caller; a
- * keyless SecretService unseals it to itself.
- */
-const PENDING_STATE: PendingOAuthState = {
-  state: "state_storefault",
-  codeVerifier: "verifier_storefault",
-  clientId: "client_storefault",
-  clientSecret: "",
-  tokenEndpoint: "https://auth.example.test/token",
-  mcpServerId: SERVER_ID,
-  identityAccountId: testCallerIdentity().identityId,
-  vaultId: "",
-  toolAddress: "https://mcp.example.test/mcp",
-  targetEnvVar: "MCP_ACCESS_TOKEN",
-  authMethod: "mcp_oauth",
-  tokenAuthMethod: "",
-  redirectUri: "http://127.0.0.1:8234/auth/oauth/callback",
-  org: ORG,
-  createdAt: 0,
-};
-
-const pendingStates: PendingOAuthStateStore = {
-  save: () => Promise.reject(new Error("pendingOAuthStates.save reached")),
-  getAndDelete: () => Promise.resolve(PENDING_STATE),
-  cleanupExpired: () =>
-    Promise.reject(new Error("pendingOAuthStates.cleanupExpired reached")),
-  deleteByOrg: () =>
-    Promise.reject(new Error("pendingOAuthStates.deleteByOrg reached")),
-};
-
-/** The provider's token endpoint: the load comes first, so a failed load never reaches it. */
-const tokenEndpoint: OutboundFetch = () =>
-  Promise.reject(new Error("token endpoint reached before the server load"));
 
 const connectInput = () =>
   create(ConnectInputSchema, { mcpServerId: SERVER_ID, org: ORG });
 
 /**
  * The direct handlers' entry loads. Each validates its input first, so the
- * inputs carry every field the handler requires; completeOAuthConnect also
- * consumes the pending state before its load, so its fake answers that
- * step.
+ * inputs carry every field the handler requires.
  */
 const HANDLER_LOADS: ReadonlyArray<
   readonly [string, string, (store: Store) => Promise<unknown>]
@@ -166,38 +109,6 @@ const HANDLER_LOADS: ReadonlyArray<
       startConnect(
         connectDeps({ store }),
         connectInput(),
-        testCallerIdentity(),
-      ),
-  ],
-  [
-    "initiateOAuthConnect",
-    LOAD_FAULT_COPY,
-    (store) =>
-      initiateOAuthConnect(
-        connectDeps({ store }),
-        create(InitiateOAuthConnectInputSchema, {
-          mcpServerId: SERVER_ID,
-          org: ORG,
-        }),
-        testCallerIdentity(),
-      ),
-  ],
-  [
-    "completeOAuthConnect — before the code exchange",
-    CALLBACK_FAULT_COPY,
-    (store) =>
-      completeOAuthConnect(
-        connectDeps({
-          store,
-          pendingOAuthStates: pendingStates,
-          secretService: SecretService.create(undefined),
-          outboundFetch: tokenEndpoint,
-        }),
-        create(CompleteOAuthConnectInputSchema, {
-          mcpServerId: SERVER_ID,
-          state: PENDING_STATE.state,
-          authorizationCode: "code_storefault",
-        }),
         testCallerIdentity(),
       ),
   ],

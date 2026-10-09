@@ -1,7 +1,6 @@
 /**
- * Pins the oauthapp domain against Go's oauthapp_secrets_test.go +
- * delete_referential_integrity_test.go + refresolution_test.go — through
- * the REAL stack: a composed server on an ephemeral port, a native gRPC
+ * Pins the oauthapp domain against Go's oauthapp_secrets_test.go, and the
+ * addresses an app signs in to — through the REAL stack: a composed server on an ephemeral port, a native gRPC
  * client, the full interceptor chain.
  *
  * The load-bearing pins the conformance suite CANNOT cover (black box; these
@@ -14,9 +13,10 @@
  *   - the delete RPC answers the removed app REDACTED, never the stored
  *     secret: not the ciphertext on a keyed server, not the plaintext on
  *     a keyless one (stigmer/stigmer#1257; the Go port returned it);
- *   - the referential delete guard's resolution semantics (stigmer#584),
- *     proven by seeding McpServer rows directly through the store — the
- *     McpServer RPC surface is not required here.
+ *   - an app's addresses are normalized and each belongs to one app per
+ *     organization: create and update claim theirs, an update lets go of
+ *     the ones it drops, delete lets go of all, and an abandoned claim is
+ *     freed once a minute old; a sign-in finds the app by its address.
  *
  * Keys are injected via env (vi.stubEnv) so the ladder short-circuits
  * before its file steps — the real ~/.stigmer is never touched. Who may
@@ -33,9 +33,7 @@ import type { Client, Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
-import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
 import { OAuthAppCommandController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/command_pb";
 import { OAuthAppQueryController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/query_pb";
@@ -50,9 +48,8 @@ import {
   CIPHERTEXT_SHAPED_SECRET_MESSAGE,
   MARKER_ON_CREATE_MESSAGE,
   REDACTED_MARKER,
-  deleteBlockedByMcpServerMessage,
 } from "../constants.js";
-import { resolveOAuthAppRef } from "../refresolution.js";
+import { findOrganizationApp, oauthAppAddressKey } from "../../vault/login-app.js";
 import {
   organizationId,
   seedOrganizations,
@@ -105,19 +102,7 @@ async function startServer(env: Record<string, string>): Promise<TestServer> {
   const transport: Transport = createGrpcTransport({
     baseUrl: `http://127.0.0.1:${port}`,
   });
-  // Not "stigmer" or "res-org-none": the ref-resolution cases need an org
-  // that does not exist here.
-  const orgIds = await seedOrganizations(transport, [
-    ORG,
-    "other-org",
-    "org-a",
-    "org-b",
-    "res-org-a",
-    "res-org-b",
-    "res-org-c",
-    "res-org-d",
-    "res-org-e",
-  ]);
+  const orgIds = await seedOrganizations(transport, [ORG, "other-org", "org-a", "org-b"]);
   return {
     server,
     command: createClient(OAuthAppCommandController, transport),
@@ -138,6 +123,7 @@ function appInput(overrides?: {
   org?: string;
   clientId?: string;
   clientSecret?: string;
+  addresses?: string[];
 }) {
   counter += 1;
   return {
@@ -154,6 +140,7 @@ function appInput(overrides?: {
       authorizationUrl: "https://vendor.example.com/oauth/authorize",
       tokenUrl: "https://vendor.example.com/oauth/token",
       scopes: ["read"],
+      addresses: overrides?.addresses ?? [`https://mcp${counter}.vendor.example/mcp`],
     },
   };
 }
@@ -161,34 +148,6 @@ function appInput(overrides?: {
 /** The stored (unredacted) row, read directly from the store. */
 async function storedApp(store: Store, id: string) {
   return store.getResource(ApiResourceKind.oauth_app, id, OAuthAppSchema);
-}
-
-/**
- * Seeds an McpServer row in ORG whose auth references the given (org,
- * slug); a stored row names its organizations by id, so `refOrg` is an id
- * unless the arm means an organization that does not exist here.
- */
-async function seedReferencingMcpServer(
-  ts: TestServer,
-  id: string,
-  name: string,
-  refOrg: string,
-  refSlug: string,
-): Promise<void> {
-  const mcp = create(McpServerSchema, {
-    apiVersion: "agentic.stigmer.ai/v1",
-    kind: "McpServer",
-    metadata: { id, name, org: organizationId(ts.orgIds, ORG), slug: name },
-    spec: {
-      description: "references an OAuthApp for the delete-block pins",
-      serverType: { case: "stdio", value: { command: "npx", args: ["-y", "x"] } },
-      auth: {
-        oauthAppRef: { org: refOrg, slug: refSlug, kind: ApiResourceKind.oauth_app },
-        targetEnvVar: "VENDOR_TOKEN",
-      },
-    },
-  });
-  await ts.server.store.saveResource(ApiResourceKind.mcp_server, id, McpServerSchema, mcp);
 }
 
 async function grpcError(run: () => Promise<unknown>): Promise<ConnectError> {
@@ -327,87 +286,70 @@ describe("oauthapp domain (encryption enabled)", () => {
     expect(err.code).toBe(Code.NotFound);
   });
 
-  describe("referential delete guard (stigmer#584 resolution semantics)", () => {
-    afterEach(async () => {
-      // Each test seeds its own McpServer rows; sweep them so arms stay
-      // independent (no shared state across tests).
-      await ts.server.store.deleteResourcesByKind(ApiResourceKind.mcp_server);
-    });
+  describe("addresses: one login app per address in an organization", () => {
+    const orgId = () => organizationId(ts.orgIds, ORG);
 
-    it("blocks deletion while an exact (org, slug) ref resolves to the app, then frees it", async () => {
-      const app = await ts.command.create(appInput());
-      await seedReferencingMcpServer(
-        ts,
-        "mcps_01refexact",
-        "ref-exact",
-        organizationId(ts.orgIds, ORG),
-        app.metadata!.slug,
-      );
-
-      const err = await grpcError(() =>
-        ts.command.delete({ resourceId: app.metadata!.id }),
-      );
-      expect(err.code).toBe(Code.FailedPrecondition);
-      expect(err.rawMessage).toBe(
-        deleteBlockedByMcpServerMessage(
-          organizationId(ts.orgIds, ORG),
-          app.metadata!.slug,
-          "ref-exact",
-        ),
-      );
-
-      await ts.server.store.deleteResource(ApiResourceKind.mcp_server, "mcps_01refexact");
-      const deleted = await ts.command.delete({ resourceId: app.metadata!.id });
-      expect(deleted.metadata?.id).toBe(app.metadata?.id);
-    });
-
-    it("blocks through the unique-slug fallback (ref pinned to a foreign org)", async () => {
-      const app = await ts.command.create(appInput());
-      // A public server's posture: ref pinned to `org: stigmer`, app applied
-      // in the user's own org — resolution reaches it via unique slug (#584).
-      await seedReferencingMcpServer(
-        ts,
-        "mcps_01reffallback",
-        "ref-fallback",
-        "stigmer",
-        app.metadata!.slug,
-      );
-
-      const err = await grpcError(() =>
-        ts.command.delete({ resourceId: app.metadata!.id }),
-      );
-      expect(err.code).toBe(Code.FailedPrecondition);
-
-      await ts.server.store.deleteResource(ApiResourceKind.mcp_server, "mcps_01reffallback");
+    it("normalizes the addresses on create, and a sign-in finds the app by any of them", async () => {
+      const app = await ts.command.create(appInput({ addresses: ["HTTPS://MCP.Slack.example:443/mcp/", "GitHub.com"] }));
+      expect(app.spec?.addresses).toEqual(["https://mcp.slack.example/mcp", "github.com"]);
+      const found = await findOrganizationApp(ts.server.store, orgId(), "github.com");
+      expect(found?.metadata?.id).toBe(app.metadata?.id);
       await ts.command.delete({ resourceId: app.metadata!.id });
     });
 
-    it("does not block when the ref resolves to a DIFFERENT app (literal-match is not the rule)", async () => {
-      const name = `Shared Slug ${++counter}`;
-      const target = await ts.command.create(appInput({ name, org: "org-a" }));
-      const other = await ts.command.create(appInput({ name, org: "org-b" }));
+    it("refuses an address another app of the organization holds, and takes it in another organization", async () => {
+      const address = `https://mcp-taken-${++counter}.example/mcp`;
+      const first = await ts.command.create(appInput({ addresses: [address] }));
+      const err = await grpcError(() => ts.command.create(appInput({ addresses: [address] })));
+      expect(err.code).toBe(Code.AlreadyExists);
+      expect(err.rawMessage).toContain(`the address ${address} already belongs to another login app in this organization`);
+      const elsewhere = await ts.command.create(appInput({ org: "other-org", addresses: [address] }));
+      expect(elsewhere.spec?.addresses).toEqual([address]);
+      await ts.command.delete({ resourceId: first.metadata!.id });
+      await ts.command.delete({ resourceId: elsewhere.metadata!.id });
+    });
 
-      // The ref names org-b explicitly: it resolves to org-b's app, so
-      // deleting org-a's app (same slug) must NOT be blocked.
-      await seedReferencingMcpServer(
-        ts,
-        "mcps_01refother",
-        "ref-other",
-        organizationId(ts.orgIds, "org-b"),
-        other.metadata!.slug,
+    it("refuses a value that is no address, and two that normalize to one, naming the rule", async () => {
+      const bad = await grpcError(() => ts.command.create(appInput({ addresses: ["not an address"] })));
+      expect(bad.code).toBe(Code.InvalidArgument);
+      expect(bad.rawMessage).toContain("spec.addresses[0]: the value given is not an address");
+      const twice = await grpcError(() =>
+        ts.command.create(appInput({ addresses: ["https://twice.example/mcp", "https://TWICE.example/mcp/"] })),
       );
+      expect(twice.code).toBe(Code.InvalidArgument);
+      expect(twice.rawMessage).toContain("spec.addresses[1] is the same address as an earlier one once normalized");
+    });
 
-      const deleted = await ts.command.delete({ resourceId: target.metadata!.id });
-      expect(deleted.metadata?.id).toBe(target.metadata?.id);
+    it("an update claims what it adds and lets go of what it drops; delete lets go of all", async () => {
+      const kept = `https://kept-${++counter}.example/mcp`;
+      const dropped = `https://dropped-${counter}.example/mcp`;
+      const added = `https://added-${counter}.example/mcp`;
+      const app = await ts.command.create(appInput({ addresses: [kept, dropped] }));
+      const updated = await ts.command.update({ ...app, spec: { ...app.spec!, addresses: [kept, added] } });
+      expect(updated.spec?.addresses).toEqual([kept, added]);
+      expect(await findOrganizationApp(ts.server.store, orgId(), dropped)).toBeUndefined();
+      expect((await findOrganizationApp(ts.server.store, orgId(), added))?.metadata?.id).toBe(app.metadata?.id);
 
-      // org-b's app IS still referenced — blocked.
-      const err = await grpcError(() =>
-        ts.command.delete({ resourceId: other.metadata!.id }),
-      );
-      expect(err.code).toBe(Code.FailedPrecondition);
+      const takesDropped = await ts.command.create(appInput({ addresses: [dropped] }));
+      await ts.command.delete({ resourceId: app.metadata!.id });
+      expect(await findOrganizationApp(ts.server.store, orgId(), kept)).toBeUndefined();
+      const takesKept = await ts.command.create(appInput({ addresses: [kept] }));
+      await ts.command.delete({ resourceId: takesDropped.metadata!.id });
+      await ts.command.delete({ resourceId: takesKept.metadata!.id });
+    });
 
-      await ts.server.store.deleteResource(ApiResourceKind.mcp_server, "mcps_01refother");
-      await ts.command.delete({ resourceId: other.metadata!.id });
+    it("frees a claim whose holder never stored the address once it is a minute old, and not before", async () => {
+      const address = `https://abandoned-${++counter}.example/mcp`;
+      const key = oauthAppAddressKey(orgId(), address);
+      await ts.server.store.resourceNames.claim(key, "oap_never_stored", new Date().toISOString());
+      const young = await grpcError(() => ts.command.create(appInput({ addresses: [address] })));
+      expect(young.code).toBe(Code.AlreadyExists);
+
+      await ts.server.store.resourceNames.releaseName(key, "oap_never_stored");
+      await ts.server.store.resourceNames.claim(key, "oap_never_stored", new Date(Date.now() - 120_000).toISOString());
+      const app = await ts.command.create(appInput({ addresses: [address] }));
+      expect((await findOrganizationApp(ts.server.store, orgId(), address))?.metadata?.id).toBe(app.metadata?.id);
+      await ts.command.delete({ resourceId: app.metadata!.id });
     });
   });
 });
@@ -451,86 +393,5 @@ describe("oauthapp domain (encryption disabled)", () => {
     );
     expect(err.code).toBe(Code.InvalidArgument);
     expect(err.rawMessage).toBe(CIPHERTEXT_SHAPED_SECRET_MESSAGE);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// refresolution — Go refresolution_test.go, direct against a store.
-// ---------------------------------------------------------------------------
-
-describe("resolveOAuthAppRef", () => {
-  let ts: TestServer;
-
-  beforeAll(async () => {
-    ts = await startServer({ STIGMER_ENCRYPTION_KEY: TEST_KEY_B64 });
-  });
-
-  afterAll(async () => {
-    await stopServer(ts);
-    vi.unstubAllEnvs();
-  });
-
-  it("an empty slug resolves to nothing (the DCR/manual-token arm)", async () => {
-    const resolved = await resolveOAuthAppRef(
-      ts.server.store,
-      create(ApiResourceReferenceSchema, {
-        org: organizationId(ts.orgIds, ORG),
-        slug: "",
-      }),
-      silentLogger,
-    );
-    expect(resolved).toBeUndefined();
-  });
-
-  it("an exact (org, slug) match wins over other slug matches", async () => {
-    const name = `Resolve Exact ${++counter}`;
-    await ts.command.create(appInput({ name, org: "res-org-a" }));
-    const exact = await ts.command.create(appInput({ name, org: "res-org-b" }));
-
-    const resolved = await resolveOAuthAppRef(
-      ts.server.store,
-      create(ApiResourceReferenceSchema, {
-        org: organizationId(ts.orgIds, "res-org-b"),
-        slug: exact.metadata!.slug,
-      }),
-      silentLogger,
-    );
-    expect(resolved?.metadata?.id).toBe(exact.metadata?.id);
-  });
-
-  it("a UNIQUE slug-only match is honored when the ref's org does not exist here", async () => {
-    const app = await ts.command.create(appInput({ org: "res-org-c" }));
-
-    const resolved = await resolveOAuthAppRef(
-      ts.server.store,
-      create(ApiResourceReferenceSchema, { org: "stigmer", slug: app.metadata!.slug }),
-      silentLogger,
-    );
-    expect(resolved?.metadata?.id).toBe(app.metadata?.id);
-  });
-
-  it("two or more slug matches with no exact hit resolve to NOTHING (ambiguity refused)", async () => {
-    const name = `Resolve Ambiguous ${++counter}`;
-    const a = await ts.command.create(appInput({ name, org: "res-org-d" }));
-    await ts.command.create(appInput({ name, org: "res-org-e" }));
-
-    const resolved = await resolveOAuthAppRef(
-      ts.server.store,
-      create(ApiResourceReferenceSchema, { org: "res-org-none", slug: a.metadata!.slug }),
-      silentLogger,
-    );
-    expect(resolved).toBeUndefined();
-  });
-
-  it("an unknown slug resolves to nothing", async () => {
-    const resolved = await resolveOAuthAppRef(
-      ts.server.store,
-      create(ApiResourceReferenceSchema, {
-        org: organizationId(ts.orgIds, ORG),
-        slug: "never-created",
-      }),
-      silentLogger,
-    );
-    expect(resolved).toBeUndefined();
   });
 });

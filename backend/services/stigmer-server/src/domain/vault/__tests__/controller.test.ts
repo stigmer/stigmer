@@ -735,7 +735,7 @@ describe("values from a request, and values in a response", () => {
           authMethod: "mcp_oauth",
           tokenEndpoint: "https://linear.example/token",
           refreshToken: "signin-refresh",
-          mcpServerId: "mcp_linear",
+          loginApp: "",
         },
       });
     });

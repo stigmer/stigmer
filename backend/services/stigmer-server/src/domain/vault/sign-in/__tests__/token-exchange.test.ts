@@ -6,12 +6,14 @@
  * authed_user promotion, the 256-byte error truncation, the
  * missing-access_token refusal, and a redirect never followed, the code
  * exchange's and the renewal's alike (the request carries the client
- * secret, the code verifier or the refresh token). The rest of the
+ * secret, the code verifier or the refresh token); `resource` sent on both
+ * when given (RFC 8707) and never otherwise; and a refusal's OAuth error
+ * code carried, GitHub's HTTP 200 refusal included. The rest of the
  * refresh half is pinned by token-refresh.test.ts.
  */
 import { describe, expect, it } from "vitest";
 
-import { exchangeCode, refreshToken } from "../token.js";
+import { TokenEndpointError, exchangeCode, refreshToken } from "../token.js";
 
 interface CapturedRequest {
   body: URLSearchParams;
@@ -34,6 +36,51 @@ function capturingFetch(
 }
 
 const TOKENS = { access_token: "at-1", token_type: "bearer", expires_in: 3600 };
+
+describe("resource and refusals", () => {
+  it("sends resource on the exchange and the renewal when given, and not otherwise", async () => {
+    const captured: CapturedRequest[] = [];
+    const fetchImpl = capturingFetch(TOKENS, captured);
+    await exchangeCode("https://auth.example.com/token", "c", "http://cb", "v", "client-1", "", "", fetchImpl, "https://mcp.example.com/mcp");
+    await refreshToken("https://auth.example.com/token", "rt", "client-1", "", "", fetchImpl, "https://mcp.example.com/mcp");
+    await exchangeCode("https://auth.example.com/token", "c", "http://cb", "v", "client-1", "", "", fetchImpl);
+    expect(captured.map((request) => request.body.get("resource"))).toEqual([
+      "https://mcp.example.com/mcp",
+      "https://mcp.example.com/mcp",
+      null,
+    ]);
+  });
+
+  it("carries the OAuth error code of a refusal, and of GitHub's HTTP 200 one", async () => {
+    const refused = exchangeCode(
+      "https://auth.example.com/token",
+      "c",
+      "http://cb",
+      "v",
+      "client-gone",
+      "",
+      "",
+      capturingFetch({ error: "invalid_client" }, [], 401),
+    );
+    await expect(refused).rejects.toBeInstanceOf(TokenEndpointError);
+    await expect(refused).rejects.toMatchObject({ oauthError: "invalid_client" });
+
+    const github = exchangeCode(
+      "https://github.com/login/oauth/access_token",
+      "c",
+      "http://cb",
+      "v",
+      "client-1",
+      "secret",
+      "client_secret_post",
+      capturingFetch({ error: "bad_verification_code", error_description: "The code passed is incorrect or expired." }, []),
+    );
+    await expect(github).rejects.toMatchObject({
+      oauthError: "bad_verification_code",
+      message: expect.stringContaining("refused the request: bad_verification_code (The code passed is incorrect or expired.)"),
+    });
+  });
+});
 
 describe("exchangeCode", () => {
   it("sends the authorization_code grant with PKCE parameters", async () => {

@@ -174,9 +174,10 @@ export interface ServerConfig {
    * its clients use, stigmer#1200), else `http://localhost:<port>`
    * (boot/oauth-redirect-uri.ts), so neither a team install nor a local one
    * has to be told. Unset on a server that serves no
-   * console is a WARN at wiring time, not a boot failure — every RPC except
-   * initiateOAuthConnect works without it, and initiate refuses with a
-   * FailedPrecondition naming the variable (the pinned copy).
+   * console is a WARN at wiring time, not a boot failure — a sign-in that
+   * returns to the console (and a Connect link) refuses with a
+   * FailedPrecondition naming the variable (the pinned copy), and the
+   * desktop's loopback sign-in works without it.
    */
   readonly oauthRedirectUri: string;
   /**

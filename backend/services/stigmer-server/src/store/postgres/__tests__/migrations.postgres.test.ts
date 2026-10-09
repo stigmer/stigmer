@@ -112,6 +112,7 @@ import {
   SCHEMA_VERSION_16,
   SCHEMA_VERSION_17,
   SCHEMA_VERSION_18,
+  SCHEMA_VERSION_19,
   runMigrations,
 } from "../migrations.js";
 import { RETIREMENT_PAGE_SIZE } from "../../agent-instance-retired.js";
@@ -353,6 +354,8 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         );
         expect(names).toEqual([
           "bootstrap_state",
+          "connect_link",
+          "oauth_client_registration",
           "organization_deletions",
           "pending_oauth_state",
           "resource_audit",
@@ -3002,7 +3005,6 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           await migrateTo(db.databaseUrl, SCHEMA_VERSION_18);
 
           expect(await version(client)).toBe(SCHEMA_VERSION_18);
-          expect(CURRENT_SCHEMA_VERSION).toBe(SCHEMA_VERSION_18);
           const held = await row(client, "session", "ses_held");
           expect(held.data).toEqual(currentSessionRow(conversation("ses_held")));
           expect(held.updatedAt).toEqual(seededAt);
@@ -3042,6 +3044,47 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_18)).rejects.toThrow("session 'ses_b_bad'");
           expect(await version(client)).toBe(SCHEMA_VERSION_17);
           expect((await row(client, "session", "ses_a_good")).data).toEqual(good);
+        } finally {
+          await client.end();
+        }
+      });
+    });
+
+    describe("v19: a sign-in starts from an address", () => {
+      it("recreates the pending sign-in state empty in its new shape, and adds the client registrations and Connect links", async () => {
+        await migrateTo(db.databaseUrl, SCHEMA_VERSION_18);
+        const client = new pg.Client({ connectionString: db.databaseUrl });
+        await client.connect();
+        try {
+          await client.query(
+            `INSERT INTO pending_oauth_state (state, code_verifier, mcp_server_id, identity_account_id, created_at)
+             VALUES ('in-flight', 'enc:v1:v', 'mcp_1', 'ida_1', 1700000000)`,
+          );
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_19);
+          const columns = async (table: string) =>
+            (
+              await client.query<{ column_name: string }>(
+                `SELECT column_name FROM information_schema.columns WHERE table_name = $1 ORDER BY ordinal_position`,
+                [table],
+              )
+            ).rows.map((row) => row.column_name);
+          expect((await client.query(`SELECT count(*) AS n FROM pending_oauth_state`)).rows[0]).toEqual({ n: "0" });
+          expect(await columns("pending_oauth_state")).toEqual(
+            expect.arrayContaining(["address", "login_app", "resource", "client_registration", "connect_link"]),
+          );
+          expect(await columns("pending_oauth_state")).not.toContain("mcp_server_id");
+          expect(await columns("oauth_client_registration")).toEqual(["login_server", "redirect_uri", "client_id", "created_at"]);
+          expect(await columns("connect_link")).toEqual([
+            "token_hash",
+            "org",
+            "vault_id",
+            "address",
+            "return_url",
+            "created_by",
+            "created_at",
+            "expires_at",
+            "used_at",
+          ]);
         } finally {
           await client.end();
         }

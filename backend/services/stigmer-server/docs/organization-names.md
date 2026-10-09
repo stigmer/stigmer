@@ -94,18 +94,14 @@ Rows read `| Service.method | <field>, <field>, … |`.
 
 | Method | Organization fields |
 |---|---|
-| McpServerCommandController.apply | `metadata.org`, `spec.auth.oauth_app_ref.org` |
+| McpServerCommandController.apply | `metadata.org` |
 | McpServerCommandController.connect | `org` |
-| McpServerCommandController.create | `metadata.org`, `spec.auth.oauth_app_ref.org` |
-| McpServerCommandController.deleteOrgOAuthApp | `org` |
+| McpServerCommandController.create | `metadata.org` |
 | McpServerCommandController.disconnectOAuth | `org` |
-| McpServerCommandController.initiateOAuthConnect | `org` |
-| McpServerCommandController.setOrgOAuthApp | `org` |
 | McpServerCommandController.startConnect | `org` |
-| McpServerCommandController.update | `metadata.org`, `spec.auth.oauth_app_ref.org` |
+| McpServerCommandController.update | `metadata.org` |
 | McpServerQueryController.getByReference | `org` |
 | McpServerQueryController.getOAuthGrantStatus | `org` |
-| McpServerQueryController.getOrgOAuthApp | `org` |
 
 ## `ai.stigmer.agentic.memory.v1`
 
@@ -159,10 +155,12 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | Method | Organization fields |
 |---|---|
 | VaultCommandController.create | `metadata.org`, `spec.org` |
+| VaultCommandController.createConnectLink | `org` |
 | VaultCommandController.removeConnections | `vault.org` |
 | VaultCommandController.removeSecrets | `vault.org` |
 | VaultCommandController.setConnection | `vault.org` |
 | VaultCommandController.setSecrets | `vault.org` |
+| VaultCommandController.startSignIn | `vault.org` |
 | VaultCommandController.update | `metadata.org`, `spec.org` |
 | VaultQueryController.getByExternalId | `org` |
 | VaultQueryController.getByReference | `org` |
@@ -234,8 +232,6 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | GitHubQueryController.listBranches | `org` |
 | GitHubQueryController.listRepositories | `org` |
 | GitHubQueryController.searchRepositories | `org` |
-| GitHubService.exchangeOAuthCode | `org` |
-| GitHubService.getOAuthAuthorizeUrl | `org` |
 
 ## `ai.stigmer.search.v1`
 
