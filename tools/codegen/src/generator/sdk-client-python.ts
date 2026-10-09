@@ -95,8 +95,6 @@ function pyTypeForTypeSpec(ts: TypeSpec): string {
     }
     case "message":
       switch (ts.messageType) {
-        case "ExecutionValue":
-          return "EnvVarInput";
         case "ApiResourceReference":
           return "ResourceRef";
         default:
@@ -192,7 +190,6 @@ class PyImports {
   needsEmptyPb2 = false;
   needsSearch = false;
   needsApiResKind = false;
-  needsExecCtxV1 = false;
 
   typesNames = new Set<string>();
   crossResourceTypes = new Map<string, string[]>();
@@ -296,9 +293,6 @@ class PyImports {
     }
     if (this.needsEmptyPb2) {
       buf.push("from google.protobuf import empty_pb2\n");
-    }
-    if (this.needsExecCtxV1) {
-      buf.push("from ai.stigmer.agentic.executioncontext.v1 import spec_pb2 as executioncontext_spec_pb2\n");
     }
     if (this.needsSearch || this.needsApiResKind) {
       buf.push("from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2\n");
@@ -514,9 +508,6 @@ function scanPyFieldImports(f: FieldSchema, typeMap: Map<string, TypeSchema>, im
     imports.addTypesImport("ResourceRef");
   } else if (t.kind === "array" && t.elementType?.kind === "message" && t.elementType.messageType === "ApiResourceReference") {
     imports.addTypesImport("ResourceRef");
-  } else if (t.kind === "map" && t.valueType?.messageType === "ExecutionValue") {
-    imports.addTypesImport("EnvVarInput");
-    imports.needsExecCtxV1 = true;
   } else if (t.kind === "struct") {
     imports.needsAny = true;
   } else if (t.kind === "value") {
@@ -1063,12 +1054,6 @@ function emitPyToProtoFieldAssign(buf: string[], f: FieldSchema, msgVar: string,
   } else if (t.kind === "map" && t.valueType?.kind === "string") {
     buf.push(`${indent}if ${selfVar}.${selfField}:\n`);
     buf.push(`${indent}    ${protoAccess(msgVar, protoField)}.update(${selfVar}.${selfField})\n`);
-  } else if (t.kind === "map" && t.valueType?.messageType === "ExecutionValue") {
-    imports.needsExecCtxV1 = true;
-    buf.push(`${indent}for k, v in ${selfVar}.${selfField}.items():\n`);
-    buf.push(`${indent}    ${protoAccess(msgVar, protoField)}[k].CopyFrom(executioncontext_spec_pb2.ExecutionValue(\n`);
-    buf.push(`${indent}        value=v.value, is_secret=v.is_secret,\n`);
-    buf.push(`${indent}    ))\n`);
   } else if (t.kind === "map" && t.valueType?.kind === "message") {
     buf.push(`${indent}for k, v in ${selfVar}.${selfField}.items():\n`);
     buf.push(`${indent}    ${protoAccess(msgVar, protoField)}[k].CopyFrom(v._to_proto())\n`);
@@ -1276,15 +1261,6 @@ class ListResult:
     entries: list[search_io_pb2.SearchResult] = field(default_factory=list)
     total_count: int = 0
     total_pages: int = 0
-
-
-@dataclass
-class EnvVarInput:
-    """A single environment variable."""
-
-    value: str = ""
-    is_secret: bool = False
-    description: str = ""
 `;
   fs.writeFileSync(path.join(outputDir, "_types.py"), content);
 }
@@ -1336,7 +1312,6 @@ function generatePythonInit(outputDir: string, resources: ResourceGenInfo[]): vo
 
   buf.push("from ._types import (\n");
   buf.push("    DeleteResourceInput,\n");
-  buf.push("    EnvVarInput,\n");
   buf.push("    ListParams,\n");
   buf.push("    ListResult,\n");
   buf.push("    Page,\n");
@@ -1363,7 +1338,6 @@ function generatePythonInit(outputDir: string, resources: ResourceGenInfo[]): vo
     }
   }
   buf.push('    "DeleteResourceInput",\n');
-  buf.push('    "EnvVarInput",\n');
   buf.push('    "ListParams",\n');
   buf.push('    "ListResult",\n');
   buf.push('    "Page",\n');

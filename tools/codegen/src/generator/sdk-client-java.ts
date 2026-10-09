@@ -134,8 +134,6 @@ function javaTypeForTypeSpec(ts: TypeSpec): string {
     }
     case "message":
       switch (ts.messageType) {
-        case "ExecutionValue":
-          return "EnvVarInput";
         case "ApiResourceReference":
           return "ResourceRef";
         default:
@@ -344,7 +342,6 @@ function generateJavaSharedTypes(outputDir: string): void {
   generateJavaPage(outputDir);
   generateJavaListParams(outputDir);
   generateJavaListResult(outputDir);
-  generateJavaEnvVarInput(outputDir);
   generateJavaStigmerStream(outputDir);
   generateJavaStigmerBidiStream(outputDir);
   generateJavaProtoConvert(outputDir);
@@ -520,42 +517,6 @@ function generateJavaListResult(outputDir: string): void {
 }
 `;
   writeJavaFile(outputDir, "ListResult.java", JAVA_GEN_PACKAGE, imports, body);
-}
-
-function generateJavaEnvVarInput(outputDir: string): void {
-  const body = `public final class EnvVarInput {
-    private final String value;
-    private final boolean isSecret;
-    private final String description;
-
-    private EnvVarInput(Builder builder) {
-        this.value = builder.value;
-        this.isSecret = builder.isSecret;
-        this.description = builder.description;
-    }
-
-    public String getValue() { return value; }
-    public boolean isSecret() { return isSecret; }
-    public String getDescription() { return description; }
-
-    public static Builder builder() { return new Builder(); }
-
-    public static final class Builder {
-        private String value;
-        private boolean isSecret;
-        private String description;
-
-        private Builder() {}
-
-        public Builder value(String value) { this.value = value; return this; }
-        public Builder isSecret(boolean isSecret) { this.isSecret = isSecret; return this; }
-        public Builder description(String description) { this.description = description; return this; }
-
-        public EnvVarInput build() { return new EnvVarInput(this); }
-    }
-}
-`;
-  writeJavaFile(outputDir, "EnvVarInput.java", JAVA_GEN_PACKAGE, new JavaImportSet(), body);
 }
 
 function generateJavaStigmerStream(outputDir: string): void {
@@ -1049,13 +1010,11 @@ function generateJavaInputClass(
 
   let needsTimestamp = false;
   let needsStruct = false;
-  let needsExecCtx = false;
   let needsRefKindOverride = false;
   const scanJavaImports = (fields: FieldSchema[]): void => {
     for (const f of fields) {
       if (f.type.kind === "timestamp") needsTimestamp = true;
       if (f.type.kind === "struct" || f.type.kind === "value") needsStruct = true;
-      if (f.type.kind === "map" && f.type.valueType?.messageType === "ExecutionValue") needsExecCtx = true;
       if ((f.referenceKind ?? 0) !== 0) needsRefKindOverride = true;
     }
   };
@@ -1068,7 +1027,6 @@ function generateJavaInputClass(
   }
   if (needsTimestamp) imports.add("com.google.protobuf.Timestamp");
   if (needsStruct) imports.add("com.google.protobuf.Struct");
-  if (needsExecCtx) imports.add("ai.stigmer.agentic.executioncontext.v1.ExecutionValue");
   if (needsRefKindOverride) imports.add("ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind");
 
   for (const t of specTypes) {
@@ -1402,22 +1360,11 @@ function emitJavaToProtoField(buf: string[], f: FieldSchema, indent: string): vo
   } else if (t.kind === "map") {
     if (t.valueType?.kind === "message") {
       const elemMsg = t.valueType.messageType ?? "";
-      if (elemMsg === "ExecutionValue") {
-        buf.push(`${indent}if (this.${fieldName} != null && !this.${fieldName}.isEmpty()) {\n`);
-        buf.push(`${indent}    for (java.util.Map.Entry<String, EnvVarInput> entry : this.${fieldName}.entrySet()) {\n`);
-        buf.push(`${indent}        spec.${javaPutName(f.protoField)}(entry.getKey(), ExecutionValue.newBuilder()\n`);
-        buf.push(`${indent}            .setValue(entry.getValue().getValue())\n`);
-        buf.push(`${indent}            .setIsSecret(entry.getValue().isSecret())\n`);
-        buf.push(`${indent}            .build());\n`);
-        buf.push(`${indent}    }\n`);
-        buf.push(`${indent}}\n`);
-      } else {
-        buf.push(`${indent}if (this.${fieldName} != null && !this.${fieldName}.isEmpty()) {\n`);
-        buf.push(`${indent}    for (java.util.Map.Entry<String, ${elemMsg}Input> entry : this.${fieldName}.entrySet()) {\n`);
-        buf.push(`${indent}        spec.${javaPutName(f.protoField)}(entry.getKey(), entry.getValue().toProto());\n`);
-        buf.push(`${indent}    }\n`);
-        buf.push(`${indent}}\n`);
-      }
+      buf.push(`${indent}if (this.${fieldName} != null && !this.${fieldName}.isEmpty()) {\n`);
+      buf.push(`${indent}    for (java.util.Map.Entry<String, ${elemMsg}Input> entry : this.${fieldName}.entrySet()) {\n`);
+      buf.push(`${indent}        spec.${javaPutName(f.protoField)}(entry.getKey(), entry.getValue().toProto());\n`);
+      buf.push(`${indent}    }\n`);
+      buf.push(`${indent}}\n`);
     } else {
       buf.push(`${indent}if (this.${fieldName} != null && !this.${fieldName}.isEmpty()) {\n`);
       buf.push(`${indent}    spec.${javaPutAllName(f.protoField)}(this.${fieldName});\n`);
@@ -1509,22 +1456,11 @@ function emitJavaNestedToProtoField(buf: string[], f: FieldSchema, indent: strin
   } else if (t.kind === "map") {
     if (t.valueType?.kind === "message") {
       const elemMsg = t.valueType.messageType ?? "";
-      if (elemMsg === "ExecutionValue") {
-        buf.push(`${indent}if (this.${fieldName} != null && !this.${fieldName}.isEmpty()) {\n`);
-        buf.push(`${indent}    for (java.util.Map.Entry<String, EnvVarInput> entry : this.${fieldName}.entrySet()) {\n`);
-        buf.push(`${indent}        builder.${javaPutName(f.protoField)}(entry.getKey(), ai.stigmer.agentic.executioncontext.v1.ExecutionValue.newBuilder()\n`);
-        buf.push(`${indent}            .setValue(entry.getValue().getValue())\n`);
-        buf.push(`${indent}            .setIsSecret(entry.getValue().isSecret())\n`);
-        buf.push(`${indent}            .build());\n`);
-        buf.push(`${indent}    }\n`);
-        buf.push(`${indent}}\n`);
-      } else {
-        buf.push(`${indent}if (this.${fieldName} != null && !this.${fieldName}.isEmpty()) {\n`);
-        buf.push(`${indent}    for (java.util.Map.Entry<String, ${elemMsg}Input> entry : this.${fieldName}.entrySet()) {\n`);
-        buf.push(`${indent}        builder.${javaPutName(f.protoField)}(entry.getKey(), entry.getValue().toProto());\n`);
-        buf.push(`${indent}    }\n`);
-        buf.push(`${indent}}\n`);
-      }
+      buf.push(`${indent}if (this.${fieldName} != null && !this.${fieldName}.isEmpty()) {\n`);
+      buf.push(`${indent}    for (java.util.Map.Entry<String, ${elemMsg}Input> entry : this.${fieldName}.entrySet()) {\n`);
+      buf.push(`${indent}        builder.${javaPutName(f.protoField)}(entry.getKey(), entry.getValue().toProto());\n`);
+      buf.push(`${indent}    }\n`);
+      buf.push(`${indent}}\n`);
     } else {
       buf.push(`${indent}if (this.${fieldName} != null && !this.${fieldName}.isEmpty()) {\n`);
       buf.push(`${indent}    builder.${javaPutAllName(f.protoField)}(this.${fieldName});\n`);
