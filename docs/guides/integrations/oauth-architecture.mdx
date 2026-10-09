@@ -1,102 +1,102 @@
 ---
 title: OAuth architecture
 description:
-  How Stigmer resolves OAuth apps, stores credentials, and keeps tokens fresh
-  across platform defaults, Organization overrides, and automatic refresh.
+  How Stigmer finds the login for an address, where a sign-in is saved, and how
+  its token stays fresh.
 ---
 
-When you connect an OAuth-protected tool, several things happen behind the
+When you sign in to an OAuth-protected tool, several things happen behind the
 scenes. The [OAuth for tools](/docs/guides/integrations/oauth-for-tools) and
 [Bring Your Own OAuth App](/docs/guides/integrations/bring-your-own-oauth)
 guides cover the user-facing experience. This page explains the architecture
-underneath: how Stigmer decides which OAuth app to use, where tokens are stored,
-and how they stay fresh.
+underneath: how Stigmer decides which OAuth client signs you in, where tokens
+are stored, and how they stay fresh.
 
-## Two authentication modes
+## A login is found by its address
 
-Stigmer supports two OAuth modes for MCP servers. The mode is determined by the
-`auth` block in the server definition:
-
-| Mode                | When it applies                            | How it works                                                                                                                                                                                                                 |
-| ------------------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Automatic (DCR)** | `auth.oauth_app_ref` is empty              | Stigmer discovers the authorization server from the MCP server URL, registers a client via Dynamic Client Registration (RFC 7591), and performs the authorization code flow with PKCE. No pre-registered credentials needed. |
-| **Vendor OAuth**    | `auth.oauth_app_ref` points to an OAuthApp | Stigmer uses pre-registered client credentials from an OAuthApp resource to perform the authorization code flow with the vendor (GitHub, Slack, Figma, etc.).                                                                |
-
-From the user's perspective, both modes look identical: click a button,
-authorize in a popup, done. The difference is where the client credentials come
-from.
-
-DCR servers derive everything from the server URL — the authorization endpoint,
-token endpoint, and client registration are all discovered automatically. Vendor
-OAuth servers use a pre-registered OAuthApp that holds the client ID, client
-secret, and endpoint URLs for a specific vendor.
-
-## How Stigmer picks the OAuth app
-
-For vendor OAuth servers, Stigmer evaluates a resolution chain to determine
-which OAuthApp credentials to use. This chain runs when you connect, and on
-every token refresh, where it decides only whether the app's client secret is
-sent (see [Automatic refresh](#automatic-refresh)).
+Every sign-in starts from an **address**: the URL of the tool you sign in to
+(`https://mcp.linear.app/mcp`), or a Git host (`github.com`). Nothing in a tool
+definition names an OAuth app. Stigmer looks for the OAuth client for that
+address in one order, and the first match signs you in:
 
 ```mermaid
 flowchart TD
-    hasAuth{"Has auth block?"}
-    hasRef{"oauth_app_ref set?"}
-    hasOverride{"Org BYOA override?"}
-    dcrMode["DCR mode — auto-discovery"]
-    orgApp["Use Org OAuthApp"]
-    platformApp["Use platform OAuthApp"]
-    noOAuth["No OAuth"]
+    start["Sign in at an address"]
+    orgApp{"Your Organization has a login app for it?"}
+    builtIn{"Stigmer has a built-in login app for it?"}
+    isTool{"Is it a tool's URL?"}
+    discover{"Does the address name its login server?"}
+    useOrg["Use the Organization's app"]
+    useBuiltIn["Use Stigmer's app"]
+    useServer["Use the address's own login server"]
+    refuse["Refuse: add a login app, or paste a token"]
 
-    hasAuth -->|No| noOAuth
-    hasAuth -->|Yes| hasRef
-    hasRef -->|No| dcrMode
-    hasRef -->|Yes| hasOverride
-    hasOverride -->|Yes| orgApp
-    hasOverride -->|No| platformApp
+    start --> orgApp
+    orgApp -->|Yes| useOrg
+    orgApp -->|No| builtIn
+    builtIn -->|Yes| useBuiltIn
+    builtIn -->|No| isTool
+    isTool -->|"No (a Git host)"| refuse
+    isTool -->|Yes| discover
+    discover -->|Yes| useServer
+    discover -->|No| refuse
 ```
 
-The resolution chain has three levels, from highest to lowest priority:
+1. **Your Organization's login app.** An admin registered an OAuth app with the
+   vendor and listed the addresses it signs in to
+   ([Bring Your Own OAuth App](/docs/guides/integrations/bring-your-own-oauth)).
+   Each address belongs to one app in an Organization.
+2. **Stigmer's built-in login app.** The deployment's operator registered an app
+   for a vendor and switched it on with two settings, such as
+   `STIGMER_GITHUB_CLIENT_ID` and `STIGMER_GITHUB_CLIENT_SECRET`. GitHub is one:
+   signing in at `github.com` uses it, in every Organization, with no setup.
+3. **The address's own login server.** A tool that follows the MCP Authorization
+   specification says where its login server is (RFC 9728 protected resource
+   metadata). Stigmer reads that, then becomes a client of the login server in
+   the order the specification gives:
+   - a **Client ID Metadata Document**, when the login server accepts one and
+     the deployment has a public `https` address: Stigmer's client ID is the URL
+     of a document it serves, `/v1/oauth/client.json`, and nothing is
+     registered;
+   - otherwise **Dynamic Client Registration** (RFC 7591), done once per login
+     server: the first sign-in registers Stigmer, and every later sign-in, in
+     any Organization, reuses that client. Two tools behind the same login
+     server share it. If the login server later forgets the client, Stigmer
+     registers again on the next sign-in.
+4. **Nothing.** The sign-in is refused with the address and the way forward:
+   "add a login app for mcp.example.com in Settings, or paste a token". A Git
+   host has no login server to read, so only steps 1 and 2 apply to it.
 
-1. **Organization override** — An admin set up a
-   [BYOA override](/docs/guides/integrations/bring-your-own-oauth) for this MCP
-   server in this Organization. Stigmer uses the Organization's OAuthApp.
-2. **Platform default** — The MCP server definition references a platform-level
-   OAuthApp. Stigmer uses those credentials.
-3. **None** — No OAuthApp exists. The server either uses DCR (automatic) or has
-   no OAuth at all.
+From your side, all of these look the same: click **Sign in**, approve on the
+vendor's page, done. The difference is whose OAuth client the vendor sees.
 
-This chain is evaluated fresh every time — at connect, on token refresh, and
-when the frontend queries the OAuth status. This is why removing a BYOA override
-takes effect immediately for new sign-ins: the next resolution returns the
-platform default instead of the Organization's app.
+### The token is minted for the address
 
-<Callout type="info">
-  **Self-hosted deployments** have no override level: the `oauth_app_ref` on the
-  server definition resolves directly against the deployment's own OAuth apps,
-  and that ref is the whole resolution. Since a self-hosted operator owns every
-  OAuth app outright, the org-override concept — and the BYOA affordances built
-  on it — apply only to the hosted platform. See the note in [Bring Your Own
-  OAuth
-  App](/docs/guides/integrations/bring-your-own-oauth#when-to-bring-your-own-app).
-</Callout>
+When Stigmer signs in through a login server it found from the address (step 3),
+both requests to that login server carry the address as the `resource` (RFC
+8707), as the MCP specification requires. A login server that honours it mints a
+token for that address only. Stigmer also discards a tool's metadata when it
+names a different address than the one asked, so a server cannot borrow another
+tool's login server under its own name. A sign-in through a login app (steps 1
+and 2) goes to the vendor's own endpoints, which are not asked for a `resource`.
 
 ## Where credentials live
 
-A sign-in is saved as a **connection** in a [vault](/docs/concepts/vaults): by
-default the vault of the person who signed in, or a shared vault they may edit
-when they choose one. The connection is saved at the MCP server's address, and
-its sign-in record names the server that signed in: that login fills only that
-server, even when another server's definition declares the same address. Two
-servers on one host under different paths keep separate ones.
+A sign-in is saved as a **connection** in a [vault](/docs/concepts/vaults): your
+own My vault, or a shared vault you may edit when you choose one. The connection
+is saved at the address you signed in to, and it serves every HTTP tool whose
+URL is that address, exactly as a login pasted at that address does. Two tools
+on one host under different paths keep separate logins. A local program (a tool
+that runs a command) has no address and no sign-in: it takes its keys from
+secrets by name.
 
 A connection holds:
 
-- **The access token**, sealed at rest. A run fills the server's login variable
+- **The access token**, sealed at rest. A run fills the tool's login variable
   (`auth.target_env_var`) from it.
 - **The sign-in record**: when the token expires, the client ID, the token
-  endpoint and how the sign-in was performed, with the **refresh token** sealed
-  beside them. The refresh token never reaches a run.
+  endpoint, how the sign-in was performed and which login app it used, with the
+  **refresh token** sealed beside them. The refresh token never reaches a run.
 
 No read returns either token. Because each person's sign-in lives in their own
 vault, a teammate's chat never uses yours, and each person signs in once for
@@ -106,17 +106,16 @@ themselves.
 
 When an Agent runs, each key is looked for in the sending person's own vault,
 when the conversation includes it, then in the vaults the conversation lists. A
-server's login variable is filled by a connection made for that server first
-(its own sign-in, or for an HTTP server a login pasted at its URL), then by a
-secret with the same name, so if you sign in to a server and also save an API
-key under its variable, the sign-in is the one the run uses.
+tool's login variable is filled by a connection at the tool's address first,
+then by a secret with the same name, so if you sign in to a tool and also save
+an API key under its variable, the sign-in is the one the run uses.
 [Vaults](/docs/concepts/vaults#which-vaults-a-run-uses) explains the order in
 full.
 
 ## How tokens stay fresh
 
-After the initial connect, Stigmer manages the full token lifecycle without
-further action from you.
+After the sign-in, Stigmer manages the full token lifecycle without further
+action from you.
 
 ```mermaid
 stateDiagram-v2
@@ -130,30 +129,33 @@ stateDiagram-v2
     healthy --> noGrant: Disconnect
 ```
 
-### The connect flow
+### The sign-in flow
 
-When you click **Sign in to connect**, the backend performs three steps:
+When you click **Sign in**, three steps run:
 
-1. **Initiate** — Generates an authorization URL with a PKCE challenge, state
-   parameter, and the scopes from the OAuthApp. For DCR servers, this step also
-   discovers the authorization server and registers a client, then probes the
-   built authorization URL server-side before returning it. Some vendors accept
-   any redirect URI at registration but enforce a redirect-host allowlist at the
-   authorization endpoint (Canva, for example, requires public callback hosts to
-   be approved through its MCP waitlist). Without the probe, that rejection
-   would only ever appear as a vendor error page inside the popup — the flow
-   would never learn it failed. A definite rejection (HTTP 400) fails the
-   initiate with an explanation of the deployment's callback host; any other
-   response proceeds normally, so an unreachable or bot-protected authorization
-   endpoint never blocks a working sign-in.
-2. **Authorize** — You approve the request in the vendor's authorization page.
-   The vendor redirects back with an authorization code.
-3. **Complete** — The backend exchanges the code for tokens using the PKCE
-   verifier and saves them as a connection at the server's address in your
-   vault, with the expiry metadata on its sign-in record.
+1. **Start** — The server finds the OAuth client for the address (above) and
+   builds the login page's URL with a PKCE challenge, a state value and the
+   scopes: the tool's own `scopes_supported`, else its login server's, else the
+   login app's. For a client registered with the tool's login server, the server
+   first probes that URL. Some vendors accept any redirect at registration but
+   enforce a redirect-host allowlist at the login page (Canva, for example,
+   requires public callback hosts to be approved through its MCP waitlist).
+   Without the probe, that rejection would only appear as a vendor error page
+   inside the popup. A definite rejection (HTTP 400) fails the start with an
+   explanation naming the deployment's callback host; any other answer proceeds,
+   so an unreachable or bot-protected login page never blocks a working sign-in.
+2. **Authorize** — You approve the request on the vendor's page. The vendor
+   sends you back with an authorization code to the console's callback page (or,
+   for the desktop app, to a page the app serves on your machine).
+3. **Complete** — The server exchanges the code for tokens using the PKCE
+   verifier and saves them as a connection at the address, replacing any login
+   saved there. When the login app names an account endpoint, the saved login is
+   described by the account ("GitHub @ana"); otherwise by the host.
 
-After this, the standard connect flow runs — discovering tools and which of them
-the server marks destructive, the same process described in
+Only the person who started a sign-in can complete it, and the vault is checked
+again at completion. After a sign-in from an MCP Server's page, the standard
+connect runs — discovering tools and which of them the server marks destructive,
+the same process described in
 [Connect an MCP Server](/docs/guides/integrations/connect-an-mcp-server#connect-an-mcp-server).
 
 ### Pre-flight check
@@ -166,30 +168,24 @@ before the run starts.
 ### Automatic refresh
 
 When the access token has expired and a refresh token is available, the backend
-sends a refresh request to the token endpoint recorded on the connection's
-sign-in, with the client ID recorded there: a renewal always goes to the client
-the sign-in was made with. The client secret comes from the OAuthApp the chain
-resolves now, read fresh so an admin's fix to that app applies at once, and is
-sent only when that app's client ID and token URL are the ones the sign-in
-recorded.
-
-This distinction matters for BYOA: if the server's OAuth app changes between
-refreshes, for example from an Organization override to the platform default,
-the resolved app no longer matches the sign-in, so its secret is never sent to
-an endpoint it was not issued for. The refresh goes out without a secret, which
-a vendor that requires one refuses, and the person signs in again. A DCR or
-public client always refreshes without a secret.
+sends a refresh request to the token endpoint recorded on the sign-in, with the
+client ID recorded there: a renewal always goes to the client the sign-in was
+made with. A sign-in made through a login app is renewed with that app's client
+secret, read fresh so an admin's fix to the app applies at once, and sent only
+while the app's client ID and token URL are still the ones the sign-in recorded.
+A sign-in through the address's own login server renews without a secret, and
+again names the address as the `resource`.
 
 If the refresh succeeds, the backend writes the new tokens and expiry to the
 same connection. A refresh and a key you save at the same moment never undo each
-other.
+other, and a login that two tools share is renewed once per run.
 
 ### When refresh fails
 
 If both the access token and refresh token have expired — or if the vendor has
 revoked the grant — the refresh fails. The run does not start. Instead, the
-connection status changes to **Re-auth needed**, and you re-authenticate from
-the MCP server's connect page with a single click.
+connection status changes to **Re-auth needed**, and you sign in again with a
+single click.
 
 ### Connection health
 
@@ -200,31 +196,30 @@ The backend evaluates four health states from the connection's sign-in record:
 | **Healthy**              | The access token is valid                           | The run proceeds normally                      |
 | **Expired, can refresh** | The access token expired but a refresh token exists | Backend refreshes automatically before the run |
 | **Expired**              | Both tokens expired and no refresh is possible      | You must re-authenticate                       |
-| **No grant**             | No OAuth connection exists                          | You have never connected or have disconnected  |
+| **No grant**             | No sign-in is saved at the address                  | You have never connected or have disconnected  |
 
 These map directly to the UI states shown in the
 [OAuth for tools](/docs/guides/integrations/oauth-for-tools#token-lifecycle)
 guide.
 
-## What BYOA changes
+## When an admin adds or changes a login app
 
-A [BYOA override](/docs/guides/integrations/bring-your-own-oauth) shifts all
-three architectural layers:
+A login app changes which client **new** sign-ins use. A sign-in already saved
+keeps the client it was made with:
 
-- **Resolution** — The chain returns the Organization's OAuthApp instead of the
-  platform default. The connect flow, token refresh, and status queries all use
-  the Organization's client credentials.
-- **Storage** — New sign-ins record the Organization's client ID and the
-  Organization OAuthApp's token endpoint. Existing sign-ins from before the
-  override are unaffected — they still reference the original client
-  credentials.
-- **Lifecycle** — Token refreshes keep each sign-in's own client ID and token
-  endpoint, and send the resolved app's secret only while that app is the one
-  the sign-in was made with. A BYOA change does not move existing sign-ins to
-  the new credentials: people sign in again to use them.
+- **Adding an app** for an address makes the next sign-in there go through it.
+  Existing sign-ins keep renewing with the client they were made with; sign in
+  again to move one to the new app.
+- **Changing an app's client ID or token URL**, or removing the app, means a
+  sign-in made with the old one renews without a secret, which a vendor that
+  requires one refuses. Each affected person sees **Re-auth needed** and signs
+  in again with a single click.
 
-This is also why adding or removing a BYOA override breaks existing sign-ins:
-those were issued to the previous app's client. After the change, the resolved
-app no longer matches the sign-in, so the next refresh goes out without a client
-secret, and a vendor that requires one rejects it. Each affected user sees a
-**Re-auth needed** state and reconnects with a single click.
+## Signing in for someone else: Connect links
+
+An integrator that keeps one vault per customer can let a customer sign in
+without a Stigmer account. A **Connect link** is a one-time page for one vault
+and one address: the customer opens it, signs in on the vendor's own page, and
+is sent back to the integrator's app, and the login is saved into that vault.
+[Vaults](/docs/concepts/vaults#connect-links-for-your-customers) shows how to
+make one.

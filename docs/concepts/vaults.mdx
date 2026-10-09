@@ -49,11 +49,14 @@ stigmer vault create "Support tools"
 stigmer vault set-secret ZENDESK_API_KEY --vault support-tools
 ```
 
-Signing in to an MCP Server from the console saves the login as a connection at
-that server's address in your vault, and that login serves only the MCP Server
-you signed in to. Connecting GitHub saves a `github.com` connection there, and
-the console's repository picker reads GitHub through the server with it, so the
-page never holds the token.
+A sign-in starts from an address. Signing in to an MCP Server from the console
+saves the login as a connection at that server's address in your vault (or a
+shared vault you may edit), and it serves every MCP Server reached at that
+address, as a login you paste there does. GitHub is one more address: connecting
+GitHub signs you in at `github.com` and saves the login there, and the console's
+repository picker reads GitHub through the server with it, so the page never
+holds the token. Which OAuth app signs you in is found from the address
+([OAuth architecture](/docs/guides/integrations/oauth-architecture#a-login-is-found-by-its-address)).
 
 ## Declaring what a run needs
 
@@ -146,14 +149,12 @@ records that editor as having attached each one.
 ### How a key is matched
 
 - **A tool's login** (the variable in its `auth.target_env_var`, or in an
-  `Authorization: Bearer ${VAR}` header) is filled by a connection made for that
-  tool, then by a secret with that name. A login saved by signing in serves only
-  the MCP Server that signed in, even when another server's definition declares
-  the same address. A login pasted into a vault serves an HTTP tool whose URL is
-  that address.
-- **A local program** (an MCP Server that runs a command) never takes a pasted
-  login: it takes its keys from secrets by name, and its login from its own
-  sign-in or a secret by name.
+  `Authorization: Bearer ${VAR}` header) is filled by a connection at the tool's
+  URL, then by a secret with that name. A login saved by signing in and a login
+  pasted into a vault serve the same tools: every HTTP tool whose URL is that
+  address. A new sign-in at an address replaces whatever login was saved there.
+- **A local program** (an MCP Server that runs a command) has no address and no
+  sign-in: it takes its keys from secrets by name.
 - **Any other key** is filled by a secret with its name, then by the
   declaration's own `value`.
 - **A private repository's clone** takes a token only for an `https` repository
@@ -189,6 +190,50 @@ vault: a key you type into the console is saved in My vault, and
 
 An integrator that keeps one vault per customer creates a shared vault with an
 `external_id`, finds it again with that ID, and names it on each Session.
+
+## Connect links for your customers
+
+A customer of an integrator often needs to sign in to a tool themselves (their
+own Slack, their own Linear) without ever having a Stigmer account. A **Connect
+link** does that: a one-time page for one shared vault and one address. The
+customer opens it, sees "Connect Slack for Acme Helpdesk" with a **Continue**
+button, signs in on Slack's own page, and lands back in the integrator's app.
+The login is saved into that customer's vault.
+
+From your backend, with a key that may edit the vault, make a link and send the
+customer to its `url`:
+
+```bash
+stigmer vault connect-link vlt_01hzx9m5k7customervault001 \
+  --address https://mcp.slack.com/mcp \
+  --return-url https://helpdesk.example.com/settings/integrations
+```
+
+The API call is `createConnectLink` on the vault service, with the Organization,
+the vault's ID, the address, the return URL and, optionally, how long the link
+lives in seconds (30 minutes unless you say, a day at most). When the customer
+is done, Stigmer sends them to the return URL with `stigmer_connect=connected`,
+or `stigmer_connect=error` and a `reason` (`denied` when they declined,
+`provider_error`, `expired`, `failed` or `not_allowed`), so your app can show
+what happened.
+
+A Connect link:
+
+- **Works once.** The first sign-in saved through it spends it; a link that is
+  used, expired or unknown shows "This link has expired or was already used". A
+  sign-in that fails after the vendor's page leaves the link usable until it
+  expires.
+- **Saves into a shared vault only.** My vault belongs to its person, and a link
+  is for someone else.
+- **Is checked when you make it.** An address nothing can sign in to (no login
+  app for it, and no login server it names) is refused then, so a customer is
+  never sent to a dead end. The return URL must be an `https` address (`http`
+  only for `localhost`).
+- **Acts for you.** The saved login records you as the one who saved it, and the
+  link stops working if you lose the right to edit the vault.
+
+Only the link's fingerprint is stored, so treat the `url` like a password: send
+it to that customer only.
 
 ## Where the values reach
 
