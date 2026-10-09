@@ -131,7 +131,7 @@ export const RETIRED_KINDS: ReadonlyMap<string, string> = new Map([
   ],
   [
     "WorkflowInstance",
-    "is no longer a Stigmer resource. A run starts on an agent: run `stigmer run <org>/<agent>`, pass the keys it reads with `--secret` or save them in your own vault (`stigmer vault set-secret <NAME> --mine`), and delete this file.",
+    "is no longer a Stigmer resource. A run starts on an agent: save the keys it reads in your own vault (`stigmer vault set-secret <NAME> --mine`), run `stigmer run <org>/<agent>`, and delete this file.",
   ],
   [
     "Environment",

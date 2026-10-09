@@ -2,20 +2,22 @@
 // create step needs. Ports the Go CLI's prepareAgentExec (run_agent_exec.go).
 //
 // Order matters and mirrors Go: validate cheap flags first (mode, approve
-// default), then parse workspaces, then merge the run's own values, then
-// process attachments (the only step that hits the network). A failure
-// short-circuits before any upload. The run's own values become the new
-// conversation's sealed secrets (env.ts); nothing is added to them here.
+// default), then parse workspaces, then resolve the vaults the conversation
+// uses, then process attachments. A failure short-circuits before any
+// upload. A run carries no values of its own: its keys come from the vaults
+// its conversation uses (vaults.ts), which is why a vault named by id is
+// looked up here, before anything is uploaded.
 
 import type { AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { Attachment } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
+import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { UsageError } from "../../errors/index.js";
 import { type ProgressSink, processAttachments } from "./attachments.js";
-import { loadSessionSecrets, type SessionSecrets } from "./env.js";
+import { resolveRunVaults } from "./vaults.js";
 import { localWorkspaceRoots, parseWorkspaceEntries } from "./workspace.js";
 
 /** The interaction mode requested for the run; "" means the agent default. */
@@ -53,10 +55,10 @@ export interface AgentExecFlags {
   readonly workspace: readonly string[];
   readonly branch: string;
   readonly commit: string;
-  readonly env: readonly string[];
-  readonly envFile: readonly string[];
-  readonly secret: readonly string[];
-  readonly secretFile: readonly string[];
+  /** The `--vault` references, in the order given. */
+  readonly vault: readonly string[];
+  /** False when `--no-my-vault` leaves the person's own My vault out. */
+  readonly myVault: boolean;
   readonly model: string;
   readonly autoApprove: boolean;
   readonly mode: RunMode;
@@ -72,8 +74,10 @@ export interface AgentExecFlags {
 export interface PreparedRun {
   readonly defaultAction: ApprovalAction;
   readonly workspaceEntries: WorkspaceEntry[];
-  /** The new conversation's own secrets, from the env and secret flags and files. */
-  readonly sessionSecrets: SessionSecrets;
+  /** The shared vaults the new conversation uses, in order. */
+  readonly vaults: readonly ApiResourceReference[];
+  /** Whether each turn uses its sender's own My vault first. */
+  readonly includeMyVault: boolean;
   readonly attachments: Attachment[];
   readonly workspaceFileRefs: string[];
   readonly message: string;
@@ -118,6 +122,12 @@ export interface PrepareAgentExecOptions {
    * the agent's choice instead of the account's.
    */
   readonly agentSpec?: AgentSpec;
+  /**
+   * The organization the run is created in: a `--vault` named by slug alone
+   * is that organization's. Empty leaves the reference relative, which the
+   * server resolves to the conversation's organization.
+   */
+  readonly org?: string;
 }
 
 /**
@@ -184,12 +194,7 @@ export async function prepareAgentExec(
     flags.commit,
   );
 
-  const sessionSecrets = loadSessionSecrets({
-    envFlags: flags.env,
-    secretFlags: flags.secret,
-    envFiles: flags.envFile,
-    secretFiles: flags.secretFile,
-  });
+  const vaults = await resolveRunVaults(client, flags.vault, options?.org ?? "");
 
   const { attachments, workspaceFileRefs } = await processAttachments(
     client.run,
@@ -201,7 +206,8 @@ export async function prepareAgentExec(
   return {
     defaultAction,
     workspaceEntries,
-    sessionSecrets,
+    vaults,
+    includeMyVault: flags.myVault,
     attachments,
     workspaceFileRefs,
     message: flags.message,

@@ -18,10 +18,9 @@ export interface AgentExecOptions {
   workspace: string[];
   branch?: string;
   commit?: string;
-  env: string[];
-  envFile: string[];
-  secret: string[];
-  secretFile: string[];
+  vault: string[];
+  /** False when `--no-my-vault` was given. */
+  myVault: boolean;
   model?: string;
   autoApprove?: boolean;
   mode?: string;
@@ -41,10 +40,8 @@ export function addAgentExecFlags(command: Command): Command {
     .option("-w, --workspace <source>", "workspace: HTTPS git URL or local path (repeatable)", collect, [])
     .option("--branch <name>", "git branch to clone (single git workspace only)")
     .option("--commit <sha>", "git commit SHA to checkout (single git workspace only)")
-    .option("--env <kv>", "a value this conversation uses, KEY=VALUE, kept sealed on it and used ahead of your vaults (repeatable)", collect, [])
-    .option("--env-file <path>", "load KEY=VALUE lines from a file as --env does (repeatable, later override earlier)", collect, [])
-    .option("--secret <kv>", "a secret this conversation uses, KEY=VALUE, kept sealed on it and used ahead of your vaults (repeatable)", collect, [])
-    .option("--secret-file <path>", "load KEY=VALUE secrets from a file as --secret does (repeatable)", collect, [])
+    .option("--vault <ref>", "a shared vault the conversation uses, by id, org/slug or slug, after your My vault, in the order given (repeatable)", collect, [])
+    .option("--no-my-vault", "leave your own My vault out of the conversation: it uses only the vaults named with --vault")
     .option("--model <model>", "LLM model to use (e.g. claude-sonnet-4-6); with no --harness it runs on native, so pass --harness cursor for a Cursor model; unset, the agent's default model for the engine applies")
     .option("--auto-approve", "automatically approve all tool executions")
     .option("--mode <mode>", 'interaction mode: "agent" (default) or "plan" (read-only)')
@@ -64,10 +61,8 @@ export function toAgentExecFlags(options: AgentExecOptions): AgentExecFlags {
     workspace: options.workspace,
     branch: options.branch ?? "",
     commit: options.commit ?? "",
-    env: options.env,
-    envFile: options.envFile,
-    secret: options.secret,
-    secretFile: options.secretFile,
+    vault: options.vault,
+    myVault: options.myVault,
     model: options.model ?? "",
     autoApprove: options.autoApprove === true,
     mode: (options.mode ?? "") as RunMode,

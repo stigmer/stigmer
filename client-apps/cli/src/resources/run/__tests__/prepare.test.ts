@@ -1,5 +1,6 @@
 // Unit tests for the prelude orchestrator: flag validation helpers, the
-// run's own values (passed through untouched), and the layered engine/model seeds (flag, the
+// vaults the new conversation uses (My vault unless --no-my-vault, then each
+// --vault in order), and the layered engine/model seeds (flag, the
 // agent's run defaults, the account preference). Attachment uploading is covered in
 // attachments.test.ts, so these tests use no attachments.
 
@@ -90,10 +91,8 @@ const BASE_FLAGS: AgentExecFlags = {
   workspace: [],
   branch: "",
   commit: "",
-  env: [],
-  envFile: [],
-  secret: [],
-  secretFile: [],
+  vault: [],
+  myVault: true,
   model: "",
   autoApprove: false,
   mode: "",
@@ -156,18 +155,29 @@ function countingClient(preferences: StubPreferences): { client: Stigmer; calls:
 /** prepareAgentExec options as `run` passes them: the kind is served here. */
 const SERVED_RUN_OPTIONS = { accountPreferencesAvailable: true } as const;
 
-describe("prepareAgentExec run values", () => {
-  it("carries the env and secret flags as the conversation's own secrets, adding nothing", async () => {
-    const prepared = await prepareAgentExec(
-      { ...BASE_FLAGS, env: ["REGION=eu"], secret: ["TOKEN=abc"] },
-      STUB_CLIENT,
-    );
-    expect(prepared.sessionSecrets).toEqual({ REGION: "eu", TOKEN: "abc" });
+describe("prepareAgentExec vaults", () => {
+  it("includes the person's My vault and names no shared vault by default", async () => {
+    const prepared = await prepareAgentExec(BASE_FLAGS, STUB_CLIENT);
+    expect(prepared.includeMyVault).toBe(true);
+    expect(prepared.vaults).toEqual([]);
   });
 
-  it("sends no values when no flag names one", async () => {
-    const prepared = await prepareAgentExec(BASE_FLAGS, STUB_CLIENT);
-    expect(prepared.sessionSecrets).toEqual({});
+  it("leaves My vault out under --no-my-vault", async () => {
+    const prepared = await prepareAgentExec({ ...BASE_FLAGS, myVault: false }, STUB_CLIENT);
+    expect(prepared.includeMyVault).toBe(false);
+  });
+
+  it("resolves each --vault in order, a slug in the run's organization", async () => {
+    const prepared = await prepareAgentExec(
+      { ...BASE_FLAGS, vault: ["support-tools", "platform/shared-keys"] },
+      STUB_CLIENT,
+      undefined,
+      { org: "acme" },
+    );
+    expect(prepared.vaults.map((ref) => `${ref.org}/${ref.slug}`)).toEqual([
+      "acme/support-tools",
+      "platform/shared-keys",
+    ]);
   });
 
   it("carries through scalar flags", async () => {
