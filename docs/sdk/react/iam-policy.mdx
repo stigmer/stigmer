@@ -480,8 +480,14 @@ a "You" indicator.
 **Signature**
 
 ```tsx
-function useWhoAmI(): UseWhoAmIReturn
+function useWhoAmI(options?: UseWhoAmIOptions): UseWhoAmIReturn
 ```
+
+<TypeTable
+  type={{
+    options: { type: "UseWhoAmIOptions", description: "" },
+  }}
+/>
 
 **Returns** — `UseWhoAmIReturn`
 
@@ -911,6 +917,17 @@ Options for [`useResourceAccess`](#useresourceaccess).
 <TypeTable
   type={{
     includeInherited: { type: "boolean", description: "Include roles inherited from parent resources. Defaults to `false`." },
+  }}
+/>
+
+
+### UseWhoAmIOptions
+
+Options for [`useWhoAmI`](#usewhoami).
+
+<TypeTable
+  type={{
+    enabled: { type: "boolean", description: "`false` holds the hook idle: no request, `account` stays `null`. A surface that needs the caller only in some states (a guest token cannot make this read) keeps the hook mounted and switches it here." },
   }}
 />
 

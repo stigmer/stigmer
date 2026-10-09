@@ -203,12 +203,8 @@ vaults, and either reports the agent as ready or
 identifies the missing variables so the caller can render
 [`AgentEnvForm`](#agentenvform).
 
-The hook supports two secret delivery paths via the `saveForFuture`
-option on `submitEnvVars`:
-- **Saved** — secrets are saved in My vault, where every conversation
-  the user starts reads the keys the agent declares.
-- **One-time** — values are returned for this conversation only, as its
-  own secrets, never saved in a vault.
+A value the person types is saved in My vault (`submitEnvVars`);
+a conversation never carries values of its own.
 
 State is managed by a `useReducer` state machine with five phases:
 `idle → resolving → needsEnvVars → submitting → ready`.
@@ -222,14 +218,14 @@ Pass `null` as `org` to disable all operations (stable no-op).
 **Signature**
 
 ```tsx
-function useAgentSetup(org: string | null, poolKeys?: Set<string>, conversationVaults?: readonly ResourceRef[]): UseAgentSetupReturn
+function useAgentSetup(org: string | null, poolKeys?: Set<string>, conversationVaults: ConversationVaults): UseAgentSetupReturn
 ```
 
 <TypeTable
   type={{
     org: { type: "string | null", description: "Organization id (a slug is also accepted). Pass `null` to disable.", required: true },
-    poolKeys: { type: "Set<string>", description: "Optional set of env-var keys already available   from the session env pool (manual secrets, one-time env vars from   other components). When provided, agents whose `env` keys   are fully covered by `poolKeys` + My vault auto-resolve to   `ready` without prompting. Reactive — when `poolKeys` changes,   `needsEnvVars` is re-evaluated." },
-    conversationVaults: { type: "readonly ResourceRef[]", description: "The vaults the conversation lists, when it   lists any. Such a conversation uses only those vaults, so only their   keys and logins count as saved (not My vault's or the agent's vaults'),   a sign-in counts only when one of them holds a login serving the server   (never a My vault grant), each pending sign-in names the first listed   vault as where to save it (`PendingSignIn.vault`), and values the   person saves in My vault also reach the conversation as its own   secrets (`oneTime`). `poolKeys` must then leave My vault's names out.   Reactive — when the listed vaults change, an agent already resolved is   resolved again over them, keeping the values the conversation holds." },
+    poolKeys: { type: "Set<string>", description: "Optional set of env-var keys filled elsewhere (the   platform's own keys, which the runner sets). Agents whose `env` keys   are fully covered by `poolKeys` and the vaults the run reads   auto-resolve to `ready` without prompting. Reactive — when `poolKeys`   changes, `needsEnvVars` is re-evaluated." },
+    conversationVaults: { type: "ConversationVaults", description: "The vaults the conversation uses (its   sender's My vault when included, then the listed vaults). Only what   they hold counts as saved, and My vault's sign-in grant counts only   when My vault is included. Omitted, the run is taken to read My vault   alone. Reactive — when the choice changes, an agent already resolved   is resolved again over it.", required: true },
   }}
 />
 
@@ -242,20 +238,20 @@ function useAgentSetup(org: string | null, poolKeys?: Set<string>, conversationV
     resolveAgent: { type: "(ref: ResourceRef) => Promise<AgentSetupResult>", description: "Evaluate whether an agent is ready to use or needs env var collection.  Fetches the full agent to read its `env` declarations and diffs them against the user's vaults and the session's variables. Returns `\"ready\"` when the agent can be used immediately, or `\"needsEnvVars\"` when the caller should present AgentEnvForm. A resolution that a newer one (or reset) overtakes still returns its answer, but leaves `state` to the newer one." },
     signInCompleted: { type: "(mcpServerId: string) => Promise<void>", description: "Record that one of the pending sign-ins completed (the row's own OAuth flow landed). When it was the last one, the agent is resolved again through resolveAgent, which now finds the grant and lands in `ready` or in `needsEnvVars` for its variables alone.  Must only be called when `state.status === \"needsEnvVars\"`." },
     state: { type: "AgentSetupState", description: "Current state of the agent setup flow.  A discriminated union on `status`: - `\"idle\"` — no agent selected - `\"resolving\"` — evaluating an agent's requirements - `\"needsEnvVars\"` — waiting for user to provide missing variables - `\"submitting\"` — saving in My vault - `\"ready\"` — agent resolved, `resolution` describes how to proceed  `error` is available on all variants (orthogonal to phase).", typeDescriptionLink: "#agentsetupstate" },
-    submitEnvVars: { type: "(values: Record<string, EnvVarInput>, options?: SubmitEnvVarsOptions) => Promise<AgentSetupReadyResult>", description: "Complete the env var collection flow for the pending agent.  Behavior depends on `options.saveForFuture`: - `true` (default) — Saves the provided values in My vault.   Returns `{ resolution: { mode: \"saved\" } }`. - `false` — Collects values for this conversation without any API calls.   Returns `{ resolution: { mode: \"oneTime\", values } }`.  Must only be called when `state.status === \"needsEnvVars\"`." },
+    submitEnvVars: { type: "(values: Record<string, EnvVarInput>) => Promise<AgentSetupReadyResult>", description: "Complete the env var collection flow for the pending agent: the values are saved in My vault, the one place a value the person types goes, and the agent resolves as `{ mode: \"saved\" }`. A conversation reads them when it includes My vault; the composer includes it for the person who may change the conversation's vaults.  Must only be called when `state.status === \"needsEnvVars\"`." },
   }}
 />
 
 ```tsx
-const { state, resolveAgent, submitEnvVars } = useAgentSetup("acme", pool.availableKeys);
+const { state, resolveAgent, submitEnvVars } = useAgentSetup("acme");
 
 const result = await resolveAgent({ org: "acme", slug: "code-reviewer" });
 
 if (result.status === "needsEnvVars") {
   // Render AgentEnvForm with result.missingVariables
-  // On form submit:
-  const ready = await submitEnvVars(formValues, { saveForFuture: true });
-  // ready.resolution.mode === "saved" | "oneTime"
+  // On form submit, the values are saved in My vault:
+  const ready = await submitEnvVars(formValues);
+  // ready.resolution.mode === "saved"
 }
 ```
 
@@ -546,8 +542,9 @@ Compact form that collects environment variable values for an agent.
 
 This is a thin wrapper around [`EnvVarForm`](/docs/sdk/react/vault#envvarform) that provides
 agent-specific defaults: the agent name as the form title, and a
-contextual description. All rendering, validation, and toggle
-behavior is delegated to `EnvVarForm`.
+contextual description. All rendering and validation is delegated to
+`EnvVarForm`. It offers no save toggle: a value typed for an agent is
+saved in My vault, since a conversation keeps no values of its own.
 
 **Props** — `AgentEnvFormProps`
 
@@ -555,13 +552,11 @@ behavior is delegated to `EnvVarForm`.
   type={{
     agentName: { type: "string", description: "Agent display name shown in the form header.", required: true },
     className: { type: "string", description: "Additional CSS class names for the root container." },
-    defaultSaveForFuture: { type: "boolean", description: "Initial state of the \"Save in My vault\" toggle. Platform builders can override this to match their default secret-persistence policy." },
     disabled: { type: "boolean", description: "Prevents interaction with all form inputs when `true`." },
-    hideSaveToggle: { type: "boolean", description: "When `true`, the save toggle is hidden and the form always uses `defaultSaveForFuture` as the submit value. Useful for platform builders who want to enforce a single persistence policy." },
     isSubmitting: { type: "boolean", description: "When true, the submit button shows a spinner and inputs are disabled." },
     onCancel: { type: "() => void", description: "Called when the user clicks the back/cancel button." },
     onSubmit: { type: "(values: Record<string, EnvVarInput>, options: EnvVarFormSubmitOptions) => void", description: "Called with the collected values and the save toggle state when the user submits the form.", required: true },
-    poolValues: { type: "(key: string) => EnvVarInput | undefined", description: "Lookup function for pre-filling fields from the session env pool. Passed through to EnvVarForm." },
+    poolValues: { type: "(key: string) => EnvVarInput | undefined", description: "Lookup function for pre-filling fields from another source the host holds. Passed through to EnvVarForm." },
     variables: { type: "EnvVarFormVariable[]", description: "Variables to collect. Each entry renders one input field, in order. Must contain at least one variable.", required: true },
   }}
 />
@@ -573,10 +568,7 @@ behavior is delegated to `EnvVarForm`.
     { key: "GITHUB_TOKEN", isSecret: true, description: "Personal access token" },
     { key: "REPO_OWNER", isSecret: false },
   ]}
-  onSubmit={(values, { saveForFuture }) => {
-    if (saveForFuture) saveToEnvironment(values);
-    else useForThisConversation(values);
-  }}
+  onSubmit={(values) => saveToMyVault(values)}
   onCancel={() => console.log("cancelled")}
 />
 ```
@@ -695,13 +687,12 @@ should create the session and its first run.
 Every mode starts the conversation on the agent itself (the session's
 `agentRef`); the mode says where the keys the agent declares come from:
 
-- `"saved"` — The user's vaults hold every declared key (saved in My
-  vault just now or earlier, or in a vault the agent attaches). Each run
-  reads them from there.
-- `"oneTime"` — Values were collected but **not** saved in a vault. They
-  become the conversation's own secrets (`session_spec.secrets`).
+- `"saved"` — The vaults the conversation uses hold every declared key
+  (saved in My vault just now or earlier, or in a vault the
+  conversation lists). Each run reads them from there.
 - `"direct"` — Nothing is needed from the user: the agent declares no
-  keys, or the session's variables cover the ones it does.
+  keys, the platform fills the ones it does, or the agent is another
+  organization's, whose runs never read My vault.
 
 
 ### AgentRunDefaults
@@ -822,10 +813,10 @@ an `AgentInput` for submission on the final step.
 ### PendingSignIn
 
 One MCP server the agent uses that authenticates by OAuth and has no
-usable grant in the organization. The agent is not ready until each is
+login in the vaults the run reads. The agent is not ready until each is
 signed in: run would start and fail at the first tool call, so the
-composer asks first, the way it asks for a missing variable. Grants are
-per organization today, so one colleague's sign-in serves everyone.
+composer asks first, the way it asks for a missing variable. A sign-in
+is saved in the person's My vault.
 
 <TypeTable
   type={{
@@ -833,18 +824,6 @@ per organization today, so one colleague's sign-in serves everyone.
     id: { type: "string", description: "The server's id, the key a sign-in completes under.", required: true },
     name: { type: "string", description: "The server's display name.", required: true },
     ref: { type: "ResourceRef", description: "The server's reference, for the row's own read.", required: true },
-    vault: { type: "SignInVault", description: "The vault the sign-in must be saved into: the first vault the conversation lists, when it lists any (such a conversation reads its logins only from them). Absent, the sign-in is saved in My vault.", typeDescriptionLink: "/docs/sdk/react/mcp-server#signinvault" },
-  }}
-/>
-
-
-### SubmitEnvVarsOptions
-
-Options for `UseAgentSetupReturn.submitEnvVars`.
-
-<TypeTable
-  type={{
-    saveForFuture: { type: "boolean", description: "When `true` (default), the provided values are saved in the user's My vault. Every conversation the user starts reads the keys an agent declares from there, so later conversations reuse them without asking again.  When `false`, the values are kept for this conversation only, as its own secrets — nothing is saved in a vault. This path is instant (no network calls)." },
   }}
 />
 

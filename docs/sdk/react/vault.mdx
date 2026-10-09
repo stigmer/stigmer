@@ -77,58 +77,6 @@ myVault.secretNames.has("OPENAI_API_KEY"); // true after the refetch
 ```
 
 
-### useSessionEnvPool
-
-Reactive computation hook that aggregates environment variable
-availability from all session-level sources.
-
-The pool enables cross-referencing between the session variables
-panel, agent env form, and MCP server env form — so a variable
-entered in one place is recognized as "already provided" by the
-others. This eliminates duplicate credential prompting.
-
-Pure computation — no side effects, no API calls. Recomputes
-via `useMemo` when any input source changes.
-
-Platform builders who use individual setup hooks can pass the
-pool's `availableKeys` to `useMcpServerSetup` and `useAgentSetup`
-via their `poolKeys` parameter for cross-referencing.
-
-**Signature**
-
-```tsx
-function useSessionEnvPool(input: SessionEnvPoolInput): UseSessionEnvPoolReturn
-```
-
-<TypeTable
-  type={{
-    input: { type: "SessionEnvPoolInput", description: "", required: true },
-  }}
-/>
-
-**Returns** — `UseSessionEnvPoolReturn`
-
-<TypeTable
-  type={{
-    availableKeys: { type: "Set<string>", description: "All env var keys currently available from any source.  Includes secret names saved in My vault, valid manual secrets, agent one-time values, and MCP one-time values. Reactive — recomputes when any source changes." },
-    getAvailableValue: { type: "(key: string) => EnvVarInput | undefined", description: "Look up a value by key from the pool.  Priority order (last-write-wins, matching submit merge order): 1. My vault names (values are never read — returns `undefined`) 2. Agent one-time values 3. MCP server one-time values 4. Manual session variables (highest priority)  Returns `undefined` if the key is not in the pool." },
-    isKeySatisfied: { type: "(key: string) => boolean", description: "Check if a key is satisfied by any source in the pool.  Equivalent to `availableKeys.has(key)` but provided for semantic clarity." },
-  }}
-/>
-
-```tsx
-const sessionVars = useSessionVariables();
-const myVault = useMyVault(org);
-
-const pool = useSessionEnvPool({
-  savedKeys: myVault.secretNames,
-  manualSecrets: sessionVars.entries,
-});
-
-// pool.isKeySatisfied("GITHUB_TOKEN") → true if entered anywhere
-```
-
-
 ### useToolCredentialsReadiness
 
 Data hook that checks a surface's named vaults. `applicable` is the
@@ -309,17 +257,17 @@ Compact form for creating a shared vault.
     ariaLabel: { type: "string", description: "Overrides the `aria-label` on the `<form>` element. When omitted, falls back to `\"Configure {title}\"` if a title is provided, or `\"Configure environment variables\"` as a generic fallback." },
     cancelLabel: { type: "string", description: "Overrides the default cancel button label (`\"Back\"`)." },
     className: { type: "string", description: "Additional CSS class names for the root container." },
-    defaultSaveForFuture: { type: "boolean", description: "Initial state of the \"Save in My vault\" toggle. Platform builders can override this to match their default secret-persistence policy." },
+    defaultSaveForFuture: { type: "boolean", description: "Initial state of the \"Save in My vault\" toggle, when the form offers one (`unsavedScope`)." },
     description: { type: "string", description: "Subtitle shown below the title. Only rendered when `title` is also provided." },
     disabled: { type: "boolean", description: "When `true`, all inputs and buttons are disabled." },
-    hideSaveToggle: { type: "boolean", description: "When `true`, the save toggle is hidden and the form always uses `defaultSaveForFuture` as the submit value. Useful for platform builders who want to enforce a single persistence policy." },
+    hideSaveToggle: { type: "boolean", description: "When `true`, the save toggle is hidden and the form always uses `defaultSaveForFuture` as the submit value. Only meaningful with `unsavedScope`; without it there is no toggle." },
     isSubmitting: { type: "boolean", description: "When true, the submit button shows a spinner and inputs are disabled." },
     onCancel: { type: "() => void", description: "Called when the user clicks the cancel/back button." },
     onSubmit: { type: "(values: Record<string, EnvVarInput>, options: EnvVarFormSubmitOptions) => void", description: "Called with the collected values and the save toggle state when the user submits the form.", required: true },
-    poolValues: { type: "(key: string) => EnvVarInput | undefined", description: "Pre-fill values from the session env pool.  When provided, fields whose keys are in this record are pre-populated with the pool's value. A subtle indicator shows that the value was provided by another source in the session.  Platform builders who use `useSessionEnvPool` can pass `pool.getAvailableValue` to look up pre-fill values." },
-    submitLabel: { type: "string", description: "Overrides the default submit button label. When omitted, the button shows `\"Save\"` while the save toggle is on, and otherwise names where the unsaved values are used (`unsavedScope`)." },
+    poolValues: { type: "(key: string) => EnvVarInput | undefined", description: "Pre-fill values from another source the host holds.  When provided, fields whose keys return a value are pre-populated with it, and a subtle indicator says the value was pre-filled." },
+    submitLabel: { type: "string", description: "Overrides the default submit button label. When omitted, the button shows `\"Save\"` while the values are to be saved, and otherwise names where the unsaved values are used (`unsavedScope`)." },
     title: { type: "string", description: "Optional heading rendered above the fields. When omitted, no header section is rendered — useful when the form is embedded inside a panel that provides its own header." },
-    unsavedScope: { type: "\"connection\" | \"conversation\"", description: "Where values the person chooses not to save are used, which the form says beside the toggle and on the submit button: - `\"conversation\"` (default): kept sealed for the conversation and   used by all of its turns, a teammate's included when the   conversation is shared. - `\"connection\"`: used for one connection to a tool and not kept." },
+    unsavedScope: { type: "\"connection\"", description: "Offer the \"Save in My vault\" toggle, naming where values the person chooses not to save are used: `\"connection\"`, one connection to a tool, not kept. Omitted, the form has no toggle and always saves: a conversation never keeps values of its own, so a value typed for a chat is saved in My vault." },
     variables: { type: "EnvVarFormVariable[]", description: "Variables to collect. Each entry renders one input field, in order. Must contain at least one variable.", required: true },
   }}
 />
@@ -391,6 +339,7 @@ accessible reorder buttons.
     className: { type: "string", description: "Additional CSS class names for the root container." },
     disabled: { type: "boolean", description: "Disable all interactions." },
     filterVault: { type: "(vault: Vault) => boolean", description: "Restrict which shared vaults are offered. Already selected references stay listed (and removable) even when they no longer pass the filter." },
+    myVault: { type: "VaultPickerMyVault", description: "Offer My vault as a fixed first row with a tick, above the ordered shared vaults: a conversation includes the sender's own My vault (`include_my_vault`) instead of listing it. Shown even before My vault exists, since the server creates it on the first save.", typeDescriptionLink: "#vaultpickermyvault" },
     onChange: { type: "(refs: ResourceRef[]) => void", description: "Called when the selection changes.", required: true },
     org: { type: "string", description: "Organization id to list vaults from (a slug is also accepted).", required: true },
     selectionNote: { type: "string", description: "A line shown under the picker while at least one vault is picked." },
@@ -404,6 +353,18 @@ accessible reorder buttons.
 
 
 ## Types
+
+### ConversationVaults
+
+The vaults a conversation uses.
+
+<TypeTable
+  type={{
+    includeMyVault: { type: "boolean", description: "Whether each turn reads its sender's own My vault, first.", required: true },
+    vaults: { type: "readonly ResourceRef[]", description: "The shared vaults the conversation lists, in order.", required: true },
+  }}
+/>
+
 
 ### CreateVaultInput
 
@@ -425,9 +386,9 @@ Computes the list of environment variables a resource requires that
 the user has not yet provided.
 
 Compares a resource's declared `env` keys against a set of
-keys already saved in the user's My vault **and** an
-optional session-level env pool (manual secrets, one-time env vars
-from other components). A plain setting whose declaration carries its
+keys already saved in the vaults being checked **and** an optional
+pool of keys filled elsewhere (the platform's own, which the runner
+sets). A plain setting whose declaration carries its
 own value needs nothing from the user. Variables whose keys are missing from both
 sources are returned as [`EnvVarFormVariable`](#envvarformvariable) entries suitable
 for rendering in [`EnvVarForm`](#envvarform).
@@ -449,7 +410,7 @@ Options reported by the form alongside the collected values on submit.
 
 <TypeTable
   type={{
-    saveForFuture: { type: "boolean", description: "Whether the user chose to save these values in My vault.", required: true },
+    saveForFuture: { type: "boolean", description: "Whether the values are to be saved in My vault. Always `true` unless the form offers its save toggle (`unsavedScope`) and the person turned it off.", required: true },
   }}
 />
 
@@ -529,24 +490,6 @@ function normalizeAddress(input: string): string | null
 ```
 
 
-### SessionEnvPoolInput
-
-Inputs to the session env pool from all env-var sources.
-
-The pool aggregates keys from My vault and values from manual session
-variables, agent one-time values and MCP server one-time values. Any
-source can be omitted — the pool gracefully handles `undefined` inputs.
-
-<TypeTable
-  type={{
-    agentOneTimeValues: { type: "Readonly<Record<string, EnvVarInput>>", description: "Agent one-time values (when resolution mode is `\"oneTime\"`)." },
-    manualSecrets: { type: "readonly SessionVariableEntry[]", description: "Manual session variable entries from useSessionVariables." },
-    mcpOneTimeValues: { type: "Readonly<Record<string, EnvVarInput>>", description: "MCP server one-time values (accumulated before submit)." },
-    savedKeys: { type: "ReadonlySet<string>", description: "Secret names already saved in the user's My vault (values are never read)." },
-  }}
-/>
-
-
 ### SYSTEM_ENV_VAR_KEYS
 
 Environment variable keys the platform fills itself, so the setup hooks
@@ -602,6 +545,18 @@ The fields an update may change, on the vault it names.
     externalId: { type: "string", description: "" },
     name: { type: "string", description: "" },
     vault: { type: "Vault", description: "The vault as loaded (its id, org and slug address the update).", required: true, typeDescriptionLink: "/docs/sdk/resources/vault" },
+  }}
+/>
+
+
+### VaultPickerMyVault
+
+My vault as a conversation includes it: a tick, not a listed reference.
+
+<TypeTable
+  type={{
+    checked: { type: "boolean", description: "Whether the conversation includes the sender's My vault.", required: true },
+    onChange: { type: "(checked: boolean) => void", description: "Called when the person ticks or unticks My vault.", required: true },
   }}
 />
 
