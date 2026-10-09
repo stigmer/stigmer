@@ -38,6 +38,7 @@ import { ScoreStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/s
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
+import type { CallerIdentity } from "../../extensions/identity.js";
 import {
   isFirstPartyHumanOperator,
   isServerComposedRequest,
@@ -109,34 +110,46 @@ export const SCORE_EXISTS_REASON = "SCORE_EXISTS";
  *   - score_source_check only from the server itself (the `internal`
  *     class only the in-process transport mints), because a check's
  *     verdict is the platform's claim about a run, never a caller's.
+ *
+ * The rules are a table keyed by every source but the unspecified one, so
+ * a source added to the contract does not compile until it names who may
+ * give it. A value outside the enum never reaches the guard: the request's
+ * protovalidate rule (`defined_only`) refuses it first.
  */
 export function newGuardScoreSourceStep(): PipelineStep<typeof ScoreSchema> {
   return {
     name: "GuardScoreSource",
     execute(ctx: RequestContext<typeof ScoreSchema>): void {
       const source = ctx.newState.spec?.source ?? ScoreSource.unspecified;
-      const caller = ctx.callerIdentity;
-      switch (source) {
-        case ScoreSource.human:
-          if (!isFirstPartyHumanOperator(caller)) {
-            throw permissionDeniedError(HUMAN_SOURCE_REFUSED_MESSAGE);
-          }
-          return;
-        case ScoreSource.check:
-          if (caller.callerClass !== "internal") {
-            throw permissionDeniedError(CHECK_SOURCE_REFUSED_MESSAGE);
-          }
-          return;
-        case ScoreSource.unspecified:
-          throw invalidArgumentError("spec.source is required");
-        default: {
-          const unknown: never = source;
-          throw invalidArgumentError(`unknown spec.source ${String(unknown)}`);
-        }
+      if (source === ScoreSource.unspecified) {
+        throw invalidArgumentError("spec.source is required");
+      }
+      const rule = SOURCE_RULES[source];
+      if (!rule.admits(ctx.callerIdentity)) {
+        throw permissionDeniedError(rule.refusal);
       }
     },
   };
 }
+
+/** Who may give a source, and the refusal for anyone else. */
+interface SourceRule {
+  readonly admits: (caller: CallerIdentity) => boolean;
+  readonly refusal: string;
+}
+
+const SOURCE_RULES: Readonly<
+  Record<Exclude<ScoreSource, ScoreSource.unspecified>, SourceRule>
+> = {
+  [ScoreSource.human]: {
+    admits: isFirstPartyHumanOperator,
+    refusal: HUMAN_SOURCE_REFUSED_MESSAGE,
+  },
+  [ScoreSource.check]: {
+    admits: (caller) => caller.callerClass === "internal",
+    refusal: CHECK_SOURCE_REFUSED_MESSAGE,
+  },
+};
 
 /**
  * The create lane's authorization question, for AuthorizeResolvedTarget

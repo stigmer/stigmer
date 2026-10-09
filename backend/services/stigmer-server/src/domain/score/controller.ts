@@ -221,14 +221,7 @@ async function deleteScore(
     .build()
     .execute(reqCtx);
 
-  const deleted = reqCtx.get(EXISTING_RESOURCE_KEY);
-  if (deleted === undefined) {
-    throw internalError(
-      new Error("deleted score not found in context"),
-      "deleted score not found in context",
-    );
-  }
-  return deleted as Score;
+  return chainResult<Score>(reqCtx.get(EXISTING_RESOURCE_KEY), "deleted score");
 }
 
 /** Get: can_view on the score, which is can_view on its run. */
@@ -251,14 +244,7 @@ async function getScore(
     .build()
     .execute(reqCtx);
 
-  const target = reqCtx.get(TARGET_RESOURCE_KEY);
-  if (target === undefined) {
-    throw internalError(
-      new Error("target score not found in context"),
-      "target score not found in context",
-    );
-  }
-  return target as Score;
+  return chainResult<Score>(reqCtx.get(TARGET_RESOURCE_KEY), "target score");
 }
 
 /** ListByRun: every score of a run; Authorize asks can_view on the run. */
@@ -282,7 +268,7 @@ async function listByRun(
     .addStep(newListScoresByRunStep(deps.store))
     .build()
     .execute(reqCtx);
-  return listResultOf(reqCtx.get(LIST_RESULT_KEY));
+  return chainResult<ScoreList>(reqCtx.get(LIST_RESULT_KEY), "score list");
 }
 
 /**
@@ -312,15 +298,20 @@ async function listBySession(
     .addStep(newListScoresBySessionStep(deps.store))
     .build()
     .execute(reqCtx);
-  return listResultOf(reqCtx.get(LIST_RESULT_KEY));
+  return chainResult<ScoreList>(reqCtx.get(LIST_RESULT_KEY), "score list");
 }
 
-function listResultOf(result: unknown): ScoreList {
-  if (result === undefined) {
+/**
+ * What a chain left in its context for the handler to answer with. A
+ * missing value is a chain built wrong (a step removed or reordered), so it
+ * fails loudly as INTERNAL rather than answering with nothing.
+ */
+export function chainResult<T>(value: unknown, what: string): T {
+  if (value === undefined) {
     throw internalError(
-      new Error("score list not found in context"),
-      "score list not found in context",
+      new Error(`${what} not found in context`),
+      `${what} not found in context`,
     );
   }
-  return result as ScoreList;
+  return value as T;
 }

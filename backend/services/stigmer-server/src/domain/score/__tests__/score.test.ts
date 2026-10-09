@@ -189,6 +189,8 @@ describe("a person's rating", () => {
     expect(rated.metadata?.id).toMatch(/^scr_/);
     expect(rated.spec?.sessionId).toBe(sessionId);
     expect(rated.status?.state).toBe(ScoreState.graded);
+    const read = await query.get({ value: rated.metadata!.id });
+    expect(read.spec?.comment).toBe("good");
 
     const again = await failureOf(wire.create(feedback(runId, false)));
     expect(again.code).toBe(Code.AlreadyExists);

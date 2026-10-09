@@ -205,4 +205,45 @@ describe("record-not-graded", () => {
     expect(score?.status?.notGradedReason).toBe("grading failed");
     expect(score?.spec?.evaluatorVersion).toBe(RUN_HEALTH_EVALUATOR_VERSION);
   });
+
+  it("leaves a run graded meanwhile alone, and has nothing to record for a deleted run", async () => {
+    await seedStuckRun();
+    await seedRunHealth("run_1", RUN_HEALTH_EVALUATOR_VERSION);
+    const rec = recorder();
+    expect(
+      await activitiesWith(rec)[RECORD_NOT_GRADED_ACTIVITY_NAME](
+        "run_1",
+        "grading failed",
+      ),
+    ).toBe(GRADE_ALREADY_GRADED);
+    expect(
+      await activitiesWith(rec)[RECORD_NOT_GRADED_ACTIVITY_NAME](
+        "run_gone",
+        "grading failed",
+      ),
+    ).toBe(GRADE_RUN_GONE);
+    expect(rec.recorded).toEqual([]);
+  });
+});
+
+describe("a store fault", () => {
+  it("is thrown, so Temporal retries the activity", async () => {
+    const failing = new Proxy(temp.store, {
+      get(target, property, receiver) {
+        if (property === "getResource") {
+          return () => Promise.reject(new Error("disk unavailable"));
+        }
+        const value: unknown = Reflect.get(target, property, receiver);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+    const activities = createGradingActivities({
+      store: failing,
+      logger: silentLogger,
+      recorder: () => recorder(),
+    });
+    await expect(
+      activities[GRADE_RUN_HEALTH_ACTIVITY_NAME]("run_1"),
+    ).rejects.toThrow("disk unavailable");
+  });
 });

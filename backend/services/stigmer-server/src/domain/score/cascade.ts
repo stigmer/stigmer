@@ -47,6 +47,7 @@ export function newRunScoreCascade(deps: RunScoreCascadeDeps): RunScoreCascade {
     async deleteScoresOfRun(runId: string): Promise<void> {
       let ids: string[];
       try {
+        // A stored score always carries its id: BuildNewState mints it.
         ids = (await listRunScores(deps.store, runId)).map(
           (score) => score.metadata?.id ?? "",
         );
@@ -54,9 +55,6 @@ export function newRunScoreCascade(deps: RunScoreCascadeDeps): RunScoreCascade {
         throw internalError(error, `failed to list the scores of run ${runId}`);
       }
       for (const id of ids) {
-        if (id === "") {
-          continue;
-        }
         try {
           await deps.deleter().delete(id);
         } catch (error) {

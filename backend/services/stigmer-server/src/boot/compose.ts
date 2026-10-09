@@ -128,6 +128,7 @@ import { registerMemoryServices } from "../domain/memory/controller.js";
 import { newRunScoreCascade } from "../domain/score/cascade.js";
 import { registerScoreServices } from "../domain/score/controller.js";
 import { newGradingObserver } from "../domain/score/grading-observer.js";
+import type { ScoreRecorder } from "../domain/score/ports.js";
 import { registerOAuthAppServices } from "../domain/oauthapp/controller.js";
 import { registerPlatformClientServices } from "../domain/platformclient/controller.js";
 import { newPlatformClientOriginGuard } from "../domain/platformclient/origin-guard.js";
@@ -1046,10 +1047,11 @@ export async function composeServer(
   // and the run-delete cascade ride the in-process lane as the server,
   // resolved lazily for the boot-ordering reason the run worker's are.
   const gradingTemporalConfig = newGradingConfigFromEnv();
+  const scoreRecorder = (): ScoreRecorder => requireInProcess().scoreRecorder;
   const gradingObserver = newGradingObserver({
     client: () => temporalManager.getClient(),
     config: gradingTemporalConfig,
-    recorder: () => requireInProcess().scoreRecorder,
+    recorder: scoreRecorder,
     logger,
   });
   const runScores = newRunScoreCascade({
@@ -1132,7 +1134,7 @@ export async function composeServer(
       newGradingWorkerFactory({
         store,
         config: gradingTemporalConfig,
-        recorder: () => requireInProcess().scoreRecorder,
+        recorder: scoreRecorder,
         logger,
       }),
       // Extension workers append after the OSS set — their own queues,
