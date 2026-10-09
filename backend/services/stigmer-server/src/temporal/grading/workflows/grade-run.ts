@@ -15,8 +15,9 @@
  * workflow polls the judge run on a capped backoff for up to ten minutes;
  * and the record writes the verdict or the reason there is none, deletes
  * the judge's session and settles the budget. Every path past the planner
- * ends in the record, so a reservation is always settled and a judge
- * session never kept. Run health's outcome stays the workflow's result.
+ * ends in the record, retried for up to twenty minutes, so a reservation
+ * is settled and a judge session deleted unless the store is out longer
+ * than that. Run health's outcome stays the workflow's result.
  *
  * WORKFLOW-BUNDLE IMPORT DISCIPLINE: this module runs in the deterministic
  * sandbox; imports are limited to @temporalio/workflow and the pure names
@@ -65,6 +66,22 @@ const judgeSteps = proxyActivities<JudgeActivities>({
     initialInterval: "2 seconds",
     backoffCoefficient: 2,
     maximumAttempts: 5,
+  },
+});
+
+/**
+ * The record: the grade, the settlement and the judge session's cleanup,
+ * retried for up to twenty minutes, so a store outage of that length does
+ * not leave the run "grading" with its cap set aside. Past that the
+ * execution fails and the month's rollover returns the cap.
+ */
+const judgeRecord = proxyActivities<JudgeActivities>({
+  startToCloseTimeout: "1 minute",
+  scheduleToCloseTimeout: "20 minutes",
+  retry: {
+    initialInterval: "2 seconds",
+    backoffCoefficient: 2,
+    maximumInterval: "1 minute",
   },
 });
 
@@ -142,7 +159,7 @@ async function judge(runId: string): Promise<void> {
     failure = await awaitJudge(judgeRunId);
   }
 
-  await judgeSteps[RECORD_JUDGE_ACTIVITY_NAME](
+  await judgeRecord[RECORD_JUDGE_ACTIVITY_NAME](
     runId,
     plan.ticket,
     judgeRunId,

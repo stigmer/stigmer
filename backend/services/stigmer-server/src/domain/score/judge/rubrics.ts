@@ -16,7 +16,7 @@
  * `BUILT_IN_JUDGE_VERSION` there move together, each pinned by its own
  * package's test.
  *
- * Proven by __tests__/rubrics.test.ts (the version pin).
+ * Proven by __tests__/judge.test.ts (the version pin).
  */
 import { createHash } from "node:crypto";
 

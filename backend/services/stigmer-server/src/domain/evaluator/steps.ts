@@ -14,7 +14,9 @@
  * counts (PersistEvaluatorSettings), so a person saving settings while a
  * grade settles never loses the grade's increment.
  *
- * Proven by __tests__/evaluator.test.ts and evaluator.conformance.test.ts.
+ * Proven by __tests__/steps.test.ts (the faults),
+ * temporal/grading/__tests__/judge-composed.test.ts and
+ * evaluator.conformance.test.ts.
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 import { clone, create } from "@bufbuild/protobuf";

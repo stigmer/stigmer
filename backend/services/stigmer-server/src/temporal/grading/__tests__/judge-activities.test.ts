@@ -6,13 +6,17 @@
  *     reservation leaves no pending score; a judged run deleted meanwhile
  *     is skipped;
  *   - start: a judged run that is gone is not started; an earlier attempt's
- *     judge run is found by name, also when the create loses the race; an
- *     infrastructure fault from the grading caller, the create or a store
- *     read is thrown for Temporal to retry; a refusal the start does not
- *     know is thrown;
+ *     judge run is found by name, also when the create loses the race, and
+ *     adopted only when it carries the judge label naming the judged run and
+ *     was created by the same caller: a run a member named like a judge is
+ *     never read as a verdict; an infrastructure fault from the grading
+ *     caller, the create or a store read is thrown for Temporal to retry; a
+ *     refusal the start does not know is thrown;
  *   - record: a judge still running is stopped (and one that cannot be is
- *     logged, any other stop fault thrown); a session already gone or held
- *     by an active run is left, any other delete fault thrown; each failure
+ *     logged, any other stop fault thrown); the budget is settled before
+ *     the session's delete, whose every failure is logged and never thrown,
+ *     so a retry never settles twice; a retry that finds its grade counts
+ *     the stored grade, not what it would conclude now; each failure
  *     the workflow saw is recorded with its reason; a judge that vanished,
  *     a judge still running with no failure and a failed judge with no
  *     error each have their reason; a judged run deleted while its score
@@ -29,7 +33,7 @@ import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
-import { ScoreState } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
+import { ScoreSource, ScoreState } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
 import { ScoreStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -39,6 +43,7 @@ import {
   JUDGE_RUN_FAILED_REASON,
 } from "../../../domain/score/constants.js";
 import {
+  GRADES_RUN_LABEL,
   PER_GRADE_CAP_USD,
   judgeRunName,
 } from "../../../domain/score/judge/judge-run.js";
@@ -145,15 +150,28 @@ function activities(lane: Lane = {}) {
   });
 }
 
-async function seedRun(id: string, opts: Partial<{ agentId: string; phase: RunPhase; name: string; sessionId: string; error: string; cost: number }> = {}): Promise<Run> {
+async function seedRun(
+  id: string,
+  opts: Partial<{
+    agentId: string;
+    phase: RunPhase;
+    name: string;
+    sessionId: string;
+    error: string;
+    cost: number;
+    labels: Record<string, string>;
+    createdBy: string;
+  }> = {},
+): Promise<Run> {
   const run = create(RunSchema, {
-    metadata: { id, name: opts.name ?? id, slug: opts.name ?? id, org: "org_1" },
+    metadata: { id, name: opts.name ?? id, slug: opts.name ?? id, org: "org_1", labels: opts.labels ?? {} },
     spec: { target: { case: "sessionId", value: opts.sessionId ?? "ses_1" }, message: "summarize" },
     status: {
       phase: opts.phase ?? RunPhase.RUN_COMPLETED,
       agentId: opts.agentId ?? "",
       error: opts.error ?? "",
       streamingUsage: { estimatedCostUsd: opts.cost ?? 0 },
+      audit: { specAudit: { createdBy: { id: opts.createdBy ?? "" } } },
     },
   });
   await temp.store.saveResource(ApiResourceKind.run, id, RunSchema, run);
@@ -228,7 +246,11 @@ describe("start-judge", () => {
     const racing = activities({
       runs: {
         create: async () => {
-          await seedRun("run_judge_winner", { name: judgeRunName("run_1"), sessionId: "ses_judge" });
+          await seedRun("run_judge_winner", {
+            name: judgeRunName("run_1"),
+            sessionId: "ses_judge",
+            labels: { [GRADES_RUN_LABEL]: "run_1" },
+          });
           throw new ConnectError("exists", Code.AlreadyExists);
         },
       },
@@ -241,6 +263,41 @@ describe("start-judge", () => {
       kind: "started",
       judgeRunId: "run_judge_winner",
     });
+  });
+
+  it("never adopts a run a member named like the judge: no judge label, another run's label, or another creator", async () => {
+    await seedRun("run_1");
+    const created: string[] = [];
+    const grading = {
+      mintGradingCaller: async () => ({ identityId: "ida_grading", callerClass: "grading", issuer: "stigmer", rawToken: "t" }),
+    };
+    const fresh = (minted?: typeof grading) =>
+      activities({
+        gradingCaller: minted,
+        runs: {
+          create: async (request) => {
+            created.push(request.metadata?.name ?? "");
+            return seedRun(`run_real_judge_${created.length}`, {
+              name: `real-${created.length}`,
+              labels: request.metadata?.labels ?? {},
+            });
+          },
+        },
+      });
+    await seedRun("run_lookalike", { name: judgeRunName("run_1"), sessionId: "ses_victim" });
+    expect(await fresh()[START_JUDGE_ACTIVITY_NAME]("run_1", TICKET)).toEqual({ kind: "started", judgeRunId: "run_real_judge_1" });
+    await seedRun("run_lookalike", { name: judgeRunName("run_1"), labels: { [GRADES_RUN_LABEL]: "run_other" } });
+    expect(await fresh()[START_JUDGE_ACTIVITY_NAME]("run_1", TICKET)).toEqual({ kind: "started", judgeRunId: "run_real_judge_2" });
+    await seedRun("run_lookalike", {
+      name: judgeRunName("run_1"),
+      labels: { [GRADES_RUN_LABEL]: "run_1" },
+      createdBy: "ida_member",
+    });
+    expect(await fresh(grading)[START_JUDGE_ACTIVITY_NAME]("run_1", TICKET)).toEqual({
+      kind: "started",
+      judgeRunId: "run_real_judge_3",
+    });
+    expect(created).toHaveLength(3);
   });
 
   it("throws what Temporal should retry: a lost race with no winner, a caller fault, a create fault, an unknown refusal", async () => {
@@ -303,7 +360,7 @@ describe("record-judge", () => {
     expect((await judgeScores("run_1"))[0]?.status?.notGradedReason).toBe(JUDGE_NOT_FINISHED_REASON);
   });
 
-  it("logs a judge that cannot be stopped, and throws any other stop or delete fault", async () => {
+  it("logs a judge that cannot be stopped or a session that cannot be deleted, and throws any other stop fault", async () => {
     await seedEvaluator();
     await seedRun("run_1");
     await seedRun("run_2");
@@ -317,7 +374,7 @@ describe("record-judge", () => {
     await expect(broken[RECORD_JUDGE_ACTIVITY_NAME]("run_2", TICKET, "run_judge", "not-finished")).rejects.toThrow("engine down");
     const deleteFault = activities({ sessions: { delete: () => Promise.reject(new Error("store down")) } });
     await seedRun("run_judge", { phase: RunPhase.RUN_COMPLETED, sessionId: "ses_judge" });
-    await expect(deleteFault[RECORD_JUDGE_ACTIVITY_NAME]("run_2", TICKET, "run_judge", "")).rejects.toThrow("store down");
+    expect(await deleteFault[RECORD_JUDGE_ACTIVITY_NAME]("run_2", TICKET, "run_judge", "")).toBe(GRADE_RECORDED);
   });
 
   it("records each failure and each judge end with its reason", async () => {
@@ -377,7 +434,7 @@ describe("record-judge", () => {
     const graded = await recorder().record(
       create(ScoreSchema, {
         metadata: { org: "org_1" },
-        spec: { runId: "run_2", metric: "judge", evaluatorVersion: JUDGE_EVALUATOR_VERSION, value: { case: "passed", value: true } },
+        spec: { runId: "run_2", metric: "judge", source: ScoreSource.judge, evaluatorVersion: JUDGE_EVALUATOR_VERSION, value: { case: "passed", value: true } },
       }),
     );
     expect(graded.status?.state).toBe(ScoreState.graded);
@@ -395,6 +452,62 @@ describe("record-judge", () => {
     );
     expect(outcome).toBe(GRADE_ALREADY_GRADED);
     expect(deleted).toEqual([]);
+  });
+
+  it("counts a retry's kept grade by the stored score, and settles before the session goes", async () => {
+    await seedEvaluator();
+    await seedRun("run_1");
+    // The first attempt recorded the grade; its settle failed, so the
+    // retry finds the judge run gone and the grade kept.
+    await recorder().record(
+      create(ScoreSchema, {
+        metadata: { org: "org_1" },
+        spec: { runId: "run_1", metric: "judge", source: ScoreSource.judge, evaluatorVersion: JUDGE_EVALUATOR_VERSION, value: { case: "passed", value: true } },
+      }),
+    );
+    expect(await activities()[RECORD_JUDGE_ACTIVITY_NAME]("run_1", TICKET, "run_judge_gone", "")).toBe(GRADE_ALREADY_GRADED);
+    const evaluator = await temp.store.getResource(ApiResourceKind.evaluator, "evl_1", EvaluatorSchema);
+    expect(evaluator.status?.graded, "counted as the grade it kept").toBe(1);
+    expect(evaluator.status?.notGraded ?? 0).toBe(0);
+
+    // A kept not-graded score counts with its own reason.
+    await seedRun("run_3");
+    await recorder().record(
+      create(ScoreSchema, {
+        metadata: { org: "org_1" },
+        spec: { runId: "run_3", metric: "judge", source: ScoreSource.judge, evaluatorVersion: JUDGE_EVALUATOR_VERSION },
+        status: { notGradedReason: JUDGE_BUSY_REASON },
+      }),
+    );
+    expect(await activities()[RECORD_JUDGE_ACTIVITY_NAME]("run_3", TICKET, "run_judge_gone", "")).toBe(GRADE_ALREADY_GRADED);
+    const after = await temp.store.getResource(ApiResourceKind.evaluator, "evl_1", EvaluatorSchema);
+    expect(after.status?.notGraded).toBe(1);
+    expect(after.status?.lastNotGradedReason).toBe(JUDGE_BUSY_REASON);
+
+    const order: string[] = [];
+    await seedRun("run_2");
+    await seedRun("run_judge_2", { phase: RunPhase.RUN_COMPLETED, sessionId: "ses_judge_2" });
+    const settling = new Proxy(temp.store, {
+      get(target, property, receiver) {
+        if (property === "updateResource") {
+          return (...args: unknown[]) => {
+            order.push("settle");
+            return (target.updateResource as (...a: unknown[]) => unknown).apply(target, args);
+          };
+        }
+        const value: unknown = Reflect.get(target, property, receiver);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+    await activities({
+      store: settling,
+      sessions: {
+        delete: async () => {
+          order.push("delete");
+        },
+      },
+    })[RECORD_JUDGE_ACTIVITY_NAME]("run_2", TICKET, "run_judge_2", "");
+    expect(order).toEqual(["settle", "delete"]);
   });
 
   it("throws a store fault reading a run, for Temporal to retry", async () => {

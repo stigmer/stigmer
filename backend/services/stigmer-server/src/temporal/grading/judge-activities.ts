@@ -14,7 +14,11 @@
  *     budget.ts); a refusal there is recorded as "spending limit reached".
  *   - start: the judge run is created as the grading caller
  *     (extensions/grading-caller.ts) under a name fixed by the judged run,
- *     so a retry finds the run an earlier attempt created. A capacity
+ *     so a retry finds the run an earlier attempt created. A run is adopted
+ *     only when it carries the judge label naming the judged run, which no
+ *     client may write where reserved labels are guarded, and, when a
+ *     caller was minted, was created by that same caller: a run a member
+ *     named like a judge is never read as a verdict. A capacity
  *     refusal is thrown as JUDGE_BUSY_FAILURE_TYPE and retried by the
  *     workflow's policy for up to ten minutes; every other refusal is
  *     answered as the failure the record activity reports.
@@ -22,17 +26,20 @@
  *   - record: the verdict, read strictly (domain/score/judge/verdict.ts),
  *     or the reason there is none, replacing the pending score
  *     (domain/score/record.ts); a judge run still going is stopped; the
- *     judge's session is deleted, which deletes its run and releases its
- *     sandbox; and the budget is settled with what the judge spent.
+ *     budget is settled with what the judge spent; and last the judge's
+ *     session is deleted, which deletes its run and releases its sandbox.
+ *     A session the delete cannot remove is logged, never thrown, so a
+ *     settled grade is not settled again by a retry.
  *
  * Every activity is safe to run again, as Temporal may: the plan keeps a
  * verdict already recorded, the start finds its run by name, the record
- * keeps a score of the same state and finds a deleted session gone. Two
- * writes are not keyed: a reservation, and a settlement, each made once
- * per attempt that commits it. So the record settles last, after every
- * step that can fail, and the budget's module header states the one
- * window left (a worker lost between a commit and the activity's
- * completion).
+ * keeps a score of the same state, counting a kept grade by the stored
+ * score, and finds a deleted session gone. Two writes are not keyed: a
+ * reservation, and a settlement, each made once per attempt that commits
+ * it. So the record settles after every step that can fail and before the
+ * session's delete, which cannot fail it, and the budget's module header
+ * states the one window left (a worker lost between a commit and the
+ * activity's completion).
  *
  * Proven by __tests__/judge-activities.test.ts and the grade-run workflow
  * test.
@@ -65,6 +72,7 @@ import {
   JUDGE_UNREADABLE_REASON,
 } from "../../domain/score/constants.js";
 import {
+  GRADES_RUN_LABEL,
   PER_GRADE_CAP_USD,
   isJudgeRun,
   judgeRunName,
@@ -209,17 +217,13 @@ export function createJudgeActivities(deps: JudgeActivityDeps): JudgeActivities 
         return { kind: "refused", failure: "not-started" };
       }
       const org = run.metadata?.org ?? "";
-      const existing = await findJudgeRun(deps.store, runId, org);
-      if (existing !== undefined) {
-        return { kind: "started", judgeRunId: existing };
-      }
-
       let caller: CallerIdentity | undefined;
       if (deps.gradingCaller !== undefined) {
         try {
           caller = await deps.gradingCaller.mintGradingCaller(
             org,
             ticket.evaluatorId,
+            runId,
           );
         } catch (error) {
           if (error instanceof GradingCallerRefusedError) {
@@ -232,6 +236,10 @@ export function createJudgeActivities(deps: JudgeActivityDeps): JudgeActivities 
           }
           throw error;
         }
+      }
+      const existing = await findJudgeRun(deps.store, runId, org, caller);
+      if (existing !== undefined) {
+        return { kind: "started", judgeRunId: existing };
       }
 
       const request = judgeRunRequest({
@@ -247,7 +255,7 @@ export function createJudgeActivities(deps: JudgeActivityDeps): JudgeActivities 
         if (!(error instanceof ConnectError)) {
           throw error;
         }
-        return startRefusal(deps, runId, org, error);
+        return startRefusal(deps, runId, org, caller, error);
       }
     },
 
@@ -276,13 +284,18 @@ export function createJudgeActivities(deps: JudgeActivityDeps): JudgeActivities 
       if (run !== undefined) {
         const verdict = verdictScore(deps, run, judge, failure);
         outcome = await writeJudgeScore(deps, writeDeps(), verdict.score);
-        end = outcome === GRADE_RUN_GONE ? { kind: "gone" } : verdict.end;
+        end =
+          outcome === GRADE_RUN_GONE
+            ? { kind: "gone" }
+            : outcome === GRADE_ALREADY_GRADED
+              ? await storedEnd(deps, verdict.score)
+              : verdict.end;
       }
 
+      await settle(deps.store, ticket.evaluatorId, now(), ticket.capUsd, spentUsd, end);
       if (judge !== undefined) {
         await deleteJudgeSession(deps, judge);
       }
-      await settle(deps.store, ticket.evaluatorId, now(), ticket.capUsd, spentUsd, end);
       return outcome;
     },
   };
@@ -302,11 +315,17 @@ async function evaluatorOf(
   return evaluators.find((evaluator) => evaluator.metadata?.org === org);
 }
 
-/** The id of the judge run an earlier attempt created, found by its fixed name. */
+/**
+ * The id of the judge run an earlier attempt created, found by its fixed
+ * name and adopted only when it carries the judge label naming the judged
+ * run and, when a caller was minted, was created by that caller (the
+ * module header).
+ */
 async function findJudgeRun(
   store: Store,
   judgedRunId: string,
   org: string,
+  caller: CallerIdentity | undefined,
 ): Promise<string | undefined> {
   const found = await findResourceBySlug(
     store,
@@ -315,7 +334,30 @@ async function findJudgeRun(
     judgeRunName(judgedRunId),
     org,
   );
-  return found?.metadata?.id;
+  if (found === undefined || found.metadata?.labels[GRADES_RUN_LABEL] !== judgedRunId) {
+    return undefined;
+  }
+  const creator = found.status?.audit?.specAudit?.createdBy?.id ?? "";
+  if (caller !== undefined && creator !== caller.identityId) {
+    return undefined;
+  }
+  return found.metadata.id;
+}
+
+/**
+ * How a grade already recorded counts, read from the stored score: a retry
+ * that finds its earlier attempt's grade counts what that attempt wrote,
+ * not what it would conclude now (its judge run may be gone).
+ */
+async function storedEnd(
+  deps: JudgeActivityDeps,
+  score: ReturnType<typeof notGradedJudgeScore>,
+): Promise<GradeEnd> {
+  const stored = await sameWriterScore(deps, score);
+  if (stored?.status?.state === ScoreState.graded) {
+    return { kind: "graded" };
+  }
+  return { kind: "not-graded", reason: stored?.status?.notGradedReason ?? "" };
 }
 
 /**
@@ -328,11 +370,12 @@ async function startRefusal(
   deps: JudgeActivityDeps,
   runId: string,
   org: string,
+  caller: CallerIdentity | undefined,
   error: ConnectError,
 ): Promise<JudgeStart> {
   switch (error.code) {
     case Code.AlreadyExists: {
-      const winner = await findJudgeRun(deps.store, runId, org);
+      const winner = await findJudgeRun(deps.store, runId, org, caller);
       if (winner === undefined) {
         throw error;
       }
@@ -463,9 +506,12 @@ async function stopJudge(deps: JudgeActivityDeps, judgeRunId: string): Promise<v
 
 /**
  * Deletes the judge's session, which deletes its run and releases its
- * sandbox. A session already gone is fine. One the delete refuses because
- * its run is still active (a judge parked where terminate cannot reach) is
- * left and logged: the grade is recorded either way.
+ * sandbox. A session already gone is fine. One the delete refuses (its run
+ * still active where terminate cannot reach) or cannot reach (a store
+ * fault) is left and logged, never thrown: the grade is recorded and
+ * settled by then, and a retry would settle it again. Whoever the judge
+ * acted as could already read the conversation it holds
+ * (extensions/grading-caller.ts).
  */
 async function deleteJudgeSession(deps: JudgeActivityDeps, judge: Run): Promise<void> {
   const sessionId = sessionIdOf(judge.spec);
@@ -478,15 +524,11 @@ async function deleteJudgeSession(deps: JudgeActivityDeps, judge: Run): Promise<
     if (error instanceof ConnectError && error.code === Code.NotFound) {
       return;
     }
-    if (error instanceof ConnectError && error.code === Code.FailedPrecondition) {
-      deps.logger.warn("the judge session could not be deleted", {
-        sessionId,
-        judgeRunId: judge.metadata?.id ?? "",
-        reason: error.rawMessage,
-      });
-      return;
-    }
-    throw error;
+    deps.logger.error("the judge session could not be deleted; it is left", {
+      sessionId,
+      judgeRunId: judge.metadata?.id ?? "",
+      reason: error instanceof Error ? error.message : String(error),
+    });
   }
 }
 

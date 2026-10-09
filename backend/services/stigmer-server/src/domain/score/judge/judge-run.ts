@@ -25,7 +25,7 @@
  * the run kind (store/interface.ts, findAllByLabel). The grading workflow
  * owns the judge run's session and deletes it when the grade is recorded.
  *
- * Proven by __tests__/judge-run.test.ts.
+ * Proven by __tests__/judge.test.ts.
  */
 import { create } from "@bufbuild/protobuf";
 import type { JsonObject } from "@bufbuild/protobuf";

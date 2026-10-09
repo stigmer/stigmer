@@ -29,7 +29,7 @@
  * (rubrics.ts, judgeMessage) and every string the run carried stays a
  * string to the judge.
  *
- * Proven by __tests__/subject.test.ts.
+ * Proven by __tests__/judge.test.ts.
  */
 import type { JsonValue } from "@bufbuild/protobuf";
 

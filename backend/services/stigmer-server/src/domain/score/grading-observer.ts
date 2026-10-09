@@ -51,8 +51,8 @@ export const GRADING_START_DEADLINE_MS = 2_000;
  * A grading run spans seconds to a couple of minutes; this bounds a stuck
  * one, with room for run health's two retry budgets (five one-minute
  * attempts each, plus backoff), the judge start's ten minutes of capacity
- * retries, the judge run's ten minutes, and the record's own retries
- * (temporal/grading/workflows/grade-run.ts), so no record is cut off
+ * retries, the judge run's ten minutes, and the record's twenty minutes of
+ * retries (temporal/grading/workflows/grade-run.ts), so no record is cut off
  * mid-flight. A run no grading worker picks up ends here with no score:
  * every composition registers the worker (boot/compose.ts), so that is a
  * deployment without the server's own workers.

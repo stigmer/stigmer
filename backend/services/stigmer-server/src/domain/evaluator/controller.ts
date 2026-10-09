@@ -12,7 +12,8 @@
  * manifest. Not search-indexed: an evaluator is a setting reached through
  * its agent, so no IndexSearch or DeleteSearchIndex step appears here.
  *
- * Proven by __tests__/evaluator.test.ts and evaluator.conformance.test.ts.
+ * Proven by temporal/grading/__tests__/judge-composed.test.ts, the steps'
+ * faults in __tests__/steps.test.ts, and evaluator.conformance.test.ts.
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 

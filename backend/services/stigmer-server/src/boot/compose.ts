@@ -688,15 +688,6 @@ export async function composeServer(
     (authorizationPosture === "built-in"
       ? newBuiltInScheduleFireCaller({ store, accounts: identityAccounts })
       : undefined);
-  // Who an AI judge run acts as: a unit's grading caller (the hosted
-  // edition's per-organization grading account), else the evaluator's
-  // creator under the built-in posture, else the server itself on the
-  // trusted-local laptop (extensions/grading-caller.ts).
-  const gradingCaller: GradingCallerMint | undefined =
-    extensions.drivers.gradingCaller ??
-    (authorizationPosture === "built-in"
-      ? newBuiltInGradingCaller({ store, accounts: identityAccounts })
-      : undefined);
   // The ONE list read scope (the seam's single-instance point), bound
   // here under the same posture and handed to every list-shaped consumer
   // below — the post-scan lanes through restrictListByReadScope, the
@@ -739,6 +730,16 @@ export async function composeServer(
     postureAuthorizer,
     credentialBinding,
   );
+  // Who an AI judge run acts as: a unit's grading caller (the hosted
+  // edition's per-organization grading account), else the evaluator's
+  // creator under the built-in posture, for runs that creator may see,
+  // else the server itself on the trusted-local laptop
+  // (extensions/grading-caller.ts).
+  const gradingCaller: GradingCallerMint | undefined =
+    extensions.drivers.gradingCaller ??
+    (authorizationPosture === "built-in"
+      ? newBuiltInGradingCaller({ store, accounts: identityAccounts, authorizer })
+      : undefined);
   const organizationDirectory: OrganizationDirectory | undefined =
     postureOrganizationDirectory === undefined
       ? undefined

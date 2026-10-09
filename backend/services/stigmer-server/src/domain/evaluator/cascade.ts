@@ -7,7 +7,8 @@
  * nothing, since nothing can run the agent, but would keep its settings
  * and spend visible to nobody.
  *
- * Proven by __tests__/evaluator.test.ts and the conformance cascade arm.
+ * Proven by temporal/grading/__tests__/judge-composed.test.ts, the faults in
+ * __tests__/steps.test.ts, and the conformance cascade arm.
  */
 import type { DescMessage } from "@bufbuild/protobuf";
 

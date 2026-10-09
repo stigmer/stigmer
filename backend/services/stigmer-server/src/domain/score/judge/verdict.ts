@@ -8,7 +8,7 @@
  * read as a failure would change what a grade means. The grading activity
  * records a refusal as not graded, "the judge's answer could not be read".
  *
- * Proven by __tests__/verdict.test.ts.
+ * Proven by __tests__/judge.test.ts.
  */
 import type { JsonObject, JsonValue } from "@bufbuild/protobuf";
 

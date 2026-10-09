@@ -6,7 +6,7 @@
  * ids look like. A run that is not picked carries no judge score at all:
  * "not sampled" is not "not graded".
  *
- * Proven by __tests__/sampling.test.ts (determinism, and the rate over ten
+ * Proven by __tests__/judge.test.ts (determinism, and the rate over ten
  * thousand ids).
  */
 import { createHash } from "node:crypto";

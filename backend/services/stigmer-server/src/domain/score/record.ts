@@ -20,8 +20,8 @@
  * between the delete and its create re-reads and decides again, a bounded
  * number of times.
  *
- * Proven by __tests__/record.test.ts (the stigmer#2057 interleave among
- * them).
+ * Proven by temporal/grading/__tests__/judge-composed.test.ts (the
+ * stigmer#2057 interleave among them) and activities.test.ts beside it.
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 

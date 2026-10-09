@@ -2,9 +2,12 @@
  * Pins the built-in grading caller on both store drivers: an AI judge run
  * acts as the creator of the evaluator that asked for it, resolved from the
  * row's creation stamp as the schedule fire's creator is
- * (schedule-fire-caller.postgres.test.ts beside this file); an evaluator
- * whose stamp names no person this server knows is the seam's
- * DETERMINISTIC refusal; a missing evaluator stays an infrastructure throw.
+ * (schedule-fire-caller.postgres.test.ts beside this file), and only for a
+ * run that creator may see: a judge's session holds the run's
+ * conversation, so a creator the authorizer refuses on the run is the
+ * seam's DETERMINISTIC refusal, as is an evaluator whose stamp names no
+ * person this server knows; a missing evaluator and an authorizer that
+ * cannot answer stay infrastructure throws.
  */
 import { create } from "@bufbuild/protobuf";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -19,7 +22,11 @@ import { newResourceIdentityAccountStore } from "../../domain/identityaccount/re
 import type { IdentityAccountStore } from "../../domain/identityaccount/store.js";
 import { GradingCallerRefusedError } from "../../extensions/grading-caller.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
+import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+
+import type { Authorizer } from "../../extensions/authorizer.js";
 import {
+  creatorCannotSeeRunMessage,
   evaluatorHasNoPersonMessage,
   newBuiltInGradingCaller,
 } from "../grading-caller.js";
@@ -70,13 +77,25 @@ describe.each(
       );
     }
 
-    function mint() {
-      return newBuiltInGradingCaller({ store: opened.store, accounts });
+    const asked: string[] = [];
+    function answering(kind: "allow" | "deny" | "unavailable"): Authorizer {
+      return {
+        authorize: (caller, check) => {
+          asked.push(`${caller.identityId} ${IamPermission[check.permission]} ${check.resourceId}`);
+          if (kind === "unavailable") return Promise.resolve({ kind, cause: new Error("engine down") });
+          return Promise.resolve(kind === "allow" ? { kind } : { kind, reason: "not a viewer" });
+        },
+      };
+    }
+
+    function mint(answer: "allow" | "deny" | "unavailable" = "allow") {
+      return newBuiltInGradingCaller({ store: opened.store, accounts, authorizer: answering(answer) });
     }
 
     it("a judge acts as the evaluator's creator, in the in-process identity shape", async () => {
       await evaluator("evl_by_id", PRIYA);
-      expect(await mint().mintGradingCaller("acme", "evl_by_id")).toEqual({
+      asked.length = 0;
+      expect(await mint().mintGradingCaller("acme", "evl_by_id", "run_1")).toEqual({
         identityId: PRIYA,
         callerClass: "user",
         issuer: "",
@@ -84,8 +103,19 @@ describe.each(
         email: "priya@example.com",
         displayName: "Priya",
       });
+      expect(asked, "the creator must see the graded run").toEqual([`${PRIYA} can_view run_1`]);
       await evaluator("evl_by_sub", SUBJECT);
-      expect((await mint().mintGradingCaller("acme", "evl_by_sub")).identityId).toBe(PRIYA);
+      expect((await mint().mintGradingCaller("acme", "evl_by_sub", "run_1")).identityId).toBe(PRIYA);
+    });
+
+    it("refuses when the creator may not see the graded run, and throws when the authorizer cannot answer", async () => {
+      await evaluator("evl_blind", PRIYA);
+      const refused = await mint("deny")
+        .mintGradingCaller("acme", "evl_blind", "run_private")
+        .catch((error: unknown) => error);
+      expect(refused).toBeInstanceOf(GradingCallerRefusedError);
+      expect((refused as Error).message).toBe(creatorCannotSeeRunMessage("evl_blind", "run_private"));
+      await expect(mint("unavailable").mintGradingCaller("acme", "evl_blind", "run_1")).rejects.toThrow("engine down");
     });
 
     it.each([
@@ -95,7 +125,7 @@ describe.each(
     ])("%s is the seam's deterministic refusal", async (_label, stamp) => {
       await evaluator("evl_nobody", stamp);
       const failure = await mint()
-        .mintGradingCaller("acme", "evl_nobody")
+        .mintGradingCaller("acme", "evl_nobody", "run_1")
         .catch((error: unknown) => error);
       expect(failure).toBeInstanceOf(GradingCallerRefusedError);
       expect((failure as Error).message).toBe(evaluatorHasNoPersonMessage("evl_nobody"));
@@ -103,7 +133,7 @@ describe.each(
 
     it("an evaluator that no longer exists is an infrastructure throw, never a refusal", async () => {
       const failure = await mint()
-        .mintGradingCaller("acme", "evl_missing")
+        .mintGradingCaller("acme", "evl_missing", "run_1")
         .catch((error: unknown) => error);
       expect(failure).toBeInstanceOf(ResourceNotFoundError);
     });

@@ -24,7 +24,7 @@
  * activity's completion reserves a second cap for the same grade, which
  * then stays reserved, visible on the Quality tab, until the month ends.
  *
- * Proven by __tests__/budget.test.ts (rollover, the refusal at the limit,
+ * Proven by __tests__/budget.postgres.test.ts (rollover, the refusal at the limit,
  * twenty concurrent reservations that never pass it on both stores, a
  * settle across months).
  */
