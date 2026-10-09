@@ -2,15 +2,16 @@
 //
 // After a file apply, each newly-applied stdio MCP server is connected so its
 // tools become available immediately (no daemon restart). This is best-effort:
-// HTTP servers are skipped (the backend discovers those lazily), servers with
-// unset secret env vars are skipped with a hint, and connect failures warn
-// rather than fail the apply. Mirrors Go's discoverAppliedMcpServers + ConnectOne.
+// HTTP servers are skipped (the backend discovers those lazily), and connect
+// failures warn rather than fail the apply. The connect reads the caller's My
+// vault on the server, never this machine's environment: a key it lacks is
+// named in the warning, with the vault command that saves it.
 
 import { create } from "@bufbuild/protobuf";
+import { Code } from "@connectrpc/connect";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { ConnectInputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
-import type { Stigmer } from "@stigmer/sdk";
-import { buildRuntimeEnv } from "../mcp/runtime-env.js";
+import { StigmerError, type Stigmer } from "@stigmer/sdk";
 
 /** A sink for human progress/warning lines (discovery output is not parity). */
 export type DiscoverySink = (line: string) => void;
@@ -38,32 +39,19 @@ export async function discoverAppliedMcpServers(
     // Only stdio servers are auto-connected here; HTTP servers are skipped.
     if (server.spec?.serverType?.case !== "stdio") continue;
 
-    const missing = missingSecretEnvVars(server);
-    if (missing.length > 0) {
-      sink?.(`Skipping discovery for ${name}: missing secret env var(s): ${missing.join(", ")}`);
-      continue;
-    }
-
     try {
       await client.mcpServer.connect(
         create(ConnectInputSchema, {
           mcpServerId: server.metadata?.id ?? "",
           org,
-          runtimeEnv: buildRuntimeEnv(server),
         }),
       );
       sink?.(`Discovered capabilities for ${name}`);
     } catch (err) {
       sink?.(`Discovery failed for ${name}: ${(err as Error).message}`);
+      if (err instanceof StigmerError && err.connectCode === Code.FailedPrecondition) {
+        sink?.(`Save a missing key with: stigmer vault set-secret <NAME> --mine, then run stigmer connect mcp-server ${server.metadata?.slug ?? name}`);
+      }
     }
   }
-}
-
-function missingSecretEnvVars(server: McpServer): string[] {
-  const env = server.spec?.env ?? {};
-  const missing: string[] = [];
-  for (const [name, decl] of Object.entries(env)) {
-    if (decl.isSecret && (process.env[name] ?? "") === "") missing.push(name);
-  }
-  return missing;
 }

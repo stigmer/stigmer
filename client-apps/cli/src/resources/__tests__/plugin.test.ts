@@ -336,7 +336,7 @@ describe("readNextSteps", () => {
         server: "warmth",
         variables: ["API_TOKEN"],
         askedAt: "connect",
-        command: "stigmer connect mcp-server warmth --env API_TOKEN=...",
+        command: "stigmer vault set-secret API_TOKEN --mine && stigmer connect mcp-server warmth",
       },
       { kind: "add-to-agent", servers: ["linear", "notion", "warmth", "weather", "ghost"] },
     ]);

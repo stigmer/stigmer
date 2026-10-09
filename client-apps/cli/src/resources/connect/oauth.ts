@@ -56,7 +56,10 @@ export async function runOAuthFlow(deps: OAuthFlowDeps): Promise<void> {
   if (deps.probeLocalConsole) {
     const probe = deps.probeConsole ?? probeWebConsole;
     if (!(await probe(consoleURL)))
-      throw consoleUnavailableError(deps.server.metadata?.slug ?? "<slug>");
+      throw consoleUnavailableError(
+        deps.server.metadata?.slug ?? "<slug>",
+        deps.server.spec?.auth?.targetEnvVar ?? "",
+      );
   }
 
   const slug = deps.server.metadata?.slug ?? "";
@@ -142,13 +145,14 @@ async function probeWebConsole(url: string): Promise<boolean> {
 
 // Interactive OAuth needs a web console to host the grant page. The TS CLI does
 // not serve a local console, so for a local backend we steer the user to the two
-// real alternatives — manual credentials, or Stigmer Cloud's hosted console —
-// rather than telling them to enable a console that does not exist locally.
-function consoleUnavailableError(slug: string): UsageError {
+// real alternatives — a token saved in their own vault, or Stigmer Cloud's hosted
+// console — rather than telling them to enable a console that does not exist
+// locally.
+function consoleUnavailableError(slug: string, key: string): UsageError {
   return new UsageError(
     "Interactive OAuth via the web console isn't available for a local backend.\n\n" +
       "To connect this MCP server, either:\n" +
-      `  - Provide credentials directly: stigmer connect mcp-server ${slug} --env TOKEN=...\n` +
+      `  - Save a token in your vault: stigmer vault set-secret ${key || "<NAME>"} --mine, then run stigmer connect mcp-server ${slug}\n` +
       "  - Or use Stigmer Cloud's hosted console: stigmer config backend set cloud",
   );
 }

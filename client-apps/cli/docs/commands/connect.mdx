@@ -25,21 +25,19 @@ For **HTTP-based servers**, the CLI connects to the configured URL directly.
 
 ### Passing credentials
 
-Use `--env` to pass credentials the MCP server needs. Values are merged on
-top of your shell environment (`--env` wins on collision).
+A connect reads the keys the MCP server declares from your own vault (My vault)
+in the organization, never from the command line. Save each key there first,
+then connect:
 
 ```bash
-# Single credential
-stigmer connect mcp-server planton --env PLANTON_API_KEY=pk-xxx
-
-# Multiple credentials
-stigmer connect mcp-server my-server \
-  --env GITHUB_TOKEN=ghp-xxx \
-  --env API_URL=https://api.example.com
+stigmer vault set-secret PLANTON_API_KEY --mine
+stigmer connect mcp-server planton
 ```
 
-You can also export variables in your shell before running the command.
-`--env` is more convenient and mirrors `stigmer run`.
+A server that signs in with OAuth uses the sign-in saved for its address, or
+runs the sign-in in your browser when there is none. A server that also accepts
+a personal token is satisfied by a secret saved under its login key. `--env` is
+refused, naming the vault command.
 
 ### Environment variable placeholders
 
@@ -59,15 +57,14 @@ env:
     description: Root directory the server is allowed to access
 ```
 
-Placeholders are resolved from the same values `--env` and your shell provide
-(the variable must be declared under the server's `env`). Resolution is strict
-and identical between `--dry-run` and a real connect: a missing variable
-produces a clear error naming the variable, rather than passing a literal
-`${VAR}` to the server.
+For `--dry-run`, placeholders are resolved from your shell (the variable must
+be declared under the server's `env`); a real connect resolves them from your
+vault. Resolution is strict: a missing variable produces a clear error naming
+the variable, rather than passing a literal `${VAR}` to the server.
 
 ```bash
-stigmer connect mcp-server mcp-server-filesystem \
-  --dry-run --env FILESYSTEM_ALLOWED_DIR="$HOME/projects"
+FILESYSTEM_ALLOWED_DIR="$HOME/projects" \
+  stigmer connect mcp-server mcp-server-filesystem --dry-run
 ```
 
 ### Dry run

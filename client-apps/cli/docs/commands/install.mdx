@@ -37,8 +37,9 @@ organization yet names the command that runs it
 (`stigmer connect mcp-server <server>`, which opens the console's sign-in and
 waits for it); a server already signed in says so; a server that wants an API
 key names the variables and where they are asked (the agent's first session
-when the plugin installed
-an agent, `stigmer connect mcp-server <server> --env` otherwise). A plugin that
+when the plugin installed an agent; otherwise saved with
+`stigmer vault set-secret <NAME> --mine` before
+`stigmer connect mcp-server <server>`). A plugin that
 installed tools and no agent ends with the one thing still missing: an agent
 that lists the servers under `mcp_server_usages`, or the plugin's page in the
 console, whose **Add to an agent** does it. Under `--json` the same facts are

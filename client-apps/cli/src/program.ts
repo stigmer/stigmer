@@ -54,14 +54,18 @@ export const RETIRED_COMMANDS: ReadonlyMap<string, string> = new Map([
 
 /**
  * Options a command once had and no longer does, by the command's name: a
- * run carries no keys of its own, so a key is saved in a vault and the run
- * reads it there. As with {@link RETIRED_COMMANDS}, commander's
+ * run and a connect carry no keys of their own, so a key is saved in a vault
+ * and they read it there. As with {@link RETIRED_COMMANDS}, commander's
  * unknown-option answer on that command gains the one line here; the option
- * itself is gone, not hidden. Only `run` ever took these options, so another
- * command meeting the same word answers with commander's error alone.
+ * itself is gone, not hidden. Only the commands listed ever took these
+ * options, so another command meeting the same word answers with commander's
+ * error alone.
  */
 const RETIRED_RUN_OPTION_HINT =
   "A run no longer takes keys on the command line: save it with `stigmer vault set-secret NAME --mine`, then run.";
+
+const RETIRED_CONNECT_OPTION_HINT =
+  "A connect no longer takes keys on the command line: save it with `stigmer vault set-secret NAME --mine`, then connect.";
 
 export const RETIRED_OPTIONS: ReadonlyMap<string, ReadonlyMap<string, string>> = new Map([
   [
@@ -73,6 +77,7 @@ export const RETIRED_OPTIONS: ReadonlyMap<string, ReadonlyMap<string, string>> =
       ["--secret-file", RETIRED_RUN_OPTION_HINT],
     ]),
   ],
+  ["connect", new Map([["--env", RETIRED_CONNECT_OPTION_HINT]])],
 ]);
 
 // Append a retired command's or option's pointer to commander's unknown
