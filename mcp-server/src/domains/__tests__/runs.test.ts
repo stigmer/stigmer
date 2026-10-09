@@ -6,7 +6,8 @@
 // stubs capture requests so the tests assert the exact protos the tools send
 // (slug→reference resolution and a missing agent's not-found, the turn's
 // target, a follow-up refused when it names another agent or organization
-// than the session's, the vaults a new conversation names, approval enum mapping) and
+// than the session's, the vaults a new conversation names and an empty vault
+// entry refused before anything starts, approval enum mapping) and
 // script run state (running vs terminal, long message histories) to
 // exercise the compact projection and the cancel short-circuit. A scripted
 // RPC failure per method pins the error copy each tool returns when the
@@ -255,6 +256,21 @@ describe("run tools integration", () => {
       [ApiResourceKind.vault, "acme", "support-tools"],
       [ApiResourceKind.vault, "platform", "shared-keys"],
     ]);
+  });
+
+  it.each(["", "   "])("run_agent refuses an empty vault entry (%j) and starts nothing", async (entry) => {
+    const result = await callTool("run_agent", {
+      org: "acme",
+      agent: "code-reviewer",
+      message: "triage the queue",
+      vaults: ["support-tools", entry],
+    });
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toContain(
+      "vaults: an entry is empty; name each vault by slug or org/slug.",
+    );
+    expect(agentLookups).toBe(0);
+    expect(createdRun).toBeUndefined();
   });
 
   it.each(["secrets", "runtime_env"])(

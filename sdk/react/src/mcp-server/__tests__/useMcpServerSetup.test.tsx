@@ -2,7 +2,8 @@
  * useMcpServerSetup walks each attached server from loading to ready: a
  * server whose credentials are missing waits in needsSetup until they are
  * saved in My vault, or until the pool (the platform's own keys) or My
- * vault, when included, covers them. A ready server becomes a usage that
+ * vault, when included, covers them. A save My vault refuses resolves
+ * false and leaves the server waiting with the reason. A ready server becomes a usage that
  * attaches the whole server: no per-tool selection rides on it, because
  * the agent's own tool lists decide which tools a session may call. A token
  * for the server's login variable (here an `Authorization: Bearer ${VAR}`
@@ -206,6 +207,24 @@ describe("useMcpServerSetup", () => {
     expect(myVault.setSecrets).toHaveBeenCalledWith({ ZENDESK_SUBDOMAIN: "acme" });
     expect(result.current.entries["acme/zendesk"]?.status).toBe("ready");
     expect(result.current.usageInputs).toEqual([WHOLE_SERVER_USAGE]);
+  });
+
+  it("resolves false and keeps the server waiting with the reason when My vault refuses the save", async () => {
+    myVault.setSecrets.mockRejectedValueOnce(new Error("vault write refused"));
+    const { result } = await addNeedingSetup();
+
+    let saved = true;
+    await act(async () => {
+      saved = await result.current.submitEnvVars(REF, {
+        ZENDESK_TOKEN: { value: "t", isSecret: true },
+        ZENDESK_SUBDOMAIN: { value: "acme", isSecret: true },
+      });
+    });
+
+    expect(saved).toBe(false);
+    expect(result.current.entries["acme/zendesk"]?.status).toBe("needsSetup");
+    expect(result.current.entries["acme/zendesk"]?.error?.message).toBe("vault write refused");
+    expect(result.current.usageInputs).toEqual([]);
   });
 
   it("readies a waiting server once the pool covers its credentials", async () => {

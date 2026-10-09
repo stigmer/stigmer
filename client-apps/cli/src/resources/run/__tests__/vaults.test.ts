@@ -2,7 +2,9 @@
 // conversation stores. Pins the three forms the vault verbs accept (id,
 // org/slug, slug in the run's organization), that an id is looked up for its
 // organization and slug, that order is kept and a repeat is sent once, and
-// that an empty reference is refused before anything is sent.
+// that an empty reference is refused before anything is sent, and that an id
+// naming a vault without a slug is refused (a conversation names vaults by
+// organization and slug).
 
 import { describe, expect, it } from "vitest";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -43,6 +45,15 @@ describe("resolveRunVaults", () => {
   it("keeps the order given and sends a repeated vault once, in its first place", async () => {
     const refs = await resolveRunVaults(reader(), ["b", "a", "acme/b"], "acme");
     expect(refs.map((ref) => ref.slug)).toEqual(["b", "a"]);
+  });
+
+  it("refuses an id whose vault has no slug", async () => {
+    const slugless = {
+      vault: { get: () => Promise.resolve({ metadata: { id: VAULT_ID, org: "acme", slug: "" } }) },
+    } as unknown as VaultReader;
+    const refused = resolveRunVaults(slugless, [VAULT_ID], "acme");
+    await expect(refused).rejects.toBeInstanceOf(UsageError);
+    await expect(refused).rejects.toThrow(`vault '${VAULT_ID}' has no slug`);
   });
 
   it("refuses an empty reference", async () => {
