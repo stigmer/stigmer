@@ -1,11 +1,12 @@
 // OAuthApp conformance — CRUD, the client-secret contract, and the
-// referential delete-block (Class A).
+// addresses an app signs in to (Class A).
 // Domain: conformance suites.
 //
 // OAuthApp is the outbound-auth registration with an external vendor: client
-// credentials plus the vendor's OAuth endpoints, referenced by McpServer
-// resources that authenticate via vendor OAuth (McpServerAuth.oauth_app_ref).
-// Three surfaces make the domain distinct, and all three are asserted here:
+// credentials plus the vendor's OAuth endpoints, found by the addresses it
+// signs in to (a sign-in at one of them uses it; the sign-in itself is
+// suites/vault-sign-in.conformance.test.ts). Three surfaces make the domain
+// distinct, and all three are asserted here:
 //
 //   - The SECRET contract: client_secret is encrypted at rest and REDACTED to
 //     the ***REDACTED*** marker on every response, the delete's included
@@ -16,21 +17,18 @@
 //     a prefixed request value is either forged ciphertext or an attempt to
 //     pin stale ciphertext (the oss#395 boundary, pinned in both editions'
 //     unit tests and held here over the wire).
-//   - The DELETE-BLOCK: deletion is refused with FailedPrecondition while an
-//     McpServer's oauth_app_ref RESOLVES to the app (stigmer#584 — resolution
-//     semantics, not literal field match), because deleting it would sever a
-//     live vendor-OAuth connection. Unreferencing frees the delete.
+//   - The ADDRESSES: each is normalized as a vault connection's address is,
+//     and belongs to one app per organization. A second app naming an
+//     address another app of the organization holds is refused
+//     ALREADY_EXISTS; another organization may name it; an update that
+//     drops an address, or a delete, frees it.
 //   - There is deliberately NO updateVisibility RPC and no public surface:
 //     an OAuthApp holds credentials, so org-private is the only posture.
-import type { MessageInitShape } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
-import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
-import { MCPSERVER_API_VERSION, MCPSERVER_KIND } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";
 import { OAUTHAPP_REDACTED_MARKER, makeOAuthApp } from "../support/oauthapps";
 import { createTarget, type TargetProfile } from "../targets";
@@ -53,35 +51,12 @@ afterAll(async () => {
   await target?.teardown();
 });
 
-async function createOAuthAppFixture(org: string, name = uniqueName("oauth-app")) {
-  const app = await clients.oauthAppCommand.create(makeOAuthApp(org, name));
+async function createOAuthAppFixture(org: string, name = uniqueName("oauth-app"), addresses?: string[]) {
+  const app = await clients.oauthAppCommand.create(
+    makeOAuthApp(org, name, addresses === undefined ? {} : { addresses }),
+  );
   fixtures.defer(() => clients.oauthAppCommand.delete({ resourceId: app.metadata!.id }));
   return app;
-}
-
-// An McpServer whose auth block references the given OAuthApp — the
-// referencing side of the delete-block. Built inline rather than in
-// support/mcpservers.ts: the auth arm exists here only to hold the reference.
-function makeReferencingMcpServer(
-  org: string,
-  appSlug: string,
-): MessageInitShape<typeof McpServerSchema> {
-  return {
-    apiVersion: MCPSERVER_API_VERSION,
-    kind: MCPSERVER_KIND,
-    metadata: { name: uniqueName("mcp-ref"), org },
-    spec: {
-      description: "references an OAuthApp for the delete-block contract",
-      serverType: {
-        case: "stdio",
-        value: { command: "npx", args: ["-y", "@modelcontextprotocol/server-everything"] },
-      },
-      auth: {
-        oauthAppRef: { org, slug: appSlug, kind: ApiResourceKind.oauth_app },
-        targetEnvVar: "VENDOR_TOKEN",
-      },
-    },
-  };
 }
 
 describe("OAuthApp conformance — CRUD & identity", () => {
@@ -161,7 +136,7 @@ describe("OAuthApp conformance — CRUD & identity", () => {
     expect(updated.spec?.clientSecret).toBe(OAUTHAPP_REDACTED_MARKER);
   });
 
-  it("[rpc:OAuthAppCommandController.delete] delete removes an unreferenced app", async () => {
+  it("[rpc:OAuthAppCommandController.delete] delete removes an app", async () => {
     const { org } = await target.provisionTenancy();
     // No deferred cleanup: this test deletes the app itself.
     const created = await clients.oauthAppCommand.create(makeOAuthApp(org, uniqueName("oauth-app")));
@@ -241,27 +216,89 @@ describe("OAuthApp conformance — the client-secret contract", () => {
   });
 });
 
-describe("OAuthApp conformance — referential delete-block", () => {
-  it("[rpc:OAuthAppCommandController.delete] refuses to delete an app an McpServer references, then allows it once unreferenced", async () => {
+describe("OAuthApp conformance — the addresses an app signs in to", () => {
+  it("[rpc:OAuthAppCommandController.create] normalizes each address as a vault connection's address is", async () => {
     const { org } = await target.provisionTenancy();
-    const app = await clients.oauthAppCommand.create(makeOAuthApp(org, uniqueName("oauth-app")));
+    const app = await clients.oauthAppCommand.create(
+      makeOAuthApp(org, uniqueName("oauth-app"), {
+        addresses: ["HTTPS://MCP.Vendor.test:443/mcp/?x=1", "GitHub.com"],
+      }),
+    );
+    fixtures.defer(() => clients.oauthAppCommand.delete({ resourceId: app.metadata!.id }));
 
-    const mcpServer = await clients.mcpServerCommand.create(
-      makeReferencingMcpServer(org, app.metadata!.slug),
+    expect(app.spec?.addresses).toEqual(["https://mcp.vendor.test/mcp", "github.com"]);
+  });
+
+  it("[rpc:OAuthAppCommandController.create] refuses an address another app of the organization holds (AlreadyExists), and admits it in another organization", async () => {
+    const { org } = await target.provisionTenancy();
+    const address = `https://mcp.vendor.test/${uniqueName("held")}`;
+    await createOAuthAppFixture(org, uniqueName("first"), [address]);
+
+    const err = await expectGrpcCode(
+      () => clients.oauthAppCommand.create(makeOAuthApp(org, uniqueName("second"), { addresses: [address] })),
+      Code.AlreadyExists,
+      "a second app naming a held address",
+    );
+    expect(err.rawMessage).toBe(
+      `the address ${address} already belongs to another login app in this organization: remove it there first`,
     );
 
-    // Referenced: deleting the app would sever a live vendor-OAuth
-    // connection, so the guard refuses.
+    const other = await target.provisionTenancy();
+    const elsewhere = await createOAuthAppFixture(other.org, uniqueName("elsewhere"), [address]);
+    expect(elsewhere.spec?.addresses).toEqual([address]);
+  });
+
+  it("[rpc:OAuthAppCommandController.update] an update that drops an address frees it, and one that adds a held address is refused", async () => {
+    const { org } = await target.provisionTenancy();
+    const kept = `https://mcp.vendor.test/${uniqueName("kept")}`;
+    const moved = `https://mcp.vendor.test/${uniqueName("moved")}`;
+    const first = await createOAuthAppFixture(org, uniqueName("first"), [kept, moved]);
+    const second = await createOAuthAppFixture(org, uniqueName("second"));
+
     await expectGrpcCode(
-      () => clients.oauthAppCommand.delete({ resourceId: app.metadata!.id }),
-      Code.FailedPrecondition,
-      "delete an OAuthApp a live McpServer references",
+      () =>
+        clients.oauthAppCommand.update({
+          ...makeOAuthApp(org, second.metadata!.name, { addresses: [moved] }),
+          metadata: second.metadata,
+        }),
+      Code.AlreadyExists,
+      "update adding an address another app holds",
     );
 
-    // Unreference by deleting the McpServer; the app is now free to go.
-    await clients.mcpServerCommand.delete({ resourceId: mcpServer.metadata!.id });
-    const deleted = await clients.oauthAppCommand.delete({ resourceId: app.metadata!.id });
-    expect(deleted.metadata?.id).toBe(app.metadata?.id);
+    await clients.oauthAppCommand.update({
+      ...makeOAuthApp(org, first.metadata!.name, { addresses: [kept] }),
+      metadata: first.metadata,
+    });
+    const taken = await clients.oauthAppCommand.update({
+      ...makeOAuthApp(org, second.metadata!.name, { addresses: [moved] }),
+      metadata: second.metadata,
+    });
+    expect(taken.spec?.addresses).toEqual([moved]);
+  });
+
+  it("[rpc:OAuthAppCommandController.delete] a delete frees the app's addresses", async () => {
+    const { org } = await target.provisionTenancy();
+    const address = `https://mcp.vendor.test/${uniqueName("freed")}`;
+    const app = await clients.oauthAppCommand.create(makeOAuthApp(org, uniqueName("gone"), { addresses: [address] }));
+    await clients.oauthAppCommand.delete({ resourceId: app.metadata!.id });
+
+    const successor = await createOAuthAppFixture(org, uniqueName("successor"), [address]);
+    expect(successor.spec?.addresses).toEqual([address]);
+  });
+
+  it("[rpc:OAuthAppCommandController.create] refuses no address, a value that is no address, and two that normalize alike (InvalidArgument each)", async () => {
+    const { org } = await target.provisionTenancy();
+    for (const [addresses, label] of [
+      [[], "no address"],
+      [["not an address"], "a value that is no address"],
+      [["https://mcp.vendor.test/a", "HTTPS://mcp.vendor.test/a/"], "two addresses that normalize alike"],
+    ] as const) {
+      await expectGrpcCode(
+        () => clients.oauthAppCommand.create(makeOAuthApp(org, uniqueName("bad"), { addresses: [...addresses] })),
+        Code.InvalidArgument,
+        `create with ${label}`,
+      );
+    }
   });
 });
 

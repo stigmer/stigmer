@@ -45,6 +45,17 @@ export interface OAuthAppOptions {
   // How the client secret is presented at the token endpoint; unset means
   // HTTP Basic (the backwards-compatible baseline).
   tokenEndpointAuthMethod?: TokenEndpointAuthMethod;
+  // The addresses the app signs in to; each belongs to one app per
+  // organization. Defaults to one address named after the app, so apps in
+  // one organization never collide.
+  addresses?: string[];
+  // The endpoint that answers who signed in (spec.userinfo_url).
+  userinfoUrl?: string;
+}
+
+// The address an app signs in to when a test names none: unique per app name.
+export function defaultOAuthAppAddress(name: string): string {
+  return `https://mcp.vendor.test/${encodeURIComponent(name)}`;
 }
 
 // A complete, valid OAuthApp resource ready to hand to create/apply/update.
@@ -64,6 +75,8 @@ export function makeOAuthApp(
       authorizationUrl: options.authorizationUrl ?? "https://vendor.example.com/oauth/authorize",
       tokenUrl: options.tokenUrl ?? "https://vendor.example.com/oauth/token",
       scopes: options.scopes ?? ["read", "write"],
+      addresses: options.addresses ?? [defaultOAuthAppAddress(name)],
+      ...(options.userinfoUrl !== undefined ? { userinfoUrl: options.userinfoUrl } : {}),
       ...(options.vendorApprovalStatus !== undefined
         ? { vendorApprovalStatus: options.vendorApprovalStatus }
         : {}),

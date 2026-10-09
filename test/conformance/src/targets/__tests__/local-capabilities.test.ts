@@ -19,7 +19,6 @@ import { LocalPostgresExecutionTarget, LocalPostgresTarget } from "../local-post
 const HOSTED_ONLY: ReadonlyArray<keyof CapabilityFlags> = [
   "multiTenant",
   "channelMessaging",
-  "orgOAuthAppConfiguration",
   "billingGates",
   "billingLedger",
   "billingPlans",

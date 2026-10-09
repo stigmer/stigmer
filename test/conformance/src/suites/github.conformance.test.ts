@@ -1,41 +1,16 @@
-// GitHub conformance — the sign-in utility service's error contract and the
-// server-side repository reads (Class A).
+// GitHub conformance — connecting GitHub through the vault's sign-in, and
+// the server-side repository reads (Class A).
 // Domain: conformance suites.
 //
-// GitHubService is a platform utility, not a resource domain: it brokers the
-// GitHub OAuth dance (authorize-URL construction + code-for-token exchange)
-// so the frontend never holds the client credentials. What is asserted here
-// is exactly the arm that is TRUE and hermetic on every edition: malformed
-// requests answer InvalidArgument from protovalidate at the transport
-// boundary, before any config or network concern.
-//
-// The broker's other arms are deliberately NOT asserted, each for a
-// discovered, recorded reason:
-//
-//   - "Config-missing FailedPrecondition" is STRUCTURALLY UNREACHABLE on the
-//     OSS server: it ships with the bundled "Stigmer Local" OAuth App
-//     credentials hardcoded as defaults (config.go — the GitHub CLI pattern;
-//     a localhost-only app's secret has negligible value), and the env
-//     override treats an empty value as unset, so no configuration can blank
-//     them. The guard is live only on the cloud edition, whose config
-//     defaults to empty. The editions legitimately diverge here, by the
-//     maintainers' decision, and this suite does not silently encode either
-//     side.
-//   - The exchange happy path and its Unavailable / GitHub-rejection arms
-//     dial github.com FOR REAL on a configured broker — and the OSS broker
-//     is always configured (above). A conformance run must never leave the
-//     host, so those arms stay pinned in the Go controller unit tests.
-//   - The authorize-URL happy path is hermetic (pure URL construction), but
-//     asserting it unconditionally would fail on an unconfigured cloud
-//     environment; it rides the same owner decision as the config-missing
-//     arm.
-//
-// The OAuth state is the server's: the authorize call records it for its
-// caller, organization and redirect, and the exchange refuses a state it
-// never issued with FailedPrecondition before anything leaves the server.
-// That arm is hermetic on both editions (the unconfigured cloud broker
-// refuses with the same code, for its own reason), so it is asserted by
-// code alone.
+// GitHub is one more address on the one sign-in: a person connects it with
+// VaultCommandController.startSignIn at the address `github.com`, which
+// Stigmer's built-in GitHub login app serves (its client id from
+// STIGMER_GITHUB_CLIENT_ID, defaulting to the bundled "Stigmer Local" OAuth
+// App, so it is on in every edition). What is hermetic, and pinned here: the
+// authorization URL is GitHub's own, with the app's client and scopes, PKCE
+// S256, the deployment's callback, and no `resource` (a vendor's login is no
+// MCP login server). The exchange dials github.com and stays in the
+// server's unit suite.
 //
 // The repository reads (GitHubQueryController) use the caller's saved
 // github.com login from their My vault, server-side, so the browser never
@@ -50,6 +25,8 @@ import { Code } from "@connectrpc/connect";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
+import { HERMETIC_OAUTH_REDIRECT_URI } from "@stigmer/test-support/server-process";
+import { myVaultTarget } from "../support/vaults";
 import { createTarget, type TargetProfile } from "../targets";
 
 let target: TargetProfile;
@@ -65,58 +42,21 @@ afterAll(async () => {
   await target?.teardown();
 });
 
-const VALID_REDIRECT = "https://app.example.com/oauth/callback";
-
-describe("GitHub broker conformance — request validation (Layer 1, before config or network)", () => {
-  it("[rpc:GitHubService.getOAuthAuthorizeUrl] getOAuthAuthorizeUrl rejects an empty redirect_uri with InvalidArgument", async () => {
-    await expectGrpcCode(
-      () => clients.github.getOAuthAuthorizeUrl({ redirectUri: "", org: "acme" }),
-      Code.InvalidArgument,
-      "getOAuthAuthorizeUrl empty redirect_uri",
-    );
-    await expectGrpcCode(
-      () => clients.github.getOAuthAuthorizeUrl({ redirectUri: VALID_REDIRECT, org: "" }),
-      Code.InvalidArgument,
-      "getOAuthAuthorizeUrl empty org",
-    );
-  });
-
-  it("[rpc:GitHubService.exchangeOAuthCode] exchangeOAuthCode refuses a state the server never issued, before GitHub is asked", async () => {
+describe("GitHub conformance — connecting GitHub is a sign-in at github.com", () => {
+  it("[rpc:VaultCommandController.startSignIn] Stigmer's GitHub login app serves github.com: GitHub's authorize URL with the app's client and scopes, PKCE S256, no resource", async () => {
     const { org } = await target.provisionTenancy();
-    await expectGrpcCode(
-      () =>
-        clients.github.exchangeOAuthCode({
-          code: "c",
-          state: "a-state-from-a-crafted-link",
-          redirectUri: VALID_REDIRECT,
-          org,
-        }),
-      Code.FailedPrecondition,
-      "exchangeOAuthCode with a state never issued",
-    );
-  });
+    const out = await clients.vaultCommand.startSignIn({ vault: myVaultTarget(org), address: "github.com" });
 
-  it("[rpc:GitHubService.exchangeOAuthCode] exchangeOAuthCode rejects each missing required field with InvalidArgument", async () => {
-    await expectGrpcCode(
-      () => clients.github.exchangeOAuthCode({ code: "", state: "s", redirectUri: VALID_REDIRECT, org: "acme" }),
-      Code.InvalidArgument,
-      "exchangeOAuthCode empty code",
-    );
-    await expectGrpcCode(
-      () => clients.github.exchangeOAuthCode({ code: "c", state: "", redirectUri: VALID_REDIRECT, org: "acme" }),
-      Code.InvalidArgument,
-      "exchangeOAuthCode empty state",
-    );
-    await expectGrpcCode(
-      () => clients.github.exchangeOAuthCode({ code: "c", state: "s", redirectUri: "", org: "acme" }),
-      Code.InvalidArgument,
-      "exchangeOAuthCode empty redirect_uri",
-    );
-    await expectGrpcCode(
-      () => clients.github.exchangeOAuthCode({ code: "c", state: "s", redirectUri: VALID_REDIRECT, org: "" }),
-      Code.InvalidArgument,
-      "exchangeOAuthCode empty org",
-    );
+    expect(out.providerName).toBe("GitHub");
+    expect(out.scopes).toEqual(["repo", "read:user"]);
+    const url = new URL(out.authorizationUrl);
+    expect(`${url.origin}${url.pathname}`).toBe("https://github.com/login/oauth/authorize");
+    expect(url.searchParams.get("client_id") ?? "", "the deployment's GitHub client").not.toBe("");
+    expect(url.searchParams.get("scope")).toBe("repo read:user");
+    expect(url.searchParams.get("redirect_uri")).toBe(HERMETIC_OAUTH_REDIRECT_URI);
+    expect(url.searchParams.get("code_challenge_method")).toBe("S256");
+    expect(url.searchParams.get("state")).toBe(out.state);
+    expect(url.searchParams.has("resource"), "a vendor login is never sent resource").toBe(false);
   });
 });
 
