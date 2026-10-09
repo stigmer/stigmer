@@ -144,6 +144,16 @@ describe("renderScoresTable", () => {
     expect(out).not.toMatch(/\bfail\b/);
   });
 
+  it("puts a judge's not-graded reason, which can quote a run's error, on one line", () => {
+    const failed = clone(ScoreSchema, notGraded);
+    if (failed.status !== undefined) {
+      failed.status.notGradedReason = "the judge run failed: model\n\u001b[31mrefused";
+    }
+    const out = renderScoresTable([failed]);
+    expect(out).toContain("not graded: the judge run failed: model [31mrefused");
+    expect(out).not.toMatch(/[\u0000-\u0009\u000b-\u001f\u007f-\u009f]/);
+  });
+
   it("leaves the value empty for a graded score that carries none, and names an unattributed rater as nobody", () => {
     const bare = create(ScoreSchema, {
       spec: { runId: "run_1", metric: "feedback", source: ScoreSource.human },

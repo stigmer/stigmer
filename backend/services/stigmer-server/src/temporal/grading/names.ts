@@ -89,6 +89,8 @@ export interface JudgeTicket {
   readonly modelName: string;
   /** The cap the planner set aside, given back when the grade settles. */
   readonly capUsd: number;
+  /** The budget period (`YYYY-MM`, UTC) the cap was set aside in. */
+  readonly period: string;
 }
 
 /**

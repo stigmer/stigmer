@@ -152,6 +152,6 @@ describe("the evaluator steps' faults", () => {
   it("throws a budget write's store fault rather than reading it as grading off", async () => {
     const broken = failing(temp.store, "updateResource");
     await expect(reserve(broken, "evl_1", new Date(), 0.25, "limit")).rejects.toThrow("disk full");
-    await expect(settle(broken, "evl_1", new Date(), 0.25, 0, { kind: "graded" })).rejects.toThrow("disk full");
+    await expect(settle(broken, "evl_1", new Date(), 0.25, "2026-10", 0, { kind: "graded" })).rejects.toThrow("disk full");
   });
 });

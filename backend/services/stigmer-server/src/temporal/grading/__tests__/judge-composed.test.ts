@@ -62,7 +62,7 @@ import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
 import { createInProcessClients } from "../../../boot/inprocess.js";
 import type { ComposedServer } from "../../../boot/compose.js";
-import { reserve } from "../../../domain/evaluator/budget.js";
+import { periodOf, reserve } from "../../../domain/evaluator/budget.js";
 import {
   EVALUATOR_AGENT_IMMUTABLE_MESSAGE,
   EVALUATOR_EXISTS_REASON,
@@ -623,7 +623,7 @@ describe("the judge's activities", () => {
         },
       },
     });
-    const ticket: JudgeTicket = { evaluatorId: "evl_x", modelName: "", capUsd: PER_GRADE_CAP_USD };
+    const ticket: JudgeTicket = { evaluatorId: "evl_x", modelName: "", capUsd: PER_GRADE_CAP_USD, period: periodOf(new Date()) };
     expect(await activities[START_JUDGE_ACTIVITY_NAME](runId, ticket)).toEqual({
       kind: "refused",
       failure: "cannot-act",

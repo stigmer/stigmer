@@ -51,7 +51,7 @@ const BEFORE_JUDGE_WORKFLOWS_PATH = new URL(
   import.meta.url,
 ).pathname;
 
-const TICKET: JudgeTicket = { evaluatorId: "evl_test", modelName: "", capUsd: 0.25 };
+const TICKET: JudgeTicket = { evaluatorId: "evl_test", modelName: "", capUsd: 0.25, period: "2026-10" };
 
 type TestWorkflowEnvironment =
   import("@temporalio/testing").TestWorkflowEnvironment;

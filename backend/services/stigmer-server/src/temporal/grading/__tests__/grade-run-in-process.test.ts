@@ -59,7 +59,7 @@ vi.mock("@temporalio/workflow", async (importOriginal) => {
   };
 });
 
-const TICKET: JudgeTicket = { evaluatorId: "evl_1", modelName: "", capUsd: 0.25 };
+const TICKET: JudgeTicket = { evaluatorId: "evl_1", modelName: "", capUsd: 0.25, period: "2026-10" };
 
 const { gradeRun } = await import("../workflows/grade-run.js");
 

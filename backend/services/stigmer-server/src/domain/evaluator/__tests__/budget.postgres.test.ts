@@ -13,7 +13,7 @@
  *   - a disabled or deleted evaluator reserves nothing and writes nothing;
  *   - a settle gives the cap back, adds what the judge spent and counts the
  *     grade; a grade reserved in one month and settled in the next lands in
- *     the new month and never takes reserved below zero;
+ *     the new month and gives back none of the new month's reservations;
  *   - the first write of a new month rolls the period over.
  */
 import { create } from "@bufbuild/protobuf";
@@ -172,15 +172,15 @@ describe.each(fixtures)("the grading budget ($name)", (fixture) => {
       const id = await seedEvaluator(store, 10);
       await reserve(store, id, OCTOBER, CAP, LIMIT_REASON);
       await reserve(store, id, OCTOBER, CAP, LIMIT_REASON);
-      await settle(store, id, OCTOBER, CAP, 0.031, { kind: "graded" });
-      await settle(store, id, OCTOBER, CAP, 0, { kind: "not-graded", reason: "out of credit" });
+      await settle(store, id, OCTOBER, CAP, "2026-10", 0.031, { kind: "graded" });
+      await settle(store, id, OCTOBER, CAP, "2026-10", 0, { kind: "not-graded", reason: "out of credit" });
       const status = (await read(store, id)).status;
       expect(status?.reservedUsd).toBe(0);
       expect(status?.spentUsd).toBe(0.031);
       expect(status?.graded).toBe(1);
       expect(status?.notGraded).toBe(1);
       expect(status?.lastNotGradedReason).toBe("out of credit");
-      await settle(store, "evl_nobody", OCTOBER, CAP, 0.1, { kind: "graded" });
+      await settle(store, "evl_nobody", OCTOBER, CAP, "2026-10", 0.1, { kind: "graded" });
     } finally {
       await close();
     }
@@ -191,10 +191,11 @@ describe.each(fixtures)("the grading budget ($name)", (fixture) => {
     try {
       const id = await seedEvaluator(store, 10);
       await reserve(store, id, OCTOBER, CAP, LIMIT_REASON);
-      await settle(store, id, NOVEMBER, CAP, 0.04, { kind: "graded" });
+      await reserve(store, id, NOVEMBER, CAP, LIMIT_REASON);
+      await settle(store, id, NOVEMBER, CAP, periodOf(OCTOBER), 0.04, { kind: "graded" });
       const status = (await read(store, id)).status;
       expect(status?.period).toBe("2026-11");
-      expect(status?.reservedUsd, "the old month's cap is not taken back twice").toBe(0);
+      expect(status?.reservedUsd, "November's grade keeps its cap set aside").toBe(CAP);
       expect(status?.spentUsd).toBe(0.04);
       expect(status?.graded).toBe(1);
       expect(periodOf(NOVEMBER)).toBe("2026-11");

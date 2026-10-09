@@ -17,8 +17,9 @@
  * The month is the UTC calendar month. The first write in a new month
  * rolls the period over: spend, reservations and counts start again from
  * zero, so a grade reserved in one month and settled in the next lands its
- * spend in the new month and its cap is not taken back twice (a settle
- * never takes reserved below zero). Resetting the reservations also bounds
+ * spend in the new month and gives back nothing: its cap was the old
+ * month's, and the new month's reservations belong to other grades, so a
+ * settle gives a cap back only in the period it was reserved in. Resetting the reservations also bounds
  * the one way a cap can be left set aside: Temporal runs an activity at
  * least once, so a worker lost between a reservation's commit and the
  * activity's completion reserves a second cap for the same grade, which
@@ -102,14 +103,16 @@ export async function reserve(
 }
 
 /**
- * Settles one grade: gives back `capUsd`, adds `spentUsd`, and counts how
- * the grade ended. An evaluator deleted meanwhile has nothing to settle.
+ * Settles one grade: gives back `capUsd` when `reservedPeriod`, the period
+ * it was reserved in, is still the live one, adds `spentUsd`, and counts
+ * how the grade ended. An evaluator deleted meanwhile has nothing to settle.
  */
 export async function settle(
   store: Store,
   evaluatorId: string,
   now: Date,
   capUsd: number,
+  reservedPeriod: string,
   spentUsd: number,
   end: GradeEnd,
 ): Promise<void> {
@@ -121,7 +124,9 @@ export async function settle(
       (live) => {
         const status = rolledOver(live.status, now);
         live.status = status;
-        status.reservedUsd = dollars(Math.max(0, status.reservedUsd - capUsd));
+        if (status.period === reservedPeriod) {
+          status.reservedUsd = dollars(Math.max(0, status.reservedUsd - capUsd));
+        }
         status.spentUsd = dollars(status.spentUsd + Math.max(0, spentUsd));
         if (end.kind === "graded") {
           status.graded += 1;

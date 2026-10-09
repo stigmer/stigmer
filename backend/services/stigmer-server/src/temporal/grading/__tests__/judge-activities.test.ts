@@ -37,6 +37,7 @@ import { ScoreSource, ScoreState } from "@stigmer/protos/ai/stigmer/agentic/scor
 import { ScoreStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
+import { periodOf } from "../../../domain/evaluator/budget.js";
 import {
   JUDGE_BUSY_REASON,
   JUDGE_NOT_FINISHED_REASON,
@@ -84,7 +85,7 @@ afterEach(async () => {
   await temp.cleanup();
 });
 
-const TICKET: JudgeTicket = { evaluatorId: "evl_1", modelName: "", capUsd: PER_GRADE_CAP_USD };
+const TICKET: JudgeTicket = { evaluatorId: "evl_1", modelName: "", capUsd: PER_GRADE_CAP_USD, period: periodOf(new Date()) };
 
 /** The score's create chain as far as the activities see it: one score per writer and version. */
 function recorder(store: () => Store = () => temp.store): ScoreRecorder {
@@ -190,6 +191,10 @@ async function seedEvaluator(enabled = true): Promise<void> {
   );
 }
 
+async function evaluatorStatus() {
+  return (await temp.store.getResource(ApiResourceKind.evaluator, "evl_1", EvaluatorSchema)).status;
+}
+
 async function judgeScores(runId: string): Promise<Score[]> {
   return (await listRunScores(temp.store, silentLogger, runId)).filter((score) => score.spec?.metric === "judge");
 }
@@ -221,11 +226,32 @@ describe("plan-judge", () => {
     expect(await judgeScores("run_1")).toEqual([]);
   });
 
-  it("skips a run deleted between its read and its pending score", async () => {
+  it("removes an earlier attempt's pending score when the evaluator went before the reservation", async () => {
+    await seedEvaluator();
+    await seedRun("run_1", { agentId: "agt_1" });
+    expect((await activities()[PLAN_JUDGE_ACTIVITY_NAME]("run_1")).kind).toBe("grade");
+    expect((await judgeScores("run_1")).map((score) => score.status?.state)).toEqual([ScoreState.pending]);
+    const plan = await activities({ store: evaluatorGoneOnWrite(temp.store) })[PLAN_JUDGE_ACTIVITY_NAME]("run_1");
+    expect(plan).toEqual({ kind: "skip" });
+    expect(await judgeScores("run_1")).toEqual([]);
+  });
+
+  it("skips a run deleted between its read and its pending score, and gives the cap back", async () => {
     await seedEvaluator();
     await seedRun("run_1", { agentId: "agt_1" });
     const vanished: ScoreRecorder = { record: () => Promise.reject(new ConnectError("Run not found", Code.NotFound)) };
     expect(await activities({ recorder: vanished })[PLAN_JUDGE_ACTIVITY_NAME]("run_1")).toEqual({ kind: "skip" });
+    expect((await evaluatorStatus())?.reservedUsd).toBe(0);
+  });
+
+  it("reserves before it writes pending: a pending score it cannot write gives the cap back and is thrown", async () => {
+    await seedEvaluator();
+    await seedRun("run_1", { agentId: "agt_1" });
+    const down: ScoreRecorder = { record: () => Promise.reject(new ConnectError("store down", Code.Unavailable)) };
+    await expect(activities({ recorder: down })[PLAN_JUDGE_ACTIVITY_NAME]("run_1")).rejects.toThrow("store down");
+    expect(await judgeScores("run_1"), "no grading is left behind").toEqual([]);
+    expect((await evaluatorStatus())?.reservedUsd, "no cap is left set aside").toBe(0);
+    expect((await evaluatorStatus())?.notGraded, "a refusal to write is not counted").toBe(0);
   });
 
   it("skips a run deleted before it was planned", async () => {

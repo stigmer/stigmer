@@ -9,9 +9,11 @@
  *   - plan: the run's agent has an enabled evaluator in the run's own
  *     organization (grading never reaches across organizations), the run
  *     is not itself a judge, it is in the sample (domain/score/judge/
- *     sampling.ts), and it has no judge verdict yet. The run is recorded
- *     as pending, then the grade's cap is set aside (domain/evaluator/
- *     budget.ts); a refusal there is recorded as "spending limit reached".
+ *     sampling.ts), and it has no judge verdict yet. The grade's cap is
+ *     set aside (domain/evaluator/budget.ts), then the run is recorded as
+ *     pending; a refusal of the cap is recorded as "spending limit
+ *     reached", and a pending score that cannot be written gives the cap
+ *     back, so a planner that fails for good leaves no "grading" behind.
  *   - start: the judge run is created as the grading caller
  *     (extensions/grading-caller.ts) under a name fixed by the judged run,
  *     so a retry finds the run an earlier attempt created. A run is adopted
@@ -55,7 +57,7 @@ import { ScoreState } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb"
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
-import { reserve, settle } from "../../domain/evaluator/budget.js";
+import { periodOf, reserve, settle } from "../../domain/evaluator/budget.js";
 import type { GradeEnd } from "../../domain/evaluator/budget.js";
 import { listAgentEvaluators } from "../../domain/evaluator/queries.js";
 import { isActiveExecutionPhase, isTerminalExecutionPhase } from "../../domain/run/phases.js";
@@ -98,7 +100,7 @@ import {
   replaceUnlessGraded,
   sameWriterScore,
 } from "../../domain/score/record.js";
-import type { ScoreWriteDeps } from "../../domain/score/record.js";
+import type { ScoreWrite, ScoreWriteDeps } from "../../domain/score/record.js";
 import type { GradingCallerMint } from "../../extensions/grading-caller.js";
 import { GradingCallerRefusedError } from "../../extensions/grading-caller.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
@@ -121,6 +123,7 @@ import type {
   JudgeFailure,
   JudgePlan,
   JudgeStart,
+  JudgeTicket,
 } from "./names.js";
 
 /** The longest not-graded reason the record writes, as a criterion's reason is bounded. */
@@ -172,28 +175,16 @@ export function createJudgeActivities(deps: JudgeActivityDeps): JudgeActivities 
       if (existing !== undefined && existing.status?.state !== ScoreState.pending) {
         return { kind: "skip" };
       }
-      if ((await replaceUnlessGraded(writeDeps(), pending)) === "run-gone") {
-        return { kind: "skip" };
-      }
 
       const evaluatorId = evaluator.metadata?.id ?? "";
+      const at = now();
       const reservation = await reserve(
         deps.store,
         evaluatorId,
-        now(),
+        at,
         PER_GRADE_CAP_USD,
         JUDGE_LIMIT_REACHED_REASON,
       );
-      if (reservation === "reserved") {
-        return {
-          kind: "grade",
-          ticket: {
-            evaluatorId,
-            modelName: evaluator.spec.modelName,
-            capUsd: PER_GRADE_CAP_USD,
-          },
-        };
-      }
       if (reservation === "limit-reached") {
         await writeJudgeScore(
           deps,
@@ -202,13 +193,37 @@ export function createJudgeActivities(deps: JudgeActivityDeps): JudgeActivities 
         );
         return { kind: "recorded" };
       }
-      // "off": switched off or deleted between the read and the
-      // reservation. The run was never graded, so its pending score goes.
-      const written = await sameWriterScore(deps, pending);
-      if (written?.status?.state === ScoreState.pending) {
-        await deleteScore(deps.deleter(), written.metadata?.id ?? "");
+      if (reservation === "off") {
+        // Switched off or deleted between the read and the reservation:
+        // the run is not graded, so an earlier attempt's pending score goes.
+        if (existing !== undefined) {
+          await deleteScore(deps.deleter(), existing.metadata?.id ?? "");
+        }
+        return { kind: "skip" };
       }
-      return { kind: "skip" };
+
+      const ticket: JudgeTicket = {
+        evaluatorId,
+        modelName: evaluator.spec.modelName,
+        capUsd: PER_GRADE_CAP_USD,
+        period: periodOf(at),
+      };
+      const giveBack = (): Promise<void> =>
+        settle(deps.store, evaluatorId, now(), ticket.capUsd, ticket.period, 0, { kind: "gone" });
+      let written: ScoreWrite;
+      try {
+        written = await replaceUnlessGraded(writeDeps(), pending);
+      } catch (error) {
+        // The cap goes back before Temporal retries, so a pending score
+        // that cannot be written leaves neither "grading" nor a cap behind.
+        await giveBack();
+        throw error;
+      }
+      if (written === "run-gone") {
+        await giveBack();
+        return { kind: "skip" };
+      }
+      return { kind: "grade", ticket };
     },
 
     [START_JUDGE_ACTIVITY_NAME]: async (runId, ticket): Promise<JudgeStart> => {
@@ -292,7 +307,7 @@ export function createJudgeActivities(deps: JudgeActivityDeps): JudgeActivities 
               : verdict.end;
       }
 
-      await settle(deps.store, ticket.evaluatorId, now(), ticket.capUsd, spentUsd, end);
+      await settle(deps.store, ticket.evaluatorId, now(), ticket.capUsd, ticket.period, spentUsd, end);
       if (judge !== undefined) {
         await deleteJudgeSession(deps, judge);
       }

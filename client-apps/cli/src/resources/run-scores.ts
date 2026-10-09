@@ -100,7 +100,7 @@ function valueLabel(score: Score): string {
     return "grading";
   }
   if (score.status?.state === ScoreState.not_graded) {
-    const reason = score.status.notGradedReason;
+    const reason = oneLine(score.status.notGradedReason);
     return reason === "" ? "not graded" : `not graded: ${reason}`;
   }
   const value = score.spec?.value;
