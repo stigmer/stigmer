@@ -139,7 +139,6 @@ export const BLUEPRINT_KINDS: ReadonlyArray<ApiResourceKind> = [
   ApiResourceKind.agent,
   ApiResourceKind.skill,
   ApiResourceKind.mcp_server,
-  ApiResourceKind.environment,
   ApiResourceKind.schedule,
 ];
 

@@ -22,8 +22,8 @@ export const DCR_REQUEST_TIMEOUT_MS = 15_000;
 
 /**
  * Performs OAuth Dynamic Client Registration at the given registration
- * endpoint (Go RegisterClient). The returned client_id is stored in the
- * user's OAuthGrant for subsequent token operations. Accepts 200 or 201
+ * endpoint (Go RegisterClient). The returned client_id is saved on the
+ * login's sign-in record in the vault, for its renewals. Accepts 200 or 201
  * (RFC says 201; real providers answer both).
  */
 export async function registerClient(

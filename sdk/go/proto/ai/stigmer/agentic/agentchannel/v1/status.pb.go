@@ -95,9 +95,10 @@ type AgentChannelStatus struct {
 	InstallState AgentChannelInstallState `protobuf:"varint,1,opt,name=install_state,json=installState,proto3,enum=ai.stigmer.agentic.agentchannel.v1.AgentChannelInstallState" json:"install_state,omitempty"`
 	// Provider-specific install facts observed during the install flow.
 	ProviderStatus isAgentChannelStatus_ProviderStatus `protobuf_oneof:"provider_status"`
-	// ID of the system-managed Environment holding this connection's
-	// provider credentials (e.g. the Slack bot token).
-	CredentialsEnvironmentId string `protobuf:"bytes,3,opt,name=credentials_environment_id,json=credentialsEnvironmentId,proto3" json:"credentials_environment_id,omitempty"`
+	// Who attached each of this resource's vaults, by vault id: the account
+	// whose permission to use the vault each run checks when it has no
+	// person.
+	VaultAttachers map[string]string `protobuf:"bytes,5,rep,name=vault_attachers,json=vaultAttachers,proto3" json:"vault_attachers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// Standard audit information (created_at, updated_at, created_by, etc.)
 	Audit         *apiresource.ApiResourceAudit `protobuf:"bytes,99,opt,name=audit,proto3" json:"audit,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -166,11 +167,11 @@ func (x *AgentChannelStatus) GetWhatsapp() *WhatsAppInstallStatus {
 	return nil
 }
 
-func (x *AgentChannelStatus) GetCredentialsEnvironmentId() string {
+func (x *AgentChannelStatus) GetVaultAttachers() map[string]string {
 	if x != nil {
-		return x.CredentialsEnvironmentId
+		return x.VaultAttachers
 	}
-	return ""
+	return nil
 }
 
 func (x *AgentChannelStatus) GetAudit() *apiresource.ApiResourceAudit {
@@ -389,14 +390,17 @@ var File_ai_stigmer_agentic_agentchannel_v1_status_proto protoreflect.FileDescri
 
 const file_ai_stigmer_agentic_agentchannel_v1_status_proto_rawDesc = "" +
 	"\n" +
-	"/ai/stigmer/agentic/agentchannel/v1/status.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb9\x03\n" +
+	"/ai/stigmer/agentic/agentchannel/v1/status.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xd5\x04\n" +
 	"\x12AgentChannelStatus\x12a\n" +
 	"\rinstall_state\x18\x01 \x01(\x0e2<.ai.stigmer.agentic.agentchannel.v1.AgentChannelInstallStateR\finstallState\x12N\n" +
 	"\x05slack\x18\x02 \x01(\v26.ai.stigmer.agentic.agentchannel.v1.SlackInstallStatusH\x00R\x05slack\x12W\n" +
-	"\bwhatsapp\x18\x04 \x01(\v29.ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatusH\x00R\bwhatsapp\x12<\n" +
-	"\x1acredentials_environment_id\x18\x03 \x01(\tR\x18credentialsEnvironmentId\x12F\n" +
-	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05auditB\x11\n" +
-	"\x0fprovider_status\"\xad\x02\n" +
+	"\bwhatsapp\x18\x04 \x01(\v29.ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatusH\x00R\bwhatsapp\x12s\n" +
+	"\x0fvault_attachers\x18\x05 \x03(\v2J.ai.stigmer.agentic.agentchannel.v1.AgentChannelStatus.VaultAttachersEntryR\x0evaultAttachers\x12F\n" +
+	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x1aA\n" +
+	"\x13VaultAttachersEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\x11\n" +
+	"\x0fprovider_statusJ\x04\b\x03\x10\x04R\x1acredentials_environment_id\"\xad\x02\n" +
 	"\x12SlackInstallStatus\x12\x17\n" +
 	"\ateam_id\x18\x01 \x01(\tR\x06teamId\x12\x1b\n" +
 	"\tteam_name\x18\x02 \x01(\tR\bteamName\x12\x1e\n" +
@@ -431,27 +435,29 @@ func file_ai_stigmer_agentic_agentchannel_v1_status_proto_rawDescGZIP() []byte {
 }
 
 var file_ai_stigmer_agentic_agentchannel_v1_status_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_ai_stigmer_agentic_agentchannel_v1_status_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_ai_stigmer_agentic_agentchannel_v1_status_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_ai_stigmer_agentic_agentchannel_v1_status_proto_goTypes = []any{
 	(AgentChannelInstallState)(0),        // 0: ai.stigmer.agentic.agentchannel.v1.AgentChannelInstallState
 	(*AgentChannelStatus)(nil),           // 1: ai.stigmer.agentic.agentchannel.v1.AgentChannelStatus
 	(*SlackInstallStatus)(nil),           // 2: ai.stigmer.agentic.agentchannel.v1.SlackInstallStatus
 	(*WhatsAppInstallStatus)(nil),        // 3: ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus
-	(*apiresource.ApiResourceAudit)(nil), // 4: ai.stigmer.commons.apiresource.ApiResourceAudit
-	(*timestamppb.Timestamp)(nil),        // 5: google.protobuf.Timestamp
+	nil,                                  // 4: ai.stigmer.agentic.agentchannel.v1.AgentChannelStatus.VaultAttachersEntry
+	(*apiresource.ApiResourceAudit)(nil), // 5: ai.stigmer.commons.apiresource.ApiResourceAudit
+	(*timestamppb.Timestamp)(nil),        // 6: google.protobuf.Timestamp
 }
 var file_ai_stigmer_agentic_agentchannel_v1_status_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.agentchannel.v1.AgentChannelStatus.install_state:type_name -> ai.stigmer.agentic.agentchannel.v1.AgentChannelInstallState
 	2, // 1: ai.stigmer.agentic.agentchannel.v1.AgentChannelStatus.slack:type_name -> ai.stigmer.agentic.agentchannel.v1.SlackInstallStatus
 	3, // 2: ai.stigmer.agentic.agentchannel.v1.AgentChannelStatus.whatsapp:type_name -> ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus
-	4, // 3: ai.stigmer.agentic.agentchannel.v1.AgentChannelStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
-	5, // 4: ai.stigmer.agentic.agentchannel.v1.SlackInstallStatus.installed_at:type_name -> google.protobuf.Timestamp
-	5, // 5: ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus.installed_at:type_name -> google.protobuf.Timestamp
-	6, // [6:6] is the sub-list for method output_type
-	6, // [6:6] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	4, // 3: ai.stigmer.agentic.agentchannel.v1.AgentChannelStatus.vault_attachers:type_name -> ai.stigmer.agentic.agentchannel.v1.AgentChannelStatus.VaultAttachersEntry
+	5, // 4: ai.stigmer.agentic.agentchannel.v1.AgentChannelStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
+	6, // 5: ai.stigmer.agentic.agentchannel.v1.SlackInstallStatus.installed_at:type_name -> google.protobuf.Timestamp
+	6, // 6: ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus.installed_at:type_name -> google.protobuf.Timestamp
+	7, // [7:7] is the sub-list for method output_type
+	7, // [7:7] is the sub-list for method input_type
+	7, // [7:7] is the sub-list for extension type_name
+	7, // [7:7] is the sub-list for extension extendee
+	0, // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentchannel_v1_status_proto_init() }
@@ -469,7 +475,7 @@ func file_ai_stigmer_agentic_agentchannel_v1_status_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentchannel_v1_status_proto_rawDesc), len(file_ai_stigmer_agentic_agentchannel_v1_status_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   3,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

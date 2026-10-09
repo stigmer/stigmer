@@ -3,8 +3,8 @@
  * pkg/domain/agentexecution/temporal/workflows/workflow_input.go.
  *
  * Carries ONLY orchestration coordinates: no secrets, no large payloads
- * (the full Run proto used to be the input; runtime_env could
- * hold secrets, and Temporal history is durable — stigmer's slim-input
+ * (the full Run proto used to be the input; it could hold secrets,
+ * and Temporal history is durable — stigmer's slim-input
  * redesign keeps secrets out of history).
  *
  * The snake_case keys are a cross-edition wire contract shared with the

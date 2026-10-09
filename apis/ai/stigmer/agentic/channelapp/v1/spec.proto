@@ -15,7 +15,7 @@ import "buf/validate/validate.proto";
 // a validated oneof (the AgentChannelSpec.provider_config precedent).
 // Secrets are inline spec fields encrypted at rest and redacted in every
 // response (the OAuthAppSpec.client_secret pipeline, both editions) —
-// NOT managed-environment refs: app credentials are user-authored
+// NOT a store of install-produced tokens: app credentials are user-authored
 // configuration entered in one motion with the resource, unlike
 // install-produced tokens.
 // The resource is always visibility_private; there is no updateVisibility
@@ -74,9 +74,8 @@ message SlackChannelAppConfig {
 //
 // @internal
 // Every WhatsApp credential is per-app authored (Meta's Cloud
-// API has no per-install OAuth), so they all live here — no managed
-// Environment, no OAuthGrant row; AgentChannelStatus.credentials_environment_id
-// stays empty for WhatsApp channels. Webhook attribution is by the per-app
+// API has no per-install OAuth), so they all live here, and the edition's
+// channel credential store holds nothing for a WhatsApp channel. Webhook attribution is by the per-app
 // request path (/webhook/whatsapp/{channelAppId}), matching Slack's
 // per-app URL posture: Meta's GET verification handshake carries no app
 // identity, and the POST signature (X-Hub-Signature-256, HMAC over the

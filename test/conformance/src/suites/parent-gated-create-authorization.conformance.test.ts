@@ -18,12 +18,10 @@
 // Every refusal is asserted by code AND copy, because the copy is the wire
 // contract each lane has carried since the Java edition. Out of scope: the
 // run gate (its own suites), the reads by reference
-// (reference-read-authorization), and the writer clause on an environment
-// reference (a write attaches only an environment its writer can view):
-// on the open-source enforcing lane every write that carries one (a
-// schedule) is an admin's, and an admin can
-// view every environment of the organization, so the refusal cannot be
-// staged here; the server's reference unit pins it
+// (reference-read-authorization), and the writer clause on a vault
+// reference (a write attaches only a vault its writer may use): the vault
+// suites stage it where a member writes one (a conversation's vaults), and
+// the server's reference unit pins it
 // (pipeline/steps/__tests__/references.test.ts).
 import { Code } from "@connectrpc/connect";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";

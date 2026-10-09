@@ -1,0 +1,74 @@
+{
+  "name": "VaultConnection",
+  "description": "VaultConnection is one saved login, for the tool or Git host at its address.",
+  "protoType": "ai.stigmer.agentic.vault.v1.VaultConnection",
+  "protoFile": "apis/ai/stigmer/agentic/vault/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Token",
+      "jsonName": "token",
+      "protoField": "token",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The access token. Never returned: every read shows it empty.",
+      "required": false
+    },
+    {
+      "name": "Source",
+      "jsonName": "source",
+      "protoField": "source",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.vault.v1.VaultConnectionSource",
+        "enumValues": [
+          "pasted",
+          "sign_in"
+        ]
+      },
+      "description": "How the login was saved. Set by the server.",
+      "required": false
+    },
+    {
+      "name": "SignIn",
+      "jsonName": "signIn",
+      "protoField": "sign_in",
+      "type": {
+        "kind": "message",
+        "messageType": "VaultConnectionSignIn"
+      },
+      "description": "The sign-in that produced the token, when it came from one. Set by the\n server.",
+      "required": false
+    },
+    {
+      "name": "Description",
+      "jsonName": "description",
+      "protoField": "description",
+      "type": {
+        "kind": "string"
+      },
+      "description": "What the login is for.",
+      "required": false
+    },
+    {
+      "name": "SavedBy",
+      "jsonName": "savedBy",
+      "protoField": "saved_by",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Who saved the current token, by identity account id. Set by the server.",
+      "required": false
+    },
+    {
+      "name": "SavedAt",
+      "jsonName": "savedAt",
+      "protoField": "saved_at",
+      "type": {
+        "kind": "timestamp"
+      },
+      "description": "When the current token was saved. Set by the server.",
+      "required": false
+    }
+  ]
+}

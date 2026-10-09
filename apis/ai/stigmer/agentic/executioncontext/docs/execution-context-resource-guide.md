@@ -111,7 +111,7 @@ ExecutionContexts are owner-scoped: the create pipeline writes an FGA owner tupl
 
 ### Why Credential Class, Not a Permission?
 
-ExecutionContexts contain the **merged secrets** a runner needs at run time, but the runner presents the run owner's identity (sandbox tokens carry the user as `sub`). Any FGA permission granted so the runner can decrypt would equally be held by the user's own token — so the server distinguishes callers by *what kind of credential* they present, not *who* they are. User-facing reads (console, SDK, API) therefore always see redacted values, matching the `Environment` redaction contract, while platform-minted runner credentials receive usable plaintext.
+ExecutionContexts contain the **merged secrets** a runner needs at run time, but the runner presents the run owner's identity (sandbox tokens carry the user as `sub`). Any FGA permission granted so the runner can decrypt would equally be held by the user's own token — so the server distinguishes callers by *what kind of credential* they present, not *who* they are. User-facing reads (console, SDK, API) therefore always see redacted values, matching the `Vault` redaction contract, while platform-minted runner credentials receive usable plaintext.
 
 ---
 
@@ -121,12 +121,15 @@ ExecutionContexts contain the **merged secrets** a runner needs at run time, but
 Run starts
     │
     ▼
-Execution engine resolves environment_refs from what started the run
-(schedule, PlatformClient)
+Execution engine finds the run's vaults: the conversation's own values and
+vaults, then the sender's My vault and the agent's vaults they may use, or
+the vaults of the schedule, share, channel or platform client a run no
+person sent came through
     │
     ▼
-Engine merges resolved values (later refs override earlier) + any B2B runtime-injected values,
-then fills declared keys still missing from OAuth tokens and the run's person's personal environment
+Engine fills each declared key from the first source holding it (a login by
+the tool's address, other keys by secret name); a required key found nowhere
+refuses the run
     │
     ▼
 Engine calls ExecutionContextCommandController.create(ExecutionContext)
@@ -150,16 +153,16 @@ Execution engine calls ExecutionContextCommandController.delete(executionContext
 
 ---
 
-## Relationship to Environment
+## Relationship to Vault
 
-ExecutionContext and Environment solve different problems in the same value-injection pipeline:
+Vault and ExecutionContext solve different problems in the same value-injection pipeline:
 
-| Aspect | Environment | ExecutionContext |
+| Aspect | Vault | ExecutionContext |
 |---|---|---|
 | Lifecycle | Persistent | Ephemeral — one run |
-| Created by | Users (via CLI or API) | Execution engine (operator) |
-| Reusable | Yes — many schedules and PlatformClients can reference it | No — 1:1 with one run |
-| Primary key | Resource ID or name | `execution_id` |
+| Created by | Users (My vault on a person's first save; shared vaults via create) | Execution engine (operator) |
+| Reusable | Yes — sessions, schedules, PlatformClients, shares, channels and agents can name it | No — 1:1 with one run |
+| Primary key | Resource ID or slug | `execution_id` |
 | Secret reads | Redacted in all API responses | Decrypted for runner via `getByExecutionId` |
 | User-visible | Yes | No |
-| Use case | Shared credentials, long-lived config | Runtime injection, B2B scenarios, merged execution context |
+| Use case | Saved logins and secrets | The values one run was filled with |

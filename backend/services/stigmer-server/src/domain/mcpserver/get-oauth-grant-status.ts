@@ -1,19 +1,31 @@
 /**
- * getOAuthGrantStatus — ports
- * pkg/domain/mcpserver/controller/get_oauth_grant_status.go: whether the
- * authenticated user has an active OAuth grant for the specified MCP
- * server in the given org. Returns grant metadata (connected status,
- * token expiry, auth method, connection health) without exposing secret
- * token values; the frontend renders the OAuth state in the MCP server
- * detail page and session composer from it. In OSS mode the
- * identity_account_id is always empty (single-user).
+ * getOAuthGrantStatus — whether the authenticated user has a sign-in for
+ * the MCP server in their own My vault in the given org that a run would
+ * use: one this server made (sign-in-connection.ts), saved at the server's
+ * current address, while the server is still the kind (HTTP or a local
+ * program) it was at sign-in, the resolver's rule (domain/vault/resolve.ts
+ * `madeFor`): a sign-in a run would refuse reads NO_GRANT here. It
+ * answers with the sign-in's metadata (expiry, auth method, connection
+ * health) and never a token. The console renders the OAuth
+ * state of the MCP server page and the session composer from it. A pasted
+ * login is no sign-in and reads NO_GRANT here; it and a sign-in saved into
+ * a shared vault are read through the vault's own RPCs.
+ *
+ * Health: a sign-in that does not expire or has not expired is HEALTHY;
+ * an expired one is REFRESHABLE when a refresh token is saved with it and
+ * EXPIRED when none is; no such sign-in is NO_GRANT. The expiry buffer is
+ * the renewal's (oauth/refresh.ts), so the signal matches what a run will
+ * do. A server that does not exist answers NOT_FOUND after the lane's own
+ * authorization has spoken.
  *
  * Proven by mcpserver-oauth.conformance.test.ts
- * (CONFORMANCE_TARGET=local) and
- * __tests__/oauth-handshake.test.ts.
+ * (CONFORMANCE_TARGET=local), __tests__/oauth-handshake.test.ts and
+ * __tests__/sign-in-vault.test.ts.
  */
 import { create } from "@bufbuild/protobuf";
 
+import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type {
   GetOAuthGrantStatusInput,
   GetOAuthGrantStatusOutput,
@@ -22,16 +34,20 @@ import {
   GetOAuthGrantStatusOutputSchema,
   OAuthConnectionHealth,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
-
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
+import type { VaultConnection } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
+import { VaultConnectionSource } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { CallerIdentity } from "../../extensions/identity.js";
-import { internalError, invalidArgumentError } from "../../pipeline/errors.js";
+import { invalidArgumentError, notFoundError } from "../../pipeline/errors.js";
 import { authorizeDirect } from "../../pipeline/steps/authorize.js";
 import { refuseBoundElsewhere } from "../../pipeline/steps/refuse-bound-elsewhere.js";
-import type { OAuthGrant } from "../../store/interface.js";
+import { ResourceNotFoundError } from "../../store/interface.js";
+import { toolAddressOf } from "../vault/address.js";
 import type { McpServerConnectDeps } from "./connect.js";
-import { REFRESH_EXPIRY_BUFFER_SECONDS } from "./oauth/refresh.js";
+import { signInExpired } from "./oauth/refresh.js";
+import { findCallerSignIns } from "./sign-in-connection.js";
 
 export async function getOAuthGrantStatus(
   deps: McpServerConnectDeps,
@@ -44,7 +60,7 @@ export async function getOAuthGrantStatus(
   if (input.org === "") {
     throw invalidArgumentError("org is required");
   }
-  // The grant read is the caller's in this organization.
+  // The login read is the caller's in this organization.
   refuseBoundElsewhere(identity, input.org);
   // The annotation's can_view check (validate → authorize, the Java
   // McpServerGetOAuthGrantStatusHandler order — no load step).
@@ -55,14 +71,29 @@ export async function getOAuthGrantStatus(
     input,
   );
 
-  let grant: OAuthGrant | undefined;
-  try {
-    grant = await deps.oauthGrants.find("", input.resourceId, input.org);
-  } catch (error) {
-    throw internalError(error, "failed to look up OAuth grant");
-  }
-
-  if (grant === undefined) {
+  // A store fault propagates as itself; the serving chain's error boundary
+  // answers it INTERNAL.
+  const server: McpServer = await deps.store
+    .getResource(ApiResourceKind.mcp_server, input.resourceId, McpServerSchema)
+    .catch((error: unknown) => {
+      throw error instanceof ResourceNotFoundError
+        ? notFoundError("mcp_server", input.resourceId)
+        : error;
+    });
+  const address = toolAddressOf(server);
+  const localProgram = server.spec?.serverType?.case !== "http";
+  const { signIns } = await findCallerSignIns(
+    deps,
+    input.resourceId,
+    input.org,
+    identity,
+  );
+  const connection = signIns.find(
+    (signIn) =>
+      signIn.address === address &&
+      (signIn.connection.signIn?.localProgram === true) === localProgram,
+  )?.connection;
+  if (connection === undefined) {
     return create(GetOAuthGrantStatusOutputSchema, {
       connected: false,
       connectionHealth: OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_NO_GRANT,
@@ -71,38 +102,30 @@ export async function getOAuthGrantStatus(
 
   return create(GetOAuthGrantStatusOutputSchema, {
     connected: true,
-    accessTokenExpiresAt: BigInt(grant.accessTokenExpiresAt),
-    targetEnvVar: grant.accessTokenEnvVar,
-    authMethod: grant.authMethod,
-    connectionHealth: evaluateHealth(grant),
+    accessTokenExpiresAt: connection.signIn?.expiresAt ?? 0n,
+    targetEnvVar: server.spec?.auth?.targetEnvVar ?? "",
+    authMethod: connection.signIn?.authMethod ?? "",
+    connectionHealth: evaluateHealth(connection),
   });
 }
 
 /**
- * Determines the health of an OAuth connection from locally available
- * grant metadata (Go evaluateHealth). Uses the same 60-second expiry
- * buffer as oauth/refresh.ts so the UX signal matches execution behavior.
- *
- * Ported bug, as-is (oss#863): "refreshable" keys off
- * refreshTokenEnvVar != "" — but completeOAuthConnect sets that field
- * unconditionally, so TOKEN_EXPIRED is unreachable through the real flow
- * and an expired grant always claims refreshable even when no refresh
- * token was ever issued. The conformance suite pins this behavior;
- * fixing it is a both-editions change tracked on the issue.
+ * The health of a saved login from what the vault holds about it (Go
+ * evaluateHealth, over the connection's sign-in record); a login with no
+ * expiring sign-in record is HEALTHY. The refresh token is read only for
+ * presence: the stored value is sealed and never leaves.
  */
-export function evaluateHealth(grant: OAuthGrant): OAuthConnectionHealth {
-  if (grant.accessTokenExpiresAt === 0) {
+export function evaluateHealth(connection: VaultConnection): OAuthConnectionHealth {
+  const signIn = connection.signIn;
+  if (
+    connection.source !== VaultConnectionSource.sign_in ||
+    signIn === undefined ||
+    !signInExpired(signIn.expiresAt)
+  ) {
     return OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_HEALTHY;
   }
-
-  const now = Math.floor(Date.now() / 1000);
-  if (now < grant.accessTokenExpiresAt - REFRESH_EXPIRY_BUFFER_SECONDS) {
-    return OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_HEALTHY;
-  }
-
-  if (grant.refreshTokenEnvVar !== "") {
+  if (signIn.refreshToken !== "") {
     return OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED_REFRESHABLE;
   }
-
   return OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED;
 }

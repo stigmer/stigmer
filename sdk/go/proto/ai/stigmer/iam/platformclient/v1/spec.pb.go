@@ -103,14 +103,14 @@ type PlatformClientSpec struct {
 	// Edits apply to the next request: the client is read on every request
 	// that bears one of its tokens.
 	AllowedOrigins []string `protobuf:"bytes,9,rep,name=allowed_origins,json=allowedOrigins,proto3" json:"allowed_origins,omitempty"`
-	// Environments whose values are delivered to every run a
-	// user signed in through this PlatformClient creates. This is how an
-	// embedded assistant reaches secret-gated MCP servers: the client — the
-	// connection resource — carries the credentials (for example a shared
-	// API secret), and minted-user runs receive its values at
-	// runtime, at the lowest priority, so the request's runtime values win on
-	// a key conflict. The agent stays untouched.
-	EnvironmentRefs []*apiresource.ApiResourceReference `protobuf:"bytes,10,rep,name=environment_refs,json=environmentRefs,proto3" json:"environment_refs,omitempty"`
+	// Vaults whose logins and secrets every run a user signed in through this
+	// client creates uses, in order: the first vault holding a match wins.
+	// At most 20.
+	//
+	// This is how an embedded assistant reaches tools that need a key: the
+	// client carries a shared vault holding it, and minted users' runs use it.
+	// A My vault cannot be attached.
+	Vaults []*apiresource.ApiResourceReference `protobuf:"bytes,13,rep,name=vaults,proto3" json:"vaults,omitempty"`
 	// Whether mintUserToken creates an identity account for a user_id that has
 	// none yet.
 	//
@@ -206,9 +206,9 @@ func (x *PlatformClientSpec) GetAllowedOrigins() []string {
 	return nil
 }
 
-func (x *PlatformClientSpec) GetEnvironmentRefs() []*apiresource.ApiResourceReference {
+func (x *PlatformClientSpec) GetVaults() []*apiresource.ApiResourceReference {
 	if x != nil {
-		return x.EnvironmentRefs
+		return x.Vaults
 	}
 	return nil
 }
@@ -231,7 +231,7 @@ var File_ai_stigmer_iam_platformclient_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_platformclient_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/iam/platformclient/v1/spec.proto\x12 ai.stigmer.iam.platformclient.v1\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1cai/stigmer/iam/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc8\b\n" +
+	"+ai/stigmer/iam/platformclient/v1/spec.proto\x12 ai.stigmer.iam.platformclient.v1\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1cai/stigmer/iam/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb5\b\n" +
 	"\x12PlatformClientSpec\x12!\n" +
 	"\tclient_id\x18\x01 \x01(\tB\x04ȅ,\x01R\bclientId\x122\n" +
 	"\x12client_secret_hash\x18\x02 \x01(\tB\x04ȅ,\x01R\x10clientSecretHash\x123\n" +
@@ -239,15 +239,15 @@ const file_ai_stigmer_iam_platformclient_v1_spec_proto_rawDesc = "" +
 	"\n" +
 	"expires_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12#\n" +
 	"\rnever_expires\x18\x05 \x01(\bR\fneverExpires\x12'\n" +
-	"\x0fallowed_origins\x18\t \x03(\tR\x0eallowedOrigins\x12\xd9\x01\n" +
-	"\x10environment_refs\x18\n" +
-	" \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBx\xbaHq\x92\x01n\"l\xba\x01i\n" +
-	"\x15environment_refs.kind\x12?environment_refs must reference resources with kind=environment\x1a\x0fthis.kind == 53\xe0\x85,5R\x0fenvironmentRefs\x12:\n" +
+	"\x0fallowed_origins\x18\t \x03(\tR\x0eallowedOrigins\x12\xae\x01\n" +
+	"\x06vaults\x18\r \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB`\xbaHY\x92\x01V\x10\x14\"R\xba\x01O\n" +
+	"\vvaults.kind\x12/vaults must reference resources with kind=vault\x1a\x0fthis.kind == 59\xe0\x85,;R\x06vaults\x12:\n" +
 	"\x1acreate_accounts_on_sign_in\x18\v \x01(\bR\x16createAccountsOnSignIn\x12<\n" +
 	"\fsign_in_role\x18\f \x01(\x0e2\x1a.ai.stigmer.iam.v1.IamRoleR\n" +
 	"signInRole:\xf7\x02\xbaH\xf3\x02\x1a\xdb\x01\n" +
 	"6platform_client.sign_in_role_requires_account_creation\x12fsign_in_role requires create_accounts_on_sign_in: only an account the client creates receives the role\x1a9this.sign_in_role == 0 || this.create_accounts_on_sign_in\x1a\x92\x01\n" +
-	"&platform_client.sign_in_role_not_owner\x12Psign_in_role cannot be owner; organization ownership must be assigned explicitly\x1a\x16this.sign_in_role != 1J\x04\b\x06\x10\aJ\x04\b\a\x10\bJ\x04\b\b\x10\tR\x17auto_provision_accountsR\x11auto_grant_on_orgR\x0fauto_grant_roleB\xb4\x02\n" +
+	"&platform_client.sign_in_role_not_owner\x12Psign_in_role cannot be owner; organization ownership must be assigned explicitly\x1a\x16this.sign_in_role != 1J\x04\b\x06\x10\aJ\x04\b\a\x10\bJ\x04\b\b\x10\tJ\x04\b\n" +
+	"\x10\vR\x17auto_provision_accountsR\x11auto_grant_on_orgR\x0fauto_grant_roleR\x10environment_refsB\xb4\x02\n" +
 	"$com.ai.stigmer.iam.platformclient.v1B\tSpecProtoP\x01Z\\github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/platformclient/v1;platformclientv1\xa2\x02\x04ASIP\xaa\x02 Ai.Stigmer.Iam.Platformclient.V1\xca\x02 Ai\\Stigmer\\Iam\\Platformclient\\V1\xe2\x02,Ai\\Stigmer\\Iam\\Platformclient\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Iam::Platformclient::V1b\x06proto3"
 
 var (
@@ -271,7 +271,7 @@ var file_ai_stigmer_iam_platformclient_v1_spec_proto_goTypes = []any{
 }
 var file_ai_stigmer_iam_platformclient_v1_spec_proto_depIdxs = []int32{
 	1, // 0: ai.stigmer.iam.platformclient.v1.PlatformClientSpec.expires_at:type_name -> google.protobuf.Timestamp
-	2, // 1: ai.stigmer.iam.platformclient.v1.PlatformClientSpec.environment_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	2, // 1: ai.stigmer.iam.platformclient.v1.PlatformClientSpec.vaults:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
 	3, // 2: ai.stigmer.iam.platformclient.v1.PlatformClientSpec.sign_in_role:type_name -> ai.stigmer.iam.v1.IamRole
 	3, // [3:3] is the sub-list for method output_type
 	3, // [3:3] is the sub-list for method input_type

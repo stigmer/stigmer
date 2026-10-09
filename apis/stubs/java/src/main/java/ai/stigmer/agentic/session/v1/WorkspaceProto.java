@@ -67,7 +67,7 @@ public final class WorkspaceProto extends com.google.protobuf.GeneratedFile {
       "\022\033\n\004name\030\001 \001(\tB\007\272H\004r\002\020\001R\004name\022N\n\006source\030" +
       "\002 \001(\0132..ai.stigmer.agentic.session.v1.Wo" +
       "rkspaceSourceB\006\272H\003\310\001\001R\006source\".\n\017LocalPa" +
-      "thSource\022\033\n\004path\030\001 \001(\tB\007\272H\004r\002\020\001R\004path\"\363\002" +
+      "thSource\022\033\n\004path\030\001 \001(\tB\007\272H\004r\002\020\001R\004path\"\224\003" +
       "\n\rGitRepoSource\022\252\001\n\003url\030\001 \001(\tB\227\001\272H\223\001\272\001\214\001" +
       "\n\031git_repo_source.url.https\022Rurl must us" +
       "e HTTPS (e.g. https://github.com/org/rep" +
@@ -77,11 +77,12 @@ public final class WorkspaceProto extends com.google.protobuf.GeneratedFile {
       "depth\030\004 \001(\005B\007\272H\004\032\002(\000H\000R\005depth\210\001\001\022W\n\017writ" +
       "e_back_mode\030\005 \001(\0162/.ai.stigmer.agentic.s" +
       "ession.v1.GitWriteBackModeR\rwriteBackMod" +
-      "eB\010\n\006_depthB\251\001B\016WorkspaceProtoP\001\242\002\004ASAS\252" +
-      "\002\035Ai.Stigmer.Agentic.Session.V1\312\002\035Ai\\Sti" +
-      "gmer\\Agentic\\Session\\V1\342\002)Ai\\Stigmer\\Age" +
-      "ntic\\Session\\V1\\GPBMetadata\352\002!Ai::Stigme" +
-      "r::Agentic::Session::V1b\006proto3"
+      "e\022\037\n\005token\030\006 \001(\tB\t\272H\006r\004\030\200\200\004R\005tokenB\010\n\006_d" +
+      "epthB\251\001B\016WorkspaceProtoP\001\242\002\004ASAS\252\002\035Ai.St" +
+      "igmer.Agentic.Session.V1\312\002\035Ai\\Stigmer\\Ag" +
+      "entic\\Session\\V1\342\002)Ai\\Stigmer\\Agentic\\Se" +
+      "ssion\\V1\\GPBMetadata\352\002!Ai::Stigmer::Agen" +
+      "tic::Session::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -112,7 +113,7 @@ public final class WorkspaceProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_session_v1_GitRepoSource_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_GitRepoSource_descriptor,
-        new java.lang.String[] { "Url", "Branch", "Commit", "Depth", "WriteBackMode", });
+        new java.lang.String[] { "Url", "Branch", "Commit", "Depth", "WriteBackMode", "Token", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.session.v1.EnumProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();

@@ -38,25 +38,25 @@ spec:
   relation: admin
 ```
 
-## Grant Team Members Editor Access to an Environment
+## Let a Team Use a Shared Vault
 
-Using the `principal.relation` qualifier to target all members of a team.
+Using the `principal.relation` qualifier to target all members of a team. The `user` relation is the console's **Can use** role: the team's runs may read the vault's secrets and logins, but nobody on the team can see a value or change the vault.
 
 ```yaml
 apiVersion: iam.stigmer.ai/v1
 kind: IamPolicy
 metadata:
-  name: eng-team-staging-editor
+  name: support-team-tools-user
   org: acme-corp
 spec:
   principal:
     kind: team
-    id: tm-01HQENGTEAM
+    id: tm-01HQSUPPORT
     relation: member  # all members of this team
   resource:
-    kind: environment
-    id: env-01HQSTAGING
-  relation: editor
+    kind: vault
+    id: vlt-01HQSUPPORTTOOLS
+  relation: user
 ```
 
 ## Revoke Access
@@ -118,12 +118,12 @@ stigmer iam-policy list-authorized-resources \
 ## CLI: List Principals With Access to a Resource
 
 ```bash
-# Who has editor access on the staging environment?
+# Who may use the Support tools vault?
 stigmer iam-policy list-authorized-principals \
-  --resource-kind environment \
-  --resource-id env-01HQSTAGING \
+  --resource-kind vault \
+  --resource-id vlt-01HQSUPPORTTOOLS \
   --principal-kind identity_account \
-  --relation editor
+  --relation user
 
 # Output:
 # principal_ids:

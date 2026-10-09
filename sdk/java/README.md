@@ -36,7 +36,7 @@ import ai.stigmer.sdk.gen.AgentInput;
 import ai.stigmer.agentic.agent.v1.Agent;
 
 try (StigmerClient client = StigmerClient.builder("sk_live_abc123").build()) {
-    Agent agent = client.agents().create(AgentInput.builder()
+    Agent agent = client.agent.create(AgentInput.builder()
         .name("my-agent")
         .org("my-org")
         .instructions("You are a helpful assistant")
@@ -49,30 +49,37 @@ Or without try-with-resources:
 
 ```java
 StigmerClient client = StigmerClient.builder("sk_live_abc123").build();
-Agent agent = client.agents().get("agent-id");
+Agent agent = client.agent.get("agent-id");
 client.close();
 ```
 
 ## Resource Clients
 
-Every resource type has a typed client accessible as a method on `StigmerClient`:
+Every resource type has a typed client exposed as a public final field on
+`StigmerClient` (declared by the generated `GeneratedClient` it extends), so
+`client.agent.get(id)` reads an agent. Search and billing are methods:
 
-| Method                   | Resource           |
+| Accessor                 | Resource           |
 |--------------------------|--------------------|
-| `agents()`               | Agent              |
-| `runs()`                 | Run                |
-| `apiKeys()`              | ApiKey             |
-| `environments()`         | Environment        |
-| `executionContexts()`    | ExecutionContext    |
-| `iamPolicies()`          | IamPolicy          |
-| `identityAccounts()`     | IdentityAccount    |
-| `identityProviders()`    | IdentityProvider   |
-| `mcpServers()`           | McpServer          |
-| `organizations()`        | Organization       |
-| `sessions()`             | Session            |
-| `skills()`               | Skill              |
+| `agent`                  | Agent              |
+| `run`                    | Run                |
+| `apiKey`                 | ApiKey             |
+| `executionContext`       | ExecutionContext   |
+| `iamPolicy`              | IamPolicy          |
+| `identityAccount`        | IdentityAccount    |
+| `identityProvider`       | IdentityProvider   |
+| `mcpServer`              | McpServer          |
+| `organization`           | Organization       |
+| `session`                | Session            |
+| `skill`                  | Skill              |
+| `vault`                  | Vault              |
 | `search()`               | Cross-resource search |
 | `billing()`              | Credit balance, ledger, and Stripe billing |
+
+A vault's entries are written through its entry calls, not through `create`
+or `update`: `client.vault.setSecrets`, `setConnection`, `removeSecrets` and
+`removeConnections`. `create` starts the vault empty, and `update` changes its
+name, description and external id while keeping the entries as stored.
 
 ## Common Operations
 
@@ -83,7 +90,7 @@ import ai.stigmer.agentic.agent.v1.Agent;
 
 try (StigmerClient client = StigmerClient.builder("sk_live_abc123").build()) {
     // Create
-    Agent agent = client.agents().create(AgentInput.builder()
+    Agent agent = client.agent.create(AgentInput.builder()
         .name("my-agent")
         .org("my-org")
         .description("Handles customer inquiries")
@@ -91,24 +98,24 @@ try (StigmerClient client = StigmerClient.builder("sk_live_abc123").build()) {
         .build());
 
     // Get by ID
-    Agent fetched = client.agents().get(agent.getMetadata().getId());
+    Agent fetched = client.agent.get(agent.getMetadata().getId());
 
     // Get by reference (org + slug)
-    Agent byRef = client.agents().getByReference(
+    Agent byRef = client.agent.getByReference(
         ResourceRef.builder().org("my-org").slug("my-agent").build());
 
     // Update
-    Agent updated = client.agents().update(AgentInput.builder()
+    Agent updated = client.agent.update(AgentInput.builder()
         .name("my-agent")
         .org("my-org")
         .description("Updated description")
         .build());
 
     // Delete
-    client.agents().delete(agent.getMetadata().getId());
+    client.agent.delete(agent.getMetadata().getId());
 
     // List (search-backed)
-    ListResult results = client.agents().list(ListParams.builder()
+    ListResult results = client.agent.list(ListParams.builder()
         .org("my-org")
         .query("customer")
         .page(Page.of(1, 20))
@@ -169,7 +176,7 @@ import ai.stigmer.sdk.gen.StigmerException;
 
 try (StigmerClient client = StigmerClient.builder("sk_live_abc123").build()) {
     try {
-        client.agents().get("nonexistent");
+        client.agent.get("nonexistent");
     } catch (StigmerException e) {
         if (e.isNotFound()) {
             System.out.println("Agent not found");

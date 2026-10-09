@@ -152,6 +152,62 @@
       },
       "description": "Where session activities are executed — local client or cloud sandbox.\n\n Determines dispatch routing: LOCAL means the client's embedded runner\n (desktop app or CLI) polls the session's task queue; CLOUD means the\n server provisions a sandbox with a runner.\n\n Set by the client at session creation:\n - Desktop/CLI set LOCAL (they run an embedded runner)\n - Web console sets CLOUD (or UNSPECIFIED → server defaults to CLOUD)\n - Customer SDK sets whatever fits their architecture\n\n Immutable once a run has started — workspace state may not be\n portable between local and cloud environments.",
       "required": false
+    },
+    {
+      "name": "Vaults",
+      "jsonName": "vaults",
+      "protoField": "vaults",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "ApiResourceReference"
+        }
+      },
+      "description": "Vaults whose logins and secrets this conversation's runs use, in order:\n the first vault holding a match wins. At most 20.\n\n A conversation that lists vaults uses exactly those. One that lists\n none uses the My vault of the person sending each turn, then the\n agent's vaults that person may use. A My vault cannot be listed: a\n conversation can have several people, and each person's own vault\n serves only their own turns.",
+      "required": false,
+      "referenceKind": 59,
+      "validation": {
+        "maxItems": 20
+      }
+    },
+    {
+      "name": "Secrets",
+      "jsonName": "secrets",
+      "protoField": "secrets",
+      "type": {
+        "kind": "map",
+        "keyType": {
+          "kind": "string"
+        },
+        "valueType": {
+          "kind": "string"
+        }
+      },
+      "description": "Secrets this conversation's runs use, by name, ahead of every vault.\n\n This is how an integrator hands a run a key without saving it in a\n vault. The values are kept sealed for the conversation's life, can be\n replaced by an update at any time, are never returned by a read, and\n are destroyed with the conversation.\n\n An update built on an older read than the stored conversation (it\n echoes an older status.audit.spec_audit.updated_at) removes nothing it\n could not have seen: the values it omits are kept, and so are the\n vaults the conversation lists. Read the conversation again to remove a\n value or change its vaults.",
+      "required": false,
+      "validation": {
+        "maxItems": 100
+      }
+    },
+    {
+      "name": "Connections",
+      "jsonName": "connections",
+      "protoField": "connections",
+      "type": {
+        "kind": "map",
+        "keyType": {
+          "kind": "string"
+        },
+        "valueType": {
+          "kind": "string"
+        }
+      },
+      "description": "Logins this conversation's runs use, by the address of the tool or Git\n host each is for, ahead of every vault.\n\n Kept, replaced and destroyed as secrets are. Addresses are normalized\n as a vault's are.",
+      "required": false,
+      "validation": {
+        "maxItems": 100
+      }
     }
   ]
 }

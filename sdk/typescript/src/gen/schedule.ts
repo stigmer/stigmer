@@ -122,7 +122,7 @@ export interface AgentInvocationInput {
   message?: string;
   harness?: Harness;
   workspaceEntries?: WorkspaceEntryInput[];
-  environmentRefs?: ResourceRef[];
+  vaults?: ResourceRef[];
   runConfig?: RunConfigInput;
 }
 
@@ -145,6 +145,7 @@ export interface GitRepoSourceInput {
   commit?: string;
   depth?: number;
   writeBackMode?: GitWriteBackMode;
+  token?: string;
 }
 
 /** SDK input type for LocalPathSource. */
@@ -169,6 +170,7 @@ function buildGitRepoSourceProto(input: GitRepoSourceInput) {
     commit: input.commit,
     depth: input.depth,
     writeBackMode: input.writeBackMode,
+    token: input.token,
   }));
 }
 
@@ -212,7 +214,7 @@ function buildAgentInvocationProto(input: AgentInvocationInput) {
   if (input.message !== undefined) msg.message = input.message;
   if (input.harness !== undefined) msg.harness = input.harness;
   if (input.workspaceEntries) msg.workspaceEntries = input.workspaceEntries.map(buildWorkspaceEntryProto);
-  if (input.environmentRefs) msg.environmentRefs = input.environmentRefs.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 53 }));
+  if (input.vaults) msg.vaults = input.vaults.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 59 }));
   if (input.runConfig) msg.runConfig = buildRunConfigProto(input.runConfig);
   return msg;
 }
@@ -248,6 +250,7 @@ function toGitRepoSourceInput(msg: GitRepoSource): GitRepoSourceInput {
     commit: msg.commit || undefined,
     depth: msg.depth || undefined,
     writeBackMode: msg.writeBackMode || undefined,
+    token: msg.token || undefined,
   };
 }
 
@@ -288,7 +291,7 @@ function toAgentInvocationInput(msg: AgentInvocation): AgentInvocationInput {
     message: msg.message || undefined,
     harness: msg.harness || undefined,
     workspaceEntries: msg.workspaceEntries?.length ? msg.workspaceEntries.map(toWorkspaceEntryInput) : undefined,
-    environmentRefs: toResourceRefInputs(msg.environmentRefs),
+    vaults: toResourceRefInputs(msg.vaults),
     runConfig: msg.runConfig ? toRunConfigInput(msg.runConfig) : undefined,
   };
 }

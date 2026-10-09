@@ -171,7 +171,7 @@ type AgentChannelInput struct {
 	Enabled                   bool
 	Slack                     *SlackChannelConfigInput
 	Whatsapp                  *WhatsAppChannelConfigInput
-	EnvironmentRefs           []ResourceRef
+	Vaults                    []ResourceRef
 	AppRef                    ResourceRef
 	ProactiveMessagingEnabled bool
 	RunConfig                 *RunConfigInput
@@ -215,10 +215,10 @@ func (i *AgentChannelInput) toProto() (*agentchannelv1.AgentChannel, error) {
 		m := &agentchannelv1.SlackChannelConfig{}
 		resource.Spec.ProviderConfig = &agentchannelv1.AgentChannelSpec_Slack{Slack: m}
 	}
-	for _, r := range i.EnvironmentRefs {
+	for _, r := range i.Vaults {
 		ref := r.toProto()
-		ref.Kind = apiresourcekind.ApiResourceKind_environment
-		resource.Spec.EnvironmentRefs = append(resource.Spec.EnvironmentRefs, ref)
+		ref.Kind = apiresourcekind.ApiResourceKind_vault
+		resource.Spec.Vaults = append(resource.Spec.Vaults, ref)
 	}
 	if i.AppRef.Org != "" || i.AppRef.Slug != "" {
 		ref := i.AppRef.toProto()
@@ -253,8 +253,8 @@ func AgentChannelInputFromProto(p *agentchannelv1.AgentChannel) *AgentChannelInp
 	if s := p.GetSpec(); s != nil {
 		input.AgentRef = resourceRefFromProto(s.GetAgentRef())
 		input.Enabled = s.GetEnabled()
-		for _, r := range s.GetEnvironmentRefs() {
-			input.EnvironmentRefs = append(input.EnvironmentRefs, resourceRefFromProto(r))
+		for _, r := range s.GetVaults() {
+			input.Vaults = append(input.Vaults, resourceRefFromProto(r))
 		}
 		input.AppRef = resourceRefFromProto(s.GetAppRef())
 		input.ProactiveMessagingEnabled = s.GetProactiveMessagingEnabled()

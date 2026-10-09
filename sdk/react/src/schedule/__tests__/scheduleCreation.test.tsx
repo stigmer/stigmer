@@ -5,6 +5,7 @@ import {
   cleanup,
   fireEvent,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { renderHook, act } from "@testing-library/react";
 import { useState, type ReactNode } from "react";
@@ -12,6 +13,7 @@ import { create } from "@bufbuild/protobuf";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { ModelRegistryContext } from "../../models/ModelRegistryContext";
@@ -19,6 +21,7 @@ import type { ModelInfo } from "../../models/registry";
 import { useCreateSchedule } from "../useCreateSchedule";
 import { CadenceField } from "../CadenceField";
 import { ScheduleForm } from "../ScheduleForm";
+import { VaultPicker } from "../../vault/VaultPicker";
 import type { CadencePreset } from "../cadence";
 
 // Base UI's Popover positioner observes its anchor; happy-dom lacks
@@ -208,6 +211,7 @@ describe("CadenceField", () => {
 function createClient(overrides?: {
   apply?: ReturnType<typeof vi.fn>;
   list?: ReturnType<typeof vi.fn>;
+  vault?: { getMine: ReturnType<typeof vi.fn>; list: ReturnType<typeof vi.fn> };
 }) {
   return {
     schedule: { apply: overrides?.apply ?? vi.fn().mockResolvedValue(CREATED) },
@@ -215,7 +219,34 @@ function createClient(overrides?: {
       list:
         overrides?.list ?? vi.fn().mockResolvedValue({ entries: [AGENT_RESULT] }),
     },
+    ...(overrides?.vault ? { vault: overrides.vault } : {}),
   };
+}
+
+const MY_VAULT = create(VaultSchema, {
+  metadata: { id: "vlt_mine", org: "isc", slug: "my-vault-0a1b2c", name: "My vault" },
+  spec: { owner: { case: "person", value: "ida_ana" } },
+});
+const TEAM_VAULT = create(VaultSchema, {
+  metadata: { id: "vlt_team", org: "isc", slug: "team-keys", name: "Team keys" },
+  spec: { owner: { case: "org", value: "isc" } },
+});
+
+/** A client whose caller has a My vault in "isc" beside one shared vault. */
+function vaultClient(apply = vi.fn().mockResolvedValue(CREATED)) {
+  return createClient({
+    apply,
+    vault: {
+      getMine: vi.fn().mockResolvedValue(MY_VAULT),
+      list: vi.fn().mockResolvedValue({ items: [MY_VAULT, TEAM_VAULT], totalCount: 2 }),
+    },
+  });
+}
+
+function optionLabels(group: HTMLElement): string[] {
+  return within(group)
+    .getAllByRole("option")
+    .map((option) => option.textContent ?? "");
 }
 
 async function pickAgent() {
@@ -503,6 +534,49 @@ describe("ScheduleForm", () => {
       (screen.getByRole("button", { name: "Create schedule" }) as HTMLButtonElement)
         .disabled,
     ).toBe(false);
+  });
+
+  it("names its creator's My vault by default, and sends it with the schedule", async () => {
+    const apply = vi.fn().mockResolvedValue(CREATED);
+    const client = vaultClient(apply);
+    const onComplete = vi.fn();
+    render(<ScheduleForm org="isc" onComplete={onComplete} />, {
+      wrapper: wrapper(client),
+    });
+
+    const selected = await screen.findByRole("list", { name: "Selected vaults (in order)" });
+    await waitFor(() => expect(within(selected).getByText("My vault")).toBeTruthy());
+    expect(client.vault?.getMine).toHaveBeenCalledWith(expect.objectContaining({ org: "isc" }));
+
+    fireEvent.change(screen.getByLabelText("Name"), {
+      target: { value: "daily-fee-reminders" },
+    });
+    fireEvent.change(screen.getByLabelText("Message"), {
+      target: { value: "Send today's reminders." },
+    });
+    await pickAgent();
+    fireEvent.click(screen.getByRole("button", { name: "Create schedule" }));
+
+    await waitFor(() => expect(onComplete).toHaveBeenCalledWith(CREATED));
+    expect(apply.mock.calls[0][0].agent.vaults).toEqual([
+      { org: "isc", slug: "my-vault-0a1b2c" },
+    ]);
+  });
+
+  it("offers My vault in its picker, and a picker elsewhere does not", async () => {
+    const client = vaultClient();
+    const { unmount } = render(<ScheduleForm org="isc" />, { wrapper: wrapper(client) });
+
+    // Removing the default puts My vault back among the offered vaults.
+    fireEvent.click(await screen.findByRole("button", { name: "Remove My vault" }));
+    const group = screen.getByRole("group", { name: "Vaults" });
+    await waitFor(() => expect(optionLabels(group)).toEqual(["+ Add vault", "My vault", "Team keys"]));
+    unmount();
+
+    // Any other surface (an agent, a conversation, a share) names shared vaults only.
+    render(<VaultPicker org="isc" value={[]} onChange={() => {}} />, { wrapper: wrapper(client) });
+    const other = screen.getByRole("group", { name: "Vaults" });
+    await waitFor(() => expect(optionLabels(other)).toEqual(["+ Add vault", "Team keys"]));
   });
 
   it("fires onCancel", () => {

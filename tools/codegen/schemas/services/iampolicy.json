@@ -46,7 +46,7 @@
           "inputFullType": "ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput",
           "outputType": "Empty",
           "outputFullType": "google.protobuf.Empty",
-          "description": "Remove a person from an organization.\n\n Removes every role the identity account holds on the organization, then\n every IAM policy it holds on the organization's resources: what was\n shared with it (agents, environments, sessions and the rest) and its\n team memberships. From that moment it reaches nothing in the\n organization. What it created stays with the organization and is still\n recorded as its work; the authorization model admits a person to their\n own work only while they hold a role in the organization, so it becomes\n theirs again only if they are invited back. What was shared with them\n does not come back."
+          "description": "Remove a person from an organization.\n\n Removes every role the identity account holds on the organization, then\n every IAM policy it holds on the organization's resources: what was\n shared with it (agents, vaults, sessions and the rest) and its\n team memberships. From that moment it reaches nothing in the\n organization. What it created stays with the organization and is still\n recorded as its work; the authorization model admits a person to their\n own work only while they hold a role in the organization, so it becomes\n theirs again only if they are invited back. What was shared with them\n does not come back."
         },
         {
           "name": "BootstrapRevokeOrgAccess",
@@ -159,7 +159,7 @@
             "kind": "message",
             "messageType": "ApiResourceRef"
           },
-          "description": "Resource: WHAT is being accessed\n This can be any API resource that is being protected:\n - organization\n - environment\n - cloud_resource (VPC, S3 bucket, etc.)\n - service\n - Any other resource that requires access control",
+          "description": "Resource: WHAT is being accessed\n This can be any API resource that is being protected:\n - organization\n - vault\n - cloud_resource (VPC, S3 bucket, etc.)\n - service\n - Any other resource that requires access control",
           "required": true,
           "validation": {
             "required": true
@@ -195,7 +195,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Type of the API resource being referenced\n This should be the resource kind as defined in ApiResourceKind enum.\n Examples: \"identity_account\", \"team\", \"organization\", \"environment\",\n \"cloud_resource\", \"service\", etc.",
+          "description": "Type of the API resource being referenced\n This should be the resource kind as defined in ApiResourceKind enum.\n Examples: \"identity_account\", \"team\", \"organization\", \"vault\",\n \"cloud_resource\", \"service\", etc.",
           "required": true,
           "validation": {
             "required": true,
@@ -720,7 +720,7 @@
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for personal and run-scoped resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (environments, sessions) stay creator-only."
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for personal and run-scoped resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (sessions) stay creator-only."
         },
         {
           "name": "visibility_public",
@@ -735,7 +735,7 @@
         {
           "name": "visibility_child_orgs",
           "number": 4,
-          "description": "Everyone in every child organization of the owning organization can\n read and run this resource: the shared catalog an organization offers\n the organizations under it (spec.parent_org). Child organizations\n created later gain access automatically, and no other organization\n does. Instances, sessions, runs and environments are never shared\n this way: each child runs the shared blueprint inside its own boundary.\n\n Only valid for blueprint kinds with supports_child_orgs: true, and only\n in an organization that is not itself a child.\n\n FGA tuple: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer"
+          "description": "Everyone in every child organization of the owning organization can\n read and run this resource: the shared catalog an organization offers\n the organizations under it (spec.parent_org). Child organizations\n created later gain access automatically, and no other organization\n does. Instances, sessions, runs and vaults are never shared\n this way: each child runs the shared blueprint inside its own boundary.\n\n Only valid for blueprint kinds with supports_child_orgs: true, and only\n in an organization that is not itself a child.\n\n FGA tuple: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer"
         }
       ]
     },

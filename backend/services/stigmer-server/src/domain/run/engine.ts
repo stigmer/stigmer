@@ -73,7 +73,7 @@ export interface ConnectedExecutionEngine {
  * The slim workflow-start input (Go
  * workflows.InvokeAgentExecutionWorkflowInput plus the dispatch
  * coordinates the engine resolves): only orchestration coordinates —
- * secrets (runtime_env) were already consumed into the ExecutionContext.
+ * secrets were already resolved into the ExecutionContext.
  */
 export interface StartInvokeWorkflowInput {
   readonly executionId: string;

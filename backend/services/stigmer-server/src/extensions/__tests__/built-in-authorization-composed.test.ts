@@ -20,8 +20,9 @@
  *     invalid level and not a permission question; an unprovisioned
  *     subject writes nothing until provisioned. The LIST lanes are a member's
  *     lists: an outsider lists nothing of an organization they hold no
- *     row in; environments and API keys are their owner's even to the
- *     organization's owner; the library (a search) omits a private agent
+ *     row in; My vaults and API keys are their owner's even to the
+ *     organization's owner, who, like a teammate, is refused reading,
+ *     writing and deleting another member's My vault by its id; the library (a search) omits a private agent
  *     for a member; the enumeration lanes answer through the scope; an
  *     unprovisioned subject's lists are empty and become theirs once
  *     provisioned.
@@ -62,6 +63,7 @@ import path from "node:path";
 
 import { fromBinary } from "@bufbuild/protobuf";
 import { Code, ConnectError, createClient } from "@connectrpc/connect";
+import type { Transport } from "@connectrpc/connect";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { ActivityQueryController } from "@stigmer/protos/ai/stigmer/activity/v1/query_pb";
@@ -69,8 +71,8 @@ import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { RunQueryController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/query_pb";
-import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
-import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
+import { VaultCommandController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/command_pb";
+import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -104,6 +106,8 @@ const MEMBER = "fake|member";
 const STRANGER = "fake|stranger";
 /** Provisioned inside the list-lane arms only, so its before/after is one arm's. */
 const VISITOR = "fake|visitor";
+/** A second member, provisioned inside the My vault arm only. */
+const TEAMMATE = "fake|teammate";
 const ORG = "built-in-org";
 /** Founded AFTER the member provisioned: the member holds no row on it. */
 const OTHER_ORG = "built-in-other-org";
@@ -121,16 +125,22 @@ function apiKeyInput(name: string) {
   };
 }
 
-function environmentInput(name: string, org: string = ORG) {
+function sharedVaultInput(name: string, org: string = ORG) {
   return {
     apiVersion: "agentic.stigmer.ai/v1",
-    kind: "Environment",
+    kind: "Vault",
     metadata: { name, org },
-    spec: {
-      description: name,
-      data: { PLAIN_KEY: { value: "plain", isSecret: false, description: "" } },
-    },
+    spec: { description: name },
   };
+}
+
+/** The caller's My vault in `org`, created by its first secret; answers its id. */
+async function myVaultOf(transport: Transport, org: string = ORG): Promise<string> {
+  const vault = await createClient(VaultCommandController, transport).setSecrets({
+    vault: { org, vault: { case: "mine", value: true } },
+    secrets: { PLAIN_KEY: { value: "plain", description: "" } },
+  });
+  return vault.metadata!.id;
 }
 
 function organizationInput(slug: string) {
@@ -203,6 +213,8 @@ describe("built-in authorizer (composed server, OIDC with no unit Authorizer: th
     transportFor(port, fakeJwt(STRANGER, "stranger@example.com"));
   const asVisitor = () =>
     transportFor(port, fakeJwt(VISITOR, "visitor@example.com"));
+  const asTeammate = () =>
+    transportFor(port, fakeJwt(TEAMMATE, "teammate@example.com"));
 
   beforeAll(async () => {
     dir = mkdtempSync(path.join(tmpdir(), "built-in-authorizer-oidc-"));
@@ -434,9 +446,9 @@ describe("built-in authorizer (composed server, OIDC with no unit Authorizer: th
   describe("the list lanes (the built-in ListReadScope)", () => {
     let founderKey: string;
     let memberKey: string;
-    let founderEnvironment: string;
-    let memberEnvironment: string;
-    let otherOrgEnvironment: string;
+    let founderVault: string;
+    let memberVault: string;
+    let otherOrgVault: string;
 
     beforeAll(async () => {
       founderKey = (
@@ -449,58 +461,85 @@ describe("built-in authorizer (composed server, OIDC with no unit Authorizer: th
           apiKeyInput("member key"),
         )
       ).metadata!.id;
-      const founderEnvironments = createClient(
-        EnvironmentCommandController,
-        asFounder(),
-      );
-      founderEnvironment = (
-        await founderEnvironments.create(environmentInput("founder env"))
-      ).metadata!.id;
-      otherOrgEnvironment = (
-        await founderEnvironments.create(
-          environmentInput("other org env", OTHER_ORG),
-        )
-      ).metadata!.id;
-      // `can_create_environment` is `member`: a member's own credential
-      // store, the organization's admins never read it.
-      memberEnvironment = (
-        await createClient(EnvironmentCommandController, asMember()).create(
-          environmentInput("member env"),
-        )
-      ).metadata!.id;
+      founderVault = await myVaultOf(asFounder());
+      otherOrgVault = await myVaultOf(asFounder(), OTHER_ORG);
+      // `can_create_vault` is `member`: a member's own My vault, which the
+      // organization's admins never read.
+      memberVault = await myVaultOf(asMember());
     });
 
     it("an OUTSIDER lists nothing of an organization they hold no row in — the empty list, never an error", async () => {
       const list = await createClient(
-        EnvironmentQueryController,
+        VaultQueryController,
         asMember(),
       ).list({ org: OTHER_ORG });
       expect(list.items).toEqual([]);
-      // The positive beside the negative: the founder, its owner, lists it.
+      // The positive beside the negative: the founder lists their own.
       const founders = await createClient(
-        EnvironmentQueryController,
+        VaultQueryController,
         asFounder(),
       ).list({ org: OTHER_ORG });
       expect(founders.items.map((e) => e.metadata?.id)).toEqual([
-        otherOrgEnvironment,
+        otherOrgVault,
       ]);
     });
 
-    it("environments are their owner's: the founder — the organization's owner — does NOT list a member's, and the member does not list the founder's", async () => {
+    it("My vaults are their owner's: the founder — the organization's owner — does NOT list a member's, and the member does not list the founder's", async () => {
       const founders = await createClient(
-        EnvironmentQueryController,
+        VaultQueryController,
         asFounder(),
       ).list({ org: ORG });
       expect(founders.items.map((e) => e.metadata?.id)).toEqual([
-        founderEnvironment,
+        founderVault,
       ]);
       const members = await createClient(
-        EnvironmentQueryController,
+        VaultQueryController,
         asMember(),
       ).list({ org: ORG });
       expect(members.items.map((e) => e.metadata?.id)).toEqual([
-        memberEnvironment,
+        memberVault,
       ]);
+    });
+
+    it("another member's My vault is theirs by id too: the organization's owner and a teammate are refused get, setSecrets, removeConnections and delete on it, and it stays as it was", async () => {
+      await createClient(IdentityAccountCommandController, asTeammate()).provisionMyAccount({});
+      // The positive beside the negatives: the teammate is a member, with a
+      // My vault of their own.
+      const teammateVault = await myVaultOf(asTeammate());
+      expect(teammateVault).not.toBe(memberVault);
+
+      for (const [who, transport] of [
+        ["the owner", asFounder()],
+        ["a teammate", asTeammate()],
+      ] as const) {
+        const query = createClient(VaultQueryController, transport);
+        const command = createClient(VaultCommandController, transport);
+        const target = { org: ORG, vault: { case: "id" as const, value: memberVault } };
+        expect(await codeOf(query.get({ value: memberVault })), `${who} get`).toBe(
+          Code.PermissionDenied,
+        );
+        expect(
+          await codeOf(
+            command.setSecrets({
+              vault: target,
+              secrets: { PLANTED: { value: "planted", description: "" } },
+            }),
+          ),
+          `${who} setSecrets`,
+        ).toBe(Code.PermissionDenied);
+        expect(
+          await codeOf(
+            command.removeConnections({ vault: target, addresses: ["github.com"] }),
+          ),
+          `${who} removeConnections`,
+        ).toBe(Code.PermissionDenied);
+        expect(await codeOf(command.delete({ resourceId: memberVault })), `${who} delete`).toBe(
+          Code.PermissionDenied,
+        );
+      }
+
+      const own = await createClient(VaultQueryController, asMember()).get({ value: memberVault });
+      expect(Object.keys(own.spec?.secrets ?? {})).toEqual(["PLAIN_KEY"]);
     });
 
     it("ApiKey.findAll — skip-authorization, list-scoped — hands each person their own keys and nobody else's", async () => {
@@ -547,24 +586,18 @@ describe("built-in authorizer (composed server, OIDC with no unit Authorizer: th
     });
 
     it("an unprovisioned subject's lists are empty, and become theirs after `provisionMyAccount`", async () => {
-      const visitorEnvironments = createClient(
-        EnvironmentQueryController,
-        asVisitor(),
-      );
-      expect((await visitorEnvironments.list({ org: ORG })).items).toEqual([]);
+      const visitorVaults = createClient(VaultQueryController, asVisitor());
+      expect((await visitorVaults.list({ org: ORG })).items).toEqual([]);
       await createClient(
         IdentityAccountCommandController,
         asVisitor(),
       ).provisionMyAccount({});
-      const own = await createClient(
-        EnvironmentCommandController,
-        asVisitor(),
-      ).create(environmentInput("visitor env"));
+      const own = await myVaultOf(asVisitor());
       expect(
-        (await visitorEnvironments.list({ org: ORG })).items.map(
+        (await visitorVaults.list({ org: ORG })).items.map(
           (e) => e.metadata?.id,
         ),
-      ).toEqual([own.metadata!.id]);
+      ).toEqual([own]);
     });
   });
 
@@ -669,15 +702,15 @@ describe("built-in authorizer (composed server, trusted-local: the permissive de
     await createClient(AgentCommandController, anonymous).create(
       agentInput("Second Laptop Agent", ApiResourceVisibility.visibility_org),
     );
-    const environments = createClient(EnvironmentCommandController, anonymous);
-    await environments.create(environmentInput("laptop env one"));
-    await environments.create(environmentInput("laptop env two"));
-    const list = await createClient(EnvironmentQueryController, anonymous).list(
-      { org: ORG },
-    );
+    const vaults = createClient(VaultCommandController, anonymous);
+    await vaults.create(sharedVaultInput("laptop vault one"));
+    await vaults.create(sharedVaultInput("laptop vault two"));
+    const list = await createClient(VaultQueryController, anonymous).list({
+      org: ORG,
+    });
     expect(list.items.map((e) => e.metadata?.name).sort()).toEqual([
-      "laptop env one",
-      "laptop env two",
+      "laptop vault one",
+      "laptop vault two",
     ]);
     const search = await createClient(SearchService, anonymous).search({
       kinds: [ApiResourceKind.agent],
@@ -762,7 +795,7 @@ describe("built-in list scope (two boots, one seed — the scope is the only var
   interface Readout {
     readonly search: string[];
     readonly keys: string[];
-    readonly environments: string[];
+    readonly vaults: string[];
     readonly recents: string[];
     readonly summaryActive: number;
   }
@@ -809,8 +842,8 @@ describe("built-in list scope (two boots, one seed — the scope is the only var
     await createClient(ApiKeyCommandController, founder).create(
       apiKeyInput("scope key"),
     );
-    await createClient(EnvironmentCommandController, founder).create(
-      environmentInput("scope env"),
+    await createClient(VaultCommandController, founder).create(
+      sharedVaultInput("scope vault"),
     );
   }
 
@@ -821,10 +854,9 @@ describe("built-in list scope (two boots, one seed — the scope is the only var
       org: ORG,
     });
     const keys = await createClient(ApiKeyQueryController, founder).findAll({});
-    const environments = await createClient(
-      EnvironmentQueryController,
-      founder,
-    ).list({ org: ORG });
+    const vaults = await createClient(VaultQueryController, founder).list({
+      org: ORG,
+    });
     const recents = await createClient(
       ActivityQueryController,
       founder,
@@ -836,9 +868,7 @@ describe("built-in list scope (two boots, one seed — the scope is the only var
     return {
       search: search.entries.map((e) => e.name).sort(),
       keys: keys.entries.map((k) => k.metadata?.name ?? "").sort(),
-      environments: environments.items
-        .map((e) => e.metadata?.name ?? "")
-        .sort(),
+      vaults: vaults.items.map((e) => e.metadata?.name ?? "").sort(),
       recents: recents.entries.map((e) => e.id).sort(),
       summaryActive: summary.activeCount,
     };
@@ -881,7 +911,7 @@ describe("built-in list scope (two boots, one seed — the scope is the only var
     // Not vacuous: the seed is visible through every lane read.
     expect(afterReadout.search).toEqual(["Scoped Org Agent", "Scoped Private Agent"]);
     expect(afterReadout.keys).toEqual(["scope key"]);
-    expect(afterReadout.environments).toEqual(["scope env"]);
+    expect(afterReadout.vaults).toEqual(["scope vault"]);
   });
 });
 

@@ -7,10 +7,9 @@
  * run's recover step before it recreates the context
  * (domain/run/lifecycle.ts).
  *
- * The ExecutionContext is an ephemeral resource containing the
- * fully-merged environment (environment_refs values overridden by
- * runtime_env, filtered to the blueprint's declared env keys), including
- * secrets. It must be cleaned up when the execution finishes so sensitive
+ * The ExecutionContext is an ephemeral resource containing the values
+ * the run's credential resolver chose for the keys the run declares
+ * (domain/vault/resolve.ts), secrets included. It must be cleaned up when the execution finishes so sensitive
  * data does not persist beyond the execution lifetime.
  *
  * The find is a store read (a pure read has no chain to bypass); the delete

@@ -36,6 +36,11 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_iam_platformclient_v1_PlatformClientStatus_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_iam_platformclient_v1_PlatformClientStatus_VaultAttachersEntry_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_iam_platformclient_v1_PlatformClientStatus_VaultAttachersEntry_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -61,15 +66,20 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
       "latformclient.v1.PlatformClientSpecR\004spe" +
       "c\022N\n\006status\030\005 \001(\01326.ai.stigmer.iam.platf" +
       "ormclient.v1.PlatformClientStatusR\006statu" +
-      "s\"\234\001\n\024PlatformClientStatus\022F\n\005audit\030c \001(" +
+      "s\"\324\002\n\024PlatformClientStatus\022F\n\005audit\030c \001(" +
       "\01320.ai.stigmer.commons.apiresource.ApiRe" +
       "sourceAuditR\005audit\022<\n\014last_used_at\030\001 \001(\013" +
       "2\032.google.protobuf.TimestampR\nlastUsedAt" +
-      "B\257\001B\010ApiProtoP\001\242\002\004ASIP\252\002 Ai.Stigmer.Iam." +
-      "Platformclient.V1\312\002 Ai\\Stigmer\\Iam\\Platf" +
-      "ormclient\\V1\342\002,Ai\\Stigmer\\Iam\\Platformcl" +
-      "ient\\V1\\GPBMetadata\352\002$Ai::Stigmer::Iam::" +
-      "Platformclient::V1b\006proto3"
+      "\022s\n\017vault_attachers\030\002 \003(\0132J.ai.stigmer.i" +
+      "am.platformclient.v1.PlatformClientStatu" +
+      "s.VaultAttachersEntryR\016vaultAttachers\032A\n" +
+      "\023VaultAttachersEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024" +
+      "\n\005value\030\002 \001(\tR\005value:\0028\001B\257\001B\010ApiProtoP\001\242" +
+      "\002\004ASIP\252\002 Ai.Stigmer.Iam.Platformclient.V" +
+      "1\312\002 Ai\\Stigmer\\Iam\\Platformclient\\V1\342\002,A" +
+      "i\\Stigmer\\Iam\\Platformclient\\V1\\GPBMetad" +
+      "ata\352\002$Ai::Stigmer::Iam::Platformclient::" +
+      "V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -91,7 +101,13 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_iam_platformclient_v1_PlatformClientStatus_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_platformclient_v1_PlatformClientStatus_descriptor,
-        new java.lang.String[] { "Audit", "LastUsedAt", });
+        new java.lang.String[] { "Audit", "LastUsedAt", "VaultAttachers", });
+    internal_static_ai_stigmer_iam_platformclient_v1_PlatformClientStatus_VaultAttachersEntry_descriptor =
+      internal_static_ai_stigmer_iam_platformclient_v1_PlatformClientStatus_descriptor.getNestedType(0);
+    internal_static_ai_stigmer_iam_platformclient_v1_PlatformClientStatus_VaultAttachersEntry_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_iam_platformclient_v1_PlatformClientStatus_VaultAttachersEntry_descriptor,
+        new java.lang.String[] { "Key", "Value", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.MetadataProto.getDescriptor();
     ai.stigmer.commons.apiresource.StatusProto.getDescriptor();

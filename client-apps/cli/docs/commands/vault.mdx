@@ -1,0 +1,48 @@
+Manage the logins and secrets your runs use.
+
+A vault holds secrets, matched by name (`OPENAI_API_KEY`), and logins, matched
+by the address of the tool or Git host they are for
+(`https://mcp.linear.app/mcp`, `github.com`). Everyone has their own vault,
+created the first time they save something: name it with `--mine`. An
+organization's admins can create shared vaults for a team and say who may use
+them: name one with `--vault <ref>`.
+
+Saved values can be replaced but never read back. No command prints one, and a
+value never rides the command line: each command reads it from `--from-env`,
+`--from-file`, or stdin (a hidden prompt on a terminal).
+
+Removing an entry cannot be undone, so `remove-secret` and `remove-connection`
+name each entry and the vault and ask first on a terminal. `--force` (`-f`)
+skips the question; without it, a removal off a terminal does nothing.
+
+`stigmer get vault`, `stigmer list vaults` and `stigmer delete vault` cover the
+rest. A vault has no `apply`: a secret never belongs in a manifest file.
+
+{/* AUTO_USAGE */}
+
+### Common patterns
+
+```bash
+# Save your OpenAI key in your own vault (prompts with hidden input)
+stigmer vault set-secret OPENAI_API_KEY --mine
+
+# Save a key from an environment variable you already have
+stigmer vault set-secret LINEAR_API_KEY --mine --from-env LINEAR_API_KEY
+
+# Save a GitHub token so private repositories clone
+stigmer vault set-connection github.com --mine --from-file ~/.github-token
+
+# See what your vault holds (names only)
+stigmer vault mine
+
+# Create a shared vault for the support team and add its key
+stigmer vault create "Support tools"
+stigmer vault set-secret ZENDESK_API_KEY --vault support-tools
+
+# Remove a key from a script, without the question
+stigmer vault remove-secret LINEAR_API_KEY --mine --force
+```
+
+{/* AUTO_SUBCOMMANDS */}
+
+{/* AUTO_GLOBAL_FLAGS */}

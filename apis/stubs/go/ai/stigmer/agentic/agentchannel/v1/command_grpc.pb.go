@@ -90,8 +90,8 @@ type AgentChannelCommandControllerClient interface {
 	// Delete an agent channel.
 	//
 	// Full teardown of the connection: inbound events for the workspace stop
-	// resolving, pending deliveries are abandoned, and the credentials
-	// environment is deleted with the grant. To pause serving while keeping
+	// resolving, pending deliveries are abandoned, and the sealed provider
+	// credentials are deleted. To pause serving while keeping
 	// the install, update the channel with enabled=false instead.
 	Delete(ctx context.Context, in *AgentChannelId, opts ...grpc.CallOption) (*AgentChannel, error)
 }
@@ -227,8 +227,8 @@ type AgentChannelCommandControllerServer interface {
 	// Delete an agent channel.
 	//
 	// Full teardown of the connection: inbound events for the workspace stop
-	// resolving, pending deliveries are abandoned, and the credentials
-	// environment is deleted with the grant. To pause serving while keeping
+	// resolving, pending deliveries are abandoned, and the sealed provider
+	// credentials are deleted. To pause serving while keeping
 	// the install, update the channel with enabled=false instead.
 	Delete(context.Context, *AgentChannelId) (*AgentChannel, error)
 }

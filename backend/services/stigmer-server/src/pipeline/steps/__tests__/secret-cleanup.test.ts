@@ -6,13 +6,13 @@
  * silent no-ops by the facade's own dispatch (the property that keeps the
  * OSS default codec set conformance-invisible). The step arm reads the
  * doomed resource from EXISTING_RESOURCE_KEY and no-ops when it is
- * absent. The end-to-end wiring through the delete/update/removeVariables
- * chains is pinned in extensions/__tests__/secret-cleanup-composed.test.ts.
+ * absent. The end-to-end wiring through the vault delete and entry
+ * writes is pinned in extensions/__tests__/secret-cleanup-composed.test.ts.
  */
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
-import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
+import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { createLogger } from "../../../boot/logger.js";
@@ -181,31 +181,29 @@ describe("DestroySecretBackingState (the delete-chain step)", () => {
       "alpha",
       EncryptionScope.forOrganization("acme"),
     );
-    const env = create(EnvironmentSchema, {
-      metadata: { id: "env_5", org: "acme" },
+    const env = create(VaultSchema, {
+      metadata: { id: "vlt_5", org: "acme" },
       spec: {
-        data: {
-          SEALED: { value: sealed, isSecret: true },
-          PLAIN: { value: "visible", isSecret: false },
+        secrets: {
+          SEALED: { value: sealed },
+          EMPTY: { value: "" },
         },
       },
     });
 
     const ctx = new RequestContext(
-      EnvironmentSchema,
-      create(EnvironmentSchema, {}),
+      VaultSchema,
+      create(VaultSchema, {}),
       caller,
-      ApiResourceKind.environment,
+      ApiResourceKind.vault,
     );
     ctx.set(EXISTING_RESOURCE_KEY, env);
 
     const step = newDestroySecretBackingStateStep<
-      typeof EnvironmentSchema,
-      typeof EnvironmentSchema
+      typeof VaultSchema,
+      typeof VaultSchema
     >(secrets, captureLogger(errorLines), (resource) =>
-      Object.values(resource.spec?.data ?? {})
-        .filter((value) => value.isSecret)
-        .map((value) => value.value),
+      Object.values(resource.spec?.secrets ?? {}).map((secret) => secret.value),
     );
     expect(step.name).toBe("DestroySecretBackingState");
     await step.execute(ctx);
@@ -217,15 +215,15 @@ describe("DestroySecretBackingState (the delete-chain step)", () => {
   it("no-ops when the doomed resource is absent from context", async () => {
     const { codec, secrets, errorLines } = newFixture();
     const ctx = new RequestContext(
-      EnvironmentSchema,
-      create(EnvironmentSchema, {}),
+      VaultSchema,
+      create(VaultSchema, {}),
       caller,
-      ApiResourceKind.environment,
+      ApiResourceKind.vault,
     );
 
     const step = newDestroySecretBackingStateStep<
-      typeof EnvironmentSchema,
-      typeof EnvironmentSchema
+      typeof VaultSchema,
+      typeof VaultSchema
     >(secrets, captureLogger(errorLines), () => {
       throw new Error("extractor must not run without a resource");
     });

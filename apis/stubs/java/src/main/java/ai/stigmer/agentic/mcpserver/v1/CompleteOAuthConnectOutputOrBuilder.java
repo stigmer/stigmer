@@ -22,7 +22,7 @@ public interface CompleteOAuthConnectOutputOrBuilder extends
 
   /**
    * <pre>
-   * The environment variable name where the access token was stored.
+   * The environment variable the saved login fills.
    * Matches McpServerAuth.target_env_var on the MCP server spec.
    * </pre>
    *
@@ -32,7 +32,7 @@ public interface CompleteOAuthConnectOutputOrBuilder extends
   java.lang.String getTargetEnvVar();
   /**
    * <pre>
-   * The environment variable name where the access token was stored.
+   * The environment variable the saved login fills.
    * Matches McpServerAuth.target_env_var on the MCP server spec.
    * </pre>
    *

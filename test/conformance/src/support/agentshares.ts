@@ -28,6 +28,8 @@ export interface AgentShareOptions {
   // Unspecified deliberately means PUBLIC (the proto's documented default) —
   // set org for the member-gated audience.
   audience?: AgentShareAudience;
+  // Vault slugs a guest's runs use (spec.vaults); public audience only.
+  vaults?: string[];
 }
 
 // A complete, valid AgentShare for the given agent.
@@ -49,6 +51,9 @@ export function makeAgentShare(
       },
       enabled: options.enabled ?? true,
       ...(options.audience !== undefined ? { audience: options.audience } : {}),
+      ...(options.vaults !== undefined
+        ? { vaults: options.vaults.map((slug) => ({ slug, kind: ApiResourceKind.vault })) }
+        : {}),
     },
   };
 }

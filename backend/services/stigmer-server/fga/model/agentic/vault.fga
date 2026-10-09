@@ -1,0 +1,78 @@
+module agentic
+
+# ========================================
+# VAULT TYPE (Organization-scoped; a person's or the organization's)
+# ========================================
+# A vault holds the logins (by a tool's address) and secrets (by name) that
+# runs use. Two kinds of row share the type, told apart by which parent link
+# the row carries; the spec's owner oneof is stamped by the server and each
+# row writes exactly one of the two optional parents:
+#
+# - MY VAULT (person link): one per person per organization. Only that
+#   person views, uses or edits it, and only while they belong to the
+#   organization. Admins never reach it: an admin's run must never use a
+#   member's logins. It is never shared and takes no grants. The one place
+#   it serves runs the person does not start is their own schedule, whose
+#   spec only they may change while it names this vault; the agent that
+#   schedule runs is the agent's editors' to change, so a schedule that
+#   follows an agent's latest version fills whatever that version declares.
+# - SHARED VAULT (org_owned link): the organization's. Its admins manage it
+#   and decide who may use it: org visibility (every member) in every
+#   edition, and per-person or per-Team `user` grants where the edition
+#   grants roles on a single resource.
+#
+# Values are write-only: no permission reveals one. "Use" is the act of a
+# run reading the vault's values server-side, so `can_use` is what the
+# reference rule asks when a surface attaches a vault and what each run
+# asks again when it starts.
+#
+# FGA tuples on creation (config-driven from the kind's authorization
+# block):
+# - vault:vlt_x#organization@organization:acme
+# - My vault:     vault:vlt_x#person@identity_account:alice
+# - Shared vault: vault:vlt_x#org_owned@organization:acme
+#
+# Additional tuple when a shared vault is set to visibility_org:
+# - vault:vlt_x#viewer@organization:acme#viewer
+
+type vault
+  relations
+    # ========================================
+    # STRUCTURAL LINKS
+    # ========================================
+    define organization: [organization]
+
+    # The person whose My vault this is. A direct link, written once from
+    # the server-stamped spec field; the organization bound sits on owner.
+    define person: [identity_account]
+
+    # The organization a shared vault belongs to.
+    define org_owned: [organization]
+
+    # ========================================
+    # PRINCIPALS
+    # ========================================
+    define owner: person and affiliated from organization
+
+    # May use a shared vault: granted to a person or a Team ("Can use").
+    # Bounded through org_owned, which only a shared vault carries, so a
+    # grant tuple on a My vault reaches nobody: its privacy is the model's,
+    # not only the absence of a code path that writes one.
+    define user: [identity_account, team#member] and affiliated from org_owned
+
+    # Org visibility on a shared vault: every member may use it. The same
+    # org_owned bound keeps a stray visibility tuple off a My vault.
+    define viewer: [organization#viewer] and affiliated from org_owned
+
+    # ========================================
+    # PERMISSIONS
+    # ========================================
+    define can_view: owner or user or viewer or admin from org_owned
+    define can_use: owner or user or viewer or admin from org_owned
+    define can_edit: owner or admin from org_owned
+    define can_delete: owner or admin from org_owned
+
+    # Who may use a shared vault is its organization's admins' decision.
+    define can_grant_access: admin from org_owned
+    define can_manage_audience: admin from org_owned
+    define can_view_access: admin from org_owned

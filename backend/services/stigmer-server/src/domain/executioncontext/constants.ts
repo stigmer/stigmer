@@ -5,16 +5,15 @@
  * is editable without an deliberate wire change.
  *
  * The redaction marker itself is NOT defined here: it is imported from
- * the environment domain's constants (the single source of truth both Go
- * domains share — Go's redact_secret_values.go imports
- * envsteps.RedactedMarker the same way).
+ * the encryption module (encryption.ts `REDACTED_MARKER`), the single source
+ * of truth every secret kind shares.
  */
 
 /**
  * InvalidArgument copy for client-supplied enc:v<N>: input — Go
  * encrypt_secret_values.go's rejectCiphertextShapedStep, byte-pinned.
- * Note the copy differs from the environment domain's forged-ciphertext
- * message: each domain pins its own Go string.
+ * Note the copy differs from the vault domain's forged-ciphertext
+ * message: each domain pins its own string.
  */
 export function ciphertextShapedMessage(key: string): string {
   return (

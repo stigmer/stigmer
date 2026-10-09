@@ -660,7 +660,7 @@ AgentInvocation is what a caller may ask an agent to do.
     message: { type: "string", description: "Prompt the run starts from." },
     harness: { type: "Harness", description: "Execution engine for the run's session.", typeDescriptionLink: "#harness" },
     workspaceEntries: { type: "WorkspaceEntryInput[]", description: "Workspace the run's session operates on.", typeDescriptionLink: "#workspaceentryinput" },
-    environmentRefs: { type: "ResourceRef[]", description: "References to Environment resources whose values are provided to the runs this invocation creates.", typeDescriptionLink: "#resourceref" },
+    vaults: { type: "ResourceRef[]", description: "Vaults whose logins and secrets the runs this invocation creates use, in order: the first vault holding a match wins.", typeDescriptionLink: "#resourceref" },
     runConfig: { type: "RunConfigInput", description: "Per-invocation model choice and run bounds.", typeDescriptionLink: "#runconfiginput" },
   }}
 />
@@ -711,6 +711,7 @@ GitRepoSource provisions a workspace by cloning a git repository.
     commit: { type: "string", description: "Commit SHA to checkout after cloning." },
     depth: { type: "number", description: "Number of commits to include in the clone history." },
     writeBackMode: { type: "GitWriteBackMode", description: "Controls whether the platform creates a branch and pull request from the agent's file changes.", typeDescriptionLink: "#gitwritebackmode" },
+    token: { type: "string", description: "A token for cloning this repository, kept for the conversation only." },
   }}
 />
 
@@ -834,6 +835,7 @@ ScheduleStatus contains system-managed state for a schedule.
     lastRunId: { type: "string", description: "ID of the run created by the most recent fire." },
     consecutiveFailures: { type: "number", description: "Number of consecutive failed runs." },
     pausedReason: { type: "string", description: "Why the platform paused this schedule; empty when not paused." },
+    vaultAttachers: { type: "Record<string, string>", description: "Who attached each of this resource's vaults, by vault id: the account whose permission to use the vault each run checks when it has no person." },
     audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourceaudit" },
   }}
 />

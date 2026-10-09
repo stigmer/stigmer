@@ -13,20 +13,20 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class AgentInvocation(_message.Message):
-    __slots__ = ("agent_ref", "message", "harness", "workspace_entries", "environment_refs", "run_config")
+    __slots__ = ("agent_ref", "message", "harness", "workspace_entries", "vaults", "run_config")
     AGENT_REF_FIELD_NUMBER: _ClassVar[int]
     MESSAGE_FIELD_NUMBER: _ClassVar[int]
     HARNESS_FIELD_NUMBER: _ClassVar[int]
     WORKSPACE_ENTRIES_FIELD_NUMBER: _ClassVar[int]
-    ENVIRONMENT_REFS_FIELD_NUMBER: _ClassVar[int]
+    VAULTS_FIELD_NUMBER: _ClassVar[int]
     RUN_CONFIG_FIELD_NUMBER: _ClassVar[int]
     agent_ref: _io_pb2.ApiResourceReference
     message: str
     harness: _enum_pb2_1.Harness
     workspace_entries: _containers.RepeatedCompositeFieldContainer[_workspace_pb2.WorkspaceEntry]
-    environment_refs: _containers.RepeatedCompositeFieldContainer[_io_pb2.ApiResourceReference]
+    vaults: _containers.RepeatedCompositeFieldContainer[_io_pb2.ApiResourceReference]
     run_config: RunConfig
-    def __init__(self, agent_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., message: _Optional[str] = ..., harness: _Optional[_Union[_enum_pb2_1.Harness, str]] = ..., workspace_entries: _Optional[_Iterable[_Union[_workspace_pb2.WorkspaceEntry, _Mapping]]] = ..., environment_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., run_config: _Optional[_Union[RunConfig, _Mapping]] = ...) -> None: ...
+    def __init__(self, agent_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., message: _Optional[str] = ..., harness: _Optional[_Union[_enum_pb2_1.Harness, str]] = ..., workspace_entries: _Optional[_Iterable[_Union[_workspace_pb2.WorkspaceEntry, _Mapping]]] = ..., vaults: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., run_config: _Optional[_Union[RunConfig, _Mapping]] = ...) -> None: ...
 
 class RunConfig(_message.Message):
     __slots__ = ("model_name", "max_cost_usd", "max_tool_rounds", "service_tier", "thinking_mode", "max_tool_result_chars")

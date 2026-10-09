@@ -2,7 +2,8 @@
  * The <Term> glossary against its source of truth. glossary.ts says each
  * definition is copied from the term's entry in docs/vocabulary.md; this pins
  * that every glossary term has an entry there, and that each definition is
- * the entry's first paragraph. Terms that differ today are listed, each a
+ * the entry's first paragraph (as plain text: a tooltip shows no markdown, so
+ * `**emphasis**` is compared without its markers). Terms that differ today are listed, each a
  * known gap (https://github.com/stigmer/stigmer/issues/1788): fixing one
  * fails here until its line is removed, and a new difference fails at once.
  */
@@ -26,11 +27,13 @@ const KNOWN_DIFFERENCES: ReadonlyArray<string> = [
   "Skill",
   "MCP Server",
   "PlatformClient",
-  "Environment",
   "Agent Channel",
 ];
 
-/** The first paragraph under `#### <term>`, whitespace normalised; undefined when there is no entry. */
+/**
+ * The first paragraph under `#### <term>`, whitespace normalised and
+ * `**emphasis**` markers dropped; undefined when there is no entry.
+ */
 function vocabularyDefinition(term: string): string | undefined {
   const lines = VOCABULARY.split("\n");
   const heading = lines.indexOf(`#### ${term}`);
@@ -43,7 +46,7 @@ function vocabularyDefinition(term: string): string | undefined {
     }
     paragraph.push(line.trim());
   }
-  return paragraph.join(" ");
+  return paragraph.join(" ").replace(/\*\*([^*]+)\*\*/g, "$1");
 }
 
 describe("the docs glossary follows docs/vocabulary.md", () => {

@@ -74,16 +74,16 @@ tuples:
   - {user: organization:rival, relation: organization, object: agent:rival-bot}
   - {user: organization:rival#child_org_viewer, relation: child_org_viewer, object: agent:rival-bot}
 
-  # --- What acme holds: an org-visible agent, a session, an org-shared
-  #     environment and a memory, all alice's ---
+  # --- What acme holds: an org-visible agent, a session, an org-visible
+  #     shared vault and a memory, all alice's ---
   - {user: organization:acme, relation: organization, object: agent:acme-helper}
   - {user: identity_account:alice, relation: owner, object: agent:acme-helper}
   - {user: organization:acme#viewer, relation: viewer, object: agent:acme-helper}
   - {user: organization:acme, relation: organization, object: session:acme-chat}
   - {user: identity_account:alice, relation: owner, object: session:acme-chat}
-  - {user: organization:acme, relation: organization, object: environment:acme-env}
-  - {user: identity_account:alice, relation: owner, object: environment:acme-env}
-  - {user: organization:acme#viewer, relation: viewer, object: environment:acme-env}
+  - {user: organization:acme, relation: organization, object: vault:acme-vault}
+  - {user: organization:acme, relation: org_owned, object: vault:acme-vault}
+  - {user: organization:acme#viewer, relation: viewer, object: vault:acme-vault}
   - {user: organization:acme, relation: organization, object: memory:acme-fact}
   - {user: identity_account:alice, relation: subject, object: memory:acme-fact}
 
@@ -134,10 +134,11 @@ tests:
         assertions:
           can_view: false
       - user: identity_account:pat
-        object: environment:acme-env
+        object: vault:acme-vault
         assertions:
           viewer: false
           can_view: false
+          can_use: false
       - user: identity_account:pat
         object: memory:acme-fact
         assertions:

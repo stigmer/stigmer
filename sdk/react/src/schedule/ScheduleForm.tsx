@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useCallback, useId, useState } from "react";
+import { type FormEvent, useCallback, useId, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
 import {
   getUserMessage,
@@ -8,10 +8,10 @@ import {
   type RunConfigInput,
 } from "@stigmer/sdk";
 import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { Popover } from "@base-ui/react/popover";
 import { AgentPicker } from "../agent/AgentPicker.js";
-import { EnvironmentPicker } from "../environment/EnvironmentPicker.js";
+import { VaultPicker } from "../vault/VaultPicker.js";
+import { useMyVault } from "../vault/useMyVault.js";
 import { useGitHubConnection } from "../github/useGitHubConnection.js";
 import { ModelSelector } from "../models/ModelSelector.js";
 import { toProtoHarness, type HarnessOption } from "../models/harness.js";
@@ -110,7 +110,16 @@ export function ScheduleForm({
   const [timeZone, setTimeZone] = useState(browserTimeZone);
   const [enabled, setEnabled] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [environmentRefs, setEnvironmentRefs] = useState<ResourceRef[]>([]);
+  // A fire has no person, so the schedule uses only the vaults it names.
+  // Its creator's own My vault is named by default (the one surface that
+  // may name it), until the creator edits the list.
+  const myVault = useMyVault(org);
+  const [vaultPick, setVaults] = useState<ResourceRef[] | null>(null);
+  const myVaultSlug = myVault.vault?.metadata?.slug ?? "";
+  const vaults = useMemo<ResourceRef[]>(
+    () => vaultPick ?? (myVaultSlug !== "" ? [{ org, slug: myVaultSlug }] : []),
+    [vaultPick, myVaultSlug, org],
+  );
 
   // Engine & model are one atomic choice: picking a model pins BOTH the
   // harness and the model (the registry scopes models per harness, so a
@@ -183,7 +192,7 @@ export function ScheduleForm({
             ...(workspace.hasEntries
               ? { workspaceEntries: workspace.toInput() }
               : {}),
-            ...(environmentRefs.length > 0 ? { environmentRefs } : {}),
+            ...(vaults.length > 0 ? { vaults } : {}),
             ...(runConfig ? { runConfig } : {}),
           },
         });
@@ -203,7 +212,7 @@ export function ScheduleForm({
       timeZone,
       enabled,
       trimmedMessage,
-      environmentRefs,
+      vaults,
       modelName,
       modelHarness,
       serviceTier,
@@ -319,32 +328,29 @@ export function ScheduleForm({
         />
         <p className={hintClasses}>
           Each run clones these repositories fresh. Private repositories need
-          a <code className="stg:font-mono">GITHUB_TOKEN</code> in one of this
-          schedule&rsquo;s environments; public ones need nothing.
+          a <code className="stg:font-mono">github.com</code> login in one of
+          this schedule&rsquo;s vaults; public ones need nothing.
         </p>
       </div>
 
-      {/* Environments — how a tool-using agent becomes schedulable.
-          Only org-shared environments resolve for a
-          schedule fire, so the picker is filtered to visibility_org —
-          the same credential surface a channel binding uses. */}
+      {/* Vaults — how a tool-using agent becomes schedulable. A fire has
+          no person, so these are all it uses; the creator's own My vault
+          is the one surface-attachable personal vault. */}
       <div className="stg:space-y-1">
         <span id={`${baseId}-env-label`} className={labelClasses}>
-          Environments <span className="stg:font-normal stg:text-muted-foreground">(optional)</span>
+          Vaults <span className="stg:font-normal stg:text-muted-foreground">(optional)</span>
         </span>
-        <EnvironmentPicker
+        <VaultPicker
           org={org}
-          value={environmentRefs}
-          onChange={setEnvironmentRefs}
+          value={vaults}
+          onChange={setVaults}
           disabled={isCreating}
-          filterEnvironment={(env) =>
-            env.metadata?.visibility === ApiResourceVisibility.visibility_org
-          }
+          allowMyVault
         />
         <p className={hintClasses}>
-          Bind org-shared credentials (for example an MCP server&rsquo;s secret)
-          so the agent&rsquo;s tools work on an unattended fire. Without this, an
-          agent whose tools need credentials will be refused every run.
+          The keys and logins every fire uses (your own My vault is named by
+          default). Without them, an agent whose tools need credentials is
+          refused every run, naming the key.
         </p>
       </div>
 

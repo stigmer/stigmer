@@ -26,7 +26,7 @@ from ai.stigmer.commons.rpc import method_options_pb2 as ai_dot_stigmer_dot_comm
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n+ai/stigmer/platform/github/v1/service.proto\x12\x1d\x61i.stigmer.platform.github.v1\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a\x1b\x62uf/validate/validate.proto\"I\n\x1bGetOAuthAuthorizeUrlRequest\x12*\n\x0credirect_uri\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x0bredirectUri\"Y\n\x1cGetOAuthAuthorizeUrlResponse\x12#\n\rauthorize_url\x18\x01 \x01(\tR\x0c\x61uthorizeUrl\x12\x14\n\x05state\x18\x02 \x01(\tR\x05state\"\x82\x01\n\x18\x45xchangeOAuthCodeRequest\x12\x1b\n\x04\x63ode\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x04\x63ode\x12\x1d\n\x05state\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x05state\x12*\n\x0credirect_uri\x18\x03 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x0bredirectUri\"s\n\x19\x45xchangeOAuthCodeResponse\x12!\n\x0c\x61\x63\x63\x65ss_token\x18\x01 \x01(\tR\x0b\x61\x63\x63\x65ssToken\x12\x1d\n\ntoken_type\x18\x02 \x01(\tR\ttokenType\x12\x14\n\x05scope\x18\x03 \x01(\tR\x05scope2\xb6\x02\n\rGitHubService\x12\x95\x01\n\x14getOAuthAuthorizeUrl\x12:.ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlRequest\x1a;.ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlResponse\"\x04\xd0\xb8\x18\x01\x12\x8c\x01\n\x11\x65xchangeOAuthCode\x12\x37.ai.stigmer.platform.github.v1.ExchangeOAuthCodeRequest\x1a\x38.ai.stigmer.platform.github.v1.ExchangeOAuthCodeResponse\"\x04\xd0\xb8\x18\x01\x42\xca\x01\n!com.ai.stigmer.platform.github.v1B\x0cServiceProtoP\x01\xa2\x02\x04\x41SPG\xaa\x02\x1d\x41i.Stigmer.Platform.Github.V1\xca\x02\x1d\x41i\\Stigmer\\Platform\\Github\\V1\xe2\x02)Ai\\Stigmer\\Platform\\Github\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Platform::Github::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n+ai/stigmer/platform/github/v1/service.proto\x12\x1d\x61i.stigmer.platform.github.v1\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a\x1b\x62uf/validate/validate.proto\"d\n\x1bGetOAuthAuthorizeUrlRequest\x12*\n\x0credirect_uri\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x0bredirectUri\x12\x19\n\x03org\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\"Y\n\x1cGetOAuthAuthorizeUrlResponse\x12#\n\rauthorize_url\x18\x01 \x01(\tR\x0c\x61uthorizeUrl\x12\x14\n\x05state\x18\x02 \x01(\tR\x05state\"\x9d\x01\n\x18\x45xchangeOAuthCodeRequest\x12\x1b\n\x04\x63ode\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x04\x63ode\x12\x1d\n\x05state\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x05state\x12*\n\x0credirect_uri\x18\x03 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x0bredirectUri\x12\x19\n\x03org\x18\x04 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\"z\n\x19\x45xchangeOAuthCodeResponse\x12\x1d\n\ntoken_type\x18\x02 \x01(\tR\ttokenType\x12\x14\n\x05scope\x18\x03 \x01(\tR\x05scope\x12\x14\n\x05login\x18\x04 \x01(\tR\x05loginJ\x04\x08\x01\x10\x02R\x0c\x61\x63\x63\x65ss_token2\xb7\x03\n\rGitHubService\x12\xd3\x01\n\x14getOAuthAuthorizeUrl\x12:.ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlRequest\x1a;.ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlResponse\"B\xc2\xb8\x18>\x08\x33\x10\x1e\"\x03org*3unauthorized to connect GitHub in this organization\x12\xcf\x01\n\x11\x65xchangeOAuthCode\x12\x37.ai.stigmer.platform.github.v1.ExchangeOAuthCodeRequest\x1a\x38.ai.stigmer.platform.github.v1.ExchangeOAuthCodeResponse\"G\xc2\xb8\x18\x43\x08\x33\x10\x1e\"\x03org*8unauthorized to save a GitHub login in this organizationB\xca\x01\n!com.ai.stigmer.platform.github.v1B\x0cServiceProtoP\x01\xa2\x02\x04\x41SPG\xaa\x02\x1d\x41i.Stigmer.Platform.Github.V1\xca\x02\x1d\x41i\\Stigmer\\Platform\\Github\\V1\xe2\x02)Ai\\Stigmer\\Platform\\Github\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Platform::Github::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -36,24 +36,28 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._serialized_options = b'\n!com.ai.stigmer.platform.github.v1B\014ServiceProtoP\001\242\002\004ASPG\252\002\035Ai.Stigmer.Platform.Github.V1\312\002\035Ai\\Stigmer\\Platform\\Github\\V1\342\002)Ai\\Stigmer\\Platform\\Github\\V1\\GPBMetadata\352\002!Ai::Stigmer::Platform::Github::V1'
   _globals['_GETOAUTHAUTHORIZEURLREQUEST'].fields_by_name['redirect_uri']._loaded_options = None
   _globals['_GETOAUTHAUTHORIZEURLREQUEST'].fields_by_name['redirect_uri']._serialized_options = b'\272H\004r\002\020\001'
+  _globals['_GETOAUTHAUTHORIZEURLREQUEST'].fields_by_name['org']._loaded_options = None
+  _globals['_GETOAUTHAUTHORIZEURLREQUEST'].fields_by_name['org']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_EXCHANGEOAUTHCODEREQUEST'].fields_by_name['code']._loaded_options = None
   _globals['_EXCHANGEOAUTHCODEREQUEST'].fields_by_name['code']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_EXCHANGEOAUTHCODEREQUEST'].fields_by_name['state']._loaded_options = None
   _globals['_EXCHANGEOAUTHCODEREQUEST'].fields_by_name['state']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_EXCHANGEOAUTHCODEREQUEST'].fields_by_name['redirect_uri']._loaded_options = None
   _globals['_EXCHANGEOAUTHCODEREQUEST'].fields_by_name['redirect_uri']._serialized_options = b'\272H\004r\002\020\001'
+  _globals['_EXCHANGEOAUTHCODEREQUEST'].fields_by_name['org']._loaded_options = None
+  _globals['_EXCHANGEOAUTHCODEREQUEST'].fields_by_name['org']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_GITHUBSERVICE'].methods_by_name['getOAuthAuthorizeUrl']._loaded_options = None
-  _globals['_GITHUBSERVICE'].methods_by_name['getOAuthAuthorizeUrl']._serialized_options = b'\320\270\030\001'
+  _globals['_GITHUBSERVICE'].methods_by_name['getOAuthAuthorizeUrl']._serialized_options = b'\302\270\030>\0103\020\036\"\003org*3unauthorized to connect GitHub in this organization'
   _globals['_GITHUBSERVICE'].methods_by_name['exchangeOAuthCode']._loaded_options = None
-  _globals['_GITHUBSERVICE'].methods_by_name['exchangeOAuthCode']._serialized_options = b'\320\270\030\001'
+  _globals['_GITHUBSERVICE'].methods_by_name['exchangeOAuthCode']._serialized_options = b'\302\270\030C\0103\020\036\"\003org*8unauthorized to save a GitHub login in this organization'
   _globals['_GETOAUTHAUTHORIZEURLREQUEST']._serialized_start=152
-  _globals['_GETOAUTHAUTHORIZEURLREQUEST']._serialized_end=225
-  _globals['_GETOAUTHAUTHORIZEURLRESPONSE']._serialized_start=227
-  _globals['_GETOAUTHAUTHORIZEURLRESPONSE']._serialized_end=316
-  _globals['_EXCHANGEOAUTHCODEREQUEST']._serialized_start=319
-  _globals['_EXCHANGEOAUTHCODEREQUEST']._serialized_end=449
-  _globals['_EXCHANGEOAUTHCODERESPONSE']._serialized_start=451
-  _globals['_EXCHANGEOAUTHCODERESPONSE']._serialized_end=566
-  _globals['_GITHUBSERVICE']._serialized_start=569
-  _globals['_GITHUBSERVICE']._serialized_end=879
+  _globals['_GETOAUTHAUTHORIZEURLREQUEST']._serialized_end=252
+  _globals['_GETOAUTHAUTHORIZEURLRESPONSE']._serialized_start=254
+  _globals['_GETOAUTHAUTHORIZEURLRESPONSE']._serialized_end=343
+  _globals['_EXCHANGEOAUTHCODEREQUEST']._serialized_start=346
+  _globals['_EXCHANGEOAUTHCODEREQUEST']._serialized_end=503
+  _globals['_EXCHANGEOAUTHCODERESPONSE']._serialized_start=505
+  _globals['_EXCHANGEOAUTHCODERESPONSE']._serialized_end=627
+  _globals['_GITHUBSERVICE']._serialized_start=630
+  _globals['_GITHUBSERVICE']._serialized_end=1069
 # @@protoc_insertion_point(module_scope)

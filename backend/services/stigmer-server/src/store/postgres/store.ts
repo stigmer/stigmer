@@ -46,8 +46,6 @@ import {
 import type {
   AuditRecord,
   BootstrapStateStore,
-  OAuthGrant,
-  OAuthGrantStore,
   ResourceNameClaim,
   ResourceNameEntry,
   ResourceNameKey,
@@ -148,7 +146,6 @@ const RECONCILE_BATCH = 500;
 export class PostgresStore implements Store {
   readonly bootstrapState: BootstrapStateStore;
   readonly resourceNames: ResourceNameStore;
-  readonly oauthGrants: OAuthGrantStore;
   readonly pendingOAuthStates: PendingOAuthStateStore;
   readonly organizationDeletions: OrganizationDeletionStore;
 
@@ -166,7 +163,6 @@ export class PostgresStore implements Store {
     this.listIndexes = listIndexes;
     this.bootstrapState = new PostgresBootstrapStateStore(() => this.open());
     this.resourceNames = new PostgresResourceNameStore(() => this.open());
-    this.oauthGrants = new PostgresOAuthGrantStore(() => this.open());
     this.pendingOAuthStates = new PostgresPendingOAuthStateStore(() =>
       this.open(),
     );
@@ -1552,133 +1548,6 @@ async function holderOf(
 }
 
 // =============================================================================
-// MCP OAuth grants
-// =============================================================================
-
-class PostgresOAuthGrantStore implements OAuthGrantStore {
-  constructor(private readonly open: () => Pool) {}
-
-  async upsert(grant: OAuthGrant): Promise<void> {
-    const now = Math.floor(Date.now() / 1000);
-    const createdAt = grant.createdAt !== 0 ? grant.createdAt : now;
-
-    await this.open().query(
-      `INSERT INTO oauth_grant (
-        identity_account_id, resource_id, resource_kind, org_id,
-        access_token_expires_at, client_id, auth_method, token_endpoint,
-        access_token_env_var, refresh_token_env_var, environment_id,
-        created_at, updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-      ON CONFLICT (identity_account_id, resource_id, org_id) DO UPDATE SET
-        resource_kind = excluded.resource_kind,
-        access_token_expires_at = excluded.access_token_expires_at,
-        client_id = excluded.client_id,
-        auth_method = excluded.auth_method,
-        token_endpoint = excluded.token_endpoint,
-        access_token_env_var = excluded.access_token_env_var,
-        refresh_token_env_var = excluded.refresh_token_env_var,
-        environment_id = excluded.environment_id,
-        updated_at = excluded.updated_at`,
-      [
-        grant.identityAccountId,
-        grant.resourceId,
-        grant.resourceKind,
-        grant.orgId,
-        grant.accessTokenExpiresAt,
-        grant.clientId,
-        grant.authMethod,
-        grant.tokenEndpoint,
-        grant.accessTokenEnvVar,
-        grant.refreshTokenEnvVar,
-        grant.environmentId,
-        createdAt,
-        now,
-      ],
-    );
-  }
-
-  async find(
-    identityAccountId: string,
-    resourceId: string,
-    orgId: string,
-  ): Promise<OAuthGrant | undefined> {
-    const result = await this.open().query(
-      `SELECT identity_account_id, resource_id, resource_kind, org_id,
-        access_token_expires_at, client_id, auth_method, token_endpoint,
-        access_token_env_var, refresh_token_env_var, environment_id,
-        created_at, updated_at
-       FROM oauth_grant
-       WHERE identity_account_id = $1 AND resource_id = $2 AND org_id = $3`,
-      [identityAccountId, resourceId, orgId],
-    );
-    const row = result.rows[0] as
-      | {
-          identity_account_id: string;
-          resource_id: string;
-          resource_kind: string;
-          org_id: string;
-          access_token_expires_at: string | number;
-          client_id: string;
-          auth_method: string;
-          token_endpoint: string;
-          access_token_env_var: string;
-          refresh_token_env_var: string;
-          environment_id: string;
-          created_at: string | number;
-          updated_at: string | number;
-        }
-      | undefined;
-    if (row === undefined) {
-      return undefined; // no grant is a normal state, not an error
-    }
-    return {
-      identityAccountId: row.identity_account_id,
-      resourceId: row.resource_id,
-      resourceKind: row.resource_kind,
-      orgId: row.org_id,
-      accessTokenExpiresAt: Number(row.access_token_expires_at),
-      clientId: row.client_id,
-      authMethod: row.auth_method,
-      tokenEndpoint: row.token_endpoint,
-      accessTokenEnvVar: row.access_token_env_var,
-      refreshTokenEnvVar: row.refresh_token_env_var,
-      environmentId: row.environment_id,
-      createdAt: Number(row.created_at),
-      updatedAt: Number(row.updated_at),
-    };
-  }
-
-  async delete(
-    identityAccountId: string,
-    resourceId: string,
-    orgId: string,
-  ): Promise<void> {
-    await this.open().query(
-      `DELETE FROM oauth_grant
-       WHERE identity_account_id = $1 AND resource_id = $2 AND org_id = $3`,
-      [identityAccountId, resourceId, orgId],
-    );
-  }
-
-  async deleteByResourceId(resourceId: string, orgId: string): Promise<number> {
-    const result = await this.open().query(
-      `DELETE FROM oauth_grant
-       WHERE resource_id = $1 AND org_id = $2`,
-      [resourceId, orgId],
-    );
-    return result.rowCount ?? 0;
-  }
-
-  async deleteByOrg(orgId: string): Promise<number> {
-    const result = await this.open().query(
-      `DELETE FROM oauth_grant WHERE org_id = $1`,
-      [orgId],
-    );
-    return result.rowCount ?? 0;
-  }
-}
-
-// =============================================================================
 // MCP pending OAuth state
 // =============================================================================
 
@@ -1692,8 +1561,8 @@ class PostgresPendingOAuthStateStore implements PendingOAuthStateStore {
       `INSERT INTO pending_oauth_state (
         state, code_verifier, client_id, client_secret, token_endpoint,
         mcp_server_id, identity_account_id, target_env_var, auth_method,
-        token_auth_method, redirect_uri, org, created_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+        token_auth_method, redirect_uri, org, vault_id, tool_address, created_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
       [
         state.state,
         state.codeVerifier,
@@ -1707,6 +1576,8 @@ class PostgresPendingOAuthStateStore implements PendingOAuthStateStore {
         state.tokenAuthMethod,
         state.redirectUri,
         state.org,
+        state.vaultId,
+        state.toolAddress,
         createdAt,
       ],
     );
@@ -1722,7 +1593,7 @@ class PostgresPendingOAuthStateStore implements PendingOAuthStateStore {
       `DELETE FROM pending_oauth_state WHERE state = $1
        RETURNING state, code_verifier, client_id, client_secret, token_endpoint,
          mcp_server_id, identity_account_id, target_env_var, auth_method,
-         token_auth_method, redirect_uri, org, created_at`,
+         token_auth_method, redirect_uri, org, vault_id, tool_address, created_at`,
       [stateParam],
     );
     const row = result.rows[0] as
@@ -1739,6 +1610,8 @@ class PostgresPendingOAuthStateStore implements PendingOAuthStateStore {
           token_auth_method: string;
           redirect_uri: string;
           org: string;
+          vault_id: string;
+          tool_address: string;
           created_at: string | number;
         }
       | undefined;
@@ -1766,6 +1639,8 @@ class PostgresPendingOAuthStateStore implements PendingOAuthStateStore {
       tokenAuthMethod: row.token_auth_method,
       redirectUri: row.redirect_uri,
       org: row.org,
+      vaultId: row.vault_id,
+      toolAddress: row.tool_address,
       createdAt,
     };
   }

@@ -28,12 +28,12 @@ package ai.stigmer.commons.apiresource.apiresourcekind;
  * Kinds WITHOUT a visibility config accept only visibility_private (or
  * unspecified) — they are personal or org-structural resources whose access
  * is fully defined by their FGA model, never by per-resource visibility
- * tuples (session, environment, runs, etc.).
+ * tuples (session, runs, etc.).
  *
  * Current classification:
  * - Blueprint kinds (agent, skill, mcp_server, plugin):
  * private, org, child_orgs
- * - Org-only kinds (environment):
+ * - Org-only kinds (vault):
  * private, org — child_orgs is deliberately excluded to preserve
  * tenant isolation: what holds an organization's values never crosses
  * into its child organizations.
@@ -372,12 +372,12 @@ private static final long serialVersionUID = 0L;
    * Kinds WITHOUT a visibility config accept only visibility_private (or
    * unspecified) — they are personal or org-structural resources whose access
    * is fully defined by their FGA model, never by per-resource visibility
-   * tuples (session, environment, runs, etc.).
+   * tuples (session, runs, etc.).
    *
    * Current classification:
    * - Blueprint kinds (agent, skill, mcp_server, plugin):
    * private, org, child_orgs
-   * - Org-only kinds (environment):
+   * - Org-only kinds (vault):
    * private, org — child_orgs is deliberately excluded to preserve
    * tenant isolation: what holds an organization's values never crosses
    * into its child organizations.

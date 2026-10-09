@@ -63,8 +63,8 @@ export const KIND_META: ReadonlyMap<ApiResourceKind, KindMeta> = new Map([
     { name: "OAuthApp", displayName: "OAuth App", idPrefix: "oapp" },
   ],
   [
-    ApiResourceKind.environment,
-    { name: "Environment", displayName: "Environment", idPrefix: "env" },
+    ApiResourceKind.vault,
+    { name: "Vault", displayName: "Vault", idPrefix: "vlt" },
   ],
   [
     ApiResourceKind.agent_share,
@@ -108,7 +108,7 @@ export const CLI_RELEVANT_KINDS: readonly ApiResourceKind[] = [
   ApiResourceKind.api_key,
   ApiResourceKind.identity_provider,
   ApiResourceKind.oauth_app,
-  ApiResourceKind.environment,
+  ApiResourceKind.vault,
   ApiResourceKind.agent_share,
   ApiResourceKind.agent_channel,
   ApiResourceKind.channel_app,
@@ -131,7 +131,11 @@ export const RETIRED_KINDS: ReadonlyMap<string, string> = new Map([
   ],
   [
     "WorkflowInstance",
-    "is no longer a Stigmer resource. A run starts on an agent: run `stigmer run <org>/<agent>`, pass the keys it reads with `--env` (`--secret` for a secret) or keep them in your personal environment, and delete this file.",
+    "is no longer a Stigmer resource. A run starts on an agent: run `stigmer run <org>/<agent>`, pass the keys it reads with `--secret` or save them in your own vault (`stigmer vault set-secret <NAME> --mine`), and delete this file.",
+  ],
+  [
+    "Environment",
+    "is no longer a Stigmer resource: logins and secrets live in vaults, which are never written as files. Save each key with `stigmer vault set-secret <NAME> --mine` (or `--vault <ref>` for a shared vault), and delete this file.",
   ],
   [
     "Project",

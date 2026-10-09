@@ -9,7 +9,7 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv1";
  * Describes the file ai/stigmer/iam/v1/enum.proto.
  */
 export const file_ai_stigmer_iam_v1_enum: GenFile = /*@__PURE__*/
-  fileDesc("ChxhaS9zdGlnbWVyL2lhbS92MS9lbnVtLnByb3RvEhFhaS5zdGlnbWVyLmlhbS52MSrmCQoNSWFtUGVybWlzc2lvbhIPCgt1bnNwZWNpZmllZBAAEgwKCGNhbl92aWV3EAESDAoIY2FuX2VkaXQQAhIOCgpjYW5fZGVsZXRlEAMSFAoQY2FuX2dyYW50X2FjY2VzcxAEEhMKD2Nhbl92aWV3X2FjY2VzcxAFEhQKEGNhbl9hc3NpZ25fcm9sZXMQLxIXChNjYW5fbWFuYWdlX2F1ZGllbmNlEDASFAoQY2FuX2NyZWF0ZV9hZ2VudBAGEhYKEmNhbl9jcmVhdGVfc2Vzc2lvbhAIEhQKEGNhbl9jcmVhdGVfc2tpbGwQCRISCg5jYW5fY3JlYXRlX2lkcBALEhoKFmNhbl9jcmVhdGVfZW52aXJvbm1lbnQQDBIfChtjYW5fY3JlYXRlX2lkZW50aXR5X2FjY291bnQQFRIYChRjYW5fY3JlYXRlX29hdXRoX2FwcBAXEh4KGmNhbl9jcmVhdGVfcGxhdGZvcm1fY2xpZW50EBgSFQoRY2FuX2NyZWF0ZV9ydW5faW4QDRIPCgtjYW5fZXhlY3V0ZRAPEhQKEGNhbl9yZWFkX3NlY3JldHMQEBIVChFjYW5fYm9vdHN0cmFwX2lhbRAREg8KC2Nhbl9jb25uZWN0EBYSFAoQY2FuX3ZpZXdfYmlsbGluZxAbEhYKEmNhbl9tYW5hZ2VfYmlsbGluZxAcEhsKF2Nhbl9leGVjdXRlX2JpbGxpbmdfb3BzEB0SGgoWY2FuX2NyZWF0ZV9hZ2VudF9zaGFyZRAeEhoKFmNhbl9jcmVhdGVfY2hhbm5lbF9hcHAQHxIcChhjYW5fbWFuYWdlX21vZGVsX3ByaWNpbmcQIBIeChpjYW5fbWFuYWdlX2N1cnNvcl9hY2NvdW50cxAjEhMKD2Nhbl9wYXJ0aWNpcGF0ZRAkEh0KGWNhbl93cml0ZV9yZXNlcnZlZF9sYWJlbHMQJRIeChpjYW5fdmlld19wcm92aWRlcl9zdGFuZGluZxAmEhUKEWNhbl9jcmVhdGVfcGx1Z2luECgSFAoQY2FuX21hbmFnZV9wbGFucxApEhUKEWNhbl9pc3N1ZV9saWNlbnNlECoSGQoVY2FuX2NyZWF0ZV9tY3Bfc2VydmVyECsSEwoPY2FuX2NyZWF0ZV90ZWFtEC0SFgoSY2FuX21hbmFnZV9jcmVkaXRzEC4SGQoVY2FuX21hbmFnZV9jaGlsZF9vcmdzEDESFQoRY2FuX3ZpZXdfc2V0dGluZ3MQMiIECA4QDiIECAcQByIECBIQEiIECBQQFCIECBkQGSIECBoQGiIECCEQISIECCIQIiIECAoQCiIECCcQJyIECCwQLCoTY2FuX2NyZWF0ZV9pbnN0YW5jZSoTY2FuX2NyZWF0ZV93b3JrZmxvdyocY2FuX21hbmFnZV9pZGVudGl0eV9hY2NvdW50cyoUbG9naW5fdG9fYmFja19vZmZpY2UqEWNhbl9jcmVhdGVfcnVubmVyKhJjYW5fZGVsZXRlX3Nlc3Npb24qD2Nhbl91c2VfcmVjb3JkcyoUY2FuX2NyZWF0ZV9kYXRhc3RvcmUqEmNhbl9jcmVhdGVfcHJvamVjdCoZY2FuX3NldF9wdWJsaWNfdmlzaWJpbGl0eSoZY2FuX2NyZWF0ZV9hZ2VudF9pbnN0YW5jZSpuCgdJYW1Sb2xlEhgKFGlhbV9yb2xlX3Vuc3BlY2lmaWVkEAASCQoFb3duZXIQARIJCgVhZG1pbhACEgoKBm1lbWJlchADEgoKBnZpZXdlchAEEg8KC3BhcnRpY2lwYW50EAUSCgoGZWRpdG9yEAZiBnByb3RvMw");
+  fileDesc("ChxhaS9zdGlnbWVyL2lhbS92MS9lbnVtLnByb3RvEhFhaS5zdGlnbWVyLmlhbS52MSqqCgoNSWFtUGVybWlzc2lvbhIPCgt1bnNwZWNpZmllZBAAEgwKCGNhbl92aWV3EAESDAoIY2FuX2VkaXQQAhIOCgpjYW5fZGVsZXRlEAMSFAoQY2FuX2dyYW50X2FjY2VzcxAEEhMKD2Nhbl92aWV3X2FjY2VzcxAFEhQKEGNhbl9hc3NpZ25fcm9sZXMQLxIXChNjYW5fbWFuYWdlX2F1ZGllbmNlEDASFAoQY2FuX2NyZWF0ZV9hZ2VudBAGEhYKEmNhbl9jcmVhdGVfc2Vzc2lvbhAIEhQKEGNhbl9jcmVhdGVfc2tpbGwQCRISCg5jYW5fY3JlYXRlX2lkcBALEh8KG2Nhbl9jcmVhdGVfaWRlbnRpdHlfYWNjb3VudBAVEhgKFGNhbl9jcmVhdGVfb2F1dGhfYXBwEBcSHgoaY2FuX2NyZWF0ZV9wbGF0Zm9ybV9jbGllbnQQGBIVChFjYW5fY3JlYXRlX3J1bl9pbhANEg8KC2Nhbl9leGVjdXRlEA8SFQoRY2FuX2Jvb3RzdHJhcF9pYW0QERIPCgtjYW5fY29ubmVjdBAWEhQKEGNhbl92aWV3X2JpbGxpbmcQGxIWChJjYW5fbWFuYWdlX2JpbGxpbmcQHBIbChdjYW5fZXhlY3V0ZV9iaWxsaW5nX29wcxAdEhoKFmNhbl9jcmVhdGVfYWdlbnRfc2hhcmUQHhIaChZjYW5fY3JlYXRlX2NoYW5uZWxfYXBwEB8SHAoYY2FuX21hbmFnZV9tb2RlbF9wcmljaW5nECASHgoaY2FuX21hbmFnZV9jdXJzb3JfYWNjb3VudHMQIxITCg9jYW5fcGFydGljaXBhdGUQJBIdChljYW5fd3JpdGVfcmVzZXJ2ZWRfbGFiZWxzECUSHgoaY2FuX3ZpZXdfcHJvdmlkZXJfc3RhbmRpbmcQJhIVChFjYW5fY3JlYXRlX3BsdWdpbhAoEhQKEGNhbl9tYW5hZ2VfcGxhbnMQKRIVChFjYW5faXNzdWVfbGljZW5zZRAqEhkKFWNhbl9jcmVhdGVfbWNwX3NlcnZlchArEhMKD2Nhbl9jcmVhdGVfdGVhbRAtEhYKEmNhbl9tYW5hZ2VfY3JlZGl0cxAuEhkKFWNhbl9tYW5hZ2VfY2hpbGRfb3JncxAxEhUKEWNhbl92aWV3X3NldHRpbmdzEDISFAoQY2FuX2NyZWF0ZV92YXVsdBAzEhsKF2Nhbl9jcmVhdGVfc2hhcmVkX3ZhdWx0EDQSCwoHY2FuX3VzZRA1IgQIDhAOIgQIBxAHIgQIDBAMIgQIEBAQIgQIEhASIgQIFBAUIgQIGRAZIgQIGhAaIgQIIRAhIgQIIhAiIgQIChAKIgQIJxAnIgQILBAsKhNjYW5fY3JlYXRlX2luc3RhbmNlKhNjYW5fY3JlYXRlX3dvcmtmbG93KhZjYW5fY3JlYXRlX2Vudmlyb25tZW50KhBjYW5fcmVhZF9zZWNyZXRzKhxjYW5fbWFuYWdlX2lkZW50aXR5X2FjY291bnRzKhRsb2dpbl90b19iYWNrX29mZmljZSoRY2FuX2NyZWF0ZV9ydW5uZXIqEmNhbl9kZWxldGVfc2Vzc2lvbioPY2FuX3VzZV9yZWNvcmRzKhRjYW5fY3JlYXRlX2RhdGFzdG9yZSoSY2FuX2NyZWF0ZV9wcm9qZWN0KhljYW5fc2V0X3B1YmxpY192aXNpYmlsaXR5KhljYW5fY3JlYXRlX2FnZW50X2luc3RhbmNlKngKB0lhbVJvbGUSGAoUaWFtX3JvbGVfdW5zcGVjaWZpZWQQABIJCgVvd25lchABEgkKBWFkbWluEAISCgoGbWVtYmVyEAMSCgoGdmlld2VyEAQSDwoLcGFydGljaXBhbnQQBRIKCgZlZGl0b3IQBhIICgR1c2VyEAdiBnByb3RvMw");
 
 /**
  * IamPermission defines the permissions checked by the authorization
@@ -99,11 +99,6 @@ export enum IamPermission {
   can_create_idp = 11,
 
   /**
-   * @generated from enum value: can_create_environment = 12;
-   */
-  can_create_environment = 12,
-
-  /**
    * @generated from enum value: can_create_identity_account = 21;
    */
   can_create_identity_account = 21,
@@ -131,13 +126,6 @@ export enum IamPermission {
    * @generated from enum value: can_execute = 15;
    */
   can_execute = 15,
-
-  /**
-   * Secret access permission.
-   *
-   * @generated from enum value: can_read_secrets = 16;
-   */
-  can_read_secrets = 16,
 
   /**
    * Platform-level permissions.
@@ -225,7 +213,7 @@ export enum IamPermission {
    * reserved stigmer.ai/* key namespace through client-facing write
    * boundaries. Gated to platform operators (the seeding machine
    * account): reserved labels carry platform semantics the server acts
-   * on (the personal-environment marker, plugin membership and lineage) — so ordinary requests may echo or
+   * on (plugin membership and lineage, the stamps a run's vaults are found by) — so ordinary requests may echo or
    * remove them but never write them.
    *
    * @generated from enum value: can_write_reserved_labels = 37;
@@ -318,6 +306,29 @@ export enum IamPermission {
    * @generated from enum value: can_view_settings = 50;
    */
   can_view_settings = 50,
+
+  /**
+   * Whether the caller may save logins and secrets in their own My vault in
+   * an organization: its members.
+   *
+   * @generated from enum value: can_create_vault = 51;
+   */
+  can_create_vault = 51,
+
+  /**
+   * Whether the caller may create a shared vault in an organization: its
+   * admins.
+   *
+   * @generated from enum value: can_create_shared_vault = 52;
+   */
+  can_create_shared_vault = 52,
+
+  /**
+   * Whether a person's runs may use a vault's logins and secrets.
+   *
+   * @generated from enum value: can_use = 53;
+   */
+  can_use = 53,
 }
 
 /**
@@ -392,6 +403,14 @@ export enum IamRole {
    * @generated from enum value: editor = 6;
    */
   editor = 6,
+
+  /**
+   * May use a shared vault: the runs of a person who holds it use the
+   * vault's logins and secrets. Shown as "Can use".
+   *
+   * @generated from enum value: user = 7;
+   */
+  user = 7,
 }
 
 /**

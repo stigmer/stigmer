@@ -149,7 +149,7 @@ class AgentInvocationInput:
     message: str = ""
     harness: int = 0
     workspace_entries: list[WorkspaceEntryInput] = field(default_factory=list)
-    environment_refs: list[ResourceRef] = field(default_factory=list)
+    vaults: list[ResourceRef] = field(default_factory=list)
     run_config: RunConfigInput | None = None
 
     def _to_proto(self) -> run_invocation_pb2.AgentInvocation:
@@ -163,10 +163,10 @@ class AgentInvocationInput:
             msg.agent_ref.CopyFrom(_ref)
         for item in self.workspace_entries:
             msg.workspace_entries.append(item._to_proto())
-        for ref in self.environment_refs:
+        for ref in self.vaults:
             _ref = ref._to_proto()
-            _ref.kind = 53
-            msg.environment_refs.append(_ref)
+            _ref.kind = 59
+            msg.vaults.append(_ref)
         if self.run_config is not None:
             msg.run_config.CopyFrom(self.run_config._to_proto())
         return msg

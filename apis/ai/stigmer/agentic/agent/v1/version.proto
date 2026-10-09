@@ -49,8 +49,8 @@ message AgentVersionEntry {
   string message = 6;
 
   // The agent spec exactly as this version stored it: the instructions,
-  // sub-agents, skill and MCP server references and environment a turn on
-  // this version runs with.
+  // sub-agents, skill and MCP server references, declared keys and vaults a
+  // turn on this version runs with.
   AgentSpec spec_snapshot = 7;
 
   // Field 8 was a git provenance message in the unimplemented design of

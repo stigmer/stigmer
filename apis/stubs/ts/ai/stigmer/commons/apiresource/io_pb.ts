@@ -169,7 +169,7 @@ export const FindApiResourcesRequestSchema: GenMessage<FindApiResourcesRequest> 
  * declared per kind via VisibilityConfig in kind_meta:
  * - Blueprints (agent, skill, mcp_server, plugin):
  *     PRIVATE, ORG, or CHILD_ORGS
- * - Org-only kinds (environment):
+ * - Org-only kinds (vault):
  *     PRIVATE or ORG (never CHILD_ORGS — tenant isolation)
  *
  * visibility_public is refused for every kind (INVALID_ARGUMENT naming the
@@ -238,7 +238,7 @@ export const RenameInputSchema: GenMessage<RenameInput> = /*@__PURE__*/
 
 /**
  * Generic reference to any API resource by org and slug.
- * Used across resources to reference other resources (e.g., Environment, Agent, Skill).
+ * Used across resources to reference other resources (e.g., Vault, Agent, Skill).
  * Canonical format: "org/slug" (e.g., "acme/web-search", "acme/my-agent").
  *
  * Every reference in a resource's spec is checked when the resource is

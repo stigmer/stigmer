@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage, isRetryableError } from "@stigmer/sdk";
-import type { EnvVarInput } from "@stigmer/sdk";
+import type { EnvVarInput } from "../vault/types.js";
 import { OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { DiscoveredTool } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
@@ -11,7 +11,7 @@ import {
   EnvVarForm,
   type EnvVarFormVariable,
   type EnvVarFormSubmitOptions,
-} from "../environment/EnvVarForm.js";
+} from "../vault/EnvVarForm.js";
 import { VendorApprovalBlockedNotice } from "./VendorApprovalBlockedNotice.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import {
@@ -25,8 +25,8 @@ import {
 
 /**
  * Props for the inline credentials form shown when a server requires
- * environment variables that are missing from the user's personal
- * environment.
+ * environment variables that are missing from the user's My
+ * vault.
  *
  * This is modeled as a sub-object of {@link McpServerConfigPanelProps}
  * so the presence of `credentials` controls whether the form is
@@ -43,7 +43,7 @@ export interface McpServerCredentialsProps {
   /** When true, form inputs are disabled and the submit button shows a spinner. */
   readonly isSubmitting?: boolean;
   /**
-   * Initial state of the "Save for future runs" toggle.
+   * Initial state of the "Save in My vault" toggle.
    * @default true
    */
   readonly defaultSaveForFuture?: boolean;
@@ -75,7 +75,7 @@ export interface McpServerOAuthSignInProps {
   readonly onSignIn: () => void;
   /** Current phase of the OAuth flow. */
   readonly phase: OAuthConnectPhase;
-  /** `true` when the OAuth token already exists in the personal environment. */
+  /** `true` when the OAuth token already exists in My vault. */
   readonly isConnected: boolean;
   /**
    * Health of the OAuth connection. Drives the status dot color and
@@ -229,7 +229,7 @@ export interface McpServerConfigPanelProps {
  * - **Absent** (server is ready) — only the tool list is shown.
  *
  * This is a **pure presentational component** with no knowledge of
- * the setup hook, personal environments, or session creation. All
+ * the setup hook, vaults, or session creation. All
  * state is controlled via props — platform builders can use it with
  * any state management approach.
  *

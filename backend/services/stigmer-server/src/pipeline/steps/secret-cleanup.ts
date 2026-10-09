@@ -35,9 +35,10 @@ import type { HasMetadataShape } from "./shapes.js";
  * fields) and never interrupts the rest. Blank values are skipped — the
  * facade would no-op them anyway, and skipping keeps the logs honest.
  *
- * Exported for the write-boundary steps that must capture their old
- * values before mutating (environment removeVariables) and for the
- * domain steps that destroy on a key diff rather than a delete.
+ * Exported for the writes that must capture their old values before
+ * mutating (a vault's removeSecrets and removeConnections) and for the
+ * domain steps that destroy on a key diff rather than a delete (a
+ * session's own values).
  */
 export async function destroySecretBackingState(
   secretService: SecretService,
@@ -68,9 +69,8 @@ export async function destroySecretBackingState(
 
 /**
  * DestroySecretBackingState — after the store delete in every delete
- * chain whose kind carries sealed secrets (environment, oauthapp,
- * channelapp; the OAuth-managed environment lane rides the environment
- * chain through the in-process client). Reads the doomed resource from
+ * chain whose kind carries sealed secrets (vault, session, oauthapp,
+ * channelapp). Reads the doomed resource from
  * EXISTING_RESOURCE_KEY (seeded by LoadExistingForDelete); the
  * per-domain extractor names which spec fields hold sealed values.
  */

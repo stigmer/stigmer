@@ -229,9 +229,12 @@ public final class McpServerQueryControllerGrpc {
 
     /**
      * <pre>
-     * Check whether the authenticated user has an active OAuth grant for
-     * an MCP server in the specified org.
-     * Returns grant metadata (connected status, token expiry, auth method)
+     * Check whether the authenticated user has a sign-in for an MCP server in
+     * their My vault in the specified org that a run would use: one this
+     * server's sign-in saved at the server's current address. A pasted login
+     * and a sign-in saved into a shared vault are read through the vault's own
+     * RPCs.
+     * Returns sign-in metadata (connected status, token expiry, auth method)
      * without exposing any secret token values. The frontend uses this to
      * render the correct OAuth state in the MCP server detail page and
      * session composer.
@@ -326,9 +329,12 @@ public final class McpServerQueryControllerGrpc {
 
     /**
      * <pre>
-     * Check whether the authenticated user has an active OAuth grant for
-     * an MCP server in the specified org.
-     * Returns grant metadata (connected status, token expiry, auth method)
+     * Check whether the authenticated user has a sign-in for an MCP server in
+     * their My vault in the specified org that a run would use: one this
+     * server's sign-in saved at the server's current address. A pasted login
+     * and a sign-in saved into a shared vault are read through the vault's own
+     * RPCs.
+     * Returns sign-in metadata (connected status, token expiry, auth method)
      * without exposing any secret token values. The frontend uses this to
      * render the correct OAuth state in the MCP server detail page and
      * session composer.
@@ -409,9 +415,12 @@ public final class McpServerQueryControllerGrpc {
 
     /**
      * <pre>
-     * Check whether the authenticated user has an active OAuth grant for
-     * an MCP server in the specified org.
-     * Returns grant metadata (connected status, token expiry, auth method)
+     * Check whether the authenticated user has a sign-in for an MCP server in
+     * their My vault in the specified org that a run would use: one this
+     * server's sign-in saved at the server's current address. A pasted login
+     * and a sign-in saved into a shared vault are read through the vault's own
+     * RPCs.
+     * Returns sign-in metadata (connected status, token expiry, auth method)
      * without exposing any secret token values. The frontend uses this to
      * render the correct OAuth state in the MCP server detail page and
      * session composer.
@@ -490,9 +499,12 @@ public final class McpServerQueryControllerGrpc {
 
     /**
      * <pre>
-     * Check whether the authenticated user has an active OAuth grant for
-     * an MCP server in the specified org.
-     * Returns grant metadata (connected status, token expiry, auth method)
+     * Check whether the authenticated user has a sign-in for an MCP server in
+     * their My vault in the specified org that a run would use: one this
+     * server's sign-in saved at the server's current address. A pasted login
+     * and a sign-in saved into a shared vault are read through the vault's own
+     * RPCs.
+     * Returns sign-in metadata (connected status, token expiry, auth method)
      * without exposing any secret token values. The frontend uses this to
      * render the correct OAuth state in the MCP server detail page and
      * session composer.
@@ -573,9 +585,12 @@ public final class McpServerQueryControllerGrpc {
 
     /**
      * <pre>
-     * Check whether the authenticated user has an active OAuth grant for
-     * an MCP server in the specified org.
-     * Returns grant metadata (connected status, token expiry, auth method)
+     * Check whether the authenticated user has a sign-in for an MCP server in
+     * their My vault in the specified org that a run would use: one this
+     * server's sign-in saved at the server's current address. A pasted login
+     * and a sign-in saved into a shared vault are read through the vault's own
+     * RPCs.
+     * Returns sign-in metadata (connected status, token expiry, auth method)
      * without exposing any secret token values. The frontend uses this to
      * render the correct OAuth state in the MCP server detail page and
      * session composer.

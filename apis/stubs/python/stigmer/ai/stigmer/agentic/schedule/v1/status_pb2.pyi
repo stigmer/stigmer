@@ -2,6 +2,7 @@ import datetime
 
 from ai.stigmer.commons.apiresource import status_pb2 as _status_pb2
 from google.protobuf import timestamp_pb2 as _timestamp_pb2
+from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from collections.abc import Mapping as _Mapping
@@ -10,17 +11,26 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class ScheduleStatus(_message.Message):
-    __slots__ = ("next_fire_at", "last_fire_at", "last_run_id", "consecutive_failures", "paused_reason", "audit")
+    __slots__ = ("next_fire_at", "last_fire_at", "last_run_id", "consecutive_failures", "paused_reason", "vault_attachers", "audit")
+    class VaultAttachersEntry(_message.Message):
+        __slots__ = ("key", "value")
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: str
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
     NEXT_FIRE_AT_FIELD_NUMBER: _ClassVar[int]
     LAST_FIRE_AT_FIELD_NUMBER: _ClassVar[int]
     LAST_RUN_ID_FIELD_NUMBER: _ClassVar[int]
     CONSECUTIVE_FAILURES_FIELD_NUMBER: _ClassVar[int]
     PAUSED_REASON_FIELD_NUMBER: _ClassVar[int]
+    VAULT_ATTACHERS_FIELD_NUMBER: _ClassVar[int]
     AUDIT_FIELD_NUMBER: _ClassVar[int]
     next_fire_at: _timestamp_pb2.Timestamp
     last_fire_at: _timestamp_pb2.Timestamp
     last_run_id: str
     consecutive_failures: int
     paused_reason: str
+    vault_attachers: _containers.ScalarMap[str, str]
     audit: _status_pb2.ApiResourceAudit
-    def __init__(self, next_fire_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., last_fire_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., last_run_id: _Optional[str] = ..., consecutive_failures: _Optional[int] = ..., paused_reason: _Optional[str] = ..., audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ...) -> None: ...
+    def __init__(self, next_fire_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., last_fire_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., last_run_id: _Optional[str] = ..., consecutive_failures: _Optional[int] = ..., paused_reason: _Optional[str] = ..., vault_attachers: _Optional[_Mapping[str, str]] = ..., audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ...) -> None: ...

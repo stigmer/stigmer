@@ -1,5 +1,12 @@
+/**
+ * WorkspaceEditor's GitHub panel: which view `initialPanel` opens on (the
+ * action list, the connect prompt, the connected account and its repo
+ * picker), and the connected view telling the person when a disconnect
+ * failed, so a GitHub login still in My vault is never shown as removed.
+ */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
+import { StigmerContext } from "../../context";
 import { WorkspaceEditor } from "../WorkspaceEditor";
 import type { UseWorkspaceEntriesReturn } from "../useWorkspaceEntries";
 import type { UseGitHubConnectionReturn } from "../../github/useGitHubConnection";
@@ -28,7 +35,7 @@ function createMockGitHubConnection(
     isConnected: false,
     isConnecting: false,
     isLoading: false,
-    token: null,
+    readOrg: null,
     user: null,
     popupBlocked: false,
     connect: vi.fn(),
@@ -74,22 +81,62 @@ describe("WorkspaceEditor initialPanel", () => {
   it("shows connected state when initialPanel='github' and already connected", () => {
     const connection = createMockGitHubConnection({
       isConnected: true,
-      token: "gh_test_token",
+      readOrg: "acme",
       user: { login: "testuser", name: "Test User", avatarUrl: "" },
     });
 
+    // The repo picker reads through the server's GitHub RPCs; a client
+    // whose listing never settles keeps the panel in its loading state.
+    const client = {
+      github: {
+        listRepositories: () => new Promise(() => {}),
+        searchRepositories: () => new Promise(() => {}),
+      },
+    } as never;
     render(
-      <WorkspaceEditor
-        workspace={createMockWorkspace()}
-        enableGitHub
-        enableLocal={false}
-        gitHubConnection={connection}
-        initialPanel="github"
-      />,
+      <StigmerContext.Provider value={client}>
+        <WorkspaceEditor
+          workspace={createMockWorkspace()}
+          enableGitHub
+          enableLocal={false}
+          gitHubConnection={connection}
+          initialPanel="github"
+        />
+      </StigmerContext.Provider>,
     );
 
     expect(screen.getByText("Back")).toBeTruthy();
     expect(screen.getByText("testuser")).toBeTruthy();
+  });
+
+  it("shows a disconnect the server refused beside the connected account", () => {
+    const connection = createMockGitHubConnection({
+      isConnected: true,
+      readOrg: "acme",
+      user: { login: "testuser", name: "Test User", avatarUrl: "" },
+      disconnectError: new Error("vault unavailable"),
+    });
+    const client = {
+      github: {
+        listRepositories: () => new Promise(() => {}),
+        searchRepositories: () => new Promise(() => {}),
+      },
+    } as never;
+    render(
+      <StigmerContext.Provider value={client}>
+        <WorkspaceEditor
+          workspace={createMockWorkspace()}
+          enableGitHub
+          enableLocal={false}
+          gitHubConnection={connection}
+          initialPanel="github"
+        />
+      </StigmerContext.Provider>,
+    );
+
+    expect(screen.getByRole("alert").textContent).toContain(
+      "Could not disconnect GitHub: vault unavailable",
+    );
   });
 
   it("ignores initialPanel when entries exist", () => {

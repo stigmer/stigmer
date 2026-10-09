@@ -122,6 +122,19 @@ import {
   newValidateExecutionTargetImmutabilityStep,
   newValidateHarnessImmutabilityStep,
 } from "./steps.js";
+import { newVaultAttachmentsStep } from "../vault/attachments.js";
+import {
+  newDestroyDroppedSessionValuesStep,
+  newKeepStoredVaultsOnStaleWriteStep,
+  newPreserveSessionValuesStep,
+  newSealSessionValuesStep,
+  redactSessionValues,
+  sealedValuesOfSession,
+} from "../vault/session-values.js";
+import { newDestroySecretBackingStateStep } from "../../pipeline/steps/secret-cleanup.js";
+import type { SecretService } from "../../encryption/encryption.js";
+import type { VaultAttachmentOptions } from "../vault/attachments.js";
+import { SessionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/status_pb";
 
 export interface SessionControllerDeps {
   readonly store: Store;
@@ -150,7 +163,24 @@ export interface SessionControllerDeps {
    * org deliberately NOT intersected — the Java session lanes never do).
    */
   readonly listReadScope: ListReadScope | undefined;
+  /** Seals the session's own values at rest; opens nothing (the run resolver does). */
+  readonly secretService: SecretService;
 }
+
+/**
+ * A conversation's vaults: a run with a person checks its person, a run
+ * with none the account that attached each vault. A conversation can have
+ * several people, so it never carries anyone's My vault.
+ */
+const SESSION_VAULT_ATTACHMENTS: VaultAttachmentOptions<typeof SessionSchema> = {
+  surface: "a conversation (it uses the My vault of whoever sends each turn when it lists no vaults)",
+  attachers: {
+    get: (row) => row.status?.vaultAttachers,
+    set: (row, attachers) => {
+      (row.status ??= create(SessionStatusSchema)).vaultAttachers = attachers;
+    },
+  },
+};
 
 /** Registers both session services on the router (routes stage). */
 export function registerSessionServices(
@@ -222,6 +252,8 @@ async function createSession(
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
+    .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, SESSION_VAULT_ATTACHMENTS))
+    .addStep(newPreserveSessionValuesStep())
     .addStep(
       newResolveSessionAgentStep(deps.store, deps.logger, deps.authorizer),
     )
@@ -235,6 +267,7 @@ async function createSession(
     builder.addStep(step);
   }
   await builder
+    .addStep(newSealSessionValuesStep(deps.secretService, deps.logger))
     .addStep(newPersistStep(deps.store))
     .addStep(
       newCreateAuthorizationTuplesStep(
@@ -247,7 +280,7 @@ async function createSession(
     )
     .build()
     .execute(reqCtx);
-  return reqCtx.newState;
+  return redacted(reqCtx.newState);
 }
 
 /**
@@ -259,7 +292,9 @@ async function createSession(
  * judged like those a create names. The rule judges only what the update
  * introduces: the runner writes the session's harness state back with the
  * whole row, and a skill deleted since the session named it must not stop
- * that write (the runner skips a skill it cannot read).
+ * that write (the runner skips a skill it cannot read). A stale update,
+ * built on a read older than the stored row, keeps the stored vaults and
+ * every stored value it omits (domain/vault/session-values.ts).
  */
 async function update(
   deps: SessionControllerDeps,
@@ -282,6 +317,7 @@ async function update(
     .addStep(newValidateHarnessImmutabilityStep())
     .addStep(newValidateExecutionTargetImmutabilityStep(deps.temporalConfig))
     .addStep(newBuildUpdateStateStep())
+    .addStep(newKeepStoredVaultsOnStaleWriteStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(
@@ -289,18 +325,24 @@ async function update(
         judge: "introduced",
       }),
     )
+    .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, SESSION_VAULT_ATTACHMENTS))
+    .addStep(newPreserveSessionValuesStep())
     .addStep(
       newResolveSessionAgentStep(deps.store, deps.logger, deps.authorizer),
     )
     .addStep(newAuthorizeRunTargetStep(deps.authorizer, sessionRunTarget))
     .addStep(newRecordHarnessStateHistoryStep())
+    .addStep(newSealSessionValuesStep(deps.secretService, deps.logger))
     .addStep(newPersistStep(deps.store))
+    .addStep(
+      newDestroyDroppedSessionValuesStep(deps.secretService, deps.logger),
+    )
     .addStep(
       newIndexSearchStep(deps.store, sessionSearchExtractor, deps.logger),
     )
     .build()
     .execute(reqCtx);
-  return reqCtx.newState;
+  return redacted(reqCtx.newState);
 }
 
 /**
@@ -381,6 +423,12 @@ async function deleteSession(
     .addStep(
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
     )
+    .addStep(
+      newDestroySecretBackingStateStep<
+        typeof SessionCommandController.method.delete.input,
+        typeof SessionSchema
+      >(deps.secretService, deps.logger, sealedValuesOfSession),
+    )
     .addStep(newDeleteSearchIndexStep(deps.store, deps.logger))
     .build()
     .execute(reqCtx);
@@ -400,7 +448,7 @@ async function deleteSession(
     deps.logger,
     (deleted as Session).metadata?.id ?? "",
   );
-  return deleted as Session;
+  return redacted(deleted as Session);
 }
 
 /**
@@ -462,7 +510,7 @@ async function updateSubject(
 
   await indexSessionSearch(deps, kind, session);
 
-  return session;
+  return redacted(session);
 }
 
 /**
@@ -515,7 +563,7 @@ async function get(
     .addStep(newLoadTargetStep(deps.store, SessionSchema))
     .build()
     .execute(reqCtx);
-  return reqCtx.get(TARGET_RESOURCE_KEY) as Session;
+  return redacted(reqCtx.get(TARGET_RESOURCE_KEY) as Session);
 }
 
 /** List — all sessions, newest first. */
@@ -614,5 +662,19 @@ function requireListResult(result: unknown): SessionList {
       "session list not found in context",
     );
   }
-  return result as SessionList;
+  const list = result as SessionList;
+  for (const session of list.entries) {
+    redactSessionValues(session);
+  }
+  return list;
+}
+
+/**
+ * Every session leaving this controller shows the redaction marker in
+ * place of its own values (domain/vault/session-values.ts): they are
+ * write-only, and a writer that sends the marker back keeps them.
+ */
+function redacted(session: Session): Session {
+  redactSessionValues(session);
+  return session;
 }

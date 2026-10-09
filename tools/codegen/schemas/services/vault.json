@@ -1,0 +1,731 @@
+{
+  "resource": "vault",
+  "package": "ai.stigmer.agentic.vault.v1",
+  "goImportPath": "vaultv1",
+  "services": [
+    {
+      "name": "VaultCommandController",
+      "role": "command",
+      "protoFile": "ai/stigmer/agentic/vault/v1/command.proto",
+      "methods": [
+        {
+          "name": "Create",
+          "inputType": "Vault",
+          "inputFullType": "ai.stigmer.agentic.vault.v1.Vault",
+          "outputType": "Vault",
+          "outputFullType": "ai.stigmer.agentic.vault.v1.Vault",
+          "description": "Create a shared vault in an organization.\n\n The vault belongs to the organization and starts empty. It starts\n private, so only the organization's admins may use it until it is\n shared, unless it is created with organization visibility\n (metadata.visibility), which shares it with every member at once."
+        },
+        {
+          "name": "Update",
+          "inputType": "Vault",
+          "inputFullType": "ai.stigmer.agentic.vault.v1.Vault",
+          "outputType": "Vault",
+          "outputFullType": "ai.stigmer.agentic.vault.v1.Vault",
+          "description": "Update a vault's name, description and external id.\n\n Entries are kept as stored: change them with setSecrets, removeSecrets,\n setConnection and removeConnections."
+        },
+        {
+          "name": "UpdateVisibility",
+          "inputType": "UpdateVisibilityInput",
+          "inputFullType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
+          "outputType": "Vault",
+          "outputFullType": "ai.stigmer.agentic.vault.v1.Vault",
+          "description": "Update the visibility of a shared vault.\n\n Setting org lets every member of the organization use the vault in\n their runs. My vault is always private."
+        },
+        {
+          "name": "Delete",
+          "inputType": "ApiResourceDeleteInput",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceDeleteInput",
+          "outputType": "Vault",
+          "outputFullType": "ai.stigmer.agentic.vault.v1.Vault",
+          "description": "Delete a vault and every value it holds.\n\n Sessions, schedules, shares, channels and platform clients that name the\n vault are refused at their next run, naming it."
+        },
+        {
+          "name": "SetSecrets",
+          "inputType": "SetVaultSecretsInput",
+          "inputFullType": "ai.stigmer.agentic.vault.v1.SetVaultSecretsInput",
+          "outputType": "Vault",
+          "outputFullType": "ai.stigmer.agentic.vault.v1.Vault",
+          "description": "Save secrets in a vault, replacing any saved under the same names.\n\n Naming the caller's own My vault creates it on its first write."
+        },
+        {
+          "name": "RemoveSecrets",
+          "inputType": "RemoveVaultSecretsInput",
+          "inputFullType": "ai.stigmer.agentic.vault.v1.RemoveVaultSecretsInput",
+          "outputType": "Vault",
+          "outputFullType": "ai.stigmer.agentic.vault.v1.Vault",
+          "description": "Remove secrets from a vault by name."
+        },
+        {
+          "name": "SetConnection",
+          "inputType": "SetVaultConnectionInput",
+          "inputFullType": "ai.stigmer.agentic.vault.v1.SetVaultConnectionInput",
+          "outputType": "Vault",
+          "outputFullType": "ai.stigmer.agentic.vault.v1.Vault",
+          "description": "Save a login in a vault at the address of the tool or Git host it is\n for, replacing any saved at the same address.\n\n Naming the caller's own My vault creates it on its first write."
+        },
+        {
+          "name": "RemoveConnections",
+          "inputType": "RemoveVaultConnectionsInput",
+          "inputFullType": "ai.stigmer.agentic.vault.v1.RemoveVaultConnectionsInput",
+          "outputType": "Vault",
+          "outputFullType": "ai.stigmer.agentic.vault.v1.Vault",
+          "description": "Remove logins from a vault by address."
+        }
+      ]
+    },
+    {
+      "name": "VaultQueryController",
+      "role": "query",
+      "protoFile": "ai/stigmer/agentic/vault/v1/query.proto",
+      "methods": [
+        {
+          "name": "Get",
+          "inputType": "ApiResourceId",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceId",
+          "outputType": "Vault",
+          "outputFullType": "ai.stigmer.agentic.vault.v1.Vault",
+          "description": "Get a vault by ID."
+        },
+        {
+          "name": "GetByReference",
+          "inputType": "ApiResourceReference",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+          "outputType": "Vault",
+          "outputFullType": "ai.stigmer.agentic.vault.v1.Vault",
+          "description": "Get a vault by its organization-scoped reference (org/slug)."
+        },
+        {
+          "name": "GetMine",
+          "inputType": "GetMyVaultInput",
+          "inputFullType": "ai.stigmer.agentic.vault.v1.GetMyVaultInput",
+          "outputType": "Vault",
+          "outputFullType": "ai.stigmer.agentic.vault.v1.Vault",
+          "description": "Get the caller's own My vault in an organization.\n\n Answers NOT_FOUND until the caller saves their first login or secret."
+        },
+        {
+          "name": "GetByExternalId",
+          "inputType": "GetVaultByExternalIdInput",
+          "inputFullType": "ai.stigmer.agentic.vault.v1.GetVaultByExternalIdInput",
+          "outputType": "Vault",
+          "outputFullType": "ai.stigmer.agentic.vault.v1.Vault",
+          "description": "Get a shared vault by the integrator's own id for it."
+        },
+        {
+          "name": "List",
+          "inputType": "ListVaultsRequest",
+          "inputFullType": "ai.stigmer.agentic.vault.v1.ListVaultsRequest",
+          "outputType": "VaultList",
+          "outputFullType": "ai.stigmer.agentic.vault.v1.VaultList",
+          "description": "List the vaults the caller can see in an organization: their own My\n vault and the shared vaults they may view."
+        }
+      ]
+    }
+  ],
+  "methodTypes": [
+    {
+      "name": "UpdateVisibilityInput",
+      "description": "Input for updating the visibility of any API resource.\n\n Used by resource-specific command controllers to change visibility.\n Each controller's updateVisibility RPC accepts this shared input\n and returns the full updated resource.\n\n Visibility transitions trigger FGA tuple management in Cloud mode. Each\n level maps to exactly one tuple shape; on a transition the tuple for the\n old level is removed and the tuple for the new level is created:\n - PRIVATE:  no visibility tuple (owner + explicit grants only)\n - ORG:      resource#viewer@organization:\u003corg\u003e#viewer\n - CHILD_ORGS: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer\n\n Not all resources support all visibility levels — the supported set is\n declared per kind via VisibilityConfig in kind_meta:\n - Blueprints (agent, skill, mcp_server, plugin):\n     PRIVATE, ORG, or CHILD_ORGS\n - Org-only kinds (vault):\n     PRIVATE or ORG (never CHILD_ORGS — tenant isolation)\n\n visibility_public is refused for every kind (INVALID_ARGUMENT naming the\n supported levels); the level is retired.",
+      "protoType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+      "fields": [
+        {
+          "name": "ResourceId",
+          "jsonName": "resourceId",
+          "protoField": "resource_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the resource whose visibility is being updated.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Visibility",
+          "jsonName": "visibility",
+          "protoField": "visibility",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+            "enumValues": [
+              "visibility_private",
+              "visibility_public",
+              "visibility_org",
+              "visibility_child_orgs"
+            ]
+          },
+          "description": "The new visibility setting for the resource.\n Must not be unspecified (0). Valid values depend on resource kind —\n see the VisibilityConfig in the kind's kind_meta.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "SetVaultSecretsInput",
+      "description": "Input for saving secrets in a vault. Secrets already saved under other\n names are kept.",
+      "protoType": "ai.stigmer.agentic.vault.v1.SetVaultSecretsInput",
+      "protoFile": "apis/ai/stigmer/agentic/vault/v1/io.proto",
+      "fields": [
+        {
+          "name": "Vault",
+          "jsonName": "vault",
+          "protoField": "vault",
+          "type": {
+            "kind": "message",
+            "messageType": "VaultTarget"
+          },
+          "description": "The vault to save into.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Secrets",
+          "jsonName": "secrets",
+          "protoField": "secrets",
+          "type": {
+            "kind": "map",
+            "keyType": {
+              "kind": "string"
+            },
+            "valueType": {
+              "kind": "message",
+              "messageType": "VaultSecretInput"
+            }
+          },
+          "description": "Secrets by name. A name that is already saved has its value replaced.",
+          "required": false,
+          "validation": {
+            "minItems": 1,
+            "maxItems": 100
+          }
+        }
+      ]
+    },
+    {
+      "name": "RemoveVaultSecretsInput",
+      "description": "Input for removing secrets from a vault by name. Names that are not saved\n are ignored.",
+      "protoType": "ai.stigmer.agentic.vault.v1.RemoveVaultSecretsInput",
+      "protoFile": "apis/ai/stigmer/agentic/vault/v1/io.proto",
+      "fields": [
+        {
+          "name": "Vault",
+          "jsonName": "vault",
+          "protoField": "vault",
+          "type": {
+            "kind": "message",
+            "messageType": "VaultTarget"
+          },
+          "description": "The vault to remove from.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Names",
+          "jsonName": "names",
+          "protoField": "names",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "Names of the secrets to remove.",
+          "required": false,
+          "validation": {
+            "minItems": 1,
+            "maxItems": 100
+          }
+        }
+      ]
+    },
+    {
+      "name": "SetVaultConnectionInput",
+      "description": "Input for saving a login in a vault, at the address of the tool or Git\n host it is for.",
+      "protoType": "ai.stigmer.agentic.vault.v1.SetVaultConnectionInput",
+      "protoFile": "apis/ai/stigmer/agentic/vault/v1/io.proto",
+      "fields": [
+        {
+          "name": "Vault",
+          "jsonName": "vault",
+          "protoField": "vault",
+          "type": {
+            "kind": "message",
+            "messageType": "VaultTarget"
+          },
+          "description": "The vault to save into.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Address",
+          "jsonName": "address",
+          "protoField": "address",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The address the login is for: a tool's URL (https://mcp.example.com/mcp)\n or a Git host (github.com).\n\n A tool's address keeps its scheme, host, port and path; the server\n lowercases the scheme and host, drops a default port and one trailing\n slash, and drops any query or fragment. A Git host is its bare host name.",
+          "required": false,
+          "validation": {
+            "minLength": 1,
+            "maxLength": 2048
+          }
+        },
+        {
+          "name": "Token",
+          "jsonName": "token",
+          "protoField": "token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The access token.",
+          "required": false,
+          "validation": {
+            "minLength": 1,
+            "maxLength": 65536
+          }
+        },
+        {
+          "name": "Description",
+          "jsonName": "description",
+          "protoField": "description",
+          "type": {
+            "kind": "string"
+          },
+          "description": "What the login is for. Empty keeps the description already saved.",
+          "required": false,
+          "validation": {
+            "maxLength": 500
+          }
+        }
+      ]
+    },
+    {
+      "name": "RemoveVaultConnectionsInput",
+      "description": "Input for removing logins from a vault by address. Addresses that are not\n saved are ignored.",
+      "protoType": "ai.stigmer.agentic.vault.v1.RemoveVaultConnectionsInput",
+      "protoFile": "apis/ai/stigmer/agentic/vault/v1/io.proto",
+      "fields": [
+        {
+          "name": "Vault",
+          "jsonName": "vault",
+          "protoField": "vault",
+          "type": {
+            "kind": "message",
+            "messageType": "VaultTarget"
+          },
+          "description": "The vault to remove from.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Addresses",
+          "jsonName": "addresses",
+          "protoField": "addresses",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "Addresses of the logins to remove, in any shape setConnection accepts.",
+          "required": false,
+          "validation": {
+            "minItems": 1,
+            "maxItems": 100
+          }
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceReference",
+      "description": "Generic reference to any API resource by org and slug.\n Used across resources to reference other resources (e.g., Vault, Agent, Skill).\n Canonical format: \"org/slug\" (e.g., \"acme/web-search\", \"acme/my-agent\").\n\n Every reference in a resource's spec is checked when the resource is\n written: the target must exist, and a target in another organization\n must be one the writing organization's parent shares with its child\n organizations (visibility_child_orgs) to be referenced at all. A blueprint may not be\n more visible than the skills, MCP servers and agents it references, so\n what a person can run they can also read. A reference that fails the\n check is refused at write, never at run.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization that owns the referenced resource, by slug or id.\n\n When non-empty: an organization slug (lowercase alphanumeric with hyphens,\n starts with a letter, 2-63 characters; e.g. \"stigmer\", \"acme-corp\") or an\n organization id (org_\u003culid\u003e). The server stores the id, so a stored\n reference keeps pointing at its organization across a rename.\n\n When empty: the reference is relative — the server resolves it to the parent\n resource's organization at write time. All stored and returned references\n always have org populated (absolute form, the id).\n\n Use empty org for same-org references (the common case).\n An explicit other org is accepted only when that organization is your\n organization's parent and shares the resource with its children\n (visibility_child_orgs).",
+          "required": false,
+          "validation": {
+            "maxLength": 63,
+            "pattern": "^$|^[a-z][a-z0-9-]*[a-z0-9]$|^org_[0-9a-z]{26}$"
+          }
+        },
+        {
+          "name": "Kind",
+          "jsonName": "kind",
+          "protoField": "kind",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+            "enumValues": [
+              "api_resource_version",
+              "iam_policy",
+              "identity_account",
+              "api_key",
+              "invitation",
+              "identity_provider",
+              "oauth_app",
+              "platform_client",
+              "team",
+              "organization",
+              "platform",
+              "agent",
+              "run",
+              "session",
+              "skill",
+              "mcp_server",
+              "agent_share",
+              "agent_channel",
+              "channel_app",
+              "execution_context",
+              "schedule",
+              "memory",
+              "plugin",
+              "vault",
+              "plan",
+              "subscription",
+              "license"
+            ]
+          },
+          "description": "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).",
+          "required": false
+        },
+        {
+          "name": "Slug",
+          "jsonName": "slug",
+          "protoField": "slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Resource slug (user-friendly identifier, unique within org).\n Format: lowercase alphanumeric with hyphens, must start with a letter\n and end with a letter or digit (e.g., \"web-search\", \"code-reviewer\").\n Length: 2-63 characters.",
+          "required": true,
+          "validation": {
+            "required": true,
+            "minLength": 2,
+            "maxLength": 63,
+            "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$"
+          }
+        },
+        {
+          "name": "Version",
+          "jsonName": "version",
+          "protoField": "version",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Version of the resource (optional, only applicable to versioned resources like Skills).\n Supports three formats:\n 1. Empty/unset → Resolves to \"latest\" (most recent version)\n 2. Tag name → Resolves to version with this tag (e.g., \"stable\", \"v1.0\")\n 3. Exact hash → Immutable reference to specific version (e.g., \"abc123...\")\n\n Default behavior: Empty means \"latest\" (current version).\n This field is ignored for non-versioned resources.\n\n Examples:\n - version: \"\"           → Use latest version\n - version: \"latest\"     → Use latest version (explicit)\n - version: \"stable\"     → Use version tagged as \"stable\"\n - version: \"v1.0\"       → Use version tagged as \"v1.0\"\n - version: \"abc123...\"  → Use exact version with this hash (immutable)",
+          "required": false,
+          "validation": {
+            "pattern": "^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$"
+          }
+        }
+      ]
+    },
+    {
+      "name": "GetMyVaultInput",
+      "description": "Input for reading the caller's own My vault in an organization.",
+      "protoType": "ai.stigmer.agentic.vault.v1.GetMyVaultInput",
+      "protoFile": "apis/ai/stigmer/agentic/vault/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization, by slug or id.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "GetVaultByExternalIdInput",
+      "description": "Input for finding a shared vault by the integrator's own id.",
+      "protoType": "ai.stigmer.agentic.vault.v1.GetVaultByExternalIdInput",
+      "protoFile": "apis/ai/stigmer/agentic/vault/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization, by slug or id.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "ExternalId",
+          "jsonName": "externalId",
+          "protoField": "external_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The vault's external id.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "ListVaultsRequest",
+      "description": "ListVaultsRequest lists the vaults the caller can see in an organization.",
+      "protoType": "ai.stigmer.agentic.vault.v1.ListVaultsRequest",
+      "protoFile": "apis/ai/stigmer/agentic/vault/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization, by slug or id.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "PageInfo",
+          "jsonName": "pageInfo",
+          "protoField": "page_info",
+          "type": {
+            "kind": "message",
+            "messageType": "PageInfo"
+          },
+          "description": "Pagination options.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "VaultList",
+      "description": "VaultList contains a paginated list of vaults.",
+      "protoType": "ai.stigmer.agentic.vault.v1.VaultList",
+      "protoFile": "apis/ai/stigmer/agentic/vault/v1/io.proto",
+      "fields": [
+        {
+          "name": "TotalCount",
+          "jsonName": "totalCount",
+          "protoField": "total_count",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total count of matching vaults.",
+          "required": false
+        },
+        {
+          "name": "Items",
+          "jsonName": "items",
+          "protoField": "items",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "Vault"
+            }
+          },
+          "description": "Vaults in the current page.",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "enumTypes": [
+    {
+      "name": "ApiResourceVisibility",
+      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines which\n users, inside that organization or in its child organizations, can read\n the resource. No level reaches every\n account on the server.\n\n The visibility levels map to FGA tuples:\n - PRIVATE: no additional viewer tuples (owner-only access)\n - ORG: resource#viewer@organization:\u003corg\u003e#viewer tuple (everyone in the\n   org — the org role hierarchy flows downward, so owners, admins, members\n   AND read-only viewers all satisfy the organization#viewer userset)\n - CHILD_ORGS: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer\n   (everyone in every child organization of the owning organization)\n - PUBLIC: retired; see the value's own comment.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+      "values": [
+        {
+          "name": "visibility_private",
+          "number": 1,
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for personal and run-scoped resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (sessions) stay creator-only."
+        },
+        {
+          "name": "visibility_public",
+          "number": 2,
+          "description": "Retired. This level made a resource readable to every account on the\n server; it is refused at create and at updateVisibility for every kind,\n and every stored row that held it has been moved to visibility_org.\n Sharing across organizations happens through plugins (a copy is\n installed and owned) or, from a parent organization to its children,\n through visibility_child_orgs."
+        },
+        {
+          "name": "visibility_org",
+          "number": 3,
+          "description": "Everyone in the owning organization can access (read) this resource —\n all org roles including read-only viewers (the role SSO auto-provisioning\n grants by default). Running or otherwise spending against the resource\n still requires the org-level member-or-guest permissions\n (can_create_session / can_create_run_in); org visibility widens\n read, never spend.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#viewer\n (The tuple once targeted organization#member, which\n excluded viewer-role users; the authorization model no longer admits\n that shape.)"
+        },
+        {
+          "name": "visibility_child_orgs",
+          "number": 4,
+          "description": "Everyone in every child organization of the owning organization can\n read and run this resource: the shared catalog an organization offers\n the organizations under it (spec.parent_org). Child organizations\n created later gain access automatically, and no other organization\n does. Instances, sessions, runs and vaults are never shared\n this way: each child runs the shared blueprint inside its own boundary.\n\n Only valid for blueprint kinds with supports_child_orgs: true, and only\n in an organization that is not itself a child.\n\n FGA tuple: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer"
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceKind",
+      "description": "API resource kinds for Stigmer.",
+      "protoType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+      "values": [
+        {
+          "name": "api_resource_version",
+          "number": 1,
+          "description": "Immutable version record tracking changes to an API resource."
+        },
+        {
+          "name": "iam_policy",
+          "number": 10,
+          "description": "Role-based access control policy for granting permissions on resources."
+        },
+        {
+          "name": "identity_account",
+          "number": 11,
+          "description": "User account in the identity system."
+        },
+        {
+          "name": "api_key",
+          "number": 12,
+          "description": "Credential for programmatic API access."
+        },
+        {
+          "name": "invitation",
+          "number": 20,
+          "description": "Shareable link for joining an organization with a configurable role."
+        },
+        {
+          "name": "identity_provider",
+          "number": 21,
+          "description": "External identity provider for federated authentication."
+        },
+        {
+          "name": "oauth_app",
+          "number": 22,
+          "description": "Registered OAuth application with an external vendor for outbound authentication."
+        },
+        {
+          "name": "platform_client",
+          "number": 23,
+          "description": "OAuth2 client credential for platform builders embedding Stigmer into their products."
+        },
+        {
+          "name": "team",
+          "number": 24,
+          "description": "Named group of an organization's people that access is shared with as one."
+        },
+        {
+          "name": "organization",
+          "number": 30,
+          "description": "The boundary that holds people, Agents, Sessions and secrets\n together; nothing outside it sees them.\n\n Its id is a minted org_\u003culid\u003e that never changes; every organization-scoped\n resource names it by that id (metadata.org). Its slug is unique across the\n server and may change through rename; requests may name the organization\n by either."
+        },
+        {
+          "name": "platform",
+          "number": 31,
+          "description": "Singleton platform instance representing the Stigmer deployment."
+        },
+        {
+          "name": "agent",
+          "number": 40,
+          "description": "AI assistant with instructions, tools, skills, and a delegation model."
+        },
+        {
+          "name": "run",
+          "number": 41,
+          "description": "Single run of an agent within a session, tracking tool calls and responses."
+        },
+        {
+          "name": "session",
+          "number": 42,
+          "description": "Conversation thread between a user and an agent."
+        },
+        {
+          "name": "skill",
+          "number": 43,
+          "description": "Knowledge resource that provides domain-specific context to an agent."
+        },
+        {
+          "name": "mcp_server",
+          "number": 44,
+          "description": "External tool server connected via the Model Context Protocol."
+        },
+        {
+          "name": "agent_share",
+          "number": 46,
+          "description": "Hosted chat link for an agent with its own audience, origins, and credentials."
+        },
+        {
+          "name": "agent_channel",
+          "number": 47,
+          "description": "Connection binding an agent to an external messaging platform workspace."
+        },
+        {
+          "name": "channel_app",
+          "number": 48,
+          "description": "Customer-owned messaging-platform app (e.g. a Slack app) that agent\n channels can install through instead of the shared platform app."
+        },
+        {
+          "name": "execution_context",
+          "number": 54,
+          "description": "User-owned runtime context for managing execution state."
+        },
+        {
+          "name": "schedule",
+          "number": 56,
+          "description": "Recurring trigger that runs an agent on a cron schedule."
+        },
+        {
+          "name": "memory",
+          "number": 57,
+          "description": "Agent-proposed, user-confirmed fact the platform remembers about a person."
+        },
+        {
+          "name": "plugin",
+          "number": 58,
+          "description": "An installed Agent Plugins package: the archive Stigmer materialised into\n skills, MCP servers and an agent, and the handle that upgrades\n and removes them together. A plugin is what you install; an agent is what\n runs. Members are the resources labelled with the plugin's id."
+        },
+        {
+          "name": "vault",
+          "number": 59,
+          "description": "A person's or an organization's box of logins (matched by a tool's\n address) and secrets (matched by name) that runs use."
+        },
+        {
+          "name": "plan",
+          "number": 70,
+          "description": "Catalog entry naming a bundle of entitlements and the terms that buy it.\n\n Platform-level: a plan belongs to no organization, so it carries no\n authorization scope and no owner. Immutable once created; a change of\n terms is a new Plan and the old one retires."
+        },
+        {
+          "name": "subscription",
+          "number": 71,
+          "description": "An organization's binding to a Plan; at most one active per organization.\n\n System-created: the payment system drives its lifecycle, so it has no\n owner and grants no roles. Its reads and writes authorize on the\n organization through the billing permissions."
+        },
+        {
+          "name": "license",
+          "number": 72,
+          "description": "A signed grant of entitlements to a self-hosting customer for a term.\n\n Platform-level: issued by the cloud's operators and verified offline by\n the Enterprise server, so the customer is a value inside the license\n (which may or may not name a cloud organization) and the kind has no\n authorization scope and no owner. Claims are immutable once signed; a\n renewal is a new License."
+        }
+      ]
+    }
+  ],
+  "resourceDescription": "Vault holds the logins and secrets that runs use: connections matched by a\n tool's address, and secrets matched by name.\n\n A person's own vault, My vault, is created the first time they save a login\n or a secret, and serves their own chats. A shared vault belongs to the\n organization: an admin creates it and says who may use it. Saved values can\n be replaced but are never returned by any read."
+}

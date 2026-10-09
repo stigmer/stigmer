@@ -44,8 +44,8 @@ export const AgentShareCommandController = {
      * Update an existing agent share.
      *
      * Replaces the spec wholesale: a manifest that omits audience resets the
-     * share to public, and one that omits environment_refs unbinds them
-     * (fails closed). The slug and referenced agent are immutable.
+     * share to public, and one that omits vaults detaches them (fails
+     * closed). The slug and referenced agent are immutable.
      *
      * @generated from rpc ai.stigmer.agentic.agentshare.v1.AgentShareCommandController.update
      */

@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentshare/v1/status.proto.
  */
 export const file_ai_stigmer_agentic_agentshare_v1_status: GenFile = /*@__PURE__*/
-  fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRzaGFyZS92MS9zdGF0dXMucHJvdG8SIGFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHNoYXJlLnYxIn8KEEFnZW50U2hhcmVTdGF0dXMSPwoFYXVkaXQYYyABKAsyMC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VBdWRpdBIYChBzaGFyZV9saW5rX3Rva2VuGAEgASgJEhAKCGFnZW50X2lkGAIgASgJYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_status]);
+  fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRzaGFyZS92MS9zdGF0dXMucHJvdG8SIGFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHNoYXJlLnYxIpcCChBBZ2VudFNoYXJlU3RhdHVzEj8KBWF1ZGl0GGMgASgLMjAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXQSGAoQc2hhcmVfbGlua190b2tlbhgBIAEoCRIQCghhZ2VudF9pZBgCIAEoCRJfCg92YXVsdF9hdHRhY2hlcnMYAyADKAsyRi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRzaGFyZS52MS5BZ2VudFNoYXJlU3RhdHVzLlZhdWx0QXR0YWNoZXJzRW50cnkaNQoTVmF1bHRBdHRhY2hlcnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_status]);
 
 /**
  * AgentShareStatus contains system-managed state for an agent share.
@@ -52,6 +52,15 @@ export type AgentShareStatus = Message<"ai.stigmer.agentic.agentshare.v1.AgentSh
    * @generated from field: string agent_id = 2;
    */
   agentId: string;
+
+  /**
+   * Who attached each of this resource's vaults, by vault id: the account
+   * whose permission to use the vault each run checks when it has no
+   * person.
+   *
+   * @generated from field: map<string, string> vault_attachers = 3;
+   */
+  vaultAttachers: { [key: string]: string };
 };
 
 /**

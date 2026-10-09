@@ -40,7 +40,7 @@ import { ChannelConversationCommandController } from "@stigmer/protos/ai/stigmer
 import { ChannelConversationQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_query_pb";
 import { AgentChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/status_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
-import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
+import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 
@@ -142,7 +142,7 @@ beforeAll(async () => {
 });
 
 /**
- * The environments and channel apps the specs below reference, seeded as
+ * The shared vaults and channel apps the specs below reference, seeded as
  * rows so the write-time reference rule finds them: a reference to a row
  * that does not exist is refused at create, and these tests are about the
  * binding's shape, not about a missing target.
@@ -154,19 +154,20 @@ async function seedReferencedRows(): Promise<void> {
     "rotated-credentials",
   ]) {
     await server.store.saveResource(
-      ApiResourceKind.environment,
-      `env_${slug}`,
-      EnvironmentSchema,
-      create(EnvironmentSchema, {
+      ApiResourceKind.vault,
+      `vlt_${slug}`,
+      VaultSchema,
+      create(VaultSchema, {
         apiVersion: "agentic.stigmer.ai/v1",
-        kind: "Environment",
+        kind: "Vault",
         metadata: {
-          id: `env_${slug}`,
+          id: `vlt_${slug}`,
           name: slug,
           slug,
           org: ORG_ID,
           visibility: ApiResourceVisibility.visibility_org,
         },
+        spec: { owner: { case: "org", value: ORG_ID } },
       }),
     );
   }
@@ -613,53 +614,61 @@ describe("apply semantics", () => {
 });
 
 // ---------------------------------------------------------------------------
-// environment_refs (Go TestAgentChannelController_EnvironmentRefs).
+// vaults (channel-bound credentials).
 // ---------------------------------------------------------------------------
 
-describe("environment_refs (channel-bound credentials)", () => {
-  it("persist in order, empty org normalizes; apply replaces and unbinds; CEL kind check", async () => {
-    const agent = await createTestAgent(uniqueName("Env Refs Agent"));
-    const name = uniqueName("Env Refs Slack");
+describe("vaults (channel-bound credentials)", () => {
+  it("persist in order, empty org normalizes, attachers recorded; apply replaces and unbinds; CEL kind check", async () => {
+    const agent = await createTestAgent(uniqueName("Vaults Agent"));
+    const name = uniqueName("Vaults Slack");
 
     const withRefs = channelFor(agent, name, true);
-    (withRefs.spec as Record<string, unknown>).environmentRefs = [
-      { kind: ApiResourceKind.environment, slug: "github-credentials" },
+    (withRefs.spec as Record<string, unknown>).vaults = [
+      { kind: ApiResourceKind.vault, slug: "github-credentials" },
       {
-        kind: ApiResourceKind.environment,
+        kind: ApiResourceKind.vault,
         org: ORG,
         slug: "search-credentials",
       },
     ];
     const created = await channels.create(withRefs);
-    expect(created.spec?.environmentRefs).toHaveLength(2);
-    expect(created.spec?.environmentRefs[0]?.org).toBe(ORG_ID);
-    expect(created.spec?.environmentRefs[0]?.slug).toBe("github-credentials");
-    expect(created.spec?.environmentRefs[1]?.slug).toBe("search-credentials");
+    expect(created.spec?.vaults).toHaveLength(2);
+    expect(created.spec?.vaults[0]?.org).toBe(ORG_ID);
+    expect(created.spec?.vaults[0]?.slug).toBe("github-credentials");
+    expect(created.spec?.vaults[1]?.slug).toBe("search-credentials");
+    expect(Object.keys(created.status?.vaultAttachers ?? {}).sort()).toEqual([
+      "vlt_github-credentials",
+      "vlt_search-credentials",
+    ]);
 
     const fetched = await query.get({ value: created.metadata!.id });
-    expect(fetched.spec?.environmentRefs).toHaveLength(2);
+    expect(fetched.spec?.vaults).toHaveLength(2);
 
-    // Apply replaces the refs wholesale — credentials are mutable.
+    // Apply replaces the vaults wholesale; the attachers follow.
     const rebound = channelFor(agent, name, true);
-    (rebound.spec as Record<string, unknown>).environmentRefs = [
+    (rebound.spec as Record<string, unknown>).vaults = [
       {
-        kind: ApiResourceKind.environment,
+        kind: ApiResourceKind.vault,
         org: ORG,
         slug: "rotated-credentials",
       },
     ];
     const updated = await channels.apply(rebound);
-    expect(updated.spec?.environmentRefs).toHaveLength(1);
-    expect(updated.spec?.environmentRefs[0]?.slug).toBe("rotated-credentials");
+    expect(updated.spec?.vaults).toHaveLength(1);
+    expect(updated.spec?.vaults[0]?.slug).toBe("rotated-credentials");
+    expect(Object.keys(updated.status?.vaultAttachers ?? {})).toEqual([
+      "vlt_rotated-credentials",
+    ]);
 
-    // Apply omitting the refs unbinds them (declarative semantics).
+    // Apply omitting the vaults unbinds them (declarative semantics).
     const unbound = await channels.apply(channelFor(agent, name, true));
-    expect(unbound.spec?.environmentRefs).toHaveLength(0);
+    expect(unbound.spec?.vaults).toHaveLength(0);
+    expect(unbound.status?.vaultAttachers ?? {}).toEqual({});
 
-    // A non-environment ref kind is INVALID_ARGUMENT (proto CEL).
+    // A non-vault ref kind is INVALID_ARGUMENT (proto CEL).
     const wrongKind = channelFor(agent, uniqueName("Wrong Kind Slack"), true);
-    (wrongKind.spec as Record<string, unknown>).environmentRefs = [
-      { kind: ApiResourceKind.agent, org: ORG, slug: "not-an-environment" },
+    (wrongKind.spec as Record<string, unknown>).vaults = [
+      { kind: ApiResourceKind.agent, org: ORG, slug: "not-a-vault" },
     ];
     const err = await grpcError(() => channels.create(wrongKind));
     expect(err.code).toBe(Code.InvalidArgument);

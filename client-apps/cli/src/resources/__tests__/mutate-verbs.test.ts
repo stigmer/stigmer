@@ -22,9 +22,9 @@ import { AgentChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ChannelAppCommandController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/command_pb";
 import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
-import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
-import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
-import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
+import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
+import { VaultCommandController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/command_pb";
+import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
@@ -58,8 +58,8 @@ const knownMcp = create(McpServerSchema, {
   metadata: { name: "Filesystem", slug: "filesystem", org: "acme", id: "mcp_1" },
 });
 
-const knownEnvironment = create(EnvironmentSchema, {
-  metadata: { name: "clinic-patient-db", slug: "clinic-patient-db", org: "acme", id: "env_1" },
+const knownVault = create(VaultSchema, {
+  metadata: { name: "Clinic tools", slug: "clinic-tools", org: "acme", id: "vlt_1" },
 });
 
 const knownChannel = create(AgentChannelSchema, {
@@ -100,7 +100,7 @@ const openSessions = new Set<ServerHttp2Session>();
 let cancelCalls: string[] = [];
 let agentTagCalls: { agentId: string; versionHash: string; tag: string }[] = [];
 // Force-carrying deletes record what actually rode the RPC.
-let environmentDeletes: { resourceId: string; force: boolean }[] = [];
+let vaultDeletes: { resourceId: string; force: boolean }[] = [];
 let channelAppDeletes: { resourceId: string; force: boolean }[] = [];
 // agent_channel and schedule delete by typed ID — no force field exists on
 // their wire contracts.
@@ -110,7 +110,7 @@ let scheduleDeleteIds: string[] = [];
 beforeEach(() => {
   cancelCalls = [];
   agentTagCalls = [];
-  environmentDeletes = [];
+  vaultDeletes = [];
   channelAppDeletes = [];
   channelDeleteIds = [];
   scheduleDeleteIds = [];
@@ -147,16 +147,16 @@ beforeAll(async () => {
       },
     });
 
-    router.service(EnvironmentQueryController, {
+    router.service(VaultQueryController, {
       getByReference: (req) => {
-        if (req.slug !== "clinic-patient-db") throw new ConnectError("environment not found", Code.NotFound);
-        return knownEnvironment;
+        if (req.slug !== "clinic-tools") throw new ConnectError("vault not found", Code.NotFound);
+        return knownVault;
       },
     });
-    router.service(EnvironmentCommandController, {
+    router.service(VaultCommandController, {
       delete: (req) => {
-        environmentDeletes.push({ resourceId: req.resourceId, force: req.force });
-        return knownEnvironment;
+        vaultDeletes.push({ resourceId: req.resourceId, force: req.force });
+        return knownVault;
       },
     });
 
@@ -315,7 +315,7 @@ describe("delete (standard kinds)", () => {
     // it must name the wired kinds and never the narrowed ones (#354).
     const message = String(err.message);
     for (const wired of [
-      "environment",
+      "vault",
       "agentchannel",
       "channelapp",
       "schedule",
@@ -328,6 +328,7 @@ describe("delete (standard kinds)", () => {
     expect(message).not.toContain("oauthapp");
     expect(message).not.toContain("agentinstance");
     expect(message).not.toContain("workflowinstance");
+    expect(message).not.toContain("environment");
   });
 
   it("rejects a narrowed kind at the verb gate with a usage error", async () => {
@@ -369,20 +370,20 @@ describe("delete (organization)", () => {
   });
 });
 
-describe("delete (cutover kinds: environment, agent channel, channel app)", () => {
-  it("deletes an environment via the DeleteResourceInput shape", async () => {
-    const plan = await planDelete(client, "environment", "clinic-patient-db", "acme");
+describe("delete (cutover kinds: vault, agent channel, channel app)", () => {
+  it("deletes a vault via the DeleteResourceInput shape", async () => {
+    const plan = await planDelete(client, "vault", "clinic-tools", "acme");
     const result = await plan.perform();
 
     expect(result.status).toBe("success");
-    expect(result.message).toBe("Environment deleted successfully");
-    expect(environmentDeletes).toEqual([{ resourceId: "env_1", force: false }]);
+    expect(result.message).toBe("Vault deleted successfully");
+    expect(vaultDeletes).toEqual([{ resourceId: "vlt_1", force: false }]);
   });
 
-  it("threads --force through the environment delete (generic ack carrier)", async () => {
-    const plan = await planDelete(client, "environment", "clinic-patient-db", "acme", true);
+  it("threads --force through the vault delete (generic ack carrier)", async () => {
+    const plan = await planDelete(client, "vault", "clinic-tools", "acme", true);
     await plan.perform();
-    expect(environmentDeletes).toEqual([{ resourceId: "env_1", force: true }]);
+    expect(vaultDeletes).toEqual([{ resourceId: "vlt_1", force: true }]);
   });
 
   it("deletes an agent channel via its typed-ID contract, ignoring force gracefully", async () => {

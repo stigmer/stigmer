@@ -11,7 +11,7 @@
 // assistant is the builder with no reference.
 //
 // Negatives (duplicate, missing name, wrong const fields) are written inline in the
-// suite, matching support/agents.ts and support/environments.ts: this module is
+// suite, matching support/agents.ts and support/vaults.ts: this module is
 // validity-by-construction. harness_state_id is normally populated by the engine
 // after the first execution and gates the harness / execution_target immutability
 // validators; the Class B immutability suite sets it directly (it is a plain
@@ -53,6 +53,11 @@ export interface SessionSpecOptions {
   // when it is a git work tree the runner runs its turns in file-review capture
   // mode (the file-review suites attach a harness GitWorkspace here).
   localWorkspaces?: LocalWorkspaceOption[];
+  // Vault slugs the conversation lists (spec.vaults), in order: a
+  // conversation that lists vaults uses exactly those.
+  vaults?: string[];
+  // The conversation's own secrets (spec.secrets), sealed on the session.
+  secrets?: Record<string, string>;
 }
 
 export interface LocalWorkspaceOption {
@@ -76,6 +81,8 @@ export function makeSessionSpec(opts: SessionSpecOptions = {}): InitShape<typeof
     })),
     skillRefs: (opts.skillRefs ?? []).map((slug) => ({ slug, kind: ApiResourceKind.skill })),
     ...(opts.localWorkspaces !== undefined ? { workspaceEntries: localWorkspaceEntries(opts.localWorkspaces) } : {}),
+    ...(opts.vaults !== undefined ? { vaults: opts.vaults.map((slug) => ({ slug, kind: ApiResourceKind.vault })) } : {}),
+    ...(opts.secrets !== undefined ? { secrets: opts.secrets } : {}),
   };
 }
 

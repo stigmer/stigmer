@@ -15,8 +15,8 @@
  * this slice — over the McpServerConnectDeps the composition root wires.
  * Engine availability is the modeled state: connect/startConnect refuse
  * FailedPrecondition while disconnected; the OAuth RPCs serve
- * unconditionally (Go's Temporal-gated managed-env wiring is a
- * deliberately unpinned composition artifact).
+ * unconditionally (Go's Temporal gate on them is a deliberately
+ * unpinned composition artifact).
  *
  * Every chain opens with Authorize; create, delete and updateVisibility run
  * the shared tuple-lifecycle steps against the composed lifecycle;

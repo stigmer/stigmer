@@ -184,14 +184,6 @@ public enum ApiResourceKind
   channel_app(48),
   /**
    * <pre>
-   * Named set of variables and secrets for a run.
-   * </pre>
-   *
-   * <code>environment = 53 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
-   */
-  environment(53),
-  /**
-   * <pre>
    * User-owned runtime context for managing execution state.
    * </pre>
    *
@@ -225,6 +217,15 @@ public enum ApiResourceKind
    * <code>plugin = 58 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
   plugin(58),
+  /**
+   * <pre>
+   * A person's or an organization's box of logins (matched by a tool's
+   * address) and secrets (matched by name) that runs use.
+   * </pre>
+   *
+   * <code>vault = 59 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  vault(59),
   /**
    * <pre>
    * Catalog entry naming a bundle of entitlements and the terms that buy it.
@@ -444,14 +445,6 @@ public enum ApiResourceKind
   public static final int channel_app_VALUE = 48;
   /**
    * <pre>
-   * Named set of variables and secrets for a run.
-   * </pre>
-   *
-   * <code>environment = 53 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
-   */
-  public static final int environment_VALUE = 53;
-  /**
-   * <pre>
    * User-owned runtime context for managing execution state.
    * </pre>
    *
@@ -485,6 +478,15 @@ public enum ApiResourceKind
    * <code>plugin = 58 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
   public static final int plugin_VALUE = 58;
+  /**
+   * <pre>
+   * A person's or an organization's box of logins (matched by a tool's
+   * address) and secrets (matched by name) that runs use.
+   * </pre>
+   *
+   * <code>vault = 59 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  public static final int vault_VALUE = 59;
   /**
    * <pre>
    * Catalog entry naming a bundle of entitlements and the terms that buy it.
@@ -569,11 +571,11 @@ public enum ApiResourceKind
       case 46: return agent_share;
       case 47: return agent_channel;
       case 48: return channel_app;
-      case 53: return environment;
       case 54: return execution_context;
       case 56: return schedule;
       case 57: return memory;
       case 58: return plugin;
+      case 59: return vault;
       case 70: return plan;
       case 71: return subscription;
       case 72: return license;

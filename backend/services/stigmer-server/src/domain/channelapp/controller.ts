@@ -4,7 +4,7 @@
  * (Slack OAuth client + signing secret; WhatsApp app_secret / access_token /
  * verify_token), referenced by AgentChannel spec.app_ref. The channel-domain
  * sibling of OAuthApp: inline encrypted secrets (AES-256-GCM via the shared
- * SecretService — the same instance Environment uses), ***REDACTED*** on
+ * SecretService — the same instance every secret kind uses), ***REDACTED*** on
  * every response surface, delete blocked while referenced.
  *
  * Pipeline per RPC mirrors the Go step chains character-for-character —

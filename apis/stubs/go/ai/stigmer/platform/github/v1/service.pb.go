@@ -27,7 +27,9 @@ const (
 type GetOAuthAuthorizeUrlRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Callback URI that GitHub redirects to after the user authorizes.
-	RedirectUri   string `protobuf:"bytes,1,opt,name=redirect_uri,json=redirectUri,proto3" json:"redirect_uri,omitempty"`
+	RedirectUri string `protobuf:"bytes,1,opt,name=redirect_uri,json=redirectUri,proto3" json:"redirect_uri,omitempty"`
+	// Organization whose My vault the login will be saved in, by slug or id.
+	Org           string `protobuf:"bytes,2,opt,name=org,proto3" json:"org,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -65,6 +67,13 @@ func (*GetOAuthAuthorizeUrlRequest) Descriptor() ([]byte, []int) {
 func (x *GetOAuthAuthorizeUrlRequest) GetRedirectUri() string {
 	if x != nil {
 		return x.RedirectUri
+	}
+	return ""
+}
+
+func (x *GetOAuthAuthorizeUrlRequest) GetOrg() string {
+	if x != nil {
+		return x.Org
 	}
 	return ""
 }
@@ -130,10 +139,14 @@ type ExchangeOAuthCodeRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Authorization code received from GitHub's OAuth redirect callback.
 	Code string `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
-	// State value from the original authorize response, for CSRF verification.
+	// State value from the original authorize response. The exchange consumes
+	// it: a state the server did not issue to this caller for this
+	// organization, or one already used, is refused.
 	State string `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
 	// Redirect URI used in the original authorize request.
-	RedirectUri   string `protobuf:"bytes,3,opt,name=redirect_uri,json=redirectUri,proto3" json:"redirect_uri,omitempty"`
+	RedirectUri string `protobuf:"bytes,3,opt,name=redirect_uri,json=redirectUri,proto3" json:"redirect_uri,omitempty"`
+	// Organization whose My vault keeps the login, by slug or id.
+	Org           string `protobuf:"bytes,4,opt,name=org,proto3" json:"org,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -189,15 +202,23 @@ func (x *ExchangeOAuthCodeRequest) GetRedirectUri() string {
 	return ""
 }
 
-// Result of exchanging a GitHub authorization code for an access token.
+func (x *ExchangeOAuthCodeRequest) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+// Result of exchanging a GitHub authorization code: the account the saved
+// login belongs to.
 type ExchangeOAuthCodeResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// GitHub access token for API calls.
-	AccessToken string `protobuf:"bytes,1,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
 	// Token type (typically "bearer").
 	TokenType string `protobuf:"bytes,2,opt,name=token_type,json=tokenType,proto3" json:"token_type,omitempty"`
 	// Granted OAuth scopes, comma-separated.
-	Scope         string `protobuf:"bytes,3,opt,name=scope,proto3" json:"scope,omitempty"`
+	Scope string `protobuf:"bytes,3,opt,name=scope,proto3" json:"scope,omitempty"`
+	// The connected GitHub account's login.
+	Login         string `protobuf:"bytes,4,opt,name=login,proto3" json:"login,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -232,13 +253,6 @@ func (*ExchangeOAuthCodeResponse) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_platform_github_v1_service_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *ExchangeOAuthCodeResponse) GetAccessToken() string {
-	if x != nil {
-		return x.AccessToken
-	}
-	return ""
-}
-
 func (x *ExchangeOAuthCodeResponse) GetTokenType() string {
 	if x != nil {
 		return x.TokenType
@@ -253,28 +267,37 @@ func (x *ExchangeOAuthCodeResponse) GetScope() string {
 	return ""
 }
 
+func (x *ExchangeOAuthCodeResponse) GetLogin() string {
+	if x != nil {
+		return x.Login
+	}
+	return ""
+}
+
 var File_ai_stigmer_platform_github_v1_service_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_platform_github_v1_service_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/platform/github/v1/service.proto\x12\x1dai.stigmer.platform.github.v1\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a\x1bbuf/validate/validate.proto\"I\n" +
+	"+ai/stigmer/platform/github/v1/service.proto\x12\x1dai.stigmer.platform.github.v1\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a\x1bbuf/validate/validate.proto\"d\n" +
 	"\x1bGetOAuthAuthorizeUrlRequest\x12*\n" +
-	"\fredirect_uri\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\vredirectUri\"Y\n" +
+	"\fredirect_uri\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\vredirectUri\x12\x19\n" +
+	"\x03org\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"Y\n" +
 	"\x1cGetOAuthAuthorizeUrlResponse\x12#\n" +
 	"\rauthorize_url\x18\x01 \x01(\tR\fauthorizeUrl\x12\x14\n" +
-	"\x05state\x18\x02 \x01(\tR\x05state\"\x82\x01\n" +
+	"\x05state\x18\x02 \x01(\tR\x05state\"\x9d\x01\n" +
 	"\x18ExchangeOAuthCodeRequest\x12\x1b\n" +
 	"\x04code\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04code\x12\x1d\n" +
 	"\x05state\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05state\x12*\n" +
-	"\fredirect_uri\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\vredirectUri\"s\n" +
-	"\x19ExchangeOAuthCodeResponse\x12!\n" +
-	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12\x1d\n" +
+	"\fredirect_uri\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\vredirectUri\x12\x19\n" +
+	"\x03org\x18\x04 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"z\n" +
+	"\x19ExchangeOAuthCodeResponse\x12\x1d\n" +
 	"\n" +
 	"token_type\x18\x02 \x01(\tR\ttokenType\x12\x14\n" +
-	"\x05scope\x18\x03 \x01(\tR\x05scope2\xb6\x02\n" +
-	"\rGitHubService\x12\x95\x01\n" +
-	"\x14getOAuthAuthorizeUrl\x12:.ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlRequest\x1a;.ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlResponse\"\x04и\x18\x01\x12\x8c\x01\n" +
-	"\x11exchangeOAuthCode\x127.ai.stigmer.platform.github.v1.ExchangeOAuthCodeRequest\x1a8.ai.stigmer.platform.github.v1.ExchangeOAuthCodeResponse\"\x04и\x18\x01B\x9b\x02\n" +
+	"\x05scope\x18\x03 \x01(\tR\x05scope\x12\x14\n" +
+	"\x05login\x18\x04 \x01(\tR\x05loginJ\x04\b\x01\x10\x02R\faccess_token2\xb7\x03\n" +
+	"\rGitHubService\x12\xd3\x01\n" +
+	"\x14getOAuthAuthorizeUrl\x12:.ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlRequest\x1a;.ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlResponse\"B¸\x18>\b3\x10\x1e\"\x03org*3unauthorized to connect GitHub in this organization\x12\xcf\x01\n" +
+	"\x11exchangeOAuthCode\x127.ai.stigmer.platform.github.v1.ExchangeOAuthCodeRequest\x1a8.ai.stigmer.platform.github.v1.ExchangeOAuthCodeResponse\"G¸\x18C\b3\x10\x1e\"\x03org*8unauthorized to save a GitHub login in this organizationB\x9b\x02\n" +
 	"!com.ai.stigmer.platform.github.v1B\fServiceProtoP\x01ZOgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/platform/github/v1;githubv1\xa2\x02\x04ASPG\xaa\x02\x1dAi.Stigmer.Platform.Github.V1\xca\x02\x1dAi\\Stigmer\\Platform\\Github\\V1\xe2\x02)Ai\\Stigmer\\Platform\\Github\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Platform::Github::V1b\x06proto3"
 
 var (

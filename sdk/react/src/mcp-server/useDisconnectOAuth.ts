@@ -9,14 +9,16 @@ import { toError } from "../internal/toError.js";
 /** Return value of {@link useDisconnectOAuth}. */
 export interface UseDisconnectOAuthReturn {
   /**
-   * Disconnect the current user's OAuth grant for an MCP server.
+   * Disconnect the current user's sign-in to an MCP server.
    *
-   * Deletes the managed environment (secrets first) and then the grant
-   * document. The operation is idempotent — disconnecting when no grant
-   * exists returns `false` without error.
+   * Removes the caller's sign-ins for the server from their My vault in
+   * `org`, with their tokens. Other people's sign-ins, a pasted login and
+   * a sign-in saved into a shared vault are untouched. The operation is
+   * idempotent — disconnecting when no sign-in is saved returns `false`
+   * without error.
    *
-   * Resolves with `true` when a grant was removed, `false` when no
-   * grant existed. Callers should `refetch()` grant status and
+   * Resolves with `true` when a sign-in was removed, `false` when none
+   * was saved. Callers should `refetch()` grant status and
    * credentials after a successful disconnect.
    */
   readonly disconnect: (resourceId: string, org: string) => Promise<boolean>;
@@ -32,8 +34,8 @@ export interface UseDisconnectOAuthReturn {
  * Behavior hook that wraps `mcpServer.disconnectOAuth()` with loading
  * and error state.
  *
- * Removes the user's OAuth grant and associated managed environment
- * for a given MCP server resource. After a successful disconnect the
+ * Removes the caller's sign-ins for a given MCP server from their My
+ * vault. After a successful disconnect the
  * UI should revert to the "Not connected" state — call `refetch()` on
  * the credentials / grant status hooks to reflect the change.
  *
@@ -42,7 +44,7 @@ export interface UseDisconnectOAuthReturn {
  * const { disconnect, isDisconnecting, error } = useDisconnectOAuth();
  *
  * await disconnect(mcpServerId, org);
- * credentials.refetch(); // refresh grant status + env
+ * credentials.refetch(); // refresh grant status and saved keys
  * ```
  */
 export function useDisconnectOAuth(): UseDisconnectOAuthReturn {

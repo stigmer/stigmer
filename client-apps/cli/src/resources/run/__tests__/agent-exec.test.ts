@@ -50,7 +50,7 @@ function makePrepared(overrides: Partial<PreparedRun> = {}): PreparedRun {
   return {
     defaultAction: ApprovalAction.UNSPECIFIED,
     workspaceEntries: [],
-    runtimeEnv: {},
+    sessionSecrets: {},
     attachments: [],
     workspaceFileRefs: [],
     message: "hi",

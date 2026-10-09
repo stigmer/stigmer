@@ -95,9 +95,6 @@ function pyTypeForTypeSpec(ts: TypeSpec): string {
     }
     case "message":
       switch (ts.messageType) {
-        case "EnvironmentSpec":
-          return "EnvSpecInput";
-        case "EnvironmentValue":
         case "ExecutionValue":
           return "EnvVarInput";
         case "ApiResourceReference":
@@ -195,7 +192,6 @@ class PyImports {
   needsEmptyPb2 = false;
   needsSearch = false;
   needsApiResKind = false;
-  needsEnvV1 = false;
   needsExecCtxV1 = false;
 
   typesNames = new Set<string>();
@@ -300,9 +296,6 @@ class PyImports {
     }
     if (this.needsEmptyPb2) {
       buf.push("from google.protobuf import empty_pb2\n");
-    }
-    if (this.needsEnvV1) {
-      buf.push("from ai.stigmer.agentic.environment.v1 import spec_pb2 as environment_spec_pb2\n");
     }
     if (this.needsExecCtxV1) {
       buf.push("from ai.stigmer.agentic.executioncontext.v1 import spec_pb2 as executioncontext_spec_pb2\n");
@@ -517,15 +510,10 @@ function scanPySpecFields(fields: FieldSchema[], typeMap: Map<string, TypeSchema
 
 function scanPyFieldImports(f: FieldSchema, typeMap: Map<string, TypeSchema>, imports: PyImports, visited: Set<string>): void {
   const t = f.type;
-  if (t.kind === "message" && t.messageType === "EnvironmentSpec") {
-    imports.addTypesImport("EnvSpecInput");
-  } else if (t.kind === "message" && t.messageType === "ApiResourceReference") {
+  if (t.kind === "message" && t.messageType === "ApiResourceReference") {
     imports.addTypesImport("ResourceRef");
   } else if (t.kind === "array" && t.elementType?.kind === "message" && t.elementType.messageType === "ApiResourceReference") {
     imports.addTypesImport("ResourceRef");
-  } else if (t.kind === "map" && t.valueType?.messageType === "EnvironmentValue") {
-    imports.addTypesImport("EnvVarInput");
-    imports.needsEnvV1 = true;
   } else if (t.kind === "map" && t.valueType?.messageType === "ExecutionValue") {
     imports.addTypesImport("EnvVarInput");
     imports.needsExecCtxV1 = true;
@@ -1071,12 +1059,6 @@ function emitPyToProtoFieldAssign(buf: string[], f: FieldSchema, msgVar: string,
   } else if (t.kind === "map" && t.valueType?.kind === "string") {
     buf.push(`${indent}if ${selfVar}.${selfField}:\n`);
     buf.push(`${indent}    ${protoAccess(msgVar, protoField)}.update(${selfVar}.${selfField})\n`);
-  } else if (t.kind === "map" && t.valueType?.messageType === "EnvironmentValue") {
-    imports.needsEnvV1 = true;
-    buf.push(`${indent}for k, v in ${selfVar}.${selfField}.items():\n`);
-    buf.push(`${indent}    ${protoAccess(msgVar, protoField)}[k].CopyFrom(environment_spec_pb2.EnvironmentValue(\n`);
-    buf.push(`${indent}        value=v.value, is_secret=v.is_secret, description=v.description,\n`);
-    buf.push(`${indent}    ))\n`);
   } else if (t.kind === "map" && t.valueType?.messageType === "ExecutionValue") {
     imports.needsExecCtxV1 = true;
     buf.push(`${indent}for k, v in ${selfVar}.${selfField}.items():\n`);
@@ -1228,7 +1210,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from ai.stigmer.agentic.environment.v1 import spec_pb2 as environment_spec_pb2
 from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 from ai.stigmer.search.v1 import io_pb2 as search_io_pb2
 
@@ -1300,25 +1281,6 @@ class EnvVarInput:
     value: str = ""
     is_secret: bool = False
     description: str = ""
-
-
-@dataclass
-class EnvSpecInput:
-    """Environment variable configuration."""
-
-    variables: dict[str, EnvVarInput] = field(default_factory=dict)
-
-    def _to_proto(self) -> environment_spec_pb2.EnvironmentSpec:
-        spec = environment_spec_pb2.EnvironmentSpec()
-        for name, var in self.variables.items():
-            spec.data[name].CopyFrom(
-                environment_spec_pb2.EnvironmentValue(
-                    value=var.value,
-                    is_secret=var.is_secret,
-                    description=var.description,
-                )
-            )
-        return spec
 `;
   fs.writeFileSync(path.join(outputDir, "_types.py"), content);
 }
@@ -1370,7 +1332,6 @@ function generatePythonInit(outputDir: string, resources: ResourceGenInfo[]): vo
 
   buf.push("from ._types import (\n");
   buf.push("    DeleteResourceInput,\n");
-  buf.push("    EnvSpecInput,\n");
   buf.push("    EnvVarInput,\n");
   buf.push("    ListParams,\n");
   buf.push("    ListResult,\n");
@@ -1398,7 +1359,6 @@ function generatePythonInit(outputDir: string, resources: ResourceGenInfo[]): vo
     }
   }
   buf.push('    "DeleteResourceInput",\n');
-  buf.push('    "EnvSpecInput",\n');
   buf.push('    "EnvVarInput",\n');
   buf.push('    "ListParams",\n');
   buf.push('    "ListResult",\n');

@@ -35,6 +35,8 @@ function pendingState(
     tokenEndpoint: "https://auth.example.com/token",
     mcpServerId: "mcps_1",
     identityAccountId: "",
+    vaultId: "",
+    toolAddress: "",
     targetEnvVar: "TOKEN",
     authMethod: "vendor_oauth",
     tokenAuthMethod: "client_secret_basic",

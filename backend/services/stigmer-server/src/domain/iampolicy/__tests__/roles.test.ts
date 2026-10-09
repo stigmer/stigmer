@@ -15,7 +15,7 @@ import {
 } from "../roles.js";
 
 describe("the assignable-role allowlist", () => {
-  it("is exactly the six roles a person can hold, in display order", () => {
+  it("is exactly the seven roles a person can hold, in display order", () => {
     expect(assignableRelations()).toEqual([
       "owner",
       "admin",
@@ -23,6 +23,7 @@ describe("the assignable-role allowlist", () => {
       "viewer",
       "participant",
       "editor",
+      "user",
     ]);
   });
 

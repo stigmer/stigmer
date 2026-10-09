@@ -67,7 +67,7 @@ definitions, API names, and examples follow below.
 | **Approval flow** | approval flow    | approval flow                          | approval flow, HITL | `destructive_hint`, `submitApproval`   | HITL, approval |
 | **Organization**  | Organization     | Organization                           | Organization        | Organization, `kind: organization`     | Organization   |
 | **Team**          | teams            | ---                                    | Team                | Team, `kind: team`                     | Team           |
-| **Environment**   | Environment      | Environment                            | Environment         | Environment, `kind: Environment`       | Environment    |
+| **Vault**         | vault            | vault ("your keys and logins")         | Vault               | Vault, `kind: Vault`                   | vault          |
 | **Preference**    | preferences      | preference ("standing context")        | Preference          | `spec.preferences.standing_context`    | Preference     |
 
 <!-- vale Stigmer.terms = NO -->
@@ -694,26 +694,46 @@ An admin of a parent organization, as seen from one of its child organizations.
 
 ---
 
+#### Vault
+
+A person's or a team's box of the logins and secrets their runs use. Everyone
+has their own **My vault**; an organization's admins create **shared vaults**
+and decide who may use them.
+
+- **Capitalize**: Yes, when referring to the Stigmer resource ("a Vault", "the
+  Vault kind"). Lowercase "vault" is fine in prose once established ("save it in
+  your vault"). "My vault" is the name of a person's own vault.
+- **API surface**: `kind: Vault`, prefix `vlt`. proto: `vault/v1/spec.proto`.
+  CLI: `stigmer vault`, `stigmer get vault`, `stigmer list vaults`.
+- **Key fields**: `secrets` (by name), `connections` (by address),
+  `external_id`. Values are write-only: no read returns one. Surfaces name
+  vaults in an ordered `vaults` list.
+- **Related terms**: a **secret** is a vault entry matched by its name
+  (`OPENAI_API_KEY`). A **connection** (in the console, a **login**) is a vault
+  entry matched by the address of the tool or Git host it is for
+  (`https://mcp.linear.app/mcp`, `github.com`); a sign-in saves one. **Can use**
+  is the grant that lets a person or a Team use a shared vault.
+- **Note**: Do not confuse with "Execution Context" (`kind: execution_context`,
+  prefix `ectx`), which carries the values a single run received. See
+  [Execution Context](#execution-context).
+
+---
+
 #### Environment
 
-A named space (like "testing" or "production") where the same Agent can run with
-different settings and secrets.
+Reserved. Stigmer once had an Environment resource holding variables and
+secrets; vaults replaced it. The word now names only the sandbox a run executes
+in.
 
 <!-- vale Stigmer.terms = NO -->
 
-- **Capitalize**: Yes, when referring to the Stigmer concept. Lowercase when
-  used generically ("environment variables").
+- **Capitalize**: Lowercase when used generically ("environment variables", "the
+  run's environment").
 
 <!-- vale Stigmer.terms = YES -->
 
-- **API surface**: `kind: Environment`, prefix `env`. proto:
-  `environment/v1/spec.proto`. CLI: `stigmer get environment`,
-  `stigmer list environment`.
-- **Key fields**: Environments hold secrets and variables. The `getSecretValue`
-  query retrieves secrets at runtime.
-- **Note**: Do not confuse with "Execution Context" (`kind: execution_context`,
-  prefix `ectx`), which provides ephemeral runtime secrets to a specific run.
-  See [Execution Context](#execution-context).
+- **Context rule**: Never name a place where keys are saved an "Environment":
+  say vault. A manifest with `kind: Environment` is an old file.
 
 ---
 
@@ -730,9 +750,9 @@ control exists.
   `standing_context`. The server snapshots the texts onto
   `RunStatus.declared_preferences` when the run is created.
 - **Boundaries**: a Preference is not a **Skill** (Agent knowledge), not an
-  **Environment** (workload config and secrets), not a **Session** (conversation
-  state), and not a **Memory** (a learned fact an agent proposed and you
-  confirmed — a preference is something you declared yourself).
+  **Vault** (logins and secrets), not a **Session** (conversation state), and
+  not a **Memory** (a learned fact an agent proposed and you confirmed — a
+  preference is something you declared yourself).
 - **Related terms, never synonyms**: a **policy** is an org- or
   platform-authored constraint that _bounds_ what lower layers may choose
   (clamps, ceilings, allowlists) — a preference never binds anyone but its
@@ -980,8 +1000,7 @@ WhatsApp---so people can chat with it where they already work.
 - **API surface**: `kind: AgentChannel`, prefix `ach`. proto:
   `agentchannel/v1/spec.proto`.
 - **Key fields**: `agent_ref`, `enabled`, `slack` or `whatsapp` (provider
-  config), `environment_refs`, `app_ref` (optional for Slack, required for
-  WhatsApp).
+  config), `vaults`, `app_ref` (optional for Slack, required for WhatsApp).
 - **Context rule**: On the sales site, say "connect your Agent to Slack" without
   naming the resource. In how-to docs, introduce as "channel" with a gloss, then
   use "channel." In reference, use `AgentChannel`.
@@ -1187,8 +1206,8 @@ Ephemeral runtime secrets and variables scoped to a specific run.
 
 - **API surface**: `kind: execution_context`, prefix `ectx`. proto:
   `executioncontext/v1/api.proto`.
-- **Context rule**: Reference docs only. Do not confuse with Environment
-  (persistent, named) vs Execution Context (ephemeral, per-run).
+- **Context rule**: Reference docs only. Do not confuse with Vault (persistent,
+  named) vs Execution Context (ephemeral, per-run).
 
 ---
 
@@ -1252,15 +1271,11 @@ moves every row that carried it to Organization visibility.
 #### Agent Instance
 
 Retired term. A `kind: AgentInstance` (prefix `ain`) was a deployed copy of an
-Agent bound to Environments, and a Session named an instance rather than its
+Agent bound to its own settings, and a Session named an instance rather than its
 Agent; every Agent carried a default one. The kind and its CLI verbs were
 removed: a Session names its Agent directly (`agent_ref`) and runs the version
-it started on, and Environments are bound to what starts a run (a Schedule, a
-PlatformClient), with the personal Environment of the person sending the message
-filling the Agent's declared keys that nothing else supplies when the Agent
-belongs to the run's own Organization (an Agent another Organization published
-reads none, and an MCP Server's OAuth variable comes only from the sign-in to
-that server).
+it started on, and a run's keys come from vaults (the conversation's, the
+surface that started it, or the sending person's own).
 
 - **Capitalize**: Yes, when naming the retired kind in an upgrade note.
 - **Context rule**: Do not use in new writing. A reader still meets the word in
@@ -1332,7 +1347,7 @@ and SDK docs use precise technical language. The guidance now lives in
 **What**: The Cloud README architecture table includes "Credential" as a
 resource type with the description "Encrypted credentials---AWS keys, GitHub
 tokens." No `Credential` kind exists in `api_resource_kind.proto`. The closest
-resources are `Environment` (holds secrets and variables) and `ApiKey` (IAM
+resources are `Vault` (holds logins and secrets) and `ApiKey` (IAM
 authentication tokens).
 
 **Where**:
@@ -1342,10 +1357,9 @@ authentication tokens).
   (no `Credential` kind)
 
 **Recommendation**: Determine whether "Credential" was a planned resource that
-hasn't been implemented, or whether it's a misnomer for Environment secrets.
-Update the Cloud README accordingly. If credentials are managed through
-Environments, remove the "Credential" row and clarify in the Environment
-description.
+hasn't been implemented, or whether it's a misnomer for vault secrets. Update
+the Cloud README accordingly. If credentials are managed through vaults, remove
+the "Credential" row and clarify in the Vault description.
 
 ---
 

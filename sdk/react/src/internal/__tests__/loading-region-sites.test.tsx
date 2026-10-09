@@ -26,14 +26,13 @@ import { AgentDetailView } from "../../agent/AgentDetailView.js";
 import { ApiKeyListPanel } from "../../api-key/ApiKeyListPanel.js";
 import { BillingSection } from "../../billing/BillingSection.js";
 import { ChannelAppListPanel } from "../../channel-app/ChannelAppListPanel.js";
-import { EnvironmentListPanel } from "../../environment/EnvironmentListPanel.js";
-import { EnvironmentVariableEditor } from "../../environment/EnvironmentVariableEditor.js";
+import { VaultListPanel } from "../../vault/VaultListPanel.js";
 import { OrgMembersPanel } from "../../iam-policy/OrgMembersPanel.js";
 import { IdentityProviderListPanel } from "../../identity-provider/IdentityProviderListPanel.js";
 import { InvitationRedemption } from "../../invitation/InvitationRedemption.js";
 import { OAuthAppListPanel } from "../../oauth-app/OAuthAppListPanel.js";
 import { PlatformClientListPanel } from "../../platform-client/PlatformClientListPanel.js";
-import { EnvironmentsSection } from "../../settings/EnvironmentsSection.js";
+import { VaultsSection } from "../../settings/VaultsSection.js";
 import { SkillDetailView } from "../../skill/SkillDetailView.js";
 import { SkillDiffDialog } from "../../skill/SkillDiffDialog.js";
 import { TeamListPanel } from "../../team/TeamListPanel.js";
@@ -101,16 +100,10 @@ const SITES: readonly Site[] = [
     ui: <ChannelAppListPanel org="acme" />,
   },
   {
-    name: "EnvironmentListPanel",
-    label: "Loading environments",
-    client: { environment: { list: pending } },
-    ui: <EnvironmentListPanel org="acme" />,
-  },
-  {
-    name: "EnvironmentVariableEditor",
-    label: "Loading variables",
-    client: { environment: { get: pending } },
-    ui: <EnvironmentVariableEditor environmentId="env_acme" />,
+    name: "VaultListPanel",
+    label: "Loading vaults",
+    client: { vault: { list: pending } },
+    ui: <VaultListPanel org="acme" />,
   },
   {
     name: "OrgMembersPanel",
@@ -146,17 +139,18 @@ const SITES: readonly Site[] = [
     ui: <PlatformClientListPanel org="acme" />,
   },
   {
-    // The personal environment's card; the organization's list below it
-    // is EnvironmentListPanel's row, named "Loading environments". The
-    // card asks to create the personal environment in the render where the
-    // organization arrives, before its list's first fetch has started, so
-    // `create` is among the calls it makes while it loads.
-    name: "EnvironmentsSection",
+    // My vault's card; the shared vaults' list below it is
+    // VaultListPanel's row, named "Loading vaults".
+    name: "VaultsSection",
     label: "Loading",
-    client: { ...ORG_PROVIDER_CALLS, environment: { list: pending, create: pending } },
+    client: {
+      ...ORG_PROVIDER_CALLS,
+      vault: { getMine: pending, list: pending },
+      iamPolicy: { checkMyPermission: pending },
+    },
     ui: (
       <OrgProvider>
-        <EnvironmentsSection />
+        <VaultsSection />
       </OrgProvider>
     ),
   },

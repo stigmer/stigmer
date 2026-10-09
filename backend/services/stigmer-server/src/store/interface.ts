@@ -17,7 +17,7 @@
  * Two surfaces that Go kept OUTSIDE store.Store are deliberate members
  * here (the `DB()` escape hatch is not ported):
  *   - bootstrapState  — concrete-type-only methods in Go (sqlite/store.go)
- *   - oauthGrants / pendingOAuthStates — pkg/domain/mcpserver/oauth (via DB())
+ *   - pendingOAuthStates — pkg/domain/mcpserver/oauth (via DB())
  * They are grouped sub-stores rather than flat methods so their Go method
  * names (upsert, find, save, getAndDelete…) survive verbatim for the
  * domain ports.
@@ -409,60 +409,9 @@ export interface OrganizationDeletionStore {
 }
 
 // =============================================================================
-// MCP OAuth (Go: pkg/domain/mcpserver/oauth, tables consolidated by migration v7)
+// MCP OAuth (Go: pkg/domain/mcpserver/oauth, tables consolidated by migration v7;
+// the grant table retired when sign-ins moved into vault connections)
 // =============================================================================
-
-/**
- * OAuth grant infrastructure record — not an API resource; keyed by
- * (identityAccountId, resourceId, orgId). Resource-agnostic: resourceId can
- * refer to any kind that requires OAuth credentials.
- */
-export interface OAuthGrant {
-  readonly identityAccountId: string;
-  readonly resourceId: string;
-  /** e.g. "mcp_server", "agent_channel". */
-  readonly resourceKind: string;
-  readonly orgId: string;
-  /** Unix seconds. */
-  readonly accessTokenExpiresAt: number;
-  readonly clientId: string;
-  /** "mcp_oauth" or "vendor_oauth". */
-  readonly authMethod: string;
-  readonly tokenEndpoint: string;
-  readonly accessTokenEnvVar: string;
-  readonly refreshTokenEnvVar: string;
-  readonly environmentId: string;
-  /** Unix seconds; 0 lets the driver stamp now on first insert. */
-  readonly createdAt: number;
-  /** Unix seconds; the driver stamps now on every upsert. */
-  readonly updatedAt: number;
-}
-
-export interface OAuthGrantStore {
-  upsert(grant: OAuthGrant): Promise<void>;
-  /** Returns undefined (not an error) when no grant exists. */
-  find(
-    identityAccountId: string,
-    resourceId: string,
-    orgId: string,
-  ): Promise<OAuthGrant | undefined>;
-  delete(
-    identityAccountId: string,
-    resourceId: string,
-    orgId: string,
-  ): Promise<void>;
-  /**
-   * Deletes every grant for a resource regardless of the granting
-   * identity (the Java delete-cascade's OAuthGrantRepo.deleteByResourceId,
-   * consumed by the cloud channel teardown): re-installs by different
-   * callers leave one row per identity and a resource teardown must sweep
-   * them all. Returns the deleted count (the cascade logs it); zero is a
-   * normal state, not an error — teardown is idempotent.
-   */
-  deleteByResourceId(resourceId: string, orgId: string): Promise<number>;
-  /** Deletes every grant made in an organization (its purge). Returns the count. */
-  deleteByOrg(orgId: string): Promise<number>;
-}
 
 /**
  * How long a pending OAuth state survives between initiateOAuthConnect and
@@ -486,6 +435,7 @@ export interface PendingOAuthState {
   readonly clientSecret: string;
   readonly tokenEndpoint: string;
   readonly mcpServerId: string;
+  /** The signer: the caller who started the sign-in, never "". */
   readonly identityAccountId: string;
   readonly targetEnvVar: string;
   /** "mcp_oauth" or "vendor_oauth". */
@@ -493,8 +443,20 @@ export interface PendingOAuthState {
   /** RFC 8414 string from OAuthAppSpec; empty for DCR. */
   readonly tokenAuthMethod: string;
   readonly redirectUri: string;
-  /** Caller's org for personal environment resolution. */
+  /** Caller's org: the vault the sign-in saves into belongs to it. */
   readonly org: string;
+  /**
+   * The vault the sign-in saves into, by id; "" saves into the signer's My
+   * vault in `org`. Recorded at initiate, re-authorized at complete.
+   */
+  readonly vaultId: string;
+  /**
+   * The tool's address when the sign-in started (domain/vault/address.ts
+   * `toolAddressOf`): the login is saved there, and completion refuses a
+   * server whose address has changed since. "" on a row from before the
+   * column, which no address matches.
+   */
+  readonly toolAddress: string;
   /** Unix seconds; 0 lets the driver stamp now. */
   readonly createdAt: number;
 }
@@ -920,7 +882,6 @@ export interface Store {
 
   readonly bootstrapState: BootstrapStateStore;
   readonly resourceNames: ResourceNameStore;
-  readonly oauthGrants: OAuthGrantStore;
   readonly pendingOAuthStates: PendingOAuthStateStore;
   readonly organizationDeletions: OrganizationDeletionStore;
 

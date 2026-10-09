@@ -8,11 +8,11 @@ package agentv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	v11 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	v1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	v14 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/plugin/v1"
 	v12 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/run/v1"
 	v13 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
+	v11 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/vault/v1"
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -49,6 +49,8 @@ type AgentSpec struct {
 	SubAgents []*SubAgent `protobuf:"bytes,6,rep,name=sub_agents,json=subAgents,proto3" json:"sub_agents,omitempty"`
 	// Environment variable declarations for this agent.
 	// Keys are variable names; values describe their metadata and optionality.
+	// A secret is found by its name in a vault when a run starts; a plain
+	// setting may carry its value in the declaration.
 	Env map[string]*v11.EnvVarDeclaration `protobuf:"bytes,7,rep,name=env,proto3" json:"env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// Tools this agent may use; empty means every tool it has.
 	//
@@ -99,7 +101,17 @@ type AgentSpec struct {
 	// model, tier and thinking count only on this engine. A conversation keeps
 	// the engine it started on; a later version naming another engine changes
 	// only new conversations.
-	Harness       v13.Harness `protobuf:"varint,14,opt,name=harness,proto3,enum=ai.stigmer.agentic.session.v1.Harness" json:"harness,omitempty"`
+	Harness v13.Harness `protobuf:"varint,14,opt,name=harness,proto3,enum=ai.stigmer.agentic.session.v1.Harness" json:"harness,omitempty"`
+	// Shared vaults this agent's conversations use after the person's own My
+	// vault, for people who may use them. At most 20.
+	//
+	// This is how a team key reaches every chat with an agent without a pick
+	// per conversation: an editor of the agent attaches a shared vault they
+	// may use, and each person's turns use it only when that person may use
+	// the vault too. A conversation that lists its own vaults uses those
+	// instead. Runs with no person (a schedule, a share link, a channel)
+	// never use an agent's vaults. A My vault cannot be attached.
+	Vaults        []*apiresource.ApiResourceReference `protobuf:"bytes,15,rep,name=vaults,proto3" json:"vaults,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -216,6 +228,13 @@ func (x *AgentSpec) GetHarness() v13.Harness {
 		return x.Harness
 	}
 	return v13.Harness(0)
+}
+
+func (x *AgentSpec) GetVaults() []*apiresource.ApiResourceReference {
+	if x != nil {
+		return x.Vaults
+	}
+	return nil
 }
 
 // HookSource is one source of an agent's hooks: a plugin, or a hooks block
@@ -417,8 +436,7 @@ var File_ai_stigmer_agentic_agent_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"&ai/stigmer/agentic/agent/v1/spec.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a+ai/stigmer/agentic/mcpserver/v1/usage.proto\x1a(ai/stigmer/agentic/plugin/v1/hooks.proto\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xac\n" +
-	"\n" +
+	"&ai/stigmer/agentic/agent/v1/spec.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a+ai/stigmer/agentic/mcpserver/v1/usage.proto\x1a(ai/stigmer/agentic/plugin/v1/hooks.proto\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/vault/v1/declaration.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xd7\v\n" +
 	"\tAgentSpec\x12 \n" +
 	"\vdescription\x18\x01 \x01(\tR\vdescription\x12\x19\n" +
 	"\bicon_url\x18\x02 \x01(\tR\aiconUrl\x12+\n" +
@@ -438,10 +456,12 @@ const file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc = "" +
 	"\x05hooks\x18\f \x03(\v2'.ai.stigmer.agentic.agent.v1.HookSourceR\x05hooks\x12C\n" +
 	"\n" +
 	"run_config\x18\r \x01(\v2$.ai.stigmer.agentic.run.v1.RunConfigR\trunConfig\x12@\n" +
-	"\aharness\x18\x0e \x01(\x0e2&.ai.stigmer.agentic.session.v1.HarnessR\aharness\x1al\n" +
+	"\aharness\x18\x0e \x01(\x0e2&.ai.stigmer.agentic.session.v1.HarnessR\aharness\x12\xae\x01\n" +
+	"\x06vaults\x18\x0f \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB`\xbaHY\x92\x01V\x10\x14\"R\xba\x01O\n" +
+	"\vvaults.kind\x12/vaults must reference resources with kind=vault\x1a\x0fthis.kind == 59\xe0\x85,;R\x06vaults\x1af\n" +
 	"\bEnvEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12J\n" +
-	"\x05value\x18\x02 \x01(\v24.ai.stigmer.agentic.environment.v1.EnvVarDeclarationR\x05value:\x028\x01J\x04\b\b\x10\tJ\x04\b\t\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12D\n" +
+	"\x05value\x18\x02 \x01(\v2..ai.stigmer.agentic.vault.v1.EnvVarDeclarationR\x05value:\x028\x01J\x04\b\b\x10\tJ\x04\b\t\x10\n" +
 	"R\asharingR\x10datastore_usages\"\x9b\x02\n" +
 	"\n" +
 	"HookSource\x12\xb7\x01\n" +
@@ -486,7 +506,7 @@ var file_ai_stigmer_agentic_agent_v1_spec_proto_goTypes = []any{
 	(*v12.RunConfig)(nil),                    // 6: ai.stigmer.agentic.run.v1.RunConfig
 	(v13.Harness)(0),                         // 7: ai.stigmer.agentic.session.v1.Harness
 	(*v14.HookConfig)(nil),                   // 8: ai.stigmer.agentic.plugin.v1.HookConfig
-	(*v11.EnvVarDeclaration)(nil),            // 9: ai.stigmer.agentic.environment.v1.EnvVarDeclaration
+	(*v11.EnvVarDeclaration)(nil),            // 9: ai.stigmer.agentic.vault.v1.EnvVarDeclaration
 }
 var file_ai_stigmer_agentic_agent_v1_spec_proto_depIdxs = []int32{
 	4,  // 0: ai.stigmer.agentic.agent.v1.AgentSpec.mcp_server_usages:type_name -> ai.stigmer.agentic.mcpserver.v1.McpServerUsage
@@ -496,15 +516,16 @@ var file_ai_stigmer_agentic_agent_v1_spec_proto_depIdxs = []int32{
 	1,  // 4: ai.stigmer.agentic.agent.v1.AgentSpec.hooks:type_name -> ai.stigmer.agentic.agent.v1.HookSource
 	6,  // 5: ai.stigmer.agentic.agent.v1.AgentSpec.run_config:type_name -> ai.stigmer.agentic.run.v1.RunConfig
 	7,  // 6: ai.stigmer.agentic.agent.v1.AgentSpec.harness:type_name -> ai.stigmer.agentic.session.v1.Harness
-	5,  // 7: ai.stigmer.agentic.agent.v1.HookSource.plugin:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	8,  // 8: ai.stigmer.agentic.agent.v1.HookSource.inline:type_name -> ai.stigmer.agentic.plugin.v1.HookConfig
-	5,  // 9: ai.stigmer.agentic.agent.v1.SubAgent.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	9,  // 10: ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry.value:type_name -> ai.stigmer.agentic.environment.v1.EnvVarDeclaration
-	11, // [11:11] is the sub-list for method output_type
-	11, // [11:11] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	5,  // 7: ai.stigmer.agentic.agent.v1.AgentSpec.vaults:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	5,  // 8: ai.stigmer.agentic.agent.v1.HookSource.plugin:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	8,  // 9: ai.stigmer.agentic.agent.v1.HookSource.inline:type_name -> ai.stigmer.agentic.plugin.v1.HookConfig
+	5,  // 10: ai.stigmer.agentic.agent.v1.SubAgent.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	9,  // 11: ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry.value:type_name -> ai.stigmer.agentic.vault.v1.EnvVarDeclaration
+	12, // [12:12] is the sub-list for method output_type
+	12, // [12:12] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agent_v1_spec_proto_init() }

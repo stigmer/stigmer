@@ -33,7 +33,6 @@ private static final long serialVersionUID = 0L;
   }
   private AgentChannelStatus() {
     installState_ = 0;
-    credentialsEnvironmentId_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -46,6 +45,18 @@ private static final long serialVersionUID = 0L;
     return ai.stigmer.agentic.agentchannel.v1.StatusProto.internal_static_ai_stigmer_agentic_agentchannel_v1_AgentChannelStatus_descriptor;
   }
 
+  @SuppressWarnings({"rawtypes"})
+  @java.lang.Override
+  protected com.google.protobuf.MapFieldReflectionAccessor internalGetMapFieldReflection(
+      int number) {
+    switch (number) {
+      case 5:
+        return internalGetVaultAttachers();
+      default:
+        throw new RuntimeException(
+            "Invalid map field number: " + number);
+    }
+  }
   @java.lang.Override
   protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internalGetFieldAccessorTable() {
@@ -209,53 +220,107 @@ private static final long serialVersionUID = 0L;
     return ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus.getDefaultInstance();
   }
 
-  public static final int CREDENTIALS_ENVIRONMENT_ID_FIELD_NUMBER = 3;
+  public static final int VAULT_ATTACHERS_FIELD_NUMBER = 5;
+  private static final class VaultAttachersDefaultEntryHolder {
+    static final com.google.protobuf.MapEntry<
+        java.lang.String, java.lang.String> defaultEntry =
+            com.google.protobuf.MapEntry
+            .<java.lang.String, java.lang.String>newDefaultInstance(
+                ai.stigmer.agentic.agentchannel.v1.StatusProto.internal_static_ai_stigmer_agentic_agentchannel_v1_AgentChannelStatus_VaultAttachersEntry_descriptor, 
+                com.google.protobuf.WireFormat.FieldType.STRING,
+                "",
+                com.google.protobuf.WireFormat.FieldType.STRING,
+                "");
+  }
   @SuppressWarnings("serial")
-  private volatile java.lang.Object credentialsEnvironmentId_ = "";
-  /**
-   * <pre>
-   * ID of the system-managed Environment holding this connection's
-   * provider credentials (e.g. the Slack bot token).
-   * </pre>
-   *
-   * <code>string credentials_environment_id = 3 [json_name = "credentialsEnvironmentId"];</code>
-   * @return The credentialsEnvironmentId.
-   */
-  @java.lang.Override
-  public java.lang.String getCredentialsEnvironmentId() {
-    java.lang.Object ref = credentialsEnvironmentId_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      credentialsEnvironmentId_ = s;
-      return s;
+  private com.google.protobuf.MapField<
+      java.lang.String, java.lang.String> vaultAttachers_;
+  private com.google.protobuf.MapField<java.lang.String, java.lang.String>
+  internalGetVaultAttachers() {
+    if (vaultAttachers_ == null) {
+      return com.google.protobuf.MapField.emptyMapField(
+          VaultAttachersDefaultEntryHolder.defaultEntry);
     }
+    return vaultAttachers_;
+  }
+  public int getVaultAttachersCount() {
+    return internalGetVaultAttachers().getMap().size();
   }
   /**
    * <pre>
-   * ID of the system-managed Environment holding this connection's
-   * provider credentials (e.g. the Slack bot token).
+   * Who attached each of this resource's vaults, by vault id: the account
+   * whose permission to use the vault each run checks when it has no
+   * person.
    * </pre>
    *
-   * <code>string credentials_environment_id = 3 [json_name = "credentialsEnvironmentId"];</code>
-   * @return The bytes for credentialsEnvironmentId.
+   * <code>map&lt;string, string&gt; vault_attachers = 5 [json_name = "vaultAttachers"];</code>
    */
   @java.lang.Override
-  public com.google.protobuf.ByteString
-      getCredentialsEnvironmentIdBytes() {
-    java.lang.Object ref = credentialsEnvironmentId_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      credentialsEnvironmentId_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
+  public boolean containsVaultAttachers(
+      java.lang.String key) {
+    if (key == null) { throw new NullPointerException("map key"); }
+    return internalGetVaultAttachers().getMap().containsKey(key);
+  }
+  /**
+   * Use {@link #getVaultAttachersMap()} instead.
+   */
+  @java.lang.Override
+  @java.lang.Deprecated
+  public java.util.Map<java.lang.String, java.lang.String> getVaultAttachers() {
+    return getVaultAttachersMap();
+  }
+  /**
+   * <pre>
+   * Who attached each of this resource's vaults, by vault id: the account
+   * whose permission to use the vault each run checks when it has no
+   * person.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; vault_attachers = 5 [json_name = "vaultAttachers"];</code>
+   */
+  @java.lang.Override
+  public java.util.Map<java.lang.String, java.lang.String> getVaultAttachersMap() {
+    return internalGetVaultAttachers().getMap();
+  }
+  /**
+   * <pre>
+   * Who attached each of this resource's vaults, by vault id: the account
+   * whose permission to use the vault each run checks when it has no
+   * person.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; vault_attachers = 5 [json_name = "vaultAttachers"];</code>
+   */
+  @java.lang.Override
+  public /* nullable */
+java.lang.String getVaultAttachersOrDefault(
+      java.lang.String key,
+      /* nullable */
+java.lang.String defaultValue) {
+    if (key == null) { throw new NullPointerException("map key"); }
+    java.util.Map<java.lang.String, java.lang.String> map =
+        internalGetVaultAttachers().getMap();
+    return map.containsKey(key) ? map.get(key) : defaultValue;
+  }
+  /**
+   * <pre>
+   * Who attached each of this resource's vaults, by vault id: the account
+   * whose permission to use the vault each run checks when it has no
+   * person.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; vault_attachers = 5 [json_name = "vaultAttachers"];</code>
+   */
+  @java.lang.Override
+  public java.lang.String getVaultAttachersOrThrow(
+      java.lang.String key) {
+    if (key == null) { throw new NullPointerException("map key"); }
+    java.util.Map<java.lang.String, java.lang.String> map =
+        internalGetVaultAttachers().getMap();
+    if (!map.containsKey(key)) {
+      throw new java.lang.IllegalArgumentException();
     }
+    return map.get(key);
   }
 
   public static final int AUDIT_FIELD_NUMBER = 99;
@@ -316,12 +381,15 @@ private static final long serialVersionUID = 0L;
     if (providerStatusCase_ == 2) {
       output.writeMessage(2, (ai.stigmer.agentic.agentchannel.v1.SlackInstallStatus) providerStatus_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(credentialsEnvironmentId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 3, credentialsEnvironmentId_);
-    }
     if (providerStatusCase_ == 4) {
       output.writeMessage(4, (ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus) providerStatus_);
     }
+    com.google.protobuf.GeneratedMessage
+      .serializeStringMapTo(
+        output,
+        internalGetVaultAttachers(),
+        VaultAttachersDefaultEntryHolder.defaultEntry,
+        5);
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(99, getAudit());
     }
@@ -342,12 +410,19 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(2, (ai.stigmer.agentic.agentchannel.v1.SlackInstallStatus) providerStatus_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(credentialsEnvironmentId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(3, credentialsEnvironmentId_);
-    }
     if (providerStatusCase_ == 4) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(4, (ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus) providerStatus_);
+    }
+    for (java.util.Map.Entry<java.lang.String, java.lang.String> entry
+         : internalGetVaultAttachers().getMap().entrySet()) {
+      com.google.protobuf.MapEntry<java.lang.String, java.lang.String>
+      vaultAttachers__ = VaultAttachersDefaultEntryHolder.defaultEntry.newBuilderForType()
+          .setKey(entry.getKey())
+          .setValue(entry.getValue())
+          .buildPartial();
+      size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(5, vaultAttachers__);
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
@@ -369,8 +444,8 @@ private static final long serialVersionUID = 0L;
     ai.stigmer.agentic.agentchannel.v1.AgentChannelStatus other = (ai.stigmer.agentic.agentchannel.v1.AgentChannelStatus) obj;
 
     if (installState_ != other.installState_) return false;
-    if (!getCredentialsEnvironmentId()
-        .equals(other.getCredentialsEnvironmentId())) return false;
+    if (!internalGetVaultAttachers().equals(
+        other.internalGetVaultAttachers())) return false;
     if (hasAudit() != other.hasAudit()) return false;
     if (hasAudit()) {
       if (!getAudit()
@@ -402,8 +477,10 @@ private static final long serialVersionUID = 0L;
     hash = (19 * hash) + getDescriptor().hashCode();
     hash = (37 * hash) + INSTALL_STATE_FIELD_NUMBER;
     hash = (53 * hash) + installState_;
-    hash = (37 * hash) + CREDENTIALS_ENVIRONMENT_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getCredentialsEnvironmentId().hashCode();
+    if (!internalGetVaultAttachers().getMap().isEmpty()) {
+      hash = (37 * hash) + VAULT_ATTACHERS_FIELD_NUMBER;
+      hash = (53 * hash) + internalGetVaultAttachers().hashCode();
+    }
     if (hasAudit()) {
       hash = (37 * hash) + AUDIT_FIELD_NUMBER;
       hash = (53 * hash) + getAudit().hashCode();
@@ -533,6 +610,28 @@ private static final long serialVersionUID = 0L;
       return ai.stigmer.agentic.agentchannel.v1.StatusProto.internal_static_ai_stigmer_agentic_agentchannel_v1_AgentChannelStatus_descriptor;
     }
 
+    @SuppressWarnings({"rawtypes"})
+    protected com.google.protobuf.MapFieldReflectionAccessor internalGetMapFieldReflection(
+        int number) {
+      switch (number) {
+        case 5:
+          return internalGetVaultAttachers();
+        default:
+          throw new RuntimeException(
+              "Invalid map field number: " + number);
+      }
+    }
+    @SuppressWarnings({"rawtypes"})
+    protected com.google.protobuf.MapFieldReflectionAccessor internalGetMutableMapFieldReflection(
+        int number) {
+      switch (number) {
+        case 5:
+          return internalGetMutableVaultAttachers();
+        default:
+          throw new RuntimeException(
+              "Invalid map field number: " + number);
+      }
+    }
     @java.lang.Override
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
@@ -568,7 +667,7 @@ private static final long serialVersionUID = 0L;
       if (whatsappBuilder_ != null) {
         whatsappBuilder_.clear();
       }
-      credentialsEnvironmentId_ = "";
+      internalGetMutableVaultAttachers().clear();
       audit_ = null;
       if (auditBuilder_ != null) {
         auditBuilder_.dispose();
@@ -614,7 +713,8 @@ private static final long serialVersionUID = 0L;
         result.installState_ = installState_;
       }
       if (((from_bitField0_ & 0x00000008) != 0)) {
-        result.credentialsEnvironmentId_ = credentialsEnvironmentId_;
+        result.vaultAttachers_ = internalGetVaultAttachers();
+        result.vaultAttachers_.makeImmutable();
       }
       int to_bitField0_ = 0;
       if (((from_bitField0_ & 0x00000010) != 0)) {
@@ -654,11 +754,9 @@ private static final long serialVersionUID = 0L;
       if (other.installState_ != 0) {
         setInstallStateValue(other.getInstallStateValue());
       }
-      if (!other.getCredentialsEnvironmentId().isEmpty()) {
-        credentialsEnvironmentId_ = other.credentialsEnvironmentId_;
-        bitField0_ |= 0x00000008;
-        onChanged();
-      }
+      internalGetMutableVaultAttachers().mergeFrom(
+          other.internalGetVaultAttachers());
+      bitField0_ |= 0x00000008;
       if (other.hasAudit()) {
         mergeAudit(other.getAudit());
       }
@@ -713,11 +811,6 @@ private static final long serialVersionUID = 0L;
               providerStatusCase_ = 2;
               break;
             } // case 18
-            case 26: {
-              credentialsEnvironmentId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000008;
-              break;
-            } // case 26
             case 34: {
               input.readMessage(
                   internalGetWhatsappFieldBuilder().getBuilder(),
@@ -725,6 +818,15 @@ private static final long serialVersionUID = 0L;
               providerStatusCase_ = 4;
               break;
             } // case 34
+            case 42: {
+              com.google.protobuf.MapEntry<java.lang.String, java.lang.String>
+              vaultAttachers__ = input.readMessage(
+                  VaultAttachersDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
+              internalGetMutableVaultAttachers().getMutableMap().put(
+                  vaultAttachers__.getKey(), vaultAttachers__.getValue());
+              bitField0_ |= 0x00000008;
+              break;
+            } // case 42
             case 794: {
               input.readMessage(
                   internalGetAuditFieldBuilder().getBuilder(),
@@ -1192,100 +1294,172 @@ private static final long serialVersionUID = 0L;
       return whatsappBuilder_;
     }
 
-    private java.lang.Object credentialsEnvironmentId_ = "";
-    /**
-     * <pre>
-     * ID of the system-managed Environment holding this connection's
-     * provider credentials (e.g. the Slack bot token).
-     * </pre>
-     *
-     * <code>string credentials_environment_id = 3 [json_name = "credentialsEnvironmentId"];</code>
-     * @return The credentialsEnvironmentId.
-     */
-    public java.lang.String getCredentialsEnvironmentId() {
-      java.lang.Object ref = credentialsEnvironmentId_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        credentialsEnvironmentId_ = s;
-        return s;
-      } else {
-        return (java.lang.String) ref;
+    private com.google.protobuf.MapField<
+        java.lang.String, java.lang.String> vaultAttachers_;
+    private com.google.protobuf.MapField<java.lang.String, java.lang.String>
+        internalGetVaultAttachers() {
+      if (vaultAttachers_ == null) {
+        return com.google.protobuf.MapField.emptyMapField(
+            VaultAttachersDefaultEntryHolder.defaultEntry);
       }
+      return vaultAttachers_;
     }
-    /**
-     * <pre>
-     * ID of the system-managed Environment holding this connection's
-     * provider credentials (e.g. the Slack bot token).
-     * </pre>
-     *
-     * <code>string credentials_environment_id = 3 [json_name = "credentialsEnvironmentId"];</code>
-     * @return The bytes for credentialsEnvironmentId.
-     */
-    public com.google.protobuf.ByteString
-        getCredentialsEnvironmentIdBytes() {
-      java.lang.Object ref = credentialsEnvironmentId_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        credentialsEnvironmentId_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
+    private com.google.protobuf.MapField<java.lang.String, java.lang.String>
+        internalGetMutableVaultAttachers() {
+      if (vaultAttachers_ == null) {
+        vaultAttachers_ = com.google.protobuf.MapField.newMapField(
+            VaultAttachersDefaultEntryHolder.defaultEntry);
       }
-    }
-    /**
-     * <pre>
-     * ID of the system-managed Environment holding this connection's
-     * provider credentials (e.g. the Slack bot token).
-     * </pre>
-     *
-     * <code>string credentials_environment_id = 3 [json_name = "credentialsEnvironmentId"];</code>
-     * @param value The credentialsEnvironmentId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setCredentialsEnvironmentId(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      credentialsEnvironmentId_ = value;
+      if (!vaultAttachers_.isMutable()) {
+        vaultAttachers_ = vaultAttachers_.copy();
+      }
       bitField0_ |= 0x00000008;
       onChanged();
-      return this;
+      return vaultAttachers_;
+    }
+    public int getVaultAttachersCount() {
+      return internalGetVaultAttachers().getMap().size();
     }
     /**
      * <pre>
-     * ID of the system-managed Environment holding this connection's
-     * provider credentials (e.g. the Slack bot token).
+     * Who attached each of this resource's vaults, by vault id: the account
+     * whose permission to use the vault each run checks when it has no
+     * person.
      * </pre>
      *
-     * <code>string credentials_environment_id = 3 [json_name = "credentialsEnvironmentId"];</code>
-     * @return This builder for chaining.
+     * <code>map&lt;string, string&gt; vault_attachers = 5 [json_name = "vaultAttachers"];</code>
      */
-    public Builder clearCredentialsEnvironmentId() {
-      credentialsEnvironmentId_ = getDefaultInstance().getCredentialsEnvironmentId();
+    @java.lang.Override
+    public boolean containsVaultAttachers(
+        java.lang.String key) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      return internalGetVaultAttachers().getMap().containsKey(key);
+    }
+    /**
+     * Use {@link #getVaultAttachersMap()} instead.
+     */
+    @java.lang.Override
+    @java.lang.Deprecated
+    public java.util.Map<java.lang.String, java.lang.String> getVaultAttachers() {
+      return getVaultAttachersMap();
+    }
+    /**
+     * <pre>
+     * Who attached each of this resource's vaults, by vault id: the account
+     * whose permission to use the vault each run checks when it has no
+     * person.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; vault_attachers = 5 [json_name = "vaultAttachers"];</code>
+     */
+    @java.lang.Override
+    public java.util.Map<java.lang.String, java.lang.String> getVaultAttachersMap() {
+      return internalGetVaultAttachers().getMap();
+    }
+    /**
+     * <pre>
+     * Who attached each of this resource's vaults, by vault id: the account
+     * whose permission to use the vault each run checks when it has no
+     * person.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; vault_attachers = 5 [json_name = "vaultAttachers"];</code>
+     */
+    @java.lang.Override
+    public /* nullable */
+java.lang.String getVaultAttachersOrDefault(
+        java.lang.String key,
+        /* nullable */
+java.lang.String defaultValue) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      java.util.Map<java.lang.String, java.lang.String> map =
+          internalGetVaultAttachers().getMap();
+      return map.containsKey(key) ? map.get(key) : defaultValue;
+    }
+    /**
+     * <pre>
+     * Who attached each of this resource's vaults, by vault id: the account
+     * whose permission to use the vault each run checks when it has no
+     * person.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; vault_attachers = 5 [json_name = "vaultAttachers"];</code>
+     */
+    @java.lang.Override
+    public java.lang.String getVaultAttachersOrThrow(
+        java.lang.String key) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      java.util.Map<java.lang.String, java.lang.String> map =
+          internalGetVaultAttachers().getMap();
+      if (!map.containsKey(key)) {
+        throw new java.lang.IllegalArgumentException();
+      }
+      return map.get(key);
+    }
+    public Builder clearVaultAttachers() {
       bitField0_ = (bitField0_ & ~0x00000008);
-      onChanged();
+      internalGetMutableVaultAttachers().getMutableMap()
+          .clear();
       return this;
     }
     /**
      * <pre>
-     * ID of the system-managed Environment holding this connection's
-     * provider credentials (e.g. the Slack bot token).
+     * Who attached each of this resource's vaults, by vault id: the account
+     * whose permission to use the vault each run checks when it has no
+     * person.
      * </pre>
      *
-     * <code>string credentials_environment_id = 3 [json_name = "credentialsEnvironmentId"];</code>
-     * @param value The bytes for credentialsEnvironmentId to set.
-     * @return This builder for chaining.
+     * <code>map&lt;string, string&gt; vault_attachers = 5 [json_name = "vaultAttachers"];</code>
      */
-    public Builder setCredentialsEnvironmentIdBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      credentialsEnvironmentId_ = value;
+    public Builder removeVaultAttachers(
+        java.lang.String key) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      internalGetMutableVaultAttachers().getMutableMap()
+          .remove(key);
+      return this;
+    }
+    /**
+     * Use alternate mutation accessors instead.
+     */
+    @java.lang.Deprecated
+    public java.util.Map<java.lang.String, java.lang.String>
+        getMutableVaultAttachers() {
       bitField0_ |= 0x00000008;
-      onChanged();
+      return internalGetMutableVaultAttachers().getMutableMap();
+    }
+    /**
+     * <pre>
+     * Who attached each of this resource's vaults, by vault id: the account
+     * whose permission to use the vault each run checks when it has no
+     * person.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; vault_attachers = 5 [json_name = "vaultAttachers"];</code>
+     */
+    public Builder putVaultAttachers(
+        java.lang.String key,
+        java.lang.String value) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      if (value == null) { throw new NullPointerException("map value"); }
+      internalGetMutableVaultAttachers().getMutableMap()
+          .put(key, value);
+      bitField0_ |= 0x00000008;
+      return this;
+    }
+    /**
+     * <pre>
+     * Who attached each of this resource's vaults, by vault id: the account
+     * whose permission to use the vault each run checks when it has no
+     * person.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; vault_attachers = 5 [json_name = "vaultAttachers"];</code>
+     */
+    public Builder putAllVaultAttachers(
+        java.util.Map<java.lang.String, java.lang.String> values) {
+      internalGetMutableVaultAttachers().getMutableMap()
+          .putAll(values);
+      bitField0_ |= 0x00000008;
       return this;
     }
 

@@ -1,0 +1,99 @@
+/**
+ * The three sign-in demos on the integrations pages (BYOA setup, the
+ * marketplace connect tour, the OAuth connect flow) mount with their preview
+ * fixtures, which answer My vault's read with an empty vault: the console
+ * views they replay offer to sign in or paste a token, never a saved value.
+ * The management shell lists Vaults in its Configuration group, where the
+ * console's settings put them.
+ *
+ * Pins: each scenario mounts over its fixtures (it draws nothing until the
+ * docs page plays it) and hands its preview provider the RPCs it answers,
+ * My vault's read among them; asked that read the way the console asks it
+ * (a Connect POST to VaultQueryController/getMine), each answers a Vault
+ * holding no secret and no login; and the shell's navigation names Vaults.
+ */
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import type { ComponentProps, ComponentType } from "react";
+import { fromJson, type JsonValue } from "@bufbuild/protobuf";
+import { getResponse, type HttpHandler } from "msw";
+import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
+import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
+import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
+
+import { ByoaSetup } from "../byoa-setup/index";
+import { MarketplaceConnectTour } from "../marketplace-connect-tour/index";
+import { OAuthConnectFlow } from "../oauth-connect-flow/index";
+import { ManagementShell } from "../../views/ManagementShell";
+
+/** The fixtures each mount handed its preview provider, latest last. */
+const handedFixtures: (readonly HttpHandler[])[] = [];
+
+vi.mock("../../shared/StigmerPreviewProvider", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../shared/StigmerPreviewProvider")>();
+  function RecordingPreviewProvider(props: ComponentProps<typeof actual.StigmerPreviewProvider>) {
+    handedFixtures.push(props.fixtures ?? []);
+    return <actual.StigmerPreviewProvider {...props} />;
+  }
+  return { StigmerPreviewProvider: RecordingPreviewProvider };
+});
+
+afterEach(() => {
+  cleanup();
+  handedFixtures.length = 0;
+});
+
+/** The Connect path of one RPC, as a fixture matches it. */
+function rpcPath(service: { readonly typeName: string; readonly method: Record<string, { readonly name: string }> }, method: string) {
+  return `*/${service.typeName}/${service.method[method].name}`;
+}
+
+const GET_MINE = rpcPath(VaultQueryController, "getMine");
+const GET_SERVER = rpcPath(McpServerQueryController, "getByReference");
+const GET_GRANT = rpcPath(McpServerQueryController, "getOAuthGrantStatus");
+const GET_ORG_APP = rpcPath(McpServerQueryController, "getOrgOAuthApp");
+
+/** Mounts a scenario and returns the fixtures it handed its preview provider. */
+function fixturesOf(Scenario: ComponentType): readonly HttpHandler[] {
+  render(<Scenario />);
+  const fixtures = handedFixtures.at(-1);
+  if (fixtures === undefined) throw new Error("the scenario handed its preview provider no fixtures");
+  return fixtures;
+}
+
+describe("the sign-in demos over an empty My vault", () => {
+  it.each([
+    ["BYOA setup", ByoaSetup, [GET_SERVER, GET_MINE, GET_GRANT, GET_ORG_APP]],
+    ["marketplace connect tour", MarketplaceConnectTour, [GET_SERVER, GET_MINE]],
+    ["OAuth connect flow", OAuthConnectFlow, [GET_SERVER, GET_MINE, GET_GRANT, GET_ORG_APP]],
+  ] as const)("%s answers the console's reads, My vault's with a vault holding nothing", async (_name, Scenario, rpcs) => {
+    const fixtures = fixturesOf(Scenario);
+    expect(fixtures.map((fixture) => `${String(fixture.info.method)} ${String(fixture.info.path)}`)).toEqual(
+      rpcs.map((path) => `POST ${path}`),
+    );
+
+    const request = new Request(`https://api.example/${VaultQueryController.typeName}/getMine`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{}",
+    });
+    const response = await getResponse([...fixtures], request);
+    expect(response?.status).toBe(200);
+    expect(response?.headers.get("content-type")).toBe("application/json");
+    const vault = fromJson(VaultSchema, (await response!.json()) as JsonValue);
+    expect(vault.$typeName).toBe("ai.stigmer.agentic.vault.v1.Vault");
+    expect(vault.spec?.secrets ?? {}).toEqual({});
+    expect(vault.spec?.connections ?? {}).toEqual({});
+  });
+});
+
+describe("the management shell", () => {
+  it("lists Vaults under Configuration", () => {
+    render(
+      <ManagementShell contentKey="vaults" activeNav="vaults">
+        <p>content</p>
+      </ManagementShell>,
+    );
+    expect(screen.getAllByText("Vaults").length).toBeGreaterThan(0);
+  });
+});

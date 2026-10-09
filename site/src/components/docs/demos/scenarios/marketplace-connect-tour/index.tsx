@@ -3,9 +3,7 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { McpServerDetailView } from "@stigmer/react";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
-import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
-import { create } from "@bufbuild/protobuf";
-import { EnvironmentListSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
+import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import {
   ScenarioPlayer,
@@ -13,6 +11,7 @@ import {
   Cursor,
   useStepInteractions,
 } from "@scenar/react";
+import { emptyMyVault } from "../../fixtures";
 import { StigmerPreviewProvider } from "../../shared/StigmerPreviewProvider";
 import { connectFixture } from "@scenar/preview/connect";
 import { AppShell } from "../../views/AppShell";
@@ -26,7 +25,6 @@ import {
   DEMO_SLUG,
 } from "./steps";
 
-const emptyEnvList = () => create(EnvironmentListSchema, {});
 
 function cursorTargetFor(step: MarketplaceConnectStep): string | undefined {
   switch (step.view) {
@@ -99,7 +97,7 @@ export function MarketplaceConnectTour() {
   const previewFixtures = useMemo(
     () => [
       connectFixture(McpServerQueryController, "getByReference", () => currentServerRef.current),
-      connectFixture(EnvironmentQueryController, "list", emptyEnvList),
+      connectFixture(VaultQueryController, "getMine", emptyMyVault),
     ],
     [],
   );

@@ -97,6 +97,14 @@ import {
   IDENTITY_ACCOUNT_KIND,
   repairedAccountSlugRow,
 } from "../account-slugs-repaired.js";
+import {
+  ENVIRONMENT_RETIRED_PAGE_SIZE,
+  ENVIRONMENT_RETIRED_POLICY_KIND,
+  RETIRED_ENVIRONMENT_KIND,
+  RETIRED_ENVIRONMENT_TABLES,
+  policyNamesRetiredEnvironment,
+  unreadableRetiredEnvironmentRowError,
+} from "../environment-retired.js";
 
 export const SCHEMA_VERSION_1 = 1;
 export const SCHEMA_VERSION_2 = 2;
@@ -134,9 +142,11 @@ export const SCHEMA_VERSION_19 = 19;
 export const SCHEMA_VERSION_20 = 20;
 /** v21: the agent run is a run. */
 export const SCHEMA_VERSION_21 = 21;
+/** v22: the environment rows removed, with the sign-in grant table; a pending sign-in names its vault. */
+export const SCHEMA_VERSION_22 = 22;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_21;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_22;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -182,6 +192,7 @@ export function runMigrations(
     [SCHEMA_VERSION_19, migrateToV19],
     [SCHEMA_VERSION_20, migrateToV20],
     [SCHEMA_VERSION_21, migrateToV21],
+    [SCHEMA_VERSION_22, migrateToV22],
   ];
 
   for (const [version, migrate] of chain) {
@@ -1115,4 +1126,76 @@ function migrateToV20(db: DatabaseSync): void {
  */
 function migrateToV21(db: DatabaseSync): void {
   renameRunKind(db, RUN_RENAME_V21);
+}
+
+/**
+ * v22: vaults replace the Environment kind (../environment-retired.ts says
+ * what leaves and why nothing is carried). Every IamPolicy row is read in
+ * keyset pages, and the ones naming an environment as resource or principal
+ * are deleted with their list keys, their history kept, as the store
+ * deletes a policy. Every environment row is then deleted from every table
+ * keyed by kind, and the sign-in grant table is dropped; the search index
+ * is left to boot's RebuildIndex, which re-indexes only the registered
+ * kinds (the v19 precedent). The pending sign-in table gains `vault_id`,
+ * the vault a sign-in saves into, and `tool_address`, the address it saves
+ * at, recorded when it starts. Runs inside applyInTransaction's BEGIN, so
+ * a throw rolls the whole step back and the boot stops on the row it names.
+ */
+function migrateToV22(db: DatabaseSync): void {
+  const page = db.prepare(
+    `SELECT id, data FROM resources WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`,
+  );
+  const retiredPolicies: string[] = [];
+  for (let after = ""; ; ) {
+    const rows = page.all(
+      ENVIRONMENT_RETIRED_POLICY_KIND,
+      after,
+      ENVIRONMENT_RETIRED_PAGE_SIZE,
+    ) as Array<{ id: string; data: Uint8Array }>;
+    for (const row of rows) {
+      try {
+        if (policyNamesRetiredEnvironment(row.data)) {
+          retiredPolicies.push(row.id);
+        }
+      } catch (error) {
+        throw unreadableRetiredEnvironmentRowError(
+          ENVIRONMENT_RETIRED_POLICY_KIND,
+          row.id,
+          error,
+        );
+      }
+    }
+    if (rows.length < ENVIRONMENT_RETIRED_PAGE_SIZE) {
+      break;
+    }
+    after = rows[rows.length - 1]!.id;
+  }
+  const deletePolicy = ["resource_list_keys", "resources"].map((table) =>
+    db.prepare(`DELETE FROM ${table} WHERE kind = ? AND id = ?`),
+  );
+  for (const id of retiredPolicies) {
+    for (const statement of deletePolicy) {
+      statement.run(ENVIRONMENT_RETIRED_POLICY_KIND, id);
+    }
+  }
+
+  for (const table of RUN_KIND_TABLES) {
+    db.prepare(`DELETE FROM ${table} WHERE kind = ?`).run(
+      RETIRED_ENVIRONMENT_KIND,
+    );
+  }
+  for (const table of RETIRED_ENVIRONMENT_TABLES) {
+    db.exec(`DROP TABLE ${table}`);
+  }
+  // A sign-in now names the vault it saves into; "" is the signer's My
+  // vault, which every pending row from before this step meant.
+  db.exec(
+    `ALTER TABLE pending_oauth_state ADD COLUMN vault_id TEXT NOT NULL DEFAULT ''`,
+  );
+  // The address a sign-in saves at, recorded when it starts; "" on a
+  // pending row from before this step matches no address, so completing
+  // one asks the signer to start again.
+  db.exec(
+    `ALTER TABLE pending_oauth_state ADD COLUMN tool_address TEXT NOT NULL DEFAULT ''`,
+  );
 }

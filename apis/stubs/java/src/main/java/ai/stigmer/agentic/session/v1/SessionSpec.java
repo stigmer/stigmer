@@ -42,6 +42,7 @@ private static final long serialVersionUID = 0L;
     harness_ = 0;
     cursorMode_ = 0;
     executionTarget_ = 0;
+    vaults_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -61,6 +62,10 @@ private static final long serialVersionUID = 0L;
     switch (number) {
       case 5:
         return internalGetMetadata();
+      case 16:
+        return internalGetSecrets();
+      case 17:
+        return internalGetConnections();
       default:
         throw new RuntimeException(
             "Invalid map field number: " + number);
@@ -853,6 +858,352 @@ java.lang.String defaultValue) {
     return result == null ? ai.stigmer.agentic.session.v1.ExecutionTarget.UNRECOGNIZED : result;
   }
 
+  public static final int VAULTS_FIELD_NUMBER = 15;
+  @SuppressWarnings("serial")
+  private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> vaults_;
+  /**
+   * <pre>
+   * Vaults whose logins and secrets this conversation's runs use, in order:
+   * the first vault holding a match wins. At most 20.
+   *
+   * A conversation that lists vaults uses exactly those. One that lists
+   * none uses the My vault of the person sending each turn, then the
+   * agent's vaults that person may use. A My vault cannot be listed: a
+   * conversation can have several people, and each person's own vault
+   * serves only their own turns.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 15 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> getVaultsList() {
+    return vaults_;
+  }
+  /**
+   * <pre>
+   * Vaults whose logins and secrets this conversation's runs use, in order:
+   * the first vault holding a match wins. At most 20.
+   *
+   * A conversation that lists vaults uses exactly those. One that lists
+   * none uses the My vault of the person sending each turn, then the
+   * agent's vaults that person may use. A My vault cannot be listed: a
+   * conversation can have several people, and each person's own vault
+   * serves only their own turns.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 15 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public java.util.List<? extends ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
+      getVaultsOrBuilderList() {
+    return vaults_;
+  }
+  /**
+   * <pre>
+   * Vaults whose logins and secrets this conversation's runs use, in order:
+   * the first vault holding a match wins. At most 20.
+   *
+   * A conversation that lists vaults uses exactly those. One that lists
+   * none uses the My vault of the person sending each turn, then the
+   * agent's vaults that person may use. A My vault cannot be listed: a
+   * conversation can have several people, and each person's own vault
+   * serves only their own turns.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 15 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public int getVaultsCount() {
+    return vaults_.size();
+  }
+  /**
+   * <pre>
+   * Vaults whose logins and secrets this conversation's runs use, in order:
+   * the first vault holding a match wins. At most 20.
+   *
+   * A conversation that lists vaults uses exactly those. One that lists
+   * none uses the My vault of the person sending each turn, then the
+   * agent's vaults that person may use. A My vault cannot be listed: a
+   * conversation can have several people, and each person's own vault
+   * serves only their own turns.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 15 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.commons.apiresource.ApiResourceReference getVaults(int index) {
+    return vaults_.get(index);
+  }
+  /**
+   * <pre>
+   * Vaults whose logins and secrets this conversation's runs use, in order:
+   * the first vault holding a match wins. At most 20.
+   *
+   * A conversation that lists vaults uses exactly those. One that lists
+   * none uses the My vault of the person sending each turn, then the
+   * agent's vaults that person may use. A My vault cannot be listed: a
+   * conversation can have several people, and each person's own vault
+   * serves only their own turns.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 15 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getVaultsOrBuilder(
+      int index) {
+    return vaults_.get(index);
+  }
+
+  public static final int SECRETS_FIELD_NUMBER = 16;
+  private static final class SecretsDefaultEntryHolder {
+    static final com.google.protobuf.MapEntry<
+        java.lang.String, java.lang.String> defaultEntry =
+            com.google.protobuf.MapEntry
+            .<java.lang.String, java.lang.String>newDefaultInstance(
+                ai.stigmer.agentic.session.v1.SpecProto.internal_static_ai_stigmer_agentic_session_v1_SessionSpec_SecretsEntry_descriptor, 
+                com.google.protobuf.WireFormat.FieldType.STRING,
+                "",
+                com.google.protobuf.WireFormat.FieldType.STRING,
+                "");
+  }
+  @SuppressWarnings("serial")
+  private com.google.protobuf.MapField<
+      java.lang.String, java.lang.String> secrets_;
+  private com.google.protobuf.MapField<java.lang.String, java.lang.String>
+  internalGetSecrets() {
+    if (secrets_ == null) {
+      return com.google.protobuf.MapField.emptyMapField(
+          SecretsDefaultEntryHolder.defaultEntry);
+    }
+    return secrets_;
+  }
+  public int getSecretsCount() {
+    return internalGetSecrets().getMap().size();
+  }
+  /**
+   * <pre>
+   * Secrets this conversation's runs use, by name, ahead of every vault.
+   *
+   * This is how an integrator hands a run a key without saving it in a
+   * vault. The values are kept sealed for the conversation's life, can be
+   * replaced by an update at any time, are never returned by a read, and
+   * are destroyed with the conversation.
+   *
+   * An update built on an older read than the stored conversation (it
+   * echoes an older status.audit.spec_audit.updated_at) removes nothing it
+   * could not have seen: the values it omits are kept, and so are the
+   * vaults the conversation lists. Read the conversation again to remove a
+   * value or change its vaults.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; secrets = 16 [json_name = "secrets", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public boolean containsSecrets(
+      java.lang.String key) {
+    if (key == null) { throw new NullPointerException("map key"); }
+    return internalGetSecrets().getMap().containsKey(key);
+  }
+  /**
+   * Use {@link #getSecretsMap()} instead.
+   */
+  @java.lang.Override
+  @java.lang.Deprecated
+  public java.util.Map<java.lang.String, java.lang.String> getSecrets() {
+    return getSecretsMap();
+  }
+  /**
+   * <pre>
+   * Secrets this conversation's runs use, by name, ahead of every vault.
+   *
+   * This is how an integrator hands a run a key without saving it in a
+   * vault. The values are kept sealed for the conversation's life, can be
+   * replaced by an update at any time, are never returned by a read, and
+   * are destroyed with the conversation.
+   *
+   * An update built on an older read than the stored conversation (it
+   * echoes an older status.audit.spec_audit.updated_at) removes nothing it
+   * could not have seen: the values it omits are kept, and so are the
+   * vaults the conversation lists. Read the conversation again to remove a
+   * value or change its vaults.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; secrets = 16 [json_name = "secrets", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public java.util.Map<java.lang.String, java.lang.String> getSecretsMap() {
+    return internalGetSecrets().getMap();
+  }
+  /**
+   * <pre>
+   * Secrets this conversation's runs use, by name, ahead of every vault.
+   *
+   * This is how an integrator hands a run a key without saving it in a
+   * vault. The values are kept sealed for the conversation's life, can be
+   * replaced by an update at any time, are never returned by a read, and
+   * are destroyed with the conversation.
+   *
+   * An update built on an older read than the stored conversation (it
+   * echoes an older status.audit.spec_audit.updated_at) removes nothing it
+   * could not have seen: the values it omits are kept, and so are the
+   * vaults the conversation lists. Read the conversation again to remove a
+   * value or change its vaults.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; secrets = 16 [json_name = "secrets", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public /* nullable */
+java.lang.String getSecretsOrDefault(
+      java.lang.String key,
+      /* nullable */
+java.lang.String defaultValue) {
+    if (key == null) { throw new NullPointerException("map key"); }
+    java.util.Map<java.lang.String, java.lang.String> map =
+        internalGetSecrets().getMap();
+    return map.containsKey(key) ? map.get(key) : defaultValue;
+  }
+  /**
+   * <pre>
+   * Secrets this conversation's runs use, by name, ahead of every vault.
+   *
+   * This is how an integrator hands a run a key without saving it in a
+   * vault. The values are kept sealed for the conversation's life, can be
+   * replaced by an update at any time, are never returned by a read, and
+   * are destroyed with the conversation.
+   *
+   * An update built on an older read than the stored conversation (it
+   * echoes an older status.audit.spec_audit.updated_at) removes nothing it
+   * could not have seen: the values it omits are kept, and so are the
+   * vaults the conversation lists. Read the conversation again to remove a
+   * value or change its vaults.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; secrets = 16 [json_name = "secrets", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public java.lang.String getSecretsOrThrow(
+      java.lang.String key) {
+    if (key == null) { throw new NullPointerException("map key"); }
+    java.util.Map<java.lang.String, java.lang.String> map =
+        internalGetSecrets().getMap();
+    if (!map.containsKey(key)) {
+      throw new java.lang.IllegalArgumentException();
+    }
+    return map.get(key);
+  }
+
+  public static final int CONNECTIONS_FIELD_NUMBER = 17;
+  private static final class ConnectionsDefaultEntryHolder {
+    static final com.google.protobuf.MapEntry<
+        java.lang.String, java.lang.String> defaultEntry =
+            com.google.protobuf.MapEntry
+            .<java.lang.String, java.lang.String>newDefaultInstance(
+                ai.stigmer.agentic.session.v1.SpecProto.internal_static_ai_stigmer_agentic_session_v1_SessionSpec_ConnectionsEntry_descriptor, 
+                com.google.protobuf.WireFormat.FieldType.STRING,
+                "",
+                com.google.protobuf.WireFormat.FieldType.STRING,
+                "");
+  }
+  @SuppressWarnings("serial")
+  private com.google.protobuf.MapField<
+      java.lang.String, java.lang.String> connections_;
+  private com.google.protobuf.MapField<java.lang.String, java.lang.String>
+  internalGetConnections() {
+    if (connections_ == null) {
+      return com.google.protobuf.MapField.emptyMapField(
+          ConnectionsDefaultEntryHolder.defaultEntry);
+    }
+    return connections_;
+  }
+  public int getConnectionsCount() {
+    return internalGetConnections().getMap().size();
+  }
+  /**
+   * <pre>
+   * Logins this conversation's runs use, by the address of the tool or Git
+   * host each is for, ahead of every vault.
+   *
+   * Kept, replaced and destroyed as secrets are. Addresses are normalized
+   * as a vault's are.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; connections = 17 [json_name = "connections", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public boolean containsConnections(
+      java.lang.String key) {
+    if (key == null) { throw new NullPointerException("map key"); }
+    return internalGetConnections().getMap().containsKey(key);
+  }
+  /**
+   * Use {@link #getConnectionsMap()} instead.
+   */
+  @java.lang.Override
+  @java.lang.Deprecated
+  public java.util.Map<java.lang.String, java.lang.String> getConnections() {
+    return getConnectionsMap();
+  }
+  /**
+   * <pre>
+   * Logins this conversation's runs use, by the address of the tool or Git
+   * host each is for, ahead of every vault.
+   *
+   * Kept, replaced and destroyed as secrets are. Addresses are normalized
+   * as a vault's are.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; connections = 17 [json_name = "connections", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public java.util.Map<java.lang.String, java.lang.String> getConnectionsMap() {
+    return internalGetConnections().getMap();
+  }
+  /**
+   * <pre>
+   * Logins this conversation's runs use, by the address of the tool or Git
+   * host each is for, ahead of every vault.
+   *
+   * Kept, replaced and destroyed as secrets are. Addresses are normalized
+   * as a vault's are.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; connections = 17 [json_name = "connections", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public /* nullable */
+java.lang.String getConnectionsOrDefault(
+      java.lang.String key,
+      /* nullable */
+java.lang.String defaultValue) {
+    if (key == null) { throw new NullPointerException("map key"); }
+    java.util.Map<java.lang.String, java.lang.String> map =
+        internalGetConnections().getMap();
+    return map.containsKey(key) ? map.get(key) : defaultValue;
+  }
+  /**
+   * <pre>
+   * Logins this conversation's runs use, by the address of the tool or Git
+   * host each is for, ahead of every vault.
+   *
+   * Kept, replaced and destroyed as secrets are. Addresses are normalized
+   * as a vault's are.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; connections = 17 [json_name = "connections", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public java.lang.String getConnectionsOrThrow(
+      java.lang.String key) {
+    if (key == null) { throw new NullPointerException("map key"); }
+    java.util.Map<java.lang.String, java.lang.String> map =
+        internalGetConnections().getMap();
+    if (!map.containsKey(key)) {
+      throw new java.lang.IllegalArgumentException();
+    }
+    return map.get(key);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -903,6 +1254,21 @@ java.lang.String defaultValue) {
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(14, getAgentRef());
     }
+    for (int i = 0; i < vaults_.size(); i++) {
+      output.writeMessage(15, vaults_.get(i));
+    }
+    com.google.protobuf.GeneratedMessage
+      .serializeStringMapTo(
+        output,
+        internalGetSecrets(),
+        SecretsDefaultEntryHolder.defaultEntry,
+        16);
+    com.google.protobuf.GeneratedMessage
+      .serializeStringMapTo(
+        output,
+        internalGetConnections(),
+        ConnectionsDefaultEntryHolder.defaultEntry,
+        17);
     getUnknownFields().writeTo(output);
   }
 
@@ -979,6 +1345,35 @@ java.lang.String defaultValue) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(14, getAgentRef());
     }
+
+        {
+          final int count = vaults_.size();
+          for (int i = 0; i < count; i++) {
+            size += com.google.protobuf.CodedOutputStream
+              .computeMessageSizeNoTag(vaults_.get(i));
+          }
+          size += 1 * count;
+        }
+    for (java.util.Map.Entry<java.lang.String, java.lang.String> entry
+         : internalGetSecrets().getMap().entrySet()) {
+      com.google.protobuf.MapEntry<java.lang.String, java.lang.String>
+      secrets__ = SecretsDefaultEntryHolder.defaultEntry.newBuilderForType()
+          .setKey(entry.getKey())
+          .setValue(entry.getValue())
+          .buildPartial();
+      size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(16, secrets__);
+    }
+    for (java.util.Map.Entry<java.lang.String, java.lang.String> entry
+         : internalGetConnections().getMap().entrySet()) {
+      com.google.protobuf.MapEntry<java.lang.String, java.lang.String>
+      connections__ = ConnectionsDefaultEntryHolder.defaultEntry.newBuilderForType()
+          .setKey(entry.getKey())
+          .setValue(entry.getValue())
+          .buildPartial();
+      size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(17, connections__);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -1016,6 +1411,12 @@ java.lang.String defaultValue) {
     if (harness_ != other.harness_) return false;
     if (cursorMode_ != other.cursorMode_) return false;
     if (executionTarget_ != other.executionTarget_) return false;
+    if (!getVaultsList()
+        .equals(other.getVaultsList())) return false;
+    if (!internalGetSecrets().equals(
+        other.internalGetSecrets())) return false;
+    if (!internalGetConnections().equals(
+        other.internalGetConnections())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -1061,6 +1462,18 @@ java.lang.String defaultValue) {
     hash = (53 * hash) + cursorMode_;
     hash = (37 * hash) + EXECUTION_TARGET_FIELD_NUMBER;
     hash = (53 * hash) + executionTarget_;
+    if (getVaultsCount() > 0) {
+      hash = (37 * hash) + VAULTS_FIELD_NUMBER;
+      hash = (53 * hash) + getVaultsList().hashCode();
+    }
+    if (!internalGetSecrets().getMap().isEmpty()) {
+      hash = (37 * hash) + SECRETS_FIELD_NUMBER;
+      hash = (53 * hash) + internalGetSecrets().hashCode();
+    }
+    if (!internalGetConnections().getMap().isEmpty()) {
+      hash = (37 * hash) + CONNECTIONS_FIELD_NUMBER;
+      hash = (53 * hash) + internalGetConnections().hashCode();
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1180,6 +1593,10 @@ java.lang.String defaultValue) {
       switch (number) {
         case 5:
           return internalGetMetadata();
+        case 16:
+          return internalGetSecrets();
+        case 17:
+          return internalGetConnections();
         default:
           throw new RuntimeException(
               "Invalid map field number: " + number);
@@ -1191,6 +1608,10 @@ java.lang.String defaultValue) {
       switch (number) {
         case 5:
           return internalGetMutableMetadata();
+        case 16:
+          return internalGetMutableSecrets();
+        case 17:
+          return internalGetMutableConnections();
         default:
           throw new RuntimeException(
               "Invalid map field number: " + number);
@@ -1221,6 +1642,7 @@ java.lang.String defaultValue) {
         internalGetWorkspaceEntriesFieldBuilder();
         internalGetMcpServerUsagesFieldBuilder();
         internalGetSkillRefsFieldBuilder();
+        internalGetVaultsFieldBuilder();
       }
     }
     @java.lang.Override
@@ -1261,6 +1683,15 @@ java.lang.String defaultValue) {
       harness_ = 0;
       cursorMode_ = 0;
       executionTarget_ = 0;
+      if (vaultsBuilder_ == null) {
+        vaults_ = java.util.Collections.emptyList();
+      } else {
+        vaults_ = null;
+        vaultsBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00000800);
+      internalGetMutableSecrets().clear();
+      internalGetMutableConnections().clear();
       return this;
     }
 
@@ -1321,6 +1752,15 @@ java.lang.String defaultValue) {
       } else {
         result.skillRefs_ = skillRefsBuilder_.build();
       }
+      if (vaultsBuilder_ == null) {
+        if (((bitField0_ & 0x00000800) != 0)) {
+          vaults_ = java.util.Collections.unmodifiableList(vaults_);
+          bitField0_ = (bitField0_ & ~0x00000800);
+        }
+        result.vaults_ = vaults_;
+      } else {
+        result.vaults_ = vaultsBuilder_.build();
+      }
     }
 
     private void buildPartial0(ai.stigmer.agentic.session.v1.SessionSpec result) {
@@ -1354,6 +1794,14 @@ java.lang.String defaultValue) {
       }
       if (((from_bitField0_ & 0x00000400) != 0)) {
         result.executionTarget_ = executionTarget_;
+      }
+      if (((from_bitField0_ & 0x00001000) != 0)) {
+        result.secrets_ = internalGetSecrets();
+        result.secrets_.makeImmutable();
+      }
+      if (((from_bitField0_ & 0x00002000) != 0)) {
+        result.connections_ = internalGetConnections();
+        result.connections_.makeImmutable();
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1483,6 +1931,38 @@ java.lang.String defaultValue) {
       if (other.executionTarget_ != 0) {
         setExecutionTargetValue(other.getExecutionTargetValue());
       }
+      if (vaultsBuilder_ == null) {
+        if (!other.vaults_.isEmpty()) {
+          if (vaults_.isEmpty()) {
+            vaults_ = other.vaults_;
+            bitField0_ = (bitField0_ & ~0x00000800);
+          } else {
+            ensureVaultsIsMutable();
+            vaults_.addAll(other.vaults_);
+          }
+          onChanged();
+        }
+      } else {
+        if (!other.vaults_.isEmpty()) {
+          if (vaultsBuilder_.isEmpty()) {
+            vaultsBuilder_.dispose();
+            vaultsBuilder_ = null;
+            vaults_ = other.vaults_;
+            bitField0_ = (bitField0_ & ~0x00000800);
+            vaultsBuilder_ = 
+              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                 internalGetVaultsFieldBuilder() : null;
+          } else {
+            vaultsBuilder_.addAllMessages(other.vaults_);
+          }
+        }
+      }
+      internalGetMutableSecrets().mergeFrom(
+          other.internalGetSecrets());
+      bitField0_ |= 0x00001000;
+      internalGetMutableConnections().mergeFrom(
+          other.internalGetConnections());
+      bitField0_ |= 0x00002000;
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -1594,6 +2074,37 @@ java.lang.String defaultValue) {
               bitField0_ |= 0x00000001;
               break;
             } // case 114
+            case 122: {
+              ai.stigmer.commons.apiresource.ApiResourceReference m =
+                  input.readMessage(
+                      ai.stigmer.commons.apiresource.ApiResourceReference.parser(),
+                      extensionRegistry);
+              if (vaultsBuilder_ == null) {
+                ensureVaultsIsMutable();
+                vaults_.add(m);
+              } else {
+                vaultsBuilder_.addMessage(m);
+              }
+              break;
+            } // case 122
+            case 130: {
+              com.google.protobuf.MapEntry<java.lang.String, java.lang.String>
+              secrets__ = input.readMessage(
+                  SecretsDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
+              internalGetMutableSecrets().getMutableMap().put(
+                  secrets__.getKey(), secrets__.getValue());
+              bitField0_ |= 0x00001000;
+              break;
+            } // case 130
+            case 138: {
+              com.google.protobuf.MapEntry<java.lang.String, java.lang.String>
+              connections__ = input.readMessage(
+                  ConnectionsDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
+              internalGetMutableConnections().getMutableMap().put(
+                  connections__.getKey(), connections__.getValue());
+              bitField0_ |= 0x00002000;
+              break;
+            } // case 138
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -4104,6 +4615,859 @@ java.lang.String defaultValue) {
       bitField0_ = (bitField0_ & ~0x00000400);
       executionTarget_ = 0;
       onChanged();
+      return this;
+    }
+
+    private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> vaults_ =
+      java.util.Collections.emptyList();
+    private void ensureVaultsIsMutable() {
+      if (!((bitField0_ & 0x00000800) != 0)) {
+        vaults_ = new java.util.ArrayList<ai.stigmer.commons.apiresource.ApiResourceReference>(vaults_);
+        bitField0_ |= 0x00000800;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> vaultsBuilder_;
+
+    /**
+     * <pre>
+     * Vaults whose logins and secrets this conversation's runs use, in order:
+     * the first vault holding a match wins. At most 20.
+     *
+     * A conversation that lists vaults uses exactly those. One that lists
+     * none uses the My vault of the person sending each turn, then the
+     * agent's vaults that person may use. A My vault cannot be listed: a
+     * conversation can have several people, and each person's own vault
+     * serves only their own turns.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 15 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
+     */
+    public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> getVaultsList() {
+      if (vaultsBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(vaults_);
+      } else {
+        return vaultsBuilder_.getMessageList();
+      }
+    }
+    /**
+     * <pre>
+     * Vaults whose logins and secrets this conversation's runs use, in order:
+     * the first vault holding a match wins. At most 20.
+     *
+     * A conversation that lists vaults uses exactly those. One that lists
+     * none uses the My vault of the person sending each turn, then the
+     * agent's vaults that person may use. A My vault cannot be listed: a
+     * conversation can have several people, and each person's own vault
+     * serves only their own turns.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 15 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
+     */
+    public int getVaultsCount() {
+      if (vaultsBuilder_ == null) {
+        return vaults_.size();
+      } else {
+        return vaultsBuilder_.getCount();
+      }
+    }
+    /**
+     * <pre>
+     * Vaults whose logins and secrets this conversation's runs use, in order:
+     * the first vault holding a match wins. At most 20.
+     *
+     * A conversation that lists vaults uses exactly those. One that lists
+     * none uses the My vault of the person sending each turn, then the
+     * agent's vaults that person may use. A My vault cannot be listed: a
+     * conversation can have several people, and each person's own vault
+     * serves only their own turns.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 15 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReference getVaults(int index) {
+      if (vaultsBuilder_ == null) {
+        return vaults_.get(index);
+      } else {
+        return vaultsBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <pre>
+     * Vaults whose logins and secrets this conversation's runs use, in order:
+     * the first vault holding a match wins. At most 20.
+     *
+     * A conversation that lists vaults uses exactly those. One that lists
+     * none uses the My vault of the person sending each turn, then the
+     * agent's vaults that person may use. A My vault cannot be listed: a
+     * conversation can have several people, and each person's own vault
+     * serves only their own turns.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 15 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder setVaults(
+        int index, ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (vaultsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureVaultsIsMutable();
+        vaults_.set(index, value);
+        onChanged();
+      } else {
+        vaultsBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Vaults whose logins and secrets this conversation's runs use, in order:
+     * the first vault holding a match wins. At most 20.
+     *
+     * A conversation that lists vaults uses exactly those. One that lists
+     * none uses the My vault of the person sending each turn, then the
+     * agent's vaults that person may use. A My vault cannot be listed: a
+     * conversation can have several people, and each person's own vault
+     * serves only their own turns.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 15 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder setVaults(
+        int index, ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
+      if (vaultsBuilder_ == null) {
+        ensureVaultsIsMutable();
+        vaults_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        vaultsBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Vaults whose logins and secrets this conversation's runs use, in order:
+     * the first vault holding a match wins. At most 20.
+     *
+     * A conversation that lists vaults uses exactly those. One that lists
+     * none uses the My vault of the person sending each turn, then the
+     * agent's vaults that person may use. A My vault cannot be listed: a
+     * conversation can have several people, and each person's own vault
+     * serves only their own turns.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 15 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addVaults(ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (vaultsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureVaultsIsMutable();
+        vaults_.add(value);
+        onChanged();
+      } else {
+        vaultsBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Vaults whose logins and secrets this conversation's runs use, in order:
+     * the first vault holding a match wins. At most 20.
+     *
+     * A conversation that lists vaults uses exactly those. One that lists
+     * none uses the My vault of the person sending each turn, then the
+     * agent's vaults that person may use. A My vault cannot be listed: a
+     * conversation can have several people, and each person's own vault
+     * serves only their own turns.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 15 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addVaults(
+        int index, ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (vaultsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureVaultsIsMutable();
+        vaults_.add(index, value);
+        onChanged();
+      } else {
+        vaultsBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Vaults whose logins and secrets this conversation's runs use, in order:
+     * the first vault holding a match wins. At most 20.
+     *
+     * A conversation that lists vaults uses exactly those. One that lists
+     * none uses the My vault of the person sending each turn, then the
+     * agent's vaults that person may use. A My vault cannot be listed: a
+     * conversation can have several people, and each person's own vault
+     * serves only their own turns.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 15 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addVaults(
+        ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
+      if (vaultsBuilder_ == null) {
+        ensureVaultsIsMutable();
+        vaults_.add(builderForValue.build());
+        onChanged();
+      } else {
+        vaultsBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Vaults whose logins and secrets this conversation's runs use, in order:
+     * the first vault holding a match wins. At most 20.
+     *
+     * A conversation that lists vaults uses exactly those. One that lists
+     * none uses the My vault of the person sending each turn, then the
+     * agent's vaults that person may use. A My vault cannot be listed: a
+     * conversation can have several people, and each person's own vault
+     * serves only their own turns.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 15 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addVaults(
+        int index, ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
+      if (vaultsBuilder_ == null) {
+        ensureVaultsIsMutable();
+        vaults_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        vaultsBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Vaults whose logins and secrets this conversation's runs use, in order:
+     * the first vault holding a match wins. At most 20.
+     *
+     * A conversation that lists vaults uses exactly those. One that lists
+     * none uses the My vault of the person sending each turn, then the
+     * agent's vaults that person may use. A My vault cannot be listed: a
+     * conversation can have several people, and each person's own vault
+     * serves only their own turns.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 15 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addAllVaults(
+        java.lang.Iterable<? extends ai.stigmer.commons.apiresource.ApiResourceReference> values) {
+      if (vaultsBuilder_ == null) {
+        ensureVaultsIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, vaults_);
+        onChanged();
+      } else {
+        vaultsBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Vaults whose logins and secrets this conversation's runs use, in order:
+     * the first vault holding a match wins. At most 20.
+     *
+     * A conversation that lists vaults uses exactly those. One that lists
+     * none uses the My vault of the person sending each turn, then the
+     * agent's vaults that person may use. A My vault cannot be listed: a
+     * conversation can have several people, and each person's own vault
+     * serves only their own turns.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 15 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder clearVaults() {
+      if (vaultsBuilder_ == null) {
+        vaults_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000800);
+        onChanged();
+      } else {
+        vaultsBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Vaults whose logins and secrets this conversation's runs use, in order:
+     * the first vault holding a match wins. At most 20.
+     *
+     * A conversation that lists vaults uses exactly those. One that lists
+     * none uses the My vault of the person sending each turn, then the
+     * agent's vaults that person may use. A My vault cannot be listed: a
+     * conversation can have several people, and each person's own vault
+     * serves only their own turns.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 15 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder removeVaults(int index) {
+      if (vaultsBuilder_ == null) {
+        ensureVaultsIsMutable();
+        vaults_.remove(index);
+        onChanged();
+      } else {
+        vaultsBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Vaults whose logins and secrets this conversation's runs use, in order:
+     * the first vault holding a match wins. At most 20.
+     *
+     * A conversation that lists vaults uses exactly those. One that lists
+     * none uses the My vault of the person sending each turn, then the
+     * agent's vaults that person may use. A My vault cannot be listed: a
+     * conversation can have several people, and each person's own vault
+     * serves only their own turns.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 15 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder getVaultsBuilder(
+        int index) {
+      return internalGetVaultsFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <pre>
+     * Vaults whose logins and secrets this conversation's runs use, in order:
+     * the first vault holding a match wins. At most 20.
+     *
+     * A conversation that lists vaults uses exactly those. One that lists
+     * none uses the My vault of the person sending each turn, then the
+     * agent's vaults that person may use. A My vault cannot be listed: a
+     * conversation can have several people, and each person's own vault
+     * serves only their own turns.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 15 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getVaultsOrBuilder(
+        int index) {
+      if (vaultsBuilder_ == null) {
+        return vaults_.get(index);  } else {
+        return vaultsBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <pre>
+     * Vaults whose logins and secrets this conversation's runs use, in order:
+     * the first vault holding a match wins. At most 20.
+     *
+     * A conversation that lists vaults uses exactly those. One that lists
+     * none uses the My vault of the person sending each turn, then the
+     * agent's vaults that person may use. A My vault cannot be listed: a
+     * conversation can have several people, and each person's own vault
+     * serves only their own turns.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 15 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
+     */
+    public java.util.List<? extends ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
+         getVaultsOrBuilderList() {
+      if (vaultsBuilder_ != null) {
+        return vaultsBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(vaults_);
+      }
+    }
+    /**
+     * <pre>
+     * Vaults whose logins and secrets this conversation's runs use, in order:
+     * the first vault holding a match wins. At most 20.
+     *
+     * A conversation that lists vaults uses exactly those. One that lists
+     * none uses the My vault of the person sending each turn, then the
+     * agent's vaults that person may use. A My vault cannot be listed: a
+     * conversation can have several people, and each person's own vault
+     * serves only their own turns.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 15 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder addVaultsBuilder() {
+      return internalGetVaultsFieldBuilder().addBuilder(
+          ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Vaults whose logins and secrets this conversation's runs use, in order:
+     * the first vault holding a match wins. At most 20.
+     *
+     * A conversation that lists vaults uses exactly those. One that lists
+     * none uses the My vault of the person sending each turn, then the
+     * agent's vaults that person may use. A My vault cannot be listed: a
+     * conversation can have several people, and each person's own vault
+     * serves only their own turns.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 15 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder addVaultsBuilder(
+        int index) {
+      return internalGetVaultsFieldBuilder().addBuilder(
+          index, ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Vaults whose logins and secrets this conversation's runs use, in order:
+     * the first vault holding a match wins. At most 20.
+     *
+     * A conversation that lists vaults uses exactly those. One that lists
+     * none uses the My vault of the person sending each turn, then the
+     * agent's vaults that person may use. A My vault cannot be listed: a
+     * conversation can have several people, and each person's own vault
+     * serves only their own turns.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 15 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
+     */
+    public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference.Builder> 
+         getVaultsBuilderList() {
+      return internalGetVaultsFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
+        internalGetVaultsFieldBuilder() {
+      if (vaultsBuilder_ == null) {
+        vaultsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
+                vaults_,
+                ((bitField0_ & 0x00000800) != 0),
+                getParentForChildren(),
+                isClean());
+        vaults_ = null;
+      }
+      return vaultsBuilder_;
+    }
+
+    private com.google.protobuf.MapField<
+        java.lang.String, java.lang.String> secrets_;
+    private com.google.protobuf.MapField<java.lang.String, java.lang.String>
+        internalGetSecrets() {
+      if (secrets_ == null) {
+        return com.google.protobuf.MapField.emptyMapField(
+            SecretsDefaultEntryHolder.defaultEntry);
+      }
+      return secrets_;
+    }
+    private com.google.protobuf.MapField<java.lang.String, java.lang.String>
+        internalGetMutableSecrets() {
+      if (secrets_ == null) {
+        secrets_ = com.google.protobuf.MapField.newMapField(
+            SecretsDefaultEntryHolder.defaultEntry);
+      }
+      if (!secrets_.isMutable()) {
+        secrets_ = secrets_.copy();
+      }
+      bitField0_ |= 0x00001000;
+      onChanged();
+      return secrets_;
+    }
+    public int getSecretsCount() {
+      return internalGetSecrets().getMap().size();
+    }
+    /**
+     * <pre>
+     * Secrets this conversation's runs use, by name, ahead of every vault.
+     *
+     * This is how an integrator hands a run a key without saving it in a
+     * vault. The values are kept sealed for the conversation's life, can be
+     * replaced by an update at any time, are never returned by a read, and
+     * are destroyed with the conversation.
+     *
+     * An update built on an older read than the stored conversation (it
+     * echoes an older status.audit.spec_audit.updated_at) removes nothing it
+     * could not have seen: the values it omits are kept, and so are the
+     * vaults the conversation lists. Read the conversation again to remove a
+     * value or change its vaults.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; secrets = 16 [json_name = "secrets", (.buf.validate.field) = { ... }</code>
+     */
+    @java.lang.Override
+    public boolean containsSecrets(
+        java.lang.String key) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      return internalGetSecrets().getMap().containsKey(key);
+    }
+    /**
+     * Use {@link #getSecretsMap()} instead.
+     */
+    @java.lang.Override
+    @java.lang.Deprecated
+    public java.util.Map<java.lang.String, java.lang.String> getSecrets() {
+      return getSecretsMap();
+    }
+    /**
+     * <pre>
+     * Secrets this conversation's runs use, by name, ahead of every vault.
+     *
+     * This is how an integrator hands a run a key without saving it in a
+     * vault. The values are kept sealed for the conversation's life, can be
+     * replaced by an update at any time, are never returned by a read, and
+     * are destroyed with the conversation.
+     *
+     * An update built on an older read than the stored conversation (it
+     * echoes an older status.audit.spec_audit.updated_at) removes nothing it
+     * could not have seen: the values it omits are kept, and so are the
+     * vaults the conversation lists. Read the conversation again to remove a
+     * value or change its vaults.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; secrets = 16 [json_name = "secrets", (.buf.validate.field) = { ... }</code>
+     */
+    @java.lang.Override
+    public java.util.Map<java.lang.String, java.lang.String> getSecretsMap() {
+      return internalGetSecrets().getMap();
+    }
+    /**
+     * <pre>
+     * Secrets this conversation's runs use, by name, ahead of every vault.
+     *
+     * This is how an integrator hands a run a key without saving it in a
+     * vault. The values are kept sealed for the conversation's life, can be
+     * replaced by an update at any time, are never returned by a read, and
+     * are destroyed with the conversation.
+     *
+     * An update built on an older read than the stored conversation (it
+     * echoes an older status.audit.spec_audit.updated_at) removes nothing it
+     * could not have seen: the values it omits are kept, and so are the
+     * vaults the conversation lists. Read the conversation again to remove a
+     * value or change its vaults.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; secrets = 16 [json_name = "secrets", (.buf.validate.field) = { ... }</code>
+     */
+    @java.lang.Override
+    public /* nullable */
+java.lang.String getSecretsOrDefault(
+        java.lang.String key,
+        /* nullable */
+java.lang.String defaultValue) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      java.util.Map<java.lang.String, java.lang.String> map =
+          internalGetSecrets().getMap();
+      return map.containsKey(key) ? map.get(key) : defaultValue;
+    }
+    /**
+     * <pre>
+     * Secrets this conversation's runs use, by name, ahead of every vault.
+     *
+     * This is how an integrator hands a run a key without saving it in a
+     * vault. The values are kept sealed for the conversation's life, can be
+     * replaced by an update at any time, are never returned by a read, and
+     * are destroyed with the conversation.
+     *
+     * An update built on an older read than the stored conversation (it
+     * echoes an older status.audit.spec_audit.updated_at) removes nothing it
+     * could not have seen: the values it omits are kept, and so are the
+     * vaults the conversation lists. Read the conversation again to remove a
+     * value or change its vaults.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; secrets = 16 [json_name = "secrets", (.buf.validate.field) = { ... }</code>
+     */
+    @java.lang.Override
+    public java.lang.String getSecretsOrThrow(
+        java.lang.String key) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      java.util.Map<java.lang.String, java.lang.String> map =
+          internalGetSecrets().getMap();
+      if (!map.containsKey(key)) {
+        throw new java.lang.IllegalArgumentException();
+      }
+      return map.get(key);
+    }
+    public Builder clearSecrets() {
+      bitField0_ = (bitField0_ & ~0x00001000);
+      internalGetMutableSecrets().getMutableMap()
+          .clear();
+      return this;
+    }
+    /**
+     * <pre>
+     * Secrets this conversation's runs use, by name, ahead of every vault.
+     *
+     * This is how an integrator hands a run a key without saving it in a
+     * vault. The values are kept sealed for the conversation's life, can be
+     * replaced by an update at any time, are never returned by a read, and
+     * are destroyed with the conversation.
+     *
+     * An update built on an older read than the stored conversation (it
+     * echoes an older status.audit.spec_audit.updated_at) removes nothing it
+     * could not have seen: the values it omits are kept, and so are the
+     * vaults the conversation lists. Read the conversation again to remove a
+     * value or change its vaults.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; secrets = 16 [json_name = "secrets", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder removeSecrets(
+        java.lang.String key) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      internalGetMutableSecrets().getMutableMap()
+          .remove(key);
+      return this;
+    }
+    /**
+     * Use alternate mutation accessors instead.
+     */
+    @java.lang.Deprecated
+    public java.util.Map<java.lang.String, java.lang.String>
+        getMutableSecrets() {
+      bitField0_ |= 0x00001000;
+      return internalGetMutableSecrets().getMutableMap();
+    }
+    /**
+     * <pre>
+     * Secrets this conversation's runs use, by name, ahead of every vault.
+     *
+     * This is how an integrator hands a run a key without saving it in a
+     * vault. The values are kept sealed for the conversation's life, can be
+     * replaced by an update at any time, are never returned by a read, and
+     * are destroyed with the conversation.
+     *
+     * An update built on an older read than the stored conversation (it
+     * echoes an older status.audit.spec_audit.updated_at) removes nothing it
+     * could not have seen: the values it omits are kept, and so are the
+     * vaults the conversation lists. Read the conversation again to remove a
+     * value or change its vaults.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; secrets = 16 [json_name = "secrets", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder putSecrets(
+        java.lang.String key,
+        java.lang.String value) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      if (value == null) { throw new NullPointerException("map value"); }
+      internalGetMutableSecrets().getMutableMap()
+          .put(key, value);
+      bitField0_ |= 0x00001000;
+      return this;
+    }
+    /**
+     * <pre>
+     * Secrets this conversation's runs use, by name, ahead of every vault.
+     *
+     * This is how an integrator hands a run a key without saving it in a
+     * vault. The values are kept sealed for the conversation's life, can be
+     * replaced by an update at any time, are never returned by a read, and
+     * are destroyed with the conversation.
+     *
+     * An update built on an older read than the stored conversation (it
+     * echoes an older status.audit.spec_audit.updated_at) removes nothing it
+     * could not have seen: the values it omits are kept, and so are the
+     * vaults the conversation lists. Read the conversation again to remove a
+     * value or change its vaults.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; secrets = 16 [json_name = "secrets", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder putAllSecrets(
+        java.util.Map<java.lang.String, java.lang.String> values) {
+      internalGetMutableSecrets().getMutableMap()
+          .putAll(values);
+      bitField0_ |= 0x00001000;
+      return this;
+    }
+
+    private com.google.protobuf.MapField<
+        java.lang.String, java.lang.String> connections_;
+    private com.google.protobuf.MapField<java.lang.String, java.lang.String>
+        internalGetConnections() {
+      if (connections_ == null) {
+        return com.google.protobuf.MapField.emptyMapField(
+            ConnectionsDefaultEntryHolder.defaultEntry);
+      }
+      return connections_;
+    }
+    private com.google.protobuf.MapField<java.lang.String, java.lang.String>
+        internalGetMutableConnections() {
+      if (connections_ == null) {
+        connections_ = com.google.protobuf.MapField.newMapField(
+            ConnectionsDefaultEntryHolder.defaultEntry);
+      }
+      if (!connections_.isMutable()) {
+        connections_ = connections_.copy();
+      }
+      bitField0_ |= 0x00002000;
+      onChanged();
+      return connections_;
+    }
+    public int getConnectionsCount() {
+      return internalGetConnections().getMap().size();
+    }
+    /**
+     * <pre>
+     * Logins this conversation's runs use, by the address of the tool or Git
+     * host each is for, ahead of every vault.
+     *
+     * Kept, replaced and destroyed as secrets are. Addresses are normalized
+     * as a vault's are.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; connections = 17 [json_name = "connections", (.buf.validate.field) = { ... }</code>
+     */
+    @java.lang.Override
+    public boolean containsConnections(
+        java.lang.String key) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      return internalGetConnections().getMap().containsKey(key);
+    }
+    /**
+     * Use {@link #getConnectionsMap()} instead.
+     */
+    @java.lang.Override
+    @java.lang.Deprecated
+    public java.util.Map<java.lang.String, java.lang.String> getConnections() {
+      return getConnectionsMap();
+    }
+    /**
+     * <pre>
+     * Logins this conversation's runs use, by the address of the tool or Git
+     * host each is for, ahead of every vault.
+     *
+     * Kept, replaced and destroyed as secrets are. Addresses are normalized
+     * as a vault's are.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; connections = 17 [json_name = "connections", (.buf.validate.field) = { ... }</code>
+     */
+    @java.lang.Override
+    public java.util.Map<java.lang.String, java.lang.String> getConnectionsMap() {
+      return internalGetConnections().getMap();
+    }
+    /**
+     * <pre>
+     * Logins this conversation's runs use, by the address of the tool or Git
+     * host each is for, ahead of every vault.
+     *
+     * Kept, replaced and destroyed as secrets are. Addresses are normalized
+     * as a vault's are.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; connections = 17 [json_name = "connections", (.buf.validate.field) = { ... }</code>
+     */
+    @java.lang.Override
+    public /* nullable */
+java.lang.String getConnectionsOrDefault(
+        java.lang.String key,
+        /* nullable */
+java.lang.String defaultValue) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      java.util.Map<java.lang.String, java.lang.String> map =
+          internalGetConnections().getMap();
+      return map.containsKey(key) ? map.get(key) : defaultValue;
+    }
+    /**
+     * <pre>
+     * Logins this conversation's runs use, by the address of the tool or Git
+     * host each is for, ahead of every vault.
+     *
+     * Kept, replaced and destroyed as secrets are. Addresses are normalized
+     * as a vault's are.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; connections = 17 [json_name = "connections", (.buf.validate.field) = { ... }</code>
+     */
+    @java.lang.Override
+    public java.lang.String getConnectionsOrThrow(
+        java.lang.String key) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      java.util.Map<java.lang.String, java.lang.String> map =
+          internalGetConnections().getMap();
+      if (!map.containsKey(key)) {
+        throw new java.lang.IllegalArgumentException();
+      }
+      return map.get(key);
+    }
+    public Builder clearConnections() {
+      bitField0_ = (bitField0_ & ~0x00002000);
+      internalGetMutableConnections().getMutableMap()
+          .clear();
+      return this;
+    }
+    /**
+     * <pre>
+     * Logins this conversation's runs use, by the address of the tool or Git
+     * host each is for, ahead of every vault.
+     *
+     * Kept, replaced and destroyed as secrets are. Addresses are normalized
+     * as a vault's are.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; connections = 17 [json_name = "connections", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder removeConnections(
+        java.lang.String key) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      internalGetMutableConnections().getMutableMap()
+          .remove(key);
+      return this;
+    }
+    /**
+     * Use alternate mutation accessors instead.
+     */
+    @java.lang.Deprecated
+    public java.util.Map<java.lang.String, java.lang.String>
+        getMutableConnections() {
+      bitField0_ |= 0x00002000;
+      return internalGetMutableConnections().getMutableMap();
+    }
+    /**
+     * <pre>
+     * Logins this conversation's runs use, by the address of the tool or Git
+     * host each is for, ahead of every vault.
+     *
+     * Kept, replaced and destroyed as secrets are. Addresses are normalized
+     * as a vault's are.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; connections = 17 [json_name = "connections", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder putConnections(
+        java.lang.String key,
+        java.lang.String value) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      if (value == null) { throw new NullPointerException("map value"); }
+      internalGetMutableConnections().getMutableMap()
+          .put(key, value);
+      bitField0_ |= 0x00002000;
+      return this;
+    }
+    /**
+     * <pre>
+     * Logins this conversation's runs use, by the address of the tool or Git
+     * host each is for, ahead of every vault.
+     *
+     * Kept, replaced and destroyed as secrets are. Addresses are normalized
+     * as a vault's are.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; connections = 17 [json_name = "connections", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder putAllConnections(
+        java.util.Map<java.lang.String, java.lang.String> values) {
+      internalGetMutableConnections().getMutableMap()
+          .putAll(values);
+      bitField0_ |= 0x00002000;
       return this;
     }
 

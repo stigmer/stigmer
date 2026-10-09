@@ -42,8 +42,6 @@ import {
 import type {
   AuditRecord,
   BootstrapStateStore,
-  OAuthGrant,
-  OAuthGrantStore,
   ResourceNameClaim,
   ResourceNameEntry,
   ResourceNameKey,
@@ -159,7 +157,6 @@ const RECONCILE_BATCH = 500;
 export class SqliteStore implements Store {
   readonly bootstrapState: BootstrapStateStore;
   readonly resourceNames: ResourceNameStore;
-  readonly oauthGrants: OAuthGrantStore;
   readonly pendingOAuthStates: PendingOAuthStateStore;
   readonly organizationDeletions: OrganizationDeletionStore;
 
@@ -180,7 +177,6 @@ export class SqliteStore implements Store {
     this.listIndexes = listIndexes;
     this.bootstrapState = new SqliteBootstrapStateStore(() => this.open());
     this.resourceNames = new SqliteResourceNameStore(() => this.open());
-    this.oauthGrants = new SqliteOAuthGrantStore(() => this.open());
     this.pendingOAuthStates = new SqlitePendingOAuthStateStore(() =>
       this.open(),
     );
@@ -1613,135 +1609,6 @@ function nameHolderOf(db: DatabaseSync, key: ResourceNameKey): ResourceNameEntry
 }
 
 // =============================================================================
-// MCP OAuth grants (Go pkg/domain/mcpserver/oauth/grant_store.go)
-// =============================================================================
-
-class SqliteOAuthGrantStore implements OAuthGrantStore {
-  constructor(private readonly open: () => DatabaseSync) {}
-
-  async upsert(grant: OAuthGrant): Promise<void> {
-    const now = Math.floor(Date.now() / 1000);
-    const createdAt = grant.createdAt !== 0 ? grant.createdAt : now;
-
-    this.open()
-      .prepare(
-        `INSERT INTO oauth_grant (
-          identity_account_id, resource_id, resource_kind, org_id,
-          access_token_expires_at, client_id, auth_method, token_endpoint,
-          access_token_env_var, refresh_token_env_var, environment_id,
-          created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT (identity_account_id, resource_id, org_id) DO UPDATE SET
-          resource_kind = excluded.resource_kind,
-          access_token_expires_at = excluded.access_token_expires_at,
-          client_id = excluded.client_id,
-          auth_method = excluded.auth_method,
-          token_endpoint = excluded.token_endpoint,
-          access_token_env_var = excluded.access_token_env_var,
-          refresh_token_env_var = excluded.refresh_token_env_var,
-          environment_id = excluded.environment_id,
-          updated_at = excluded.updated_at`,
-      )
-      .run(
-        grant.identityAccountId,
-        grant.resourceId,
-        grant.resourceKind,
-        grant.orgId,
-        grant.accessTokenExpiresAt,
-        grant.clientId,
-        grant.authMethod,
-        grant.tokenEndpoint,
-        grant.accessTokenEnvVar,
-        grant.refreshTokenEnvVar,
-        grant.environmentId,
-        createdAt,
-        now,
-      );
-  }
-
-  async find(
-    identityAccountId: string,
-    resourceId: string,
-    orgId: string,
-  ): Promise<OAuthGrant | undefined> {
-    const row = this.open()
-      .prepare(
-        `SELECT identity_account_id, resource_id, resource_kind, org_id,
-          access_token_expires_at, client_id, auth_method, token_endpoint,
-          access_token_env_var, refresh_token_env_var, environment_id,
-          created_at, updated_at
-         FROM oauth_grant
-         WHERE identity_account_id = ? AND resource_id = ? AND org_id = ?`,
-      )
-      .get(identityAccountId, resourceId, orgId) as
-      | {
-          identity_account_id: string;
-          resource_id: string;
-          resource_kind: string;
-          org_id: string;
-          access_token_expires_at: number;
-          client_id: string;
-          auth_method: string;
-          token_endpoint: string;
-          access_token_env_var: string;
-          refresh_token_env_var: string;
-          environment_id: string;
-          created_at: number;
-          updated_at: number;
-        }
-      | undefined;
-    if (row === undefined) {
-      return undefined; // no grant is a normal state, not an error (Go: nil, nil)
-    }
-    return {
-      identityAccountId: row.identity_account_id,
-      resourceId: row.resource_id,
-      resourceKind: row.resource_kind,
-      orgId: row.org_id,
-      accessTokenExpiresAt: row.access_token_expires_at,
-      clientId: row.client_id,
-      authMethod: row.auth_method,
-      tokenEndpoint: row.token_endpoint,
-      accessTokenEnvVar: row.access_token_env_var,
-      refreshTokenEnvVar: row.refresh_token_env_var,
-      environmentId: row.environment_id,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    };
-  }
-
-  async delete(
-    identityAccountId: string,
-    resourceId: string,
-    orgId: string,
-  ): Promise<void> {
-    this.open()
-      .prepare(
-        `DELETE FROM oauth_grant
-         WHERE identity_account_id = ? AND resource_id = ? AND org_id = ?`,
-      )
-      .run(identityAccountId, resourceId, orgId);
-  }
-
-  async deleteByResourceId(resourceId: string, orgId: string): Promise<number> {
-    const result = this.open()
-      .prepare(
-        `DELETE FROM oauth_grant
-         WHERE resource_id = ? AND org_id = ?`,
-      )
-      .run(resourceId, orgId);
-    return Number(result.changes);
-  }
-
-  async deleteByOrg(orgId: string): Promise<number> {
-    const result = this.open()
-      .prepare(`DELETE FROM oauth_grant WHERE org_id = ?`)
-      .run(orgId);
-    return Number(result.changes);
-  }
-}
-
-// =============================================================================
 // MCP pending OAuth state (Go pkg/domain/mcpserver/oauth/pending_state_store.go)
 // =============================================================================
 
@@ -1756,8 +1623,8 @@ class SqlitePendingOAuthStateStore implements PendingOAuthStateStore {
         `INSERT INTO pending_oauth_state (
           state, code_verifier, client_id, client_secret, token_endpoint,
           mcp_server_id, identity_account_id, target_env_var, auth_method,
-          token_auth_method, redirect_uri, org, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          token_auth_method, redirect_uri, org, vault_id, tool_address, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         state.state,
@@ -1772,6 +1639,8 @@ class SqlitePendingOAuthStateStore implements PendingOAuthStateStore {
         state.tokenAuthMethod,
         state.redirectUri,
         state.org,
+        state.vaultId,
+        state.toolAddress,
         createdAt,
       );
   }
@@ -1790,7 +1659,7 @@ class SqlitePendingOAuthStateStore implements PendingOAuthStateStore {
         .prepare(
           `SELECT state, code_verifier, client_id, client_secret, token_endpoint,
             mcp_server_id, identity_account_id, target_env_var, auth_method,
-            token_auth_method, redirect_uri, org, created_at
+            token_auth_method, redirect_uri, org, vault_id, tool_address, created_at
            FROM pending_oauth_state
            WHERE state = ?`,
         )
@@ -1808,6 +1677,8 @@ class SqlitePendingOAuthStateStore implements PendingOAuthStateStore {
             token_auth_method: string;
             redirect_uri: string;
             org: string;
+            vault_id: string;
+            tool_address: string;
             created_at: number;
           }
         | undefined;
@@ -1840,6 +1711,8 @@ class SqlitePendingOAuthStateStore implements PendingOAuthStateStore {
         tokenAuthMethod: row.token_auth_method,
         redirectUri: row.redirect_uri,
         org: row.org,
+        vaultId: row.vault_id,
+        toolAddress: row.tool_address,
         createdAt: row.created_at,
       };
     } catch (error) {

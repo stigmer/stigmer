@@ -20,15 +20,13 @@ import {
   type RunConfig,
   RunConfigSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
-import type { ExecutionValue } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { type SessionSpec, SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
-import { ExecutionValueSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { RuntimeEnv } from "./env.js";
+import type { SessionSecrets } from "./env.js";
 import type { HarnessFlag, RunMode, ServiceTierFlag, ThinkingFlag } from "./prepare.js";
 
 const API_VERSION = "agentic.stigmer.ai/v1";
@@ -55,17 +53,20 @@ export interface AgentRefInput {
  * embedded session_spec. agentRef names the new conversation's agent; with
  * neither, the new conversation runs the built-in assistant.
  *
- * workspaceEntries and harness ride the one-call bootstrap (spec.session_spec,
- * stigmer/stigmer#249) and shape the auto-created session. A session's agent,
- * workspace and harness are fixed at creation, so with sessionId set they are
- * not sent: the target carries the session id alone.
+ * workspaceEntries, harness and sessionSecrets ride the one-call bootstrap
+ * (spec.session_spec, stigmer/stigmer#249) and shape the auto-created
+ * session. A session's agent, workspace, harness and values are fixed at
+ * creation, so with sessionId set they are not sent: the target carries the
+ * session id alone. A run carries no values of its own; a conversation's
+ * values are set when it starts, or by updating the conversation.
  */
 export interface CreateRunInput {
   readonly agentRef?: AgentRefInput;
   readonly sessionId?: string;
   readonly orgId: string;
   readonly message: string;
-  readonly runtimeEnv: RuntimeEnv;
+  /** The run's own values, kept sealed on its conversation. */
+  readonly sessionSecrets: SessionSecrets;
   readonly attachments: readonly Attachment[];
   readonly workspaceFileRefs: readonly string[];
   readonly workspaceEntries: readonly WorkspaceEntry[];
@@ -88,7 +89,6 @@ export async function createAgentRun(
     metadata: create(ApiResourceMetadataSchema, { name: runName(), org: input.orgId }),
     spec: create(RunSpecSchema, {
       message: input.message === "" ? "execute" : input.message,
-      runtimeEnv: toExecutionValues(input.runtimeEnv),
       attachments: [...input.attachments],
       workspaceFileRefs: [...input.workspaceFileRefs],
       autoApproveAll: input.autoApproveAll,
@@ -108,7 +108,12 @@ export async function createAgentRun(
 function buildTarget(input: CreateRunInput): RunSpec["target"] {
   const sessionId = input.sessionId ?? "";
   if (sessionId !== "") return { case: "sessionId", value: sessionId };
-  const sessionSpec = buildSessionSpec(input.agentRef, input.workspaceEntries, input.harness);
+  const sessionSpec = buildSessionSpec(
+    input.agentRef,
+    input.workspaceEntries,
+    input.harness,
+    input.sessionSecrets,
+  );
   if (sessionSpec === undefined) return { case: undefined };
   return { case: "sessionSpec", value: sessionSpec };
 }
@@ -128,9 +133,16 @@ function buildSessionSpec(
   agentRef: AgentRefInput | undefined,
   workspaceEntries: readonly WorkspaceEntry[],
   harness: HarnessFlag,
+  secrets: SessionSecrets,
 ): SessionSpec | undefined {
-  if (agentRef === undefined && workspaceEntries.length === 0 && harness === "") return undefined;
-  const spec = create(SessionSpecSchema, { workspaceEntries: [...workspaceEntries] });
+  const hasSecrets = Object.keys(secrets).length > 0;
+  if (agentRef === undefined && workspaceEntries.length === 0 && harness === "" && !hasSecrets) {
+    return undefined;
+  }
+  const spec = create(SessionSpecSchema, {
+    workspaceEntries: [...workspaceEntries],
+    secrets: { ...secrets },
+  });
   if (agentRef !== undefined) {
     spec.agentRef = create(ApiResourceReferenceSchema, {
       kind: ApiResourceKind.agent,
@@ -164,15 +176,6 @@ function buildRunConfig(
   if (thinking === "enabled") cfg.thinkingMode = ThinkingMode.ENABLED;
   else if (thinking === "disabled") cfg.thinkingMode = ThinkingMode.DISABLED;
   return cfg;
-}
-
-// Convert the merged runtime env to the proto map of ExecutionValue.
-function toExecutionValues(env: RuntimeEnv): Record<string, ExecutionValue> {
-  const out: Record<string, ExecutionValue> = {};
-  for (const [key, value] of Object.entries(env)) {
-    out[key] = create(ExecutionValueSchema, { value: value.value, isSecret: value.isSecret ?? false });
-  }
-  return out;
 }
 
 // Unique-enough placeholder name; the backend owns final identity. Go's CLI

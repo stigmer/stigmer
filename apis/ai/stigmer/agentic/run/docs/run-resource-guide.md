@@ -78,13 +78,9 @@ These apply to this message only and never carry over to the next one in the ses
 
 No request sets an approval mode: it is a fact of the lane the turn came through, recorded on `status.approval_mode`. See [hitl-approvals.md](hitl-approvals.md#unattended-surfaces-channels-and-guest-shares).
 
-### Runtime Environment
+### A Conversation's Own Values
 
-| Field | Type | Description |
-|---|---|---|
-| `runtime_env` | `map<string, ExecutionValue>` | Run-scoped secrets and environment variables. Available only for this run. Deleted when the run completes. Highest merge priority: Environment values (the creating schedule's or PlatformClient's `environment_refs`) < `runtime_env`; declared keys still missing are filled from the run's person's personal environment. Keys must be declared in `Agent.spec.env` (a declaration whitelist, not a value source) or they are dropped. |
-
-Use `runtime_env` for B2B integrations where secrets must be injected at runtime per-caller, not stored in the agent configuration.
+A turn's secrets and logins come from vaults and from its conversation's own values; a run carries none of its own. A first turn hands a new conversation its values on `session_spec.secrets` and `session_spec.connections` (and a repository's own `token`); a later change is a session update. They are sealed for the conversation's life, shown as `***REDACTED***` on every read, used ahead of every vault, and destroyed with the conversation. `status.credentials.person` records whose turn it was, which decides whether the sender's My vault applies.
 
 ### Approval Control
 

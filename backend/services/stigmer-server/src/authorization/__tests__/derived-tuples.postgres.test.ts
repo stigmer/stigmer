@@ -171,25 +171,35 @@ describe("deriveTuples — the cloud driver's shapes, from the row", () => {
     ).toEqual(["memory:memory-1#organization@organization:acme"]);
   });
 
-  it("an environment carries its creator tuple and an org-viewer at org level, and nothing beyond its org ceiling", () => {
+  it("a shared vault links its organization as its owner and takes an org-viewer at org level, nothing beyond its org ceiling, and no creator", () => {
+    const shared = { owner: { case: "org", value: "acme" } };
     expect(
-      derivedFor("environment", {
+      derivedFor("vault", {
         visibility: ApiResourceVisibility.visibility_org,
+        spec: shared,
       }),
     ).toEqual([
-      "environment:environment-1#organization@organization:acme",
-      "environment:environment-1#owner@identity_account:ida_carol",
-      "environment:environment-1#creator@identity_account:ida_carol",
-      "environment:environment-1#viewer@organization:acme#viewer",
+      "vault:vault-1#organization@organization:acme",
+      "vault:vault-1#org_owned@organization:acme",
+      "vault:vault-1#viewer@organization:acme#viewer",
     ]);
     expect(
-      derivedFor("environment", {
+      derivedFor("vault", {
         visibility: ApiResourceVisibility.visibility_child_orgs,
+        spec: shared,
       }),
     ).toEqual([
-      "environment:environment-1#organization@organization:acme",
-      "environment:environment-1#owner@identity_account:ida_carol",
-      "environment:environment-1#creator@identity_account:ida_carol",
+      "vault:vault-1#organization@organization:acme",
+      "vault:vault-1#org_owned@organization:acme",
+    ]);
+  });
+
+  it("a My vault links its person and nothing else: no org_owned link, no creator", () => {
+    expect(
+      derivedFor("vault", { spec: { owner: { case: "person", value: "ida_ana" } } }),
+    ).toEqual([
+      "vault:vault-1#organization@organization:acme",
+      "vault:vault-1#person@identity_account:ida_ana",
     ]);
   });
 

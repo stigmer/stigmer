@@ -1,5 +1,5 @@
 // Unit tests for the prelude orchestrator: flag validation helpers, the
-// STIGMER_ORG injection rule, and the layered engine/model seeds (flag, the
+// run's own values (passed through untouched), and the layered engine/model seeds (flag, the
 // agent's run defaults, the account preference). Attachment uploading is covered in
 // attachments.test.ts, so these tests use no attachments.
 
@@ -156,31 +156,24 @@ function countingClient(preferences: StubPreferences): { client: Stigmer; calls:
 /** prepareAgentExec options as `run` passes them: the kind is served here. */
 const SERVED_RUN_OPTIONS = { accountPreferencesAvailable: true } as const;
 
-describe("prepareAgentExec env injection", () => {
-  it("injects STIGMER_ORG when absent", async () => {
-    const prepared = await prepareAgentExec(BASE_FLAGS, STUB_CLIENT, "acme");
-    expect(prepared.runtimeEnv.STIGMER_ORG).toEqual({ value: "acme", isSecret: false });
-  });
-
-  it("does not override an explicit STIGMER_ORG", async () => {
+describe("prepareAgentExec run values", () => {
+  it("carries the env and secret flags as the conversation's own secrets, adding nothing", async () => {
     const prepared = await prepareAgentExec(
-      { ...BASE_FLAGS, env: ["STIGMER_ORG=explicit"] },
+      { ...BASE_FLAGS, env: ["REGION=eu"], secret: ["TOKEN=abc"] },
       STUB_CLIENT,
-      "acme",
     );
-    expect(prepared.runtimeEnv.STIGMER_ORG).toEqual({ value: "explicit", isSecret: false });
+    expect(prepared.sessionSecrets).toEqual({ REGION: "eu", TOKEN: "abc" });
   });
 
-  it("skips injection when org is empty", async () => {
-    const prepared = await prepareAgentExec(BASE_FLAGS, STUB_CLIENT, "");
-    expect(prepared.runtimeEnv.STIGMER_ORG).toBeUndefined();
+  it("sends no values when no flag names one", async () => {
+    const prepared = await prepareAgentExec(BASE_FLAGS, STUB_CLIENT);
+    expect(prepared.sessionSecrets).toEqual({});
   });
 
   it("carries through scalar flags", async () => {
     const prepared = await prepareAgentExec(
       { ...BASE_FLAGS, message: "go", model: "claude", autoApprove: true, detach: true, mode: "plan" },
       STUB_CLIENT,
-      "acme",
     );
     expect(prepared.message).toBe("go");
     expect(prepared.model).toBe("claude");
@@ -195,7 +188,6 @@ describe("prepareAgentExec account-preference model fill (oss#293)", () => {
     const prepared = await prepareAgentExec(
       BASE_FLAGS,
       clientWithPreference("claude-sonnet-4.6"),
-      "acme",
       undefined,
       { accountPreferencesAvailable: true },
     );
@@ -206,7 +198,6 @@ describe("prepareAgentExec account-preference model fill (oss#293)", () => {
     const prepared = await prepareAgentExec(
       { ...BASE_FLAGS, model: "gpt-5.3" },
       clientWithPreference("claude-sonnet-4.6"),
-      "acme",
       undefined,
       { accountPreferencesAvailable: true },
     );
@@ -221,7 +212,6 @@ describe("prepareAgentExec account-preference model fill (oss#293)", () => {
     const prepared = await prepareAgentExec(
       BASE_FLAGS,
       clientWithFailingWhoAmI(),
-      "acme",
       undefined,
       { accountPreferencesAvailable: false },
     );
@@ -232,7 +222,6 @@ describe("prepareAgentExec account-preference model fill (oss#293)", () => {
     const prepared = await prepareAgentExec(
       BASE_FLAGS,
       clientWithFailingWhoAmI(),
-      "acme",
       undefined,
       { accountPreferencesAvailable: true },
     );
@@ -243,7 +232,6 @@ describe("prepareAgentExec account-preference model fill (oss#293)", () => {
     const prepared = await prepareAgentExec(
       BASE_FLAGS,
       clientWithPreference(""),
-      "acme",
       undefined,
       { accountPreferencesAvailable: true },
     );
@@ -256,7 +244,6 @@ describe("prepareAgentExec harness resolution (oss#293)", () => {
     const prepared = await prepareAgentExec(
       BASE_FLAGS,
       clientWithPreferences({ defaultHarness: "cursor" }),
-      "acme",
       undefined,
       SERVED_RUN_OPTIONS,
     );
@@ -269,7 +256,6 @@ describe("prepareAgentExec harness resolution (oss#293)", () => {
     const prepared = await prepareAgentExec(
       { ...BASE_FLAGS, harness: "native" },
       clientWithPreferences({ defaultHarness: "cursor" }),
-      "acme",
       undefined,
       SERVED_RUN_OPTIONS,
     );
@@ -280,7 +266,6 @@ describe("prepareAgentExec harness resolution (oss#293)", () => {
     const prepared = await prepareAgentExec(
       { ...BASE_FLAGS, harness: "cursor" },
       STUB_CLIENT,
-      "acme",
       undefined,
       { accountPreferencesAvailable: false },
     );
@@ -293,7 +278,6 @@ describe("prepareAgentExec harness resolution (oss#293)", () => {
     const prepared = await prepareAgentExec(
       BASE_FLAGS,
       clientWithPreferences({ defaultHarness: "devin" }),
-      "acme",
       undefined,
       SERVED_RUN_OPTIONS,
     );
@@ -304,7 +288,6 @@ describe("prepareAgentExec harness resolution (oss#293)", () => {
     const prepared = await prepareAgentExec(
       BASE_FLAGS,
       clientWithFailingWhoAmI(),
-      "acme",
       undefined,
       SERVED_RUN_OPTIONS,
     );
@@ -317,7 +300,6 @@ describe("prepareAgentExec harness resolution (oss#293)", () => {
     const prepared = await prepareAgentExec(
       BASE_FLAGS,
       clientWithFailingWhoAmI(),
-      "acme",
       undefined,
       { accountPreferencesAvailable: false },
     );
@@ -328,7 +310,6 @@ describe("prepareAgentExec harness resolution (oss#293)", () => {
     const prepared = await prepareAgentExec(
       BASE_FLAGS,
       clientWithPreferences({}),
-      "acme",
       undefined,
       SERVED_RUN_OPTIONS,
     );
@@ -347,7 +328,6 @@ describe("prepareAgentExec — the agent's run defaults come before the account'
     const prepared = await prepareAgentExec(
       BASE_FLAGS,
       clientWithPreferences(ACCOUNT),
-      "acme",
       undefined,
       { ...SERVED_RUN_OPTIONS, agentSpec: AGENT_ON_CURSOR },
     );
@@ -359,7 +339,6 @@ describe("prepareAgentExec — the agent's run defaults come before the account'
     const prepared = await prepareAgentExec(
       { ...BASE_FLAGS, harness: "native" },
       clientWithPreferences(ACCOUNT),
-      "acme",
       undefined,
       { ...SERVED_RUN_OPTIONS, agentSpec: AGENT_ON_CURSOR },
     );
@@ -371,7 +350,6 @@ describe("prepareAgentExec — the agent's run defaults come before the account'
     const prepared = await prepareAgentExec(
       BASE_FLAGS,
       clientWithPreferences(ACCOUNT),
-      "acme",
       undefined,
       { ...SERVED_RUN_OPTIONS, agentSpec: create(AgentSpecSchema, { harness: Harness.CURSOR }) },
     );
@@ -383,7 +361,6 @@ describe("prepareAgentExec — the agent's run defaults come before the account'
     const prepared = await prepareAgentExec(
       { ...BASE_FLAGS, model: "default" },
       clientWithPreferences({ ...ACCOUNT, defaultHarness: "cursor" }),
-      "acme",
       undefined,
       { ...SERVED_RUN_OPTIONS, agentSpec: AGENT_ON_CURSOR },
     );
@@ -396,7 +373,6 @@ describe("prepareAgentExec — the agent's run defaults come before the account'
     const prepared = await prepareAgentExec(
       { ...BASE_FLAGS, model: "composer-2.5", harness: "cursor" },
       clientWithPreferences(ACCOUNT),
-      "acme",
       undefined,
       { ...SERVED_RUN_OPTIONS, agentSpec: AGENT_ON_CURSOR },
     );
@@ -408,7 +384,6 @@ describe("prepareAgentExec — the agent's run defaults come before the account'
     const prepared = await prepareAgentExec(
       BASE_FLAGS,
       clientWithPreferences({ ...ACCOUNT, defaultHarness: "cursor" }),
-      "acme",
       undefined,
       {
         ...SERVED_RUN_OPTIONS,
@@ -433,7 +408,6 @@ describe("prepareAgentExec harness-aware model fill (oss#293)", () => {
     const prepared = await prepareAgentExec(
       { ...BASE_FLAGS, harness: "cursor" },
       clientWithPreferences(BOTH_MODELS),
-      "acme",
       undefined,
       SERVED_RUN_OPTIONS,
     );
@@ -444,7 +418,6 @@ describe("prepareAgentExec harness-aware model fill (oss#293)", () => {
     const prepared = await prepareAgentExec(
       BASE_FLAGS,
       clientWithPreferences({ ...BOTH_MODELS, defaultHarness: "cursor" }),
-      "acme",
       undefined,
       SERVED_RUN_OPTIONS,
     );
@@ -456,7 +429,6 @@ describe("prepareAgentExec harness-aware model fill (oss#293)", () => {
     const explicit = await prepareAgentExec(
       { ...BASE_FLAGS, harness: "native" },
       clientWithPreferences(BOTH_MODELS),
-      "acme",
       undefined,
       SERVED_RUN_OPTIONS,
     );
@@ -465,7 +437,6 @@ describe("prepareAgentExec harness-aware model fill (oss#293)", () => {
     const unset = await prepareAgentExec(
       BASE_FLAGS,
       clientWithPreferences(BOTH_MODELS),
-      "acme",
       undefined,
       SERVED_RUN_OPTIONS,
     );
@@ -476,7 +447,6 @@ describe("prepareAgentExec harness-aware model fill (oss#293)", () => {
     const prepared = await prepareAgentExec(
       { ...BASE_FLAGS, harness: "cursor", model: "gpt-5.3" },
       clientWithPreferences(BOTH_MODELS),
-      "acme",
       undefined,
       SERVED_RUN_OPTIONS,
     );
@@ -489,7 +459,6 @@ describe("prepareAgentExec harness-aware model fill (oss#293)", () => {
     const prepared = await prepareAgentExec(
       { ...BASE_FLAGS, harness: "cursor" },
       clientWithPreferences(BOTH_MODELS),
-      "acme",
       undefined,
       { accountPreferencesAvailable: true },
     );
@@ -499,7 +468,7 @@ describe("prepareAgentExec harness-aware model fill (oss#293)", () => {
 
   it("serves both fills from one whoAmI round trip, and none when both flags are explicit", async () => {
     const single = countingClient({ ...BOTH_MODELS, defaultHarness: "cursor" });
-    const filled = await prepareAgentExec(BASE_FLAGS, single.client, "acme", undefined, SERVED_RUN_OPTIONS);
+    const filled = await prepareAgentExec(BASE_FLAGS, single.client, undefined, SERVED_RUN_OPTIONS);
     expect(filled.harness).toBe("cursor");
     expect(filled.model).toBe("composer-2.5");
     expect(single.calls(), "harness + model fills share one whoAmI").toBe(1);
@@ -508,7 +477,6 @@ describe("prepareAgentExec harness-aware model fill (oss#293)", () => {
     const explicit = await prepareAgentExec(
       { ...BASE_FLAGS, harness: "native", model: "gpt-5.3" },
       skipped.client,
-      "acme",
       undefined,
       SERVED_RUN_OPTIONS,
     );

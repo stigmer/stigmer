@@ -3,14 +3,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { DialogShell } from "../internal/DialogShell.js";
-import type { EnvVarInput } from "@stigmer/sdk";
+import type { EnvVarInput } from "../vault/types.js";
 import { useMcpServer } from "./useMcpServer.js";
 import { useMcpServerCredentials } from "./useMcpServerCredentials.js";
 import { useMcpServerOAuthConnect } from "./useMcpServerOAuthConnect.js";
 import type { OAuthConnectPhase } from "./useMcpServerOAuthConnect.js";
 import { useMcpServerConnect } from "./useMcpServerConnect.js";
 import { useDisconnectOAuth } from "./useDisconnectOAuth.js";
-import { EnvVarForm } from "../environment/EnvVarForm.js";
+import { EnvVarForm } from "../vault/EnvVarForm.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { StdioSandboxNotice } from "./StdioSandboxNotice.js";
 import { OAuthRequiredNotice } from "./OAuthRequiredNotice.js";
@@ -25,7 +25,7 @@ export interface McpServerConnectDialogProps {
   /**
    * The authenticated user's active organization id (a slug is also accepted).
    * Used for credential storage — tokens are stored in the user's
-   * personal environment within this org.
+   * My vault within this org.
    * Falls back to `org` when omitted.
    */
   readonly activeOrg?: string;

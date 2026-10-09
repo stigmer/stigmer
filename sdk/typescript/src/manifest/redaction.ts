@@ -2,7 +2,7 @@
 
 /**
  * Sentinel the server substitutes for secret values before they leave the
- * backend (Cloud environment reads, ChannelApp/OAuthApp reads on both
+ * backend (a session's own secrets, ChannelApp/OAuthApp reads on both
  * editions). Sending the marker back in an `apply` means "keep the stored
  * secret" — the update pipelines restore the existing encrypted value.
  */

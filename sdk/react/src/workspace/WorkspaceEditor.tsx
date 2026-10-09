@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, type KeyboardEvent } from "react";
 import { cn } from "@stigmer/theme";
+import { getUserMessage } from "@stigmer/sdk";
 import type { UseWorkspaceEntriesReturn } from "./useWorkspaceEntries.js";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection.js";
 import { GitHubRepoPicker } from "../github/GitHubRepoPicker.js";
@@ -371,8 +372,13 @@ function GitHubPanel({
           Disconnect
         </button>
       </div>
+      {connection.disconnectError && (
+        <p role="alert" className="stg:text-[0.65rem] stg:text-destructive">
+          Could not disconnect GitHub: {getUserMessage(connection.disconnectError)}
+        </p>
+      )}
       <GitHubRepoPicker
-        token={connection.token!}
+        org={connection.readOrg!}
         onSelect={onSelect}
         onCancel={onClose}
       />

@@ -3,9 +3,7 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { McpServerDetailView } from "@stigmer/react";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
-import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
-import { create } from "@bufbuild/protobuf";
-import { EnvironmentListSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
+import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { GetOAuthGrantStatusOutput } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import {
@@ -16,6 +14,7 @@ import {
   BrowserView,
   PulseHighlight,
 } from "@scenar/react";
+import { emptyMyVault } from "../../fixtures";
 import { StigmerPreviewProvider } from "../../shared/StigmerPreviewProvider";
 import { connectFixture } from "@scenar/preview/connect";
 import { AppShell } from "../../views/AppShell";
@@ -29,7 +28,6 @@ import {
   NO_ORG_OVERRIDE,
 } from "./steps";
 
-const emptyEnvList = () => create(EnvironmentListSchema, {});
 
 // ---------------------------------------------------------------------------
 // Step helpers
@@ -200,7 +198,7 @@ export function OAuthConnectFlow() {
   const previewFixtures = useMemo(
     () => [
       connectFixture(McpServerQueryController, "getByReference", () => currentServerRef.current),
-      connectFixture(EnvironmentQueryController, "list", emptyEnvList),
+      connectFixture(VaultQueryController, "getMine", emptyMyVault),
       connectFixture(McpServerQueryController, "getOAuthGrantStatus", () => currentGrantRef.current),
       connectFixture(McpServerQueryController, "getOrgOAuthApp", () => NO_ORG_OVERRIDE),
     ],

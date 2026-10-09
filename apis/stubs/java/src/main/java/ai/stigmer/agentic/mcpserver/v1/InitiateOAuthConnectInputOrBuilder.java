@@ -33,7 +33,6 @@ public interface InitiateOAuthConnectInputOrBuilder extends
   /**
    * <pre>
    * Organization context for token storage.
-   * Tokens are stored in the caller's personal environment within this org.
    * Must be an org the caller belongs to.
    * </pre>
    *
@@ -44,7 +43,6 @@ public interface InitiateOAuthConnectInputOrBuilder extends
   /**
    * <pre>
    * Organization context for token storage.
-   * Tokens are stored in the caller's personal environment within this org.
    * Must be an org the caller belongs to.
    * </pre>
    *
@@ -53,4 +51,30 @@ public interface InitiateOAuthConnectInputOrBuilder extends
    */
   com.google.protobuf.ByteString
       getOrgBytes();
+
+  /**
+   * <pre>
+   * The shared vault, by id, the login is saved into. Empty saves it in the
+   * caller's My vault in the organization. A login saved into a shared vault
+   * serves the runs that use that vault; connect reads only My vault. A
+   * vault id is "vlt_" followed by 26 lowercase characters.
+   * </pre>
+   *
+   * <code>string vault_id = 3 [json_name = "vaultId", (.buf.validate.field) = { ... }</code>
+   * @return The vaultId.
+   */
+  java.lang.String getVaultId();
+  /**
+   * <pre>
+   * The shared vault, by id, the login is saved into. Empty saves it in the
+   * caller's My vault in the organization. A login saved into a shared vault
+   * serves the runs that use that vault; connect reads only My vault. A
+   * vault id is "vlt_" followed by 26 lowercase characters.
+   * </pre>
+   *
+   * <code>string vault_id = 3 [json_name = "vaultId", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for vaultId.
+   */
+  com.google.protobuf.ByteString
+      getVaultIdBytes();
 }

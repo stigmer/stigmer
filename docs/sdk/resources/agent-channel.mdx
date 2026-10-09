@@ -7,7 +7,7 @@ title: Agent Channel
 An AgentChannel connects an agent to an external messaging platform so
 people can chat with it where they already work. The spec declares which
 agent serves the channel, whether serving is enabled, the provider (Slack
-or WhatsApp), optional environment references that supply the agent's tool
+or WhatsApp), optional shared vaults that supply the agent's tool
 credentials for channel conversations, and an `app_ref` to a ChannelApp
 when the channel installs through your own provider app — optional for
 Slack (absent means the shared Stigmer app), required for WhatsApp.
@@ -28,10 +28,10 @@ spec:
     slug: support-agent
   enabled: true
   slack: {}
-  environment_refs:
-    - kind: environment
+  vaults:
+    - kind: vault
       org: workshop
-      slug: support-tools-credentials
+      slug: support-tools
 ```
 
 A WhatsApp channel names the Business phone number it serves and always
@@ -593,7 +593,7 @@ const agentChannel = await stigmer.agentChannel.apply({
   enabled: false,
   slack: {},
   whatsapp: {},
-  environmentRefs: [],
+  vaults: [],
   appRef: {},
   proactiveMessagingEnabled: false,
   runConfig: {},
@@ -611,7 +611,7 @@ agentChannel, err := client.AgentChannel.Apply(ctx, &stigmer.AgentChannelInput{
   Enabled:                   false,
   Slack:                     &stigmer.SlackChannelConfigInput{},
   Whatsapp:                  &stigmer.WhatsAppChannelConfigInput{},
-  EnvironmentRefs:           []stigmer.ResourceRef{},
+  Vaults:                    []stigmer.ResourceRef{},
   AppRef:                    &stigmer.ResourceRef{},
   ProactiveMessagingEnabled: false,
   RunConfig:                 &stigmer.RunConfigInput{},
@@ -629,7 +629,7 @@ agent_channel = client.agent_channels.apply(AgentChannelInput(
     enabled=False,
     slack=None,
     whatsapp=None,
-    environment_refs=[],
+    vaults=[],
     app_ref=None,
     proactive_messaging_enabled=False,
     run_config=None,
@@ -647,7 +647,7 @@ AgentChannel agentChannel = client.agentChannels().apply(AgentChannelInput.build
     .enabled(false)
     .slack(null)
     .whatsapp(null)
-    .environmentRefs(List.of())
+    .vaults(List.of())
     .appRef(null)
     .proactiveMessagingEnabled(false)
     .runConfig(null)
@@ -678,7 +678,7 @@ const agentChannel = await stigmer.agentChannel.create({
   enabled: false,
   slack: {},
   whatsapp: {},
-  environmentRefs: [],
+  vaults: [],
   appRef: {},
   proactiveMessagingEnabled: false,
   runConfig: {},
@@ -696,7 +696,7 @@ agentChannel, err := client.AgentChannel.Create(ctx, &stigmer.AgentChannelInput{
   Enabled:                   false,
   Slack:                     &stigmer.SlackChannelConfigInput{},
   Whatsapp:                  &stigmer.WhatsAppChannelConfigInput{},
-  EnvironmentRefs:           []stigmer.ResourceRef{},
+  Vaults:                    []stigmer.ResourceRef{},
   AppRef:                    &stigmer.ResourceRef{},
   ProactiveMessagingEnabled: false,
   RunConfig:                 &stigmer.RunConfigInput{},
@@ -714,7 +714,7 @@ agent_channel = client.agent_channels.create(AgentChannelInput(
     enabled=False,
     slack=None,
     whatsapp=None,
-    environment_refs=[],
+    vaults=[],
     app_ref=None,
     proactive_messaging_enabled=False,
     run_config=None,
@@ -732,7 +732,7 @@ AgentChannel agentChannel = client.agentChannels().create(AgentChannelInput.buil
     .enabled(false)
     .slack(null)
     .whatsapp(null)
-    .environmentRefs(List.of())
+    .vaults(List.of())
     .appRef(null)
     .proactiveMessagingEnabled(false)
     .runConfig(null)
@@ -763,7 +763,7 @@ const agentChannel = await stigmer.agentChannel.update({
   enabled: false,
   slack: {},
   whatsapp: {},
-  environmentRefs: [],
+  vaults: [],
   appRef: {},
   proactiveMessagingEnabled: false,
   runConfig: {},
@@ -781,7 +781,7 @@ agentChannel, err := client.AgentChannel.Update(ctx, &stigmer.AgentChannelInput{
   Enabled:                   false,
   Slack:                     &stigmer.SlackChannelConfigInput{},
   Whatsapp:                  &stigmer.WhatsAppChannelConfigInput{},
-  EnvironmentRefs:           []stigmer.ResourceRef{},
+  Vaults:                    []stigmer.ResourceRef{},
   AppRef:                    &stigmer.ResourceRef{},
   ProactiveMessagingEnabled: false,
   RunConfig:                 &stigmer.RunConfigInput{},
@@ -799,7 +799,7 @@ agent_channel = client.agent_channels.update(AgentChannelInput(
     enabled=False,
     slack=None,
     whatsapp=None,
-    environment_refs=[],
+    vaults=[],
     app_ref=None,
     proactive_messaging_enabled=False,
     run_config=None,
@@ -817,7 +817,7 @@ AgentChannel agentChannel = client.agentChannels().update(AgentChannelInput.buil
     .enabled(false)
     .slack(null)
     .whatsapp(null)
-    .environmentRefs(List.of())
+    .vaults(List.of())
     .appRef(null)
     .proactiveMessagingEnabled(false)
     .runConfig(null)
@@ -834,7 +834,7 @@ AgentChannel agentChannel = client.agentChannels().update(AgentChannelInput.buil
 
 Delete an agent channel.
 
-Full teardown of the connection: inbound events for the workspace stop resolving, pending deliveries are abandoned, and the credentials environment is deleted with the grant. To pause serving while keeping the install, update the channel with enabled=false instead.
+Full teardown of the connection: inbound events for the workspace stop resolving, pending deliveries are abandoned, and the sealed provider credentials are deleted. To pause serving while keeping the install, update the channel with enabled=false instead.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -1261,7 +1261,7 @@ Input for creating or updating an Agent Channel.
     enabled: { type: "boolean", description: "Whether serving traffic on this channel is enabled." },
     slack: { type: "SlackChannelConfigInput", description: "Slack workspace connection (multi-tenant Stigmer Slack app).", typeDescriptionLink: "#slackchannelconfiginput" },
     whatsapp: { type: "WhatsAppChannelConfigInput", description: "WhatsApp Business number connection (Meta Cloud API).", typeDescriptionLink: "#whatsappchannelconfiginput" },
-    environmentRefs: { type: "ResourceRef[]", description: "References to Environment resources whose values are provided to conversations on this channel.", typeDescriptionLink: "#resourceref" },
+    vaults: { type: "ResourceRef[]", description: "Vaults whose logins and secrets conversations on this channel use, in order: the first vault holding a match wins.", typeDescriptionLink: "#resourceref" },
     appRef: { type: "ResourceRef", description: "Reference to the ChannelApp this channel installs through.", typeDescriptionLink: "#resourceref" },
     proactiveMessagingEnabled: { type: "boolean", description: "Whether the serving agent may send business-initiated (proactive) messages on this channel." },
     runConfig: { type: "RunConfigInput", description: "Per-turn model choice and run bounds for conversations on this channel.", typeDescriptionLink: "#runconfiginput" },
@@ -1601,7 +1601,7 @@ AgentChannelStatus contains system-managed state for an agent channel.
     installState: { type: "AgentChannelInstallState", description: "Install lifecycle of the provider connection.", typeDescriptionLink: "#agentchannelinstallstate" },
     slack: { type: "SlackInstallStatus", description: "Slack workspace install facts.", typeDescriptionLink: "#slackinstallstatus" },
     whatsapp: { type: "WhatsAppInstallStatus", description: "WhatsApp Business number install facts.", typeDescriptionLink: "#whatsappinstallstatus" },
-    credentialsEnvironmentId: { type: "string", description: "ID of the system-managed Environment holding this connection's provider credentials (e.g. the Slack bot token)." },
+    vaultAttachers: { type: "Record<string, string>", description: "Who attached each of this resource's vaults, by vault id: the account whose permission to use the vault each run checks when it has no person." },
     audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourceaudit" },
   }}
 />

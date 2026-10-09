@@ -1,5 +1,7 @@
-import type { EnvVarInput, ResourceRef } from "@stigmer/sdk";
+import type { ResourceRef } from "@stigmer/sdk";
+import type { EnvVarInput } from "../vault/types.js";
 import type { OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
+import type { SignInVault } from "../mcp-server/useMcpServerOAuthConnect.js";
 import type { AgentEnvFormVariable } from "./AgentEnvForm.js";
 
 // ---------------------------------------------------------------------------
@@ -22,6 +24,12 @@ export interface PendingSignIn {
   readonly name: string;
   /** The grant's health as the backend graded it; `NO_GRANT` when none exists. */
   readonly health: OAuthConnectionHealth;
+  /**
+   * The vault the sign-in must be saved into: the first vault the
+   * conversation lists, when it lists any (such a conversation reads its
+   * logins only from them). Absent, the sign-in is saved in My vault.
+   */
+  readonly vault?: SignInVault;
 }
 
 // ---------------------------------------------------------------------------
@@ -35,26 +43,27 @@ export interface PendingSignIn {
  * Every mode starts the conversation on the agent itself (the session's
  * `agentRef`); the mode says where the keys the agent declares come from:
  *
- * - `"saved"` — The user's personal environment holds every declared
- *   key (saved just now or earlier). Each run reads them from there.
- * - `"oneTime"` — Secrets were collected but **not** persisted. Pass
- *   `runtimeEnv` to `createExecution` for this run only.
+ * - `"saved"` — The user's vaults hold every declared key (saved in My
+ *   vault just now or earlier, or in a vault the agent attaches). Each run
+ *   reads them from there.
+ * - `"oneTime"` — Values were collected but **not** saved in a vault. They
+ *   become the conversation's own secrets (`session_spec.secrets`).
  * - `"direct"` — Nothing is needed from the user: the agent declares no
  *   keys, or the session's variables cover the ones it does.
  */
 export type AgentResolution =
   | {
-      /** The user's personal environment holds every key the agent declares. */
+      /** The user's vaults hold every key the agent declares. */
       readonly mode: "saved";
     }
   | {
-      /** Secrets were collected but not persisted — pass to run only. */
+      /** Values were collected but not saved in a vault — the conversation keeps them. */
       readonly mode: "oneTime";
-      /** Collected secrets to forward as execution-scoped runtime env vars. */
-      readonly runtimeEnv: Record<string, EnvVarInput>;
+      /** Collected values, written as the conversation's own secrets. */
+      readonly values: Record<string, EnvVarInput>;
     }
   | {
-      /** Nothing is needed from the user's personal environment. */
+      /** Nothing is needed from the user's vaults. */
       readonly mode: "direct";
     };
 
@@ -101,7 +110,7 @@ export type AgentSetupPhase =
       readonly pendingSignIns: readonly PendingSignIn[];
     }
   | {
-      /** Environment variables are being saved to the personal environment. */
+      /** Environment variables are being saved to the My vault. */
       readonly status: "submitting";
       /** Reference to the agent being set up. */
       readonly agentRef: ResourceRef;
@@ -236,7 +245,7 @@ export type AgentSetupAction =
       readonly missingVariables: AgentEnvFormVariable[];
     }
   | {
-      /** Begin saving env vars to the personal environment. */
+      /** Begin saving env vars to the My vault. */
       readonly type: "SUBMIT_START";
     }
   | {

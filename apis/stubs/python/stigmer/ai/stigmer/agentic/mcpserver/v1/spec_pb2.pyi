@@ -1,4 +1,4 @@
-from ai.stigmer.agentic.environment.v1 import spec_pb2 as _spec_pb2
+from ai.stigmer.agentic.vault.v1 import declaration_pb2 as _declaration_pb2
 from ai.stigmer.commons.apiresource import field_options_pb2 as _field_options_pb2
 from ai.stigmer.commons.apiresource import io_pb2 as _io_pb2
 from buf.validate import validate_pb2 as _validate_pb2
@@ -17,8 +17,8 @@ class McpServerSpec(_message.Message):
         KEY_FIELD_NUMBER: _ClassVar[int]
         VALUE_FIELD_NUMBER: _ClassVar[int]
         key: str
-        value: _spec_pb2.EnvVarDeclaration
-        def __init__(self, key: _Optional[str] = ..., value: _Optional[_Union[_spec_pb2.EnvVarDeclaration, _Mapping]] = ...) -> None: ...
+        value: _declaration_pb2.EnvVarDeclaration
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[_Union[_declaration_pb2.EnvVarDeclaration, _Mapping]] = ...) -> None: ...
     DESCRIPTION_FIELD_NUMBER: _ClassVar[int]
     ICON_URL_FIELD_NUMBER: _ClassVar[int]
     TAGS_FIELD_NUMBER: _ClassVar[int]
@@ -33,11 +33,11 @@ class McpServerSpec(_message.Message):
     tags: _containers.RepeatedScalarFieldContainer[str]
     stdio: StdioServerConfig
     http: HttpServerConfig
-    env: _containers.MessageMap[str, _spec_pb2.EnvVarDeclaration]
+    env: _containers.MessageMap[str, _declaration_pb2.EnvVarDeclaration]
     repository_url: str
     github_stars: int
     auth: McpServerAuth
-    def __init__(self, description: _Optional[str] = ..., icon_url: _Optional[str] = ..., tags: _Optional[_Iterable[str]] = ..., stdio: _Optional[_Union[StdioServerConfig, _Mapping]] = ..., http: _Optional[_Union[HttpServerConfig, _Mapping]] = ..., env: _Optional[_Mapping[str, _spec_pb2.EnvVarDeclaration]] = ..., repository_url: _Optional[str] = ..., github_stars: _Optional[int] = ..., auth: _Optional[_Union[McpServerAuth, _Mapping]] = ...) -> None: ...
+    def __init__(self, description: _Optional[str] = ..., icon_url: _Optional[str] = ..., tags: _Optional[_Iterable[str]] = ..., stdio: _Optional[_Union[StdioServerConfig, _Mapping]] = ..., http: _Optional[_Union[HttpServerConfig, _Mapping]] = ..., env: _Optional[_Mapping[str, _declaration_pb2.EnvVarDeclaration]] = ..., repository_url: _Optional[str] = ..., github_stars: _Optional[int] = ..., auth: _Optional[_Union[McpServerAuth, _Mapping]] = ...) -> None: ...
 
 class StdioServerConfig(_message.Message):
     __slots__ = ("command", "args", "working_dir")

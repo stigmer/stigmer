@@ -26,7 +26,7 @@ import type { CSSProperties } from "react";
 import type { ReactNode } from "react";
 import { McpServerDetailView, type UseMcpServerReturn } from "@stigmer/react";
 import { BrowserView } from "@scenar/react";
-import type { EnvVarInput } from "@stigmer/sdk";
+import type { EnvVarInput } from "@stigmer/react";
 import { AppShell } from "../_shared/AppShell";
 import { DEMO_ORG } from "../_shared/fixtures";
 import {

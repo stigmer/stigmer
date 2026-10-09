@@ -30,7 +30,9 @@ the truth.
   named, and it is registered in `ApiResourceKind`. The server and every SDK
   mirror this structure.
 - Blueprint kinds (Agent, McpServer, Skill) carry no secrets and no
-  environment-specific values; runtime kinds do.
+  environment-specific values; runtime kinds do. A declared variable's plain
+  default is a fixed setting, the same wherever the blueprint runs; a value that
+  differs per deployment lives in a vault.
 - Every RPC declares its authorization posture through the commons annotations
   (`config`, `is_public`, `is_skip_authorization`); the server's
   `backend/services/stigmer-server/docs/authorization-coverage.md` inventories

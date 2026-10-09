@@ -19,7 +19,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/platformclient/v1/api.proto.
  */
 export const file_ai_stigmer_iam_platformclient_v1_api: GenFile = /*@__PURE__*/
-  fileDesc("CiphaS9zdGlnbWVyL2lhbS9wbGF0Zm9ybWNsaWVudC92MS9hcGkucHJvdG8SIGFpLnN0aWdtZXIuaWFtLnBsYXRmb3JtY2xpZW50LnYxIr8CCg5QbGF0Zm9ybUNsaWVudBItCgthcGlfdmVyc2lvbhgBIAEoCUIYukgVchMKEWlhbS5zdGlnbWVyLmFpL3YxEiMKBGtpbmQYAiABKAlCFbpIEnIQCg5QbGF0Zm9ybUNsaWVudBJNCghtZXRhZGF0YRgDIAEoCzIzLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZU1ldGFkYXRhQga6SAPIAQESQgoEc3BlYxgEIAEoCzI0LmFpLnN0aWdtZXIuaWFtLnBsYXRmb3JtY2xpZW50LnYxLlBsYXRmb3JtQ2xpZW50U3BlYxJGCgZzdGF0dXMYBSABKAsyNi5haS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MS5QbGF0Zm9ybUNsaWVudFN0YXR1cyKJAQoUUGxhdGZvcm1DbGllbnRTdGF0dXMSPwoFYXVkaXQYYyABKAsyMC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VBdWRpdBIwCgxsYXN0X3VzZWRfYXQYASABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_metadata, file_ai_stigmer_commons_apiresource_status, file_ai_stigmer_iam_platformclient_v1_spec, file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("CiphaS9zdGlnbWVyL2lhbS9wbGF0Zm9ybWNsaWVudC92MS9hcGkucHJvdG8SIGFpLnN0aWdtZXIuaWFtLnBsYXRmb3JtY2xpZW50LnYxIr8CCg5QbGF0Zm9ybUNsaWVudBItCgthcGlfdmVyc2lvbhgBIAEoCUIYukgVchMKEWlhbS5zdGlnbWVyLmFpL3YxEiMKBGtpbmQYAiABKAlCFbpIEnIQCg5QbGF0Zm9ybUNsaWVudBJNCghtZXRhZGF0YRgDIAEoCzIzLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZU1ldGFkYXRhQga6SAPIAQESQgoEc3BlYxgEIAEoCzI0LmFpLnN0aWdtZXIuaWFtLnBsYXRmb3JtY2xpZW50LnYxLlBsYXRmb3JtQ2xpZW50U3BlYxJGCgZzdGF0dXMYBSABKAsyNi5haS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MS5QbGF0Zm9ybUNsaWVudFN0YXR1cyKlAgoUUGxhdGZvcm1DbGllbnRTdGF0dXMSPwoFYXVkaXQYYyABKAsyMC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VBdWRpdBIwCgxsYXN0X3VzZWRfYXQYASABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEmMKD3ZhdWx0X2F0dGFjaGVycxgCIAMoCzJKLmFpLnN0aWdtZXIuaWFtLnBsYXRmb3JtY2xpZW50LnYxLlBsYXRmb3JtQ2xpZW50U3RhdHVzLlZhdWx0QXR0YWNoZXJzRW50cnkaNQoTVmF1bHRBdHRhY2hlcnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_metadata, file_ai_stigmer_commons_apiresource_status, file_ai_stigmer_iam_platformclient_v1_spec, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * PlatformClient represents an OAuth2 client credential for platform builders
@@ -120,6 +120,15 @@ export type PlatformClientStatus = Message<"ai.stigmer.iam.platformclient.v1.Pla
    * @generated from field: google.protobuf.Timestamp last_used_at = 1;
    */
   lastUsedAt?: Timestamp;
+
+  /**
+   * Who attached each of this resource's vaults, by vault id: the account
+   * whose permission to use the vault each run checks when it has no
+   * person.
+   *
+   * @generated from field: map<string, string> vault_attachers = 2;
+   */
+  vaultAttachers: { [key: string]: string };
 };
 
 /**

@@ -2,11 +2,11 @@
 
 /**
  * The line that names which keys an agent will read from the person's
- * personal environment, shown before the first message of a conversation
+ * My vault, shown before the first message of a conversation
  * on that agent.
  *
  * Every run of an agent fills the keys the agent declares
- * (`agent.spec.env`) from the running person's personal environment, so
+ * (`agent.spec.env`) from the running person's My vault, so
  * starting a conversation hands the agent those values. The person is
  * told which keys before sending, from the declarations the agent
  * already publishes. It is a disclosure, not a gate: nothing is withheld
@@ -55,13 +55,12 @@ export interface PersonalKeyDisclosureProps {
 }
 
 /**
- * Names the keys a run of `agentRef` reads from the person's personal
- * environment, in the order a reader scans them (sorted).
+ * Names the keys a run of `agentRef` reads from the person's My vault, in the order a reader scans them (sorted).
  *
  * @example
  * ```tsx
  * <PersonalKeyDisclosure agentRef={{ org: "acme", slug: "pr-reviewer" }} runOrg="org_acme" />
- * // This agent can read these keys from your personal environment: GITHUB_TOKEN, LINEAR_API_KEY
+ * // This agent can read these keys from your My vault: GITHUB_TOKEN, LINEAR_API_KEY
  * ```
  */
 export function PersonalKeyDisclosure({
@@ -80,7 +79,7 @@ export function PersonalKeyDisclosure({
       data-testid="personal-key-disclosure"
       className={cn("stg:text-xs stg:text-muted-foreground", className)}
     >
-      This agent can read these keys from your personal environment:{" "}
+      This agent can read these keys from your My vault:{" "}
       <span className="stg:font-mono">{keys.join(", ")}</span>
     </p>
   );

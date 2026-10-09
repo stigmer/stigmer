@@ -2,13 +2,14 @@
  * Pins the single-organization fill (interceptors/single-organization.ts):
  *
  *   - `fillRuleFor` reads one path per method from the contract: a
- *     top-level `org`; `metadata.org` for a kind scoped to an organization
- *     or a parent; nothing for the Organization service or a kind that
- *     belongs to no organization;
+ *     top-level `org`; a vault entry write's `vault.org`; `metadata.org`
+ *     for a kind scoped to an organization or a parent; nothing for the
+ *     Organization service or a kind that belongs to no organization;
  *   - the holder settles once;
  *   - over the real interceptor chain, a unary request with an empty org
- *     reaches protovalidate and the handler filled, an explicit org and a
- *     request with nothing to fill pass untouched (the caller's message is
+ *     reaches protovalidate and the handler filled (a vault entry write's
+ *     target too), an explicit org and a request with nothing to fill pass
+ *     untouched (the caller's message is
  *     never mutated), and a holder with no organization fills nothing.
  */
 import { create } from "@bufbuild/protobuf";
@@ -22,6 +23,8 @@ import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent
 import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
 import { ExecutionContextQueryController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/query_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
+import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
+import { VaultCommandController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/command_pb";
 import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
@@ -58,6 +61,16 @@ describe("fillRuleFor — one path per method, from the contract", () => {
       "a parent-scoped kind (an execution, its session's organization) fills metadata.org",
       RunCommandController.method.create,
       { path: "metadata.org" },
+    ],
+    [
+      "a vault entry write fills its target's org",
+      VaultCommandController.method.setSecrets,
+      { path: "vault.org" },
+    ],
+    [
+      "every vault entry write names its organization in its target",
+      VaultCommandController.method.removeConnections,
+      { path: "vault.org" },
     ],
     [
       "a top-level org on a service with no kind fills org",
@@ -140,6 +153,12 @@ function harness(organization: SingleOrganization) {
           return {};
         },
       });
+      router.service(VaultCommandController, {
+        setSecrets: (request) => {
+          seen.push(request);
+          return create(VaultSchema, { metadata: { org: request.vault?.org ?? "" } });
+        },
+      });
     },
     {
       router: {
@@ -163,6 +182,7 @@ function harness(organization: SingleOrganization) {
   return {
     agents: createClient(AgentCommandController, transport),
     search: createClient(SearchService, transport),
+    vaults: createClient(VaultCommandController, transport),
     seen,
     passedOn,
   };
@@ -184,6 +204,16 @@ describe("the fill over the interceptor chain", () => {
     const { search, seen } = harness(holding("stigmer"));
     await search.search({ query: "anything" });
     expect(seen).toMatchObject([{ org: "stigmer" }]);
+  });
+
+  it("an empty org in a vault entry write's target reaches validation and the handler filled", async () => {
+    const { vaults, seen } = harness(holding("stigmer"));
+    const saved = await vaults.setSecrets({
+      vault: { vault: { case: "mine", value: true } },
+      secrets: { API_KEY: { value: "v" } },
+    });
+    expect(saved.metadata?.org).toBe("stigmer");
+    expect(seen).toMatchObject([{ vault: { org: "stigmer" } }]);
   });
 
   it("an explicit org is never touched", async () => {

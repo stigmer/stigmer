@@ -55,7 +55,7 @@ type organization
     # them, authored by them, or through a team), with no cleanup to wait
     # for. A guest is included because the organization's system accounts
     # (guest, channel and schedule sessions) hold `guest` and own the
-    # sessions and environments they create.
+    # sessions they create.
     #
     # Stored, so the bound costs one read instead of a walk up the role
     # chain on every object a list checks. It is DERIVED, never granted:
@@ -114,7 +114,10 @@ type organization
     # ========================================
     define can_create_agent: admin
     define can_create_session: member or guest
-    define can_create_environment: member
+    # Every member keeps a My vault of their own logins and secrets; a
+    # shared vault is the organization's, so only admins create one.
+    define can_create_vault: member
+    define can_create_shared_vault: admin
     define can_create_skill: admin
     # A plugin install writes several resources in one act — the skill bar.
     define can_create_plugin: admin

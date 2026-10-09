@@ -329,10 +329,10 @@ return <h1>{profile.name}</h1>;
 
 ### useShareToolReadiness
 
-Share-scoped wrapper over [`useToolCredentialsReadiness`](/docs/sdk/react/environment#usetoolcredentialsreadiness): checks
+Share-scoped wrapper over [`useToolCredentialsReadiness`](/docs/sdk/react/vault#usetoolcredentialsreadiness): checks
 whether a tool-using shared agent's credentials will work for
-visitors — i.e. whether the share binds environments
-(`environment_refs`) and each one is shared with the organization.
+visitors — i.e. whether the share names vaults (`vaults`) and each
+one is a shared vault.
 
 The check runs only when the share is enabled with a public audience
 (org-audience shares reject bindings at the proto boundary), the
@@ -506,7 +506,7 @@ A complete share configuration to persist.
 Every field is required by design: saving **replaces the share's whole
 spec**, so a caller must always supply the full configuration. A
 partial type here would let a toggle change silently wipe
-`allowedOrigins`, `messages`, `environmentRefs`, or the `audience` —
+`allowedOrigins`, `messages`, `vaults`, or the `audience` —
 the required shape makes that mistake unrepresentable. (The rotatable
 link token is exempt: it is server-owned `status`, which survives
 every save verbatim.)
@@ -516,9 +516,9 @@ every save verbatim.)
     allowedOrigins: { type: "readonly string[]", description: "Exact web origins allowed to embed the shared agent (e.g. `https://example.com`). Empty list = embeddable anywhere. Embedding is public-audience only.", required: true },
     audience: { type: "SharingAudience", description: "Who can chat: anyone with the link, or org members only.", required: true, typeDescriptionLink: "#sharingaudience" },
     enabled: { type: "boolean", description: "Whether hosted-chat access for the configured audience is enabled.", required: true },
-    environmentRefs: { type: "readonly ResourceRef[]", description: "Org-shared environments whose values guest conversations receive — how a tool-using agent becomes chattable over a share link without touching the agent itself. Public-audience only (the proto CEL rule rejects bindings on org-audience shares, whose member sessions carry no share linkage).", required: true },
     messages: { type: "{ conversationEnded: string; rateLimited: string; unavailable: string }", description: "Owner-customized visitor refusal copy. Empty strings mean platform defaults.", required: true },
-    runConfig: { type: "RunConfigInput | undefined", description: "The owner's per-share run override (model / cost cap / tool rounds / service tier), merged over the platform guest profile at run time — stigmer/stigmer#360. The console does not edit it (yet): it rides through every save opaquely so a toggle never wipes an override set via the CLI or API. Public-audience only (the same proto CEL rule as environmentRefs, for the same reason).", required: true },
+    runConfig: { type: "RunConfigInput | undefined", description: "The owner's per-share run override (model / cost cap / tool rounds / service tier), merged over the platform guest profile at run time — stigmer/stigmer#360. The console does not edit it (yet): it rides through every save opaquely so a toggle never wipes an override set via the CLI or API. Public-audience only (the same proto CEL rule as vaults, for the same reason).", required: true },
+    vaults: { type: "readonly ResourceRef[]", description: "Shared vaults whose keys guest conversations use, in order — how a tool-using agent becomes chattable over a share link without touching the agent itself. Public-audience only (the proto CEL rule rejects bindings on org-audience shares, whose member sessions carry no share linkage).", required: true },
   }}
 />
 
@@ -545,7 +545,7 @@ function draftFromShare(share: AgentShare | null): AgentShareDraft
 
 Readiness of a share's tool credentials for visitor runs.
 
-The shared vocabulary lives on [`ToolCredentialsReadiness`](/docs/sdk/react/environment#toolcredentialsreadiness); this
+The shared vocabulary lives on [`ToolCredentialsReadiness`](/docs/sdk/react/vault#toolcredentialsreadiness); this
 alias preserves the original share-scoped export.
 
 

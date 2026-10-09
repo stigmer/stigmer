@@ -92,7 +92,7 @@ const TARGET_CHECK_DEBOUNCE_MS = 400;
  *
  * Guardrails beyond the raw engine:
  * - the edited document must stay the same kind as the source resource
- *   (pasting an Environment into an Agent editor is an error, not an apply)
+ *   (pasting a Skill into an Agent editor is an error, not an apply)
  * - the edited manifest must contain exactly one document
  *
  * @example

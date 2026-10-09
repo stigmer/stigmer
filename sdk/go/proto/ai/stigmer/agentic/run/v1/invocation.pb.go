@@ -28,7 +28,7 @@ const (
 //
 // It is the owner-settable subset of a run — the interactive
 // composer's vocabulary (agent, message, harness, workspace,
-// environments, run bounds) minus what an unattended surface makes
+// vaults, run bounds) minus what an unattended surface makes
 // structurally impossible. Surfaces that trigger agents on someone's
 // behalf embed this message instead of re-deriving the shape:
 // schedules embed it whole; channels and shares embed RunConfig.
@@ -49,14 +49,12 @@ type AgentInvocation struct {
 	Harness v1.Harness `protobuf:"varint,3,opt,name=harness,proto3,enum=ai.stigmer.agentic.session.v1.Harness" json:"harness,omitempty"`
 	// Workspace the run's session operates on. Empty means no workspace.
 	WorkspaceEntries []*v1.WorkspaceEntry `protobuf:"bytes,4,rep,name=workspace_entries,json=workspaceEntries,proto3" json:"workspace_entries,omitempty"`
-	// References to Environment resources whose values are provided to
-	// the runs this invocation creates.
+	// Vaults whose logins and secrets the runs this invocation creates use, in
+	// order: the first vault holding a match wins. At most 20.
 	//
-	// This is how a tool-using agent becomes runnable unattended: bind
-	// an org-shared environment holding the needed credentials (for
-	// example an MCP server's shared secret), and the runs receive its
-	// values at runtime. The agent itself stays untouched.
-	EnvironmentRefs []*apiresource.ApiResourceReference `protobuf:"bytes,5,rep,name=environment_refs,json=environmentRefs,proto3" json:"environment_refs,omitempty"`
+	// A schedule's runs have no person, so these vaults are all they use. The
+	// schedule's owner may attach their own My vault; nobody else's.
+	Vaults []*apiresource.ApiResourceReference `protobuf:"bytes,7,rep,name=vaults,proto3" json:"vaults,omitempty"`
 	// Per-invocation model choice and run bounds. Unset fields fall to the
 	// agent's defaults, then to the lane's operator profile (RunConfig has the
 	// rule).
@@ -123,9 +121,9 @@ func (x *AgentInvocation) GetWorkspaceEntries() []*v1.WorkspaceEntry {
 	return nil
 }
 
-func (x *AgentInvocation) GetEnvironmentRefs() []*apiresource.ApiResourceReference {
+func (x *AgentInvocation) GetVaults() []*apiresource.ApiResourceReference {
 	if x != nil {
-		return x.EnvironmentRefs
+		return x.Vaults
 	}
 	return nil
 }
@@ -311,18 +309,19 @@ var File_ai_stigmer_agentic_run_v1_invocation_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_run_v1_invocation_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/agentic/run/v1/invocation.proto\x12\x19ai.stigmer.agentic.run.v1\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xaf\x05\n" +
+	"*ai/stigmer/agentic/run/v1/invocation.proto\x12\x19ai.stigmer.agentic.run.v1\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xec\x06\n" +
 	"\x0fAgentInvocation\x12\xb6\x01\n" +
 	"\tagent_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBc\xbaH\\\xba\x01V\n" +
 	"\x0eagent_ref.kind\x123agent_ref must reference a resource with kind=agent\x1a\x0fthis.kind == 40\xc8\x01\x01\xe0\x85,(R\bagentRef\x12$\n" +
 	"\amessage\x18\x02 \x01(\tB\n" +
 	"\xbaH\ar\x05\x10\x01\x18\x80@R\amessage\x12@\n" +
-	"\aharness\x18\x03 \x01(\x0e2&.ai.stigmer.agentic.session.v1.HarnessR\aharness\x12Z\n" +
-	"\x11workspace_entries\x18\x04 \x03(\v2-.ai.stigmer.agentic.session.v1.WorkspaceEntryR\x10workspaceEntries\x12\xd9\x01\n" +
-	"\x10environment_refs\x18\x05 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBx\xbaHq\x92\x01n\"l\xba\x01i\n" +
-	"\x15environment_refs.kind\x12?environment_refs must reference resources with kind=environment\x1a\x0fthis.kind == 53\xe0\x85,5R\x0fenvironmentRefs\x12C\n" +
+	"\aharness\x18\x03 \x01(\x0e2&.ai.stigmer.agentic.session.v1.HarnessR\aharness\x12\xa9\x02\n" +
+	"\x11workspace_entries\x18\x04 \x03(\v2-.ai.stigmer.agentic.session.v1.WorkspaceEntryB\xcc\x01\xbaH\xc8\x01\x92\x01\xc4\x01\"\xc1\x01\xba\x01\xbd\x01\n" +
+	"\x1aworkspace_entries.no_token\x12_a repository here cannot carry a token: save it as a connection in a vault the invocation names\x1a>!has(this.source.git_repo) || this.source.git_repo.token == ''R\x10workspaceEntries\x12\xae\x01\n" +
+	"\x06vaults\x18\a \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB`\xbaHY\x92\x01V\x10\x14\"R\xba\x01O\n" +
+	"\vvaults.kind\x12/vaults must reference resources with kind=vault\x1a\x0fthis.kind == 59\xe0\x85,;R\x06vaults\x12C\n" +
 	"\n" +
-	"run_config\x18\x06 \x01(\v2$.ai.stigmer.agentic.run.v1.RunConfigR\trunConfig\"\xf6\x02\n" +
+	"run_config\x18\x06 \x01(\v2$.ai.stigmer.agentic.run.v1.RunConfigR\trunConfigJ\x04\b\x05\x10\x06R\x10environment_refs\"\xf6\x02\n" +
 	"\tRunConfig\x12\x1d\n" +
 	"\n" +
 	"model_name\x18\x01 \x01(\tR\tmodelName\x120\n" +
@@ -360,7 +359,7 @@ var file_ai_stigmer_agentic_run_v1_invocation_proto_depIdxs = []int32{
 	2, // 0: ai.stigmer.agentic.run.v1.AgentInvocation.agent_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
 	3, // 1: ai.stigmer.agentic.run.v1.AgentInvocation.harness:type_name -> ai.stigmer.agentic.session.v1.Harness
 	4, // 2: ai.stigmer.agentic.run.v1.AgentInvocation.workspace_entries:type_name -> ai.stigmer.agentic.session.v1.WorkspaceEntry
-	2, // 3: ai.stigmer.agentic.run.v1.AgentInvocation.environment_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	2, // 3: ai.stigmer.agentic.run.v1.AgentInvocation.vaults:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
 	1, // 4: ai.stigmer.agentic.run.v1.AgentInvocation.run_config:type_name -> ai.stigmer.agentic.run.v1.RunConfig
 	5, // 5: ai.stigmer.agentic.run.v1.RunConfig.service_tier:type_name -> ai.stigmer.agentic.run.v1.ServiceTier
 	6, // 6: ai.stigmer.agentic.run.v1.RunConfig.thinking_mode:type_name -> ai.stigmer.agentic.run.v1.ThinkingMode

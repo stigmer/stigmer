@@ -24,12 +24,12 @@ const (
 )
 
 // OAuthConnectionHealth evaluates the health of an OAuth connection by
-// examining grant existence and token expiry metadata. Used in
+// examining whether a login is saved and its token expiry metadata. Used in
 // GetOAuthGrantStatusOutput to give the frontend an actionable signal
 // beyond the binary "connected" boolean.
 //
-// The backend determines health from locally available metadata (grant
-// record + access_token_expires_at). It cannot detect server-side token
+// The backend determines health from locally available metadata (the
+// saved connection and its sign-in expiry). It cannot detect server-side token
 // revocation without making an API call to the vendor, so HEALTHY means
 // "valid as far as we know" — not a guarantee the token will be accepted.
 type OAuthConnectionHealth int32
@@ -47,8 +47,9 @@ const (
 	// If the refresh token is itself expired, the refresh will fail and
 	// the user will need to re-authenticate.
 	OAuthConnectionHealth_OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED_REFRESHABLE OAuthConnectionHealth = 3
-	// No OAuth grant exists for this resource + org + user combination.
-	// The user has never connected or has disconnected.
+	// No sign-in made for this server that a run would use: the user has
+	// never signed in, has disconnected, or the saved login is not a
+	// sign-in this server can use.
 	OAuthConnectionHealth_OAUTH_CONNECTION_HEALTH_NO_GRANT OAuthConnectionHealth = 4
 )
 
@@ -153,14 +154,12 @@ type ConnectInput struct {
 	// System-generated ID of the MCP server to connect to.
 	// Obtained from McpServer.metadata.id (e.g., via getByReference).
 	McpServerId string `protobuf:"bytes,1,opt,name=mcp_server_id,json=mcpServerId,proto3" json:"mcp_server_id,omitempty"`
-	// Optional environment variable values for one-time use.
-	// When empty, values are resolved from the user's personal environment.
+	// Optional environment variable values for one-time use, ahead of the
+	// caller's My vault.
 	RuntimeEnv map[string]*v1.ExecutionValue `protobuf:"bytes,2,rep,name=runtime_env,json=runtimeEnv,proto3" json:"runtime_env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// Organization context for credential resolution.
 	//
-	// Used to look up the caller's OAuthGrant and personal environment
-	// during environment variable resolution. Must match the org used
-	// during initiateOAuthConnect so the grant composite key aligns.
+	// The caller's My vault in this organization is the one connect reads.
 	//
 	// Required: the backend rejects the request when this field is empty.
 	Org           string `protobuf:"bytes,3,opt,name=org,proto3" json:"org,omitempty"`
@@ -226,9 +225,13 @@ type InitiateOAuthConnectInput struct {
 	// System-generated ID of the MCP server to initiate OAuth for.
 	McpServerId string `protobuf:"bytes,1,opt,name=mcp_server_id,json=mcpServerId,proto3" json:"mcp_server_id,omitempty"`
 	// Organization context for token storage.
-	// Tokens are stored in the caller's personal environment within this org.
 	// Must be an org the caller belongs to.
-	Org           string `protobuf:"bytes,2,opt,name=org,proto3" json:"org,omitempty"`
+	Org string `protobuf:"bytes,2,opt,name=org,proto3" json:"org,omitempty"`
+	// The shared vault, by id, the login is saved into. Empty saves it in the
+	// caller's My vault in the organization. A login saved into a shared vault
+	// serves the runs that use that vault; connect reads only My vault. A
+	// vault id is "vlt_" followed by 26 lowercase characters.
+	VaultId       string `protobuf:"bytes,3,opt,name=vault_id,json=vaultId,proto3" json:"vault_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -273,6 +276,13 @@ func (x *InitiateOAuthConnectInput) GetMcpServerId() string {
 func (x *InitiateOAuthConnectInput) GetOrg() string {
 	if x != nil {
 		return x.Org
+	}
+	return ""
+}
+
+func (x *InitiateOAuthConnectInput) GetVaultId() string {
+	if x != nil {
+		return x.VaultId
 	}
 	return ""
 }
@@ -431,7 +441,7 @@ type CompleteOAuthConnectOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Whether the OAuth flow completed successfully and tokens are stored.
 	Connected bool `protobuf:"varint,1,opt,name=connected,proto3" json:"connected,omitempty"`
-	// The environment variable name where the access token was stored.
+	// The environment variable the saved login fills.
 	// Matches McpServerAuth.target_env_var on the MCP server spec.
 	TargetEnvVar string `protobuf:"bytes,2,opt,name=target_env_var,json=targetEnvVar,proto3" json:"target_env_var,omitempty"`
 	// Informational hint about expected token lifetime.
@@ -551,16 +561,16 @@ func (x *GetOAuthGrantStatusInput) GetOrg() string {
 // GetOAuthGrantStatusOutput returns the current OAuth grant status.
 type GetOAuthGrantStatusOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Whether the user has an active OAuth grant for this resource + org.
+	// Whether the user has a sign-in saved for this server in this org.
 	Connected bool `protobuf:"varint,1,opt,name=connected,proto3" json:"connected,omitempty"`
 	// When the access token expires (Unix timestamp seconds).
-	// 0 if no grant exists or the token does not expire.
+	// 0 if no sign-in is saved or the token does not expire.
 	AccessTokenExpiresAt int64 `protobuf:"varint,2,opt,name=access_token_expires_at,json=accessTokenExpiresAt,proto3" json:"access_token_expires_at,omitempty"`
-	// The env var name where the access token is stored.
-	// Empty if no grant exists.
+	// The env var the saved sign-in fills.
+	// Empty if no sign-in is saved.
 	TargetEnvVar string `protobuf:"bytes,3,opt,name=target_env_var,json=targetEnvVar,proto3" json:"target_env_var,omitempty"`
 	// Which auth method was used ("mcp_oauth" or "vendor_oauth").
-	// Empty if no grant exists.
+	// Empty if no sign-in is saved.
 	AuthMethod string `protobuf:"bytes,4,opt,name=auth_method,json=authMethod,proto3" json:"auth_method,omitempty"`
 	// Evaluated health of the OAuth connection.
 	// Provides an actionable signal beyond the binary "connected" field:
@@ -641,8 +651,8 @@ type DisconnectOAuthInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// System-generated ID of the resource to disconnect OAuth for.
 	ResourceId string `protobuf:"bytes,1,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
-	// Organization context. Must match the org used during the original
-	// OAuth connect flow (part of the OAuthGrant composite key).
+	// Organization context: the caller's My vault in this org is the one
+	// changed.
 	Org           string `protobuf:"bytes,2,opt,name=org,proto3" json:"org,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -695,9 +705,9 @@ func (x *DisconnectOAuthInput) GetOrg() string {
 // DisconnectOAuthOutput reports the result of a disconnect request.
 type DisconnectOAuthOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Whether an active grant was found and deleted.
-	// true: grant and its managed environment were deleted.
-	// false: no grant existed for this resource + org + caller. The desired
+	// Whether a saved sign-in was found and removed.
+	// true: the connection and its tokens were removed.
+	// false: no sign-in was saved for this server, org and caller. The desired
 	// state (no OAuth connection) was already achieved. This is not an error.
 	Disconnected  bool `protobuf:"varint,1,opt,name=disconnected,proto3" json:"disconnected,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -1101,10 +1111,11 @@ const file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDesc = "" +
 	"\x03org\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x1au\n" +
 	"\x0fRuntimeEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12L\n" +
-	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01\"b\n" +
+	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01\"\x9d\x01\n" +
 	"\x19InitiateOAuthConnectInput\x12*\n" +
 	"\rmcp_server_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vmcpServerId\x12\x19\n" +
-	"\x03org\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"\x9c\x01\n" +
+	"\x03org\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x129\n" +
+	"\bvault_id\x18\x03 \x01(\tB\x1e\xbaH\x1br\x19\x18\x1e2\x15^$|^vlt_[0-9a-z]{26}$R\avaultId\"\x9c\x01\n" +
 	"\x1aInitiateOAuthConnectOutput\x12+\n" +
 	"\x11authorization_url\x18\x01 \x01(\tR\x10authorizationUrl\x12\x14\n" +
 	"\x05state\x18\x02 \x01(\tR\x05state\x12\x16\n" +

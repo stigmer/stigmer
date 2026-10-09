@@ -10,7 +10,7 @@
  * still carrying the retired public level included); the viewer rung sees
  * the org-visible blueprints
  * and nothing personal; the founder — an admin — sees the organization's
- * blueprints and NOT its members' sessions, keys, environments or
+ * blueprints and NOT its members' sessions, keys, My vaults or
  * memories (the model's own line, now list-visible); an execution is its session's and
  * an orphaned execution is nobody's; a memory with no
  * subject is nobody's. Then the contract: a scope only narrows
@@ -87,7 +87,7 @@ const SEEDED_KINDS = [
   ApiResourceKind.run,
   ApiResourceKind.memory,
   ApiResourceKind.api_key,
-  ApiResourceKind.environment,
+  ApiResourceKind.vault,
 ];
 
 function resolved(accountId: string): CallerIdentity {
@@ -307,7 +307,6 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           for (const [type, prefix] of [
             ["session", "ses"],
             ["api_key", "key"],
-            ["environment", "env"],
           ] as const) {
             for (const [who, stamp] of [
               ["founder", FOUNDER],
@@ -320,6 +319,19 @@ describe.each(driverFixtures(SEEDED_KINDS))(
                 createdBy: stamp,
               });
             }
+          }
+          // My vaults: each is its person's, named by the spec's owner.
+          for (const [who, stamp] of [
+            ["founder", FOUNDER],
+            ["member", MEMBER],
+          ] as const) {
+            await save("vault", {
+              id: `vlt_${who}`,
+              org: ORG,
+              visibility: ApiResourceVisibility.visibility_private,
+              createdBy: stamp,
+              spec: { owner: { case: "person", value: stamp } },
+            });
           }
 
           // Executions: two in the founder's session, one in the member's,
@@ -405,11 +417,11 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             ).toEqual(all);
           });
 
-          it("sessions, API keys and environments are their owner's: the founder — an admin — does NOT list a member's, and the admin lists none", async () => {
+          it("sessions, API keys and My vaults are their owner's: the founder — an admin — does NOT list a member's, and the admin lists none", async () => {
             for (const [kind, prefix] of [
               [ApiResourceKind.session, "ses"],
               [ApiResourceKind.api_key, "key"],
-              [ApiResourceKind.environment, "env"],
+              [ApiResourceKind.vault, "vlt"],
             ] as const) {
               expect(await listAs(resolved(FOUNDER), kind)).toEqual([
                 `${prefix}_founder`,

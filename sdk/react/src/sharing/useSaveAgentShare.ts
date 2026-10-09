@@ -24,7 +24,7 @@ export type SharingAudience = "public" | "org";
  * Every field is required by design: saving **replaces the share's whole
  * spec**, so a caller must always supply the full configuration. A
  * partial type here would let a toggle change silently wipe
- * `allowedOrigins`, `messages`, `environmentRefs`, or the `audience` —
+ * `allowedOrigins`, `messages`, `vaults`, or the `audience` —
  * the required shape makes that mistake unrepresentable. (The rotatable
  * link token is exempt: it is server-owned `status`, which survives
  * every save verbatim.)
@@ -50,20 +50,20 @@ export interface AgentShareDraft {
     readonly conversationEnded: string;
   };
   /**
-   * Org-shared environments whose values guest conversations receive —
+   * Shared vaults whose keys guest conversations use, in order —
    * how a tool-using agent becomes chattable over a share link without
    * touching the agent itself. Public-audience only (the
    * proto CEL rule rejects bindings on org-audience shares, whose member
    * sessions carry no share linkage).
    */
-  readonly environmentRefs: readonly ResourceRef[];
+  readonly vaults: readonly ResourceRef[];
   /**
    * The owner's per-share run override (model / cost cap / tool
    * rounds / service tier), merged over the platform guest profile at
    * run time — stigmer/stigmer#360. The console does not edit it (yet):
    * it rides through every save opaquely so a toggle never wipes an
    * override set via the CLI or API. Public-audience only (the same
-   * proto CEL rule as environmentRefs, for the same reason).
+   * proto CEL rule as vaults, for the same reason).
    */
   readonly runConfig: RunConfigInput | undefined;
 }
@@ -108,7 +108,7 @@ export function draftFromShare(share: AgentShare | null): AgentShareDraft {
       unavailable: spec?.messages?.unavailable ?? "",
       conversationEnded: spec?.messages?.conversationEnded ?? "",
     },
-    environmentRefs: (spec?.environmentRefs ?? []).map((ref) => ({
+    vaults: (spec?.vaults ?? []).map((ref) => ({
       org: ref.org,
       slug: ref.slug,
     })),
@@ -246,7 +246,7 @@ export function useSaveAgentShare(
             unavailable: draft.messages.unavailable,
             conversationEnded: draft.messages.conversationEnded,
           },
-          environmentRefs: draft.environmentRefs.map((ref) => ({
+          vaults: draft.vaults.map((ref) => ({
             org: ref.org,
             slug: ref.slug,
           })),

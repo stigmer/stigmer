@@ -36,6 +36,9 @@ public final class SessionInput {
     private final Harness harness;
     private final CursorMode cursorMode;
     private final ExecutionTarget executionTarget;
+    private final java.util.List<ResourceRef> vaults;
+    private final java.util.Map<String, String> secrets;
+    private final java.util.Map<String, String> connections;
 
     private SessionInput(Builder builder) {
         this.id = builder.id;
@@ -55,6 +58,9 @@ public final class SessionInput {
         this.harness = builder.harness;
         this.cursorMode = builder.cursorMode;
         this.executionTarget = builder.executionTarget;
+        this.vaults = builder.vaults;
+        this.secrets = builder.secrets;
+        this.connections = builder.connections;
     }
 
     Session toProto() {
@@ -99,6 +105,18 @@ public final class SessionInput {
         }
         if (this.executionTarget != null) {
             spec.setExecutionTarget(this.executionTarget);
+        }
+        if (this.vaults != null) {
+            for (ResourceRef item : this.vaults) {
+                spec.addVaults(item.toProto().toBuilder()
+                    .setKind(ApiResourceKind.vault).build());
+            }
+        }
+        if (this.secrets != null && !this.secrets.isEmpty()) {
+            spec.putAllSecrets(this.secrets);
+        }
+        if (this.connections != null && !this.connections.isEmpty()) {
+            spec.putAllConnections(this.connections);
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name);
@@ -145,6 +163,9 @@ public final class SessionInput {
         private Harness harness;
         private CursorMode cursorMode;
         private ExecutionTarget executionTarget;
+        private java.util.List<ResourceRef> vaults;
+        private java.util.Map<String, String> secrets;
+        private java.util.Map<String, String> connections;
 
         private Builder() {}
 
@@ -170,6 +191,9 @@ public final class SessionInput {
         public Builder harness(Harness harness) { this.harness = harness; return this; }
         public Builder cursorMode(CursorMode cursorMode) { this.cursorMode = cursorMode; return this; }
         public Builder executionTarget(ExecutionTarget executionTarget) { this.executionTarget = executionTarget; return this; }
+        public Builder vaults(java.util.List<ResourceRef> vaults) { this.vaults = vaults; return this; }
+        public Builder secrets(java.util.Map<String, String> secrets) { this.secrets = secrets; return this; }
+        public Builder connections(java.util.Map<String, String> connections) { this.connections = connections; return this; }
 
         public SessionInput build() { return new SessionInput(this); }
     }
@@ -253,6 +277,7 @@ public final class SessionInput {
         private final String commit;
         private final Integer depth;
         private final GitWriteBackMode writeBackMode;
+        private final String token;
 
         private GitRepoSourceInput(Builder builder) {
             this.url = builder.url;
@@ -260,6 +285,7 @@ public final class SessionInput {
             this.commit = builder.commit;
             this.depth = builder.depth;
             this.writeBackMode = builder.writeBackMode;
+            this.token = builder.token;
         }
 
         GitRepoSource toProto() {
@@ -279,6 +305,9 @@ public final class SessionInput {
             if (this.writeBackMode != null) {
                 builder.setWriteBackMode(this.writeBackMode);
             }
+            if (this.token != null) {
+                builder.setToken(this.token);
+            }
             return builder.build();
         }
 
@@ -290,6 +319,7 @@ public final class SessionInput {
             private String commit;
             private Integer depth;
             private GitWriteBackMode writeBackMode;
+            private String token;
 
             private Builder() {}
 
@@ -298,6 +328,7 @@ public final class SessionInput {
             public Builder commit(String commit) { this.commit = commit; return this; }
             public Builder depth(int depth) { this.depth = depth; return this; }
             public Builder writeBackMode(GitWriteBackMode writeBackMode) { this.writeBackMode = writeBackMode; return this; }
+            public Builder token(String token) { this.token = token; return this; }
 
             public GitRepoSourceInput build() { return new GitRepoSourceInput(this); }
         }

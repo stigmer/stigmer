@@ -121,7 +121,7 @@ export function parseManifest(
   }
 
   // Stable sort into dependency order so multi-document manifests apply
-  // parents before dependents (e.g. Environment before AgentChannel).
+  // parents before dependents (e.g. McpServer before Agent).
   return documents.sort((a, b) => a.handler.applyOrder - b.handler.applyOrder);
 }
 

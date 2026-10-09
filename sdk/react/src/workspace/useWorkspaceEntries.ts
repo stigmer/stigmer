@@ -52,9 +52,21 @@ export interface WorkspaceEntry {
 export interface UseWorkspaceEntriesReturn {
   /** Current workspace entries. */
   readonly entries: readonly WorkspaceEntry[];
-  /** Add a git repository by URL with an optional branch. */
-  readonly addGitRepo: (url: string, branch?: string) => void;
-  /** Add a local filesystem directory by absolute path. */
+  /**
+   * Add a git repository by URL with an optional branch. The entry is named
+   * after the URL unless `name` is given: pass the stored name when loading
+   * a saved workspace, so a later write keeps the entry (and its stored
+   * token) under the name it was saved with.
+   *
+   * Names stay unique, because the server refuses a workspace that repeats
+   * one: a name already taken gains the branch (`acme/api@dev`), then a
+   * number (`acme/api-2`), so one repository can be added at two branches.
+   */
+  readonly addGitRepo: (url: string, branch?: string, name?: string) => void;
+  /**
+   * Add a local filesystem directory by absolute path, named after its last
+   * two path segments; a name already taken gains a number (`dev/api-2`).
+   */
   readonly addLocalPath: (path: string) => void;
   /** Remove an entry by its stable ID. */
   readonly remove: (id: string) => void;
@@ -80,6 +92,23 @@ function deriveNameFromGitUrl(url: string): string {
     return `${segments[segments.length - 2]}/${segments[segments.length - 1]}`;
   }
   return segments[segments.length - 1] ?? url;
+}
+
+/**
+ * The first of `base`, `base@qualifier` (when a qualifier is given) and
+ * `base-2`, `base-3`, ... that no entry in `entries` carries.
+ */
+function uniqueName(
+  entries: readonly WorkspaceEntry[],
+  base: string,
+  qualifier?: string,
+): string {
+  const taken = new Set(entries.map((e) => e.name));
+  if (!taken.has(base)) return base;
+  if (qualifier && !taken.has(`${base}@${qualifier}`)) return `${base}@${qualifier}`;
+  let n = 2;
+  while (taken.has(`${base}-${n}`)) n++;
+  return `${base}-${n}`;
 }
 
 function deriveNameFromPath(path: string): string {
@@ -133,19 +162,21 @@ function deriveNameFromPath(path: string): string {
 export function useWorkspaceEntries(): UseWorkspaceEntriesReturn {
   const [entries, setEntries] = useState<WorkspaceEntry[]>([]);
 
-  const addGitRepo = useCallback((url: string, branch?: string) => {
-    const name = deriveNameFromGitUrl(url);
+  const addGitRepo = useCallback((url: string, branch?: string, name?: string) => {
+    const id = uid();
+    const base = name || deriveNameFromGitUrl(url);
     setEntries((prev) => [
       ...prev,
-      { id: uid(), name, type: "git", gitUrl: url, gitBranch: branch },
+      { id, name: uniqueName(prev, base, branch), type: "git", gitUrl: url, gitBranch: branch },
     ]);
   }, []);
 
   const addLocalPath = useCallback((path: string) => {
-    const name = deriveNameFromPath(path);
+    const id = uid();
+    const base = deriveNameFromPath(path);
     setEntries((prev) => [
       ...prev,
-      { id: uid(), name, type: "local", localPath: path },
+      { id, name: uniqueName(prev, base), type: "local", localPath: path },
     ]);
   }, []);
 

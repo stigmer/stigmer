@@ -7,7 +7,7 @@
  *              nothing fires while the rest is removed; every execution
  *              that may still run is terminated; every sandbox is torn
  *              down; the side-store records keyed by the organization
- *              (pending OAuth states, OAuth grants) are removed.
+ *              (pending OAuth states) are removed.
  *              Termination needs the engine only when an execution has not
  *              reached a terminal phase: a server composed with no engine
  *              has none (an execution cannot be created without one), and
@@ -134,7 +134,6 @@ export function newQuiesceStage(deps: QuiesceStageDeps): OrganizationPurgeStage 
       await terminateAgentExecutions(deps, context);
       await deprovisionSandboxes(deps, context);
       await deps.store.pendingOAuthStates.deleteByOrg(context.org.id);
-      await deps.store.oauthGrants.deleteByOrg(context.org.id);
       return DONE;
     },
   };

@@ -58,16 +58,17 @@ message LocalPathSource {
 //
 // Only HTTPS clone URLs are supported. SSH URLs are rejected at validation time.
 //
+// A private repository is cloned with the entry's own token when it carries
+// one, else with a login saved for the repository's host (github.com) in the
+// conversation's vaults. The entry's own token is used only for an
+// https://github.com repository: a session write carrying a token for any
+// other repository is refused.
+//
 // @internal
-// Authentication: The provisioner resolves GITHUB_TOKEN from the merged
-// environment (the run's environment_refs layers <
-// ExecutionContext.runtime_env). As a workspace-provisioning key it is
-// re-injected past the Agent.spec.env declared-key filter when the session has
-// git_repo entries, with a fallback to the caller's personal environment (see
-// the run controller's executionContextBuilder). The token is
+// Authentication: the run's credential resolver fills GITHUB_TOKEN from the
+// entry's token, then from a connection at the clone URL's host. The token is
 // injected into the clone URL, consumed by provisioning, and stripped before
-// forwarding to the agent runtime. SSH key authentication is a future
-// enhancement.
+// forwarding to the agent runtime. SSH key authentication is not supported.
 message GitRepoSource {
   // HTTPS clone URL for the repository.
   string url = 1 [
@@ -109,11 +110,22 @@ message GitRepoSource {
   // incrementally — the PR appears the moment the first file is written
   // and the diff grows in real time as the agent works.
   //
-  // Requires GITHUB_TOKEN in the execution environment. If credentials
-  // are not available, the write-back is silently skipped regardless of
-  // this setting.
+  // Requires a GITHUB_TOKEN for the run. If credentials are not
+  // available, the write-back is silently skipped regardless of this
+  // setting.
   //
   // Default (UNSPECIFIED): platform decides. Currently defaults to
   // write-back enabled when git credentials are available.
   GitWriteBackMode write_back_mode = 5;
+
+  // A token for cloning this repository, kept for the conversation only.
+  //
+  // Used only when the URL is an https://github.com repository; a session
+  // write carrying a token for any other repository is refused. Sealed for
+  // the conversation's life and never returned by a read. A schedule's
+  // repositories refuse it: save the token in a vault the schedule names.
+  //
+  // @internal
+  // Sealed and redacted with the session's own secrets (SessionSpec.secrets).
+  string token = 6 [(buf.validate.field).string.max_len = 65536];
 }

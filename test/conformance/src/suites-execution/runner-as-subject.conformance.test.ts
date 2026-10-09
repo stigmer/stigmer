@@ -39,16 +39,18 @@
 //     org-visible server that declares a credential SUCCEEDS with the
 //     fixture's tools: the connect's ExecutionContext is created as the
 //     member and the connect token admits the runner as the member for the
-//     secret read from the member's personal environment (stigmer#1137's
-//     connect half). A key the run's agent declares and no layer carries
-//     is filled from the TURN SENDER's personal environment: a member's
-//     turn on the founder's org-visible agent reads the member's saved
-//     value, never the founder's saved after it. (The sharper form, a
-//     teammate's turn in someone else's session reading the teammate's
-//     value, needs a per-session viewer grant, which open source's
-//     organization-only grant scope refuses; the server's
-//     personal-environment-reach unit arms pin that the person is the
-//     turn's creator.) A member's run with memory
+//     secret read from the member's My vault (stigmer#1137's connect half).
+//     A key the run's agent declares is filled from the TURN SENDER's My
+//     vault: a member's turn on the founder's org-visible agent reads the
+//     member's saved value, never the founder's saved after it (stigmer#1198:
+//     a person's own logins and secrets serve only their own runs). (The
+//     sharper form, a teammate's turn in someone else's session, needs a
+//     per-session viewer grant, which open source's organization-only grant
+//     scope refuses; the server's resolver unit arms pin that the person is
+//     the turn's recorded person.) A shared vault an agent lists serves a
+//     person's run only when that person may use it, and a schedule's
+//     vault stops serving its fires once the account that attached it may
+//     no longer use it. A member's run with memory
 //     on, whose agent calls `remember`, writes a Memory whose subject is the
 //     member and whose provenance session is the run's, which the operator —
 //     an organization owner — cannot list (stigmer#1147: the stdio child
@@ -82,6 +84,7 @@ import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ConnectPhase } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { ScheduleFireOutcome } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { expectGrpcCode } from "../contract/errors";
@@ -102,7 +105,9 @@ import {
   sessionIdOf,
 } from "../support/runs";
 import { makeApiKey, plaintextKeyOf } from "../support/apikeys";
-import { makePersonalEnvironment } from "../support/environments";
+import { makeSchedule } from "../support/schedules";
+import { organizationRole } from "../support/iampolicies";
+import { makeSharedVault, myVaultTarget, setSecretsInput, vaultTarget } from "../support/vaults";
 import { pollUntil } from "../support/run-poll";
 import { makeHttpMcpServer } from "../support/mcpservers";
 import {
@@ -128,6 +133,10 @@ const runnerActsAsRunCreator =
 // The placeholder the server's auto-created sessions start with; the titling
 // activity replaces it.
 const UNTITLED_SESSION_SUBJECT = "Auto-created session";
+
+// The marker every user-shaped read of a run's context shows in place of a
+// value that came from a vault.
+const REDACTED_MARKER = "***REDACTED***";
 
 // The exchange's refusal under the enforcing posture, byte-pinned in the
 // server's runnerauth constants; the arm asserts the sentence, not just the
@@ -156,8 +165,19 @@ describe.skipIf(!runnerActsAsRunCreator)(
     });
 
     afterEach(async () => {
+      const mock = enforcing.lane?.llmProxy?.();
+      mock?.releaseHolds();
+      // An arm can end while its run has not yet reached the model, and the
+      // next arm's run would then take a script that is not its own. Wait,
+      // bounded and best-effort, for every scripted turn to be claimed: an
+      // arm whose create was refused started no run, and reset() drops its
+      // turn.
+      const claimDeadline = Date.now() + 15_000;
+      while (mock !== undefined && mock.remaining() > 0 && Date.now() < claimDeadline) {
+        await new Promise<void>((resolve) => setTimeout(resolve, 100));
+      }
       await fixtures.cleanup();
-      enforcing.lane?.llmProxy?.().reset();
+      mock?.reset();
     });
 
     afterAll(async () => {
@@ -281,6 +301,24 @@ describe.skipIf(!runnerActsAsRunCreator)(
       ).not.toBe("");
       expect(minted.tokenType).toBe("Bearer");
       return minted.runnerScopedToken;
+    }
+
+    // Saves secrets into `by`'s own My vault in `org` (created on the first
+    // write); the person deletes it at teardown, since nobody else may.
+    async function saveToMyVault(
+      by: ConformanceClients,
+      org: string,
+      secrets: Record<string, string>,
+    ): Promise<string> {
+      const mine = await by.vaultCommand.setSecrets(
+        setSecretsInput(myVaultTarget(org), secrets),
+      );
+      fixtures.defer(() =>
+        by.vaultCommand
+          .delete({ resourceId: mine.metadata!.id })
+          .catch(() => undefined),
+      );
+      return mine.metadata!.id;
     }
 
     it("a member's run completes on a runner keyed with the operator's key, and its session is titled as the member", async (ctx) => {
@@ -568,23 +606,12 @@ describe.skipIf(!runnerActsAsRunCreator)(
       // ORG-VISIBLE server that declares a credential — authoring an MCP
       // server is the organization's blueprint bar, and a member holds
       // `can_connect` on an org-visible row and on no private one. The
-      // member saves the credential in their own personal environment for
-      // the organization; the connect reads it from THERE, as the member,
+      // member saves the credential in their own My vault in the
+      // organization; the connect reads it from THERE, as the member,
       // through the connect token — the read this arm proves.
-      const personal = await people.member.environmentCommand.create(
-        makePersonalEnvironment({
-          org: people.org,
-          name: uniqueName("ras-personal"),
-          data: {
-            RAS_REQUIRED_KEY: { value: "member-credential", isSecret: true },
-          },
-        }),
-      );
-      fixtures.defer(() =>
-        people.member.environmentCommand.delete({
-          resourceId: personal.metadata!.id,
-        }),
-      );
+      await saveToMyVault(people.member, people.org, {
+        RAS_REQUIRED_KEY: "member-credential",
+      });
       const input = makeHttpMcpServer({
         org: people.org,
         name: uniqueName("ras-credentialed"),
@@ -632,26 +659,15 @@ describe.skipIf(!runnerActsAsRunCreator)(
       const mcpTools = requireMcpFixture(target);
 
       // Both people save the credential the server declares, the founder
-      // LAST: a lookup that took the organization's newest personal
-      // environment would hand the member the founder's. The server
-      // templates the credential into a header, so the fixture shows on
-      // the wire whose value the connect carried.
-      for (const [who, client, value] of [
-        ["member", people.member, "member-credential"],
-        ["founder", people.founder, "founder-credential"],
+      // LAST: a lookup that took the organization's newest My vault would
+      // hand the member the founder's. The server templates the credential
+      // into a header, so the fixture shows on the wire whose value the
+      // connect carried.
+      for (const [client, value] of [
+        [people.member, "member-credential"],
+        [people.founder, "founder-credential"],
       ] as const) {
-        const personal = await client.environmentCommand.create(
-          makePersonalEnvironment({
-            org: people.org,
-            name: uniqueName(`ras-${who}-personal`),
-            data: { RAS_REQUIRED_KEY: { value, isSecret: true } },
-          }),
-        );
-        fixtures.defer(() =>
-          client.environmentCommand.delete({
-            resourceId: personal.metadata!.id,
-          }),
-        );
+        await saveToMyVault(client, people.org, { RAS_REQUIRED_KEY: value });
       }
       const input = makeHttpMcpServer({
         org: people.org,
@@ -696,34 +712,30 @@ describe.skipIf(!runnerActsAsRunCreator)(
       expect(new Set(carried)).toEqual(new Set(["member-credential"]));
     });
 
-    it("[rpc:RunCommandController.create] a key the agent declares and no layer carries is filled from the turn sender's personal environment, never the agent author's saved after it", async (ctx) => {
+    it("[rpc:RunCommandController.create] a key the agent declares is filled from the turn sender's My vault, never the agent author's saved after it", async (ctx) => {
       const { lane, mock } = laneOrSkip(ctx);
       const people = await provisionPeople(lane);
 
       // Both people save the key the agent declares, the founder (the agent's
-      // author) LAST: a fill that took the organization's newest personal
-      // environment, or the author's, would hand the member the founder's.
-      for (const [who, client, value] of [
-        ["member", people.member, "member-value"],
-        ["founder", people.founder, "founder-value"],
-      ] as const) {
-        const personal = await client.environmentCommand.create(
-          makePersonalEnvironment({
-            org: people.org,
-            name: uniqueName(`ras-bridge-${who}-personal`),
-            data: { RAS_BRIDGE_KEY: { value, isSecret: false } },
-          }),
-        );
-        fixtures.defer(() =>
-          client.environmentCommand.delete({
-            resourceId: personal.metadata!.id,
-          }),
-        );
-      }
+      // author) LAST: a fill that took the organization's newest My vault,
+      // or the author's, would hand the member the founder's. Every read of
+      // a vault's value shows the marker, so the founder also saves a key
+      // only they hold: its absence from the member's context is the proof
+      // that no key came from the founder's My vault.
+      await saveToMyVault(people.member, people.org, {
+        RAS_BRIDGE_KEY: "member-value",
+      });
+      await saveToMyVault(people.founder, people.org, {
+        RAS_BRIDGE_KEY: "founder-value",
+        RAS_FOUNDER_ONLY_KEY: "founder-only",
+      });
       const input = makeAgent({
         org: people.org,
         name: uniqueName("ras-bridge-agent"),
-        env: { RAS_BRIDGE_KEY: { isSecret: false } },
+        env: {
+          RAS_BRIDGE_KEY: { isSecret: false },
+          RAS_FOUNDER_ONLY_KEY: { isSecret: false, optional: true },
+        },
       });
       input.metadata = {
         ...input.metadata,
@@ -734,14 +746,24 @@ describe.skipIf(!runnerActsAsRunCreator)(
         people.founder.agentCommand.delete({ value: agent.metadata!.id }),
       );
 
-      // The turn is held so its ExecutionContext outlives the read; the
-      // member reads the context of their own turn (its owner).
-      mock.enqueue(anthropicText("Working..."), { delayMs: 30_000 });
+      // The turn's shell call is held so its ExecutionContext outlives the
+      // read; the member reads the context of their own turn (its owner).
+      // Every read shows the marker, so which value the run received is
+      // proven by the agent's shell, whose output rides the next request.
+      mock.enqueue(
+        anthropicToolUse("call_bridge", "execute", {
+          command:
+            'echo "BRIDGE=[$RAS_BRIDGE_KEY] FOUNDER_ONLY=[$RAS_FOUNDER_ONLY_KEY]"',
+        }),
+        { delayMs: 30_000 },
+      );
+      mock.enqueue(anthropicText("Done."));
       const created = await people.member.agentExecutionCommand.create(
         makeAgentExecution({
           org: people.org,
           name: uniqueName("ras-bridge"),
           agentRef: agentRefOf(agent),
+          autoApproveAll: true,
         }),
       );
       fixtures.defer(async () => {
@@ -757,9 +779,191 @@ describe.skipIf(!runnerActsAsRunCreator)(
           executionId: created.metadata!.id,
         });
       expect(
-        context.spec?.data.RAS_BRIDGE_KEY?.value,
-        "the declared key is the turn sender's",
-      ).toBe("member-value");
+        context.spec?.data.RAS_FOUNDER_ONLY_KEY,
+        "nothing is read from the agent author's My vault",
+      ).toBeUndefined();
+      expect(
+        context.spec?.data.RAS_BRIDGE_KEY?.isSecret,
+        "the declared key is the turn sender's, carried as a secret",
+      ).toBe(true);
+      expect(context.spec?.data.RAS_BRIDGE_KEY?.value).toBe(REDACTED_MARKER);
+
+      mock.releaseHolds();
+      const settled = await awaitTerminal(people.member, created.metadata!.id);
+      expect(
+        settled.status?.phase,
+        `the member's run: ${settled.status?.error}`,
+      ).toBe(RunPhase.RUN_COMPLETED);
+      const shell = mock
+        .scriptedRequests()
+        .map((request) => JSON.stringify(request.body))
+        .join("\n");
+      expect(shell, "the member's run received the member's value").toContain(
+        "BRIDGE=[member-value] FOUNDER_ONLY=[]",
+      );
+      expect(shell, "the founder's values never reached it").not.toMatch(
+        /founder-value|founder-only/,
+      );
+    });
+
+    it("[rpc:RunCommandController.create] an agent's shared vault serves a person's run only when that person may use it", async (ctx) => {
+      const { lane, mock } = laneOrSkip(ctx);
+      const people = await provisionPeople(lane);
+
+      // The founder (an admin) keeps the team's key in a PRIVATE shared
+      // vault and attaches it to an org-visible agent: admins may use it,
+      // a member may not until it is shared with the organization.
+      const team = await people.founder.vaultCommand.create(
+        makeSharedVault({ org: people.org, name: uniqueName("ras-team") }),
+      );
+      fixtures.defer(() =>
+        people.founder.vaultCommand.delete({ resourceId: team.metadata!.id }),
+      );
+      await people.founder.vaultCommand.setSecrets(
+        setSecretsInput(vaultTarget(people.org, team.metadata!.id), {
+          RAS_TEAM_KEY: "team-value",
+        }),
+      );
+      const input = makeAgent({
+        org: people.org,
+        name: uniqueName("ras-team-agent"),
+        env: { RAS_TEAM_KEY: {} },
+        vaults: [team.metadata!.slug],
+      });
+      input.metadata = {
+        ...input.metadata,
+        visibility: ApiResourceVisibility.visibility_org,
+      };
+      const agent = await people.founder.agentCommand.create(input);
+      fixtures.defer(() =>
+        people.founder.agentCommand.delete({ value: agent.metadata!.id }),
+      );
+
+      // The member may not use the private vault: the required key is
+      // nowhere they may look, and the create refuses naming it.
+      await expectGrpcCode(
+        () =>
+          people.member.agentExecutionCommand.create(
+            makeAgentExecution({
+              org: people.org,
+              name: uniqueName("ras-team-denied"),
+              agentRef: agentRefOf(agent),
+            }),
+          ),
+        Code.FailedPrecondition,
+        "a member's run on an agent whose vault they may not use",
+      );
+
+      // Shared with the organization, the vault serves the member's run.
+      await people.founder.vaultCommand.updateVisibility({
+        resourceId: team.metadata!.id,
+        visibility: ApiResourceVisibility.visibility_org,
+      });
+      mock.enqueue(anthropicText("Working..."), { delayMs: 30_000 });
+      const created = await people.member.agentExecutionCommand.create(
+        makeAgentExecution({
+          org: people.org,
+          name: uniqueName("ras-team-allowed"),
+          agentRef: agentRefOf(agent),
+        }),
+      );
+      fixtures.defer(async () => {
+        mock.releaseHolds();
+        await awaitTerminal(people.member, created.metadata!.id);
+        await people.member.agentExecutionCommand.delete({
+          value: created.metadata!.id,
+        });
+      });
+      const context =
+        await people.member.executionContextQuery.getByExecutionId({
+          executionId: created.metadata!.id,
+        });
+      expect(context.spec?.data.RAS_TEAM_KEY?.isSecret).toBe(true);
+      expect(context.spec?.data.RAS_TEAM_KEY?.value).toBe(REDACTED_MARKER);
+    });
+
+    it("[rpc:ScheduleCommandController.trigger] a schedule's vault stops serving its fires once the account that attached it may no longer use it", async (ctx) => {
+      const { lane, mock } = laneOrSkip(ctx);
+      const tenancy: TenancyContext = await lane.provisionTenancy();
+      fixtures.defer(() => lane.cleanupTenancy(tenancy));
+      const org = tenancy.org;
+
+      // An admin of the organization (not its owner, so the role can be
+      // taken away) authors an agent and a schedule, and attaches a PRIVATE
+      // shared vault the founder made: an admin may use it.
+      const admin = await lane.provisionWithRole(tenancy, "admin");
+      const adminId = await lane.accountIdOf(admin);
+      const team = await lane.clients.vaultCommand.create(
+        makeSharedVault({ org, name: uniqueName("ras-sched-vault") }),
+      );
+      fixtures.defer(() =>
+        lane.clients.vaultCommand.delete({ resourceId: team.metadata!.id }),
+      );
+      await lane.clients.vaultCommand.setSecrets(
+        setSecretsInput(vaultTarget(org, team.metadata!.id), {
+          RAS_SCHEDULE_KEY: "schedule-value",
+        }),
+      );
+      const agent = await admin.agentCommand.create(
+        makeAgent({
+          org,
+          name: uniqueName("ras-sched-agent"),
+          env: { RAS_SCHEDULE_KEY: {} },
+        }),
+      );
+      fixtures.defer(() =>
+        lane.clients.agentCommand.delete({ value: agent.metadata!.id }),
+      );
+      const schedule = await admin.scheduleCommand.create(
+        makeSchedule(org, uniqueName("ras-sched"), agent.metadata!.slug, {
+          vaults: [team.metadata!.slug],
+        }),
+      );
+      fixtures.defer(() =>
+        lane.clients.scheduleCommand
+          .delete({ value: schedule.metadata!.id })
+          .catch(() => undefined),
+      );
+      expect(schedule.status?.vaultAttachers?.[team.metadata!.id]).toBe(
+        adminId,
+      );
+
+      mock.enqueue(anthropicText("Scheduled work."));
+      const allowed = await lane.clients.scheduleCommand.trigger({
+        value: schedule.metadata!.id,
+      });
+      expect(
+        allowed.outcome,
+        `the attacher may use the vault: ${allowed.refusalReason}`,
+      ).toBe(ScheduleFireOutcome.STARTED);
+      fixtures.defer(async () => {
+        await awaitTerminal(lane.clients, allowed.runId).catch(() => undefined);
+        await lane.clients.agentExecutionCommand
+          .delete({ value: allowed.runId })
+          .catch(() => undefined);
+      });
+
+      // The admin becomes a member: no longer one who may use the private
+      // vault. The next fire refuses, naming the vault.
+      await lane.clients.iamPolicyCommand.create(
+        organizationRole(adminId, "member", org),
+      );
+      await lane.clients.iamPolicyCommand.delete(
+        organizationRole(adminId, "admin", org),
+      );
+      const refused = await pollUntil(
+        () =>
+          lane.clients.scheduleCommand.trigger({
+            value: schedule.metadata!.id,
+          }),
+        (result) => result.outcome !== ScheduleFireOutcome.STARTED,
+        (last, timeoutMs) =>
+          `the schedule still fired ${timeoutMs}ms after its attacher lost use of the vault (outcome ${last?.outcome})`,
+      );
+      expect(refused.runId).toBe("");
+      expect(refused.refusalReason).toContain(
+        "may no longer be used by the account that attached it",
+      );
     });
 
     it("a member's run with memory on proposes a memory that is the member's: the stdio remember child acts as the run's person, and the operator cannot list it", async (ctx) => {

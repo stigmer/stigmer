@@ -8,12 +8,11 @@ import "google/protobuf/timestamp.proto";
 // AgentChannelStatus contains system-managed state for an agent channel.
 //
 // @internal
-// Server-owned: install facts and the
-// credentials reference survive every apply/update verbatim (the
+// Server-owned: install facts survive every apply/update verbatim (the
 // share_link_token precedent), so a routine manifest apply can never
 // clobber an install or leak a secret. Secrets themselves NEVER appear
-// here — the bot token lives encrypted in the referenced managed
-// Environment; status is readable by anyone with can_view.
+// here — the bot token lives sealed in the edition's own channel
+// credential store; status is readable by anyone with can_view.
 message AgentChannelStatus {
   // Install lifecycle of the provider connection.
   AgentChannelInstallState install_state = 1;
@@ -31,16 +30,21 @@ message AgentChannelStatus {
     WhatsAppInstallStatus whatsapp = 4;
   }
 
-  // ID of the system-managed Environment holding this connection's
-  // provider credentials (e.g. the Slack bot token).
+  // Value 3 held the id of the environment that kept this connection's
+  // provider credentials, until they moved to a sealed store of their own.
+  reserved 3;
+  reserved "credentials_environment_id";
+
+  // Who attached each of this resource's vaults, by vault id: the account
+  // whose permission to use the vault each run checks when it has no
+  // person.
   //
   // @internal
-  // Created via ManagedEnvironmentService in the
-  // connection's org (stigmer.ai/managed=true), non-secret grant metadata
-  // in the resource-agnostic OAuthGrant document. The webhook receiver and
-  // delivery worker resolve the token through this reference — never from
-  // the channel resource itself.
-  string credentials_environment_id = 3;
+  // Server-owned. The reference rule records the writer for each vault a
+  // write introduces, keeps the entry for each vault a write keeps, and
+  // drops entries for removed vaults, so an editor's unrelated edit never
+  // re-attributes someone else's attachment.
+  map<string, string> vault_attachers = 5;
 
   // Standard audit information (created_at, updated_at, created_by, etc.)
   ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;

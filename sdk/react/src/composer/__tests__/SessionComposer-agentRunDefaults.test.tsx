@@ -24,6 +24,7 @@ import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/re
 import { type ReactNode } from "react";
 import type { Stigmer } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
+import { noMyVaultClient } from "../../__tests__/helpers/no-my-vault";
 import { ModelRegistryContext } from "../../models/ModelRegistryContext";
 import type { ModelInfo } from "../../models/registry";
 import type { ResourceRef } from "@stigmer/sdk";
@@ -104,7 +105,7 @@ const AGENT_DEFAULTS: AgentRunDefaults = {
 function createWrapper() {
   const client = {
     run: { uploadAttachment: vi.fn() },
-    environment: { getPersonal: vi.fn().mockResolvedValue(null) },
+    vault: noMyVaultClient(),
     baseUrl: "http://localhost:8080",
     getAuthCredential: vi.fn().mockResolvedValue("test-token"),
     config: {

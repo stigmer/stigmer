@@ -132,60 +132,62 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "\003org\030\003 \001(\tB\007\272H\004r\002\020\001R\003org\032u\n\017RuntimeEnvEn" +
       "try\022\020\n\003key\030\001 \001(\tR\003key\022L\n\005value\030\002 \001(\01326.a" +
       "i.stigmer.agentic.executioncontext.v1.Ex" +
-      "ecutionValueR\005value:\0028\001\"b\n\031InitiateOAuth" +
+      "ecutionValueR\005value:\0028\001\"\235\001\n\031InitiateOAut" +
+      "hConnectInput\022*\n\rmcp_server_id\030\001 \001(\tB\006\272H" +
+      "\003\310\001\001R\013mcpServerId\022\031\n\003org\030\002 \001(\tB\007\272H\004r\002\020\001R" +
+      "\003org\0229\n\010vault_id\030\003 \001(\tB\036\272H\033r\031\030\0362\025^$|^vlt" +
+      "_[0-9a-z]{26}$R\007vaultId\"\234\001\n\032InitiateOAut" +
+      "hConnectOutput\022+\n\021authorization_url\030\001 \001(" +
+      "\tR\020authorizationUrl\022\024\n\005state\030\002 \001(\tR\005stat" +
+      "e\022\026\n\006scopes\030\003 \003(\tR\006scopes\022#\n\rprovider_na" +
+      "me\030\004 \001(\tR\014providerName\"\236\001\n\031CompleteOAuth" +
       "ConnectInput\022*\n\rmcp_server_id\030\001 \001(\tB\006\272H\003" +
-      "\310\001\001R\013mcpServerId\022\031\n\003org\030\002 \001(\tB\007\272H\004r\002\020\001R\003" +
-      "org\"\234\001\n\032InitiateOAuthConnectOutput\022+\n\021au" +
-      "thorization_url\030\001 \001(\tR\020authorizationUrl\022" +
-      "\024\n\005state\030\002 \001(\tR\005state\022\026\n\006scopes\030\003 \003(\tR\006s" +
-      "copes\022#\n\rprovider_name\030\004 \001(\tR\014providerNa" +
-      "me\"\236\001\n\031CompleteOAuthConnectInput\022*\n\rmcp_" +
-      "server_id\030\001 \001(\tB\006\272H\003\310\001\001R\013mcpServerId\0226\n\022" +
-      "authorization_code\030\002 \001(\tB\007\272H\004r\002\020\001R\021autho" +
-      "rizationCode\022\035\n\005state\030\003 \001(\tB\007\272H\004r\002\020\001R\005st" +
-      "ate\"\220\001\n\032CompleteOAuthConnectOutput\022\034\n\tco" +
-      "nnected\030\001 \001(\010R\tconnected\022$\n\016target_env_v" +
-      "ar\030\002 \001(\tR\014targetEnvVar\022.\n\023token_lifetime" +
-      "_hint\030\003 \001(\tR\021tokenLifetimeHint\"^\n\030GetOAu" +
-      "thGrantStatusInput\022\'\n\013resource_id\030\001 \001(\tB" +
-      "\006\272H\003\310\001\001R\nresourceId\022\031\n\003org\030\002 \001(\tB\007\272H\004r\002\020" +
-      "\001R\003org\"\234\002\n\031GetOAuthGrantStatusOutput\022\034\n\t" +
-      "connected\030\001 \001(\010R\tconnected\0225\n\027access_tok" +
-      "en_expires_at\030\002 \001(\003R\024accessTokenExpiresA" +
-      "t\022$\n\016target_env_var\030\003 \001(\tR\014targetEnvVar\022" +
-      "\037\n\013auth_method\030\004 \001(\tR\nauthMethod\022c\n\021conn" +
-      "ection_health\030\005 \001(\01626.ai.stigmer.agentic" +
-      ".mcpserver.v1.OAuthConnectionHealthR\020con" +
-      "nectionHealth\"Z\n\024DisconnectOAuthInput\022\'\n" +
-      "\013resource_id\030\001 \001(\tB\006\272H\003\310\001\001R\nresourceId\022\031" +
-      "\n\003org\030\002 \001(\tB\007\272H\004r\002\020\001R\003org\";\n\025DisconnectO" +
-      "AuthOutput\022\"\n\014disconnected\030\001 \001(\010R\014discon" +
-      "nected\"\255\001\n\023SetOrgOAuthAppInput\022\'\n\013resour" +
-      "ce_id\030\001 \001(\tB\006\272H\003\310\001\001R\nresourceId\022\031\n\003org\030\002" +
-      " \001(\tB\007\272H\004r\002\020\001R\003org\022$\n\tclient_id\030\003 \001(\tB\007\272" +
-      "H\004r\002\020\001R\010clientId\022,\n\rclient_secret\030\004 \001(\tB" +
-      "\007\272H\004r\002\020\001R\014clientSecret\"8\n\024SetOrgOAuthApp" +
-      "Output\022 \n\014oauth_app_id\030\001 \001(\tR\noauthAppId" +
-      "\"Y\n\023GetOrgOAuthAppInput\022\'\n\013resource_id\030\001" +
-      " \001(\tB\006\272H\003\310\001\001R\nresourceId\022\031\n\003org\030\002 \001(\tB\007\272" +
-      "H\004r\002\020\001R\003org\"x\n\024GetOrgOAuthAppOutput\022!\n\014h" +
-      "as_override\030\001 \001(\010R\013hasOverride\022 \n\014oauth_" +
-      "app_id\030\002 \001(\tR\noauthAppId\022\033\n\tclient_id\030\003 " +
-      "\001(\tR\010clientId\"\\\n\026DeleteOrgOAuthAppInput\022" +
-      "\'\n\013resource_id\030\001 \001(\tB\006\272H\003\310\001\001R\nresourceId" +
-      "\022\031\n\003org\030\002 \001(\tB\007\272H\004r\002\020\001R\003org\"3\n\027DeleteOrg" +
-      "OAuthAppOutput\022\030\n\007deleted\030\001 \001(\010R\007deleted" +
-      "*\355\001\n\025OAuthConnectionHealth\022\'\n#OAUTH_CONN" +
-      "ECTION_HEALTH_UNSPECIFIED\020\000\022#\n\037OAUTH_CON" +
-      "NECTION_HEALTH_HEALTHY\020\001\022)\n%OAUTH_CONNEC" +
-      "TION_HEALTH_TOKEN_EXPIRED\020\002\0225\n1OAUTH_CON" +
-      "NECTION_HEALTH_TOKEN_EXPIRED_REFRESHABLE" +
-      "\020\003\022$\n OAUTH_CONNECTION_HEALTH_NO_GRANT\020\004" +
-      "B\252\001B\007IoProtoP\001\242\002\004ASAM\252\002\037Ai.Stigmer.Agent" +
-      "ic.Mcpserver.V1\312\002\037Ai\\Stigmer\\Agentic\\Mcp" +
-      "server\\V1\342\002+Ai\\Stigmer\\Agentic\\Mcpserver" +
-      "\\V1\\GPBMetadata\352\002#Ai::Stigmer::Agentic::" +
-      "Mcpserver::V1b\006proto3"
+      "\310\001\001R\013mcpServerId\0226\n\022authorization_code\030\002" +
+      " \001(\tB\007\272H\004r\002\020\001R\021authorizationCode\022\035\n\005stat" +
+      "e\030\003 \001(\tB\007\272H\004r\002\020\001R\005state\"\220\001\n\032CompleteOAut" +
+      "hConnectOutput\022\034\n\tconnected\030\001 \001(\010R\tconne" +
+      "cted\022$\n\016target_env_var\030\002 \001(\tR\014targetEnvV" +
+      "ar\022.\n\023token_lifetime_hint\030\003 \001(\tR\021tokenLi" +
+      "fetimeHint\"^\n\030GetOAuthGrantStatusInput\022\'" +
+      "\n\013resource_id\030\001 \001(\tB\006\272H\003\310\001\001R\nresourceId\022" +
+      "\031\n\003org\030\002 \001(\tB\007\272H\004r\002\020\001R\003org\"\234\002\n\031GetOAuthG" +
+      "rantStatusOutput\022\034\n\tconnected\030\001 \001(\010R\tcon" +
+      "nected\0225\n\027access_token_expires_at\030\002 \001(\003R" +
+      "\024accessTokenExpiresAt\022$\n\016target_env_var\030" +
+      "\003 \001(\tR\014targetEnvVar\022\037\n\013auth_method\030\004 \001(\t" +
+      "R\nauthMethod\022c\n\021connection_health\030\005 \001(\0162" +
+      "6.ai.stigmer.agentic.mcpserver.v1.OAuthC" +
+      "onnectionHealthR\020connectionHealth\"Z\n\024Dis" +
+      "connectOAuthInput\022\'\n\013resource_id\030\001 \001(\tB\006" +
+      "\272H\003\310\001\001R\nresourceId\022\031\n\003org\030\002 \001(\tB\007\272H\004r\002\020\001" +
+      "R\003org\";\n\025DisconnectOAuthOutput\022\"\n\014discon" +
+      "nected\030\001 \001(\010R\014disconnected\"\255\001\n\023SetOrgOAu" +
+      "thAppInput\022\'\n\013resource_id\030\001 \001(\tB\006\272H\003\310\001\001R" +
+      "\nresourceId\022\031\n\003org\030\002 \001(\tB\007\272H\004r\002\020\001R\003org\022$" +
+      "\n\tclient_id\030\003 \001(\tB\007\272H\004r\002\020\001R\010clientId\022,\n\r" +
+      "client_secret\030\004 \001(\tB\007\272H\004r\002\020\001R\014clientSecr" +
+      "et\"8\n\024SetOrgOAuthAppOutput\022 \n\014oauth_app_" +
+      "id\030\001 \001(\tR\noauthAppId\"Y\n\023GetOrgOAuthAppIn" +
+      "put\022\'\n\013resource_id\030\001 \001(\tB\006\272H\003\310\001\001R\nresour" +
+      "ceId\022\031\n\003org\030\002 \001(\tB\007\272H\004r\002\020\001R\003org\"x\n\024GetOr" +
+      "gOAuthAppOutput\022!\n\014has_override\030\001 \001(\010R\013h" +
+      "asOverride\022 \n\014oauth_app_id\030\002 \001(\tR\noauthA" +
+      "ppId\022\033\n\tclient_id\030\003 \001(\tR\010clientId\"\\\n\026Del" +
+      "eteOrgOAuthAppInput\022\'\n\013resource_id\030\001 \001(\t" +
+      "B\006\272H\003\310\001\001R\nresourceId\022\031\n\003org\030\002 \001(\tB\007\272H\004r\002" +
+      "\020\001R\003org\"3\n\027DeleteOrgOAuthAppOutput\022\030\n\007de" +
+      "leted\030\001 \001(\010R\007deleted*\355\001\n\025OAuthConnection" +
+      "Health\022\'\n#OAUTH_CONNECTION_HEALTH_UNSPEC" +
+      "IFIED\020\000\022#\n\037OAUTH_CONNECTION_HEALTH_HEALT" +
+      "HY\020\001\022)\n%OAUTH_CONNECTION_HEALTH_TOKEN_EX" +
+      "PIRED\020\002\0225\n1OAUTH_CONNECTION_HEALTH_TOKEN" +
+      "_EXPIRED_REFRESHABLE\020\003\022$\n OAUTH_CONNECTI" +
+      "ON_HEALTH_NO_GRANT\020\004B\252\001B\007IoProtoP\001\242\002\004ASA" +
+      "M\252\002\037Ai.Stigmer.Agentic.Mcpserver.V1\312\002\037Ai" +
+      "\\Stigmer\\Agentic\\Mcpserver\\V1\342\002+Ai\\Stigm" +
+      "er\\Agentic\\Mcpserver\\V1\\GPBMetadata\352\002#Ai" +
+      "::Stigmer::Agentic::Mcpserver::V1b\006proto" +
+      "3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -216,7 +218,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_mcpserver_v1_InitiateOAuthConnectInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_mcpserver_v1_InitiateOAuthConnectInput_descriptor,
-        new java.lang.String[] { "McpServerId", "Org", });
+        new java.lang.String[] { "McpServerId", "Org", "VaultId", });
     internal_static_ai_stigmer_agentic_mcpserver_v1_InitiateOAuthConnectOutput_descriptor =
       getDescriptor().getMessageType(3);
     internal_static_ai_stigmer_agentic_mcpserver_v1_InitiateOAuthConnectOutput_fieldAccessorTable = new

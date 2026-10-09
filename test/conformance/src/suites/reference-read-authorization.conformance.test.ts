@@ -16,8 +16,9 @@
 //
 // Out of scope: the version ladder (the agent and skill suites own it), the
 // redactions (each kind's own suite), and the create-side bars
-// (parent-gated-create-authorization). Kinds whose rows are personal
-// (environment, execution context) have no org-visible arm; kinds that carry
+// (parent-gated-create-authorization). A vault is read as a shared vault,
+// the organization's; a person's own My vault is pinned by the vault suite.
+// Kinds whose rows are personal (execution context) have no org-visible arm; kinds that carry
 // no visibility (shares, channels, schedules, apps) are read by
 // their owner and by a member only when the model admits members.
 import { Code } from "@connectrpc/connect";
@@ -31,7 +32,7 @@ import { makeAgent } from "../support/agents";
 import { makeSlackAgentChannel } from "../support/agentchannels";
 import { makeAgentShare } from "../support/agentshares";
 import { makeSlackChannelApp } from "../support/channelapps";
-import { makeEnvironment } from "../support/environments";
+import { makeSharedVault } from "../support/vaults";
 import { makeExecutionContext } from "../support/executioncontexts";
 import { makeMcpServer } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";
@@ -172,20 +173,20 @@ const KINDS: ReadonlyArray<ReferenceKind> = [
     deniedCopy: "unauthorized to view mcp server",
   },
   {
-    name: "environment",
-    visible: false,
-    memberReads: false,
-    async seed(using, org) {
-      const created = await using.environmentCommand.create(
-        makeEnvironment({ org, name: uniqueName("ref-env") }),
-      );
+    name: "vault",
+    visible: true,
+    memberReads: true,
+    async seed(using, org, visibility) {
+      const input = makeSharedVault({ org, name: uniqueName("ref-vault") });
+      input.metadata = { ...input.metadata, visibility };
+      const created = await using.vaultCommand.create(input);
       return { id: created.metadata!.id, slug: created.metadata!.slug };
     },
-    getById: (using, id) => using.environmentQuery.get({ value: id }),
+    getById: (using, id) => using.vaultQuery.get({ value: id }),
     getByReference: (using, org, slug) =>
-      using.environmentQuery.getByReference({ org, slug }),
-    cleanup: (using, id) => using.environmentCommand.delete({ resourceId: id }),
-    deniedCopy: "unauthorized to get environment",
+      using.vaultQuery.getByReference({ org, slug }),
+    cleanup: (using, id) => using.vaultCommand.delete({ resourceId: id }),
+    deniedCopy: "unauthorized to get vault",
   },
   {
     name: "execution_context",

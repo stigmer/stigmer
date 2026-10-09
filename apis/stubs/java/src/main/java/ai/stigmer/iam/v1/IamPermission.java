@@ -95,10 +95,6 @@ public enum IamPermission
    */
   can_create_idp(11),
   /**
-   * <code>can_create_environment = 12;</code>
-   */
-  can_create_environment(12),
-  /**
    * <code>can_create_identity_account = 21;</code>
    */
   can_create_identity_account(21),
@@ -126,14 +122,6 @@ public enum IamPermission
    * <code>can_execute = 15;</code>
    */
   can_execute(15),
-  /**
-   * <pre>
-   * Secret access permission.
-   * </pre>
-   *
-   * <code>can_read_secrets = 16;</code>
-   */
-  can_read_secrets(16),
   /**
    * <pre>
    * Platform-level permissions.
@@ -229,7 +217,7 @@ public enum IamPermission
    * reserved stigmer.ai/&#42; key namespace through client-facing write
    * boundaries. Gated to platform operators (the seeding machine
    * account): reserved labels carry platform semantics the server acts
-   * on (the personal-environment marker, plugin membership and lineage) — so ordinary requests may echo or
+   * on (plugin membership and lineage, the stamps a run's vaults are found by) — so ordinary requests may echo or
    * remove them but never write them.
    * </pre>
    *
@@ -332,6 +320,32 @@ public enum IamPermission
    * <code>can_view_settings = 50;</code>
    */
   can_view_settings(50),
+  /**
+   * <pre>
+   * Whether the caller may save logins and secrets in their own My vault in
+   * an organization: its members.
+   * </pre>
+   *
+   * <code>can_create_vault = 51;</code>
+   */
+  can_create_vault(51),
+  /**
+   * <pre>
+   * Whether the caller may create a shared vault in an organization: its
+   * admins.
+   * </pre>
+   *
+   * <code>can_create_shared_vault = 52;</code>
+   */
+  can_create_shared_vault(52),
+  /**
+   * <pre>
+   * Whether a person's runs may use a vault's logins and secrets.
+   * </pre>
+   *
+   * <code>can_use = 53;</code>
+   */
+  can_use(53),
   UNRECOGNIZED(-1),
   ;
 
@@ -415,10 +429,6 @@ public enum IamPermission
    */
   public static final int can_create_idp_VALUE = 11;
   /**
-   * <code>can_create_environment = 12;</code>
-   */
-  public static final int can_create_environment_VALUE = 12;
-  /**
    * <code>can_create_identity_account = 21;</code>
    */
   public static final int can_create_identity_account_VALUE = 21;
@@ -446,14 +456,6 @@ public enum IamPermission
    * <code>can_execute = 15;</code>
    */
   public static final int can_execute_VALUE = 15;
-  /**
-   * <pre>
-   * Secret access permission.
-   * </pre>
-   *
-   * <code>can_read_secrets = 16;</code>
-   */
-  public static final int can_read_secrets_VALUE = 16;
   /**
    * <pre>
    * Platform-level permissions.
@@ -549,7 +551,7 @@ public enum IamPermission
    * reserved stigmer.ai/&#42; key namespace through client-facing write
    * boundaries. Gated to platform operators (the seeding machine
    * account): reserved labels carry platform semantics the server acts
-   * on (the personal-environment marker, plugin membership and lineage) — so ordinary requests may echo or
+   * on (plugin membership and lineage, the stamps a run's vaults are found by) — so ordinary requests may echo or
    * remove them but never write them.
    * </pre>
    *
@@ -652,6 +654,32 @@ public enum IamPermission
    * <code>can_view_settings = 50;</code>
    */
   public static final int can_view_settings_VALUE = 50;
+  /**
+   * <pre>
+   * Whether the caller may save logins and secrets in their own My vault in
+   * an organization: its members.
+   * </pre>
+   *
+   * <code>can_create_vault = 51;</code>
+   */
+  public static final int can_create_vault_VALUE = 51;
+  /**
+   * <pre>
+   * Whether the caller may create a shared vault in an organization: its
+   * admins.
+   * </pre>
+   *
+   * <code>can_create_shared_vault = 52;</code>
+   */
+  public static final int can_create_shared_vault_VALUE = 52;
+  /**
+   * <pre>
+   * Whether a person's runs may use a vault's logins and secrets.
+   * </pre>
+   *
+   * <code>can_use = 53;</code>
+   */
+  public static final int can_use_VALUE = 53;
 
 
   public final int getNumber() {
@@ -690,13 +718,11 @@ public enum IamPermission
       case 8: return can_create_session;
       case 9: return can_create_skill;
       case 11: return can_create_idp;
-      case 12: return can_create_environment;
       case 21: return can_create_identity_account;
       case 23: return can_create_oauth_app;
       case 24: return can_create_platform_client;
       case 13: return can_create_run_in;
       case 15: return can_execute;
-      case 16: return can_read_secrets;
       case 17: return can_bootstrap_iam;
       case 22: return can_connect;
       case 27: return can_view_billing;
@@ -717,6 +743,9 @@ public enum IamPermission
       case 46: return can_manage_credits;
       case 49: return can_manage_child_orgs;
       case 50: return can_view_settings;
+      case 51: return can_create_vault;
+      case 52: return can_create_shared_vault;
+      case 53: return can_use;
       default: return null;
     }
   }

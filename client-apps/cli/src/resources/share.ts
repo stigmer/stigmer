@@ -249,9 +249,9 @@ function preservingShareInput(
       unavailable: current?.messages?.unavailable ?? "",
       conversationEnded: current?.messages?.conversationEnded ?? "",
     },
-    environmentRefs: (current?.environmentRefs ?? []).map((envRef) => ({
-      org: envRef.org,
-      slug: envRef.slug,
+    vaults: (current?.vaults ?? []).map((vaultRef) => ({
+      org: vaultRef.org,
+      slug: vaultRef.slug,
     })),
   };
 }

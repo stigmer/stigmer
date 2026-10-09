@@ -3,8 +3,10 @@
  * pkg/domain/schedule/controller/update.go.
  *
  * Persists an update as a graft of exactly what the request path owns —
- * apiVersion/kind/metadata/spec plus the audit bump BuildUpdateState
- * stamped — onto the LIVE row, inside one store.updateResource closure.
+ * apiVersion/kind/metadata/spec, the audit bump BuildUpdateState stamped,
+ * and who attached each vault the spec names (the VaultAttachments step's
+ * record, which a fire with no person asks `can_use` of) — onto the LIVE
+ * row, inside one store.updateResource closure.
  * NOT the generic Persist step: schedule status has a concurrent writer
  * (the tick), and a full-row save of the load-time snapshot could silently
  * revert a fire record, a streak write, or a PAUSE — breaking the "resume
@@ -49,14 +51,17 @@ export function newPersistScheduleUpdateStep(
             row.kind = newState.kind;
             row.metadata = newState.metadata;
             row.spec = newState.spec;
-            // The one status subtree the request path owns: its own audit
-            // bump. Every other status leaf stays exactly as the
-            // concurrent runtime last wrote it.
-            if (newState.status?.audit !== undefined) {
-              if (row.status === undefined) {
-                row.status = create(ScheduleStatusSchema);
+            // The status leaves the request path owns: its own audit bump
+            // and the vault attachers it judged against this spec. Every
+            // other status leaf stays exactly as the concurrent runtime
+            // last wrote it.
+            const status = newState.status;
+            if (status !== undefined) {
+              row.status ??= create(ScheduleStatusSchema);
+              if (status.audit !== undefined) {
+                row.status.audit = status.audit;
               }
-              row.status.audit = newState.status.audit;
+              row.status.vaultAttachers = status.vaultAttachers;
             }
           },
         );

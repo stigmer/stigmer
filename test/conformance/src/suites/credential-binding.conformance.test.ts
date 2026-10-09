@@ -42,7 +42,7 @@ import {
 } from "../support/apikeys";
 import { agentRefOf, makeAgent } from "../support/agents";
 import { makeAgentExecution } from "../support/runs";
-import { makeEnvironment } from "../support/environments";
+import { makeSharedVault, myVaultTarget, setSecretsInput } from "../support/vaults";
 import { makeMcpServer } from "../support/mcpservers";
 import { makeSession } from "../support/sessions";
 import { organizationRole, policyTriple, ref } from "../support/iampolicies";
@@ -131,25 +131,23 @@ async function personIn(
   return person;
 }
 
-// An Environment the founder creates in `org`, visible to the whole
+// A shared vault the founder creates in `org`, shared with the whole
 // organization: a row of B every member reads, so only the binding can be
 // what refuses a bound credential.
-async function founderEnvironment(
+async function founderVault(
   on: EnforcingLane,
   org: string,
 ): Promise<string> {
-  const environment = makeEnvironment({ org, name: uniqueName("binding-env") });
-  const created = await on.clients.environmentCommand.create({
-    ...environment,
+  const vault = makeSharedVault({ org, name: uniqueName("binding-vault") });
+  const created = await on.clients.vaultCommand.create({
+    ...vault,
     metadata: {
-      ...environment.metadata,
+      ...vault.metadata,
       visibility: ApiResourceVisibility.visibility_org,
     },
   });
   const id = created.metadata?.id ?? "";
-  fixtures.defer(() =>
-    on.clients.environmentCommand.delete({ resourceId: id }),
-  );
+  fixtures.defer(() => on.clients.vaultCommand.delete({ resourceId: id }));
   return id;
 }
 
@@ -187,33 +185,34 @@ async function expectBoundTo(
   a: TenancyContext,
   b: TenancyContext,
 ): Promise<void> {
-  const elsewhere = await founderEnvironment(on, b.org);
+  const elsewhere = await founderVault(on, b.org);
   await expectGrpcCode(
-    () => asBound.environmentQuery.get({ value: elsewhere }),
+    () => asBound.vaultQuery.get({ value: elsewhere }),
     Code.PermissionDenied,
     "read a row of the other organization through a credential bound to A",
   );
   await expectGrpcCode(
     async () => {
-      const leaked = await asBound.environmentCommand.create(
-        makeEnvironment({ org: b.org, name: uniqueName("binding-env") }),
+      const leaked = await asBound.vaultCommand.setSecrets(
+        setSecretsInput(myVaultTarget(b.org), { BINDING_KEY: "leak" }),
       );
       fixtures.defer(() =>
-        on.clients.environmentCommand.delete({
+        asBound.vaultCommand.delete({
           resourceId: leaked.metadata?.id ?? "",
         }),
       );
       return leaked;
     },
     Code.PermissionDenied,
-    "create in the other organization through a credential bound to A",
+    "save in the other organization through a credential bound to A",
   );
 
-  const inA = await asBound.environmentCommand.create(
-    makeEnvironment({ org: a.org, name: uniqueName("binding-env") }),
+  // A person's own My vault in A: the bound credential still works there.
+  const inA = await asBound.vaultCommand.setSecrets(
+    setSecretsInput(myVaultTarget(a.org), { BINDING_KEY: "a" }),
   );
   fixtures.defer(() =>
-    on.clients.environmentCommand.delete({
+    asBound.vaultCommand.delete({
       resourceId: inA.metadata?.id ?? "",
     }),
   );
@@ -228,7 +227,7 @@ async function expectBoundTo(
   ).toEqual([a.org]);
 
   const permission = await asBound.iamPolicyQuery.checkMyPermission({
-    resource: ref("environment", elsewhere),
+    resource: ref("vault", elsewhere),
     relation: "can_view",
   });
   expect(permission.isAuthorized, "checkMyPermission on B's row is false").toBe(
@@ -297,8 +296,8 @@ describe("credential binding — a credential that names an organization works t
     // The same person through a key limited to nothing reaches B: the
     // binding is the key's, not the person's.
     const everywhere = await keyOf(on, person, "");
-    const elsewhere = await founderEnvironment(on, b.org);
-    const read = await everywhere.clients.environmentQuery.get({
+    const elsewhere = await founderVault(on, b.org);
+    const read = await everywhere.clients.vaultQuery.get({
       value: elsewhere,
     });
     expect(read.metadata?.id).toBe(elsewhere);
@@ -317,13 +316,13 @@ describe("credential binding — a credential that names an organization works t
     await on.clients.iamPolicyCommand.create(
       organizationRole(personId, "member", b.org),
     );
-    const elsewhere = await founderEnvironment(on, b.org);
+    const elsewhere = await founderVault(on, b.org);
     const question = {
       policy: policyTriple(
         { kind: "identity_account", id: personId },
         "can_view",
         {
-          kind: "environment",
+          kind: "vault",
           id: elsewhere,
         },
       ),
@@ -349,11 +348,11 @@ describe("credential binding — a credential that names an organization works t
     await on.clients.iamPolicyCommand.create(
       organizationRole(personId, "member", b.org),
     );
-    const elsewhere = await founderEnvironment(on, b.org);
+    const elsewhere = await founderVault(on, b.org);
     // Any contextual policy routes the question to the query engine (the
     // lane the binding must also cover); this one changes no answer.
     const question = {
-      resource: ref("environment", elsewhere),
+      resource: ref("vault", elsewhere),
       relation: "can_view",
       contextualPolicies: [
         policyTriple({ kind: "identity_account", id: personId }, "member", {
@@ -428,23 +427,23 @@ describe("credential binding — a credential that names an organization works t
     );
     // The child's own admin writes an org-visible row there: the founder,
     // who manages the child, holds no role in it.
-    const environment = makeEnvironment({
+    const vault = makeSharedVault({
       org: childOrg,
-      name: uniqueName("binding-env"),
+      name: uniqueName("binding-vault"),
     });
-    const created = await customer.environmentCommand.create({
-      ...environment,
+    const created = await customer.vaultCommand.create({
+      ...vault,
       metadata: {
-        ...environment.metadata,
+        ...vault.metadata,
         visibility: ApiResourceVisibility.visibility_org,
       },
     });
     const inChild = created.metadata?.id ?? "";
     fixtures.defer(() =>
-      customer.environmentCommand.delete({ resourceId: inChild }),
+      customer.vaultCommand.delete({ resourceId: inChild }),
     );
     await expectGrpcCode(
-      () => key.clients.environmentQuery.get({ value: inChild }),
+      () => key.clients.vaultQuery.get({ value: inChild }),
       Code.PermissionDenied,
       "read a child's row through a key limited to its parent",
     );

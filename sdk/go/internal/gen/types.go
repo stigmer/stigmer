@@ -3,7 +3,6 @@
 package gen
 
 import (
-	environmentv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/environment/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	searchv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/search/v1"
@@ -53,30 +52,11 @@ type ListResult struct {
 	TotalPages int32
 }
 
-// EnvSpecInput describes environment variables and secrets for a resource.
-type EnvSpecInput struct {
-	Variables map[string]EnvVarInput
-}
-
 // EnvVarInput describes a single environment variable.
 type EnvVarInput struct {
 	Value       string
 	IsSecret    bool
 	Description string
-}
-
-func (e *EnvSpecInput) toProto() *environmentv1.EnvironmentSpec {
-	spec := &environmentv1.EnvironmentSpec{
-		Data: make(map[string]*environmentv1.EnvironmentValue, len(e.Variables)),
-	}
-	for name, v := range e.Variables {
-		spec.Data[name] = &environmentv1.EnvironmentValue{
-			Value:       v.Value,
-			IsSecret:    v.IsSecret,
-			Description: v.Description,
-		}
-	}
-	return spec
 }
 
 // ResourceRefFromProto creates a ResourceRef from a proto ApiResourceReference.
@@ -94,26 +74,4 @@ func ResourceRefFromProto(r *apiresource.ApiResourceReference) ResourceRef {
 
 func resourceRefFromProto(r *apiresource.ApiResourceReference) ResourceRef {
 	return ResourceRefFromProto(r)
-}
-
-// EnvSpecInputFromProto creates an EnvSpecInput from a proto EnvironmentSpec.
-func EnvSpecInputFromProto(s *environmentv1.EnvironmentSpec) *EnvSpecInput {
-	if s == nil {
-		return nil
-	}
-	input := &EnvSpecInput{
-		Variables: make(map[string]EnvVarInput, len(s.GetData())),
-	}
-	for k, v := range s.GetData() {
-		input.Variables[k] = EnvVarInput{
-			Value:       v.GetValue(),
-			IsSecret:    v.GetIsSecret(),
-			Description: v.GetDescription(),
-		}
-	}
-	return input
-}
-
-func envSpecInputFromProto(s *environmentv1.EnvironmentSpec) *EnvSpecInput {
-	return EnvSpecInputFromProto(s)
 }

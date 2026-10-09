@@ -12,7 +12,7 @@ package ai.stigmer.agentic.agentshare.v1;
  * A share is a distribution channel: it controls who can chat with the
  * referenced agent over `/chat/&lt;share id&gt;`, which sites may embed the
  * chat widget, what visitors see when a limit refuses them, and which
- * environment credentials guest conversations receive. Deleting the share
+ * vaults guest conversations use. Deleting the share
  * tears the channel down; disabling it pauses serving while preserving
  * configuration. The referenced agent is never modified by share
  * operations.
@@ -507,7 +507,7 @@ private static final long serialVersionUID = 0L;
    * A share is a distribution channel: it controls who can chat with the
    * referenced agent over `/chat/&lt;share id&gt;`, which sites may embed the
    * chat widget, what visitors see when a limit refuses them, and which
-   * environment credentials guest conversations receive. Deleting the share
+   * vaults guest conversations use. Deleting the share
    * tears the channel down; disabling it pauses serving while preserving
    * configuration. The referenced agent is never modified by share
    * operations.

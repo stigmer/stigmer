@@ -5,8 +5,9 @@
  * oauth_connect_secrets_test.go coverage) — through the REAL stack: a
  * composed server on an ephemeral port, a native gRPC client, a live
  * mock authorization server (RFC 8414 discovery + RFC 7591 DCR +
- * authorize pre-flight + token endpoint), and the real environment
- * domain behind the managed-env lifecycle.
+ * authorize pre-flight + token endpoint), and the real vault domain the
+ * sign-in saves into (the caller's own My vault, read back through
+ * VaultQueryController.getMine, which never returns a token).
  *
  * This composed server has NO Temporal behind it, and completeOAuthConnect
  * works anyway — a deliberate divergence from Go's composition gate.
@@ -29,6 +30,7 @@ import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
 import { OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
+import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
 import { OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
 import {
   TokenEndpointAuthMethod,
@@ -40,6 +42,10 @@ import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
+import { SecretService } from "../../../encryption/encryption.js";
+import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
+import { newVaultService } from "../../vault/service.js";
+import { VaultConnectionSource } from "../../vault/service.js";
 import {
   organizationId,
   seedOrganizations,
@@ -153,10 +159,12 @@ class MockAuthorizationServer {
 
 type CommandClient = Client<typeof McpServerCommandController>;
 type QueryClient = Client<typeof McpServerQueryController>;
+type VaultClient = Client<typeof VaultQueryController>;
 
 let server: ComposedServer;
 let command: CommandClient;
 let query: QueryClient;
+let vaultQuery: VaultClient;
 let mockAs: MockAuthorizationServer;
 let asBaseUrl: string;
 let dir: string;
@@ -189,6 +197,7 @@ beforeAll(async () => {
   ORG_ID = organizationId(organizations, ORG);
   command = createClient(McpServerCommandController, transport);
   query = createClient(McpServerQueryController, transport);
+  vaultQuery = createClient(VaultQueryController, transport);
 });
 
 afterAll(async () => {
@@ -514,9 +523,10 @@ describe("completeOAuthConnect → grant → disconnect (the full lifecycle)", (
     mockAs.reset();
   });
 
-  it("exchanges the code, stores tokens in a managed environment, grants, reuses on re-connect, disconnects", async () => {
+  it("exchanges the code, saves the login in the caller's My vault, replaces it on re-connect, disconnects", async () => {
     mockAs.reset();
     const id = await applyServer();
+    const address = `${asBaseUrl}/mcp`;
 
     // First connect.
     const initiated = await command.initiateOAuthConnect({
@@ -539,8 +549,6 @@ describe("completeOAuthConnect → grant → disconnect (the full lifecycle)", (
     expect(tokenRequest?.get("code_verifier")).toBeTruthy();
     expect(tokenRequest?.has("client_secret")).toBe(false);
 
-    // The grant is queryable and HEALTHY; the refresh-token env var is
-    // stamped unconditionally (oss#863's precondition, ported as-is).
     const status = await query.getOAuthGrantStatus({
       resourceId: id,
       org: ORG,
@@ -552,12 +560,18 @@ describe("completeOAuthConnect → grant → disconnect (the full lifecycle)", (
       OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_HEALTHY,
     );
 
-    const grant = await server.store.oauthGrants.find("", id, ORG_ID);
-    expect(grant?.refreshTokenEnvVar).toBe("EXAMPLE_TOKEN_REFRESH_TOKEN");
-    const firstEnvId = grant?.environmentId ?? "";
-    expect(firstEnvId).not.toBe("");
+    // The login is a sign-in connection at the server's address in My
+    // vault; the read shows its record and never the token or refresh token.
+    const mine = await vaultQuery.getMine({ org: ORG });
+    const connection = mine.spec?.connections[address];
+    expect(connection?.source).toBe(VaultConnectionSource.sign_in);
+    expect(connection?.token).toBe("");
+    expect(connection?.signIn?.refreshToken).toBe("");
+    expect(connection?.signIn?.authMethod).toBe("mcp_oauth");
+    expect(connection?.signIn?.mcpServerId).toBe(id);
+    expect(connection?.signIn?.expiresAt ?? 0n).toBeGreaterThan(0n);
 
-    // Re-connect reuses the managed environment.
+    // Re-connect replaces the login in the same vault.
     const again = await command.initiateOAuthConnect({
       mcpServerId: id,
       org: ORG,
@@ -567,17 +581,18 @@ describe("completeOAuthConnect → grant → disconnect (the full lifecycle)", (
       state: again.state,
       authorizationCode: "auth-code-2",
     });
-    const regrant = await server.store.oauthGrants.find("", id, ORG_ID);
-    expect(regrant?.environmentId).toBe(firstEnvId);
+    const reconnected = await vaultQuery.getMine({ org: ORG });
+    expect(reconnected.metadata?.id).toBe(mine.metadata?.id);
+    expect(reconnected.spec?.connections[address]).toBeDefined();
 
-    // Disconnect tears down grant + environment; a second disconnect is
-    // the idempotent no-grant arm.
+    // Disconnect removes the login; a second disconnect is the idempotent arm.
     const disconnected = await command.disconnectOAuth({
       resourceId: id,
       org: ORG,
     });
     expect(disconnected.disconnected).toBe(true);
-    expect(await server.store.oauthGrants.find("", id, ORG_ID)).toBeUndefined();
+    const after = await vaultQuery.getMine({ org: ORG });
+    expect(after.spec?.connections[address]).toBeUndefined();
     const againDisconnected = await command.disconnectOAuth({
       resourceId: id,
       org: ORG,
@@ -585,44 +600,11 @@ describe("completeOAuthConnect → grant → disconnect (the full lifecycle)", (
     expect(againDisconnected.disconnected).toBe(false);
 
     // NO_GRANT after teardown.
-    const after = await query.getOAuthGrantStatus({ resourceId: id, org: ORG });
-    expect(after.connected).toBe(false);
-    expect(after.connectionHealth).toBe(
+    const afterStatus = await query.getOAuthGrantStatus({ resourceId: id, org: ORG });
+    expect(afterStatus.connected).toBe(false);
+    expect(afterStatus.connectionHealth).toBe(
       OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_NO_GRANT,
     );
-  });
-
-  it("stores tokens for an MCP server whose name is too long for a slug, in a managed environment whose slug is fitted", async () => {
-    mockAs.reset();
-    // Valid as the caller wrote it (a 120-character name beside an explicit
-    // slug); the environment the server names after it must still fit.
-    const id = await applyServer({ longName: `Customer Support Knowledge Base ${"x".repeat(88)}` });
-    const initiated = await command.initiateOAuthConnect({ mcpServerId: id, org: ORG });
-    const completed = await command.completeOAuthConnect({
-      mcpServerId: id,
-      state: initiated.state,
-      authorizationCode: "auth-code-long",
-    });
-    expect(completed.connected).toBe(true);
-    const grant = await server.store.oauthGrants.find("", id, ORG_ID);
-    expect(grant?.environmentId ?? "").not.toBe("");
-  });
-
-  it("stores tokens for an MCP server whose name is at the name's bound, in a managed environment whose name is cut to it", async () => {
-    mockAs.reset();
-    // 200 characters, the most a name holds; the environment's prefix
-    // would take it past the bound.
-    const longName = `Customer Support ${"y".repeat(183)}`;
-    const id = await applyServer({ longName });
-    const initiated = await command.initiateOAuthConnect({ mcpServerId: id, org: ORG });
-    const completed = await command.completeOAuthConnect({
-      mcpServerId: id,
-      state: initiated.state,
-      authorizationCode: "auth-code-at-bound",
-    });
-    expect(completed.connected).toBe(true);
-    const grant = await server.store.oauthGrants.find("", id, ORG_ID);
-    expect(grant?.environmentId ?? "").not.toBe("");
   });
 
   it("refuses a REPLAYED state after a successful complete (single-use atomicity at the wire)", async () => {
@@ -663,54 +645,85 @@ describe("getOAuthGrantStatus", () => {
     );
   });
 
-  it("claims TOKEN_EXPIRED_REFRESHABLE for an expired grant with a stamped refresh var — oss#863, pinned as-is", async () => {
-    await server.store.oauthGrants.upsert({
-      identityAccountId: "",
-      resourceId: "mcps_expired",
-      resourceKind: "mcp_server",
-      orgId: ORG_ID,
-      // Expired well past the 60s buffer.
-      accessTokenExpiresAt: Math.floor(Date.now() / 1000) - 3600,
-      clientId: "c",
-      authMethod: "mcp_oauth",
-      tokenEndpoint: `${asBaseUrl}/token`,
-      accessTokenEnvVar: "T",
-      // Stamped unconditionally by complete — even when no refresh token
-      // was ever issued, which is exactly the filed defect.
-      refreshTokenEnvVar: "T_REFRESH_TOKEN",
-      environmentId: "env_x",
-      createdAt: 0,
-      updatedAt: 0,
+  /** The vault service over the composed store, with the caller's My vault and its person. */
+  async function callerVault() {
+    const vaults = newVaultService({
+      store: server.store,
+      logger: silentLogger,
+      secretService: SecretService.create(undefined),
+      authorizationLifecycle: undefined,
     });
-    const status = await query.getOAuthGrantStatus({
-      resourceId: "mcps_expired",
-      org: ORG,
+    const mine = await vaultQuery.getMine({ org: ORG });
+    const owner = mine.spec?.owner;
+    const person = owner?.case === "person" ? owner.value : "";
+    return { vaults, mine, person };
+  }
+
+  /**
+   * Removes the sign-in an earlier case's server left at the address every
+   * server here shares: a sign-in never replaces another server's.
+   */
+  async function clearSharedAddress(): Promise<void> {
+    const { vaults, mine, person } = await callerVault();
+    await vaults.removeConnections(
+      mine.metadata!.id,
+      [`${asBaseUrl}/mcp`],
+      testCallerIdentity({ identityId: person }),
+    );
+  }
+
+  /** Saves an expired sign-in for the caller's server, through the vault service over the composed store. */
+  async function saveExpiredSignIn(id: string, refreshToken: string): Promise<void> {
+    const { vaults, mine, person } = await callerVault();
+    await vaults.setConnection(
+      mine.metadata!.id,
+      `${asBaseUrl}/mcp`,
+      {
+        token: "at-old",
+        source: VaultConnectionSource.sign_in,
+        signIn: {
+          // Expired well past the 60s buffer.
+          expiresAt: BigInt(Math.floor(Date.now() / 1000) - 3600),
+          clientId: "c",
+          authMethod: "mcp_oauth",
+          tokenEndpoint: `${asBaseUrl}/token`,
+          refreshToken,
+          mcpServerId: id,
+        },
+      },
+      testCallerIdentity({ identityId: person }),
+    );
+  }
+
+  it("answers TOKEN_EXPIRED_REFRESHABLE for an expired sign-in that saved a refresh token", async () => {
+    mockAs.reset();
+    await clearSharedAddress();
+    const id = await applyServer();
+    const initiated = await command.initiateOAuthConnect({ mcpServerId: id, org: ORG });
+    await command.completeOAuthConnect({
+      mcpServerId: id,
+      state: initiated.state,
+      authorizationCode: "auth-code-expired",
     });
+    await saveExpiredSignIn(id, "rt-old");
+    const status = await query.getOAuthGrantStatus({ resourceId: id, org: ORG });
     expect(status.connectionHealth).toBe(
       OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED_REFRESHABLE,
     );
   });
 
-  it("answers TOKEN_EXPIRED only for a grant WITHOUT a refresh var — unreachable through the real flow (oss#863)", async () => {
-    await server.store.oauthGrants.upsert({
-      identityAccountId: "",
-      resourceId: "mcps_expired_norefresh",
-      resourceKind: "mcp_server",
-      orgId: ORG_ID,
-      accessTokenExpiresAt: Math.floor(Date.now() / 1000) - 3600,
-      clientId: "c",
-      authMethod: "mcp_oauth",
-      tokenEndpoint: `${asBaseUrl}/token`,
-      accessTokenEnvVar: "T",
-      refreshTokenEnvVar: "",
-      environmentId: "env_x",
-      createdAt: 0,
-      updatedAt: 0,
+  it("answers TOKEN_EXPIRED for an expired sign-in that saved no refresh token", async () => {
+    mockAs.reset();
+    await clearSharedAddress();
+    const id = await applyServer();
+    const initiated = await command.initiateOAuthConnect({ mcpServerId: id, org: ORG });
+    await command.completeOAuthConnect({
+      mcpServerId: id,
+      state: initiated.state,
+      authorizationCode: "auth-code-expired-norefresh",
     });
-    const status = await query.getOAuthGrantStatus({
-      resourceId: "mcps_expired_norefresh",
-      org: ORG,
-    });
+    await saveExpiredSignIn(id, "");
+    const status = await query.getOAuthGrantStatus({ resourceId: id, org: ORG });
     expect(status.connectionHealth).toBe(
       OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED,
     );

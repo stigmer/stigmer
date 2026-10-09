@@ -68,9 +68,9 @@
       "required": false
     },
     {
-      "name": "EnvironmentRefs",
-      "jsonName": "environmentRefs",
-      "protoField": "environment_refs",
+      "name": "Vaults",
+      "jsonName": "vaults",
+      "protoField": "vaults",
       "type": {
         "kind": "array",
         "elementType": {
@@ -78,9 +78,12 @@
           "messageType": "ApiResourceReference"
         }
       },
-      "description": "Environments whose values are delivered to every run a\n user signed in through this PlatformClient creates. This is how an\n embedded assistant reaches secret-gated MCP servers: the client — the\n connection resource — carries the credentials (for example a shared\n API secret), and minted-user runs receive its values at\n runtime, at the lowest priority, so the request's runtime values win on\n a key conflict. The agent stays untouched.",
+      "description": "Vaults whose logins and secrets every run a user signed in through this\n client creates uses, in order: the first vault holding a match wins.\n At most 20.\n\n This is how an embedded assistant reaches tools that need a key: the\n client carries a shared vault holding it, and minted users' runs use it.\n A My vault cannot be attached.",
       "required": false,
-      "referenceKind": 53
+      "referenceKind": 59,
+      "validation": {
+        "maxItems": 20
+      }
     },
     {
       "name": "CreateAccountsOnSignIn",
@@ -105,7 +108,8 @@
           "member",
           "viewer",
           "participant",
-          "editor"
+          "editor",
+          "user"
         ]
       },
       "description": "The role an account mintUserToken creates receives on the client's owning\n organization.\n\n A client's accounts belong to its owning organization alone, so an\n account's creation is its first sign-in there: the role is granted once,\n when the account is created. Accounts that already exist keep the roles\n they hold, and changing this setting later does not reach them.\n Unspecified (iam_role_unspecified) grants nothing. Requires\n create_accounts_on_sign_in. The owner role is refused: ownership is\n assigned explicitly.",

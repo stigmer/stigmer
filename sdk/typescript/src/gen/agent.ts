@@ -11,12 +11,12 @@ import { AgentIdSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { AgentSpecSchema, SubAgentSchema, HookSourceSchema, type SubAgent, type HookSource } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { TagAgentVersionInputSchema, ListAgentVersionsInputSchema, ListAgentVersionsResponseSchema, GetAgentVersionInputSchema, AgentVersionEntrySchema, type TagAgentVersionInput, type ListAgentVersionsInput, type ListAgentVersionsResponse, type GetAgentVersionInput, type AgentVersionEntry } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
-import { EnvVarDeclarationSchema, type EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { McpServerUsageSchema, type McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
 import { HookFormat, HookHandlerSchema, HookGroupSchema, HookConfigSchema, type HookHandler, type HookGroup, type HookConfig } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunConfigSchema, type RunConfig } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { EnvVarDeclarationSchema, type EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceReferenceSchema, type UpdateVisibilityInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -141,6 +141,7 @@ export interface AgentInput {
   hooks?: HookSourceInput[];
   runConfig?: RunConfigInput;
   harness?: Harness;
+  vaults?: ResourceRef[];
 }
 
 /** SDK input type for McpServerUsage. */
@@ -164,6 +165,7 @@ export interface EnvVarDeclarationInput {
   isSecret?: boolean;
   description?: string;
   optional?: boolean;
+  value?: string;
 }
 
 /** SDK input type for HookSource. */
@@ -227,6 +229,7 @@ function buildEnvVarDeclarationProto(input: EnvVarDeclarationInput) {
     isSecret: input.isSecret,
     description: input.description,
     optional: input.optional,
+    value: input.value,
   }));
 }
 
@@ -286,6 +289,7 @@ export function buildAgentProto(input: AgentInput): Agent {
   }
   const hooks = input.hooks?.map(buildHookSourceProto);
   const runConfig = input.runConfig ? buildRunConfigProto(input.runConfig) : undefined;
+  const vaults = input.vaults?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 59 }));
   return Object.assign(create(AgentSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Agent",
@@ -311,6 +315,7 @@ export function buildAgentProto(input: AgentInput): Agent {
       hooks,
       runConfig,
       harness: input.harness,
+      vaults,
     })),
   }) as Agent;
 }
@@ -338,6 +343,7 @@ function toEnvVarDeclarationInput(msg: EnvVarDeclaration): EnvVarDeclarationInpu
     isSecret: msg.isSecret || undefined,
     description: msg.description || undefined,
     optional: msg.optional || undefined,
+    value: msg.value || undefined,
   };
 }
 
@@ -423,5 +429,6 @@ export function toAgentUpdateInput(resource: Agent): AgentInput {
     hooks: spec.hooks?.length ? spec.hooks.map(toHookSourceInput) : undefined,
     runConfig: spec.runConfig ? toRunConfigInput(spec.runConfig) : undefined,
     harness: spec.harness || undefined,
+    vaults: toResourceRefInputs(spec.vaults),
   };
 }

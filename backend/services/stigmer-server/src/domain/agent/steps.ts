@@ -30,8 +30,8 @@ import type {
   AgentSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
-import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
-import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
+import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import type { HookConfig, HookHandler } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
@@ -57,19 +57,18 @@ type AgentDesc = typeof AgentSchema;
 // ---------------------------------------------------------------------------
 // MergeMcpServerEnvSpecs — merge_mcp_env_specs.go: merges env DECLARATIONS
 // from referenced MCP servers into the agent's env at create/update time,
-// so the UI/CLI can show what the agent needs, a person knows which vars to
-// keep in their personal environment, and execution-time validation has the
-// complete schema.
+// so the UI/CLI can show what the agent needs, a person knows which keys to
+// keep in My vault, and execution-time validation has the complete schema.
 //
 // Merge semantics: agent-declared entries always take precedence (user
 // intent is preserved); among MCP servers, first-encountered wins for
 // overlapping keys; only declaration fields (description, is_secret,
-// optional) are merged — actual values come from the environments a run
-// resolves at runtime.
+// optional) are merged — actual values come from the vaults a run
+// resolves at runtime (domain/vault/resolve.ts).
 //
 // Lenient by design: a server that cannot be found (not yet created,
 // different org, …) logs a warning and is skipped. The authoritative
-// fail-fast check remains McpEnvironmentValidator at execution creation.
+// fail-fast check is the run's credential resolver at execution creation.
 //
 // Pipeline position: AFTER NormalizeReferences (needs resolved org),
 // BEFORE Persist.

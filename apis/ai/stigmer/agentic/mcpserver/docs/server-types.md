@@ -22,7 +22,7 @@ Prefer `http` when the vendor offers a hosted MCP endpoint — it works on every
 
 Defined by `StdioServerConfig` in `ai/stigmer/agentic/mcpserver/v1/spec.proto`.
 
-The agent runner spawns the MCP server as a child process and communicates over its stdin/stdout. The keys the server declares, from the run's resolved environment (the Environments bound to what started the run, `runtime_env`, then OAuth tokens and the personal environment of the person who sent the message for keys still missing), are passed directly to the subprocess — this is the standard way credentials are injected.
+The agent runner spawns the MCP server as a child process and communicates over its stdin/stdout. The keys the server declares, resolved from the run's vaults when it starts, are passed directly to the subprocess — this is the standard way credentials are injected.
 
 **Local runners only.** Stdio servers run where the runner runs, so they are supported only on sessions executing on a local runner (`execution_target: local`). Cloud-hosted sessions refuse them at run create time, and cloud runners refuse to spawn them as defense-in-depth. This includes the hybrid setup — control plane in Stigmer Cloud, runner on your machine — where stdio works normally.
 

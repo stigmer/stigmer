@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package ai.stigmer.platform.github.v1;
+
+import "ai/stigmer/commons/rpc/method_options.proto";
+import "ai/stigmer/platform/github/v1/io.proto";
+
+// GitHubQueryController reads GitHub repositories with the caller's saved
+// github.com login, so no page holds the token.
+//
+// Each RPC uses the github.com connection in the caller's My vault in the
+// named organization, and answers FAILED_PRECONDITION when there is none.
+//
+// @internal
+// Server-side calls to api.github.com with the GitHub client's timeout. The
+// reads stay when the OAuth half of GitHubService is folded into the
+// general sign-in. Authorization: can_create_vault on the organization
+// (members, the people who keep a My vault there).
+service GitHubQueryController {
+  // List the repositories the connected account can reach, one page at a
+  // time, most recently updated first.
+  rpc listRepositories(ListGitHubRepositoriesInput) returns (GitHubRepositoryList) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_create_vault;
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to read GitHub in this organization";
+  }
+
+  // Search the repositories the connected account can reach.
+  rpc searchRepositories(SearchGitHubRepositoriesInput) returns (GitHubRepositoryList) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_create_vault;
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to read GitHub in this organization";
+  }
+
+  // List a repository's branches.
+  rpc listBranches(ListGitHubBranchesInput) returns (GitHubBranchList) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_create_vault;
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to read GitHub in this organization";
+  }
+
+  // List every file and directory of a repository at a branch or commit.
+  rpc getTree(GetGitHubTreeInput) returns (GitHubTree) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_create_vault;
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to read GitHub in this organization";
+  }
+
+  // Read one file of a repository at a branch or commit.
+  //
+  // Files above 10 MiB are reported by size without their content.
+  rpc getFileContent(GetGitHubFileContentInput) returns (GitHubFileContent) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_create_vault;
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to read GitHub in this organization";
+  }
+}

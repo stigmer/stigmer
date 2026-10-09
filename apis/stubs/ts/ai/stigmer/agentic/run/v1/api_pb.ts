@@ -40,7 +40,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/run/v1/api.proto.
  */
 export const file_ai_stigmer_agentic_run_v1_api: GenFile = /*@__PURE__*/
-  fileDesc("CiNhaS9zdGlnbWVyL2FnZW50aWMvcnVuL3YxL2FwaS5wcm90bxIZYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MSKJAgoDUnVuEjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVYWdlbnRpYy5zdGlnbWVyLmFpL3YxEhgKBGtpbmQYAiABKAlCCrpIB3IFCgNSdW4STQoIbWV0YWRhdGEYAyABKAsyMy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VNZXRhZGF0YUIGukgDyAEBEjAKBHNwZWMYBCABKAsyIi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1blNwZWMSNAoGc3RhdHVzGAUgASgLMiQuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW5TdGF0dXMilQ0KCVJ1blN0YXR1cxI/CgVhdWRpdBhjIAEoCzIwLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUF1ZGl0EjkKCG1lc3NhZ2VzGAEgAygLMicuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5BZ2VudE1lc3NhZ2USPAoFcGhhc2UYAiABKA4yIy5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1blBoYXNlQgi6SAWCAQIQARI+Cg5zdWJfYWdlbnRfcnVucxgEIAMoCzImLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuU3ViQWdlbnRSdW4SDQoFZXJyb3IYBiABKAkSEgoKc3RhcnRlZF9hdBgHIAEoCRIUCgxjb21wbGV0ZWRfYXQYCCABKAkSPgoFdG9kb3MYCSADKAsyLy5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1blN0YXR1cy5Ub2Rvc0VudHJ5EkUKEXBlbmRpbmdfYXBwcm92YWxzGBAgAygLMiouYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5QZW5kaW5nQXBwcm92YWwSTQoVYXBwcm92YWxfZXZlbnRfc3RyZWFtGBYgASgLMi4uYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5BcHByb3ZhbEV2ZW50U3RyZWFtEjwKDGNvbnRleHRfaW5mbxgOIAEoCzImLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuQ29udGV4dEluZm8SOQoJYXJ0aWZhY3RzGA8gAygLMiYuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW5BcnRpZmFjdBJMChV3b3Jrc3BhY2Vfd3JpdGVfYmFja3MYESADKAsyLS5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLldvcmtzcGFjZVdyaXRlQmFjaxJACg5zZXR1cF9wcm9ncmVzcxgSIAEoCzIoLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuU2V0dXBQcm9ncmVzcxJJCg9zdHJlYW1pbmdfdXNhZ2UYFCABKAsyMC5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlN0cmVhbWluZ1VzYWdlU3VtbWFyeRIyChFzdHJ1Y3R1cmVkX291dHB1dBgVIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSQgoQZmlsZV9jaGFuZ2Vfc2V0cxgXIAMoCzIoLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuRmlsZUNoYW5nZVNldBJSChhmaWxlX3Jldmlld19ldmVudF9zdHJlYW0YGCABKAsyMC5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLkZpbGVSZXZpZXdFdmVudFN0cmVhbRJLChRmaWxlX2NoYW5nZV9wcm9ncmVzcxgZIAEoCzItLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuRmlsZUNoYW5nZVByb2dyZXNzElMKGHJlY2FsbGVkX21lbW9yaWVzX3JlcG9ydBgaIAEoCzIxLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUmVjYWxsZWRNZW1vcmllc1JlcG9ydBIQCghhZ2VudF9pZBgbIAEoCRIaChJhZ2VudF92ZXJzaW9uX2hhc2gYHCABKAkSTAoUZGVjbGFyZWRfcHJlZmVyZW5jZXMYHSABKAsyLi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLkRlY2xhcmVkUHJlZmVyZW5jZXMSRgoRcmVjYWxsZWRfbWVtb3JpZXMYHiABKAsyKy5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJlY2FsbGVkTWVtb3JpZXMSOAoKcnVuX2NvbmZpZxgfIAEoCzIkLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUnVuQ29uZmlnEj4KDWFwcHJvdmFsX21vZGUYICABKA4yJy5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLkFwcHJvdmFsTW9kZRpRCgpUb2Rvc0VudHJ5EgsKA2tleRgBIAEoCRIyCgV2YWx1ZRgCIAEoCzIjLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuVG9kb0l0ZW06AjgBSgQIChALSgQIDBANUg5jYWxsYmFja190b2tlblIQcmVzb2x2ZWRfY29udGV4dCImCg1TZXR1cFByb2dyZXNzEhUKDWN1cnJlbnRfcGhhc2UYASABKAkiaAoWUmVjYWxsZWRNZW1vcmllc1JlcG9ydBIYChBzZWxlY3Rpb25fYWN0aXZlGAEgASgIEhsKE2luamVjdGVkX21lbW9yeV9pZHMYAiADKAkSFwoPZW1iZWRkaW5nX21vZGVsGAMgASgJYgZwcm90bzM", [file_ai_stigmer_agentic_run_v1_approval, file_ai_stigmer_agentic_run_v1_artifact, file_ai_stigmer_agentic_run_v1_context, file_ai_stigmer_agentic_run_v1_enum, file_ai_stigmer_agentic_run_v1_filereview, file_ai_stigmer_agentic_run_v1_invocation, file_ai_stigmer_agentic_run_v1_message, file_ai_stigmer_agentic_run_v1_spec, file_ai_stigmer_agentic_run_v1_subagent, file_ai_stigmer_agentic_run_v1_todo, file_ai_stigmer_agentic_run_v1_usage, file_ai_stigmer_agentic_run_v1_writeback, file_ai_stigmer_commons_apiresource_metadata, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate, file_google_protobuf_struct]);
+  fileDesc("CiNhaS9zdGlnbWVyL2FnZW50aWMvcnVuL3YxL2FwaS5wcm90bxIZYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MSKJAgoDUnVuEjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVYWdlbnRpYy5zdGlnbWVyLmFpL3YxEhgKBGtpbmQYAiABKAlCCrpIB3IFCgNSdW4STQoIbWV0YWRhdGEYAyABKAsyMy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VNZXRhZGF0YUIGukgDyAEBEjAKBHNwZWMYBCABKAsyIi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1blNwZWMSNAoGc3RhdHVzGAUgASgLMiQuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW5TdGF0dXMi1Q0KCVJ1blN0YXR1cxI/CgVhdWRpdBhjIAEoCzIwLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUF1ZGl0EjkKCG1lc3NhZ2VzGAEgAygLMicuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5BZ2VudE1lc3NhZ2USPAoFcGhhc2UYAiABKA4yIy5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1blBoYXNlQgi6SAWCAQIQARI+Cg5zdWJfYWdlbnRfcnVucxgEIAMoCzImLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuU3ViQWdlbnRSdW4SDQoFZXJyb3IYBiABKAkSEgoKc3RhcnRlZF9hdBgHIAEoCRIUCgxjb21wbGV0ZWRfYXQYCCABKAkSPgoFdG9kb3MYCSADKAsyLy5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1blN0YXR1cy5Ub2Rvc0VudHJ5EkUKEXBlbmRpbmdfYXBwcm92YWxzGBAgAygLMiouYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5QZW5kaW5nQXBwcm92YWwSTQoVYXBwcm92YWxfZXZlbnRfc3RyZWFtGBYgASgLMi4uYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5BcHByb3ZhbEV2ZW50U3RyZWFtEjwKDGNvbnRleHRfaW5mbxgOIAEoCzImLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuQ29udGV4dEluZm8SOQoJYXJ0aWZhY3RzGA8gAygLMiYuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW5BcnRpZmFjdBJMChV3b3Jrc3BhY2Vfd3JpdGVfYmFja3MYESADKAsyLS5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLldvcmtzcGFjZVdyaXRlQmFjaxJACg5zZXR1cF9wcm9ncmVzcxgSIAEoCzIoLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuU2V0dXBQcm9ncmVzcxJJCg9zdHJlYW1pbmdfdXNhZ2UYFCABKAsyMC5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlN0cmVhbWluZ1VzYWdlU3VtbWFyeRIyChFzdHJ1Y3R1cmVkX291dHB1dBgVIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSQgoQZmlsZV9jaGFuZ2Vfc2V0cxgXIAMoCzIoLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuRmlsZUNoYW5nZVNldBJSChhmaWxlX3Jldmlld19ldmVudF9zdHJlYW0YGCABKAsyMC5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLkZpbGVSZXZpZXdFdmVudFN0cmVhbRJLChRmaWxlX2NoYW5nZV9wcm9ncmVzcxgZIAEoCzItLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuRmlsZUNoYW5nZVByb2dyZXNzElMKGHJlY2FsbGVkX21lbW9yaWVzX3JlcG9ydBgaIAEoCzIxLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUmVjYWxsZWRNZW1vcmllc1JlcG9ydBIQCghhZ2VudF9pZBgbIAEoCRIaChJhZ2VudF92ZXJzaW9uX2hhc2gYHCABKAkSTAoUZGVjbGFyZWRfcHJlZmVyZW5jZXMYHSABKAsyLi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLkRlY2xhcmVkUHJlZmVyZW5jZXMSRgoRcmVjYWxsZWRfbWVtb3JpZXMYHiABKAsyKy5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJlY2FsbGVkTWVtb3JpZXMSOAoKcnVuX2NvbmZpZxgfIAEoCzIkLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUnVuQ29uZmlnEj4KDWFwcHJvdmFsX21vZGUYICABKA4yJy5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLkFwcHJvdmFsTW9kZRI+CgtjcmVkZW50aWFscxghIAEoCzIpLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUnVuQ3JlZGVudGlhbHMaUQoKVG9kb3NFbnRyeRILCgNrZXkYASABKAkSMgoFdmFsdWUYAiABKAsyIy5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlRvZG9JdGVtOgI4AUoECAoQC0oECAwQDVIOY2FsbGJhY2tfdG9rZW5SEHJlc29sdmVkX2NvbnRleHQiMAoOUnVuQ3JlZGVudGlhbHMSEwoGcGVyc29uGAEgASgJSACIAQFCCQoHX3BlcnNvbiImCg1TZXR1cFByb2dyZXNzEhUKDWN1cnJlbnRfcGhhc2UYASABKAkiaAoWUmVjYWxsZWRNZW1vcmllc1JlcG9ydBIYChBzZWxlY3Rpb25fYWN0aXZlGAEgASgIEhsKE2luamVjdGVkX21lbW9yeV9pZHMYAiADKAkSFwoPZW1iZWRkaW5nX21vZGVsGAMgASgJYgZwcm90bzM", [file_ai_stigmer_agentic_run_v1_approval, file_ai_stigmer_agentic_run_v1_artifact, file_ai_stigmer_agentic_run_v1_context, file_ai_stigmer_agentic_run_v1_enum, file_ai_stigmer_agentic_run_v1_filereview, file_ai_stigmer_agentic_run_v1_invocation, file_ai_stigmer_agentic_run_v1_message, file_ai_stigmer_agentic_run_v1_spec, file_ai_stigmer_agentic_run_v1_subagent, file_ai_stigmer_agentic_run_v1_todo, file_ai_stigmer_agentic_run_v1_usage, file_ai_stigmer_agentic_run_v1_writeback, file_ai_stigmer_commons_apiresource_metadata, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate, file_google_protobuf_struct]);
 
 /**
  * Run represents a single run instance (conversational).
@@ -74,10 +74,9 @@ export type Run = Message<"ai.stigmer.agentic.run.v1.Run"> & {
   /**
    * User-provided inputs for this run.
    * Contains: the conversation (session_id or a new session_spec), message,
-   * run_config, the per-message intents, and runtime_env. Environment values reach a turn from
-   * the environments the server resolves for its run and from the
-   * per-run runtime_env; see the runtime_env field docs in
-   * spec.proto.
+   * run_config and the per-message intents. A turn's logins and secrets
+   * come from its session's own values and the vaults the server resolves
+   * for it (RunStatus.credentials records whose run it was).
    *
    * @generated from field: ai.stigmer.agentic.run.v1.RunSpec spec = 4;
    */
@@ -377,6 +376,14 @@ export type RunStatus = Message<"ai.stigmer.agentic.run.v1.RunStatus"> & {
    * @generated from field: ai.stigmer.agentic.run.v1.ApprovalMode approval_mode = 32;
    */
   approvalMode: ApprovalMode;
+
+  /**
+   * Whose logins and secrets this turn uses: decided once when the turn is
+   * created, and kept when it is recovered.
+   *
+   * @generated from field: ai.stigmer.agentic.run.v1.RunCredentials credentials = 33;
+   */
+  credentials?: RunCredentials;
 };
 
 /**
@@ -385,6 +392,30 @@ export type RunStatus = Message<"ai.stigmer.agentic.run.v1.RunStatus"> & {
  */
 export const RunStatusSchema: GenMessage<RunStatus> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_run_v1_api, 1);
+
+/**
+ * RunCredentials records whose logins and secrets a turn uses.
+ *
+ * @generated from message ai.stigmer.agentic.run.v1.RunCredentials
+ */
+export type RunCredentials = Message<"ai.stigmer.agentic.run.v1.RunCredentials"> & {
+  /**
+   * The person whose turn this is, by identity account id. Absent for a
+   * turn no person sent: a schedule's, a channel's, a share link guest's, a
+   * platform client user's or a machine account's, which use only the
+   * vaults their session and surface name.
+   *
+   * @generated from field: optional string person = 1;
+   */
+  person?: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.run.v1.RunCredentials.
+ * Use `create(RunCredentialsSchema)` to create a new message.
+ */
+export const RunCredentialsSchema: GenMessage<RunCredentials> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_run_v1_api, 2);
 
 /**
  * Setup progress reported during the RUN_PENDING phase.
@@ -407,7 +438,7 @@ export type SetupProgress = Message<"ai.stigmer.agentic.run.v1.SetupProgress"> &
  * Use `create(SetupProgressSchema)` to create a new message.
  */
 export const SetupProgressSchema: GenMessage<SetupProgress> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_api, 2);
+  messageDesc(file_ai_stigmer_agentic_run_v1_api, 3);
 
 /**
  * RecalledMemoriesReport records the semantic retriever's injection outcome
@@ -447,5 +478,5 @@ export type RecalledMemoriesReport = Message<"ai.stigmer.agentic.run.v1.Recalled
  * Use `create(RecalledMemoriesReportSchema)` to create a new message.
  */
 export const RecalledMemoriesReportSchema: GenMessage<RecalledMemoriesReport> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_api, 3);
+  messageDesc(file_ai_stigmer_agentic_run_v1_api, 4);
 

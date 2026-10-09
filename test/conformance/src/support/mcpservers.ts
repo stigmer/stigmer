@@ -13,7 +13,7 @@ import type { InitShape } from "./init-shape";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { type EnvVarDeclarationInit, makeEnvDeclarations } from "./environments";
+import { type EnvVarDeclarationInit, makeEnvDeclarations } from "./vaults";
 
 export const MCPSERVER_API_VERSION = "agentic.stigmer.ai/v1";
 export const MCPSERVER_KIND = "McpServer";
@@ -28,9 +28,9 @@ export interface McpServerSpecOptions {
   // Env-var declarations projected into spec.env — the key whitelist the runner
   // filters the merged execution environment to before handing it to the stdio
   // child (mcp-resolver.ts filterEnvToDeclaredKeys). A stdio server that needs
-  // configuration declares the key here and the execution supplies the value
-  // (runtime_env or an Environment); the runner's own process env is never
-  // inherited by design.
+  // configuration declares the key here and the run supplies the value (a
+  // vault, the conversation's own secrets, or the declaration's plain value);
+  // the runner's own process env is never inherited by design.
   env?: Record<string, EnvVarDeclarationInit>;
 }
 
@@ -82,7 +82,7 @@ export interface HttpMcpServerOptions {
   headers?: Record<string, string>;
   // Env declarations (spec.env). The reserved caller-identity keys must be
   // declared `optional: true` — their values come from the runner at
-  // execution time, not from an Environment (the docs guide's rule 2).
+  // execution time, not from a vault (the docs guide's rule 2).
   env?: Record<string, { optional?: boolean; isSecret?: boolean; description?: string }>;
 }
 

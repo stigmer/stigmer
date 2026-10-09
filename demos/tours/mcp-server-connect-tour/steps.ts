@@ -83,7 +83,7 @@ export const mcpServerConnectTourSteps: ScenarioStep<McpServerConnectTourStep>[]
     delayMs: 2500,
     data: { view: "credentials", form: "empty" },
     narration:
-      "This server declares a bearer token, so Connect asks for it before dialing out. Save for future runs keeps the token in your personal environment — you enter it once.",
+      "This server declares a bearer token, so Connect asks for it before dialing out. Save in My vault keeps the token for every later connection — you enter it once.",
     interactions: [
       { atPercent: 0.1, type: "scroll_to", target: "mcp-connection" },
       { atPercent: 0.45, type: "set_cursor", target: "credential-form" },

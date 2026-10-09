@@ -27,18 +27,20 @@ function mockStigmer(overrides: {
   envError?: boolean;
 }) {
   return {
-    environment: {
+    vault: {
       getByReference: vi.fn().mockImplementation(
         ({ slug }: { org: string; slug: string }) => {
           if (overrides.envError) {
             return Promise.reject(new Error("not found"));
           }
+          // An org-visible entry stands for a shared vault; anything else
+          // for a person's My vault, which these surfaces refuse.
+          const shared =
+            (overrides.envVisibility?.[slug] ??
+              ApiResourceVisibility.visibility_private) ===
+            ApiResourceVisibility.visibility_org;
           return Promise.resolve({
-            metadata: {
-              visibility:
-                overrides.envVisibility?.[slug] ??
-                ApiResourceVisibility.visibility_private,
-            },
+            spec: { owner: { case: shared ? "org" : "person" } },
           });
         },
       ),
@@ -60,8 +62,8 @@ function wrapper(client: unknown, mode: "cloud" | "local" = "cloud") {
 
 function envLookup(client: unknown) {
   return (
-    client as { environment: { getByReference: ReturnType<typeof vi.fn> } }
-  ).environment.getByReference;
+    client as { vault: { getByReference: ReturnType<typeof vi.fn> } }
+  ).vault.getByReference;
 }
 
 describe("useChannelToolReadiness", () => {
@@ -72,7 +74,7 @@ describe("useChannelToolReadiness", () => {
       { wrapper: wrapper(client) },
     );
 
-    // A tool-using agent with zero bound environments is broken over the
+    // A tool-using agent with zero named vaults is broken over the
     // channel BY CONSTRUCTION (channel runs receive credentials
     // only from the channel's bindings) — the hook says so instead of
     // staying silent, and needs no server round-trip to know it.
@@ -80,7 +82,7 @@ describe("useChannelToolReadiness", () => {
     await waitFor(() => expect(envLookup(client)).not.toHaveBeenCalled());
   });
 
-  it("reports blocked with the private environment refs listed", async () => {
+  it("reports blocked with the vaults that cannot serve listed", async () => {
     const client = mockStigmer({
       envVisibility: {
         "shared-creds": ApiResourceVisibility.visibility_org,
@@ -99,12 +101,12 @@ describe("useChannelToolReadiness", () => {
     await waitFor(() =>
       expect(result.current).toEqual({
         status: "blocked",
-        privateEnvironments: ["acme/private-creds"],
+        unusableVaults: ["acme/private-creds"],
       }),
     );
   });
 
-  it("reports ready when every bound environment is org-shared", async () => {
+  it("reports ready when every named vault is a shared vault", async () => {
     const client = mockStigmer({
       envVisibility: {
         "shared-creds": ApiResourceVisibility.visibility_org,

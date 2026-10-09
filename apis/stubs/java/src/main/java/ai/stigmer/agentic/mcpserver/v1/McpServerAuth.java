@@ -137,11 +137,11 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object targetEnvVar_ = "";
   /**
    * <pre>
-   * The env var where the acquired access token is stored.
-   * Must correspond to an entry in env so the execution pipeline
-   * resolves it. The refresh token is stored as
-   * {target_env_var}_REFRESH_TOKEN
-   * by convention. Both are written to the grant's managed environment.
+   * The env var the signed-in access token fills.
+   * Must correspond to an entry in env. A sign-in saves the token as a
+   * connection at this server's address in the signer's vault, and a run
+   * fills this variable from that connection. The refresh token stays
+   * with the connection and never reaches a run.
    * </pre>
    *
    * <code>string target_env_var = 2 [json_name = "targetEnvVar", (.buf.validate.field) = { ... }</code>
@@ -162,11 +162,11 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The env var where the acquired access token is stored.
-   * Must correspond to an entry in env so the execution pipeline
-   * resolves it. The refresh token is stored as
-   * {target_env_var}_REFRESH_TOKEN
-   * by convention. Both are written to the grant's managed environment.
+   * The env var the signed-in access token fills.
+   * Must correspond to an entry in env. A sign-in saves the token as a
+   * connection at this server's address in the signer's vault, and a run
+   * fills this variable from that connection. The refresh token stays
+   * with the connection and never reaches a run.
    * </pre>
    *
    * <code>string target_env_var = 2 [json_name = "targetEnvVar", (.buf.validate.field) = { ... }</code>
@@ -308,22 +308,24 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object discoveryUrl_ = "";
   /**
    * <pre>
-   * Optional URL for OAuth authorization server discovery on stdio servers.
+   * URL of the login server for a stdio server: where DCR discovery looks,
+   * and the address its sign-ins are saved at.
    *
    * HTTP servers do not need this: the platform derives the discovery
    * endpoint from http.url (fetching /.well-known/oauth-authorization-server
-   * relative to the server URL).
+   * relative to the server URL), and saves a sign-in at http.url.
    *
-   * Stdio servers have no URL, so DCR discovery has nothing to derive from.
-   * Set this field to the base URL of the vendor's OAuth authorization
-   * server to enable DCR for a stdio-based MCP server.
+   * Stdio servers have no URL, so a sign-in needs this field whether or not
+   * oauth_app_ref is set: it is the address the login is saved at in the
+   * signer's vault, and the address a run finds it by. A stdio server with
+   * OAuth and no discovery_url is refused at sign-in. Without
+   * oauth_app_ref it is also the base URL of the vendor's OAuth
+   * authorization server that DCR discovers from.
    *
-   * Resolution priority:
+   * Discovery resolution priority (without oauth_app_ref; vendor OAuth uses
+   * the OAuthApp's endpoints and discovers nothing):
    * 1. discovery_url (if set — used for both stdio and HTTP)
    * 2. http.url (default for HTTP servers)
-   *
-   * Ignored when oauth_app_ref is set (vendor OAuth uses OAuthApp endpoints
-   * directly, no discovery needed).
    * </pre>
    *
    * <code>string discovery_url = 7 [json_name = "discoveryUrl"];</code>
@@ -344,22 +346,24 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Optional URL for OAuth authorization server discovery on stdio servers.
+   * URL of the login server for a stdio server: where DCR discovery looks,
+   * and the address its sign-ins are saved at.
    *
    * HTTP servers do not need this: the platform derives the discovery
    * endpoint from http.url (fetching /.well-known/oauth-authorization-server
-   * relative to the server URL).
+   * relative to the server URL), and saves a sign-in at http.url.
    *
-   * Stdio servers have no URL, so DCR discovery has nothing to derive from.
-   * Set this field to the base URL of the vendor's OAuth authorization
-   * server to enable DCR for a stdio-based MCP server.
+   * Stdio servers have no URL, so a sign-in needs this field whether or not
+   * oauth_app_ref is set: it is the address the login is saved at in the
+   * signer's vault, and the address a run finds it by. A stdio server with
+   * OAuth and no discovery_url is refused at sign-in. Without
+   * oauth_app_ref it is also the base URL of the vendor's OAuth
+   * authorization server that DCR discovers from.
    *
-   * Resolution priority:
+   * Discovery resolution priority (without oauth_app_ref; vendor OAuth uses
+   * the OAuthApp's endpoints and discovers nothing):
    * 1. discovery_url (if set — used for both stdio and HTTP)
    * 2. http.url (default for HTTP servers)
-   *
-   * Ignored when oauth_app_ref is set (vendor OAuth uses OAuthApp endpoints
-   * directly, no discovery needed).
    * </pre>
    *
    * <code>string discovery_url = 7 [json_name = "discoveryUrl"];</code>
@@ -1130,11 +1134,11 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object targetEnvVar_ = "";
     /**
      * <pre>
-     * The env var where the acquired access token is stored.
-     * Must correspond to an entry in env so the execution pipeline
-     * resolves it. The refresh token is stored as
-     * {target_env_var}_REFRESH_TOKEN
-     * by convention. Both are written to the grant's managed environment.
+     * The env var the signed-in access token fills.
+     * Must correspond to an entry in env. A sign-in saves the token as a
+     * connection at this server's address in the signer's vault, and a run
+     * fills this variable from that connection. The refresh token stays
+     * with the connection and never reaches a run.
      * </pre>
      *
      * <code>string target_env_var = 2 [json_name = "targetEnvVar", (.buf.validate.field) = { ... }</code>
@@ -1154,11 +1158,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The env var where the acquired access token is stored.
-     * Must correspond to an entry in env so the execution pipeline
-     * resolves it. The refresh token is stored as
-     * {target_env_var}_REFRESH_TOKEN
-     * by convention. Both are written to the grant's managed environment.
+     * The env var the signed-in access token fills.
+     * Must correspond to an entry in env. A sign-in saves the token as a
+     * connection at this server's address in the signer's vault, and a run
+     * fills this variable from that connection. The refresh token stays
+     * with the connection and never reaches a run.
      * </pre>
      *
      * <code>string target_env_var = 2 [json_name = "targetEnvVar", (.buf.validate.field) = { ... }</code>
@@ -1179,11 +1183,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The env var where the acquired access token is stored.
-     * Must correspond to an entry in env so the execution pipeline
-     * resolves it. The refresh token is stored as
-     * {target_env_var}_REFRESH_TOKEN
-     * by convention. Both are written to the grant's managed environment.
+     * The env var the signed-in access token fills.
+     * Must correspond to an entry in env. A sign-in saves the token as a
+     * connection at this server's address in the signer's vault, and a run
+     * fills this variable from that connection. The refresh token stays
+     * with the connection and never reaches a run.
      * </pre>
      *
      * <code>string target_env_var = 2 [json_name = "targetEnvVar", (.buf.validate.field) = { ... }</code>
@@ -1200,11 +1204,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The env var where the acquired access token is stored.
-     * Must correspond to an entry in env so the execution pipeline
-     * resolves it. The refresh token is stored as
-     * {target_env_var}_REFRESH_TOKEN
-     * by convention. Both are written to the grant's managed environment.
+     * The env var the signed-in access token fills.
+     * Must correspond to an entry in env. A sign-in saves the token as a
+     * connection at this server's address in the signer's vault, and a run
+     * fills this variable from that connection. The refresh token stays
+     * with the connection and never reaches a run.
      * </pre>
      *
      * <code>string target_env_var = 2 [json_name = "targetEnvVar", (.buf.validate.field) = { ... }</code>
@@ -1218,11 +1222,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The env var where the acquired access token is stored.
-     * Must correspond to an entry in env so the execution pipeline
-     * resolves it. The refresh token is stored as
-     * {target_env_var}_REFRESH_TOKEN
-     * by convention. Both are written to the grant's managed environment.
+     * The env var the signed-in access token fills.
+     * Must correspond to an entry in env. A sign-in saves the token as a
+     * connection at this server's address in the signer's vault, and a run
+     * fills this variable from that connection. The refresh token stays
+     * with the connection and never reaches a run.
      * </pre>
      *
      * <code>string target_env_var = 2 [json_name = "targetEnvVar", (.buf.validate.field) = { ... }</code>
@@ -1518,22 +1522,24 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object discoveryUrl_ = "";
     /**
      * <pre>
-     * Optional URL for OAuth authorization server discovery on stdio servers.
+     * URL of the login server for a stdio server: where DCR discovery looks,
+     * and the address its sign-ins are saved at.
      *
      * HTTP servers do not need this: the platform derives the discovery
      * endpoint from http.url (fetching /.well-known/oauth-authorization-server
-     * relative to the server URL).
+     * relative to the server URL), and saves a sign-in at http.url.
      *
-     * Stdio servers have no URL, so DCR discovery has nothing to derive from.
-     * Set this field to the base URL of the vendor's OAuth authorization
-     * server to enable DCR for a stdio-based MCP server.
+     * Stdio servers have no URL, so a sign-in needs this field whether or not
+     * oauth_app_ref is set: it is the address the login is saved at in the
+     * signer's vault, and the address a run finds it by. A stdio server with
+     * OAuth and no discovery_url is refused at sign-in. Without
+     * oauth_app_ref it is also the base URL of the vendor's OAuth
+     * authorization server that DCR discovers from.
      *
-     * Resolution priority:
+     * Discovery resolution priority (without oauth_app_ref; vendor OAuth uses
+     * the OAuthApp's endpoints and discovers nothing):
      * 1. discovery_url (if set — used for both stdio and HTTP)
      * 2. http.url (default for HTTP servers)
-     *
-     * Ignored when oauth_app_ref is set (vendor OAuth uses OAuthApp endpoints
-     * directly, no discovery needed).
      * </pre>
      *
      * <code>string discovery_url = 7 [json_name = "discoveryUrl"];</code>
@@ -1553,22 +1559,24 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Optional URL for OAuth authorization server discovery on stdio servers.
+     * URL of the login server for a stdio server: where DCR discovery looks,
+     * and the address its sign-ins are saved at.
      *
      * HTTP servers do not need this: the platform derives the discovery
      * endpoint from http.url (fetching /.well-known/oauth-authorization-server
-     * relative to the server URL).
+     * relative to the server URL), and saves a sign-in at http.url.
      *
-     * Stdio servers have no URL, so DCR discovery has nothing to derive from.
-     * Set this field to the base URL of the vendor's OAuth authorization
-     * server to enable DCR for a stdio-based MCP server.
+     * Stdio servers have no URL, so a sign-in needs this field whether or not
+     * oauth_app_ref is set: it is the address the login is saved at in the
+     * signer's vault, and the address a run finds it by. A stdio server with
+     * OAuth and no discovery_url is refused at sign-in. Without
+     * oauth_app_ref it is also the base URL of the vendor's OAuth
+     * authorization server that DCR discovers from.
      *
-     * Resolution priority:
+     * Discovery resolution priority (without oauth_app_ref; vendor OAuth uses
+     * the OAuthApp's endpoints and discovers nothing):
      * 1. discovery_url (if set — used for both stdio and HTTP)
      * 2. http.url (default for HTTP servers)
-     *
-     * Ignored when oauth_app_ref is set (vendor OAuth uses OAuthApp endpoints
-     * directly, no discovery needed).
      * </pre>
      *
      * <code>string discovery_url = 7 [json_name = "discoveryUrl"];</code>
@@ -1589,22 +1597,24 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Optional URL for OAuth authorization server discovery on stdio servers.
+     * URL of the login server for a stdio server: where DCR discovery looks,
+     * and the address its sign-ins are saved at.
      *
      * HTTP servers do not need this: the platform derives the discovery
      * endpoint from http.url (fetching /.well-known/oauth-authorization-server
-     * relative to the server URL).
+     * relative to the server URL), and saves a sign-in at http.url.
      *
-     * Stdio servers have no URL, so DCR discovery has nothing to derive from.
-     * Set this field to the base URL of the vendor's OAuth authorization
-     * server to enable DCR for a stdio-based MCP server.
+     * Stdio servers have no URL, so a sign-in needs this field whether or not
+     * oauth_app_ref is set: it is the address the login is saved at in the
+     * signer's vault, and the address a run finds it by. A stdio server with
+     * OAuth and no discovery_url is refused at sign-in. Without
+     * oauth_app_ref it is also the base URL of the vendor's OAuth
+     * authorization server that DCR discovers from.
      *
-     * Resolution priority:
+     * Discovery resolution priority (without oauth_app_ref; vendor OAuth uses
+     * the OAuthApp's endpoints and discovers nothing):
      * 1. discovery_url (if set — used for both stdio and HTTP)
      * 2. http.url (default for HTTP servers)
-     *
-     * Ignored when oauth_app_ref is set (vendor OAuth uses OAuthApp endpoints
-     * directly, no discovery needed).
      * </pre>
      *
      * <code>string discovery_url = 7 [json_name = "discoveryUrl"];</code>
@@ -1621,22 +1631,24 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Optional URL for OAuth authorization server discovery on stdio servers.
+     * URL of the login server for a stdio server: where DCR discovery looks,
+     * and the address its sign-ins are saved at.
      *
      * HTTP servers do not need this: the platform derives the discovery
      * endpoint from http.url (fetching /.well-known/oauth-authorization-server
-     * relative to the server URL).
+     * relative to the server URL), and saves a sign-in at http.url.
      *
-     * Stdio servers have no URL, so DCR discovery has nothing to derive from.
-     * Set this field to the base URL of the vendor's OAuth authorization
-     * server to enable DCR for a stdio-based MCP server.
+     * Stdio servers have no URL, so a sign-in needs this field whether or not
+     * oauth_app_ref is set: it is the address the login is saved at in the
+     * signer's vault, and the address a run finds it by. A stdio server with
+     * OAuth and no discovery_url is refused at sign-in. Without
+     * oauth_app_ref it is also the base URL of the vendor's OAuth
+     * authorization server that DCR discovers from.
      *
-     * Resolution priority:
+     * Discovery resolution priority (without oauth_app_ref; vendor OAuth uses
+     * the OAuthApp's endpoints and discovers nothing):
      * 1. discovery_url (if set — used for both stdio and HTTP)
      * 2. http.url (default for HTTP servers)
-     *
-     * Ignored when oauth_app_ref is set (vendor OAuth uses OAuthApp endpoints
-     * directly, no discovery needed).
      * </pre>
      *
      * <code>string discovery_url = 7 [json_name = "discoveryUrl"];</code>
@@ -1650,22 +1662,24 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Optional URL for OAuth authorization server discovery on stdio servers.
+     * URL of the login server for a stdio server: where DCR discovery looks,
+     * and the address its sign-ins are saved at.
      *
      * HTTP servers do not need this: the platform derives the discovery
      * endpoint from http.url (fetching /.well-known/oauth-authorization-server
-     * relative to the server URL).
+     * relative to the server URL), and saves a sign-in at http.url.
      *
-     * Stdio servers have no URL, so DCR discovery has nothing to derive from.
-     * Set this field to the base URL of the vendor's OAuth authorization
-     * server to enable DCR for a stdio-based MCP server.
+     * Stdio servers have no URL, so a sign-in needs this field whether or not
+     * oauth_app_ref is set: it is the address the login is saved at in the
+     * signer's vault, and the address a run finds it by. A stdio server with
+     * OAuth and no discovery_url is refused at sign-in. Without
+     * oauth_app_ref it is also the base URL of the vendor's OAuth
+     * authorization server that DCR discovers from.
      *
-     * Resolution priority:
+     * Discovery resolution priority (without oauth_app_ref; vendor OAuth uses
+     * the OAuthApp's endpoints and discovers nothing):
      * 1. discovery_url (if set — used for both stdio and HTTP)
      * 2. http.url (default for HTTP servers)
-     *
-     * Ignored when oauth_app_ref is set (vendor OAuth uses OAuthApp endpoints
-     * directly, no discovery needed).
      * </pre>
      *
      * <code>string discovery_url = 7 [json_name = "discoveryUrl"];</code>

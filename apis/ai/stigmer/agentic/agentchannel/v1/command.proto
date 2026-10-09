@@ -115,9 +115,9 @@ service AgentChannelCommandController {
   // @internal
   // Authorization: requires can_edit on the agent channel — the same bar
   // as initiateInstall (the two halves of one flow). The handler consumes
-  // the state atomically, exchanges the code, stores credentials in the
-  // system-managed Environment, records the grant, and writes the status
-  // facts (sole writer). The OSS edition returns FAILED_PRECONDITION
+  // the state atomically, exchanges the code, seals the bot token in the
+  // edition's own channel credential store, and writes the status facts
+  // (sole writer). The OSS edition returns FAILED_PRECONDITION
   // (documented posture).
   rpc completeInstall(CompleteChannelInstallInput) returns (AgentChannel) {
     option (ai.stigmer.commons.rpc.config).resource_kind = agent_channel;
@@ -129,14 +129,14 @@ service AgentChannelCommandController {
   // Delete an agent channel.
   //
   // Full teardown of the connection: inbound events for the workspace stop
-  // resolving, pending deliveries are abandoned, and the credentials
-  // environment is deleted with the grant. To pause serving while keeping
+  // resolving, pending deliveries are abandoned, and the sealed provider
+  // credentials are deleted. To pause serving while keeping
   // the install, update the channel with enabled=false instead.
   //
   // @internal
   // Authorization: requires can_delete permission on the agent channel.
-  // The referenced agent is untouched. Teardown cascade (managed env +
-  // grant deletion) mirrors McpServer disconnectOAuth.
+  // The referenced agent is untouched. The teardown cascade deletes the
+  // sealed channel credentials before the row.
   rpc delete(AgentChannelId) returns (AgentChannel) {
     option (ai.stigmer.commons.rpc.config).resource_kind = agent_channel;
     option (ai.stigmer.commons.rpc.config).permission = can_delete;

@@ -23,18 +23,25 @@ installed: AgentChannelInstallState
 revoked: AgentChannelInstallState
 
 class AgentChannelStatus(_message.Message):
-    __slots__ = ("install_state", "slack", "whatsapp", "credentials_environment_id", "audit")
+    __slots__ = ("install_state", "slack", "whatsapp", "vault_attachers", "audit")
+    class VaultAttachersEntry(_message.Message):
+        __slots__ = ("key", "value")
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: str
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
     INSTALL_STATE_FIELD_NUMBER: _ClassVar[int]
     SLACK_FIELD_NUMBER: _ClassVar[int]
     WHATSAPP_FIELD_NUMBER: _ClassVar[int]
-    CREDENTIALS_ENVIRONMENT_ID_FIELD_NUMBER: _ClassVar[int]
+    VAULT_ATTACHERS_FIELD_NUMBER: _ClassVar[int]
     AUDIT_FIELD_NUMBER: _ClassVar[int]
     install_state: AgentChannelInstallState
     slack: SlackInstallStatus
     whatsapp: WhatsAppInstallStatus
-    credentials_environment_id: str
+    vault_attachers: _containers.ScalarMap[str, str]
     audit: _status_pb2.ApiResourceAudit
-    def __init__(self, install_state: _Optional[_Union[AgentChannelInstallState, str]] = ..., slack: _Optional[_Union[SlackInstallStatus, _Mapping]] = ..., whatsapp: _Optional[_Union[WhatsAppInstallStatus, _Mapping]] = ..., credentials_environment_id: _Optional[str] = ..., audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ...) -> None: ...
+    def __init__(self, install_state: _Optional[_Union[AgentChannelInstallState, str]] = ..., slack: _Optional[_Union[SlackInstallStatus, _Mapping]] = ..., whatsapp: _Optional[_Union[WhatsAppInstallStatus, _Mapping]] = ..., vault_attachers: _Optional[_Mapping[str, str]] = ..., audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ...) -> None: ...
 
 class SlackInstallStatus(_message.Message):
     __slots__ = ("team_id", "team_name", "bot_user_id", "granted_scopes", "installer_slack_user_id", "installed_at", "channel_app_id")

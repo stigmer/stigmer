@@ -370,19 +370,19 @@ private static final long serialVersionUID = 0L;
   public static final int ENV_FIELD_NUMBER = 8;
   private static final class EnvDefaultEntryHolder {
     static final com.google.protobuf.MapEntry<
-        java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> defaultEntry =
+        java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration> defaultEntry =
             com.google.protobuf.MapEntry
-            .<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclaration>newDefaultInstance(
+            .<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration>newDefaultInstance(
                 ai.stigmer.agentic.mcpserver.v1.SpecProto.internal_static_ai_stigmer_agentic_mcpserver_v1_McpServerSpec_EnvEntry_descriptor, 
                 com.google.protobuf.WireFormat.FieldType.STRING,
                 "",
                 com.google.protobuf.WireFormat.FieldType.MESSAGE,
-                ai.stigmer.agentic.environment.v1.EnvVarDeclaration.getDefaultInstance());
+                ai.stigmer.agentic.vault.v1.EnvVarDeclaration.getDefaultInstance());
   }
   @SuppressWarnings("serial")
   private com.google.protobuf.MapField<
-      java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> env_;
-  private com.google.protobuf.MapField<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclaration>
+      java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration> env_;
+  private com.google.protobuf.MapField<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration>
   internalGetEnv() {
     if (env_ == null) {
       return com.google.protobuf.MapField.emptyMapField(
@@ -399,7 +399,7 @@ private static final long serialVersionUID = 0L;
    * Keys are variable names; values describe their metadata and optionality.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
+   * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
    */
   @java.lang.Override
   public boolean containsEnv(
@@ -412,7 +412,7 @@ private static final long serialVersionUID = 0L;
    */
   @java.lang.Override
   @java.lang.Deprecated
-  public java.util.Map<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> getEnv() {
+  public java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration> getEnv() {
     return getEnvMap();
   }
   /**
@@ -421,10 +421,10 @@ private static final long serialVersionUID = 0L;
    * Keys are variable names; values describe their metadata and optionality.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
+   * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
    */
   @java.lang.Override
-  public java.util.Map<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> getEnvMap() {
+  public java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration> getEnvMap() {
     return internalGetEnv().getMap();
   }
   /**
@@ -433,16 +433,16 @@ private static final long serialVersionUID = 0L;
    * Keys are variable names; values describe their metadata and optionality.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
+   * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
    */
   @java.lang.Override
   public /* nullable */
-ai.stigmer.agentic.environment.v1.EnvVarDeclaration getEnvOrDefault(
+ai.stigmer.agentic.vault.v1.EnvVarDeclaration getEnvOrDefault(
       java.lang.String key,
       /* nullable */
-ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
+ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     if (key == null) { throw new NullPointerException("map key"); }
-    java.util.Map<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> map =
+    java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration> map =
         internalGetEnv().getMap();
     return map.containsKey(key) ? map.get(key) : defaultValue;
   }
@@ -452,13 +452,13 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
    * Keys are variable names; values describe their metadata and optionality.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
+   * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.agentic.environment.v1.EnvVarDeclaration getEnvOrThrow(
+  public ai.stigmer.agentic.vault.v1.EnvVarDeclaration getEnvOrThrow(
       java.lang.String key) {
     if (key == null) { throw new NullPointerException("map key"); }
-    java.util.Map<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> map =
+    java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration> map =
         internalGetEnv().getMap();
     if (!map.containsKey(key)) {
       throw new java.lang.IllegalArgumentException();
@@ -544,10 +544,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
    * When set, the MCP server's Connect page offers an OAuth flow instead of
    * (or in addition to) manual credential entry.
    *
-   * The acquired access token is stored in a system-managed environment
-   * (identified by grant.environment_id) as the env var named by
-   * auth.target_env_var. That env var must also be declared in env so the
-   * execution pipeline knows about it.
+   * A sign-in saves the access token as a connection at this server's
+   * address in the signer's vault (My vault unless a shared vault is named),
+   * and a run fills the env var named by auth.target_env_var from it. That
+   * env var must also be declared in env.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>
@@ -563,10 +563,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
    * When set, the MCP server's Connect page offers an OAuth flow instead of
    * (or in addition to) manual credential entry.
    *
-   * The acquired access token is stored in a system-managed environment
-   * (identified by grant.environment_id) as the env var named by
-   * auth.target_env_var. That env var must also be declared in env so the
-   * execution pipeline knows about it.
+   * A sign-in saves the access token as a connection at this server's
+   * address in the signer's vault (My vault unless a shared vault is named),
+   * and a run fills the env var named by auth.target_env_var from it. That
+   * env var must also be declared in env.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>
@@ -582,10 +582,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
    * When set, the MCP server's Connect page offers an OAuth flow instead of
    * (or in addition to) manual credential entry.
    *
-   * The acquired access token is stored in a system-managed environment
-   * (identified by grant.environment_id) as the env var named by
-   * auth.target_env_var. That env var must also be declared in env so the
-   * execution pipeline knows about it.
+   * A sign-in saves the access token as a connection at this server's
+   * address in the signer's vault (My vault unless a shared vault is named),
+   * and a run fills the env var named by auth.target_env_var from it. That
+   * env var must also be declared in env.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>
@@ -670,9 +670,9 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(5, (ai.stigmer.agentic.mcpserver.v1.HttpServerConfig) serverType_);
     }
-    for (java.util.Map.Entry<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> entry
+    for (java.util.Map.Entry<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration> entry
          : internalGetEnv().getMap().entrySet()) {
-      com.google.protobuf.MapEntry<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclaration>
+      com.google.protobuf.MapEntry<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration>
       env__ = EnvDefaultEntryHolder.defaultEntry.newBuilderForType()
           .setKey(entry.getKey())
           .setValue(entry.getValue())
@@ -1153,7 +1153,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
               break;
             } // case 42
             case 66: {
-              com.google.protobuf.MapEntry<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclaration>
+              com.google.protobuf.MapEntry<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration>
               env__ = input.readMessage(
                   EnvDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
               internalGetMutableEnv().ensureBuilderMap().put(
@@ -1953,30 +1953,30 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       return httpBuilder_;
     }
 
-    private static final class EnvConverter implements com.google.protobuf.MapFieldBuilder.Converter<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclarationOrBuilder, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> {
+    private static final class EnvConverter implements com.google.protobuf.MapFieldBuilder.Converter<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclarationOrBuilder, ai.stigmer.agentic.vault.v1.EnvVarDeclaration> {
       @java.lang.Override
-      public ai.stigmer.agentic.environment.v1.EnvVarDeclaration build(ai.stigmer.agentic.environment.v1.EnvVarDeclarationOrBuilder val) {
-        if (val instanceof ai.stigmer.agentic.environment.v1.EnvVarDeclaration) { return (ai.stigmer.agentic.environment.v1.EnvVarDeclaration) val; }
-        return ((ai.stigmer.agentic.environment.v1.EnvVarDeclaration.Builder) val).build();
+      public ai.stigmer.agentic.vault.v1.EnvVarDeclaration build(ai.stigmer.agentic.vault.v1.EnvVarDeclarationOrBuilder val) {
+        if (val instanceof ai.stigmer.agentic.vault.v1.EnvVarDeclaration) { return (ai.stigmer.agentic.vault.v1.EnvVarDeclaration) val; }
+        return ((ai.stigmer.agentic.vault.v1.EnvVarDeclaration.Builder) val).build();
       }
 
       @java.lang.Override
-      public com.google.protobuf.MapEntry<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> defaultEntry() {
+      public com.google.protobuf.MapEntry<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration> defaultEntry() {
         return EnvDefaultEntryHolder.defaultEntry;
       }
     };
     private static final EnvConverter envConverter = new EnvConverter();
 
     private com.google.protobuf.MapFieldBuilder<
-        java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclarationOrBuilder, ai.stigmer.agentic.environment.v1.EnvVarDeclaration, ai.stigmer.agentic.environment.v1.EnvVarDeclaration.Builder> env_;
-    private com.google.protobuf.MapFieldBuilder<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclarationOrBuilder, ai.stigmer.agentic.environment.v1.EnvVarDeclaration, ai.stigmer.agentic.environment.v1.EnvVarDeclaration.Builder>
+        java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclarationOrBuilder, ai.stigmer.agentic.vault.v1.EnvVarDeclaration, ai.stigmer.agentic.vault.v1.EnvVarDeclaration.Builder> env_;
+    private com.google.protobuf.MapFieldBuilder<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclarationOrBuilder, ai.stigmer.agentic.vault.v1.EnvVarDeclaration, ai.stigmer.agentic.vault.v1.EnvVarDeclaration.Builder>
         internalGetEnv() {
       if (env_ == null) {
         return new com.google.protobuf.MapFieldBuilder<>(envConverter);
       }
       return env_;
     }
-    private com.google.protobuf.MapFieldBuilder<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclarationOrBuilder, ai.stigmer.agentic.environment.v1.EnvVarDeclaration, ai.stigmer.agentic.environment.v1.EnvVarDeclaration.Builder>
+    private com.google.protobuf.MapFieldBuilder<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclarationOrBuilder, ai.stigmer.agentic.vault.v1.EnvVarDeclaration, ai.stigmer.agentic.vault.v1.EnvVarDeclaration.Builder>
         internalGetMutableEnv() {
       if (env_ == null) {
         env_ = new com.google.protobuf.MapFieldBuilder<>(envConverter);
@@ -1994,7 +1994,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * Keys are variable names; values describe their metadata and optionality.
      * </pre>
      *
-     * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
+     * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
      */
     @java.lang.Override
     public boolean containsEnv(
@@ -2007,7 +2007,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      */
     @java.lang.Override
     @java.lang.Deprecated
-    public java.util.Map<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> getEnv() {
+    public java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration> getEnv() {
       return getEnvMap();
     }
     /**
@@ -2016,10 +2016,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * Keys are variable names; values describe their metadata and optionality.
      * </pre>
      *
-     * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
+     * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
      */
     @java.lang.Override
-    public java.util.Map<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> getEnvMap() {
+    public java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration> getEnvMap() {
       return internalGetEnv().getImmutableMap();
     }
     /**
@@ -2028,16 +2028,16 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * Keys are variable names; values describe their metadata and optionality.
      * </pre>
      *
-     * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
+     * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
      */
     @java.lang.Override
     public /* nullable */
-ai.stigmer.agentic.environment.v1.EnvVarDeclaration getEnvOrDefault(
+ai.stigmer.agentic.vault.v1.EnvVarDeclaration getEnvOrDefault(
         java.lang.String key,
         /* nullable */
-ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
+ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       if (key == null) { throw new NullPointerException("map key"); }
-      java.util.Map<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclarationOrBuilder> map = internalGetMutableEnv().ensureBuilderMap();
+      java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclarationOrBuilder> map = internalGetMutableEnv().ensureBuilderMap();
       return map.containsKey(key) ? envConverter.build(map.get(key)) : defaultValue;
     }
     /**
@@ -2046,13 +2046,13 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * Keys are variable names; values describe their metadata and optionality.
      * </pre>
      *
-     * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
+     * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
      */
     @java.lang.Override
-    public ai.stigmer.agentic.environment.v1.EnvVarDeclaration getEnvOrThrow(
+    public ai.stigmer.agentic.vault.v1.EnvVarDeclaration getEnvOrThrow(
         java.lang.String key) {
       if (key == null) { throw new NullPointerException("map key"); }
-      java.util.Map<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclarationOrBuilder> map = internalGetMutableEnv().ensureBuilderMap();
+      java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclarationOrBuilder> map = internalGetMutableEnv().ensureBuilderMap();
       if (!map.containsKey(key)) {
         throw new java.lang.IllegalArgumentException();
       }
@@ -2069,7 +2069,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * Keys are variable names; values describe their metadata and optionality.
      * </pre>
      *
-     * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
+     * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
      */
     public Builder removeEnv(
         java.lang.String key) {
@@ -2082,7 +2082,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * Use alternate mutation accessors instead.
      */
     @java.lang.Deprecated
-    public java.util.Map<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclaration>
+    public java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration>
         getMutableEnv() {
       bitField0_ |= 0x00000020;
       return internalGetMutableEnv().ensureMessageMap();
@@ -2093,11 +2093,11 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * Keys are variable names; values describe their metadata and optionality.
      * </pre>
      *
-     * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
+     * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
      */
     public Builder putEnv(
         java.lang.String key,
-        ai.stigmer.agentic.environment.v1.EnvVarDeclaration value) {
+        ai.stigmer.agentic.vault.v1.EnvVarDeclaration value) {
       if (key == null) { throw new NullPointerException("map key"); }
       if (value == null) { throw new NullPointerException("map value"); }
       internalGetMutableEnv().ensureBuilderMap()
@@ -2111,11 +2111,11 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * Keys are variable names; values describe their metadata and optionality.
      * </pre>
      *
-     * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
+     * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
      */
     public Builder putAllEnv(
-        java.util.Map<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> values) {
-      for (java.util.Map.Entry<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> e : values.entrySet()) {
+        java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration> values) {
+      for (java.util.Map.Entry<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration> e : values.entrySet()) {
         if (e.getKey() == null || e.getValue() == null) {
           throw new NullPointerException();
         }
@@ -2131,21 +2131,21 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * Keys are variable names; values describe their metadata and optionality.
      * </pre>
      *
-     * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
+     * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
      */
-    public ai.stigmer.agentic.environment.v1.EnvVarDeclaration.Builder putEnvBuilderIfAbsent(
+    public ai.stigmer.agentic.vault.v1.EnvVarDeclaration.Builder putEnvBuilderIfAbsent(
         java.lang.String key) {
-      java.util.Map<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclarationOrBuilder> builderMap = internalGetMutableEnv().ensureBuilderMap();
-      ai.stigmer.agentic.environment.v1.EnvVarDeclarationOrBuilder entry = builderMap.get(key);
+      java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclarationOrBuilder> builderMap = internalGetMutableEnv().ensureBuilderMap();
+      ai.stigmer.agentic.vault.v1.EnvVarDeclarationOrBuilder entry = builderMap.get(key);
       if (entry == null) {
-        entry = ai.stigmer.agentic.environment.v1.EnvVarDeclaration.newBuilder();
+        entry = ai.stigmer.agentic.vault.v1.EnvVarDeclaration.newBuilder();
         builderMap.put(key, entry);
       }
-      if (entry instanceof ai.stigmer.agentic.environment.v1.EnvVarDeclaration) {
-        entry = ((ai.stigmer.agentic.environment.v1.EnvVarDeclaration) entry).toBuilder();
+      if (entry instanceof ai.stigmer.agentic.vault.v1.EnvVarDeclaration) {
+        entry = ((ai.stigmer.agentic.vault.v1.EnvVarDeclaration) entry).toBuilder();
         builderMap.put(key, entry);
       }
-      return (ai.stigmer.agentic.environment.v1.EnvVarDeclaration.Builder) entry;
+      return (ai.stigmer.agentic.vault.v1.EnvVarDeclaration.Builder) entry;
     }
 
     private java.lang.Object repositoryUrl_ = "";
@@ -2314,10 +2314,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * When set, the MCP server's Connect page offers an OAuth flow instead of
      * (or in addition to) manual credential entry.
      *
-     * The acquired access token is stored in a system-managed environment
-     * (identified by grant.environment_id) as the env var named by
-     * auth.target_env_var. That env var must also be declared in env so the
-     * execution pipeline knows about it.
+     * A sign-in saves the access token as a connection at this server's
+     * address in the signer's vault (My vault unless a shared vault is named),
+     * and a run fills the env var named by auth.target_env_var from it. That
+     * env var must also be declared in env.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>
@@ -2332,10 +2332,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * When set, the MCP server's Connect page offers an OAuth flow instead of
      * (or in addition to) manual credential entry.
      *
-     * The acquired access token is stored in a system-managed environment
-     * (identified by grant.environment_id) as the env var named by
-     * auth.target_env_var. That env var must also be declared in env so the
-     * execution pipeline knows about it.
+     * A sign-in saves the access token as a connection at this server's
+     * address in the signer's vault (My vault unless a shared vault is named),
+     * and a run fills the env var named by auth.target_env_var from it. That
+     * env var must also be declared in env.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>
@@ -2354,10 +2354,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * When set, the MCP server's Connect page offers an OAuth flow instead of
      * (or in addition to) manual credential entry.
      *
-     * The acquired access token is stored in a system-managed environment
-     * (identified by grant.environment_id) as the env var named by
-     * auth.target_env_var. That env var must also be declared in env so the
-     * execution pipeline knows about it.
+     * A sign-in saves the access token as a connection at this server's
+     * address in the signer's vault (My vault unless a shared vault is named),
+     * and a run fills the env var named by auth.target_env_var from it. That
+     * env var must also be declared in env.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>
@@ -2381,10 +2381,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * When set, the MCP server's Connect page offers an OAuth flow instead of
      * (or in addition to) manual credential entry.
      *
-     * The acquired access token is stored in a system-managed environment
-     * (identified by grant.environment_id) as the env var named by
-     * auth.target_env_var. That env var must also be declared in env so the
-     * execution pipeline knows about it.
+     * A sign-in saves the access token as a connection at this server's
+     * address in the signer's vault (My vault unless a shared vault is named),
+     * and a run fills the env var named by auth.target_env_var from it. That
+     * env var must also be declared in env.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>
@@ -2406,10 +2406,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * When set, the MCP server's Connect page offers an OAuth flow instead of
      * (or in addition to) manual credential entry.
      *
-     * The acquired access token is stored in a system-managed environment
-     * (identified by grant.environment_id) as the env var named by
-     * auth.target_env_var. That env var must also be declared in env so the
-     * execution pipeline knows about it.
+     * A sign-in saves the access token as a connection at this server's
+     * address in the signer's vault (My vault unless a shared vault is named),
+     * and a run fills the env var named by auth.target_env_var from it. That
+     * env var must also be declared in env.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>
@@ -2438,10 +2438,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * When set, the MCP server's Connect page offers an OAuth flow instead of
      * (or in addition to) manual credential entry.
      *
-     * The acquired access token is stored in a system-managed environment
-     * (identified by grant.environment_id) as the env var named by
-     * auth.target_env_var. That env var must also be declared in env so the
-     * execution pipeline knows about it.
+     * A sign-in saves the access token as a connection at this server's
+     * address in the signer's vault (My vault unless a shared vault is named),
+     * and a run fills the env var named by auth.target_env_var from it. That
+     * env var must also be declared in env.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>
@@ -2462,10 +2462,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * When set, the MCP server's Connect page offers an OAuth flow instead of
      * (or in addition to) manual credential entry.
      *
-     * The acquired access token is stored in a system-managed environment
-     * (identified by grant.environment_id) as the env var named by
-     * auth.target_env_var. That env var must also be declared in env so the
-     * execution pipeline knows about it.
+     * A sign-in saves the access token as a connection at this server's
+     * address in the signer's vault (My vault unless a shared vault is named),
+     * and a run fills the env var named by auth.target_env_var from it. That
+     * env var must also be declared in env.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>
@@ -2481,10 +2481,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * When set, the MCP server's Connect page offers an OAuth flow instead of
      * (or in addition to) manual credential entry.
      *
-     * The acquired access token is stored in a system-managed environment
-     * (identified by grant.environment_id) as the env var named by
-     * auth.target_env_var. That env var must also be declared in env so the
-     * execution pipeline knows about it.
+     * A sign-in saves the access token as a connection at this server's
+     * address in the signer's vault (My vault unless a shared vault is named),
+     * and a run fills the env var named by auth.target_env_var from it. That
+     * env var must also be declared in env.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>
@@ -2503,10 +2503,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * When set, the MCP server's Connect page offers an OAuth flow instead of
      * (or in addition to) manual credential entry.
      *
-     * The acquired access token is stored in a system-managed environment
-     * (identified by grant.environment_id) as the env var named by
-     * auth.target_env_var. That env var must also be declared in env so the
-     * execution pipeline knows about it.
+     * A sign-in saves the access token as a connection at this server's
+     * address in the signer's vault (My vault unless a shared vault is named),
+     * and a run fills the env var named by auth.target_env_var from it. That
+     * env var must also be declared in env.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>

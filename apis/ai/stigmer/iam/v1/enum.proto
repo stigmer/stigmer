@@ -51,7 +51,6 @@ enum IamPermission {
   can_create_session = 8;
   can_create_skill = 9;
   can_create_idp = 11;
-  can_create_environment = 12;
   can_create_identity_account = 21;
   can_create_oauth_app = 23;
   can_create_platform_client = 24;
@@ -73,8 +72,11 @@ enum IamPermission {
   // Execution permission.
   can_execute = 15;
 
-  // Secret access permission.
-  can_read_secrets = 16;
+  // Values 12 and 16 held can_create_environment and can_read_secrets,
+  // removed with the Environment kind when vaults replaced it: no read
+  // returns a saved value, so there is nothing to reveal.
+  reserved 12, 16;
+  reserved "can_create_environment", "can_read_secrets";
 
   // Platform-level permissions.
   can_bootstrap_iam = 17;
@@ -154,7 +156,7 @@ enum IamPermission {
   // reserved stigmer.ai/* key namespace through client-facing write
   // boundaries. Gated to platform operators (the seeding machine
   // account): reserved labels carry platform semantics the server acts
-  // on (the personal-environment marker, plugin membership and lineage) — so ordinary requests may echo or
+  // on (plugin membership and lineage, the stamps a run's vaults are found by) — so ordinary requests may echo or
   // remove them but never write them.
   can_write_reserved_labels = 37;
 
@@ -252,6 +254,28 @@ enum IamPermission {
   // can_view, so they read none of the child's resources, reports or
   // lists.
   can_view_settings = 50;
+
+  // Whether the caller may save logins and secrets in their own My vault in
+  // an organization: its members.
+  //
+  // @internal
+  // Asked by the vault entry RPCs when the first write names My vault, and
+  // by the GitHub sign-in, which saves the github.com login there. Guests
+  // hold none.
+  can_create_vault = 51;
+
+  // Whether the caller may create a shared vault in an organization: its
+  // admins.
+  can_create_shared_vault = 52;
+
+  // Whether a person's runs may use a vault's logins and secrets.
+  //
+  // @internal
+  // Asked at save, when a session, schedule, share, channel, agent or
+  // platform client names a vault, and again when each run starts: of the
+  // run's person, or of the account that attached the vault when the run
+  // has no person.
+  can_use = 53;
 }
 
 // IamRole defines the roles that can be assigned to principals on resources
@@ -301,4 +325,13 @@ enum IamRole {
   // an edition that widens the policy grant scope beyond the organization
   // grants it; the open-source server does not.
   editor = 6;
+
+  // May use a shared vault: the runs of a person who holds it use the
+  // vault's logins and secrets. Shown as "Can use".
+  //
+  // @internal
+  // Grantable only on vault, to people and Teams, the participant
+  // precedent for a kind-scoped role. Using a vault hands its secrets to a
+  // run with a shell, which viewer would understate.
+  user = 7;
 }

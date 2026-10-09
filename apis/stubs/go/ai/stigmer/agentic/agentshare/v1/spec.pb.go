@@ -128,15 +128,15 @@ type AgentShareSpec struct {
 	// Owner-customizable copy shown to visitors when a launch-gate limit
 	// refuses their message. Unset fields fall back to platform defaults.
 	Messages *AgentShareMessages `protobuf:"bytes,5,opt,name=messages,proto3" json:"messages,omitempty"`
-	// References to Environment resources whose values are provided to guest
-	// conversations on this share.
+	// Vaults whose logins and secrets guest conversations on this share use, in
+	// order: the first vault holding a match wins. Valid on public-audience
+	// shares only. At most 20.
 	//
-	// This is how a tool-using agent becomes chattable over a share link:
-	// bind an org-shared environment holding the needed credentials (for
-	// example a read-only API token), and guest runs receive its
-	// values at runtime. The agent itself stays untouched.
-	// Valid on public-audience shares only.
-	EnvironmentRefs []*apiresource.ApiResourceReference `protobuf:"bytes,6,rep,name=environment_refs,json=environmentRefs,proto3" json:"environment_refs,omitempty"`
+	// This is how a tool-using agent becomes chattable over a share link: attach
+	// a shared vault holding the needed keys (for example a read-only API
+	// token). A guest's runs use only these vaults; a visitor brings none of
+	// their own. A My vault cannot be attached.
+	Vaults []*apiresource.ApiResourceReference `protobuf:"bytes,8,rep,name=vaults,proto3" json:"vaults,omitempty"`
 	// Per-turn model choice and run bounds for guest conversations on this
 	// share.
 	//
@@ -216,9 +216,9 @@ func (x *AgentShareSpec) GetMessages() *AgentShareMessages {
 	return nil
 }
 
-func (x *AgentShareSpec) GetEnvironmentRefs() []*apiresource.ApiResourceReference {
+func (x *AgentShareSpec) GetVaults() []*apiresource.ApiResourceReference {
 	if x != nil {
-		return x.EnvironmentRefs
+		return x.Vaults
 	}
 	return nil
 }
@@ -303,8 +303,7 @@ var File_ai_stigmer_agentic_agentshare_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentshare_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/agentic/agentshare/v1/spec.proto\x12 ai.stigmer.agentic.agentshare.v1\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\x9e\n" +
-	"\n" +
+	"+ai/stigmer/agentic/agentshare/v1/spec.proto\x12 ai.stigmer.agentic.agentshare.v1\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xed\t\n" +
 	"\x0eAgentShareSpec\x12\xb6\x01\n" +
 	"\tagent_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBc\xbaH\\\xba\x01V\n" +
 	"\x0eagent_ref.kind\x123agent_ref must reference a resource with kind=agent\x1a\x0fthis.kind == 40\xc8\x01\x01\xe0\x85,(R\bagentRef\x12\x18\n" +
@@ -312,13 +311,13 @@ const file_ai_stigmer_agentic_agentshare_v1_spec_proto_rawDesc = "" +
 	"\baudience\x18\x03 \x01(\x0e24.ai.stigmer.agentic.agentshare.v1.AgentShareAudienceR\baudience\x12\xc0\x02\n" +
 	"\x0fallowed_origins\x18\x04 \x03(\tB\x96\x02\xbaH\x92\x02\x92\x01\x8e\x02\x10 \"\x89\x02\xba\x01\x85\x02\n" +
 	"\x16allowed_origins.format\x12nallowed_origins entries must be exact web origins like https://example.com (no path, query, or trailing slash)\x1a{this.matches('^https?://[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\\\\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*(:[0-9]{1,5})?$')R\x0eallowedOrigins\x12P\n" +
-	"\bmessages\x18\x05 \x01(\v24.ai.stigmer.agentic.agentshare.v1.AgentShareMessagesR\bmessages\x12\xd9\x01\n" +
-	"\x10environment_refs\x18\x06 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBx\xbaHq\x92\x01n\"l\xba\x01i\n" +
-	"\x15environment_refs.kind\x12?environment_refs must reference resources with kind=environment\x1a\x0fthis.kind == 53\xe0\x85,5R\x0fenvironmentRefs\x12C\n" +
+	"\bmessages\x18\x05 \x01(\v24.ai.stigmer.agentic.agentshare.v1.AgentShareMessagesR\bmessages\x12\xae\x01\n" +
+	"\x06vaults\x18\b \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB`\xbaHY\x92\x01V\x10\x14\"R\xba\x01O\n" +
+	"\vvaults.kind\x12/vaults must reference resources with kind=vault\x1a\x0fthis.kind == 59\xe0\x85,;R\x06vaults\x12C\n" +
 	"\n" +
-	"run_config\x18\a \x01(\v2$.ai.stigmer.agentic.run.v1.RunConfigR\trunConfig:\xb0\x02\xbaH\xac\x02\x1a\x9f\x01\n" +
-	"(agent_share.environment_refs_public_only\x12:environment_refs can only be set on public-audience shares\x1a7this.audience != 2 || this.environment_refs.size() == 0\x1a\x87\x01\n" +
-	"\"agent_share.run_config_public_only\x124run_config can only be set on public-audience shares\x1a+this.audience != 2 || !has(this.run_config)\"\xa6\x01\n" +
+	"run_config\x18\a \x01(\v2$.ai.stigmer.agentic.run.v1.RunConfigR\trunConfig:\x92\x02\xbaH\x8e\x02\x1a\x81\x01\n" +
+	"\x1eagent_share.vaults_public_only\x120vaults can only be set on public-audience shares\x1a-this.audience != 2 || this.vaults.size() == 0\x1a\x87\x01\n" +
+	"\"agent_share.run_config_public_only\x124run_config can only be set on public-audience shares\x1a+this.audience != 2 || !has(this.run_config)J\x04\b\x06\x10\aR\x10environment_refs\"\xa6\x01\n" +
 	"\x12AgentShareMessages\x12+\n" +
 	"\frate_limited\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x18\xac\x02R\vrateLimited\x12*\n" +
 	"\vunavailable\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\xac\x02R\vunavailable\x127\n" +
@@ -354,7 +353,7 @@ var file_ai_stigmer_agentic_agentshare_v1_spec_proto_depIdxs = []int32{
 	3, // 0: ai.stigmer.agentic.agentshare.v1.AgentShareSpec.agent_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
 	0, // 1: ai.stigmer.agentic.agentshare.v1.AgentShareSpec.audience:type_name -> ai.stigmer.agentic.agentshare.v1.AgentShareAudience
 	2, // 2: ai.stigmer.agentic.agentshare.v1.AgentShareSpec.messages:type_name -> ai.stigmer.agentic.agentshare.v1.AgentShareMessages
-	3, // 3: ai.stigmer.agentic.agentshare.v1.AgentShareSpec.environment_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	3, // 3: ai.stigmer.agentic.agentshare.v1.AgentShareSpec.vaults:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
 	4, // 4: ai.stigmer.agentic.agentshare.v1.AgentShareSpec.run_config:type_name -> ai.stigmer.agentic.run.v1.RunConfig
 	5, // [5:5] is the sub-list for method output_type
 	5, // [5:5] is the sub-list for method input_type

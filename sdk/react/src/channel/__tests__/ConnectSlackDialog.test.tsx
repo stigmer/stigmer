@@ -3,7 +3,6 @@ import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/re
 import type { ReactNode } from "react";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { StigmerError, type AgentChannelInput } from "@stigmer/sdk";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
@@ -88,23 +87,18 @@ function createMockStigmer(overrides: MockOverrides = {}) {
           },
         }),
     },
-    environment: {
+    vault: {
       list: vi.fn().mockResolvedValue({
         items: [
           {
-            metadata: {
-              slug: "github-credentials",
-              name: "GitHub Credentials",
-              org: "acme",
-              visibility: ApiResourceVisibility.visibility_org,
-            },
-            spec: {},
+            metadata: { slug: "github-credentials", name: "GitHub Credentials", org: "acme" },
+            spec: { owner: { case: "org", value: "acme" } },
           },
         ],
         totalCount: 1,
       }),
       getByReference: vi.fn().mockResolvedValue({
-        metadata: { visibility: ApiResourceVisibility.visibility_org },
+        spec: { owner: { case: "org", value: "acme" } },
       }),
     },
   } as never;
@@ -283,10 +277,10 @@ describe("ConnectSlackDialog", () => {
 
     const toggle = await screen.findByRole("button", { name: "Tool credentials" });
     expect(toggle.getAttribute("aria-expanded")).toBe("false");
-    expect(screen.queryByLabelText("Add environment")).toBeNull();
+    expect(screen.queryByLabelText("Add vault")).toBeNull();
   });
 
-  it("binds credentials at connect time — create carries the chosen environment refs", async () => {
+  it("names vaults at connect time — create carries the chosen vaults", async () => {
     const create = vi.fn().mockResolvedValue({
       metadata: { id: "ach_new", org: "acme" },
     });
@@ -307,10 +301,10 @@ describe("ConnectSlackDialog", () => {
     const toggle = await screen.findByRole("button", { name: "Tool credentials" });
     expect(toggle.getAttribute("aria-expanded")).toBe("true");
     expect(
-      await screen.findByText(/no credentials are bound to this channel/i),
+      await screen.findByText(/this channel names no vault/i),
     ).toBeTruthy();
 
-    const select = await screen.findByLabelText("Add environment");
+    const select = await screen.findByLabelText("Add vault");
     fireEvent.change(select, { target: { value: "github-credentials" } });
 
     fireEvent.click(
@@ -320,7 +314,7 @@ describe("ConnectSlackDialog", () => {
     await waitFor(() =>
       expect(create).toHaveBeenCalledWith(
         expect.objectContaining({
-          environmentRefs: [{ org: "acme", slug: "github-credentials" }],
+          vaults: [{ org: "acme", slug: "github-credentials" }],
         }),
       ),
     );

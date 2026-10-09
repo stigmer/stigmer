@@ -285,6 +285,9 @@ const session = await stigmer.session.apply({
   harness: "...",
   cursorMode: "...",
   executionTarget: "...",
+  vaults: [],
+  secrets: {},
+  connections: {},
 });
 ```
 </Tab>
@@ -306,6 +309,9 @@ session, err := client.Session.Apply(ctx, &stigmer.SessionInput{
   Harness:               "...",
   CursorMode:            "...",
   ExecutionTarget:       "...",
+  Vaults:                []stigmer.ResourceRef{},
+  Secrets:               map[string]string{},
+  Connections:           map[string]string{},
 })
 ```
 </Tab>
@@ -327,6 +333,9 @@ session = client.sessions.apply(SessionInput(
     harness="...",
     cursor_mode="...",
     execution_target="...",
+    vaults=[],
+    secrets={},
+    connections={},
 ))
 ```
 </Tab>
@@ -348,6 +357,9 @@ Session session = client.sessions().apply(SessionInput.builder()
     .harness("...")
     .cursorMode("...")
     .executionTarget("...")
+    .vaults(List.of())
+    .secrets(Map.of())
+    .connections(Map.of())
     .build());
 ```
 </Tab>
@@ -380,6 +392,9 @@ const session = await stigmer.session.create({
   harness: "...",
   cursorMode: "...",
   executionTarget: "...",
+  vaults: [],
+  secrets: {},
+  connections: {},
 });
 ```
 </Tab>
@@ -401,6 +416,9 @@ session, err := client.Session.Create(ctx, &stigmer.SessionInput{
   Harness:               "...",
   CursorMode:            "...",
   ExecutionTarget:       "...",
+  Vaults:                []stigmer.ResourceRef{},
+  Secrets:               map[string]string{},
+  Connections:           map[string]string{},
 })
 ```
 </Tab>
@@ -422,6 +440,9 @@ session = client.sessions.create(SessionInput(
     harness="...",
     cursor_mode="...",
     execution_target="...",
+    vaults=[],
+    secrets={},
+    connections={},
 ))
 ```
 </Tab>
@@ -443,6 +464,9 @@ Session session = client.sessions().create(SessionInput.builder()
     .harness("...")
     .cursorMode("...")
     .executionTarget("...")
+    .vaults(List.of())
+    .secrets(Map.of())
+    .connections(Map.of())
     .build());
 ```
 </Tab>
@@ -475,6 +499,9 @@ const session = await stigmer.session.update({
   harness: "...",
   cursorMode: "...",
   executionTarget: "...",
+  vaults: [],
+  secrets: {},
+  connections: {},
 });
 ```
 </Tab>
@@ -496,6 +523,9 @@ session, err := client.Session.Update(ctx, &stigmer.SessionInput{
   Harness:               "...",
   CursorMode:            "...",
   ExecutionTarget:       "...",
+  Vaults:                []stigmer.ResourceRef{},
+  Secrets:               map[string]string{},
+  Connections:           map[string]string{},
 })
 ```
 </Tab>
@@ -517,6 +547,9 @@ session = client.sessions.update(SessionInput(
     harness="...",
     cursor_mode="...",
     execution_target="...",
+    vaults=[],
+    secrets={},
+    connections={},
 ))
 ```
 </Tab>
@@ -538,6 +571,9 @@ Session session = client.sessions().update(SessionInput.builder()
     .harness("...")
     .cursorMode("...")
     .executionTarget("...")
+    .vaults(List.of())
+    .secrets(Map.of())
+    .connections(Map.of())
     .build());
 ```
 </Tab>
@@ -654,6 +690,9 @@ Input for creating or updating a Session.
     harness: { type: "Harness", description: "Execution harness for this session.", typeDescriptionLink: "#harness" },
     cursorMode: { type: "CursorMode", description: "Cursor SDK agent mode for this session.", typeDescriptionLink: "#cursormode" },
     executionTarget: { type: "ExecutionTarget", description: "Where session activities are executed — local client or cloud sandbox.", typeDescriptionLink: "#executiontarget" },
+    vaults: { type: "ResourceRef[]", description: "Vaults whose logins and secrets this conversation's runs use, in order: the first vault holding a match wins.", typeDescriptionLink: "#resourceref" },
+    secrets: { type: "Record<string, string>", description: "Secrets this conversation's runs use, by name, ahead of every vault." },
+    connections: { type: "Record<string, string>", description: "Logins this conversation's runs use, by the address of the tool or Git host each is for, ahead of every vault." },
   }}
 />
 
@@ -703,6 +742,7 @@ GitRepoSource provisions a workspace by cloning a git repository.
     commit: { type: "string", description: "Commit SHA to checkout after cloning." },
     depth: { type: "number", description: "Number of commits to include in the clone history." },
     writeBackMode: { type: "GitWriteBackMode", description: "Controls whether the platform creates a branch and pull request from the agent's file changes.", typeDescriptionLink: "#gitwritebackmode" },
+    token: { type: "string", description: "A token for cloning this repository, kept for the conversation only." },
   }}
 />
 
@@ -809,6 +849,7 @@ SessionStatus contains system-managed state for a session.
     audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourceaudit" },
     agentId: { type: "string", description: "ID of the agent spec.agent_ref resolved to when it was last written." },
     agentVersionHash: { type: "string", description: "Content hash of the agent version this conversation runs (AgentStatus.version_hash when the reference resolved; resolvable through AgentQueryController.getVersion with agent_id)." },
+    vaultAttachers: { type: "Record<string, string>", description: "Who attached each of this resource's vaults, by vault id: the account whose permission to use the vault each run checks when it has no person." },
   }}
 />
 

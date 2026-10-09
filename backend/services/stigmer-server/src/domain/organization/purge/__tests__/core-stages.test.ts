@@ -190,6 +190,8 @@ describe("the quiesce stage", () => {
         tokenAuthMethod: "",
         redirectUri: "https://console.example.com/callback",
         org,
+        vaultId: "",
+        toolAddress: "",
         createdAt: 0,
       });
     }

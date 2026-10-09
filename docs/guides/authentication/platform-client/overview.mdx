@@ -235,24 +235,24 @@ updates names the PlatformClient on its audit, beside the shared account.
 ## Give embedded assistants their credentials
 
 An embedded assistant often calls MCP servers that need a credential of your
-own, such as a shared API secret. Put that credential in an Environment and list
-the Environment in the PlatformClient's `environment_refs`. Every run a user
-signed in through that PlatformClient starts then receives the Environment's
-values, and so does a recovery of that run. The Agent stays as it is.
+own, such as a shared API secret. Put that credential in a shared
+[vault](/docs/concepts/vaults) and list the vault in the PlatformClient's
+`vaults`. Every run a user signed in through that PlatformClient starts then
+uses the vault, and so does a recovery of that run. The Agent stays as it is.
 
-- **Lowest priority.** The values the request passes at run time win on a
-  conflicting key, so a PlatformClient supplies defaults. Keys it leaves empty
-  are filled from the signed-in user's own connections and personal Environment,
-  as for any run.
-- **Same Organization.** The Environments must belong to the PlatformClient's
-  Organization, and they are delivered only to runs in that Organization.
+- **Only what you attach.** A user signed in through a PlatformClient has no
+  vault of their own, so their runs use the vaults their Session names and the
+  PlatformClient's, nothing else. A Session's own values (its `secrets` and
+  `connections`) come first.
+- **Same Organization.** The vaults must belong to the PlatformClient's
+  Organization, and they are used only by runs in that Organization.
 - **Kept up to date.** Stigmer reads the PlatformClient when each run starts, so
-  an edit applies to the next run.
-- **Kept valid.** If a listed Environment is deleted, runs fail to start with
-  `NOT_FOUND` until you remove it from `environment_refs` or create it again.
+  an edit applies to the next run, and it checks that whoever attached each
+  vault may still use it.
+- **Kept valid.** If a listed vault is deleted, runs fail to start, naming it,
+  until you remove it from `vaults`.
 
-Runs started by a Schedule receive their own Environments, not the
-PlatformClient's.
+Runs started by a Schedule use the schedule's vaults, not the PlatformClient's.
 
 ## Error handling
 

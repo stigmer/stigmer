@@ -186,7 +186,7 @@ class AgentChannelInput:
     enabled: bool = False
     slack: SlackChannelConfigInput | None = None
     whatsapp: WhatsAppChannelConfigInput | None = None
-    environment_refs: list[ResourceRef] = field(default_factory=list)
+    vaults: list[ResourceRef] = field(default_factory=list)
     app_ref: ResourceRef | None = None
     proactive_messaging_enabled: bool = False
     run_config: RunConfigInput | None = None
@@ -200,10 +200,10 @@ class AgentChannelInput:
             _ref = self.agent_ref._to_proto()
             _ref.kind = 40
             spec.agent_ref.CopyFrom(_ref)
-        for ref in self.environment_refs:
+        for ref in self.vaults:
             _ref = ref._to_proto()
-            _ref.kind = 53
-            spec.environment_refs.append(_ref)
+            _ref.kind = 59
+            spec.vaults.append(_ref)
         if self.app_ref is not None and (self.app_ref.org or self.app_ref.slug):
             _ref = self.app_ref._to_proto()
             _ref.kind = 48

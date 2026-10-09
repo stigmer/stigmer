@@ -63,7 +63,6 @@ const DOCUMENTS = [
   "memory-subject-only.fga.yaml",
   "oauth-app-administration.fga.yaml",
   "org-admin-owner-inheritance.fga.yaml",
-  "org-shared-environment.fga.yaml",
   "organization-affiliation-bound.fga.yaml",
   "organization-role-assignment.fga.yaml",
   "plan-catalog-manager.fga.yaml",
@@ -75,6 +74,7 @@ const DOCUMENTS = [
   "schedule-session-visibility.fga.yaml",
   "session-personal-resource.fga.yaml",
   "team-membership.fga.yaml",
+  "vault-access.fga.yaml",
 ] as const;
 
 describe("the model's suites over the built-in evaluator", () => {

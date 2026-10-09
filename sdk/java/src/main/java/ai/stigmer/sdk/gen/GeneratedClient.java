@@ -11,7 +11,6 @@ public class GeneratedClient {
     public final AgentShareClient agentShare;
     public final ApiKeyClient apiKey;
     public final ChannelAppClient channelapp;
-    public final EnvironmentClient environment;
     public final ExecutionContextClient executionContext;
     public final IamPolicyClient iamPolicy;
     public final IdentityAccountClient identityAccount;
@@ -32,6 +31,7 @@ public class GeneratedClient {
     public final SkillClient skill;
     public final SubscriptionClient subscription;
     public final TeamClient team;
+    public final VaultClient vault;
 
     public GeneratedClient(Channel channel) {
         this.agent = new AgentClient(channel);
@@ -39,7 +39,6 @@ public class GeneratedClient {
         this.agentShare = new AgentShareClient(channel);
         this.apiKey = new ApiKeyClient(channel);
         this.channelapp = new ChannelAppClient(channel);
-        this.environment = new EnvironmentClient(channel);
         this.executionContext = new ExecutionContextClient(channel);
         this.iamPolicy = new IamPolicyClient(channel);
         this.identityAccount = new IdentityAccountClient(channel);
@@ -60,6 +59,7 @@ public class GeneratedClient {
         this.skill = newSkillClient(channel);
         this.subscription = new SubscriptionClient(channel);
         this.team = new TeamClient(channel);
+        this.vault = new VaultClient(channel);
     }
 
     /**

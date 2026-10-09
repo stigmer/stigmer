@@ -2,7 +2,6 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.run.v1;
 
-import "ai/stigmer/agentic/executioncontext/v1/spec.proto";
 import "ai/stigmer/agentic/run/v1/enum.proto";
 import "ai/stigmer/agentic/run/v1/invocation.proto";
 import "ai/stigmer/agentic/session/v1/spec.proto";
@@ -162,26 +161,13 @@ message RunSpec {
   // status.structured_output.
   google.protobuf.Struct structured_output_schema = 21;
 
-  // Runtime environment variables and secrets (run-scoped).
-  // These values are only available for this specific run and take the
-  // highest merge priority, overriding values from Environments bound via
-  // environment_refs. A key must be declared in Agent.spec.env to survive the
-  // merge: the agent env map is a declaration whitelist (name + is_secret +
-  // optional), never a value source — undeclared keys are dropped.
-  // Use case: B2B integrations where secrets are injected at runtime per call.
-  // These values are consumed into the ExecutionContext (deleted when the
-  // run completes) and cleared from the persisted run.
-  //
-  // @internal
-  // Merge priority (lowest to highest): resolved Environment values — from the
-  // creating schedule's or agent_call task's environment_refs (when present);
-  // a later ref wins — then runtime_env (this field). The merged map is filtered to the keys declared in
-  // Agent.spec.env (no filtering when the agent declares none); a missing
-  // required key only logs a warning — the run is not failed. The merge is
-  // owned by backend/libs/go/envmerge and the run controller's
-  // executionContextBuilder, and asserted by
-  // test/conformance/src/suites-execution/envmerge.conformance.test.ts.
-  map<string, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> runtime_env = 5;
+  // Field 5 held runtime_env, a turn's own variables and secrets, until a
+  // conversation's own values moved onto the session (SessionSpec.secrets
+  // and SessionSpec.connections): one place for them, kept sealed for the
+  // conversation's life. A first turn sends them on session_spec; a later
+  // change is a session update.
+  reserved 5;
+  reserved "runtime_env";
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Approval Configuration

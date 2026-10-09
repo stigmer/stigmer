@@ -153,31 +153,29 @@ What holds:
 - A plugin reference with no `version` follows the plugin's installed version. A hook that reads a variable the run does not have refuses the turn, naming the variable.
 - A hook reads a plugin setting by passing `${user_config.KEY}` in its `args`; a command without `args` that names one refuses the turn, since the shell would re-read the value. Only a setting passed that way is also exported to the plugin's hooks as `CLAUDE_PLUGIN_OPTION_<KEY>`; a hook whose script reads `CLAUDE_PLUGIN_OPTION_<KEY>` for any other setting finds it unset, where Claude Code would set it.
 
-## Environment Specification
+## Declared Keys
 
-Agents can declare required environment variables via `env_spec`. This defines the **schema** — actual values are provided at runtime: from the Environments bound to the schedule or PlatformClient that started the run, from the run's `runtime_env`, and, for keys still missing, from the personal environment of the person who sent the message. Those keys reach the agent's tools and shell; the console names the keys an agent will read from a person's personal environment before their first message.
+An agent declares the environment variables it needs in `env`, a map of variable name to `EnvVarDeclaration` (`ai/stigmer/agentic/vault/v1/declaration.proto`, shared with McpServers). A declaration is the **schema**, never a person's value: a secret is found by its name in a vault when a run starts, and a plain setting may carry its value in the declaration.
 
 ```yaml
 spec:
-  env_spec:
-    data:
-      API_URL:
-        description: "Base URL for the target API"
-        is_secret: false
-      AUTH_TOKEN:
-        description: "API authentication token"
-        is_secret: true
+  env:
+    API_URL:
+      description: "Base URL for the target API"
+      value: "https://api.example.com"
+    AUTH_TOKEN:
+      description: "API authentication token"
+      is_secret: true
 ```
-
-The `data` field is a map of variable name to `EnvironmentValue`:
 
 | Field | Description |
 |---|---|
-| `value` | The actual value. Typically left empty in the Agent spec — values are provided at runtime from the sources above. Can be pre-populated for non-secret defaults. |
-| `is_secret` | `true`: encrypted at rest, redacted in logs, requires special permissions to read. `false`: stored as plaintext, visible in audit logs. |
-| `description` | Documentation for the variable. Shown in the UI when a person supplies the value. |
+| `is_secret` | `true`: found in a vault by name when a run starts, sealed at rest and redacted in logs. A secret declaration cannot carry a value. |
+| `description` | What the variable is for and where to get it. Shown where a person is asked for it. |
+| `optional` | `false` (default): a run whose vaults hold no value is refused before it starts, naming the key and who must add it. `true`: the run starts without it. |
+| `value` | A plain setting's own value. A vault secret with the same name takes its place. |
 
-The shared `EnvironmentSpec` and `EnvironmentValue` types are defined in `ai/stigmer/agentic/environment/v1/spec.proto` and reused across Agents and McpServers.
+Which vaults a run reads: the conversation's own values, then the vaults the conversation lists; a conversation that lists none uses the My vault of the person sending the turn, then the shared vaults attached to the agent (`vaults`) that person may use. A run no person sent (a schedule, a share link, a channel, a platform client's user) uses only the vaults that surface names. The console names the keys an agent reads before the first message.
 
 ## Run Defaults
 

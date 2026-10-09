@@ -8,7 +8,7 @@ package ai.stigmer.commons.apiresource;
 /**
  * <pre>
  * Generic reference to any API resource by org and slug.
- * Used across resources to reference other resources (e.g., Environment, Agent, Skill).
+ * Used across resources to reference other resources (e.g., Vault, Agent, Skill).
  * Canonical format: "org/slug" (e.g., "acme/web-search", "acme/my-agent").
  *
  * Every reference in a resource's spec is checked when the resource is
@@ -484,7 +484,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Generic reference to any API resource by org and slug.
-   * Used across resources to reference other resources (e.g., Environment, Agent, Skill).
+   * Used across resources to reference other resources (e.g., Vault, Agent, Skill).
    * Canonical format: "org/slug" (e.g., "acme/web-search", "acme/my-agent").
    *
    * Every reference in a resource's spec is checked when the resource is

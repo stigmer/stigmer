@@ -7,15 +7,12 @@
 // against a suite-owned mock OAuth authorization server
 // (test/support/src/oauth-authorization-server.ts).
 //
-// Why exactly this slice is Class A: the Go server injects the OAuth stores
-// and redirect URI unconditionally, so initiate works with no Temporal behind
-// the server — but completeOAuthConnect ALSO requires the managed environment
-// service, which server.go builds only inside the Temporal-gated
-// SetConnectDependencies. On the Temporal-less local target, complete
-// refuses before validating input. The handshake-completion scenarios
-// (complete/grant-health/disconnect-teardown) therefore live in
-// suites-execution/mcpserver-connect.conformance.test.ts, where the engine is
-// provisioned — see that suite's header for the full flow.
+// Why exactly this slice is Class A: the server composes the OAuth stores and
+// redirect URI unconditionally, so initiate works with no Temporal behind the
+// server. The handshake-completion scenarios (complete, where the sign-in is
+// saved into the signer's My vault, grant health, disconnect) live in
+// suites-execution/mcpserver-connect.conformance.test.ts beside the connect
+// lane they complete — see that suite's header for the full flow.
 //
 // The refusal and guidance copy is byte-pinned: these strings are user-facing
 // (the SDK's getUserMessage passes initiate errors through verbatim) and they
@@ -382,10 +379,12 @@ describe("McpServer OAuth conformance — initiate, vendor arm", () => {
     const app = await createVendorOAuthApp(org, uniqueName("vhappy"), {
       scopeParameterName: "user_scope",
     });
+    // A local program keeps its sign-in at its login server's address.
     const server = await createOAuthMcpServer({
       org,
       name: uniqueName("vhappysrv"),
       oauthAppSlug: app.metadata!.slug,
+      discoveryUrl: "https://vendor.example.com",
     });
 
     const out = await clients.mcpServerCommand.initiateOAuthConnect({

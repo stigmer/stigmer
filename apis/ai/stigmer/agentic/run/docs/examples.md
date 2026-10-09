@@ -175,9 +175,9 @@ spec:
 
 ---
 
-## Runtime Environment Variables
+## A Conversation's Own Secrets
 
-Inject secrets or configuration at run time. These are available only for this run and are deleted when it completes.
+Hand a new conversation its own secrets on the first turn. They are sealed and kept for the conversation's life, shown as `***REDACTED***` on every read, used ahead of every vault, and destroyed with the conversation. Change them later with a session update.
 
 ```yaml
 spec:
@@ -186,17 +186,12 @@ spec:
       kind: agent
       org: acme
       slug: my-agent
+    secrets:
+      DATABASE_URL: "postgresql://user:pass@host:5432/prod"
   message: "Query the production database and summarize recent errors"
-  runtime_env:
-    DATABASE_URL:
-      value: "postgresql://user:pass@host:5432/prod"
-      is_secret: true
-    LOG_LEVEL:
-      value: "INFO"
-      is_secret: false
 ```
 
-Use `runtime_env` for B2B integrations where each caller provides their own credentials at invocation time.
+Use a conversation's own secrets for integrations where each caller provides their own credentials; keep a vault per customer (`external_id`) when the credentials should outlive one conversation.
 
 ---
 
@@ -274,14 +269,6 @@ spec:
     model_name: "claude-sonnet-4.5"
     thinking_mode: THINKING_MODE_ENABLED
     max_cost_usd: 3.00
-
-  runtime_env:
-    DATABASE_URL:
-      value: "postgresql://user:pass@staging-db:5432/app"
-      is_secret: true
-    MIGRATION_DRY_RUN:
-      value: "false"
-      is_secret: false
 
   auto_approve_all: false  # require explicit approval for destructive operations
 

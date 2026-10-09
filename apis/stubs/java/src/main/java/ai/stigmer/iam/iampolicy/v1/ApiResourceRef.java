@@ -67,7 +67,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Type of the API resource being referenced
    * This should be the resource kind as defined in ApiResourceKind enum.
-   * Examples: "identity_account", "team", "organization", "environment",
+   * Examples: "identity_account", "team", "organization", "vault",
    * "cloud_resource", "service", etc.
    * </pre>
    *
@@ -91,7 +91,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Type of the API resource being referenced
    * This should be the resource kind as defined in ApiResourceKind enum.
-   * Examples: "identity_account", "team", "organization", "environment",
+   * Examples: "identity_account", "team", "organization", "vault",
    * "cloud_resource", "service", etc.
    * </pre>
    *
@@ -587,7 +587,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Type of the API resource being referenced
      * This should be the resource kind as defined in ApiResourceKind enum.
-     * Examples: "identity_account", "team", "organization", "environment",
+     * Examples: "identity_account", "team", "organization", "vault",
      * "cloud_resource", "service", etc.
      * </pre>
      *
@@ -610,7 +610,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Type of the API resource being referenced
      * This should be the resource kind as defined in ApiResourceKind enum.
-     * Examples: "identity_account", "team", "organization", "environment",
+     * Examples: "identity_account", "team", "organization", "vault",
      * "cloud_resource", "service", etc.
      * </pre>
      *
@@ -634,7 +634,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Type of the API resource being referenced
      * This should be the resource kind as defined in ApiResourceKind enum.
-     * Examples: "identity_account", "team", "organization", "environment",
+     * Examples: "identity_account", "team", "organization", "vault",
      * "cloud_resource", "service", etc.
      * </pre>
      *
@@ -654,7 +654,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Type of the API resource being referenced
      * This should be the resource kind as defined in ApiResourceKind enum.
-     * Examples: "identity_account", "team", "organization", "environment",
+     * Examples: "identity_account", "team", "organization", "vault",
      * "cloud_resource", "service", etc.
      * </pre>
      *
@@ -671,7 +671,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Type of the API resource being referenced
      * This should be the resource kind as defined in ApiResourceKind enum.
-     * Examples: "identity_account", "team", "organization", "environment",
+     * Examples: "identity_account", "team", "organization", "vault",
      * "cloud_resource", "service", etc.
      * </pre>
      *

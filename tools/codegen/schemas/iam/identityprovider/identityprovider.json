@@ -132,7 +132,8 @@
           "member",
           "viewer",
           "participant",
-          "editor"
+          "editor",
+          "user"
         ]
       },
       "description": "The role an account receives the first time it signs in to an\n organization through this provider: the organization its token is bound\n to (external_id_claim's, or the provider's own).\n\n Granted once per account and organization. A role an admin later removes\n is not granted again, and changing this setting does not reach accounts\n that already signed in there. Unspecified (iam_role_unspecified) grants\n nothing. The owner role is refused with\n `identity_provider.sign_in_role_not_owner`: ownership is assigned\n explicitly.",

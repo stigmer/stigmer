@@ -1,6 +1,6 @@
 // Unit arms for the stdio-lane fixtures: the fixture's instructions name the
 // read tool the arms script, the stdio McpServer declares the one env key the
-// mcp-server reads and the runtime env supplies it as host:port, and the agent
+// mcp-server reads with the server's host:port as its plain value, and the agent
 // carries the description an arm reads back through the server. Pure
 // builders; no target.
 // Domain: conformance support (execution engine).
@@ -11,7 +11,7 @@ import {
   STIGMER_SERVER_ADDRESS_ENV,
   makeStdioAgent,
   makeStigmerMcpServer,
-  stigmerMcpServerRuntimeEnv,
+  stigmerServerAddressOf,
 } from "../stigmer-mcp-stdio";
 
 describe("stdio-lane fixtures", () => {
@@ -20,9 +20,10 @@ describe("stdio-lane fixtures", () => {
   });
 
   it("registers the stigmer mcp-server over stdio, declaring only the server-address key", () => {
-    const server = makeStigmerMcpServer({ org: "o", name: "stigmer-mcp" });
+    const server = makeStigmerMcpServer({ org: "o", name: "stigmer-mcp", serverBaseUrl: "http://127.0.0.1:54321" });
     expect(server.spec?.serverType).toEqual({ case: "stdio", value: { command: "stigmer", args: ["mcp-server"] } });
     expect(Object.keys(server.spec?.env ?? {})).toEqual([STIGMER_SERVER_ADDRESS_ENV]);
+    expect(server.spec?.env?.[STIGMER_SERVER_ADDRESS_ENV]?.value).toBe("127.0.0.1:54321");
   });
 
   it("builds the agent on the fixture instructions and description, referencing the stigmer server", () => {
@@ -38,8 +39,6 @@ describe("stdio-lane fixtures", () => {
   });
 
   it("supplies the server address as host:port, the form the mcp-server's gRPC target takes", () => {
-    expect(stigmerMcpServerRuntimeEnv("http://127.0.0.1:54321")).toEqual({
-      [STIGMER_SERVER_ADDRESS_ENV]: { value: "127.0.0.1:54321" },
-    });
+    expect(stigmerServerAddressOf("http://127.0.0.1:54321")).toBe("127.0.0.1:54321");
   });
 });

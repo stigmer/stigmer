@@ -14,11 +14,12 @@
  *     by rotateSecret (the client_id is permanent);
  *   - `system-share-client` refused on create, and the platform's
  *     system-managed clients refused on update, delete and rotate;
- *   - the reference rule on `environment_refs` (NormalizeReferences, then
- *     ValidateReferences) on create and update, which every chain that
- *     stores a spec reference runs; it reads the environments from the
- *     resource Store, not from the port, because a driver may keep client
- *     rows in a table of its own while environments stay in the Store;
+ *   - the reference rule on `vaults` (NormalizeReferences, ValidateReferences,
+ *     then VaultAttachments, which records who attached each vault) on create
+ *     and update, which every chain that stores a spec reference runs; it
+ *     reads the vaults from the resource Store, not from the port, because a
+ *     driver may keep client rows in a table of its own while vaults stay in
+ *     the Store;
  *   - the stored hash cleared on EVERY response, deletes and rotations
  *     included — the model promises it is never returned
  *     (fga/model/iam/platform_client.fga), and no reader needs it;
@@ -112,11 +113,14 @@ import {
   storedClientOf,
 } from "./steps.js";
 import type { PlatformClientStore } from "./store.js";
+import { newVaultAttachmentsStep } from "../vault/attachments.js";
+import type { VaultAttachmentOptions } from "../vault/attachments.js";
+import { PlatformClientStatusSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 
 export interface PlatformClientControllerDeps {
   /** The composed store — a driver's, or the OSS adapter over the generic Store. */
   readonly clients: PlatformClientStore;
-  /** The resource store the reference rule reads the environments `environment_refs` names from. */
+  /** The resource store the reference rule reads the vaults `vaults` names from. */
   readonly store: Store;
   readonly logger: Logger;
   /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
@@ -126,6 +130,17 @@ export interface PlatformClientControllerDeps {
   /** The composed list read scope — listByOrg narrows through it; undefined = every client of the org. */
   readonly listReadScope: ListReadScope | undefined;
 }
+
+/** A platform client's users' runs have no person: each asks the account that attached each vault. */
+const PLATFORM_CLIENT_VAULT_ATTACHMENTS: VaultAttachmentOptions<typeof PlatformClientSchema> = {
+  surface: "a platform client",
+  attachers: {
+    get: (row) => row.status?.vaultAttachers,
+    set: (row, attachers) => {
+      (row.status ??= create(PlatformClientStatusSchema)).vaultAttachers = attachers;
+    },
+  },
+};
 
 /** Registers the command and query services on the router (routes stage). */
 export function registerPlatformClientServices(
@@ -185,6 +200,7 @@ async function createClient(
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
+    .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, PLATFORM_CLIENT_VAULT_ATTACHMENTS))
     .addStep(newGenerateClientCredentialsStep())
     .addStep(newPersistNewClientStep(deps.clients))
     .addStep(
@@ -241,6 +257,7 @@ async function updateClient(
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
+    .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, PLATFORM_CLIENT_VAULT_ATTACHMENTS))
     .addStep(newPreserveClientCredentialsStep())
     .addStep(newPersistUpdatedClientStep(deps.clients))
     .build()

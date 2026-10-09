@@ -16,14 +16,14 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentchannel/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_agentchannel_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL3NwZWMucHJvdG8SImFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEi7QYKEEFnZW50Q2hhbm5lbFNwZWMSrAEKCWFnZW50X3JlZhgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJjukhcugFWCg5hZ2VudF9yZWYua2luZBIzYWdlbnRfcmVmIG11c3QgcmVmZXJlbmNlIGEgcmVzb3VyY2Ugd2l0aCBraW5kPWFnZW50Gg90aGlzLmtpbmQgPT0gNDDIAQHghSwoEg8KB2VuYWJsZWQYAiABKAgSRwoFc2xhY2sYAyABKAsyNi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLlNsYWNrQ2hhbm5lbENvbmZpZ0gAEk0KCHdoYXRzYXBwGAYgASgLMjkuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5XaGF0c0FwcENoYW5uZWxDb25maWdIABLIAQoQZW52aXJvbm1lbnRfcmVmcxgEIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJ4ukhxkgFuImy6AWkKFWVudmlyb25tZW50X3JlZnMua2luZBI/ZW52aXJvbm1lbnRfcmVmcyBtdXN0IHJlZmVyZW5jZSByZXNvdXJjZXMgd2l0aCBraW5kPWVudmlyb25tZW50Gg90aGlzLmtpbmQgPT0gNTPghSw1ErwBCgdhcHBfcmVmGAUgASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQnW6SG66AWsKDGFwcF9yZWYua2luZBI3YXBwX3JlZiBtdXN0IHJlZmVyZW5jZSBhIHJlc291cmNlIHdpdGgga2luZD1jaGFubmVsX2FwcBoidGhpcy5zbHVnID09ICcnIHx8IHRoaXMua2luZCA9PSA0OOCFLDASIwobcHJvYWN0aXZlX21lc3NhZ2luZ19lbmFibGVkGAcgASgIEjgKCnJ1bl9jb25maWcYCCABKAsyJC5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1bkNvbmZpZ0IYCg9wcm92aWRlcl9jb25maWcSBbpIAggBIhQKElNsYWNrQ2hhbm5lbENvbmZpZyI5ChVXaGF0c0FwcENoYW5uZWxDb25maWcSIAoPcGhvbmVfbnVtYmVyX2lkGAEgASgJQge6SARyAhABYgZwcm90bzM", [file_ai_stigmer_agentic_run_v1_invocation, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL3NwZWMucHJvdG8SImFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEi4wYKEEFnZW50Q2hhbm5lbFNwZWMSrAEKCWFnZW50X3JlZhgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJjukhcugFWCg5hZ2VudF9yZWYua2luZBIzYWdlbnRfcmVmIG11c3QgcmVmZXJlbmNlIGEgcmVzb3VyY2Ugd2l0aCBraW5kPWFnZW50Gg90aGlzLmtpbmQgPT0gNDDIAQHghSwoEg8KB2VuYWJsZWQYAiABKAgSRwoFc2xhY2sYAyABKAsyNi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLlNsYWNrQ2hhbm5lbENvbmZpZ0gAEk0KCHdoYXRzYXBwGAYgASgLMjkuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5XaGF0c0FwcENoYW5uZWxDb25maWdIABKmAQoGdmF1bHRzGAkgAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQmC6SFmSAVYQFCJSugFPCgt2YXVsdHMua2luZBIvdmF1bHRzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9dmF1bHQaD3RoaXMua2luZCA9PSA1OeCFLDsSvAEKB2FwcF9yZWYYBSABKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCdbpIbroBawoMYXBwX3JlZi5raW5kEjdhcHBfcmVmIG11c3QgcmVmZXJlbmNlIGEgcmVzb3VyY2Ugd2l0aCBraW5kPWNoYW5uZWxfYXBwGiJ0aGlzLnNsdWcgPT0gJycgfHwgdGhpcy5raW5kID09IDQ44IUsMBIjChtwcm9hY3RpdmVfbWVzc2FnaW5nX2VuYWJsZWQYByABKAgSOAoKcnVuX2NvbmZpZxgIIAEoCzIkLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUnVuQ29uZmlnQhgKD3Byb3ZpZGVyX2NvbmZpZxIFukgCCAFKBAgEEAVSEGVudmlyb25tZW50X3JlZnMiFAoSU2xhY2tDaGFubmVsQ29uZmlnIjkKFVdoYXRzQXBwQ2hhbm5lbENvbmZpZxIgCg9waG9uZV9udW1iZXJfaWQYASABKAlCB7pIBHICEAFiBnByb3RvMw", [file_ai_stigmer_agentic_run_v1_invocation, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * AgentChannelSpec defines the configurable properties of an agent channel.
  *
  * The spec is deliberately small: which agent serves the channel, whether
  * serving is enabled, which provider the channel targets, and which
- * environments supply the agent's tool credentials. Workspace identity and
+ * vaults supply the agent's tool credentials. Workspace identity and
  * provider credentials are produced by the install flow and live in
  * status — a declarative apply can never clobber them.
  *
@@ -77,17 +77,17 @@ export type AgentChannelSpec = Message<"ai.stigmer.agentic.agentchannel.v1.Agent
   } | { case: undefined; value?: undefined };
 
   /**
-   * References to Environment resources whose values are provided to
-   * conversations on this channel.
+   * Vaults whose logins and secrets conversations on this channel use, in
+   * order: the first vault holding a match wins. At most 20.
    *
-   * This is how a tool-using agent becomes chattable over a channel: bind
-   * an org-shared environment holding the needed credentials (for example
-   * a read-only API token), and channel runs receive its values at
-   * runtime. The agent itself stays untouched.
+   * This is how a tool-using agent becomes chattable over a channel: attach a
+   * shared vault holding the needed keys (for example a read-only API token).
+   * A channel's runs have no person, so they use only these vaults, never
+   * anyone's My vault. A My vault cannot be attached.
    *
-   * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4;
+   * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference vaults = 9;
    */
-  environmentRefs: ApiResourceReference[];
+  vaults: ApiResourceReference[];
 
   /**
    * Reference to the ChannelApp this channel installs through.

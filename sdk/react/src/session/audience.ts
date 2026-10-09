@@ -18,7 +18,7 @@
  *   attachments, the workspace picker, and the session panel. Guest is
  *   behavioral, not just cosmetic — the organisms also skip the
  *   org-level reads a guest principal cannot make (session→agent
- *   derivation, personal environments) and never fall back to the
+ *   derivation, vaults) and never fall back to the
  *   built-in assistant. Approval mechanics are
  *   also withheld: the HITL gate protects the ORG's tools and
  *   an anonymous visitor is not its trustee — guest runs run in

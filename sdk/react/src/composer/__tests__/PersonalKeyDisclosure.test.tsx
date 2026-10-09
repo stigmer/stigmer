@@ -8,7 +8,7 @@ import { PersonalKeyDisclosure } from "../PersonalKeyDisclosure";
 
 // ---------------------------------------------------------------------------
 // The disclosure before a conversation's message: it names, sorted, the
-// keys a run of the agent reads from the person's personal environment —
+// keys a run of the agent reads from the person's My vault —
 // the keys the agent declares (`spec.env`), minus its servers' OAuth
 // variables (their sign-in fills those), and none for an agent of another
 // organization than the conversation's. Given the conversation's pinned
@@ -69,7 +69,7 @@ describe("PersonalKeyDisclosure", () => {
 
     await waitFor(() =>
       expect(screen.getByTestId(LINE).textContent).toBe(
-        "This agent can read these keys from your personal environment: GITHUB_TOKEN, LINEAR_API_KEY",
+        "This agent can read these keys from your My vault: GITHUB_TOKEN, LINEAR_API_KEY",
       ),
     );
     expect(getByReference).toHaveBeenCalledWith({ org: ORG, slug: "pr-reviewer" });
@@ -99,7 +99,7 @@ describe("PersonalKeyDisclosure", () => {
 
     await waitFor(() =>
       expect(screen.getByTestId(LINE).textContent).toBe(
-        "This agent can read these keys from your personal environment: GITHUB_TOKEN",
+        "This agent can read these keys from your My vault: GITHUB_TOKEN",
       ),
     );
     expect(getVersion).toHaveBeenCalledWith(
@@ -118,7 +118,7 @@ describe("PersonalKeyDisclosure", () => {
 
     await waitFor(() =>
       expect(screen.getByTestId(LINE).textContent).toBe(
-        "This agent can read these keys from your personal environment: GITHUB_TOKEN",
+        "This agent can read these keys from your My vault: GITHUB_TOKEN",
       ),
     );
   });

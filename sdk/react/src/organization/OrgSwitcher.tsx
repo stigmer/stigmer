@@ -193,7 +193,7 @@ export function OrgSwitcher({ onOrgChanged, className }: OrgSwitcherProps) {
             </DialogPrimitive.Title>
             <DialogPrimitive.Description className="stg:text-muted-foreground stg:mt-1 stg:mb-4 stg:text-xs">
               Organizations are tenancy boundaries that own agents,
-              environments, and other resources.
+              vaults, and other resources.
             </DialogPrimitive.Description>
             <CreateOrganizationForm
               onCreated={handleCreated}

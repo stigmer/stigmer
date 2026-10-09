@@ -69,6 +69,8 @@ export {
 export type {
   UseMcpServerOAuthConnectReturn,
   OAuthConnectPhase,
+  SignInVault,
+  StartOAuthOptions,
 } from "./useMcpServerOAuthConnect.js";
 
 export { OAuthCallbackHandler } from "./OAuthCallbackHandler.js";

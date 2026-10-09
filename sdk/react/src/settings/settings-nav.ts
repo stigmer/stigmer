@@ -80,7 +80,7 @@ export const SETTINGS_NAV_GROUPS: readonly SettingsNavGroup[] = [
   {
     label: "Configuration",
     description:
-      "API keys, environment variables, and OAuth app credentials for your integrations.",
+      "API keys, vaults of logins and secrets, and OAuth app credentials for your integrations.",
     items: [
       { href: "/settings/api-keys", label: "API Keys", icon: KeyRound },
       {
@@ -88,7 +88,7 @@ export const SETTINGS_NAV_GROUPS: readonly SettingsNavGroup[] = [
         label: "Platform Clients",
         icon: Plug,
       },
-      { href: "/settings/environments", label: "Environments", icon: Box },
+      { href: "/settings/vaults", label: "Vaults", icon: Box },
       { href: "/settings/oauth-apps", label: "OAuth Apps", icon: AppWindow },
       {
         href: "/settings/channel-apps",

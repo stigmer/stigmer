@@ -238,7 +238,7 @@ export type {
   PlanEditorProps,
   PlanStreamingDocumentProps,
   ExecutionTargetOption,
-  RuntimeEnvProvider,
+  SessionSecretsProvider,
   SessionAudience,
   SessionPanelMode,
   // The #664 pinning seam's contract type: SessionViewer/NewSessionViewer/
@@ -620,6 +620,8 @@ export type {
   UseMcpServerConnectReturn,
   UseMcpServerOAuthConnectReturn,
   OAuthConnectPhase,
+  SignInVault,
+  StartOAuthOptions,
   OAuthCallbackHandlerProps,
   OAuthCallbackParams,
   UseMcpServerCredentialsReturn,
@@ -967,48 +969,52 @@ export type {
   UseUpdateScheduleSpecReturn,
 } from "./schedule/index.js";
 
-// Environment — data hooks, list hook, personal convenience hook, secret reveal, variable management, env var form, the platform-filled key set, and styled components
+// Vault — My vault and shared vaults (entry names only; values are write-only), the vault picker, the credential form, the session value pool, the platform-filled key set, and the address rule
 export {
-  useEnvironment,
-  useEnvironmentList,
-  usePersonalEnvironment,
-  useCreateEnvironment,
-  useUpdateEnvironment,
-  useUpdateEnvironmentVariables,
-  useRemoveEnvironmentVariables,
-  useRevealSecretValue,
-  EnvironmentVariableEditor,
-  EnvironmentListPanel,
-  CreateEnvironmentForm,
+  useMyVault,
+  useVault,
+  useVaultList,
+  isMyVault,
+  useCreateVault,
+  useUpdateVault,
+  useVaultEntries,
+  VaultEntriesEditor,
+  VaultListPanel,
+  CreateVaultForm,
+  VaultPicker,
+  MY_VAULT_LABEL,
   EnvVarForm,
   useSessionEnvPool,
   SYSTEM_ENV_VAR_KEYS,
-  EnvironmentPicker,
   useToolCredentialsReadiness,
-} from "./environment/index.js";
+  normalizeAddress,
+  toolAddressOf,
+  toolLoginKeyOf,
+  gitHostOf,
+  GITHUB_HOST,
+} from "./vault/index.js";
 export type {
-  UseEnvironmentReturn,
-  UseEnvironmentListReturn,
-  UsePersonalEnvironmentReturn,
-  UseCreateEnvironmentReturn,
-  UseUpdateEnvironmentReturn,
-  UpdateEnvironmentVariablesInput,
-  UseUpdateEnvironmentVariablesReturn,
-  RemoveEnvironmentVariablesInput,
-  UseRemoveEnvironmentVariablesReturn,
-  UseRevealSecretValueOptions,
-  UseRevealSecretValueReturn,
-  EnvironmentVariableEditorProps,
-  EnvironmentListPanelProps,
-  CreateEnvironmentFormProps,
+  UseMyVaultReturn,
+  VaultSecretValue,
+  UseVaultReturn,
+  UseVaultListReturn,
+  CreateVaultInput,
+  UseCreateVaultReturn,
+  UpdateVaultInput,
+  UseUpdateVaultReturn,
+  UseVaultEntriesReturn,
+  VaultEntriesEditorProps,
+  VaultListPanelProps,
+  CreateVaultFormProps,
+  VaultPickerProps,
   EnvVarFormProps,
   EnvVarFormVariable,
   EnvVarFormSubmitOptions,
+  EnvVarInput,
   SessionEnvPoolInput,
   UseSessionEnvPoolReturn,
-  EnvironmentPickerProps,
   ToolCredentialsReadiness,
-} from "./environment/index.js";
+} from "./vault/index.js";
 
 // Identity Account — gate hook, self-account data/mutation hooks, the
 // account preferences editor, and the composer-seeding execution defaults
@@ -1388,7 +1394,7 @@ export { OrgProfileSection } from "./settings/index.js";
 export { OrgPreferencesSection } from "./settings/index.js";
 export { AccountPreferencesSection } from "./settings/index.js";
 export { MemorySection } from "./settings/index.js";
-export { EnvironmentsSection } from "./settings/index.js";
+export { VaultsSection } from "./settings/index.js";
 export { InvitationsSection } from "./settings/index.js";
 export { IdentityProvidersSection } from "./settings/index.js";
 export type { IdentityProvidersSectionProps } from "./settings/index.js";

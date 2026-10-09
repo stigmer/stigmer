@@ -29,4 +29,24 @@ public interface GetOAuthAuthorizeUrlRequestOrBuilder extends
    */
   com.google.protobuf.ByteString
       getRedirectUriBytes();
+
+  /**
+   * <pre>
+   * Organization whose My vault the login will be saved in, by slug or id.
+   * </pre>
+   *
+   * <code>string org = 2 [json_name = "org", (.buf.validate.field) = { ... }</code>
+   * @return The org.
+   */
+  java.lang.String getOrg();
+  /**
+   * <pre>
+   * Organization whose My vault the login will be saved in, by slug or id.
+   * </pre>
+   *
+   * <code>string org = 2 [json_name = "org", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for org.
+   */
+  com.google.protobuf.ByteString
+      getOrgBytes();
 }

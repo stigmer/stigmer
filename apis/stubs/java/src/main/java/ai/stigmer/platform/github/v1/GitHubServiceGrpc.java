@@ -4,11 +4,12 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
 
 /**
  * <pre>
- * GitHubService provides OAuth integration with GitHub.
- * Use this service to connect a GitHub account via OAuth and obtain
- * an access token for GitHub API calls. The service manages the
- * authorize URL construction and the authorization-code-for-token
- * exchange so callers do not handle OAuth details directly.
+ * GitHubService connects a GitHub account through OAuth.
+ * The service builds the authorize URL and exchanges the authorization code
+ * for a token, which it saves as the github.com login in the caller's My
+ * vault. The token is never returned: repository listing, search and file
+ * reads go through GitHubQueryController, and runs clone with the saved
+ * login.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -142,11 +143,12 @@ public final class GitHubServiceGrpc {
 
   /**
    * <pre>
-   * GitHubService provides OAuth integration with GitHub.
-   * Use this service to connect a GitHub account via OAuth and obtain
-   * an access token for GitHub API calls. The service manages the
-   * authorize URL construction and the authorization-code-for-token
-   * exchange so callers do not handle OAuth details directly.
+   * GitHubService connects a GitHub account through OAuth.
+   * The service builds the authorize URL and exchanges the authorization code
+   * for a token, which it saves as the github.com login in the caller's My
+   * vault. The token is never returned: repository listing, search and file
+   * reads go through GitHubQueryController, and runs clone with the saved
+   * login.
    * </pre>
    */
   public interface AsyncService {
@@ -154,9 +156,10 @@ public final class GitHubServiceGrpc {
     /**
      * <pre>
      * Get the GitHub OAuth authorize URL for initiating the OAuth flow.
-     * Returns a URL to redirect the user to and a random state value for
-     * CSRF protection. After the user authorizes, GitHub redirects back
-     * to your redirect_uri with an authorization code.
+     * Returns a URL to redirect the user to and a random state value. After
+     * the user authorizes, GitHub redirects back to your redirect_uri with an
+     * authorization code, which exchangeOAuthCode accepts only with this state,
+     * from the same person, for the same organization.
      * </pre>
      */
     default void getOAuthAuthorizeUrl(ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlRequest request,
@@ -166,10 +169,13 @@ public final class GitHubServiceGrpc {
 
     /**
      * <pre>
-     * Exchange a GitHub OAuth authorization code for an access token.
+     * Exchange a GitHub OAuth authorization code and save the login in the
+     * caller's My vault.
      * Call this after receiving the authorization code from GitHub's OAuth
      * redirect. Pass the code, the state from the original authorize request,
-     * and the same redirect_uri. Returns an access token for GitHub API calls.
+     * the same redirect_uri, and the organization whose My vault keeps the
+     * login. Returns the connected account's login and granted scopes; the
+     * token itself is saved as the github.com connection and never returned.
      * </pre>
      */
     default void exchangeOAuthCode(ai.stigmer.platform.github.v1.ExchangeOAuthCodeRequest request,
@@ -181,11 +187,12 @@ public final class GitHubServiceGrpc {
   /**
    * Base class for the server implementation of the service GitHubService.
    * <pre>
-   * GitHubService provides OAuth integration with GitHub.
-   * Use this service to connect a GitHub account via OAuth and obtain
-   * an access token for GitHub API calls. The service manages the
-   * authorize URL construction and the authorization-code-for-token
-   * exchange so callers do not handle OAuth details directly.
+   * GitHubService connects a GitHub account through OAuth.
+   * The service builds the authorize URL and exchanges the authorization code
+   * for a token, which it saves as the github.com login in the caller's My
+   * vault. The token is never returned: repository listing, search and file
+   * reads go through GitHubQueryController, and runs clone with the saved
+   * login.
    * </pre>
    */
   public static abstract class GitHubServiceImplBase
@@ -199,11 +206,12 @@ public final class GitHubServiceGrpc {
   /**
    * A stub to allow clients to do asynchronous rpc calls to service GitHubService.
    * <pre>
-   * GitHubService provides OAuth integration with GitHub.
-   * Use this service to connect a GitHub account via OAuth and obtain
-   * an access token for GitHub API calls. The service manages the
-   * authorize URL construction and the authorization-code-for-token
-   * exchange so callers do not handle OAuth details directly.
+   * GitHubService connects a GitHub account through OAuth.
+   * The service builds the authorize URL and exchanges the authorization code
+   * for a token, which it saves as the github.com login in the caller's My
+   * vault. The token is never returned: repository listing, search and file
+   * reads go through GitHubQueryController, and runs clone with the saved
+   * login.
    * </pre>
    */
   public static final class GitHubServiceStub
@@ -222,9 +230,10 @@ public final class GitHubServiceGrpc {
     /**
      * <pre>
      * Get the GitHub OAuth authorize URL for initiating the OAuth flow.
-     * Returns a URL to redirect the user to and a random state value for
-     * CSRF protection. After the user authorizes, GitHub redirects back
-     * to your redirect_uri with an authorization code.
+     * Returns a URL to redirect the user to and a random state value. After
+     * the user authorizes, GitHub redirects back to your redirect_uri with an
+     * authorization code, which exchangeOAuthCode accepts only with this state,
+     * from the same person, for the same organization.
      * </pre>
      */
     public void getOAuthAuthorizeUrl(ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlRequest request,
@@ -235,10 +244,13 @@ public final class GitHubServiceGrpc {
 
     /**
      * <pre>
-     * Exchange a GitHub OAuth authorization code for an access token.
+     * Exchange a GitHub OAuth authorization code and save the login in the
+     * caller's My vault.
      * Call this after receiving the authorization code from GitHub's OAuth
      * redirect. Pass the code, the state from the original authorize request,
-     * and the same redirect_uri. Returns an access token for GitHub API calls.
+     * the same redirect_uri, and the organization whose My vault keeps the
+     * login. Returns the connected account's login and granted scopes; the
+     * token itself is saved as the github.com connection and never returned.
      * </pre>
      */
     public void exchangeOAuthCode(ai.stigmer.platform.github.v1.ExchangeOAuthCodeRequest request,
@@ -251,11 +263,12 @@ public final class GitHubServiceGrpc {
   /**
    * A stub to allow clients to do synchronous rpc calls to service GitHubService.
    * <pre>
-   * GitHubService provides OAuth integration with GitHub.
-   * Use this service to connect a GitHub account via OAuth and obtain
-   * an access token for GitHub API calls. The service manages the
-   * authorize URL construction and the authorization-code-for-token
-   * exchange so callers do not handle OAuth details directly.
+   * GitHubService connects a GitHub account through OAuth.
+   * The service builds the authorize URL and exchanges the authorization code
+   * for a token, which it saves as the github.com login in the caller's My
+   * vault. The token is never returned: repository listing, search and file
+   * reads go through GitHubQueryController, and runs clone with the saved
+   * login.
    * </pre>
    */
   public static final class GitHubServiceBlockingV2Stub
@@ -274,9 +287,10 @@ public final class GitHubServiceGrpc {
     /**
      * <pre>
      * Get the GitHub OAuth authorize URL for initiating the OAuth flow.
-     * Returns a URL to redirect the user to and a random state value for
-     * CSRF protection. After the user authorizes, GitHub redirects back
-     * to your redirect_uri with an authorization code.
+     * Returns a URL to redirect the user to and a random state value. After
+     * the user authorizes, GitHub redirects back to your redirect_uri with an
+     * authorization code, which exchangeOAuthCode accepts only with this state,
+     * from the same person, for the same organization.
      * </pre>
      */
     public ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlResponse getOAuthAuthorizeUrl(ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlRequest request) throws io.grpc.StatusException {
@@ -286,10 +300,13 @@ public final class GitHubServiceGrpc {
 
     /**
      * <pre>
-     * Exchange a GitHub OAuth authorization code for an access token.
+     * Exchange a GitHub OAuth authorization code and save the login in the
+     * caller's My vault.
      * Call this after receiving the authorization code from GitHub's OAuth
      * redirect. Pass the code, the state from the original authorize request,
-     * and the same redirect_uri. Returns an access token for GitHub API calls.
+     * the same redirect_uri, and the organization whose My vault keeps the
+     * login. Returns the connected account's login and granted scopes; the
+     * token itself is saved as the github.com connection and never returned.
      * </pre>
      */
     public ai.stigmer.platform.github.v1.ExchangeOAuthCodeResponse exchangeOAuthCode(ai.stigmer.platform.github.v1.ExchangeOAuthCodeRequest request) throws io.grpc.StatusException {
@@ -301,11 +318,12 @@ public final class GitHubServiceGrpc {
   /**
    * A stub to allow clients to do limited synchronous rpc calls to service GitHubService.
    * <pre>
-   * GitHubService provides OAuth integration with GitHub.
-   * Use this service to connect a GitHub account via OAuth and obtain
-   * an access token for GitHub API calls. The service manages the
-   * authorize URL construction and the authorization-code-for-token
-   * exchange so callers do not handle OAuth details directly.
+   * GitHubService connects a GitHub account through OAuth.
+   * The service builds the authorize URL and exchanges the authorization code
+   * for a token, which it saves as the github.com login in the caller's My
+   * vault. The token is never returned: repository listing, search and file
+   * reads go through GitHubQueryController, and runs clone with the saved
+   * login.
    * </pre>
    */
   public static final class GitHubServiceBlockingStub
@@ -324,9 +342,10 @@ public final class GitHubServiceGrpc {
     /**
      * <pre>
      * Get the GitHub OAuth authorize URL for initiating the OAuth flow.
-     * Returns a URL to redirect the user to and a random state value for
-     * CSRF protection. After the user authorizes, GitHub redirects back
-     * to your redirect_uri with an authorization code.
+     * Returns a URL to redirect the user to and a random state value. After
+     * the user authorizes, GitHub redirects back to your redirect_uri with an
+     * authorization code, which exchangeOAuthCode accepts only with this state,
+     * from the same person, for the same organization.
      * </pre>
      */
     public ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlResponse getOAuthAuthorizeUrl(ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlRequest request) {
@@ -336,10 +355,13 @@ public final class GitHubServiceGrpc {
 
     /**
      * <pre>
-     * Exchange a GitHub OAuth authorization code for an access token.
+     * Exchange a GitHub OAuth authorization code and save the login in the
+     * caller's My vault.
      * Call this after receiving the authorization code from GitHub's OAuth
      * redirect. Pass the code, the state from the original authorize request,
-     * and the same redirect_uri. Returns an access token for GitHub API calls.
+     * the same redirect_uri, and the organization whose My vault keeps the
+     * login. Returns the connected account's login and granted scopes; the
+     * token itself is saved as the github.com connection and never returned.
      * </pre>
      */
     public ai.stigmer.platform.github.v1.ExchangeOAuthCodeResponse exchangeOAuthCode(ai.stigmer.platform.github.v1.ExchangeOAuthCodeRequest request) {
@@ -351,11 +373,12 @@ public final class GitHubServiceGrpc {
   /**
    * A stub to allow clients to do ListenableFuture-style rpc calls to service GitHubService.
    * <pre>
-   * GitHubService provides OAuth integration with GitHub.
-   * Use this service to connect a GitHub account via OAuth and obtain
-   * an access token for GitHub API calls. The service manages the
-   * authorize URL construction and the authorization-code-for-token
-   * exchange so callers do not handle OAuth details directly.
+   * GitHubService connects a GitHub account through OAuth.
+   * The service builds the authorize URL and exchanges the authorization code
+   * for a token, which it saves as the github.com login in the caller's My
+   * vault. The token is never returned: repository listing, search and file
+   * reads go through GitHubQueryController, and runs clone with the saved
+   * login.
    * </pre>
    */
   public static final class GitHubServiceFutureStub
@@ -374,9 +397,10 @@ public final class GitHubServiceGrpc {
     /**
      * <pre>
      * Get the GitHub OAuth authorize URL for initiating the OAuth flow.
-     * Returns a URL to redirect the user to and a random state value for
-     * CSRF protection. After the user authorizes, GitHub redirects back
-     * to your redirect_uri with an authorization code.
+     * Returns a URL to redirect the user to and a random state value. After
+     * the user authorizes, GitHub redirects back to your redirect_uri with an
+     * authorization code, which exchangeOAuthCode accepts only with this state,
+     * from the same person, for the same organization.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlResponse> getOAuthAuthorizeUrl(
@@ -387,10 +411,13 @@ public final class GitHubServiceGrpc {
 
     /**
      * <pre>
-     * Exchange a GitHub OAuth authorization code for an access token.
+     * Exchange a GitHub OAuth authorization code and save the login in the
+     * caller's My vault.
      * Call this after receiving the authorization code from GitHub's OAuth
      * redirect. Pass the code, the state from the original authorize request,
-     * and the same redirect_uri. Returns an access token for GitHub API calls.
+     * the same redirect_uri, and the organization whose My vault keeps the
+     * login. Returns the connected account's login and granted scopes; the
+     * token itself is saved as the github.com connection and never returned.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.platform.github.v1.ExchangeOAuthCodeResponse> exchangeOAuthCode(

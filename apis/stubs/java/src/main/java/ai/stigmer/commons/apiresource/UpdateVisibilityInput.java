@@ -24,7 +24,7 @@ package ai.stigmer.commons.apiresource;
  * declared per kind via VisibilityConfig in kind_meta:
  * - Blueprints (agent, skill, mcp_server, plugin):
  * PRIVATE, ORG, or CHILD_ORGS
- * - Org-only kinds (environment):
+ * - Org-only kinds (vault):
  * PRIVATE or ORG (never CHILD_ORGS — tenant isolation)
  *
  * visibility_public is refused for every kind (INVALID_ARGUMENT naming the
@@ -337,7 +337,7 @@ private static final long serialVersionUID = 0L;
    * declared per kind via VisibilityConfig in kind_meta:
    * - Blueprints (agent, skill, mcp_server, plugin):
    * PRIVATE, ORG, or CHILD_ORGS
-   * - Org-only kinds (environment):
+   * - Org-only kinds (vault):
    * PRIVATE or ORG (never CHILD_ORGS — tenant isolation)
    *
    * visibility_public is refused for every kind (INVALID_ARGUMENT naming the

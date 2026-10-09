@@ -120,6 +120,9 @@ import {
   newValidateChannelUpdateStep,
   resolveChannelCreateTargets,
 } from "./steps.js";
+import { newVaultAttachmentsStep } from "../vault/attachments.js";
+import type { VaultAttachmentOptions } from "../vault/attachments.js";
+import { AgentChannelStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/status_pb";
 
 export interface AgentChannelControllerDeps {
   readonly store: Store;
@@ -139,6 +142,17 @@ export interface AgentChannelControllerDeps {
   /** The composed list read scope — list/getByAgent narrow through it; undefined = the OSS full scan. */
   readonly listReadScope: ListReadScope | undefined;
 }
+
+/** A channel's runs have no person: each asks the account that attached each vault. */
+const CHANNEL_VAULT_ATTACHMENTS: VaultAttachmentOptions<typeof AgentChannelSchema> = {
+  surface: "a channel",
+  attachers: {
+    get: (row) => row.status?.vaultAttachers,
+    set: (row, attachers) => {
+      (row.status ??= create(AgentChannelStatusSchema)).vaultAttachers = attachers;
+    },
+  },
+};
 
 /** Registers both agentchannel resource services on the router. */
 export function registerAgentChannelServices(
@@ -215,6 +229,7 @@ async function createChannel(
     .addStep(newInitInstallStateStep())
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
+    .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, CHANNEL_VAULT_ATTACHMENTS))
     .addStep(newPersistStep(deps.store))
     .addStep(
       newCreateAuthorizationTuplesStep(
@@ -264,6 +279,7 @@ async function update(
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
+    .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, CHANNEL_VAULT_ATTACHMENTS))
     .addStep(newPersistStep(deps.store))
     .build()
     .execute(reqCtx);
@@ -424,7 +440,7 @@ async function loadChannelForInstall(
  * there is no teardown cascade — none of that state can exist because the
  * install flow never runs (the install lane refuses). A composed runtime
  * splices its cascade
- * (TeardownChannelRuntime — credentials environment, OAuth grant, pending
+ * (TeardownChannelRuntime — sealed channel credentials, pending
  * deliveries) between the load and the row delete, so dependent runtime
  * state dies before the row.
  */

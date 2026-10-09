@@ -43,7 +43,7 @@ describe("useSessionVariables — return reference stability", () => {
   it("callback references are stable across re-renders", () => {
     const { result, rerender } = renderHook(() => useSessionVariables());
 
-    const { addEntry, removeEntry, updateEntry, clear, toRuntimeEnv, toSaveForFutureEnv } =
+    const { addEntry, removeEntry, updateEntry, clear, toSessionSecrets, toSaveForFutureEnv } =
       result.current;
 
     rerender();
@@ -52,7 +52,7 @@ describe("useSessionVariables — return reference stability", () => {
     expect(result.current.removeEntry).toBe(removeEntry);
     expect(result.current.updateEntry).toBe(updateEntry);
     expect(result.current.clear).toBe(clear);
-    expect(result.current.toRuntimeEnv).toBe(toRuntimeEnv);
+    expect(result.current.toSessionSecrets).toBe(toSessionSecrets);
     expect(result.current.toSaveForFutureEnv).toBe(toSaveForFutureEnv);
   });
 

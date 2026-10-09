@@ -57,7 +57,7 @@ public interface IamPolicySpecOrBuilder extends
    * Resource: WHAT is being accessed
    * This can be any API resource that is being protected:
    * - organization
-   * - environment
+   * - vault
    * - cloud_resource (VPC, S3 bucket, etc.)
    * - service
    * - Any other resource that requires access control
@@ -72,7 +72,7 @@ public interface IamPolicySpecOrBuilder extends
    * Resource: WHAT is being accessed
    * This can be any API resource that is being protected:
    * - organization
-   * - environment
+   * - vault
    * - cloud_resource (VPC, S3 bucket, etc.)
    * - service
    * - Any other resource that requires access control
@@ -87,7 +87,7 @@ public interface IamPolicySpecOrBuilder extends
    * Resource: WHAT is being accessed
    * This can be any API resource that is being protected:
    * - organization
-   * - environment
+   * - vault
    * - cloud_resource (VPC, S3 bucket, etc.)
    * - service
    * - Any other resource that requires access control

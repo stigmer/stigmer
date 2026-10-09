@@ -162,7 +162,7 @@ function ConnectSlackDialogBody({
   // Tool credentials bound at connect time (create mode only — a
   // reconnect keeps the channel's existing bindings untouched; edits go
   // through the channel card's credentials dialog).
-  const [environmentRefs, setEnvironmentRefs] = useState<ResourceRef[]>([]);
+  const [vaults, setVaults] = useState<ResourceRef[]>([]);
   // The serving app (create mode only): null = the platform Stigmer app;
   // a ref = one of the org's own channel apps (BYO — the bot carries that
   // app's name, and each app is its own bot identity). A reconnect keeps
@@ -237,7 +237,7 @@ function ConnectSlackDialogBody({
           enabled: true,
           slack: {},
           ...(appRef ? { appRef } : {}),
-          ...(environmentRefs.length > 0 ? { environmentRefs } : {}),
+          ...(vaults.length > 0 ? { vaults } : {}),
         });
         // The channel now exists even if the install below fails or is
         // abandoned — surface it in the list either way.
@@ -252,7 +252,7 @@ function ConnectSlackDialogBody({
       // error null for it; everything else renders below.
       setError(slack.error ?? (err instanceof Error ? err : new Error(String(err))));
     }
-  }, [agent, agentName, appRef, channel, createChannel, environmentRefs, name, org, onChannelsChanged, slack]);
+  }, [agent, agentName, appRef, channel, createChannel, vaults, name, org, onChannelsChanged, slack]);
 
   const handleCancel = useCallback(() => {
     slack.clearError();
@@ -364,8 +364,8 @@ function ConnectSlackDialogBody({
               <ToolCredentialsSection
                 agent={agent}
                 org={org}
-                value={environmentRefs}
-                onChange={setEnvironmentRefs}
+                value={vaults}
+                onChange={setVaults}
                 disabled={busy}
               />
             )}

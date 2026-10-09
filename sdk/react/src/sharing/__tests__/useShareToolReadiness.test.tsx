@@ -26,14 +26,14 @@ function toolAgent(overrides?: { mcpUsages?: boolean }): Agent {
 function makeDraft(overrides?: {
   enabled?: boolean;
   audience?: SharingAudience;
-  environmentRefs?: { org: string; slug: string }[];
+  vaults?: { org: string; slug: string }[];
 }): AgentShareDraft {
   return {
     enabled: overrides?.enabled ?? true,
     audience: overrides?.audience ?? "public",
     allowedOrigins: [],
     messages: { rateLimited: "", unavailable: "", conversationEnded: "" },
-    environmentRefs: overrides?.environmentRefs ?? [],
+    vaults: overrides?.vaults ?? [],
     runConfig: undefined,
   };
 }
@@ -43,18 +43,20 @@ function mockStigmer(overrides: {
   envError?: boolean;
 }) {
   return {
-    environment: {
+    vault: {
       getByReference: vi.fn().mockImplementation(
         ({ slug }: { org: string; slug: string }) => {
           if (overrides.envError) {
             return Promise.reject(new Error("not found"));
           }
+          // An org-visible entry stands for a shared vault; anything else
+          // for a person's My vault, which these surfaces refuse.
+          const shared =
+            (overrides.envVisibility?.[slug] ??
+              ApiResourceVisibility.visibility_private) ===
+            ApiResourceVisibility.visibility_org;
           return Promise.resolve({
-            metadata: {
-              visibility:
-                overrides.envVisibility?.[slug] ??
-                ApiResourceVisibility.visibility_private,
-            },
+            spec: { owner: { case: shared ? "org" : "person" } },
           });
         },
       ),
@@ -76,8 +78,8 @@ function wrapper(client: unknown, mode: "cloud" | "local" = "cloud") {
 
 function envLookup(client: unknown) {
   return (
-    client as { environment: { getByReference: ReturnType<typeof vi.fn> } }
-  ).environment.getByReference;
+    client as { vault: { getByReference: ReturnType<typeof vi.fn> } }
+  ).vault.getByReference;
 }
 
 describe("useShareToolReadiness", () => {
@@ -88,7 +90,7 @@ describe("useShareToolReadiness", () => {
       { wrapper: wrapper(client) },
     );
 
-    // A tool-using agent with zero bound environments is broken for
+    // A tool-using agent with zero named vaults is broken for
     // visitors BY CONSTRUCTION (guests receive credentials only from the
     // share's bindings) — the hook says so instead of staying silent,
     // and needs no server round-trip to know it.
@@ -96,7 +98,7 @@ describe("useShareToolReadiness", () => {
     await waitFor(() => expect(envLookup(client)).not.toHaveBeenCalled());
   });
 
-  it("reports blocked with the private environment refs listed", async () => {
+  it("reports blocked with the vaults that cannot serve listed", async () => {
     const client = mockStigmer({
       envVisibility: {
         "shared-creds": ApiResourceVisibility.visibility_org,
@@ -108,7 +110,7 @@ describe("useShareToolReadiness", () => {
         useShareToolReadiness(
           toolAgent(),
           makeDraft({
-            environmentRefs: [
+            vaults: [
               { org: "acme", slug: "private-creds" },
               { org: "acme", slug: "shared-creds" },
             ],
@@ -120,12 +122,12 @@ describe("useShareToolReadiness", () => {
     await waitFor(() =>
       expect(result.current).toEqual({
         status: "blocked",
-        privateEnvironments: ["acme/private-creds"],
+        unusableVaults: ["acme/private-creds"],
       }),
     );
   });
 
-  it("reports ready when every bound environment is org-shared", async () => {
+  it("reports ready when every named vault is a shared vault", async () => {
     const client = mockStigmer({
       envVisibility: {
         "shared-creds": ApiResourceVisibility.visibility_org,
@@ -137,7 +139,7 @@ describe("useShareToolReadiness", () => {
         useShareToolReadiness(
           toolAgent(),
           makeDraft({
-            environmentRefs: [{ org: "acme", slug: "shared-creds" }],
+            vaults: [{ org: "acme", slug: "shared-creds" }],
           }),
         ),
       { wrapper: wrapper(client) },
@@ -146,7 +148,7 @@ describe("useShareToolReadiness", () => {
     await waitFor(() => expect(result.current).toEqual({ status: "ready" }));
   });
 
-  it("treats an unreadable environment ref as blocking", async () => {
+  it("treats an unreadable vault ref as blocking", async () => {
     const client = mockStigmer({ envError: true });
 
     const { result } = renderHook(
@@ -154,7 +156,7 @@ describe("useShareToolReadiness", () => {
         useShareToolReadiness(
           toolAgent(),
           makeDraft({
-            environmentRefs: [{ org: "acme", slug: "deleted-env" }],
+            vaults: [{ org: "acme", slug: "deleted-env" }],
           }),
         ),
       { wrapper: wrapper(client) },
@@ -163,7 +165,7 @@ describe("useShareToolReadiness", () => {
     await waitFor(() =>
       expect(result.current).toEqual({
         status: "blocked",
-        privateEnvironments: ["acme/deleted-env"],
+        unusableVaults: ["acme/deleted-env"],
       }),
     );
   });
@@ -175,7 +177,7 @@ describe("useShareToolReadiness", () => {
         useShareToolReadiness(
           toolAgent({ mcpUsages: false }),
           makeDraft({
-            environmentRefs: [{ org: "acme", slug: "shared-creds" }],
+            vaults: [{ org: "acme", slug: "shared-creds" }],
           }),
         ),
       { wrapper: wrapper(client) },
@@ -202,7 +204,7 @@ describe("useShareToolReadiness", () => {
       { wrapper: wrapper(client) },
     );
 
-    // Org-audience shares reject environment_refs at the proto boundary
+    // Org-audience shares reject vaults at the proto boundary
     // (member sessions carry no share linkage), so there is
     // no credential state to advise on.
     expect(result.current).toEqual({ status: "na" });

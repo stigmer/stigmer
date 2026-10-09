@@ -34,7 +34,7 @@ export interface ChannelCredentialsDialogProps {
 
 /**
  * Edits an installed channel's tool-credential bindings
- * (`AgentChannelSpec.environment_refs`) after the fact — the companion
+ * (`AgentChannelSpec.vaults`) after the fact — the companion
  * to binding at connect time in {@link ConnectSlackDialog}. Saves are
  * full-input applies via {@link agentChannelToInput}, so the agent
  * reference, provider marker, and install status all survive; an
@@ -106,7 +106,7 @@ function ChannelCredentialsDialogBody({
   const { save, isPending, error, clearError } = useSaveAgentChannel();
 
   const [draft, setDraft] = useState<ResourceRef[]>(() =>
-    (channel.spec?.environmentRefs ?? []).map((ref) => ({
+    (channel.spec?.vaults ?? []).map((ref) => ({
       org: ref.org,
       slug: ref.slug,
     })),
@@ -118,7 +118,7 @@ function ChannelCredentialsDialogBody({
       // is an explicit unbind (apply semantics replace the spec).
       await save({
         ...agentChannelToInput(channel),
-        environmentRefs: [...draft],
+        vaults: [...draft],
       });
       onSaved?.();
       onClose();

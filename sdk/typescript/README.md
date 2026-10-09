@@ -48,7 +48,6 @@ Every resource type has a typed client accessible as a property on the `Stigmer`
 | `agent`              | Agent              |
 | `run`                | Run                |
 | `apiKey`             | ApiKey             |
-| `environment`        | Environment        |
 | `executionContext`   | ExecutionContext    |
 | `iamPolicy`          | IamPolicy          |
 | `identityAccount`    | IdentityAccount    |
@@ -57,8 +56,14 @@ Every resource type has a typed client accessible as a property on the `Stigmer`
 | `organization`       | Organization       |
 | `session`            | Session            |
 | `skill`              | Skill              |
+| `vault`              | Vault              |
 | `search`             | Cross-resource search |
 | `billing`            | Billing (credits, ledger, Stripe) |
+
+A vault's entries are written through its entry calls, not through `create`
+or `update`: `stigmer.vault.setSecrets`, `setConnection`, `removeSecrets` and
+`removeConnections`. `create` starts the vault empty, and `update` changes its
+name, description and external id while keeping the entries as stored.
 
 ### Billing
 

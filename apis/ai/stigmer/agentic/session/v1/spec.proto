@@ -192,4 +192,85 @@ message SessionSpec {
   // Immutable once a run has started — workspace state may not be
   // portable between local and cloud environments.
   ExecutionTarget execution_target = 12;
+
+  // Vaults whose logins and secrets this conversation's runs use, in order:
+  // the first vault holding a match wins. At most 20.
+  //
+  // A conversation that lists vaults uses exactly those. One that lists
+  // none uses the My vault of the person sending each turn, then the
+  // agent's vaults that person may use. A My vault cannot be listed: a
+  // conversation can have several people, and each person's own vault
+  // serves only their own turns.
+  //
+  // @internal
+  // The reference rule asks can_use of the writer for each vault a write
+  // introduces and records the writer in status.vault_attachers; each run
+  // asks can_use again of its person, or of that recorded account when the
+  // run has no person.
+  repeated ai.stigmer.commons.apiresource.ApiResourceReference vaults = 15 [
+    (ai.stigmer.commons.apiresource.reference_kind) = vault,
+    (buf.validate.field).repeated.max_items = 20,
+    (buf.validate.field).repeated.items.cel = {
+      id: "vaults.kind"
+      message: "vaults must reference resources with kind=vault"
+      expression: "this.kind == 59"
+    }
+  ];
+
+  // Secrets this conversation's runs use, by name, ahead of every vault.
+  //
+  // This is how an integrator hands a run a key without saving it in a
+  // vault. The values are kept sealed for the conversation's life, can be
+  // replaced by an update at any time, are never returned by a read, and
+  // are destroyed with the conversation.
+  //
+  // An update built on an older read than the stored conversation (it
+  // echoes an older status.audit.spec_audit.updated_at) removes nothing it
+  // could not have seen: the values it omits are kept, and so are the
+  // vaults the conversation lists. Read the conversation again to remove a
+  // value or change its vaults.
+  //
+  // @internal
+  // Sealed through the server's SecretService. A read shows the redaction
+  // marker for each value, and a write that sends the marker back keeps the
+  // stored value, so the runner's per-turn session writes never clear them.
+  map<string, string> secrets = 16 [(buf.validate.field).map = {
+    max_pairs: 100
+    keys: {
+      string: {
+        pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
+        max_len: 128
+      }
+    }
+    values: {
+      string: {
+        min_len: 1
+        max_len: 65536
+      }
+    }
+  }];
+
+  // Logins this conversation's runs use, by the address of the tool or Git
+  // host each is for, ahead of every vault.
+  //
+  // Kept, replaced and destroyed as secrets are. Addresses are normalized
+  // as a vault's are.
+  //
+  // @internal
+  // Sealed and redacted as secrets are.
+  map<string, string> connections = 17 [(buf.validate.field).map = {
+    max_pairs: 100
+    keys: {
+      string: {
+        min_len: 1
+        max_len: 2048
+      }
+    }
+    values: {
+      string: {
+        min_len: 1
+        max_len: 65536
+      }
+    }
+  }];
 }

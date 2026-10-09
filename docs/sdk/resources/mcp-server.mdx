@@ -59,7 +59,7 @@ McpServer mcpServer = client.mcpServers().get("mcp_01j5q3k7m8r2s4tnz2hfp0q0c3");
 |--------|-------------|
 | [`get`](#get) | Get an MCP server by its unique identifier. |
 | [`getByReference`](#getbyreference) | Get an MCP server by reference (scope + org + slug). |
-| [`getOAuthGrantStatus`](#getoauthgrantstatus) | Check whether the authenticated user has an active OAuth grant for an MCP server in the specified org. |
+| [`getOAuthGrantStatus`](#getoauthgrantstatus) | Check whether the authenticated user has a sign-in for an MCP server in their My vault in the specified org that a run would use: one this server's sign-in saved at the server's current address. |
 | [`getOrgOAuthApp`](#getorgoauthapp) | Query whether an org has a BYOA override for a resource. |
 | [`apply`](#apply) | Create or update an MCP server resource. |
 | [`create`](#create) | Create an MCP server resource. |
@@ -164,9 +164,9 @@ McpServer mcpServer = client.mcpServers().getByReference(ApiResourceReference.bu
 
 ### getOAuthGrantStatus
 
-Check whether the authenticated user has an active OAuth grant for an MCP server in the specified org.
+Check whether the authenticated user has a sign-in for an MCP server in their My vault in the specified org that a run would use: one this server's sign-in saved at the server's current address. A pasted login and a sign-in saved into a shared vault are read through the vault's own RPCs.
 
-Returns grant metadata (connected status, token expiry, auth method) without exposing any secret token values. The frontend uses this to render the correct OAuth state in the MCP server detail page and session composer.
+Returns sign-in metadata (connected status, token expiry, auth method) without exposing any secret token values. The frontend uses this to render the correct OAuth state in the MCP server detail page and session composer.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -611,7 +611,7 @@ McpServer mcpServer = client.mcpServers().delete(DeleteResourceInput.builder()
 
 Complete the OAuth authorization flow by exchanging the authorization code for tokens.
 
-Called by the frontend after the user is redirected back from the OAuth authorization server. Exchanges the code for tokens, stores them in the user's personal environment, and creates an OAuthGrant record for pre-flight expiry checks.
+Called by the frontend after the user is redirected back from the OAuth authorization server. Exchanges the code for tokens and saves the login as a connection at the server's address in the vault named when the flow started: the caller's My vault, or a shared vault they may edit.
 
 After success, the frontend should call connect() to trigger tool discovery using the freshly acquired token.
 
@@ -717,7 +717,7 @@ Deletes the OAuthAppOverride binding and the OAuthApp resource that was created 
 
 Edition scoping: hosted-only. UNIMPLEMENTED on the OSS server by design, as one capability with getOrgOAuthApp and setOrgOAuthApp — see the full scoping note on McpServerQueryController.getOrgOAuthApp, the RPC clients probe.
 
-Existing user OAuthGrants that were issued using the org's OAuthApp will fail on next token refresh — those users will need to re-authenticate using the platform default or a new org override.
+Existing sign-ins that were issued using the org's OAuthApp will fail on next token refresh — those users will need to re-authenticate using the platform default or a new org override.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -762,11 +762,11 @@ DeleteOrgOAuthAppOutput deleteOrgOAuthAppOutput = client.mcpServers().deleteOrgO
 
 Disconnect the authenticated user's OAuth connection for a resource.
 
-Tears down the user's personal OAuth connection by deleting the OAuthGrant and its associated managed environment (which holds the access and refresh tokens). The MCP server definition is unchanged — only the caller's credentials are removed.
+Removes every connection a sign-in to this server saved in the caller's My vault, with its access and refresh tokens, including one left at the server's earlier address. The MCP server definition is unchanged — only the caller's sign-in is removed.
 
-Other users' connections to the same resource are unaffected.
+Other users' connections to the same resource, a pasted login and another server's sign-in are unaffected. A sign-in saved into a shared vault is removed through that vault's removeConnections.
 
-Idempotent: returns disconnected=true when a grant was deleted, disconnected=false when no grant existed. Never returns an error for a missing grant.
+Idempotent: returns disconnected=true when a sign-in was removed, disconnected=false when none was saved. Never returns an error for a missing sign-in.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -819,6 +819,7 @@ Performs setup (DCR registration or OAuthApp credential lookup, PKCE generation)
 const initiateOAuthConnectOutput = await stigmer.mcpServer.initiateOAuthConnect({
   mcpServerId: "...",
   org: "...",
+  vaultId: "...",
 });
 ```
 </Tab>
@@ -827,6 +828,7 @@ const initiateOAuthConnectOutput = await stigmer.mcpServer.initiateOAuthConnect(
 initiateOAuthConnectOutput, err := client.McpServer.InitiateOAuthConnect(ctx, &stigmer.InitiateOAuthConnectInput{
   McpServerId: "...",
   Org:         "...",
+  VaultId:     "...",
 })
 ```
 </Tab>
@@ -835,6 +837,7 @@ initiateOAuthConnectOutput, err := client.McpServer.InitiateOAuthConnect(ctx, &s
 initiate_o_auth_connect_output = client.mcp_servers.initiate_o_auth_connect(InitiateOAuthConnectInput(
     mcp_server_id="...",
     org="...",
+    vault_id="...",
 ))
 ```
 </Tab>
@@ -843,6 +846,7 @@ initiate_o_auth_connect_output = client.mcp_servers.initiate_o_auth_connect(Init
 InitiateOAuthConnectOutput initiateOAuthConnectOutput = client.mcpServers().initiateOAuthConnect(InitiateOAuthConnectInput.builder()
     .mcpServerId("...")
     .org("...")
+    .vaultId("...")
     .build());
 ```
 </Tab>
@@ -1011,13 +1015,14 @@ HttpServerConfig defines an MCP server accessible via HTTP + Server-Sent Events.
 
 ### EnvVarDeclarationInput
 
-EnvVarDeclaration declares an environment variable required (or optionally accepted) by a blueprint resource (McpServer, Agent).
+EnvVarDeclaration declares an environment variable a blueprint (an agent or an MCP server) needs, or optionally accepts.
 
 <TypeTable
   type={{
-    isSecret: { type: "boolean", description: "Whether the resolved value should be treated as a secret." },
-    description: { type: "string", description: "Human-readable description shown in the UI credential form." },
+    isSecret: { type: "boolean", description: "Whether the value is a secret, found in a vault when a run starts." },
+    description: { type: "string", description: "Human-readable description shown where the value is asked for." },
     optional: { type: "boolean", description: "Whether this variable is optional." },
+    value: { type: "string", description: "The fixed value of a setting that is not a secret and is the same wherever the blueprint runs, such as a log level or a response format." },
   }}
 />
 
@@ -1028,10 +1033,10 @@ McpServerAuth configures automated credential acquisition via OAuth.
 <TypeTable
   type={{
     oauthAppRef: { type: "ResourceRef", description: "Reference to an OAuthApp for vendor-specific OAuth.", typeDescriptionLink: "#resourceref" },
-    targetEnvVar: { type: "string", description: "The env var where the acquired access token is stored." },
+    targetEnvVar: { type: "string", description: "The env var the signed-in access token fills." },
     tokenLifetimeHint: { type: "string", description: "Informational hint about expected token lifetime for UI display." },
     scopeHints: { type: "string[]", description: "Optional scope hints for UI display before the OAuth flow starts." },
-    discoveryUrl: { type: "string", description: "Optional URL for OAuth authorization server discovery on stdio servers." },
+    discoveryUrl: { type: "string", description: "URL of the login server for a stdio server: where DCR discovery looks, and the address its sign-ins are saved at." },
     oauthOnly: { type: "boolean", description: "Whether the server's endpoint rejects manually-entered static tokens." },
   }}
 />
@@ -1067,7 +1072,7 @@ ConnectInput is the request for the connect RPC.
 <TypeTable
   type={{
     mcpServerId: { type: "string", description: "System-generated ID of the MCP server to connect to.", required: true },
-    runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Optional environment variable values for one-time use." },
+    runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Optional environment variable values for one-time use, ahead of the caller's My vault." },
     org: { type: "string", description: "Organization context for credential resolution." },
   }}
 />
@@ -1080,6 +1085,7 @@ InitiateOAuthConnectInput starts the OAuth authorization flow for an MCP server 
   type={{
     mcpServerId: { type: "string", description: "System-generated ID of the MCP server to initiate OAuth for.", required: true },
     org: { type: "string", description: "Organization context for token storage." },
+    vaultId: { type: "string", description: "The shared vault, by id, the login is saved into." },
   }}
 />
 
@@ -1115,7 +1121,7 @@ CompleteOAuthConnectOutput confirms that tokens were successfully acquired and s
 <TypeTable
   type={{
     connected: { type: "boolean", description: "Whether the OAuth flow completed successfully and tokens are stored." },
-    targetEnvVar: { type: "string", description: "The environment variable name where the access token was stored." },
+    targetEnvVar: { type: "string", description: "The environment variable the saved login fills." },
     tokenLifetimeHint: { type: "string", description: "Informational hint about expected token lifetime." },
   }}
 />
@@ -1127,7 +1133,7 @@ DisconnectOAuthInput tears down a user's OAuth connection for a resource.
 <TypeTable
   type={{
     resourceId: { type: "string", description: "System-generated ID of the resource to disconnect OAuth for.", required: true },
-    org: { type: "string", description: "Organization context." },
+    org: { type: "string", description: "Organization context: the caller's My vault in this org is the one changed." },
   }}
 />
 
@@ -1137,7 +1143,7 @@ DisconnectOAuthOutput reports the result of a disconnect request.
 
 <TypeTable
   type={{
-    disconnected: { type: "boolean", description: "Whether an active grant was found and deleted." },
+    disconnected: { type: "boolean", description: "Whether a saved sign-in was found and removed." },
   }}
 />
 
@@ -1202,9 +1208,9 @@ GetOAuthGrantStatusOutput returns the current OAuth grant status.
 
 <TypeTable
   type={{
-    connected: { type: "boolean", description: "Whether the user has an active OAuth grant for this resource + org." },
+    connected: { type: "boolean", description: "Whether the user has a sign-in saved for this server in this org." },
     accessTokenExpiresAt: { type: "number", description: "When the access token expires (Unix timestamp seconds)." },
-    targetEnvVar: { type: "string", description: "The env var name where the access token is stored." },
+    targetEnvVar: { type: "string", description: "The env var the saved sign-in fills." },
     authMethod: { type: "string", description: "Which auth method was used (\"mcp_oauth\" or \"vendor_oauth\")." },
     connectionHealth: { type: "OAuthConnectionHealth", description: "Evaluated health of the OAuth connection.", typeDescriptionLink: "#oauthconnectionhealth" },
   }}
@@ -1331,14 +1337,14 @@ OAuthStatus holds system-derived OAuth enrichment state for an MCP server.
 
 ### OAuthConnectionHealth
 
-OAuthConnectionHealth evaluates the health of an OAuth connection by examining grant existence and token expiry metadata.
+OAuthConnectionHealth evaluates the health of an OAuth connection by examining whether a login is saved and its token expiry metadata.
 
 | Value | Description |
 |-------|-------------|
 | `OAUTH_CONNECTION_HEALTH_HEALTHY` | The access token exists and is not expired (or does not expire). |
 | `OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED` | The access token is expired and no refresh token is available. |
 | `OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED_REFRESHABLE` | The access token is expired but a refresh token is available. |
-| `OAUTH_CONNECTION_HEALTH_NO_GRANT` | No OAuth grant exists for this resource + org + user combination. |
+| `OAUTH_CONNECTION_HEALTH_NO_GRANT` | No sign-in made for this server that a run would use: the user has never signed in, has disconnected, or the saved login is not a sign-in this server can use. |
 
 ### ValidationState
 

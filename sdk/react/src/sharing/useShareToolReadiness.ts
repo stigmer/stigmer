@@ -5,7 +5,7 @@ import { useDeploymentMode } from "../deployment-mode.js";
 import {
   useToolCredentialsReadiness,
   type ToolCredentialsReadiness,
-} from "../environment/useToolCredentialsReadiness.js";
+} from "../vault/useToolCredentialsReadiness.js";
 import type { AgentShareDraft } from "./useSaveAgentShare.js";
 
 /**
@@ -19,8 +19,8 @@ export type ShareToolReadiness = ToolCredentialsReadiness;
 /**
  * Share-scoped wrapper over {@link useToolCredentialsReadiness}: checks
  * whether a tool-using shared agent's credentials will work for
- * visitors — i.e. whether the share binds environments
- * (`environment_refs`) and each one is shared with the organization.
+ * visitors — i.e. whether the share names vaults (`vaults`) and each
+ * one is a shared vault.
  *
  * The check runs only when the share is enabled with a public audience
  * (org-audience shares reject bindings at the proto boundary), the
@@ -39,5 +39,5 @@ export function useShareToolReadiness(
     deploymentMode === "cloud" &&
     hasMcpTools;
 
-  return useToolCredentialsReadiness(applicable, draft.environmentRefs);
+  return useToolCredentialsReadiness(applicable, draft.vaults);
 }

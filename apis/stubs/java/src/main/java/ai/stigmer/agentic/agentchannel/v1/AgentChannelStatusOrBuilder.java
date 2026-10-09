@@ -85,25 +85,67 @@ public interface AgentChannelStatusOrBuilder extends
 
   /**
    * <pre>
-   * ID of the system-managed Environment holding this connection's
-   * provider credentials (e.g. the Slack bot token).
+   * Who attached each of this resource's vaults, by vault id: the account
+   * whose permission to use the vault each run checks when it has no
+   * person.
    * </pre>
    *
-   * <code>string credentials_environment_id = 3 [json_name = "credentialsEnvironmentId"];</code>
-   * @return The credentialsEnvironmentId.
+   * <code>map&lt;string, string&gt; vault_attachers = 5 [json_name = "vaultAttachers"];</code>
    */
-  java.lang.String getCredentialsEnvironmentId();
+  int getVaultAttachersCount();
   /**
    * <pre>
-   * ID of the system-managed Environment holding this connection's
-   * provider credentials (e.g. the Slack bot token).
+   * Who attached each of this resource's vaults, by vault id: the account
+   * whose permission to use the vault each run checks when it has no
+   * person.
    * </pre>
    *
-   * <code>string credentials_environment_id = 3 [json_name = "credentialsEnvironmentId"];</code>
-   * @return The bytes for credentialsEnvironmentId.
+   * <code>map&lt;string, string&gt; vault_attachers = 5 [json_name = "vaultAttachers"];</code>
    */
-  com.google.protobuf.ByteString
-      getCredentialsEnvironmentIdBytes();
+  boolean containsVaultAttachers(
+      java.lang.String key);
+  /**
+   * Use {@link #getVaultAttachersMap()} instead.
+   */
+  @java.lang.Deprecated
+  java.util.Map<java.lang.String, java.lang.String>
+  getVaultAttachers();
+  /**
+   * <pre>
+   * Who attached each of this resource's vaults, by vault id: the account
+   * whose permission to use the vault each run checks when it has no
+   * person.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; vault_attachers = 5 [json_name = "vaultAttachers"];</code>
+   */
+  java.util.Map<java.lang.String, java.lang.String>
+  getVaultAttachersMap();
+  /**
+   * <pre>
+   * Who attached each of this resource's vaults, by vault id: the account
+   * whose permission to use the vault each run checks when it has no
+   * person.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; vault_attachers = 5 [json_name = "vaultAttachers"];</code>
+   */
+  /* nullable */
+java.lang.String getVaultAttachersOrDefault(
+      java.lang.String key,
+      /* nullable */
+java.lang.String defaultValue);
+  /**
+   * <pre>
+   * Who attached each of this resource's vaults, by vault id: the account
+   * whose permission to use the vault each run checks when it has no
+   * person.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; vault_attachers = 5 [json_name = "vaultAttachers"];</code>
+   */
+  java.lang.String getVaultAttachersOrThrow(
+      java.lang.String key);
 
   /**
    * <pre>

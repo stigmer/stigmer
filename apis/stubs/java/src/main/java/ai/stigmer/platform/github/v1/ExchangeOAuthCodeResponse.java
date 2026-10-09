@@ -7,7 +7,8 @@ package ai.stigmer.platform.github.v1;
 
 /**
  * <pre>
- * Result of exchanging a GitHub authorization code for an access token.
+ * Result of exchanging a GitHub authorization code: the account the saved
+ * login belongs to.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.platform.github.v1.ExchangeOAuthCodeResponse}
@@ -32,9 +33,9 @@ private static final long serialVersionUID = 0L;
     super(builder);
   }
   private ExchangeOAuthCodeResponse() {
-    accessToken_ = "";
     tokenType_ = "";
     scope_ = "";
+    login_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -53,53 +54,6 @@ private static final long serialVersionUID = 0L;
     return ai.stigmer.platform.github.v1.ServiceProto.internal_static_ai_stigmer_platform_github_v1_ExchangeOAuthCodeResponse_fieldAccessorTable
         .ensureFieldAccessorsInitialized(
             ai.stigmer.platform.github.v1.ExchangeOAuthCodeResponse.class, ai.stigmer.platform.github.v1.ExchangeOAuthCodeResponse.Builder.class);
-  }
-
-  public static final int ACCESS_TOKEN_FIELD_NUMBER = 1;
-  @SuppressWarnings("serial")
-  private volatile java.lang.Object accessToken_ = "";
-  /**
-   * <pre>
-   * GitHub access token for API calls.
-   * </pre>
-   *
-   * <code>string access_token = 1 [json_name = "accessToken"];</code>
-   * @return The accessToken.
-   */
-  @java.lang.Override
-  public java.lang.String getAccessToken() {
-    java.lang.Object ref = accessToken_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      accessToken_ = s;
-      return s;
-    }
-  }
-  /**
-   * <pre>
-   * GitHub access token for API calls.
-   * </pre>
-   *
-   * <code>string access_token = 1 [json_name = "accessToken"];</code>
-   * @return The bytes for accessToken.
-   */
-  @java.lang.Override
-  public com.google.protobuf.ByteString
-      getAccessTokenBytes() {
-    java.lang.Object ref = accessToken_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      accessToken_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
   }
 
   public static final int TOKEN_TYPE_FIELD_NUMBER = 2;
@@ -196,6 +150,53 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int LOGIN_FIELD_NUMBER = 4;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object login_ = "";
+  /**
+   * <pre>
+   * The connected GitHub account's login.
+   * </pre>
+   *
+   * <code>string login = 4 [json_name = "login"];</code>
+   * @return The login.
+   */
+  @java.lang.Override
+  public java.lang.String getLogin() {
+    java.lang.Object ref = login_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      login_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * The connected GitHub account's login.
+   * </pre>
+   *
+   * <code>string login = 4 [json_name = "login"];</code>
+   * @return The bytes for login.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getLoginBytes() {
+    java.lang.Object ref = login_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      login_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -210,14 +211,14 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(accessToken_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 1, accessToken_);
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(tokenType_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 2, tokenType_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(scope_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 3, scope_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(login_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 4, login_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -228,14 +229,14 @@ private static final long serialVersionUID = 0L;
     if (size != -1) return size;
 
     size = 0;
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(accessToken_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(1, accessToken_);
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(tokenType_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(2, tokenType_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(scope_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(3, scope_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(login_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(4, login_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -252,12 +253,12 @@ private static final long serialVersionUID = 0L;
     }
     ai.stigmer.platform.github.v1.ExchangeOAuthCodeResponse other = (ai.stigmer.platform.github.v1.ExchangeOAuthCodeResponse) obj;
 
-    if (!getAccessToken()
-        .equals(other.getAccessToken())) return false;
     if (!getTokenType()
         .equals(other.getTokenType())) return false;
     if (!getScope()
         .equals(other.getScope())) return false;
+    if (!getLogin()
+        .equals(other.getLogin())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -269,12 +270,12 @@ private static final long serialVersionUID = 0L;
     }
     int hash = 41;
     hash = (19 * hash) + getDescriptor().hashCode();
-    hash = (37 * hash) + ACCESS_TOKEN_FIELD_NUMBER;
-    hash = (53 * hash) + getAccessToken().hashCode();
     hash = (37 * hash) + TOKEN_TYPE_FIELD_NUMBER;
     hash = (53 * hash) + getTokenType().hashCode();
     hash = (37 * hash) + SCOPE_FIELD_NUMBER;
     hash = (53 * hash) + getScope().hashCode();
+    hash = (37 * hash) + LOGIN_FIELD_NUMBER;
+    hash = (53 * hash) + getLogin().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -374,7 +375,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Result of exchanging a GitHub authorization code for an access token.
+   * Result of exchanging a GitHub authorization code: the account the saved
+   * login belongs to.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.platform.github.v1.ExchangeOAuthCodeResponse}
@@ -410,9 +412,9 @@ private static final long serialVersionUID = 0L;
     public Builder clear() {
       super.clear();
       bitField0_ = 0;
-      accessToken_ = "";
       tokenType_ = "";
       scope_ = "";
+      login_ = "";
       return this;
     }
 
@@ -447,13 +449,13 @@ private static final long serialVersionUID = 0L;
     private void buildPartial0(ai.stigmer.platform.github.v1.ExchangeOAuthCodeResponse result) {
       int from_bitField0_ = bitField0_;
       if (((from_bitField0_ & 0x00000001) != 0)) {
-        result.accessToken_ = accessToken_;
-      }
-      if (((from_bitField0_ & 0x00000002) != 0)) {
         result.tokenType_ = tokenType_;
       }
-      if (((from_bitField0_ & 0x00000004) != 0)) {
+      if (((from_bitField0_ & 0x00000002) != 0)) {
         result.scope_ = scope_;
+      }
+      if (((from_bitField0_ & 0x00000004) != 0)) {
+        result.login_ = login_;
       }
     }
 
@@ -469,18 +471,18 @@ private static final long serialVersionUID = 0L;
 
     public Builder mergeFrom(ai.stigmer.platform.github.v1.ExchangeOAuthCodeResponse other) {
       if (other == ai.stigmer.platform.github.v1.ExchangeOAuthCodeResponse.getDefaultInstance()) return this;
-      if (!other.getAccessToken().isEmpty()) {
-        accessToken_ = other.accessToken_;
-        bitField0_ |= 0x00000001;
-        onChanged();
-      }
       if (!other.getTokenType().isEmpty()) {
         tokenType_ = other.tokenType_;
-        bitField0_ |= 0x00000002;
+        bitField0_ |= 0x00000001;
         onChanged();
       }
       if (!other.getScope().isEmpty()) {
         scope_ = other.scope_;
+        bitField0_ |= 0x00000002;
+        onChanged();
+      }
+      if (!other.getLogin().isEmpty()) {
+        login_ = other.login_;
         bitField0_ |= 0x00000004;
         onChanged();
       }
@@ -510,21 +512,21 @@ private static final long serialVersionUID = 0L;
             case 0:
               done = true;
               break;
-            case 10: {
-              accessToken_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000001;
-              break;
-            } // case 10
             case 18: {
               tokenType_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000002;
+              bitField0_ |= 0x00000001;
               break;
             } // case 18
             case 26: {
               scope_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000004;
+              bitField0_ |= 0x00000002;
               break;
             } // case 26
+            case 34: {
+              login_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000004;
+              break;
+            } // case 34
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -541,98 +543,6 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     private int bitField0_;
-
-    private java.lang.Object accessToken_ = "";
-    /**
-     * <pre>
-     * GitHub access token for API calls.
-     * </pre>
-     *
-     * <code>string access_token = 1 [json_name = "accessToken"];</code>
-     * @return The accessToken.
-     */
-    public java.lang.String getAccessToken() {
-      java.lang.Object ref = accessToken_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        accessToken_ = s;
-        return s;
-      } else {
-        return (java.lang.String) ref;
-      }
-    }
-    /**
-     * <pre>
-     * GitHub access token for API calls.
-     * </pre>
-     *
-     * <code>string access_token = 1 [json_name = "accessToken"];</code>
-     * @return The bytes for accessToken.
-     */
-    public com.google.protobuf.ByteString
-        getAccessTokenBytes() {
-      java.lang.Object ref = accessToken_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        accessToken_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-    /**
-     * <pre>
-     * GitHub access token for API calls.
-     * </pre>
-     *
-     * <code>string access_token = 1 [json_name = "accessToken"];</code>
-     * @param value The accessToken to set.
-     * @return This builder for chaining.
-     */
-    public Builder setAccessToken(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      accessToken_ = value;
-      bitField0_ |= 0x00000001;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * GitHub access token for API calls.
-     * </pre>
-     *
-     * <code>string access_token = 1 [json_name = "accessToken"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearAccessToken() {
-      accessToken_ = getDefaultInstance().getAccessToken();
-      bitField0_ = (bitField0_ & ~0x00000001);
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * GitHub access token for API calls.
-     * </pre>
-     *
-     * <code>string access_token = 1 [json_name = "accessToken"];</code>
-     * @param value The bytes for accessToken to set.
-     * @return This builder for chaining.
-     */
-    public Builder setAccessTokenBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      accessToken_ = value;
-      bitField0_ |= 0x00000001;
-      onChanged();
-      return this;
-    }
 
     private java.lang.Object tokenType_ = "";
     /**
@@ -689,7 +599,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       tokenType_ = value;
-      bitField0_ |= 0x00000002;
+      bitField0_ |= 0x00000001;
       onChanged();
       return this;
     }
@@ -703,7 +613,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearTokenType() {
       tokenType_ = getDefaultInstance().getTokenType();
-      bitField0_ = (bitField0_ & ~0x00000002);
+      bitField0_ = (bitField0_ & ~0x00000001);
       onChanged();
       return this;
     }
@@ -721,7 +631,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       tokenType_ = value;
-      bitField0_ |= 0x00000002;
+      bitField0_ |= 0x00000001;
       onChanged();
       return this;
     }
@@ -781,7 +691,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       scope_ = value;
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000002;
       onChanged();
       return this;
     }
@@ -795,7 +705,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearScope() {
       scope_ = getDefaultInstance().getScope();
-      bitField0_ = (bitField0_ & ~0x00000004);
+      bitField0_ = (bitField0_ & ~0x00000002);
       onChanged();
       return this;
     }
@@ -813,6 +723,98 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       scope_ = value;
+      bitField0_ |= 0x00000002;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object login_ = "";
+    /**
+     * <pre>
+     * The connected GitHub account's login.
+     * </pre>
+     *
+     * <code>string login = 4 [json_name = "login"];</code>
+     * @return The login.
+     */
+    public java.lang.String getLogin() {
+      java.lang.Object ref = login_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        login_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The connected GitHub account's login.
+     * </pre>
+     *
+     * <code>string login = 4 [json_name = "login"];</code>
+     * @return The bytes for login.
+     */
+    public com.google.protobuf.ByteString
+        getLoginBytes() {
+      java.lang.Object ref = login_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        login_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The connected GitHub account's login.
+     * </pre>
+     *
+     * <code>string login = 4 [json_name = "login"];</code>
+     * @param value The login to set.
+     * @return This builder for chaining.
+     */
+    public Builder setLogin(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      login_ = value;
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The connected GitHub account's login.
+     * </pre>
+     *
+     * <code>string login = 4 [json_name = "login"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearLogin() {
+      login_ = getDefaultInstance().getLogin();
+      bitField0_ = (bitField0_ & ~0x00000004);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The connected GitHub account's login.
+     * </pre>
+     *
+     * <code>string login = 4 [json_name = "login"];</code>
+     * @param value The bytes for login to set.
+     * @return This builder for chaining.
+     */
+    public Builder setLoginBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      login_ = value;
       bitField0_ |= 0x00000004;
       onChanged();
       return this;

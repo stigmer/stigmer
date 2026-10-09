@@ -154,7 +154,7 @@ describe("policyIdFor — the derived policy id", () => {
         id: "acme",
       }),
       spec({ kind: "identity_account", id: ALICE }, "admin", {
-        kind: "environment",
+        kind: "vault",
         id: "acme",
       }),
       spec({ kind: "identity_account", id: ALICE }, "admin", {
@@ -290,12 +290,11 @@ describe("the contract's identity strings", () => {
 });
 
 describe("BLUEPRINT_KINDS — the legacy-creator rule's scan", () => {
-  it("is exactly the five kinds an admin authors, in registry order", () => {
+  it("is exactly the four kinds an admin authors, in registry order", () => {
     expect([...BLUEPRINT_KINDS]).toEqual([
       ApiResourceKind.agent,
       ApiResourceKind.skill,
       ApiResourceKind.mcp_server,
-      ApiResourceKind.environment,
       ApiResourceKind.schedule,
     ]);
   });
@@ -306,6 +305,9 @@ describe("BLUEPRINT_KINDS — the legacy-creator rule's scan", () => {
       ApiResourceKind.run,
       ApiResourceKind.api_key,
       ApiResourceKind.memory,
+      // A vault never makes its creator an admin: My vault is a person's
+      // own, and a shared vault is created by an admin already.
+      ApiResourceKind.vault,
     ]) {
       expect(BLUEPRINT_KINDS).not.toContain(personal);
     }

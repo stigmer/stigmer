@@ -3,6 +3,7 @@ import { render, screen, cleanup, fireEvent, act } from "@testing-library/react"
 import type { ReactNode } from "react";
 import type { Stigmer } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
+import { noMyVaultClient } from "../../__tests__/helpers/no-my-vault";
 import { ModelRegistryContext } from "../../models/ModelRegistryContext";
 import type { ModelRegistryState } from "../../models/ModelRegistryContext";
 import { parseRegistryDocument } from "../../models/registry";
@@ -56,7 +57,7 @@ function createUploadMockClient(): Stigmer {
     run: {
       uploadAttachment: vi.fn().mockResolvedValue({ storageKey: "attachments/test/file" }),
     },
-    environment: { getPersonal: vi.fn().mockResolvedValue(null) },
+    vault: noMyVaultClient(),
     baseUrl: "http://localhost:8080",
     getAuthCredential: vi.fn().mockResolvedValue("test-token"),
     config: {

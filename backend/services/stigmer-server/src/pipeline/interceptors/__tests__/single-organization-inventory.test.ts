@@ -34,9 +34,9 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = path.resolve(HERE, "../../../..");
 const INVENTORY_DOC = path.join(PACKAGE_ROOT, "docs/single-organization.md");
 
-/** A method row: `| Service.method | <fill> |`, where the fill is `org`, `metadata.org` or `not filled: <reason>`. */
+/** A method row: `| Service.method | <fill> |`, where the fill is `org`, `vault.org`, `metadata.org` or `not filled: <reason>`. */
 const METHOD_ROW =
-  /^\| ([A-Za-z]+)\.([A-Za-z]+) \| (org|metadata\.org|not filled: [a-z ]+) \|$/;
+  /^\| ([A-Za-z]+)\.([A-Za-z]+) \| (org|vault\.org|metadata\.org|not filled: [a-z ]+) \|$/;
 
 function rowsOf(doc: string): string[] {
   const rows: string[] = [];

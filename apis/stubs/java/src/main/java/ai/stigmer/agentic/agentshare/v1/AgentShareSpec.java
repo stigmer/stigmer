@@ -39,7 +39,7 @@ private static final long serialVersionUID = 0L;
     audience_ = 0;
     allowedOrigins_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
-    environmentRefs_ = java.util.Collections.emptyList();
+    vaults_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -299,100 +299,100 @@ private static final long serialVersionUID = 0L;
     return messages_ == null ? ai.stigmer.agentic.agentshare.v1.AgentShareMessages.getDefaultInstance() : messages_;
   }
 
-  public static final int ENVIRONMENT_REFS_FIELD_NUMBER = 6;
+  public static final int VAULTS_FIELD_NUMBER = 8;
   @SuppressWarnings("serial")
-  private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> environmentRefs_;
+  private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> vaults_;
   /**
    * <pre>
-   * References to Environment resources whose values are provided to guest
-   * conversations on this share.
+   * Vaults whose logins and secrets guest conversations on this share use, in
+   * order: the first vault holding a match wins. Valid on public-audience
+   * shares only. At most 20.
    *
-   * This is how a tool-using agent becomes chattable over a share link:
-   * bind an org-shared environment holding the needed credentials (for
-   * example a read-only API token), and guest runs receive its
-   * values at runtime. The agent itself stays untouched.
-   * Valid on public-audience shares only.
+   * This is how a tool-using agent becomes chattable over a share link: attach
+   * a shared vault holding the needed keys (for example a read-only API
+   * token). A guest's runs use only these vaults; a visitor brings none of
+   * their own. A My vault cannot be attached.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 8 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
    */
   @java.lang.Override
-  public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> getEnvironmentRefsList() {
-    return environmentRefs_;
+  public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> getVaultsList() {
+    return vaults_;
   }
   /**
    * <pre>
-   * References to Environment resources whose values are provided to guest
-   * conversations on this share.
+   * Vaults whose logins and secrets guest conversations on this share use, in
+   * order: the first vault holding a match wins. Valid on public-audience
+   * shares only. At most 20.
    *
-   * This is how a tool-using agent becomes chattable over a share link:
-   * bind an org-shared environment holding the needed credentials (for
-   * example a read-only API token), and guest runs receive its
-   * values at runtime. The agent itself stays untouched.
-   * Valid on public-audience shares only.
+   * This is how a tool-using agent becomes chattable over a share link: attach
+   * a shared vault holding the needed keys (for example a read-only API
+   * token). A guest's runs use only these vaults; a visitor brings none of
+   * their own. A My vault cannot be attached.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 8 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
    */
   @java.lang.Override
   public java.util.List<? extends ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
-      getEnvironmentRefsOrBuilderList() {
-    return environmentRefs_;
+      getVaultsOrBuilderList() {
+    return vaults_;
   }
   /**
    * <pre>
-   * References to Environment resources whose values are provided to guest
-   * conversations on this share.
+   * Vaults whose logins and secrets guest conversations on this share use, in
+   * order: the first vault holding a match wins. Valid on public-audience
+   * shares only. At most 20.
    *
-   * This is how a tool-using agent becomes chattable over a share link:
-   * bind an org-shared environment holding the needed credentials (for
-   * example a read-only API token), and guest runs receive its
-   * values at runtime. The agent itself stays untouched.
-   * Valid on public-audience shares only.
+   * This is how a tool-using agent becomes chattable over a share link: attach
+   * a shared vault holding the needed keys (for example a read-only API
+   * token). A guest's runs use only these vaults; a visitor brings none of
+   * their own. A My vault cannot be attached.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 8 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
    */
   @java.lang.Override
-  public int getEnvironmentRefsCount() {
-    return environmentRefs_.size();
+  public int getVaultsCount() {
+    return vaults_.size();
   }
   /**
    * <pre>
-   * References to Environment resources whose values are provided to guest
-   * conversations on this share.
+   * Vaults whose logins and secrets guest conversations on this share use, in
+   * order: the first vault holding a match wins. Valid on public-audience
+   * shares only. At most 20.
    *
-   * This is how a tool-using agent becomes chattable over a share link:
-   * bind an org-shared environment holding the needed credentials (for
-   * example a read-only API token), and guest runs receive its
-   * values at runtime. The agent itself stays untouched.
-   * Valid on public-audience shares only.
+   * This is how a tool-using agent becomes chattable over a share link: attach
+   * a shared vault holding the needed keys (for example a read-only API
+   * token). A guest's runs use only these vaults; a visitor brings none of
+   * their own. A My vault cannot be attached.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 8 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
    */
   @java.lang.Override
-  public ai.stigmer.commons.apiresource.ApiResourceReference getEnvironmentRefs(int index) {
-    return environmentRefs_.get(index);
+  public ai.stigmer.commons.apiresource.ApiResourceReference getVaults(int index) {
+    return vaults_.get(index);
   }
   /**
    * <pre>
-   * References to Environment resources whose values are provided to guest
-   * conversations on this share.
+   * Vaults whose logins and secrets guest conversations on this share use, in
+   * order: the first vault holding a match wins. Valid on public-audience
+   * shares only. At most 20.
    *
-   * This is how a tool-using agent becomes chattable over a share link:
-   * bind an org-shared environment holding the needed credentials (for
-   * example a read-only API token), and guest runs receive its
-   * values at runtime. The agent itself stays untouched.
-   * Valid on public-audience shares only.
+   * This is how a tool-using agent becomes chattable over a share link: attach
+   * a shared vault holding the needed keys (for example a read-only API
+   * token). A guest's runs use only these vaults; a visitor brings none of
+   * their own. A My vault cannot be attached.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 8 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
    */
   @java.lang.Override
-  public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getEnvironmentRefsOrBuilder(
+  public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getVaultsOrBuilder(
       int index) {
-    return environmentRefs_.get(index);
+    return vaults_.get(index);
   }
 
   public static final int RUN_CONFIG_FIELD_NUMBER = 7;
@@ -486,11 +486,11 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000002) != 0)) {
       output.writeMessage(5, getMessages());
     }
-    for (int i = 0; i < environmentRefs_.size(); i++) {
-      output.writeMessage(6, environmentRefs_.get(i));
-    }
     if (((bitField0_ & 0x00000004) != 0)) {
       output.writeMessage(7, getRunConfig());
+    }
+    for (int i = 0; i < vaults_.size(); i++) {
+      output.writeMessage(8, vaults_.get(i));
     }
     getUnknownFields().writeTo(output);
   }
@@ -525,19 +525,19 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(5, getMessages());
     }
-
-        {
-          final int count = environmentRefs_.size();
-          for (int i = 0; i < count; i++) {
-            size += com.google.protobuf.CodedOutputStream
-              .computeMessageSizeNoTag(environmentRefs_.get(i));
-          }
-          size += 1 * count;
-        }
     if (((bitField0_ & 0x00000004) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(7, getRunConfig());
     }
+
+        {
+          final int count = vaults_.size();
+          for (int i = 0; i < count; i++) {
+            size += com.google.protobuf.CodedOutputStream
+              .computeMessageSizeNoTag(vaults_.get(i));
+          }
+          size += 1 * count;
+        }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -568,8 +568,8 @@ private static final long serialVersionUID = 0L;
       if (!getMessages()
           .equals(other.getMessages())) return false;
     }
-    if (!getEnvironmentRefsList()
-        .equals(other.getEnvironmentRefsList())) return false;
+    if (!getVaultsList()
+        .equals(other.getVaultsList())) return false;
     if (hasRunConfig() != other.hasRunConfig()) return false;
     if (hasRunConfig()) {
       if (!getRunConfig()
@@ -603,9 +603,9 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + MESSAGES_FIELD_NUMBER;
       hash = (53 * hash) + getMessages().hashCode();
     }
-    if (getEnvironmentRefsCount() > 0) {
-      hash = (37 * hash) + ENVIRONMENT_REFS_FIELD_NUMBER;
-      hash = (53 * hash) + getEnvironmentRefsList().hashCode();
+    if (getVaultsCount() > 0) {
+      hash = (37 * hash) + VAULTS_FIELD_NUMBER;
+      hash = (53 * hash) + getVaultsList().hashCode();
     }
     if (hasRunConfig()) {
       hash = (37 * hash) + RUN_CONFIG_FIELD_NUMBER;
@@ -751,7 +751,7 @@ private static final long serialVersionUID = 0L;
               .alwaysUseFieldBuilders) {
         internalGetAgentRefFieldBuilder();
         internalGetMessagesFieldBuilder();
-        internalGetEnvironmentRefsFieldBuilder();
+        internalGetVaultsFieldBuilder();
         internalGetRunConfigFieldBuilder();
       }
     }
@@ -773,11 +773,11 @@ private static final long serialVersionUID = 0L;
         messagesBuilder_.dispose();
         messagesBuilder_ = null;
       }
-      if (environmentRefsBuilder_ == null) {
-        environmentRefs_ = java.util.Collections.emptyList();
+      if (vaultsBuilder_ == null) {
+        vaults_ = java.util.Collections.emptyList();
       } else {
-        environmentRefs_ = null;
-        environmentRefsBuilder_.clear();
+        vaults_ = null;
+        vaultsBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000020);
       runConfig_ = null;
@@ -818,14 +818,14 @@ private static final long serialVersionUID = 0L;
     }
 
     private void buildPartialRepeatedFields(ai.stigmer.agentic.agentshare.v1.AgentShareSpec result) {
-      if (environmentRefsBuilder_ == null) {
+      if (vaultsBuilder_ == null) {
         if (((bitField0_ & 0x00000020) != 0)) {
-          environmentRefs_ = java.util.Collections.unmodifiableList(environmentRefs_);
+          vaults_ = java.util.Collections.unmodifiableList(vaults_);
           bitField0_ = (bitField0_ & ~0x00000020);
         }
-        result.environmentRefs_ = environmentRefs_;
+        result.vaults_ = vaults_;
       } else {
-        result.environmentRefs_ = environmentRefsBuilder_.build();
+        result.vaults_ = vaultsBuilder_.build();
       }
     }
 
@@ -897,29 +897,29 @@ private static final long serialVersionUID = 0L;
       if (other.hasMessages()) {
         mergeMessages(other.getMessages());
       }
-      if (environmentRefsBuilder_ == null) {
-        if (!other.environmentRefs_.isEmpty()) {
-          if (environmentRefs_.isEmpty()) {
-            environmentRefs_ = other.environmentRefs_;
+      if (vaultsBuilder_ == null) {
+        if (!other.vaults_.isEmpty()) {
+          if (vaults_.isEmpty()) {
+            vaults_ = other.vaults_;
             bitField0_ = (bitField0_ & ~0x00000020);
           } else {
-            ensureEnvironmentRefsIsMutable();
-            environmentRefs_.addAll(other.environmentRefs_);
+            ensureVaultsIsMutable();
+            vaults_.addAll(other.vaults_);
           }
           onChanged();
         }
       } else {
-        if (!other.environmentRefs_.isEmpty()) {
-          if (environmentRefsBuilder_.isEmpty()) {
-            environmentRefsBuilder_.dispose();
-            environmentRefsBuilder_ = null;
-            environmentRefs_ = other.environmentRefs_;
+        if (!other.vaults_.isEmpty()) {
+          if (vaultsBuilder_.isEmpty()) {
+            vaultsBuilder_.dispose();
+            vaultsBuilder_ = null;
+            vaults_ = other.vaults_;
             bitField0_ = (bitField0_ & ~0x00000020);
-            environmentRefsBuilder_ = 
+            vaultsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
-                 internalGetEnvironmentRefsFieldBuilder() : null;
+                 internalGetVaultsFieldBuilder() : null;
           } else {
-            environmentRefsBuilder_.addAllMessages(other.environmentRefs_);
+            vaultsBuilder_.addAllMessages(other.vaults_);
           }
         }
       }
@@ -981,19 +981,6 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000010;
               break;
             } // case 42
-            case 50: {
-              ai.stigmer.commons.apiresource.ApiResourceReference m =
-                  input.readMessage(
-                      ai.stigmer.commons.apiresource.ApiResourceReference.parser(),
-                      extensionRegistry);
-              if (environmentRefsBuilder_ == null) {
-                ensureEnvironmentRefsIsMutable();
-                environmentRefs_.add(m);
-              } else {
-                environmentRefsBuilder_.addMessage(m);
-              }
-              break;
-            } // case 50
             case 58: {
               input.readMessage(
                   internalGetRunConfigFieldBuilder().getBuilder(),
@@ -1001,6 +988,19 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000040;
               break;
             } // case 58
+            case 66: {
+              ai.stigmer.commons.apiresource.ApiResourceReference m =
+                  input.readMessage(
+                      ai.stigmer.commons.apiresource.ApiResourceReference.parser(),
+                      extensionRegistry);
+              if (vaultsBuilder_ == null) {
+                ensureVaultsIsMutable();
+                vaults_.add(m);
+              } else {
+                vaultsBuilder_.addMessage(m);
+              }
+              break;
+            } // case 66
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1779,442 +1779,442 @@ private static final long serialVersionUID = 0L;
       return messagesBuilder_;
     }
 
-    private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> environmentRefs_ =
+    private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> vaults_ =
       java.util.Collections.emptyList();
-    private void ensureEnvironmentRefsIsMutable() {
+    private void ensureVaultsIsMutable() {
       if (!((bitField0_ & 0x00000020) != 0)) {
-        environmentRefs_ = new java.util.ArrayList<ai.stigmer.commons.apiresource.ApiResourceReference>(environmentRefs_);
+        vaults_ = new java.util.ArrayList<ai.stigmer.commons.apiresource.ApiResourceReference>(vaults_);
         bitField0_ |= 0x00000020;
        }
     }
 
     private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> environmentRefsBuilder_;
+        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> vaultsBuilder_;
 
     /**
      * <pre>
-     * References to Environment resources whose values are provided to guest
-     * conversations on this share.
+     * Vaults whose logins and secrets guest conversations on this share use, in
+     * order: the first vault holding a match wins. Valid on public-audience
+     * shares only. At most 20.
      *
-     * This is how a tool-using agent becomes chattable over a share link:
-     * bind an org-shared environment holding the needed credentials (for
-     * example a read-only API token), and guest runs receive its
-     * values at runtime. The agent itself stays untouched.
-     * Valid on public-audience shares only.
+     * This is how a tool-using agent becomes chattable over a share link: attach
+     * a shared vault holding the needed keys (for example a read-only API
+     * token). A guest's runs use only these vaults; a visitor brings none of
+     * their own. A My vault cannot be attached.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 8 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
      */
-    public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> getEnvironmentRefsList() {
-      if (environmentRefsBuilder_ == null) {
-        return java.util.Collections.unmodifiableList(environmentRefs_);
+    public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> getVaultsList() {
+      if (vaultsBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(vaults_);
       } else {
-        return environmentRefsBuilder_.getMessageList();
+        return vaultsBuilder_.getMessageList();
       }
     }
     /**
      * <pre>
-     * References to Environment resources whose values are provided to guest
-     * conversations on this share.
+     * Vaults whose logins and secrets guest conversations on this share use, in
+     * order: the first vault holding a match wins. Valid on public-audience
+     * shares only. At most 20.
      *
-     * This is how a tool-using agent becomes chattable over a share link:
-     * bind an org-shared environment holding the needed credentials (for
-     * example a read-only API token), and guest runs receive its
-     * values at runtime. The agent itself stays untouched.
-     * Valid on public-audience shares only.
+     * This is how a tool-using agent becomes chattable over a share link: attach
+     * a shared vault holding the needed keys (for example a read-only API
+     * token). A guest's runs use only these vaults; a visitor brings none of
+     * their own. A My vault cannot be attached.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 8 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
      */
-    public int getEnvironmentRefsCount() {
-      if (environmentRefsBuilder_ == null) {
-        return environmentRefs_.size();
+    public int getVaultsCount() {
+      if (vaultsBuilder_ == null) {
+        return vaults_.size();
       } else {
-        return environmentRefsBuilder_.getCount();
+        return vaultsBuilder_.getCount();
       }
     }
     /**
      * <pre>
-     * References to Environment resources whose values are provided to guest
-     * conversations on this share.
+     * Vaults whose logins and secrets guest conversations on this share use, in
+     * order: the first vault holding a match wins. Valid on public-audience
+     * shares only. At most 20.
      *
-     * This is how a tool-using agent becomes chattable over a share link:
-     * bind an org-shared environment holding the needed credentials (for
-     * example a read-only API token), and guest runs receive its
-     * values at runtime. The agent itself stays untouched.
-     * Valid on public-audience shares only.
+     * This is how a tool-using agent becomes chattable over a share link: attach
+     * a shared vault holding the needed keys (for example a read-only API
+     * token). A guest's runs use only these vaults; a visitor brings none of
+     * their own. A My vault cannot be attached.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 8 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
      */
-    public ai.stigmer.commons.apiresource.ApiResourceReference getEnvironmentRefs(int index) {
-      if (environmentRefsBuilder_ == null) {
-        return environmentRefs_.get(index);
+    public ai.stigmer.commons.apiresource.ApiResourceReference getVaults(int index) {
+      if (vaultsBuilder_ == null) {
+        return vaults_.get(index);
       } else {
-        return environmentRefsBuilder_.getMessage(index);
+        return vaultsBuilder_.getMessage(index);
       }
     }
     /**
      * <pre>
-     * References to Environment resources whose values are provided to guest
-     * conversations on this share.
+     * Vaults whose logins and secrets guest conversations on this share use, in
+     * order: the first vault holding a match wins. Valid on public-audience
+     * shares only. At most 20.
      *
-     * This is how a tool-using agent becomes chattable over a share link:
-     * bind an org-shared environment holding the needed credentials (for
-     * example a read-only API token), and guest runs receive its
-     * values at runtime. The agent itself stays untouched.
-     * Valid on public-audience shares only.
+     * This is how a tool-using agent becomes chattable over a share link: attach
+     * a shared vault holding the needed keys (for example a read-only API
+     * token). A guest's runs use only these vaults; a visitor brings none of
+     * their own. A My vault cannot be attached.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 8 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
      */
-    public Builder setEnvironmentRefs(
+    public Builder setVaults(
         int index, ai.stigmer.commons.apiresource.ApiResourceReference value) {
-      if (environmentRefsBuilder_ == null) {
+      if (vaultsBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureEnvironmentRefsIsMutable();
-        environmentRefs_.set(index, value);
+        ensureVaultsIsMutable();
+        vaults_.set(index, value);
         onChanged();
       } else {
-        environmentRefsBuilder_.setMessage(index, value);
+        vaultsBuilder_.setMessage(index, value);
       }
       return this;
     }
     /**
      * <pre>
-     * References to Environment resources whose values are provided to guest
-     * conversations on this share.
+     * Vaults whose logins and secrets guest conversations on this share use, in
+     * order: the first vault holding a match wins. Valid on public-audience
+     * shares only. At most 20.
      *
-     * This is how a tool-using agent becomes chattable over a share link:
-     * bind an org-shared environment holding the needed credentials (for
-     * example a read-only API token), and guest runs receive its
-     * values at runtime. The agent itself stays untouched.
-     * Valid on public-audience shares only.
+     * This is how a tool-using agent becomes chattable over a share link: attach
+     * a shared vault holding the needed keys (for example a read-only API
+     * token). A guest's runs use only these vaults; a visitor brings none of
+     * their own. A My vault cannot be attached.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 8 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
      */
-    public Builder setEnvironmentRefs(
+    public Builder setVaults(
         int index, ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
-      if (environmentRefsBuilder_ == null) {
-        ensureEnvironmentRefsIsMutable();
-        environmentRefs_.set(index, builderForValue.build());
+      if (vaultsBuilder_ == null) {
+        ensureVaultsIsMutable();
+        vaults_.set(index, builderForValue.build());
         onChanged();
       } else {
-        environmentRefsBuilder_.setMessage(index, builderForValue.build());
+        vaultsBuilder_.setMessage(index, builderForValue.build());
       }
       return this;
     }
     /**
      * <pre>
-     * References to Environment resources whose values are provided to guest
-     * conversations on this share.
+     * Vaults whose logins and secrets guest conversations on this share use, in
+     * order: the first vault holding a match wins. Valid on public-audience
+     * shares only. At most 20.
      *
-     * This is how a tool-using agent becomes chattable over a share link:
-     * bind an org-shared environment holding the needed credentials (for
-     * example a read-only API token), and guest runs receive its
-     * values at runtime. The agent itself stays untouched.
-     * Valid on public-audience shares only.
+     * This is how a tool-using agent becomes chattable over a share link: attach
+     * a shared vault holding the needed keys (for example a read-only API
+     * token). A guest's runs use only these vaults; a visitor brings none of
+     * their own. A My vault cannot be attached.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 8 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
      */
-    public Builder addEnvironmentRefs(ai.stigmer.commons.apiresource.ApiResourceReference value) {
-      if (environmentRefsBuilder_ == null) {
+    public Builder addVaults(ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (vaultsBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureEnvironmentRefsIsMutable();
-        environmentRefs_.add(value);
+        ensureVaultsIsMutable();
+        vaults_.add(value);
         onChanged();
       } else {
-        environmentRefsBuilder_.addMessage(value);
+        vaultsBuilder_.addMessage(value);
       }
       return this;
     }
     /**
      * <pre>
-     * References to Environment resources whose values are provided to guest
-     * conversations on this share.
+     * Vaults whose logins and secrets guest conversations on this share use, in
+     * order: the first vault holding a match wins. Valid on public-audience
+     * shares only. At most 20.
      *
-     * This is how a tool-using agent becomes chattable over a share link:
-     * bind an org-shared environment holding the needed credentials (for
-     * example a read-only API token), and guest runs receive its
-     * values at runtime. The agent itself stays untouched.
-     * Valid on public-audience shares only.
+     * This is how a tool-using agent becomes chattable over a share link: attach
+     * a shared vault holding the needed keys (for example a read-only API
+     * token). A guest's runs use only these vaults; a visitor brings none of
+     * their own. A My vault cannot be attached.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 8 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
      */
-    public Builder addEnvironmentRefs(
+    public Builder addVaults(
         int index, ai.stigmer.commons.apiresource.ApiResourceReference value) {
-      if (environmentRefsBuilder_ == null) {
+      if (vaultsBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureEnvironmentRefsIsMutable();
-        environmentRefs_.add(index, value);
+        ensureVaultsIsMutable();
+        vaults_.add(index, value);
         onChanged();
       } else {
-        environmentRefsBuilder_.addMessage(index, value);
+        vaultsBuilder_.addMessage(index, value);
       }
       return this;
     }
     /**
      * <pre>
-     * References to Environment resources whose values are provided to guest
-     * conversations on this share.
+     * Vaults whose logins and secrets guest conversations on this share use, in
+     * order: the first vault holding a match wins. Valid on public-audience
+     * shares only. At most 20.
      *
-     * This is how a tool-using agent becomes chattable over a share link:
-     * bind an org-shared environment holding the needed credentials (for
-     * example a read-only API token), and guest runs receive its
-     * values at runtime. The agent itself stays untouched.
-     * Valid on public-audience shares only.
+     * This is how a tool-using agent becomes chattable over a share link: attach
+     * a shared vault holding the needed keys (for example a read-only API
+     * token). A guest's runs use only these vaults; a visitor brings none of
+     * their own. A My vault cannot be attached.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 8 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
      */
-    public Builder addEnvironmentRefs(
+    public Builder addVaults(
         ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
-      if (environmentRefsBuilder_ == null) {
-        ensureEnvironmentRefsIsMutable();
-        environmentRefs_.add(builderForValue.build());
+      if (vaultsBuilder_ == null) {
+        ensureVaultsIsMutable();
+        vaults_.add(builderForValue.build());
         onChanged();
       } else {
-        environmentRefsBuilder_.addMessage(builderForValue.build());
+        vaultsBuilder_.addMessage(builderForValue.build());
       }
       return this;
     }
     /**
      * <pre>
-     * References to Environment resources whose values are provided to guest
-     * conversations on this share.
+     * Vaults whose logins and secrets guest conversations on this share use, in
+     * order: the first vault holding a match wins. Valid on public-audience
+     * shares only. At most 20.
      *
-     * This is how a tool-using agent becomes chattable over a share link:
-     * bind an org-shared environment holding the needed credentials (for
-     * example a read-only API token), and guest runs receive its
-     * values at runtime. The agent itself stays untouched.
-     * Valid on public-audience shares only.
+     * This is how a tool-using agent becomes chattable over a share link: attach
+     * a shared vault holding the needed keys (for example a read-only API
+     * token). A guest's runs use only these vaults; a visitor brings none of
+     * their own. A My vault cannot be attached.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 8 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
      */
-    public Builder addEnvironmentRefs(
+    public Builder addVaults(
         int index, ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
-      if (environmentRefsBuilder_ == null) {
-        ensureEnvironmentRefsIsMutable();
-        environmentRefs_.add(index, builderForValue.build());
+      if (vaultsBuilder_ == null) {
+        ensureVaultsIsMutable();
+        vaults_.add(index, builderForValue.build());
         onChanged();
       } else {
-        environmentRefsBuilder_.addMessage(index, builderForValue.build());
+        vaultsBuilder_.addMessage(index, builderForValue.build());
       }
       return this;
     }
     /**
      * <pre>
-     * References to Environment resources whose values are provided to guest
-     * conversations on this share.
+     * Vaults whose logins and secrets guest conversations on this share use, in
+     * order: the first vault holding a match wins. Valid on public-audience
+     * shares only. At most 20.
      *
-     * This is how a tool-using agent becomes chattable over a share link:
-     * bind an org-shared environment holding the needed credentials (for
-     * example a read-only API token), and guest runs receive its
-     * values at runtime. The agent itself stays untouched.
-     * Valid on public-audience shares only.
+     * This is how a tool-using agent becomes chattable over a share link: attach
+     * a shared vault holding the needed keys (for example a read-only API
+     * token). A guest's runs use only these vaults; a visitor brings none of
+     * their own. A My vault cannot be attached.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 8 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
      */
-    public Builder addAllEnvironmentRefs(
+    public Builder addAllVaults(
         java.lang.Iterable<? extends ai.stigmer.commons.apiresource.ApiResourceReference> values) {
-      if (environmentRefsBuilder_ == null) {
-        ensureEnvironmentRefsIsMutable();
+      if (vaultsBuilder_ == null) {
+        ensureVaultsIsMutable();
         com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, environmentRefs_);
+            values, vaults_);
         onChanged();
       } else {
-        environmentRefsBuilder_.addAllMessages(values);
+        vaultsBuilder_.addAllMessages(values);
       }
       return this;
     }
     /**
      * <pre>
-     * References to Environment resources whose values are provided to guest
-     * conversations on this share.
+     * Vaults whose logins and secrets guest conversations on this share use, in
+     * order: the first vault holding a match wins. Valid on public-audience
+     * shares only. At most 20.
      *
-     * This is how a tool-using agent becomes chattable over a share link:
-     * bind an org-shared environment holding the needed credentials (for
-     * example a read-only API token), and guest runs receive its
-     * values at runtime. The agent itself stays untouched.
-     * Valid on public-audience shares only.
+     * This is how a tool-using agent becomes chattable over a share link: attach
+     * a shared vault holding the needed keys (for example a read-only API
+     * token). A guest's runs use only these vaults; a visitor brings none of
+     * their own. A My vault cannot be attached.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 8 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
      */
-    public Builder clearEnvironmentRefs() {
-      if (environmentRefsBuilder_ == null) {
-        environmentRefs_ = java.util.Collections.emptyList();
+    public Builder clearVaults() {
+      if (vaultsBuilder_ == null) {
+        vaults_ = java.util.Collections.emptyList();
         bitField0_ = (bitField0_ & ~0x00000020);
         onChanged();
       } else {
-        environmentRefsBuilder_.clear();
+        vaultsBuilder_.clear();
       }
       return this;
     }
     /**
      * <pre>
-     * References to Environment resources whose values are provided to guest
-     * conversations on this share.
+     * Vaults whose logins and secrets guest conversations on this share use, in
+     * order: the first vault holding a match wins. Valid on public-audience
+     * shares only. At most 20.
      *
-     * This is how a tool-using agent becomes chattable over a share link:
-     * bind an org-shared environment holding the needed credentials (for
-     * example a read-only API token), and guest runs receive its
-     * values at runtime. The agent itself stays untouched.
-     * Valid on public-audience shares only.
+     * This is how a tool-using agent becomes chattable over a share link: attach
+     * a shared vault holding the needed keys (for example a read-only API
+     * token). A guest's runs use only these vaults; a visitor brings none of
+     * their own. A My vault cannot be attached.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 8 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
      */
-    public Builder removeEnvironmentRefs(int index) {
-      if (environmentRefsBuilder_ == null) {
-        ensureEnvironmentRefsIsMutable();
-        environmentRefs_.remove(index);
+    public Builder removeVaults(int index) {
+      if (vaultsBuilder_ == null) {
+        ensureVaultsIsMutable();
+        vaults_.remove(index);
         onChanged();
       } else {
-        environmentRefsBuilder_.remove(index);
+        vaultsBuilder_.remove(index);
       }
       return this;
     }
     /**
      * <pre>
-     * References to Environment resources whose values are provided to guest
-     * conversations on this share.
+     * Vaults whose logins and secrets guest conversations on this share use, in
+     * order: the first vault holding a match wins. Valid on public-audience
+     * shares only. At most 20.
      *
-     * This is how a tool-using agent becomes chattable over a share link:
-     * bind an org-shared environment holding the needed credentials (for
-     * example a read-only API token), and guest runs receive its
-     * values at runtime. The agent itself stays untouched.
-     * Valid on public-audience shares only.
+     * This is how a tool-using agent becomes chattable over a share link: attach
+     * a shared vault holding the needed keys (for example a read-only API
+     * token). A guest's runs use only these vaults; a visitor brings none of
+     * their own. A My vault cannot be attached.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 8 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
      */
-    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder getEnvironmentRefsBuilder(
+    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder getVaultsBuilder(
         int index) {
-      return internalGetEnvironmentRefsFieldBuilder().getBuilder(index);
+      return internalGetVaultsFieldBuilder().getBuilder(index);
     }
     /**
      * <pre>
-     * References to Environment resources whose values are provided to guest
-     * conversations on this share.
+     * Vaults whose logins and secrets guest conversations on this share use, in
+     * order: the first vault holding a match wins. Valid on public-audience
+     * shares only. At most 20.
      *
-     * This is how a tool-using agent becomes chattable over a share link:
-     * bind an org-shared environment holding the needed credentials (for
-     * example a read-only API token), and guest runs receive its
-     * values at runtime. The agent itself stays untouched.
-     * Valid on public-audience shares only.
+     * This is how a tool-using agent becomes chattable over a share link: attach
+     * a shared vault holding the needed keys (for example a read-only API
+     * token). A guest's runs use only these vaults; a visitor brings none of
+     * their own. A My vault cannot be attached.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 8 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
      */
-    public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getEnvironmentRefsOrBuilder(
+    public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getVaultsOrBuilder(
         int index) {
-      if (environmentRefsBuilder_ == null) {
-        return environmentRefs_.get(index);  } else {
-        return environmentRefsBuilder_.getMessageOrBuilder(index);
+      if (vaultsBuilder_ == null) {
+        return vaults_.get(index);  } else {
+        return vaultsBuilder_.getMessageOrBuilder(index);
       }
     }
     /**
      * <pre>
-     * References to Environment resources whose values are provided to guest
-     * conversations on this share.
+     * Vaults whose logins and secrets guest conversations on this share use, in
+     * order: the first vault holding a match wins. Valid on public-audience
+     * shares only. At most 20.
      *
-     * This is how a tool-using agent becomes chattable over a share link:
-     * bind an org-shared environment holding the needed credentials (for
-     * example a read-only API token), and guest runs receive its
-     * values at runtime. The agent itself stays untouched.
-     * Valid on public-audience shares only.
+     * This is how a tool-using agent becomes chattable over a share link: attach
+     * a shared vault holding the needed keys (for example a read-only API
+     * token). A guest's runs use only these vaults; a visitor brings none of
+     * their own. A My vault cannot be attached.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 8 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
      */
     public java.util.List<? extends ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
-         getEnvironmentRefsOrBuilderList() {
-      if (environmentRefsBuilder_ != null) {
-        return environmentRefsBuilder_.getMessageOrBuilderList();
+         getVaultsOrBuilderList() {
+      if (vaultsBuilder_ != null) {
+        return vaultsBuilder_.getMessageOrBuilderList();
       } else {
-        return java.util.Collections.unmodifiableList(environmentRefs_);
+        return java.util.Collections.unmodifiableList(vaults_);
       }
     }
     /**
      * <pre>
-     * References to Environment resources whose values are provided to guest
-     * conversations on this share.
+     * Vaults whose logins and secrets guest conversations on this share use, in
+     * order: the first vault holding a match wins. Valid on public-audience
+     * shares only. At most 20.
      *
-     * This is how a tool-using agent becomes chattable over a share link:
-     * bind an org-shared environment holding the needed credentials (for
-     * example a read-only API token), and guest runs receive its
-     * values at runtime. The agent itself stays untouched.
-     * Valid on public-audience shares only.
+     * This is how a tool-using agent becomes chattable over a share link: attach
+     * a shared vault holding the needed keys (for example a read-only API
+     * token). A guest's runs use only these vaults; a visitor brings none of
+     * their own. A My vault cannot be attached.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 8 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
      */
-    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder addEnvironmentRefsBuilder() {
-      return internalGetEnvironmentRefsFieldBuilder().addBuilder(
+    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder addVaultsBuilder() {
+      return internalGetVaultsFieldBuilder().addBuilder(
           ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance());
     }
     /**
      * <pre>
-     * References to Environment resources whose values are provided to guest
-     * conversations on this share.
+     * Vaults whose logins and secrets guest conversations on this share use, in
+     * order: the first vault holding a match wins. Valid on public-audience
+     * shares only. At most 20.
      *
-     * This is how a tool-using agent becomes chattable over a share link:
-     * bind an org-shared environment holding the needed credentials (for
-     * example a read-only API token), and guest runs receive its
-     * values at runtime. The agent itself stays untouched.
-     * Valid on public-audience shares only.
+     * This is how a tool-using agent becomes chattable over a share link: attach
+     * a shared vault holding the needed keys (for example a read-only API
+     * token). A guest's runs use only these vaults; a visitor brings none of
+     * their own. A My vault cannot be attached.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 8 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
      */
-    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder addEnvironmentRefsBuilder(
+    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder addVaultsBuilder(
         int index) {
-      return internalGetEnvironmentRefsFieldBuilder().addBuilder(
+      return internalGetVaultsFieldBuilder().addBuilder(
           index, ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance());
     }
     /**
      * <pre>
-     * References to Environment resources whose values are provided to guest
-     * conversations on this share.
+     * Vaults whose logins and secrets guest conversations on this share use, in
+     * order: the first vault holding a match wins. Valid on public-audience
+     * shares only. At most 20.
      *
-     * This is how a tool-using agent becomes chattable over a share link:
-     * bind an org-shared environment holding the needed credentials (for
-     * example a read-only API token), and guest runs receive its
-     * values at runtime. The agent itself stays untouched.
-     * Valid on public-audience shares only.
+     * This is how a tool-using agent becomes chattable over a share link: attach
+     * a shared vault holding the needed keys (for example a read-only API
+     * token). A guest's runs use only these vaults; a visitor brings none of
+     * their own. A My vault cannot be attached.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 8 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
      */
     public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference.Builder> 
-         getEnvironmentRefsBuilderList() {
-      return internalGetEnvironmentRefsFieldBuilder().getBuilderList();
+         getVaultsBuilderList() {
+      return internalGetVaultsFieldBuilder().getBuilderList();
     }
     private com.google.protobuf.RepeatedFieldBuilder<
         ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
-        internalGetEnvironmentRefsFieldBuilder() {
-      if (environmentRefsBuilder_ == null) {
-        environmentRefsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+        internalGetVaultsFieldBuilder() {
+      if (vaultsBuilder_ == null) {
+        vaultsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
-                environmentRefs_,
+                vaults_,
                 ((bitField0_ & 0x00000020) != 0),
                 getParentForChildren(),
                 isClean());
-        environmentRefs_ = null;
+        vaults_ = null;
       }
-      return environmentRefsBuilder_;
+      return vaultsBuilder_;
     }
 
     private ai.stigmer.agentic.run.v1.RunConfig runConfig_;

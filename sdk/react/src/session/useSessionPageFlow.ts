@@ -13,7 +13,7 @@ import { fromProtoHarness, type HarnessOption } from "../models/harness.js";
 import { Harness, ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { fromProtoExecutionTarget, type ExecutionTargetOption } from "./execution-target.js";
 import { useSessionConversation, type UseSessionConversationReturn } from "./useSessionConversation.js";
-import { resolveRunRuntimeEnv, type RuntimeEnvProvider } from "./runtime-env.js";
+import { resolveSessionSecrets, type SessionSecretsProvider } from "./session-secrets.js";
 import { agentRefOfSession, isSameAgent } from "./agentRefOfSession.js";
 import { useSessionAgentVersion, type UseSessionAgentVersionReturn } from "./useSessionAgentVersion.js";
 import { usePersistedModel, type UsePersistedModelReturn } from "./usePersistedModel.js";
@@ -46,9 +46,14 @@ export interface UseSessionPageFlowOptions {
    * the provider throws, the follow-up is aborted before any optimistic
    * UI or session mutation and the error surfaces via
    * {@link UseSessionPageFlowReturn.submitError}. See
-   * {@link RuntimeEnvProvider}.
+   * {@link SessionSecretsProvider}.
+   *
+   * The values are written to the conversation's own secrets by a
+   * session update before the run. Not evaluated for the `"guest"`
+   * audience: a share-link guest cannot write them, and the share's
+   * vaults are what a guest's runs use.
    */
-  readonly getRuntimeEnv?: RuntimeEnvProvider;
+  readonly getSessionSecrets?: SessionSecretsProvider;
   /**
    * Who this flow serves. `"guest"` adapts the orchestration to the
    * guest principal's permission model: the agent reads behind the
@@ -326,7 +331,7 @@ export interface UseSessionPageFlowReturn {
 export function useSessionPageFlow(
   options: UseSessionPageFlowOptions,
 ): UseSessionPageFlowReturn {
-  const { sessionId, org, getRuntimeEnv } = options;
+  const { sessionId, org, getSessionSecrets } = options;
   const isGuest = options.audience === "guest";
   // Guests never carry a client pin: guest run config is owned by
   // the server-side share policy, and the no-modelName guest invariant
@@ -584,12 +589,14 @@ export function useSessionPageFlow(
 
     const spec = conv.session.spec;
 
-    // Workspace entries
+    // Workspace entries, each git repository under its stored name: a
+    // follow-up that rewrites the workspace keeps a repository's stored
+    // token only for the same name and URL (see sendFollowUp).
     const protoEntries = spec?.workspaceEntries ?? [];
     for (const entry of protoEntries) {
       if (entry.source?.source.case === "gitRepo") {
         const { url, branch } = entry.source.source.value;
-        workspace.addGitRepo(url, branch || undefined);
+        workspace.addGitRepo(url, branch || undefined, entry.name || undefined);
       } else if (entry.source?.source.case === "localPath") {
         workspace.addLocalPath(entry.source.source.value.path);
       }
@@ -631,7 +638,7 @@ export function useSessionPageFlow(
       // to that agent (no version, so the server pins its current one);
       // `null` clears it to the built-in assistant.
       let agentRefOverride: ResourceRef | null | undefined;
-      let runtimeEnv: SessionComposerSubmitContext["runtimeEnv"];
+      let secrets: SessionComposerSubmitContext["secrets"];
 
       try {
         if (resolution && agentRef) {
@@ -643,10 +650,15 @@ export function useSessionPageFlow(
         }
 
         // Evaluated per follow-up so short-lived host credentials are
-        // current; host values win over composer-collected env.
-        runtimeEnv = getRuntimeEnv
-          ? await resolveRunRuntimeEnv(getRuntimeEnv, context?.runtimeEnv)
-          : context?.runtimeEnv;
+        // current; host values win over composer-collected values. A guest
+        // sends none: the values are written to the conversation, a write
+        // a share-link guest may not make, and a guest brings no values
+        // anyway (the share's vaults are what its runs use).
+        if (!isGuest) {
+          secrets = getSessionSecrets
+            ? await resolveSessionSecrets(getSessionSecrets, context?.secrets)
+            : context?.secrets;
+        }
       } catch (err) {
         setSubmitError(err instanceof Error ? err : new Error(String(err)));
         return;
@@ -666,7 +678,8 @@ export function useSessionPageFlow(
           : undefined,
         mcpServerUsages: mcpServerUsages.length > 0 ? mcpServerUsages : undefined,
         skillRefs: skillRefs.length > 0 ? skillRefs : undefined,
-        runtimeEnv,
+        secrets,
+        vaults: context?.vaults,
         attachments: context?.attachments,
         interactionMode: context?.interactionMode,
         serviceTier: pinnedModelName ? pinnedServiceTier : context?.serviceTier,
@@ -681,7 +694,7 @@ export function useSessionPageFlow(
 
       sessionVariables.clear();
     },
-    [conv.sendFollowUp, modelId, pinnedModelName, pinnedServiceTier, pinnedThinkingMode, workspace, mcpServerUsages, skillRefs, sessionVariables.clear, resolution, agentRef, agentCleared, sessionAgentRef, autoApproveAll, getRuntimeEnv],
+    [conv.sendFollowUp, modelId, pinnedModelName, pinnedServiceTier, pinnedThinkingMode, workspace, mcpServerUsages, skillRefs, sessionVariables.clear, resolution, agentRef, agentCleared, sessionAgentRef, autoApproveAll, getSessionSecrets, isGuest],
   );
 
   // -------------------------------------------------------------------------

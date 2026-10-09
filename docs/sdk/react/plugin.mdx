@@ -254,12 +254,14 @@ if (!outcome.ok) toast.error(outcome.message);
 ### useMcpServerReadiness
 
 Behaviour hook for one installed MCP server's readiness. Pass `null` for
-either argument to hold the hook idle.
+either argument to hold the hook idle. Pass `signInVault` when the
+sign-in must be saved into a shared vault (a conversation that lists
+vaults); omitted, the sign-in and the grant read are My vault's.
 
 **Signature**
 
 ```tsx
-function useMcpServerReadiness(org: string | null, slug: string | null, onSignedIn?: (mcpServerId: string) => void): UseMcpServerReadinessReturn
+function useMcpServerReadiness(org: string | null, slug: string | null, onSignedIn?: (mcpServerId: string) => void, signInVault?: SignInVault): UseMcpServerReadinessReturn
 ```
 
 <TypeTable
@@ -267,6 +269,7 @@ function useMcpServerReadiness(org: string | null, slug: string | null, onSigned
     org: { type: "string | null", description: "", required: true },
     slug: { type: "string | null", description: "", required: true },
     onSignedIn: { type: "(mcpServerId: string) => void", description: "" },
+    signInVault: { type: "SignInVault", description: "" },
   }}
 />
 
@@ -707,6 +710,7 @@ Renders [`useMcpServerReadiness`](#usemcpserverreadiness) for one server.
     keysAskedAt: { type: "\"connect\" | \"agent\"", description: "Where an `api-key` server's variables are given. `\"agent\"` when the plugin installed an agent that declares them (the composer asks at the agent's first session); `\"connect\"` otherwise (they are set when the server is connected).", required: true },
     onSignedIn: { type: "(mcpServerId: string) => void", description: "Called with the server's id when a sign-in started from this cell lands; the composer records it against the agent." },
     org: { type: "string", description: "The organization the server lives in.", required: true },
+    signInVault: { type: "SignInVault", description: "The shared vault a sign-in from this cell is saved into: in a conversation that lists vaults, the first of them, the only place its runs read a login from. Omitted, the sign-in is saved in My vault.", typeDescriptionLink: "/docs/sdk/react/mcp-server#signinvault" },
     slug: { type: "string", description: "The server's slug.", required: true },
   }}
 />

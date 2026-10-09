@@ -6,9 +6,7 @@ import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { create } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type { ResourceRef } from "@stigmer/sdk";
 import { formatRelativeTime } from "../activity/format-relative-time.js";
@@ -47,7 +45,8 @@ import {
   type CadencePreset,
 } from "./cadence.js";
 import { CadenceField } from "./CadenceField.js";
-import { EnvironmentPicker } from "../environment/EnvironmentPicker.js";
+import { VaultPicker } from "../vault/VaultPicker.js";
+import { useWhoAmI } from "../iam-policy/useWhoAmI.js";
 import { ModelSelector } from "../models/ModelSelector.js";
 import {
   HARNESS_META,
@@ -105,7 +104,7 @@ export interface ScheduleDetailViewProps {
   readonly onResourceLoad?: (schedule: Schedule) => void;
   /**
    * Enable inline editing of the schedule's mutable spec fields
-   * (cadence, message, environments, engine & model, budget). Each
+   * (cadence, message, vaults, engine & model, budget). Each
    * field saves independently via a lossless full-resource re-apply
    * ({@link useUpdateScheduleSpec}). The server-immutable fields —
    * slug, target agent, target type — never gain an edit affordance;
@@ -563,19 +562,20 @@ export function ScheduleDetailView({
               </p>
             )}
           </DetailRow>
-          <DetailRow label="Environments">
+          <DetailRow label="Vaults">
             {editable && target ? (
-              <EnvironmentsInlineEditor
+              <VaultsInlineEditor
                 org={scheduleOrg}
-                refs={target.environmentRefs ?? []}
+                refs={target.vaults ?? []}
+                creatorId={specAudit?.createdBy?.id ?? ""}
                 onSave={(refs) =>
-                  saveSpecField("environments", (s) => {
+                  saveSpecField("vaults", (s) => {
                     if (s.target.case === "agent") {
-                      s.target.value.environmentRefs = refs.map((r) =>
+                      s.target.value.vaults = refs.map((r) =>
                         create(ApiResourceReferenceSchema, {
                           org: r.org,
                           slug: r.slug,
-                          kind: ApiResourceKind.environment,
+                          kind: ApiResourceKind.vault,
                         }),
                       );
                     }
@@ -583,14 +583,14 @@ export function ScheduleDetailView({
                 }
                 isSaving={isUpdating}
                 error={
-                  saveError?.field === "environments"
+                  saveError?.field === "vaults"
                     ? saveError.message
                     : undefined
                 }
               />
             ) : (
-              <EnvironmentRefList
-                refs={target?.environmentRefs ?? []}
+              <VaultRefList
+                refs={target?.vaults ?? []}
               />
             )}
           </DetailRow>
@@ -868,7 +868,7 @@ function CadenceSummary({
 // server's message rendered verbatim beneath it. The editors
 // stay in this file (the AgentDetailView single-organism precedent) and
 // reuse the creation form's field components — CadenceField,
-// TimeZoneField, EnvironmentPicker — so creating and editing a schedule
+// TimeZoneField, VaultPicker — so creating and editing a schedule
 // are the same experience.
 
 /** Cadence + time zone edit in one panel — they form one sentence. */
@@ -941,20 +941,30 @@ function CadenceInlineEditor({
   );
 }
 
-/** Environment bindings edit — org-shared credentials only. */
-function EnvironmentsInlineEditor({
+/**
+ * The schedule's vaults: all a fire uses, since a fire has no person. Only
+ * the schedule's creator may name their own My vault, so the picker offers
+ * it to them alone; the server refuses it from anyone else.
+ */
+function VaultsInlineEditor({
   org,
   refs,
+  creatorId,
   onSave,
   isSaving,
   error,
 }: {
   readonly org: string;
   readonly refs: readonly { org: string; slug: string }[];
+  /** The identity that created the schedule; "" when unknown. */
+  readonly creatorId: string;
   readonly onSave: (refs: readonly ResourceRef[]) => Promise<boolean>;
   readonly isSaving: boolean;
   readonly error?: string;
 }) {
+  const { account: viewer } = useWhoAmI();
+  const viewerId = viewer?.metadata?.id ?? "";
+  const viewerIsCreator = viewerId !== "" && viewerId === creatorId;
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState<ResourceRef[]>([]);
 
@@ -965,28 +975,24 @@ function EnvironmentsInlineEditor({
 
   if (!isEditing) {
     return (
-      <InlineReadButton onEdit={startEdit} ariaLabel="Edit environments">
-        <EnvironmentRefList refs={refs} />
+      <InlineReadButton onEdit={startEdit} ariaLabel="Edit vaults">
+        <VaultRefList refs={refs} />
       </InlineReadButton>
     );
   }
 
   return (
     <div className="stg:flex stg:flex-col stg:gap-2">
-      <EnvironmentPicker
+      <VaultPicker
         org={org}
         value={draft}
         onChange={setDraft}
         disabled={isSaving}
-        // Only org-shared environments resolve for a schedule fire (the
-        // same credential surface a channel binding uses), so offering
-        // anything else could only produce refused runs.
-        filterEnvironment={isOrgSharedEnvironment}
+        allowMyVault={viewerIsCreator}
       />
       <p className="stg:text-[0.65rem] stg:text-muted-foreground">
-        Bind org-shared credentials so the agent&rsquo;s tools work on an
-        unattended fire. Without this, an agent whose tools need credentials
-        will be refused every run.
+        The keys and logins every fire uses. Without them, an agent whose
+        tools need credentials is refused every run, naming the key.
       </p>
       <InlineEditActions
         onCancel={() => setIsEditing(false)}
@@ -1000,10 +1006,6 @@ function EnvironmentsInlineEditor({
       />
     </div>
   );
-}
-
-function isOrgSharedEnvironment(env: Environment): boolean {
-  return env.metadata?.visibility === ApiResourceVisibility.visibility_org;
 }
 
 /**
@@ -1399,8 +1401,8 @@ function DetailRow({
   );
 }
 
-/** The bound environment references, or the em-dash when there are none. */
-function EnvironmentRefList({
+/** The named vault references, or the em-dash when there are none. */
+function VaultRefList({
   refs,
 }: {
   readonly refs: readonly { org: string; slug: string }[];

@@ -1,5 +1,5 @@
-// In-process test for the read tools (get_mcp_server, get_skill,
-// get_environment). Stands up a real Connect
+// In-process test for the read tools (get_mcp_server, get_skill). Stands
+// up a real Connect
 // backend serving the query controllers, drives the MCP server through an
 // in-memory client, and asserts each tool returns the backend's protojson
 // verbatim (the parity contract) and that get_skill forwards its optional
@@ -17,8 +17,6 @@ import type { AddressInfo } from "node:net";
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
-import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
@@ -42,14 +40,6 @@ const knownSkill = create(SkillSchema, {
   metadata: { name: "Code Review", slug: "code-review", org: "acme", id: "skl-1" },
 });
 
-// The backend redacts secret values before they leave the server; the tool
-// must pass that redaction through verbatim.
-const knownEnvironment = create(EnvironmentSchema, {
-  apiVersion: "v1",
-  kind: "environment",
-  metadata: { name: "GitHub Creds", slug: "github-creds", org: "acme", id: "env-1" },
-  spec: { data: { API_KEY: { value: "***REDACTED***", isSecret: true } } },
-});
 
 
 let backend: Http2Server;
@@ -77,7 +67,6 @@ beforeAll(async () => {
         return knownSkill;
       },
     });
-    router.service(EnvironmentQueryController, { getByReference: () => knownEnvironment });
   };
   backend = createHttp2Server(connectNodeAdapter({ routes }));
   // Force keep-alive sessions closed on teardown, else backend.close() blocks.
@@ -108,7 +97,6 @@ describe("read tools integration", () => {
         "get_agent",
         "get_mcp_server",
         "get_skill",
-        "get_environment",
       ]),
     );
   });
@@ -140,14 +128,5 @@ describe("read tools integration", () => {
     const result = await callTool("get_skill", { slug: "code-review" });
     expect(result.isError).toBeFalsy();
     expect(lastSkillOrg).toBe("");
-  });
-
-  it("get_environment passes the server's secret redaction through verbatim", async () => {
-    const result = await callTool("get_environment", { org: "acme", slug: "github-creds" });
-    expect(result.isError).toBeFalsy();
-    const body = JSON.parse(result.content[0]?.text ?? "{}") as Record<string, unknown>;
-    expect(body).toEqual(toJson(EnvironmentSchema, knownEnvironment, { useProtoFieldName: true }));
-    const data = (body.spec as { data: Record<string, { value: string }> }).data;
-    expect(data.API_KEY?.value).toBe("***REDACTED***");
   });
 });

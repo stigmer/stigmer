@@ -81,6 +81,15 @@ public enum IamRole
    * <code>editor = 6;</code>
    */
   editor(6),
+  /**
+   * <pre>
+   * May use a shared vault: the runs of a person who holds it use the
+   * vault's logins and secrets. Shown as "Can use".
+   * </pre>
+   *
+   * <code>user = 7;</code>
+   */
+  user(7),
   UNRECOGNIZED(-1),
   ;
 
@@ -150,6 +159,15 @@ public enum IamRole
    * <code>editor = 6;</code>
    */
   public static final int editor_VALUE = 6;
+  /**
+   * <pre>
+   * May use a shared vault: the runs of a person who holds it use the
+   * vault's logins and secrets. Shown as "Can use".
+   * </pre>
+   *
+   * <code>user = 7;</code>
+   */
+  public static final int user_VALUE = 7;
 
 
   public final int getNumber() {
@@ -183,6 +201,7 @@ public enum IamRole
       case 4: return viewer;
       case 5: return participant;
       case 6: return editor;
+      case 7: return user;
       default: return null;
     }
   }

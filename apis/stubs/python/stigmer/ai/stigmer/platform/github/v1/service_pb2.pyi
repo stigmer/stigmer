@@ -7,10 +7,12 @@ from typing import ClassVar as _ClassVar, Optional as _Optional
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class GetOAuthAuthorizeUrlRequest(_message.Message):
-    __slots__ = ("redirect_uri",)
+    __slots__ = ("redirect_uri", "org")
     REDIRECT_URI_FIELD_NUMBER: _ClassVar[int]
+    ORG_FIELD_NUMBER: _ClassVar[int]
     redirect_uri: str
-    def __init__(self, redirect_uri: _Optional[str] = ...) -> None: ...
+    org: str
+    def __init__(self, redirect_uri: _Optional[str] = ..., org: _Optional[str] = ...) -> None: ...
 
 class GetOAuthAuthorizeUrlResponse(_message.Message):
     __slots__ = ("authorize_url", "state")
@@ -21,21 +23,23 @@ class GetOAuthAuthorizeUrlResponse(_message.Message):
     def __init__(self, authorize_url: _Optional[str] = ..., state: _Optional[str] = ...) -> None: ...
 
 class ExchangeOAuthCodeRequest(_message.Message):
-    __slots__ = ("code", "state", "redirect_uri")
+    __slots__ = ("code", "state", "redirect_uri", "org")
     CODE_FIELD_NUMBER: _ClassVar[int]
     STATE_FIELD_NUMBER: _ClassVar[int]
     REDIRECT_URI_FIELD_NUMBER: _ClassVar[int]
+    ORG_FIELD_NUMBER: _ClassVar[int]
     code: str
     state: str
     redirect_uri: str
-    def __init__(self, code: _Optional[str] = ..., state: _Optional[str] = ..., redirect_uri: _Optional[str] = ...) -> None: ...
+    org: str
+    def __init__(self, code: _Optional[str] = ..., state: _Optional[str] = ..., redirect_uri: _Optional[str] = ..., org: _Optional[str] = ...) -> None: ...
 
 class ExchangeOAuthCodeResponse(_message.Message):
-    __slots__ = ("access_token", "token_type", "scope")
-    ACCESS_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("token_type", "scope", "login")
     TOKEN_TYPE_FIELD_NUMBER: _ClassVar[int]
     SCOPE_FIELD_NUMBER: _ClassVar[int]
-    access_token: str
+    LOGIN_FIELD_NUMBER: _ClassVar[int]
     token_type: str
     scope: str
-    def __init__(self, access_token: _Optional[str] = ..., token_type: _Optional[str] = ..., scope: _Optional[str] = ...) -> None: ...
+    login: str
+    def __init__(self, token_type: _Optional[str] = ..., scope: _Optional[str] = ..., login: _Optional[str] = ...) -> None: ...

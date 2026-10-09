@@ -36,7 +36,7 @@ Three deliberate postures, chosen once and worth preserving:
   blueprint.
 - **Credential-free by construction.** The docs' Markdown exports are public
   and web retrieval is a harness built-in, so the agent declares no MCP
-  servers at all: no PAT to provision, no `environment_refs` to bind, no
+  servers at all: no PAT to provision, no `vaults` to attach, no
   subprocess to spawn, nothing to rotate.
 - **Web fetch must stay auto-approved.** Anonymous guest conversations run in
   unattended approval mode, where an approval-gated tool is silently *skipped*

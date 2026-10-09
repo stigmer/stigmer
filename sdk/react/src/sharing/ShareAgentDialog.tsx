@@ -17,8 +17,6 @@ import {
 import { create as createMessage } from "@bufbuild/protobuf";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentShare } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
-import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { Switch } from "../switch/Switch.js";
 import { Tabs, type TabItem } from "../tabs/Tabs.js";
@@ -29,7 +27,7 @@ import { useCopyResource } from "../resource-detail/useCopyResource.js";
 import { useDeploymentMode } from "../deployment-mode.js";
 import { useBillingAccount } from "../billing/useBillingAccount.js";
 import { formatCreditBalance } from "../billing/format.js";
-import { EnvironmentPicker } from "../environment/EnvironmentPicker.js";
+import { VaultPicker } from "../vault/VaultPicker.js";
 import { generateSlug } from "../internal/slug.js";
 import { TruncatedText } from "../internal/truncated-text.js";
 import { getFieldError, validateMessage } from "../internal/validate.js";
@@ -574,12 +572,12 @@ function ShareAgentForm({
       // to org drops them, and the toast says so: silent config loss is
       // worse than a wordier confirmation.
       const dropsBindings =
-        audience === "org" && draft.environmentRefs.length > 0;
+        audience === "org" && draft.vaults.length > 0;
       void commit(
         {
           ...draft,
           audience,
-          environmentRefs: dropsBindings ? [] : draft.environmentRefs,
+          vaults: dropsBindings ? [] : draft.vaults,
         },
         audience === "org"
           ? dropsBindings
@@ -676,15 +674,14 @@ function ShareAgentForm({
 }
 
 // ---------------------------------------------------------------------------
-// Tool readiness — visitors' tool use needs credentials bound to the share
+// Tool readiness — visitors' tool use needs a vault named on the share
 // ---------------------------------------------------------------------------
 
 /**
- * Pre-flight hint for tool-using agents: visitors' chats receive
- * credentials only from the share's own environment bindings, so a
- * tool-using agent with no bindings (`needs-credentials`) or a binding
- * that is still private (`blocked`) will fail at the visitor's first
- * message. Renders nothing when there is nothing to fix — sharing stays
+ * Pre-flight hint for tool-using agents: visitors' chats use only the
+ * share's own vaults, so a tool-using agent naming none
+ * (`needs-credentials`) or naming one that cannot serve (`blocked`) will
+ * fail at the visitor's first message. Renders nothing when there is nothing to fix — sharing stays
  * one toggle; this only catches the misconfiguration at share time.
  */
 function ToolReadinessHint({
@@ -699,10 +696,10 @@ function ToolReadinessHint({
   if (readiness.status === "needs-credentials") {
     return (
       <p className="stg:mt-2 stg:text-xs stg:text-warning" role="status">
-        Visitors&apos; chats can&apos;t use this agent&apos;s tools yet: no
-        credentials are bound to this share. Bind an org-shared environment
-        under <span className="stg:font-medium">Tool credentials</span> in the
-        Link tab below.
+        Visitors&apos; chats can&apos;t use this agent&apos;s tools yet: this
+        share names no vault. Name a shared vault under{" "}
+        <span className="stg:font-medium">Tool credentials</span> in the Link
+        tab below.
       </p>
     );
   }
@@ -711,16 +708,15 @@ function ToolReadinessHint({
     return null;
   }
 
-  const envList = readiness.privateEnvironments.join(", ");
-  const plural = readiness.privateEnvironments.length > 1;
+  const vaultList = readiness.unusableVaults.join(", ");
+  const plural = readiness.unusableVaults.length > 1;
 
   return (
     <p className="stg:mt-2 stg:text-xs stg:text-warning" role="status">
       Visitors&apos; chats can&apos;t use this agent&apos;s tools yet: the
-      environment{plural ? "s" : ""} <span className="stg:font-medium">{envList}</span>{" "}
-      {plural ? "are" : "is"} private. Share {plural ? "them" : "it"} with your
-      organization (Settings &rarr; Environments) so visitor runs can use the
-      credentials. Secret values stay hidden either way.
+      vault{plural ? "s" : ""} <span className="stg:font-medium">{vaultList}</span>{" "}
+      {plural ? "are" : "is"} not a shared vault you can read. Name a shared
+      vault instead (Settings &rarr; Vaults). Saved values stay hidden either way.
     </p>
   );
 }
@@ -963,13 +959,13 @@ function ResetLinkControl({
 }
 
 // ---------------------------------------------------------------------------
-// Tool credentials — org-shared environments bound to the share for visitors
+// Tool credentials — shared vaults named on the share for visitors
 // ---------------------------------------------------------------------------
 
 /**
- * Binds org-shared environments to the share's `environment_refs` — the
- * consent act that makes a tool-using agent work for visitors (decision
- * 011: credentials belong to the channel, never to the agent itself).
+ * Names shared vaults on the share's `vaults` — the consent act that makes
+ * a tool-using agent work for visitors (credentials belong to the share,
+ * never to the agent itself; a visitor brings none of their own).
  * Public audience only; the section disappears for
  * org shares, whose member sessions carry no share linkage.
  *
@@ -994,27 +990,18 @@ function ToolCredentialsSection({
 }) {
   const hasMcpTools = (agent.spec?.mcpServerUsages?.length ?? 0) > 0;
   const [expanded, setExpanded] = useState(
-    hasMcpTools || draft.environmentRefs.length > 0,
+    hasMcpTools || draft.vaults.length > 0,
   );
 
   const handleChange = useCallback(
     (refs: ResourceRef[]) => {
-      const added = refs.length > draft.environmentRefs.length;
+      const added = refs.length > draft.vaults.length;
       void commit(
-        { ...draft, environmentRefs: refs },
-        added ? "Credentials bound" : "Credential bindings updated",
+        { ...draft, vaults: refs },
+        added ? "Vault added" : "Vaults updated",
       );
     },
     [commit, draft],
-  );
-
-  // Only org-shared environments are guest-usable (the runtime merge
-  // skips private ones), so offering others would bind
-  // credentials that silently never apply.
-  const onlyOrgShared = useCallback(
-    (env: Environment) =>
-      env.metadata?.visibility === ApiResourceVisibility.visibility_org,
-    [],
   );
 
   return (
@@ -1038,18 +1025,16 @@ function ToolCredentialsSection({
       {expanded && (
         <div className="stg:mt-2 stg:flex stg:flex-col stg:gap-2">
           <p className="stg:text-[0.65rem] stg:text-muted-foreground">
-            Environments whose values visitors&apos; chats can use — bind one
-            holding the credentials this agent&apos;s tools need (a read-only
-            token is safest). Only environments shared with your organization
-            can be bound; share one first in Settings &rarr; Environments.
-            Secret values stay hidden from visitors either way.
+            Shared vaults whose keys visitors&apos; chats use — name one
+            holding the keys this agent&apos;s tools need (a read-only token is
+            safest). You can name only vaults you may use; create one in
+            Settings &rarr; Vaults. Saved values stay hidden from visitors.
           </p>
-          <EnvironmentPicker
+          <VaultPicker
             org={org}
-            value={draft.environmentRefs}
+            value={draft.vaults}
             onChange={handleChange}
             disabled={isPending}
-            filterEnvironment={onlyOrgShared}
           />
         </div>
       )}

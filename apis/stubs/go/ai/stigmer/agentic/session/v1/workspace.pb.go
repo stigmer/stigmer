@@ -218,6 +218,12 @@ func (x *LocalPathSource) GetPath() string {
 // GitRepoSource provisions a workspace by cloning a git repository.
 //
 // Only HTTPS clone URLs are supported. SSH URLs are rejected at validation time.
+//
+// A private repository is cloned with the entry's own token when it carries
+// one, else with a login saved for the repository's host (github.com) in the
+// conversation's vaults. The entry's own token is used only for an
+// https://github.com repository: a session write carrying a token for any
+// other repository is refused.
 type GitRepoSource struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// HTTPS clone URL for the repository.
@@ -239,6 +245,13 @@ type GitRepoSource struct {
 	Depth *int32 `protobuf:"varint,4,opt,name=depth,proto3,oneof" json:"depth,omitempty"`
 	// Controls whether the platform creates a branch and pull request from the agent's file changes.
 	WriteBackMode GitWriteBackMode `protobuf:"varint,5,opt,name=write_back_mode,json=writeBackMode,proto3,enum=ai.stigmer.agentic.session.v1.GitWriteBackMode" json:"write_back_mode,omitempty"`
+	// A token for cloning this repository, kept for the conversation only.
+	//
+	// Used only when the URL is an https://github.com repository; a session
+	// write carrying a token for any other repository is refused. Sealed for
+	// the conversation's life and never returned by a read. A schedule's
+	// repositories refuse it: save the token in a vault the schedule names.
+	Token         string `protobuf:"bytes,6,opt,name=token,proto3" json:"token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -308,6 +321,13 @@ func (x *GitRepoSource) GetWriteBackMode() GitWriteBackMode {
 	return GitWriteBackMode_GIT_WRITE_BACK_MODE_UNSPECIFIED
 }
 
+func (x *GitRepoSource) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_session_v1_workspace_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_workspace_proto_rawDesc = "" +
@@ -322,14 +342,15 @@ const file_ai_stigmer_agentic_session_v1_workspace_proto_rawDesc = "" +
 	"\x04name\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04name\x12N\n" +
 	"\x06source\x18\x02 \x01(\v2..ai.stigmer.agentic.session.v1.WorkspaceSourceB\x06\xbaH\x03\xc8\x01\x01R\x06source\".\n" +
 	"\x0fLocalPathSource\x12\x1b\n" +
-	"\x04path\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04path\"\xf3\x02\n" +
+	"\x04path\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04path\"\x94\x03\n" +
 	"\rGitRepoSource\x12\xaa\x01\n" +
 	"\x03url\x18\x01 \x01(\tB\x97\x01\xbaH\x93\x01\xba\x01\x8c\x01\n" +
 	"\x19git_repo_source.url.https\x12Rurl must use HTTPS (e.g. https://github.com/org/repo). SSH URLs are not supported.\x1a\x1bthis.startsWith('https://')\xc8\x01\x01R\x03url\x12\x16\n" +
 	"\x06branch\x18\x02 \x01(\tR\x06branch\x12\x16\n" +
 	"\x06commit\x18\x03 \x01(\tR\x06commit\x12\"\n" +
 	"\x05depth\x18\x04 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00H\x00R\x05depth\x88\x01\x01\x12W\n" +
-	"\x0fwrite_back_mode\x18\x05 \x01(\x0e2/.ai.stigmer.agentic.session.v1.GitWriteBackModeR\rwriteBackModeB\b\n" +
+	"\x0fwrite_back_mode\x18\x05 \x01(\x0e2/.ai.stigmer.agentic.session.v1.GitWriteBackModeR\rwriteBackMode\x12\x1f\n" +
+	"\x05token\x18\x06 \x01(\tB\t\xbaH\x06r\x04\x18\x80\x80\x04R\x05tokenB\b\n" +
 	"\x06_depthB\x9e\x02\n" +
 	"!com.ai.stigmer.agentic.session.v1B\x0eWorkspaceProtoP\x01ZPgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
 

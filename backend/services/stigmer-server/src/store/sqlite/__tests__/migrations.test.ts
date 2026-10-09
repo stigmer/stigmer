@@ -59,6 +59,12 @@
  * re-keyed grant through its principal; a chain from v17 (before v18)
  * reaches the same rows; across keyset pages; a run or grant it cannot
  * decode fails the step, naming the row, and leaves the database at v20.
+ * v22 removes every environment row from every table keyed by kind and
+ * every grant naming an environment with its list keys (its history kept),
+ * across keyset pages, drops oauth_grant, adds pending_oauth_state's
+ * vault_id and tool_address ("" on a row from before them) and keeps every other kind's rows
+ * byte for byte; a grant it cannot decode fails the
+ * step, naming the row, and leaves the database at v21.
  * A schema written by a newer release is refused before any migration or
  * list-index reconciliation, with the failed store's connection closed.
  */
@@ -103,10 +109,12 @@ import {
   SCHEMA_VERSION_19,
   SCHEMA_VERSION_20,
   SCHEMA_VERSION_21,
+  SCHEMA_VERSION_22,
   getSchemaVersion,
   runMigrations,
 } from "../migrations.js";
 import { RETIREMENT_PAGE_SIZE } from "../../agent-instance-retired.js";
+import { ENVIRONMENT_RETIRED_PAGE_SIZE } from "../../environment-retired.js";
 import {
   policyRow,
   retiredInstanceRow,
@@ -280,7 +288,6 @@ describe("fresh database", () => {
       "search_index",
       "bootstrap_state",
       "schedule_runs",
-      "oauth_grant",
       "pending_oauth_state",
       "resource_names",
       "organization_deletions",
@@ -293,6 +300,7 @@ describe("fresh database", () => {
     for (const dropped of ["workflow_execution_events", "signal_dedupe"]) {
       expect(tables, `v19 dropped ${dropped}`).not.toContain(dropped);
     }
+    expect(tables, "v22 dropped oauth_grant").not.toContain("oauth_grant");
   });
 
   it("records one schema_version row per migration (MAX semantics, as Go computes it)", () => {
@@ -306,6 +314,7 @@ describe("fresh database", () => {
       .all() as Array<{ version: number }>;
     expect(rows.map((row) => row.version)).toEqual([
       1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
+      22,
     ]);
   });
 
@@ -393,17 +402,12 @@ describe("Go-created v6 database adoption (the Go fixture)", () => {
     expect(run.completed_at).toBe("2026-08-20T00:00:05Z");
 
     // The workflow event log and the signal ledger the fixture held are
-    // gone with the workflows (v19); the other consolidated tables keep
-    // their Go-written rows, adopted, not shadowed.
+    // gone with the workflows (v19), and the sign-in grant table with the
+    // environments (v22); the pending sign-in state keeps its Go-written
+    // rows, adopted, not shadowed.
     expect(tableNames(db)).not.toContain("workflow_execution_events");
     expect(tableNames(db)).not.toContain("signal_dedupe");
-
-    const grant = db
-      .prepare(
-        `SELECT client_id FROM oauth_grant WHERE identity_account_id = 'ida_fixture'`,
-      )
-      .get() as { client_id: string };
-    expect(grant.client_id).toBe("client-1");
+    expect(tableNames(db)).not.toContain("oauth_grant");
 
     const pending = db
       .prepare(
@@ -2690,5 +2694,145 @@ describe("v21: the agent run is a run", () => {
     );
     expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_20);
     expect(row(db, "agent_run", "aex_good")?.data).toEqual(runBytes("aex_good", "ses_1", AGENT_RUN_NAMES));
+  });
+});
+
+describe("v22: environments and the sign-in grant table leave the store", () => {
+  const ORG = "org_01jz0000000000000000000000";
+  const SEEDED_AT = "2026-10-08 00:00:00";
+
+  function databaseAt(version: number): { dbPath: string; db: DatabaseSync } {
+    const dbPath = tempDbPath();
+    const setup = new DatabaseSync(dbPath);
+    runMigrations(setup, version);
+    expect(getSchemaVersion(setup)).toBe(version);
+    return { dbPath, db: setup };
+  }
+
+  function insert(db: DatabaseSync, kind: string, id: string, data: Uint8Array): void {
+    db.prepare(
+      `INSERT INTO resources (kind, id, data, updated_at) VALUES (?, ?, ?, ?)`,
+    ).run(kind, id, data, SEEDED_AT);
+  }
+
+  function count(db: DatabaseSync, table: string, kind: string): number {
+    return (db.prepare(`SELECT COUNT(*) AS n FROM ${table} WHERE kind = ?`).get(kind) as { n: number }).n;
+  }
+
+  /** An environment row's bytes: the step never decodes them, so any envelope serves. */
+  const environmentBytes = new Uint8Array([0x12, 0x0b, ...new TextEncoder().encode("Environment")]);
+  const agent = toBinary(
+    AgentSchema,
+    create(AgentSchema, {
+      apiVersion: "agentic.stigmer.ai/v1",
+      kind: "Agent",
+      metadata: { id: "agt_1", name: "reviewer", slug: "reviewer", org: ORG },
+      spec: { instructions: "a conformant instruction body" },
+    }),
+  );
+  const keptGrant = { id: "iamp_kept", principal: "identity_account:ida_9", relation: "viewer", resource: "agent:agt_1" };
+  const retiredGrants = [
+    { id: "iamp_on_env", principal: "identity_account:ida_1", relation: "viewer", resource: "environment:env_shared" },
+    { id: "iamp_env_principal", principal: "environment:env_shared", relation: "viewer", resource: "agent:agt_1" },
+  ];
+
+  function seed(db: DatabaseSync): void {
+    insert(db, "agent", "agt_1", agent);
+    for (const id of ["env_personal", "env_shared"]) {
+      insert(db, "environment", id, environmentBytes);
+      db.prepare(
+        `INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES ('environment', ?, 'org', ?, '')`,
+      ).run(id, ORG);
+      db.prepare(
+        `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('environment', ?, ?, '', '')`,
+      ).run(id, environmentBytes);
+      db.prepare(
+        `INSERT INTO resource_names (kind, org, name, id, state, claimed_at) VALUES ('environment', ?, ?, ?, 'current', ?)`,
+      ).run(ORG, id, id, SEEDED_AT);
+    }
+    for (const grant of [keptGrant, ...retiredGrants]) {
+      insert(db, "iam_policy", grant.id, policyRow(grant));
+      db.prepare(
+        `INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES ('iam_policy', ?, 'principal', ?, '')`,
+      ).run(grant.id, grant.principal.split(":")[1] ?? "");
+    }
+    db.prepare(
+      `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('iam_policy', 'iamp_on_env', ?, '', '')`,
+    ).run(policyRow(retiredGrants[0]!));
+    db.prepare(
+      `INSERT INTO oauth_grant (identity_account_id, resource_id, org_id, environment_id, created_at, updated_at)
+       VALUES ('', 'mcp_1', ?, 'env_managed', 1, 1)`,
+    ).run(ORG);
+    db.prepare(
+      `INSERT INTO pending_oauth_state (state, code_verifier, mcp_server_id, identity_account_id, created_at)
+       VALUES ('state-1', 'verifier', 'mcp_1', 'ida_1', 1)`,
+    ).run();
+  }
+
+  it("removes every environment row and grant, drops oauth_grant, keeps the rest", () => {
+    const { dbPath, db: setup } = databaseAt(SCHEMA_VERSION_21);
+    seed(setup);
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_22);
+
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_22);
+    expect(CURRENT_SCHEMA_VERSION).toBe(SCHEMA_VERSION_22);
+    for (const table of RUN_KIND_TABLES) {
+      expect(count(db, table, "environment"), `environment in ${table}`).toBe(0);
+    }
+    const policies = db
+      .prepare(`SELECT id FROM resources WHERE kind = 'iam_policy' ORDER BY id`)
+      .all() as Array<{ id: string }>;
+    expect(policies.map((p) => p.id)).toEqual([keptGrant.id]);
+    const policyKeys = db
+      .prepare(`SELECT id FROM resource_list_keys WHERE kind = 'iam_policy' ORDER BY id`)
+      .all() as Array<{ id: string }>;
+    expect(policyKeys.map((k) => k.id)).toEqual([keptGrant.id]);
+    // A removed grant keeps its history, as the store deletes a policy.
+    expect(count(db, "resource_audit", "iam_policy")).toBe(1);
+    const kept = db.prepare(`SELECT data FROM resources WHERE kind = 'agent' AND id = 'agt_1'`).get() as {
+      data: Uint8Array;
+    };
+    expect(Buffer.from(kept.data).equals(Buffer.from(agent))).toBe(true);
+    expect(tableNames(db)).not.toContain("oauth_grant");
+    expect(tableNames(db)).toContain("pending_oauth_state");
+    expect(
+      db.prepare(`SELECT state, vault_id, tool_address FROM pending_oauth_state`).all(),
+      "a pending sign-in from before the step saves into the signer's My vault, at no recorded address",
+    ).toEqual([{ state: "state-1", vault_id: "", tool_address: "" }]);
+  });
+
+  it("reads grants across keyset pages", () => {
+    const { dbPath, db: setup } = databaseAt(SCHEMA_VERSION_21);
+    const total = ENVIRONMENT_RETIRED_PAGE_SIZE + 3;
+    for (let i = 0; i < total; i++) {
+      const id = `iamp_${String(i).padStart(4, "0")}`;
+      const resource = i % 2 === 0 ? `environment:env_${i}` : "agent:agt_1";
+      insert(setup, "iam_policy", id, policyRow({ id, principal: "identity_account:ida_1", relation: "viewer", resource }));
+    }
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_22);
+
+    expect(count(db, "resources", "iam_policy")).toBe(Math.floor(total / 2));
+  });
+
+  it("fails on a grant it cannot decode, naming it, and leaves the database at v21", () => {
+    const { dbPath, db: setup } = databaseAt(SCHEMA_VERSION_21);
+    insert(setup, "environment", "env_1", environmentBytes);
+    insert(setup, "iam_policy", "iamp_bad", new Uint8Array([0xff, 0xff, 0xff]));
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    expect(() => runMigrations(db, SCHEMA_VERSION_22)).toThrow(/iam_policy 'iamp_bad'/);
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_21);
+    expect(count(db, "resources", "environment")).toBe(1);
+    expect(tableNames(db)).toContain("oauth_grant");
   });
 });

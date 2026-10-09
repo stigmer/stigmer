@@ -46,6 +46,18 @@ private static final long serialVersionUID = 0L;
     return ai.stigmer.agentic.agentshare.v1.StatusProto.internal_static_ai_stigmer_agentic_agentshare_v1_AgentShareStatus_descriptor;
   }
 
+  @SuppressWarnings({"rawtypes"})
+  @java.lang.Override
+  protected com.google.protobuf.MapFieldReflectionAccessor internalGetMapFieldReflection(
+      int number) {
+    switch (number) {
+      case 3:
+        return internalGetVaultAttachers();
+      default:
+        throw new RuntimeException(
+            "Invalid map field number: " + number);
+    }
+  }
   @java.lang.Override
   protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internalGetFieldAccessorTable() {
@@ -211,6 +223,109 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int VAULT_ATTACHERS_FIELD_NUMBER = 3;
+  private static final class VaultAttachersDefaultEntryHolder {
+    static final com.google.protobuf.MapEntry<
+        java.lang.String, java.lang.String> defaultEntry =
+            com.google.protobuf.MapEntry
+            .<java.lang.String, java.lang.String>newDefaultInstance(
+                ai.stigmer.agentic.agentshare.v1.StatusProto.internal_static_ai_stigmer_agentic_agentshare_v1_AgentShareStatus_VaultAttachersEntry_descriptor, 
+                com.google.protobuf.WireFormat.FieldType.STRING,
+                "",
+                com.google.protobuf.WireFormat.FieldType.STRING,
+                "");
+  }
+  @SuppressWarnings("serial")
+  private com.google.protobuf.MapField<
+      java.lang.String, java.lang.String> vaultAttachers_;
+  private com.google.protobuf.MapField<java.lang.String, java.lang.String>
+  internalGetVaultAttachers() {
+    if (vaultAttachers_ == null) {
+      return com.google.protobuf.MapField.emptyMapField(
+          VaultAttachersDefaultEntryHolder.defaultEntry);
+    }
+    return vaultAttachers_;
+  }
+  public int getVaultAttachersCount() {
+    return internalGetVaultAttachers().getMap().size();
+  }
+  /**
+   * <pre>
+   * Who attached each of this resource's vaults, by vault id: the account
+   * whose permission to use the vault each run checks when it has no
+   * person.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; vault_attachers = 3 [json_name = "vaultAttachers"];</code>
+   */
+  @java.lang.Override
+  public boolean containsVaultAttachers(
+      java.lang.String key) {
+    if (key == null) { throw new NullPointerException("map key"); }
+    return internalGetVaultAttachers().getMap().containsKey(key);
+  }
+  /**
+   * Use {@link #getVaultAttachersMap()} instead.
+   */
+  @java.lang.Override
+  @java.lang.Deprecated
+  public java.util.Map<java.lang.String, java.lang.String> getVaultAttachers() {
+    return getVaultAttachersMap();
+  }
+  /**
+   * <pre>
+   * Who attached each of this resource's vaults, by vault id: the account
+   * whose permission to use the vault each run checks when it has no
+   * person.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; vault_attachers = 3 [json_name = "vaultAttachers"];</code>
+   */
+  @java.lang.Override
+  public java.util.Map<java.lang.String, java.lang.String> getVaultAttachersMap() {
+    return internalGetVaultAttachers().getMap();
+  }
+  /**
+   * <pre>
+   * Who attached each of this resource's vaults, by vault id: the account
+   * whose permission to use the vault each run checks when it has no
+   * person.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; vault_attachers = 3 [json_name = "vaultAttachers"];</code>
+   */
+  @java.lang.Override
+  public /* nullable */
+java.lang.String getVaultAttachersOrDefault(
+      java.lang.String key,
+      /* nullable */
+java.lang.String defaultValue) {
+    if (key == null) { throw new NullPointerException("map key"); }
+    java.util.Map<java.lang.String, java.lang.String> map =
+        internalGetVaultAttachers().getMap();
+    return map.containsKey(key) ? map.get(key) : defaultValue;
+  }
+  /**
+   * <pre>
+   * Who attached each of this resource's vaults, by vault id: the account
+   * whose permission to use the vault each run checks when it has no
+   * person.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; vault_attachers = 3 [json_name = "vaultAttachers"];</code>
+   */
+  @java.lang.Override
+  public java.lang.String getVaultAttachersOrThrow(
+      java.lang.String key) {
+    if (key == null) { throw new NullPointerException("map key"); }
+    java.util.Map<java.lang.String, java.lang.String> map =
+        internalGetVaultAttachers().getMap();
+    if (!map.containsKey(key)) {
+      throw new java.lang.IllegalArgumentException();
+    }
+    return map.get(key);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -231,6 +346,12 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(agentId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 2, agentId_);
     }
+    com.google.protobuf.GeneratedMessage
+      .serializeStringMapTo(
+        output,
+        internalGetVaultAttachers(),
+        VaultAttachersDefaultEntryHolder.defaultEntry,
+        3);
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(99, getAudit());
     }
@@ -248,6 +369,16 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(agentId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(2, agentId_);
+    }
+    for (java.util.Map.Entry<java.lang.String, java.lang.String> entry
+         : internalGetVaultAttachers().getMap().entrySet()) {
+      com.google.protobuf.MapEntry<java.lang.String, java.lang.String>
+      vaultAttachers__ = VaultAttachersDefaultEntryHolder.defaultEntry.newBuilderForType()
+          .setKey(entry.getKey())
+          .setValue(entry.getValue())
+          .buildPartial();
+      size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(3, vaultAttachers__);
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
@@ -277,6 +408,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getShareLinkToken())) return false;
     if (!getAgentId()
         .equals(other.getAgentId())) return false;
+    if (!internalGetVaultAttachers().equals(
+        other.internalGetVaultAttachers())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -296,6 +429,10 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getShareLinkToken().hashCode();
     hash = (37 * hash) + AGENT_ID_FIELD_NUMBER;
     hash = (53 * hash) + getAgentId().hashCode();
+    if (!internalGetVaultAttachers().getMap().isEmpty()) {
+      hash = (37 * hash) + VAULT_ATTACHERS_FIELD_NUMBER;
+      hash = (53 * hash) + internalGetVaultAttachers().hashCode();
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -409,6 +546,28 @@ private static final long serialVersionUID = 0L;
       return ai.stigmer.agentic.agentshare.v1.StatusProto.internal_static_ai_stigmer_agentic_agentshare_v1_AgentShareStatus_descriptor;
     }
 
+    @SuppressWarnings({"rawtypes"})
+    protected com.google.protobuf.MapFieldReflectionAccessor internalGetMapFieldReflection(
+        int number) {
+      switch (number) {
+        case 3:
+          return internalGetVaultAttachers();
+        default:
+          throw new RuntimeException(
+              "Invalid map field number: " + number);
+      }
+    }
+    @SuppressWarnings({"rawtypes"})
+    protected com.google.protobuf.MapFieldReflectionAccessor internalGetMutableMapFieldReflection(
+        int number) {
+      switch (number) {
+        case 3:
+          return internalGetMutableVaultAttachers();
+        default:
+          throw new RuntimeException(
+              "Invalid map field number: " + number);
+      }
+    }
     @java.lang.Override
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
@@ -444,6 +603,7 @@ private static final long serialVersionUID = 0L;
       }
       shareLinkToken_ = "";
       agentId_ = "";
+      internalGetMutableVaultAttachers().clear();
       return this;
     }
 
@@ -490,6 +650,10 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000004) != 0)) {
         result.agentId_ = agentId_;
       }
+      if (((from_bitField0_ & 0x00000008) != 0)) {
+        result.vaultAttachers_ = internalGetVaultAttachers();
+        result.vaultAttachers_.makeImmutable();
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -518,6 +682,9 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000004;
         onChanged();
       }
+      internalGetMutableVaultAttachers().mergeFrom(
+          other.internalGetVaultAttachers());
+      bitField0_ |= 0x00000008;
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -554,6 +721,15 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000004;
               break;
             } // case 18
+            case 26: {
+              com.google.protobuf.MapEntry<java.lang.String, java.lang.String>
+              vaultAttachers__ = input.readMessage(
+                  VaultAttachersDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
+              internalGetMutableVaultAttachers().getMutableMap().put(
+                  vaultAttachers__.getKey(), vaultAttachers__.getValue());
+              bitField0_ |= 0x00000008;
+              break;
+            } // case 26
             case 794: {
               input.readMessage(
                   internalGetAuditFieldBuilder().getBuilder(),
@@ -976,6 +1152,175 @@ private static final long serialVersionUID = 0L;
       agentId_ = value;
       bitField0_ |= 0x00000004;
       onChanged();
+      return this;
+    }
+
+    private com.google.protobuf.MapField<
+        java.lang.String, java.lang.String> vaultAttachers_;
+    private com.google.protobuf.MapField<java.lang.String, java.lang.String>
+        internalGetVaultAttachers() {
+      if (vaultAttachers_ == null) {
+        return com.google.protobuf.MapField.emptyMapField(
+            VaultAttachersDefaultEntryHolder.defaultEntry);
+      }
+      return vaultAttachers_;
+    }
+    private com.google.protobuf.MapField<java.lang.String, java.lang.String>
+        internalGetMutableVaultAttachers() {
+      if (vaultAttachers_ == null) {
+        vaultAttachers_ = com.google.protobuf.MapField.newMapField(
+            VaultAttachersDefaultEntryHolder.defaultEntry);
+      }
+      if (!vaultAttachers_.isMutable()) {
+        vaultAttachers_ = vaultAttachers_.copy();
+      }
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return vaultAttachers_;
+    }
+    public int getVaultAttachersCount() {
+      return internalGetVaultAttachers().getMap().size();
+    }
+    /**
+     * <pre>
+     * Who attached each of this resource's vaults, by vault id: the account
+     * whose permission to use the vault each run checks when it has no
+     * person.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; vault_attachers = 3 [json_name = "vaultAttachers"];</code>
+     */
+    @java.lang.Override
+    public boolean containsVaultAttachers(
+        java.lang.String key) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      return internalGetVaultAttachers().getMap().containsKey(key);
+    }
+    /**
+     * Use {@link #getVaultAttachersMap()} instead.
+     */
+    @java.lang.Override
+    @java.lang.Deprecated
+    public java.util.Map<java.lang.String, java.lang.String> getVaultAttachers() {
+      return getVaultAttachersMap();
+    }
+    /**
+     * <pre>
+     * Who attached each of this resource's vaults, by vault id: the account
+     * whose permission to use the vault each run checks when it has no
+     * person.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; vault_attachers = 3 [json_name = "vaultAttachers"];</code>
+     */
+    @java.lang.Override
+    public java.util.Map<java.lang.String, java.lang.String> getVaultAttachersMap() {
+      return internalGetVaultAttachers().getMap();
+    }
+    /**
+     * <pre>
+     * Who attached each of this resource's vaults, by vault id: the account
+     * whose permission to use the vault each run checks when it has no
+     * person.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; vault_attachers = 3 [json_name = "vaultAttachers"];</code>
+     */
+    @java.lang.Override
+    public /* nullable */
+java.lang.String getVaultAttachersOrDefault(
+        java.lang.String key,
+        /* nullable */
+java.lang.String defaultValue) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      java.util.Map<java.lang.String, java.lang.String> map =
+          internalGetVaultAttachers().getMap();
+      return map.containsKey(key) ? map.get(key) : defaultValue;
+    }
+    /**
+     * <pre>
+     * Who attached each of this resource's vaults, by vault id: the account
+     * whose permission to use the vault each run checks when it has no
+     * person.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; vault_attachers = 3 [json_name = "vaultAttachers"];</code>
+     */
+    @java.lang.Override
+    public java.lang.String getVaultAttachersOrThrow(
+        java.lang.String key) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      java.util.Map<java.lang.String, java.lang.String> map =
+          internalGetVaultAttachers().getMap();
+      if (!map.containsKey(key)) {
+        throw new java.lang.IllegalArgumentException();
+      }
+      return map.get(key);
+    }
+    public Builder clearVaultAttachers() {
+      bitField0_ = (bitField0_ & ~0x00000008);
+      internalGetMutableVaultAttachers().getMutableMap()
+          .clear();
+      return this;
+    }
+    /**
+     * <pre>
+     * Who attached each of this resource's vaults, by vault id: the account
+     * whose permission to use the vault each run checks when it has no
+     * person.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; vault_attachers = 3 [json_name = "vaultAttachers"];</code>
+     */
+    public Builder removeVaultAttachers(
+        java.lang.String key) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      internalGetMutableVaultAttachers().getMutableMap()
+          .remove(key);
+      return this;
+    }
+    /**
+     * Use alternate mutation accessors instead.
+     */
+    @java.lang.Deprecated
+    public java.util.Map<java.lang.String, java.lang.String>
+        getMutableVaultAttachers() {
+      bitField0_ |= 0x00000008;
+      return internalGetMutableVaultAttachers().getMutableMap();
+    }
+    /**
+     * <pre>
+     * Who attached each of this resource's vaults, by vault id: the account
+     * whose permission to use the vault each run checks when it has no
+     * person.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; vault_attachers = 3 [json_name = "vaultAttachers"];</code>
+     */
+    public Builder putVaultAttachers(
+        java.lang.String key,
+        java.lang.String value) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      if (value == null) { throw new NullPointerException("map value"); }
+      internalGetMutableVaultAttachers().getMutableMap()
+          .put(key, value);
+      bitField0_ |= 0x00000008;
+      return this;
+    }
+    /**
+     * <pre>
+     * Who attached each of this resource's vaults, by vault id: the account
+     * whose permission to use the vault each run checks when it has no
+     * person.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; vault_attachers = 3 [json_name = "vaultAttachers"];</code>
+     */
+    public Builder putAllVaultAttachers(
+        java.util.Map<java.lang.String, java.lang.String> values) {
+      internalGetMutableVaultAttachers().getMutableMap()
+          .putAll(values);
+      bitField0_ |= 0x00000008;
       return this;
     }
 

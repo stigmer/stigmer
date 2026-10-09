@@ -1,0 +1,69 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.vault.v1;
+
+import "ai/stigmer/agentic/vault/v1/api.proto";
+import "ai/stigmer/agentic/vault/v1/io.proto";
+import "ai/stigmer/commons/apiresource/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+
+// VaultQueryController handles read operations for vaults.
+//
+// Every read shows entry names, addresses, descriptions and who saved them,
+// never a value.
+service VaultQueryController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = vault;
+
+  // Get a vault by ID.
+  //
+  // @internal
+  // Authorization: can_view on the vault. Nobody views another person's My
+  // vault, an admin included.
+  rpc get(ai.stigmer.commons.apiresource.ApiResourceId) returns (Vault) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = vault;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get vault";
+  }
+
+  // Get a vault by its organization-scoped reference (org/slug).
+  //
+  // @internal
+  // Custom authorization in the handler: resolves the reference, then asks
+  // can_view on the vault.
+  rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (Vault) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // Get the caller's own My vault in an organization.
+  //
+  // Answers NOT_FOUND until the caller saves their first login or secret.
+  //
+  // @internal
+  // Authorization in the handler: the vault is found by the caller's own
+  // identity, so the request names no target to check.
+  rpc getMine(GetMyVaultInput) returns (Vault) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // Get a shared vault by the integrator's own id for it.
+  //
+  // @internal
+  // Custom authorization in the handler: asks can_view on the organization,
+  // then resolves the external id's name claim to the vault and asks
+  // can_view on it. A vault the caller may not view answers NOT_FOUND, as
+  // one that does not exist does.
+  rpc getByExternalId(GetVaultByExternalIdInput) returns (Vault) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // List the vaults the caller can see in an organization: their own My
+  // vault and the shared vaults they may view.
+  //
+  // @internal
+  // Authorization in the handler through the list read scope.
+  rpc list(ListVaultsRequest) returns (VaultList) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+}

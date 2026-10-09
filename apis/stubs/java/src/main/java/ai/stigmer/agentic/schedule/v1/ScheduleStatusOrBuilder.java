@@ -121,6 +121,70 @@ public interface ScheduleStatusOrBuilder extends
 
   /**
    * <pre>
+   * Who attached each of this resource's vaults, by vault id: the account
+   * whose permission to use the vault each run checks when it has no
+   * person.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; vault_attachers = 6 [json_name = "vaultAttachers"];</code>
+   */
+  int getVaultAttachersCount();
+  /**
+   * <pre>
+   * Who attached each of this resource's vaults, by vault id: the account
+   * whose permission to use the vault each run checks when it has no
+   * person.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; vault_attachers = 6 [json_name = "vaultAttachers"];</code>
+   */
+  boolean containsVaultAttachers(
+      java.lang.String key);
+  /**
+   * Use {@link #getVaultAttachersMap()} instead.
+   */
+  @java.lang.Deprecated
+  java.util.Map<java.lang.String, java.lang.String>
+  getVaultAttachers();
+  /**
+   * <pre>
+   * Who attached each of this resource's vaults, by vault id: the account
+   * whose permission to use the vault each run checks when it has no
+   * person.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; vault_attachers = 6 [json_name = "vaultAttachers"];</code>
+   */
+  java.util.Map<java.lang.String, java.lang.String>
+  getVaultAttachersMap();
+  /**
+   * <pre>
+   * Who attached each of this resource's vaults, by vault id: the account
+   * whose permission to use the vault each run checks when it has no
+   * person.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; vault_attachers = 6 [json_name = "vaultAttachers"];</code>
+   */
+  /* nullable */
+java.lang.String getVaultAttachersOrDefault(
+      java.lang.String key,
+      /* nullable */
+java.lang.String defaultValue);
+  /**
+   * <pre>
+   * Who attached each of this resource's vaults, by vault id: the account
+   * whose permission to use the vault each run checks when it has no
+   * person.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; vault_attachers = 6 [json_name = "vaultAttachers"];</code>
+   */
+  java.lang.String getVaultAttachersOrThrow(
+      java.lang.String key);
+
+  /**
+   * <pre>
    * Standard audit information (created_at, updated_at, created_by, etc.)
    * </pre>
    *

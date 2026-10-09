@@ -12,7 +12,7 @@ public interface GetOAuthGrantStatusOutputOrBuilder extends
 
   /**
    * <pre>
-   * Whether the user has an active OAuth grant for this resource + org.
+   * Whether the user has a sign-in saved for this server in this org.
    * </pre>
    *
    * <code>bool connected = 1 [json_name = "connected"];</code>
@@ -23,7 +23,7 @@ public interface GetOAuthGrantStatusOutputOrBuilder extends
   /**
    * <pre>
    * When the access token expires (Unix timestamp seconds).
-   * 0 if no grant exists or the token does not expire.
+   * 0 if no sign-in is saved or the token does not expire.
    * </pre>
    *
    * <code>int64 access_token_expires_at = 2 [json_name = "accessTokenExpiresAt"];</code>
@@ -33,8 +33,8 @@ public interface GetOAuthGrantStatusOutputOrBuilder extends
 
   /**
    * <pre>
-   * The env var name where the access token is stored.
-   * Empty if no grant exists.
+   * The env var the saved sign-in fills.
+   * Empty if no sign-in is saved.
    * </pre>
    *
    * <code>string target_env_var = 3 [json_name = "targetEnvVar"];</code>
@@ -43,8 +43,8 @@ public interface GetOAuthGrantStatusOutputOrBuilder extends
   java.lang.String getTargetEnvVar();
   /**
    * <pre>
-   * The env var name where the access token is stored.
-   * Empty if no grant exists.
+   * The env var the saved sign-in fills.
+   * Empty if no sign-in is saved.
    * </pre>
    *
    * <code>string target_env_var = 3 [json_name = "targetEnvVar"];</code>
@@ -56,7 +56,7 @@ public interface GetOAuthGrantStatusOutputOrBuilder extends
   /**
    * <pre>
    * Which auth method was used ("mcp_oauth" or "vendor_oauth").
-   * Empty if no grant exists.
+   * Empty if no sign-in is saved.
    * </pre>
    *
    * <code>string auth_method = 4 [json_name = "authMethod"];</code>
@@ -66,7 +66,7 @@ public interface GetOAuthGrantStatusOutputOrBuilder extends
   /**
    * <pre>
    * Which auth method was used ("mcp_oauth" or "vendor_oauth").
-   * Empty if no grant exists.
+   * Empty if no sign-in is saved.
    * </pre>
    *
    * <code>string auth_method = 4 [json_name = "authMethod"];</code>

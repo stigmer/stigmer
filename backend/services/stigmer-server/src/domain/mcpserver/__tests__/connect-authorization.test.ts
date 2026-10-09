@@ -16,7 +16,7 @@
  *     lookup (the grant store is untouchable under denial);
  *   - a credential bound to one organization, though authorized on the
  *     server, is refused with the binding's sentence on every lane that
- *     names another organization, before any engine, environment, grant or
+ *     names another organization, before any engine, vault or
  *     context is touched (prepareConnect included, which connect's own
  *     check would otherwise hide).
  */
@@ -116,11 +116,10 @@ function deps(authorizer: Authorizer): McpServerConnectDeps {
       connected: true,
       engine: unreachable("engine"),
     }),
-    environmentReader: unreachable("environmentReader"),
     executionContext: unreachable("executionContext"),
     runnerAuth: unreachable("runnerAuth"),
-    managedEnv: unreachable("managedEnv"),
-    oauthGrants: unreachable("oauthGrants"),
+    vaults: unreachable("vaults"),
+    vaultResolver: unreachable("vaultResolver"),
     pendingOAuthStates: store.pendingOAuthStates,
     secretService: unreachable("secretService"),
     oauthRedirectUri: "http://localhost:7233/oauth/callback",
@@ -200,6 +199,8 @@ describe("connect-lane authorization", () => {
       tokenEndpoint: "",
       mcpServerId: "mcps_pending",
       identityAccountId: "",
+      vaultId: "",
+      toolAddress: "",
       targetEnvVar: "",
       authMethod: "mcp_oauth",
       tokenAuthMethod: "",
@@ -276,7 +277,7 @@ describe("connect lanes under a credential bound to another organization", () =>
   };
   const boundToA = { ...caller, boundOrg: "org_a" };
 
-  it("connect, startConnect and prepareConnect refuse before the engine or any environment is touched", async () => {
+  it("connect, startConnect and prepareConnect refuse before the engine or any vault is touched", async () => {
     await seedServer("mcps_shared");
     const input = create(ConnectInputSchema, {
       mcpServerId: "mcps_shared",

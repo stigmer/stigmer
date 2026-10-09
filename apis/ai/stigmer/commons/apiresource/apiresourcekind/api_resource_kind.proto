@@ -617,34 +617,11 @@ enum ApiResourceKind {
 
   // Agentic - Run environment and context
 
-  // Named set of variables and secrets for a run.
-  environment = 53 [(kind_meta) = {
-    group: agentic
-    version: v1
-    name: "Environment"
-    display_name: "Environment"
-    id_prefix: "env"
-    is_versioned: false
-    not_search_indexed: false
-    tier: open_source
-    authorization: {
-      scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
-      owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
-      requires_creator_tuple: true
-      // ORG is the ceiling: org visibility shares the environment with the
-      // owning org (members see redacted values; runs in the org may
-      // use the values at runtime). Secret reveal stays creator-only at
-      // every level. public/platform are deliberately absent — secret
-      // values must never be resolvable across the org boundary, and
-      // defaults_to_org_visibility is deliberately absent — sharing a
-      // credential set is an explicit opt-in, never a creation default.
-      visibility: {supports_org: true}
-      grantable_roles: [
-        owner,
-        viewer
-      ]
-    }
-  }];
+  // Value 53 held the Environment kind (id prefix "env": a named set of
+  // variables and secrets for a run) until vaults replaced it. Reserved so
+  // the number is never reused for a different kind.
+  reserved 53;
+  reserved "environment";
 
   // User-owned runtime context for managing execution state.
   execution_context = 54 [(kind_meta) = {
@@ -765,6 +742,51 @@ enum ApiResourceKind {
         viewer
       ]
       team_grantable_roles: [viewer]
+    }
+  }];
+
+  // Agentic - Vaults (the logins and secrets runs use)
+
+  // A person's or an organization's box of logins (matched by a tool's
+  // address) and secrets (matched by name) that runs use.
+  vault = 59 [(kind_meta) = {
+    group: agentic
+    version: v1
+    name: "Vault"
+    display_name: "Vault"
+    id_prefix: "vlt"
+    is_versioned: false
+    // Not searchable by design (privacy): the search index's results are
+    // org-visible, and the entry names in a person's My vault are theirs.
+    not_search_indexed: true
+    tier: open_source
+    authorization: {
+      scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
+      // No owner tuple from the caller: the owner is a server-stamped
+      // oneof in the spec. My vault links its person, a shared vault its
+      // organization; each row writes exactly one of the two optional
+      // parents below.
+      owner_type: OWNER_ATTRIBUTION_TYPE_NONE
+      additional_parents: [
+        {
+          kind: "identity_account"
+          relation: "person"
+          spec_field: "person"
+          optional: true
+        },
+        {
+          kind: "organization"
+          relation: "org_owned"
+          spec_field: "org"
+          optional: true
+        }
+      ]
+      // ORG is the ceiling, and only on a shared vault: org visibility lets
+      // every member use it. My vault refuses every visibility change.
+      // Values never cross the organization's boundary.
+      visibility: {supports_org: true}
+      grantable_roles: [user]
+      team_grantable_roles: [user]
     }
   }];
 

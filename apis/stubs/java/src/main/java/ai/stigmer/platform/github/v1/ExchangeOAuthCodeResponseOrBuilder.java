@@ -12,26 +12,6 @@ public interface ExchangeOAuthCodeResponseOrBuilder extends
 
   /**
    * <pre>
-   * GitHub access token for API calls.
-   * </pre>
-   *
-   * <code>string access_token = 1 [json_name = "accessToken"];</code>
-   * @return The accessToken.
-   */
-  java.lang.String getAccessToken();
-  /**
-   * <pre>
-   * GitHub access token for API calls.
-   * </pre>
-   *
-   * <code>string access_token = 1 [json_name = "accessToken"];</code>
-   * @return The bytes for accessToken.
-   */
-  com.google.protobuf.ByteString
-      getAccessTokenBytes();
-
-  /**
-   * <pre>
    * Token type (typically "bearer").
    * </pre>
    *
@@ -69,4 +49,24 @@ public interface ExchangeOAuthCodeResponseOrBuilder extends
    */
   com.google.protobuf.ByteString
       getScopeBytes();
+
+  /**
+   * <pre>
+   * The connected GitHub account's login.
+   * </pre>
+   *
+   * <code>string login = 4 [json_name = "login"];</code>
+   * @return The login.
+   */
+  java.lang.String getLogin();
+  /**
+   * <pre>
+   * The connected GitHub account's login.
+   * </pre>
+   *
+   * <code>string login = 4 [json_name = "login"];</code>
+   * @return The bytes for login.
+   */
+  com.google.protobuf.ByteString
+      getLoginBytes();
 }

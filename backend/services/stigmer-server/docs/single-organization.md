@@ -7,16 +7,17 @@ This document is the inventory of which field the fill sets, one row per method 
 ## The rule
 
 - **`org`**: the input has a top-level `string org`. Filled on every service but the Organization service's own.
+- **`vault.org`**: otherwise, the input's `vault` is a `VaultTarget`: the vault entry writes (`setSecrets`, `removeSecrets`, `setConnection`, `removeConnections`) name the vault they change, and its organization, inside that target.
 - **`metadata.org`**: otherwise, the input carries an `ApiResourceMetadata` and its service's `api_resource_kind` is scoped to an organization (`AUTHORIZATION_SCOPE_TYPE_ORGANIZATION`), or to a parent (`AUTHORIZATION_SCOPE_TYPE_PARENT`: an agent run's organization is its session's).
 - **Not filled**:
   - the Organization service's own methods, because an organization's own `metadata.org` stays empty;
   - the kinds that belong to no organization (`AUTHORIZATION_SCOPE_TYPE_OWNER_ONLY` and `AUTHORIZATION_SCOPE_TYPE_NONE`: identity accounts, API keys, execution contexts, the platform, plans and licences);
-  - nested messages, because a spec reference with no organization takes its resource's own (`NormalizeReferences`, `src/pipeline/steps/references.ts`);
+  - nested messages other than a `VaultTarget`, because a spec reference with no organization takes its resource's own (`NormalizeReferences`, `src/pipeline/steps/references.ts`);
   - streams, because no streaming method takes an organization.
 
 Why every plain `org` and not only the ones an authorization annotation names: on a server that holds one organization, every meaning an empty `org` has elsewhere gives the same answer as "the one organization". "The parent's organization", "every organization the caller can see" and "the one organization" are the same set, and the cross-organization probe an anti-enumeration refusal guards cannot exist. The two meanings that differ, a platform-scoped write and a resource that belongs to no organization, are excluded by kind. One read differs and is filled anyway: a search with no `org` that asks for organizations (`kinds` empty, the discover mode, or naming the organization kind) used to answer the organization rows the caller can see, whose index entries carry no organization; filled, it answers none. On a server that holds one organization that row is the one nobody names, so leaving it out of search is what the console wants. In-process calls are never filled: server code names its organization, and three in-process lanes rely on an empty one's other meanings.
 
-Rows read `| Service.method | org |`, `| Service.method | metadata.org |` or `| Service.method | not filled: <reason> |`.
+Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Service.method | metadata.org |` or `| Service.method | not filled: <reason> |`.
 
 
 ## `ai.stigmer.activity.v1`
@@ -80,16 +81,6 @@ Rows read `| Service.method | org |`, `| Service.method | metadata.org |` or `| 
 | ChannelAppCommandController.update | metadata.org |
 | ChannelAppQueryController.getByReference | org |
 | ChannelAppQueryController.listByOrg | org |
-
-## `ai.stigmer.agentic.environment.v1`
-
-| Method | Fills |
-|---|---|
-| EnvironmentCommandController.apply | metadata.org |
-| EnvironmentCommandController.create | metadata.org |
-| EnvironmentCommandController.update | metadata.org |
-| EnvironmentQueryController.getByReference | org |
-| EnvironmentQueryController.list | org |
 
 ## `ai.stigmer.agentic.mcpserver.v1`
 
@@ -155,6 +146,21 @@ Rows read `| Service.method | org |`, `| Service.method | metadata.org |` or `| 
 | SkillQueryController.getByReference | org |
 | SkillQueryController.listVersions | org |
 
+## `ai.stigmer.agentic.vault.v1`
+
+| Method | Fills |
+|---|---|
+| VaultCommandController.create | metadata.org |
+| VaultCommandController.removeConnections | vault.org |
+| VaultCommandController.removeSecrets | vault.org |
+| VaultCommandController.setConnection | vault.org |
+| VaultCommandController.setSecrets | vault.org |
+| VaultCommandController.update | metadata.org |
+| VaultQueryController.getByExternalId | org |
+| VaultQueryController.getByReference | org |
+| VaultQueryController.getMine | org |
+| VaultQueryController.list | org |
+
 ## `ai.stigmer.iam.iampolicy.v1`
 
 | Method | Fills |
@@ -182,6 +188,18 @@ Rows read `| Service.method | org |`, `| Service.method | metadata.org |` or `| 
 | PlatformClientQueryController.getByReference | org |
 | PlatformClientQueryController.listByOrg | org |
 | PlatformClientTokenController.mintUserToken | org |
+
+## `ai.stigmer.platform.github.v1`
+
+| Method | Fills |
+|---|---|
+| GitHubQueryController.getFileContent | org |
+| GitHubQueryController.getTree | org |
+| GitHubQueryController.listBranches | org |
+| GitHubQueryController.listRepositories | org |
+| GitHubQueryController.searchRepositories | org |
+| GitHubService.exchangeOAuthCode | org |
+| GitHubService.getOAuthAuthorizeUrl | org |
 
 ## `ai.stigmer.search.v1`
 

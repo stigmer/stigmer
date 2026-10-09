@@ -1,0 +1,91 @@
+{
+  "name": "VaultSpec",
+  "description": "VaultSpec names who a vault belongs to and holds its entries.",
+  "protoType": "ai.stigmer.agentic.vault.v1.VaultSpec",
+  "protoFile": "apis/ai/stigmer/agentic/vault/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Person",
+      "jsonName": "person",
+      "protoField": "person",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The person whose My vault this is, by identity account id.",
+      "required": false,
+      "oneofGroup": "owner"
+    },
+    {
+      "name": "Org",
+      "jsonName": "org",
+      "protoField": "org",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The organization a shared vault belongs to, by id.",
+      "required": false,
+      "oneofGroup": "owner"
+    },
+    {
+      "name": "Description",
+      "jsonName": "description",
+      "protoField": "description",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Human-readable description shown in listings.",
+      "required": false,
+      "validation": {
+        "maxLength": 500
+      }
+    },
+    {
+      "name": "ExternalId",
+      "jsonName": "externalId",
+      "protoField": "external_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Your own identifier for this vault, unique within the organization.\n\n An integrator that keeps one vault per customer sets it to the\n customer's id and finds the vault again with getByExternalId. Shared\n vaults only.",
+      "required": false,
+      "validation": {
+        "maxLength": 200,
+        "pattern": "^$|^[A-Za-z0-9][A-Za-z0-9._:@/-]*$"
+      }
+    },
+    {
+      "name": "Secrets",
+      "jsonName": "secrets",
+      "protoField": "secrets",
+      "type": {
+        "kind": "map",
+        "keyType": {
+          "kind": "string"
+        },
+        "valueType": {
+          "kind": "message",
+          "messageType": "VaultSecret"
+        }
+      },
+      "description": "Secrets by name. A secret fills the requirement with the same name, such\n as OPENAI_API_KEY.",
+      "required": false
+    },
+    {
+      "name": "Connections",
+      "jsonName": "connections",
+      "protoField": "connections",
+      "type": {
+        "kind": "map",
+        "keyType": {
+          "kind": "string"
+        },
+        "valueType": {
+          "kind": "message",
+          "messageType": "VaultConnection"
+        }
+      },
+      "description": "Connections by address. A pasted connection fills the login of an HTTP\n tool at that address, whose requests carry the token there, or clones\n from a Git host such as github.com; a sign-in fills only the tool that\n signed in.",
+      "required": false
+    }
+  ]
+}

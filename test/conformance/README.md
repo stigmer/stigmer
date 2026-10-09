@@ -54,18 +54,18 @@ Covered against the `local` target:
   on disk after `delete` (so `getArtifact` still works post-delete), and
   `pushFromExecutionArtifact`'s happy path needs a real execution artifact and is
   covered at the integration layer instead.
-- **Environment** — a flat platform resource holding configuration and secrets in
-  `spec.data`. Coverage: CRUD & identity (`env_` id, slug derivation, apply
-  create/update branching, `getByReference`, cross-org slug reuse); **secret
-  handling** (redaction on every read in both editions since stigmer#405, the
-  always-preserved `is_secret` flag, and the `getSecretValue` reveal endpoint
-  that returns the unredacted value in every edition); the **redaction-marker preservation**
-  contract (re-submitting `***REDACTED***` for an existing secret on `update`
-  preserves the stored value, and using it for a non-existent secret is rejected);
-  incremental variable management (`updateVariables` merge, `removeVariables`); and
-  `list` filtering. Negatives include the shared duplicate/missing-name contract
-  checks plus the proper-code contrast that a duplicate **personal** environment
-  returns a real `AlreadyExists`.
+- **Vault** — the logins (by a tool's address) and secrets (by name) runs use.
+  Coverage: shared vaults (`vlt_` id, owned by the organization, empty and
+  private on create, `getByReference`, update keeping the stored entries,
+  organization visibility, `external_id` unique and freed by delete); **My
+  vault** (NotFound before the first write, created by the first entry write
+  naming `mine`, never org-visible); **write-only values** (no read shows a
+  secret's value or a connection's token, the marker and server ciphertext
+  refused as values); address normalization and its refusals; and, on the
+  enforcing lane, a person never reaching a teammate's My vault (an admin
+  included), only admins creating shared vaults, and the list never showing
+  another person's My vault. How a run's values are resolved from vaults is
+  the execution suite `vault-resolution`.
 - **ExecutionContext** — the execution-scoped, flat resource the engine creates per
   run. Coverage: CRUD & identity (`ectx_` id, slug derivation); resolution by id,
   by reference, and by parent **`getByExecutionId`**; the distinctive **`apply` is
@@ -73,9 +73,9 @@ Covered against the `local` target:
   there is no `update` RPC); and secret handling (redacted on every user-shaped
   read in both editions since stigmer#535; decrypted values flow only through
   the scope-bound runner lane). The
-  *envmerge precedence* that populates `spec.data` at execution start is out of
-  scope here (it needs a live execution) and is covered by the execution-lifecycle
-  slice.
+  resolution from vaults that populates `spec.data` at execution start is out of
+  scope here (it needs a live execution) and is covered by the
+  `vault-resolution` execution suite.
 - **Session** — the runtime conversation thread, on the agent it names by
   reference (`spec.agent_ref`) or on the built-in assistant. Coverage: CRUD &
   identity (`ses_` id, slug derivation, apply create/update branching, update
@@ -725,7 +725,7 @@ src/
                     + run*.conformance.test.ts (lifecycle, approval, recover, messages, subagent, provider-error,
                       structured-output, file-review, file-review-progress, memory-retrieval, memory-selection, stigmer-mcp-stdio,
                       request-shape, tool-lists)
-                    + mcpserver-connect, mcp-caller-identity, mcp-server-address, envmerge-*, session-immutability, schedule-firing, billing-*  (Class B)
+                    + mcpserver-connect, mcp-caller-identity, mcp-server-address, vault-resolution, session-immutability, schedule-firing, billing-*  (Class B)
                     + goldens/  (the request-shape facet's file goldens; regenerated only under a ruling)
 scripts/            check-inventory, cloud-fixtures-serve, benchmark-harnesses (+ benchmark-harnesses/quality-tasks.yaml)
 fixtures/           working-agent/ (the working agent's Go workspace and skills: data, outside the TypeScript include)

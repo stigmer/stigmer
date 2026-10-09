@@ -4,14 +4,14 @@
 // ExecutionContext is the execution-scoped, flat resource the engine creates to
 // carry a single run's merged runtime configuration and secrets. Its spec pairs
 // a required `execution_id` (the parent Run id) with
-// a `data` map of ExecutionValue entries (value + is_secret; no description,
-// unlike EnvironmentValue).
+// a `data` map of ExecutionValue entries (value + is_secret; no description).
 //
-// In normal operation the engine creates the context after envmerge runs; here
+// In normal operation the engine creates the context after the run's vaults
+// are resolved; here
 // we exercise the resource's own API contract directly. There is no foreign-key
 // check on execution_id, so a synthetic id is sufficient for the lookup tests.
 //
-// As with support/environments.ts, the canonical builder is SECRET-FREE so the
+// The canonical builder is SECRET-FREE so the
 // create-vs-get parity check stays edition-stable; secret entries are opt-in via
 // `data` for the dedicated secret tests. Negatives are composed inline.
 import type { InitShape } from "./init-shape";
@@ -22,8 +22,8 @@ export const EXECUTION_CONTEXT_API_VERSION = "agentic.stigmer.ai/v1";
 export const EXECUTION_CONTEXT_KIND = "ExecutionContext";
 
 // A single ExecutionValue entry: the runtime value and whether it is a secret.
-// Used both for ExecutionContext.spec.data and for the Run runtime_env
-// map (both are map<string, ExecutionValue>).
+// Used for ExecutionContext.spec.data and for the MCP connect lane's one-time
+// values (ConnectInput.runtime_env); both are map<string, ExecutionValue>.
 export interface ExecutionValueInit {
   value: string;
   isSecret?: boolean;
@@ -31,7 +31,7 @@ export interface ExecutionValueInit {
 
 // Projects a keyed map of ExecutionValueInit into the proto
 // map<string, ExecutionValue> init shape, defaulting is_secret to false. Shared
-// by the ExecutionContext fixture and the execution runtime_env builders so the
+// by the ExecutionContext fixture and the connect builders so the
 // same value semantics are applied everywhere ExecutionValue appears.
 export function makeExecutionValues(
   data: Record<string, ExecutionValueInit>,

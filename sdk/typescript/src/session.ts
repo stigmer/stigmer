@@ -81,8 +81,8 @@ export function resolvedSubject(subject: string | undefined): string | null {
  * message), so agents treat it as context — never as a credential or a
  * permission grant. It is hidden from the conversation thread, not from
  * the API: `session.get` returns the full spec including this key, so it
- * is not a secrets channel — secrets belong in `runtimeEnv` or
- * Environment resources.
+ * is not a secrets channel — secrets belong in the session's own
+ * `secrets` or in a vault.
  *
  * Pinned verbatim to `SESSION_CONTEXT_METADATA_KEY` in the runner
  * (`backend/services/runner/src/shared/session-context.ts`), with mirror

@@ -1,5 +1,5 @@
 /**
- * IAM role metadata: display metadata for the five
+ * IAM role metadata: display metadata for the seven
  * assignable roles and the assignable-relation allowlist that keeps
  * structural relations (parent links, runtime grants, observability
  * usersets) out of every access listing BY CONSTRUCTION — reads filter to
@@ -67,6 +67,14 @@ const ROLE_DISPLAY: ReadonlyArray<RoleDisplay> = [
     name: "Editor",
     description:
       "Edit and run the resource; cannot delete it or change who has access",
+  },
+  // Grantable on vault only, to people and Teams: their runs may use the
+  // vault's logins and secrets. Omitting it would hide every vault user
+  // from the vault's access listing.
+  {
+    role: IamRole.user,
+    name: "Can use",
+    description: "Use this vault's logins and secrets in their runs",
   },
 ];
 

@@ -9,15 +9,7 @@ import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_
 import type { McpServerUsage as ProtoMcpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
 import type { WorkspaceEntry as ProtoWorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import type { ApiResourceReference as ProtoApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import {
-  supersededRunIds,
-  toSessionUpdateInput,
-  type AttachmentInput,
-  type EnvVarInput,
-  type McpServerUsageInput,
-  type ResourceRef,
-  type WorkspaceEntryInput,
-} from "@stigmer/sdk";
+import { supersededRunIds, toSessionUpdateInput, type AttachmentInput, type McpServerUsageInput, type ResourceRef, type WorkspaceEntryInput } from "@stigmer/sdk";
 import { isTerminalPhase } from "../run/run-phases.js";
 import type { ServiceTierOption } from "../models/service-tier.js";
 import type { ThinkingModeOption } from "../models/thinking-mode.js";
@@ -48,12 +40,11 @@ const REDISCOVERY_POLL_INTERVAL_MS = 5_000;
  * Options for {@link UseSessionConversationReturn.sendFollowUp}.
  *
  * Session-level fields (`workspaceEntries`, `mcpServerUsages`,
- * `skillRefs`) trigger a `session.update()` before the run is
- * created. Only provided fields are overwritten; omitted fields
- * preserve the session's existing values.
- *
- * `runtimeEnv` is forwarded to the run (Run Flow). These
- * values are scoped to the single run and deleted on completion.
+ * `skillRefs`, `vaults`, `secrets`) trigger a `session.update()` before
+ * the run is created. Only provided fields are overwritten; omitted fields
+ * preserve the session's existing values. `secrets` are merged into the
+ * conversation's own secrets: a name sent replaces its value, every other
+ * saved secret is kept.
  */
 export interface SendFollowUpOptions {
   /**
@@ -73,24 +64,27 @@ export interface SendFollowUpOptions {
    * session is updated before the run is created.
    */
   readonly agentRef?: ResourceRef | null;
-  /** Workspace entries to attach to the run. */
+  /**
+   * Workspace entries to attach to the run, replacing the stored ones. A
+   * repository kept by name and URL and sent without a token keeps its
+   * stored token; a token sent replaces it.
+   */
   readonly workspaceEntries?: WorkspaceEntryInput[];
   /** MCP server configurations to include for tool access. */
   readonly mcpServerUsages?: McpServerUsageInput[];
   /** Skill references to enable for this run. */
   readonly skillRefs?: ResourceRef[];
   /**
-   * Execution-scoped secrets and configuration (Run Flow).
-   *
-   * Values are injected into the agent sandbox for this run only
-   * and deleted when the run completes. They take the highest
-   * merge priority, overriding every environment layer. Keys must be
-   * declared in the agent's env declarations (a whitelist, not a value
-   * source) or they are dropped.
-   *
-   * @see {@link SharedRunFields.runtimeEnv}
+   * Secrets to add to the conversation's own secrets, by name, before the
+   * run is created. Kept sealed for the conversation's life and used ahead
+   * of every vault; never returned by a read.
    */
-  readonly runtimeEnv?: Record<string, EnvVarInput>;
+  readonly secrets?: Record<string, string>;
+  /**
+   * Replace the vaults the conversation lists. An empty list returns the
+   * conversation to the person's own My vault.
+   */
+  readonly vaults?: ResourceRef[];
   /**
    * Pre-uploaded file attachments for this run.
    *
@@ -674,7 +668,9 @@ export function useSessionConversation(
           options?.agentRef !== undefined ||
           options?.workspaceEntries !== undefined ||
           options?.mcpServerUsages !== undefined ||
-          options?.skillRefs !== undefined;
+          options?.skillRefs !== undefined ||
+          options?.vaults !== undefined ||
+          (options?.secrets !== undefined && Object.keys(options.secrets).length > 0);
 
         if (needsSessionUpdate) {
           // Fetch the latest session to avoid overwriting fields that were
@@ -687,6 +683,8 @@ export function useSessionConversation(
               workspaceEntries: options?.workspaceEntries,
               mcpServerUsages: options?.mcpServerUsages,
               skillRefs: options?.skillRefs,
+              vaults: options?.vaults,
+              secrets: options?.secrets,
             }),
           );
           refetchSession();
@@ -697,7 +695,6 @@ export function useSessionConversation(
           sessionId,
           message,
           modelName: options?.modelName,
-          runtimeEnv: options?.runtimeEnv,
           attachments: options?.attachments,
           interactionMode: options?.interactionMode,
           serviceTier: options?.serviceTier,
@@ -898,10 +895,20 @@ function buildUpdateInput(
     workspaceEntries?: WorkspaceEntryInput[];
     mcpServerUsages?: McpServerUsageInput[];
     skillRefs?: ResourceRef[];
+    vaults?: ResourceRef[];
+    secrets?: Record<string, string>;
   },
 ) {
   const mapped = toSessionUpdateInput(session);
-  const workspaceEntries = overrides.workspaceEntries ?? mapped.workspaceEntries;
+  const vaults = overrides.vaults ?? mapped.vaults;
+  // The stored secrets read back as the redaction marker; echoing the
+  // marker keeps each stored value, so only the names sent here change.
+  const secrets = overrides.secrets
+    ? { ...mapped.secrets, ...overrides.secrets }
+    : mapped.secrets;
+  const workspaceEntries = overrides.workspaceEntries
+    ? keepStoredRepositoryTokens(overrides.workspaceEntries, mapped.workspaceEntries)
+    : mapped.workspaceEntries;
   const mcpServerUsages = overrides.mcpServerUsages ?? mapped.mcpServerUsages;
   const skillRefs = overrides.skillRefs ?? mapped.skillRefs;
 
@@ -914,7 +921,39 @@ function buildUpdateInput(
     workspaceEntries: workspaceEntries?.length ? workspaceEntries : undefined,
     mcpServerUsages: mcpServerUsages?.length ? mcpServerUsages : undefined,
     skillRefs: skillRefs?.length ? skillRefs : undefined,
+    vaults: vaults?.length ? vaults : undefined,
+    secrets: secrets && Object.keys(secrets).length > 0 ? secrets : undefined,
   };
+}
+
+/**
+ * Replacement workspace entries that keep each stored repository token.
+ * A repository the replacement keeps by name and URL, sent without a
+ * token, carries the stored one as read (the redaction marker, which the
+ * server reads as "keep the stored value"); a token the caller sends wins.
+ * Without this, a follow-up that rebuilds the workspace from URL and
+ * branch alone would make the server destroy a token an integrator set.
+ */
+function keepStoredRepositoryTokens(
+  entries: WorkspaceEntryInput[],
+  stored: WorkspaceEntryInput[] | undefined,
+): WorkspaceEntryInput[] {
+  const storedTokens = new Map<string, string>();
+  for (const entry of stored ?? []) {
+    const repo = entry.source.gitRepo;
+    if (repo?.token) storedTokens.set(repositorySlot(entry.name, repo.url), repo.token);
+  }
+  return entries.map((entry) => {
+    const repo = entry.source.gitRepo;
+    if (!repo || repo.token) return entry;
+    const token = storedTokens.get(repositorySlot(entry.name, repo.url));
+    return token ? { ...entry, source: { ...entry.source, gitRepo: { ...repo, token } } } : entry;
+  });
+}
+
+/** A repository's token slot: its entry name and URL, as the server keys it. */
+function repositorySlot(name: string | undefined, url: string): string {
+  return `${name ?? ""}\u0000${url}`;
 }
 
 /** The stored agent reference as an echo that keeps the session's pin. */

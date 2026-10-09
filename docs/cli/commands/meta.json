@@ -25,6 +25,7 @@
     "share",
     "tag",
     "validate",
+    "vault",
     "---Artifact Commands---",
     "download",
     "install",

@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/session/v1/workspace.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_workspace: GenFile = /*@__PURE__*/
-  fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS93b3Jrc3BhY2UucHJvdG8SHWFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxIqoBCg9Xb3Jrc3BhY2VTb3VyY2USQAoIZ2l0X3JlcG8YASABKAsyLC5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5HaXRSZXBvU291cmNlSAASRAoKbG9jYWxfcGF0aBgCIAEoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkxvY2FsUGF0aFNvdXJjZUgAQg8KBnNvdXJjZRIFukgCCAEibwoOV29ya3NwYWNlRW50cnkSFQoEbmFtZRgBIAEoCUIHukgEcgIQARJGCgZzb3VyY2UYAiABKAsyLi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5Xb3Jrc3BhY2VTb3VyY2VCBrpIA8gBASIoCg9Mb2NhbFBhdGhTb3VyY2USFQoEcGF0aBgBIAEoCUIHukgEcgIQASLIAgoNR2l0UmVwb1NvdXJjZRKlAQoDdXJsGAEgASgJQpcBukiTAboBjAEKGWdpdF9yZXBvX3NvdXJjZS51cmwuaHR0cHMSUnVybCBtdXN0IHVzZSBIVFRQUyAoZS5nLiBodHRwczovL2dpdGh1Yi5jb20vb3JnL3JlcG8pLiBTU0ggVVJMcyBhcmUgbm90IHN1cHBvcnRlZC4aG3RoaXMuc3RhcnRzV2l0aCgnaHR0cHM6Ly8nKcgBARIOCgZicmFuY2gYAiABKAkSDgoGY29tbWl0GAMgASgJEhsKBWRlcHRoGAQgASgFQge6SAQaAigASACIAQESSAoPd3JpdGVfYmFja19tb2RlGAUgASgOMi8uYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuR2l0V3JpdGVCYWNrTW9kZUIICgZfZGVwdGhiBnByb3RvMw", [file_ai_stigmer_agentic_session_v1_enum, file_buf_validate_validate]);
+  fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS93b3Jrc3BhY2UucHJvdG8SHWFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxIqoBCg9Xb3Jrc3BhY2VTb3VyY2USQAoIZ2l0X3JlcG8YASABKAsyLC5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5HaXRSZXBvU291cmNlSAASRAoKbG9jYWxfcGF0aBgCIAEoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkxvY2FsUGF0aFNvdXJjZUgAQg8KBnNvdXJjZRIFukgCCAEibwoOV29ya3NwYWNlRW50cnkSFQoEbmFtZRgBIAEoCUIHukgEcgIQARJGCgZzb3VyY2UYAiABKAsyLi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5Xb3Jrc3BhY2VTb3VyY2VCBrpIA8gBASIoCg9Mb2NhbFBhdGhTb3VyY2USFQoEcGF0aBgBIAEoCUIHukgEcgIQASLiAgoNR2l0UmVwb1NvdXJjZRKlAQoDdXJsGAEgASgJQpcBukiTAboBjAEKGWdpdF9yZXBvX3NvdXJjZS51cmwuaHR0cHMSUnVybCBtdXN0IHVzZSBIVFRQUyAoZS5nLiBodHRwczovL2dpdGh1Yi5jb20vb3JnL3JlcG8pLiBTU0ggVVJMcyBhcmUgbm90IHN1cHBvcnRlZC4aG3RoaXMuc3RhcnRzV2l0aCgnaHR0cHM6Ly8nKcgBARIOCgZicmFuY2gYAiABKAkSDgoGY29tbWl0GAMgASgJEhsKBWRlcHRoGAQgASgFQge6SAQaAigASACIAQESSAoPd3JpdGVfYmFja19tb2RlGAUgASgOMi8uYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuR2l0V3JpdGVCYWNrTW9kZRIYCgV0b2tlbhgGIAEoCUIJukgGcgQYgIAEQggKBl9kZXB0aGIGcHJvdG8z", [file_ai_stigmer_agentic_session_v1_enum, file_buf_validate_validate]);
 
 /**
  * WorkspaceSource defines where the workspace content comes from.
@@ -111,6 +111,12 @@ export const LocalPathSourceSchema: GenMessage<LocalPathSource> = /*@__PURE__*/
  *
  * Only HTTPS clone URLs are supported. SSH URLs are rejected at validation time.
  *
+ * A private repository is cloned with the entry's own token when it carries
+ * one, else with a login saved for the repository's host (github.com) in the
+ * conversation's vaults. The entry's own token is used only for an
+ * https://github.com repository: a session write carrying a token for any
+ * other repository is refused.
+ *
  * @generated from message ai.stigmer.agentic.session.v1.GitRepoSource
  */
 export type GitRepoSource = Message<"ai.stigmer.agentic.session.v1.GitRepoSource"> & {
@@ -157,6 +163,18 @@ export type GitRepoSource = Message<"ai.stigmer.agentic.session.v1.GitRepoSource
    * @generated from field: ai.stigmer.agentic.session.v1.GitWriteBackMode write_back_mode = 5;
    */
   writeBackMode: GitWriteBackMode;
+
+  /**
+   * A token for cloning this repository, kept for the conversation only.
+   *
+   * Used only when the URL is an https://github.com repository; a session
+   * write carrying a token for any other repository is refused. Sealed for
+   * the conversation's life and never returned by a read. A schedule's
+   * repositories refuse it: save the token in a vault the schedule names.
+   *
+   * @generated from field: string token = 6;
+   */
+  token: string;
 };
 
 /**

@@ -22,7 +22,7 @@
     "guides/integrations",
     "guides/editors",
     "---Platform---",
-    "concepts/environments",
+    "concepts/vaults",
     "concepts/runners",
     "guides/runners",
     "concepts/harnesses",

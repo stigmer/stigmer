@@ -1,15 +1,15 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import type { EnvVarInput } from "@stigmer/sdk";
+import type { EnvVarInput } from "../vault/types.js";
 
 /**
  * A single entry in the session variables editor.
  *
  * Each entry maps to one environment variable. When `saveForFuture`
- * is `false` (default), the value is injected into the agent sandbox
- * for a single run only. When `true`, the value is persisted
- * to the user's personal environment for reuse across sessions.
+ * is `false` (default), the value becomes one of the conversation's own
+ * secrets, kept sealed for its life. When `true`, the value is also saved
+ * in the user's My vault for reuse across conversations.
  */
 export interface SessionVariableEntry {
   /** Unique identifier for this entry (auto-generated). */
@@ -20,7 +20,7 @@ export interface SessionVariableEntry {
   readonly value: string;
   /** Whether the value should be masked in the UI. */
   readonly isSecret: boolean;
-  /** When `true`, persists the value to the user's personal environment on submit. */
+  /** When `true`, saves the value in the user's My vault on submit. */
   readonly saveForFuture: boolean;
 }
 
@@ -43,21 +43,19 @@ export interface UseSessionVariablesReturn {
   readonly isEmpty: boolean;
   /**
    * True when at least one entry has a non-empty key AND non-empty value.
-   * Use this to decide whether to include `runtimeEnv` in the run.
+   * Use this to decide whether the conversation gains secrets on this turn.
    */
   readonly hasValidEntries: boolean;
   /**
-   * Convert valid entries to the SDK input shape for execution-scoped
-   * runtime env.
+   * The valid entries as the conversation's own secrets.
    *
    * Includes all entries with non-empty keys and values, regardless of
-   * `saveForFuture`. When duplicate keys exist, the last entry wins
-   * (consistent with environment semantics).
+   * `saveForFuture`. When duplicate keys exist, the last entry wins.
    */
-  readonly toRuntimeEnv: () => Record<string, EnvVarInput>;
+  readonly toSessionSecrets: () => Record<string, EnvVarInput>;
   /**
-   * Convert valid save-for-future entries (saveForFuture === true) to
-   * the SDK input shape for personal environment persistence.
+   * The valid save-for-future entries (saveForFuture === true), to save
+   * in My vault.
    *
    * Filters out entries with empty keys or values. When duplicate keys
    * exist, the last entry wins.
@@ -75,13 +73,12 @@ function uid(): string {
 }
 
 /**
- * Behavior hook that manages an array of session variable entries for
- * execution-scoped environment variables.
+ * Behavior hook that manages an array of session variable entries: a
+ * conversation's own secrets, typed in the composer.
  *
- * Session variables are injected into the agent sandbox at run
- * time. By default they are ephemeral (single run), but users
- * can opt into persisting individual entries to their personal
- * environment via the `saveForFuture` flag.
+ * Session variables become the conversation's own secrets (sealed for its
+ * life, never shown again). Users can also save individual entries in
+ * their My vault via the `saveForFuture` flag.
  *
  * Follows the same controlled-state pattern as {@link useWorkspaceEntries}:
  * the consumer owns the hook instance, passes it to UI components, reads
@@ -95,10 +92,10 @@ function uid(): string {
  *   const sessionVariables = useSessionVariables();
  *
  *   const handleSubmit = (message: string, model?: string) => {
- *     const runtimeEnv = sessionVariables.isEmpty
+ *     const secrets = sessionVariables.isEmpty
  *       ? undefined
- *       : sessionVariables.toRuntimeEnv();
- *     conv.sendFollowUp(message, { modelName: model, runtimeEnv });
+ *       : valuesOf(sessionVariables.toSessionSecrets());
+ *     conv.sendFollowUp(message, { modelName: model, secrets });
  *     sessionVariables.clear();
  *   };
  *
@@ -148,7 +145,7 @@ export function useSessionVariables(): UseSessionVariablesReturn {
     [entries],
   );
 
-  const toRuntimeEnv = useCallback((): Record<string, EnvVarInput> => {
+  const toSessionSecrets = useCallback((): Record<string, EnvVarInput> => {
     const result: Record<string, EnvVarInput> = {};
     for (const entry of entries) {
       const key = entry.key.trim();
@@ -191,10 +188,10 @@ export function useSessionVariables(): UseSessionVariablesReturn {
       clear,
       isEmpty,
       hasValidEntries,
-      toRuntimeEnv,
+      toSessionSecrets,
       toSaveForFutureEnv,
       hasSaveForFutureEntries,
     }),
-    [entries, addEntry, removeEntry, updateEntry, clear, isEmpty, hasValidEntries, toRuntimeEnv, toSaveForFutureEnv, hasSaveForFutureEntries],
+    [entries, addEntry, removeEntry, updateEntry, clear, isEmpty, hasValidEntries, toSessionSecrets, toSaveForFutureEnv, hasSaveForFutureEntries],
   );
 }

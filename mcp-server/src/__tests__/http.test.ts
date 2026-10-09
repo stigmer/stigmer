@@ -148,7 +148,7 @@ describe("HTTP transport hardening + OAuth discovery", () => {
     expect(res.headers.get("content-type")).toContain("application/json");
     expect(res.headers.get("mcp-session-id")).toBeNull();
     const body = (await res.json()) as { result: { tools: Array<{ name: string }> } };
-    expect(body.result.tools).toHaveLength(17);
+    expect(body.result.tools).toHaveLength(14);
   });
 
   it("ignores a session id a client still holds from a stateful server", async () => {

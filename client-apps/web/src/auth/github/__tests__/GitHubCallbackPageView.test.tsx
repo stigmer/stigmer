@@ -5,7 +5,7 @@
 // GitHub sends the visitor back here with a one-time `code` and the `state`
 // the console sent out. The view must refuse to redeem without both, wait
 // until the active org and the connection hook are ready (the token is
-// written into that org's personal environment), redeem exactly once, and
+// saved in that org's My vault by the server), redeem exactly once, and
 // then either hand control back to the popup's opener on this origin only,
 // or go home. A failure is shown, never swallowed.
 // ---------------------------------------------------------------------------

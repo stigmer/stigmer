@@ -597,4 +597,266 @@ java.lang.String defaultValue);
    * @return The executionTarget.
    */
   ai.stigmer.agentic.session.v1.ExecutionTarget getExecutionTarget();
+
+  /**
+   * <pre>
+   * Vaults whose logins and secrets this conversation's runs use, in order:
+   * the first vault holding a match wins. At most 20.
+   *
+   * A conversation that lists vaults uses exactly those. One that lists
+   * none uses the My vault of the person sending each turn, then the
+   * agent's vaults that person may use. A My vault cannot be listed: a
+   * conversation can have several people, and each person's own vault
+   * serves only their own turns.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 15 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
+   */
+  java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> 
+      getVaultsList();
+  /**
+   * <pre>
+   * Vaults whose logins and secrets this conversation's runs use, in order:
+   * the first vault holding a match wins. At most 20.
+   *
+   * A conversation that lists vaults uses exactly those. One that lists
+   * none uses the My vault of the person sending each turn, then the
+   * agent's vaults that person may use. A My vault cannot be listed: a
+   * conversation can have several people, and each person's own vault
+   * serves only their own turns.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 15 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
+   */
+  ai.stigmer.commons.apiresource.ApiResourceReference getVaults(int index);
+  /**
+   * <pre>
+   * Vaults whose logins and secrets this conversation's runs use, in order:
+   * the first vault holding a match wins. At most 20.
+   *
+   * A conversation that lists vaults uses exactly those. One that lists
+   * none uses the My vault of the person sending each turn, then the
+   * agent's vaults that person may use. A My vault cannot be listed: a
+   * conversation can have several people, and each person's own vault
+   * serves only their own turns.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 15 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
+   */
+  int getVaultsCount();
+  /**
+   * <pre>
+   * Vaults whose logins and secrets this conversation's runs use, in order:
+   * the first vault holding a match wins. At most 20.
+   *
+   * A conversation that lists vaults uses exactly those. One that lists
+   * none uses the My vault of the person sending each turn, then the
+   * agent's vaults that person may use. A My vault cannot be listed: a
+   * conversation can have several people, and each person's own vault
+   * serves only their own turns.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 15 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
+   */
+  java.util.List<? extends ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
+      getVaultsOrBuilderList();
+  /**
+   * <pre>
+   * Vaults whose logins and secrets this conversation's runs use, in order:
+   * the first vault holding a match wins. At most 20.
+   *
+   * A conversation that lists vaults uses exactly those. One that lists
+   * none uses the My vault of the person sending each turn, then the
+   * agent's vaults that person may use. A My vault cannot be listed: a
+   * conversation can have several people, and each person's own vault
+   * serves only their own turns.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 15 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
+   */
+  ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getVaultsOrBuilder(
+      int index);
+
+  /**
+   * <pre>
+   * Secrets this conversation's runs use, by name, ahead of every vault.
+   *
+   * This is how an integrator hands a run a key without saving it in a
+   * vault. The values are kept sealed for the conversation's life, can be
+   * replaced by an update at any time, are never returned by a read, and
+   * are destroyed with the conversation.
+   *
+   * An update built on an older read than the stored conversation (it
+   * echoes an older status.audit.spec_audit.updated_at) removes nothing it
+   * could not have seen: the values it omits are kept, and so are the
+   * vaults the conversation lists. Read the conversation again to remove a
+   * value or change its vaults.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; secrets = 16 [json_name = "secrets", (.buf.validate.field) = { ... }</code>
+   */
+  int getSecretsCount();
+  /**
+   * <pre>
+   * Secrets this conversation's runs use, by name, ahead of every vault.
+   *
+   * This is how an integrator hands a run a key without saving it in a
+   * vault. The values are kept sealed for the conversation's life, can be
+   * replaced by an update at any time, are never returned by a read, and
+   * are destroyed with the conversation.
+   *
+   * An update built on an older read than the stored conversation (it
+   * echoes an older status.audit.spec_audit.updated_at) removes nothing it
+   * could not have seen: the values it omits are kept, and so are the
+   * vaults the conversation lists. Read the conversation again to remove a
+   * value or change its vaults.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; secrets = 16 [json_name = "secrets", (.buf.validate.field) = { ... }</code>
+   */
+  boolean containsSecrets(
+      java.lang.String key);
+  /**
+   * Use {@link #getSecretsMap()} instead.
+   */
+  @java.lang.Deprecated
+  java.util.Map<java.lang.String, java.lang.String>
+  getSecrets();
+  /**
+   * <pre>
+   * Secrets this conversation's runs use, by name, ahead of every vault.
+   *
+   * This is how an integrator hands a run a key without saving it in a
+   * vault. The values are kept sealed for the conversation's life, can be
+   * replaced by an update at any time, are never returned by a read, and
+   * are destroyed with the conversation.
+   *
+   * An update built on an older read than the stored conversation (it
+   * echoes an older status.audit.spec_audit.updated_at) removes nothing it
+   * could not have seen: the values it omits are kept, and so are the
+   * vaults the conversation lists. Read the conversation again to remove a
+   * value or change its vaults.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; secrets = 16 [json_name = "secrets", (.buf.validate.field) = { ... }</code>
+   */
+  java.util.Map<java.lang.String, java.lang.String>
+  getSecretsMap();
+  /**
+   * <pre>
+   * Secrets this conversation's runs use, by name, ahead of every vault.
+   *
+   * This is how an integrator hands a run a key without saving it in a
+   * vault. The values are kept sealed for the conversation's life, can be
+   * replaced by an update at any time, are never returned by a read, and
+   * are destroyed with the conversation.
+   *
+   * An update built on an older read than the stored conversation (it
+   * echoes an older status.audit.spec_audit.updated_at) removes nothing it
+   * could not have seen: the values it omits are kept, and so are the
+   * vaults the conversation lists. Read the conversation again to remove a
+   * value or change its vaults.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; secrets = 16 [json_name = "secrets", (.buf.validate.field) = { ... }</code>
+   */
+  /* nullable */
+java.lang.String getSecretsOrDefault(
+      java.lang.String key,
+      /* nullable */
+java.lang.String defaultValue);
+  /**
+   * <pre>
+   * Secrets this conversation's runs use, by name, ahead of every vault.
+   *
+   * This is how an integrator hands a run a key without saving it in a
+   * vault. The values are kept sealed for the conversation's life, can be
+   * replaced by an update at any time, are never returned by a read, and
+   * are destroyed with the conversation.
+   *
+   * An update built on an older read than the stored conversation (it
+   * echoes an older status.audit.spec_audit.updated_at) removes nothing it
+   * could not have seen: the values it omits are kept, and so are the
+   * vaults the conversation lists. Read the conversation again to remove a
+   * value or change its vaults.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; secrets = 16 [json_name = "secrets", (.buf.validate.field) = { ... }</code>
+   */
+  java.lang.String getSecretsOrThrow(
+      java.lang.String key);
+
+  /**
+   * <pre>
+   * Logins this conversation's runs use, by the address of the tool or Git
+   * host each is for, ahead of every vault.
+   *
+   * Kept, replaced and destroyed as secrets are. Addresses are normalized
+   * as a vault's are.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; connections = 17 [json_name = "connections", (.buf.validate.field) = { ... }</code>
+   */
+  int getConnectionsCount();
+  /**
+   * <pre>
+   * Logins this conversation's runs use, by the address of the tool or Git
+   * host each is for, ahead of every vault.
+   *
+   * Kept, replaced and destroyed as secrets are. Addresses are normalized
+   * as a vault's are.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; connections = 17 [json_name = "connections", (.buf.validate.field) = { ... }</code>
+   */
+  boolean containsConnections(
+      java.lang.String key);
+  /**
+   * Use {@link #getConnectionsMap()} instead.
+   */
+  @java.lang.Deprecated
+  java.util.Map<java.lang.String, java.lang.String>
+  getConnections();
+  /**
+   * <pre>
+   * Logins this conversation's runs use, by the address of the tool or Git
+   * host each is for, ahead of every vault.
+   *
+   * Kept, replaced and destroyed as secrets are. Addresses are normalized
+   * as a vault's are.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; connections = 17 [json_name = "connections", (.buf.validate.field) = { ... }</code>
+   */
+  java.util.Map<java.lang.String, java.lang.String>
+  getConnectionsMap();
+  /**
+   * <pre>
+   * Logins this conversation's runs use, by the address of the tool or Git
+   * host each is for, ahead of every vault.
+   *
+   * Kept, replaced and destroyed as secrets are. Addresses are normalized
+   * as a vault's are.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; connections = 17 [json_name = "connections", (.buf.validate.field) = { ... }</code>
+   */
+  /* nullable */
+java.lang.String getConnectionsOrDefault(
+      java.lang.String key,
+      /* nullable */
+java.lang.String defaultValue);
+  /**
+   * <pre>
+   * Logins this conversation's runs use, by the address of the tool or Git
+   * host each is for, ahead of every vault.
+   *
+   * Kept, replaced and destroyed as secrets are. Addresses are normalized
+   * as a vault's are.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; connections = 17 [json_name = "connections", (.buf.validate.field) = { ... }</code>
+   */
+  java.lang.String getConnectionsOrThrow(
+      java.lang.String key);
 }

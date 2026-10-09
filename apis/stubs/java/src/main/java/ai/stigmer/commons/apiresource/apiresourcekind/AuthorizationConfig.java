@@ -39,14 +39,17 @@ package ai.stigmer.commons.apiresource.apiresourcekind;
  * -&gt; Creates: memory#subject&#64;identity_account:&lt;subject_identity_account_id&gt;
  * -&gt; No owner tuple
  *
- * Personal resource with creator attribution (environment):
+ * Resource whose owner is a spec field, one of two optional parents (vault):
  * scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
- * owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
- * requires_creator_tuple: true
- * grantable_roles: [owner, viewer]
- * -&gt; Creates: environment#organization&#64;organization:&lt;org_id&gt;
- * -&gt; Creates: environment#owner&#64;identity_account:&lt;creator_id&gt;
- * -&gt; Creates: environment#creator&#64;identity_account:&lt;creator_id&gt;
+ * owner_type: OWNER_ATTRIBUTION_TYPE_NONE
+ * additional_parents: [
+ * { kind: "identity_account", relation: "person", spec_field: "person", optional: true },
+ * { kind: "organization", relation: "org_owned", spec_field: "org", optional: true }
+ * ]
+ * -&gt; Creates: vault#organization&#64;organization:&lt;org_id&gt;
+ * -&gt; Creates: vault#person&#64;identity_account:&lt;person_id&gt; (My vault), or
+ * vault#org_owned&#64;organization:&lt;org_id&gt; (a shared vault)
+ * -&gt; No owner tuple
  *
  * Organization with three-tier role hierarchy:
  * scope_type: AUTHORIZATION_SCOPE_TYPE_OWNER_ONLY
@@ -326,8 +329,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * When true, creates an immutable creator relation tuple alongside the owner tuple.
    * FGA tuple: resource#creator&#64;identity_account:&lt;creator_id&gt;
-   * Used for resources where creator identity drives specific permissions
-   * (e.g., environment: only the creator can read unredacted secret values).
+   * Used for resources where creator identity drives specific permissions;
+   * no kind sets it today.
    * The creator tuple uses the same identity as the owner tuple but serves
    * a different purpose: owner is mutable (can be transferred), creator is
    * permanent attribution.
@@ -895,14 +898,17 @@ private static final long serialVersionUID = 0L;
    * -&gt; Creates: memory#subject&#64;identity_account:&lt;subject_identity_account_id&gt;
    * -&gt; No owner tuple
    *
-   * Personal resource with creator attribution (environment):
+   * Resource whose owner is a spec field, one of two optional parents (vault):
    * scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
-   * owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
-   * requires_creator_tuple: true
-   * grantable_roles: [owner, viewer]
-   * -&gt; Creates: environment#organization&#64;organization:&lt;org_id&gt;
-   * -&gt; Creates: environment#owner&#64;identity_account:&lt;creator_id&gt;
-   * -&gt; Creates: environment#creator&#64;identity_account:&lt;creator_id&gt;
+   * owner_type: OWNER_ATTRIBUTION_TYPE_NONE
+   * additional_parents: [
+   * { kind: "identity_account", relation: "person", spec_field: "person", optional: true },
+   * { kind: "organization", relation: "org_owned", spec_field: "org", optional: true }
+   * ]
+   * -&gt; Creates: vault#organization&#64;organization:&lt;org_id&gt;
+   * -&gt; Creates: vault#person&#64;identity_account:&lt;person_id&gt; (My vault), or
+   * vault#org_owned&#64;organization:&lt;org_id&gt; (a shared vault)
+   * -&gt; No owner tuple
    *
    * Organization with three-tier role hierarchy:
    * scope_type: AUTHORIZATION_SCOPE_TYPE_OWNER_ONLY
@@ -2105,8 +2111,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * When true, creates an immutable creator relation tuple alongside the owner tuple.
      * FGA tuple: resource#creator&#64;identity_account:&lt;creator_id&gt;
-     * Used for resources where creator identity drives specific permissions
-     * (e.g., environment: only the creator can read unredacted secret values).
+     * Used for resources where creator identity drives specific permissions;
+     * no kind sets it today.
      * The creator tuple uses the same identity as the owner tuple but serves
      * a different purpose: owner is mutable (can be transferred), creator is
      * permanent attribution.
@@ -2123,8 +2129,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * When true, creates an immutable creator relation tuple alongside the owner tuple.
      * FGA tuple: resource#creator&#64;identity_account:&lt;creator_id&gt;
-     * Used for resources where creator identity drives specific permissions
-     * (e.g., environment: only the creator can read unredacted secret values).
+     * Used for resources where creator identity drives specific permissions;
+     * no kind sets it today.
      * The creator tuple uses the same identity as the owner tuple but serves
      * a different purpose: owner is mutable (can be transferred), creator is
      * permanent attribution.
@@ -2145,8 +2151,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * When true, creates an immutable creator relation tuple alongside the owner tuple.
      * FGA tuple: resource#creator&#64;identity_account:&lt;creator_id&gt;
-     * Used for resources where creator identity drives specific permissions
-     * (e.g., environment: only the creator can read unredacted secret values).
+     * Used for resources where creator identity drives specific permissions;
+     * no kind sets it today.
      * The creator tuple uses the same identity as the owner tuple but serves
      * a different purpose: owner is mutable (can be transferred), creator is
      * permanent attribution.

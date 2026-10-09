@@ -1,5 +1,5 @@
 // Unit tests for run-path resource creation: full-proto field mapping, the
-// message default, run_config presence/contents, the top-level mode, runtime-env conversion,
+// message default, run_config presence/contents, the top-level mode, the run's own values on the new session,
 // the one-call session_spec bootstrap, and the turn's target (an existing
 // session by id alone, or a new conversation naming its agent by reference).
 // The controller is faked to capture the exact proto sent to
@@ -48,7 +48,7 @@ describe("createAgentRun", () => {
       agentRef: AGENT_REF,
       orgId: "acme",
       message: "",
-      runtimeEnv: { FOO: { value: "bar", isSecret: false }, TOKEN: { value: "s", isSecret: true } },
+      sessionSecrets: { FOO: "bar", TOKEN: "s" },
       attachments: [],
       workspaceFileRefs: ["src/a.ts"],
       workspaceEntries: [],
@@ -71,8 +71,7 @@ describe("createAgentRun", () => {
     });
     expect(exec.spec?.autoApproveAll).toBe(true);
     expect(exec.spec?.workspaceFileRefs).toEqual(["src/a.ts"]);
-    expect(exec.spec?.runtimeEnv.FOO).toMatchObject({ value: "bar", isSecret: false });
-    expect(exec.spec?.runtimeEnv.TOKEN).toMatchObject({ value: "s", isSecret: true });
+    expect(sessionSpecOf(exec)?.secrets).toEqual({ FOO: "bar", TOKEN: "s" });
     expect(exec.spec?.runConfig?.modelName).toBe("claude");
     expect(exec.spec?.interactionMode).toBe(InteractionMode.PLAN);
   });
@@ -83,7 +82,7 @@ describe("createAgentRun", () => {
       agentRef: AGENT_REF,
       orgId: "acme",
       message: "hi",
-      runtimeEnv: {},
+      sessionSecrets: {},
       attachments: [],
       workspaceFileRefs: [],
       workspaceEntries: [],
@@ -105,7 +104,7 @@ describe("createAgentRun", () => {
       agentRef: AGENT_REF,
       orgId: "acme",
       message: "x",
-      runtimeEnv: {},
+      sessionSecrets: {},
       attachments: [],
       workspaceFileRefs: [],
       workspaceEntries: [],
@@ -127,7 +126,7 @@ describe("createAgentRun", () => {
       agentRef: AGENT_REF,
       orgId: "acme",
       message: "x",
-      runtimeEnv: {},
+      sessionSecrets: {},
       attachments: [],
       workspaceFileRefs: [],
       workspaceEntries: [],
@@ -147,7 +146,7 @@ describe("createAgentRun", () => {
       agentRef: AGENT_REF,
       orgId: "acme",
       message: "x",
-      runtimeEnv: {},
+      sessionSecrets: {},
       attachments: [],
       workspaceFileRefs: [],
       workspaceEntries: [],
@@ -169,7 +168,7 @@ describe("createAgentRun", () => {
       agentRef: AGENT_REF,
       orgId: "acme",
       message: "x",
-      runtimeEnv: {},
+      sessionSecrets: {},
       attachments: [],
       workspaceFileRefs: [],
       workspaceEntries: [],
@@ -189,7 +188,7 @@ describe("createAgentRun", () => {
       sessionId: "ses_1",
       orgId: "acme",
       message: "x",
-      runtimeEnv: {},
+      sessionSecrets: {},
       attachments: [],
       workspaceFileRefs: [],
       workspaceEntries: [],
@@ -217,7 +216,7 @@ describe("createAgentRun", () => {
       agentRef: AGENT_REF,
       orgId: "acme",
       message: "hi",
-      runtimeEnv: {},
+      sessionSecrets: {},
       attachments: [],
       workspaceFileRefs: [],
       workspaceEntries: [entry],
@@ -248,7 +247,7 @@ describe("createAgentRun", () => {
     const exec = await createAgentRun(fn, {
       orgId: "acme",
       message: "hi",
-      runtimeEnv: {},
+      sessionSecrets: {},
       attachments: [],
       workspaceFileRefs: [],
       workspaceEntries: [],
@@ -268,7 +267,7 @@ describe("createAgentRun", () => {
       agentRef: { ...AGENT_REF, version: "stable" },
       orgId: "acme",
       message: "hi",
-      runtimeEnv: {},
+      sessionSecrets: {},
       attachments: [],
       workspaceFileRefs: [],
       workspaceEntries: [],
@@ -292,7 +291,7 @@ describe("createAgentRun", () => {
       agentRef: AGENT_REF,
       orgId: "acme",
       message: "hi",
-      runtimeEnv: {},
+      sessionSecrets: {},
       attachments: [],
       workspaceFileRefs: [],
       workspaceEntries: [entry],
@@ -312,7 +311,7 @@ describe("createAgentRun", () => {
       agentRef: AGENT_REF,
       orgId: "acme",
       message: "hi",
-      runtimeEnv: {},
+      sessionSecrets: {},
       attachments: [],
       workspaceFileRefs: [],
       workspaceEntries: [],
@@ -338,7 +337,7 @@ describe("createAgentRun", () => {
       agentRef: AGENT_REF,
       orgId: "acme",
       message: "hi",
-      runtimeEnv: {},
+      sessionSecrets: {},
       attachments: [],
       workspaceFileRefs: [],
       workspaceEntries: [],
@@ -365,7 +364,7 @@ describe("createAgentRun", () => {
       agentRef: AGENT_REF,
       orgId: "acme",
       message: "hi",
-      runtimeEnv: {},
+      sessionSecrets: {},
       attachments: [],
       workspaceFileRefs: [],
       workspaceEntries: [entry],
@@ -378,5 +377,25 @@ describe("createAgentRun", () => {
     });
     expect(sessionSpecOf(exec)?.harness).toBe(Harness.CURSOR);
     expect(sessionSpecOf(exec)?.workspaceEntries).toEqual([entry]);
+  });
+
+  it("carries the run's own values on a new conversation's session_spec, even with no agent", async () => {
+    const { fn } = fakeController();
+    const exec = await createAgentRun(fn, {
+      orgId: "acme",
+      message: "hi",
+      sessionSecrets: { API_KEY: "k" },
+      attachments: [],
+      workspaceFileRefs: [],
+      workspaceEntries: [],
+      model: "",
+      mode: "",
+      serviceTier: "",
+      thinking: "",
+      autoApproveAll: false,
+      harness: "",
+    });
+    expect(sessionSpecOf(exec)?.secrets).toEqual({ API_KEY: "k" });
+    expect(sessionSpecOf(exec)?.agentRef).toBeUndefined();
   });
 });

@@ -117,8 +117,10 @@ describe("useShareFlow — canShareWithTeams", () => {
     ["local", ApiResourceKind.agent, "agent", false],
     ["enterprise", ApiResourceKind.agent, "agent", true],
     ["cloud", ApiResourceKind.agent, "agent", true],
-    // An environment grants no team roles: a credential set is shared per person.
-    ["enterprise", ApiResourceKind.environment, "environment", false],
+    // A vault's "Can use" role is grantable to Teams.
+    ["enterprise", ApiResourceKind.vault, "vault", true],
+    // A memory grants nothing to anyone, Teams included.
+    ["enterprise", ApiResourceKind.memory, "memory", false],
     // Circular with the membership bound.
     ["enterprise", ApiResourceKind.organization, "organization", false],
   ];

@@ -78,8 +78,8 @@ function useWorkspaceEntries(): UseWorkspaceEntriesReturn
 
 <TypeTable
   type={{
-    addGitRepo: { type: "(url: string, branch?: string) => void", description: "Add a git repository by URL with an optional branch." },
-    addLocalPath: { type: "(path: string) => void", description: "Add a local filesystem directory by absolute path." },
+    addGitRepo: { type: "(url: string, branch?: string, name?: string) => void", description: "Add a git repository by URL with an optional branch. The entry is named after the URL unless `name` is given: pass the stored name when loading a saved workspace, so a later write keeps the entry (and its stored token) under the name it was saved with.  Names stay unique, because the server refuses a workspace that repeats one: a name already taken gains the branch (`acme/api@dev`), then a number (`acme/api-2`), so one repository can be added at two branches." },
+    addLocalPath: { type: "(path: string) => void", description: "Add a local filesystem directory by absolute path, named after its last two path segments; a name already taken gains a number (`dev/api-2`)." },
     clear: { type: "() => void", description: "Remove all entries." },
     clearLocal: { type: "() => void", description: "Remove all local folder entries, keeping git entries intact." },
     entries: { type: "readonly WorkspaceEntry[]", description: "Current workspace entries." },

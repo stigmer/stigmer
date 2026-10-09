@@ -11,7 +11,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Type of the API resource being referenced\n This should be the resource kind as defined in ApiResourceKind enum.\n Examples: \"identity_account\", \"team\", \"organization\", \"environment\",\n \"cloud_resource\", \"service\", etc.",
+      "description": "Type of the API resource being referenced\n This should be the resource kind as defined in ApiResourceKind enum.\n Examples: \"identity_account\", \"team\", \"organization\", \"vault\",\n \"cloud_resource\", \"service\", etc.",
       "required": true,
       "validation": {
         "required": true,

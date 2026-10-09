@@ -157,6 +157,14 @@ export interface IdentityAccountControllerDeps extends CreateAccountPathDeps {
    * composition brings its own Authorizer and so its own onboarding.
    */
   readonly membership: AccountCreatedHook | undefined;
+  /**
+   * Deletes every My vault the deleted person held (domain/vault/delete.ts
+   * `deleteAllMyVaultsOf`): their logins and secrets leave with the
+   * account, destroyed rather than left sealed until each organization is
+   * purged. Runs before the account row is deleted, so its failure fails
+   * the delete and a retry finishes it.
+   */
+  readonly deleteMyVaults: (person: string, caller: CallerIdentity) => Promise<number>;
 }
 
 /** Registers both identityaccount services on the router (routes stage). */
@@ -396,6 +404,16 @@ async function deleteAccount(
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingAccountForDeleteStep(deps.accounts))
+    // The person's My vaults go first: a failure here fails the delete with
+    // the account still in place, so the same delete, retried, finishes the
+    // job, where a failure after the row was gone would leave sealed values
+    // nobody could reach to delete.
+    .addStep({
+      name: "DeleteMyVaults",
+      async execute(ctx) {
+        await deps.deleteMyVaults(ctx.input.value, ctx.callerIdentity);
+      },
+    })
     .addStep(newDeleteAccountStep(deps.accounts))
     .addStep(
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),

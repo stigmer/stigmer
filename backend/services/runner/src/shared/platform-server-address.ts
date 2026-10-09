@@ -15,8 +15,9 @@
  *     one; mcp-transport-guard.ts), so the address the runner itself dials,
  *     STIGMER_BACKEND_ENDPOINT, is right for it by construction.
  *
- * No page supplies it: a value written into a run's runtime_env sits in the
- * top merge layer, above every value the user saved (stigmer/stigmer#1446).
+ * No page supplies it: a value a page could write (a conversation's own
+ * secrets) is resolved ahead of every vault the user saved
+ * (stigmer/stigmer#1446).
  *
  * The runner FILLS, it never overrides: a non-empty value already in the
  * environment (one the user saved or typed to aim a server elsewhere)

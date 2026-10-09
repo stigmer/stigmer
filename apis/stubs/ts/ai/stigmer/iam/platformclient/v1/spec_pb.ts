@@ -18,7 +18,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/platformclient/v1/spec.proto.
  */
 export const file_ai_stigmer_iam_platformclient_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2lhbS9wbGF0Zm9ybWNsaWVudC92MS9zcGVjLnByb3RvEiBhaS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MSK7BwoSUGxhdGZvcm1DbGllbnRTcGVjEhcKCWNsaWVudF9pZBgBIAEoCUIEyIUsARIgChJjbGllbnRfc2VjcmV0X2hhc2gYAiABKAlCBMiFLAESIAoSc2VjcmV0X2ZpbmdlcnByaW50GAMgASgJQgTIhSwBEi4KCmV4cGlyZXNfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhUKDW5ldmVyX2V4cGlyZXMYBSABKAgSFwoPYWxsb3dlZF9vcmlnaW5zGAkgAygJEsgBChBlbnZpcm9ubWVudF9yZWZzGAogAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQni6SHGSAW4ibLoBaQoVZW52aXJvbm1lbnRfcmVmcy5raW5kEj9lbnZpcm9ubWVudF9yZWZzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9ZW52aXJvbm1lbnQaD3RoaXMua2luZCA9PSA1M+CFLDUSIgoaY3JlYXRlX2FjY291bnRzX29uX3NpZ25faW4YCyABKAgSMAoMc2lnbl9pbl9yb2xlGAwgASgOMhouYWkuc3RpZ21lci5pYW0udjEuSWFtUm9sZTr3ArpI8wIa2wEKNnBsYXRmb3JtX2NsaWVudC5zaWduX2luX3JvbGVfcmVxdWlyZXNfYWNjb3VudF9jcmVhdGlvbhJmc2lnbl9pbl9yb2xlIHJlcXVpcmVzIGNyZWF0ZV9hY2NvdW50c19vbl9zaWduX2luOiBvbmx5IGFuIGFjY291bnQgdGhlIGNsaWVudCBjcmVhdGVzIHJlY2VpdmVzIHRoZSByb2xlGjl0aGlzLnNpZ25faW5fcm9sZSA9PSAwIHx8IHRoaXMuY3JlYXRlX2FjY291bnRzX29uX3NpZ25faW4akgEKJnBsYXRmb3JtX2NsaWVudC5zaWduX2luX3JvbGVfbm90X293bmVyElBzaWduX2luX3JvbGUgY2Fubm90IGJlIG93bmVyOyBvcmdhbml6YXRpb24gb3duZXJzaGlwIG11c3QgYmUgYXNzaWduZWQgZXhwbGljaXRseRoWdGhpcy5zaWduX2luX3JvbGUgIT0gMUoECAYQB0oECAcQCEoECAgQCVIXYXV0b19wcm92aXNpb25fYWNjb3VudHNSEWF1dG9fZ3JhbnRfb25fb3JnUg9hdXRvX2dyYW50X3JvbGViBnByb3RvMw", [file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_iam_v1_enum, file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("CithaS9zdGlnbWVyL2lhbS9wbGF0Zm9ybWNsaWVudC92MS9zcGVjLnByb3RvEiBhaS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MSKxBwoSUGxhdGZvcm1DbGllbnRTcGVjEhcKCWNsaWVudF9pZBgBIAEoCUIEyIUsARIgChJjbGllbnRfc2VjcmV0X2hhc2gYAiABKAlCBMiFLAESIAoSc2VjcmV0X2ZpbmdlcnByaW50GAMgASgJQgTIhSwBEi4KCmV4cGlyZXNfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhUKDW5ldmVyX2V4cGlyZXMYBSABKAgSFwoPYWxsb3dlZF9vcmlnaW5zGAkgAygJEqYBCgZ2YXVsdHMYDSADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCYLpIWZIBVhAUIlK6AU8KC3ZhdWx0cy5raW5kEi92YXVsdHMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD12YXVsdBoPdGhpcy5raW5kID09IDU54IUsOxIiChpjcmVhdGVfYWNjb3VudHNfb25fc2lnbl9pbhgLIAEoCBIwCgxzaWduX2luX3JvbGUYDCABKA4yGi5haS5zdGlnbWVyLmlhbS52MS5JYW1Sb2xlOvcCukjzAhrbAQo2cGxhdGZvcm1fY2xpZW50LnNpZ25faW5fcm9sZV9yZXF1aXJlc19hY2NvdW50X2NyZWF0aW9uEmZzaWduX2luX3JvbGUgcmVxdWlyZXMgY3JlYXRlX2FjY291bnRzX29uX3NpZ25faW46IG9ubHkgYW4gYWNjb3VudCB0aGUgY2xpZW50IGNyZWF0ZXMgcmVjZWl2ZXMgdGhlIHJvbGUaOXRoaXMuc2lnbl9pbl9yb2xlID09IDAgfHwgdGhpcy5jcmVhdGVfYWNjb3VudHNfb25fc2lnbl9pbhqSAQomcGxhdGZvcm1fY2xpZW50LnNpZ25faW5fcm9sZV9ub3Rfb3duZXISUHNpZ25faW5fcm9sZSBjYW5ub3QgYmUgb3duZXI7IG9yZ2FuaXphdGlvbiBvd25lcnNoaXAgbXVzdCBiZSBhc3NpZ25lZCBleHBsaWNpdGx5GhZ0aGlzLnNpZ25faW5fcm9sZSAhPSAxSgQIBhAHSgQIBxAISgQICBAJSgQIChALUhdhdXRvX3Byb3Zpc2lvbl9hY2NvdW50c1IRYXV0b19ncmFudF9vbl9vcmdSD2F1dG9fZ3JhbnRfcm9sZVIQZW52aXJvbm1lbnRfcmVmc2IGcHJvdG8z", [file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_iam_v1_enum, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * PlatformClientSpec defines the configuration for a platform client credential.
@@ -132,17 +132,17 @@ export type PlatformClientSpec = Message<"ai.stigmer.iam.platformclient.v1.Platf
   allowedOrigins: string[];
 
   /**
-   * Environments whose values are delivered to every run a
-   * user signed in through this PlatformClient creates. This is how an
-   * embedded assistant reaches secret-gated MCP servers: the client — the
-   * connection resource — carries the credentials (for example a shared
-   * API secret), and minted-user runs receive its values at
-   * runtime, at the lowest priority, so the request's runtime values win on
-   * a key conflict. The agent stays untouched.
+   * Vaults whose logins and secrets every run a user signed in through this
+   * client creates uses, in order: the first vault holding a match wins.
+   * At most 20.
    *
-   * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10;
+   * This is how an embedded assistant reaches tools that need a key: the
+   * client carries a shared vault holding it, and minted users' runs use it.
+   * A My vault cannot be attached.
+   *
+   * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference vaults = 13;
    */
-  environmentRefs: ApiResourceReference[];
+  vaults: ApiResourceReference[];
 
   /**
    * Whether mintUserToken creates an identity account for a user_id that has

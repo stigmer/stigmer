@@ -1,6 +1,6 @@
 {
   "name": "AgentChannelSpec",
-  "description": "AgentChannelSpec defines the configurable properties of an agent channel.\n\n The spec is deliberately small: which agent serves the channel, whether\n serving is enabled, which provider the channel targets, and which\n environments supply the agent's tool credentials. Workspace identity and\n provider credentials are produced by the install flow and live in\n status — a declarative apply can never clobber them.",
+  "description": "AgentChannelSpec defines the configurable properties of an agent channel.\n\n The spec is deliberately small: which agent serves the channel, whether\n serving is enabled, which provider the channel targets, and which\n vaults supply the agent's tool credentials. Workspace identity and\n provider credentials are produced by the install flow and live in\n status — a declarative apply can never clobber them.",
   "protoType": "ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec",
   "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/spec.proto",
   "fields": [
@@ -54,9 +54,9 @@
       "oneofGroup": "provider_config"
     },
     {
-      "name": "EnvironmentRefs",
-      "jsonName": "environmentRefs",
-      "protoField": "environment_refs",
+      "name": "Vaults",
+      "jsonName": "vaults",
+      "protoField": "vaults",
       "type": {
         "kind": "array",
         "elementType": {
@@ -64,9 +64,12 @@
           "messageType": "ApiResourceReference"
         }
       },
-      "description": "References to Environment resources whose values are provided to\n conversations on this channel.\n\n This is how a tool-using agent becomes chattable over a channel: bind\n an org-shared environment holding the needed credentials (for example\n a read-only API token), and channel runs receive its values at\n runtime. The agent itself stays untouched.",
+      "description": "Vaults whose logins and secrets conversations on this channel use, in\n order: the first vault holding a match wins. At most 20.\n\n This is how a tool-using agent becomes chattable over a channel: attach a\n shared vault holding the needed keys (for example a read-only API token).\n A channel's runs have no person, so they use only these vaults, never\n anyone's My vault. A My vault cannot be attached.",
       "required": false,
-      "referenceKind": 53
+      "referenceKind": 59,
+      "validation": {
+        "maxItems": 20
+      }
     },
     {
       "name": "AppRef",

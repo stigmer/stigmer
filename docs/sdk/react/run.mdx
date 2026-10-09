@@ -379,14 +379,15 @@ pass `sessionId` to execute within an existing session (use
 bootstrap a new session (workspace, harness, execution target) and
 dispatch the first message in a single call.
 
-Supports both secret delivery flows:
+A run's logins and secrets come from vaults and from the
+conversation's own secrets, never from the run request:
 
-- **Environment Flow** — Secrets are stored in the running person's
-  personal environment. No `runtimeEnv` needed; the backend reads
-  every key the agent declares from there.
-- **Run Flow** — Pass `runtimeEnv` to inject per-execution
-  secrets. Values are merged with the highest priority and deleted
-  when the run completes.
+- **Vaults** — a conversation that lists no vaults uses the running
+  person's My vault, then the agent's vaults they may use.
+- **The conversation's own secrets** — on a new conversation, pass
+  `sessionSpec.secrets`; on an existing one, update the session (see
+  `useSessionConversation`'s `sendFollowUp`). They are kept sealed for
+  the conversation's life.
 
 **Signature**
 
@@ -406,20 +407,20 @@ function useCreateRun(): UseCreateRunReturn
 />
 
 ```tsx
-// Environment Flow: secrets come from the person's personal environment
+// Keys come from the person's My vault
 const { create } = useCreateRun();
 await create({ org: "acme", sessionId: "ses_abc", message: "Review the PR" });
 ```
 
 ```tsx
-// Run Flow: inject per-call secrets
+// A new conversation with its own secret
 const { create } = useCreateRun();
 await create({
   org: "acme",
-  sessionId: "ses_abc",
   message: "Deploy to production",
-  runtimeEnv: {
-    CUSTOMER_API_KEY: { value: "cust_xyz...", isSecret: true },
+  sessionSpec: {
+    agentRef: { org: "acme", slug: "deployer" },
+    secrets: { CUSTOMER_API_KEY: "cust_xyz..." },
   },
 });
 ```
@@ -853,13 +854,12 @@ function LiveExecution({ id }: { id: string }) {
 
 ### useSessionVariables
 
-Behavior hook that manages an array of session variable entries for
-execution-scoped environment variables.
+Behavior hook that manages an array of session variable entries: a
+conversation's own secrets, typed in the composer.
 
-Session variables are injected into the agent sandbox at run
-time. By default they are ephemeral (single run), but users
-can opt into persisting individual entries to their personal
-environment via the `saveForFuture` flag.
+Session variables become the conversation's own secrets (sealed for its
+life, never shown again). Users can also save individual entries in
+their My vault via the `saveForFuture` flag.
 
 Follows the same controlled-state pattern as [`useWorkspaceEntries`](/docs/sdk/react/workspace#useworkspaceentries):
 the consumer owns the hook instance, passes it to UI components, reads
@@ -880,11 +880,11 @@ function useSessionVariables(): UseSessionVariablesReturn
     clear: { type: "() => void", description: "Remove all entries. Call after submission to prevent stale values." },
     entries: { type: "readonly SessionVariableEntry[]", description: "Current entries in the editor." },
     hasSaveForFutureEntries: { type: "boolean", description: "True when at least one valid entry has `saveForFuture === true`." },
-    hasValidEntries: { type: "boolean", description: "True when at least one entry has a non-empty key AND non-empty value. Use this to decide whether to include `runtimeEnv` in the run." },
+    hasValidEntries: { type: "boolean", description: "True when at least one entry has a non-empty key AND non-empty value. Use this to decide whether the conversation gains secrets on this turn." },
     isEmpty: { type: "boolean", description: "True when there are no entries at all." },
     removeEntry: { type: "(id: string) => void", description: "Remove an entry by its unique ID." },
-    toRuntimeEnv: { type: "() => Record<string, EnvVarInput>", description: "Convert valid entries to the SDK input shape for execution-scoped runtime env.  Includes all entries with non-empty keys and values, regardless of `saveForFuture`. When duplicate keys exist, the last entry wins (consistent with environment semantics)." },
-    toSaveForFutureEnv: { type: "() => Record<string, EnvVarInput>", description: "Convert valid save-for-future entries (saveForFuture === true) to the SDK input shape for personal environment persistence.  Filters out entries with empty keys or values. When duplicate keys exist, the last entry wins." },
+    toSaveForFutureEnv: { type: "() => Record<string, EnvVarInput>", description: "The valid save-for-future entries (saveForFuture === true), to save in My vault.  Filters out entries with empty keys or values. When duplicate keys exist, the last entry wins." },
+    toSessionSecrets: { type: "() => Record<string, EnvVarInput>", description: "The valid entries as the conversation's own secrets.  Includes all entries with non-empty keys and values, regardless of `saveForFuture`. When duplicate keys exist, the last entry wins." },
     updateEntry: { type: "(id: string, patch: { isSecret?: boolean; key?: string; saveForFuture?: boolean; value?: string }) => void", description: "Patch one or more fields on an existing entry." },
   }}
 />
@@ -895,10 +895,10 @@ function Chat({ sessionId, org }: { sessionId: string; org: string }) {
   const sessionVariables = useSessionVariables();
 
   const handleSubmit = (message: string, model?: string) => {
-    const runtimeEnv = sessionVariables.isEmpty
+    const secrets = sessionVariables.isEmpty
       ? undefined
-      : sessionVariables.toRuntimeEnv();
-    conv.sendFollowUp(message, { modelName: model, runtimeEnv });
+      : valuesOf(sessionVariables.toSessionSecrets());
+    conv.sendFollowUp(message, { modelName: model, secrets });
     sessionVariables.clear();
   };
 
@@ -1874,7 +1874,7 @@ Designed to render inside a popover within [`SessionComposer`](/docs/sdk/react/c
 Each entry collects a variable name, value, secret toggle, and an
 optional "save for future" toggle. By default values are ephemeral
 (single run); toggling "save for future" persists them to the
-user's personal environment.
+user's My vault.
 
 This is a **pure presentational component** with no knowledge of
 sessions, runs, or orchestration. Platform builders can use
@@ -2381,9 +2381,11 @@ Omit it for a conversation with the built-in assistant.
     harness: { type: "HarnessOption", description: "Run harness. Immutable after the first run runs.", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
     mcpServerUsages: { type: "McpServerUsageInput[]", description: "MCP server configurations to include for tool access." },
     metadata: { type: "Record<string, string>", description: "Custom key-value pairs stored on the created session's `SessionSpec.metadata`.  A passthrough for embedder-owned keys (correlation IDs, tenant tags) and for platform-reserved `stigmer.ai/*` keys set explicitly. For the common case — standing user context injected into the agent's prompt — prefer the typed sessionContext field, which maps onto the reserved `stigmer.ai/session-context` key and wins over a raw entry under that key when both are provided." },
-    sessionContext: { type: "string", description: "Standing, per-user context the agent receives on every turn but the conversation UI never renders — who the caller is, their experience level, their standing instructions (stigmer/stigmer#286).  Stored on the created session's `SessionSpec.metadata` under `stigmer.ai/session-context`; the agent runner injects it into the system prompt as already-known background, so agents can greet the user by name and calibrate depth/defaults from the first turn without a visible context preamble.  Personalization, not authorization: anyone who can create the session can set this (the same trust level as authoring the first message). Hidden from the conversation thread, not from the API — `session.get` returns it, so never put secrets here; secrets belong in `runtimeEnv` or Environment resources. Large values bloat every prompt." },
+    secrets: { type: "Record<string, string>", description: "The conversation's own secrets, by name, ahead of every vault: sealed for the conversation's life, replaceable by a session update, never returned by a read. This is how an integrator hands a run a key without saving it in a vault." },
+    sessionContext: { type: "string", description: "Standing, per-user context the agent receives on every turn but the conversation UI never renders — who the caller is, their experience level, their standing instructions (stigmer/stigmer#286).  Stored on the created session's `SessionSpec.metadata` under `stigmer.ai/session-context`; the agent runner injects it into the system prompt as already-known background, so agents can greet the user by name and calibrate depth/defaults from the first turn without a visible context preamble.  Personalization, not authorization: anyone who can create the session can set this (the same trust level as authoring the first message). Hidden from the conversation thread, not from the API — `session.get` returns it, so never put secrets here; secrets belong in the session's own `secrets` or in a vault. Large values bloat every prompt." },
     skillRefs: { type: "ResourceRef[]", description: "Skill references to enable for runs in this session." },
     subject: { type: "string", description: "Initial conversation subject. Omit for an async LLM-generated title." },
+    vaults: { type: "ResourceRef[]", description: "The vaults the conversation's runs use, in order. A conversation that lists vaults uses exactly those; one that lists none uses the person's own My vault, then the agent's vaults they may use." },
     workspaceEntries: { type: "WorkspaceEntryInput[]", description: "Workspace source entries to attach to the session." },
   }}
 />
@@ -3723,16 +3725,16 @@ Props for [`RunPhaseBadge`](#runphasebadge).
 A single entry in the session variables editor.
 
 Each entry maps to one environment variable. When `saveForFuture`
-is `false` (default), the value is injected into the agent sandbox
-for a single run only. When `true`, the value is persisted
-to the user's personal environment for reuse across sessions.
+is `false` (default), the value becomes one of the conversation's own
+secrets, kept sealed for its life. When `true`, the value is also saved
+in the user's My vault for reuse across conversations.
 
 <TypeTable
   type={{
     id: { type: "string", description: "Unique identifier for this entry (auto-generated).", required: true },
     isSecret: { type: "boolean", description: "Whether the value should be masked in the UI.", required: true },
     key: { type: "string", description: "Environment variable name.", required: true },
-    saveForFuture: { type: "boolean", description: "When `true`, persists the value to the user's personal environment on submit.", required: true },
+    saveForFuture: { type: "boolean", description: "When `true`, saves the value in the user's My vault on submit.", required: true },
     value: { type: "string", description: "Environment variable value.", required: true },
   }}
 />
@@ -3796,7 +3798,6 @@ Fields shared by both variants of [`CreateRunInput`](#createruninput).
     message: { type: "string", description: "User message that initiates the run.", required: true },
     modelName: { type: "string", description: "The model this message asks for. Omit it to run the model a less specific layer chooses: the agent's run defaults when the conversation runs the agent's engine, else the operator profile, else the engine's own default. Maps to `RunConfig.model_name` on `RunSpec.run_config`." },
     org: { type: "string", description: "Id of the organization that owns the session (a slug is also accepted).", required: true },
-    runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Execution-scoped secrets and configuration (Run Flow).  Values are injected into the agent sandbox for this run only and deleted when the run completes. They take the highest merge priority, overriding every environment layer. Keys must be declared in the agent's env declarations (a whitelist, not a value source) or they are dropped.  Use this for B2B integrations where per-call credentials are injected at runtime, or for one-off secrets that should not persist.  For persistent credentials that are reused across runs, use the Environment Flow instead: the keys an agent declares are read from the running person's personal environment." },
     serviceTier: { type: "ServiceTierOption", description: "Service tier this message asks for (stigmer/stigmer#357). Omit it to keep the tier of the layer that chose the model (an agent's default may turn fast on); set it to choose explicitly, with or without modelName — alone it adjusts the model a less specific layer chose.  - `\"standard\"`: the model's base-priced configuration. Sent   explicitly, it turns off a fast tier an agent default would apply. - `\"fast\"`: the provider's fast variant at fast rates. Valid only for   models whose registry entry prices a fast variant — the backend   refuses the create otherwise, so gate the option on   `ModelInfo.serviceTiers`.  Maps to `RunConfig.service_tier` on `RunSpec.run_config`." },
     structuredOutputSchema: { type: "JsonObject", description: "JSON Schema that the agent's final output must conform to.  When set, the runner enforces structured output: - Native harness: ToolStrategy adds an extract tool; agent must call it - Cursor harness: prompt injection + 3-tier extraction fallback  The validated data is returned in `execution.status.structuredOutput`. Maps to `RunSpec.structured_output_schema` in the proto." },
     supersedesRunId: { type: "string", description: "ID of the run this one supersedes via edit-and-resubmit.  Set when the user stopped an in-flight turn, edited its message, and resubmitted. Chat threads hide the superseded run so the edited message replaces the original in place; history surfaces keep the full record. Maps to `RunSpec.supersedes_run_id`.  Display-level only — the runner does not rewind model context." },

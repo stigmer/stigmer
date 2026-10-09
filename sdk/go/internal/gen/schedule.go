@@ -118,7 +118,7 @@ type AgentInvocationInput struct {
 	Message          string
 	Harness          sessionv1.Harness
 	WorkspaceEntries []*WorkspaceEntryInput
-	EnvironmentRefs  []ResourceRef
+	Vaults           []ResourceRef
 	RunConfig        *RunConfigInput
 }
 
@@ -155,10 +155,10 @@ func (i *ScheduleInput) toProto() (*schedulev1.Schedule, error) {
 			}
 			m.WorkspaceEntries = append(m.WorkspaceEntries, v)
 		}
-		for _, r := range i.Agent.EnvironmentRefs {
+		for _, r := range i.Agent.Vaults {
 			ref := r.toProto()
-			ref.Kind = apiresourcekind.ApiResourceKind_environment
-			m.EnvironmentRefs = append(m.EnvironmentRefs, ref)
+			ref.Kind = apiresourcekind.ApiResourceKind_vault
+			m.Vaults = append(m.Vaults, ref)
 		}
 		if i.Agent.RunConfig != nil {
 			v, err := i.Agent.RunConfig.toProto()
@@ -208,8 +208,8 @@ func agentInvocationInputFromProto(p *runv1.AgentInvocation) *AgentInvocationInp
 	for _, item := range p.GetWorkspaceEntries() {
 		input.WorkspaceEntries = append(input.WorkspaceEntries, workspaceEntryInputFromProto(item))
 	}
-	for _, r := range p.GetEnvironmentRefs() {
-		input.EnvironmentRefs = append(input.EnvironmentRefs, resourceRefFromProto(r))
+	for _, r := range p.GetVaults() {
+		input.Vaults = append(input.Vaults, resourceRefFromProto(r))
 	}
 	input.RunConfig = runConfigInputFromProto(p.GetRunConfig())
 	return input

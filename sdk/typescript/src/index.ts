@@ -141,13 +141,14 @@ export {
   ApiResourceKind,
 } from "./search.js";
 
-// GitHub OAuth client
+// GitHub sign-in and server-side repository reads
 export {
   GitHubClient,
   type GetOAuthAuthorizeUrlParams,
   type OAuthAuthorizeUrlResponse,
   type ExchangeOAuthCodeParams,
-  type OAuthTokenResponse,
+  type GitHubConnectedAccount,
+  type GitHubRepoParams,
 } from "./github.js";
 
 // Platform client (server info / edition detection)
@@ -178,7 +179,6 @@ export {
   type Page,
   type ListParams,
   type ListResult,
-  type EnvSpecInput,
   type EnvVarInput,
 } from "./gen/types.js";
 
@@ -226,11 +226,6 @@ export {
   type SlackChannelAppConfigInput,
 } from "./gen/channelapp.js";
 export {
-  EnvironmentClient,
-  toEnvironmentUpdateInput,
-  type EnvironmentInput,
-} from "./gen/environment.js";
-export {
   ExecutionContextClient,
   type ExecutionContextInput,
 } from "./gen/executioncontext.js";
@@ -275,6 +270,15 @@ export {
   type MemoryInput,
   type MemoryProvenanceInput,
 } from "./gen/memory.js";
+export {
+  VaultClient,
+  buildVaultProto,
+  toVaultUpdateInput,
+  type VaultInput,
+  type VaultSecretInput,
+  type VaultConnectionInput,
+  type VaultConnectionSignInInput,
+} from "./gen/vault.js";
 export {
   connectAndWait,
   ConnectStillRunningError,

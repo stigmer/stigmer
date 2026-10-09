@@ -131,20 +131,21 @@ should not be able to trigger them at all.
 
 ## Give the Agent its tool credentials
 
-If your Agent uses MCP servers, its tools need credentials — API keys stored in
-an Environment. Conversations from WhatsApp use only the credentials bound to
-the channel, so a channel without bindings refuses the first message that needs
-a tool.
+If your Agent uses MCP servers, its tools need credentials — API keys and logins
+kept in a [vault](/docs/concepts/vaults). Conversations from WhatsApp have no
+person behind them, so they use only the vaults attached to the channel, never
+anyone's own vault; a run that needs a key no attached vault holds is refused
+before it starts, naming the key.
 
-1. Create an Environment with only the credentials the Agent needs, and set its
-   visibility to **Organization** under **Settings → Environments**. A private
-   Environment cannot serve WhatsApp users.
-2. Bind it to the channel — in the connect dialog under **Tool credentials**, or
-   any time later from the channel card's actions menu (⋯ → **Tool
-   credentials**).
-
-The channel card warns you when the Agent uses tools but the channel has no
-usable bindings — including when a bound Environment is still private.
+1. Have an Organization admin create a shared vault with only the credentials
+   the Agent needs.
+2. Make it usable by whoever attaches it: give it **Organization** visibility
+   under **Settings → Vaults**, or, on Stigmer Cloud, grant **Can use** to that
+   person or their Team. A new shared vault is usable only by the Organization's
+   admins until then.
+3. Attach it to the channel, in the connect dialog or any time later from the
+   channel card's actions menu. You can attach a vault only if you may use it,
+   and each conversation checks again that you still may.
 
 ## One number, one agent per app
 
@@ -224,10 +225,10 @@ spec:
     kind: channel_app
     org: acme-corp
     slug: acme-whatsapp
-  environment_refs:
-    - kind: environment
+  vaults:
+    - kind: vault
       org: acme-corp
-      slug: support-tools-credentials
+      slug: support-tools
 ```
 
 Apply it with `stigmer apply -f channel.yaml`. The manifest manages the

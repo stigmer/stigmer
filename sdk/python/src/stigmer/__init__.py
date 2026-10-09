@@ -29,8 +29,9 @@ from ._github import (
     ExchangeOAuthCodeParams,
     GetOAuthAuthorizeUrlParams,
     GitHubClient,
+    GitHubConnectedAccount,
+    GitHubRepoParams,
     OAuthAuthorizeUrlResponse,
-    OAuthTokenResponse,
 )
 from ._search import ApiResourceKind, SearchClient, SearchParams, SearchResponse
 
@@ -44,7 +45,6 @@ from ._gen._agent import (
     SubAgentInput,
 )
 from ._gen._apikey import ApiKeyClient, ApiKeyInput
-from ._gen._environment import EnvironmentClient, EnvironmentInput
 from ._gen._executioncontext import ExecutionContextClient, ExecutionContextInput
 from ._gen._iampolicy import ApiResourceRefInput, IamPolicyClient, IamPolicyInput
 from ._gen._identityaccount import IdentityAccountClient, IdentityAccountInput
@@ -71,13 +71,19 @@ from ._gen._session import (
     WorkspaceSourceInput,
 )
 from ._gen._skill import SkillClient, SkillInput
+from ._gen._vault import (
+    VaultClient,
+    VaultConnectionInput,
+    VaultConnectionSignInInput,
+    VaultInput,
+    VaultSecretInput,
+)
 from ._skill import MAX_INLINE_ARTIFACT_BYTES, RoutedSkillClient
 
 # --- Shared types (generated) ----------------------------------------------
 
 from ._gen._types import (
     DeleteResourceInput,
-    EnvSpecInput,
     EnvVarInput,
     ListParams,
     ListResult,
@@ -127,8 +133,9 @@ __all__ = [
     "ExchangeOAuthCodeParams",
     "GetOAuthAuthorizeUrlParams",
     "GitHubClient",
+    "GitHubConnectedAccount",
+    "GitHubRepoParams",
     "OAuthAuthorizeUrlResponse",
-    "OAuthTokenResponse",
     # Search
     "ApiResourceKind",
     "SearchClient",
@@ -137,7 +144,6 @@ __all__ = [
     # Resource clients
     "AgentClient",
     "ApiKeyClient",
-    "EnvironmentClient",
     "ExecutionContextClient",
     "IamPolicyClient",
     "IdentityAccountClient",
@@ -148,6 +154,7 @@ __all__ = [
     "RunClient",
     "SessionClient",
     "SkillClient",
+    "VaultClient",
     "RoutedSkillClient",
     "MAX_INLINE_ARTIFACT_BYTES",
     # Input types
@@ -156,8 +163,6 @@ __all__ = [
     "ApiResourceRefInput",
     "AttachmentInput",
     "DeleteResourceInput",
-    "EnvironmentInput",
-    "EnvSpecInput",
     "EnvVarInput",
     "ExecutionContextInput",
     "GitRepoSourceInput",
@@ -176,6 +181,10 @@ __all__ = [
     "SkillInput",
     "StdioServerConfigInput",
     "SubAgentInput",
+    "VaultConnectionInput",
+    "VaultConnectionSignInInput",
+    "VaultInput",
+    "VaultSecretInput",
     "WorkspaceEntryInput",
     "WorkspaceSourceInput",
     # Shared types

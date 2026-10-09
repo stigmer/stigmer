@@ -7,7 +7,6 @@
     "api-key",
     "channel-app",
     "commons",
-    "environment",
     "execution-context",
     "iam-policy",
     "identity-account",
@@ -27,6 +26,7 @@
     "session",
     "skill",
     "subscription",
-    "team"
+    "team",
+    "vault"
   ]
 }

@@ -84,10 +84,10 @@ const DOMAIN_META: Record<string, { title: string; description: string }> = {
     description:
       "Hooks and components for resource browsing, YAML detection, apply flow, and visibility.",
   },
-  environment: {
-    title: "Environment",
+  vault: {
+    title: "Vault",
     description:
-      "Hooks and components for configuration, variables, secrets, and session environment pools.",
+      "Hooks and components for My vault and shared vaults, their secrets and logins, the vault picker, and the session value pool.",
   },
   workspace: {
     title: "Workspace",
@@ -281,7 +281,7 @@ const PROTO_TYPE_TO_SLUG: Record<string, string> = {
   Session: "session",
   Agent: "agent",
   Run: "run",
-  Environment: "environment",
+  Vault: "vault",
   McpServer: "mcp-server",
   Skill: "skill",
   ApiKey: "api-key",

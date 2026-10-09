@@ -1,6 +1,8 @@
 // In-process test for the search tool. Verifies resource_uri
 // enrichment for every searchable kind, the empty-response short-circuit,
-// the unknown-kind validation error, and pagination passthrough.
+// a valid kinds filter reaching the backend as its enum values, the
+// unknown-kind validation error (no backend call), and pagination
+// passthrough.
 
 import { create, toJson } from "@bufbuild/protobuf";
 import type { ConnectRouter } from "@connectrpc/connect";
@@ -34,11 +36,6 @@ const allKindsResponse = create(SearchResponseSchema, {
     create(SearchResultSchema, { kind: ApiResourceKind.agent, org: "acme", slug: "code-reviewer" }),
     create(SearchResultSchema, { kind: ApiResourceKind.skill, org: "acme", slug: "code-review" }),
     create(SearchResultSchema, { kind: ApiResourceKind.mcp_server, org: "acme", slug: "github" }),
-    create(SearchResultSchema, {
-      kind: ApiResourceKind.environment,
-      org: "acme",
-      slug: "github-creds",
-    }),
   ],
 });
 const emptyResponse = create(SearchResponseSchema, { entries: [] });
@@ -47,6 +44,8 @@ let backend: Http2Server;
 let client: Client;
 let nextResponse: SearchResponse = allKindsResponse;
 let lastPage: PageInfo | undefined;
+let lastKinds: ApiResourceKind[] | undefined;
+let backendCalls = 0;
 const openSessions = new Set<ServerHttp2Session>();
 
 interface ToolResult {
@@ -62,7 +61,9 @@ beforeAll(async () => {
   const routes = (router: ConnectRouter) => {
     router.service(SearchService, {
       search: (req) => {
+        backendCalls++;
         lastPage = req.page;
+        lastKinds = req.kinds;
         return nextResponse;
       },
     });
@@ -99,7 +100,6 @@ describe("search tool integration", () => {
       "stigmer://agents/acme/code-reviewer",
       "stigmer://skills/acme/code-review",
       "stigmer://mcp-servers/acme/github",
-      "stigmer://environments/acme/github-creds",
     ]);
   });
 
@@ -112,19 +112,31 @@ describe("search tool integration", () => {
     );
   });
 
+  it("passes a valid kinds filter through to the backend as its enum values", async () => {
+    nextResponse = emptyResponse;
+    lastKinds = undefined;
+    const result = await callSearch({ kinds: ["mcp_server", "skill"] });
+    expect(result.isError).toBeFalsy();
+    expect(lastKinds).toEqual([ApiResourceKind.mcp_server, ApiResourceKind.skill]);
+  });
+
   it("rejects an unknown kind without calling the backend", async () => {
+    backendCalls = 0;
     const result = await callSearch({ kinds: ["bogus"] });
     expect(result.isError).toBe(true);
     expect(result.content[0]?.text).toContain('unknown resource kind "bogus"');
     expect(result.content[0]?.text).toContain(
-      "valid kinds: agent, skill, mcp_server, environment",
+      "valid kinds: agent, skill, mcp_server",
     );
+    expect(backendCalls).toBe(0);
   });
 
-  it("accepts the environment kind", async () => {
-    nextResponse = emptyResponse;
-    const result = await callSearch({ kinds: ["environment"] });
-    expect(result.isError).toBeFalsy();
+  it("refuses a kind with no tool surface without calling the backend", async () => {
+    backendCalls = 0;
+    const result = await callSearch({ kinds: ["vault"] });
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toContain('unknown resource kind "vault"');
+    expect(backendCalls).toBe(0);
   });
 
   it("forwards pagination only when requested", async () => {

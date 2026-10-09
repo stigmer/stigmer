@@ -42,6 +42,10 @@ const PINNED: Readonly<
     fingerprint:
       "session{agent=field:status.agent_id,channel=label:stigmer.ai/channel-id}",
   },
+  vault: {
+    revision: 1,
+    fingerprint: "vault{person=field:spec.person}",
+  },
 };
 
 describe("the list-indexed surface", () => {

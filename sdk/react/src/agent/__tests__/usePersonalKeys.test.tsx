@@ -9,7 +9,7 @@ import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { useOrganizationId, usePersonalKeys } from "../usePersonalKeys";
 
 // ---------------------------------------------------------------------------
-// The keys a run reads from the person's personal environment, as the
+// The keys a run reads from the person's My vault, as the
 // server fills them: the declared keys minus the agent's servers' OAuth
 // variables, none for an agent of another organization. Not ready while
 // the servers load; a usage that names no server is skipped, and a server

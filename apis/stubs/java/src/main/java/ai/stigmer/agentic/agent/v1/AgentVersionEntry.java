@@ -303,8 +303,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * The agent spec exactly as this version stored it: the instructions,
-   * sub-agents, skill and MCP server references and environment a turn on
-   * this version runs with.
+   * sub-agents, skill and MCP server references, declared keys and vaults a
+   * turn on this version runs with.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec_snapshot = 7 [json_name = "specSnapshot"];</code>
@@ -317,8 +317,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * The agent spec exactly as this version stored it: the instructions,
-   * sub-agents, skill and MCP server references and environment a turn on
-   * this version runs with.
+   * sub-agents, skill and MCP server references, declared keys and vaults a
+   * turn on this version runs with.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec_snapshot = 7 [json_name = "specSnapshot"];</code>
@@ -331,8 +331,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * The agent spec exactly as this version stored it: the instructions,
-   * sub-agents, skill and MCP server references and environment a turn on
-   * this version runs with.
+   * sub-agents, skill and MCP server references, declared keys and vaults a
+   * turn on this version runs with.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec_snapshot = 7 [json_name = "specSnapshot"];</code>
@@ -1498,8 +1498,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The agent spec exactly as this version stored it: the instructions,
-     * sub-agents, skill and MCP server references and environment a turn on
-     * this version runs with.
+     * sub-agents, skill and MCP server references, declared keys and vaults a
+     * turn on this version runs with.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec_snapshot = 7 [json_name = "specSnapshot"];</code>
@@ -1511,8 +1511,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The agent spec exactly as this version stored it: the instructions,
-     * sub-agents, skill and MCP server references and environment a turn on
-     * this version runs with.
+     * sub-agents, skill and MCP server references, declared keys and vaults a
+     * turn on this version runs with.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec_snapshot = 7 [json_name = "specSnapshot"];</code>
@@ -1528,8 +1528,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The agent spec exactly as this version stored it: the instructions,
-     * sub-agents, skill and MCP server references and environment a turn on
-     * this version runs with.
+     * sub-agents, skill and MCP server references, declared keys and vaults a
+     * turn on this version runs with.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec_snapshot = 7 [json_name = "specSnapshot"];</code>
@@ -1550,8 +1550,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The agent spec exactly as this version stored it: the instructions,
-     * sub-agents, skill and MCP server references and environment a turn on
-     * this version runs with.
+     * sub-agents, skill and MCP server references, declared keys and vaults a
+     * turn on this version runs with.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec_snapshot = 7 [json_name = "specSnapshot"];</code>
@@ -1570,8 +1570,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The agent spec exactly as this version stored it: the instructions,
-     * sub-agents, skill and MCP server references and environment a turn on
-     * this version runs with.
+     * sub-agents, skill and MCP server references, declared keys and vaults a
+     * turn on this version runs with.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec_snapshot = 7 [json_name = "specSnapshot"];</code>
@@ -1597,8 +1597,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The agent spec exactly as this version stored it: the instructions,
-     * sub-agents, skill and MCP server references and environment a turn on
-     * this version runs with.
+     * sub-agents, skill and MCP server references, declared keys and vaults a
+     * turn on this version runs with.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec_snapshot = 7 [json_name = "specSnapshot"];</code>
@@ -1616,8 +1616,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The agent spec exactly as this version stored it: the instructions,
-     * sub-agents, skill and MCP server references and environment a turn on
-     * this version runs with.
+     * sub-agents, skill and MCP server references, declared keys and vaults a
+     * turn on this version runs with.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec_snapshot = 7 [json_name = "specSnapshot"];</code>
@@ -1630,8 +1630,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The agent spec exactly as this version stored it: the instructions,
-     * sub-agents, skill and MCP server references and environment a turn on
-     * this version runs with.
+     * sub-agents, skill and MCP server references, declared keys and vaults a
+     * turn on this version runs with.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec_snapshot = 7 [json_name = "specSnapshot"];</code>
@@ -1647,8 +1647,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The agent spec exactly as this version stored it: the instructions,
-     * sub-agents, skill and MCP server references and environment a turn on
-     * this version runs with.
+     * sub-agents, skill and MCP server references, declared keys and vaults a
+     * turn on this version runs with.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec_snapshot = 7 [json_name = "specSnapshot"];</code>

@@ -6,12 +6,12 @@ import "ai/stigmer/agentic/executioncontext/v1/spec.proto";
 import "buf/validate/validate.proto";
 
 // OAuthConnectionHealth evaluates the health of an OAuth connection by
-// examining grant existence and token expiry metadata. Used in
+// examining whether a login is saved and its token expiry metadata. Used in
 // GetOAuthGrantStatusOutput to give the frontend an actionable signal
 // beyond the binary "connected" boolean.
 //
-// The backend determines health from locally available metadata (grant
-// record + access_token_expires_at). It cannot detect server-side token
+// The backend determines health from locally available metadata (the
+// saved connection and its sign-in expiry). It cannot detect server-side token
 // revocation without making an API call to the vendor, so HEALTHY means
 // "valid as far as we know" — not a guarantee the token will be accepted.
 enum OAuthConnectionHealth {
@@ -31,8 +31,9 @@ enum OAuthConnectionHealth {
   // the user will need to re-authenticate.
   OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED_REFRESHABLE = 3;
 
-  // No OAuth grant exists for this resource + org + user combination.
-  // The user has never connected or has disconnected.
+  // No sign-in made for this server that a run would use: the user has
+  // never signed in, has disconnected, or the saved login is not a
+  // sign-in this server can use.
   OAUTH_CONNECTION_HEALTH_NO_GRANT = 4;
 }
 
@@ -55,14 +56,15 @@ message McpServerId {
 // MCP server (via the runner), enumerates tools and resource
 // templates, and stores the results in status.discovered_capabilities.
 //
-// Environment variable resolution:
-// - When runtime_env is provided, the backend creates an ExecutionContext directly
-//   from these values (one-time use, values are not persisted to any environment).
-// - When runtime_env is empty, the backend resolves values from the authenticated
-//   user's personal environment.
+// Value resolution: the run credential resolver, with the caller as the
+// person and runtime_env as the call's own values ahead of the caller's My
+// vault, the one vault connect reads; the server's address and declared
+// keys are matched as a run's are. A sign-in saved into a shared vault is
+// not read here: it serves the runs that use that vault. One-time values
+// are never saved.
 //
 // Callers:
-// - Web console: calls connect after saving credentials to personal environment.
+// - Web console: calls connect after saving a login or secret to My vault.
 // - CLI: calls connect with runtime_env populated from local env vars.
 // - Runner backfill: calls connect with runtime_env from execution context
 //   when status.discovered_capabilities is empty on first run.
@@ -70,22 +72,19 @@ message McpServerId {
 // Prerequisites:
 // - The MCP server must exist and have a valid server_type (stdio or http)
 // - org must be provided (the caller's active organization)
-// - Either runtime_env must contain all required keys, or the keys must be
-//   present in the user's personal environment / managed OAuth environment
+// - Every required key must be in runtime_env or the caller's My vault
 message ConnectInput {
   // System-generated ID of the MCP server to connect to.
   // Obtained from McpServer.metadata.id (e.g., via getByReference).
   string mcp_server_id = 1 [(buf.validate.field).required = true];
 
-  // Optional environment variable values for one-time use.
-  // When empty, values are resolved from the user's personal environment.
+  // Optional environment variable values for one-time use, ahead of the
+  // caller's My vault.
   map<string, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> runtime_env = 2;
 
   // Organization context for credential resolution.
   //
-  // Used to look up the caller's OAuthGrant and personal environment
-  // during environment variable resolution. Must match the org used
-  // during initiateOAuthConnect so the grant composite key aligns.
+  // The caller's My vault in this organization is the one connect reads.
   //
   // Required: the backend rejects the request when this field is empty.
   string org = 3 [(buf.validate.field).string.min_len = 1];
@@ -109,9 +108,22 @@ message InitiateOAuthConnectInput {
   string mcp_server_id = 1 [(buf.validate.field).required = true];
 
   // Organization context for token storage.
-  // Tokens are stored in the caller's personal environment within this org.
   // Must be an org the caller belongs to.
   string org = 2 [(buf.validate.field).string.min_len = 1];
+
+  // The shared vault, by id, the login is saved into. Empty saves it in the
+  // caller's My vault in the organization. A login saved into a shared vault
+  // serves the runs that use that vault; connect reads only My vault. A
+  // vault id is "vlt_" followed by 26 lowercase characters.
+  //
+  // @internal
+  // A named vault needs can_edit for the caller, and My vault needs
+  // can_create_vault on the organization, each checked here and again
+  // when the flow completes.
+  string vault_id = 3 [(buf.validate.field).string = {
+    max_len: 30
+    pattern: "^$|^vlt_[0-9a-z]{26}$"
+  }];
 }
 
 // InitiateOAuthConnectOutput contains the authorization URL and metadata
@@ -148,13 +160,13 @@ message InitiateOAuthConnectOutput {
 // The backend:
 // 1. Validates the state parameter against the stored PendingOAuthState
 // 2. Exchanges the authorization code for tokens (using PKCE code_verifier)
-// 3. Stores the access token in the user's personal environment
-// 4. Stores the refresh token (if present) in the personal environment
-// 5. Creates an OAuthGrant record for pre-flight expiry checks
+// 3. Saves the login as a connection at the server's address in the vault
+//    the flow started with, the refresh token sealed on its sign-in record
 //
-// After this succeeds, the frontend should call the regular connect RPC
-// to trigger tool discovery (which will find the fresh token in the
-// personal environment).
+// After a sign-in saved into the caller's My vault, the frontend calls the
+// regular connect RPC to trigger tool discovery, which finds the fresh
+// login there. connect reads no shared vault: a sign-in saved into one
+// serves the runs that use that vault.
 message CompleteOAuthConnectInput {
   // System-generated ID of the MCP server.
   // Must match the mcp_server_id used in the preceding initiateOAuthConnect.
@@ -174,7 +186,7 @@ message CompleteOAuthConnectOutput {
   // Whether the OAuth flow completed successfully and tokens are stored.
   bool connected = 1;
 
-  // The environment variable name where the access token was stored.
+  // The environment variable the saved login fills.
   // Matches McpServerAuth.target_env_var on the MCP server spec.
   string target_env_var = 2;
 
@@ -186,9 +198,13 @@ message CompleteOAuthConnectOutput {
 // GetOAuthGrantStatusInput queries the OAuth grant status for a resource.
 //
 // @internal
-// Returns whether the authenticated user has an active OAuth grant for the
-// specified resource in the given org. Used by the frontend to determine
-// whether to show "Connected" vs. "Connect with OAuth" UI states.
+// Returns whether the authenticated user has a sign-in that a run would
+// use for the specified server in their My vault in the given org: a
+// connection this server's sign-in saved at the server's current address.
+// A pasted login is no sign-in and reads as not connected; it and a
+// sign-in saved into a shared vault are read through VaultQueryController.
+// Used by the frontend to determine whether to show "Connected" vs.
+// "Connect with OAuth" UI states.
 message GetOAuthGrantStatusInput {
   // System-generated ID of the resource to check grant status for.
   string resource_id = 1 [(buf.validate.field).required = true];
@@ -200,19 +216,19 @@ message GetOAuthGrantStatusInput {
 
 // GetOAuthGrantStatusOutput returns the current OAuth grant status.
 message GetOAuthGrantStatusOutput {
-  // Whether the user has an active OAuth grant for this resource + org.
+  // Whether the user has a sign-in saved for this server in this org.
   bool connected = 1;
 
   // When the access token expires (Unix timestamp seconds).
-  // 0 if no grant exists or the token does not expire.
+  // 0 if no sign-in is saved or the token does not expire.
   int64 access_token_expires_at = 2;
 
-  // The env var name where the access token is stored.
-  // Empty if no grant exists.
+  // The env var the saved sign-in fills.
+  // Empty if no sign-in is saved.
   string target_env_var = 3;
 
   // Which auth method was used ("mcp_oauth" or "vendor_oauth").
-  // Empty if no grant exists.
+  // Empty if no sign-in is saved.
   string auth_method = 4;
 
   // Evaluated health of the OAuth connection.
@@ -225,33 +241,38 @@ message GetOAuthGrantStatusOutput {
 // DisconnectOAuthInput tears down a user's OAuth connection for a resource.
 //
 // @internal
-// The handler:
-// 1. Finds the OAuthGrant for (caller, resource_id, org)
-// 2. Deletes the managed Environment that holds the tokens
-// 3. Deletes the OAuthGrant record
+// The handler removes, from the caller's My vault in the org, every
+// connection a sign-in to this server saved, through the vault's atomic
+// entry write. It reads no server row, so it also removes a sign-in left
+// at the server's earlier address. Once the server is deleted, the
+// can_connect check may answer NOT_FOUND first; My vault's
+// VaultCommandController.removeConnections removes that sign-in.
 //
 // After this, the user's access token and refresh token are gone. The
 // MCP server remains configured — only the user's personal OAuth connection
-// is removed. Other users' connections to the same resource are unaffected.
+// is removed. Other users' connections to the same resource, a pasted login
+// at the server's address, and another server's sign-in are unaffected. A
+// sign-in saved into a shared vault is removed through that vault's
+// VaultCommandController.removeConnections.
 //
-// Idempotent: if no OAuthGrant exists for the (caller, resource_id, org)
-// tuple, the handler returns disconnected=false without error. This
+// Idempotent: if no sign-in for the server is saved, the handler
+// returns disconnected=false without error. This
 // supports race conditions (concurrent disconnect calls), retries after
 // partial failures, and desired-state semantics ("ensure no connection").
 message DisconnectOAuthInput {
   // System-generated ID of the resource to disconnect OAuth for.
   string resource_id = 1 [(buf.validate.field).required = true];
 
-  // Organization context. Must match the org used during the original
-  // OAuth connect flow (part of the OAuthGrant composite key).
+  // Organization context: the caller's My vault in this org is the one
+  // changed.
   string org = 2 [(buf.validate.field).string.min_len = 1];
 }
 
 // DisconnectOAuthOutput reports the result of a disconnect request.
 message DisconnectOAuthOutput {
-  // Whether an active grant was found and deleted.
-  // true: grant and its managed environment were deleted.
-  // false: no grant existed for this resource + org + caller. The desired
+  // Whether a saved sign-in was found and removed.
+  // true: the connection and its tokens were removed.
+  // false: no sign-in was saved for this server, org and caller. The desired
   // state (no OAuth connection) was already achieved. This is not an error.
   bool disconnected = 1;
 }
@@ -343,7 +364,7 @@ message GetOrgOAuthAppOutput {
 // 3. Deletes the OAuthAppOverride binding
 //
 // After this, the resolution chain falls back to the platform default.
-// Existing user OAuthGrants that were issued using the org's OAuthApp
+// Existing sign-ins that were issued using the org's OAuthApp
 // will fail on next refresh — those users will need to re-authenticate
 // using the platform default (or a new org override).
 //

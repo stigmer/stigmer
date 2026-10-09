@@ -4,10 +4,12 @@
  * full schedule and changes only what its editor owns: the budget editor
  * the cost cap, the engine editor the engine, model, tier and thinking,
  * and a stored tier or thinking (an explicit standard or disabled among
- * them) survives any save that leaves it alone.
+ * them) survives any save that leaves it alone. The vaults editor offers
+ * My vault only to the schedule's creator, the one person the server
+ * accepts it from.
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor, fireEvent, cleanup, within } from "@testing-library/react";
+import { act, render, screen, waitFor, fireEvent, cleanup, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { clone, create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
@@ -52,7 +54,8 @@ function makeSchedule(overrides?: {
   lastRunId?: string;
   cron?: string;
   consecutiveFailures?: number;
-  environmentRefs?: readonly { org: string; slug: string }[];
+  vaults?: readonly { org: string; slug: string }[];
+  createdBy?: string;
   harness?: Harness;
   runConfig?: {
     modelName?: string;
@@ -81,8 +84,8 @@ function makeSchedule(overrides?: {
         value: {
           agentRef: { kind: ApiResourceKind.agent, org: "isc", slug: "fee-reminder" },
           message: "Send today's fee reminders.",
-          environmentRefs: (overrides?.environmentRefs ?? []).map((r) => ({
-            kind: ApiResourceKind.environment,
+          vaults: (overrides?.vaults ?? []).map((r) => ({
+            kind: ApiResourceKind.vault,
             org: r.org,
             slug: r.slug,
           })),
@@ -100,6 +103,9 @@ function makeSchedule(overrides?: {
       consecutiveFailures:
         overrides?.consecutiveFailures ?? (overrides?.pausedReason ? 5 : 0),
       pausedReason: overrides?.pausedReason ?? "",
+      ...(overrides?.createdBy !== undefined
+        ? { audit: { specAudit: { createdBy: { id: overrides.createdBy } } } }
+        : {}),
     },
   });
 }
@@ -113,9 +119,14 @@ interface MockClient {
     delete: ReturnType<typeof vi.fn>;
   };
   manifest: { apply: ReturnType<typeof vi.fn> };
-  // The environments inline editor's picker lists the org's environments.
-  environment: { list: ReturnType<typeof vi.fn> };
+  // The vaults inline editor's picker lists the org's vaults, and offers
+  // My vault only when the viewer is the schedule's creator.
+  vault: { list: ReturnType<typeof vi.fn> };
+  identityAccount: { whoAmI: ReturnType<typeof vi.fn> };
 }
+
+/** The identity every test views the schedule as. */
+const VIEWER_ID = "ida_viewer";
 
 function makeClient(schedule: Schedule): MockClient {
   return {
@@ -147,8 +158,11 @@ function makeClient(schedule: Schedule): MockClient {
         message: doc.message,
       })),
     },
-    environment: {
+    vault: {
       list: vi.fn().mockResolvedValue({ items: [], totalCount: 0 }),
+    },
+    identityAccount: {
+      whoAmI: vi.fn().mockResolvedValue({ metadata: { id: VIEWER_ID } }),
     },
   };
 }
@@ -836,16 +850,16 @@ describe("ScheduleDetailView", () => {
     expect(target?.runConfig?.maxCostUsd).toBe(2.5);
   });
 
-  it("round-trips environment references with the environment kind stamped", async () => {
+  it("round-trips vault references with the vault kind stamped", async () => {
     const client = makeClient(
       makeSchedule({
-        environmentRefs: [{ org: "isc", slug: "isc-mcp-credentials" }],
+        vaults: [{ org: "isc", slug: "isc-mcp-credentials" }],
       }),
     );
     renderView(client, { editable: true });
 
     await screen.findByRole("heading", { name: "daily-fee-reminders" });
-    fireEvent.click(screen.getByRole("button", { name: "Edit environments" }));
+    fireEvent.click(screen.getByRole("button", { name: "Edit vaults" }));
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() => expect(client.manifest.apply).toHaveBeenCalledOnce());
@@ -854,11 +868,46 @@ describe("ScheduleDetailView", () => {
       doc.message.spec?.target?.case === "agent"
         ? doc.message.spec.target.value
         : undefined;
-    expect(target?.environmentRefs).toHaveLength(1);
-    expect(target?.environmentRefs?.[0].slug).toBe("isc-mcp-credentials");
-    expect(target?.environmentRefs?.[0].kind).toBe(
-      ApiResourceKind.environment,
-    );
+    expect(target?.vaults).toHaveLength(1);
+    expect(target?.vaults?.[0].slug).toBe("isc-mcp-credentials");
+    expect(target?.vaults?.[0].kind).toBe(ApiResourceKind.vault);
+  });
+
+  it("offers My vault in the vaults editor to the schedule's creator only", async () => {
+    const vaults = {
+      items: [
+        {
+          metadata: { name: "My vault", slug: "my-vault-viewer", org: "isc" },
+          spec: { owner: { case: "person", value: VIEWER_ID } },
+        },
+        {
+          metadata: { name: "Team keys", slug: "team-keys", org: "isc" },
+          spec: { owner: { case: "org", value: "isc" } },
+        },
+      ],
+      totalCount: 2,
+    };
+    const openVaultsEditor = async (createdBy: string): Promise<MockClient> => {
+      const client = makeClient(makeSchedule({ createdBy }));
+      client.vault.list.mockResolvedValue(vaults);
+      renderView(client, { editable: true });
+      await screen.findByRole("heading", { name: "daily-fee-reminders" });
+      fireEvent.click(screen.getByRole("button", { name: "Edit vaults" }));
+      await screen.findByRole("option", { name: "Team keys" });
+      return client;
+    };
+
+    await openVaultsEditor(VIEWER_ID);
+    expect(await screen.findByRole("option", { name: "My vault" })).toBeTruthy();
+    cleanup();
+
+    const client = await openVaultsEditor("ida_creator");
+    const whoAmI = client.identityAccount.whoAmI;
+    await waitFor(() => expect(whoAmI).toHaveBeenCalled());
+    await act(async () => {
+      await whoAmI.mock.results[0]?.value;
+    });
+    expect(screen.queryByRole("option", { name: "My vault" })).toBeNull();
   });
 
   it("keeps the editor open with the server's message on a failed save", async () => {

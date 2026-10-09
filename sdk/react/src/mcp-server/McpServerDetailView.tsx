@@ -12,7 +12,7 @@ import type {
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import type { McpServerSpec } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import { ValidationState } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
-import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
 import { useMcpServer } from "./useMcpServer.js";
 import type { UseMcpServerReturn } from "./useMcpServer.js";
 import { useUpdateMcpServer } from "./useUpdateMcpServer.js";
@@ -34,8 +34,8 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { DialogShell } from "../internal/DialogShell.js";
-import { EnvVarForm } from "../environment/EnvVarForm.js";
-import type { EnvVarFormVariable } from "../environment/EnvVarForm.js";
+import { EnvVarForm } from "../vault/EnvVarForm.js";
+import type { EnvVarFormVariable } from "../vault/EnvVarForm.js";
 import { VisibilityBadge } from "../library/VisibilitySelector.js";
 import { useManageAccess } from "../access/useManageAccess.js";
 import { Tabs, type TabItem } from "../tabs/Tabs.js";
@@ -118,11 +118,11 @@ export interface McpServerDetailViewProps {
    */
   readonly credentialPoolValues?: (
     key: string,
-  ) => import("@stigmer/sdk").EnvVarInput | undefined;
+  ) => import("../vault/types.js").EnvVarInput | undefined;
   /**
    * The authenticated user's active organization id (a slug is also accepted).
-   * Used for OAuth token storage — tokens are stored in the user's personal
-   * environment within this org, not the MCP server's org.
+   * Used for OAuth token storage — tokens are stored in the user's My
+   * vault within this org, not the MCP server's org.
    * When omitted, falls back to the `org` prop (MCP server's org).
    */
   readonly activeOrg?: string;
@@ -320,7 +320,7 @@ export function McpServerDetailView({
 
   const handleCredentialSubmit = useCallback(
     async (
-      values: Record<string, import("@stigmer/sdk").EnvVarInput>,
+      values: Record<string, import("../vault/types.js").EnvVarInput>,
       options: { saveForFuture: boolean },
     ) => {
       try {
@@ -642,8 +642,9 @@ export function McpServerDetailView({
           >
             <EnvVarForm
               title="Credentials Required"
-              description="Enter the credentials needed to connect to this MCP server. Toggle &quot;Save for future runs&quot; to persist them in your personal environment, or leave it off for one-time use."
+              description="Enter the credentials needed to connect to this MCP server. Toggle &quot;Save in My vault&quot; to keep them, or leave it off to use them for this connection only."
               variables={credentials.missingVariables}
+              unsavedScope="connection"
               onSubmit={(values, options) => handleCredentialSubmit(values, options)}
               onCancel={() => setShowCredentialForm(false)}
               isSubmitting={credentials.isSaving}
@@ -895,7 +896,12 @@ function ConnectBar({
     return <ConnectIcon className="stg:size-3.5" />;
   })();
 
+  // Connected without a grant: My vault holds a login the person saved
+  // themselves, which a run uses and nothing refreshes.
+  const savedLogin = authMode === "oauth" && isOAuthConnected && !canDisconnect;
+
   const statusText = (() => {
+    if (savedLogin) return "Using the token saved in My vault";
     if (authMode === "oauth" && isOAuthConnected) {
       // Stranded takes precedence over token health: "tokens refresh
       // automatically" reads as all-done while the Tools tab is empty.
@@ -909,7 +915,10 @@ function ConnectBar({
     return "Not connected yet";
   })();
 
-  const pill = healthPillProps(connectionHealth, isVendorApprovalPending && !isOAuthConnected);
+  const pill = healthPillProps(
+    savedLogin ? OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_HEALTHY : connectionHealth,
+    isVendorApprovalPending && !isOAuthConnected,
+  );
 
   const showDisconnectLink =
     canDisconnect && !anyBusy && !manualOverride && disconnectPhase === "idle";

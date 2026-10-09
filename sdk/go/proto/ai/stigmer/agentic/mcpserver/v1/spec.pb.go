@@ -8,7 +8,7 @@ package mcpserverv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/environment/v1"
+	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/vault/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -63,10 +63,10 @@ type McpServerSpec struct {
 	// When set, the MCP server's Connect page offers an OAuth flow instead of
 	// (or in addition to) manual credential entry.
 	//
-	// The acquired access token is stored in a system-managed environment
-	// (identified by grant.environment_id) as the env var named by
-	// auth.target_env_var. That env var must also be declared in env so the
-	// execution pipeline knows about it.
+	// A sign-in saves the access token as a connection at this server's
+	// address in the signer's vault (My vault unless a shared vault is named),
+	// and a run fills the env var named by auth.target_env_var from it. That
+	// env var must also be declared in env.
 	Auth          *McpServerAuth `protobuf:"bytes,14,opt,name=auth,proto3" json:"auth,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -400,11 +400,11 @@ type McpServerAuth struct {
 	// shared with child organizations, so no cross-organization reference to one is
 	// accepted.
 	OauthAppRef *apiresource.ApiResourceReference `protobuf:"bytes,1,opt,name=oauth_app_ref,json=oauthAppRef,proto3" json:"oauth_app_ref,omitempty"`
-	// The env var where the acquired access token is stored.
-	// Must correspond to an entry in env so the execution pipeline
-	// resolves it. The refresh token is stored as
-	// {target_env_var}_REFRESH_TOKEN
-	// by convention. Both are written to the grant's managed environment.
+	// The env var the signed-in access token fills.
+	// Must correspond to an entry in env. A sign-in saves the token as a
+	// connection at this server's address in the signer's vault, and a run
+	// fills this variable from that connection. The refresh token stays
+	// with the connection and never reaches a run.
 	TargetEnvVar string `protobuf:"bytes,2,opt,name=target_env_var,json=targetEnvVar,proto3" json:"target_env_var,omitempty"`
 	// Informational hint about expected token lifetime for UI display.
 	// Helps users understand when re-authentication may be needed.
@@ -415,22 +415,24 @@ type McpServerAuth struct {
 	// at connect time during authorization server metadata retrieval.
 	// For vendor OAuth: informational (scopes are defined on the OAuthApp).
 	ScopeHints []string `protobuf:"bytes,4,rep,name=scope_hints,json=scopeHints,proto3" json:"scope_hints,omitempty"`
-	// Optional URL for OAuth authorization server discovery on stdio servers.
+	// URL of the login server for a stdio server: where DCR discovery looks,
+	// and the address its sign-ins are saved at.
 	//
 	// HTTP servers do not need this: the platform derives the discovery
 	// endpoint from http.url (fetching /.well-known/oauth-authorization-server
-	// relative to the server URL).
+	// relative to the server URL), and saves a sign-in at http.url.
 	//
-	// Stdio servers have no URL, so DCR discovery has nothing to derive from.
-	// Set this field to the base URL of the vendor's OAuth authorization
-	// server to enable DCR for a stdio-based MCP server.
+	// Stdio servers have no URL, so a sign-in needs this field whether or not
+	// oauth_app_ref is set: it is the address the login is saved at in the
+	// signer's vault, and the address a run finds it by. A stdio server with
+	// OAuth and no discovery_url is refused at sign-in. Without
+	// oauth_app_ref it is also the base URL of the vendor's OAuth
+	// authorization server that DCR discovers from.
 	//
-	// Resolution priority:
+	// Discovery resolution priority (without oauth_app_ref; vendor OAuth uses
+	// the OAuthApp's endpoints and discovers nothing):
 	//  1. discovery_url (if set — used for both stdio and HTTP)
 	//  2. http.url (default for HTTP servers)
-	//
-	// Ignored when oauth_app_ref is set (vendor OAuth uses OAuthApp endpoints
-	// directly, no discovery needed).
 	DiscoveryUrl string `protobuf:"bytes,7,opt,name=discovery_url,json=discoveryUrl,proto3" json:"discovery_url,omitempty"`
 	// Whether the server's endpoint rejects manually-entered static tokens.
 	//
@@ -528,7 +530,7 @@ var File_ai_stigmer_agentic_mcpserver_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/agentic/mcpserver/v1/spec.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\x8c\x05\n" +
+	"*ai/stigmer/agentic/mcpserver/v1/spec.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a-ai/stigmer/agentic/vault/v1/declaration.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\x86\x05\n" +
 	"\rMcpServerSpec\x12 \n" +
 	"\vdescription\x18\x01 \x01(\tR\vdescription\x12\x19\n" +
 	"\bicon_url\x18\x02 \x01(\tR\aiconUrl\x12\x12\n" +
@@ -538,10 +540,10 @@ const file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc = "" +
 	"\x03env\x18\b \x03(\v27.ai.stigmer.agentic.mcpserver.v1.McpServerSpec.EnvEntryR\x03env\x12%\n" +
 	"\x0erepository_url\x18\f \x01(\tR\rrepositoryUrl\x12!\n" +
 	"\fgithub_stars\x18\r \x01(\x05R\vgithubStars\x12B\n" +
-	"\x04auth\x18\x0e \x01(\v2..ai.stigmer.agentic.mcpserver.v1.McpServerAuthR\x04auth\x1al\n" +
+	"\x04auth\x18\x0e \x01(\v2..ai.stigmer.agentic.mcpserver.v1.McpServerAuthR\x04auth\x1af\n" +
 	"\bEnvEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12J\n" +
-	"\x05value\x18\x02 \x01(\v24.ai.stigmer.agentic.environment.v1.EnvVarDeclarationR\x05value:\x028\x01B\x14\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12D\n" +
+	"\x05value\x18\x02 \x01(\v2..ai.stigmer.agentic.vault.v1.EnvVarDeclarationR\x05value:\x028\x01B\x14\n" +
 	"\vserver_type\x12\x05\xbaH\x02\b\x01J\x04\b\a\x10\bJ\x04\b\v\x10\fR\x15default_enabled_toolsR\x15pinned_tool_approvals\"j\n" +
 	"\x11StdioServerConfig\x12 \n" +
 	"\acommand\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\acommand\x12\x12\n" +
@@ -596,7 +598,7 @@ var file_ai_stigmer_agentic_mcpserver_v1_spec_proto_goTypes = []any{
 	nil,                                      // 5: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntry
 	nil,                                      // 6: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntry
 	(*apiresource.ApiResourceReference)(nil), // 7: ai.stigmer.commons.apiresource.ApiResourceReference
-	(*v1.EnvVarDeclaration)(nil),             // 8: ai.stigmer.agentic.environment.v1.EnvVarDeclaration
+	(*v1.EnvVarDeclaration)(nil),             // 8: ai.stigmer.agentic.vault.v1.EnvVarDeclaration
 }
 var file_ai_stigmer_agentic_mcpserver_v1_spec_proto_depIdxs = []int32{
 	1, // 0: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.stdio:type_name -> ai.stigmer.agentic.mcpserver.v1.StdioServerConfig
@@ -606,7 +608,7 @@ var file_ai_stigmer_agentic_mcpserver_v1_spec_proto_depIdxs = []int32{
 	5, // 4: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.headers:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntry
 	6, // 5: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.query_params:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntry
 	7, // 6: ai.stigmer.agentic.mcpserver.v1.McpServerAuth.oauth_app_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	8, // 7: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.EnvEntry.value:type_name -> ai.stigmer.agentic.environment.v1.EnvVarDeclaration
+	8, // 7: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.EnvEntry.value:type_name -> ai.stigmer.agentic.vault.v1.EnvVarDeclaration
 	8, // [8:8] is the sub-list for method output_type
 	8, // [8:8] is the sub-list for method input_type
 	8, // [8:8] is the sub-list for extension type_name

@@ -31,8 +31,11 @@ import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { ApiKeySpecSchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/spec_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ChannelAppSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/spec_pb";
-import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
-import { EnvironmentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
+import {
+  VaultConnectionSource,
+  VaultSpecSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/spec_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
@@ -68,7 +71,6 @@ import { buildRunProto, toRunUpdateInput } from "../gen/run";
 import { buildAgentShareProto, toAgentShareUpdateInput } from "../gen/agentshare";
 import { buildApiKeyProto, toApiKeyUpdateInput } from "../gen/apikey";
 import { buildChannelAppProto, toChannelAppUpdateInput } from "../gen/channelapp";
-import { buildEnvironmentProto, toEnvironmentUpdateInput } from "../gen/environment";
 import { buildIdentityAccountProto, toIdentityAccountUpdateInput } from "../gen/identityaccount";
 import { buildIdentityProviderProto, toIdentityProviderUpdateInput } from "../gen/identityprovider";
 import { buildMcpServerProto, toMcpServerUpdateInput } from "../gen/mcpserver";
@@ -77,6 +79,7 @@ import { buildOrganizationProto, toOrganizationUpdateInput } from "../gen/organi
 import { buildPlatformClientProto, toPlatformClientUpdateInput } from "../gen/platformclient";
 import { buildScheduleProto, toScheduleUpdateInput } from "../gen/schedule";
 import { buildSessionProto, toSessionUpdateInput } from "../gen/session";
+import { buildVaultProto, toVaultUpdateInput } from "../gen/vault";
 
 /**
  * Systematic wipe-bug guard for every generated toXxxUpdateInput mapper
@@ -179,6 +182,7 @@ const WORKSPACE_ENTRIES = [
           commit: "abc123",
           depth: 1,
           writeBackMode: GitWriteBackMode.GIT_WRITE_BACK_BRANCH_AND_PR,
+          token: "***REDACTED***",
         },
       },
     },
@@ -227,11 +231,15 @@ describe("toAgentUpdateInput", () => {
             modelOverride: "gpt-5.6-sol",
           },
         ],
-        env: { API_KEY: { isSecret: true, description: "Vendor key", optional: true } },
+        env: {
+          API_KEY: { isSecret: true, description: "Vendor key", optional: true },
+          WORKSPACE: { description: "Linear workspace", value: "acme" },
+        },
         tools: ["Read", "Grep", "Agent(researcher)", "mcp__github-mcp"],
         disallowedTools: ["mcp__github-mcp__delete_repo"],
         runConfig: RUN_CONFIG,
         harness: Harness.NATIVE,
+        vaults: [{ org: "acme", slug: "support-tools", kind: ApiResourceKind.vault }],
         hooks: [
           { source: { case: "plugin", value: { org: "acme", slug: "safety", kind: ApiResourceKind.plugin } } },
           {
@@ -277,8 +285,8 @@ describe("toAgentChannelUpdateInput", () => {
         agentRef: { org: "acme", slug: "support-bot", kind: ApiResourceKind.agent },
         enabled: true,
         providerConfig: { case: "slack", value: {} },
-        environmentRefs: [
-          { org: "acme", slug: "prod", kind: ApiResourceKind.environment },
+        vaults: [
+          { org: "acme", slug: "prod", kind: ApiResourceKind.vault },
         ],
         appRef: { org: "acme", slug: "acme-slack", kind: ApiResourceKind.channel_app },
         proactiveMessagingEnabled: true,
@@ -328,7 +336,6 @@ describe("toAgentExecutionUpdateInput", () => {
         interactionMode: InteractionMode.PLAN,
         buildFromPlan: true,
         structuredOutputSchema: { type: "object" },
-        runtimeEnv: { TOKEN: { value: "shh", isSecret: true } },
         autoApproveAll: true,
         attachments: [
           {
@@ -389,8 +396,8 @@ describe("toAgentShareUpdateInput", () => {
           unavailable: "Back soon.",
           conversationEnded: "Bye.",
         },
-        environmentRefs: [
-          { org: "acme", slug: "prod", kind: ApiResourceKind.environment },
+        vaults: [
+          { org: "acme", slug: "prod", kind: ApiResourceKind.vault },
         ],
         runConfig: RUN_CONFIG,
       },
@@ -483,28 +490,52 @@ describe("toChannelAppUpdateInput", () => {
   });
 });
 
-describe("toEnvironmentUpdateInput", () => {
+describe("toVaultUpdateInput", () => {
   const fixture = () =>
-    create(EnvironmentSchema, {
+    create(VaultSchema, {
       metadata: META,
       spec: {
-        description: "Prod secrets.",
-        data: {
-          API_KEY: { value: "shh", isSecret: true, description: "Vendor key" },
+        owner: { case: "person", value: "ida_ana" },
+        description: "Support tools.",
+        externalId: "customer-1234",
+        secrets: {
+          ZENDESK_API_KEY: {
+            value: "",
+            description: "Vendor key",
+            savedBy: "ida_ana",
+            savedAt: timestampFromDate(new Date("2026-10-08T00:00:00Z")),
+          },
+        },
+        connections: {
+          "https://mcp.linear.app/mcp": {
+            token: "",
+            source: VaultConnectionSource.sign_in,
+            signIn: {
+              expiresAt: 1_800_000_000n,
+              clientId: "client-1",
+              authMethod: "mcp_oauth",
+              tokenEndpoint: "https://linear.app/oauth/token",
+              refreshToken: "",
+              mcpServerId: "mcp_linear",
+            },
+            description: "Linear",
+            savedBy: "ida_ana",
+            savedAt: timestampFromDate(new Date("2026-10-08T00:00:00Z")),
+          },
         },
       },
     });
 
-  it("fixture covers every EnvironmentSpec field (schema tripwire)", () => {
-    assertFixtureCoversSpec(EnvironmentSpecSchema, fixture().spec!);
+  it("fixture covers every VaultSpec field (schema tripwire)", () => {
+    assertFixtureCoversSpec(VaultSpecSchema, fixture().spec!);
   });
 
   it("round-trips the full spec and metadata through the builder", () => {
     const original = fixture();
     assertSpecRoundTrip(
-      EnvironmentSpecSchema,
+      VaultSpecSchema,
       original,
-      buildEnvironmentProto(toEnvironmentUpdateInput(original)),
+      buildVaultProto(toVaultUpdateInput(original)),
     );
   });
 });
@@ -719,8 +750,8 @@ describe("toPlatformClientUpdateInput", () => {
         createAccountsOnSignIn: true,
         signInRole: IamRole.owner,
         allowedOrigins: ["https://embed.acme.example"],
-        environmentRefs: [
-          { org: "acme", slug: "prod", kind: ApiResourceKind.environment },
+        vaults: [
+          { org: "acme", slug: "prod", kind: ApiResourceKind.vault },
         ],
       },
     });
@@ -738,13 +769,13 @@ describe("toPlatformClientUpdateInput", () => {
     );
   });
 
-  it("preserves environment_refs when only origins change (live wipe bug)", () => {
+  it("preserves vaults when only origins change (live wipe bug)", () => {
     const original = fixture();
     const rebuilt = buildPlatformClientProto({
       ...toPlatformClientUpdateInput(original),
       allowedOrigins: ["https://other.acme.example"],
     });
-    expect(rebuilt.spec?.environmentRefs.map((r) => r.slug)).toEqual(["prod"]);
+    expect(rebuilt.spec?.vaults.map((r) => r.slug)).toEqual(["prod"]);
     expect(rebuilt.spec?.allowedOrigins).toEqual(["https://other.acme.example"]);
   });
 });
@@ -764,8 +795,8 @@ describe("toScheduleUpdateInput", () => {
             message: "Weekly triage.",
             harness: Harness.NATIVE,
             workspaceEntries: WORKSPACE_ENTRIES,
-            environmentRefs: [
-              { org: "acme", slug: "prod", kind: ApiResourceKind.environment },
+            vaults: [
+              { org: "acme", slug: "prod", kind: ApiResourceKind.vault },
             ],
             runConfig: RUN_CONFIG,
           },
@@ -805,6 +836,9 @@ describe("toSessionUpdateInput", () => {
         harness: Harness.CURSOR,
         cursorMode: CursorMode.CLOUD,
         executionTarget: ExecutionTarget.CLOUD,
+        vaults: [{ org: "acme", slug: "customer-1234", kind: ApiResourceKind.vault }],
+        secrets: { OPENAI_API_KEY: "***REDACTED***" },
+        connections: { "https://mcp.linear.app/mcp": "***REDACTED***" },
       },
     });
 

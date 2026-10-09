@@ -37,7 +37,6 @@ Every resource type has a typed client accessible as a property on `StigmerClien
 | `agents`               | Agent              |
 | `runs`                 | Run                |
 | `api_keys`             | ApiKey             |
-| `environments`         | Environment        |
 | `execution_contexts`   | ExecutionContext    |
 | `iam_policies`         | IamPolicy          |
 | `identity_accounts`    | IdentityAccount    |
@@ -46,6 +45,7 @@ Every resource type has a typed client accessible as a property on `StigmerClien
 | `organizations`        | Organization       |
 | `sessions`             | Session            |
 | `skills`               | Skill              |
+| `vaults`               | Vault              |
 | `search`               | Cross-resource search |
 
 ## Common Operations

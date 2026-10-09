@@ -26,7 +26,7 @@ import { AgentSpecSchema, type HookSourceSchema } from "@stigmer/protos/ai/stigm
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { type EnvVarDeclarationInit, makeEnvDeclarations } from "./environments";
+import { type EnvVarDeclarationInit, makeEnvDeclarations } from "./vaults";
 
 export const AGENT_API_VERSION = "agentic.stigmer.ai/v1";
 export const AGENT_KIND = "Agent";
@@ -67,11 +67,13 @@ export interface AgentSpecOptions {
   // Skill slugs to reference via spec.skill_refs, each with kind=skill. Org is
   // left empty so the server normalizes it to the agent's org.
   skillRefs?: string[];
-  // Blueprint env-var declarations projected into spec.env — the least-privilege
-  // key whitelist the execution engine filters the merged environment against.
-  // Declarations carry no value (a run's layers and its person's personal
-  // environment supply values); see envmerge.
+  // Blueprint env-var declarations projected into spec.env — what a run on the
+  // agent needs. A secret is found by its name in a vault when a run starts;
+  // a plain setting may carry its own value (support/vaults.ts).
   env?: Record<string, EnvVarDeclarationInit>;
+  // Shared vault slugs the agent's conversations use after a person's own My
+  // vault, for people who may use them (spec.vaults).
+  vaults?: string[];
   // The author's run defaults (spec.run_config) and the engine they were
   // chosen for (spec.harness). A model needs an engine; the server checks
   // both at save.
@@ -108,6 +110,7 @@ export function makeAgentSpec(opts: AgentSpecOptions = {}): InitShape<typeof Age
     ...(opts.runConfig !== undefined ? { runConfig: opts.runConfig } : {}),
     ...(opts.harness !== undefined ? { harness: opts.harness } : {}),
     ...(opts.hooks !== undefined ? { hooks: opts.hooks } : {}),
+    ...(opts.vaults !== undefined ? { vaults: opts.vaults.map((slug) => ({ slug, kind: ApiResourceKind.vault })) } : {}),
   };
 }
 

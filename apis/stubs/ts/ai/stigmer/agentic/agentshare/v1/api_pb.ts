@@ -25,7 +25,7 @@ export const file_ai_stigmer_agentic_agentshare_v1_api: GenFile = /*@__PURE__*/
  * A share is a distribution channel: it controls who can chat with the
  * referenced agent over `/chat/<share id>`, which sites may embed the
  * chat widget, what visitors see when a limit refuses them, and which
- * environment credentials guest conversations receive. Deleting the share
+ * vaults guest conversations use. Deleting the share
  * tears the channel down; disabling it pauses serving while preserving
  * configuration. The referenced agent is never modified by share
  * operations.

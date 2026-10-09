@@ -64,7 +64,7 @@ import {
   SecretService,
 } from "../../../encryption/encryption.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
-import { REDACTED_MARKER } from "../../environment/constants.js";
+import { REDACTED_MARKER } from "../../../encryption/encryption.js";
 import { newConnectExecutionId } from "../../mcpserver/connect-execution-id.js";
 import { deleteExecutionContextForExecution } from "../internal-delete.js";
 import type { ExecutionContextDeleter } from "../internal-delete.js";

@@ -22,11 +22,18 @@ import type {
   KindPurge,
   KindPurgeDeps,
 } from "../organization/purge/kind-purge.js";
+import type { SecretService } from "../../encryption/encryption.js";
+import { newDestroySecretBackingStateStep } from "../../pipeline/steps/secret-cleanup.js";
+import { sealedValuesOfSession } from "../vault/session-values.js";
 import { sessionListIndex } from "./list-index.js";
 import { newCascadeDeleteAgentExecutionsStep } from "./steps.js";
 
+type DeleteInput = typeof SessionCommandController.method.delete.input;
+
 export interface SessionPurgeDeps extends KindPurgeDeps {
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
+  /** Destroys the backing state of the session's own sealed values. */
+  readonly secretService: SecretService;
 }
 
 export function newSessionPurge(deps: SessionPurgeDeps): KindPurge {
@@ -43,6 +50,11 @@ export function newSessionPurge(deps: SessionPurgeDeps): KindPurge {
       ),
       newDeleteResourceStep(deps.store),
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
+      newDestroySecretBackingStateStep<DeleteInput, typeof SessionSchema>(
+        deps.secretService,
+        deps.logger,
+        sealedValuesOfSession,
+      ),
       newDeleteSearchIndexStep(deps.store, deps.logger),
     ],
   });
