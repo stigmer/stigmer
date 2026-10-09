@@ -149,9 +149,11 @@ export const SCHEMA_VERSION_16 = 16;
 export const SCHEMA_VERSION_17 = 17;
 /** v18: a conversation's retired own secrets and connections dropped from every session row. */
 export const SCHEMA_VERSION_18 = 18;
+/** v19: a sign-in starts from an address: its pending state reshaped, registered clients kept, Connect links. */
+export const SCHEMA_VERSION_19 = 19;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_18;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_19;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -209,6 +211,7 @@ export async function runMigrations(
       [SCHEMA_VERSION_16, migrateToV16],
       [SCHEMA_VERSION_17, migrateToV17],
       [SCHEMA_VERSION_18, migrateToV18],
+      [SCHEMA_VERSION_19, migrateToV19],
     ];
 
     for (const [version, migrate] of chain) {
@@ -1268,4 +1271,70 @@ async function migrateToV18(client: PoolClient): Promise<void> {
     }
     after = rows[rows.length - 1]!.id;
   }
+}
+
+/**
+ * v19: a sign-in starts from an address and saves into a vault, so its
+ * pending state no longer names an MCP server; Stigmer keeps the clients it
+ * registered with a login server; and a Connect link is a row. The pending
+ * table holds ten-minute rows only, so it is dropped and created in its new
+ * shape rather than altered: a sign-in in flight across the upgrade is
+ * started again. The chain's advisory lock keeps a second instance's boot
+ * out of the step.
+ */
+async function migrateToV19(client: PoolClient): Promise<void> {
+  await client.query(`
+    DROP TABLE pending_oauth_state;
+
+    CREATE TABLE pending_oauth_state (
+      state TEXT PRIMARY KEY,
+      code_verifier TEXT NOT NULL,
+      client_id TEXT NOT NULL DEFAULT '',
+      client_secret TEXT NOT NULL DEFAULT '',
+      token_endpoint TEXT NOT NULL DEFAULT '',
+      identity_account_id TEXT NOT NULL DEFAULT '',
+      auth_method TEXT NOT NULL DEFAULT '',
+      token_auth_method TEXT NOT NULL DEFAULT '',
+      redirect_uri TEXT NOT NULL DEFAULT '',
+      org TEXT NOT NULL DEFAULT '',
+      vault_id TEXT NOT NULL DEFAULT '',
+      address TEXT NOT NULL DEFAULT '',
+      login_app TEXT NOT NULL DEFAULT '',
+      resource TEXT NOT NULL DEFAULT '',
+      client_registration TEXT NOT NULL DEFAULT '',
+      connect_link TEXT NOT NULL DEFAULT '',
+      provider_name TEXT NOT NULL DEFAULT '',
+      userinfo_url TEXT NOT NULL DEFAULT '',
+      created_at BIGINT NOT NULL
+    );
+
+    CREATE INDEX idx_pending_oauth_state_created ON pending_oauth_state (created_at);
+
+    CREATE TABLE oauth_client_registration (
+      login_server TEXT NOT NULL,
+      redirect_uri TEXT NOT NULL,
+      client_id TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      PRIMARY KEY (login_server, redirect_uri)
+    );
+
+    CREATE TABLE connect_link (
+      token_hash TEXT PRIMARY KEY,
+      org TEXT NOT NULL,
+      vault_id TEXT NOT NULL,
+      address TEXT NOT NULL,
+      return_url TEXT NOT NULL,
+      created_by TEXT NOT NULL,
+      created_by_class TEXT NOT NULL,
+      created_by_bound_org TEXT NOT NULL DEFAULT '',
+      created_at BIGINT NOT NULL,
+      expires_at BIGINT NOT NULL,
+      used_at BIGINT NOT NULL DEFAULT 0
+    );
+
+    CREATE INDEX idx_oauth_client_registration_client ON oauth_client_registration (client_id);
+    CREATE INDEX idx_connect_link_vault ON connect_link (vault_id);
+    CREATE INDEX idx_connect_link_org ON connect_link (org);
+    CREATE INDEX idx_connect_link_expires ON connect_link (expires_at);
+  `);
 }

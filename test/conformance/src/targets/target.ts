@@ -174,24 +174,6 @@ export interface CapabilityFlags {
   // hold wherever no conversation traffic exists — exactly the state a
   // fresh conformance fixture is in on either edition.
   channelMessaging: boolean;
-  // The org-level OAuth-app configuration surface exists here: the McpServer
-  // service's setOrgOAuthApp / getOrgOAuthApp / deleteOrgOAuthApp RPCs (the
-  // hosted BYOA lane — an org admin registers their own vendor OAuth app for
-  // an MCP server).
-  //
-  // False for the local OSS targets — BY DOCUMENTED DESIGN, not a gap: the
-  // proto pins all three RPCs as "UNIMPLEMENTED on the OSS server by design"
-  // (one capability, probed via getOrgOAuthApp — stigmer/stigmer#558, the SDK
-  // gates its BYOA UI on exactly that answer). Where false, the suite pins
-  // the three UNIMPLEMENTED refusals — they are the OSS contract the TS port
-  // must reproduce, the same refusal-pin posture versionTagging and
-  // channelMessaging document above.
-  //
-  // True for cloud, whose Java service implements the lane for real. The
-  // pins are gated OFF there; the lane's full cloud behavior needs a real
-  // vendor OAuth app no hermetic target can provision, so it stays covered
-  // by cloud's own integration tests — the channelMessaging coverage split.
-  orgOAuthAppConfiguration: boolean;
   // Execution-credit billing gates run here: an agent-execution create is
   // authorized against the org's per-credit balance before any work happens,
   // and a zero-balance account denies the run with the engine's one denial
@@ -270,7 +252,7 @@ export interface CapabilityFlags {
   // False for the local OSS targets — BY DESIGN, not a gap: the OSS
   // controller answers UNIMPLEMENTED with the edition reason when no unit
   // composes the capability. Where false, the suite PINS that refusal (the
-  // versionTagging / orgOAuthAppConfiguration posture): the boundary is an
+  // versionTagging posture): the boundary is an
   // observable contract, never an absence to skip past.
   federatedIdentityAccounts: boolean;
   // IamPolicy `create` admits a grant on kinds BEYOND the organization: an
@@ -314,7 +296,7 @@ export interface CapabilityFlags {
   //
   // False for the local OSS targets — BY THE EDITION BOUNDARY, not a gap: OSS
   // routes neither controller, so every billing RPC answers Unimplemented.
-  // Where false, the suite PINS that answer (the orgOAuthAppConfiguration
+  // Where false, the suite PINS that answer (the versionTagging
   // posture): the boundary is an observable contract the SDK relies on, not
   // an absence to skip past.
   billingLedger: boolean;

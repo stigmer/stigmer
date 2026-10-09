@@ -174,10 +174,11 @@ type OAuthAppSpec struct {
 	//
 	//	["read_api", "api"] (GitLab)
 	Scopes []string `protobuf:"bytes,6,rep,name=scopes,proto3" json:"scopes,omitempty"`
-	// Optional OIDC UserInfo endpoint for fetching user profile data.
-	// When set, Stigmer calls this endpoint after token acquisition to
-	// retrieve the user's display name and avatar for the connected account.
-	// Omit for vendors that do not support a standard userinfo endpoint.
+	// Optional endpoint that answers who signed in (an OIDC UserInfo
+	// endpoint, or a vendor's equivalent such as GitHub's /user).
+	// When set, Stigmer calls it once after the sign-in, with the new token,
+	// and describes the saved login by the account's login, preferred user
+	// name or email ("Slack @ana"). Omit for vendors without one.
 	UserinfoUrl string `protobuf:"bytes,7,opt,name=userinfo_url,json=userinfoUrl,proto3" json:"userinfo_url,omitempty"`
 	// Name of the query parameter used to send scopes in the authorization URL.
 	//
@@ -216,8 +217,13 @@ type OAuthAppSpec struct {
 	// UNSPECIFIED is treated as CLIENT_SECRET_BASIC for backwards
 	// compatibility, preserving the historical behavior byte-for-byte.
 	TokenEndpointAuthMethod TokenEndpointAuthMethod `protobuf:"varint,11,opt,name=token_endpoint_auth_method,json=tokenEndpointAuthMethod,proto3,enum=ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod" json:"token_endpoint_auth_method,omitempty"`
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	// The addresses this app signs in to: a tool's URL (Slack's MCP endpoint
+	// at mcp.slack.com/mcp, over https) or a Git host (github.com), normalized
+	// as a vault connection's address is. A sign-in started at one of them uses
+	// this app. An address may belong to only one app in the organization.
+	Addresses     []string `protobuf:"bytes,12,rep,name=addresses,proto3" json:"addresses,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *OAuthAppSpec) Reset() {
@@ -327,11 +333,18 @@ func (x *OAuthAppSpec) GetTokenEndpointAuthMethod() TokenEndpointAuthMethod {
 	return TokenEndpointAuthMethod_TOKEN_ENDPOINT_AUTH_METHOD_UNSPECIFIED
 }
 
+func (x *OAuthAppSpec) GetAddresses() []string {
+	if x != nil {
+		return x.Addresses
+	}
+	return nil
+}
+
 var File_ai_stigmer_iam_oauthapp_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_oauthapp_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"%ai/stigmer/iam/oauthapp/v1/spec.proto\x12\x1aai.stigmer.iam.oauthapp.v1\x1a\x1bbuf/validate/validate.proto\"\xdc\x04\n" +
+	"%ai/stigmer/iam/oauthapp/v1/spec.proto\x12\x1aai.stigmer.iam.oauthapp.v1\x1a\x1bbuf/validate/validate.proto\"\x91\x05\n" +
 	"\fOAuthAppSpec\x12\x1a\n" +
 	"\bprovider\x18\x01 \x01(\tR\bprovider\x12$\n" +
 	"\tclient_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bclientId\x12,\n" +
@@ -344,7 +357,8 @@ const file_ai_stigmer_iam_oauthapp_v1_spec_proto_rawDesc = "" +
 	"\x16vendor_approval_status\x18\t \x01(\x0e20.ai.stigmer.iam.oauthapp.v1.VendorApprovalStatusR\x14vendorApprovalStatus\x127\n" +
 	"\x18vendor_approval_docs_url\x18\n" +
 	" \x01(\tR\x15vendorApprovalDocsUrl\x12p\n" +
-	"\x1atoken_endpoint_auth_method\x18\v \x01(\x0e23.ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethodR\x17tokenEndpointAuthMethod*\xac\x01\n" +
+	"\x1atoken_endpoint_auth_method\x18\v \x01(\x0e23.ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethodR\x17tokenEndpointAuthMethod\x123\n" +
+	"\taddresses\x18\f \x03(\tB\x15\xbaH\x12\x92\x01\x0f\b\x01\x10\x14\x18\x01\"\ar\x05\x10\x01\x18\x80\x10R\taddresses*\xac\x01\n" +
 	"\x14VendorApprovalStatus\x12&\n" +
 	"\"VENDOR_APPROVAL_STATUS_UNSPECIFIED\x10\x00\x12\"\n" +
 	"\x1eVENDOR_APPROVAL_STATUS_PENDING\x10\x01\x12#\n" +

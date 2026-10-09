@@ -34,7 +34,7 @@ export const DOMAIN_GROUPS: readonly DomainGroup[] = [
   },
   {
     label: "Sessions & Runs",
-    slugs: ["session", "run", "score", "composer"],
+    slugs: ["session", "run", "score", "evaluator", "composer"],
   },
   {
     label: "Agents",
@@ -48,7 +48,7 @@ export const DOMAIN_GROUPS: readonly DomainGroup[] = [
   },
   {
     label: "Vaults & Config",
-    slugs: ["vault", "workspace", "models"],
+    slugs: ["vault", "connect-link", "workspace", "models"],
   },
   {
     label: "Identity & Access",

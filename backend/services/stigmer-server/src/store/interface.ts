@@ -345,6 +345,8 @@ export interface ResourceNameStore {
    * was filed under it. Idempotent.
    */
   release(kind: string, org: string, id: string): Promise<void>;
+  /** Lets go of one name while `id` holds it (a resource that holds several and drops one). Idempotent. */
+  releaseName(key: ResourceNameKey, id: string): Promise<void>;
 }
 
 // =============================================================================
@@ -414,16 +416,17 @@ export interface OrganizationDeletionStore {
 // =============================================================================
 
 /**
- * How long a pending OAuth state survives between initiateOAuthConnect and
- * completeOAuthConnect (10 minutes, Go pending_state_store.go).
+ * How long a pending OAuth state survives between a sign-in's start and
+ * its completion (10 minutes, Go pending_state_store.go).
  */
 export const PENDING_OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 
 /**
- * Ephemeral state between initiateOAuthConnect and completeOAuthConnect.
- * codeVerifier and clientSecret rest SEALED (enc:v1:) — the controllers
- * seal/unseal at their seams (oss#394); the store persists whatever bytes
- * it is handed, byte-faithfully.
+ * Ephemeral state between a sign-in's start and its completion
+ * (domain/vault/sign-in/start.ts and complete.ts). codeVerifier and
+ * clientSecret rest SEALED (enc:v1:): the sign-in seals and unseals at its
+ * seams (oss#394); the store persists whatever bytes it is handed,
+ * byte-faithfully.
  */
 export interface PendingOAuthState {
   /** Random; lookup key + CSRF protection. */
@@ -431,34 +434,97 @@ export interface PendingOAuthState {
   /** PKCE verifier, needed for token exchange; sealed at rest. */
   readonly codeVerifier: string;
   readonly clientId: string;
-  /** Empty for DCR/public clients; sealed at rest when non-empty. */
+  /** Empty for a public client; sealed at rest when non-empty. */
   readonly clientSecret: string;
   readonly tokenEndpoint: string;
-  readonly mcpServerId: string;
-  /** The signer: the caller who started the sign-in, never "". */
+  /** The signer: the caller who started the sign-in; "" for a Connect link's, which has none. */
   readonly identityAccountId: string;
-  readonly targetEnvVar: string;
-  /** "mcp_oauth" or "vendor_oauth". */
+  /** "mcp_oauth" (the address's own login server) or "vendor_oauth" (a login app). */
   readonly authMethod: string;
-  /** RFC 8414 string from OAuthAppSpec; empty for DCR. */
+  /** RFC 8414 string for a login app's secret; empty for a public client. */
   readonly tokenAuthMethod: string;
   readonly redirectUri: string;
-  /** Caller's org: the vault the sign-in saves into belongs to it. */
+  /** The organization the vault the sign-in saves into belongs to. */
   readonly org: string;
   /**
    * The vault the sign-in saves into, by id; "" saves into the signer's My
-   * vault in `org`. Recorded at initiate, re-authorized at complete.
+   * vault in `org`. Recorded at start, re-authorized at completion.
    */
   readonly vaultId: string;
-  /**
-   * The tool's address when the sign-in started (domain/vault/address.ts
-   * `toolAddressOf`): the login is saved there, and completion refuses a
-   * server whose address has changed since. "" on a row from before the
-   * column, which no address matches.
-   */
-  readonly toolAddress: string;
+  /** The normalized address the login is saved at (domain/vault/address.ts). */
+  readonly address: string;
+  /** The login app used ("org:<id>", "stigmer:<key>"), "" for a public client of the address's own login server. */
+  readonly loginApp: string;
+  /** The `resource` sent to the login server (RFC 8707), sent again at the exchange; "" through a login app. */
+  readonly resource: string;
+  /** The login server a cached registered client belongs to, so a client it has forgotten is dropped; "" when none was used. */
+  readonly clientRegistration: string;
+  /** The SHA-256 of the Connect link that started the sign-in; "" for a person's. */
+  readonly connectLink: string;
+  /** Who the sign-in is with, for the saved login's description. */
+  readonly providerName: string;
+  /** The login app's account endpoint, read once with the new token; "" for none. */
+  readonly userinfoUrl: string;
   /** Unix seconds; 0 lets the driver stamp now. */
   readonly createdAt: number;
+}
+
+/**
+ * One OAuth client Stigmer registered with a login server (RFC 7591), kept
+ * so every later sign-in reuses it: keyed by the login server and the
+ * redirect URI it was registered with. Only public clients are registered,
+ * so nothing secret is kept, and one row serves every organization.
+ */
+export interface OAuthClientRegistrationStore {
+  /** The client registered with `loginServer` for `redirectUri`, or undefined. */
+  find(loginServer: string, redirectUri: string): Promise<string | undefined>;
+  /**
+   * Keeps `clientId` when nothing is kept for the pair yet, and answers the
+   * client kept: of two registrations racing, the first kept wins and the
+   * other is never used.
+   */
+  save(loginServer: string, redirectUri: string, clientId: string, now: string): Promise<string>;
+  /** Drops the pair's client while it is still `clientId` (one the login server has forgotten). Idempotent. */
+  forget(loginServer: string, redirectUri: string, clientId: string): Promise<void>;
+  /** The login servers Stigmer keeps `clientId` with; empty when none. */
+  loginServersHolding(clientId: string): Promise<readonly string[]>;
+}
+
+/** A Connect link as stored: its secret only as a SHA-256. Times are Unix seconds. */
+export interface ConnectLinkRecord {
+  /** base64url SHA-256 of the link's secret: the key. */
+  readonly tokenHash: string;
+  readonly org: string;
+  readonly vaultId: string;
+  /** The normalized address the link signs in to. */
+  readonly address: string;
+  readonly returnUrl: string;
+  /** The identity account that made the link, recorded as the saver of the login. */
+  readonly createdBy: string;
+  /** The maker's caller class, so the maker's standing is re-checked as the caller that made the link. */
+  readonly createdByClass: string;
+  /** The organization the maker's credential was bound to; empty when it named none. */
+  readonly createdByBoundOrg: string;
+  readonly createdAt: number;
+  readonly expiresAt: number;
+  /** When the link was spent; 0 while unused. */
+  readonly usedAt: number;
+}
+
+export interface ConnectLinkStore {
+  create(link: ConnectLinkRecord): Promise<void>;
+  /** The link when it exists, is unused and expires after `now`; undefined otherwise. */
+  findUsable(tokenHash: string, now: number): Promise<ConnectLinkRecord | undefined>;
+  /** Marks a usable link used at `now`, atomically: true for the one call that spent it. */
+  spend(tokenHash: string, now: number): Promise<boolean>;
+  /** Makes a link spent at `usedAt` usable again (its sign-in failed after spending it). */
+  restore(tokenHash: string, usedAt: number): Promise<void>;
+  /** Removes the links that expired before `now`; returns the count. */
+  deleteExpired(now: number): Promise<number>;
+  /** Removes every link to a vault (its delete); returns the count. */
+  deleteByVault(vaultId: string): Promise<number>;
+  /** Removes every link of an organization (its purge); returns the count. */
+  deleteByOrg(org: string): Promise<number>;
 }
 
 export interface PendingOAuthStateStore {
@@ -473,6 +539,8 @@ export interface PendingOAuthStateStore {
   cleanupExpired(): Promise<number>;
   /** Removes every state begun in an organization (its purge); returns the count. */
   deleteByOrg(org: string): Promise<number>;
+  /** Removes every state a Connect link began (a new start replaces them); returns the count. */
+  deleteByConnectLink(tokenHash: string): Promise<number>;
 }
 
 /**
@@ -883,6 +951,8 @@ export interface Store {
   readonly bootstrapState: BootstrapStateStore;
   readonly resourceNames: ResourceNameStore;
   readonly pendingOAuthStates: PendingOAuthStateStore;
+  readonly oauthClientRegistrations: OAuthClientRegistrationStore;
+  readonly connectLinks: ConnectLinkStore;
   readonly organizationDeletions: OrganizationDeletionStore;
 
   // ---------------------------------------------------------------------------

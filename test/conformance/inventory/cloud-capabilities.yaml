@@ -694,7 +694,7 @@ rows:
     caller: primary
     needs: [none]
     note: >-
-      Runs where the flag is FALSE (the versionTagging / orgOAuthAppConfiguration posture); observability `none` here means "not a Java behavior".
+      Runs where the flag is FALSE (the versionTagging posture); observability `none` here means "not a Java behavior".
 
   # ===========================================================================
   # BILLING — gate steps and status hooks, observed through agent executions

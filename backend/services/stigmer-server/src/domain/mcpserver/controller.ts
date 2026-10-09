@@ -1,22 +1,19 @@
 /**
- * McpServer controller — ports pkg/domain/mcpserver/controller whole:
- * the CRUD slice and the connect/OAuth slice. Registered methods:
- * apply/create/update/delete/updateVisibility +
- * connect/startConnect/initiateOAuthConnect/completeOAuthConnect/
+ * McpServer controller — ports pkg/domain/mcpserver/controller: the CRUD
+ * slice and the connect slice. Registered methods:
+ * apply/create/update/delete/updateVisibility + connect/startConnect/
  * disconnectOAuth on the command side; get/getByReference/
- * getOAuthGrantStatus on the query side; plus the three org-OAuth RPCs as
- * PERMANENT UNIMPLEMENTED stubs (below).
+ * getOAuthGrantStatus on the query side. A sign-in is not started here: it
+ * starts from an address on the vault (domain/vault/sign-in), and the two
+ * sign-in reads here find it by the server's address.
  *
- * The connect/OAuth slice lives in sibling modules named for their Go
- * files (connect.ts, start-connect.ts, initiate-oauth-connect.ts,
- * complete-oauth-connect.ts, disconnect-oauth.ts,
+ * The connect slice lives in sibling modules named for their Go files
+ * (connect.ts, start-connect.ts, disconnect-oauth.ts,
  * get-oauth-grant-status.ts; shared status bookkeeping in
  * connect-status.ts). They are plain handlers — Go uses no pipeline for
  * this slice — over the McpServerConnectDeps the composition root wires.
  * Engine availability is the modeled state: connect/startConnect refuse
- * FailedPrecondition while disconnected; the OAuth RPCs serve
- * unconditionally (Go's Temporal gate on them is a deliberately
- * unpinned composition artifact).
+ * FailedPrecondition while disconnected.
  *
  * Every chain opens with Authorize; create, delete and updateVisibility run
  * the shared tuple-lifecycle steps against the composed lifecycle;
@@ -31,7 +28,6 @@
  * mcpserver-connect.conformance.test.ts
  * (CONFORMANCE_TARGET=local-execution), and __tests__/.
  */
-import { Code, ConnectError } from "@connectrpc/connect";
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
@@ -112,7 +108,6 @@ import {
 } from "../../pipeline/steps/validate-visibility.js";
 import type { Store } from "../../store/interface.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
-import { completeOAuthConnect } from "./complete-oauth-connect.js";
 import { connect, startBestEffortConnect } from "./connect.js";
 import type { McpServerConnectDeps } from "./connect.js";
 import { disconnectOAuth } from "./disconnect-oauth.js";
@@ -121,7 +116,6 @@ import {
   type CompleteEndpointAuthDeps,
 } from "./complete-endpoint-auth.js";
 import { getOAuthGrantStatus } from "./get-oauth-grant-status.js";
-import { initiateOAuthConnect } from "./initiate-oauth-connect.js";
 import { mcpServerSearchExtractor } from "./search-extractor.js";
 import { startConnect } from "./start-connect.js";
 import { newEnrichOAuthStatusStep } from "./steps.js";
@@ -152,60 +146,15 @@ export function registerMcpServerServices(
       connect(deps.connect, input, callerIdentityOf(ctx)),
     startConnect: (input, ctx) =>
       startConnect(deps.connect, input, callerIdentityOf(ctx)),
-    initiateOAuthConnect: (input, ctx) =>
-      initiateOAuthConnect(deps.connect, input, callerIdentityOf(ctx)),
-    completeOAuthConnect: (input, ctx) =>
-      completeOAuthConnect(deps.connect, input, callerIdentityOf(ctx)),
     disconnectOAuth: (input, ctx) =>
       disconnectOAuth(deps.connect, input, callerIdentityOf(ctx)),
-    setOrgOAuthApp: () => {
-      throw orgOAuthAppUnimplemented("SetOrgOAuthApp");
-    },
-    deleteOrgOAuthApp: () => {
-      throw orgOAuthAppUnimplemented("DeleteOrgOAuthApp");
-    },
   });
   router.service(McpServerQueryController, {
     get: (id, ctx) => get(deps, id, ctx),
     getByReference: (ref, ctx) => getByReference(deps, ref, ctx),
     getOAuthGrantStatus: (input, ctx) =>
       getOAuthGrantStatus(deps.connect, input, callerIdentityOf(ctx)),
-    getOrgOAuthApp: () => {
-      throw orgOAuthAppUnimplemented("GetOrgOAuthApp");
-    },
   });
-}
-
-/**
- * The org-OAuth-app (BYOA override) surface answers UNIMPLEMENTED on OSS —
- * deliberately, not as coexistence lag (stigmer/stigmer#558). An
- * OAuthAppOverride binds an org's own OAuthApp OVER a
- * platform-managed default; OSS has no platform operator distinct from the
- * user — the flat oauthapp domain gives the user full CRUD over the very
- * apps a hosted org could only override — and the OSS OAuth resolution
- * (refresolution) has no override level to consult: the ref IS the whole
- * resolution.
- *
- * The three RPCs are ONE capability. The shared SDK probes it via
- * getOrgOAuthApp and hides every BYOA affordance when the probe answers
- * UNIMPLEMENTED (useOrgOAuthApp.isSupported). Implementing any one RPC
- * without the other two — e.g. a "truthful" read returning
- * has_override=false — would break the probe and resurrect dead
- * affordances on OSS. If this surface is ever brought to OSS, all three
- * RPCs, the OSS resolution chain, and the SDK gate must move together.
- *
- * Explicit stubs (never unregistered methods): connect-es DOES answer an
- * unregistered method of a registered service with Code.Unimplemented —
- * but with ITS generated text ("<service>.<method> is not implemented"),
- * not grpc-go's. Go answers through its embedded
- * Unimplemented*ControllerServer, whose text is the pinned contract; the
- * stubs exist to carry that text byte-for-byte and this doc block.
- */
-function orgOAuthAppUnimplemented(method: string): ConnectError {
-  return new ConnectError(
-    `method ${method} not implemented`,
-    Code.Unimplemented,
-  );
 }
 
 function kindOf(ctx: HandlerContext): ApiResourceKind {

@@ -25,12 +25,6 @@ export type { UseOAuthGrantStatusReturn } from "./useOAuthGrantStatus.js";
 export { useDisconnectOAuth } from "./useDisconnectOAuth.js";
 export type { UseDisconnectOAuthReturn } from "./useDisconnectOAuth.js";
 
-export { useOrgOAuthApp } from "./useOrgOAuthApp.js";
-export type { UseOrgOAuthAppReturn } from "./useOrgOAuthApp.js";
-
-export { OAuthAppForm } from "./OAuthAppForm.js";
-export type { OAuthAppFormProps } from "./OAuthAppForm.js";
-
 export { McpServerPicker } from "./McpServerPicker.js";
 export type {
   McpServerPickerProps,

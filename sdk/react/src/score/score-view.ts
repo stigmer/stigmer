@@ -1,7 +1,7 @@
 /**
  * Pure reads over a run's scores for the console: the run-health score and
- * its flags, and the viewer's own feedback. Kept apart from the components
- * so the rules are unit-testable without React.
+ * its flags, the AI judge's verdict, and the viewer's own feedback. Kept
+ * apart from the components so the rules are unit-testable without React.
  *
  * The viewer's feedback is found by the score's creator stamp, compared to
  * the viewer's identity account id and its identity-provider subject (the
@@ -23,6 +23,9 @@ export const FEEDBACK_METRIC = "feedback";
 
 /** The metric the platform's free checks are recorded under. */
 export const RUN_HEALTH_METRIC = "run-health";
+
+/** The metric an AI judge's verdict is recorded under. */
+export const JUDGE_METRIC = "judge";
 
 /** The refusal reason the server answers a second rating with. */
 export const SCORE_EXISTS_REASON = "SCORE_EXISTS";
@@ -62,6 +65,78 @@ export function runHealthViewOf(scores: readonly Score[]): RunHealthView {
     .filter((criterion) => criterion.result === CriterionResult.failed)
     .map((criterion) => ({ name: criterion.name, reason: criterion.reason }));
   return flags.length === 0 ? { kind: "healthy" } : { kind: "flagged", flags };
+}
+
+/** One rubric of a judge's verdict, as the judge chip lists it. */
+export interface JudgeCriterion {
+  readonly name: string;
+  readonly result: CriterionResult;
+  readonly reason: string;
+}
+
+/**
+ * What the judge chip shows for one run: nothing (the run's agent has no AI
+ * grading, or the run was not in the sample), grading in progress, not
+ * graded with a reason, or the verdict with each rubric's reason and the
+ * model that gave it.
+ */
+export type JudgeView =
+  | { readonly kind: "none" }
+  | { readonly kind: "grading" }
+  | { readonly kind: "not-graded"; readonly reason: string }
+  | {
+      readonly kind: "graded";
+      readonly passed: boolean;
+      readonly failed: number;
+      readonly criteria: readonly JudgeCriterion[];
+      readonly model: string;
+    };
+
+/** The run's judge score, the newest when several rubric versions graded it. */
+export function judgeScoreOf(scores: readonly Score[]): Score | undefined {
+  return scores.find(
+    (score) =>
+      score.spec?.metric === JUDGE_METRIC &&
+      score.spec.source === ScoreSource.judge,
+  );
+}
+
+/** Whether a score is a judge's grade still in progress. */
+export function isPendingJudgeScore(score: Score): boolean {
+  return (
+    score.spec?.source === ScoreSource.judge &&
+    score.status?.state === ScoreState.pending
+  );
+}
+
+/** The judge chip's view of a run's scores. */
+export function judgeViewOf(scores: readonly Score[]): JudgeView {
+  const score = judgeScoreOf(scores);
+  if (score === undefined) {
+    return { kind: "none" };
+  }
+  switch (score.status?.state) {
+    case ScoreState.pending:
+      return { kind: "grading" };
+    case ScoreState.not_graded:
+      return { kind: "not-graded", reason: score.status.notGradedReason };
+    default:
+      break;
+  }
+  const criteria = (score.spec?.criteria ?? []).map((criterion) => ({
+    name: criterion.name,
+    result: criterion.result,
+    reason: criterion.reason,
+  }));
+  return {
+    kind: "graded",
+    passed: thumbsOf(score) === true,
+    failed: criteria.filter(
+      (criterion) => criterion.result === CriterionResult.failed,
+    ).length,
+    criteria,
+    model: score.spec?.judgeModel ?? "",
+  };
 }
 
 /** The identity a creator stamp may name: an account id or an IdP subject. */

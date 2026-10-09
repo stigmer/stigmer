@@ -116,6 +116,8 @@ import {
   SCHEMA_VERSION_21,
   SCHEMA_VERSION_22,
   SCHEMA_VERSION_23,
+  SCHEMA_VERSION_24,
+  SCHEMA_VERSION_7,
   getSchemaVersion,
   runMigrations,
 } from "../migrations.js";
@@ -322,7 +324,7 @@ describe("fresh database", () => {
       .all() as Array<{ version: number }>;
     expect(rows.map((row) => row.version)).toEqual([
       1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
-      22, 23,
+      22, 23, 24,
     ]);
   });
 
@@ -411,19 +413,16 @@ describe("Go-created v6 database adoption (the Go fixture)", () => {
 
     // The workflow event log and the signal ledger the fixture held are
     // gone with the workflows (v19), and the sign-in grant table with the
-    // environments (v22); the pending sign-in state keeps its Go-written
-    // rows, adopted, not shadowed.
+    // environments (v22); the pending sign-in state, ten-minute rows, is
+    // recreated empty in its address shape (v24).
     expect(tableNames(db)).not.toContain("workflow_execution_events");
     expect(tableNames(db)).not.toContain("signal_dedupe");
     expect(tableNames(db)).not.toContain("oauth_grant");
 
     const pending = db
-      .prepare(
-        `SELECT code_verifier, org FROM pending_oauth_state WHERE state = 'state-fixture'`,
-      )
-      .get() as { code_verifier: string; org: string };
-    expect(pending.code_verifier).toBe("enc:v1:sealed");
-    expect(pending.org).toBe("acme");
+      .prepare(`SELECT count(*) AS n FROM pending_oauth_state`)
+      .get() as { n: number };
+    expect(pending.n).toBe(0);
 
     // The Go-written FTS5 index stays queryable through the TS driver's
     // connection — the FTS5 probe on real Go-built index data.
@@ -531,7 +530,7 @@ describe("v7 column reconciliation", () => {
     setup.close();
 
     const migrating = new DatabaseSync(dbPath);
-    runMigrations(migrating);
+    runMigrations(migrating, SCHEMA_VERSION_7);
     migrating.close();
 
     const db = new DatabaseSync(dbPath);
@@ -542,7 +541,7 @@ describe("v7 column reconciliation", () => {
       )
       .get() as { state: string; org: string; token_auth_method: string };
     expect(row).toEqual({ state: "old-state", org: "", token_auth_method: "" });
-    expect(getSchemaVersion(db)).toBe(CURRENT_SCHEMA_VERSION);
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_7);
   });
 });
 
@@ -2913,7 +2912,6 @@ describe("v23: a conversation's retired own secrets and connections leave every 
     runMigrations(db, SCHEMA_VERSION_23);
 
     expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_23);
-    expect(CURRENT_SCHEMA_VERSION).toBe(SCHEMA_VERSION_23);
     const held = row(db, "session", "ses_held");
     expect(held.data).toEqual(currentSessionRow(conversation("ses_held")));
     expect(held.updated_at).toBe(SEEDED_AT);
@@ -2950,5 +2948,50 @@ describe("v23: a conversation's retired own secrets and connections leave every 
     expect(() => runMigrations(db, SCHEMA_VERSION_23)).toThrow("session 'ses_b_bad'");
     expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_22);
     expect(row(db, "session", "ses_a_good").data).toEqual(good);
+  });
+});
+
+describe("v24: a sign-in starts from an address", () => {
+  it("recreates the pending sign-in state empty in its new shape, and adds the client registrations and Connect links", () => {
+    const dbPath = tempDbPath();
+    const setup = new DatabaseSync(dbPath);
+    runMigrations(setup, SCHEMA_VERSION_23);
+    setup
+      .prepare(
+        `INSERT INTO pending_oauth_state (state, code_verifier, mcp_server_id, identity_account_id, created_at)
+         VALUES ('in-flight', 'enc:v1:v', 'mcp_1', 'ida_1', 1700000000)`,
+      )
+      .run();
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_24);
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_24);
+
+    const columns = (table: string) =>
+      (db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>).map((c) => c.name);
+    expect(db.prepare(`SELECT count(*) AS n FROM pending_oauth_state`).get()).toEqual({ n: 0 });
+    expect(columns("pending_oauth_state")).toEqual(
+      expect.arrayContaining(["address", "login_app", "resource", "client_registration", "connect_link"]),
+    );
+    expect(columns("pending_oauth_state")).not.toContain("mcp_server_id");
+    expect(columns("oauth_client_registration")).toEqual(["login_server", "redirect_uri", "client_id", "created_at"]);
+    expect(columns("connect_link")).toEqual([
+      "token_hash",
+      "org",
+      "vault_id",
+      "address",
+      "return_url",
+      "created_by",
+      "created_by_class",
+      "created_by_bound_org",
+      "created_at",
+      "expires_at",
+      "used_at",
+    ]);
+    // Every new link sweeps expired ones by expiry.
+    const indexes = (db.prepare(`PRAGMA index_list(connect_link)`).all() as Array<{ name: string }>).map((i) => i.name);
+    expect(indexes).toEqual(expect.arrayContaining(["idx_connect_link_expires", "idx_connect_link_vault", "idx_connect_link_org"]));
   });
 });

@@ -25,6 +25,12 @@
  * are the whole tool set — the same merge with an empty agent side, so no
  * consumer downstream needs an agent-less arm of its own.
  *
+ * A turn whose run carries the judge label is the built-in judge
+ * (builtin-judge.ts), whatever its stamp: the judge's code-defined spec is
+ * the agent, with id "" as the built-ins have, and the turn gets no MCP
+ * usage, skill ref or sub-agent, not even the session's own, so the judge
+ * can act on nothing in the conversation it grades.
+ *
  * Workspace isolation: resolved workspace directories are validated to
  * ensure they never point at the runner's own app directory. Paths
  * containing runner-internal markers are rejected with a warning.
@@ -39,6 +45,7 @@ import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_
 import type { SessionSpec } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { builtInJudgeSpec, isJudgeRunLabels } from "./builtin-judge.js";
 import { mergeMcpServerUsages } from "./mcp-resolver.js";
 
 // Both harnesses must merge agent + session usages identically (one usage
@@ -77,14 +84,30 @@ export interface ResolvedBlueprint {
 
 /**
  * Resolve the full agent blueprint of a turn: the stamped agent (the module
- * doc); a turn whose stamp names no agent is the built-in assistant.
+ * doc); a turn whose stamp names no agent is the built-in assistant; a run
+ * labelled as a judge's is the built-in judge.
  */
 export async function resolveBlueprint(
   client: StigmerClient,
   session: Session,
   recorded: RecordedRunAgent | undefined,
+  runLabels: Readonly<Record<string, string>>,
 ): Promise<ResolvedBlueprint> {
   const sessionSpec = session.spec!;
+
+  if (isJudgeRunLabels(runLabels)) {
+    const spec = builtInJudgeSpec();
+    return {
+      agent: { id: "", versionHash: "", spec },
+      session,
+      sessionSpec,
+      instructions: spec.instructions,
+      subAgents: [],
+      mergedMcpServerUsages: [],
+      mergedSkillRefs: [],
+      cloudRepos: [],
+    };
+  }
 
   const agent = await resolveRunAgent(client, recorded);
   const agentSpec = agent?.spec;

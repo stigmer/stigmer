@@ -79,8 +79,8 @@ export function OAuthAppsSection() {
         )}
       </div>
       <p className="stg:text-muted-foreground stg:mb-4 stg:text-xs">
-        OAuth app credentials configured for your organization. Create new
-        apps here or bring your own from an MCP server&apos;s detail page.
+        Login apps your organization signs in with. A sign-in at an address
+        uses the app that lists it.
       </p>
 
       {!oauthAppsAvailable ? (

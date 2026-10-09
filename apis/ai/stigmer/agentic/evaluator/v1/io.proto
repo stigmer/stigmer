@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.evaluator.v1;
+
+import "buf/validate/validate.proto";
+
+// EvaluatorId wraps an evaluator identifier.
+message EvaluatorId {
+  // Unique identifier of the evaluator.
+  string value = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.max_len = 128
+  ];
+}
+
+// GetEvaluatorByAgentRequest names the agent whose evaluator to get.
+message GetEvaluatorByAgentRequest {
+  // ID of the agent.
+  string agent_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 128
+  ];
+}

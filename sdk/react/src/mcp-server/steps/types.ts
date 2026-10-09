@@ -41,18 +41,12 @@ export interface McpServerWizardData {
   readonly env: EnvVarEntry[];
   /** Whether OAuth auth configuration is enabled. */
   readonly authEnabled: boolean;
-  /** OAuth app reference — its organization, by slug or id. */
-  readonly authOAuthAppOrg: string;
-  /** OAuth app reference — app slug. */
-  readonly authOAuthAppSlug: string;
   /** Env var that receives the OAuth token. */
   readonly authTargetEnvVar: string;
   /** Token lifetime hint (e.g. "1h", "never"). */
   readonly authTokenLifetimeHint: string;
   /** OAuth scope hints (comma-separated, split on submit). */
   readonly authScopeHints: string;
-  /** OAuth discovery URL. */
-  readonly authDiscoveryUrl: string;
 }
 
 /** Creates the initial empty wizard data. */
@@ -72,11 +66,8 @@ export function createInitialMcpServerWizardData(): McpServerWizardData {
     stdioWorkingDir: "",
     env: [],
     authEnabled: false,
-    authOAuthAppOrg: "",
-    authOAuthAppSlug: "",
     authTargetEnvVar: "",
     authTokenLifetimeHint: "",
     authScopeHints: "",
-    authDiscoveryUrl: "",
   };
 }

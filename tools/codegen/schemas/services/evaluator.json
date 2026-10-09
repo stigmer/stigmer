@@ -1,0 +1,344 @@
+{
+  "resource": "evaluator",
+  "package": "ai.stigmer.agentic.evaluator.v1",
+  "goImportPath": "evaluatorv1",
+  "services": [
+    {
+      "name": "EvaluatorCommandController",
+      "role": "command",
+      "protoFile": "ai/stigmer/agentic/evaluator/v1/command.proto",
+      "methods": [
+        {
+          "name": "Create",
+          "inputType": "Evaluator",
+          "inputFullType": "ai.stigmer.agentic.evaluator.v1.Evaluator",
+          "outputType": "Evaluator",
+          "outputFullType": "ai.stigmer.agentic.evaluator.v1.Evaluator",
+          "description": "Create the evaluator that switches AI grading on for an agent.\n\n An agent has at most one evaluator. The evaluator lives in its agent's\n organization."
+        },
+        {
+          "name": "Update",
+          "inputType": "Evaluator",
+          "inputFullType": "ai.stigmer.agentic.evaluator.v1.Evaluator",
+          "outputType": "Evaluator",
+          "outputFullType": "ai.stigmer.agentic.evaluator.v1.Evaluator",
+          "description": "Update an evaluator's settings: whether it is enabled, its sample rate,\n its monthly limit and its model.\n\n The agent it grades stays as created, and this month's spend and\n counts are kept."
+        },
+        {
+          "name": "Delete",
+          "inputType": "EvaluatorId",
+          "inputFullType": "ai.stigmer.agentic.evaluator.v1.EvaluatorId",
+          "outputType": "Evaluator",
+          "outputFullType": "ai.stigmer.agentic.evaluator.v1.Evaluator",
+          "description": "Delete an evaluator, switching AI grading off for its agent.\n\n Scores already recorded stay on their runs."
+        }
+      ]
+    },
+    {
+      "name": "EvaluatorQueryController",
+      "role": "query",
+      "protoFile": "ai/stigmer/agentic/evaluator/v1/query.proto",
+      "methods": [
+        {
+          "name": "Get",
+          "inputType": "EvaluatorId",
+          "inputFullType": "ai.stigmer.agentic.evaluator.v1.EvaluatorId",
+          "outputType": "Evaluator",
+          "outputFullType": "ai.stigmer.agentic.evaluator.v1.Evaluator",
+          "description": "Get a single evaluator by ID."
+        },
+        {
+          "name": "GetByAgent",
+          "inputType": "GetEvaluatorByAgentRequest",
+          "inputFullType": "ai.stigmer.agentic.evaluator.v1.GetEvaluatorByAgentRequest",
+          "outputType": "Evaluator",
+          "outputFullType": "ai.stigmer.agentic.evaluator.v1.Evaluator",
+          "description": "Get the evaluator of an agent.\n\n Returns NOT_FOUND when the agent has none, which means AI grading is\n off for it."
+        }
+      ]
+    }
+  ],
+  "methodTypes": [
+    {
+      "name": "GetEvaluatorByAgentRequest",
+      "description": "GetEvaluatorByAgentRequest names the agent whose evaluator to get.",
+      "protoType": "ai.stigmer.agentic.evaluator.v1.GetEvaluatorByAgentRequest",
+      "protoFile": "apis/ai/stigmer/agentic/evaluator/v1/io.proto",
+      "fields": [
+        {
+          "name": "AgentId",
+          "jsonName": "agentId",
+          "protoField": "agent_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the agent.",
+          "required": false,
+          "validation": {
+            "minLength": 1,
+            "maxLength": 128
+          }
+        }
+      ]
+    }
+  ],
+  "enumTypes": [
+    {
+      "name": "ApiResourceVisibility",
+      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines which\n users, inside that organization or in its child organizations, can read\n the resource. No level reaches every\n account on the server.\n\n The visibility levels map to FGA tuples:\n - PRIVATE: no additional viewer tuples (owner-only access)\n - ORG: resource#viewer@organization:\u003corg\u003e#viewer tuple (everyone in the\n   org — the org role hierarchy flows downward, so owners, admins, members\n   AND read-only viewers all satisfy the organization#viewer userset)\n - CHILD_ORGS: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer\n   (everyone in every child organization of the owning organization)\n - PUBLIC: retired; see the value's own comment.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+      "values": [
+        {
+          "name": "visibility_private",
+          "number": 1,
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for personal and run-scoped resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (sessions) stay creator-only."
+        },
+        {
+          "name": "visibility_public",
+          "number": 2,
+          "description": "Retired. This level made a resource readable to every account on the\n server; it is refused at create and at updateVisibility for every kind,\n and every stored row that held it has been moved to visibility_org.\n Sharing across organizations happens through plugins (a copy is\n installed and owned) or, from a parent organization to its children,\n through visibility_child_orgs."
+        },
+        {
+          "name": "visibility_org",
+          "number": 3,
+          "description": "Everyone in the owning organization can access (read) this resource —\n all org roles including read-only viewers (the role SSO auto-provisioning\n grants by default). Running or otherwise spending against the resource\n still requires the org-level member-or-guest permissions\n (can_create_session / can_create_run_in); org visibility widens\n read, never spend.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#viewer\n (The tuple once targeted organization#member, which\n excluded viewer-role users; the authorization model no longer admits\n that shape.)"
+        },
+        {
+          "name": "visibility_child_orgs",
+          "number": 4,
+          "description": "Everyone in every child organization of the owning organization can\n read and run this resource: the shared catalog an organization offers\n the organizations under it (spec.parent_org). Child organizations\n created later gain access automatically, and no other organization\n does. Instances, sessions, runs and vaults are never shared\n this way: each child runs the shared blueprint inside its own boundary.\n\n Only valid for blueprint kinds with supports_child_orgs: true, and only\n in an organization that is not itself a child.\n\n FGA tuple: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer"
+        }
+      ]
+    }
+  ],
+  "resourceDescription": "Evaluator switches AI grading on for one agent.\n\n While an evaluator is enabled, Stigmer sends a sample of the agent's\n completed runs to an AI judge with its standard rubrics (\"did the task\",\n \"made nothing up\") and records the verdict as a score on each graded run.\n The sample rate and a monthly spending limit bound how many runs are\n graded and what grading costs; the organization the run belongs to pays.",
+  "statusType": {
+    "name": "EvaluatorStatus",
+    "description": "EvaluatorStatus contains this month's grading spend and counts.",
+    "protoType": "ai.stigmer.agentic.evaluator.v1.EvaluatorStatus",
+    "protoFile": "apis/ai/stigmer/agentic/evaluator/v1/status.proto",
+    "fields": [
+      {
+        "name": "Period",
+        "jsonName": "period",
+        "protoField": "period",
+        "type": {
+          "kind": "string"
+        },
+        "description": "The calendar month the counts below cover, as YYYY-MM in UTC.",
+        "required": false
+      },
+      {
+        "name": "SpentUsd",
+        "jsonName": "spentUsd",
+        "protoField": "spent_usd",
+        "type": {
+          "kind": "double"
+        },
+        "description": "Estimated model spend of this month's finished grades, in US dollars.",
+        "required": false
+      },
+      {
+        "name": "ReservedUsd",
+        "jsonName": "reservedUsd",
+        "protoField": "reserved_usd",
+        "type": {
+          "kind": "double"
+        },
+        "description": "Spend set aside for grades still running, in US dollars.",
+        "required": false
+      },
+      {
+        "name": "Graded",
+        "jsonName": "graded",
+        "protoField": "graded",
+        "type": {
+          "kind": "int32"
+        },
+        "description": "Runs graded this month.",
+        "required": false
+      },
+      {
+        "name": "NotGraded",
+        "jsonName": "notGraded",
+        "protoField": "not_graded",
+        "type": {
+          "kind": "int32"
+        },
+        "description": "Runs picked for grading this month that could not be graded.",
+        "required": false
+      },
+      {
+        "name": "LastNotGradedReason",
+        "jsonName": "lastNotGradedReason",
+        "protoField": "last_not_graded_reason",
+        "type": {
+          "kind": "string"
+        },
+        "description": "Why the most recent run picked for grading could not be graded.\n\n For example \"spending limit reached\" or \"out of credit\". Empty when\n the most recent grade succeeded.",
+        "required": false
+      },
+      {
+        "name": "Audit",
+        "jsonName": "audit",
+        "protoField": "audit",
+        "type": {
+          "kind": "message",
+          "messageType": "ApiResourceAudit"
+        },
+        "description": "Standard audit information (created_at, updated_at, created_by, etc.)",
+        "required": false
+      }
+    ]
+  },
+  "statusNestedTypes": [
+    {
+      "name": "ApiResourceAudit",
+      "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "SpecAudit",
+          "jsonName": "specAudit",
+          "protoField": "spec_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's specification (desired state).",
+          "required": false
+        },
+        {
+          "name": "StatusAudit",
+          "jsonName": "statusAudit",
+          "protoField": "status_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's status (actual state).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditActor",
+      "description": "ApiResourceAuditActor represents the entity that performed an action.\n\n This is the platform's single actor vocabulary: every \"who did this\"\n reference (created_by / updated_by, version-history applied_by / pushed_by,\n approval resolved_by_actor) uses this message, so actor rendering is\n uniform across all surfaces.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unique identifier of the actor.",
+          "required": false
+        },
+        {
+          "name": "Avatar",
+          "jsonName": "avatar",
+          "protoField": "avatar",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL to the actor's avatar image.",
+          "required": false
+        },
+        {
+          "name": "DisplayName",
+          "jsonName": "displayName",
+          "protoField": "display_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable display name (e.g. \"Ada Lovelace\"). Empty when unknown;\n renderers fall back to email, then id.",
+          "required": false
+        },
+        {
+          "name": "Email",
+          "jsonName": "email",
+          "protoField": "email",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Email address of the actor. Empty when unknown or not applicable\n (e.g. machine accounts).",
+          "required": false
+        },
+        {
+          "name": "PlatformClientId",
+          "jsonName": "platformClientId",
+          "protoField": "platform_client_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The PlatformClient whose minted user token the actor acted through.\n Empty for every other credential, and on an actor that records no act\n (an account's profile lookup).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditInfo",
+      "description": "ApiResourceAuditInfo contains detailed audit information.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditInfo",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "CreatedBy",
+          "jsonName": "createdBy",
+          "protoField": "created_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who created this resource.",
+          "required": false
+        },
+        {
+          "name": "CreatedAt",
+          "jsonName": "createdAt",
+          "protoField": "created_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was created.",
+          "required": false
+        },
+        {
+          "name": "UpdatedBy",
+          "jsonName": "updatedBy",
+          "protoField": "updated_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who last updated this resource.",
+          "required": false
+        },
+        {
+          "name": "UpdatedAt",
+          "jsonName": "updatedAt",
+          "protoField": "updated_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was last updated.",
+          "required": false
+        },
+        {
+          "name": "Event",
+          "jsonName": "event",
+          "protoField": "event",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Type of the last event (e.g., \"created\", \"updated\").",
+          "required": false
+        }
+      ]
+    }
+  ]
+}

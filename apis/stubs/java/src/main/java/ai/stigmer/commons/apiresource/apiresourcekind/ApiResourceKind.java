@@ -237,6 +237,15 @@ public enum ApiResourceKind
   score(61),
   /**
    * <pre>
+   * AI grading switched on for one agent: its sample rate, monthly spending
+   * limit and judge model.
+   * </pre>
+   *
+   * <code>evaluator = 62 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  evaluator(62),
+  /**
+   * <pre>
    * Catalog entry naming a bundle of entitlements and the terms that buy it.
    *
    * Platform-level: a plan belongs to no organization, so it carries no
@@ -507,6 +516,15 @@ public enum ApiResourceKind
   public static final int score_VALUE = 61;
   /**
    * <pre>
+   * AI grading switched on for one agent: its sample rate, monthly spending
+   * limit and judge model.
+   * </pre>
+   *
+   * <code>evaluator = 62 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  public static final int evaluator_VALUE = 62;
+  /**
+   * <pre>
    * Catalog entry naming a bundle of entitlements and the terms that buy it.
    *
    * Platform-level: a plan belongs to no organization, so it carries no
@@ -595,6 +613,7 @@ public enum ApiResourceKind
       case 58: return plugin;
       case 59: return vault;
       case 61: return score;
+      case 62: return evaluator;
       case 70: return plan;
       case 71: return subscription;
       case 72: return license;

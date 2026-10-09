@@ -36,6 +36,15 @@ public enum ScoreSource
    * <code>score_source_human = 2;</code>
    */
   score_source_human(2),
+  /**
+   * <pre>
+   * An AI judge grading the run against Stigmer's standard rubrics, switched
+   * on per agent by its evaluator.
+   * </pre>
+   *
+   * <code>score_source_judge = 3;</code>
+   */
+  score_source_judge(3),
   UNRECOGNIZED(-1),
   ;
 
@@ -69,6 +78,15 @@ public enum ScoreSource
    * <code>score_source_human = 2;</code>
    */
   public static final int score_source_human_VALUE = 2;
+  /**
+   * <pre>
+   * An AI judge grading the run against Stigmer's standard rubrics, switched
+   * on per agent by its evaluator.
+   * </pre>
+   *
+   * <code>score_source_judge = 3;</code>
+   */
+  public static final int score_source_judge_VALUE = 3;
 
 
   public final int getNumber() {
@@ -98,6 +116,7 @@ public enum ScoreSource
       case 0: return score_source_unspecified;
       case 1: return score_source_check;
       case 2: return score_source_human;
+      case 3: return score_source_judge;
       default: return null;
     }
   }

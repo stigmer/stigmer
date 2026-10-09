@@ -10,7 +10,16 @@
  *     path as exhausted retries) the run is recorded as not graded with
  *     the byte-pinned reason, never left without a score;
  *   - a cancelled grading is not swallowed into a not-graded record: the
- *     workflow ends cancelled.
+ *     workflow ends cancelled;
+ *   - after run health, the AI judge's branch: nothing more when the
+ *     planner finds nothing to grade; a judge run that ends is recorded
+ *     with no failure; a refused start is recorded with its failure; a
+ *     start the platform keeps refusing for capacity is recorded "busy";
+ *     any other start failure "not-started"; every judge that started or
+ *     failed to start is recorded once, so its reservation is settled and
+ *     its session deleted;
+ *   - a history recorded by the workflow as it was before the judge
+ *     (__fixtures__/grade-run-before-judge) replays against today's.
  *
  * Needs the `temporal` CLI on PATH (TestWorkflowEnvironment.createLocal);
  * every test skips VISIBLY when the local test server cannot start, never
@@ -23,13 +32,26 @@ import {
   GRADE_RECORDED,
   GRADE_RUN_WORKFLOW_TYPE,
   GRADING_FAILED_REASON,
+  JUDGE_BUSY_FAILURE_TYPE,
   type GradeOutcome,
   type GradingActivities,
+  type JudgeActivities,
+  type JudgeFailure,
+  type JudgePlan,
+  type JudgeStart,
+  type JudgeTicket,
 } from "../names.js";
 
 const TASK_QUEUE = "grade-run-workflow-test";
 const WORKFLOWS_PATH = new URL("../workflows/index.ts", import.meta.url)
   .pathname;
+const BEFORE_JUDGE_QUEUE = "grade-run-before-judge-test";
+const BEFORE_JUDGE_WORKFLOWS_PATH = new URL(
+  "./__fixtures__/grade-run-before-judge/index.ts",
+  import.meta.url,
+).pathname;
+
+const TICKET: JudgeTicket = { evaluatorId: "evl_test", modelName: "", capUsd: 0.25, period: "2026-10" };
 
 type TestWorkflowEnvironment =
   import("@temporalio/testing").TestWorkflowEnvironment;
@@ -45,6 +67,14 @@ interface GradeScript {
   grade: GradeOutcome | "fail" | "hang";
   gradeCalls: string[];
   notGradedCalls: Array<{ runId: string; reason: string }>;
+  /** What the judge's planner answers. */
+  plan: JudgePlan;
+  /** What the judge's start answers, or how it fails. */
+  start: JudgeStart | "busy" | "broken";
+  /** How many polls answer "still running" before one answers "ended". */
+  pollsUntilEnded: number;
+  polls: number;
+  recordCalls: Array<{ runId: string; judgeRunId: string; failure: JudgeFailure }>;
 }
 
 let script: GradeScript;
@@ -54,14 +84,48 @@ let script: GradeScript;
 let releaseHang: () => void = () => {};
 
 function resetScript(): void {
-  script = { grade: GRADE_RECORDED, gradeCalls: [], notGradedCalls: [] };
+  script = {
+    grade: GRADE_RECORDED,
+    gradeCalls: [],
+    notGradedCalls: [],
+    plan: { kind: "skip" },
+    start: { kind: "started", judgeRunId: "run_judge" },
+    pollsUntilEnded: 0,
+    polls: 0,
+    recordCalls: [],
+  };
 }
 resetScript();
 
 // Typed as the real activity surface, so a signature change flags these
 // doubles at compile time.
-function scriptedActivities(): GradingActivities {
+function scriptedActivities(): GradingActivities & JudgeActivities {
   return {
+    "stigmer/grading/plan-judge": async () => script.plan,
+    "stigmer/grading/start-judge": async () => {
+      const { ApplicationFailure } = await import("@temporalio/common");
+      if (script.start === "busy") {
+        // Non-retryable here so the test does not wait out ten minutes of
+        // capacity retries; the workflow reads the same failure type.
+        throw ApplicationFailure.create({
+          message: "at capacity",
+          type: JUDGE_BUSY_FAILURE_TYPE,
+          nonRetryable: true,
+        });
+      }
+      if (script.start === "broken") {
+        throw ApplicationFailure.nonRetryable("the start broke");
+      }
+      return script.start;
+    },
+    "stigmer/grading/poll-judge": async () => {
+      script.polls++;
+      return script.polls > script.pollsUntilEnded;
+    },
+    "stigmer/grading/record-judge": async (runId, _ticket, judgeRunId, failure) => {
+      script.recordCalls.push({ runId, judgeRunId, failure });
+      return GRADE_RECORDED;
+    },
     "stigmer/grading/grade-run-health": async (runId) => {
       script.gradeCalls.push(runId);
       if (script.grade === "fail") {
@@ -170,4 +234,77 @@ describe("stigmer/grading/grade-run workflow (TestWorkflowEnvironment)", () => {
     expect(script.notGradedCalls).toEqual([]);
     releaseHang();
   }, 30_000);
+
+  it("asks the judge's planner after run health and does nothing more when there is nothing to grade", async (testCtx) => {
+    if (!envReady) return testCtx.skip();
+    const handle = await startGradeRun("run_ungraded");
+    expect(await handle.result()).toBe(GRADE_RECORDED);
+    expect(script.polls).toBe(0);
+    expect(script.recordCalls).toEqual([]);
+  }, 30_000);
+
+  it("records a judge run that ended, with no failure, after polling it", async (testCtx) => {
+    if (!envReady) return testCtx.skip();
+    script.plan = { kind: "grade", ticket: TICKET };
+    script.pollsUntilEnded = 1;
+    const handle = await startGradeRun("run_judged");
+    expect(await handle.result(), "run health's outcome stays the result").toBe(GRADE_RECORDED);
+    expect(script.polls).toBe(2);
+    expect(script.recordCalls).toEqual([
+      { runId: "run_judged", judgeRunId: "run_judge", failure: "" },
+    ]);
+  }, 60_000);
+
+  it("records a refused start with its failure, without polling", async (testCtx) => {
+    if (!envReady) return testCtx.skip();
+    script.plan = { kind: "grade", ticket: TICKET };
+    script.start = { kind: "refused", failure: "out-of-credit" };
+    const handle = await startGradeRun("run_no_credit");
+    await handle.result();
+    expect(script.polls).toBe(0);
+    expect(script.recordCalls).toEqual([
+      { runId: "run_no_credit", judgeRunId: "", failure: "out-of-credit" },
+    ]);
+  }, 30_000);
+
+  it("records a start refused for capacity past its retries as busy, and any other failed start as not started", async (testCtx) => {
+    if (!envReady) return testCtx.skip();
+    script.plan = { kind: "grade", ticket: TICKET };
+    script.start = "busy";
+    await (await startGradeRun("run_busy")).result();
+    script.start = "broken";
+    await (await startGradeRun("run_broken_start")).result();
+    expect(script.recordCalls).toEqual([
+      { runId: "run_busy", judgeRunId: "", failure: "busy" },
+      { runId: "run_broken_start", judgeRunId: "", failure: "not-started" },
+    ]);
+  }, 30_000);
+
+  it("records nothing for a grade the planner already recorded (the limit refused it)", async (testCtx) => {
+    if (!envReady) return testCtx.skip();
+    script.plan = { kind: "recorded" };
+    await (await startGradeRun("run_over_limit")).result();
+    expect(script.recordCalls).toEqual([]);
+  }, 30_000);
+
+  it("replays a history recorded before the judge existed", async (testCtx) => {
+    if (!envReady || env === null) return testCtx.skip();
+    const { Worker: W } = await import("@temporalio/worker");
+    const before = await W.create({
+      connection: env.nativeConnection,
+      taskQueue: BEFORE_JUDGE_QUEUE,
+      workflowsPath: BEFORE_JUDGE_WORKFLOWS_PATH,
+      activities: scriptedActivities(),
+    });
+    const handle = await env.client.workflow.start(GRADE_RUN_WORKFLOW_TYPE, {
+      taskQueue: BEFORE_JUDGE_QUEUE,
+      workflowId: `grade-run-before-judge-${Date.now()}`,
+      args: ["run_before_judge"],
+    });
+    await before.runUntil(handle.result());
+    const history = await handle.fetchHistory();
+    await expect(
+      W.runReplayHistory({ workflowsPath: WORKFLOWS_PATH }, history),
+    ).resolves.toBeUndefined();
+  }, 60_000);
 });

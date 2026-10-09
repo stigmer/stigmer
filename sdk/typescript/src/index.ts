@@ -141,13 +141,9 @@ export {
   ApiResourceKind,
 } from "./search.js";
 
-// GitHub sign-in and server-side repository reads
+// GitHub server-side repository reads
 export {
   GitHubClient,
-  type GetOAuthAuthorizeUrlParams,
-  type OAuthAuthorizeUrlResponse,
-  type ExchangeOAuthCodeParams,
-  type GitHubConnectedAccount,
   type GitHubRepoParams,
 } from "./github.js";
 
@@ -277,6 +273,12 @@ export {
   type ScoreInput,
   type ScoreCriterionInput,
 } from "./gen/score.js";
+export {
+  EvaluatorClient,
+  buildEvaluatorProto,
+  toEvaluatorUpdateInput,
+  type EvaluatorInput,
+} from "./gen/evaluator.js";
 export {
   VaultClient,
   buildVaultProto,

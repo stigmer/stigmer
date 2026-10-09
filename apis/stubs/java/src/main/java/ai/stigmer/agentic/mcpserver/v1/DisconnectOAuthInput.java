@@ -7,7 +7,7 @@ package ai.stigmer.agentic.mcpserver.v1;
 
 /**
  * <pre>
- * DisconnectOAuthInput tears down a user's OAuth connection for a resource.
+ * DisconnectOAuthInput tears down a user's sign-in for an MCP server.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput}
@@ -318,7 +318,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * DisconnectOAuthInput tears down a user's OAuth connection for a resource.
+   * DisconnectOAuthInput tears down a user's sign-in for an MCP server.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput}

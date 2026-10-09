@@ -6,10 +6,13 @@ import { cn } from "@stigmer/theme";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { useRunScoresData } from "./RunScoresContext.js";
 import { RATING_COMMENT_MAX_LENGTH } from "./rating-input.js";
+import { CriterionResult } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
 import {
+  judgeViewOf,
   runHealthViewOf,
   thumbsOf,
   viewerFeedbackOf,
+  type JudgeView,
   type RunHealthView,
 } from "./score-view.js";
 import { useRateRun } from "./useRateRun.js";
@@ -24,9 +27,13 @@ export interface RunScoresProps {
 
 /**
  * A completed run's scores under its final answer: thumbs up and down with
- * an optional one-line comment, and the run-health chip that opens to the
- * reason for each flag ("the last call to create_ticket failed (step 7)").
- * A run the platform could not grade says so quietly, with the reason.
+ * an optional one-line comment, the run-health chip that opens to the
+ * reason for each flag ("the last call to create_ticket failed (step 7)"),
+ * and, where the run's agent has AI grading switched on, the judge chip:
+ * "Judge: grading…" while the grade is in progress, then "Judge: passed" or
+ * "Judge: 1 of 2 failed", which opens to each rubric's reason and the model
+ * that graded it. A run the platform could not grade says so quietly, with
+ * the reason.
  *
  * Reads the thread's scores from `MessageThread`'s provider (enabled by its
  * `runScores` prop), so it renders nothing outside one. Each person rates
@@ -50,6 +57,7 @@ export function RunScores({ runId, className }: RunScoresProps) {
   const mine = written ?? viewerFeedbackOf(scores, data.viewer);
   const thumbs = thumbsOf(mine);
   const health = runHealthViewOf(scores);
+  const judge = judgeViewOf(scores);
   const org = data.orgOf(runId);
 
   const rate = async (passed: boolean, note: string): Promise<void> => {
@@ -96,6 +104,7 @@ export function RunScores({ runId, className }: RunScoresProps) {
           onClick={() => onThumb(false)}
         />
         <HealthChip view={health} />
+        <JudgeChip view={judge} />
       </div>
       {commentOpen && thumbs !== undefined && (
         <form
@@ -207,6 +216,82 @@ function HealthChip({ view }: { readonly view: RunHealthView }) {
               {flag.reason !== "" ? flag.reason : flag.name}
             </li>
           ))}
+        </ul>
+      )}
+    </span>
+  );
+}
+
+/** The rubric names, as a person reads them. */
+const RUBRIC_LABELS: Readonly<Record<string, string>> = {
+  "did-the-task": "Did the task",
+  "made-nothing-up": "Made nothing up",
+};
+
+const RESULT_LABELS: Readonly<Record<CriterionResult, string>> = {
+  [CriterionResult.unspecified]: "",
+  [CriterionResult.passed]: "passed",
+  [CriterionResult.failed]: "failed",
+  [CriterionResult.not_applicable]: "not applicable",
+};
+
+function JudgeChip({ view }: { readonly view: JudgeView }) {
+  const [open, setOpen] = useState(false);
+  if (view.kind === "none") return null;
+  if (view.kind === "grading") {
+    return (
+      <span
+        role="status"
+        className="stg:ml-1 stg:text-xs stg:text-muted-foreground-subtle"
+      >
+        Judge: grading…
+      </span>
+    );
+  }
+  if (view.kind === "not-graded") {
+    return (
+      <span className="stg:ml-1 stg:text-xs stg:text-muted-foreground-subtle">
+        Judge: not graded{view.reason !== "" ? `: ${view.reason}` : ""}
+      </span>
+    );
+  }
+  // Narrowed to "graded": a kind added to the union fails to compile here.
+  const label = view.passed
+    ? "Judge: passed"
+    : `Judge: ${view.failed} of ${view.criteria.length} failed`;
+  return (
+    <span className="stg:ml-1 stg:inline-flex stg:flex-col stg:gap-1">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+        className={cn(
+          "stg:inline-flex stg:h-6 stg:items-center stg:rounded-full stg:border stg:border-border stg:px-2 stg:text-xs",
+          view.passed ? "stg:text-muted-foreground" : "stg:text-warning",
+          "stg:hover:bg-accent-hover stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+        )}
+      >
+        {label}
+      </button>
+      {open && (
+        <ul
+          className={cn(
+            UNSTYLED_LIST,
+            "stg:flex stg:flex-col stg:gap-0.5 stg:text-xs stg:text-muted-foreground",
+          )}
+        >
+          {view.criteria.map((criterion) => (
+            <li key={criterion.name}>
+              {RUBRIC_LABELS[criterion.name] ?? criterion.name}:{" "}
+              {RESULT_LABELS[criterion.result]}
+              {criterion.reason !== "" ? ` — ${criterion.reason}` : ""}
+            </li>
+          ))}
+          {view.model !== "" && (
+            <li className="stg:text-muted-foreground-subtle">
+              Graded by {view.model}
+            </li>
+          )}
         </ul>
       )}
     </span>

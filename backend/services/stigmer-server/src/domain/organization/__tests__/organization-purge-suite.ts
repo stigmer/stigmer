@@ -13,8 +13,9 @@
  * them, and the two vaults' name claims (the external id's, and the
  * person's one My vault per organization) as the vault chains took them; every other kind the core purges is
  * stored directly with the organization in `metadata.org` (an API key with
- * it in `spec.bound_org`), with the side-table records a run or a schedule
- * leaves (the fire ledger and a pending OAuth state), and
+ * it in `spec.bound_org`, a login app with an address it holds as a name
+ * claim), with the side-table records a run, a schedule or a vault leaves
+ * (the fire ledger, a pending OAuth state and a Connect link), and
  * an access row on the agent. A
  * second organization holds the same shapes and must keep all of them.
  * The census sees both vault name claims before the purge and neither
@@ -68,6 +69,7 @@ import {
 } from "../../../store/__tests__/organization-census.js";
 import type { CensusReader } from "../../../store/__tests__/organization-census.js";
 import { triple } from "../../iampolicy/__tests__/support.js";
+import { oauthAppAddressKey } from "../../vault/login-app.js";
 
 const API_VERSION = "agentic.stigmer.ai/v1";
 
@@ -211,7 +213,7 @@ export function describeOrganizationPurge(
     /** An organization holding a row of every kind and a record in every side table; answers every id it owns. */
     async function seeded(
       slug: string,
-    ): Promise<{ org: string; ids: Set<string>; vaultIds: ReadonlyArray<string> }> {
+    ): Promise<{ org: string; ids: Set<string>; vaultIds: ReadonlyArray<string>; claimHolders: ReadonlyArray<string> }> {
       const created = await organizations.create({
         apiVersion: "tenancy.stigmer.ai/v1",
         kind: "Organization",
@@ -272,6 +274,7 @@ export function describeOrganizationPurge(
       );
 
       const store = server.store;
+      const claimHolders: string[] = [];
       for (const kind of STORED_KINDS) {
         const schema: DescMessage | undefined = builtInModel.byKind(kind)?.schema;
         if (schema === undefined) {
@@ -284,14 +287,35 @@ export function describeOrganizationPurge(
           kind === ApiResourceKind.run
             ? { status: { phase: FINISHED_PHASE } }
             : {};
+        const address = `https://mcp.${slug}.example/mcp`;
         const row = create(schema, {
           metadata: { id, name: id, org },
           ...(kind === ApiResourceKind.api_key ? { spec: { boundOrg: org } } : {}),
+          ...(kind === ApiResourceKind.oauth_app ? { spec: { addresses: [address] } } : {}),
           ...finished,
         } as never);
         await store.saveResource(kind, id, schema, row as never);
         ids.add(id);
+        if (kind === ApiResourceKind.oauth_app) {
+          // The login app holds its address as a name claim, as its chain takes it.
+          await store.resourceNames.claim(oauthAppAddressKey(org, address), id, new Date().toISOString());
+          claimHolders.push(id);
+        }
       }
+      const now = Math.floor(Date.now() / 1000);
+      await store.connectLinks.create({
+        tokenHash: `link_${slug}`,
+        org,
+        vaultId,
+        address: `https://mcp.${slug}.example/mcp`,
+        returnUrl: "https://app.example.test/back",
+        createdBy: "ida_purge_reader",
+        createdByClass: "user",
+        createdByBoundOrg: "",
+        createdAt: now,
+        expiresAt: now + 1800,
+        usedAt: 0,
+      });
       await store.upsertScheduleFire({
         scheduleId: `schedule_${slug}`,
         org,
@@ -309,18 +333,22 @@ export function describeOrganizationPurge(
         clientId: "c",
         clientSecret: "",
         tokenEndpoint: "https://example.test/token",
-        mcpServerId: `mcp_server_${slug}`,
         identityAccountId: "ida_purge_reader",
-        targetEnvVar: "TOKEN",
         authMethod: "mcp_oauth",
         tokenAuthMethod: "",
         redirectUri: "http://127.0.0.1/cb",
         org,
         vaultId: "",
-        toolAddress: "",
+        address: "",
+        loginApp: "",
+        resource: "",
+        clientRegistration: "",
+        connectLink: "",
+        providerName: "",
+        userinfoUrl: "",
         createdAt: Math.floor(Date.now() / 1000),
       });
-      return { org, ids, vaultIds: [vaultId, myVaultId] };
+      return { org, ids, vaultIds: [vaultId, myVaultId], claimHolders };
     }
 
     async function purged(org: string): Promise<void> {
@@ -345,8 +373,8 @@ export function describeOrganizationPurge(
           .map((finding) => finding.id);
         expect(
           new Set(claimed),
-          "the seed's vaults hold their name claims (the external id's and the My vault's)",
-        ).toEqual(new Set([doomed.org, ...doomed.vaultIds]));
+          "the seed's vaults and login app hold their name claims (the external id's, the My vault's, the address's)",
+        ).toEqual(new Set([doomed.org, ...doomed.vaultIds, ...doomed.claimHolders]));
       } finally {
         await before.close();
       }
@@ -386,8 +414,8 @@ export function describeOrganizationPurge(
           .map((finding) => finding.id);
         expect(
           new Set(keptClaims),
-          "another organization's vaults keep their name claims",
-        ).toEqual(new Set([kept.org, ...kept.vaultIds]));
+          "another organization's vaults and login app keep their name claims",
+        ).toEqual(new Set([kept.org, ...kept.vaultIds, ...kept.claimHolders]));
         const survivors = await organizationCensus(census.reader, kept.ids);
         expect(
           new Set(survivors.map((finding) => finding.id)),

@@ -585,7 +585,16 @@ connect has stored the hint (`createConnectedMcpServer` in
 `support/agentexecutions.ts` creates, connects and checks the stored hints); `requireOAuth({ resourceMetadataUrl })` turns
 it into a hosted server's OAuth posture (a 401 challenge to every
 credential-less request), the lever the endpoint-auth facet completes a
-URL-only server from.
+URL-only server from; with `authorizationServerOrigin` it also serves the
+RFC 9728 document a sign-in at its URL walks, naming the resource its URL
+describes. `MockOAuthAuthorizationServer` is the login server of every
+sign-in suite: `resourceAddress(name)` is an address on its own origin whose
+protected-resource document names it, `issuer()` is fresh after every
+`reset()` (the server under test keeps one registered client per login
+server for its life), and its levers forget a client, advertise a Client ID
+Metadata Document, borrow another resource's document and answer an account
+read, while it records every registration and the `resource` each request
+carried.
 
 **Fixture hosts are unreachable by construction.** The control plane dials a
 URL-only HTTP MCP server once at save (`CompleteEndpointAuth`), so a fixture

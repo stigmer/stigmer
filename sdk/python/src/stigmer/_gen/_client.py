@@ -9,6 +9,7 @@ from ._agentchannel import AgentChannelClient
 from ._agentshare import AgentShareClient
 from ._apikey import ApiKeyClient
 from ._channelapp import ChannelAppClient
+from ._evaluator import EvaluatorClient
 from ._executioncontext import ExecutionContextClient
 from ._iampolicy import IamPolicyClient
 from ._identityaccount import IdentityAccountClient
@@ -42,6 +43,7 @@ class GeneratedClient:
         self.agent_shares = AgentShareClient(channel)
         self.api_keys = ApiKeyClient(channel)
         self.channelapps = ChannelAppClient(channel)
+        self.evaluators = EvaluatorClient(channel)
         self.execution_contexts = ExecutionContextClient(channel)
         self.iam_policies = IamPolicyClient(channel)
         self.identity_accounts = IdentityAccountClient(channel)

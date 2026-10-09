@@ -111,7 +111,7 @@ describe("entries", () => {
           authMethod: "mcp_oauth",
           tokenEndpoint: "https://linear.app/token",
           refreshToken: "lin-refresh",
-          mcpServerId: "mcp_linear",
+          loginApp: "",
         },
       },
       ana,
@@ -273,13 +273,13 @@ const failing = async (): Promise<never> => {
 };
 
 describe("guarded and sign-in writes", () => {
-  const signIn = (refreshToken: string, mcpServerId = "mcp_linear") => ({
+  const signIn = (refreshToken: string, loginApp = "") => ({
     expiresAt: 1n,
     clientId: "client",
     authMethod: "mcp_oauth",
     tokenEndpoint: "https://linear.app/token",
     refreshToken,
-    mcpServerId,
+    loginApp,
   });
   const LINEAR = "https://mcp.linear.app/mcp";
 
@@ -329,7 +329,7 @@ describe("guarded and sign-in writes", () => {
     expect(after.connections.get(LINEAR)?.token).toBe("renewed-from-second");
   });
 
-  it("a sign-in rewritten without a refresh token keeps the same server's previous one when asked, not another server's", async () => {
+  it("a sign-in rewritten without a refresh token keeps the same login app's previous one when asked, not another app's", async () => {
     const id = (await rig.vaults.ensureMine(ORG, ana)).metadata!.id;
     await rig.vaults.setConnection(
       id,
@@ -352,7 +352,7 @@ describe("guarded and sign-in writes", () => {
       {
         token: "t3",
         source: VaultConnectionSource.sign_in,
-        signIn: signIn("", "mcp_other"),
+        signIn: signIn("", "org:oap_other"),
         keepRefreshToken: true,
       },
       ana,
@@ -623,7 +623,7 @@ describe("a keyless server", () => {
           authMethod: "mcp_oauth",
           tokenEndpoint: "https://login.example/token",
           refreshToken: "rt-plain",
-          mcpServerId: "mcp_x",
+          loginApp: "",
         },
       },
       ana,

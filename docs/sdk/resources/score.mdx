@@ -6,9 +6,9 @@ title: Score
 
 A Score is one grade of a finished run. A run carries a score for each thing
 measured, its metric: a person's thumbs up or down on the final answer
-(`feedback`), and the free checks Stigmer runs when a run completes
-(`run-health`). Anyone who
-can see the run sees its scores.
+(`feedback`), the free checks Stigmer runs when a run completes
+(`run-health`), and an AI judge's verdict when the run's agent has AI grading
+switched on (`judge`). Anyone who can see the run sees its scores.
 
 Scores are written by people rating a run and by the platform — you never
 author one as a manifest. The shape below is what `get` and the list
@@ -210,6 +210,7 @@ const score = await stigmer.score.create({
   passed: false,
   criteria: [],
   comment: "...",
+  judgeModel: "...",
 });
 ```
 </Tab>
@@ -228,6 +229,7 @@ score, err := client.Score.Create(ctx, &stigmer.ScoreInput{
   Passed:           false,
   Criteria:         []stigmer.ScoreCriterionInput{},
   Comment:          "...",
+  JudgeModel:       "...",
 })
 ```
 </Tab>
@@ -246,6 +248,7 @@ score = client.scores.create(ScoreInput(
     passed=False,
     criteria=[],
     comment="...",
+    judge_model="...",
 ))
 ```
 </Tab>
@@ -264,6 +267,7 @@ Score score = client.scores().create(ScoreInput.builder()
     .passed(false)
     .criteria(List.of())
     .comment("...")
+    .judgeModel("...")
     .build());
 ```
 </Tab>
@@ -295,6 +299,7 @@ const score = await stigmer.score.update({
   passed: false,
   criteria: [],
   comment: "...",
+  judgeModel: "...",
 });
 ```
 </Tab>
@@ -313,6 +318,7 @@ score, err := client.Score.Update(ctx, &stigmer.ScoreInput{
   Passed:           false,
   Criteria:         []stigmer.ScoreCriterionInput{},
   Comment:          "...",
+  JudgeModel:       "...",
 })
 ```
 </Tab>
@@ -331,6 +337,7 @@ score = client.scores.update(ScoreInput(
     passed=False,
     criteria=[],
     comment="...",
+    judge_model="...",
 ))
 ```
 </Tab>
@@ -349,6 +356,7 @@ Score score = client.scores().update(ScoreInput.builder()
     .passed(false)
     .criteria(List.of())
     .comment("...")
+    .judgeModel("...")
     .build());
 ```
 </Tab>
@@ -409,12 +417,13 @@ Input for creating or updating a Score.
     labels: { type: "Record<string, string>", description: "Key-value labels." },
     runId: { type: "string", description: "ID of the run this score grades." },
     sessionId: { type: "string", description: "ID of the session the run belongs to." },
-    metric: { type: "string", description: "What is measured: `feedback` for a person's thumbs, `run-health` for the free checks." },
+    metric: { type: "string", description: "What is measured: `feedback` for a person's thumbs, `run-health` for the free checks, `judge` for an AI judge's verdict." },
     source: { type: "ScoreSource", description: "Who or what gave the score.", typeDescriptionLink: "#scoresource" },
     evaluatorVersion: { type: "string", description: "Identifies the version of the checks or rubric that produced the score, so scores from different versions are never compared as one." },
-    passed: { type: "boolean", description: "True when the run passed: thumbs up, or every applicable check passed." },
+    passed: { type: "boolean", description: "True when the run passed: thumbs up, every applicable check passed, or no rubric failed." },
     criteria: { type: "ScoreCriterionInput[]", description: "The criteria behind the value, one per check or rubric item.", typeDescriptionLink: "#scorecriterioninput" },
     comment: { type: "string", description: "A person's optional note on their rating." },
+    judgeModel: { type: "string", description: "The model that gave a judge's verdict." },
   }}
 />
 
@@ -426,7 +435,7 @@ ScoreCriterion is one criterion's outcome and the reason for it.
   type={{
     name: { type: "string", description: "The criterion's identifier, for example `no-repeated-calls`." },
     result: { type: "CriterionResult", description: "The criterion's outcome.", typeDescriptionLink: "#criterionresult" },
-    reason: { type: "string", description: "Why, in counts, tool names and step numbers; never a quote of what anyone typed." },
+    reason: { type: "string", description: "Why the criterion has its result." },
   }}
 />
 
@@ -495,6 +504,7 @@ ScoreState tells whether a score carries a grade.
 |-------|-------------|
 | `score_state_graded` | The score carries a value. |
 | `score_state_not_graded` | The run could not be graded; the reason says why. |
+| `score_state_pending` | The run was picked for grading and the grade is not in yet. |
 
 ### ScoreSource
 
@@ -504,6 +514,7 @@ ScoreSource names who or what gave a score.
 |-------|-------------|
 | `score_source_check` | A free check the platform runs on every completed run, with no model call. |
 | `score_source_human` | A person who can see the run. |
+| `score_source_judge` | An AI judge grading the run against Stigmer's standard rubrics, switched on per agent by its evaluator. |
 
 ### CriterionResult
 

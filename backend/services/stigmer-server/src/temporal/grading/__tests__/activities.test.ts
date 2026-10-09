@@ -12,6 +12,11 @@
  *   - a retry that loses the race (ALREADY_EXISTS) counts as graded, a run
  *     deleted mid-record (NOT_FOUND) as gone, and any other failure is
  *     thrown so Temporal retries it;
+ *   - every write goes through the server's one write rule
+ *     (domain/score/record.ts): the recorder double refuses a second score
+ *     from the same checks version with ALREADY_EXISTS, as the create
+ *     chain's CheckScoreUnique does, so "left alone" and "replaced" are the
+ *     rule's answers, not the double's;
  *   - recording a run as not graded carries the reason and no value.
  */
 import { clone, create } from "@bufbuild/protobuf";
@@ -25,6 +30,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
+import { ScoreStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/status_pb";
 import {
   CriterionResult,
   ScoreSource,
@@ -37,6 +43,7 @@ import type {
   ScoreDeleter,
   ScoreRecorder,
 } from "../../../domain/score/ports.js";
+import { listRunScores } from "../../../domain/score/queries.js";
 import { silentLogger } from "../../../extensions/__tests__/composed-support.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
@@ -59,18 +66,46 @@ afterEach(async () => {
   await temp.cleanup();
 });
 
+let written = 0;
+
+/**
+ * The create chain as far as these activities see it: a second score from
+ * the same checks version on a run is ALREADY_EXISTS (CheckScoreUnique);
+ * anything else is stored and answered.
+ */
 function recorder(
   fail?: Error,
 ): ScoreRecorder & { readonly recorded: Score[] } {
   const recorded: Score[] = [];
   return {
     recorded,
-    record: (score) => {
+    record: async (score) => {
       if (fail !== undefined) {
-        return Promise.reject(fail);
+        throw fail;
       }
+      const runId = score.spec?.runId ?? "";
+      const held = (await listRunScores(temp.store, silentLogger, runId)).some(
+        (other) =>
+          other.spec?.metric === score.spec?.metric &&
+          other.spec?.evaluatorVersion === score.spec?.evaluatorVersion,
+      );
+      if (held) {
+        throw new ConnectError("exists", Code.AlreadyExists);
+      }
+      written++;
+      const id = `scr_written${written}`;
+      const stored = clone(ScoreSchema, score);
+      stored.metadata = { ...stored.metadata!, id, name: id, slug: id };
+      stored.status = create(ScoreStatusSchema, {
+        notGradedReason: stored.status?.notGradedReason ?? "",
+        state:
+          stored.spec?.value.case === undefined
+            ? ScoreState.not_graded
+            : ScoreState.graded,
+      });
+      await temp.store.saveResource(ApiResourceKind.score, id, ScoreSchema, stored);
       recorded.push(score);
-      return Promise.resolve(score);
+      return stored;
     },
   };
 }
@@ -235,22 +270,29 @@ describe("grade-run-health", () => {
       RUN_HEALTH_EVALUATOR_VERSION,
       ScoreState.not_graded,
     );
+    // Another writer removed it first: the row is gone and the delete
+    // answers NOT_FOUND.
     const gone: ScoreDeleter = {
-      delete: () =>
-        Promise.reject(new ConnectError("score not found", Code.NotFound)),
+      delete: async (scoreId) => {
+        await temp.store.deleteResource(ApiResourceKind.score, scoreId);
+        throw new ConnectError("score not found", Code.NotFound);
+      },
     };
     expect(
       await activitiesWith(recorder(), gone)[GRADE_RUN_HEALTH_ACTIVITY_NAME](
         "run_1",
       ),
     ).toBe(GRADE_RECORDED);
+    // A fresh run with a not-graded score whose delete fails for real.
+    await seedStuckRun("run_2");
+    await seedRunHealth("run_2", RUN_HEALTH_EVALUATOR_VERSION, ScoreState.not_graded);
     const broken: ScoreDeleter = {
       delete: () =>
         Promise.reject(new ConnectError("store down", Code.Internal)),
     };
     await expect(
       activitiesWith(recorder(), broken)[GRADE_RUN_HEALTH_ACTIVITY_NAME](
-        "run_1",
+        "run_2",
       ),
     ).rejects.toThrow("store down");
   });

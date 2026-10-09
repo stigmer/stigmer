@@ -444,7 +444,12 @@ export async function resolveAgentBlueprint(
   deps.enterPhase("resolve_blueprint");
   await deps.reportProgress("Resolving agent blueprint");
   const session = await deps.client.getSession(sessionId);
-  const blueprint = await resolveBlueprint(deps.client, session, execution.status);
+  const blueprint = await resolveBlueprint(
+    deps.client,
+    session,
+    execution.status,
+    execution.metadata?.labels ?? {},
+  );
   deps.timing.mark("resolve_blueprint");
   return { session, blueprint };
 }

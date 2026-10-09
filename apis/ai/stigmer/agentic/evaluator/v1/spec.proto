@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.evaluator.v1;
+
+import "buf/validate/validate.proto";
+
+// EvaluatorSpec holds which agent is graded, how often, and within what spend.
+//
+// @internal
+// agent_id is fixed at create; every other field changes with update. The
+// spend limit bounds the runner's estimated model cost of the judge runs
+// (RunStatus.streaming_usage.estimated_cost_usd), not a billed amount: the
+// hosted edition's ledger adds its own pricing on top.
+message EvaluatorSpec {
+  // ID of the agent whose runs are graded.
+  //
+  // @internal
+  // The authorization parent: the evaluator's access is the agent's.
+  // Immutable after create.
+  string agent_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Whether grading runs.
+  //
+  // A disabled evaluator keeps its settings and this month's counts; no
+  // new run is graded until it is enabled again.
+  bool enabled = 2;
+
+  // The share of completed runs graded, from just above 0 to 1.
+  //
+  // 0.1 grades about one run in ten; 1 grades every run. Which runs are
+  // picked is fixed by each run's id, so a run's sampling never changes.
+  double sample_rate = 3 [(buf.validate.field).double = {
+    gt: 0
+    lte: 1
+  }];
+
+  // The most this agent's grading may spend in one calendar month (UTC), in
+  // estimated US dollars of model cost.
+  //
+  // A grade sets aside its maximum cost before it starts; when that would
+  // pass the limit, the run is not graded and says so. The limit can be
+  // passed by at most one grade's overshoot.
+  double monthly_limit_usd = 4 [(buf.validate.field).double = {
+    gt: 0
+    lte: 100000
+    finite: true
+  }];
+
+  // The model the judge uses. Example: "claude-sonnet-4-6".
+  //
+  // Empty uses the platform's default model.
+  string model_name = 5 [(buf.validate.field).string.max_len = 128];
+}

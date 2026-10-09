@@ -1,20 +1,26 @@
 /**
- * Pins the caller's-sign-ins lookup that grant status and disconnect share:
- * only connections a sign-in to this server saved count (never a pasted
- * login, never another server's sign-in at the same address), at every
- * address the server's sign-ins were saved at, and an empty server id
- * matches nothing even when a malformed entry carries no server id.
+ * Pins the caller's-sign-in lookup that grant status and disconnect share:
+ * the sign-in saved at the server's address in the caller's My vault,
+ * whichever page started it; never a pasted login there, a login at
+ * another address, or anything for a local program (it has no address); an
+ * address that names the object's prototype is never read as a login; a
+ * server that does not exist answers NOT_FOUND.
  */
 import { create } from "@bufbuild/protobuf";
+import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
+import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import type { Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import { VaultConnectionSource } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
 
 import type { CallerIdentity } from "../../../extensions/identity.js";
+import { ResourceNotFoundError } from "../../../store/interface.js";
+import type { Store } from "../../../store/interface.js";
 import type { VaultService } from "../../vault/service.js";
-import { findCallerSignIns } from "../sign-in-connection.js";
+import { findCallerSignIn } from "../sign-in-connection.js";
 
 const ORG = "org_1";
 const caller: CallerIdentity = {
@@ -24,10 +30,26 @@ const caller: CallerIdentity = {
   rawToken: "",
 };
 
-function vaultsHolding(vault: Vault | undefined): { vaults: VaultService } {
+function httpServer(url: string): McpServer {
+  return create(McpServerSchema, {
+    metadata: { id: "mcps_linear", org: ORG },
+    spec: { serverType: { case: "http", value: { url } }, auth: { targetEnvVar: "LINEAR_TOKEN" } },
+  });
+}
+
+function rigHolding(vault: Vault | undefined, server: McpServer | undefined) {
   const findMine = async (org: string, person: string): Promise<Vault | undefined> =>
     org === ORG && person === caller.identityId ? vault : undefined;
-  return { vaults: { findMine } as unknown as VaultService };
+  const getResource = async (): Promise<McpServer> => {
+    if (server === undefined) {
+      throw new ResourceNotFoundError("mcp_server/mcps_linear");
+    }
+    return server;
+  };
+  return {
+    vaults: { findMine } as unknown as VaultService,
+    store: { getResource } as unknown as Store,
+  };
 }
 
 const myVault = create(VaultSchema, {
@@ -37,49 +59,49 @@ const myVault = create(VaultSchema, {
       "https://mcp.linear.app/mcp": {
         token: "sealed-linear",
         source: VaultConnectionSource.sign_in,
-        signIn: { mcpServerId: "mcps_linear" },
+        signIn: { loginApp: "" },
       },
       "https://mcp.linear.app/old": {
         token: "sealed-linear-old",
         source: VaultConnectionSource.sign_in,
-        signIn: { mcpServerId: "mcps_linear" },
-      },
-      "https://mcp.notion.com/mcp": {
-        token: "sealed-notion",
-        source: VaultConnectionSource.sign_in,
-        signIn: { mcpServerId: "mcps_notion" },
+        signIn: { loginApp: "" },
       },
       "https://pasted.example.com/mcp": {
         token: "sealed-pasted",
         source: VaultConnectionSource.pasted,
       },
-      "https://broken.example.com/mcp": {
-        token: "sealed-broken",
-        source: VaultConnectionSource.sign_in,
-        signIn: { mcpServerId: "" },
-      },
     },
   },
 });
 
-describe("findCallerSignIns", () => {
-  it("answers the server's own sign-ins at every address they were saved at, and nothing else", async () => {
-    const found = await findCallerSignIns(vaultsHolding(myVault), "mcps_linear", ORG, caller);
+describe("findCallerSignIn", () => {
+  it("answers the sign-in at the server's address, and none at its other addresses", async () => {
+    const found = await findCallerSignIn(rigHolding(myVault, httpServer("https://MCP.linear.app/mcp/")), "mcps_linear", ORG, caller);
     expect(found.vault).toBe(myVault);
-    expect(found.signIns.map((signIn) => signIn.address).sort()).toEqual([
-      "https://mcp.linear.app/mcp",
-      "https://mcp.linear.app/old",
-    ]);
+    expect(found.address).toBe("https://mcp.linear.app/mcp");
+    expect(found.connection?.token).toBe("sealed-linear");
   });
 
-  it("matches nothing for an empty server id, not even a sign-in that names no server", async () => {
-    const found = await findCallerSignIns(vaultsHolding(myVault), "", ORG, caller);
-    expect(found.vault).toBe(myVault);
-    expect(found.signIns).toEqual([]);
+  it("answers no sign-in for a pasted login at the address, an address naming the prototype, or a local program", async () => {
+    const pasted = await findCallerSignIn(rigHolding(myVault, httpServer("https://pasted.example.com/mcp")), "mcps_linear", ORG, caller);
+    expect(pasted.connection).toBeUndefined();
+
+    const local = create(McpServerSchema, {
+      metadata: { id: "mcps_linear", org: ORG },
+      spec: { serverType: { case: "stdio", value: { command: "npx" } } },
+    });
+    const program = await findCallerSignIn(rigHolding(myVault, local), "mcps_linear", ORG, caller);
+    expect(program).toMatchObject({ address: undefined, connection: undefined });
   });
 
-  it("answers no vault and no sign-ins before the caller's first save", async () => {
-    const found = await findCallerSignIns(vaultsHolding(undefined), "mcps_linear", ORG, caller);
-    expect(found).toEqual({ vault: undefined, signIns: [] });
+  it("answers no vault and no sign-in before the caller's first save", async () => {
+    const found = await findCallerSignIn(rigHolding(undefined, httpServer("https://mcp.linear.app/mcp")), "mcps_linear", ORG, caller);
+    expect(found).toMatchObject({ vault: undefined, connection: undefined });
+  });
+
+  it("answers NOT_FOUND for a server that does not exist", async () => {
+    const error = await findCallerSignIn(rigHolding(myVault, undefined), "mcps_linear", ORG, caller).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ConnectError);
+    expect((error as ConnectError).code).toBe(Code.NotFound);
   });
 });

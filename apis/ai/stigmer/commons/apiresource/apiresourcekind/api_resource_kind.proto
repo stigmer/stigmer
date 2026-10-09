@@ -829,6 +829,36 @@ enum ApiResourceKind {
     }
   }];
 
+  // AI grading switched on for one agent: its sample rate, monthly spending
+  // limit and judge model.
+  evaluator = 62 [(kind_meta) = {
+    group: agentic
+    version: v1
+    name: "Evaluator"
+    display_name: "Evaluator"
+    id_prefix: "evl"
+    is_versioned: false
+    // Not searchable by design: an evaluator is a setting reached through
+    // its agent's Quality tab, not a library artifact.
+    not_search_indexed: true
+    tier: open_source
+    authorization: {
+      // A child of its agent: whoever may edit the agent configures its
+      // grading, and whoever may view the agent sees the settings.
+      scope_type: AUTHORIZATION_SCOPE_TYPE_PARENT
+      // No owner of its own: the agent's owner (which includes the
+      // organization's admins, who hold the purse) is the evaluator's.
+      owner_type: OWNER_ATTRIBUTION_TYPE_NONE
+      parent: {
+        kind: "agent"
+        relation: "agent"
+        spec_field: "agent_id"
+      }
+      // No visibility config and no grantable roles: an evaluator is
+      // reached through its agent, never shared on its own.
+    }
+  }];
+
   // Billing - Plans, and the subscriptions and licenses that grant them.
   //
   // An entitlement is what the platform permits; a subscription and a

@@ -1,8 +1,6 @@
 export {
   useGitHubConnection,
-  GITHUB_CALLBACK_MESSAGE_TYPE,
   type GitHubUser,
-  type GitHubConnectOptions,
   type UseGitHubConnectionConfig,
   type UseGitHubConnectionReturn,
 } from "./useGitHubConnection.js";

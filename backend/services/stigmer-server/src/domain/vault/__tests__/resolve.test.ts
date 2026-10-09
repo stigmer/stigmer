@@ -24,11 +24,10 @@
  *     falling back to its declaration's value; the GitHub tool and a clone
  *     sharing GITHUB_TOKEN; two different values for one key refused
  *     naming both declarers;
- *   - which tool a login fills: a sign-in only the server that made it
- *     (another server at the same URL gets nothing), and only while that
- *     server is the kind it was at sign-in (HTTP or a local program); a
- *     pasted login only an HTTP tool at its URL; a local program naming
- *     another tool's address gets neither;
+ *   - which tool a login fills: a sign-in and a pasted login alike, every
+ *     HTTP tool at its URL (a sign-in renewed once however many tools use
+ *     it), and none at another address; a local program has no address and
+ *     takes its keys as secrets by name;
  *   - where a login's token may go when its key is shared: a tool it was
  *     not made for, a clone served by another tool's sign-in, a tool at
  *     another host than GitHub's API for the github.com login, and the
@@ -115,7 +114,7 @@ import {
 } from "../../../encryption/encryption.js";
 import type { Authorizer } from "../../../extensions/authorizer.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
-import { newSignInFreshener } from "../../mcpserver/oauth/refresh.js";
+import { newSignInFreshener } from "../sign-in/refresh.js";
 
 import {
   CHANNEL_ID_LABEL_KEY,
@@ -194,13 +193,13 @@ function vaultRef(slug: string) {
   return { kind: ApiResourceKind.vault, org: ORG, slug };
 }
 
-/** A local program whose login names `discoveryUrl` as its address. */
-function localTool(slug: string, init: { target: string; discoveryUrl: string }): McpServer {
+/** A local program declaring `target` as a key: it has no address and takes no login. */
+function localTool(slug: string, init: { target: string }): McpServer {
   return create(McpServerSchema, {
     metadata: { id: `mcp_${slug}`, name: slug, slug, org: ORG },
     spec: {
       serverType: { case: "stdio", value: { command: "npx" } },
-      auth: { targetEnvVar: init.target, discoveryUrl: init.discoveryUrl },
+      env: { [init.target]: { isSecret: true } },
     },
   });
 }
@@ -1147,7 +1146,7 @@ describe("sign-ins", () => {
           authMethod: "mcp_oauth",
           tokenEndpoint: "https://linear.example/token",
           refreshToken: "r",
-          mcpServerId: "mcp_linear",
+          loginApp: "",
         },
       },
       testCallerIdentity({ identityId: ANA }),
@@ -1165,19 +1164,23 @@ describe("sign-ins", () => {
     expect(freshened).toEqual([`${mine}|https://mcp.linear.example/mcp`]);
   });
 
-  it("fill only the server that signed in: another server at the same URL gets nothing", async () => {
-    await signedIn();
-    const copycat = tool("copycat", { url: "https://mcp.linear.example/mcp", target: "LINEAR_TOKEN" });
-    const failure = await refusal(resolve({ run: runOf({ person: ANA }), tools: [copycat] }));
-    expect(failure.code).toBe(Code.FailedPrecondition);
-    expect(failure.rawMessage).toContain("copycat needs LINEAR_TOKEN");
-    expect(freshened).toEqual([]);
+  it("fill every HTTP tool at their address, renewed once, and no tool at another", async () => {
+    const mine = await signedIn();
+    const second = tool("second", { url: "https://mcp.linear.example/mcp", target: "LINEAR_API_KEY" });
     expect(
-      await resolve({ run: runOf({ person: ANA }), tools: [tool("linear", { target: "LINEAR_TOKEN" })] }),
-    ).toEqual({ LINEAR_TOKEN: "fresh-old" });
+      await resolve({ run: runOf({ person: ANA }), tools: [tool("linear", { target: "LINEAR_TOKEN" }), second] }),
+    ).toEqual({ LINEAR_TOKEN: "fresh-old", LINEAR_API_KEY: "fresh-old" });
+    expect(freshened).toEqual([`${mine}|https://mcp.linear.example/mcp`]);
+
+    freshened = [];
+    const elsewhere = tool("elsewhere", { url: "https://mcp.linear.example/other", target: "LINEAR_TOKEN" });
+    const failure = await refusal(resolve({ run: runOf({ person: ANA }), tools: [elsewhere] }));
+    expect(failure.code).toBe(Code.FailedPrecondition);
+    expect(failure.rawMessage).toContain("elsewhere needs LINEAR_TOKEN");
+    expect(freshened).toEqual([]);
   });
 
-  it("a local program naming another tool's address gets neither its sign-in nor a pasted login there", async () => {
+  it("never reach a local program: it has no address, and takes its key as a secret by name", async () => {
     const mine = await signedIn();
     await rig.vaults.setConnection(
       mine,
@@ -1185,93 +1188,24 @@ describe("sign-ins", () => {
       { token: "notion-pasted", source: VaultConnectionSource.pasted },
       testCallerIdentity({ identityId: ANA }),
     );
-    for (const impostor of [
-      localTool("impostor", { target: "LINEAR_TOKEN", discoveryUrl: "https://mcp.linear.example/mcp" }),
-      localTool("impostor", { target: "NOTION_KEY", discoveryUrl: "https://mcp.notion.example/mcp" }),
+    for (const program of [
+      localTool("program", { target: "LINEAR_TOKEN" }),
+      localTool("program", { target: "NOTION_KEY" }),
     ]) {
-      const failure = await refusal(resolve({ run: runOf({ person: ANA }), tools: [impostor] }));
+      const failure = await refusal(resolve({ run: runOf({ person: ANA }), tools: [program] }));
       expect(failure.code).toBe(Code.FailedPrecondition);
-      expect(failure.rawMessage).toContain("impostor needs");
+      expect(failure.rawMessage).toContain("program needs");
     }
     expect(freshened).toEqual([]);
-  });
 
-  it("a local program takes the sign-in it made itself", async () => {
-    const mine = await anasVault({});
-    await rig.vaults.setConnection(
+    await rig.vaults.setSecrets(
       mine,
-      "https://auth.local.example",
-      {
-        token: "local-old",
-        source: VaultConnectionSource.sign_in,
-        signIn: {
-          expiresAt: 1n,
-          clientId: "c",
-          authMethod: "mcp_oauth",
-          tokenEndpoint: "https://auth.local.example/token",
-          refreshToken: "r",
-          mcpServerId: "mcp_local",
-          localProgram: true,
-        },
-      },
+      { LINEAR_TOKEN: { value: "lin-secret", description: "" } },
       testCallerIdentity({ identityId: ANA }),
     );
     expect(
-      await resolve({
-        run: runOf({ person: ANA }),
-        tools: [localTool("local", { target: "LOCAL_TOKEN", discoveryUrl: "https://auth.local.example/" })],
-      }),
-    ).toEqual({ LOCAL_TOKEN: "fresh-local-old" });
-  });
-
-  it("fill their server only while it is the kind it was at sign-in: switched between HTTP and a local program, it gets nothing", async () => {
-    const SWITCHED_URL = "https://mcp.switched.example/mcp";
-    const mine = await anasVault({});
-    const saveSignIn = (localProgram: boolean) =>
-      rig.vaults.setConnection(
-        mine,
-        SWITCHED_URL,
-        {
-          token: localProgram ? "local-login" : "http-login",
-          source: VaultConnectionSource.sign_in,
-          signIn: {
-            expiresAt: 1n,
-            clientId: "c",
-            authMethod: "mcp_oauth",
-            tokenEndpoint: "https://mcp.switched.example/token",
-            refreshToken: "r",
-            mcpServerId: "mcp_switched",
-            localProgram,
-          },
-        },
-        testCallerIdentity({ identityId: ANA }),
-      );
-    const asHttp = tool("switched", { url: SWITCHED_URL, target: "SWITCHED_TOKEN" });
-    const asLocal = localTool("switched", { target: "SWITCHED_TOKEN", discoveryUrl: SWITCHED_URL });
-
-    // Signed in as an HTTP server, then switched to a local program whose
-    // discovery URL is the old address: the program would hold the token.
-    await saveSignIn(false);
-    expect(await resolve({ run: runOf({ person: ANA }), tools: [asHttp] })).toEqual({
-      SWITCHED_TOKEN: "fresh-http-login",
-    });
-    freshened = [];
-    const toLocal = await refusal(resolve({ run: runOf({ person: ANA }), tools: [asLocal] }));
-    expect(toLocal.code).toBe(Code.FailedPrecondition);
-    expect(toLocal.rawMessage).toContain("switched needs SWITCHED_TOKEN");
-    expect(toLocal.rawMessage).not.toContain("http-login");
-    expect(freshened).toEqual([]);
-
-    // And the other way round.
-    await saveSignIn(true);
-    expect(await resolve({ run: runOf({ person: ANA }), tools: [asLocal] })).toEqual({
-      SWITCHED_TOKEN: "fresh-local-login",
-    });
-    freshened = [];
-    const toHttp = await refusal(resolve({ run: runOf({ person: ANA }), tools: [asHttp] }));
-    expect(toHttp.code).toBe(Code.FailedPrecondition);
-    expect(toHttp.rawMessage).toContain("switched needs SWITCHED_TOKEN");
-    expect(freshened).toEqual([]);
+      await resolve({ run: runOf({ person: ANA }), tools: [localTool("program", { target: "LINEAR_TOKEN" })] }),
+    ).toEqual({ LINEAR_TOKEN: "lin-secret" });
   });
 
   it("a run refused for a missing key renews nothing", async () => {
@@ -1363,7 +1297,7 @@ describe("a login reaches only what it was made for", () => {
           authMethod: "mcp_oauth",
           tokenEndpoint: "https://linear.example/token",
           refreshToken: "r",
-          mcpServerId: "mcp_linear",
+          loginApp: "",
         },
       },
       testCallerIdentity({ identityId: ANA }),
@@ -1557,7 +1491,7 @@ describe("a login reaches only what it was made for", () => {
         env: { GITHUB_TOKEN: KEY },
         headers: { Authorization: "Bearer ${GITHUB_TOKEN}" },
       }),
-      localTool("other", { target: "GITHUB_TOKEN", discoveryUrl: "https://api.github.com/mcp" }),
+      localTool("other", { target: "GITHUB_TOKEN" }),
     ]) {
       const failure = await refusal(resolve({ run: runOf({ person: ANA }), tools: [other] }));
       expect(failure.code).toBe(Code.FailedPrecondition);
@@ -1622,7 +1556,7 @@ describe("a login reaches only what it was made for", () => {
           authMethod: "mcp_oauth",
           tokenEndpoint: "https://gh-proxy.example/token",
           refreshToken: "r",
-          mcpServerId: "mcp_proxy",
+          loginApp: "",
         },
       },
       testCallerIdentity({ identityId: ANA }),
@@ -1877,13 +1811,14 @@ describe("edges", () => {
           authMethod: "mcp_oauth",
           tokenEndpoint: "https://auth.example/token",
           refreshToken: "",
-          mcpServerId: "mcp_linear",
+          loginApp: "",
         },
       },
       testCallerIdentity({ identityId: ANA }),
     );
     const real = resolverWith({
       freshener: newSignInFreshener({
+        loginProviders: new Map(),
         vaults: rig.vaults,
         store: rig.store,
         secretService: rig.secrets,
@@ -1921,7 +1856,7 @@ describe("edges", () => {
           authMethod: "mcp_oauth",
           tokenEndpoint: "https://auth.example/token",
           refreshToken: "r",
-          mcpServerId: "mcp_linear",
+          loginApp: "",
         },
       },
       testCallerIdentity({ identityId: ANA }),
@@ -2142,7 +2077,7 @@ describe("a stored value the server cannot open", () => {
           authMethod: "mcp_oauth",
           tokenEndpoint: "https://linear.example/token",
           refreshToken: "r",
-          mcpServerId: "mcp_linear",
+          loginApp: "",
         },
       },
       ana,
@@ -2161,6 +2096,7 @@ describe("a stored value the server cannot open", () => {
       vaults,
       platformClients: { findById: async () => undefined },
       freshener: newSignInFreshener({
+        loginProviders: new Map(),
         vaults,
         store: rig.store,
         secretService: cannot.secrets,

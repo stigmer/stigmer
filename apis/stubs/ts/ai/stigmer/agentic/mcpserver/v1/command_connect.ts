@@ -6,7 +6,7 @@
 import { McpServer } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceDeleteInput, UpdateVisibilityInput } from "../../../commons/apiresource/io_pbjs";
-import { CompleteOAuthConnectInput, CompleteOAuthConnectOutput, ConnectInput, DeleteOrgOAuthAppInput, DeleteOrgOAuthAppOutput, DisconnectOAuthInput, DisconnectOAuthOutput, InitiateOAuthConnectInput, InitiateOAuthConnectOutput, SetOrgOAuthAppInput, SetOrgOAuthAppOutput } from "./io_pbjs";
+import { ConnectInput, DisconnectOAuthInput, DisconnectOAuthOutput } from "./io_pbjs";
 
 /**
  * McpServerCommandController provides write operations for MCP server resources.
@@ -133,53 +133,13 @@ export const McpServerCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Start the OAuth authorization flow for an MCP server.
+     * Disconnect the authenticated user's sign-in for an MCP server.
      *
-     * Performs setup (DCR registration or OAuthApp credential lookup, PKCE
-     * generation) and returns an authorization URL for the frontend to
-     * redirect the user to. The frontend calls completeOAuthConnect after
-     * the user authorizes.
-     *
-     * @generated from rpc ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.initiateOAuthConnect
-     */
-    initiateOAuthConnect: {
-      name: "initiateOAuthConnect",
-      I: InitiateOAuthConnectInput,
-      O: InitiateOAuthConnectOutput,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * Complete the OAuth authorization flow by exchanging the authorization
-     * code for tokens.
-     *
-     * Called by the frontend after the user is redirected back from the
-     * OAuth authorization server. Exchanges the code for tokens and saves
-     * the login as a connection at the server's address in the vault named
-     * when the flow started: the caller's My vault, or a shared vault they
-     * may edit.
-     *
-     * After success, the frontend should call connect() to trigger tool
-     * discovery using the freshly acquired token.
-     *
-     * @generated from rpc ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.completeOAuthConnect
-     */
-    completeOAuthConnect: {
-      name: "completeOAuthConnect",
-      I: CompleteOAuthConnectInput,
-      O: CompleteOAuthConnectOutput,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * Disconnect the authenticated user's OAuth connection for a resource.
-     *
-     * Removes every connection a sign-in to this server saved in the caller's
-     * My vault, with its access and refresh tokens, including one left at the
-     * server's earlier address. The MCP server definition is unchanged — only
-     * the caller's sign-in is removed.
-     *
-     * Other users' connections to the same resource, a pasted login and
-     * another server's sign-in are unaffected. A sign-in saved into a shared
-     * vault is removed through that vault's removeConnections.
+     * Removes the sign-in saved at the server's address in the caller's My
+     * vault, with its access and refresh tokens. The MCP server definition is
+     * unchanged. A pasted login at the address is left in place, and so is a
+     * sign-in saved into a shared vault: the vault's removeConnections removes
+     * either.
      *
      * Idempotent: returns disconnected=true when a sign-in was removed,
      * disconnected=false when none was saved. Never returns an error
@@ -191,53 +151,6 @@ export const McpServerCommandController = {
       name: "disconnectOAuth",
       I: DisconnectOAuthInput,
       O: DisconnectOAuthOutput,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * Create or update an org-level BYOA OAuth app override for a resource.
-     *
-     * Allows an organization to use its own OAuth app credentials instead of
-     * the platform default. The handler clones the platform OAuthApp template
-     * (endpoint URLs, scopes) and applies the org-provided client credentials.
-     *
-     * Idempotent: if an override already exists for this resource + org, the
-     * existing OAuthApp is updated with the new credentials.
-     *
-     * Edition scoping: hosted-only. UNIMPLEMENTED on the OSS server by
-     * design, as one capability with getOrgOAuthApp and deleteOrgOAuthApp —
-     * see the full scoping note on McpServerQueryController.getOrgOAuthApp,
-     * the RPC clients probe.
-     *
-     * @generated from rpc ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.setOrgOAuthApp
-     */
-    setOrgOAuthApp: {
-      name: "setOrgOAuthApp",
-      I: SetOrgOAuthAppInput,
-      O: SetOrgOAuthAppOutput,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * Remove an org-level BYOA override for a resource.
-     *
-     * Deletes the OAuthAppOverride binding and the OAuthApp resource that
-     * was created for it. After this, the resolution chain falls back to
-     * the platform default.
-     *
-     * Edition scoping: hosted-only. UNIMPLEMENTED on the OSS server by
-     * design, as one capability with getOrgOAuthApp and setOrgOAuthApp —
-     * see the full scoping note on McpServerQueryController.getOrgOAuthApp,
-     * the RPC clients probe.
-     *
-     * Existing sign-ins that were issued using the org's OAuthApp
-     * will fail on next token refresh — those users will need to
-     * re-authenticate using the platform default or a new org override.
-     *
-     * @generated from rpc ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.deleteOrgOAuthApp
-     */
-    deleteOrgOAuthApp: {
-      name: "deleteOrgOAuthApp",
-      I: DeleteOrgOAuthAppInput,
-      O: DeleteOrgOAuthAppOutput,
       kind: MethodKind.Unary,
     },
   }

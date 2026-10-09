@@ -38,7 +38,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceDeleteInput",
           "outputType": "OAuthApp",
           "outputFullType": "ai.stigmer.iam.oauthapp.v1.OAuthApp",
-          "description": "Delete an OAuth app.\n\n Refused while any McpServer's McpServerAuth.oauth_app_ref resolves to\n this OAuth app. Returns the deleted OAuthApp, its client_secret redacted\n like every read."
+          "description": "Delete an OAuth app.\n\n Its addresses are released: a sign-in at them uses Stigmer's own login\n app or the address's login server from then on. Returns the deleted\n OAuthApp, its client_secret redacted like every read."
         }
       ]
     },
@@ -128,6 +128,7 @@
               "plugin",
               "vault",
               "score",
+              "evaluator",
               "plan",
               "subscription",
               "license"
@@ -341,6 +342,11 @@
           "name": "score",
           "number": 61,
           "description": "One grade of a finished run: a person's thumbs or a free run-health\n check."
+        },
+        {
+          "name": "evaluator",
+          "number": 62,
+          "description": "AI grading switched on for one agent: its sample rate, monthly spending\n limit and judge model."
         },
         {
           "name": "plan",

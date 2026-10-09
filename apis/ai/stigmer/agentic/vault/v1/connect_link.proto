@@ -1,0 +1,109 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.vault.v1;
+
+import "ai/stigmer/commons/rpc/method_options.proto";
+import "buf/validate/validate.proto";
+
+// ConnectLinkController serves the page a Connect link opens: someone
+// without a Stigmer account signs in at an address, and the login is saved
+// into the vault the link was made for (VaultCommandController.
+// createConnectLink).
+//
+// Every method is public: the link's secret is the authority, and nothing
+// else is asked. An unknown, expired or used link answers NOT_FOUND, the same
+// for all three, so a guessed or forwarded link learns nothing.
+//
+// @internal
+// A service of its own, apart from the vault's commands, so the anonymous
+// surface is one file to audit (as PlatformClientTokenController keeps token
+// minting apart). The link's creator must still be able to edit the vault
+// when the link is started and when it completes.
+service ConnectLinkController {
+  // Get what a Connect link is for, to show before the customer continues.
+  rpc getConnectLink(ConnectLinkTokenInput) returns (ConnectLinkInfo) {
+    option (ai.stigmer.commons.rpc.is_public) = true;
+  }
+
+  // Start the sign-in a Connect link is for. Answers the login page to send
+  // the customer to; it returns them to the console's callback page.
+  rpc startConnectLink(ConnectLinkTokenInput) returns (StartConnectLinkOutput) {
+    option (ai.stigmer.commons.rpc.is_public) = true;
+  }
+
+  // Finish a Connect link's sign-in and spend the link. Answers where to
+  // send the customer: the link's return URL with stigmer_connect=connected,
+  // or stigmer_connect=error and a short reason when the sign-in failed
+  // after the login page (the link then stays usable until it expires).
+  rpc completeConnectLink(CompleteConnectLinkInput) returns (CompleteConnectLinkOutput) {
+    option (ai.stigmer.commons.rpc.is_public) = true;
+  }
+}
+
+// A Connect link's secret, as its url carries it.
+message ConnectLinkTokenInput {
+  // The secret from the link's url.
+  string token = 1 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 128
+  }];
+}
+
+// What a Connect link is for.
+message ConnectLinkInfo {
+  // Who the customer signs in with: the provider of the organization's login
+  // app for the address ("Slack"), or the address's host.
+  string provider_name = 1;
+
+  // The address the customer signs in to.
+  string address = 2;
+
+  // The name of the organization the login is saved for.
+  string organization_name = 3;
+}
+
+// The login page a Connect link's sign-in starts at.
+message StartConnectLinkOutput {
+  // The login page, with every parameter the sign-in needs.
+  string authorization_url = 1;
+
+  // The value the login page hands back with the code.
+  string state = 2;
+}
+
+// Input for finishing a Connect link's sign-in, with what the login page
+// handed back.
+message CompleteConnectLinkInput {
+  // The secret from the link's url.
+  string token = 1 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 128
+  }];
+
+  // The state the login page returned.
+  string state = 2 [(buf.validate.field).string.max_len = 512];
+
+  // The authorization code the login page returned; empty when it returned
+  // an error instead.
+  string code = 3 [(buf.validate.field).string.max_len = 4096];
+
+  // The error the login page returned instead of a code (RFC 6749 section
+  // 4.1.2.1), such as access_denied when the customer declined.
+  string error = 4 [(buf.validate.field).string.max_len = 256];
+
+  option (buf.validate.message).cel = {
+    id: "complete_connect_link.code_or_error"
+    message: "a Connect link completes with the code and state the login page returned, or with its error"
+    expression: "this.error != '' || (this.code != '' && this.state != '')"
+  };
+}
+
+// Where to send the customer once a Connect link's sign-in is over.
+message CompleteConnectLinkOutput {
+  // The link's return URL, with stigmer_connect=connected, or
+  // stigmer_connect=error and a reason: denied (the customer declined),
+  // provider_error (the login page refused), expired (the sign-in took longer
+  // than ten minutes), failed (the login could not be saved) or not_allowed
+  // (the link's maker may no longer change the vault).
+  string return_url = 1;
+}

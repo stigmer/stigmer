@@ -118,4 +118,60 @@ service VaultCommandController {
   rpc removeConnections(RemoveVaultConnectionsInput) returns (Vault) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
+
+  // Start a sign-in at an address, to save the login in a vault.
+  //
+  // Answers the login page to send the person to. When they have signed in,
+  // the page they return to calls completeSignIn with what the login page
+  // handed back. The sign-in must be completed within ten minutes.
+  //
+  // The login fills every HTTP tool whose URL is the address, and a Git
+  // host's login serves clones from that host.
+  //
+  // @internal
+  // Authorization in the handler, as setConnection: can_edit on a vault
+  // named by id; can_create_vault on the organization for My vault. Asked
+  // again at completion. Every request to a login server goes through the
+  // server's egress guard.
+  rpc startSignIn(StartSignInInput) returns (StartSignInOutput) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // Finish a sign-in: exchange the code the login page handed back and save
+  // the login in the vault the sign-in was started for, replacing any login
+  // saved at the address.
+  //
+  // Only the person who started the sign-in may finish it.
+  //
+  // @internal
+  // Authorization in the handler: the caller must be the signer the pending
+  // state recorded, and the vault rule of startSignIn is asked again before
+  // the code is exchanged. A sign-in started by a Connect link is refused
+  // here (ConnectLinkController.completeConnectLink finishes it).
+  rpc completeSignIn(CompleteSignInInput) returns (CompleteSignInOutput) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // Make a Connect link: a one-time page where someone without a Stigmer
+  // account signs in at an address, and the login is saved into a shared
+  // vault.
+  //
+  // An integrator makes one for each customer's vault and sends the
+  // customer to its url. The customer sees one Stigmer page with a
+  // Continue button, then the login page, then returns to return_url.
+  //
+  // Refused for My vault, and for an address the organization has no
+  // approved login app of its own for: a link signs in only through the
+  // organization's app (its name on the vendor's consent page), never
+  // through Stigmer's own apps or Stigmer's client at a login server.
+  //
+  // @internal
+  // Authorization: can_edit on the vault, asked again when the link is
+  // opened and when it completes. Only the link's SHA-256 is stored.
+  rpc createConnectLink(CreateConnectLinkInput) returns (ConnectLink) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = vault;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "vault_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to make a Connect link for this vault";
+  }
 }

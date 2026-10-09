@@ -1,21 +1,9 @@
 {
   "name": "McpServerAuth",
-  "description": "McpServerAuth configures automated credential acquisition via OAuth.",
+  "description": "McpServerAuth says that the tool signs in at its address.",
   "protoType": "ai.stigmer.agentic.mcpserver.v1.McpServerAuth",
   "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/spec.proto",
   "fields": [
-    {
-      "name": "OauthAppRef",
-      "jsonName": "oauthAppRef",
-      "protoField": "oauth_app_ref",
-      "type": {
-        "kind": "message",
-        "messageType": "ApiResourceReference"
-      },
-      "description": "Reference to an OAuthApp for vendor-specific OAuth.\n\n When empty: the server supports the MCP Authorization spec (DCR + PKCE).\n Stigmer discovers the authorization server metadata, registers a client\n via DCR, and performs the authorization code flow with PKCE — all\n automatically at connect time.\n\n When set: Stigmer uses the referenced OAuthApp's client credentials to\n perform the OAuth authorization code flow with the vendor on behalf of\n the user. The OAuthApp must belong to the same organization as the\n McpServer: an OAuth app holds vendor credentials and is never\n shared with child organizations, so no cross-organization reference to one is\n accepted.",
-      "required": false,
-      "referenceKind": 22
-    },
     {
       "name": "TargetEnvVar",
       "jsonName": "targetEnvVar",
@@ -49,17 +37,7 @@
           "kind": "string"
         }
       },
-      "description": "Optional scope hints for UI display before the OAuth flow starts.\n For DCR servers: shown to the user since actual scopes are discovered\n at connect time during authorization server metadata retrieval.\n For vendor OAuth: informational (scopes are defined on the OAuthApp).",
-      "required": false
-    },
-    {
-      "name": "DiscoveryUrl",
-      "jsonName": "discoveryUrl",
-      "protoField": "discovery_url",
-      "type": {
-        "kind": "string"
-      },
-      "description": "URL of the login server for a stdio server: where DCR discovery looks,\n and the address its sign-ins are saved at.\n\n HTTP servers do not need this: the platform derives the discovery\n endpoint from http.url (fetching /.well-known/oauth-authorization-server\n relative to the server URL), and saves a sign-in at http.url.\n\n Stdio servers have no URL, so a sign-in needs this field whether or not\n oauth_app_ref is set: it is the address the login is saved at in the\n signer's vault, and the address a run finds it by. A stdio server with\n OAuth and no discovery_url is refused at sign-in. Without\n oauth_app_ref it is also the base URL of the vendor's OAuth\n authorization server that DCR discovers from.\n\n Discovery resolution priority (without oauth_app_ref; vendor OAuth uses\n the OAuthApp's endpoints and discovers nothing):\n   1. discovery_url (if set — used for both stdio and HTTP)\n   2. http.url (default for HTTP servers)",
+      "description": "Optional scope hints for UI display before a sign-in starts. Display\n only: a sign-in requests the scopes the login server's metadata or the\n login app publishes.",
       "required": false
     },
     {

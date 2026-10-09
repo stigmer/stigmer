@@ -22,22 +22,21 @@ import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { TARGET_RESOURCE_KEY } from "../../pipeline/steps/load-target.js";
 import type { Store } from "../../store/interface.js";
-import { resolveOAuthAppRef } from "../oauthapp/refresolution.js";
+import { toolAddressOf } from "../vault/address.js";
+import { findOrganizationApp } from "../vault/login-app.js";
 
 /**
  * EnrichOAuthStatus — populates response-only status.oauth_status on a
- * loaded McpServer from the OAuthApp its spec.auth.oauth_app_ref points
- * to, mirroring the cloud's McpServerVendorApprovalEnricher so the shared
- * SDK's vendor-approval-blocked UI renders identically on both editions
- * (stigmer/stigmer#523). Without it, an OSS user's first hint that OAuth
- * sign-in is vendor-blocked is the initiate RPC's refusal — after they
- * click.
+ * loaded McpServer from the login app its organization keeps for the
+ * server's address (an OAuthApp listing it, domain/vault/login-app.ts), so
+ * the shared SDK's vendor-approval-blocked UI renders before anyone clicks
+ * (stigmer/stigmer#523). Without it, a user's first hint that sign-in is
+ * vendor-blocked is the start's refusal.
  *
- * Semantics shared with the cloud enricher:
- *   - Servers without an oauth_app_ref (DCR or manual-token) are
- *     untouched.
- *   - A missing OAuthApp skips enrichment (the initiate path owns
- *     refusing).
+ * Semantics:
+ *   - A server with no address, or no app for its address in its
+ *     organization, is untouched (Stigmer's built-in apps are listed only
+ *     once approved).
  *   - oauth_status is set only when there is something to gate on: a
  *     non-default vendor_approval_status or a docs URL. Its very presence
  *     is the signal the SDK keys on, so "nothing to report" means absent.
@@ -46,11 +45,10 @@ import { resolveOAuthAppRef } from "../oauthapp/refresolution.js";
  *     pipelines clear client-sent status, so a round-tripped enriched
  *     read cannot leak into the store.
  *
- * One deliberate divergence from cloud (Go's, preserved): a store failure
- * during the lookup degrades to an unenriched response (WARN) instead of
- * failing the read. Enrichment is advisory — the initiate RPC's vendor
- * refusal remains the enforcement boundary — and an advisory lookup must
- * not take down the primary read path.
+ * A store failure during the lookup degrades to an unenriched response
+ * (WARN) instead of failing the read: enrichment is advisory, the start's
+ * vendor refusal remains the enforcement boundary, and an advisory lookup
+ * must not take down the primary read path.
  *
  * Generic over the pipeline input (get takes an ApiResourceId,
  * getByReference an ApiResourceReference); it only touches the
@@ -64,34 +62,26 @@ export function newEnrichOAuthStatusStep<Desc extends DescMessage>(
     name: "EnrichOAuthStatus",
     async execute(ctx: RequestContext<Desc>): Promise<void> {
       const mcpServer = ctx.get(TARGET_RESOURCE_KEY) as McpServer | undefined;
-      if (mcpServer === undefined) {
-        return;
-      }
-
-      const ref = mcpServer.spec?.auth?.oauthAppRef;
-      if ((ref?.slug ?? "") === "") {
+      const address = mcpServer === undefined ? undefined : toolAddressOf(mcpServer);
+      if (mcpServer === undefined || address === undefined || mcpServer.spec?.auth === undefined) {
         return;
       }
 
       let oauthApp;
       try {
-        oauthApp = await resolveOAuthAppRef(store, ref, logger);
+        oauthApp = await findOrganizationApp(store, mcpServer.metadata?.org ?? "", address);
       } catch (error) {
         logger.warn(
-          "OAuthApp lookup failed; returning MCP server without oauth_status enrichment",
+          "Login app lookup failed; returning MCP server without oauth_status enrichment",
           {
             mcpServerId: mcpServer.metadata?.id ?? "",
-            oauthAppSlug: ref?.slug ?? "",
+            address,
             error: error instanceof Error ? error.message : String(error),
           },
         );
         return;
       }
       if (oauthApp === undefined) {
-        logger.debug("OAuthApp not found for ref; skipping oauth_status enrichment", {
-          mcpServerId: mcpServer.metadata?.id ?? "",
-          oauthAppSlug: ref?.slug ?? "",
-        });
         return;
       }
 

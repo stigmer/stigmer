@@ -68,31 +68,23 @@ function normalizeHost(input: string): string | null {
 }
 
 /**
- * The address a tool's login is saved at: its URL for an HTTP server, its
- * discovery URL for a local program with a login, and none otherwise (a
- * tool with no address takes only secrets).
+ * The address a tool's login is saved at: its URL for an HTTP server, and
+ * none for a local program, which takes its keys as secrets by name (as it
+ * does for a URL holding a placeholder).
  */
 export function toolAddressOf(server: McpServer | null | undefined): string | null {
   const spec = server?.spec;
-  if (!spec) return null;
-  if (spec.serverType.case === "http") {
-    return normalizeAddress(spec.serverType.value.url);
-  }
-  const discovery = spec.auth?.discoveryUrl ?? "";
-  return discovery === "" ? null : normalizeAddress(discovery);
+  if (!spec || spec.serverType.case !== "http") return null;
+  return normalizeAddress(spec.serverType.value.url);
 }
 
 /**
  * Whether the connections a vault holds fill a tool's login, by the run's
- * rule: the connection saved at the tool's address, when it is a sign-in
- * started from this very server (by id) while the server is still the kind
- * it was at sign-in (an HTTP server or a local program), or a pasted login
- * for an HTTP tool, whose requests carry the token to that address; and,
- * for an HTTP tool served over HTTPS from GitHub's own API, the github.com
- * login. A sign-in made for another server, or a pasted login at a local
- * program's discovery URL, fills nothing: a local program takes values only
- * as secrets by name. Reads only the connection's kind and minter; no read
- * returns a token.
+ * rule: the connection saved at the tool's address, a sign-in and a pasted
+ * login alike (both fill every HTTP tool at the address, whichever tool or
+ * page signed in); and, for an HTTP tool served over HTTPS from GitHub's
+ * own API, the github.com login. A local program has no address and takes
+ * values only as secrets by name. No read returns a token.
  */
 export function vaultLoginServes(
   connections: Readonly<Record<string, VaultConnection>>,
@@ -100,20 +92,13 @@ export function vaultLoginServes(
 ): boolean {
   const address = toolAddressOf(server);
   if (!server || address === null) return false;
-  const sendsToAddress = server.spec?.serverType.case === "http";
-  const connection = connections[address];
-  if (connection) {
-    if (connection.source === VaultConnectionSource.sign_in) {
-      const minter = connection.signIn?.mcpServerId ?? "";
-      const signedInAsLocalProgram = connection.signIn?.localProgram === true;
-      if (minter !== "" && minter === (server.metadata?.id ?? "") && signedInAsLocalProgram === !sendsToAddress) {
-        return true;
-      }
-    } else if (sendsToAddress) {
-      return true;
-    }
-  }
-  return sendsToAddress && onGitHubApi(address) && connections[GITHUB_HOST] !== undefined;
+  if (Object.hasOwn(connections, address)) return true;
+  return onGitHubApi(address) && Object.hasOwn(connections, GITHUB_HOST);
+}
+
+/** Whether a connection was saved by a sign-in, which "Sign in again" can renew. */
+export function isSignInConnection(connection: VaultConnection): boolean {
+  return connection.source === VaultConnectionSource.sign_in;
 }
 
 /** Whether a tool's address is an HTTPS URL on one of GitHub's own API hosts, at its default port. */

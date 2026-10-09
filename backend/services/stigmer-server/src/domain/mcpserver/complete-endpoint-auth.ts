@@ -14,7 +14,7 @@
  * `auth` is unset, whose `env` is empty, and whose headers carry neither a
  * `${VAR}` placeholder nor an `Authorization` header. Anything else is the
  * author speaking about authentication (a declared token variable, a
- * pasted literal token, an `auth` block, an `oauth_app_ref`) and the step
+ * pasted literal token, an `auth` block) and the step
  * leaves the state exactly as sent.
  *
  * What the step writes, and only on an OAuth challenge: the least that
@@ -25,11 +25,10 @@
  * already apply to a 401 challenge: manual token entry is a dead end), and
  * the provenance label `stigmer.ai/mcp-auth: endpoint`, vouched through
  * the server-stamped mechanism so GuardReservedLabels admits it for an
- * ordinary caller. Not written: `discovery_url` (the author's override;
- * Sign in resolves the login server from `http.url` every time through
- * the RFC 9728 walk) and `scope_hints` (initiate reads the login server's
- * `scopes_supported` when hints are empty). A cached fact drifts; the
- * endpoint restates these on every Sign in.
+ * ordinary caller. Not written: `scope_hints` (a sign-in reads the
+ * address's and the login server's `scopes_supported` every time, through
+ * the RFC 9728 walk). A cached fact drifts; the endpoint restates these on
+ * every sign-in.
  *
  * Every other outcome (a 2xx, a non-OAuth 401, any other status, no
  * answer) leaves the spec as sent and writes no status: `ConnectStatus`
@@ -191,7 +190,7 @@ function echoesDerived(spec: McpServerSpec, derived: DerivedCompletion): boolean
   const auth = spec.auth;
   if (auth === undefined) return false;
   if (auth.targetEnvVar !== derived.variable || !auth.oauthOnly) return false;
-  if ((auth.oauthAppRef?.slug ?? "") !== "" || auth.discoveryUrl !== "" || auth.scopeHints.length > 0 || auth.tokenLifetimeHint !== "") return false;
+  if (auth.scopeHints.length > 0 || auth.tokenLifetimeHint !== "") return false;
   const envKeys = Object.keys(spec.env);
   if (envKeys.length !== 1 || envKeys[0] !== derived.variable) return false;
   const declaration = spec.env[derived.variable];

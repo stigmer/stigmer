@@ -107,6 +107,10 @@ export const VERB_SUPPORT: ReadonlyMap<
   // platform's checks, never as a manifest, and is read by id; a run's
   // scores are listed by `stigmer runs scores <run-id>`.
   [ApiResourceKind.score, new Set<Verb>([Verb.Get])],
+  // AI grading is switched on in the console's Quality tab, never as a
+  // manifest, so an agent's YAML carries no grading criteria; the CLI reads
+  // an evaluator by id and deletes it to switch grading off.
+  [ApiResourceKind.evaluator, new Set<Verb>([Verb.Get, Verb.Delete])],
 ]);
 
 export function verbsForKind(kind: ApiResourceKind): ReadonlySet<Verb> {

@@ -1072,28 +1072,61 @@ fee reminders every morning at nine.
 #### Score
 
 One grade of a finished run: a person's thumbs up or down on the final answer,
-or the free run-health checks Stigmer runs on every completed run.
+the free run-health checks Stigmer runs on every completed run, or an AI judge's
+verdict.
 
 - **Capitalize**: As the resource name in labels and reference pages
   (`kind: Score`). In prose say "score" in lower case, as "run".
 - **API surface**: `kind: Score`, prefix `scr`. proto:
-  `agentic/score/v1/spec.proto`. Written by a person rating a run in the console
-  or by the platform's checks; there is no `apply` and no manifest. CLI:
+  `agentic/score/v1/spec.proto`. Written by a person rating a run in the
+  console, by the platform's checks or by its AI judge; there is no `apply` and
+  no manifest. CLI:
 
   ```bash
   stigmer runs scores <run-id>
   stigmer get score <id>
   ```
 
-- **Key fields**: `run_id`, `metric` (what is measured: `feedback` or
-  `run-health`), `source` (`score_source_human` or `score_source_check`),
-  `passed`, `criteria` (one per check, each with its reason), `comment` (a
-  person's feedback only), and `status.state` (`graded` or `not_graded` with a
-  reason).
+- **Key fields**: `run_id`, `metric` (what is measured: `feedback`, `run-health`
+  or `judge`), `source` (`score_source_human`, `score_source_check` or
+  `score_source_judge`), `passed`, `criteria` (one per check or rubric, each
+  with its reason), `comment` (a person's feedback only), `judge_model` (a
+  judge's only), and `status.state` (`graded`, `not_graded` with a reason, or
+  `pending` while a judge grades).
 - **Boundaries**: a Score is not a usage report (cost and tokens), and a
   not-graded score is never a failing one: it means the run could not be graded.
 - **Note**: a score's visibility is its run's. Whoever can see the run sees its
   scores; nothing is shared on a score by itself.
+
+---
+
+#### Evaluator
+
+AI grading switched on for one Agent: how many of its runs an AI judge grades,
+the monthly spending limit, and the judge's model.
+
+- **Capitalize**: As the resource name in labels and reference pages
+  (`kind: Evaluator`). In prose say "AI grading" for what it does; "evaluator"
+  in lower case for the setting itself.
+- **API surface**: `kind: Evaluator`, prefix `evl`. proto:
+  `agentic/evaluator/v1/spec.proto`. Set in the Agent's Quality tab in the
+  console; there is no `apply` and no manifest, so an Agent's YAML never carries
+  grading criteria. CLI:
+
+  ```bash
+  stigmer get evaluator <id>
+  stigmer delete evaluator <id>
+  ```
+
+- **Key fields**: `agent_id`, `enabled`, `sample_rate` (0 to 1: 0.1 grades one
+  run in ten), `monthly_limit_usd` (estimated model spend per UTC month),
+  `model_name`, and the status's `spent_usd`, `reserved_usd`, `graded`,
+  `not_graded` and `last_not_graded_reason` for the current month.
+- **Boundaries**: an Evaluator configures grading; the grades themselves are
+  Scores on each run. The rubrics are Stigmer's, the same in every Organization.
+- **Note**: the name is Langfuse's word for an LLM judge configured to run on
+  live data. Access is the Agent's: whoever may edit the Agent configures its
+  grading, whoever may view it sees the settings.
 
 ---
 

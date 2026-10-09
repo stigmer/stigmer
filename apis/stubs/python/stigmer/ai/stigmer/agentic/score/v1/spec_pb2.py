@@ -26,7 +26,7 @@ from ai.stigmer.agentic.score.v1 import enum_pb2 as ai_dot_stigmer_dot_agentic_d
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n&ai/stigmer/agentic/score/v1/spec.proto\x12\x1b\x61i.stigmer.agentic.score.v1\x1a&ai/stigmer/agentic/score/v1/enum.proto\x1a\x1b\x62uf/validate/validate.proto\"\x8c\x03\n\tScoreSpec\x12\x1e\n\x06run_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x05runId\x12\x1d\n\nsession_id\x18\x02 \x01(\tR\tsessionId\x12!\n\x06metric\x18\x03 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18?R\x06metric\x12L\n\x06source\x18\x04 \x01(\x0e\x32(.ai.stigmer.agentic.score.v1.ScoreSourceB\n\xbaH\x07\x82\x01\x04\x10\x01 \x00R\x06source\x12\x35\n\x11\x65valuator_version\x18\x05 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x01R\x10\x65valuatorVersion\x12\x18\n\x06passed\x18\x06 \x01(\x08H\x00R\x06passed\x12Q\n\x08\x63riteria\x18\x07 \x03(\x0b\x32+.ai.stigmer.agentic.score.v1.ScoreCriterionB\x08\xbaH\x05\x92\x01\x02\x10 R\x08\x63riteria\x12\"\n\x07\x63omment\x18\x08 \x01(\tB\x08\xbaH\x05r\x03\x18\xf4\x03R\x07\x63ommentB\x07\n\x05value\"\xa1\x01\n\x0eScoreCriterion\x12\x1d\n\x04name\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18?R\x04name\x12N\n\x06result\x18\x02 \x01(\x0e\x32,.ai.stigmer.agentic.score.v1.CriterionResultB\x08\xbaH\x05\x82\x01\x02\x10\x01R\x06result\x12 \n\x06reason\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\xf4\x03R\x06reasonB\xbd\x01\n\x1f\x63om.ai.stigmer.agentic.score.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1b\x41i.Stigmer.Agentic.Score.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Score\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Score\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Score::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n&ai/stigmer/agentic/score/v1/spec.proto\x12\x1b\x61i.stigmer.agentic.score.v1\x1a&ai/stigmer/agentic/score/v1/enum.proto\x1a\x1b\x62uf/validate/validate.proto\"\xb7\x03\n\tScoreSpec\x12\x1e\n\x06run_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x05runId\x12\x1d\n\nsession_id\x18\x02 \x01(\tR\tsessionId\x12!\n\x06metric\x18\x03 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18?R\x06metric\x12L\n\x06source\x18\x04 \x01(\x0e\x32(.ai.stigmer.agentic.score.v1.ScoreSourceB\n\xbaH\x07\x82\x01\x04\x10\x01 \x00R\x06source\x12\x35\n\x11\x65valuator_version\x18\x05 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x01R\x10\x65valuatorVersion\x12\x18\n\x06passed\x18\x06 \x01(\x08H\x00R\x06passed\x12Q\n\x08\x63riteria\x18\x07 \x03(\x0b\x32+.ai.stigmer.agentic.score.v1.ScoreCriterionB\x08\xbaH\x05\x92\x01\x02\x10 R\x08\x63riteria\x12\"\n\x07\x63omment\x18\x08 \x01(\tB\x08\xbaH\x05r\x03\x18\xf4\x03R\x07\x63omment\x12)\n\x0bjudge_model\x18\t \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x01R\njudgeModelB\x07\n\x05value\"\xa1\x01\n\x0eScoreCriterion\x12\x1d\n\x04name\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18?R\x04name\x12N\n\x06result\x18\x02 \x01(\x0e\x32,.ai.stigmer.agentic.score.v1.CriterionResultB\x08\xbaH\x05\x82\x01\x02\x10\x01R\x06result\x12 \n\x06reason\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\xf4\x03R\x06reasonB\xbd\x01\n\x1f\x63om.ai.stigmer.agentic.score.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1b\x41i.Stigmer.Agentic.Score.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Score\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Score\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Score::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -46,6 +46,8 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_SCORESPEC'].fields_by_name['criteria']._serialized_options = b'\272H\005\222\001\002\020 '
   _globals['_SCORESPEC'].fields_by_name['comment']._loaded_options = None
   _globals['_SCORESPEC'].fields_by_name['comment']._serialized_options = b'\272H\005r\003\030\364\003'
+  _globals['_SCORESPEC'].fields_by_name['judge_model']._loaded_options = None
+  _globals['_SCORESPEC'].fields_by_name['judge_model']._serialized_options = b'\272H\005r\003\030\200\001'
   _globals['_SCORECRITERION'].fields_by_name['name']._loaded_options = None
   _globals['_SCORECRITERION'].fields_by_name['name']._serialized_options = b'\272H\006r\004\020\001\030?'
   _globals['_SCORECRITERION'].fields_by_name['result']._loaded_options = None
@@ -53,7 +55,7 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_SCORECRITERION'].fields_by_name['reason']._loaded_options = None
   _globals['_SCORECRITERION'].fields_by_name['reason']._serialized_options = b'\272H\005r\003\030\364\003'
   _globals['_SCORESPEC']._serialized_start=141
-  _globals['_SCORESPEC']._serialized_end=537
-  _globals['_SCORECRITERION']._serialized_start=540
-  _globals['_SCORECRITERION']._serialized_end=701
+  _globals['_SCORESPEC']._serialized_end=580
+  _globals['_SCORECRITERION']._serialized_start=583
+  _globals['_SCORECRITERION']._serialized_end=744
 # @@protoc_insertion_point(module_scope)

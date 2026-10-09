@@ -50,7 +50,7 @@ describe("extractStructuredOutput", () => {
     const { extractStructuredOutput } = await import("../extract-structured-output.js");
     mockInvoke.mockResolvedValueOnce({ answer: "42" });
 
-    const result = await extractStructuredOutput("the answer is 42", SCHEMA, makeConfig(), "gpt-4.1");
+    const result = await extractStructuredOutput("the answer is 42", SCHEMA, makeConfig(), "gpt-4.1", "run_1");
 
     expect(result).toEqual({ answer: "42" });
     // The regression pin: the gRPC control-plane endpoint must never
@@ -65,7 +65,7 @@ describe("extractStructuredOutput", () => {
     const { extractStructuredOutput } = await import("../extract-structured-output.js");
 
     await expect(
-      extractStructuredOutput("text", SCHEMA, makeConfig(), "gpt-4.1"),
+      extractStructuredOutput("text", SCHEMA, makeConfig(), "gpt-4.1", "run_1"),
     ).rejects.toThrow(/'gpt-4o-mini'.*OPENAI_API_KEY/s);
     expect(buildChatModel).not.toHaveBeenCalled();
     expect(mockInvoke).not.toHaveBeenCalled();
@@ -80,6 +80,7 @@ describe("extractStructuredOutput", () => {
       "text", SCHEMA,
       makeConfig({ proxyEndpoint: "https://api.stigmer.ai", stigmerTokenRef: { current: "tok" } }),
       "gpt-4.1",
+      "run_1",
     );
 
     expect(result).toEqual({ answer: "ok" });
@@ -89,6 +90,34 @@ describe("extractStructuredOutput", () => {
         stigmerToken: "tok",
       }),
     );
+  });
+
+  it("scopes the extraction to the run it serves, so a proxy that refuses unscoped calls answers it (stigmer#2060)", async () => {
+    // The fake proxy: like the hosted edition's, it refuses a call that
+    // names no run, and answers one that does.
+    const { buildChatModel } = await import("../model-client.js");
+    vi.mocked(buildChatModel).mockImplementationOnce(async (options) => ({
+      model: {
+        withStructuredOutput: () => ({
+          invoke: () =>
+            options.headerScope?.executionId === "run_judge"
+              ? Promise.resolve({ answer: "scoped" })
+              : Promise.reject(new Error("403: X-Stigmer-Execution-Id is required")),
+        }),
+      },
+      provider: "anthropic",
+      apiModelId: "claude-haiku-4-5",
+    }) as unknown as Awaited<ReturnType<typeof buildChatModel>>);
+    const { extractStructuredOutput } = await import("../extract-structured-output.js");
+
+    const result = await extractStructuredOutput(
+      "text", SCHEMA,
+      makeConfig({ proxyEndpoint: "https://api.stigmer.ai", stigmerTokenRef: { current: "tok" } }),
+      "gpt-4.1",
+      "run_judge",
+    );
+
+    expect(result).toEqual({ answer: "scoped" });
   });
 
   it("defers an un-inferable extraction model to buildChatModel's own error", async () => {
@@ -101,7 +130,7 @@ describe("extractStructuredOutput", () => {
     const { extractStructuredOutput } = await import("../extract-structured-output.js");
     mockInvoke.mockResolvedValueOnce({ answer: "ok" });
 
-    await extractStructuredOutput("text", SCHEMA, makeConfig(), "mystery-model");
+    await extractStructuredOutput("text", SCHEMA, makeConfig(), "mystery-model", "run_1");
 
     expect(buildChatModel).toHaveBeenCalledWith(
       expect.objectContaining({ modelName: "mystery-model" }),
@@ -113,7 +142,7 @@ describe("extractStructuredOutput", () => {
     const { extractStructuredOutput } = await import("../extract-structured-output.js");
     mockInvoke.mockResolvedValueOnce(undefined);
 
-    const result = await extractStructuredOutput("text", SCHEMA, makeConfig(), "gpt-4.1");
+    const result = await extractStructuredOutput("text", SCHEMA, makeConfig(), "gpt-4.1", "run_1");
 
     expect(result).toBeNull();
   });

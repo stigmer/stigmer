@@ -237,6 +237,7 @@ describe("delete chains destroy sealed backing state", () => {
         authorizationUrl: "https://vendor.example.com/oauth/authorize",
         tokenUrl: "https://vendor.example.com/oauth/token",
         scopes: ["read"],
+        addresses: [`https://mcp${counter}.vendor.example.com/mcp`],
       },
     });
     const storedApp = await server.store.getResource(

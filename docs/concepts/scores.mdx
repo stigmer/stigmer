@@ -3,7 +3,7 @@ title: Scores
 description:
   A Score records how good a finished run was. Learn about a person's thumbs on
   the final answer, the free run-health checks Stigmer runs on every completed
-  run, and who can see them.
+  run, AI grading switched on per Agent, and who can see them.
 ---
 
 Reading a whole conversation is the only way to know whether an Agent did a good
@@ -11,13 +11,15 @@ job, and what you decide is lost the moment you close the tab. A **Score**
 writes it down. Each [run](/docs/concepts/agents#blueprint-vs-runtime) that
 completes can carry scores, and anyone who can see the run sees them.
 
-A run carries two kinds of score:
+A run carries up to three kinds of score:
 
 - **Feedback**: a person's thumbs up or thumbs down on the final answer, with an
   optional comment. For example, Priya marks last night's triage run "down:
   picked the wrong label".
 - **Run health**: a free check Stigmer runs on its own as soon as a run
   completes. It asks no AI model, so it costs nothing.
+- **AI grading**: an AI judge's verdict on whether the run did its task and made
+  nothing up, for Agents whose maintainers switch it on.
 
 ## Feedback
 
@@ -54,6 +56,52 @@ failure.
 Each run-health score records the version of the checks that produced it, so
 results from a later version of the checks are never mixed with earlier ones.
 
+## AI grading
+
+An AI judge reads a finished run and answers two standard questions:
+
+| Rubric            | Fails a run when                                                                                                                    |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `did-the-task`    | The final answer does something other than what was asked, or only part of it without saying so.                                    |
+| `made-nothing-up` | The answer claims an action, outcome or fact that the run's own tool calls do not show. Not applicable when it makes no such claim. |
+
+Each rubric passes, fails or does not apply, with a reason. The run passes when
+no rubric fails. For example, Priya's triage Agent finishes a run, the run shows
+**Judge: grading…**, and a minute later **Judge: 1 of 2 failed**, which opens to
+"said the ticket was assigned, but the assign call failed" and the model that
+graded it.
+
+AI grading is off until someone who can edit the Agent switches it on in the
+Agent's **Quality** tab. There they choose:
+
+- **How many runs to grade**: one in N runs, from every run to one in a hundred.
+  Which runs are picked is fixed by each run's id.
+- **A monthly limit**: the most grading may spend in a calendar month (UTC), in
+  US dollars of estimated model cost. Each grade sets aside its maximum cost,
+  $0.25, before it starts, so a limit below $0.25 grades no run.
+- **The judge's model**: the platform's default unless you pick one.
+
+The judge's cost is charged to the Organization the run belongs to, as a run of
+its own, never to the graded run. When the limit is reached or the Organization
+is out of credit, the run says **not graded: spending limit reached** or **not
+graded: out of credit**, and the Quality tab shows the same reason. A run that
+could not be graded never reads as a failure. The tab also shows this month's
+spend and how many runs were graded.
+
+In Stigmer Cloud the judge acts as a system account of the Organization. On a
+self-hosted Stigmer with sign-in, it acts as the person who switched grading on,
+and grades only the runs that person can see: a run they cannot see says **not
+graded: grading cannot act for this agent**.
+
+The judge sees the run's request, its tool calls and its final answer, and has
+no tools of its own: it cannot act on what it reads. Its instructions and the
+rubrics are Stigmer's, the same in every Organization, and each judge score
+records their version. The judge's own conversation is deleted as soon as the
+grade is recorded.
+
+A run's text can still try to sway the judge, so treat a grade as a signal to
+look closer, not a final verdict.
+
 ## Who sees scores
 
 Scores follow the run. Whoever can see the run sees all of its scores:
@@ -73,7 +121,7 @@ product, such as an embedded chat or a share link, show none.
 ## Reading scores from the CLI
 
 ```bash
-# Each person's thumbs and the run-health checks, one row per score
+# Each person's thumbs, the run-health checks and the judge, one row per score
 stigmer runs scores run_01abc123
 
 # The same scores as JSON, for a script
@@ -81,6 +129,10 @@ stigmer runs scores run_01abc123 -o json
 
 # One score by its id
 stigmer get score scr_01abc123
+
+# An Agent's AI grading settings by the evaluator's id, and switching it off
+stigmer get evaluator evl_01abc123
+stigmer delete evaluator evl_01abc123
 ```
 
 ## Next steps

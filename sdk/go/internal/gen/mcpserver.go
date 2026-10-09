@@ -80,28 +80,8 @@ func (m *McpServerClient) StartConnect(ctx context.Context, input *mcpserverv1.C
 	return resp, wrapErr(err)
 }
 
-func (m *McpServerClient) InitiateOAuthConnect(ctx context.Context, input *mcpserverv1.InitiateOAuthConnectInput) (*mcpserverv1.InitiateOAuthConnectOutput, error) {
-	resp, err := m.command.InitiateOAuthConnect(ctx, input)
-	return resp, wrapErr(err)
-}
-
-func (m *McpServerClient) CompleteOAuthConnect(ctx context.Context, input *mcpserverv1.CompleteOAuthConnectInput) (*mcpserverv1.CompleteOAuthConnectOutput, error) {
-	resp, err := m.command.CompleteOAuthConnect(ctx, input)
-	return resp, wrapErr(err)
-}
-
 func (m *McpServerClient) DisconnectOAuth(ctx context.Context, input *mcpserverv1.DisconnectOAuthInput) (*mcpserverv1.DisconnectOAuthOutput, error) {
 	resp, err := m.command.DisconnectOAuth(ctx, input)
-	return resp, wrapErr(err)
-}
-
-func (m *McpServerClient) SetOrgOAuthApp(ctx context.Context, input *mcpserverv1.SetOrgOAuthAppInput) (*mcpserverv1.SetOrgOAuthAppOutput, error) {
-	resp, err := m.command.SetOrgOAuthApp(ctx, input)
-	return resp, wrapErr(err)
-}
-
-func (m *McpServerClient) DeleteOrgOAuthApp(ctx context.Context, input *mcpserverv1.DeleteOrgOAuthAppInput) (*mcpserverv1.DeleteOrgOAuthAppOutput, error) {
-	resp, err := m.command.DeleteOrgOAuthApp(ctx, input)
 	return resp, wrapErr(err)
 }
 
@@ -118,11 +98,6 @@ func (m *McpServerClient) GetByReference(ctx context.Context, ref ResourceRef) (
 
 func (m *McpServerClient) GetOAuthGrantStatus(ctx context.Context, input *mcpserverv1.GetOAuthGrantStatusInput) (*mcpserverv1.GetOAuthGrantStatusOutput, error) {
 	resp, err := m.query.GetOAuthGrantStatus(ctx, input)
-	return resp, wrapErr(err)
-}
-
-func (m *McpServerClient) GetOrgOAuthApp(ctx context.Context, input *mcpserverv1.GetOrgOAuthAppInput) (*mcpserverv1.GetOrgOAuthAppOutput, error) {
-	resp, err := m.query.GetOrgOAuthApp(ctx, input)
 	return resp, wrapErr(err)
 }
 
@@ -186,11 +161,9 @@ type HttpServerConfigInput struct {
 
 // McpServerAuthInput is the SDK input type for McpServerAuth.
 type McpServerAuthInput struct {
-	OauthAppRef       ResourceRef
 	TargetEnvVar      string
 	TokenLifetimeHint string
 	ScopeHints        []string
-	DiscoveryUrl      string
 	OauthOnly         bool
 }
 
@@ -249,18 +222,12 @@ func (i *McpServerInput) toProto() (*mcpserverv1.McpServer, error) {
 }
 
 func (i *McpServerAuthInput) toProto() (*mcpserverv1.McpServerAuth, error) {
-	p := &mcpserverv1.McpServerAuth{}
-	if i.OauthAppRef.Org != "" || i.OauthAppRef.Slug != "" {
-		ref := i.OauthAppRef.toProto()
-		ref.Kind = apiresourcekind.ApiResourceKind_oauth_app
-		p.OauthAppRef = ref
-	}
-	p.TargetEnvVar = i.TargetEnvVar
-	p.TokenLifetimeHint = i.TokenLifetimeHint
-	p.ScopeHints = i.ScopeHints
-	p.DiscoveryUrl = i.DiscoveryUrl
-	p.OauthOnly = i.OauthOnly
-	return p, nil
+	return &mcpserverv1.McpServerAuth{
+		TargetEnvVar:      i.TargetEnvVar,
+		TokenLifetimeHint: i.TokenLifetimeHint,
+		ScopeHints:        i.ScopeHints,
+		OauthOnly:         i.OauthOnly,
+	}, nil
 }
 
 // McpServerInputFromProto creates a McpServerInput from a proto McpServer resource.
@@ -328,11 +295,9 @@ func mcpServerAuthInputFromProto(p *mcpserverv1.McpServerAuth) *McpServerAuthInp
 		return nil
 	}
 	input := &McpServerAuthInput{}
-	input.OauthAppRef = resourceRefFromProto(p.GetOauthAppRef())
 	input.TargetEnvVar = p.GetTargetEnvVar()
 	input.TokenLifetimeHint = p.GetTokenLifetimeHint()
 	input.ScopeHints = p.GetScopeHints()
-	input.DiscoveryUrl = p.GetDiscoveryUrl()
 	input.OauthOnly = p.GetOauthOnly()
 	return input
 }

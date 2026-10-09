@@ -7,7 +7,7 @@ package ai.stigmer.agentic.mcpserver.v1;
 
 /**
  * <pre>
- * McpServerAuth configures automated credential acquisition via OAuth.
+ * McpServerAuth says that the tool signs in at its address.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.McpServerAuth}
@@ -36,7 +36,6 @@ private static final long serialVersionUID = 0L;
     tokenLifetimeHint_ = "";
     scopeHints_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
-    discoveryUrl_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -55,81 +54,6 @@ private static final long serialVersionUID = 0L;
     return ai.stigmer.agentic.mcpserver.v1.SpecProto.internal_static_ai_stigmer_agentic_mcpserver_v1_McpServerAuth_fieldAccessorTable
         .ensureFieldAccessorsInitialized(
             ai.stigmer.agentic.mcpserver.v1.McpServerAuth.class, ai.stigmer.agentic.mcpserver.v1.McpServerAuth.Builder.class);
-  }
-
-  private int bitField0_;
-  public static final int OAUTH_APP_REF_FIELD_NUMBER = 1;
-  private ai.stigmer.commons.apiresource.ApiResourceReference oauthAppRef_;
-  /**
-   * <pre>
-   * Reference to an OAuthApp for vendor-specific OAuth.
-   *
-   * When empty: the server supports the MCP Authorization spec (DCR + PKCE).
-   * Stigmer discovers the authorization server metadata, registers a client
-   * via DCR, and performs the authorization code flow with PKCE — all
-   * automatically at connect time.
-   *
-   * When set: Stigmer uses the referenced OAuthApp's client credentials to
-   * perform the OAuth authorization code flow with the vendor on behalf of
-   * the user. The OAuthApp must belong to the same organization as the
-   * McpServer: an OAuth app holds vendor credentials and is never
-   * shared with child organizations, so no cross-organization reference to one is
-   * accepted.
-   * </pre>
-   *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
-   * @return Whether the oauthAppRef field is set.
-   */
-  @java.lang.Override
-  public boolean hasOauthAppRef() {
-    return ((bitField0_ & 0x00000001) != 0);
-  }
-  /**
-   * <pre>
-   * Reference to an OAuthApp for vendor-specific OAuth.
-   *
-   * When empty: the server supports the MCP Authorization spec (DCR + PKCE).
-   * Stigmer discovers the authorization server metadata, registers a client
-   * via DCR, and performs the authorization code flow with PKCE — all
-   * automatically at connect time.
-   *
-   * When set: Stigmer uses the referenced OAuthApp's client credentials to
-   * perform the OAuth authorization code flow with the vendor on behalf of
-   * the user. The OAuthApp must belong to the same organization as the
-   * McpServer: an OAuth app holds vendor credentials and is never
-   * shared with child organizations, so no cross-organization reference to one is
-   * accepted.
-   * </pre>
-   *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
-   * @return The oauthAppRef.
-   */
-  @java.lang.Override
-  public ai.stigmer.commons.apiresource.ApiResourceReference getOauthAppRef() {
-    return oauthAppRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : oauthAppRef_;
-  }
-  /**
-   * <pre>
-   * Reference to an OAuthApp for vendor-specific OAuth.
-   *
-   * When empty: the server supports the MCP Authorization spec (DCR + PKCE).
-   * Stigmer discovers the authorization server metadata, registers a client
-   * via DCR, and performs the authorization code flow with PKCE — all
-   * automatically at connect time.
-   *
-   * When set: Stigmer uses the referenced OAuthApp's client credentials to
-   * perform the OAuth authorization code flow with the vendor on behalf of
-   * the user. The OAuthApp must belong to the same organization as the
-   * McpServer: an OAuth app holds vendor credentials and is never
-   * shared with child organizations, so no cross-organization reference to one is
-   * accepted.
-   * </pre>
-   *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getOauthAppRefOrBuilder() {
-    return oauthAppRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : oauthAppRef_;
   }
 
   public static final int TARGET_ENV_VAR_FIELD_NUMBER = 2;
@@ -244,10 +168,9 @@ private static final long serialVersionUID = 0L;
       com.google.protobuf.LazyStringArrayList.emptyList();
   /**
    * <pre>
-   * Optional scope hints for UI display before the OAuth flow starts.
-   * For DCR servers: shown to the user since actual scopes are discovered
-   * at connect time during authorization server metadata retrieval.
-   * For vendor OAuth: informational (scopes are defined on the OAuthApp).
+   * Optional scope hints for UI display before a sign-in starts. Display
+   * only: a sign-in requests the scopes the login server's metadata or the
+   * login app publishes.
    * </pre>
    *
    * <code>repeated string scope_hints = 4 [json_name = "scopeHints"];</code>
@@ -259,10 +182,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Optional scope hints for UI display before the OAuth flow starts.
-   * For DCR servers: shown to the user since actual scopes are discovered
-   * at connect time during authorization server metadata retrieval.
-   * For vendor OAuth: informational (scopes are defined on the OAuthApp).
+   * Optional scope hints for UI display before a sign-in starts. Display
+   * only: a sign-in requests the scopes the login server's metadata or the
+   * login app publishes.
    * </pre>
    *
    * <code>repeated string scope_hints = 4 [json_name = "scopeHints"];</code>
@@ -273,10 +195,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Optional scope hints for UI display before the OAuth flow starts.
-   * For DCR servers: shown to the user since actual scopes are discovered
-   * at connect time during authorization server metadata retrieval.
-   * For vendor OAuth: informational (scopes are defined on the OAuthApp).
+   * Optional scope hints for UI display before a sign-in starts. Display
+   * only: a sign-in requests the scopes the login server's metadata or the
+   * login app publishes.
    * </pre>
    *
    * <code>repeated string scope_hints = 4 [json_name = "scopeHints"];</code>
@@ -288,10 +209,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Optional scope hints for UI display before the OAuth flow starts.
-   * For DCR servers: shown to the user since actual scopes are discovered
-   * at connect time during authorization server metadata retrieval.
-   * For vendor OAuth: informational (scopes are defined on the OAuthApp).
+   * Optional scope hints for UI display before a sign-in starts. Display
+   * only: a sign-in requests the scopes the login server's metadata or the
+   * login app publishes.
    * </pre>
    *
    * <code>repeated string scope_hints = 4 [json_name = "scopeHints"];</code>
@@ -301,87 +221,6 @@ private static final long serialVersionUID = 0L;
   public com.google.protobuf.ByteString
       getScopeHintsBytes(int index) {
     return scopeHints_.getByteString(index);
-  }
-
-  public static final int DISCOVERY_URL_FIELD_NUMBER = 7;
-  @SuppressWarnings("serial")
-  private volatile java.lang.Object discoveryUrl_ = "";
-  /**
-   * <pre>
-   * URL of the login server for a stdio server: where DCR discovery looks,
-   * and the address its sign-ins are saved at.
-   *
-   * HTTP servers do not need this: the platform derives the discovery
-   * endpoint from http.url (fetching /.well-known/oauth-authorization-server
-   * relative to the server URL), and saves a sign-in at http.url.
-   *
-   * Stdio servers have no URL, so a sign-in needs this field whether or not
-   * oauth_app_ref is set: it is the address the login is saved at in the
-   * signer's vault, and the address a run finds it by. A stdio server with
-   * OAuth and no discovery_url is refused at sign-in. Without
-   * oauth_app_ref it is also the base URL of the vendor's OAuth
-   * authorization server that DCR discovers from.
-   *
-   * Discovery resolution priority (without oauth_app_ref; vendor OAuth uses
-   * the OAuthApp's endpoints and discovers nothing):
-   * 1. discovery_url (if set — used for both stdio and HTTP)
-   * 2. http.url (default for HTTP servers)
-   * </pre>
-   *
-   * <code>string discovery_url = 7 [json_name = "discoveryUrl"];</code>
-   * @return The discoveryUrl.
-   */
-  @java.lang.Override
-  public java.lang.String getDiscoveryUrl() {
-    java.lang.Object ref = discoveryUrl_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      discoveryUrl_ = s;
-      return s;
-    }
-  }
-  /**
-   * <pre>
-   * URL of the login server for a stdio server: where DCR discovery looks,
-   * and the address its sign-ins are saved at.
-   *
-   * HTTP servers do not need this: the platform derives the discovery
-   * endpoint from http.url (fetching /.well-known/oauth-authorization-server
-   * relative to the server URL), and saves a sign-in at http.url.
-   *
-   * Stdio servers have no URL, so a sign-in needs this field whether or not
-   * oauth_app_ref is set: it is the address the login is saved at in the
-   * signer's vault, and the address a run finds it by. A stdio server with
-   * OAuth and no discovery_url is refused at sign-in. Without
-   * oauth_app_ref it is also the base URL of the vendor's OAuth
-   * authorization server that DCR discovers from.
-   *
-   * Discovery resolution priority (without oauth_app_ref; vendor OAuth uses
-   * the OAuthApp's endpoints and discovers nothing):
-   * 1. discovery_url (if set — used for both stdio and HTTP)
-   * 2. http.url (default for HTTP servers)
-   * </pre>
-   *
-   * <code>string discovery_url = 7 [json_name = "discoveryUrl"];</code>
-   * @return The bytes for discoveryUrl.
-   */
-  @java.lang.Override
-  public com.google.protobuf.ByteString
-      getDiscoveryUrlBytes() {
-    java.lang.Object ref = discoveryUrl_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      discoveryUrl_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
   }
 
   public static final int OAUTH_ONLY_FIELD_NUMBER = 10;
@@ -427,9 +266,6 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    if (((bitField0_ & 0x00000001) != 0)) {
-      output.writeMessage(1, getOauthAppRef());
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(targetEnvVar_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 2, targetEnvVar_);
     }
@@ -438,9 +274,6 @@ private static final long serialVersionUID = 0L;
     }
     for (int i = 0; i < scopeHints_.size(); i++) {
       com.google.protobuf.GeneratedMessage.writeString(output, 4, scopeHints_.getRaw(i));
-    }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(discoveryUrl_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 7, discoveryUrl_);
     }
     if (oauthOnly_ != false) {
       output.writeBool(10, oauthOnly_);
@@ -454,10 +287,6 @@ private static final long serialVersionUID = 0L;
     if (size != -1) return size;
 
     size = 0;
-    if (((bitField0_ & 0x00000001) != 0)) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(1, getOauthAppRef());
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(targetEnvVar_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(2, targetEnvVar_);
     }
@@ -471,9 +300,6 @@ private static final long serialVersionUID = 0L;
       }
       size += dataSize;
       size += 1 * getScopeHintsList().size();
-    }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(discoveryUrl_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(7, discoveryUrl_);
     }
     if (oauthOnly_ != false) {
       size += com.google.protobuf.CodedOutputStream
@@ -494,19 +320,12 @@ private static final long serialVersionUID = 0L;
     }
     ai.stigmer.agentic.mcpserver.v1.McpServerAuth other = (ai.stigmer.agentic.mcpserver.v1.McpServerAuth) obj;
 
-    if (hasOauthAppRef() != other.hasOauthAppRef()) return false;
-    if (hasOauthAppRef()) {
-      if (!getOauthAppRef()
-          .equals(other.getOauthAppRef())) return false;
-    }
     if (!getTargetEnvVar()
         .equals(other.getTargetEnvVar())) return false;
     if (!getTokenLifetimeHint()
         .equals(other.getTokenLifetimeHint())) return false;
     if (!getScopeHintsList()
         .equals(other.getScopeHintsList())) return false;
-    if (!getDiscoveryUrl()
-        .equals(other.getDiscoveryUrl())) return false;
     if (getOauthOnly()
         != other.getOauthOnly()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
@@ -520,10 +339,6 @@ private static final long serialVersionUID = 0L;
     }
     int hash = 41;
     hash = (19 * hash) + getDescriptor().hashCode();
-    if (hasOauthAppRef()) {
-      hash = (37 * hash) + OAUTH_APP_REF_FIELD_NUMBER;
-      hash = (53 * hash) + getOauthAppRef().hashCode();
-    }
     hash = (37 * hash) + TARGET_ENV_VAR_FIELD_NUMBER;
     hash = (53 * hash) + getTargetEnvVar().hashCode();
     hash = (37 * hash) + TOKEN_LIFETIME_HINT_FIELD_NUMBER;
@@ -532,8 +347,6 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + SCOPE_HINTS_FIELD_NUMBER;
       hash = (53 * hash) + getScopeHintsList().hashCode();
     }
-    hash = (37 * hash) + DISCOVERY_URL_FIELD_NUMBER;
-    hash = (53 * hash) + getDiscoveryUrl().hashCode();
     hash = (37 * hash) + OAUTH_ONLY_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getOauthOnly());
@@ -636,7 +449,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * McpServerAuth configures automated credential acquisition via OAuth.
+   * McpServerAuth says that the tool signs in at its address.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.McpServerAuth}
@@ -660,34 +473,22 @@ private static final long serialVersionUID = 0L;
 
     // Construct using ai.stigmer.agentic.mcpserver.v1.McpServerAuth.newBuilder()
     private Builder() {
-      maybeForceBuilderInitialization();
+
     }
 
     private Builder(
         com.google.protobuf.GeneratedMessage.BuilderParent parent) {
       super(parent);
-      maybeForceBuilderInitialization();
-    }
-    private void maybeForceBuilderInitialization() {
-      if (com.google.protobuf.GeneratedMessage
-              .alwaysUseFieldBuilders) {
-        internalGetOauthAppRefFieldBuilder();
-      }
+
     }
     @java.lang.Override
     public Builder clear() {
       super.clear();
       bitField0_ = 0;
-      oauthAppRef_ = null;
-      if (oauthAppRefBuilder_ != null) {
-        oauthAppRefBuilder_.dispose();
-        oauthAppRefBuilder_ = null;
-      }
       targetEnvVar_ = "";
       tokenLifetimeHint_ = "";
       scopeHints_ =
           com.google.protobuf.LazyStringArrayList.emptyList();
-      discoveryUrl_ = "";
       oauthOnly_ = false;
       return this;
     }
@@ -722,30 +523,19 @@ private static final long serialVersionUID = 0L;
 
     private void buildPartial0(ai.stigmer.agentic.mcpserver.v1.McpServerAuth result) {
       int from_bitField0_ = bitField0_;
-      int to_bitField0_ = 0;
       if (((from_bitField0_ & 0x00000001) != 0)) {
-        result.oauthAppRef_ = oauthAppRefBuilder_ == null
-            ? oauthAppRef_
-            : oauthAppRefBuilder_.build();
-        to_bitField0_ |= 0x00000001;
-      }
-      if (((from_bitField0_ & 0x00000002) != 0)) {
         result.targetEnvVar_ = targetEnvVar_;
       }
-      if (((from_bitField0_ & 0x00000004) != 0)) {
+      if (((from_bitField0_ & 0x00000002) != 0)) {
         result.tokenLifetimeHint_ = tokenLifetimeHint_;
       }
-      if (((from_bitField0_ & 0x00000008) != 0)) {
+      if (((from_bitField0_ & 0x00000004) != 0)) {
         scopeHints_.makeImmutable();
         result.scopeHints_ = scopeHints_;
       }
-      if (((from_bitField0_ & 0x00000010) != 0)) {
-        result.discoveryUrl_ = discoveryUrl_;
-      }
-      if (((from_bitField0_ & 0x00000020) != 0)) {
+      if (((from_bitField0_ & 0x00000008) != 0)) {
         result.oauthOnly_ = oauthOnly_;
       }
-      result.bitField0_ |= to_bitField0_;
     }
 
     @java.lang.Override
@@ -760,32 +550,24 @@ private static final long serialVersionUID = 0L;
 
     public Builder mergeFrom(ai.stigmer.agentic.mcpserver.v1.McpServerAuth other) {
       if (other == ai.stigmer.agentic.mcpserver.v1.McpServerAuth.getDefaultInstance()) return this;
-      if (other.hasOauthAppRef()) {
-        mergeOauthAppRef(other.getOauthAppRef());
-      }
       if (!other.getTargetEnvVar().isEmpty()) {
         targetEnvVar_ = other.targetEnvVar_;
-        bitField0_ |= 0x00000002;
+        bitField0_ |= 0x00000001;
         onChanged();
       }
       if (!other.getTokenLifetimeHint().isEmpty()) {
         tokenLifetimeHint_ = other.tokenLifetimeHint_;
-        bitField0_ |= 0x00000004;
+        bitField0_ |= 0x00000002;
         onChanged();
       }
       if (!other.scopeHints_.isEmpty()) {
         if (scopeHints_.isEmpty()) {
           scopeHints_ = other.scopeHints_;
-          bitField0_ |= 0x00000008;
+          bitField0_ |= 0x00000004;
         } else {
           ensureScopeHintsIsMutable();
           scopeHints_.addAll(other.scopeHints_);
         }
-        onChanged();
-      }
-      if (!other.getDiscoveryUrl().isEmpty()) {
-        discoveryUrl_ = other.discoveryUrl_;
-        bitField0_ |= 0x00000010;
         onChanged();
       }
       if (other.getOauthOnly() != false) {
@@ -817,21 +599,14 @@ private static final long serialVersionUID = 0L;
             case 0:
               done = true;
               break;
-            case 10: {
-              input.readMessage(
-                  internalGetOauthAppRefFieldBuilder().getBuilder(),
-                  extensionRegistry);
-              bitField0_ |= 0x00000001;
-              break;
-            } // case 10
             case 18: {
               targetEnvVar_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000002;
+              bitField0_ |= 0x00000001;
               break;
             } // case 18
             case 26: {
               tokenLifetimeHint_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000004;
+              bitField0_ |= 0x00000002;
               break;
             } // case 26
             case 34: {
@@ -839,14 +614,9 @@ private static final long serialVersionUID = 0L;
               scopeHints_.add(input.readStringRequireUtf8());
               break;
             } // case 34
-            case 58: {
-              discoveryUrl_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000010;
-              break;
-            } // case 58
             case 80: {
               oauthOnly_ = input.readBool();
-              bitField0_ |= 0x00000020;
+              bitField0_ |= 0x00000008;
               break;
             } // case 80
             default: {
@@ -865,271 +635,6 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     private int bitField0_;
-
-    private ai.stigmer.commons.apiresource.ApiResourceReference oauthAppRef_;
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> oauthAppRefBuilder_;
-    /**
-     * <pre>
-     * Reference to an OAuthApp for vendor-specific OAuth.
-     *
-     * When empty: the server supports the MCP Authorization spec (DCR + PKCE).
-     * Stigmer discovers the authorization server metadata, registers a client
-     * via DCR, and performs the authorization code flow with PKCE — all
-     * automatically at connect time.
-     *
-     * When set: Stigmer uses the referenced OAuthApp's client credentials to
-     * perform the OAuth authorization code flow with the vendor on behalf of
-     * the user. The OAuthApp must belong to the same organization as the
-     * McpServer: an OAuth app holds vendor credentials and is never
-     * shared with child organizations, so no cross-organization reference to one is
-     * accepted.
-     * </pre>
-     *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
-     * @return Whether the oauthAppRef field is set.
-     */
-    public boolean hasOauthAppRef() {
-      return ((bitField0_ & 0x00000001) != 0);
-    }
-    /**
-     * <pre>
-     * Reference to an OAuthApp for vendor-specific OAuth.
-     *
-     * When empty: the server supports the MCP Authorization spec (DCR + PKCE).
-     * Stigmer discovers the authorization server metadata, registers a client
-     * via DCR, and performs the authorization code flow with PKCE — all
-     * automatically at connect time.
-     *
-     * When set: Stigmer uses the referenced OAuthApp's client credentials to
-     * perform the OAuth authorization code flow with the vendor on behalf of
-     * the user. The OAuthApp must belong to the same organization as the
-     * McpServer: an OAuth app holds vendor credentials and is never
-     * shared with child organizations, so no cross-organization reference to one is
-     * accepted.
-     * </pre>
-     *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
-     * @return The oauthAppRef.
-     */
-    public ai.stigmer.commons.apiresource.ApiResourceReference getOauthAppRef() {
-      if (oauthAppRefBuilder_ == null) {
-        return oauthAppRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : oauthAppRef_;
-      } else {
-        return oauthAppRefBuilder_.getMessage();
-      }
-    }
-    /**
-     * <pre>
-     * Reference to an OAuthApp for vendor-specific OAuth.
-     *
-     * When empty: the server supports the MCP Authorization spec (DCR + PKCE).
-     * Stigmer discovers the authorization server metadata, registers a client
-     * via DCR, and performs the authorization code flow with PKCE — all
-     * automatically at connect time.
-     *
-     * When set: Stigmer uses the referenced OAuthApp's client credentials to
-     * perform the OAuth authorization code flow with the vendor on behalf of
-     * the user. The OAuthApp must belong to the same organization as the
-     * McpServer: an OAuth app holds vendor credentials and is never
-     * shared with child organizations, so no cross-organization reference to one is
-     * accepted.
-     * </pre>
-     *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder setOauthAppRef(ai.stigmer.commons.apiresource.ApiResourceReference value) {
-      if (oauthAppRefBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        oauthAppRef_ = value;
-      } else {
-        oauthAppRefBuilder_.setMessage(value);
-      }
-      bitField0_ |= 0x00000001;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Reference to an OAuthApp for vendor-specific OAuth.
-     *
-     * When empty: the server supports the MCP Authorization spec (DCR + PKCE).
-     * Stigmer discovers the authorization server metadata, registers a client
-     * via DCR, and performs the authorization code flow with PKCE — all
-     * automatically at connect time.
-     *
-     * When set: Stigmer uses the referenced OAuthApp's client credentials to
-     * perform the OAuth authorization code flow with the vendor on behalf of
-     * the user. The OAuthApp must belong to the same organization as the
-     * McpServer: an OAuth app holds vendor credentials and is never
-     * shared with child organizations, so no cross-organization reference to one is
-     * accepted.
-     * </pre>
-     *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder setOauthAppRef(
-        ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
-      if (oauthAppRefBuilder_ == null) {
-        oauthAppRef_ = builderForValue.build();
-      } else {
-        oauthAppRefBuilder_.setMessage(builderForValue.build());
-      }
-      bitField0_ |= 0x00000001;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Reference to an OAuthApp for vendor-specific OAuth.
-     *
-     * When empty: the server supports the MCP Authorization spec (DCR + PKCE).
-     * Stigmer discovers the authorization server metadata, registers a client
-     * via DCR, and performs the authorization code flow with PKCE — all
-     * automatically at connect time.
-     *
-     * When set: Stigmer uses the referenced OAuthApp's client credentials to
-     * perform the OAuth authorization code flow with the vendor on behalf of
-     * the user. The OAuthApp must belong to the same organization as the
-     * McpServer: an OAuth app holds vendor credentials and is never
-     * shared with child organizations, so no cross-organization reference to one is
-     * accepted.
-     * </pre>
-     *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder mergeOauthAppRef(ai.stigmer.commons.apiresource.ApiResourceReference value) {
-      if (oauthAppRefBuilder_ == null) {
-        if (((bitField0_ & 0x00000001) != 0) &&
-          oauthAppRef_ != null &&
-          oauthAppRef_ != ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance()) {
-          getOauthAppRefBuilder().mergeFrom(value);
-        } else {
-          oauthAppRef_ = value;
-        }
-      } else {
-        oauthAppRefBuilder_.mergeFrom(value);
-      }
-      if (oauthAppRef_ != null) {
-        bitField0_ |= 0x00000001;
-        onChanged();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Reference to an OAuthApp for vendor-specific OAuth.
-     *
-     * When empty: the server supports the MCP Authorization spec (DCR + PKCE).
-     * Stigmer discovers the authorization server metadata, registers a client
-     * via DCR, and performs the authorization code flow with PKCE — all
-     * automatically at connect time.
-     *
-     * When set: Stigmer uses the referenced OAuthApp's client credentials to
-     * perform the OAuth authorization code flow with the vendor on behalf of
-     * the user. The OAuthApp must belong to the same organization as the
-     * McpServer: an OAuth app holds vendor credentials and is never
-     * shared with child organizations, so no cross-organization reference to one is
-     * accepted.
-     * </pre>
-     *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder clearOauthAppRef() {
-      bitField0_ = (bitField0_ & ~0x00000001);
-      oauthAppRef_ = null;
-      if (oauthAppRefBuilder_ != null) {
-        oauthAppRefBuilder_.dispose();
-        oauthAppRefBuilder_ = null;
-      }
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Reference to an OAuthApp for vendor-specific OAuth.
-     *
-     * When empty: the server supports the MCP Authorization spec (DCR + PKCE).
-     * Stigmer discovers the authorization server metadata, registers a client
-     * via DCR, and performs the authorization code flow with PKCE — all
-     * automatically at connect time.
-     *
-     * When set: Stigmer uses the referenced OAuthApp's client credentials to
-     * perform the OAuth authorization code flow with the vendor on behalf of
-     * the user. The OAuthApp must belong to the same organization as the
-     * McpServer: an OAuth app holds vendor credentials and is never
-     * shared with child organizations, so no cross-organization reference to one is
-     * accepted.
-     * </pre>
-     *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
-     */
-    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder getOauthAppRefBuilder() {
-      bitField0_ |= 0x00000001;
-      onChanged();
-      return internalGetOauthAppRefFieldBuilder().getBuilder();
-    }
-    /**
-     * <pre>
-     * Reference to an OAuthApp for vendor-specific OAuth.
-     *
-     * When empty: the server supports the MCP Authorization spec (DCR + PKCE).
-     * Stigmer discovers the authorization server metadata, registers a client
-     * via DCR, and performs the authorization code flow with PKCE — all
-     * automatically at connect time.
-     *
-     * When set: Stigmer uses the referenced OAuthApp's client credentials to
-     * perform the OAuth authorization code flow with the vendor on behalf of
-     * the user. The OAuthApp must belong to the same organization as the
-     * McpServer: an OAuth app holds vendor credentials and is never
-     * shared with child organizations, so no cross-organization reference to one is
-     * accepted.
-     * </pre>
-     *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
-     */
-    public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getOauthAppRefOrBuilder() {
-      if (oauthAppRefBuilder_ != null) {
-        return oauthAppRefBuilder_.getMessageOrBuilder();
-      } else {
-        return oauthAppRef_ == null ?
-            ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : oauthAppRef_;
-      }
-    }
-    /**
-     * <pre>
-     * Reference to an OAuthApp for vendor-specific OAuth.
-     *
-     * When empty: the server supports the MCP Authorization spec (DCR + PKCE).
-     * Stigmer discovers the authorization server metadata, registers a client
-     * via DCR, and performs the authorization code flow with PKCE — all
-     * automatically at connect time.
-     *
-     * When set: Stigmer uses the referenced OAuthApp's client credentials to
-     * perform the OAuth authorization code flow with the vendor on behalf of
-     * the user. The OAuthApp must belong to the same organization as the
-     * McpServer: an OAuth app holds vendor credentials and is never
-     * shared with child organizations, so no cross-organization reference to one is
-     * accepted.
-     * </pre>
-     *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
-     */
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
-        internalGetOauthAppRefFieldBuilder() {
-      if (oauthAppRefBuilder_ == null) {
-        oauthAppRefBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
-                getOauthAppRef(),
-                getParentForChildren(),
-                isClean());
-        oauthAppRef_ = null;
-      }
-      return oauthAppRefBuilder_;
-    }
 
     private java.lang.Object targetEnvVar_ = "";
     /**
@@ -1198,7 +703,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       targetEnvVar_ = value;
-      bitField0_ |= 0x00000002;
+      bitField0_ |= 0x00000001;
       onChanged();
       return this;
     }
@@ -1216,7 +721,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearTargetEnvVar() {
       targetEnvVar_ = getDefaultInstance().getTargetEnvVar();
-      bitField0_ = (bitField0_ & ~0x00000002);
+      bitField0_ = (bitField0_ & ~0x00000001);
       onChanged();
       return this;
     }
@@ -1238,7 +743,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       targetEnvVar_ = value;
-      bitField0_ |= 0x00000002;
+      bitField0_ |= 0x00000001;
       onChanged();
       return this;
     }
@@ -1304,7 +809,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       tokenLifetimeHint_ = value;
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000002;
       onChanged();
       return this;
     }
@@ -1320,7 +825,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearTokenLifetimeHint() {
       tokenLifetimeHint_ = getDefaultInstance().getTokenLifetimeHint();
-      bitField0_ = (bitField0_ & ~0x00000004);
+      bitField0_ = (bitField0_ & ~0x00000002);
       onChanged();
       return this;
     }
@@ -1340,7 +845,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       tokenLifetimeHint_ = value;
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000002;
       onChanged();
       return this;
     }
@@ -1351,14 +856,13 @@ private static final long serialVersionUID = 0L;
       if (!scopeHints_.isModifiable()) {
         scopeHints_ = new com.google.protobuf.LazyStringArrayList(scopeHints_);
       }
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000004;
     }
     /**
      * <pre>
-     * Optional scope hints for UI display before the OAuth flow starts.
-     * For DCR servers: shown to the user since actual scopes are discovered
-     * at connect time during authorization server metadata retrieval.
-     * For vendor OAuth: informational (scopes are defined on the OAuthApp).
+     * Optional scope hints for UI display before a sign-in starts. Display
+     * only: a sign-in requests the scopes the login server's metadata or the
+     * login app publishes.
      * </pre>
      *
      * <code>repeated string scope_hints = 4 [json_name = "scopeHints"];</code>
@@ -1371,10 +875,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Optional scope hints for UI display before the OAuth flow starts.
-     * For DCR servers: shown to the user since actual scopes are discovered
-     * at connect time during authorization server metadata retrieval.
-     * For vendor OAuth: informational (scopes are defined on the OAuthApp).
+     * Optional scope hints for UI display before a sign-in starts. Display
+     * only: a sign-in requests the scopes the login server's metadata or the
+     * login app publishes.
      * </pre>
      *
      * <code>repeated string scope_hints = 4 [json_name = "scopeHints"];</code>
@@ -1385,10 +888,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Optional scope hints for UI display before the OAuth flow starts.
-     * For DCR servers: shown to the user since actual scopes are discovered
-     * at connect time during authorization server metadata retrieval.
-     * For vendor OAuth: informational (scopes are defined on the OAuthApp).
+     * Optional scope hints for UI display before a sign-in starts. Display
+     * only: a sign-in requests the scopes the login server's metadata or the
+     * login app publishes.
      * </pre>
      *
      * <code>repeated string scope_hints = 4 [json_name = "scopeHints"];</code>
@@ -1400,10 +902,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Optional scope hints for UI display before the OAuth flow starts.
-     * For DCR servers: shown to the user since actual scopes are discovered
-     * at connect time during authorization server metadata retrieval.
-     * For vendor OAuth: informational (scopes are defined on the OAuthApp).
+     * Optional scope hints for UI display before a sign-in starts. Display
+     * only: a sign-in requests the scopes the login server's metadata or the
+     * login app publishes.
      * </pre>
      *
      * <code>repeated string scope_hints = 4 [json_name = "scopeHints"];</code>
@@ -1416,10 +917,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Optional scope hints for UI display before the OAuth flow starts.
-     * For DCR servers: shown to the user since actual scopes are discovered
-     * at connect time during authorization server metadata retrieval.
-     * For vendor OAuth: informational (scopes are defined on the OAuthApp).
+     * Optional scope hints for UI display before a sign-in starts. Display
+     * only: a sign-in requests the scopes the login server's metadata or the
+     * login app publishes.
      * </pre>
      *
      * <code>repeated string scope_hints = 4 [json_name = "scopeHints"];</code>
@@ -1432,16 +932,15 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       ensureScopeHintsIsMutable();
       scopeHints_.set(index, value);
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Optional scope hints for UI display before the OAuth flow starts.
-     * For DCR servers: shown to the user since actual scopes are discovered
-     * at connect time during authorization server metadata retrieval.
-     * For vendor OAuth: informational (scopes are defined on the OAuthApp).
+     * Optional scope hints for UI display before a sign-in starts. Display
+     * only: a sign-in requests the scopes the login server's metadata or the
+     * login app publishes.
      * </pre>
      *
      * <code>repeated string scope_hints = 4 [json_name = "scopeHints"];</code>
@@ -1453,16 +952,15 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       ensureScopeHintsIsMutable();
       scopeHints_.add(value);
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Optional scope hints for UI display before the OAuth flow starts.
-     * For DCR servers: shown to the user since actual scopes are discovered
-     * at connect time during authorization server metadata retrieval.
-     * For vendor OAuth: informational (scopes are defined on the OAuthApp).
+     * Optional scope hints for UI display before a sign-in starts. Display
+     * only: a sign-in requests the scopes the login server's metadata or the
+     * login app publishes.
      * </pre>
      *
      * <code>repeated string scope_hints = 4 [json_name = "scopeHints"];</code>
@@ -1474,16 +972,15 @@ private static final long serialVersionUID = 0L;
       ensureScopeHintsIsMutable();
       com.google.protobuf.AbstractMessageLite.Builder.addAll(
           values, scopeHints_);
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Optional scope hints for UI display before the OAuth flow starts.
-     * For DCR servers: shown to the user since actual scopes are discovered
-     * at connect time during authorization server metadata retrieval.
-     * For vendor OAuth: informational (scopes are defined on the OAuthApp).
+     * Optional scope hints for UI display before a sign-in starts. Display
+     * only: a sign-in requests the scopes the login server's metadata or the
+     * login app publishes.
      * </pre>
      *
      * <code>repeated string scope_hints = 4 [json_name = "scopeHints"];</code>
@@ -1492,16 +989,15 @@ private static final long serialVersionUID = 0L;
     public Builder clearScopeHints() {
       scopeHints_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
-      bitField0_ = (bitField0_ & ~0x00000008);;
+      bitField0_ = (bitField0_ & ~0x00000004);;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Optional scope hints for UI display before the OAuth flow starts.
-     * For DCR servers: shown to the user since actual scopes are discovered
-     * at connect time during authorization server metadata retrieval.
-     * For vendor OAuth: informational (scopes are defined on the OAuthApp).
+     * Optional scope hints for UI display before a sign-in starts. Display
+     * only: a sign-in requests the scopes the login server's metadata or the
+     * login app publishes.
      * </pre>
      *
      * <code>repeated string scope_hints = 4 [json_name = "scopeHints"];</code>
@@ -1514,184 +1010,7 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       ensureScopeHintsIsMutable();
       scopeHints_.add(value);
-      bitField0_ |= 0x00000008;
-      onChanged();
-      return this;
-    }
-
-    private java.lang.Object discoveryUrl_ = "";
-    /**
-     * <pre>
-     * URL of the login server for a stdio server: where DCR discovery looks,
-     * and the address its sign-ins are saved at.
-     *
-     * HTTP servers do not need this: the platform derives the discovery
-     * endpoint from http.url (fetching /.well-known/oauth-authorization-server
-     * relative to the server URL), and saves a sign-in at http.url.
-     *
-     * Stdio servers have no URL, so a sign-in needs this field whether or not
-     * oauth_app_ref is set: it is the address the login is saved at in the
-     * signer's vault, and the address a run finds it by. A stdio server with
-     * OAuth and no discovery_url is refused at sign-in. Without
-     * oauth_app_ref it is also the base URL of the vendor's OAuth
-     * authorization server that DCR discovers from.
-     *
-     * Discovery resolution priority (without oauth_app_ref; vendor OAuth uses
-     * the OAuthApp's endpoints and discovers nothing):
-     * 1. discovery_url (if set — used for both stdio and HTTP)
-     * 2. http.url (default for HTTP servers)
-     * </pre>
-     *
-     * <code>string discovery_url = 7 [json_name = "discoveryUrl"];</code>
-     * @return The discoveryUrl.
-     */
-    public java.lang.String getDiscoveryUrl() {
-      java.lang.Object ref = discoveryUrl_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        discoveryUrl_ = s;
-        return s;
-      } else {
-        return (java.lang.String) ref;
-      }
-    }
-    /**
-     * <pre>
-     * URL of the login server for a stdio server: where DCR discovery looks,
-     * and the address its sign-ins are saved at.
-     *
-     * HTTP servers do not need this: the platform derives the discovery
-     * endpoint from http.url (fetching /.well-known/oauth-authorization-server
-     * relative to the server URL), and saves a sign-in at http.url.
-     *
-     * Stdio servers have no URL, so a sign-in needs this field whether or not
-     * oauth_app_ref is set: it is the address the login is saved at in the
-     * signer's vault, and the address a run finds it by. A stdio server with
-     * OAuth and no discovery_url is refused at sign-in. Without
-     * oauth_app_ref it is also the base URL of the vendor's OAuth
-     * authorization server that DCR discovers from.
-     *
-     * Discovery resolution priority (without oauth_app_ref; vendor OAuth uses
-     * the OAuthApp's endpoints and discovers nothing):
-     * 1. discovery_url (if set — used for both stdio and HTTP)
-     * 2. http.url (default for HTTP servers)
-     * </pre>
-     *
-     * <code>string discovery_url = 7 [json_name = "discoveryUrl"];</code>
-     * @return The bytes for discoveryUrl.
-     */
-    public com.google.protobuf.ByteString
-        getDiscoveryUrlBytes() {
-      java.lang.Object ref = discoveryUrl_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        discoveryUrl_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-    /**
-     * <pre>
-     * URL of the login server for a stdio server: where DCR discovery looks,
-     * and the address its sign-ins are saved at.
-     *
-     * HTTP servers do not need this: the platform derives the discovery
-     * endpoint from http.url (fetching /.well-known/oauth-authorization-server
-     * relative to the server URL), and saves a sign-in at http.url.
-     *
-     * Stdio servers have no URL, so a sign-in needs this field whether or not
-     * oauth_app_ref is set: it is the address the login is saved at in the
-     * signer's vault, and the address a run finds it by. A stdio server with
-     * OAuth and no discovery_url is refused at sign-in. Without
-     * oauth_app_ref it is also the base URL of the vendor's OAuth
-     * authorization server that DCR discovers from.
-     *
-     * Discovery resolution priority (without oauth_app_ref; vendor OAuth uses
-     * the OAuthApp's endpoints and discovers nothing):
-     * 1. discovery_url (if set — used for both stdio and HTTP)
-     * 2. http.url (default for HTTP servers)
-     * </pre>
-     *
-     * <code>string discovery_url = 7 [json_name = "discoveryUrl"];</code>
-     * @param value The discoveryUrl to set.
-     * @return This builder for chaining.
-     */
-    public Builder setDiscoveryUrl(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      discoveryUrl_ = value;
-      bitField0_ |= 0x00000010;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * URL of the login server for a stdio server: where DCR discovery looks,
-     * and the address its sign-ins are saved at.
-     *
-     * HTTP servers do not need this: the platform derives the discovery
-     * endpoint from http.url (fetching /.well-known/oauth-authorization-server
-     * relative to the server URL), and saves a sign-in at http.url.
-     *
-     * Stdio servers have no URL, so a sign-in needs this field whether or not
-     * oauth_app_ref is set: it is the address the login is saved at in the
-     * signer's vault, and the address a run finds it by. A stdio server with
-     * OAuth and no discovery_url is refused at sign-in. Without
-     * oauth_app_ref it is also the base URL of the vendor's OAuth
-     * authorization server that DCR discovers from.
-     *
-     * Discovery resolution priority (without oauth_app_ref; vendor OAuth uses
-     * the OAuthApp's endpoints and discovers nothing):
-     * 1. discovery_url (if set — used for both stdio and HTTP)
-     * 2. http.url (default for HTTP servers)
-     * </pre>
-     *
-     * <code>string discovery_url = 7 [json_name = "discoveryUrl"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearDiscoveryUrl() {
-      discoveryUrl_ = getDefaultInstance().getDiscoveryUrl();
-      bitField0_ = (bitField0_ & ~0x00000010);
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * URL of the login server for a stdio server: where DCR discovery looks,
-     * and the address its sign-ins are saved at.
-     *
-     * HTTP servers do not need this: the platform derives the discovery
-     * endpoint from http.url (fetching /.well-known/oauth-authorization-server
-     * relative to the server URL), and saves a sign-in at http.url.
-     *
-     * Stdio servers have no URL, so a sign-in needs this field whether or not
-     * oauth_app_ref is set: it is the address the login is saved at in the
-     * signer's vault, and the address a run finds it by. A stdio server with
-     * OAuth and no discovery_url is refused at sign-in. Without
-     * oauth_app_ref it is also the base URL of the vendor's OAuth
-     * authorization server that DCR discovers from.
-     *
-     * Discovery resolution priority (without oauth_app_ref; vendor OAuth uses
-     * the OAuthApp's endpoints and discovers nothing):
-     * 1. discovery_url (if set — used for both stdio and HTTP)
-     * 2. http.url (default for HTTP servers)
-     * </pre>
-     *
-     * <code>string discovery_url = 7 [json_name = "discoveryUrl"];</code>
-     * @param value The bytes for discoveryUrl to set.
-     * @return This builder for chaining.
-     */
-    public Builder setDiscoveryUrlBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      discoveryUrl_ = value;
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }
@@ -1749,7 +1068,7 @@ private static final long serialVersionUID = 0L;
     public Builder setOauthOnly(boolean value) {
 
       oauthOnly_ = value;
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
@@ -1776,7 +1095,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearOauthOnly() {
-      bitField0_ = (bitField0_ & ~0x00000020);
+      bitField0_ = (bitField0_ & ~0x00000008);
       oauthOnly_ = false;
       onChanged();
       return this;

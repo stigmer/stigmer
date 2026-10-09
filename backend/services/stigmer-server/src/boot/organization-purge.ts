@@ -7,7 +7,7 @@
  * The order. Schedules go in the quiesce stage, before anything else, so
  * nothing fires while the rest is removed. The content stage then removes
  * leaves first: a run before the session it belongs to, a blueprint's
- * shares and channels
+ * shares, channels and evaluator
  * before the blueprint, and the vaults and clients a run or a blueprint
  * reads last. Each kind's purge cascades what its delete chain
  * cascades, so an order that met a parent first would still converge; the
@@ -40,6 +40,7 @@ import { newAgentExecutionPurge } from "../domain/run/purge.js";
 import { newAgentSharePurge } from "../domain/agentshare/purge.js";
 import { newApiKeyPurge } from "../domain/apikey/purge.js";
 import { newChannelAppPurge } from "../domain/channelapp/purge.js";
+import { newEvaluatorPurge } from "../domain/evaluator/purge.js";
 import { newExecutionContextPurge } from "../domain/executioncontext/purge.js";
 import { newMcpServerPurge } from "../domain/mcpserver/purge.js";
 import { newMemoryPurge } from "../domain/memory/purge.js";
@@ -106,10 +107,11 @@ export function newCoreKindPurges(deps: CoreKindPurgeDeps): CoreKindPurges {
       newScorePurge(deps),
       newAgentExecutionPurge(deps),
       newSessionPurge(deps),
-      // A blueprint's shares and channels before the blueprint; a channel
-      // before the channel app it references.
+      // A blueprint's shares, channels and evaluator before the blueprint;
+      // a channel before the channel app it references.
       newAgentSharePurge(deps),
       newAgentChannelPurge(deps),
+      newEvaluatorPurge(deps),
       newChannelAppPurge(deps),
       newMemoryPurge(deps),
       // A plugin's members before the plugin: its purge does not cascade
@@ -147,6 +149,7 @@ export const CORE_PURGED_KINDS: ReadonlySet<ApiResourceKind> = new Set([
   ApiResourceKind.session,
   ApiResourceKind.agent_share,
   ApiResourceKind.agent_channel,
+  ApiResourceKind.evaluator,
   ApiResourceKind.channel_app,
   ApiResourceKind.memory,
   ApiResourceKind.agent,

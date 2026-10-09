@@ -14,6 +14,7 @@ export {
   type MetadataAttempt,
   type MetadataRead,
   type MetadataReadDeps,
+  type ProtectedResourceFacts,
 } from "./metadata.js";
 export { probeEndpointAuth, type EndpointAuthOutcome, type EndpointProbeDeps } from "./probe.js";
 export {

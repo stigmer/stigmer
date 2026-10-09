@@ -1,17 +1,13 @@
 /**
- * Pins the annotation enforcement on the six config-annotated connect
- * lanes (connect, startConnect, initiateOAuthConnect,
- * completeOAuthConnect, disconnectOAuth, getOAuthGrantStatus): each
- * evaluates its OWN annotation through authorizeDirect, and a denying
+ * Pins the annotation enforcement on the four config-annotated connect
+ * lanes (connect, startConnect, disconnectOAuth, getOAuthGrantStatus):
+ * each evaluates its OWN annotation through authorizeDirect, and a denying
  * authorizer answers PERMISSION_DENIED with the method's byte-pinned
  * error_msg. Java-parity orders are asserted structurally:
  *
- *   - connect/startConnect/initiateOAuthConnect authorize AFTER the load
- *     (stigmer#224 — a missing server answers NOT_FOUND even to a caller
- *     the authorizer would deny);
- *   - completeOAuthConnect authorizes against the PENDING RECORD's server
- *     id, and the single-use state is burned before the denial lands (the
- *     Java discipline — asserted via the consumed-state refusal on retry);
+ *   - connect/startConnect authorize AFTER the load (stigmer#224 — a
+ *     missing server answers NOT_FOUND even to a caller the authorizer
+ *     would deny);
  *   - disconnectOAuth/getOAuthGrantStatus authorize before any grant
  *     lookup (the grant store is untouchable under denial);
  *   - a credential bound to one organization, though authorized on the
@@ -29,11 +25,9 @@ import path from "node:path";
 
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import {
-  CompleteOAuthConnectInputSchema,
   ConnectInputSchema,
   DisconnectOAuthInputSchema,
   GetOAuthGrantStatusInputSchema,
-  InitiateOAuthConnectInputSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -45,10 +39,8 @@ import { SqliteStore } from "../../../store/sqlite/store.js";
 import { BOUND_ELSEWHERE_DENY_REASON } from "../../../authorization/credential-binding.js";
 import { connect, prepareConnect } from "../connect.js";
 import type { McpServerConnectDeps } from "../connect.js";
-import { completeOAuthConnect } from "../complete-oauth-connect.js";
 import { disconnectOAuth } from "../disconnect-oauth.js";
 import { getOAuthGrantStatus } from "../get-oauth-grant-status.js";
-import { initiateOAuthConnect } from "../initiate-oauth-connect.js";
 import { startConnect } from "../start-connect.js";
 
 const silentLogger = createLogger({
@@ -120,9 +112,6 @@ function deps(authorizer: Authorizer): McpServerConnectDeps {
     runnerAuth: unreachable("runnerAuth"),
     vaults: unreachable("vaults"),
     vaultResolver: unreachable("vaultResolver"),
-    pendingOAuthStates: store.pendingOAuthStates,
-    secretService: unreachable("secretService"),
-    oauthRedirectUri: "http://localhost:7233/oauth/callback",
     sandboxLane: { enabled: false },
     outboundFetch: async () => {
       throw new Error("no outbound fetch in this harness");
@@ -171,71 +160,6 @@ describe("connect-lane authorization", () => {
         ),
       "unauthorized to connect to mcp server",
     );
-  });
-
-  it("initiateOAuthConnect denies with its annotation copy after the load", async () => {
-    const { authorizer } = denyingAuthorizer();
-    await seedServer("mcps_denied");
-    await expectDenied(
-      () =>
-        initiateOAuthConnect(
-          deps(authorizer),
-          create(InitiateOAuthConnectInputSchema, {
-            mcpServerId: "mcps_denied",
-          }),
-          caller,
-        ),
-      "unauthorized to initiate oauth connect for mcp server",
-    );
-  });
-
-  it("completeOAuthConnect authorizes the PENDING RECORD's id and burns the state before the denial", async () => {
-    const { authorizer, checks } = denyingAuthorizer();
-    await store.pendingOAuthStates.save({
-      state: "state-123",
-      codeVerifier: "",
-      clientId: "",
-      clientSecret: "",
-      tokenEndpoint: "",
-      mcpServerId: "mcps_pending",
-      identityAccountId: "",
-      vaultId: "",
-      toolAddress: "",
-      targetEnvVar: "",
-      authMethod: "mcp_oauth",
-      tokenAuthMethod: "",
-      redirectUri: "",
-      org: "test-org",
-      createdAt: 0,
-    });
-
-    await expectDenied(
-      () =>
-        completeOAuthConnect(
-          deps(authorizer),
-          create(CompleteOAuthConnectInputSchema, {
-            mcpServerId: "mcps_pending",
-            state: "state-123",
-            authorizationCode: "code",
-          }),
-          caller,
-        ),
-      "unauthorized to complete oauth connect for mcp server",
-    );
-    // The target of record is the server-side pending state's id.
-    expect(checks[0].resourceId).toBe("mcps_pending");
-    // The single-use state was consumed before the denial (Java parity):
-    // a retry refuses on the missing state, not on authorization.
-    const retry = await completeOAuthConnect(
-      deps(authorizer),
-      create(CompleteOAuthConnectInputSchema, {
-        mcpServerId: "mcps_pending",
-        state: "state-123",
-        authorizationCode: "code",
-      }),
-      caller,
-    ).catch((e: unknown) => e);
-    expect((retry as ConnectError).code).toBe(Code.FailedPrecondition);
   });
 
   it("disconnectOAuth denies with its annotation copy before any grant lookup", async () => {
@@ -300,20 +224,8 @@ describe("connect lanes under a credential bound to another organization", () =>
     );
   });
 
-  it("initiateOAuthConnect, disconnectOAuth and getOAuthGrantStatus refuse before any grant is read or written", async () => {
+  it("disconnectOAuth and getOAuthGrantStatus refuse before any grant is read or written", async () => {
     await seedServer("mcps_shared");
-    await expectDenied(
-      () =>
-        initiateOAuthConnect(
-          deps(allowing),
-          create(InitiateOAuthConnectInputSchema, {
-            mcpServerId: "mcps_shared",
-            org: "org_b",
-          }),
-          boundToA,
-        ),
-      BOUND_ELSEWHERE_DENY_REASON,
-    );
     await expectDenied(
       () =>
         disconnectOAuth(

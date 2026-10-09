@@ -48,6 +48,9 @@
  *   gone; the Referenced Files and Input Files sections leave the system
  *   prompt for the turn's message, which has its own golden; a cloned entry
  *   names its branch and no commit.
+ * - 2026-10-09 (the AI judge): the built-in judge's prompt is its own
+ *   golden, the minimal shape with the judge's instruction
+ *   (shared/builtin-judge.ts); it moves only with BUILT_IN_JUDGE_VERSION.
  */
 
 import { describe, it, expect } from "vitest";
@@ -69,6 +72,7 @@ import type { ProvisionResult } from "../../../shared/workspace/types.js";
 import { buildEnhancedSystemPrompt } from "../prompt-builder.js";
 import { composeSystemPrompt, composeTurnMessage } from "../turn-setup.js";
 import { ToolScope } from "../../../shared/tool-lists.js";
+import { BUILT_IN_JUDGE_INSTRUCTIONS } from "../../../shared/builtin-judge.js";
 
 // ---------------------------------------------------------------------------
 // Fixtures — every value is a plain fact a golden can name.
@@ -253,6 +257,16 @@ describe("native system prompt goldens", () => {
       skillsPromptSection: "",
     });
     await expect(prompt).toMatchFileSnapshot("./goldens/system-prompt.minimal.prompt.md");
+  });
+
+  it("the built-in judge: its instruction in the minimal shape", async () => {
+    const prompt = buildEnhancedSystemPrompt({
+      instructions: BUILT_IN_JUDGE_INSTRUCTIONS,
+      provisionResults: [],
+      containerRoot: "",
+      skillsPromptSection: "",
+    });
+    await expect(prompt).toMatchFileSnapshot("./goldens/system-prompt.judge.prompt.md");
   });
 
   it("the turn's user message: the payload first, then the catchup, then what the user typed", async () => {

@@ -40,6 +40,8 @@ import { MemoryCommandController } from "@stigmer/protos/ai/stigmer/agentic/memo
 import { MemoryQueryController } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/query_pb";
 import { ScheduleCommandController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/command_pb";
 import { ScheduleQueryController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/query_pb";
+import { EvaluatorCommandController } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/command_pb";
+import { EvaluatorQueryController } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/query_pb";
 import { ScoreCommandController } from "@stigmer/protos/ai/stigmer/agentic/score/v1/command_pb";
 import { ScoreQueryController } from "@stigmer/protos/ai/stigmer/agentic/score/v1/query_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
@@ -53,10 +55,10 @@ import { OAuthAppQueryController } from "@stigmer/protos/ai/stigmer/iam/oauthapp
 import { PlatformClientCommandController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/command_pb";
 import { PlatformClientQueryController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/query_pb";
 import { PlatformClientTokenController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/token_pb";
-import { GitHubService } from "@stigmer/protos/ai/stigmer/platform/github/v1/service_pb";
 import { GitHubQueryController } from "@stigmer/protos/ai/stigmer/platform/github/v1/query_pb";
 import { VaultCommandController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/command_pb";
 import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
+import { ConnectLinkController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/connect_link_pb";
 import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
@@ -112,6 +114,7 @@ export interface ConformanceClients {
   agentQuery: Client<typeof AgentQueryController>;
   vaultCommand: Client<typeof VaultCommandController>;
   vaultQuery: Client<typeof VaultQueryController>;
+  connectLink: Client<typeof ConnectLinkController>;
   executionContextCommand: Client<typeof ExecutionContextCommandController>;
   executionContextQuery: Client<typeof ExecutionContextQueryController>;
   mcpServerCommand: Client<typeof McpServerCommandController>;
@@ -122,6 +125,8 @@ export interface ConformanceClients {
   scheduleQuery: Client<typeof ScheduleQueryController>;
   scoreCommand: Client<typeof ScoreCommandController>;
   scoreQuery: Client<typeof ScoreQueryController>;
+  evaluatorCommand: Client<typeof EvaluatorCommandController>;
+  evaluatorQuery: Client<typeof EvaluatorQueryController>;
   sessionCommand: Client<typeof SessionCommandController>;
   sessionQuery: Client<typeof SessionQueryController>;
   skillCommand: Client<typeof SkillCommandController>;
@@ -133,7 +138,6 @@ export interface ConformanceClients {
   // on the RPC port. The authentication suite pins its tokenless reachability
   // (the Kubernetes grpc-probe contract).
   health: Client<typeof Health>;
-  github: Client<typeof GitHubService>;
   githubQuery: Client<typeof GitHubQueryController>;
   oauthAppCommand: Client<typeof OAuthAppCommandController>;
   oauthAppQuery: Client<typeof OAuthAppQueryController>;
@@ -242,6 +246,7 @@ export function makeClients(transport: Transport): ConformanceClients {
     agentQuery: createClient(AgentQueryController, transport),
     vaultCommand: createClient(VaultCommandController, transport),
     vaultQuery: createClient(VaultQueryController, transport),
+    connectLink: createClient(ConnectLinkController, transport),
     executionContextCommand: createClient(
       ExecutionContextCommandController,
       transport,
@@ -258,6 +263,8 @@ export function makeClients(transport: Transport): ConformanceClients {
     scheduleQuery: createClient(ScheduleQueryController, transport),
     scoreCommand: createClient(ScoreCommandController, transport),
     scoreQuery: createClient(ScoreQueryController, transport),
+    evaluatorCommand: createClient(EvaluatorCommandController, transport),
+    evaluatorQuery: createClient(EvaluatorQueryController, transport),
     sessionCommand: createClient(SessionCommandController, transport),
     sessionQuery: createClient(SessionQueryController, transport),
     skillCommand: createClient(SkillCommandController, transport),
@@ -266,7 +273,6 @@ export function makeClients(transport: Transport): ConformanceClients {
     pluginQuery: createClient(PluginQueryController, transport),
     platformQuery: createClient(PlatformQueryController, transport),
     health: createClient(Health, transport),
-    github: createClient(GitHubService, transport),
     githubQuery: createClient(GitHubQueryController, transport),
     oauthAppCommand: createClient(OAuthAppCommandController, transport),
     oauthAppQuery: createClient(OAuthAppQueryController, transport),

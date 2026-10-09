@@ -11,8 +11,9 @@
  * phase, its organization) runs after that question.
  *
  * Status has one writer, the create chain: the state is derived from
- * whether a value was given, and the not-graded reason is accepted from
- * the server's own grading code alone (InitializeScoreState). A person's
+ * whether a value was given, and the not-graded reason and the pending
+ * state are accepted from the server's own grading code alone
+ * (InitializeScoreState). A person's
  * update changes the value and comment of their own feedback and nothing
  * else (ValidateScoreUpdate).
  *
@@ -68,14 +69,18 @@ import {
   FEEDBACK_METRIC,
   FEEDBACK_VALUE_REQUIRED_MESSAGE,
   HUMAN_SOURCE_REFUSED_MESSAGE,
+  JUDGE_METRIC,
+  JUDGE_SOURCE_REFUSED_MESSAGE,
   RUN_HEALTH_METRIC,
   SCORE_COMMENT_HUMAN_ONLY_MESSAGE,
   SCORE_CRITERIA_NOT_HUMAN_MESSAGE,
   SCORE_CREATE_DENIED_MESSAGE,
+  SCORE_JUDGE_MODEL_JUDGE_ONLY_MESSAGE,
   SCORE_METRIC_SOURCE_MISMATCH_MESSAGE,
   SCORE_UPDATE_FIELDS_MESSAGE,
   SCORE_UPDATE_HUMAN_ONLY_MESSAGE,
   feedbackExistsMessage,
+  judgeExistsMessage,
   runHealthExistsMessage,
   runNotCompletedMessage,
   scoreOrgMismatchMessage,
@@ -95,6 +100,12 @@ export const SCORED_RUN_KEY = "scoredRun";
  */
 const NOT_GRADED_REASON_KEY = "notGradedReason";
 
+/**
+ * Context key for a pending state the server's grading code asked for, read
+ * before BuildNewState discards the request's status, as the reason is.
+ */
+const PENDING_REQUESTED_KEY = "pendingRequested";
+
 /** The refusal reason a client keys on to switch from create to update. */
 export const SCORE_EXISTS_REASON = "SCORE_EXISTS";
 
@@ -108,9 +119,10 @@ export const SCORE_EXISTS_REASON = "SCORE_EXISTS";
  *     person's rating. An integrator's end user (a PlatformClient token),
  *     a runner, a machine account and the server itself are refused: none
  *     is a person who can own a rating.
- *   - score_source_check only from the server itself (the `internal`
- *     class only the in-process transport mints), because a check's
- *     verdict is the platform's claim about a run, never a caller's.
+ *   - score_source_check and score_source_judge only from the server
+ *     itself (the `internal` class only the in-process transport mints),
+ *     because a check's or a judge's verdict is the platform's claim about
+ *     a run, never a caller's.
  *
  * The rules are a table keyed by every source but the unspecified one, so
  * a source added to the contract does not compile until it names who may
@@ -150,6 +162,23 @@ const SOURCE_RULES: Readonly<
     admits: (caller) => caller.callerClass === "internal",
     refusal: CHECK_SOURCE_REFUSED_MESSAGE,
   },
+  [ScoreSource.judge]: {
+    admits: (caller) => caller.callerClass === "internal",
+    refusal: JUDGE_SOURCE_REFUSED_MESSAGE,
+  },
+};
+
+/**
+ * The metric each source gives. A table keyed by every source but the
+ * unspecified one, so a source added to the contract does not compile
+ * until it names its metric.
+ */
+const SOURCE_METRICS: Readonly<
+  Record<Exclude<ScoreSource, ScoreSource.unspecified>, string>
+> = {
+  [ScoreSource.human]: FEEDBACK_METRIC,
+  [ScoreSource.check]: RUN_HEALTH_METRIC,
+  [ScoreSource.judge]: JUDGE_METRIC,
 };
 
 /**
@@ -223,15 +252,16 @@ function scoredRunOf(ctx: RequestContext<typeof ScoreSchema>): Run {
  *  2. The run must be completed. A completed run never changes phase again
  *     (update-status.ts ignores a phase change on a terminal run), so a
  *     score is never stale against its run.
- *  3. The metric must agree with the source: `feedback` from a person,
- *     `run-health` from the checks. A comment is a person's only, a
- *     person's feedback always carries thumbs and never criteria.
+ *  3. The metric must agree with the source (SOURCE_METRICS): `feedback`
+ *     from a person, `run-health` from the checks, `judge` from the AI
+ *     judge. A comment is a person's only, a judge model a judge's only,
+ *     and a person's feedback always carries thumbs and never criteria.
  *  4. spec.session_id is the run's, whatever the request carried.
  *  5. The id is minted here so an unnamed score is named by its id.
- *  6. A not-graded reason carried by the server's grading code is kept
- *     for InitializeScoreState, before BuildNewState discards the
- *     request's status; only a check's create carries one, and only the
- *     server gives a check (GuardScoreSource).
+ *  6. A not-graded reason, or a pending state, carried by the server's
+ *     grading code is kept for InitializeScoreState, before BuildNewState
+ *     discards the request's status; only a check's or a judge's create
+ *     carries one, and only the server gives those (GuardScoreSource).
  */
 export function newResolveScoreDefaultsStep(): PipelineStep<
   typeof ScoreSchema
@@ -261,12 +291,17 @@ export function newResolveScoreDefaultsStep(): PipelineStep<
       }
 
       const human = spec.source === ScoreSource.human;
-      const expectedMetric = human ? FEEDBACK_METRIC : RUN_HEALTH_METRIC;
-      if (spec.metric !== expectedMetric) {
+      if (
+        spec.source === ScoreSource.unspecified ||
+        spec.metric !== SOURCE_METRICS[spec.source]
+      ) {
         throw invalidArgumentError(SCORE_METRIC_SOURCE_MISMATCH_MESSAGE);
       }
       if (!human && spec.comment !== "") {
         throw invalidArgumentError(SCORE_COMMENT_HUMAN_ONLY_MESSAGE);
+      }
+      if (spec.source !== ScoreSource.judge && spec.judgeModel !== "") {
+        throw invalidArgumentError(SCORE_JUDGE_MODEL_JUDGE_ONLY_MESSAGE);
       }
       if (human && spec.value.case === undefined) {
         throw invalidArgumentError(FEEDBACK_VALUE_REQUIRED_MESSAGE);
@@ -284,14 +319,19 @@ export function newResolveScoreDefaultsStep(): PipelineStep<
 
       if (!human && spec.value.case === undefined) {
         ctx.set(NOT_GRADED_REASON_KEY, score.status?.notGradedReason ?? "");
+        ctx.set(
+          PENDING_REQUESTED_KEY,
+          score.status?.state === ScoreState.pending,
+        );
       }
     },
   };
 }
 
 /**
- * CheckScoreUnique: one rating per person per run, and one run-health
- * score per run per version of the checks. A second rating is refused
+ * CheckScoreUnique: one rating per person per run, one run-health score
+ * per run per version of the checks, and one judge score per run per
+ * version of the rubrics. A second rating is refused
  * with ALREADY_EXISTS carrying SCORE_EXISTS and the existing score's id,
  * so a client switches to update without parsing text. The rule is read
  * before the write, as every slug in the platform is (duplicate.ts): a
@@ -345,6 +385,16 @@ export function newCheckScoreUniqueStep(
             metadata: { score_id: id },
           });
         }
+        if (
+          spec.source === ScoreSource.judge &&
+          other.source === ScoreSource.judge &&
+          other.evaluatorVersion === spec.evaluatorVersion
+        ) {
+          throw alreadyExistsWithReasonError(judgeExistsMessage(id), {
+            reason: SCORE_EXISTS_REASON,
+            metadata: { score_id: id },
+          });
+        }
       }
     },
   };
@@ -358,9 +408,10 @@ function creatorOf(score: Score): string {
 /**
  * InitializeScoreState: stamps the state after BuildNewState wiped the
  * request's status. A score with a value is graded; a score without one is
- * not graded, with the reason the server's grading code carried
- * (ResolveScoreDefaults point 6). A failed grade is never a failing
- * value: an error read as a zero corrupts every average over scores.
+ * pending when the server's grading code asked for that, and otherwise not
+ * graded with the reason it carried (ResolveScoreDefaults point 6). A
+ * failed grade is never a failing value: an error read as a zero corrupts
+ * every average over scores.
  */
 export function newInitializeScoreStateStep(): PipelineStep<
   typeof ScoreSchema
@@ -374,6 +425,11 @@ export function newInitializeScoreStateStep(): PipelineStep<
       }
       if (score.spec?.value.case !== undefined) {
         score.status.state = ScoreState.graded;
+        score.status.notGradedReason = "";
+        return;
+      }
+      if (ctx.get(PENDING_REQUESTED_KEY) === true) {
+        score.status.state = ScoreState.pending;
         score.status.notGradedReason = "";
         return;
       }

@@ -34,7 +34,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "What is measured: `feedback` for a person's thumbs, `run-health` for\n the free checks.",
+      "description": "What is measured: `feedback` for a person's thumbs, `run-health` for\n the free checks, `judge` for an AI judge's verdict.",
       "required": false,
       "validation": {
         "minLength": 1,
@@ -50,7 +50,8 @@
         "enumType": "ai.stigmer.agentic.score.v1.ScoreSource",
         "enumValues": [
           "score_source_check",
-          "score_source_human"
+          "score_source_human",
+          "score_source_judge"
         ]
       },
       "description": "Who or what gave the score.",
@@ -76,7 +77,7 @@
       "type": {
         "kind": "bool"
       },
-      "description": "True when the run passed: thumbs up, or every applicable check\n passed.",
+      "description": "True when the run passed: thumbs up, every applicable check passed,\n or no rubric failed.",
       "required": false,
       "oneofGroup": "value"
     },
@@ -108,6 +109,19 @@
       "required": false,
       "validation": {
         "maxLength": 500
+      }
+    },
+    {
+      "name": "JudgeModel",
+      "jsonName": "judgeModel",
+      "protoField": "judge_model",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The model that gave a judge's verdict. Example: \"claude-sonnet-4-6\".",
+      "required": false,
+      "validation": {
+        "maxLength": 128
       }
     }
   ]

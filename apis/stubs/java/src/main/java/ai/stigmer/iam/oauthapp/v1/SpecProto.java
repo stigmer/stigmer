@@ -42,7 +42,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     java.lang.String[] descriptorData = {
       "\n%ai/stigmer/iam/oauthapp/v1/spec.proto\022" +
       "\032ai.stigmer.iam.oauthapp.v1\032\033buf/validat" +
-      "e/validate.proto\"\334\004\n\014OAuthAppSpec\022\032\n\010pro" +
+      "e/validate.proto\"\221\005\n\014OAuthAppSpec\022\032\n\010pro" +
       "vider\030\001 \001(\tR\010provider\022$\n\tclient_id\030\002 \001(\t" +
       "B\007\272H\004r\002\020\001R\010clientId\022,\n\rclient_secret\030\003 \001" +
       "(\tB\007\272H\004r\002\020\001R\014clientSecret\0225\n\021authorizati" +
@@ -57,20 +57,21 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "\030\n \001(\tR\025vendorApprovalDocsUrl\022p\n\032token_e" +
       "ndpoint_auth_method\030\013 \001(\01623.ai.stigmer.i" +
       "am.oauthapp.v1.TokenEndpointAuthMethodR\027" +
-      "tokenEndpointAuthMethod*\254\001\n\024VendorApprov" +
-      "alStatus\022&\n\"VENDOR_APPROVAL_STATUS_UNSPE" +
-      "CIFIED\020\000\022\"\n\036VENDOR_APPROVAL_STATUS_PENDI" +
-      "NG\020\001\022#\n\037VENDOR_APPROVAL_STATUS_APPROVED\020" +
-      "\002\022#\n\037VENDOR_APPROVAL_STATUS_REJECTED\020\003*\254" +
-      "\001\n\027TokenEndpointAuthMethod\022*\n&TOKEN_ENDP" +
-      "OINT_AUTH_METHOD_UNSPECIFIED\020\000\0222\n.TOKEN_" +
-      "ENDPOINT_AUTH_METHOD_CLIENT_SECRET_BASIC" +
-      "\020\001\0221\n-TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_" +
-      "SECRET_POST\020\002B\230\001B\tSpecProtoP\001\242\002\004ASIO\252\002\032A" +
-      "i.Stigmer.Iam.Oauthapp.V1\312\002\032Ai\\Stigmer\\I" +
-      "am\\Oauthapp\\V1\342\002&Ai\\Stigmer\\Iam\\Oauthapp" +
-      "\\V1\\GPBMetadata\352\002\036Ai::Stigmer::Iam::Oaut" +
-      "happ::V1b\006proto3"
+      "tokenEndpointAuthMethod\0223\n\taddresses\030\014 \003" +
+      "(\tB\025\272H\022\222\001\017\010\001\020\024\030\001\"\007r\005\020\001\030\200\020R\taddresses*\254\001\n" +
+      "\024VendorApprovalStatus\022&\n\"VENDOR_APPROVAL" +
+      "_STATUS_UNSPECIFIED\020\000\022\"\n\036VENDOR_APPROVAL" +
+      "_STATUS_PENDING\020\001\022#\n\037VENDOR_APPROVAL_STA" +
+      "TUS_APPROVED\020\002\022#\n\037VENDOR_APPROVAL_STATUS" +
+      "_REJECTED\020\003*\254\001\n\027TokenEndpointAuthMethod\022" +
+      "*\n&TOKEN_ENDPOINT_AUTH_METHOD_UNSPECIFIE" +
+      "D\020\000\0222\n.TOKEN_ENDPOINT_AUTH_METHOD_CLIENT" +
+      "_SECRET_BASIC\020\001\0221\n-TOKEN_ENDPOINT_AUTH_M" +
+      "ETHOD_CLIENT_SECRET_POST\020\002B\230\001B\tSpecProto" +
+      "P\001\242\002\004ASIO\252\002\032Ai.Stigmer.Iam.Oauthapp.V1\312\002" +
+      "\032Ai\\Stigmer\\Iam\\Oauthapp\\V1\342\002&Ai\\Stigmer" +
+      "\\Iam\\Oauthapp\\V1\\GPBMetadata\352\002\036Ai::Stigm" +
+      "er::Iam::Oauthapp::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -82,7 +83,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_iam_oauthapp_v1_OAuthAppSpec_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_oauthapp_v1_OAuthAppSpec_descriptor,
-        new java.lang.String[] { "Provider", "ClientId", "ClientSecret", "AuthorizationUrl", "TokenUrl", "Scopes", "UserinfoUrl", "ScopeParameterName", "VendorApprovalStatus", "VendorApprovalDocsUrl", "TokenEndpointAuthMethod", });
+        new java.lang.String[] { "Provider", "ClientId", "ClientSecret", "AuthorizationUrl", "TokenUrl", "Scopes", "UserinfoUrl", "ScopeParameterName", "VendorApprovalStatus", "VendorApprovalDocsUrl", "TokenEndpointAuthMethod", "Addresses", });
     descriptor.resolveAllFeaturesImmutable();
     build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =

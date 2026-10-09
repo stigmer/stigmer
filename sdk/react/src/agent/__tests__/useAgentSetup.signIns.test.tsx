@@ -248,21 +248,21 @@ describe("useAgentSetup and the agent's OAuth servers", () => {
     expect(grantReads).toEqual([]);
   });
 
-  it("counts a listed vault's sign-in only for the server that started it", async () => {
+  it("counts a listed vault's sign-in at the server's address, whichever tool signed in, and none elsewhere", async () => {
     const LISTED = { includeMyVault: false, vaults: [{ org: ORG, slug: "team" }] };
-    const signedInBy = (minter: string) =>
+    const signedInAt = (address: string) =>
       create(VaultSchema, {
         metadata: { org: ORG, slug: "team" },
         spec: {
           owner: { case: "org", value: ORG },
           connections: {
-            "https://linear.example/mcp": { source: VaultConnectionSource.sign_in, signIn: { mcpServerId: minter } },
+            [address]: { source: VaultConnectionSource.sign_in, signIn: { loginApp: "" } },
           },
         },
       });
 
     const foreign = renderHook(() => useAgentSetup(ORG, undefined, LISTED), {
-      wrapper: wrapper(client({ grants: { linear: false }, listedVault: signedInBy("mcp_other") }, { LINEAR_ACCESS_TOKEN: { isSecret: true } })),
+      wrapper: wrapper(client({ grants: { linear: false }, listedVault: signedInAt("https://other.example/mcp") }, { LINEAR_ACCESS_TOKEN: { isSecret: true } })),
     });
     await act(async () => {
       await foreign.result.current.resolveAgent(REF);
@@ -273,7 +273,7 @@ describe("useAgentSetup and the agent's OAuth servers", () => {
     });
 
     const own = renderHook(() => useAgentSetup(ORG, undefined, LISTED), {
-      wrapper: wrapper(client({ grants: { linear: false }, listedVault: signedInBy("mcp_linear") }, { LINEAR_ACCESS_TOKEN: { isSecret: true } })),
+      wrapper: wrapper(client({ grants: { linear: false }, listedVault: signedInAt("https://linear.example/mcp") }, { LINEAR_ACCESS_TOKEN: { isSecret: true } })),
     });
     await act(async () => {
       await own.result.current.resolveAgent(REF);

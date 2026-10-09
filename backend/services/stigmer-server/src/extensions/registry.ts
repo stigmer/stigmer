@@ -70,6 +70,7 @@ import type { VisitorErrorPolicy } from "../pipeline/interceptors/error-boundary
 import type { PipelineStep } from "../pipeline/pipeline.js";
 import type { RunnerCredentialProvider } from "../runnerauth/runner-credential-provider.js";
 import type { SandboxProvisionerFactory } from "../sandbox/provisioner.js";
+import type { GradingCallerMint } from "./grading-caller.js";
 import type { ScheduleFireCallerMint } from "./schedule-fire-caller.js";
 import type { VisitorClassifier } from "./visitor-classifier.js";
 import type { RunLanes } from "./run-lanes.js";
@@ -316,6 +317,12 @@ export interface ResolvedExtensionDrivers {
    */
   readonly scheduleFireCaller: ScheduleFireCallerMint | undefined;
   /**
+   * The grading caller mint — undefined = judge runs enter the create
+   * pipeline as the `internal` class, or as the evaluator's creator under
+   * the built-in posture (compose.ts).
+   */
+  readonly gradingCaller: GradingCallerMint | undefined;
+  /**
    * Registered version token → codec, validated
    * against the built-in v1. Empty = the facade is v1-only, OSS behavior
    * byte-identical. The compose.ts keys stage merges the built-in v1
@@ -448,6 +455,8 @@ export function resolveExtensions(
   let visitorErrorPolicyDeclaredBy: string | undefined;
   let scheduleFireCaller: ScheduleFireCallerMint | undefined;
   let scheduleFireCallerDeclaredBy: string | undefined;
+  let gradingCaller: GradingCallerMint | undefined;
+  let gradingCallerDeclaredBy: string | undefined;
   let identityAccountStore: IdentityAccountStore | undefined;
   let identityAccountStoreDeclaredBy: string | undefined;
   let identityFederation: IdentityFederation | undefined;
@@ -630,6 +639,16 @@ export function resolveExtensions(
       }
       scheduleFireCaller = unit.drivers.scheduleFireCaller;
       scheduleFireCallerDeclaredBy = unit.name;
+    }
+
+    if (unit.drivers?.gradingCaller !== undefined) {
+      if (gradingCallerDeclaredBy !== undefined) {
+        throw new Error(
+          `extension '${unit.name}' registers a GradingCallerMint, but '${gradingCallerDeclaredBy}' already did — exactly one may be composed`,
+        );
+      }
+      gradingCaller = unit.drivers.gradingCaller;
+      gradingCallerDeclaredBy = unit.name;
     }
 
     if (unit.drivers?.identityAccountStore !== undefined) {
@@ -955,6 +974,7 @@ export function resolveExtensions(
       visitorErrorPolicy,
       secretCodecs,
       scheduleFireCaller,
+      gradingCaller,
       identityAccountStore,
       identityFederation,
       iamPolicyStore,

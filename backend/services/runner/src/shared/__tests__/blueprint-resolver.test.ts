@@ -14,6 +14,9 @@
  *     a session that names and pins one (the stamp is the only route to
  *     the agent): no agent read, empty instructions, no sub-agents, and
  *     the session's own usages and refs as the whole tool set.
+ *   - a run labelled as an AI judge's runs the built-in judge whatever its
+ *     stamp: no agent read, the judge's instruction, and no MCP usage,
+ *     skill ref or sub-agent, not even the session's own.
  *
  * `mergeSkillRefs` carried from `skill-writer.test.ts` in #1096, when the
  * native orchestrator's byte-twin of this function was deleted with its
@@ -30,10 +33,43 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { mockStigmerClient } from "../../__test-utils__/mock-client.js";
 import { mergeSkillRefs, resolveBlueprint } from "../blueprint-resolver.js";
+import {
+  BUILT_IN_JUDGE_DISALLOWED_TOOLS,
+  BUILT_IN_JUDGE_INSTRUCTIONS,
+  GRADES_RUN_LABEL,
+} from "../builtin-judge.js";
 
 const HASH = "a".repeat(64);
 
 describe("resolveBlueprint", () => {
+  it("runs the built-in judge for a judge-labelled run, with nothing of the session's or an agent's", async () => {
+    const client = mockStigmerClient({
+      getAgent: vi.fn().mockRejectedValue(new Error("no agent may be read")),
+      getAgentVersion: vi.fn().mockRejectedValue(new Error("no agent may be read")),
+    });
+    const session = create(SessionSchema, {
+      metadata: { id: "ses_judge", org: "acme" },
+      spec: {
+        mcpServerUsages: [{ mcpServerRef: { kind: ApiResourceKind.mcp_server, slug: "github" } }],
+        skillRefs: [{ org: "acme", slug: "review" }],
+      },
+    });
+
+    const blueprint = await resolveBlueprint(
+      client,
+      session,
+      { agentId: "agt_1", agentVersionHash: HASH },
+      { [GRADES_RUN_LABEL]: "run_judged" },
+    );
+
+    expect(blueprint.agent?.id).toBe("");
+    expect(blueprint.agent?.spec.disallowedTools).toEqual([...BUILT_IN_JUDGE_DISALLOWED_TOOLS]);
+    expect(blueprint.instructions).toBe(BUILT_IN_JUDGE_INSTRUCTIONS);
+    expect(blueprint.subAgents).toEqual([]);
+    expect(blueprint.mergedMcpServerUsages).toEqual([]);
+    expect(blueprint.mergedSkillRefs).toEqual([]);
+  });
+
   it("runs the recorded version's spec after the head moved, never the head or the session's agent", async () => {
     const client = mockStigmerClient({
       getAgentVersion: vi.fn().mockResolvedValue(
@@ -53,7 +89,7 @@ describe("resolveBlueprint", () => {
       status: { agentId: "agt_repointed", agentVersionHash: "b".repeat(64) },
     });
 
-    const blueprint = await resolveBlueprint(client, session, { agentId: "agt_1", agentVersionHash: HASH });
+    const blueprint = await resolveBlueprint(client, session, { agentId: "agt_1", agentVersionHash: HASH }, {});
 
     expect(blueprint.agent).toMatchObject({ id: "agt_1", versionHash: HASH });
     expect(blueprint.instructions).toBe("You review pull requests, version one.");
@@ -71,7 +107,7 @@ describe("resolveBlueprint", () => {
     });
     const session = create(SessionSchema, { metadata: { id: "ses_4" }, spec: { agentRef: { kind: ApiResourceKind.agent, org: "acme", slug: "builder" } } });
 
-    const failure = await resolveBlueprint(client, session, { agentId: "agt_1", agentVersionHash: HASH }).catch(
+    const failure = await resolveBlueprint(client, session, { agentId: "agt_1", agentVersionHash: HASH }, {}).catch(
       (e: unknown) => e,
     );
 
@@ -87,7 +123,7 @@ describe("resolveBlueprint", () => {
     });
     const session = create(SessionSchema, { metadata: { id: "ses_6" }, spec: { agentRef: { kind: ApiResourceKind.agent, org: "acme", slug: "builder" } } });
 
-    const failure = await resolveBlueprint(client, session, { agentId: "agt_1", agentVersionHash: HASH }).catch(
+    const failure = await resolveBlueprint(client, session, { agentId: "agt_1", agentVersionHash: HASH }, {}).catch(
       (e: unknown) => e,
     );
 
@@ -109,7 +145,7 @@ describe("resolveBlueprint", () => {
       status: { agentId: "agt_other" },
     });
 
-    const blueprint = await resolveBlueprint(client, session, { agentId: "agt_1", agentVersionHash: "" });
+    const blueprint = await resolveBlueprint(client, session, { agentId: "agt_1", agentVersionHash: "" }, {});
 
     expect(blueprint.agent).toMatchObject({ id: "agt_1", versionHash: "" });
     expect(blueprint.instructions).toBe("Unversioned.");
@@ -138,7 +174,7 @@ describe("resolveBlueprint", () => {
       },
     });
 
-    const blueprint = await resolveBlueprint(client, session, { agentId: "agt_1", agentVersionHash: HASH });
+    const blueprint = await resolveBlueprint(client, session, { agentId: "agt_1", agentVersionHash: HASH }, {});
 
     expect(blueprint.agent?.id).toBe("agt_1");
     expect(blueprint.instructions).toBe("You build things.");
@@ -166,7 +202,7 @@ describe("resolveBlueprint", () => {
         status: { agentId: "agt_pinned", agentVersionHash: HASH },
       });
 
-      const blueprint = await resolveBlueprint(client, session, recorded);
+      const blueprint = await resolveBlueprint(client, session, recorded, {});
 
       expect(blueprint.agent).toBeUndefined();
       expect(blueprint.instructions).toBe("");

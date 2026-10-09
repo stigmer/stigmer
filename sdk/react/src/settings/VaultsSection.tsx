@@ -9,8 +9,9 @@
  * another organization never does, and nobody else's run ever does, an
  * admin's included. It is
  * created by the server on the first save, so the page never creates it.
- * A login a sign-in saved can be renewed from here ("Sign in again"); a new
- * sign-in starts from the tool's own page, and lands here.
+ * A login a sign-in saved can be renewed from here ("Sign in again", a new
+ * sign-in at the same address); a new sign-in starts from the tool's own
+ * page, and lands here.
  *
  * Shared vaults belong to the organization: its admins create them and say
  * who may use them (every member through organization visibility, or chosen
@@ -21,7 +22,7 @@ import { getUserMessage } from "@stigmer/sdk";
 import { VaultConnectionSource } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
 import { PermissionGate } from "../iam-policy/PermissionGate.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
-import { useMcpServerOAuthConnect } from "../mcp-server/useMcpServerOAuthConnect.js";
+import { useVaultSignIn } from "../vault/useVaultSignIn.js";
 import { useActiveOrgId } from "../organization/OrgProvider.js";
 import { CreateVaultForm } from "../vault/CreateVaultForm.js";
 import { QUIET_BUTTON_CLASS } from "../vault/styles.js";
@@ -43,15 +44,16 @@ export function VaultsSection() {
 
 function MyVaultCard({ org }: { org: string }) {
   const myVault = useMyVault(org || null);
-  const oauth = useMcpServerOAuthConnect();
+  const oauth = useVaultSignIn();
   const headingId = useId();
+  const { signIn } = oauth;
 
   const signInAgain = useCallback(
     // Offered only on a login My vault holds, so an organization is known.
-    (mcpServerId: string) => {
-      oauth.startOAuth(mcpServerId, org).then(myVault.refetch, () => {});
+    (address: string) => {
+      signIn(address, { org }).then(myVault.refetch, () => {});
     },
-    [oauth, org, myVault.refetch],
+    [signIn, org, myVault.refetch],
   );
 
   return (
@@ -89,13 +91,12 @@ function MyVaultCard({ org }: { org: string }) {
           onSetConnection={myVault.setConnection}
           onRemoveConnections={myVault.removeConnections}
           isMutating={myVault.isMutating || oauth.isInProgress}
-          connectionAction={(_address, connection) =>
-            connection.source === VaultConnectionSource.sign_in &&
-            (connection.signIn?.mcpServerId ?? "") !== "" ? (
+          connectionAction={(address, connection) =>
+            connection.source === VaultConnectionSource.sign_in ? (
               <button
                 type="button"
                 disabled={oauth.isInProgress}
-                onClick={() => signInAgain(connection.signIn!.mcpServerId)}
+                onClick={() => signInAgain(address)}
                 className={QUIET_BUTTON_CLASS}
               >
                 Sign in again

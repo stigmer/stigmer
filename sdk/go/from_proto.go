@@ -8,6 +8,7 @@ import (
 	agentchannelv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentchannel/v1"
 	agentsharev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentshare/v1"
 	channelappv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/channelapp/v1"
+	evaluatorv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/evaluator/v1"
 	executioncontextv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/executioncontext/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/mcpserver/v1"
 	memoryv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/memory/v1"
@@ -55,6 +56,11 @@ func ApiKeyInputFromProto(p *apikeyv1.ApiKey) *ApiKeyInput {
 // ChannelAppInputFromProto creates a ChannelAppInput from a proto ChannelApp resource.
 func ChannelAppInputFromProto(p *channelappv1.ChannelApp) *ChannelAppInput {
 	return gen.ChannelAppInputFromProto(p)
+}
+
+// EvaluatorInputFromProto creates a EvaluatorInput from a proto Evaluator resource.
+func EvaluatorInputFromProto(p *evaluatorv1.Evaluator) *EvaluatorInput {
+	return gen.EvaluatorInputFromProto(p)
 }
 
 // ExecutionContextInputFromProto creates a ExecutionContextInput from a proto ExecutionContext resource.

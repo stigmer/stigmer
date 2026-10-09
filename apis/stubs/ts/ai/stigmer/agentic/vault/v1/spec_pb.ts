@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/vault/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_vault_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvdmF1bHQvdjEvc3BlYy5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxIucDCglWYXVsdFNwZWMSEAoGcGVyc29uGAEgASgJSAASDQoDb3JnGAIgASgJSAASHQoLZGVzY3JpcHRpb24YAyABKAlCCLpIBXIDGPQDEkEKC2V4dGVybmFsX2lkGAQgASgJQiy6SClyJxjIATIiXiR8XltBLVphLXowLTldW0EtWmEtejAtOS5fOkAvLV0qJBJECgdzZWNyZXRzGAUgAygLMjMuYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLlZhdWx0U3BlYy5TZWNyZXRzRW50cnkSTAoLY29ubmVjdGlvbnMYBiADKAsyNy5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuVmF1bHRTcGVjLkNvbm5lY3Rpb25zRW50cnkaWAoMU2VjcmV0c0VudHJ5EgsKA2tleRgBIAEoCRI3CgV2YWx1ZRgCIAEoCzIoLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5WYXVsdFNlY3JldDoCOAEaYAoQQ29ubmVjdGlvbnNFbnRyeRILCgNrZXkYASABKAkSOwoFdmFsdWUYAiABKAsyLC5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuVmF1bHRDb25uZWN0aW9uOgI4AUIHCgVvd25lciJxCgtWYXVsdFNlY3JldBINCgV2YWx1ZRgBIAEoCRITCgtkZXNjcmlwdGlvbhgCIAEoCRIQCghzYXZlZF9ieRgDIAEoCRIsCghzYXZlZF9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAi/gEKD1ZhdWx0Q29ubmVjdGlvbhINCgV0b2tlbhgBIAEoCRJCCgZzb3VyY2UYAiABKA4yMi5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuVmF1bHRDb25uZWN0aW9uU291cmNlEkMKB3NpZ25faW4YAyABKAsyMi5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuVmF1bHRDb25uZWN0aW9uU2lnbkluEhMKC2Rlc2NyaXB0aW9uGAQgASgJEhAKCHNhdmVkX2J5GAUgASgJEiwKCHNhdmVkX2F0GAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCKwAQoVVmF1bHRDb25uZWN0aW9uU2lnbkluEhIKCmV4cGlyZXNfYXQYASABKAMSEQoJY2xpZW50X2lkGAIgASgJEhMKC2F1dGhfbWV0aG9kGAMgASgJEhYKDnRva2VuX2VuZHBvaW50GAQgASgJEhUKDXJlZnJlc2hfdG9rZW4YBSABKAkSFQoNbWNwX3NlcnZlcl9pZBgGIAEoCRIVCg1sb2NhbF9wcm9ncmFtGAcgASgIKlkKFVZhdWx0Q29ubmVjdGlvblNvdXJjZRInCiN2YXVsdF9jb25uZWN0aW9uX3NvdXJjZV91bnNwZWNpZmllZBAAEgoKBnBhc3RlZBABEgsKB3NpZ25faW4QAmIGcHJvdG8z", [file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvdmF1bHQvdjEvc3BlYy5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxIucDCglWYXVsdFNwZWMSEAoGcGVyc29uGAEgASgJSAASDQoDb3JnGAIgASgJSAASHQoLZGVzY3JpcHRpb24YAyABKAlCCLpIBXIDGPQDEkEKC2V4dGVybmFsX2lkGAQgASgJQiy6SClyJxjIATIiXiR8XltBLVphLXowLTldW0EtWmEtejAtOS5fOkAvLV0qJBJECgdzZWNyZXRzGAUgAygLMjMuYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLlZhdWx0U3BlYy5TZWNyZXRzRW50cnkSTAoLY29ubmVjdGlvbnMYBiADKAsyNy5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuVmF1bHRTcGVjLkNvbm5lY3Rpb25zRW50cnkaWAoMU2VjcmV0c0VudHJ5EgsKA2tleRgBIAEoCRI3CgV2YWx1ZRgCIAEoCzIoLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5WYXVsdFNlY3JldDoCOAEaYAoQQ29ubmVjdGlvbnNFbnRyeRILCgNrZXkYASABKAkSOwoFdmFsdWUYAiABKAsyLC5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuVmF1bHRDb25uZWN0aW9uOgI4AUIHCgVvd25lciJxCgtWYXVsdFNlY3JldBINCgV2YWx1ZRgBIAEoCRITCgtkZXNjcmlwdGlvbhgCIAEoCRIQCghzYXZlZF9ieRgDIAEoCRIsCghzYXZlZF9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAi/gEKD1ZhdWx0Q29ubmVjdGlvbhINCgV0b2tlbhgBIAEoCRJCCgZzb3VyY2UYAiABKA4yMi5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuVmF1bHRDb25uZWN0aW9uU291cmNlEkMKB3NpZ25faW4YAyABKAsyMi5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuVmF1bHRDb25uZWN0aW9uU2lnbkluEhMKC2Rlc2NyaXB0aW9uGAQgASgJEhAKCHNhdmVkX2J5GAUgASgJEiwKCHNhdmVkX2F0GAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCK/AQoVVmF1bHRDb25uZWN0aW9uU2lnbkluEhIKCmV4cGlyZXNfYXQYASABKAMSEQoJY2xpZW50X2lkGAIgASgJEhMKC2F1dGhfbWV0aG9kGAMgASgJEhYKDnRva2VuX2VuZHBvaW50GAQgASgJEhUKDXJlZnJlc2hfdG9rZW4YBSABKAkSEQoJbG9naW5fYXBwGAggASgJSgQIBhAHSgQIBxAIUg1tY3Bfc2VydmVyX2lkUg1sb2NhbF9wcm9ncmFtKlkKFVZhdWx0Q29ubmVjdGlvblNvdXJjZRInCiN2YXVsdF9jb25uZWN0aW9uX3NvdXJjZV91bnNwZWNpZmllZBAAEgoKBnBhc3RlZBABEgsKB3NpZ25faW4QAmIGcHJvdG8z", [file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * VaultSpec names who a vault belongs to and holds its entries.
@@ -231,23 +231,14 @@ export type VaultConnectionSignIn = Message<"ai.stigmer.agentic.vault.v1.VaultCo
   refreshToken: string;
 
   /**
-   * The MCP server the sign-in was started from, by id. The sign-in fills
-   * that server's login only.
+   * The login app the sign-in used, so a renewal presents the same client:
+   * "org:<OAuthApp id>" for an organization's app, "stigmer:<key>" for one of
+   * Stigmer's built-in login apps, and empty for a client registered with
+   * the address's own login server, which has no secret. Set by the server.
    *
-   * @generated from field: string mcp_server_id = 6;
+   * @generated from field: string login_app = 8;
    */
-  mcpServerId: string;
-
-  /**
-   * Whether the MCP server was a local program (stdio) when the sign-in
-   * completed; false for an HTTP server. The sign-in fills that server's
-   * login only while it is still the same kind: a server switched between
-   * an HTTP server and a local program needs a new sign-in. Set by the
-   * server.
-   *
-   * @generated from field: bool local_program = 7;
-   */
-  localProgram: boolean;
+  loginApp: string;
 };
 
 /**

@@ -82,6 +82,13 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 | ChannelAppQueryController.getByReference | org |
 | ChannelAppQueryController.listByOrg | org |
 
+## `ai.stigmer.agentic.evaluator.v1`
+
+| Method | Fills |
+|---|---|
+| EvaluatorCommandController.create | metadata.org |
+| EvaluatorCommandController.update | metadata.org |
+
 ## `ai.stigmer.agentic.mcpserver.v1`
 
 | Method | Fills |
@@ -89,15 +96,11 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 | McpServerCommandController.apply | metadata.org |
 | McpServerCommandController.connect | org |
 | McpServerCommandController.create | metadata.org |
-| McpServerCommandController.deleteOrgOAuthApp | org |
 | McpServerCommandController.disconnectOAuth | org |
-| McpServerCommandController.initiateOAuthConnect | org |
-| McpServerCommandController.setOrgOAuthApp | org |
 | McpServerCommandController.startConnect | org |
 | McpServerCommandController.update | metadata.org |
 | McpServerQueryController.getByReference | org |
 | McpServerQueryController.getOAuthGrantStatus | org |
-| McpServerQueryController.getOrgOAuthApp | org |
 
 ## `ai.stigmer.agentic.memory.v1`
 
@@ -158,10 +161,12 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 | Method | Fills |
 |---|---|
 | VaultCommandController.create | metadata.org |
+| VaultCommandController.createConnectLink | org |
 | VaultCommandController.removeConnections | vault.org |
 | VaultCommandController.removeSecrets | vault.org |
 | VaultCommandController.setConnection | vault.org |
 | VaultCommandController.setSecrets | vault.org |
+| VaultCommandController.startSignIn | vault.org |
 | VaultCommandController.update | metadata.org |
 | VaultQueryController.getByExternalId | org |
 | VaultQueryController.getByReference | org |
@@ -205,8 +210,6 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 | GitHubQueryController.listBranches | org |
 | GitHubQueryController.listRepositories | org |
 | GitHubQueryController.searchRepositories | org |
-| GitHubService.exchangeOAuthCode | org |
-| GitHubService.getOAuthAuthorizeUrl | org |
 
 ## `ai.stigmer.search.v1`
 

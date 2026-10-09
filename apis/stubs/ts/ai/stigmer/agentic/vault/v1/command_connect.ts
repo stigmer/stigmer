@@ -6,7 +6,7 @@
 import { Vault } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceDeleteInput, UpdateVisibilityInput } from "../../../commons/apiresource/io_pbjs";
-import { RemoveVaultConnectionsInput, RemoveVaultSecretsInput, SetVaultConnectionInput, SetVaultSecretsInput } from "./io_pbjs";
+import { CompleteSignInInput, CompleteSignInOutput, ConnectLink, CreateConnectLinkInput, RemoveVaultConnectionsInput, RemoveVaultSecretsInput, SetVaultConnectionInput, SetVaultSecretsInput, StartSignInInput, StartSignInOutput } from "./io_pbjs";
 
 /**
  * VaultCommandController handles write operations for vaults.
@@ -121,6 +121,61 @@ export const VaultCommandController = {
       name: "removeConnections",
       I: RemoveVaultConnectionsInput,
       O: Vault,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Start a sign-in at an address, to save the login in a vault.
+     *
+     * Answers the login page to send the person to. When they have signed in,
+     * the page they return to calls completeSignIn with what the login page
+     * handed back. The sign-in must be completed within ten minutes.
+     *
+     * The login fills every HTTP tool whose URL is the address, and a Git
+     * host's login serves clones from that host.
+     *
+     * @generated from rpc ai.stigmer.agentic.vault.v1.VaultCommandController.startSignIn
+     */
+    startSignIn: {
+      name: "startSignIn",
+      I: StartSignInInput,
+      O: StartSignInOutput,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Finish a sign-in: exchange the code the login page handed back and save
+     * the login in the vault the sign-in was started for, replacing any login
+     * saved at the address.
+     *
+     * Only the person who started the sign-in may finish it.
+     *
+     * @generated from rpc ai.stigmer.agentic.vault.v1.VaultCommandController.completeSignIn
+     */
+    completeSignIn: {
+      name: "completeSignIn",
+      I: CompleteSignInInput,
+      O: CompleteSignInOutput,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Make a Connect link: a one-time page where someone without a Stigmer
+     * account signs in at an address, and the login is saved into a shared
+     * vault.
+     *
+     * An integrator makes one for each customer's vault and sends the
+     * customer to its url. The customer sees one Stigmer page with a
+     * Continue button, then the login page, then returns to return_url.
+     *
+     * Refused for My vault, and for an address the organization has no
+     * approved login app of its own for: a link signs in only through the
+     * organization's app (its name on the vendor's consent page), never
+     * through Stigmer's own apps or Stigmer's client at a login server.
+     *
+     * @generated from rpc ai.stigmer.agentic.vault.v1.VaultCommandController.createConnectLink
+     */
+    createConnectLink: {
+      name: "createConnectLink",
+      I: CreateConnectLinkInput,
+      O: ConnectLink,
       kind: MethodKind.Unary,
     },
   }

@@ -833,11 +833,9 @@ export {
   useGitHubFileReader,
   parseGitUrl,
   GitHubRepoPicker,
-  GITHUB_CALLBACK_MESSAGE_TYPE,
 } from "./github/index.js";
 export type {
   GitHubUser,
-  GitHubConnectOptions,
   UseGitHubConnectionConfig,
   UseGitHubConnectionReturn,
   GitHubRepo,
@@ -860,6 +858,7 @@ export {
   useAgentVersionCount,
   agentVersionLabel,
   AgentVersionsTab,
+  AgentQualityTab,
   AgentEnvForm,
   diffEnv,
   useAgentSetup,
@@ -884,6 +883,7 @@ export type {
   AgentDetailViewProps,
   UseAgentVersionsReturn,
   AgentVersionsTabProps,
+  AgentQualityTabProps,
   AgentEnvFormProps,
   AgentEnvFormSubmitOptions,
   AgentEnvFormVariable,
@@ -983,6 +983,7 @@ export {
   toolLoginKeyOf,
   gitHostOf,
   GITHUB_HOST,
+  useVaultSignIn,
 } from "./vault/index.js";
 export type {
   UseMyVaultReturn,
@@ -1004,7 +1005,10 @@ export type {
   EnvVarFormVariable,
   EnvVarFormSubmitOptions,
   EnvVarInput,
-
+  SignInDestination,
+  SignInReturnTo,
+  UseVaultSignInReturn,
+  VaultSignInPhase,
   ToolCredentialsReadiness,
 } from "./vault/index.js";
 
@@ -1061,8 +1065,9 @@ export type {
   MemoryProposalCardBodyProps,
 } from "./memory/index.js";
 
-// Scores — a person's thumbs on a run's final answer and the platform's
-// free run-health checks, shown on every completed run its viewers can see
+// Scores — a person's thumbs on a run's final answer, the platform's free
+// run-health checks and an AI judge's verdict, shown on every completed run
+// its viewers can see
 export {
   RunScores,
   useSessionScores,
@@ -1076,6 +1081,20 @@ export type {
   UseUpdateRatingReturn,
   RunRating,
 } from "./score/index.js";
+
+// Evaluators — AI grading switched on per agent: its sample, its monthly
+// spending limit and its judge model (the agent's Quality tab)
+export {
+  useAgentEvaluator,
+  useSaveEvaluator,
+  DEFAULT_GRADING_SETTINGS,
+  MAX_ONE_IN,
+} from "./evaluator/index.js";
+export type {
+  UseAgentEvaluatorReturn,
+  UseSaveEvaluatorReturn,
+  GradingSettings,
+} from "./evaluator/index.js";
 
 // IAM Policy — data hooks, behavior hooks, headless hook, and styled components for access management
 export {
@@ -1604,6 +1623,22 @@ export type {
   InvitationManagerProps,
   InvitationRedemptionProps,
 } from "./invitation/index.js";
+
+// Connect links — the public page a Connect link opens and its callback
+export {
+  useConnectLink,
+  pendingConnectLinkToken,
+  clearPendingConnectLinkToken,
+  CONNECT_LINK_PENDING_KEY,
+  DEAD_CONNECT_LINK_MESSAGE,
+  ConnectLinkView,
+  ConnectLinkCallback,
+} from "./connect-link/index.js";
+export type {
+  UseConnectLinkReturn,
+  ConnectLinkViewProps,
+  ConnectLinkCallbackProps,
+} from "./connect-link/index.js";
 
 // Sharing — shared-agent public profile, the anonymous-visitor chat organism,
 // and the owner-side Share experience (Shares tab list, dialog, AgentShare hooks).

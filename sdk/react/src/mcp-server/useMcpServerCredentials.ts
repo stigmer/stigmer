@@ -5,7 +5,6 @@ import type { EnvVarInput } from "../vault/types.js";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import { OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
-import { OAuthAppSource } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import { VendorApprovalStatus } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
 import { useMyVault } from "../vault/useMyVault.js";
 import { toolAddressOf, toolLoginKeyOf, vaultLoginServes } from "../vault/address.js";
@@ -14,7 +13,6 @@ import { diffEnv } from "../vault/diffEnv.js";
 import { SYSTEM_ENV_VAR_KEYS } from "../vault/systemEnvVars.js";
 import type { EnvVarFormVariable } from "../vault/EnvVarForm.js";
 import { useOAuthGrantStatus } from "./useOAuthGrantStatus.js";
-import { useOrgOAuthApp } from "./useOrgOAuthApp.js";
 
 /**
  * Credential acquisition mode for an MCP server.
@@ -100,13 +98,11 @@ export interface UseMcpServerCredentialsReturn {
    */
   readonly isReady: boolean;
   /**
-   * `true` while My vault, the sign-in status, or the org-override
-   * lookup is being fetched.
+   * `true` while My vault or the sign-in status is being fetched.
    */
   readonly isLoading: boolean;
   /**
-   * Error from My vault, the sign-in status, or the org-override
-   * fetch, or `null`.
+   * Error from My vault or the sign-in status, or `null`.
    */
   readonly error: Error | null;
   /**
@@ -123,63 +119,26 @@ export interface UseMcpServerCredentialsReturn {
   /** Re-check My vault and the sign-in status. */
   readonly refetch: () => void;
   /**
-   * `true` when the referenced OAuthApp's vendor approval is still pending.
-   * When pending, the platform-managed OAuth sign-in flow is unavailable
-   * and the sign-in button should be disabled. Users can still connect
-   * via manual token entry (manual override).
+   * `true` when the vendor approval of the organization's login app for
+   * this server's address is still pending. When pending, sign-in is
+   * unavailable and the sign-in button should be disabled. Users can still
+   * connect via manual token entry (manual override).
    */
   readonly isVendorApprovalPending: boolean;
   /**
-   * Documentation URL for users who want to bring their own OAuth
-   * credentials while the platform's OAuth app is pending vendor approval.
-   * `null` when no documentation link is available.
+   * Documentation URL for users while the login app is pending vendor
+   * approval. `null` when no documentation link is available.
    */
   readonly vendorApprovalDocsUrl: string | null;
   /**
-   * `true` when the platform OAuth app's vendor approval is PENDING or
-   * REJECTED — i.e., the platform sign-in flow is blocked. Covers both
-   * statuses since the user-facing behavior is the same: sign-in is
-   * disabled and BYOA / manual entry are the available alternatives.
+   * `true` when the login app's vendor approval is PENDING or REJECTED —
+   * i.e., sign-in is blocked. Covers both statuses since the user-facing
+   * behavior is the same: sign-in is disabled and manual entry (or an
+   * admin adding another login app for the address) is the alternative.
    *
    * See also {@link isVendorApprovalPending} which only checks PENDING.
    */
   readonly isVendorApprovalBlocked: boolean;
-  /**
-   * Where the effective OAuth app is resolved from for the caller's org
-   * — the same source the connect flow will use.
-   *
-   * Resolved client-side from the `getOrgOAuthApp` RPC keyed on this
-   * hook's `org` parameter. It cannot come from the fetched McpServer:
-   * the caller's active org is client-side context the read RPCs never
-   * carry, so `status.oauth_status` fields 3-4 are never populated by
-   * any backend (see the OAuthStatus proto).
-   *
-   * `UNSPECIFIED` when `authMode` is `"manual"` or while the override
-   * lookup has not yet resolved.
-   */
-  readonly effectiveOAuthSource: OAuthAppSource;
-  /**
-   * `true` when an org-level BYOA override is active for this server
-   * and org. Derived from the `getOrgOAuthApp` lookup.
-   */
-  readonly isOrgOAuthApp: boolean;
-  /**
-   * `true` when the BYOA option is relevant for this server: the server
-   * uses vendor OAuth (`authMode === "oauth"` with an `oauth_app_ref`),
-   * no org override is currently active, AND the backend supports the
-   * org-override surface at all.
-   *
-   * The last condition is an edition capability, confirmed by probing
-   * `getOrgOAuthApp` (see {@link useOrgOAuthApp}): the surface is
-   * hosted-only, so on OSS deployments — where the submit could only
-   * answer UNIMPLEMENTED — this stays `false` and no BYOA affordance
-   * renders (stigmer/stigmer#558).
-   *
-   * When `true`, the UI should offer "Use your own OAuth app" as either
-   * a primary action (when vendor approval is blocked) or a secondary
-   * link (when vendor approval is granted).
-   */
-  readonly canBringOwnApp: boolean;
   /**
    * `true` when a manually-entered static token is a valid way to
    * authenticate this server. `false` for `oauth_only` servers whose
@@ -215,9 +174,8 @@ export interface UseMcpServerCredentialsReturn {
  * and provides a mechanism to save missing credentials. Values are never
  * read: a variable counts as provided when My vault holds a secret by its
  * name, or, for the tool's login variable, a login a run would fill it from
- * ({@link vaultLoginServes}: a sign-in made for this server, or a pasted
- * login at an HTTP server's own URL; never a pasted login at a local
- * program's discovery URL).
+ * ({@link vaultLoginServes}: a sign-in or a pasted login at an HTTP
+ * server's own URL; a local program takes its keys as secrets).
  *
  * Designed for the discovery flow on the MCP server detail page:
  * before triggering discovery, the UI needs to ensure all required
@@ -232,15 +190,6 @@ export interface UseMcpServerCredentialsReturn {
  * — it is acquired via {@link useMcpServerOAuthConnect}, not a manual
  * form. Additional non-OAuth vars still appear in `missingVariables`
  * (mixed mode).
- *
- * **Org-override-aware**: for vendor-OAuth servers with an
- * `oauth_app_ref`, the hook also composes {@link useOrgOAuthApp} to
- * resolve which OAuth app the connect flow will use for `org`
- * (`effectiveOAuthSource` / `isOrgOAuthApp` / `canBringOwnApp`).
- * The `org` parameter must therefore be the caller's ACTIVE org — the
- * org whose My vault holds the credentials and whose BYOA override
- * applies — not necessarily the org that owns the MCP server (they
- * differ when browsing another org's public server).
  *
  * Unlike {@link useMcpServerSetup} which manages multi-server setup
  * for session creation, this hook is scoped to a single server and
@@ -322,51 +271,6 @@ export function useMcpServerCredentials(
       oauthStatus?.vendorApprovalStatus === VendorApprovalStatus.REJECTED);
   const vendorApprovalDocsUrl = oauthStatus?.vendorApprovalDocsUrl || null;
 
-  const hasOAuthAppRef = Boolean(auth?.oauthAppRef?.slug);
-
-  // Org-override lookup, two duties in one fetch (shared cross-mount via
-  // the hook's fetch cache):
-  //  1. Capability probe (`isSupported`) — the org-override surface is
-  //     hosted-only, so BYOA affordances must hide on OSS (#558).
-  //  2. The override signal (`hasOverride`) — which OAuthApp the connect
-  //     flow will actually use for this org. Resolved client-side because
-  //     the caller's active org is client-side context the read RPCs never
-  //     carry (get has no org; getByReference's org is the server's OWNING
-  //     org, which differs from the caller's org when browsing another
-  //     org's public server), so the fetched McpServer cannot answer this.
-  // Scoped to vendor-OAuth servers with a platform app ref — the only
-  // shape an override can exist for — so manual/DCR servers pay no RPC.
-  const orgOverride = useOrgOAuthApp(
-    authMode === "oauth" && hasOAuthAppRef
-      ? (mcpServer?.metadata?.id ?? null)
-      : null,
-    org,
-  );
-
-  const isOrgOAuthApp = orgOverride.hasOverride;
-  // While the lookup is in flight, failed, or unposable (an app ref exists
-  // but no org to resolve an override for), the override state is unknown —
-  // report UNSPECIFIED rather than guessing PLATFORM, matching the
-  // documented "not yet resolved" contract. UNSUPPORTED is not unknown:
-  // on OSS the platform-ref app is truthfully the effective source.
-  const overrideUnknown =
-    orgOverride.isLoading ||
-    orgOverride.error !== null ||
-    (hasOAuthAppRef && !org);
-  const effectiveOAuthSource =
-    authMode !== "oauth" || overrideUnknown
-      ? OAuthAppSource.OAUTH_APP_SOURCE_UNSPECIFIED
-      : isOrgOAuthApp
-        ? OAuthAppSource.OAUTH_APP_SOURCE_ORG_OVERRIDE
-        : hasOAuthAppRef
-          ? OAuthAppSource.OAUTH_APP_SOURCE_PLATFORM
-          : OAuthAppSource.OAUTH_APP_SOURCE_NONE;
-  const canBringOwnApp =
-    authMode === "oauth" &&
-    hasOAuthAppRef &&
-    !isOrgOAuthApp &&
-    orgOverride.isSupported;
-
   const grantStatus = useOAuthGrantStatus(
     authMode === "oauth" ? (mcpServer?.metadata?.id ?? null) : null,
     authMode === "oauth" ? org : null,
@@ -377,10 +281,10 @@ export function useMcpServerCredentials(
     [mcpServer, myVault.vault],
   );
 
-  // The grant reports only a sign-in made for this server. A run also fills
-  // the login from what My vault holds otherwise (a token pasted at an HTTP
-  // tool's own URL, or a secret by the variable's name), and the server
-  // refuses a sign-in over a pasted login, so that counts as connected too.
+  // The grant reports a sign-in at the server's address. A run also fills
+  // the login from what My vault holds otherwise (a token pasted at the
+  // tool's own URL, or a secret by the variable's name), so that counts as
+  // connected too.
   const isOAuthConnected =
     authMode === "oauth" &&
     (grantStatus.connected || (oauthTargetEnvVar !== null && existingKeys.has(oauthTargetEnvVar)));
@@ -422,8 +326,7 @@ export function useMcpServerCredentials(
   const refetch = useCallback(() => {
     myVault.refetch();
     grantStatus.refetch();
-    orgOverride.refetch();
-  }, [myVault, grantStatus, orgOverride]);
+  }, [myVault, grantStatus]);
 
   return {
     authMode,
@@ -436,15 +339,11 @@ export function useMcpServerCredentials(
     isVendorApprovalPending,
     isVendorApprovalBlocked,
     vendorApprovalDocsUrl,
-    effectiveOAuthSource,
-    isOrgOAuthApp,
-    canBringOwnApp,
     manualEntrySupported,
     missingVariables,
     isReady,
-    isLoading:
-      myVault.isLoading || grantStatus.isLoading || orgOverride.isLoading,
-    error: myVault.error ?? grantStatus.error ?? orgOverride.error,
+    isLoading: myVault.isLoading || grantStatus.isLoading,
+    error: myVault.error ?? grantStatus.error,
     saveCredentials,
     isSaving: myVault.isMutating,
     refetch,

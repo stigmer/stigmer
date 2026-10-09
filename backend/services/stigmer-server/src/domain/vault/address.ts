@@ -15,10 +15,10 @@
  *     Only an HTTPS clone URL has one: the runner sends a token over
  *     nothing else.
  *
- * A tool's address is its `http.url` for an HTTP server, its
- * `auth.discovery_url` for a local program with a login, and none
- * otherwise; a URL holding a `${VAR}` placeholder names no fixed address.
- * A tool with no address takes only secrets, by name.
+ * A tool's address is its `http.url` for an HTTP server and none for a
+ * local program, which takes its keys as secrets; a URL holding a `${VAR}`
+ * placeholder names no fixed address. A tool with no address takes only
+ * secrets, by name.
  *
  * Input that fits neither shape is refused with the rule in the sentence,
  * never repeating the input: a value pasted in the wrong field may be a
@@ -119,21 +119,22 @@ export function gitHostOf(cloneUrl: string): string | undefined {
 }
 
 /**
- * A tool's address: its HTTP URL, else its login's discovery URL, else
- * none. A URL that cannot be normalized (a placeholder in it) is none.
+ * A tool's address: its HTTP URL, or none for a local program. A URL that
+ * cannot be normalized (a placeholder in it) is none.
  */
 export function toolAddressOf(server: McpServer): string | undefined {
   const serverType = server.spec?.serverType;
-  const candidate =
-    serverType?.case === "http"
-      ? serverType.value.url
-      : (server.spec?.auth?.discoveryUrl ?? "");
-  if (candidate === "") {
+  if (serverType?.case !== "http") {
     return undefined;
   }
   try {
-    return normalizeToolUrl(candidate);
+    return normalizeToolUrl(serverType.value.url);
   } catch {
     return undefined;
   }
+}
+
+/** Whether a normalized address is a Git host (a bare host name) rather than a tool's URL. */
+export function isGitHostAddress(address: string): boolean {
+  return !address.includes("://");
 }

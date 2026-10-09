@@ -2,8 +2,9 @@
  * Pins the rating controls' behaviour around the thread: the note a person
  * adds after a thumb (typed, capped at 500 characters, trimmed, sent with
  * the same thumb), the bounded refetch after a run turns COMPLETED (asked
- * again until the run's health score arrives, then never again, and
- * cancelled when the view goes away), a thread with no conversation yet
+ * again until both the run's health score and a judge score arrive, then
+ * never again; all three times for a run with no judge; cancelled when the
+ * view goes away), a thread with no conversation yet
  * asking for nothing, a control outside a thread rendering nothing, and
  * the two write hooks' answers: a refusal other than SCORE_EXISTS is kept
  * and rethrown, a change to one's own rating is sent as the generated
@@ -59,6 +60,21 @@ function run(id: string, phase: RunPhase, sessionId = "ses_1"): Run {
         ? {}
         : { target: { case: "sessionId", value: sessionId } },
     status: { phase },
+  });
+}
+
+/** A judge's graded verdict on the run: no pending poll follows it. */
+function judged(runId: string): Score {
+  return create(ScoreSchema, {
+    metadata: { id: "scr_judge" },
+    spec: {
+      runId,
+      sessionId: "ses_1",
+      metric: "judge",
+      source: ScoreSource.judge,
+      value: { case: "passed", value: true },
+    },
+    status: { state: ScoreState.graded },
   });
 }
 
@@ -172,11 +188,11 @@ describe("the rating control", () => {
 });
 
 describe("the refetch after a run completes", () => {
-  it("asks again until the run's health score arrives, then stops", async () => {
+  it("asks again until the run's health and judge scores arrive, then stops", async () => {
     const mock = client();
     mock.score.listBySession
       .mockResolvedValueOnce(list([]))
-      .mockResolvedValue(list([flaggedHealth("run_1")]));
+      .mockResolvedValue(list([flaggedHealth("run_1"), judged("run_1")]));
     // A run with no id is skipped, never tracked.
     const unnamed = create(RunSchema, {
       spec: { target: { case: "sessionId", value: "ses_1" } },
@@ -201,6 +217,21 @@ describe("the refetch after a run completes", () => {
     });
     expect(mock.score.listBySession).toHaveBeenCalledTimes(2);
   }, 10_000);
+
+  it("asks all three times for a run whose agent has no AI grading", async () => {
+    const mock = client();
+    mock.score.listBySession
+      .mockResolvedValueOnce(list([]))
+      .mockResolvedValue(list([flaggedHealth("run_1")]));
+    const view = render(thread([run("run_1", RunPhase.RUN_IN_PROGRESS)], "run_1"), {
+      wrapper: wrap(mock),
+    });
+    await waitFor(() => expect(mock.score.listBySession).toHaveBeenCalledTimes(1));
+    view.rerender(thread([run("run_1", RunPhase.RUN_COMPLETED)], "run_1"));
+    await waitFor(() => expect(mock.score.listBySession).toHaveBeenCalledTimes(4), {
+      timeout: 6_000,
+    });
+  }, 12_000);
 
   it("cancels the schedule when the view goes away", async () => {
     const mock = client();

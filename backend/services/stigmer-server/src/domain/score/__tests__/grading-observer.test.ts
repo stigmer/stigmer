@@ -35,6 +35,7 @@ import {
 import { RUN_HEALTH_EVALUATOR_VERSION } from "../checks/checks.js";
 import { GRADING_NOT_STARTED_REASON, RUN_HEALTH_METRIC } from "../constants.js";
 import { newGradingObserver } from "../grading-observer.js";
+import { GRADES_RUN_LABEL } from "../judge/judge-run.js";
 import type { ScoreRecorder } from "../ports.js";
 
 const config = new GradingTemporalConfig("grading_test_queue");
@@ -112,6 +113,22 @@ function expectNotGraded(scores: Score[]): void {
 }
 
 describe("the grading observer", () => {
+  it("never grades a judge run: grading the grader would spend a judge on every judge", async () => {
+    const { client, startSpy } = engine(() => Promise.resolve({}));
+    const rec = recorder();
+    const judge = create(RunSchema, {
+      metadata: { id: "run_judge", org: "org_1", labels: { [GRADES_RUN_LABEL]: "run_1" } },
+      status: { phase: RunPhase.RUN_COMPLETED },
+    });
+    await observe(client, rec)({
+      run: judge,
+      oldPhase: RunPhase.RUN_IN_PROGRESS,
+      newPhase: RunPhase.RUN_COMPLETED,
+    });
+    expect(startSpy).not.toHaveBeenCalled();
+    expect(rec.recorded).toEqual([]);
+  });
+
   it("starts the grading workflow when a run completes, once per run", async () => {
     const { client, startSpy } = engine(() => Promise.resolve({}));
     const rec = recorder();

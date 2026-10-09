@@ -398,7 +398,7 @@ describe("authorizeDirect (the direct-handler arm)", () => {
     expect(checks).toHaveLength(0);
   });
 
-  it("the target override replaces field_path resolution — the completeOAuthConnect lane", async () => {
+  it("the target override replaces field_path resolution", async () => {
     const { authorizer, checks } = fakeAuthorizer({ kind: "allow" });
     await authorizeDirect(
       AgentCommandController.method.create,
@@ -442,7 +442,7 @@ describe("authorizeDirect (the direct-handler arm)", () => {
     ]);
   });
 
-  it("an override with the id alone leaves the annotation's kind in place — the completeOAuthConnect lane is unchanged", async () => {
+  it("an override with the id alone leaves the annotation's kind in place", async () => {
     const { authorizer, checks } = fakeAuthorizer({ kind: "allow" });
     const method = IamPolicyQueryController.method.get;
     // A kind-less annotation plus an id-only override: the kind stays

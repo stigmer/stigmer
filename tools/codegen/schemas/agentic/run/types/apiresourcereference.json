@@ -51,6 +51,7 @@
           "plugin",
           "vault",
           "score",
+          "evaluator",
           "plan",
           "subscription",
           "license"

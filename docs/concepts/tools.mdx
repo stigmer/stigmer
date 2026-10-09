@@ -195,22 +195,22 @@ ask about it, or let it run
 Some tools need credentials to access the systems behind them. Stigmer supports
 three authentication patterns, each suited to a different type of integration:
 
-| Pattern                   | When it applies                                                               | How it works                                                                                              |
-| ------------------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| **Environment variables** | The tool uses API keys or tokens                                              | You declare the variable in `env` and save the value in a vault                                           |
-| **Automatic OAuth (DCR)** | The server implements the MCP Authorization spec                              | Stigmer discovers the authorization server, registers a client automatically, and handles the OAuth flow  |
-| **Vendor OAuth**          | The server requires credentials from a specific vendor (Slack, GitHub, Figma) | Stigmer uses a pre-registered OAuthApp with the vendor's client credentials to run the authorization flow |
+| Pattern                    | When it applies                                                     | How it works                                                                                           |
+| -------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| **Environment variables**  | The tool uses API keys or tokens                                    | You declare the variable in `env` and save the value in a vault                                        |
+| **Automatic OAuth**        | The server implements the MCP Authorization spec                    | Stigmer reads the server's login server from its URL, becomes its client once, and handles the sign-in |
+| **OAuth with a login app** | The vendor requires an OAuth app registered with it (Slack, GitHub) | Stigmer signs in with the app your Organization or the deployment registered for the server's address  |
 
-In both OAuth patterns, the acquired access token is saved as a connection at
-the server's address in the signer's vault and refreshed automatically before
-each run. If a token expires and cannot be refreshed, the user re-authenticates
-from the MCP Server's connect page.
+In every OAuth pattern, the sign-in starts from the server's address, and the
+access token is saved as a connection at that address in the signer's vault,
+where it serves every HTTP tool at that address and is refreshed automatically
+before each run. If a token expires and cannot be refreshed, the user signs in
+again from the MCP Server's connect page. A local program (a tool that runs a
+command) has no sign-in: it takes its keys from secrets.
 
-Organizations that need to use their own OAuth app credentials — instead of the
-platform defaults — can set up a Bring Your Own App (BYOA) override at the
-Organization level. This replaces the platform's client credentials with the
-Organization's own, while keeping the same endpoint configuration and token
-lifecycle.
+An Organization that needs its own OAuth app for an address — for a vendor
+Stigmer cannot sign in to on its own, or for tighter control — adds a login app
+listing that address, and every sign-in there uses it.
 
 For a deeper look at OAuth patterns and configuration, see the
 [integration guides](/docs/guides/integrations/overview).

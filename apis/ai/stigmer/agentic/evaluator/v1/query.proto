@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.evaluator.v1;
+
+import "ai/stigmer/agentic/evaluator/v1/api.proto";
+import "ai/stigmer/agentic/evaluator/v1/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+
+// EvaluatorQueryController handles read operations for evaluators.
+//
+// @internal
+// An evaluator's visibility is its agent's (can_view from agent).
+service EvaluatorQueryController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = evaluator;
+
+  // Get a single evaluator by ID.
+  rpc get(EvaluatorId) returns (Evaluator) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = evaluator;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get evaluator";
+  }
+
+  // Get the evaluator of an agent.
+  //
+  // Returns NOT_FOUND when the agent has none, which means AI grading is
+  // off for it.
+  //
+  // @internal
+  // Authorized on the agent: can_view there is can_view on its evaluator.
+  rpc getByAgent(GetEvaluatorByAgentRequest) returns (Evaluator) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "agent_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get the evaluator of agent";
+  }
+}

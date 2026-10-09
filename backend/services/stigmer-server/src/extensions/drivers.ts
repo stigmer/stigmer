@@ -78,6 +78,7 @@ import type { PolicyGrantScope } from "./policy-grant-scope.js";
 import type { PrincipalDisplay } from "./principal-display.js";
 import type { ResourceAuthorizationLifecycle } from "./resource-authorization.js";
 import type { ResourceRowReader } from "./resource-row-reader.js";
+import type { GradingCallerMint } from "./grading-caller.js";
 import type { ScheduleFireCallerMint } from "./schedule-fire-caller.js";
 import type { RunLanes } from "./run-lanes.js";
 import type { VisitorClassifier } from "./visitor-classifier.js";
@@ -187,6 +188,15 @@ export interface ExtensionDrivers {
    * the `internal` class — OSS behavior byte-identical.
    */
   readonly scheduleFireCaller?: ScheduleFireCallerMint;
+  /**
+   * The grading caller mint (single-instance point): the identity an AI
+   * judge run acts as when the grading workflow creates it. When composed,
+   * the workflow propagates the minted caller through the in-process
+   * caller header; when absent, judge runs enter as the `internal` class,
+   * or as the evaluator's creator under the built-in authorization posture
+   * (bound at the compose.ts consumption site).
+   */
+  readonly gradingCaller?: GradingCallerMint;
   /**
    * The identity-account store driver (single-instance point). The
    * identity-account domain is the first

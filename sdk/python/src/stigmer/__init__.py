@@ -25,14 +25,7 @@ from ._billing import (
 )
 from ._client import StigmerClient
 from ._runner_adapter import RunnerAdapter
-from ._github import (
-    ExchangeOAuthCodeParams,
-    GetOAuthAuthorizeUrlParams,
-    GitHubClient,
-    GitHubConnectedAccount,
-    GitHubRepoParams,
-    OAuthAuthorizeUrlResponse,
-)
+from ._github import GitHubClient, GitHubRepoParams
 from ._search import ApiResourceKind, SearchClient, SearchParams, SearchResponse
 
 # --- Resource clients and input types (generated) --------------------------
@@ -130,12 +123,8 @@ __all__ = [
     "SetAutoRechargeConfigParams",
     "UpsertModelPricingBaselineParams",
     # GitHub
-    "ExchangeOAuthCodeParams",
-    "GetOAuthAuthorizeUrlParams",
     "GitHubClient",
-    "GitHubConnectedAccount",
     "GitHubRepoParams",
-    "OAuthAuthorizeUrlResponse",
     # Search
     "ApiResourceKind",
     "SearchClient",

@@ -23,7 +23,6 @@ const (
 	McpServerQueryController_Get_FullMethodName                 = "/ai.stigmer.agentic.mcpserver.v1.McpServerQueryController/get"
 	McpServerQueryController_GetByReference_FullMethodName      = "/ai.stigmer.agentic.mcpserver.v1.McpServerQueryController/getByReference"
 	McpServerQueryController_GetOAuthGrantStatus_FullMethodName = "/ai.stigmer.agentic.mcpserver.v1.McpServerQueryController/getOAuthGrantStatus"
-	McpServerQueryController_GetOrgOAuthApp_FullMethodName      = "/ai.stigmer.agentic.mcpserver.v1.McpServerQueryController/getOrgOAuthApp"
 )
 
 // McpServerQueryControllerClient is the client API for McpServerQueryController service.
@@ -40,9 +39,9 @@ type McpServerQueryControllerClient interface {
 	// system-generated ID.
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*McpServer, error)
 	// Check whether the authenticated user has a sign-in for an MCP server in
-	// their My vault in the specified org that a run would use: one this
-	// server's sign-in saved at the server's current address. A pasted login
-	// and a sign-in saved into a shared vault are read through the vault's own
+	// their My vault in the specified org: a sign-in saved at the server's
+	// address, whichever tool or page started it. A pasted login and a
+	// sign-in saved into a shared vault are read through the vault's own
 	// RPCs.
 	//
 	// Returns sign-in metadata (connected status, token expiry, auth method)
@@ -50,24 +49,6 @@ type McpServerQueryControllerClient interface {
 	// render the correct OAuth state in the MCP server detail page and
 	// session composer.
 	GetOAuthGrantStatus(ctx context.Context, in *GetOAuthGrantStatusInput, opts ...grpc.CallOption) (*GetOAuthGrantStatusOutput, error)
-	// Query whether an org has a BYOA override for a resource.
-	//
-	// Returns override metadata (existence, OAuthApp ID, client_id) without
-	// exposing secrets. The frontend uses this to show which credential
-	// source is active and to offer override management options to org admins.
-	//
-	// Edition scoping: hosted-only, together with setOrgOAuthApp and
-	// deleteOrgOAuthApp — the three org-OAuth-app RPCs are ONE capability.
-	// The OSS server answers UNIMPLEMENTED for all of them by design: its
-	// flat OAuthApp store has no override binding, its OAuth resolution has
-	// no override level to consult, and BYOA's clone-from-platform-template
-	// model has no template to clone (self-hosted users apply their own
-	// OAuthApp and reference it from spec.auth.oauth_app_ref — a strictly
-	// more powerful path). Clients probe the capability through THIS RPC:
-	// an UNIMPLEMENTED answer means "hide every BYOA affordance" (see the
-	// SDK's useOrgOAuthApp.isSupported). Never implement one RPC of the
-	// surface without the other two and the client-side gate.
-	GetOrgOAuthApp(ctx context.Context, in *GetOrgOAuthAppInput, opts ...grpc.CallOption) (*GetOrgOAuthAppOutput, error)
 }
 
 type mcpServerQueryControllerClient struct {
@@ -108,16 +89,6 @@ func (c *mcpServerQueryControllerClient) GetOAuthGrantStatus(ctx context.Context
 	return out, nil
 }
 
-func (c *mcpServerQueryControllerClient) GetOrgOAuthApp(ctx context.Context, in *GetOrgOAuthAppInput, opts ...grpc.CallOption) (*GetOrgOAuthAppOutput, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetOrgOAuthAppOutput)
-	err := c.cc.Invoke(ctx, McpServerQueryController_GetOrgOAuthApp_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // McpServerQueryControllerServer is the server API for McpServerQueryController service.
 // All implementations should embed UnimplementedMcpServerQueryControllerServer
 // for forward compatibility.
@@ -132,9 +103,9 @@ type McpServerQueryControllerServer interface {
 	// system-generated ID.
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*McpServer, error)
 	// Check whether the authenticated user has a sign-in for an MCP server in
-	// their My vault in the specified org that a run would use: one this
-	// server's sign-in saved at the server's current address. A pasted login
-	// and a sign-in saved into a shared vault are read through the vault's own
+	// their My vault in the specified org: a sign-in saved at the server's
+	// address, whichever tool or page started it. A pasted login and a
+	// sign-in saved into a shared vault are read through the vault's own
 	// RPCs.
 	//
 	// Returns sign-in metadata (connected status, token expiry, auth method)
@@ -142,24 +113,6 @@ type McpServerQueryControllerServer interface {
 	// render the correct OAuth state in the MCP server detail page and
 	// session composer.
 	GetOAuthGrantStatus(context.Context, *GetOAuthGrantStatusInput) (*GetOAuthGrantStatusOutput, error)
-	// Query whether an org has a BYOA override for a resource.
-	//
-	// Returns override metadata (existence, OAuthApp ID, client_id) without
-	// exposing secrets. The frontend uses this to show which credential
-	// source is active and to offer override management options to org admins.
-	//
-	// Edition scoping: hosted-only, together with setOrgOAuthApp and
-	// deleteOrgOAuthApp — the three org-OAuth-app RPCs are ONE capability.
-	// The OSS server answers UNIMPLEMENTED for all of them by design: its
-	// flat OAuthApp store has no override binding, its OAuth resolution has
-	// no override level to consult, and BYOA's clone-from-platform-template
-	// model has no template to clone (self-hosted users apply their own
-	// OAuthApp and reference it from spec.auth.oauth_app_ref — a strictly
-	// more powerful path). Clients probe the capability through THIS RPC:
-	// an UNIMPLEMENTED answer means "hide every BYOA affordance" (see the
-	// SDK's useOrgOAuthApp.isSupported). Never implement one RPC of the
-	// surface without the other two and the client-side gate.
-	GetOrgOAuthApp(context.Context, *GetOrgOAuthAppInput) (*GetOrgOAuthAppOutput, error)
 }
 
 // UnimplementedMcpServerQueryControllerServer should be embedded to have
@@ -177,9 +130,6 @@ func (UnimplementedMcpServerQueryControllerServer) GetByReference(context.Contex
 }
 func (UnimplementedMcpServerQueryControllerServer) GetOAuthGrantStatus(context.Context, *GetOAuthGrantStatusInput) (*GetOAuthGrantStatusOutput, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetOAuthGrantStatus not implemented")
-}
-func (UnimplementedMcpServerQueryControllerServer) GetOrgOAuthApp(context.Context, *GetOrgOAuthAppInput) (*GetOrgOAuthAppOutput, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetOrgOAuthApp not implemented")
 }
 func (UnimplementedMcpServerQueryControllerServer) testEmbeddedByValue() {}
 
@@ -255,24 +205,6 @@ func _McpServerQueryController_GetOAuthGrantStatus_Handler(srv interface{}, ctx 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _McpServerQueryController_GetOrgOAuthApp_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetOrgOAuthAppInput)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(McpServerQueryControllerServer).GetOrgOAuthApp(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: McpServerQueryController_GetOrgOAuthApp_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(McpServerQueryControllerServer).GetOrgOAuthApp(ctx, req.(*GetOrgOAuthAppInput))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // McpServerQueryController_ServiceDesc is the grpc.ServiceDesc for McpServerQueryController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -291,10 +223,6 @@ var McpServerQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getOAuthGrantStatus",
 			Handler:    _McpServerQueryController_GetOAuthGrantStatus_Handler,
-		},
-		{
-			MethodName: "getOrgOAuthApp",
-			Handler:    _McpServerQueryController_GetOrgOAuthApp_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

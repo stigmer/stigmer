@@ -79,9 +79,6 @@ export class LocalExecutionTarget implements TargetProfile {
     // provisions is the agent execution engine, not a channel
     // delivery runtime — the refusal posture is identical to `local`.
     channelMessaging: false,
-    // The org BYOA lane is UNIMPLEMENTED on OSS by design (stigmer#558) —
-    // the suite pins the three refusals here.
-    orgOAuthAppConfiguration: false,
     // No billing engine at all — executions run unmetered (the edition
     // boundary).
     billingGates: false,

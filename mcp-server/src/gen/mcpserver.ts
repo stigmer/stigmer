@@ -8,9 +8,7 @@ import { create } from "@bufbuild/protobuf";
 import { McpServerSchema, type McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerSpecSchema, StdioServerConfigSchema, HttpServerConfigSchema, McpServerAuthSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { z } from "zod";
 
@@ -29,7 +27,7 @@ export const McpServerInputShape = {
   env: z.record(z.lazy(() => EnvVarDeclarationInputSchema)).optional().describe("Environment variable declarations for this MCP server. Keys are variable names; values describe their metadata and optionality."),
   repository_url: z.string().optional().describe("URL of the upstream source repository for this MCP server. Shown in the marketplace so users can inspect the implementation for trust and transparency. Example: 'https://github.com/modelcontextprotocol/servers'"),
   github_stars: z.number().optional().describe("GitHub star count at the time of curation. Used as a popularity signal in marketplace display. 0 if unknown or non-GitHub repository."),
-  auth: z.lazy(() => McpServerAuthInputSchema).optional().describe("OAuth authentication configuration for automated credential acquisition. When set, the MCP server's Connect page offers an OAuth flow instead of (or in addition to) manual credential entry. A sign-in saves the access token as a connection at this server's address in the signer's vault (My vault unless a shared vault is named), and a run fills the env var named by auth.target_env_var from it. That env var must also be declared in env."),
+  auth: z.lazy(() => McpServerAuthInputSchema).optional().describe("Sign-in configuration: the tool takes a login saved at its address. When set, the MCP server's Connect page offers a sign-in instead of (or in addition to) manual credential entry. Only an HTTP server may carry it. A sign-in saves the access token as a connection at this server's address in a vault (the signer's My vault unless a shared vault is named), and a run fills the env var named by auth.target_env_var from it. That env var must also be declared in env."),
 } as const;
 
 export const McpServerInputSchema = z.object(McpServerInputShape);
@@ -58,18 +56,10 @@ const EnvVarDeclarationInputSchema = z.object({
 });
 type EnvVarDeclarationInput = z.infer<typeof EnvVarDeclarationInputSchema>;
 
-const OauthAppRefInputSchema = z.object({
-  org: z.string().optional().describe("Organization that owns the referenced resource, by slug or id. When non-empty: an organization slug (lowercase alphanumeric with hyphens, starts with a letter, 2-63 characters; e.g. 'stigmer', 'acme-corp') or an organization id (org_<ulid>). The server stores the id, so a stored reference keeps pointing at its organization across a rename. When empty: the reference is relative — the server resolves it to the parent resource's organization at write time. All stored and returned references always have org populated (absolute form, the id). Use empty org for same-org references (the common case). An explicit other org is accepted only when that organization is your organization's parent and shares the resource with its children (visibility_child_orgs)."),
-  slug: z.string().describe("Resource slug (user-friendly identifier, unique within org). Format: lowercase alphanumeric with hyphens, must start with a letter and end with a letter or digit (e.g., 'web-search', 'code-reviewer'). Length: 2-63 characters."),
-});
-type OauthAppRefInput = z.infer<typeof OauthAppRefInputSchema>;
-
 const McpServerAuthInputSchema = z.object({
-  oauth_app_ref: z.lazy(() => OauthAppRefInputSchema).optional().describe("Reference to an OAuthApp for vendor-specific OAuth. When empty: the server supports the MCP Authorization spec (DCR + PKCE). Stigmer discovers the authorization server metadata, registers a client via DCR, and performs the authorization code flow with PKCE — all automatically at connect time. When set: Stigmer uses the referenced OAuthApp's client credentials to perform the OAuth authorization code flow with the vendor on behalf of the user. The OAuthApp must belong to the same organization as the McpServer: an OAuth app holds vendor credentials and is never shared with child organizations, so no cross-organization reference to one is accepted."),
   target_env_var: z.string().optional().describe("The env var the signed-in access token fills. Must correspond to an entry in env. A sign-in saves the token as a connection at this server's address in the signer's vault, and a run fills this variable from that connection. The refresh token stays with the connection and never reaches a run."),
   token_lifetime_hint: z.string().optional().describe("Informational hint about expected token lifetime for UI display. Helps users understand when re-authentication may be needed. Empty means unknown. Examples: '1h', '2h', '90d', 'never'."),
-  scope_hints: z.array(z.string()).optional().describe("Optional scope hints for UI display before the OAuth flow starts. For DCR servers: shown to the user since actual scopes are discovered at connect time during authorization server metadata retrieval. For vendor OAuth: informational (scopes are defined on the OAuthApp)."),
-  discovery_url: z.string().optional().describe("URL of the login server for a stdio server: where DCR discovery looks, and the address its sign-ins are saved at. HTTP servers do not need this: the platform derives the discovery endpoint from http.url (fetching /.well-known/oauth-authorization-server relative to the server URL), and saves a sign-in at http.url. Stdio servers have no URL, so a sign-in needs this field whether or not oauth_app_ref is set: it is the address the login is saved at in the signer's vault, and the address a run finds it by. A stdio server with OAuth and no discovery_url is refused at sign-in. Without oauth_app_ref it is also the base URL of the vendor's OAuth authorization server that DCR discovers from. Discovery resolution priority (without oauth_app_ref; vendor OAuth uses the OAuthApp's endpoints and discovers nothing): 1. discovery_url (if set — used for both stdio and HTTP) 2. http.url (default for HTTP servers)"),
+  scope_hints: z.array(z.string()).optional().describe("Optional scope hints for UI display before a sign-in starts. Display only: a sign-in requests the scopes the login server's metadata or the login app publishes."),
   oauth_only: z.boolean().optional().describe("Whether the server's endpoint rejects manually-entered static tokens. Some hosted MCP endpoints (e.g. Notion, Monday) only accept an access token obtained through their OAuth flow — a personal API token or PAT pasted into the credential form is rejected with a 401. For these servers OAuth is not merely the preferred path, it is the only path that works. When true, the connect surfaces present OAuth as the sole credential option and suppress the 'enter token manually' affordance, so users are never sent down a path that cannot succeed. When false (the default), a static token remains a valid alternative — appropriate for API-key servers (e.g. Tavily) and for vendor endpoints that also accept a PAT (e.g. GitHub). This is a structural fact about the endpoint, not observable from the spec shape alone (an OAuth-only server and a PAT-capable server can have identical auth blocks), so it must be declared explicitly."),
 });
 type McpServerAuthInput = z.infer<typeof McpServerAuthInputSchema>;
@@ -130,21 +120,11 @@ function envVarDeclarationInputToProto(input: EnvVarDeclarationInput) {
   return result;
 }
 
-function oauthAppRefInputToProto(input: OauthAppRefInput) {
-  return create(ApiResourceReferenceSchema, {
-    org: input.org,
-    slug: input.slug,
-    kind: ApiResourceKind.oauth_app,
-  });
-}
-
 function mcpServerAuthInputToProto(input: McpServerAuthInput) {
   const result = create(McpServerAuthSchema);
-  if (input.oauth_app_ref !== undefined) result.oauthAppRef = oauthAppRefInputToProto(input.oauth_app_ref);
   if (input.target_env_var !== undefined) result.targetEnvVar = input.target_env_var;
   if (input.token_lifetime_hint !== undefined) result.tokenLifetimeHint = input.token_lifetime_hint;
   if (input.scope_hints !== undefined) result.scopeHints = input.scope_hints;
-  if (input.discovery_url !== undefined) result.discoveryUrl = input.discovery_url;
   if (input.oauth_only !== undefined) result.oauthOnly = input.oauth_only;
   return result;
 }

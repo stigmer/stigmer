@@ -23,8 +23,9 @@ export const file_ai_stigmer_agentic_score_v1_api: GenFile = /*@__PURE__*/
  * Score is one grade of a finished run.
  *
  * A run carries a score for each thing measured: a person's thumbs up or
- * down on the final answer, and the free run-health checks the platform
- * runs when a run completes. Anyone who can see the run sees its scores.
+ * down on the final answer, the free run-health checks the platform runs
+ * when a run completes, and an AI judge's verdict where the run's agent has
+ * AI grading switched on. Anyone who can see the run sees its scores.
  *
  * @generated from message ai.stigmer.agentic.score.v1.Score
  */
