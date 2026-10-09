@@ -12,9 +12,8 @@
  * so the engines run in one kind of process everywhere and the one path is
  * the one every test sees.
  *
- * The host sees the environment the agent's tools have always seen: the
- * runner's own, after the boot capture has taken every secret of the
- * runner's out of it (`shared/runner-credential-store.ts`).
+ * The host sees the environment the agent's tools have always seen
+ * (`environment.ts`).
  *
  * THIS MODULE IS IMPORTED BEFORE THE HARNESSES BOOT, so its static graph
  * stays connect- and SDK-free like the table's
@@ -25,6 +24,7 @@ import type { Config } from "../config.js";
 import { HOSTED_HARNESSES } from "../harness-adapters.js";
 import type { HarnessRow } from "../harness/registry.js";
 import { AgentProxy } from "../agent-proxy/server.js";
+import { agentHostEnvironment } from "./environment.js";
 import { createRemoteAdapter } from "./remote-adapter.js";
 import { AgentHostSupervisor, processHostStarter, type HostStarter } from "./supervisor.js";
 
@@ -48,7 +48,7 @@ export async function hostHarnesses(
   const proxy = await AgentProxy.start(config);
   const supervisor = new AgentHostSupervisor({
     proxy,
-    start: options.start ?? processHostStarter(() => ({ ...process.env })),
+    start: options.start ?? processHostStarter(() => agentHostEnvironment()),
   });
   return {
     rows: rows.map((row) =>

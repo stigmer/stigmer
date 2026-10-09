@@ -281,22 +281,38 @@ export class AgentHostSupervisor {
 export function processHostStarter(env: () => NodeJS.ProcessEnv): HostStarter {
   return () => {
     const { command, args } = agentHostCommand();
-    const child: ChildProcess = spawn(command, args, {
-      env: env(),
-      stdio: ["ignore", "pipe", "pipe", "pipe"],
-    });
-    relayLines(child.stdout, (line) => console.log(line));
-    relayLines(child.stderr, (line) => console.error(line));
-    const pipe = child.stdio[AGENT_HOST_CHANNEL_FD] as Readable & Writable;
-    const channel = streamChannel(pipe, pipe);
-    child.on("exit", (code, signal) => channel.close(new Error(`agent host process ended (${signal ?? code})`)));
-    child.on("error", (err) => channel.close(err));
-    return {
+    return spawnHostProcess(command, args, env()).started;
+  };
+}
+
+/**
+ * Spawn one host process with its channel on fd 3 and its output relayed
+ * (`processHostStarter` says how). The child is handed back beside the
+ * started host for the spawned-host tests, which kill it mid-turn.
+ */
+export function spawnHostProcess(
+  command: string,
+  args: readonly string[],
+  env: NodeJS.ProcessEnv,
+): { readonly started: StartedHost; readonly child: ChildProcess } {
+  const child: ChildProcess = spawn(command, args, {
+    env,
+    stdio: ["ignore", "pipe", "pipe", "pipe"],
+  });
+  relayLines(child.stdout, (line) => console.log(line));
+  relayLines(child.stderr, (line) => console.error(line));
+  const pipe = child.stdio[AGENT_HOST_CHANNEL_FD] as Readable & Writable;
+  const channel = streamChannel(pipe, pipe);
+  child.on("exit", (code, signal) => channel.close(new Error(`agent host process ended (${signal ?? code})`)));
+  child.on("error", (err) => channel.close(err));
+  return {
+    child,
+    started: {
       channel,
       kill: () => {
         if (child.exitCode === null && child.signalCode === null) child.kill("SIGTERM");
       },
-    };
+    },
   };
 }
 

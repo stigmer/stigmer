@@ -44,7 +44,8 @@
  * produced them.
  */
 
-import { create, fromBinary, toBinary, type DescMessage, type MessageShape } from "@bufbuild/protobuf";
+import { create, fromBinary, toBinary, type DescField, type DescMessage, type MessageShape } from "@bufbuild/protobuf";
+import { reflect } from "@bufbuild/protobuf/reflect";
 import type { JsonObject } from "@bufbuild/protobuf";
 import { AgentSpecSchema, SubAgentSchema, type AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { ChannelTemplateSchema, MessagingChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
@@ -365,13 +366,12 @@ export function decodeTurnInput(wire: WireTurnInput, services: HostTurnServices)
  */
 export const ADAPTER_OWNED_STATUS_FIELDS = ["messages", "subAgentRuns", "todos", "artifacts", "structuredOutput"] as const;
 
-type AdapterOwnedField = (typeof ADAPTER_OWNED_STATUS_FIELDS)[number];
 const ADAPTER_OWNED: ReadonlySet<string> = new Set(ADAPTER_OWNED_STATUS_FIELDS);
 
+const RUNTIME_OWNED_FIELDS: readonly DescField[] = RunStatusSchema.fields.filter((f) => !ADAPTER_OWNED.has(f.localName));
+
 /** The runtime-owned fields, by their generated names. */
-export const RUNTIME_OWNED_STATUS_FIELDS: readonly string[] = RunStatusSchema.fields
-  .map((f) => f.localName)
-  .filter((name) => !ADAPTER_OWNED.has(name));
+export const RUNTIME_OWNED_STATUS_FIELDS: readonly string[] = RUNTIME_OWNED_FIELDS.map((f) => f.localName);
 
 /** The adapter-owned fields of `status`, as base64 of a `RunStatus` holding only them. */
 export function encodeAdapterProjection(status: RunStatus): string {
@@ -410,8 +410,6 @@ export interface RuntimeFieldsWire {
   readonly status: string;
 }
 
-type StatusRecord = Record<string, unknown>;
-
 /**
  * Tracks which runtime-owned fields one host has seen, so each persist
  * answer carries only what changed. One per remote turn: the host's copy
@@ -421,42 +419,43 @@ export class RuntimeFieldTracker {
   private readonly seen = new Map<string, string>();
 
   constructor(initial: RunStatus) {
-    for (const name of RUNTIME_OWNED_STATUS_FIELDS) this.seen.set(name, encodeField(initial, name));
+    for (const field of RUNTIME_OWNED_FIELDS) this.seen.set(field.localName, encodeFields(initial, [field]));
   }
 
   /** The fields of `status` that differ from what the host last saw, marked seen. */
   changes(status: RunStatus): RuntimeFieldsWire {
-    const fields: string[] = [];
-    const partial: StatusRecord = {};
-    for (const name of RUNTIME_OWNED_STATUS_FIELDS) {
-      const encoded = encodeField(status, name);
-      if (this.seen.get(name) === encoded) continue;
-      this.seen.set(name, encoded);
-      fields.push(name);
-      partial[name] = (status as unknown as StatusRecord)[name];
-    }
-    return { fields, status: encodeMessage(RunStatusSchema, create(RunStatusSchema, partial)) };
+    const changed = RUNTIME_OWNED_FIELDS.filter((field) => {
+      const encoded = encodeFields(status, [field]);
+      if (this.seen.get(field.localName) === encoded) return false;
+      this.seen.set(field.localName, encoded);
+      return true;
+    });
+    return { fields: changed.map((f) => f.localName), status: encodeFields(status, changed) };
   }
 }
 
-/** Assign the changed runtime-owned fields onto the host's copy of the status. */
+/** Assign the changed runtime-owned fields onto the host's copy of the status; a name that is not one is ignored. */
 export function applyRuntimeFields(target: RunStatus, wire: RuntimeFieldsWire): void {
-  if (wire.fields.length === 0) return;
-  const source = decodeMessage(RunStatusSchema, wire.status) as unknown as StatusRecord;
-  const record = target as unknown as StatusRecord;
-  for (const name of wire.fields) {
-    if (!RUNTIME_OWNED_STATUS_FIELDS.includes(name)) continue;
-    record[name] = source[name];
+  const fields = RUNTIME_OWNED_FIELDS.filter((f) => wire.fields.includes(f.localName));
+  if (fields.length === 0) return;
+  copyFields(decodeMessage(RunStatusSchema, wire.status), target, fields);
+}
+
+/** `status`'s `fields`, alone in a `RunStatus`, as base64. */
+function encodeFields(status: RunStatus, fields: readonly DescField[]): string {
+  const partial = create(RunStatusSchema);
+  copyFields(status, partial, fields);
+  return encodeMessage(RunStatusSchema, partial);
+}
+
+/** Copy `fields` from one status to another by reflection, an unset field cleared. */
+function copyFields(from: RunStatus, to: RunStatus, fields: readonly DescField[]): void {
+  const source = reflect(RunStatusSchema, from);
+  const target = reflect(RunStatusSchema, to);
+  for (const field of fields) {
+    if (source.isSet(field)) target.set(field, source.get(field));
+    else target.clear(field);
   }
-}
-
-function encodeField(status: RunStatus, name: string): string {
-  return encodeMessage(RunStatusSchema, create(RunStatusSchema, { [name]: (status as unknown as StatusRecord)[name] }));
-}
-
-/** True when `name` is one of {@link ADAPTER_OWNED_STATUS_FIELDS}. */
-export function isAdapterOwnedField(name: string): name is AdapterOwnedField {
-  return ADAPTER_OWNED.has(name);
 }
 
 // ─── CAS observations ──────────────────────────────────────────────────────
