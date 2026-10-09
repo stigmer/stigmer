@@ -62,7 +62,39 @@ const notGraded: Score = create(ScoreSchema, {
   status: { state: ScoreState.not_graded, notGradedReason: "grading could not start" },
 });
 
+const judged: Score = create(ScoreSchema, {
+  metadata: { id: "scr_4", org: "acme" },
+  spec: {
+    runId: "run_1",
+    metric: "judge",
+    source: ScoreSource.judge,
+    judgeModel: "claude-sonnet-4-6",
+    value: { case: "passed", value: false },
+    criteria: [
+      { name: "did-the-task", result: CriterionResult.failed, reason: "said assigned;\nthe assign call failed" },
+      { name: "made-nothing-up", result: CriterionResult.not_applicable, reason: "no claims" },
+    ],
+  },
+  status: { state: ScoreState.graded },
+});
+
+const grading: Score = create(ScoreSchema, {
+  metadata: { id: "scr_5", org: "acme" },
+  spec: { runId: "run_1", metric: "judge", source: ScoreSource.judge },
+  status: { state: ScoreState.pending },
+});
+
 describe("renderScoresTable", () => {
+  it("shows the judge's verdict, its failed rubric on one line and the model that graded it, and a pending grade as grading", () => {
+    const out = renderScoresTable([judged, grading]);
+    expect(out).toContain("judge");
+    expect(out).toMatch(/\bfail\b/);
+    expect(out).toContain("did-the-task: said assigned; the assign call failed");
+    expect(out).not.toContain("made-nothing-up");
+    expect(out).toContain("claude-sonnet-4-6");
+    expect(out).toContain("grading");
+  });
+
   it("shows a person's thumbs and comment, and who gave them", () => {
     const out = renderScoresTable([thumbsDown]);
     expect(out).toContain("feedback");

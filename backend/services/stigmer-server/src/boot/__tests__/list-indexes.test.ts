@@ -41,6 +41,10 @@ const PINNED: Readonly<
     revision: 1,
     fingerprint: "score{run=field:spec.run_id,session=field:spec.session_id}",
   },
+  evaluator: {
+    revision: 1,
+    fingerprint: "evaluator{agent=field:spec.agent_id}",
+  },
   session: {
     revision: 2,
     fingerprint:
