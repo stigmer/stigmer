@@ -13,6 +13,7 @@ import type { Command } from "commander";
 import { registerRunsApprove } from "./approve.js";
 import { registerRunsControl } from "./control.js";
 import { registerRunsLogs } from "./logs.js";
+import { registerRunsScores } from "./scores.js";
 import { registerRunsTrace } from "./trace.js";
 
 export function registerRuns(program: Command): void {
@@ -23,5 +24,6 @@ export function registerRuns(program: Command): void {
   registerRunsControl(runs);
   registerRunsLogs(runs);
   registerRunsTrace(runs);
+  registerRunsScores(runs);
   registerRunsApprove(runs);
 }

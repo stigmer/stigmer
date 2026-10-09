@@ -24,6 +24,7 @@ import type {
 } from "../organization/purge/kind-purge.js";
 import type { SecretService } from "../../encryption/encryption.js";
 import { newDestroySecretBackingStateStep } from "../../pipeline/steps/secret-cleanup.js";
+import type { RunScoreCascade } from "../score/cascade.js";
 import { sealedValuesOfSession } from "../vault/session-values.js";
 import { sessionListIndex } from "./list-index.js";
 import { newCascadeDeleteAgentExecutionsStep } from "./steps.js";
@@ -34,6 +35,8 @@ export interface SessionPurgeDeps extends KindPurgeDeps {
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /** Destroys the backing state of the session's own sealed values. */
   readonly secretService: SecretService;
+  /** Removes each cascaded run's scores before the run's row. */
+  readonly runScores: RunScoreCascade;
 }
 
 export function newSessionPurge(deps: SessionPurgeDeps): KindPurge {
@@ -47,6 +50,7 @@ export function newSessionPurge(deps: SessionPurgeDeps): KindPurge {
         deps.store,
         deps.authorizationLifecycle,
         deps.logger,
+        deps.runScores,
       ),
       newDeleteResourceStep(deps.store),
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),

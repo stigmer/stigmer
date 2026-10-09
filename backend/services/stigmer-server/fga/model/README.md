@@ -111,6 +111,8 @@ Resources: `run`
 
 A run holds nothing of its own: its one direct relation is the `session` link, every other relation is read through it, and its `can_view` answers exactly what the session's does. That is what lets a list ask about the session in the run's place, and `src/authorization/model/__tests__/registry.test.ts` holds it for every kind whose `kind_meta` makes its authorization its parent's. A relation that would give a run something of its own is a design change of the list read scope first.
 
+A score (`agentic/score.fga`) is seen through its run (`can_view: can_view from run`) but is not its run's whole: the person who rated owns the rating (`OWNER_ATTRIBUTION_TYPE_DIRECT`), edits it while they can still see the run (`can_edit: owner and can_view`), and the run's owner deletes any score on it. Its lists are asked on the run or the session, never through the list read scope.
+
 ### Bounded by the Organization (every direct grant)
 
 Every organization-scoped type admits its direct subjects only while they belong to the object's organization:
@@ -289,6 +291,7 @@ fga/
 │       ├── plugin.fga              # Installed plugins, the unit of install
 │       ├── run.fga                 # Runs (inherits from session)
 │       ├── schedule.fga            # Scheduled runs (owner-scoped)
+│       ├── score.fga               # A finished run's grades (seen through the run)
 │       ├── session.fga             # Conversations (personal)
 │       ├── skill.fga               # Knowledge bases (open access)
 │       └── vault.fga               # Logins and secrets runs use (My vault, shared vaults)

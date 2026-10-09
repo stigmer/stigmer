@@ -453,6 +453,11 @@
           "description": "A person's or an organization's box of logins (matched by a tool's\n address) and secrets (matched by name) that runs use."
         },
         {
+          "name": "score",
+          "number": 61,
+          "description": "One grade of a finished run: a person's thumbs or a free run-health\n check."
+        },
+        {
           "name": "plan",
           "number": 70,
           "description": "Catalog entry naming a bundle of entitlements and the terms that buy it.\n\n Platform-level: a plan belongs to no organization, so it carries no\n authorization scope and no owner. Immutable once created; a change of\n terms is a new Plan and the old one retires."

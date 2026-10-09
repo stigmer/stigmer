@@ -449,6 +449,31 @@ export function hasExplicitPresence(f: FieldSchema): boolean {
   }
 }
 
+/**
+ * Whether a field is a boolean or numeric member of a real oneof: a member
+ * whose zero is a value the caller means (a thumbs-down `false`, a score of
+ * 0), so an input that read zero as unset would drop it and leave the oneof
+ * empty. Such a member carries its presence as an optional scalar does
+ * (hasExplicitPresence): unset when the caller never set it, sent whenever
+ * they did. A string member keeps "" as unset, as every input's string
+ * oneof members always have (a run's `session_id`): no oneof in the
+ * contract means anything by an empty string.
+ */
+export function isValuedOneofScalar(f: FieldSchema): boolean {
+  if (!isRealOneofMember(f)) return false;
+  switch (f.type.kind) {
+    case "int32":
+    case "uint32":
+    case "int64":
+    case "bool":
+    case "float":
+    case "double":
+      return true;
+    default:
+      return false;
+  }
+}
+
 // ---------------------------------------------------------------------
 // TS import tracking (port of tsImportSet)
 // ---------------------------------------------------------------------

@@ -18,6 +18,7 @@ import {
   isIDType,
   isSpecialType,
   isSyntheticOneof,
+  isValuedOneofScalar,
   searchListSupersedesMethod,
   tsClientFieldName,
   TsImportSet,
@@ -820,7 +821,13 @@ function generateTSBuildProto(
         const field = fields[i];
         const fieldName = tsProtoFieldName(field.protoField);
         const prefix = i > 0 ? "} else if" : "if";
-        buf.push(`  ${prefix} (input.${fieldName}) {\n`);
+        // A boolean or numeric member is set whenever the caller gave it,
+        // zero included (isValuedOneofScalar); every other member keeps its
+        // falsy test.
+        const isSet = isValuedOneofScalar(field)
+          ? `input.${fieldName} !== undefined`
+          : `input.${fieldName}`;
+        buf.push(`  ${prefix} (${isSet}) {\n`);
 
         const childType = field.type.messageType ?? "";
         if (childType !== "" && !isSpecialType(childType)) {

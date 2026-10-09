@@ -19,12 +19,15 @@
  * organization (stigmer#1405). And `organization` joins for its children:
  * the built-in evaluator reads a parent's children whenever a check walks
  * a blueprint shared with child organizations, and listChildOrgs pages
- * them (domain/organization/list-index.ts).
+ * them (domain/organization/list-index.ts). And `score` joins for its
+ * parents: a conversation's view reads one session's scores, and a run's
+ * delete one run's (domain/score/list-index.ts).
  */
 import { agentExecutionListIndex } from "../domain/run/list-index.js";
 import { iamPolicyListIndex } from "../domain/iampolicy/list-index.js";
 import { memoryListIndex } from "../domain/memory/list-index.js";
 import { organizationListIndex } from "../domain/organization/list-index.js";
+import { scoreListIndex } from "../domain/score/list-index.js";
 import { sessionListIndex } from "../domain/session/list-index.js";
 import { vaultListIndex } from "../domain/vault/list-index.js";
 import type { ListIndexDeclaration } from "../store/list-index.js";
@@ -34,6 +37,7 @@ export const LIST_INDEXES: ReadonlyArray<ListIndexDeclaration> = [
   iamPolicyListIndex,
   memoryListIndex,
   organizationListIndex,
+  scoreListIndex,
   sessionListIndex,
   vaultListIndex,
 ];

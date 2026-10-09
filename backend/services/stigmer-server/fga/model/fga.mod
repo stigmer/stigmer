@@ -27,6 +27,7 @@ contents:
   - agentic/plugin.fga
   - agentic/run.fga
   - agentic/schedule.fga
+  - agentic/score.fga
   - agentic/session.fga
   - agentic/skill.fga
   - agentic/vault.fga

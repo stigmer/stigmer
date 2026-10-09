@@ -1,0 +1,51 @@
+{
+  "name": "ScoreCriterion",
+  "description": "ScoreCriterion is one criterion's outcome and the reason for it.",
+  "protoType": "ai.stigmer.agentic.score.v1.ScoreCriterion",
+  "protoFile": "apis/ai/stigmer/agentic/score/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Name",
+      "jsonName": "name",
+      "protoField": "name",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The criterion's identifier, for example `no-repeated-calls`.",
+      "required": false,
+      "validation": {
+        "minLength": 1,
+        "maxLength": 63
+      }
+    },
+    {
+      "name": "Result",
+      "jsonName": "result",
+      "protoField": "result",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.score.v1.CriterionResult",
+        "enumValues": [
+          "criterion_result_passed",
+          "criterion_result_failed",
+          "criterion_result_not_applicable"
+        ]
+      },
+      "description": "The criterion's outcome.",
+      "required": false
+    },
+    {
+      "name": "Reason",
+      "jsonName": "reason",
+      "protoField": "reason",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Why, in counts, tool names and step numbers; never a quote of what\n anyone typed.",
+      "required": false,
+      "validation": {
+        "maxLength": 500
+      }
+    }
+  ]
+}

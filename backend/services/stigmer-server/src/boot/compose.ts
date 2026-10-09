@@ -79,6 +79,8 @@ import { ScheduleReconciler } from "../temporal/schedule/reconciler.js";
 import { RunStarter } from "../temporal/schedule/run-starter.js";
 import { ScheduleSyncer } from "../temporal/schedule/syncer.js";
 import { newScheduleWorkerFactory } from "../temporal/schedule/worker.js";
+import { newGradingConfigFromEnv } from "../temporal/grading/config.js";
+import { newGradingWorkerFactory } from "../temporal/grading/worker.js";
 import { registerScheduleServices } from "../domain/schedule/controller.js";
 import { registerAgentChannelServices } from "../domain/agentchannel/controller.js";
 import { registerChannelConversationServices } from "../domain/agentchannel/conversation.js";
@@ -123,6 +125,13 @@ import type { OrganizationDepartureHandler } from "../domain/iampolicy/grant-pat
 import { registerExecutionContextServices } from "../domain/executioncontext/controller.js";
 import { registerGitHubServices } from "../domain/github/controller.js";
 import { registerMemoryServices } from "../domain/memory/controller.js";
+import { newRunScoreCascade } from "../domain/score/cascade.js";
+import { registerScoreServices } from "../domain/score/controller.js";
+import { newGradingObserver } from "../domain/score/grading-observer.js";
+import type {
+  ScoreDeleter,
+  ScoreRecorder,
+} from "../domain/score/ports.js";
 import { registerOAuthAppServices } from "../domain/oauthapp/controller.js";
 import { registerPlatformClientServices } from "../domain/platformclient/controller.js";
 import { newPlatformClientOriginGuard } from "../domain/platformclient/origin-guard.js";
@@ -1034,6 +1043,26 @@ export async function composeServer(
   const scheduleClientProvider = (): TemporalClient | undefined =>
     temporalManager.getClient();
   const scheduleArtifact = new ScheduleArtifact(scheduleTemporalConfig);
+  // Grading: a completed run's run-health score, written by the grading
+  // workflow on its own queue (temporal/grading/). The observer starts it
+  // and runs after every extension's observer, so the hosted edition's
+  // billing settle and channel nudge keep their timing; the score writes
+  // and the run-delete cascade ride the in-process lane as the server,
+  // resolved lazily for the boot-ordering reason the run worker's are.
+  const gradingTemporalConfig = newGradingConfigFromEnv();
+  const scoreRecorder = (): ScoreRecorder => requireInProcess().scoreRecorder;
+  const scoreDeleter = (): ScoreDeleter => requireInProcess().scoreDeleter;
+  const gradingObserver = newGradingObserver({
+    client: () => temporalManager.getClient(),
+    config: gradingTemporalConfig,
+    recorder: scoreRecorder,
+    logger,
+  });
+  const runScores = newRunScoreCascade({
+    store,
+    logger,
+    deleter: scoreDeleter,
+  });
   const scheduleSyncer = new ScheduleSyncer(
     scheduleClientProvider,
     store,
@@ -1104,6 +1133,13 @@ export async function composeServer(
         config: scheduleTemporalConfig,
         syncer: scheduleSyncer,
         runStarter: scheduleRunStarter,
+        logger,
+      }),
+      newGradingWorkerFactory({
+        store,
+        config: gradingTemporalConfig,
+        recorder: scoreRecorder,
+        deleter: scoreDeleter,
         logger,
       }),
       // Extension workers append after the OSS set — their own queues,
@@ -1477,6 +1513,7 @@ export async function composeServer(
     platformClients,
     accounts: identityAccounts,
     accountLifecycle: roleLifecycle,
+    runScores,
   });
   const purgeQuiesce = newQuiesceStage({
     store,
@@ -1674,6 +1711,7 @@ export async function composeServer(
       authorizationLifecycle,
       listReadScope,
       secretService,
+      runScores,
     });
     // The sharing/channel family registers after the agent family, as in
     // Go server.go (agent 378 → agentshare 384 → agentchannel 391 →
@@ -1739,6 +1777,12 @@ export async function composeServer(
       personAccounts,
       runnerCredentialProvider: runnerCredentials,
     });
+    registerScoreServices(router, {
+      store,
+      logger,
+      authorizer,
+      authorizationLifecycle,
+    });
     registerAgentExecutionServices(router, {
       store,
       logger,
@@ -1756,7 +1800,8 @@ export async function composeServer(
       modelRegistry: modelCatalog,
       artifactStorage,
       gateSteps: extensions.gateSteps,
-      statusObservers: extensions.statusObservers,
+      statusObservers: [...extensions.statusObservers, gradingObserver],
+      runScores,
       responseDecorators: extensions.responseDecorators,
       sandboxLane,
       temporalConfig,

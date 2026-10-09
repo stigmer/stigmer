@@ -2545,6 +2545,100 @@
       "metadata": {
         "module": "agentic",
         "relations": {
+          "can_delete": {},
+          "can_edit": {},
+          "can_view": {},
+          "owner": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          },
+          "run": {
+            "directly_related_user_types": [
+              {
+                "type": "run"
+              }
+            ]
+          }
+        },
+        "source_info": {
+          "file": "agentic/score.fga"
+        }
+      },
+      "relations": {
+        "can_delete": {
+          "union": {
+            "child": [
+              {
+                "intersection": {
+                  "child": [
+                    {
+                      "computedUserset": {
+                        "relation": "owner"
+                      }
+                    },
+                    {
+                      "computedUserset": {
+                        "relation": "can_view"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "owner"
+                  },
+                  "tupleset": {
+                    "relation": "run"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "can_edit": {
+          "intersection": {
+            "child": [
+              {
+                "computedUserset": {
+                  "relation": "owner"
+                }
+              },
+              {
+                "computedUserset": {
+                  "relation": "can_view"
+                }
+              }
+            ]
+          }
+        },
+        "can_view": {
+          "tupleToUserset": {
+            "computedUserset": {
+              "relation": "can_view"
+            },
+            "tupleset": {
+              "relation": "run"
+            }
+          }
+        },
+        "owner": {
+          "this": {}
+        },
+        "run": {
+          "this": {}
+        }
+      },
+      "type": "score"
+    },
+    {
+      "metadata": {
+        "module": "agentic",
+        "relations": {
           "can_create_run_in": {},
           "can_delete": {},
           "can_edit": {},

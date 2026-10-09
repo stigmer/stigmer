@@ -1,0 +1,239 @@
+# Store tests for scores: a run's grades are seen by whoever sees the run,
+# and only the person who rated changes a rating.
+#
+# A score carries a single parent link
+#   score#run@run:<id>
+# and, when a person rated, an owner tuple from the row's creator stamp.
+# A score the server writes (run-health) has no owner.
+#
+# Run with:
+#   fga model test --tests score-visibility.fga.yaml
+#
+# Scenario: org "acme" has admin alice, member bob (owns a personal
+# session), member dave (granted viewer on bob's session) and member carol
+# (no relation). bob's run carries bob's thumbs, dave's thumbs and a
+# run-health score. A channel session, owned by the system-channel account
+# and connected by bob, carries a run-health score. "rival" is another org
+# whose admin eve must see nothing. frank rated bob's run while he could
+# see it; his viewer grant is gone.
+name: score-visibility
+model_file: ../../src/authorization/model/data/authorization-model.json
+
+tuples:
+  # --- Org roles ---
+  - user: identity_account:alice
+    relation: admin
+    object: organization:acme
+  - user: identity_account:alice
+    relation: affiliated
+    object: organization:acme
+  - user: identity_account:bob
+    relation: member
+    object: organization:acme
+  - user: identity_account:bob
+    relation: affiliated
+    object: organization:acme
+  - user: identity_account:carol
+    relation: member
+    object: organization:acme
+  - user: identity_account:carol
+    relation: affiliated
+    object: organization:acme
+  - user: identity_account:dave
+    relation: member
+    object: organization:acme
+  - user: identity_account:dave
+    relation: affiliated
+    object: organization:acme
+  - user: identity_account:frank
+    relation: member
+    object: organization:acme
+  - user: identity_account:frank
+    relation: affiliated
+    object: organization:acme
+  - user: identity_account:eve
+    relation: admin
+    object: organization:rival
+  - user: identity_account:eve
+    relation: affiliated
+    object: organization:rival
+
+  # --- bob's personal session, shared with dave, and its run ---
+  - user: organization:acme
+    relation: organization
+    object: session:bobs-chat
+  - user: identity_account:bob
+    relation: owner
+    object: session:bobs-chat
+  - user: identity_account:dave
+    relation: viewer
+    object: session:bobs-chat
+  - user: session:bobs-chat
+    relation: session
+    object: run:bobs-run
+
+  # --- The run's scores ---
+  - user: run:bobs-run
+    relation: run
+    object: score:bobs-thumbs
+  - user: identity_account:bob
+    relation: owner
+    object: score:bobs-thumbs
+  - user: run:bobs-run
+    relation: run
+    object: score:daves-thumbs
+  - user: identity_account:dave
+    relation: owner
+    object: score:daves-thumbs
+  - user: run:bobs-run
+    relation: run
+    object: score:franks-thumbs
+  - user: identity_account:frank
+    relation: owner
+    object: score:franks-thumbs
+  - user: run:bobs-run
+    relation: run
+    object: score:bobs-run-health
+
+  # --- A channel session, its run and its run-health score ---
+  - user: agent_channel:slack-conn
+    relation: channel
+    object: session:channel-chat
+  - user: organization:acme
+    relation: organization
+    object: agent_channel:slack-conn
+  - user: identity_account:bob
+    relation: owner
+    object: agent_channel:slack-conn
+  - user: organization:acme
+    relation: organization
+    object: session:channel-chat
+  - user: identity_account:sys-channel-acme
+    relation: guest
+    object: organization:acme
+  - user: identity_account:sys-channel-acme
+    relation: affiliated
+    object: organization:acme
+  - user: identity_account:sys-channel-acme
+    relation: owner
+    object: session:channel-chat
+  - user: session:channel-chat
+    relation: session
+    object: run:channel-run
+  - user: run:channel-run
+    relation: run
+    object: score:channel-run-health
+
+tests:
+  - name: the session owner sees every score on the run
+    check:
+      - user: identity_account:bob
+        object: score:bobs-thumbs
+        assertions:
+          can_view: true
+      - user: identity_account:bob
+        object: score:daves-thumbs
+        assertions:
+          can_view: true
+      - user: identity_account:bob
+        object: score:bobs-run-health
+        assertions:
+          can_view: true
+
+  - name: a person edits and deletes only their own rating
+    check:
+      - user: identity_account:dave
+        object: score:daves-thumbs
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+      - user: identity_account:dave
+        object: score:bobs-thumbs
+        assertions:
+          can_view: true
+          can_edit: false
+          can_delete: false
+      - user: identity_account:dave
+        object: score:bobs-run-health
+        assertions:
+          can_view: true
+          can_edit: false
+          can_delete: false
+
+  - name: the run's owner deletes any score on the run, and edits only their own
+    check:
+      - user: identity_account:bob
+        object: score:daves-thumbs
+        assertions:
+          can_edit: false
+          can_delete: true
+      - user: identity_account:bob
+        object: score:bobs-run-health
+        assertions:
+          can_edit: false
+          can_delete: true
+      - user: identity_account:bob
+        object: score:bobs-thumbs
+        assertions:
+          can_edit: true
+          can_delete: true
+
+  - name: a rater who can no longer see the run keeps no hold on the rating
+    check:
+      - user: identity_account:frank
+        object: score:franks-thumbs
+        assertions:
+          can_view: false
+          can_edit: false
+          can_delete: false
+
+  - name: an org admin, a plain member and another org see nothing
+    check:
+      - user: identity_account:alice
+        object: score:bobs-run-health
+        assertions:
+          can_view: false
+          can_delete: false
+      - user: identity_account:carol
+        object: score:bobs-thumbs
+        assertions:
+          can_view: false
+      - user: identity_account:eve
+        object: score:bobs-run-health
+        assertions:
+          can_view: false
+
+  - name: a channel observer sees the scores but cannot edit or delete them
+    check:
+      - user: identity_account:bob
+        object: score:channel-run-health
+        assertions:
+          can_view: true
+          can_edit: false
+          can_delete: false
+      - user: identity_account:alice
+        object: score:channel-run-health
+        assertions:
+          can_view: true
+          can_edit: false
+          can_delete: false
+      - user: identity_account:carol
+        object: score:channel-run-health
+        assertions:
+          can_view: false
+
+  - name: list viewable scores follows the runs a person can see
+    list_objects:
+      - user: identity_account:dave
+        type: score
+        assertions:
+          can_view:
+            - score:bobs-thumbs
+            - score:daves-thumbs
+            - score:franks-thumbs
+            - score:bobs-run-health
+      - user: identity_account:carol
+        type: score
+        assertions:
+          can_view: []

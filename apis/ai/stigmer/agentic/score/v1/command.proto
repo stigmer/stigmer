@@ -1,0 +1,89 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.score.v1;
+
+import "ai/stigmer/agentic/score/v1/api.proto";
+import "ai/stigmer/agentic/score/v1/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+
+// ScoreCommandController handles write operations for scores.
+//
+// @internal
+// No apply RPC: a score is written by a person rating a run or by the
+// platform's own checks, never authored as a manifest.
+service ScoreCommandController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = score;
+
+  // Create a score on a completed run.
+  //
+  // A person rates a run with metric `feedback` and source
+  // score_source_human; each person rates a run once and changes the
+  // rating with update. The session and organization are taken from the
+  // run.
+  //
+  // @internal
+  // Authorization: skip standard resource authorization, because the
+  // target is the run named in spec.run_id, not the request's own id.
+  // In-handler enforcement, in order (the score domain's create chain):
+  // 1. GuardScoreSource: score_source_human only from a first-party
+  //    person (any of their own credentials, an API key included);
+  //    score_source_check only from the server itself. Everything else
+  //    is refused.
+  // 2. AuthorizeResolvedTarget: can_view on the run, before the run is
+  //    read, so a caller who cannot see a run learns nothing about
+  //    whether it exists.
+  // 3. The run must be completed, metadata.org must be the run's, and
+  //    metric must agree with source.
+  // 4. A second feedback score by the same person on the same run is
+  //    refused with ALREADY_EXISTS naming the existing score.
+  //
+  // Error Cases:
+  //
+  // - INVALID_ARGUMENT: metric and source disagree, or a comment on a
+  //   non-feedback score
+  // - FAILED_PRECONDITION: the run is not completed, or the organization
+  //   is not the run's
+  // - ALREADY_EXISTS: this person already rated this run; the error
+  //   carries reason SCORE_EXISTS with metadata score_id, the rating to
+  //   update instead
+  // - PERMISSION_DENIED: the caller may not give this source, or cannot
+  //   see the run
+  rpc create(Score) returns (Score) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // Update a person's rating: its value and comment.
+  //
+  // Only feedback is editable, and only by the person who gave it, and only
+  // its value and comment: every other field, the score's name and labels
+  // included, stays as created. A check's verdict never changes.
+  //
+  // @internal
+  // Authorization: requires can_edit on the score (its owner). The
+  // ValidateScoreUpdate step refuses any score that is not
+  // score_source_human, which keeps a server-written score immutable
+  // even where the open-source edition derives an owner for it from the
+  // operator's stamp.
+  rpc update(Score) returns (Score) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = score;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "metadata.id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update score";
+  }
+
+  // Delete a score.
+  //
+  // A person deletes their own rating; the run's owner may delete any
+  // score on the run.
+  //
+  // @internal
+  // Authorization: requires can_delete on the score (owner, or owner
+  // from run).
+  rpc delete(ScoreId) returns (Score) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = score;
+    option (ai.stigmer.commons.rpc.config).permission = can_delete;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete score";
+  }
+}

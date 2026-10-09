@@ -463,6 +463,16 @@ describe("SessionViewer — audience wiring", () => {
     expect(facet.accessSlot).toBeDefined();
   });
 
+  it.each([
+    ["integrator", true],
+    ["observer", true],
+    ["endUser", false],
+    ["guest", false],
+  ] as const)("%s: the thread shows run scores = %s", (audience, shows) => {
+    render(<SessionViewer sessionId="ses_1" org="acme" audience={audience} />);
+    expect(lastThreadProps().runScores).toBe(shows);
+  });
+
   it("renders the conversation's send error through the send-error banner", () => {
     stubConv.sendError = new Error("the run could not start");
     render(<SessionViewer sessionId="ses_1" org="acme" />);

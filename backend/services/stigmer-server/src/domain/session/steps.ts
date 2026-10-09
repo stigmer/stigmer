@@ -38,6 +38,7 @@ import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
+import type { RunScoreCascade } from "../score/cascade.js";
 import { cleanUpDeletedResource } from "../../pipeline/steps/authorization-tuples.js";
 import { isActiveExecutionPhase } from "../run/phases.js";
 import type { AgentExecutionTemporalConfig } from "../run/temporal/config.js";
@@ -341,7 +342,10 @@ export function newRejectDeleteWithActiveExecutionsStep<
  * CascadeDeleteAgentExecutions — deletes the session's agent executions
  * before the session row itself, each execution's access cleaned with its
  * row while the session still holds the link the execution reaches its
- * organization through (stigmer#1603). Billing/usage data is unaffected — usage
+ * organization through (stigmer#1603). Each execution's scores go first,
+ * through their own delete chain, for the same reason
+ * (domain/score/cascade.ts): this loop deletes runs without the run's
+ * chain, so it carries the run chain's score step itself. Billing/usage data is unaffected — usage
  * records are immutable and carry their own copies of session/execution
  * identifiers. Search-index removal per execution is best-effort,
  * matching DeleteSearchIndexStep's convention.
@@ -350,6 +354,7 @@ export function newCascadeDeleteAgentExecutionsStep<Desc extends DescMessage>(
   store: Store,
   lifecycle: ResourceAuthorizationLifecycle | undefined,
   logger: Logger,
+  runScores: RunScoreCascade,
 ): PipelineStep<Desc> {
   return {
     name: "CascadeDeleteAgentExecutions",
@@ -366,6 +371,7 @@ export function newCascadeDeleteAgentExecutionsStep<Desc extends DescMessage>(
 
       for (const execution of executions) {
         const executionId = execution.metadata?.id ?? "";
+        await runScores.deleteScoresOfRun(executionId);
         try {
           await store.deleteResource(
             ApiResourceKind.run,

@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.score.v1;
+
+import "ai/stigmer/agentic/score/v1/enum.proto";
+import "ai/stigmer/commons/apiresource/status.proto";
+
+// ScoreStatus contains system-managed state for a score.
+message ScoreStatus {
+  // Whether the score carries a grade.
+  ScoreState state = 1;
+
+  // Why the run could not be graded, when state is not graded.
+  string not_graded_reason = 2;
+
+  // Standard audit information (created_at, updated_at, created_by, etc.)
+  ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
+}

@@ -28,7 +28,7 @@
  *      main.js.map                            ← external sourcemap
  *      workflow-bundle-agent-execution.js     ← pre-built Temporal workflow
  *      workflow-bundle-schedule.js              bundles, one per domain worker,
- *                                               discovered as siblings by
+ *      workflow-bundle-grading.js               discovered as siblings by
  *                                               src/temporal/workflow-source.ts
  *      workflow-worker-thread.cjs             ← Temporal's sandbox thread entry;
  *                                               worker_threads needs a real file
@@ -99,7 +99,7 @@ const outDir = join(serverRoot, "dist-slim");
 const pkgsDir = join(serverRoot, "dist-slim-pkgs");
 
 /**
- * The two domain workers and the sibling bundle names their
+ * The three domain workers and the sibling bundle names their
  * workflow-source resolvers look for. The names are load-bearing: a drifted
  * sibling fails SOFT at runtime (the worker falls through to the stubbed
  * bundler and manager.ts retries instead of crashing), so
@@ -116,6 +116,11 @@ const WORKFLOW_BUNDLES = [
     entry: "temporal/schedule/workflows/index.js",
     worker: "temporal/schedule/worker.js",
     sibling: "workflow-bundle-schedule.js",
+  },
+  {
+    entry: "temporal/grading/workflows/index.js",
+    worker: "temporal/grading/worker.js",
+    sibling: "workflow-bundle-grading.js",
   },
 ];
 

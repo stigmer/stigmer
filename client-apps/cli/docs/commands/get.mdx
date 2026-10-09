@@ -1,8 +1,8 @@
 Retrieve a resource by type and reference.
 
 `stigmer get` fetches a single resource from the Stigmer backend and displays
-its details. You specify the resource type and a reference — either a slug,
-an `org/slug` qualified name, or a resource ID.
+its details. You specify the resource type and a reference — either a slug, an
+`org/slug` qualified name, or a resource ID.
 
 {/* AUTO_USAGE */}
 
@@ -26,8 +26,8 @@ stigmer get agent my-agent --output yaml
 
 ### Versions
 
-Agents keep every version an apply records. Show the history, or
-fetch one version by its content hash or a tag:
+Agents keep every version an apply records. Show the history, or fetch one
+version by its content hash or a tag:
 
 ```bash
 # The version history, newest first; * marks the current version
@@ -39,28 +39,29 @@ stigmer get agent acme-corp/code-reviewer --version stable
 
 ### Supported resource types
 
-| Type | Aliases | Reference formats |
-|------|---------|-------------------|
-| Agent | `agent`, `agt`, `agents` | slug, org/slug, ID |
-| Agent Channel | `agent-channel`, `agentchannel`, `ach` | slug, org/slug, ID |
-| API Key | `apikey`, `key` | ID only |
-| Channel App | `channel-app`, `channelapp`, `chapp` | slug, org/slug, ID |
-| MCP Server | `mcpserver`, `mcp`, `mcp-server` | slug, org/slug, ID |
-| Organization | `organization`, `org`, `organizations` | slug, ID |
-| Run | `run`, `runs` | ID only |
-| Schedule | `schedule`, `sch`, `schedules` | slug, org/slug, ID |
-| Skill | `skill`, `skills` | slug, org/slug, ID |
-| Vault | `vault`, `vlt`, `vaults` | slug, org/slug, ID (entry names only, never a value) |
+| Type          | Aliases                                | Reference formats                                    |
+| ------------- | -------------------------------------- | ---------------------------------------------------- |
+| Agent         | `agent`, `agt`, `agents`               | slug, org/slug, ID                                   |
+| Agent Channel | `agent-channel`, `agentchannel`, `ach` | slug, org/slug, ID                                   |
+| API Key       | `apikey`, `key`                        | ID only                                              |
+| Channel App   | `channel-app`, `channelapp`, `chapp`   | slug, org/slug, ID                                   |
+| MCP Server    | `mcpserver`, `mcp`, `mcp-server`       | slug, org/slug, ID                                   |
+| Organization  | `organization`, `org`, `organizations` | slug, ID                                             |
+| Run           | `run`, `runs`                          | ID only                                              |
+| Schedule      | `schedule`, `sch`, `schedules`         | slug, org/slug, ID                                   |
+| Score         | `score`, `scr`, `scores`               | ID only                                              |
+| Skill         | `skill`, `skills`                      | slug, org/slug, ID                                   |
+| Vault         | `vault`, `vlt`, `vaults`               | slug, org/slug, ID (entry names only, never a value) |
 
 ### Output formats
 
 Use `--output` to control the display format:
 
-| Format | Use case |
-|--------|----------|
-| `table` | Human-readable table (default) |
-| `yaml` | Full resource definition as YAML |
-| `json` | Full resource definition as JSON |
+| Format  | Use case                         |
+| ------- | -------------------------------- |
+| `table` | Human-readable table (default)   |
+| `yaml`  | Full resource definition as YAML |
+| `json`  | Full resource definition as JSON |
 
 ```bash
 # Export an agent definition as YAML
@@ -84,8 +85,8 @@ stigmer get agent my-agent
 stigmer get run run_01abc123
 ```
 
-Runs are referenced by ID only (not slugs). The output includes
-artifacts produced by the agent.
+Runs are referenced by ID only (not slugs). The output includes artifacts
+produced by the agent.
 
 ### Export a resource definition
 
@@ -97,11 +98,11 @@ stigmer get agent my-agent --output yaml > agent-backup.yaml
 
 ## Related commands
 
-| Command | Description |
-|---------|-------------|
-| [`stigmer list`](./list) | List all resources of a type |
-| [`stigmer delete`](./delete) | Delete a resource |
-| [`stigmer apply`](./apply) | Create or update resources |
+| Command                      | Description                    |
+| ---------------------------- | ------------------------------ |
+| [`stigmer list`](./list)     | List all resources of a type   |
+| [`stigmer delete`](./delete) | Delete a resource              |
+| [`stigmer apply`](./apply)   | Create or update resources     |
 | [`stigmer search`](./search) | Search resources by text query |
 
 ## See also

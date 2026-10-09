@@ -22,8 +22,9 @@
 // committed stubs declare on an open-source kind has a row here, or one of the
 // stated exemptions (a kind no open-source edition serves, whose rows the
 // hosted edition's own suites carry; an input with no
-// metadata to carry an id, and IdentityAccount's create, which no wire caller
-// may send). A new create RPC fails it until the row is added.
+// metadata to carry an id, IdentityAccount's create, which no wire caller
+// may send, and Score's create, which needs a completed run and is pinned in
+// the execution class). A new create RPC fails it until the row is added.
 //
 // Two rows depend on the edition. An execution create needs a Temporal engine
 // behind the server: the plain local targets refuse it Unavailable before any
@@ -607,6 +608,10 @@ const EXEMPT_BY_NAME: ReadonlyMap<string, string> = new Map([
   [
     "IdentityAccountCommandController.create",
     "create is internal: every wire caller is refused PermissionDenied on every edition (suites/identityaccount.conformance.test.ts)",
+  ],
+  [
+    "ScoreCommandController.create",
+    "a score is created only on a completed run, which needs an engine; the execution class pins that a rating never keeps the id its caller sent (suites-execution/run-scores.conformance.test.ts)",
   ],
 ]);
 

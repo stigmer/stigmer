@@ -25,6 +25,7 @@ from ._plugin import PluginClient
 from ._providerkey import ProviderKeyClient
 from ._run import RunClient
 from ._schedule import ScheduleClient
+from ._score import ScoreClient
 from ._session import SessionClient
 from ._skill import SkillClient
 from ._subscription import SubscriptionClient
@@ -57,6 +58,7 @@ class GeneratedClient:
         self.providerkeys = ProviderKeyClient(channel)
         self.runs = RunClient(channel)
         self.schedules = ScheduleClient(channel)
+        self.scores = ScoreClient(channel)
         self.sessions = SessionClient(channel)
         self.skills = SkillClient(channel)
         self.subscriptions = SubscriptionClient(channel)

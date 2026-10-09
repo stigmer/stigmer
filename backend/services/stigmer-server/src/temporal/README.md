@@ -1,6 +1,6 @@
 # temporal/ — the Temporal engine
 
-The shared worker infrastructure and the per-domain workers: agent-execution and the schedule clock each register their workers with the same manager.
+The shared worker infrastructure and the per-domain workers: agent-execution, the schedule clock and grading each register their workers with the same manager.
 
 ## Layout
 
@@ -10,6 +10,8 @@ The shared worker infrastructure and the per-domain workers: agent-execution and
 - `workflow-source.ts` — prebuilt-bundle vs bundle-on-boot resolution (runner precedent); slim artifacts carry the prebuilt bundles.
 - `runner-failure.ts` — worker-shutdown classification for the agent-execution workflow (ports pkg/runnerfailure, #776).
 - `agentexecution/` — the agent-execution worker: byte-pinned names, dispatch resolution, the ConnectedExecutionEngine implementation, server-side activities, and `workflows/` (the deterministic sandbox bundle).
+- `schedule/` — the schedule clock's worker: the tick workflow, its activities and its byte-pinned names, on its own queue (`schedule_stigmer`).
+- `grading/` — the grading worker: `stigmer/grading/grade-run` grades a completed run with the free run-health checks and records the score through the score's create chain, on its own queue (`grading_stigmer`, `TEMPORAL_GRADING_STIGMER_TASK_QUEUE`); `names.ts` holds its byte-pinned names. The run-status observer that starts it is `domain/score/grading-observer.ts`.
 
 ## Workflow-bundle import discipline
 
