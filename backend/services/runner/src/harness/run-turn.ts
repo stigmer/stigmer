@@ -618,7 +618,13 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
     );
     try {
       const { extractStructuredOutput } = await import("../shared/extract-structured-output.js");
-      const extracted = await extractStructuredOutput(finalText, turn.structuredOutputSchema!, config, turn.model.requested);
+      const extracted = await extractStructuredOutput(
+        finalText,
+        turn.structuredOutputSchema!,
+        config,
+        turn.model.requested,
+        executionId,
+      );
       if (extracted !== undefined) {
         console.log(`${activityName} structured output extracted (LLM): execution=${executionId}`);
       }

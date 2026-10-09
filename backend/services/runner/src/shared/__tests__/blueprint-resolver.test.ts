@@ -53,7 +53,7 @@ describe("resolveBlueprint", () => {
       status: { agentId: "agt_repointed", agentVersionHash: "b".repeat(64) },
     });
 
-    const blueprint = await resolveBlueprint(client, session, { agentId: "agt_1", agentVersionHash: HASH });
+    const blueprint = await resolveBlueprint(client, session, { agentId: "agt_1", agentVersionHash: HASH }, {});
 
     expect(blueprint.agent).toMatchObject({ id: "agt_1", versionHash: HASH });
     expect(blueprint.instructions).toBe("You review pull requests, version one.");
@@ -71,7 +71,7 @@ describe("resolveBlueprint", () => {
     });
     const session = create(SessionSchema, { metadata: { id: "ses_4" }, spec: { agentRef: { kind: ApiResourceKind.agent, org: "acme", slug: "builder" } } });
 
-    const failure = await resolveBlueprint(client, session, { agentId: "agt_1", agentVersionHash: HASH }).catch(
+    const failure = await resolveBlueprint(client, session, { agentId: "agt_1", agentVersionHash: HASH }, {}).catch(
       (e: unknown) => e,
     );
 
@@ -87,7 +87,7 @@ describe("resolveBlueprint", () => {
     });
     const session = create(SessionSchema, { metadata: { id: "ses_6" }, spec: { agentRef: { kind: ApiResourceKind.agent, org: "acme", slug: "builder" } } });
 
-    const failure = await resolveBlueprint(client, session, { agentId: "agt_1", agentVersionHash: HASH }).catch(
+    const failure = await resolveBlueprint(client, session, { agentId: "agt_1", agentVersionHash: HASH }, {}).catch(
       (e: unknown) => e,
     );
 
@@ -109,7 +109,7 @@ describe("resolveBlueprint", () => {
       status: { agentId: "agt_other" },
     });
 
-    const blueprint = await resolveBlueprint(client, session, { agentId: "agt_1", agentVersionHash: "" });
+    const blueprint = await resolveBlueprint(client, session, { agentId: "agt_1", agentVersionHash: "" }, {});
 
     expect(blueprint.agent).toMatchObject({ id: "agt_1", versionHash: "" });
     expect(blueprint.instructions).toBe("Unversioned.");
@@ -138,7 +138,7 @@ describe("resolveBlueprint", () => {
       },
     });
 
-    const blueprint = await resolveBlueprint(client, session, { agentId: "agt_1", agentVersionHash: HASH });
+    const blueprint = await resolveBlueprint(client, session, { agentId: "agt_1", agentVersionHash: HASH }, {});
 
     expect(blueprint.agent?.id).toBe("agt_1");
     expect(blueprint.instructions).toBe("You build things.");
@@ -166,7 +166,7 @@ describe("resolveBlueprint", () => {
         status: { agentId: "agt_pinned", agentVersionHash: HASH },
       });
 
-      const blueprint = await resolveBlueprint(client, session, recorded);
+      const blueprint = await resolveBlueprint(client, session, recorded, {});
 
       expect(blueprint.agent).toBeUndefined();
       expect(blueprint.instructions).toBe("");
