@@ -1,0 +1,114 @@
+{
+  "name": "ScoreSpec",
+  "description": "ScoreSpec holds what was measured, on which run, and the result.",
+  "protoType": "ai.stigmer.agentic.score.v1.ScoreSpec",
+  "protoFile": "apis/ai/stigmer/agentic/score/v1/spec.proto",
+  "fields": [
+    {
+      "name": "RunId",
+      "jsonName": "runId",
+      "protoField": "run_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "ID of the run this score grades.",
+      "required": false,
+      "validation": {
+        "minLength": 1
+      }
+    },
+    {
+      "name": "SessionId",
+      "jsonName": "sessionId",
+      "protoField": "session_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "ID of the session the run belongs to.",
+      "required": false
+    },
+    {
+      "name": "Name",
+      "jsonName": "name",
+      "protoField": "name",
+      "type": {
+        "kind": "string"
+      },
+      "description": "What is measured: `feedback` for a person's thumbs, `run-health` for\n the free checks.",
+      "required": false,
+      "validation": {
+        "minLength": 1,
+        "maxLength": 63
+      }
+    },
+    {
+      "name": "Source",
+      "jsonName": "source",
+      "protoField": "source",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.score.v1.ScoreSource",
+        "enumValues": [
+          "score_source_check",
+          "score_source_human"
+        ]
+      },
+      "description": "Who or what gave the score.",
+      "required": false
+    },
+    {
+      "name": "EvaluatorVersion",
+      "jsonName": "evaluatorVersion",
+      "protoField": "evaluator_version",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Identifies the version of the checks or rubric that produced the\n score, so scores from different versions are never compared as one.",
+      "required": false,
+      "validation": {
+        "maxLength": 128
+      }
+    },
+    {
+      "name": "Passed",
+      "jsonName": "passed",
+      "protoField": "passed",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "True when the run passed: thumbs up, or every applicable check\n passed.",
+      "required": false,
+      "oneofGroup": "value"
+    },
+    {
+      "name": "Criteria",
+      "jsonName": "criteria",
+      "protoField": "criteria",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "ScoreCriterion"
+        }
+      },
+      "description": "The criteria behind the value, one per check or rubric item.",
+      "required": false,
+      "validation": {
+        "maxItems": 32
+      }
+    },
+    {
+      "name": "Comment",
+      "jsonName": "comment",
+      "protoField": "comment",
+      "type": {
+        "kind": "string"
+      },
+      "description": "A person's optional note on their rating.",
+      "required": false,
+      "validation": {
+        "maxLength": 500
+      }
+    }
+  ]
+}

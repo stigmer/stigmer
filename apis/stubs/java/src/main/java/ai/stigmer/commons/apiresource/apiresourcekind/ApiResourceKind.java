@@ -228,6 +228,15 @@ public enum ApiResourceKind
   vault(59),
   /**
    * <pre>
+   * One grade of a finished run: a person's thumbs or a free run-health
+   * check.
+   * </pre>
+   *
+   * <code>score = 61 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  score(61),
+  /**
+   * <pre>
    * Catalog entry naming a bundle of entitlements and the terms that buy it.
    *
    * Platform-level: a plan belongs to no organization, so it carries no
@@ -489,6 +498,15 @@ public enum ApiResourceKind
   public static final int vault_VALUE = 59;
   /**
    * <pre>
+   * One grade of a finished run: a person's thumbs or a free run-health
+   * check.
+   * </pre>
+   *
+   * <code>score = 61 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  public static final int score_VALUE = 61;
+  /**
+   * <pre>
    * Catalog entry naming a bundle of entitlements and the terms that buy it.
    *
    * Platform-level: a plan belongs to no organization, so it carries no
@@ -576,6 +594,7 @@ public enum ApiResourceKind
       case 57: return memory;
       case 58: return plugin;
       case 59: return vault;
+      case 61: return score;
       case 70: return plan;
       case 71: return subscription;
       case 72: return license;

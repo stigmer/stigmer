@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.score.v1;
+
+import "ai/stigmer/agentic/score/v1/api.proto";
+import "buf/validate/validate.proto";
+
+// ScoreId wraps a score identifier.
+message ScoreId {
+  // Unique identifier of the score.
+  string value = 1 [(buf.validate.field).required = true];
+}
+
+// ListScoresByRunRequest lists every score of one run.
+//
+// A run's scores are returned whole: a run has a handful.
+message ListScoresByRunRequest {
+  // ID of the run whose scores to list.
+  string run_id = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+// ListScoresBySessionRequest lists every score of every run in a session.
+//
+// A session's scores are returned whole, as its runs are: a conversation
+// is read as one.
+message ListScoresBySessionRequest {
+  // ID of the session whose runs' scores to list.
+  string session_id = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+// ScoreList is a list of scores.
+message ScoreList {
+  // Number of scores in the list.
+  int32 total_count = 1;
+
+  // The scores, newest first.
+  repeated Score items = 2;
+}

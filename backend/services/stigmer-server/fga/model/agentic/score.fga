@@ -1,0 +1,42 @@
+module agentic
+
+# ========================================
+# SCORE TYPE (Run-bound)
+# ========================================
+# One grade of a finished run: a person's thumbs, or the platform's free
+# run-health checks.
+#
+# Authorization model:
+# - Visibility is the run's: whoever can view the run views its scores,
+#   channel observers included, and nobody else. Nothing is granted on a
+#   score itself (the kind has no visibility block and no grantable roles).
+# - The person who rated owns the rating (OWNER_ATTRIBUTION_TYPE_DIRECT,
+#   from the row's creator stamp) and alone may edit it, for as long as
+#   they can still see the run. A score the server
+#   writes has no person owner in the hosted edition; the update chain
+#   refuses any score that is not a person's, so a check's verdict never
+#   changes even where an owner is derived for it.
+# - The run's owner may delete any score on the run: it is their
+#   conversation.
+
+type score
+  relations
+    # ========================================
+    # PARENT RUN
+    # ========================================
+    # FGA tuple: score:<score_id>#run@run:<run_id>
+    define run: [run]
+
+    # ========================================
+    # OWNER (the person who rated)
+    # ========================================
+    define owner: [identity_account]
+
+    # ========================================
+    # OPERATIONS
+    # ========================================
+    # A rater who can no longer see the run (they left the organization,
+    # or the session's grant was revoked) keeps no hold on the rating.
+    define can_view: can_view from run
+    define can_edit: owner and can_view
+    define can_delete: (owner and can_view) or owner from run

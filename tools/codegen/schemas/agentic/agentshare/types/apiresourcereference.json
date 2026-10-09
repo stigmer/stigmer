@@ -50,6 +50,7 @@
           "memory",
           "plugin",
           "vault",
+          "score",
           "plan",
           "subscription",
           "license"

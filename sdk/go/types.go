@@ -26,6 +26,7 @@ type PluginClient = gen.PluginClient
 type ProviderKeyClient = gen.ProviderKeyClient
 type RunClient = gen.RunClient
 type ScheduleClient = gen.ScheduleClient
+type ScoreClient = gen.ScoreClient
 type SessionClient = gen.SessionClient
 
 // SkillClient is NOT aliased here: the handwritten wrapper in skill.go
@@ -89,6 +90,8 @@ type AttachmentInput = gen.AttachmentInput
 type ConversationCatchupInput = gen.ConversationCatchupInput
 type ScheduleInput = gen.ScheduleInput
 type AgentInvocationInput = gen.AgentInvocationInput
+type ScoreInput = gen.ScoreInput
+type ScoreCriterionInput = gen.ScoreCriterionInput
 type SessionInput = gen.SessionInput
 type SkillInput = gen.SkillInput
 type SubscriptionInput = gen.SubscriptionInput
