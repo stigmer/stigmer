@@ -439,7 +439,10 @@ export function runRequirements(input: RunCredentialInput): Requirement[] {
       key: CLONE_TOKEN_KEY,
       declarer: {
         kind: "repository",
-        name: entry.name || source.value.url,
+        // The entry's own name, empty or not: the runner matches its
+        // workspace entry by name and URL exactly as the session carries
+        // them. The messages fall back to the URL.
+        name: entry.name,
         url: source.value.url,
       },
       optional: true,
@@ -579,7 +582,9 @@ const DECLARER_WORDS: Readonly<Record<Declarer["kind"], (name: string) => string
 };
 
 function describeDeclarer(declarer: Declarer): string {
-  return DECLARER_WORDS[declarer.kind](declarer.name);
+  const name =
+    declarer.kind === "repository" && declarer.name === "" ? declarer.url : declarer.name;
+  return DECLARER_WORDS[declarer.kind](name);
 }
 
 /**
