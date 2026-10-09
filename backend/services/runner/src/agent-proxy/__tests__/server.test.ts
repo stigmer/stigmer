@@ -87,6 +87,8 @@ const asHost = { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id"
 
 describe("what a host token buys", () => {
   it("refuses a call with no token, a wrong one, or a previous host's", async () => {
+    // A provider that would answer: a refusal is the proxy's own, never one the upstream gave.
+    setEnv({ ANTHROPIC_BASE_URL: upstream.url, ANTHROPIC_API_KEY: "sk-operator" });
     const proxy = await startProxy();
     proxy.openTurn({ executionId: EXECUTION, sessionId: SESSION });
     try {
@@ -98,6 +100,8 @@ describe("what a host token buys", () => {
       });
       const wrong = await call(proxy, "/v1/proxy/llm/anthropic/v1/messages", { headers: { ...asHost, authorization: "Bearer not-the-token" } });
       expect(wrong.status).toBe(401);
+      const sameLength = await call(proxy, "/v1/proxy/llm/anthropic/v1/messages", { headers: { ...asHost, authorization: `Bearer ${"x".repeat(HOST_TOKEN.length)}` } });
+      expect(sameLength.status, "a token of the right length is still compared").toBe(401);
       proxy.authorizeHost("the-next-host");
       const previous = await call(proxy, "/v1/proxy/llm/anthropic/v1/messages", { headers: asHost });
       expect(previous.status, "a token from a host that was replaced is worth nothing").toBe(401);
