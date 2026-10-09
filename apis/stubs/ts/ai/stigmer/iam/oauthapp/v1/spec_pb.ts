@@ -11,7 +11,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/oauthapp/v1/spec.proto.
  */
 export const file_ai_stigmer_iam_oauthapp_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CiVhaS9zdGlnbWVyL2lhbS9vYXV0aGFwcC92MS9zcGVjLnByb3RvEhphaS5zdGlnbWVyLmlhbS5vYXV0aGFwcC52MSKvAwoMT0F1dGhBcHBTcGVjEhAKCHByb3ZpZGVyGAEgASgJEhoKCWNsaWVudF9pZBgCIAEoCUIHukgEcgIQARIeCg1jbGllbnRfc2VjcmV0GAMgASgJQge6SARyAhABEiMKEWF1dGhvcml6YXRpb25fdXJsGAQgASgJQgi6SAVyA4gBARIbCgl0b2tlbl91cmwYBSABKAlCCLpIBXIDiAEBEg4KBnNjb3BlcxgGIAMoCRIUCgx1c2VyaW5mb191cmwYByABKAkSHAoUc2NvcGVfcGFyYW1ldGVyX25hbWUYCCABKAkSUAoWdmVuZG9yX2FwcHJvdmFsX3N0YXR1cxgJIAEoDjIwLmFpLnN0aWdtZXIuaWFtLm9hdXRoYXBwLnYxLlZlbmRvckFwcHJvdmFsU3RhdHVzEiAKGHZlbmRvcl9hcHByb3ZhbF9kb2NzX3VybBgKIAEoCRJXChp0b2tlbl9lbmRwb2ludF9hdXRoX21ldGhvZBgLIAEoDjIzLmFpLnN0aWdtZXIuaWFtLm9hdXRoYXBwLnYxLlRva2VuRW5kcG9pbnRBdXRoTWV0aG9kKqwBChRWZW5kb3JBcHByb3ZhbFN0YXR1cxImCiJWRU5ET1JfQVBQUk9WQUxfU1RBVFVTX1VOU1BFQ0lGSUVEEAASIgoeVkVORE9SX0FQUFJPVkFMX1NUQVRVU19QRU5ESU5HEAESIwofVkVORE9SX0FQUFJPVkFMX1NUQVRVU19BUFBST1ZFRBACEiMKH1ZFTkRPUl9BUFBST1ZBTF9TVEFUVVNfUkVKRUNURUQQAyqsAQoXVG9rZW5FbmRwb2ludEF1dGhNZXRob2QSKgomVE9LRU5fRU5EUE9JTlRfQVVUSF9NRVRIT0RfVU5TUEVDSUZJRUQQABIyCi5UT0tFTl9FTkRQT0lOVF9BVVRIX01FVEhPRF9DTElFTlRfU0VDUkVUX0JBU0lDEAESMQotVE9LRU5fRU5EUE9JTlRfQVVUSF9NRVRIT0RfQ0xJRU5UX1NFQ1JFVF9QT1NUEAJiBnByb3RvMw", [file_buf_validate_validate]);
+  fileDesc("CiVhaS9zdGlnbWVyL2lhbS9vYXV0aGFwcC92MS9zcGVjLnByb3RvEhphaS5zdGlnbWVyLmlhbS5vYXV0aGFwcC52MSLZAwoMT0F1dGhBcHBTcGVjEhAKCHByb3ZpZGVyGAEgASgJEhoKCWNsaWVudF9pZBgCIAEoCUIHukgEcgIQARIeCg1jbGllbnRfc2VjcmV0GAMgASgJQge6SARyAhABEiMKEWF1dGhvcml6YXRpb25fdXJsGAQgASgJQgi6SAVyA4gBARIbCgl0b2tlbl91cmwYBSABKAlCCLpIBXIDiAEBEg4KBnNjb3BlcxgGIAMoCRIUCgx1c2VyaW5mb191cmwYByABKAkSHAoUc2NvcGVfcGFyYW1ldGVyX25hbWUYCCABKAkSUAoWdmVuZG9yX2FwcHJvdmFsX3N0YXR1cxgJIAEoDjIwLmFpLnN0aWdtZXIuaWFtLm9hdXRoYXBwLnYxLlZlbmRvckFwcHJvdmFsU3RhdHVzEiAKGHZlbmRvcl9hcHByb3ZhbF9kb2NzX3VybBgKIAEoCRJXChp0b2tlbl9lbmRwb2ludF9hdXRoX21ldGhvZBgLIAEoDjIzLmFpLnN0aWdtZXIuaWFtLm9hdXRoYXBwLnYxLlRva2VuRW5kcG9pbnRBdXRoTWV0aG9kEigKCWFkZHJlc3NlcxgMIAMoCUIVukgSkgEPCAEQFBgBIgdyBRABGIAQKqwBChRWZW5kb3JBcHByb3ZhbFN0YXR1cxImCiJWRU5ET1JfQVBQUk9WQUxfU1RBVFVTX1VOU1BFQ0lGSUVEEAASIgoeVkVORE9SX0FQUFJPVkFMX1NUQVRVU19QRU5ESU5HEAESIwofVkVORE9SX0FQUFJPVkFMX1NUQVRVU19BUFBST1ZFRBACEiMKH1ZFTkRPUl9BUFBST1ZBTF9TVEFUVVNfUkVKRUNURUQQAyqsAQoXVG9rZW5FbmRwb2ludEF1dGhNZXRob2QSKgomVE9LRU5fRU5EUE9JTlRfQVVUSF9NRVRIT0RfVU5TUEVDSUZJRUQQABIyCi5UT0tFTl9FTkRQT0lOVF9BVVRIX01FVEhPRF9DTElFTlRfU0VDUkVUX0JBU0lDEAESMQotVE9LRU5fRU5EUE9JTlRfQVVUSF9NRVRIT0RfQ0xJRU5UX1NFQ1JFVF9QT1NUEAJiBnByb3RvMw", [file_buf_validate_validate]);
 
 /**
  * OAuthAppSpec defines a registered OAuth application with an external vendor.
@@ -71,10 +71,11 @@ export type OAuthAppSpec = Message<"ai.stigmer.iam.oauthapp.v1.OAuthAppSpec"> & 
   scopes: string[];
 
   /**
-   * Optional OIDC UserInfo endpoint for fetching user profile data.
-   * When set, Stigmer calls this endpoint after token acquisition to
-   * retrieve the user's display name and avatar for the connected account.
-   * Omit for vendors that do not support a standard userinfo endpoint.
+   * Optional endpoint that answers who signed in (an OIDC UserInfo
+   * endpoint, or a vendor's equivalent such as GitHub's /user).
+   * When set, Stigmer calls it once after the sign-in, with the new token,
+   * and describes the saved login by the account's login, preferred user
+   * name or email ("Slack @ana"). Omit for vendors without one.
    *
    * @generated from field: string userinfo_url = 7;
    */
@@ -136,6 +137,16 @@ export type OAuthAppSpec = Message<"ai.stigmer.iam.oauthapp.v1.OAuthAppSpec"> & 
    * @generated from field: ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod token_endpoint_auth_method = 11;
    */
   tokenEndpointAuthMethod: TokenEndpointAuthMethod;
+
+  /**
+   * The addresses this app signs in to: a tool's URL
+   * (https://mcp.slack.com/mcp) or a Git host (github.com), normalized as a
+   * vault connection's address is. A sign-in started at one of them uses
+   * this app. An address may belong to only one app in the organization.
+   *
+   * @generated from field: repeated string addresses = 12;
+   */
+  addresses: string[];
 };
 
 /**

@@ -12,7 +12,7 @@ public interface GetOAuthGrantStatusOutputOrBuilder extends
 
   /**
    * <pre>
-   * Whether the user has a sign-in saved for this server in this org.
+   * Whether the user has a sign-in saved at this server's address in this org.
    * </pre>
    *
    * <code>bool connected = 1 [json_name = "connected"];</code>

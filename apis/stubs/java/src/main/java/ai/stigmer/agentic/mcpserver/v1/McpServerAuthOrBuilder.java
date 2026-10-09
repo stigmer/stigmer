@@ -12,69 +12,6 @@ public interface McpServerAuthOrBuilder extends
 
   /**
    * <pre>
-   * Reference to an OAuthApp for vendor-specific OAuth.
-   *
-   * When empty: the server supports the MCP Authorization spec (DCR + PKCE).
-   * Stigmer discovers the authorization server metadata, registers a client
-   * via DCR, and performs the authorization code flow with PKCE — all
-   * automatically at connect time.
-   *
-   * When set: Stigmer uses the referenced OAuthApp's client credentials to
-   * perform the OAuth authorization code flow with the vendor on behalf of
-   * the user. The OAuthApp must belong to the same organization as the
-   * McpServer: an OAuth app holds vendor credentials and is never
-   * shared with child organizations, so no cross-organization reference to one is
-   * accepted.
-   * </pre>
-   *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
-   * @return Whether the oauthAppRef field is set.
-   */
-  boolean hasOauthAppRef();
-  /**
-   * <pre>
-   * Reference to an OAuthApp for vendor-specific OAuth.
-   *
-   * When empty: the server supports the MCP Authorization spec (DCR + PKCE).
-   * Stigmer discovers the authorization server metadata, registers a client
-   * via DCR, and performs the authorization code flow with PKCE — all
-   * automatically at connect time.
-   *
-   * When set: Stigmer uses the referenced OAuthApp's client credentials to
-   * perform the OAuth authorization code flow with the vendor on behalf of
-   * the user. The OAuthApp must belong to the same organization as the
-   * McpServer: an OAuth app holds vendor credentials and is never
-   * shared with child organizations, so no cross-organization reference to one is
-   * accepted.
-   * </pre>
-   *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
-   * @return The oauthAppRef.
-   */
-  ai.stigmer.commons.apiresource.ApiResourceReference getOauthAppRef();
-  /**
-   * <pre>
-   * Reference to an OAuthApp for vendor-specific OAuth.
-   *
-   * When empty: the server supports the MCP Authorization spec (DCR + PKCE).
-   * Stigmer discovers the authorization server metadata, registers a client
-   * via DCR, and performs the authorization code flow with PKCE — all
-   * automatically at connect time.
-   *
-   * When set: Stigmer uses the referenced OAuthApp's client credentials to
-   * perform the OAuth authorization code flow with the vendor on behalf of
-   * the user. The OAuthApp must belong to the same organization as the
-   * McpServer: an OAuth app holds vendor credentials and is never
-   * shared with child organizations, so no cross-organization reference to one is
-   * accepted.
-   * </pre>
-   *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1 [json_name = "oauthAppRef", (.buf.validate.field) = { ... }</code>
-   */
-  ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getOauthAppRefOrBuilder();
-
-  /**
-   * <pre>
    * The env var the signed-in access token fills.
    * Must correspond to an entry in env. A sign-in saves the token as a
    * connection at this server's address in the signer's vault, and a run
@@ -127,10 +64,9 @@ public interface McpServerAuthOrBuilder extends
 
   /**
    * <pre>
-   * Optional scope hints for UI display before the OAuth flow starts.
-   * For DCR servers: shown to the user since actual scopes are discovered
-   * at connect time during authorization server metadata retrieval.
-   * For vendor OAuth: informational (scopes are defined on the OAuthApp).
+   * Optional scope hints for UI display before a sign-in starts. Display
+   * only: a sign-in requests the scopes the login server's metadata or the
+   * login app publishes.
    * </pre>
    *
    * <code>repeated string scope_hints = 4 [json_name = "scopeHints"];</code>
@@ -140,10 +76,9 @@ public interface McpServerAuthOrBuilder extends
       getScopeHintsList();
   /**
    * <pre>
-   * Optional scope hints for UI display before the OAuth flow starts.
-   * For DCR servers: shown to the user since actual scopes are discovered
-   * at connect time during authorization server metadata retrieval.
-   * For vendor OAuth: informational (scopes are defined on the OAuthApp).
+   * Optional scope hints for UI display before a sign-in starts. Display
+   * only: a sign-in requests the scopes the login server's metadata or the
+   * login app publishes.
    * </pre>
    *
    * <code>repeated string scope_hints = 4 [json_name = "scopeHints"];</code>
@@ -152,10 +87,9 @@ public interface McpServerAuthOrBuilder extends
   int getScopeHintsCount();
   /**
    * <pre>
-   * Optional scope hints for UI display before the OAuth flow starts.
-   * For DCR servers: shown to the user since actual scopes are discovered
-   * at connect time during authorization server metadata retrieval.
-   * For vendor OAuth: informational (scopes are defined on the OAuthApp).
+   * Optional scope hints for UI display before a sign-in starts. Display
+   * only: a sign-in requests the scopes the login server's metadata or the
+   * login app publishes.
    * </pre>
    *
    * <code>repeated string scope_hints = 4 [json_name = "scopeHints"];</code>
@@ -165,10 +99,9 @@ public interface McpServerAuthOrBuilder extends
   java.lang.String getScopeHints(int index);
   /**
    * <pre>
-   * Optional scope hints for UI display before the OAuth flow starts.
-   * For DCR servers: shown to the user since actual scopes are discovered
-   * at connect time during authorization server metadata retrieval.
-   * For vendor OAuth: informational (scopes are defined on the OAuthApp).
+   * Optional scope hints for UI display before a sign-in starts. Display
+   * only: a sign-in requests the scopes the login server's metadata or the
+   * login app publishes.
    * </pre>
    *
    * <code>repeated string scope_hints = 4 [json_name = "scopeHints"];</code>
@@ -177,60 +110,6 @@ public interface McpServerAuthOrBuilder extends
    */
   com.google.protobuf.ByteString
       getScopeHintsBytes(int index);
-
-  /**
-   * <pre>
-   * URL of the login server for a stdio server: where DCR discovery looks,
-   * and the address its sign-ins are saved at.
-   *
-   * HTTP servers do not need this: the platform derives the discovery
-   * endpoint from http.url (fetching /.well-known/oauth-authorization-server
-   * relative to the server URL), and saves a sign-in at http.url.
-   *
-   * Stdio servers have no URL, so a sign-in needs this field whether or not
-   * oauth_app_ref is set: it is the address the login is saved at in the
-   * signer's vault, and the address a run finds it by. A stdio server with
-   * OAuth and no discovery_url is refused at sign-in. Without
-   * oauth_app_ref it is also the base URL of the vendor's OAuth
-   * authorization server that DCR discovers from.
-   *
-   * Discovery resolution priority (without oauth_app_ref; vendor OAuth uses
-   * the OAuthApp's endpoints and discovers nothing):
-   * 1. discovery_url (if set — used for both stdio and HTTP)
-   * 2. http.url (default for HTTP servers)
-   * </pre>
-   *
-   * <code>string discovery_url = 7 [json_name = "discoveryUrl"];</code>
-   * @return The discoveryUrl.
-   */
-  java.lang.String getDiscoveryUrl();
-  /**
-   * <pre>
-   * URL of the login server for a stdio server: where DCR discovery looks,
-   * and the address its sign-ins are saved at.
-   *
-   * HTTP servers do not need this: the platform derives the discovery
-   * endpoint from http.url (fetching /.well-known/oauth-authorization-server
-   * relative to the server URL), and saves a sign-in at http.url.
-   *
-   * Stdio servers have no URL, so a sign-in needs this field whether or not
-   * oauth_app_ref is set: it is the address the login is saved at in the
-   * signer's vault, and the address a run finds it by. A stdio server with
-   * OAuth and no discovery_url is refused at sign-in. Without
-   * oauth_app_ref it is also the base URL of the vendor's OAuth
-   * authorization server that DCR discovers from.
-   *
-   * Discovery resolution priority (without oauth_app_ref; vendor OAuth uses
-   * the OAuthApp's endpoints and discovers nothing):
-   * 1. discovery_url (if set — used for both stdio and HTTP)
-   * 2. http.url (default for HTTP servers)
-   * </pre>
-   *
-   * <code>string discovery_url = 7 [json_name = "discoveryUrl"];</code>
-   * @return The bytes for discoveryUrl.
-   */
-  com.google.protobuf.ByteString
-      getDiscoveryUrlBytes();
 
   /**
    * <pre>

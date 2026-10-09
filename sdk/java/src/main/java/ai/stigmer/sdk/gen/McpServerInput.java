@@ -10,7 +10,6 @@ import ai.stigmer.agentic.mcpserver.v1.StdioServerConfig;
 import ai.stigmer.agentic.vault.v1.EnvVarDeclaration;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
 import ai.stigmer.commons.apiresource.ApiResourceVisibility;
-import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 
 /** Input for creating/updating a McpServer. */
 public final class McpServerInput {
@@ -286,28 +285,20 @@ public final class McpServerInput {
 
     /** SDK input type for McpServerAuth. */
     public static final class McpServerAuthInput {
-        private final ResourceRef oauthAppRef;
         private final String targetEnvVar;
         private final String tokenLifetimeHint;
         private final java.util.List<String> scopeHints;
-        private final String discoveryUrl;
         private final boolean oauthOnly;
 
         private McpServerAuthInput(Builder builder) {
-            this.oauthAppRef = builder.oauthAppRef;
             this.targetEnvVar = builder.targetEnvVar;
             this.tokenLifetimeHint = builder.tokenLifetimeHint;
             this.scopeHints = builder.scopeHints;
-            this.discoveryUrl = builder.discoveryUrl;
             this.oauthOnly = builder.oauthOnly;
         }
 
         McpServerAuth toProto() {
             McpServerAuth.Builder builder = McpServerAuth.newBuilder();
-            if (this.oauthAppRef != null && this.oauthAppRef.hasIdentifier()) {
-                builder.setOauthAppRef(this.oauthAppRef.toProto().toBuilder()
-                    .setKind(ApiResourceKind.oauth_app).build());
-            }
             if (this.targetEnvVar != null) {
                 builder.setTargetEnvVar(this.targetEnvVar);
             }
@@ -317,9 +308,6 @@ public final class McpServerInput {
             if (this.scopeHints != null) {
                 builder.addAllScopeHints(this.scopeHints);
             }
-            if (this.discoveryUrl != null) {
-                builder.setDiscoveryUrl(this.discoveryUrl);
-            }
             builder.setOauthOnly(this.oauthOnly);
             return builder.build();
         }
@@ -327,20 +315,16 @@ public final class McpServerInput {
         public static Builder builder() { return new Builder(); }
 
         public static final class Builder {
-            private ResourceRef oauthAppRef;
             private String targetEnvVar;
             private String tokenLifetimeHint;
             private java.util.List<String> scopeHints;
-            private String discoveryUrl;
             private boolean oauthOnly;
 
             private Builder() {}
 
-            public Builder oauthAppRef(ResourceRef oauthAppRef) { this.oauthAppRef = oauthAppRef; return this; }
             public Builder targetEnvVar(String targetEnvVar) { this.targetEnvVar = targetEnvVar; return this; }
             public Builder tokenLifetimeHint(String tokenLifetimeHint) { this.tokenLifetimeHint = tokenLifetimeHint; return this; }
             public Builder scopeHints(java.util.List<String> scopeHints) { this.scopeHints = scopeHints; return this; }
-            public Builder discoveryUrl(String discoveryUrl) { this.discoveryUrl = discoveryUrl; return this; }
             public Builder oauthOnly(boolean oauthOnly) { this.oauthOnly = oauthOnly; return this; }
 
             public McpServerAuthInput build() { return new McpServerAuthInput(this); }

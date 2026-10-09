@@ -6,9 +6,6 @@ import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { EnvVarDeclaration } from "../../vault/v1/declaration_pb.js";
 import { file_ai_stigmer_agentic_vault_v1_declaration } from "../../vault/v1/declaration_pb.js";
-import { file_ai_stigmer_commons_apiresource_field_options } from "../../../commons/apiresource/field_options_pb.js";
-import type { ApiResourceReference } from "../../../commons/apiresource/io_pb.js";
-import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
 import type { Message } from "@bufbuild/protobuf";
 
@@ -16,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/mcpserver/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_mcpserver_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL3NwZWMucHJvdG8SH2FpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEiqgQKDU1jcFNlcnZlclNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSEAoIaWNvbl91cmwYAiABKAkSDAoEdGFncxgDIAMoCRJDCgVzdGRpbxgEIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuU3RkaW9TZXJ2ZXJDb25maWdIABJBCgRodHRwGAUgASgLMjEuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5IdHRwU2VydmVyQ29uZmlnSAASRAoDZW52GAggAygLMjcuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5NY3BTZXJ2ZXJTcGVjLkVudkVudHJ5EhYKDnJlcG9zaXRvcnlfdXJsGAwgASgJEhQKDGdpdGh1Yl9zdGFycxgNIAEoBRI8CgRhdXRoGA4gASgLMi4uYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5NY3BTZXJ2ZXJBdXRoGloKCEVudkVudHJ5EgsKA2tleRgBIAEoCRI9CgV2YWx1ZRgCIAEoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5FbnZWYXJEZWNsYXJhdGlvbjoCOAFCFAoLc2VydmVyX3R5cGUSBbpIAggBSgQIBxAISgQICxAMUhVkZWZhdWx0X2VuYWJsZWRfdG9vbHNSFXBpbm5lZF90b29sX2FwcHJvdmFscyJPChFTdGRpb1NlcnZlckNvbmZpZxIXCgdjb21tYW5kGAEgASgJQga6SAPIAQESDAoEYXJncxgCIAMoCRITCgt3b3JraW5nX2RpchgDIAEoCSLgAgoQSHR0cFNlcnZlckNvbmZpZxIYCgN1cmwYASABKAlCC7pICMgBAXIDiAEBEk8KB2hlYWRlcnMYAiADKAsyPi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkh0dHBTZXJ2ZXJDb25maWcuSGVhZGVyc0VudHJ5ElgKDHF1ZXJ5X3BhcmFtcxgDIAMoCzJCLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuSHR0cFNlcnZlckNvbmZpZy5RdWVyeVBhcmFtc0VudHJ5EiMKD3RpbWVvdXRfc2Vjb25kcxgEIAEoBUIKukgHGgUYrAIoABouCgxIZWFkZXJzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ARoyChBRdWVyeVBhcmFtc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEi9AIKDU1jcFNlcnZlckF1dGgSzAEKDW9hdXRoX2FwcF9yZWYYASABKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCf7pIeLoBdQoSb2F1dGhfYXBwX3JlZi5raW5kEjtvYXV0aF9hcHBfcmVmIG11c3QgcmVmZXJlbmNlIGEgcmVzb3VyY2Ugd2l0aCBraW5kPW9hdXRoX2FwcBoidGhpcy5zbHVnID09ICcnIHx8IHRoaXMua2luZCA9PSAyMuCFLBYSHwoOdGFyZ2V0X2Vudl92YXIYAiABKAlCB7pIBHICEAESGwoTdG9rZW5fbGlmZXRpbWVfaGludBgDIAEoCRITCgtzY29wZV9oaW50cxgEIAMoCRIVCg1kaXNjb3ZlcnlfdXJsGAcgASgJEhIKCm9hdXRoX29ubHkYCiABKAhKBAgFEAZKBAgGEAdKBAgIEAlKBAgJEApiBnByb3RvMw", [file_ai_stigmer_agentic_vault_v1_declaration, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL3NwZWMucHJvdG8SH2FpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEiyQUKDU1jcFNlcnZlclNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSEAoIaWNvbl91cmwYAiABKAkSDAoEdGFncxgDIAMoCRJDCgVzdGRpbxgEIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuU3RkaW9TZXJ2ZXJDb25maWdIABJBCgRodHRwGAUgASgLMjEuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5IdHRwU2VydmVyQ29uZmlnSAASRAoDZW52GAggAygLMjcuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5NY3BTZXJ2ZXJTcGVjLkVudkVudHJ5EhYKDnJlcG9zaXRvcnlfdXJsGAwgASgJEhQKDGdpdGh1Yl9zdGFycxgNIAEoBRI8CgRhdXRoGA4gASgLMi4uYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5NY3BTZXJ2ZXJBdXRoGloKCEVudkVudHJ5EgsKA2tleRgBIAEoCRI9CgV2YWx1ZRgCIAEoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5FbnZWYXJEZWNsYXJhdGlvbjoCOAE6nAG6SJgBGpUBCiBtY3Bfc2VydmVyLmxvY2FsX3Byb2dyYW1fbm9fYXV0aBJMYSBsb2NhbCBwcm9ncmFtIHRha2VzIGl0cyBrZXlzIGFzIGVudmlyb25tZW50IHZhcmlhYmxlczogZGVjbGFyZSB0aGVtIGluIGVudhojIWhhcyh0aGlzLnN0ZGlvKSB8fCAhaGFzKHRoaXMuYXV0aClCFAoLc2VydmVyX3R5cGUSBbpIAggBSgQIBxAISgQICxAMUhVkZWZhdWx0X2VuYWJsZWRfdG9vbHNSFXBpbm5lZF90b29sX2FwcHJvdmFscyJPChFTdGRpb1NlcnZlckNvbmZpZxIXCgdjb21tYW5kGAEgASgJQga6SAPIAQESDAoEYXJncxgCIAMoCRITCgt3b3JraW5nX2RpchgDIAEoCSLgAgoQSHR0cFNlcnZlckNvbmZpZxIYCgN1cmwYASABKAlCC7pICMgBAXIDiAEBEk8KB2hlYWRlcnMYAiADKAsyPi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkh0dHBTZXJ2ZXJDb25maWcuSGVhZGVyc0VudHJ5ElgKDHF1ZXJ5X3BhcmFtcxgDIAMoCzJCLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuSHR0cFNlcnZlckNvbmZpZy5RdWVyeVBhcmFtc0VudHJ5EiMKD3RpbWVvdXRfc2Vjb25kcxgEIAEoBUIKukgHGgUYrAIoABouCgxIZWFkZXJzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ARoyChBRdWVyeVBhcmFtc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiuAEKDU1jcFNlcnZlckF1dGgSHwoOdGFyZ2V0X2Vudl92YXIYAiABKAlCB7pIBHICEAESGwoTdG9rZW5fbGlmZXRpbWVfaGludBgDIAEoCRITCgtzY29wZV9oaW50cxgEIAMoCRISCgpvYXV0aF9vbmx5GAogASgISgQIARACSgQIBxAISgQIBRAGSgQIBhAHSgQICBAJSgQICRAKUg1vYXV0aF9hcHBfcmVmUg1kaXNjb3ZlcnlfdXJsYgZwcm90bzM", [file_ai_stigmer_agentic_vault_v1_declaration, file_buf_validate_validate]);
 
 /**
  * McpServerSpec defines the configurable properties of an MCP server.
@@ -105,14 +102,15 @@ export type McpServerSpec = Message<"ai.stigmer.agentic.mcpserver.v1.McpServerSp
   githubStars: number;
 
   /**
-   * OAuth authentication configuration for automated credential acquisition.
-   * When set, the MCP server's Connect page offers an OAuth flow instead of
-   * (or in addition to) manual credential entry.
+   * Sign-in configuration: the tool takes a login saved at its address.
+   * When set, the MCP server's Connect page offers a sign-in instead of
+   * (or in addition to) manual credential entry. Only an HTTP server may
+   * carry it.
    *
    * A sign-in saves the access token as a connection at this server's
-   * address in the signer's vault (My vault unless a shared vault is named),
-   * and a run fills the env var named by auth.target_env_var from it. That
-   * env var must also be declared in env.
+   * address in a vault (the signer's My vault unless a shared vault is
+   * named), and a run fills the env var named by auth.target_env_var from
+   * it. That env var must also be declared in env.
    *
    * @generated from field: ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14;
    */
@@ -251,30 +249,11 @@ export const HttpServerConfigSchema: GenMessage<HttpServerConfig> = /*@__PURE__*
   messageDesc(file_ai_stigmer_agentic_mcpserver_v1_spec, 2);
 
 /**
- * McpServerAuth configures automated credential acquisition via OAuth.
+ * McpServerAuth says that the tool signs in at its address.
  *
  * @generated from message ai.stigmer.agentic.mcpserver.v1.McpServerAuth
  */
 export type McpServerAuth = Message<"ai.stigmer.agentic.mcpserver.v1.McpServerAuth"> & {
-  /**
-   * Reference to an OAuthApp for vendor-specific OAuth.
-   *
-   * When empty: the server supports the MCP Authorization spec (DCR + PKCE).
-   * Stigmer discovers the authorization server metadata, registers a client
-   * via DCR, and performs the authorization code flow with PKCE — all
-   * automatically at connect time.
-   *
-   * When set: Stigmer uses the referenced OAuthApp's client credentials to
-   * perform the OAuth authorization code flow with the vendor on behalf of
-   * the user. The OAuthApp must belong to the same organization as the
-   * McpServer: an OAuth app holds vendor credentials and is never
-   * shared with child organizations, so no cross-organization reference to one is
-   * accepted.
-   *
-   * @generated from field: ai.stigmer.commons.apiresource.ApiResourceReference oauth_app_ref = 1;
-   */
-  oauthAppRef?: ApiResourceReference;
-
   /**
    * The env var the signed-in access token fills.
    * Must correspond to an entry in env. A sign-in saves the token as a
@@ -296,38 +275,13 @@ export type McpServerAuth = Message<"ai.stigmer.agentic.mcpserver.v1.McpServerAu
   tokenLifetimeHint: string;
 
   /**
-   * Optional scope hints for UI display before the OAuth flow starts.
-   * For DCR servers: shown to the user since actual scopes are discovered
-   * at connect time during authorization server metadata retrieval.
-   * For vendor OAuth: informational (scopes are defined on the OAuthApp).
+   * Optional scope hints for UI display before a sign-in starts. Display
+   * only: a sign-in requests the scopes the login server's metadata or the
+   * login app publishes.
    *
    * @generated from field: repeated string scope_hints = 4;
    */
   scopeHints: string[];
-
-  /**
-   * URL of the login server for a stdio server: where DCR discovery looks,
-   * and the address its sign-ins are saved at.
-   *
-   * HTTP servers do not need this: the platform derives the discovery
-   * endpoint from http.url (fetching /.well-known/oauth-authorization-server
-   * relative to the server URL), and saves a sign-in at http.url.
-   *
-   * Stdio servers have no URL, so a sign-in needs this field whether or not
-   * oauth_app_ref is set: it is the address the login is saved at in the
-   * signer's vault, and the address a run finds it by. A stdio server with
-   * OAuth and no discovery_url is refused at sign-in. Without
-   * oauth_app_ref it is also the base URL of the vendor's OAuth
-   * authorization server that DCR discovers from.
-   *
-   * Discovery resolution priority (without oauth_app_ref; vendor OAuth uses
-   * the OAuthApp's endpoints and discovers nothing):
-   *   1. discovery_url (if set — used for both stdio and HTTP)
-   *   2. http.url (default for HTTP servers)
-   *
-   * @generated from field: string discovery_url = 7;
-   */
-  discoveryUrl: string;
 
   /**
    * Whether the server's endpoint rejects manually-entered static tokens.

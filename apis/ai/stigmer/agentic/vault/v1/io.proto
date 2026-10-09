@@ -5,6 +5,7 @@ package ai.stigmer.agentic.vault.v1;
 import "ai/stigmer/agentic/vault/v1/api.proto";
 import "ai/stigmer/commons/rpc/pagination.proto";
 import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
 
 // VaultTarget names the vault an entry write changes: a vault by id, or the
 // caller's own My vault.
@@ -152,4 +153,155 @@ message VaultList {
 
   // Vaults in the current page.
   repeated Vault items = 2;
+}
+
+// SignInReturn says where the login page sends the person back to once they
+// have signed in. The server builds the address from this choice; a caller
+// never writes it.
+enum SignInReturn {
+  // The console's callback page: the same as web.
+  sign_in_return_unspecified = 0;
+
+  // The console's callback page on this deployment.
+  web = 1;
+
+  // The console's callback page, which hands the result on to the desktop
+  // app (the page opens the app's own link).
+  desktop = 2;
+
+  // A page the desktop app serves on this machine, at
+  // http://127.0.0.1:<loopback_port>/auth/oauth/callback (RFC 8252 section
+  // 7.3, for apps on the person's own computer).
+  loopback = 3;
+}
+
+// Input for starting a sign-in at an address. The login is saved into the
+// named vault when the sign-in completes.
+//
+// @internal
+// The login app is found by the address: the organization's own OAuthApp
+// listing it, then Stigmer's built-in app for it, then (for a tool's URL)
+// the address's own login server, which Stigmer registers with once. An
+// address none of these can sign in to is refused, naming it.
+message StartSignInInput {
+  // The vault the login is saved into: a shared vault the caller may edit,
+  // or the caller's own My vault.
+  VaultTarget vault = 1 [(buf.validate.field).required = true];
+
+  // The address to sign in to: a tool's URL (https://mcp.linear.app/mcp) or
+  // a Git host (github.com), in any shape setConnection accepts.
+  string address = 2 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 2048
+  }];
+
+  // Where the login page sends the person back to. Unset means web.
+  SignInReturn return_to = 3;
+
+  // The port of the desktop app's page, for return_to loopback only.
+  uint32 loopback_port = 4 [(buf.validate.field).uint32 = {lte: 65535}];
+
+  option (buf.validate.message).cel = {
+    id: "start_sign_in.loopback_port"
+    message: "loopback_port is required for return_to loopback (1024 to 65535) and must be left unset otherwise"
+    expression: "this.return_to == 3 ? (this.loopback_port >= 1024u && this.loopback_port <= 65535u) : this.loopback_port == 0u"
+  };
+}
+
+// The login page to send the person to.
+message StartSignInOutput {
+  // The login page, with every parameter the sign-in needs.
+  string authorization_url = 1;
+
+  // The value the login page hands back with the code; completeSignIn takes
+  // it.
+  string state = 2;
+
+  // Who the person signs in with, for display ("GitHub", or the address's
+  // host when the login server has no name).
+  string provider_name = 3;
+
+  // The permissions asked for.
+  repeated string scopes = 4;
+}
+
+// Input for finishing a sign-in, with what the login page handed back.
+message CompleteSignInInput {
+  // The state from startSignIn, as the login page returned it.
+  string state = 1 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 512
+  }];
+
+  // The authorization code the login page returned.
+  string code = 2 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 4096
+  }];
+}
+
+// The login a sign-in saved.
+message CompleteSignInOutput {
+  // The address the login was saved at.
+  string address = 1;
+
+  // How the saved login is described: the account when the login app says
+  // who signed in ("GitHub @ana"), else the host ("Signed in at
+  // mcp.linear.app").
+  string description = 2;
+}
+
+// Input for making a Connect link: a one-time page an integrator sends its
+// customer, where the customer signs in at an address and the login is saved
+// into the integrator's vault for that customer. The customer needs no
+// Stigmer account.
+message CreateConnectLinkInput {
+  // Organization the vault belongs to, by slug or id.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+
+  // The shared vault the login is saved into, by id. My vault is refused:
+  // a link is for someone else.
+  string vault_id = 2 [(buf.validate.field).string = {
+    max_len: 30
+    pattern: "^vlt_[0-9a-z]{26}$"
+  }];
+
+  // The address the customer signs in to: a tool's URL or a Git host.
+  string address = 3 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 2048
+  }];
+
+  // Where the customer is sent once the sign-in is over: an absolute https
+  // URL (http only for localhost or 127.0.0.1), with no user name or
+  // password in it. Stigmer adds stigmer_connect=connected, or
+  // stigmer_connect=error with a short reason.
+  string return_url = 4 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 2048
+  }];
+
+  // How long the link stays usable, in seconds: 60 to 86400 (a day).
+  // Unset means 1800 (30 minutes).
+  int32 expires_in_seconds = 5 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 86400
+  }];
+
+  option (buf.validate.message).cel = {
+    id: "create_connect_link.expires_in_seconds"
+    message: "expires_in_seconds is 60 to 86400, or unset for 30 minutes"
+    expression: "this.expires_in_seconds == 0 || this.expires_in_seconds >= 60"
+  };
+}
+
+// A Connect link. It works once: the first sign-in saved through it spends
+// it.
+message ConnectLink {
+  // The page to send the customer to. It carries the link's secret: send it
+  // only to that customer.
+  string url = 1;
+
+  // When the link stops working.
+  google.protobuf.Timestamp expires_at = 2;
 }

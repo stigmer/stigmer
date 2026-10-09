@@ -234,74 +234,30 @@ message DiscoveredResourceTemplate {
   string mime_type = 4;
 }
 
-// OAuthAppSource identifies where the effective OAuth app for an MCP server
-// was resolved from.
-//
-// The resolution chain is the same one the OAuth connect flow evaluates:
-//   1. OAuthAppOverride for (resource_id, resource_kind, org) → ORG_OVERRIDE
-//   2. McpServerAuth.oauth_app_ref → PLATFORM
-//   3. Neither exists → NONE
-//
-// Resolved CLIENT-SIDE by the shared SDK from the getOrgOAuthApp RPC: the
-// resolution is per (server, caller's active org), and the caller's active
-// org is client-side context the read RPCs never carry, so no backend can
-// compute it at enrichment time (see OAuthStatus fields 3-4).
-enum OAuthAppSource {
-  // Default / unset. The resolution chain has not been evaluated yet.
-  OAUTH_APP_SOURCE_UNSPECIFIED = 0;
-
-  // The platform-default OAuthApp is in use (McpServerAuth.oauth_app_ref).
-  OAUTH_APP_SOURCE_PLATFORM = 1;
-
-  // An org-level BYOA override is in use (OAuthAppOverride binding).
-  OAUTH_APP_SOURCE_ORG_OVERRIDE = 2;
-
-  // No OAuthApp is available. The MCP server either uses DCR (mcp_oauth)
-  // or has no auth block at all.
-  OAUTH_APP_SOURCE_NONE = 3;
-}
-
 // OAuthStatus holds system-derived OAuth enrichment state for an MCP server.
 //
 // @internal
 // All fields are read-only and never persisted on the McpServer document.
-//
-// Two categories, with different production stories:
-// 1. Vendor approval (fields 1-2): populated by the backend enricher on
-//    every get/getByReference response, resolved from the referenced
-//    OAuthApp. Tells the frontend whether the platform sign-in flow is
-//    gated and provides a BYOA documentation link when approval is pending.
-// 2. BYOA resolution (fields 3-4): NEVER POPULATED, by any edition. The
-//    resolution is per (server, caller's active org), and the caller's
-//    active org is client-side context the read RPCs never carry — get has
-//    no org, and getByReference's org is the server's OWNING org (the
-//    lookup key), which differs from the caller's org when browsing another
-//    org's public server. Resolving against the owning org would misreport
-//    exactly the cross-org marketplace flow BYOA exists for. The shared SDK
-//    instead derives the signal client-side from the getOrgOAuthApp RPC,
-//    keyed on the same org the connect flow uses. The fields are retained
-//    for wire compatibility and as the home of this contract note; a future
-//    server-side active-org mechanism could legitimately populate them.
+// Populated by the backend enricher on every get/getByReference response,
+// resolved from the login app the server's organization keeps for the
+// server's address (OAuthAppSpec.addresses). Tells the frontend whether
+// sign-in through that app is gated by its vendor, and gives a
+// documentation link while approval is pending.
 message OAuthStatus {
-  // Vendor marketplace/app-review approval status for this MCP server's
-  // OAuth app. Resolved from the referenced OAuthApp at query time.
-  // When the platform OAuthApp is pending vendor approval, the frontend
-  // gates the sign-in button and shows a BYOA alternative.
+  // Vendor marketplace/app-review approval status of the login app the
+  // organization keeps for this server's address. Resolved at query time.
+  // When the app is pending vendor approval, the frontend gates the sign-in
+  // button and offers pasting a token instead.
   ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus vendor_approval_status = 1;
 
-  // Documentation URL for users who want to bring their own OAuth app
-  // credentials while the platform's OAuth app is pending vendor approval.
-  // Resolved from the referenced OAuthApp at query time.
-  // Empty when the OAuthApp has no documentation link or is already approved.
+  // Documentation URL for users while the login app is pending vendor
+  // approval. Resolved at query time. Empty when the app has no
+  // documentation link or is already approved.
   string vendor_approval_docs_url = 2;
 
-  // NEVER POPULATED (see the message comment): the caller's active org is
-  // client-side context, so no backend can evaluate the resolution chain at
-  // read time. The shared SDK derives this value client-side from the
-  // getOrgOAuthApp RPC (useMcpServerCredentials.effectiveOAuthSource).
-  OAuthAppSource effective_oauth_source = 3;
-
-  // NEVER POPULATED (see the message comment). The override's OAuthApp ID
-  // is available from the getOrgOAuthApp RPC (GetOrgOAuthAppOutput.oauth_app_id).
-  string effective_oauth_app_id = 4;
+  // Fields 3 and 4 held the effective OAuth app's source and id under a
+  // per-organization override that was never built; a login app is found by
+  // the address it signs in to.
+  reserved 3, 4;
+  reserved "effective_oauth_source", "effective_oauth_app_id";
 }

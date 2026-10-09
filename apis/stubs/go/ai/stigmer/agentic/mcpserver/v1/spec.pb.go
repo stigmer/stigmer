@@ -9,7 +9,6 @@ package mcpserverv1
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	v1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/vault/v1"
-	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -59,14 +58,15 @@ type McpServerSpec struct {
 	// Used as a popularity signal in marketplace display.
 	// 0 if unknown or non-GitHub repository.
 	GithubStars int32 `protobuf:"varint,13,opt,name=github_stars,json=githubStars,proto3" json:"github_stars,omitempty"`
-	// OAuth authentication configuration for automated credential acquisition.
-	// When set, the MCP server's Connect page offers an OAuth flow instead of
-	// (or in addition to) manual credential entry.
+	// Sign-in configuration: the tool takes a login saved at its address.
+	// When set, the MCP server's Connect page offers a sign-in instead of
+	// (or in addition to) manual credential entry. Only an HTTP server may
+	// carry it.
 	//
 	// A sign-in saves the access token as a connection at this server's
-	// address in the signer's vault (My vault unless a shared vault is named),
-	// and a run fills the env var named by auth.target_env_var from it. That
-	// env var must also be declared in env.
+	// address in a vault (the signer's My vault unless a shared vault is
+	// named), and a run fills the env var named by auth.target_env_var from
+	// it. That env var must also be declared in env.
 	Auth          *McpServerAuth `protobuf:"bytes,14,opt,name=auth,proto3" json:"auth,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -383,23 +383,9 @@ func (x *HttpServerConfig) GetTimeoutSeconds() int32 {
 	return 0
 }
 
-// McpServerAuth configures automated credential acquisition via OAuth.
+// McpServerAuth says that the tool signs in at its address.
 type McpServerAuth struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Reference to an OAuthApp for vendor-specific OAuth.
-	//
-	// When empty: the server supports the MCP Authorization spec (DCR + PKCE).
-	// Stigmer discovers the authorization server metadata, registers a client
-	// via DCR, and performs the authorization code flow with PKCE — all
-	// automatically at connect time.
-	//
-	// When set: Stigmer uses the referenced OAuthApp's client credentials to
-	// perform the OAuth authorization code flow with the vendor on behalf of
-	// the user. The OAuthApp must belong to the same organization as the
-	// McpServer: an OAuth app holds vendor credentials and is never
-	// shared with child organizations, so no cross-organization reference to one is
-	// accepted.
-	OauthAppRef *apiresource.ApiResourceReference `protobuf:"bytes,1,opt,name=oauth_app_ref,json=oauthAppRef,proto3" json:"oauth_app_ref,omitempty"`
 	// The env var the signed-in access token fills.
 	// Must correspond to an entry in env. A sign-in saves the token as a
 	// connection at this server's address in the signer's vault, and a run
@@ -410,30 +396,10 @@ type McpServerAuth struct {
 	// Helps users understand when re-authentication may be needed.
 	// Empty means unknown. Examples: "1h", "2h", "90d", "never".
 	TokenLifetimeHint string `protobuf:"bytes,3,opt,name=token_lifetime_hint,json=tokenLifetimeHint,proto3" json:"token_lifetime_hint,omitempty"`
-	// Optional scope hints for UI display before the OAuth flow starts.
-	// For DCR servers: shown to the user since actual scopes are discovered
-	// at connect time during authorization server metadata retrieval.
-	// For vendor OAuth: informational (scopes are defined on the OAuthApp).
+	// Optional scope hints for UI display before a sign-in starts. Display
+	// only: a sign-in requests the scopes the login server's metadata or the
+	// login app publishes.
 	ScopeHints []string `protobuf:"bytes,4,rep,name=scope_hints,json=scopeHints,proto3" json:"scope_hints,omitempty"`
-	// URL of the login server for a stdio server: where DCR discovery looks,
-	// and the address its sign-ins are saved at.
-	//
-	// HTTP servers do not need this: the platform derives the discovery
-	// endpoint from http.url (fetching /.well-known/oauth-authorization-server
-	// relative to the server URL), and saves a sign-in at http.url.
-	//
-	// Stdio servers have no URL, so a sign-in needs this field whether or not
-	// oauth_app_ref is set: it is the address the login is saved at in the
-	// signer's vault, and the address a run finds it by. A stdio server with
-	// OAuth and no discovery_url is refused at sign-in. Without
-	// oauth_app_ref it is also the base URL of the vendor's OAuth
-	// authorization server that DCR discovers from.
-	//
-	// Discovery resolution priority (without oauth_app_ref; vendor OAuth uses
-	// the OAuthApp's endpoints and discovers nothing):
-	//  1. discovery_url (if set — used for both stdio and HTTP)
-	//  2. http.url (default for HTTP servers)
-	DiscoveryUrl string `protobuf:"bytes,7,opt,name=discovery_url,json=discoveryUrl,proto3" json:"discovery_url,omitempty"`
 	// Whether the server's endpoint rejects manually-entered static tokens.
 	//
 	// Some hosted MCP endpoints (e.g. Notion, Monday) only accept an access
@@ -484,13 +450,6 @@ func (*McpServerAuth) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *McpServerAuth) GetOauthAppRef() *apiresource.ApiResourceReference {
-	if x != nil {
-		return x.OauthAppRef
-	}
-	return nil
-}
-
 func (x *McpServerAuth) GetTargetEnvVar() string {
 	if x != nil {
 		return x.TargetEnvVar
@@ -512,13 +471,6 @@ func (x *McpServerAuth) GetScopeHints() []string {
 	return nil
 }
 
-func (x *McpServerAuth) GetDiscoveryUrl() string {
-	if x != nil {
-		return x.DiscoveryUrl
-	}
-	return ""
-}
-
 func (x *McpServerAuth) GetOauthOnly() bool {
 	if x != nil {
 		return x.OauthOnly
@@ -530,7 +482,7 @@ var File_ai_stigmer_agentic_mcpserver_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/agentic/mcpserver/v1/spec.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a-ai/stigmer/agentic/vault/v1/declaration.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\x86\x05\n" +
+	"*ai/stigmer/agentic/mcpserver/v1/spec.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a-ai/stigmer/agentic/vault/v1/declaration.proto\x1a\x1bbuf/validate/validate.proto\"\xa5\x06\n" +
 	"\rMcpServerSpec\x12 \n" +
 	"\vdescription\x18\x01 \x01(\tR\vdescription\x12\x19\n" +
 	"\bicon_url\x18\x02 \x01(\tR\aiconUrl\x12\x12\n" +
@@ -543,7 +495,8 @@ const file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc = "" +
 	"\x04auth\x18\x0e \x01(\v2..ai.stigmer.agentic.mcpserver.v1.McpServerAuthR\x04auth\x1af\n" +
 	"\bEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12D\n" +
-	"\x05value\x18\x02 \x01(\v2..ai.stigmer.agentic.vault.v1.EnvVarDeclarationR\x05value:\x028\x01B\x14\n" +
+	"\x05value\x18\x02 \x01(\v2..ai.stigmer.agentic.vault.v1.EnvVarDeclarationR\x05value:\x028\x01:\x9c\x01\xbaH\x98\x01\x1a\x95\x01\n" +
+	" mcp_server.local_program_no_auth\x12La local program takes its keys as environment variables: declare them in env\x1a#!has(this.stdio) || !has(this.auth)B\x14\n" +
 	"\vserver_type\x12\x05\xbaH\x02\b\x01J\x04\b\a\x10\bJ\x04\b\v\x10\fR\x15default_enabled_toolsR\x15pinned_tool_approvals\"j\n" +
 	"\x11StdioServerConfig\x12 \n" +
 	"\acommand\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\acommand\x12\x12\n" +
@@ -561,19 +514,16 @@ const file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a>\n" +
 	"\x10QueryParamsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xc7\x03\n" +
-	"\rMcpServerAuth\x12\xd9\x01\n" +
-	"\roauth_app_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x7f\xbaHx\xba\x01u\n" +
-	"\x12oauth_app_ref.kind\x12;oauth_app_ref must reference a resource with kind=oauth_app\x1a\"this.slug == '' || this.kind == 22\xe0\x85,\x16R\voauthAppRef\x12-\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xf0\x01\n" +
+	"\rMcpServerAuth\x12-\n" +
 	"\x0etarget_env_var\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\ftargetEnvVar\x12.\n" +
 	"\x13token_lifetime_hint\x18\x03 \x01(\tR\x11tokenLifetimeHint\x12\x1f\n" +
 	"\vscope_hints\x18\x04 \x03(\tR\n" +
-	"scopeHints\x12#\n" +
-	"\rdiscovery_url\x18\a \x01(\tR\fdiscoveryUrl\x12\x1d\n" +
+	"scopeHints\x12\x1d\n" +
 	"\n" +
 	"oauth_only\x18\n" +
-	" \x01(\bR\toauthOnlyJ\x04\b\x05\x10\x06J\x04\b\x06\x10\aJ\x04\b\b\x10\tJ\x04\b\t\x10\n" +
-	"B\xa7\x02\n" +
+	" \x01(\bR\toauthOnlyJ\x04\b\x01\x10\x02J\x04\b\a\x10\bJ\x04\b\x05\x10\x06J\x04\b\x06\x10\aJ\x04\b\b\x10\tJ\x04\b\t\x10\n" +
+	"R\roauth_app_refR\rdiscovery_urlB\xa7\x02\n" +
 	"#com.ai.stigmer.agentic.mcpserver.v1B\tSpecProtoP\x01ZTgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1;mcpserverv1\xa2\x02\x04ASAM\xaa\x02\x1fAi.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1fAi\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3"
 
 var (
@@ -590,15 +540,14 @@ func file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDescGZIP() []byte {
 
 var file_ai_stigmer_agentic_mcpserver_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_ai_stigmer_agentic_mcpserver_v1_spec_proto_goTypes = []any{
-	(*McpServerSpec)(nil),                    // 0: ai.stigmer.agentic.mcpserver.v1.McpServerSpec
-	(*StdioServerConfig)(nil),                // 1: ai.stigmer.agentic.mcpserver.v1.StdioServerConfig
-	(*HttpServerConfig)(nil),                 // 2: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig
-	(*McpServerAuth)(nil),                    // 3: ai.stigmer.agentic.mcpserver.v1.McpServerAuth
-	nil,                                      // 4: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.EnvEntry
-	nil,                                      // 5: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntry
-	nil,                                      // 6: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntry
-	(*apiresource.ApiResourceReference)(nil), // 7: ai.stigmer.commons.apiresource.ApiResourceReference
-	(*v1.EnvVarDeclaration)(nil),             // 8: ai.stigmer.agentic.vault.v1.EnvVarDeclaration
+	(*McpServerSpec)(nil),        // 0: ai.stigmer.agentic.mcpserver.v1.McpServerSpec
+	(*StdioServerConfig)(nil),    // 1: ai.stigmer.agentic.mcpserver.v1.StdioServerConfig
+	(*HttpServerConfig)(nil),     // 2: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig
+	(*McpServerAuth)(nil),        // 3: ai.stigmer.agentic.mcpserver.v1.McpServerAuth
+	nil,                          // 4: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.EnvEntry
+	nil,                          // 5: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntry
+	nil,                          // 6: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntry
+	(*v1.EnvVarDeclaration)(nil), // 7: ai.stigmer.agentic.vault.v1.EnvVarDeclaration
 }
 var file_ai_stigmer_agentic_mcpserver_v1_spec_proto_depIdxs = []int32{
 	1, // 0: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.stdio:type_name -> ai.stigmer.agentic.mcpserver.v1.StdioServerConfig
@@ -607,13 +556,12 @@ var file_ai_stigmer_agentic_mcpserver_v1_spec_proto_depIdxs = []int32{
 	3, // 3: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.auth:type_name -> ai.stigmer.agentic.mcpserver.v1.McpServerAuth
 	5, // 4: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.headers:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntry
 	6, // 5: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.query_params:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntry
-	7, // 6: ai.stigmer.agentic.mcpserver.v1.McpServerAuth.oauth_app_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	8, // 7: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.EnvEntry.value:type_name -> ai.stigmer.agentic.vault.v1.EnvVarDeclaration
-	8, // [8:8] is the sub-list for method output_type
-	8, // [8:8] is the sub-list for method input_type
-	8, // [8:8] is the sub-list for extension type_name
-	8, // [8:8] is the sub-list for extension extendee
-	0, // [0:8] is the sub-list for field type_name
+	7, // 6: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.EnvEntry.value:type_name -> ai.stigmer.agentic.vault.v1.EnvVarDeclaration
+	7, // [7:7] is the sub-list for method output_type
+	7, // [7:7] is the sub-list for method input_type
+	7, // [7:7] is the sub-list for extension type_name
+	7, // [7:7] is the sub-list for extension extendee
+	0, // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_mcpserver_v1_spec_proto_init() }

@@ -12,10 +12,10 @@ public interface OAuthStatusOrBuilder extends
 
   /**
    * <pre>
-   * Vendor marketplace/app-review approval status for this MCP server's
-   * OAuth app. Resolved from the referenced OAuthApp at query time.
-   * When the platform OAuthApp is pending vendor approval, the frontend
-   * gates the sign-in button and shows a BYOA alternative.
+   * Vendor marketplace/app-review approval status of the login app the
+   * organization keeps for this server's address. Resolved at query time.
+   * When the app is pending vendor approval, the frontend gates the sign-in
+   * button and offers pasting a token instead.
    * </pre>
    *
    * <code>.ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus vendor_approval_status = 1 [json_name = "vendorApprovalStatus"];</code>
@@ -24,10 +24,10 @@ public interface OAuthStatusOrBuilder extends
   int getVendorApprovalStatusValue();
   /**
    * <pre>
-   * Vendor marketplace/app-review approval status for this MCP server's
-   * OAuth app. Resolved from the referenced OAuthApp at query time.
-   * When the platform OAuthApp is pending vendor approval, the frontend
-   * gates the sign-in button and shows a BYOA alternative.
+   * Vendor marketplace/app-review approval status of the login app the
+   * organization keeps for this server's address. Resolved at query time.
+   * When the app is pending vendor approval, the frontend gates the sign-in
+   * button and offers pasting a token instead.
    * </pre>
    *
    * <code>.ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus vendor_approval_status = 1 [json_name = "vendorApprovalStatus"];</code>
@@ -37,10 +37,9 @@ public interface OAuthStatusOrBuilder extends
 
   /**
    * <pre>
-   * Documentation URL for users who want to bring their own OAuth app
-   * credentials while the platform's OAuth app is pending vendor approval.
-   * Resolved from the referenced OAuthApp at query time.
-   * Empty when the OAuthApp has no documentation link or is already approved.
+   * Documentation URL for users while the login app is pending vendor
+   * approval. Resolved at query time. Empty when the app has no
+   * documentation link or is already approved.
    * </pre>
    *
    * <code>string vendor_approval_docs_url = 2 [json_name = "vendorApprovalDocsUrl"];</code>
@@ -49,10 +48,9 @@ public interface OAuthStatusOrBuilder extends
   java.lang.String getVendorApprovalDocsUrl();
   /**
    * <pre>
-   * Documentation URL for users who want to bring their own OAuth app
-   * credentials while the platform's OAuth app is pending vendor approval.
-   * Resolved from the referenced OAuthApp at query time.
-   * Empty when the OAuthApp has no documentation link or is already approved.
+   * Documentation URL for users while the login app is pending vendor
+   * approval. Resolved at query time. Empty when the app has no
+   * documentation link or is already approved.
    * </pre>
    *
    * <code>string vendor_approval_docs_url = 2 [json_name = "vendorApprovalDocsUrl"];</code>
@@ -60,51 +58,4 @@ public interface OAuthStatusOrBuilder extends
    */
   com.google.protobuf.ByteString
       getVendorApprovalDocsUrlBytes();
-
-  /**
-   * <pre>
-   * NEVER POPULATED (see the message comment): the caller's active org is
-   * client-side context, so no backend can evaluate the resolution chain at
-   * read time. The shared SDK derives this value client-side from the
-   * getOrgOAuthApp RPC (useMcpServerCredentials.effectiveOAuthSource).
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthAppSource effective_oauth_source = 3 [json_name = "effectiveOauthSource"];</code>
-   * @return The enum numeric value on the wire for effectiveOauthSource.
-   */
-  int getEffectiveOauthSourceValue();
-  /**
-   * <pre>
-   * NEVER POPULATED (see the message comment): the caller's active org is
-   * client-side context, so no backend can evaluate the resolution chain at
-   * read time. The shared SDK derives this value client-side from the
-   * getOrgOAuthApp RPC (useMcpServerCredentials.effectiveOAuthSource).
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthAppSource effective_oauth_source = 3 [json_name = "effectiveOauthSource"];</code>
-   * @return The effectiveOauthSource.
-   */
-  ai.stigmer.agentic.mcpserver.v1.OAuthAppSource getEffectiveOauthSource();
-
-  /**
-   * <pre>
-   * NEVER POPULATED (see the message comment). The override's OAuthApp ID
-   * is available from the getOrgOAuthApp RPC (GetOrgOAuthAppOutput.oauth_app_id).
-   * </pre>
-   *
-   * <code>string effective_oauth_app_id = 4 [json_name = "effectiveOauthAppId"];</code>
-   * @return The effectiveOauthAppId.
-   */
-  java.lang.String getEffectiveOauthAppId();
-  /**
-   * <pre>
-   * NEVER POPULATED (see the message comment). The override's OAuthApp ID
-   * is available from the getOrgOAuthApp RPC (GetOrgOAuthAppOutput.oauth_app_id).
-   * </pre>
-   *
-   * <code>string effective_oauth_app_id = 4 [json_name = "effectiveOauthAppId"];</code>
-   * @return The bytes for effectiveOauthAppId.
-   */
-  com.google.protobuf.ByteString
-      getEffectiveOauthAppIdBytes();
 }

@@ -12,10 +12,10 @@ import "ai/stigmer/platform/github/v1/io.proto";
 // named organization, and answers FAILED_PRECONDITION when there is none.
 //
 // @internal
-// Server-side calls to api.github.com with the GitHub client's timeout. The
-// reads stay when the OAuth half of GitHubService is folded into the
-// general sign-in. Authorization: can_create_vault on the organization
-// (members, the people who keep a My vault there).
+// Server-side calls to api.github.com with the GitHub client's timeout.
+// GitHub is connected by the vault's sign-in at the address github.com
+// (VaultCommandController.startSignIn). Authorization: can_create_vault on
+// the organization (members, the people who keep a My vault there).
 service GitHubQueryController {
   // List the repositories the connected account can reach, one page at a
   // time, most recently updated first.

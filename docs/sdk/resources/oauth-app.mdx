@@ -216,6 +216,7 @@ const oAuthApp = await stigmer.oauthapp.apply({
   vendorApprovalStatus: "...",
   vendorApprovalDocsUrl: "...",
   tokenEndpointAuthMethod: "...",
+  addresses: [],
 });
 ```
 </Tab>
@@ -237,6 +238,7 @@ oAuthApp, err := client.OAuthApp.Apply(ctx, &stigmer.OAuthAppInput{
   VendorApprovalStatus:    "...",
   VendorApprovalDocsUrl:   "...",
   TokenEndpointAuthMethod: "...",
+  Addresses:               []string{},
 })
 ```
 </Tab>
@@ -258,6 +260,7 @@ o_auth_app = client.oauthapps.apply(OAuthAppInput(
     vendor_approval_status="...",
     vendor_approval_docs_url="...",
     token_endpoint_auth_method="...",
+    addresses=[],
 ))
 ```
 </Tab>
@@ -279,6 +282,7 @@ OAuthApp oAuthApp = client.oauthapps().apply(OAuthAppInput.builder()
     .vendorApprovalStatus("...")
     .vendorApprovalDocsUrl("...")
     .tokenEndpointAuthMethod("...")
+    .addresses(List.of())
     .build());
 ```
 </Tab>
@@ -313,6 +317,7 @@ const oAuthApp = await stigmer.oauthapp.create({
   vendorApprovalStatus: "...",
   vendorApprovalDocsUrl: "...",
   tokenEndpointAuthMethod: "...",
+  addresses: [],
 });
 ```
 </Tab>
@@ -334,6 +339,7 @@ oAuthApp, err := client.OAuthApp.Create(ctx, &stigmer.OAuthAppInput{
   VendorApprovalStatus:    "...",
   VendorApprovalDocsUrl:   "...",
   TokenEndpointAuthMethod: "...",
+  Addresses:               []string{},
 })
 ```
 </Tab>
@@ -355,6 +361,7 @@ o_auth_app = client.oauthapps.create(OAuthAppInput(
     vendor_approval_status="...",
     vendor_approval_docs_url="...",
     token_endpoint_auth_method="...",
+    addresses=[],
 ))
 ```
 </Tab>
@@ -376,6 +383,7 @@ OAuthApp oAuthApp = client.oauthapps().create(OAuthAppInput.builder()
     .vendorApprovalStatus("...")
     .vendorApprovalDocsUrl("...")
     .tokenEndpointAuthMethod("...")
+    .addresses(List.of())
     .build());
 ```
 </Tab>
@@ -408,6 +416,7 @@ const oAuthApp = await stigmer.oauthapp.update({
   vendorApprovalStatus: "...",
   vendorApprovalDocsUrl: "...",
   tokenEndpointAuthMethod: "...",
+  addresses: [],
 });
 ```
 </Tab>
@@ -429,6 +438,7 @@ oAuthApp, err := client.OAuthApp.Update(ctx, &stigmer.OAuthAppInput{
   VendorApprovalStatus:    "...",
   VendorApprovalDocsUrl:   "...",
   TokenEndpointAuthMethod: "...",
+  Addresses:               []string{},
 })
 ```
 </Tab>
@@ -450,6 +460,7 @@ o_auth_app = client.oauthapps.update(OAuthAppInput(
     vendor_approval_status="...",
     vendor_approval_docs_url="...",
     token_endpoint_auth_method="...",
+    addresses=[],
 ))
 ```
 </Tab>
@@ -471,6 +482,7 @@ OAuthApp oAuthApp = client.oauthapps().update(OAuthAppInput.builder()
     .vendorApprovalStatus("...")
     .vendorApprovalDocsUrl("...")
     .tokenEndpointAuthMethod("...")
+    .addresses(List.of())
     .build());
 ```
 </Tab>
@@ -541,11 +553,12 @@ Input for creating or updating an OAuth App.
     authorizationUrl: { type: "string", description: "Vendor's OAuth authorization endpoint." },
     tokenUrl: { type: "string", description: "Vendor's OAuth token endpoint." },
     scopes: { type: "string[]", description: "OAuth scopes to request during the authorization flow." },
-    userinfoUrl: { type: "string", description: "Optional OIDC UserInfo endpoint for fetching user profile data." },
+    userinfoUrl: { type: "string", description: "Optional endpoint that answers who signed in (an OIDC UserInfo endpoint, or a vendor's equivalent such as GitHub's /user)." },
     scopeParameterName: { type: "string", description: "Name of the query parameter used to send scopes in the authorization URL." },
     vendorApprovalStatus: { type: "VendorApprovalStatus", description: "Vendor marketplace/app-review approval status for this OAuth app.", typeDescriptionLink: "#vendorapprovalstatus" },
     vendorApprovalDocsUrl: { type: "string", description: "Documentation URL explaining how users can bring their own OAuth app credentials or personal access tokens for this vendor while the platform's OAuth app is pending approval." },
     tokenEndpointAuthMethod: { type: "TokenEndpointAuthMethod", description: "How the client secret is presented to the vendor's token endpoint during authorization-code exchange and refresh.", typeDescriptionLink: "#tokenendpointauthmethod" },
+    addresses: { type: "string[]", description: "The addresses this app signs in to: a tool's URL (https://mcp.slack.com/mcp) or a Git host (github.com), normalized as a vault connection's address is." },
   }}
 />
 

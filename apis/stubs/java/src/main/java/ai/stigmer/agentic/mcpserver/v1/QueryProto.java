@@ -42,7 +42,7 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "oto\032\'ai/stigmer/commons/apiresource/io.p" +
       "roto\0328ai/stigmer/commons/apiresource/rpc" +
       "_service_options.proto\032+ai/stigmer/commo" +
-      "ns/rpc/method_options.proto2\313\005\n\030McpServe" +
+      "ns/rpc/method_options.proto2\207\004\n\030McpServe" +
       "rQueryController\022\222\001\n\003get\022-.ai.stigmer.co" +
       "mmons.apiresource.ApiResourceId\032*.ai.sti" +
       "gmer.agentic.mcpserver.v1.McpServer\"0\302\270\030" +
@@ -55,17 +55,12 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "tatusInput\032:.ai.stigmer.agentic.mcpserve" +
       "r.v1.GetOAuthGrantStatusOutput\"G\302\270\030C\010\001\020," +
       "\"\013resource_id*0unauthorized to view oaut" +
-      "h status for mcp server\022\301\001\n\016getOrgOAuthA" +
-      "pp\0224.ai.stigmer.agentic.mcpserver.v1.Get" +
-      "OrgOAuthAppInput\0325.ai.stigmer.agentic.mc" +
-      "pserver.v1.GetOrgOAuthAppOutput\"B\302\270\030>\010\001\020" +
-      ",\"\013resource_id*+unauthorized to view org" +
-      " oauth app override\032\004\240\377+,B\255\001B\nQueryProto" +
-      "P\001\242\002\004ASAM\252\002\037Ai.Stigmer.Agentic.Mcpserver" +
-      ".V1\312\002\037Ai\\Stigmer\\Agentic\\Mcpserver\\V1\342\002+" +
-      "Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetad" +
-      "ata\352\002#Ai::Stigmer::Agentic::Mcpserver::V" +
-      "1b\006proto3"
+      "h status for mcp server\032\004\240\377+,B\255\001B\nQueryP" +
+      "rotoP\001\242\002\004ASAM\252\002\037Ai.Stigmer.Agentic.Mcpse" +
+      "rver.V1\312\002\037Ai\\Stigmer\\Agentic\\Mcpserver\\V" +
+      "1\342\002+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBM" +
+      "etadata\352\002#Ai::Stigmer::Agentic::Mcpserve" +
+      "r::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

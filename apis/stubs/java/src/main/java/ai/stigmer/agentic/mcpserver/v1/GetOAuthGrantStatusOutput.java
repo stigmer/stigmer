@@ -59,7 +59,7 @@ private static final long serialVersionUID = 0L;
   private boolean connected_ = false;
   /**
    * <pre>
-   * Whether the user has a sign-in saved for this server in this org.
+   * Whether the user has a sign-in saved at this server's address in this org.
    * </pre>
    *
    * <code>bool connected = 1 [json_name = "connected"];</code>
@@ -611,7 +611,7 @@ private static final long serialVersionUID = 0L;
     private boolean connected_ ;
     /**
      * <pre>
-     * Whether the user has a sign-in saved for this server in this org.
+     * Whether the user has a sign-in saved at this server's address in this org.
      * </pre>
      *
      * <code>bool connected = 1 [json_name = "connected"];</code>
@@ -623,7 +623,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether the user has a sign-in saved for this server in this org.
+     * Whether the user has a sign-in saved at this server's address in this org.
      * </pre>
      *
      * <code>bool connected = 1 [json_name = "connected"];</code>
@@ -639,7 +639,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether the user has a sign-in saved for this server in this org.
+     * Whether the user has a sign-in saved at this server's address in this org.
      * </pre>
      *
      * <code>bool connected = 1 [json_name = "connected"];</code>

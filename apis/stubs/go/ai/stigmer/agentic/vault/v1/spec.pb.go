@@ -387,15 +387,11 @@ type VaultConnectionSignIn struct {
 	TokenEndpoint string `protobuf:"bytes,4,opt,name=token_endpoint,json=tokenEndpoint,proto3" json:"token_endpoint,omitempty"`
 	// The refresh token. Never returned, and never delivered to a run.
 	RefreshToken string `protobuf:"bytes,5,opt,name=refresh_token,json=refreshToken,proto3" json:"refresh_token,omitempty"`
-	// The MCP server the sign-in was started from, by id. The sign-in fills
-	// that server's login only.
-	McpServerId string `protobuf:"bytes,6,opt,name=mcp_server_id,json=mcpServerId,proto3" json:"mcp_server_id,omitempty"`
-	// Whether the MCP server was a local program (stdio) when the sign-in
-	// completed; false for an HTTP server. The sign-in fills that server's
-	// login only while it is still the same kind: a server switched between
-	// an HTTP server and a local program needs a new sign-in. Set by the
-	// server.
-	LocalProgram  bool `protobuf:"varint,7,opt,name=local_program,json=localProgram,proto3" json:"local_program,omitempty"`
+	// The login app the sign-in used, so a renewal presents the same client:
+	// "org:<OAuthApp id>" for an organization's app, "stigmer:<key>" for one of
+	// Stigmer's built-in login apps, and empty for a client registered with
+	// the address's own login server, which has no secret. Set by the server.
+	LoginApp      string `protobuf:"bytes,8,opt,name=login_app,json=loginApp,proto3" json:"login_app,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -465,18 +461,11 @@ func (x *VaultConnectionSignIn) GetRefreshToken() string {
 	return ""
 }
 
-func (x *VaultConnectionSignIn) GetMcpServerId() string {
+func (x *VaultConnectionSignIn) GetLoginApp() string {
 	if x != nil {
-		return x.McpServerId
+		return x.LoginApp
 	}
 	return ""
-}
-
-func (x *VaultConnectionSignIn) GetLocalProgram() bool {
-	if x != nil {
-		return x.LocalProgram
-	}
-	return false
 }
 
 var File_ai_stigmer_agentic_vault_v1_spec_proto protoreflect.FileDescriptor
@@ -510,7 +499,7 @@ const file_ai_stigmer_agentic_vault_v1_spec_proto_rawDesc = "" +
 	"\asign_in\x18\x03 \x01(\v22.ai.stigmer.agentic.vault.v1.VaultConnectionSignInR\x06signIn\x12 \n" +
 	"\vdescription\x18\x04 \x01(\tR\vdescription\x12\x19\n" +
 	"\bsaved_by\x18\x05 \x01(\tR\asavedBy\x125\n" +
-	"\bsaved_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\asavedAt\"\x89\x02\n" +
+	"\bsaved_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\asavedAt\"\x87\x02\n" +
 	"\x15VaultConnectionSignIn\x12\x1d\n" +
 	"\n" +
 	"expires_at\x18\x01 \x01(\x03R\texpiresAt\x12\x1b\n" +
@@ -518,9 +507,8 @@ const file_ai_stigmer_agentic_vault_v1_spec_proto_rawDesc = "" +
 	"\vauth_method\x18\x03 \x01(\tR\n" +
 	"authMethod\x12%\n" +
 	"\x0etoken_endpoint\x18\x04 \x01(\tR\rtokenEndpoint\x12#\n" +
-	"\rrefresh_token\x18\x05 \x01(\tR\frefreshToken\x12\"\n" +
-	"\rmcp_server_id\x18\x06 \x01(\tR\vmcpServerId\x12#\n" +
-	"\rlocal_program\x18\a \x01(\bR\flocalProgram*Y\n" +
+	"\rrefresh_token\x18\x05 \x01(\tR\frefreshToken\x12\x1b\n" +
+	"\tlogin_app\x18\b \x01(\tR\bloginAppJ\x04\b\x06\x10\aJ\x04\b\a\x10\bR\rmcp_server_idR\rlocal_program*Y\n" +
 	"\x15VaultConnectionSource\x12'\n" +
 	"#vault_connection_source_unspecified\x10\x00\x12\n" +
 	"\n" +

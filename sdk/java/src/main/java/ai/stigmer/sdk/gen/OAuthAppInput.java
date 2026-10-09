@@ -28,6 +28,7 @@ public final class OAuthAppInput {
     private final VendorApprovalStatus vendorApprovalStatus;
     private final String vendorApprovalDocsUrl;
     private final TokenEndpointAuthMethod tokenEndpointAuthMethod;
+    private final java.util.List<String> addresses;
 
     private OAuthAppInput(Builder builder) {
         this.id = builder.id;
@@ -47,6 +48,7 @@ public final class OAuthAppInput {
         this.vendorApprovalStatus = builder.vendorApprovalStatus;
         this.vendorApprovalDocsUrl = builder.vendorApprovalDocsUrl;
         this.tokenEndpointAuthMethod = builder.tokenEndpointAuthMethod;
+        this.addresses = builder.addresses;
     }
 
     OAuthApp toProto() {
@@ -83,6 +85,9 @@ public final class OAuthAppInput {
         }
         if (this.tokenEndpointAuthMethod != null) {
             spec.setTokenEndpointAuthMethod(this.tokenEndpointAuthMethod);
+        }
+        if (this.addresses != null && !this.addresses.isEmpty()) {
+            spec.addAllAddresses(this.addresses);
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name);
@@ -129,6 +134,7 @@ public final class OAuthAppInput {
         private VendorApprovalStatus vendorApprovalStatus;
         private String vendorApprovalDocsUrl;
         private TokenEndpointAuthMethod tokenEndpointAuthMethod;
+        private java.util.List<String> addresses;
 
         private Builder() {}
 
@@ -154,6 +160,7 @@ public final class OAuthAppInput {
         public Builder vendorApprovalStatus(VendorApprovalStatus vendorApprovalStatus) { this.vendorApprovalStatus = vendorApprovalStatus; return this; }
         public Builder vendorApprovalDocsUrl(String vendorApprovalDocsUrl) { this.vendorApprovalDocsUrl = vendorApprovalDocsUrl; return this; }
         public Builder tokenEndpointAuthMethod(TokenEndpointAuthMethod tokenEndpointAuthMethod) { this.tokenEndpointAuthMethod = tokenEndpointAuthMethod; return this; }
+        public Builder addresses(java.util.List<String> addresses) { this.addresses = addresses; return this; }
 
         public OAuthAppInput build() { return new OAuthAppInput(this); }
     }

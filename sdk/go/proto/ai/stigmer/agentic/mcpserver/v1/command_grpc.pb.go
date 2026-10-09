@@ -20,18 +20,14 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	McpServerCommandController_Apply_FullMethodName                = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/apply"
-	McpServerCommandController_Create_FullMethodName               = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/create"
-	McpServerCommandController_Update_FullMethodName               = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/update"
-	McpServerCommandController_Delete_FullMethodName               = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/delete"
-	McpServerCommandController_UpdateVisibility_FullMethodName     = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/updateVisibility"
-	McpServerCommandController_Connect_FullMethodName              = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/connect"
-	McpServerCommandController_StartConnect_FullMethodName         = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/startConnect"
-	McpServerCommandController_InitiateOAuthConnect_FullMethodName = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/initiateOAuthConnect"
-	McpServerCommandController_CompleteOAuthConnect_FullMethodName = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/completeOAuthConnect"
-	McpServerCommandController_DisconnectOAuth_FullMethodName      = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/disconnectOAuth"
-	McpServerCommandController_SetOrgOAuthApp_FullMethodName       = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/setOrgOAuthApp"
-	McpServerCommandController_DeleteOrgOAuthApp_FullMethodName    = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/deleteOrgOAuthApp"
+	McpServerCommandController_Apply_FullMethodName            = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/apply"
+	McpServerCommandController_Create_FullMethodName           = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/create"
+	McpServerCommandController_Update_FullMethodName           = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/update"
+	McpServerCommandController_Delete_FullMethodName           = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/delete"
+	McpServerCommandController_UpdateVisibility_FullMethodName = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/updateVisibility"
+	McpServerCommandController_Connect_FullMethodName          = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/connect"
+	McpServerCommandController_StartConnect_FullMethodName     = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/startConnect"
+	McpServerCommandController_DisconnectOAuth_FullMethodName  = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/disconnectOAuth"
 )
 
 // McpServerCommandControllerClient is the client API for McpServerCommandController service.
@@ -93,69 +89,18 @@ type McpServerCommandControllerClient interface {
 	// entry orphaned by a backend restart is reconciled against Temporal
 	// before a new operation starts.
 	StartConnect(ctx context.Context, in *ConnectInput, opts ...grpc.CallOption) (*McpServer, error)
-	// Start the OAuth authorization flow for an MCP server.
+	// Disconnect the authenticated user's sign-in for an MCP server.
 	//
-	// Performs setup (DCR registration or OAuthApp credential lookup, PKCE
-	// generation) and returns an authorization URL for the frontend to
-	// redirect the user to. The frontend calls completeOAuthConnect after
-	// the user authorizes.
-	InitiateOAuthConnect(ctx context.Context, in *InitiateOAuthConnectInput, opts ...grpc.CallOption) (*InitiateOAuthConnectOutput, error)
-	// Complete the OAuth authorization flow by exchanging the authorization
-	// code for tokens.
-	//
-	// Called by the frontend after the user is redirected back from the
-	// OAuth authorization server. Exchanges the code for tokens and saves
-	// the login as a connection at the server's address in the vault named
-	// when the flow started: the caller's My vault, or a shared vault they
-	// may edit.
-	//
-	// After success, the frontend should call connect() to trigger tool
-	// discovery using the freshly acquired token.
-	CompleteOAuthConnect(ctx context.Context, in *CompleteOAuthConnectInput, opts ...grpc.CallOption) (*CompleteOAuthConnectOutput, error)
-	// Disconnect the authenticated user's OAuth connection for a resource.
-	//
-	// Removes every connection a sign-in to this server saved in the caller's
-	// My vault, with its access and refresh tokens, including one left at the
-	// server's earlier address. The MCP server definition is unchanged — only
-	// the caller's sign-in is removed.
-	//
-	// Other users' connections to the same resource, a pasted login and
-	// another server's sign-in are unaffected. A sign-in saved into a shared
-	// vault is removed through that vault's removeConnections.
+	// Removes the sign-in saved at the server's address in the caller's My
+	// vault, with its access and refresh tokens. The MCP server definition is
+	// unchanged. A pasted login at the address is left in place, and so is a
+	// sign-in saved into a shared vault: the vault's removeConnections removes
+	// either.
 	//
 	// Idempotent: returns disconnected=true when a sign-in was removed,
 	// disconnected=false when none was saved. Never returns an error
 	// for a missing sign-in.
 	DisconnectOAuth(ctx context.Context, in *DisconnectOAuthInput, opts ...grpc.CallOption) (*DisconnectOAuthOutput, error)
-	// Create or update an org-level BYOA OAuth app override for a resource.
-	//
-	// Allows an organization to use its own OAuth app credentials instead of
-	// the platform default. The handler clones the platform OAuthApp template
-	// (endpoint URLs, scopes) and applies the org-provided client credentials.
-	//
-	// Idempotent: if an override already exists for this resource + org, the
-	// existing OAuthApp is updated with the new credentials.
-	//
-	// Edition scoping: hosted-only. UNIMPLEMENTED on the OSS server by
-	// design, as one capability with getOrgOAuthApp and deleteOrgOAuthApp —
-	// see the full scoping note on McpServerQueryController.getOrgOAuthApp,
-	// the RPC clients probe.
-	SetOrgOAuthApp(ctx context.Context, in *SetOrgOAuthAppInput, opts ...grpc.CallOption) (*SetOrgOAuthAppOutput, error)
-	// Remove an org-level BYOA override for a resource.
-	//
-	// Deletes the OAuthAppOverride binding and the OAuthApp resource that
-	// was created for it. After this, the resolution chain falls back to
-	// the platform default.
-	//
-	// Edition scoping: hosted-only. UNIMPLEMENTED on the OSS server by
-	// design, as one capability with getOrgOAuthApp and setOrgOAuthApp —
-	// see the full scoping note on McpServerQueryController.getOrgOAuthApp,
-	// the RPC clients probe.
-	//
-	// Existing sign-ins that were issued using the org's OAuthApp
-	// will fail on next token refresh — those users will need to
-	// re-authenticate using the platform default or a new org override.
-	DeleteOrgOAuthApp(ctx context.Context, in *DeleteOrgOAuthAppInput, opts ...grpc.CallOption) (*DeleteOrgOAuthAppOutput, error)
 }
 
 type mcpServerCommandControllerClient struct {
@@ -236,50 +181,10 @@ func (c *mcpServerCommandControllerClient) StartConnect(ctx context.Context, in 
 	return out, nil
 }
 
-func (c *mcpServerCommandControllerClient) InitiateOAuthConnect(ctx context.Context, in *InitiateOAuthConnectInput, opts ...grpc.CallOption) (*InitiateOAuthConnectOutput, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(InitiateOAuthConnectOutput)
-	err := c.cc.Invoke(ctx, McpServerCommandController_InitiateOAuthConnect_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *mcpServerCommandControllerClient) CompleteOAuthConnect(ctx context.Context, in *CompleteOAuthConnectInput, opts ...grpc.CallOption) (*CompleteOAuthConnectOutput, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CompleteOAuthConnectOutput)
-	err := c.cc.Invoke(ctx, McpServerCommandController_CompleteOAuthConnect_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *mcpServerCommandControllerClient) DisconnectOAuth(ctx context.Context, in *DisconnectOAuthInput, opts ...grpc.CallOption) (*DisconnectOAuthOutput, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(DisconnectOAuthOutput)
 	err := c.cc.Invoke(ctx, McpServerCommandController_DisconnectOAuth_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *mcpServerCommandControllerClient) SetOrgOAuthApp(ctx context.Context, in *SetOrgOAuthAppInput, opts ...grpc.CallOption) (*SetOrgOAuthAppOutput, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(SetOrgOAuthAppOutput)
-	err := c.cc.Invoke(ctx, McpServerCommandController_SetOrgOAuthApp_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *mcpServerCommandControllerClient) DeleteOrgOAuthApp(ctx context.Context, in *DeleteOrgOAuthAppInput, opts ...grpc.CallOption) (*DeleteOrgOAuthAppOutput, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(DeleteOrgOAuthAppOutput)
-	err := c.cc.Invoke(ctx, McpServerCommandController_DeleteOrgOAuthApp_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -345,69 +250,18 @@ type McpServerCommandControllerServer interface {
 	// entry orphaned by a backend restart is reconciled against Temporal
 	// before a new operation starts.
 	StartConnect(context.Context, *ConnectInput) (*McpServer, error)
-	// Start the OAuth authorization flow for an MCP server.
+	// Disconnect the authenticated user's sign-in for an MCP server.
 	//
-	// Performs setup (DCR registration or OAuthApp credential lookup, PKCE
-	// generation) and returns an authorization URL for the frontend to
-	// redirect the user to. The frontend calls completeOAuthConnect after
-	// the user authorizes.
-	InitiateOAuthConnect(context.Context, *InitiateOAuthConnectInput) (*InitiateOAuthConnectOutput, error)
-	// Complete the OAuth authorization flow by exchanging the authorization
-	// code for tokens.
-	//
-	// Called by the frontend after the user is redirected back from the
-	// OAuth authorization server. Exchanges the code for tokens and saves
-	// the login as a connection at the server's address in the vault named
-	// when the flow started: the caller's My vault, or a shared vault they
-	// may edit.
-	//
-	// After success, the frontend should call connect() to trigger tool
-	// discovery using the freshly acquired token.
-	CompleteOAuthConnect(context.Context, *CompleteOAuthConnectInput) (*CompleteOAuthConnectOutput, error)
-	// Disconnect the authenticated user's OAuth connection for a resource.
-	//
-	// Removes every connection a sign-in to this server saved in the caller's
-	// My vault, with its access and refresh tokens, including one left at the
-	// server's earlier address. The MCP server definition is unchanged — only
-	// the caller's sign-in is removed.
-	//
-	// Other users' connections to the same resource, a pasted login and
-	// another server's sign-in are unaffected. A sign-in saved into a shared
-	// vault is removed through that vault's removeConnections.
+	// Removes the sign-in saved at the server's address in the caller's My
+	// vault, with its access and refresh tokens. The MCP server definition is
+	// unchanged. A pasted login at the address is left in place, and so is a
+	// sign-in saved into a shared vault: the vault's removeConnections removes
+	// either.
 	//
 	// Idempotent: returns disconnected=true when a sign-in was removed,
 	// disconnected=false when none was saved. Never returns an error
 	// for a missing sign-in.
 	DisconnectOAuth(context.Context, *DisconnectOAuthInput) (*DisconnectOAuthOutput, error)
-	// Create or update an org-level BYOA OAuth app override for a resource.
-	//
-	// Allows an organization to use its own OAuth app credentials instead of
-	// the platform default. The handler clones the platform OAuthApp template
-	// (endpoint URLs, scopes) and applies the org-provided client credentials.
-	//
-	// Idempotent: if an override already exists for this resource + org, the
-	// existing OAuthApp is updated with the new credentials.
-	//
-	// Edition scoping: hosted-only. UNIMPLEMENTED on the OSS server by
-	// design, as one capability with getOrgOAuthApp and deleteOrgOAuthApp —
-	// see the full scoping note on McpServerQueryController.getOrgOAuthApp,
-	// the RPC clients probe.
-	SetOrgOAuthApp(context.Context, *SetOrgOAuthAppInput) (*SetOrgOAuthAppOutput, error)
-	// Remove an org-level BYOA override for a resource.
-	//
-	// Deletes the OAuthAppOverride binding and the OAuthApp resource that
-	// was created for it. After this, the resolution chain falls back to
-	// the platform default.
-	//
-	// Edition scoping: hosted-only. UNIMPLEMENTED on the OSS server by
-	// design, as one capability with getOrgOAuthApp and setOrgOAuthApp —
-	// see the full scoping note on McpServerQueryController.getOrgOAuthApp,
-	// the RPC clients probe.
-	//
-	// Existing sign-ins that were issued using the org's OAuthApp
-	// will fail on next token refresh — those users will need to
-	// re-authenticate using the platform default or a new org override.
-	DeleteOrgOAuthApp(context.Context, *DeleteOrgOAuthAppInput) (*DeleteOrgOAuthAppOutput, error)
 }
 
 // UnimplementedMcpServerCommandControllerServer should be embedded to have
@@ -438,20 +292,8 @@ func (UnimplementedMcpServerCommandControllerServer) Connect(context.Context, *C
 func (UnimplementedMcpServerCommandControllerServer) StartConnect(context.Context, *ConnectInput) (*McpServer, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method StartConnect not implemented")
 }
-func (UnimplementedMcpServerCommandControllerServer) InitiateOAuthConnect(context.Context, *InitiateOAuthConnectInput) (*InitiateOAuthConnectOutput, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method InitiateOAuthConnect not implemented")
-}
-func (UnimplementedMcpServerCommandControllerServer) CompleteOAuthConnect(context.Context, *CompleteOAuthConnectInput) (*CompleteOAuthConnectOutput, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CompleteOAuthConnect not implemented")
-}
 func (UnimplementedMcpServerCommandControllerServer) DisconnectOAuth(context.Context, *DisconnectOAuthInput) (*DisconnectOAuthOutput, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DisconnectOAuth not implemented")
-}
-func (UnimplementedMcpServerCommandControllerServer) SetOrgOAuthApp(context.Context, *SetOrgOAuthAppInput) (*SetOrgOAuthAppOutput, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SetOrgOAuthApp not implemented")
-}
-func (UnimplementedMcpServerCommandControllerServer) DeleteOrgOAuthApp(context.Context, *DeleteOrgOAuthAppInput) (*DeleteOrgOAuthAppOutput, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeleteOrgOAuthApp not implemented")
 }
 func (UnimplementedMcpServerCommandControllerServer) testEmbeddedByValue() {}
 
@@ -599,42 +441,6 @@ func _McpServerCommandController_StartConnect_Handler(srv interface{}, ctx conte
 	return interceptor(ctx, in, info, handler)
 }
 
-func _McpServerCommandController_InitiateOAuthConnect_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(InitiateOAuthConnectInput)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(McpServerCommandControllerServer).InitiateOAuthConnect(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: McpServerCommandController_InitiateOAuthConnect_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(McpServerCommandControllerServer).InitiateOAuthConnect(ctx, req.(*InitiateOAuthConnectInput))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _McpServerCommandController_CompleteOAuthConnect_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CompleteOAuthConnectInput)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(McpServerCommandControllerServer).CompleteOAuthConnect(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: McpServerCommandController_CompleteOAuthConnect_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(McpServerCommandControllerServer).CompleteOAuthConnect(ctx, req.(*CompleteOAuthConnectInput))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _McpServerCommandController_DisconnectOAuth_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DisconnectOAuthInput)
 	if err := dec(in); err != nil {
@@ -649,42 +455,6 @@ func _McpServerCommandController_DisconnectOAuth_Handler(srv interface{}, ctx co
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(McpServerCommandControllerServer).DisconnectOAuth(ctx, req.(*DisconnectOAuthInput))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _McpServerCommandController_SetOrgOAuthApp_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SetOrgOAuthAppInput)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(McpServerCommandControllerServer).SetOrgOAuthApp(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: McpServerCommandController_SetOrgOAuthApp_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(McpServerCommandControllerServer).SetOrgOAuthApp(ctx, req.(*SetOrgOAuthAppInput))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _McpServerCommandController_DeleteOrgOAuthApp_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeleteOrgOAuthAppInput)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(McpServerCommandControllerServer).DeleteOrgOAuthApp(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: McpServerCommandController_DeleteOrgOAuthApp_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(McpServerCommandControllerServer).DeleteOrgOAuthApp(ctx, req.(*DeleteOrgOAuthAppInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -725,24 +495,8 @@ var McpServerCommandController_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _McpServerCommandController_StartConnect_Handler,
 		},
 		{
-			MethodName: "initiateOAuthConnect",
-			Handler:    _McpServerCommandController_InitiateOAuthConnect_Handler,
-		},
-		{
-			MethodName: "completeOAuthConnect",
-			Handler:    _McpServerCommandController_CompleteOAuthConnect_Handler,
-		},
-		{
 			MethodName: "disconnectOAuth",
 			Handler:    _McpServerCommandController_DisconnectOAuth_Handler,
-		},
-		{
-			MethodName: "setOrgOAuthApp",
-			Handler:    _McpServerCommandController_SetOrgOAuthApp_Handler,
-		},
-		{
-			MethodName: "deleteOrgOAuthApp",
-			Handler:    _McpServerCommandController_DeleteOrgOAuthApp_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

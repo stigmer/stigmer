@@ -44,6 +44,8 @@ private static final long serialVersionUID = 0L;
     vendorApprovalStatus_ = 0;
     vendorApprovalDocsUrl_ = "";
     tokenEndpointAuthMethod_ = 0;
+    addresses_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -381,10 +383,11 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object userinfoUrl_ = "";
   /**
    * <pre>
-   * Optional OIDC UserInfo endpoint for fetching user profile data.
-   * When set, Stigmer calls this endpoint after token acquisition to
-   * retrieve the user's display name and avatar for the connected account.
-   * Omit for vendors that do not support a standard userinfo endpoint.
+   * Optional endpoint that answers who signed in (an OIDC UserInfo
+   * endpoint, or a vendor's equivalent such as GitHub's /user).
+   * When set, Stigmer calls it once after the sign-in, with the new token,
+   * and describes the saved login by the account's login, preferred user
+   * name or email ("Slack &#64;ana"). Omit for vendors without one.
    * </pre>
    *
    * <code>string userinfo_url = 7 [json_name = "userinfoUrl"];</code>
@@ -405,10 +408,11 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Optional OIDC UserInfo endpoint for fetching user profile data.
-   * When set, Stigmer calls this endpoint after token acquisition to
-   * retrieve the user's display name and avatar for the connected account.
-   * Omit for vendors that do not support a standard userinfo endpoint.
+   * Optional endpoint that answers who signed in (an OIDC UserInfo
+   * endpoint, or a vendor's equivalent such as GitHub's /user).
+   * When set, Stigmer calls it once after the sign-in, with the new token,
+   * and describes the saved login by the account's login, preferred user
+   * name or email ("Slack &#64;ana"). Omit for vendors without one.
    * </pre>
    *
    * <code>string userinfo_url = 7 [json_name = "userinfoUrl"];</code>
@@ -633,6 +637,71 @@ private static final long serialVersionUID = 0L;
     return result == null ? ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod.UNRECOGNIZED : result;
   }
 
+  public static final int ADDRESSES_FIELD_NUMBER = 12;
+  @SuppressWarnings("serial")
+  private com.google.protobuf.LazyStringArrayList addresses_ =
+      com.google.protobuf.LazyStringArrayList.emptyList();
+  /**
+   * <pre>
+   * The addresses this app signs in to: a tool's URL
+   * (https://mcp.slack.com/mcp) or a Git host (github.com), normalized as a
+   * vault connection's address is. A sign-in started at one of them uses
+   * this app. An address may belong to only one app in the organization.
+   * </pre>
+   *
+   * <code>repeated string addresses = 12 [json_name = "addresses", (.buf.validate.field) = { ... }</code>
+   * @return A list containing the addresses.
+   */
+  public com.google.protobuf.ProtocolStringList
+      getAddressesList() {
+    return addresses_;
+  }
+  /**
+   * <pre>
+   * The addresses this app signs in to: a tool's URL
+   * (https://mcp.slack.com/mcp) or a Git host (github.com), normalized as a
+   * vault connection's address is. A sign-in started at one of them uses
+   * this app. An address may belong to only one app in the organization.
+   * </pre>
+   *
+   * <code>repeated string addresses = 12 [json_name = "addresses", (.buf.validate.field) = { ... }</code>
+   * @return The count of addresses.
+   */
+  public int getAddressesCount() {
+    return addresses_.size();
+  }
+  /**
+   * <pre>
+   * The addresses this app signs in to: a tool's URL
+   * (https://mcp.slack.com/mcp) or a Git host (github.com), normalized as a
+   * vault connection's address is. A sign-in started at one of them uses
+   * this app. An address may belong to only one app in the organization.
+   * </pre>
+   *
+   * <code>repeated string addresses = 12 [json_name = "addresses", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the element to return.
+   * @return The addresses at the given index.
+   */
+  public java.lang.String getAddresses(int index) {
+    return addresses_.get(index);
+  }
+  /**
+   * <pre>
+   * The addresses this app signs in to: a tool's URL
+   * (https://mcp.slack.com/mcp) or a Git host (github.com), normalized as a
+   * vault connection's address is. A sign-in started at one of them uses
+   * this app. An address may belong to only one app in the organization.
+   * </pre>
+   *
+   * <code>repeated string addresses = 12 [json_name = "addresses", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the addresses at the given index.
+   */
+  public com.google.protobuf.ByteString
+      getAddressesBytes(int index) {
+    return addresses_.getByteString(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -679,6 +748,9 @@ private static final long serialVersionUID = 0L;
     }
     if (tokenEndpointAuthMethod_ != ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod.TOKEN_ENDPOINT_AUTH_METHOD_UNSPECIFIED.getNumber()) {
       output.writeEnum(11, tokenEndpointAuthMethod_);
+    }
+    for (int i = 0; i < addresses_.size(); i++) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 12, addresses_.getRaw(i));
     }
     getUnknownFields().writeTo(output);
   }
@@ -729,6 +801,14 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(11, tokenEndpointAuthMethod_);
     }
+    {
+      int dataSize = 0;
+      for (int i = 0; i < addresses_.size(); i++) {
+        dataSize += computeStringSizeNoTag(addresses_.getRaw(i));
+      }
+      size += dataSize;
+      size += 1 * getAddressesList().size();
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -764,6 +844,8 @@ private static final long serialVersionUID = 0L;
     if (!getVendorApprovalDocsUrl()
         .equals(other.getVendorApprovalDocsUrl())) return false;
     if (tokenEndpointAuthMethod_ != other.tokenEndpointAuthMethod_) return false;
+    if (!getAddressesList()
+        .equals(other.getAddressesList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -799,6 +881,10 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getVendorApprovalDocsUrl().hashCode();
     hash = (37 * hash) + TOKEN_ENDPOINT_AUTH_METHOD_FIELD_NUMBER;
     hash = (53 * hash) + tokenEndpointAuthMethod_;
+    if (getAddressesCount() > 0) {
+      hash = (37 * hash) + ADDRESSES_FIELD_NUMBER;
+      hash = (53 * hash) + getAddressesList().hashCode();
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -946,6 +1032,8 @@ private static final long serialVersionUID = 0L;
       vendorApprovalStatus_ = 0;
       vendorApprovalDocsUrl_ = "";
       tokenEndpointAuthMethod_ = 0;
+      addresses_ =
+          com.google.protobuf.LazyStringArrayList.emptyList();
       return this;
     }
 
@@ -1012,6 +1100,10 @@ private static final long serialVersionUID = 0L;
       }
       if (((from_bitField0_ & 0x00000400) != 0)) {
         result.tokenEndpointAuthMethod_ = tokenEndpointAuthMethod_;
+      }
+      if (((from_bitField0_ & 0x00000800) != 0)) {
+        addresses_.makeImmutable();
+        result.addresses_ = addresses_;
       }
     }
 
@@ -1082,6 +1174,16 @@ private static final long serialVersionUID = 0L;
       }
       if (other.tokenEndpointAuthMethod_ != 0) {
         setTokenEndpointAuthMethodValue(other.getTokenEndpointAuthMethodValue());
+      }
+      if (!other.addresses_.isEmpty()) {
+        if (addresses_.isEmpty()) {
+          addresses_ = other.addresses_;
+          bitField0_ |= 0x00000800;
+        } else {
+          ensureAddressesIsMutable();
+          addresses_.addAll(other.addresses_);
+        }
+        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1164,6 +1266,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000400;
               break;
             } // case 88
+            case 98: {
+              ensureAddressesIsMutable();
+              addresses_.add(input.readStringRequireUtf8());
+              break;
+            } // case 98
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1848,10 +1955,11 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object userinfoUrl_ = "";
     /**
      * <pre>
-     * Optional OIDC UserInfo endpoint for fetching user profile data.
-     * When set, Stigmer calls this endpoint after token acquisition to
-     * retrieve the user's display name and avatar for the connected account.
-     * Omit for vendors that do not support a standard userinfo endpoint.
+     * Optional endpoint that answers who signed in (an OIDC UserInfo
+     * endpoint, or a vendor's equivalent such as GitHub's /user).
+     * When set, Stigmer calls it once after the sign-in, with the new token,
+     * and describes the saved login by the account's login, preferred user
+     * name or email ("Slack &#64;ana"). Omit for vendors without one.
      * </pre>
      *
      * <code>string userinfo_url = 7 [json_name = "userinfoUrl"];</code>
@@ -1871,10 +1979,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Optional OIDC UserInfo endpoint for fetching user profile data.
-     * When set, Stigmer calls this endpoint after token acquisition to
-     * retrieve the user's display name and avatar for the connected account.
-     * Omit for vendors that do not support a standard userinfo endpoint.
+     * Optional endpoint that answers who signed in (an OIDC UserInfo
+     * endpoint, or a vendor's equivalent such as GitHub's /user).
+     * When set, Stigmer calls it once after the sign-in, with the new token,
+     * and describes the saved login by the account's login, preferred user
+     * name or email ("Slack &#64;ana"). Omit for vendors without one.
      * </pre>
      *
      * <code>string userinfo_url = 7 [json_name = "userinfoUrl"];</code>
@@ -1895,10 +2004,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Optional OIDC UserInfo endpoint for fetching user profile data.
-     * When set, Stigmer calls this endpoint after token acquisition to
-     * retrieve the user's display name and avatar for the connected account.
-     * Omit for vendors that do not support a standard userinfo endpoint.
+     * Optional endpoint that answers who signed in (an OIDC UserInfo
+     * endpoint, or a vendor's equivalent such as GitHub's /user).
+     * When set, Stigmer calls it once after the sign-in, with the new token,
+     * and describes the saved login by the account's login, preferred user
+     * name or email ("Slack &#64;ana"). Omit for vendors without one.
      * </pre>
      *
      * <code>string userinfo_url = 7 [json_name = "userinfoUrl"];</code>
@@ -1915,10 +2025,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Optional OIDC UserInfo endpoint for fetching user profile data.
-     * When set, Stigmer calls this endpoint after token acquisition to
-     * retrieve the user's display name and avatar for the connected account.
-     * Omit for vendors that do not support a standard userinfo endpoint.
+     * Optional endpoint that answers who signed in (an OIDC UserInfo
+     * endpoint, or a vendor's equivalent such as GitHub's /user).
+     * When set, Stigmer calls it once after the sign-in, with the new token,
+     * and describes the saved login by the account's login, preferred user
+     * name or email ("Slack &#64;ana"). Omit for vendors without one.
      * </pre>
      *
      * <code>string userinfo_url = 7 [json_name = "userinfoUrl"];</code>
@@ -1932,10 +2043,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Optional OIDC UserInfo endpoint for fetching user profile data.
-     * When set, Stigmer calls this endpoint after token acquisition to
-     * retrieve the user's display name and avatar for the connected account.
-     * Omit for vendors that do not support a standard userinfo endpoint.
+     * Optional endpoint that answers who signed in (an OIDC UserInfo
+     * endpoint, or a vendor's equivalent such as GitHub's /user).
+     * When set, Stigmer calls it once after the sign-in, with the new token,
+     * and describes the saved login by the account's login, preferred user
+     * name or email ("Slack &#64;ana"). Omit for vendors without one.
      * </pre>
      *
      * <code>string userinfo_url = 7 [json_name = "userinfoUrl"];</code>
@@ -2421,6 +2533,180 @@ private static final long serialVersionUID = 0L;
     public Builder clearTokenEndpointAuthMethod() {
       bitField0_ = (bitField0_ & ~0x00000400);
       tokenEndpointAuthMethod_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private com.google.protobuf.LazyStringArrayList addresses_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+    private void ensureAddressesIsMutable() {
+      if (!addresses_.isModifiable()) {
+        addresses_ = new com.google.protobuf.LazyStringArrayList(addresses_);
+      }
+      bitField0_ |= 0x00000800;
+    }
+    /**
+     * <pre>
+     * The addresses this app signs in to: a tool's URL
+     * (https://mcp.slack.com/mcp) or a Git host (github.com), normalized as a
+     * vault connection's address is. A sign-in started at one of them uses
+     * this app. An address may belong to only one app in the organization.
+     * </pre>
+     *
+     * <code>repeated string addresses = 12 [json_name = "addresses", (.buf.validate.field) = { ... }</code>
+     * @return A list containing the addresses.
+     */
+    public com.google.protobuf.ProtocolStringList
+        getAddressesList() {
+      addresses_.makeImmutable();
+      return addresses_;
+    }
+    /**
+     * <pre>
+     * The addresses this app signs in to: a tool's URL
+     * (https://mcp.slack.com/mcp) or a Git host (github.com), normalized as a
+     * vault connection's address is. A sign-in started at one of them uses
+     * this app. An address may belong to only one app in the organization.
+     * </pre>
+     *
+     * <code>repeated string addresses = 12 [json_name = "addresses", (.buf.validate.field) = { ... }</code>
+     * @return The count of addresses.
+     */
+    public int getAddressesCount() {
+      return addresses_.size();
+    }
+    /**
+     * <pre>
+     * The addresses this app signs in to: a tool's URL
+     * (https://mcp.slack.com/mcp) or a Git host (github.com), normalized as a
+     * vault connection's address is. A sign-in started at one of them uses
+     * this app. An address may belong to only one app in the organization.
+     * </pre>
+     *
+     * <code>repeated string addresses = 12 [json_name = "addresses", (.buf.validate.field) = { ... }</code>
+     * @param index The index of the element to return.
+     * @return The addresses at the given index.
+     */
+    public java.lang.String getAddresses(int index) {
+      return addresses_.get(index);
+    }
+    /**
+     * <pre>
+     * The addresses this app signs in to: a tool's URL
+     * (https://mcp.slack.com/mcp) or a Git host (github.com), normalized as a
+     * vault connection's address is. A sign-in started at one of them uses
+     * this app. An address may belong to only one app in the organization.
+     * </pre>
+     *
+     * <code>repeated string addresses = 12 [json_name = "addresses", (.buf.validate.field) = { ... }</code>
+     * @param index The index of the value to return.
+     * @return The bytes of the addresses at the given index.
+     */
+    public com.google.protobuf.ByteString
+        getAddressesBytes(int index) {
+      return addresses_.getByteString(index);
+    }
+    /**
+     * <pre>
+     * The addresses this app signs in to: a tool's URL
+     * (https://mcp.slack.com/mcp) or a Git host (github.com), normalized as a
+     * vault connection's address is. A sign-in started at one of them uses
+     * this app. An address may belong to only one app in the organization.
+     * </pre>
+     *
+     * <code>repeated string addresses = 12 [json_name = "addresses", (.buf.validate.field) = { ... }</code>
+     * @param index The index to set the value at.
+     * @param value The addresses to set.
+     * @return This builder for chaining.
+     */
+    public Builder setAddresses(
+        int index, java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureAddressesIsMutable();
+      addresses_.set(index, value);
+      bitField0_ |= 0x00000800;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The addresses this app signs in to: a tool's URL
+     * (https://mcp.slack.com/mcp) or a Git host (github.com), normalized as a
+     * vault connection's address is. A sign-in started at one of them uses
+     * this app. An address may belong to only one app in the organization.
+     * </pre>
+     *
+     * <code>repeated string addresses = 12 [json_name = "addresses", (.buf.validate.field) = { ... }</code>
+     * @param value The addresses to add.
+     * @return This builder for chaining.
+     */
+    public Builder addAddresses(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureAddressesIsMutable();
+      addresses_.add(value);
+      bitField0_ |= 0x00000800;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The addresses this app signs in to: a tool's URL
+     * (https://mcp.slack.com/mcp) or a Git host (github.com), normalized as a
+     * vault connection's address is. A sign-in started at one of them uses
+     * this app. An address may belong to only one app in the organization.
+     * </pre>
+     *
+     * <code>repeated string addresses = 12 [json_name = "addresses", (.buf.validate.field) = { ... }</code>
+     * @param values The addresses to add.
+     * @return This builder for chaining.
+     */
+    public Builder addAllAddresses(
+        java.lang.Iterable<java.lang.String> values) {
+      ensureAddressesIsMutable();
+      com.google.protobuf.AbstractMessageLite.Builder.addAll(
+          values, addresses_);
+      bitField0_ |= 0x00000800;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The addresses this app signs in to: a tool's URL
+     * (https://mcp.slack.com/mcp) or a Git host (github.com), normalized as a
+     * vault connection's address is. A sign-in started at one of them uses
+     * this app. An address may belong to only one app in the organization.
+     * </pre>
+     *
+     * <code>repeated string addresses = 12 [json_name = "addresses", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearAddresses() {
+      addresses_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+      bitField0_ = (bitField0_ & ~0x00000800);;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The addresses this app signs in to: a tool's URL
+     * (https://mcp.slack.com/mcp) or a Git host (github.com), normalized as a
+     * vault connection's address is. A sign-in started at one of them uses
+     * this app. An address may belong to only one app in the organization.
+     * </pre>
+     *
+     * <code>repeated string addresses = 12 [json_name = "addresses", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes of the addresses to add.
+     * @return This builder for chaining.
+     */
+    public Builder addAddressesBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      ensureAddressesIsMutable();
+      addresses_.add(value);
+      bitField0_ |= 0x00000800;
       onChanged();
       return this;
     }

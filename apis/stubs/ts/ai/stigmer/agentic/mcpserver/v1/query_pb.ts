@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { McpServerSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_mcpserver_v1_api } from "./api_pb.js";
-import type { GetOAuthGrantStatusInputSchema, GetOAuthGrantStatusOutputSchema, GetOrgOAuthAppInputSchema, GetOrgOAuthAppOutputSchema } from "./io_pb.js";
+import type { GetOAuthGrantStatusInputSchema, GetOAuthGrantStatusOutputSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_mcpserver_v1_io } from "./io_pb.js";
 import type { ApiResourceIdSchema, ApiResourceReferenceSchema } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
@@ -17,7 +17,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/mcpserver/v1/query.proto.
  */
 export const file_ai_stigmer_agentic_mcpserver_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL3F1ZXJ5LnByb3RvEh9haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxMssFChhNY3BTZXJ2ZXJRdWVyeUNvbnRyb2xsZXISkgEKA2dldBItLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUlkGiouYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5NY3BTZXJ2ZXIiMMK4GCwIARAsIgV2YWx1ZSofdW5hdXRob3JpemVkIHRvIHZpZXcgbWNwIHNlcnZlchJ4Cg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRoqLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyIgTQuBgBEtUBChNnZXRPQXV0aEdyYW50U3RhdHVzEjkuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5HZXRPQXV0aEdyYW50U3RhdHVzSW5wdXQaOi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkdldE9BdXRoR3JhbnRTdGF0dXNPdXRwdXQiR8K4GEMIARAsIgtyZXNvdXJjZV9pZCowdW5hdXRob3JpemVkIHRvIHZpZXcgb2F1dGggc3RhdHVzIGZvciBtY3Agc2VydmVyEsEBCg5nZXRPcmdPQXV0aEFwcBI0LmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuR2V0T3JnT0F1dGhBcHBJbnB1dBo1LmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuR2V0T3JnT0F1dGhBcHBPdXRwdXQiQsK4GD4IARAsIgtyZXNvdXJjZV9pZCordW5hdXRob3JpemVkIHRvIHZpZXcgb3JnIG9hdXRoIGFwcCBvdmVycmlkZRoEoP8rLGIGcHJvdG8z", [file_ai_stigmer_agentic_mcpserver_v1_api, file_ai_stigmer_agentic_mcpserver_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL3F1ZXJ5LnByb3RvEh9haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxMocEChhNY3BTZXJ2ZXJRdWVyeUNvbnRyb2xsZXISkgEKA2dldBItLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUlkGiouYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5NY3BTZXJ2ZXIiMMK4GCwIARAsIgV2YWx1ZSofdW5hdXRob3JpemVkIHRvIHZpZXcgbWNwIHNlcnZlchJ4Cg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRoqLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyIgTQuBgBEtUBChNnZXRPQXV0aEdyYW50U3RhdHVzEjkuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5HZXRPQXV0aEdyYW50U3RhdHVzSW5wdXQaOi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkdldE9BdXRoR3JhbnRTdGF0dXNPdXRwdXQiR8K4GEMIARAsIgtyZXNvdXJjZV9pZCowdW5hdXRob3JpemVkIHRvIHZpZXcgb2F1dGggc3RhdHVzIGZvciBtY3Agc2VydmVyGgSg/yssYgZwcm90bzM", [file_ai_stigmer_agentic_mcpserver_v1_api, file_ai_stigmer_agentic_mcpserver_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * McpServerQueryController provides read operations for MCP server resources.
@@ -50,9 +50,9 @@ export const McpServerQueryController: GenService<{
   },
   /**
    * Check whether the authenticated user has a sign-in for an MCP server in
-   * their My vault in the specified org that a run would use: one this
-   * server's sign-in saved at the server's current address. A pasted login
-   * and a sign-in saved into a shared vault are read through the vault's own
+   * their My vault in the specified org: a sign-in saved at the server's
+   * address, whichever tool or page started it. A pasted login and a
+   * sign-in saved into a shared vault are read through the vault's own
    * RPCs.
    *
    * Returns sign-in metadata (connected status, token expiry, auth method)
@@ -66,32 +66,6 @@ export const McpServerQueryController: GenService<{
     methodKind: "unary";
     input: typeof GetOAuthGrantStatusInputSchema;
     output: typeof GetOAuthGrantStatusOutputSchema;
-  },
-  /**
-   * Query whether an org has a BYOA override for a resource.
-   *
-   * Returns override metadata (existence, OAuthApp ID, client_id) without
-   * exposing secrets. The frontend uses this to show which credential
-   * source is active and to offer override management options to org admins.
-   *
-   * Edition scoping: hosted-only, together with setOrgOAuthApp and
-   * deleteOrgOAuthApp — the three org-OAuth-app RPCs are ONE capability.
-   * The OSS server answers UNIMPLEMENTED for all of them by design: its
-   * flat OAuthApp store has no override binding, its OAuth resolution has
-   * no override level to consult, and BYOA's clone-from-platform-template
-   * model has no template to clone (self-hosted users apply their own
-   * OAuthApp and reference it from spec.auth.oauth_app_ref — a strictly
-   * more powerful path). Clients probe the capability through THIS RPC:
-   * an UNIMPLEMENTED answer means "hide every BYOA affordance" (see the
-   * SDK's useOrgOAuthApp.isSupported). Never implement one RPC of the
-   * surface without the other two and the client-side gate.
-   *
-   * @generated from rpc ai.stigmer.agentic.mcpserver.v1.McpServerQueryController.getOrgOAuthApp
-   */
-  getOrgOAuthApp: {
-    methodKind: "unary";
-    input: typeof GetOrgOAuthAppInputSchema;
-    output: typeof GetOrgOAuthAppOutputSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_agentic_mcpserver_v1_query, 0);

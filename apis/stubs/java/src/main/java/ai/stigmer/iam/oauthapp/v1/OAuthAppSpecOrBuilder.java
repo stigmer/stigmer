@@ -177,10 +177,11 @@ public interface OAuthAppSpecOrBuilder extends
 
   /**
    * <pre>
-   * Optional OIDC UserInfo endpoint for fetching user profile data.
-   * When set, Stigmer calls this endpoint after token acquisition to
-   * retrieve the user's display name and avatar for the connected account.
-   * Omit for vendors that do not support a standard userinfo endpoint.
+   * Optional endpoint that answers who signed in (an OIDC UserInfo
+   * endpoint, or a vendor's equivalent such as GitHub's /user).
+   * When set, Stigmer calls it once after the sign-in, with the new token,
+   * and describes the saved login by the account's login, preferred user
+   * name or email ("Slack &#64;ana"). Omit for vendors without one.
    * </pre>
    *
    * <code>string userinfo_url = 7 [json_name = "userinfoUrl"];</code>
@@ -189,10 +190,11 @@ public interface OAuthAppSpecOrBuilder extends
   java.lang.String getUserinfoUrl();
   /**
    * <pre>
-   * Optional OIDC UserInfo endpoint for fetching user profile data.
-   * When set, Stigmer calls this endpoint after token acquisition to
-   * retrieve the user's display name and avatar for the connected account.
-   * Omit for vendors that do not support a standard userinfo endpoint.
+   * Optional endpoint that answers who signed in (an OIDC UserInfo
+   * endpoint, or a vendor's equivalent such as GitHub's /user).
+   * When set, Stigmer calls it once after the sign-in, with the new token,
+   * and describes the saved login by the account's login, preferred user
+   * name or email ("Slack &#64;ana"). Omit for vendors without one.
    * </pre>
    *
    * <code>string userinfo_url = 7 [json_name = "userinfoUrl"];</code>
@@ -336,4 +338,57 @@ public interface OAuthAppSpecOrBuilder extends
    * @return The tokenEndpointAuthMethod.
    */
   ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod getTokenEndpointAuthMethod();
+
+  /**
+   * <pre>
+   * The addresses this app signs in to: a tool's URL
+   * (https://mcp.slack.com/mcp) or a Git host (github.com), normalized as a
+   * vault connection's address is. A sign-in started at one of them uses
+   * this app. An address may belong to only one app in the organization.
+   * </pre>
+   *
+   * <code>repeated string addresses = 12 [json_name = "addresses", (.buf.validate.field) = { ... }</code>
+   * @return A list containing the addresses.
+   */
+  java.util.List<java.lang.String>
+      getAddressesList();
+  /**
+   * <pre>
+   * The addresses this app signs in to: a tool's URL
+   * (https://mcp.slack.com/mcp) or a Git host (github.com), normalized as a
+   * vault connection's address is. A sign-in started at one of them uses
+   * this app. An address may belong to only one app in the organization.
+   * </pre>
+   *
+   * <code>repeated string addresses = 12 [json_name = "addresses", (.buf.validate.field) = { ... }</code>
+   * @return The count of addresses.
+   */
+  int getAddressesCount();
+  /**
+   * <pre>
+   * The addresses this app signs in to: a tool's URL
+   * (https://mcp.slack.com/mcp) or a Git host (github.com), normalized as a
+   * vault connection's address is. A sign-in started at one of them uses
+   * this app. An address may belong to only one app in the organization.
+   * </pre>
+   *
+   * <code>repeated string addresses = 12 [json_name = "addresses", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the element to return.
+   * @return The addresses at the given index.
+   */
+  java.lang.String getAddresses(int index);
+  /**
+   * <pre>
+   * The addresses this app signs in to: a tool's URL
+   * (https://mcp.slack.com/mcp) or a Git host (github.com), normalized as a
+   * vault connection's address is. A sign-in started at one of them uses
+   * this app. An address may belong to only one app in the organization.
+   * </pre>
+   *
+   * <code>repeated string addresses = 12 [json_name = "addresses", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the addresses at the given index.
+   */
+  com.google.protobuf.ByteString
+      getAddressesBytes(int index);
 }

@@ -8,8 +8,10 @@ import grpc
 
 from ai.stigmer.agentic.vault.v1 import api_pb2
 from ai.stigmer.agentic.vault.v1 import command_pb2_grpc
+from ai.stigmer.agentic.vault.v1 import connect_link_pb2_grpc
 from ai.stigmer.agentic.vault.v1 import query_pb2_grpc
 from ai.stigmer.agentic.vault.v1 import io_pb2
+from ai.stigmer.agentic.vault.v1 import connect_link_pb2
 from ai.stigmer.agentic.vault.v1 import spec_pb2
 from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
@@ -24,6 +26,7 @@ class VaultClient:
 
     def __init__(self, channel: grpc.Channel) -> None:
         self._command = command_pb2_grpc.VaultCommandControllerStub(channel)
+        self._connectLink = connect_link_pb2_grpc.ConnectLinkControllerStub(channel)
         self._query = query_pb2_grpc.VaultQueryControllerStub(channel)
 
     def create(self, input: VaultInput) -> api_pb2.Vault:
@@ -71,6 +74,42 @@ class VaultClient:
     def remove_connections(self, input: io_pb2.RemoveVaultConnectionsInput) -> api_pb2.Vault:
         try:
             return self._command.removeConnections(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def start_sign_in(self, input: io_pb2.StartSignInInput) -> io_pb2.StartSignInOutput:
+        try:
+            return self._command.startSignIn(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def complete_sign_in(self, input: io_pb2.CompleteSignInInput) -> io_pb2.CompleteSignInOutput:
+        try:
+            return self._command.completeSignIn(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def create_connect_link(self, input: io_pb2.CreateConnectLinkInput) -> io_pb2.ConnectLink:
+        try:
+            return self._command.createConnectLink(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def get_connect_link(self, input: connect_link_pb2.ConnectLinkTokenInput) -> connect_link_pb2.ConnectLinkInfo:
+        try:
+            return self._connectLink.getConnectLink(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def start_connect_link(self, input: connect_link_pb2.ConnectLinkTokenInput) -> connect_link_pb2.StartConnectLinkOutput:
+        try:
+            return self._connectLink.startConnectLink(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def complete_connect_link(self, input: connect_link_pb2.CompleteConnectLinkInput) -> connect_link_pb2.CompleteConnectLinkOutput:
+        try:
+            return self._connectLink.completeConnectLink(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
@@ -208,8 +247,7 @@ class VaultConnectionSignInInput:
     auth_method: str = ""
     token_endpoint: str = ""
     refresh_token: str = ""
-    mcp_server_id: str = ""
-    local_program: bool = False
+    login_app: str = ""
 
     def _to_proto(self) -> spec_pb2.VaultConnectionSignIn:
         msg = spec_pb2.VaultConnectionSignIn(
@@ -218,8 +256,7 @@ class VaultConnectionSignInInput:
             auth_method=self.auth_method,
             token_endpoint=self.token_endpoint,
             refresh_token=self.refresh_token,
-            mcp_server_id=self.mcp_server_id,
-            local_program=self.local_program,
+            login_app=self.login_app,
         )
         return msg
 
