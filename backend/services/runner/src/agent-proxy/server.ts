@@ -31,8 +31,9 @@
  *
  * The residual, stated plainly: while a turn is live, whoever holds the
  * host's token can make model calls on the runner's account through this
- * server, as the agent's engine does by design. It can no longer take a
- * key away.
+ * server, as the agent's engine does by design — model calls only, each
+ * lane serving its provider's inference paths and nothing else under its
+ * root (`lanes.ts`). It can no longer take a key away.
  */
 
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";

@@ -12,6 +12,8 @@
  *    whose start was under way when the last harness shut down is ended,
  *    not adopted, and nothing restarts it;
  *  - a call from the host for a turn the runner is not running is refused;
+ *  - harnesses booted at the same moment, while the host is still starting,
+ *    are each booted in it once;
  *  - the production starter runs this build's entry in its agent-host mode
  *    under the runner's own Node, from source under tsx; a host that cannot
  *    be spawned closes its channel instead of throwing;
@@ -154,6 +156,29 @@ describe("the supervisor's edges", () => {
     const supervisor = new AgentHostSupervisor({ proxy: PROXY, start: hosts.start, log: () => {} });
     await supervisor.shutdown("cursor");
     expect(hosts.hosts).toEqual([]);
+  });
+
+  it("boots each harness once in a host that was still starting when they were booted together", async () => {
+    const booted: string[] = [];
+    const hosts = inProcessHosts();
+    const start: HostStarter = async () => {
+      const started = await hosts.start();
+      const host = hosts.hosts.at(-1)!;
+      host.handle("boot", async ({ harness }) => {
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        booted.push(harness);
+        return null;
+      });
+      return started;
+    };
+    const supervisor = new AgentHostSupervisor({ proxy: PROXY, start, log: () => {} });
+
+    await Promise.all([supervisor.boot("cursor", testConfig()), supervisor.boot("deep-agent", testConfig())]);
+
+    expect(booted.sort()).toEqual(["cursor", "deep-agent"]);
+    expect(hosts.hosts).toHaveLength(1);
+    await supervisor.shutdown("cursor");
+    await supervisor.shutdown("deep-agent");
   });
 
   it("refuses a host's call for a turn the runner is not running", async () => {

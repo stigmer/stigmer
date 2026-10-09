@@ -60,6 +60,21 @@ export function isModelProviderLane(name: string): name is ModelProviderLane {
 }
 
 /**
+ * The paths each model lane serves: the model calls the host's clients
+ * make (`shared/model-lanes.ts`), and nothing else under the provider's
+ * root. The operator's key reaches the provider's files, batches and
+ * fine-tuning too, and the runner's cloud identity every API of its
+ * project; none of that is the engine's to ask for.
+ */
+const MODEL_CALL_PATHS: Readonly<Record<ModelProviderLane, RegExp>> = {
+  anthropic: /^\/v1\/messages(\/count_tokens)?$/,
+  openai: /^\/v1\/(chat\/completions|responses)$/,
+  bedrock: /^\/model\/[^/]+\/(invoke|invoke-with-response-stream|count-tokens)$/,
+  vertex: /^\/projects\/[^/]+\/locations\/[^/]+\/publishers\/anthropic\/models\/[^/:]+:(rawPredict|streamRawPredict)$/,
+  foundry: /^\/v1\/messages(\/count_tokens)?$/,
+};
+
+/**
  * Where one model call goes. `rest` is the path after the lane's prefix,
  * with its query (`/v1/messages`, `/model/<id>/invoke-with-response-stream`).
  */
@@ -71,6 +86,8 @@ export async function modelUpstream(
   body: Buffer,
 ): Promise<Upstream> {
   const method = req.method ?? "POST";
+  const path = rest.split("?")[0] ?? "";
+  if (!MODEL_CALL_PATHS[lane].test(path)) throw new LaneRefusal(404, `the ${lane} lane serves model calls only, not ${path}`);
   if (config.proxyEndpoint !== null) {
     if (lane !== "anthropic" && lane !== "openai") {
       throw new LaneRefusal(404, `the ${lane} lane is not served: this runner's model calls go through the Stigmer platform`);
@@ -140,9 +157,8 @@ function openAiBase(): string {
   return trimSlash(process.env.OPENAI_BASE_URL?.trim() || "https://api.openai.com/v1");
 }
 
-/** The OpenAI lane's path carries the SDK's `/v1`; the root above already ends in it. */
+/** The OpenAI lane's path carries the SDK's `/v1` (`MODEL_CALL_PATHS`); the root above already ends in it. */
 function stripV1(rest: string): string {
-  if (!rest.startsWith("/v1/") && rest !== "/v1") throw new LaneRefusal(404, "the openai lane serves /v1 paths only");
   return rest.slice("/v1".length);
 }
 

@@ -9,7 +9,9 @@
  * provider:
  *  - a setting a lane needs is missing or malformed (the Anthropic gateway,
  *    the Bedrock and Vertex regions, the Foundry resource): 500 naming it;
- *  - the OpenAI lane serves only the SDK's `/v1` paths: 404;
+ *  - each lane serves its provider's model calls and nothing else under
+ *    its root (files, batches, fine-tuning, another API of the cloud
+ *    project): 404, with nothing sent;
  *  - the runner's cloud identity cannot be had (no AWS credentials, no
  *    Google credentials, no Azure token): 502 with the identity's own words;
  *  - a forwarding runner that holds no Stigmer credential: 503;
@@ -112,16 +114,41 @@ describe("a lane the runner's settings cannot serve", () => {
     expect(message).toMatch(/ANTHROPIC_BASE_URL="not a url" is not an http\(s\) URL/);
   });
 
-  it("serves only the OpenAI SDK's /v1 paths", async () => {
-    const { status, message } = await ask("/v1/proxy/llm/openai/models");
-    expect(status).toBe(404);
-    expect(message).toBe("the openai lane serves /v1 paths only");
+  it("serves each provider's model calls and nothing else under its root", async () => {
+    setEnv({
+      ANTHROPIC_BASE_URL: upstream.url,
+      OPENAI_BASE_URL: `${upstream.url}/v1`,
+      AWS_REGION: "us-east-1",
+      AWS_BEARER_TOKEN_BEDROCK: "bedrock-bearer",
+      ANTHROPIC_BEDROCK_BASE_URL: upstream.url,
+      CLOUD_ML_REGION: "us-east5",
+      ANTHROPIC_VERTEX_BASE_URL: upstream.url,
+      ANTHROPIC_FOUNDRY_BASE_URL: `${upstream.url}/anthropic/`,
+      ANTHROPIC_FOUNDRY_API_KEY: "foundry-key",
+    });
+    for (const [path, refused] of [
+      ["/v1/proxy/llm/anthropic/v1/files", "/v1/files"],
+      ["/v1/proxy/llm/anthropic/v1/messages/batches", "/v1/messages/batches"],
+      ["/v1/proxy/llm/openai/models", "/models"],
+      ["/v1/proxy/llm/openai/v1/files/file-1/content", "/v1/files/file-1/content"],
+      ["/v1/proxy/llm/openai/v1/fine_tuning/jobs", "/v1/fine_tuning/jobs"],
+      ["/v1/proxy/llm/bedrock/model/x/list", "/model/x/list"],
+      ["/v1/proxy/llm/vertex/projects/p/locations/us-east5/datasets", "/projects/p/locations/us-east5/datasets"],
+      ["/v1/proxy/llm/foundry/v1/files", "/v1/files"],
+    ] as const) {
+      const lane = path.split("/")[4];
+      expect(await ask(path), path).toEqual({ status: 404, message: `the ${lane} lane serves model calls only, not ${refused}` });
+    }
+    expect(upstream.received).toEqual([]);
   });
 
   it("names the region Bedrock and Vertex need, and the resource Foundry needs", async () => {
     setEnv({ AWS_REGION: undefined, CLOUD_ML_REGION: undefined, ANTHROPIC_FOUNDRY_RESOURCE: undefined, ANTHROPIC_FOUNDRY_BASE_URL: undefined });
     expect(await ask("/v1/proxy/llm/bedrock/model/x/invoke")).toEqual({ status: 500, message: "the bedrock lane needs AWS_REGION on the runner" });
-    expect(await ask("/v1/proxy/llm/vertex/projects/p/locations/l/x")).toEqual({ status: 500, message: "the vertex lane needs CLOUD_ML_REGION on the runner" });
+    expect(await ask("/v1/proxy/llm/vertex/projects/p/locations/l/publishers/anthropic/models/m:rawPredict")).toEqual({
+      status: 500,
+      message: "the vertex lane needs CLOUD_ML_REGION on the runner",
+    });
     expect(await ask("/v1/proxy/llm/foundry/v1/messages")).toEqual({
       status: 500,
       message: "the foundry lane needs ANTHROPIC_FOUNDRY_RESOURCE or ANTHROPIC_FOUNDRY_BASE_URL on the runner",
@@ -168,7 +195,7 @@ describe("a lane the runner's cloud identity cannot serve", () => {
   it("answers 502 when Google credentials cannot be had", async () => {
     identities.google = "fail";
     setEnv({ CLOUD_ML_REGION: "us-east5", ANTHROPIC_VERTEX_BASE_URL: upstream.url });
-    const { status, message } = await ask("/v1/proxy/llm/vertex/projects/p/locations/us-east5/x:rawPredict");
+    const { status, message } = await ask("/v1/proxy/llm/vertex/projects/p/locations/us-east5/publishers/anthropic/models/m:rawPredict");
     expect(status).toBe(502);
     expect(message).toBe("Failed to acquire Google OAuth credentials: Could not load the default credentials");
   });
@@ -207,10 +234,10 @@ describe("a path that names another origin", () => {
       `/v1/proxy/llm/anthropic//${away.host}/v1/messages`,
       `/v1/proxy/llm/openai/v1/${elsewhere.url}/x`,
     ]) {
-      await ask(path);
+      expect((await ask(path)).status, path).toBe(404);
     }
     expect(elsewhere.received, "a request reached the other origin").toEqual([]);
-    expect(upstream.received.length).toBe(5);
+    expect(upstream.received).toEqual([]);
   });
 
   it("is refused when the joined URL would leave the lane's origin or its path", () => {
