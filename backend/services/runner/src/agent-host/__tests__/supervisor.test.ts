@@ -107,7 +107,7 @@ describe("the supervisor's restarts", () => {
 });
 
 describe("the supervisor's edges", () => {
-  it("lets a pending restart go when a turn has already started the host again", async () => {
+  it("cancels the pending restart when a turn starts the host first", async () => {
     const hosts = inProcessHosts();
     const supervisor = new AgentHostSupervisor({ proxy: PROXY, start: hosts.start, firstRestartDelayMs: 20, log: () => {} });
     await supervisor.boot("deep-agent", testConfig());

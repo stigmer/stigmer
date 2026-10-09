@@ -230,9 +230,10 @@ export class AgentHostSupervisor {
 
   private scheduleRestart(how: string): void {
     this.log(`[agent-host] the agent host ${how}; restarting in ${this.nextDelay}ms`);
+    // A start (a turn's, or the next attempt's) and a stop each clear this
+    // timer, so when it fires the host is neither running nor stopped.
     this.restartTimer = setTimeout(() => {
       this.restartTimer = undefined;
-      if (this.stopping || this.live) return;
       this.connection().catch((err: unknown) => {
         this.scheduleRestart(`could not be started (${err instanceof Error ? err.message : String(err)})`);
       });
