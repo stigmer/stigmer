@@ -107,6 +107,20 @@ describe("the supervisor's restarts", () => {
 });
 
 describe("the supervisor's edges", () => {
+  it("lets a pending restart go when a turn has already started the host again", async () => {
+    const hosts = inProcessHosts();
+    const supervisor = new AgentHostSupervisor({ proxy: PROXY, start: hosts.start, firstRestartDelayMs: 20, log: () => {} });
+    await supervisor.boot("deep-agent", testConfig());
+
+    hosts.hosts[0]!.close(new Error("crashed"));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await supervisor.connection();
+    await new Promise((resolve) => setTimeout(resolve, 40));
+
+    expect(hosts.hosts, "the turn's start, and no second one from the timer").toHaveLength(2);
+    await supervisor.shutdown("deep-agent");
+  });
+
   it("touches nothing when a harness that was never booted shuts down", async () => {
     const hosts = inProcessHosts();
     const supervisor = new AgentHostSupervisor({ proxy: PROXY, start: hosts.start, log: () => {} });

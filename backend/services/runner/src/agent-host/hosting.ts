@@ -48,7 +48,7 @@ export async function hostHarnesses(
   const proxy = await AgentProxy.start(config);
   const supervisor = new AgentHostSupervisor({
     proxy,
-    start: options.start ?? processHostStarter(() => agentHostEnvironment()),
+    start: options.start ?? processHostStarter(agentHostEnvironment),
   });
   return {
     rows: rows.map((row) =>

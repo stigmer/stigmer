@@ -114,10 +114,11 @@ export function relay(req: IncomingMessage, res: ServerResponse, upstream: Upstr
         resolve();
       });
     });
+    // Only a request that never got an answer fails here; a failure once the
+    // answer has started is the answer's own `error` above.
     outgoing.on("error", (err) => {
       res.off("close", abortUpstream);
-      if (res.headersSent) res.destroy();
-      else replyError(res, 502, `the upstream could not be reached: ${err.message}`);
+      replyError(res, 502, `the upstream could not be reached: ${err.message}`);
       resolve();
     });
     outgoing.end(upstream.body);
