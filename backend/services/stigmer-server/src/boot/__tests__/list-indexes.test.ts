@@ -31,11 +31,11 @@ const PINNED: Readonly<
     fingerprint: "organization{parent_org=field:spec.parent_org}",
   },
   // The run kind's stored name changed (SQLite v21, Postgres v16) and its
-  // keys did not; the step renames the rows' kind column, so the facts
-  // already derived stay trusted under the same revision.
+  // keys did not, so the rename kept revision 1; revision 2 added the judge
+  // label's key.
   run: {
-    revision: 1,
-    fingerprint: "run{session=field:spec.session_id}",
+    revision: 2,
+    fingerprint: "run{grades=label:stigmer.ai/grades-run,session=field:spec.session_id}",
   },
   score: {
     revision: 1,

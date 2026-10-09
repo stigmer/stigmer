@@ -9,7 +9,8 @@ module agentic
 # Authorization model:
 # - Access is the agent's: whoever may edit the agent configures, pauses
 #   and deletes its grading; whoever may view the agent sees the settings
-#   and this month's spend. Nothing is granted on an evaluator itself (the
+#   and this month's spend, members of child organizations included when
+#   the agent is shared with them. Nothing is granted on an evaluator itself (the
 #   kind has no visibility block and no grantable roles).
 # - No owner of its own (OWNER_ATTRIBUTION_TYPE_NONE). The agent's owner
 #   already includes the organization's admins, who hold the purse the

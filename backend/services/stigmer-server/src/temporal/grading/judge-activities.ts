@@ -14,13 +14,17 @@
  *     pending; a refusal of the cap is recorded as "spending limit
  *     reached", and a pending score that cannot be written gives the cap
  *     back, so a planner that fails for good leaves no "grading" behind.
+ *     A retry that finds its earlier attempt's pending score reuses that
+ *     attempt's cap, or, when the run is no longer to be graded, removes
+ *     the score and gives the cap back.
  *   - start: the judge run is created as the grading caller
- *     (extensions/grading-caller.ts) under a name fixed by the judged run,
- *     so a retry finds the run an earlier attempt created. A run is adopted
- *     only when it carries the judge label naming the judged run, which no
+ *     (extensions/grading-caller.ts), and a retry finds the run an earlier
+ *     attempt created through the run list index's key on the judge label
+ *     (domain/run/list-index.ts), never by a scan. A run is adopted only
+ *     when it carries the judge label naming the judged run, which no
  *     client may write where reserved labels are guarded, and, when a
  *     caller was minted, was created by that same caller: a run a member
- *     named like a judge is never read as a verdict. A capacity
+ *     named or labelled like a judge is never read as a verdict. A capacity
  *     refusal is thrown as JUDGE_BUSY_FAILURE_TYPE and retried by the
  *     workflow's policy for up to ten minutes; every other refusal is
  *     answered as the failure the record activity reports.
@@ -47,6 +51,7 @@
  * test.
  */
 import { fromBinary } from "@bufbuild/protobuf";
+import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { ApplicationFailure } from "@temporalio/common";
 
@@ -54,6 +59,7 @@ import type { Evaluator } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import { ScoreState } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -61,6 +67,7 @@ import type { Logger } from "../../boot/logger.js";
 import { periodOf, reserve, settle } from "../../domain/evaluator/budget.js";
 import type { GradeEnd } from "../../domain/evaluator/budget.js";
 import { listAgentEvaluators } from "../../domain/evaluator/queries.js";
+import { agentExecutionListIndex } from "../../domain/run/list-index.js";
 import { isActiveExecutionPhase, isTerminalExecutionPhase } from "../../domain/run/phases.js";
 import { sessionIdOf } from "../../domain/run/target.js";
 import {
@@ -162,21 +169,33 @@ export function createJudgeActivities(deps: JudgeActivityDeps): JudgeActivities 
       ) {
         return { kind: "skip" };
       }
-      const evaluator = await evaluatorOf(deps, run);
-      if (
-        evaluator === undefined ||
-        evaluator.spec?.enabled !== true ||
-        !isSampled(runId, evaluator.spec.sampleRate)
-      ) {
-        return { kind: "skip" };
-      }
       const pending = pendingJudgeScore(run);
       const existing = await sameWriterScore(deps, pending);
       if (existing !== undefined && existing.status?.state !== ScoreState.pending) {
         return { kind: "skip" };
       }
+      // A pending score here is an earlier attempt's: one grading execution
+      // runs per run, and the pending score is written only after its cap
+      // was set aside, so that cap is still reserved.
+      const earlier = existing;
+      const evaluator = await evaluatorOf(deps, run);
+      const evaluatorId = evaluator?.metadata?.id ?? "";
+      if (
+        evaluator === undefined ||
+        evaluator.spec?.enabled !== true ||
+        !isSampled(runId, evaluator.spec.sampleRate)
+      ) {
+        await abandonPending(deps, earlier, evaluatorId);
+        return { kind: "skip" };
+      }
+      const modelName = evaluator.spec.modelName;
+      if (earlier !== undefined) {
+        return {
+          kind: "grade",
+          ticket: { evaluatorId, modelName, capUsd: PER_GRADE_CAP_USD, period: reservedPeriodOf(earlier, now()) },
+        };
+      }
 
-      const evaluatorId = evaluator.metadata?.id ?? "";
       const at = now();
       const reservation = await reserve(
         deps.store,
@@ -194,17 +213,13 @@ export function createJudgeActivities(deps: JudgeActivityDeps): JudgeActivities 
         return { kind: "recorded" };
       }
       if (reservation === "off") {
-        // Switched off or deleted between the read and the reservation:
-        // the run is not graded, so an earlier attempt's pending score goes.
-        if (existing !== undefined) {
-          await deleteScore(deps.deleter(), existing.metadata?.id ?? "");
-        }
+        // Switched off or deleted between the read and the reservation.
         return { kind: "skip" };
       }
 
       const ticket: JudgeTicket = {
         evaluatorId,
-        modelName: evaluator.spec.modelName,
+        modelName,
         capUsd: PER_GRADE_CAP_USD,
         period: periodOf(at),
       };
@@ -331,11 +346,11 @@ async function evaluatorOf(
 }
 
 /**
- * The id of the judge run an earlier attempt created, found by its fixed
- * name and adopted only when it carries the judge label naming the judged
- * run and, when a caller was minted, was created by that caller (the
- * module header). Every run of that name is read, since run names are not
- * unique: a member's run of the same name never hides the judge's.
+ * The id of the judge run an earlier attempt created, found through the
+ * run list index's judge-label key in the run's organization, and adopted
+ * only when it was created by the minted caller, if any (the module
+ * header). Every run carrying the label is read, so a run a member
+ * labelled on a trusted-local install never hides the judge's.
  */
 async function findJudgeRun(
   store: Store,
@@ -343,27 +358,45 @@ async function findJudgeRun(
   org: string,
   caller: CallerIdentity | undefined,
 ): Promise<string | undefined> {
-  const rows = await store.findAllByField(
-    ApiResourceKind.run,
-    "metadata.slug",
-    judgeRunName(judgedRunId),
-    RunSchema,
-  );
+  const rows = await store.queryResources(agentExecutionListIndex, {
+    org,
+    anyKey: [{ name: "grades", value: judgedRunId }],
+  });
   for (const row of rows) {
-    const found = fromBinary(RunSchema, row);
-    if (
-      found.metadata?.org !== org ||
-      found.metadata.labels[GRADES_RUN_LABEL] !== judgedRunId
-    ) {
-      continue;
-    }
+    const found = fromBinary(RunSchema, row.data);
     const creator = found.status?.audit?.specAudit?.createdBy?.id ?? "";
     if (caller !== undefined && creator !== caller.identityId) {
       continue;
     }
-    return found.metadata.id;
+    return row.id;
   }
   return undefined;
+}
+
+/**
+ * Removes an earlier attempt's pending score when the run is no longer to
+ * be graded (grading switched off, the evaluator deleted, or the run out
+ * of a changed sample), and gives its cap back to an evaluator still there.
+ */
+async function abandonPending(
+  deps: JudgeActivityDeps,
+  earlier: Score | undefined,
+  evaluatorId: string,
+): Promise<void> {
+  if (earlier === undefined) {
+    return;
+  }
+  await deleteScore(deps.deleter(), earlier.metadata?.id ?? "");
+  if (evaluatorId !== "") {
+    const now = deps.now?.() ?? new Date();
+    await settle(deps.store, evaluatorId, now, PER_GRADE_CAP_USD, reservedPeriodOf(earlier, now), 0, { kind: "gone" });
+  }
+}
+
+/** The budget period a pending score's cap was set aside in: the month it was written. */
+function reservedPeriodOf(pending: Score, now: Date): string {
+  const createdAt = pending.status?.audit?.specAudit?.createdAt;
+  return periodOf(createdAt === undefined ? now : timestampDate(createdAt));
 }
 
 /**

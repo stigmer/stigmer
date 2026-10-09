@@ -12,7 +12,10 @@
 # visible to the organization), member dave (editor on the agent) and
 # member carol (no grant, sees the agent through its organization
 # visibility). bob's private agent has an evaluator too; carol cannot see
-# it. "rival" is another org whose admin eve must see nothing.
+# it. "rival" is another org whose admin eve must see nothing. "acme-labs"
+# is acme's child organization; its member frank sees bob's agent shared
+# with child organizations, and so its grading settings and this month's
+# spend, as he sees the agent itself.
 name: evaluator-agent-access
 model_file: ../../src/authorization/model/data/authorization-model.json
 
@@ -48,6 +51,18 @@ tuples:
   - user: identity_account:eve
     relation: affiliated
     object: organization:rival
+  - user: organization:acme
+    relation: parent_org
+    object: organization:acme-labs
+  - user: organization:acme-labs
+    relation: child_org
+    object: organization:acme
+  - user: identity_account:frank
+    relation: member
+    object: organization:acme-labs
+  - user: identity_account:frank
+    relation: affiliated
+    object: organization:acme-labs
 
   # --- bob's organization-visible agent, dave its editor ---
   - user: organization:acme
@@ -65,6 +80,20 @@ tuples:
   - user: agent:triage
     relation: agent
     object: evaluator:triage-grading
+
+  # --- bob's agent shared with acme's child organizations ---
+  - user: organization:acme
+    relation: organization
+    object: agent:shared
+  - user: identity_account:bob
+    relation: owner
+    object: agent:shared
+  - user: organization:acme#child_org_viewer
+    relation: child_org_viewer
+    object: agent:shared
+  - user: agent:shared
+    relation: agent
+    object: evaluator:shared-grading
 
   # --- bob's private agent ---
   - user: organization:acme
@@ -139,3 +168,17 @@ tests:
           can_view: false
           can_edit: false
           can_delete: false
+
+  - name: a child organization's member who sees a shared agent sees its grading and cannot change it
+    check:
+      - user: identity_account:frank
+        object: evaluator:shared-grading
+        assertions:
+          can_view: true
+          can_edit: false
+          can_delete: false
+      - user: identity_account:frank
+        object: evaluator:triage-grading
+        assertions:
+          can_view: false
+          can_edit: false

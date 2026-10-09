@@ -41,6 +41,12 @@ import {
 
 import { canonicalJson } from "../../../pipeline/steps/spec-hash.js";
 
+/**
+ * The bounds count characters as written in the document, after JSON
+ * escaping and each `<` becoming a six-character escape, so markup-heavy
+ * text cannot carry the document past its bound.
+ */
+
 /** The bound on each tool call's text fields. */
 export const TOOL_FIELD_MAX_LENGTH = 2_000;
 
@@ -189,7 +195,25 @@ function statusName(status: ToolCallStatus): string {
 }
 
 function cut(text: string, max: number): string {
-  return text.length <= max ? text : `${text.slice(0, max)}${CUT_MARKER}`;
+  if (writtenLength(text) <= max) {
+    return text;
+  }
+  let kept = 0;
+  let used = 0;
+  for (const character of text) {
+    const cost = writtenLength(character);
+    if (used + cost > max) {
+      break;
+    }
+    used += cost;
+    kept += character.length;
+  }
+  return `${text.slice(0, kept)}${CUT_MARKER}`;
+}
+
+/** How many characters `text` takes in the document: escaped as a JSON string, without its quotes. */
+function writtenLength(text: string): number {
+  return escapeAngle(JSON.stringify(text)).length - 2;
 }
 
 function escapeAngle(json: string): string {

@@ -226,14 +226,33 @@ describe("plan-judge", () => {
     expect(await judgeScores("run_1")).toEqual([]);
   });
 
-  it("removes an earlier attempt's pending score when the evaluator went before the reservation", async () => {
+  it("reuses an earlier attempt's reservation when a retried plan finds its pending score", async () => {
+    await seedEvaluator();
+    await seedRun("run_1", { agentId: "agt_1" });
+    const first = await activities()[PLAN_JUDGE_ACTIVITY_NAME]("run_1");
+    expect(first.kind).toBe("grade");
+    expect(await activities()[PLAN_JUDGE_ACTIVITY_NAME]("run_1")).toEqual(first);
+    expect((await evaluatorStatus())?.reservedUsd, "one cap, not two").toBe(PER_GRADE_CAP_USD);
+    expect((await judgeScores("run_1")).map((score) => score.status?.state)).toEqual([ScoreState.pending]);
+  });
+
+  it("removes an earlier attempt's pending score, and gives its cap back, when grading was switched off or the evaluator went", async () => {
     await seedEvaluator();
     await seedRun("run_1", { agentId: "agt_1" });
     expect((await activities()[PLAN_JUDGE_ACTIVITY_NAME]("run_1")).kind).toBe("grade");
-    expect((await judgeScores("run_1")).map((score) => score.status?.state)).toEqual([ScoreState.pending]);
-    const plan = await activities({ store: evaluatorGoneOnWrite(temp.store) })[PLAN_JUDGE_ACTIVITY_NAME]("run_1");
-    expect(plan).toEqual({ kind: "skip" });
+    await temp.store.updateResource(ApiResourceKind.evaluator, "evl_1", EvaluatorSchema, (live) => {
+      if (live.spec !== undefined) live.spec.enabled = false;
+    });
+    expect(await activities()[PLAN_JUDGE_ACTIVITY_NAME]("run_1")).toEqual({ kind: "skip" });
     expect(await judgeScores("run_1")).toEqual([]);
+    expect((await evaluatorStatus())?.reservedUsd).toBe(0);
+
+    await seedEvaluator();
+    await seedRun("run_2", { agentId: "agt_1" });
+    expect((await activities()[PLAN_JUDGE_ACTIVITY_NAME]("run_2")).kind).toBe("grade");
+    await temp.store.deleteResource(ApiResourceKind.evaluator, "evl_1");
+    expect(await activities()[PLAN_JUDGE_ACTIVITY_NAME]("run_2")).toEqual({ kind: "skip" });
+    expect(await judgeScores("run_2")).toEqual([]);
   });
 
   it("skips a run deleted between its read and its pending score, and gives the cap back", async () => {
@@ -267,7 +286,7 @@ describe("start-judge", () => {
     });
   });
 
-  it("finds an earlier attempt's judge run by its name, also when the create loses the race", async () => {
+  it("finds an earlier attempt's judge run by its label, also when the create loses the race", async () => {
     await seedRun("run_1");
     const racing = activities({
       runs: {
@@ -312,8 +331,11 @@ describe("start-judge", () => {
       });
     await seedRun("run_lookalike", { name: judgeRunName("run_1"), sessionId: "ses_victim" });
     expect(await fresh()[START_JUDGE_ACTIVITY_NAME]("run_1", TICKET)).toEqual({ kind: "started", judgeRunId: "run_real_judge_1" });
+    // Each scenario starts from no judge run: the one just created would be adopted.
+    await temp.store.deleteResource(ApiResourceKind.run, "run_real_judge_1");
     await seedRun("run_lookalike", { name: judgeRunName("run_1"), labels: { [GRADES_RUN_LABEL]: "run_other" } });
     expect(await fresh()[START_JUDGE_ACTIVITY_NAME]("run_1", TICKET)).toEqual({ kind: "started", judgeRunId: "run_real_judge_2" });
+    await temp.store.deleteResource(ApiResourceKind.run, "run_real_judge_2");
     await seedRun("run_lookalike", {
       name: judgeRunName("run_1"),
       labels: { [GRADES_RUN_LABEL]: "run_1" },

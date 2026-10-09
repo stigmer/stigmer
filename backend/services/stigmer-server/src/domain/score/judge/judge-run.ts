@@ -21,9 +21,10 @@
  *     context and no memories for a judge (domain/run/create-steps.ts);
  *   - the grading observer and the judge planner, which grade no judge run.
  *
- * Nothing finds judge runs by this label: a label read is a full scan of
- * the run kind (store/interface.ts, findAllByLabel). The grading workflow
- * owns the judge run's session and deletes it when the grade is recorded.
+ * The grading workflow's start finds a judge run by this label only
+ * through the run list index's `grades` key (domain/run/list-index.ts),
+ * never by findAllByLabel, which scans the run kind. The workflow owns the
+ * judge run's session and deletes it when the grade is recorded.
  *
  * Proven by __tests__/judge.test.ts.
  */
@@ -63,11 +64,10 @@ export function isJudgeRun(run: Pick<Run, "metadata"> | undefined): boolean {
 }
 
 /**
- * The judge run's name: fixed by the judged run's id, so a retried start
- * finds the run an earlier attempt created instead of creating a second
- * (the schedule's run starter does the same, temporal/schedule/
- * run-starter.ts). A run id is slug-shaped once lowercased with its
- * underscores made hyphens.
+ * The judge run's name, fixed by the judged run's id so the row says what
+ * it grades. Names are not unique and nothing finds a judge run by its
+ * name: a retried start finds an earlier attempt's run by its label. A run
+ * id is slug-shaped once lowercased with its underscores made hyphens.
  */
 export function judgeRunName(judgedRunId: string): string {
   return `grade-${judgedRunId.toLowerCase().replaceAll("_", "-")}`;
