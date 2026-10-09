@@ -11,11 +11,12 @@ export interface EnvironmentAuthStepProps {
 }
 
 /**
- * Wizard step 2: Environment variables and auth configuration.
+ * Wizard step 2: Environment variables and sign-in.
  *
  * Both sections are optional. Env vars start expanded if any exist;
- * auth starts collapsed unless already enabled. No validation gate —
- * the user can proceed with zero configuration.
+ * sign-in starts collapsed unless already enabled, and is offered only for
+ * an HTTP server: a local program takes its keys as environment variables.
+ * No validation gate — the user can proceed with zero configuration.
  *
  * Fully presentational: form state lives in the `data` prop and edits
  * flow out through `updateData`, so standalone consumers (embedded
@@ -54,61 +55,26 @@ export function EnvironmentAuthStep({
         />
       </CollapsibleSection>
 
-      {/* Auth Configuration */}
+      {/* Sign-in: an HTTP server only; a local program takes its keys as
+          environment variables. */}
+      {data.transportType === "stdio" ? (
+        <p className="stg:text-xs stg:text-muted-foreground">
+          A local program takes its keys as environment variables: declare
+          them above. Sign-in is for HTTP servers.
+        </p>
+      ) : (
       <CollapsibleSection
-        title="OAuth Authentication"
-        subtitle="Configure OAuth for servers that require user authorization"
+        title="Sign-in"
+        subtitle="For servers that sign people in at their URL"
         expanded={data.authEnabled}
         onToggle={() => updateData({ authEnabled: !data.authEnabled })}
       >
         <div className="stg:flex stg:flex-col stg:gap-4">
-          <div className="stg:grid stg:gap-4 stg:sm:grid-cols-2">
-            <div className="stg:space-y-1.5">
-              <label
-                htmlFor={`${baseId}-app-org`}
-                className="stg:text-sm stg:font-medium stg:text-foreground"
-              >
-                OAuth App Organization
-              </label>
-              <input
-                id={`${baseId}-app-org`}
-                type="text"
-                value={data.authOAuthAppOrg}
-                onChange={(e) =>
-                  updateData({ authOAuthAppOrg: e.target.value })
-                }
-                placeholder="e.g. stigmer"
-                className={cn(
-                  "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-input-bg stg:px-3 stg:py-2 stg:font-mono stg:text-sm stg:text-foreground",
-                  "stg:placeholder:text-muted-foreground",
-                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-                )}
-              />
-            </div>
-
-            <div className="stg:space-y-1.5">
-              <label
-                htmlFor={`${baseId}-app-slug`}
-                className="stg:text-sm stg:font-medium stg:text-foreground"
-              >
-                OAuth App Slug
-              </label>
-              <input
-                id={`${baseId}-app-slug`}
-                type="text"
-                value={data.authOAuthAppSlug}
-                onChange={(e) =>
-                  updateData({ authOAuthAppSlug: e.target.value })
-                }
-                placeholder="e.g. github-oauth"
-                className={cn(
-                  "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-input-bg stg:px-3 stg:py-2 stg:font-mono stg:text-sm stg:text-foreground",
-                  "stg:placeholder:text-muted-foreground",
-                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-                )}
-              />
-            </div>
-          </div>
+          <p className="stg:text-xs stg:text-muted-foreground">
+            People sign in at the server&apos;s URL. The login page is found
+            by that address: the organization&apos;s login app for it, else
+            Stigmer&apos;s, else the server&apos;s own login server.
+          </p>
 
           <div className="stg:space-y-1.5">
             <label
@@ -187,30 +153,9 @@ export function EnvironmentAuthStep({
             </div>
           </div>
 
-          <div className="stg:space-y-1.5">
-            <label
-              htmlFor={`${baseId}-discovery`}
-              className="stg:text-sm stg:font-medium stg:text-foreground"
-            >
-              Discovery URL
-            </label>
-            <input
-              id={`${baseId}-discovery`}
-              type="url"
-              value={data.authDiscoveryUrl}
-              onChange={(e) =>
-                updateData({ authDiscoveryUrl: e.target.value })
-              }
-              placeholder="https://provider.com/.well-known/openid-configuration"
-              className={cn(
-                "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-input-bg stg:px-3 stg:py-2 stg:font-mono stg:text-sm stg:text-foreground",
-                "stg:placeholder:text-muted-foreground",
-                "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-              )}
-            />
-          </div>
         </div>
       </CollapsibleSection>
+      )}
     </div>
   );
 }

@@ -44,10 +44,10 @@ vi.mock("../../access/ManageAccessButton", () => ({
   ManageAccessButton: ({ label }: { label: string }) => <span>{label}</span>,
 }));
 const oauth = vi.hoisted(() => ({ started: [] as string[], error: null as Error | null }));
-vi.mock("../../mcp-server/useMcpServerOAuthConnect", () => ({
-  useMcpServerOAuthConnect: () => ({
-    startOAuth: async (id: string) => {
-      oauth.started.push(id);
+vi.mock("../useVaultSignIn", () => ({
+  useVaultSignIn: () => ({
+    signIn: async (address: string) => {
+      oauth.started.push(address);
       return {};
     },
     isInProgress: false,
@@ -80,7 +80,7 @@ const MINE = create(VaultSchema, {
       "https://mcp.linear.app/mcp": {
         token: "",
         source: VaultConnectionSource.sign_in,
-        signIn: { expiresAt: 0n, mcpServerId: "mcp_linear" },
+        signIn: { expiresAt: 0n, loginApp: "" },
       },
     },
   },
@@ -445,7 +445,7 @@ describe("VaultsSection", () => {
       ),
     ).toBeTruthy();
     fireEvent.click(await screen.findByRole("button", { name: "Sign in again" }));
-    await waitFor(() => expect(oauth.started).toEqual(["mcp_linear"]));
+    await waitFor(() => expect(oauth.started).toEqual(["https://mcp.linear.app/mcp"]));
 
     fireEvent.click(screen.getByRole("button", { name: "+ New shared vault" }));
     fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Ops" } });

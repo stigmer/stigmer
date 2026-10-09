@@ -2,19 +2,19 @@
  * useGitHubConnection, pinned against an in-process server: "connected"
  * means My vault holds a `github.com` login, and the page never holds its
  * token.
- * - The account shown is the one the saved login's description names, else
- *   the one the browser remembered from the exchange, per organization.
- * - Connect asks for the authorize URL for the organization whose My vault
- *   will keep the login.
- * - The callback exchanges the code with that organization, refuses a
- *   callback this browser did not start (no saved state), a mismatched
- *   state and a missing organization, and after every callback, a refused
- *   one included, ends connecting and re-reads My vault.
- * - A popup's success message and its closing re-read My vault; reconcile
- *   does too.
- * - Disconnect removes the `github.com` login from My vault and forgets the
- *   account; a removal the server refuses is reported as disconnectError,
- *   and the hook still reports connected.
+ * - The account shown is the one the saved login's description names.
+ * - Connecting is the vault's sign-in at the address `github.com`, saved in
+ *   the organization's My vault: in a browser through the shared popup;
+ *   with `openUrl` (a desktop shell) by opening the login page with the
+ *   shell's return choice, the shell handing the code back through
+ *   handleCallback.
+ * - handleCallback completes the sign-in, refuses a callback this window
+ *   did not start (no saved state) or a mismatched state, and after every
+ *   callback, a refused one included, ends connecting and re-reads My vault.
+ * - A blocked popup is reported, never thrown; reconcile re-reads My vault.
+ * - Disconnect removes the `github.com` login from My vault; a removal the
+ *   server refuses is reported as disconnectError, and the hook still
+ *   reports connected.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
@@ -26,15 +26,24 @@ import { VaultSchema, type Vault } from "@stigmer/protos/ai/stigmer/agentic/vaul
 import { VaultCommandController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/command_pb";
 import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
 import {
-  ExchangeOAuthCodeResponseSchema,
-  GetOAuthAuthorizeUrlResponseSchema,
-  GitHubService,
-} from "@stigmer/protos/ai/stigmer/platform/github/v1/service_pb";
+  CompleteSignInOutputSchema,
+  SignInReturn,
+  StartSignInOutputSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
-import { GITHUB_CALLBACK_MESSAGE_TYPE, useGitHubConnection } from "../useGitHubConnection";
+import { useGitHubConnection } from "../useGitHubConnection";
+
+const popup = vi.hoisted(() => ({ blocked: false }));
+vi.mock("../../internal/oauthPopup.js", () => ({
+  openOAuthPopup: vi.fn(() => (popup.blocked ? null : { location: { href: "" }, closed: false, close: vi.fn() })),
+  popupBlockedError: vi.fn(() => new Error("blocked")),
+  waitForOAuthCallback: vi.fn(async () => ({ code: "code-1", state: "st-1" })),
+  closeOAuthPopup: vi.fn(),
+}));
 
 const ORG = "org_acme";
+const STATE_KEY = "stigmer:github:sign-in-state";
 
 function vaultWith(description: string | null): Vault {
   return create(VaultSchema, {
@@ -72,16 +81,16 @@ function clientFor(server: Server) {
           server.mine = vaultWith(null);
           return server.mine;
         },
-      });
-      service(GitHubService, {
-        getOAuthAuthorizeUrl: (req) => {
-          server.calls.push(`authorize:${req.redirectUri}:${req.org}`);
-          return create(GetOAuthAuthorizeUrlResponseSchema, { authorizeUrl: "https://github.com/login/oauth/authorize", state: "st-1" });
+        startSignIn: (req) => {
+          server.calls.push(
+            `start:${req.address}:${req.vault?.org}:${req.vault?.vault.case}:${SignInReturn[req.returnTo]}:${req.loopbackPort}`,
+          );
+          return create(StartSignInOutputSchema, { authorizationUrl: "https://github.com/login/oauth/authorize", state: "st-1" });
         },
-        exchangeOAuthCode: (req) => {
-          server.calls.push(`exchange:${req.code}:${req.org}`);
-          server.mine = vaultWith("GitHub");
-          return create(ExchangeOAuthCodeResponseSchema, { login: "octocat", scope: "repo" });
+        completeSignIn: (req) => {
+          server.calls.push(`complete:${req.code}:${req.state}`);
+          server.mine = vaultWith("GitHub @octocat");
+          return create(CompleteSignInOutputSchema, { address: "github.com", description: "GitHub @octocat" });
         },
       });
     }),
@@ -99,13 +108,12 @@ function wrapperFor(client: Stigmer) {
 }
 
 beforeEach(() => {
-  localStorage.clear();
+  popup.blocked = false;
   sessionStorage.clear();
 });
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
-  vi.useRealTimers();
 });
 
 describe("useGitHubConnection", () => {
@@ -121,27 +129,57 @@ describe("useGitHubConnection", () => {
     expect(result.current.readOrg).toBe(ORG);
   });
 
-  it("exchanges the code with the organization, remembers the account, and disconnects", async () => {
+  it("signs in at github.com through the popup, saved in My vault, and disconnects", async () => {
     const server: Server = { mine: null, reads: 0, calls: [] };
     const { result } = renderHook(() => useGitHubConnection(ORG), { wrapper: wrapperFor(clientFor(server)) });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.isConnected).toBe(false);
 
-    sessionStorage.setItem("stigmer:github:oauth-state", "st-1");
     await act(async () => {
-      await result.current.handleCallback("code-1", "st-1", "https://app/cb");
+      await result.current.connect();
     });
-    expect(server.calls).toEqual(["exchange:code-1:org_acme"]);
-    await waitFor(() => expect(result.current.isConnected).toBe(true));
-    // The saved description names no account: the remembered one is shown.
-    expect(result.current.user?.login).toBe("octocat");
-    expect(localStorage.length, "nothing about the account is kept in the browser").toBe(0);
+    expect(server.calls).toEqual(["start:github.com:org_acme:mine:web:0", "complete:code-1:st-1"]);
+    await waitFor(() => expect(result.current.user?.login).toBe("octocat"));
+    expect(result.current.isConnecting).toBe(false);
 
     act(() => result.current.disconnect());
     await waitFor(() => expect(server.calls).toContain("removeConnections:mine:github.com"));
-    expect(result.current.user).toBeNull();
-    expect(localStorage.length).toBe(0);
+    await waitFor(() => expect(result.current.user).toBeNull());
     expect(result.current.disconnectError).toBeNull();
+  });
+
+  it("reports a blocked popup without starting a sign-in", async () => {
+    popup.blocked = true;
+    const server: Server = { mine: null, reads: 0, calls: [] };
+    const { result } = renderHook(() => useGitHubConnection(ORG), { wrapper: wrapperFor(clientFor(server)) });
+    await act(async () => {
+      await result.current.connect();
+    });
+    expect(result.current.popupBlocked).toBe(true);
+    expect(server.calls).toEqual([]);
+  });
+
+  it("opens the login page with the shell's return choice, and completes what the shell hands back", async () => {
+    const server: Server = { mine: null, reads: 0, calls: [] };
+    const openUrl = vi.fn();
+    const { result } = renderHook(
+      () => useGitHubConnection(ORG, { openUrl, returnTo: { kind: "loopback", port: 17237 } }),
+      { wrapper: wrapperFor(clientFor(server)) },
+    );
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await act(async () => {
+      await result.current.connect();
+    });
+    expect(openUrl).toHaveBeenCalledWith("https://github.com/login/oauth/authorize");
+    expect(result.current.isConnecting).toBe(true);
+    expect(server.calls).toEqual(["start:github.com:org_acme:mine:loopback:17237"]);
+
+    await act(async () => {
+      await result.current.handleCallback("code-1", "st-1");
+    });
+    expect(server.calls).toContain("complete:code-1:st-1");
+    expect(result.current.isConnecting).toBe(false);
+    await waitFor(() => expect(result.current.isConnected).toBe(true));
   });
 
   it("reports a disconnect the server refuses, still connected, and clears it on the next attempt", async () => {
@@ -158,30 +196,23 @@ describe("useGitHubConnection", () => {
     act(() => result.current.disconnect());
     expect(result.current.disconnectError).toBeNull();
     await waitFor(() => expect(result.current.isConnected).toBe(false));
-    expect(result.current.disconnectError).toBeNull();
   });
 
-  it("refuses a callback with no saved state, a mismatched state and an exchange with no organization", async () => {
+  it("refuses a callback with no saved state, a mismatched state, and a connect with no organization", async () => {
     const server: Server = { mine: null, reads: 0, calls: [] };
     const wrapper = wrapperFor(clientFor(server));
     const { result } = renderHook(() => useGitHubConnection(ORG), { wrapper });
-    await expect(result.current.handleCallback("c", "s", "r")).rejects.toThrow(
-      /not started here, or it already finished/,
-    );
-    sessionStorage.setItem("stigmer:github:oauth-state", "expected");
-    await expect(result.current.handleCallback("c", "other", "r")).rejects.toThrow(/state mismatch/);
-    // A refused state is left in place for the real callback; clear it here.
-    sessionStorage.clear();
+    await expect(result.current.handleCallback("c", "s")).rejects.toThrow(/not started here, or it already finished/);
+    sessionStorage.setItem(STATE_KEY, "expected");
+    await expect(result.current.handleCallback("c", "other")).rejects.toThrow(/does not match/);
 
     const noOrg = renderHook(() => useGitHubConnection(null), { wrapper });
-    await expect(noOrg.result.current.connect("r")).rejects.toThrow(/without an organization/);
-    sessionStorage.setItem("stigmer:github:oauth-state", "s");
-    await expect(noOrg.result.current.handleCallback("c", "s", "r")).rejects.toThrow(/without an organization/);
+    await expect(noOrg.result.current.connect()).rejects.toThrow(/without an organization/);
     expect(noOrg.result.current.readOrg).toBeNull();
     expect(server.calls).toEqual([]);
   });
 
-  it("ends connecting and re-reads My vault after a callback it refuses", async () => {
+  it("ends connecting and re-reads My vault after a callback it refuses, and on reconcile", async () => {
     const server: Server = { mine: null, reads: 0, calls: [] };
     const openUrl = vi.fn();
     const { result } = renderHook(() => useGitHubConnection(ORG, { openUrl }), {
@@ -189,96 +220,24 @@ describe("useGitHubConnection", () => {
     });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     await act(async () => {
-      await result.current.connect("https://app/cb", { popup: true });
+      await result.current.connect();
     });
-    expect(openUrl).toHaveBeenCalledTimes(1);
     expect(result.current.isConnecting).toBe(true);
+    expect(server.calls).toEqual(["start:github.com:org_acme:mine:desktop:0"]);
 
     // The sign-in finished in another window, which cleared the state.
     sessionStorage.clear();
     server.mine = vaultWith("GitHub @hubber");
     const before = server.reads;
     await act(async () => {
-      await expect(result.current.handleCallback("c", "st-1", "r")).rejects.toThrow(
-        /not started here, or it already finished/,
-      );
+      await expect(result.current.handleCallback("c", "st-1")).rejects.toThrow(/not started here, or it already finished/);
     });
     expect(result.current.isConnecting).toBe(false);
     await waitFor(() => expect(server.reads).toBeGreaterThan(before));
     await waitFor(() => expect(result.current.user?.login).toBe("hubber"));
-    expect(server.calls).toEqual(["authorize:https://app/cb:org_acme"]);
-  });
-
-  it("re-reads My vault on a popup's success message, when its popup closes, and on reconcile", async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    const server: Server = { mine: null, reads: 0, calls: [] };
-    const popup = { closed: false, focus: vi.fn(), close: vi.fn() };
-    vi.spyOn(window, "open").mockReturnValue(popup as unknown as Window);
-    const { result } = renderHook(() => useGitHubConnection(ORG), { wrapper: wrapperFor(clientFor(server)) });
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-    await act(async () => {
-      await result.current.connect("https://app/cb", { popup: true });
-    });
-    expect(server.calls).toEqual(["authorize:https://app/cb:org_acme"]);
-    expect(sessionStorage.getItem("stigmer:github:oauth-state")).toBe("st-1");
-    expect(result.current.isConnecting).toBe(true);
-    server.mine = vaultWith("GitHub @hubber");
-    const before = server.reads;
-    await act(async () => {
-      window.dispatchEvent(
-        new MessageEvent("message", {
-          origin: window.location.origin,
-          data: { type: GITHUB_CALLBACK_MESSAGE_TYPE, login: "hubber" },
-        }),
-      );
-    });
-    await waitFor(() => expect(server.reads).toBeGreaterThan(before));
-    expect(result.current.isConnecting).toBe(false);
-    await waitFor(() => expect(result.current.user?.login).toBe("hubber"));
-
-    await act(async () => {
-      await result.current.connect("https://app/cb", { popup: true });
-    });
-    const beforeClose = server.reads;
-    popup.closed = true;
-    await act(async () => {
-      vi.advanceTimersByTime(600);
-    });
-    await waitFor(() => expect(server.reads).toBeGreaterThan(beforeClose));
-    expect(result.current.isConnecting).toBe(false);
 
     const beforeReconcile = server.reads;
     act(() => result.current.reconcile());
     await waitFor(() => expect(server.reads).toBeGreaterThan(beforeReconcile));
-  });
-
-  it("forgets the account an exchange answered when the organization changes", async () => {
-    const server: Server = { mine: null, reads: 0, calls: [] };
-    const { result, rerender } = renderHook(({ org }) => useGitHubConnection(org), {
-      wrapper: wrapperFor(clientFor(server)),
-      initialProps: { org: ORG },
-    });
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-    sessionStorage.setItem("stigmer:github:oauth-state", "st-1");
-    await act(async () => {
-      await result.current.handleCallback("code-1", "st-1", "https://app/cb");
-    });
-    await waitFor(() => expect(result.current.user?.login).toBe("octocat"));
-    rerender({ org: "org_other" });
-    await waitFor(() => expect(result.current.user).toBeNull());
-  });
-
-  it("keeps working when the browser refuses storage", async () => {
-    sessionStorage.setItem("stigmer:github:oauth-state", "s");
-    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
-      throw new Error("blocked");
-    });
-    const server: Server = { mine: null, reads: 0, calls: [] };
-    const { result } = renderHook(() => useGitHubConnection(ORG), { wrapper: wrapperFor(clientFor(server)) });
-    await act(async () => {
-      await result.current.handleCallback("c", "s", "r");
-    });
-    expect(server.calls).toEqual(["exchange:c:org_acme"]);
   });
 });

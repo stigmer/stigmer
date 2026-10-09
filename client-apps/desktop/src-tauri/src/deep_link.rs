@@ -1,8 +1,8 @@
 //! Where a `stigmer://` deep link goes.
 //!
 //! The OS hands the app every `stigmer://` URL it opens: the Auth0 sign-in
-//! callback, the GitHub callback the web console relays for a desktop-started
-//! sign-in, and the billing return. [`route`] decides which app event a URL
+//! callback, the sign-in callback the web console relays for a sign-in the
+//! app started at an address (GitHub's among them), and the billing return. [`route`] decides which app event a URL
 //! becomes, as a pure function of the URL, so the routing is tested without a
 //! running app; `lib.rs` only emits what it returns and brings the window
 //! forward. Any other `stigmer://` URL is ignored.
@@ -26,8 +26,9 @@ pub(crate) struct BillingReturnPayload {
 pub(crate) enum DeepLinkEvent {
     /// `stigmer://auth/callback`: the Auth0 sign-in's code, state or error.
     AuthCallback(AuthCallbackPayload),
-    /// `stigmer://github/callback`: the GitHub authorization's code, state or error.
-    GitHubCallback(AuthCallbackPayload),
+    /// `stigmer://oauth/callback`: a sign-in's code, state or error, relayed by
+    /// the web console's callback page (`/auth/oauth/callback?source=desktop`).
+    SignInCallback(AuthCallbackPayload),
     /// `stigmer://billing/return`: the outcome of a Stripe checkout or card setup.
     BillingReturn(BillingReturnPayload),
 }
@@ -37,7 +38,7 @@ impl DeepLinkEvent {
     pub(crate) fn name(&self) -> &'static str {
         match self {
             DeepLinkEvent::AuthCallback(_) => "auth-callback",
-            DeepLinkEvent::GitHubCallback(_) => "github-callback",
+            DeepLinkEvent::SignInCallback(_) => "sign-in-callback",
             DeepLinkEvent::BillingReturn(_) => "billing-return",
         }
     }
@@ -52,7 +53,7 @@ pub(crate) fn route(url: &url::Url) -> Option<DeepLinkEvent> {
     }
     match (url.host_str(), url.path()) {
         (Some("auth"), "/callback") => Some(DeepLinkEvent::AuthCallback(callback_payload(url))),
-        (Some("github"), "/callback") => Some(DeepLinkEvent::GitHubCallback(callback_payload(url))),
+        (Some("oauth"), "/callback") => Some(DeepLinkEvent::SignInCallback(callback_payload(url))),
         (Some("billing"), "/return") => Some(DeepLinkEvent::BillingReturn(BillingReturnPayload {
             setup: param(url, "setup"),
             plan: param(url, "plan"),
@@ -120,10 +121,10 @@ mod tests {
     }
 
     #[test]
-    fn the_github_callback_is_its_own_event() {
+    fn the_sign_in_callback_is_its_own_event() {
         assert_eq!(
-            routed("stigmer://github/callback?code=gh&state=st"),
-            Some(DeepLinkEvent::GitHubCallback(callback(
+            routed("stigmer://oauth/callback?code=gh&state=st"),
+            Some(DeepLinkEvent::SignInCallback(callback(
                 Some("gh"),
                 Some("st"),
                 None,
@@ -170,8 +171,8 @@ mod tests {
     #[test]
     fn an_encoded_ampersand_stays_inside_its_value() {
         assert_eq!(
-            routed("stigmer://github/callback?code=a%26state%3Dforged&state=real"),
-            Some(DeepLinkEvent::GitHubCallback(callback(
+            routed("stigmer://oauth/callback?code=a%26state%3Dforged&state=real"),
+            Some(DeepLinkEvent::SignInCallback(callback(
                 Some("a&state=forged"),
                 Some("real"),
                 None,
@@ -189,7 +190,8 @@ mod tests {
             "stigmer://auth/callback/extra?code=c",
             "stigmer://evil/callback?code=c",
             "stigmer://billing/callback?setup=x",
-            "stigmer://github/return?code=c",
+            "stigmer://oauth/return?code=c",
+            "stigmer://github/callback?code=c",
         ] {
             assert_eq!(routed(raw), None, "{raw} must not route");
         }
@@ -203,8 +205,8 @@ mod tests {
             "auth-callback"
         );
         assert_eq!(
-            DeepLinkEvent::GitHubCallback(payload).name(),
-            "github-callback"
+            DeepLinkEvent::SignInCallback(payload).name(),
+            "sign-in-callback"
         );
         let billing = BillingReturnPayload {
             setup: None,

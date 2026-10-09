@@ -1,14 +1,11 @@
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
-import { render, screen, cleanup, fireEvent } from "@testing-library/react";
+import { render, screen, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import { createRouterTransport } from "@connectrpc/connect";
 import { Stigmer } from "@stigmer/sdk";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
-import {
-  GetOAuthGrantStatusOutputSchema,
-  GetOrgOAuthAppOutputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
+import { GetOAuthGrantStatusOutputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import {
   McpServerSpecSchema,
   McpServerAuthSchema,
@@ -20,7 +17,6 @@ import {
   ValidationState,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import { VendorApprovalStatus } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { samples } from "../../test/samples";
 import { StigmerContext } from "../../context";
@@ -54,17 +50,10 @@ const SLUG = "vendor-crm";
 const DOCS_URL = "https://vendor.example.com/oauth-docs";
 
 /**
- * An oauth_only vendor-OAuth server whose platform OAuth app is blocked.
- * `withAppRef` controls the BYOA arm: with a ref and no org override,
- * `canBringOwnApp` is true. The org-override state itself comes from the
- * `getOrgOAuthApp` transport handler (a client-side derivation) —
- * status.oauth_status carries only the vendor-approval fields, matching
- * what backends actually populate.
+ * An oauth_only server whose login app (the organization's app for its
+ * address) is blocked by its vendor, as status.oauth_status reports it.
  */
-function buildBlockedOAuthOnlyServer(options: {
-  status: VendorApprovalStatus;
-  withAppRef: boolean;
-}): McpServer {
+function buildBlockedOAuthOnlyServer(options: { status: VendorApprovalStatus }): McpServer {
   const server = samples.mcpServer({ name: "Vendor CRM", org: ORG, slug: SLUG });
   server.spec = create(McpServerSpecSchema, {
     description: "CRM tools over the vendor's hosted MCP endpoint.",
@@ -75,15 +64,6 @@ function buildBlockedOAuthOnlyServer(options: {
     auth: create(McpServerAuthSchema, {
       targetEnvVar: "VENDOR_ACCESS_TOKEN",
       oauthOnly: true,
-      ...(options.withAppRef
-        ? {
-            oauthAppRef: {
-              org: "stigmer",
-              kind: ApiResourceKind.oauth_app,
-              slug: "vendor-oauth",
-            },
-          }
-        : {}),
     }),
   });
   server.status = create(McpServerStatusSchema, {
@@ -98,15 +78,6 @@ function buildBlockedOAuthOnlyServer(options: {
 
 function noGrant() {
   return create(GetOAuthGrantStatusOutputSchema, { connected: false });
-}
-
-// BYOA affordances render only where the org-override surface exists —
-// canBringOwnApp is gated on a getOrgOAuthApp capability probe
-// (stigmer/stigmer#558), so the BYOA arms of these tests must register the
-// RPC to simulate the hosted edition. The OSS arm (probe UNIMPLEMENTED →
-// affordances hidden) is pinned in byoaEditionDegradation.test.tsx.
-function noOverride() {
-  return create(GetOrgOAuthAppOutputSchema, { hasOverride: false });
 }
 
 function renderWithTransport(
@@ -128,20 +99,18 @@ function renderWithTransport(
 // ---------------------------------------------------------------------------
 
 describe("McpServerConnectDialog — oauth_only + vendor-blocked", () => {
-  function renderDialog(server: McpServer, onOpenDetails?: () => void) {
+  function renderDialog(server: McpServer) {
     return renderWithTransport(
       <McpServerConnectDialog
         org={ORG}
         slug={SLUG}
         open
         onClose={() => {}}
-        onOpenDetails={onOpenDetails}
       />,
       (router) => {
         router.service(McpServerQueryController, {
           getByReference: () => server,
           getOAuthGrantStatus: noGrant,
-          getOrgOAuthApp: noOverride,
         });
       },
     );
@@ -151,12 +120,11 @@ describe("McpServerConnectDialog — oauth_only + vendor-blocked", () => {
     renderDialog(
       buildBlockedOAuthOnlyServer({
         status: VendorApprovalStatus.PENDING,
-        withAppRef: true,
       }),
     );
 
     const signIn = await screen.findByRole("button", {
-      name: "Sign in with OAuth",
+      name: "Sign in",
     });
     expect((signIn as HTMLButtonElement).disabled).toBe(true);
     // The reason is always visible — this was the oss#412 dead end.
@@ -167,11 +135,10 @@ describe("McpServerConnectDialog — oauth_only + vendor-blocked", () => {
     renderDialog(
       buildBlockedOAuthOnlyServer({
         status: VendorApprovalStatus.PENDING,
-        withAppRef: true,
       }),
     );
 
-    await screen.findByRole("button", { name: "Sign in with OAuth" });
+    await screen.findByRole("button", { name: "Sign in" });
     // OAuthRequiredNotice legitimately says tokens are *rejected*; what must
     // never appear is a recommendation to enter one.
     expect(screen.queryByText(/enter (a|your) token manually/i)).toBeNull();
@@ -180,27 +147,10 @@ describe("McpServerConnectDialog — oauth_only + vendor-blocked", () => {
     ).toBeNull();
   });
 
-  it("routes the BYOA escape hatch to onOpenDetails", async () => {
-    const onOpenDetails = vi.fn();
-    renderDialog(
-      buildBlockedOAuthOnlyServer({
-        status: VendorApprovalStatus.PENDING,
-        withAppRef: true,
-      }),
-      onOpenDetails,
-    );
-
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Use your own OAuth app" }),
-    );
-    expect(onOpenDetails).toHaveBeenCalledTimes(1);
-  });
-
-  it("is honest about rejection and falls back to the docs link without BYOA", async () => {
+  it("is honest about rejection and offers the docs link", async () => {
     renderDialog(
       buildBlockedOAuthOnlyServer({
         status: VendorApprovalStatus.REJECTED,
-        withAppRef: false,
       }),
     );
 
@@ -209,51 +159,9 @@ describe("McpServerConnectDialog — oauth_only + vendor-blocked", () => {
     ).toBeTruthy();
     expect(screen.queryByText(/awaiting vendor approval/)).toBeNull();
     const docs = screen.getByRole("link", {
-      name: /Learn how to bring your own token/,
+      name: /Learn how to connect without it/,
     });
     expect(docs.getAttribute("href")).toBe(DOCS_URL);
-  });
-
-  it("enables sign-in with the org's own app when a BYOA override is active", async () => {
-    // The platform app is still vendor-blocked, but the org brought its
-    // own approved app — the block describes an app sign-in won't use.
-    // Before the client-side derivation this state
-    // was a dead end: disabled button AND no way forward.
-    renderWithTransport(
-      <McpServerConnectDialog
-        org={ORG}
-        slug={SLUG}
-        open
-        onClose={() => {}}
-      />,
-      (router) => {
-        router.service(McpServerQueryController, {
-          getByReference: () =>
-            buildBlockedOAuthOnlyServer({
-              status: VendorApprovalStatus.PENDING,
-              withAppRef: true,
-            }),
-          getOAuthGrantStatus: noGrant,
-          getOrgOAuthApp: () =>
-            create(GetOrgOAuthAppOutputSchema, {
-              hasOverride: true,
-              oauthAppId: "oauthapp_01acme",
-              clientId: "acme-client-id",
-            }),
-        });
-      },
-    );
-
-    const signIn = await screen.findByRole("button", {
-      name: "Sign in with your app",
-    });
-    expect((signIn as HTMLButtonElement).disabled).toBe(false);
-    // The blocked notice describes the platform app — suppressed while
-    // the org's own app is the effective one.
-    expect(screen.queryByText(/awaiting vendor approval/)).toBeNull();
-    expect(
-      screen.queryByRole("button", { name: "Use your own OAuth app" }),
-    ).toBeNull();
   });
 });
 
@@ -272,29 +180,25 @@ describe("McpServerDetailView — oauth_only + vendor-blocked", () => {
     };
   }
 
-  it("offers BYOA without recommending manual entry, and keeps the tour's CTA marker", async () => {
+  it("explains the block and what an admin can do, without recommending manual entry", async () => {
     renderWithTransport(
       <McpServerDetailView
         org={ORG}
         slug={SLUG}
         mcpServerState={loadedState(
-          buildBlockedOAuthOnlyServer({
-            status: VendorApprovalStatus.PENDING,
-            withAppRef: true,
-          }),
+          buildBlockedOAuthOnlyServer({ status: VendorApprovalStatus.PENDING }),
         )}
       />,
       (router) => {
         router.service(McpServerQueryController, {
           getOAuthGrantStatus: noGrant,
-          getOrgOAuthApp: noOverride,
         });
       },
     );
 
     expect(
       await screen.findByText(
-        "The platform's OAuth app is awaiting vendor approval. You can use your own OAuth app.",
+        "The login app for this server is awaiting vendor approval. Sign-in is unavailable until it is approved, or an admin adds another login app for this server's address.",
       ),
     ).toBeTruthy();
     // OAuthRequiredNotice legitimately says tokens are *rejected*; what must
@@ -302,52 +206,6 @@ describe("McpServerDetailView — oauth_only + vendor-blocked", () => {
     expect(screen.queryByText(/enter (a|your) token manually/i)).toBeNull();
     expect(
       screen.queryByRole("button", { name: "Enter token manually" }),
-    ).toBeNull();
-
-    const cta = screen.getByRole("button", { name: "Use your own OAuth app" });
-    // The byoa-setup docs tour targets this marker; it must survive the
-    // extraction into the shared notice.
-    expect(cta.getAttribute("data-cursor-target")).toBe("byoa-cta-button");
-  });
-
-  it("enables 'Sign in with your app' when the org's BYOA override is active", async () => {
-    // The vendor block gates the PLATFORM app; with the org's own app
-    // effective, sign-in must be enabled and the BYOA CTA retired
-    // (the server-side signal these gates once keyed on never fired).
-    renderWithTransport(
-      <McpServerDetailView
-        org={ORG}
-        slug={SLUG}
-        mcpServerState={loadedState(
-          buildBlockedOAuthOnlyServer({
-            status: VendorApprovalStatus.PENDING,
-            withAppRef: true,
-          }),
-        )}
-      />,
-      (router) => {
-        router.service(McpServerQueryController, {
-          getOAuthGrantStatus: noGrant,
-          getOrgOAuthApp: () =>
-            create(GetOrgOAuthAppOutputSchema, {
-              hasOverride: true,
-              oauthAppId: "oauthapp_01acme",
-              clientId: "acme-client-id",
-            }),
-        });
-      },
-    );
-
-    const signIn = await screen.findByRole("button", {
-      name: "Sign in with your app",
-    });
-    expect((signIn as HTMLButtonElement).disabled).toBe(false);
-    expect(screen.getByText("Using your OAuth app")).toBeTruthy();
-    // The blocked banner and BYOA offer describe the platform app —
-    // both retire while the override is active.
-    expect(screen.queryByText(/awaiting vendor approval/)).toBeNull();
-    expect(
-      screen.queryByRole("button", { name: "Use your own OAuth app" }),
     ).toBeNull();
   });
 });
@@ -363,7 +221,6 @@ describe("McpServerConfigPanel — oauth_only + vendor-blocked", () => {
   ) {
     const server = buildBlockedOAuthOnlyServer({
       status: VendorApprovalStatus.PENDING,
-      withAppRef: true,
     });
     return renderWithTransport(
       <McpServerConfigPanel
@@ -400,11 +257,9 @@ describe("McpServerConfigPanel — oauth_only + vendor-blocked", () => {
     );
     expect(screen.getByText(/is awaiting vendor approval/)).toBeTruthy();
     expect(
-      screen.getByText(/OAuth sign-in is temporarily unavailable for this server/),
+      screen.getByText(/an admin adds another login app for this server's address/),
     ).toBeTruthy();
-    expect(
-      screen.queryByText(/You can use your own OAuth app or enter a token manually/),
-    ).toBeNull();
+    expect(screen.queryByText(/entering your own token manually/)).toBeNull();
   });
 
   it("mentions manual entry when the panel actually offers it (legacy fallback)", () => {

@@ -25,9 +25,13 @@ import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/m
 import {
   OAuthConnectionHealth,
   GetOAuthGrantStatusOutputSchema,
-  InitiateOAuthConnectOutputSchema,
-  CompleteOAuthConnectOutputSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
+import { VaultCommandController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/command_pb";
+import {
+  CompleteSignInOutputSchema,
+  StartSignInOutputSchema,
+  type StartSignInInput,
+} from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
 import {
   McpServerSpecSchema,
   McpServerAuthSchema,
@@ -39,7 +43,6 @@ import {
   DiscoveredToolSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
-import type { InitiateOAuthConnectInput } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { samples } from "../../test/samples";
@@ -244,6 +247,7 @@ describe("McpServerPicker — discovery-leg failure (in-flow arm)", () => {
     ) => {
       router.service(McpServerQueryController, {
         getByReference: () => state.server,
+        get: () => state.server,
         getOAuthGrantStatus: () =>
           grantStatusOutput(
             state.grantConnected,
@@ -252,16 +256,18 @@ describe("McpServerPicker — discovery-leg failure (in-flow arm)", () => {
               : OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_NO_GRANT,
           ),
       });
-      router.service(McpServerCommandController, {
-        initiateOAuthConnect: () =>
-          create(InitiateOAuthConnectOutputSchema, {
+      router.service(VaultCommandController, {
+        startSignIn: () =>
+          create(StartSignInOutputSchema, {
             authorizationUrl: "https://vendor.example/authorize",
             state: "state-1",
           }),
-        completeOAuthConnect: () => {
+        completeSignIn: () => {
           state.grantConnected = true;
-          return create(CompleteOAuthConnectOutputSchema, { connected: true });
+          return create(CompleteSignInOutputSchema, {});
         },
+      });
+      router.service(McpServerCommandController, {
         connect: connectSpy,
       });
     };
@@ -347,19 +353,20 @@ describe("McpServerPicker — discovery-leg failure (in-flow arm)", () => {
     renderPicker((router) => {
       router.service(McpServerQueryController, {
         getByReference: () => buildOAuthServer(),
+        get: () => buildOAuthServer(),
         getOAuthGrantStatus: () =>
           grantStatusOutput(
             false,
             OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_NO_GRANT,
           ),
       });
-      router.service(McpServerCommandController, {
-        initiateOAuthConnect: () =>
-          create(InitiateOAuthConnectOutputSchema, {
+      router.service(VaultCommandController, {
+        startSignIn: () =>
+          create(StartSignInOutputSchema, {
             authorizationUrl: "https://vendor.example/authorize",
             state: "state-1",
           }),
-        completeOAuthConnect: () => {
+        completeSignIn: () => {
           throw new ConnectError("token exchange failed", Code.Unavailable);
         },
       });
@@ -466,6 +473,7 @@ describe("McpServerPicker — cross-server scoping", () => {
         router.service(McpServerQueryController, {
           getByReference: (input) =>
             input.slug === SLUG_B ? serverB : serverA,
+          get: (input) => (input.value === serverB.metadata!.id ? serverB : serverA),
           getOAuthGrantStatus: (input) =>
             grantStatusOutput(
               input.resourceId === serverA.metadata!.id && grantConnectedA,
@@ -474,18 +482,18 @@ describe("McpServerPicker — cross-server scoping", () => {
                 : OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_NO_GRANT,
             ),
         });
-        router.service(McpServerCommandController, {
-          initiateOAuthConnect: () =>
-            create(InitiateOAuthConnectOutputSchema, {
+        router.service(VaultCommandController, {
+          startSignIn: () =>
+            create(StartSignInOutputSchema, {
               authorizationUrl: "https://vendor.example/authorize",
               state: "state-1",
             }),
-          completeOAuthConnect: () => {
+          completeSignIn: () => {
             grantConnectedA = true;
-            return create(CompleteOAuthConnectOutputSchema, {
-              connected: true,
-            });
+            return create(CompleteSignInOutputSchema, {});
           },
+        });
+        router.service(McpServerCommandController, {
           connect: connectSpy,
         });
       },
@@ -527,7 +535,7 @@ describe("McpServerPicker — cross-server scoping", () => {
 
 describe("McpServerPicker — a conversation that leaves My vault out", () => {
   it("saves a sign-in in My vault and reports it to the setup, which the conversation's vaults do not yet satisfy", async () => {
-    const initiated: InitiateOAuthConnectInput[] = [];
+    const started: StartSignInInput[] = [];
     const signedIn = vi.fn();
 
     renderPicker(
@@ -538,15 +546,17 @@ describe("McpServerPicker — a conversation that leaves My vault out", () => {
           getOAuthGrantStatus: () =>
             grantStatusOutput(true, OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_HEALTHY),
         });
-        router.service(McpServerCommandController, {
-          initiateOAuthConnect: (input) => {
-            initiated.push(input);
-            return create(InitiateOAuthConnectOutputSchema, {
+        router.service(VaultCommandController, {
+          startSignIn: (input) => {
+            started.push(input);
+            return create(StartSignInOutputSchema, {
               authorizationUrl: "https://vendor.example/authorize",
               state: "state-1",
             });
           },
-          completeOAuthConnect: () => create(CompleteOAuthConnectOutputSchema, { connected: true }),
+          completeSignIn: () => create(CompleteSignInOutputSchema, {}),
+        });
+        router.service(McpServerCommandController, {
           connect: () => buildOAuthServer(),
         });
       },
@@ -559,7 +569,7 @@ describe("McpServerPicker — a conversation that leaves My vault out", () => {
 
     await waitFor(() => expect(signedIn).toHaveBeenCalledTimes(1));
     expect(signedIn).toHaveBeenCalledWith(expect.objectContaining({ slug: SLUG }));
-    expect(initiated[0]?.vaultId ?? "").toBe("");
+    expect(started[0]?.vault?.vault.case).toBe("mine");
     // The grant is My vault's, which this conversation does not read.
     expect(screen.getByTestId("setup-status").textContent).toBe("needsSetup");
   });

@@ -1,9 +1,11 @@
 /**
  * Pins the OAuth connect flow's phases: where a failure lands
- * (`failedPhase`), the honest copy for a discovery-leg failure, and a
- * sign-in saved into a shared vault, which names the vault and its
- * organization, chains no discovery (the connect lane reads only My vault)
- * and, when the person may not edit the vault, says who can act.
+ * (`failedPhase`), the honest copy for a discovery-leg failure, a sign-in
+ * started at the server's address (its URL), never at its id, a local
+ * program refused before any sign-in, and a sign-in saved into a shared
+ * vault, which names the vault and its organization, chains no discovery
+ * (the connect lane reads only My vault) and, when the person may not edit
+ * the vault, says who can act.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderHook, act, cleanup } from "@testing-library/react";
@@ -14,11 +16,12 @@ import { Stigmer } from "@stigmer/sdk";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import { VaultCommandController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/command_pb";
 import {
-  InitiateOAuthConnectOutputSchema,
-  CompleteOAuthConnectOutputSchema,
-  type InitiateOAuthConnectInput,
-} from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
+  CompleteSignInOutputSchema,
+  StartSignInOutputSchema,
+  type StartSignInInput,
+} from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
 import { getUserMessage } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import {
@@ -62,24 +65,38 @@ function renderOAuthHook(
   return renderHook(() => useMcpServerOAuthConnect(), { wrapper });
 }
 
-/** initiate + complete succeed — the failure point is chosen per test. */
-function happyOAuthLegs() {
+const SERVER_URL = "https://MCP.vendor.example/mcp/";
+
+/** The server the flow reads its address from. */
+function serverQueries(url = SERVER_URL) {
   return {
-    initiateOAuthConnect: () =>
-      create(InitiateOAuthConnectOutputSchema, {
+    get: () =>
+      create(McpServerSchema, {
+        metadata: { id: SERVER_ID, name: "Linear" },
+        spec: { serverType: { case: "http", value: { url } } },
+      }),
+  };
+}
+
+/** start + complete succeed — the failure point is chosen per test. */
+function happySignIn() {
+  return {
+    startSignIn: () =>
+      create(StartSignInOutputSchema, {
         authorizationUrl: "https://vendor.example/authorize",
         state: "state-1",
       }),
-    completeOAuthConnect: () =>
-      create(CompleteOAuthConnectOutputSchema, { connected: true }),
+    completeSignIn: () =>
+      create(CompleteSignInOutputSchema, { address: "https://mcp.vendor.example/mcp" }),
   };
 }
 
 describe("useMcpServerOAuthConnect — failedPhase", () => {
   it("records 'connecting' when only the chained discovery fails (sign-in succeeded)", async () => {
     const { result } = renderOAuthHook((router) => {
+      router.service(McpServerQueryController, serverQueries());
+      router.service(VaultCommandController, happySignIn());
       router.service(McpServerCommandController, {
-        ...happyOAuthLegs(),
         connect: () => {
           throw new ConnectError("discovery workflow failed", Code.Internal);
         },
@@ -99,9 +116,10 @@ describe("useMcpServerOAuthConnect — failedPhase", () => {
 
   it("records 'completing' when the token exchange itself fails", async () => {
     const { result } = renderOAuthHook((router) => {
-      router.service(McpServerCommandController, {
-        initiateOAuthConnect: happyOAuthLegs().initiateOAuthConnect,
-        completeOAuthConnect: () => {
+      router.service(McpServerQueryController, serverQueries());
+      router.service(VaultCommandController, {
+        startSignIn: happySignIn().startSignIn,
+        completeSignIn: () => {
           throw new ConnectError("token exchange failed", Code.Unavailable);
         },
       });
@@ -119,8 +137,9 @@ describe("useMcpServerOAuthConnect — failedPhase", () => {
   it("clears failedPhase on clearError and on a fresh startOAuth", async () => {
     let failConnect = true;
     const { result } = renderOAuthHook((router) => {
+      router.service(McpServerQueryController, serverQueries());
+      router.service(VaultCommandController, happySignIn());
       router.service(McpServerCommandController, {
-        ...happyOAuthLegs(),
         connect: () => {
           if (failConnect) {
             throw new ConnectError("discovery workflow failed", Code.Internal);
@@ -150,34 +169,78 @@ describe("useMcpServerOAuthConnect — failedPhase", () => {
   });
 });
 
+describe("useMcpServerOAuthConnect — the address", () => {
+  it("signs in at the server's URL, saved in My vault", async () => {
+    const started: StartSignInInput[] = [];
+    const { result } = renderOAuthHook((router) => {
+      router.service(McpServerQueryController, serverQueries());
+      router.service(VaultCommandController, {
+        ...happySignIn(),
+        startSignIn: (input) => {
+          started.push(input);
+          return happySignIn().startSignIn();
+        },
+      });
+      router.service(McpServerCommandController, { connect: () => ({}) });
+    });
+
+    await act(async () => {
+      await result.current.startOAuth(SERVER_ID, ORG);
+    });
+    expect(started[0]).toMatchObject({
+      address: "https://mcp.vendor.example/mcp",
+      vault: { org: ORG, vault: { case: "mine", value: true } },
+    });
+  });
+
+  it("refuses a server with no address before any sign-in starts", async () => {
+    let starts = 0;
+    const { result } = renderOAuthHook((router) => {
+      router.service(McpServerQueryController, serverQueries("https://${HOST}/mcp"));
+      router.service(VaultCommandController, {
+        startSignIn: () => {
+          starts += 1;
+          return happySignIn().startSignIn();
+        },
+      });
+    });
+
+    await act(async () => {
+      await expect(result.current.startOAuth(SERVER_ID, ORG)).rejects.toThrow("no address to sign in at");
+    });
+    expect(starts).toBe(0);
+    expect(result.current.failedPhase).toBe("initiating");
+  });
+});
+
 describe("useMcpServerOAuthConnect — a sign-in saved into a shared vault", () => {
   const VAULT = { id: "vlt_team", org: "org_acme", name: "Team tools" };
 
   it("names the vault and its organization, and chains no discovery", async () => {
-    const initiated: InitiateOAuthConnectInput[] = [];
+    const started: StartSignInInput[] = [];
     let connects = 0;
     const { result } = renderOAuthHook((router) => {
-      router.service(McpServerCommandController, {
-        ...happyOAuthLegs(),
-        initiateOAuthConnect: (input) => {
-          initiated.push(input);
-          return happyOAuthLegs().initiateOAuthConnect();
+      router.service(VaultCommandController, {
+        ...happySignIn(),
+        startSignIn: (input) => {
+          started.push(input);
+          return happySignIn().startSignIn();
         },
+      });
+      router.service(McpServerCommandController, {
         connect: () => {
           connects += 1;
           return {};
         },
       });
-      router.service(McpServerQueryController, {
-        get: () => create(McpServerSchema, { metadata: { id: SERVER_ID, name: "Linear" } }),
-      });
+      router.service(McpServerQueryController, serverQueries());
     });
 
     let server: Awaited<ReturnType<typeof result.current.startOAuth>> | undefined;
     await act(async () => {
       server = await result.current.startOAuth(SERVER_ID, ORG, { vault: VAULT });
     });
-    expect(initiated[0]).toMatchObject({ mcpServerId: SERVER_ID, org: "org_acme", vaultId: "vlt_team" });
+    expect(started[0]).toMatchObject({ vault: { org: "org_acme", vault: { case: "id", value: "vlt_team" } } });
     expect(connects).toBe(0);
     expect(server?.metadata?.name).toBe("Linear");
     expect(result.current.phase).toBe("done");
@@ -186,8 +249,9 @@ describe("useMcpServerOAuthConnect — a sign-in saved into a shared vault", () 
   it("says who can act when the person may not edit the vault, and passes other refusals through", async () => {
     let code = Code.PermissionDenied;
     const { result } = renderOAuthHook((router) => {
-      router.service(McpServerCommandController, {
-        initiateOAuthConnect: () => {
+      router.service(McpServerQueryController, serverQueries());
+      router.service(VaultCommandController, {
+        startSignIn: () => {
           throw new ConnectError("unauthorized to save a sign-in in this vault", code);
         },
       });

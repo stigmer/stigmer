@@ -5,13 +5,13 @@
 // Run over Tauri's IPC mock; the SDK's useGitHubConnection is replaced by a
 // recorder, since what this hook owns is the wiring around it:
 //
-//   - the callback URL: the web console's desktop hand-back page on Stigmer
-//     Cloud in a packaged build, the host's localhost callback server in every
-//     other edition and in any development build;
+//   - where the login page returns: the web console's desktop bridge on
+//     Stigmer Cloud in a packaged build, the host's loopback callback server
+//     (by its port) in every other edition and in any development build;
 //   - the browser is the system browser, opened by the host;
-//   - a `github-callback` event is exchanged exactly with its code, its state
-//     and the same callback URL the authorization used; an event carrying an
-//     error, or missing its code or state, is never exchanged;
+//   - a `sign-in-callback` event is completed exactly with its code and its
+//     state; an event carrying an error, or missing its code or state, is
+//     never completed;
 //   - the localhost server is one-shot, so it is started again after every
 //     callback, good or bad.
 // ---------------------------------------------------------------------------
@@ -24,9 +24,7 @@ import { mockTauri, type TauriMock } from "../../__test-utils__/tauri";
 const sdk = vi.hoisted(() => ({
   mode: "cloud" as string,
   configs: [] as (UseGitHubConnectionConfig | undefined)[],
-  handleCallback: vi.fn(
-    async (_code: string, _state: string, _url: string) => {},
-  ),
+  handleCallback: vi.fn(async (_code: string, _state: string) => {}),
 }));
 
 vi.mock("@stigmer/react", () => ({
@@ -41,14 +39,11 @@ vi.mock("@stigmer/react", () => ({
 }));
 
 import { useDesktopGitHubConnection } from "../useDesktopGitHubConnection";
-import { CONSOLE_URL } from "../../config";
-
-const HOSTED_CALLBACK = `${CONSOLE_URL}/auth/github/callback?source=desktop`;
 
 function host(): TauriMock {
   let port = 41000;
   return mockTauri({
-    start_github_callback_server: () => ++port,
+    start_sign_in_callback_server: () => ++port,
     open_auth_in_browser: () => null,
   });
 }
@@ -78,9 +73,9 @@ describe("useDesktopGitHubConnection", () => {
       const tauri = host();
       renderHook(() => useDesktopGitHubConnection("acme"));
 
-      expect(latestConfig()?.callbackUrl).toBe(HOSTED_CALLBACK);
+      expect(latestConfig()?.returnTo).toEqual({ kind: "desktop" });
       await act(async () => {});
-      expect(tauri.callsTo("start_github_callback_server")).toEqual([]);
+      expect(tauri.callsTo("start_sign_in_callback_server")).toEqual([]);
     });
 
     it("opens the authorization in the system browser through the host", async () => {
@@ -98,21 +93,17 @@ describe("useDesktopGitHubConnection", () => {
       ]);
     });
 
-    it("exchanges a deep-linked callback with its code, its state and the hosted callback URL", async () => {
+    it("completes a deep-linked callback with its code and its state", async () => {
       const tauri = host();
       renderHook(() => useDesktopGitHubConnection("acme"));
       await act(async () => {});
 
       await act(() =>
-        tauri.emit("github-callback", { code: "gh-code", state: "gh-state" }),
+        tauri.emit("sign-in-callback", { code: "gh-code", state: "gh-state" }),
       );
 
       expect(sdk.handleCallback).toHaveBeenCalledTimes(1);
-      expect(sdk.handleCallback).toHaveBeenCalledWith(
-        "gh-code",
-        "gh-state",
-        HOSTED_CALLBACK,
-      );
+      expect(sdk.handleCallback).toHaveBeenCalledWith("gh-code", "gh-state");
     });
   });
 
@@ -122,37 +113,31 @@ describe("useDesktopGitHubConnection", () => {
       vi.stubEnv("DEV", false);
     });
 
-    it("starts the localhost callback server and redirects GitHub to it", async () => {
+    it("starts the loopback callback server and returns the login page to its port", async () => {
       const tauri = host();
       renderHook(() => useDesktopGitHubConnection("acme"));
 
       await waitFor(() =>
-        expect(latestConfig()?.callbackUrl).toBe(
-          "http://127.0.0.1:41001/auth/github/callback",
-        ),
+        expect(latestConfig()?.returnTo).toEqual({ kind: "loopback", port: 41001 }),
       );
-      expect(tauri.callsTo("start_github_callback_server")).toHaveLength(1);
+      expect(tauri.callsTo("start_sign_in_callback_server")).toHaveLength(1);
     });
 
-    it("exchanges with the port the authorization used, then starts a fresh one-shot server", async () => {
+    it("completes the callback, then starts a fresh one-shot server", async () => {
       const tauri = host();
       renderHook(() => useDesktopGitHubConnection("acme"));
-      await waitFor(() => expect(latestConfig()?.callbackUrl).toBeDefined());
+      await waitFor(() => expect(latestConfig()?.returnTo).toBeDefined());
 
-      await act(() => tauri.emit("github-callback", { code: "c", state: "s" }));
+      await act(() => tauri.emit("sign-in-callback", { code: "c", state: "s" }));
 
-      expect(sdk.handleCallback).toHaveBeenCalledWith(
-        "c",
-        "s",
-        "http://127.0.0.1:41001/auth/github/callback",
-      );
+      expect(sdk.handleCallback).toHaveBeenCalledWith("c", "s");
       await waitFor(() =>
-        expect(tauri.callsTo("start_github_callback_server")).toHaveLength(2),
+        expect(tauri.callsTo("start_sign_in_callback_server")).toHaveLength(2),
       );
     });
 
-    it("offers no callback URL to the SDK until the server has a port", () => {
-      mockTauri({ start_github_callback_server: () => new Promise(() => {}) });
+    it("offers no return choice to the SDK until the server has a port", () => {
+      mockTauri({ start_sign_in_callback_server: () => new Promise(() => {}) });
       renderHook(() => useDesktopGitHubConnection("acme"));
       expect(latestConfig()).toBeUndefined();
     });
@@ -163,11 +148,9 @@ describe("useDesktopGitHubConnection", () => {
     renderHook(() => useDesktopGitHubConnection("acme"));
 
     await waitFor(() =>
-      expect(latestConfig()?.callbackUrl).toBe(
-        "http://127.0.0.1:41001/auth/github/callback",
-      ),
+      expect(latestConfig()?.returnTo).toEqual({ kind: "loopback", port: 41001 }),
     );
-    expect(tauri.callsTo("start_github_callback_server")).toHaveLength(1);
+    expect(tauri.callsTo("start_sign_in_callback_server")).toHaveLength(1);
   });
 
   it.each([
@@ -178,20 +161,20 @@ describe("useDesktopGitHubConnection", () => {
     ["no code", { state: "s" }],
     ["no state", { code: "c" }],
   ])(
-    "never exchanges a callback carrying %s, and restarts the one-shot server",
+    "never completes a callback carrying %s, and restarts the one-shot server",
     async (_label, payload) => {
       sdk.mode = "local";
       const tauri = host();
       renderHook(() => useDesktopGitHubConnection("acme"));
       await waitFor(() =>
-        expect(tauri.callsTo("start_github_callback_server")).toHaveLength(1),
+        expect(tauri.callsTo("start_sign_in_callback_server")).toHaveLength(1),
       );
 
-      await act(() => tauri.emit("github-callback", payload));
+      await act(() => tauri.emit("sign-in-callback", payload));
 
       expect(sdk.handleCallback).not.toHaveBeenCalled();
       await waitFor(() =>
-        expect(tauri.callsTo("start_github_callback_server")).toHaveLength(2),
+        expect(tauri.callsTo("start_sign_in_callback_server")).toHaveLength(2),
       );
     },
   );
@@ -203,7 +186,7 @@ describe("useDesktopGitHubConnection", () => {
     unmount();
     await act(async () => {});
 
-    await act(() => tauri.emit("github-callback", { code: "c", state: "s" }));
+    await act(() => tauri.emit("sign-in-callback", { code: "c", state: "s" }));
     expect(sdk.handleCallback).not.toHaveBeenCalled();
   });
 });

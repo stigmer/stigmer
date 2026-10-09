@@ -35,17 +35,6 @@ export interface McpServerConnectDialogProps {
   readonly onClose: () => void;
   /** Called after a successful connect with the server name. */
   readonly onConnected?: (serverName: string) => void;
-  /**
-   * Called when the user needs the server's detail page — today the
-   * "Use your own OAuth app" escape hatch shown when the platform OAuth
-   * app is vendor-approval blocked on an `oauth_only` server, since the
-   * BYOA form lives on the detail page, not in this dialog.
-   *
-   * The host owns navigation (and should close the dialog itself if its
-   * route keeps this component mounted). When omitted, the blocked notice
-   * still explains the state; only the navigation affordance is dropped.
-   */
-  readonly onOpenDetails?: () => void;
   /** Additional CSS classes for the dialog element. */
   readonly className?: string;
 }
@@ -86,7 +75,6 @@ export function McpServerConnectDialog({
   open,
   onClose,
   onConnected,
-  onOpenDetails,
   className,
 }: McpServerConnectDialogProps) {
   const resolvedOrg = activeOrg || org;
@@ -124,7 +112,6 @@ export function McpServerConnectDialog({
           activeOrg={resolvedOrg}
           onClose={onClose}
           onConnected={onConnected}
-          onOpenDetails={onOpenDetails}
         />
       </div>
     </DialogShell>
@@ -137,14 +124,12 @@ function ConnectDialogContent({
   activeOrg,
   onClose,
   onConnected,
-  onOpenDetails,
 }: {
   readonly org: string;
   readonly slug: string;
   readonly activeOrg: string;
   readonly onClose: () => void;
   readonly onConnected?: (serverName: string) => void;
-  readonly onOpenDetails?: () => void;
 }) {
   const { mcpServer, isLoading: isServerLoading, error: serverError } = useMcpServer(org, slug);
   const creds = useMcpServerCredentials(activeOrg, mcpServer);
@@ -193,7 +178,7 @@ function ConnectDialogContent({
         onConnected?.(serverName);
       },
       () => {
-        // completeOAuthConnect persists the grant BEFORE the chained
+        // completeSignIn saves the login BEFORE the chained
         // discovery runs, so even a failed attempt may have changed
         // server state — refetch so the dialog offers "Discover Tools"
         // instead of another popup round.
@@ -328,16 +313,13 @@ function ConnectDialogContent({
           onSignIn={handleOAuthSignIn}
           isVendorApprovalBlocked={creds.isVendorApprovalBlocked}
           isVendorApprovalPending={creds.isVendorApprovalPending}
-          isOrgOAuthApp={creds.isOrgOAuthApp}
           manualEntrySupported={creds.manualEntrySupported}
-          canBringOwnApp={creds.canBringOwnApp}
           vendorApprovalDocsUrl={creds.vendorApprovalDocsUrl}
           onSwitchToManual={
             creds.manualEntrySupported
               ? () => creds.setManualOverride(true)
               : undefined
           }
-          onOpenDetails={onOpenDetails}
           disabled={isConnectingPhase}
         />
       )}
@@ -444,12 +426,9 @@ function OAuthSection({
   onSignIn,
   isVendorApprovalBlocked,
   isVendorApprovalPending,
-  isOrgOAuthApp,
   manualEntrySupported,
-  canBringOwnApp,
   vendorApprovalDocsUrl,
   onSwitchToManual,
-  onOpenDetails,
   disabled,
 }: {
   readonly isConnected: boolean;
@@ -457,21 +436,10 @@ function OAuthSection({
   readonly onSignIn: () => void;
   readonly isVendorApprovalBlocked: boolean;
   readonly isVendorApprovalPending: boolean;
-  /**
-   * `true` when the org's own BYOA OAuth app is the effective one. The
-   * vendor-approval block describes the PLATFORM app, so it neither
-   * disables sign-in nor warrants the blocked notice when the org's own
-   * app is what sign-in will use (the caller-side org-override gate the
-   * notice's contract expects).
-   */
-  readonly isOrgOAuthApp: boolean;
   readonly manualEntrySupported: boolean;
-  readonly canBringOwnApp: boolean;
   readonly vendorApprovalDocsUrl: string | null;
   /** When omitted (e.g. `oauth_only` servers), no manual-entry link is shown. */
   readonly onSwitchToManual?: () => void;
-  /** Navigates to the detail page, where the BYOA form lives. */
-  readonly onOpenDetails?: () => void;
   readonly disabled?: boolean;
 }) {
   if (isConnected) {
@@ -497,7 +465,7 @@ function OAuthSection({
         type="button"
         onClick={onSignIn}
         disabled={
-          disabled || isInProgress || (isVendorApprovalBlocked && !isOrgOAuthApp)
+          disabled || isInProgress || isVendorApprovalBlocked
         }
         className={cn(
           "stg:inline-flex stg:w-full stg:items-center stg:justify-center stg:gap-2 stg:rounded-md stg:px-4 stg:py-2 stg:text-sm stg:font-medium",
@@ -510,21 +478,15 @@ function OAuthSection({
         {isInProgress && <LoadingSpinner size="sm" />}
         {isInProgress
           ? (phaseLabel[phase] ?? "Connecting...")
-          : isOrgOAuthApp
-            ? "Sign in with your app"
-            : "Sign in with OAuth"}
+          : "Sign in"}
       </button>
-      {!isOrgOAuthApp && (
-        <VendorApprovalBlockedNotice
-          blocked={isVendorApprovalBlocked}
-          pending={isVendorApprovalPending}
-          manualEntrySupported={manualEntrySupported}
-          canBringOwnApp={canBringOwnApp}
-          docsUrl={vendorApprovalDocsUrl}
-          onBringOwnApp={onOpenDetails}
-          className="stg:rounded-md stg:border stg:border-amber-500/20"
-        />
-      )}
+      <VendorApprovalBlockedNotice
+        blocked={isVendorApprovalBlocked}
+        pending={isVendorApprovalPending}
+        manualEntrySupported={manualEntrySupported}
+        docsUrl={vendorApprovalDocsUrl}
+        className="stg:rounded-md stg:border stg:border-amber-500/20"
+      />
       {onSwitchToManual && (
         <button
           type="button"

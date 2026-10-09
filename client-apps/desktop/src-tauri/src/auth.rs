@@ -34,7 +34,7 @@ pub async fn cancel_auth(app: tauri::AppHandle) -> Result<(), String> {
 
 // ── One-shot localhost callback servers ──────────────────────────────
 //
-// Both Auth0 and GitHub OAuth flows need a localhost HTTP server to
+// Both the Auth0 sign-in and a sign-in at an address need a localhost HTTP server to
 // receive the redirect callback when `window.open()` is unavailable
 // (Tauri webview). The shared `start_oauth_callback_server` helper
 // handles the TCP plumbing; the public Tauri commands configure the
@@ -52,15 +52,17 @@ pub async fn start_auth_callback_server(app: tauri::AppHandle) -> Result<u16, St
     start_oauth_callback_server(app, "auth-callback", &[17234, 17235, 17236])
 }
 
-/// GitHub OAuth callback server.
+/// Sign-in callback server: the loopback page a sign-in at an address
+/// (GitHub's among them) returns to in local and development builds.
 ///
-/// The Tauri webview blocks `window.open()`, so the GitHub OAuth flow
-/// opens the authorization URL in the system browser and routes the
-/// callback to this localhost server. The frontend listens for the
-/// `github-callback` event to complete the token exchange.
+/// The Tauri webview blocks `window.open()`, so the app opens the login
+/// page in the system browser with the server's loopback redirect
+/// (`http://127.0.0.1:<port>/auth/oauth/callback`, RFC 8252 section 7.3)
+/// and receives the callback here. The frontend listens for the
+/// `sign-in-callback` event to complete the sign-in.
 #[tauri::command]
-pub async fn start_github_callback_server(app: tauri::AppHandle) -> Result<u16, String> {
-    start_oauth_callback_server(app, "github-callback", &[17237, 17238, 17239])
+pub async fn start_sign_in_callback_server(app: tauri::AppHandle) -> Result<u16, String> {
+    start_oauth_callback_server(app, "sign-in-callback", &[17237, 17238, 17239])
 }
 
 /// Starts a one-shot localhost HTTP server that waits for a single
