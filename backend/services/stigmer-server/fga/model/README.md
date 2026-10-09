@@ -210,7 +210,7 @@ organization:acme-cust#parent_org@organization:stigmer   ← on the child
 organization:stigmer#child_org@organization:acme-cust    ← on the parent
 ```
 
-Both edges are written once, when the child is created; a child has no `owner` tuple. The parent's admins hold `parent_admin` on the child, which feeds only the management permissions (`can_view_settings`, `can_edit`, `can_delete`, `can_grant_access`, `can_view_access`, `can_assign_roles`, `can_view_billing`), never a role: they manage the child and read none of its resources. A parent admin who needs to look inside grants themselves a role in the child, which the child's members and access history show.
+Both edges are written once, when the child is created; a child has no `owner` tuple. The parent's admins hold `parent_admin` on the child, which feeds only the management permissions (`can_view_settings`, `can_edit`, `can_delete`, `can_grant_access`, `can_view_access`, `can_assign_roles`, `can_view_billing`) and the child's invitations, which they create and list through those permissions and so view and revoke too, never a role: they manage the child and read none of its resources. A parent admin who needs to look inside grants themselves a role in the child, which the child's members and access history show.
 
 ### Session (Personal)
 

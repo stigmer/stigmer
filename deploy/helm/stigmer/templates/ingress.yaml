@@ -26,16 +26,16 @@ metadata:
   {{- end }}
 spec:
   {{- with $.Values.ingress.className }}
-  ingressClassName: {{ . }}
+  ingressClassName: {{ . | quote }}
   {{- end }}
   {{- with $lane.cfg.tlsSecretName }}
   tls:
     - hosts:
-        - {{ $lane.cfg.host }}
+        - {{ $lane.cfg.host | quote }}
       secretName: {{ . | quote }}
   {{- end }}
   rules:
-    - host: {{ $lane.cfg.host }}
+    - host: {{ $lane.cfg.host | quote }}
       http:
         paths:
           - path: /

@@ -42,13 +42,16 @@
  *
  * A child being deleted (lifecycle.ts) is no longer a child for any lane:
  * the composition's lookups, the external-id lookup and the child list
- * leave it out.
+ * leave it out. The one read that names such children is
+ * `listIdsBeingDeleted`, the pending ones only, for an offboarding that
+ * cannot reach them yet.
  *
  * A parent's children are read through the organization list index
  * (list-index.ts), never by decoding the kind. `newChildOrganizations`
  * is the lookup a composition receives (ComposedServices
- * .childOrganizations): sign-in routing by external id and billing's
- * roll-up.
+ * .childOrganizations): sign-in routing by external id, billing's
+ * roll-up, and offboarding's revoke over the children and its check for
+ * the ones mid-delete.
  *
  * Proven by __tests__/children.test.ts and child-organizations
  * .conformance.test.ts.
@@ -276,6 +279,20 @@ export function newChildOrganizations(store: Store): ChildOrganizations {
       return (await liveChildrenOf(store, parentId)).map(
         (child) => child.metadata?.id ?? "",
       );
+    },
+    async listIdsBeingDeleted(parentId) {
+      const children = await childrenOf(store, parentId);
+      if (children.length === 0) {
+        return [];
+      }
+      const pending = new Set(
+        (await store.organizationDeletions.list())
+          .filter((row) => row.phase === "pending")
+          .map((row) => row.org),
+      );
+      return children
+        .map((child) => child.metadata?.id ?? "")
+        .filter((id) => pending.has(id));
     },
   };
 }

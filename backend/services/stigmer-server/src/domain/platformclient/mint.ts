@@ -118,9 +118,11 @@ import {
   foreignAccountMessage,
   noAccountMessage,
   organizationMismatchMessage,
+  signInRoleNotGrantableMessage,
   subjectSeparatorMessage,
 } from "./constants.js";
 import { secretMatchesHash } from "./credentials.js";
+import { isGrantableSignInRole } from "./steps.js";
 import type { PlatformClientStore } from "./store.js";
 
 /** The separator of the composite subject; neither part may contain it. */
@@ -407,7 +409,9 @@ function accountInput(
  * Grants the client's sign-in role on the owning organization to the
  * derived account id, as the client. Owner is refused here too: the
  * contract refuses it on every write, and a stored row must still never
- * make an end user an owner.
+ * make an end user an owner. A role the organization does not grant is
+ * refused with the save-time step's copy, for a row stored before that
+ * step: its grant could only fail.
  */
 async function grantSignInRole(
   deps: PlatformClientMintDeps,
@@ -419,6 +423,12 @@ async function grantSignInRole(
   const role = client.spec?.signInRole ?? IamRole.iam_role_unspecified;
   if (role === IamRole.owner) {
     throw new ConnectError(OWNER_SIGN_IN_ROLE_MESSAGE, Code.InvalidArgument);
+  }
+  if (!isGrantableSignInRole(role)) {
+    throw new ConnectError(
+      signInRoleNotGrantableMessage(role),
+      Code.InvalidArgument,
+    );
   }
   try {
     await deps.grantPath.grant(

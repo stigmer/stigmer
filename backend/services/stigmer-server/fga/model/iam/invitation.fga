@@ -10,12 +10,16 @@ module iam
 # Permission pattern:
 # - Org Admin (and org owner, through admin): view, edit and revoke every
 #   invitation of the organization
+# - A parent organization's admins (parent_admin on the organization): the
+#   same on a child's invitations, which they already create
+#   (can_grant_access) and list (can_view_access)
 # - Org Members/Viewers: No access (administrative resource)
 #
 # `owner` is computed, never stored: an invitation is the organization's,
-# managed by its current admins, as a team is, so a creator who is demoted
-# below admin or removed loses control of their links with the role. The
-# creator is recorded in the audit trail (kind_meta `owner_type` NONE).
+# managed by its current admins and its parent's, so a creator who is
+# demoted below admin or removed loses control of their links with the
+# role, as a team's creator does. The creator is recorded in the audit
+# trail (kind_meta `owner_type` NONE).
 #
 # FGA tuple on creation:
 # - invitation:<inv_id>#organization@organization:acme
@@ -30,11 +34,12 @@ type invitation
     # ========================================
     # OWNERSHIP
     # ========================================
-    # Every current admin of the invitation's organization, and nobody else.
-    define owner: admin from organization
+    # Every current admin of the invitation's organization, and every
+    # current admin of its parent organization, and nobody else.
+    define owner: admin from organization or parent_admin from organization
     
-    # Viewers (org admins can view)
-    define viewer: admin from organization
+    # Viewers (the same admins)
+    define viewer: admin from organization or parent_admin from organization
     
     # ========================================
     # CRUD OPERATIONS

@@ -240,9 +240,8 @@ spec:
             - name: artifacts
               containerPort: 7235
           # Native gRPC probes on the unified port (the health service is
-          # tokenless-exempt for exactly this, stigmer#974); the cloud's
-          # production timings. Startup covers a search-index rebuild on a
-          # large adopted database.
+          # tokenless-exempt for exactly this, stigmer#974). Startup covers
+          # a search-index rebuild on a large adopted database.
           startupProbe:
             grpc:
               port: 7234

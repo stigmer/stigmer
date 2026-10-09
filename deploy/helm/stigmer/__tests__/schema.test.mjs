@@ -74,6 +74,16 @@ test("half an OIDC configuration is refused at render, before the server would r
   expectRefusal(result, /server\.oidc\.audience/, "issuer without audience");
 });
 
+test("an external Temporal address that is not host:port is refused at render", () => {
+  for (const hostPort of ["temporal.internal", "fd00::1:7233", "temporal.internal:", "temporal.internal:port"]) {
+    const result = helmTemplate("byo", { sets: [`externalTemporal.hostPort=${hostPort}`] });
+    expectRefusal(result, /externalTemporal\.hostPort .* is not host:port/, hostPort);
+  }
+  for (const hostPort of ["temporal.internal:7233", "[fd00::1]:7233", "10.0.0.5:7233"]) {
+    assert.equal(helmTemplate("byo", { sets: [`externalTemporal.hostPort=${hostPort}`] }).ok, true, hostPort);
+  }
+});
+
 test("postgres.enabled=false without externalDatabase.host is refused", () => {
   const result = helmTemplate("bundled", { sets: ["postgres.enabled=false"] });
   expectRefusal(result, /externalDatabase\.host/, "no database");

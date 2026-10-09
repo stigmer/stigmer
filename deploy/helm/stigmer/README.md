@@ -82,7 +82,7 @@ Give the runner an LLM key so agents can run:
 
 ```bash
 kubectl -n stigmer create secret generic stigmer-llm-keys --from-literal=ANTHROPIC_API_KEY=sk-ant-...
-helm upgrade stigmer oci://ghcr.io/stigmer/charts/stigmer -n stigmer --reuse-values \
+helm upgrade stigmer oci://ghcr.io/stigmer/charts/stigmer -n stigmer --reset-then-reuse-values \
   --set runner.llm.existingSecret=stigmer-llm-keys
 ```
 
@@ -162,7 +162,7 @@ sign-in comes first:
    runner is waiting for its key:
 
 ```bash
-helm upgrade stigmer oci://ghcr.io/stigmer/charts/stigmer -n stigmer --reuse-values \
+helm upgrade stigmer oci://ghcr.io/stigmer/charts/stigmer -n stigmer --reset-then-reuse-values \
   --set server.oidc.issuer=https://your-issuer.example.com \
   --set server.oidc.audience=https://stigmer.example.com \
   --set server.oidc.consoleClientId=stigmer-console
@@ -174,7 +174,7 @@ helm upgrade stigmer oci://ghcr.io/stigmer/charts/stigmer -n stigmer --reuse-val
 
 ```bash
 kubectl -n stigmer create secret generic stigmer-runner-token --from-literal=STIGMER_TOKEN=stk_...
-helm upgrade stigmer oci://ghcr.io/stigmer/charts/stigmer -n stigmer --reuse-values \
+helm upgrade stigmer oci://ghcr.io/stigmer/charts/stigmer -n stigmer --reset-then-reuse-values \
   --set runner.stigmerToken.existingSecret=stigmer-runner-token
 ```
 
@@ -254,9 +254,12 @@ delete data, delete the claims yourself.
 Upgrading is `helm upgrade` to the new chart version; the chart version is the
 Stigmer version, and the images move with it. An upgrade with `--reuse-values`
 keeps every value of the release, defaults included, so it does not pick up a
-new chart's new defaults (an image tag, a security context); use
-`--reset-then-reuse-values` to take the new chart's defaults with your own
-values on top. The pod is recreated, not rolled (it owns disks that can only be
+new chart's new defaults (an image tag, a security context), and an upgrade
+that names no `--version` takes the newest chart. Use
+`--reset-then-reuse-values` (Helm 3.14 and later) to take the chart's defaults
+with your own values on top; the upgrades in this README do. The upgrade the
+install notes print names the installed chart's `--version`, so its
+`--reuse-values` keeps the values with the chart they were written for. The pod is recreated, not rolled (it owns disks that can only be
 attached to one node), so there is a short interruption; in-flight agent turns
 resume from their Temporal checkpoints.
 

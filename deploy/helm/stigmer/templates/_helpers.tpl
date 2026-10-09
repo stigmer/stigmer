@@ -79,6 +79,24 @@ app.kubernetes.io/component: {{ .component }}
 {{- end -}}
 {{- end -}}
 
+{{- /* Temporal's host alone: everything before the last colon, an IPv6 literal's brackets dropped. */ -}}
+{{- define "stigmer.temporalHost" -}}
+{{- $hostPort := include "stigmer.temporalHostPort" . -}}
+{{- if contains ":" $hostPort -}}
+{{- join ":" (initial (splitList ":" $hostPort)) | trimPrefix "[" | trimSuffix "]" -}}
+{{- else -}}
+{{- $hostPort -}}
+{{- end -}}
+{{- end -}}
+
+{{- /* Temporal's port alone: everything after the last colon; empty when the address names none. */ -}}
+{{- define "stigmer.temporalPort" -}}
+{{- $hostPort := include "stigmer.temporalHostPort" . -}}
+{{- if contains ":" $hostPort -}}
+{{- last (splitList ":" $hostPort) -}}
+{{- end -}}
+{{- end -}}
+
 {{- define "stigmer.temporalNamespace" -}}
 {{- if .Values.temporal.enabled -}}default{{- else -}}{{ .Values.externalTemporal.namespace }}{{- end -}}
 {{- end -}}
@@ -191,6 +209,9 @@ and an install exposed with sign-in off (stigmer.validateExposure).
 {{- end -}}
 {{- if and (not .Values.temporal.enabled) (not .Values.externalTemporal.hostPort) -}}
 {{- fail "\n\ntemporal.enabled is false but externalTemporal.hostPort is empty. Name the Temporal frontend the server and runner should dial (externalTemporal.hostPort, with externalTemporal.namespace), or leave temporal.enabled true for the bundled one.\n" -}}
+{{- end -}}
+{{- if and (not .Values.temporal.enabled) (not (regexMatch "^(\\[[0-9A-Fa-f:.]+\\]|[^:\\[\\]]+):[0-9]+$" .Values.externalTemporal.hostPort)) -}}
+{{- fail (printf "\n\nexternalTemporal.hostPort '%s' is not host:port. Name the host and the port, such as temporal.internal:7233, with an IPv6 address in brackets ([fd00::1]:7233): the server, the runner and the init container dial exactly that.\n" .Values.externalTemporal.hostPort) -}}
 {{- end -}}
 {{- $ttls := .Values.externalTemporal.tls -}}
 {{- if and .Values.temporal.enabled (or $ttls.enabled .Values.externalTemporal.apiKey.existingSecret) -}}

@@ -27,7 +27,8 @@ image:
   runner:
     # The compose-runner stage of Dockerfile.sandbox: the runner with the
     # CLI baked in (it spawns `stigmer mcp-server` for memory and channel
-    # attachments). Not ghcr.io/stigmer/runner, the cloud sandbox image.
+    # attachments). Not ghcr.io/stigmer/runner, a different image built for
+    # sandboxed execution.
     repository: stigmer-runner
     tag: ""
   # For the two Stigmer images. IfNotPresent: the tags are immutable release
@@ -100,10 +101,10 @@ server:
     # (STIGMER_OIDC_CONSOLE_CLIENT_ID). A public identifier, never a
     # secret. Empty means the console cannot sign in; the server warns.
     consoleClientId: ""
-  # Requests sized for one team; the cloud runs the composition at 2 CPU /
-  # 3Gi limits. Memory is limited so a leak is a restart, not a node; CPU
-  # is requested, not limited, so a burst (a search-index rebuild at boot
-  # on an adopted database) is not throttled.
+  # Requests sized for one team; raise them with your load. Memory is
+  # limited so a leak is a restart, not a node; CPU is requested, not
+  # limited, so a burst (a search-index rebuild at boot on an adopted
+  # database) is not throttled.
   resources:
     requests:
       cpu: 250m
@@ -199,8 +200,9 @@ artifacts:
 
 # How long a SIGTERM'd pod may drain. The runner finishes in-flight
 # activities with no deadline of its own, so this is the only cap: 60 s
-# costs at most a redone turn (Temporal retries from the checkpoint) while
-# the cloud's per-session 600 s would stall every upgrade for ten minutes.
+# costs at most a redone turn (Temporal retries from the checkpoint), while
+# a drain as long as a whole session's turn (600 s) would stall every
+# upgrade for ten minutes.
 terminationGracePeriodSeconds: 60
 
 waitForDependencies:
