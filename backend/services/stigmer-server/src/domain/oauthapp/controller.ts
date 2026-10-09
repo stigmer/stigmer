@@ -1,9 +1,10 @@
 /**
  * OAuthApp controller — ports pkg/domain/oauthapp (command + query sides).
  * OAuthApp is the outbound-auth registration with an external vendor:
- * client credentials plus the vendor's OAuth endpoints, referenced by
- * McpServer resources via McpServerAuth.oauth_app_ref. The outbound
- * counterpart to IdentityProvider (inbound auth).
+ * client credentials plus the vendor's OAuth endpoints, found by the
+ * addresses it signs in to (addresses.ts; a sign-in at one of them uses
+ * it, domain/vault/login-app.ts). The outbound counterpart to
+ * IdentityProvider (inbound auth).
  *
  * Pipeline per RPC mirrors the Go step chains character-for-character.
  * Proven by oauthapp.conformance.test.ts (CONFORMANCE_TARGET=local)
@@ -13,8 +14,9 @@
  * the SAME SecretService instance every secret kind uses, and redacted to ***REDACTED*** on every
  * response, the delete's included; the marker round-trips on update/apply
  * as "keep the stored secret"; client-supplied enc:v<N>:-shaped values are
- * refused on every write door (oss#395). Deletion is blocked while an
- * McpServer's oauth_app_ref resolves to the app (stigmer/stigmer#584).
+ * refused on every write door (oss#395). Each address belongs to one app
+ * per organization: create and update claim theirs before the write, and
+ * delete lets them go.
  *
  * Every chain opens with Authorize; create and delete run the shared
  * tuple-lifecycle steps against the composed lifecycle; getByReference
@@ -97,7 +99,12 @@ import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
 import type { Store } from "../../store/interface.js";
 import {
-  newCheckNoReferencingMcpServersStep,
+  newClaimAddressesStep,
+  newNormalizeAddressesStep,
+  newReleaseAddressesStep,
+  newReleaseDroppedAddressesStep,
+} from "./addresses.js";
+import {
   newEncryptClientSecretForCreateStep,
   newEncryptClientSecretForUpdateStep,
   redactOAuthApp,
@@ -170,7 +177,9 @@ async function createOAuthApp(
       newEncryptClientSecretForCreateStep(deps.secretService, deps.logger),
     )
     .addStep(newBuildNewStateStep())
+    .addStep(newNormalizeAddressesStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
+    .addStep(newClaimAddressesStep(deps.store, "create"))
     .addStep(newPersistStep(deps.store))
     .addStep(
       newCreateAuthorizationTuplesStep(
@@ -213,11 +222,14 @@ async function update(
     .addStep(newResolveSlugStep({ update: true }))
     .addStep(newLoadExistingStep(deps.store))
     .addStep(newBuildUpdateStateStep())
+    .addStep(newNormalizeAddressesStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(
       newEncryptClientSecretForUpdateStep(deps.secretService, deps.logger),
     )
+    .addStep(newClaimAddressesStep(deps.store, "update"))
     .addStep(newPersistStep(deps.store))
+    .addStep(newReleaseDroppedAddressesStep(deps.store, deps.logger))
     .build()
     .execute(reqCtx);
   const result = reqCtx.newState;
@@ -298,8 +310,8 @@ async function deleteOAuthApp(
     )
     .addStep(newValidateProtoStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, OAuthAppSchema))
-    .addStep(newCheckNoReferencingMcpServersStep(deps.store, deps.logger))
     .addStep(newDeleteResourceStep(deps.store))
+    .addStep(newReleaseAddressesStep(deps.store, deps.logger))
     .addStep(
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
     )

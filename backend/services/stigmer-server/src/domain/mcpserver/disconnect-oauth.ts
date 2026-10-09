@@ -1,16 +1,12 @@
 /**
  * disconnectOAuth — tear down the caller's own sign-in for an MCP server:
- * every connection in their My vault in the org that a sign-in to this
- * server saved (sign-in-connection.ts), removed with its access and
- * refresh tokens through the vault's atomic entry write, which destroys
- * their sealed backing state. A pasted login, another server's sign-in at
- * the same address, a sign-in saved into a shared vault (removed through
- * that vault's removeConnections) and other people's logins are
- * untouched. The server row is not read, so a sign-in left at the
- * server's earlier address goes too, and so does one whose server was
- * deleted wherever the can_connect check still passes (trusted local);
- * an enforcing authorizer answers NOT_FOUND for a deleted server first,
- * and My vault's removeConnections removes that sign-in instead.
+ * the connection a sign-in saved at the server's address in their My vault
+ * in the org (sign-in-connection.ts), removed with its access and refresh
+ * tokens through the vault's atomic entry write, which destroys their
+ * sealed backing state. A pasted login at the address, a sign-in saved
+ * into a shared vault (removed through that vault's removeConnections) and
+ * other people's logins are untouched. Once the server is deleted, it has
+ * no address to read: My vault's removeConnections removes the sign-in.
  *
  * Idempotent: no saved sign-in answers disconnected=false without error —
  * race conditions, retries and desired-state semantics all rely on it.
@@ -34,7 +30,7 @@ import { invalidArgumentError } from "../../pipeline/errors.js";
 import { authorizeDirect } from "../../pipeline/steps/authorize.js";
 import { refuseBoundElsewhere } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import type { McpServerConnectDeps } from "./connect.js";
-import { findCallerSignIns } from "./sign-in-connection.js";
+import { findCallerSignIn } from "./sign-in-connection.js";
 
 export async function disconnectOAuth(
   deps: McpServerConnectDeps,
@@ -60,13 +56,13 @@ export async function disconnectOAuth(
     input,
   );
 
-  const { vault, signIns } = await findCallerSignIns(
+  const { vault, address, connection } = await findCallerSignIn(
     deps,
     resourceId,
     org,
     identity,
   );
-  if (vault === undefined || signIns.length === 0) {
+  if (vault === undefined || address === undefined || connection === undefined) {
     deps.logger.debug("No saved sign-in to disconnect", {
       resource_id: resourceId,
       org,
@@ -76,7 +72,7 @@ export async function disconnectOAuth(
 
   const { removed } = await deps.vaults.removeConnections(
     vault.metadata?.id ?? "",
-    signIns.map((signIn) => signIn.address),
+    [address],
     identity,
   );
 

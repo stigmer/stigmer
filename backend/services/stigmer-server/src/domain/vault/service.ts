@@ -38,7 +38,7 @@
  * never overwrites a sign-in made after it read, and it keeps the login's
  * `saved_by`, since a renewal is the same sign-in whoever's run made it. A sign-in written with
  * `keepRefreshToken` and no refresh token keeps the previous sign-in's
- * only when the same person saved it for the same server, client and
+ * only when the same person saved it through the same login app, client and
  * token endpoint (`sameSignInIssuer`): in a shared vault the previous
  * sign-in may be a teammate's, and a refresh token of theirs would renew
  * the login back into their account.
@@ -166,29 +166,6 @@ export function refuseNewConnectionOverCap(vault: Vault, address: string): void 
   }
 }
 
-/**
- * Why a sign-in to `mcpServerId` may not be saved at `address` in a vault
- * holding `connections`, or undefined when it may: the address holds a
- * login that is not a sign-in to the same server (a pasted login, or
- * another server's sign-in at the same URL), which the save would replace
- * without a word. A re-sign-in to the same server replaces its own.
- */
-export function otherLoginAtRefusal(
-  connections: { readonly [address: string]: VaultConnection },
-  address: string,
-  mcpServerId: string,
-): string | undefined {
-  const saved = entryOf(connections, address);
-  if (
-    saved === undefined ||
-    (saved.source === VaultConnectionSource.sign_in && saved.signIn?.mcpServerId === mcpServerId)
-  ) {
-    return undefined;
-  }
-  const what = saved.source === VaultConnectionSource.sign_in ? "another tool's sign-in" : "a pasted login";
-  return `this vault already holds ${what} for ${address}, which this sign-in would replace: remove that login first, then sign in again`;
-}
-
 /** The sign-in record of a connection, in plaintext, as the service takes and opens it. */
 export interface VaultSignIn {
   readonly expiresAt: bigint;
@@ -196,9 +173,8 @@ export interface VaultSignIn {
   readonly authMethod: string;
   readonly tokenEndpoint: string;
   readonly refreshToken: string;
-  readonly mcpServerId: string;
-  /** Whether the sign-in was made for a local program (a stdio server); absent is false. */
-  readonly localProgram?: boolean;
+  /** The login app the sign-in used ("org:<id>", "stigmer:<key>"), "" for a public client. */
+  readonly loginApp: string;
 }
 
 /** A login to save. The service seals the token and the refresh token. */
@@ -216,20 +192,12 @@ export interface VaultConnectionWrite {
   readonly expectStoredToken?: string;
   /**
    * A sign-in arriving without a refresh token keeps the one the previous
-   * sign-in at the address saved, when the same person saved it for the
-   * same server, client and token endpoint (a provider that answers a
-   * repeat sign-in without one leaves the old one valid). Anyone else's,
+   * sign-in at the address saved, when the same person saved it through
+   * the same login app, client and token endpoint (a provider that answers
+   * a repeat sign-in without one leaves the old one valid). Anyone else's,
    * or one issued to another client, is never carried over.
    */
   readonly keepRefreshToken?: boolean;
-  /**
-   * A sign-in to this server (its id): the write lands only while the
-   * address holds nothing or a sign-in to the same server, and is refused
-   * over a pasted login or another server's sign-in (`otherLoginAtRefusal`),
-   * checked inside the atomic write, so one saved after the caller's own
-   * check is never replaced either.
-   */
-  readonly onlyOverSignInOf?: string;
 }
 
 /** A sign-in record without its refresh token: what matching and a run read. */
@@ -683,8 +651,7 @@ export function newVaultService(deps: VaultServiceDeps): VaultService {
             authMethod: write.signIn.authMethod,
             tokenEndpoint: write.signIn.tokenEndpoint,
             refreshToken: await seal(write.signIn.refreshToken, org),
-            mcpServerId: write.signIn.mcpServerId,
-            localProgram: write.signIn.localProgram === true,
+            loginApp: write.signIn.loginApp,
           });
     let unchanged: Vault | undefined;
     try {
@@ -697,12 +664,6 @@ export function newVaultService(deps: VaultServiceDeps): VaultService {
         ) {
           unchanged = vault;
           throw new StoredTokenMoved();
-        }
-        if (write.onlyOverSignInOf !== undefined) {
-          const refusal = otherLoginAtRefusal(spec.connections, normalized, write.onlyOverSignInOf);
-          if (refusal !== undefined) {
-            throw failedPreconditionError(refusal);
-          }
         }
         if (previous === undefined) {
           refuseOverCap(vault, 1);
@@ -865,8 +826,7 @@ export function newVaultService(deps: VaultServiceDeps): VaultService {
               clientId: signIn.clientId,
               authMethod: signIn.authMethod,
               tokenEndpoint: signIn.tokenEndpoint,
-              mcpServerId: signIn.mcpServerId,
-              localProgram: signIn.localProgram,
+              loginApp: signIn.loginApp,
             };
       connections.set(address, {
         address,
@@ -928,13 +888,13 @@ export function once<T>(load: () => Promise<T>): () => Promise<T> {
 }
 
 /**
- * Whether a saved connection is a sign-in by the same person, for the same
- * server, client and token endpoint as a new one: the only previous
+ * Whether a saved connection is a sign-in by the same person, through the
+ * same login app, client and token endpoint as a new one: the only previous
  * sign-in whose refresh token a new sign-in may keep.
  */
 function sameSignInIssuer(
   previous: VaultConnection,
-  next: { readonly clientId: string; readonly tokenEndpoint: string; readonly mcpServerId: string },
+  next: { readonly clientId: string; readonly tokenEndpoint: string; readonly loginApp: string },
   person: string,
 ): boolean {
   const saved = previous.signIn;
@@ -943,7 +903,7 @@ function sameSignInIssuer(
     saved !== undefined &&
     person !== "" &&
     previous.savedBy === person &&
-    saved.mcpServerId === next.mcpServerId &&
+    saved.loginApp === next.loginApp &&
     saved.clientId === next.clientId &&
     saved.tokenEndpoint === next.tokenEndpoint
   );

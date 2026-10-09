@@ -152,9 +152,11 @@ export const SCHEMA_VERSION_21 = 21;
 export const SCHEMA_VERSION_22 = 22;
 /** v23: a conversation's retired own secrets and connections dropped from every session row. */
 export const SCHEMA_VERSION_23 = 23;
+/** v24: a sign-in starts from an address: its pending state reshaped, registered clients kept, Connect links. */
+export const SCHEMA_VERSION_24 = 24;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_23;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_24;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -202,6 +204,7 @@ export function runMigrations(
     [SCHEMA_VERSION_21, migrateToV21],
     [SCHEMA_VERSION_22, migrateToV22],
     [SCHEMA_VERSION_23, migrateToV23],
+    [SCHEMA_VERSION_24, migrateToV24],
   ];
 
   for (const [version, migrate] of chain) {
@@ -1247,4 +1250,64 @@ function migrateToV23(db: DatabaseSync): void {
     }
     after = rows[rows.length - 1]!.id;
   }
+}
+
+/**
+ * v24: a sign-in starts from an address and saves into a vault, so its
+ * pending state no longer names an MCP server; Stigmer keeps the clients it
+ * registered with a login server; and a Connect link is a row. The pending
+ * table holds ten-minute rows only, so it is dropped and created in its new
+ * shape rather than altered: a sign-in in flight across the upgrade is
+ * started again. The Postgres driver's v19 in this engine's terms. Runs
+ * inside applyInTransaction's BEGIN.
+ */
+function migrateToV24(db: DatabaseSync): void {
+  db.exec(`
+    DROP TABLE pending_oauth_state;
+
+    CREATE TABLE pending_oauth_state (
+      state               TEXT PRIMARY KEY,
+      code_verifier       TEXT NOT NULL,
+      client_id           TEXT NOT NULL DEFAULT '',
+      client_secret       TEXT NOT NULL DEFAULT '',
+      token_endpoint      TEXT NOT NULL DEFAULT '',
+      identity_account_id TEXT NOT NULL DEFAULT '',
+      auth_method         TEXT NOT NULL DEFAULT '',
+      token_auth_method   TEXT NOT NULL DEFAULT '',
+      redirect_uri        TEXT NOT NULL DEFAULT '',
+      org                 TEXT NOT NULL DEFAULT '',
+      vault_id            TEXT NOT NULL DEFAULT '',
+      address             TEXT NOT NULL DEFAULT '',
+      login_app           TEXT NOT NULL DEFAULT '',
+      resource            TEXT NOT NULL DEFAULT '',
+      client_registration TEXT NOT NULL DEFAULT '',
+      connect_link        TEXT NOT NULL DEFAULT '',
+      provider_name       TEXT NOT NULL DEFAULT '',
+      userinfo_url        TEXT NOT NULL DEFAULT '',
+      created_at          INTEGER NOT NULL
+    );
+
+    CREATE TABLE oauth_client_registration (
+      login_server TEXT NOT NULL,
+      redirect_uri TEXT NOT NULL,
+      client_id    TEXT NOT NULL,
+      created_at   TEXT NOT NULL,
+      PRIMARY KEY (login_server, redirect_uri)
+    ) WITHOUT ROWID;
+
+    CREATE TABLE connect_link (
+      token_hash TEXT PRIMARY KEY,
+      org        TEXT NOT NULL,
+      vault_id   TEXT NOT NULL,
+      address    TEXT NOT NULL,
+      return_url TEXT NOT NULL,
+      created_by TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL,
+      used_at    INTEGER NOT NULL DEFAULT 0
+    ) WITHOUT ROWID;
+
+    CREATE INDEX idx_connect_link_vault ON connect_link (vault_id);
+    CREATE INDEX idx_connect_link_org ON connect_link (org);
+  `);
 }

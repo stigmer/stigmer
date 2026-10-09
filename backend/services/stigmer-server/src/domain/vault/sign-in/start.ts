@@ -1,176 +1,209 @@
 /**
- * initiateOAuthConnect — ports
- * pkg/domain/mcpserver/controller/initiate_oauth_connect.go: start the
- * OAuth authorization flow for an MCP server. For DCR servers (no
- * oauth_app_ref): discover the authorization server, register a client
- * via RFC 7591, generate PKCE, pre-flight the authorize endpoint, return
- * the auth URL. For vendor OAuth servers: load the OAuthApp for client
- * credentials and build the auth URL from its endpoints.
+ * Starting a sign-in at an address: the one start every door shares (a
+ * person's `startSignIn` on the vault, a Connect link's
+ * `startConnectLink`). The door authorizes; this finds the client, builds
+ * the login page's URL and records the pending state.
  *
- * The sign-in is the caller's: the pending state records who started it
- * (a caller with no identity cannot start one), which vault it saves into
- * (`vault_id`, empty for the caller's own My vault, which needs
- * can_create_vault on the organization; a named vault must be one of the
- * request's organization the caller may edit) and the server's
- * address as it stands now, and completeOAuthConnect saves the login there
- * as a connection at that address, refusing a server whose address has
- * changed since. A server with no address (a local program with no
- * auth.discovery_url, or an HTTP server whose URL holds a ${VAR}
- * placeholder) has nowhere to save one and is refused before any round
- * trip: no discovery, client registration or pre-flight reaches the
- * vendor for a sign-in that could not be kept.
+ * The client comes from one order (login-app.ts, client.ts):
  *
- * Proven by mcpserver-oauth.conformance.test.ts
- * (CONFORMANCE_TARGET=local), __tests__/oauth-handshake.test.ts,
- * __tests__/sign-in-vault.test.ts and __tests__/store-faults.test.ts.
+ *   1. the organization's own login app for the address;
+ *   2. Stigmer's own login app for it (the catalog, switched on by
+ *      settings);
+ *   3. for a tool's URL only, the address's own login server, found by the
+ *      RFC 9728 walk from the address: a Client ID Metadata Document where
+ *      the login server takes one and the deployment is public, else a
+ *      client registered once per login server;
+ *   4. otherwise a refusal naming the address: "add a login app for it, or
+ *      paste a token". A Git host (a bare host such as github.com) is no
+ *      protected resource and stops at 2.
+ *
+ * A request to a login server found in step 3 carries `resource` (RFC
+ * 8707): the MCP Authorization specification requires it, and a login
+ * server that honours it mints a token for that address only, so a server
+ * whose metadata names someone else's login server cannot obtain a token
+ * minted for that someone. A login app's vendor endpoint is not asked for
+ * it: those are not MCP login servers and may refuse an unknown parameter.
+ * The scopes asked are the address's own `scopes_supported`, else the login
+ * server's, else none; through an app, the app's.
+ *
+ * The login page sends the person back to a redirect the server builds
+ * from the caller's choice (`signInRedirectUri`), never a URL the caller
+ * writes: the console's callback, the same with the desktop bridge, or the
+ * desktop's own page on a loopback port (RFC 8252 section 7.3).
+ *
+ * For a client registered with the login server, the authorize URL is
+ * probed before the person is sent there (preflight.ts): a login server
+ * that refuses the client outright (one it has forgotten) is given a new
+ * registration once, and one that still refuses is reported here instead of
+ * on a vendor error page inside the popup.
+ *
+ * Every outbound request goes through the deployment's egress guard
+ * (`fetchImpl`), which matters because any member may name any address.
+ * The handshake's secrets rest sealed (`sealPendingOAuthState`).
+ *
+ * Proven by __tests__/start.test.ts, __tests__/client.test.ts and the
+ * sign-in conformance suite.
  */
-import { create } from "@bufbuild/protobuf";
-import { Code, ConnectError } from "@connectrpc/connect";
 import { randomBytes } from "node:crypto";
 
-import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import type { Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
-import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
-import type {
-  InitiateOAuthConnectInput,
-  InitiateOAuthConnectOutput,
-} from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
-import { InitiateOAuthConnectOutputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import {
-  TokenEndpointAuthMethod,
-  VendorApprovalStatus,
-} from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
-import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import type { OutboundFetch } from "@stigmer/outbound/egress";
 
-import type { Logger } from "../../boot/logger.js";
-import type { SecretService } from "../../encryption/encryption.js";
-import { EncryptionScope } from "../../encryption/encryption.js";
-import type { CallerIdentity } from "../../extensions/identity.js";
+import { CONSOLE_OAUTH_CALLBACK_PATH } from "../../../boot/oauth-redirect-uri.js";
+import type { Logger } from "../../../boot/logger.js";
+import type { SecretService } from "../../../encryption/encryption.js";
+import { EncryptionScope } from "../../../encryption/encryption.js";
 import {
   failedPreconditionError,
   internalError,
   invalidArgumentError,
-  notFoundError,
-} from "../../pipeline/errors.js";
+} from "../../../pipeline/errors.js";
+import type {
+  OAuthClientRegistrationStore,
+  PendingOAuthState,
+  PendingOAuthStateStore,
+  Store,
+} from "../../../store/interface.js";
+import { InvalidAddressError, isGitHostAddress, normalizeAddress } from "../address.js";
+import { findLoginApp } from "../login-app.js";
+import type { AppLogin } from "../login-app.js";
+import type { LoginProviderSettings } from "../login-providers.js";
 import {
-  authorizeDirect,
-  authorizeResolvedResource,
-} from "../../pipeline/steps/authorize.js";
-import { refuseBoundElsewhere } from "../../pipeline/steps/refuse-bound-elsewhere.js";
-import type { PendingOAuthState } from "../../store/interface.js";
-import { ResourceNotFoundError } from "../../store/interface.js";
-import { resolveOAuthAppRef } from "../oauthapp/refresolution.js";
-import { toolAddressOf } from "../vault/address.js";
-import type { McpServerConnectDeps } from "./connect.js";
-import { tokenAuthMethodFromSpec } from "./oauth/refresh.js";
-import { generatePkce } from "./oauth/pkce.js";
-import type { PkcePair } from "./oauth/pkce.js";
-import { discoverAtIssuer, discoverForResource } from "./oauth/discovery.js";
-import { registerClient } from "./oauth/dcr.js";
-import { preflightAuthorize } from "./oauth/preflight.js";
-import type { AuthorizeRejection } from "./oauth/preflight.js";
+  NoSignInClientError,
+  canObtainClient,
+  obtainClient,
+  replaceClient,
+} from "./client.js";
+import type { SignInClient } from "./client.js";
+import { discoverForResource } from "./discovery.js";
+import type { DiscoveredLoginServer } from "./discovery.js";
+import { generatePkce } from "./pkce.js";
+import type { PkcePair } from "./pkce.js";
+import { preflightAuthorize } from "./preflight.js";
+import type { AuthorizeRejection } from "./preflight.js";
 
-export async function initiateOAuthConnect(
-  deps: McpServerConnectDeps,
-  input: InitiateOAuthConnectInput,
-  identity: CallerIdentity,
-): Promise<InitiateOAuthConnectOutput> {
-  if (deps.oauthRedirectUri === "") {
+/** What a sign-in needs from the composition. */
+export interface SignInDeps {
+  readonly store: Store;
+  readonly logger: Logger;
+  readonly secretService: SecretService;
+  readonly pendingOAuthStates: PendingOAuthStateStore;
+  readonly clientRegistrations: OAuthClientRegistrationStore;
+  /** Stigmer's own login apps switched on. */
+  readonly loginProviders: LoginProviderSettings;
+  /** The console's callback page; "" when the deployment has none (only a loopback sign-in can start then). */
+  readonly oauthRedirectUri: string;
+  /** Stigmer's Client ID Metadata Document URL; "" when the deployment has no public https origin. */
+  readonly clientDocumentUrl: string;
+  /** The egress-guarded fetch every login server is dialled with. */
+  readonly outboundFetch: OutboundFetch;
+}
+
+/** Where the login page sends the person back to. */
+export type SignInReturn =
+  | { readonly kind: "web" }
+  | { readonly kind: "desktop" }
+  | { readonly kind: "loopback"; readonly port: number };
+
+/** One sign-in to start: who it is for and where it saves. */
+export interface SignInStart {
+  readonly org: string;
+  /** The vault it saves into; "" for the signer's My vault. */
+  readonly vaultId: string;
+  /** The address as the caller gave it; normalized here. */
+  readonly address: string;
+  readonly returnTo: SignInReturn;
+  /** The signer; "" for a Connect link's sign-in, which has none. */
+  readonly signer: string;
+  /** The Connect link's SHA-256; "" for a person's sign-in. */
+  readonly connectLink: string;
+}
+
+/** The login page to send the person to. */
+export interface StartedSignIn {
+  readonly authorizationUrl: string;
+  readonly state: string;
+  readonly providerName: string;
+  readonly scopes: readonly string[];
+  /** The normalized address the login will be saved at. */
+  readonly address: string;
+}
+
+/** The query parameter the console's callback page reads to hand a sign-in on to the desktop app. */
+export const DESKTOP_RETURN_PARAM = "source";
+const DESKTOP_RETURN_VALUE = "desktop";
+
+/**
+ * The redirect URI for a return choice. The web and desktop forms need the
+ * deployment's callback page; the loopback form is the desktop's own page
+ * on this machine.
+ */
+export function signInRedirectUri(oauthRedirectUri: string, returnTo: SignInReturn): string {
+  if (returnTo.kind === "loopback") {
+    return `http://127.0.0.1:${returnTo.port}${CONSOLE_OAUTH_CALLBACK_PATH}`;
+  }
+  if (oauthRedirectUri === "") {
     throw failedPreconditionError(
-      "OAuth Connect is not configured: STIGMER_OAUTH_REDIRECT_URI is not set",
+      "sign-in is not configured: STIGMER_OAUTH_REDIRECT_URI is not set",
     );
   }
-
-  const mcpServerId = input.mcpServerId;
-  if (mcpServerId === "") {
-    throw invalidArgumentError("mcp_server_id is required");
+  if (returnTo.kind === "desktop") {
+    const separator = oauthRedirectUri.includes("?") ? "&" : "?";
+    return `${oauthRedirectUri}${separator}${DESKTOP_RETURN_PARAM}=${DESKTOP_RETURN_VALUE}`;
   }
-  // The pending state names its signer, and completion admits only that
-  // caller: a state recorded with no signer would be nobody's to finish.
-  if (identity.identityId === "") {
-    throw new ConnectError(
-      "a sign-in is saved for a signed-in caller: sign in to Stigmer first",
-      Code.Unauthenticated,
-    );
-  }
+  return oauthRedirectUri;
+}
 
-  let mcpServer: McpServer;
+/** The normalized address, or INVALID_ARGUMENT with the rule. */
+export function signInAddress(input: string): string {
   try {
-    mcpServer = await deps.store.getResource(
-      ApiResourceKind.mcp_server,
-      mcpServerId,
-      McpServerSchema,
-    );
+    return normalizeAddress(input);
   } catch (error) {
-    if (error instanceof ResourceNotFoundError) {
-      throw notFoundError("mcp_server", mcpServerId);
+    if (error instanceof InvalidAddressError) {
+      throw invalidArgumentError(error.message);
     }
-    throw internalError(error, "failed to load mcp server");
+    throw error;
   }
+}
 
-  // The annotation's can_connect check AFTER the load — the Java
-  // McpServerInitiateOAuthConnectHandler order (load-before-authorize,
-  // stigmer#224).
-  await authorizeDirect(
-    McpServerCommandController.method.initiateOAuthConnect,
-    deps.authorizer,
-    identity,
-    input,
+/** The refusal for an address nothing can sign in to, with what helps. */
+export function noLoginRefusal(address: string, why: string): Error {
+  return failedPreconditionError(
+    `nothing can sign in to ${address}${why === "" ? "" : `: ${why}`}. Add a login app for ${address} in Settings, or paste a token`,
   );
-  // The grant is the caller's in this organization: a credential bound to
-  // another may not open one here.
-  refuseBoundElsewhere(identity, input.org);
+}
 
-  const auth = mcpServer.spec?.auth;
-  if (auth === undefined) {
-    throw failedPreconditionError(
-      `MCP server '${mcpServerId}' does not have an auth block configured`,
-    );
-  }
-  await authorizeSignInVault(deps, input.org, input.vaultId, identity);
+/** Starts a sign-in: finds its client, records the pending state, answers the login page. */
+export async function startSignIn(deps: SignInDeps, start: SignInStart): Promise<StartedSignIn> {
+  const address = signInAddress(start.address);
+  const redirectUri = signInRedirectUri(deps.oauthRedirectUri, start.returnTo);
+  const pkce = generatePkce();
+  const state = generateState();
 
-  const oauthAppRef = auth.oauthAppRef;
-  const isDcr = oauthAppRef === undefined || oauthAppRef.slug === "";
-  // The login is saved at the server's address, so a server with none
-  // cannot keep it. Every refusal comes before the one round trip a
-  // sign-in makes here (DCR's discovery and registration): a DCR server
-  // with no URL at all says so first, then one with no address. The vendor
-  // arm makes no round trip, and its app's own refusals come first.
-  const discovery = isDcr ? dcrDiscoveryTarget(mcpServer) : undefined;
-  const toolAddress = toolAddressOf(mcpServer);
-  if (discovery !== undefined && toolAddress === undefined) {
-    throw noAddressRefusal(mcpServer);
-  }
+  const app = await findLoginApp(deps, start.org, address);
+  const planned =
+    app !== undefined
+      ? throughApp(app, redirectUri, pkce, state)
+      : await throughLoginServer(deps, address, redirectUri, pkce, state);
 
-  const pkcePair = generatePkce();
-  const stateParam = generateState();
-
-  const result =
-    discovery !== undefined
-      ? await initiateDcr(deps, mcpServer, discovery, pkcePair, stateParam)
-      : await initiateVendorOAuth(deps, mcpServer, pkcePair, stateParam);
-  if (toolAddress === undefined) {
-    throw noAddressRefusal(mcpServer);
-  }
-  const authMethod = isDcr ? "mcp_oauth" : "vendor_oauth";
-
-  const pendingState: PendingOAuthState = {
-    state: stateParam,
-    codeVerifier: pkcePair.codeVerifier,
-    clientId: result.clientId,
-    clientSecret: result.clientSecret,
-    tokenEndpoint: result.tokenEndpoint,
-    mcpServerId,
-    identityAccountId: identity.identityId,
-    vaultId: input.vaultId,
-    toolAddress,
-    targetEnvVar: auth.targetEnvVar,
-    authMethod,
-    tokenAuthMethod: result.tokenAuthMethod,
-    redirectUri: deps.oauthRedirectUri,
-    org: input.org,
+  const pending: PendingOAuthState = {
+    state,
+    codeVerifier: pkce.codeVerifier,
+    clientId: planned.clientId,
+    clientSecret: planned.clientSecret,
+    tokenEndpoint: planned.tokenEndpoint,
+    identityAccountId: start.signer,
+    authMethod: app !== undefined ? "vendor_oauth" : "mcp_oauth",
+    tokenAuthMethod: planned.tokenAuthMethod,
+    redirectUri,
+    org: start.org,
+    vaultId: start.vaultId,
+    address,
+    loginApp: app?.ref ?? "",
+    resource: planned.resource,
+    clientRegistration: planned.registration,
+    connectLink: start.connectLink,
+    providerName: planned.providerName,
+    userinfoUrl: planned.userinfoUrl,
     createdAt: 0,
   };
 
@@ -178,339 +211,219 @@ export async function initiateOAuthConnect(
   // reaches the store.
   let sealed: PendingOAuthState;
   try {
-    sealed = await sealPendingOAuthState(
-      deps.secretService,
-      deps.logger,
-      pendingState,
-    );
+    sealed = await sealPendingOAuthState(deps.secretService, deps.logger, pending);
   } catch (error) {
     throw internalError(error, "failed to encrypt OAuth handshake secrets");
   }
-
   try {
     await deps.pendingOAuthStates.save(sealed);
   } catch (error) {
     throw internalError(error, "failed to save pending OAuth state");
   }
 
-  deps.logger.info("Initiated OAuth Connect flow", {
-    mcp_server_id: mcpServerId,
-    auth_method: authMethod,
-    provider: result.providerName,
+  deps.logger.info("Sign-in started", {
+    address,
+    login_app: pending.loginApp === "" ? "login server" : pending.loginApp,
+    connect_link: start.connectLink !== "",
   });
-
-  return create(InitiateOAuthConnectOutputSchema, {
-    authorizationUrl: result.authorizationUrl,
-    state: stateParam,
-    scopes: result.scopes,
-    providerName: result.providerName,
-  });
+  return {
+    authorizationUrl: planned.authorizationUrl,
+    state,
+    providerName: planned.providerName,
+    scopes: planned.scopes,
+    address,
+  };
 }
 
 /**
- * The vault a sign-in saves into must be one the caller may change: their
- * own My vault (empty id; created on the first save), or a vault of the
- * request's organization they hold can_edit on. Asked at initiate and
- * again at complete, since a grant can be revoked in between. A vault of
- * another organization answers NOT_FOUND, as a missing one does. Answers
- * the shared vault it checked, or undefined for My vault.
+ * Whether anything can sign in at an address, asked without registering a
+ * client or recording a state: a login app for it, or (for a tool's URL)
+ * a login server it leads to that can give Stigmer a client. A Connect
+ * link is refused at creation without one, so it never sends a customer
+ * to a dead end.
  */
-export async function authorizeSignInVault(
-  deps: McpServerConnectDeps,
+export async function signInAvailable(
+  deps: SignInDeps,
   org: string,
-  vaultId: string,
-  identity: CallerIdentity,
-): Promise<Vault | undefined> {
-  if (vaultId === "") {
-    await authorizeResolvedResource(
-      deps.authorizer,
-      identity,
-      {
-        permission: IamPermission.can_create_vault,
-        resourceKind: ApiResourceKind.organization,
-        resourceId: org,
-      },
-      "unauthorized to keep a My vault in this organization: only its members do",
-    );
-    return undefined;
+  address: string,
+): Promise<{ readonly available: true; readonly providerName: string } | { readonly available: false; readonly why: string }> {
+  const app = await findLoginApp(deps, org, address);
+  if (app !== undefined) {
+    return app.unavailable === undefined
+      ? { available: true, providerName: app.providerName }
+      : { available: false, why: app.unavailable };
   }
-  const vault = await deps.vaults.findById(vaultId);
-  if (vault === undefined || (vault.metadata?.org ?? "") !== org) {
-    throw notFoundError("vault", vaultId);
+  if (isGitHostAddress(address)) {
+    return { available: false, why: "no login app serves this Git host" };
   }
-  await authorizeResolvedResource(
-    deps.authorizer,
-    identity,
-    {
-      permission: IamPermission.can_edit,
-      resourceKind: ApiResourceKind.vault,
-      resourceId: vaultId,
-    },
-    "unauthorized to save a sign-in in this vault",
-  );
-  return vault;
+  let discovered: DiscoveredLoginServer;
+  try {
+    discovered = await discoverForResource(address, deps.outboundFetch);
+  } catch (error) {
+    return { available: false, why: error instanceof Error ? error.message : String(error) };
+  }
+  return canObtainClient(discovered.metadata, deps.clientDocumentUrl)
+    ? { available: true, providerName: hostOf(address) }
+    : { available: false, why: "its login server does not allow automatic client registration" };
 }
 
-interface InitiateResult {
+/** The pieces of a sign-in its client decides. */
+interface PlannedSignIn {
   readonly authorizationUrl: string;
   readonly providerName: string;
-  readonly scopes: string[];
+  readonly scopes: readonly string[];
   readonly clientId: string;
   readonly clientSecret: string;
   readonly tokenEndpoint: string;
-  /** RFC 8414 string; set on the vendor OAuth arm only. */
   readonly tokenAuthMethod: string;
+  readonly resource: string;
+  readonly registration: string;
+  readonly userinfoUrl: string;
 }
 
-/**
- * The refusal for a server with no address to save a sign-in at, saying
- * why: an HTTP server's URL that names no fixed address (a ${VAR}
- * placeholder in it), or a local program with no auth.discovery_url.
- */
-function noAddressRefusal(mcpServer: McpServer): ConnectError {
-  const id = mcpServer.metadata?.id ?? "";
-  const serverType = mcpServer.spec?.serverType;
-  if (serverType?.case === "http") {
-    const why = serverType.value.url.includes("${")
-      ? "its URL holds a ${VAR} placeholder, so it names no fixed address"
-      : "its URL is not a fixed http or https URL";
-    return failedPreconditionError(
-      `MCP server '${id}' has no address to save a sign-in at: ${why}. Give the server a fixed URL to sign in to it`,
-    );
+function throughApp(app: AppLogin, redirectUri: string, pkce: PkcePair, state: string): PlannedSignIn {
+  if (app.unavailable !== undefined) {
+    throw failedPreconditionError(app.unavailable);
   }
-  return failedPreconditionError(
-    `MCP server '${id}' has no address to save a sign-in at: a local program needs ` +
-      "auth.discovery_url (its login server's URL)",
-  );
+  return {
+    authorizationUrl: buildAuthorizationUrl(
+      app.authorizationUrl,
+      app.clientId,
+      redirectUri,
+      pkce.codeChallenge,
+      state,
+      app.scopes,
+      app.scopeParameterName,
+    ),
+    providerName: app.providerName,
+    scopes: app.scopes,
+    clientId: app.clientId,
+    clientSecret: app.clientSecret,
+    tokenEndpoint: app.tokenUrl,
+    tokenAuthMethod: app.tokenAuthMethod,
+    resource: "",
+    registration: "",
+    userinfoUrl: app.userinfoUrl,
+  };
 }
 
-/** Where DCR discovers the login server: the URLs it reads, and the one it names. */
-interface DcrDiscoveryTarget {
-  readonly discoveryUrl: string;
-  readonly resourceUrl: string;
-  readonly serverUrl: string;
-}
-
-/**
- * Resolves the URL for OAuth authorization server discovery, refusing a
- * server with none. Priority: auth.discovery_url > http.url —
- * discovery_url is the author naming the login server itself (and the
- * only route for a stdio server, which has no HTTP URL) and is read as an
- * issuer; http.url is the protected resource, whose login server the RFC
- * 9728 walk finds (oauth/discovery.ts).
- */
-function dcrDiscoveryTarget(mcpServer: McpServer): DcrDiscoveryTarget {
-  const discoveryUrl = mcpServer.spec?.auth?.discoveryUrl ?? "";
-  const serverType = mcpServer.spec?.serverType;
-  const resourceUrl = serverType?.case === "http" ? serverType.value.url : "";
-  const serverUrl = discoveryUrl !== "" ? discoveryUrl : resourceUrl;
-  if (serverUrl === "") {
-    throw failedPreconditionError(
-      `DCR requires a discoverable URL. MCP server '${mcpServer.metadata?.id ?? ""}' has no http.url and no auth.discovery_url. ` +
-        "Set auth.discovery_url for stdio servers, oauth_app_ref for vendor OAuth, or switch to HTTP transport",
-    );
+async function throughLoginServer(
+  deps: SignInDeps,
+  address: string,
+  redirectUri: string,
+  pkce: PkcePair,
+  state: string,
+): Promise<PlannedSignIn> {
+  if (isGitHostAddress(address)) {
+    throw noLoginRefusal(address, "no login app serves this Git host");
   }
-  return { discoveryUrl, resourceUrl, serverUrl };
-}
-
-async function initiateDcr(
-  deps: McpServerConnectDeps,
-  mcpServer: McpServer,
-  target: DcrDiscoveryTarget,
-  pkcePair: PkcePair,
-  stateParam: string,
-): Promise<InitiateResult> {
-  const { discoveryUrl, resourceUrl, serverUrl } = target;
-
-  let metadata;
+  let discovered: DiscoveredLoginServer;
   try {
-    metadata =
-      discoveryUrl !== ""
-        ? await discoverAtIssuer(discoveryUrl, deps.outboundFetch)
-        : await discoverForResource(resourceUrl, deps.outboundFetch);
+    discovered = await discoverForResource(address, deps.outboundFetch);
   } catch (error) {
-    throw failedPreconditionError(
-      `OAuth authorization server discovery failed for ${serverUrl}: ${error instanceof Error ? error.message : String(error)}`,
-    );
+    throw noLoginRefusal(address, error instanceof Error ? error.message : String(error));
   }
+  const { metadata, resourceScopes } = discovered;
+  const scopes = resourceScopes.length > 0 ? resourceScopes : metadata.scopesSupported;
+  const clientDeps = {
+    registrations: deps.clientRegistrations,
+    fetchImpl: deps.outboundFetch,
+    clientDocumentUrl: deps.clientDocumentUrl,
+  };
+  const providerName = hostOf(address);
 
-  if (metadata.registrationEndpoint === "") {
-    // A login server without RFC 7591 registration cannot take a client
-    // Stigmer mints on the spot; the sentence keeps its opening (the
-    // conformance suite's pin before this clause joined it) and tells the
-    // user the one thing that helps: an OAuth app registered with the
-    // vendor, referenced from the server's definition.
-    throw failedPreconditionError(
-      `MCP server at ${serverUrl} does not advertise a registration_endpoint for DCR: ` +
-        `${loginServerHost(metadata, serverUrl)} does not allow automatic client registration, so this server needs ` +
-        "an OAuth app registered with the vendor and referenced from its definition (auth.oauth_app_ref)",
-    );
-  }
-
-  const clientName = `Stigmer (${mcpServer.metadata?.name ?? ""})`;
-  let dcrResponse;
+  let client: SignInClient;
   try {
-    dcrResponse = await registerClient(
-      metadata.registrationEndpoint,
-      deps.oauthRedirectUri,
-      clientName,
-      deps.outboundFetch,
-    );
+    client = await obtainClient(clientDeps, metadata, redirectUri);
   } catch (error) {
-    throw failedPreconditionError(
-      `DCR registration failed: ${error instanceof Error ? error.message : String(error)}`,
+    throw clientRefusal(address, error);
+  }
+  const urlFor = (clientId: string): string =>
+    buildAuthorizationUrl(
+      metadata.authorizationEndpoint,
+      clientId,
+      redirectUri,
+      pkce.codeChallenge,
+      state,
+      scopes,
+      "scope",
+      address,
     );
-  }
 
-  let scopes = mcpServer.spec?.auth?.scopeHints ?? [];
-  if (scopes.length === 0 && metadata.scopesSupported.length > 0) {
-    scopes = metadata.scopesSupported;
-  }
-
-  const authUrl = buildAuthorizationUrl(
-    metadata.authorizationEndpoint,
-    dcrResponse.clientId,
-    deps.oauthRedirectUri,
-    pkcePair.codeChallenge,
-    stateParam,
-    scopes,
-    "scope",
-  );
-
-  // Some providers accept DCR for any redirect URI but enforce a
-  // redirect-host allowlist at the authorization endpoint; without this
-  // pre-flight the rejection would surface only as a vendor error page
-  // inside the popup, which never redirects back (stigmer/stigmer#235).
-  // Fail-open by contract: only a definite rejection blocks initiate.
-  let rejection: AuthorizeRejection | undefined;
-  try {
-    rejection = await preflightAuthorize(authUrl, deps.outboundFetch);
-  } catch (probeError) {
-    deps.logger.debug("authorize pre-flight probe inconclusive; proceeding", {
-      mcp_server_id: mcpServer.metadata?.id ?? "",
-      error:
-        probeError instanceof Error ? probeError.message : String(probeError),
-    });
+  let authorizationUrl = urlFor(client.clientId);
+  let rejection = await preflight(deps, authorizationUrl, address);
+  if (rejection !== undefined && client.registration !== "" && !client.fresh) {
+    // A kept client the login server refuses outright is one it has
+    // forgotten: register a new one, once.
+    deps.logger.info("The login server refused a kept client; registering a new one", { address });
+    try {
+      client = await replaceClient(clientDeps, metadata, redirectUri, client);
+    } catch (error) {
+      throw clientRefusal(address, error);
+    }
+    authorizationUrl = urlFor(client.clientId);
+    rejection = await preflight(deps, authorizationUrl, address);
   }
   if (rejection !== undefined) {
-    deps.logger.warn(
-      "authorization endpoint rejected the sign-in request pre-flight",
-      {
-        status_code: rejection.statusCode,
-        mcp_server_id: mcpServer.metadata?.id ?? "",
-        body_snippet: rejection.bodySnippet,
-      },
-    );
-    throw failedPreconditionError(
-      dcrRejectionMessage(
-        mcpServer.metadata?.name ?? "",
-        deps.oauthRedirectUri,
-        rejection,
-      ),
-    );
+    deps.logger.warn("authorization endpoint rejected the sign-in request pre-flight", {
+      status_code: rejection.statusCode,
+      address,
+      body_snippet: rejection.bodySnippet,
+    });
+    throw failedPreconditionError(dcrRejectionMessage(providerName, redirectUri, rejection));
   }
 
   return {
-    authorizationUrl: authUrl,
-    providerName: mcpServer.metadata?.name ?? "",
+    authorizationUrl,
+    providerName,
     scopes,
-    clientId: dcrResponse.clientId,
+    clientId: client.clientId,
     clientSecret: "",
     tokenEndpoint: metadata.tokenEndpoint,
     tokenAuthMethod: "",
+    resource: address,
+    registration: client.registration,
+    userinfoUrl: "",
   };
 }
 
-/** The login server a user must register with: its metadata's issuer, else its authorization endpoint, else the URL we asked. */
-function loginServerHost(metadata: { issuer: string; authorizationEndpoint: string }, serverUrl: string): string {
-  for (const candidate of [metadata.issuer, metadata.authorizationEndpoint, serverUrl]) {
-    try {
-      const host = new URL(candidate).host;
-      if (host !== "") return host;
-    } catch {
-      // Not a URL; try the next candidate.
-    }
+function clientRefusal(address: string, error: unknown): Error {
+  if (error instanceof NoSignInClientError) {
+    return noLoginRefusal(address, error.message);
   }
-  return serverUrl;
-}
-
-async function initiateVendorOAuth(
-  deps: McpServerConnectDeps,
-  mcpServer: McpServer,
-  pkcePair: PkcePair,
-  stateParam: string,
-): Promise<InitiateResult> {
-  const ref = mcpServer.spec?.auth?.oauthAppRef;
-
-  let oauthApp;
-  try {
-    oauthApp = await resolveOAuthAppRef(deps.store, ref, deps.logger);
-  } catch (error) {
-    throw internalError(error, "failed to list oauth apps");
-  }
-  if (oauthApp === undefined) {
-    throw notFoundError("oauth_app", ref?.slug ?? "");
-  }
-
-  const approvalStatus = oauthApp.spec?.vendorApprovalStatus;
-  if (
-    approvalStatus === VendorApprovalStatus.PENDING ||
-    approvalStatus === VendorApprovalStatus.REJECTED
-  ) {
-    const statusLabel =
-      approvalStatus === VendorApprovalStatus.REJECTED
-        ? "rejected"
-        : "pending approval";
-    // The suggested alternative must be one that can actually work:
-    // oauth_only endpoints reject static tokens, so recommending manual
-    // entry there sends the user down a dead end (stigmer/stigmer#412).
-    const alternative = mcpServer.spec?.auth?.oauthOnly
-      ? "This server only accepts OAuth sign-in; an org admin can configure your own OAuth app instead."
-      : "Please enter a token manually instead.";
-    throw failedPreconditionError(
-      `OAuth sign-in is unavailable: the platform's OAuth app for '${oauthApp.spec?.provider ?? ""}' is ${statusLabel} by the vendor. ${alternative}`,
-    );
-  }
-
-  let clientSecret = oauthApp.spec?.clientSecret ?? "";
-  if (deps.secretService.isEncrypted(clientSecret)) {
-    try {
-      clientSecret = await deps.secretService.decrypt(clientSecret);
-    } catch (error) {
-      throw internalError(error, "failed to decrypt OAuthApp client secret");
-    }
-  }
-
-  const scopes = oauthApp.spec?.scopes ?? [];
-  const authUrl = buildAuthorizationUrl(
-    oauthApp.spec?.authorizationUrl ?? "",
-    oauthApp.spec?.clientId ?? "",
-    deps.oauthRedirectUri,
-    pkcePair.codeChallenge,
-    stateParam,
-    scopes,
-    oauthApp.spec?.scopeParameterName ?? "",
+  return failedPreconditionError(
+    `registering Stigmer with the login server for ${address} failed: ${error instanceof Error ? error.message : String(error)}`,
   );
+}
 
-  return {
-    authorizationUrl: authUrl,
-    providerName: oauthApp.spec?.provider ?? "",
-    scopes,
-    clientId: oauthApp.spec?.clientId ?? "",
-    clientSecret,
-    tokenEndpoint: oauthApp.spec?.tokenUrl ?? "",
-    tokenAuthMethod: tokenAuthMethodFromSpec(
-      oauthApp.spec?.tokenEndpointAuthMethod ??
-        TokenEndpointAuthMethod.UNSPECIFIED,
-    ),
-  };
+/** The pre-flight probe, fail-open: only a definite rejection is answered. */
+async function preflight(
+  deps: SignInDeps,
+  authorizationUrl: string,
+  address: string,
+): Promise<AuthorizeRejection | undefined> {
+  try {
+    return await preflightAuthorize(authorizationUrl, deps.outboundFetch);
+  } catch (error) {
+    deps.logger.debug("authorize pre-flight probe inconclusive; proceeding", {
+      address,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return undefined;
+  }
+}
+
+/** The host of a tool's URL, or a Git host as it is. */
+export function hostOf(address: string): string {
+  return URL.canParse(address) ? new URL(address).host : address;
 }
 
 /**
  * Builds the authorization URL (Go buildAuthorizationURL). Parameters are
  * rendered SORTED by key — Go's url.Values.Encode() sorts, and the
  * conformance suite asserts the exact parameter set — with
- * form-urlencoding (spaces as +, both editions).
+ * form-urlencoding (spaces as +, both editions). `resource` (RFC 8707) is
+ * added for a login server found by the address's own metadata.
  */
 export function buildAuthorizationUrl(
   authEndpoint: string,
@@ -518,8 +431,9 @@ export function buildAuthorizationUrl(
   redirectUri: string,
   codeChallenge: string,
   state: string,
-  scopes: string[],
+  scopes: readonly string[],
   scopeParamName: string,
+  resource = "",
 ): string {
   const scopeParam = scopeParamName === "" ? "scope" : scopeParamName;
 
@@ -534,6 +448,9 @@ export function buildAuthorizationUrl(
   if (scopes.length > 0) {
     params.set(scopeParam, scopes.join(" "));
   }
+  if (resource !== "") {
+    params.set("resource", resource);
+  }
   params.sort();
 
   const separator = authEndpoint.includes("?") ? "&" : "?";
@@ -546,7 +463,7 @@ export function buildAuthorizationUrl(
  * have other causes — but leads with the redirect-host allowlist because
  * it is the only cause observed in the wild (Canva, stigmer/stigmer#235),
  * and it names this deployment's callback host so self-hosted operators
- * can act on it. Surfaces which render initiate errors pass this text
+ * can act on it. Surfaces which render start errors pass this text
  * through verbatim (getUserMessage in @stigmer/sdk), so it must stand on
  * its own for an end user.
  */
@@ -581,21 +498,20 @@ function generateState(): string {
 
 /**
  * Encrypts the two real secrets in the pending row — code_verifier (every
- * flow) and client_secret (vendor flow) — before they rest in SQLite, so
- * handshake secrets never leak through filesystem backups of the database
- * (oss#394). The store itself stays a
- * byte-faithful adapter; this call site is the single write seam.
+ * flow) and client_secret (a login app's) — before they rest in the store,
+ * so handshake secrets never leak through filesystem backups of the
+ * database (oss#394). The store itself stays a byte-faithful adapter; this
+ * call site is the single write seam.
  *
- * The row is a self-contained SNAPSHOT, never an alias of the OAuthApp's
- * stored ciphertext: initiateVendorOAuth decrypts the app's secret
- * (failing loudly if the key is unavailable), and the seal re-encrypts
- * that plaintext with a fresh nonce. The token exchange must use the
- * credentials the authorization code was minted for, not whatever a later
- * resolution of the OAuthApp would return.
+ * The row is a self-contained SNAPSHOT: the app's secret was opened at
+ * start (failing loudly if the key is unavailable), and the seal
+ * re-encrypts that plaintext with a fresh nonce. The token exchange must use
+ * the credentials the authorization code was minted for, not whatever a
+ * later read of the app would return.
  *
- * The DCR path's empty client secret stays empty — never
- * ciphertext-of-"" — so completeOAuthConnect and the token exchange keep
- * seeing the emptiness that means "public client".
+ * A public client's empty secret stays empty — never ciphertext-of-"" — so
+ * completion and the token exchange keep seeing the emptiness that means
+ * "public client".
  *
  * Disabled encryption (no key configured) passes plaintext through with a
  * WARN, matching the deployment-wide posture for vault, OAuthApp and
@@ -615,10 +531,9 @@ export async function sealPendingOAuthState(
     return state;
   }
 
-  // Tenancy-only scope from the row's own org (proto-required min_len 1
-  // on the initiate input, so never empty here) — the handshake ephemera
-  // seal under the caller's org exactly like the durable rows they
-  // snapshot from.
+  // Tenancy-only scope from the row's own org — the handshake ephemera
+  // seal under the vault's organization exactly like the durable rows
+  // they snapshot from.
   const scope = EncryptionScope.forOrganization(state.org);
 
   let sealedVerifier: string;

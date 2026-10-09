@@ -25,6 +25,13 @@
  *   3. When no protected-resource document exists, the MCP origin itself is
  *      the one issuer to try, which is exactly the reader this replaces.
  *
+ * A protected-resource document counts only when its `resource` is the
+ * identifier its URL was built from (RFC 9728 section 3.3): the MCP URL for
+ * the challenge's pointer and the path-suffixed document, the MCP origin for
+ * the bare one. A document naming another resource (or none) is discarded, so
+ * a server cannot borrow the document of another resource on its origin to
+ * send a sign-in to someone else's login server under its name.
+ *
  * Every attempt is recorded (URL, status or error) so a caller can name the
  * document it failed on. The reader validates nothing beyond the two
  * endpoints a login needs; the control plane keeps its own pinned
@@ -47,6 +54,8 @@ export interface AuthorizationServerMetadata {
   readonly registrationEndpoint: string;
   readonly scopesSupported: readonly string[];
   readonly codeChallengeMethodsSupported: readonly string[];
+  /** Whether the login server takes a Client ID Metadata Document URL as a client id. */
+  readonly clientIdMetadataDocumentSupported: boolean;
 }
 
 /** One GET the walk made and what came back. */
@@ -55,7 +64,7 @@ export interface MetadataAttempt {
   readonly status?: number;
   readonly error?: string;
   /** Set when the document parsed but lacked the endpoint a login needs, so a caller can say which. */
-  readonly missing?: "authorization_endpoint" | "token_endpoint";
+  readonly missing?: "authorization_endpoint" | "token_endpoint" | "resource";
 }
 
 export type MetadataRead =
@@ -87,6 +96,15 @@ export function authorizationServerMetadataUrls(issuer: URL): readonly string[] 
   return [...new Set(urls)];
 }
 
+/** What a resource's own document says about signing in to it. */
+export interface ProtectedResourceFacts {
+  /** Its login servers, from `authorization_servers`; empty when no document counted. */
+  readonly issuers: readonly string[];
+  /** The scopes it lists in `scopes_supported`; empty when none or no document counted. */
+  readonly scopesSupported: readonly string[];
+  readonly attempts: readonly MetadataAttempt[];
+}
+
 /**
  * The issuers protecting a resource, from its RFC 9728 document (the
  * challenge's pointer when the caller has one, else the well-known
@@ -97,16 +115,44 @@ export async function resolveAuthorizationServers(
   resourceUrl: string,
   pointer: string | undefined,
   deps: MetadataReadDeps,
-): Promise<{ readonly issuers: readonly string[]; readonly attempts: readonly MetadataAttempt[] }> {
+): Promise<ProtectedResourceFacts> {
   const attempts: MetadataAttempt[] = [];
-  const candidates = pointer !== undefined ? [pointer] : protectedResourceMetadataUrls(new URL(resourceUrl));
+  const resource = new URL(resourceUrl);
+  const candidates = pointer !== undefined ? [pointer] : protectedResourceMetadataUrls(resource);
   for (const candidate of candidates) {
     const read = await readJson(candidate, deps, attempts);
     if (read === undefined) continue;
+    if (!namesResource(read, identifierFor(candidate, resource, pointer))) {
+      const last = attempts.pop();
+      if (last !== undefined) attempts.push({ ...last, missing: "resource" });
+      continue;
+    }
     const issuers = readStringArray(read, "authorization_servers");
-    if (issuers.length > 0) return { issuers, attempts };
+    if (issuers.length > 0) return { issuers, scopesSupported: readStringArray(read, "scopes_supported"), attempts };
   }
-  return { issuers: [], attempts };
+  return { issuers: [], scopesSupported: [], attempts };
+}
+
+/**
+ * The resource identifier a protected-resource document must name: the
+ * resource itself for the challenge's pointer and for the document with the
+ * resource's path appended, its origin for the bare document.
+ */
+function identifierFor(documentUrl: string, resource: URL, pointer: string | undefined): string {
+  const bare = `${resource.origin}/.well-known/oauth-protected-resource`;
+  return pointer === undefined && documentUrl === bare ? resource.origin : resource.href;
+}
+
+/** Whether a document's `resource` is `identifier`, compared as URLs: case of scheme and host, a default port and trailing slashes aside. */
+function namesResource(document: Record<string, unknown>, identifier: string): boolean {
+  const named = canonicalResource(readString(document, "resource"));
+  return named !== undefined && named === canonicalResource(identifier);
+}
+
+function canonicalResource(value: string): string | undefined {
+  if (!URL.canParse(value)) return undefined;
+  const url = new URL(value);
+  return `${url.origin}${trimTrailing(url.pathname, "/")}${url.search}`;
 }
 
 /** The first document for `issuer` that names an authorization and a token endpoint. */
@@ -139,6 +185,7 @@ export async function readAuthorizationServerMetadata(issuer: string, deps: Meta
         registrationEndpoint: readString(document, "registration_endpoint"),
         scopesSupported: readStringArray(document, "scopes_supported"),
         codeChallengeMethodsSupported: readStringArray(document, "code_challenge_methods_supported"),
+        clientIdMetadataDocumentSupported: document.client_id_metadata_document_supported === true,
       },
     };
   }

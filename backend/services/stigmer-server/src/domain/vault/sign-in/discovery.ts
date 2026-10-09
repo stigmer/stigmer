@@ -1,11 +1,10 @@
 /**
- * Authorization-server discovery for the DCR arm of Sign in: finding the
- * login server that protects an MCP endpoint, and validating what it says.
+ * Authorization-server discovery for a sign-in at a tool's address with no
+ * login app: finding the login server that protects the address, and
+ * validating what it says.
  *
- * Two entry points, because the spec gives Sign in two kinds of URL:
- *
- *   - `discoverForResource(mcpUrl)`: the MCP endpoint itself (`http.url`).
- *     Its login server is found by the RFC 9728 walk in
+ * `discoverForResource(address)` reads the address itself. Its login
+ * server is found by the RFC 9728 walk in
  *     `@stigmer/outbound/mcp-oauth`: the protected-resource document at the
  *     endpoint (path-suffixed, then bare) names `authorization_servers`;
  *     each issuer's metadata is read by RFC 8414 with the issuer's path
@@ -16,18 +15,20 @@
  *     https://mcp.linear.app/.well-known/oauth-authorization-server), so
  *     no server that signed in before signs in less now. Of the 41
  *     OAuth-protected servers the catalogue audit resolved, 21 keep their
- *     login server on another origin; only the walk reaches them.
- *   - `discoverAtIssuer(issuerUrl)`: the author's `auth.discovery_url`, an
- *     override naming the login server. It is read as an issuer: RFC 8414
- *     with its path, then its origin, then OpenID's.
+ *     login server on another origin; only the walk reaches them. A
+ *     protected-resource document that names another resource is
+ *     discarded (RFC 9728 section 3.3), so the walk then falls back to the
+ *     address's own origin.
  *
- * Both return the same `AuthServerMetadata` (the Go AuthServerMetadata's
- * parsed camelCase view) and hold the login server to the same rules:
- * both endpoints present, and S256 offered when methods are listed. The
- * error copy is contract: initiate embeds it in its FailedPrecondition, the
- * conformance suite pins it, and the failure names the FIRST document the
- * walk tried (for a bare issuer, the RFC 8414 document at its origin, the
- * one the retired reader named) with its status or its network error.
+ * It answers the login server's `AuthServerMetadata` (the Go
+ * AuthServerMetadata's parsed camelCase view), held to two rules (both
+ * endpoints present, and S256 offered when methods are listed), and the
+ * scopes the address's own document lists, which a sign-in asks for ahead
+ * of the login server's. The error copy is contract: the sign-in embeds it
+ * in its refusal, the conformance suite pins it, and the failure names the
+ * FIRST document the walk tried (for a bare issuer, the RFC 8414 document at
+ * its origin, the one the retired reader named) with its status or its
+ * network error.
  * Proven by __tests__/discovery.test.ts and
  * mcpserver-oauth.conformance.test.ts (CONFORMANCE_TARGET=local).
  */
@@ -52,24 +53,27 @@ export interface AuthServerMetadata {
   registrationEndpoint: string;
   scopesSupported: string[];
   codeChallengeMethodsSupported: string[];
+  /** Whether the login server takes a Client ID Metadata Document URL as a client id. */
+  clientIdMetadataDocumentSupported: boolean;
+}
+
+/** A tool address's login server, and the scopes the address itself lists. */
+export interface DiscoveredLoginServer {
+  readonly metadata: AuthServerMetadata;
+  /** `scopes_supported` from the address's protected-resource document; empty when it lists none. */
+  readonly resourceScopes: readonly string[];
 }
 
 /** Go's discoveryHTTPClient 10s timeout — a named constant per guidelines; per document read. */
 export const DISCOVERY_REQUEST_TIMEOUT_MS = 10_000;
 
-/** The login server protecting an MCP endpoint, by the RFC 9728 walk with the origin as the last resort. */
-export async function discoverForResource(mcpUrl: string, fetchImpl: OutboundFetch): Promise<AuthServerMetadata> {
-  const resource = parseDiscoveryUrl(mcpUrl);
+/** The login server protecting a tool's address, by the RFC 9728 walk with the origin as the last resort. */
+export async function discoverForResource(address: string, fetchImpl: OutboundFetch): Promise<DiscoveredLoginServer> {
+  const resource = parseDiscoveryUrl(address);
   const deps = { fetchImpl, timeoutMs: DISCOVERY_REQUEST_TIMEOUT_MS };
   const resolved = await resolveAuthorizationServers(resource.href, undefined, deps);
   const issuers = resolved.issuers.length > 0 ? resolved.issuers : [resource.origin];
-  return readIssuers(issuers, deps);
-}
-
-/** The login server an author named in `auth.discovery_url`, read as an issuer. */
-export async function discoverAtIssuer(issuerUrl: string, fetchImpl: OutboundFetch): Promise<AuthServerMetadata> {
-  const issuer = parseDiscoveryUrl(issuerUrl);
-  return readIssuers([issuer.href], { fetchImpl, timeoutMs: DISCOVERY_REQUEST_TIMEOUT_MS });
+  return { metadata: await readIssuers(issuers, deps), resourceScopes: resolved.scopesSupported };
 }
 
 /**
@@ -104,6 +108,7 @@ function toAuthServerMetadata(m: AuthorizationServerMetadata): AuthServerMetadat
     registrationEndpoint: m.registrationEndpoint,
     scopesSupported: [...m.scopesSupported],
     codeChallengeMethodsSupported: [...m.codeChallengeMethodsSupported],
+    clientIdMetadataDocumentSupported: m.clientIdMetadataDocumentSupported,
   };
 }
 

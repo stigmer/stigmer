@@ -132,7 +132,6 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { reference_kind } from "@stigmer/protos/ai/stigmer/commons/apiresource/field_options_pb";
 import type { UpdateVisibilityInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
@@ -224,14 +223,6 @@ export const REFERENCE_TARGET_KINDS: ReadonlyArray<ReferenceTargetKind> = [
     readByRun: false,
     label: "channel app(s)",
     listHint: "stigmer list channel-app",
-    writerMust: undefined,
-  },
-  {
-    kind: ApiResourceKind.oauth_app,
-    schema: OAuthAppSchema,
-    readByRun: false,
-    label: "OAuth app(s)",
-    listHint: undefined,
     writerMust: undefined,
   },
 ];

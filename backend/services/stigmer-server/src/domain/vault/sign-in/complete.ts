@@ -1,241 +1,118 @@
 /**
- * completeOAuthConnect — ports
- * pkg/domain/mcpserver/controller/complete_oauth_connect.go: finish the
- * OAuth flow by exchanging the authorization code for tokens and saving
- * the login in a vault, as a connection at the server's address
- * (domain/vault/address.ts `toolAddressOf`) with `source: sign_in`.
+ * Finishing a sign-in: exchanging the code the login page handed back and
+ * saving the login in the vault the sign-in was started for, as a
+ * connection at its address with `source: sign_in`. The one completion
+ * every door shares (a person's `completeSignIn`, a Connect link's
+ * `completeConnectLink`); the door consumes the pending state, checks it is
+ * its own, re-authorizes the vault and resolves it, then calls here.
  *
- * The login is the signer's: it lands in the vault the flow started with
- * (initiate's `vault_id`, re-authorized here, since a grant can be revoked
- * in between) or, when none was named, in the signer's own My vault in the
- * flow's organization, created on this first save. It is saved at the
- * address initiate recorded, and only while the server still has it: a
- * server pointed elsewhere during the sign-in is refused, so a login never
- * reaches a host the signer did not sign in for. Both checks, the
- * vault's re-authorization, the signer's My vault (created here on a first
- * sign-in) and room in the vault for a new login run before the code is
- * exchanged, so a refused completion leaves no live token minted at the
- * provider; only a vault filled by another write in between still refuses
- * at the save, after it. A teammate's
- * sign-in to the same server lands in the teammate's vault and never
- * touches this one. A login already saved at the address that is not a
- * sign-in to this same server (a pasted login, or another server's
- * sign-in there) is never replaced: the completion is refused before the
- * exchange, naming the address, so the person removes that login first.
- * The save asks again inside its atomic write (`onlyOverSignInOf`), so a
- * login saved there during the exchange is not replaced either: that
- * completion is refused after the exchange, and the token it minted is
- * discarded.
- * Re-connecting the same server replaces its connection in place, keeping the previous
- * refresh token when the provider answers without one; the refresh token
- * is sealed on its sign-in record beside the expiry, client id and token
- * endpoint renewals use, and never reaches a run. The record also keeps
- * whether the server was a local program at sign-in, so the login stops
- * filling it if an editor switches it between HTTP and a local program.
+ * Whatever the vault holds at the address is replaced: a sign-in and a
+ * pasted login serve the same tools (every HTTP tool at the address), and
+ * the signer may edit the vault anyway. Room in the vault for a login that
+ * would be new is settled before the exchange, so a full vault refuses with
+ * no live token minted at the provider; the save checks again inside its
+ * atomic write. A new sign-in that arrives without a refresh token keeps
+ * the previous one only when the same person saved it through the same
+ * login app, client and token endpoint (`keepRefreshToken`, the vault
+ * service's rule).
  *
- * The RPC serves on a Temporal-less server where Go's composition gate
- * refuses — a deliberate divergence from Go.
+ * The exchange sends `resource` again when the start did (a login server
+ * found by the address's own metadata). A login server that answers
+ * `invalid_client` has forgotten the client Stigmer registered with it: the
+ * kept registration is dropped, so the person's next sign-in registers anew.
  *
- * Proven by mcpserver-connect.conformance.test.ts
- * (CONFORMANCE_TARGET=local-execution), __tests__/oauth-handshake.test.ts,
- * __tests__/sign-in-vault.test.ts and __tests__/store-faults.test.ts.
+ * The saved login is described by the account when the login app names an
+ * endpoint that answers who signed in ("GitHub @ana", from `login` or
+ * `preferred_username`, else `email`), read once with the new token through
+ * the egress guard; otherwise "Signed in at HOST". A failed read only
+ * shortens the description.
+ *
+ * Proven by __tests__/complete.test.ts and the sign-in conformance suite.
  */
-import { create } from "@bufbuild/protobuf";
-
-import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
-import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
-import type {
-  CompleteOAuthConnectInput,
-  CompleteOAuthConnectOutput,
-} from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
-import { CompleteOAuthConnectOutputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
-import type { SecretService } from "../../encryption/encryption.js";
-import type { CallerIdentity } from "../../extensions/identity.js";
+import type { SecretService } from "../../../encryption/encryption.js";
+import type { CallerIdentity } from "../../../extensions/identity.js";
 import {
   failedPreconditionError,
   internalError,
-  invalidArgumentError,
-  notFoundError,
   unavailableError,
-} from "../../pipeline/errors.js";
-import { authorizeDirect } from "../../pipeline/steps/authorize.js";
-import type { PendingOAuthState } from "../../store/interface.js";
-import { ResourceNotFoundError } from "../../store/interface.js";
-import { toolAddressOf } from "../vault/address.js";
-import {
-  VaultConnectionSource,
-  otherLoginAtRefusal,
-  refuseNewConnectionOverCap,
-} from "../vault/service.js";
-import type { McpServerConnectDeps } from "./connect.js";
-import { authorizeSignInVault } from "./initiate-oauth-connect.js";
-import { exchangeCode } from "./oauth/token.js";
+} from "../../../pipeline/errors.js";
+import type { PendingOAuthState } from "../../../store/interface.js";
+import { refuseNewConnectionOverCap, VaultConnectionSource } from "../service.js";
+import type { VaultService } from "../service.js";
+import { forgetClient } from "./client.js";
+import { hostOf } from "./start.js";
+import type { SignInDeps } from "./start.js";
+import { TokenEndpointError, exchangeCode } from "./token.js";
 
-export async function completeOAuthConnect(
-  deps: McpServerConnectDeps,
-  input: CompleteOAuthConnectInput,
-  identity: CallerIdentity,
-): Promise<CompleteOAuthConnectOutput> {
-  const mcpServerId = input.mcpServerId;
-  if (mcpServerId === "") {
-    throw invalidArgumentError("mcp_server_id is required");
-  }
+/** The login a sign-in saved. */
+export interface FinishedSignIn {
+  readonly address: string;
+  readonly description: string;
+}
 
-  const stateParam = input.state;
-  if (stateParam === "") {
-    throw invalidArgumentError("state is required");
-  }
+/** How long reading who signed in may take: one interactive round trip. */
+export const USERINFO_TIMEOUT_MS = 10_000;
 
-  const code = input.authorizationCode;
-  if (code === "") {
-    throw invalidArgumentError("authorization_code is required");
-  }
-
-  // Load and validate pending state (atomically consumed).
-  let pendingState: PendingOAuthState | undefined;
-  try {
-    pendingState = await deps.pendingOAuthStates.getAndDelete(stateParam);
-  } catch (error) {
-    throw internalError(error, "failed to load pending OAuth state");
-  }
-  if (pendingState === undefined) {
-    throw failedPreconditionError(
-      "no pending OAuth state found for the given state parameter (expired or already used)",
-    );
-  }
-
-  if (pendingState.mcpServerId !== mcpServerId) {
-    throw failedPreconditionError(
-      "state parameter does not match the requested mcp_server_id",
-    );
-  }
-
-  // The annotation's can_connect check against the PENDING RECORD's
-  // server id — the Java McpServerCompleteOAuthConnectHandler discipline
-  // (the server-side state is the truth; a caller-supplied id would be a
-  // confused-deputy target). As in Java, the single-use state is already
-  // burned when a denial lands — the denied caller costs the user one
-  // re-initiate.
-  await authorizeDirect(
-    McpServerCommandController.method.completeOAuthConnect,
-    deps.authorizer,
-    identity,
-    input,
-    { resourceId: pendingState.mcpServerId },
-  );
-
-  // The signer who started the flow finishes it: a state handed to another
-  // caller does not save into that caller's vault, and the
-  // provider's code is never spent on a caller who may not finish.
-  if (pendingState.identityAccountId !== identity.identityId) {
-    throw failedPreconditionError(
-      "this sign-in was started by another account; start it again from your own session",
-    );
-  }
-
-  // Load the MCP server for the auth block metadata and name, and refuse
-  // what would not be saved (another address, a vault the signer may no
-  // longer edit) before the exchange: the provider mints a live token for
-  // the code, and a refused completion must leave none behind.
-  let mcpServer: McpServer;
-  try {
-    mcpServer = await deps.store.getResource(
-      ApiResourceKind.mcp_server,
-      mcpServerId,
-      McpServerSchema,
-    );
-  } catch (error) {
-    if (error instanceof ResourceNotFoundError) {
-      throw notFoundError("mcp_server", mcpServerId);
-    }
-    // The pending state is consumed by now, so a retry of this call can
-    // only fail: the copy names the way back.
-    throw internalError(
-      error,
-      "failed to load mcp server — please retry the connect flow",
-    );
-  }
-
-  const org = pendingState.org !== "" ? pendingState.org : (mcpServer.metadata?.org ?? "");
-
-  const address = toolAddressOf(mcpServer);
-  if (address === undefined) {
-    throw failedPreconditionError(
-      `MCP server '${mcpServerId}' no longer has an address to save a sign-in at — please retry the connect flow`,
-    );
-  }
-  // The signer signed in for the address the server had when they started;
-  // a login saved at another would go to a host they never chose.
-  if (address !== pendingState.toolAddress) {
-    throw failedPreconditionError(
-      `MCP server '${mcpServerId}': the tool's address changed during sign-in, so the login was not saved — start the sign-in again`,
-    );
-  }
-
-  const vaultId = pendingState.vaultId ?? "";
-  const sharedVault = await authorizeSignInVault(deps, org, vaultId, identity);
-
-  // The vault the login lands in, and room in it for a login that would
-  // be new, settled before the exchange as well: a full vault, or a My
-  // vault another request is still creating, refuses with no token minted.
-  // A signer's first sign-in creates their My vault here, so an exchange
-  // that then fails leaves it, empty. setConnection checks the cap again
-  // inside its atomic write; only a vault filled in between refuses after
-  // the exchange. A store fault propagates as itself; the serving chain's
-  // error boundary answers it INTERNAL.
-  const target = sharedVault ?? (await deps.vaults.ensureMine(org, identity));
+/**
+ * Exchanges the code and saves the login in `target`, as `saver` (the
+ * signer, or a Connect link's creator).
+ */
+export async function finishSignIn(
+  deps: SignInDeps & { readonly vaults: VaultService },
+  pending: PendingOAuthState,
+  code: string,
+  target: Vault,
+  saver: CallerIdentity,
+): Promise<FinishedSignIn> {
+  const address = pending.address;
   refuseNewConnectionOverCap(target, address);
-  refuseOtherLoginAt(target, address, mcpServerId);
 
-  // Unseal the handshake secrets that initiateOAuthConnect sealed at rest
-  // (oss#394), at the last moment before their only use. The row was
-  // consumed by getAndDelete (single-use is atomic), so a decryption
-  // failure costs the user one re-initiate — the same posture as the
-  // expiry refusal; the error message points them there.
+  // Unseal the handshake secrets the start sealed at rest (oss#394), at
+  // the last moment before their only use. The row is consumed, so a
+  // decryption failure costs the person one new start.
+  let opened: PendingOAuthState;
   try {
-    pendingState = await unsealPendingOAuthState(
-      deps.secretService,
-      pendingState,
-    );
+    opened = await unsealPendingOAuthState(deps.secretService, pending);
   } catch (error) {
     deps.logger.error("Failed to decrypt pending OAuth state secrets", {
-      mcp_server_id: mcpServerId,
+      address,
       error: error instanceof Error ? error.message : String(error),
     });
-    throw internalError(
-      error,
-      "failed to decrypt OAuth handshake secrets — please retry the connect flow",
-    );
+    throw internalError(error, "failed to decrypt OAuth handshake secrets — please sign in again");
   }
 
-  // Exchange authorization code for tokens. Failure maps to UNAVAILABLE —
-  // the pinned (unusual) Go mapping, complete_oauth_connect.go:96.
   let tokenResponse;
   try {
     tokenResponse = await exchangeCode(
-      pendingState.tokenEndpoint,
+      opened.tokenEndpoint,
       code,
-      pendingState.redirectUri,
-      pendingState.codeVerifier,
-      pendingState.clientId,
-      pendingState.clientSecret,
-      pendingState.tokenAuthMethod,
+      opened.redirectUri,
+      opened.codeVerifier,
+      opened.clientId,
+      opened.clientSecret,
+      opened.tokenAuthMethod,
       deps.outboundFetch,
+      opened.resource,
     );
   } catch (error) {
+    if (error instanceof TokenEndpointError && error.oauthError === "invalid_client") {
+      await forgetClient(deps.clientRegistrations, opened.clientRegistration, opened.redirectUri, opened.clientId);
+      throw failedPreconditionError(
+        `the login server for ${address} no longer knows Stigmer's client: sign in again`,
+      );
+    }
+    // The pinned (unusual) Go mapping for a failed exchange,
+    // complete_oauth_connect.go:96.
     throw unavailableError(
       `token exchange failed: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
 
-  let expiresAt = 0;
-  if (tokenResponse.expiresIn > 0) {
-    expiresAt = Math.floor(Date.now() / 1000) + tokenResponse.expiresIn;
-  }
+  const expiresAt =
+    tokenResponse.expiresIn > 0 ? Math.floor(Date.now() / 1000) + tokenResponse.expiresIn : 0;
+  const description = await describeLogin(deps, opened, tokenResponse.accessToken);
 
   await deps.vaults.setConnection(
     target.metadata?.id ?? "",
@@ -245,65 +122,93 @@ export async function completeOAuthConnect(
       source: VaultConnectionSource.sign_in,
       signIn: {
         expiresAt: BigInt(expiresAt),
-        clientId: pendingState.clientId,
-        authMethod: pendingState.authMethod,
-        tokenEndpoint: pendingState.tokenEndpoint,
+        clientId: opened.clientId,
+        authMethod: opened.authMethod,
+        tokenEndpoint: opened.tokenEndpoint,
         refreshToken: tokenResponse.refreshToken,
-        mcpServerId,
-        // The kind the token was signed in for: a run fills this server's
-        // login only while it is still that kind (domain/vault/resolve.ts).
-        localProgram: mcpServer.spec?.serverType?.case === "stdio",
+        loginApp: opened.loginApp,
       },
-      description: `Sign-in for ${mcpServer.metadata?.name ?? mcpServerId}`,
+      description,
       keepRefreshToken: true,
-      onlyOverSignInOf: mcpServerId,
     },
-    identity,
+    saver,
   );
 
-
-  const auth = mcpServer.spec?.auth;
-
-  deps.logger.info("OAuth Connect completed: sign-in saved in the vault", {
-    mcp_server_id: mcpServerId,
-    auth_method: pendingState.authMethod,
-    target_env_var: pendingState.targetEnvVar,
-    vault: vaultId === "" ? "mine" : vaultId,
+  deps.logger.info("Sign-in saved in the vault", {
+    address,
+    auth_method: opened.authMethod,
+    login_app: opened.loginApp === "" ? "login server" : opened.loginApp,
+    vault: opened.vaultId === "" ? "mine" : opened.vaultId,
+    connect_link: opened.connectLink !== "",
     expires_at: expiresAt,
     has_refresh_token: tokenResponse.refreshToken !== "",
   });
-
-  return create(CompleteOAuthConnectOutputSchema, {
-    connected: true,
-    targetEnvVar: pendingState.targetEnvVar,
-    tokenLifetimeHint: auth?.tokenLifetimeHint ?? "",
-  });
+  return { address, description };
 }
 
 /**
- * Refuses a sign-in that would replace a login saved at its address that
- * is not a sign-in to this same server: a pasted login, or another
- * server's sign-in at the same URL. The save replaces whatever the address
- * holds, so either would be lost without a word; the person removes it
- * first. A re-sign-in to the same server replaces its own.
+ * How the saved login is described: the account the login app's endpoint
+ * names, else the host signed in at.
  */
-function refuseOtherLoginAt(vault: Vault, address: string, mcpServerId: string): void {
-  const refusal = otherLoginAtRefusal(vault.spec?.connections ?? {}, address, mcpServerId);
-  if (refusal !== undefined) {
-    throw failedPreconditionError(refusal);
+async function describeLogin(
+  deps: Pick<SignInDeps, "outboundFetch" | "logger">,
+  pending: PendingOAuthState,
+  accessToken: string,
+): Promise<string> {
+  const fallback = `Signed in at ${hostOf(pending.address)}`;
+  if (pending.userinfoUrl === "") {
+    return fallback;
   }
+  let account: Record<string, unknown>;
+  try {
+    const response = await deps.outboundFetch(pending.userinfoUrl, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: "application/json",
+        "User-Agent": "Stigmer",
+      },
+      redirect: "manual",
+      signal: AbortSignal.timeout(USERINFO_TIMEOUT_MS),
+    });
+    if (response.status !== 200) {
+      await response.body?.cancel();
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const parsed: unknown = await response.json();
+    account = typeof parsed === "object" && parsed !== null ? (parsed as Record<string, unknown>) : {};
+  } catch (error) {
+    deps.logger.warn("Could not read who signed in; describing the login by its host", {
+      address: pending.address,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return fallback;
+  }
+  const handle = firstString(account, ["login", "preferred_username"]);
+  if (handle !== "") {
+    return `${pending.providerName} @${handle}`;
+  }
+  const email = firstString(account, ["email"]);
+  return email !== "" ? `${pending.providerName} ${email}` : fallback;
+}
+
+function firstString(record: Record<string, unknown>, keys: readonly string[]): string {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "string" && value.trim() !== "") {
+      return value.trim();
+    }
+  }
+  return "";
 }
 
 /**
  * Decrypts the secrets sealPendingOAuthState encrypted before the row
- * rested (oss#394) — the read seam paired with the write seam in
- * initiate-oauth-connect.ts.
+ * rested (oss#394) — the read seam paired with the write seam in start.ts.
  *
  * decrypt() dispatches on the value's own enc:v1: prefix and passes
- * plaintext through unchanged, which quietly covers every legacy shape:
- * rows written before the sealing release, rows written while encryption
- * was disabled, and the DCR path's deliberately empty client secret. No
- * migration — the table turns over in 10 minutes.
+ * plaintext through unchanged, which covers rows written while encryption
+ * was disabled and a public client's deliberately empty secret.
  *
  * A sealed row on a deployment whose key has since vanished fails here
  * (loudly, before any token-exchange attempt) rather than sending

@@ -30,6 +30,11 @@ import type { TemporalConnectionConfig } from "@stigmer/temporal-codecs";
 
 import { SERVER_VERSION } from "../domain/platform/version.js";
 import {
+  loginProviderSettingNames,
+  loginProviderSettings,
+} from "../domain/vault/login-providers.js";
+import type { LoginProviderSettings } from "../domain/vault/login-providers.js";
+import {
   SANDBOX_CLEARED_RUNNER_ENV,
   SANDBOX_DRIVER_OWNED_RUNNER_ENV,
   SANDBOX_DRIVERS_WITHOUT_RUNNER_IMAGE,
@@ -153,14 +158,13 @@ export interface ServerConfig {
    */
   readonly r2RunnerEndpoint: string;
   /**
-   * GitHub OAuth credentials for workspace repo selection (the github
-   * broker domain). Override via STIGMER_GITHUB_CLIENT_ID /
-   * STIGMER_GITHUB_CLIENT_SECRET — an empty value is treated as unset
-   * (Go getEnvString), so no configuration can blank the bundled
-   * defaults on OSS.
+   * Stigmer's own login apps switched on (domain/vault/login-providers.ts):
+   * each catalog entry's STIGMER_<KEY>_CLIENT_ID and
+   * STIGMER_<KEY>_CLIENT_SECRET. GitHub's pair defaults to the bundled
+   * "Stigmer Local" OAuth App, and an empty value is treated as unset (Go
+   * getEnvString), so no configuration can blank it on OSS.
    */
-  readonly gitHubOAuthClientId: string;
-  readonly gitHubOAuthClientSecret: string;
+  readonly loginProviders: LoginProviderSettings;
   /**
    * The OAuth callback URL for the McpServer OAuth Connect flows
    * (STIGMER_OAUTH_REDIRECT_URI; Go config.go OAuthRedirectURI). Unset, a
@@ -344,6 +348,12 @@ const DEFAULT_GITHUB_OAUTH_CLIENT_SECRET: string =
     ? __STIGMER_GITHUB_CLIENT_SECRET__
     : "edc089d10b6cc0dcee898f9680d62d1504e2c89a";
 
+/** The bundled defaults of the login catalog's settings: GitHub's pair. */
+const LOGIN_PROVIDER_DEFAULTS: ReadonlyMap<string, string> = new Map([
+  [loginProviderSettingNames("github").clientId, DEFAULT_GITHUB_OAUTH_CLIENT_ID],
+  [loginProviderSettingNames("github").clientSecret, DEFAULT_GITHUB_OAUTH_CLIENT_SECRET],
+]);
+
 /** Default unified port; the CLI's env contract pins the same value. */
 export const DEFAULT_GRPC_PORT = 7234;
 
@@ -444,15 +454,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     skillTransferBaseUrl: envString(env, "SKILL_TRANSFER_BASE_URL", ""),
     operatorEmail,
     operatorName,
-    gitHubOAuthClientId: envString(
-      env,
-      "STIGMER_GITHUB_CLIENT_ID",
-      DEFAULT_GITHUB_OAUTH_CLIENT_ID,
-    ),
-    gitHubOAuthClientSecret: envString(
-      env,
-      "STIGMER_GITHUB_CLIENT_SECRET",
-      DEFAULT_GITHUB_OAUTH_CLIENT_SECRET,
+    loginProviders: loginProviderSettings((name) =>
+      envString(env, name, LOGIN_PROVIDER_DEFAULTS.get(name) ?? ""),
     ),
     oauthRedirectUri: envString(env, "STIGMER_OAUTH_REDIRECT_URI", ""),
     consoleDir: envString(env, "STIGMER_CONSOLE_DIR", ""),

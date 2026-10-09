@@ -1,15 +1,10 @@
 /**
  * OAuthApp domain-local pipeline steps — port
  * pkg/domain/oauthapp/controller/steps: the client-secret encrypt/preserve
- * step, the referential delete guard, and the response redaction helper.
+ * step and the response redaction helper.
  * Proven by oauthapp.conformance.test.ts and __tests__/oauthapp.test.ts.
  */
-import { fromBinary } from "@bufbuild/protobuf";
-import type { DescMessage } from "@bufbuild/protobuf";
 
-import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
 import type { OAuthApp } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
 
@@ -18,22 +13,18 @@ import { isCiphertextShaped } from "../../encryption/encryption.js";
 import type { SecretService } from "../../encryption/encryption.js";
 import { EncryptionScope } from "../../encryption/encryption.js";
 import {
-  failedPreconditionError,
   internalError,
   invalidArgumentError,
 } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
-import type { Store } from "../../store/interface.js";
 import {
   CIPHERTEXT_SHAPED_SECRET_MESSAGE,
   MARKER_ON_CREATE_MESSAGE,
   PRESERVE_NO_EXISTING_SECRET_MESSAGE,
   REDACTED_MARKER,
-  deleteBlockedByMcpServerMessage,
 } from "./constants.js";
-import { resolveOAuthAppRef } from "./refresolution.js";
 
 /**
  * Replaces client_secret with the redaction marker (Go RedactOAuthApp).
@@ -165,85 +156,4 @@ function preserveExistingSecret(
   logger.debug("preserved existing encrypted client_secret", {
     oauthAppId: app.metadata?.id ?? "",
   });
-}
-
-/**
- * CheckNoReferencingMcpServers (Go newCheckNoReferencingMcpServersStep):
- * blocks deletion while any McpServer's spec.auth.oauth_app_ref RESOLVES
- * to the app being deleted — resolution semantics through the shared
- * refresolution, not literal field match (stigmer/stigmer#584). A ref
- * pinned to another org can reach this app through the unique-slug
- * fallback (deleting would sever a live vendor-OAuth connection), while a
- * literal match whose resolution lands elsewhere must not block.
- *
- * Requires LoadExistingForDelete to have run first (the OAuthApp being
- * deleted is read from ExistingResource). Generic over the delete input
- * Desc, like the shared delete steps.
- */
-export function newCheckNoReferencingMcpServersStep<Desc extends DescMessage>(
-  store: Store,
-  logger: Logger,
-): PipelineStep<Desc> {
-  return {
-    name: "CheckNoReferencingMcpServers",
-    async execute(ctx: RequestContext<Desc>): Promise<void> {
-      const existing = ctx.get(EXISTING_RESOURCE_KEY) as OAuthApp | undefined;
-      if (existing === undefined) {
-        throw internalError(
-          new Error("existing OAuthApp missing from pipeline context"),
-          "existing OAuthApp not loaded in delete pipeline",
-        );
-      }
-
-      let resources: Uint8Array[];
-      try {
-        resources = await store.listResources(ApiResourceKind.mcp_server);
-      } catch (error) {
-        throw internalError(
-          error,
-          "failed to list MCP servers for referential integrity check",
-        );
-      }
-
-      for (const data of resources) {
-        let mcp: McpServer;
-        try {
-          mcp = fromBinary(McpServerSchema, data);
-        } catch (error) {
-          logger.warn(
-            "failed to unmarshal MCP server during referential integrity check, skipping",
-            { error: error instanceof Error ? error.message : String(error) },
-          );
-          continue;
-        }
-
-        const ref = mcp.spec?.auth?.oauthAppRef;
-        if (ref === undefined) {
-          continue;
-        }
-
-        let resolved: OAuthApp | undefined;
-        try {
-          resolved = await resolveOAuthAppRef(store, ref, logger);
-        } catch (error) {
-          throw internalError(
-            error,
-            "failed to resolve oauth_app_ref during referential integrity check",
-          );
-        }
-        if (
-          resolved !== undefined &&
-          (resolved.metadata?.id ?? "") === (existing.metadata?.id ?? "")
-        ) {
-          throw failedPreconditionError(
-            deleteBlockedByMcpServerMessage(
-              existing.metadata?.org ?? "",
-              existing.metadata?.slug ?? "",
-              mcp.metadata?.name ?? "",
-            ),
-          );
-        }
-      }
-    },
-  };
 }

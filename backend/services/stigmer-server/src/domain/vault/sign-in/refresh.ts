@@ -16,50 +16,46 @@
  * writing it back is thrown as it is, so the resolver answers it as a
  * fault, not a refusal.
  *
- * A vendor sign-in renews with its OAuth app's client secret, found through
- * the MCP server its sign-in record names (`sign_in.mcp_server_id`) and that
- * server's `auth.oauth_app_ref`, read live so an admin's fix to the app
- * applies at once. The secret is sent only when that app's client id and
- * token URL are the ones the sign-in recorded: the renewal always goes to
- * the sign-in's own token endpoint and client, so after an editor points
- * the server at another app, that app's secret would reach an endpoint it
- * was never issued for. Such a sign-in renews without a secret, as one
- * whose app is gone does, and the provider decides; a DCR or public client
- * renews without a secret too.
+ * A sign-in made through a login app renews with that app's client secret,
+ * found by the app its sign-in record names (`sign_in.login_app`: an
+ * organization's OAuthApp by id, or a catalog entry from the deployment's
+ * settings, login-app.ts), read live so an admin's fix to the app applies
+ * at once. The secret is sent only while that app's client id and token URL
+ * are the ones the sign-in recorded: the renewal always goes to the
+ * sign-in's own token endpoint and client, so after an admin repoints the
+ * app, its secret would reach an endpoint it was never issued for. Such a
+ * sign-in renews without a secret, as one whose app is gone does, and the
+ * provider decides. A public client of the address's own login server
+ * renews without a secret, and with `resource` set to the address, as its
+ * sign-in was made (RFC 8707).
  *
  * Proven by __tests__/token-refresh.test.ts (the expiry arithmetic) and
- * ../__tests__/sign-in-vault.test.ts (renewal written through the vault,
- * rotation, the guarded write-back, the no-refresh-token refusal, the
- * app's secret presented or withheld, another app's secret never sent).
+ * __tests__/renewal.test.ts (renewal written through the vault, rotation,
+ * the guarded write-back, the no-refresh-token refusal, the app's secret
+ * presented or withheld, another app's secret never sent, `resource` on a
+ * public client's renewal).
  */
 import type { OutboundFetch } from "@stigmer/outbound/egress";
 
 import type { Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
-import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { TokenEndpointAuthMethod } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
 
 import type { Logger } from "../../../boot/logger.js";
 import type { SecretService } from "../../../encryption/encryption.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
 import type { Store } from "../../../store/interface.js";
-import { ResourceNotFoundError } from "../../../store/interface.js";
-import { resolveOAuthAppRef } from "../../oauthapp/refresolution.js";
-import { SignInRenewalError } from "../../vault/resolve.js";
-import type { SignInFreshener } from "../../vault/resolve.js";
+import { isGitHostAddress } from "../address.js";
+import { loginAppByRef } from "../login-app.js";
+import type { LoginProviderSettings } from "../login-providers.js";
+import { SignInRenewalError } from "../resolve.js";
+import type { SignInFreshener } from "../resolve.js";
 import type {
   OpenedConnection,
   VaultService,
   VaultSignIn,
   VaultSignInRecord,
-} from "../../vault/service.js";
-import { VaultConnectionSource } from "../../vault/service.js";
-import {
-  TOKEN_AUTH_METHOD_BASIC,
-  TOKEN_AUTH_METHOD_POST,
-  refreshToken,
-} from "./token.js";
+} from "../service.js";
+import { VaultConnectionSource } from "../service.js";
+import { refreshToken } from "./token.js";
 
 /** The outcome of a refresh attempt (Go RefreshResult). */
 export interface RefreshResult {
@@ -105,6 +101,7 @@ export async function refreshTokenIfExpired(
   tokenAuthMethod: string,
   logger: Logger,
   fetchImpl: OutboundFetch,
+  resource = "",
 ): Promise<RefreshResult> {
   if (!signInExpired(signIn.expiresAt)) {
     return notRefreshed();
@@ -129,6 +126,7 @@ export async function refreshTokenIfExpired(
       clientSecret,
       tokenAuthMethod,
       fetchImpl,
+      resource,
     );
   } catch (error) {
     throw new Error(
@@ -169,11 +167,12 @@ function notRefreshed(): RefreshResult {
   };
 }
 
-/** What renewal reads: the vault door, the store (servers, OAuth apps), sealing, the egress fetch. */
+/** What renewal reads: the vault door, the login apps (the store's and the catalog's), sealing, the egress fetch. */
 export interface SignInFreshenerDeps {
   readonly vaults: VaultService;
   readonly store: Store;
   readonly secretService: SecretService;
+  readonly loginProviders: LoginProviderSettings;
   readonly logger: Logger;
   /** The egress-guarded fetch login servers are dialled with; defaults to global fetch. */
   readonly fetchImpl?: OutboundFetch;
@@ -198,17 +197,21 @@ export function newSignInFreshener(deps: SignInFreshenerDeps): SignInFreshener {
 
       let clientSecret = "";
       let tokenAuthMethod = "";
-      if (signIn.authMethod === "vendor_oauth") {
+      if (signIn.loginApp !== "") {
         try {
           ({ clientSecret, tokenAuthMethod } =
             await loadSignInClientCredentials(deps, signIn));
         } catch (error) {
-          deps.logger.warn("Failed to load the OAuth app's client secret for renewal", {
-            mcp_server_id: signIn.mcpServerId,
+          deps.logger.warn("Failed to load the login app's client secret for renewal", {
+            login_app: signIn.loginApp,
             error: error instanceof Error ? error.message : String(error),
           });
         }
       }
+      // A public client of the address's own login server was signed in
+      // for the address as its resource; its renewal says so again.
+      const resource =
+        signIn.loginApp === "" && !isGitHostAddress(connection.address) ? connection.address : "";
 
       // The refresh token is opened only here, for a renewal.
       const renewing: VaultSignIn = {
@@ -224,6 +227,7 @@ export function newSignInFreshener(deps: SignInFreshenerDeps): SignInFreshener {
           tokenAuthMethod,
           deps.logger,
           fetchImpl,
+          resource,
         );
       } catch (error) {
         throw new SignInRenewalError(error instanceof Error ? error.message : String(error));
@@ -250,127 +254,36 @@ export function newSignInFreshener(deps: SignInFreshenerDeps): SignInFreshener {
   };
 }
 
-/** What reading an OAuth app's client credentials needs. */
+/** What reading a login app's client credentials needs. */
 export interface ClientCredentialDeps {
   readonly store: Store;
   readonly logger: Logger;
   readonly secretService: SecretService;
+  readonly loginProviders: LoginProviderSettings;
 }
 
 /**
- * The client secret and token-endpoint auth method of the OAuth app the
- * sign-in's server references, for a vendor renewal. Empty for a server
- * that is gone or references no app, and for an app whose client id or
- * token URL is not the sign-in's: its secret was never issued for the
- * endpoint the renewal posts to.
+ * The client secret and token-endpoint auth method of the login app a
+ * sign-in recorded, for its renewal. Empty for an app that is gone or
+ * switched off, and for one whose client id or token URL is no longer the
+ * sign-in's: its secret was never issued for the endpoint the renewal posts
+ * to.
  */
 async function loadSignInClientCredentials(
   deps: ClientCredentialDeps,
   signIn: VaultSignInRecord,
 ): Promise<{ clientSecret: string; tokenAuthMethod: string }> {
   const none = { clientSecret: "", tokenAuthMethod: "" };
-  const mcpServerId = signIn.mcpServerId;
-  if (mcpServerId === "") {
+  const app = await loginAppByRef(deps, signIn.loginApp);
+  if (app === undefined || app.clientSecret === "") {
     return none;
   }
-  let server: McpServer;
-  try {
-    server = await deps.store.getResource(
-      ApiResourceKind.mcp_server,
-      mcpServerId,
-      McpServerSchema,
-    );
-  } catch (error) {
-    if (error instanceof ResourceNotFoundError) {
-      return none;
-    }
-    throw error;
-  }
-  const app = await loadOAuthAppClientCredentials(deps, server);
-  if (app.clientSecret === "") {
-    return none;
-  }
-  if (
-    app.clientId !== signIn.clientId ||
-    app.tokenUrl !== signIn.tokenEndpoint
-  ) {
+  if (app.clientId !== signIn.clientId || app.tokenUrl !== signIn.tokenEndpoint) {
     deps.logger.warn(
-      "The server's OAuth app is not the one the sign-in was made with; renewing without its secret",
-      { mcp_server_id: mcpServerId },
+      "The login app is not the one the sign-in was made with; renewing without its secret",
+      { login_app: signIn.loginApp },
     );
     return none;
   }
   return { clientSecret: app.clientSecret, tokenAuthMethod: app.tokenAuthMethod };
-}
-
-/** An OAuth app's client credentials: its secret, opened, and where they apply. */
-export interface OAuthAppClientCredentials {
-  readonly clientId: string;
-  readonly clientSecret: string;
-  readonly tokenUrl: string;
-  readonly tokenAuthMethod: string;
-}
-
-/**
- * Loads the decrypted client_secret, the token-endpoint auth method, and
- * the client id and token URL they belong to, from the OAuthApp the server
- * references now (Go loadOAuthAppClientCredentials). Read LIVE so an admin
- * correcting a misconfigured OAuthApp fixes renewals immediately.
- *
- * Resolution goes through refresolution, the same lookup the initiate
- * path uses (stigmer/stigmer#584). The reference can have been repointed
- * at another app since a sign-in, so the app found here is not
- * necessarily the one that sign-in was made with: a caller sending the
- * secret for a sign-in compares the client id and token URL first
- * (`loadSignInClientCredentials`).
- */
-export async function loadOAuthAppClientCredentials(
-  deps: ClientCredentialDeps,
-  mcpServer: McpServer,
-): Promise<OAuthAppClientCredentials> {
-  const ref = mcpServer.spec?.auth?.oauthAppRef;
-  if (ref === undefined || ref.slug === "") {
-    return { clientId: "", clientSecret: "", tokenUrl: "", tokenAuthMethod: "" };
-  }
-
-  let app;
-  try {
-    app = await resolveOAuthAppRef(deps.store, ref, deps.logger);
-  } catch (error) {
-    throw new Error(
-      `failed to list oauth apps: ${error instanceof Error ? error.message : String(error)}`,
-    );
-  }
-  if (app === undefined) {
-    throw new Error(`OAuthApp '${ref.slug}' not found`);
-  }
-
-  const tokenAuthMethod = tokenAuthMethodFromSpec(
-    app.spec?.tokenEndpointAuthMethod ?? TokenEndpointAuthMethod.UNSPECIFIED,
-  );
-
-  let secret = app.spec?.clientSecret ?? "";
-  if (deps.secretService.isEncrypted(secret)) {
-    secret = await deps.secretService.decrypt(secret);
-  }
-  return {
-    clientId: app.spec?.clientId ?? "",
-    clientSecret: secret,
-    tokenUrl: app.spec?.tokenUrl ?? "",
-    tokenAuthMethod,
-  };
-}
-
-/**
- * Maps the OAuthAppSpec enum onto the oauth package's RFC 8414 strings
- * (Go tokenAuthMethodFromSpec). UNSPECIFIED means Basic — every OAuthApp
- * created before the field existed authenticated via HTTP Basic.
- */
-export function tokenAuthMethodFromSpec(
-  method: TokenEndpointAuthMethod,
-): string {
-  if (method === TokenEndpointAuthMethod.CLIENT_SECRET_POST) {
-    return TOKEN_AUTH_METHOD_POST;
-  }
-  return TOKEN_AUTH_METHOD_BASIC;
 }

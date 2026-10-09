@@ -7,9 +7,20 @@
  * "manual"`): a 3xx from the token endpoint is refused, naming the
  * endpoint, and the address it pointed at is never reached.
  *
+ * A request to a login server found by the address's own metadata carries
+ * `resource` (RFC 8707), as the authorization request did: the MCP
+ * Authorization specification requires it on both, so the token is minted
+ * for that address only. A login app's vendor endpoint is not asked for it.
+ *
+ * A refusal carries the login server's OAuth error code when it sent one
+ * (`TokenEndpointError.oauthError`), so a caller can tell a client the
+ * login server has forgotten (`invalid_client`) from any other failure.
+ * GitHub answers its refusals with HTTP 200 and an `error` body; that is a
+ * refusal too.
+ *
  * Proven by __tests__/token-exchange.test.ts,
- * __tests__/token-refresh.test.ts, mcpserver-oauth.conformance.test.ts
- * and the Class B mcpserver-connect suite.
+ * __tests__/token-refresh.test.ts, the sign-in conformance suite and the
+ * Class B mcpserver-connect suite.
  */
 import type { OutboundFetch } from "@stigmer/outbound/egress";
 import { truncateBody } from "./truncate-body.js";
@@ -34,6 +45,18 @@ export const TOKEN_AUTH_METHOD_POST = "client_secret_post";
 /** Go's tokenHTTPClient 15s timeout — a named constant per guidelines. */
 export const TOKEN_REQUEST_TIMEOUT_MS = 15_000;
 
+/** A token endpoint's refusal, with its OAuth error code when it named one (RFC 6749 section 5.2). */
+export class TokenEndpointError extends Error {
+  constructor(
+    message: string,
+    /** The `error` the endpoint answered ("invalid_client", "invalid_grant", …); "" when none. */
+    readonly oauthError: string,
+  ) {
+    super(message);
+    this.name = "TokenEndpointError";
+  }
+}
+
 /**
  * Exchanges an authorization code for tokens using the
  * authorization_code grant with PKCE (Go ExchangeCode). For public
@@ -49,6 +72,7 @@ export async function exchangeCode(
   clientSecret: string,
   tokenAuthMethod: string,
   fetchImpl: OutboundFetch,
+  resource = "",
 ): Promise<TokenResponse> {
   const params = new URLSearchParams({
     grant_type: "authorization_code",
@@ -57,6 +81,9 @@ export async function exchangeCode(
     code_verifier: codeVerifier,
     client_id: clientId,
   });
+  if (resource !== "") {
+    params.set("resource", resource);
+  }
   return doTokenRequest(
     tokenEndpoint,
     params,
@@ -80,12 +107,16 @@ export async function refreshToken(
   clientSecret: string,
   tokenAuthMethod: string,
   fetchImpl: OutboundFetch,
+  resource = "",
 ): Promise<TokenResponse> {
   const params = new URLSearchParams({
     grant_type: "refresh_token",
     refresh_token: currentRefreshToken,
     client_id: clientId,
   });
+  if (resource !== "") {
+    params.set("resource", resource);
+  }
   return doTokenRequest(
     tokenEndpoint,
     params,
@@ -146,12 +177,15 @@ async function doTokenRequest(
   }
   const body = await response.text();
   if (response.status !== 200) {
-    throw new Error(
+    throw new TokenEndpointError(
       `token endpoint ${tokenEndpoint} returned HTTP ${response.status}: ${truncateBody(body)}`,
+      oauthErrorOf(body),
     );
   }
 
   let raw: {
+    error?: string;
+    error_description?: string;
     access_token?: string;
     token_type?: string;
     expires_in?: number;
@@ -195,9 +229,27 @@ async function doTokenRequest(
   }
 
   if (tokenResponse.accessToken === "") {
-    throw new Error(
-      `token response from ${tokenEndpoint} is missing access_token`,
+    const oauthError = typeof raw.error === "string" ? raw.error : "";
+    throw new TokenEndpointError(
+      oauthError !== ""
+        ? `token endpoint ${tokenEndpoint} refused the request: ${oauthError}${typeof raw.error_description === "string" && raw.error_description !== "" ? ` (${raw.error_description})` : ""}`
+        : `token response from ${tokenEndpoint} is missing access_token`,
+      oauthError,
     );
   }
   return tokenResponse;
+}
+
+/** The OAuth `error` code in a refusal's JSON body, or "". */
+function oauthErrorOf(body: string): string {
+  try {
+    const parsed: unknown = JSON.parse(body);
+    if (typeof parsed === "object" && parsed !== null && "error" in parsed) {
+      const error = (parsed as { error: unknown }).error;
+      return typeof error === "string" ? error : "";
+    }
+  } catch {
+    // Not JSON: no code to read.
+  }
+  return "";
 }
