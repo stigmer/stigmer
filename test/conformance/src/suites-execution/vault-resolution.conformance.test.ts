@@ -39,7 +39,8 @@
 // the fetch with the run's own credential (the platform exchange mints one),
 // while a held mock-LLM turn keeps the run live; and, end to end, through the
 // agent's shell, which prints the value into the next model request.
-import { create } from "@bufbuild/protobuf";
+import { create, toJsonString } from "@bufbuild/protobuf";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
@@ -251,7 +252,9 @@ describe("vault resolution — a person's run", () => {
     expect(source?.vaultId).toBe(mineId);
     expect(source?.entry).toBe("MINE_KEY");
     const stored = await clients.agentExecutionQuery.get({ value: execution.metadata!.id });
-    expect(JSON.stringify(stored), "the run's status names the source, never the value").not.toContain("my-value");
+    expect(toJsonString(RunSchema, stored), "the run's status names the source, never the value").not.toContain(
+      "my-value",
+    );
   });
 
   it("a conversation that leaves My vault out never reads it", async () => {
