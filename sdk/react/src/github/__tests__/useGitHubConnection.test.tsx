@@ -199,8 +199,10 @@ describe("useGitHubConnection", () => {
     });
     await waitFor(() => expect(result.current.isConnecting).toBe(true));
     await waitFor(() => expect(server.calls).toHaveLength(1));
-    act(() => result.current.disconnect());
-    expect(await pending).toBeInstanceOf(Error);
+    await act(async () => {
+      result.current.disconnect();
+      expect(await pending).toBeInstanceOf(Error);
+    });
     expect(result.current.connectError).toBeNull();
     expect(result.current.isConnecting).toBe(false);
   });
