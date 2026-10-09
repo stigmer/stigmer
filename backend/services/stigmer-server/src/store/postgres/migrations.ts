@@ -59,6 +59,12 @@ import {
   unreadableExecutionError,
 } from "../execution-config-retired.js";
 import {
+  SESSION_VALUES_KIND,
+  SESSION_VALUES_PAGE_SIZE,
+  migrateSessionValuesRow,
+  unreadableSessionValuesError,
+} from "../session-values-retired.js";
+import {
   HISTORY_PAGE_SIZE,
   ORGANIZATION_SCOPED_KINDS_AT_LEDGER,
   organizationNamedBy,
@@ -141,9 +147,11 @@ export const SCHEMA_VERSION_15 = 15;
 export const SCHEMA_VERSION_16 = 16;
 /** v17: the environment rows removed, with the sign-in grant table; a pending sign-in names its vault. */
 export const SCHEMA_VERSION_17 = 17;
+/** v18: a conversation's retired own secrets and connections dropped from every session row. */
+export const SCHEMA_VERSION_18 = 18;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_17;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_18;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -200,6 +208,7 @@ export async function runMigrations(
       [SCHEMA_VERSION_15, migrateToV15],
       [SCHEMA_VERSION_16, migrateToV16],
       [SCHEMA_VERSION_17, migrateToV17],
+      [SCHEMA_VERSION_18, migrateToV18],
     ];
 
     for (const [version, migrate] of chain) {
@@ -1218,4 +1227,45 @@ async function migrateToV17(client: PoolClient): Promise<void> {
   await client.query(
     `ALTER TABLE pending_oauth_state ADD COLUMN tool_address TEXT NOT NULL DEFAULT ''`,
   );
+}
+
+/**
+ * v18: a conversation's own secrets and connections leave the contract
+ * (../session-values-retired.ts says what each row becomes and why nothing
+ * is carried). Every session row is read in keyset pages on `(kind, id)`
+ * and rewritten only when it holds a retired field, its `updated_at` left
+ * alone (the list keys it feeds are unchanged). The chain's advisory lock
+ * keeps a second instance's boot out of the step, and the transaction
+ * makes it whole or nothing.
+ */
+async function migrateToV18(client: PoolClient): Promise<void> {
+  for (let after = ""; ; ) {
+    const rows = (
+      await client.query<{ id: string; data: Buffer }>(
+        `SELECT id, data FROM resources
+         WHERE kind = $1 AND id > $2
+         ORDER BY id
+         LIMIT $3`,
+        [SESSION_VALUES_KIND, after, SESSION_VALUES_PAGE_SIZE],
+      )
+    ).rows;
+    for (const row of rows) {
+      let migrated: Uint8Array | undefined;
+      try {
+        migrated = migrateSessionValuesRow(new Uint8Array(row.data));
+      } catch (error) {
+        throw unreadableSessionValuesError(row.id, error);
+      }
+      if (migrated !== undefined) {
+        await client.query(
+          `UPDATE resources SET data = $1 WHERE kind = $2 AND id = $3`,
+          [Buffer.from(migrated), SESSION_VALUES_KIND, row.id],
+        );
+      }
+    }
+    if (rows.length < SESSION_VALUES_PAGE_SIZE) {
+      return;
+    }
+    after = rows[rows.length - 1]!.id;
+  }
 }

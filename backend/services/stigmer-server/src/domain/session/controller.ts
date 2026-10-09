@@ -125,7 +125,7 @@ import {
 import { newVaultAttachmentsStep } from "../vault/attachments.js";
 import {
   newDestroyDroppedSessionValuesStep,
-  newKeepStoredVaultsOnStaleWriteStep,
+  newKeepStoredVaultChoiceOnStaleWriteStep,
   newPreserveSessionValuesStep,
   newSealSessionValuesStep,
   redactSessionValues,
@@ -173,7 +173,7 @@ export interface SessionControllerDeps {
  * several people, so it never carries anyone's My vault.
  */
 const SESSION_VAULT_ATTACHMENTS: VaultAttachmentOptions<typeof SessionSchema> = {
-  surface: "a conversation (it uses the My vault of whoever sends each turn when it lists no vaults)",
+  surface: "a conversation (include My vault in it instead: each person who sends a turn then uses their own)",
   attachers: {
     get: (row) => row.status?.vaultAttachers,
     set: (row, attachers) => {
@@ -293,8 +293,9 @@ async function createSession(
  * introduces: the runner writes the session's harness state back with the
  * whole row, and a skill deleted since the session named it must not stop
  * that write (the runner skips a skill it cannot read). A stale update,
- * built on a read older than the stored row, keeps the stored vaults and
- * every stored value it omits (domain/vault/session-values.ts).
+ * built on a read older than the stored row, keeps the stored vaults,
+ * include_my_vault and every repository token it omits
+ * (domain/vault/session-values.ts).
  */
 async function update(
   deps: SessionControllerDeps,
@@ -317,7 +318,7 @@ async function update(
     .addStep(newValidateHarnessImmutabilityStep())
     .addStep(newValidateExecutionTargetImmutabilityStep(deps.temporalConfig))
     .addStep(newBuildUpdateStateStep())
-    .addStep(newKeepStoredVaultsOnStaleWriteStep())
+    .addStep(newKeepStoredVaultChoiceOnStaleWriteStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(
