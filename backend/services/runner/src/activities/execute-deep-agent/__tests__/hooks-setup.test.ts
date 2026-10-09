@@ -16,7 +16,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { turnInputFixture } from "../../../__test-utils__/turn-input-fixture.js";
 import type { TurnHookSource, TurnInput } from "../../../harness/types.js";
 import type { ResolvedMcpServer } from "../../../shared/mcp-resolver.js";
-import type { RunValues } from "../../../shared/run-values.js";
+import type { RunValues, ToolValueGroup } from "../../../shared/run-values.js";
 import type { MountedPlugin } from "../../../shared/plugin-mount.js";
 import { buildHookEvaluator, HookSetupError, permissionModeOf } from "../hooks-setup.js";
 
@@ -73,7 +73,10 @@ describe("buildHookEvaluator", () => {
   it("names the MCP server that keeps a variable a hook reads", async () => {
     // The value is in the GitHub tool's group, never the agent's.
     const base = input([{ plugin: mounted, format: "claude-code", groups: groups({ command: "check", args: ["${user_config.API_TOKEN}"] }) }], {
-      tools: new Map([["mcp_github", { url: "https://api.githubcopilot.com/mcp/", values: { API_TOKEN: "t" } }]]),
+      tools: new Map<string, ToolValueGroup>([
+        ["mcp_linear", { url: "https://mcp.linear.app/mcp", values: { LINEAR_TOKEN: "l" } }],
+        ["mcp_github", { url: "https://api.githubcopilot.com/mcp/", values: { API_TOKEN: "t" } }],
+      ]),
     });
     const server = { slug: "github", serverId: "mcp_github" } as Partial<ResolvedMcpServer> as ResolvedMcpServer;
     const claimed: TurnInput = { ...base, mcp: { ...base.mcp, servers: [server] } };

@@ -6,7 +6,10 @@
  * RUN_FAILED on the actionable surface with the server's own sentence —
  * the key, its declarer and the vault — unframed, with one
  * `Execution failed:` row, and RETURNS (a retry would read the same
- * vaults). The model is never asked, and no workspace is provisioned.
+ * vaults). The model is never asked, and no workspace is provisioned. Any
+ * other failure of the fetch (a credential the server refuses) is the
+ * platform's: it takes the runtime's generic error arm, never the
+ * person-facing one.
  */
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -71,5 +74,31 @@ describe("ExecuteDeepAgent hermetic — the run's values are refused", () => {
     expect(final.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content)).toEqual([
       `Execution failed: ${REFUSAL}`,
     ]);
+  });
+
+  it("takes the generic error arm for a fetch the server refuses as the platform's", async () => {
+    clock.reset();
+    const record = deepAgentExecutionRecord({ message: "Answer the ticket." });
+    const scenario = beginDeepAgentScenario({
+      env,
+      clock,
+      record,
+      script: () => {
+        throw new Error("the model must never be asked when the run's values cannot be fetched");
+      },
+      clientOverrides: {
+        fetchExecutionValues: vi.fn(async () => {
+          throw new ConnectError("not bound to this execution", Code.PermissionDenied);
+        }),
+      },
+    });
+
+    const turn = await runDeepAgentTurn(scenario, { turnSeq: 0 });
+
+    expect(turn.outcome.kind).toBe("returned");
+    const final = record.lastFullStatus!;
+    expect(final.phase).toBe(RunPhase.RUN_FAILED);
+    expect(final.error).toContain("not bound to this execution");
+    expect(final.error, "never the person-facing sentence").not.toBe("not bound to this execution");
   });
 });
