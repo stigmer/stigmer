@@ -20,10 +20,8 @@ the truth.
 - `src/harness/capabilities.ts`: the flags the runtime branches on instead of
   harness names, with the capability matrix.
 - `src/harness-adapters.ts` and `src/harness/registry.ts`: the one table of
-  harnesses, its load-bearing boot order, the byte-pinned activity binding.
-- `src/agent-host/hosting.ts`, then `src/agent-host/protocol.ts` and
-  `src/agent-proxy/server.ts`: where a hosted harness's engine runs, how the
-  runner talks to that process, and the one door to the runner's credentials.
+  harnesses, its load-bearing boot order, the byte-pinned activity binding;
+  `src/agent-host/hosting.ts` hosts it.
 - `src/__test-utils__/harness-contract/`: the contract kit every adapter and the
   runtime itself must pass; `src/__test-utils__/harness-contract/types.ts`
   first.
