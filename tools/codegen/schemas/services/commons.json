@@ -463,6 +463,11 @@
           "description": "AI grading switched on for one agent: its sample rate, monthly spending\n limit and judge model."
         },
         {
+          "name": "plugin_eval",
+          "number": 63,
+          "description": "One run of a plugin's own evals/ cases: every case tried with and\n without the plugin, on the models the eval names."
+        },
+        {
           "name": "plan",
           "number": 70,
           "description": "Catalog entry naming a bundle of entitlements and the terms that buy it.\n\n Platform-level: a plan belongs to no organization, so it carries no\n authorization scope and no owner. Immutable once created; a change of\n terms is a new Plan and the old one retires."

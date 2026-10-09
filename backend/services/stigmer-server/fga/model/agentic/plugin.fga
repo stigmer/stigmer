@@ -52,7 +52,11 @@ type plugin
     # ========================================
     # team#member is an Enterprise team's grant: every member, bounded by
     # the organization in team.fga.
-    define viewer: ([identity_account, organization#viewer, team#member] and affiliated from organization) or owner or child_org_viewer
+    # org_viewer is every viewer but child organizations' members: the set
+    # a plugin's evals are read by (plugin_eval.fga), named because the
+    # model has no `but not`. viewer is unchanged by the split.
+    define org_viewer: ([identity_account, organization#viewer, team#member] and affiliated from organization) or owner
+    define viewer: org_viewer or child_org_viewer
 
     # ========================================
     # PERMISSIONS

@@ -107,6 +107,22 @@ type RunSpec struct {
 	// The validated structured data lands on the run's
 	// status.structured_output.
 	StructuredOutputSchema *structpb.Struct `protobuf:"bytes,21,opt,name=structured_output_schema,json=structuredOutputSchema,proto3" json:"structured_output_schema,omitempty"`
+	// Tools this turn may use, in the same names as an agent's tools; empty
+	// leaves the agent's tools as they are.
+	//
+	// A turn can only narrow: a tool its agent (or the assistant) does not
+	// have stays unavailable whatever this lists. Like interaction_mode, it
+	// applies to this message only. Skill is a name here too: listing tools
+	// without Skill keeps the agent's skills; disallowed_tools with Skill
+	// removes them.
+	Tools []string `protobuf:"bytes,22,rep,name=tools,proto3" json:"tools,omitempty"`
+	// Tools this turn may never use, in the same names as tools. Applied
+	// before tools, so a tool named in both is excluded. Disallowing Skill
+	// hides every skill from this turn.
+	DisallowedTools []string `protobuf:"bytes,23,rep,name=disallowed_tools,json=disallowedTools,proto3" json:"disallowed_tools,omitempty"`
+	// Text appended to the system prompt for this turn only, as Claude
+	// Code's --append-system-prompt.
+	AppendSystemPrompt string `protobuf:"bytes,24,opt,name=append_system_prompt,json=appendSystemPrompt,proto3" json:"append_system_prompt,omitempty"`
 	// Auto-approve all tool executions for this run.
 	//
 	// When true, tools that would normally require approval are automatically
@@ -273,6 +289,27 @@ func (x *RunSpec) GetStructuredOutputSchema() *structpb.Struct {
 		return x.StructuredOutputSchema
 	}
 	return nil
+}
+
+func (x *RunSpec) GetTools() []string {
+	if x != nil {
+		return x.Tools
+	}
+	return nil
+}
+
+func (x *RunSpec) GetDisallowedTools() []string {
+	if x != nil {
+		return x.DisallowedTools
+	}
+	return nil
+}
+
+func (x *RunSpec) GetAppendSystemPrompt() string {
+	if x != nil {
+		return x.AppendSystemPrompt
+	}
+	return ""
 }
 
 func (x *RunSpec) GetAutoApproveAll() bool {
@@ -716,7 +753,7 @@ var File_ai_stigmer_agentic_run_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_run_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"$ai/stigmer/agentic/run/v1/spec.proto\x12\x19ai.stigmer.agentic.run.v1\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a(ai/stigmer/agentic/session/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x9f\t\n" +
+	"$ai/stigmer/agentic/run/v1/spec.proto\x12\x19ai.stigmer.agentic.run.v1\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a(ai/stigmer/agentic/session/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x91\f\n" +
 	"\aRunSpec\x12\x1f\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tH\x00R\tsessionId\x12O\n" +
@@ -726,7 +763,10 @@ const file_ai_stigmer_agentic_run_v1_spec_proto_rawDesc = "" +
 	"run_config\x18\x12 \x01(\v2$.ai.stigmer.agentic.run.v1.RunConfigR\trunConfig\x12_\n" +
 	"\x10interaction_mode\x18\x13 \x01(\x0e2*.ai.stigmer.agentic.run.v1.InteractionModeB\b\xbaH\x05\x82\x01\x02\x10\x01R\x0finteractionMode\x12&\n" +
 	"\x0fbuild_from_plan\x18\x14 \x01(\bR\rbuildFromPlan\x12Q\n" +
-	"\x18structured_output_schema\x18\x15 \x01(\v2\x17.google.protobuf.StructR\x16structuredOutputSchema\x12(\n" +
+	"\x18structured_output_schema\x18\x15 \x01(\v2\x17.google.protobuf.StructR\x16structuredOutputSchema\x12\x8d\x01\n" +
+	"\x05tools\x18\x16 \x03(\tBw\xbaHt\x92\x01q\x10\x80\x01\"lrj\x18\x80\x022e^(mcp__\\*|mcp__[a-z][a-z0-9-]*[a-z0-9](__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$R\x05tools\x12\xa2\x01\n" +
+	"\x10disallowed_tools\x18\x17 \x03(\tBw\xbaHt\x92\x01q\x10\x80\x01\"lrj\x18\x80\x022e^(mcp__\\*|mcp__[a-z][a-z0-9-]*[a-z0-9](__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$R\x0fdisallowedTools\x12;\n" +
+	"\x14append_system_prompt\x18\x18 \x01(\tB\t\xbaH\x06r\x04\x18\x80\x80\x02R\x12appendSystemPrompt\x12(\n" +
 	"\x10auto_approve_all\x18\a \x01(\bR\x0eautoApproveAll\x12G\n" +
 	"\vattachments\x18\t \x03(\v2%.ai.stigmer.agentic.run.v1.AttachmentR\vattachments\x12.\n" +
 	"\x13workspace_file_refs\x18\n" +

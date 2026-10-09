@@ -1,0 +1,205 @@
+{
+  "name": "PluginEvalSpec",
+  "description": "PluginEvalSpec says which plugin version is evaluated, on which models,\n how many times, and within what spend.",
+  "protoType": "ai.stigmer.agentic.plugineval.v1.PluginEvalSpec",
+  "protoFile": "apis/ai/stigmer/agentic/plugineval/v1/spec.proto",
+  "fields": [
+    {
+      "name": "PluginId",
+      "jsonName": "pluginId",
+      "protoField": "plugin_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "ID of the plugin whose evals run.",
+      "required": false,
+      "validation": {
+        "minLength": 1
+      }
+    },
+    {
+      "name": "PluginDigest",
+      "jsonName": "pluginDigest",
+      "protoField": "plugin_digest",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The plugin version (archive digest) to evaluate. Empty evaluates the\n current version.",
+      "required": false,
+      "validation": {
+        "pattern": "^$|^[a-f0-9]{64}$"
+      }
+    },
+    {
+      "name": "Targets",
+      "jsonName": "targets",
+      "protoField": "targets",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "PluginEvalTarget"
+        }
+      },
+      "description": "The engines and models each case runs on, at most six. Empty runs\n each case on the model it names, or on the platform's default model.",
+      "required": false,
+      "validation": {
+        "maxItems": 6
+      }
+    },
+    {
+      "name": "Runs",
+      "jsonName": "runs",
+      "protoField": "runs",
+      "type": {
+        "kind": "int32"
+      },
+      "description": "Tries per case, arm and target, from 1 to 50. Zero uses each case's\n own runs value, or 3.",
+      "required": false,
+      "validation": {
+        "max": 50
+      }
+    },
+    {
+      "name": "Ablation",
+      "jsonName": "ablation",
+      "protoField": "ablation",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.plugineval.v1.PluginEvalAblation",
+        "enumValues": [
+          "plugin_eval_ablation_with_without",
+          "plugin_eval_ablation_none"
+        ]
+      },
+      "description": "Whether each case also runs without the plugin, for comparison.",
+      "required": false
+    },
+    {
+      "name": "Threshold",
+      "jsonName": "threshold",
+      "protoField": "threshold",
+      "type": {
+        "kind": "double"
+      },
+      "description": "The score a case needs to pass, from 0 to 1. Unset means 1: every\n scored check passes on every try.",
+      "required": false,
+      "oneofGroup": "_threshold",
+      "validation": {
+        "max": 1
+      }
+    },
+    {
+      "name": "CaseGlob",
+      "jsonName": "caseGlob",
+      "protoField": "case_glob",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Runs only the cases whose directory name matches this glob, as in\n \"review-*\". Empty runs every case.",
+      "required": false,
+      "validation": {
+        "maxLength": 256
+      }
+    },
+    {
+      "name": "CaseTags",
+      "jsonName": "caseTags",
+      "protoField": "case_tags",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "Runs only the cases carrying at least one of these tags. Empty runs\n every case.",
+      "required": false,
+      "validation": {
+        "maxItems": 32
+      }
+    },
+    {
+      "name": "JudgeModel",
+      "jsonName": "judgeModel",
+      "protoField": "judge_model",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The model AI-graded checks use. Empty uses the platform's default\n judge model.",
+      "required": false,
+      "validation": {
+        "maxLength": 128
+      }
+    },
+    {
+      "name": "MaxCostUsd",
+      "jsonName": "maxCostUsd",
+      "protoField": "max_cost_usd",
+      "type": {
+        "kind": "double"
+      },
+      "description": "The most this eval may spend, in estimated US dollars of model cost.\n\n Checked before each try starts: tries already running finish, so the\n spend can pass the limit by those tries.",
+      "required": false,
+      "validation": {
+        "max": 1000
+      }
+    },
+    {
+      "name": "Concurrency",
+      "jsonName": "concurrency",
+      "protoField": "concurrency",
+      "type": {
+        "kind": "int32"
+      },
+      "description": "Tries running at once, from 1 to 8. Zero means 1.",
+      "required": false,
+      "validation": {
+        "max": 8
+      }
+    },
+    {
+      "name": "AllowTools",
+      "jsonName": "allowTools",
+      "protoField": "allow_tools",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "Tools every try may use beyond each case's own list, in Claude Code's\n names, as Claude Code's --allow-tools.\n\n A specifier in parentheses, as in Bash(npm test *), is accepted and\n grants the whole tool: every Stigmer tool list reads a specifier that\n way. Each try runs in a fresh workspace of its own.",
+      "required": false,
+      "validation": {
+        "maxItems": 64
+      }
+    },
+    {
+      "name": "RealMcpServers",
+      "jsonName": "realMcpServers",
+      "protoField": "real_mcp_servers",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "Runs the plugin's MCP servers for real, with the organization's\n connections. Off by default: a try cannot call the plugin's MCP tools,\n as in Claude Code's evals without mocks.",
+      "required": false
+    },
+    {
+      "name": "Vaults",
+      "jsonName": "vaults",
+      "protoField": "vaults",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "ApiResourceReference"
+        }
+      },
+      "description": "Vaults whose logins and secrets the tries use, in order: the first\n vault holding a match wins. At most 20.\n\n A try has no person, so these vaults are all its hooks and servers\n use. The eval's creator may attach their own My vault; nobody else's.",
+      "required": false,
+      "referenceKind": 59,
+      "validation": {
+        "maxItems": 20
+      }
+    }
+  ]
+}

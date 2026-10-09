@@ -41,6 +41,9 @@ public final class RunInput {
     private final InteractionMode interactionMode;
     private final boolean buildFromPlan;
     private final java.util.Map<String, Object> structuredOutputSchema;
+    private final java.util.List<String> tools;
+    private final java.util.List<String> disallowedTools;
+    private final String appendSystemPrompt;
     private final boolean autoApproveAll;
     private final java.util.List<AttachmentInput> attachments;
     private final java.util.List<String> workspaceFileRefs;
@@ -61,6 +64,9 @@ public final class RunInput {
         this.interactionMode = builder.interactionMode;
         this.buildFromPlan = builder.buildFromPlan;
         this.structuredOutputSchema = builder.structuredOutputSchema;
+        this.tools = builder.tools;
+        this.disallowedTools = builder.disallowedTools;
+        this.appendSystemPrompt = builder.appendSystemPrompt;
         this.autoApproveAll = builder.autoApproveAll;
         this.attachments = builder.attachments;
         this.workspaceFileRefs = builder.workspaceFileRefs;
@@ -88,6 +94,15 @@ public final class RunInput {
         spec.setBuildFromPlan(this.buildFromPlan);
         if (this.structuredOutputSchema != null) {
             spec.setStructuredOutputSchema(ProtoConvert.mapToStruct(this.structuredOutputSchema, "structuredOutputSchema"));
+        }
+        if (this.tools != null && !this.tools.isEmpty()) {
+            spec.addAllTools(this.tools);
+        }
+        if (this.disallowedTools != null && !this.disallowedTools.isEmpty()) {
+            spec.addAllDisallowedTools(this.disallowedTools);
+        }
+        if (this.appendSystemPrompt != null) {
+            spec.setAppendSystemPrompt(this.appendSystemPrompt);
         }
         spec.setAutoApproveAll(this.autoApproveAll);
         if (this.attachments != null) {
@@ -145,6 +160,9 @@ public final class RunInput {
         private InteractionMode interactionMode;
         private boolean buildFromPlan;
         private java.util.Map<String, Object> structuredOutputSchema;
+        private java.util.List<String> tools;
+        private java.util.List<String> disallowedTools;
+        private String appendSystemPrompt;
         private boolean autoApproveAll;
         private java.util.List<AttachmentInput> attachments;
         private java.util.List<String> workspaceFileRefs;
@@ -171,6 +189,9 @@ public final class RunInput {
         public Builder interactionMode(InteractionMode interactionMode) { this.interactionMode = interactionMode; return this; }
         public Builder buildFromPlan(boolean buildFromPlan) { this.buildFromPlan = buildFromPlan; return this; }
         public Builder structuredOutputSchema(java.util.Map<String, Object> structuredOutputSchema) { this.structuredOutputSchema = structuredOutputSchema; return this; }
+        public Builder tools(java.util.List<String> tools) { this.tools = tools; return this; }
+        public Builder disallowedTools(java.util.List<String> disallowedTools) { this.disallowedTools = disallowedTools; return this; }
+        public Builder appendSystemPrompt(String appendSystemPrompt) { this.appendSystemPrompt = appendSystemPrompt; return this; }
         public Builder autoApproveAll(boolean autoApproveAll) { this.autoApproveAll = autoApproveAll; return this; }
         public Builder attachments(java.util.List<AttachmentInput> attachments) { this.attachments = attachments; return this; }
         public Builder workspaceFileRefs(java.util.List<String> workspaceFileRefs) { this.workspaceFileRefs = workspaceFileRefs; return this; }

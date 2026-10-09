@@ -356,6 +356,146 @@ public interface RunSpecOrBuilder extends
 
   /**
    * <pre>
+   * Tools this turn may use, in the same names as an agent's tools; empty
+   * leaves the agent's tools as they are.
+   *
+   * A turn can only narrow: a tool its agent (or the assistant) does not
+   * have stays unavailable whatever this lists. Like interaction_mode, it
+   * applies to this message only. Skill is a name here too: listing tools
+   * without Skill keeps the agent's skills; disallowed_tools with Skill
+   * removes them.
+   * </pre>
+   *
+   * <code>repeated string tools = 22 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+   * @return A list containing the tools.
+   */
+  java.util.List<java.lang.String>
+      getToolsList();
+  /**
+   * <pre>
+   * Tools this turn may use, in the same names as an agent's tools; empty
+   * leaves the agent's tools as they are.
+   *
+   * A turn can only narrow: a tool its agent (or the assistant) does not
+   * have stays unavailable whatever this lists. Like interaction_mode, it
+   * applies to this message only. Skill is a name here too: listing tools
+   * without Skill keeps the agent's skills; disallowed_tools with Skill
+   * removes them.
+   * </pre>
+   *
+   * <code>repeated string tools = 22 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+   * @return The count of tools.
+   */
+  int getToolsCount();
+  /**
+   * <pre>
+   * Tools this turn may use, in the same names as an agent's tools; empty
+   * leaves the agent's tools as they are.
+   *
+   * A turn can only narrow: a tool its agent (or the assistant) does not
+   * have stays unavailable whatever this lists. Like interaction_mode, it
+   * applies to this message only. Skill is a name here too: listing tools
+   * without Skill keeps the agent's skills; disallowed_tools with Skill
+   * removes them.
+   * </pre>
+   *
+   * <code>repeated string tools = 22 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the element to return.
+   * @return The tools at the given index.
+   */
+  java.lang.String getTools(int index);
+  /**
+   * <pre>
+   * Tools this turn may use, in the same names as an agent's tools; empty
+   * leaves the agent's tools as they are.
+   *
+   * A turn can only narrow: a tool its agent (or the assistant) does not
+   * have stays unavailable whatever this lists. Like interaction_mode, it
+   * applies to this message only. Skill is a name here too: listing tools
+   * without Skill keeps the agent's skills; disallowed_tools with Skill
+   * removes them.
+   * </pre>
+   *
+   * <code>repeated string tools = 22 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the tools at the given index.
+   */
+  com.google.protobuf.ByteString
+      getToolsBytes(int index);
+
+  /**
+   * <pre>
+   * Tools this turn may never use, in the same names as tools. Applied
+   * before tools, so a tool named in both is excluded. Disallowing Skill
+   * hides every skill from this turn.
+   * </pre>
+   *
+   * <code>repeated string disallowed_tools = 23 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+   * @return A list containing the disallowedTools.
+   */
+  java.util.List<java.lang.String>
+      getDisallowedToolsList();
+  /**
+   * <pre>
+   * Tools this turn may never use, in the same names as tools. Applied
+   * before tools, so a tool named in both is excluded. Disallowing Skill
+   * hides every skill from this turn.
+   * </pre>
+   *
+   * <code>repeated string disallowed_tools = 23 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+   * @return The count of disallowedTools.
+   */
+  int getDisallowedToolsCount();
+  /**
+   * <pre>
+   * Tools this turn may never use, in the same names as tools. Applied
+   * before tools, so a tool named in both is excluded. Disallowing Skill
+   * hides every skill from this turn.
+   * </pre>
+   *
+   * <code>repeated string disallowed_tools = 23 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the element to return.
+   * @return The disallowedTools at the given index.
+   */
+  java.lang.String getDisallowedTools(int index);
+  /**
+   * <pre>
+   * Tools this turn may never use, in the same names as tools. Applied
+   * before tools, so a tool named in both is excluded. Disallowing Skill
+   * hides every skill from this turn.
+   * </pre>
+   *
+   * <code>repeated string disallowed_tools = 23 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the disallowedTools at the given index.
+   */
+  com.google.protobuf.ByteString
+      getDisallowedToolsBytes(int index);
+
+  /**
+   * <pre>
+   * Text appended to the system prompt for this turn only, as Claude
+   * Code's --append-system-prompt.
+   * </pre>
+   *
+   * <code>string append_system_prompt = 24 [json_name = "appendSystemPrompt", (.buf.validate.field) = { ... }</code>
+   * @return The appendSystemPrompt.
+   */
+  java.lang.String getAppendSystemPrompt();
+  /**
+   * <pre>
+   * Text appended to the system prompt for this turn only, as Claude
+   * Code's --append-system-prompt.
+   * </pre>
+   *
+   * <code>string append_system_prompt = 24 [json_name = "appendSystemPrompt", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for appendSystemPrompt.
+   */
+  com.google.protobuf.ByteString
+      getAppendSystemPromptBytes();
+
+  /**
+   * <pre>
    * Auto-approve all tool executions for this run.
    *
    * When true, tools that would normally require approval are automatically

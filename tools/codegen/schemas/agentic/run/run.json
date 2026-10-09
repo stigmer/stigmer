@@ -87,6 +87,51 @@
       "required": false
     },
     {
+      "name": "Tools",
+      "jsonName": "tools",
+      "protoField": "tools",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "Tools this turn may use, in the same names as an agent's tools; empty\n leaves the agent's tools as they are.\n\n A turn can only narrow: a tool its agent (or the assistant) does not\n have stays unavailable whatever this lists. Like interaction_mode, it\n applies to this message only. Skill is a name here too: listing tools\n without Skill keeps the agent's skills; disallowed_tools with Skill\n removes them.",
+      "required": false,
+      "validation": {
+        "maxItems": 128
+      }
+    },
+    {
+      "name": "DisallowedTools",
+      "jsonName": "disallowedTools",
+      "protoField": "disallowed_tools",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "Tools this turn may never use, in the same names as tools. Applied\n before tools, so a tool named in both is excluded. Disallowing Skill\n hides every skill from this turn.",
+      "required": false,
+      "validation": {
+        "maxItems": 128
+      }
+    },
+    {
+      "name": "AppendSystemPrompt",
+      "jsonName": "appendSystemPrompt",
+      "protoField": "append_system_prompt",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Text appended to the system prompt for this turn only, as Claude\n Code's --append-system-prompt.",
+      "required": false,
+      "validation": {
+        "maxLength": 32768
+      }
+    },
+    {
       "name": "AutoApproveAll",
       "jsonName": "autoApproveAll",
       "protoField": "auto_approve_all",

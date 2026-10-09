@@ -115,6 +115,8 @@ A score (`agentic/score.fga`) is seen through its run (`can_view: can_view from 
 
 An evaluator (`agentic/evaluator.fga`) has no relation of its own but its `agent` link: it is viewed, edited and deleted by whoever views or edits its agent (`can_view from agent`, `can_edit from agent`), and has no owner (`OWNER_ATTRIBUTION_TYPE_NONE`), because the agent's owner already includes the organization's admins. It is read by its id or by its agent, never through the list read scope.
 
+A plugin eval (`agentic/plugin_eval.fga`) is the evaluator's shape under a plugin: started, cancelled and deleted by whoever edits its plugin (`can_edit from plugin`), with no owner. It is read by the plugin's viewers in the plugin's own organization (`org_viewer from plugin`), not by a child organization's, because its tries spend the organization's credit and may use its connections. `plugin.fga` names that set `org_viewer` and keeps `viewer` as `org_viewer or child_org_viewer`, since the model has no `but not`. Its tries' sessions carry the read-only `plugin_eval` link, the channel and schedule links' third use. It is read by its id or by its plugin, never through the list read scope.
+
 ### Bounded by the Organization (every direct grant)
 
 Every organization-scoped type admits its direct subjects only while they belong to the object's organization:
@@ -292,6 +294,7 @@ fga/
 │       ├── mcp_server.fga          # MCP tool servers (open access)
 │       ├── memory.fga              # An identity's memories (subject-only)
 │       ├── plugin.fga              # Installed plugins, the unit of install
+│       ├── plugin_eval.fga         # A plugin's eval runs (the plugin's editors; its own organization's viewers)
 │       ├── run.fga                 # Runs (inherits from session)
 │       ├── schedule.fga            # Scheduled runs (owner-scoped)
 │       ├── score.fga               # A finished run's grades (seen through the run)

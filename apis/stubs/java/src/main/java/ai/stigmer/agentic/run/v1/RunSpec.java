@@ -35,6 +35,11 @@ private static final long serialVersionUID = 0L;
   private RunSpec() {
     message_ = "";
     interactionMode_ = 0;
+    tools_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+    disallowedTools_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+    appendSystemPrompt_ = "";
     attachments_ = java.util.Collections.emptyList();
     workspaceFileRefs_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
@@ -554,6 +559,197 @@ private static final long serialVersionUID = 0L;
     return structuredOutputSchema_ == null ? com.google.protobuf.Struct.getDefaultInstance() : structuredOutputSchema_;
   }
 
+  public static final int TOOLS_FIELD_NUMBER = 22;
+  @SuppressWarnings("serial")
+  private com.google.protobuf.LazyStringArrayList tools_ =
+      com.google.protobuf.LazyStringArrayList.emptyList();
+  /**
+   * <pre>
+   * Tools this turn may use, in the same names as an agent's tools; empty
+   * leaves the agent's tools as they are.
+   *
+   * A turn can only narrow: a tool its agent (or the assistant) does not
+   * have stays unavailable whatever this lists. Like interaction_mode, it
+   * applies to this message only. Skill is a name here too: listing tools
+   * without Skill keeps the agent's skills; disallowed_tools with Skill
+   * removes them.
+   * </pre>
+   *
+   * <code>repeated string tools = 22 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+   * @return A list containing the tools.
+   */
+  public com.google.protobuf.ProtocolStringList
+      getToolsList() {
+    return tools_;
+  }
+  /**
+   * <pre>
+   * Tools this turn may use, in the same names as an agent's tools; empty
+   * leaves the agent's tools as they are.
+   *
+   * A turn can only narrow: a tool its agent (or the assistant) does not
+   * have stays unavailable whatever this lists. Like interaction_mode, it
+   * applies to this message only. Skill is a name here too: listing tools
+   * without Skill keeps the agent's skills; disallowed_tools with Skill
+   * removes them.
+   * </pre>
+   *
+   * <code>repeated string tools = 22 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+   * @return The count of tools.
+   */
+  public int getToolsCount() {
+    return tools_.size();
+  }
+  /**
+   * <pre>
+   * Tools this turn may use, in the same names as an agent's tools; empty
+   * leaves the agent's tools as they are.
+   *
+   * A turn can only narrow: a tool its agent (or the assistant) does not
+   * have stays unavailable whatever this lists. Like interaction_mode, it
+   * applies to this message only. Skill is a name here too: listing tools
+   * without Skill keeps the agent's skills; disallowed_tools with Skill
+   * removes them.
+   * </pre>
+   *
+   * <code>repeated string tools = 22 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the element to return.
+   * @return The tools at the given index.
+   */
+  public java.lang.String getTools(int index) {
+    return tools_.get(index);
+  }
+  /**
+   * <pre>
+   * Tools this turn may use, in the same names as an agent's tools; empty
+   * leaves the agent's tools as they are.
+   *
+   * A turn can only narrow: a tool its agent (or the assistant) does not
+   * have stays unavailable whatever this lists. Like interaction_mode, it
+   * applies to this message only. Skill is a name here too: listing tools
+   * without Skill keeps the agent's skills; disallowed_tools with Skill
+   * removes them.
+   * </pre>
+   *
+   * <code>repeated string tools = 22 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the tools at the given index.
+   */
+  public com.google.protobuf.ByteString
+      getToolsBytes(int index) {
+    return tools_.getByteString(index);
+  }
+
+  public static final int DISALLOWED_TOOLS_FIELD_NUMBER = 23;
+  @SuppressWarnings("serial")
+  private com.google.protobuf.LazyStringArrayList disallowedTools_ =
+      com.google.protobuf.LazyStringArrayList.emptyList();
+  /**
+   * <pre>
+   * Tools this turn may never use, in the same names as tools. Applied
+   * before tools, so a tool named in both is excluded. Disallowing Skill
+   * hides every skill from this turn.
+   * </pre>
+   *
+   * <code>repeated string disallowed_tools = 23 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+   * @return A list containing the disallowedTools.
+   */
+  public com.google.protobuf.ProtocolStringList
+      getDisallowedToolsList() {
+    return disallowedTools_;
+  }
+  /**
+   * <pre>
+   * Tools this turn may never use, in the same names as tools. Applied
+   * before tools, so a tool named in both is excluded. Disallowing Skill
+   * hides every skill from this turn.
+   * </pre>
+   *
+   * <code>repeated string disallowed_tools = 23 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+   * @return The count of disallowedTools.
+   */
+  public int getDisallowedToolsCount() {
+    return disallowedTools_.size();
+  }
+  /**
+   * <pre>
+   * Tools this turn may never use, in the same names as tools. Applied
+   * before tools, so a tool named in both is excluded. Disallowing Skill
+   * hides every skill from this turn.
+   * </pre>
+   *
+   * <code>repeated string disallowed_tools = 23 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the element to return.
+   * @return The disallowedTools at the given index.
+   */
+  public java.lang.String getDisallowedTools(int index) {
+    return disallowedTools_.get(index);
+  }
+  /**
+   * <pre>
+   * Tools this turn may never use, in the same names as tools. Applied
+   * before tools, so a tool named in both is excluded. Disallowing Skill
+   * hides every skill from this turn.
+   * </pre>
+   *
+   * <code>repeated string disallowed_tools = 23 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the disallowedTools at the given index.
+   */
+  public com.google.protobuf.ByteString
+      getDisallowedToolsBytes(int index) {
+    return disallowedTools_.getByteString(index);
+  }
+
+  public static final int APPEND_SYSTEM_PROMPT_FIELD_NUMBER = 24;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object appendSystemPrompt_ = "";
+  /**
+   * <pre>
+   * Text appended to the system prompt for this turn only, as Claude
+   * Code's --append-system-prompt.
+   * </pre>
+   *
+   * <code>string append_system_prompt = 24 [json_name = "appendSystemPrompt", (.buf.validate.field) = { ... }</code>
+   * @return The appendSystemPrompt.
+   */
+  @java.lang.Override
+  public java.lang.String getAppendSystemPrompt() {
+    java.lang.Object ref = appendSystemPrompt_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      appendSystemPrompt_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Text appended to the system prompt for this turn only, as Claude
+   * Code's --append-system-prompt.
+   * </pre>
+   *
+   * <code>string append_system_prompt = 24 [json_name = "appendSystemPrompt", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for appendSystemPrompt.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getAppendSystemPromptBytes() {
+    java.lang.Object ref = appendSystemPrompt_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      appendSystemPrompt_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   public static final int AUTO_APPROVE_ALL_FIELD_NUMBER = 7;
   private boolean autoApproveAll_ = false;
   /**
@@ -1007,6 +1203,15 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000002) != 0)) {
       output.writeMessage(21, getStructuredOutputSchema());
     }
+    for (int i = 0; i < tools_.size(); i++) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 22, tools_.getRaw(i));
+    }
+    for (int i = 0; i < disallowedTools_.size(); i++) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 23, disallowedTools_.getRaw(i));
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(appendSystemPrompt_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 24, appendSystemPrompt_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -1070,6 +1275,25 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(21, getStructuredOutputSchema());
     }
+    {
+      int dataSize = 0;
+      for (int i = 0; i < tools_.size(); i++) {
+        dataSize += computeStringSizeNoTag(tools_.getRaw(i));
+      }
+      size += dataSize;
+      size += 2 * getToolsList().size();
+    }
+    {
+      int dataSize = 0;
+      for (int i = 0; i < disallowedTools_.size(); i++) {
+        dataSize += computeStringSizeNoTag(disallowedTools_.getRaw(i));
+      }
+      size += dataSize;
+      size += 2 * getDisallowedToolsList().size();
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(appendSystemPrompt_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(24, appendSystemPrompt_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -1100,6 +1324,12 @@ private static final long serialVersionUID = 0L;
       if (!getStructuredOutputSchema()
           .equals(other.getStructuredOutputSchema())) return false;
     }
+    if (!getToolsList()
+        .equals(other.getToolsList())) return false;
+    if (!getDisallowedToolsList()
+        .equals(other.getDisallowedToolsList())) return false;
+    if (!getAppendSystemPrompt()
+        .equals(other.getAppendSystemPrompt())) return false;
     if (getAutoApproveAll()
         != other.getAutoApproveAll()) return false;
     if (!getAttachmentsList()
@@ -1152,6 +1382,16 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + STRUCTURED_OUTPUT_SCHEMA_FIELD_NUMBER;
       hash = (53 * hash) + getStructuredOutputSchema().hashCode();
     }
+    if (getToolsCount() > 0) {
+      hash = (37 * hash) + TOOLS_FIELD_NUMBER;
+      hash = (53 * hash) + getToolsList().hashCode();
+    }
+    if (getDisallowedToolsCount() > 0) {
+      hash = (37 * hash) + DISALLOWED_TOOLS_FIELD_NUMBER;
+      hash = (53 * hash) + getDisallowedToolsList().hashCode();
+    }
+    hash = (37 * hash) + APPEND_SYSTEM_PROMPT_FIELD_NUMBER;
+    hash = (53 * hash) + getAppendSystemPrompt().hashCode();
     hash = (37 * hash) + AUTO_APPROVE_ALL_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getAutoApproveAll());
@@ -1342,6 +1582,11 @@ private static final long serialVersionUID = 0L;
         structuredOutputSchemaBuilder_.dispose();
         structuredOutputSchemaBuilder_ = null;
       }
+      tools_ =
+          com.google.protobuf.LazyStringArrayList.emptyList();
+      disallowedTools_ =
+          com.google.protobuf.LazyStringArrayList.emptyList();
+      appendSystemPrompt_ = "";
       autoApproveAll_ = false;
       if (attachmentsBuilder_ == null) {
         attachments_ = java.util.Collections.emptyList();
@@ -1349,7 +1594,7 @@ private static final long serialVersionUID = 0L;
         attachments_ = null;
         attachmentsBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000100);
+      bitField0_ = (bitField0_ & ~0x00000800);
       workspaceFileRefs_ =
           com.google.protobuf.LazyStringArrayList.emptyList();
       supersedesRunId_ = "";
@@ -1395,9 +1640,9 @@ private static final long serialVersionUID = 0L;
 
     private void buildPartialRepeatedFields(ai.stigmer.agentic.run.v1.RunSpec result) {
       if (attachmentsBuilder_ == null) {
-        if (((bitField0_ & 0x00000100) != 0)) {
+        if (((bitField0_ & 0x00000800) != 0)) {
           attachments_ = java.util.Collections.unmodifiableList(attachments_);
-          bitField0_ = (bitField0_ & ~0x00000100);
+          bitField0_ = (bitField0_ & ~0x00000800);
         }
         result.attachments_ = attachments_;
       } else {
@@ -1430,16 +1675,27 @@ private static final long serialVersionUID = 0L;
         to_bitField0_ |= 0x00000002;
       }
       if (((from_bitField0_ & 0x00000080) != 0)) {
-        result.autoApproveAll_ = autoApproveAll_;
+        tools_.makeImmutable();
+        result.tools_ = tools_;
+      }
+      if (((from_bitField0_ & 0x00000100) != 0)) {
+        disallowedTools_.makeImmutable();
+        result.disallowedTools_ = disallowedTools_;
       }
       if (((from_bitField0_ & 0x00000200) != 0)) {
+        result.appendSystemPrompt_ = appendSystemPrompt_;
+      }
+      if (((from_bitField0_ & 0x00000400) != 0)) {
+        result.autoApproveAll_ = autoApproveAll_;
+      }
+      if (((from_bitField0_ & 0x00001000) != 0)) {
         workspaceFileRefs_.makeImmutable();
         result.workspaceFileRefs_ = workspaceFileRefs_;
       }
-      if (((from_bitField0_ & 0x00000400) != 0)) {
+      if (((from_bitField0_ & 0x00002000) != 0)) {
         result.supersedesRunId_ = supersedesRunId_;
       }
-      if (((from_bitField0_ & 0x00000800) != 0)) {
+      if (((from_bitField0_ & 0x00004000) != 0)) {
         result.conversationCatchup_ = conversationCatchupBuilder_ == null
             ? conversationCatchup_
             : conversationCatchupBuilder_.build();
@@ -1486,6 +1742,31 @@ private static final long serialVersionUID = 0L;
       if (other.hasStructuredOutputSchema()) {
         mergeStructuredOutputSchema(other.getStructuredOutputSchema());
       }
+      if (!other.tools_.isEmpty()) {
+        if (tools_.isEmpty()) {
+          tools_ = other.tools_;
+          bitField0_ |= 0x00000080;
+        } else {
+          ensureToolsIsMutable();
+          tools_.addAll(other.tools_);
+        }
+        onChanged();
+      }
+      if (!other.disallowedTools_.isEmpty()) {
+        if (disallowedTools_.isEmpty()) {
+          disallowedTools_ = other.disallowedTools_;
+          bitField0_ |= 0x00000100;
+        } else {
+          ensureDisallowedToolsIsMutable();
+          disallowedTools_.addAll(other.disallowedTools_);
+        }
+        onChanged();
+      }
+      if (!other.getAppendSystemPrompt().isEmpty()) {
+        appendSystemPrompt_ = other.appendSystemPrompt_;
+        bitField0_ |= 0x00000200;
+        onChanged();
+      }
       if (other.getAutoApproveAll() != false) {
         setAutoApproveAll(other.getAutoApproveAll());
       }
@@ -1493,7 +1774,7 @@ private static final long serialVersionUID = 0L;
         if (!other.attachments_.isEmpty()) {
           if (attachments_.isEmpty()) {
             attachments_ = other.attachments_;
-            bitField0_ = (bitField0_ & ~0x00000100);
+            bitField0_ = (bitField0_ & ~0x00000800);
           } else {
             ensureAttachmentsIsMutable();
             attachments_.addAll(other.attachments_);
@@ -1506,7 +1787,7 @@ private static final long serialVersionUID = 0L;
             attachmentsBuilder_.dispose();
             attachmentsBuilder_ = null;
             attachments_ = other.attachments_;
-            bitField0_ = (bitField0_ & ~0x00000100);
+            bitField0_ = (bitField0_ & ~0x00000800);
             attachmentsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetAttachmentsFieldBuilder() : null;
@@ -1518,7 +1799,7 @@ private static final long serialVersionUID = 0L;
       if (!other.workspaceFileRefs_.isEmpty()) {
         if (workspaceFileRefs_.isEmpty()) {
           workspaceFileRefs_ = other.workspaceFileRefs_;
-          bitField0_ |= 0x00000200;
+          bitField0_ |= 0x00001000;
         } else {
           ensureWorkspaceFileRefsIsMutable();
           workspaceFileRefs_.addAll(other.workspaceFileRefs_);
@@ -1527,7 +1808,7 @@ private static final long serialVersionUID = 0L;
       }
       if (!other.getSupersedesRunId().isEmpty()) {
         supersedesRunId_ = other.supersedesRunId_;
-        bitField0_ |= 0x00000400;
+        bitField0_ |= 0x00002000;
         onChanged();
       }
       if (other.hasConversationCatchup()) {
@@ -1586,7 +1867,7 @@ private static final long serialVersionUID = 0L;
             } // case 26
             case 56: {
               autoApproveAll_ = input.readBool();
-              bitField0_ |= 0x00000080;
+              bitField0_ |= 0x00000400;
               break;
             } // case 56
             case 74: {
@@ -1609,7 +1890,7 @@ private static final long serialVersionUID = 0L;
             } // case 82
             case 98: {
               supersedesRunId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000400;
+              bitField0_ |= 0x00002000;
               break;
             } // case 98
             case 106: {
@@ -1623,7 +1904,7 @@ private static final long serialVersionUID = 0L;
               input.readMessage(
                   internalGetConversationCatchupFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000800;
+              bitField0_ |= 0x00004000;
               break;
             } // case 114
             case 146: {
@@ -1650,6 +1931,21 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000040;
               break;
             } // case 170
+            case 178: {
+              ensureToolsIsMutable();
+              tools_.add(input.readStringRequireUtf8());
+              break;
+            } // case 178
+            case 186: {
+              ensureDisallowedToolsIsMutable();
+              disallowedTools_.add(input.readStringRequireUtf8());
+              break;
+            } // case 186
+            case 194: {
+              appendSystemPrompt_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000200;
+              break;
+            } // case 194
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -3019,6 +3315,478 @@ private static final long serialVersionUID = 0L;
       return structuredOutputSchemaBuilder_;
     }
 
+    private com.google.protobuf.LazyStringArrayList tools_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+    private void ensureToolsIsMutable() {
+      if (!tools_.isModifiable()) {
+        tools_ = new com.google.protobuf.LazyStringArrayList(tools_);
+      }
+      bitField0_ |= 0x00000080;
+    }
+    /**
+     * <pre>
+     * Tools this turn may use, in the same names as an agent's tools; empty
+     * leaves the agent's tools as they are.
+     *
+     * A turn can only narrow: a tool its agent (or the assistant) does not
+     * have stays unavailable whatever this lists. Like interaction_mode, it
+     * applies to this message only. Skill is a name here too: listing tools
+     * without Skill keeps the agent's skills; disallowed_tools with Skill
+     * removes them.
+     * </pre>
+     *
+     * <code>repeated string tools = 22 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+     * @return A list containing the tools.
+     */
+    public com.google.protobuf.ProtocolStringList
+        getToolsList() {
+      tools_.makeImmutable();
+      return tools_;
+    }
+    /**
+     * <pre>
+     * Tools this turn may use, in the same names as an agent's tools; empty
+     * leaves the agent's tools as they are.
+     *
+     * A turn can only narrow: a tool its agent (or the assistant) does not
+     * have stays unavailable whatever this lists. Like interaction_mode, it
+     * applies to this message only. Skill is a name here too: listing tools
+     * without Skill keeps the agent's skills; disallowed_tools with Skill
+     * removes them.
+     * </pre>
+     *
+     * <code>repeated string tools = 22 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+     * @return The count of tools.
+     */
+    public int getToolsCount() {
+      return tools_.size();
+    }
+    /**
+     * <pre>
+     * Tools this turn may use, in the same names as an agent's tools; empty
+     * leaves the agent's tools as they are.
+     *
+     * A turn can only narrow: a tool its agent (or the assistant) does not
+     * have stays unavailable whatever this lists. Like interaction_mode, it
+     * applies to this message only. Skill is a name here too: listing tools
+     * without Skill keeps the agent's skills; disallowed_tools with Skill
+     * removes them.
+     * </pre>
+     *
+     * <code>repeated string tools = 22 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+     * @param index The index of the element to return.
+     * @return The tools at the given index.
+     */
+    public java.lang.String getTools(int index) {
+      return tools_.get(index);
+    }
+    /**
+     * <pre>
+     * Tools this turn may use, in the same names as an agent's tools; empty
+     * leaves the agent's tools as they are.
+     *
+     * A turn can only narrow: a tool its agent (or the assistant) does not
+     * have stays unavailable whatever this lists. Like interaction_mode, it
+     * applies to this message only. Skill is a name here too: listing tools
+     * without Skill keeps the agent's skills; disallowed_tools with Skill
+     * removes them.
+     * </pre>
+     *
+     * <code>repeated string tools = 22 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+     * @param index The index of the value to return.
+     * @return The bytes of the tools at the given index.
+     */
+    public com.google.protobuf.ByteString
+        getToolsBytes(int index) {
+      return tools_.getByteString(index);
+    }
+    /**
+     * <pre>
+     * Tools this turn may use, in the same names as an agent's tools; empty
+     * leaves the agent's tools as they are.
+     *
+     * A turn can only narrow: a tool its agent (or the assistant) does not
+     * have stays unavailable whatever this lists. Like interaction_mode, it
+     * applies to this message only. Skill is a name here too: listing tools
+     * without Skill keeps the agent's skills; disallowed_tools with Skill
+     * removes them.
+     * </pre>
+     *
+     * <code>repeated string tools = 22 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+     * @param index The index to set the value at.
+     * @param value The tools to set.
+     * @return This builder for chaining.
+     */
+    public Builder setTools(
+        int index, java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureToolsIsMutable();
+      tools_.set(index, value);
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Tools this turn may use, in the same names as an agent's tools; empty
+     * leaves the agent's tools as they are.
+     *
+     * A turn can only narrow: a tool its agent (or the assistant) does not
+     * have stays unavailable whatever this lists. Like interaction_mode, it
+     * applies to this message only. Skill is a name here too: listing tools
+     * without Skill keeps the agent's skills; disallowed_tools with Skill
+     * removes them.
+     * </pre>
+     *
+     * <code>repeated string tools = 22 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+     * @param value The tools to add.
+     * @return This builder for chaining.
+     */
+    public Builder addTools(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureToolsIsMutable();
+      tools_.add(value);
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Tools this turn may use, in the same names as an agent's tools; empty
+     * leaves the agent's tools as they are.
+     *
+     * A turn can only narrow: a tool its agent (or the assistant) does not
+     * have stays unavailable whatever this lists. Like interaction_mode, it
+     * applies to this message only. Skill is a name here too: listing tools
+     * without Skill keeps the agent's skills; disallowed_tools with Skill
+     * removes them.
+     * </pre>
+     *
+     * <code>repeated string tools = 22 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+     * @param values The tools to add.
+     * @return This builder for chaining.
+     */
+    public Builder addAllTools(
+        java.lang.Iterable<java.lang.String> values) {
+      ensureToolsIsMutable();
+      com.google.protobuf.AbstractMessageLite.Builder.addAll(
+          values, tools_);
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Tools this turn may use, in the same names as an agent's tools; empty
+     * leaves the agent's tools as they are.
+     *
+     * A turn can only narrow: a tool its agent (or the assistant) does not
+     * have stays unavailable whatever this lists. Like interaction_mode, it
+     * applies to this message only. Skill is a name here too: listing tools
+     * without Skill keeps the agent's skills; disallowed_tools with Skill
+     * removes them.
+     * </pre>
+     *
+     * <code>repeated string tools = 22 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearTools() {
+      tools_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+      bitField0_ = (bitField0_ & ~0x00000080);;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Tools this turn may use, in the same names as an agent's tools; empty
+     * leaves the agent's tools as they are.
+     *
+     * A turn can only narrow: a tool its agent (or the assistant) does not
+     * have stays unavailable whatever this lists. Like interaction_mode, it
+     * applies to this message only. Skill is a name here too: listing tools
+     * without Skill keeps the agent's skills; disallowed_tools with Skill
+     * removes them.
+     * </pre>
+     *
+     * <code>repeated string tools = 22 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes of the tools to add.
+     * @return This builder for chaining.
+     */
+    public Builder addToolsBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      ensureToolsIsMutable();
+      tools_.add(value);
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
+    }
+
+    private com.google.protobuf.LazyStringArrayList disallowedTools_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+    private void ensureDisallowedToolsIsMutable() {
+      if (!disallowedTools_.isModifiable()) {
+        disallowedTools_ = new com.google.protobuf.LazyStringArrayList(disallowedTools_);
+      }
+      bitField0_ |= 0x00000100;
+    }
+    /**
+     * <pre>
+     * Tools this turn may never use, in the same names as tools. Applied
+     * before tools, so a tool named in both is excluded. Disallowing Skill
+     * hides every skill from this turn.
+     * </pre>
+     *
+     * <code>repeated string disallowed_tools = 23 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+     * @return A list containing the disallowedTools.
+     */
+    public com.google.protobuf.ProtocolStringList
+        getDisallowedToolsList() {
+      disallowedTools_.makeImmutable();
+      return disallowedTools_;
+    }
+    /**
+     * <pre>
+     * Tools this turn may never use, in the same names as tools. Applied
+     * before tools, so a tool named in both is excluded. Disallowing Skill
+     * hides every skill from this turn.
+     * </pre>
+     *
+     * <code>repeated string disallowed_tools = 23 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+     * @return The count of disallowedTools.
+     */
+    public int getDisallowedToolsCount() {
+      return disallowedTools_.size();
+    }
+    /**
+     * <pre>
+     * Tools this turn may never use, in the same names as tools. Applied
+     * before tools, so a tool named in both is excluded. Disallowing Skill
+     * hides every skill from this turn.
+     * </pre>
+     *
+     * <code>repeated string disallowed_tools = 23 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+     * @param index The index of the element to return.
+     * @return The disallowedTools at the given index.
+     */
+    public java.lang.String getDisallowedTools(int index) {
+      return disallowedTools_.get(index);
+    }
+    /**
+     * <pre>
+     * Tools this turn may never use, in the same names as tools. Applied
+     * before tools, so a tool named in both is excluded. Disallowing Skill
+     * hides every skill from this turn.
+     * </pre>
+     *
+     * <code>repeated string disallowed_tools = 23 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+     * @param index The index of the value to return.
+     * @return The bytes of the disallowedTools at the given index.
+     */
+    public com.google.protobuf.ByteString
+        getDisallowedToolsBytes(int index) {
+      return disallowedTools_.getByteString(index);
+    }
+    /**
+     * <pre>
+     * Tools this turn may never use, in the same names as tools. Applied
+     * before tools, so a tool named in both is excluded. Disallowing Skill
+     * hides every skill from this turn.
+     * </pre>
+     *
+     * <code>repeated string disallowed_tools = 23 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+     * @param index The index to set the value at.
+     * @param value The disallowedTools to set.
+     * @return This builder for chaining.
+     */
+    public Builder setDisallowedTools(
+        int index, java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureDisallowedToolsIsMutable();
+      disallowedTools_.set(index, value);
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Tools this turn may never use, in the same names as tools. Applied
+     * before tools, so a tool named in both is excluded. Disallowing Skill
+     * hides every skill from this turn.
+     * </pre>
+     *
+     * <code>repeated string disallowed_tools = 23 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+     * @param value The disallowedTools to add.
+     * @return This builder for chaining.
+     */
+    public Builder addDisallowedTools(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureDisallowedToolsIsMutable();
+      disallowedTools_.add(value);
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Tools this turn may never use, in the same names as tools. Applied
+     * before tools, so a tool named in both is excluded. Disallowing Skill
+     * hides every skill from this turn.
+     * </pre>
+     *
+     * <code>repeated string disallowed_tools = 23 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+     * @param values The disallowedTools to add.
+     * @return This builder for chaining.
+     */
+    public Builder addAllDisallowedTools(
+        java.lang.Iterable<java.lang.String> values) {
+      ensureDisallowedToolsIsMutable();
+      com.google.protobuf.AbstractMessageLite.Builder.addAll(
+          values, disallowedTools_);
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Tools this turn may never use, in the same names as tools. Applied
+     * before tools, so a tool named in both is excluded. Disallowing Skill
+     * hides every skill from this turn.
+     * </pre>
+     *
+     * <code>repeated string disallowed_tools = 23 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearDisallowedTools() {
+      disallowedTools_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+      bitField0_ = (bitField0_ & ~0x00000100);;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Tools this turn may never use, in the same names as tools. Applied
+     * before tools, so a tool named in both is excluded. Disallowing Skill
+     * hides every skill from this turn.
+     * </pre>
+     *
+     * <code>repeated string disallowed_tools = 23 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes of the disallowedTools to add.
+     * @return This builder for chaining.
+     */
+    public Builder addDisallowedToolsBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      ensureDisallowedToolsIsMutable();
+      disallowedTools_.add(value);
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object appendSystemPrompt_ = "";
+    /**
+     * <pre>
+     * Text appended to the system prompt for this turn only, as Claude
+     * Code's --append-system-prompt.
+     * </pre>
+     *
+     * <code>string append_system_prompt = 24 [json_name = "appendSystemPrompt", (.buf.validate.field) = { ... }</code>
+     * @return The appendSystemPrompt.
+     */
+    public java.lang.String getAppendSystemPrompt() {
+      java.lang.Object ref = appendSystemPrompt_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        appendSystemPrompt_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Text appended to the system prompt for this turn only, as Claude
+     * Code's --append-system-prompt.
+     * </pre>
+     *
+     * <code>string append_system_prompt = 24 [json_name = "appendSystemPrompt", (.buf.validate.field) = { ... }</code>
+     * @return The bytes for appendSystemPrompt.
+     */
+    public com.google.protobuf.ByteString
+        getAppendSystemPromptBytes() {
+      java.lang.Object ref = appendSystemPrompt_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        appendSystemPrompt_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Text appended to the system prompt for this turn only, as Claude
+     * Code's --append-system-prompt.
+     * </pre>
+     *
+     * <code>string append_system_prompt = 24 [json_name = "appendSystemPrompt", (.buf.validate.field) = { ... }</code>
+     * @param value The appendSystemPrompt to set.
+     * @return This builder for chaining.
+     */
+    public Builder setAppendSystemPrompt(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      appendSystemPrompt_ = value;
+      bitField0_ |= 0x00000200;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Text appended to the system prompt for this turn only, as Claude
+     * Code's --append-system-prompt.
+     * </pre>
+     *
+     * <code>string append_system_prompt = 24 [json_name = "appendSystemPrompt", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearAppendSystemPrompt() {
+      appendSystemPrompt_ = getDefaultInstance().getAppendSystemPrompt();
+      bitField0_ = (bitField0_ & ~0x00000200);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Text appended to the system prompt for this turn only, as Claude
+     * Code's --append-system-prompt.
+     * </pre>
+     *
+     * <code>string append_system_prompt = 24 [json_name = "appendSystemPrompt", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes for appendSystemPrompt to set.
+     * @return This builder for chaining.
+     */
+    public Builder setAppendSystemPromptBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      appendSystemPrompt_ = value;
+      bitField0_ |= 0x00000200;
+      onChanged();
+      return this;
+    }
+
     private boolean autoApproveAll_ ;
     /**
      * <pre>
@@ -3076,7 +3844,7 @@ private static final long serialVersionUID = 0L;
     public Builder setAutoApproveAll(boolean value) {
 
       autoApproveAll_ = value;
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }
@@ -3105,7 +3873,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearAutoApproveAll() {
-      bitField0_ = (bitField0_ & ~0x00000080);
+      bitField0_ = (bitField0_ & ~0x00000400);
       autoApproveAll_ = false;
       onChanged();
       return this;
@@ -3114,9 +3882,9 @@ private static final long serialVersionUID = 0L;
     private java.util.List<ai.stigmer.agentic.run.v1.Attachment> attachments_ =
       java.util.Collections.emptyList();
     private void ensureAttachmentsIsMutable() {
-      if (!((bitField0_ & 0x00000100) != 0)) {
+      if (!((bitField0_ & 0x00000800) != 0)) {
         attachments_ = new java.util.ArrayList<ai.stigmer.agentic.run.v1.Attachment>(attachments_);
-        bitField0_ |= 0x00000100;
+        bitField0_ |= 0x00000800;
        }
     }
 
@@ -3431,7 +4199,7 @@ private static final long serialVersionUID = 0L;
     public Builder clearAttachments() {
       if (attachmentsBuilder_ == null) {
         attachments_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000100);
+        bitField0_ = (bitField0_ & ~0x00000800);
         onChanged();
       } else {
         attachmentsBuilder_.clear();
@@ -3613,7 +4381,7 @@ private static final long serialVersionUID = 0L;
         attachmentsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.run.v1.Attachment, ai.stigmer.agentic.run.v1.Attachment.Builder, ai.stigmer.agentic.run.v1.AttachmentOrBuilder>(
                 attachments_,
-                ((bitField0_ & 0x00000100) != 0),
+                ((bitField0_ & 0x00000800) != 0),
                 getParentForChildren(),
                 isClean());
         attachments_ = null;
@@ -3627,7 +4395,7 @@ private static final long serialVersionUID = 0L;
       if (!workspaceFileRefs_.isModifiable()) {
         workspaceFileRefs_ = new com.google.protobuf.LazyStringArrayList(workspaceFileRefs_);
       }
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00001000;
     }
     /**
      * <pre>
@@ -3798,7 +4566,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       ensureWorkspaceFileRefsIsMutable();
       workspaceFileRefs_.set(index, value);
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00001000;
       onChanged();
       return this;
     }
@@ -3837,7 +4605,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       ensureWorkspaceFileRefsIsMutable();
       workspaceFileRefs_.add(value);
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00001000;
       onChanged();
       return this;
     }
@@ -3876,7 +4644,7 @@ private static final long serialVersionUID = 0L;
       ensureWorkspaceFileRefsIsMutable();
       com.google.protobuf.AbstractMessageLite.Builder.addAll(
           values, workspaceFileRefs_);
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00001000;
       onChanged();
       return this;
     }
@@ -3912,7 +4680,7 @@ private static final long serialVersionUID = 0L;
     public Builder clearWorkspaceFileRefs() {
       workspaceFileRefs_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
-      bitField0_ = (bitField0_ & ~0x00000200);;
+      bitField0_ = (bitField0_ & ~0x00001000);;
       onChanged();
       return this;
     }
@@ -3952,7 +4720,7 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       ensureWorkspaceFileRefsIsMutable();
       workspaceFileRefs_.add(value);
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00001000;
       onChanged();
       return this;
     }
@@ -4036,7 +4804,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       supersedesRunId_ = value;
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00002000;
       onChanged();
       return this;
     }
@@ -4058,7 +4826,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearSupersedesRunId() {
       supersedesRunId_ = getDefaultInstance().getSupersedesRunId();
-      bitField0_ = (bitField0_ & ~0x00000400);
+      bitField0_ = (bitField0_ & ~0x00002000);
       onChanged();
       return this;
     }
@@ -4084,7 +4852,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       supersedesRunId_ = value;
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00002000;
       onChanged();
       return this;
     }
@@ -4107,7 +4875,7 @@ private static final long serialVersionUID = 0L;
      * @return Whether the conversationCatchup field is set.
      */
     public boolean hasConversationCatchup() {
-      return ((bitField0_ & 0x00000800) != 0);
+      return ((bitField0_ & 0x00004000) != 0);
     }
     /**
      * <pre>
@@ -4152,7 +4920,7 @@ private static final long serialVersionUID = 0L;
       } else {
         conversationCatchupBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000800;
+      bitField0_ |= 0x00004000;
       onChanged();
       return this;
     }
@@ -4176,7 +4944,7 @@ private static final long serialVersionUID = 0L;
       } else {
         conversationCatchupBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000800;
+      bitField0_ |= 0x00004000;
       onChanged();
       return this;
     }
@@ -4195,7 +4963,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergeConversationCatchup(ai.stigmer.agentic.run.v1.ConversationCatchup value) {
       if (conversationCatchupBuilder_ == null) {
-        if (((bitField0_ & 0x00000800) != 0) &&
+        if (((bitField0_ & 0x00004000) != 0) &&
           conversationCatchup_ != null &&
           conversationCatchup_ != ai.stigmer.agentic.run.v1.ConversationCatchup.getDefaultInstance()) {
           getConversationCatchupBuilder().mergeFrom(value);
@@ -4206,7 +4974,7 @@ private static final long serialVersionUID = 0L;
         conversationCatchupBuilder_.mergeFrom(value);
       }
       if (conversationCatchup_ != null) {
-        bitField0_ |= 0x00000800;
+        bitField0_ |= 0x00004000;
         onChanged();
       }
       return this;
@@ -4225,7 +4993,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.run.v1.ConversationCatchup conversation_catchup = 14 [json_name = "conversationCatchup"];</code>
      */
     public Builder clearConversationCatchup() {
-      bitField0_ = (bitField0_ & ~0x00000800);
+      bitField0_ = (bitField0_ & ~0x00004000);
       conversationCatchup_ = null;
       if (conversationCatchupBuilder_ != null) {
         conversationCatchupBuilder_.dispose();
@@ -4248,7 +5016,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.run.v1.ConversationCatchup conversation_catchup = 14 [json_name = "conversationCatchup"];</code>
      */
     public ai.stigmer.agentic.run.v1.ConversationCatchup.Builder getConversationCatchupBuilder() {
-      bitField0_ |= 0x00000800;
+      bitField0_ |= 0x00004000;
       onChanged();
       return internalGetConversationCatchupFieldBuilder().getBuilder();
     }

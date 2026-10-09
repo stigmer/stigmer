@@ -161,6 +161,52 @@ message RunSpec {
   // status.structured_output.
   google.protobuf.Struct structured_output_schema = 21;
 
+  // Tools this turn may use, in the same names as an agent's tools; empty
+  // leaves the agent's tools as they are.
+  //
+  // A turn can only narrow: a tool its agent (or the assistant) does not
+  // have stays unavailable whatever this lists. Like interaction_mode, it
+  // applies to this message only. Skill is a name here too: listing tools
+  // without Skill keeps the agent's skills; disallowed_tools with Skill
+  // removes them.
+  //
+  // @internal
+  // One more layer of the conjunction the runner already resolves for an
+  // agent's lists (runner shared/tool-lists.ts): disallowed first, then
+  // allowed, each layer intersected with the one before. Plugin evals set
+  // it from a case's allowed_tools.
+  repeated string tools = 22 [(buf.validate.field).repeated = {
+    max_items: 128
+    items: {
+      string: {
+        max_len: 256
+        pattern: "^(mcp__\\*|mcp__[a-z][a-z0-9-]*[a-z0-9](__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$"
+      }
+    }
+  }];
+
+  // Tools this turn may never use, in the same names as tools. Applied
+  // before tools, so a tool named in both is excluded. Disallowing Skill
+  // hides every skill from this turn.
+  repeated string disallowed_tools = 23 [(buf.validate.field).repeated = {
+    max_items: 128
+    items: {
+      string: {
+        max_len: 256
+        pattern: "^(mcp__\\*|mcp__[a-z][a-z0-9-]*[a-z0-9](__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$"
+      }
+    }
+  }];
+
+  // Text appended to the system prompt for this turn only, as Claude
+  // Code's --append-system-prompt.
+  //
+  // @internal
+  // Appended after the agent's instructions and the platform's sections,
+  // on both engines. Plugin evals set it from a case's
+  // append_system_prompt.
+  string append_system_prompt = 24 [(buf.validate.field).string.max_len = 32768];
+
   // Field 5 held runtime_env, a turn's own variables and secrets, until a
   // run's values moved to vaults: a key is saved in a vault, and the
   // conversation names the vaults it uses on session_spec.

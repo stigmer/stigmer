@@ -101,7 +101,10 @@ type PluginStatus struct {
 	Warnings []*PluginWarning `protobuf:"bytes,6,rep,name=warnings,proto3" json:"warnings,omitempty"`
 	// The plugin's tool-call hooks, as recorded at install; unset when the
 	// plugin carries none.
-	Hooks         *HookConfig `protobuf:"bytes,7,opt,name=hooks,proto3" json:"hooks,omitempty"`
+	Hooks *HookConfig `protobuf:"bytes,7,opt,name=hooks,proto3" json:"hooks,omitempty"`
+	// The plugin's evals/ test cases, as read at install; unset when the
+	// plugin carries none.
+	Evals         *PluginEvalSuite `protobuf:"bytes,8,opt,name=evals,proto3" json:"evals,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -192,6 +195,170 @@ func (x *PluginStatus) GetHooks() *HookConfig {
 	return nil
 }
 
+func (x *PluginStatus) GetEvals() *PluginEvalSuite {
+	if x != nil {
+		return x.Evals
+	}
+	return nil
+}
+
+// PluginEvalSuite summarises a plugin's evals/ test cases.
+type PluginEvalSuite struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The suite's directory relative to the plugin's root: "evals", or the
+	// manifest's experimental.evals.
+	Dir string `protobuf:"bytes,1,opt,name=dir,proto3" json:"dir,omitempty"`
+	// Cases found in the suite.
+	CaseCount int32 `protobuf:"varint,2,opt,name=case_count,json=caseCount,proto3" json:"case_count,omitempty"`
+	// Every tag the cases carry, sorted.
+	CaseTags []string `protobuf:"bytes,3,rep,name=case_tags,json=caseTags,proto3" json:"case_tags,omitempty"`
+	// Each case, in directory order.
+	Cases []*PluginEvalSuiteCase `protobuf:"bytes,4,rep,name=cases,proto3" json:"cases,omitempty"`
+	// Problems reading the suite: a case that cannot load, an unknown field.
+	Findings      []*PluginWarning `protobuf:"bytes,5,rep,name=findings,proto3" json:"findings,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PluginEvalSuite) Reset() {
+	*x = PluginEvalSuite{}
+	mi := &file_ai_stigmer_agentic_plugin_v1_status_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PluginEvalSuite) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PluginEvalSuite) ProtoMessage() {}
+
+func (x *PluginEvalSuite) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_plugin_v1_status_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PluginEvalSuite.ProtoReflect.Descriptor instead.
+func (*PluginEvalSuite) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_plugin_v1_status_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *PluginEvalSuite) GetDir() string {
+	if x != nil {
+		return x.Dir
+	}
+	return ""
+}
+
+func (x *PluginEvalSuite) GetCaseCount() int32 {
+	if x != nil {
+		return x.CaseCount
+	}
+	return 0
+}
+
+func (x *PluginEvalSuite) GetCaseTags() []string {
+	if x != nil {
+		return x.CaseTags
+	}
+	return nil
+}
+
+func (x *PluginEvalSuite) GetCases() []*PluginEvalSuiteCase {
+	if x != nil {
+		return x.Cases
+	}
+	return nil
+}
+
+func (x *PluginEvalSuite) GetFindings() []*PluginWarning {
+	if x != nil {
+		return x.Findings
+	}
+	return nil
+}
+
+// PluginEvalSuiteCase is one case of a plugin's eval suite.
+type PluginEvalSuiteCase struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The case's name.
+	CaseName string `protobuf:"bytes,1,opt,name=case_name,json=caseName,proto3" json:"case_name,omitempty"`
+	// The case's directory, relative to the plugin's root.
+	Path string `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
+	// The case's tags.
+	CaseTags []string `protobuf:"bytes,3,rep,name=case_tags,json=caseTags,proto3" json:"case_tags,omitempty"`
+	// Why Stigmer cannot run the case yet, naming the feature, as in
+	// "context.scaffold_script"; empty when it can.
+	Unsupported   string `protobuf:"bytes,4,opt,name=unsupported,proto3" json:"unsupported,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PluginEvalSuiteCase) Reset() {
+	*x = PluginEvalSuiteCase{}
+	mi := &file_ai_stigmer_agentic_plugin_v1_status_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PluginEvalSuiteCase) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PluginEvalSuiteCase) ProtoMessage() {}
+
+func (x *PluginEvalSuiteCase) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_plugin_v1_status_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PluginEvalSuiteCase.ProtoReflect.Descriptor instead.
+func (*PluginEvalSuiteCase) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_plugin_v1_status_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *PluginEvalSuiteCase) GetCaseName() string {
+	if x != nil {
+		return x.CaseName
+	}
+	return ""
+}
+
+func (x *PluginEvalSuiteCase) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *PluginEvalSuiteCase) GetCaseTags() []string {
+	if x != nil {
+		return x.CaseTags
+	}
+	return nil
+}
+
+func (x *PluginEvalSuiteCase) GetUnsupported() string {
+	if x != nil {
+		return x.Unsupported
+	}
+	return ""
+}
+
 // PluginMaterialization counts what a push produced, by kind.
 type PluginMaterialization struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -208,7 +375,7 @@ type PluginMaterialization struct {
 
 func (x *PluginMaterialization) Reset() {
 	*x = PluginMaterialization{}
-	mi := &file_ai_stigmer_agentic_plugin_v1_status_proto_msgTypes[1]
+	mi := &file_ai_stigmer_agentic_plugin_v1_status_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -220,7 +387,7 @@ func (x *PluginMaterialization) String() string {
 func (*PluginMaterialization) ProtoMessage() {}
 
 func (x *PluginMaterialization) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_plugin_v1_status_proto_msgTypes[1]
+	mi := &file_ai_stigmer_agentic_plugin_v1_status_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -233,7 +400,7 @@ func (x *PluginMaterialization) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PluginMaterialization.ProtoReflect.Descriptor instead.
 func (*PluginMaterialization) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_plugin_v1_status_proto_rawDescGZIP(), []int{1}
+	return file_ai_stigmer_agentic_plugin_v1_status_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *PluginMaterialization) GetSkills() int32 {
@@ -275,7 +442,7 @@ type PluginWarning struct {
 
 func (x *PluginWarning) Reset() {
 	*x = PluginWarning{}
-	mi := &file_ai_stigmer_agentic_plugin_v1_status_proto_msgTypes[2]
+	mi := &file_ai_stigmer_agentic_plugin_v1_status_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -287,7 +454,7 @@ func (x *PluginWarning) String() string {
 func (*PluginWarning) ProtoMessage() {}
 
 func (x *PluginWarning) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_plugin_v1_status_proto_msgTypes[2]
+	mi := &file_ai_stigmer_agentic_plugin_v1_status_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -300,7 +467,7 @@ func (x *PluginWarning) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PluginWarning.ProtoReflect.Descriptor instead.
 func (*PluginWarning) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_plugin_v1_status_proto_rawDescGZIP(), []int{2}
+	return file_ai_stigmer_agentic_plugin_v1_status_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *PluginWarning) GetKind() string {
@@ -328,7 +495,7 @@ var File_ai_stigmer_agentic_plugin_v1_status_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_plugin_v1_status_proto_rawDesc = "" +
 	"\n" +
-	")ai/stigmer/agentic/plugin/v1/status.proto\x12\x1cai.stigmer.agentic.plugin.v1\x1a(ai/stigmer/agentic/plugin/v1/hooks.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\"\xf3\x03\n" +
+	")ai/stigmer/agentic/plugin/v1/status.proto\x12\x1cai.stigmer.agentic.plugin.v1\x1a(ai/stigmer/agentic/plugin/v1/hooks.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\"\xb8\x04\n" +
 	"\fPluginStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x120\n" +
 	"\x06digest\x18\x01 \x01(\tB\x18\xbaH\x15r\x132\x11^$|^[a-f0-9]{64}$R\x06digest\x120\n" +
@@ -337,7 +504,20 @@ const file_ai_stigmer_agentic_plugin_v1_status_proto_rawDesc = "" +
 	"\x05error\x18\x04 \x01(\tR\x05error\x12W\n" +
 	"\fmaterialized\x18\x05 \x01(\v23.ai.stigmer.agentic.plugin.v1.PluginMaterializationR\fmaterialized\x12G\n" +
 	"\bwarnings\x18\x06 \x03(\v2+.ai.stigmer.agentic.plugin.v1.PluginWarningR\bwarnings\x12>\n" +
-	"\x05hooks\x18\a \x01(\v2(.ai.stigmer.agentic.plugin.v1.HookConfigR\x05hooks\"y\n" +
+	"\x05hooks\x18\a \x01(\v2(.ai.stigmer.agentic.plugin.v1.HookConfigR\x05hooks\x12C\n" +
+	"\x05evals\x18\b \x01(\v2-.ai.stigmer.agentic.plugin.v1.PluginEvalSuiteR\x05evals\"\xf1\x01\n" +
+	"\x0fPluginEvalSuite\x12\x10\n" +
+	"\x03dir\x18\x01 \x01(\tR\x03dir\x12\x1d\n" +
+	"\n" +
+	"case_count\x18\x02 \x01(\x05R\tcaseCount\x12\x1b\n" +
+	"\tcase_tags\x18\x03 \x03(\tR\bcaseTags\x12G\n" +
+	"\x05cases\x18\x04 \x03(\v21.ai.stigmer.agentic.plugin.v1.PluginEvalSuiteCaseR\x05cases\x12G\n" +
+	"\bfindings\x18\x05 \x03(\v2+.ai.stigmer.agentic.plugin.v1.PluginWarningR\bfindings\"\x85\x01\n" +
+	"\x13PluginEvalSuiteCase\x12\x1b\n" +
+	"\tcase_name\x18\x01 \x01(\tR\bcaseName\x12\x12\n" +
+	"\x04path\x18\x02 \x01(\tR\x04path\x12\x1b\n" +
+	"\tcase_tags\x18\x03 \x03(\tR\bcaseTags\x12 \n" +
+	"\vunsupported\x18\x04 \x01(\tR\vunsupported\"y\n" +
 	"\x15PluginMaterialization\x12\x16\n" +
 	"\x06skills\x18\x01 \x01(\x05R\x06skills\x12\x1f\n" +
 	"\vmcp_servers\x18\x02 \x01(\x05R\n" +
@@ -367,26 +547,31 @@ func file_ai_stigmer_agentic_plugin_v1_status_proto_rawDescGZIP() []byte {
 }
 
 var file_ai_stigmer_agentic_plugin_v1_status_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_ai_stigmer_agentic_plugin_v1_status_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_ai_stigmer_agentic_plugin_v1_status_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_ai_stigmer_agentic_plugin_v1_status_proto_goTypes = []any{
 	(PluginState)(0),                     // 0: ai.stigmer.agentic.plugin.v1.PluginState
 	(*PluginStatus)(nil),                 // 1: ai.stigmer.agentic.plugin.v1.PluginStatus
-	(*PluginMaterialization)(nil),        // 2: ai.stigmer.agentic.plugin.v1.PluginMaterialization
-	(*PluginWarning)(nil),                // 3: ai.stigmer.agentic.plugin.v1.PluginWarning
-	(*apiresource.ApiResourceAudit)(nil), // 4: ai.stigmer.commons.apiresource.ApiResourceAudit
-	(*HookConfig)(nil),                   // 5: ai.stigmer.agentic.plugin.v1.HookConfig
+	(*PluginEvalSuite)(nil),              // 2: ai.stigmer.agentic.plugin.v1.PluginEvalSuite
+	(*PluginEvalSuiteCase)(nil),          // 3: ai.stigmer.agentic.plugin.v1.PluginEvalSuiteCase
+	(*PluginMaterialization)(nil),        // 4: ai.stigmer.agentic.plugin.v1.PluginMaterialization
+	(*PluginWarning)(nil),                // 5: ai.stigmer.agentic.plugin.v1.PluginWarning
+	(*apiresource.ApiResourceAudit)(nil), // 6: ai.stigmer.commons.apiresource.ApiResourceAudit
+	(*HookConfig)(nil),                   // 7: ai.stigmer.agentic.plugin.v1.HookConfig
 }
 var file_ai_stigmer_agentic_plugin_v1_status_proto_depIdxs = []int32{
-	4, // 0: ai.stigmer.agentic.plugin.v1.PluginStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
+	6, // 0: ai.stigmer.agentic.plugin.v1.PluginStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
 	0, // 1: ai.stigmer.agentic.plugin.v1.PluginStatus.state:type_name -> ai.stigmer.agentic.plugin.v1.PluginState
-	2, // 2: ai.stigmer.agentic.plugin.v1.PluginStatus.materialized:type_name -> ai.stigmer.agentic.plugin.v1.PluginMaterialization
-	3, // 3: ai.stigmer.agentic.plugin.v1.PluginStatus.warnings:type_name -> ai.stigmer.agentic.plugin.v1.PluginWarning
-	5, // 4: ai.stigmer.agentic.plugin.v1.PluginStatus.hooks:type_name -> ai.stigmer.agentic.plugin.v1.HookConfig
-	5, // [5:5] is the sub-list for method output_type
-	5, // [5:5] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	4, // 2: ai.stigmer.agentic.plugin.v1.PluginStatus.materialized:type_name -> ai.stigmer.agentic.plugin.v1.PluginMaterialization
+	5, // 3: ai.stigmer.agentic.plugin.v1.PluginStatus.warnings:type_name -> ai.stigmer.agentic.plugin.v1.PluginWarning
+	7, // 4: ai.stigmer.agentic.plugin.v1.PluginStatus.hooks:type_name -> ai.stigmer.agentic.plugin.v1.HookConfig
+	2, // 5: ai.stigmer.agentic.plugin.v1.PluginStatus.evals:type_name -> ai.stigmer.agentic.plugin.v1.PluginEvalSuite
+	3, // 6: ai.stigmer.agentic.plugin.v1.PluginEvalSuite.cases:type_name -> ai.stigmer.agentic.plugin.v1.PluginEvalSuiteCase
+	5, // 7: ai.stigmer.agentic.plugin.v1.PluginEvalSuite.findings:type_name -> ai.stigmer.agentic.plugin.v1.PluginWarning
+	8, // [8:8] is the sub-list for method output_type
+	8, // [8:8] is the sub-list for method input_type
+	8, // [8:8] is the sub-list for extension type_name
+	8, // [8:8] is the sub-list for extension extendee
+	0, // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_plugin_v1_status_proto_init() }
@@ -401,7 +586,7 @@ func file_ai_stigmer_agentic_plugin_v1_status_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_plugin_v1_status_proto_rawDesc), len(file_ai_stigmer_agentic_plugin_v1_status_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   3,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

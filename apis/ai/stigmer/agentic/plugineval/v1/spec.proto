@@ -1,0 +1,156 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.plugineval.v1;
+
+import "ai/stigmer/agentic/session/v1/enum.proto";
+import "ai/stigmer/commons/apiresource/field_options.proto";
+import "ai/stigmer/commons/apiresource/io.proto";
+import "buf/validate/validate.proto";
+
+// PluginEvalSpec says which plugin version is evaluated, on which models,
+// how many times, and within what spend.
+//
+// @internal
+// Immutable after create: an eval is one suite run, and a different
+// setting is a new eval. The suite itself (the cases and their graders) is
+// read from the plugin's archive at the stamped digest, never copied here,
+// so criteria live in the plugin.
+message PluginEvalSpec {
+  // ID of the plugin whose evals run.
+  //
+  // @internal
+  // The authorization parent: the eval's access is the plugin's.
+  string plugin_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // The plugin version (archive digest) to evaluate. Empty evaluates the
+  // current version.
+  //
+  // @internal
+  // Create stamps the current digest when empty, so the eval names the
+  // exact archive its cases were read from even after a later push.
+  string plugin_digest = 2 [(buf.validate.field).string.pattern = "^$|^[a-f0-9]{64}$"];
+
+  // The engines and models each case runs on, at most six. Empty runs
+  // each case on the model it names, or on the platform's default model.
+  repeated PluginEvalTarget targets = 3 [(buf.validate.field).repeated.max_items = 6];
+
+  // Tries per case, arm and target, from 1 to 50. Zero uses each case's
+  // own runs value, or 3.
+  int32 runs = 4 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 50
+  }];
+
+  // Whether each case also runs without the plugin, for comparison.
+  PluginEvalAblation ablation = 5 [(buf.validate.field).enum.defined_only = true];
+
+  // The score a case needs to pass, from 0 to 1. Unset means 1: every
+  // scored check passes on every try.
+  optional double threshold = 6 [(buf.validate.field).double = {
+    gte: 0
+    lte: 1
+  }];
+
+  // Runs only the cases whose directory name matches this glob, as in
+  // "review-*". Empty runs every case.
+  string case_glob = 7 [(buf.validate.field).string.max_len = 256];
+
+  // Runs only the cases carrying at least one of these tags. Empty runs
+  // every case.
+  //
+  // @internal
+  // Not named tags: every SDK generator reads a top-level spec field
+  // named tags as resource metadata and drops it.
+  repeated string case_tags = 8 [(buf.validate.field).repeated = {
+    max_items: 32
+    items: {
+      string: {
+        min_len: 1
+        max_len: 64
+      }
+    }
+  }];
+
+  // The model AI-graded checks use. Empty uses the platform's default
+  // judge model.
+  string judge_model = 9 [(buf.validate.field).string.max_len = 128];
+
+  // The most this eval may spend, in estimated US dollars of model cost.
+  //
+  // Checked before each try starts: tries already running finish, so the
+  // spend can pass the limit by those tries.
+  double max_cost_usd = 10 [(buf.validate.field).double = {
+    gt: 0
+    lte: 1000
+    finite: true
+  }];
+
+  // Tries running at once, from 1 to 8. Zero means 1.
+  int32 concurrency = 11 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 8
+  }];
+
+  // Tools every try may use beyond each case's own list, in Claude Code's
+  // names, as Claude Code's --allow-tools.
+  //
+  // A specifier in parentheses, as in Bash(npm test *), is accepted and
+  // grants the whole tool: every Stigmer tool list reads a specifier that
+  // way. Each try runs in a fresh workspace of its own.
+  repeated string allow_tools = 12 [(buf.validate.field).repeated = {
+    max_items: 64
+    items: {
+      string: {
+        max_len: 256
+        pattern: "^(mcp__\\*|mcp__[a-z][a-z0-9-]*[a-z0-9](__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$"
+      }
+    }
+  }];
+
+  // Runs the plugin's MCP servers for real, with the organization's
+  // connections. Off by default: a try cannot call the plugin's MCP tools,
+  // as in Claude Code's evals without mocks.
+  bool real_mcp_servers = 13;
+
+  // Vaults whose logins and secrets the tries use, in order: the first
+  // vault holding a match wins. At most 20.
+  //
+  // A try has no person, so these vaults are all its hooks and servers
+  // use. The eval's creator may attach their own My vault; nobody else's.
+  //
+  // @internal
+  // The schedule's rule: the credential resolver finds the eval from the
+  // run's stigmer.ai/plugin-eval label and asks can_use again of the
+  // account recorded in status.vault_attachers.
+  repeated ai.stigmer.commons.apiresource.ApiResourceReference vaults = 14 [
+    (ai.stigmer.commons.apiresource.reference_kind) = vault,
+    (buf.validate.field).repeated.max_items = 20,
+    (buf.validate.field).repeated.items.cel = {
+      id: "vaults.kind"
+      message: "vaults must reference resources with kind=vault"
+      expression: "this.kind == 59"
+    }
+  ];
+}
+
+// PluginEvalTarget is one engine and model a case runs on.
+message PluginEvalTarget {
+  // The engine. Unspecified is the native engine.
+  ai.stigmer.agentic.session.v1.Harness harness = 1 [(buf.validate.field).enum.defined_only = true];
+
+  // A model id from the model catalog for that engine, as in
+  // "claude-sonnet-4-6". Empty uses the engine's default model.
+  string model_name = 2 [(buf.validate.field).string.max_len = 128];
+}
+
+// PluginEvalAblation says whether a case also runs without the plugin.
+enum PluginEvalAblation {
+  // Runs with and without the plugin (the default).
+  plugin_eval_ablation_unspecified = 0;
+
+  // Runs with and without the plugin.
+  plugin_eval_ablation_with_without = 1;
+
+  // Runs with the plugin only; no comparison is made.
+  plugin_eval_ablation_none = 2;
+}
