@@ -60,7 +60,7 @@ function throwing(): FakeFetch {
   };
 }
 
-function server(overrides: { url?: string; headers?: Record<string, string>; env?: Record<string, { isSecret: boolean; optional?: boolean; description?: string }>; auth?: { targetEnvVar?: string; oauthOnly?: boolean; discoveryUrl?: string }; labels?: Record<string, string>; stdio?: boolean } = {}): McpServer {
+function server(overrides: { url?: string; headers?: Record<string, string>; env?: Record<string, { isSecret: boolean; optional?: boolean; description?: string }>; auth?: { targetEnvVar?: string; oauthOnly?: boolean }; labels?: Record<string, string>; stdio?: boolean } = {}): McpServer {
   return create(McpServerSchema, {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "McpServer",

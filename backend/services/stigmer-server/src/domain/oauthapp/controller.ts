@@ -280,8 +280,9 @@ async function apply(
 }
 
 /**
- * Delete — chain per Go buildDeletePipeline: the referential guard runs
- * between load and delete. The RESOURCE_ID_KEY is set manually because
+ * Delete — chain per Go buildDeletePipeline: load, delete, then let go of
+ * the app's address claims (a sign-in at an address it listed no longer
+ * finds it). The RESOURCE_ID_KEY is set manually because
  * ApiResourceDeleteInput carries resourceId, not the value field
  * ExtractResourceId expects (the vault delete's pattern). Returns the
  * deleted app for the audit trail, redacted like every other response (the
