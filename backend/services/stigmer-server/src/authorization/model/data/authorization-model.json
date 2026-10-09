@@ -1841,6 +1841,62 @@
       "metadata": {
         "module": "agentic",
         "relations": {
+          "agent": {
+            "directly_related_user_types": [
+              {
+                "type": "agent"
+              }
+            ]
+          },
+          "can_delete": {},
+          "can_edit": {},
+          "can_view": {}
+        },
+        "source_info": {
+          "file": "agentic/evaluator.fga"
+        }
+      },
+      "relations": {
+        "agent": {
+          "this": {}
+        },
+        "can_delete": {
+          "tupleToUserset": {
+            "computedUserset": {
+              "relation": "can_edit"
+            },
+            "tupleset": {
+              "relation": "agent"
+            }
+          }
+        },
+        "can_edit": {
+          "tupleToUserset": {
+            "computedUserset": {
+              "relation": "can_edit"
+            },
+            "tupleset": {
+              "relation": "agent"
+            }
+          }
+        },
+        "can_view": {
+          "tupleToUserset": {
+            "computedUserset": {
+              "relation": "can_view"
+            },
+            "tupleset": {
+              "relation": "agent"
+            }
+          }
+        }
+      },
+      "type": "evaluator"
+    },
+    {
+      "metadata": {
+        "module": "agentic",
+        "relations": {
           "can_edit": {},
           "can_view": {},
           "owner": {

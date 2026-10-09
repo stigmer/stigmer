@@ -1,0 +1,70 @@
+{
+  "name": "EvaluatorSpec",
+  "description": "EvaluatorSpec holds which agent is graded, how often, and within what spend.",
+  "protoType": "ai.stigmer.agentic.evaluator.v1.EvaluatorSpec",
+  "protoFile": "apis/ai/stigmer/agentic/evaluator/v1/spec.proto",
+  "fields": [
+    {
+      "name": "AgentId",
+      "jsonName": "agentId",
+      "protoField": "agent_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "ID of the agent whose runs are graded.",
+      "required": false,
+      "validation": {
+        "minLength": 1
+      }
+    },
+    {
+      "name": "Enabled",
+      "jsonName": "enabled",
+      "protoField": "enabled",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "Whether grading runs.\n\n A disabled evaluator keeps its settings and this month's counts; no\n new run is graded until it is enabled again.",
+      "required": false
+    },
+    {
+      "name": "SampleRate",
+      "jsonName": "sampleRate",
+      "protoField": "sample_rate",
+      "type": {
+        "kind": "double"
+      },
+      "description": "The share of completed runs graded, from just above 0 to 1.\n\n 0.1 grades about one run in ten; 1 grades every run. Which runs are\n picked is fixed by each run's id, so a run's sampling never changes.",
+      "required": false,
+      "validation": {
+        "max": 1
+      }
+    },
+    {
+      "name": "MonthlyLimitUsd",
+      "jsonName": "monthlyLimitUsd",
+      "protoField": "monthly_limit_usd",
+      "type": {
+        "kind": "double"
+      },
+      "description": "The most this agent's grading may spend in one calendar month (UTC), in\n estimated US dollars of model cost.\n\n A grade sets aside its maximum cost before it starts; when that would\n pass the limit, the run is not graded and says so. The limit can be\n passed by at most one grade's overshoot.",
+      "required": false,
+      "validation": {
+        "max": 100000
+      }
+    },
+    {
+      "name": "ModelName",
+      "jsonName": "modelName",
+      "protoField": "model_name",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The model the judge uses. Example: \"claude-sonnet-4-6\".\n\n Empty uses the platform's default model.",
+      "required": false,
+      "validation": {
+        "maxLength": 128
+      }
+    }
+  ]
+}

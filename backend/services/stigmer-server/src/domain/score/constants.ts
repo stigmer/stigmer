@@ -11,6 +11,9 @@ export const FEEDBACK_METRIC = "feedback";
 /** The platform's free checks on a completed run (checks/). */
 export const RUN_HEALTH_METRIC = "run-health";
 
+/** An AI judge's verdict on a completed run (judge/). */
+export const JUDGE_METRIC = "judge";
+
 /** The refusal of a person's source from anyone but a first-party person. */
 export const HUMAN_SOURCE_REFUSED_MESSAGE =
   "only a person can rate a run with their own sign-in or API key";
@@ -19,15 +22,23 @@ export const HUMAN_SOURCE_REFUSED_MESSAGE =
 export const CHECK_SOURCE_REFUSED_MESSAGE =
   "run-health scores are written by the platform's checks, never through the API";
 
+/** The refusal of a judge's source from anyone but the server itself. */
+export const JUDGE_SOURCE_REFUSED_MESSAGE =
+  "judge scores are written by the platform's AI grading, never through the API";
+
 /** The create lane's deny copy when the caller cannot see the run. */
 export const SCORE_CREATE_DENIED_MESSAGE = "unauthorized to score run";
 
 /** The refusal of a metric the source does not give. */
-export const SCORE_METRIC_SOURCE_MISMATCH_MESSAGE = `a person gives the metric "${FEEDBACK_METRIC}" (score_source_human) and the platform's checks give "${RUN_HEALTH_METRIC}" (score_source_check)`;
+export const SCORE_METRIC_SOURCE_MISMATCH_MESSAGE = `a person gives the metric "${FEEDBACK_METRIC}" (score_source_human), the platform's checks give "${RUN_HEALTH_METRIC}" (score_source_check) and its AI judge gives "${JUDGE_METRIC}" (score_source_judge)`;
 
 /** The refusal of a comment on a score no person gave. */
 export const SCORE_COMMENT_HUMAN_ONLY_MESSAGE =
   "spec.comment is accepted on a person's feedback only";
+
+/** The refusal of a judge model on a score no judge gave. */
+export const SCORE_JUDGE_MODEL_JUDGE_ONLY_MESSAGE =
+  "spec.judge_model is accepted on a judge's score only";
 
 /** The refusal of criteria on a person's feedback. */
 export const SCORE_CRITERIA_NOT_HUMAN_MESSAGE =
@@ -57,6 +68,11 @@ export function runHealthExistsMessage(scoreId: string): string {
   return `this run already has a run-health score from these checks (score ${scoreId})`;
 }
 
+/** The refusal of a second judge score from one version of the rubrics. */
+export function judgeExistsMessage(scoreId: string): string {
+  return `this run already has a judge score from these rubrics (score ${scoreId})`;
+}
+
 /** The refusal of an update to a score no person gave. */
 export const SCORE_UPDATE_HUMAN_ONLY_MESSAGE =
   "only a person's feedback can be changed; a check's verdict is final";
@@ -67,3 +83,18 @@ export const SCORE_UPDATE_FIELDS_MESSAGE =
 
 /** The not-graded reason when a run's grading could not start. */
 export const GRADING_NOT_STARTED_REASON = "grading could not start";
+
+/**
+ * The reasons a run picked for AI grading is not graded. Each is shown as
+ * given, on the run and on the agent's Quality tab, so each is written for
+ * the person reading it.
+ */
+export const JUDGE_LIMIT_REACHED_REASON = "spending limit reached";
+export const JUDGE_OUT_OF_CREDIT_REASON = "out of credit";
+export const JUDGE_BUSY_REASON = "the platform was busy";
+export const JUDGE_CANNOT_ACT_REASON = "grading cannot act for this agent";
+export const JUDGE_NOT_STARTED_REASON = "the judge could not start";
+export const JUDGE_NOT_FINISHED_REASON = "the judge did not finish";
+export const JUDGE_COST_CAP_REASON = "the judge reached its cost cap";
+export const JUDGE_RUN_FAILED_REASON = "the judge run failed";
+export const JUDGE_UNREADABLE_REASON = "the judge's answer could not be read";

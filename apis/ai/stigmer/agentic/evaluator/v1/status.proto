@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.evaluator.v1;
+
+import "ai/stigmer/commons/apiresource/status.proto";
+
+// EvaluatorStatus contains this month's grading spend and counts.
+//
+// @internal
+// Written only by the grading workflow's budget (the evaluator domain's
+// budget.ts, an atomic read-modify-write of the row); create starts it
+// empty and update keeps it verbatim. The period rolls over at the first
+// reservation of a new UTC month.
+message EvaluatorStatus {
+  // The calendar month the counts below cover, as YYYY-MM in UTC.
+  string period = 1;
+
+  // Estimated model spend of this month's finished grades, in US dollars.
+  double spent_usd = 2;
+
+  // Spend set aside for grades still running, in US dollars.
+  double reserved_usd = 3;
+
+  // Runs graded this month.
+  int32 graded = 4;
+
+  // Runs picked for grading this month that could not be graded.
+  int32 not_graded = 5;
+
+  // Why the most recent run picked for grading could not be graded.
+  //
+  // For example "spending limit reached" or "out of credit". Empty when
+  // the most recent grade succeeded.
+  string last_not_graded_reason = 6;
+
+  // Standard audit information (created_at, updated_at, created_by, etc.)
+  ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
+}

@@ -57,6 +57,9 @@ export type { UseAgentVersionsReturn } from "./useAgentVersions.js";
 export { AgentVersionsTab } from "./AgentVersionsTab.js";
 export type { AgentVersionsTabProps } from "./AgentVersionsTab.js";
 
+export { AgentQualityTab } from "./AgentQualityTab.js";
+export type { AgentQualityTabProps } from "./AgentQualityTab.js";
+
 
 export { useCreateAgent } from "./useCreateAgent.js";
 export type { UseCreateAgentReturn } from "./useCreateAgent.js";

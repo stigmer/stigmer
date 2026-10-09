@@ -30,7 +30,7 @@ type ScoreSpec struct {
 	// ID of the session the run belongs to.
 	SessionId string `protobuf:"bytes,2,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	// What is measured: `feedback` for a person's thumbs, `run-health` for
-	// the free checks.
+	// the free checks, `judge` for an AI judge's verdict.
 	Metric string `protobuf:"bytes,3,opt,name=metric,proto3" json:"metric,omitempty"`
 	// Who or what gave the score.
 	Source ScoreSource `protobuf:"varint,4,opt,name=source,proto3,enum=ai.stigmer.agentic.score.v1.ScoreSource" json:"source,omitempty"`
@@ -42,7 +42,9 @@ type ScoreSpec struct {
 	// The criteria behind the value, one per check or rubric item.
 	Criteria []*ScoreCriterion `protobuf:"bytes,7,rep,name=criteria,proto3" json:"criteria,omitempty"`
 	// A person's optional note on their rating.
-	Comment       string `protobuf:"bytes,8,opt,name=comment,proto3" json:"comment,omitempty"`
+	Comment string `protobuf:"bytes,8,opt,name=comment,proto3" json:"comment,omitempty"`
+	// The model that gave a judge's verdict. Example: "claude-sonnet-4-6".
+	JudgeModel    string `protobuf:"bytes,9,opt,name=judge_model,json=judgeModel,proto3" json:"judge_model,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -142,13 +144,20 @@ func (x *ScoreSpec) GetComment() string {
 	return ""
 }
 
+func (x *ScoreSpec) GetJudgeModel() string {
+	if x != nil {
+		return x.JudgeModel
+	}
+	return ""
+}
+
 type isScoreSpec_Value interface {
 	isScoreSpec_Value()
 }
 
 type ScoreSpec_Passed struct {
-	// True when the run passed: thumbs up, or every applicable check
-	// passed.
+	// True when the run passed: thumbs up, every applicable check passed,
+	// or no rubric failed.
 	Passed bool `protobuf:"varint,6,opt,name=passed,proto3,oneof"`
 }
 
@@ -161,8 +170,7 @@ type ScoreCriterion struct {
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The criterion's outcome.
 	Result CriterionResult `protobuf:"varint,2,opt,name=result,proto3,enum=ai.stigmer.agentic.score.v1.CriterionResult" json:"result,omitempty"`
-	// Why, in counts, tool names and step numbers; never a quote of what
-	// anyone typed.
+	// Why the criterion has its result.
 	Reason        string `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -223,7 +231,7 @@ var File_ai_stigmer_agentic_score_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_score_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"&ai/stigmer/agentic/score/v1/spec.proto\x12\x1bai.stigmer.agentic.score.v1\x1a&ai/stigmer/agentic/score/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"\x8c\x03\n" +
+	"&ai/stigmer/agentic/score/v1/spec.proto\x12\x1bai.stigmer.agentic.score.v1\x1a&ai/stigmer/agentic/score/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"\xb7\x03\n" +
 	"\tScoreSpec\x12\x1e\n" +
 	"\x06run_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05runId\x12\x1d\n" +
 	"\n" +
@@ -234,7 +242,9 @@ const file_ai_stigmer_agentic_score_v1_spec_proto_rawDesc = "" +
 	"\x11evaluator_version\x18\x05 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x01R\x10evaluatorVersion\x12\x18\n" +
 	"\x06passed\x18\x06 \x01(\bH\x00R\x06passed\x12Q\n" +
 	"\bcriteria\x18\a \x03(\v2+.ai.stigmer.agentic.score.v1.ScoreCriterionB\b\xbaH\x05\x92\x01\x02\x10 R\bcriteria\x12\"\n" +
-	"\acomment\x18\b \x01(\tB\b\xbaH\x05r\x03\x18\xf4\x03R\acommentB\a\n" +
+	"\acomment\x18\b \x01(\tB\b\xbaH\x05r\x03\x18\xf4\x03R\acomment\x12)\n" +
+	"\vjudge_model\x18\t \x01(\tB\b\xbaH\x05r\x03\x18\x80\x01R\n" +
+	"judgeModelB\a\n" +
 	"\x05value\"\xa1\x01\n" +
 	"\x0eScoreCriterion\x12\x1d\n" +
 	"\x04name\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18?R\x04name\x12N\n" +

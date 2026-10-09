@@ -81,6 +81,7 @@ type ScoreInput struct {
 	Passed           *bool
 	Criteria         []*ScoreCriterionInput
 	Comment          string
+	JudgeModel       string
 }
 
 // ScoreCriterionInput is the SDK input type for ScoreCriterion.
@@ -120,6 +121,7 @@ func (i *ScoreInput) toProto() (*scorev1.Score, error) {
 		resource.Spec.Criteria = append(resource.Spec.Criteria, v)
 	}
 	resource.Spec.Comment = i.Comment
+	resource.Spec.JudgeModel = i.JudgeModel
 	return resource, nil
 }
 
@@ -155,6 +157,7 @@ func ScoreInputFromProto(p *scorev1.Score) *ScoreInput {
 			input.Criteria = append(input.Criteria, scoreCriterionInputFromProto(item))
 		}
 		input.Comment = s.GetComment()
+		input.JudgeModel = s.GetJudgeModel()
 		if ov, ok := s.Value.(*scorev1.ScoreSpec_Passed); ok {
 			v := ov.Passed
 			input.Passed = &v

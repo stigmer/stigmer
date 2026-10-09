@@ -164,8 +164,10 @@ pages:
     diataxis: explanation
     teaches:
       A Score records how good a finished run was, as a person's thumbs with a
-      comment or the three free run-health checks with their reasons and the
-      not-graded state; whoever sees the run sees its scores, read with
+      comment, the three free run-health checks with their reasons, or an AI
+      judge's verdict on two standard rubrics, switched on per Agent with a
+      sample rate and a monthly limit in its Quality tab, and the not-graded
+      state; whoever sees the run sees its scores, read with
       `stigmer runs scores`.
     medium: none
 

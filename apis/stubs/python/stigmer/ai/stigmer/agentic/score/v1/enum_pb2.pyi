@@ -9,12 +9,14 @@ class ScoreSource(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     score_source_unspecified: _ClassVar[ScoreSource]
     score_source_check: _ClassVar[ScoreSource]
     score_source_human: _ClassVar[ScoreSource]
+    score_source_judge: _ClassVar[ScoreSource]
 
 class ScoreState(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     score_state_unspecified: _ClassVar[ScoreState]
     score_state_graded: _ClassVar[ScoreState]
     score_state_not_graded: _ClassVar[ScoreState]
+    score_state_pending: _ClassVar[ScoreState]
 
 class CriterionResult(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -25,9 +27,11 @@ class CriterionResult(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
 score_source_unspecified: ScoreSource
 score_source_check: ScoreSource
 score_source_human: ScoreSource
+score_source_judge: ScoreSource
 score_state_unspecified: ScoreState
 score_state_graded: ScoreState
 score_state_not_graded: ScoreState
+score_state_pending: ScoreState
 criterion_result_unspecified: CriterionResult
 criterion_result_passed: CriterionResult
 criterion_result_failed: CriterionResult

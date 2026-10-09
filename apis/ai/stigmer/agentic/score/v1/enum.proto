@@ -7,8 +7,8 @@ package ai.stigmer.agentic.score.v1;
 // @internal
 // Each source is admitted from one kind of caller only (the score
 // domain's GuardScoreSource step): a person's thumbs come from a person,
-// a check's verdict from the server itself. Further sources (an AI judge,
-// an integrator's own back end) are added with their first writer.
+// a check's or a judge's verdict from the server itself. Further sources
+// (an integrator's own back end) are added with their first writer.
 enum ScoreSource {
   score_source_unspecified = 0;
 
@@ -18,6 +18,10 @@ enum ScoreSource {
 
   // A person who can see the run.
   score_source_human = 2;
+
+  // An AI judge grading the run against Stigmer's standard rubrics, switched
+  // on per agent by its evaluator.
+  score_source_judge = 3;
 }
 
 // ScoreState tells whether a score carries a grade.
@@ -34,6 +38,15 @@ enum ScoreState {
 
   // The run could not be graded; the reason says why.
   score_state_not_graded = 2;
+
+  // The run was picked for grading and the grade is not in yet.
+  //
+  // @internal
+  // Written only by the server, when the judge decides to grade a run, so
+  // a run's page can say "grading" without reading the run's agent (a
+  // run's viewers need not see its agent). The grade or a not-graded
+  // reason replaces it.
+  score_state_pending = 3;
 }
 
 // CriterionResult is one criterion's outcome.

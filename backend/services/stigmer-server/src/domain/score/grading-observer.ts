@@ -20,6 +20,9 @@
  * completed run never completes again. Nothing here fails the transition:
  * a throw is logged by the notifier and the run is unaffected.
  *
+ * A judge run (domain/score/judge/judge-run.ts) is never graded: grading
+ * the grader would spend a judge on every judge.
+ *
  * Proven by __tests__/grading-observer.test.ts.
  */
 import type { Client } from "@temporalio/client";
@@ -37,6 +40,7 @@ import {
   gradeRunWorkflowId,
 } from "../../temporal/grading/names.js";
 import { GRADING_NOT_STARTED_REASON } from "./constants.js";
+import { isJudgeRun } from "./judge/judge-run.js";
 import type { ScoreRecorder } from "./ports.js";
 import { notGradedRunHealthScore } from "./run-health.js";
 
@@ -44,14 +48,16 @@ import { notGradedRunHealthScore } from "./run-health.js";
 export const GRADING_START_DEADLINE_MS = 2_000;
 
 /**
- * A grading run spans seconds; this bounds a stuck one, with room for both
- * activities' whole retry budgets (temporal/grading/workflows/grade-run.ts:
- * five one-minute attempts each, plus backoff), so the not-graded record is
- * never cut off mid-flight. A run no grading worker picks up ends here with
- * no score: every composition registers the worker (boot/compose.ts), so
- * that is a deployment without the server's own workers.
+ * A grading run spans seconds to a couple of minutes; this bounds a stuck
+ * one, with room for run health's two retry budgets (five one-minute
+ * attempts each, plus backoff), the judge start's ten minutes of capacity
+ * retries, the judge run's ten minutes, and the record's twenty minutes of
+ * retries (temporal/grading/workflows/grade-run.ts), so no record is cut off
+ * mid-flight. A run no grading worker picks up ends here with no score:
+ * every composition registers the worker (boot/compose.ts), so that is a
+ * deployment without the server's own workers.
  */
-const GRADE_RUN_EXECUTION_TIMEOUT = "30 minutes";
+const GRADE_RUN_EXECUTION_TIMEOUT = "60 minutes";
 
 export interface GradingObserverDeps {
   /** The engine's current client; undefined until its first connect. */
@@ -69,7 +75,7 @@ export function newGradingObserver(
 ): RunStatusObserver {
   const deadlineMs = deps.startDeadlineMs ?? GRADING_START_DEADLINE_MS;
   return async ({ run, newPhase }) => {
-    if (newPhase !== RunPhase.RUN_COMPLETED) {
+    if (newPhase !== RunPhase.RUN_COMPLETED || isJudgeRun(run)) {
       return;
     }
     const runId = run.metadata?.id ?? "";

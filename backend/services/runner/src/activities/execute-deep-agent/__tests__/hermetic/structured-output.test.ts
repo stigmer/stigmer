@@ -72,6 +72,7 @@ import {
 } from "../../__test-utils__/hermetic-deep-agent.js";
 import { recordedModelBuilds } from "../../__test-utils__/scripted-model-module.js";
 import { FIXTURE_NATIVE_MODEL } from "../../../../__test-utils__/model-registry-fixture.js";
+import { DEFAULT_RECORD_IDS } from "../../../../__test-utils__/execution-record-fixture.js";
 
 const SCHEMA = {
   type: "object",
@@ -213,12 +214,14 @@ describe("ExecuteDeepAgent hermetic — structured output", () => {
       // The agent's build, the sub-agent factory's builds (every registered
       // profile sub-agent is compiled, invoked or not), then — last, after the
       // graph has ended — the extractor's: the one build that caps its output
-      // (`maxTokens: 4096`) and carries no execution header scope.
+      // (`maxTokens: 4096`), scoped to the run it serves so a proxy that
+      // requires a run scope answers it and meters it to that run
+      // (stigmer#2060).
       const builds = recordedModelBuilds();
       const extractorBuilds = builds.filter((b) => b.maxTokens === 4096);
       expect(extractorBuilds, "exactly one extraction build").toHaveLength(1);
       expect(builds.at(-1), "the extractor is built after the graph's run, never before").toBe(extractorBuilds[0]);
-      expect(extractorBuilds[0]!.headerScope).toBeUndefined();
+      expect(extractorBuilds[0]!.headerScope).toEqual({ executionId: DEFAULT_RECORD_IDS.executionId });
       // The fixture registry declares no economy row, so `getEconomyModel`
       // falls back to the primary (its last resort).
       expect(extractorBuilds[0]!.modelName).toBe(FIXTURE_NATIVE_MODEL);

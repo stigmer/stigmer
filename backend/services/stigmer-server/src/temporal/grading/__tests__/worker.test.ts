@@ -14,7 +14,11 @@ import type { CreateWorkerOptions, WorkerFactoryDeps } from "../../manager.js";
 import { GradingTemporalConfig } from "../config.js";
 import {
   GRADE_RUN_HEALTH_ACTIVITY_NAME,
+  PLAN_JUDGE_ACTIVITY_NAME,
+  POLL_JUDGE_ACTIVITY_NAME,
+  RECORD_JUDGE_ACTIVITY_NAME,
   RECORD_NOT_GRADED_ACTIVITY_NAME,
+  START_JUDGE_ACTIVITY_NAME,
 } from "../names.js";
 import { newGradingWorkerFactory } from "../worker.js";
 
@@ -38,6 +42,12 @@ describe("the grading worker factory", () => {
         config: new GradingTemporalConfig("grading_custom"),
         recorder: () => ({ record: (score) => Promise.resolve(score) }),
         deleter: () => ({ delete: () => Promise.resolve() }),
+        judgeRuns: () => ({
+          create: (run) => Promise.resolve(run),
+          terminate: () => Promise.resolve(),
+        }),
+        judgeSessions: () => ({ delete: () => Promise.resolve() }),
+        gradingCaller: undefined,
         logger: silentLogger,
       })(deps);
 
@@ -47,7 +57,11 @@ describe("the grading worker factory", () => {
       expect(Object.keys(options.activities).sort()).toEqual(
         [
           GRADE_RUN_HEALTH_ACTIVITY_NAME,
+          PLAN_JUDGE_ACTIVITY_NAME,
+          POLL_JUDGE_ACTIVITY_NAME,
+          RECORD_JUDGE_ACTIVITY_NAME,
           RECORD_NOT_GRADED_ACTIVITY_NAME,
+          START_JUDGE_ACTIVITY_NAME,
         ].sort(),
       );
       const workflows = options.workflows as {

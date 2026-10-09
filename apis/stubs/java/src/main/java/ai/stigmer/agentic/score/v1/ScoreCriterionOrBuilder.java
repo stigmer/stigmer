@@ -51,8 +51,7 @@ public interface ScoreCriterionOrBuilder extends
 
   /**
    * <pre>
-   * Why, in counts, tool names and step numbers; never a quote of what
-   * anyone typed.
+   * Why the criterion has its result.
    * </pre>
    *
    * <code>string reason = 3 [json_name = "reason", (.buf.validate.field) = { ... }</code>
@@ -61,8 +60,7 @@ public interface ScoreCriterionOrBuilder extends
   java.lang.String getReason();
   /**
    * <pre>
-   * Why, in counts, tool names and step numbers; never a quote of what
-   * anyone typed.
+   * Why the criterion has its result.
    * </pre>
    *
    * <code>string reason = 3 [json_name = "reason", (.buf.validate.field) = { ... }</code>

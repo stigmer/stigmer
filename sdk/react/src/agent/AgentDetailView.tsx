@@ -38,6 +38,7 @@ import { ManagedByPluginNotice } from "../plugin/ManagedByPluginNotice.js";
 import { useManagingPlugin } from "../plugin/useManagingPlugin.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 import { useOrgIdForRef, useOrgSlugForId } from "../organization/useOrgRefs.js";
+import { AgentQualityTab } from "./AgentQualityTab.js";
 import { AgentVersionsTab } from "./AgentVersionsTab.js";
 import { useAgentVersionCount } from "./useAgentVersions.js";
 
@@ -45,6 +46,7 @@ const INSTRUCTIONS_COLLAPSED_HEIGHT = "12rem";
 
 const OVERVIEW_TAB: TabItem = { id: "overview", label: "Overview" };
 const SHARES_TAB: TabItem = { id: "shares", label: "Shares" };
+const QUALITY_TAB: TabItem = { id: "quality", label: "Quality" };
 const DEPENDENCIES_TAB: TabItem = { id: "dependencies", label: "Dependencies" };
 const VERSIONS_TAB: TabItem = { id: "versions", label: "Versions" };
 
@@ -326,6 +328,7 @@ export function AgentDetailView({
     () => [
       OVERVIEW_TAB,
       SHARES_TAB,
+      QUALITY_TAB,
       ...(noDeps ? [] : [DEPENDENCIES_TAB]),
       { ...VERSIONS_TAB, ...(versionCount > 0 && { badge: versionCount }) },
     ],
@@ -462,6 +465,10 @@ export function AgentDetailView({
         buildShareUrl={buildShareUrl}
       />
     );
+  } else if (effectiveActiveTab === "quality") {
+    // Grading is the agent's setting, not its definition: a plugin-managed
+    // agent offers it too, so the host's edit flag applies unfiltered.
+    tabContent = <AgentQualityTab agent={agent} editable={editableProp} />;
   } else if (effectiveActiveTab === "dependencies" && tree) {
     tabContent = (
       <DependencyGraph

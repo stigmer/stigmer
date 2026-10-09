@@ -71,6 +71,7 @@ import type { ModelCatalogProvider } from "../../modelcatalog/model-catalog-prov
 import { notifyStatusObservers } from "./status-observers.js";
 import { newSessionSpecOf, sessionIdOf } from "./target.js";
 import { unavailableError } from "../../pipeline/errors.js";
+import { isJudgeRun } from "../score/judge/judge-run.js";
 
 type CreateDesc = typeof RunSchema;
 
@@ -302,6 +303,14 @@ export function newComposeDeclaredPreferencesStep(
       const declared = create(DeclaredPreferencesSchema);
       execution.status.declaredPreferences = declared;
 
+      // A judge run grades another run's conversation and nothing else:
+      // no organization's or person's standing context reaches it
+      // (domain/score/judge/judge-run.ts).
+      if (isJudgeRun(execution)) {
+        logger.debug("Judge run, composing no standing context");
+        return;
+      }
+
       // Verbatim: the server stamps content only;
       // blank-is-absent is the runner's read-side convention.
       if (isVisitor(visitorClassifier, ctx.callerIdentity, logger)) {
@@ -472,6 +481,13 @@ export function newComposeRecalledMemoriesStep(
       // Claim the server-owned field first.
       const recalled = create(RecalledMemoriesSchema);
       execution.status.recalledMemories = recalled;
+
+      // A judge run recalls nothing, so no memory reaches the grade and no
+      // remember tool is offered to the judge.
+      if (isJudgeRun(execution)) {
+        logger.debug("Judge run, composing no recalled memories");
+        return;
+      }
 
       const orgId = orgIdOf(ctx);
       if (orgId === "") {

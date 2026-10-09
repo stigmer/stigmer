@@ -127,6 +127,7 @@ import {
   newMergeMcpServerEnvSpecsStep,
   newValidateHooksStep,
 } from "./steps.js";
+import { newCascadeDeleteEvaluatorsStep } from "../evaluator/cascade.js";
 import {
   TAG_VERSION_AGENT_KEY,
   TAG_VERSION_RESULT_KEY,
@@ -319,7 +320,8 @@ async function apply(
 
 /**
  * Delete — cascades children before the parent (delete_cascade.go):
- * same-org shares, each one's access cleaned with its row, then the agent's version rows (best-effort), the agent row, its
+ * same-org shares and the agent's evaluator, each one's access cleaned with
+ * its row, then the agent's version rows (best-effort), the agent row, its
  * access and its index entry. Returns the deleted agent (the audit-trail
  * convention).
  */
@@ -347,6 +349,13 @@ async function deleteAgent(
     .addStep(newGuardPluginManagedStep(deps.store))
     .addStep(
       newCascadeDeleteSharesStep(
+        deps.store,
+        deps.authorizationLifecycle,
+        deps.logger,
+      ),
+    )
+    .addStep(
+      newCascadeDeleteEvaluatorsStep(
         deps.store,
         deps.authorizationLifecycle,
         deps.logger,

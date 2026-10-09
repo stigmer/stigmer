@@ -858,6 +858,7 @@ export {
   useAgentVersionCount,
   agentVersionLabel,
   AgentVersionsTab,
+  AgentQualityTab,
   AgentEnvForm,
   diffEnv,
   useAgentSetup,
@@ -882,6 +883,7 @@ export type {
   AgentDetailViewProps,
   UseAgentVersionsReturn,
   AgentVersionsTabProps,
+  AgentQualityTabProps,
   AgentEnvFormProps,
   AgentEnvFormSubmitOptions,
   AgentEnvFormVariable,
@@ -1063,8 +1065,9 @@ export type {
   MemoryProposalCardBodyProps,
 } from "./memory/index.js";
 
-// Scores — a person's thumbs on a run's final answer and the platform's
-// free run-health checks, shown on every completed run its viewers can see
+// Scores — a person's thumbs on a run's final answer, the platform's free
+// run-health checks and an AI judge's verdict, shown on every completed run
+// its viewers can see
 export {
   RunScores,
   useSessionScores,
@@ -1078,6 +1081,20 @@ export type {
   UseUpdateRatingReturn,
   RunRating,
 } from "./score/index.js";
+
+// Evaluators — AI grading switched on per agent: its sample, its monthly
+// spending limit and its judge model (the agent's Quality tab)
+export {
+  useAgentEvaluator,
+  useSaveEvaluator,
+  DEFAULT_GRADING_SETTINGS,
+  MAX_ONE_IN,
+} from "./evaluator/index.js";
+export type {
+  UseAgentEvaluatorReturn,
+  UseSaveEvaluatorReturn,
+  GradingSettings,
+} from "./evaluator/index.js";
 
 // IAM Policy — data hooks, behavior hooks, headless hook, and styled components for access management
 export {

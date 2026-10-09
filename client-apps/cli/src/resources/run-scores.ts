@@ -1,13 +1,16 @@
 // `runs scores` — the grades of a finished run: each person's thumbs on the
-// final answer and the platform's free run-health checks.
+// final answer, the platform's free run-health checks, and an AI judge's
+// verdict where the run's agent has AI grading switched on.
 //
 // The table shows one row per score: what was measured, who gave it, the
-// value (up/down for a person's feedback, pass/fail for the checks, or "not
-// graded" with the reason), the reasons behind any failed check and a
-// person's comment. A reason is written by the server from counts, tool
-// names and step numbers, never from what anyone typed, so it prints as
-// given. yaml and json render the server's list as `get -o json` renders a
-// single score, so a script reads the same envelope either way.
+// value (up/down for a person's feedback, pass/fail for the checks and the
+// judge, "grading" while the judge works, or "not graded" with the reason),
+// the reasons behind any failed check or rubric and a person's comment. A
+// check's reason is counts, tool names and step numbers; a judge's may
+// quote the conversation, which the run's viewers can read already; every
+// reason passes through the same one-line cleaning as a comment. yaml and
+// json render the server's list as `get -o json` renders a single score,
+// so a script reads the same envelope either way, all criteria included.
 
 import { create } from "@bufbuild/protobuf";
 import { ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
@@ -85,6 +88,7 @@ const SOURCE_LABELS: Readonly<Record<ScoreSource, string>> = {
   [ScoreSource.unspecified]: "",
   [ScoreSource.check]: "check",
   [ScoreSource.human]: "person",
+  [ScoreSource.judge]: "judge",
 };
 
 function sourceLabel(source: ScoreSource): string {
@@ -92,8 +96,11 @@ function sourceLabel(source: ScoreSource): string {
 }
 
 function valueLabel(score: Score): string {
+  if (score.status?.state === ScoreState.pending) {
+    return "grading";
+  }
   if (score.status?.state === ScoreState.not_graded) {
-    const reason = score.status.notGradedReason;
+    const reason = oneLine(score.status.notGradedReason);
     return reason === "" ? "not graded" : `not graded: ${reason}`;
   }
   const value = score.spec?.value;
@@ -114,10 +121,13 @@ function flagsOf(score: Score): string {
     .join("; ");
 }
 
-/** Who gave the score: the person, or the platform for a check. */
+/** Who gave the score: the person, the platform for a check, the judge's model for a judge. */
 function byLabel(score: Score): string {
   if (score.spec?.source === ScoreSource.check) {
     return "platform";
+  }
+  if (score.spec?.source === ScoreSource.judge) {
+    return oneLine(score.spec.judgeModel || "platform");
   }
   const actor = score.status?.audit?.specAudit?.createdBy;
   return oneLine(actor?.displayName || actor?.email || actor?.id || "");

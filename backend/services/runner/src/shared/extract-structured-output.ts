@@ -32,6 +32,11 @@ import { jsonSchemaToZod } from "./json-schema-to-zod.js";
  * delegated to the shared buildChatModel so the economy model's registry id
  * is always resolved to a provider API id before the call.
  *
+ * The call is scoped to the run it serves (`executionId`), as session
+ * titling's is: a proxy that requires a run scope on every call refuses one
+ * without it, and the scope is what meters the call to that run
+ * (stigmer#2060).
+ *
  * Throws when no LLM is reachable (no proxy and no credential path for the
  * extraction model's provider) — the caller treats any throw here as "tier 2
  * unavailable", logs it, and returns the agent's text without structured
@@ -42,6 +47,7 @@ export async function extractStructuredOutput(
   schema: Record<string, unknown>,
   config: Config,
   primaryModel: string,
+  executionId: string,
 ): Promise<unknown | null> {
   const extractionModel = await getEconomyModel(primaryModel);
   const proxyEndpoint = config.proxyEndpoint ?? undefined;
@@ -61,6 +67,7 @@ export async function extractStructuredOutput(
     modelName: extractionModel,
     proxyEndpoint,
     stigmerToken: config.stigmerTokenRef.current ?? undefined,
+    headerScope: { executionId },
     maxTokens: 4096,
   });
 

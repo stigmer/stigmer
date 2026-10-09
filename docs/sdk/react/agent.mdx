@@ -617,6 +617,30 @@ if (agent) console.log(`Selected: ${agent.org}/${agent.slug}`);
 ```
 
 
+### AgentQualityTab
+
+The agent's Quality tab: AI grading switched on or off, how many runs it
+grades ("one in N runs"), the monthly limit in estimated model spend, the
+judge's model, and this month's spend and counts, with the reason the
+last run picked for grading was not graded.
+
+Grading is the agent's setting, not part of its definition, so a
+plugin-managed agent offers it too. Anyone who can view the agent sees
+the tab; changes need edit access on the agent.
+
+All visual properties flow through `--stgm-*` tokens.
+
+**Props** — `AgentQualityTabProps`
+
+<TypeTable
+  type={{
+    agent: { type: "Agent", description: "The agent whose AI grading the tab shows and configures.", required: true, typeDescriptionLink: "/docs/sdk/resources/agent" },
+    className: { type: "string", description: "Additional CSS class names for the root element." },
+    editable: { type: "boolean", description: "When `true`, the settings can be changed. The server still asks for edit access on the agent; a refusal is shown as an error." },
+  }}
+/>
+
+
 ### AgentVersionsTab
 
 Tab content for the "Versions" panel in the agent detail page.

@@ -3,42 +3,38 @@
  * the run-health score through the score's create chain as the server
  * (domain/score/ports.ts), or record the run as not graded.
  *
- * Idempotent, as every activity must be: a run that already carries a
- * graded run-health score from this version of the checks is left alone,
- * and the create chain's own one-per-version rule answers ALREADY_EXISTS
- * for a retry that lost the race, which counts as recorded. A not-graded
- * score from this version is replaced by the grade: the observer records
- * one when its start passes its deadline, and Temporal may have accepted
- * that start all the same. A run deleted before it was graded has nothing
- * to score; one deleted while its score was being written (after the run
- * delete's cascade listed the run's scores) has the score removed again
- * when this activity reads the run after recording. One order still leaves
- * a score behind: the delete's cascade lists before the write, this read
- * finds the run still there, and the run's row goes after it. Such a score
- * is seen by nobody, since its visibility is its run's, and goes with its
- * organization's purge (domain/score/cascade.ts says the same of a
- * person's rating).
+ * Idempotent, as every activity must be: each write goes through the one
+ * rule for the server's own scores (domain/score/record.ts,
+ * replaceUnlessGraded), so a grade replaces a not-graded score from this
+ * version of the checks and a not-graded record never replaces a grade.
+ * The observer records "grading could not start" when its start passes its
+ * deadline, and Temporal may have accepted that start all the same; the
+ * rule keeps the grade whichever write lands first (stigmer#2057). A run
+ * deleted before it was graded has nothing to score; one deleted while
+ * its score was being written (after the run delete's cascade listed the
+ * run's scores) has the score removed again when this activity reads the
+ * run after recording. One order still leaves a score behind: the delete's
+ * cascade lists before the write, this read finds the run still there, and
+ * the run's row goes after it. Such a score is seen by nobody, since its
+ * visibility is its run's, and goes with its organization's purge
+ * (domain/score/cascade.ts says the same of a person's rating).
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import {
-  ScoreSource,
-  ScoreState,
-} from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
 import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import { actionsOf } from "../../domain/score/checks/actions.js";
-import {
-  RUN_HEALTH_EVALUATOR_VERSION,
-  gradeRunHealth,
-} from "../../domain/score/checks/checks.js";
-import { RUN_HEALTH_METRIC } from "../../domain/score/constants.js";
+import { gradeRunHealth } from "../../domain/score/checks/checks.js";
 import type { ScoreDeleter, ScoreRecorder } from "../../domain/score/ports.js";
-import { listRunScores } from "../../domain/score/queries.js";
+import {
+  deleteScore,
+  replaceUnlessGraded,
+  sameWriterScore,
+} from "../../domain/score/record.js";
 import {
   notGradedRunHealthScore,
   runHealthScore,
@@ -72,13 +68,6 @@ export function createGradingActivities(
       if (run === undefined) {
         return GRADE_RUN_GONE;
       }
-      const existing = await existingRunHealth(deps, runId);
-      if (existing?.status?.state === ScoreState.graded) {
-        return GRADE_ALREADY_GRADED;
-      }
-      if (existing !== undefined) {
-        await deleteScore(deps, existing.metadata?.id ?? "");
-      }
       const health = gradeRunHealth(actionsOf(run));
       return record(deps, runHealthScore(run, health));
     },
@@ -86,9 +75,6 @@ export function createGradingActivities(
       const run = await loadRun(deps.store, runId);
       if (run === undefined) {
         return GRADE_RUN_GONE;
-      }
-      if ((await existingRunHealth(deps, runId)) !== undefined) {
-        return GRADE_ALREADY_GRADED;
       }
       deps.logger.warn("run not graded", { runId, reason });
       return record(deps, notGradedRunHealthScore(run, reason));
@@ -107,39 +93,12 @@ async function loadRun(store: Store, runId: string): Promise<Run | undefined> {
   }
 }
 
-/** The run's run-health score from this version of the checks, if any. */
-async function existingRunHealth(
-  deps: GradingActivityDeps,
-  runId: string,
-): Promise<Score | undefined> {
-  const scores = await listRunScores(deps.store, deps.logger, runId);
-  return scores.find(
-    (score) =>
-      score.spec?.metric === RUN_HEALTH_METRIC &&
-      score.spec.source === ScoreSource.check &&
-      score.spec.evaluatorVersion === RUN_HEALTH_EVALUATOR_VERSION,
-  );
-}
-
-/** Deletes one score through its delete chain; one already gone is fine. */
-async function deleteScore(
-  deps: GradingActivityDeps,
-  scoreId: string,
-): Promise<void> {
-  try {
-    await deps.deleter().delete(scoreId);
-  } catch (error) {
-    if (error instanceof ConnectError && error.code === Code.NotFound) {
-      return;
-    }
-    throw error;
-  }
-}
-
 /**
- * Records a run-health score; shared with the observer's fallback
- * (domain/score/grading-observer.ts). ALREADY_EXISTS is a retry that lost
- * the race and counts as graded; NOT_FOUND is the run deleted meanwhile.
+ * Records a run-health score as the observer's fallback does
+ * (domain/score/grading-observer.ts): a create that meets any score from
+ * these checks keeps it, since a not-graded record never replaces anything
+ * a writer of the same checks left (domain/score/record.ts). NOT_FOUND is
+ * the run deleted meanwhile.
  */
 export async function recordRunHealth(
   recorder: ScoreRecorder,
@@ -162,25 +121,33 @@ export async function recordRunHealth(
 }
 
 /**
- * Records the run's score, then reads the run again: a run deleted after
- * its delete's cascade listed its scores has the score removed, so no
- * score outlives its run.
+ * Records the run's score under the server's write rule, then reads the run
+ * again: a run deleted after its delete's cascade listed its scores has the
+ * score removed, so no score outlives its run.
  */
 async function record(
   deps: GradingActivityDeps,
   score: Score,
 ): Promise<GradeOutcome> {
-  const runId = score.spec?.runId ?? "";
-  const outcome = await recordRunHealth(deps.recorder(), score);
-  if (outcome !== GRADE_RECORDED) {
-    return outcome;
+  const write = {
+    store: deps.store,
+    logger: deps.logger,
+    recorder: deps.recorder(),
+    deleter: deps.deleter(),
+  };
+  const result = await replaceUnlessGraded(write, score);
+  if (result === "run-gone") {
+    return GRADE_RUN_GONE;
   }
-  if ((await loadRun(deps.store, runId)) !== undefined) {
-    return outcome;
+  if (result === "kept") {
+    return GRADE_ALREADY_GRADED;
   }
-  const written = await existingRunHealth(deps, runId);
+  if ((await loadRun(deps.store, score.spec?.runId ?? "")) !== undefined) {
+    return GRADE_RECORDED;
+  }
+  const written = await sameWriterScore(deps, score);
   if (written !== undefined) {
-    await deleteScore(deps, written.metadata?.id ?? "");
+    await deleteScore(write.deleter, written.metadata?.id ?? "");
   }
   return GRADE_RUN_GONE;
 }

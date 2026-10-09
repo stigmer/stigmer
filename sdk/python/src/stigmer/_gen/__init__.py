@@ -7,6 +7,7 @@ from ._agentchannel import AgentChannelClient, AgentChannelInput, SlackChannelCo
 from ._agentshare import AgentShareClient, AgentShareInput, AgentShareMessagesInput
 from ._apikey import ApiKeyClient, ApiKeyInput
 from ._channelapp import ChannelAppClient, ChannelAppInput, SlackChannelAppConfigInput, WhatsAppChannelAppConfigInput
+from ._evaluator import EvaluatorClient, EvaluatorInput
 from ._executioncontext import ExecutionContextClient, ExecutionContextInput
 from ._iampolicy import IamPolicyClient, IamPolicyInput, ApiResourceRefInput
 from ._identityaccount import IdentityAccountClient, IdentityAccountInput, IdentityAccountPreferencesInput
@@ -73,6 +74,8 @@ __all__ = [
     "ChannelAppInput",
     "SlackChannelAppConfigInput",
     "WhatsAppChannelAppConfigInput",
+    "EvaluatorClient",
+    "EvaluatorInput",
     "ExecutionContextClient",
     "ExecutionContextInput",
     "IamPolicyClient",

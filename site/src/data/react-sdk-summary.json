@@ -19,7 +19,7 @@
       "title": "Agent",
       "description": "Hooks and components for agent definitions, search, setup orchestration, and detail views.",
       "hooks": 10,
-      "components": 5
+      "components": 6
     },
     {
       "slug": "api-key",
@@ -104,6 +104,13 @@
       "description": "Components for structured error display and troubleshooting guidance.",
       "hooks": 0,
       "components": 2
+    },
+    {
+      "slug": "evaluator",
+      "title": "evaluator",
+      "description": "",
+      "hooks": 2,
+      "components": 0
     },
     {
       "slug": "file-reference",

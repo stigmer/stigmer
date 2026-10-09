@@ -16,7 +16,9 @@ export const glossary: Record<string, string> = {
   Run:
     "One run of an Agent from start to finish: what a user starts when they send a message, fire a schedule or open a share link.",
   Score:
-    "One grade of a finished run: a person's thumbs up or down on the final answer, or the free run-health checks Stigmer runs on every completed run.",
+    "One grade of a finished run: a person's thumbs up or down on the final answer, the free run-health checks Stigmer runs on every completed run, or an AI judge's verdict.",
+  Evaluator:
+    "AI grading switched on for one Agent: how many of its runs an AI judge grades, the monthly spending limit, and the judge's model.",
   Session:
     "An ongoing conversation with an Agent across multiple messages. A session remembers what was said earlier so the Agent can follow along.",
   Skill:
