@@ -625,6 +625,7 @@ function whoActsSentence(requirement: Requirement, who: WhoActs): string {
       return who.listsVaults
         ? `${what} to one of this conversation's vaults, or include My vault in this conversation`
         : `this conversation uses no vaults: include My vault in it, or list a vault that holds ${requirement.key}`;
+    /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
     default: {
       const unreachable: never = who;
       return unreachable;
