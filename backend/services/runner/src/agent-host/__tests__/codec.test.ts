@@ -87,6 +87,7 @@ describe("the turn input across the pipe", () => {
       skills: { root: [{ name: "s", description: "d", path: "/p" }], bySubAgent: new Map([["helper", [{ name: "h", description: "d", path: "/h" }]]]) },
     });
     input.blueprint.agent!.spec.subAgents.push(create(SubAgentSchema, { name: "helper" }));
+    input.blueprint.subAgents = input.blueprint.agent!.spec.subAgents;
     input.session.spec!.harnessStateId = "state-1";
 
     const decoded = crossed(input);
@@ -106,6 +107,15 @@ describe("the turn input across the pipe", () => {
     expect([...decoded.mcp.leases.categories]).toEqual(["write"]);
     expect([...decoded.mcp.mcpDefault.destructive]).toEqual(["github/delete_repo"]);
     expect([...decoded.skills.bySubAgent.keys()]).toEqual(["helper"]);
+  });
+
+  it("keeps a sub-agent list that is not the agent spec's (the built-in judge's) as its own", () => {
+    const input = turnInputFixture();
+    input.blueprint.agent!.spec.subAgents.push(create(SubAgentSchema, { name: "on-the-spec" }));
+    const decoded = crossed({ ...input, blueprint: { ...input.blueprint, subAgents: [] } });
+
+    expect(decoded.blueprint.subAgents).toEqual([]);
+    expect(decoded.blueprint.agent!.spec.subAgents.map((s) => s.name)).toEqual(["on-the-spec"]);
   });
 
   it("rebuilds the tool scope with the same answers", () => {

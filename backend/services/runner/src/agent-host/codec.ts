@@ -10,9 +10,10 @@
  *    and Sets cross as entry arrays. The aliases the runtime builds are
  *    rebuilt on decode, because adapters rely on them: `session` IS
  *    `blueprint.session`, `blueprint.sessionSpec` IS its spec, and
- *    `blueprint.subAgents` IS the agent spec's list (`shared/blueprint-
- *    resolver.ts`); `mcpDefault.leasedServers` IS `leases.servers`
- *    (`shared/approval-policy.ts`). The members that are behaviour, not
+ *    `blueprint.subAgents` IS the agent spec's list when the resolver made
+ *    it so (`shared/blueprint-resolver.ts`; the built-in judge's is its own
+ *    empty list, so whether it is crosses too); `mcpDefault.leasedServers`
+ *    IS `leases.servers` (`shared/approval-policy.ts`). The members that are behaviour, not
  *    data, are rebuilt in the host over calls back to the runner, which
  *    keeps the authority each one needs: the recalled-memory selection (a
  *    network call that writes the runtime's status), the artifact upload
@@ -105,7 +106,8 @@ export interface WireTurnInput {
   readonly blueprint: {
     readonly agent: { readonly id: string; readonly versionHash: string; readonly spec: string } | null;
     readonly instructions: string;
-    /** Only when there is no agent: with one, the list is the agent spec's own. */
+    /** True when the list IS the agent spec's own (and `subAgents` is then empty on the wire). */
+    readonly subAgentsAreAgentSpecs: boolean;
     readonly subAgents: readonly string[];
     readonly mergedMcpServerUsages: readonly string[];
     readonly mergedSkillRefs: readonly string[];
@@ -185,7 +187,8 @@ export function encodeTurnInput(input: TurnInput): WireTurnInput {
         ? { id: blueprint.agent.id, versionHash: blueprint.agent.versionHash, spec: encodeMessage(AgentSpecSchema, blueprint.agent.spec) }
         : null,
       instructions: blueprint.instructions,
-      subAgents: blueprint.agent ? [] : blueprint.subAgents.map((s) => encodeMessage(SubAgentSchema, s)),
+      subAgentsAreAgentSpecs: subAgentsAreAgentSpecs(input),
+      subAgents: subAgentsAreAgentSpecs(input) ? [] : blueprint.subAgents.map((s) => encodeMessage(SubAgentSchema, s)),
       mergedMcpServerUsages: blueprint.mergedMcpServerUsages.map((u) => encodeMessage(McpServerUsageSchema, u)),
       mergedSkillRefs: blueprint.mergedSkillRefs.map((r) => encodeMessage(ApiResourceReferenceSchema, r)),
       cloudRepos: blueprint.cloudRepos,
@@ -256,6 +259,10 @@ export function encodeTurnInput(input: TurnInput): WireTurnInput {
   };
 }
 
+function subAgentsAreAgentSpecs(input: TurnInput): boolean {
+  return input.blueprint.agent !== undefined && input.blueprint.subAgents === input.blueprint.agent.spec.subAgents;
+}
+
 /** The behaviour the host rebuilds over calls to the runner (the module header). */
 export interface HostTurnServices {
   readonly selectRecalledMemories: () => Promise<RecalledMemoriesContent | undefined>;
@@ -286,7 +293,10 @@ export function decodeTurnInput(wire: WireTurnInput, services: HostTurnServices)
       session,
       sessionSpec,
       instructions: wire.blueprint.instructions,
-      subAgents: agentSpec ? agentSpec.subAgents : wire.blueprint.subAgents.map((s) => decodeMessage(SubAgentSchema, s)),
+      subAgents:
+        agentSpec && wire.blueprint.subAgentsAreAgentSpecs
+          ? agentSpec.subAgents
+          : wire.blueprint.subAgents.map((s) => decodeMessage(SubAgentSchema, s)),
       mergedMcpServerUsages: wire.blueprint.mergedMcpServerUsages.map((u) => decodeMessage(McpServerUsageSchema, u)),
       mergedSkillRefs: wire.blueprint.mergedSkillRefs.map((r) => decodeMessage(ApiResourceReferenceSchema, r)),
       cloudRepos: [...wire.blueprint.cloudRepos],
