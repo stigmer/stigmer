@@ -386,7 +386,13 @@ describe("vault resolution — a person's run", () => {
 
   it("[rpc:SessionCommandController.update] a repository's token is sealed and kept by a write sending the marker back; a stale write keeps the stored vault choice", async () => {
     const { org } = await target.provisionTenancy();
-    const input = makeSession({ org, name: uniqueName("session-repo-token"), includeMyVault: true });
+    const team = await sharedVaultWith(org, { TEAM_KEY: "team-value" });
+    const input = makeSession({
+      org,
+      name: uniqueName("session-repo-token"),
+      includeMyVault: true,
+      vaults: [team.slug],
+    });
     input.spec!.workspaceEntries = [
       create(WorkspaceEntrySchema, {
         name: "app",
@@ -404,17 +410,21 @@ describe("vault resolution — a person's run", () => {
     const turnStartRead = await clients.sessionQuery.get({ value: created.metadata!.id });
     expect(tokenOf(turnStartRead), "a read shows the marker, never the token").toBe(REDACTED_MARKER);
     expect(turnStartRead.spec?.includeMyVault).toBe(true);
+    expect(turnStartRead.spec?.vaults.map((ref) => ref.slug)).toEqual([team.slug]);
 
-    // The creator leaves My vault out mid-turn.
+    // The creator leaves My vault out and removes the team vault mid-turn.
     const fresh = await clients.sessionQuery.get({ value: created.metadata!.id });
     fresh.spec!.includeMyVault = false;
+    fresh.spec!.vaults = [];
     const changed = await clients.sessionCommand.update(fresh);
     expect(changed.spec?.includeMyVault).toBe(false);
+    expect(changed.spec?.vaults).toEqual([]);
 
     // The runner's after-turn write echoes the older read: it keeps the
     // stored choice and the stored token.
     const afterTurn = await clients.sessionCommand.update(turnStartRead);
     expect(afterTurn.spec?.includeMyVault, "a stale write never switches My vault back").toBe(false);
+    expect(afterTurn.spec?.vaults, "nor re-attaches a vault removed since").toEqual([]);
     expect(tokenOf(afterTurn)).toBe(REDACTED_MARKER);
 
     // A current write sending the marker back is accepted only when a token

@@ -78,7 +78,7 @@ These apply to this message only and never carry over to the next one in the ses
 
 No request sets an approval mode: it is a fact of the lane the turn came through, recorded on `status.approval_mode`. See [hitl-approvals.md](hitl-approvals.md#unattended-surfaces-channels-and-guest-shares).
 
-### A Conversation's Own Values
+### The Vaults a Turn Uses
 
 A turn's secrets and logins come from vaults; neither a run nor a conversation carries its own, except a repository's `token`. A first turn names the conversation's vaults on `session_spec.vaults` and sets `session_spec.include_my_vault` to use the sender's My vault first; a later change is a session update. A repository's token is sealed for the conversation's life, shown as `***REDACTED***` on every read, and destroyed with the conversation. `status.credentials.person` records whose turn it was, which decides whose My vault applies.
 

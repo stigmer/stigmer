@@ -236,7 +236,9 @@ export function isStaleSessionWrite(ctx: RequestContext<SessionDesc>): boolean {
  */
 export function newKeepStoredVaultChoiceOnStaleWriteStep(): PipelineStep<SessionDesc> {
   return {
-    name: "KeepStoredVaultChoiceOnStaleWrite",
+    // The step's name predates include_my_vault and stays: step names are
+    // shared vocabulary (backend/services/stigmer-server/AGENTS.md).
+    name: "KeepStoredVaultsOnStaleWrite",
     execute(ctx: RequestContext<SessionDesc>): void {
       const spec = ctx.newState.spec;
       if (spec === undefined || !isStaleSessionWrite(ctx)) {
