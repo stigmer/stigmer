@@ -91,11 +91,19 @@ export interface AgentHostSupervisorOptions {
 
 const DEFAULT_HELLO_TIMEOUT_MS = 30_000;
 
+/** A started, announced and booted host: its channel's peer, how to end it, when it started, and its token at the proxy. */
+interface LiveHost {
+  readonly peer: RunnerPeer;
+  readonly kill: () => void;
+  readonly startedAt: number;
+  readonly token: string;
+}
+
 export class AgentHostSupervisor {
   private readonly booted = new Map<HarnessName, Config>();
   private readonly turns = new Map<string, RemoteTurnEndpoint>();
-  private live: { readonly peer: RunnerPeer; readonly kill: () => void; readonly startedAt: number } | undefined;
-  private starting: Promise<RunnerPeer> | undefined;
+  private live: LiveHost | undefined;
+  private starting: Promise<LiveHost> | undefined;
   private restartTimer: NodeJS.Timeout | undefined;
   private stopping = false;
   private nextDelay: number;
@@ -114,9 +122,9 @@ export class AgentHostSupervisor {
   async boot(harness: HarnessName, config: Config): Promise<void> {
     this.stopping = false;
     this.booted.set(harness, config);
-    const { peer, fresh } = await this.connectReporting();
+    const { host, fresh } = await this.connectReporting();
     // A fresh host was booted with every recorded harness, this one included.
-    if (!fresh) await peer.call("boot", { harness, config: this.wireConfig(config, this.currentToken!) });
+    if (!fresh) await host.peer.call("boot", { harness, config: this.wireConfig(config, host.token) });
   }
 
   /** Shut `harness` down in the host; the last one stops the host. */
@@ -138,7 +146,7 @@ export class AgentHostSupervisor {
 
   /** The live host, started (and booted) first when it is not running. */
   async connection(): Promise<RunnerPeer> {
-    return (await this.connectReporting()).peer;
+    return (await this.connectReporting()).host.peer;
   }
 
   /** Route the host's calls and notices for `turnId` to `endpoint` until the returned release runs. */
@@ -149,25 +157,21 @@ export class AgentHostSupervisor {
     };
   }
 
-  /** The host's token at the proxy, minted per start. */
-  private currentToken: string | undefined;
-
-  private async connectReporting(): Promise<{ readonly peer: RunnerPeer; readonly fresh: boolean }> {
-    if (this.live && !this.live.peer.closed) return { peer: this.live.peer, fresh: false };
+  private async connectReporting(): Promise<{ readonly host: LiveHost; readonly fresh: boolean }> {
+    if (this.live && !this.live.peer.closed) return { host: this.live, fresh: false };
     this.starting ??= this.startHost().finally(() => {
       this.starting = undefined;
     });
-    return { peer: await this.starting, fresh: true };
+    return { host: await this.starting, fresh: true };
   }
 
-  private async startHost(): Promise<RunnerPeer> {
+  private async startHost(): Promise<LiveHost> {
     if (this.restartTimer) {
       clearTimeout(this.restartTimer);
       this.restartTimer = undefined;
     }
     const token = randomBytes(32).toString("base64url");
     this.options.proxy.authorizeHost(token);
-    this.currentToken = token;
     const started = await this.options.start();
     const peer: RunnerPeer = new Peer<HostCalls, RunnerCalls, RunnerNotices, HostNotices>(started.channel, "runner");
     try {
@@ -182,9 +186,10 @@ export class AgentHostSupervisor {
       throw err;
     }
     const startedAt = Date.now();
-    this.live = { peer, kill: started.kill, startedAt };
+    const host: LiveHost = { peer, kill: started.kill, startedAt, token };
+    this.live = host;
     peer.onClose((reason) => this.onHostGone(peer, startedAt, reason));
-    return peer;
+    return host;
   }
 
   private async awaitHello(peer: RunnerPeer): Promise<void> {
