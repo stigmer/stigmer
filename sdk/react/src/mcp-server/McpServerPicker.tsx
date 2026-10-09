@@ -16,7 +16,6 @@ import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { VendorApprovalStatus } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
-import type { EnvVarFormSubmitOptions } from "../vault/EnvVarForm.js";
 import { useMcpServerSearch } from "./useMcpServerSearch.js";
 import { useScrollShadows } from "../internal/useScrollShadows.js";
 import { ScrollFade } from "../internal/ScrollFade.js";
@@ -64,7 +63,6 @@ export interface McpServerSetupIntegration {
   readonly onSubmitEnvVars: (
     ref: ResourceRef,
     values: Record<string, EnvVarInput>,
-    options: EnvVarFormSubmitOptions,
   ) => void;
   /**
    * Called when a sign-in started here lands, saved in the person's My
@@ -127,7 +125,7 @@ export interface McpServerPickerProps {
    *     entries: mcpSetup.entries,
    *     onServerAdded: (ref) => mcpSetup.addServer(ref),
    *     onServerRemoved: (ref) => mcpSetup.removeServer(ref),
-   *     onSubmitEnvVars: (ref, v, o) => mcpSetup.submitEnvVars(ref, v, o),
+   *     onSubmitEnvVars: (ref, v) => mcpSetup.submitEnvVars(ref, v),
    *   }}
    * />
    * ```
@@ -238,7 +236,7 @@ function slugFromServerKey(key: string): string {
  *     entries: mcpSetup.entries,
  *     onServerAdded: (ref) => mcpSetup.addServer(ref),
  *     onServerRemoved: (ref) => mcpSetup.removeServer(ref),
- *     onSubmitEnvVars: (ref, v, o) => mcpSetup.submitEnvVars(ref, v, o),
+ *     onSubmitEnvVars: (ref, v) => mcpSetup.submitEnvVars(ref, v),
  *   }}
  * />
  * ```
@@ -571,8 +569,7 @@ export function McpServerPicker({
             needsCredentials && hasManualVars
               ? {
                   variables: filteredMissingVars,
-                  onSubmit: (values, opts) =>
-                    setup.onSubmitEnvVars(ref, values, opts),
+                  onSubmit: (values) => setup.onSubmitEnvVars(ref, values),
                   isSubmitting: entry.status === "submitting",
                   poolValues,
                 }

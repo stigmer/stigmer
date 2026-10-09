@@ -235,7 +235,6 @@ export interface UseMcpServerCredentialsReturn {
  *       variables={creds.missingVariables}
  *       onSubmit={(values) => creds.saveCredentials(values)}
  *       isSubmitting={creds.isSaving}
- *       hideSaveToggle
  *     />
  *   );
  * }

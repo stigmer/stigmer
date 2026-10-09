@@ -24,7 +24,6 @@ export { EnvVarForm } from "./EnvVarForm.js";
 export type {
   EnvVarFormProps,
   EnvVarFormVariable,
-  EnvVarFormSubmitOptions,
 } from "./EnvVarForm.js";
 export type { EnvVarInput } from "./types.js";
 export { diffEnv } from "./diffEnv.js";
