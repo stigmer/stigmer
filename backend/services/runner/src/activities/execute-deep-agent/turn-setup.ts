@@ -61,8 +61,7 @@ import { buildPlanModePermissions } from "../../shared/plan-mode-permissions.js"
 import { buildMiddlewareStack } from "../../middleware/index.js";
 import type { ApprovalGateConfig } from "../../middleware/approval-gate.js";
 import { WEB_FETCH_TOOL_NAME, createWebFetchTool, resolveGuardPosture } from "../../tools/index.js";
-import { deriveExecutionFingerprintKey } from "../../shared/approval-fingerprint.js";
-import { getRunnerHitlMasterSecret } from "../../shared/fingerprint-secret.js";
+import { executionFingerprintKey } from "../../shared/fingerprint-secret.js";
 import { getModelPricing, ensureLoaded as ensurePricingLoaded, type ModelPricing } from "../../shared/model-pricing.js";
 import { getDefaultModel, getNativeRequestProfile } from "../../shared/model-registry.js";
 import { buildChatModel } from "../../shared/model-client.js";
@@ -474,7 +473,7 @@ export async function buildEngine(
         mcpDefault: gate.mcpDefault,
         leasedCategories: gate.leasedCategories,
         toolServerMap: gate.toolServerMap,
-        fingerprintKey: deriveExecutionFingerprintKey(getRunnerHitlMasterSecret(), executionId),
+        fingerprintKey: executionFingerprintKey(executionId),
         executionId,
         fileCaptureMode: captureMode,
         isCapturablePath: workspace.isCapturablePath,

@@ -11,6 +11,11 @@
  * them that owns the resolve -> infer-provider -> strip-prefix ->
  * proxy-or-backend-wire -> construct sequence that used to be copy-pasted
  * across every LLM activity.
+ *
+ * In the agent host, a direct-mode client keeps its shape and swaps only
+ * its transport: its base URL is a provider lane of the runner's local
+ * proxy and its credential the host's token (`model-lanes.ts`). Nothing
+ * else here knows the difference.
  */
 
 import { ChatAnthropic } from "@langchain/anthropic";
@@ -42,6 +47,7 @@ import {
   type EffectiveServiceTier,
 } from "./service-tier.js";
 import { getRunnerSecret } from "./runner-credential-store.js";
+import { VERTEX_LANE_PROJECT, modelLaneUrl, modelLanes, type ModelLanes } from "./model-lanes.js";
 
 export interface BuildChatModelOptions {
   /** Registry id ("claude-haiku-4.5"), "provider:model", or a provider API id. */
@@ -158,6 +164,11 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
       ? resolveAnthropicBackend()
       : "public";
 
+  // Lanes stand in for every direct-mode credential below; never with a
+  // proxy, which carries its own (`model-lanes.ts`).
+  const lanes = opts.proxyEndpoint ? undefined : modelLanes();
+  const laneHeaders = lanes ? buildProxyHeaders(lanes.token, opts.headerScope ?? {}) : undefined;
+
   // Backend SDKs (and their auth subtrees: google-auth-library, AWS smithy)
   // load lazily so deployments that never configure a backend never
   // evaluate them — cheap cold starts stay cheap, and bundle-slim's CJS
@@ -190,8 +201,9 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
     const prereq = checkVertexPrerequisites();
     if (prereq !== null) throw new Error(prereq);
     const { AnthropicVertex } = await import("@anthropic-ai/vertex-sdk");
+    const vertexLane = lanes ? vertexLaneOptions(lanes, laneHeaders!) : {};
     backendCreateClient = (options) =>
-      new AnthropicVertex({ maxRetries: options.maxRetries, timeout: options.timeout });
+      new AnthropicVertex({ maxRetries: options.maxRetries, timeout: options.timeout, ...vertexLane });
     wireModelId = toVertexModelId(apiModelId);
   } else if (anthropicBackend === "bedrock") {
     const prereq = checkBedrockPrerequisites();
@@ -201,10 +213,14 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
     // which the boot capture has emptied (#508) — hand it the stored value
     // explicitly. `undefined` when absent preserves the SDK's fallthrough to
     // the ambient AWS credential chain (env keys, IRSA, config files).
-    const bedrockBearerToken = getRunnerSecret("AWS_BEARER_TOKEN_BEDROCK");
+    // Through a lane the client signs nothing (`skipAuth`): the lane adds
+    // the bearer token or the SigV4 signature for the real host.
+    const bedrockAuth = lanes
+      ? { skipAuth: true, baseURL: modelLaneUrl(lanes, "bedrock"), defaultHeaders: laneHeaders }
+      : { apiKey: getRunnerSecret("AWS_BEARER_TOKEN_BEDROCK") };
     backendCreateClient = (options) =>
       new AnthropicBedrock({
-        apiKey: bedrockBearerToken,
+        ...bedrockAuth,
         maxRetries: options.maxRetries,
         timeout: options.timeout,
       });
@@ -240,7 +256,11 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
     // which the boot capture has emptied (#508) — resolve it from the store
     // and hand it over explicitly. The either/or stays intact: exactly one of
     // apiKey / azureADTokenProvider reaches the constructor.
-    const foundryApiKey = getRunnerSecret("ANTHROPIC_FOUNDRY_API_KEY")?.trim() || undefined;
+    const foundryApiKey = lanes ? lanes.token : getRunnerSecret("ANTHROPIC_FOUNDRY_API_KEY")?.trim() || undefined;
+    // Through a lane the endpoint is the lane's; an empty resource keeps the
+    // SDK from reading ANTHROPIC_FOUNDRY_RESOURCE, which beside a base URL it
+    // refuses as ambiguous.
+    const foundryLane = lanes ? { baseURL: modelLaneUrl(lanes, "foundry"), resource: "", defaultHeaders: laneHeaders } : {};
     let azureADTokenProvider: (() => Promise<string>) | undefined;
     if (!foundryApiKey) {
       const { DefaultAzureCredential, getBearerTokenProvider } = await import("@azure/identity");
@@ -253,6 +273,7 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
       new AnthropicFoundry({
         maxRetries: options.maxRetries,
         timeout: options.timeout,
+        ...foundryLane,
         ...(foundryApiKey ? { apiKey: foundryApiKey } : { azureADTokenProvider }),
       });
     // Unlike the vertex/bedrock ids, the deployment name needs no maxTokens
@@ -268,21 +289,27 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
   // adapters reach their own cloud endpoints and OpenAI keeps its default.
   const baseUrl = opts.proxyEndpoint
     ? resolveProxyBaseUrl(opts.proxyEndpoint, provider)
-    : provider === "anthropic" && anthropicBackend === "public"
-      ? resolveAnthropicBaseUrl()
-      : undefined;
+    : lanes && (provider === "openai" || anthropicBackend === "public")
+      ? modelLaneUrl(lanes, provider)
+      : provider === "anthropic" && anthropicBackend === "public"
+        ? resolveAnthropicBaseUrl()
+        : undefined;
   const headers = opts.proxyEndpoint && opts.stigmerToken
     ? buildProxyHeaders(opts.stigmerToken, opts.headerScope ?? {})
-    : undefined;
+    : provider === "openai" || anthropicBackend === "public"
+      ? laneHeaders
+      : undefined;
 
   // Proxy mode authenticates with the Stigmer token; direct mode falls back
   // to the provider's own key, resolved from the credential store (the boot
   // capture moved it out of process.env, #508).
   const apiKey = opts.proxyEndpoint
     ? (opts.stigmerToken ?? "proxy-managed")
-    : provider === "openai"
-      ? (getRunnerSecret("OPENAI_API_KEY") ?? "")
-      : (getRunnerSecret("ANTHROPIC_API_KEY") ?? "");
+    : lanes
+      ? lanes.token
+      : provider === "openai"
+        ? (getRunnerSecret("OPENAI_API_KEY") ?? "")
+        : (getRunnerSecret("ANTHROPIC_API_KEY") ?? "");
 
   // maxRetries is 0 when a timeout is bound (a retry loop under a bound
   // multiplies the wall-clock budget); with no bound, LangChain's default
@@ -385,3 +412,25 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
 
   return { model, provider, apiModelId };
 }
+
+/**
+ * A Vertex client bound to its lane. The client cannot acquire a Google
+ * token (the host has no Google identity), so its auth client is a stub
+ * that adds nothing and names a placeholder project; the lane adds the
+ * runner's token and its real project (`agent-proxy/lanes/vertex.ts`). The
+ * Vertex client reads exactly `projectId` and `getRequestHeaders()` off its
+ * auth client, so the stub is the SDK's documented `authClient` seam.
+ */
+function vertexLaneOptions(lanes: ModelLanes, headers: Record<string, string>): VertexLaneOptions {
+  const authClient = { projectId: VERTEX_LANE_PROJECT, getRequestHeaders: async () => new Headers() };
+  return {
+    baseURL: modelLaneUrl(lanes, "vertex"),
+    projectId: VERTEX_LANE_PROJECT,
+    defaultHeaders: headers,
+    authClient: authClient as unknown as VertexAuthClient,
+  };
+}
+
+type VertexClientOptions = NonNullable<ConstructorParameters<typeof import("@anthropic-ai/vertex-sdk").AnthropicVertex>[0]>;
+type VertexAuthClient = NonNullable<VertexClientOptions["authClient"]>;
+type VertexLaneOptions = Pick<VertexClientOptions, "baseURL" | "projectId" | "defaultHeaders" | "authClient">;

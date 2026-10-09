@@ -17,6 +17,7 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { homedir, tmpdir } from "node:os";
 import type { Config, TokenRef } from "./config.js";
+import type { HarnessRow } from "./harness/registry.js";
 import { DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS, DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS, DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS } from "./config.js";
 import type { NativeConnection } from "@temporalio/worker";
 import type { WorkerActivities } from "./worker.js";
@@ -234,14 +235,18 @@ export async function createStigmerRunner(
   // installs the proxy interceptors (the HTTP/2 one patches http2.connect,
   // which only reaches that facade if it runs first), proves the patch landed,
   // and only then loads its SDK. Nothing a boot reads depends on the
-  // coordinates, so `bootConfig` carries none yet. The two modules imported
+  // coordinates, so `bootConfig` carries none yet. The modules imported
   // here are connect-free by construction (`harness-adapters.ts`,
-  // `harness/registry.ts`; `__tests__/harness-boot-order.test.ts`).
-  const [{ HARNESS_ADAPTERS }, { adaptersOf, bootHarnesses, shutdownHarnesses }] = await Promise.all([
+  // `harness/registry.ts`, `agent-host/hosting.ts`;
+  // `__tests__/harness-boot-order.test.ts`). The hosted harnesses' engines
+  // run in the agent host, behind their remote adapters (`agent-host/`).
+  const [{ HARNESS_ADAPTERS }, { adaptersOf, bootHarnesses, shutdownHarnesses }, { hostHarnesses }] = await Promise.all([
     import("./harness-adapters.js"),
     import("./harness/registry.js"),
+    import("./agent-host/hosting.js"),
   ]);
-  await bootHarnesses(adaptersOf(HARNESS_ADAPTERS), bootConfig);
+  const hosted = await hostHarnesses(HARNESS_ADAPTERS, bootConfig);
+  await bootHarnesses(adaptersOf(hosted.rows), bootConfig);
   markBoot("harnesses_booted");
 
   // Resolve Temporal coordinates after the harnesses have booted (discovery
@@ -299,7 +304,7 @@ export async function createStigmerRunner(
   // renewal point is scheduled even if the pod boots with a part-used token.
   const tokenRenewal = await startStaticSandboxTokenRenewal(config, tokenRef);
 
-  const activities = await createAllActivities(config);
+  const activities = await createAllActivities(config, hosted.rows);
   markBoot("activities_imported");
 
   console.log(
@@ -363,7 +368,13 @@ export async function createStigmerRunner(
       await worker.run();
       console.log("Worker stopped");
       await releaseAfterDrain({
-        shutdownHarnesses: () => shutdownHarnesses(adaptersOf(HARNESS_ADAPTERS)),
+        shutdownHarnesses: async () => {
+          try {
+            await shutdownHarnesses(adaptersOf(hosted.rows));
+          } finally {
+            await hosted.close();
+          }
+        },
         connection,
       });
     },
@@ -514,18 +525,18 @@ export function mapOptionsToConfig(
  * transitively load `@connectrpc/connect-node` and LangChain, and the Cursor
  * adapter's boot must have patched `node:http2` before connect-node is first
  * imported (see createStigmerRunner). The harness rows and the registry were
- * imported by the factory for the boot; the imports here hit the module cache.
+ * imported by the factory for the boot, which hands this function the rows it
+ * booted (the hosted harnesses' remote adapters among them); the imports here
+ * hit the module cache.
  */
-async function createAllActivities(config: Config): Promise<WorkerActivities> {
+async function createAllActivities(config: Config, harnessRows: readonly HarnessRow[]): Promise<WorkerActivities> {
   const [
-    { HARNESS_ADAPTERS },
     { createHarnessActivities },
     { createEnsureThreadActivities },
     { createGenerateSessionSubjectActivities },
     { createDiscoverMcpServerActivities },
     { createAttachSessionActivities },
   ] = await Promise.all([
-    import("./harness-adapters.js"),
     import("./harness/registry.js"),
     import("./activities/ensure-thread.js"),
     import("./activities/generate-session-subject.js"),
@@ -534,7 +545,7 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
   ]);
 
   return {
-    ...(await createHarnessActivities(HARNESS_ADAPTERS, config)),
+    ...(await createHarnessActivities(harnessRows, config)),
     ...createEnsureThreadActivities(),
     ...createGenerateSessionSubjectActivities(config),
     ...createDiscoverMcpServerActivities(config),

@@ -20,6 +20,7 @@
  */
 
 import { randomBytes, type BinaryLike } from "node:crypto";
+import { deriveExecutionFingerprintKey } from "./approval-fingerprint.js";
 import { getRunnerSecret } from "./runner-credential-store.js";
 
 const ENV_VAR = "STIGMER_RUNNER_HITL_SECRET";
@@ -51,4 +52,26 @@ export function getRunnerHitlMasterSecret(): BinaryLike {
     );
   }
   return cached;
+}
+
+/**
+ * Where a process that holds no master secret gets each execution's key:
+ * the agent host, which runs the engines and is handed the key of each turn
+ * it runs by the runner (`agent-host/host.ts`, #2016). The master secret
+ * never leaves the runner; a key opens one execution's receipts only.
+ */
+let suppliedKeys: ((executionId: string) => Buffer | undefined) | undefined;
+
+/** Install the agent host's per-turn key source. */
+export function supplyExecutionFingerprintKeys(source: (executionId: string) => Buffer | undefined): void {
+  suppliedKeys = source;
+}
+
+/**
+ * The per-execution fingerprint key a harness signs its approval receipts
+ * with: the one the runner supplied for this execution, or the key derived
+ * from this process's own master secret.
+ */
+export function executionFingerprintKey(executionId: string): Buffer {
+  return suppliedKeys?.(executionId) ?? deriveExecutionFingerprintKey(getRunnerHitlMasterSecret(), executionId);
 }

@@ -80,6 +80,13 @@ export interface HarnessRow {
  */
 export type HarnessActivity = (arg0: ExecuteActivityInput | string, arg1?: string) => Promise<unknown>;
 
+/** The row serving `harness`; a harness the table lacks is a wiring defect, so it throws. */
+export function harnessRowFor(rows: readonly HarnessRow[], harness: HarnessName): HarnessRow {
+  const row = rows.find((r) => r.harness === harness);
+  if (!row) throw new Error(`harness registry: no adapter serves '${harness}'`);
+  return row;
+}
+
 /** The adapters of a row list, for the lifecycle functions below. */
 export function adaptersOf(rows: readonly HarnessRow[]): HarnessAdapter[] {
   return rows.map((row) => row.adapter);

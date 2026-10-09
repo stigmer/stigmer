@@ -1,7 +1,7 @@
 {
   "name": "@stigmer/runner",
   "version": "0.0.0-dev",
-  "description": "Embeddable Temporal worker for the Stigmer AI agent platform \u2014 handles agent execution and MCP server management",
+  "description": "Embeddable Temporal worker for the Stigmer AI agent platform — handles agent execution and MCP server management",
   "license": "Apache-2.0",
   "type": "module",
   "engines": {
@@ -122,6 +122,7 @@
     "@temporalio/workflow": "1.16.2",
     "deepagents": "1.14.1",
     "diff": "^8.0.4",
+    "google-auth-library": "^10.9.1",
     "langchain": "^1.5.14",
     "langsmith": ">=0.7.1 <0.10.0",
     "picomatch": "^4.0.7",

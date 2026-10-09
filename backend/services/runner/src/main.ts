@@ -42,6 +42,7 @@ import { createStigmerRunnerManager } from "./runner-manager.js";
 import type { StigmerRunnerManager } from "./runner-manager.js";
 import { decidePoolBoot, registerPoolMemberContext } from "./pool-member.js";
 import { buildReadyMessage } from "./ipc-protocol.js";
+import { AGENT_HOST_MODE_ARG } from "./agent-host/protocol.js";
 import type { IpcCommand, IpcResponse } from "./ipc-protocol.js";
 
 import { handleUnhandledRejection } from "./activities/execute-cursor/rejection-capture.js";
@@ -445,6 +446,14 @@ async function main(): Promise<void> {
     }
     process.exit(1);
   }
+  // The runner's own entry, started by the runner as its agent host
+  // (`agent-host/supervisor.ts`): it serves the runner over its pipe and
+  // never reaches the config load, the build check or a Temporal worker.
+  if (process.argv[2] === AGENT_HOST_MODE_ARG) {
+    const { runAgentHost } = await import("./agent-host/entry.js");
+    await runAgentHost();
+  }
+
   // Cold-start timeline: this first mark's span covers Node startup +
   // entrypoint module loading + preflight (origin = process start).
   markBoot("node_start_and_preflight");

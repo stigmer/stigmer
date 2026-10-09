@@ -23,6 +23,7 @@ import {
   type WorkflowBundleOption,
 } from "@temporalio/worker";
 import type { Config, TokenRef } from "./config.js";
+import type { HarnessRow } from "./harness/registry.js";
 import { DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS, DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS, DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS } from "./config.js";
 // Boot marks mirror the static runner's segment names where the work is the
 // same. Inert unless a mode emits the boot timeline (pool mode does; the
@@ -262,12 +263,16 @@ export async function createStigmerRunnerManager(
   // mapManagerOptionsToConfig): the control-plane token until a runner token
   // is minted, the minted token after, exactly the lockstep the coordinator
   // below maintains in that ref. Nothing a boot reads depends on the
-  // coordinates, so `baseConfig` carries none yet. The two modules imported
+  // coordinates, so `baseConfig` carries none yet. The modules imported
   // here are connect-free by construction (`harness-adapters.ts`,
-  // `harness/registry.ts`; `__tests__/harness-boot-order.test.ts`).
-  const [{ HARNESS_ADAPTERS }, { adaptersOf, bootHarnesses, releaseHarnessSession, shutdownHarnesses }] =
-    await Promise.all([import("./harness-adapters.js"), import("./harness/registry.js")]);
-  await bootHarnesses(adaptersOf(HARNESS_ADAPTERS), baseConfig);
+  // `harness/registry.ts`, `agent-host/hosting.ts`;
+  // `__tests__/harness-boot-order.test.ts`). The hosted harnesses' engines
+  // run in the agent host, one for every session worker of this manager,
+  // behind their remote adapters (`agent-host/`).
+  const [{ HARNESS_ADAPTERS }, { adaptersOf, bootHarnesses, releaseHarnessSession, shutdownHarnesses }, { hostHarnesses }] =
+    await Promise.all([import("./harness-adapters.js"), import("./harness/registry.js"), import("./agent-host/hosting.js")]);
+  const hosted = await hostHarnesses(HARNESS_ADAPTERS, baseConfig);
+  await bootHarnesses(adaptersOf(hosted.rows), baseConfig);
   markBoot("harnesses_booted");
 
   // The token coordinator owns the proxy credential (x-stigmer-auth) and its
@@ -327,7 +332,7 @@ export async function createStigmerRunnerManager(
     );
   }
 
-  const activities = await createAllActivities(config);
+  const activities = await createAllActivities(config, hosted.rows);
   markBoot("activities_imported");
   // Surface the resolved artifact store at boot (see runner.ts for rationale):
   // a path/type misconfiguration is the #285 failure class, and it should be
@@ -526,7 +531,7 @@ export async function createStigmerRunnerManager(
       // and failing this IPC command would tell the desktop a removal that
       // did happen did not.
       try {
-        await releaseHarnessSession(adaptersOf(HARNESS_ADAPTERS), sessionId);
+        await releaseHarnessSession(adaptersOf(hosted.rows), sessionId);
       } catch (err) {
         console.error(
           `[runner-manager] Harness release for session ${sessionId} failed (continuing): ${err instanceof Error ? err.message : String(err)}`,
@@ -619,12 +624,13 @@ export async function createStigmerRunnerManager(
       // never thrown: the drain has already happened, and a teardown failure
       // must not mask a clean stop.
       try {
-        await shutdownHarnesses(adaptersOf(HARNESS_ADAPTERS));
+        await shutdownHarnesses(adaptersOf(hosted.rows));
       } catch (err) {
         console.error(
           `[runner-manager] Harness shutdown failed after the workers drained (continuing): ${err instanceof Error ? err.message : String(err)}`,
         );
       }
+      await hosted.close();
       sessions.clear();
       poolControl = null;
       connection.close();
@@ -716,16 +722,14 @@ export function mapManagerOptionsToConfig(
  * createStigmerRunnerManager). The harness rows and the registry were imported
  * by the factory for the boot; the imports here hit the module cache.
  */
-async function createAllActivities(config: Config): Promise<WorkerActivities> {
+async function createAllActivities(config: Config, harnessRows: readonly HarnessRow[]): Promise<WorkerActivities> {
   const [
-    { HARNESS_ADAPTERS },
     { createHarnessActivities },
     { createEnsureThreadActivities },
     { createGenerateSessionSubjectActivities },
     { createDiscoverMcpServerActivities },
     { createAttachSessionActivities },
   ] = await Promise.all([
-    import("./harness-adapters.js"),
     import("./harness/registry.js"),
     import("./activities/ensure-thread.js"),
     import("./activities/generate-session-subject.js"),
@@ -734,7 +738,7 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
   ]);
 
   return {
-    ...(await createHarnessActivities(HARNESS_ADAPTERS, config)),
+    ...(await createHarnessActivities(harnessRows, config)),
     ...createEnsureThreadActivities(),
     ...createGenerateSessionSubjectActivities(config),
     ...createDiscoverMcpServerActivities(config),
