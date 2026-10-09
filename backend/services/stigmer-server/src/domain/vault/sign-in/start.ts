@@ -65,13 +65,12 @@ import type {
 } from "../../../store/interface.js";
 import { InvalidAddressError, isGitHostAddress, normalizeAddress } from "../address.js";
 import { SIGN_IN_THROUGH_APP, SIGN_IN_THROUGH_LOGIN_SERVER } from "../constants.js";
-import { findLoginApp } from "../login-app.js";
+import { findLoginApp, findOrganizationLoginApp } from "../login-app.js";
 import type { AppLogin } from "../login-app.js";
 import type { LoginProviderSettings } from "../login-providers.js";
 import {
   ClientRegistrationError,
   NoSignInClientError,
-  canObtainClient,
   obtainClient,
   replaceClient,
 } from "./client.js";
@@ -179,7 +178,13 @@ export async function startSignIn(deps: SignInDeps, start: SignInStart): Promise
   const pkce = generatePkce();
   const state = generateState();
 
-  const app = await findLoginApp(deps, start.org, address);
+  const app =
+    start.connectLink !== ""
+      ? await findOrganizationLoginApp(deps, start.org, address)
+      : await findLoginApp(deps, start.org, address);
+  if (app === undefined && start.connectLink !== "") {
+    throw linkNeedsOrganizationApp(address);
+  }
   const planned =
     app !== undefined
       ? throughApp(app, redirectUri, pkce, state)
@@ -216,6 +221,9 @@ export async function startSignIn(deps: SignInDeps, start: SignInStart): Promise
     throw internalError(error, "failed to encrypt OAuth handshake secrets");
   }
   try {
+    // Every start sweeps the states nobody finished (they live ten
+    // minutes), so starts a public link allows cannot grow the table.
+    await deps.pendingOAuthStates.cleanupExpired();
     await deps.pendingOAuthStates.save(sealed);
   } catch (error) {
     throw internalError(error, "failed to save pending OAuth state");
@@ -236,35 +244,16 @@ export async function startSignIn(deps: SignInDeps, start: SignInStart): Promise
 }
 
 /**
- * Whether anything can sign in at an address, asked without registering a
- * client or recording a state: a login app for it, or (for a tool's URL)
- * a login server it leads to that can give Stigmer a client. A Connect
- * link is refused at creation without one, so it never sends a customer
- * to a dead end.
+ * A Connect link signs its customer in only through the organization's own
+ * login app for the address: its brand is on the vendor's consent page.
+ * Stigmer's own app, or Stigmer's client at a login server, would lend
+ * Stigmer's identity, and any consent a person once gave it, to whoever
+ * made the link, so a link through either is refused.
  */
-export async function signInAvailable(
-  deps: SignInDeps,
-  org: string,
-  address: string,
-): Promise<{ readonly available: true; readonly providerName: string } | { readonly available: false; readonly why: string }> {
-  const app = await findLoginApp(deps, org, address);
-  if (app !== undefined) {
-    return app.unavailable === undefined
-      ? { available: true, providerName: app.providerName }
-      : { available: false, why: app.unavailable };
-  }
-  if (isGitHostAddress(address)) {
-    return { available: false, why: "no login app serves this Git host" };
-  }
-  let discovered: DiscoveredLoginServer;
-  try {
-    discovered = await discoverForResource(address, deps.outboundFetch);
-  } catch (error) {
-    return { available: false, why: error instanceof Error ? error.message : String(error) };
-  }
-  return canObtainClient(discovered.metadata, deps.clientDocumentUrl)
-    ? { available: true, providerName: hostOf(address) }
-    : { available: false, why: "its login server does not allow automatic client registration" };
+export function linkNeedsOrganizationApp(address: string): Error {
+  return failedPreconditionError(
+    `a Connect link signs in only through the organization's own login app: add one in Settings that lists ${address}`,
+  );
 }
 
 /** The pieces of a sign-in its client decides. */

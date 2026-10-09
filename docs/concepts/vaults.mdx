@@ -200,6 +200,12 @@ customer opens it, sees "Connect Slack for Acme Helpdesk" with a **Continue**
 button, signs in on Slack's own page, and lands back in the integrator's app.
 The login is saved into that customer's vault.
 
+A link signs in only through your Organization's own login app for the address
+(**Settings → OAuth Apps**, with the address listed), so the vendor's consent
+page shows your app's name to your customer. Stigmer's own apps, and the client
+Stigmer registers with a tool's login server, are never used for a link: they
+would ask your customer to trust Stigmer, not you.
+
 From your backend, with a key that may edit the vault, make a link and send the
 customer to its `url`:
 
@@ -225,10 +231,10 @@ A Connect link:
   expires.
 - **Saves into a shared vault only.** My vault belongs to its person, and a link
   is for someone else.
-- **Is checked when you make it.** An address nothing can sign in to (no login
-  app for it, and no login server it names) is refused then, so a customer is
-  never sent to a dead end. The return URL must be an `https` address (`http`
-  only for `localhost`, `127.0.0.1` or `[::1]`).
+- **Is checked when you make it.** An address your Organization has no approved
+  login app for is refused then, so a customer is never sent to a dead end. The
+  return URL must be an `https` address (`http` only for `localhost`,
+  `127.0.0.1` or `[::1]`).
 - **Acts for you.** The saved login records you as the one who saved it. If you
   lose the right to edit the vault, the customer can still open the link, but
   Continue and the finished sign-in are refused, so nothing is saved.

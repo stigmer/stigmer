@@ -77,17 +77,11 @@ import {
 import { refuseBoundElsewhere } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import { PENDING_OAUTH_STATE_TTL_MS, ResourceNotFoundError } from "../../store/interface.js";
 import type { ConnectLinkRecord, ConnectLinkStore, PendingOAuthState } from "../../store/interface.js";
-import { findLoginAppName } from "./login-app.js";
+import { findLoginAppName, findOrganizationLoginApp } from "./login-app.js";
 import { isMyVault } from "./service.js";
 import type { VaultService } from "./service.js";
 import { finishSignIn } from "./sign-in/complete.js";
-import {
-  hostOf,
-  noLoginRefusal,
-  signInAddress,
-  signInAvailable,
-  startSignIn,
-} from "./sign-in/start.js";
+import { hostOf, linkNeedsOrganizationApp, signInAddress, startSignIn } from "./sign-in/start.js";
 import type { SignInDeps } from "./sign-in/start.js";
 
 /** How long a link lives when its maker does not say: 30 minutes. */
@@ -133,9 +127,12 @@ export async function createConnectLink(
   }
   const address = signInAddress(input.address);
   const returnUrl = checkedReturnUrl(input.returnUrl);
-  const available = await signInAvailable(deps, input.org, address);
-  if (!available.available) {
-    throw noLoginRefusal(address, available.why);
+  const app = await findOrganizationLoginApp(deps, input.org, address);
+  if (app === undefined) {
+    throw linkNeedsOrganizationApp(address);
+  }
+  if (app.unavailable !== undefined) {
+    throw failedPreconditionError(app.unavailable);
   }
   const pageOrigin = consolePageOrigin(deps.oauthRedirectUri);
 

@@ -3,9 +3,11 @@
  * vault service with the sign-in rig's recording fetch
  * (sign-in/__tests__/support.ts):
  *
- *   - creation refuses My vault, an address nothing can sign in to, a
- *     return URL that is not https (http only for this machine) or carries
- *     credentials, and a vault of another organization; it answers the
+ *   - creation refuses My vault, an address the organization has no login
+ *     app of its own for (Stigmer's app and Stigmer's client at a login
+ *     server are never lent to a link), an app its vendor has not approved,
+ *     a return URL that is not https (http only for this machine) or
+ *     carries credentials, and a vault of another organization; it answers the
  *     console's page for the link and keeps only the secret's SHA-256;
  *   - a link saves a sign-in into its vault with no Stigmer sign-in, saved
  *     by the link's maker, and answers its return URL with
@@ -40,7 +42,10 @@ import {
   StartSignInInputSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
 
+import { VendorApprovalStatus } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
+
 import type { CallerIdentity } from "../../../extensions/identity.js";
+import { oauthAppAddressKey } from "../login-app.js";
 import {
   completeConnectLink,
   createConnectLink,
@@ -134,18 +139,27 @@ describe("creating a link", () => {
     await expectRefusal(makeLink({ vaultId: mine.metadata!.id }), Code.FailedPrecondition, "a Connect link saves into a shared vault");
   });
 
-  it("refuses an address nothing can sign in to, registering nothing", async () => {
+  it("refuses an address without the organization's own login app, even one Stigmer's app or client could sign in to", async () => {
     await seedSharedVault(rig);
-    await expectRefusal(makeLink({ address: "gitlab.example.com" }), Code.FailedPrecondition, "nothing can sign in to gitlab.example.com");
-    rig.levers.noRegistration = true;
-    await expectRefusal(makeLink({ address: MCP_ADDRESS }), Code.FailedPrecondition, `nothing can sign in to ${MCP_ADDRESS}`);
-    expect(rig.requestsTo("https://login.linear.example/register")).toEqual([]);
+    const withCatalog = { loginProviders: new Map([["github", { clientId: "gh-client", clientSecret: "gh-secret" }]]) };
+    for (const address of ["gitlab.example.com", "github.com", MCP_ADDRESS]) {
+      await expectRefusal(
+        createConnectLink(
+          rig.deps(withCatalog),
+          create(CreateConnectLinkInputSchema, { org: ORG, vaultId: "vlt_shared", address, returnUrl: RETURN_URL }),
+          alice,
+        ),
+        Code.FailedPrecondition,
+        `a Connect link signs in only through the organization's own login app: add one in Settings that lists ${address}`,
+      );
+    }
+    expect(rig.requests).toEqual([]);
   });
 
-  it("asks a discovered login server without registering with it", async () => {
+  it("refuses an organization app its vendor has not approved", async () => {
     await seedSharedVault(rig);
-    await makeLink({ address: MCP_ADDRESS });
-    expect(rig.requestsTo("https://login.linear.example/register")).toEqual([]);
+    await seedOrganizationApp(rig, { approval: VendorApprovalStatus.PENDING });
+    await expectRefusal(makeLink(), Code.FailedPrecondition, "is pending approval by the vendor");
   });
 
   it.each([
@@ -248,6 +262,24 @@ describe("using a link", () => {
     const link = await makeLink({ returnUrl: signed });
     const done = await finish(link.token, (await startConnectLink(rig.deps(), tokenInput(link.token))).state);
     expect(done.returnUrl).toBe(`${signed}&stigmer_connect=connected`);
+  });
+
+  it("whose organization app is gone refuses at start, never falling back to Stigmer's own app", async () => {
+    await seedSharedVault(rig);
+    await seedOrganizationApp(rig, { addresses: ["github.com"] });
+    const withCatalog = { loginProviders: new Map([["github", { clientId: "gh-client", clientSecret: "gh-secret" }]]) };
+    const made = await createConnectLink(
+      rig.deps(withCatalog),
+      create(CreateConnectLinkInputSchema, { org: ORG, vaultId: "vlt_shared", address: "github.com", returnUrl: RETURN_URL }),
+      alice,
+    );
+    const token = made.url.slice(made.url.lastIndexOf("/") + 1);
+    await rig.store.resourceNames.releaseName(oauthAppAddressKey(ORG, "github.com"), "oap_vendor");
+    await expectRefusal(
+      startConnectLink(rig.deps(withCatalog), tokenInput(token)),
+      Code.FailedPrecondition,
+      "a Connect link signs in only through the organization's own login app",
+    );
   });
 
   it("re-checks its maker as the caller class and bound organization that made it", async () => {

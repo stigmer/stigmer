@@ -8,8 +8,10 @@
 // with the link's secret as the authority). Pinned here:
 //
 //   - creation refuses My vault (a link is for someone else), an address
-//     nothing can sign in to, and a return URL that is not https (http only
-//     for this machine); it answers the console page's URL and the expiry;
+//     the organization has no login app of its own for (a link never lends
+//     Stigmer's own app or Stigmer's client at the address's login server),
+//     and a return URL that is not https (http only for this machine); it
+//     answers the console page's URL and the expiry;
 //   - the page reads what the link is for, starts the sign-in, and completes
 //     it with no credential at all; completion saves the login at the
 //     address in the link's vault, recorded as saved by the link's maker,
@@ -111,7 +113,7 @@ describe("Connect link conformance — creation", () => {
     expect(expiresMs).toBeLessThanOrEqual(Date.now() + 30 * 60 * 1000 + 2000);
   });
 
-  it("[rpc:VaultCommandController.createConnectLink] refuses My vault, an address nothing can sign in to, a return URL that is not https, and a lifetime under a minute", async () => {
+  it("[rpc:VaultCommandController.createConnectLink] refuses My vault, an address without the organization's own login app, a return URL that is not https, and a lifetime under a minute", async () => {
     const { org } = await target.provisionTenancy();
     const { vaultId, address } = await setUp(clients, org);
     const mine = await clients.vaultCommand.setSecrets(setSecretsInput(myVaultTarget(org), { CONF_LINK_KEY: "v" }));
@@ -129,11 +131,10 @@ describe("Connect link conformance — creation", () => {
     const noLogin = await expectGrpcCode(
       () => createLink(clients, org, vaultId, "git.conformance.test"),
       Code.FailedPrecondition,
-      "a link to an address nothing signs in to",
+      "a link to an address without the organization's own login app",
     );
     expect(noLogin.rawMessage).toBe(
-      "nothing can sign in to git.conformance.test: no login app serves this Git host. " +
-        "Add a login app for git.conformance.test in Settings, or paste a token",
+      "a Connect link signs in only through the organization's own login app: add one in Settings that lists git.conformance.test",
     );
 
     const plainHttp = await expectGrpcCode(
@@ -209,22 +210,21 @@ describe("Connect link conformance — the page, with no credential", () => {
     }
   });
 
-  it("[rpc:ConnectLinkController.completeConnectLink] a link's sign-in through the address's own login server names the address as resource", async () => {
+  it("[rpc:VaultCommandController.createConnectLink] refuses an address only its own login server serves: a link never lends Stigmer's client there", async () => {
     const { org } = await target.provisionTenancy();
     const vault = await clients.vaultCommand.create(makeSharedVault({ org, name: uniqueName("customer") }));
     fixtures.defer(() => clients.vaultCommand.delete({ resourceId: vault.metadata!.id }));
     const address = mockAs.resourceAddress(uniqueName("discovered"));
-    const link = await createLink(clients, org, vault.metadata!.id, address);
-    const token = tokenOf(link.url);
-    const anonymous = target.anonymousClients();
-
-    const started = await anonymous.connectLink.startConnectLink({ token });
-    expect(new URL(started.authorizationUrl).searchParams.get("resource")).toBe(address);
-    await anonymous.connectLink.completeConnectLink({ token, state: started.state, code: "customer-code" });
-
-    expect(mockAs.capturedTokenRequests()[0]!.resource).toBe(address);
-    const saved = await clients.vaultQuery.get({ value: vault.metadata!.id });
-    expect(saved.spec?.connections[address]?.source).toBe(VaultConnectionSource.sign_in);
+    const err = await expectGrpcCode(
+      () => createLink(clients, org, vault.metadata!.id, address),
+      Code.FailedPrecondition,
+      "a link to an address with no organization app",
+    );
+    expect(err.rawMessage).toBe(
+      `a Connect link signs in only through the organization's own login app: add one in Settings that lists ${address}`,
+    );
+    expect(mockAs.capturedDcrRequests()).toEqual([]);
+    expect(mockAs.capturedDiscoveryPaths()).toEqual([]);
   });
 
   it("[rpc:ConnectLinkController.completeConnectLink] [rpc:VaultCommandController.completeSignIn] a state belongs to the link that started it: another link cannot complete it, nor can a person", async () => {

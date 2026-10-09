@@ -97,8 +97,10 @@ type VaultCommandControllerClient interface {
 	// customer to its url. The customer sees one Stigmer page with a
 	// Continue button, then the login page, then returns to return_url.
 	//
-	// Refused for My vault, and for an address nothing can sign in to (no
-	// login app for it and, for a tool's URL, no login server it advertises).
+	// Refused for My vault, and for an address the organization has no
+	// approved login app of its own for: a link signs in only through the
+	// organization's app (its name on the vendor's consent page), never
+	// through Stigmer's own apps or Stigmer's client at a login server.
 	CreateConnectLink(ctx context.Context, in *CreateConnectLinkInput, opts ...grpc.CallOption) (*ConnectLink, error)
 }
 
@@ -284,8 +286,10 @@ type VaultCommandControllerServer interface {
 	// customer to its url. The customer sees one Stigmer page with a
 	// Continue button, then the login page, then returns to return_url.
 	//
-	// Refused for My vault, and for an address nothing can sign in to (no
-	// login app for it and, for a tool's URL, no login server it advertises).
+	// Refused for My vault, and for an address the organization has no
+	// approved login app of its own for: a link signs in only through the
+	// organization's app (its name on the vendor's consent page), never
+	// through Stigmer's own apps or Stigmer's client at a login server.
 	CreateConnectLink(context.Context, *CreateConnectLinkInput) (*ConnectLink, error)
 }
 

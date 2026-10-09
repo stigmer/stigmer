@@ -221,6 +221,8 @@ keeps the client it was made with:
 An integrator that keeps one vault per customer can let a customer sign in
 without a Stigmer account. A **Connect link** is a one-time page for one vault
 and one address: the customer opens it, signs in on the vendor's own page, and
-is sent back to the integrator's app, and the login is saved into that vault.
+is sent back to the integrator's app, and the login is saved into that vault. A
+link signs in only through the Organization's own login app for the address
+(step 1); it never uses Stigmer's apps or Stigmer's client at a login server.
 [Vaults](/docs/concepts/vaults#connect-links-for-your-customers) shows how to
 make one.

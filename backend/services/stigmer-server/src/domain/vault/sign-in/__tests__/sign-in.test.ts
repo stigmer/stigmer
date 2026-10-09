@@ -8,7 +8,8 @@
  *   - a person's startSignIn and completeSignIn on VaultCommandController,
  *     from an address with no MCP server involved, save into their My vault,
  *     and McpServer's status reads that sign-in for a server at the address;
- *   - a Connect link made with createConnectLink works through the public
+ *   - a Connect link made with createConnectLink, for an address the
+ *     organization's own login app lists, works through the public
  *     ConnectLinkController, saves into its shared vault, answers its return
  *     URL, and works once;
  *   - Stigmer's OAuth client document is served on the unified port when the
@@ -34,6 +35,7 @@ import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcp
 import { VaultCommandController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/command_pb";
 import { ConnectLinkController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/connect_link_pb";
 import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
+import { OAuthAppCommandController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/command_pb";
 
 import { loadConfig } from "../../../../boot/config.js";
 import { composeServer } from "../../../../boot/compose.js";
@@ -124,6 +126,7 @@ let vaultQuery: Client<typeof VaultQueryController>;
 let links: Client<typeof ConnectLinkController>;
 let mcpCommand: Client<typeof McpServerCommandController>;
 let mcpQuery: Client<typeof McpServerQueryController>;
+let oauthApps: Client<typeof OAuthAppCommandController>;
 let login: MockLoginServer;
 let dir: string;
 
@@ -155,6 +158,7 @@ beforeAll(async () => {
   links = createClient(ConnectLinkController, transport);
   mcpCommand = createClient(McpServerCommandController, transport);
   mcpQuery = createClient(McpServerQueryController, transport);
+  oauthApps = createClient(OAuthAppCommandController, transport);
 });
 
 afterAll(async () => {
@@ -237,6 +241,20 @@ describe("a person's sign-in at an address", () => {
 
 describe("a Connect link over the wire", () => {
   it("is made for a shared vault, opened and completed through the public service, and works once", async () => {
+    const app = await oauthApps.create({
+      apiVersion: "iam.stigmer.ai/v1",
+      kind: "OAuthApp",
+      metadata: { name: "Helpdesk app", org: ORG },
+      spec: {
+        provider: "Helpdesk",
+        clientId: "helpdesk-client",
+        clientSecret: "helpdesk-secret",
+        authorizationUrl: `${login.base}/authorize`,
+        tokenUrl: `${login.base}/token`,
+        scopes: ["read"],
+        addresses: [`${login.base}/mcp`],
+      },
+    });
     const vault = await vaultCommand.create({
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "Vault",
@@ -260,6 +278,7 @@ describe("a Connect link over the wire", () => {
     expect(Object.keys(saved.spec?.connections ?? {})).toEqual([`${login.base}/mcp`]);
 
     await expectCode(links.getConnectLink({ token }), Code.NotFound, "Connect link not found");
+    await oauthApps.delete({ resourceId: app.metadata!.id });
   });
 
   it("refuses My vault at creation", async () => {

@@ -79,14 +79,6 @@ export function loginServerKey(metadata: AuthServerMetadata): string {
   return metadata.issuer;
 }
 
-/** Whether a login server can give Stigmer a client at all, asked without registering anything. */
-export function canObtainClient(metadata: AuthServerMetadata, clientDocumentUrl: string): boolean {
-  return (
-    (metadata.clientIdMetadataDocumentSupported && clientDocumentUrl !== "") ||
-    metadata.registrationEndpoint !== ""
-  );
-}
-
 /**
  * The client for a login server and redirect URI: the metadata document's
  * URL, else the one kept, else one registered now and kept.

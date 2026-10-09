@@ -101,6 +101,19 @@ export async function findLoginApp(
 }
 
 /**
+ * The organization's own login app for a normalized address, opened;
+ * undefined when it has none. A Connect link signs in through nothing else.
+ */
+export async function findOrganizationLoginApp(
+  deps: LoginAppDeps,
+  org: string,
+  address: string,
+): Promise<AppLogin | undefined> {
+  const app = await findOrganizationApp(deps.store, org, address);
+  return app === undefined ? undefined : openOrganizationApp(deps.secretService, app);
+}
+
+/**
  * Who a sign-in at an address is with, by the same order as
  * `findLoginApp`, without opening any secret: the organization's app's
  * provider, else the catalog entry's name, else undefined. For a page

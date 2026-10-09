@@ -94,7 +94,7 @@
           "inputFullType": "ai.stigmer.agentic.vault.v1.CreateConnectLinkInput",
           "outputType": "ConnectLink",
           "outputFullType": "ai.stigmer.agentic.vault.v1.ConnectLink",
-          "description": "Make a Connect link: a one-time page where someone without a Stigmer\n account signs in at an address, and the login is saved into a shared\n vault.\n\n An integrator makes one for each customer's vault and sends the\n customer to its url. The customer sees one Stigmer page with a\n Continue button, then the login page, then returns to return_url.\n\n Refused for My vault, and for an address nothing can sign in to (no\n login app for it and, for a tool's URL, no login server it advertises)."
+          "description": "Make a Connect link: a one-time page where someone without a Stigmer\n account signs in at an address, and the login is saved into a shared\n vault.\n\n An integrator makes one for each customer's vault and sends the\n customer to its url. The customer sees one Stigmer page with a\n Continue button, then the login page, then returns to return_url.\n\n Refused for My vault, and for an address the organization has no\n approved login app of its own for: a link signs in only through the\n organization's app (its name on the vendor's consent page), never\n through Stigmer's own apps or Stigmer's client at a login server."
         }
       ]
     },

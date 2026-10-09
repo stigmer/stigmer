@@ -9,6 +9,7 @@
  *     reach the login page proceeds (fail-open);
  *   - a deployment with no console callback refuses a console sign-in and a
  *     Connect link, saying which setting is missing;
+ *   - every start sweeps expired pending states;
  *   - a seal or a store that fails while the pending state is recorded, or
  *     while it is read back, answers INTERNAL, and a pending state whose
  *     secrets cannot be opened is refused before any token is asked for;
@@ -174,6 +175,23 @@ describe("a deployment with no console callback", () => {
 });
 
 describe("recording and reading the pending state", () => {
+  it("every start sweeps the states nobody finished, so starts cannot grow the table", async () => {
+    await seedOrganizationApp(rig);
+    const swept: number[] = [];
+    const states = rig.store.pendingOAuthStates;
+    const counting = withOverrides(states, {
+      cleanupExpired: async () => {
+        const removed = await states.cleanupExpired();
+        swept.push(removed);
+        return removed;
+      },
+    });
+    const recorded = (await states.getAndDelete((await start(VENDOR_ADDRESS)).state))!;
+    await states.save({ ...recorded, state: "abandoned", createdAt: Math.floor(Date.now() / 1000) - 11 * 60 });
+    await start(VENDOR_ADDRESS, { pendingOAuthStates: counting });
+    expect(swept).toEqual([1]);
+  });
+
   it("a seal or a store that fails while the state is recorded answers INTERNAL", async () => {
     await seedOrganizationApp(rig);
     const failingSeal = SecretService.create(Buffer.alloc(32, 3));
@@ -283,7 +301,7 @@ describe("a Connect link", () => {
     );
   });
 
-  it("is refused for an address whose own origin serves no login server", async () => {
+  it("is refused for an address the organization has no login app for, discovering nothing", async () => {
     await seedSharedVault(rig);
     await expectRefusal(
       createConnectLink(
@@ -292,8 +310,9 @@ describe("a Connect link", () => {
         alice,
       ),
       Code.FailedPrecondition,
-      "nothing can sign in to https://nothing.example/mcp: authorization server discovery failed",
+      "a Connect link signs in only through the organization's own login app: add one in Settings that lists https://nothing.example/mcp",
     );
+    expect(rig.requests).toEqual([]);
   });
 
   it("whose vault is gone answers NOT_FOUND at start", async () => {

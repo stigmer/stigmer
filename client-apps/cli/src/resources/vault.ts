@@ -149,8 +149,8 @@ export async function createSharedVault(
  * Make a Connect link for a shared vault: a one-time page where someone
  * without a Stigmer account signs in at `address`, the login is saved into
  * the vault, and they are sent back to `returnUrl`. The server refuses My
- * vault, an address nothing can sign in to, and a return URL that is not
- * https. The link carries its own secret, so the result prints it once and
+ * vault, an address the organization has no login app of its own for, and a
+ * return URL that is not https. The link carries its own secret, so the result prints it once and
  * says to send it only to its customer.
  */
 export async function createConnectLink(
