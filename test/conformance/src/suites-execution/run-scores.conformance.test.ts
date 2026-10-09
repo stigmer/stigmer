@@ -328,6 +328,14 @@ describe("Run scores", () => {
     const laneMock = lane.llmProxy?.() ?? mock;
     const tenancy = await lane.provisionTenancy();
     fixtures.defer(() => lane.cleanupTenancy(tenancy));
+    // A run is authorized against its organization's credits where billing
+    // gates run, so the organization is funded there first.
+    if (target.capabilities.billingGates) {
+      if (target.fundTenancy === undefined) {
+        throw new Error(`target ${target.name} declares billingGates but cannot fund a tenancy`);
+      }
+      await target.fundTenancy(tenancy.org);
+    }
     const member = await lane.provisionMember(tenancy);
 
     const agent = await lane.clients.agentCommand.create(
