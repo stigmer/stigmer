@@ -1069,6 +1069,34 @@ fee reminders every morning at nine.
 
 ---
 
+#### Score
+
+One grade of a finished run: a person's thumbs up or down on the final answer,
+or the free run-health checks Stigmer runs on every completed run.
+
+- **Capitalize**: As the resource name in labels and reference pages
+  (`kind: Score`). In prose say "score" in lower case, as "run".
+- **API surface**: `kind: Score`, prefix `scr`. proto:
+  `agentic/score/v1/spec.proto`. Written by a person rating a run in the console
+  or by the platform's checks; there is no `apply` and no manifest. CLI:
+
+  ```bash
+  stigmer runs scores <run-id>
+  stigmer get score <id>
+  ```
+
+- **Key fields**: `run_id`, `metric` (what is measured: `feedback` or
+  `run-health`), `source` (`score_source_human` or `score_source_check`),
+  `passed`, `criteria` (one per check, each with its reason), `comment` (a
+  person's feedback only), and `status.state` (`graded` or `not_graded` with a
+  reason).
+- **Boundaries**: a Score is not a usage report (cost and tokens), and a
+  not-graded score is never a failing one: it means the run could not be graded.
+- **Note**: a score's visibility is its run's. Whoever can see the run sees its
+  scores; nothing is shared on a score by itself.
+
+---
+
 ### Tier 3---Technical and internal
 
 These terms appear only in reference documentation, SDK guides, architecture

@@ -1,0 +1,425 @@
+{
+  "resource": "score",
+  "package": "ai.stigmer.agentic.score.v1",
+  "goImportPath": "scorev1",
+  "services": [
+    {
+      "name": "ScoreCommandController",
+      "role": "command",
+      "protoFile": "ai/stigmer/agentic/score/v1/command.proto",
+      "methods": [
+        {
+          "name": "Create",
+          "inputType": "Score",
+          "inputFullType": "ai.stigmer.agentic.score.v1.Score",
+          "outputType": "Score",
+          "outputFullType": "ai.stigmer.agentic.score.v1.Score",
+          "description": "Create a score on a completed run.\n\n A person rates a run with metric `feedback` and source\n score_source_human; each person rates a run once and changes the\n rating with update. The session and organization are taken from the\n run."
+        },
+        {
+          "name": "Update",
+          "inputType": "Score",
+          "inputFullType": "ai.stigmer.agentic.score.v1.Score",
+          "outputType": "Score",
+          "outputFullType": "ai.stigmer.agentic.score.v1.Score",
+          "description": "Update a person's rating: its value and comment.\n\n Only feedback is editable, and only by the person who gave it, and only\n its value and comment: every other field, the score's name and labels\n included, stays as created. A check's verdict never changes."
+        },
+        {
+          "name": "Delete",
+          "inputType": "ScoreId",
+          "inputFullType": "ai.stigmer.agentic.score.v1.ScoreId",
+          "outputType": "Score",
+          "outputFullType": "ai.stigmer.agentic.score.v1.Score",
+          "description": "Delete a score.\n\n A person deletes their own rating; the run's owner may delete any\n score on the run."
+        }
+      ]
+    },
+    {
+      "name": "ScoreQueryController",
+      "role": "query",
+      "protoFile": "ai/stigmer/agentic/score/v1/query.proto",
+      "methods": [
+        {
+          "name": "Get",
+          "inputType": "ScoreId",
+          "inputFullType": "ai.stigmer.agentic.score.v1.ScoreId",
+          "outputType": "Score",
+          "outputFullType": "ai.stigmer.agentic.score.v1.Score",
+          "description": "Get a single score by ID."
+        },
+        {
+          "name": "ListByRun",
+          "inputType": "ListScoresByRunRequest",
+          "inputFullType": "ai.stigmer.agentic.score.v1.ListScoresByRunRequest",
+          "outputType": "ScoreList",
+          "outputFullType": "ai.stigmer.agentic.score.v1.ScoreList",
+          "description": "List every score of a run."
+        },
+        {
+          "name": "ListBySession",
+          "inputType": "ListScoresBySessionRequest",
+          "inputFullType": "ai.stigmer.agentic.score.v1.ListScoresBySessionRequest",
+          "outputType": "ScoreList",
+          "outputFullType": "ai.stigmer.agentic.score.v1.ScoreList",
+          "description": "List every score of every run in a session."
+        }
+      ]
+    }
+  ],
+  "methodTypes": [
+    {
+      "name": "ListScoresByRunRequest",
+      "description": "ListScoresByRunRequest lists every score of one run.\n\n A run's scores are returned whole: a run has a handful.",
+      "protoType": "ai.stigmer.agentic.score.v1.ListScoresByRunRequest",
+      "protoFile": "apis/ai/stigmer/agentic/score/v1/io.proto",
+      "fields": [
+        {
+          "name": "RunId",
+          "jsonName": "runId",
+          "protoField": "run_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the run whose scores to list.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "ScoreList",
+      "description": "ScoreList is a list of scores.",
+      "protoType": "ai.stigmer.agentic.score.v1.ScoreList",
+      "protoFile": "apis/ai/stigmer/agentic/score/v1/io.proto",
+      "fields": [
+        {
+          "name": "TotalCount",
+          "jsonName": "totalCount",
+          "protoField": "total_count",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Number of scores in the list.",
+          "required": false
+        },
+        {
+          "name": "Items",
+          "jsonName": "items",
+          "protoField": "items",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "Score"
+            }
+          },
+          "description": "The scores, newest first.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ListScoresBySessionRequest",
+      "description": "ListScoresBySessionRequest lists every score of every run in a session.\n\n A session's scores are returned whole, as its runs are: a conversation\n is read as one.",
+      "protoType": "ai.stigmer.agentic.score.v1.ListScoresBySessionRequest",
+      "protoFile": "apis/ai/stigmer/agentic/score/v1/io.proto",
+      "fields": [
+        {
+          "name": "SessionId",
+          "jsonName": "sessionId",
+          "protoField": "session_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the session whose runs' scores to list.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    }
+  ],
+  "enumTypes": [
+    {
+      "name": "ScoreState",
+      "description": "ScoreState tells whether a score carries a grade.",
+      "protoType": "ai.stigmer.agentic.score.v1.ScoreState",
+      "values": [
+        {
+          "name": "score_state_graded",
+          "number": 1,
+          "description": "The score carries a value."
+        },
+        {
+          "name": "score_state_not_graded",
+          "number": 2,
+          "description": "The run could not be graded; the reason says why."
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceVisibility",
+      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines which\n users, inside that organization or in its child organizations, can read\n the resource. No level reaches every\n account on the server.\n\n The visibility levels map to FGA tuples:\n - PRIVATE: no additional viewer tuples (owner-only access)\n - ORG: resource#viewer@organization:\u003corg\u003e#viewer tuple (everyone in the\n   org — the org role hierarchy flows downward, so owners, admins, members\n   AND read-only viewers all satisfy the organization#viewer userset)\n - CHILD_ORGS: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer\n   (everyone in every child organization of the owning organization)\n - PUBLIC: retired; see the value's own comment.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+      "values": [
+        {
+          "name": "visibility_private",
+          "number": 1,
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for personal and run-scoped resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (sessions) stay creator-only."
+        },
+        {
+          "name": "visibility_public",
+          "number": 2,
+          "description": "Retired. This level made a resource readable to every account on the\n server; it is refused at create and at updateVisibility for every kind,\n and every stored row that held it has been moved to visibility_org.\n Sharing across organizations happens through plugins (a copy is\n installed and owned) or, from a parent organization to its children,\n through visibility_child_orgs."
+        },
+        {
+          "name": "visibility_org",
+          "number": 3,
+          "description": "Everyone in the owning organization can access (read) this resource —\n all org roles including read-only viewers (the role SSO auto-provisioning\n grants by default). Running or otherwise spending against the resource\n still requires the org-level member-or-guest permissions\n (can_create_session / can_create_run_in); org visibility widens\n read, never spend.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#viewer\n (The tuple once targeted organization#member, which\n excluded viewer-role users; the authorization model no longer admits\n that shape.)"
+        },
+        {
+          "name": "visibility_child_orgs",
+          "number": 4,
+          "description": "Everyone in every child organization of the owning organization can\n read and run this resource: the shared catalog an organization offers\n the organizations under it (spec.parent_org). Child organizations\n created later gain access automatically, and no other organization\n does. Instances, sessions, runs and vaults are never shared\n this way: each child runs the shared blueprint inside its own boundary.\n\n Only valid for blueprint kinds with supports_child_orgs: true, and only\n in an organization that is not itself a child.\n\n FGA tuple: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer"
+        }
+      ]
+    },
+    {
+      "name": "ScoreSource",
+      "description": "ScoreSource names who or what gave a score.",
+      "protoType": "ai.stigmer.agentic.score.v1.ScoreSource",
+      "values": [
+        {
+          "name": "score_source_check",
+          "number": 1,
+          "description": "A free check the platform runs on every completed run, with no model\n call."
+        },
+        {
+          "name": "score_source_human",
+          "number": 2,
+          "description": "A person who can see the run."
+        }
+      ]
+    },
+    {
+      "name": "CriterionResult",
+      "description": "CriterionResult is one criterion's outcome.",
+      "protoType": "ai.stigmer.agentic.score.v1.CriterionResult",
+      "values": [
+        {
+          "name": "criterion_result_passed",
+          "number": 1,
+          "description": "The run met the criterion."
+        },
+        {
+          "name": "criterion_result_failed",
+          "number": 2,
+          "description": "The run did not meet the criterion; the reason says how."
+        },
+        {
+          "name": "criterion_result_not_applicable",
+          "number": 3,
+          "description": "The criterion does not apply to this run."
+        }
+      ]
+    }
+  ],
+  "resourceDescription": "Score is one grade of a finished run.\n\n A run carries a score for each thing measured: a person's thumbs up or\n down on the final answer, and the free run-health checks the platform\n runs when a run completes. Anyone who can see the run sees its scores.",
+  "statusType": {
+    "name": "ScoreStatus",
+    "description": "ScoreStatus contains system-managed state for a score.",
+    "protoType": "ai.stigmer.agentic.score.v1.ScoreStatus",
+    "protoFile": "apis/ai/stigmer/agentic/score/v1/status.proto",
+    "fields": [
+      {
+        "name": "State",
+        "jsonName": "state",
+        "protoField": "state",
+        "type": {
+          "kind": "string",
+          "enumType": "ai.stigmer.agentic.score.v1.ScoreState",
+          "enumValues": [
+            "score_state_graded",
+            "score_state_not_graded"
+          ]
+        },
+        "description": "Whether the score carries a grade.",
+        "required": false
+      },
+      {
+        "name": "NotGradedReason",
+        "jsonName": "notGradedReason",
+        "protoField": "not_graded_reason",
+        "type": {
+          "kind": "string"
+        },
+        "description": "Why the run could not be graded, when state is not graded.",
+        "required": false
+      },
+      {
+        "name": "Audit",
+        "jsonName": "audit",
+        "protoField": "audit",
+        "type": {
+          "kind": "message",
+          "messageType": "ApiResourceAudit"
+        },
+        "description": "Standard audit information (created_at, updated_at, created_by, etc.)",
+        "required": false
+      }
+    ]
+  },
+  "statusNestedTypes": [
+    {
+      "name": "ApiResourceAudit",
+      "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "SpecAudit",
+          "jsonName": "specAudit",
+          "protoField": "spec_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's specification (desired state).",
+          "required": false
+        },
+        {
+          "name": "StatusAudit",
+          "jsonName": "statusAudit",
+          "protoField": "status_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's status (actual state).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditActor",
+      "description": "ApiResourceAuditActor represents the entity that performed an action.\n\n This is the platform's single actor vocabulary: every \"who did this\"\n reference (created_by / updated_by, version-history applied_by / pushed_by,\n approval resolved_by_actor) uses this message, so actor rendering is\n uniform across all surfaces.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unique identifier of the actor.",
+          "required": false
+        },
+        {
+          "name": "Avatar",
+          "jsonName": "avatar",
+          "protoField": "avatar",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL to the actor's avatar image.",
+          "required": false
+        },
+        {
+          "name": "DisplayName",
+          "jsonName": "displayName",
+          "protoField": "display_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable display name (e.g. \"Ada Lovelace\"). Empty when unknown;\n renderers fall back to email, then id.",
+          "required": false
+        },
+        {
+          "name": "Email",
+          "jsonName": "email",
+          "protoField": "email",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Email address of the actor. Empty when unknown or not applicable\n (e.g. machine accounts).",
+          "required": false
+        },
+        {
+          "name": "PlatformClientId",
+          "jsonName": "platformClientId",
+          "protoField": "platform_client_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The PlatformClient whose minted user token the actor acted through.\n Empty for every other credential, and on an actor that records no act\n (an account's profile lookup).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditInfo",
+      "description": "ApiResourceAuditInfo contains detailed audit information.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditInfo",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "CreatedBy",
+          "jsonName": "createdBy",
+          "protoField": "created_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who created this resource.",
+          "required": false
+        },
+        {
+          "name": "CreatedAt",
+          "jsonName": "createdAt",
+          "protoField": "created_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was created.",
+          "required": false
+        },
+        {
+          "name": "UpdatedBy",
+          "jsonName": "updatedBy",
+          "protoField": "updated_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who last updated this resource.",
+          "required": false
+        },
+        {
+          "name": "UpdatedAt",
+          "jsonName": "updatedAt",
+          "protoField": "updated_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was last updated.",
+          "required": false
+        },
+        {
+          "name": "Event",
+          "jsonName": "event",
+          "protoField": "event",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Type of the last event (e.g., \"created\", \"updated\").",
+          "required": false
+        }
+      ]
+    }
+  ]
+}

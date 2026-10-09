@@ -63,6 +63,8 @@ import {
   newExtractResourceIdStep,
   newLoadExistingForDeleteStep,
 } from "../../pipeline/steps/delete.js";
+import type { RunScoreCascade } from "../score/cascade.js";
+import { newCascadeDeleteScoresStep } from "../score/cascade.js";
 import {
   newDeleteSearchIndexStep,
   newIndexSearchStep,
@@ -244,6 +246,8 @@ export interface AgentExecutionControllerDeps {
    */
   readonly statusObservers: ReadonlyArray<RunStatusObserver>;
   readonly responseDecorators: ReadonlyArray<RunResponseDecorator>;
+  /** Removes a run's scores before its row (delete). */
+  readonly runScores: RunScoreCascade;
   /**
    * The sandbox lane: disabled on the OSS default; the create
    * and recover chains ensure the session sandbox through it after their
@@ -535,7 +539,9 @@ async function update(
 
 /**
  * Delete — delete.go buildDeletePipeline; returns the deleted execution
- * for the audit trail (gRPC convention).
+ * for the audit trail (gRPC convention). The run's scores go first,
+ * through their own delete chain, while the run still links them to the
+ * organization (domain/score/cascade.ts).
  */
 async function deleteExecution(
   deps: AgentExecutionControllerDeps,
@@ -561,6 +567,7 @@ async function deleteExecution(
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, RunSchema))
+    .addStep(newCascadeDeleteScoresStep(deps.runScores))
     .addStep(newDeleteResourceStep(deps.store))
     .addStep(
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),

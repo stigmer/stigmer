@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.score.v1;
+
+// ScoreSource names who or what gave a score.
+//
+// @internal
+// Each source is admitted from one kind of caller only (the score
+// domain's GuardScoreSource step): a person's thumbs come from a person,
+// a check's verdict from the server itself. Further sources (an AI judge,
+// an integrator's own back end) are added with their first writer.
+enum ScoreSource {
+  score_source_unspecified = 0;
+
+  // A free check the platform runs on every completed run, with no model
+  // call.
+  score_source_check = 1;
+
+  // A person who can see the run.
+  score_source_human = 2;
+}
+
+// ScoreState tells whether a score carries a grade.
+//
+// @internal
+// A grade that could not be produced is not_graded with a reason and no
+// value, never a failing value: an error read as a zero corrupts every
+// average built over scores.
+enum ScoreState {
+  score_state_unspecified = 0;
+
+  // The score carries a value.
+  score_state_graded = 1;
+
+  // The run could not be graded; the reason says why.
+  score_state_not_graded = 2;
+}
+
+// CriterionResult is one criterion's outcome.
+enum CriterionResult {
+  criterion_result_unspecified = 0;
+
+  // The run met the criterion.
+  criterion_result_passed = 1;
+
+  // The run did not meet the criterion; the reason says how.
+  criterion_result_failed = 2;
+
+  // The criterion does not apply to this run.
+  criterion_result_not_applicable = 3;
+}

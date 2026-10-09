@@ -1063,6 +1063,22 @@ export type {
   MemoryProposalCardBodyProps,
 } from "./memory/index.js";
 
+// Scores — a person's thumbs on a run's final answer and the platform's
+// free run-health checks, shown on every completed run its viewers can see
+export {
+  RunScores,
+  useSessionScores,
+  useRateRun,
+  useUpdateRating,
+} from "./score/index.js";
+export type {
+  RunScoresProps,
+  UseSessionScoresReturn,
+  UseRateRunReturn,
+  UseUpdateRatingReturn,
+  RunRating,
+} from "./score/index.js";
+
 // IAM Policy — data hooks, behavior hooks, headless hook, and styled components for access management
 export {
   useGrantableRoles,

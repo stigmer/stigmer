@@ -131,6 +131,13 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | ScheduleQueryController.getByReference | `org` |
 | ScheduleQueryController.list | `org` |
 
+## `ai.stigmer.agentic.score.v1`
+
+| Method | Organization fields |
+|---|---|
+| ScoreCommandController.create | `metadata.org` |
+| ScoreCommandController.update | `metadata.org` |
+
 ## `ai.stigmer.agentic.session.v1`
 
 | Method | Organization fields |

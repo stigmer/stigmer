@@ -72,6 +72,7 @@ const DOCUMENTS = [
   "reserved-label-writer.fga.yaml",
   "schedule-owner.fga.yaml",
   "schedule-session-visibility.fga.yaml",
+  "score-visibility.fga.yaml",
   "session-personal-resource.fga.yaml",
   "team-membership.fga.yaml",
   "vault-access.fga.yaml",

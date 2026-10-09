@@ -14,6 +14,7 @@ import (
 	pluginv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/plugin/v1"
 	runv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/run/v1"
 	schedulev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/schedule/v1"
+	scorev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/score/v1"
 	sessionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1"
 	skillv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/skill/v1"
 	vaultv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/vault/v1"
@@ -129,6 +130,11 @@ func RunInputFromProto(p *runv1.Run) *RunInput {
 // ScheduleInputFromProto creates a ScheduleInput from a proto Schedule resource.
 func ScheduleInputFromProto(p *schedulev1.Schedule) *ScheduleInput {
 	return gen.ScheduleInputFromProto(p)
+}
+
+// ScoreInputFromProto creates a ScoreInput from a proto Score resource.
+func ScoreInputFromProto(p *scorev1.Score) *ScoreInput {
+	return gen.ScoreInputFromProto(p)
 }
 
 // SessionInputFromProto creates a SessionInput from a proto Session resource.

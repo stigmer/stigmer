@@ -27,6 +27,7 @@ type Client struct {
 	ProviderKey      *ProviderKeyClient
 	Run              *RunClient
 	Schedule         *ScheduleClient
+	Score            *ScoreClient
 	Session          *SessionClient
 	Skill            *SkillClient
 	Subscription     *SubscriptionClient
@@ -58,6 +59,7 @@ func NewClient(conn grpc.ClientConnInterface) *Client {
 		ProviderKey:      NewProviderKeyClient(conn),
 		Run:              NewRunClient(conn),
 		Schedule:         NewScheduleClient(conn),
+		Score:            NewScoreClient(conn),
 		Session:          NewSessionClient(conn),
 		Skill:            NewSkillClient(conn),
 		Subscription:     NewSubscriptionClient(conn),

@@ -27,6 +27,7 @@ import {
   isSpecialType,
   firstMemberWinsOrder,
   isSyntheticOneof,
+  isValuedOneofScalar,
   protoTypeToGoImportPath,
   protoTypeToPackageAlias,
   searchListSupersedesMethod,
@@ -663,8 +664,15 @@ function generateInputTypesV2(
   return allTypes;
 }
 
+/**
+ * The input's Go type for a field. A boolean or numeric oneof member is a
+ * pointer, so nil is unset and a zero the caller set is sent
+ * (isValuedOneofScalar); every other scalar is a plain value whose zero
+ * reads as unset.
+ */
 function goTypeForField(f: FieldSchema): string {
-  return goTypeForTypeSpec(f.type);
+  const t = goTypeForTypeSpec(f.type);
+  return isValuedOneofScalar(f) ? "*" + t : t;
 }
 
 function goTypeForTypeSpec(ts: TypeSpec): string {
@@ -769,7 +777,15 @@ function emitToProtoField(buf: string[], f: FieldSchema, alias: string, typeMap:
   const refKind = f.referenceKind ?? 0;
   const oneofGroup = f.oneofGroup ?? "";
 
-  if (oneofGroup !== "" && !isSyntheticOneof(oneofGroup) && t.kind !== "message") {
+  if (isValuedOneofScalar(f)) {
+    // A boolean or numeric member is a pointer: nil leaves the oneof to the
+    // other members, and any value the caller set, zero included, holds it.
+    buf.push(`\tif i.${f.name} != nil {\n`);
+    buf.push(
+      `\t\tresource.Spec.${goProtoFieldName(oneofGroup)} = &${alias}.${specName}_${protoField}{${protoField}: *i.${f.name}}\n`,
+    );
+    buf.push("\t}\n");
+  } else if (oneofGroup !== "" && !isSyntheticOneof(oneofGroup) && t.kind !== "message") {
     // A scalar member of a real oneof is held by its wrapper type; a zero
     // value leaves the oneof to the other members.
     const set = t.kind === "bytes" ? `len(i.${f.name}) > 0` : `i.${f.name} != ${goZeroValueForTypeSpec(t)}`;
@@ -1219,7 +1235,7 @@ function generateFromProto(
     emitFromProtoField(buf, f);
   }
   for (const fields of oneofGroups.values()) {
-    emitFromProtoOneof(buf, fields, typeMap);
+    emitFromProtoOneof(buf, fields, typeMap, alias, specSchema.name);
   }
   buf.push("\t}\n");
 
@@ -1304,10 +1320,26 @@ function emitFromProtoField(buf: string[], f: FieldSchema): void {
 
 // Each set oneof member converts through the member type's own generated
 // converter — one converter, two callers.
-function emitFromProtoOneof(buf: string[], fields: FieldSchema[], typeMap: Map<string, TypeSchema>): void {
+function emitFromProtoOneof(
+  buf: string[],
+  fields: FieldSchema[],
+  typeMap: Map<string, TypeSchema>,
+  alias: string,
+  specName: string,
+): void {
   for (const f of fields) {
     const protoField = goProtoFieldName(f.protoField);
     const msgType = f.type.messageType ?? "";
+
+    if (isValuedOneofScalar(f)) {
+      // Set only when the oneof holds this member, so a member the resource
+      // never set stays nil.
+      buf.push(`\t\tif ov, ok := s.${goProtoFieldName(f.oneofGroup ?? "")}.(*${alias}.${specName}_${protoField}); ok {\n`);
+      buf.push(`\t\t\tv := ov.${protoField}\n`);
+      buf.push(`\t\t\tinput.${f.name} = &v\n`);
+      buf.push("\t\t}\n");
+      continue;
+    }
 
     if (f.type.kind !== "message") {
       // A scalar member's getter answers its zero value when the oneof

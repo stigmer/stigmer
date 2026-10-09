@@ -35,6 +35,8 @@ import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/ses
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { SessionIdSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
+import { ScoreCommandController } from "@stigmer/protos/ai/stigmer/agentic/score/v1/command_pb";
+import { ScoreIdSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
 
 import type {
   AgentLoader,
@@ -45,6 +47,7 @@ import type {
   SessionLoader,
 } from "../domain/run/create-execution-context-step.js";
 import type { ExecutionContextDeleter } from "../domain/executioncontext/internal-delete.js";
+import type { ScoreDeleter, ScoreRecorder } from "../domain/score/ports.js";
 import type { ConnectExecutionContextClient } from "../domain/mcpserver/connect.js";
 import type { PluginMaterializer } from "../domain/plugin/materialize/ports.js";
 import { UpdateVisibilityInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -79,6 +82,19 @@ export interface InProcessClients {
    * chain, so its cleanup event and search-row delete run (stigmer#1647).
    */
   readonly executionContextDeleter: ExecutionContextDeleter;
+  /**
+   * The grading code's write of a run's run-health score
+   * (temporal/grading/, domain/score/grading-observer.ts): the score's
+   * create chain as the server, the only caller its source guard admits
+   * for a check.
+   */
+  readonly scoreRecorder: ScoreRecorder;
+  /**
+   * The removal of a run's scores when the run goes
+   * (domain/score/cascade.ts): each score's delete chain as the server, so
+   * its access goes with its row.
+   */
+  readonly scoreDeleter: ScoreDeleter;
   /**
    * The connect lanes' ephemeral-EC lifecycle (server.go 693–705: the
    * mcpserver controller's executioncontext client) — create before the
@@ -184,6 +200,7 @@ export function createInProcessClients(
   );
   const mcpServerCommand = createClient(McpServerCommandController, transport);
   const skillCommand = createClient(SkillCommandController, transport);
+  const scoreCommand = createClient(ScoreCommandController, transport);
 
   // The caller-propagation call options (the Java posture restored): the
   // ORIGINAL caller's identity rides the
@@ -225,6 +242,16 @@ export function createInProcessClients(
     executionContextDeleter: {
       delete: async (contextId) => {
         await executionContextCommand.delete({ resourceId: contextId });
+      },
+    },
+    // The server acting for itself: a check's verdict is the platform's,
+    // and so is the removal of a deleted run's scores.
+    scoreRecorder: {
+      record: (score) => scoreCommand.create(score),
+    },
+    scoreDeleter: {
+      delete: async (scoreId) => {
+        await scoreCommand.delete(create(ScoreIdSchema, { value: scoreId }));
       },
     },
     // The connect lane's ephemeral EC is created AS THE CONNECTING PERSON

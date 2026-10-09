@@ -27,6 +27,7 @@ public class GeneratedClient {
     public final ProviderKeyClient providerkey;
     public final RunClient run;
     public final ScheduleClient schedule;
+    public final ScoreClient score;
     public final SessionClient session;
     public final SkillClient skill;
     public final SubscriptionClient subscription;
@@ -55,6 +56,7 @@ public class GeneratedClient {
         this.providerkey = new ProviderKeyClient(channel);
         this.run = new RunClient(channel);
         this.schedule = new ScheduleClient(channel);
+        this.score = new ScoreClient(channel);
         this.session = new SessionClient(channel);
         this.skill = newSkillClient(channel);
         this.subscription = new SubscriptionClient(channel);

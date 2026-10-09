@@ -23,6 +23,7 @@ from ._plugin import PluginClient, PluginInput, PluginAuthorInput
 from ._providerkey import ProviderKeyClient
 from ._run import RunClient, RunInput, SessionSpecInput, WorkspaceEntryInput, WorkspaceSourceInput, GitRepoSourceInput, LocalPathSourceInput, AttachmentInput, ConversationCatchupInput
 from ._schedule import ScheduleClient, ScheduleInput, AgentInvocationInput
+from ._score import ScoreClient, ScoreInput, ScoreCriterionInput
 from ._session import SessionClient, SessionInput
 from ._skill import SkillClient, SkillInput
 from ._subscription import SubscriptionClient, SubscriptionInput
@@ -123,6 +124,9 @@ __all__ = [
     "ScheduleClient",
     "ScheduleInput",
     "AgentInvocationInput",
+    "ScoreClient",
+    "ScoreInput",
+    "ScoreCriterionInput",
     "SessionClient",
     "SessionInput",
     "SkillClient",

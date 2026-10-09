@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.score.v1;
+
+import "ai/stigmer/agentic/score/v1/api.proto";
+import "ai/stigmer/agentic/score/v1/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+
+// ScoreQueryController handles read operations for scores.
+//
+// @internal
+// A score's visibility is its run's (can_view from run), so a list
+// authorized on the run or the session needs no per-row filter.
+service ScoreQueryController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = score;
+
+  // Get a single score by ID.
+  rpc get(ScoreId) returns (Score) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = score;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get score";
+  }
+
+  // List every score of a run.
+  rpc listByRun(ListScoresByRunRequest) returns (ScoreList) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = run;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "run_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to list scores of run";
+  }
+
+  // List every score of every run in a session.
+  rpc listBySession(ListScoresBySessionRequest) returns (ScoreList) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = session;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "session_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to list scores of session";
+  }
+}

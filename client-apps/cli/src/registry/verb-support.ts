@@ -103,6 +103,10 @@ export const VERB_SUPPORT: ReadonlyMap<
   // deliberately unpromised until a real read/ops story exists
   // (stigmer/stigmer#354) — resume-style flows go through `stigmer session`.
   [ApiResourceKind.session, new Set<Verb>([Verb.Apply, Verb.List])],
+  // A score is written by a person rating a run in the console or by the
+  // platform's checks, never as a manifest, and is read by id; a run's
+  // scores are listed by `stigmer runs scores <run-id>`.
+  [ApiResourceKind.score, new Set<Verb>([Verb.Get])],
 ]);
 
 export function verbsForKind(kind: ApiResourceKind): ReadonlySet<Verb> {

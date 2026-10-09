@@ -8,7 +8,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 import type { MethodSchema, ServiceDefinition, ServiceSchemaFile } from "./gen-common.js";
-import { firstMemberWinsOrder, goQuote, hasExplicitPresence, indefiniteArticle, isEmptyType, isIDType, isRealOneofMember, isSpecialType, searchListSupersedesMethod } from "./gen-common.js";
+import { firstMemberWinsOrder, goQuote, hasExplicitPresence, indefiniteArticle, isEmptyType, isIDType, isRealOneofMember, isSpecialType, isValuedOneofScalar, searchListSupersedesMethod } from "./gen-common.js";
 import { isPythonKeyword, pyClientFieldName, pyFieldName, pyMethodName, pyProtoFileToModule, pyProtoImportLine, pyProtoModuleAlias, pyStubMethodName } from "./lang-names.js";
 import type { ResourceGenInfo, SdkResourceConfig } from "./sdk-resource-config.js";
 import { deriveResourceConfig, loadSpecSchemaWithTypes, META_FIELD_NAMES } from "./sdk-resource-config.js";
@@ -769,11 +769,12 @@ function generatePythonInputAndProto(
 function emitPyFields(buf: string[], fields: FieldSchema[], imports: PyImports): void {
   for (const f of fields) {
     let pyType = pyTypeForTypeSpec(f.type);
-    if (pyIsNullableType(f.type) || hasExplicitPresence(f)) {
+    const presence = hasExplicitPresence(f) || isValuedOneofScalar(f);
+    if (pyIsNullableType(f.type) || presence) {
       pyType += " | None";
     }
     const name = pyFieldName(f.protoField);
-    const dflt = hasExplicitPresence(f) ? "None" : pyDefaultForField(f);
+    const dflt = presence ? "None" : pyDefaultForField(f);
     if (dflt !== "") {
       buf.push(`    ${name}: ${pyType} = ${dflt}\n`);
       if (pyNeedsFieldImport(f.type)) {
@@ -981,7 +982,10 @@ function emitPyNestedClassWithProto(
  */
 function emitPyOneofMembers(buf: string[], members: readonly FieldSchema[], msgVar: string, imports: PyImports): void {
   for (const f of members) {
-    if (pyIsScalarKind(f.type.kind)) {
+    if (isValuedOneofScalar(f)) {
+      buf.push(`        if self.${pyFieldName(f.protoField)} is not None:\n`);
+      buf.push(`            setattr(${msgVar}, ${goQuote(f.protoField)}, self.${pyFieldName(f.protoField)})\n`);
+    } else if (pyIsScalarKind(f.type.kind)) {
       buf.push(`        if self.${pyFieldName(f.protoField)}:\n`);
       buf.push(`            setattr(${msgVar}, ${goQuote(f.protoField)}, self.${pyFieldName(f.protoField)})\n`);
     } else {

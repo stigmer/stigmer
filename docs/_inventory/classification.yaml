@@ -159,6 +159,16 @@ pages:
       The embed exists to show the Skill detail page next to its source; a
       single frame is the honest medium for a static screen.
 
+  concepts/scores:
+    fate: keep
+    diataxis: explanation
+    teaches:
+      A Score records how good a finished run was, as a person's thumbs with a
+      comment or the three free run-health checks with their reasons and the
+      not-graded state; whoever sees the run sees its scores, read with
+      `stigmer runs scores`.
+    medium: none
+
   concepts/sessions:
     fate: keep
     diataxis: explanation

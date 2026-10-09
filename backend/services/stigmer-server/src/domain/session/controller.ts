@@ -106,6 +106,7 @@ import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import type { SandboxLane } from "../../sandbox/lane.js";
 import { deprovisionSessionSandboxBestEffort } from "../../sandbox/steps.js";
+import type { RunScoreCascade } from "../score/cascade.js";
 import { newResolveSessionAgentStep } from "./resolve-session-agent.js";
 import { sessionRunTarget } from "./run-target.js";
 import { sessionSearchExtractor } from "./search-extractor.js";
@@ -165,6 +166,8 @@ export interface SessionControllerDeps {
   readonly listReadScope: ListReadScope | undefined;
   /** Seals the session's own values at rest; opens nothing (the run resolver does). */
   readonly secretService: SecretService;
+  /** Removes each cascaded run's scores before the run's row (delete). */
+  readonly runScores: RunScoreCascade;
 }
 
 /**
@@ -418,6 +421,7 @@ async function deleteSession(
         deps.store,
         deps.authorizationLifecycle,
         deps.logger,
+        deps.runScores,
       ),
     )
     .addStep(newDeleteResourceStep(deps.store))

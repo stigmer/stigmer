@@ -1,6 +1,6 @@
 "use client";
 
-import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ComponentType } from "react";
+import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { Run, RecalledMemoriesReport } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { RecalledMemoryFact } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
@@ -25,6 +25,8 @@ import { displayFileChangeSets, syntheticUserPrompt } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
 import { isTerminalPhase } from "./run-phases.js";
 import { MessageEntry, type MessageEntryProps } from "./MessageEntry.js";
+import { RunScores } from "../score/RunScores.js";
+import { RunScoresProvider, useRunScoresEnabled } from "../score/RunScoresContext.js";
 import type { MessageAttachmentView } from "./MessageAttachments.js";
 import { ToolCallGroup } from "./ToolCallGroup.js";
 import { SubAgentSection } from "./SubAgentSection.js";
@@ -377,6 +379,16 @@ export interface MessageThreadProps {
    * omitting the prop entirely changes nothing.
    */
   readonly slots?: MessageThreadSlots;
+  /**
+   * Show run scores: thumbs up and down on each completed run's final
+   * answer and the run-health flags beside them. The thread then reads the
+   * session's scores once (and again shortly after a run completes, while
+   * it is graded). Off by default, and a thread with it off makes no score
+   * request; `SessionViewer` sets it from its audience.
+   *
+   * @default false
+   */
+  readonly runScores?: boolean;
 }
 
 /** Reading-column alignment for {@link MessageThread} content. */
@@ -405,7 +417,7 @@ export function threadContentColumnClass(
  * part of the public API.
  */
 export type ThreadItem =
-  | { readonly kind: "message"; readonly message: AgentMessage; readonly key: string; readonly isPending?: boolean; readonly isFailed?: boolean; readonly isEditable?: boolean; readonly isPlanDocument?: boolean; readonly interactionMode?: InteractionMode; readonly attachments?: readonly MessageAttachmentView[]; readonly executionId?: string }
+  | { readonly kind: "message"; readonly message: AgentMessage; readonly key: string; readonly isPending?: boolean; readonly isFailed?: boolean; readonly isEditable?: boolean; readonly isPlanDocument?: boolean; readonly interactionMode?: InteractionMode; readonly attachments?: readonly MessageAttachmentView[]; readonly executionId?: string; readonly scoresRunId?: string }
   | { readonly kind: "tool-group"; readonly toolCalls: readonly ToolCall[]; readonly subAgentRuns: readonly SubAgentRun[]; readonly key: string }
   | { readonly kind: "sub-agent"; readonly subAgentRun: SubAgentRun; readonly key: string }
   | { readonly kind: "phase-badge"; readonly phase: RunPhase; readonly key: string }
@@ -759,6 +771,18 @@ export function buildThreadItems(
     const collapsePlanMessage =
       planMessageIndex >= 0 && planArtifact !== undefined;
 
+    // A completed run's final answer carries its scores (thumbs and the
+    // run-health flags): the last AI message with content, unless it is the
+    // run's plan, which renders as a document or a card instead. Stamped on
+    // every such run; the renderer shows the control only when the host
+    // asked for run scores.
+    const scoredMessageIndex =
+      exec.status?.phase === RunPhase.RUN_COMPLETED &&
+      exec.metadata?.id &&
+      planMessageIndex < 0
+        ? findPlanMessageIndex(messages)
+        : -1;
+
     // The plan the active Plan-mode turn is writing RIGHT NOW (detected by
     // the H1 convention — see findStreamingPlan). Its message is suppressed
     // in favor of a live plan-writing card, mirroring the completed-turn
@@ -909,6 +933,7 @@ export function buildThreadItems(
             message: msg,
             key: `${execId}-m${mi}`,
             isPlanDocument: !collapsePlanMessage && mi === planMessageIndex,
+            ...(mi === scoredMessageIndex ? { scoresRunId: execId } : {}),
           });
         }
         // Anchor (1): the plan sits right under the agent's opening narration.
@@ -1260,6 +1285,7 @@ export function MessageThread({
   planBuildPending,
   contentColumn,
   slots,
+  runScores = false,
 }: MessageThreadProps) {
   useRenderTracer("MessageThread", { executions, activeStreamRun });
 
@@ -1356,8 +1382,19 @@ export function MessageThread({
   // cards, so the bar reuses the existing scroll machine without a new observer.
   const unresolvedApprovalCount = pendingApprovals.length;
 
+  const scoredRuns = useMemo(
+    () => (activeStreamRun ? [...executions, activeStreamRun] : executions),
+    [executions, activeStreamRun],
+  );
+  const withRunScores = (thread: ReactNode): ReactNode =>
+    runScores ? (
+      <RunScoresProvider runs={scoredRuns}>{thread}</RunScoresProvider>
+    ) : (
+      thread
+    );
+
   if (virtualized) {
-    return (
+    return withRunScores(
       <div className={cn("stg:relative stg:min-h-0", className)}>
         <Suspense fallback={null}>
           <LazyVirtualizedThread
@@ -1384,11 +1421,11 @@ export function MessageThread({
             pinToLatestSignal={pinToLatestSignal}
           />
         </Suspense>
-      </div>
+      </div>,
     );
   }
 
-  return (
+  return withRunScores(
     <NonVirtualizedThread
       items={items}
       className={className}
@@ -1412,7 +1449,7 @@ export function MessageThread({
       onEditMessage={onEditMessage}
       slots={slots}
       pinToLatestSignal={pinToLatestSignal}
-    />
+    />,
   );
 }
 
@@ -1609,6 +1646,7 @@ export function ThreadItemRenderer({
   onEditMessage,
   slots,
 }: ThreadItemRendererProps) {
+  const runScoresEnabled = useRunScoresEnabled();
   switch (item.kind) {
     case "message": {
       const Entry = slots?.MessageEntry ?? MessageEntry;
@@ -1634,6 +1672,11 @@ export function ThreadItemRenderer({
             item.isEditable && onEditMessage
               ? () => onEditMessage(item.message.content)
               : undefined
+          }
+          actions={
+            runScoresEnabled && item.scoresRunId !== undefined ? (
+              <RunScores runId={item.scoresRunId} />
+            ) : undefined
           }
         />
       );
