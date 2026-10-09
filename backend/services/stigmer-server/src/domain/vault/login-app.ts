@@ -114,22 +114,16 @@ export async function findOrganizationLoginApp(
 }
 
 /**
- * Who a sign-in at an address is with, by the same order as
- * `findLoginApp`, without opening any secret: the organization's app's
- * provider, else the catalog entry's name, else undefined. For a page
- * anyone holding a link may read.
+ * The provider of the organization's own login app for an address, without
+ * opening any secret; undefined when it has none. For a Connect link's page,
+ * which anyone holding the link may read.
  */
-export async function findLoginAppName(
-  deps: Pick<LoginAppDeps, "store" | "loginProviders">,
+export async function findOrganizationAppProvider(
+  store: Store,
   org: string,
   address: string,
 ): Promise<string | undefined> {
-  const app = await findOrganizationApp(deps.store, org, address);
-  if (app !== undefined) {
-    return app.spec?.provider ?? "";
-  }
-  const provider = loginProviderFor(address);
-  return provider !== undefined && deps.loginProviders.has(provider.key) ? provider.name : undefined;
+  return (await findOrganizationApp(store, org, address))?.spec?.provider;
 }
 
 /**

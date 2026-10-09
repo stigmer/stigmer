@@ -77,7 +77,7 @@ import {
 import { refuseBoundElsewhere } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import { PENDING_OAUTH_STATE_TTL_MS, ResourceNotFoundError } from "../../store/interface.js";
 import type { ConnectLinkRecord, ConnectLinkStore, PendingOAuthState } from "../../store/interface.js";
-import { findLoginAppName, findOrganizationLoginApp } from "./login-app.js";
+import { findOrganizationAppProvider, findOrganizationLoginApp } from "./login-app.js";
 import { isMyVault } from "./service.js";
 import type { VaultService } from "./service.js";
 import { finishSignIn } from "./sign-in/complete.js";
@@ -177,7 +177,7 @@ export async function getConnectLink(
   input: ConnectLinkTokenInput,
 ): Promise<ConnectLinkInfo> {
   const link = await usableLink(deps, input.token);
-  const name = await findLoginAppName(deps, link.org, link.address);
+  const name = await findOrganizationAppProvider(deps.store, link.org, link.address);
   return create(ConnectLinkInfoSchema, {
     providerName: name ?? hostOf(link.address),
     address: link.address,
