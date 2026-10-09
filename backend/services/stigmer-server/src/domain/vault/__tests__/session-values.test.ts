@@ -1,15 +1,15 @@
 /**
- * Pins a conversation's own values (SessionSpec.secrets, .connections and a
- * repository's token): sealed on every write, shown as the marker on every
- * read, kept when a writer sends the marker back (the runner rewrites the
- * whole session after each turn), refused when the marker has nothing
- * behind it or a value is shaped like server ciphertext; connection
- * addresses normalized, two that are one address refused; a repository
+ * Pins a conversation's own values, which are its repositories' tokens
+ * (GitRepoSource.token): sealed on every write, shown as the marker on
+ * every read, kept when a writer sends the marker back (the runner
+ * rewrites the whole session after each turn), refused when the marker
+ * has nothing behind it or a value is shaped like server ciphertext; a
  * token refused on any repository that is not an https://github.com URL;
- * only the values a write drops destroyed (a replaced
- * value keeps its backing state); and opened in plaintext for the run
- * resolver alone. A stale write's arms run through the composed session
- * chain in session-values-composed.test.ts.
+ * a stored token kept only for the same repository (name and URL); only
+ * the tokens a write drops destroyed (a replaced token keeps its backing
+ * state); and opened in plaintext for the run resolver alone, under the
+ * entry's name and URL. A stale write's arms run through the composed
+ * session chain in session-values-composed.test.ts.
  */
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -82,15 +82,18 @@ function ctxOf(next: Session, existing?: Session) {
   return ctx;
 }
 
-const REPO = {
-  name: "app",
-  source: {
-    source: {
-      case: "gitRepo" as const,
-      value: { url: "https://github.com/acme/app", token: "repo-token" },
-    },
-  },
-};
+/** A repository entry; `token` empty for a public clone. */
+function repo(name: string, url: string, token: string) {
+  return { name, source: { source: { case: "gitRepo" as const, value: { url, token } } } };
+}
+
+const REPO = repo("app", "https://github.com/acme/app", "repo-token");
+
+/** The token a stored entry holds, by position. */
+function tokenOf(next: Session, index = 0): string {
+  const source = next.spec!.workspaceEntries[index]!.source!.source;
+  return source.case === "gitRepo" ? source.value.token : "";
+}
 
 async function written(next: Session, existing?: Session) {
   const { codec, secrets } = fixture();
@@ -100,43 +103,21 @@ async function written(next: Session, existing?: Session) {
   return { ctx, codec, secrets };
 }
 
-describe("writing a session's own values", () => {
-  it("seals every value, repository tokens included, and normalizes connection addresses", async () => {
-    const { ctx, secrets } = await written(
-      session({
-        secrets: { API_KEY: "sk-1" },
-        connections: { "https://MCP.Example.com/mcp/": "tok" },
-        workspaceEntries: [REPO],
-      }),
-    );
-    const spec = ctx.newState.spec!;
-    expect(spec.secrets["API_KEY"]).toMatch(/^enc:v9:/);
-    expect(Object.keys(spec.connections)).toEqual(["https://mcp.example.com/mcp"]);
-    expect(spec.connections["https://mcp.example.com/mcp"]).toMatch(/^enc:v9:/);
-    const repo = spec.workspaceEntries[0]!.source!.source;
-    expect(repo.case === "gitRepo" ? repo.value.token : "").toMatch(/^enc:v9:/);
-    const opened = await openSessionValues(secrets, ctx.newState);
-    expect(opened.secrets.get("API_KEY")).toBe("sk-1");
-    expect(await opened.connections.get("https://mcp.example.com/mcp")?.open()).toBe("tok");
+describe("writing a repository's token", () => {
+  it("seals every token, opened for the resolver under its entry's name and URL", async () => {
+    const { ctx, secrets } = await written(session({ workspaceEntries: [REPO] }));
+    expect(tokenOf(ctx.newState)).toMatch(/^enc:v9:/);
+    const opened = openSessionValues(secrets, ctx.newState);
     expect(
       await opened.repositoryTokens.get(repositoryTokenKey("app", "https://github.com/acme/app"))?.open(),
     ).toBe("repo-token");
   });
 
   it("opens a repository's token under its name and URL together: a same-named repository elsewhere has its own", async () => {
-    const elsewhere = {
-      name: "app",
-      source: {
-        source: {
-          case: "gitRepo" as const,
-          value: { url: "https://gitlab.example.com/acme/app", token: "gitlab-pat" },
-        },
-      },
-    };
     const { secrets } = fixture();
-    const opened = await openSessionValues(
+    const opened = openSessionValues(
       secrets,
-      session({ workspaceEntries: [elsewhere] }),
+      session({ workspaceEntries: [repo("app", "https://gitlab.example.com/acme/app", "gitlab-pat")] }),
     );
     expect(opened.repositoryTokens.get(repositoryTokenKey("app", "https://github.com/acme/app"))).toBeUndefined();
     expect(
@@ -154,47 +135,27 @@ describe("writing a session's own values", () => {
     expect((failure as ConnectError).rawMessage).toContain("'app'");
   });
 
-  it("keeps the stored value behind a marker a writer sends back", async () => {
-    const first = await written(session({ secrets: { API_KEY: "sk-1" } }));
+  it("keeps the stored token behind a marker a writer sends back", async () => {
+    const first = await written(session({ workspaceEntries: [REPO] }));
     const stored = first.ctx.newState;
-    const sealed = stored.spec!.secrets["API_KEY"]!;
+    const sealed = tokenOf(stored);
 
-    const echoed = session({ secrets: { API_KEY: REDACTED_MARKER } });
+    const echoed = session({
+      workspaceEntries: [repo("app", "https://github.com/acme/app", REDACTED_MARKER)],
+    });
     const second = await written(echoed, stored);
-    expect(second.ctx.newState.spec!.secrets["API_KEY"]).toBe(sealed);
+    expect(tokenOf(second.ctx.newState)).toBe(sealed);
   });
 
   it("refuses a marker with nothing stored behind it, and a ciphertext-shaped value", async () => {
-    for (const next of [
-      session({ secrets: { API_KEY: REDACTED_MARKER } }),
-      session({ secrets: { API_KEY: "enc:v9:Zm9yZ2Vk" } }),
-    ]) {
-      const failure = await written(next).catch((e: unknown) => e);
+    for (const token of [REDACTED_MARKER, "enc:v9:Zm9yZ2Vk"]) {
+      const failure = await written(
+        session({ workspaceEntries: [repo("app", "https://github.com/acme/app", token)] }),
+      ).catch((e: unknown) => e);
       expect(failure).toBeInstanceOf(ConnectError);
       expect((failure as ConnectError).code).toBe(Code.InvalidArgument);
+      expect((failure as ConnectError).rawMessage).toContain("repository 'app'");
     }
-  });
-
-  it("refuses a connection whose address breaks the address rule", async () => {
-    const failure = await written(
-      session({ connections: { "ftp://files.example.com": "tok" } }),
-    ).catch((e: unknown) => e);
-    expect((failure as ConnectError).code).toBe(Code.InvalidArgument);
-  });
-
-  it("refuses two connections whose addresses are one address, naming neither token", async () => {
-    const failure = await written(
-      session({
-        connections: {
-          "https://MCP.Example.com/mcp": "first-TOKEN",
-          "https://mcp.example.com/mcp/": "second-TOKEN",
-        },
-      }),
-    ).catch((e: unknown) => e);
-    expect(failure).toBeInstanceOf(ConnectError);
-    expect((failure as ConnectError).code).toBe(Code.InvalidArgument);
-    expect((failure as ConnectError).rawMessage).toContain("the same address");
-    expect((failure as ConnectError).rawMessage).not.toContain("TOKEN");
   });
 
   it("refuses a repository token on any repository that is not an https://github.com URL: nothing else is cloned with it", async () => {
@@ -204,11 +165,7 @@ describe("writing a session's own values", () => {
       "ssh://git@github.com/acme/app.git",
       "https://github.com:8443/acme/app",
     ]) {
-      const elsewhere = {
-        name: "app",
-        source: { source: { case: "gitRepo" as const, value: { url, token: "repo-TOKEN" } } },
-      };
-      const failure = await written(session({ workspaceEntries: [elsewhere] })).catch(
+      const failure = await written(session({ workspaceEntries: [repo("app", url, "repo-TOKEN")] })).catch(
         (e: unknown) => e,
       );
       expect(failure, url).toBeInstanceOf(ConnectError);
@@ -217,125 +174,68 @@ describe("writing a session's own values", () => {
         "a repository token is used only for https://github.com repositories (repository 'app')",
       );
     }
-    const tokenless = {
-      name: "app",
-      source: {
-        source: {
-          case: "gitRepo" as const,
-          value: { url: "https://gitlab.example.com/acme/app", token: "" },
-        },
-      },
-    };
-    await expect(written(session({ workspaceEntries: [tokenless] }))).resolves.toBeDefined();
-  });
-
-  it("never repeats a refused address, which may be a pasted credential", async () => {
-    for (const address of ["https://user:S3CRET-TOKEN@mcp.example.com/x", "ghp_S3CRET-TOKEN"]) {
-      const failure = await written(session({ connections: { [address]: "tok" } })).catch(
-        (e: unknown) => e,
-      );
-      expect((failure as ConnectError).code).toBe(Code.InvalidArgument);
-      expect((failure as ConnectError).rawMessage).not.toContain("S3CRET-TOKEN");
-      expect((failure as ConnectError).rawMessage).toContain("connection");
-    }
-  });
-
-  it("keeps a marker to the stored value of its own kind: a connection never takes a secret's", async () => {
-    const first = await written(session({ secrets: { "github.com": "a-secret" } }));
-    const failure = await written(
-      session({ secrets: { "github.com": REDACTED_MARKER }, connections: { "github.com": REDACTED_MARKER } }),
-      first.ctx.newState,
-    ).catch((e: unknown) => e);
-    expect((failure as ConnectError).code).toBe(Code.InvalidArgument);
-    expect((failure as ConnectError).rawMessage).toContain("connection 'github.com'");
+    await expect(
+      written(session({ workspaceEntries: [repo("app", "https://gitlab.example.com/acme/app", "")] })),
+    ).resolves.toBeDefined();
   });
 
   it("keeps a repository's stored token only for the same repository: a marker with a new URL is refused", async () => {
     const first = await written(session({ workspaceEntries: [REPO] }));
-    const moved = {
-      name: "app",
-      source: {
-        source: {
-          case: "gitRepo" as const,
-          value: { url: "https://github.com/attacker/app", token: REDACTED_MARKER },
-        },
-      },
-    };
+    const moved = repo("app", "https://github.com/attacker/app", REDACTED_MARKER);
     const failure = await written(session({ workspaceEntries: [moved] }), first.ctx.newState).catch(
       (e: unknown) => e,
     );
     expect((failure as ConnectError).code).toBe(Code.InvalidArgument);
     const kept = await written(
-      session({
-        workspaceEntries: [
-          { ...REPO, source: { source: { ...REPO.source.source, value: { ...REPO.source.source.value, token: REDACTED_MARKER } } } },
-        ],
-      }),
+      session({ workspaceEntries: [repo("app", "https://github.com/acme/app", REDACTED_MARKER)] }),
       first.ctx.newState,
     );
-    const repo = kept.ctx.newState.spec!.workspaceEntries[0]!.source!.source;
-    expect(repo.case === "gitRepo" ? repo.value.token : "").toMatch(/^enc:v9:/);
+    expect(tokenOf(kept.ctx.newState)).toMatch(/^enc:v9:/);
   });
-
-  // `__proto__` cannot reach the step: the request context's copy of the
-  // message drops it. The vault service's own test pins it.
-  it.each(["constructor", "prototype"])(
-    "refuses a secret named %j",
-    async (name) => {
-      const next = session({});
-      // An own entry of that name, as a decoder that kept it would leave it.
-      Object.defineProperty(next.spec!.secrets, name, {
-        value: "x",
-        enumerable: true,
-        configurable: true,
-        writable: true,
-      });
-      const failure = await written(next).catch((e: unknown) => e);
-      expect((failure as ConnectError).code).toBe(Code.InvalidArgument);
-      expect((failure as ConnectError).rawMessage).toContain(name);
-    },
-  );
 });
 
 describe("reading and dropping", () => {
-  it("a read shows the marker for every value, an empty one untouched", () => {
+  it("a read shows the marker for every token, a tokenless clone untouched", () => {
     const shown = session({
-      secrets: { API_KEY: "enc:v9:x", EMPTY: "" },
-      connections: { "github.com": "enc:v9:y" },
-      workspaceEntries: [REPO],
+      workspaceEntries: [REPO, repo("public", "https://github.com/acme/public", "")],
     });
     redactSessionValues(shown);
-    expect(shown.spec!.secrets).toEqual({ API_KEY: REDACTED_MARKER, EMPTY: "" });
-    expect(shown.spec!.connections["github.com"]).toBe(REDACTED_MARKER);
-    const repo = shown.spec!.workspaceEntries[0]!.source!.source;
-    expect(repo.case === "gitRepo" ? repo.value.token : "").toBe(REDACTED_MARKER);
+    expect(tokenOf(shown, 0)).toBe(REDACTED_MARKER);
+    expect(tokenOf(shown, 1)).toBe("");
   });
 
-  it("an update destroys only the values it drops; a replaced value keeps its backing state", async () => {
+  it("an update destroys only the tokens it drops; a replaced token keeps its backing state", async () => {
     const first = await written(
-      session({ secrets: { DROPPED: "a", REPLACED: "b", KEPT: "c" } }),
+      session({
+        workspaceEntries: [
+          repo("dropped", "https://github.com/acme/dropped", "a"),
+          repo("replaced", "https://github.com/acme/replaced", "b"),
+          repo("kept", "https://github.com/acme/kept", "c"),
+        ],
+      }),
     );
     const stored = first.ctx.newState;
     const { codec, secrets } = fixture();
     const ctx = ctxOf(
-      session({ secrets: { REPLACED: "b2", KEPT: REDACTED_MARKER } }),
+      session({
+        workspaceEntries: [
+          repo("replaced", "https://github.com/acme/replaced", "b2"),
+          repo("kept", "https://github.com/acme/kept", REDACTED_MARKER),
+        ],
+      }),
       stored,
     );
     await newPreserveSessionValuesStep().execute(ctx);
     await newSealSessionValuesStep(secrets, logger).execute(ctx);
     await newDestroyDroppedSessionValuesStep(secrets, logger).execute(ctx);
-    expect(codec.deleted).toEqual([stored.spec!.secrets["DROPPED"]]);
+    expect(codec.deleted).toEqual([tokenOf(stored, 0)]);
   });
 
-  it("the delete chain's extractor names every sealed value", async () => {
+  it("the delete chain's extractor names every sealed token", async () => {
     const { ctx } = await written(
-      session({
-        secrets: { ONE: "1" },
-        connections: { "github.com": "t" },
-        workspaceEntries: [REPO],
-      }),
+      session({ workspaceEntries: [REPO, repo("docs", "https://github.com/acme/docs", "t")] }),
     );
-    expect(sealedValuesOfSession(ctx.newState)).toHaveLength(3);
+    expect(sealedValuesOfSession(ctx.newState)).toHaveLength(2);
   });
 });
 
@@ -366,16 +266,16 @@ describe("edges", () => {
       ]),
       writeVersion: "v9",
     });
-    const ctx = ctxOf(session({ secrets: { API_KEY: "plain" } }));
+    const ctx = ctxOf(session({ workspaceEntries: [REPO] }));
     await newSealSessionValuesStep(keyless, {
       ...logger,
       warn: (message: string) => warnings.push(message),
     } as typeof logger).execute(ctx);
-    expect(ctx.newState.spec?.secrets["API_KEY"]).toBe("plain");
-    expect(warnings).toEqual(["Encryption disabled: a session's own secrets will be stored in plaintext"]);
+    expect(tokenOf(ctx.newState)).toBe("repo-token");
+    expect(warnings).toEqual(["Encryption disabled: a session's repository tokens will be stored in plaintext"]);
   });
 
-  it("answers INTERNAL when a value cannot be sealed", async () => {
+  it("answers INTERNAL when a token cannot be sealed", async () => {
     const broken = SecretService.withCodecs({
       codecs: new Map<string, SecretCodec>([
         [
@@ -389,7 +289,7 @@ describe("edges", () => {
       ]),
       writeVersion: "v9",
     });
-    const ctx = ctxOf(session({ secrets: { API_KEY: "plain" } }));
+    const ctx = ctxOf(session({ workspaceEntries: [REPO] }));
     let failure: unknown;
     try {
       await newSealSessionValuesStep(broken, logger).execute(ctx);

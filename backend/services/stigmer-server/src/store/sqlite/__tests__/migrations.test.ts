@@ -65,6 +65,11 @@
  * vault_id and tool_address ("" on a row from before them) and keeps every other kind's rows
  * byte for byte; a grant it cannot decode fails the
  * step, naming the row, and leaves the database at v21.
+ * v23 drops a conversation's retired own secrets and connections (session
+ * spec fields 16 and 17) from every session row, its stamp and every other
+ * field kept, across keyset pages; a session without them, and every other
+ * kind's row, keeps its bytes; a session it cannot decode fails the step,
+ * naming the row, and leaves the database at v22.
  * A schema written by a newer release is refused before any migration or
  * list-index reconciliation, with the failed store's connection closed.
  */
@@ -110,6 +115,7 @@ import {
   SCHEMA_VERSION_20,
   SCHEMA_VERSION_21,
   SCHEMA_VERSION_22,
+  SCHEMA_VERSION_23,
   getSchemaVersion,
   runMigrations,
 } from "../migrations.js";
@@ -126,6 +132,8 @@ import {
   retiredExecutionRow,
 } from "../../__tests__/retired-execution-rows.js";
 import { EXECUTION_CONFIG_PAGE_SIZE } from "../../execution-config-retired.js";
+import { SESSION_VALUES_PAGE_SIZE } from "../../session-values-retired.js";
+import { currentSessionRow, sessionRowWithValues } from "../../__tests__/retired-session-rows.js";
 import { HISTORY_PAGE_SIZE } from "../../organization-slug-history.js";
 import { PUBLIC_ROW_KINDS_AT_RETIREMENT } from "../../public-visibility-retired.js";
 import { WORKFLOW_RETIREMENT_PAGE_SIZE } from "../../workflow-instance-retired.js";
@@ -314,7 +322,7 @@ describe("fresh database", () => {
       .all() as Array<{ version: number }>;
     expect(rows.map((row) => row.version)).toEqual([
       1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
-      22,
+      22, 23,
     ]);
   });
 
@@ -2779,7 +2787,6 @@ describe("v22: environments and the sign-in grant table leave the store", () => 
     runMigrations(db, SCHEMA_VERSION_22);
 
     expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_22);
-    expect(CURRENT_SCHEMA_VERSION).toBe(SCHEMA_VERSION_22);
     for (const table of RUN_KIND_TABLES) {
       expect(count(db, table, "environment"), `environment in ${table}`).toBe(0);
     }
@@ -2834,5 +2841,114 @@ describe("v22: environments and the sign-in grant table leave the store", () => 
     expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_21);
     expect(count(db, "resources", "environment")).toBe(1);
     expect(tableNames(db)).toContain("oauth_grant");
+  });
+});
+
+describe("v23: a conversation's retired own secrets and connections leave every session row", () => {
+  const ORG = "org_01jz0000000000000000000000";
+  const SEEDED_AT = "2026-10-09 00:00:00";
+
+  function databaseAt(version: number): { dbPath: string; db: DatabaseSync } {
+    const dbPath = tempDbPath();
+    const setup = new DatabaseSync(dbPath);
+    runMigrations(setup, version);
+    expect(getSchemaVersion(setup)).toBe(version);
+    return { dbPath, db: setup };
+  }
+
+  function insert(db: DatabaseSync, kind: string, id: string, data: Uint8Array): void {
+    db.prepare(
+      `INSERT INTO resources (kind, id, data, updated_at) VALUES (?, ?, ?, ?)`,
+    ).run(kind, id, data, SEEDED_AT);
+  }
+
+  function row(db: DatabaseSync, kind: string, id: string): { data: Uint8Array; updated_at: string } {
+    return db
+      .prepare(`SELECT data, updated_at FROM resources WHERE kind = ? AND id = ?`)
+      .get(kind, id) as { data: Uint8Array; updated_at: string };
+  }
+
+  /** A conversation as the current release writes it: a repository token, vaults and My vault. */
+  const conversation = (id: string) => ({
+    metadata: { id, org: ORG, slug: id },
+    spec: {
+      vaults: [{ kind: ApiResourceKind.vault, org: ORG, slug: "team" }],
+      includeMyVault: true,
+      workspaceEntries: [
+        {
+          name: "app",
+          source: {
+            source: {
+              case: "gitRepo" as const,
+              value: { url: "https://github.com/acme/app", token: "enc:v1:repo" },
+            },
+          },
+        },
+      ],
+    },
+    status: { vaultAttachers: { vlt_team: "ida_ana" } },
+  });
+  const retired = {
+    secrets: { API_KEY: "enc:v1:secret" },
+    connections: { "https://mcp.example.com/mcp": "enc:v1:login" },
+  };
+
+  it("drops the retired fields from every session, keeps its stamp and every other field, and leaves the rest byte for byte", () => {
+    const { dbPath, db: setup } = databaseAt(SCHEMA_VERSION_22);
+    insert(setup, "session", "ses_held", sessionRowWithValues(conversation("ses_held"), retired));
+    const untouched = currentSessionRow(conversation("ses_clean"));
+    insert(setup, "session", "ses_clean", untouched);
+    const agent = toBinary(
+      AgentSchema,
+      create(AgentSchema, {
+        metadata: { id: "agt_1", name: "reviewer", slug: "reviewer", org: ORG },
+        spec: { instructions: "a conformant instruction body" },
+      }),
+    );
+    insert(setup, "agent", "agt_1", agent);
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_23);
+
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_23);
+    expect(CURRENT_SCHEMA_VERSION).toBe(SCHEMA_VERSION_23);
+    const held = row(db, "session", "ses_held");
+    expect(held.data).toEqual(currentSessionRow(conversation("ses_held")));
+    expect(held.updated_at).toBe(SEEDED_AT);
+    expect(Buffer.from(row(db, "session", "ses_clean").data).equals(Buffer.from(untouched))).toBe(true);
+    expect(Buffer.from(row(db, "agent", "agt_1").data).equals(Buffer.from(agent))).toBe(true);
+  });
+
+  it("reads every page of sessions", () => {
+    const { dbPath, db: setup } = databaseAt(SCHEMA_VERSION_22);
+    for (let i = 0; i <= SESSION_VALUES_PAGE_SIZE; i++) {
+      const id = `ses_${String(i).padStart(4, "0")}`;
+      insert(setup, "session", id, sessionRowWithValues(conversation(id), retired));
+    }
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_23);
+    const last = `ses_${String(SESSION_VALUES_PAGE_SIZE).padStart(4, "0")}`;
+    expect(row(db, "session", last).data).toEqual(currentSessionRow(conversation(last)));
+  });
+
+  it("an unreadable session fails the step, rolls back the sessions it rewrote, and leaves the database at v22", () => {
+    const { dbPath, db: setup } = databaseAt(SCHEMA_VERSION_22);
+    // A readable session ahead of the unreadable one in id order is
+    // rewritten first; the failure must take that rewrite back.
+    const good = sessionRowWithValues(conversation("ses_a_good"), retired);
+    insert(setup, "session", "ses_a_good", good);
+    insert(setup, "session", "ses_b_bad", new Uint8Array([0xff, 0xff, 0xff]));
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    expect(() => runMigrations(db, SCHEMA_VERSION_23)).toThrow("session 'ses_b_bad'");
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_22);
+    expect(row(db, "session", "ses_a_good").data).toEqual(good);
   });
 });

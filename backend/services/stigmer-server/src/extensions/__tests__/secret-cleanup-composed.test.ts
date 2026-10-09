@@ -10,8 +10,9 @@
  *     unknown ones, while a replaced secret or login keeps its backing
  *     state (a codec keyed by entry keeps the replacement in the same
  *     place; superseded versions age out under its retention);
- *   - the session update chain destroys ONLY the session's own values it
- *     drops: a replaced value and a marker-preserved one are untouched;
+ *   - the session update chain destroys ONLY the repository tokens it
+ *     drops: a replaced token and a marker-preserved one are untouched, and
+ *     a session delete destroys every token it held;
  *   - a destroy failure NEVER fails the request (best-effort after the
  *     store write);
  *   - the composed facade rides ComposedServer.secrets
@@ -25,6 +26,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
+import { create } from "@bufbuild/protobuf";
 import { createClient } from "@connectrpc/connect";
 import type { Client, Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
@@ -41,6 +43,8 @@ import {
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ChannelAppCommandController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/command_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { WorkspaceEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import { VaultCommandController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/command_pb";
@@ -350,15 +354,41 @@ describe("vault entry writes", () => {
   });
 });
 
-describe("a session's own values", () => {
-  it("an update destroys ONLY the values it drops: replaced and marker-preserved ones are untouched", async () => {
+/** A github.com repository entry carrying `token`. */
+function repository(name: string, token: string) {
+  return create(WorkspaceEntrySchema, {
+    name,
+    source: {
+      source: { case: "gitRepo", value: { url: `https://github.com/acme/${name}`, token } },
+    },
+  });
+}
+
+/** The tokens a session holds, by entry name. */
+function tokensOf(session: Session): Record<string, string> {
+  const tokens: Record<string, string> = {};
+  for (const entry of session.spec?.workspaceEntries ?? []) {
+    const source = entry.source?.source;
+    if (source?.case === "gitRepo") {
+      tokens[entry.name] = source.value.token;
+    }
+  }
+  return tokens;
+}
+
+describe("a session's repository tokens", () => {
+  it("an update destroys ONLY the tokens it drops: replaced and marker-preserved ones are untouched", async () => {
     counter += 1;
     const created = await sessionCommand.create({
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "Session",
       metadata: { name: `Cleanup Session ${counter}`, org: ORG },
       spec: {
-        secrets: { DROPPED: "goes-away", KEPT: "stays", ROTATED: "old" },
+        workspaceEntries: [
+          repository("dropped", "goes-away"),
+          repository("kept", "stays"),
+          repository("rotated", "old"),
+        ],
       },
     });
     const id = created.metadata!.id;
@@ -367,46 +397,43 @@ describe("a session's own values", () => {
       id,
       SessionSchema,
     );
-    const before = stored.spec!.secrets;
-    expect(before["KEPT"]).toMatch(/^enc:v9:/);
+    const before = tokensOf(stored);
+    expect(before["kept"]).toMatch(/^enc:v9:/);
 
     await sessionCommand.update({
       ...created,
       spec: {
         ...created.spec!,
-        secrets: { KEPT: REDACTED_MARKER, ROTATED: "new" },
+        workspaceEntries: [
+          repository("dropped", ""),
+          repository("kept", REDACTED_MARKER),
+          repository("rotated", "new"),
+        ],
       },
     });
 
-    expect(codec.deleted).toEqual([before["DROPPED"]!]);
-    const after = await server.store.getResource(
-      ApiResourceKind.session,
-      id,
-      SessionSchema,
+    expect(codec.deleted).toEqual([before["dropped"]!]);
+    const after = tokensOf(
+      await server.store.getResource(ApiResourceKind.session, id, SessionSchema),
     );
-    expect(after.spec!.secrets["KEPT"]).toBe(before["KEPT"]);
-    expect(await server.secrets.decrypt(after.spec!.secrets["ROTATED"]!)).toBe(
-      "new",
-    );
+    expect(after["kept"]).toBe(before["kept"]);
+    expect(await server.secrets.decrypt(after["rotated"]!)).toBe("new");
   });
 
-  it("a session delete destroys every value it held", async () => {
+  it("a session delete destroys every token it held", async () => {
     counter += 1;
     const created = await sessionCommand.create({
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "Session",
       metadata: { name: `Cleanup Session ${counter}`, org: ORG },
-      spec: { secrets: { ONE: "first" }, connections: { "github.com": "tok" } },
+      spec: { workspaceEntries: [repository("one", "first"), repository("two", "second")] },
     });
     const stored = await server.store.getResource(
       ApiResourceKind.session,
       created.metadata!.id,
       SessionSchema,
     );
-    const sealed = [
-      stored.spec!.secrets["ONE"]!,
-      stored.spec!.connections["github.com"]!,
-    ];
+    const sealed = Object.values(tokensOf(stored));
 
     await sessionCommand.delete({ value: created.metadata!.id });
 

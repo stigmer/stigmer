@@ -1,7 +1,7 @@
 /**
  * Pins the cap on how many vaults one resource may name: every `vaults`
- * list (an agent's, a session's, an agent share's, an agent channel's, a
- * schedule's AgentInvocation and a platform client's) holds at most 20
+ * list (a session's, an agent share's, an agent channel's, a schedule's
+ * AgentInvocation and a platform client's) holds at most 20
  * references (`repeated.max_items = 20` on each field), so the resolver's
  * per-run work stays bounded whoever writes the list.
  *
@@ -11,7 +11,7 @@
  * that field (other required fields of the bare spec may still be missing;
  * only the vaults rules are judged). And through the REAL stack (a
  * composed server, a native gRPC client and the full interceptor chain),
- * an agent create naming 21 vaults is refused as InvalidArgument while one
+ * a session create naming 21 vaults is refused as InvalidArgument while one
  * naming 20 real vaults is created, so the refusal is the cap and not some
  * other check on the same create.
  */
@@ -26,11 +26,10 @@ import { createGrpcTransport } from "@connectrpc/connect-node";
 import type { Violation } from "@bufbuild/protovalidate";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
-import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { AgentChannelSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/spec_pb";
 import { AgentShareSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/spec_pb";
 import { AgentInvocationSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
+import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { VaultCommandController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/command_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -80,7 +79,6 @@ interface ListRow {
 }
 
 const lists: readonly ListRow[] = [
-  { name: "an agent's", check: (n) => vaultsViolations(AgentSpecSchema, { vaults: vaultRefs(n) }) },
   { name: "a session's", check: (n) => vaultsViolations(SessionSpecSchema, { vaults: vaultRefs(n) }) },
   { name: "an agent share's", check: (n) => vaultsViolations(AgentShareSpecSchema, { vaults: vaultRefs(n) }) },
   { name: "an agent channel's", check: (n) => vaultsViolations(AgentChannelSpecSchema, { vaults: vaultRefs(n) }) },
@@ -109,10 +107,10 @@ const silentLogger = createLogger({
   write: () => {},
 });
 
-describe("an agent naming more than 20 vaults is refused through the real stack", () => {
+describe("a session naming more than 20 vaults is refused through the real stack", () => {
   let dir: string;
   let server: ComposedServer;
-  let agents: ReturnType<typeof createClient<typeof AgentCommandController>>;
+  let sessions: ReturnType<typeof createClient<typeof SessionCommandController>>;
   let slugs: string[];
 
   beforeAll(async () => {
@@ -134,7 +132,7 @@ describe("an agent naming more than 20 vaults is refused through the real stack"
     const port = await server.start();
     const transport = createGrpcTransport({ baseUrl: `http://127.0.0.1:${port}` });
     await seedOrganizations(transport, [ORG]);
-    agents = createClient(AgentCommandController, transport);
+    sessions = createClient(SessionCommandController, transport);
     const vaults = createClient(VaultCommandController, transport);
     slugs = [];
     for (let i = 0; i < MAX_VAULTS + 1; i++) {
@@ -152,20 +150,17 @@ describe("an agent naming more than 20 vaults is refused through the real stack"
     rmSync(dir, { recursive: true, force: true });
   });
 
-  function agentNaming(count: number, name: string) {
+  function sessionNaming(count: number, name: string) {
     return {
       apiVersion: "agentic.stigmer.ai/v1",
-      kind: "Agent",
+      kind: "Session",
       metadata: { name, org: ORG },
-      spec: {
-        instructions: "You are an agent used by the vault reference limit tests.",
-        vaults: vaultRefs(count, slugs),
-      },
+      spec: { vaults: vaultRefs(count, slugs) },
     };
   }
 
   it(`refuses ${MAX_VAULTS + 1} vaults as InvalidArgument and creates one naming ${MAX_VAULTS}`, async () => {
-    const refusal = await agents.create(agentNaming(MAX_VAULTS + 1, "Too Many Vaults")).then(
+    const refusal = await sessions.create(sessionNaming(MAX_VAULTS + 1, "Too Many Vaults")).then(
       () => undefined,
       (e: unknown) => e,
     );
@@ -173,7 +168,7 @@ describe("an agent naming more than 20 vaults is refused through the real stack"
     expect((refusal as ConnectError).code).toBe(Code.InvalidArgument);
     expect((refusal as ConnectError).rawMessage).toContain("vaults");
 
-    const created = await agents.create(agentNaming(MAX_VAULTS, "Enough Vaults"));
+    const created = await sessions.create(sessionNaming(MAX_VAULTS, "Enough Vaults"));
     expect(created.spec?.vaults).toHaveLength(MAX_VAULTS);
   });
 });

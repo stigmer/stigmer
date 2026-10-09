@@ -57,6 +57,12 @@
  * oauth_grant (its v3 index with it), adds pending_oauth_state's vault_id
  * and tool_address ("" on a row from before them) and keeps every other row byte for byte; a grant it cannot decode fails the step, naming
  * the row, and leaves the database at v16.
+ * v18 drops a conversation's retired own secrets and connections (session
+ * spec fields 16 and 17) from every session row, its stamp and every other
+ * field kept, across keyset pages whatever the collation orders first; a
+ * session without them, and every other kind's row, keeps its bytes; a
+ * session it cannot decode fails the step, naming the row, and leaves the
+ * database at v17.
  * A step's starting database is built by running the chain up to the step
  * before it.
  * Newer schemas are refused without writes or reconciliation; refusal
@@ -105,6 +111,7 @@ import {
   SCHEMA_VERSION_15,
   SCHEMA_VERSION_16,
   SCHEMA_VERSION_17,
+  SCHEMA_VERSION_18,
   runMigrations,
 } from "../migrations.js";
 import { RETIREMENT_PAGE_SIZE } from "../../agent-instance-retired.js";
@@ -120,6 +127,8 @@ import {
   retiredExecutionRow,
 } from "../../__tests__/retired-execution-rows.js";
 import { EXECUTION_CONFIG_PAGE_SIZE } from "../../execution-config-retired.js";
+import { SESSION_VALUES_PAGE_SIZE } from "../../session-values-retired.js";
+import { currentSessionRow, sessionRowWithValues } from "../../__tests__/retired-session-rows.js";
 import { sessionListIndex } from "../../../domain/session/list-index.js";
 import { WORKFLOW_RETIREMENT_PAGE_SIZE } from "../../workflow-instance-retired.js";
 import {
@@ -2861,7 +2870,6 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           await migrateTo(db.databaseUrl, SCHEMA_VERSION_17);
 
           expect(await version(client)).toBe(SCHEMA_VERSION_17);
-          expect(CURRENT_SCHEMA_VERSION).toBe(SCHEMA_VERSION_17);
           for (const table of RUN_KIND_TABLES) {
             expect(await count(client, table, "environment"), table).toBe(0);
           }
@@ -2912,6 +2920,128 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           expect(await version(client)).toBe(SCHEMA_VERSION_16);
           expect(await count(client, "resources", "environment")).toBe(1);
           expect(await tableExists(client, "oauth_grant")).toBe(true);
+        } finally {
+          await client.end();
+        }
+      });
+    });
+
+    describe("v18: a conversation's retired own secrets and connections leave every session row", () => {
+      const seededAt = new Date("2026-10-09T00:00:00Z");
+      const ORG = "org_01jz0000000000000000000000";
+
+      /** A conversation as the current release writes it: a repository token, vaults and My vault. */
+      const conversation = (id: string) => ({
+        metadata: { id, org: ORG, slug: id },
+        spec: {
+          vaults: [{ kind: ApiResourceKind.vault, org: ORG, slug: "team" }],
+          includeMyVault: true,
+          workspaceEntries: [
+            {
+              name: "app",
+              source: {
+                source: {
+                  case: "gitRepo" as const,
+                  value: { url: "https://github.com/acme/app", token: "enc:v1:repo" },
+                },
+              },
+            },
+          ],
+        },
+        status: { vaultAttachers: { vlt_team: "ida_ana" } },
+      });
+      const retired = {
+        secrets: { API_KEY: "enc:v1:secret" },
+        connections: { "https://mcp.example.com/mcp": "enc:v1:login" },
+      };
+
+      async function clientAt(version: number): Promise<pg.Client> {
+        await migrateTo(db.databaseUrl, version);
+        const client = new pg.Client({ connectionString: db.databaseUrl });
+        await client.connect();
+        return client;
+      }
+
+      async function insertRow(client: pg.Client, kind: string, id: string, data: Uint8Array): Promise<void> {
+        await client.query(
+          `INSERT INTO resources (kind, id, data, updated_at) VALUES ($1, $2, $3, $4)`,
+          [kind, id, Buffer.from(data), seededAt],
+        );
+      }
+
+      async function row(
+        client: pg.Client,
+        kind: string,
+        id: string,
+      ): Promise<{ data: Uint8Array; updatedAt: Date }> {
+        const result = await client.query<{ data: Buffer; updated_at: Date }>(
+          `SELECT data, updated_at FROM resources WHERE kind = $1 AND id = $2`,
+          [kind, id],
+        );
+        return {
+          data: new Uint8Array(result.rows[0]!.data),
+          updatedAt: result.rows[0]!.updated_at,
+        };
+      }
+
+      async function version(client: pg.Client): Promise<number> {
+        return Number(
+          (await client.query(`SELECT COALESCE(MAX(version), 0) AS version FROM schema_version`)).rows[0].version,
+        );
+      }
+
+      it("drops the retired fields from every session, keeps its stamp and every other field, and leaves the rest byte for byte", async () => {
+        const client = await clientAt(SCHEMA_VERSION_17);
+        try {
+          await insertRow(client, "session", "ses_held", sessionRowWithValues(conversation("ses_held"), retired));
+          const untouched = currentSessionRow(conversation("ses_clean"));
+          await insertRow(client, "session", "ses_clean", untouched);
+          const agent = new Uint8Array([0x0a, 0x01, 0x61]);
+          await insertRow(client, "agent", "agt_1", agent);
+
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_18);
+
+          expect(await version(client)).toBe(SCHEMA_VERSION_18);
+          expect(CURRENT_SCHEMA_VERSION).toBe(SCHEMA_VERSION_18);
+          const held = await row(client, "session", "ses_held");
+          expect(held.data).toEqual(currentSessionRow(conversation("ses_held")));
+          expect(held.updatedAt).toEqual(seededAt);
+          expect((await row(client, "session", "ses_clean")).data).toEqual(untouched);
+          expect((await row(client, "agent", "agt_1")).data).toEqual(agent);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("reads sessions across keyset pages, missing none past the first page", async () => {
+        const client = await clientAt(SCHEMA_VERSION_17);
+        try {
+          const ids: string[] = [];
+          for (let i = 0; i <= SESSION_VALUES_PAGE_SIZE; i++) {
+            const id = `${i % 2 === 0 ? "ses_" : "SES-"}${String(i).padStart(4, "0")}`;
+            ids.push(id);
+            await insertRow(client, "session", id, sessionRowWithValues(conversation(id), retired));
+          }
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_18);
+          for (const id of ids) {
+            expect((await row(client, "session", id)).data, id).toEqual(currentSessionRow(conversation(id)));
+          }
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("an unreadable session fails the step, rolls back the sessions it rewrote, and leaves the database at v17", async () => {
+        const client = await clientAt(SCHEMA_VERSION_17);
+        try {
+          // A readable session ahead of the unreadable one in id order is
+          // rewritten first; the failure must take that rewrite back.
+          const good = sessionRowWithValues(conversation("ses_a_good"), retired);
+          await insertRow(client, "session", "ses_a_good", good);
+          await insertRow(client, "session", "ses_b_bad", new Uint8Array([0xff, 0xff, 0xff]));
+          await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_18)).rejects.toThrow("session 'ses_b_bad'");
+          expect(await version(client)).toBe(SCHEMA_VERSION_17);
+          expect((await row(client, "session", "ses_a_good")).data).toEqual(good);
         } finally {
           await client.end();
         }
