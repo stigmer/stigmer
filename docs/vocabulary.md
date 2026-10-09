@@ -1078,18 +1078,18 @@ verdict.
 - **Capitalize**: As the resource name in labels and reference pages
   (`kind: Score`). In prose say "score" in lower case, as "run".
 - **API surface**: `kind: Score`, prefix `scr`. proto:
-  `agentic/score/v1/spec.proto`. Written by a person rating a run in the console,
-  by the platform's checks or by its AI judge; there is no `apply` and no
-  manifest. CLI:
+  `agentic/score/v1/spec.proto`. Written by a person rating a run in the
+  console, by the platform's checks or by its AI judge; there is no `apply` and
+  no manifest. CLI:
 
   ```bash
   stigmer runs scores <run-id>
   stigmer get score <id>
   ```
 
-- **Key fields**: `run_id`, `metric` (what is measured: `feedback`,
-  `run-health` or `judge`), `source` (`score_source_human`, `score_source_check`
-  or `score_source_judge`), `passed`, `criteria` (one per check or rubric, each
+- **Key fields**: `run_id`, `metric` (what is measured: `feedback`, `run-health`
+  or `judge`), `source` (`score_source_human`, `score_source_check` or
+  `score_source_judge`), `passed`, `criteria` (one per check or rubric, each
   with its reason), `comment` (a person's feedback only), `judge_model` (a
   judge's only), and `status.state` (`graded`, `not_graded` with a reason, or
   `pending` while a judge grades).

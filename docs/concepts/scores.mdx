@@ -60,9 +60,9 @@ results from a later version of the checks are never mixed with earlier ones.
 
 An AI judge reads a finished run and answers two standard questions:
 
-| Rubric            | Fails a run when                                                                                                    |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `did-the-task`    | The final answer does something other than what was asked, or only part of it without saying so.                    |
+| Rubric            | Fails a run when                                                                                                                    |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `did-the-task`    | The final answer does something other than what was asked, or only part of it without saying so.                                    |
 | `made-nothing-up` | The answer claims an action, outcome or fact that the run's own tool calls do not show. Not applicable when it makes no such claim. |
 
 Each rubric passes, fails or does not apply, with a reason. The run passes when
