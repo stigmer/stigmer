@@ -833,11 +833,9 @@ export {
   useGitHubFileReader,
   parseGitUrl,
   GitHubRepoPicker,
-  GITHUB_CALLBACK_MESSAGE_TYPE,
 } from "./github/index.js";
 export type {
   GitHubUser,
-  GitHubConnectOptions,
   UseGitHubConnectionConfig,
   UseGitHubConnectionReturn,
   GitHubRepo,
@@ -985,6 +983,7 @@ export {
   toolLoginKeyOf,
   gitHostOf,
   GITHUB_HOST,
+  useVaultSignIn,
 } from "./vault/index.js";
 export type {
   UseMyVaultReturn,
@@ -1006,7 +1005,10 @@ export type {
   EnvVarFormVariable,
   EnvVarFormSubmitOptions,
   EnvVarInput,
-
+  SignInDestination,
+  SignInReturnTo,
+  UseVaultSignInReturn,
+  VaultSignInPhase,
   ToolCredentialsReadiness,
 } from "./vault/index.js";
 
@@ -1621,6 +1623,22 @@ export type {
   InvitationManagerProps,
   InvitationRedemptionProps,
 } from "./invitation/index.js";
+
+// Connect links — the public page a Connect link opens and its callback
+export {
+  useConnectLink,
+  pendingConnectLinkToken,
+  clearPendingConnectLinkToken,
+  CONNECT_LINK_PENDING_KEY,
+  DEAD_CONNECT_LINK_MESSAGE,
+  ConnectLinkView,
+  ConnectLinkCallback,
+} from "./connect-link/index.js";
+export type {
+  UseConnectLinkReturn,
+  ConnectLinkViewProps,
+  ConnectLinkCallbackProps,
+} from "./connect-link/index.js";
 
 // Sharing — shared-agent public profile, the anonymous-visitor chat organism,
 // and the owner-side Share experience (Shares tab list, dialog, AgentShare hooks).

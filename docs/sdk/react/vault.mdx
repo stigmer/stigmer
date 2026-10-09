@@ -226,6 +226,36 @@ const shared = vaults.filter((v) => !isMyVault(v));
 ```
 
 
+### useVaultSignIn
+
+Behavior hook for a sign-in at an address, in a popup.
+
+**Signature**
+
+```tsx
+function useVaultSignIn(): UseVaultSignInReturn
+```
+
+**Returns** — `UseVaultSignInReturn`
+
+<TypeTable
+  type={{
+    clearError: { type: "() => void", description: "Clears the error and cancels a sign-in in progress." },
+    error: { type: "Error | null", description: "The last sign-in's failure, or `null`." },
+    isInProgress: { type: "boolean", description: "Whether a sign-in is in progress." },
+    phase: { type: "VaultSignInPhase", description: "", typeDescriptionLink: "#vaultsigninphase" },
+    signIn: { type: "(address: string, destination: SignInDestination) => Promise<CompleteSignInOutput>", description: "Sign in at `address` and save the login at `destination`. **Call it from a synchronous click handler**: the popup opens before any await. Answers the saved login's address and description." },
+  }}
+/>
+
+```tsx
+const signIn = useVaultSignIn();
+<button onClick={() => signIn.signIn("https://mcp.linear.app/mcp", { org }).then(refetch)}>
+  Sign in again
+</button>
+```
+
+
 ## Components
 
 ### CreateVaultForm
@@ -490,6 +520,26 @@ function normalizeAddress(input: string): string | null
 ```
 
 
+### SignInDestination
+
+Where a sign-in saves its login: a shared vault by id, or the caller's My vault.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "The organization the vault belongs to.", required: true },
+    vaultId: { type: "string", description: "A shared vault's id; omitted for the caller's own My vault." },
+  }}
+/>
+
+
+### SignInReturnTo
+
+Where the login page sends the person back to. `web` (the default) is the
+console's callback page, which hands the result to the popup's opener;
+`desktop` is the same page handing it on to the desktop app; `loopback`
+is a page the desktop app serves on this machine.
+
+
 ### SYSTEM_ENV_VAR_KEYS
 
 Environment variable keys the platform fills itself, so the setup hooks
@@ -501,9 +551,9 @@ extend their own `poolKeys`.
 
 ### toolAddressOf
 
-The address a tool's login is saved at: its URL for an HTTP server, its
-discovery URL for a local program with a login, and none otherwise (a
-tool with no address takes only secrets).
+The address a tool's login is saved at: its URL for an HTTP server, and
+none for a local program, which takes its keys as secrets by name (as it
+does for a URL holding a placeholder).
 
 ```tsx
 function toolAddressOf(server: McpServer | null | undefined): string | null
@@ -571,4 +621,9 @@ A secret to save: its value, and optionally what it is for.
     value: { type: "string", description: "", required: true },
   }}
 />
+
+
+### VaultSignInPhase
+
+The progress of a popup sign-in.
 

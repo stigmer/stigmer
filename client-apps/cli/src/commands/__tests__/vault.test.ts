@@ -10,14 +10,18 @@
 // one can answer, and skips the question under --force. The backend is
 // replaced at its module seam; the program, the resources, the confirmation
 // and the renderer are real. A result renders on stderr (the human format),
-// so both streams are captured.
+// so both streams are captured. A Connect link sends its address, return URL
+// and the lifetime --expires-in names, in seconds, or none for the server's
+// default.
 
 import { PassThrough, Readable } from "node:stream";
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { type Vault, VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import { VaultCommandController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/command_pb";
+import { ConnectLinkSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
 import type {
+  CreateConnectLinkInput,
   RemoveVaultConnectionsInput,
   RemoveVaultSecretsInput,
   SetVaultConnectionInput,
@@ -83,6 +87,10 @@ vi.mock("../../backend.js", () => ({
           removeSecrets: record("removeSecrets", MINE),
           setConnection: record("setConnection", SHARED),
           removeConnections: record("removeConnections", SHARED),
+          createConnectLink: async (req: unknown) => {
+            calls.requests.push(["createConnectLink", req]);
+            return create(ConnectLinkSchema, { url: "https://console.example/connect/secret-token" });
+          },
         };
       }
       throw new Error("unexpected service");
@@ -158,6 +166,31 @@ afterEach(() => {
 });
 
 describe("stigmer vault", () => {
+  it("connect-link sends the address, the return URL and the lifetime --expires-in names", async () => {
+    const out = await vault(
+      "connect-link",
+      "support-tools",
+      "--address",
+      "https://mcp.linear.app/mcp",
+      "--return-url",
+      "https://helpdesk.example/done",
+      "--expires-in",
+      "1h",
+    );
+    expect(requestOf<CreateConnectLinkInput>("createConnectLink")).toMatchObject({
+      vaultId: "vlt_1",
+      address: "https://mcp.linear.app/mcp",
+      returnUrl: "https://helpdesk.example/done",
+      expiresInSeconds: 3600,
+    });
+    expect(out).toContain("https://console.example/connect/secret-token");
+  });
+
+  it("connect-link with no --expires-in leaves the lifetime to the server", async () => {
+    await vault("connect-link", "support-tools", "--address", "github.com", "--return-url", "https://helpdesk.example/done");
+    expect(requestOf<CreateConnectLinkInput>("createConnectLink").expiresInSeconds).toBe(0);
+  });
+
   it("mine shows the entry names of the caller's own vault", async () => {
     const out = await vault("mine");
     expect(requestOf<{ org: string }>("getMine").org).toBe("acme");

@@ -97,6 +97,7 @@ export interface OAuthAppInput {
   vendorApprovalStatus?: VendorApprovalStatus;
   vendorApprovalDocsUrl?: string;
   tokenEndpointAuthMethod?: TokenEndpointAuthMethod;
+  addresses?: string[];
 }
 
 export function buildOAuthAppProto(input: OAuthAppInput): OAuthApp {
@@ -123,6 +124,7 @@ export function buildOAuthAppProto(input: OAuthAppInput): OAuthApp {
       vendorApprovalStatus: input.vendorApprovalStatus,
       vendorApprovalDocsUrl: input.vendorApprovalDocsUrl,
       tokenEndpointAuthMethod: input.tokenEndpointAuthMethod,
+      addresses: input.addresses,
     })),
   }) as OAuthApp;
 }
@@ -163,5 +165,6 @@ export function toOAuthAppUpdateInput(resource: OAuthApp): OAuthAppInput {
     vendorApprovalStatus: spec.vendorApprovalStatus || undefined,
     vendorApprovalDocsUrl: spec.vendorApprovalDocsUrl || undefined,
     tokenEndpointAuthMethod: spec.tokenEndpointAuthMethod || undefined,
+    addresses: spec.addresses?.length ? [...spec.addresses] : undefined,
   };
 }

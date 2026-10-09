@@ -34,8 +34,6 @@ private static final long serialVersionUID = 0L;
   private OAuthStatus() {
     vendorApprovalStatus_ = 0;
     vendorApprovalDocsUrl_ = "";
-    effectiveOauthSource_ = 0;
-    effectiveOauthAppId_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -60,10 +58,10 @@ private static final long serialVersionUID = 0L;
   private int vendorApprovalStatus_ = 0;
   /**
    * <pre>
-   * Vendor marketplace/app-review approval status for this MCP server's
-   * OAuth app. Resolved from the referenced OAuthApp at query time.
-   * When the platform OAuthApp is pending vendor approval, the frontend
-   * gates the sign-in button and shows a BYOA alternative.
+   * Vendor marketplace/app-review approval status of the login app the
+   * organization keeps for this server's address. Resolved at query time.
+   * When the app is pending vendor approval, the frontend gates the sign-in
+   * button and offers pasting a token instead.
    * </pre>
    *
    * <code>.ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus vendor_approval_status = 1 [json_name = "vendorApprovalStatus"];</code>
@@ -74,10 +72,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Vendor marketplace/app-review approval status for this MCP server's
-   * OAuth app. Resolved from the referenced OAuthApp at query time.
-   * When the platform OAuthApp is pending vendor approval, the frontend
-   * gates the sign-in button and shows a BYOA alternative.
+   * Vendor marketplace/app-review approval status of the login app the
+   * organization keeps for this server's address. Resolved at query time.
+   * When the app is pending vendor approval, the frontend gates the sign-in
+   * button and offers pasting a token instead.
    * </pre>
    *
    * <code>.ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus vendor_approval_status = 1 [json_name = "vendorApprovalStatus"];</code>
@@ -93,10 +91,9 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object vendorApprovalDocsUrl_ = "";
   /**
    * <pre>
-   * Documentation URL for users who want to bring their own OAuth app
-   * credentials while the platform's OAuth app is pending vendor approval.
-   * Resolved from the referenced OAuthApp at query time.
-   * Empty when the OAuthApp has no documentation link or is already approved.
+   * Documentation URL for users while the login app is pending vendor
+   * approval. Resolved at query time. Empty when the app has no
+   * documentation link or is already approved.
    * </pre>
    *
    * <code>string vendor_approval_docs_url = 2 [json_name = "vendorApprovalDocsUrl"];</code>
@@ -117,10 +114,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Documentation URL for users who want to bring their own OAuth app
-   * credentials while the platform's OAuth app is pending vendor approval.
-   * Resolved from the referenced OAuthApp at query time.
-   * Empty when the OAuthApp has no documentation link or is already approved.
+   * Documentation URL for users while the login app is pending vendor
+   * approval. Resolved at query time. Empty when the app has no
+   * documentation link or is already approved.
    * </pre>
    *
    * <code>string vendor_approval_docs_url = 2 [json_name = "vendorApprovalDocsUrl"];</code>
@@ -135,87 +131,6 @@ private static final long serialVersionUID = 0L;
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
       vendorApprovalDocsUrl_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
-  }
-
-  public static final int EFFECTIVE_OAUTH_SOURCE_FIELD_NUMBER = 3;
-  private int effectiveOauthSource_ = 0;
-  /**
-   * <pre>
-   * NEVER POPULATED (see the message comment): the caller's active org is
-   * client-side context, so no backend can evaluate the resolution chain at
-   * read time. The shared SDK derives this value client-side from the
-   * getOrgOAuthApp RPC (useMcpServerCredentials.effectiveOAuthSource).
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthAppSource effective_oauth_source = 3 [json_name = "effectiveOauthSource"];</code>
-   * @return The enum numeric value on the wire for effectiveOauthSource.
-   */
-  @java.lang.Override public int getEffectiveOauthSourceValue() {
-    return effectiveOauthSource_;
-  }
-  /**
-   * <pre>
-   * NEVER POPULATED (see the message comment): the caller's active org is
-   * client-side context, so no backend can evaluate the resolution chain at
-   * read time. The shared SDK derives this value client-side from the
-   * getOrgOAuthApp RPC (useMcpServerCredentials.effectiveOAuthSource).
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthAppSource effective_oauth_source = 3 [json_name = "effectiveOauthSource"];</code>
-   * @return The effectiveOauthSource.
-   */
-  @java.lang.Override public ai.stigmer.agentic.mcpserver.v1.OAuthAppSource getEffectiveOauthSource() {
-    ai.stigmer.agentic.mcpserver.v1.OAuthAppSource result = ai.stigmer.agentic.mcpserver.v1.OAuthAppSource.forNumber(effectiveOauthSource_);
-    return result == null ? ai.stigmer.agentic.mcpserver.v1.OAuthAppSource.UNRECOGNIZED : result;
-  }
-
-  public static final int EFFECTIVE_OAUTH_APP_ID_FIELD_NUMBER = 4;
-  @SuppressWarnings("serial")
-  private volatile java.lang.Object effectiveOauthAppId_ = "";
-  /**
-   * <pre>
-   * NEVER POPULATED (see the message comment). The override's OAuthApp ID
-   * is available from the getOrgOAuthApp RPC (GetOrgOAuthAppOutput.oauth_app_id).
-   * </pre>
-   *
-   * <code>string effective_oauth_app_id = 4 [json_name = "effectiveOauthAppId"];</code>
-   * @return The effectiveOauthAppId.
-   */
-  @java.lang.Override
-  public java.lang.String getEffectiveOauthAppId() {
-    java.lang.Object ref = effectiveOauthAppId_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      effectiveOauthAppId_ = s;
-      return s;
-    }
-  }
-  /**
-   * <pre>
-   * NEVER POPULATED (see the message comment). The override's OAuthApp ID
-   * is available from the getOrgOAuthApp RPC (GetOrgOAuthAppOutput.oauth_app_id).
-   * </pre>
-   *
-   * <code>string effective_oauth_app_id = 4 [json_name = "effectiveOauthAppId"];</code>
-   * @return The bytes for effectiveOauthAppId.
-   */
-  @java.lang.Override
-  public com.google.protobuf.ByteString
-      getEffectiveOauthAppIdBytes() {
-    java.lang.Object ref = effectiveOauthAppId_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      effectiveOauthAppId_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -242,12 +157,6 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(vendorApprovalDocsUrl_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 2, vendorApprovalDocsUrl_);
     }
-    if (effectiveOauthSource_ != ai.stigmer.agentic.mcpserver.v1.OAuthAppSource.OAUTH_APP_SOURCE_UNSPECIFIED.getNumber()) {
-      output.writeEnum(3, effectiveOauthSource_);
-    }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(effectiveOauthAppId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 4, effectiveOauthAppId_);
-    }
     getUnknownFields().writeTo(output);
   }
 
@@ -263,13 +172,6 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(vendorApprovalDocsUrl_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(2, vendorApprovalDocsUrl_);
-    }
-    if (effectiveOauthSource_ != ai.stigmer.agentic.mcpserver.v1.OAuthAppSource.OAUTH_APP_SOURCE_UNSPECIFIED.getNumber()) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeEnumSize(3, effectiveOauthSource_);
-    }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(effectiveOauthAppId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(4, effectiveOauthAppId_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -289,9 +191,6 @@ private static final long serialVersionUID = 0L;
     if (vendorApprovalStatus_ != other.vendorApprovalStatus_) return false;
     if (!getVendorApprovalDocsUrl()
         .equals(other.getVendorApprovalDocsUrl())) return false;
-    if (effectiveOauthSource_ != other.effectiveOauthSource_) return false;
-    if (!getEffectiveOauthAppId()
-        .equals(other.getEffectiveOauthAppId())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -307,10 +206,6 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + vendorApprovalStatus_;
     hash = (37 * hash) + VENDOR_APPROVAL_DOCS_URL_FIELD_NUMBER;
     hash = (53 * hash) + getVendorApprovalDocsUrl().hashCode();
-    hash = (37 * hash) + EFFECTIVE_OAUTH_SOURCE_FIELD_NUMBER;
-    hash = (53 * hash) + effectiveOauthSource_;
-    hash = (37 * hash) + EFFECTIVE_OAUTH_APP_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getEffectiveOauthAppId().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -448,8 +343,6 @@ private static final long serialVersionUID = 0L;
       bitField0_ = 0;
       vendorApprovalStatus_ = 0;
       vendorApprovalDocsUrl_ = "";
-      effectiveOauthSource_ = 0;
-      effectiveOauthAppId_ = "";
       return this;
     }
 
@@ -489,12 +382,6 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000002) != 0)) {
         result.vendorApprovalDocsUrl_ = vendorApprovalDocsUrl_;
       }
-      if (((from_bitField0_ & 0x00000004) != 0)) {
-        result.effectiveOauthSource_ = effectiveOauthSource_;
-      }
-      if (((from_bitField0_ & 0x00000008) != 0)) {
-        result.effectiveOauthAppId_ = effectiveOauthAppId_;
-      }
     }
 
     @java.lang.Override
@@ -515,14 +402,6 @@ private static final long serialVersionUID = 0L;
       if (!other.getVendorApprovalDocsUrl().isEmpty()) {
         vendorApprovalDocsUrl_ = other.vendorApprovalDocsUrl_;
         bitField0_ |= 0x00000002;
-        onChanged();
-      }
-      if (other.effectiveOauthSource_ != 0) {
-        setEffectiveOauthSourceValue(other.getEffectiveOauthSourceValue());
-      }
-      if (!other.getEffectiveOauthAppId().isEmpty()) {
-        effectiveOauthAppId_ = other.effectiveOauthAppId_;
-        bitField0_ |= 0x00000008;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -561,16 +440,6 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000002;
               break;
             } // case 18
-            case 24: {
-              effectiveOauthSource_ = input.readEnum();
-              bitField0_ |= 0x00000004;
-              break;
-            } // case 24
-            case 34: {
-              effectiveOauthAppId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000008;
-              break;
-            } // case 34
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -591,10 +460,10 @@ private static final long serialVersionUID = 0L;
     private int vendorApprovalStatus_ = 0;
     /**
      * <pre>
-     * Vendor marketplace/app-review approval status for this MCP server's
-     * OAuth app. Resolved from the referenced OAuthApp at query time.
-     * When the platform OAuthApp is pending vendor approval, the frontend
-     * gates the sign-in button and shows a BYOA alternative.
+     * Vendor marketplace/app-review approval status of the login app the
+     * organization keeps for this server's address. Resolved at query time.
+     * When the app is pending vendor approval, the frontend gates the sign-in
+     * button and offers pasting a token instead.
      * </pre>
      *
      * <code>.ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus vendor_approval_status = 1 [json_name = "vendorApprovalStatus"];</code>
@@ -605,10 +474,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Vendor marketplace/app-review approval status for this MCP server's
-     * OAuth app. Resolved from the referenced OAuthApp at query time.
-     * When the platform OAuthApp is pending vendor approval, the frontend
-     * gates the sign-in button and shows a BYOA alternative.
+     * Vendor marketplace/app-review approval status of the login app the
+     * organization keeps for this server's address. Resolved at query time.
+     * When the app is pending vendor approval, the frontend gates the sign-in
+     * button and offers pasting a token instead.
      * </pre>
      *
      * <code>.ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus vendor_approval_status = 1 [json_name = "vendorApprovalStatus"];</code>
@@ -624,10 +493,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Vendor marketplace/app-review approval status for this MCP server's
-     * OAuth app. Resolved from the referenced OAuthApp at query time.
-     * When the platform OAuthApp is pending vendor approval, the frontend
-     * gates the sign-in button and shows a BYOA alternative.
+     * Vendor marketplace/app-review approval status of the login app the
+     * organization keeps for this server's address. Resolved at query time.
+     * When the app is pending vendor approval, the frontend gates the sign-in
+     * button and offers pasting a token instead.
      * </pre>
      *
      * <code>.ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus vendor_approval_status = 1 [json_name = "vendorApprovalStatus"];</code>
@@ -640,10 +509,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Vendor marketplace/app-review approval status for this MCP server's
-     * OAuth app. Resolved from the referenced OAuthApp at query time.
-     * When the platform OAuthApp is pending vendor approval, the frontend
-     * gates the sign-in button and shows a BYOA alternative.
+     * Vendor marketplace/app-review approval status of the login app the
+     * organization keeps for this server's address. Resolved at query time.
+     * When the app is pending vendor approval, the frontend gates the sign-in
+     * button and offers pasting a token instead.
      * </pre>
      *
      * <code>.ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus vendor_approval_status = 1 [json_name = "vendorApprovalStatus"];</code>
@@ -659,10 +528,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Vendor marketplace/app-review approval status for this MCP server's
-     * OAuth app. Resolved from the referenced OAuthApp at query time.
-     * When the platform OAuthApp is pending vendor approval, the frontend
-     * gates the sign-in button and shows a BYOA alternative.
+     * Vendor marketplace/app-review approval status of the login app the
+     * organization keeps for this server's address. Resolved at query time.
+     * When the app is pending vendor approval, the frontend gates the sign-in
+     * button and offers pasting a token instead.
      * </pre>
      *
      * <code>.ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus vendor_approval_status = 1 [json_name = "vendorApprovalStatus"];</code>
@@ -678,10 +547,9 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object vendorApprovalDocsUrl_ = "";
     /**
      * <pre>
-     * Documentation URL for users who want to bring their own OAuth app
-     * credentials while the platform's OAuth app is pending vendor approval.
-     * Resolved from the referenced OAuthApp at query time.
-     * Empty when the OAuthApp has no documentation link or is already approved.
+     * Documentation URL for users while the login app is pending vendor
+     * approval. Resolved at query time. Empty when the app has no
+     * documentation link or is already approved.
      * </pre>
      *
      * <code>string vendor_approval_docs_url = 2 [json_name = "vendorApprovalDocsUrl"];</code>
@@ -701,10 +569,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Documentation URL for users who want to bring their own OAuth app
-     * credentials while the platform's OAuth app is pending vendor approval.
-     * Resolved from the referenced OAuthApp at query time.
-     * Empty when the OAuthApp has no documentation link or is already approved.
+     * Documentation URL for users while the login app is pending vendor
+     * approval. Resolved at query time. Empty when the app has no
+     * documentation link or is already approved.
      * </pre>
      *
      * <code>string vendor_approval_docs_url = 2 [json_name = "vendorApprovalDocsUrl"];</code>
@@ -725,10 +592,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Documentation URL for users who want to bring their own OAuth app
-     * credentials while the platform's OAuth app is pending vendor approval.
-     * Resolved from the referenced OAuthApp at query time.
-     * Empty when the OAuthApp has no documentation link or is already approved.
+     * Documentation URL for users while the login app is pending vendor
+     * approval. Resolved at query time. Empty when the app has no
+     * documentation link or is already approved.
      * </pre>
      *
      * <code>string vendor_approval_docs_url = 2 [json_name = "vendorApprovalDocsUrl"];</code>
@@ -745,10 +611,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Documentation URL for users who want to bring their own OAuth app
-     * credentials while the platform's OAuth app is pending vendor approval.
-     * Resolved from the referenced OAuthApp at query time.
-     * Empty when the OAuthApp has no documentation link or is already approved.
+     * Documentation URL for users while the login app is pending vendor
+     * approval. Resolved at query time. Empty when the app has no
+     * documentation link or is already approved.
      * </pre>
      *
      * <code>string vendor_approval_docs_url = 2 [json_name = "vendorApprovalDocsUrl"];</code>
@@ -762,10 +627,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Documentation URL for users who want to bring their own OAuth app
-     * credentials while the platform's OAuth app is pending vendor approval.
-     * Resolved from the referenced OAuthApp at query time.
-     * Empty when the OAuthApp has no documentation link or is already approved.
+     * Documentation URL for users while the login app is pending vendor
+     * approval. Resolved at query time. Empty when the app has no
+     * documentation link or is already approved.
      * </pre>
      *
      * <code>string vendor_approval_docs_url = 2 [json_name = "vendorApprovalDocsUrl"];</code>
@@ -778,190 +642,6 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       vendorApprovalDocsUrl_ = value;
       bitField0_ |= 0x00000002;
-      onChanged();
-      return this;
-    }
-
-    private int effectiveOauthSource_ = 0;
-    /**
-     * <pre>
-     * NEVER POPULATED (see the message comment): the caller's active org is
-     * client-side context, so no backend can evaluate the resolution chain at
-     * read time. The shared SDK derives this value client-side from the
-     * getOrgOAuthApp RPC (useMcpServerCredentials.effectiveOAuthSource).
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthAppSource effective_oauth_source = 3 [json_name = "effectiveOauthSource"];</code>
-     * @return The enum numeric value on the wire for effectiveOauthSource.
-     */
-    @java.lang.Override public int getEffectiveOauthSourceValue() {
-      return effectiveOauthSource_;
-    }
-    /**
-     * <pre>
-     * NEVER POPULATED (see the message comment): the caller's active org is
-     * client-side context, so no backend can evaluate the resolution chain at
-     * read time. The shared SDK derives this value client-side from the
-     * getOrgOAuthApp RPC (useMcpServerCredentials.effectiveOAuthSource).
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthAppSource effective_oauth_source = 3 [json_name = "effectiveOauthSource"];</code>
-     * @param value The enum numeric value on the wire for effectiveOauthSource to set.
-     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
-     * @return This builder for chaining.
-     */
-    public Builder setEffectiveOauthSourceValue(int value) {
-      effectiveOauthSource_ = value;
-      bitField0_ |= 0x00000004;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * NEVER POPULATED (see the message comment): the caller's active org is
-     * client-side context, so no backend can evaluate the resolution chain at
-     * read time. The shared SDK derives this value client-side from the
-     * getOrgOAuthApp RPC (useMcpServerCredentials.effectiveOAuthSource).
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthAppSource effective_oauth_source = 3 [json_name = "effectiveOauthSource"];</code>
-     * @return The effectiveOauthSource.
-     */
-    @java.lang.Override
-    public ai.stigmer.agentic.mcpserver.v1.OAuthAppSource getEffectiveOauthSource() {
-      ai.stigmer.agentic.mcpserver.v1.OAuthAppSource result = ai.stigmer.agentic.mcpserver.v1.OAuthAppSource.forNumber(effectiveOauthSource_);
-      return result == null ? ai.stigmer.agentic.mcpserver.v1.OAuthAppSource.UNRECOGNIZED : result;
-    }
-    /**
-     * <pre>
-     * NEVER POPULATED (see the message comment): the caller's active org is
-     * client-side context, so no backend can evaluate the resolution chain at
-     * read time. The shared SDK derives this value client-side from the
-     * getOrgOAuthApp RPC (useMcpServerCredentials.effectiveOAuthSource).
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthAppSource effective_oauth_source = 3 [json_name = "effectiveOauthSource"];</code>
-     * @param value The effectiveOauthSource to set.
-     * @return This builder for chaining.
-     */
-    public Builder setEffectiveOauthSource(ai.stigmer.agentic.mcpserver.v1.OAuthAppSource value) {
-      if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00000004;
-      effectiveOauthSource_ = value.getNumber();
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * NEVER POPULATED (see the message comment): the caller's active org is
-     * client-side context, so no backend can evaluate the resolution chain at
-     * read time. The shared SDK derives this value client-side from the
-     * getOrgOAuthApp RPC (useMcpServerCredentials.effectiveOAuthSource).
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthAppSource effective_oauth_source = 3 [json_name = "effectiveOauthSource"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearEffectiveOauthSource() {
-      bitField0_ = (bitField0_ & ~0x00000004);
-      effectiveOauthSource_ = 0;
-      onChanged();
-      return this;
-    }
-
-    private java.lang.Object effectiveOauthAppId_ = "";
-    /**
-     * <pre>
-     * NEVER POPULATED (see the message comment). The override's OAuthApp ID
-     * is available from the getOrgOAuthApp RPC (GetOrgOAuthAppOutput.oauth_app_id).
-     * </pre>
-     *
-     * <code>string effective_oauth_app_id = 4 [json_name = "effectiveOauthAppId"];</code>
-     * @return The effectiveOauthAppId.
-     */
-    public java.lang.String getEffectiveOauthAppId() {
-      java.lang.Object ref = effectiveOauthAppId_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        effectiveOauthAppId_ = s;
-        return s;
-      } else {
-        return (java.lang.String) ref;
-      }
-    }
-    /**
-     * <pre>
-     * NEVER POPULATED (see the message comment). The override's OAuthApp ID
-     * is available from the getOrgOAuthApp RPC (GetOrgOAuthAppOutput.oauth_app_id).
-     * </pre>
-     *
-     * <code>string effective_oauth_app_id = 4 [json_name = "effectiveOauthAppId"];</code>
-     * @return The bytes for effectiveOauthAppId.
-     */
-    public com.google.protobuf.ByteString
-        getEffectiveOauthAppIdBytes() {
-      java.lang.Object ref = effectiveOauthAppId_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        effectiveOauthAppId_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-    /**
-     * <pre>
-     * NEVER POPULATED (see the message comment). The override's OAuthApp ID
-     * is available from the getOrgOAuthApp RPC (GetOrgOAuthAppOutput.oauth_app_id).
-     * </pre>
-     *
-     * <code>string effective_oauth_app_id = 4 [json_name = "effectiveOauthAppId"];</code>
-     * @param value The effectiveOauthAppId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setEffectiveOauthAppId(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      effectiveOauthAppId_ = value;
-      bitField0_ |= 0x00000008;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * NEVER POPULATED (see the message comment). The override's OAuthApp ID
-     * is available from the getOrgOAuthApp RPC (GetOrgOAuthAppOutput.oauth_app_id).
-     * </pre>
-     *
-     * <code>string effective_oauth_app_id = 4 [json_name = "effectiveOauthAppId"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearEffectiveOauthAppId() {
-      effectiveOauthAppId_ = getDefaultInstance().getEffectiveOauthAppId();
-      bitField0_ = (bitField0_ & ~0x00000008);
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * NEVER POPULATED (see the message comment). The override's OAuthApp ID
-     * is available from the getOrgOAuthApp RPC (GetOrgOAuthAppOutput.oauth_app_id).
-     * </pre>
-     *
-     * <code>string effective_oauth_app_id = 4 [json_name = "effectiveOauthAppId"];</code>
-     * @param value The bytes for effectiveOauthAppId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setEffectiveOauthAppIdBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      effectiveOauthAppId_ = value;
-      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }

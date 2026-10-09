@@ -22,8 +22,7 @@
 //
 // Where `billingLedger` is FALSE (the local OSS targets): OSS routes neither
 // billing controller, so every RPC answers Unimplemented — the edition
-// boundary as an observable contract (the orgOAuthAppConfiguration
-// posture). Pinned once per RPC below.
+// boundary as an observable contract (the versionTagging posture). Pinned once per RPC below.
 //
 // The fixtures are shared across every file in a cloud run
 // (fileParallelism: false), so each block that drives the fake Stripe resets

@@ -14,6 +14,10 @@
  *   - the four entry RPCs authorize in the handler, because their target is
  *     a oneof the annotation cannot express: `can_edit` on a vault named by
  *     id; `can_create_vault` on the organization for `mine` (members);
+ *   - startSignIn and completeSignIn sign a person in at an address and
+ *     save the login into a vault they may change (sign-in/person.ts);
+ *     createConnectLink makes a one-time page for someone without an
+ *     account, served by the public ConnectLinkController (connect-link.ts);
  *   - getMine finds the caller's own My vault by their identity, so the
  *     request names no target; getByExternalId asks can_view on the
  *     organization first, then resolves the integrator's id through its
@@ -46,6 +50,7 @@ import type {
   VaultTarget,
 } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
 import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
+import { ConnectLinkController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/connect_link_pb";
 import { VaultConnectionSource } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type {
@@ -76,6 +81,7 @@ import { newPipeline } from "../../pipeline/pipeline.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import {
+  authorizeDirect,
   authorizeResolvedResource,
   newAuthorizeStep,
 } from "../../pipeline/steps/authorize.js";
@@ -119,6 +125,14 @@ import {
 import type { Store } from "../../store/interface.js";
 
 import { InvalidAddressError, normalizeAddress } from "./address.js";
+import {
+  completeConnectLink,
+  createConnectLink,
+  getConnectLink,
+  startConnectLink,
+} from "./connect-link.js";
+import type { ConnectLinkDeps } from "./connect-link.js";
+import { completePersonSignIn, startPersonSignIn } from "./sign-in/person.js";
 import { MY_VAULT_VISIBILITY_REFUSAL } from "./constants.js";
 import {
   forgedCiphertextMessage,
@@ -149,6 +163,8 @@ export interface VaultControllerDeps {
   readonly secretService: SecretService;
   readonly listReadScope: ListReadScope | undefined;
   readonly vaults: VaultService;
+  /** A sign-in at an address and Connect links: their stores, the login apps and the egress-guarded fetch. */
+  readonly signIn: ConnectLinkDeps;
 }
 
 /** Registers both vault services on the router (routes stage). */
@@ -165,6 +181,29 @@ export function registerVaultServices(
     removeSecrets: (input, ctx) => removeSecrets(deps, input, ctx),
     setConnection: (input, ctx) => setConnection(deps, input, ctx),
     removeConnections: (input, ctx) => removeConnections(deps, input, ctx),
+    startSignIn: async (input, ctx) => {
+      const caller = callerIdentityOf(ctx);
+      await validated(VaultCommandController.method.startSignIn.input, input, caller, ctx, deps);
+      return startPersonSignIn(deps.signIn, input, caller);
+    },
+    completeSignIn: async (input, ctx) => {
+      const caller = callerIdentityOf(ctx);
+      await validated(VaultCommandController.method.completeSignIn.input, input, caller, ctx, deps);
+      return completePersonSignIn(deps.signIn, input, caller);
+    },
+    createConnectLink: async (input, ctx) => {
+      const caller = callerIdentityOf(ctx);
+      await validated(VaultCommandController.method.createConnectLink.input, input, caller, ctx, deps);
+      await authorizeDirect(VaultCommandController.method.createConnectLink, deps.authorizer, caller, input);
+      return createConnectLink(deps.signIn, input, caller);
+    },
+  });
+  // The Connect link's page: public, the link's secret the authority
+  // (connect-link.ts).
+  router.service(ConnectLinkController, {
+    getConnectLink: (input) => getConnectLink(deps.signIn, input),
+    startConnectLink: (input) => startConnectLink(deps.signIn, input),
+    completeConnectLink: (input) => completeConnectLink(deps.signIn, input),
   });
   router.service(VaultQueryController, {
     get: (id, ctx) => get(deps, id, ctx),

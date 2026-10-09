@@ -43,6 +43,7 @@ const APP: OAuthApp = create(OAuthAppSchema, {
     tokenUrl: "https://github.com/login/oauth/access_token",
     scopes: ["repo"],
     tokenEndpointAuthMethod: TokenEndpointAuthMethod.CLIENT_SECRET_POST,
+    addresses: ["github.com", "https://api.githubcopilot.com/mcp"],
   },
 });
 
@@ -88,6 +89,7 @@ describe("OAuthAppDetailPanel save payload", () => {
       TokenEndpointAuthMethod.CLIENT_SECRET_POST,
     );
     expect(input.scopes).toEqual(["repo"]);
+    expect(input.addresses).toEqual(["github.com", "https://api.githubcopilot.com/mcp"]);
     expect(input.org).toBe("acme");
     expect(input.slug).toBe("github-oauth");
   });

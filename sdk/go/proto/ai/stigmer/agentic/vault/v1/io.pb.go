@@ -11,6 +11,7 @@ import (
 	rpc "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -22,6 +23,68 @@ const (
 	// Verify that runtime/protoimpl is sufficiently up-to-date.
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
+
+// SignInReturn says where the login page sends the person back to once they
+// have signed in. The server builds the address from this choice; a caller
+// never writes it.
+type SignInReturn int32
+
+const (
+	// The console's callback page: the same as web.
+	SignInReturn_sign_in_return_unspecified SignInReturn = 0
+	// The console's callback page on this deployment.
+	SignInReturn_web SignInReturn = 1
+	// The console's callback page, which hands the result on to the desktop
+	// app (the page opens the app's own link).
+	SignInReturn_desktop SignInReturn = 2
+	// A page the desktop app serves on this machine: the path
+	// /auth/oauth/callback over plain http on 127.0.0.1 at loopback_port
+	// (RFC 8252 section 7.3, for apps on the person's own computer).
+	SignInReturn_loopback SignInReturn = 3
+)
+
+// Enum value maps for SignInReturn.
+var (
+	SignInReturn_name = map[int32]string{
+		0: "sign_in_return_unspecified",
+		1: "web",
+		2: "desktop",
+		3: "loopback",
+	}
+	SignInReturn_value = map[string]int32{
+		"sign_in_return_unspecified": 0,
+		"web":                        1,
+		"desktop":                    2,
+		"loopback":                   3,
+	}
+)
+
+func (x SignInReturn) Enum() *SignInReturn {
+	p := new(SignInReturn)
+	*p = x
+	return p
+}
+
+func (x SignInReturn) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (SignInReturn) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_vault_v1_io_proto_enumTypes[0].Descriptor()
+}
+
+func (SignInReturn) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_vault_v1_io_proto_enumTypes[0]
+}
+
+func (x SignInReturn) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use SignInReturn.Descriptor instead.
+func (SignInReturn) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_vault_v1_io_proto_rawDescGZIP(), []int{0}
+}
 
 // VaultTarget names the vault an entry write changes: a vault by id, or the
 // caller's own My vault.
@@ -634,11 +697,424 @@ func (x *VaultList) GetItems() []*Vault {
 	return nil
 }
 
+// Input for starting a sign-in at an address. The login is saved into the
+// named vault when the sign-in completes.
+type StartSignInInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The vault the login is saved into: a shared vault the caller may edit,
+	// or the caller's own My vault.
+	Vault *VaultTarget `protobuf:"bytes,1,opt,name=vault,proto3" json:"vault,omitempty"`
+	// The address to sign in to: a tool's URL (Linear's MCP endpoint at
+	// mcp.linear.app/mcp, over https) or a Git host (github.com), in any shape
+	// setConnection accepts.
+	Address string `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
+	// Where the login page sends the person back to. Unset means web.
+	ReturnTo SignInReturn `protobuf:"varint,3,opt,name=return_to,json=returnTo,proto3,enum=ai.stigmer.agentic.vault.v1.SignInReturn" json:"return_to,omitempty"`
+	// The port of the desktop app's page, for return_to loopback only: one of
+	// the three Stigmer Desktop listens on (17237 to 17239). A login server
+	// registers Stigmer once per return address, so the ports are few.
+	LoopbackPort  uint32 `protobuf:"varint,4,opt,name=loopback_port,json=loopbackPort,proto3" json:"loopback_port,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StartSignInInput) Reset() {
+	*x = StartSignInInput{}
+	mi := &file_ai_stigmer_agentic_vault_v1_io_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StartSignInInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StartSignInInput) ProtoMessage() {}
+
+func (x *StartSignInInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_vault_v1_io_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StartSignInInput.ProtoReflect.Descriptor instead.
+func (*StartSignInInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_vault_v1_io_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *StartSignInInput) GetVault() *VaultTarget {
+	if x != nil {
+		return x.Vault
+	}
+	return nil
+}
+
+func (x *StartSignInInput) GetAddress() string {
+	if x != nil {
+		return x.Address
+	}
+	return ""
+}
+
+func (x *StartSignInInput) GetReturnTo() SignInReturn {
+	if x != nil {
+		return x.ReturnTo
+	}
+	return SignInReturn_sign_in_return_unspecified
+}
+
+func (x *StartSignInInput) GetLoopbackPort() uint32 {
+	if x != nil {
+		return x.LoopbackPort
+	}
+	return 0
+}
+
+// The login page to send the person to.
+type StartSignInOutput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The login page, with every parameter the sign-in needs.
+	AuthorizationUrl string `protobuf:"bytes,1,opt,name=authorization_url,json=authorizationUrl,proto3" json:"authorization_url,omitempty"`
+	// The value the login page hands back with the code; completeSignIn takes
+	// it.
+	State string `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
+	// Who the person signs in with, for display ("GitHub", or the address's
+	// host when the login server has no name).
+	ProviderName string `protobuf:"bytes,3,opt,name=provider_name,json=providerName,proto3" json:"provider_name,omitempty"`
+	// The permissions asked for.
+	Scopes        []string `protobuf:"bytes,4,rep,name=scopes,proto3" json:"scopes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StartSignInOutput) Reset() {
+	*x = StartSignInOutput{}
+	mi := &file_ai_stigmer_agentic_vault_v1_io_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StartSignInOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StartSignInOutput) ProtoMessage() {}
+
+func (x *StartSignInOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_vault_v1_io_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StartSignInOutput.ProtoReflect.Descriptor instead.
+func (*StartSignInOutput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_vault_v1_io_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *StartSignInOutput) GetAuthorizationUrl() string {
+	if x != nil {
+		return x.AuthorizationUrl
+	}
+	return ""
+}
+
+func (x *StartSignInOutput) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
+func (x *StartSignInOutput) GetProviderName() string {
+	if x != nil {
+		return x.ProviderName
+	}
+	return ""
+}
+
+func (x *StartSignInOutput) GetScopes() []string {
+	if x != nil {
+		return x.Scopes
+	}
+	return nil
+}
+
+// Input for finishing a sign-in, with what the login page handed back.
+type CompleteSignInInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The state from startSignIn, as the login page returned it.
+	State string `protobuf:"bytes,1,opt,name=state,proto3" json:"state,omitempty"`
+	// The authorization code the login page returned.
+	Code          string `protobuf:"bytes,2,opt,name=code,proto3" json:"code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CompleteSignInInput) Reset() {
+	*x = CompleteSignInInput{}
+	mi := &file_ai_stigmer_agentic_vault_v1_io_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CompleteSignInInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CompleteSignInInput) ProtoMessage() {}
+
+func (x *CompleteSignInInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_vault_v1_io_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CompleteSignInInput.ProtoReflect.Descriptor instead.
+func (*CompleteSignInInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_vault_v1_io_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *CompleteSignInInput) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
+func (x *CompleteSignInInput) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+// The login a sign-in saved.
+type CompleteSignInOutput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The address the login was saved at.
+	Address string `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+	// How the saved login is described: the account when the login app says
+	// who signed in ("GitHub @ana"), else the host ("Signed in at
+	// mcp.linear.app").
+	Description   string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CompleteSignInOutput) Reset() {
+	*x = CompleteSignInOutput{}
+	mi := &file_ai_stigmer_agentic_vault_v1_io_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CompleteSignInOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CompleteSignInOutput) ProtoMessage() {}
+
+func (x *CompleteSignInOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_vault_v1_io_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CompleteSignInOutput.ProtoReflect.Descriptor instead.
+func (*CompleteSignInOutput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_vault_v1_io_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *CompleteSignInOutput) GetAddress() string {
+	if x != nil {
+		return x.Address
+	}
+	return ""
+}
+
+func (x *CompleteSignInOutput) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+// Input for making a Connect link: a one-time page an integrator sends its
+// customer, where the customer signs in at an address and the login is saved
+// into the integrator's vault for that customer. The customer needs no
+// Stigmer account.
+type CreateConnectLinkInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Organization the vault belongs to, by slug or id.
+	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	// The shared vault the login is saved into, by id. My vault is refused:
+	// a link is for someone else.
+	VaultId string `protobuf:"bytes,2,opt,name=vault_id,json=vaultId,proto3" json:"vault_id,omitempty"`
+	// The address the customer signs in to: a tool's URL or a Git host.
+	Address string `protobuf:"bytes,3,opt,name=address,proto3" json:"address,omitempty"`
+	// Where the customer is sent once the sign-in is over: an absolute https
+	// URL (http only for localhost, 127.0.0.1 or [::1]), with no user name or
+	// password in it. Stigmer adds stigmer_connect=connected, or
+	// stigmer_connect=error with a short reason.
+	ReturnUrl string `protobuf:"bytes,4,opt,name=return_url,json=returnUrl,proto3" json:"return_url,omitempty"`
+	// How long the link stays usable, in seconds: 60 to 86400 (a day).
+	// Unset means 1800 (30 minutes).
+	ExpiresInSeconds int32 `protobuf:"varint,5,opt,name=expires_in_seconds,json=expiresInSeconds,proto3" json:"expires_in_seconds,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *CreateConnectLinkInput) Reset() {
+	*x = CreateConnectLinkInput{}
+	mi := &file_ai_stigmer_agentic_vault_v1_io_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateConnectLinkInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateConnectLinkInput) ProtoMessage() {}
+
+func (x *CreateConnectLinkInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_vault_v1_io_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateConnectLinkInput.ProtoReflect.Descriptor instead.
+func (*CreateConnectLinkInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_vault_v1_io_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *CreateConnectLinkInput) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+func (x *CreateConnectLinkInput) GetVaultId() string {
+	if x != nil {
+		return x.VaultId
+	}
+	return ""
+}
+
+func (x *CreateConnectLinkInput) GetAddress() string {
+	if x != nil {
+		return x.Address
+	}
+	return ""
+}
+
+func (x *CreateConnectLinkInput) GetReturnUrl() string {
+	if x != nil {
+		return x.ReturnUrl
+	}
+	return ""
+}
+
+func (x *CreateConnectLinkInput) GetExpiresInSeconds() int32 {
+	if x != nil {
+		return x.ExpiresInSeconds
+	}
+	return 0
+}
+
+// A Connect link. It works once: the first sign-in saved through it spends
+// it.
+type ConnectLink struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The page to send the customer to. It carries the link's secret: send it
+	// only to that customer.
+	Url string `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
+	// When the link stops working.
+	ExpiresAt     *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ConnectLink) Reset() {
+	*x = ConnectLink{}
+	mi := &file_ai_stigmer_agentic_vault_v1_io_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConnectLink) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConnectLink) ProtoMessage() {}
+
+func (x *ConnectLink) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_vault_v1_io_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConnectLink.ProtoReflect.Descriptor instead.
+func (*ConnectLink) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_vault_v1_io_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *ConnectLink) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+func (x *ConnectLink) GetExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return nil
+}
+
 var File_ai_stigmer_agentic_vault_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_vault_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"$ai/stigmer/agentic/vault/v1/io.proto\x12\x1bai.stigmer.agentic.vault.v1\x1a%ai/stigmer/agentic/vault/v1/api.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\"r\n" +
+	"$ai/stigmer/agentic/vault/v1/io.proto\x12\x1bai.stigmer.agentic.vault.v1\x1a%ai/stigmer/agentic/vault/v1/api.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"r\n" +
 	"\vVaultTarget\x12\x19\n" +
 	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12\x19\n" +
 	"\x02id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01H\x00R\x02id\x12\x1d\n" +
@@ -677,7 +1153,46 @@ const file_ai_stigmer_agentic_vault_v1_io_proto_rawDesc = "" +
 	"\tVaultList\x12\x1f\n" +
 	"\vtotal_count\x18\x01 \x01(\x05R\n" +
 	"totalCount\x128\n" +
-	"\x05items\x18\x02 \x03(\v2\".ai.stigmer.agentic.vault.v1.VaultR\x05itemsB\x8b\x02\n" +
+	"\x05items\x18\x02 \x03(\v2\".ai.stigmer.agentic.vault.v1.VaultR\x05items\"\x9b\x04\n" +
+	"\x10StartSignInInput\x12F\n" +
+	"\x05vault\x18\x01 \x01(\v2(.ai.stigmer.agentic.vault.v1.VaultTargetB\x06\xbaH\x03\xc8\x01\x01R\x05vault\x12$\n" +
+	"\aaddress\x18\x02 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x10R\aaddress\x12F\n" +
+	"\treturn_to\x18\x03 \x01(\x0e2).ai.stigmer.agentic.vault.v1.SignInReturnR\breturnTo\x12.\n" +
+	"\rloopback_port\x18\x04 \x01(\rB\t\xbaH\x06*\x04\x18\xff\xff\x03R\floopbackPort:\xa0\x02\xbaH\x9c\x02\x1a\x99\x02\n" +
+	"\x1bstart_sign_in.loopback_port\x12\x88\x01loopback_port is required for return_to loopback (17237 to 17239, the ports Stigmer Desktop listens on) and must be left unset otherwise\x1aothis.return_to == 3 ? (this.loopback_port >= 17237u && this.loopback_port <= 17239u) : this.loopback_port == 0u\"\x93\x01\n" +
+	"\x11StartSignInOutput\x12+\n" +
+	"\x11authorization_url\x18\x01 \x01(\tR\x10authorizationUrl\x12\x14\n" +
+	"\x05state\x18\x02 \x01(\tR\x05state\x12#\n" +
+	"\rprovider_name\x18\x03 \x01(\tR\fproviderName\x12\x16\n" +
+	"\x06scopes\x18\x04 \x03(\tR\x06scopes\"W\n" +
+	"\x13CompleteSignInInput\x12 \n" +
+	"\x05state\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x04R\x05state\x12\x1e\n" +
+	"\x04code\x18\x02 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80 R\x04code\"R\n" +
+	"\x14CompleteSignInOutput\x12\x18\n" +
+	"\aaddress\x18\x01 \x01(\tR\aaddress\x12 \n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription\"\xa4\x03\n" +
+	"\x16CreateConnectLinkInput\x12\x19\n" +
+	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x126\n" +
+	"\bvault_id\x18\x02 \x01(\tB\x1b\xbaH\x18r\x16\x18\x1e2\x12^vlt_[0-9a-z]{26}$R\avaultId\x12$\n" +
+	"\aaddress\x18\x03 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x10R\aaddress\x12)\n" +
+	"\n" +
+	"return_url\x18\x04 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x10R\treturnUrl\x129\n" +
+	"\x12expires_in_seconds\x18\x05 \x01(\x05B\v\xbaH\b\x1a\x06\x18\x80\xa3\x05(\x00R\x10expiresInSeconds:\xaa\x01\xbaH\xa6\x01\x1a\xa3\x01\n" +
+	"&create_connect_link.expires_in_seconds\x12:expires_in_seconds is 60 to 86400, or unset for 30 minutes\x1a=this.expires_in_seconds == 0 || this.expires_in_seconds >= 60\"Z\n" +
+	"\vConnectLink\x12\x10\n" +
+	"\x03url\x18\x01 \x01(\tR\x03url\x129\n" +
+	"\n" +
+	"expires_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt*R\n" +
+	"\fSignInReturn\x12\x1e\n" +
+	"\x1asign_in_return_unspecified\x10\x00\x12\a\n" +
+	"\x03web\x10\x01\x12\v\n" +
+	"\adesktop\x10\x02\x12\f\n" +
+	"\bloopback\x10\x03B\x8b\x02\n" +
 	"\x1fcom.ai.stigmer.agentic.vault.v1B\aIoProtoP\x01ZNgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/vault/v1;vaultv1\xa2\x02\x04ASAV\xaa\x02\x1bAi.Stigmer.Agentic.Vault.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Vault\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Vault\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Vault::V1b\x06proto3"
 
 var (
@@ -692,36 +1207,48 @@ func file_ai_stigmer_agentic_vault_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_vault_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_vault_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_ai_stigmer_agentic_vault_v1_io_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_ai_stigmer_agentic_vault_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_ai_stigmer_agentic_vault_v1_io_proto_goTypes = []any{
-	(*VaultTarget)(nil),                 // 0: ai.stigmer.agentic.vault.v1.VaultTarget
-	(*VaultSecretInput)(nil),            // 1: ai.stigmer.agentic.vault.v1.VaultSecretInput
-	(*SetVaultSecretsInput)(nil),        // 2: ai.stigmer.agentic.vault.v1.SetVaultSecretsInput
-	(*RemoveVaultSecretsInput)(nil),     // 3: ai.stigmer.agentic.vault.v1.RemoveVaultSecretsInput
-	(*SetVaultConnectionInput)(nil),     // 4: ai.stigmer.agentic.vault.v1.SetVaultConnectionInput
-	(*RemoveVaultConnectionsInput)(nil), // 5: ai.stigmer.agentic.vault.v1.RemoveVaultConnectionsInput
-	(*GetMyVaultInput)(nil),             // 6: ai.stigmer.agentic.vault.v1.GetMyVaultInput
-	(*GetVaultByExternalIdInput)(nil),   // 7: ai.stigmer.agentic.vault.v1.GetVaultByExternalIdInput
-	(*ListVaultsRequest)(nil),           // 8: ai.stigmer.agentic.vault.v1.ListVaultsRequest
-	(*VaultList)(nil),                   // 9: ai.stigmer.agentic.vault.v1.VaultList
-	nil,                                 // 10: ai.stigmer.agentic.vault.v1.SetVaultSecretsInput.SecretsEntry
-	(*rpc.PageInfo)(nil),                // 11: ai.stigmer.commons.rpc.PageInfo
-	(*Vault)(nil),                       // 12: ai.stigmer.agentic.vault.v1.Vault
+	(SignInReturn)(0),                   // 0: ai.stigmer.agentic.vault.v1.SignInReturn
+	(*VaultTarget)(nil),                 // 1: ai.stigmer.agentic.vault.v1.VaultTarget
+	(*VaultSecretInput)(nil),            // 2: ai.stigmer.agentic.vault.v1.VaultSecretInput
+	(*SetVaultSecretsInput)(nil),        // 3: ai.stigmer.agentic.vault.v1.SetVaultSecretsInput
+	(*RemoveVaultSecretsInput)(nil),     // 4: ai.stigmer.agentic.vault.v1.RemoveVaultSecretsInput
+	(*SetVaultConnectionInput)(nil),     // 5: ai.stigmer.agentic.vault.v1.SetVaultConnectionInput
+	(*RemoveVaultConnectionsInput)(nil), // 6: ai.stigmer.agentic.vault.v1.RemoveVaultConnectionsInput
+	(*GetMyVaultInput)(nil),             // 7: ai.stigmer.agentic.vault.v1.GetMyVaultInput
+	(*GetVaultByExternalIdInput)(nil),   // 8: ai.stigmer.agentic.vault.v1.GetVaultByExternalIdInput
+	(*ListVaultsRequest)(nil),           // 9: ai.stigmer.agentic.vault.v1.ListVaultsRequest
+	(*VaultList)(nil),                   // 10: ai.stigmer.agentic.vault.v1.VaultList
+	(*StartSignInInput)(nil),            // 11: ai.stigmer.agentic.vault.v1.StartSignInInput
+	(*StartSignInOutput)(nil),           // 12: ai.stigmer.agentic.vault.v1.StartSignInOutput
+	(*CompleteSignInInput)(nil),         // 13: ai.stigmer.agentic.vault.v1.CompleteSignInInput
+	(*CompleteSignInOutput)(nil),        // 14: ai.stigmer.agentic.vault.v1.CompleteSignInOutput
+	(*CreateConnectLinkInput)(nil),      // 15: ai.stigmer.agentic.vault.v1.CreateConnectLinkInput
+	(*ConnectLink)(nil),                 // 16: ai.stigmer.agentic.vault.v1.ConnectLink
+	nil,                                 // 17: ai.stigmer.agentic.vault.v1.SetVaultSecretsInput.SecretsEntry
+	(*rpc.PageInfo)(nil),                // 18: ai.stigmer.commons.rpc.PageInfo
+	(*Vault)(nil),                       // 19: ai.stigmer.agentic.vault.v1.Vault
+	(*timestamppb.Timestamp)(nil),       // 20: google.protobuf.Timestamp
 }
 var file_ai_stigmer_agentic_vault_v1_io_proto_depIdxs = []int32{
-	0,  // 0: ai.stigmer.agentic.vault.v1.SetVaultSecretsInput.vault:type_name -> ai.stigmer.agentic.vault.v1.VaultTarget
-	10, // 1: ai.stigmer.agentic.vault.v1.SetVaultSecretsInput.secrets:type_name -> ai.stigmer.agentic.vault.v1.SetVaultSecretsInput.SecretsEntry
-	0,  // 2: ai.stigmer.agentic.vault.v1.RemoveVaultSecretsInput.vault:type_name -> ai.stigmer.agentic.vault.v1.VaultTarget
-	0,  // 3: ai.stigmer.agentic.vault.v1.SetVaultConnectionInput.vault:type_name -> ai.stigmer.agentic.vault.v1.VaultTarget
-	0,  // 4: ai.stigmer.agentic.vault.v1.RemoveVaultConnectionsInput.vault:type_name -> ai.stigmer.agentic.vault.v1.VaultTarget
-	11, // 5: ai.stigmer.agentic.vault.v1.ListVaultsRequest.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
-	12, // 6: ai.stigmer.agentic.vault.v1.VaultList.items:type_name -> ai.stigmer.agentic.vault.v1.Vault
-	1,  // 7: ai.stigmer.agentic.vault.v1.SetVaultSecretsInput.SecretsEntry.value:type_name -> ai.stigmer.agentic.vault.v1.VaultSecretInput
-	8,  // [8:8] is the sub-list for method output_type
-	8,  // [8:8] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	1,  // 0: ai.stigmer.agentic.vault.v1.SetVaultSecretsInput.vault:type_name -> ai.stigmer.agentic.vault.v1.VaultTarget
+	17, // 1: ai.stigmer.agentic.vault.v1.SetVaultSecretsInput.secrets:type_name -> ai.stigmer.agentic.vault.v1.SetVaultSecretsInput.SecretsEntry
+	1,  // 2: ai.stigmer.agentic.vault.v1.RemoveVaultSecretsInput.vault:type_name -> ai.stigmer.agentic.vault.v1.VaultTarget
+	1,  // 3: ai.stigmer.agentic.vault.v1.SetVaultConnectionInput.vault:type_name -> ai.stigmer.agentic.vault.v1.VaultTarget
+	1,  // 4: ai.stigmer.agentic.vault.v1.RemoveVaultConnectionsInput.vault:type_name -> ai.stigmer.agentic.vault.v1.VaultTarget
+	18, // 5: ai.stigmer.agentic.vault.v1.ListVaultsRequest.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
+	19, // 6: ai.stigmer.agentic.vault.v1.VaultList.items:type_name -> ai.stigmer.agentic.vault.v1.Vault
+	1,  // 7: ai.stigmer.agentic.vault.v1.StartSignInInput.vault:type_name -> ai.stigmer.agentic.vault.v1.VaultTarget
+	0,  // 8: ai.stigmer.agentic.vault.v1.StartSignInInput.return_to:type_name -> ai.stigmer.agentic.vault.v1.SignInReturn
+	20, // 9: ai.stigmer.agentic.vault.v1.ConnectLink.expires_at:type_name -> google.protobuf.Timestamp
+	2,  // 10: ai.stigmer.agentic.vault.v1.SetVaultSecretsInput.SecretsEntry.value:type_name -> ai.stigmer.agentic.vault.v1.VaultSecretInput
+	11, // [11:11] is the sub-list for method output_type
+	11, // [11:11] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_vault_v1_io_proto_init() }
@@ -739,13 +1266,14 @@ func file_ai_stigmer_agentic_vault_v1_io_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_vault_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_vault_v1_io_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   11,
+			NumEnums:      1,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_ai_stigmer_agentic_vault_v1_io_proto_goTypes,
 		DependencyIndexes: file_ai_stigmer_agentic_vault_v1_io_proto_depIdxs,
+		EnumInfos:         file_ai_stigmer_agentic_vault_v1_io_proto_enumTypes,
 		MessageInfos:      file_ai_stigmer_agentic_vault_v1_io_proto_msgTypes,
 	}.Build()
 	File_ai_stigmer_agentic_vault_v1_io_proto = out.File

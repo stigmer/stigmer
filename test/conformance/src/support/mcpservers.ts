@@ -12,7 +12,6 @@
 import type { InitShape } from "./init-shape";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { type EnvVarDeclarationInit, makeEnvDeclarations } from "./vaults";
 
 export const MCPSERVER_API_VERSION = "agentic.stigmer.ai/v1";
@@ -89,29 +88,21 @@ export interface HttpMcpServerOptions {
 export interface OAuthMcpServerOptions {
   org: string;
   name: string;
-  // The env var the acquired access token is stored under (auth.target_env_var).
+  // The env var a login at the server's address fills (auth.target_env_var).
   targetEnvVar: string;
-  // Base URL of an HTTP MCP server. When omitted the server is a stdio shape
-  // whose command never runs — the right isolation for handshake-only tests.
-  url?: string;
-  // auth.discovery_url — point at a mock authorization server's origin for
-  // the DCR arm (priority: discovery_url > http.url, so this also works on
-  // http servers whose URL serves no metadata).
-  discoveryUrl?: string;
-  // auth.oauth_app_ref slug — selects the vendor arm.
-  oauthAppSlug?: string;
-  // auth.oauth_only — flips the vendor refusal's alternative sentence.
+  // The server's URL: its address. A sign-in at this address fills it.
+  url: string;
+  // auth.oauth_only — the endpoint takes no pasted token.
   oauthOnly?: boolean;
-  // auth.scope_hints — DCR scope selection (fallback: discovered metadata).
+  // auth.scope_hints — shown before a sign-in; a sign-in never sends them.
   scopeHints?: string[];
 }
 
-// A complete, valid McpServer with an OAuth auth block — the fixture shape for
-// the connect/OAuth conformance suites. Defaults to a stdio server with
-// a command that never executes: the OAuth handshake RPCs never touch the
-// server process itself, so a no-op command isolates them completely. Pass
-// `url` for the connect-time tests that need the runner to reach a real
-// (fixture) MCP endpoint after the handshake.
+// A complete, valid McpServer with an auth block — the fixture shape for the
+// sign-in conformance suites. Only an HTTP server may carry one (a local
+// program takes its keys as secrets), so the server is always an HTTP
+// server: its URL is the address a sign-in saves its login at, and the
+// runner reaches it there when a test connects.
 export function makeOAuthMcpServer(opts: OAuthMcpServerOptions): InitShape<typeof McpServerSchema> {
   return {
     apiVersion: MCPSERVER_API_VERSION,
@@ -119,16 +110,9 @@ export function makeOAuthMcpServer(opts: OAuthMcpServerOptions): InitShape<typeo
     metadata: { name: opts.name, org: opts.org },
     spec: {
       description: "OAuth conformance fixture",
-      serverType:
-        opts.url !== undefined
-          ? { case: "http", value: { url: opts.url } }
-          : { case: "stdio", value: { command: "conformance-oauth-noop" } },
+      serverType: { case: "http", value: { url: opts.url } },
       auth: {
         targetEnvVar: opts.targetEnvVar,
-        ...(opts.discoveryUrl !== undefined ? { discoveryUrl: opts.discoveryUrl } : {}),
-        ...(opts.oauthAppSlug !== undefined
-          ? { oauthAppRef: { kind: ApiResourceKind.oauth_app, org: opts.org, slug: opts.oauthAppSlug } }
-          : {}),
         ...(opts.oauthOnly !== undefined ? { oauthOnly: opts.oauthOnly } : {}),
         ...(opts.scopeHints !== undefined ? { scopeHints: opts.scopeHints } : {}),
       },

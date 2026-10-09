@@ -23,6 +23,12 @@ export const MY_VAULT_SLUG_PREFIX = "my-vault";
 /** The most entries (secrets and connections together) one vault holds: rows are read whole on every run. */
 export const MAX_VAULT_ENTRIES = 100;
 
+/** A sign-in's `auth_method` when its client was a login app (an organization's or Stigmer's). */
+export const SIGN_IN_THROUGH_APP = "vendor_oauth";
+
+/** A sign-in's `auth_method` when Stigmer was a public client of the address's own login server. */
+export const SIGN_IN_THROUGH_LOGIN_SERVER = "mcp_oauth";
+
 /** The Git host whose connection clones a repository and the console's GitHub reads use. */
 export const GITHUB_HOST = "github.com";
 

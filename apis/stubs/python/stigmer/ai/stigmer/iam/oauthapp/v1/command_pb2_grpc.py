@@ -72,9 +72,9 @@ class OAuthAppCommandControllerServicer(object):
     def delete(self, request, context):
         """Delete an OAuth app.
 
-        Refused while any McpServer's McpServerAuth.oauth_app_ref resolves to
-        this OAuth app. Returns the deleted OAuthApp, its client_secret redacted
-        like every read.
+        Its addresses are released: a sign-in at them uses Stigmer's own login
+        app or the address's login server from then on. Returns the deleted
+        OAuthApp, its client_secret redacted like every read.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

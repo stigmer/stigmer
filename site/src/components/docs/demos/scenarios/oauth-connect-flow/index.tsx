@@ -25,7 +25,6 @@ import {
   oauthConnectSteps,
   DEMO_ORG,
   DEMO_SLUG,
-  NO_ORG_OVERRIDE,
 } from "./steps";
 
 
@@ -200,7 +199,6 @@ export function OAuthConnectFlow() {
       connectFixture(McpServerQueryController, "getByReference", () => currentServerRef.current),
       connectFixture(VaultQueryController, "getMine", emptyMyVault),
       connectFixture(McpServerQueryController, "getOAuthGrantStatus", () => currentGrantRef.current),
-      connectFixture(McpServerQueryController, "getOrgOAuthApp", () => NO_ORG_OVERRIDE),
     ],
     [],
   );

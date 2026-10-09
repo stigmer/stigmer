@@ -300,8 +300,6 @@ function GitHubPanel({
       return <GitHubConnectingState onCancel={connection.disconnect} />;
     }
 
-    const redirectUri = `${window.location.origin}/auth/github/callback`;
-
     return (
       <div className="stg:space-y-3 stg:text-center">
         <div className="stg:space-y-1">
@@ -315,35 +313,33 @@ function GitHubPanel({
         {connection.popupBlocked ? (
           <div className="stg:space-y-2">
             <p className="stg:text-[0.65rem] stg:text-destructive">
-              Popup was blocked by your browser.
+              Popup was blocked by your browser. Allow popups for this site, then try again.
             </p>
             <div className="stg:flex stg:items-center stg:justify-center stg:gap-2">
               <button
                 type="button"
-                onClick={() => connection.connect(redirectUri, { popup: true })}
-                className="stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
-              >
-                Try again
-              </button>
-              <button
-                type="button"
-                onClick={() => connection.connect(redirectUri)}
+                onClick={() => void connection.connect().catch(() => {})}
                 className="stg:inline-flex stg:items-center stg:gap-2 stg:rounded-md stg:bg-foreground stg:px-3 stg:py-1.5 stg:text-xs stg:text-background stg:transition-colors stg:hover:bg-foreground-hover stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
               >
                 <GitHubIcon />
-                <span>Continue with redirect</span>
+                <span>Try again</span>
               </button>
             </div>
           </div>
         ) : (
           <button
             type="button"
-            onClick={() => connection.connect(redirectUri, { popup: true })}
+            onClick={() => void connection.connect().catch(() => {})}
             className="stg:inline-flex stg:items-center stg:gap-2 stg:rounded-md stg:bg-foreground stg:px-3 stg:py-1.5 stg:text-xs stg:text-background stg:transition-colors stg:hover:bg-foreground-hover stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
           >
             <GitHubIcon />
             <span>Connect GitHub</span>
           </button>
+        )}
+        {connection.connectError && !connection.popupBlocked && (
+          <p role="alert" className="stg:text-[0.65rem] stg:text-destructive">
+            Could not connect GitHub: {getUserMessage(connection.connectError)}
+          </p>
         )}
       </div>
     );

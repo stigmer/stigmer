@@ -151,75 +151,6 @@ func (ValidationState) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_mcpserver_v1_status_proto_rawDescGZIP(), []int{1}
 }
 
-// OAuthAppSource identifies where the effective OAuth app for an MCP server
-// was resolved from.
-//
-// The resolution chain is the same one the OAuth connect flow evaluates:
-//  1. OAuthAppOverride for (resource_id, resource_kind, org) → ORG_OVERRIDE
-//  2. McpServerAuth.oauth_app_ref → PLATFORM
-//  3. Neither exists → NONE
-//
-// Resolved CLIENT-SIDE by the shared SDK from the getOrgOAuthApp RPC: the
-// resolution is per (server, caller's active org), and the caller's active
-// org is client-side context the read RPCs never carry, so no backend can
-// compute it at enrichment time (see OAuthStatus fields 3-4).
-type OAuthAppSource int32
-
-const (
-	// Default / unset. The resolution chain has not been evaluated yet.
-	OAuthAppSource_OAUTH_APP_SOURCE_UNSPECIFIED OAuthAppSource = 0
-	// The platform-default OAuthApp is in use (McpServerAuth.oauth_app_ref).
-	OAuthAppSource_OAUTH_APP_SOURCE_PLATFORM OAuthAppSource = 1
-	// An org-level BYOA override is in use (OAuthAppOverride binding).
-	OAuthAppSource_OAUTH_APP_SOURCE_ORG_OVERRIDE OAuthAppSource = 2
-	// No OAuthApp is available. The MCP server either uses DCR (mcp_oauth)
-	// or has no auth block at all.
-	OAuthAppSource_OAUTH_APP_SOURCE_NONE OAuthAppSource = 3
-)
-
-// Enum value maps for OAuthAppSource.
-var (
-	OAuthAppSource_name = map[int32]string{
-		0: "OAUTH_APP_SOURCE_UNSPECIFIED",
-		1: "OAUTH_APP_SOURCE_PLATFORM",
-		2: "OAUTH_APP_SOURCE_ORG_OVERRIDE",
-		3: "OAUTH_APP_SOURCE_NONE",
-	}
-	OAuthAppSource_value = map[string]int32{
-		"OAUTH_APP_SOURCE_UNSPECIFIED":  0,
-		"OAUTH_APP_SOURCE_PLATFORM":     1,
-		"OAUTH_APP_SOURCE_ORG_OVERRIDE": 2,
-		"OAUTH_APP_SOURCE_NONE":         3,
-	}
-)
-
-func (x OAuthAppSource) Enum() *OAuthAppSource {
-	p := new(OAuthAppSource)
-	*p = x
-	return p
-}
-
-func (x OAuthAppSource) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (OAuthAppSource) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_mcpserver_v1_status_proto_enumTypes[2].Descriptor()
-}
-
-func (OAuthAppSource) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_mcpserver_v1_status_proto_enumTypes[2]
-}
-
-func (x OAuthAppSource) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use OAuthAppSource.Descriptor instead.
-func (OAuthAppSource) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_mcpserver_v1_status_proto_rawDescGZIP(), []int{2}
-}
-
 // McpServerStatus represents the system-managed state of an MCP server definition.
 type McpServerStatus struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -667,26 +598,17 @@ func (x *DiscoveredResourceTemplate) GetMimeType() string {
 // OAuthStatus holds system-derived OAuth enrichment state for an MCP server.
 type OAuthStatus struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Vendor marketplace/app-review approval status for this MCP server's
-	// OAuth app. Resolved from the referenced OAuthApp at query time.
-	// When the platform OAuthApp is pending vendor approval, the frontend
-	// gates the sign-in button and shows a BYOA alternative.
+	// Vendor marketplace/app-review approval status of the login app the
+	// organization keeps for this server's address. Resolved at query time.
+	// When the app is pending vendor approval, the frontend gates the sign-in
+	// button and offers pasting a token instead.
 	VendorApprovalStatus v1.VendorApprovalStatus `protobuf:"varint,1,opt,name=vendor_approval_status,json=vendorApprovalStatus,proto3,enum=ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus" json:"vendor_approval_status,omitempty"`
-	// Documentation URL for users who want to bring their own OAuth app
-	// credentials while the platform's OAuth app is pending vendor approval.
-	// Resolved from the referenced OAuthApp at query time.
-	// Empty when the OAuthApp has no documentation link or is already approved.
+	// Documentation URL for users while the login app is pending vendor
+	// approval. Resolved at query time. Empty when the app has no
+	// documentation link or is already approved.
 	VendorApprovalDocsUrl string `protobuf:"bytes,2,opt,name=vendor_approval_docs_url,json=vendorApprovalDocsUrl,proto3" json:"vendor_approval_docs_url,omitempty"`
-	// NEVER POPULATED (see the message comment): the caller's active org is
-	// client-side context, so no backend can evaluate the resolution chain at
-	// read time. The shared SDK derives this value client-side from the
-	// getOrgOAuthApp RPC (useMcpServerCredentials.effectiveOAuthSource).
-	EffectiveOauthSource OAuthAppSource `protobuf:"varint,3,opt,name=effective_oauth_source,json=effectiveOauthSource,proto3,enum=ai.stigmer.agentic.mcpserver.v1.OAuthAppSource" json:"effective_oauth_source,omitempty"`
-	// NEVER POPULATED (see the message comment). The override's OAuthApp ID
-	// is available from the getOrgOAuthApp RPC (GetOrgOAuthAppOutput.oauth_app_id).
-	EffectiveOauthAppId string `protobuf:"bytes,4,opt,name=effective_oauth_app_id,json=effectiveOauthAppId,proto3" json:"effective_oauth_app_id,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *OAuthStatus) Reset() {
@@ -733,20 +655,6 @@ func (x *OAuthStatus) GetVendorApprovalDocsUrl() string {
 	return ""
 }
 
-func (x *OAuthStatus) GetEffectiveOauthSource() OAuthAppSource {
-	if x != nil {
-		return x.EffectiveOauthSource
-	}
-	return OAuthAppSource_OAUTH_APP_SOURCE_UNSPECIFIED
-}
-
-func (x *OAuthStatus) GetEffectiveOauthAppId() string {
-	if x != nil {
-		return x.EffectiveOauthAppId
-	}
-	return ""
-}
-
 var File_ai_stigmer_agentic_mcpserver_v1_status_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_mcpserver_v1_status_proto_rawDesc = "" +
@@ -783,12 +691,10 @@ const file_ai_stigmer_agentic_mcpserver_v1_status_proto_rawDesc = "" +
 	"\furi_template\x18\x01 \x01(\tR\vuriTemplate\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x03 \x01(\tR\vdescription\x12\x1b\n" +
-	"\tmime_type\x18\x04 \x01(\tR\bmimeType\"\xca\x02\n" +
+	"\tmime_type\x18\x04 \x01(\tR\bmimeType\"\xea\x01\n" +
 	"\vOAuthStatus\x12f\n" +
 	"\x16vendor_approval_status\x18\x01 \x01(\x0e20.ai.stigmer.iam.oauthapp.v1.VendorApprovalStatusR\x14vendorApprovalStatus\x127\n" +
-	"\x18vendor_approval_docs_url\x18\x02 \x01(\tR\x15vendorApprovalDocsUrl\x12e\n" +
-	"\x16effective_oauth_source\x18\x03 \x01(\x0e2/.ai.stigmer.agentic.mcpserver.v1.OAuthAppSourceR\x14effectiveOauthSource\x123\n" +
-	"\x16effective_oauth_app_id\x18\x04 \x01(\tR\x13effectiveOauthAppId*\x82\x01\n" +
+	"\x18vendor_approval_docs_url\x18\x02 \x01(\tR\x15vendorApprovalDocsUrlJ\x04\b\x03\x10\x04J\x04\b\x04\x10\x05R\x16effective_oauth_sourceR\x16effective_oauth_app_id*\x82\x01\n" +
 	"\fConnectPhase\x12\x1d\n" +
 	"\x19connect_phase_unspecified\x10\x00\x12\x1c\n" +
 	"\x18connect_phase_connecting\x10\x01\x12\x1b\n" +
@@ -797,12 +703,7 @@ const file_ai_stigmer_agentic_mcpserver_v1_status_proto_rawDesc = "" +
 	"\x0fValidationState\x12 \n" +
 	"\x1cvalidation_state_unspecified\x10\x00\x12\t\n" +
 	"\x05valid\x10\x01\x12\v\n" +
-	"\ainvalid\x10\x02*\x8f\x01\n" +
-	"\x0eOAuthAppSource\x12 \n" +
-	"\x1cOAUTH_APP_SOURCE_UNSPECIFIED\x10\x00\x12\x1d\n" +
-	"\x19OAUTH_APP_SOURCE_PLATFORM\x10\x01\x12!\n" +
-	"\x1dOAUTH_APP_SOURCE_ORG_OVERRIDE\x10\x02\x12\x19\n" +
-	"\x15OAUTH_APP_SOURCE_NONE\x10\x03B\xa9\x02\n" +
+	"\ainvalid\x10\x02B\xa9\x02\n" +
 	"#com.ai.stigmer.agentic.mcpserver.v1B\vStatusProtoP\x01ZTgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1;mcpserverv1\xa2\x02\x04ASAM\xaa\x02\x1fAi.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1fAi\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3"
 
 var (
@@ -817,43 +718,41 @@ func file_ai_stigmer_agentic_mcpserver_v1_status_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_mcpserver_v1_status_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_mcpserver_v1_status_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_ai_stigmer_agentic_mcpserver_v1_status_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
 var file_ai_stigmer_agentic_mcpserver_v1_status_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_ai_stigmer_agentic_mcpserver_v1_status_proto_goTypes = []any{
 	(ConnectPhase)(0),                    // 0: ai.stigmer.agentic.mcpserver.v1.ConnectPhase
 	(ValidationState)(0),                 // 1: ai.stigmer.agentic.mcpserver.v1.ValidationState
-	(OAuthAppSource)(0),                  // 2: ai.stigmer.agentic.mcpserver.v1.OAuthAppSource
-	(*McpServerStatus)(nil),              // 3: ai.stigmer.agentic.mcpserver.v1.McpServerStatus
-	(*ConnectStatus)(nil),                // 4: ai.stigmer.agentic.mcpserver.v1.ConnectStatus
-	(*DiscoveredCapabilities)(nil),       // 5: ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities
-	(*DiscoveredTool)(nil),               // 6: ai.stigmer.agentic.mcpserver.v1.DiscoveredTool
-	(*DiscoveredResourceTemplate)(nil),   // 7: ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate
-	(*OAuthStatus)(nil),                  // 8: ai.stigmer.agentic.mcpserver.v1.OAuthStatus
-	(*apiresource.ApiResourceAudit)(nil), // 9: ai.stigmer.commons.apiresource.ApiResourceAudit
-	(*timestamppb.Timestamp)(nil),        // 10: google.protobuf.Timestamp
-	(*structpb.Struct)(nil),              // 11: google.protobuf.Struct
-	(v1.VendorApprovalStatus)(0),         // 12: ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus
+	(*McpServerStatus)(nil),              // 2: ai.stigmer.agentic.mcpserver.v1.McpServerStatus
+	(*ConnectStatus)(nil),                // 3: ai.stigmer.agentic.mcpserver.v1.ConnectStatus
+	(*DiscoveredCapabilities)(nil),       // 4: ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities
+	(*DiscoveredTool)(nil),               // 5: ai.stigmer.agentic.mcpserver.v1.DiscoveredTool
+	(*DiscoveredResourceTemplate)(nil),   // 6: ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate
+	(*OAuthStatus)(nil),                  // 7: ai.stigmer.agentic.mcpserver.v1.OAuthStatus
+	(*apiresource.ApiResourceAudit)(nil), // 8: ai.stigmer.commons.apiresource.ApiResourceAudit
+	(*timestamppb.Timestamp)(nil),        // 9: google.protobuf.Timestamp
+	(*structpb.Struct)(nil),              // 10: google.protobuf.Struct
+	(v1.VendorApprovalStatus)(0),         // 11: ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus
 }
 var file_ai_stigmer_agentic_mcpserver_v1_status_proto_depIdxs = []int32{
 	1,  // 0: ai.stigmer.agentic.mcpserver.v1.McpServerStatus.validation_state:type_name -> ai.stigmer.agentic.mcpserver.v1.ValidationState
-	5,  // 1: ai.stigmer.agentic.mcpserver.v1.McpServerStatus.discovered_capabilities:type_name -> ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities
-	8,  // 2: ai.stigmer.agentic.mcpserver.v1.McpServerStatus.oauth_status:type_name -> ai.stigmer.agentic.mcpserver.v1.OAuthStatus
-	4,  // 3: ai.stigmer.agentic.mcpserver.v1.McpServerStatus.connect_status:type_name -> ai.stigmer.agentic.mcpserver.v1.ConnectStatus
-	9,  // 4: ai.stigmer.agentic.mcpserver.v1.McpServerStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
+	4,  // 1: ai.stigmer.agentic.mcpserver.v1.McpServerStatus.discovered_capabilities:type_name -> ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities
+	7,  // 2: ai.stigmer.agentic.mcpserver.v1.McpServerStatus.oauth_status:type_name -> ai.stigmer.agentic.mcpserver.v1.OAuthStatus
+	3,  // 3: ai.stigmer.agentic.mcpserver.v1.McpServerStatus.connect_status:type_name -> ai.stigmer.agentic.mcpserver.v1.ConnectStatus
+	8,  // 4: ai.stigmer.agentic.mcpserver.v1.McpServerStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
 	0,  // 5: ai.stigmer.agentic.mcpserver.v1.ConnectStatus.phase:type_name -> ai.stigmer.agentic.mcpserver.v1.ConnectPhase
-	10, // 6: ai.stigmer.agentic.mcpserver.v1.ConnectStatus.started_at:type_name -> google.protobuf.Timestamp
-	10, // 7: ai.stigmer.agentic.mcpserver.v1.ConnectStatus.finished_at:type_name -> google.protobuf.Timestamp
-	6,  // 8: ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities.tools:type_name -> ai.stigmer.agentic.mcpserver.v1.DiscoveredTool
-	7,  // 9: ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities.resource_templates:type_name -> ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate
-	10, // 10: ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities.last_discovered_at:type_name -> google.protobuf.Timestamp
-	11, // 11: ai.stigmer.agentic.mcpserver.v1.DiscoveredTool.input_schema:type_name -> google.protobuf.Struct
-	12, // 12: ai.stigmer.agentic.mcpserver.v1.OAuthStatus.vendor_approval_status:type_name -> ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus
-	2,  // 13: ai.stigmer.agentic.mcpserver.v1.OAuthStatus.effective_oauth_source:type_name -> ai.stigmer.agentic.mcpserver.v1.OAuthAppSource
-	14, // [14:14] is the sub-list for method output_type
-	14, // [14:14] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	9,  // 6: ai.stigmer.agentic.mcpserver.v1.ConnectStatus.started_at:type_name -> google.protobuf.Timestamp
+	9,  // 7: ai.stigmer.agentic.mcpserver.v1.ConnectStatus.finished_at:type_name -> google.protobuf.Timestamp
+	5,  // 8: ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities.tools:type_name -> ai.stigmer.agentic.mcpserver.v1.DiscoveredTool
+	6,  // 9: ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities.resource_templates:type_name -> ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate
+	9,  // 10: ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities.last_discovered_at:type_name -> google.protobuf.Timestamp
+	10, // 11: ai.stigmer.agentic.mcpserver.v1.DiscoveredTool.input_schema:type_name -> google.protobuf.Struct
+	11, // 12: ai.stigmer.agentic.mcpserver.v1.OAuthStatus.vendor_approval_status:type_name -> ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus
+	13, // [13:13] is the sub-list for method output_type
+	13, // [13:13] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_mcpserver_v1_status_proto_init() }
@@ -866,7 +765,7 @@ func file_ai_stigmer_agentic_mcpserver_v1_status_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_mcpserver_v1_status_proto_rawDesc), len(file_ai_stigmer_agentic_mcpserver_v1_status_proto_rawDesc)),
-			NumEnums:      3,
+			NumEnums:      2,
 			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,

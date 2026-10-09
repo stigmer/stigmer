@@ -48,10 +48,9 @@
  * edition's validate → authorize handler order. The optional target override
  * serves the lanes whose true
  * target is server-side state rather than caller input, in two shapes:
- * a server-side ID under the annotation's static kind (completeOAuthConnect
- * authorizes the PENDING RECORD's server id — a caller-supplied id would
- * be a confused-deputy hole, the Java McpServerCompleteOAuthConnectHandler
- * discipline; getByEmail/getByIdpId authorize the account they looked up),
+ * a server-side ID under the annotation's static kind (getByEmail and
+ * getByIdpId authorize the account they looked up: a caller-supplied id
+ * would be a confused-deputy hole),
  * and a server-side kind AND id (the IamPolicy `get`, whose annotation
  * names no kind because the target is the loaded row's resource). The
  * annotation keeps owning the permission, the copy and the skip arms in

@@ -5,9 +5,9 @@ import { cn } from "@stigmer/theme";
 /** Props for {@link VendorApprovalBlockedNotice}. */
 export interface VendorApprovalBlockedNoticeProps {
   /**
-   * `true` when the platform OAuth app's vendor approval is PENDING or
-   * REJECTED — the platform-managed sign-in flow is blocked. The notice
-   * renders `null` when `false`.
+   * `true` when the vendor approval of the login app for this server's
+   * address is PENDING or REJECTED — sign-in through it is blocked. The
+   * notice renders `null` when `false`.
    */
   readonly blocked: boolean;
   /**
@@ -23,24 +23,8 @@ export interface VendorApprovalBlockedNoticeProps {
    * down a path that cannot succeed (stigmer/stigmer#412).
    */
   readonly manualEntrySupported: boolean;
-  /**
-   * Whether the BYOA path is relevant for this server (vendor OAuth with
-   * no org override active). Gates the "use your own OAuth app" mention.
-   */
-  readonly canBringOwnApp: boolean;
-  /**
-   * Documentation URL for bringing your own OAuth credentials, or `null`.
-   * Linked when BYOA is not offered inline — when it is, the BYOA form
-   * itself carries the link, and doubling it here would only add noise.
-   */
+  /** Documentation URL for connecting while approval is pending, or `null`. */
   readonly docsUrl: string | null;
-  /**
-   * Renders the "Use your own OAuth app" call-to-action when provided
-   * together with `canBringOwnApp`. Surfaces that host the BYOA form
-   * open it in place; the connect dialog navigates to the detail page
-   * where the form lives.
-   */
-  readonly onBringOwnApp?: () => void;
   /**
    * Dense rendering for tight surfaces (the session-setup config panel):
    * smaller type, no icon, no tinted container.
@@ -51,8 +35,8 @@ export interface VendorApprovalBlockedNoticeProps {
 }
 
 /**
- * Explains why the platform-managed OAuth sign-in is blocked by vendor
- * approval and — critically — what the user can do instead.
+ * Explains why sign-in is blocked by the login app's vendor approval and —
+ * critically — what the user can do instead.
  *
  * This is the single source of truth for the blocked-state message: the
  * connect dialog, the server detail page, and the session-setup config
@@ -64,13 +48,13 @@ export interface VendorApprovalBlockedNoticeProps {
  *
  * The alternative-path sentence is derived from what is actually
  * available, never asserted: manual entry only when the endpoint accepts
- * static tokens, BYOA only when the server uses vendor OAuth without an
- * org override. When nothing is available the notice still explains the
+ * static tokens; otherwise an admin can add another login app for the
+ * server's address. When nothing is available the notice still explains the
  * state — a disabled control must never be the only signal (Nielsen:
  * visibility of system status).
  *
  * Self-gating: renders `null` unless `blocked`. Callers keep their own
- * situational gates (connected state, org-override state) and render this
+ * situational gates (connected state) and render this
  * unconditionally inside them, mirroring {@link OAuthRequiredNotice}.
  *
  * All visual properties flow through `--stgm-*` design tokens except the
@@ -82,29 +66,21 @@ export function VendorApprovalBlockedNotice({
   blocked,
   pending,
   manualEntrySupported,
-  canBringOwnApp,
   docsUrl,
-  onBringOwnApp,
   compact,
   className,
 }: VendorApprovalBlockedNoticeProps) {
   if (!blocked) return null;
 
   const statusSentence = pending
-    ? "The platform's OAuth app is awaiting vendor approval."
-    : "The platform's OAuth app was not approved by the vendor.";
+    ? "The login app for this server is awaiting vendor approval."
+    : "The login app for this server was not approved by the vendor.";
 
-  const alternativeSentence = canBringOwnApp
-    ? manualEntrySupported
-      ? "You can use your own OAuth app or enter a token manually."
-      : "You can use your own OAuth app."
-    : manualEntrySupported
-      ? "You can still connect by entering your own token manually."
-      : "OAuth sign-in is temporarily unavailable for this server.";
+  const alternativeSentence = manualEntrySupported
+    ? "You can still connect by entering your own token manually."
+    : "Sign-in is unavailable until it is approved, or an admin adds another login app for this server's address.";
 
-  const showBringOwnApp = canBringOwnApp && onBringOwnApp;
-  // When BYOA is offered inline the form carries the docs link itself.
-  const showDocsLink = Boolean(docsUrl) && !canBringOwnApp;
+  const showDocsLink = Boolean(docsUrl);
 
   if (compact) {
     return (
@@ -117,15 +93,6 @@ export function VendorApprovalBlockedNotice({
         <p>
           {statusSentence} {alternativeSentence}
         </p>
-        {showBringOwnApp && (
-          <button
-            type="button"
-            onClick={onBringOwnApp}
-            className="stg:mt-1 stg:inline-flex stg:items-center stg:gap-1 stg:rounded stg:bg-amber-600 stg:px-2 stg:py-0.5 stg:text-[0.6rem] stg:font-medium stg:text-white stg:hover:bg-amber-700 stg:dark:bg-amber-500 stg:dark:text-amber-950 stg:dark:hover:bg-amber-400"
-          >
-            Use your own OAuth app
-          </button>
-        )}
         {showDocsLink && (
           <a
             href={docsUrl ?? undefined}
@@ -133,7 +100,7 @@ export function VendorApprovalBlockedNotice({
             rel="noopener noreferrer"
             className="stg:underline stg:decoration-amber-600/40 stg:underline-offset-2 stg:hover:decoration-amber-600 stg:dark:decoration-amber-400/40 stg:dark:hover:decoration-amber-400"
           >
-            Learn how to bring your own token
+            Learn how to connect without it
           </a>
         )}
       </div>
@@ -153,16 +120,6 @@ export function VendorApprovalBlockedNotice({
         <p>
           {statusSentence} {alternativeSentence}
         </p>
-        {showBringOwnApp && (
-          <button
-            type="button"
-            onClick={onBringOwnApp}
-            data-cursor-target="byoa-cta-button"
-            className="stg:mt-1.5 stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:bg-amber-600 stg:px-2.5 stg:py-1 stg:text-[11px] stg:font-medium stg:text-white stg:hover:bg-amber-700 stg:dark:bg-amber-500 stg:dark:text-amber-950 stg:dark:hover:bg-amber-400"
-          >
-            Use your own OAuth app
-          </button>
-        )}
         {showDocsLink && (
           <a
             href={docsUrl ?? undefined}
@@ -170,7 +127,7 @@ export function VendorApprovalBlockedNotice({
             rel="noopener noreferrer"
             className="stg:mt-1 stg:inline-flex stg:items-center stg:gap-1 stg:underline stg:decoration-amber-600/40 stg:underline-offset-2 stg:hover:decoration-amber-600 stg:dark:decoration-amber-400/40 stg:dark:hover:decoration-amber-400"
           >
-            Learn how to bring your own token
+            Learn how to connect without it
             <ExternalLinkIcon className="stg:size-3 stg:shrink-0" />
           </a>
         )}
@@ -180,8 +137,7 @@ export function VendorApprovalBlockedNotice({
 }
 
 // Icon paths are verbatim copies of McpServerDetailView's private icons so
-// the extracted banner renders pixel-identically to the one it replaces
-// (the byoa-setup docs tour snapshots the blocked state).
+// the extracted banner renders pixel-identically to the one it replaces.
 function WarningIcon({ className }: { readonly className?: string }) {
   return (
     <svg

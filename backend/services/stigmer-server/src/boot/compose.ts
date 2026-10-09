@@ -118,7 +118,9 @@ import {
 import { registerChannelAppServices } from "../domain/channelapp/controller.js";
 import { registerVaultServices } from "../domain/vault/controller.js";
 import { newVaultResolver } from "../domain/vault/resolve.js";
-import { newSignInFreshener } from "../domain/mcpserver/oauth/refresh.js";
+import { newSignInFreshener } from "../domain/vault/sign-in/refresh.js";
+import { clientDocument, clientDocumentUrlFor } from "../domain/vault/sign-in/client-document.js";
+import { createOAuthClientDocumentLane } from "../transport/oauth-client/lane.js";
 import type { SignInFreshener } from "../domain/vault/resolve.js";
 import { newVaultService } from "../domain/vault/service.js";
 import { deleteAllMyVaultsOf } from "../domain/vault/delete.js";
@@ -1439,10 +1441,9 @@ export async function composeServer(
   // own origin when it serves one — the public origin the skill transfer
   // lane already renders on, else the known port's loopback
   // (boot/oauth-redirect-uri.ts carries the posture; stigmer#1200). Absent
-  // is WARN-degrade, not boot-fatal (Go
-  // server.go:722-729): every OAuth RPC except initiateOAuthConnect works
-  // without the redirect URI, and initiate refuses with the pinned
-  // FailedPrecondition copy.
+  // is WARN-degrade, not boot-fatal (Go server.go:722-729): a sign-in
+  // through the console refuses with the pinned FailedPrecondition copy,
+  // and the desktop's loopback sign-in still works.
   const oauthRedirect = resolveOAuthRedirectUri({
     configured: config.oauthRedirectUri,
     servesConsole: consoleAssets !== undefined,
@@ -1454,7 +1455,7 @@ export async function composeServer(
       break;
     case "derived":
       logger.info(
-        "STIGMER_OAUTH_REDIRECT_URI is not set — deriving the served console's callback for MCP server OAuth Connect",
+        "STIGMER_OAUTH_REDIRECT_URI is not set — deriving the served console's callback for sign-ins",
         {
           redirectUri: oauthRedirect.uri,
           from: oauthRedirect.from,
@@ -1463,7 +1464,7 @@ export async function composeServer(
       break;
     case "absent":
       logger.warn(
-        "STIGMER_OAUTH_REDIRECT_URI is not set — OAuth Connect flows for MCP servers are unavailable (initiateOAuthConnect will refuse)",
+        "STIGMER_OAUTH_REDIRECT_URI is not set — sign-ins through the console and Connect links are unavailable (startSignIn will refuse)",
       );
       break;
     default: {
@@ -1473,9 +1474,9 @@ export async function composeServer(
   }
   const oauthRedirectUri =
     oauthRedirect.kind === "absent" ? "" : oauthRedirect.uri;
-  // The ONE fetch the McpServer domain dials user-supplied URLs with: the
-  // endpoint it probes at save time and the login server it reaches on
-  // Sign in. Every hop is judged under the edition's egress policy
+  // The ONE fetch user-supplied URLs are dialled with: the MCP endpoint
+  // probed at save time, and every login server a sign-in, a renewal or a
+  // Connect link reaches. Every hop is judged under the edition's egress policy
   // (`drivers.outboundEgress`; the default is open source's relaxed
   // posture, installed at this `??` site like the permissive Authorizer).
   // `options.fetchImpl` is the test seam under the guard.
@@ -1486,15 +1487,20 @@ export async function composeServer(
   // The run's credential resolver (domain/vault/resolve.ts): the one rule
   // for which login or secret fills each key, used by run create and
   // recover and by the MCP connect lane. The sign-in freshener renews an
-  // expired sign-in through the MCP server's OAuth refresh, whose egress
-  // rides the guarded fetch.
+  // expired sign-in with the login app it recorded, whose egress rides the
+  // guarded fetch.
   const signInFreshener: SignInFreshener = newSignInFreshener({
     vaults: vaultService,
     store,
     secretService,
+    loginProviders: config.loginProviders,
     logger,
     fetchImpl: outboundFetch,
   });
+  // Stigmer's OAuth Client ID Metadata Document: offered to login servers
+  // that take one only when the unified port has a public https origin a
+  // login server can fetch it from (domain/vault/sign-in/client-document.ts).
+  const clientDocumentUrl = clientDocumentUrlFor(config.skillTransferBaseUrl);
   const vaultResolver = newVaultResolver({
     store,
     logger,
@@ -1666,6 +1672,23 @@ export async function composeServer(
       secretService,
       listReadScope,
       vaults: vaultService,
+      // A sign-in at an address and Connect links (domain/vault/sign-in,
+      // connect-link.ts): every login server dialled through the guarded
+      // fetch.
+      signIn: {
+        store,
+        logger,
+        secretService,
+        authorizer,
+        vaults: vaultService,
+        pendingOAuthStates: store.pendingOAuthStates,
+        clientRegistrations: store.oauthClientRegistrations,
+        connectLinks: store.connectLinks,
+        loginProviders: config.loginProviders,
+        oauthRedirectUri,
+        clientDocumentUrl,
+        outboundFetch,
+      },
     });
     // OAuthApp shares the one SecretService instance every secret kind
     // seals with.
@@ -1868,9 +1891,6 @@ export async function composeServer(
             requireInProcess().connectExecutionContextClient.delete(input),
         },
         runnerAuth: runnerCredentials,
-        pendingOAuthStates: store.pendingOAuthStates,
-        secretService,
-        oauthRedirectUri,
         sandboxLane,
         outboundFetch,
       },
@@ -1905,16 +1925,13 @@ export async function composeServer(
     // github 524 → platform 530).
     registerSearchServices(router, { handler: searchHandler, logger });
     registerActivityServices(router, { handler: activityHandler, logger });
-    // GitHub: the sign-in saves the github.com login in the caller's My
-    // vault, and the repository reads use it server-side, so no page ever
-    // holds the token.
+    // GitHub: the repository reads use the caller's github.com login
+    // server-side, so no page ever holds the token. The login itself is a
+    // vault sign-in at github.com.
     registerGitHubServices(router, {
-      clientId: config.gitHubOAuthClientId,
-      clientSecret: config.gitHubOAuthClientSecret,
       logger,
       authorizer,
       vaults: vaultService,
-      pendingOAuthStates: store.pendingOAuthStates,
       fetchImpl: options.fetchImpl,
     });
     // Platform registers LAST of all controllers (Go server.go 530–535).
@@ -2115,6 +2132,13 @@ export async function composeServer(
       { deletingOrganizations },
     ),
     modelRegistryLane: registryLanes.modelRegistryLane,
+    ...(clientDocumentUrl === ""
+      ? {}
+      : {
+          oauthClientDocumentLane: createOAuthClientDocumentLane(
+            clientDocument(clientDocumentUrl, oauthRedirectUri),
+          ),
+        }),
     skillTransferLane,
     consoleLane,
   });

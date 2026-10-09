@@ -134,6 +134,7 @@ export function newQuiesceStage(deps: QuiesceStageDeps): OrganizationPurgeStage 
       await terminateAgentExecutions(deps, context);
       await deprovisionSandboxes(deps, context);
       await deps.store.pendingOAuthStates.deleteByOrg(context.org.id);
+      await deps.store.connectLinks.deleteByOrg(context.org.id);
       return DONE;
     },
   };

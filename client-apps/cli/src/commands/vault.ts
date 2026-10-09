@@ -6,6 +6,7 @@
 //   vault remove-secret <NAME...>      confirms first; -f/--force skips it
 //   vault set-connection <address>     save a login for a tool's URL or a Git host
 //   vault remove-connection <address...>  confirms first; -f/--force skips it
+//   vault connect-link <vault>         a one-time sign-in page for a customer
 //
 // Entry commands name their vault with --mine (your own, created by your
 // first save) or --vault <ref> (a shared vault: id, org/slug, or slug).
@@ -40,6 +41,12 @@ interface ValueFlags extends TargetFlags {
 
 interface RemoveFlags extends TargetFlags {
   force?: boolean;
+}
+
+interface ConnectLinkFlags extends OutputFlags {
+  address: string;
+  returnUrl: string;
+  expiresIn?: string;
 }
 
 interface CreateFlags extends OutputFlags {
@@ -141,6 +148,29 @@ export function registerVault(program: Command): void {
     ),
   );
   addResultFlags(removeConnection);
+
+  const connectLink = vault
+    .command("connect-link <vault>")
+    .description(
+      "make a one-time page where someone without a Stigmer account signs in at an address and the login is saved into a shared vault",
+    )
+    .requiredOption("--address <address>", "the tool's URL or Git host to sign in to")
+    .requiredOption("--return-url <url>", "where to send them afterwards (https)")
+    .option("--expires-in <duration>", "how long the link works: 30m (default) up to 24h")
+    .action((ref: string, options: ConnectLinkFlags, command: Command) =>
+      run(options, command, async (controller, org, r) => {
+        const expiresInSeconds =
+          options.expiresIn === undefined
+            ? undefined
+            : Math.floor((await import("./apikey/duration.js")).parseExpiration(options.expiresIn) / 1000);
+        return r.createConnectLink(controller, org, ref, {
+          address: options.address,
+          returnUrl: options.returnUrl,
+          expiresInSeconds,
+        });
+      }),
+    );
+  addResultFlags(connectLink);
 }
 
 type VaultModule = typeof import("../resources/vault.js");

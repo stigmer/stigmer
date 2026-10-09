@@ -4,8 +4,8 @@
  * trailing slash trimmed, query and fragment dropped), and a Git host's
  * bare lowercased name. The refusals name the rule. Two tools on one host
  * under different paths keep different addresses, so they never share a
- * login. A tool's own address is its HTTP URL, else its login's discovery
- * URL, else none, and a URL holding a placeholder names none.
+ * login. A tool's own address is its HTTP URL; a local program has none,
+ * and a URL holding a placeholder names none.
  */
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
@@ -17,6 +17,7 @@ import {
   InvalidAddressError,
   gitHostOf,
   normalizeAddress,
+  isGitHostAddress,
   toolAddressOf,
 } from "../address.js";
 
@@ -123,17 +124,7 @@ describe("toolAddressOf", () => {
     expect(toolAddressOf(server)).toBe("https://mcp.linear.app/mcp");
   });
 
-  it("is a local program's login discovery URL", () => {
-    const server = create(McpServerSchema, {
-      spec: {
-        serverType: { case: "stdio", value: { command: "npx" } },
-        auth: { targetEnvVar: "TOKEN", discoveryUrl: "https://auth.example.com/" },
-      },
-    });
-    expect(toolAddressOf(server)).toBe("https://auth.example.com");
-  });
-
-  it("is none for a local program without a login, and for a URL holding a placeholder", () => {
+  it("is none for a local program, and for a URL holding a placeholder", () => {
     expect(
       toolAddressOf(
         create(McpServerSchema, {
@@ -155,13 +146,8 @@ describe("toolAddressOf", () => {
     ).toBeUndefined();
   });
 
-  it("an HTTP tool's own URL wins over a discovery URL", () => {
-    const server = create(McpServerSchema, {
-      spec: {
-        serverType: { case: "http", value: { url: "https://mcp.example.com/mcp" } },
-        auth: { targetEnvVar: "TOKEN", discoveryUrl: "https://auth.example.com" },
-      },
-    });
-    expect(toolAddressOf(server)).toBe("https://mcp.example.com/mcp");
+  it("tells a Git host from a tool's URL", () => {
+    expect(isGitHostAddress("github.com")).toBe(true);
+    expect(isGitHostAddress("https://api.githubcopilot.com/mcp")).toBe(false);
   });
 });

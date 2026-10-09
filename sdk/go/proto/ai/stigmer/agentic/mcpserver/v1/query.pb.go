@@ -26,12 +26,11 @@ var File_ai_stigmer_agentic_mcpserver_v1_query_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_mcpserver_v1_query_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/agentic/mcpserver/v1/query.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a)ai/stigmer/agentic/mcpserver/v1/api.proto\x1a(ai/stigmer/agentic/mcpserver/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xcb\x05\n" +
+	"+ai/stigmer/agentic/mcpserver/v1/query.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a)ai/stigmer/agentic/mcpserver/v1/api.proto\x1a(ai/stigmer/agentic/mcpserver/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x87\x04\n" +
 	"\x18McpServerQueryController\x12\x92\x01\n" +
 	"\x03get\x12-.ai.stigmer.commons.apiresource.ApiResourceId\x1a*.ai.stigmer.agentic.mcpserver.v1.McpServer\"0¸\x18,\b\x01\x10,\"\x05value*\x1funauthorized to view mcp server\x12x\n" +
 	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a*.ai.stigmer.agentic.mcpserver.v1.McpServer\"\x04и\x18\x01\x12\xd5\x01\n" +
-	"\x13getOAuthGrantStatus\x129.ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput\x1a:.ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput\"G¸\x18C\b\x01\x10,\"\vresource_id*0unauthorized to view oauth status for mcp server\x12\xc1\x01\n" +
-	"\x0egetOrgOAuthApp\x124.ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput\x1a5.ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput\"B¸\x18>\b\x01\x10,\"\vresource_id*+unauthorized to view org oauth app override\x1a\x04\xa0\xff+,B\xaa\x02\n" +
+	"\x13getOAuthGrantStatus\x129.ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput\x1a:.ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput\"G¸\x18C\b\x01\x10,\"\vresource_id*0unauthorized to view oauth status for mcp server\x1a\x04\xa0\xff+,B\xaa\x02\n" +
 	"#com.ai.stigmer.agentic.mcpserver.v1B\n" +
 	"QueryProtoP\x01ZVgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/mcpserver/v1;mcpserverv1\xa2\x02\x04ASAM\xaa\x02\x1fAi.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1fAi\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3"
 
@@ -39,22 +38,18 @@ var file_ai_stigmer_agentic_mcpserver_v1_query_proto_goTypes = []any{
 	(*apiresource.ApiResourceId)(nil),        // 0: ai.stigmer.commons.apiresource.ApiResourceId
 	(*apiresource.ApiResourceReference)(nil), // 1: ai.stigmer.commons.apiresource.ApiResourceReference
 	(*GetOAuthGrantStatusInput)(nil),         // 2: ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput
-	(*GetOrgOAuthAppInput)(nil),              // 3: ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput
-	(*McpServer)(nil),                        // 4: ai.stigmer.agentic.mcpserver.v1.McpServer
-	(*GetOAuthGrantStatusOutput)(nil),        // 5: ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput
-	(*GetOrgOAuthAppOutput)(nil),             // 6: ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput
+	(*McpServer)(nil),                        // 3: ai.stigmer.agentic.mcpserver.v1.McpServer
+	(*GetOAuthGrantStatusOutput)(nil),        // 4: ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput
 }
 var file_ai_stigmer_agentic_mcpserver_v1_query_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.mcpserver.v1.McpServerQueryController.get:input_type -> ai.stigmer.commons.apiresource.ApiResourceId
 	1, // 1: ai.stigmer.agentic.mcpserver.v1.McpServerQueryController.getByReference:input_type -> ai.stigmer.commons.apiresource.ApiResourceReference
 	2, // 2: ai.stigmer.agentic.mcpserver.v1.McpServerQueryController.getOAuthGrantStatus:input_type -> ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput
-	3, // 3: ai.stigmer.agentic.mcpserver.v1.McpServerQueryController.getOrgOAuthApp:input_type -> ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput
-	4, // 4: ai.stigmer.agentic.mcpserver.v1.McpServerQueryController.get:output_type -> ai.stigmer.agentic.mcpserver.v1.McpServer
-	4, // 5: ai.stigmer.agentic.mcpserver.v1.McpServerQueryController.getByReference:output_type -> ai.stigmer.agentic.mcpserver.v1.McpServer
-	5, // 6: ai.stigmer.agentic.mcpserver.v1.McpServerQueryController.getOAuthGrantStatus:output_type -> ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput
-	6, // 7: ai.stigmer.agentic.mcpserver.v1.McpServerQueryController.getOrgOAuthApp:output_type -> ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput
-	4, // [4:8] is the sub-list for method output_type
-	0, // [0:4] is the sub-list for method input_type
+	3, // 3: ai.stigmer.agentic.mcpserver.v1.McpServerQueryController.get:output_type -> ai.stigmer.agentic.mcpserver.v1.McpServer
+	3, // 4: ai.stigmer.agentic.mcpserver.v1.McpServerQueryController.getByReference:output_type -> ai.stigmer.agentic.mcpserver.v1.McpServer
+	4, // 5: ai.stigmer.agentic.mcpserver.v1.McpServerQueryController.getOAuthGrantStatus:output_type -> ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput
+	3, // [3:6] is the sub-list for method output_type
+	0, // [0:3] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

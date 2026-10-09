@@ -141,13 +141,9 @@ export {
   ApiResourceKind,
 } from "./search.js";
 
-// GitHub sign-in and server-side repository reads
+// GitHub server-side repository reads
 export {
   GitHubClient,
-  type GetOAuthAuthorizeUrlParams,
-  type OAuthAuthorizeUrlResponse,
-  type ExchangeOAuthCodeParams,
-  type GitHubConnectedAccount,
   type GitHubRepoParams,
 } from "./github.js";
 

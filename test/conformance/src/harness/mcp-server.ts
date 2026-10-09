@@ -198,10 +198,13 @@ export interface OAuthChallengePosture {
   // fetches it at save; Sign in does, so a posture that also names the
   // login server below has the fixture serve the document itself.
   resourceMetadataUrl: string;
-  // When set, `GET /.well-known/oauth-protected-resource` answers the RFC
-  // 9728 document naming this authorization server, the walk Sign in takes
-  // from a completed URL-only server: the lever a browser-driven sign-in
-  // (the Playwright journey) needs, beside the mock authorization server.
+  // When set, `GET /.well-known/oauth-protected-resource[<path>]` answers
+  // the RFC 9728 document naming this authorization server, the walk a
+  // sign-in at the fixture's URL takes: the lever a browser-driven sign-in
+  // (the Playwright journey) and the sign-in suites need, beside the mock
+  // authorization server. The document's `resource` is the identifier its
+  // URL was built from (the fixture's URL for the path-suffixed document,
+  // the origin for the bare one), which the control plane holds it to.
   authorizationServerOrigin?: string;
 }
 
@@ -301,9 +304,16 @@ export class McpToolFixture {
     // the MCP client tolerates (it simply forgoes server-initiated streams).
     if (req.method === "GET" && this.oauthChallenge?.authorizationServerOrigin !== undefined) {
       const path = new URL(req.url ?? "/", "http://127.0.0.1").pathname;
-      if (path === "/.well-known/oauth-protected-resource" || path.startsWith("/.well-known/oauth-protected-resource/")) {
+      const prefix = "/.well-known/oauth-protected-resource";
+      if (path === prefix || path.startsWith(`${prefix}/`)) {
+        const origin = new URL(this.url()).origin;
         res.writeHead(200, { "content-type": "application/json" });
-        res.end(JSON.stringify({ resource: this.url(), authorization_servers: [this.oauthChallenge.authorizationServerOrigin] }));
+        res.end(
+          JSON.stringify({
+            resource: `${origin}${path.slice(prefix.length)}`,
+            authorization_servers: [this.oauthChallenge.authorizationServerOrigin],
+          }),
+        );
         return;
       }
     }

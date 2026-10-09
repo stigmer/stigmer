@@ -169,7 +169,7 @@ describe("REFERENCE_TARGET_KINDS against the contract", () => {
     ).toEqual([K.skill, K.mcp_server, K.agent, K.plugin]);
     expect(
       REFERENCE_TARGET_KINDS.filter((e) => !e.readByRun).map((e) => e.kind),
-    ).toEqual([K.vault, K.channel_app, K.oauth_app]);
+    ).toEqual([K.vault, K.channel_app]);
   });
 });
 
@@ -426,7 +426,6 @@ describe("checkReference", () => {
 describe("the refusal copy", () => {
   const mcp = referenceTargetKind(K.mcp_server)!;
   const skill = referenceTargetKind(K.skill)!;
-  const oauth = referenceTargetKind(K.oauth_app)!;
 
   it("the MCP-server sentence is byte-identical to the contract that predates the rule", () => {
     expect(
@@ -438,7 +437,7 @@ describe("the refusal copy", () => {
     );
   });
 
-  it("its siblings take the same shape, and a kind with no CLI verb ends without the hint", () => {
+  it("its siblings take the same shape", () => {
     expect(
       missingReferencesMessage(skill, [
         { slug: "a", org: "acme" },
@@ -448,12 +447,6 @@ describe("the refusal copy", () => {
       "referenced skill(s) not found: 'a' (org: acme), 'b' (org: acme). " +
         "Verify the slug and org are correct. " +
         "Use 'stigmer list skills' to list available skills.",
-    );
-    expect(
-      missingReferencesMessage(oauth, [{ slug: "vendor", org: "acme" }]),
-    ).toBe(
-      "referenced OAuth app(s) not found: 'vendor' (org: acme). " +
-        "Verify the slug and org are correct.",
     );
   });
 

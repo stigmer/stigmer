@@ -2,10 +2,12 @@
  * WorkspaceEditor's GitHub panel: which view `initialPanel` opens on (the
  * action list, the connect prompt, the connected account and its repo
  * picker), and the connected view telling the person when a disconnect
- * failed, so a GitHub login still in My vault is never shown as removed.
+ * failed, so a GitHub login still in My vault is never shown as removed;
+ * a connect that fails, from the prompt or after a blocked popup, is
+ * reported by the connection (connectError), never thrown out of a click.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, cleanup } from "@testing-library/react";
+import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 import { StigmerContext } from "../../context";
 import { WorkspaceEditor } from "../WorkspaceEditor";
 import type { UseWorkspaceEntriesReturn } from "../useWorkspaceEntries";
@@ -137,6 +139,39 @@ describe("WorkspaceEditor initialPanel", () => {
     expect(screen.getByRole("alert").textContent).toContain(
       "Could not disconnect GitHub: vault unavailable",
     );
+  });
+
+  it("a connect that fails, from the prompt or after a blocked popup, stays inside the click", async () => {
+    for (const popupBlocked of [false, true]) {
+      const connect = vi.fn(() => Promise.reject(new Error("access_denied")));
+      const connection = createMockGitHubConnection({ connect, popupBlocked });
+      render(
+        <WorkspaceEditor
+          workspace={createMockWorkspace()}
+          enableGitHub
+          enableLocal={false}
+          gitHubConnection={connection}
+          initialPanel="github"
+        />,
+      );
+      fireEvent.click(screen.getByRole("button", { name: popupBlocked ? "Try again" : "Connect GitHub" }));
+      await waitFor(() => expect(connect).toHaveBeenCalledTimes(1));
+      cleanup();
+    }
+  });
+
+  it("shows a connect the server refused under the prompt", () => {
+    const connection = createMockGitHubConnection({ connectError: new Error("vault unavailable") });
+    render(
+      <WorkspaceEditor
+        workspace={createMockWorkspace()}
+        enableGitHub
+        enableLocal={false}
+        gitHubConnection={connection}
+        initialPanel="github"
+      />,
+    );
+    expect(screen.getByRole("alert").textContent).toBe("Could not connect GitHub: vault unavailable");
   });
 
   it("ignores initialPanel when entries exist", () => {

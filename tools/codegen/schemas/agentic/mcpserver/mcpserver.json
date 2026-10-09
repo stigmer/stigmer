@@ -106,7 +106,7 @@
         "kind": "message",
         "messageType": "McpServerAuth"
       },
-      "description": "OAuth authentication configuration for automated credential acquisition.\n When set, the MCP server's Connect page offers an OAuth flow instead of\n (or in addition to) manual credential entry.\n\n A sign-in saves the access token as a connection at this server's\n address in the signer's vault (My vault unless a shared vault is named),\n and a run fills the env var named by auth.target_env_var from it. That\n env var must also be declared in env.",
+      "description": "Sign-in configuration: the tool takes a login saved at its address.\n When set, the MCP server's Connect page offers a sign-in instead of\n (or in addition to) manual credential entry. Only an HTTP server may\n carry it.\n\n A sign-in saves the access token as a connection at this server's\n address in a vault (the signer's My vault unless a shared vault is\n named), and a run fills the env var named by auth.target_env_var from\n it. That env var must also be declared in env.",
       "required": false
     }
   ]

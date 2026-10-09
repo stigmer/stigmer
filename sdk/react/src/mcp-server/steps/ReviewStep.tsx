@@ -98,14 +98,10 @@ export function ReviewStep({
               value={`${data.env.length} declared`}
             />
           )}
-          {data.authEnabled && data.authOAuthAppSlug && (
+          {data.authEnabled && data.transportType === "http" && (
             <SummaryItem
-              label="OAuth"
-              value={
-                data.authOAuthAppOrg
-                  ? `${data.authOAuthAppOrg}/${data.authOAuthAppSlug}`
-                  : data.authOAuthAppSlug
-              }
+              label="Sign-in"
+              value={data.authTargetEnvVar ? `At the server's URL, into ${data.authTargetEnvVar}` : "At the server's URL"}
               mono
             />
           )}
@@ -249,15 +245,10 @@ export function buildMcpServerInput(
     }
   }
 
-  if (data.authEnabled) {
+  // A local program takes no sign-in: the server refuses an auth block on one.
+  if (data.authEnabled && data.transportType === "http") {
     const auth: NonNullable<McpServerInput["auth"]> = {};
 
-    if (data.authOAuthAppSlug) {
-      auth.oauthAppRef = {
-        org: data.authOAuthAppOrg,
-        slug: data.authOAuthAppSlug,
-      };
-    }
     if (data.authTargetEnvVar) {
       auth.targetEnvVar = data.authTargetEnvVar;
     }
@@ -267,9 +258,6 @@ export function buildMcpServerInput(
     const scopes = parseCommaSeparated(data.authScopeHints);
     if (scopes.length > 0) {
       auth.scopeHints = scopes;
-    }
-    if (data.authDiscoveryUrl) {
-      auth.discoveryUrl = data.authDiscoveryUrl;
     }
 
     if (Object.keys(auth).length > 0) {

@@ -2,9 +2,10 @@
  * The vault delete chain's tail, shared by the delete RPC, the
  * organization purge and a member's departure, so every way a vault goes
  * removes the same things: the row, the grants on it, the backing state
- * of every sealed value it held, and the names it claimed (a My vault's
+ * of every sealed value it held, the names it claimed (a My vault's
  * person, a shared vault's external id), so the person's next first write
- * and the integrator's next create find them free.
+ * and the integrator's next create find them free, and the Connect links
+ * that would save into it.
  *
  * A vault is never search-indexed, so there is no index entry to remove.
  */
@@ -67,7 +68,34 @@ export function vaultDeleteSteps<Input extends DescMessage>(
       sealedValuesOfVault,
     ),
     newReleaseVaultNamesStep<Input>(deps.store, deps.logger),
+    newDeleteVaultConnectLinksStep<Input>(deps.store, deps.logger),
   ];
+}
+
+/**
+ * Deletes the Connect links that would save into a deleted vault.
+ * Best-effort after the row is gone: a link left behind finds no vault
+ * when it is opened and answers NOT_FOUND.
+ */
+export function newDeleteVaultConnectLinksStep<Input extends DescMessage>(
+  store: Store,
+  logger: Logger,
+): PipelineStep<Input> {
+  return {
+    name: "DeleteVaultConnectLinks",
+    async execute(ctx: RequestContext<Input>): Promise<void> {
+      const vault = ctx.get(EXISTING_RESOURCE_KEY) as Vault;
+      const id = vault.metadata?.id ?? "";
+      try {
+        await store.connectLinks.deleteByVault(id);
+      } catch (error) {
+        logger.error("vault deleted but its Connect links could not be removed", {
+          vaultId: id,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    },
+  };
 }
 
 /**

@@ -39,7 +39,7 @@ pub fn run() {
             auth::open_auth_in_browser,
             auth::cancel_auth,
             auth::start_auth_callback_server,
-            auth::start_github_callback_server,
+            auth::start_sign_in_callback_server,
             runner::start_runner,
             runner::stop_runner,
             runner::kill_runner,
@@ -81,7 +81,7 @@ pub fn run() {
                     let name = routed.name();
                     let _ = match routed {
                         DeepLinkEvent::AuthCallback(payload)
-                        | DeepLinkEvent::GitHubCallback(payload) => handle.emit(name, payload),
+                        | DeepLinkEvent::SignInCallback(payload) => handle.emit(name, payload),
                         DeepLinkEvent::BillingReturn(payload) => handle.emit(name, payload),
                     };
                     if let Some(window) = handle.get_webview_window("main") {

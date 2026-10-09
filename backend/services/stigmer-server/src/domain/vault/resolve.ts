@@ -58,12 +58,9 @@
  * never lends its token); any other key by a secret of its
  * name; a plain key falls back to its declaration's value. A connection is
  * made for a tool when its token goes where it was minted for: a sign-in
- * fills only the server whose id its sign-in record carries, while that
- * server is the kind (HTTP or a local program) the record says it was at
- * sign-in, and a pasted login only an HTTP tool whose own URL is that
- * address. A local program's
- * address is its login's discovery URL, which any definition may declare,
- * so it never takes a pasted login. Requirements sharing a key are
+ * and a pasted login alike fill an HTTP tool whose own URL is the
+ * connection's address. A local program has no address and takes no
+ * login: its keys are secrets by name. Requirements sharing a key are
  * satisfied by whichever resolves; two different values for one key refuse
  * the run, naming both declarers, because one key can carry one value
  * until values are delivered per declarer.
@@ -238,12 +235,11 @@ export interface Requirement {
   /** A tool's login slot: matched by a connection at this address first. */
   readonly loginAddress?: string;
   /**
-   * The tool behind a login slot: its id (a sign-in fills only the server
-   * that made it) and whether it sends its login to its own address (an
-   * HTTP server, whose address is its URL; only such a tool takes a
-   * pasted login by address).
+   * The tool behind a login slot: whether it sends its login to its own
+   * address (an HTTP server, whose address is its URL; only such a tool
+   * takes a login by address).
    */
-  readonly tool?: { readonly id: string; readonly sendsToAddress: boolean };
+  readonly tool?: { readonly sendsToAddress: boolean };
   /**
    * A github.com clone: matched by the repository's own token (the entry
    * of this name and URL), then a github.com connection, then a
@@ -390,7 +386,6 @@ export function toolRequirements(server: McpServer): Requirement[] {
   const address = toolAddressOf(server);
   const signIn = server.spec?.auth !== undefined;
   const tool = {
-    id: server.metadata?.id ?? "",
     sendsToAddress: server.spec?.serverType?.case === "http",
   };
   const requirements = declarationRequirements(server.spec?.env ?? {}, declarer).map(
@@ -469,26 +464,13 @@ interface Found {
 }
 
 /**
- * Whether a connection's token may fill a tool's login: a sign-in only for
- * the server that made it, while that server is still the kind it was at
- * sign-in (an HTTP server or a local program: a local program's address is
- * a discovery URL an editor may set to the old HTTP URL); a pasted login
- * only for an HTTP tool at its URL.
+ * Whether a connection's token may fill a tool's login: a sign-in and a
+ * pasted login alike, for an HTTP tool at the connection's address (the
+ * caller matched the address). The login server minted the token for that
+ * address (the sign-in sent it as the `resource`), so every tool there may
+ * use it.
  */
-function madeFor(
-  connection: Pick<SealedConnection, "source" | "signIn">,
-  tool: NonNullable<Requirement["tool"]>,
-): boolean {
-  if (connection.source === VaultConnectionSource.sign_in) {
-    const minter = connection.signIn?.mcpServerId ?? "";
-    const signedInAsLocalProgram = connection.signIn?.localProgram === true;
-    // A tool with a login slot is an HTTP server or a local program.
-    return (
-      minter !== "" &&
-      minter === tool.id &&
-      signedInAsLocalProgram === !tool.sendsToAddress
-    );
-  }
+function madeFor(tool: NonNullable<Requirement["tool"]>): boolean {
   return tool.sendsToAddress;
 }
 
@@ -562,7 +544,7 @@ async function match(requirement: Requirement, sources: readonly Source[]): Prom
       if (
         connection?.present === true &&
         requirement.tool !== undefined &&
-        madeFor(connection, requirement.tool)
+        madeFor(requirement.tool)
       ) {
         return loginFound(connection, source);
       }
@@ -970,10 +952,18 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
       throw failedPreconditionError(missing.join("; "));
     }
     const values = new Map<string, ExecutionValue>();
-    // One match per key, and a sign-in fills only the tool it was made
-    // for, so each sign-in is renewed at most once per run.
+    // One match per key, but one sign-in may fill several keys (two tools
+    // at its address): it is renewed once per run and every key takes the
+    // same token.
+    const renewed = new Map<string, Promise<Found>>();
     for (const { key, found, isSecret } of chosen) {
-      const fresh = await freshen(found, actor);
+      const once = `${found.source.vault?.metadata?.id ?? ""}\u0000${found.connection?.address ?? key}`;
+      let renewal = renewed.get(once);
+      if (renewal === undefined) {
+        renewal = freshen(found, actor);
+        renewed.set(once, renewal);
+      }
+      const fresh = { ...found, value: (await renewal).value };
       values.set(key, create(ExecutionValueSchema, { value: fresh.value, isSecret }));
     }
     return values;

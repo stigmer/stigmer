@@ -175,71 +175,13 @@ service McpServerCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to connect to mcp server";
   }
 
-  // Start the OAuth authorization flow for an MCP server.
+  // Disconnect the authenticated user's sign-in for an MCP server.
   //
-  // Performs setup (DCR registration or OAuthApp credential lookup, PKCE
-  // generation) and returns an authorization URL for the frontend to
-  // redirect the user to. The frontend calls completeOAuthConnect after
-  // the user authorizes.
-  //
-  // @internal
-  // Two auth modes determined by the MCP server's spec.auth block:
-  // - No oauth_app_ref: MCP Authorization spec (DCR + PKCE). Backend
-  //   discovers the authorization server, registers a client via DCR,
-  //   and builds the auth URL automatically.
-  // - oauth_app_ref set: Vendor OAuth. Backend loads the referenced
-  //   OAuthApp for client credentials and endpoint URLs.
-  //
-  // Errors:
-  // - FAILED_PRECONDITION: MCP server has no auth block, or is stdio
-  //   without oauth_app_ref (DCR requires HTTP transport)
-  // - NOT_FOUND: MCP server or referenced OAuthApp does not exist
-  //
-  // Authorization: Requires can_connect permission on the mcp_server resource.
-  rpc initiateOAuthConnect(InitiateOAuthConnectInput) returns (InitiateOAuthConnectOutput) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = mcp_server;
-    option (ai.stigmer.commons.rpc.config).permission = can_connect;
-    option (ai.stigmer.commons.rpc.config).field_path = "mcp_server_id";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to initiate oauth connect for mcp server";
-  }
-
-  // Complete the OAuth authorization flow by exchanging the authorization
-  // code for tokens.
-  //
-  // Called by the frontend after the user is redirected back from the
-  // OAuth authorization server. Exchanges the code for tokens and saves
-  // the login as a connection at the server's address in the vault named
-  // when the flow started: the caller's My vault, or a shared vault they
-  // may edit.
-  //
-  // After success, the frontend should call connect() to trigger tool
-  // discovery using the freshly acquired token.
-  //
-  // @internal
-  // Errors:
-  // - FAILED_PRECONDITION: State parameter is invalid, expired, or does
-  //   not match the mcp_server_id
-  // - UNAVAILABLE: Token exchange with the authorization server failed
-  // - NOT_FOUND: No pending OAuth state found for the given state param
-  //
-  // Authorization: Requires can_connect permission on the mcp_server resource.
-  rpc completeOAuthConnect(CompleteOAuthConnectInput) returns (CompleteOAuthConnectOutput) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = mcp_server;
-    option (ai.stigmer.commons.rpc.config).permission = can_connect;
-    option (ai.stigmer.commons.rpc.config).field_path = "mcp_server_id";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to complete oauth connect for mcp server";
-  }
-
-  // Disconnect the authenticated user's OAuth connection for a resource.
-  //
-  // Removes every connection a sign-in to this server saved in the caller's
-  // My vault, with its access and refresh tokens, including one left at the
-  // server's earlier address. The MCP server definition is unchanged — only
-  // the caller's sign-in is removed.
-  //
-  // Other users' connections to the same resource, a pasted login and
-  // another server's sign-in are unaffected. A sign-in saved into a shared
-  // vault is removed through that vault's removeConnections.
+  // Removes the sign-in saved at the server's address in the caller's My
+  // vault, with its access and refresh tokens. The MCP server definition is
+  // unchanged. A pasted login at the address is left in place, and so is a
+  // sign-in saved into a shared vault: the vault's removeConnections removes
+  // either.
   //
   // Idempotent: returns disconnected=true when a sign-in was removed,
   // disconnected=false when none was saved. Never returns an error
@@ -247,70 +189,12 @@ service McpServerCommandController {
   //
   // @internal
   // Authorization: Requires can_connect permission on the mcp_server resource.
-  // Uses the same permission as connect/initiateOAuthConnect — if you can
-  // establish a connection, you can tear it down.
+  // Uses the same permission as connect: if you can establish a connection,
+  // you can tear it down.
   rpc disconnectOAuth(DisconnectOAuthInput) returns (DisconnectOAuthOutput) {
     option (ai.stigmer.commons.rpc.config).resource_kind = mcp_server;
     option (ai.stigmer.commons.rpc.config).permission = can_connect;
     option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to disconnect oauth for mcp server";
-  }
-
-  // Create or update an org-level BYOA OAuth app override for a resource.
-  //
-  // Allows an organization to use its own OAuth app credentials instead of
-  // the platform default. The handler clones the platform OAuthApp template
-  // (endpoint URLs, scopes) and applies the org-provided client credentials.
-  //
-  // Idempotent: if an override already exists for this resource + org, the
-  // existing OAuthApp is updated with the new credentials.
-  //
-  // Edition scoping: hosted-only. UNIMPLEMENTED on the OSS server by
-  // design, as one capability with getOrgOAuthApp and deleteOrgOAuthApp —
-  // see the full scoping note on McpServerQueryController.getOrgOAuthApp,
-  // the RPC clients probe.
-  //
-  // @internal
-  // Authorization: Requires can_create_oauth_app permission on the organization.
-  // This is an org-admin operation — setting credentials that affect all users
-  // in the org who connect to this resource.
-  //
-  // Errors:
-  // - FAILED_PRECONDITION: Resource has no auth block or no oauth_app_ref
-  //   (BYOA requires a platform template to clone from)
-  // - NOT_FOUND: Resource does not exist
-  rpc setOrgOAuthApp(SetOrgOAuthAppInput) returns (SetOrgOAuthAppOutput) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
-    option (ai.stigmer.commons.rpc.config).permission = can_create_oauth_app;
-    option (ai.stigmer.commons.rpc.config).field_path = "org";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to set org oauth app override";
-  }
-
-  // Remove an org-level BYOA override for a resource.
-  //
-  // Deletes the OAuthAppOverride binding and the OAuthApp resource that
-  // was created for it. After this, the resolution chain falls back to
-  // the platform default.
-  //
-  // Edition scoping: hosted-only. UNIMPLEMENTED on the OSS server by
-  // design, as one capability with getOrgOAuthApp and setOrgOAuthApp —
-  // see the full scoping note on McpServerQueryController.getOrgOAuthApp,
-  // the RPC clients probe.
-  //
-  // Existing sign-ins that were issued using the org's OAuthApp
-  // will fail on next token refresh — those users will need to
-  // re-authenticate using the platform default or a new org override.
-  //
-  // @internal
-  // Authorization: Requires can_create_oauth_app permission on the organization.
-  // Same gate as setOrgOAuthApp — org-admin authority for credential management.
-  //
-  // Errors:
-  // - NOT_FOUND: No override exists for this resource + org
-  rpc deleteOrgOAuthApp(DeleteOrgOAuthAppInput) returns (DeleteOrgOAuthAppOutput) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
-    option (ai.stigmer.commons.rpc.config).permission = can_create_oauth_app;
-    option (ai.stigmer.commons.rpc.config).field_path = "org";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete org oauth app override";
   }
 }

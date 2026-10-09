@@ -30,13 +30,13 @@ in to connect** button.
 
 The difference comes from the `auth` section in the MCP server definition, which
 Stigmer fills in for a standard OAuth server from its URL alone (the next
-section) and which you write yourself for a vendor whose sign-in needs a
-registered app. Here is what it looks like for the GitHub server:
+section), or which you write yourself. Here is what it looks like for GitHub's
+MCP server:
 
 ```yaml validate-as="McpServer"
 spec:
   http:
-    url: "https://api.githubcopilot.com/mcp/"
+    url: "https://api.githubcopilot.com/mcp"
     headers:
       Authorization: "Bearer ${GITHUB_ACCESS_TOKEN}"
   env:
@@ -44,41 +44,33 @@ spec:
       is_secret: true
       description: "GitHub OAuth token or personal access token"
   auth:
-    oauth_app_ref:
-      org: stigmer
-      kind: oauth_app
-      slug: github-oauth
     target_env_var: "GITHUB_ACCESS_TOKEN"
     scope_hints:
       - "repo"
-      - "read:org"
       - "read:user"
 ```
 
 The `auth` block tells Stigmer two things:
 
-- **Where to store the token** — `target_env_var` names the Environment variable
-  that receives the access token. This variable also appears in `env`, so the
-  execution pipeline resolves it the same way it resolves any other credential.
-- **What scopes to request** — `scope_hints` appear in the authorization prompt
-  so you know what access you're granting before you authorize.
+- **That the server signs in at its address** — the sign-in is saved at the
+  server's URL, and `target_env_var` names the variable that receives the access
+  token. This variable also appears in `env`, so a run resolves it the same way
+  it resolves any other credential.
+- **What access to expect** — `scope_hints` are shown before you sign in. The
+  scopes actually requested are the ones the login server or the login app
+  publishes.
 
-The `oauth_app_ref` names the OAuth app registration that backs the sign-in. A
-ref pinned to `org: stigmer`, as above, names the platform's own registration on
-the hosted platform, which is why sign-in works there with no setup.
+The definition names no OAuth app. Which OAuth client signs you in is found from
+the address: your Organization's own login app for it, then Stigmer's built-in
+app (GitHub's MCP server and `github.com` use Stigmer's GitHub app), then the
+server's own login server.
+[OAuth architecture](/docs/guides/integrations/oauth-architecture#a-login-is-found-by-its-address)
+explains the order.
 
-<Callout type="info">
-  **Self-hosted deployments.** The platform's OAuth app registration does not
-  ship with a self-hosted install, so a server whose ref points at it gets a
-  working sign-in button only after you register your own OAuth app with the
-  vendor and apply it as an `OAuthApp` resource carrying the same slug the ref
-  names (for the GitHub server above, `github-oauth`). Your app is found
-  regardless of which organization it lives in: resolution prefers an exact org
-  match and otherwise accepts the app as long as its slug is unique across your
-  deployment. See [Bring Your Own OAuth
-  App](/docs/guides/integrations/bring-your-own-oauth) for the vendor-side
-  registration steps.
-</Callout>
+Only an MCP server reached over HTTP has an `auth` block. A local program (an
+MCP server that runs a command) takes its keys as environment variables declared
+in `env`, saved as vault secrets; a definition that gives one an `auth` block is
+refused.
 
 The Environment variable section in the detail view labels the OAuth-managed
 variable with an **OAuth** badge to distinguish it from variables you enter
@@ -122,12 +114,14 @@ Three rules keep this honest:
   server, a server that wants an API key, a server that is down: none is
   changed, and the usual connect runs afterwards.
 
-Some vendors publish their login metadata but do not allow a client to register
-itself (dynamic client registration). Their servers are completed like the
-others, so the page tells the truth, but **Sign in** refuses with the reason:
-the vendor does not allow automatic registration, so the server needs an OAuth
-app registered with the vendor and referenced from its definition
-(`auth.oauth_app_ref`, the block below).
+Signing in to such a server needs no setup: Stigmer becomes a client of the
+server's login server on the first sign-in and reuses that client afterwards.
+Some vendors publish their login metadata but do not let a client register
+itself. Their servers are completed like the others, so the page tells the
+truth, but **Sign in** refuses with the reason and the way forward: an admin
+adds a login app for the address
+([Bring Your Own OAuth App](/docs/guides/integrations/bring-your-own-oauth)), or
+you paste a token.
 
 ## Connect an OAuth-protected tool
 
@@ -163,8 +157,9 @@ When the provider supports refresh tokens, Stigmer refreshes the access token
 automatically at run time. You don't need to re-authorize unless the refresh
 token itself expires.
 
-The detail view also shows a token lifetime hint (like "8 h" for GitHub) so you
-know how long a Session lasts before the next automatic refresh.
+The detail view also shows a token lifetime hint when the server's definition
+gives one (`auth.token_lifetime_hint`), so you know how long a token lasts
+before the next automatic refresh.
 
 ## Manual override
 
@@ -184,11 +179,11 @@ section.
 
 ## What's next
 
-If your Organization needs to use its own OAuth app registrations instead of the
-platform defaults — for tighter control over scopes, branding, or to bypass
-vendor approval delays — see
+If your Organization needs its own OAuth app for an address — for a vendor
+Stigmer cannot sign in to on its own, for tighter control over scopes, or for
+your own branding — see
 [Bring Your Own OAuth App](/docs/guides/integrations/bring-your-own-oauth).
 
-For a deeper look at how Stigmer handles OAuth internally — the resolution
-chain, credential storage model, and token refresh mechanics — see
-[OAuth architecture](/docs/guides/integrations/oauth-architecture).
+For a deeper look at how Stigmer handles OAuth internally — how the login for an
+address is found, the credential storage model, and token refresh mechanics —
+see [OAuth architecture](/docs/guides/integrations/oauth-architecture).

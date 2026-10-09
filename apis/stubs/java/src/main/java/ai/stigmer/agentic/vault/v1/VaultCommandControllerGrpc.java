@@ -263,6 +263,99 @@ public final class VaultCommandControllerGrpc {
     return getRemoveConnectionsMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.vault.v1.StartSignInInput,
+      ai.stigmer.agentic.vault.v1.StartSignInOutput> getStartSignInMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "startSignIn",
+      requestType = ai.stigmer.agentic.vault.v1.StartSignInInput.class,
+      responseType = ai.stigmer.agentic.vault.v1.StartSignInOutput.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.vault.v1.StartSignInInput,
+      ai.stigmer.agentic.vault.v1.StartSignInOutput> getStartSignInMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.vault.v1.StartSignInInput, ai.stigmer.agentic.vault.v1.StartSignInOutput> getStartSignInMethod;
+    if ((getStartSignInMethod = VaultCommandControllerGrpc.getStartSignInMethod) == null) {
+      synchronized (VaultCommandControllerGrpc.class) {
+        if ((getStartSignInMethod = VaultCommandControllerGrpc.getStartSignInMethod) == null) {
+          VaultCommandControllerGrpc.getStartSignInMethod = getStartSignInMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.vault.v1.StartSignInInput, ai.stigmer.agentic.vault.v1.StartSignInOutput>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "startSignIn"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.vault.v1.StartSignInInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.vault.v1.StartSignInOutput.getDefaultInstance()))
+              .setSchemaDescriptor(new VaultCommandControllerMethodDescriptorSupplier("startSignIn"))
+              .build();
+        }
+      }
+    }
+    return getStartSignInMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.vault.v1.CompleteSignInInput,
+      ai.stigmer.agentic.vault.v1.CompleteSignInOutput> getCompleteSignInMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "completeSignIn",
+      requestType = ai.stigmer.agentic.vault.v1.CompleteSignInInput.class,
+      responseType = ai.stigmer.agentic.vault.v1.CompleteSignInOutput.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.vault.v1.CompleteSignInInput,
+      ai.stigmer.agentic.vault.v1.CompleteSignInOutput> getCompleteSignInMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.vault.v1.CompleteSignInInput, ai.stigmer.agentic.vault.v1.CompleteSignInOutput> getCompleteSignInMethod;
+    if ((getCompleteSignInMethod = VaultCommandControllerGrpc.getCompleteSignInMethod) == null) {
+      synchronized (VaultCommandControllerGrpc.class) {
+        if ((getCompleteSignInMethod = VaultCommandControllerGrpc.getCompleteSignInMethod) == null) {
+          VaultCommandControllerGrpc.getCompleteSignInMethod = getCompleteSignInMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.vault.v1.CompleteSignInInput, ai.stigmer.agentic.vault.v1.CompleteSignInOutput>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "completeSignIn"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.vault.v1.CompleteSignInInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.vault.v1.CompleteSignInOutput.getDefaultInstance()))
+              .setSchemaDescriptor(new VaultCommandControllerMethodDescriptorSupplier("completeSignIn"))
+              .build();
+        }
+      }
+    }
+    return getCompleteSignInMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.vault.v1.CreateConnectLinkInput,
+      ai.stigmer.agentic.vault.v1.ConnectLink> getCreateConnectLinkMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "createConnectLink",
+      requestType = ai.stigmer.agentic.vault.v1.CreateConnectLinkInput.class,
+      responseType = ai.stigmer.agentic.vault.v1.ConnectLink.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.vault.v1.CreateConnectLinkInput,
+      ai.stigmer.agentic.vault.v1.ConnectLink> getCreateConnectLinkMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.vault.v1.CreateConnectLinkInput, ai.stigmer.agentic.vault.v1.ConnectLink> getCreateConnectLinkMethod;
+    if ((getCreateConnectLinkMethod = VaultCommandControllerGrpc.getCreateConnectLinkMethod) == null) {
+      synchronized (VaultCommandControllerGrpc.class) {
+        if ((getCreateConnectLinkMethod = VaultCommandControllerGrpc.getCreateConnectLinkMethod) == null) {
+          VaultCommandControllerGrpc.getCreateConnectLinkMethod = getCreateConnectLinkMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.vault.v1.CreateConnectLinkInput, ai.stigmer.agentic.vault.v1.ConnectLink>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "createConnectLink"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.vault.v1.CreateConnectLinkInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.vault.v1.ConnectLink.getDefaultInstance()))
+              .setSchemaDescriptor(new VaultCommandControllerMethodDescriptorSupplier("createConnectLink"))
+              .build();
+        }
+      }
+    }
+    return getCreateConnectLinkMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -421,6 +514,53 @@ public final class VaultCommandControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.vault.v1.Vault> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getRemoveConnectionsMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * Start a sign-in at an address, to save the login in a vault.
+     * Answers the login page to send the person to. When they have signed in,
+     * the page they return to calls completeSignIn with what the login page
+     * handed back. The sign-in must be completed within ten minutes.
+     * The login fills every HTTP tool whose URL is the address, and a Git
+     * host's login serves clones from that host.
+     * </pre>
+     */
+    default void startSignIn(ai.stigmer.agentic.vault.v1.StartSignInInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.vault.v1.StartSignInOutput> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getStartSignInMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Finish a sign-in: exchange the code the login page handed back and save
+     * the login in the vault the sign-in was started for, replacing any login
+     * saved at the address.
+     * Only the person who started the sign-in may finish it.
+     * </pre>
+     */
+    default void completeSignIn(ai.stigmer.agentic.vault.v1.CompleteSignInInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.vault.v1.CompleteSignInOutput> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getCompleteSignInMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Make a Connect link: a one-time page where someone without a Stigmer
+     * account signs in at an address, and the login is saved into a shared
+     * vault.
+     * An integrator makes one for each customer's vault and sends the
+     * customer to its url. The customer sees one Stigmer page with a
+     * Continue button, then the login page, then returns to return_url.
+     * Refused for My vault, and for an address the organization has no
+     * approved login app of its own for: a link signs in only through the
+     * organization's app (its name on the vendor's consent page), never
+     * through Stigmer's own apps or Stigmer's client at a login server.
+     * </pre>
+     */
+    default void createConnectLink(ai.stigmer.agentic.vault.v1.CreateConnectLinkInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.vault.v1.ConnectLink> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getCreateConnectLinkMethod(), responseObserver);
+    }
   }
 
   /**
@@ -556,6 +696,56 @@ public final class VaultCommandControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getRemoveConnectionsMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * Start a sign-in at an address, to save the login in a vault.
+     * Answers the login page to send the person to. When they have signed in,
+     * the page they return to calls completeSignIn with what the login page
+     * handed back. The sign-in must be completed within ten minutes.
+     * The login fills every HTTP tool whose URL is the address, and a Git
+     * host's login serves clones from that host.
+     * </pre>
+     */
+    public void startSignIn(ai.stigmer.agentic.vault.v1.StartSignInInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.vault.v1.StartSignInOutput> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getStartSignInMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Finish a sign-in: exchange the code the login page handed back and save
+     * the login in the vault the sign-in was started for, replacing any login
+     * saved at the address.
+     * Only the person who started the sign-in may finish it.
+     * </pre>
+     */
+    public void completeSignIn(ai.stigmer.agentic.vault.v1.CompleteSignInInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.vault.v1.CompleteSignInOutput> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getCompleteSignInMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Make a Connect link: a one-time page where someone without a Stigmer
+     * account signs in at an address, and the login is saved into a shared
+     * vault.
+     * An integrator makes one for each customer's vault and sends the
+     * customer to its url. The customer sees one Stigmer page with a
+     * Continue button, then the login page, then returns to return_url.
+     * Refused for My vault, and for an address the organization has no
+     * approved login app of its own for: a link signs in only through the
+     * organization's app (its name on the vendor's consent page), never
+     * through Stigmer's own apps or Stigmer's client at a login server.
+     * </pre>
+     */
+    public void createConnectLink(ai.stigmer.agentic.vault.v1.CreateConnectLinkInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.vault.v1.ConnectLink> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getCreateConnectLinkMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -669,6 +859,53 @@ public final class VaultCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getRemoveConnectionsMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Start a sign-in at an address, to save the login in a vault.
+     * Answers the login page to send the person to. When they have signed in,
+     * the page they return to calls completeSignIn with what the login page
+     * handed back. The sign-in must be completed within ten minutes.
+     * The login fills every HTTP tool whose URL is the address, and a Git
+     * host's login serves clones from that host.
+     * </pre>
+     */
+    public ai.stigmer.agentic.vault.v1.StartSignInOutput startSignIn(ai.stigmer.agentic.vault.v1.StartSignInInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getStartSignInMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Finish a sign-in: exchange the code the login page handed back and save
+     * the login in the vault the sign-in was started for, replacing any login
+     * saved at the address.
+     * Only the person who started the sign-in may finish it.
+     * </pre>
+     */
+    public ai.stigmer.agentic.vault.v1.CompleteSignInOutput completeSignIn(ai.stigmer.agentic.vault.v1.CompleteSignInInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getCompleteSignInMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Make a Connect link: a one-time page where someone without a Stigmer
+     * account signs in at an address, and the login is saved into a shared
+     * vault.
+     * An integrator makes one for each customer's vault and sends the
+     * customer to its url. The customer sees one Stigmer page with a
+     * Continue button, then the login page, then returns to return_url.
+     * Refused for My vault, and for an address the organization has no
+     * approved login app of its own for: a link signs in only through the
+     * organization's app (its name on the vendor's consent page), never
+     * through Stigmer's own apps or Stigmer's client at a login server.
+     * </pre>
+     */
+    public ai.stigmer.agentic.vault.v1.ConnectLink createConnectLink(ai.stigmer.agentic.vault.v1.CreateConnectLinkInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getCreateConnectLinkMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -781,6 +1018,53 @@ public final class VaultCommandControllerGrpc {
     public ai.stigmer.agentic.vault.v1.Vault removeConnections(ai.stigmer.agentic.vault.v1.RemoveVaultConnectionsInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getRemoveConnectionsMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Start a sign-in at an address, to save the login in a vault.
+     * Answers the login page to send the person to. When they have signed in,
+     * the page they return to calls completeSignIn with what the login page
+     * handed back. The sign-in must be completed within ten minutes.
+     * The login fills every HTTP tool whose URL is the address, and a Git
+     * host's login serves clones from that host.
+     * </pre>
+     */
+    public ai.stigmer.agentic.vault.v1.StartSignInOutput startSignIn(ai.stigmer.agentic.vault.v1.StartSignInInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getStartSignInMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Finish a sign-in: exchange the code the login page handed back and save
+     * the login in the vault the sign-in was started for, replacing any login
+     * saved at the address.
+     * Only the person who started the sign-in may finish it.
+     * </pre>
+     */
+    public ai.stigmer.agentic.vault.v1.CompleteSignInOutput completeSignIn(ai.stigmer.agentic.vault.v1.CompleteSignInInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getCompleteSignInMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Make a Connect link: a one-time page where someone without a Stigmer
+     * account signs in at an address, and the login is saved into a shared
+     * vault.
+     * An integrator makes one for each customer's vault and sends the
+     * customer to its url. The customer sees one Stigmer page with a
+     * Continue button, then the login page, then returns to return_url.
+     * Refused for My vault, and for an address the organization has no
+     * approved login app of its own for: a link signs in only through the
+     * organization's app (its name on the vendor's consent page), never
+     * through Stigmer's own apps or Stigmer's client at a login server.
+     * </pre>
+     */
+    public ai.stigmer.agentic.vault.v1.ConnectLink createConnectLink(ai.stigmer.agentic.vault.v1.CreateConnectLinkInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getCreateConnectLinkMethod(), getCallOptions(), request);
     }
   }
 
@@ -903,6 +1187,56 @@ public final class VaultCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getRemoveConnectionsMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Start a sign-in at an address, to save the login in a vault.
+     * Answers the login page to send the person to. When they have signed in,
+     * the page they return to calls completeSignIn with what the login page
+     * handed back. The sign-in must be completed within ten minutes.
+     * The login fills every HTTP tool whose URL is the address, and a Git
+     * host's login serves clones from that host.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.vault.v1.StartSignInOutput> startSignIn(
+        ai.stigmer.agentic.vault.v1.StartSignInInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getStartSignInMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * Finish a sign-in: exchange the code the login page handed back and save
+     * the login in the vault the sign-in was started for, replacing any login
+     * saved at the address.
+     * Only the person who started the sign-in may finish it.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.vault.v1.CompleteSignInOutput> completeSignIn(
+        ai.stigmer.agentic.vault.v1.CompleteSignInInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getCompleteSignInMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * Make a Connect link: a one-time page where someone without a Stigmer
+     * account signs in at an address, and the login is saved into a shared
+     * vault.
+     * An integrator makes one for each customer's vault and sends the
+     * customer to its url. The customer sees one Stigmer page with a
+     * Continue button, then the login page, then returns to return_url.
+     * Refused for My vault, and for an address the organization has no
+     * approved login app of its own for: a link signs in only through the
+     * organization's app (its name on the vendor's consent page), never
+     * through Stigmer's own apps or Stigmer's client at a login server.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.vault.v1.ConnectLink> createConnectLink(
+        ai.stigmer.agentic.vault.v1.CreateConnectLinkInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getCreateConnectLinkMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_CREATE = 0;
@@ -913,6 +1247,9 @@ public final class VaultCommandControllerGrpc {
   private static final int METHODID_REMOVE_SECRETS = 5;
   private static final int METHODID_SET_CONNECTION = 6;
   private static final int METHODID_REMOVE_CONNECTIONS = 7;
+  private static final int METHODID_START_SIGN_IN = 8;
+  private static final int METHODID_COMPLETE_SIGN_IN = 9;
+  private static final int METHODID_CREATE_CONNECT_LINK = 10;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -962,6 +1299,18 @@ public final class VaultCommandControllerGrpc {
         case METHODID_REMOVE_CONNECTIONS:
           serviceImpl.removeConnections((ai.stigmer.agentic.vault.v1.RemoveVaultConnectionsInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.vault.v1.Vault>) responseObserver);
+          break;
+        case METHODID_START_SIGN_IN:
+          serviceImpl.startSignIn((ai.stigmer.agentic.vault.v1.StartSignInInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.vault.v1.StartSignInOutput>) responseObserver);
+          break;
+        case METHODID_COMPLETE_SIGN_IN:
+          serviceImpl.completeSignIn((ai.stigmer.agentic.vault.v1.CompleteSignInInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.vault.v1.CompleteSignInOutput>) responseObserver);
+          break;
+        case METHODID_CREATE_CONNECT_LINK:
+          serviceImpl.createConnectLink((ai.stigmer.agentic.vault.v1.CreateConnectLinkInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.vault.v1.ConnectLink>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -1037,6 +1386,27 @@ public final class VaultCommandControllerGrpc {
               ai.stigmer.agentic.vault.v1.RemoveVaultConnectionsInput,
               ai.stigmer.agentic.vault.v1.Vault>(
                 service, METHODID_REMOVE_CONNECTIONS)))
+        .addMethod(
+          getStartSignInMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.vault.v1.StartSignInInput,
+              ai.stigmer.agentic.vault.v1.StartSignInOutput>(
+                service, METHODID_START_SIGN_IN)))
+        .addMethod(
+          getCompleteSignInMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.vault.v1.CompleteSignInInput,
+              ai.stigmer.agentic.vault.v1.CompleteSignInOutput>(
+                service, METHODID_COMPLETE_SIGN_IN)))
+        .addMethod(
+          getCreateConnectLinkMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.vault.v1.CreateConnectLinkInput,
+              ai.stigmer.agentic.vault.v1.ConnectLink>(
+                service, METHODID_CREATE_CONNECT_LINK)))
         .build();
   }
 
@@ -1093,6 +1463,9 @@ public final class VaultCommandControllerGrpc {
               .addMethod(getRemoveSecretsMethod())
               .addMethod(getSetConnectionMethod())
               .addMethod(getRemoveConnectionsMethod())
+              .addMethod(getStartSignInMethod())
+              .addMethod(getCompleteSignInMethod())
+              .addMethod(getCreateConnectLinkMethod())
               .build();
         }
       }

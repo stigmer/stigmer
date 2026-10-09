@@ -12,7 +12,7 @@
  * reset forgets every server. The hook reads exactly the vaults the
  * conversation uses: My vault's secrets, logins and sign-in grant count
  * only while it is included, a listed vault's secrets and logins count, a
- * listed vault's sign-in counts only for the server that started it, and a
+ * listed vault's sign-in counts for every server at its address, and a
  * typed value is saved in My vault whatever the conversation uses. When the
  * conversation's vault choice changes, every server already added is
  * evaluated again over it (one mid-submit is left to land). An answer for a
@@ -292,22 +292,22 @@ describe("useMcpServerSetup", () => {
     expect(listed.result.current.usageInputs).toEqual([]);
   });
 
-  it("counts a listed vault's sign-in only for the server that started it", async () => {
-    const signedInBy = (minter: string) => {
+  it("counts a listed vault's sign-in at the server's address, whichever tool signed in, and none elsewhere", async () => {
+    const signedInAt = (address: string) => {
       const vault = vaultHolding([]);
-      vault.spec!.connections[LINEAR_URL] = create(VaultConnectionSchema, {
+      vault.spec!.connections[address] = create(VaultConnectionSchema, {
         source: VaultConnectionSource.sign_in,
-        signIn: { mcpServerId: minter },
+        signIn: { loginApp: "" },
       });
       return vault;
     };
 
-    teamVault = signedInBy("mcp_other");
+    teamVault = signedInAt("https://other.example/mcp");
     const foreign = renderHook(() => useMcpServerSetup(ORG, undefined, LISTED), { wrapper });
     await act(() => foreign.result.current.addServer(LINEAR_REF));
     expect(foreign.result.current.entries["acme/linear"]?.status).toBe("needsSetup");
 
-    teamVault = signedInBy("mcp_linear");
+    teamVault = signedInAt(LINEAR_URL);
     const own = renderHook(() => useMcpServerSetup(ORG, undefined, LISTED), { wrapper });
     await act(() => own.result.current.addServer(LINEAR_REF));
     expect(own.result.current.entries["acme/linear"]?.status).toBe("ready");

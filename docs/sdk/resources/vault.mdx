@@ -51,16 +51,22 @@ Vault vault = client.vaults().get("vlt_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`get`](#get) | Get a vault by ID. |
 | [`getByExternalId`](#getbyexternalid) | Get a shared vault by the integrator's own id for it. |
 | [`getByReference`](#getbyreference) | Get a vault by its organization-scoped reference (org/slug). |
+| [`getConnectLink`](#getconnectlink) | Get what a Connect link is for, to show before the customer continues. |
 | [`getMine`](#getmine) | Get the caller's own My vault in an organization. |
 | [`list`](#list) | List the vaults the caller can see in an organization: their own My vault and the shared vaults they may view. |
 | [`create`](#create) | Create a shared vault in an organization. |
 | [`update`](#update) | Update a vault's name, description and external id. |
 | [`updateVisibility`](#updatevisibility) | Update the visibility of a shared vault. |
 | [`delete`](#delete) | Delete a vault and every value it holds. |
+| [`completeConnectLink`](#completeconnectlink) | Finish a Connect link's sign-in and spend the link. |
+| [`completeSignIn`](#completesignin) | Finish a sign-in: exchange the code the login page handed back and save the login in the vault the sign-in was started for, replacing any login saved at the address. |
+| [`createConnectLink`](#createconnectlink) | Make a Connect link: a one-time page where someone without a Stigmer account signs in at an address, and the login is saved into a shared vault. |
 | [`removeConnections`](#removeconnections) | Remove logins from a vault by address. |
 | [`removeSecrets`](#removesecrets) | Remove secrets from a vault by name. |
 | [`setConnection`](#setconnection) | Save a login in a vault at the address of the tool or Git host it is for, replacing any saved at the same address. |
 | [`setSecrets`](#setsecrets) | Save secrets in a vault, replacing any saved under the same names. |
+| [`startConnectLink`](#startconnectlink) | Start the sign-in a Connect link is for. |
+| [`startSignIn`](#startsignin) | Start a sign-in at an address, to save the login in a vault. |
 
 ### get
 
@@ -190,6 +196,45 @@ Vault vault = client.vaults().getByReference(ApiResourceReference.builder()
 **Parameters**: [`ResourceRef`](#resourceref)
 
 **Returns**: [`Vault`](#vault)
+
+### getConnectLink
+
+Get what a Connect link is for, to show before the customer continues.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const connectLinkInfo = await stigmer.vault.getConnectLink({
+  token: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+connectLinkInfo, err := client.Vault.GetConnectLink(ctx, &stigmer.ConnectLinkTokenInput{
+  Token: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+connect_link_info = client.vaults.get_connect_link(ConnectLinkTokenInput(
+    token="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+ConnectLinkInfo connectLinkInfo = client.vaults().getConnectLink(ConnectLinkTokenInput.builder()
+    .token("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`ConnectLinkTokenInput`](#connectlinktokeninput)
+
+**Returns**: [`ConnectLinkInfo`](#connectlinkinfo)
 
 ### getMine
 
@@ -509,6 +554,161 @@ Vault vault = client.vaults().delete(DeleteResourceInput.builder()
 
 **Returns**: [`Vault`](#vault)
 
+### completeConnectLink
+
+Finish a Connect link's sign-in and spend the link. Answers where to send the customer: the link's return URL with stigmer_connect=connected, or stigmer_connect=error and a short reason when the sign-in failed after the login page (the link then stays usable until it expires).
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const completeConnectLinkOutput = await stigmer.vault.completeConnectLink({
+  token: "...",
+  state: "...",
+  code: "...",
+  error: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+completeConnectLinkOutput, err := client.Vault.CompleteConnectLink(ctx, &stigmer.CompleteConnectLinkInput{
+  Token: "...",
+  State: "...",
+  Code:  "...",
+  Error: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+complete_connect_link_output = client.vaults.complete_connect_link(CompleteConnectLinkInput(
+    token="...",
+    state="...",
+    code="...",
+    error="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+CompleteConnectLinkOutput completeConnectLinkOutput = client.vaults().completeConnectLink(CompleteConnectLinkInput.builder()
+    .token("...")
+    .state("...")
+    .code("...")
+    .error("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`CompleteConnectLinkInput`](#completeconnectlinkinput)
+
+**Returns**: [`CompleteConnectLinkOutput`](#completeconnectlinkoutput)
+
+### completeSignIn
+
+Finish a sign-in: exchange the code the login page handed back and save the login in the vault the sign-in was started for, replacing any login saved at the address.
+
+Only the person who started the sign-in may finish it.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const completeSignInOutput = await stigmer.vault.completeSignIn({
+  state: "...",
+  code: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+completeSignInOutput, err := client.Vault.CompleteSignIn(ctx, &stigmer.CompleteSignInInput{
+  State: "...",
+  Code:  "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+complete_sign_in_output = client.vaults.complete_sign_in(CompleteSignInInput(
+    state="...",
+    code="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+CompleteSignInOutput completeSignInOutput = client.vaults().completeSignIn(CompleteSignInInput.builder()
+    .state("...")
+    .code("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`CompleteSignInInput`](#completesignininput)
+
+**Returns**: [`CompleteSignInOutput`](#completesigninoutput)
+
+### createConnectLink
+
+Make a Connect link: a one-time page where someone without a Stigmer account signs in at an address, and the login is saved into a shared vault.
+
+An integrator makes one for each customer's vault and sends the customer to its url. The customer sees one Stigmer page with a Continue button, then the login page, then returns to return_url.
+
+Refused for My vault, and for an address the organization has no approved login app of its own for: a link signs in only through the organization's app (its name on the vendor's consent page), never through Stigmer's own apps or Stigmer's client at a login server.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const connectLink = await stigmer.vault.createConnectLink({
+  org: "...",
+  vaultId: "...",
+  address: "...",
+  returnUrl: "...",
+  expiresInSeconds: 0,
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+connectLink, err := client.Vault.CreateConnectLink(ctx, &stigmer.CreateConnectLinkInput{
+  Org:              "...",
+  VaultId:          "...",
+  Address:          "...",
+  ReturnUrl:        "...",
+  ExpiresInSeconds: 0,
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+connect_link = client.vaults.create_connect_link(CreateConnectLinkInput(
+    org="...",
+    vault_id="...",
+    address="...",
+    return_url="...",
+    expires_in_seconds=0,
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+ConnectLink connectLink = client.vaults().createConnectLink(CreateConnectLinkInput.builder()
+    .org("...")
+    .vaultId("...")
+    .address("...")
+    .returnUrl("...")
+    .expiresInSeconds(0)
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`CreateConnectLinkInput`](#createconnectlinkinput)
+
+**Returns**: [`ConnectLink`](#connectlink)
+
 ### removeConnections
 
 Remove logins from a vault by address.
@@ -693,6 +893,100 @@ Vault vault = client.vaults().setSecrets(SetVaultSecretsInput.builder()
 
 **Returns**: [`Vault`](#vault)
 
+### startConnectLink
+
+Start the sign-in a Connect link is for. Answers the login page to send the customer to; it returns them to the console's callback page.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const startConnectLinkOutput = await stigmer.vault.startConnectLink({
+  token: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+startConnectLinkOutput, err := client.Vault.StartConnectLink(ctx, &stigmer.ConnectLinkTokenInput{
+  Token: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+start_connect_link_output = client.vaults.start_connect_link(ConnectLinkTokenInput(
+    token="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+StartConnectLinkOutput startConnectLinkOutput = client.vaults().startConnectLink(ConnectLinkTokenInput.builder()
+    .token("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`ConnectLinkTokenInput`](#connectlinktokeninput)
+
+**Returns**: [`StartConnectLinkOutput`](#startconnectlinkoutput)
+
+### startSignIn
+
+Start a sign-in at an address, to save the login in a vault.
+
+Answers the login page to send the person to. When they have signed in, the page they return to calls completeSignIn with what the login page handed back. The sign-in must be completed within ten minutes.
+
+The login fills every HTTP tool whose URL is the address, and a Git host's login serves clones from that host.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const startSignInOutput = await stigmer.vault.startSignIn({
+  vault: {},
+  address: "...",
+  returnTo: "...",
+  loopbackPort: 0,
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+startSignInOutput, err := client.Vault.StartSignIn(ctx, &stigmer.StartSignInInput{
+  Vault:        &stigmer.VaultTargetInput{},
+  Address:      "...",
+  ReturnTo:     "...",
+  LoopbackPort: 0,
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+start_sign_in_output = client.vaults.start_sign_in(StartSignInInput(
+    vault=None,
+    address="...",
+    return_to="...",
+    loopback_port=0,
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+StartSignInOutput startSignInOutput = client.vaults().startSignIn(StartSignInInput.builder()
+    .vault(null)
+    .address("...")
+    .returnTo("...")
+    .loopbackPort(0)
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`StartSignInInput`](#startsignininput)
+
+**Returns**: [`StartSignInOutput`](#startsigninoutput)
+
 ## Types
 
 ### VaultInput
@@ -752,8 +1046,7 @@ VaultConnectionSignIn records the sign-in behind a connection, so the platform c
     authMethod: { type: "string", description: "How the sign-in was performed: \"mcp_oauth\" or \"vendor_oauth\"." },
     tokenEndpoint: { type: "string", description: "The token endpoint renewals are sent to." },
     refreshToken: { type: "string", description: "The refresh token." },
-    mcpServerId: { type: "string", description: "The MCP server the sign-in was started from, by id." },
-    localProgram: { type: "boolean", description: "Whether the MCP server was a local program (stdio) when the sign-in completed; false for an HTTP server." },
+    loginApp: { type: "string", description: "The login app the sign-in used, so a renewal presents the same client: \"org:<OAuthApp id>\" for an organization's app, \"stigmer:<key>\" for one of Stigmer's built-in login apps, and empty for a client registered with the address's own login server, which has no secret." },
   }}
 />
 
@@ -811,6 +1104,135 @@ Input for removing logins from a vault by address.
   type={{
     vault: { type: "VaultTargetInput", description: "The vault to remove from.", required: true },
     addresses: { type: "string[]", description: "Addresses of the logins to remove, in any shape setConnection accepts." },
+  }}
+/>
+
+### StartSignInInput
+
+Input for starting a sign-in at an address.
+
+<TypeTable
+  type={{
+    vault: { type: "VaultTargetInput", description: "The vault the login is saved into: a shared vault the caller may edit, or the caller's own My vault.", required: true },
+    address: { type: "string", description: "The address to sign in to: a tool's URL (Linear's MCP endpoint at mcp.linear.app/mcp, over https) or a Git host (github.com), in any shape setConnection accepts." },
+    returnTo: { type: "SignInReturn", description: "Where the login page sends the person back to.", typeDescriptionLink: "#signinreturn" },
+    loopbackPort: { type: "number", description: "The port of the desktop app's page, for return_to loopback only: one of the three Stigmer Desktop listens on (17237 to 17239)." },
+  }}
+/>
+
+### StartSignInOutput
+
+The login page to send the person to.
+
+<TypeTable
+  type={{
+    authorizationUrl: { type: "string", description: "The login page, with every parameter the sign-in needs." },
+    state: { type: "string", description: "The value the login page hands back with the code; completeSignIn takes it." },
+    providerName: { type: "string", description: "Who the person signs in with, for display (\"GitHub\", or the address's host when the login server has no name)." },
+    scopes: { type: "string[]", description: "The permissions asked for." },
+  }}
+/>
+
+### CompleteSignInInput
+
+Input for finishing a sign-in, with what the login page handed back.
+
+<TypeTable
+  type={{
+    state: { type: "string", description: "The state from startSignIn, as the login page returned it." },
+    code: { type: "string", description: "The authorization code the login page returned." },
+  }}
+/>
+
+### CompleteSignInOutput
+
+The login a sign-in saved.
+
+<TypeTable
+  type={{
+    address: { type: "string", description: "The address the login was saved at." },
+    description: { type: "string", description: "How the saved login is described: the account when the login app says who signed in (\"GitHub @ana\"), else the host (\"Signed in at mcp.linear.app\")." },
+  }}
+/>
+
+### CreateConnectLinkInput
+
+Input for making a Connect link: a one-time page an integrator sends its customer, where the customer signs in at an address and the login is saved into the integrator's vault for that customer.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization the vault belongs to, by slug or id." },
+    vaultId: { type: "string", description: "The shared vault the login is saved into, by id." },
+    address: { type: "string", description: "The address the customer signs in to: a tool's URL or a Git host." },
+    returnUrl: { type: "string", description: "Where the customer is sent once the sign-in is over: an absolute https URL (http only for localhost, 127.0.0.1 or [::1]), with no user name or password in it." },
+    expiresInSeconds: { type: "number", description: "How long the link stays usable, in seconds: 60 to 86400 (a day)." },
+  }}
+/>
+
+### ConnectLink
+
+A Connect link.
+
+<TypeTable
+  type={{
+    url: { type: "string", description: "The page to send the customer to." },
+    expiresAt: { type: "string", description: "When the link stops working." },
+  }}
+/>
+
+### ConnectLinkTokenInput
+
+A Connect link's secret, as its url carries it.
+
+<TypeTable
+  type={{
+    token: { type: "string", description: "The secret from the link's url." },
+  }}
+/>
+
+### ConnectLinkInfo
+
+What a Connect link is for.
+
+<TypeTable
+  type={{
+    providerName: { type: "string", description: "Who the customer signs in with: the provider of the organization's login app for the address (\"Slack\"), or the address's host." },
+    address: { type: "string", description: "The address the customer signs in to." },
+    organizationName: { type: "string", description: "The name of the organization the login is saved for." },
+  }}
+/>
+
+### StartConnectLinkOutput
+
+The login page a Connect link's sign-in starts at.
+
+<TypeTable
+  type={{
+    authorizationUrl: { type: "string", description: "The login page, with every parameter the sign-in needs." },
+    state: { type: "string", description: "The value the login page hands back with the code." },
+  }}
+/>
+
+### CompleteConnectLinkInput
+
+Input for finishing a Connect link's sign-in, with what the login page handed back.
+
+<TypeTable
+  type={{
+    token: { type: "string", description: "The secret from the link's url." },
+    state: { type: "string", description: "The state the login page returned." },
+    code: { type: "string", description: "The authorization code the login page returned; empty when it returned an error instead." },
+    error: { type: "string", description: "The error the login page returned instead of a code (RFC 6749 section 4.1.2.1), such as access_denied when the customer declined." },
+  }}
+/>
+
+### CompleteConnectLinkOutput
+
+Where to send the customer once a Connect link's sign-in is over.
+
+<TypeTable
+  type={{
+    returnUrl: { type: "string", description: "The link's return URL, with stigmer_connect=connected, or stigmer_connect=error and a reason: denied (the customer declined), provider_error (the login page refused), expired (the sign-in took longer than ten minutes), failed (the login could not be saved) or not_allowed (the link's maker may no longer change the vault)." },
   }}
 />
 
@@ -883,4 +1305,14 @@ Vault holds the logins and secrets that runs use: connections matched by a tool'
     status: { type: "VaultStatus", description: "System-managed state. See `VaultStatus`." },
   }}
 />
+
+### SignInReturn
+
+SignInReturn says where the login page sends the person back to once they have signed in.
+
+| Value | Description |
+|-------|-------------|
+| `web` | The console's callback page on this deployment. |
+| `desktop` | The console's callback page, which hands the result on to the desktop app (the page opens the app's own link). |
+| `loopback` | A page the desktop app serves on this machine: the path /auth/oauth/callback over plain http on 127.0.0.1 at loopback_port (RFC 8252 section 7.3, for apps on the person's own computer). |
 

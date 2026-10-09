@@ -71,6 +71,13 @@
       "components": 2
     },
     {
+      "slug": "connect-link",
+      "title": "Connect link",
+      "description": "The page and callback a Connect link's customer signs in through, with no Stigmer account.",
+      "hooks": 1,
+      "components": 2
+    },
+    {
       "slug": "conversation",
       "title": "conversation",
       "description": "",
@@ -326,7 +333,7 @@
       "slug": "vault",
       "title": "Vault",
       "description": "Hooks and components for My vault and shared vaults, their secrets and logins, the vault picker, and the session value pool.",
-      "hooks": 7,
+      "hooks": 8,
       "components": 5
     },
     {

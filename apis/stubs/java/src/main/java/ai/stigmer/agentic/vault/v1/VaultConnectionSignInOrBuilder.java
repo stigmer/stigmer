@@ -103,37 +103,27 @@ public interface VaultConnectionSignInOrBuilder extends
 
   /**
    * <pre>
-   * The MCP server the sign-in was started from, by id. The sign-in fills
-   * that server's login only.
+   * The login app the sign-in used, so a renewal presents the same client:
+   * "org:&lt;OAuthApp id&gt;" for an organization's app, "stigmer:&lt;key&gt;" for one of
+   * Stigmer's built-in login apps, and empty for a client registered with
+   * the address's own login server, which has no secret. Set by the server.
    * </pre>
    *
-   * <code>string mcp_server_id = 6 [json_name = "mcpServerId"];</code>
-   * @return The mcpServerId.
+   * <code>string login_app = 8 [json_name = "loginApp"];</code>
+   * @return The loginApp.
    */
-  java.lang.String getMcpServerId();
+  java.lang.String getLoginApp();
   /**
    * <pre>
-   * The MCP server the sign-in was started from, by id. The sign-in fills
-   * that server's login only.
+   * The login app the sign-in used, so a renewal presents the same client:
+   * "org:&lt;OAuthApp id&gt;" for an organization's app, "stigmer:&lt;key&gt;" for one of
+   * Stigmer's built-in login apps, and empty for a client registered with
+   * the address's own login server, which has no secret. Set by the server.
    * </pre>
    *
-   * <code>string mcp_server_id = 6 [json_name = "mcpServerId"];</code>
-   * @return The bytes for mcpServerId.
+   * <code>string login_app = 8 [json_name = "loginApp"];</code>
+   * @return The bytes for loginApp.
    */
   com.google.protobuf.ByteString
-      getMcpServerIdBytes();
-
-  /**
-   * <pre>
-   * Whether the MCP server was a local program (stdio) when the sign-in
-   * completed; false for an HTTP server. The sign-in fills that server's
-   * login only while it is still the same kind: a server switched between
-   * an HTTP server and a local program needs a new sign-in. Set by the
-   * server.
-   * </pre>
-   *
-   * <code>bool local_program = 7 [json_name = "localProgram"];</code>
-   * @return The localProgram.
-   */
-  boolean getLocalProgram();
+      getLoginAppBytes();
 }

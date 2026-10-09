@@ -71,6 +71,61 @@
           "outputType": "Vault",
           "outputFullType": "ai.stigmer.agentic.vault.v1.Vault",
           "description": "Remove logins from a vault by address."
+        },
+        {
+          "name": "StartSignIn",
+          "inputType": "StartSignInInput",
+          "inputFullType": "ai.stigmer.agentic.vault.v1.StartSignInInput",
+          "outputType": "StartSignInOutput",
+          "outputFullType": "ai.stigmer.agentic.vault.v1.StartSignInOutput",
+          "description": "Start a sign-in at an address, to save the login in a vault.\n\n Answers the login page to send the person to. When they have signed in,\n the page they return to calls completeSignIn with what the login page\n handed back. The sign-in must be completed within ten minutes.\n\n The login fills every HTTP tool whose URL is the address, and a Git\n host's login serves clones from that host."
+        },
+        {
+          "name": "CompleteSignIn",
+          "inputType": "CompleteSignInInput",
+          "inputFullType": "ai.stigmer.agentic.vault.v1.CompleteSignInInput",
+          "outputType": "CompleteSignInOutput",
+          "outputFullType": "ai.stigmer.agentic.vault.v1.CompleteSignInOutput",
+          "description": "Finish a sign-in: exchange the code the login page handed back and save\n the login in the vault the sign-in was started for, replacing any login\n saved at the address.\n\n Only the person who started the sign-in may finish it."
+        },
+        {
+          "name": "CreateConnectLink",
+          "inputType": "CreateConnectLinkInput",
+          "inputFullType": "ai.stigmer.agentic.vault.v1.CreateConnectLinkInput",
+          "outputType": "ConnectLink",
+          "outputFullType": "ai.stigmer.agentic.vault.v1.ConnectLink",
+          "description": "Make a Connect link: a one-time page where someone without a Stigmer\n account signs in at an address, and the login is saved into a shared\n vault.\n\n An integrator makes one for each customer's vault and sends the\n customer to its url. The customer sees one Stigmer page with a\n Continue button, then the login page, then returns to return_url.\n\n Refused for My vault, and for an address the organization has no\n approved login app of its own for: a link signs in only through the\n organization's app (its name on the vendor's consent page), never\n through Stigmer's own apps or Stigmer's client at a login server."
+        }
+      ]
+    },
+    {
+      "name": "ConnectLinkController",
+      "role": "connectLink",
+      "protoFile": "ai/stigmer/agentic/vault/v1/connect_link.proto",
+      "methods": [
+        {
+          "name": "GetConnectLink",
+          "inputType": "ConnectLinkTokenInput",
+          "inputFullType": "ai.stigmer.agentic.vault.v1.ConnectLinkTokenInput",
+          "outputType": "ConnectLinkInfo",
+          "outputFullType": "ai.stigmer.agentic.vault.v1.ConnectLinkInfo",
+          "description": "Get what a Connect link is for, to show before the customer continues."
+        },
+        {
+          "name": "StartConnectLink",
+          "inputType": "ConnectLinkTokenInput",
+          "inputFullType": "ai.stigmer.agentic.vault.v1.ConnectLinkTokenInput",
+          "outputType": "StartConnectLinkOutput",
+          "outputFullType": "ai.stigmer.agentic.vault.v1.StartConnectLinkOutput",
+          "description": "Start the sign-in a Connect link is for. Answers the login page to send\n the customer to; it returns them to the console's callback page."
+        },
+        {
+          "name": "CompleteConnectLink",
+          "inputType": "CompleteConnectLinkInput",
+          "inputFullType": "ai.stigmer.agentic.vault.v1.CompleteConnectLinkInput",
+          "outputType": "CompleteConnectLinkOutput",
+          "outputFullType": "ai.stigmer.agentic.vault.v1.CompleteConnectLinkOutput",
+          "description": "Finish a Connect link's sign-in and spend the link. Answers where to\n send the customer: the link's return URL with stigmer_connect=connected,\n or stigmer_connect=error and a short reason when the sign-in failed\n after the login page (the link then stays usable until it expires)."
         }
       ]
     },
@@ -346,6 +401,454 @@
       ]
     },
     {
+      "name": "StartSignInInput",
+      "description": "Input for starting a sign-in at an address. The login is saved into the\n named vault when the sign-in completes.",
+      "protoType": "ai.stigmer.agentic.vault.v1.StartSignInInput",
+      "protoFile": "apis/ai/stigmer/agentic/vault/v1/io.proto",
+      "fields": [
+        {
+          "name": "Vault",
+          "jsonName": "vault",
+          "protoField": "vault",
+          "type": {
+            "kind": "message",
+            "messageType": "VaultTarget"
+          },
+          "description": "The vault the login is saved into: a shared vault the caller may edit,\n or the caller's own My vault.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Address",
+          "jsonName": "address",
+          "protoField": "address",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The address to sign in to: a tool's URL (Linear's MCP endpoint at\n mcp.linear.app/mcp, over https) or a Git host (github.com), in any shape\n setConnection accepts.",
+          "required": false,
+          "validation": {
+            "minLength": 1,
+            "maxLength": 2048
+          }
+        },
+        {
+          "name": "ReturnTo",
+          "jsonName": "returnTo",
+          "protoField": "return_to",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.vault.v1.SignInReturn",
+            "enumValues": [
+              "web",
+              "desktop",
+              "loopback"
+            ]
+          },
+          "description": "Where the login page sends the person back to. Unset means web.",
+          "required": false
+        },
+        {
+          "name": "LoopbackPort",
+          "jsonName": "loopbackPort",
+          "protoField": "loopback_port",
+          "type": {
+            "kind": "uint32"
+          },
+          "description": "The port of the desktop app's page, for return_to loopback only: one of\n the three Stigmer Desktop listens on (17237 to 17239). A login server\n registers Stigmer once per return address, so the ports are few.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "StartSignInOutput",
+      "description": "The login page to send the person to.",
+      "protoType": "ai.stigmer.agentic.vault.v1.StartSignInOutput",
+      "protoFile": "apis/ai/stigmer/agentic/vault/v1/io.proto",
+      "fields": [
+        {
+          "name": "AuthorizationUrl",
+          "jsonName": "authorizationUrl",
+          "protoField": "authorization_url",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The login page, with every parameter the sign-in needs.",
+          "required": false
+        },
+        {
+          "name": "State",
+          "jsonName": "state",
+          "protoField": "state",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The value the login page hands back with the code; completeSignIn takes\n it.",
+          "required": false
+        },
+        {
+          "name": "ProviderName",
+          "jsonName": "providerName",
+          "protoField": "provider_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Who the person signs in with, for display (\"GitHub\", or the address's\n host when the login server has no name).",
+          "required": false
+        },
+        {
+          "name": "Scopes",
+          "jsonName": "scopes",
+          "protoField": "scopes",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "The permissions asked for.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "CompleteSignInInput",
+      "description": "Input for finishing a sign-in, with what the login page handed back.",
+      "protoType": "ai.stigmer.agentic.vault.v1.CompleteSignInInput",
+      "protoFile": "apis/ai/stigmer/agentic/vault/v1/io.proto",
+      "fields": [
+        {
+          "name": "State",
+          "jsonName": "state",
+          "protoField": "state",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The state from startSignIn, as the login page returned it.",
+          "required": false,
+          "validation": {
+            "minLength": 1,
+            "maxLength": 512
+          }
+        },
+        {
+          "name": "Code",
+          "jsonName": "code",
+          "protoField": "code",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The authorization code the login page returned.",
+          "required": false,
+          "validation": {
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        }
+      ]
+    },
+    {
+      "name": "CompleteSignInOutput",
+      "description": "The login a sign-in saved.",
+      "protoType": "ai.stigmer.agentic.vault.v1.CompleteSignInOutput",
+      "protoFile": "apis/ai/stigmer/agentic/vault/v1/io.proto",
+      "fields": [
+        {
+          "name": "Address",
+          "jsonName": "address",
+          "protoField": "address",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The address the login was saved at.",
+          "required": false
+        },
+        {
+          "name": "Description",
+          "jsonName": "description",
+          "protoField": "description",
+          "type": {
+            "kind": "string"
+          },
+          "description": "How the saved login is described: the account when the login app says\n who signed in (\"GitHub @ana\"), else the host (\"Signed in at\n mcp.linear.app\").",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "CreateConnectLinkInput",
+      "description": "Input for making a Connect link: a one-time page an integrator sends its\n customer, where the customer signs in at an address and the login is saved\n into the integrator's vault for that customer. The customer needs no\n Stigmer account.",
+      "protoType": "ai.stigmer.agentic.vault.v1.CreateConnectLinkInput",
+      "protoFile": "apis/ai/stigmer/agentic/vault/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization the vault belongs to, by slug or id.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "VaultId",
+          "jsonName": "vaultId",
+          "protoField": "vault_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The shared vault the login is saved into, by id. My vault is refused:\n a link is for someone else.",
+          "required": false,
+          "validation": {
+            "maxLength": 30,
+            "pattern": "^vlt_[0-9a-z]{26}$"
+          }
+        },
+        {
+          "name": "Address",
+          "jsonName": "address",
+          "protoField": "address",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The address the customer signs in to: a tool's URL or a Git host.",
+          "required": false,
+          "validation": {
+            "minLength": 1,
+            "maxLength": 2048
+          }
+        },
+        {
+          "name": "ReturnUrl",
+          "jsonName": "returnUrl",
+          "protoField": "return_url",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Where the customer is sent once the sign-in is over: an absolute https\n URL (http only for localhost, 127.0.0.1 or [::1]), with no user name or\n password in it. Stigmer adds stigmer_connect=connected, or\n stigmer_connect=error with a short reason.",
+          "required": false,
+          "validation": {
+            "minLength": 1,
+            "maxLength": 2048
+          }
+        },
+        {
+          "name": "ExpiresInSeconds",
+          "jsonName": "expiresInSeconds",
+          "protoField": "expires_in_seconds",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "How long the link stays usable, in seconds: 60 to 86400 (a day).\n Unset means 1800 (30 minutes).",
+          "required": false,
+          "validation": {
+            "max": 86400
+          }
+        }
+      ]
+    },
+    {
+      "name": "ConnectLink",
+      "description": "A Connect link. It works once: the first sign-in saved through it spends\n it.",
+      "protoType": "ai.stigmer.agentic.vault.v1.ConnectLink",
+      "protoFile": "apis/ai/stigmer/agentic/vault/v1/io.proto",
+      "fields": [
+        {
+          "name": "Url",
+          "jsonName": "url",
+          "protoField": "url",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The page to send the customer to. It carries the link's secret: send it\n only to that customer.",
+          "required": false
+        },
+        {
+          "name": "ExpiresAt",
+          "jsonName": "expiresAt",
+          "protoField": "expires_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "When the link stops working.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ConnectLinkTokenInput",
+      "description": "A Connect link's secret, as its url carries it.",
+      "protoType": "ai.stigmer.agentic.vault.v1.ConnectLinkTokenInput",
+      "protoFile": "apis/ai/stigmer/agentic/vault/v1/connect_link.proto",
+      "fields": [
+        {
+          "name": "Token",
+          "jsonName": "token",
+          "protoField": "token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The secret from the link's url.",
+          "required": false,
+          "validation": {
+            "minLength": 1,
+            "maxLength": 128
+          }
+        }
+      ]
+    },
+    {
+      "name": "ConnectLinkInfo",
+      "description": "What a Connect link is for.",
+      "protoType": "ai.stigmer.agentic.vault.v1.ConnectLinkInfo",
+      "protoFile": "apis/ai/stigmer/agentic/vault/v1/connect_link.proto",
+      "fields": [
+        {
+          "name": "ProviderName",
+          "jsonName": "providerName",
+          "protoField": "provider_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Who the customer signs in with: the provider of the organization's login\n app for the address (\"Slack\"), or the address's host.",
+          "required": false
+        },
+        {
+          "name": "Address",
+          "jsonName": "address",
+          "protoField": "address",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The address the customer signs in to.",
+          "required": false
+        },
+        {
+          "name": "OrganizationName",
+          "jsonName": "organizationName",
+          "protoField": "organization_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The name of the organization the login is saved for.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "StartConnectLinkOutput",
+      "description": "The login page a Connect link's sign-in starts at.",
+      "protoType": "ai.stigmer.agentic.vault.v1.StartConnectLinkOutput",
+      "protoFile": "apis/ai/stigmer/agentic/vault/v1/connect_link.proto",
+      "fields": [
+        {
+          "name": "AuthorizationUrl",
+          "jsonName": "authorizationUrl",
+          "protoField": "authorization_url",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The login page, with every parameter the sign-in needs.",
+          "required": false
+        },
+        {
+          "name": "State",
+          "jsonName": "state",
+          "protoField": "state",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The value the login page hands back with the code.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "CompleteConnectLinkInput",
+      "description": "Input for finishing a Connect link's sign-in, with what the login page\n handed back.",
+      "protoType": "ai.stigmer.agentic.vault.v1.CompleteConnectLinkInput",
+      "protoFile": "apis/ai/stigmer/agentic/vault/v1/connect_link.proto",
+      "fields": [
+        {
+          "name": "Token",
+          "jsonName": "token",
+          "protoField": "token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The secret from the link's url.",
+          "required": false,
+          "validation": {
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        {
+          "name": "State",
+          "jsonName": "state",
+          "protoField": "state",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The state the login page returned.",
+          "required": false,
+          "validation": {
+            "maxLength": 512
+          }
+        },
+        {
+          "name": "Code",
+          "jsonName": "code",
+          "protoField": "code",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The authorization code the login page returned; empty when it returned\n an error instead.",
+          "required": false,
+          "validation": {
+            "maxLength": 4096
+          }
+        },
+        {
+          "name": "Error",
+          "jsonName": "error",
+          "protoField": "error",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The error the login page returned instead of a code (RFC 6749 section\n 4.1.2.1), such as access_denied when the customer declined.",
+          "required": false,
+          "validation": {
+            "maxLength": 256
+          }
+        }
+      ]
+    },
+    {
+      "name": "CompleteConnectLinkOutput",
+      "description": "Where to send the customer once a Connect link's sign-in is over.",
+      "protoType": "ai.stigmer.agentic.vault.v1.CompleteConnectLinkOutput",
+      "protoFile": "apis/ai/stigmer/agentic/vault/v1/connect_link.proto",
+      "fields": [
+        {
+          "name": "ReturnUrl",
+          "jsonName": "returnUrl",
+          "protoField": "return_url",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The link's return URL, with stigmer_connect=connected, or\n stigmer_connect=error and a reason: denied (the customer declined),\n provider_error (the login page refused), expired (the sign-in took longer\n than ten minutes), failed (the login could not be saved) or not_allowed\n (the link's maker may no longer change the vault).",
+          "required": false
+        }
+      ]
+    },
+    {
       "name": "ApiResourceReference",
       "description": "Generic reference to any API resource by org and slug.\n Used across resources to reference other resources (e.g., Vault, Agent, Skill).\n Canonical format: \"org/slug\" (e.g., \"acme/web-search\", \"acme/my-agent\").\n\n Every reference in a resource's spec is checked when the resource is\n written: the target must exist, and a target in another organization\n must be one the writing organization's parent shares with its child\n organizations (visibility_child_orgs) to be referenced at all. A blueprint may not be\n more visible than the skills, MCP servers and agents it references, so\n what a person can run they can also read. A reference that fails the\n check is refused at write, never at run.",
       "protoType": "ai.stigmer.commons.apiresource.ApiResourceReference",
@@ -583,6 +1086,28 @@
           "name": "visibility_child_orgs",
           "number": 4,
           "description": "Everyone in every child organization of the owning organization can\n read and run this resource: the shared catalog an organization offers\n the organizations under it (spec.parent_org). Child organizations\n created later gain access automatically, and no other organization\n does. Instances, sessions, runs and vaults are never shared\n this way: each child runs the shared blueprint inside its own boundary.\n\n Only valid for blueprint kinds with supports_child_orgs: true, and only\n in an organization that is not itself a child.\n\n FGA tuple: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer"
+        }
+      ]
+    },
+    {
+      "name": "SignInReturn",
+      "description": "SignInReturn says where the login page sends the person back to once they\n have signed in. The server builds the address from this choice; a caller\n never writes it.",
+      "protoType": "ai.stigmer.agentic.vault.v1.SignInReturn",
+      "values": [
+        {
+          "name": "web",
+          "number": 1,
+          "description": "The console's callback page on this deployment."
+        },
+        {
+          "name": "desktop",
+          "number": 2,
+          "description": "The console's callback page, which hands the result on to the desktop\n app (the page opens the app's own link)."
+        },
+        {
+          "name": "loopback",
+          "number": 3,
+          "description": "A page the desktop app serves on this machine: the path\n /auth/oauth/callback over plain http on 127.0.0.1 at loopback_port\n (RFC 8252 section 7.3, for apps on the person's own computer)."
         }
       ]
     },

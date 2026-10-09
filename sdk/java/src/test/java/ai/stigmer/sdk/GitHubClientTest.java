@@ -1,17 +1,12 @@
 package ai.stigmer.sdk;
 
-import ai.stigmer.platform.github.v1.ExchangeOAuthCodeRequest;
-import ai.stigmer.platform.github.v1.ExchangeOAuthCodeResponse;
-import ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlRequest;
 import ai.stigmer.platform.github.v1.GetGitHubFileContentInput;
 import ai.stigmer.platform.github.v1.GetGitHubTreeInput;
-import ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlResponse;
 import ai.stigmer.platform.github.v1.GitHubBranchList;
 import ai.stigmer.platform.github.v1.GitHubFileContent;
 import ai.stigmer.platform.github.v1.GitHubQueryControllerGrpc;
 import ai.stigmer.platform.github.v1.GitHubRepository;
 import ai.stigmer.platform.github.v1.GitHubRepositoryList;
-import ai.stigmer.platform.github.v1.GitHubServiceGrpc;
 import ai.stigmer.platform.github.v1.GitHubTree;
 import ai.stigmer.platform.github.v1.GitHubTreeEntry;
 import ai.stigmer.platform.github.v1.ListGitHubBranchesInput;
@@ -44,10 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Pins what GitHubClient sends and hands back. On sign-in, both the
- * authorize-URL request and the code exchange carry the organization whose My
- * vault keeps the login, since the server refuses a connect that names none.
- * Each repository read carries its organization and arguments to
+ * Pins what GitHubClient sends and hands back. Each repository read carries its organization and arguments to
  * GitHubQueryController and returns the server's answer as it came, and a
  * refusal (the "connect GitHub first" precondition) reaches the caller as a
  * StigmerException carrying its code. A real gRPC server captures the
@@ -60,8 +52,6 @@ class GitHubClientTest {
     private static final String OWNER = "acme";
     private static final String REPO = "app";
 
-    private final List<GetOAuthAuthorizeUrlRequest> authorizeRequests = new ArrayList<>();
-    private final List<ExchangeOAuthCodeRequest> exchangeRequests = new ArrayList<>();
     private final List<ListGitHubRepositoriesInput> listRequests = new ArrayList<>();
     private final List<SearchGitHubRepositoriesInput> searchRequests = new ArrayList<>();
     private final List<ListGitHubBranchesInput> branchRequests = new ArrayList<>();
@@ -70,30 +60,6 @@ class GitHubClientTest {
     private volatile boolean refuseReads;
     private Server grpcServer;
     private ManagedChannel channel;
-
-    private final class FakeGitHubService extends GitHubServiceGrpc.GitHubServiceImplBase {
-        @Override
-        public void getOAuthAuthorizeUrl(
-                GetOAuthAuthorizeUrlRequest request,
-                StreamObserver<GetOAuthAuthorizeUrlResponse> responseObserver) {
-            authorizeRequests.add(request);
-            responseObserver.onNext(GetOAuthAuthorizeUrlResponse.newBuilder()
-                    .setAuthorizeUrl("https://github.com/login/oauth/authorize?state=s1")
-                    .setState("s1")
-                    .build());
-            responseObserver.onCompleted();
-        }
-
-        @Override
-        public void exchangeOAuthCode(
-                ExchangeOAuthCodeRequest request,
-                StreamObserver<ExchangeOAuthCodeResponse> responseObserver) {
-            exchangeRequests.add(request);
-            responseObserver.onNext(ExchangeOAuthCodeResponse.newBuilder()
-                    .setLogin("octocat").setTokenType("bearer").setScope("repo").build());
-            responseObserver.onCompleted();
-        }
-    }
 
     /** Answers each repository read with a fixed reply, or refuses it when {@code refuseReads} is set. */
     private final class FakeGitHubQuery extends GitHubQueryControllerGrpc.GitHubQueryControllerImplBase {
@@ -193,7 +159,6 @@ class GitHubClientTest {
     @BeforeEach
     void start() throws Exception {
         grpcServer = NettyServerBuilder.forPort(0)
-                .addService(new FakeGitHubService())
                 .addService(new FakeGitHubQuery())
                 .build()
                 .start();
@@ -208,44 +173,6 @@ class GitHubClientTest {
         channel.awaitTermination(5, TimeUnit.SECONDS);
         grpcServer.shutdownNow();
         grpcServer.awaitTermination(5, TimeUnit.SECONDS);
-    }
-
-    @Test
-    @DisplayName("the authorize-URL request carries the organization and redirect")
-    void authorizeSendsOrg() {
-        GitHubClient.OAuthAuthorizeUrlResponse resp = new GitHubClient(channel).getOAuthAuthorizeUrl(
-                GitHubClient.GetOAuthAuthorizeUrlParams.builder()
-                        .redirectUri("https://app.example/callback")
-                        .org("acme")
-                        .build());
-        assertEquals("s1", resp.getState());
-        assertEquals(1, authorizeRequests.size());
-        assertEquals("acme", authorizeRequests.get(0).getOrg());
-        assertEquals("https://app.example/callback", authorizeRequests.get(0).getRedirectUri());
-    }
-
-    @Test
-    @DisplayName("an authorize request that names no organization is refused at build")
-    void authorizeWithoutOrg() {
-        assertThrows(NullPointerException.class, () -> GitHubClient.GetOAuthAuthorizeUrlParams.builder()
-                .redirectUri("https://app.example/callback")
-                .build());
-    }
-
-    @Test
-    @DisplayName("the code exchange carries the organization")
-    void exchangeSendsOrg() {
-        GitHubClient.ConnectedAccount account = new GitHubClient(channel).exchangeOAuthCode(
-                GitHubClient.ExchangeOAuthCodeParams.builder()
-                        .code("c1")
-                        .state("s1")
-                        .redirectUri("https://app.example/callback")
-                        .org("acme")
-                        .build());
-        assertEquals("octocat", account.getLogin());
-        assertEquals(1, exchangeRequests.size());
-        assertEquals("acme", exchangeRequests.get(0).getOrg());
-        assertEquals("c1", exchangeRequests.get(0).getCode());
     }
 
     @Test

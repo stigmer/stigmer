@@ -79,19 +79,17 @@ class VaultConnection(_message.Message):
     def __init__(self, token: _Optional[str] = ..., source: _Optional[_Union[VaultConnectionSource, str]] = ..., sign_in: _Optional[_Union[VaultConnectionSignIn, _Mapping]] = ..., description: _Optional[str] = ..., saved_by: _Optional[str] = ..., saved_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
 
 class VaultConnectionSignIn(_message.Message):
-    __slots__ = ("expires_at", "client_id", "auth_method", "token_endpoint", "refresh_token", "mcp_server_id", "local_program")
+    __slots__ = ("expires_at", "client_id", "auth_method", "token_endpoint", "refresh_token", "login_app")
     EXPIRES_AT_FIELD_NUMBER: _ClassVar[int]
     CLIENT_ID_FIELD_NUMBER: _ClassVar[int]
     AUTH_METHOD_FIELD_NUMBER: _ClassVar[int]
     TOKEN_ENDPOINT_FIELD_NUMBER: _ClassVar[int]
     REFRESH_TOKEN_FIELD_NUMBER: _ClassVar[int]
-    MCP_SERVER_ID_FIELD_NUMBER: _ClassVar[int]
-    LOCAL_PROGRAM_FIELD_NUMBER: _ClassVar[int]
+    LOGIN_APP_FIELD_NUMBER: _ClassVar[int]
     expires_at: int
     client_id: str
     auth_method: str
     token_endpoint: str
     refresh_token: str
-    mcp_server_id: str
-    local_program: bool
-    def __init__(self, expires_at: _Optional[int] = ..., client_id: _Optional[str] = ..., auth_method: _Optional[str] = ..., token_endpoint: _Optional[str] = ..., refresh_token: _Optional[str] = ..., mcp_server_id: _Optional[str] = ..., local_program: bool = ...) -> None: ...
+    login_app: str
+    def __init__(self, expires_at: _Optional[int] = ..., client_id: _Optional[str] = ..., auth_method: _Optional[str] = ..., token_endpoint: _Optional[str] = ..., refresh_token: _Optional[str] = ..., login_app: _Optional[str] = ...) -> None: ...

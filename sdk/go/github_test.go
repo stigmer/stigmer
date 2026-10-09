@@ -3,7 +3,7 @@ package stigmer
 // Wire-shape tests for GitHubClient: a fake generated stub captures the
 // outgoing request proto, and each test asserts the SDK params reached the
 // right fields, the organization above all, since the server refuses a
-// connect or a read that names none. The repository reads also hand back the
+// read that names none. The repository reads also hand back the
 // server's answer as it came, and a refusal (the "connect GitHub first"
 // precondition) reaches the caller as an *Error carrying its code.
 
@@ -18,69 +18,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
-
-// fakeGitHubService captures requests to the GitHub sign-in service.
-type fakeGitHubService struct {
-	githubv1.GitHubServiceClient
-
-	authorizeIn *githubv1.GetOAuthAuthorizeUrlRequest
-	exchangeIn  *githubv1.ExchangeOAuthCodeRequest
-}
-
-func (f *fakeGitHubService) GetOAuthAuthorizeUrl(_ context.Context, in *githubv1.GetOAuthAuthorizeUrlRequest, _ ...grpc.CallOption) (*githubv1.GetOAuthAuthorizeUrlResponse, error) {
-	f.authorizeIn = in
-	return &githubv1.GetOAuthAuthorizeUrlResponse{AuthorizeUrl: "https://github.com/login/oauth/authorize?state=s1", State: "s1"}, nil
-}
-
-func (f *fakeGitHubService) ExchangeOAuthCode(_ context.Context, in *githubv1.ExchangeOAuthCodeRequest, _ ...grpc.CallOption) (*githubv1.ExchangeOAuthCodeResponse, error) {
-	f.exchangeIn = in
-	return &githubv1.ExchangeOAuthCodeResponse{Login: "octocat", TokenType: "bearer", Scope: "repo"}, nil
-}
-
-func TestGitHubGetOAuthAuthorizeUrl_SendsOrgAndRedirect(t *testing.T) {
-	fake := &fakeGitHubService{}
-	client := &GitHubClient{github: fake}
-
-	resp, err := client.GetOAuthAuthorizeUrl(context.Background(), &GetOAuthAuthorizeUrlParams{
-		RedirectURI: "https://app.example/callback",
-		Org:         "acme",
-	})
-	if err != nil {
-		t.Fatalf("GetOAuthAuthorizeUrl: %v", err)
-	}
-	if resp.State != "s1" {
-		t.Errorf("State = %q, want s1", resp.State)
-	}
-	in := fake.authorizeIn
-	if in.GetOrg() != "acme" {
-		t.Errorf("Org = %q, want acme", in.GetOrg())
-	}
-	if in.GetRedirectUri() != "https://app.example/callback" {
-		t.Errorf("RedirectUri = %q", in.GetRedirectUri())
-	}
-}
-
-func TestGitHubExchangeOAuthCode_SendsOrg(t *testing.T) {
-	fake := &fakeGitHubService{}
-	client := &GitHubClient{github: fake}
-
-	account, err := client.ExchangeOAuthCode(context.Background(), &ExchangeOAuthCodeParams{
-		Code:        "c1",
-		State:       "s1",
-		RedirectURI: "https://app.example/callback",
-		Org:         "acme",
-	})
-	if err != nil {
-		t.Fatalf("ExchangeOAuthCode: %v", err)
-	}
-	if account.Login != "octocat" {
-		t.Errorf("Login = %q, want octocat", account.Login)
-	}
-	in := fake.exchangeIn
-	if in.GetOrg() != "acme" || in.GetCode() != "c1" || in.GetState() != "s1" {
-		t.Errorf("request = %+v, want org acme, code c1, state s1", in)
-	}
-}
 
 // fakeGitHubQuery captures requests to the repository reads and answers each
 // with a fixed reply, or refuses every call when refuse is set.

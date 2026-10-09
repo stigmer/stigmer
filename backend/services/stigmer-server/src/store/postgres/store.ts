@@ -46,6 +46,9 @@ import {
 import type {
   AuditRecord,
   BootstrapStateStore,
+  ConnectLinkRecord,
+  ConnectLinkStore,
+  OAuthClientRegistrationStore,
   ResourceNameClaim,
   ResourceNameEntry,
   ResourceNameKey,
@@ -147,6 +150,8 @@ export class PostgresStore implements Store {
   readonly bootstrapState: BootstrapStateStore;
   readonly resourceNames: ResourceNameStore;
   readonly pendingOAuthStates: PendingOAuthStateStore;
+  readonly oauthClientRegistrations: OAuthClientRegistrationStore;
+  readonly connectLinks: ConnectLinkStore;
   readonly organizationDeletions: OrganizationDeletionStore;
 
   private pool: Pool | undefined;
@@ -166,6 +171,10 @@ export class PostgresStore implements Store {
     this.pendingOAuthStates = new PostgresPendingOAuthStateStore(() =>
       this.open(),
     );
+    this.oauthClientRegistrations = new PostgresOAuthClientRegistrationStore(
+      () => this.open(),
+    );
+    this.connectLinks = new PostgresConnectLinkStore(() => this.open());
     this.organizationDeletions = new PostgresOrganizationDeletionStore(() =>
       this.open(),
     );
@@ -1489,6 +1498,13 @@ class PostgresResourceNameStore implements ResourceNameStore {
     });
   }
 
+  async releaseName(key: ResourceNameKey, id: string): Promise<void> {
+    await this.open().query(
+      `DELETE FROM resource_names WHERE kind = $1 AND org = $2 AND name = $3 AND id = $4`,
+      [key.kind, key.org, key.name, id],
+    );
+  }
+
   private async transaction<T>(
     fn: (client: PoolClient) => Promise<T>,
   ): Promise<T> {
@@ -1551,6 +1567,33 @@ async function holderOf(
 // MCP pending OAuth state
 // =============================================================================
 
+const PENDING_OAUTH_STATE_COLUMNS = `state, code_verifier, client_id, client_secret, token_endpoint,
+  identity_account_id, auth_method, token_auth_method, redirect_uri, org, vault_id,
+  address, login_app, resource, client_registration, connect_link, provider_name,
+  userinfo_url, created_at`;
+
+interface PendingOAuthStateRow {
+  state: string;
+  code_verifier: string;
+  client_id: string;
+  client_secret: string;
+  token_endpoint: string;
+  identity_account_id: string;
+  auth_method: string;
+  token_auth_method: string;
+  redirect_uri: string;
+  org: string;
+  vault_id: string;
+  address: string;
+  login_app: string;
+  resource: string;
+  client_registration: string;
+  connect_link: string;
+  provider_name: string;
+  userinfo_url: string;
+  created_at: string | number;
+}
+
 class PostgresPendingOAuthStateStore implements PendingOAuthStateStore {
   constructor(private readonly open: () => Pool) {}
 
@@ -1558,26 +1601,27 @@ class PostgresPendingOAuthStateStore implements PendingOAuthStateStore {
     const createdAt =
       state.createdAt !== 0 ? state.createdAt : Math.floor(Date.now() / 1000);
     await this.open().query(
-      `INSERT INTO pending_oauth_state (
-        state, code_verifier, client_id, client_secret, token_endpoint,
-        mcp_server_id, identity_account_id, target_env_var, auth_method,
-        token_auth_method, redirect_uri, org, vault_id, tool_address, created_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+      `INSERT INTO pending_oauth_state (${PENDING_OAUTH_STATE_COLUMNS})
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)`,
       [
         state.state,
         state.codeVerifier,
         state.clientId,
         state.clientSecret,
         state.tokenEndpoint,
-        state.mcpServerId,
         state.identityAccountId,
-        state.targetEnvVar,
         state.authMethod,
         state.tokenAuthMethod,
         state.redirectUri,
         state.org,
         state.vaultId,
-        state.toolAddress,
+        state.address,
+        state.loginApp,
+        state.resource,
+        state.clientRegistration,
+        state.connectLink,
+        state.providerName,
+        state.userinfoUrl,
         createdAt,
       ],
     );
@@ -1591,31 +1635,10 @@ class PostgresPendingOAuthStateStore implements PendingOAuthStateStore {
     // transaction.
     const result = await this.open().query(
       `DELETE FROM pending_oauth_state WHERE state = $1
-       RETURNING state, code_verifier, client_id, client_secret, token_endpoint,
-         mcp_server_id, identity_account_id, target_env_var, auth_method,
-         token_auth_method, redirect_uri, org, vault_id, tool_address, created_at`,
+       RETURNING ${PENDING_OAUTH_STATE_COLUMNS}`,
       [stateParam],
     );
-    const row = result.rows[0] as
-      | {
-          state: string;
-          code_verifier: string;
-          client_id: string;
-          client_secret: string;
-          token_endpoint: string;
-          mcp_server_id: string;
-          identity_account_id: string;
-          target_env_var: string;
-          auth_method: string;
-          token_auth_method: string;
-          redirect_uri: string;
-          org: string;
-          vault_id: string;
-          tool_address: string;
-          created_at: string | number;
-        }
-      | undefined;
-
+    const row = result.rows[0] as PendingOAuthStateRow | undefined;
     if (row === undefined) {
       return undefined;
     }
@@ -1632,15 +1655,19 @@ class PostgresPendingOAuthStateStore implements PendingOAuthStateStore {
       clientId: row.client_id,
       clientSecret: row.client_secret,
       tokenEndpoint: row.token_endpoint,
-      mcpServerId: row.mcp_server_id,
       identityAccountId: row.identity_account_id,
-      targetEnvVar: row.target_env_var,
       authMethod: row.auth_method,
       tokenAuthMethod: row.token_auth_method,
       redirectUri: row.redirect_uri,
       org: row.org,
       vaultId: row.vault_id,
-      toolAddress: row.tool_address,
+      address: row.address,
+      loginApp: row.login_app,
+      resource: row.resource,
+      clientRegistration: row.client_registration,
+      connectLink: row.connect_link,
+      providerName: row.provider_name,
+      userinfoUrl: row.userinfo_url,
       createdAt,
     };
   }
@@ -1662,6 +1689,172 @@ class PostgresPendingOAuthStateStore implements PendingOAuthStateStore {
     );
     return result.rowCount ?? 0;
   }
+
+  async deleteByConnectLink(tokenHash: string): Promise<number> {
+    const result = await this.open().query(
+      `DELETE FROM pending_oauth_state WHERE connect_link = $1`,
+      [tokenHash],
+    );
+    return result.rowCount ?? 0;
+  }
+}
+
+class PostgresOAuthClientRegistrationStore
+  implements OAuthClientRegistrationStore
+{
+  constructor(private readonly open: () => Pool) {}
+
+  async find(loginServer: string, redirectUri: string): Promise<string | undefined> {
+    const result = await this.open().query<{ client_id: string }>(
+      `SELECT client_id FROM oauth_client_registration
+       WHERE login_server = $1 AND redirect_uri = $2`,
+      [loginServer, redirectUri],
+    );
+    return result.rows[0]?.client_id;
+  }
+
+  async save(
+    loginServer: string,
+    redirectUri: string,
+    clientId: string,
+    now: string,
+  ): Promise<string> {
+    // The no-op update makes RETURNING answer the kept row on a conflict
+    // too, so the winner of two racing registrations is read in one
+    // statement.
+    const result = await this.open().query<{ client_id: string }>(
+      `INSERT INTO oauth_client_registration (login_server, redirect_uri, client_id, created_at)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (login_server, redirect_uri)
+         DO UPDATE SET client_id = oauth_client_registration.client_id
+       RETURNING client_id`,
+      [loginServer, redirectUri, clientId, now],
+    );
+    return result.rows[0]?.client_id ?? clientId;
+  }
+
+  async forget(loginServer: string, redirectUri: string, clientId: string): Promise<void> {
+    await this.open().query(
+      `DELETE FROM oauth_client_registration
+       WHERE login_server = $1 AND redirect_uri = $2 AND client_id = $3`,
+      [loginServer, redirectUri, clientId],
+    );
+  }
+
+  async loginServersHolding(clientId: string): Promise<readonly string[]> {
+    const result = await this.open().query<{ login_server: string }>(
+      `SELECT DISTINCT login_server FROM oauth_client_registration WHERE client_id = $1`,
+      [clientId],
+    );
+    return result.rows.map((row) => row.login_server);
+  }
+}
+
+const CONNECT_LINK_COLUMNS =
+  "token_hash, org, vault_id, address, return_url, created_by, created_by_class, created_by_bound_org, created_at, expires_at, used_at";
+
+interface ConnectLinkRow {
+  token_hash: string;
+  org: string;
+  vault_id: string;
+  address: string;
+  return_url: string;
+  created_by: string;
+  created_by_class: string;
+  created_by_bound_org: string;
+  created_at: string | number;
+  expires_at: string | number;
+  used_at: string | number;
+}
+
+class PostgresConnectLinkStore implements ConnectLinkStore {
+  constructor(private readonly open: () => Pool) {}
+
+  async create(link: ConnectLinkRecord): Promise<void> {
+    await this.open().query(
+      `INSERT INTO connect_link (${CONNECT_LINK_COLUMNS})
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+      [
+        link.tokenHash,
+        link.org,
+        link.vaultId,
+        link.address,
+        link.returnUrl,
+        link.createdBy,
+        link.createdByClass,
+        link.createdByBoundOrg,
+        link.createdAt,
+        link.expiresAt,
+        link.usedAt,
+      ],
+    );
+  }
+
+  async findUsable(tokenHash: string, now: number): Promise<ConnectLinkRecord | undefined> {
+    const result = await this.open().query<ConnectLinkRow>(
+      `SELECT ${CONNECT_LINK_COLUMNS} FROM connect_link
+       WHERE token_hash = $1 AND used_at = 0 AND expires_at > $2`,
+      [tokenHash, now],
+    );
+    const row = result.rows[0];
+    return row === undefined ? undefined : connectLinkOf(row);
+  }
+
+  async spend(tokenHash: string, now: number): Promise<boolean> {
+    const result = await this.open().query(
+      `UPDATE connect_link SET used_at = $2
+       WHERE token_hash = $1 AND used_at = 0 AND expires_at > $2`,
+      [tokenHash, now],
+    );
+    return (result.rowCount ?? 0) === 1;
+  }
+
+  async restore(tokenHash: string, usedAt: number): Promise<void> {
+    await this.open().query(
+      `UPDATE connect_link SET used_at = 0 WHERE token_hash = $1 AND used_at = $2`,
+      [tokenHash, usedAt],
+    );
+  }
+
+  async deleteExpired(now: number): Promise<number> {
+    const result = await this.open().query(
+      `DELETE FROM connect_link WHERE expires_at <= $1`,
+      [now],
+    );
+    return result.rowCount ?? 0;
+  }
+
+  async deleteByVault(vaultId: string): Promise<number> {
+    const result = await this.open().query(
+      `DELETE FROM connect_link WHERE vault_id = $1`,
+      [vaultId],
+    );
+    return result.rowCount ?? 0;
+  }
+
+  async deleteByOrg(org: string): Promise<number> {
+    const result = await this.open().query(
+      `DELETE FROM connect_link WHERE org = $1`,
+      [org],
+    );
+    return result.rowCount ?? 0;
+  }
+}
+
+function connectLinkOf(row: ConnectLinkRow): ConnectLinkRecord {
+  return {
+    tokenHash: row.token_hash,
+    org: row.org,
+    vaultId: row.vault_id,
+    address: row.address,
+    returnUrl: row.return_url,
+    createdBy: row.created_by,
+    createdByClass: row.created_by_class,
+    createdByBoundOrg: row.created_by_bound_org,
+    createdAt: Number(row.created_at),
+    expiresAt: Number(row.expires_at),
+    usedAt: Number(row.used_at),
+  };
 }
 
 /**

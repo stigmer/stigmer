@@ -156,11 +156,11 @@ export async function spawnServer(
       // the registry lane pass offline and flake online. Conformance servers
       // always serve the bundled snapshot.
       STIGMER_MODEL_REGISTRY_REFRESH: "off",
-      // Enable the MCP OAuth Connect lanes (unset means initiateOAuthConnect
-      // refuses with FailedPrecondition). The value is a fixed dummy: the
-      // server never fetches this URL — it only forwards it to the
-      // authorization server as the redirect_uri parameter, and the OAuth
-      // conformance suite's mock authorization server never redirects.
+      // Enable sign-ins and Connect links (unset, startSignIn refuses with
+      // FailedPrecondition). The value is a fixed dummy: the server never
+      // fetches this URL — it forwards it to the login server as the
+      // redirect_uri parameter and builds a Connect link's page on its
+      // origin, and the sign-in suites' mock login server never redirects.
       STIGMER_OAUTH_REDIRECT_URI: HERMETIC_OAUTH_REDIRECT_URI,
       ...(opts.env ?? {}),
     },

@@ -28,12 +28,9 @@ import { StdioSandboxNotice } from "./StdioSandboxNotice.js";
 import { OAuthRequiredNotice } from "./OAuthRequiredNotice.js";
 import { VendorApprovalBlockedNotice } from "./VendorApprovalBlockedNotice.js";
 import { useDisconnectOAuth } from "./useDisconnectOAuth.js";
-import { useOrgOAuthApp } from "./useOrgOAuthApp.js";
-import { OAuthAppForm } from "./OAuthAppForm.js";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
-import { DialogShell } from "../internal/DialogShell.js";
 import { EnvVarForm } from "../vault/EnvVarForm.js";
 import type { EnvVarFormVariable } from "../vault/EnvVarForm.js";
 import { VisibilityBadge } from "../library/VisibilitySelector.js";
@@ -244,13 +241,8 @@ export function McpServerDetailView({
   const connection = useMcpServerConnect();
   const oauth = useMcpServerOAuthConnect();
   const disconnectOAuth = useDisconnectOAuth();
-  const orgOAuthApp = useOrgOAuthApp(
-    mcpServer?.metadata?.id ?? null,
-    activeOrg ?? org,
-  );
 
   const [showCredentialForm, setShowCredentialForm] = useState(defaultShowCredentialForm);
-  const [showByoaForm, setShowByoaForm] = useState(false);
   const [capabilityTab, setCapabilityTab] = useState<CapabilityTab>(defaultCapabilityTab);
 
   const onResourceLoadRef = useRef(onResourceLoad);
@@ -265,17 +257,16 @@ export function McpServerDetailView({
   const handleOAuthSignIn = useCallback(async () => {
     if (!mcpServer?.metadata?.id) return;
 
+    // A failure refetches too (its error state is the oauth hook's):
+    // completeSignIn saves the login BEFORE the chained discovery runs, so a
+    // discovery-leg failure still changed server state. Without this, stale
+    // isOAuthConnected=false makes the next Connect click relaunch the popup
+    // instead of retrying discovery (stigmer/stigmer#229).
     try {
       await oauth.startOAuth(mcpServer.metadata.id, activeOrg ?? org);
       credentials.refetch();
       refetch();
     } catch {
-      // Error state is managed by the oauth hook — but refetch anyway:
-      // completeOAuthConnect persists the grant BEFORE the chained
-      // discovery runs, so a discovery-leg failure still changed server
-      // state. Without this, stale isOAuthConnected=false makes the next
-      // Connect click relaunch the popup instead of retrying discovery
-      // (stigmer/stigmer#229).
       credentials.refetch();
       refetch();
     }
@@ -354,33 +345,6 @@ export function McpServerDetailView({
     }
   }, [mcpServer, disconnectOAuth, credentials, refetch, activeOrg, org]);
 
-  const handleByoaOpenChange = useCallback(
-    (nextOpen: boolean) => {
-      if (nextOpen) return;
-      setShowByoaForm(false);
-      orgOAuthApp.clearErrors();
-    },
-    [orgOAuthApp],
-  );
-
-  const handleByoaSubmit = useCallback(
-    async (clientId: string, clientSecret: string) => {
-      await orgOAuthApp.setOrgOAuthApp(clientId, clientSecret);
-      setShowByoaForm(false);
-      orgOAuthApp.refetch();
-      credentials.refetch();
-      refetch();
-    },
-    [orgOAuthApp, credentials, refetch],
-  );
-
-  const handleRemoveOrgApp = useCallback(async () => {
-    await orgOAuthApp.deleteOrgOAuthApp();
-    orgOAuthApp.refetch();
-    credentials.refetch();
-    refetch();
-  }, [orgOAuthApp, credentials, refetch]);
-
   const spec = mcpServer?.spec;
   const status = mcpServer?.status;
   const hasSource = spec && (spec.repositoryUrl || spec.githubStars > 0);
@@ -391,7 +355,7 @@ export function McpServerDetailView({
   const hasDiscoveredTools = tools.length > 0;
 
   // "Signed in but never discovered" (stigmer/stigmer#229): the OAuth flow
-  // persists the grant in completeOAuthConnect BEFORE the chained discovery
+  // saves the login in completeSignIn BEFORE the chained discovery
   // runs, so a failed/interrupted discovery leg leaves a healthy grant with
   // empty discovered_capabilities. Both inputs are server truth, so this
   // derivation survives reloads and self-heals once discovery lands (even
@@ -616,13 +580,6 @@ export function McpServerDetailView({
           isVendorApprovalPending={credentials.isVendorApprovalPending}
           isVendorApprovalBlocked={credentials.isVendorApprovalBlocked}
           vendorApprovalDocsUrl={credentials.vendorApprovalDocsUrl}
-          canBringOwnApp={credentials.canBringOwnApp}
-          isOrgOAuthApp={credentials.isOrgOAuthApp}
-          onBringOwnApp={() => setShowByoaForm(true)}
-          onRemoveOrgApp={handleRemoveOrgApp}
-          isRemovingOrgApp={orgOAuthApp.isDeleting}
-          removeOrgAppError={orgOAuthApp.deleteError}
-          onClearRemoveOrgAppError={orgOAuthApp.clearErrors}
           manualOverride={credentials.manualOverride}
           onManualOverride={() => {
             credentials.setManualOverride(true);
@@ -654,30 +611,6 @@ export function McpServerDetailView({
           </div>
         )}
       </Section>
-
-      {/* BYOA dialog */}
-      <DialogShell
-        open={showByoaForm}
-        onOpenChange={handleByoaOpenChange}
-        width="md"
-        className="stg:p-6"
-        aria-label="Use your own OAuth app"
-      >
-        <h3 className="stg:mb-4 stg:text-base stg:font-semibold stg:text-foreground">
-          Use your own OAuth app
-        </h3>
-        <OAuthAppForm
-          providerName={mcpServer?.metadata?.name ?? slug}
-          vendorDocsUrl={credentials.vendorApprovalDocsUrl}
-          onSubmit={handleByoaSubmit}
-          onCancel={() => {
-            setShowByoaForm(false);
-            orgOAuthApp.clearErrors();
-          }}
-          isSubmitting={orgOAuthApp.isSetting}
-          error={orgOAuthApp.setError}
-        />
-      </DialogShell>
 
       <Section title="Capabilities" scrollTarget="mcp-capabilities">
         <Tabs
@@ -781,7 +714,6 @@ function healthStatusText(
 
 type DisconnectPhase = "idle" | "confirming" | "disconnecting";
 
-type RemoveOrgAppPhase = "idle" | "confirming" | "removing";
 
 function ConnectBar({
   isConnecting,
@@ -807,13 +739,6 @@ function ConnectBar({
   isVendorApprovalPending,
   isVendorApprovalBlocked,
   vendorApprovalDocsUrl,
-  canBringOwnApp,
-  isOrgOAuthApp,
-  onBringOwnApp,
-  onRemoveOrgApp,
-  isRemovingOrgApp,
-  removeOrgAppError,
-  onClearRemoveOrgAppError,
   manualEntrySupported,
   manualOverride,
   onManualOverride,
@@ -845,13 +770,6 @@ function ConnectBar({
   readonly isVendorApprovalPending: boolean;
   readonly isVendorApprovalBlocked: boolean;
   readonly vendorApprovalDocsUrl: string | null;
-  readonly canBringOwnApp: boolean;
-  readonly isOrgOAuthApp: boolean;
-  readonly onBringOwnApp: () => void;
-  readonly onRemoveOrgApp: () => Promise<void>;
-  readonly isRemovingOrgApp: boolean;
-  readonly removeOrgAppError: Error | null;
-  readonly onClearRemoveOrgAppError: () => void;
   /** `false` for `oauth_only` servers — the manual-entry link is suppressed. */
   readonly manualEntrySupported: boolean;
   readonly manualOverride: boolean;
@@ -860,7 +778,6 @@ function ConnectBar({
   readonly onCancelOAuth: () => void;
 }) {
   const [disconnectPhase, setDisconnectPhase] = useState<DisconnectPhase>("idle");
-  const [removeOrgAppPhase, setRemoveOrgAppPhase] = useState<RemoveOrgAppPhase>("idle");
 
   const isOAuthBusy =
     oauthPhase === "initiating" ||
@@ -874,15 +791,13 @@ function ConnectBar({
   const needsReAuth =
     connectionHealth === OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED;
 
-  const oauthSignInDisabled =
-    isVendorApprovalBlocked && showOAuthPrimary && !isOrgOAuthApp;
+  const oauthSignInDisabled = isVendorApprovalBlocked && showOAuthPrimary;
 
-  const anyBusy = isConnecting || isOAuthBusy || isDisconnecting || isRemovingOrgApp;
+  const anyBusy = isConnecting || isOAuthBusy || isDisconnecting;
 
   const buttonLabel = (() => {
     if (isOAuthBusy) return oauthPhaseLabel(oauthPhase);
     if (isConnecting) return "Connecting...";
-    if (isOrgOAuthApp && showOAuthPrimary) return "Sign in with your app";
     if (showOAuthPrimary || needsReAuth) return "Sign in to connect";
     if (isOAuthStranded) return "Discover tools";
     if (hasDiscoveredTools) return "Reconnect";
@@ -906,10 +821,8 @@ function ConnectBar({
       // Stranded takes precedence over token health: "tokens refresh
       // automatically" reads as all-done while the Tools tab is empty.
       if (isOAuthStranded) return "Signed in \u2014 tools not discovered yet";
-      const base = healthStatusText(connectionHealth, accessTokenExpiresAt, tokenLifetimeHint);
-      return isOrgOAuthApp ? `${base} \u00B7 Using your OAuth app` : base;
+      return healthStatusText(connectionHealth, accessTokenExpiresAt, tokenLifetimeHint);
     }
-    if (isOrgOAuthApp && showOAuthPrimary) return "Using your OAuth app";
     if (manualOverride) return "Entering token manually";
     if (hasDiscoveredTools) return "Connected";
     return "Not connected yet";
@@ -922,9 +835,6 @@ function ConnectBar({
 
   const showDisconnectLink =
     canDisconnect && !anyBusy && !manualOverride && disconnectPhase === "idle";
-
-  const showRemoveOrgAppLink =
-    isOrgOAuthApp && !anyBusy && removeOrgAppPhase === "idle";
 
   // Inline disconnect confirmation replaces the main bar content
   if (disconnectPhase === "confirming" || disconnectPhase === "disconnecting") {
@@ -995,76 +905,6 @@ function ConnectBar({
     );
   }
 
-  // Inline "remove custom app" confirmation
-  if (removeOrgAppPhase === "confirming" || removeOrgAppPhase === "removing") {
-    return (
-      <div className="stg:flex stg:flex-col">
-        <div className="stg:flex stg:items-center stg:gap-2 stg:px-3 stg:py-2">
-          <WarningIcon className="stg:size-3.5 stg:shrink-0 stg:text-destructive" />
-          <p className="stg:flex-1 stg:text-xs stg:text-foreground">
-            Remove your custom OAuth app for{" "}
-            <span className="stg:font-medium">{serverName}</span>? The server
-            will revert to the platform&apos;s OAuth app.
-          </p>
-          <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1.5">
-            <button
-              type="button"
-              disabled={isRemovingOrgApp}
-              onClick={async () => {
-                setRemoveOrgAppPhase("removing");
-                try {
-                  await onRemoveOrgApp();
-                  setRemoveOrgAppPhase("idle");
-                } catch {
-                  setRemoveOrgAppPhase("confirming");
-                }
-              }}
-              className={cn(
-                "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
-                "stg:bg-destructive stg:text-destructive-foreground stg:hover:bg-destructive-hover",
-                "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-              )}
-            >
-              {isRemovingOrgApp && <Spinner />}
-              Remove
-            </button>
-            <button
-              type="button"
-              disabled={isRemovingOrgApp}
-              onClick={() => {
-                setRemoveOrgAppPhase("idle");
-                onClearRemoveOrgAppError();
-              }}
-              className={cn(
-                "stg:inline-flex stg:items-center stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
-                "stg:border stg:border-border stg:bg-background stg:text-foreground stg:hover:bg-accent stg:hover:text-accent-foreground",
-                "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-              )}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-        {removeOrgAppError && (
-          <div className="stg:flex stg:items-start stg:gap-2 stg:border-t stg:border-destructive/20 stg:bg-destructive-subtle stg:px-3 stg:py-2">
-            <WarningIcon className="stg:mt-0.5 stg:size-3.5 stg:shrink-0 stg:text-destructive" />
-            <p className="stg:flex-1 stg:text-xs stg:text-destructive">
-              {getUserMessage(removeOrgAppError)}
-            </p>
-            <button
-              type="button"
-              onClick={onClearRemoveOrgAppError}
-              className="stg:shrink-0 stg:text-xs stg:text-destructive-muted stg:hover:text-destructive"
-              aria-label="Dismiss error"
-            >
-              Dismiss
-            </button>
-          </div>
-        )}
-      </div>
-    );
-  }
-
   return (
     <div className="stg:flex stg:flex-col">
       <div className="stg:flex stg:items-center stg:justify-between stg:px-3 stg:py-2">
@@ -1084,7 +924,7 @@ function ConnectBar({
             </span>
           )}
           <span className="stg:text-xs stg:text-muted-foreground">
-            {oauthSignInDisabled ? "OAuth sign-in is pending vendor approval" : statusText}
+            {oauthSignInDisabled ? "Sign-in is pending vendor approval" : statusText}
           </span>
           {showDisconnectLink && (
             <button
@@ -1093,15 +933,6 @@ function ConnectBar({
               className="stg:text-[11px] stg:text-muted-foreground stg:underline stg:decoration-muted-foreground/40 stg:underline-offset-2 stg:hover:text-foreground stg:hover:decoration-foreground"
             >
               Disconnect
-            </button>
-          )}
-          {showRemoveOrgAppLink && (
-            <button
-              type="button"
-              onClick={() => setRemoveOrgAppPhase("confirming")}
-              className="stg:text-[11px] stg:text-muted-foreground stg:underline stg:decoration-muted-foreground/40 stg:underline-offset-2 stg:hover:text-foreground stg:hover:decoration-foreground"
-            >
-              Remove custom app
             </button>
           )}
         </div>
@@ -1135,24 +966,21 @@ function ConnectBar({
         </div>
       )}
 
-      {/* Vendor approval blocked banner with BYOA CTA */}
+      {/* Vendor approval blocked banner */}
       {oauthSignInDisabled && (
         <VendorApprovalBlockedNotice
           blocked
           pending={isVendorApprovalPending}
           manualEntrySupported={manualEntrySupported}
-          canBringOwnApp={canBringOwnApp}
           docsUrl={vendorApprovalDocsUrl}
-          onBringOwnApp={onBringOwnApp}
           className="stg:border-t stg:border-amber-500/20"
         />
       )}
 
-      {/* Secondary actions: manual entry, BYOA, back to OAuth. Suppressed
-          entirely for oauth_only servers with no BYOA option, so no empty
-          action bar renders. */}
+      {/* Secondary actions: manual entry, back to sign-in. Suppressed
+          entirely for oauth_only servers, so no empty action bar renders. */}
       {authMode === "oauth" && !isOAuthConnected && !isOAuthBusy && !isConnecting &&
-        (manualOverride || manualEntrySupported || canBringOwnApp) && (
+        (manualOverride || manualEntrySupported) && (
         <div className="stg:flex stg:items-center stg:gap-3 stg:border-t stg:border-border stg:px-3 stg:py-1.5">
           {manualOverride ? (
             <button
@@ -1160,29 +988,18 @@ function ConnectBar({
               onClick={onBackToOAuth}
               className="stg:text-[11px] stg:text-muted-foreground stg:underline stg:decoration-muted-foreground/40 stg:underline-offset-2 stg:hover:text-foreground stg:hover:decoration-foreground"
             >
-              {isVendorApprovalPending ? "Back to OAuth status" : "Sign in with OAuth instead"}
+              {isVendorApprovalPending ? "Back to sign-in status" : "Sign in instead"}
             </button>
           ) : (
-            <>
-              {manualEntrySupported && (
-                <button
-                  type="button"
-                  onClick={onManualOverride}
-                  className="stg:text-[11px] stg:text-muted-foreground stg:underline stg:decoration-muted-foreground/40 stg:underline-offset-2 stg:hover:text-foreground stg:hover:decoration-foreground"
-                >
-                  Enter token manually
-                </button>
-              )}
-              {canBringOwnApp && !isVendorApprovalBlocked && (
-                <button
-                  type="button"
-                  onClick={onBringOwnApp}
-                  className="stg:text-[11px] stg:text-muted-foreground stg:underline stg:decoration-muted-foreground/40 stg:underline-offset-2 stg:hover:text-foreground stg:hover:decoration-foreground"
-                >
-                  Use your own OAuth app
-                </button>
-              )}
-            </>
+            manualEntrySupported && (
+              <button
+                type="button"
+                onClick={onManualOverride}
+                className="stg:text-[11px] stg:text-muted-foreground stg:underline stg:decoration-muted-foreground/40 stg:underline-offset-2 stg:hover:text-foreground stg:hover:decoration-foreground"
+              >
+                Enter token manually
+              </button>
+            )
           )}
         </div>
       )}

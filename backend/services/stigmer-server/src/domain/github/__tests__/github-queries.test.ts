@@ -95,12 +95,9 @@ function client(authorizer: Authorizer = newPermissiveSingleTeamAuthorizer()) {
   const transport = createRouterTransport(
     (router) => {
       registerGitHubServices(router, {
-        clientId: "client",
-        clientSecret: "secret",
         logger: silentLogger,
         authorizer,
         vaults,
-        pendingOAuthStates: store.pendingOAuthStates,
         fetchImpl,
       });
     },

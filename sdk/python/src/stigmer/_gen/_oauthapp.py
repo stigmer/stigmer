@@ -92,6 +92,7 @@ class OAuthAppInput:
     vendor_approval_status: int = 0
     vendor_approval_docs_url: str = ""
     token_endpoint_auth_method: int = 0
+    addresses: list[str] = field(default_factory=list)
 
     def _to_proto(self) -> api_pb2.OAuthApp:
         spec = spec_pb2.OAuthAppSpec(
@@ -108,6 +109,8 @@ class OAuthAppInput:
         )
         if self.scopes:
             spec.scopes.extend(self.scopes)
+        if self.addresses:
+            spec.addresses.extend(self.addresses)
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,

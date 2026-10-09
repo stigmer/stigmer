@@ -8,8 +8,8 @@
 // the server completes the spec with exactly the token variable
 // (`<SLUG>_ACCESS_TOKEN`), its secret env declaration, the Bearer header and
 // `auth.oauth_only`, and stamps `stigmer.ai/mcp-auth: endpoint` as the
-// completion's provenance. It writes nothing else (no discovery_url, no
-// scope_hints: Sign in re-reads those from the endpoint), and an endpoint
+// completion's provenance. It writes nothing else (no scope_hints: a sign-in
+// re-reads the scopes from the endpoint's metadata), and an endpoint
 // that answers anything else leaves the spec exactly as sent. A re-apply of
 // the same document reuses the completion with no second probe; a full
 // re-send of the completed spec (the console's per-field save) keeps the
@@ -92,9 +92,7 @@ describe("McpServer conformance — a URL-only server is completed from its endp
 
     expect(applied.spec?.auth?.targetEnvVar).toBe(variable);
     expect(applied.spec?.auth?.oauthOnly).toBe(true);
-    expect(applied.spec?.auth?.discoveryUrl).toBe("");
     expect(applied.spec?.auth?.scopeHints).toEqual([]);
-    expect(applied.spec?.auth?.oauthAppRef).toBeUndefined();
     expect(applied.spec?.env[variable]).toMatchObject({ isSecret: true, optional: false });
     expect(headersOf(applied)).toEqual({ Authorization: `Bearer \${${variable}}` });
     expect(applied.metadata?.labels[MCP_AUTH_LABEL]).toBe(MCP_AUTH_ENDPOINT);

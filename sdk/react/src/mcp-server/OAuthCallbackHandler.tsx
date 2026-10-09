@@ -34,6 +34,23 @@ export interface OAuthCallbackHandlerProps {
   readonly className?: string;
 }
 
+/** Tells the page that started a sign-in, on every transport that may reach it; best effort. */
+function announce(message: OAuthCallbackMessage): void {
+  try {
+    const bc = new BroadcastChannel(OAUTH_BROADCAST_CHANNEL);
+    bc.postMessage(message);
+    bc.close();
+  } catch {
+    // BroadcastChannel unavailable: the opener below is the only path.
+  }
+  try {
+    const opener = window.opener as Window | null;
+    if (opener && !opener.closed) opener.postMessage(message, window.location.origin);
+  } catch {
+    // An opener of another origin cannot be told.
+  }
+}
+
 /**
  * Lightweight component for OAuth callback pages.
  *
@@ -48,6 +65,9 @@ export interface OAuthCallbackHandlerProps {
  *    the extracted parameters so the host app can handle them.
  * 3. **No opener, no fallback**: shows a message asking the user to
  *    return to the main window.
+ *
+ * When the login page refused (`error`), the refusal is passed to the
+ * page that started the sign-in, so its wait ends at once, and shown here.
  *
  * Platform builders create a route in their application that renders
  * this component:
@@ -81,6 +101,11 @@ export function OAuthCallbackHandler({
     const oauthError = params.get("error");
     if (oauthError) {
       const description = params.get("error_description") || oauthError;
+      // The page that started the sign-in hears the refusal at once,
+      // rather than waiting out its timeout.
+      if (state) {
+        announce({ type: OAUTH_CALLBACK_MESSAGE_TYPE, code: "", state, error: description });
+      }
       setErrorMessage(`Authentication failed: ${description}`);
       setStatus("error");
       return;

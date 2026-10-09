@@ -1,8 +1,10 @@
 /**
  * Pins the login-server walk: the RFC 9728 documents tried most specific
  * first, the RFC 8414 well-known segment inserted BEFORE an issuer's path,
- * OpenID's document as the fallback, the challenge's pointer preferred, and
- * every attempt recorded so a caller can name the document it failed on.
+ * OpenID's document as the fallback, the challenge's pointer preferred, a
+ * protected-resource document counted only when it names the resource its URL
+ * was built from, and every attempt recorded so a caller can name the
+ * document it failed on.
  */
 import { describe, expect, it } from "vitest";
 
@@ -84,7 +86,7 @@ describe("resolveAuthorizationServers", () => {
 
   it("without a pointer walks the well-known documents most specific first", async () => {
     const { fetchImpl, requested } = serving({
-      "https://mcp.vendor.test/.well-known/oauth-protected-resource": { authorization_servers: ["https://login.vendor.test/tenant"] },
+      "https://mcp.vendor.test/.well-known/oauth-protected-resource": { resource: "https://mcp.vendor.test/", authorization_servers: ["https://login.vendor.test/tenant"] },
     });
     const result = await resolveAuthorizationServers("https://mcp.vendor.test/mcp", undefined, { ...deps, fetchImpl });
     expect(result.issuers).toEqual(["https://login.vendor.test/tenant"]);
@@ -93,6 +95,56 @@ describe("resolveAuthorizationServers", () => {
       { url: "https://mcp.vendor.test/.well-known/oauth-protected-resource/mcp", status: 404 },
       { url: "https://mcp.vendor.test/.well-known/oauth-protected-resource", status: 200 },
     ]);
+  });
+
+  it("reads the resource's own scopes_supported beside its login servers", async () => {
+    const { fetchImpl } = serving({
+      "https://mcp.vendor.test/.well-known/oauth-protected-resource/mcp": {
+        resource: "https://MCP.vendor.test:443/mcp/",
+        authorization_servers: ["https://login.vendor.test"],
+        scopes_supported: ["issues:read", "issues:write"],
+      },
+    });
+    const result = await resolveAuthorizationServers("https://mcp.vendor.test/mcp", undefined, { ...deps, fetchImpl });
+    expect(result.issuers).toEqual(["https://login.vendor.test"]);
+    expect(result.scopesSupported).toEqual(["issues:read", "issues:write"]);
+  });
+
+  it("discards a document naming another resource, or none, and records why", async () => {
+    const { fetchImpl } = serving({
+      "https://mcp.vendor.test/.well-known/oauth-protected-resource/mcp": { resource: "https://mcp.other.test/mcp", authorization_servers: ["https://login.other.test"] },
+      "https://mcp.vendor.test/.well-known/oauth-protected-resource": { authorization_servers: ["https://login.other.test"] },
+    });
+    const result = await resolveAuthorizationServers("https://mcp.vendor.test/mcp", undefined, { ...deps, fetchImpl });
+    expect(result.issuers).toEqual([]);
+    expect(result.attempts).toEqual([
+      { url: "https://mcp.vendor.test/.well-known/oauth-protected-resource/mcp", status: 200, missing: "resource" },
+      { url: "https://mcp.vendor.test/.well-known/oauth-protected-resource", status: 200, missing: "resource" },
+    ]);
+  });
+
+  it("holds the path-suffixed document to the resource and the bare one to its origin or the resource", async () => {
+    const { fetchImpl } = serving({
+      "https://mcp.vendor.test/.well-known/oauth-protected-resource/mcp": { resource: "https://mcp.vendor.test", authorization_servers: ["https://login.other.test"] },
+      "https://mcp.vendor.test/.well-known/oauth-protected-resource": { resource: "https://mcp.vendor.test/other", authorization_servers: ["https://login.other.test"] },
+    });
+    const result = await resolveAuthorizationServers("https://mcp.vendor.test/mcp", undefined, { ...deps, fetchImpl });
+    expect(result.issuers).toEqual([]);
+  });
+
+  it("takes a bare document that names the resource itself, as many servers write it", async () => {
+    const { fetchImpl } = serving({
+      "https://mcp.vendor.test/.well-known/oauth-protected-resource": { resource: "https://mcp.vendor.test/mcp", authorization_servers: ["https://login.vendor.test"] },
+    });
+    const result = await resolveAuthorizationServers("https://mcp.vendor.test/mcp", undefined, { ...deps, fetchImpl });
+    expect(result.issuers).toEqual(["https://login.vendor.test"]);
+  });
+
+  it("holds the challenge's pointer to the resource itself", async () => {
+    const pointer = "https://mcp.vendor.test/.well-known/oauth-protected-resource/mcp";
+    const { fetchImpl } = serving({ [pointer]: { resource: "https://mcp.vendor.test", authorization_servers: ["https://login.vendor.test"] } });
+    const result = await resolveAuthorizationServers("https://mcp.vendor.test/mcp", pointer, { ...deps, fetchImpl });
+    expect(result.issuers).toEqual([]);
   });
 
   it("answers no issuers when no document names any, recording every attempt", async () => {
@@ -115,22 +167,31 @@ describe("resolveAuthorizationServers", () => {
 describe("readAuthorizationServerMetadata", () => {
   it("reads a path-bearing issuer through the inserted well-known segment", async () => {
     const { fetchImpl, requested } = serving({
-      "https://login.vendor.test/.well-known/oauth-authorization-server/tenant": ISSUER_DOCUMENT,
+      "https://login.vendor.test/.well-known/oauth-authorization-server/tenant": { ...ISSUER_DOCUMENT, issuer: "https://login.vendor.test/tenant" },
     });
     const read = await readAuthorizationServerMetadata("https://login.vendor.test/tenant", { ...deps, fetchImpl });
     expect(read.kind).toBe("found");
     if (read.kind === "found") {
       expect(read.metadata).toEqual({
         metadataUrl: "https://login.vendor.test/.well-known/oauth-authorization-server/tenant",
-        issuer: "https://login.vendor.test",
+        issuer: "https://login.vendor.test/tenant",
         authorizationEndpoint: "https://login.vendor.test/authorize",
         tokenEndpoint: "https://login.vendor.test/token",
         registrationEndpoint: "https://login.vendor.test/register",
         scopesSupported: ["read"],
         codeChallengeMethodsSupported: ["S256"],
+        clientIdMetadataDocumentSupported: false,
       });
     }
     expect(requested).toEqual(["https://login.vendor.test/.well-known/oauth-authorization-server/tenant"]);
+  });
+
+  it("reads whether the login server takes a Client ID Metadata Document", async () => {
+    const { fetchImpl } = serving({
+      "https://login.vendor.test/.well-known/oauth-authorization-server": { ...ISSUER_DOCUMENT, client_id_metadata_document_supported: true },
+    });
+    const read = await readAuthorizationServerMetadata("https://login.vendor.test", { ...deps, fetchImpl });
+    expect(read.kind === "found" && read.metadata.clientIdMetadataDocumentSupported).toBe(true);
   });
 
   it("falls back to OpenID's document and reads an absent registration_endpoint as empty", async () => {
@@ -147,9 +208,24 @@ describe("readAuthorizationServerMetadata", () => {
     expect(requested).toEqual(["https://login.vendor.test/.well-known/oauth-authorization-server", "https://login.vendor.test/.well-known/openid-configuration"]);
   });
 
+  it("discards a document that names another login server as its issuer (RFC 8414 section 3.3)", async () => {
+    const { fetchImpl } = serving({
+      "https://login.attacker.test/.well-known/oauth-authorization-server": ISSUER_DOCUMENT,
+      "https://login.attacker.test/.well-known/openid-configuration": { ...ISSUER_DOCUMENT, issuer: "https://login.attacker.test.evil" },
+    });
+    const read = await readAuthorizationServerMetadata("https://login.attacker.test", { ...deps, fetchImpl });
+    expect(read).toEqual({
+      kind: "not-found",
+      attempts: [
+        { url: "https://login.attacker.test/.well-known/oauth-authorization-server", status: 200, missing: "issuer" },
+        { url: "https://login.attacker.test/.well-known/openid-configuration", status: 200, missing: "issuer" },
+      ],
+    });
+  });
+
   it("skips a document that lacks either endpoint and reports not-found with every attempt", async () => {
     const { fetchImpl } = serving({
-      "https://login.vendor.test/.well-known/oauth-authorization-server": { issuer: "x", authorization_endpoint: "https://login.vendor.test/authorize" },
+      "https://login.vendor.test/.well-known/oauth-authorization-server": { issuer: "https://login.vendor.test", authorization_endpoint: "https://login.vendor.test/authorize" },
       "https://login.vendor.test/.well-known/openid-configuration": { status: 503 },
     });
     const read = await readAuthorizationServerMetadata("https://login.vendor.test", { ...deps, fetchImpl });

@@ -10,8 +10,10 @@ import "buf/validate/validate.proto";
 // Represents Stigmer's (or a platform builder's) OAuth app registration
 // with an external vendor like Slack, Salesforce, or Figma.
 //
-// Created by org admins or platform operators. Referenced by McpServer
-// resources that need vendor OAuth authentication via McpServerAuth.
+// Created by org admins. Found by the addresses it signs in to: a sign-in
+// at an address listed here uses this app, ahead of Stigmer's built-in app
+// for the address and of the address's own login server. Each address
+// belongs to one app in an organization.
 //
 // Analogous to IdentityProvider (inbound auth trust), OAuthApp represents
 // outbound auth — how Stigmer authenticates with external services on
@@ -42,6 +44,7 @@ import "buf/validate/validate.proto";
 //     token_url: "https://slack.com/api/oauth.v2.access"
 //     scopes: ["channels:read", "chat:write"]
 //     scope_parameter_name: "user_scope"
+//     addresses: ["https://mcp.slack.com/mcp"]
 message OAuthAppSpec {
   // Human-readable vendor name for UI display and logging.
   // Examples: "Slack", "Salesforce", "Figma"
@@ -70,10 +73,11 @@ message OAuthAppSpec {
   //           ["read_api", "api"] (GitLab)
   repeated string scopes = 6;
 
-  // Optional OIDC UserInfo endpoint for fetching user profile data.
-  // When set, Stigmer calls this endpoint after token acquisition to
-  // retrieve the user's display name and avatar for the connected account.
-  // Omit for vendors that do not support a standard userinfo endpoint.
+  // Optional endpoint that answers who signed in (an OIDC UserInfo
+  // endpoint, or a vendor's equivalent such as GitHub's /user).
+  // When set, Stigmer calls it once after the sign-in, with the new token,
+  // and describes the saved login by the account's login, preferred user
+  // name or email ("Slack @ana"). Omit for vendors without one.
   string userinfo_url = 7;
 
   // Name of the query parameter used to send scopes in the authorization URL.
@@ -116,6 +120,22 @@ message OAuthAppSpec {
   // UNSPECIFIED is treated as CLIENT_SECRET_BASIC for backwards
   // compatibility, preserving the historical behavior byte-for-byte.
   TokenEndpointAuthMethod token_endpoint_auth_method = 11;
+
+  // The addresses this app signs in to: a tool's URL (Slack's MCP endpoint
+  // at mcp.slack.com/mcp, over https) or a Git host (github.com), normalized
+  // as a vault connection's address is. A sign-in started at one of them uses
+  // this app. An address may belong to only one app in the organization.
+  repeated string addresses = 12 [(buf.validate.field).repeated = {
+    min_items: 1
+    max_items: 20
+    unique: true
+    items: {
+      string: {
+        min_len: 1
+        max_len: 2048
+      }
+    }
+  }];
 }
 
 // Lifecycle status of an OAuthApp's vendor marketplace approval.

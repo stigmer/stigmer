@@ -1,7 +1,6 @@
 /**
  * Pins the McpServer CRUD slice against Go's mcpserver_controller_test.go
- * + enrich_oauth_status_test.go +
- * org_oauth_app_unimplemented_test.go — through the REAL stack: a composed
+ * + enrich_oauth_status_test.go — through the REAL stack: a composed
  * server on an ephemeral port, a native gRPC client, the full interceptor
  * chain.
  *
@@ -9,10 +8,9 @@
  * store access or surfaces it doesn't roster): an update carrying the
  * discovered capabilities and their destructive hints over (they only
  * exist post-connect, which needs store seeding here),
- * the #523 oauth_status enrichment matrix (needs seeded OAuthApps), the
- * updateVisibility ordering (no conformance coverage for this domain —
- * a known gap), and the #558 UNIMPLEMENTED guard (unit-level in
- * Go too).
+ * the #523 oauth_status enrichment matrix (needs seeded OAuthApps with
+ * their address claims), and the updateVisibility ordering (no conformance
+ * coverage for this domain — a known gap).
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -45,6 +43,7 @@ import {
   organizationId,
   seedOrganizations,
 } from "../../organization/__tests__/support.js";
+import { oauthAppAddressKey } from "../../vault/login-app.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -106,9 +105,8 @@ let counter = 0;
 function serverInput(overrides?: {
   name?: string;
   org?: string;
-  oauthAppSlug?: string;
-  /** An auth block WITHOUT an oauth_app_ref — the DCR/manual-token arm. */
-  dcrAuth?: boolean;
+  /** An HTTP server at this address taking a sign-in. */
+  signInAt?: string;
 }) {
   counter += 1;
   return {
@@ -120,25 +118,17 @@ function serverInput(overrides?: {
     },
     spec: {
       description: "created by the domain test",
-      serverType: {
-        case: "stdio" as const,
-        value: { command: "npx", args: ["-y", "@example/mcp"] },
-      },
-      ...(overrides?.oauthAppSlug !== undefined
+      ...(overrides?.signInAt !== undefined
         ? {
-            auth: {
-              oauthAppRef: {
-                org: ORG,
-                slug: overrides.oauthAppSlug,
-                kind: ApiResourceKind.oauth_app,
-              },
-              targetEnvVar: "EXAMPLE_TOKEN",
-            },
+            serverType: { case: "http" as const, value: { url: overrides.signInAt } },
+            auth: { targetEnvVar: "EXAMPLE_TOKEN" },
           }
-        : {}),
-      ...(overrides?.dcrAuth === true
-        ? { auth: { targetEnvVar: "EXAMPLE_TOKEN" } }
-        : {}),
+        : {
+            serverType: {
+              case: "stdio" as const,
+              value: { command: "npx", args: ["-y", "@example/mcp"] },
+            },
+          }),
     },
   };
 }
@@ -360,12 +350,14 @@ describe("update keeps what discovery recorded", () => {
 });
 
 describe("EnrichOAuthStatus (#523) — response-only oauth_status", () => {
+  /** An organization's login app for `address`, with its address claim. */
   async function seedOAuthApp(
     slug: string,
     approval: VendorApprovalStatus,
     docsUrl: string,
-  ): Promise<void> {
+  ): Promise<string> {
     const id = `oaa_${slug.replaceAll("-", "")}`;
+    const address = `https://${slug}.vendor.example/mcp`;
     await server.store.saveResource(
       ApiResourceKind.oauth_app,
       id,
@@ -375,37 +367,38 @@ describe("EnrichOAuthStatus (#523) — response-only oauth_status", () => {
         spec: {
           vendorApprovalStatus: approval,
           vendorApprovalDocsUrl: docsUrl,
+          addresses: [address],
         },
       }),
     );
+    await server.store.resourceNames.claim(oauthAppAddressKey(ORG_ID, address), id, new Date().toISOString());
+    return address;
   }
 
-  it("servers without an oauth_app_ref are untouched", async () => {
+  it("servers without an auth block are untouched", async () => {
     const created = await command.create(serverInput());
     const got = await query.get({ value: created.metadata!.id });
     expect(got.status?.oauthStatus).toBeUndefined();
   });
 
-  it("a missing OAuthApp skips enrichment (the initiate path owns refusing)", async () => {
-    // The app must exist when the server is written (the reference rule);
-    // a reference dangles when its target leaves afterwards.
-    await seedOAuthApp("never-applied", VendorApprovalStatus.UNSPECIFIED, "");
-    const created = await command.create(
-      serverInput({ oauthAppSlug: "never-applied" }),
-    );
-    await server.store.deleteResource(
-      ApiResourceKind.oauth_app,
-      "oaa_neverapplied",
-    );
+  it("an address no login app of the organization lists is untouched", async () => {
+    const created = await command.create(serverInput({ signInAt: "https://unlisted.vendor.example/mcp" }));
+    const got = await query.get({ value: created.metadata!.id });
+    expect(got.spec?.auth?.targetEnvVar).toBe("EXAMPLE_TOKEN");
+    expect(got.status?.oauthStatus).toBeUndefined();
+  });
+
+  it("an app deleted since skips enrichment (the start owns refusing)", async () => {
+    const address = await seedOAuthApp("gone-app", VendorApprovalStatus.PENDING, "");
+    const created = await command.create(serverInput({ signInAt: address }));
+    await server.store.deleteResource(ApiResourceKind.oauth_app, "oaa_goneapp");
     const got = await query.get({ value: created.metadata!.id });
     expect(got.status?.oauthStatus).toBeUndefined();
   });
 
   it("nothing-to-report means ABSENT — presence itself is the SDK's signal", async () => {
-    await seedOAuthApp("plain-app", VendorApprovalStatus.UNSPECIFIED, "");
-    const created = await command.create(
-      serverInput({ oauthAppSlug: "plain-app" }),
-    );
+    const address = await seedOAuthApp("plain-app", VendorApprovalStatus.UNSPECIFIED, "");
+    const created = await command.create(serverInput({ signInAt: address }));
     const got = await query.get({ value: created.metadata!.id });
     expect(got.status?.oauthStatus).toBeUndefined();
   });
@@ -415,60 +408,29 @@ describe("EnrichOAuthStatus (#523) — response-only oauth_status", () => {
   // alone must enrich (Go enrich_oauth_status_test.go's docs-only and
   // status-only arms — the executable spec of the #523 shared contract).
   it("a docs URL ALONE enriches, even with an UNSPECIFIED approval status", async () => {
-    await seedOAuthApp(
-      "docs-only-app",
-      VendorApprovalStatus.UNSPECIFIED,
-      "https://vendor.example/setup",
-    );
-    const created = await command.create(
-      serverInput({ oauthAppSlug: "docs-only-app" }),
-    );
+    const address = await seedOAuthApp("docs-only-app", VendorApprovalStatus.UNSPECIFIED, "https://vendor.example/setup");
+    const created = await command.create(serverInput({ signInAt: address }));
     const got = await query.get({ value: created.metadata!.id });
-    expect(got.status?.oauthStatus?.vendorApprovalStatus).toBe(
-      VendorApprovalStatus.UNSPECIFIED,
-    );
-    expect(got.status?.oauthStatus?.vendorApprovalDocsUrl).toBe(
-      "https://vendor.example/setup",
-    );
+    expect(got.status?.oauthStatus?.vendorApprovalStatus).toBe(VendorApprovalStatus.UNSPECIFIED);
+    expect(got.status?.oauthStatus?.vendorApprovalDocsUrl).toBe("https://vendor.example/setup");
   });
 
   it("a non-default approval status ALONE enriches — REJECTED and even APPROVED are reported", async () => {
-    await seedOAuthApp("rejected-app", VendorApprovalStatus.REJECTED, "");
-    const rejected = await command.create(
-      serverInput({ oauthAppSlug: "rejected-app" }),
-    );
+    const rejectedAt = await seedOAuthApp("rejected-app", VendorApprovalStatus.REJECTED, "");
+    const rejected = await command.create(serverInput({ signInAt: rejectedAt }));
     const gotRejected = await query.get({ value: rejected.metadata!.id });
-    expect(gotRejected.status?.oauthStatus?.vendorApprovalStatus).toBe(
-      VendorApprovalStatus.REJECTED,
-    );
+    expect(gotRejected.status?.oauthStatus?.vendorApprovalStatus).toBe(VendorApprovalStatus.REJECTED);
     expect(gotRejected.status?.oauthStatus?.vendorApprovalDocsUrl).toBe("");
 
-    await seedOAuthApp("approved-app", VendorApprovalStatus.APPROVED, "");
-    const approved = await command.create(
-      serverInput({ oauthAppSlug: "approved-app" }),
-    );
+    const approvedAt = await seedOAuthApp("approved-app", VendorApprovalStatus.APPROVED, "");
+    const approved = await command.create(serverInput({ signInAt: approvedAt }));
     const gotApproved = await query.get({ value: approved.metadata!.id });
-    expect(gotApproved.status?.oauthStatus?.vendorApprovalStatus).toBe(
-      VendorApprovalStatus.APPROVED,
-    );
-  });
-
-  it("an auth block WITHOUT an oauth_app_ref (the DCR arm) is untouched", async () => {
-    const created = await command.create(serverInput({ dcrAuth: true }));
-    const got = await query.get({ value: created.metadata!.id });
-    expect(got.spec?.auth?.targetEnvVar).toBe("EXAMPLE_TOKEN");
-    expect(got.status?.oauthStatus).toBeUndefined();
+    expect(gotApproved.status?.oauthStatus?.vendorApprovalStatus).toBe(VendorApprovalStatus.APPROVED);
   });
 
   it("a gating approval status or docs URL enriches BOTH read paths, response-only", async () => {
-    await seedOAuthApp(
-      "gated-app",
-      VendorApprovalStatus.PENDING,
-      "https://vendor.example/approval",
-    );
-    const created = await command.create(
-      serverInput({ oauthAppSlug: "gated-app" }),
-    );
+    const address = await seedOAuthApp("gated-app", VendorApprovalStatus.PENDING, "https://vendor.example/approval");
+    const created = await command.create(serverInput({ signInAt: address }));
 
     for (const loaded of [
       await query.get({ value: created.metadata!.id }),
@@ -489,41 +451,5 @@ describe("EnrichOAuthStatus (#523) — response-only oauth_status", () => {
       McpServerSchema,
     );
     expect(stored.status?.oauthStatus).toBeUndefined();
-  });
-});
-
-describe("org-OAuth-app surface — UNIMPLEMENTED by design (#558)", () => {
-  // The three RPCs are ONE capability; the SDK probes getOrgOAuthApp and
-  // hides every BYOA affordance on UNIMPLEMENTED. Codes AND grpc-go's
-  // generated texts are pinned — implementing any one RPC without the
-  // other two + the SDK gate would resurrect dead affordances on OSS.
-  it("getOrgOAuthApp / setOrgOAuthApp / deleteOrgOAuthApp answer Unimplemented with Go's text", async () => {
-    const getErr = await expectCode(
-      query.getOrgOAuthApp({ resourceId: "mcps_test", org: ORG }),
-      Code.Unimplemented,
-      "getOrgOAuthApp",
-    );
-    expect(getErr.rawMessage).toBe("method GetOrgOAuthApp not implemented");
-
-    const setErr = await expectCode(
-      command.setOrgOAuthApp({
-        resourceId: "mcps_test",
-        org: ORG,
-        clientId: "x",
-        clientSecret: "y",
-      }),
-      Code.Unimplemented,
-      "setOrgOAuthApp",
-    );
-    expect(setErr.rawMessage).toBe("method SetOrgOAuthApp not implemented");
-
-    const deleteErr = await expectCode(
-      command.deleteOrgOAuthApp({ resourceId: "mcps_test", org: ORG }),
-      Code.Unimplemented,
-      "deleteOrgOAuthApp",
-    );
-    expect(deleteErr.rawMessage).toBe(
-      "method DeleteOrgOAuthApp not implemented",
-    );
   });
 });

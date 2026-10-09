@@ -141,30 +141,21 @@ message VaultConnectionSignIn {
   // Sealed at rest beside the access token; the renewal reads it in-process.
   string refresh_token = 5;
 
-  // The MCP server the sign-in was started from, by id. The sign-in fills
-  // that server's login only.
-  //
-  // @internal
-  // Binding a sign-in to its server keeps a definition that declares
-  // another tool's address (a local program's discovery URL, a login server
-  // apart from the tool) from receiving a token minted for someone else's
-  // tool. A vendor sign-in's renewal also finds its OAuth app through this
-  // server's auth.oauth_app_ref. Empty for the GitHub sign-in, which serves
-  // clones from github.com.
-  string mcp_server_id = 6;
+  // Fields 6 and 7 held the MCP server a sign-in was started from and
+  // whether it was a local program: a sign-in then filled that one server.
+  // A sign-in now fills every HTTP tool at its address, as a pasted login
+  // does, and a local program has no sign-in.
+  reserved 6, 7;
+  reserved "mcp_server_id", "local_program";
 
-  // Whether the MCP server was a local program (stdio) when the sign-in
-  // completed; false for an HTTP server. The sign-in fills that server's
-  // login only while it is still the same kind: a server switched between
-  // an HTTP server and a local program needs a new sign-in. Set by the
-  // server.
+  // The login app the sign-in used, so a renewal presents the same client:
+  // "org:<OAuthApp id>" for an organization's app, "stigmer:<key>" for one of
+  // Stigmer's built-in login apps, and empty for a client registered with
+  // the address's own login server, which has no secret. Set by the server.
   //
   // @internal
-  // A local program's address is its auth.discovery_url, which an editor
-  // may set to the URL the server had as an HTTP server, so the address
-  // and the server id alone would let earlier sign-ins fill a program
-  // that runs on the runner. The run resolver (domain/vault/resolve.ts
-  // madeFor) refuses a sign-in whose recorded kind is not the server's
-  // current kind.
-  bool local_program = 7;
+  // A renewal sends an app's secret only while that app's client id and
+  // token URL still equal this record's, so an app repointed since the
+  // sign-in never has its secret sent to an endpoint it was not issued for.
+  string login_app = 8;
 }

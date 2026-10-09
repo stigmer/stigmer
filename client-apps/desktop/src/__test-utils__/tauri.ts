@@ -21,7 +21,7 @@ export const APP_COMMANDS = [
   "open_auth_in_browser",
   "cancel_auth",
   "start_auth_callback_server",
-  "start_github_callback_server",
+  "start_sign_in_callback_server",
   "start_runner",
   "stop_runner",
   "kill_runner",

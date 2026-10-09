@@ -2,20 +2,22 @@
 // @generated from file ai/stigmer/agentic/vault/v1/io.proto (package ai.stigmer.agentic.vault.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
-import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
+import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
+import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { Vault } from "./api_pb.js";
 import { file_ai_stigmer_agentic_vault_v1_api } from "./api_pb.js";
 import type { PageInfo } from "../../../commons/rpc/pagination_pb.js";
 import { file_ai_stigmer_commons_rpc_pagination } from "../../../commons/rpc/pagination_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
+import type { Timestamp } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ai/stigmer/agentic/vault/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_vault_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiRhaS9zdGlnbWVyL2FnZW50aWMvdmF1bHQvdjEvaW8ucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MSJjCgtWYXVsdFRhcmdldBIUCgNvcmcYASABKAlCB7pIBHICEAESFQoCaWQYAiABKAlCB7pIBHICEAFIABIXCgRtaW5lGAMgASgIQge6SARqAggBSABCDgoFdmF1bHQSBbpIAggBIk0KEFZhdWx0U2VjcmV0SW5wdXQSGgoFdmFsdWUYASABKAlCC7pICHIGEAEYgIAEEh0KC2Rlc2NyaXB0aW9uGAIgASgJQgi6SAVyAxj0AyK0AgoUU2V0VmF1bHRTZWNyZXRzSW5wdXQSPwoFdmF1bHQYASABKAsyKC5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuVmF1bHRUYXJnZXRCBrpIA8gBARJ8CgdzZWNyZXRzGAIgAygLMj4uYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLlNldFZhdWx0U2VjcmV0c0lucHV0LlNlY3JldHNFbnRyeUIrukgomgElCAEQZCIfch0YgAEyGF5bQS1aYS16X11bQS1aYS16MC05X10qJBpdCgxTZWNyZXRzRW50cnkSCwoDa2V5GAEgASgJEjwKBXZhbHVlGAIgASgLMi0uYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLlZhdWx0U2VjcmV0SW5wdXQ6AjgBIn4KF1JlbW92ZVZhdWx0U2VjcmV0c0lucHV0Ej8KBXZhdWx0GAEgASgLMiguYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLlZhdWx0VGFyZ2V0Qga6SAPIAQESIgoFbmFtZXMYAiADKAlCE7pIEJIBDQgBEGQiB3IFEAEYgAEisgEKF1NldFZhdWx0Q29ubmVjdGlvbklucHV0Ej8KBXZhdWx0GAEgASgLMiguYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLlZhdWx0VGFyZ2V0Qga6SAPIAQESGwoHYWRkcmVzcxgCIAEoCUIKukgHcgUQARiAEBIaCgV0b2tlbhgDIAEoCUILukgIcgYQARiAgAQSHQoLZGVzY3JpcHRpb24YBCABKAlCCLpIBXIDGPQDIoYBChtSZW1vdmVWYXVsdENvbm5lY3Rpb25zSW5wdXQSPwoFdmF1bHQYASABKAsyKC5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuVmF1bHRUYXJnZXRCBrpIA8gBARImCglhZGRyZXNzZXMYAiADKAlCE7pIEJIBDQgBEGQiB3IFEAEYgBAiJwoPR2V0TXlWYXVsdElucHV0EhQKA29yZxgBIAEoCUIHukgEcgIQASJPChlHZXRWYXVsdEJ5RXh0ZXJuYWxJZElucHV0EhQKA29yZxgBIAEoCUIHukgEcgIQARIcCgtleHRlcm5hbF9pZBgCIAEoCUIHukgEcgIQASJeChFMaXN0VmF1bHRzUmVxdWVzdBIUCgNvcmcYASABKAlCB7pIBHICEAESMwoJcGFnZV9pbmZvGAIgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbyJTCglWYXVsdExpc3QSEwoLdG90YWxfY291bnQYASABKAUSMQoFaXRlbXMYAiADKAsyIi5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuVmF1bHRiBnByb3RvMw", [file_ai_stigmer_agentic_vault_v1_api, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate]);
+  fileDesc("CiRhaS9zdGlnbWVyL2FnZW50aWMvdmF1bHQvdjEvaW8ucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MSJjCgtWYXVsdFRhcmdldBIUCgNvcmcYASABKAlCB7pIBHICEAESFQoCaWQYAiABKAlCB7pIBHICEAFIABIXCgRtaW5lGAMgASgIQge6SARqAggBSABCDgoFdmF1bHQSBbpIAggBIk0KEFZhdWx0U2VjcmV0SW5wdXQSGgoFdmFsdWUYASABKAlCC7pICHIGEAEYgIAEEh0KC2Rlc2NyaXB0aW9uGAIgASgJQgi6SAVyAxj0AyK0AgoUU2V0VmF1bHRTZWNyZXRzSW5wdXQSPwoFdmF1bHQYASABKAsyKC5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuVmF1bHRUYXJnZXRCBrpIA8gBARJ8CgdzZWNyZXRzGAIgAygLMj4uYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLlNldFZhdWx0U2VjcmV0c0lucHV0LlNlY3JldHNFbnRyeUIrukgomgElCAEQZCIfch0YgAEyGF5bQS1aYS16X11bQS1aYS16MC05X10qJBpdCgxTZWNyZXRzRW50cnkSCwoDa2V5GAEgASgJEjwKBXZhbHVlGAIgASgLMi0uYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLlZhdWx0U2VjcmV0SW5wdXQ6AjgBIn4KF1JlbW92ZVZhdWx0U2VjcmV0c0lucHV0Ej8KBXZhdWx0GAEgASgLMiguYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLlZhdWx0VGFyZ2V0Qga6SAPIAQESIgoFbmFtZXMYAiADKAlCE7pIEJIBDQgBEGQiB3IFEAEYgAEisgEKF1NldFZhdWx0Q29ubmVjdGlvbklucHV0Ej8KBXZhdWx0GAEgASgLMiguYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLlZhdWx0VGFyZ2V0Qga6SAPIAQESGwoHYWRkcmVzcxgCIAEoCUIKukgHcgUQARiAEBIaCgV0b2tlbhgDIAEoCUILukgIcgYQARiAgAQSHQoLZGVzY3JpcHRpb24YBCABKAlCCLpIBXIDGPQDIoYBChtSZW1vdmVWYXVsdENvbm5lY3Rpb25zSW5wdXQSPwoFdmF1bHQYASABKAsyKC5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuVmF1bHRUYXJnZXRCBrpIA8gBARImCglhZGRyZXNzZXMYAiADKAlCE7pIEJIBDQgBEGQiB3IFEAEYgBAiJwoPR2V0TXlWYXVsdElucHV0EhQKA29yZxgBIAEoCUIHukgEcgIQASJPChlHZXRWYXVsdEJ5RXh0ZXJuYWxJZElucHV0EhQKA29yZxgBIAEoCUIHukgEcgIQARIcCgtleHRlcm5hbF9pZBgCIAEoCUIHukgEcgIQASJeChFMaXN0VmF1bHRzUmVxdWVzdBIUCgNvcmcYASABKAlCB7pIBHICEAESMwoJcGFnZV9pbmZvGAIgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbyJTCglWYXVsdExpc3QSEwoLdG90YWxfY291bnQYASABKAUSMQoFaXRlbXMYAiADKAsyIi5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuVmF1bHQi8wMKEFN0YXJ0U2lnbkluSW5wdXQSPwoFdmF1bHQYASABKAsyKC5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuVmF1bHRUYXJnZXRCBrpIA8gBARIbCgdhZGRyZXNzGAIgASgJQgq6SAdyBRABGIAQEjwKCXJldHVybl90bxgDIAEoDjIpLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5TaWduSW5SZXR1cm4SIAoNbG9vcGJhY2tfcG9ydBgEIAEoDUIJukgGKgQY//8DOqACukicAhqZAgobc3RhcnRfc2lnbl9pbi5sb29wYmFja19wb3J0EogBbG9vcGJhY2tfcG9ydCBpcyByZXF1aXJlZCBmb3IgcmV0dXJuX3RvIGxvb3BiYWNrICgxNzIzNyB0byAxNzIzOSwgdGhlIHBvcnRzIFN0aWdtZXIgRGVza3RvcCBsaXN0ZW5zIG9uKSBhbmQgbXVzdCBiZSBsZWZ0IHVuc2V0IG90aGVyd2lzZRpvdGhpcy5yZXR1cm5fdG8gPT0gMyA/ICh0aGlzLmxvb3BiYWNrX3BvcnQgPj0gMTcyMzd1ICYmIHRoaXMubG9vcGJhY2tfcG9ydCA8PSAxNzIzOXUpIDogdGhpcy5sb29wYmFja19wb3J0ID09IDB1ImQKEVN0YXJ0U2lnbkluT3V0cHV0EhkKEWF1dGhvcml6YXRpb25fdXJsGAEgASgJEg0KBXN0YXRlGAIgASgJEhUKDXByb3ZpZGVyX25hbWUYAyABKAkSDgoGc2NvcGVzGAQgAygJIkoKE0NvbXBsZXRlU2lnbkluSW5wdXQSGQoFc3RhdGUYASABKAlCCrpIB3IFEAEYgAQSGAoEY29kZRgCIAEoCUIKukgHcgUQARiAICI8ChRDb21wbGV0ZVNpZ25Jbk91dHB1dBIPCgdhZGRyZXNzGAEgASgJEhMKC2Rlc2NyaXB0aW9uGAIgASgJIvACChZDcmVhdGVDb25uZWN0TGlua0lucHV0EhQKA29yZxgBIAEoCUIHukgEcgIQARItCgh2YXVsdF9pZBgCIAEoCUIbukgYchYYHjISXnZsdF9bMC05YS16XXsyNn0kEhsKB2FkZHJlc3MYAyABKAlCCrpIB3IFEAEYgBASHgoKcmV0dXJuX3VybBgEIAEoCUIKukgHcgUQARiAEBInChJleHBpcmVzX2luX3NlY29uZHMYBSABKAVCC7pICBoGGICjBSgAOqoBukimARqjAQomY3JlYXRlX2Nvbm5lY3RfbGluay5leHBpcmVzX2luX3NlY29uZHMSOmV4cGlyZXNfaW5fc2Vjb25kcyBpcyA2MCB0byA4NjQwMCwgb3IgdW5zZXQgZm9yIDMwIG1pbnV0ZXMaPXRoaXMuZXhwaXJlc19pbl9zZWNvbmRzID09IDAgfHwgdGhpcy5leHBpcmVzX2luX3NlY29uZHMgPj0gNjAiSgoLQ29ubmVjdExpbmsSCwoDdXJsGAEgASgJEi4KCmV4cGlyZXNfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wKlIKDFNpZ25JblJldHVybhIeChpzaWduX2luX3JldHVybl91bnNwZWNpZmllZBAAEgcKA3dlYhABEgsKB2Rlc2t0b3AQAhIMCghsb29wYmFjaxADYgZwcm90bzM", [file_ai_stigmer_agentic_vault_v1_api, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * VaultTarget names the vault an entry write changes: a vault by id, or the
@@ -330,4 +332,287 @@ export type VaultList = Message<"ai.stigmer.agentic.vault.v1.VaultList"> & {
  */
 export const VaultListSchema: GenMessage<VaultList> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_vault_v1_io, 9);
+
+/**
+ * Input for starting a sign-in at an address. The login is saved into the
+ * named vault when the sign-in completes.
+ *
+ * @generated from message ai.stigmer.agentic.vault.v1.StartSignInInput
+ */
+export type StartSignInInput = Message<"ai.stigmer.agentic.vault.v1.StartSignInInput"> & {
+  /**
+   * The vault the login is saved into: a shared vault the caller may edit,
+   * or the caller's own My vault.
+   *
+   * @generated from field: ai.stigmer.agentic.vault.v1.VaultTarget vault = 1;
+   */
+  vault?: VaultTarget;
+
+  /**
+   * The address to sign in to: a tool's URL (Linear's MCP endpoint at
+   * mcp.linear.app/mcp, over https) or a Git host (github.com), in any shape
+   * setConnection accepts.
+   *
+   * @generated from field: string address = 2;
+   */
+  address: string;
+
+  /**
+   * Where the login page sends the person back to. Unset means web.
+   *
+   * @generated from field: ai.stigmer.agentic.vault.v1.SignInReturn return_to = 3;
+   */
+  returnTo: SignInReturn;
+
+  /**
+   * The port of the desktop app's page, for return_to loopback only: one of
+   * the three Stigmer Desktop listens on (17237 to 17239). A login server
+   * registers Stigmer once per return address, so the ports are few.
+   *
+   * @generated from field: uint32 loopback_port = 4;
+   */
+  loopbackPort: number;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.vault.v1.StartSignInInput.
+ * Use `create(StartSignInInputSchema)` to create a new message.
+ */
+export const StartSignInInputSchema: GenMessage<StartSignInInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_vault_v1_io, 10);
+
+/**
+ * The login page to send the person to.
+ *
+ * @generated from message ai.stigmer.agentic.vault.v1.StartSignInOutput
+ */
+export type StartSignInOutput = Message<"ai.stigmer.agentic.vault.v1.StartSignInOutput"> & {
+  /**
+   * The login page, with every parameter the sign-in needs.
+   *
+   * @generated from field: string authorization_url = 1;
+   */
+  authorizationUrl: string;
+
+  /**
+   * The value the login page hands back with the code; completeSignIn takes
+   * it.
+   *
+   * @generated from field: string state = 2;
+   */
+  state: string;
+
+  /**
+   * Who the person signs in with, for display ("GitHub", or the address's
+   * host when the login server has no name).
+   *
+   * @generated from field: string provider_name = 3;
+   */
+  providerName: string;
+
+  /**
+   * The permissions asked for.
+   *
+   * @generated from field: repeated string scopes = 4;
+   */
+  scopes: string[];
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.vault.v1.StartSignInOutput.
+ * Use `create(StartSignInOutputSchema)` to create a new message.
+ */
+export const StartSignInOutputSchema: GenMessage<StartSignInOutput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_vault_v1_io, 11);
+
+/**
+ * Input for finishing a sign-in, with what the login page handed back.
+ *
+ * @generated from message ai.stigmer.agentic.vault.v1.CompleteSignInInput
+ */
+export type CompleteSignInInput = Message<"ai.stigmer.agentic.vault.v1.CompleteSignInInput"> & {
+  /**
+   * The state from startSignIn, as the login page returned it.
+   *
+   * @generated from field: string state = 1;
+   */
+  state: string;
+
+  /**
+   * The authorization code the login page returned.
+   *
+   * @generated from field: string code = 2;
+   */
+  code: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.vault.v1.CompleteSignInInput.
+ * Use `create(CompleteSignInInputSchema)` to create a new message.
+ */
+export const CompleteSignInInputSchema: GenMessage<CompleteSignInInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_vault_v1_io, 12);
+
+/**
+ * The login a sign-in saved.
+ *
+ * @generated from message ai.stigmer.agentic.vault.v1.CompleteSignInOutput
+ */
+export type CompleteSignInOutput = Message<"ai.stigmer.agentic.vault.v1.CompleteSignInOutput"> & {
+  /**
+   * The address the login was saved at.
+   *
+   * @generated from field: string address = 1;
+   */
+  address: string;
+
+  /**
+   * How the saved login is described: the account when the login app says
+   * who signed in ("GitHub @ana"), else the host ("Signed in at
+   * mcp.linear.app").
+   *
+   * @generated from field: string description = 2;
+   */
+  description: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.vault.v1.CompleteSignInOutput.
+ * Use `create(CompleteSignInOutputSchema)` to create a new message.
+ */
+export const CompleteSignInOutputSchema: GenMessage<CompleteSignInOutput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_vault_v1_io, 13);
+
+/**
+ * Input for making a Connect link: a one-time page an integrator sends its
+ * customer, where the customer signs in at an address and the login is saved
+ * into the integrator's vault for that customer. The customer needs no
+ * Stigmer account.
+ *
+ * @generated from message ai.stigmer.agentic.vault.v1.CreateConnectLinkInput
+ */
+export type CreateConnectLinkInput = Message<"ai.stigmer.agentic.vault.v1.CreateConnectLinkInput"> & {
+  /**
+   * Organization the vault belongs to, by slug or id.
+   *
+   * @generated from field: string org = 1;
+   */
+  org: string;
+
+  /**
+   * The shared vault the login is saved into, by id. My vault is refused:
+   * a link is for someone else.
+   *
+   * @generated from field: string vault_id = 2;
+   */
+  vaultId: string;
+
+  /**
+   * The address the customer signs in to: a tool's URL or a Git host.
+   *
+   * @generated from field: string address = 3;
+   */
+  address: string;
+
+  /**
+   * Where the customer is sent once the sign-in is over: an absolute https
+   * URL (http only for localhost, 127.0.0.1 or [::1]), with no user name or
+   * password in it. Stigmer adds stigmer_connect=connected, or
+   * stigmer_connect=error with a short reason.
+   *
+   * @generated from field: string return_url = 4;
+   */
+  returnUrl: string;
+
+  /**
+   * How long the link stays usable, in seconds: 60 to 86400 (a day).
+   * Unset means 1800 (30 minutes).
+   *
+   * @generated from field: int32 expires_in_seconds = 5;
+   */
+  expiresInSeconds: number;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.vault.v1.CreateConnectLinkInput.
+ * Use `create(CreateConnectLinkInputSchema)` to create a new message.
+ */
+export const CreateConnectLinkInputSchema: GenMessage<CreateConnectLinkInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_vault_v1_io, 14);
+
+/**
+ * A Connect link. It works once: the first sign-in saved through it spends
+ * it.
+ *
+ * @generated from message ai.stigmer.agentic.vault.v1.ConnectLink
+ */
+export type ConnectLink = Message<"ai.stigmer.agentic.vault.v1.ConnectLink"> & {
+  /**
+   * The page to send the customer to. It carries the link's secret: send it
+   * only to that customer.
+   *
+   * @generated from field: string url = 1;
+   */
+  url: string;
+
+  /**
+   * When the link stops working.
+   *
+   * @generated from field: google.protobuf.Timestamp expires_at = 2;
+   */
+  expiresAt?: Timestamp;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.vault.v1.ConnectLink.
+ * Use `create(ConnectLinkSchema)` to create a new message.
+ */
+export const ConnectLinkSchema: GenMessage<ConnectLink> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_vault_v1_io, 15);
+
+/**
+ * SignInReturn says where the login page sends the person back to once they
+ * have signed in. The server builds the address from this choice; a caller
+ * never writes it.
+ *
+ * @generated from enum ai.stigmer.agentic.vault.v1.SignInReturn
+ */
+export enum SignInReturn {
+  /**
+   * The console's callback page: the same as web.
+   *
+   * @generated from enum value: sign_in_return_unspecified = 0;
+   */
+  sign_in_return_unspecified = 0,
+
+  /**
+   * The console's callback page on this deployment.
+   *
+   * @generated from enum value: web = 1;
+   */
+  web = 1,
+
+  /**
+   * The console's callback page, which hands the result on to the desktop
+   * app (the page opens the app's own link).
+   *
+   * @generated from enum value: desktop = 2;
+   */
+  desktop = 2,
+
+  /**
+   * A page the desktop app serves on this machine: the path
+   * /auth/oauth/callback over plain http on 127.0.0.1 at loopback_port
+   * (RFC 8252 section 7.3, for apps on the person's own computer).
+   *
+   * @generated from enum value: loopback = 3;
+   */
+  loopback = 3,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.vault.v1.SignInReturn.
+ */
+export const SignInReturnSchema: GenEnum<SignInReturn> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_vault_v1_io, 0);
 
