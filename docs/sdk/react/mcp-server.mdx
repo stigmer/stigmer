@@ -498,16 +498,11 @@ Layer 2 behavior hook that orchestrates the setup flow for multiple
 MCP servers selected in the [`McpServerPicker`](#mcpserverpicker).
 
 When a user toggles an MCP server ON, this hook fetches the server's
-full resource, checks its `env` declarations against My vault
-(via [`diffEnv`](/docs/sdk/react/vault#diffenv)), and determines whether credentials are
-needed. It also extracts the server's discovered tools for display.
-
-The hook supports two credential delivery paths via the `saveForFuture`
-option on `submitEnvVars`:
-- **Saved** — secrets are saved in My vault for
-  reuse across sessions.
-- **One-time** — secrets are collected as `pendingOneTimeValues` for a
-  single conversation, never saved in a vault.
+full resource, checks its `env` declarations against the vaults the
+conversation uses (via [`diffEnv`](/docs/sdk/react/vault#diffenv)), and determines whether
+credentials are needed. It also extracts the server's discovered tools
+for display. A value the person types is saved in My vault
+(`submitEnvVars`); a conversation never carries values of its own.
 
 State is managed by `useReducer(mcpServerSetupReducer)` — a per-server
 state machine with four phases:
@@ -524,14 +519,14 @@ Pass `null` as `org` to disable all operations (stable no-op).
 **Signature**
 
 ```tsx
-function useMcpServerSetup(org: string | null, poolKeys?: Set<string>, conversationVaults?: readonly ResourceRef[]): UseMcpServerSetupReturn
+function useMcpServerSetup(org: string | null, poolKeys?: Set<string>, conversationVaults: ConversationVaults): UseMcpServerSetupReturn
 ```
 
 <TypeTable
   type={{
     org: { type: "string | null", description: "Organization id (a slug is also accepted). Pass `null` to disable.", required: true },
-    poolKeys: { type: "Set<string>", description: "Optional set of env-var keys already available   from the session env pool (manual secrets, one-time env vars from   other components). When provided, servers whose `env` keys   are fully covered by `poolKeys` + My vault auto-resolve to   `ready` without prompting. Reactive — when `poolKeys` changes,   `needsSetup` entries are re-evaluated." },
-    conversationVaults: { type: "readonly ResourceRef[]", description: "The vaults the conversation lists, when it   lists any. Such a conversation uses only those vaults, so only their   keys and logins count as saved (not My vault's), and values the person   saves in My vault also reach the conversation as its own secrets   (`pendingOneTimeValues`). `poolKeys` must then leave My vault's names   out. A sign-in counts only when a listed vault holds it (a sign-in   from the picker there is saved into the first listed vault), never My   vault's grant, which such a run never reads. Reactive — when the listed   vaults change, every server already added is evaluated again over   them; values kept as the conversation's own still count." },
+    poolKeys: { type: "Set<string>", description: "Optional set of env-var keys filled elsewhere (the   platform's own keys, which the runner sets). Servers whose `env` keys   are fully covered by `poolKeys` and the vaults the run reads   auto-resolve to `ready` without prompting. Reactive — when `poolKeys`   changes, `needsSetup` entries are re-evaluated." },
+    conversationVaults: { type: "ConversationVaults", description: "The vaults the conversation uses (its   sender's My vault when included, then the listed vaults). Only what   they hold counts as saved, and My vault's sign-in grant counts only   when My vault is included. Omitted, the run is taken to read My vault   alone. Reactive — when the choice changes, every server already added   is evaluated again over it.", required: true },
   }}
 />
 
@@ -539,15 +534,14 @@ function useMcpServerSetup(org: string | null, poolKeys?: Set<string>, conversat
 
 <TypeTable
   type={{
-    addServer: { type: "(ref: ResourceRef) => Promise<void>", description: "Add an MCP server to the setup flow.  Fetches the full server resource, checks `env` declarations against My vault (or, when the conversation lists vaults, only those vaults), and resolves the entry to either `ready` (no credentials needed or all present) or `needsSetup` (missing variables). Also extracts the server's discovered tools.  If the server is already in entries, its entry is reset to `loading` and re-evaluated." },
+    addServer: { type: "(ref: ResourceRef) => Promise<void>", description: "Add an MCP server to the setup flow.  Fetches the full server resource, checks `env` declarations against the vaults the conversation uses (My vault when included, then the listed vaults), and resolves the entry to either `ready` (no credentials needed or all present) or `needsSetup` (missing variables). Also extracts the server's discovered tools.  If the server is already in entries, its entry is reset to `loading` and re-evaluated." },
     allReady: { type: "boolean", description: "`true` when every selected server is in `ready` status, or when no servers are selected. `false` during `loading`, `needsSetup`, or `submitting` for any entry.  Use this for submission blocking in the session composer." },
     clearError: { type: "(ref: ResourceRef) => void", description: "Clear the error on a specific server entry without changing its phase." },
     entries: { type: "Readonly<Record<string, McpServerSetupEntry>>", description: "Per-server setup state, keyed by `\"org/slug\"` (see toServerKey).  Each entry tracks an individual MCP server through the setup lifecycle: `loading → needsSetup → submitting → ready` (or `loading → ready` when no credentials are required)." },
     needsSetupCount: { type: "number", description: "Count of entries in `needsSetup` status — servers that require user-provided credentials before the session can be created." },
-    pendingOneTimeValues: { type: "Record<string, EnvVarInput>", description: "Accumulated one-time env vars from servers whose credentials were submitted with `saveForFuture: false`.  Consumed imperatively at session creation time and merged into the conversation's own secrets. Cleared on reset." },
     removeServer: { type: "(ref: ResourceRef) => void", description: "Remove an MCP server from the setup flow.  Removes the entry from state. Safe to call for servers not in entries (no-op)." },
-    reset: { type: "() => void", description: "Reset all entries and pending one-time values to initial state." },
-    submitEnvVars: { type: "(ref: ResourceRef, values: Record<string, EnvVarInput>, options?: SubmitMcpEnvVarsOptions) => Promise<void>", description: "Complete credential collection for a server in `needsSetup` status.  Behavior depends on `options.saveForFuture`: - `true` (default) — Saves values to the My vault via   `setSecrets` / `setConnection`. The server transitions to `ready`. - `false` — Accumulates values into pendingOneTimeValues   without API calls. The server transitions to `ready` immediately.  Must only be called when the entry is in `needsSetup` status." },
+    reset: { type: "() => void", description: "Reset all entries to the initial state." },
+    submitEnvVars: { type: "(ref: ResourceRef, values: Record<string, EnvVarInput>) => Promise<boolean>", description: "Complete credential collection for a server in `needsSetup` status: the values are saved in My vault (`setSecrets` / `setConnection`), the one place a value the person types goes, and the server transitions to `ready`. A conversation reads them when it includes My vault; the composer includes it for the person who may change the conversation's vaults; a conversation that leaves My vault out keeps the server in `needsSetup` until it includes My vault. Resolves `true` once the values are saved, `false` when the save failed (the entry carries the error).  Must only be called when the entry is in `needsSetup` status." },
     usageInputs: { type: "McpServerUsageInput[]", description: "Ready servers as `McpServerUsageInput[]` for session creation.  Derived from entries: only `ready` entries are included. Each usage attaches the whole server; the agent's tool lists narrow it." },
   }}
 />
@@ -559,7 +553,7 @@ const {
   submitEnvVars,
   allReady,
   usageInputs,
-} = useMcpServerSetup("acme", pool.availableKeys);
+} = useMcpServerSetup("acme");
 
 // When user toggles a server ON in the picker:
 await addServer({ org: "acme", slug: "github", kind: ApiResourceKind.mcp_server });
@@ -933,7 +927,7 @@ All visual properties flow through `--stgm-*` tokens.
     onChange: { type: "(usages: McpServerUsageInput[]) => void", description: "Called when the selection changes in simple mode.  Required when `setup` is not provided. Not called when `setup` is provided — selection goes through `setup.onServerAdded` and `setup.onServerRemoved` instead." },
     onDisplayNameResolved: { type: "(key: string, name: string) => void", description: "Called with the display name when an item is added (for chip rendering)." },
     org: { type: "string", description: "Organization whose MCP servers the picker searches.", required: true },
-    poolValues: { type: "(key: string) => EnvVarInput | undefined", description: "Lookup function for pre-filling credential fields from the session env pool. Passed through to McpServerConfigPanel's credentials form. When a field's key returns a value, the field is pre-populated." },
+    poolValues: { type: "(key: string) => EnvVarInput | undefined", description: "Lookup function for pre-filling credential fields from another source the host holds. Passed through to McpServerConfigPanel's credentials form. When a field's key returns a value, the field is pre-populated." },
     setup: { type: "McpServerSetupIntegration", description: "When provided, enables setup-integrated mode: per-server status indicators, credential collection, and drill-in to McpServerConfigPanel.  In this mode, `value` and `onChange` are not needed — selection is managed through `setup.entries` and the setup callbacks.  When omitted, the picker operates in simple mode (current behavior): toggle servers on/off with `value`/`onChange`.", typeDescriptionLink: "#mcpserversetupintegration" },
     value: { type: "McpServerUsageInput[]", description: "Currently selected MCP server usages.  Required in simple mode (when `setup` is not provided). In setup mode, selection is derived from `setup.entries` and this prop is not needed." },
   }}
@@ -1097,11 +1091,9 @@ rendered — no status string inspection required.
 
 <TypeTable
   type={{
-    defaultSaveForFuture: { type: "boolean", description: "Initial state of the \"Save in My vault\" toggle." },
-    hideSaveToggle: { type: "boolean", description: "When `true`, the save toggle is hidden and the form always uses `defaultSaveForFuture` as the submit value." },
     isSubmitting: { type: "boolean", description: "When true, form inputs are disabled and the submit button shows a spinner." },
     onSubmit: { type: "(values: Record<string, EnvVarInput>, options: EnvVarFormSubmitOptions) => void", description: "Called when the user submits credentials via the form.", required: true },
-    poolValues: { type: "(key: string) => EnvVarInput | undefined", description: "Lookup function for pre-filling fields from the session env pool. When provided, fields whose keys return a value are pre-populated." },
+    poolValues: { type: "(key: string) => EnvVarInput | undefined", description: "Lookup function for pre-filling fields from another source the host holds. When provided, fields whose keys return a value are pre-populated." },
     variables: { type: "EnvVarFormVariable[]", description: "Missing env vars to collect (one form field per variable).", required: true },
   }}
 />
@@ -1176,8 +1168,8 @@ the object cleanly communicates which mode the component operates in.
     entries: { type: "Readonly<Record<string, McpServerSetupEntry>>", description: "Per-server setup state, keyed by `\"org/slug\"`.  Typically sourced from `useMcpServerSetup().entries`. Each entry tracks an individual server through the setup lifecycle: `loading → needsSetup → submitting → ready`.", required: true },
     onServerAdded: { type: "(ref: ResourceRef) => void", description: "Called when the user selects a server from search results.", required: true },
     onServerRemoved: { type: "(ref: ResourceRef) => void", description: "Called when the user removes a server from the selected list.", required: true },
+    onSignedIn: { type: "(ref: ResourceRef) => void", description: "Called when a sign-in started here lands, saved in the person's My vault: the composer includes My vault in a conversation that left it out, so the next turn uses the login just made." },
     onSubmitEnvVars: { type: "(ref: ResourceRef, values: Record<string, EnvVarInput>, options: EnvVarFormSubmitOptions) => void", description: "Called when the user submits credentials for a server.", required: true },
-    signInVault: { type: "SignInVault", description: "The shared vault a sign-in started here is saved into: in a conversation that lists vaults, the first of them, the only place its runs read a login from (the setup counts a sign-in only there). Omitted, a sign-in is saved in My vault.", typeDescriptionLink: "#signinvault" },
   }}
 />
 
@@ -1291,17 +1283,6 @@ Options for `UseMcpServerOAuthConnectReturn.startOAuth`.
 <TypeTable
   type={{
     vault: { type: "SignInVault", description: "The shared vault to save the sign-in into; omitted, My vault. The signer must be allowed to edit it. A sign-in saved there serves the runs that use that vault, never the connect lane (which reads only My vault), so no tool discovery is chained after it.", typeDescriptionLink: "#signinvault" },
-  }}
-/>
-
-
-### SubmitMcpEnvVarsOptions
-
-Options for `UseMcpServerSetupReturn.submitEnvVars`.
-
-<TypeTable
-  type={{
-    saveForFuture: { type: "boolean", description: "When `true` (default), the provided values are saved to the user's My vault. Subsequent sessions using the same MCP server will reuse these credentials. A conversation that lists vaults never reads My vault, so there the values also become its own secrets (`pendingOneTimeValues`).  When `false`, the values are collected as `pendingOneTimeValues` for this conversation only — nothing is saved in a vault and no network calls are made here. They become the conversation's own secrets." },
   }}
 />
 

@@ -142,7 +142,6 @@ class AgentInput:
     hooks: list[HookSourceInput] = field(default_factory=list)
     run_config: RunConfigInput | None = None
     harness: int = 0
-    vaults: list[ResourceRef] = field(default_factory=list)
 
     def _to_proto(self) -> api_pb2.Agent:
         spec = spec_pb2.AgentSpec(
@@ -169,10 +168,6 @@ class AgentInput:
             spec.hooks.append(item._to_proto())
         if self.run_config is not None:
             spec.run_config.CopyFrom(self.run_config._to_proto())
-        for ref in self.vaults:
-            _ref = ref._to_proto()
-            _ref.kind = 59
-            spec.vaults.append(_ref)
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,

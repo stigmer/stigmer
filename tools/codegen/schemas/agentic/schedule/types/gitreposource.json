@@ -1,6 +1,6 @@
 {
   "name": "GitRepoSource",
-  "description": "GitRepoSource provisions a workspace by cloning a git repository.\n\n Only HTTPS clone URLs are supported. SSH URLs are rejected at validation time.\n\n A private repository is cloned with the entry's own token when it carries\n one, else with a login saved for the repository's host (github.com) in the\n conversation's vaults. The entry's own token is used only for an\n https://github.com repository: a session write carrying a token for any\n other repository is refused.",
+  "description": "GitRepoSource provisions a workspace by cloning a git repository.\n\n Only HTTPS clone URLs are supported. SSH URLs are rejected at validation time.\n\n A private repository is cloned with the entry's own token when it carries\n one, else with a login saved for the repository's host (github.com) in the\n vaults the conversation uses. The entry's own token is used only for an\n https://github.com repository: a session write carrying a token for any\n other repository is refused.",
   "protoType": "ai.stigmer.agentic.session.v1.GitRepoSource",
   "protoFile": "apis/ai/stigmer/agentic/session/v1/workspace.proto",
   "fields": [

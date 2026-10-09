@@ -4,9 +4,9 @@
 // A platform value comes from the component that knows it, fills only a key
 // that is still missing, and reaches only a server that declares it
 // (stigmer/stigmer#1446). The page is not that component for any key, so
-// this SDK supplies none: a value it wrote into the conversation's own
-// secrets would sit in the top layer, above every value a user saved, and
-// would reach every run whether or not anything declares it.
+// this SDK supplies none: a value it handed a run would sit above every
+// value a user saved, and would reach every run whether or not anything
+// declares it.
 //
 // STIGMER_SERVER_ADDRESS is the one key the platform fills. The runner
 // writes it for a server that declares it and holds no value: from the

@@ -154,6 +154,16 @@ describe("parseManifest", () => {
     expect(() => parseManifest(yaml)).toThrow(/Invalid Agent/);
   });
 
+  it("rejects an agent that still names vaults: an agent is a blueprint, and a conversation names its vaults", () => {
+    // A binary write would drop the field silently, so the parser's refusal
+    // is what tells an author an old manifest's vaults would never be read.
+    const yaml = AGENT_YAML.replace(
+      "spec:",
+      "spec:\n  vaults:\n    - kind: vault\n      slug: clinic-patient-db",
+    );
+    expect(() => parseManifest(yaml)).toThrow(/Invalid Agent.*vaults/);
+  });
+
   it("rejects a document without a kind", () => {
     expect(() => parseManifest("metadata:\n  name: x\n")).toThrow(/'kind'/);
   });

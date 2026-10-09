@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
@@ -13,6 +13,18 @@ export interface UseWhoAmIReturn {
   readonly isLoading: boolean;
   /** Error from the failed request, or `null` when healthy. */
   readonly error: Error | null;
+}
+
+/** Options for {@link useWhoAmI}. */
+export interface UseWhoAmIOptions {
+  /**
+   * `false` holds the hook idle: no request, `account` stays `null`. A
+   * surface that needs the caller only in some states (a guest token
+   * cannot make this read) keeps the hook mounted and switches it here.
+   *
+   * @default true
+   */
+  readonly enabled?: boolean;
 }
 
 /**
@@ -33,23 +45,23 @@ export interface UseWhoAmIReturn {
  * const myId = account?.metadata?.id;
  * ```
  */
-export function useWhoAmI(): UseWhoAmIReturn {
+export function useWhoAmI(options?: UseWhoAmIOptions): UseWhoAmIReturn {
+  const enabled = options?.enabled ?? true;
   const stigmer = useStigmer();
-  const [account, setAccount] = useState<IdentityAccount | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  const cacheRef = useRef<{
-    client: typeof stigmer;
-    account: IdentityAccount | null;
+  // The answer, kept with the client that gave it: an answer from another
+  // client is no answer, and a held hook shows none. Loading is derived, so
+  // the first render after the hook is switched on already says so.
+  const [answer, setAnswer] = useState<{
+    readonly client: typeof stigmer;
+    readonly account: IdentityAccount | null;
+    readonly error: Error | null;
   } | null>(null);
+  const answered = answer !== null && answer.client === stigmer;
 
   useEffect(() => {
-    if (cacheRef.current?.client === stigmer && cacheRef.current.account) {
-      setAccount(cacheRef.current.account);
-      setIsLoading(false);
-      return;
-    }
+    if (!enabled) return;
+    if (answer !== null && answer.client === stigmer && answer.account !== null) return;
+    if (answer !== null) setAnswer(null);
 
     const cancelled = { current: false };
 
@@ -58,21 +70,25 @@ export function useWhoAmI(): UseWhoAmIReturn {
       .then(
         (result) => {
           if (cancelled.current) return;
-          cacheRef.current = { client: stigmer, account: result };
-          setAccount(result);
-          setIsLoading(false);
+          setAnswer({ client: stigmer, account: result, error: null });
         },
         (err) => {
           if (cancelled.current) return;
-          setError(toError(err));
-          setIsLoading(false);
+          setAnswer({ client: stigmer, account: null, error: toError(err) });
         },
       );
 
     return () => {
       cancelled.current = true;
     };
-  }, [stigmer]);
+    // The answer is read to skip a client already answered, never to
+    // refetch when it lands.
+  }, [stigmer, enabled]);
 
-  return { account, isLoading, error };
+  if (!enabled) return { account: null, isLoading: false, error: null };
+  return {
+    account: answered ? answer.account : null,
+    isLoading: !answered,
+    error: answered ? answer.error : null,
+  };
 }

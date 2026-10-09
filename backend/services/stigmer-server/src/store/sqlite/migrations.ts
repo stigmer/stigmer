@@ -55,6 +55,12 @@ import {
   unreadableExecutionError,
 } from "../execution-config-retired.js";
 import {
+  SESSION_VALUES_KIND,
+  SESSION_VALUES_PAGE_SIZE,
+  migrateSessionValuesRow,
+  unreadableSessionValuesError,
+} from "../session-values-retired.js";
+import {
   HISTORY_PAGE_SIZE,
   ORGANIZATION_SCOPED_KINDS_AT_LEDGER,
   organizationNamedBy,
@@ -144,9 +150,11 @@ export const SCHEMA_VERSION_20 = 20;
 export const SCHEMA_VERSION_21 = 21;
 /** v22: the environment rows removed, with the sign-in grant table; a pending sign-in names its vault. */
 export const SCHEMA_VERSION_22 = 22;
+/** v23: a conversation's retired own secrets and connections dropped from every session row. */
+export const SCHEMA_VERSION_23 = 23;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_22;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_23;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -193,6 +201,7 @@ export function runMigrations(
     [SCHEMA_VERSION_20, migrateToV20],
     [SCHEMA_VERSION_21, migrateToV21],
     [SCHEMA_VERSION_22, migrateToV22],
+    [SCHEMA_VERSION_23, migrateToV23],
   ];
 
   for (const [version, migrate] of chain) {
@@ -1198,4 +1207,44 @@ function migrateToV22(db: DatabaseSync): void {
   db.exec(
     `ALTER TABLE pending_oauth_state ADD COLUMN tool_address TEXT NOT NULL DEFAULT ''`,
   );
+}
+
+/**
+ * v23: a conversation's own secrets and connections leave the contract —
+ * the Postgres driver's v18 in this engine's terms
+ * (../session-values-retired.ts says what each row becomes and why nothing
+ * is carried). Every session row is read in keyset pages and rewritten
+ * only when it holds a retired field, its `updated_at` left alone (the
+ * list keys it feeds are unchanged). Runs inside applyInTransaction's
+ * BEGIN, so a throw rolls the whole step back and the boot stops on the
+ * row it names.
+ */
+function migrateToV23(db: DatabaseSync): void {
+  const page = db.prepare(
+    `SELECT id, data FROM resources WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`,
+  );
+  const update = db.prepare(
+    `UPDATE resources SET data = ? WHERE kind = ? AND id = ?`,
+  );
+  for (let after = ""; ; ) {
+    const rows = page.all(SESSION_VALUES_KIND, after, SESSION_VALUES_PAGE_SIZE) as Array<{
+      id: string;
+      data: Uint8Array;
+    }>;
+    for (const row of rows) {
+      let migrated: Uint8Array | undefined;
+      try {
+        migrated = migrateSessionValuesRow(row.data);
+      } catch (error) {
+        throw unreadableSessionValuesError(row.id, error);
+      }
+      if (migrated !== undefined) {
+        update.run(migrated, SESSION_VALUES_KIND, row.id);
+      }
+    }
+    if (rows.length < SESSION_VALUES_PAGE_SIZE) {
+      return;
+    }
+    after = rows[rows.length - 1]!.id;
+  }
 }

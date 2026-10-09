@@ -77,7 +77,7 @@ spec:
 
 ## B2B Runtime Injection — Planton Integration
 
-In B2B scenarios, a calling platform (e.g., Planton) hands the conversation its own values (the session's `secrets` and `connections`) rather than saving them in a vault. The execution engine fills the ExecutionContext from them and deletes it on completion.
+In B2B scenarios, a calling platform keeps one vault per end user (found again by its `external_id`), saves that user's keys there, and names the vault on each conversation it starts for them. The execution engine fills the ExecutionContext from the vault and deletes it on completion.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1

@@ -38,18 +38,17 @@ export interface BootstrapSessionSpec {
   /** Skill references to enable for runs in this session. */
   readonly skillRefs?: ResourceRef[];
   /**
-   * The vaults the conversation's runs use, in order. A conversation that
-   * lists vaults uses exactly those; one that lists none uses the
-   * person's own My vault, then the agent's vaults they may use.
+   * The vaults the conversation's runs use, in order: the first holding a
+   * key or login wins. The conversation uses exactly these, after the
+   * sender's My vault when {@link includeMyVault} is set.
    */
   readonly vaults?: ResourceRef[];
   /**
-   * The conversation's own secrets, by name, ahead of every vault: sealed
-   * for the conversation's life, replaceable by a session update, never
-   * returned by a read. This is how an integrator hands a run a key
-   * without saving it in a vault.
+   * Whether each turn also uses its sender's own My vault, first, ahead of
+   * {@link vaults}. Off unless set: each person who sends a turn uses their
+   * own My vault, never another's.
    */
-  readonly secrets?: Record<string, string>;
+  readonly includeMyVault?: boolean;
   /**
    * Custom key-value pairs stored on the created session's
    * `SessionSpec.metadata`.
@@ -76,8 +75,8 @@ export interface BootstrapSessionSpec {
    * Personalization, not authorization: anyone who can create the session
    * can set this (the same trust level as authoring the first message).
    * Hidden from the conversation thread, not from the API — `session.get`
-   * returns it, so never put secrets here; secrets belong in the
-   * session's own `secrets` or in a vault. Large values bloat every prompt.
+   * returns it, so never put secrets here; secrets belong in a vault.
+   * Large values bloat every prompt.
    */
   readonly sessionContext?: string;
   /** Run harness. Immutable after the first run runs. */
@@ -270,33 +269,31 @@ export interface UseCreateRunReturn {
  * bootstrap a new session (workspace, harness, execution target) and
  * dispatch the first message in a single call.
  *
- * A run's logins and secrets come from vaults and from the
- * conversation's own secrets, never from the run request:
- *
- * - **Vaults** — a conversation that lists no vaults uses the running
- *   person's My vault, then the agent's vaults they may use.
- * - **The conversation's own secrets** — on a new conversation, pass
- *   `sessionSpec.secrets`; on an existing one, update the session (see
- *   `useSessionConversation`'s `sendFollowUp`). They are kept sealed for
- *   the conversation's life.
+ * A run's logins and secrets come from the vaults its conversation uses,
+ * never from the run request: the sender's My vault when the conversation
+ * includes it (`sessionSpec.includeMyVault`), then the vaults it lists
+ * (`sessionSpec.vaults`), in order. On an existing conversation, change
+ * them with a session update (see `useSessionConversation`'s
+ * `sendFollowUp`).
  *
  * @example
  * ```tsx
- * // Keys come from the person's My vault
+ * // A follow-up: keys come from the vaults the conversation uses
  * const { create } = useCreateRun();
  * await create({ org: "acme", sessionId: "ses_abc", message: "Review the PR" });
  * ```
  *
  * @example
  * ```tsx
- * // A new conversation with its own secret
+ * // A new conversation on the person's own keys and a team vault
  * const { create } = useCreateRun();
  * await create({
  *   org: "acme",
  *   message: "Deploy to production",
  *   sessionSpec: {
  *     agentRef: { org: "acme", slug: "deployer" },
- *     secrets: { CUSTOMER_API_KEY: "cust_xyz..." },
+ *     includeMyVault: true,
+ *     vaults: [{ org: "acme", slug: "deploy-keys" }],
  *   },
  * });
  * ```
@@ -355,7 +352,7 @@ export function useCreateRun(): UseCreateRunReturn {
               mcpServerUsages: input.sessionSpec.mcpServerUsages,
               skillRefs: input.sessionSpec.skillRefs,
               vaults: input.sessionSpec.vaults,
-              secrets: input.sessionSpec.secrets,
+              includeMyVault: input.sessionSpec.includeMyVault,
               metadata: mergeSessionContext(
                 input.sessionSpec.metadata,
                 input.sessionSpec.sessionContext,

@@ -66,7 +66,7 @@ import {
 } from "./useSessionArtifacts.js";
 import type { SetupTabProps } from "./facets/SetupTab.js";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { SessionSecretsProvider } from "./session-secrets.js";
+
 import type { SessionAudience, SessionPanelMode } from "./audience.js";
 import type { SessionRunConfig } from "./run-config.js";
 
@@ -207,21 +207,9 @@ export interface SessionViewerProps {
    */
   readonly workspaceContentSearcher?: WorkspaceContentSearcher;
   /**
-   * Supplies host-app environment variables for every follow-up
-   * run (e.g. a project-scoped API key for MCP tools). They become the
-   * conversation's, serving every turn whoever sends it, so never a
-   * person's own token where others can send turns. Evaluated fresh at each send; host values win
-   * over composer-collected env on key collisions. If the provider
-   * throws, the send is blocked and an error banner is shown — see
-   * {@link SessionSecretsProvider}. The values are written to the
-   * conversation's own secrets; never evaluated for the `"guest"`
-   * audience, which cannot write them.
-   */
-  readonly getSessionSecrets?: SessionSecretsProvider;
-  /**
    * Presentation audience for the viewer. `"endUser"` locks the
-   * session's agent and hides the MCP server, skill, and
-   * session-variable configuration in both the composer and the
+   * session's agent and hides the MCP server, skill and vault
+   * configuration in both the composer and the
    * inspector's Setup tab — for product-embedded chat where the agent
    * is configured upstream by the platform. The model selector,
    * interaction mode, attachments, and workspace picker remain.
@@ -404,7 +392,6 @@ export function SessionViewer({
   workspaceFileLister,
   workspaceFileReader,
   workspaceContentSearcher,
-  getSessionSecrets,
   audience = "integrator",
   runConfig,
   accountDefaults,
@@ -423,7 +410,6 @@ export function SessionViewer({
   const flow = useSessionPageFlow({
     sessionId,
     org: orgProp,
-    getSessionSecrets,
     audience,
     runConfig,
     accountDefaults,
@@ -874,7 +860,7 @@ const ConversationColumn = memo(function ConversationColumn({
   // ApprovalCard), matching the file-review card. A single banner cannot name
   // which of several concurrent gates failed. The scalar conv.approvalError
   // stays available for headless/`ink` consumers.
-  const sendError = flow.submitError ?? conv.sendError ?? conv.stopError;
+  const sendError = conv.sendError ?? conv.stopError;
 
   // The next message starts a conversation on the selected agent when the
   // session has no turn yet, or when the person picked a different agent
@@ -884,13 +870,15 @@ const ConversationColumn = memo(function ConversationColumn({
   const hasTurns =
     conv.completedRuns.length > 0 || conv.activeStreamRun !== null;
   const runsSessionAgent = isSameAgent(flow.agentRef, agentRefOfSession(conv.session));
-  // The vaults the conversation lists, as the composer's vault picker
-  // starts from them.
+  // The vaults the conversation uses, as the composer's vault picker
+  // starts from them, and who may change them: only its creator.
   const sessionVaultRefs = useMemo<ResourceRef[]>(
     () =>
       (conv.session?.spec?.vaults ?? []).map((ref) => ({ org: ref.org, slug: ref.slug })),
     [conv.session],
   );
+  const sessionIncludesMyVault = conv.session?.spec?.includeMyVault ?? false;
+  const sessionCreatorId = conv.session?.status?.audit?.specAudit?.createdBy?.id ?? "";
   const disclosePersonalKeys = !isGuest && !isObserver && (!hasTurns || !runsSessionAgent);
   // On the session's own agent the next message runs the session's pin,
   // so the line names what that version declares.
@@ -1119,11 +1107,12 @@ const ConversationColumn = memo(function ConversationColumn({
             onMcpServerUsagesChange={isCurated ? undefined : flow.setMcpServerUsages}
             skillRefs={isCurated ? undefined : flow.skillRefs}
             onSkillRefsChange={isCurated ? undefined : flow.setSkillRefs}
-            sessionVariables={isCurated ? undefined : flow.sessionVariables}
             disclosePersonalKeys={disclosePersonalKeys}
             personalKeysVersionHash={personalKeysVersionHash}
             enableVaultPicker={!isGuest && !isCurated && !isObserver}
             initialVaultRefs={sessionVaultRefs}
+            initialIncludeMyVault={sessionIncludesMyVault}
+            vaultPickCreatorId={sessionCreatorId}
             sessionId={sessionId}
             className="stg:px-4 stg:py-3"
           />
@@ -1386,7 +1375,6 @@ function SessionPanelRegion({
       agentRef: flow.agentRef,
       mcpServerUsages: flow.mcpServerUsages,
       skillRefs: flow.skillRefs,
-      sessionVariables: flow.sessionVariables,
       harness: flow.harness,
       executionTarget: flow.executionTarget,
       // What the next message runs when the person picks nothing: their
@@ -1417,7 +1405,7 @@ function SessionPanelRegion({
     }),
     [
       flow.agentRef, flow.mcpServerUsages, flow.skillRefs,
-      flow.sessionVariables, flow.harness, flow.executionTarget, flow.model,
+      flow.harness, flow.executionTarget, flow.model,
       flow.agentRunDefaults,
       flow.autoApproveAll, flow.setAutoApproveAll, isObserver, exportSessionId,
       isCurated, handleRemoveAgent, handleRemoveMcp, handleRemoveSkill,

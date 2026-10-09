@@ -1,7 +1,7 @@
 /**
  * Pins the vault attachments step: a My vault is refused on every surface
  * that runs for someone else (a conversation, a share, a channel, a
- * platform client, an agent) and admitted on its owner's own schedule only;
+ * platform client) and admitted on its owner's own schedule only;
  * who attached each vault is recorded for the vaults a write introduces
  * and kept for the ones it keeps, a removed vault's entry dropped, so an
  * editor's unrelated edit never re-attributes someone else's attachment;
@@ -16,7 +16,6 @@ import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
@@ -85,6 +84,11 @@ const SESSION: VaultAttachmentOptions<typeof SessionSchema> = {
     },
   },
 };
+
+/** A surface whose recorded attachers the arm does not read. */
+function unrecorded<Desc extends DescMessage>(surface: string): VaultAttachmentOptions<Desc> {
+  return { surface, attachers: { get: () => undefined, set: () => undefined } };
+}
 
 const SCHEDULE: VaultAttachmentOptions<typeof ScheduleSchema> = {
   surface: "a schedule other than its owner's own",
@@ -163,7 +167,7 @@ async function refusalOf(promise: Promise<unknown>): Promise<ConnectError> {
 }
 
 describe("a My vault", () => {
-  it("is refused on a conversation, a share, a channel, a platform client and an agent, even by its own person", async () => {
+  it("is refused on a conversation, a share, a channel and a platform client, even by its own person", async () => {
     const mine = ref((await rig.vaults.findById(anasId))!.metadata!.slug);
     const cases: Array<[string, Promise<unknown>]> = [
       [
@@ -176,7 +180,7 @@ describe("a My vault", () => {
           AgentShareSchema,
           ApiResourceKind.agent_share,
           create(AgentShareSchema, { metadata: { org: ORG }, spec: { vaults: [mine] } }),
-          { surface: "a share link" },
+          unrecorded("a share link"),
           { writer: "ida_ana" },
         ),
       ],
@@ -186,7 +190,7 @@ describe("a My vault", () => {
           AgentChannelSchema,
           ApiResourceKind.agent_channel,
           create(AgentChannelSchema, { metadata: { org: ORG }, spec: { vaults: [mine] } }),
-          { surface: "a channel" },
+          unrecorded("a channel"),
           { writer: "ida_ana" },
         ),
       ],
@@ -196,17 +200,7 @@ describe("a My vault", () => {
           PlatformClientSchema,
           ApiResourceKind.platform_client,
           create(PlatformClientSchema, { metadata: { org: ORG }, spec: { vaults: [mine] } }),
-          { surface: "a platform client" },
-          { writer: "ida_ana" },
-        ),
-      ],
-      [
-        "an agent",
-        run(
-          AgentSchema,
-          ApiResourceKind.agent,
-          create(AgentSchema, { metadata: { org: ORG }, spec: { vaults: [mine] } }),
-          { surface: "an agent" },
+          unrecorded("a platform client"),
           { writer: "ida_ana" },
         ),
       ],

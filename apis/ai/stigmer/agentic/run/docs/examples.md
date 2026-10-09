@@ -175,9 +175,9 @@ spec:
 
 ---
 
-## A Conversation's Own Secrets
+## The Vaults a Conversation Uses
 
-Hand a new conversation its own secrets on the first turn. They are sealed and kept for the conversation's life, shown as `***REDACTED***` on every read, used ahead of every vault, and destroyed with the conversation. Change them later with a session update.
+Name a new conversation's vaults on the first turn. Each turn uses the sender's own My vault first when `include_my_vault` is set, then the listed vaults in order; the first vault holding a key wins. Change them later with a session update.
 
 ```yaml
 spec:
@@ -186,12 +186,15 @@ spec:
       kind: agent
       org: acme
       slug: my-agent
-    secrets:
-      DATABASE_URL: "postgresql://user:pass@host:5432/prod"
+    include_my_vault: true
+    vaults:
+      - kind: vault
+        org: acme
+        slug: support-tools
   message: "Query the production database and summarize recent errors"
 ```
 
-Use a conversation's own secrets for integrations where each caller provides their own credentials; keep a vault per customer (`external_id`) when the credentials should outlive one conversation.
+For integrations where each customer brings their own credentials, keep a vault per customer (`external_id`) and name it on that customer's conversations.
 
 ---
 

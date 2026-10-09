@@ -1,12 +1,12 @@
 /**
- * A follow-up's own secrets and vaults reach the conversation by a session
- * update before the run is created, never on the run: the update echoes the
- * stored secrets as their redaction markers (which the server reads as
- * "keep the stored value") and adds or replaces only the names sent; a
- * picked vault list replaces the stored one. Replacement workspace entries
- * keep a repository's stored token (its marker) when they keep the
- * repository by name and URL. A follow-up with neither leaves the session
- * alone.
+ * A follow-up's vault pick reaches the conversation by a session update
+ * before the run is created, never on the run: a picked vault list and
+ * `includeMyVault` replace the stored ones, and an update that changes
+ * neither echoes the stored `includeMyVault` (the update replaces the whole
+ * spec). Replacement workspace entries keep a repository's stored token
+ * (its redaction marker, which the server reads as "keep the stored
+ * value") when they keep the repository by name and URL. A follow-up with
+ * none of these leaves the session alone.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
@@ -22,7 +22,7 @@ const MARKER = "***REDACTED***";
 const STORED = create(SessionSchema, {
   metadata: { id: "session-1", org: "org_acme", name: "s" },
   spec: {
-    secrets: { CUSTOMER_API_KEY: MARKER },
+    includeMyVault: true,
     vaults: [{ org: "org_acme", slug: "support-tools", kind: 59 }],
   },
 });
@@ -67,37 +67,36 @@ async function loaded() {
   return hook;
 }
 
-describe("useSessionConversation — a follow-up's own values", () => {
+describe("useSessionConversation — a follow-up's vault pick and repository tokens", () => {
   beforeEach(() => {
     stored = STORED;
     sessionUpdate = vi.fn().mockResolvedValue(STORED);
     runCreate = vi.fn().mockResolvedValue({ metadata: { id: "aex_1" }, spec: {} });
   });
 
-  it("merges new secrets over the stored markers by a session update, not on the run", async () => {
+  it("writes the person's pick by a session update, not on the run", async () => {
     const { result } = await loaded();
 
     await act(async () => {
-      await result.current.sendFollowUp("go", { secrets: { PLATFORM_TOKEN: "fresh" } });
+      await result.current.sendFollowUp("go", { includeMyVault: false, vaults: [] });
     });
 
     expect(sessionUpdate).toHaveBeenCalledTimes(1);
-    expect(sessionUpdate.mock.calls[0][0].secrets).toEqual({
-      CUSTOMER_API_KEY: MARKER,
-      PLATFORM_TOKEN: "fresh",
-    });
+    expect(sessionUpdate.mock.calls[0][0].includeMyVault).toBeUndefined();
+    expect(sessionUpdate.mock.calls[0][0].vaults).toBeUndefined();
     const runInput = runCreate.mock.calls[0][0];
     expect(runInput).not.toHaveProperty("runtimeEnv");
-    expect(runInput).not.toHaveProperty("secrets");
+    expect(runInput).not.toHaveProperty("vaults");
   });
 
-  it("replaces the vault list when the person picked one", async () => {
+  it("replaces the vault list when the person picked one, keeping the stored My vault tick", async () => {
     const { result } = await loaded();
 
     await act(async () => {
       await result.current.sendFollowUp("go", { vaults: [{ org: "org_acme", slug: "billing" }] });
     });
 
+    expect(sessionUpdate.mock.calls[0][0].includeMyVault).toBe(true);
     expect(sessionUpdate.mock.calls[0][0].vaults).toEqual([{ org: "org_acme", slug: "billing" }]);
   });
 
@@ -146,7 +145,7 @@ describe("useSessionConversation — a follow-up's own values", () => {
     expect(sessionUpdate.mock.calls[1][0].workspaceEntries[0].source.gitRepo.token).toBe("fresh");
   });
 
-  it("leaves the session alone when a follow-up carries neither", async () => {
+  it("leaves the session alone when a follow-up carries none of them", async () => {
     const { result } = await loaded();
 
     await act(async () => {

@@ -141,7 +141,6 @@ type AgentInput struct {
 	Hooks           []*HookSourceInput
 	RunConfig       *RunConfigInput
 	Harness         sessionv1.Harness
-	Vaults          []ResourceRef
 }
 
 // McpServerUsageInput is the SDK input type for McpServerUsage.
@@ -274,11 +273,6 @@ func (i *AgentInput) toProto() (*agentv1.Agent, error) {
 		resource.Spec.RunConfig = v
 	}
 	resource.Spec.Harness = i.Harness
-	for _, r := range i.Vaults {
-		ref := r.toProto()
-		ref.Kind = apiresourcekind.ApiResourceKind_vault
-		resource.Spec.Vaults = append(resource.Spec.Vaults, ref)
-	}
 	return resource, nil
 }
 
@@ -414,9 +408,6 @@ func AgentInputFromProto(p *agentv1.Agent) *AgentInput {
 		}
 		input.RunConfig = runConfigInputFromProto(s.GetRunConfig())
 		input.Harness = s.GetHarness()
-		for _, r := range s.GetVaults() {
-			input.Vaults = append(input.Vaults, resourceRefFromProto(r))
-		}
 	}
 	return input
 }

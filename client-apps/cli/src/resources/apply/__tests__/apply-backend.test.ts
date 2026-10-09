@@ -306,7 +306,7 @@ describe("file-mode apply — kinds the registry does not know", () => {
         ["kind: WorkflowInstance", "metadata:", "  name: Deploy", "  slug: deploy-default", ""].join("\n"),
       );
       expect(() => resolveApplyItems(dir)).toThrow(
-        /kind 'WorkflowInstance' in .*workflow-instance\.yaml is no longer a Stigmer resource.*stigmer run <org>\/<agent>.*stigmer vault set-secret <NAME> --mine/,
+        /kind 'WorkflowInstance' in .*workflow-instance\.yaml is no longer a Stigmer resource.*stigmer vault set-secret <NAME> --mine.*stigmer run <org>\/<agent>/,
       );
     } finally {
       rmSync(dir, { recursive: true, force: true });
@@ -390,6 +390,36 @@ describe("file-mode apply — orchestration", () => {
       );
       const items = resolveApplyItems(dir);
       await expect(applyItem(controllerFn, items[0], "acme", false)).rejects.toThrow(/invalid Agent/);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses an agent that still names vaults: an agent is a blueprint, and a conversation names its vaults", async () => {
+    // The server drops a field it no longer knows from a binary write, so
+    // this client-side refusal is what tells an author their old manifest's
+    // vaults would never be read.
+    const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
+    try {
+      writeYaml(
+        dir,
+        "agent.yaml",
+        [
+          "kind: Agent",
+          "metadata:",
+          "  name: Support",
+          "spec:",
+          "  instructions: Help.",
+          "  vaults:",
+          "    - kind: vault",
+          "      slug: support-tools",
+          "",
+        ].join("\n"),
+      );
+      const items = resolveApplyItems(dir);
+      const before = appliedAgents.length;
+      await expect(applyItem(controllerFn, items[0], "acme", false)).rejects.toThrow(/invalid Agent.*vaults/);
+      expect(appliedAgents.length).toBe(before);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

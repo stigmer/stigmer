@@ -1,38 +1,49 @@
 /**
- * The composer's per-conversation vault choice and its one-time agent
- * values. With the vault picker enabled and an organization known, the
- * Configure menu offers a Vaults panel; vaults picked there ride the submit
- * as the conversation's `vaults`, and values an agent's setup kept for this
- * conversation ride it as the conversation's own secrets. A pick belongs to
- * its conversation: a composer kept mounted while the host moves to another
- * conversation (the desktop app) drops it. A conversation that lists vaults
- * hands them to the agent's setup and to the MCP servers' setup, whose pool
- * then leaves My vault's keys out (that conversation never reads My vault),
- * and a sign-in started from the MCP picker there is saved into the first
- * listed vault. The picker itself is
- * pinned in `vault/__tests__/vault-components.test.tsx` and stubbed here;
- * agent setup is driven directly (its own tests cover the state machine).
+ * The composer's per-conversation vault choice: My vault, a tick, and the
+ * shared vaults in order, which the conversation uses exactly. Pinned: the
+ * Vaults panel's pick rides the submit as `includeMyVault` with `vaults`,
+ * together, and an untouched picker sends neither; a pick belongs to its
+ * conversation, so a composer kept mounted while the host moves to another
+ * conversation (the desktop app) drops it; the agent's and the MCP servers'
+ * setups weigh the conversation's choice, with only the platform's own keys
+ * as their pool. Only a conversation's creator may change its vaults: a
+ * teammate sees the pick read-only and nothing they save ticks it. For the
+ * creator, a typed key saved in My vault (the agent's, or an MCP server's
+ * from the picker) and a sign-in landing in My vault tick My vault in a
+ * conversation that left it out, so the next turn uses them; the tick is
+ * laid over the pick as it stands when the save lands, keeping a vault
+ * picked meanwhile; an MCP server's save that fails ticks nothing. A
+ * teammate's saved key that the conversation still does not read keeps the
+ * agent panel open on what is owed, committing nothing. The personal-keys
+ * line shows only while My vault is included. The
+ * picker itself is pinned in `vault/__tests__/vault-components.test.tsx`
+ * and stubbed here; agent setup is driven directly (its own tests cover the
+ * state machine).
  */
-import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
-import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, beforeAll, afterEach, beforeEach } from "vitest";
+import { render, screen, cleanup, fireEvent, waitFor, act } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { create } from "@bufbuild/protobuf";
 import type { ResourceRef, Stigmer } from "@stigmer/sdk";
-import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import { StigmerContext } from "../../context";
 import { noMyVaultClient } from "../../__tests__/helpers/no-my-vault";
 import { openMenu } from "../../__tests__/helpers/open-menu";
 import { ModelRegistryContext } from "../../models/ModelRegistryContext";
+import type { ConversationVaults } from "../../vault/conversationVaults";
+import type { VaultPickerMyVault } from "../../vault/VaultPicker";
+import type { EnvVarInput } from "../../vault/types";
+
+const READY_STATE = {
+  status: "ready",
+  agentRef: { org: "acme", slug: "reviewer" },
+  agentName: "Reviewer",
+  resolution: { mode: "saved" },
+};
 
 const mockAgentSetup = {
-  state: {
-    status: "ready",
-    agentRef: { org: "acme", slug: "reviewer" },
-    agentName: "Reviewer",
-    resolution: { mode: "oneTime", values: { REVIEW_KEY: { value: "rk-1", isSecret: true } } },
-  } as Record<string, unknown>,
+  state: READY_STATE as Record<string, unknown>,
   resolveAgent: vi.fn(),
   submitEnvVars: vi.fn(),
+  signInCompleted: vi.fn(),
   reset: vi.fn(),
 };
 const agentSetupCalls: unknown[][] = [];
@@ -44,30 +55,67 @@ vi.mock("../../agent/useAgentSetup", () => ({
 }));
 
 const mcpSetupCalls: unknown[][] = [];
+/** When set, stands in for the MCP setup's `submitEnvVars` (a save in My vault). */
+const mcpSubmitEnvVars: {
+  current: ((ref: ResourceRef, values: Record<string, EnvVarInput>) => Promise<boolean>) | null;
+} = { current: null };
 vi.mock("../../mcp-server/useMcpServerSetup", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../mcp-server/useMcpServerSetup")>();
   return {
     ...actual,
     useMcpServerSetup: (...args: Parameters<typeof actual.useMcpServerSetup>) => {
       mcpSetupCalls.push(args);
-      return actual.useMcpServerSetup(...args);
+      const setup = actual.useMcpServerSetup(...args);
+      return mcpSubmitEnvVars.current === null ? setup : { ...setup, submitEnvVars: mcpSubmitEnvVars.current };
     },
   };
 });
 
-const pickerSignInVaults: unknown[] = [];
 vi.mock("../../mcp-server/McpServerPicker.js", () => ({
-  McpServerPicker: ({ setup }: { readonly setup?: { readonly signInVault?: unknown } }) => {
-    pickerSignInVaults.push(setup?.signInVault);
-    return <p>MCP picker</p>;
-  },
+  McpServerPicker: ({
+    setup,
+  }: {
+    readonly setup?: {
+      readonly onSignedIn?: (ref: ResourceRef) => void;
+      readonly onSubmitEnvVars?: (ref: ResourceRef, values: Record<string, EnvVarInput>) => void;
+    };
+  }) => (
+    <div>
+      <button type="button" onClick={() => setup?.onSignedIn?.({ org: "acme", slug: "linear" })}>
+        Sign in to Linear
+      </button>
+      <button
+        type="button"
+        onClick={() => setup?.onSubmitEnvVars?.({ org: "acme", slug: "zendesk" }, { ZENDESK_TOKEN: { value: "t", isSecret: true } })}
+      >
+        Save Zendesk key
+      </button>
+    </div>
+  ),
+}));
+
+vi.mock("../PersonalKeyDisclosure.js", () => ({
+  PersonalKeyDisclosure: () => <p>Personal keys line</p>,
 }));
 
 vi.mock("../../vault/VaultPicker.js", () => ({
-  VaultPicker: ({ onChange }: { readonly onChange: (refs: ResourceRef[]) => void }) => (
-    <button type="button" onClick={() => onChange([{ org: "acme", slug: "support-tools" }])}>
-      Pick support-tools
-    </button>
+  VaultPicker: ({
+    onChange,
+    myVault,
+    disabled,
+  }: {
+    readonly onChange: (refs: ResourceRef[]) => void;
+    readonly myVault?: VaultPickerMyVault;
+    readonly disabled?: boolean;
+  }) => (
+    <div>
+      <button type="button" disabled={disabled} onClick={() => onChange([{ org: "acme", slug: "support-tools" }])}>
+        Pick support-tools
+      </button>
+      <button type="button" disabled={disabled} onClick={() => myVault?.onChange(!myVault.checked)}>
+        {`My vault ${myVault?.checked ? "ticked" : "unticked"}`}
+      </button>
+    </div>
   ),
 }));
 
@@ -84,10 +132,22 @@ beforeAll(() => {
   }
 });
 
-function createMinimalStigmerMock(): Stigmer {
+beforeEach(() => {
+  mockAgentSetup.state = READY_STATE;
+  mockAgentSetup.submitEnvVars.mockReset();
+  agentSetupCalls.length = 0;
+  mcpSetupCalls.length = 0;
+  mcpSubmitEnvVars.current = null;
+});
+
+afterEach(cleanup);
+
+/** A client whose signed-in person is `viewerId`, with no My vault yet. */
+function client(viewerId = "ida_creator"): Stigmer {
   return {
     run: { uploadAttachment: vi.fn() },
     vault: noMyVaultClient(),
+    identityAccount: { whoAmI: vi.fn().mockResolvedValue({ metadata: { id: viewerId } }) },
     baseUrl: "http://localhost:8080",
     getAuthCredential: vi.fn().mockResolvedValue("test-token"),
     config: {
@@ -97,189 +157,331 @@ function createMinimalStigmerMock(): Stigmer {
   } as unknown as Stigmer;
 }
 
-function Wrapper({ children }: { children: ReactNode }) {
-  return (
-    <StigmerContext.Provider value={createMinimalStigmerMock()}>
-      <ModelRegistryContext.Provider
-        value={{ models: [], isLoading: false, error: null, refetch: vi.fn() }}
-      >
-        {children}
-      </ModelRegistryContext.Provider>
-    </StigmerContext.Provider>
-  );
+function wrapperFor(stigmer: Stigmer) {
+  return function Wrapper({ children }: { children: ReactNode }) {
+    return (
+      <StigmerContext.Provider value={stigmer}>
+        <ModelRegistryContext.Provider value={{ models: [], isLoading: false, error: null, refetch: vi.fn() }}>
+          {children}
+        </ModelRegistryContext.Provider>
+      </StigmerContext.Provider>
+    );
+  };
 }
 
-afterEach(cleanup);
+const AGENT_PROPS = {
+  org: "acme",
+  agentRef: { org: "acme", slug: "reviewer" },
+  onAgentRefChange: vi.fn(),
+  onSkillRefsChange: vi.fn(),
+  skillRefs: [],
+  enableVaultPicker: true,
+};
 
-/** The shared vault the tests list. */
-const supportTools = create(VaultSchema, {
-  metadata: { id: "vlt_support", org: "org_acme", slug: "support-tools", name: "Support tools" },
-  spec: { owner: { case: "org", value: "org_acme" } },
-});
+async function openPanel(name: RegExp) {
+  await openMenu(screen.getByRole("button", { name: "Configure agent, tools, and skills" }));
+  fireEvent.click(screen.getByRole("menuitem", { name }));
+}
 
-describe("SessionComposer — vaults and one-time agent values", () => {
-  it("sends the vaults picked in the Vaults panel and the agent's one-time values", async () => {
+async function send(onSubmit: ReturnType<typeof vi.fn>, message: string, calls = 1) {
+  const textarea = screen.getByRole("textbox");
+  fireEvent.change(textarea, { target: { value: message } });
+  fireEvent.keyDown(textarea, { key: "Enter", shiftKey: false });
+  await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(calls));
+  return onSubmit.mock.calls[calls - 1][2] as { vaults?: ResourceRef[]; includeMyVault?: boolean } | undefined;
+}
+
+describe("SessionComposer — the conversation's vaults", () => {
+  it("sends My vault and the shared vaults picked in the Vaults panel, together", async () => {
     const onSubmit = vi.fn();
-    render(
-      <SessionComposer
-        onSubmit={onSubmit}
-        org="acme"
-        agentRef={{ org: "acme", slug: "reviewer" }}
-        onAgentRefChange={vi.fn()}
-        onSkillRefsChange={vi.fn()}
-        skillRefs={[]}
-        enableVaultPicker
-      />,
-      { wrapper: Wrapper },
-    );
+    render(<SessionComposer onSubmit={onSubmit} {...AGENT_PROPS} />, { wrapper: wrapperFor(client()) });
 
-    await openMenu(screen.getByRole("button", { name: "Configure agent, tools, and skills" }));
-    fireEvent.click(screen.getByRole("menuitem", { name: /Vaults/ }));
-    expect(await screen.findByText(/uses your own My/)).toBeTruthy();
+    await openPanel(/Vaults/);
+    expect(await screen.findByText("This conversation uses exactly these vaults, in order.")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Pick support-tools" }));
+    fireEvent.click(screen.getByRole("button", { name: "My vault ticked" }));
 
-    const textarea = screen.getByRole("textbox");
-    fireEvent.change(textarea, { target: { value: "Review this" } });
-    fireEvent.keyDown(textarea, { key: "Enter", shiftKey: false });
-    await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
-    const context = onSubmit.mock.calls[0][2];
+    const context = await send(onSubmit, "Review this");
     expect(context?.vaults).toEqual([{ org: "acme", slug: "support-tools" }]);
-    expect(context?.secrets).toEqual({ REVIEW_KEY: "rk-1" });
+    expect(context?.includeMyVault).toBe(false);
+  });
+
+  it("sends no vault choice when the picker was not touched", async () => {
+    const onSubmit = vi.fn();
+    render(<SessionComposer onSubmit={onSubmit} {...AGENT_PROPS} initialVaultRefs={[{ org: "acme", slug: "support-tools" }]} />, {
+      wrapper: wrapperFor(client()),
+    });
+
+    const context = await send(onSubmit, "Review this");
+    expect(context).toBeUndefined();
   });
 
   it("drops the vault pick when the host moves the mounted composer to another conversation", async () => {
     const onSubmit = vi.fn();
-    const props = {
-      onSubmit,
-      org: "acme",
-      agentRef: { org: "acme", slug: "reviewer" },
-      onAgentRefChange: vi.fn(),
-      onSkillRefsChange: vi.fn(),
-      skillRefs: [],
-      enableVaultPicker: true,
-    };
-    const { rerender } = render(<SessionComposer {...props} sessionId="ses_a" />, { wrapper: Wrapper });
+    const props = { onSubmit, ...AGENT_PROPS, vaultPickCreatorId: "ida_creator" };
+    const { rerender } = render(<SessionComposer {...props} sessionId="ses_a" />, { wrapper: wrapperFor(client()) });
 
-    await openMenu(screen.getByRole("button", { name: "Configure agent, tools, and skills" }));
-    fireEvent.click(screen.getByRole("menuitem", { name: /Vaults/ }));
-    fireEvent.click(await screen.findByRole("button", { name: "Pick support-tools" }));
+    await openPanel(/Vaults/);
+    const pick = await screen.findByRole("button", { name: "Pick support-tools" });
+    await waitFor(() => expect((pick as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(pick);
 
     // Same conversation: the pick stays.
     rerender(<SessionComposer {...props} sessionId="ses_a" />);
-    const textarea = screen.getByRole("textbox");
-    fireEvent.change(textarea, { target: { value: "First" } });
-    fireEvent.keyDown(textarea, { key: "Enter", shiftKey: false });
-    await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
-    expect(onSubmit.mock.calls[0][2]?.vaults).toEqual([{ org: "acme", slug: "support-tools" }]);
+    const first = await send(onSubmit, "First");
+    expect(first?.vaults).toEqual([{ org: "acme", slug: "support-tools" }]);
+    expect(first?.includeMyVault).toBe(true);
 
-    // Another conversation: nothing picked there, so no vaults ride the send.
+    // Another conversation: nothing picked there, so no vault choice rides the send.
     rerender(<SessionComposer {...props} sessionId="ses_b" />);
-    fireEvent.change(screen.getByRole("textbox"), { target: { value: "Second" } });
-    fireEvent.keyDown(screen.getByRole("textbox"), { key: "Enter", shiftKey: false });
-    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(2));
-    expect(onSubmit.mock.calls[1][2]?.vaults).toBeUndefined();
+    const second = await send(onSubmit, "Second", 2);
+    expect(second?.vaults).toBeUndefined();
+    expect(second?.includeMyVault).toBeUndefined();
   });
 
-  it("hands the listed vaults to the agent's setup, leaving My vault's keys out of its pool", async () => {
-    const myVault = create(VaultSchema, {
-      metadata: { id: "vlt_mine", org: "acme", name: "My vault" },
-      spec: { owner: { case: "person", value: "ida_1" }, secrets: { MY_KEY: { value: "" } } },
-    });
-    const client = {
-      ...createMinimalStigmerMock(),
-      vault: { getMine: vi.fn().mockResolvedValue(myVault), getByReference: vi.fn().mockResolvedValue(supportTools) },
-    } as unknown as Stigmer;
-    function VaultWrapper({ children }: { children: ReactNode }) {
-      return (
-        <StigmerContext.Provider value={client}>
-          <ModelRegistryContext.Provider value={{ models: [], isLoading: false, error: null, refetch: vi.fn() }}>
-            {children}
-          </ModelRegistryContext.Provider>
-        </StigmerContext.Provider>
-      );
-    }
-    const props = {
-      onSubmit: vi.fn(),
-      org: "acme",
-      agentRef: { org: "acme", slug: "reviewer" },
-      onAgentRefChange: vi.fn(),
-      onSkillRefsChange: vi.fn(),
-      skillRefs: [],
-    };
-    const poolKeysOfLastCall = () => agentSetupCalls.at(-1)?.[1] as ReadonlySet<string>;
-
-    const { rerender } = render(<SessionComposer {...props} />, { wrapper: VaultWrapper });
-    // No listed vaults: My vault's key is in the pool, so its read landed.
-    await waitFor(() => expect(poolKeysOfLastCall().has("MY_KEY")).toBe(true));
-    expect(agentSetupCalls.at(-1)?.[2]).toEqual([]);
+  it("hands the conversation's vault choice to both setups, with only the platform's keys as their pool", async () => {
+    const props = { onSubmit: vi.fn(), ...AGENT_PROPS, onMcpServerUsagesChange: vi.fn() };
+    const { rerender } = render(<SessionComposer {...props} />, { wrapper: wrapperFor(client()) });
+    expect(agentSetupCalls.at(-1)?.[2]).toEqual({ includeMyVault: true, vaults: [] } satisfies ConversationVaults);
+    expect(mcpSetupCalls.at(-1)?.[2]).toEqual({ includeMyVault: true, vaults: [] });
+    const pool = agentSetupCalls.at(-1)?.[1] as ReadonlySet<string>;
+    expect(pool.has("STIGMER_SERVER_ADDRESS")).toBe(true);
 
     const listed = [{ org: "acme", slug: "support-tools" }];
-    rerender(<SessionComposer {...props} initialVaultRefs={listed} />);
-    expect(agentSetupCalls.at(-1)?.[2]).toEqual(listed);
-    expect(poolKeysOfLastCall().has("MY_KEY")).toBe(false);
+    rerender(<SessionComposer {...props} initialIncludeMyVault={false} initialVaultRefs={listed} />);
+    expect(agentSetupCalls.at(-1)?.[2]).toEqual({ includeMyVault: false, vaults: listed });
+    expect(mcpSetupCalls.at(-1)?.[2]).toEqual({ includeMyVault: false, vaults: listed });
   });
+});
 
-  it("hands the listed vaults to the MCP servers' setup, leaving My vault's keys out of its pool", async () => {
-    const myVault = create(VaultSchema, {
-      metadata: { id: "vlt_mine", org: "acme", name: "My vault" },
-      spec: { owner: { case: "person", value: "ida_1" }, secrets: { MY_KEY: { value: "" } } },
-    });
-    const client = {
-      ...createMinimalStigmerMock(),
-      vault: { getMine: vi.fn().mockResolvedValue(myVault), getByReference: vi.fn().mockResolvedValue(supportTools) },
-    } as unknown as Stigmer;
-    function VaultWrapper({ children }: { children: ReactNode }) {
-      return (
-        <StigmerContext.Provider value={client}>
-          <ModelRegistryContext.Provider value={{ models: [], isLoading: false, error: null, refetch: vi.fn() }}>
-            {children}
-          </ModelRegistryContext.Provider>
-        </StigmerContext.Provider>
-      );
-    }
-    const props = {
-      onSubmit: vi.fn(),
-      org: "acme",
-      onMcpServerUsagesChange: vi.fn(),
-    };
-    const poolKeysOfLastCall = () => mcpSetupCalls.at(-1)?.[1] as ReadonlySet<string>;
-
-    const { rerender } = render(<SessionComposer {...props} />, { wrapper: VaultWrapper });
-    // No listed vaults: My vault's key is in the pool, so its read landed.
-    await waitFor(() => expect(poolKeysOfLastCall().has("MY_KEY")).toBe(true));
-    expect(mcpSetupCalls.at(-1)?.[2]).toEqual([]);
-
-    const listed = [{ org: "acme", slug: "support-tools" }];
-    rerender(<SessionComposer {...props} initialVaultRefs={listed} />);
-    expect(mcpSetupCalls.at(-1)?.[2]).toEqual(listed);
-    expect(poolKeysOfLastCall().has("MY_KEY")).toBe(false);
-  });
-
-  it("saves a sign-in started from the MCP picker into the first listed vault, and into My vault when none is listed", async () => {
-    const client = {
-      ...createMinimalStigmerMock(),
-      vault: { ...noMyVaultClient(), getByReference: vi.fn().mockResolvedValue(supportTools) },
-    } as unknown as Stigmer;
-    function VaultWrapper({ children }: { children: ReactNode }) {
-      return (
-        <StigmerContext.Provider value={client}>
-          <ModelRegistryContext.Provider value={{ models: [], isLoading: false, error: null, refetch: vi.fn() }}>
-            {children}
-          </ModelRegistryContext.Provider>
-        </StigmerContext.Provider>
-      );
-    }
-    const props = { onSubmit: vi.fn(), org: "acme", onMcpServerUsagesChange: vi.fn() };
-
-    const { rerender } = render(<SessionComposer {...props} />, { wrapper: VaultWrapper });
-    await openMenu(screen.getByRole("button", { name: "Configure agent, tools, and skills" }));
-    fireEvent.click(screen.getByRole("menuitem", { name: /MCP Servers/ }));
-    expect(await screen.findByText("MCP picker")).toBeTruthy();
-    expect(pickerSignInVaults.at(-1)).toBeUndefined();
-
-    rerender(<SessionComposer {...props} initialVaultRefs={[{ org: "acme", slug: "support-tools" }]} />);
-    await waitFor(() =>
-      expect(pickerSignInVaults.at(-1)).toEqual({ id: "vlt_support", org: "org_acme", name: "Support tools" }),
+describe("SessionComposer — who may change a conversation's vaults", () => {
+  it("shows a teammate the pick read-only", async () => {
+    render(
+      <SessionComposer onSubmit={vi.fn()} {...AGENT_PROPS} sessionId="ses_a" vaultPickCreatorId="ida_creator" />,
+      { wrapper: wrapperFor(client("ida_teammate")) },
     );
+
+    await openPanel(/Vaults/);
+    expect(await screen.findByText(/Only the person who started it can change them\./)).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Pick support-tools" }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "My vault ticked" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("lets the conversation's creator change the pick", async () => {
+    render(
+      <SessionComposer onSubmit={vi.fn()} {...AGENT_PROPS} sessionId="ses_a" vaultPickCreatorId="ida_creator" />,
+      { wrapper: wrapperFor(client("ida_creator")) },
+    );
+
+    await openPanel(/Vaults/);
+    await waitFor(() =>
+      expect((screen.getByRole("button", { name: "Pick support-tools" }) as HTMLButtonElement).disabled).toBe(false),
+    );
+    expect(screen.getByText("This conversation uses exactly these vaults, in order.")).toBeTruthy();
+  });
+});
+
+describe("SessionComposer — a key or sign-in saved in My vault includes My vault", () => {
+  it("ticks My vault for the creator when a typed key is saved there", async () => {
+    mockAgentSetup.state = {
+      status: "needsEnvVars",
+      agentRef: { org: "acme", slug: "reviewer" },
+      agentName: "Reviewer",
+      missingVariables: [{ key: "API_TOKEN", isSecret: true }],
+      pendingSignIns: [],
+    };
+    mockAgentSetup.submitEnvVars.mockResolvedValue({
+      status: "ready",
+      agentRef: { org: "acme", slug: "reviewer" },
+      agentName: "Reviewer",
+      resolution: { mode: "saved" },
+    });
+    const onSubmit = vi.fn();
+    render(<SessionComposer onSubmit={onSubmit} {...AGENT_PROPS} initialIncludeMyVault={false} />, {
+      wrapper: wrapperFor(client()),
+    });
+
+    await openPanel(/Agent/);
+    expect(await screen.findByText(/which this conversation does not use yet/)).toBeTruthy();
+    // A secret field is a password input, which has no textbox role.
+    const field = document.querySelector<HTMLInputElement>('input[type="password"]');
+    if (field === null) throw new Error("the API_TOKEN field is not rendered");
+    fireEvent.change(field, { target: { value: "t" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(mockAgentSetup.submitEnvVars).toHaveBeenCalledWith({
+      API_TOKEN: { value: "t", isSecret: true },
+    }));
+
+    const context = await send(onSubmit, "Go");
+    expect(context?.includeMyVault).toBe(true);
+    expect(context?.vaults).toEqual([]);
+  });
+
+  it("ticks My vault for the creator when a sign-in from the MCP picker lands", async () => {
+    const onSubmit = vi.fn();
+    render(
+      <SessionComposer
+        onSubmit={onSubmit}
+        {...AGENT_PROPS}
+        onMcpServerUsagesChange={vi.fn()}
+        initialIncludeMyVault={false}
+        initialVaultRefs={[{ org: "acme", slug: "support-tools" }]}
+      />,
+      { wrapper: wrapperFor(client()) },
+    );
+
+    await openPanel(/MCP Servers/);
+    fireEvent.click(await screen.findByRole("button", { name: "Sign in to Linear" }));
+
+    const context = await send(onSubmit, "Go");
+    expect(context?.includeMyVault).toBe(true);
+    expect(context?.vaults).toEqual([{ org: "acme", slug: "support-tools" }]);
+  });
+
+  it.each([
+    { saved: true, outcome: "ticks My vault" },
+    { saved: false, outcome: "ticks nothing" },
+  ])("when an MCP server's key saved from the picker resolves $saved, $outcome", async ({ saved }) => {
+    const submitted: Promise<boolean>[] = [];
+    const submitEnvVars = vi.fn<(ref: ResourceRef, values: Record<string, EnvVarInput>) => Promise<boolean>>(() => {
+      const result = Promise.resolve(saved);
+      submitted.push(result);
+      return result;
+    });
+    mcpSubmitEnvVars.current = submitEnvVars;
+    const onSubmit = vi.fn();
+    render(
+      <SessionComposer
+        onSubmit={onSubmit}
+        {...AGENT_PROPS}
+        onMcpServerUsagesChange={vi.fn()}
+        initialIncludeMyVault={false}
+        initialVaultRefs={[{ org: "acme", slug: "support-tools" }]}
+      />,
+      { wrapper: wrapperFor(client()) },
+    );
+
+    await openPanel(/MCP Servers/);
+    fireEvent.click(await screen.findByRole("button", { name: "Save Zendesk key" }));
+    expect(submitEnvVars).toHaveBeenCalledWith(
+      { org: "acme", slug: "zendesk" },
+      { ZENDESK_TOKEN: { value: "t", isSecret: true } },
+    );
+    await act(async () => {
+      await Promise.all(submitted);
+    });
+
+    const context = await send(onSubmit, "Go");
+    if (saved) {
+      expect(context?.includeMyVault).toBe(true);
+      expect(context?.vaults).toEqual([{ org: "acme", slug: "support-tools" }]);
+    } else {
+      expect(context).toBeUndefined();
+    }
+  });
+
+  it("keeps a vault picked while an MCP server's save was in flight, ticking My vault beside it", async () => {
+    let land = (_: boolean): void => undefined;
+    mcpSubmitEnvVars.current = vi.fn(
+      () =>
+        new Promise<boolean>((resolve) => {
+          land = resolve;
+        }),
+    );
+    const onSubmit = vi.fn();
+    render(
+      <SessionComposer onSubmit={onSubmit} {...AGENT_PROPS} onMcpServerUsagesChange={vi.fn()} initialIncludeMyVault={false} />,
+      { wrapper: wrapperFor(client()) },
+    );
+
+    await openPanel(/MCP Servers/);
+    fireEvent.click(await screen.findByRole("button", { name: "Save Zendesk key" }));
+    // While the save is in flight, the person picks a shared vault.
+    fireEvent.click(screen.getByRole("button", { name: "Back to configuration menu" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: /Vaults/ }));
+    fireEvent.click(await screen.findByRole("button", { name: "Pick support-tools" }));
+    await act(async () => {
+      land(true);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    const context = await send(onSubmit, "Go");
+    expect(context?.includeMyVault).toBe(true);
+    expect(context?.vaults).toEqual([{ org: "acme", slug: "support-tools" }]);
+  });
+
+  it("keeps the agent panel open on what is owed when a teammate's saved key is still not read", async () => {
+    mockAgentSetup.state = {
+      status: "needsEnvVars",
+      agentRef: { org: "acme", slug: "reviewer" },
+      agentName: "Reviewer",
+      missingVariables: [{ key: "API_TOKEN", isSecret: true }],
+      pendingSignIns: [],
+    };
+    mockAgentSetup.submitEnvVars.mockResolvedValue({
+      status: "needsEnvVars",
+      agentRef: { org: "acme", slug: "reviewer" },
+      agentName: "Reviewer",
+      missingVariables: [{ key: "API_TOKEN", isSecret: true }],
+      pendingSignIns: [],
+    });
+    const onAgentResolutionChange = vi.fn();
+    const onSubmit = vi.fn();
+    render(
+      <SessionComposer
+        onSubmit={onSubmit}
+        {...AGENT_PROPS}
+        onAgentResolutionChange={onAgentResolutionChange}
+        initialIncludeMyVault={false}
+        sessionId="ses_a"
+        vaultPickCreatorId="ida_creator"
+      />,
+      { wrapper: wrapperFor(client("ida_teammate")) },
+    );
+
+    await openPanel(/Agent/);
+    expect(await screen.findByText(/Only the person who started it can change its vaults\./)).toBeTruthy();
+    const field = document.querySelector<HTMLInputElement>('input[type="password"]');
+    if (field === null) throw new Error("the API_TOKEN field is not rendered");
+    fireEvent.change(field, { target: { value: "t" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(mockAgentSetup.submitEnvVars).toHaveBeenCalledTimes(1));
+
+    expect(screen.getByText(/a tool that reads Signed in is signed in there/)).toBeTruthy();
+    expect(onAgentResolutionChange).not.toHaveBeenCalled();
+    const context = await send(onSubmit, "Go");
+    expect(context).toBeUndefined();
+  });
+
+  it("ticks nothing for a teammate, who cannot change the conversation's vaults", async () => {
+    const onSubmit = vi.fn();
+    render(
+      <SessionComposer
+        onSubmit={onSubmit}
+        {...AGENT_PROPS}
+        onMcpServerUsagesChange={vi.fn()}
+        initialIncludeMyVault={false}
+        sessionId="ses_a"
+        vaultPickCreatorId="ida_creator"
+      />,
+      { wrapper: wrapperFor(client("ida_teammate")) },
+    );
+
+    await openPanel(/MCP Servers/);
+    fireEvent.click(await screen.findByRole("button", { name: "Sign in to Linear" }));
+
+    const context = await send(onSubmit, "Go");
+    expect(context).toBeUndefined();
+  });
+});
+
+describe("SessionComposer — the personal-keys line", () => {
+  it("names the agent's keys only while the conversation includes My vault", async () => {
+    const props = { onSubmit: vi.fn(), ...AGENT_PROPS, disclosePersonalKeys: true };
+    const { rerender } = render(<SessionComposer {...props} />, { wrapper: wrapperFor(client()) });
+    expect(screen.getByText("Personal keys line")).toBeTruthy();
+
+    rerender(<SessionComposer {...props} initialIncludeMyVault={false} />);
+    expect(screen.queryByText("Personal keys line")).toBeNull();
   });
 });

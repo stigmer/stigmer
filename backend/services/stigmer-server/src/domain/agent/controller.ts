@@ -143,8 +143,6 @@ import {
 } from "./versions.js";
 import type { ModelCatalogProvider } from "../../modelcatalog/model-catalog-provider.js";
 import { newValidateAgentRunConfigStep } from "./validate-run-config.js";
-import { newVaultAttachmentsStep } from "../vault/attachments.js";
-import type { VaultAttachmentOptions } from "../vault/attachments.js";
 
 export interface AgentControllerDeps {
   readonly store: Store;
@@ -159,11 +157,6 @@ export interface AgentControllerDeps {
    */
   readonly modelRegistry: ModelCatalogProvider;
 }
-
-/** An agent's vaults serve each run's own person, checked per run: no attachers to record. */
-const AGENT_VAULT_ATTACHMENTS: VaultAttachmentOptions<typeof AgentSchema> = {
-  surface: "an agent",
-};
 
 /** Registers both agent services on the router (routes stage). */
 export function registerAgentServices(
@@ -222,7 +215,6 @@ async function createAgent(
     .addStep(newValidateHooksStep())
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
-    .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, AGENT_VAULT_ATTACHMENTS))
     .addStep(newMergeMcpServerEnvSpecsStep(deps.store, deps.logger))
     .addStep(newValidateAgentRunConfigStep(deps.modelRegistry))
     .addStep(newComputeAgentVersionHashStep())
@@ -274,7 +266,6 @@ async function update(
     .addStep(newValidateHooksStep())
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
-    .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, AGENT_VAULT_ATTACHMENTS))
     .addStep(newMergeMcpServerEnvSpecsStep(deps.store, deps.logger))
     .addStep(newValidateAgentRunConfigStep(deps.modelRegistry))
     .addStep(newComputeAgentVersionHashStep())

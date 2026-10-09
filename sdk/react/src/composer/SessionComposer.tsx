@@ -19,7 +19,7 @@ import {
 } from "../attachment/vision-preflight.js";
 import { WorkspaceEditor } from "../workspace/WorkspaceEditor.js";
 import { AgentPicker } from "../agent/AgentPicker.js";
-import { AgentEnvForm, type AgentEnvFormSubmitOptions } from "../agent/AgentEnvForm.js";
+import { AgentEnvForm } from "../agent/AgentEnvForm.js";
 import { McpServerReadiness } from "../plugin/McpServerReadiness.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { useAgentSetup, type AgentResolution } from "../agent/useAgentSetup.js";
@@ -30,8 +30,6 @@ import { McpServerPicker } from "../mcp-server/McpServerPicker.js";
 import { useMcpServerSetup } from "../mcp-server/useMcpServerSetup.js";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { SkillPicker } from "../skill/SkillPicker.js";
-import { SessionVariablesInput } from "../run/SessionVariablesInput.js";
-import type { UseSessionVariablesReturn } from "../run/useSessionVariables.js";
 import type { UseWorkspaceEntriesReturn } from "../workspace/useWorkspaceEntries.js";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection.js";
 import { useAttachments } from "../attachment/useAttachments.js";
@@ -40,13 +38,10 @@ import { extractClipboardFiles } from "../attachment/clipboard.js";
 import { useFileReferences } from "../file-reference/useFileReferences.js";
 import { FileReferenceChipList } from "../file-reference/FileReferenceChipList.js";
 import { FILE_REF_MIME } from "../internal/file-tree/index.js";
-import { useSessionEnvPool } from "../vault/useSessionEnvPool.js";
-import { useMyVault } from "../vault/useMyVault.js";
-import { useVault } from "../vault/useVault.js";
-import type { SignInVault } from "../mcp-server/useMcpServerOAuthConnect.js";
 import { VaultPicker } from "../vault/VaultPicker.js";
-import { valuesOf } from "../vault/types.js";
+import type { ConversationVaults } from "../vault/conversationVaults.js";
 import { SYSTEM_ENV_VAR_KEYS } from "../vault/systemEnvVars.js";
+import { useWhoAmI } from "../iam-policy/useWhoAmI.js";
 import { useRenderTracer } from "../internal/dev/index.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import {
@@ -90,7 +85,7 @@ export interface SessionComposerHandle {
   focus(): void;
   /**
    * Submit a message programmatically through the composer's full submit
-   * pipeline (system/agent/MCP env resolution, attachments, session vars).
+   * pipeline (the vault pick, attachments, file references).
    *
    * Unlike calling the consumer's `onSubmit` directly, this guarantees the
    * same runtime context the user would get from pressing Send. No-ops when
@@ -123,31 +118,25 @@ export interface SessionComposerHandle {
 /**
  * Context provided to `onSubmit` at the moment of submission.
  *
- * Contains the conversation's own secrets aggregated from every setup
- * flow the composer manages (agent, MCP servers, manual secrets), and the
- * vaults the person picked. The consumer writes them onto the session
- * (`session_spec.secrets` and `vaults` on a first turn, a session update
- * on a later one) without needing to understand the individual sources.
+ * Carries the vaults the person picked for the conversation and the
+ * per-message choices the composer manages. The consumer writes the
+ * vault pick onto the session (`session_spec.include_my_vault` and
+ * `vaults` on a first turn, a session update on a later one). A value the
+ * person types never travels here: the setup forms save it in My vault.
  */
 export interface SessionComposerSubmitContext {
   /**
-   * The conversation's own secrets, by name, collected from all setup flows.
-   *
-   * Merged from (in precedence order, last-write-wins):
-   * 1. Agent one-time values (when agent resolution mode is `"oneTime"`)
-   * 2. MCP server one-time values (collected with `saveForFuture: false`)
-   * 3. Manual session variables (from {@link SessionVariablesInput})
-   *
-   * `undefined` when nothing was collected. Written as the session's own
-   * secrets: sealed for the conversation's life, never returned by a read.
-   */
-  readonly secrets?: Record<string, string>;
-  /**
-   * The vaults the person picked for this conversation, in order, or
-   * `undefined` when the picker was not touched (the conversation keeps
-   * what it lists). An empty list means "use my own vault again".
+   * The shared vaults the person picked for this conversation, in order,
+   * or `undefined` when the picker was not touched (the conversation keeps
+   * what it uses). Set together with {@link includeMyVault}.
    */
   readonly vaults?: ResourceRef[];
+  /**
+   * Whether the person picked their own My vault for this conversation,
+   * read first, ahead of {@link vaults}; `undefined` when the picker was
+   * not touched. Set together with {@link vaults}.
+   */
+  readonly includeMyVault?: boolean;
   /**
    * Pre-uploaded file attachments for the run.
    *
@@ -231,8 +220,8 @@ export interface SessionComposerProps {
    * Called when the user submits a message.
    *
    * The optional `context` parameter carries aggregated runtime data
-   * collected by the composer's setup flows. When present, its
-   * `secrets` and `vaults` are written onto the conversation.
+   * collected by the composer. When present, its `includeMyVault` and
+   * `vaults` are written onto the conversation.
    */
   readonly onSubmit: (
     message: string,
@@ -384,8 +373,7 @@ export interface SessionComposerProps {
    *
    * Every {@link AgentResolution} starts the session on `agentRef`; the
    * mode says where the agent's declared keys come from:
-   * - `"saved"` — the user's vaults hold them
-   * - `"oneTime"` — the values become the conversation's own secrets
+   * - `"saved"` — the vaults the conversation uses hold them
    * - `"direct"` — nothing is needed from the user
    *
    * Set to `null` when the agent is deselected.
@@ -437,11 +425,12 @@ export interface SessionComposerProps {
 
   /**
    * Name, below the composer, the keys the selected agent declares
-   * (`agent.spec.env`): every run of the agent reads those keys from the
-   * person's My vault, so the person sees what the agent can
-   * read before sending the first message of a conversation on it. A
-   * disclosure, not a gate: nothing is withheld or asked. Shown only when
-   * an agent is selected and declares at least one key.
+   * (`agent.spec.env`): a run of the agent reads those keys from the
+   * person's My vault when the conversation includes it, so the person
+   * sees what the agent can read before sending the first message of a
+   * conversation on it. A disclosure, not a gate: nothing is withheld or
+   * asked. Shown only when an agent is selected, declares at least one
+   * key, and the conversation includes My vault.
    *
    * Opt-in: a host enables it where a conversation is about to start on
    * an agent (the new-session launcher, or a conversation moving to a
@@ -461,16 +450,35 @@ export interface SessionComposerProps {
 
   /**
    * Offer a Vaults entry in the Configure menu, where the person picks the
-   * shared vaults this conversation uses. A conversation that lists vaults
-   * uses only those (not the person's own My vault), so the picker says so.
-   * Never for a guest: a share link's visitor brings no vaults.
+   * vaults this conversation uses: My vault, a fixed first row they tick
+   * or untick, then the shared vaults in order. The conversation uses
+   * exactly these. Never for a guest: a share link's visitor brings no
+   * vaults.
    *
    * @default false
    */
   readonly enableVaultPicker?: boolean;
 
-  /** The vaults the conversation lists already, shown as the picker's starting selection. */
+  /** The shared vaults the conversation lists already, shown as the picker's starting selection. */
   readonly initialVaultRefs?: readonly ResourceRef[];
+
+  /**
+   * Whether the conversation includes its sender's My vault already, the
+   * picker's starting tick. Also what the agent's and the MCP servers'
+   * setups weigh while the picker is untouched.
+   *
+   * @default true
+   */
+  readonly initialIncludeMyVault?: boolean;
+
+  /**
+   * The identity that created the conversation this composer continues.
+   * Only its creator may change which vaults it uses (the server refuses
+   * anyone else's session update), so the picker is read-only for every
+   * other viewer. Ignored while composing a new conversation, which the
+   * person at the keyboard creates.
+   */
+  readonly vaultPickCreatorId?: string;
 
   /**
    * The conversation this composer adds turns to, when it continues one.
@@ -514,18 +522,6 @@ export interface SessionComposerProps {
   readonly onSkillRefsChange?: (refs: ResourceRef[]) => void;
 
   /**
-   * Session variables state managed by {@link useSessionVariables}.
-   * When provided, renders a "Session Variables" trigger in the toolbar
-   * that opens a key-value editor for environment variables.
-   *
-   * Variables are kept for this conversation only by default. Individual
-   * entries can be marked `saveForFuture: true` to save them in the
-   * user's My vault. The consumer should call
-   * `sessionVariables.clear()` after submission.
-   */
-  readonly sessionVariables?: UseSessionVariablesReturn;
-
-  /**
    * Enable file attachment support in the composer.
    *
    * When `true`, renders an attach button in the toolbar and enables
@@ -555,15 +551,6 @@ export interface SessionComposerProps {
    * Consumers can use this for toast notifications.
    */
   readonly onAttachmentValidationError?: (message: string) => void;
-
-  /**
-   * Called when saving the values marked "Save in My vault" fails at submit.
-   * The message is still sent, with those values as its conversation's own
-   * secrets; the composer also shows the failure under its toolbar.
-   * Consumers that leave the composer on submit (a new session's page) can
-   * use this for toast notifications.
-   */
-  readonly onMyVaultSaveError?: (message: string) => void;
 
   /**
    * Files to attach programmatically when the composer mounts.
@@ -613,7 +600,7 @@ export interface SessionComposerProps {
  *
  * The toolbar uses a two-group layout:
  * - **Left (primary state):** Interaction Mode, Model Selector
- * - **Right (secondary actions, icon-only):** Workspace, Attach, Configure (Agent, MCP, Skills, Secrets), Send
+ * - **Right (secondary actions, icon-only):** Workspace, Attach, Configure (Agent, MCP, Skills, Vaults), Send
  *
  * Selected items render as removable chips between the textarea and toolbar.
  *
@@ -702,17 +689,17 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   personalKeysVersionHash,
   enableVaultPicker = false,
   initialVaultRefs,
+  initialIncludeMyVault = true,
+  vaultPickCreatorId,
   sessionId,
   lockAgent = false,
   mcpServerUsages,
   onMcpServerUsagesChange,
   skillRefs,
   onSkillRefsChange,
-  sessionVariables,
   enableAttachments = true,
   enableFileReferences = true,
   onAttachmentValidationError,
-  onMyVaultSaveError,
   initialAttachments,
   placeholder = "Reply\u2026",
   initialRows = 1,
@@ -811,7 +798,6 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   const showMcp = onMcpServerUsagesChange != null && org != null;
   const showWorkspace = workspace != null;
   const showSkills = onSkillRefsChange != null && org != null;
-  const showSessionVars = sessionVariables != null;
   const showAttach = enableAttachments;
 
   // ---------------------------------------------------------------------------
@@ -823,87 +809,79 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   const configMcpInitialServerKeyRef = useRef<string | undefined>(undefined);
 
   // ---------------------------------------------------------------------------
-  // Session env pool — cross-references secrets across all sources
+  // The vaults the conversation uses — My vault when included, then the
+  // listed shared vaults; exactly what its runs read
   // ---------------------------------------------------------------------------
 
-  const myVault = useMyVault((showAgent || showMcp) ? (org ?? null) : null);
-  // The last submit's failed "Save in My vault", shown under the toolbar
-  // until the next submit.
-  const [myVaultSaveError, setMyVaultSaveError] = useState<string | null>(null);
-
-  const pool = useSessionEnvPool({
-    savedKeys: myVault.secretNames,
-    manualSecrets: sessionVariables?.entries,
-  });
-
-  // The vaults the person picked: `undefined` until the picker is touched,
-  // so an untouched picker never rewrites what the conversation lists.
-  // A pick belongs to the conversation it was made in: another
-  // conversation starts from the vaults it lists.
-  const [vaultPick, setVaultPick] = useState<ResourceRef[] | undefined>(undefined);
+  // The person's pick: `undefined` until the picker is touched, so an
+  // untouched picker never rewrites what the conversation uses. A pick
+  // belongs to the conversation it was made in: another conversation
+  // starts from what it uses.
+  const [vaultPick, setVaultPick] = useState<ConversationVaults | undefined>(undefined);
   const [vaultPickSessionId, setVaultPickSessionId] = useState(sessionId);
   if (vaultPickSessionId !== sessionId) {
     setVaultPickSessionId(sessionId);
     setVaultPick(undefined);
   }
-  const shownVaults = vaultPick ?? initialVaultRefs ?? [];
+  const initialVaultsKey = (initialVaultRefs ?? []).map((ref) => `${ref.org}/${ref.slug}`).join(",");
+  const initialChoice = useMemo<ConversationVaults>(
+    () => ({ includeMyVault: initialIncludeMyVault, vaults: initialVaultRefs ?? [] }),
+    // Keyed by content: hosts pass a fresh array per render.
+    [initialIncludeMyVault, initialVaultsKey],
+  );
+  const shownVaults = vaultPick ?? initialChoice;
   const showVaults = enableVaultPicker && org != null;
 
-  const poolKeysWithSystem = useMemo(
-    () => new Set([...pool.availableKeys, ...SYSTEM_ENV_VAR_KEYS]),
-    [pool.availableKeys],
-  );
+  // Only a conversation's creator may change which vaults it uses: the
+  // server refuses anyone else's session update, so the picker is
+  // read-only for a teammate. A new conversation is the person's own.
+  const continuesConversation = sessionId !== undefined;
+  const { account: viewer } = useWhoAmI({ enabled: showVaults && continuesConversation });
+  const viewerId = viewer?.metadata?.id ?? "";
+  const canChangeVaults =
+    !continuesConversation || (viewerId !== "" && viewerId === (vaultPickCreatorId ?? ""));
+
+  // A value the person types, and a sign-in they make, are saved in My
+  // vault. A conversation that leaves My vault out would never read them,
+  // so the picker ticks My vault for its creator: the very next turn (which
+  // carries the pick) uses them, and the person sees the tick and can undo
+  // it. Without the picker the host decides, and nothing is ticked. A save
+  // or a sign-in lands after a wait, so the tick is laid over the pick as
+  // it stands then, keeping a vault the person picked meanwhile. Answers
+  // whether the conversation now includes My vault.
+  const initialChoiceRef = useRef(initialChoice);
+  initialChoiceRef.current = initialChoice;
+  const shownVaultsRef = useRef(shownVaults);
+  shownVaultsRef.current = shownVaults;
+  const canTickMyVault = showVaults && canChangeVaults;
+  const includeMyVaultForSave = useCallback((): boolean => {
+    if (!canTickMyVault) return shownVaultsRef.current.includeMyVault;
+    setVaultPick((pick) => {
+      const current = pick ?? initialChoiceRef.current;
+      return current.includeMyVault ? pick : { includeMyVault: true, vaults: [...current.vaults] };
+    });
+    return true;
+  }, [canTickMyVault]);
 
   // ---------------------------------------------------------------------------
   // Setup hooks — instantiated before handleSubmit so it can read their state
   // ---------------------------------------------------------------------------
 
-  // A conversation that lists vaults reads only those, never My vault, so
-  // the agent's and the MCP servers' setups count the listed vaults' keys
-  // and, from the pool, only the values typed here (which become the
-  // conversation's own).
-  const listsVaults = shownVaults.length > 0;
-  const setupPoolKeys = useMemo(
-    () =>
-      listsVaults
-        ? new Set([
-            ...[...pool.availableKeys].filter((key) => pool.getAvailableValue(key) !== undefined),
-            ...SYSTEM_ENV_VAR_KEYS,
-          ])
-        : poolKeysWithSystem,
-    [listsVaults, pool.availableKeys, pool.getAvailableValue, poolKeysWithSystem],
-  );
+  // The platform's own keys are filled in the runner, so the setups never
+  // ask for them; every other key comes from the vaults the conversation
+  // uses.
+  const platformKeys = useMemo(() => new Set(SYSTEM_ENV_VAR_KEYS), []);
 
   const agentSetup = useAgentSetup(
     showAgent ? (org ?? null) : null,
-    setupPoolKeys,
+    platformKeys,
     shownVaults,
   );
 
   const mcpSetup = useMcpServerSetup(
     showMcp ? (org ?? null) : null,
-    setupPoolKeys,
+    platformKeys,
     shownVaults,
-  );
-
-  // A sign-in started from the MCP picker in a conversation that lists
-  // vaults is saved into the first of them: its runs read a login nowhere
-  // else. (The agent's own sign-in rows carry the vault their setup read.)
-  const firstListedRef = showMcp && listsVaults && org ? shownVaults[0] : undefined;
-  const firstListed = useVault(
-    firstListedRef ? { org: firstListedRef.org || org!, slug: firstListedRef.slug } : null,
-  ).vault;
-  const pickerListsVaults = firstListedRef !== undefined;
-  const mcpSignInVault = useMemo<SignInVault | undefined>(
-    () =>
-      pickerListsVaults && firstListed?.metadata
-        ? {
-            id: firstListed.metadata.id,
-            org: firstListed.metadata.org,
-            name: firstListed.metadata.name || firstListed.metadata.slug,
-          }
-        : undefined,
-    [pickerListsVaults, firstListed],
   );
 
   // ---------------------------------------------------------------------------
@@ -1213,11 +1191,11 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   );
 
   // ---------------------------------------------------------------------------
-  // Submit — aggregates the conversation's own secrets from all setup flows
+  // Submit — the vault pick and the per-message choices
   // ---------------------------------------------------------------------------
 
   const handleSubmit = useCallback(
-    async (
+    (
       message: string,
       overrides?: {
         interactionMode?: InteractionModeOption;
@@ -1225,47 +1203,6 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
         buildFromPlan?: boolean;
       },
     ) => {
-      // Save the entries marked for future conversations in My vault
-      // before building the conversation's own secrets.
-      setMyVaultSaveError(null);
-      if (sessionVariables?.hasSaveForFutureEntries) {
-        const saveVars = valuesOf(sessionVariables.toSaveForFutureEnv());
-        if (Object.keys(saveVars).length > 0) {
-          try {
-            await myVault.setSecrets(saveVars);
-          } catch (err) {
-            // The values still reach this conversation as its own secrets;
-            // the person is told they were not saved for later ones.
-            const notice =
-              `Not saved in My vault: ${getUserMessage(err)}. ` +
-              "The values are used for this conversation only.";
-            setMyVaultSaveError(notice);
-            onMyVaultSaveError?.(notice);
-          }
-        }
-      }
-
-      // Only what the page collected for this run: the platform's own keys
-      // are filled in the runner, below every value a user saved
-      // (systemEnvVars.ts header, stigmer/stigmer#1446).
-      const env: Record<string, EnvVarInput> = {};
-
-      if (
-        agentSetup.state.status === "ready" &&
-        agentSetup.state.resolution.mode === "oneTime"
-      ) {
-        Object.assign(env, agentSetup.state.resolution.values);
-      }
-
-      const mcpEnv = mcpSetup.pendingOneTimeValues;
-      if (Object.keys(mcpEnv).length > 0) {
-        Object.assign(env, mcpEnv);
-      }
-
-      if (sessionVariables && sessionVariables.hasValidEntries) {
-        Object.assign(env, sessionVariables.toSessionSecrets());
-      }
-
       // Composer-attached files plus caller-supplied extras (e.g. the approved
       // plan.md from a Build-from-plan turn) travel as one attachment list.
       const composerAttachments = enableAttachments
@@ -1276,8 +1213,6 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
         ...(overrides?.attachments ?? []),
       ];
 
-      const secrets = valuesOf(env);
-      const hasEnv = Object.keys(secrets).length > 0;
       const hasAttachments = attachmentInputs.length > 0;
       const effectiveMode =
         overrides?.interactionMode ??
@@ -1307,11 +1242,11 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
             : undefined;
 
       const context: SessionComposerSubmitContext | undefined =
-        hasEnv || hasAttachments || effectiveMode || hasFileRefs || buildFromPlan
+        hasAttachments || effectiveMode || hasFileRefs || buildFromPlan
         || submitServiceTier || submitThinkingMode || vaultPick !== undefined
           ? {
-              secrets: hasEnv ? secrets : undefined,
-              vaults: vaultPick,
+              vaults: vaultPick ? [...vaultPick.vaults] : undefined,
+              includeMyVault: vaultPick?.includeMyVault,
               attachments: hasAttachments ? attachmentInputs : undefined,
               interactionMode: effectiveMode,
               serviceTier: submitServiceTier,
@@ -1336,7 +1271,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
         fileRefs.clear();
       }
     },
-    [onSubmit, effective, serviceTierPick, thinkingModePick, agentSetup.state, mcpSetup.pendingOneTimeValues, sessionVariables, enableAttachments, attachments, myVault, onMyVaultSaveError, showInteractionModePicker, interactionMode, vaultPick],
+    [onSubmit, effective, serviceTierPick, thinkingModePick, enableAttachments, attachments, showInteractionModePicker, interactionMode, vaultPick],
   );
 
   const composer = useComposer({
@@ -1350,7 +1285,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
     submit: (message, options) => {
       const trimmed = message.trim();
       if (!trimmed || isDisabled) return;
-      void handleSubmit(trimmed, options);
+      handleSubmit(trimmed, options);
     },
   }), [composer.setMessage, composer.textareaRef, handleSubmit, isDisabled]);
 
@@ -1487,25 +1422,30 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   );
 
   const handleEnvFormSubmit = useCallback(
-    async (
-      values: Record<string, EnvVarInput>,
-      { saveForFuture }: AgentEnvFormSubmitOptions,
-    ) => {
+    async (values: Record<string, EnvVarInput>) => {
       try {
-        const result = await agentSetup.submitEnvVars(values, { saveForFuture });
-        onAgentRefChange?.(result.agentRef);
-        onAgentResolutionChange?.(result.resolution);
+        const result = await agentSetup.submitEnvVars(values);
+        const includesMyVault = includeMyVaultForSave();
         handleDisplayNameResolved(
           `${result.agentRef.org}/${result.agentRef.slug}`,
           result.agentName,
         );
-        setConfigOpen(false);
+        if (result.status === "ready") {
+          onAgentRefChange?.(result.agentRef);
+          onAgentResolutionChange?.(result.resolution);
+        }
+        // A tick just made resolves the agent again over the choice that
+        // now includes My vault, and the ready bridge commits it. A
+        // conversation that still leaves My vault out keeps the panel open
+        // on what it lacks.
+        if (result.status === "ready" || includesMyVault) setConfigOpen(false);
       } catch {
         // Error is captured by agentSetup.state.error — displayed inline.
       }
     },
     [
       agentSetup,
+      includeMyVaultForSave,
       onAgentRefChange,
       onAgentResolutionChange,
       handleDisplayNameResolved,
@@ -1685,34 +1625,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
 
   const mcpCount = showMcp ? Object.keys(mcpSetup.entries).length : 0;
   const skillCount = skillRefs?.length ?? 0;
-  const sessionVarCount = sessionVariables?.entries.length ?? 0;
-
-  // ---------------------------------------------------------------------------
-  // Required-by map — tracks which keys are needed by which resources
-  // ---------------------------------------------------------------------------
-
-  const requiredByMap = useMemo((): Record<string, string[]> => {
-    const map: Record<string, string[]> = {};
-
-    if (agentSetup.state.status === "needsEnvVars") {
-      const agentName = agentSetup.state.agentName;
-      for (const v of agentSetup.state.missingVariables) {
-        (map[v.key] ??= []).push(agentName);
-      }
-    }
-
-    if (showMcp) {
-      for (const entry of Object.values(mcpSetup.entries)) {
-        if (entry.status !== "needsSetup") continue;
-        const serverName = entry.mcpServer.metadata?.name ?? "MCP Server";
-        for (const v of entry.missingVariables) {
-          (map[v.key] ??= []).push(serverName);
-        }
-      }
-    }
-
-    return map;
-  }, [agentSetup.state, showMcp, mcpSetup.entries]);
+  const vaultCount = shownVaults.vaults.length + (shownVaults.includeMyVault ? 1 : 0);
 
   // ---------------------------------------------------------------------------
   // Configure menu — Tier 2 items and panel renderer
@@ -1757,24 +1670,16 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
         count: skillCount,
       });
     }
-    if (showSessionVars) {
-      items.push({
-        id: "sessionVars",
-        icon: <SecretsIcon />,
-        label: "Session Variables",
-        count: sessionVarCount,
-      });
-    }
     if (showVaults) {
       items.push({
         id: "vaults",
         icon: <SecretsIcon />,
         label: "Vaults",
-        count: shownVaults.length,
+        count: vaultCount,
       });
     }
     return items;
-  }, [showAgent, lockAgent, agentRef, agentSetup.state, showMcp, mcpCount, mcpSetup.needsSetupCount, showSkills, skillCount, showSessionVars, sessionVarCount, showVaults, shownVaults.length]);
+  }, [showAgent, lockAgent, agentRef, agentSetup.state, showMcp, mcpCount, mcpSetup.needsSetupCount, showSkills, skillCount, showVaults, vaultCount]);
 
   const renderConfigPanel = useCallback(
     (panelId: string): React.ReactNode => {
@@ -1782,6 +1687,11 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
         case "agent":
           return showEnvForm && agentSetup.state.status === "needsEnvVars" ? (
             <div className="stg:flex stg:flex-col stg:gap-3">
+              {!shownVaults.includeMyVault && (
+                <MyVaultLeftOutNote
+                  onInclude={showVaults && canChangeVaults ? includeMyVaultForSave : undefined}
+                />
+              )}
               {agentSetup.state.pendingSignIns.length > 0 && (
                 <div className="stg:flex stg:flex-col stg:gap-2">
                   <p className="stg:text-sm stg:text-foreground">
@@ -1795,8 +1705,8 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
                           org={signIn.ref.org}
                           slug={signIn.ref.slug}
                           keysAskedAt="agent"
-                          signInVault={signIn.vault}
                           onSignedIn={(id) => {
+                            includeMyVaultForSave();
                             void agentSetup.signInCompleted(id);
                           }}
                         />
@@ -1814,7 +1724,6 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
                   onCancel={() => agentSetup.reset()}
                   isSubmitting={isAgentBusy}
                   disabled={isDisabled}
-                  poolValues={pool.getAvailableValue}
                 />
               )}
               {agentSetup.state.error && (
@@ -1849,16 +1758,16 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
                 entries: mcpSetup.entries,
                 onServerAdded: (ref) => mcpSetup.addServer(ref),
                 onServerRemoved: (ref) => mcpSetup.removeServer(ref),
-                onSubmitEnvVars: (ref, values, opts) =>
-                  mcpSetup.submitEnvVars(ref, values, {
-                    saveForFuture: opts.saveForFuture,
-                  }),
-                signInVault: mcpSignInVault,
+                onSubmitEnvVars: (ref, values) => {
+                  void mcpSetup.submitEnvVars(ref, values).then((saved) => {
+                    if (saved) includeMyVaultForSave();
+                  });
+                },
+                onSignedIn: () => includeMyVaultForSave(),
               }}
               initialServerKey={configMcpInitialServerKeyRef.current}
               onDisplayNameResolved={handleDisplayNameResolved}
               disabled={isDisabled}
-              poolValues={pool.getAvailableValue}
             />
           );
 
@@ -1873,28 +1782,26 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
             />
           );
 
-        case "sessionVars":
-          return (
-            <SessionVariablesInput
-              sessionVariables={sessionVariables!}
-              disabled={isDisabled}
-              requiredByMap={requiredByMap}
-            />
-          );
-
         case "vaults":
           return (
             <div className="stg:flex stg:flex-col stg:gap-2">
               <p className="stg:text-xs stg:text-muted-foreground">
-                With no vault picked, this conversation uses your own My
-                vault, then the agent&apos;s vaults you may use.
+                {canChangeVaults
+                  ? "This conversation uses exactly these vaults, in order."
+                  : "This conversation uses exactly these vaults, in order. Only the person who started it can change them."}
               </p>
               <VaultPicker
                 org={org!}
-                value={shownVaults}
-                onChange={setVaultPick}
-                disabled={isDisabled}
-                selectionNote="This conversation now uses only these vaults, not your own My vault."
+                value={shownVaults.vaults}
+                onChange={(vaults) =>
+                  setVaultPick({ includeMyVault: shownVaults.includeMyVault, vaults })
+                }
+                myVault={{
+                  checked: shownVaults.includeMyVault,
+                  onChange: (checked) =>
+                    setVaultPick({ includeMyVault: checked, vaults: [...shownVaults.vaults] }),
+                }}
+                disabled={isDisabled || !canChangeVaults}
               />
             </div>
           );
@@ -1916,11 +1823,10 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
       mcpSetup,
       skillRefs,
       onSkillRefsChange,
-      sessionVariables,
-      pool,
-      requiredByMap,
       shownVaults,
-      mcpSignInVault,
+      showVaults,
+      canChangeVaults,
+      includeMyVaultForSave,
     ],
   );
 
@@ -2185,12 +2091,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
           onThinkingModeChange={setThinkingModePick}
         />
       </div>
-      {myVaultSaveError && (
-        <p role="alert" className="stg:mt-2 stg:px-1 stg:text-xs stg:text-destructive">
-          {myVaultSaveError}
-        </p>
-      )}
-      {disclosePersonalKeys && agentRef && org && (
+      {disclosePersonalKeys && shownVaults.includeMyVault && agentRef && org && (
         <PersonalKeyDisclosure
           agentRef={agentRef}
           runOrg={org}
@@ -2204,6 +2105,39 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
 
 export const SessionComposer = memo(SessionComposerInner);
 
+
+// ---------------------------------------------------------------------------
+// My vault left out — where a typed key or a sign-in goes, and how to use it
+// ---------------------------------------------------------------------------
+
+/**
+ * Said above the agent's setup when the conversation leaves My vault out:
+ * every key and sign-in the setup asks for is saved in My vault, which the
+ * conversation then does not read. A sign-in row reads My vault's own
+ * grant, so a tool can read "Signed in" there and still be owed here; the
+ * note says why. Its creator can include My vault here (saving or signing
+ * in also includes it); anyone else is told who can.
+ */
+function MyVaultLeftOutNote({ onInclude }: { readonly onInclude?: () => void }) {
+  return (
+    <div className="stg:flex stg:items-start stg:justify-between stg:gap-3 stg:rounded-md stg:border stg:border-border stg:px-3 stg:py-2">
+      <p className="stg:text-xs stg:text-muted-foreground">
+        {onInclude
+          ? "Keys and sign-ins are saved in My vault, which this conversation does not use yet: a tool that reads Signed in is signed in there. Saving a key or signing in includes it."
+          : "Keys and sign-ins are saved in My vault, which this conversation does not use: a tool that reads Signed in is signed in there. Only the person who started it can change its vaults."}
+      </p>
+      {onInclude && (
+        <button
+          type="button"
+          onClick={onInclude}
+          className="stg:shrink-0 stg:rounded-md stg:px-2 stg:py-1 stg:text-xs stg:font-medium stg:text-primary stg:hover:bg-accent-hover"
+        >
+          Use My vault
+        </button>
+      )}
+    </div>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Agent setup error — secret-flow guidance or generic fallback

@@ -23,6 +23,7 @@ export {
 
 export {
   useWhoAmI,
+  type UseWhoAmIOptions,
   type UseWhoAmIReturn,
 } from "./useWhoAmI.js";
 

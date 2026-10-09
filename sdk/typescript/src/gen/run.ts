@@ -214,8 +214,7 @@ export interface SessionSpecInput {
   cursorMode?: CursorMode;
   executionTarget?: ExecutionTarget;
   vaults?: ResourceRef[];
-  secrets?: Record<string, string>;
-  connections?: Record<string, string>;
+  includeMyVault?: boolean;
 }
 
 /** SDK input type for WorkspaceEntry. */
@@ -330,8 +329,7 @@ function buildSessionSpecProto(input: SessionSpecInput) {
   if (input.cursorMode !== undefined) msg.cursorMode = input.cursorMode;
   if (input.executionTarget !== undefined) msg.executionTarget = input.executionTarget;
   if (input.vaults) msg.vaults = input.vaults.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 59 }));
-  if (input.secrets) Object.assign(msg.secrets, input.secrets);
-  if (input.connections) Object.assign(msg.connections, input.connections);
+  if (input.includeMyVault !== undefined) msg.includeMyVault = input.includeMyVault;
   return msg;
 }
 
@@ -451,8 +449,7 @@ function toSessionSpecInput(msg: SessionSpec): SessionSpecInput {
     cursorMode: msg.cursorMode || undefined,
     executionTarget: msg.executionTarget || undefined,
     vaults: toResourceRefInputs(msg.vaults),
-    secrets: Object.keys(msg.secrets ?? {}).length > 0 ? { ...msg.secrets } : undefined,
-    connections: Object.keys(msg.connections ?? {}).length > 0 ? { ...msg.connections } : undefined,
+    includeMyVault: msg.includeMyVault || undefined,
   };
 }
 

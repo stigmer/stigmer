@@ -141,7 +141,6 @@ export interface AgentInput {
   hooks?: HookSourceInput[];
   runConfig?: RunConfigInput;
   harness?: Harness;
-  vaults?: ResourceRef[];
 }
 
 /** SDK input type for McpServerUsage. */
@@ -289,7 +288,6 @@ export function buildAgentProto(input: AgentInput): Agent {
   }
   const hooks = input.hooks?.map(buildHookSourceProto);
   const runConfig = input.runConfig ? buildRunConfigProto(input.runConfig) : undefined;
-  const vaults = input.vaults?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 59 }));
   return Object.assign(create(AgentSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Agent",
@@ -315,7 +313,6 @@ export function buildAgentProto(input: AgentInput): Agent {
       hooks,
       runConfig,
       harness: input.harness,
-      vaults,
     })),
   }) as Agent;
 }
@@ -429,6 +426,5 @@ export function toAgentUpdateInput(resource: Agent): AgentInput {
     hooks: spec.hooks?.length ? spec.hooks.map(toHookSourceInput) : undefined,
     runConfig: spec.runConfig ? toRunConfigInput(spec.runConfig) : undefined,
     harness: spec.harness || undefined,
-    vaults: toResourceRefInputs(spec.vaults),
   };
 }

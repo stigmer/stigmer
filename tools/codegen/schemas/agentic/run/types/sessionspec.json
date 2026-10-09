@@ -164,7 +164,7 @@
           "messageType": "ApiResourceReference"
         }
       },
-      "description": "Vaults whose logins and secrets this conversation's runs use, in order:\n the first vault holding a match wins. At most 20.\n\n A conversation that lists vaults uses exactly those. One that lists\n none uses the My vault of the person sending each turn, then the\n agent's vaults that person may use. A My vault cannot be listed: a\n conversation can have several people, and each person's own vault\n serves only their own turns.",
+      "description": "Vaults whose logins and secrets this conversation's runs use, in order:\n the first vault holding a match wins. At most 20.\n\n The conversation uses exactly these, in order, after the sender's My\n vault when include_my_vault is set. A My vault cannot be listed: set\n include_my_vault, which gives each sender their own.\n\n An update built on an older read than the stored conversation (it\n echoes an older status.audit.spec_audit.updated_at) keeps the stored\n vaults and include_my_vault: read the conversation again to change\n which vaults it uses.",
       "required": false,
       "referenceKind": 59,
       "validation": {
@@ -172,42 +172,14 @@
       }
     },
     {
-      "name": "Secrets",
-      "jsonName": "secrets",
-      "protoField": "secrets",
+      "name": "IncludeMyVault",
+      "jsonName": "includeMyVault",
+      "protoField": "include_my_vault",
       "type": {
-        "kind": "map",
-        "keyType": {
-          "kind": "string"
-        },
-        "valueType": {
-          "kind": "string"
-        }
+        "kind": "bool"
       },
-      "description": "Secrets this conversation's runs use, by name, ahead of every vault.\n\n This is how an integrator hands a run a key without saving it in a\n vault. The values are kept sealed for the conversation's life, can be\n replaced by an update at any time, are never returned by a read, and\n are destroyed with the conversation.\n\n An update built on an older read than the stored conversation (it\n echoes an older status.audit.spec_audit.updated_at) removes nothing it\n could not have seen: the values it omits are kept, and so are the\n vaults the conversation lists. Read the conversation again to remove a\n value or change its vaults.",
-      "required": false,
-      "validation": {
-        "maxItems": 100
-      }
-    },
-    {
-      "name": "Connections",
-      "jsonName": "connections",
-      "protoField": "connections",
-      "type": {
-        "kind": "map",
-        "keyType": {
-          "kind": "string"
-        },
-        "valueType": {
-          "kind": "string"
-        }
-      },
-      "description": "Logins this conversation's runs use, by the address of the tool or Git\n host each is for, ahead of every vault.\n\n Kept, replaced and destroyed as secrets are. Addresses are normalized\n as a vault's are.",
-      "required": false,
-      "validation": {
-        "maxItems": 100
-      }
+      "description": "Whether each turn also uses its sender's own My vault, first, ahead of\n the listed vaults. Off unless the caller sets it.\n\n Each person who sends a turn uses their own My vault, never another's.\n A turn with no person, or one that runs another organization's agent,\n ignores it.",
+      "required": false
     }
   ]
 }

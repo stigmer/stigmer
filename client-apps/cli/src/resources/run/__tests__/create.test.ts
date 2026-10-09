@@ -1,5 +1,6 @@
 // Unit tests for run-path resource creation: full-proto field mapping, the
-// message default, run_config presence/contents, the top-level mode, the run's own values on the new session,
+// message default, run_config presence/contents, the top-level mode, the vault
+// choice on the new session (always sent: include_my_vault is off when unset),
 // the one-call session_spec bootstrap, and the turn's target (an existing
 // session by id alone, or a new conversation naming its agent by reference).
 // The controller is faked to capture the exact proto sent to
@@ -17,9 +18,16 @@ import {
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { SessionSpec } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { type ControllerFn, createAgentRun } from "../create.js";
 
 const AGENT_REF = { org: "acme", slug: "helper" };
+
+const VAULT_REF = create(ApiResourceReferenceSchema, {
+  kind: ApiResourceKind.vault,
+  org: "acme",
+  slug: "support-tools",
+});
 
 // The embedded session_spec of a new-conversation target, or undefined.
 function sessionSpecOf(exec: Run): SessionSpec | undefined {
@@ -48,7 +56,8 @@ describe("createAgentRun", () => {
       agentRef: AGENT_REF,
       orgId: "acme",
       message: "",
-      sessionSecrets: { FOO: "bar", TOKEN: "s" },
+      vaults: [VAULT_REF],
+      includeMyVault: true,
       attachments: [],
       workspaceFileRefs: ["src/a.ts"],
       workspaceEntries: [],
@@ -71,7 +80,8 @@ describe("createAgentRun", () => {
     });
     expect(exec.spec?.autoApproveAll).toBe(true);
     expect(exec.spec?.workspaceFileRefs).toEqual(["src/a.ts"]);
-    expect(sessionSpecOf(exec)?.secrets).toEqual({ FOO: "bar", TOKEN: "s" });
+    expect(sessionSpecOf(exec)?.vaults.map((ref) => ref.slug)).toEqual(["support-tools"]);
+    expect(sessionSpecOf(exec)?.includeMyVault).toBe(true);
     expect(exec.spec?.runConfig?.modelName).toBe("claude");
     expect(exec.spec?.interactionMode).toBe(InteractionMode.PLAN);
   });
@@ -82,7 +92,8 @@ describe("createAgentRun", () => {
       agentRef: AGENT_REF,
       orgId: "acme",
       message: "hi",
-      sessionSecrets: {},
+      vaults: [],
+      includeMyVault: true,
       attachments: [],
       workspaceFileRefs: [],
       workspaceEntries: [],
@@ -104,7 +115,8 @@ describe("createAgentRun", () => {
       agentRef: AGENT_REF,
       orgId: "acme",
       message: "x",
-      sessionSecrets: {},
+      vaults: [],
+      includeMyVault: true,
       attachments: [],
       workspaceFileRefs: [],
       workspaceEntries: [],
@@ -126,7 +138,8 @@ describe("createAgentRun", () => {
       agentRef: AGENT_REF,
       orgId: "acme",
       message: "x",
-      sessionSecrets: {},
+      vaults: [],
+      includeMyVault: true,
       attachments: [],
       workspaceFileRefs: [],
       workspaceEntries: [],
@@ -146,7 +159,8 @@ describe("createAgentRun", () => {
       agentRef: AGENT_REF,
       orgId: "acme",
       message: "x",
-      sessionSecrets: {},
+      vaults: [],
+      includeMyVault: true,
       attachments: [],
       workspaceFileRefs: [],
       workspaceEntries: [],
@@ -168,7 +182,8 @@ describe("createAgentRun", () => {
       agentRef: AGENT_REF,
       orgId: "acme",
       message: "x",
-      sessionSecrets: {},
+      vaults: [],
+      includeMyVault: true,
       attachments: [],
       workspaceFileRefs: [],
       workspaceEntries: [],
@@ -188,7 +203,8 @@ describe("createAgentRun", () => {
       sessionId: "ses_1",
       orgId: "acme",
       message: "x",
-      sessionSecrets: {},
+      vaults: [],
+      includeMyVault: true,
       attachments: [],
       workspaceFileRefs: [],
       workspaceEntries: [],
@@ -216,7 +232,8 @@ describe("createAgentRun", () => {
       agentRef: AGENT_REF,
       orgId: "acme",
       message: "hi",
-      sessionSecrets: {},
+      vaults: [],
+      includeMyVault: true,
       attachments: [],
       workspaceFileRefs: [],
       workspaceEntries: [entry],
@@ -238,16 +255,16 @@ describe("createAgentRun", () => {
     expect(sessionSpecOf(exec)?.harness).toBe(Harness.UNSPECIFIED);
   });
 
-  it("sends an unset target for the built-in assistant with no workspace and no harness (wire-shape pin)", async () => {
-    // A plain assistant run carries NO embedded session_spec at all: the
-    // unset target is what names the built-in assistant. If this pin fails,
-    // plain runs have started carrying a spec they never carried before — a
-    // silent contract change, not a feature.
+  it("sends a session_spec naming no agent for a plain built-in assistant run (wire-shape pin)", async () => {
+    // A conversation created from no spec has include_my_vault off, so a
+    // plain run would lose the person's own My vault: the spec is always
+    // sent, and naming no agent is what names the built-in assistant.
     const { fn } = fakeController();
     const exec = await createAgentRun(fn, {
       orgId: "acme",
       message: "hi",
-      sessionSecrets: {},
+      vaults: [],
+      includeMyVault: true,
       attachments: [],
       workspaceFileRefs: [],
       workspaceEntries: [],
@@ -258,7 +275,10 @@ describe("createAgentRun", () => {
       autoApproveAll: false,
       harness: "",
     });
-    expect(exec.spec?.target?.case).toBeUndefined();
+    expect(exec.spec?.target?.case).toBe("sessionSpec");
+    expect(sessionSpecOf(exec)?.agentRef).toBeUndefined();
+    expect(sessionSpecOf(exec)?.includeMyVault).toBe(true);
+    expect(sessionSpecOf(exec)?.vaults).toEqual([]);
   });
 
   it("carries a version the caller names on the agent reference", async () => {
@@ -267,7 +287,8 @@ describe("createAgentRun", () => {
       agentRef: { ...AGENT_REF, version: "stable" },
       orgId: "acme",
       message: "hi",
-      sessionSecrets: {},
+      vaults: [],
+      includeMyVault: true,
       attachments: [],
       workspaceFileRefs: [],
       workspaceEntries: [],
@@ -291,7 +312,8 @@ describe("createAgentRun", () => {
       agentRef: AGENT_REF,
       orgId: "acme",
       message: "hi",
-      sessionSecrets: {},
+      vaults: [],
+      includeMyVault: true,
       attachments: [],
       workspaceFileRefs: [],
       workspaceEntries: [entry],
@@ -311,7 +333,8 @@ describe("createAgentRun", () => {
       agentRef: AGENT_REF,
       orgId: "acme",
       message: "hi",
-      sessionSecrets: {},
+      vaults: [],
+      includeMyVault: true,
       attachments: [],
       workspaceFileRefs: [],
       workspaceEntries: [],
@@ -337,7 +360,8 @@ describe("createAgentRun", () => {
       agentRef: AGENT_REF,
       orgId: "acme",
       message: "hi",
-      sessionSecrets: {},
+      vaults: [],
+      includeMyVault: true,
       attachments: [],
       workspaceFileRefs: [],
       workspaceEntries: [],
@@ -364,7 +388,8 @@ describe("createAgentRun", () => {
       agentRef: AGENT_REF,
       orgId: "acme",
       message: "hi",
-      sessionSecrets: {},
+      vaults: [],
+      includeMyVault: true,
       attachments: [],
       workspaceFileRefs: [],
       workspaceEntries: [entry],
@@ -379,12 +404,13 @@ describe("createAgentRun", () => {
     expect(sessionSpecOf(exec)?.workspaceEntries).toEqual([entry]);
   });
 
-  it("carries the run's own values on a new conversation's session_spec, even with no agent", async () => {
+  it("leaves My vault out of a new conversation when the run asks, keeping its vaults", async () => {
     const { fn } = fakeController();
     const exec = await createAgentRun(fn, {
       orgId: "acme",
       message: "hi",
-      sessionSecrets: { API_KEY: "k" },
+      vaults: [VAULT_REF],
+      includeMyVault: false,
       attachments: [],
       workspaceFileRefs: [],
       workspaceEntries: [],
@@ -395,7 +421,7 @@ describe("createAgentRun", () => {
       autoApproveAll: false,
       harness: "",
     });
-    expect(sessionSpecOf(exec)?.secrets).toEqual({ API_KEY: "k" });
-    expect(sessionSpecOf(exec)?.agentRef).toBeUndefined();
+    expect(sessionSpecOf(exec)?.includeMyVault).toBe(false);
+    expect(sessionSpecOf(exec)?.vaults.map((ref) => `${ref.org}/${ref.slug}`)).toEqual(["acme/support-tools"]);
   });
 });

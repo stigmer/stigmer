@@ -121,10 +121,10 @@ ExecutionContexts contain the **merged secrets** a runner needs at run time, but
 Run starts
     │
     ▼
-Execution engine finds the run's vaults: the conversation's own values and
-vaults, then the sender's My vault and the agent's vaults they may use, or
-the vaults of the schedule, share, channel or platform client a run no
-person sent came through
+Execution engine finds the run's vaults: the sender's My vault when the
+conversation includes it, then the conversation's vaults, or, for a run no
+person sent, the vaults of the conversation and of the schedule, share,
+channel or platform client it came through
     │
     ▼
 Engine fills each declared key from the first source holding it (a login by

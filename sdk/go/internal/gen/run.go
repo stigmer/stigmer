@@ -210,8 +210,7 @@ type SessionSpecInput struct {
 	CursorMode            sessionv1.CursorMode
 	ExecutionTarget       sessionv1.ExecutionTarget
 	Vaults                []ResourceRef
-	Secrets               map[string]string
-	Connections           map[string]string
+	IncludeMyVault        bool
 }
 
 // WorkspaceEntryInput is the SDK input type for WorkspaceEntry.
@@ -309,8 +308,7 @@ func (i *RunInput) toProto() (*runv1.Run, error) {
 			ref.Kind = apiresourcekind.ApiResourceKind_vault
 			m.Vaults = append(m.Vaults, ref)
 		}
-		m.Secrets = i.SessionSpec.Secrets
-		m.Connections = i.SessionSpec.Connections
+		m.IncludeMyVault = i.SessionSpec.IncludeMyVault
 		resource.Spec.Target = &runv1.RunSpec_SessionSpec{SessionSpec: m}
 	}
 	if i.SessionId != "" {
@@ -475,8 +473,7 @@ func sessionSpecInputFromProto(p *sessionv1.SessionSpec) *SessionSpecInput {
 	for _, r := range p.GetVaults() {
 		input.Vaults = append(input.Vaults, resourceRefFromProto(r))
 	}
-	input.Secrets = p.GetSecrets()
-	input.Connections = p.GetConnections()
+	input.IncludeMyVault = p.GetIncludeMyVault()
 	return input
 }
 

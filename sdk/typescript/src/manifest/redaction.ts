@@ -2,8 +2,8 @@
 
 /**
  * Sentinel the server substitutes for secret values before they leave the
- * backend (a session's own secrets, ChannelApp/OAuthApp reads on both
- * editions). Sending the marker back in an `apply` means "keep the stored
+ * backend (a session's repository tokens, ChannelApp/OAuthApp reads on
+ * both editions). Sending the marker back in an `apply` means "keep the stored
  * secret" — the update pipelines restore the existing encrypted value.
  */
 export const REDACTED_SECRET_MARKER = "***REDACTED***";

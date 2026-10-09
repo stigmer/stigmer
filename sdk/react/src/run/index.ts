@@ -356,12 +356,3 @@ export type { SandboxContextValue } from "./SandboxContext.js";
 
 export { classifyPath, resolveGitBrowseUrl, resolvePathAction } from "./file-path-resolver.js";
 export type { PathClassification, ResolvedPathAction } from "./file-path-resolver.js";
-
-export { useSessionVariables } from "./useSessionVariables.js";
-export type {
-  SessionVariableEntry,
-  UseSessionVariablesReturn,
-} from "./useSessionVariables.js";
-
-export { SessionVariablesInput } from "./SessionVariablesInput.js";
-export type { SessionVariablesInputProps } from "./SessionVariablesInput.js";

@@ -6,13 +6,16 @@
 // stubs capture requests so the tests assert the exact protos the tools send
 // (slug→reference resolution and a missing agent's not-found, the turn's
 // target, a follow-up refused when it names another agent or organization
-// than the session's, runtime-env conversion, approval enum mapping) and
+// than the session's, the vaults a new conversation names, an empty or
+// malformed vault entry refused before anything starts, a follow-up refused
+// when it names vaults or include_my_vault, approval enum mapping) and
 // script run state (running vs terminal, long message histories) to
 // exercise the compact projection and the cancel short-circuit. A scripted
 // RPC failure per method pins the error copy each tool returns when the
 // backend refuses (rpcerr's classification plus the run the tool names).
-// The `secrets` argument's description is pinned for its warning: what a
-// caller passes there goes through the calling model's context.
+// The former `secrets` and `runtime_env` arguments are pinned as refused,
+// naming vaults, so a caller still sending one never starts a run without
+// the keys it meant to pass.
 
 import { create, toJson } from "@bufbuild/protobuf";
 import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
@@ -208,21 +211,11 @@ describe("run tools integration", () => {
     );
   });
 
-  it("run_agent warns that secrets pass through the calling model and points real secrets to a vault", async () => {
-    const { tools } = await client.listTools();
-    const runAgent = tools.find((t) => t.name === "run_agent");
-    const secrets = (runAgent?.inputSchema.properties as Record<string, { description?: string }> | undefined)
-      ?.secrets;
-    expect(secrets?.description).toContain("goes through the calling model's context");
-    expect(secrets?.description).toContain("`stigmer vault set-secret <NAME> --mine`");
-  });
-
   it("run_agent resolves the slug and starts a new conversation on the agent's reference", async () => {
     const result = await callTool("run_agent", {
       org: "acme",
       agent: "code-reviewer",
       message: "review this PR",
-      secrets: { REPO: "stigmer/stigmer" },
     });
     expect(result.isError).toBeFalsy();
 
@@ -238,30 +231,85 @@ describe("run tools integration", () => {
     expect(createdRun?.kind).toBe("Run");
     expect(createdRun?.spec?.message).toBe("review this PR");
     expect(createdRun?.metadata?.org).toBe("acme");
-    // Per-call values ride the new conversation's own secrets.
-    expect(target?.case === "sessionSpec" ? target.value.secrets : undefined).toEqual({
-      REPO: "stigmer/stigmer",
-    });
+    // The caller is a person on their own token: their My vault is included
+    // unless they say otherwise, and no shared vault is named.
+    expect(target?.case === "sessionSpec" ? target.value.includeMyVault : undefined).toBe(true);
+    expect(target?.case === "sessionSpec" ? target.value.vaults : undefined).toEqual([]);
 
     // The created run comes back as plain protojson (its status is small).
     const created = parseText(result);
     expect((created.metadata as Record<string, unknown>).id).toBe("run_1");
   });
 
-  it("run_agent refuses the former runtime_env argument, naming secrets, and starts nothing", async () => {
+  it("run_agent names a new conversation's vaults in order, a slug in org and an org/slug as given", async () => {
     const result = await callTool("run_agent", {
       org: "acme",
       agent: "code-reviewer",
-      message: "review this PR",
-      runtime_env: { REPO: "stigmer/stigmer" },
+      message: "triage the queue",
+      vaults: ["support-tools", "platform/shared-keys"],
+      include_my_vault: false,
     });
+    expect(result.isError).toBeFalsy();
+    const target = createdRun?.spec?.target;
+    const spec = target?.case === "sessionSpec" ? target.value : undefined;
+    expect(spec?.includeMyVault).toBe(false);
+    expect(spec?.vaults.map((ref) => [ref.kind, ref.org, ref.slug])).toEqual([
+      [ApiResourceKind.vault, "acme", "support-tools"],
+      [ApiResourceKind.vault, "platform", "shared-keys"],
+    ]);
+  });
 
+  it.each(["", "   "])("run_agent refuses an empty vault entry (%j) and starts nothing", async (entry) => {
+    const result = await callTool("run_agent", {
+      org: "acme",
+      agent: "code-reviewer",
+      message: "triage the queue",
+      vaults: ["support-tools", entry],
+    });
     expect(result.isError).toBe(true);
-    expect(result.content[0]?.text).toContain("no longer takes runtime_env");
-    expect(result.content[0]?.text).toContain("`secrets`");
+    expect(result.content[0]?.text).toContain(
+      "vaults: an entry is empty; name each vault by slug or org/slug.",
+    );
     expect(agentLookups).toBe(0);
     expect(createdRun).toBeUndefined();
   });
+
+  it.each(["acme/", "/support-tools", "acme/support/tools"])(
+    "run_agent refuses the vault entry %j, which names no vault, and starts nothing",
+    async (entry) => {
+      const result = await callTool("run_agent", {
+        org: "acme",
+        agent: "code-reviewer",
+        message: "triage the queue",
+        vaults: [entry],
+      });
+      expect(result.isError).toBe(true);
+      expect(result.content[0]?.text).toContain(
+        `vaults: "${entry}" is not a vault name; name each vault by slug or org/slug.`,
+      );
+      expect(agentLookups).toBe(0);
+      expect(createdRun).toBeUndefined();
+    },
+  );
+
+  it.each(["secrets", "runtime_env"])(
+    "run_agent refuses the former %s argument, naming vaults, and starts nothing",
+    async (argument) => {
+      const result = await callTool("run_agent", {
+        org: "acme",
+        agent: "code-reviewer",
+        message: "review this PR",
+        [argument]: { REPO: "stigmer/stigmer" },
+      });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0]?.text).toContain(`no longer takes ${argument}`);
+      expect(result.content[0]?.text).toContain("`stigmer vault set-secret <NAME> --mine`");
+      expect(result.content[0]?.text).toContain("`vaults`");
+      expect(agentLookups).toBe(0);
+      expect(createdRun).toBeUndefined();
+    },
+  );
 
   it("run_agent reports an unknown agent as not found and starts nothing", async () => {
     const result = await callTool("run_agent", {
@@ -294,17 +342,19 @@ describe("run tools integration", () => {
     expect(createdRun?.metadata?.org).toBe("");
   });
 
-  it("run_agent refuses secrets on a follow-up and starts nothing", async () => {
-    createdRun = undefined;
+  it.each([
+    ["vaults", { vaults: ["support-tools"] }],
+    ["include_my_vault alone", { include_my_vault: false }],
+  ])("run_agent refuses %s on a follow-up and starts nothing", async (_case, choice) => {
     const result = await callTool("run_agent", {
       org: "acme",
       agent: "code-reviewer",
       message: "again",
       session_id: "ses_42",
-      secrets: { REPO: "stigmer/stigmer" },
+      ...choice,
     });
     expect(result.isError).toBe(true);
-    expect(result.content[0]?.text).toContain("omit session_id to start a new conversation");
+    expect(result.content[0]?.text).toContain("keeps the vaults it was started with");
     expect(createdRun).toBeUndefined();
   });
 

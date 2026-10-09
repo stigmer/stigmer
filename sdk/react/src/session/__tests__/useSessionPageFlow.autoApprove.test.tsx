@@ -54,15 +54,6 @@ vi.mock("../../workspace", () => ({
   useWorkspaceEntries: () => mockWorkspace,
 }));
 
-const mockSessionVariables = {
-  variables: [],
-  isEmpty: true,
-  clear: vi.fn(),
-};
-vi.mock("../../run/useSessionVariables", () => ({
-  useSessionVariables: () => mockSessionVariables,
-}));
-
 vi.mock("../usePersistedModel", () => ({
   usePersistedModel: () => ["model-x", vi.fn()] as const,
 }));

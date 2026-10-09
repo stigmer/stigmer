@@ -8,7 +8,6 @@
  * - useUpdateVault sends the vault's own fields, the caller's changes over
  *   the loaded ones, and never its entries;
  * - useMyVault's removals name My vault by `mine`, and a failed write is kept;
- * - useSessionEnvPool counts one-time values beside saved names;
  * - diffEnv treats a plain declaration with a value as satisfied.
  */
 import { afterEach, describe, expect, it } from "vitest";
@@ -25,7 +24,6 @@ import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { diffEnv } from "../diffEnv";
 import { useCreateVault } from "../useCreateVault";
 import { useMyVault } from "../useMyVault";
-import { useSessionEnvPool } from "../useSessionEnvPool";
 import { useUpdateVault } from "../useUpdateVault";
 import { useVault } from "../useVault";
 import { useVaultEntries } from "../useVaultEntries";
@@ -236,21 +234,6 @@ describe("useMyVault removals", () => {
       await expect(refused.result.current.removeSecrets(["A"])).rejects.toThrow(/not allowed/);
     });
     expect(refused.result.current.error?.message ?? "").toMatch(/not allowed/);
-  });
-});
-
-describe("useSessionEnvPool", () => {
-  it("counts one-time values beside the names saved in My vault", () => {
-    const { result } = renderHook(() =>
-      useSessionEnvPool({
-        savedKeys: new Set(["SAVED"]),
-        agentOneTimeValues: { AGENT_ONE: { value: "a", isSecret: true } },
-        mcpOneTimeValues: { MCP_ONE: { value: "m", isSecret: false } },
-      }),
-    );
-    expect([...result.current.availableKeys].sort()).toEqual(["AGENT_ONE", "MCP_ONE", "SAVED"]);
-    expect(result.current.getAvailableValue("MCP_ONE")).toEqual({ value: "m", isSecret: false });
-    expect(result.current.getAvailableValue("SAVED")).toBeUndefined();
   });
 });
 

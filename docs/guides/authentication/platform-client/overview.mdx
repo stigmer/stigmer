@@ -242,8 +242,7 @@ uses the vault, and so does a recovery of that run. The Agent stays as it is.
 
 - **Only what you attach.** A user signed in through a PlatformClient has no
   vault of their own, so their runs use the vaults their Session names and the
-  PlatformClient's, nothing else. A Session's own values (its `secrets` and
-  `connections`) come first.
+  PlatformClient's, nothing else.
 - **Same Organization.** The vaults must belong to the PlatformClient's
   Organization, and they are used only by runs in that Organization.
 - **Kept up to date.** Stigmer reads the PlatformClient when each run starts, so

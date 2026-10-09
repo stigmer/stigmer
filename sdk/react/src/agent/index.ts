@@ -36,7 +36,6 @@ export type {
   AgentSetupPhase,
   PendingSignIn,
   AgentResolution,
-  SubmitEnvVarsOptions,
   UseAgentSetupReturn,
 } from "./useAgentSetup.js";
 

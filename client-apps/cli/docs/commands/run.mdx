@@ -28,43 +28,34 @@ stigmer run my-agent -m "Summarize the Q4 earnings report"
 
 {/* AUTO_FLAGS */}
 
-### Values for this conversation
+### Vaults this conversation uses
 
-Keys your agent and its tools need normally come from your vault
-(`stigmer vault set-secret <NAME> --mine`), so a run needs no flags. To hand a
-run a value of its own, four flags work together. The values are kept sealed on
-the new conversation, used ahead of every vault, never shown again, and
-destroyed with the conversation:
+A run takes no keys on the command line. The keys your agent and its tools need
+come from vaults: each turn uses your own My vault first, then the shared vaults
+you name with `--vault`, in the order given; the first vault holding a key wins.
+Save a key once and every later run finds it:
+
+```bash
+stigmer vault set-secret OPENAI_API_KEY --mine
+```
 
 | Flag | Purpose |
 |------|---------|
-| `--env KEY=VALUE` | A value for this conversation (repeatable) |
-| `--secret KEY=VALUE` | The same, for a value that reads as a secret (repeatable) |
-| `--env-file PATH` | Load values from a dotenv-style file (repeatable) |
-| `--secret-file PATH` | Load secret values from a file (repeatable) |
+| `--vault REF` | A shared vault the conversation uses, by id, `org/slug` or slug (repeatable) |
+| `--no-my-vault` | Leave your My vault out: the conversation uses only the `--vault` vaults |
 
-**Precedence** (highest to lowest):
-
-1. `--env` and `--secret` flags (inline values)
-2. Later `--env-file` / `--secret-file` flags
-3. Earlier `--env-file` / `--secret-file` flags
-
-A variable with no value (`KEY=` in a dotenv file) is left out, and a notice on
-stderr names it (never a value). A run takes at most 100 variables: more is
-refused before anything is sent, so save the rest in a vault the run uses.
+The conversation keeps this choice: `stigmer resume` continues it with the
+vaults it was started with.
 
 ```bash
-# Inline values
-stigmer run my-agent --env API_URL=https://api.example.com --env DEBUG=true
+# Your own keys (the default)
+stigmer run my-agent
 
-# An inline secret
-stigmer run my-agent --secret API_KEY=sk_live_xxx
+# Your keys, then the team's support tools
+stigmer run my-agent --vault support-tools
 
-# Load from files
-stigmer run my-agent --env-file .env --secret-file .env.secrets
-
-# Mix files and inline overrides
-stigmer run my-agent --env-file .env --secret DB_PASSWORD=xxx
+# The team's keys only
+stigmer run my-agent --vault acme/ci-keys --no-my-vault
 ```
 
 ### Workspaces
@@ -184,7 +175,7 @@ The agent receives the message and streams its response to the terminal.
 
 ```bash
 stigmer run my-agent --json -m "Run integration tests" \
-  --env-file .ci.env \
+  --vault ci-keys \
   --auto-approve \
   | jq -r 'select(.type == "message") | .payload.content'
 ```

@@ -235,8 +235,8 @@
       "slug": "run",
       "title": "Run",
       "description": "Hooks and components for real-time streaming, tool calls, approvals, messages, and artifacts.",
-      "hooks": 22,
-      "components": 35
+      "hooks": 21,
+      "components": 34
     },
     {
       "slug": "schedule",
@@ -312,7 +312,7 @@
       "slug": "vault",
       "title": "Vault",
       "description": "Hooks and components for My vault and shared vaults, their secrets and logins, the vault picker, and the session value pool.",
-      "hooks": 8,
+      "hooks": 7,
       "components": 5
     },
     {

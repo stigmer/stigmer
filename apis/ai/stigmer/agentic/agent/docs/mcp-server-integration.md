@@ -113,9 +113,10 @@ At runtime, the Agent does not connect to MCP servers directly. The flow is:
    secrets)
 2. **The run** resolves the declared keys when it starts, from vaults: a
    tool's login by a connection at the tool's address, other keys by secret
-   name. The conversation's own values come first, then its vaults, then the
-   sender's My vault and the agent's vaults they may use; a run no person sent
-   uses only the vaults its schedule, share, channel or platform client names
+   name. The sender's My vault comes first when the conversation includes it,
+   then the vaults the conversation lists; a run no person sent uses only the
+   vaults its conversation and its schedule, share, channel or platform client
+   name
 3. **Agent Runner** resolves each McpServer reference, passes each server the
    keys it declares, and starts the actual MCP server process
 4. The running MCP server's tools become available to the agent during the

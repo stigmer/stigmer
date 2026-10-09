@@ -13,7 +13,7 @@ package ai.stigmer.agentic.session.v1;
  *
  * A private repository is cloned with the entry's own token when it carries
  * one, else with a login saved for the repository's host (github.com) in the
- * conversation's vaults. The entry's own token is used only for an
+ * vaults the conversation uses. The entry's own token is used only for an
  * https://github.com repository: a session write carrying a token for any
  * other repository is refused.
  * </pre>
@@ -555,7 +555,7 @@ private static final long serialVersionUID = 0L;
    *
    * A private repository is cloned with the entry's own token when it carries
    * one, else with a login saved for the repository's host (github.com) in the
-   * conversation's vaults. The entry's own token is used only for an
+   * vaults the conversation uses. The entry's own token is used only for an
    * https://github.com repository: a session write carrying a token for any
    * other repository is refused.
    * </pre>

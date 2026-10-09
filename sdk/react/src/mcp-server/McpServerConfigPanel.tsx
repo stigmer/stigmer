@@ -43,19 +43,9 @@ export interface McpServerCredentialsProps {
   /** When true, form inputs are disabled and the submit button shows a spinner. */
   readonly isSubmitting?: boolean;
   /**
-   * Initial state of the "Save in My vault" toggle.
-   * @default true
-   */
-  readonly defaultSaveForFuture?: boolean;
-  /**
-   * When `true`, the save toggle is hidden and the form always uses
-   * `defaultSaveForFuture` as the submit value.
-   * @default false
-   */
-  readonly hideSaveToggle?: boolean;
-  /**
-   * Lookup function for pre-filling fields from the session env pool.
-   * When provided, fields whose keys return a value are pre-populated.
+   * Lookup function for pre-filling fields from another source the host
+   * holds. When provided, fields whose keys return a value are
+   * pre-populated.
    */
   readonly poolValues?: (key: string) => EnvVarInput | undefined;
 }
@@ -380,8 +370,7 @@ export function McpServerConfigPanel({
           isSubmitting={credentials.isSubmitting}
           disabled={disabled || isOAuthBusy}
           title="Credentials required"
-          defaultSaveForFuture={credentials.defaultSaveForFuture}
-          hideSaveToggle={credentials.hideSaveToggle}
+          description="Saved in My vault."
           poolValues={credentials.poolValues}
           className="stg:w-full"
         />

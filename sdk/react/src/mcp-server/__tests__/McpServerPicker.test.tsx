@@ -3,9 +3,9 @@
  * discovery-leg failure retries bare discovery and never reopens the popup,
  * any other failure relaunches the OAuth popup, a usable grant with nothing
  * discovered offers discovery, the shared hooks' signals stay with the
- * server an attempt was started for, and in a conversation that lists
- * vaults a sign-in is saved into the vault the setup names and readies the
- * server once that vault holds it.
+ * server an attempt was started for, and a sign-in is saved in My vault
+ * and reported to the setup (`onSignedIn`), so a composer whose
+ * conversation leaves My vault out can include it.
  */
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import {
@@ -39,9 +39,6 @@ import {
   DiscoveredToolSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
-import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
-import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
-import { VaultConnectionSource } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
 import type { InitiateOAuthConnectInput } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
@@ -49,7 +46,7 @@ import { samples } from "../../test/samples";
 import { StigmerContext } from "../../context";
 import { McpServerPicker } from "../McpServerPicker";
 import { useMcpServerSetup } from "../useMcpServerSetup";
-import type { SignInVault } from "../useMcpServerOAuthConnect";
+import type { ConversationVaults } from "../../vault/conversationVaults";
 import * as oauthPopup from "../../internal/oauthPopup.js";
 
 // The popup machinery is window-dependent (window.open, postMessage,
@@ -163,14 +160,14 @@ function grantStatusOutput(
  */
 function PickerHarness({
   refs,
-  vaults,
-  signInVault,
+  choice,
+  onSignedIn,
 }: {
   readonly refs: readonly ResourceRef[];
-  readonly vaults?: readonly ResourceRef[];
-  readonly signInVault?: SignInVault;
+  readonly choice?: ConversationVaults;
+  readonly onSignedIn?: (ref: ResourceRef) => void;
 }) {
-  const setup = useMcpServerSetup(ORG, undefined, vaults);
+  const setup = useMcpServerSetup(ORG, undefined, choice);
   const addedRef = useRef(false);
   const { addServer } = setup;
   useEffect(() => {
@@ -187,9 +184,8 @@ function PickerHarness({
           entries: setup.entries,
           onServerAdded: (ref) => void setup.addServer(ref),
           onServerRemoved: setup.removeServer,
-          onSubmitEnvVars: (ref, values, opts) =>
-            void setup.submitEnvVars(ref, values, opts),
-          signInVault,
+          onSubmitEnvVars: (ref, values) => void setup.submitEnvVars(ref, values),
+          onSignedIn,
         }}
       />
       <p data-testid="setup-status">{setup.entries[`${ORG}/${SLUG}`]?.status ?? "none"}</p>
@@ -206,7 +202,7 @@ function PickerHarness({
 function renderPicker(
   register: Parameters<typeof createRouterTransport>[0],
   refs: readonly ResourceRef[] = [serverRef()],
-  conversation: { readonly vaults?: readonly ResourceRef[]; readonly signInVault?: SignInVault } = {},
+  conversation: { readonly choice?: ConversationVaults; readonly onSignedIn?: (ref: ResourceRef) => void } = {},
 ) {
   const client = new Stigmer({
     baseUrl: "/",
@@ -215,7 +211,7 @@ function renderPicker(
   });
   return render(
     <StigmerContext.Provider value={client}>
-      <PickerHarness refs={refs} vaults={conversation.vaults} signInVault={conversation.signInVault} />
+      <PickerHarness refs={refs} choice={conversation.choice} onSignedIn={conversation.onSignedIn} />
     </StigmerContext.Provider>,
   );
 }
@@ -529,26 +525,10 @@ describe("McpServerPicker — cross-server scoping", () => {
   });
 });
 
-describe("McpServerPicker — a conversation that lists vaults", () => {
-  it("saves a sign-in into the vault the setup names, and readies the server once that vault holds it", async () => {
+describe("McpServerPicker — a conversation that leaves My vault out", () => {
+  it("saves a sign-in in My vault and reports it to the setup, which the conversation's vaults do not yet satisfy", async () => {
     const initiated: InitiateOAuthConnectInput[] = [];
-    const connectSpy = vi.fn(() => buildOAuthServer());
-    let signedIn = false;
-    const team = () =>
-      create(VaultSchema, {
-        metadata: { id: "vlt_team", org: "org_acme", slug: "team", name: "Team tools" },
-        spec: {
-          owner: { case: "org", value: "org_acme" },
-          connections: signedIn
-            ? {
-                "https://api.acme.com/mcp": {
-                  source: VaultConnectionSource.sign_in,
-                  signIn: { mcpServerId: "mcp-00000000-0000-0000-0000-00000000041a" },
-                },
-              }
-            : {},
-        },
-      });
+    const signedIn = vi.fn();
 
     renderPicker(
       (router) => {
@@ -566,26 +546,21 @@ describe("McpServerPicker — a conversation that lists vaults", () => {
               state: "state-1",
             });
           },
-          completeOAuthConnect: () => {
-            signedIn = true;
-            return create(CompleteOAuthConnectOutputSchema, { connected: true });
-          },
-          connect: connectSpy,
+          completeOAuthConnect: () => create(CompleteOAuthConnectOutputSchema, { connected: true }),
+          connect: () => buildOAuthServer(),
         });
-        router.service(VaultQueryController, { getByReference: team });
       },
       [serverRef()],
-      {
-        vaults: [{ org: ORG, slug: "team" }],
-        signInVault: { id: "vlt_team", org: "org_acme", name: "Team tools" },
-      },
+      { choice: { includeMyVault: false, vaults: [] }, onSignedIn: signedIn },
     );
 
     await drillIntoConfigure(new RegExp(`Configure ${SLUG}`));
     fireEvent.click(await screen.findByRole("button", { name: `Sign in with ${SERVER_NAME}` }));
 
-    await waitFor(() => expect(screen.getByTestId("setup-status").textContent).toBe("ready"));
-    expect(initiated[0]).toMatchObject({ org: "org_acme", vaultId: "vlt_team" });
-    expect(connectSpy).not.toHaveBeenCalled();
+    await waitFor(() => expect(signedIn).toHaveBeenCalledTimes(1));
+    expect(signedIn).toHaveBeenCalledWith(expect.objectContaining({ slug: SLUG }));
+    expect(initiated[0]?.vaultId ?? "").toBe("");
+    // The grant is My vault's, which this conversation does not read.
+    expect(screen.getByTestId("setup-status").textContent).toBe("needsSetup");
   });
 });

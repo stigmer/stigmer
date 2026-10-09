@@ -5,15 +5,17 @@
  *   - requirements: the agent's keys, each tool's keys and its login key
  *     (auth.target_env_var, or the variable an `Authorization: Bearer
  *     ${VAR}` header names), and an optional GITHUB_TOKEN per repository;
- *   - the order of sources: the session's own values, then its vaults in
- *     order, then the surface's vaults for a run with no person, or the
- *     person's My vault then the agent's vaults for a person whose session
- *     lists none; a session that lists vaults never reads My vault; a run
- *     with no person never reads a My vault but its owner's own schedule
- *     attachment;
- *   - every named vault checked again: an agent's vault the person may not
- *     use is skipped; a surface vault whose attacher lost the use, and a
- *     vault that is gone, refuse naming it and the surface;
+ *   - the order of sources: a repository's own token (its clone only),
+ *     then the sender's My vault when the stored conversation includes it,
+ *     then its listed vaults in order, then the surface's vaults for a run
+ *     with no person; a conversation that leaves My vault out never reads
+ *     it, listing vaults or not; an agent's run reads only what its
+ *     conversation chose, never a shared vault it did not list; a run with
+ *     no person never reads a My vault (include_my_vault ignored) but its
+ *     owner's own schedule attachment;
+ *   - every named vault checked again: a surface vault whose attacher lost
+ *     the use, and a vault that is gone, refuse naming it and the surface;
+ *     someone else's My vault listed on a conversation refuses;
  *   - matching: a login by its address first, then (a tool on GitHub's own
  *     API only, with or without a repository in the run) the github.com
  *     login, then a secret by name; a clone by its own token (the
@@ -37,8 +39,10 @@
  *     a repository's own token goes only where the github.com login may,
  *     any other declarer of GITHUB_TOKEN refused, naming it; a secret by
  *     name still serves every declarer;
- *   - a missing required key refused naming who acts, per case; an
- *     optional one absent;
+ *   - a missing required key refused naming what the conversation lacks,
+ *     one sentence per case (My vault included; left out with vaults
+ *     listed; left out with none; another organization's agent; a run with
+ *     no person, with and without a surface); an optional one absent;
  *   - a sign-in freshened once per connection per run, and only once the
  *     run is past its missing-key and conflict checks; a refused renewal
  *     refusing the run (the sign-in slice's own freshener included), any
@@ -47,31 +51,29 @@
  *     client, the schedule, the share and the channel (each of another
  *     organization contributes nothing);
  *   - a run of an agent of another organization, or one whose row cannot
- *     be read, reads no My vault and no agent vault for any requirement
- *     (the agent's keys, every tool's keys and login, a clone's token),
- *     while the conversation's own values and vaults, and a person-less
- *     run's surface vaults, still serve it; a missing key points at the
- *     conversation;
- *   - a conversation's own values serve every turn in it, a second
- *     person's included, who never reads the first person's My vault;
- *   - every value from a vault, a connection or the conversation's own
- *     values is carried as secret; only a declaration's own plain value
- *     stays plain;
+ *     be read, reads no My vault for any requirement (the agent's keys,
+ *     every tool's keys and login, a clone's token), even when the
+ *     conversation includes it, while the conversation's listed vaults,
+ *     its repositories' tokens and a person-less run's surface vaults
+ *     still serve it; a missing key points at the conversation's vaults;
+ *   - include_my_vault gives each turn its own sender's My vault: a
+ *     second person's turn reads their own, never the first person's,
+ *     and both take the conversation's repository tokens;
+ *   - every value from a vault, a connection or a repository's token is
+ *     carried as secret; only a declaration's own plain value stays plain;
+ *     a value reaches the run only for a declared key;
  *   - the person is the one the run recorded, so recover resolves as
  *     create did; the stored session row, not a loader's redacted copy,
- *     holds the session's own values, and a row that is gone refuses; the
- *     session's own secrets all reach the run, declared or not; a
- *     conversation's vault its person may not use refuses, telling them;
- *   - a conversation's own value stored empty counts as absent: it neither
- *     fills a required key nor shadows a later source, and does not reach
- *     the run;
+ *     holds the repository tokens and the vault choice, and a row that is
+ *     gone refuses; a conversation's vault its person may not use refuses,
+ *     telling them;
  *   - a stored value the server cannot open (no key configured, or
- *     tampered ciphertext), in a vault or among the conversation's own
- *     values, refuses the whole run with the decryption error: never its
+ *     tampered ciphertext), in a vault or as a repository's token,
+ *     refuses the whole run with the decryption error: never its
  *     ciphertext passed on, never the key silently dropped; a vault's
  *     value the run does not carry is never decrypted, so one that cannot
  *     be opened refuses nothing, and a run decrypts only what it carries;
- *     so is a conversation's own login the run does not use, and a
+ *     so is the token of a repository the run does not clone, and a
  *     sign-in's refresh token unless the sign-in is renewed;
  *   - the connect lane: the request's own values first, then the caller's
  *     My vault for a human caller, none for a runner.
@@ -230,15 +232,18 @@ function tool(
 
 function agent(
   env: Record<string, { isSecret?: boolean; optional?: boolean; value?: string }>,
-  vaults: string[] = [],
 ): AgentSpec {
-  return create(AgentSpecSchema, { env, vaults: vaults.map(vaultRef) });
+  return create(AgentSpecSchema, { env });
 }
 
+/**
+ * A conversation. It includes its sender's My vault unless `includeMyVault`
+ * is false, as every door that starts a conversation for a person sets it;
+ * the arms that pin the flag set it explicitly.
+ */
 function sessionOf(init: {
   vaults?: string[];
-  secrets?: Record<string, string>;
-  connections?: Record<string, string>;
+  includeMyVault?: boolean;
   repo?: { url: string; token?: string };
   labels?: Record<string, string>;
   attachers?: Record<string, string>;
@@ -247,8 +252,7 @@ function sessionOf(init: {
     metadata: { id: "ses_resolve", org: ORG, labels: init.labels ?? {} },
     spec: {
       vaults: (init.vaults ?? []).map(vaultRef),
-      secrets: init.secrets ?? {},
-      connections: init.connections ?? {},
+      includeMyVault: init.includeMyVault ?? true,
       workspaceEntries:
         init.repo === undefined
           ? []
@@ -391,51 +395,84 @@ describe("requirements", () => {
 // ---------------------------------------------------------------------------
 
 describe("which vaults a run uses", () => {
-  it("the session's own values win over its vaults, and its vaults are read in order", async () => {
+  it("the sender's My vault comes first when the conversation includes it, then its vaults in order", async () => {
+    await anasVault({ A: "ana-mine" });
     await seedSharedVault(rig.store, ORG, "first", { secrets: { A: "from-first", B: "from-first" } });
     await seedSharedVault(rig.store, ORG, "second", { secrets: { B: "from-second", C: "from-second" } });
     mayUse.add(`${ANA}:vlt_acme_first`).add(`${ANA}:vlt_acme_second`);
     const values = await resolve({
       run: runOf({ person: ANA }),
-      session: sessionOf({ vaults: ["first", "second"], secrets: { A: "own" } }),
+      session: sessionOf({ vaults: ["first", "second"], includeMyVault: true }),
       agentSpec: agent({ A: KEY, B: KEY, C: KEY }),
     });
-    expect(values).toEqual({ A: "own", B: "from-first", C: "from-second" });
+    expect(values).toEqual({ A: "ana-mine", B: "from-first", C: "from-second" });
   });
 
-  it("a person whose session lists no vaults uses their My vault, then the agent's vaults they may use", async () => {
-    await anasVault({ A: "ana-mine" });
-    await seedSharedVault(rig.store, ORG, "team", { secrets: { A: "team", B: "team" } });
-    await seedSharedVault(rig.store, ORG, "secret-team", { secrets: { C: "hidden" } });
-    mayUse.add(`${ANA}:vlt_acme_team`);
-    const values = await resolve({
-      run: runOf({ person: ANA }),
-      agentSpec: agent(
-        { A: KEY, B: KEY, C: { isSecret: true, optional: true } },
-        ["team", "secret-team"],
-      ),
-    });
-    expect(values).toEqual({ A: "ana-mine", B: "team" });
-  });
-
-  it("a session that lists vaults never reads My vault", async () => {
-    await anasVault({ A: "ana-mine" });
-    await seedSharedVault(rig.store, ORG, "customer", { secrets: { OTHER: "x" } });
+  it("a conversation that leaves My vault out never reads it: its vaults are all it has", async () => {
+    await anasVault({ A: "ana-mine", B: "ana-mine" });
+    await seedSharedVault(rig.store, ORG, "customer", { secrets: { B: "customer" } });
     mayUse.add(`${ANA}:vlt_acme_customer`);
-    const failure = await refusal(
-      resolve({
+    expect(
+      await resolve({
         run: runOf({ person: ANA }),
-        session: sessionOf({ vaults: ["customer"] }),
+        session: sessionOf({ vaults: ["customer"], includeMyVault: false }),
+        agentSpec: agent({ A: { isSecret: true, optional: true }, B: KEY }),
+      }),
+    ).toEqual({ B: "customer" });
+  });
+
+  it("an agent's run reads only what its conversation chose: a shared vault its person may use is not read unless listed", async () => {
+    await seedSharedVault(rig.store, ORG, "team", { secrets: { A: "team" } });
+    mayUse.add(`${ANA}:vlt_acme_team`);
+    const missing = await refusal(
+      resolve({ run: runOf({ person: ANA }), agentSpec: agent({ A: KEY }) }),
+    );
+    expect(missing.code).toBe(Code.FailedPrecondition);
+    expect(
+      await resolve({
+        run: runOf({ person: ANA }),
+        session: sessionOf({ vaults: ["team"] }),
         agentSpec: agent({ A: KEY }),
       }),
-    );
-    expect(failure.code).toBe(Code.FailedPrecondition);
-    expect(failure.rawMessage).toBe(
-      "the agent Helper needs A: add A to one of this conversation's vaults, or as the conversation's own secret",
-    );
+    ).toEqual({ A: "team" });
   });
 
-  it("a run with no person reads no My vault: the surface's vaults are all it has", async () => {
+  it("a missing key names what the conversation lacks: My vault when included, its vaults or My vault when left out", async () => {
+    await seedSharedVault(rig.store, ORG, "customer", { secrets: { OTHER: "x" } });
+    mayUse.add(`${ANA}:vlt_acme_customer`);
+    const linear = tool("linear", { target: "LINEAR_TOKEN" });
+    const cases: Array<{ session: Session; agent: string; tool: string }> = [
+      {
+        session: sessionOf({ vaults: ["customer"], includeMyVault: true }),
+        agent: "the agent Helper needs A: add A to My vault",
+        tool: "linear needs LINEAR_TOKEN: sign in to linear, or add LINEAR_TOKEN to My vault",
+      },
+      {
+        session: sessionOf({ vaults: ["customer"], includeMyVault: false }),
+        agent:
+          "the agent Helper needs A: add A to one of this conversation's vaults, or include My vault in this conversation",
+        tool: "linear needs LINEAR_TOKEN: sign in to linear, or add LINEAR_TOKEN to one of this conversation's vaults, or include My vault in this conversation",
+      },
+      {
+        session: sessionOf({ includeMyVault: false }),
+        agent:
+          "the agent Helper needs A: this conversation uses no vaults: include My vault in it, or list a vault that holds A",
+        tool: "linear needs LINEAR_TOKEN: this conversation uses no vaults: include My vault in it, or list a vault that holds LINEAR_TOKEN",
+      },
+    ];
+    for (const { session, agent: agentSentence, tool: toolSentence } of cases) {
+      const forAgent = await refusal(
+        resolve({ run: runOf({ person: ANA }), session, agentSpec: agent({ A: KEY }) }),
+      );
+      expect(forAgent.code).toBe(Code.FailedPrecondition);
+      expect(forAgent.rawMessage).toBe(agentSentence);
+      const forTool = await refusal(resolve({ run: runOf({ person: ANA }), session, tools: [linear] }));
+      expect(forTool.code).toBe(Code.FailedPrecondition);
+      expect(forTool.rawMessage).toBe(toolSentence);
+    }
+  });
+
+  it("a run with no person reads no My vault, whatever the conversation includes: the surface's vaults are all it has", async () => {
     await anasVault({ A: "ana-mine" });
     await rig.store.saveResource(
       ApiResourceKind.schedule,
@@ -449,6 +486,7 @@ describe("which vaults a run uses", () => {
     const failure = await refusal(
       resolve({
         run: runOf({ labels: { [SCHEDULE_ID_LABEL_KEY]: "sch_nightly" } }),
+        session: sessionOf({ includeMyVault: true }),
         agentSpec: agent({ A: KEY }),
       }),
     );
@@ -559,9 +597,7 @@ describe("which vaults a run uses", () => {
     const foreign = await refusal(
       resolve({ run: runOf({ platformClientId: "pcl_foreign" }), agentSpec: agent({ A: KEY }) }),
     );
-    expect(foreign.rawMessage).toBe(
-      "the agent Helper needs A: list a vault that holds A on the conversation, or send it as the conversation's own secret",
-    );
+    expect(foreign.rawMessage).toBe("the agent Helper needs A: list a vault that holds A on the conversation");
   });
 
   it("uses the person the run recorded, whoever recovers it", async () => {
@@ -575,35 +611,39 @@ describe("which vaults a run uses", () => {
     expect(bens.rawMessage).toBe("the agent Helper needs A: add A to My vault");
   });
 
-  it("a second person's turn in a conversation takes its own values, never the first person's My vault", async () => {
+  it("each sender's turn reads their own My vault, never another's, and both take the conversation's repository token", async () => {
     await anasVault({ B: "ana-mine", GITHUB_TOKEN: "ana-pat" });
-    const conversation = sessionOf({
-      secrets: { A: "own" },
-      connections: { "https://mcp.linear.example/mcp": "own-login" },
-      repo: { url: "https://github.com/acme/app", token: "repo-own" },
-    });
+    const ben = testCallerIdentity({ identityId: BEN });
+    const bens = await rig.vaults.ensureMine(ORG, ben);
+    await rig.vaults.setSecrets(bens.metadata!.id, { C: { value: "ben-mine", description: "" } }, ben);
     const turn = {
-      session: conversation,
-      agentSpec: agent({ A: KEY, B: { isSecret: true, optional: true } }),
-      tools: [tool("linear", { target: "LINEAR_TOKEN" })],
+      session: sessionOf({
+        includeMyVault: true,
+        repo: { url: "https://github.com/acme/app", token: "repo-own" },
+      }),
+      agentSpec: agent({ B: { isSecret: true, optional: true }, C: { isSecret: true, optional: true } }),
     };
     expect(await resolve({ run: runOf({ person: ANA }), ...turn })).toEqual({
-      A: "own",
       B: "ana-mine",
-      LINEAR_TOKEN: "own-login",
       GITHUB_TOKEN: "repo-own",
     });
     expect(await resolve({ run: runOf({ person: BEN }), ...turn })).toEqual({
-      A: "own",
-      LINEAR_TOKEN: "own-login",
+      C: "ben-mine",
       GITHUB_TOKEN: "repo-own",
     });
   });
 
-  it("reads the session's own values from the stored row, not a loader's redacted copy", async () => {
-    const stored = sessionOf({ secrets: { A: "own-value" } });
+  it("reads the repository tokens and the vault choice from the stored row, not a loader's redacted copy", async () => {
+    await anasVault({ A: "ana-mine" });
+    const stored = sessionOf({
+      includeMyVault: true,
+      repo: { url: "https://github.com/acme/app", token: "repo-own" },
+    });
     await rig.store.saveResource(ApiResourceKind.session, "ses_resolve", SessionSchema, stored);
-    const loaderCopy = sessionOf({ secrets: { A: REDACTED_MARKER } });
+    const loaderCopy = sessionOf({
+      includeMyVault: false,
+      repo: { url: "https://github.com/acme/app", token: REDACTED_MARKER },
+    });
     expect(
       await resolve({
         run: runOf({ person: ANA }),
@@ -611,15 +651,14 @@ describe("which vaults a run uses", () => {
         agentSpec: agent({ A: KEY }),
         unsaved: true,
       }),
-    ).toEqual({ A: "own-value" });
+    ).toEqual({ A: "ana-mine", GITHUB_TOKEN: "repo-own" });
   });
 
   it("refuses a run whose conversation's stored row is gone, rather than trusting a loader's copy", async () => {
     const failure = await refusal(
       resolve({
         run: runOf({ person: ANA }),
-        session: sessionOf({ secrets: { A: "copied" } }),
-        agentSpec: agent({ A: KEY }),
+        session: sessionOf({ repo: { url: "https://github.com/acme/app", token: "copied" } }),
         unsaved: true,
       }),
     );
@@ -627,14 +666,13 @@ describe("which vaults a run uses", () => {
     expect(failure.rawMessage).toContain("ses_resolve");
   });
 
-  it("delivers every one of the conversation's own secrets, declared or not; a vault's only when declared", async () => {
+  it("delivers a vault's value only for a declared key", async () => {
     await anasVault({ DECLARED: "from-vault", UNDECLARED_IN_VAULT: "kept-in-vault" });
     const values = await resolve({
       run: runOf({ person: ANA }),
-      session: sessionOf({ secrets: { EXTRA: "own-extra" } }),
       agentSpec: agent({ DECLARED: KEY }),
     });
-    expect(values).toEqual({ DECLARED: "from-vault", EXTRA: "own-extra" });
+    expect(values).toEqual({ DECLARED: "from-vault" });
   });
 
   it("refuses a conversation's vault its own person may not use, telling them so", async () => {
@@ -660,17 +698,14 @@ describe("which vaults a run uses", () => {
 describe("what reaches an agent or a surface of another organization", () => {
   const MAYBE = { isSecret: true, optional: true };
   const elsewhere = (key: string): string =>
-    `add ${key} to one of this conversation's vaults, or send it as the conversation's own secret: an agent of another organization never reads My vault`;
+    `add ${key} to one of this conversation's vaults: an agent of another organization never reads My vault`;
 
-  it("an agent of another organization gets nothing from the person's My vault or its own vaults, for its own keys or any tool's", async () => {
+  it("an agent of another organization gets nothing from the person's My vault, though the conversation includes it, for its own keys or any tool's", async () => {
     await anasVault({ A: "ana-mine", SHARED: "ana-shared", NOTES_KEY: "ana-notes" });
-    const team = await seedSharedVault(rig.store, ORG, "team", {
-      secrets: { B: "team", NOTES_KEY: "team-notes" },
-    });
-    mayUse.add(`${ANA}:${team.metadata!.id}`);
     const values = await resolve({
       run: runOf({ person: ANA }),
-      agentSpec: agent({ A: MAYBE, B: MAYBE, SHARED: MAYBE }, ["team"]),
+      session: sessionOf({ includeMyVault: true }),
+      agentSpec: agent({ A: MAYBE, SHARED: MAYBE }),
       agentOrg: "globex",
       tools: [tool("notes", { env: { SHARED: MAYBE, NOTES_KEY: MAYBE } })],
     });
@@ -778,18 +813,10 @@ describe("what reaches an agent or a surface of another organization", () => {
     ).toEqual({ A: "chan" });
   });
 
-  it("another organization's agent still takes the conversation's own values and vaults, and a missing key says so", async () => {
+  it("another organization's agent still takes the conversation's vaults, and a missing key says so", async () => {
     await anasVault({ A: "ana-mine" });
     const team = await seedSharedVault(rig.store, ORG, "team", { secrets: { B: "team" } });
     mayUse.add(`${ANA}:${team.metadata!.id}`);
-    expect(
-      await resolve({
-        run: runOf({ person: ANA }),
-        session: sessionOf({ secrets: { A: "own" } }),
-        agentSpec: agent({ A: KEY }),
-        agentOrg: "globex",
-      }),
-    ).toEqual({ A: "own" });
     expect(
       await resolve({
         run: runOf({ person: ANA }),
@@ -839,8 +866,7 @@ describe("what reaches an agent or a surface of another organization", () => {
         status: { vaultAttachers: attached },
       }),
     );
-    const nowhere =
-      "the agent Helper needs A: list a vault that holds A on the conversation, or send it as the conversation's own secret";
+    const nowhere = "the agent Helper needs A: list a vault that holds A on the conversation";
     for (const labelled of [
       { run: runOf({ labels: { [SCHEDULE_ID_LABEL_KEY]: "sch_foreign" } }) },
       { run: runOf(), session: sessionOf({ labels: { [SHARE_ID_LABEL_KEY]: "shr_foreign" } }) },
@@ -876,13 +902,12 @@ describe("which values the context carries as secret", () => {
     expect(fromVault.get("BARE")).toMatchObject({ value: "ana-bare", isSecret: true });
   });
 
-  it("the conversation's own secret and a surface vault's secret filling a plain declaration are secret", async () => {
+  it("a repository's own token is secret, and so is a listed vault's secret filling a plain declaration", async () => {
     const own = await resolveValues({
       run: runOf({ person: ANA }),
-      session: sessionOf({ secrets: { WORKSPACE: "own-workspace" } }),
-      agentSpec: agent({ WORKSPACE: PLAIN }),
+      session: sessionOf({ repo: { url: "https://github.com/acme/app", token: "repo-own" } }),
     });
-    expect(own.get("WORKSPACE")).toMatchObject({ value: "own-workspace", isSecret: true });
+    expect(own.get("GITHUB_TOKEN")).toMatchObject({ value: "repo-own", isSecret: true });
 
     const team = await seedSharedVault(rig.store, ORG, "integrator", { secrets: { WORKSPACE: "cust" } });
     mayUse.add(`${ADMIN}:${team.metadata!.id}`);
@@ -974,30 +999,6 @@ describe("matching", () => {
     expect(missing.rawMessage).toBe(
       "linear needs LINEAR_TOKEN: sign in to linear, or add LINEAR_TOKEN to My vault",
     );
-  });
-
-  it("a conversation's own secret stored empty counts as absent: a required key with nothing else refuses, naming it", async () => {
-    const missing = await refusal(
-      resolve({
-        run: runOf({ person: ANA }),
-        session: sessionOf({ secrets: { API_KEY: "" } }),
-        agentSpec: agent({ API_KEY: KEY }),
-      }),
-    );
-    expect(missing.code).toBe(Code.FailedPrecondition);
-    expect(missing.rawMessage).toBe("the agent Helper needs API_KEY: add API_KEY to My vault");
-  });
-
-  it("a conversation's own secret stored empty shadows no later source and does not reach the run", async () => {
-    await anasVault({ GITHUB_TOKEN: "vault-token" });
-    const values = await resolve({
-      run: runOf({ person: ANA }),
-      session: sessionOf({
-        secrets: { GITHUB_TOKEN: "", EXTRA: "" },
-        repo: { url: "https://github.com/acme/app" },
-      }),
-    });
-    expect(values).toEqual({ GITHUB_TOKEN: "vault-token" });
   });
 
   it("a clone uses the repository's own token, then a connection for its host", async () => {
@@ -1753,15 +1754,6 @@ describe("edges", () => {
     expect(requirements).toEqual([]);
   });
 
-  it("fills a tool's login from the conversation's own connection at its address", async () => {
-    const values = await resolve({
-      run: runOf({ person: ANA }),
-      session: sessionOf({ connections: { "https://mcp.linear.example/mcp": "own-token" } }),
-      tools: [tool("linear", { target: "LINEAR_TOKEN" })],
-    });
-    expect(values).toEqual({ LINEAR_TOKEN: "own-token" });
-  });
-
   it("reads a vault the conversation lists twice once", async () => {
     const team = await seedSharedVault(rig.store, ORG, "team", { secrets: { API_KEY: "team-key" } });
     mayUse.add(`${ANA}:${team.metadata!.id}`);
@@ -1773,17 +1765,11 @@ describe("edges", () => {
     expect(values).toEqual({ API_KEY: "team-key" });
   });
 
-  it("someone else's My vault: skipped among an agent's vaults, refused when the conversation names it", async () => {
+  it("someone else's My vault named by the conversation refuses", async () => {
     const ben = testCallerIdentity({ identityId: BEN });
     const bens = await rig.vaults.ensureMine(ORG, ben);
     await rig.vaults.setSecrets(bens.metadata!.id, { API_KEY: { value: "ben-key", description: "" } }, ben);
     const slug = bens.metadata!.slug;
-
-    const skipped = await resolve({
-      run: runOf({ person: ANA }),
-      agentSpec: agent({ API_KEY: { isSecret: true, optional: true } }, [slug]),
-    });
-    expect(skipped).toEqual({});
 
     const refused = await refusal(
       resolve({
@@ -1794,15 +1780,6 @@ describe("edges", () => {
     );
     expect(refused.code).toBe(Code.FailedPrecondition);
     expect(refused.rawMessage).toContain("someone's own My vault");
-  });
-
-  it("an agent's vault that no longer exists is skipped for a person's chat", async () => {
-    await anasVault({ API_KEY: "ana-key" });
-    const values = await resolve({
-      run: runOf({ person: ANA }),
-      agentSpec: agent({ API_KEY: KEY }, ["deleted-team"]),
-    });
-    expect(values).toEqual({ API_KEY: "ana-key" });
   });
 
   it("a person-less run asks the account that attached the conversation's vault", async () => {
@@ -2110,11 +2087,23 @@ describe("a stored value the server cannot open", () => {
     expect(decrypt.mock.calls.map(([value]) => value)).toEqual([row.spec!.secrets["NEEDED"]!.value]);
   });
 
-  it("a conversation's own login the run does not use is never decrypted: one that cannot be opened refuses nothing", async () => {
+  it("the token of a repository the run does not clone is never decrypted: one that cannot be opened refuses nothing", async () => {
     const cannot = await unopenable("tampered");
     const own = await cannot.secrets.encrypt("own-value", EncryptionScope.forOrganization(ORG));
+    const entry = (name: string, url: string, token: string) => ({
+      name,
+      source: { source: { case: "gitRepo" as const, value: { url, token } } },
+    });
     const session = await stored(
-      sessionOf({ secrets: { OWN_KEY: own }, connections: { "https://mcp.unused.example/mcp": cannot.stored } }),
+      create(SessionSchema, {
+        metadata: { id: "ses_resolve", org: ORG },
+        spec: {
+          workspaceEntries: [
+            entry("app", "https://github.com/acme/app", own),
+            entry("mirror", "https://git.example.com/acme/app", cannot.stored),
+          ],
+        },
+      }),
     );
     const decrypt = vi.spyOn(cannot.secrets, "decrypt");
     const values = await resolverOver(cannot.secrets).resolveForRun({
@@ -2126,7 +2115,7 @@ describe("a stored value the server cannot open", () => {
       tools: [],
     });
     expect(Object.fromEntries([...values].map(([key, value]) => [key, value.value]))).toEqual({
-      OWN_KEY: "own-value",
+      GITHUB_TOKEN: "own-value",
     });
     expect(decrypt.mock.calls.map(([value]) => value)).toEqual([own]);
   });
@@ -2190,14 +2179,16 @@ describe("a stored value the server cannot open", () => {
   });
 
   it.each(["no key configured", "tampered"] as const)(
-    "the conversation's own secret (%s) refuses the run, and no value reaches it",
+    "a repository's own token (%s) refuses the run, and no value reaches it",
     async (how) => {
       const cannot = await unopenable(how);
-      // Undeclared: every own secret reaches the run, so a dropped one would pass unseen.
+      // A clone's token is optional, so a dropped one would let the run start unseen.
       const failure = await failureOfRun(
         resolverOver(cannot.secrets).resolveForRun({
           execution: runOf({ person: ANA }),
-          session: await stored(sessionOf({ secrets: { OWN_KEY: cannot.stored } })),
+          session: await stored(
+            sessionOf({ repo: { url: "https://github.com/acme/app", token: cannot.stored } }),
+          ),
           agentSpec: undefined,
           agentName: "",
           agentOrg: undefined,

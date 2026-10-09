@@ -52,10 +52,6 @@ vi.mock("../../workspace", () => ({
   }),
 }));
 
-vi.mock("../../run/useSessionVariables", () => ({
-  useSessionVariables: () => ({ variables: [], isEmpty: true, clear: vi.fn() }),
-}));
-
 vi.mock("../usePersistedModel", () => ({
   usePersistedModel: () => [undefined, vi.fn()] as const,
 }));

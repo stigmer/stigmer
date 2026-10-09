@@ -24,9 +24,11 @@ import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { type SessionSpec, SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import {
+  type ApiResourceReference,
+  ApiResourceReferenceSchema,
+} from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { SessionSecrets } from "./env.js";
 import type { HarnessFlag, RunMode, ServiceTierFlag, ThinkingFlag } from "./prepare.js";
 
 const API_VERSION = "agentic.stigmer.ai/v1";
@@ -53,20 +55,23 @@ export interface AgentRefInput {
  * embedded session_spec. agentRef names the new conversation's agent; with
  * neither, the new conversation runs the built-in assistant.
  *
- * workspaceEntries, harness and sessionSecrets ride the one-call bootstrap
- * (spec.session_spec, stigmer/stigmer#249) and shape the auto-created
- * session. A session's agent, workspace, harness and values are fixed at
- * creation, so with sessionId set they are not sent: the target carries the
- * session id alone. A run carries no values of its own; a conversation's
- * values are set when it starts, or by updating the conversation.
+ * workspaceEntries, harness, vaults and includeMyVault ride the one-call
+ * bootstrap (spec.session_spec, stigmer/stigmer#249) and shape the
+ * auto-created session. A session's agent, workspace, harness and vault
+ * choice are set at creation, so with sessionId set they are not sent: the
+ * target carries the session id alone, and the conversation keeps the vaults
+ * it was started with. A run carries no keys of its own; they come from the
+ * vaults its conversation uses.
  */
 export interface CreateRunInput {
   readonly agentRef?: AgentRefInput;
   readonly sessionId?: string;
   readonly orgId: string;
   readonly message: string;
-  /** The run's own values, kept sealed on its conversation. */
-  readonly sessionSecrets: SessionSecrets;
+  /** The shared vaults the new conversation uses, in order. */
+  readonly vaults: readonly ApiResourceReference[];
+  /** Whether each turn of the new conversation uses its sender's My vault first. */
+  readonly includeMyVault: boolean;
   readonly attachments: readonly Attachment[];
   readonly workspaceFileRefs: readonly string[];
   readonly workspaceEntries: readonly WorkspaceEntry[];
@@ -103,25 +108,19 @@ export async function createAgentRun(
 }
 
 // The turn's target: an existing session by id, or the session_spec of the
-// conversation the backend creates for it. An unset target is a new
-// conversation with the built-in assistant.
+// conversation the backend creates for it.
 function buildTarget(input: CreateRunInput): RunSpec["target"] {
   const sessionId = input.sessionId ?? "";
   if (sessionId !== "") return { case: "sessionId", value: sessionId };
-  const sessionSpec = buildSessionSpec(
-    input.agentRef,
-    input.workspaceEntries,
-    input.harness,
-    input.sessionSecrets,
-  );
-  if (sessionSpec === undefined) return { case: undefined };
-  return { case: "sessionSpec", value: sessionSpec };
+  return { case: "sessionSpec", value: buildSessionSpec(input) };
 }
 
 // Build the embedded session spec for the one-call bootstrap
-// (stigmer/stigmer#249), or undefined when there is nothing to carry: a plain
-// built-in-assistant run sends no session_spec at all. The agent reference
-// names the conversation's agent. A resolved harness is stamped explicitly,
+// (stigmer/stigmer#249). It is always sent, even for a plain built-in
+// assistant run: a conversation the server creates from no spec has every
+// field at its default, and include_my_vault's default is off, so a person's
+// run would lose their own My vault. The agent reference names the
+// conversation's agent. A resolved harness is stamped explicitly,
 // including "native": the value may be a deliberate per-run escape from the
 // account's default_harness preference, so it must survive any future change
 // to the server-side default. Empty means "no opinion" and stays off the wire
@@ -129,19 +128,12 @@ function buildTarget(input: CreateRunInput): RunSpec["target"] {
 // sentinel and the async title activity replaces it. The server clones this
 // spec onto the auto-created session and then clears it from the persisted
 // run — the Session resource stays the single source of truth.
-function buildSessionSpec(
-  agentRef: AgentRefInput | undefined,
-  workspaceEntries: readonly WorkspaceEntry[],
-  harness: HarnessFlag,
-  secrets: SessionSecrets,
-): SessionSpec | undefined {
-  const hasSecrets = Object.keys(secrets).length > 0;
-  if (agentRef === undefined && workspaceEntries.length === 0 && harness === "" && !hasSecrets) {
-    return undefined;
-  }
+function buildSessionSpec(input: CreateRunInput): SessionSpec {
+  const { agentRef, harness } = input;
   const spec = create(SessionSpecSchema, {
-    workspaceEntries: [...workspaceEntries],
-    secrets: { ...secrets },
+    workspaceEntries: [...input.workspaceEntries],
+    vaults: [...input.vaults],
+    includeMyVault: input.includeMyVault,
   });
   if (agentRef !== undefined) {
     spec.agentRef = create(ApiResourceReferenceSchema, {

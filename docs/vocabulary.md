@@ -707,7 +707,8 @@ and decide who may use them.
   CLI: `stigmer vault`, `stigmer get vault`, `stigmer list vaults`.
 - **Key fields**: `secrets` (by name), `connections` (by address),
   `external_id`. Values are write-only: no read returns one. Surfaces name
-  vaults in an ordered `vaults` list.
+  vaults in an ordered `vaults` list; a Session also sets `include_my_vault` to
+  use each sender's own My vault first. An Agent names no vaults.
 - **Related terms**: a **secret** is a vault entry matched by its name
   (`OPENAI_API_KEY`). A **connection** (in the console, a **login**) is a vault
   entry matched by the address of the tool or Git host it is for

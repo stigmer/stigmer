@@ -10,13 +10,10 @@
  * - VaultListPanel lists shared vaults only (never anyone's My vault), says
  *   who may use each, writes entries by vault id, and saves or deletes a
  *   vault's own fields for an editor, refusals shown;
- * - VaultsSection says which chats use My vault (those the person starts,
- *   unless the conversation lists vaults of its own or the agent is of
- *   another organization), shows My vault's entries with "Sign in again"
- *   for a login a sign-in saved, and creates a shared vault for an admin;
- * - AgentVaultsSection lists the agent's vaults (another organization's by
- *   its slug), starts an edit from them (a reference with no organization
- *   read as the agent's), and saves a new list through the picker.
+ * - VaultsSection says which chats use My vault (those that include it,
+ *   for the person's own messages, never a chat with an agent of another
+ *   organization), shows My vault's entries with "Sign in again" for a
+ *   login a sign-in saved, and creates a shared vault for an admin.
  * The permission checks, the access dialog and the OAuth flow are stood in.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -34,7 +31,6 @@ import { VaultConnectionSource } from "@stigmer/protos/ai/stigmer/agentic/vault/
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
-import { AgentVaultsSection } from "../../agent/AgentVaultsSection";
 import { VaultsSection } from "../../settings/VaultsSection";
 import { CreateVaultForm } from "../CreateVaultForm";
 import { VaultEntriesEditor } from "../VaultEntriesEditor";
@@ -443,8 +439,8 @@ describe("VaultsSection", () => {
     render(<VaultsSection />, { wrapper: providers(clientWith(writes)) });
     expect(
       screen.getByText(
-        "Your own logins and secrets. Chats you start use them unless the conversation lists vaults of its own, " +
-          "and a chat with an agent of another organization never does; nobody else's chats ever do. " +
+        "Your own logins and secrets. A chat that includes My vault uses them for the messages you send, " +
+          "never a teammate's, and a chat with an agent of another organization never does. " +
           "Saved values can be replaced but are never shown again.",
       ),
     ).toBeTruthy();
@@ -466,80 +462,5 @@ describe("VaultsSection", () => {
     oauth.error = new Error("sign-in refused");
     render(<VaultsSection />, { wrapper: providers(clientWith([])) });
     expect((await screen.findByText("sign-in refused")).getAttribute("role")).toBe("alert");
-  });
-});
-
-describe("AgentVaultsSection", () => {
-  it("lists the agent's vaults, another organization's by its slug", () => {
-    render(
-      <AgentVaultsSection
-        org={ORG}
-        vaults={[
-          { org: ORG, slug: "support-tools", kind: 59 } as never,
-          { org: "org_parent", slug: "shared-keys", kind: 59 } as never,
-        ]}
-      />,
-      { wrapper: providers(clientWith([])) },
-    );
-    expect(screen.getByText("support-tools")).toBeTruthy();
-    expect(screen.getByText("parent/shared-keys")).toBeTruthy();
-  });
-
-  it("saves a new list through the picker, and stays open on a failed save", async () => {
-    const saves: string[][] = [];
-    let accept = false;
-    const onSave = async (refs: { slug: string }[]) => {
-      saves.push(refs.map((r) => r.slug));
-      return accept;
-    };
-    render(
-      <AgentVaultsSection org={ORG} vaults={[]} editable onSave={onSave} error="could not save" />,
-      { wrapper: providers(clientWith([])) },
-    );
-    expect(screen.getByText("No vaults.")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: /edit/i }));
-    expect(screen.getByRole("alert").textContent).toBe("could not save");
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Save" }));
-    });
-    expect(screen.getByRole("button", { name: "Save" })).toBeTruthy();
-    accept = true;
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Save" }));
-    });
-    expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: /edit/i }));
-    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-    expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
-    expect(saves).toEqual([[], []]);
-  });
-
-  it("starts an edit from the agent's vaults, a reference with no organization read as the agent's", async () => {
-    const saves: Array<Array<{ org: string; slug: string }>> = [];
-    render(
-      <AgentVaultsSection
-        org={ORG}
-        vaults={[
-          { org: "", slug: "support-tools", kind: 59 } as never,
-          { org: "org_parent", slug: "shared-keys", kind: 59 } as never,
-        ]}
-        editable
-        onSave={async (refs) => {
-          saves.push(refs.map((r) => ({ org: r.org, slug: r.slug })));
-          return true;
-        }}
-      />,
-      { wrapper: providers(clientWith([])) },
-    );
-    fireEvent.click(screen.getByRole("button", { name: /edit/i }));
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Save" }));
-    });
-    expect(saves).toEqual([
-      [
-        { org: ORG, slug: "support-tools" },
-        { org: "org_parent", slug: "shared-keys" },
-      ],
-    ]);
   });
 });

@@ -20,7 +20,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/session/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zcGVjLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSLHDAoLU2Vzc2lvblNwZWMSsQEKCWFnZW50X3JlZhgOIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJoukhhugFeChZzZXNzaW9uX2FnZW50X3JlZi5raW5kEjNhZ2VudF9yZWYgbXVzdCByZWZlcmVuY2UgYSByZXNvdXJjZSB3aXRoIGtpbmQ9YWdlbnQaD3RoaXMua2luZCA9PSA0MOCFLCgSDwoHc3ViamVjdBgCIAEoCRIYChBoYXJuZXNzX3N0YXRlX2lkGAMgASgJEiAKGGhhcm5lc3Nfc3RhdGVfaWRfaGlzdG9yeRgNIAMoCRJKCghtZXRhZGF0YRgFIAMoCzI4LmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25TcGVjLk1ldGFkYXRhRW50cnkSSAoRd29ya3NwYWNlX2VudHJpZXMYBiADKAsyLS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5Xb3Jrc3BhY2VFbnRyeRLdAQoRbWNwX3NlcnZlcl91c2FnZXMYByADKAsyLy5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk1jcFNlcnZlclVzYWdlQpABukiMAZIBiAEihQG6AYEBCh5zZXNzaW9uX21jcF9zZXJ2ZXJfdXNhZ2VzLmtpbmQSP21jcF9zZXJ2ZXJfdXNhZ2VzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9bWNwX3NlcnZlchoedGhpcy5tY3Bfc2VydmVyX3JlZi5raW5kID09IDQ0ErgBCgpza2lsbF9yZWZzGAggAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQm66SGeSAWQiYroBXwoXc2Vzc2lvbl9za2lsbF9yZWZzLmtpbmQSM3NraWxsX3JlZnMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1za2lsbBoPdGhpcy5raW5kID09IDQz4IUsKxI3CgdoYXJuZXNzGAogASgOMiYuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuSGFybmVzcxI+CgtjdXJzb3JfbW9kZRgLIAEoDjIpLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkN1cnNvck1vZGUSSAoQZXhlY3V0aW9uX3RhcmdldBgMIAEoDjIuLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkV4ZWN1dGlvblRhcmdldBKmAQoGdmF1bHRzGA8gAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQmC6SFmSAVYQFCJSugFPCgt2YXVsdHMua2luZBIvdmF1bHRzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9dmF1bHQaD3RoaXMua2luZCA9PSA1OeCFLDsSfQoHc2VjcmV0cxgQIAMoCzI3LmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25TcGVjLlNlY3JldHNFbnRyeUIzukgwmgEtEGQiH3IdGIABMhheW0EtWmEtel9dW0EtWmEtejAtOV9dKiQqCHIGEAEYgIAEEm0KC2Nvbm5lY3Rpb25zGBEgAygLMjsuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvblNwZWMuQ29ubmVjdGlvbnNFbnRyeUIbukgYmgEVEGQiB3IFEAEYgBAqCHIGEAEYgIAEGi8KDU1ldGFkYXRhRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ARouCgxTZWNyZXRzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ARoyChBDb25uZWN0aW9uc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAFKBAgBEAJSEWFnZW50X2luc3RhbmNlX2lkYgZwcm90bzM", [file_ai_stigmer_agentic_mcpserver_v1_usage, file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_session_v1_workspace, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zcGVjLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSKxCgoLU2Vzc2lvblNwZWMSsQEKCWFnZW50X3JlZhgOIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJoukhhugFeChZzZXNzaW9uX2FnZW50X3JlZi5raW5kEjNhZ2VudF9yZWYgbXVzdCByZWZlcmVuY2UgYSByZXNvdXJjZSB3aXRoIGtpbmQ9YWdlbnQaD3RoaXMua2luZCA9PSA0MOCFLCgSDwoHc3ViamVjdBgCIAEoCRIYChBoYXJuZXNzX3N0YXRlX2lkGAMgASgJEiAKGGhhcm5lc3Nfc3RhdGVfaWRfaGlzdG9yeRgNIAMoCRJKCghtZXRhZGF0YRgFIAMoCzI4LmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25TcGVjLk1ldGFkYXRhRW50cnkSSAoRd29ya3NwYWNlX2VudHJpZXMYBiADKAsyLS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5Xb3Jrc3BhY2VFbnRyeRLdAQoRbWNwX3NlcnZlcl91c2FnZXMYByADKAsyLy5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk1jcFNlcnZlclVzYWdlQpABukiMAZIBiAEihQG6AYEBCh5zZXNzaW9uX21jcF9zZXJ2ZXJfdXNhZ2VzLmtpbmQSP21jcF9zZXJ2ZXJfdXNhZ2VzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9bWNwX3NlcnZlchoedGhpcy5tY3Bfc2VydmVyX3JlZi5raW5kID09IDQ0ErgBCgpza2lsbF9yZWZzGAggAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQm66SGeSAWQiYroBXwoXc2Vzc2lvbl9za2lsbF9yZWZzLmtpbmQSM3NraWxsX3JlZnMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1za2lsbBoPdGhpcy5raW5kID09IDQz4IUsKxI3CgdoYXJuZXNzGAogASgOMiYuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuSGFybmVzcxI+CgtjdXJzb3JfbW9kZRgLIAEoDjIpLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkN1cnNvck1vZGUSSAoQZXhlY3V0aW9uX3RhcmdldBgMIAEoDjIuLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkV4ZWN1dGlvblRhcmdldBKmAQoGdmF1bHRzGA8gAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQmC6SFmSAVYQFCJSugFPCgt2YXVsdHMua2luZBIvdmF1bHRzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9dmF1bHQaD3RoaXMua2luZCA9PSA1OeCFLDsSGAoQaW5jbHVkZV9teV92YXVsdBgSIAEoCBovCg1NZXRhZGF0YUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAFKBAgBEAJKBAgQEBFKBAgREBJSEWFnZW50X2luc3RhbmNlX2lkUgdzZWNyZXRzUgtjb25uZWN0aW9uc2IGcHJvdG8z", [file_ai_stigmer_agentic_mcpserver_v1_usage, file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_session_v1_workspace, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * SessionSpec defines the configurable properties of a session.
@@ -191,44 +191,30 @@ export type SessionSpec = Message<"ai.stigmer.agentic.session.v1.SessionSpec"> &
    * Vaults whose logins and secrets this conversation's runs use, in order:
    * the first vault holding a match wins. At most 20.
    *
-   * A conversation that lists vaults uses exactly those. One that lists
-   * none uses the My vault of the person sending each turn, then the
-   * agent's vaults that person may use. A My vault cannot be listed: a
-   * conversation can have several people, and each person's own vault
-   * serves only their own turns.
+   * The conversation uses exactly these, in order, after the sender's My
+   * vault when include_my_vault is set. A My vault cannot be listed: set
+   * include_my_vault, which gives each sender their own.
+   *
+   * An update built on an older read than the stored conversation (it
+   * echoes an older status.audit.spec_audit.updated_at) keeps the stored
+   * vaults and include_my_vault: read the conversation again to change
+   * which vaults it uses.
    *
    * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference vaults = 15;
    */
   vaults: ApiResourceReference[];
 
   /**
-   * Secrets this conversation's runs use, by name, ahead of every vault.
+   * Whether each turn also uses its sender's own My vault, first, ahead of
+   * the listed vaults. Off unless the caller sets it.
    *
-   * This is how an integrator hands a run a key without saving it in a
-   * vault. The values are kept sealed for the conversation's life, can be
-   * replaced by an update at any time, are never returned by a read, and
-   * are destroyed with the conversation.
+   * Each person who sends a turn uses their own My vault, never another's.
+   * A turn with no person, or one that runs another organization's agent,
+   * ignores it.
    *
-   * An update built on an older read than the stored conversation (it
-   * echoes an older status.audit.spec_audit.updated_at) removes nothing it
-   * could not have seen: the values it omits are kept, and so are the
-   * vaults the conversation lists. Read the conversation again to remove a
-   * value or change its vaults.
-   *
-   * @generated from field: map<string, string> secrets = 16;
+   * @generated from field: bool include_my_vault = 18;
    */
-  secrets: { [key: string]: string };
-
-  /**
-   * Logins this conversation's runs use, by the address of the tool or Git
-   * host each is for, ahead of every vault.
-   *
-   * Kept, replaced and destroyed as secrets are. Addresses are normalized
-   * as a vault's are.
-   *
-   * @generated from field: map<string, string> connections = 17;
-   */
-  connections: { [key: string]: string };
+  includeMyVault: boolean;
 };
 
 /**

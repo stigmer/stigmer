@@ -1320,8 +1320,7 @@ SessionSpec defines the configurable properties of a session.
     cursorMode: { type: "CursorMode", description: "Cursor SDK agent mode for this session.", typeDescriptionLink: "#cursormode" },
     executionTarget: { type: "ExecutionTarget", description: "Where session activities are executed — local client or cloud sandbox.", typeDescriptionLink: "#executiontarget" },
     vaults: { type: "ResourceRef[]", description: "Vaults whose logins and secrets this conversation's runs use, in order: the first vault holding a match wins.", typeDescriptionLink: "#resourceref" },
-    secrets: { type: "Record<string, string>", description: "Secrets this conversation's runs use, by name, ahead of every vault." },
-    connections: { type: "Record<string, string>", description: "Logins this conversation's runs use, by the address of the tool or Git host each is for, ahead of every vault." },
+    includeMyVault: { type: "boolean", description: "Whether each turn also uses its sender's own My vault, first, ahead of the listed vaults." },
   }}
 />
 

@@ -379,15 +379,12 @@ pass `sessionId` to execute within an existing session (use
 bootstrap a new session (workspace, harness, execution target) and
 dispatch the first message in a single call.
 
-A run's logins and secrets come from vaults and from the
-conversation's own secrets, never from the run request:
-
-- **Vaults** — a conversation that lists no vaults uses the running
-  person's My vault, then the agent's vaults they may use.
-- **The conversation's own secrets** — on a new conversation, pass
-  `sessionSpec.secrets`; on an existing one, update the session (see
-  `useSessionConversation`'s `sendFollowUp`). They are kept sealed for
-  the conversation's life.
+A run's logins and secrets come from the vaults its conversation uses,
+never from the run request: the sender's My vault when the conversation
+includes it (`sessionSpec.includeMyVault`), then the vaults it lists
+(`sessionSpec.vaults`), in order. On an existing conversation, change
+them with a session update (see `useSessionConversation`'s
+`sendFollowUp`).
 
 **Signature**
 
@@ -407,20 +404,21 @@ function useCreateRun(): UseCreateRunReturn
 />
 
 ```tsx
-// Keys come from the person's My vault
+// A follow-up: keys come from the vaults the conversation uses
 const { create } = useCreateRun();
 await create({ org: "acme", sessionId: "ses_abc", message: "Review the PR" });
 ```
 
 ```tsx
-// A new conversation with its own secret
+// A new conversation on the person's own keys and a team vault
 const { create } = useCreateRun();
 await create({
   org: "acme",
   message: "Deploy to production",
   sessionSpec: {
     agentRef: { org: "acme", slug: "deployer" },
-    secrets: { CUSTOMER_API_KEY: "cust_xyz..." },
+    includeMyVault: true,
+    vaults: [{ org: "acme", slug: "deploy-keys" }],
   },
 });
 ```
@@ -847,68 +845,6 @@ function LiveExecution({ id }: { id: string }) {
       ))}
       {isStreaming && <span>Streaming…</span>}
     </div>
-  );
-}
-```
-
-
-### useSessionVariables
-
-Behavior hook that manages an array of session variable entries: a
-conversation's own secrets, typed in the composer.
-
-Session variables become the conversation's own secrets (sealed for its
-life, never shown again). Users can also save individual entries in
-their My vault via the `saveForFuture` flag.
-
-Follows the same controlled-state pattern as [`useWorkspaceEntries`](/docs/sdk/react/workspace#useworkspaceentries):
-the consumer owns the hook instance, passes it to UI components, reads
-the output during submission, and calls `UseSessionVariablesReturn.clear`
-after sending to prevent stale values on the next follow-up.
-
-**Signature**
-
-```tsx
-function useSessionVariables(): UseSessionVariablesReturn
-```
-
-**Returns** — `UseSessionVariablesReturn`
-
-<TypeTable
-  type={{
-    addEntry: { type: "() => void", description: "Append a blank entry. Defaults to `isSecret: true` (safer default)." },
-    clear: { type: "() => void", description: "Remove all entries. Call after submission to prevent stale values." },
-    entries: { type: "readonly SessionVariableEntry[]", description: "Current entries in the editor." },
-    hasSaveForFutureEntries: { type: "boolean", description: "True when at least one valid entry has `saveForFuture === true`." },
-    hasValidEntries: { type: "boolean", description: "True when at least one entry has a non-empty key AND non-empty value. Use this to decide whether the conversation gains secrets on this turn." },
-    isEmpty: { type: "boolean", description: "True when there are no entries at all." },
-    removeEntry: { type: "(id: string) => void", description: "Remove an entry by its unique ID." },
-    toSaveForFutureEnv: { type: "() => Record<string, EnvVarInput>", description: "The valid save-for-future entries (saveForFuture === true), to save in My vault.  Filters out entries with empty keys or values. When duplicate keys exist, the last entry wins." },
-    toSessionSecrets: { type: "() => Record<string, EnvVarInput>", description: "The valid entries as the conversation's own secrets.  Includes all entries with non-empty keys and values, regardless of `saveForFuture`. When duplicate keys exist, the last entry wins." },
-    updateEntry: { type: "(id: string, patch: { isSecret?: boolean; key?: string; saveForFuture?: boolean; value?: string }) => void", description: "Patch one or more fields on an existing entry." },
-  }}
-/>
-
-```tsx
-function Chat({ sessionId, org }: { sessionId: string; org: string }) {
-  const conv = useSessionConversation(sessionId, org);
-  const sessionVariables = useSessionVariables();
-
-  const handleSubmit = (message: string, model?: string) => {
-    const secrets = sessionVariables.isEmpty
-      ? undefined
-      : valuesOf(sessionVariables.toSessionSecrets());
-    conv.sendFollowUp(message, { modelName: model, secrets });
-    sessionVariables.clear();
-  };
-
-  return (
-    <SessionComposer
-      onSubmit={handleSubmit}
-      sessionVariables={sessionVariables}
-      disabled={!conv.canSendFollowUp}
-      isSubmitting={conv.isSending}
-    />
   );
 }
 ```
@@ -1866,40 +1802,6 @@ const stream = useRunStream(executionId);
 ```
 
 
-### SessionVariablesInput
-
-Compact key-value editor for session-scoped environment variables.
-
-Designed to render inside a popover within [`SessionComposer`](/docs/sdk/react/composer#sessioncomposer).
-Each entry collects a variable name, value, secret toggle, and an
-optional "save for future" toggle. By default values are ephemeral
-(single run); toggling "save for future" persists them to the
-user's My vault.
-
-This is a **pure presentational component** with no knowledge of
-sessions, runs, or orchestration. Platform builders can use
-it standalone with [`useSessionVariables`](#usesessionvariables) for custom UIs.
-
-All visual properties flow through `--stgm-*` design tokens.
-
-**Props** — `SessionVariablesInputProps`
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "Additional CSS class names for the root container." },
-    disabled: { type: "boolean", description: "Disable all inputs and buttons." },
-    requiredByMap: { type: "Readonly<Record<string, readonly string[]>>", description: "Map of env-var keys to the names of resources that require them.  When a session variable's key matches a required key, a subtle \"Used by: X\" indicator is shown, confirming the cross-link between the variable and the agent/MCP server that needs it.  Built by `SessionComposer` from the selected agent's and MCP servers' `env` declarations." },
-    sessionVariables: { type: "UseSessionVariablesReturn", description: "Hook instance returned by useSessionVariables.", required: true, typeDescriptionLink: "#usesessionvariablesreturn" },
-  }}
-/>
-
-```tsx
-const sessionVariables = useSessionVariables();
-
-<SessionVariablesInput sessionVariables={sessionVariables} />
-```
-
-
 ### TerminalSession
 
 Renders a shell tool call as a single, cohesive terminal session — the
@@ -2379,13 +2281,13 @@ Omit it for a conversation with the built-in assistant.
     agentRef: { type: "ResourceRef", description: "The agent the new conversation runs. Omit for the built-in assistant." },
     executionTarget: { type: "ExecutionTargetOption", description: "Where session activities execute. Immutable after the first run runs.", typeDescriptionLink: "/docs/sdk/react/session#executiontargetoption" },
     harness: { type: "HarnessOption", description: "Run harness. Immutable after the first run runs.", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
+    includeMyVault: { type: "boolean", description: "Whether each turn also uses its sender's own My vault, first, ahead of vaults. Off unless set: each person who sends a turn uses their own My vault, never another's." },
     mcpServerUsages: { type: "McpServerUsageInput[]", description: "MCP server configurations to include for tool access." },
     metadata: { type: "Record<string, string>", description: "Custom key-value pairs stored on the created session's `SessionSpec.metadata`.  A passthrough for embedder-owned keys (correlation IDs, tenant tags) and for platform-reserved `stigmer.ai/*` keys set explicitly. For the common case — standing user context injected into the agent's prompt — prefer the typed sessionContext field, which maps onto the reserved `stigmer.ai/session-context` key and wins over a raw entry under that key when both are provided." },
-    secrets: { type: "Record<string, string>", description: "The conversation's own secrets, by name, ahead of every vault: sealed for the conversation's life, replaceable by a session update, never returned by a read. This is how an integrator hands a run a key without saving it in a vault." },
-    sessionContext: { type: "string", description: "Standing, per-user context the agent receives on every turn but the conversation UI never renders — who the caller is, their experience level, their standing instructions (stigmer/stigmer#286).  Stored on the created session's `SessionSpec.metadata` under `stigmer.ai/session-context`; the agent runner injects it into the system prompt as already-known background, so agents can greet the user by name and calibrate depth/defaults from the first turn without a visible context preamble.  Personalization, not authorization: anyone who can create the session can set this (the same trust level as authoring the first message). Hidden from the conversation thread, not from the API — `session.get` returns it, so never put secrets here; secrets belong in the session's own `secrets` or in a vault. Large values bloat every prompt." },
+    sessionContext: { type: "string", description: "Standing, per-user context the agent receives on every turn but the conversation UI never renders — who the caller is, their experience level, their standing instructions (stigmer/stigmer#286).  Stored on the created session's `SessionSpec.metadata` under `stigmer.ai/session-context`; the agent runner injects it into the system prompt as already-known background, so agents can greet the user by name and calibrate depth/defaults from the first turn without a visible context preamble.  Personalization, not authorization: anyone who can create the session can set this (the same trust level as authoring the first message). Hidden from the conversation thread, not from the API — `session.get` returns it, so never put secrets here; secrets belong in a vault. Large values bloat every prompt." },
     skillRefs: { type: "ResourceRef[]", description: "Skill references to enable for runs in this session." },
     subject: { type: "string", description: "Initial conversation subject. Omit for an async LLM-generated title." },
-    vaults: { type: "ResourceRef[]", description: "The vaults the conversation's runs use, in order. A conversation that lists vaults uses exactly those; one that lists none uses the person's own My vault, then the agent's vaults they may use." },
+    vaults: { type: "ResourceRef[]", description: "The vaults the conversation's runs use, in order: the first holding a key or login wins. The conversation uses exactly these, after the sender's My vault when includeMyVault is set." },
     workspaceEntries: { type: "WorkspaceEntryInput[]", description: "Workspace source entries to attach to the session." },
   }}
 />
@@ -3716,26 +3618,6 @@ Props for [`RunPhaseBadge`](#runphasebadge).
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
     phase: { type: "RunPhase", description: "The run phase to display.", required: true },
-  }}
-/>
-
-
-### SessionVariableEntry
-
-A single entry in the session variables editor.
-
-Each entry maps to one environment variable. When `saveForFuture`
-is `false` (default), the value becomes one of the conversation's own
-secrets, kept sealed for its life. When `true`, the value is also saved
-in the user's My vault for reuse across conversations.
-
-<TypeTable
-  type={{
-    id: { type: "string", description: "Unique identifier for this entry (auto-generated).", required: true },
-    isSecret: { type: "boolean", description: "Whether the value should be masked in the UI.", required: true },
-    key: { type: "string", description: "Environment variable name.", required: true },
-    saveForFuture: { type: "boolean", description: "When `true`, saves the value in the user's My vault on submit.", required: true },
-    value: { type: "string", description: "Environment variable value.", required: true },
   }}
 />
 

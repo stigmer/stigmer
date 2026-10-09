@@ -39,7 +39,6 @@ export const AgentInputShape = {
   hooks: z.array(z.lazy(() => HookSourceInputSchema)).optional().describe("Hooks that run around this agent's tool calls, and its sub-agents' calls. Each entry is a plugin whose hooks apply, or a hooks block written in the agent itself. A hook can refuse a call, ask a person first, or let it run without the approval it would otherwise need. Both engines run hooks in Claude Code's format and in Cursor's. On the Cursor engine, web fetch and web search reach no hook, so an agent whose PreToolUse hooks would match them runs there without those tools; a PostToolUse hook on them does not run there."),
   run_config: z.lazy(() => RunConfigInputSchema).optional().describe("The author's run defaults: the model, speed tier, thinking and run bounds a turn on this agent uses unless the message or the surface it came through sets its own (RunConfig has the rule). Versioned with the agent, so a conversation pinned to a version keeps that version's defaults. A choice here (model_name, service_tier, thinking_mode) applies only on the engine named in harness; on a conversation running the other engine only the bounds apply. A bound here is a cap: a message or a surface can lower it, never raise it. A model must be named together with harness, and must be one that engine lists; service_tier FAST and thinking_mode ENABLED need a model that engine prices or marks capable. Checked when the agent is saved."),
   harness: z.string().optional().describe("The engine this agent's run defaults were chosen for, and the engine a new conversation on this agent starts on when the person or the surface starting it names neither an engine nor a model (a turn that names a model but no engine starts on native, the engine its name was checked against). Unspecified: the platform's default engine (native). Model names belong to an engine (each lists its own), so run_config's model, tier and thinking count only on this engine. A conversation keeps the engine it started on; a later version naming another engine changes only new conversations. Allowed values: HARNESS_NATIVE, HARNESS_CURSOR."),
-  vaults: z.array(z.lazy(() => VaultInputSchema)).optional().describe("Shared vaults this agent's conversations use after the person's own My vault, for people who may use them. At most 20. This is how a team key reaches every chat with an agent without a pick per conversation: an editor of the agent attaches a shared vault they may use, and each person's turns use it only when that person may use the vault too. A conversation that lists its own vaults uses those instead. Runs with no person (a schedule, a share link, a channel) never use an agent's vaults. A My vault cannot be attached."),
 } as const;
 
 export const AgentInputSchema = z.object(AgentInputShape);
@@ -127,12 +126,6 @@ const RunConfigInputSchema = z.object({
 });
 type RunConfigInput = z.infer<typeof RunConfigInputSchema>;
 
-const VaultInputSchema = z.object({
-  org: z.string().optional().describe("Organization that owns the referenced resource, by slug or id. When non-empty: an organization slug (lowercase alphanumeric with hyphens, starts with a letter, 2-63 characters; e.g. 'stigmer', 'acme-corp') or an organization id (org_<ulid>). The server stores the id, so a stored reference keeps pointing at its organization across a rename. When empty: the reference is relative — the server resolves it to the parent resource's organization at write time. All stored and returned references always have org populated (absolute form, the id). Use empty org for same-org references (the common case). An explicit other org is accepted only when that organization is your organization's parent and shares the resource with its children (visibility_child_orgs)."),
-  slug: z.string().describe("Resource slug (user-friendly identifier, unique within org). Format: lowercase alphanumeric with hyphens, must start with a letter and end with a letter or digit (e.g., 'web-search', 'code-reviewer'). Length: 2-63 characters."),
-});
-type VaultInput = z.infer<typeof VaultInputSchema>;
-
 
 /** Build the fully-formed Agent proto from the flat MCP apply input. */
 export function agentInputToProto(input: AgentInput): Agent {
@@ -152,7 +145,6 @@ export function agentInputToProto(input: AgentInput): Agent {
   if (input.hooks !== undefined) spec.hooks = input.hooks.map(hookSourceInputToProto);
   if (input.run_config !== undefined) spec.runConfig = runConfigInputToProto(input.run_config);
   spec.harness = enumFromString(Harness, input.harness) as Harness;
-  if (input.vaults !== undefined) spec.vaults = input.vaults.map(vaultInputToProto);
   return Object.assign(create(AgentSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Agent",
@@ -262,13 +254,5 @@ function runConfigInputToProto(input: RunConfigInput) {
   result.thinkingMode = enumFromString(ThinkingMode, input.thinking_mode) as ThinkingMode;
   if (input.max_tool_result_chars !== undefined) result.maxToolResultChars = input.max_tool_result_chars;
   return result;
-}
-
-function vaultInputToProto(input: VaultInput) {
-  return create(ApiResourceReferenceSchema, {
-    org: input.org,
-    slug: input.slug,
-    kind: ApiResourceKind.vault,
-  });
 }
 

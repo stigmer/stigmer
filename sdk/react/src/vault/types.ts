@@ -2,8 +2,8 @@
  * The value-entry shape the console's credential forms collect: one
  * variable's value, whether it is secret, and what it is for. Owned here
  * rather than borrowed from the client SDK because it is a form shape, not a
- * wire shape: whatever a form collects is saved as a vault secret or a
- * session's own secret, both of which carry the value alone.
+ * wire shape: whatever a form collects is saved as a vault secret, or used
+ * for one connection to a tool, both of which carry the value alone.
  */
 
 /** One value a credential form collected for a declared variable. */

@@ -7,13 +7,16 @@
  * sign-ins are done; a `ready` state reached reactively (a sign-in landing,
  * the pool covering the keys) reports the agent's ref to the parent as well
  * as its resolution, which the imperative handlers did alone before. A
- * sign-in owed in a conversation that lists vaults reaches its row with the
- * vault it must be saved into. The row itself is stubbed here; its own
- * rule is pinned in `agent/__tests__/useAgentSetup.vaultSignIn.test.tsx`.
+ * row's sign-in, saved in My vault, records the sign-in against the agent
+ * and, in a conversation that leaves My vault out, ticks My vault for its
+ * creator so the next turn reads the login. There, a note above the rows
+ * says that a row reading Signed in is signed in to My vault, and its
+ * Use My vault button includes My vault. The row itself is stubbed here;
+ * its own rule is pinned in `plugin/__tests__`.
  */
 
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
-import { render, cleanup, screen } from "@testing-library/react";
+import { render, cleanup, screen, fireEvent, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import type { Stigmer } from "@stigmer/sdk";
 import { OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
@@ -37,8 +40,10 @@ vi.mock("../../agent/useAgentSetup", () => ({
 }));
 
 vi.mock("../../plugin/McpServerReadiness.js", () => ({
-  McpServerReadiness: ({ signInVault }: { readonly signInVault?: { readonly name: string } }) => (
-    <span>Signs in to {signInVault?.name ?? "My vault"}</span>
+  McpServerReadiness: ({ onSignedIn }: { readonly onSignedIn?: (mcpServerId: string) => void }) => (
+    <button type="button" onClick={() => onSignedIn?.("mcp_linear")}>
+      Sign in row
+    </button>
   ),
 }));
 
@@ -134,17 +139,50 @@ describe("SessionComposer — the agent's sign-ins", () => {
     expect(onAgentResolutionChange).toHaveBeenCalledWith({ mode: "direct" });
   });
 
-  it("hands each row the vault its sign-in must be saved into", async () => {
+  it("explains a Signed in row in a conversation that leaves My vault out, and Use My vault includes it", async () => {
     mockAgentSetup.state = {
       status: "needsEnvVars",
       agentRef: AGENT_REF,
       agentId: "agt_1",
       agentName: "Reviewer",
       missingVariables: [],
-      pendingSignIns: [{ ...LINEAR, vault: { id: "vlt_team", org: "org_acme", name: "Team tools" } }],
+      pendingSignIns: [LINEAR],
       error: null,
     };
-    renderComposer({ initialAgentRef: AGENT_REF });
-    expect(await screen.findByText("Signs in to Team tools")).toBeTruthy();
+    const onSubmit = vi.fn();
+    renderComposer({ initialAgentRef: AGENT_REF, onSubmit, enableVaultPicker: true, initialIncludeMyVault: false });
+
+    expect(await screen.findByText(/a tool that reads Signed in is signed in there/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Use My vault" }));
+
+    const textarea = screen.getByRole("textbox");
+    fireEvent.change(textarea, { target: { value: "Go" } });
+    fireEvent.keyDown(textarea, { key: "Enter", shiftKey: false });
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
+    expect(onSubmit.mock.calls[0][2]).toMatchObject({ includeMyVault: true, vaults: [] });
+  });
+
+  it("records a row's sign-in and ticks My vault in a conversation that left it out", async () => {
+    mockAgentSetup.state = {
+      status: "needsEnvVars",
+      agentRef: AGENT_REF,
+      agentId: "agt_1",
+      agentName: "Reviewer",
+      missingVariables: [],
+      pendingSignIns: [LINEAR],
+      error: null,
+    };
+    const onSubmit = vi.fn();
+    renderComposer({ initialAgentRef: AGENT_REF, onSubmit, enableVaultPicker: true, initialIncludeMyVault: false });
+
+    expect(await screen.findByText(/which this conversation does not use yet/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Sign in row" }));
+    expect(mockAgentSetup.signInCompleted).toHaveBeenCalledWith("mcp_linear");
+
+    const textarea = screen.getByRole("textbox");
+    fireEvent.change(textarea, { target: { value: "Go" } });
+    fireEvent.keyDown(textarea, { key: "Enter", shiftKey: false });
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
+    expect(onSubmit.mock.calls[0][2]).toMatchObject({ includeMyVault: true, vaults: [] });
   });
 });

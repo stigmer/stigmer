@@ -18,7 +18,6 @@ import { cn } from "@stigmer/theme";
 import { Button } from "../button/Button.js";
 import { inlineHealthProps } from "../mcp-server/McpServerConfigPanel.js";
 import { oauthPhaseLabel } from "../mcp-server/McpServerDetailView.js";
-import type { SignInVault } from "../mcp-server/useMcpServerOAuthConnect.js";
 import { type UseMcpServerReadinessReturn, useMcpServerReadiness } from "./useMcpServerReadiness.js";
 
 /** Props for {@link McpServerReadiness}. */
@@ -36,12 +35,6 @@ export interface McpServerReadinessProps {
   readonly keysAskedAt: "agent" | "connect";
   /** Called with the server's id when a sign-in started from this cell lands; the composer records it against the agent. */
   readonly onSignedIn?: (mcpServerId: string) => void;
-  /**
-   * The shared vault a sign-in from this cell is saved into: in a
-   * conversation that lists vaults, the first of them, the only place its
-   * runs read a login from. Omitted, the sign-in is saved in My vault.
-   */
-  readonly signInVault?: SignInVault;
   readonly className?: string;
 }
 
@@ -53,8 +46,8 @@ export interface McpServerReadinessProps {
  * <McpServerReadiness org="acme" slug="linear" keysAskedAt="connect" />
  * ```
  */
-export function McpServerReadiness({ org, slug, keysAskedAt, onSignedIn, signInVault, className }: McpServerReadinessProps) {
-  const readiness = useMcpServerReadiness(org, slug, onSignedIn, signInVault);
+export function McpServerReadiness({ org, slug, keysAskedAt, onSignedIn, className }: McpServerReadinessProps) {
+  const readiness = useMcpServerReadiness(org, slug, onSignedIn);
   return <McpServerReadinessView readiness={readiness} keysAskedAt={keysAskedAt} className={className} />;
 }
 

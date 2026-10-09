@@ -50,7 +50,8 @@ function makePrepared(overrides: Partial<PreparedRun> = {}): PreparedRun {
   return {
     defaultAction: ApprovalAction.UNSPECIFIED,
     workspaceEntries: [],
-    sessionSecrets: {},
+    vaults: [],
+    includeMyVault: true,
     attachments: [],
     workspaceFileRefs: [],
     message: "hi",
@@ -156,7 +157,7 @@ describe("executeResolvedAgent", () => {
     expect(sessionSpec?.workspaceEntries).toEqual([]);
   });
 
-  it("runs the built-in assistant with no agent: an all-empty target and the assistant's name in the header", async () => {
+  it("runs the built-in assistant with no agent: a session_spec naming no agent and the assistant's name in the header", async () => {
     const { client, creates } = fakeBackend();
 
     await executeResolvedAgent({
@@ -170,9 +171,13 @@ describe("executeResolvedAgent", () => {
 
     const sent = creates();
     expect(sent).toHaveLength(1);
-    // An unset target: the backend creates a session that names no agent
-    // and the runner answers as the assistant.
-    expect(sent[0]?.spec?.target?.case).toBeUndefined();
+    // A spec naming no agent: the backend creates a session that names none
+    // and the runner answers as the assistant. The spec still carries the
+    // vault choice, which a conversation created from no spec would lose.
+    const target = sent[0]?.spec?.target;
+    expect(target?.case).toBe("sessionSpec");
+    expect(target?.case === "sessionSpec" ? target.value.agentRef : "unexpected").toBeUndefined();
+    expect(target?.case === "sessionSpec" ? target.value.includeMyVault : undefined).toBe(true);
     expect(stderrLines.join("")).toContain("Assistant");
     expect(stderrLines.join("")).toContain("stigmer resume ses_srv");
   });

@@ -4,12 +4,15 @@
  * The ordered vault picker every surface that names vaults uses: a share, a
  * channel, a schedule, a platform client, an agent and a conversation.
  *
- * Order matters: the first vault holding a match wins. My vault is offered
- * only where the surface may name it (a schedule its owner sets up, through
- * `allowMyVault`): a conversation, an agent, a share, a channel and a
- * platform client refuse it on the server, and the picker never offers what
- * the server refuses. The vaults offered are those the caller can see; the
- * server asks again, at save and at every run, whether they may be used.
+ * Order matters: the first vault holding a match wins. My vault is named
+ * two ways, as the server takes it: a schedule its owner sets up lists it
+ * by reference (`allowMyVault`), and a conversation includes it with a flag
+ * (`myVault`), shown as a fixed first row that is never reordered, because
+ * each person who sends a turn uses their own and it is always read first.
+ * A share, a channel and a platform client refuse it on the server, and the
+ * picker never offers what the server refuses. The vaults offered are those
+ * the caller can see; the server asks again, at save and at every run,
+ * whether they may be used.
  */
 import { useCallback, useId, useMemo } from "react";
 import { cn } from "@stigmer/theme";
@@ -20,6 +23,14 @@ import { isMyVault, useVaultList } from "./useVaultList.js";
 
 /** The name My vault is shown with. */
 export const MY_VAULT_LABEL = "My vault";
+
+/** My vault as a conversation includes it: a tick, not a listed reference. */
+export interface VaultPickerMyVault {
+  /** Whether the conversation includes the sender's My vault. */
+  readonly checked: boolean;
+  /** Called when the person ticks or unticks My vault. */
+  readonly onChange: (checked: boolean) => void;
+}
 
 /** Props for {@link VaultPicker}. */
 export interface VaultPickerProps {
@@ -36,6 +47,13 @@ export interface VaultPickerProps {
    * name it; every other surface leaves this off.
    */
   readonly allowMyVault?: boolean;
+  /**
+   * Offer My vault as a fixed first row with a tick, above the ordered
+   * shared vaults: a conversation includes the sender's own My vault
+   * (`include_my_vault`) instead of listing it. Shown even before My vault
+   * exists, since the server creates it on the first save.
+   */
+  readonly myVault?: VaultPickerMyVault;
   /**
    * Restrict which shared vaults are offered. Already selected references
    * stay listed (and removable) even when they no longer pass the filter.
@@ -66,6 +84,7 @@ export function VaultPicker({
   onChange,
   disabled = false,
   allowMyVault = false,
+  myVault,
   filterVault,
   selectionNote,
   className,
@@ -146,6 +165,8 @@ export function VaultPicker({
 
   return (
     <div className={cn("stg:space-y-3", className)} role="group" aria-label="Vaults">
+      {myVault && <MyVaultRow myVault={myVault} disabled={disabled} />}
+
       {value.length > 0 && (
         <SelectedList
           value={value}
@@ -159,7 +180,7 @@ export function VaultPicker({
         />
       )}
 
-      {value.length > 1 && (
+      {value.length + (myVault?.checked ? 1 : 0) > 1 && (
         <p className="stg:text-[0.65rem] stg:text-muted-foreground">
           Vaults are read in order: the first one holding a key or a login wins.
         </p>
@@ -203,6 +224,39 @@ export function VaultPicker({
           ))}
         </select>
       </div>
+    </div>
+  );
+}
+
+function MyVaultRow({
+  myVault,
+  disabled,
+}: {
+  readonly myVault: VaultPickerMyVault;
+  readonly disabled: boolean;
+}) {
+  const inputId = useId();
+  return (
+    <div
+      className={cn(
+        "stg:flex stg:items-start stg:gap-2 stg:rounded-md stg:border stg:border-border stg:px-3 stg:py-2",
+        "stg:bg-muted",
+      )}
+    >
+      <input
+        id={inputId}
+        type="checkbox"
+        checked={myVault.checked}
+        disabled={disabled}
+        onChange={(e) => myVault.onChange(e.target.checked)}
+        className="stg:mt-0.5 stg:shrink-0 stg:disabled:cursor-not-allowed"
+      />
+      <label htmlFor={inputId} className="stg:flex-1 stg:min-w-0 stg:cursor-pointer stg:select-none">
+        <span className="stg:block stg:text-sm stg:font-medium stg:text-foreground">{MY_VAULT_LABEL}</span>
+        <span className="stg:block stg:text-[0.65rem] stg:text-muted-foreground">
+          Read first. Each person who sends a message uses their own.
+        </span>
+      </label>
     </div>
   );
 }

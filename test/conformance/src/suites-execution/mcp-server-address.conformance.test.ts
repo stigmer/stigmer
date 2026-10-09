@@ -4,7 +4,7 @@
 //
 // The contract under test (stigmer/stigmer#1446, #1451, #1458): a value the
 // user SAVED for STIGMER_SERVER_ADDRESS (in their My vault, which fills every
-// key the run declares when the conversation lists no vaults) is the value their
+// key the run declares when the conversation includes it) is the value their
 // MCP server receives, and when nothing is saved the runner fills the key from the public
 // endpoint its launcher gave it, so the server still receives an address. The
 // platform fills the key only when it is missing (the runner's
@@ -115,7 +115,7 @@ describe("platform STIGMER_SERVER_ADDRESS (My vault → execution → headers)",
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
 
     const session = await clients.sessionCommand.create(
-      makeSession({ org, name: uniqueName("session-address"), agentRef: agentRefOf(agent) }),
+      makeSession({ org, name: uniqueName("session-address"), agentRef: agentRefOf(agent), includeMyVault: true }),
     );
     fixtures.defer(() => clients.sessionCommand.delete({ value: session.metadata!.id }));
 

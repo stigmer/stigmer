@@ -104,9 +104,8 @@ themselves.
 
 ### Where a run's values come from
 
-When an Agent runs, each key is looked for in the conversation's own values,
-then the vaults the conversation lists, then (for a person's chat that lists
-none) that person's own vault and the shared vaults attached to the Agent. A
+When an Agent runs, each key is looked for in the sending person's own vault,
+when the conversation includes it, then in the vaults the conversation lists. A
 server's login variable is filled by a connection made for that server first
 (its own sign-in, or for an HTTP server a login pasted at its URL), then by a
 secret with the same name, so if you sign in to a server and also save an API

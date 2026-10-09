@@ -1,12 +1,11 @@
 /**
  * Attachments: what the reference rule cannot say about a vault a surface
  * names, said once for every surface that names vaults (a session, a
- * schedule, a share, a channel, a platform client, an agent).
+ * schedule, a share, a channel, a platform client).
  *
  *   - A My vault serves only its own person's runs. A surface that runs
  *     for someone else (a conversation several people may send turns to, a
- *     share link, a channel, a platform client's users, an agent) refuses
- *     one. A schedule may carry its owner's own My vault: the owner
+ *     share link, a channel, a platform client's users) refuses one. A schedule may carry its owner's own My vault: the owner
  *     attaches it, and its runs use it as theirs.
  *   - Who attached each vault is recorded, as a server-observed fact in the
  *     surface's status (`vault_attachers`, vault id to account): the
@@ -64,8 +63,8 @@ export interface AttachersSlot<Desc extends DescMessage> {
 export interface VaultAttachmentOptions<Desc extends DescMessage> {
   /** The surface, for the refusals ("a conversation", "a share"). */
   readonly surface: string;
-  /** Where the kind records attachers; absent for a kind whose vaults are checked against each run's person (an agent). */
-  readonly attachers?: AttachersSlot<Desc>;
+  /** Where the kind records attachers. */
+  readonly attachers: AttachersSlot<Desc>;
   /** Whether the kind may carry its owner's own My vault (a schedule). */
   readonly allowsOwnersMyVault?: boolean;
   /** When true, every vault the write keeps counts as introduced (a schedule whose agent changes). */
@@ -168,7 +167,7 @@ export function newVaultAttachmentsStep<Desc extends DescMessage>(
 
       const attachers: { [vaultId: string]: string } = {};
       const storedAttachers =
-        existing === undefined ? undefined : options.attachers?.get(existing);
+        existing === undefined ? undefined : options.attachers.get(existing);
       for (const { ref, vault, kept } of named) {
         if (vault === undefined) {
           // A kept reference to a vault deleted since: the run refuses it,
@@ -210,7 +209,7 @@ export function newVaultAttachmentsStep<Desc extends DescMessage>(
           attachers[vaultId] = keptBy;
         }
       }
-      options.attachers?.set(next, attachers);
+      options.attachers.set(next, attachers);
     },
   };
 }

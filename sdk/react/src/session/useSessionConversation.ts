@@ -40,11 +40,9 @@ const REDISCOVERY_POLL_INTERVAL_MS = 5_000;
  * Options for {@link UseSessionConversationReturn.sendFollowUp}.
  *
  * Session-level fields (`workspaceEntries`, `mcpServerUsages`,
- * `skillRefs`, `vaults`, `secrets`) trigger a `session.update()` before
- * the run is created. Only provided fields are overwritten; omitted fields
- * preserve the session's existing values. `secrets` are merged into the
- * conversation's own secrets: a name sent replaces its value, every other
- * saved secret is kept.
+ * `skillRefs`, `vaults`, `includeMyVault`) trigger a `session.update()`
+ * before the run is created. Only provided fields are overwritten; omitted
+ * fields preserve the session's existing values.
  */
 export interface SendFollowUpOptions {
   /**
@@ -75,16 +73,17 @@ export interface SendFollowUpOptions {
   /** Skill references to enable for this run. */
   readonly skillRefs?: ResourceRef[];
   /**
-   * Secrets to add to the conversation's own secrets, by name, before the
-   * run is created. Kept sealed for the conversation's life and used ahead
-   * of every vault; never returned by a read.
-   */
-  readonly secrets?: Record<string, string>;
-  /**
-   * Replace the vaults the conversation lists. An empty list returns the
-   * conversation to the person's own My vault.
+   * Replace the vaults the conversation lists, in order. An empty list
+   * leaves it listing none: it then uses only the sender's My vault, when
+   * it includes that.
    */
   readonly vaults?: ResourceRef[];
+  /**
+   * Whether the conversation includes the sender's own My vault, read
+   * ahead of the listed vaults. Only the conversation's creator may change
+   * it (or its vaults): the server refuses anyone else's session update.
+   */
+  readonly includeMyVault?: boolean;
   /**
    * Pre-uploaded file attachments for this run.
    *
@@ -670,7 +669,7 @@ export function useSessionConversation(
           options?.mcpServerUsages !== undefined ||
           options?.skillRefs !== undefined ||
           options?.vaults !== undefined ||
-          (options?.secrets !== undefined && Object.keys(options.secrets).length > 0);
+          options?.includeMyVault !== undefined;
 
         if (needsSessionUpdate) {
           // Fetch the latest session to avoid overwriting fields that were
@@ -684,7 +683,7 @@ export function useSessionConversation(
               mcpServerUsages: options?.mcpServerUsages,
               skillRefs: options?.skillRefs,
               vaults: options?.vaults,
-              secrets: options?.secrets,
+              includeMyVault: options?.includeMyVault,
             }),
           );
           refetchSession();
@@ -896,16 +895,12 @@ function buildUpdateInput(
     mcpServerUsages?: McpServerUsageInput[];
     skillRefs?: ResourceRef[];
     vaults?: ResourceRef[];
-    secrets?: Record<string, string>;
+    includeMyVault?: boolean;
   },
 ) {
   const mapped = toSessionUpdateInput(session);
   const vaults = overrides.vaults ?? mapped.vaults;
-  // The stored secrets read back as the redaction marker; echoing the
-  // marker keeps each stored value, so only the names sent here change.
-  const secrets = overrides.secrets
-    ? { ...mapped.secrets, ...overrides.secrets }
-    : mapped.secrets;
+  const includeMyVault = overrides.includeMyVault ?? mapped.includeMyVault;
   const workspaceEntries = overrides.workspaceEntries
     ? keepStoredRepositoryTokens(overrides.workspaceEntries, mapped.workspaceEntries)
     : mapped.workspaceEntries;
@@ -922,7 +917,7 @@ function buildUpdateInput(
     mcpServerUsages: mcpServerUsages?.length ? mcpServerUsages : undefined,
     skillRefs: skillRefs?.length ? skillRefs : undefined,
     vaults: vaults?.length ? vaults : undefined,
-    secrets: secrets && Object.keys(secrets).length > 0 ? secrets : undefined,
+    includeMyVault: includeMyVault || undefined,
   };
 }
 

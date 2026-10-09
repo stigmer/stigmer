@@ -431,7 +431,7 @@ pages:
     teaches:
       What a vault holds (secrets by name, logins by address), My vault and
       shared vaults with Can use, which vaults a run uses and in what order, how
-      a key is matched, the refusal at create, and a conversation's own values.
+      a key is matched, the refusal at create, and a repository's own token.
     medium: none
 
   concepts/runners:

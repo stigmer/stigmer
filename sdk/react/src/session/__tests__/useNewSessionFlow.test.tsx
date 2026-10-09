@@ -5,8 +5,11 @@
  * pick wins over the agent's engine; a model pick is forgotten when the
  * agent changes, when the person chooses the agent's default back, and
  * when the engine changes under it to one that does not list it, so a
- * model is never sent with an engine that does not run it. A guest's new
- * conversation carries no values of its own, the host's included.
+ * model is never sent with an engine that does not run it. The new
+ * conversation uses the vaults chosen for it: the person's pick in the
+ * composer when they made one, else the host's, else My vault for a
+ * signed-in person (the Console and an embedded chat) and nothing for a
+ * share-link guest, who carries no vault pick of the composer either.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
@@ -50,18 +53,6 @@ const mockWorkspace = {
 };
 vi.mock("../../workspace", () => ({
   useWorkspaceEntries: () => mockWorkspace,
-}));
-
-const mockSessionVariables = {
-  variables: [],
-  hasVariables: false,
-  setVariable: vi.fn(),
-  removeVariable: vi.fn(),
-  clear: vi.fn(),
-  toMap: vi.fn().mockReturnValue(new Map()),
-};
-vi.mock("../../run/useSessionVariables", () => ({
-  useSessionVariables: () => mockSessionVariables,
 }));
 
 import { useNewSessionFlow } from "../useNewSessionFlow";
@@ -913,76 +904,48 @@ describe("useNewSessionFlow", () => {
     });
   });
 
-  describe("the conversation's own secrets (getSessionSecrets)", () => {
-    it("writes host secrets onto the new session's spec, host wins on collisions", async () => {
-      const getSessionSecrets = vi.fn().mockResolvedValue({ PLATFORM_TOKEN: "fresh-token" });
-      const opts = { ...defaultOptions(), getSessionSecrets };
-      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
-
-      await act(async () => {
-        await result.current.submit("Hello", undefined, {
-          secrets: { PLATFORM_TOKEN: "stale-token", USER_VAR: "kept" },
-        });
-      });
-
-      expect(getSessionSecrets).toHaveBeenCalledTimes(1);
-      const execInput = mockCreateExecution.mock.calls[0][0];
-      expect(execInput.sessionSpec.secrets).toEqual({
-        PLATFORM_TOKEN: "fresh-token",
-        USER_VAR: "kept",
-      });
-      expect(execInput).not.toHaveProperty("runtimeEnv");
-    });
-
-    it("evaluates the provider fresh on every submission", async () => {
-      let mint = 0;
-      const getSessionSecrets = vi.fn(() => ({ TOKEN: `token-${++mint}` }));
-      const opts = { ...defaultOptions(), getSessionSecrets };
-      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
-
-      await act(async () => {
-        await result.current.submit("First");
-      });
-      await act(async () => {
-        await result.current.submit("Second");
-      });
-
-      expect(getSessionSecrets).toHaveBeenCalledTimes(2);
-      expect(mockCreateExecution.mock.calls[0][0].sessionSpec.secrets).toEqual({ TOKEN: "token-1" });
-      expect(mockCreateExecution.mock.calls[1][0].sessionSpec.secrets).toEqual({ TOKEN: "token-2" });
-    });
-
-    it("aborts before session creation when the provider throws", async () => {
-      const getSessionSecrets = vi.fn().mockRejectedValue(new Error("token mint failed"));
-      const opts = { ...defaultOptions(), getSessionSecrets };
+  describe("the vaults the new conversation uses", () => {
+    it.each(["integrator", "endUser"] as const)("includes the sender's My vault for the %s audience by default", async (audience) => {
+      const opts = { ...defaultOptions(), audience };
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
 
       await act(async () => {
         await result.current.submit("Hello");
       });
 
-      // No orphan session, no run — the failure is fully pre-flight.
-      expect(mockCreateExecution).not.toHaveBeenCalled();
-      expect(result.current.submitError).toContain("token mint failed");
-      expect(opts.onError).toHaveBeenCalled();
-      expect(result.current.isSubmitting).toBe(false);
+      const execInput = mockCreateExecution.mock.calls[0][0];
+      expect(execInput.sessionSpec.includeMyVault).toBe(true);
+      expect(execInput.sessionSpec.vaults).toBeUndefined();
+      expect(execInput.sessionSpec).not.toHaveProperty("secrets");
+      expect(execInput).not.toHaveProperty("runtimeEnv");
     });
 
-    it("passes composer secrets and picked vaults through untouched when no provider is configured", async () => {
-      const opts = defaultOptions();
-      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+    it("uses the host's vault choice when the person picked nothing", async () => {
       const vaults = [{ org: "acme", slug: "support-tools" }];
+      const opts = { ...defaultOptions(), includeMyVault: false, vaults };
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
 
       await act(async () => {
-        await result.current.submit("Hello", undefined, {
-          secrets: { USER_VAR: "composer-only" },
-          vaults,
-        });
+        await result.current.submit("Hello");
       });
 
       const spec = mockCreateExecution.mock.calls[0][0].sessionSpec;
-      expect(spec.secrets).toEqual({ USER_VAR: "composer-only" });
+      expect(spec.includeMyVault).toBeUndefined();
       expect(spec.vaults).toEqual(vaults);
+    });
+
+    it("lets the person's pick in the composer win over the host's, both halves together", async () => {
+      const opts = { ...defaultOptions(), includeMyVault: true, vaults: [{ org: "acme", slug: "host-vault" }] };
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+      const picked = [{ org: "acme", slug: "support-tools" }];
+
+      await act(async () => {
+        await result.current.submit("Hello", undefined, { includeMyVault: false, vaults: picked });
+      });
+
+      const spec = mockCreateExecution.mock.calls[0][0].sessionSpec;
+      expect(spec.includeMyVault).toBeUndefined();
+      expect(spec.vaults).toEqual(picked);
     });
   });
 
@@ -1200,11 +1163,30 @@ describe("useNewSessionFlow", () => {
       expect(opts.onSessionCreated).toHaveBeenCalledWith("sess-new");
     });
 
-    it("carries no values on a guest's new conversation and never asks the host for them", async () => {
-      // The values would be sealed on the conversation for its life; a
-      // guest brings none, and the share's vaults are what its runs use.
-      const getSessionSecrets = vi.fn().mockResolvedValue({ PLATFORM_TOKEN: "host-token" });
-      const opts = { ...defaultOptions(), audience: "guest" as const, getSessionSecrets };
+    it("leaves My vault out of a guest's new conversation unless the host includes it", async () => {
+      // A public visitor brings no keys: the share's vaults are what its
+      // runs use. A member chatting through an organization-audience link
+      // is a person on their own token, and the host includes My vault.
+      for (const includeMyVault of [undefined, true] as const) {
+        mockCreateExecution.mockClear();
+        const opts = { ...defaultOptions(), audience: "guest" as const, includeMyVault };
+        const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+        act(() => {
+          result.current.setAgentRef({ org: "acme", slug: "support-bot" });
+          result.current.setResolution({ mode: "direct" });
+        });
+        await act(async () => {
+          await result.current.submit("Hello");
+        });
+
+        expect(mockCreateExecution).toHaveBeenCalledOnce();
+        expect(mockCreateExecution.mock.calls[0][0].sessionSpec.includeMyVault).toBe(includeMyVault);
+      }
+    });
+
+    it("never takes a guest's vault pick, only the host's", async () => {
+      const opts = { ...defaultOptions(), audience: "guest" as const, includeMyVault: true };
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
 
       act(() => {
@@ -1212,12 +1194,15 @@ describe("useNewSessionFlow", () => {
         result.current.setResolution({ mode: "direct" });
       });
       await act(async () => {
-        await result.current.submit("Hello", undefined, { secrets: { USER_VAR: "typed" } });
+        await result.current.submit("Hello", undefined, {
+          includeMyVault: false,
+          vaults: [{ org: "acme", slug: "support-tools" }],
+        });
       });
 
-      expect(getSessionSecrets).not.toHaveBeenCalled();
-      expect(mockCreateExecution).toHaveBeenCalledOnce();
-      expect(mockCreateExecution.mock.calls[0][0].sessionSpec.secrets).toBeUndefined();
+      const spec = mockCreateExecution.mock.calls[0][0].sessionSpec;
+      expect(spec.includeMyVault).toBe(true);
+      expect(spec.vaults).toBeUndefined();
     });
 
     it("fails closed on submit without a resolution — never the built-in assistant", async () => {

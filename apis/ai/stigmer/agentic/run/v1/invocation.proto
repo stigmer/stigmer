@@ -26,8 +26,8 @@ import "buf/validate/validate.proto";
 // appear here, so embedding surfaces never need a blocklist validator
 // — the rejected alternative was embedding RunSpec /
 // SessionSpec and validating the illegal fields away. Exclusions,
-// each with its reason: a session's own secrets and connections
-// (plaintext secrets in manifests leak; vaults are the vehicle), attachments
+// each with its reason: a repository's token (plaintext secrets in
+// manifests leak; vaults are the vehicle), attachments
 // (one-shot uploads don't recur), mcp_server_usages/skill_refs (the
 // agent blueprint owns its tool set), interaction_mode (Plan mode's
 // deliverable is a plan for a human who isn't there), cursor_mode
@@ -94,8 +94,8 @@ message AgentInvocation {
   // schedules accept git_repo only (no client is connected at fire
   // time to serve a local_path). Credentials: a private
   // repository's clone uses a connection for its host (github.com) in
-  // one of the invocation's vaults. A repository token on an entry is a
-  // session's own value and is refused here, because nothing in a
+  // one of the invocation's vaults. A repository token on an entry is
+  // sealed only on a session and is refused here, because nothing in a
   // schedule's row is sealed. Public repos need no token.
   repeated ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [(buf.validate.field).repeated.items.cel = {
     id: "workspace_entries.no_token"

@@ -23,5 +23,6 @@ describe("mcpServerSetupReducer", () => {
 
   it("returns the same state for a transition from the wrong phase", () => {
     expect(mcpServerSetupReducer(LOADING, { type: "SUBMIT_DONE", key: "acme/zendesk" })).toBe(LOADING);
+    expect(mcpServerSetupReducer(LOADING, { type: "SUBMIT_UNREAD", key: "acme/zendesk" })).toBe(LOADING);
   });
 });

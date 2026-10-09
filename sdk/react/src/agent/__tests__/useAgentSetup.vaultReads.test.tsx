@@ -4,13 +4,11 @@
  * login that serves the tool under the run's rule (a pasted login at an
  * HTTP tool's own URL), in My vault or in a listed vault alike, so the
  * composer never asks again for a key saved as a login; a login at another
- * address fills nothing. When the conversation's vault pick changes after
- * the agent resolved, the agent is resolved again over the new vaults (and
- * nothing is resolved before an agent is picked), and
- * the values the conversation already holds as its own (a `oneTime`
- * resolution's) still count and still ride the resolution, beside any
- * the person gives afterwards. An answer for a pick the person has
- * already changed again never lands over the newer pick's.
+ * address fills nothing. When the conversation's vault choice changes
+ * after the agent resolved (My vault ticked or unticked, a vault listed),
+ * the agent is resolved again over the new choice (and nothing is resolved
+ * before an agent is picked). An answer for a choice the person has
+ * already changed again never lands over the newer choice's.
  */
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -19,7 +17,7 @@ import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError, createRouterTransport } from "@connectrpc/connect";
 import { Stigmer } from "@stigmer/sdk";
-import type { ResourceRef } from "@stigmer/sdk";
+
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { McpServerUsageSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
@@ -33,12 +31,14 @@ import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/vaul
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { useAgentSetup } from "../useAgentSetup";
+import { MY_VAULT_ONLY, type ConversationVaults } from "../../vault/conversationVaults";
 
 afterEach(cleanup);
 
 const ORG = "org_acme";
 const REF = { org: ORG, slug: "reviewer" };
-const LISTED: readonly ResourceRef[] = [{ org: ORG, slug: "team" }];
+/** A conversation that leaves My vault out and lists the team vault. */
+const LISTED: ConversationVaults = { includeMyVault: false, vaults: [{ org: ORG, slug: "team" }] };
 const ZENDESK_URL = "https://zendesk.example/mcp";
 
 /** An API-key tool: its bearer header names the key a pasted login at its URL fills. */
@@ -171,12 +171,12 @@ describe("useAgentSetup counts a tool's login as its key", () => {
 describe("useAgentSetup and a change of the conversation's vaults", () => {
   it("resolves nothing when the vaults change before an agent is picked", async () => {
     const world: World = { mine: null, team: vaultHolding("team", []), declares: ["API_TOKEN"], usesTool: false };
-    const hook = renderHook(({ vaults }: { vaults: readonly ResourceRef[] }) => useAgentSetup(ORG, undefined, vaults), {
+    const hook = renderHook(({ choice }: { choice: ConversationVaults }) => useAgentSetup(ORG, undefined, choice), {
       wrapper: wrapper(client(world)),
-      initialProps: { vaults: [] as readonly ResourceRef[] },
+      initialProps: { choice: MY_VAULT_ONLY },
     });
     const readsBefore = agentReads;
-    hook.rerender({ vaults: LISTED });
+    hook.rerender({ choice: LISTED });
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
@@ -184,17 +184,17 @@ describe("useAgentSetup and a change of the conversation's vaults", () => {
     expect(hook.result.current.state.status).toBe("idle");
   });
 
-  it("resolves the agent again when the listed vaults change", async () => {
+  it("resolves the agent again when the conversation's vault choice changes", async () => {
     const world: World = { mine: vaultHolding("mine", ["API_TOKEN"]), team: vaultHolding("team", []), declares: ["API_TOKEN"], usesTool: false };
-    const hook = renderHook(({ vaults }: { vaults: readonly ResourceRef[] }) => useAgentSetup(ORG, undefined, vaults), {
+    const hook = renderHook(({ choice }: { choice: ConversationVaults }) => useAgentSetup(ORG, undefined, choice), {
       wrapper: wrapper(client(world)),
-      initialProps: { vaults: [] as readonly ResourceRef[] },
+      initialProps: { choice: MY_VAULT_ONLY },
     });
     await resolveSettled(hook.result, "ready");
     expect(hook.result.current.state).toMatchObject({ status: "ready", resolution: { mode: "saved" } });
 
-    // The conversation now lists a vault without the key: My vault no longer counts.
-    hook.rerender({ vaults: LISTED });
+    // The conversation now leaves My vault out and lists a vault without the key.
+    hook.rerender({ choice: LISTED });
     await waitFor(() =>
       expect(hook.result.current.state).toMatchObject({
         status: "needsEnvVars",
@@ -202,8 +202,8 @@ describe("useAgentSetup and a change of the conversation's vaults", () => {
       }),
     );
 
-    // Back to no vaults: My vault's key counts again.
-    hook.rerender({ vaults: [] });
+    // My vault included again: its key counts again.
+    hook.rerender({ choice: MY_VAULT_ONLY });
     await waitFor(() => expect(hook.result.current.state).toMatchObject({ status: "ready", resolution: { mode: "saved" } }));
   });
 
@@ -219,17 +219,17 @@ describe("useAgentSetup and a change of the conversation's vaults", () => {
       usesTool: false,
       teamRead,
     };
-    const hook = renderHook(({ vaults }: { vaults: readonly ResourceRef[] }) => useAgentSetup(ORG, undefined, vaults), {
+    const hook = renderHook(({ choice }: { choice: ConversationVaults }) => useAgentSetup(ORG, undefined, choice), {
       wrapper: wrapper(client(world)),
-      initialProps: { vaults: [] as readonly ResourceRef[] },
+      initialProps: { choice: MY_VAULT_ONLY },
     });
     await resolveSettled(hook.result, "ready");
 
-    // The team vault is picked and its read hangs; the pick goes back to none, which resolves at once.
+    // The team vault is picked and its read hangs; the pick goes back to My vault alone, which resolves at once.
     const readsBefore = agentReads;
-    hook.rerender({ vaults: LISTED });
+    hook.rerender({ choice: LISTED });
     await waitFor(() => expect(agentReads).toBe(readsBefore + 1));
-    hook.rerender({ vaults: [] });
+    hook.rerender({ choice: MY_VAULT_ONLY });
     await waitFor(() => expect(hook.result.current.state).toMatchObject({ status: "ready", resolution: { mode: "saved" } }));
 
     // The team vault's answer (the key missing there) arrives late and is dropped.
@@ -239,66 +239,5 @@ describe("useAgentSetup and a change of the conversation's vaults", () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
     expect(hook.result.current.state).toMatchObject({ status: "ready", resolution: { mode: "saved" } });
-  });
-
-  it("keeps the values the conversation holds as its own across a change of vaults", async () => {
-    const world: World = { mine: null, team: vaultHolding("team", []), declares: ["API_TOKEN"], usesTool: false };
-    const hook = renderHook(({ vaults }: { vaults: readonly ResourceRef[] }) => useAgentSetup(ORG, undefined, vaults), {
-      wrapper: wrapper(client(world)),
-      initialProps: { vaults: LISTED },
-    });
-    await act(async () => {
-      await hook.result.current.resolveAgent(REF);
-    });
-    expect(hook.result.current.state.status).toBe("needsEnvVars");
-    const values = { API_TOKEN: { value: "t", isSecret: true } };
-    await act(async () => {
-      await hook.result.current.submitEnvVars(values, { saveForFuture: false });
-    });
-    expect(hook.result.current.state).toMatchObject({ status: "ready", resolution: { mode: "oneTime", values } });
-
-    const readsBefore = agentReads;
-    hook.rerender({ vaults: [] });
-    await waitFor(() => expect(agentReads).toBe(readsBefore + 1));
-    await waitFor(() => expect(hook.result.current.state).toMatchObject({ status: "ready", resolution: { mode: "oneTime", values } }));
-
-    // A reset forgets them: the next resolution asks again.
-    act(() => hook.result.current.reset());
-    await act(async () => {
-      await hook.result.current.resolveAgent(REF);
-    });
-    expect(hook.result.current.state.status).toBe("needsEnvVars");
-  });
-
-  it("adds the values given after a change of vaults to those the conversation already holds", async () => {
-    const world: World = { mine: null, team: vaultHolding("team", ["OTHER_KEY"]), declares: ["API_TOKEN", "OTHER_KEY"], usesTool: false };
-    const hook = renderHook(({ vaults }: { vaults: readonly ResourceRef[] }) => useAgentSetup(ORG, undefined, vaults), {
-      wrapper: wrapper(client(world)),
-      initialProps: { vaults: LISTED },
-    });
-    await act(async () => {
-      await hook.result.current.resolveAgent(REF);
-    });
-    const first = { API_TOKEN: { value: "t", isSecret: true } };
-    await act(async () => {
-      await hook.result.current.submitEnvVars(first, { saveForFuture: false });
-    });
-
-    // Without the team vault, OTHER_KEY is owed; API_TOKEN is the conversation's own already.
-    hook.rerender({ vaults: [] });
-    await waitFor(() =>
-      expect(hook.result.current.state).toMatchObject({
-        status: "needsEnvVars",
-        missingVariables: [expect.objectContaining({ key: "OTHER_KEY" })],
-      }),
-    );
-    const second = { OTHER_KEY: { value: "o", isSecret: true } };
-    await act(async () => {
-      await hook.result.current.submitEnvVars(second);
-    });
-    expect(hook.result.current.state).toMatchObject({
-      status: "ready",
-      resolution: { mode: "oneTime", values: { ...first, ...second } },
-    });
   });
 });

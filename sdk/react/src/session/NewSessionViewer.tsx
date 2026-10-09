@@ -20,8 +20,7 @@ import { useSessionPanel } from "./useSessionPanel.js";
 import { useSessionRailViews } from "./useSessionRailViews.js";
 import { SessionPanelChip } from "./SessionPanelChip.js";
 import { AutoApproveIndicator } from "./AutoApproveIndicator.js";
-import type { SessionSecretsProvider } from "./session-secrets.js";
-import type { SessionAudience, SessionPanelMode } from "./audience.js";
+import { includesMyVaultByDefault, type SessionAudience, type SessionPanelMode } from "./audience.js";
 import type { SessionRunConfig } from "./run-config.js";
 
 /** Props for {@link NewSessionViewer}. */
@@ -71,23 +70,29 @@ export interface NewSessionViewerProps {
   readonly workspaceContentSearcher?: WorkspaceContentSearcher;
 
   /**
-   * Supplies host-app environment variables for the session's first
-   * run (e.g. a project-scoped API key for MCP tools). They become the
-   * conversation's, serving every turn whoever sends it, so never a
-   * person's own token where others can send turns. Evaluated at submit time, before the session
-   * is created; host values win over composer-collected env on key
-   * collisions. If the provider throws, the submission fails with an
-   * error surfaced via `onError` — see {@link SessionSecretsProvider}.
-   * The values are sealed on the conversation for its life; never
-   * evaluated for the `"guest"` audience, whose conversation carries no
-   * values of its own (the share's vaults are what its runs use).
+   * Whether the conversation includes its sender's own My vault, read
+   * first, ahead of `vaults`. Each person who sends a turn uses their own
+   * My vault, never another's. Defaults to on for the `"integrator"` and
+   * `"endUser"` audiences (a signed-in person brings their own keys) and
+   * off for `"guest"`. The person may untick it in the composer's vault
+   * picker where the audience offers one.
    */
-  readonly getSessionSecrets?: SessionSecretsProvider;
+  readonly includeMyVault?: boolean;
+
+  /**
+   * Shared vaults the conversation uses, in order (the first holding a
+   * key or login wins), after the sender's My vault when it is included.
+   * An app that embeds Stigmer names here the vaults its users' chats
+   * read, instead of handing keys to each conversation. The person may
+   * change them in the composer's vault picker where the audience offers
+   * one.
+   */
+  readonly vaults?: readonly ResourceRef[];
 
   /**
    * Presentation audience for the launcher. `"endUser"` locks the
    * pinned agent (when `initialAgentRef` is set) and hides the MCP
-   * server, skill, and session-variable pickers — for product-embedded
+   * server, skill, and vault pickers — for product-embedded
    * chat where the agent is configured upstream by the platform. The
    * model selector, interaction mode, harness selector, attachments,
    * and workspace picker remain.
@@ -254,7 +259,8 @@ export function NewSessionViewer({
   workspaceFileLister,
   workspaceFileReader,
   workspaceContentSearcher,
-  getSessionSecrets,
+  includeMyVault,
+  vaults,
   audience = "integrator",
   runConfig,
   showModelSelector = true,
@@ -273,11 +279,13 @@ export function NewSessionViewer({
   footerContent,
   className,
 }: NewSessionViewerProps) {
+  const includesMyVault = includeMyVault ?? includesMyVaultByDefault(audience);
   const flow = useNewSessionFlow({
     org,
     onSessionCreated,
     onError,
-    getSessionSecrets,
+    includeMyVault: includesMyVault,
+    vaults,
     defaultHarness,
     accountDefaults,
     audience,
@@ -375,7 +383,6 @@ export function NewSessionViewer({
       agentRef: flow.agentRef,
       mcpServerUsages: flow.mcpServerUsages,
       skillRefs: flow.skillRefs,
-      sessionVariables: flow.sessionVariables,
       harness: flow.harness,
       executionTarget: undefined,
       modelId: flow.modelId,
@@ -398,7 +405,7 @@ export function NewSessionViewer({
     }),
     [
       flow.agentRef, flow.mcpServerUsages, flow.skillRefs,
-      flow.sessionVariables, flow.harness, flow.modelId,
+      flow.harness, flow.modelId,
       flow.autoApproveAll, flow.setAutoApproveAll, isGuest,
       isCurated, handleRemoveAgent, handleRemoveMcp, handleRemoveSkill,
     ],
@@ -455,16 +462,14 @@ export function NewSessionViewer({
           // first. A guest has no vault, and brings none.
           disclosePersonalKeys={!isGuest}
           enableVaultPicker={!isGuest && !isCurated}
+          initialIncludeMyVault={includesMyVault}
+          initialVaultRefs={vaults}
           initialAttachments={isGuest ? undefined : initialAttachments}
           lockAgent={isCurated && initialAgentRef != null}
           mcpServerUsages={isCurated ? undefined : flow.mcpServerUsages}
           onMcpServerUsagesChange={isCurated ? undefined : flow.setMcpServerUsages}
           skillRefs={isCurated ? undefined : flow.skillRefs}
           onSkillRefsChange={isCurated ? undefined : flow.setSkillRefs}
-          sessionVariables={isCurated ? undefined : flow.sessionVariables}
-          // Submitting leaves this page, so a failed "Save in My vault"
-          // reaches the host's own error surface too.
-          onMyVaultSaveError={onError}
           showHarnessSelector={!isGuest}
           harness={flow.harness}
           onHarnessChange={flow.setHarness}

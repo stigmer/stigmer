@@ -17,9 +17,9 @@
  * in row and never a form field; a variable of the agent's own beside it is
  * still asked for.
  *
- * A conversation that lists vaults never reads My vault, and the grant is My
- * vault's: there the grant is not read and earns nothing, and a server is
- * signed in only when a listed vault holds a sign-in that server started.
+ * The grant is My vault's: a conversation that leaves My vault out does not
+ * read it and it earns nothing there, and a server is signed in only when a
+ * listed vault holds a sign-in that server started.
  */
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -230,8 +230,8 @@ describe("useAgentSetup and the agent's OAuth servers", () => {
     await expect(result.current.submitEnvVars({})).rejects.toThrow(/every pending sign-in/);
   });
 
-  it("gives a My vault grant no credit when the conversation lists vaults", async () => {
-    const LISTED = [{ org: ORG, slug: "team" }];
+  it("gives a My vault grant no credit when the conversation leaves My vault out", async () => {
+    const LISTED = { includeMyVault: false, vaults: [{ org: ORG, slug: "team" }] };
     const grantReads: string[] = [];
     const empty = create(VaultSchema, { metadata: { org: ORG, slug: "team" }, spec: { owner: { case: "org", value: ORG } } });
     const { result } = renderHook(() => useAgentSetup(ORG, undefined, LISTED), {
@@ -249,7 +249,7 @@ describe("useAgentSetup and the agent's OAuth servers", () => {
   });
 
   it("counts a listed vault's sign-in only for the server that started it", async () => {
-    const LISTED = [{ org: ORG, slug: "team" }];
+    const LISTED = { includeMyVault: false, vaults: [{ org: ORG, slug: "team" }] };
     const signedInBy = (minter: string) =>
       create(VaultSchema, {
         metadata: { org: ORG, slug: "team" },

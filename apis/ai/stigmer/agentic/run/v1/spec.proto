@@ -162,10 +162,8 @@ message RunSpec {
   google.protobuf.Struct structured_output_schema = 21;
 
   // Field 5 held runtime_env, a turn's own variables and secrets, until a
-  // conversation's own values moved onto the session (SessionSpec.secrets
-  // and SessionSpec.connections): one place for them, kept sealed for the
-  // conversation's life. A first turn sends them on session_spec; a later
-  // change is a session update.
+  // run's values moved to vaults: a key is saved in a vault, and the
+  // conversation names the vaults it uses on session_spec.
   reserved 5;
   reserved "runtime_env";
 

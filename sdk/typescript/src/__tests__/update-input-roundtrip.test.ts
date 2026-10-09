@@ -239,7 +239,6 @@ describe("toAgentUpdateInput", () => {
         disallowedTools: ["mcp__github-mcp__delete_repo"],
         runConfig: RUN_CONFIG,
         harness: Harness.NATIVE,
-        vaults: [{ org: "acme", slug: "support-tools", kind: ApiResourceKind.vault }],
         hooks: [
           { source: { case: "plugin", value: { org: "acme", slug: "safety", kind: ApiResourceKind.plugin } } },
           {
@@ -837,8 +836,7 @@ describe("toSessionUpdateInput", () => {
         cursorMode: CursorMode.CLOUD,
         executionTarget: ExecutionTarget.CLOUD,
         vaults: [{ org: "acme", slug: "customer-1234", kind: ApiResourceKind.vault }],
-        secrets: { OPENAI_API_KEY: "***REDACTED***" },
-        connections: { "https://mcp.linear.app/mcp": "***REDACTED***" },
+        includeMyVault: true,
       },
     });
 

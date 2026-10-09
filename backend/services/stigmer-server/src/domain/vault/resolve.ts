@@ -15,41 +15,38 @@
  *     fills it.
  *
  * Where values come from, in order (the first source holding a match wins):
- *   1. the session's own values (SessionSpec.secrets, .connections, a
- *      repository's own token);
- *   2. the session's vaults, in order;
- *   3. for a run with no person only, the vaults of the surface it came
+ *   1. a repository's own token, for its clone only;
+ *   2. for a run with a person, when the stored session sets
+ *      include_my_vault: that person's My vault;
+ *   3. the session's vaults, in order;
+ *   4. for a run with no person only, the vaults of the surface it came
  *      through, found from server-stamped facts: the minting platform
  *      client (the run's audit), its schedule (the run's
  *      stigmer.ai/schedule-id), its share or channel (the session's
  *      stigmer.ai/share-id or stigmer.ai/channel-id). A surface of another
- *      organization than the run's contributes nothing;
- *   4. for a run with a person whose session lists no vaults: that
- *      person's My vault, then the agent's vaults the person may use.
- * A session that lists vaults uses exactly those: an integrator calling
- * with an admin's key never reaches the admin's own logins.
+ *      organization than the run's contributes nothing.
+ * A conversation uses exactly what it chose: an integrator calling with an
+ * admin's key, which leaves include_my_vault off, never reaches the
+ * admin's own logins, and an agent carries no vaults of its own.
  *
  * A run whose agent is of another organization than the run's, or whose
- * agent's row cannot be read, reads no My vault and no agent vault for any
- * requirement: not the agent's keys, not any tool's keys or login, not a
- * clone's token. Its author answers to another organization, and every
- * value the run carries reaches the agent's code, whoever declared it.
- * Only the session's own values and its vaults, which the caller chose for
- * this conversation (and, for a run with no person, its surface's vaults),
- * serve such a run; a required key missing from them says so.
+ * agent's row cannot be read, reads no My vault for any requirement: not
+ * the agent's keys, not any tool's keys or login, not a clone's token. Its
+ * author answers to another organization, and every value the run carries
+ * reaches the agent's code, whoever declared it. Only the vaults the
+ * caller listed for this conversation (and, for a run with no person, its
+ * surface's vaults) serve such a run; a required key missing from them
+ * says so.
  *
- * A conversation's own values serve every turn in it, whoever sends the
- * turn (a person granted can_create_run_in on the conversation included):
- * they were handed to the conversation, not to a person. A turn's My vault
- * is always its own person's: a second person's turn never reads the
- * first's.
+ * include_my_vault is the conversation's choice, and each turn's My vault
+ * is its own person's: a second person's turn never reads the first's. A
+ * turn with no person ignores it.
  *
  * Every vault a run names is checked again when the run starts: `can_use`
  * for the run's person, or, for a run with no person, for the account
  * recorded as having attached it (the surface's `vault_attachers`). A
  * vault that is gone or no longer passes refuses the run, naming it and
- * the surface. An agent's vault the person may not use is skipped, not
- * refused: it was never theirs to use.
+ * the surface.
  *
  * Matching, per source: a login key by a connection at the tool's address
  * that was made for that tool, then, for an HTTP tool served over HTTPS
@@ -98,10 +95,9 @@
  * its write-back is INTERNAL.
  *
  * Nothing found for a required key refuses the create with
- * FAILED_PRECONDITION naming the key, its declarer and who must act; an
- * optional key stays absent. The session's own secrets all reach the run,
- * declared or not: the caller handed them to this conversation. A vault's
- * reach it only for a declared key.
+ * FAILED_PRECONDITION naming the key, its declarer and what the
+ * conversation lacks; an optional key stays absent. A value reaches the
+ * run only for a declared key.
  *
  * When the judging happens: once, at run create (and again on recover),
  * over the tool list and the tools' URLs as they are then. The runner reads
@@ -110,9 +106,10 @@
  * judged here; delivering values per declarer, rather than one value per
  * key for the whole run, is what closes that window.
  *
- * The connect lane (resolveForConnect) reads the request's own values and
- * then the caller's My vault only: a sign-in saved into a shared vault
- * serves the runs that use that vault, never connect.
+ * The connect lane (resolveForConnect) has no conversation: it reads the
+ * request's own values and then the caller's My vault only, and a sign-in
+ * saved into a shared vault serves the runs that use that vault, never
+ * connect.
  *
  * A vault's values are opened only when a requirement matches them
  * (VaultService.entries): matching reads which names and addresses a
@@ -124,8 +121,8 @@
  *
  * Every value is carried as secret (sealed in the context, redacted on its
  * reads) unless it is a plain declaration's own default: whatever came from
- * a vault, a connection, a sign-in, a repository's token or the session's
- * own values is secret, whatever its declaration says.
+ * a vault, a connection, a sign-in or a repository's token is secret,
+ * whatever its declaration says.
  *
  * Proven by __tests__/resolve.test.ts and the vault conformance suites.
  */
@@ -170,7 +167,7 @@ import type {
   SealedValue,
   VaultService,
 } from "./service.js";
-import { once, personOf } from "./service.js";
+import { personOf } from "./service.js";
 import { openSessionValues, repositoryTokenKey } from "./session-values.js";
 import type { SessionOwnValues } from "./session-values.js";
 
@@ -268,7 +265,7 @@ export interface Requirement {
 
 /** A source of values, in resolution order; a value is opened only once it matches. */
 interface Source {
-  /** Says where the value came from, in a conflict message ("the session", "vault 'Support tools'"). */
+  /** Says where the value came from, in a conflict message ("the conversation's repositories", "vault 'Support tools'"). */
   readonly label: string;
   /** The vault row a sign-in's renewal writes back to. */
   readonly vault?: Vault;
@@ -280,8 +277,8 @@ interface Source {
 
 /** Whose turn it is to act when a required key is nowhere. */
 type WhoActs =
-  | { readonly kind: "person"; readonly listsVaults: boolean }
-  | { readonly kind: "conversation" }
+  | { readonly kind: "person"; readonly includesMyVault: boolean; readonly listsVaults: boolean }
+  | { readonly kind: "foreignAgent" }
   | { readonly kind: "surface"; readonly what: string }
   | { readonly kind: "none" };
 
@@ -304,8 +301,7 @@ export interface RunCredentialInput {
   /**
    * The organization the agent belongs to, or undefined when its row
    * cannot be read. A run of another organization's agent (or an
-   * unreadable one) reads no My vault and no agent vault, for any
-   * requirement.
+   * unreadable one) reads no My vault, for any requirement.
    */
   readonly agentOrg: string | undefined;
   readonly tools: readonly McpServer[];
@@ -606,23 +602,35 @@ function describeDeclarer(declarer: Declarer): string {
   return DECLARER_WORDS[declarer.kind](declarer.name);
 }
 
+/**
+ * What the conversation lacks, in words a console and an API caller both
+ * act on: the vaults it uses and whether it includes My vault.
+ */
 function whoActsSentence(requirement: Requirement, who: WhoActs): string {
   const what =
     requirement.signIn === true
       ? `sign in to ${describeDeclarer(requirement.declarer)}, or add ${requirement.key}`
       : `add ${requirement.key}`;
-  if (who.kind === "surface") {
-    return `ask the owner of ${who.what} to attach a vault that holds ${requirement.key}`;
+  switch (who.kind) {
+    case "surface":
+      return `ask the owner of ${who.what} to attach a vault that holds ${requirement.key}`;
+    case "none":
+      return `list a vault that holds ${requirement.key} on the conversation`;
+    case "foreignAgent":
+      return `add ${requirement.key} to one of this conversation's vaults: an agent of another organization never reads My vault`;
+    case "person":
+      if (who.includesMyVault) {
+        return `${what} to My vault`;
+      }
+      return who.listsVaults
+        ? `${what} to one of this conversation's vaults, or include My vault in this conversation`
+        : `this conversation uses no vaults: include My vault in it, or list a vault that holds ${requirement.key}`;
+    /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
+    default: {
+      const unreachable: never = who;
+      return unreachable;
+    }
   }
-  if (who.kind === "none") {
-    return `list a vault that holds ${requirement.key} on the conversation, or send it as the conversation's own secret`;
-  }
-  if (who.kind === "conversation") {
-    return `add ${requirement.key} to one of this conversation's vaults, or send it as the conversation's own secret: an agent of another organization never reads My vault`;
-  }
-  return who.listsVaults
-    ? `${what} to one of this conversation's vaults, or as the conversation's own secret`
-    : `${what} to My vault`;
 }
 
 function missingMessage(requirement: Requirement, who: WhoActs): string {
@@ -678,8 +686,6 @@ interface NamedVault {
   readonly namedBy: string;
   /** Whose can_use to ask; undefined refuses (nobody recorded attaching it). */
   readonly principal: string | undefined;
-  /** Whether a vault the principal may not use is skipped rather than refused (an agent's vaults). */
-  readonly skipWhenDenied: boolean;
   readonly fallbackOrgId: string;
 }
 
@@ -734,9 +740,6 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
       if (owner !== undefined && owner !== person && entry.principal !== owner) {
         // A My vault reaches only its own person's runs, and a person-less
         // run only through its owner's own schedule.
-        if (entry.skipWhenDenied) {
-          continue;
-        }
         throw failedPreconditionError(
           `${vaultLabel(vault)}, named by ${entry.namedBy}, is someone's own My vault and serves only their runs`,
         );
@@ -744,9 +747,6 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
       const principal = entry.principal;
       const allowed = principal !== undefined && (await mayUse(principal, vault));
       if (!allowed) {
-        if (entry.skipWhenDenied) {
-          continue;
-        }
         throw failedPreconditionError(
           principal === undefined
             ? `${vaultLabel(vault)}, named by ${entry.namedBy}, has no record of who attached it: attach it again`
@@ -767,31 +767,12 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
     return { label, vault, secrets: sealed.secrets, connections: sealed.connections };
   }
 
-  function ownSource(values: SessionOwnValues): Source {
-    const secrets = new Map<string, SealedValue>();
-    for (const [name, value] of values.secrets) {
-      secrets.set(name, openedValue(value));
-    }
-    const connections = new Map<string, SealedConnection>();
-    for (const [address, token] of values.connections) {
-      const source = VaultConnectionSource.pasted;
-      connections.set(address, {
-        address,
-        source,
-        present: token.present,
-        open: once(
-          async (): Promise<OpenedConnection> => ({
-            address,
-            token: await token.open(),
-            source,
-          }),
-        ),
-      });
-    }
+  /** A conversation's repository tokens: they match their own clone only. */
+  function repositorySource(values: SessionOwnValues): Source {
     return {
-      label: "the conversation's own values",
-      secrets,
-      connections,
+      label: "the conversation's repositories",
+      secrets: new Map(),
+      connections: new Map(),
       repositoryTokens: values.repositoryTokens,
     };
   }
@@ -885,7 +866,6 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
           namedBy: surface.what,
           principal:
             vault === undefined ? undefined : surface.attachers[vault.metadata?.id ?? ""],
-          skipWhenDenied: false,
           fallbackOrgId: surface.org,
         });
       }
@@ -1035,9 +1015,9 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
     const person = recordedRunPerson(execution);
     const requirements = runRequirements(input);
     // The stored row, not the loader's copy: every read the session
-    // controller answers shows the marker in place of the session's own
-    // values, and only the row holds them sealed. A row that is gone
-    // refuses: a copy's values and vaults are nothing to run on.
+    // controller answers shows the marker in place of a repository's
+    // token, and only the row holds it sealed. A row that is gone refuses:
+    // a copy's tokens and vault choice are nothing to run on.
     const sessionId = session.metadata?.id ?? "";
     let stored: Session;
     try {
@@ -1050,8 +1030,9 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
       }
       throw error;
     }
-    const own = await openSessionValues(deps.secretService, stored);
+    const own = openSessionValues(deps.secretService, stored);
     const sessionRefs = stored.spec?.vaults ?? [];
+    const includesMyVault = stored.spec?.includeMyVault === true;
     const sessionAttachers = stored.status?.vaultAttachers ?? {};
 
     const named: NamedVault[] = [];
@@ -1066,39 +1047,30 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
         ref,
         namedBy: "this conversation",
         principal,
-        skipWhenDenied: false,
         fallbackOrgId: executionOrg,
       });
     }
 
     // A run of another organization's agent, or of one whose row cannot be
     // read: every value the run carries reaches that agent's code, so the
-    // person's own reach (My vault, the agent's vaults) stays closed to
-    // every requirement, its tools' and its clones' included.
+    // person's My vault stays closed to every requirement, its tools' and
+    // its clones' included.
     const hasAgent = input.agentSpec !== undefined || input.agentName !== "";
     const foreignAgent =
       hasAgent && (input.agentOrg === undefined || input.agentOrg !== executionOrg);
 
-    const sources: Source[] = [ownSource(own)];
+    const sources: Source[] = [repositorySource(own)];
     if (person !== undefined) {
       who = foreignAgent
-        ? { kind: "conversation" }
-        : { kind: "person", listsVaults: sessionRefs.length > 0 };
-      sources.push(...(await openNamed(named, person)));
-      if (sessionRefs.length === 0 && !foreignAgent) {
+        ? { kind: "foreignAgent" }
+        : { kind: "person", includesMyVault, listsVaults: sessionRefs.length > 0 };
+      if (includesMyVault && !foreignAgent) {
         const mine = await deps.vaults.findMine(executionOrg, person);
         if (mine !== undefined) {
           sources.push(vaultSource("My vault", mine));
         }
-        const agentNamed: NamedVault[] = (input.agentSpec?.vaults ?? []).map((ref) => ({
-          ref,
-          namedBy: `the agent ${input.agentName}`,
-          principal: person,
-          skipWhenDenied: true,
-          fallbackOrgId: executionOrg,
-        }));
-        sources.push(...(await openNamedSkippingMissing(agentNamed, person)));
       }
+      sources.push(...(await openNamed(named, person)));
     } else {
       sources.push(...(await openNamed(named, undefined)));
       const surface = await surfaceOf(execution, session);
@@ -1110,11 +1082,6 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
 
     const actor = serverActingFor(person ?? "system");
     const values = await settle(requirements, sources, who, actor);
-    for (const [key, value] of own.secrets) {
-      if (!values.has(key) && value !== "") {
-        values.set(key, create(ExecutionValueSchema, { value, isSecret: true }));
-      }
-    }
     logger.info("Resolved run credentials", {
       executionId: execution.metadata?.id ?? "",
       hasPerson: person !== undefined,
@@ -1122,24 +1089,6 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
       keys: values.size,
     });
     return values;
-  }
-
-  /** The agent's vaults: one that is gone is skipped with a warning, never fatal for a person's chat. */
-  async function openNamedSkippingMissing(
-    named: readonly NamedVault[],
-    person: string,
-  ): Promise<Source[]> {
-    const present: NamedVault[] = [];
-    for (const entry of named) {
-      if ((await deps.vaults.findByReference(entry.ref, entry.fallbackOrgId)) === undefined) {
-        logger.warn("An agent names a vault that no longer exists; skipped", {
-          ref: `${entry.ref.org}/${entry.ref.slug}`,
-        });
-        continue;
-      }
-      present.push(entry);
-    }
-    return openNamed(present, person);
   }
 
   async function resolveForConnect(input: {
@@ -1163,7 +1112,9 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
       }
     }
     const who: WhoActs =
-      person !== undefined ? { kind: "person", listsVaults: false } : { kind: "none" };
+      person !== undefined
+        ? { kind: "person", includesMyVault: true, listsVaults: false }
+        : { kind: "none" };
     return settle(
       toolRequirements(input.server),
       sources,

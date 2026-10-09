@@ -166,6 +166,7 @@ async function runResolvedAgent(
         ApiResourceKind.identity_account,
       ),
       agentSpec: agent?.spec,
+      org,
     },
   );
   await executeResolvedAgent({

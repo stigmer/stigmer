@@ -26,7 +26,6 @@ import { DependencyGraph } from "../dependency-graph/DependencyGraph.js";
 import { useDependencyGraph } from "../dependency-graph/useDependencyGraph.js";
 import { AgentToolLists, hasToolLists } from "./AgentToolLists.js";
 import { AgentHooksSection } from "./AgentHooksSection.js";
-import { AgentVaultsSection } from "./AgentVaultsSection.js";
 import { withPluginHooks } from "../plugin/plugin-on-agent.js";
 import { AgentRunDefaultsSection, type AgentRunDefaultsSave } from "./AgentRunDefaultsSection.js";
 import type { DependencyNode } from "../dependency-graph/types.js";
@@ -812,19 +811,6 @@ function AgentOverview({
           isSaving={isSaving}
           error={errorFor("subAgents")}
           onSave={(subs) => saveField?.("subAgents", subs.length > 0 ? subs : undefined) ?? Promise.resolve(false)}
-        />
-      )}
-
-      {(editable || (spec?.vaults?.length ?? 0) > 0) && (
-        <AgentVaultsSection
-          org={agentOrg}
-          vaults={spec?.vaults ?? []}
-          editable={editable}
-          isSaving={isSaving}
-          error={errorFor("vaults")}
-          onSave={(refs) =>
-            saveField?.("vaults", refs.length > 0 ? refs : undefined) ?? Promise.resolve(false)
-          }
         />
       )}
 

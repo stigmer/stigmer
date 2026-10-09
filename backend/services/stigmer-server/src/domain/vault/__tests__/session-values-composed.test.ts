@@ -1,24 +1,21 @@
 /**
- * Pins the stale-write rule for a conversation's own values and vaults
- * through the real session update chain: a composed server in the
- * trusted-local posture (no authentication, so the runner's writes carry
- * no caller class of their own), its write codec ("v9", an extension
+ * Pins the stale-write rule for a conversation's repository tokens and its
+ * vault choice through the real session update chain: a composed server in
+ * the trusted-local posture (no authentication, so the runner's writes
+ * carry no caller class of their own), its write codec ("v9", an extension
  * codec) recording every destroy:
  *
  *   - a write that sends back an older read than the stored row (the
- *     runner's harness-state write after a turn) keeps every value added
- *     since, a secret, a connection and a repository's token, and destroys
- *     nothing;
- *   - a write built on the current read that omits a value drops it and
+ *     runner's harness-state write after a turn) keeps a repository token
+ *     added since and destroys nothing;
+ *   - a write built on the current read that omits a token drops it and
  *     destroys its backing state;
- *   - a stale write echoing the marker for a value removed since succeeds
+ *   - a stale write echoing the marker for a token removed since succeeds
  *     and leaves it removed, while a current write echoing it, or one that
  *     echoes no audit stamp at all, is refused;
- *   - a stale write whose own values and the stored ones it keeps come to
- *     more than 100 secrets, or 100 connections, is refused naming the
- *     limit, and the stored row is left as it was;
- *   - a stale write neither detaches a vault attached since nor
- *     re-attaches one removed since.
+ *   - a stale write neither detaches a vault attached since, nor
+ *     re-attaches one removed since, nor switches back include_my_vault
+ *     turned on since.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -49,7 +46,6 @@ import { RecordingCodec, silentLogger } from "./support.js";
 
 const API_VERSION = "agentic.stigmer.ai/v1";
 const ORG = "stale-writes";
-const ADDRESS = "https://mcp.tracker.example/mcp";
 const REPO_URL = "https://github.com/acme/app";
 
 const codec = new RecordingCodec();
@@ -160,56 +156,41 @@ async function failureOf(promise: Promise<unknown>): Promise<ConnectError> {
   throw new Error("expected a refusal");
 }
 
-describe("a stale write of a conversation's own values", () => {
-  it("keeps every value added since its read and destroys nothing; a current write that omits one drops and destroys it", async () => {
-    const id = await createSession({
-      secrets: { OLD: "a" },
-      workspaceEntries: [repository("")],
-    });
+describe("a stale write of a conversation's repository tokens", () => {
+  it("keeps a token added since its read and destroys nothing; a current write that omits it drops and destroys it", async () => {
+    const id = await createSession({ workspaceEntries: [repository("")] });
     const readAtTurnStart = await read(id);
 
     await tick();
     const adding = clone(SessionSchema, readAtTurnStart);
-    adding.spec!.secrets["ADDED"] = "b";
-    adding.spec!.connections[ADDRESS] = "tracker-token";
     adding.spec!.workspaceEntries = [repository("repo-token")];
     await command.update(adding);
     const added = await row(id);
-    expect(Object.keys(added.spec!.secrets).sort()).toEqual(["ADDED", "OLD"]);
+    expect(repositoryToken(added)).toMatch(/^enc:v9:/);
 
     await tick();
     const destroyedBefore = codec.deleted.length;
     await command.update(harnessWrite(readAtTurnStart, "harness-1"));
     const afterStale = await row(id);
     expect(afterStale.spec!.harnessStateId).toBe("harness-1");
-    expect(afterStale.spec!.secrets).toEqual(added.spec!.secrets);
-    expect(afterStale.spec!.connections).toEqual(added.spec!.connections);
     expect(repositoryToken(afterStale)).toBe(repositoryToken(added));
     expect(codec.deleted.slice(destroyedBefore)).toEqual([]);
 
     const current = clone(SessionSchema, await read(id));
-    delete current.spec!.secrets["ADDED"];
+    current.spec!.workspaceEntries = [repository("")];
     await command.update(current);
     const afterCurrent = await row(id);
-    expect(Object.keys(afterCurrent.spec!.secrets)).toEqual(["OLD"]);
-    expect(codec.deleted.slice(destroyedBefore)).toEqual([
-      added.spec!.secrets["ADDED"],
-    ]);
+    expect(repositoryToken(afterCurrent)).toBe("");
+    expect(codec.deleted.slice(destroyedBefore)).toEqual([repositoryToken(added)]);
   });
 
-  it("drops a marker whose value was removed since its read; a current write, or one with no stamp, echoing it is refused", async () => {
-    const id = await createSession({
-      secrets: { REMOVED: "a" },
-      connections: { [ADDRESS]: "tracker-token" },
-      workspaceEntries: [repository("repo-token")],
-    });
+  it("drops a marker whose token was removed since its read; a current write, or one with no stamp, echoing it is refused", async () => {
+    const id = await createSession({ workspaceEntries: [repository("repo-token")] });
     const readAtTurnStart = await read(id);
-    expect(readAtTurnStart.spec!.secrets["REMOVED"]).toBe(REDACTED_MARKER);
+    expect(repositoryToken(readAtTurnStart)).toBe(REDACTED_MARKER);
 
     await tick();
     const removing = clone(SessionSchema, readAtTurnStart);
-    removing.spec!.secrets = {};
-    removing.spec!.connections = {};
     removing.spec!.workspaceEntries = [repository("")];
     await command.update(removing);
 
@@ -217,12 +198,10 @@ describe("a stale write of a conversation's own values", () => {
     await command.update(harnessWrite(readAtTurnStart, "harness-1"));
     const stored = await row(id);
     expect(stored.spec!.harnessStateId).toBe("harness-1");
-    expect(stored.spec!.secrets).toEqual({});
-    expect(stored.spec!.connections).toEqual({});
     expect(repositoryToken(stored)).toBe("");
 
     const current = clone(SessionSchema, await read(id));
-    current.spec!.secrets["REMOVED"] = REDACTED_MARKER;
+    current.spec!.workspaceEntries = [repository(REDACTED_MARKER)];
     const refused = await failureOf(command.update(current));
     expect(refused.code).toBe(Code.InvalidArgument);
     const unstamped = clone(SessionSchema, readAtTurnStart);
@@ -230,43 +209,10 @@ describe("a stale write of a conversation's own values", () => {
     const refusedUnstamped = await failureOf(command.update(unstamped));
     expect(refusedUnstamped.code).toBe(Code.InvalidArgument);
   });
-
-  it("refuses a stale write that would hold more than 100 secrets or 100 connections once the stored ones are kept, naming the limit", async () => {
-    for (const kind of ["secrets", "connections"] as const) {
-      const id = await createSession({});
-      const readAtTurnStart = await read(id);
-
-      await tick();
-      const filling = clone(SessionSchema, readAtTurnStart);
-      for (let index = 0; index < 100; index += 1) {
-        if (kind === "secrets") {
-          filling.spec!.secrets[`KEY_${index}`] = "v";
-        } else {
-          filling.spec!.connections[`https://tool${index}.example/mcp`] = "t";
-        }
-      }
-      await command.update(filling);
-      const filled = await row(id);
-
-      await tick();
-      const stale = harnessWrite(readAtTurnStart, "harness-1");
-      if (kind === "secrets") {
-        stale.spec!.secrets["ONE_MORE"] = "v";
-      } else {
-        stale.spec!.connections["https://one-more.example/mcp"] = "t";
-      }
-      const refused = await failureOf(command.update(stale));
-      expect(refused.code, kind).toBe(Code.InvalidArgument);
-      expect(refused.rawMessage, kind).toContain(`more than 100 ${kind}`);
-      const after = await row(id);
-      expect(after.spec!.harnessStateId, kind).toBe(filled.spec!.harnessStateId);
-      expect(after.spec![kind], kind).toEqual(filled.spec![kind]);
-    }
-  });
 });
 
-describe("a stale write of a conversation's vaults", () => {
-  it("neither detaches a vault attached since its read nor re-attaches one removed since", async () => {
+describe("a stale write of a conversation's vault choice", () => {
+  it("neither detaches a vault attached since its read, nor re-attaches one removed since, nor switches My vault back", async () => {
     const slugs: string[] = [];
     for (const name of ["Stale first", "Stale second"]) {
       const vault = await vaultCommand.create({
@@ -282,21 +228,24 @@ describe("a stale write of a conversation's vaults", () => {
       org: ORG,
       slug,
     });
-    const id = await createSession({ vaults: [ref(first)] });
+    const id = await createSession({ vaults: [ref(first)], includeMyVault: false });
     const readAtTurnStart = await read(id);
 
     await tick();
     const switching = clone(SessionSchema, readAtTurnStart);
     switching.spec!.vaults = [create(ApiResourceReferenceSchema, ref(second))];
+    switching.spec!.includeMyVault = true;
     await command.update(switching);
     const switched = await row(id);
     expect(switched.spec!.vaults.map((vault) => vault.slug)).toEqual([second]);
+    expect(switched.spec!.includeMyVault).toBe(true);
 
     await tick();
     await command.update(harnessWrite(readAtTurnStart, "harness-1"));
     const stored = await row(id);
     expect(stored.spec!.harnessStateId).toBe("harness-1");
     expect(stored.spec!.vaults.map((vault) => vault.slug)).toEqual([second]);
+    expect(stored.spec!.includeMyVault).toBe(true);
     expect(stored.status!.vaultAttachers).toEqual(
       switched.status!.vaultAttachers,
     );

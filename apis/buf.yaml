@@ -29,3 +29,17 @@ breaking:
   except:
     - EXTENSION_NO_DELETE
     - FIELD_SAME_DEFAULT
+  # One pull request trims vaults: it deletes the agent's vaults and a
+  # conversation's own secrets and connections (each removed field's number
+  # and name reserved, with the two map entry messages the map fields
+  # generated). It is made before launch: the release notes name
+  # every change under Upgrading. This block exists for that one pull
+  # request. While it stays, buf breaking does not report these rules on the
+  # listed files, so the pull request that removes it lands straight after
+  # the merge (https://github.com/stigmer/stigmer/issues/2046).
+  ignore_only:
+    FIELD_NO_DELETE:
+      - ai/stigmer/agentic/agent/v1/spec.proto
+      - ai/stigmer/agentic/session/v1/spec.proto
+    MESSAGE_NO_DELETE:
+      - ai/stigmer/agentic/session/v1/spec.proto

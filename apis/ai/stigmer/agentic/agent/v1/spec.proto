@@ -148,30 +148,10 @@ message AgentSpec {
   // only new conversations.
   ai.stigmer.agentic.session.v1.Harness harness = 14;
 
-  // Shared vaults this agent's conversations use after the person's own My
-  // vault, for people who may use them. At most 20.
-  //
-  // This is how a team key reaches every chat with an agent without a pick
-  // per conversation: an editor of the agent attaches a shared vault they
-  // may use, and each person's turns use it only when that person may use
-  // the vault too. A conversation that lists its own vaults uses those
-  // instead. Runs with no person (a schedule, a share link, a channel)
-  // never use an agent's vaults. A My vault cannot be attached.
-  //
-  // @internal
-  // The reference rule asks can_use of the writer for each vault a write
-  // introduces; each run asks can_use again of its person. Versioned with
-  // the agent: a conversation pinned to an older version keeps that
-  // version's list.
-  repeated ai.stigmer.commons.apiresource.ApiResourceReference vaults = 15 [
-    (ai.stigmer.commons.apiresource.reference_kind) = vault,
-    (buf.validate.field).repeated.max_items = 20,
-    (buf.validate.field).repeated.items.cel = {
-      id: "vaults.kind"
-      message: "vaults must reference resources with kind=vault"
-      expression: "this.kind == 59"
-    }
-  ];
+  // Field 15 named shared vaults this agent's conversations used; an agent
+  // is a blueprint and carries no vaults: each conversation names its own.
+  reserved 15;
+  reserved "vaults";
 }
 
 // HookSource is one source of an agent's hooks: a plugin, or a hooks block
