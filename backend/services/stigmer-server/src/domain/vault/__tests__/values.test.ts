@@ -15,12 +15,18 @@
  *     only that tool's entries of the run's manifest, never the agent's or
  *     another tool's;
  *   - a connect attempt that names none receives a plan made now over its
- *     person's My vault, and a caller who was no person gets no My vault.
+ *     person's My vault, and a caller who was no person gets no My vault;
+ *   - past an edition's admitting decision, the handler's own loads still
+ *     refuse: an id of no execution kind, a run that is gone, a connect
+ *     that is over, a backfill's run of another organization, a connect's
+ *     tool that is gone; a store fault is INTERNAL without its text;
+ *   - the registered service validates the request (an empty id is
+ *     INVALID_ARGUMENT) and answers through the gate.
  */
 import { randomBytes } from "node:crypto";
 
 import { create } from "@bufbuild/protobuf";
-import { Code, ConnectError } from "@connectrpc/connect";
+import { Code, ConnectError, createClient, createRouterTransport } from "@connectrpc/connect";
 import type { HandlerContext } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -31,11 +37,17 @@ import { RunCredentialsSchema, RunSchema } from "@stigmer/protos/ai/stigmer/agen
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { FetchExecutionValuesInputSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
+import {
+  FetchExecutionValuesInputSchema,
+  VaultValueController,
+} from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
 import type { ExecutionValues } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
+import { createApiResourceInterceptor } from "../../../pipeline/interceptors/apiresource.js";
+import { createVerifierChainInterceptor } from "../../../pipeline/interceptors/auth.js";
+import type { Store } from "../../../store/interface.js";
 import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
 import { RUN_CREDENTIAL_GRACE_AFTER_TERMINAL_MS } from "../../../runnerauth/constants.js";
 import { newExecutionScopedRunnerCredentialProvider } from "../../../runnerauth/runner-credential-provider.js";
@@ -43,6 +55,8 @@ import type { RunnerCredentialProvider } from "../../../runnerauth/runner-creden
 import { RunnerAuthService, TOKEN_TYPE_EXECUTION_SCOPED } from "../../../runnerauth/runnerauth.js";
 import { newConnectExecutionId } from "../../mcpserver/connect-execution-id.js";
 
+import { registerVaultServices } from "../controller.js";
+import type { VaultControllerDeps } from "../controller.js";
 import { newVaultResolver } from "../resolve.js";
 import type { VaultResolver } from "../resolve.js";
 import { fetchExecutionValues } from "../values.js";
@@ -309,5 +323,134 @@ describe("a connect's values", () => {
     const failure = await refusal(fetch(connectId, credentials.mint(TOKEN_TYPE_EXECUTION_SCOPED, connectId, 300).token));
     expect(failure.code).toBe(Code.FailedPrecondition);
     expect(failure.rawMessage).toContain("notion needs NOTION_KEY");
+  });
+});
+
+describe("past a composed decision that admits", () => {
+  /** An edition's decision that admits every bearer: what remains is the handler's own load. */
+  const admitting = (over: Partial<ExecutionValuesDeps> = {}): ExecutionValuesDeps =>
+    deps({ runnerAuth: { ...credentials, authorizeExecutionValuesRead: async () => true }, ...over });
+
+  /** The store, with reads of `kind` failing as `fault`. */
+  function faultingStore(kind: ApiResourceKind, fault: Error): Store {
+    return new Proxy(rig.store, {
+      get(target, prop, receiver) {
+        if (prop === "getResource") {
+          return (...args: Parameters<typeof rig.store.getResource>) =>
+            args[0] === kind ? Promise.reject(fault) : rig.store.getResource(...args);
+        }
+        const value = Reflect.get(target, prop, receiver) as unknown;
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+  }
+
+  it("refuses an id that names no execution kind", async () => {
+    expect((await refusal(fetch("ses_1", "edition-token", admitting()))).code).toBe(Code.PermissionDenied);
+  });
+
+  it("refuses a run that does not exist, and answers a store fault as INTERNAL without its text", async () => {
+    expect((await refusal(fetch("run_ghost", "edition-token", admitting()))).code).toBe(Code.PermissionDenied);
+    const faulted = await refusal(
+      fetch("run_ghost", "edition-token", admitting({ store: faultingStore(ApiResourceKind.run, new Error("disk gone")) })),
+    );
+    expect(faulted.code).toBe(Code.Internal);
+    expect(faulted.rawMessage).not.toContain("disk gone");
+  });
+
+  it("refuses a connect whose attempt is over", async () => {
+    const failure = await refusal(fetch(newConnectExecutionId("mcp_linear"), "edition-token", admitting()));
+    expect(failure.code).toBe(Code.FailedPrecondition);
+    expect(failure.rawMessage).toBe("this connect is over: connect the tool again");
+  });
+
+  it("refuses a backfill whose run belongs to another organization than its attempt", async () => {
+    await seedRun("run_elsewhere");
+    const connectId = newConnectExecutionId(LINEAR.metadata!.id);
+    await rig.store.connectAttempts.create({
+      id: connectId,
+      org: "another-org",
+      createdBy: ANA,
+      person: ANA,
+      mcpServerId: LINEAR.metadata!.id,
+      runId: "run_elsewhere",
+      createdAt: 0,
+      expiresAt: Math.floor(Date.now() / 1000) + 600,
+    });
+    expect((await refusal(fetch(connectId, "edition-token", admitting()))).code).toBe(Code.PermissionDenied);
+  });
+
+  it("refuses a connect whose tool is gone, and answers a store fault as INTERNAL", async () => {
+    const connectId = newConnectExecutionId("mcp_gone");
+    await seedAttempt(connectId, { mcpServerId: "mcp_gone" });
+    const gone = await refusal(fetch(connectId, "edition-token", admitting()));
+    expect(gone.code).toBe(Code.FailedPrecondition);
+    expect(gone.rawMessage).toContain("MCP server mcp_gone no longer exists");
+    const faulted = await refusal(
+      fetch(
+        connectId,
+        "edition-token",
+        admitting({ store: faultingStore(ApiResourceKind.mcp_server, new Error("disk gone")) }),
+      ),
+    );
+    expect(faulted.code).toBe(Code.Internal);
+  });
+});
+
+describe("the open-source gate's own faults", () => {
+  it("answers a store fault reading the bound execution as INTERNAL, never as a refusal", async () => {
+    const faulting = new Proxy(rig.store, {
+      get(target, prop, receiver) {
+        if (prop === "getResource") {
+          return () => Promise.reject(new Error("disk gone"));
+        }
+        const value = Reflect.get(target, prop, receiver) as unknown;
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+    const failure = await refusal(
+      fetch("run_live", credentials.mintRunCredential!("run_live"), deps({ store: faulting })),
+    );
+    expect(failure.code).toBe(Code.Internal);
+    expect(failure.rawMessage).not.toContain("disk gone");
+  });
+});
+
+describe("the registered service", () => {
+  it("validates the request and answers through the gate", async () => {
+    await seedRun("run_live");
+    const unused = new Proxy({} as VaultControllerDeps["signIn"], {
+      get(_target, prop) {
+        throw new Error(`signIn.${String(prop)} reached by a values fetch`);
+      },
+    });
+    const transport = createRouterTransport(
+      (router) => {
+        registerVaultServices(router, {
+          store: rig.store,
+          logger: silentLogger,
+          authorizer: newPermissiveSingleTeamAuthorizer(),
+          authorizationLifecycle: undefined,
+          secretService: rig.secrets,
+          listReadScope: undefined,
+          vaults: rig.vaults,
+          signIn: unused,
+          values: deps(),
+        });
+      },
+      {
+        router: {
+          interceptors: [createVerifierChainInterceptor([], [], silentLogger), createApiResourceInterceptor()],
+        },
+      },
+    );
+    const client = createClient(VaultValueController, transport);
+    const values = await client.fetchValues(
+      { executionId: "run_live" },
+      { headers: { authorization: `Bearer ${credentials.mintRunCredential!("run_live")}` } },
+    );
+    expect(Object.keys(values.agent)).toEqual(["AGENT_KEY"]);
+    const invalid = await refusal(client.fetchValues({ executionId: "" }));
+    expect(invalid.code).toBe(Code.InvalidArgument);
   });
 });

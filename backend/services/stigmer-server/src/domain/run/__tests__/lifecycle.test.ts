@@ -83,6 +83,7 @@ import type { RunStatusTransition } from "../../../extensions/status-hooks.js";
 import { KeyedSerializer } from "../../../pipeline/keyed-serializer.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import type { Store } from "../../../store/interface.js";
+import { ResourceNotFoundError } from "../../../store/interface.js";
 
 import {
   ensureApprovalRequests,
@@ -1292,6 +1293,66 @@ describe("lifecycle pipelines", () => {
         "resolve session: load session ses_gone: " +
         "rpc error: code = NotFound desc = session not found: ses_gone",
     );
+  });
+
+  it("recover answers a re-plan failure that is not a status as a sanitized Internal", async () => {
+    const plannerDeps = stubPlannerDeps();
+    const deps: LifecycleDeps = {
+      ...lifecycleDeps(connected(stubConnectedEngine({ terminateWorkflow: async () => {} }))),
+      runValuePlanner: {
+        ...plannerDeps,
+        sessionLoader: () => ({
+          get: async () => {
+            throw new Error("socket hang up");
+          },
+        }),
+      },
+    };
+    const id = await seedExecution({ phase: RunPhase.RUN_FAILED, sessionId: "ses_lc" });
+    const failure = await expectCode(
+      () => recoverExecution(deps, recoverInput(id), testCallerIdentity()),
+      Code.Internal,
+    );
+    expect(failure.rawMessage).not.toContain("socket hang up");
+  });
+
+  it.each([
+    ["a run deleted since it was loaded is NotFound", () => new ResourceNotFoundError("run"), Code.NotFound],
+    ["any other store failure is a sanitized Internal", () => new Error("SQLITE_BUSY"), Code.Internal],
+  ])("recover's write of the new manifest: %s", async (_label, fault, code) => {
+    const failing = new Proxy(store, {
+      get(target, prop, receiver) {
+        if (prop === "updateResource") {
+          return (...args: Parameters<Store["updateResource"]>) => {
+            // The re-plan's write is the one that stamps sources.
+            const probe = create(RunSchema, {});
+            (args[3] as (row: Run) => void)(probe);
+            return probe.status?.credentials?.sources.length
+              ? Promise.reject(fault())
+              : store.updateResource(...args);
+          };
+        }
+        const value = Reflect.get(target, prop, receiver) as unknown;
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+    const starts: string[] = [];
+    const deps: LifecycleDeps = {
+      ...lifecycleDeps(
+        connected(
+          stubConnectedEngine({
+            terminateWorkflow: async () => {},
+            startInvokeWorkflow: async (params) => {
+              starts.push(params.executionId);
+            },
+          }),
+        ),
+      ),
+      store: failing,
+    };
+    const id = await seedExecution({ phase: RunPhase.RUN_FAILED, sessionId: "ses_lc" });
+    await expectCode(() => recoverExecution(deps, recoverInput(id), testCallerIdentity()), code);
+    expect(starts, "no fresh workflow starts without its manifest").toEqual([]);
   });
 
   it("recover with a disconnected engine refuses before any side effect", async () => {

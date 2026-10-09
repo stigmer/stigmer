@@ -1276,6 +1276,106 @@ describe("the fetch opens exactly the planned entries, as they are now", () => {
     expect(failure.rawMessage).not.toContain("linear-login");
   });
 
+  it("refuses a repository's token the conversation no longer holds, naming the repository", async () => {
+    const failure = await refusal(
+      open(
+        {
+          run: runOf({ person: ANA }),
+          session: sessionOf({ repo: { url: "https://github.com/acme/app", token: "repo-own" } }),
+        },
+        async () => {
+          await stored(sessionOf({ repo: { url: "https://github.com/acme/app" } }));
+        },
+      ),
+    );
+    expect(failure.code).toBe(Code.FailedPrecondition);
+    expect(failure.rawMessage).toBe(
+      "repository app needs GITHUB_TOKEN, but the conversation no longer holds that repository's token. Fix it, then recover the turn",
+    );
+  });
+
+  it("refuses a login removed after the plan, naming the address and the vault", async () => {
+    const mine = await anasVault({});
+    await rig.vaults.setConnection(
+      mine,
+      "https://mcp.linear.example/mcp",
+      { token: "linear-login", source: VaultConnectionSource.pasted },
+      ana,
+    );
+    const failure = await refusal(
+      open({ run: runOf({ person: ANA }), tools: [tool("linear", { target: "LINEAR_TOKEN" })] }, async () => {
+        await rig.vaults.removeConnections(mine, ["https://mcp.linear.example/mcp"], ana);
+      }),
+    );
+    expect(failure.code).toBe(Code.FailedPrecondition);
+    expect(failure.rawMessage).toContain(
+      "linear needs LINEAR_TOKEN, but My vault no longer holds a login for https://mcp.linear.example/mcp",
+    );
+  });
+
+  it("refuses My vault once it is gone", async () => {
+    const mine = await anasVault({ API_KEY: "ana-key" });
+    const failure = await refusal(
+      open({ run: runOf({ person: ANA }), agentSpec: agent({ API_KEY: KEY }) }, async () => {
+        await rig.store.deleteResource(ApiResourceKind.vault, mine);
+      }),
+    );
+    expect(failure.code).toBe(Code.FailedPrecondition);
+    expect(failure.rawMessage).toContain("My vault no longer exists");
+  });
+
+  it("refuses a tool's login once the tool became a local program, which has no address", async () => {
+    const mine = await anasVault({});
+    await rig.vaults.setConnection(
+      mine,
+      "https://mcp.linear.example/mcp",
+      { token: "linear-login", source: VaultConnectionSource.pasted },
+      ana,
+    );
+    const failure = await refusal(
+      open({ run: runOf({ person: ANA }), tools: [tool("linear", { target: "LINEAR_TOKEN" })] }, async () => {
+        const program = localTool("linear", { target: "LINEAR_TOKEN" });
+        await rig.store.saveResource(ApiResourceKind.mcp_server, program.metadata!.id, McpServerSchema, program);
+      }),
+    );
+    expect(failure.rawMessage).toContain("the tool is no longer at https://mcp.linear.example/mcp");
+  });
+
+  it("propagates a store fault reading a tool, never reading it as gone", async () => {
+    const mine = await anasVault({});
+    await rig.vaults.setConnection(
+      mine,
+      "https://mcp.linear.example/mcp",
+      { token: "linear-login", source: VaultConnectionSource.pasted },
+      ana,
+    );
+    const linear = tool("linear", { target: "LINEAR_TOKEN" });
+    const sources = await plan({ run: runOf({ person: ANA }), tools: [linear] });
+    const faulty = resolverWith({
+      getResource: async () => {
+        throw new Error("disk gone");
+      },
+      onlyKind: ApiResourceKind.mcp_server,
+    });
+    const run = create(RunSchema, {
+      metadata: { id: "run_resolve", org: ORG },
+      spec: { target: { case: "sessionId", value: "ses_resolve" } },
+      status: { credentials: { person: ANA, sources } },
+    });
+    await expect(faulty.openRun(run)).rejects.toThrow("disk gone");
+  });
+
+  it("refuses a manifest entry with no origin as a fault, never guessing where it lives", async () => {
+    await stored(sessionOf());
+    const run = create(RunSchema, {
+      metadata: { id: "run_resolve", org: ORG },
+      spec: { target: { case: "sessionId", value: "ses_resolve" } },
+      status: { credentials: { person: ANA, sources: [{ key: "API_KEY", entry: "API_KEY" }] } },
+    });
+    const failure = await refusal(resolver.openRun(run));
+    expect(failure.code).toBe(Code.Internal);
+  });
+
   it("answers each HTTP tool's URL as the fetch read it, and none for a local program", async () => {
     await anasVault({ LINEAR_TOKEN: "lin", PROGRAM_KEY: "prog" });
     const linear = tool("linear", { target: "LINEAR_TOKEN" });
@@ -1794,14 +1894,20 @@ function resolverWith(overrides: {
   authorizer?: Authorizer;
   freshener?: SignInFreshener;
   getResource?: () => Promise<never>;
+  /** Fault only reads of this kind; every other read reaches the store. */
+  onlyKind?: ApiResourceKind;
 }): VaultResolver {
+  const fault = overrides.getResource;
   const store =
-    overrides.getResource === undefined
+    fault === undefined
       ? rig.store
       : new Proxy(rig.store, {
           get(target, prop, receiver) {
             if (prop === "getResource") {
-              return overrides.getResource;
+              return (...args: Parameters<typeof rig.store.getResource>) =>
+                overrides.onlyKind === undefined || args[0] === overrides.onlyKind
+                  ? fault()
+                  : rig.store.getResource(...args);
             }
             const value = Reflect.get(target, prop, receiver) as unknown;
             return typeof value === "function" ? value.bind(target) : value;

@@ -207,6 +207,10 @@ interface HarnessOptions extends FakeEngineOptions {
   provisioner?: SandboxProvisioner;
   /** The lane's credential provider (default: the harness's execution-scoped runnerAuth). */
   credentials?: RunnerCredentialProvider;
+  /** The connect slice's own credential provider (default: the execution-scoped one). */
+  runnerAuth?: RunnerCredentialProvider;
+  /** Faults in the store: an attempt write or end, or a run's read. */
+  faults?: { attemptCreate?: Error; attemptDelete?: Error; runRead?: Error };
 }
 
 interface Harness {
@@ -258,15 +262,25 @@ function bearerContext(token: string): HandlerContext {
 }
 
 /** The store with its attempt table recorded: every row the lanes write and end. */
-function recordingStore(attempts: ConnectAttemptRecord[], ended: string[]): Store {
+function recordingStore(
+  attempts: ConnectAttemptRecord[],
+  ended: string[],
+  faults: HarnessOptions["faults"] = {},
+): Store {
   const recording: ConnectAttemptStore = {
     create: async (attempt) => {
+      if (faults.attemptCreate !== undefined) {
+        throw faults.attemptCreate;
+      }
       attempts.push(attempt);
       await store.connectAttempts.create(attempt);
     },
     findLive: (id, now) => store.connectAttempts.findLive(id, now),
     delete: async (id) => {
       ended.push(id);
+      if (faults.attemptDelete !== undefined) {
+        throw faults.attemptDelete;
+      }
       await store.connectAttempts.delete(id);
     },
     deleteExpired: (now) => store.connectAttempts.deleteExpired(now),
@@ -277,6 +291,11 @@ function recordingStore(attempts: ConnectAttemptRecord[], ended: string[]): Stor
       if (prop === "connectAttempts") {
         return recording;
       }
+      if (prop === "getResource" && faults.runRead !== undefined) {
+        const fault = faults.runRead;
+        return (...args: Parameters<typeof store.getResource>) =>
+          args[0] === ApiResourceKind.run ? Promise.reject(fault) : store.getResource(...args);
+      }
       const value = Reflect.get(target, prop, receiver) as unknown;
       return typeof value === "function" ? value.bind(target) : value;
     },
@@ -285,9 +304,8 @@ function recordingStore(attempts: ConnectAttemptRecord[], ended: string[]): Stor
 
 function makeHarness(options: HarnessOptions = {}): Harness {
   const engine = fakeEngine(options);
-  const runnerAuth = newExecutionScopedRunnerCredentialProvider(
-    RunnerAuthService.fromEnv(),
-  );
+  const runnerAuth =
+    options.runnerAuth ?? newExecutionScopedRunnerCredentialProvider(RunnerAuthService.fromEnv());
   const sandboxLane: SandboxLane =
     options.provisioner === undefined
       ? { enabled: false }
@@ -315,7 +333,7 @@ function makeHarness(options: HarnessOptions = {}): Harness {
   });
   const attempts: ConnectAttemptRecord[] = [];
   const ended: string[] = [];
-  const harnessStore = recordingStore(attempts, ended);
+  const harnessStore = recordingStore(attempts, ended, options.faults);
   const harness: Harness = {
     engine,
     vaults,
@@ -1235,5 +1253,67 @@ describe("the runner's backfill names its run (run_id)", () => {
       "another organization",
     );
     expect(harness.attempts).toEqual([]);
+  });
+});
+
+describe("the connect lane's faults", () => {
+  it("a failure recording the attempt is INTERNAL, and no workflow starts", async () => {
+    const harness = makeHarness({ faults: { attemptCreate: new Error("disk gone") } });
+    const server = await seedServer();
+    const failure = await expectConnectError(
+      connect(harness.deps, connectInput(server.metadata!.id)),
+      Code.Internal,
+      "failed to record the connect attempt",
+    );
+    expect(failure.rawMessage).not.toContain("disk gone");
+    expect(harness.engine.startedInputs).toEqual([]);
+  });
+
+  it("a failure ending the attempt is logged, never the connect's: its row expires", async () => {
+    const harness = makeHarness({ faults: { attemptDelete: new Error("disk gone") } });
+    const server = await seedServer();
+    const result = await connect(harness.deps, connectInput(server.metadata!.id));
+    expect(result.status?.connectStatus?.phase).toBe(ConnectPhase.succeeded);
+    expect(harness.ended).toEqual([harness.attempts[0]!.id]);
+  });
+
+  it("a credential that cannot be minted still starts discovery, which then cannot fetch: the id rides, no token", async () => {
+    const base = newExecutionScopedRunnerCredentialProvider(RunnerAuthService.fromEnv());
+    const harness = makeHarness({
+      runnerAuth: {
+        ...base,
+        isEnabled: () => true,
+        mint: () => {
+          throw new Error("signing key unreadable");
+        },
+        verify: (lane, token) => base.verify(lane, token),
+      },
+    });
+    await saveApiKey(harness, testCaller, "k");
+    const server = await seedServer({ env: true });
+    await connect(harness.deps, connectInput(server.metadata!.id));
+    const input = harness.engine.startedInputs[0];
+    expect(input?.execution_context_id).toBe(harness.attempts[0]?.id);
+    expect(input?.execution_context_token).toBeUndefined();
+  });
+
+  it("a backfill's run gone past an edition's admitting decision is NOT_FOUND, and a fault reading it INTERNAL", async () => {
+    const base = newExecutionScopedRunnerCredentialProvider(RunnerAuthService.fromEnv());
+    const admitting: RunnerCredentialProvider = { ...base, authorizeExecutionValuesRead: async () => true };
+    const server = await seedServer({ env: true });
+    const gone = makeHarness({ runnerAuth: admitting });
+    await expectConnectError(
+      connect(gone.deps, connectInput(server.metadata!.id, "run_gone"), "edition-token"),
+      Code.NotFound,
+      "run_gone",
+    );
+    const faulted = makeHarness({ runnerAuth: admitting, faults: { runRead: new Error("disk gone") } });
+    await expectConnectError(
+      connect(faulted.deps, connectInput(server.metadata!.id, "run_gone"), "edition-token"),
+      Code.Internal,
+      "failed to load the backfill's run",
+    );
+    expect(gone.attempts).toEqual([]);
+    expect(faulted.attempts).toEqual([]);
   });
 });
