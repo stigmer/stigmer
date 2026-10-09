@@ -6,9 +6,14 @@ import { cn } from "@stigmer/theme";
 import { getUserMessage, isNotFound } from "@stigmer/sdk";
 import { CompleteConnectLinkInputSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/connect_link_pb";
 import { useStigmer } from "../hooks.js";
+import { isBrowserDestination } from "../internal/loginPageUrl.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { toError } from "../internal/toError.js";
 import { DEAD_CONNECT_LINK_MESSAGE, clearPendingConnectLinkToken } from "./useConnectLink.js";
+
+/** What the customer reads when the app's return address fails the browser check. */
+const UNSAFE_RETURN_MESSAGE =
+  "The sign-in is over, but the app's return address is not an https address, so you were not sent back. Return to the app yourself.";
 
 /** Props for {@link ConnectLinkCallback}. */
 export interface ConnectLinkCallbackProps {
@@ -54,7 +59,11 @@ export function ConnectLinkCallback({ token, className }: ConnectLinkCallbackPro
         )
         .then((answer) => {
           clearPendingConnectLinkToken();
-          window.location.replace(answer.returnUrl);
+          if (isBrowserDestination(answer.returnUrl)) {
+            window.location.replace(answer.returnUrl);
+          } else {
+            setFailure(new Error(UNSAFE_RETURN_MESSAGE));
+          }
         })
         .catch((err: unknown) => {
           const failed = toError(err);

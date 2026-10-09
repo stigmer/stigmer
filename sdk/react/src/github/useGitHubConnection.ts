@@ -260,7 +260,11 @@ export function useGitHubConnection(
   }, []);
 
   const disconnect = useCallback(() => {
-    sessionStorage.removeItem(STORAGE_KEY_STATE);
+    try {
+      sessionStorage.removeItem(STORAGE_KEY_STATE);
+    } catch {
+      // Storage refused: no sign-in state was kept to forget.
+    }
     if (disposeRef.current) {
       cancelledRef.current = true;
       disposeRef.current();

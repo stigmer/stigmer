@@ -99,6 +99,9 @@ export const CONNECT_LINK_PAGE_PATH = "/connect/";
 /** The query parameter the return URL carries the outcome in. */
 export const CONNECT_OUTCOME_PARAM = "stigmer_connect";
 
+/** How long past its expiry a link is kept: a sign-in's pending state lifetime, in seconds. */
+const LAPSED_LINK_GRACE_SECONDS = Math.ceil(PENDING_OAUTH_STATE_TTL_MS / 1000);
+
 /** Why a link's sign-in did not save, as the return URL says it. */
 export type ConnectLinkFailure = "denied" | "provider_error" | "expired" | "failed" | "not_allowed";
 
@@ -154,8 +157,10 @@ export async function createConnectLink(
     usedAt: 0,
   };
   // Links expire unused more often than they are spent; each new one
-  // sweeps the dead ones (nothing else reads them).
-  await deps.connectLinks.deleteExpired(now);
+  // sweeps the dead ones (nothing else reads them). A link stays for a
+  // pending state's lifetime past its expiry, so a customer still on the
+  // login page when it lapsed is sent back with reason=expired.
+  await deps.connectLinks.deleteExpired(now - LAPSED_LINK_GRACE_SECONDS);
   await deps.connectLinks.create(record);
   deps.logger.info("Connect link created", {
     org: input.org,
@@ -265,10 +270,7 @@ async function lapsedOnTheLoginPage(
   input: CompleteConnectLinkInput,
   now: number,
 ): Promise<CompleteConnectLinkOutput> {
-  const lapsed = await deps.connectLinks.findUsable(
-    hashLinkToken(input.token),
-    now - Math.ceil(PENDING_OAUTH_STATE_TTL_MS / 1000),
-  );
+  const lapsed = await deps.connectLinks.findUsable(hashLinkToken(input.token), now - LAPSED_LINK_GRACE_SECONDS);
   if (lapsed === undefined || input.state === "") {
     throw unknownLink();
   }

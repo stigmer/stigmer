@@ -262,6 +262,14 @@ describe("using a link", () => {
       expect(rig.requestsTo("https://login.vendor.example/token")).toEqual([]);
       await expectRefusal(finish(link.token, state), Code.NotFound, "Connect link not found");
 
+      // A link made meanwhile sweeps expired links, but not one whose
+      // customer may still be on the login page.
+      const lapsing = await makeLink({ expiresInSeconds: 60 });
+      const lapsingState = (await startConnectLink(rig.deps(), tokenInput(lapsing.token))).state;
+      vi.setSystemTime(Date.now() + 120_000);
+      await makeLink();
+      expect((await finish(lapsing.token, lapsingState)).returnUrl).toBe(`${RETURN_URL}?stigmer_connect=error&reason=expired`);
+
       const late = await makeLink({ expiresInSeconds: 60 });
       const lateState = (await startConnectLink(rig.deps(), tokenInput(late.token))).state;
       vi.setSystemTime(Date.now() + 20 * 60_000);

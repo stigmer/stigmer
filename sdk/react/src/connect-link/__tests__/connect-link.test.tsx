@@ -9,8 +9,9 @@
  * - the pending link answers only for the state it started with;
  * - the callback page hands the login page's code, state or error to the
  *   server with the link's secret, forgets the secret, and sends the
- *   browser to the URL the server answers; a dead link says so and is
- *   forgotten; a failure on the way keeps it, so a reload tries again;
+ *   browser to the URL the server answers, never to one that is not https;
+ *   a dead link says so and is forgotten; a failure on the way keeps it, so
+ *   a reload tries again;
  * - a start the server refuses for another reason says why and stays on
  *   the page; a hook with no link starts nothing; a tab whose storage
  *   cannot be read has no pending link; and the callback completes once
@@ -47,6 +48,7 @@ interface World {
   readonly startRefused?: boolean;
   readonly loginPage?: string;
   readonly completeUnavailable?: boolean;
+  readonly returnUrl?: string;
   readonly completed: CompleteConnectLinkInput[];
 }
 
@@ -77,7 +79,7 @@ function providers(world: World) {
           if (world.dead) throw new ConnectError("Connect link not found", Code.NotFound);
           if (world.completeUnavailable === true) throw new ConnectError("upstream connect error", Code.Unavailable);
           return create(CompleteConnectLinkOutputSchema, {
-            returnUrl: "https://helpdesk.example/done?stigmer_connect=connected",
+            returnUrl: world.returnUrl ?? "https://helpdesk.example/done?stigmer_connect=connected",
           });
         },
       });
@@ -208,5 +210,15 @@ describe("ConnectLinkCallback", () => {
     expect(await screen.findByRole("alert")).toBeTruthy();
     expect(replace).not.toHaveBeenCalled();
     expect(pendingConnectLinkToken("st")).toBe(TOKEN);
+  });
+
+  it("never sends the browser to a return address that is not https, and says so", async () => {
+    keepPendingLink();
+    render(<ConnectLinkCallback token={TOKEN} />, {
+      wrapper: providers({ dead: false, returnUrl: "javascript:alert(document.domain)//", completed: [] }),
+    });
+    expect(await screen.findByText(/the app's return address is not an https address/)).toBeTruthy();
+    expect(replace).not.toHaveBeenCalled();
+    expect(pendingConnectLinkToken("st")).toBeNull();
   });
 });

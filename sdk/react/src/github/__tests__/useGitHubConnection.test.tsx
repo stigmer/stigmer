@@ -16,9 +16,9 @@
  *   reported as connectError and ends connecting; the popup is closed. A
  *   sign-in cancelled by disconnect is no failure: nothing is reported. A
  *   login page that is not an https address is never opened.
- * - Disconnect removes the `github.com` login from My vault; a removal the
- *   server refuses is reported as disconnectError, and the hook still
- *   reports connected.
+ * - Disconnect removes the `github.com` login from My vault, even when the
+ *   browser refuses storage; a removal the server refuses is reported as
+ *   disconnectError, and the hook still reports connected.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
@@ -257,6 +257,18 @@ describe("useGitHubConnection", () => {
     expect(server.calls).toContain("complete:code-1:st-1");
     expect(result.current.isConnecting).toBe(false);
     await waitFor(() => expect(result.current.isConnected).toBe(true));
+  });
+
+  it("disconnects even when the browser refuses storage", async () => {
+    const server: Server = { mine: vaultWith("GitHub @octocat"), reads: 0, calls: [] };
+    const { result } = renderHook(() => useGitHubConnection(ORG), { wrapper: wrapperFor(clientFor(server)) });
+    await waitFor(() => expect(result.current.isConnected).toBe(true));
+    vi.spyOn(Storage.prototype, "removeItem").mockImplementation(() => {
+      throw new DOMException("denied", "SecurityError");
+    });
+    act(() => result.current.disconnect());
+    await waitFor(() => expect(server.calls).toContain("removeConnections:mine:github.com"));
+    expect(result.current.disconnectError).toBeNull();
   });
 
   it("reports a disconnect the server refuses, still connected, and clears it on the next attempt", async () => {
