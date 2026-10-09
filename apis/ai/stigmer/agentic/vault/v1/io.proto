@@ -199,13 +199,15 @@ message StartSignInInput {
   // Where the login page sends the person back to. Unset means web.
   SignInReturn return_to = 3;
 
-  // The port of the desktop app's page, for return_to loopback only.
+  // The port of the desktop app's page, for return_to loopback only: one of
+  // the three Stigmer Desktop listens on (17237 to 17239). A login server
+  // registers Stigmer once per return address, so the ports are few.
   uint32 loopback_port = 4 [(buf.validate.field).uint32 = {lte: 65535}];
 
   option (buf.validate.message).cel = {
     id: "start_sign_in.loopback_port"
-    message: "loopback_port is required for return_to loopback (1024 to 65535) and must be left unset otherwise"
-    expression: "this.return_to == 3 ? (this.loopback_port >= 1024u && this.loopback_port <= 65535u) : this.loopback_port == 0u"
+    message: "loopback_port is required for return_to loopback (17237 to 17239, the ports Stigmer Desktop listens on) and must be left unset otherwise"
+    expression: "this.return_to == 3 ? (this.loopback_port >= 17237u && this.loopback_port <= 17239u) : this.loopback_port == 0u"
   };
 }
 

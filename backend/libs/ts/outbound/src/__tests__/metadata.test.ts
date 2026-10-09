@@ -123,13 +123,21 @@ describe("resolveAuthorizationServers", () => {
     ]);
   });
 
-  it("holds the path-suffixed document to the resource and the bare one to its origin", async () => {
+  it("holds the path-suffixed document to the resource and the bare one to its origin or the resource", async () => {
     const { fetchImpl } = serving({
       "https://mcp.vendor.test/.well-known/oauth-protected-resource/mcp": { resource: "https://mcp.vendor.test", authorization_servers: ["https://login.other.test"] },
-      "https://mcp.vendor.test/.well-known/oauth-protected-resource": { resource: "https://mcp.vendor.test/mcp", authorization_servers: ["https://login.other.test"] },
+      "https://mcp.vendor.test/.well-known/oauth-protected-resource": { resource: "https://mcp.vendor.test/other", authorization_servers: ["https://login.other.test"] },
     });
     const result = await resolveAuthorizationServers("https://mcp.vendor.test/mcp", undefined, { ...deps, fetchImpl });
     expect(result.issuers).toEqual([]);
+  });
+
+  it("takes a bare document that names the resource itself, as many servers write it", async () => {
+    const { fetchImpl } = serving({
+      "https://mcp.vendor.test/.well-known/oauth-protected-resource": { resource: "https://mcp.vendor.test/mcp", authorization_servers: ["https://login.vendor.test"] },
+    });
+    const result = await resolveAuthorizationServers("https://mcp.vendor.test/mcp", undefined, { ...deps, fetchImpl });
+    expect(result.issuers).toEqual(["https://login.vendor.test"]);
   });
 
   it("holds the challenge's pointer to the resource itself", async () => {

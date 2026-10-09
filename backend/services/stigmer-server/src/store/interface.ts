@@ -499,6 +499,10 @@ export interface ConnectLinkRecord {
   readonly returnUrl: string;
   /** The identity account that made the link, recorded as the saver of the login. */
   readonly createdBy: string;
+  /** The maker's caller class, so the maker's standing is re-checked as the caller that made the link. */
+  readonly createdByClass: string;
+  /** The organization the maker's credential was bound to; empty when it named none. */
+  readonly createdByBoundOrg: string;
   readonly createdAt: number;
   readonly expiresAt: number;
   /** When the link was spent; 0 while unused. */

@@ -1302,6 +1302,8 @@ function migrateToV24(db: DatabaseSync): void {
       address    TEXT NOT NULL,
       return_url TEXT NOT NULL,
       created_by TEXT NOT NULL,
+      created_by_class TEXT NOT NULL,
+      created_by_bound_org TEXT NOT NULL DEFAULT '',
       created_at INTEGER NOT NULL,
       expires_at INTEGER NOT NULL,
       used_at    INTEGER NOT NULL DEFAULT 0

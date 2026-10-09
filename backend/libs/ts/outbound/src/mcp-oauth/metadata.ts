@@ -28,7 +28,9 @@
  * A protected-resource document counts only when its `resource` is the
  * identifier its URL was built from (RFC 9728 section 3.3): the MCP URL for
  * the challenge's pointer and the path-suffixed document, the MCP origin for
- * the bare one. A document naming another resource (or none) is discarded, so
+ * the bare one, which may also name the MCP URL itself (a common shape that
+ * still speaks for this resource). A document naming another resource (or
+ * none) is discarded, so
  * a server cannot borrow the document of another resource on its origin to
  * send a sign-in to someone else's login server under its name. Likewise an
  * authorization-server document counts only when its `issuer` is the issuer
@@ -127,7 +129,7 @@ export async function resolveAuthorizationServers(
   for (const candidate of candidates) {
     const read = await readJson(candidate, deps, attempts);
     if (read === undefined) continue;
-    if (!namesResource(read, identifierFor(candidate, resource, pointer))) {
+    if (!identifiersFor(candidate, resource, pointer).some((identifier) => namesResource(read, identifier))) {
       const last = attempts.pop();
       if (last !== undefined) attempts.push({ ...last, missing: "resource" });
       continue;
@@ -139,13 +141,16 @@ export async function resolveAuthorizationServers(
 }
 
 /**
- * The resource identifier a protected-resource document must name: the
+ * The resource identifiers a protected-resource document may name: the
  * resource itself for the challenge's pointer and for the document with the
- * resource's path appended, its origin for the bare document.
+ * resource's path appended; for the bare document its origin (the identifier
+ * RFC 9728 builds that URL from) or the resource itself, which many servers
+ * name there. Either way the document speaks for this resource, never for
+ * another.
  */
-function identifierFor(documentUrl: string, resource: URL, pointer: string | undefined): string {
+function identifiersFor(documentUrl: string, resource: URL, pointer: string | undefined): readonly string[] {
   const bare = `${resource.origin}/.well-known/oauth-protected-resource`;
-  return pointer === undefined && documentUrl === bare ? resource.origin : resource.href;
+  return pointer === undefined && documentUrl === bare ? [resource.origin, resource.href] : [resource.href];
 }
 
 /** Whether a document's `resource` is `identifier`, compared as URLs: case of scheme and host, a default port and trailing slashes aside. */

@@ -178,7 +178,9 @@ private static final long serialVersionUID = 0L;
   private int loopbackPort_ = 0;
   /**
    * <pre>
-   * The port of the desktop app's page, for return_to loopback only.
+   * The port of the desktop app's page, for return_to loopback only: one of
+   * the three Stigmer Desktop listens on (17237 to 17239). A login server
+   * registers Stigmer once per return address, so the ports are few.
    * </pre>
    *
    * <code>uint32 loopback_port = 4 [json_name = "loopbackPort", (.buf.validate.field) = { ... }</code>
@@ -921,7 +923,9 @@ private static final long serialVersionUID = 0L;
     private int loopbackPort_ ;
     /**
      * <pre>
-     * The port of the desktop app's page, for return_to loopback only.
+     * The port of the desktop app's page, for return_to loopback only: one of
+     * the three Stigmer Desktop listens on (17237 to 17239). A login server
+     * registers Stigmer once per return address, so the ports are few.
      * </pre>
      *
      * <code>uint32 loopback_port = 4 [json_name = "loopbackPort", (.buf.validate.field) = { ... }</code>
@@ -933,7 +937,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The port of the desktop app's page, for return_to loopback only.
+     * The port of the desktop app's page, for return_to loopback only: one of
+     * the three Stigmer Desktop listens on (17237 to 17239). A login server
+     * registers Stigmer once per return address, so the ports are few.
      * </pre>
      *
      * <code>uint32 loopback_port = 4 [json_name = "loopbackPort", (.buf.validate.field) = { ... }</code>
@@ -949,7 +955,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The port of the desktop app's page, for return_to loopback only.
+     * The port of the desktop app's page, for return_to loopback only: one of
+     * the three Stigmer Desktop listens on (17237 to 17239). A login server
+     * registers Stigmer once per return address, so the ports are few.
      * </pre>
      *
      * <code>uint32 loopback_port = 4 [json_name = "loopbackPort", (.buf.validate.field) = { ... }</code>

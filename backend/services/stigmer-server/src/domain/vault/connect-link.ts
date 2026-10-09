@@ -29,9 +29,12 @@
  * grant, as an invitation is marked redeemed before its grant is written),
  * so two completions racing save at most one login; a sign-in that then
  * fails makes the link usable again, since nothing was saved. The saved
- * login's `saved_by` is the link's creator. Once the login page has been
- * shown, the customer is sent back to the return URL whatever happens, with
- * `stigmer_connect=connected` or `stigmer_connect=error&reason=...`.
+ * login's `saved_by` is the link's creator, and a link's sign-in never keeps
+ * a refresh token an earlier sign-in left (every customer's saver is the
+ * creator). Once the login page has been shown, the customer is sent back
+ * to the return URL whatever happens, with `stigmer_connect=connected` or
+ * `stigmer_connect=error&reason=...`, a link that expired while they were
+ * on the login page included (`reason=expired`).
  *
  * Proven by __tests__/connect-link.test.ts and the sign-in conformance suite.
  */
@@ -72,7 +75,7 @@ import {
   notFoundError,
 } from "../../pipeline/errors.js";
 import { refuseBoundElsewhere } from "../../pipeline/steps/refuse-bound-elsewhere.js";
-import { ResourceNotFoundError } from "../../store/interface.js";
+import { PENDING_OAUTH_STATE_TTL_MS, ResourceNotFoundError } from "../../store/interface.js";
 import type { ConnectLinkRecord, ConnectLinkStore, PendingOAuthState } from "../../store/interface.js";
 import { findLoginAppName } from "./login-app.js";
 import { isMyVault } from "./service.js";
@@ -144,6 +147,8 @@ export async function createConnectLink(
     address,
     returnUrl,
     createdBy: caller.identityId,
+    createdByClass: caller.callerClass,
+    createdByBoundOrg: caller.boundOrg ?? "",
     createdAt: now,
     expiresAt: now + lifetime,
     usedAt: 0,
@@ -209,7 +214,11 @@ export async function completeConnectLink(
   deps: ConnectLinkDeps,
   input: CompleteConnectLinkInput,
 ): Promise<CompleteConnectLinkOutput> {
-  const link = await usableLink(deps, input.token);
+  const now = nowSeconds();
+  const link = await deps.connectLinks.findUsable(hashLinkToken(input.token), now);
+  if (link === undefined) {
+    return lapsedOnTheLoginPage(deps, input, now);
+  }
   const pending = input.state === "" ? undefined : await consume(deps, input.state);
   if (pending !== undefined && pending.connectLink !== link.tokenHash) {
     throw failedPreconditionError("this sign-in was not started by this Connect link");
@@ -242,6 +251,32 @@ export async function completeConnectLink(
     return outcome(link, "failed");
   }
   return outcome(link, undefined);
+}
+
+/**
+ * A link that expired while its customer was on the login page: unused, out
+ * of time by no more than a sign-in's pending state lives, and returning
+ * with a state this link started, which proves the customer began in time.
+ * The customer is sent back with `reason=expired`; anything else is the
+ * same NOT_FOUND as an unknown or used link.
+ */
+async function lapsedOnTheLoginPage(
+  deps: ConnectLinkDeps,
+  input: CompleteConnectLinkInput,
+  now: number,
+): Promise<CompleteConnectLinkOutput> {
+  const lapsed = await deps.connectLinks.findUsable(
+    hashLinkToken(input.token),
+    now - Math.ceil(PENDING_OAUTH_STATE_TTL_MS / 1000),
+  );
+  if (lapsed === undefined || input.state === "") {
+    throw unknownLink();
+  }
+  const pending = await consume(deps, input.state);
+  if (pending?.connectLink !== lapsed.tokenHash) {
+    throw unknownLink();
+  }
+  return outcome(lapsed, "expired");
 }
 
 /** The base64url SHA-256 a link is stored and found by. */
@@ -315,9 +350,19 @@ async function linkVault(deps: ConnectLinkDeps, link: ConnectLinkRecord): Promis
   return decision.kind === "allow" ? vault : undefined;
 }
 
-/** The link's creator, as the identity the save and the re-check act as. */
+/**
+ * The link's creator, as the identity the save and the re-check act as: the
+ * class and the bound organization of the credential that made the link, so
+ * an authorizer answers the re-check as it answered the creation.
+ */
 function creatorOf(link: ConnectLinkRecord): CallerIdentity {
-  return { identityId: link.createdBy, callerClass: "user", issuer: "", rawToken: "" };
+  return {
+    identityId: link.createdBy,
+    callerClass: link.createdByClass,
+    issuer: "",
+    rawToken: "",
+    ...(link.createdByBoundOrg === "" ? {} : { boundOrg: link.createdByBoundOrg }),
+  };
 }
 
 async function consume(deps: ConnectLinkDeps, state: string): Promise<PendingOAuthState | undefined> {

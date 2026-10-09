@@ -710,7 +710,9 @@ type StartSignInInput struct {
 	Address string `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
 	// Where the login page sends the person back to. Unset means web.
 	ReturnTo SignInReturn `protobuf:"varint,3,opt,name=return_to,json=returnTo,proto3,enum=ai.stigmer.agentic.vault.v1.SignInReturn" json:"return_to,omitempty"`
-	// The port of the desktop app's page, for return_to loopback only.
+	// The port of the desktop app's page, for return_to loopback only: one of
+	// the three Stigmer Desktop listens on (17237 to 17239). A login server
+	// registers Stigmer once per return address, so the ports are few.
 	LoopbackPort  uint32 `protobuf:"varint,4,opt,name=loopback_port,json=loopbackPort,proto3" json:"loopback_port,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1151,14 +1153,14 @@ const file_ai_stigmer_agentic_vault_v1_io_proto_rawDesc = "" +
 	"\tVaultList\x12\x1f\n" +
 	"\vtotal_count\x18\x01 \x01(\x05R\n" +
 	"totalCount\x128\n" +
-	"\x05items\x18\x02 \x03(\v2\".ai.stigmer.agentic.vault.v1.VaultR\x05items\"\xf2\x03\n" +
+	"\x05items\x18\x02 \x03(\v2\".ai.stigmer.agentic.vault.v1.VaultR\x05items\"\x9b\x04\n" +
 	"\x10StartSignInInput\x12F\n" +
 	"\x05vault\x18\x01 \x01(\v2(.ai.stigmer.agentic.vault.v1.VaultTargetB\x06\xbaH\x03\xc8\x01\x01R\x05vault\x12$\n" +
 	"\aaddress\x18\x02 \x01(\tB\n" +
 	"\xbaH\ar\x05\x10\x01\x18\x80\x10R\aaddress\x12F\n" +
 	"\treturn_to\x18\x03 \x01(\x0e2).ai.stigmer.agentic.vault.v1.SignInReturnR\breturnTo\x12.\n" +
-	"\rloopback_port\x18\x04 \x01(\rB\t\xbaH\x06*\x04\x18\xff\xff\x03R\floopbackPort:\xf7\x01\xbaH\xf3\x01\x1a\xf0\x01\n" +
-	"\x1bstart_sign_in.loopback_port\x12aloopback_port is required for return_to loopback (1024 to 65535) and must be left unset otherwise\x1anthis.return_to == 3 ? (this.loopback_port >= 1024u && this.loopback_port <= 65535u) : this.loopback_port == 0u\"\x93\x01\n" +
+	"\rloopback_port\x18\x04 \x01(\rB\t\xbaH\x06*\x04\x18\xff\xff\x03R\floopbackPort:\xa0\x02\xbaH\x9c\x02\x1a\x99\x02\n" +
+	"\x1bstart_sign_in.loopback_port\x12\x88\x01loopback_port is required for return_to loopback (17237 to 17239, the ports Stigmer Desktop listens on) and must be left unset otherwise\x1aothis.return_to == 3 ? (this.loopback_port >= 17237u && this.loopback_port <= 17239u) : this.loopback_port == 0u\"\x93\x01\n" +
 	"\x11StartSignInOutput\x12+\n" +
 	"\x11authorization_url\x18\x01 \x01(\tR\x10authorizationUrl\x12\x14\n" +
 	"\x05state\x18\x02 \x01(\tR\x05state\x12#\n" +

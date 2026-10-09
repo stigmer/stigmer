@@ -15,14 +15,20 @@
  *   - a state belongs to its link: another link's state, and a person's,
  *     cannot complete it, and a person cannot complete a link's state;
  *   - a maker who can no longer edit the vault spends nothing: the start
- *     answers NOT_FOUND and the completion answers not_allowed;
+ *     answers NOT_FOUND and the completion answers not_allowed; the maker is
+ *     re-checked as the caller class and bound organization that made the
+ *     link;
  *   - a sign-in that fails after the login page answers the return URL with
- *     its reason and leaves the link usable.
+ *     its reason and leaves the link usable; a link that expires while its
+ *     customer is on the login page sends them back with reason=expired,
+ *     and one long expired answers NOT_FOUND;
+ *   - a link's sign-in never inherits the refresh token another customer's
+ *     sign-in at the address left.
  */
 import { create } from "@bufbuild/protobuf";
 import { timestampMs } from "@bufbuild/protobuf/wkt";
 import { Code } from "@connectrpc/connect";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   CompleteConnectLinkInputSchema,
@@ -34,6 +40,7 @@ import {
   StartSignInInputSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
 
+import type { CallerIdentity } from "../../../extensions/identity.js";
 import {
   completeConnectLink,
   createConnectLink,
@@ -69,7 +76,14 @@ afterEach(() => {
 const RETURN_URL = "https://helpdesk.example/integrations/done";
 
 async function makeLink(
-  init: { vaultId?: string; address?: string; returnUrl?: string; expiresInSeconds?: number; org?: string } = {},
+  init: {
+    vaultId?: string;
+    address?: string;
+    returnUrl?: string;
+    expiresInSeconds?: number;
+    org?: string;
+    maker?: CallerIdentity;
+  } = {},
 ): Promise<{ token: string; url: string; expiresAtMs: number }> {
   const link = await createConnectLink(
     rig.deps(),
@@ -80,7 +94,7 @@ async function makeLink(
       returnUrl: init.returnUrl ?? RETURN_URL,
       expiresInSeconds: init.expiresInSeconds ?? 0,
     }),
-    alice,
+    init.maker ?? alice,
   );
   return {
     token: link.url.slice(link.url.lastIndexOf("/") + 1),
@@ -181,6 +195,8 @@ describe("using a link", () => {
       address: VENDOR_ADDRESS,
       returnUrl: RETURN_URL,
       createdBy: alice.identityId,
+      createdByClass: "user",
+      createdByBoundOrg: "",
       createdAt: now - 1900,
       expiresAt: now - 100,
       usedAt: 0,
@@ -224,6 +240,50 @@ describe("using a link", () => {
     await expectRefusal(startConnectLink(rig.deps(), tokenInput(link.token)), Code.NotFound, "Connect link not found");
     expect((await finish(link.token, state)).returnUrl).toBe(`${RETURN_URL}?stigmer_connect=error&reason=not_allowed`);
     expect(rig.requestsTo("https://login.vendor.example/token")).toEqual([]);
+  });
+
+  it("re-checks its maker as the caller class and bound organization that made it", async () => {
+    await seeded();
+    const machine: CallerIdentity = { ...alice, callerClass: "machine", boundOrg: ORG };
+    const link = await makeLink({ maker: machine });
+    rig.levers.denyVaultEditForClass = "user";
+    const state = (await startConnectLink(rig.deps(), tokenInput(link.token))).state;
+    expect((await finish(link.token, state)).returnUrl).toBe(`${RETURN_URL}?stigmer_connect=connected`);
+  });
+
+  it("sends a customer back with reason=expired when the link lapsed on the login page, and long-expired links answer NOT_FOUND", async () => {
+    await seeded();
+    const link = await makeLink({ expiresInSeconds: 60 });
+    const state = (await startConnectLink(rig.deps(), tokenInput(link.token))).state;
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(Date.now() + 120_000);
+      expect((await finish(link.token, state)).returnUrl).toBe(`${RETURN_URL}?stigmer_connect=error&reason=expired`);
+      expect(rig.requestsTo("https://login.vendor.example/token")).toEqual([]);
+      await expectRefusal(finish(link.token, state), Code.NotFound, "Connect link not found");
+
+      const late = await makeLink({ expiresInSeconds: 60 });
+      const lateState = (await startConnectLink(rig.deps(), tokenInput(late.token))).state;
+      vi.setSystemTime(Date.now() + 20 * 60_000);
+      await expectRefusal(finish(late.token, lateState), Code.NotFound, "Connect link not found");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("never hands one customer's refresh token to another customer's sign-in at the address", async () => {
+    await seeded();
+    const first = await makeLink();
+    rig.levers.tokenBodies.push({ body: { access_token: "at-1", refresh_token: "rt-1", expires_in: 3600 } });
+    await finish(first.token, (await startConnectLink(rig.deps(), tokenInput(first.token))).state);
+    const second = await makeLink();
+    rig.levers.tokenBodies.push({ body: { access_token: "at-2", expires_in: 3600 } });
+    await finish(second.token, (await startConnectLink(rig.deps(), tokenInput(second.token))).state);
+
+    const vault = (await rig.vaults.findById("vlt_shared"))!;
+    const saved = (await rig.vaults.open(vault)).connections.get(VENDOR_ADDRESS)!;
+    expect(saved.token).toBe("at-2");
+    expect((await saved.refreshToken?.()) ?? "").toBe("");
   });
 
   it("answers its reason and stays usable when the customer declines, the sign-in expired, or the exchange failed", async () => {

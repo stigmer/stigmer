@@ -66,6 +66,8 @@ export interface OutboundRequest {
 export interface Levers {
   denyVaultEdit: boolean;
   denyVaultEditFor: string | undefined;
+  /** Deny can_edit on a vault to every caller of this class: an authorizer that keys a class apart. */
+  denyVaultEditForClass: string | undefined;
   denyMyVault: boolean;
   /** Token responses answered in order; a default token after. */
   tokenBodies: Array<{ readonly status?: number; readonly body: unknown }>;
@@ -113,6 +115,7 @@ export function openSignInRig(): SignInRig {
   const levers: Levers = {
     denyVaultEdit: false,
     denyVaultEditFor: undefined,
+    denyVaultEditForClass: undefined,
     denyMyVault: false,
     tokenBodies: [],
     duringExchange: undefined,
@@ -132,7 +135,9 @@ export function openSignInRig(): SignInRig {
       if (
         check.resourceKind === ApiResourceKind.vault &&
         check.permission === IamPermission.can_edit &&
-        (levers.denyVaultEdit || levers.denyVaultEditFor === caller.identityId)
+        (levers.denyVaultEdit ||
+          levers.denyVaultEditFor === caller.identityId ||
+          levers.denyVaultEditForClass === caller.callerClass)
       ) {
         return Promise.resolve({ kind: "deny", reason: "" });
       }

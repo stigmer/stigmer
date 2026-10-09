@@ -1612,6 +1612,8 @@ export function describeStoreContract(
       address: "https://mcp.example.test/mcp",
       returnUrl: "https://app.example.test/back",
       createdBy: "ida_1",
+      createdByClass: "machine",
+      createdByBoundOrg: "org_a",
       createdAt: NOW,
       expiresAt: NOW + 1800,
       usedAt: 0,

@@ -3081,6 +3081,8 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
             "address",
             "return_url",
             "created_by",
+            "created_by_class",
+            "created_by_bound_org",
             "created_at",
             "expires_at",
             "used_at",

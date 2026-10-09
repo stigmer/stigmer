@@ -1325,6 +1325,8 @@ async function migrateToV19(client: PoolClient): Promise<void> {
       address TEXT NOT NULL,
       return_url TEXT NOT NULL,
       created_by TEXT NOT NULL,
+      created_by_class TEXT NOT NULL,
+      created_by_bound_org TEXT NOT NULL DEFAULT '',
       created_at BIGINT NOT NULL,
       expires_at BIGINT NOT NULL,
       used_at BIGINT NOT NULL DEFAULT 0

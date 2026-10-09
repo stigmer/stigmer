@@ -1735,7 +1735,7 @@ class PostgresOAuthClientRegistrationStore
 }
 
 const CONNECT_LINK_COLUMNS =
-  "token_hash, org, vault_id, address, return_url, created_by, created_at, expires_at, used_at";
+  "token_hash, org, vault_id, address, return_url, created_by, created_by_class, created_by_bound_org, created_at, expires_at, used_at";
 
 interface ConnectLinkRow {
   token_hash: string;
@@ -1744,6 +1744,8 @@ interface ConnectLinkRow {
   address: string;
   return_url: string;
   created_by: string;
+  created_by_class: string;
+  created_by_bound_org: string;
   created_at: string | number;
   expires_at: string | number;
   used_at: string | number;
@@ -1755,7 +1757,7 @@ class PostgresConnectLinkStore implements ConnectLinkStore {
   async create(link: ConnectLinkRecord): Promise<void> {
     await this.open().query(
       `INSERT INTO connect_link (${CONNECT_LINK_COLUMNS})
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
       [
         link.tokenHash,
         link.org,
@@ -1763,6 +1765,8 @@ class PostgresConnectLinkStore implements ConnectLinkStore {
         link.address,
         link.returnUrl,
         link.createdBy,
+        link.createdByClass,
+        link.createdByBoundOrg,
         link.createdAt,
         link.expiresAt,
         link.usedAt,
@@ -1829,6 +1833,8 @@ function connectLinkOf(row: ConnectLinkRow): ConnectLinkRecord {
     address: row.address,
     returnUrl: row.return_url,
     createdBy: row.created_by,
+    createdByClass: row.created_by_class,
+    createdByBoundOrg: row.created_by_bound_org,
     createdAt: Number(row.created_at),
     expiresAt: Number(row.expires_at),
     usedAt: Number(row.used_at),

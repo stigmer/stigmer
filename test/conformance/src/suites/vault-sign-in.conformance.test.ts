@@ -120,7 +120,7 @@ async function myVault(org: string) {
 }
 
 describe("vault sign-in conformance — the request's own rules", () => {
-  it("[rpc:VaultCommandController.startSignIn] refuses a value that names no address, and a loopback return without its port or a port without loopback (InvalidArgument each)", async () => {
+  it("[rpc:VaultCommandController.startSignIn] refuses a value that names no address, a loopback return without its port or on a port Stigmer Desktop does not listen on, and a port without loopback (InvalidArgument each)", async () => {
     const { org } = await target.provisionTenancy();
     // A value pasted in the wrong field may be a credential.
     const pasted = "ghp_conformanceLooksLikeAToken";
@@ -153,6 +153,20 @@ describe("vault sign-in conformance — the request's own rules", () => {
       Code.InvalidArgument,
       "a port beside the web return",
     );
+    // A login server registers Stigmer once per return address: a loopback
+    // return takes only the ports Stigmer Desktop listens on.
+    const anyPort = await expectGrpcCode(
+      () =>
+        clients.vaultCommand.startSignIn({
+          vault: myVaultTarget(org),
+          address: "github.com",
+          returnTo: SignInReturn.loopback,
+          loopbackPort: 8080,
+        }),
+      Code.InvalidArgument,
+      "a loopback port Stigmer Desktop does not listen on",
+    );
+    expect(anyPort.rawMessage).toContain("17237 to 17239");
   });
 
   it("[rpc:VaultCommandController.startSignIn] answers NotFound for a vault the organization does not hold", async () => {

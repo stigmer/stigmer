@@ -1116,7 +1116,7 @@ Input for starting a sign-in at an address.
     vault: { type: "VaultTargetInput", description: "The vault the login is saved into: a shared vault the caller may edit, or the caller's own My vault.", required: true },
     address: { type: "string", description: "The address to sign in to: a tool's URL (Linear's MCP endpoint at mcp.linear.app/mcp, over https) or a Git host (github.com), in any shape setConnection accepts." },
     returnTo: { type: "SignInReturn", description: "Where the login page sends the person back to.", typeDescriptionLink: "#signinreturn" },
-    loopbackPort: { type: "number", description: "The port of the desktop app's page, for return_to loopback only." },
+    loopbackPort: { type: "number", description: "The port of the desktop app's page, for return_to loopback only: one of the three Stigmer Desktop listens on (17237 to 17239)." },
   }}
 />
 

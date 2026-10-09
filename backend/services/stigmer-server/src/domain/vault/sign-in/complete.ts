@@ -14,7 +14,8 @@
  * atomic write. A new sign-in that arrives without a refresh token keeps
  * the previous one only when the same person saved it through the same
  * login app, client and token endpoint (`keepRefreshToken`, the vault
- * service's rule).
+ * service's rule), and never through a Connect link, whose saver is the
+ * link's maker for every customer.
  *
  * The exchange sends `resource` again when the start did (a login server
  * found by the address's own metadata). A login server that answers
@@ -130,7 +131,10 @@ export async function finishSignIn(
         loginApp: opened.loginApp,
       },
       description,
-      keepRefreshToken: true,
+      // A Connect link saves every customer as the link's maker, so "the
+      // same saver" says nothing about the account: a link's sign-in never
+      // inherits the refresh token another customer's sign-in left.
+      keepRefreshToken: pending.connectLink === "",
     },
     saver,
   );

@@ -160,47 +160,48 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "info\030\002 \001(\0132 .ai.stigmer.commons.rpc.Page" +
       "InfoR\010pageInfo\"f\n\tVaultList\022\037\n\013total_cou" +
       "nt\030\001 \001(\005R\ntotalCount\0228\n\005items\030\002 \003(\0132\".ai" +
-      ".stigmer.agentic.vault.v1.VaultR\005items\"\362" +
-      "\003\n\020StartSignInInput\022F\n\005vault\030\001 \001(\0132(.ai." +
+      ".stigmer.agentic.vault.v1.VaultR\005items\"\233" +
+      "\004\n\020StartSignInInput\022F\n\005vault\030\001 \001(\0132(.ai." +
       "stigmer.agentic.vault.v1.VaultTargetB\006\272H" +
       "\003\310\001\001R\005vault\022$\n\007address\030\002 \001(\tB\n\272H\007r\005\020\001\030\200\020" +
       "R\007address\022F\n\treturn_to\030\003 \001(\0162).ai.stigme" +
       "r.agentic.vault.v1.SignInReturnR\010returnT" +
       "o\022.\n\rloopback_port\030\004 \001(\rB\t\272H\006*\004\030\377\377\003R\014loo" +
-      "pbackPort:\367\001\272H\363\001\032\360\001\n\033start_sign_in.loopb" +
-      "ack_port\022aloopback_port is required for " +
-      "return_to loopback (1024 to 65535) and m" +
-      "ust be left unset otherwise\032nthis.return" +
-      "_to == 3 ? (this.loopback_port >= 1024u " +
-      "&& this.loopback_port <= 65535u) : this." +
-      "loopback_port == 0u\"\223\001\n\021StartSignInOutpu" +
-      "t\022+\n\021authorization_url\030\001 \001(\tR\020authorizat" +
-      "ionUrl\022\024\n\005state\030\002 \001(\tR\005state\022#\n\rprovider" +
-      "_name\030\003 \001(\tR\014providerName\022\026\n\006scopes\030\004 \003(" +
-      "\tR\006scopes\"W\n\023CompleteSignInInput\022 \n\005stat" +
-      "e\030\001 \001(\tB\n\272H\007r\005\020\001\030\200\004R\005state\022\036\n\004code\030\002 \001(\t" +
-      "B\n\272H\007r\005\020\001\030\200 R\004code\"R\n\024CompleteSignInOutp" +
-      "ut\022\030\n\007address\030\001 \001(\tR\007address\022 \n\013descript" +
-      "ion\030\002 \001(\tR\013description\"\244\003\n\026CreateConnect" +
-      "LinkInput\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\0226\n\010" +
-      "vault_id\030\002 \001(\tB\033\272H\030r\026\030\0362\022^vlt_[0-9a-z]{2" +
-      "6}$R\007vaultId\022$\n\007address\030\003 \001(\tB\n\272H\007r\005\020\001\030\200" +
-      "\020R\007address\022)\n\nreturn_url\030\004 \001(\tB\n\272H\007r\005\020\001\030" +
-      "\200\020R\treturnUrl\0229\n\022expires_in_seconds\030\005 \001(" +
-      "\005B\013\272H\010\032\006\030\200\243\005(\000R\020expiresInSeconds:\252\001\272H\246\001\032" +
-      "\243\001\n&create_connect_link.expires_in_secon" +
-      "ds\022:expires_in_seconds is 60 to 86400, o" +
-      "r unset for 30 minutes\032=this.expires_in_" +
-      "seconds == 0 || this.expires_in_seconds " +
-      ">= 60\"Z\n\013ConnectLink\022\020\n\003url\030\001 \001(\tR\003url\0229" +
-      "\n\nexpires_at\030\002 \001(\0132\032.google.protobuf.Tim" +
-      "estampR\texpiresAt*R\n\014SignInReturn\022\036\n\032sig" +
-      "n_in_return_unspecified\020\000\022\007\n\003web\020\001\022\013\n\007de" +
-      "sktop\020\002\022\014\n\010loopback\020\003B\232\001B\007IoProtoP\001\242\002\004AS" +
-      "AV\252\002\033Ai.Stigmer.Agentic.Vault.V1\312\002\033Ai\\St" +
-      "igmer\\Agentic\\Vault\\V1\342\002\'Ai\\Stigmer\\Agen" +
-      "tic\\Vault\\V1\\GPBMetadata\352\002\037Ai::Stigmer::" +
-      "Agentic::Vault::V1b\006proto3"
+      "pbackPort:\240\002\272H\234\002\032\231\002\n\033start_sign_in.loopb" +
+      "ack_port\022\210\001loopback_port is required for" +
+      " return_to loopback (17237 to 17239, the" +
+      " ports Stigmer Desktop listens on) and m" +
+      "ust be left unset otherwise\032othis.return" +
+      "_to == 3 ? (this.loopback_port >= 17237u" +
+      " && this.loopback_port <= 17239u) : this" +
+      ".loopback_port == 0u\"\223\001\n\021StartSignInOutp" +
+      "ut\022+\n\021authorization_url\030\001 \001(\tR\020authoriza" +
+      "tionUrl\022\024\n\005state\030\002 \001(\tR\005state\022#\n\rprovide" +
+      "r_name\030\003 \001(\tR\014providerName\022\026\n\006scopes\030\004 \003" +
+      "(\tR\006scopes\"W\n\023CompleteSignInInput\022 \n\005sta" +
+      "te\030\001 \001(\tB\n\272H\007r\005\020\001\030\200\004R\005state\022\036\n\004code\030\002 \001(" +
+      "\tB\n\272H\007r\005\020\001\030\200 R\004code\"R\n\024CompleteSignInOut" +
+      "put\022\030\n\007address\030\001 \001(\tR\007address\022 \n\013descrip" +
+      "tion\030\002 \001(\tR\013description\"\244\003\n\026CreateConnec" +
+      "tLinkInput\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\0226\n" +
+      "\010vault_id\030\002 \001(\tB\033\272H\030r\026\030\0362\022^vlt_[0-9a-z]{" +
+      "26}$R\007vaultId\022$\n\007address\030\003 \001(\tB\n\272H\007r\005\020\001\030" +
+      "\200\020R\007address\022)\n\nreturn_url\030\004 \001(\tB\n\272H\007r\005\020\001" +
+      "\030\200\020R\treturnUrl\0229\n\022expires_in_seconds\030\005 \001" +
+      "(\005B\013\272H\010\032\006\030\200\243\005(\000R\020expiresInSeconds:\252\001\272H\246\001" +
+      "\032\243\001\n&create_connect_link.expires_in_seco" +
+      "nds\022:expires_in_seconds is 60 to 86400, " +
+      "or unset for 30 minutes\032=this.expires_in" +
+      "_seconds == 0 || this.expires_in_seconds" +
+      " >= 60\"Z\n\013ConnectLink\022\020\n\003url\030\001 \001(\tR\003url\022" +
+      "9\n\nexpires_at\030\002 \001(\0132\032.google.protobuf.Ti" +
+      "mestampR\texpiresAt*R\n\014SignInReturn\022\036\n\032si" +
+      "gn_in_return_unspecified\020\000\022\007\n\003web\020\001\022\013\n\007d" +
+      "esktop\020\002\022\014\n\010loopback\020\003B\232\001B\007IoProtoP\001\242\002\004A" +
+      "SAV\252\002\033Ai.Stigmer.Agentic.Vault.V1\312\002\033Ai\\S" +
+      "tigmer\\Agentic\\Vault\\V1\342\002\'Ai\\Stigmer\\Age" +
+      "ntic\\Vault\\V1\\GPBMetadata\352\002\037Ai::Stigmer:" +
+      ":Agentic::Vault::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

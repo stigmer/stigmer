@@ -457,7 +457,7 @@
           "type": {
             "kind": "uint32"
           },
-          "description": "The port of the desktop app's page, for return_to loopback only.",
+          "description": "The port of the desktop app's page, for return_to loopback only: one of\n the three Stigmer Desktop listens on (17237 to 17239). A login server\n registers Stigmer once per return address, so the ports are few.",
           "required": false
         }
       ]
