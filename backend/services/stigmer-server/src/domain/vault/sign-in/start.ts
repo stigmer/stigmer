@@ -64,6 +64,7 @@ import type {
   Store,
 } from "../../../store/interface.js";
 import { InvalidAddressError, isGitHostAddress, normalizeAddress } from "../address.js";
+import { SIGN_IN_THROUGH_APP, SIGN_IN_THROUGH_LOGIN_SERVER } from "../constants.js";
 import { findLoginApp } from "../login-app.js";
 import type { AppLogin } from "../login-app.js";
 import type { LoginProviderSettings } from "../login-providers.js";
@@ -190,7 +191,7 @@ export async function startSignIn(deps: SignInDeps, start: SignInStart): Promise
     clientSecret: planned.clientSecret,
     tokenEndpoint: planned.tokenEndpoint,
     identityAccountId: start.signer,
-    authMethod: app !== undefined ? "vendor_oauth" : "mcp_oauth",
+    authMethod: app !== undefined ? SIGN_IN_THROUGH_APP : SIGN_IN_THROUGH_LOGIN_SERVER,
     tokenAuthMethod: planned.tokenAuthMethod,
     redirectUri,
     org: start.org,

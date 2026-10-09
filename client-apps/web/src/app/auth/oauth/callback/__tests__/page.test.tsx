@@ -90,8 +90,11 @@ describe("the sign-in callback page", () => {
 
   it("prerenders nothing: the return is decided in the browser", () => {
     search.value = "?code=c-1&state=st";
-    // Only React's Suspense markers: no text, no handler.
-    expect(renderToString(<OAuthCallbackPage />).replace(/<!--.*?-->/g, "")).toBe("");
+    // Only React's Suspense markers: no element, no text.
+    const host = document.createElement("div");
+    host.innerHTML = renderToString(<OAuthCallbackPage />);
+    expect(host.children).toHaveLength(0);
+    expect(host.textContent).toBe("");
   });
 
   it("hands anything else to the popup handler", async () => {

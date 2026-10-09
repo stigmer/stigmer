@@ -31,7 +31,9 @@
  *   - a renewal writes through the vault and presents the login app's secret
  *     (found by the sign-in's recorded login_app) only while the app's
  *     client id and token URL are the sign-in's; a catalog entry's secret
- *     comes from the deployment's settings.
+ *     comes from the deployment's settings; a login app's sign-in saved
+ *     before apps were recorded finds its app by its address under the same
+ *     guard, and only a public client's renewal carries `resource`.
  */
 import { create } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
@@ -604,7 +606,7 @@ describe("renewal writes through the vault", () => {
   async function savedSignIn(
     expiresAt: bigint,
     refreshToken: string,
-    init: { loginApp?: string; address?: string; tokenEndpoint?: string; clientId?: string } = {},
+    init: { loginApp?: string; address?: string; tokenEndpoint?: string; clientId?: string; authMethod?: string } = {},
   ) {
     const mine = await rig.vaults.ensureMine(ORG, alice);
     const address = init.address ?? VENDOR_ADDRESS;
@@ -617,7 +619,7 @@ describe("renewal writes through the vault", () => {
         signIn: {
           expiresAt,
           clientId: init.clientId ?? "vendor-client",
-          authMethod: "vendor_oauth",
+          authMethod: init.authMethod ?? "vendor_oauth",
           tokenEndpoint: init.tokenEndpoint ?? VENDOR_TOKEN_URL,
           refreshToken,
           loginApp: init.loginApp ?? "org:oap_vendor",
@@ -666,6 +668,7 @@ describe("renewal writes through the vault", () => {
   it("sends resource on a public client's renewal, as its sign-in did", async () => {
     const { vault, connection } = await savedSignIn(expired(), "rt-old", {
       loginApp: "",
+      authMethod: "mcp_oauth",
       address: "https://mcp.linear.example/mcp",
       tokenEndpoint: "https://login.linear.example/token",
       clientId: "dcr-client",
@@ -675,6 +678,34 @@ describe("renewal writes through the vault", () => {
     const request = rig.requestsTo("https://login.linear.example/token")[0]!;
     expect(new URLSearchParams(request.body).get("resource")).toBe("https://mcp.linear.example/mcp");
     expect(request.headers.has("authorization")).toBe(false);
+  });
+
+  it("renews a login app's sign-in saved before apps were recorded through the app its address finds, and records it", async () => {
+    await seedOrganizationApp(rig);
+    const { vault, connection } = await savedSignIn(expired(), "rt-old", { loginApp: "" });
+    rig.levers.tokenBodies.push({ body: { access_token: "at-new", expires_in: 3600 } });
+
+    expect(await freshener().freshToken(vault, connection, alice)).toBe("at-new");
+
+    const request = tokenRequests()[0]!;
+    expect(new URLSearchParams(request.body).has("resource")).toBe(false);
+    expect(request.headers.get("authorization")).toBe(`Basic ${Buffer.from("vendor-client:vendor-secret").toString("base64")}`);
+    const saved = (await rig.vaults.open((await rig.vaults.findMine(ORG, alice.identityId))!)).connections.get(VENDOR_ADDRESS)!;
+    expect(saved.signIn?.loginApp).toBe("org:oap_vendor");
+  });
+
+  it("renews such a sign-in with no secret and no resource when the app at its address is another client", async () => {
+    await seedOrganizationApp(rig, { clientId: "another-client" });
+    const { vault, connection } = await savedSignIn(expired(), "rt-old", { loginApp: "" });
+    rig.levers.tokenBodies.push({ body: { access_token: "at-new", expires_in: 3600 } });
+
+    expect(await freshener().freshToken(vault, connection, alice)).toBe("at-new");
+
+    const request = tokenRequests()[0]!;
+    expect(new URLSearchParams(request.body).has("resource")).toBe(false);
+    expect(request.headers.has("authorization")).toBe(false);
+    const saved = (await rig.vaults.open((await rig.vaults.findMine(ORG, alice.identityId))!)).connections.get(VENDOR_ADDRESS)!;
+    expect(saved.signIn?.loginApp).toBe("");
   });
 
   it("a renewal of a login replaced since it was read leaves the newer login in place", async () => {

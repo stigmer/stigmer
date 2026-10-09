@@ -25,9 +25,13 @@
  * sign-in's own token endpoint and client, so after an admin repoints the
  * app, its secret would reach an endpoint it was never issued for. Such a
  * sign-in renews without a secret, as one whose app is gone does, and the
- * provider decides. A public client of the address's own login server
- * renews without a secret, and with `resource` set to the address, as its
- * sign-in was made (RFC 8707).
+ * provider decides. A sign-in saved before login apps were recorded
+ * (`vendor_oauth` with no `login_app`) is renewed through the app the
+ * address finds now, under the same client id and token URL guard, and
+ * records it on write-back. A public client of the address's own login
+ * server (`mcp_oauth`) renews without a secret, and with `resource` set to
+ * the address, as its sign-in was made (RFC 8707); a login app's renewal
+ * never carries `resource`.
  *
  * Proven by __tests__/token-refresh.test.ts (the expiry arithmetic) and
  * __tests__/person.test.ts (renewal written through the vault, rotation,
@@ -44,7 +48,8 @@ import type { SecretService } from "../../../encryption/encryption.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
 import type { Store } from "../../../store/interface.js";
 import { isGitHostAddress } from "../address.js";
-import { loginAppByRef } from "../login-app.js";
+import { SIGN_IN_THROUGH_APP, SIGN_IN_THROUGH_LOGIN_SERVER } from "../constants.js";
+import { findLoginApp, loginAppByRef } from "../login-app.js";
 import type { LoginProviderSettings } from "../login-providers.js";
 import { SignInRenewalError } from "../resolve.js";
 import type { SignInFreshener } from "../resolve.js";
@@ -195,23 +200,31 @@ export function newSignInFreshener(deps: SignInFreshenerDeps): SignInFreshener {
         return connection.token;
       }
 
+      let loginApp = signIn.loginApp;
       let clientSecret = "";
       let tokenAuthMethod = "";
-      if (signIn.loginApp !== "") {
-        try {
-          ({ clientSecret, tokenAuthMethod } =
-            await loadSignInClientCredentials(deps, signIn));
-        } catch (error) {
-          deps.logger.warn("Failed to load the login app's client secret for renewal", {
-            login_app: signIn.loginApp,
-            error: error instanceof Error ? error.message : String(error),
-          });
+      try {
+        if (loginApp === "" && signIn.authMethod === SIGN_IN_THROUGH_APP) {
+          // Saved before sign-ins recorded their app: the app the address
+          // finds now, held to the same guard as a recorded one.
+          loginApp = (await findLoginApp(deps, vault.metadata?.org ?? "", connection.address))?.ref ?? "";
         }
+        if (loginApp !== "") {
+          ({ clientSecret, tokenAuthMethod } = await loadSignInClientCredentials(deps, {
+            ...signIn,
+            loginApp,
+          }));
+        }
+      } catch (error) {
+        deps.logger.warn("Failed to load the login app's client secret for renewal", {
+          login_app: loginApp,
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
       // A public client of the address's own login server was signed in
       // for the address as its resource; its renewal says so again.
       const resource =
-        signIn.loginApp === "" && !isGitHostAddress(connection.address) ? connection.address : "";
+        signIn.authMethod === SIGN_IN_THROUGH_LOGIN_SERVER && !isGitHostAddress(connection.address) ? connection.address : "";
 
       // The refresh token is opened only here, for a renewal.
       const renewing: VaultSignIn = {
@@ -243,6 +256,8 @@ export function newSignInFreshener(deps: SignInFreshenerDeps): SignInFreshener {
             ...renewing,
             expiresAt: BigInt(result.newExpiresAt),
             refreshToken: result.newRefreshToken,
+            // A legacy sign-in records the app whose secret renewed it.
+            loginApp: signIn.loginApp !== "" || clientSecret === "" ? signIn.loginApp : loginApp,
           },
           // A sign-in made since the run read this one stands.
           expectStoredToken: connection.storedToken,

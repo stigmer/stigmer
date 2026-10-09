@@ -178,7 +178,7 @@ export function openSignInRig(): SignInRig {
       });
     }
     if (url === `${LOGIN_SERVER}/.well-known/oauth-authorization-server` || url === "https://login.victim.example/.well-known/oauth-authorization-server") {
-      const base = url.startsWith(LOGIN_SERVER) ? LOGIN_SERVER : "https://login.victim.example";
+      const base = parsed.origin === LOGIN_SERVER ? LOGIN_SERVER : "https://login.victim.example";
       return json(200, {
         issuer: base,
         authorization_endpoint: `${base}/authorize`,
