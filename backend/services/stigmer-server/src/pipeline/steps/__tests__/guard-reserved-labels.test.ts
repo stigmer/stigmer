@@ -37,6 +37,8 @@ import {
 import { EXISTING_RESOURCE_KEY } from "../load-existing.js";
 import { newPermissiveSingleTeamAuthorizer } from "../authorize.js";
 import { recordServerStampedReservedLabels } from "../server-stamped-reserved-labels.js";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { GRADES_RUN_LABEL } from "../../../domain/score/judge/judge-run.js";
 
 const USER: CallerIdentity = {
   identityId: "ida_alice",
@@ -221,6 +223,21 @@ describe("GuardReservedLabels", () => {
       }),
       USER,
       ApiResourceKind.vault,
+    );
+    await expect(Promise.resolve(step.execute(ctx))).rejects.toMatchObject({
+      code: Code.InvalidArgument,
+    });
+  });
+
+  it("a client cannot mark its own run as an AI judge's: the judge label refuses on a run", async () => {
+    const step = newGuardReservedLabelsStep<typeof RunSchema>(denying());
+    const ctx = new RequestContext(
+      RunSchema,
+      create(RunSchema, {
+        metadata: { labels: { [GRADES_RUN_LABEL]: "run_someone_elses" } },
+      }),
+      USER,
+      ApiResourceKind.run,
     );
     await expect(Promise.resolve(step.execute(ctx))).rejects.toMatchObject({
       code: Code.InvalidArgument,

@@ -95,6 +95,7 @@ import type {
   StartInvokeWorkflowInput,
 } from "../engine.js";
 import { stubConnectedEngine } from "./engine-stub.js";
+import { GRADES_RUN_LABEL } from "../../score/judge/judge-run.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -1208,6 +1209,33 @@ describe("the compose steps where callers are persons", () => {
       );
       expect(got?.orgContext).toBe(visitor ? "" : "We deploy to us-east-1.");
       expect(got?.userContext).toBe("");
+    });
+  }
+
+  // A judge run grades another run's conversation: nothing the
+  // organization or the evaluator's creator wrote or remembers reaches it,
+  // in either posture (domain/score/judge/judge-run.ts).
+  for (const [posture, accounts] of [
+    ["where callers are persons", "persons"],
+    ["under the single-operator posture", "single"],
+  ] as const) {
+    it(`composes no standing context and recalls nothing for a judge run ${posture}`, async () => {
+      await seedOrg("test-org", "We deploy to us-east-1.");
+      await seedRecallRows();
+      const directoryOrNone =
+        accounts === "persons"
+          ? directory({ standingContext: "Call me Carol.", memoryEnabled: true })
+          : undefined;
+      const judge = newExecution("");
+      judge.metadata = { ...judge.metadata!, labels: { [GRADES_RUN_LABEL]: "run_judged" } };
+      const preferences = newContext(judge, carol);
+      await newComposeDeclaredPreferencesStep(store, silentLogger, directoryOrNone).execute(preferences);
+      expect(preferences.newState.status?.declaredPreferences?.orgContext).toBe("");
+      expect(preferences.newState.status?.declaredPreferences?.userContext).toBe("");
+      const memories = newContext(judge, carol);
+      await newComposeRecalledMemoriesStep(store, silentLogger, directoryOrNone).execute(memories);
+      expect(memories.newState.status?.recalledMemories?.enabled).toBe(false);
+      expect(memories.newState.status?.recalledMemories?.facts).toEqual([]);
     });
   }
 
