@@ -350,6 +350,16 @@ export { InternalCallerOfferedError } from "./extensions/list-read-scope.js";
 // counts against the schedule instead of retrying.
 export type { ScheduleFireCallerMint } from "./extensions/schedule-fire-caller.js";
 export { ScheduleFireCallerRefusedError } from "./extensions/schedule-fire-caller.js";
+// The identity an AI judge run acts as (drivers.gradingCaller) — the
+// composition mints it per judge run; the grading workflow propagates it
+// through the in-process caller header. A mint that can act as nobody throws
+// the seam's typed refusal, which records the run as not graded instead of
+// retrying.
+export type { GradingCallerMint } from "./extensions/grading-caller.js";
+export { GradingCallerRefusedError } from "./extensions/grading-caller.js";
+// The one predicate that tells an AI judge run apart (its reserved label),
+// for a composition that treats judge runs differently.
+export { GRADES_RUN_LABEL, isJudgeRun } from "./domain/score/judge/judge-run.js";
 // The visitor-sanitization policy the serving
 // chain's error boundary consumes (drivers.visitorErrorPolicy) — the
 // composition supplies WHO is on the anonymous surface and WHAT copy

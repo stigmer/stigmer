@@ -44,6 +44,7 @@ import {
   kindsWithoutRows,
 } from "../authorization/posture.js";
 import { newStoredResources } from "../authorization/stored-resources.js";
+import { newBuiltInGradingCaller } from "../authorization/grading-caller.js";
 import { newBuiltInScheduleFireCaller } from "../authorization/schedule-fire-caller.js";
 import { newTrustedLocalAuthorizer } from "../authorization/trusted-local-authorizer.js";
 import type { Authorizer } from "../extensions/authorizer.js";
@@ -52,6 +53,7 @@ import { ABSENT_LICENSE_STATUS } from "../extensions/license-status.js";
 import { relaxedEgressPolicy } from "../extensions/outbound-egress.js";
 import type { ListReadScope } from "../extensions/list-read-scope.js";
 import type { OrganizationDirectory } from "../extensions/organization-directory.js";
+import type { GradingCallerMint } from "../extensions/grading-caller.js";
 import type { ScheduleFireCallerMint } from "../extensions/schedule-fire-caller.js";
 import { registerAgentServices } from "../domain/agent/controller.js";
 import {
@@ -126,6 +128,7 @@ import { registerExecutionContextServices } from "../domain/executioncontext/con
 import { registerGitHubServices } from "../domain/github/controller.js";
 import { registerMemoryServices } from "../domain/memory/controller.js";
 import { newRunScoreCascade } from "../domain/score/cascade.js";
+import { registerEvaluatorServices } from "../domain/evaluator/controller.js";
 import { registerScoreServices } from "../domain/score/controller.js";
 import { newGradingObserver } from "../domain/score/grading-observer.js";
 import type {
@@ -685,6 +688,15 @@ export async function composeServer(
     (authorizationPosture === "built-in"
       ? newBuiltInScheduleFireCaller({ store, accounts: identityAccounts })
       : undefined);
+  // Who an AI judge run acts as: a unit's grading caller (the hosted
+  // edition's per-organization grading account), else the evaluator's
+  // creator under the built-in posture, else the server itself on the
+  // trusted-local laptop (extensions/grading-caller.ts).
+  const gradingCaller: GradingCallerMint | undefined =
+    extensions.drivers.gradingCaller ??
+    (authorizationPosture === "built-in"
+      ? newBuiltInGradingCaller({ store, accounts: identityAccounts })
+      : undefined);
   // The ONE list read scope (the seam's single-instance point), bound
   // here under the same posture and handed to every list-shaped consumer
   // below — the post-scan lanes through restrictListByReadScope, the
@@ -1140,6 +1152,9 @@ export async function composeServer(
         config: gradingTemporalConfig,
         recorder: scoreRecorder,
         deleter: scoreDeleter,
+        judgeRuns: () => requireInProcess().judgeRunCreator,
+        judgeSessions: () => requireInProcess().judgeSessionDeleter,
+        gradingCaller,
         logger,
       }),
       // Extension workers append after the OSS set — their own queues,
@@ -1778,6 +1793,12 @@ export async function composeServer(
       runnerCredentialProvider: runnerCredentials,
     });
     registerScoreServices(router, {
+      store,
+      logger,
+      authorizer,
+      authorizationLifecycle,
+    });
+    registerEvaluatorServices(router, {
       store,
       logger,
       authorizer,

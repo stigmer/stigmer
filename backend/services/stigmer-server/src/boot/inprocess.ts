@@ -35,6 +35,7 @@ import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/ses
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { SessionIdSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
+import { TerminateRunInputSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { ScoreCommandController } from "@stigmer/protos/ai/stigmer/agentic/score/v1/command_pb";
 import { ScoreIdSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
 
@@ -47,7 +48,12 @@ import type {
   SessionLoader,
 } from "../domain/run/create-execution-context-step.js";
 import type { ExecutionContextDeleter } from "../domain/executioncontext/internal-delete.js";
-import type { ScoreDeleter, ScoreRecorder } from "../domain/score/ports.js";
+import type {
+  JudgeRunCreator,
+  JudgeSessionDeleter,
+  ScoreDeleter,
+  ScoreRecorder,
+} from "../domain/score/ports.js";
 import type { ConnectExecutionContextClient } from "../domain/mcpserver/connect.js";
 import type { PluginMaterializer } from "../domain/plugin/materialize/ports.js";
 import { UpdateVisibilityInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -95,6 +101,20 @@ export interface InProcessClients {
    * its access goes with its row.
    */
   readonly scoreDeleter: ScoreDeleter;
+  /**
+   * The AI judge's run (temporal/grading/judge-activities.ts): its create
+   * enters the FULL run create pipeline, as the schedule clock's fire does,
+   * AS THE GRADING CALLER when the composition minted one (the asCaller
+   * lane), so the hosted edition's launch gates and sandbox see a caller
+   * they can bill and mint for; its terminate is the server's own.
+   */
+  readonly judgeRunCreator: JudgeRunCreator;
+  /**
+   * The judge session's removal once its grade is recorded: the session's
+   * delete chain as the server, which deletes its run and releases its
+   * sandbox.
+   */
+  readonly judgeSessionDeleter: JudgeSessionDeleter;
   /**
    * The connect lanes' ephemeral-EC lifecycle (server.go 693–705: the
    * mcpserver controller's executioncontext client) — create before the
@@ -252,6 +272,23 @@ export function createInProcessClients(
     scoreDeleter: {
       delete: async (scoreId) => {
         await scoreCommand.delete(create(ScoreIdSchema, { value: scoreId }));
+      },
+    },
+    judgeRunCreator: {
+      create: (run, caller) =>
+        agentExecutionCommand.create(
+          run,
+          caller === undefined ? undefined : asCaller(caller),
+        ),
+      terminate: async (runId, reason) => {
+        await agentExecutionCommand.terminate(
+          create(TerminateRunInputSchema, { id: runId, reason }),
+        );
+      },
+    },
+    judgeSessionDeleter: {
+      delete: async (sessionId) => {
+        await sessionCommand.delete(create(SessionIdSchema, { value: sessionId }));
       },
     },
     // The connect lane's ephemeral EC is created AS THE CONNECTING PERSON
