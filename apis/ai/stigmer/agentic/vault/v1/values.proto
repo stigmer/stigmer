@@ -1,0 +1,104 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.vault.v1;
+
+import "ai/stigmer/commons/rpc/method_options.proto";
+import "buf/validate/validate.proto";
+
+// VaultValueController hands a runner the values one execution uses, read
+// from their vaults when its work starts. Nothing else reads a vault's
+// values.
+//
+// @internal
+// A service of its own, apart from the vault's commands and queries, so the
+// one surface that answers plaintext is one file to audit. The authority is
+// the runner credential the server minted for the execution, not a
+// permission: runners act as the person who owns the run, so a permission
+// cannot tell them apart from that person.
+service VaultValueController {
+  // Fetch the values of a run or of a tool connect, grouped by who declared
+  // them, opened from the vaults the run's source manifest names
+  // (RunStatus.credentials.sources) as they are now.
+  //
+  // @internal
+  // Runner-only. Skip-authorization with a handler-level gate: the bearer
+  // must be a runner credential bound to this execution (the scope claim),
+  // and the execution must be live (a run not terminal, or ended within the
+  // grace; a connect's attempt row present and unexpired). An edition may
+  // compose the whole decision (RunnerCredentialProvider.
+  // authorizeExecutionValuesRead). Every other caller is refused with
+  // PERMISSION_DENIED; nothing is ever answered redacted.
+  //
+  // A run's manifest is read, never re-matched: each named vault is checked
+  // again with the resolver's rules (a My vault serves only its person;
+  // can_use for the run's person, or for the account that attached the
+  // vault to a run with no person), each tool filled from a connection is
+  // loaded and its address checked against the connection's, and each
+  // sign-in is renewed once, written back in the run's person's name. An
+  // entry gone since the run was planned, a vault the run may no longer
+  // use, a tool moved to another address, or a renewal the provider
+  // refuses answers FAILED_PRECONDITION naming the key, its declarer and
+  // the vault. A connect is planned when it fetches: the connecting
+  // person's My vault, or, for the runner's backfill of a run's tool, that
+  // tool's entries in the run's manifest.
+  rpc fetchValues(FetchExecutionValuesInput) returns (ExecutionValues) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+}
+
+// Which execution's values to fetch.
+message FetchExecutionValuesInput {
+  // The run's id, or the id of a tool connect's attempt.
+  string execution_id = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+// ExecutionValues are one execution's values, grouped by who declared them:
+// each declarer receives only its own.
+message ExecutionValues {
+  // The agent's own keys, for its shell and hooks: secrets by name and plain
+  // defaults, never a connection or a repository's token, and never a key a
+  // tool of the run declares.
+  map<string, DeliveredValue> agent = 1;
+
+  // Each tool's keys, by tool.
+  repeated ToolValues tools = 2;
+
+  // Each repository's token, for its clone and write-back only.
+  repeated RepositoryValues repositories = 3;
+}
+
+// DeliveredValue is one value as an execution receives it.
+message DeliveredValue {
+  // The value.
+  string value = 1;
+
+  // Whether the value is secret. Only a plain declaration's own default is
+  // not.
+  bool is_secret = 2;
+}
+
+// ToolValues are the values of one tool (an MCP server) of the execution.
+message ToolValues {
+  // The tool's MCP server id.
+  string mcp_server_id = 1;
+
+  // The tool's URL as the fetch read it, whose address was checked against
+  // each login it receives; empty for a local program. A runner sends the
+  // tool's values only to this URL.
+  string url = 2;
+
+  // The tool's keys and their values.
+  map<string, DeliveredValue> values = 3;
+}
+
+// RepositoryValues is the token of one repository the execution clones.
+message RepositoryValues {
+  // The workspace entry's name.
+  string name = 1;
+
+  // The repository's URL.
+  string url = 2;
+
+  // The token for its clone and write-back.
+  string token = 3;
+}

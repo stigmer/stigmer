@@ -131,7 +131,7 @@ service PlatformQueryController {
   // the exact work they serve. At task start the runner presents its bootstrap
   // token and names the run it was dispatched; the control plane verifies
   // the caller and returns a short-lived token scoped to that work, which the
-  // runner then uses for its ExecutionContext fetch. This makes a desktop
+  // runner then uses to fetch the run's values. This makes a desktop
   // runner indistinguishable, at the secret-release gate, from a
   // server-provisioned sandbox runner.
   //
@@ -319,7 +319,7 @@ message GetRunnerScopedTokenInput {
     option (buf.validate.oneof).required = true;
 
     // Run id — yields a token scoped to the run's parent
-    // session, valid for every ExecutionContext in that session (multi-turn).
+    // session, valid for every run in that session (multi-turn).
     string run_id = 1;
 
     // Warm-pool claim — a pool sandbox exchanging its pool credential for the
@@ -391,7 +391,7 @@ message TokenRenewal {}
 // keeps using its existing credential.
 message GetRunnerScopedTokenOutput {
   // Stigmer-signed token scoped to the requested work. The runner presents it
-  // for ExecutionContext reads in place of its unscoped bootstrap token.
+  // to fetch a run's values in place of its unscoped bootstrap token.
   //
   // @internal
   // iss=stigmer, sub=caller identity account, token_type=sandbox (with

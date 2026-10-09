@@ -41,7 +41,7 @@ enum AuthorizationScopeType {
   AUTHORIZATION_SCOPE_TYPE_PARENT = 3;
 
   // Owner link only, no scope hierarchy.
-  // Used for: api_key, execution_context (belongs to user, not org)
+  // Used for: api_key (belongs to user, not org)
   // FGA tuple: resource#owner@identity_account:<owner_id>
   AUTHORIZATION_SCOPE_TYPE_OWNER_ONLY = 4;
 
@@ -242,7 +242,7 @@ message ParentRelationConfig {
 //   owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
 //   grantable_roles: [owner, admin, member]
 //
-// Owner-only resource with no role sharing (api_key, execution_context):
+// Owner-only resource with no role sharing (api_key):
 //   scope_type: AUTHORIZATION_SCOPE_TYPE_OWNER_ONLY
 //   owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
 //   grantable_roles: [] (empty — owner is set at creation, no sharing)
@@ -285,7 +285,7 @@ message AuthorizationConfig {
   // and structural relations are excluded.
   //
   // Empty means no user-grantable roles: the resource is either owner-only
-  // (api_key, execution_context), inherits authorization from a parent
+  // (api_key), inherits authorization from a parent
   // (run), is self-owned (identity_account), or has no
   // authorization (platform, api_resource_version).
   repeated ai.stigmer.iam.v1.IamRole grantable_roles = 7;

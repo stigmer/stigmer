@@ -492,6 +492,62 @@ message RunCredentials {
   // re-derives it from the recovering caller. Server-only: a client-sent
   // value is discarded at create.
   optional string person = 1;
+
+  // Where each value the turn uses lives: one entry per key and declarer,
+  // naming a vault and an entry, never a value. A runner fetches the
+  // values from these vaults when the turn's work starts
+  // (VaultValueController.fetchValues). An optional key nothing holds has
+  // no entry.
+  //
+  // @internal
+  // Planned at create and again on recover, by the vault resolver's one
+  // rule (domain/vault/resolve.ts); server-only like person: a client-sent
+  // value is discarded at create and status writes never change it. Vault
+  // ids, not names: a run's status is read by everyone who may view the
+  // conversation, a share link's visitor included.
+  repeated RunValueSource sources = 2;
+}
+
+// RunValueSource says where one value a turn uses lives. It names no value.
+message RunValueSource {
+  // The environment variable.
+  string key = 1;
+
+  // Who declared it.
+  RunValueDeclarer declarer = 2;
+
+  // Where it lives.
+  RunValueOrigin origin = 3;
+
+  // The vault holding it; empty for a repository's own token and a
+  // declaration's default.
+  string vault_id = 4;
+
+  // The entry: a secret's name, a connection's address, or the repository
+  // entry's name for its own token; empty for a declaration's default.
+  string entry = 5;
+
+  // Whether the entry is a sign-in, renewed when the value is fetched.
+  bool sign_in = 6;
+
+  // A declaration's own plain default, the one value a manifest holds: it
+  // is a fixed setting of the agent or tool, never a secret.
+  string plain_value = 7;
+}
+
+// RunValueDeclarer names who declared a value a turn uses.
+message RunValueDeclarer {
+  // Agent, tool or repository.
+  RunValueDeclarerKind kind = 1;
+
+  // The agent's or tool's name, or the repository entry's name.
+  string name = 2;
+
+  // The tool's MCP server id; empty for an agent or a repository.
+  string mcp_server_id = 3;
+
+  // The repository's URL; empty for an agent or a tool.
+  string repository_url = 4;
 }
 
 // Setup progress reported during the RUN_PENDING phase.
