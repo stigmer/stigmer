@@ -76,6 +76,7 @@ import {
 import type { SignInClient } from "./client.js";
 import { discoverForResource } from "./discovery.js";
 import type { DiscoveredLoginServer } from "./discovery.js";
+import { loginEndpointProblem } from "./endpoint.js";
 import { generatePkce } from "./pkce.js";
 import type { PkcePair } from "./pkce.js";
 import { preflightAuthorize } from "./preflight.js";
@@ -281,6 +282,17 @@ interface PlannedSignIn {
 function throughApp(app: AppLogin, redirectUri: string, pkce: PkcePair, state: string): PlannedSignIn {
   if (app.unavailable !== undefined) {
     throw failedPreconditionError(app.unavailable);
+  }
+  const endpoints: [string, string][] = [
+    ["authorization URL", app.authorizationUrl],
+    ["token URL", app.tokenUrl],
+  ];
+  if (app.userinfoUrl !== "") endpoints.push(["user-info URL", app.userinfoUrl]);
+  for (const [field, value] of endpoints) {
+    const problem = loginEndpointProblem(value);
+    if (problem !== undefined) {
+      throw failedPreconditionError(`the login app for '${app.providerName}': its ${field} ${problem}`);
+    }
   }
   return {
     authorizationUrl: buildAuthorizationUrl(

@@ -21,8 +21,12 @@
  *     address's own origin.
  *
  * It answers the login server's `AuthServerMetadata` (the Go
- * AuthServerMetadata's parsed camelCase view), held to two rules (both
- * endpoints present, and S256 offered when methods are listed), and the
+ * AuthServerMetadata's parsed camelCase view), held to its rules: the
+ * document names the issuer it was read for (RFC 8414 section 3.3, checked
+ * by the reader, so registrations kept per issuer are kept under a name the
+ * document could not choose), both endpoints are present, every endpoint is
+ * https or loopback http (endpoint.ts), and S256 is offered when methods
+ * are listed. It also answers the
  * scopes the address's own document lists, which a sign-in asks for ahead
  * of the login server's. The error copy is contract: the sign-in embeds it
  * in its refusal, the conformance suite pins it, and the failure names the
@@ -40,6 +44,8 @@ import {
   type AuthorizationServerMetadata,
   type MetadataAttempt,
 } from "@stigmer/outbound/mcp-oauth";
+
+import { loginEndpointProblem } from "./endpoint.js";
 
 /**
  * OAuth 2.0 Authorization Server Metadata (Go AuthServerMetadata). Field
@@ -124,6 +130,9 @@ function discoveryFailure(issuers: readonly string[], attempts: readonly Metadat
   if (attempt?.error !== undefined) {
     return new Error(`discovery request to ${attempt.url} failed: ${attempt.error}`);
   }
+  if (attempt?.missing === "issuer") {
+    return new Error(`authorization server at ${attempt.url} does not name ${firstIssuer} as its issuer`);
+  }
   if (attempt?.missing !== undefined) {
     return new Error(`authorization server at ${attempt.url} is missing ${attempt.missing}`);
   }
@@ -166,6 +175,16 @@ function validateMetadata(m: AuthServerMetadata, sourceUrl: string): void {
   }
   if (m.tokenEndpoint === "") {
     throw new Error(`authorization server at ${sourceUrl} is missing token_endpoint`);
+  }
+  for (const [field, value] of [
+    ["authorization_endpoint", m.authorizationEndpoint],
+    ["token_endpoint", m.tokenEndpoint],
+    ["registration_endpoint", m.registrationEndpoint],
+  ] as const) {
+    const problem = value === "" ? undefined : loginEndpointProblem(value);
+    if (problem !== undefined) {
+      throw new Error(`authorization server at ${sourceUrl}: its ${field} ${problem}`);
+    }
   }
   if (m.codeChallengeMethodsSupported.length > 0 && !m.codeChallengeMethodsSupported.includes("S256")) {
     // Go renders the supported list with %v — space-separated in

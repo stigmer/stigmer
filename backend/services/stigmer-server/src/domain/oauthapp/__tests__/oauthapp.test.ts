@@ -352,6 +352,30 @@ describe("oauthapp domain (encryption enabled)", () => {
       await ts.command.delete({ resourceId: app.metadata!.id });
     });
   });
+
+  describe("login endpoints: https, or http on the loopback interface", () => {
+    it("refuses a script URL or plain http off the machine on create and update, naming the field", async () => {
+      const script = appInput();
+      const onCreate = await grpcError(() =>
+        ts.command.create({ ...script, spec: { ...script.spec, authorizationUrl: "javascript:alert(document.domain)//" } }),
+      );
+      expect(onCreate.code).toBe(Code.InvalidArgument);
+      expect(onCreate.rawMessage).toContain(
+        "spec.authorization_url must be an https URL (http only for localhost, 127.0.0.1 or [::1])",
+      );
+
+      const app = await ts.command.create(appInput());
+      const onUpdate = await grpcError(() =>
+        ts.command.update({ ...app, spec: { ...app.spec!, userinfoUrl: "http://vendor.example.com/me" } }),
+      );
+      expect(onUpdate.code).toBe(Code.InvalidArgument);
+      expect(onUpdate.rawMessage).toContain("spec.userinfo_url must be an https URL");
+
+      const local = await ts.command.update({ ...app, spec: { ...app.spec!, tokenUrl: "http://127.0.0.1:4000/token" } });
+      expect(local.spec?.tokenUrl).toBe("http://127.0.0.1:4000/token");
+      await ts.command.delete({ resourceId: app.metadata!.id });
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------

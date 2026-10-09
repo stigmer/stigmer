@@ -14,8 +14,9 @@
  *     only when the same person saved it through the same login app, client
  *     and token endpoint;
  *   - an address is normalized, and one nothing can sign in to is refused
- *     before any request leaves: a Git host with no login app, and a value
- *     that is no address at all;
+ *     before any request leaves: a Git host with no login app, a value that
+ *     is no address at all, an app its vendor has not approved, and an app
+ *     whose stored endpoints are neither https nor loopback http;
  *   - a named shared vault needs can_edit, and My vault can_create_vault on
  *     the organization, each at start and again at completion, before the
  *     code is exchanged; a full vault refuses a new login before the
@@ -308,6 +309,24 @@ describe("the address", () => {
   it("refuses an app pending its vendor's approval, saying what to do", async () => {
     await seedOrganizationApp(rig, { approval: VendorApprovalStatus.PENDING });
     await expectRefusal(start(alice), Code.FailedPrecondition, "is pending approval by the vendor. Paste a token instead");
+  });
+
+  it("refuses an app its vendor rejected, saying what to do", async () => {
+    await seedOrganizationApp(rig, { approval: VendorApprovalStatus.REJECTED });
+    await expectRefusal(start(alice), Code.FailedPrecondition, "is rejected by the vendor. Paste a token instead");
+  });
+
+  it("refuses an app whose stored login endpoints are neither https nor loopback http, before the browser is sent anywhere", async () => {
+    await seedOrganizationApp(rig, { authorizationUrl: "javascript:alert(document.domain)//" });
+    await expectRefusal(
+      start(alice),
+      Code.FailedPrecondition,
+      "the login app for 'Vendor': its authorization URL must be an https URL (http only for localhost, 127.0.0.1 or [::1])",
+    );
+    rig.close();
+    rig = openSignInRig();
+    await seedOrganizationApp(rig, { userinfoUrl: "http://login.vendor.example/me" });
+    await expectRefusal(start(alice), Code.FailedPrecondition, "its user-info URL must be an https URL");
   });
 });
 

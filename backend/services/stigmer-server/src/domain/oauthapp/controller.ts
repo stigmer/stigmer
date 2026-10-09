@@ -105,6 +105,7 @@ import {
   newReleaseDroppedAddressesStep,
 } from "./addresses.js";
 import {
+  newCheckLoginEndpointsStep,
   newEncryptClientSecretForCreateStep,
   newEncryptClientSecretForUpdateStep,
   redactOAuthApp,
@@ -177,6 +178,7 @@ async function createOAuthApp(
       newEncryptClientSecretForCreateStep(deps.secretService, deps.logger),
     )
     .addStep(newBuildNewStateStep())
+    .addStep(newCheckLoginEndpointsStep())
     .addStep(newNormalizeAddressesStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newClaimAddressesStep(deps.store, "create"))
@@ -222,6 +224,7 @@ async function update(
     .addStep(newResolveSlugStep({ update: true }))
     .addStep(newLoadExistingStep(deps.store))
     .addStep(newBuildUpdateStateStep())
+    .addStep(newCheckLoginEndpointsStep())
     .addStep(newNormalizeAddressesStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(

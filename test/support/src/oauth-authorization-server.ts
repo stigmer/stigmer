@@ -10,7 +10,9 @@
 //      the login server; its `resource` is the address the document
 //      describes, unless a suite overrides it (the discard arm).
 //   1. RFC 8414 metadata discovery — GET /.well-known/oauth-authorization-server
-//      at the issuer's origin (domain/vault/sign-in/discovery.ts).
+//      with the issuer's path inserted, or at the origin
+//      (domain/vault/sign-in/discovery.ts); each document names the issuer
+//      it is served for, as the reader requires.
 //   2. RFC 7591 Dynamic Client Registration — POST to the advertised
 //      registration_endpoint (sign-in/dcr.ts), counted, so a suite proves a
 //      client is registered once per login server.
@@ -240,7 +242,8 @@ export class MockOAuthAuthorizationServer {
 
   // The issuer this test's login server names: the origin with a tenant
   // path, fresh after every reset(). Its RFC 8414 document is served with
-  // the path inserted (and at the origin, for a walk that falls back there).
+  // the path inserted; the document at the origin names the origin, as a
+  // login server's own document must.
   issuer(): string {
     return `${this.origin()}/t${this.tenant}`;
   }
@@ -303,7 +306,12 @@ export class MockOAuthAuthorizationServer {
         requestUrl.pathname === `/.well-known/oauth-authorization-server/t${this.tenant}`)
     ) {
       this.discoveryPaths.push(requestUrl.pathname);
-      this.serveMetadata(res);
+      // Each document names the issuer it is served for (RFC 8414 section
+      // 3.3): the tenant's under the inserted path, the origin's at the root.
+      this.serveMetadata(
+        res,
+        requestUrl.pathname === "/.well-known/oauth-authorization-server" ? this.origin() : this.issuer(),
+      );
       return;
     }
     if (req.method === "POST" && requestUrl.pathname === "/register") {
@@ -325,13 +333,13 @@ export class MockOAuthAuthorizationServer {
     respondJson(res, 404, { error: "not found" });
   }
 
-  private serveMetadata(res: ServerResponse): void {
+  private serveMetadata(res: ServerResponse, issuer: string): void {
     if (this.discoveryStatus !== 200) {
       respondJson(res, this.discoveryStatus, { error: "metadata unavailable" });
       return;
     }
     respondJson(res, 200, {
-      issuer: this.issuer(),
+      issuer,
       authorization_endpoint: this.authorizationEndpoint(),
       token_endpoint: this.tokenEndpoint(),
       ...(this.omitRegistrationEndpoint ? {} : { registration_endpoint: `${this.origin()}/register` }),

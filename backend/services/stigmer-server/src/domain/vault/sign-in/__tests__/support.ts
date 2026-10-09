@@ -257,6 +257,7 @@ export async function seedOrganizationApp(
     readonly tokenUrl?: string;
     readonly approval?: VendorApprovalStatus;
     readonly userinfoUrl?: string;
+    readonly authorizationUrl?: string;
   } = {},
 ): Promise<string> {
   const id = init.id ?? "oap_vendor";
@@ -270,7 +271,7 @@ export async function seedOrganizationApp(
       provider: "Vendor",
       clientId: init.clientId ?? "vendor-client",
       clientSecret: "vendor-secret",
-      authorizationUrl: "https://login.vendor.example/authorize",
+      authorizationUrl: init.authorizationUrl ?? "https://login.vendor.example/authorize",
       tokenUrl: init.tokenUrl ?? VENDOR_TOKEN_URL,
       scopes: ["read"],
       userinfoUrl: init.userinfoUrl ?? "",

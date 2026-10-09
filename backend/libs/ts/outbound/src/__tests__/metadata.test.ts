@@ -159,14 +159,14 @@ describe("resolveAuthorizationServers", () => {
 describe("readAuthorizationServerMetadata", () => {
   it("reads a path-bearing issuer through the inserted well-known segment", async () => {
     const { fetchImpl, requested } = serving({
-      "https://login.vendor.test/.well-known/oauth-authorization-server/tenant": ISSUER_DOCUMENT,
+      "https://login.vendor.test/.well-known/oauth-authorization-server/tenant": { ...ISSUER_DOCUMENT, issuer: "https://login.vendor.test/tenant" },
     });
     const read = await readAuthorizationServerMetadata("https://login.vendor.test/tenant", { ...deps, fetchImpl });
     expect(read.kind).toBe("found");
     if (read.kind === "found") {
       expect(read.metadata).toEqual({
         metadataUrl: "https://login.vendor.test/.well-known/oauth-authorization-server/tenant",
-        issuer: "https://login.vendor.test",
+        issuer: "https://login.vendor.test/tenant",
         authorizationEndpoint: "https://login.vendor.test/authorize",
         tokenEndpoint: "https://login.vendor.test/token",
         registrationEndpoint: "https://login.vendor.test/register",
@@ -200,9 +200,24 @@ describe("readAuthorizationServerMetadata", () => {
     expect(requested).toEqual(["https://login.vendor.test/.well-known/oauth-authorization-server", "https://login.vendor.test/.well-known/openid-configuration"]);
   });
 
+  it("discards a document that names another login server as its issuer (RFC 8414 section 3.3)", async () => {
+    const { fetchImpl } = serving({
+      "https://login.attacker.test/.well-known/oauth-authorization-server": ISSUER_DOCUMENT,
+      "https://login.attacker.test/.well-known/openid-configuration": { ...ISSUER_DOCUMENT, issuer: "https://login.attacker.test.evil" },
+    });
+    const read = await readAuthorizationServerMetadata("https://login.attacker.test", { ...deps, fetchImpl });
+    expect(read).toEqual({
+      kind: "not-found",
+      attempts: [
+        { url: "https://login.attacker.test/.well-known/oauth-authorization-server", status: 200, missing: "issuer" },
+        { url: "https://login.attacker.test/.well-known/openid-configuration", status: 200, missing: "issuer" },
+      ],
+    });
+  });
+
   it("skips a document that lacks either endpoint and reports not-found with every attempt", async () => {
     const { fetchImpl } = serving({
-      "https://login.vendor.test/.well-known/oauth-authorization-server": { issuer: "x", authorization_endpoint: "https://login.vendor.test/authorize" },
+      "https://login.vendor.test/.well-known/oauth-authorization-server": { issuer: "https://login.vendor.test", authorization_endpoint: "https://login.vendor.test/authorize" },
       "https://login.vendor.test/.well-known/openid-configuration": { status: 503 },
     });
     const read = await readAuthorizationServerMetadata("https://login.vendor.test", { ...deps, fetchImpl });

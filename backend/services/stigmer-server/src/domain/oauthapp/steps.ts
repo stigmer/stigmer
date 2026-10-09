@@ -1,7 +1,7 @@
 /**
  * OAuthApp domain-local pipeline steps — port
  * pkg/domain/oauthapp/controller/steps: the client-secret encrypt/preserve
- * step and the response redaction helper.
+ * step, the login endpoint check and the response redaction helper.
  * Proven by oauthapp.conformance.test.ts and __tests__/oauthapp.test.ts.
  */
 
@@ -19,12 +19,39 @@ import {
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
+import { loginEndpointProblem } from "../vault/sign-in/endpoint.js";
 import {
   CIPHERTEXT_SHAPED_SECRET_MESSAGE,
   MARKER_ON_CREATE_MESSAGE,
   PRESERVE_NO_EXISTING_SECRET_MESSAGE,
   REDACTED_MARKER,
 } from "./constants.js";
+
+/**
+ * Refuses an app whose authorization, token or user-info URL breaks the
+ * login endpoint rule (https, or http on the loopback interface), naming the
+ * field and never the value: the console sends a person's browser to the
+ * authorization URL, so a script URL there would run in the console's
+ * origin, and the other two receive a code, a secret or a token.
+ */
+export function newCheckLoginEndpointsStep(): PipelineStep<typeof OAuthAppSchema> {
+  return {
+    name: "CheckLoginEndpoints",
+    execute(ctx: RequestContext<typeof OAuthAppSchema>): void {
+      const spec = ctx.newState.spec;
+      for (const [field, value] of [
+        ["authorization_url", spec?.authorizationUrl ?? ""],
+        ["token_url", spec?.tokenUrl ?? ""],
+        ["userinfo_url", spec?.userinfoUrl ?? ""],
+      ] as const) {
+        const problem = value === "" ? undefined : loginEndpointProblem(value);
+        if (problem !== undefined) {
+          throw invalidArgumentError(`spec.${field} ${problem}`);
+        }
+      }
+    },
+  };
+}
 
 /**
  * Replaces client_secret with the redaction marker (Go RedactOAuthApp).

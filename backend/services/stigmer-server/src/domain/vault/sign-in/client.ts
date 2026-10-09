@@ -60,9 +60,13 @@ export class NoSignInClientError extends Error {
   }
 }
 
-/** The key a login server's registrations are kept under: its issuer, else its registration endpoint. */
+/**
+ * The key a login server's registrations are kept under: its issuer, which
+ * discovery has checked is the issuer the document was read for, so no
+ * document can file a client under another login server's name.
+ */
 export function loginServerKey(metadata: AuthServerMetadata): string {
-  return metadata.issuer !== "" ? metadata.issuer : metadata.registrationEndpoint;
+  return metadata.issuer;
 }
 
 /** Whether a login server can give Stigmer a client at all, asked without registering anything. */

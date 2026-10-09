@@ -30,11 +30,16 @@
  * the challenge's pointer and the path-suffixed document, the MCP origin for
  * the bare one. A document naming another resource (or none) is discarded, so
  * a server cannot borrow the document of another resource on its origin to
- * send a sign-in to someone else's login server under its name.
+ * send a sign-in to someone else's login server under its name. Likewise an
+ * authorization-server document counts only when its `issuer` is the issuer
+ * it was asked for (RFC 8414 section 3.3, OpenID Discovery section 4.3), so
+ * a document cannot speak for another login server: a caller that keeps
+ * anything per issuer (a registered client) keys it by a name the document
+ * could not choose.
  *
  * Every attempt is recorded (URL, status or error) so a caller can name the
- * document it failed on. The reader validates nothing beyond the two
- * endpoints a login needs; the control plane keeps its own pinned
+ * document it failed on. The reader validates nothing beyond the issuer and
+ * the two endpoints a login needs; the control plane keeps its own pinned
  * validation and copy on top. Pure over an injected fetch, one deadline per
  * request.
  *
@@ -64,7 +69,7 @@ export interface MetadataAttempt {
   readonly status?: number;
   readonly error?: string;
   /** Set when the document parsed but lacked the endpoint a login needs, so a caller can say which. */
-  readonly missing?: "authorization_endpoint" | "token_endpoint" | "resource";
+  readonly missing?: "authorization_endpoint" | "token_endpoint" | "resource" | "issuer";
 }
 
 export type MetadataRead =
@@ -167,6 +172,11 @@ export async function readAuthorizationServerMetadata(issuer: string, deps: Meta
   for (const metadataUrl of authorizationServerMetadataUrls(parsed)) {
     const document = await readJson(metadataUrl, deps, attempts);
     if (document === undefined) continue;
+    if (canonicalResource(readString(document, "issuer")) !== canonicalResource(parsed.href)) {
+      const last = attempts.pop();
+      if (last !== undefined) attempts.push({ ...last, missing: "issuer" });
+      continue;
+    }
     const authorizationEndpoint = readString(document, "authorization_endpoint");
     const tokenEndpoint = readString(document, "token_endpoint");
     if (authorizationEndpoint === "" || tokenEndpoint === "") {

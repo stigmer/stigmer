@@ -5,7 +5,9 @@
  * the address as its resource) with the address's origin as the last
  * resort the retired reader used; the address's own scopes beside the
  * login server's; whether the login server takes a Client ID Metadata
- * Document; S256 mandatory when advertised; and every error message
+ * Document; the issuer a document names must be the one it was read for;
+ * every endpoint https or loopback http; S256 mandatory when advertised;
+ * and every error message
  * verbatim, because the sign-in embeds it in its refusal and the
  * conformance suite pins it against the first document tried.
  */
@@ -83,7 +85,7 @@ describe("discoverForResource", () => {
   it("inserts the well-known segment before an issuer's path (RFC 8414 section 3)", async () => {
     const { fetchImpl } = serving({
       "https://mcp.example.com/.well-known/oauth-protected-resource": { resource: "https://mcp.example.com", authorization_servers: ["https://auth.example.com/tenant"] },
-      "https://auth.example.com/.well-known/oauth-authorization-server/tenant": VALID_METADATA,
+      "https://auth.example.com/.well-known/oauth-authorization-server/tenant": { ...VALID_METADATA, issuer: "https://auth.example.com/tenant" },
     });
     const { metadata } = await discoverForResource("https://mcp.example.com/", fetchImpl);
     expect(metadata.tokenEndpoint).toBe("https://auth.example.com/token");
@@ -91,7 +93,7 @@ describe("discoverForResource", () => {
 
   it("falls back to the endpoint's origin when no protected-resource document exists, sending Accept: application/json", async () => {
     const { fetchImpl, requested, accepts } = serving({
-      "https://mcp.example.com/.well-known/oauth-authorization-server": VALID_METADATA,
+      "https://mcp.example.com/.well-known/oauth-authorization-server": { ...VALID_METADATA, issuer: "https://mcp.example.com" },
     });
     const { metadata, resourceScopes } = await discoverForResource("https://mcp.example.com/mcp", fetchImpl);
     expect(metadata.scopesSupported).toEqual(["read", "write"]);
@@ -185,6 +187,27 @@ describe("discoverForResource: what the documents say", () => {
     const { fetchImpl } = serving({ "https://auth.example.com/.well-known/oauth-authorization-server": body });
     await expect(discoverForResource("https://auth.example.com", fetchImpl)).rejects.toThrow(
       `authorization server at https://auth.example.com/.well-known/oauth-authorization-server ${fragment}`,
+    );
+  });
+
+  it("refuses a login server whose document names another issuer (RFC 8414 section 3.3)", async () => {
+    const { fetchImpl } = serving({
+      "https://mcp.example.com/.well-known/oauth-authorization-server": { ...VALID_METADATA, issuer: "https://login.victim.example" },
+    });
+    await expect(discoverForResource("https://mcp.example.com/mcp", fetchImpl)).rejects.toThrow(
+      "authorization server at https://mcp.example.com/.well-known/oauth-authorization-server does not name https://mcp.example.com as its issuer",
+    );
+  });
+
+  const unsafeEndpoint: Array<[string, Record<string, unknown>]> = [
+    ["authorization_endpoint", { ...VALID_METADATA, authorization_endpoint: "javascript:alert(document.domain)//" }],
+    ["token_endpoint", { ...VALID_METADATA, token_endpoint: "http://auth.example.com/token" }],
+    ["registration_endpoint", { ...VALID_METADATA, registration_endpoint: "data:text/plain,x" }],
+  ];
+  it.each(unsafeEndpoint)("refuses a %s that is neither https nor loopback http", async (field, body) => {
+    const { fetchImpl } = serving({ "https://auth.example.com/.well-known/oauth-authorization-server": body });
+    await expect(discoverForResource("https://auth.example.com", fetchImpl)).rejects.toThrow(
+      `authorization server at https://auth.example.com/.well-known/oauth-authorization-server: its ${field} must be an https URL (http only for localhost, 127.0.0.1 or [::1])`,
     );
   });
 
