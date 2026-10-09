@@ -548,10 +548,13 @@ test("the notes warn an install that states its unauthenticated exposure on purp
 test("the notes warn a sign-in install whose public URL is plain HTTP, and only it", () => {
   const WARNING = "Sign-in runs over plain HTTP";
   const plain = renderNotes("ingress-oidc", { sets: ["ingress.api.tlsSecretName="] });
-  assert.ok(plain.includes(WARNING), `the notes warn:\n${plain}`);
-  assert.ok(
-    plain.includes("http://stigmer.example.com/auth/callback"),
-    `the notes name the plain redirect URI:\n${plain}`,
+  assert.equal(
+    plain.split("\n").find((line) => line.startsWith(WARNING)),
+    "Sign-in runs over plain HTTP: the public URL is http://stigmer.example.com, so tokens and the redirect URI " +
+      "cross the network unencrypted, and most identity providers refuse an http redirect URI on any host but " +
+      "localhost. Give the API's Ingress a TLS Secret (ingress.api.tlsSecretName), or, when TLS ends in front of " +
+      "the Ingress, set server.publicUrl to the https URL people use.",
+    `the notes warn, naming the plain public URL:\n${plain}`,
   );
   const plainUrl = renderNotes("ingress-oidc", { sets: ["server.publicUrl=http://stigmer.internal"] });
   assert.ok(plainUrl.includes(WARNING), `a plain public URL set by hand is warned of too:\n${plainUrl}`);
