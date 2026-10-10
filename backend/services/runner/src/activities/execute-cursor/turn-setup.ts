@@ -40,10 +40,9 @@ import type { Config } from "../../config.js";
 import type { TurnInput, TurnSink } from "../../harness/types.js";
 import { toCursorImages } from "../../shared/attachment-vision.js";
 import { emitTimingLog } from "../../shared/cold-start-timing.js";
-import { deriveExecutionFingerprintKey } from "../../shared/approval-fingerprint.js";
 import { isUnattendedApprovalMode } from "../../shared/approval-policy.js";
 import { excludeAppliedFromGrants } from "../../shared/exact-apply.js";
-import { getRunnerHitlMasterSecret } from "../../shared/fingerprint-secret.js";
+import { executionFingerprintKey } from "../../shared/fingerprint-secret.js";
 import { realpath } from "node:fs/promises";
 import { CURSOR_SDK_TOOL_COVERS } from "@stigmer/tool-vocabulary";
 import {
@@ -466,7 +465,7 @@ export async function installGate(
     ? buildApprovalGrants(grantApprovals, approvalDecisions, rows.adjudicatedContentDigests)
     : undefined;
   if (approvalGrants && approvalGrants.length > 0 && !globalBypass) {
-    emitCursorGrantReceipts(approvalGrants, deriveExecutionFingerprintKey(getRunnerHitlMasterSecret(), executionId), executionId);
+    emitCursorGrantReceipts(approvalGrants, executionFingerprintKey(executionId), executionId);
   }
   // CAS capture requires artifact storage to persist blobs
   // (captureCandidateToLedger throws without it). In a git tree, captureMode

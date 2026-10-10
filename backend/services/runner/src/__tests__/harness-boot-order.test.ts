@@ -2,8 +2,8 @@
  * The harness boot order, proven in a fresh process.
  *
  * The contract (`harness/types.ts` `boot`, `http2-interceptor.ts` header):
- * the composition roots import `harness-adapters.js` and `harness/registry.js`
- * BEFORE bootstrap, the Cursor adapter's `boot` installs the proxy
+ * the composition roots import `harness-adapters.js`, `harness/registry.js`
+ * and `agent-host/hosting.js` BEFORE bootstrap, the Cursor adapter's `boot` installs the proxy
  * interceptors — the HTTP/2 one patches `node:http2`, whose ESM facade is
  * snapshotted at its first import by `@connectrpc/connect-node` — proves the
  * patch reached the facade, and only then loads `@cursor/sdk`. Every module
@@ -21,11 +21,12 @@
  * the first arm; a `boot` that stopped asserting fails the second.
  *
  * The table has two rows since #1096 (2026-09-13): the child boots the
- * Cursor adapter and then the native deep-agent adapter, whose `boot`
- * registers the deepagents profiles and loads LangChain — after the patch,
- * because it is the second row. A `boot` that reordered the rows, or a
- * native adapter that imported its engine statically, would move that load
- * before the patch; the first arm below is where that would show.
+ * Cursor adapter and then the native deep-agent adapter. The native row is
+ * hosted (#2016): its `boot` starts a real agent host from this build's
+ * entry, which registers the deepagents profiles and loads LangChain in its
+ * own process, so the first arm also proves a host starts, announces itself
+ * and boots. A pre-boot module that imported connect-node statically, or a
+ * Cursor boot that stopped asserting, shows in the arms below.
  *
  * `HOME` points at a temp dir so an SDK import-time side effect cannot touch
  * the developer's home; the proxy endpoint is an inert loopback; nothing is

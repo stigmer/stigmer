@@ -36,6 +36,10 @@
  *      Linux sandbox, and Node on Windows cannot deliver SIGTERM as a signal
  *      (kill force-terminates), so the clean-stop check could never pass there
  *      (the desktop's Windows release leg runs this script).
+ *   5b. Agent host — the entry started as the runner starts its agent host
+ *      (`main.js agent-host`, a pipe on fd 3) announces itself on the pipe and
+ *      exits when the pipe closes (verify-agent-host-boot.mjs, run by the same
+ *      Node). Runs on every platform: every runner starts one.
  *   6. Static mode — boots, creates a Worker (native bridge + pre-built
  *      workflow bundle + sandbox worker thread), reaches RUNNING, and shuts
  *      down gracefully on SIGINT.
@@ -72,8 +76,9 @@
  * runtime against resources/runner, whose entry is dist/main.js. The sandbox
  * image's release smoke runs it inside the image against /runner/dist with
  * /runner/bin/start, the layer's start script, which execs /runner/bin/node.
- * The script imports only Node built-ins and its sibling
- * verify-attach-boot.mjs, so it runs from a mounted checkout.
+ * The script imports only Node built-ins and its siblings
+ * verify-attach-boot.mjs and verify-agent-host-boot.mjs, so it runs from a
+ * mounted checkout.
  */
 
 import { spawn, spawnSync } from "node:child_process";
@@ -323,6 +328,19 @@ function verifyAttachEntry() {
   }
 }
 
+// ─── 5b. Agent host (no Temporal required) ──────────────────────────────────
+
+function verifyAgentHost() {
+  const script = fileURLToPath(new URL("./verify-agent-host-boot.mjs", import.meta.url));
+  const result = spawnSync(nodeBinary, [script, "--node", nodeBinary, "--entry", join(isolatedDir, entry)], {
+    encoding: "utf8",
+    timeout: BOOT_TIMEOUT_MS,
+  });
+  if (result.status !== 0) {
+    throw new Error(`the agent host failed its boot.\n${`${result.stdout}${result.stderr}`.slice(-2000)}`);
+  }
+}
+
 // ─── 6. Static mode ──────────────────────────────────────────────────────────
 
 async function verifyStaticMode() {
@@ -499,6 +517,8 @@ try {
     verifyAttachEntry();
     console.log("[attach] OK: the attach entry served readiness, refused a foreign push and stopped cleanly");
   }
+  verifyAgentHost();
+  console.log("[host]   OK: the entry started as the agent host announced itself on its pipe and exited when it closed");
 
   if (skipTemporalBoots) {
     console.log("verify-slim-artifact: PASS (checks 1–5; Temporal boots skipped via --no-temporal)");

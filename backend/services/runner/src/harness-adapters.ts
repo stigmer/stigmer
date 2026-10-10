@@ -31,9 +31,18 @@
 
 import { createCursorAdapter } from "./activities/execute-cursor/adapter.js";
 import { createDeepAgentAdapter } from "./activities/execute-deep-agent/adapter.js";
-import type { HarnessRow } from "./harness/registry.js";
+import type { HarnessName, HarnessRow } from "./harness/registry.js";
 
 export const HARNESS_ADAPTERS: readonly HarnessRow[] = [
   { harness: "cursor", adapter: createCursorAdapter() },
   { harness: "deep-agent", adapter: createDeepAgentAdapter() },
 ];
+
+/**
+ * The harnesses whose engines run in the agent host, the runner's separate
+ * process that holds none of its credentials (`agent-host/hosting.ts`,
+ * #2016). The Cursor harness still runs in the runner's own process: its
+ * transport interceptors and its approval hook server move with it, in a
+ * change of their own.
+ */
+export const HOSTED_HARNESSES: ReadonlySet<HarnessName> = new Set<HarnessName>(["deep-agent"]);

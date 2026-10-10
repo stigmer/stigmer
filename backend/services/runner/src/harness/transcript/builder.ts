@@ -97,7 +97,10 @@
  * `onStall`): one observer, fixed at the one constructor call, nothing to
  * add or remove mid-turn. The observer runs in its own try/catch, so it can
  * neither block a fold nor break a harness; `seed()` does not notify it,
- * because a seeded row is last turn's fact.
+ * because a seeded row is last turn's fact. When the adapter runs in the agent
+ * host, the events are folded by the host's builder and this one only relays
+ * them to its observer ({@link relayObserved}), with the instant of the
+ * host's fold.
  *
  * What this builder deliberately does NOT write, and who does (the adapter
  * contract's field ownership, `harness/types.ts` `TurnSink`): the phase,
@@ -147,7 +150,8 @@ import type {
 } from "./events.js";
 
 /** Sees every event the builder folded, in order, after the fold. Creates nothing. */
-export type TranscriptObserver = (event: TranscriptEvent) => void;
+/** Told every folded event; `atMs` is the fold's instant (`performance.now()` scale) when it is not now. */
+export type TranscriptObserver = (event: TranscriptEvent, atMs?: number) => void;
 
 export class TranscriptBuilder {
   readonly executionId: string;
@@ -237,6 +241,25 @@ export class TranscriptBuilder {
     if (!this.observer) return;
     try {
       this.observer(event);
+    } catch (err) {
+      console.error(
+        `[TranscriptBuilder] Observer error: execution=${this.executionId} kind=${event.kind}: ${err}`,
+      );
+    }
+  }
+
+  /**
+   * Tell the observer about an event the agent host's builder folded
+   * (`agent-host/remote-adapter.ts`): the host's builder is the adapter's,
+   * this one is the runtime's, and the runtime's timeline observes through
+   * this one. Nothing is folded here; the host's rows reach this status
+   * with its next persist. `atMs` is the host's fold instant on this
+   * process's `performance.now()` scale. Never throws.
+   */
+  relayObserved(event: TranscriptEvent, atMs: number): void {
+    if (!this.observer) return;
+    try {
+      this.observer(event, atMs);
     } catch (err) {
       console.error(
         `[TranscriptBuilder] Observer error: execution=${this.executionId} kind=${event.kind}: ${err}`,

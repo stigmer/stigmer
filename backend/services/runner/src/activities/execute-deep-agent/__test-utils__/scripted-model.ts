@@ -200,6 +200,12 @@ export interface ScriptedTurnInfo {
    * model, never from the script, so it is what the engine actually ran.
    */
   readonly priorToolCallIds: readonly string[];
+  /**
+   * The ids of every tool call this model issued on an earlier turn, in any
+   * role: on a sub-agent's first turn, its parent's still-running call is
+   * among them though the sub-agent's own transcript never shows it.
+   */
+  readonly issuedToolCallIds: readonly string[];
 }
 
 export interface ScriptedModelOptions {
@@ -210,6 +216,12 @@ export interface ScriptedModelOptions {
    * interruption lands at the same instant every run.
    */
   readonly onTurn?: (info: ScriptedTurnInfo) => void | Promise<void>;
+  /**
+   * Where the model records each tool call it issues, shared by every
+   * instance `bindTools` derives (one per role), so {@link ScriptedTurnInfo.issuedToolCallIds}
+   * spans roles. Created by the driver; absent, nothing is recorded.
+   */
+  readonly issued?: Set<string>;
   /**
    * Called the moment a `hang` turn parks on its abort signal — the engine
    * is silent from here until the signal fires. A test that must stop the
@@ -264,9 +276,12 @@ export class ScriptedModel extends BaseChatModel {
       boundToolNames: this.toolNames,
       round,
       priorToolCallIds: priorToolCallIds(messages),
+      issuedToolCallIds: [...(this.options.issued ?? [])],
     });
     const context: ScriptRoleContext = { systemPrompt: systemPromptOf(messages) };
-    return resolveTurn(this.select(this.toolNames, context), { round, transcript: messages, toolNames: this.toolNames });
+    const turn = resolveTurn(this.select(this.toolNames, context), { round, transcript: messages, toolNames: this.toolNames });
+    for (const call of turn.toolCalls ?? []) this.options.issued?.add(call.id);
+    return turn;
   }
 
   /**

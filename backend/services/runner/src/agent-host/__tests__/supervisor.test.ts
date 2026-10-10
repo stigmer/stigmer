@@ -1,0 +1,282 @@
+/**
+ * The agent host's supervisor (`agent-host/supervisor.ts`) and the hosting
+ * the roots call (`agent-host/hosting.ts`), at the edges the spawned-host
+ * and hostile-host tests do not reach.
+ *
+ * Pinned:
+ *  - a host that dies is started again on its own, without waiting for the
+ *    next turn, after the backoff; a host that served longer than the
+ *    longest delay is restarted after the first delay again; a start that
+ *    fails is retried on the same backoff, and the default log says so;
+ *  - shutting down a harness that was never booted touches nothing; a host
+ *    whose start was under way when the last harness shut down is ended,
+ *    not adopted, and nothing restarts it;
+ *  - a call from the host for a turn the runner is not running is refused;
+ *  - harnesses booted at the same moment, while the host is still starting,
+ *    are each booted in it once;
+ *  - the production starter runs this build's entry in its agent-host mode
+ *    under the runner's own Node (as Node, under an Electron embedder), from
+ *    source under tsx; a host that cannot
+ *    be spawned closes its channel instead of throwing; the host outlives
+ *    the SIGTERM and SIGINT its process group receives (a daemon's stop, a
+ *    terminal's Ctrl-C) and exits only when its pipe closes, so a runner
+ *    draining its turns keeps its host; a host that has not exited a grace
+ *    after it was told to end is killed;
+ *  - hosting replaces exactly the hosted harnesses' adapters with remote
+ *    ones and leaves the rest as they are.
+ */
+
+import { fileURLToPath } from "node:url";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { DEEP_AGENT_CAPABILITIES } from "../../activities/execute-deep-agent/deep-agent-capabilities.js";
+import { testConfig } from "../../__test-utils__/config-fixture.js";
+import type { HarnessAdapter } from "../../harness/types.js";
+import { RUNNER_ENTRY_URL } from "../../runner-entry.js";
+import { Peer, loopbackChannels } from "../channel.js";
+import { hostHarnesses } from "../hosting.js";
+import { AGENT_HOST_MODE_ARG, AGENT_HOST_PROTOCOL_VERSION, type HostCalls, type HostNotices, type RunnerCalls, type RunnerNotices } from "../protocol.js";
+import { AgentHostSupervisor, agentHostCommand, processHostStarter, spawnHostProcess, type HostStarter } from "../supervisor.js";
+
+const PROXY = { endpoint: "http://127.0.0.1:9", authorizeHost: () => {} };
+
+type HostSide = Peer<RunnerCalls, HostCalls, HostNotices, RunnerNotices>;
+
+/** A starter of in-process hosts that answer boot; each started host is kept for the test to end. */
+function inProcessHosts(): { readonly start: HostStarter; readonly hosts: HostSide[]; failNext: number } {
+  const state = {
+    hosts: [] as HostSide[],
+    failNext: 0,
+    start: (() => {
+      if (state.failNext > 0) {
+        state.failNext -= 1;
+        throw new Error("no host for you");
+      }
+      const [runnerEnd, hostEnd] = loopbackChannels();
+      const host: HostSide = new Peer<RunnerCalls, HostCalls, HostNotices, RunnerNotices>(hostEnd, "host");
+      host.handle("boot", async () => null);
+      host.handle("shutdown", async () => null);
+      host.sendHello(AGENT_HOST_PROTOCOL_VERSION);
+      state.hosts.push(host);
+      return { channel: runnerEnd, kill: () => hostEnd.close() };
+    }) as HostStarter,
+  };
+  return state;
+}
+
+async function until(condition: () => boolean, what: string): Promise<void> {
+  const deadline = Date.now() + 5_000;
+  while (!condition()) {
+    if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`);
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+}
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+describe("the supervisor's restarts", () => {
+  it("starts a host that died again on its own, and retries a start that failed, with the default log", async () => {
+    const warned: string[] = [];
+    vi.spyOn(console, "warn").mockImplementation((message: string) => void warned.push(message));
+    const hosts = inProcessHosts();
+    const supervisor = new AgentHostSupervisor({ proxy: PROXY, start: hosts.start, firstRestartDelayMs: 5, maxRestartDelayMs: 40 });
+    await supervisor.boot("deep-agent", testConfig());
+
+    hosts.failNext = 1;
+    hosts.hosts[0]!.close(new Error("crashed"));
+    await until(() => hosts.hosts.length === 2, "the second host");
+
+    expect(warned).toEqual([
+      "[agent-host] the agent host exited (crashed); restarting in 5ms",
+      "[agent-host] the agent host could not be started (no host for you); restarting in 10ms",
+    ]);
+    await supervisor.shutdown("deep-agent");
+  });
+
+  it("restarts a host that served longer than the longest delay after the first delay again", async () => {
+    const log: string[] = [];
+    const hosts = inProcessHosts();
+    const supervisor = new AgentHostSupervisor({ proxy: PROXY, start: hosts.start, firstRestartDelayMs: 5, maxRestartDelayMs: 40, log: (m) => void log.push(m) });
+    await supervisor.boot("deep-agent", testConfig());
+
+    hosts.hosts[0]!.close(new Error("first"));
+    await until(() => hosts.hosts.length === 2, "the second host");
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    hosts.hosts[1]!.close(new Error("second"));
+    await until(() => hosts.hosts.length === 3, "the third host");
+
+    expect(log).toEqual([
+      "[agent-host] the agent host exited (first); restarting in 5ms",
+      "[agent-host] the agent host exited (second); restarting in 5ms",
+    ]);
+    await supervisor.shutdown("deep-agent");
+  });
+});
+
+describe("the supervisor's edges", () => {
+  it("cancels the pending restart when a turn starts the host first", async () => {
+    const hosts = inProcessHosts();
+    const supervisor = new AgentHostSupervisor({ proxy: PROXY, start: hosts.start, firstRestartDelayMs: 20, log: () => {} });
+    await supervisor.boot("deep-agent", testConfig());
+
+    hosts.hosts[0]!.close(new Error("crashed"));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await supervisor.connection();
+    await new Promise((resolve) => setTimeout(resolve, 40));
+
+    expect(hosts.hosts, "the turn's start, and no second one from the timer").toHaveLength(2);
+    await supervisor.shutdown("deep-agent");
+  });
+
+  it("ends a host whose start was under way when the last harness shut down, and restarts nothing", async () => {
+    const log: string[] = [];
+    const hosts = inProcessHosts();
+    let release: () => void = () => {};
+    const held = new Promise<void>((resolve) => (release = resolve));
+    let starts = 0;
+    const start: HostStarter = async () => {
+      starts += 1;
+      const started = await hosts.start();
+      if (starts === 2) await held;
+      return started;
+    };
+    const supervisor = new AgentHostSupervisor({ proxy: PROXY, start, firstRestartDelayMs: 5, log: (m) => void log.push(m) });
+    await supervisor.boot("deep-agent", testConfig());
+
+    hosts.hosts[0]!.close(new Error("crashed"));
+    await until(() => hosts.hosts.length === 2, "the restart's host");
+    await supervisor.shutdown("deep-agent");
+    release();
+
+    await until(() => hosts.hosts[1]!.closed, "the late host to be ended");
+    await new Promise((resolve) => setTimeout(resolve, 40));
+    expect(hosts.hosts, "no further start").toHaveLength(2);
+    expect(log).toEqual(["[agent-host] the agent host exited (crashed); restarting in 5ms"]);
+  });
+
+  it("touches nothing when a harness that was never booted shuts down", async () => {
+    const hosts = inProcessHosts();
+    const supervisor = new AgentHostSupervisor({ proxy: PROXY, start: hosts.start, log: () => {} });
+    await supervisor.shutdown("cursor");
+    expect(hosts.hosts).toEqual([]);
+  });
+
+  it("boots each harness once in a host that was still starting when they were booted together", async () => {
+    const booted: string[] = [];
+    const hosts = inProcessHosts();
+    const start: HostStarter = async () => {
+      const started = await hosts.start();
+      const host = hosts.hosts.at(-1)!;
+      host.handle("boot", async ({ harness }) => {
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        booted.push(harness);
+        return null;
+      });
+      return started;
+    };
+    const supervisor = new AgentHostSupervisor({ proxy: PROXY, start, log: () => {} });
+
+    await Promise.all([supervisor.boot("cursor", testConfig()), supervisor.boot("deep-agent", testConfig())]);
+
+    expect(booted.sort()).toEqual(["cursor", "deep-agent"]);
+    expect(hosts.hosts).toHaveLength(1);
+    await supervisor.shutdown("cursor");
+    await supervisor.shutdown("deep-agent");
+  });
+
+  it("refuses a host's call for a turn the runner is not running", async () => {
+    const hosts = inProcessHosts();
+    const supervisor = new AgentHostSupervisor({ proxy: PROXY, start: hosts.start, log: () => {} });
+    await supervisor.boot("deep-agent", testConfig());
+
+    await expect(hosts.hosts[0]!.call("reportProgress", { turnId: "nobody", label: "x" })).rejects.toThrow("no turn nobody is running on this runner");
+    await supervisor.shutdown("deep-agent");
+  });
+});
+
+describe("the production starter", () => {
+  it("runs this build's entry in agent-host mode under the runner's Node, from source under tsx", () => {
+    const { command, args, env } = agentHostCommand();
+    expect(command).toBe(process.execPath);
+    expect(args).toEqual(["--import", "tsx", fileURLToPath(RUNNER_ENTRY_URL), AGENT_HOST_MODE_ARG]);
+    expect(env, "plain Node needs nothing").toEqual({});
+    expect(agentHostCommand({ ...process.versions, electron: "33.2.0" }).env, "Electron runs the entry as Node").toEqual({ ELECTRON_RUN_AS_NODE: "1" });
+    expect(fileURLToPath(RUNNER_ENTRY_URL).endsWith("main.ts")).toBe(true);
+  });
+
+  it("starts a real host that announces itself, and ends it when the runner is done", async () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const supervisor = new AgentHostSupervisor({ proxy: PROXY, start: processHostStarter(() => ({ ...process.env })), log: () => {} });
+    const peer = await supervisor.connection();
+    expect(peer.closed).toBe(false);
+    peer.close();
+    await new Promise<void>((resolve) => peer.onClose(() => resolve()));
+  });
+
+  it("outlives the signals its process group receives, and exits when its pipe closes", async () => {
+    const { command, args } = agentHostCommand();
+    const { started, child } = spawnHostProcess(command, args, { ...process.env });
+    const peer = new Peer<HostCalls, RunnerCalls, RunnerNotices, HostNotices>(started.channel, "runner");
+    expect(await peer.receivedHello(30_000)).toBe(AGENT_HOST_PROTOCOL_VERSION);
+
+    child.kill("SIGTERM");
+    child.kill("SIGINT");
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    expect(child.exitCode, "still running after the signals").toBeNull();
+    expect(child.signalCode).toBeNull();
+    expect(peer.closed).toBe(false);
+
+    const exited = new Promise<number | null>((resolve) => child.once("exit", (code) => resolve(code)));
+    peer.close();
+    expect(await exited).toBe(0);
+  }, 60_000);
+
+  it("kills a host that has not exited a grace after it was told to end", async () => {
+    const wedged = 'process.on("SIGTERM", () => {}); setInterval(() => {}, 1000);';
+    const { started, child } = spawnHostProcess(process.execPath, ["-e", wedged], { ...process.env }, 200);
+    const exited = new Promise<NodeJS.Signals | null>((resolve) => child.once("exit", (_code, signal) => resolve(signal)));
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    started.kill();
+    started.kill();
+    expect(await exited).toBe("SIGKILL");
+    started.kill();
+  });
+
+  it("closes the channel of a host that cannot be spawned instead of throwing", async () => {
+    const { started } = spawnHostProcess("/nonexistent/node-for-the-agent-host", [], {});
+    const reason = await new Promise<Error>((resolve) => started.channel.onClose(resolve));
+    expect(reason.message).toMatch(/ENOENT/);
+    started.kill();
+  });
+});
+
+describe("hosting the table", () => {
+  it("replaces exactly the hosted harnesses' adapters, and closes its proxy", async () => {
+    const adapter = (name: string): HarnessAdapter => ({
+      name,
+      capabilities: DEEP_AGENT_CAPABILITIES,
+      boot: async () => {},
+      shutdown: async () => {},
+      releaseSession: async () => {},
+      runTurn: async () => ({ kind: "completed" }),
+    });
+    const native = adapter("native");
+    const cursor = adapter("cursor");
+    const hosted = await hostHarnesses(
+      [
+        { harness: "cursor", adapter: cursor },
+        { harness: "deep-agent", adapter: native },
+      ],
+      testConfig(),
+      { start: inProcessHosts().start },
+    );
+
+    expect(hosted.rows[0]!.adapter, "the Cursor harness still runs in the runner").toBe(cursor);
+    expect(hosted.rows[1]!.adapter, "the native harness is hosted").not.toBe(native);
+    expect(hosted.rows[1]!.adapter.name).toBe("native");
+    expect(hosted.rows[1]!.adapter.capabilities).toBe(native.capabilities);
+    await hosted.close();
+  });
+});

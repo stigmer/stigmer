@@ -16,7 +16,7 @@ import { describe, it, expect } from "vitest";
 
 import { testConfig } from "../../__test-utils__/config-fixture.js";
 import { DEEP_AGENT_VISION_PROFILE } from "../../shared/attachment-vision.js";
-import { HARNESS_ACTIVITY_NAMES, bootHarnesses, releaseHarnessSession, shutdownHarnesses } from "../registry.js";
+import { HARNESS_ACTIVITY_NAMES, bootHarnesses, harnessRowFor, releaseHarnessSession, shutdownHarnesses } from "../registry.js";
 import type { HarnessAdapter } from "../types.js";
 
 interface StubBehaviour {
@@ -165,5 +165,11 @@ describe("releaseHarnessSession", () => {
       "first: releaseSession('ses-7') rejected: executor busy",
     ]);
     expect(log).toEqual(["release:first:ses-7", "release:second:ses-7"]);
+  });
+});
+
+describe("harnessRowFor", () => {
+  it("names a harness the table does not serve as a wiring defect", () => {
+    expect(() => harnessRowFor([], "cursor")).toThrow("harness registry: no adapter serves 'cursor'");
   });
 });

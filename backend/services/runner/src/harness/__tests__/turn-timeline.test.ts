@@ -271,4 +271,20 @@ describe("TurnTimeline — settle and the line's shape", () => {
       "outcome", "rounds", "segments", "session_id", "stigmer_timing", "sub_agents", "tool_calls", "total_ms", "turn_seq",
     ]);
   });
+
+  it("places a relayed event at the instant it was folded, not when it arrived (the agent host's builder folds it)", () => {
+    const clock = new ScriptedClock();
+    const timeline = new TurnTimeline(clock);
+    clock.at(900);
+    timeline.observe(START, ORIGIN_MS + 100);
+    timeline.observe(TEXT, ORIGIN_MS + 200);
+    timeline.observe(FINISH, ORIGIN_MS + 300);
+    clock.at(950);
+    const spy = vi.spyOn(console, "log").mockImplementation(() => {});
+    timeline.emit({});
+    const line = JSON.parse(spy.mock.calls[0]![0] as string) as EmittedLine;
+
+    expect(line.first_visible_token_ms).toBe(200);
+    expect(segment(line, "model_round")).toEqual({ name: "model_round", start_ms: 100, duration_ms: 200 });
+  });
 });

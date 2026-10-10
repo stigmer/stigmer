@@ -58,6 +58,29 @@ pinned somewhere. Read a row across before searching for anything.
 - `harness/run-turn.ts` — the activity body (`runTurnActivity`) and
   `settleWith`, the one place a turn's terminal status is written.
 
+## Where an adapter runs
+
+A harness's adapter runs either in the runner's own process or in the agent
+host, the runner's second process, which holds none of its credentials:
+
+- `harness-adapters.ts` — `HOSTED_HARNESSES` names the hosted ones; the native
+  deep-agent harness is, the Cursor harness is not yet.
+- `agent-host/hosting.ts` — what the composition roots call: the table with
+  each hosted row's adapter replaced by its remote stand-in.
+- `agent-host/remote-adapter.ts` — the stand-in: `createRemoteAdapter` turns
+  each member of the contract into a call over the host's pipe and checks
+  everything the host sends back.
+- `agent-host/host.ts` — the host's side: `serveAgentHost` runs the real
+  adapter against a sink of its own (`agent-host/host-sink.ts`).
+- `agent-host/codec.ts` — what crosses: the `TurnInput`, and the status split
+  by the owners this file's contract names.
+- `agent-proxy/server.ts` — `AgentProxy`, the runner's loopback proxy, the
+  host's only way to a credentialed call.
+
+An adapter written to the contract needs nothing more to be hosted: the hermetic
+suites and the native kit run it through the remote adapter
+(`__test-utils__/loopback-host.ts`).
+
 ## Adapter files
 
 What the contract requires:
@@ -123,7 +146,8 @@ Read off the registry, its tests and the package, not off the probes below. The
 composition roots, `runner.ts` and `runner-manager.ts`, read `HARNESS_ADAPTERS`
 and nothing per harness; there is nothing to touch there.
 
-- `harness-adapters.ts` — one row in `HARNESS_ADAPTERS`, in boot order.
+- `harness-adapters.ts` — one row in `HARNESS_ADAPTERS`, in boot order, and
+  the harness in `HOSTED_HARNESSES` when its engine runs in the agent host.
 - `harness/registry.ts` — one member of `HarnessName` and one entry in
   `HARNESS_ACTIVITY_NAMES`, byte-identical to the server's pin.
 - `harness/capabilities.ts` — the harness matrix in the header gains a column.
