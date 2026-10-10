@@ -1,0 +1,18 @@
+{
+  "name": "OrganizationPolicies",
+  "description": "OrganizationPolicies holds what an organization lets its members do.\n Each policy is a switch an admin turns in the organization's settings.",
+  "protoType": "ai.stigmer.tenancy.organization.v1.OrganizationPolicies",
+  "protoFile": "apis/ai/stigmer/tenancy/organization/v1/spec.proto",
+  "fields": [
+    {
+      "name": "MembersCanCreateAgents",
+      "jsonName": "membersCanCreateAgents",
+      "protoField": "members_can_create_agents",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "Members may create agents. On by default: a new organization lets its\n members create agents, as a GitHub organization lets its members\n create repositories. When off, only admins create agents. A member's\n agent is theirs: private or shared with the organization, never with\n child organizations, which stays an admin's choice.",
+      "required": false
+    }
+  ]
+}

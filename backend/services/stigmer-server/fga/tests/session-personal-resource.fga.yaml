@@ -2,7 +2,8 @@
 # deletability (since 2026-07-08).
 #
 # Sessions are always private: no visibility tuples are ever written, so
-# access is owner + explicit viewer grants only. Org admins have no implicit
+# access is owner + explicit participant and viewer grants only. A
+# participant reads and sends; a viewer only reads. Org admins have no implicit
 # access, and platform operators have no session-delete override — the
 # platform-level can_delete_session relation was removed in favor of
 # `can_delete: owner` on the session itself (deletion no longer threatens
@@ -15,8 +16,9 @@
 # Run with:
 #   fga model test --tests session-personal-resource.fga.yaml
 #
-# Scenario: org "acme" has admin alice, member bob (session creator), and
-# member carol. dana is a platform operator with no relation to the session.
+# Scenario: org "acme" has admin alice, member bob (session creator), member
+# carol (a viewer of bob's session) and member paul (a participant in it).
+# dana is a platform operator with no relation to the session.
 name: session-personal-resource
 model_file: ../../src/authorization/model/data/authorization-model.json
 
@@ -40,6 +42,12 @@ tuples:
   - user: identity_account:carol
     relation: affiliated
     object: organization:acme
+  - user: identity_account:paul
+    relation: member
+    object: organization:acme
+  - user: identity_account:paul
+    relation: affiliated
+    object: organization:acme
 
   # --- Platform operator (no relation to the session) ---
   - user: identity_account:dana
@@ -59,6 +67,11 @@ tuples:
     relation: viewer
     object: session:bobs-chat
 
+  # --- paul holds an explicit participant grant on the session ---
+  - user: identity_account:paul
+    relation: participant
+    object: session:bobs-chat
+
   # --- a run inside the session ---
   - user: session:bobs-chat
     relation: session
@@ -76,12 +89,25 @@ tests:
           can_create_run_in: true
           can_grant_access: true
 
-  - name: explicit viewer can view and run, but not edit or delete
+  - name: explicit viewer reads, but cannot send, edit or delete
     check:
       - user: identity_account:carol
         object: session:bobs-chat
         assertions:
           can_view: true
+          can_view_access: true
+          can_create_run_in: false
+          can_edit: false
+          can_delete: false
+          can_grant_access: false
+
+  - name: explicit participant reads and sends, but cannot edit, delete or share
+    check:
+      - user: identity_account:paul
+        object: session:bobs-chat
+        assertions:
+          can_view: true
+          can_view_access: true
           can_create_run_in: true
           can_edit: false
           can_delete: false
@@ -112,6 +138,13 @@ tests:
           can_view: true
           can_edit: true
       - user: identity_account:carol
+        object: run:run-1
+        assertions:
+          can_view: true
+          can_edit: false
+      # A participant reads the runs; stopping and approving stay the
+      # owners' (run#can_edit is owner from session).
+      - user: identity_account:paul
         object: run:run-1
         assertions:
           can_view: true

@@ -66,6 +66,17 @@
       "validation": {
         "maxLength": 64
       }
+    },
+    {
+      "name": "Policies",
+      "jsonName": "policies",
+      "protoField": "policies",
+      "type": {
+        "kind": "message",
+        "messageType": "OrganizationPolicies"
+      },
+      "description": "What the organization lets its members do. Set when the organization is\n created (an omitted message means the defaults: members may create\n agents) and changed only through updatePolicies, so an update or apply\n of a manifest written before a policy changed neither fails nor\n reverts it: a policy carried by update or apply is ignored.",
+      "required": false
     }
   ]
 }

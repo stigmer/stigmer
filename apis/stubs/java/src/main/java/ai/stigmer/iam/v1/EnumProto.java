@@ -19,6 +19,7 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
   }
   public static void registerAllExtensions(
       com.google.protobuf.ExtensionRegistryLite registry) {
+    registry.add(ai.stigmer.iam.v1.EnumProto.roleMeta);
   }
 
   public static void registerAllExtensions(
@@ -26,6 +27,22 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
     registerAllExtensions(
         (com.google.protobuf.ExtensionRegistryLite) registry);
   }
+  public static final int ROLE_META_FIELD_NUMBER = 90301;
+  /**
+   * <code>extend .google.protobuf.EnumValueOptions { ... }</code>
+   */
+  public static final
+    com.google.protobuf.GeneratedMessage.GeneratedExtension<
+      com.google.protobuf.DescriptorProtos.EnumValueOptions,
+      ai.stigmer.iam.v1.IamRoleMeta> roleMeta = com.google.protobuf.GeneratedMessage
+          .newFileScopedGeneratedExtension(
+        ai.stigmer.iam.v1.IamRoleMeta.class,
+        ai.stigmer.iam.v1.IamRoleMeta.getDefaultInstance());
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_iam_v1_IamRoleMeta_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_iam_v1_IamRoleMeta_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -36,52 +53,83 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
   static {
     java.lang.String[] descriptorData = {
       "\n\034ai/stigmer/iam/v1/enum.proto\022\021ai.stigm" +
-      "er.iam.v1*\252\n\n\rIamPermission\022\017\n\013unspecifi" +
-      "ed\020\000\022\014\n\010can_view\020\001\022\014\n\010can_edit\020\002\022\016\n\ncan_" +
-      "delete\020\003\022\024\n\020can_grant_access\020\004\022\023\n\017can_vi" +
-      "ew_access\020\005\022\024\n\020can_assign_roles\020/\022\027\n\023can" +
-      "_manage_audience\0200\022\024\n\020can_create_agent\020\006" +
-      "\022\026\n\022can_create_session\020\010\022\024\n\020can_create_s" +
-      "kill\020\t\022\022\n\016can_create_idp\020\013\022\037\n\033can_create" +
-      "_identity_account\020\025\022\030\n\024can_create_oauth_" +
-      "app\020\027\022\036\n\032can_create_platform_client\020\030\022\025\n" +
-      "\021can_create_run_in\020\r\022\017\n\013can_execute\020\017\022\025\n" +
-      "\021can_bootstrap_iam\020\021\022\017\n\013can_connect\020\026\022\024\n" +
-      "\020can_view_billing\020\033\022\026\n\022can_manage_billin" +
-      "g\020\034\022\033\n\027can_execute_billing_ops\020\035\022\032\n\026can_" +
-      "create_agent_share\020\036\022\032\n\026can_create_chann" +
-      "el_app\020\037\022\034\n\030can_manage_model_pricing\020 \022\036" +
-      "\n\032can_manage_cursor_accounts\020#\022\023\n\017can_pa" +
-      "rticipate\020$\022\035\n\031can_write_reserved_labels" +
-      "\020%\022\036\n\032can_view_provider_standing\020&\022\025\n\021ca" +
-      "n_create_plugin\020(\022\024\n\020can_manage_plans\020)\022" +
-      "\025\n\021can_issue_license\020*\022\031\n\025can_create_mcp" +
-      "_server\020+\022\023\n\017can_create_team\020-\022\026\n\022can_ma" +
-      "nage_credits\020.\022\031\n\025can_manage_child_orgs\020" +
-      "1\022\025\n\021can_view_settings\0202\022\024\n\020can_create_v" +
-      "ault\0203\022\033\n\027can_create_shared_vault\0204\022\013\n\007c" +
-      "an_use\0205\"\004\010\016\020\016\"\004\010\007\020\007\"\004\010\014\020\014\"\004\010\020\020\020\"\004\010\022\020\022\"\004" +
-      "\010\024\020\024\"\004\010\031\020\031\"\004\010\032\020\032\"\004\010!\020!\"\004\010\"\020\"\"\004\010\n\020\n\"\004\010\'\020\'" +
-      "\"\004\010,\020,*\023can_create_instance*\023can_create_" +
-      "workflow*\026can_create_environment*\020can_re" +
-      "ad_secrets*\034can_manage_identity_accounts" +
-      "*\024login_to_back_office*\021can_create_runne" +
-      "r*\022can_delete_session*\017can_use_records*\024" +
-      "can_create_datastore*\022can_create_project" +
-      "*\031can_set_public_visibility*\031can_create_" +
-      "agent_instance*x\n\007IamRole\022\030\n\024iam_role_un" +
-      "specified\020\000\022\t\n\005owner\020\001\022\t\n\005admin\020\002\022\n\n\006mem" +
-      "ber\020\003\022\n\n\006viewer\020\004\022\017\n\013participant\020\005\022\n\n\006ed" +
-      "itor\020\006\022\010\n\004user\020\007BrB\tEnumProtoP\001\242\002\003ASI\252\002\021" +
-      "Ai.Stigmer.Iam.V1\312\002\021Ai\\Stigmer\\Iam\\V1\342\002\035" +
-      "Ai\\Stigmer\\Iam\\V1\\GPBMetadata\352\002\024Ai::Stig" +
-      "mer::Iam::V1b\006proto3"
+      "er.iam.v1\032 google/protobuf/descriptor.pr" +
+      "oto\"R\n\013IamRoleMeta\022!\n\014display_name\030\001 \001(\t" +
+      "R\013displayName\022 \n\013description\030\002 \001(\tR\013desc" +
+      "ription*\252\n\n\rIamPermission\022\017\n\013unspecified" +
+      "\020\000\022\014\n\010can_view\020\001\022\014\n\010can_edit\020\002\022\016\n\ncan_de" +
+      "lete\020\003\022\024\n\020can_grant_access\020\004\022\023\n\017can_view" +
+      "_access\020\005\022\024\n\020can_assign_roles\020/\022\027\n\023can_m" +
+      "anage_audience\0200\022\024\n\020can_create_agent\020\006\022\026" +
+      "\n\022can_create_session\020\010\022\024\n\020can_create_ski" +
+      "ll\020\t\022\022\n\016can_create_idp\020\013\022\037\n\033can_create_i" +
+      "dentity_account\020\025\022\030\n\024can_create_oauth_ap" +
+      "p\020\027\022\036\n\032can_create_platform_client\020\030\022\025\n\021c" +
+      "an_create_run_in\020\r\022\017\n\013can_execute\020\017\022\025\n\021c" +
+      "an_bootstrap_iam\020\021\022\017\n\013can_connect\020\026\022\024\n\020c" +
+      "an_view_billing\020\033\022\026\n\022can_manage_billing\020" +
+      "\034\022\033\n\027can_execute_billing_ops\020\035\022\032\n\026can_cr" +
+      "eate_agent_share\020\036\022\032\n\026can_create_channel" +
+      "_app\020\037\022\034\n\030can_manage_model_pricing\020 \022\036\n\032" +
+      "can_manage_cursor_accounts\020#\022\023\n\017can_part" +
+      "icipate\020$\022\035\n\031can_write_reserved_labels\020%" +
+      "\022\036\n\032can_view_provider_standing\020&\022\025\n\021can_" +
+      "create_plugin\020(\022\024\n\020can_manage_plans\020)\022\025\n" +
+      "\021can_issue_license\020*\022\031\n\025can_create_mcp_s" +
+      "erver\020+\022\023\n\017can_create_team\020-\022\026\n\022can_mana" +
+      "ge_credits\020.\022\031\n\025can_manage_child_orgs\0201\022" +
+      "\025\n\021can_view_settings\0202\022\024\n\020can_create_vau" +
+      "lt\0203\022\033\n\027can_create_shared_vault\0204\022\013\n\007can" +
+      "_use\0205\"\004\010\016\020\016\"\004\010\007\020\007\"\004\010\014\020\014\"\004\010\020\020\020\"\004\010\022\020\022\"\004\010\024" +
+      "\020\024\"\004\010\031\020\031\"\004\010\032\020\032\"\004\010!\020!\"\004\010\"\020\"\"\004\010\n\020\n\"\004\010\'\020\'\"\004" +
+      "\010,\020,*\023can_create_instance*\023can_create_wo" +
+      "rkflow*\026can_create_environment*\020can_read" +
+      "_secrets*\034can_manage_identity_accounts*\024" +
+      "login_to_back_office*\021can_create_runner*" +
+      "\022can_delete_session*\017can_use_records*\024ca" +
+      "n_create_datastore*\022can_create_project*\031" +
+      "can_set_public_visibility*\031can_create_ag" +
+      "ent_instance*\267\004\n\007IamRole\022\030\n\024iam_role_uns" +
+      "pecified\020\000\022U\n\005owner\020\001\032J\352\213,F\n\005Owner\022=Ever" +
+      "ything, including deleting it and decidi" +
+      "ng who has access\022P\n\005admin\020\002\032E\352\213,A\n\005Admi" +
+      "n\0228Manage the organization\'s people, set" +
+      "tings and resources\022B\n\006member\020\003\0326\352\213,2\n\006M" +
+      "ember\022(Belongs to it and holds what it i" +
+      "s given\0223\n\006viewer\020\004\032\'\352\213,#\n\006Viewer\022\031Read " +
+      "it; cannot change it\022L\n\013participant\020\005\032;\352" +
+      "\213,7\n\013Participant\022(Read the conversations" +
+      " and send messages\022V\n\006editor\020\006\032J\352\213,F\n\006Ed" +
+      "itor\022<Change and use it; cannot delete i" +
+      "t or decide who has access\022J\n\004user\020\007\032@\352\213" +
+      ",<\n\007Can use\0221Use this vault\'s logins and" +
+      " secrets in their runs:`\n\trole_meta\022!.go" +
+      "ogle.protobuf.EnumValueOptions\030\275\301\005 \001(\0132\036" +
+      ".ai.stigmer.iam.v1.IamRoleMetaR\010roleMeta" +
+      "BrB\tEnumProtoP\001\242\002\003ASI\252\002\021Ai.Stigmer.Iam.V" +
+      "1\312\002\021Ai\\Stigmer\\Iam\\V1\342\002\035Ai\\Stigmer\\Iam\\V" +
+      "1\\GPBMetadata\352\002\024Ai::Stigmer::Iam::V1b\006pr" +
+      "oto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
+          com.google.protobuf.DescriptorProtos.getDescriptor(),
         });
+    internal_static_ai_stigmer_iam_v1_IamRoleMeta_descriptor =
+      getDescriptor().getMessageType(0);
+    internal_static_ai_stigmer_iam_v1_IamRoleMeta_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_iam_v1_IamRoleMeta_descriptor,
+        new java.lang.String[] { "DisplayName", "Description", });
+    roleMeta.internalInit(descriptor.getExtension(0));
     descriptor.resolveAllFeaturesImmutable();
+    com.google.protobuf.DescriptorProtos.getDescriptor();
+    com.google.protobuf.ExtensionRegistry registry =
+        com.google.protobuf.ExtensionRegistry.newInstance();
+    registry.add(ai.stigmer.iam.v1.EnumProto.roleMeta);
+    com.google.protobuf.Descriptors.FileDescriptor
+        .internalUpdateFileDescriptor(descriptor, registry);
   }
 
   // @@protoc_insertion_point(outer_class_scope)

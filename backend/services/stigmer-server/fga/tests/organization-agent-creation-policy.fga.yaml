@@ -1,0 +1,89 @@
+# Store tests for the organization policy "Members can create agents"
+# (spec.policies.members_can_create_agents).
+#
+# The policy is an edge from the organization to itself,
+# organization#agent_creation_open, present exactly while the policy is on
+# (the default). can_create_agent is admin, or member through that edge, so
+# turning the policy off leaves agent creation to admins. A viewer never
+# creates an agent: viewer is not member.
+#
+# Run with:
+#   fga model test --tests organization-agent-creation-policy.fga.yaml
+#
+# Scenario: org "open" has the policy on; org "closed" has it off. Each has
+# admin ann, member mia and viewer vic; olga belongs to neither.
+name: organization-agent-creation-policy
+model_file: ../../src/authorization/model/data/authorization-model.json
+
+tuples:
+  - user: identity_account:ann
+    relation: admin
+    object: organization:open
+  - user: identity_account:mia
+    relation: member
+    object: organization:open
+  - user: identity_account:vic
+    relation: viewer
+    object: organization:open
+  - user: organization:open
+    relation: agent_creation_open
+    object: organization:open
+
+  - user: identity_account:ann
+    relation: admin
+    object: organization:closed
+  - user: identity_account:mia
+    relation: member
+    object: organization:closed
+  - user: identity_account:vic
+    relation: viewer
+    object: organization:closed
+
+tests:
+  - name: with the policy on, admins and members create agents
+    check:
+      - user: identity_account:ann
+        object: organization:open
+        assertions:
+          can_create_agent: true
+      - user: identity_account:mia
+        object: organization:open
+        assertions:
+          can_create_agent: true
+
+  - name: with the policy on, a viewer and an outsider do not
+    check:
+      - user: identity_account:vic
+        object: organization:open
+        assertions:
+          can_create_agent: false
+      - user: identity_account:olga
+        object: organization:open
+        assertions:
+          can_create_agent: false
+
+  - name: with the policy off, only admins create agents
+    check:
+      - user: identity_account:ann
+        object: organization:closed
+        assertions:
+          can_create_agent: true
+      - user: identity_account:mia
+        object: organization:closed
+        assertions:
+          can_create_agent: false
+      - user: identity_account:vic
+        object: organization:closed
+        assertions:
+          can_create_agent: false
+
+  - name: the policy opens agent creation only, never another admin act
+    check:
+      - user: identity_account:mia
+        object: organization:open
+        assertions:
+          can_create_skill: false
+          can_create_plugin: false
+          can_create_mcp_server: false
+          can_manage_child_orgs: false
+          can_edit: false

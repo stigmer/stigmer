@@ -1,6 +1,8 @@
+from google.protobuf import descriptor_pb2 as _descriptor_pb2
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
-from typing import ClassVar as _ClassVar
+from google.protobuf import message as _message
+from typing import ClassVar as _ClassVar, Optional as _Optional
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
@@ -105,3 +107,13 @@ viewer: IamRole
 participant: IamRole
 editor: IamRole
 user: IamRole
+ROLE_META_FIELD_NUMBER: _ClassVar[int]
+role_meta: _descriptor.FieldDescriptor
+
+class IamRoleMeta(_message.Message):
+    __slots__ = ("display_name", "description")
+    DISPLAY_NAME_FIELD_NUMBER: _ClassVar[int]
+    DESCRIPTION_FIELD_NUMBER: _ClassVar[int]
+    display_name: str
+    description: str
+    def __init__(self, display_name: _Optional[str] = ..., description: _Optional[str] = ...) -> None: ...

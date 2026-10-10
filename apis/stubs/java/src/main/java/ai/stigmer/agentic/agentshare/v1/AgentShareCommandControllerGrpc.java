@@ -261,9 +261,9 @@ public final class AgentShareCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing agent share.
-     * Replaces the spec wholesale: a manifest that omits audience resets the
-     * share to public, and one that omits vaults detaches them (fails
-     * closed). The slug and referenced agent are immutable.
+     * Replaces the spec wholesale: a manifest that omits audience makes the
+     * share organization-only, and one that omits vaults detaches them (both
+     * fail closed). The slug and referenced agent are immutable.
      * </pre>
      */
     default void update(ai.stigmer.agentic.agentshare.v1.AgentShare request,
@@ -365,9 +365,9 @@ public final class AgentShareCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing agent share.
-     * Replaces the spec wholesale: a manifest that omits audience resets the
-     * share to public, and one that omits vaults detaches them (fails
-     * closed). The slug and referenced agent are immutable.
+     * Replaces the spec wholesale: a manifest that omits audience makes the
+     * share organization-only, and one that omits vaults detaches them (both
+     * fail closed). The slug and referenced agent are immutable.
      * </pre>
      */
     public void update(ai.stigmer.agentic.agentshare.v1.AgentShare request,
@@ -456,9 +456,9 @@ public final class AgentShareCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing agent share.
-     * Replaces the spec wholesale: a manifest that omits audience resets the
-     * share to public, and one that omits vaults detaches them (fails
-     * closed). The slug and referenced agent are immutable.
+     * Replaces the spec wholesale: a manifest that omits audience makes the
+     * share organization-only, and one that omits vaults detaches them (both
+     * fail closed). The slug and referenced agent are immutable.
      * </pre>
      */
     public ai.stigmer.agentic.agentshare.v1.AgentShare update(ai.stigmer.agentic.agentshare.v1.AgentShare request) throws io.grpc.StatusException {
@@ -544,9 +544,9 @@ public final class AgentShareCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing agent share.
-     * Replaces the spec wholesale: a manifest that omits audience resets the
-     * share to public, and one that omits vaults detaches them (fails
-     * closed). The slug and referenced agent are immutable.
+     * Replaces the spec wholesale: a manifest that omits audience makes the
+     * share organization-only, and one that omits vaults detaches them (both
+     * fail closed). The slug and referenced agent are immutable.
      * </pre>
      */
     public ai.stigmer.agentic.agentshare.v1.AgentShare update(ai.stigmer.agentic.agentshare.v1.AgentShare request) {
@@ -634,9 +634,9 @@ public final class AgentShareCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing agent share.
-     * Replaces the spec wholesale: a manifest that omits audience resets the
-     * share to public, and one that omits vaults detaches them (fails
-     * closed). The slug and referenced agent are immutable.
+     * Replaces the spec wholesale: a manifest that omits audience makes the
+     * share organization-only, and one that omits vaults detaches them (both
+     * fail closed). The slug and referenced agent are immutable.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentshare.v1.AgentShare> update(

@@ -368,4 +368,73 @@ public interface AuthorizationConfigOrBuilder extends
    * @return The enum numeric value on the wire of teamGrantableRoles at the given index.
    */
   int getTeamGrantableRolesValue(int index);
+
+  /**
+   * <pre>
+   * What each grantable role means on this kind, one sentence per role in
+   * grantable_roles, shown beside the role wherever a person picks or reads
+   * one (the share dialog's role picker, an invitation, an access list).
+   * The role's name is its own `role_meta.display_name`; this is the
+   * kind's meaning of it, because Viewer on an agent and Viewer on a
+   * conversation allow different things.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription role_descriptions = 9 [json_name = "roleDescriptions"];</code>
+   */
+  java.util.List<ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription> 
+      getRoleDescriptionsList();
+  /**
+   * <pre>
+   * What each grantable role means on this kind, one sentence per role in
+   * grantable_roles, shown beside the role wherever a person picks or reads
+   * one (the share dialog's role picker, an invitation, an access list).
+   * The role's name is its own `role_meta.display_name`; this is the
+   * kind's meaning of it, because Viewer on an agent and Viewer on a
+   * conversation allow different things.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription role_descriptions = 9 [json_name = "roleDescriptions"];</code>
+   */
+  ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription getRoleDescriptions(int index);
+  /**
+   * <pre>
+   * What each grantable role means on this kind, one sentence per role in
+   * grantable_roles, shown beside the role wherever a person picks or reads
+   * one (the share dialog's role picker, an invitation, an access list).
+   * The role's name is its own `role_meta.display_name`; this is the
+   * kind's meaning of it, because Viewer on an agent and Viewer on a
+   * conversation allow different things.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription role_descriptions = 9 [json_name = "roleDescriptions"];</code>
+   */
+  int getRoleDescriptionsCount();
+  /**
+   * <pre>
+   * What each grantable role means on this kind, one sentence per role in
+   * grantable_roles, shown beside the role wherever a person picks or reads
+   * one (the share dialog's role picker, an invitation, an access list).
+   * The role's name is its own `role_meta.display_name`; this is the
+   * kind's meaning of it, because Viewer on an agent and Viewer on a
+   * conversation allow different things.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription role_descriptions = 9 [json_name = "roleDescriptions"];</code>
+   */
+  java.util.List<? extends ai.stigmer.commons.apiresource.apiresourcekind.RoleDescriptionOrBuilder> 
+      getRoleDescriptionsOrBuilderList();
+  /**
+   * <pre>
+   * What each grantable role means on this kind, one sentence per role in
+   * grantable_roles, shown beside the role wherever a person picks or reads
+   * one (the share dialog's role picker, an invitation, an access list).
+   * The role's name is its own `role_meta.display_name`; this is the
+   * kind's meaning of it, because Viewer on an agent and Viewer on a
+   * conversation allow different things.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription role_descriptions = 9 [json_name = "roleDescriptions"];</code>
+   */
+  ai.stigmer.commons.apiresource.apiresourcekind.RoleDescriptionOrBuilder getRoleDescriptionsOrBuilder(
+      int index);
 }

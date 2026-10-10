@@ -5,6 +5,7 @@ package ai.stigmer.sdk.gen;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
 import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 import ai.stigmer.tenancy.organization.v1.Organization;
+import ai.stigmer.tenancy.organization.v1.OrganizationPolicies;
 import ai.stigmer.tenancy.organization.v1.OrganizationPreferences;
 import ai.stigmer.tenancy.organization.v1.OrganizationSpec;
 
@@ -21,6 +22,7 @@ public final class OrganizationInput {
     private final String externalId;
     private final OrganizationPreferencesInput preferences;
     private final String parentOrg;
+    private final OrganizationPoliciesInput policies;
 
     private OrganizationInput(Builder builder) {
         this.id = builder.id;
@@ -34,6 +36,7 @@ public final class OrganizationInput {
         this.externalId = builder.externalId;
         this.preferences = builder.preferences;
         this.parentOrg = builder.parentOrg;
+        this.policies = builder.policies;
     }
 
     Organization toProto() {
@@ -52,6 +55,9 @@ public final class OrganizationInput {
         }
         if (this.parentOrg != null) {
             spec.setParentOrg(this.parentOrg);
+        }
+        if (this.policies != null) {
+            spec.setPolicies(this.policies.toProto());
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name);
@@ -92,6 +98,7 @@ public final class OrganizationInput {
         private String externalId;
         private OrganizationPreferencesInput preferences;
         private String parentOrg;
+        private OrganizationPoliciesInput policies;
 
         private Builder() {}
 
@@ -111,6 +118,7 @@ public final class OrganizationInput {
         public Builder externalId(String externalId) { this.externalId = externalId; return this; }
         public Builder preferences(OrganizationPreferencesInput preferences) { this.preferences = preferences; return this; }
         public Builder parentOrg(String parentOrg) { this.parentOrg = parentOrg; return this; }
+        public Builder policies(OrganizationPoliciesInput policies) { this.policies = policies; return this; }
 
         public OrganizationInput build() { return new OrganizationInput(this); }
     }
@@ -146,6 +154,33 @@ public final class OrganizationInput {
             public Builder memoryEnabled(boolean memoryEnabled) { this.memoryEnabled = memoryEnabled; return this; }
 
             public OrganizationPreferencesInput build() { return new OrganizationPreferencesInput(this); }
+        }
+    }
+
+    /** SDK input type for OrganizationPolicies. */
+    public static final class OrganizationPoliciesInput {
+        private final boolean membersCanCreateAgents;
+
+        private OrganizationPoliciesInput(Builder builder) {
+            this.membersCanCreateAgents = builder.membersCanCreateAgents;
+        }
+
+        OrganizationPolicies toProto() {
+            OrganizationPolicies.Builder builder = OrganizationPolicies.newBuilder();
+            builder.setMembersCanCreateAgents(this.membersCanCreateAgents);
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private boolean membersCanCreateAgents;
+
+            private Builder() {}
+
+            public Builder membersCanCreateAgents(boolean membersCanCreateAgents) { this.membersCanCreateAgents = membersCanCreateAgents; return this; }
+
+            public OrganizationPoliciesInput build() { return new OrganizationPoliciesInput(this); }
         }
     }
 }

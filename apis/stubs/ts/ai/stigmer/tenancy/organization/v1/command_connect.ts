@@ -5,8 +5,8 @@
 
 import { Organization } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
+import { OrganizationId, UpdateOrganizationPoliciesInput } from "./io_pbjs";
 import { RenameInput } from "../../../commons/apiresource/io_pbjs";
-import { OrganizationId } from "./io_pbjs";
 
 /**
  * OrganizationCommandController handles write operations for organizations.
@@ -104,6 +104,19 @@ export const OrganizationCommandController = {
     update: {
       name: "update",
       I: Organization,
+      O: Organization,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Change what the organization lets its members do (OrganizationPolicies),
+     * the one way to change a policy: update and apply keep the stored
+     * policies. Replaces every policy with the input's.
+     *
+     * @generated from rpc ai.stigmer.tenancy.organization.v1.OrganizationCommandController.updatePolicies
+     */
+    updatePolicies: {
+      name: "updatePolicies",
+      I: UpdateOrganizationPoliciesInput,
       O: Organization,
       kind: MethodKind.Unary,
     },

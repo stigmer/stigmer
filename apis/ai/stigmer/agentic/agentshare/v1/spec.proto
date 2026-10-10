@@ -27,12 +27,12 @@ message AgentShareSpec {
   option (buf.validate.message).cel = {
     id: "agent_share.vaults_public_only"
     message: "vaults can only be set on public-audience shares"
-    expression: "this.audience != 2 || this.vaults.size() == 0"
+    expression: "this.audience == 1 || this.vaults.size() == 0"
   };
   option (buf.validate.message).cel = {
     id: "agent_share.run_config_public_only"
     message: "run_config can only be set on public-audience shares"
-    expression: "this.audience != 2 || !has(this.run_config)"
+    expression: "this.audience == 1 || !has(this.run_config)"
   };
 
   // Reference to the agent this share distributes.
@@ -74,20 +74,22 @@ message AgentShareSpec {
   // teardown.
   bool enabled = 2;
 
-  // Who can chat over this share. Unspecified means public (anyone with
-  // the link), so a manifest that omits audience creates a public share.
+  // Who can chat over this share. Unspecified means the organization's
+  // members: a link reaches anyone on the internet only when audience is
+  // set to public. The server writes an omitted audience out as org on
+  // create, update and apply, so every stored share and every echo says
+  // what it means.
   //
-  // To keep a share org-only, audience must be present in every apply:
-  // update/apply replace the spec wholesale, so a manifest that sets
-  // enabled without audience resets the share to public.
+  // Update and apply replace the spec wholesale, so a manifest that omits
+  // audience makes the share organization-only, never public.
   //
   // @internal
-  // Org audience is enforced cloud-side only (org membership is a
-  // multi-tenant IAM concept): the guest mint and public profile handlers
-  // treat audience=org as NOT_FOUND, and the create-time blueprint gate
-  // admits authenticated org members via an app-level FGA member check
-  // (no visibility tuples written). The OSS single-user server stores and
-  // echoes the field.
+  // Readers ask one predicate (domain/agentshare `shareAdmitsAnyone`:
+  // exactly public), so a legacy row holding 0 reads as organization. The
+  // guest mint and the anonymous profile read admit only a public share.
+  // On a server without guest sign-in, an organization link is the one a
+  // signed-in reader opens; with sign-in off, every reader counts as signed
+  // in. A share writes no visibility tuples either way.
   AgentShareAudience audience = 3;
 
   // Origins permitted to embed this share's chat widget.
@@ -184,10 +186,10 @@ message AgentShareSpec {
 
 // AgentShareAudience selects who can chat over a share's hosted link.
 //
-// Unspecified is treated as public: a share created without an explicit
-// audience is an anyone-with-link share.
+// Unspecified is treated as org: a share reaches the internet only when
+// public is chosen explicitly.
 enum AgentShareAudience {
-  // Treated as public (audience omitted).
+  // Treated as org (audience omitted); the server stores org in its place.
   agent_share_audience_unspecified = 0;
 
   // Anyone with the link can chat — no Stigmer account required.

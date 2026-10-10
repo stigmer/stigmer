@@ -2,14 +2,46 @@
 // @generated from file ai/stigmer/iam/v1/enum.proto (package ai.stigmer.iam.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenEnum, GenFile } from "@bufbuild/protobuf/codegenv1";
-import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv1";
+import type { GenEnum, GenExtension, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
+import { enumDesc, extDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
+import type { EnumValueOptions } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_descriptor } from "@bufbuild/protobuf/wkt";
+import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ai/stigmer/iam/v1/enum.proto.
  */
 export const file_ai_stigmer_iam_v1_enum: GenFile = /*@__PURE__*/
-  fileDesc("ChxhaS9zdGlnbWVyL2lhbS92MS9lbnVtLnByb3RvEhFhaS5zdGlnbWVyLmlhbS52MSqqCgoNSWFtUGVybWlzc2lvbhIPCgt1bnNwZWNpZmllZBAAEgwKCGNhbl92aWV3EAESDAoIY2FuX2VkaXQQAhIOCgpjYW5fZGVsZXRlEAMSFAoQY2FuX2dyYW50X2FjY2VzcxAEEhMKD2Nhbl92aWV3X2FjY2VzcxAFEhQKEGNhbl9hc3NpZ25fcm9sZXMQLxIXChNjYW5fbWFuYWdlX2F1ZGllbmNlEDASFAoQY2FuX2NyZWF0ZV9hZ2VudBAGEhYKEmNhbl9jcmVhdGVfc2Vzc2lvbhAIEhQKEGNhbl9jcmVhdGVfc2tpbGwQCRISCg5jYW5fY3JlYXRlX2lkcBALEh8KG2Nhbl9jcmVhdGVfaWRlbnRpdHlfYWNjb3VudBAVEhgKFGNhbl9jcmVhdGVfb2F1dGhfYXBwEBcSHgoaY2FuX2NyZWF0ZV9wbGF0Zm9ybV9jbGllbnQQGBIVChFjYW5fY3JlYXRlX3J1bl9pbhANEg8KC2Nhbl9leGVjdXRlEA8SFQoRY2FuX2Jvb3RzdHJhcF9pYW0QERIPCgtjYW5fY29ubmVjdBAWEhQKEGNhbl92aWV3X2JpbGxpbmcQGxIWChJjYW5fbWFuYWdlX2JpbGxpbmcQHBIbChdjYW5fZXhlY3V0ZV9iaWxsaW5nX29wcxAdEhoKFmNhbl9jcmVhdGVfYWdlbnRfc2hhcmUQHhIaChZjYW5fY3JlYXRlX2NoYW5uZWxfYXBwEB8SHAoYY2FuX21hbmFnZV9tb2RlbF9wcmljaW5nECASHgoaY2FuX21hbmFnZV9jdXJzb3JfYWNjb3VudHMQIxITCg9jYW5fcGFydGljaXBhdGUQJBIdChljYW5fd3JpdGVfcmVzZXJ2ZWRfbGFiZWxzECUSHgoaY2FuX3ZpZXdfcHJvdmlkZXJfc3RhbmRpbmcQJhIVChFjYW5fY3JlYXRlX3BsdWdpbhAoEhQKEGNhbl9tYW5hZ2VfcGxhbnMQKRIVChFjYW5faXNzdWVfbGljZW5zZRAqEhkKFWNhbl9jcmVhdGVfbWNwX3NlcnZlchArEhMKD2Nhbl9jcmVhdGVfdGVhbRAtEhYKEmNhbl9tYW5hZ2VfY3JlZGl0cxAuEhkKFWNhbl9tYW5hZ2VfY2hpbGRfb3JncxAxEhUKEWNhbl92aWV3X3NldHRpbmdzEDISFAoQY2FuX2NyZWF0ZV92YXVsdBAzEhsKF2Nhbl9jcmVhdGVfc2hhcmVkX3ZhdWx0EDQSCwoHY2FuX3VzZRA1IgQIDhAOIgQIBxAHIgQIDBAMIgQIEBAQIgQIEhASIgQIFBAUIgQIGRAZIgQIGhAaIgQIIRAhIgQIIhAiIgQIChAKIgQIJxAnIgQILBAsKhNjYW5fY3JlYXRlX2luc3RhbmNlKhNjYW5fY3JlYXRlX3dvcmtmbG93KhZjYW5fY3JlYXRlX2Vudmlyb25tZW50KhBjYW5fcmVhZF9zZWNyZXRzKhxjYW5fbWFuYWdlX2lkZW50aXR5X2FjY291bnRzKhRsb2dpbl90b19iYWNrX29mZmljZSoRY2FuX2NyZWF0ZV9ydW5uZXIqEmNhbl9kZWxldGVfc2Vzc2lvbioPY2FuX3VzZV9yZWNvcmRzKhRjYW5fY3JlYXRlX2RhdGFzdG9yZSoSY2FuX2NyZWF0ZV9wcm9qZWN0KhljYW5fc2V0X3B1YmxpY192aXNpYmlsaXR5KhljYW5fY3JlYXRlX2FnZW50X2luc3RhbmNlKngKB0lhbVJvbGUSGAoUaWFtX3JvbGVfdW5zcGVjaWZpZWQQABIJCgVvd25lchABEgkKBWFkbWluEAISCgoGbWVtYmVyEAMSCgoGdmlld2VyEAQSDwoLcGFydGljaXBhbnQQBRIKCgZlZGl0b3IQBhIICgR1c2VyEAdiBnByb3RvMw");
+  fileDesc("ChxhaS9zdGlnbWVyL2lhbS92MS9lbnVtLnByb3RvEhFhaS5zdGlnbWVyLmlhbS52MSI4CgtJYW1Sb2xlTWV0YRIUCgxkaXNwbGF5X25hbWUYASABKAkSEwoLZGVzY3JpcHRpb24YAiABKAkqqgoKDUlhbVBlcm1pc3Npb24SDwoLdW5zcGVjaWZpZWQQABIMCghjYW5fdmlldxABEgwKCGNhbl9lZGl0EAISDgoKY2FuX2RlbGV0ZRADEhQKEGNhbl9ncmFudF9hY2Nlc3MQBBITCg9jYW5fdmlld19hY2Nlc3MQBRIUChBjYW5fYXNzaWduX3JvbGVzEC8SFwoTY2FuX21hbmFnZV9hdWRpZW5jZRAwEhQKEGNhbl9jcmVhdGVfYWdlbnQQBhIWChJjYW5fY3JlYXRlX3Nlc3Npb24QCBIUChBjYW5fY3JlYXRlX3NraWxsEAkSEgoOY2FuX2NyZWF0ZV9pZHAQCxIfChtjYW5fY3JlYXRlX2lkZW50aXR5X2FjY291bnQQFRIYChRjYW5fY3JlYXRlX29hdXRoX2FwcBAXEh4KGmNhbl9jcmVhdGVfcGxhdGZvcm1fY2xpZW50EBgSFQoRY2FuX2NyZWF0ZV9ydW5faW4QDRIPCgtjYW5fZXhlY3V0ZRAPEhUKEWNhbl9ib290c3RyYXBfaWFtEBESDwoLY2FuX2Nvbm5lY3QQFhIUChBjYW5fdmlld19iaWxsaW5nEBsSFgoSY2FuX21hbmFnZV9iaWxsaW5nEBwSGwoXY2FuX2V4ZWN1dGVfYmlsbGluZ19vcHMQHRIaChZjYW5fY3JlYXRlX2FnZW50X3NoYXJlEB4SGgoWY2FuX2NyZWF0ZV9jaGFubmVsX2FwcBAfEhwKGGNhbl9tYW5hZ2VfbW9kZWxfcHJpY2luZxAgEh4KGmNhbl9tYW5hZ2VfY3Vyc29yX2FjY291bnRzECMSEwoPY2FuX3BhcnRpY2lwYXRlECQSHQoZY2FuX3dyaXRlX3Jlc2VydmVkX2xhYmVscxAlEh4KGmNhbl92aWV3X3Byb3ZpZGVyX3N0YW5kaW5nECYSFQoRY2FuX2NyZWF0ZV9wbHVnaW4QKBIUChBjYW5fbWFuYWdlX3BsYW5zECkSFQoRY2FuX2lzc3VlX2xpY2Vuc2UQKhIZChVjYW5fY3JlYXRlX21jcF9zZXJ2ZXIQKxITCg9jYW5fY3JlYXRlX3RlYW0QLRIWChJjYW5fbWFuYWdlX2NyZWRpdHMQLhIZChVjYW5fbWFuYWdlX2NoaWxkX29yZ3MQMRIVChFjYW5fdmlld19zZXR0aW5ncxAyEhQKEGNhbl9jcmVhdGVfdmF1bHQQMxIbChdjYW5fY3JlYXRlX3NoYXJlZF92YXVsdBA0EgsKB2Nhbl91c2UQNSIECA4QDiIECAcQByIECAwQDCIECBAQECIECBIQEiIECBQQFCIECBkQGSIECBoQGiIECCEQISIECCIQIiIECAoQCiIECCcQJyIECCwQLCoTY2FuX2NyZWF0ZV9pbnN0YW5jZSoTY2FuX2NyZWF0ZV93b3JrZmxvdyoWY2FuX2NyZWF0ZV9lbnZpcm9ubWVudCoQY2FuX3JlYWRfc2VjcmV0cyocY2FuX21hbmFnZV9pZGVudGl0eV9hY2NvdW50cyoUbG9naW5fdG9fYmFja19vZmZpY2UqEWNhbl9jcmVhdGVfcnVubmVyKhJjYW5fZGVsZXRlX3Nlc3Npb24qD2Nhbl91c2VfcmVjb3JkcyoUY2FuX2NyZWF0ZV9kYXRhc3RvcmUqEmNhbl9jcmVhdGVfcHJvamVjdCoZY2FuX3NldF9wdWJsaWNfdmlzaWJpbGl0eSoZY2FuX2NyZWF0ZV9hZ2VudF9pbnN0YW5jZSq3BAoHSWFtUm9sZRIYChRpYW1fcm9sZV91bnNwZWNpZmllZBAAElUKBW93bmVyEAEaSuqLLEYKBU93bmVyEj1FdmVyeXRoaW5nLCBpbmNsdWRpbmcgZGVsZXRpbmcgaXQgYW5kIGRlY2lkaW5nIHdobyBoYXMgYWNjZXNzElAKBWFkbWluEAIaReqLLEEKBUFkbWluEjhNYW5hZ2UgdGhlIG9yZ2FuaXphdGlvbidzIHBlb3BsZSwgc2V0dGluZ3MgYW5kIHJlc291cmNlcxJCCgZtZW1iZXIQAxo26ossMgoGTWVtYmVyEihCZWxvbmdzIHRvIGl0IGFuZCBob2xkcyB3aGF0IGl0IGlzIGdpdmVuEjMKBnZpZXdlchAEGifqiywjCgZWaWV3ZXISGVJlYWQgaXQ7IGNhbm5vdCBjaGFuZ2UgaXQSTAoLcGFydGljaXBhbnQQBRo76ossNwoLUGFydGljaXBhbnQSKFJlYWQgdGhlIGNvbnZlcnNhdGlvbnMgYW5kIHNlbmQgbWVzc2FnZXMSVgoGZWRpdG9yEAYaSuqLLEYKBkVkaXRvchI8Q2hhbmdlIGFuZCB1c2UgaXQ7IGNhbm5vdCBkZWxldGUgaXQgb3IgZGVjaWRlIHdobyBoYXMgYWNjZXNzEkoKBHVzZXIQBxpA6ossPAoHQ2FuIHVzZRIxVXNlIHRoaXMgdmF1bHQncyBsb2dpbnMgYW5kIHNlY3JldHMgaW4gdGhlaXIgcnVuczpgCglyb2xlX21ldGESIS5nb29nbGUucHJvdG9idWYuRW51bVZhbHVlT3B0aW9ucxi9wQUgASgLMh4uYWkuc3RpZ21lci5pYW0udjEuSWFtUm9sZU1ldGFSCHJvbGVNZXRhYgZwcm90bzM", [file_google_protobuf_descriptor]);
+
+/**
+ * Metadata for one IamRole value.
+ *
+ * @generated from message ai.stigmer.iam.v1.IamRoleMeta
+ */
+export type IamRoleMeta = Message<"ai.stigmer.iam.v1.IamRoleMeta"> & {
+  /**
+   * The role's name as people read it ("Admin", "Can use").
+   *
+   * @generated from field: string display_name = 1;
+   */
+  displayName: string;
+
+  /**
+   * What the role means when no resource kind is known. A picker shows the
+   * kind's own sentence instead (AuthorizationConfig.role_descriptions).
+   *
+   * @generated from field: string description = 2;
+   */
+  description: string;
+};
+
+/**
+ * Describes the message ai.stigmer.iam.v1.IamRoleMeta.
+ * Use `create(IamRoleMetaSchema)` to create a new message.
+ */
+export const IamRoleMetaSchema: GenMessage<IamRoleMeta> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_iam_v1_enum, 0);
 
 /**
  * IamPermission defines the permissions checked by the authorization
@@ -338,16 +370,9 @@ export const IamPermissionSchema: GenEnum<IamPermission> = /*@__PURE__*/
   enumDesc(file_ai_stigmer_iam_v1_enum, 0);
 
 /**
- * IamRole defines the roles that can be assigned to principals on resources
- * via IAM policies.
- *
- * Roles are human-assigned and represent a principal's relationship to a
- * resource. They are distinct from permissions (which are computed from roles
- * and checked by the authorization interceptor) and structural relations
- * (which are internal FGA wiring like organization or session links).
- *
  * Each ApiResourceKind declares which of these roles are grantable via
- * the grantable_roles field in its AuthorizationConfig.
+ * the grantable_roles field in its AuthorizationConfig, and what each one
+ * means there in role_descriptions.
  *
  * @generated from enum ai.stigmer.iam.v1.IamRole
  */
@@ -386,9 +411,13 @@ export enum IamRole {
   viewer = 4,
 
   /**
-   * Conversation participant on an agent channel: may read the channel's
-   * conversations and speak to its customers as the business (reply, take
-   * over, hand back, clear attention). Not a channel configurator.
+   * A person who takes part in a conversation: reads it and sends messages.
+   * On a conversation (session), a participant's messages run in the
+   * conversation's own workspace, as its creator, using only the vaults the
+   * conversation names; stopping and approving stay with its owners. On an
+   * agent channel, a participant reads the channel's conversations and
+   * speaks to its customers as the business (reply, take over, hand back,
+   * clear attention), and is not a channel configurator.
    *
    * @generated from enum value: participant = 5;
    */
@@ -418,4 +447,10 @@ export enum IamRole {
  */
 export const IamRoleSchema: GenEnum<IamRole> = /*@__PURE__*/
   enumDesc(file_ai_stigmer_iam_v1_enum, 1);
+
+/**
+ * @generated from extension: ai.stigmer.iam.v1.IamRoleMeta role_meta = 90301;
+ */
+export const role_meta: GenExtension<EnumValueOptions, IamRoleMeta> = /*@__PURE__*/
+  extDesc(file_ai_stigmer_iam_v1_enum, 0);
 

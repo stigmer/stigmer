@@ -7,16 +7,9 @@ package ai.stigmer.iam.v1;
 
 /**
  * <pre>
- * IamRole defines the roles that can be assigned to principals on resources
- * via IAM policies.
- *
- * Roles are human-assigned and represent a principal's relationship to a
- * resource. They are distinct from permissions (which are computed from roles
- * and checked by the authorization interceptor) and structural relations
- * (which are internal FGA wiring like organization or session links).
- *
  * Each ApiResourceKind declares which of these roles are grantable via
- * the grantable_roles field in its AuthorizationConfig.
+ * the grantable_roles field in its AuthorizationConfig, and what each one
+ * means there in role_descriptions.
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.iam.v1.IamRole}
@@ -33,7 +26,7 @@ public enum IamRole
    * Full control of the resource. Typically assigned to the creator.
    * </pre>
    *
-   * <code>owner = 1;</code>
+   * <code>owner = 1 [(.ai.stigmer.iam.v1.role_meta) = { ... }</code>
    */
   owner(1),
   /**
@@ -41,7 +34,7 @@ public enum IamRole
    * Administrative access. Grants most permissions except ownership transfer.
    * </pre>
    *
-   * <code>admin = 2;</code>
+   * <code>admin = 2 [(.ai.stigmer.iam.v1.role_meta) = { ... }</code>
    */
   admin(2),
   /**
@@ -49,7 +42,7 @@ public enum IamRole
    * Membership-level access. Grants read and limited write permissions.
    * </pre>
    *
-   * <code>member = 3;</code>
+   * <code>member = 3 [(.ai.stigmer.iam.v1.role_meta) = { ... }</code>
    */
   member(3),
   /**
@@ -57,17 +50,21 @@ public enum IamRole
    * Read-only access to the resource.
    * </pre>
    *
-   * <code>viewer = 4;</code>
+   * <code>viewer = 4 [(.ai.stigmer.iam.v1.role_meta) = { ... }</code>
    */
   viewer(4),
   /**
    * <pre>
-   * Conversation participant on an agent channel: may read the channel's
-   * conversations and speak to its customers as the business (reply, take
-   * over, hand back, clear attention). Not a channel configurator.
+   * A person who takes part in a conversation: reads it and sends messages.
+   * On a conversation (session), a participant's messages run in the
+   * conversation's own workspace, as its creator, using only the vaults the
+   * conversation names; stopping and approving stay with its owners. On an
+   * agent channel, a participant reads the channel's conversations and
+   * speaks to its customers as the business (reply, take over, hand back,
+   * clear attention), and is not a channel configurator.
    * </pre>
    *
-   * <code>participant = 5;</code>
+   * <code>participant = 5 [(.ai.stigmer.iam.v1.role_meta) = { ... }</code>
    */
   participant(5),
   /**
@@ -78,7 +75,7 @@ public enum IamRole
    * who else has access.
    * </pre>
    *
-   * <code>editor = 6;</code>
+   * <code>editor = 6 [(.ai.stigmer.iam.v1.role_meta) = { ... }</code>
    */
   editor(6),
   /**
@@ -87,7 +84,7 @@ public enum IamRole
    * vault's logins and secrets. Shown as "Can use".
    * </pre>
    *
-   * <code>user = 7;</code>
+   * <code>user = 7 [(.ai.stigmer.iam.v1.role_meta) = { ... }</code>
    */
   user(7),
   UNRECOGNIZED(-1),
@@ -111,7 +108,7 @@ public enum IamRole
    * Full control of the resource. Typically assigned to the creator.
    * </pre>
    *
-   * <code>owner = 1;</code>
+   * <code>owner = 1 [(.ai.stigmer.iam.v1.role_meta) = { ... }</code>
    */
   public static final int owner_VALUE = 1;
   /**
@@ -119,7 +116,7 @@ public enum IamRole
    * Administrative access. Grants most permissions except ownership transfer.
    * </pre>
    *
-   * <code>admin = 2;</code>
+   * <code>admin = 2 [(.ai.stigmer.iam.v1.role_meta) = { ... }</code>
    */
   public static final int admin_VALUE = 2;
   /**
@@ -127,7 +124,7 @@ public enum IamRole
    * Membership-level access. Grants read and limited write permissions.
    * </pre>
    *
-   * <code>member = 3;</code>
+   * <code>member = 3 [(.ai.stigmer.iam.v1.role_meta) = { ... }</code>
    */
   public static final int member_VALUE = 3;
   /**
@@ -135,17 +132,21 @@ public enum IamRole
    * Read-only access to the resource.
    * </pre>
    *
-   * <code>viewer = 4;</code>
+   * <code>viewer = 4 [(.ai.stigmer.iam.v1.role_meta) = { ... }</code>
    */
   public static final int viewer_VALUE = 4;
   /**
    * <pre>
-   * Conversation participant on an agent channel: may read the channel's
-   * conversations and speak to its customers as the business (reply, take
-   * over, hand back, clear attention). Not a channel configurator.
+   * A person who takes part in a conversation: reads it and sends messages.
+   * On a conversation (session), a participant's messages run in the
+   * conversation's own workspace, as its creator, using only the vaults the
+   * conversation names; stopping and approving stay with its owners. On an
+   * agent channel, a participant reads the channel's conversations and
+   * speaks to its customers as the business (reply, take over, hand back,
+   * clear attention), and is not a channel configurator.
    * </pre>
    *
-   * <code>participant = 5;</code>
+   * <code>participant = 5 [(.ai.stigmer.iam.v1.role_meta) = { ... }</code>
    */
   public static final int participant_VALUE = 5;
   /**
@@ -156,7 +157,7 @@ public enum IamRole
    * who else has access.
    * </pre>
    *
-   * <code>editor = 6;</code>
+   * <code>editor = 6 [(.ai.stigmer.iam.v1.role_meta) = { ... }</code>
    */
   public static final int editor_VALUE = 6;
   /**
@@ -165,7 +166,7 @@ public enum IamRole
    * vault's logins and secrets. Shown as "Can use".
    * </pre>
    *
-   * <code>user = 7;</code>
+   * <code>user = 7 [(.ai.stigmer.iam.v1.role_meta) = { ... }</code>
    */
   public static final int user_VALUE = 7;
 

@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package ai.stigmer.iam.v1;
 
+import "google/protobuf/descriptor.proto";
+
 // IamPermission defines the permissions checked by the authorization
 // interceptor before an RPC handler executes.
 //
@@ -286,33 +288,67 @@ enum IamPermission {
 // and checked by the authorization interceptor) and structural relations
 // (which are internal FGA wiring like organization or session links).
 //
+// Display metadata for an IamRole value: the one place a role's name lives,
+// read by the server's access lists and generated into the SDKs.
+extend google.protobuf.EnumValueOptions {
+  IamRoleMeta role_meta = 90301;
+}
+
+// Metadata for one IamRole value.
+message IamRoleMeta {
+  // The role's name as people read it ("Admin", "Can use").
+  string display_name = 1;
+  // What the role means when no resource kind is known. A picker shows the
+  // kind's own sentence instead (AuthorizationConfig.role_descriptions).
+  string description = 2;
+}
+
 // Each ApiResourceKind declares which of these roles are grantable via
-// the grantable_roles field in its AuthorizationConfig.
+// the grantable_roles field in its AuthorizationConfig, and what each one
+// means there in role_descriptions.
 enum IamRole {
   iam_role_unspecified = 0;
 
   // Full control of the resource. Typically assigned to the creator.
-  owner = 1;
+  owner = 1 [(role_meta) = {
+    display_name: "Owner"
+    description: "Everything, including deleting it and deciding who has access"
+  }];
 
   // Administrative access. Grants most permissions except ownership transfer.
-  admin = 2;
+  admin = 2 [(role_meta) = {
+    display_name: "Admin"
+    description: "Manage the organization's people, settings and resources"
+  }];
 
   // Membership-level access. Grants read and limited write permissions.
-  member = 3;
+  member = 3 [(role_meta) = {
+    display_name: "Member"
+    description: "Belongs to it and holds what it is given"
+  }];
 
   // Read-only access to the resource.
-  viewer = 4;
+  viewer = 4 [(role_meta) = {
+    display_name: "Viewer"
+    description: "Read it; cannot change it"
+  }];
 
-  // Conversation participant on an agent channel: may read the channel's
-  // conversations and speak to its customers as the business (reply, take
-  // over, hand back, clear attention). Not a channel configurator.
+  // A person who takes part in a conversation: reads it and sends messages.
+  // On a conversation (session), a participant's messages run in the
+  // conversation's own workspace, as its creator, using only the vaults the
+  // conversation names; stopping and approving stay with its owners. On an
+  // agent channel, a participant reads the channel's conversations and
+  // speaks to its customers as the business (reply, take over, hand back,
+  // clear attention), and is not a channel configurator.
   //
   // @internal
-  // Grantable only on agent_channel — the
-  // second kind-scoped role after organization's admin/member; the
-  // grantable_roles subsetting is the mechanism, not a new one. A team may
-  // hold it too (agent_channel's team_grantable_roles).
-  participant = 5;
+  // Grantable on session and agent_channel only, through the
+  // grantable_roles subsetting. A team may hold it on agent_channel
+  // (team_grantable_roles); a conversation is granted to people only.
+  participant = 5 [(role_meta) = {
+    display_name: "Participant"
+    description: "Read the conversations and send messages"
+  }];
 
   // Editor of a blueprint (an agent or an MCP server): may change
   // its definition and do whatever a viewer can, and may not delete it,
@@ -324,7 +360,10 @@ enum IamRole {
   // the organization like every direct grant. Granted per resource, so only
   // an edition that widens the policy grant scope beyond the organization
   // grants it; the open-source server does not.
-  editor = 6;
+  editor = 6 [(role_meta) = {
+    display_name: "Editor"
+    description: "Change and use it; cannot delete it or decide who has access"
+  }];
 
   // May use a shared vault: the runs of a person who holds it use the
   // vault's logins and secrets. Shown as "Can use".
@@ -333,5 +372,8 @@ enum IamRole {
   // Grantable only on vault, to people and Teams, the participant
   // precedent for a kind-scoped role. Using a vault hands its secrets to a
   // run with a shell, which viewer would understate.
-  user = 7;
+  user = 7 [(role_meta) = {
+    display_name: "Can use"
+    description: "Use this vault's logins and secrets in their runs"
+  }];
 }

@@ -26,12 +26,12 @@ const (
 
 // AgentShareAudience selects who can chat over a share's hosted link.
 //
-// Unspecified is treated as public: a share created without an explicit
-// audience is an anyone-with-link share.
+// Unspecified is treated as org: a share reaches the internet only when
+// public is chosen explicitly.
 type AgentShareAudience int32
 
 const (
-	// Treated as public (audience omitted).
+	// Treated as org (audience omitted); the server stores org in its place.
 	AgentShareAudience_agent_share_audience_unspecified AgentShareAudience = 0
 	// Anyone with the link can chat — no Stigmer account required.
 	// Visitors are anonymous guests; suitable only for knowledge that is
@@ -111,12 +111,14 @@ type AgentShareSpec struct {
 	// NOT_FOUND until re-enabled. Delete the share instead for a full
 	// teardown.
 	Enabled bool `protobuf:"varint,2,opt,name=enabled,proto3" json:"enabled,omitempty"`
-	// Who can chat over this share. Unspecified means public (anyone with
-	// the link), so a manifest that omits audience creates a public share.
+	// Who can chat over this share. Unspecified means the organization's
+	// members: a link reaches anyone on the internet only when audience is
+	// set to public. The server writes an omitted audience out as org on
+	// create, update and apply, so every stored share and every echo says
+	// what it means.
 	//
-	// To keep a share org-only, audience must be present in every apply:
-	// update/apply replace the spec wholesale, so a manifest that sets
-	// enabled without audience resets the share to public.
+	// Update and apply replace the spec wholesale, so a manifest that omits
+	// audience makes the share organization-only, never public.
 	Audience AgentShareAudience `protobuf:"varint,3,opt,name=audience,proto3,enum=ai.stigmer.agentic.agentshare.v1.AgentShareAudience" json:"audience,omitempty"`
 	// Origins permitted to embed this share's chat widget.
 	//
@@ -316,8 +318,8 @@ const file_ai_stigmer_agentic_agentshare_v1_spec_proto_rawDesc = "" +
 	"\vvaults.kind\x12/vaults must reference resources with kind=vault\x1a\x0fthis.kind == 59\xe0\x85,;R\x06vaults\x12C\n" +
 	"\n" +
 	"run_config\x18\a \x01(\v2$.ai.stigmer.agentic.run.v1.RunConfigR\trunConfig:\x92\x02\xbaH\x8e\x02\x1a\x81\x01\n" +
-	"\x1eagent_share.vaults_public_only\x120vaults can only be set on public-audience shares\x1a-this.audience != 2 || this.vaults.size() == 0\x1a\x87\x01\n" +
-	"\"agent_share.run_config_public_only\x124run_config can only be set on public-audience shares\x1a+this.audience != 2 || !has(this.run_config)J\x04\b\x06\x10\aR\x10environment_refs\"\xa6\x01\n" +
+	"\x1eagent_share.vaults_public_only\x120vaults can only be set on public-audience shares\x1a-this.audience == 1 || this.vaults.size() == 0\x1a\x87\x01\n" +
+	"\"agent_share.run_config_public_only\x124run_config can only be set on public-audience shares\x1a+this.audience == 1 || !has(this.run_config)J\x04\b\x06\x10\aR\x10environment_refs\"\xa6\x01\n" +
 	"\x12AgentShareMessages\x12+\n" +
 	"\frate_limited\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x18\xac\x02R\vrateLimited\x12*\n" +
 	"\vunavailable\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\xac\x02R\vunavailable\x127\n" +

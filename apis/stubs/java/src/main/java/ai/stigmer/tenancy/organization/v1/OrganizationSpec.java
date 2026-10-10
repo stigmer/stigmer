@@ -287,6 +287,56 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int POLICIES_FIELD_NUMBER = 9;
+  private ai.stigmer.tenancy.organization.v1.OrganizationPolicies policies_;
+  /**
+   * <pre>
+   * What the organization lets its members do. Set when the organization is
+   * created (an omitted message means the defaults: members may create
+   * agents) and changed only through updatePolicies, so an update or apply
+   * of a manifest written before a policy changed neither fails nor
+   * reverts it: a policy carried by update or apply is ignored.
+   * </pre>
+   *
+   * <code>.ai.stigmer.tenancy.organization.v1.OrganizationPolicies policies = 9 [json_name = "policies"];</code>
+   * @return Whether the policies field is set.
+   */
+  @java.lang.Override
+  public boolean hasPolicies() {
+    return ((bitField0_ & 0x00000002) != 0);
+  }
+  /**
+   * <pre>
+   * What the organization lets its members do. Set when the organization is
+   * created (an omitted message means the defaults: members may create
+   * agents) and changed only through updatePolicies, so an update or apply
+   * of a manifest written before a policy changed neither fails nor
+   * reverts it: a policy carried by update or apply is ignored.
+   * </pre>
+   *
+   * <code>.ai.stigmer.tenancy.organization.v1.OrganizationPolicies policies = 9 [json_name = "policies"];</code>
+   * @return The policies.
+   */
+  @java.lang.Override
+  public ai.stigmer.tenancy.organization.v1.OrganizationPolicies getPolicies() {
+    return policies_ == null ? ai.stigmer.tenancy.organization.v1.OrganizationPolicies.getDefaultInstance() : policies_;
+  }
+  /**
+   * <pre>
+   * What the organization lets its members do. Set when the organization is
+   * created (an omitted message means the defaults: members may create
+   * agents) and changed only through updatePolicies, so an update or apply
+   * of a manifest written before a policy changed neither fails nor
+   * reverts it: a policy carried by update or apply is ignored.
+   * </pre>
+   *
+   * <code>.ai.stigmer.tenancy.organization.v1.OrganizationPolicies policies = 9 [json_name = "policies"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.tenancy.organization.v1.OrganizationPoliciesOrBuilder getPoliciesOrBuilder() {
+    return policies_ == null ? ai.stigmer.tenancy.organization.v1.OrganizationPolicies.getDefaultInstance() : policies_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -316,6 +366,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(parentOrg_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 8, parentOrg_);
     }
+    if (((bitField0_ & 0x00000002) != 0)) {
+      output.writeMessage(9, getPolicies());
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -340,6 +393,10 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(parentOrg_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(8, parentOrg_);
+    }
+    if (((bitField0_ & 0x00000002) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(9, getPolicies());
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -369,6 +426,11 @@ private static final long serialVersionUID = 0L;
     }
     if (!getParentOrg()
         .equals(other.getParentOrg())) return false;
+    if (hasPolicies() != other.hasPolicies()) return false;
+    if (hasPolicies()) {
+      if (!getPolicies()
+          .equals(other.getPolicies())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -392,6 +454,10 @@ private static final long serialVersionUID = 0L;
     }
     hash = (37 * hash) + PARENT_ORG_FIELD_NUMBER;
     hash = (53 * hash) + getParentOrg().hashCode();
+    if (hasPolicies()) {
+      hash = (37 * hash) + POLICIES_FIELD_NUMBER;
+      hash = (53 * hash) + getPolicies().hashCode();
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -527,6 +593,7 @@ private static final long serialVersionUID = 0L;
       if (com.google.protobuf.GeneratedMessage
               .alwaysUseFieldBuilders) {
         internalGetPreferencesFieldBuilder();
+        internalGetPoliciesFieldBuilder();
       }
     }
     @java.lang.Override
@@ -542,6 +609,11 @@ private static final long serialVersionUID = 0L;
         preferencesBuilder_ = null;
       }
       parentOrg_ = "";
+      policies_ = null;
+      if (policiesBuilder_ != null) {
+        policiesBuilder_.dispose();
+        policiesBuilder_ = null;
+      }
       return this;
     }
 
@@ -594,6 +666,12 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000010) != 0)) {
         result.parentOrg_ = parentOrg_;
       }
+      if (((from_bitField0_ & 0x00000020) != 0)) {
+        result.policies_ = policiesBuilder_ == null
+            ? policies_
+            : policiesBuilder_.build();
+        to_bitField0_ |= 0x00000002;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -631,6 +709,9 @@ private static final long serialVersionUID = 0L;
         parentOrg_ = other.parentOrg_;
         bitField0_ |= 0x00000010;
         onChanged();
+      }
+      if (other.hasPolicies()) {
+        mergePolicies(other.getPolicies());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -685,6 +766,13 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000010;
               break;
             } // case 66
+            case 74: {
+              input.readMessage(
+                  internalGetPoliciesFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000020;
+              break;
+            } // case 74
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1235,6 +1323,199 @@ private static final long serialVersionUID = 0L;
       bitField0_ |= 0x00000010;
       onChanged();
       return this;
+    }
+
+    private ai.stigmer.tenancy.organization.v1.OrganizationPolicies policies_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.tenancy.organization.v1.OrganizationPolicies, ai.stigmer.tenancy.organization.v1.OrganizationPolicies.Builder, ai.stigmer.tenancy.organization.v1.OrganizationPoliciesOrBuilder> policiesBuilder_;
+    /**
+     * <pre>
+     * What the organization lets its members do. Set when the organization is
+     * created (an omitted message means the defaults: members may create
+     * agents) and changed only through updatePolicies, so an update or apply
+     * of a manifest written before a policy changed neither fails nor
+     * reverts it: a policy carried by update or apply is ignored.
+     * </pre>
+     *
+     * <code>.ai.stigmer.tenancy.organization.v1.OrganizationPolicies policies = 9 [json_name = "policies"];</code>
+     * @return Whether the policies field is set.
+     */
+    public boolean hasPolicies() {
+      return ((bitField0_ & 0x00000020) != 0);
+    }
+    /**
+     * <pre>
+     * What the organization lets its members do. Set when the organization is
+     * created (an omitted message means the defaults: members may create
+     * agents) and changed only through updatePolicies, so an update or apply
+     * of a manifest written before a policy changed neither fails nor
+     * reverts it: a policy carried by update or apply is ignored.
+     * </pre>
+     *
+     * <code>.ai.stigmer.tenancy.organization.v1.OrganizationPolicies policies = 9 [json_name = "policies"];</code>
+     * @return The policies.
+     */
+    public ai.stigmer.tenancy.organization.v1.OrganizationPolicies getPolicies() {
+      if (policiesBuilder_ == null) {
+        return policies_ == null ? ai.stigmer.tenancy.organization.v1.OrganizationPolicies.getDefaultInstance() : policies_;
+      } else {
+        return policiesBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * What the organization lets its members do. Set when the organization is
+     * created (an omitted message means the defaults: members may create
+     * agents) and changed only through updatePolicies, so an update or apply
+     * of a manifest written before a policy changed neither fails nor
+     * reverts it: a policy carried by update or apply is ignored.
+     * </pre>
+     *
+     * <code>.ai.stigmer.tenancy.organization.v1.OrganizationPolicies policies = 9 [json_name = "policies"];</code>
+     */
+    public Builder setPolicies(ai.stigmer.tenancy.organization.v1.OrganizationPolicies value) {
+      if (policiesBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        policies_ = value;
+      } else {
+        policiesBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * What the organization lets its members do. Set when the organization is
+     * created (an omitted message means the defaults: members may create
+     * agents) and changed only through updatePolicies, so an update or apply
+     * of a manifest written before a policy changed neither fails nor
+     * reverts it: a policy carried by update or apply is ignored.
+     * </pre>
+     *
+     * <code>.ai.stigmer.tenancy.organization.v1.OrganizationPolicies policies = 9 [json_name = "policies"];</code>
+     */
+    public Builder setPolicies(
+        ai.stigmer.tenancy.organization.v1.OrganizationPolicies.Builder builderForValue) {
+      if (policiesBuilder_ == null) {
+        policies_ = builderForValue.build();
+      } else {
+        policiesBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * What the organization lets its members do. Set when the organization is
+     * created (an omitted message means the defaults: members may create
+     * agents) and changed only through updatePolicies, so an update or apply
+     * of a manifest written before a policy changed neither fails nor
+     * reverts it: a policy carried by update or apply is ignored.
+     * </pre>
+     *
+     * <code>.ai.stigmer.tenancy.organization.v1.OrganizationPolicies policies = 9 [json_name = "policies"];</code>
+     */
+    public Builder mergePolicies(ai.stigmer.tenancy.organization.v1.OrganizationPolicies value) {
+      if (policiesBuilder_ == null) {
+        if (((bitField0_ & 0x00000020) != 0) &&
+          policies_ != null &&
+          policies_ != ai.stigmer.tenancy.organization.v1.OrganizationPolicies.getDefaultInstance()) {
+          getPoliciesBuilder().mergeFrom(value);
+        } else {
+          policies_ = value;
+        }
+      } else {
+        policiesBuilder_.mergeFrom(value);
+      }
+      if (policies_ != null) {
+        bitField0_ |= 0x00000020;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * What the organization lets its members do. Set when the organization is
+     * created (an omitted message means the defaults: members may create
+     * agents) and changed only through updatePolicies, so an update or apply
+     * of a manifest written before a policy changed neither fails nor
+     * reverts it: a policy carried by update or apply is ignored.
+     * </pre>
+     *
+     * <code>.ai.stigmer.tenancy.organization.v1.OrganizationPolicies policies = 9 [json_name = "policies"];</code>
+     */
+    public Builder clearPolicies() {
+      bitField0_ = (bitField0_ & ~0x00000020);
+      policies_ = null;
+      if (policiesBuilder_ != null) {
+        policiesBuilder_.dispose();
+        policiesBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * What the organization lets its members do. Set when the organization is
+     * created (an omitted message means the defaults: members may create
+     * agents) and changed only through updatePolicies, so an update or apply
+     * of a manifest written before a policy changed neither fails nor
+     * reverts it: a policy carried by update or apply is ignored.
+     * </pre>
+     *
+     * <code>.ai.stigmer.tenancy.organization.v1.OrganizationPolicies policies = 9 [json_name = "policies"];</code>
+     */
+    public ai.stigmer.tenancy.organization.v1.OrganizationPolicies.Builder getPoliciesBuilder() {
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return internalGetPoliciesFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * What the organization lets its members do. Set when the organization is
+     * created (an omitted message means the defaults: members may create
+     * agents) and changed only through updatePolicies, so an update or apply
+     * of a manifest written before a policy changed neither fails nor
+     * reverts it: a policy carried by update or apply is ignored.
+     * </pre>
+     *
+     * <code>.ai.stigmer.tenancy.organization.v1.OrganizationPolicies policies = 9 [json_name = "policies"];</code>
+     */
+    public ai.stigmer.tenancy.organization.v1.OrganizationPoliciesOrBuilder getPoliciesOrBuilder() {
+      if (policiesBuilder_ != null) {
+        return policiesBuilder_.getMessageOrBuilder();
+      } else {
+        return policies_ == null ?
+            ai.stigmer.tenancy.organization.v1.OrganizationPolicies.getDefaultInstance() : policies_;
+      }
+    }
+    /**
+     * <pre>
+     * What the organization lets its members do. Set when the organization is
+     * created (an omitted message means the defaults: members may create
+     * agents) and changed only through updatePolicies, so an update or apply
+     * of a manifest written before a policy changed neither fails nor
+     * reverts it: a policy carried by update or apply is ignored.
+     * </pre>
+     *
+     * <code>.ai.stigmer.tenancy.organization.v1.OrganizationPolicies policies = 9 [json_name = "policies"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.tenancy.organization.v1.OrganizationPolicies, ai.stigmer.tenancy.organization.v1.OrganizationPolicies.Builder, ai.stigmer.tenancy.organization.v1.OrganizationPoliciesOrBuilder> 
+        internalGetPoliciesFieldBuilder() {
+      if (policiesBuilder_ == null) {
+        policiesBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.tenancy.organization.v1.OrganizationPolicies, ai.stigmer.tenancy.organization.v1.OrganizationPolicies.Builder, ai.stigmer.tenancy.organization.v1.OrganizationPoliciesOrBuilder>(
+                getPolicies(),
+                getParentForChildren(),
+                isClean());
+        policies_ = null;
+      }
+      return policiesBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.tenancy.organization.v1.OrganizationSpec)

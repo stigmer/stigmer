@@ -56,6 +56,11 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_tenancy_organization_v1_ChildOrgList_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_tenancy_organization_v1_UpdateOrganizationPoliciesInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_tenancy_organization_v1_UpdateOrganizationPoliciesInput_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -68,34 +73,41 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "\n+ai/stigmer/tenancy/organization/v1/io." +
       "proto\022\"ai.stigmer.tenancy.organization.v" +
       "1\032,ai/stigmer/tenancy/organization/v1/ap" +
-      "i.proto\032\033buf/validate/validate.proto\"[\n\r" +
-      "Organizations\022J\n\007entries\030\001 \003(\01320.ai.stig" +
-      "mer.tenancy.organization.v1.Organization" +
-      "R\007entries\"\177\n\020OrganizationList\022\037\n\013total_p" +
-      "ages\030\001 \001(\005R\ntotalPages\022J\n\007entries\030\002 \003(\0132" +
-      "0.ai.stigmer.tenancy.organization.v1.Org" +
-      "anizationR\007entries\"1\n\016OrganizationId\022\037\n\005" +
-      "value\030\001 \001(\tB\t\272H\006r\004\020\001\030@R\005value\"\220\001\n\032Organi" +
-      "zationExternalLookup\022+\n\013external_id\030\002 \001(" +
-      "\tB\n\272H\007r\005\020\001\030\200\002R\nexternalId\022(\n\nparent_org\030" +
-      "\003 \001(\tB\t\272H\006r\004\020\001\030@R\tparentOrgJ\004\010\001\020\002R\025ident" +
-      "ity_provider_ref\"\200\001\n\022ListChildOrgsInput\022" +
-      "\033\n\003org\030\001 \001(\tB\t\272H\006r\004\020\001\030@R\003org\022$\n\tpage_siz" +
-      "e\030\002 \001(\005B\007\272H\004\032\002(\000R\010pageSize\022\'\n\npage_token" +
-      "\030\003 \001(\tB\010\272H\005r\003\030\200\010R\tpageToken\"\202\001\n\014ChildOrg" +
-      "List\022J\n\007entries\030\001 \003(\01320.ai.stigmer.tenan" +
-      "cy.organization.v1.OrganizationR\007entries" +
-      "\022&\n\017next_page_token\030\002 \001(\tR\rnextPageToken" +
-      "B\266\001B\007IoProtoP\001\242\002\004ASTO\252\002\"Ai.Stigmer.Tenan" +
-      "cy.Organization.V1\312\002\"Ai\\Stigmer\\Tenancy\\" +
-      "Organization\\V1\342\002.Ai\\Stigmer\\Tenancy\\Org" +
-      "anization\\V1\\GPBMetadata\352\002&Ai::Stigmer::" +
-      "Tenancy::Organization::V1b\006proto3"
+      "i.proto\032-ai/stigmer/tenancy/organization" +
+      "/v1/spec.proto\032\033buf/validate/validate.pr" +
+      "oto\"[\n\rOrganizations\022J\n\007entries\030\001 \003(\01320." +
+      "ai.stigmer.tenancy.organization.v1.Organ" +
+      "izationR\007entries\"\177\n\020OrganizationList\022\037\n\013" +
+      "total_pages\030\001 \001(\005R\ntotalPages\022J\n\007entries" +
+      "\030\002 \003(\01320.ai.stigmer.tenancy.organization" +
+      ".v1.OrganizationR\007entries\"1\n\016Organizatio" +
+      "nId\022\037\n\005value\030\001 \001(\tB\t\272H\006r\004\020\001\030@R\005value\"\220\001\n" +
+      "\032OrganizationExternalLookup\022+\n\013external_" +
+      "id\030\002 \001(\tB\n\272H\007r\005\020\001\030\200\002R\nexternalId\022(\n\npare" +
+      "nt_org\030\003 \001(\tB\t\272H\006r\004\020\001\030@R\tparentOrgJ\004\010\001\020\002" +
+      "R\025identity_provider_ref\"\200\001\n\022ListChildOrg" +
+      "sInput\022\033\n\003org\030\001 \001(\tB\t\272H\006r\004\020\001\030@R\003org\022$\n\tp" +
+      "age_size\030\002 \001(\005B\007\272H\004\032\002(\000R\010pageSize\022\'\n\npag" +
+      "e_token\030\003 \001(\tB\010\272H\005r\003\030\200\010R\tpageToken\"\202\001\n\014C" +
+      "hildOrgList\022J\n\007entries\030\001 \003(\01320.ai.stigme" +
+      "r.tenancy.organization.v1.OrganizationR\007" +
+      "entries\022&\n\017next_page_token\030\002 \001(\tR\rnextPa" +
+      "geToken\"\241\001\n\037UpdateOrganizationPoliciesIn" +
+      "put\022 \n\006org_id\030\001 \001(\tB\t\272H\006r\004\020\001\030@R\005orgId\022\\\n" +
+      "\010policies\030\002 \001(\01328.ai.stigmer.tenancy.org" +
+      "anization.v1.OrganizationPoliciesB\006\272H\003\310\001" +
+      "\001R\010policiesB\266\001B\007IoProtoP\001\242\002\004ASTO\252\002\"Ai.St" +
+      "igmer.Tenancy.Organization.V1\312\002\"Ai\\Stigm" +
+      "er\\Tenancy\\Organization\\V1\342\002.Ai\\Stigmer\\" +
+      "Tenancy\\Organization\\V1\\GPBMetadata\352\002&Ai" +
+      "::Stigmer::Tenancy::Organization::V1b\006pr" +
+      "oto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.tenancy.organization.v1.ApiProto.getDescriptor(),
+          ai.stigmer.tenancy.organization.v1.SpecProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
         });
     internal_static_ai_stigmer_tenancy_organization_v1_Organizations_descriptor =
@@ -134,8 +146,15 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_tenancy_organization_v1_ChildOrgList_descriptor,
         new java.lang.String[] { "Entries", "NextPageToken", });
+    internal_static_ai_stigmer_tenancy_organization_v1_UpdateOrganizationPoliciesInput_descriptor =
+      getDescriptor().getMessageType(6);
+    internal_static_ai_stigmer_tenancy_organization_v1_UpdateOrganizationPoliciesInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_tenancy_organization_v1_UpdateOrganizationPoliciesInput_descriptor,
+        new java.lang.String[] { "OrgId", "Policies", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.tenancy.organization.v1.ApiProto.getDescriptor();
+    ai.stigmer.tenancy.organization.v1.SpecProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();

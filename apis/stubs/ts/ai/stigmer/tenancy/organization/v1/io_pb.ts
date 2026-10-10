@@ -6,6 +6,8 @@ import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { Organization } from "./api_pb.js";
 import { file_ai_stigmer_tenancy_organization_v1_api } from "./api_pb.js";
+import type { OrganizationPolicies } from "./spec_pb.js";
+import { file_ai_stigmer_tenancy_organization_v1_spec } from "./spec_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
 import type { Message } from "@bufbuild/protobuf";
 
@@ -13,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/tenancy/organization/v1/io.proto.
  */
 export const file_ai_stigmer_tenancy_organization_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL3RlbmFuY3kvb3JnYW5pemF0aW9uL3YxL2lvLnByb3RvEiJhaS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxIlIKDU9yZ2FuaXphdGlvbnMSQQoHZW50cmllcxgBIAMoCzIwLmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uImoKEE9yZ2FuaXphdGlvbkxpc3QSEwoLdG90YWxfcGFnZXMYASABKAUSQQoHZW50cmllcxgCIAMoCzIwLmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uIioKDk9yZ2FuaXphdGlvbklkEhgKBXZhbHVlGAEgASgJQgm6SAZyBBABGEAieQoaT3JnYW5pemF0aW9uRXh0ZXJuYWxMb29rdXASHwoLZXh0ZXJuYWxfaWQYAiABKAlCCrpIB3IFEAEYgAISHQoKcGFyZW50X29yZxgDIAEoCUIJukgGcgQQARhASgQIARACUhVpZGVudGl0eV9wcm92aWRlcl9yZWYiZgoSTGlzdENoaWxkT3Jnc0lucHV0EhYKA29yZxgBIAEoCUIJukgGcgQQARhAEhoKCXBhZ2Vfc2l6ZRgCIAEoBUIHukgEGgIoABIcCgpwYWdlX3Rva2VuGAMgASgJQgi6SAVyAxiACCJqCgxDaGlsZE9yZ0xpc3QSQQoHZW50cmllcxgBIAMoCzIwLmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uEhcKD25leHRfcGFnZV90b2tlbhgCIAEoCWIGcHJvdG8z", [file_ai_stigmer_tenancy_organization_v1_api, file_buf_validate_validate]);
+  fileDesc("CithaS9zdGlnbWVyL3RlbmFuY3kvb3JnYW5pemF0aW9uL3YxL2lvLnByb3RvEiJhaS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxIlIKDU9yZ2FuaXphdGlvbnMSQQoHZW50cmllcxgBIAMoCzIwLmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uImoKEE9yZ2FuaXphdGlvbkxpc3QSEwoLdG90YWxfcGFnZXMYASABKAUSQQoHZW50cmllcxgCIAMoCzIwLmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uIioKDk9yZ2FuaXphdGlvbklkEhgKBXZhbHVlGAEgASgJQgm6SAZyBBABGEAieQoaT3JnYW5pemF0aW9uRXh0ZXJuYWxMb29rdXASHwoLZXh0ZXJuYWxfaWQYAiABKAlCCrpIB3IFEAEYgAISHQoKcGFyZW50X29yZxgDIAEoCUIJukgGcgQQARhASgQIARACUhVpZGVudGl0eV9wcm92aWRlcl9yZWYiZgoSTGlzdENoaWxkT3Jnc0lucHV0EhYKA29yZxgBIAEoCUIJukgGcgQQARhAEhoKCXBhZ2Vfc2l6ZRgCIAEoBUIHukgEGgIoABIcCgpwYWdlX3Rva2VuGAMgASgJQgi6SAVyAxiACCJqCgxDaGlsZE9yZ0xpc3QSQQoHZW50cmllcxgBIAMoCzIwLmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uEhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSKQAQofVXBkYXRlT3JnYW5pemF0aW9uUG9saWNpZXNJbnB1dBIZCgZvcmdfaWQYASABKAlCCbpIBnIEEAEYQBJSCghwb2xpY2llcxgCIAEoCzI4LmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uUG9saWNpZXNCBrpIA8gBAWIGcHJvdG8z", [file_ai_stigmer_tenancy_organization_v1_api, file_ai_stigmer_tenancy_organization_v1_spec, file_buf_validate_validate]);
 
 /**
  * List of organizations.
@@ -177,4 +179,34 @@ export type ChildOrgList = Message<"ai.stigmer.tenancy.organization.v1.ChildOrgL
  */
 export const ChildOrgListSchema: GenMessage<ChildOrgList> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_tenancy_organization_v1_io, 5);
+
+/**
+ * Input for updatePolicies: the organization and the whole set of policies
+ * it holds from now on.
+ *
+ * @generated from message ai.stigmer.tenancy.organization.v1.UpdateOrganizationPoliciesInput
+ */
+export type UpdateOrganizationPoliciesInput = Message<"ai.stigmer.tenancy.organization.v1.UpdateOrganizationPoliciesInput"> & {
+  /**
+   * The organization's id or slug.
+   *
+   * @generated from field: string org_id = 1;
+   */
+  orgId: string;
+
+  /**
+   * Every policy, as it should stand: a field left at its zero value
+   * turns that policy off.
+   *
+   * @generated from field: ai.stigmer.tenancy.organization.v1.OrganizationPolicies policies = 2;
+   */
+  policies?: OrganizationPolicies;
+};
+
+/**
+ * Describes the message ai.stigmer.tenancy.organization.v1.UpdateOrganizationPoliciesInput.
+ * Use `create(UpdateOrganizationPoliciesInputSchema)` to create a new message.
+ */
+export const UpdateOrganizationPoliciesInputSchema: GenMessage<UpdateOrganizationPoliciesInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_tenancy_organization_v1_io, 6);
 

@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.agentic.agentshare.v1.AgentShare",
           "outputType": "AgentShare",
           "outputFullType": "ai.stigmer.agentic.agentshare.v1.AgentShare",
-          "description": "Update an existing agent share.\n\n Replaces the spec wholesale: a manifest that omits audience resets the\n share to public, and one that omits vaults detaches them (fails\n closed). The slug and referenced agent are immutable."
+          "description": "Update an existing agent share.\n\n Replaces the spec wholesale: a manifest that omits audience makes the\n share organization-only, and one that omits vaults detaches them (both\n fail closed). The slug and referenced agent are immutable."
         },
         {
           "name": "RotateShareLink",
@@ -624,7 +624,7 @@
     },
     {
       "name": "AgentShareAudience",
-      "description": "AgentShareAudience selects who can chat over a share's hosted link.\n\n Unspecified is treated as public: a share created without an explicit\n audience is an anyone-with-link share.",
+      "description": "AgentShareAudience selects who can chat over a share's hosted link.\n\n Unspecified is treated as org: a share reaches the internet only when\n public is chosen explicitly.",
       "protoType": "ai.stigmer.agentic.agentshare.v1.AgentShareAudience",
       "values": [
         {

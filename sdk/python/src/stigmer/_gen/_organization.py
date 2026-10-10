@@ -42,6 +42,12 @@ class OrganizationClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def update_policies(self, input: io_pb2.UpdateOrganizationPoliciesInput) -> api_pb2.Organization:
+        try:
+            return self._command.updatePolicies(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def rename(self, input: io_pb2.RenameInput) -> api_pb2.Organization:
         try:
             return self._command.rename(input)
@@ -101,6 +107,7 @@ class OrganizationInput:
     external_id: str = ""
     preferences: OrganizationPreferencesInput | None = None
     parent_org: str = ""
+    policies: OrganizationPoliciesInput | None = None
 
     def _to_proto(self) -> api_pb2.Organization:
         spec = spec_pb2.OrganizationSpec(
@@ -111,6 +118,8 @@ class OrganizationInput:
         )
         if self.preferences is not None:
             spec.preferences.CopyFrom(self.preferences._to_proto())
+        if self.policies is not None:
+            spec.policies.CopyFrom(self.policies._to_proto())
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,
@@ -142,6 +151,19 @@ class OrganizationPreferencesInput:
         msg = spec_pb2.OrganizationPreferences(
             standing_context=self.standing_context,
             memory_enabled=self.memory_enabled,
+        )
+        return msg
+
+
+@dataclass
+class OrganizationPoliciesInput:
+    """SDK input type for OrganizationPolicies."""
+
+    members_can_create_agents: bool = False
+
+    def _to_proto(self) -> spec_pb2.OrganizationPolicies:
+        msg = spec_pb2.OrganizationPolicies(
+            members_can_create_agents=self.members_can_create_agents,
         )
         return msg
 

@@ -32,6 +32,11 @@ class OrganizationCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_api__pb2.Organization.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_api__pb2.Organization.FromString,
                 _registered_method=True)
+        self.updatePolicies = channel.unary_unary(
+                '/ai.stigmer.tenancy.organization.v1.OrganizationCommandController/updatePolicies',
+                request_serializer=ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_io__pb2.UpdateOrganizationPoliciesInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_api__pb2.Organization.FromString,
+                _registered_method=True)
         self.rename = channel.unary_unary(
                 '/ai.stigmer.tenancy.organization.v1.OrganizationCommandController/rename',
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.RenameInput.SerializeToString,
@@ -127,6 +132,15 @@ class OrganizationCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def updatePolicies(self, request, context):
+        """Change what the organization lets its members do (OrganizationPolicies),
+        the one way to change a policy: update and apply keep the stored
+        policies. Replaces every policy with the input's.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def rename(self, request, context):
         """Rename an organization: change its slug, the name people type.
 
@@ -196,6 +210,11 @@ def add_OrganizationCommandControllerServicer_to_server(servicer, server):
             'update': grpc.unary_unary_rpc_method_handler(
                     servicer.update,
                     request_deserializer=ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_api__pb2.Organization.FromString,
+                    response_serializer=ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_api__pb2.Organization.SerializeToString,
+            ),
+            'updatePolicies': grpc.unary_unary_rpc_method_handler(
+                    servicer.updatePolicies,
+                    request_deserializer=ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_io__pb2.UpdateOrganizationPoliciesInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_api__pb2.Organization.SerializeToString,
             ),
             'rename': grpc.unary_unary_rpc_method_handler(
@@ -290,6 +309,33 @@ class OrganizationCommandController(object):
             target,
             '/ai.stigmer.tenancy.organization.v1.OrganizationCommandController/update',
             ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_api__pb2.Organization.SerializeToString,
+            ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_api__pb2.Organization.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def updatePolicies(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.tenancy.organization.v1.OrganizationCommandController/updatePolicies',
+            ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_io__pb2.UpdateOrganizationPoliciesInput.SerializeToString,
             ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_api__pb2.Organization.FromString,
             options,
             channel_credentials,

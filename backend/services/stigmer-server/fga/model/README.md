@@ -56,7 +56,7 @@ Agent (blueprint) → Session (personal) → Run
 ```
 
 - **An agent's audience is not its conversations' audience.** An org-visible agent lets every member read and run it; each member's conversation with it stays private to that member.
-- **Sessions** are personal: the owner sees one, and nobody else does until an explicit viewer grant shares it. A session started by a channel or a schedule is also visible to whoever can view that channel or schedule (`viewer from channel`, `viewer from schedule`). The agent a session names is not a relation: the server asks `can_execute` on it when a session names or changes it, and on every turn.
+- **Sessions** are personal: the owner sees one, and nobody else does until an explicit grant shares it. A participant reads the conversation and sends messages (`can_create_run_in: participant`); a viewer only reads it (owner ⊆ participant ⊆ viewer, the `agent_channel` ladder). A session started by a channel or a schedule is also visible to whoever can view that channel or schedule (`viewer from channel`, `viewer from schedule`). The agent a session names is not a relation: the server asks `can_execute` on it when a session names or changes it, and on every turn.
 - **Runs** hold nothing of their own. A run answers exactly what its session answers, so sharing a session shares its whole history, past turns included, with zero per-run tuples.
 
 ## What the model deliberately cannot say: the runtime lanes' blueprint reads
@@ -216,6 +216,14 @@ organization:stigmer#child_org@organization:acme-cust    ← on the parent
 
 Both edges are written once, when the child is created; a child has no `owner` tuple. The parent's admins hold `parent_admin` on the child, which feeds only the management permissions (`can_view_settings`, `can_edit`, `can_delete`, `can_grant_access`, `can_view_access`, `can_assign_roles`, `can_view_billing`) and the child's invitations, which they create and list through those permissions and so view and revoke too, never a role: they manage the child and read none of its resources. A parent admin who needs to look inside grants themselves a role in the child, which the child's members and access history show.
 
+### Organization Policies
+
+```
+organization:acme#agent_creation_open@organization:acme   ← while members may create agents
+```
+
+An organization's policy (`spec.policies`) that decides who may do what is an edge from the organization to itself, written while the policy is on and removed while it is off, only by the organization's create and its `updatePolicies`: `can_create_agent: admin or member from agent_creation_open`. Open source derives the edge from the row at check time (`src/authorization/model/organization-policies.ts`); an edition that stores tuples writes it from the authorization lifecycle's `onOrganizationPoliciesChanged`. It is not a cycle, because `member` never reads it.
+
 ### Session (Personal)
 
 ```
@@ -223,7 +231,7 @@ session:chat-123#organization@organization:acme
 session:chat-123#owner@identity_account:bob
 ```
 
-Only Bob can view. To share: `session:chat-123#viewer@identity_account:alice`
+Only Bob can view. To let Alice read it: `session:chat-123#viewer@identity_account:alice`. To let her send messages too: `session:chat-123#participant@identity_account:alice`.
 
 ### Run (Inherits Its Session)
 
