@@ -75,6 +75,12 @@ export async function hostHarnesses(
   };
 }
 
+/** The pool member's log line for a warm-up's result. */
+export function logCursorWarmup(result: { readonly warmed: boolean; readonly durationMs: number; readonly error: string | null }): void {
+  if (result.warmed) console.log(`[pool-member] Cursor SDK state stores warmed in ${result.durationMs}ms`);
+  else console.warn(`[pool-member] Cursor SDK warm-up skipped (non-fatal): ${result.error} (${result.durationMs}ms)`);
+}
+
 /**
  * The file the host's `NODE_EXTRA_CA_CERTS` names: the lane's certificate,
  * after the operator's extra certificates when `operatorFile` names a

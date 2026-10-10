@@ -72,6 +72,8 @@ function fakeCursor(seen: Seen[]): NetServer {
   // reads the socket's own handle, so it is handed a stream that replays the
   // first chunk instead of the socket the chunk was taken from.
   return createNetServer((socket) => {
+    // The SDK's process exits as soon as it reports, resetting its connections.
+    socket.on("error", () => {});
     socket.once("data", (first: Buffer) => {
       if (first.toString("latin1").startsWith("PRI * HTTP/2.0")) {
         const bridge = new Duplex({
@@ -88,6 +90,7 @@ function fakeCursor(seen: Seen[]): NetServer {
         socket.on("data", (chunk: Buffer) => bridge.push(chunk));
         socket.on("end", () => bridge.push(null));
         socket.on("close", () => bridge.destroy());
+        bridge.on("error", () => {});
         h2.emit("connection", bridge);
       } else {
         socket.pause();

@@ -23,10 +23,13 @@
  *    header;
  *  - an exchange the upstream refuses, or answers without a token, comes
  *    back as it was; an upstream that cannot be reached is a 502 in the
- *    shape a Connect client reads.
+ *    shape a Connect client reads;
+ *  - a host that drops its connection, mid-stream or mid-handshake, leaves
+ *    the lane serving.
  */
 
 import { request as httpsRequest } from "node:https";
+import { connect as tlsConnect } from "node:tls";
 import { connect, createServer as createH2cServer, type Http2Server, type IncomingHttpHeaders, type ServerHttp2Stream } from "node:http2";
 import type { AddressInfo } from "node:net";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -48,6 +51,8 @@ const RUN = "/agent.v1.AgentService/Run";
 /** Cursor's Connect host: records each stream, echoes each chunk back as it arrives, ends with a trailer. */
 class FakeConnectHost {
   readonly streams: { readonly path: string; readonly headers: IncomingHttpHeaders }[] = [];
+  /** Answer the headers, then reset the stream: an upstream that fails mid-answer. */
+  resetAfterHeaders = false;
   url = "";
   private server: Http2Server | undefined;
 
@@ -55,6 +60,12 @@ class FakeConnectHost {
     this.server = createH2cServer();
     this.server.on("stream", (stream: ServerHttp2Stream, headers: IncomingHttpHeaders) => {
       this.streams.push({ path: String(headers[":path"]), headers });
+      if (this.resetAfterHeaders) {
+        stream.respond({ ":status": 200, "content-type": "application/connect+proto" });
+        stream.on("error", () => {});
+        setTimeout(() => stream.destroy(new Error("Cursor broke mid-answer")), 20);
+        return;
+      }
       stream.respond({ ":status": 200, "content-type": "application/connect+proto" }, { waitForTrailers: true });
       stream.on("data", (chunk: Buffer) => stream.write(Buffer.concat([Buffer.from("echo:"), chunk])));
       stream.on("end", () => stream.end());
@@ -157,6 +168,7 @@ beforeEach(() => {
   rest.received.length = 0;
   rest.answer = FakeUpstream.DEFAULT_ANSWER;
   connectHost.streams.length = 0;
+  connectHost.resetAfterHeaders = false;
   setEnv({ CURSOR_BACKEND_URL: rest.url });
 });
 afterEach(async () => {
@@ -234,6 +246,7 @@ describe("terminate: a runner that calls Cursor itself", () => {
   });
 
   it("refuses a Connect call whose token it does not hold, and the agent run without a live execution", async () => {
+    expect((await call(RUN, { "x-stigmer-execution-id": EXECUTION })).status, "no token at all").toBe(401);
     const unknown = await call(RUN, { authorization: `Bearer ${REAL_TOKEN}`, "x-stigmer-execution-id": EXECUTION });
     expect(unknown.status).toBe(401);
     expect(JSON.parse(unknown.body)).toEqual({ code: "unauthenticated", message: "the Cursor lane holds no such access token; exchange the API key again" });
@@ -278,6 +291,44 @@ describe("terminate: a runner that calls Cursor itself", () => {
     expect(await call(EXCHANGE, { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION })).toEqual({ status: 200, body: "not json" });
   });
 
+  it("keeps serving after a host drops its connection mid-stream or mid-handshake", async () => {
+    const standIn = await exchange();
+    setEnv({ CURSOR_BACKEND_URL: connectHost.url });
+
+    const session = connect(proxy.cursorEndpoint, { ca: proxy.cursorCertificate });
+    const dropped = session.request({ ":method": "POST", ":path": RUN, authorization: `Bearer ${standIn}`, "x-stigmer-execution-id": EXECUTION });
+    dropped.on("error", () => {});
+    dropped.write("half");
+    await new Promise((resolve) => dropped.once("data", resolve));
+    session.destroy();
+
+    const half = tlsConnect({ host: "127.0.0.1", port: Number(new URL(proxy.cursorEndpoint).port), rejectUnauthorized: false });
+    half.on("error", () => {});
+    half.destroy();
+
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect((await stream(RUN, { authorization: `Bearer ${standIn}`, "x-stigmer-execution-id": EXECUTION }, ["after"])).data).toBe("echo:after");
+  });
+
+  it("resets the host's stream when Cursor's fails after its headers", async () => {
+    const standIn = await exchange();
+    setEnv({ CURSOR_BACKEND_URL: connectHost.url });
+    connectHost.resetAfterHeaders = true;
+    const reset = await new Promise<number>((resolve) => {
+      const session = connect(proxy.cursorEndpoint, { ca: proxy.cursorCertificate });
+      session.on("error", () => {});
+      const req = session.request({ ":method": "POST", ":path": RUN, authorization: `Bearer ${standIn}`, "x-stigmer-execution-id": EXECUTION });
+      req.on("error", () => {});
+      req.on("close", () => {
+        session.close();
+        resolve(req.rstCode);
+      });
+      req.resume();
+      req.end("x");
+    });
+    expect(reset, "an internal-error reset, never a clean end").toBe(2);
+  });
+
   it("answers 502 when Cursor cannot be reached, on the stream and on the exchange", async () => {
     const standIn = await exchange();
     setEnv({ CURSOR_BACKEND_URL: "http://127.0.0.1:9" });
@@ -294,6 +345,16 @@ describe("terminate without the operator's key", () => {
     const answer = await call(EXCHANGE, { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION });
     expect(answer.status).toBe(500);
     expect(JSON.parse(answer.body)).toEqual({ code: "internal", message: "the Cursor lane needs CURSOR_API_KEY on the runner" });
+  });
+});
+
+describe("forward without a runner credential", () => {
+  beforeEach(() => startProxy({ proxyEndpoint: rest.url, proxyTokenRef: { current: null }, stigmerTokenRef: { current: null } }));
+
+  it("refuses to forward, and sends nothing", async () => {
+    const answer = await call(EXCHANGE, { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION });
+    expect(answer.status).toBe(503);
+    expect(rest.received).toEqual([]);
   });
 });
 

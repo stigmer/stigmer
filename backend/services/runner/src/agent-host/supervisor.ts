@@ -146,8 +146,9 @@ export class AgentHostSupervisor {
     if (peer && !peer.closed) await peer.call("releaseSession", { harness, sessionId });
   }
 
-  /** Ask the host to warm the Cursor SDK's stores (an idle pool member's head start). */
+  /** Ask the host to warm the Cursor SDK's stores (an idle pool member's head start); nothing to warm when Cursor is not booted. */
   async warmCursorSdk(): Promise<HostCalls["warmCursorSdk"]["result"]> {
+    if (!this.booted.has("cursor")) return { warmed: false, durationMs: 0, error: "the Cursor harness is not booted" };
     return (await this.connection()).call("warmCursorSdk", {});
   }
 

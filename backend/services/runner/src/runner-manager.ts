@@ -277,7 +277,7 @@ async function buildStigmerRunnerManager(
   // `__tests__/harness-boot-order.test.ts`). The hosted harnesses' engines
   // run in the agent host, one for every session worker of this manager,
   // behind their remote adapters (`agent-host/`).
-  const [{ HARNESS_ADAPTERS }, { adaptersOf, bootHarnesses, releaseHarnessSession, shutdownHarnesses }, { hostHarnesses }] =
+  const [{ HARNESS_ADAPTERS }, { adaptersOf, bootHarnesses, releaseHarnessSession, shutdownHarnesses }, { hostHarnesses, logCursorWarmup }] =
     await Promise.all([import("./harness-adapters.js"), import("./harness/registry.js"), import("./agent-host/hosting.js")]);
   const hosted = await hostHarnesses(HARNESS_ADAPTERS, baseConfig);
   boot.release = async () => {
@@ -578,13 +578,7 @@ async function buildStigmerRunnerManager(
       // member waits for a claim, instead of inside the claimed session's
       // first resolve_agent. Fire-and-forget: a pool-control member only,
       // never a claimed session's restart, which serves at once.
-      void hosted.warmCursorSdk().then((result) => {
-        if (result.warmed) {
-          console.log(`[pool-member] Cursor SDK state stores warmed in ${result.durationMs}ms`);
-        } else {
-          console.warn(`[pool-member] Cursor SDK warm-up skipped (non-fatal): ${result.error} (${result.durationMs}ms)`);
-        }
-      });
+      void hosted.warmCursorSdk().then(logCursorWarmup);
     },
 
     updateToken(token: string | null): void {

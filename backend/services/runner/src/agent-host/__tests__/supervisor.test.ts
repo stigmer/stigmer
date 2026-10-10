@@ -41,7 +41,7 @@ import { testConfig } from "../../__test-utils__/config-fixture.js";
 import type { HarnessAdapter } from "../../harness/types.js";
 import { RUNNER_ENTRY_URL } from "../../runner-entry.js";
 import { Peer, loopbackChannels } from "../channel.js";
-import { hostHarnesses, writeTrustedCertificates } from "../hosting.js";
+import { hostHarnesses, logCursorWarmup, writeTrustedCertificates } from "../hosting.js";
 import { AGENT_HOST_MODE_ARG, AGENT_HOST_PROTOCOL_VERSION, type HostCalls, type HostNotices, type RunnerCalls, type RunnerNotices } from "../protocol.js";
 import { AgentHostSupervisor, agentHostCommand, processHostStarter, spawnHostProcess, type HostStarter } from "../supervisor.js";
 
@@ -63,6 +63,7 @@ function inProcessHosts(): { readonly start: HostStarter; readonly hosts: HostSi
       const host: HostSide = new Peer<RunnerCalls, HostCalls, HostNotices, RunnerNotices>(hostEnd, "host");
       host.handle("boot", async () => null);
       host.handle("shutdown", async () => null);
+      host.handle("warmCursorSdk", async () => ({ warmed: true, durationMs: 12, error: null }));
       host.sendHello(AGENT_HOST_PROTOCOL_VERSION);
       state.hosts.push(host);
       return { channel: runnerEnd, kill: () => hostEnd.close() };
@@ -163,6 +164,38 @@ describe("the supervisor's edges", () => {
     expect(log).toEqual(["[agent-host] the agent host exited (crashed); restarting in 5ms"]);
   });
 
+  it("asks a host with the Cursor harness booted to warm its SDK, and reports a warm-up that failed as a result", async () => {
+    const hosts = inProcessHosts();
+    const supervisor = new AgentHostSupervisor({ proxy: PROXY, start: hosts.start, log: () => {} });
+    await supervisor.boot("cursor", testConfig());
+    expect(await supervisor.warmCursorSdk()).toEqual({ warmed: true, durationMs: 12, error: null });
+    await supervisor.shutdown("cursor");
+
+    const throwing = inProcessHosts();
+    const failing = await hostHarnesses([{ harness: "cursor", adapter: probeAdapter("cursor") }], testConfig(), {
+      start: async () => {
+        const started = await throwing.start();
+        throwing.hosts.at(-1)!.handle("warmCursorSdk", async () => {
+          throw new Error("the SDK would not load");
+        });
+        return started;
+      },
+    });
+    await failing.rows[0]!.adapter.boot(testConfig());
+    expect(await failing.warmCursorSdk()).toEqual({ warmed: false, durationMs: 0, error: "the SDK would not load" });
+    await failing.rows[0]!.adapter.shutdown();
+    await failing.close();
+  });
+
+  it("logs a warm-up's result for the pool member", () => {
+    const lines: string[] = [];
+    vi.spyOn(console, "log").mockImplementation((message: string) => void lines.push(message));
+    vi.spyOn(console, "warn").mockImplementation((message: string) => void lines.push(message));
+    logCursorWarmup({ warmed: true, durationMs: 12, error: null });
+    logCursorWarmup({ warmed: false, durationMs: 3, error: "no SDK" });
+    expect(lines).toEqual(["[pool-member] Cursor SDK state stores warmed in 12ms", "[pool-member] Cursor SDK warm-up skipped (non-fatal): no SDK (3ms)"]);
+  });
+
   it("touches nothing when a harness that was never booted shuts down", async () => {
     const hosts = inProcessHosts();
     const supervisor = new AgentHostSupervisor({ proxy: PROXY, start: hosts.start, log: () => {} });
@@ -259,6 +292,18 @@ describe("the production starter", () => {
   });
 });
 
+/** An adapter that does nothing, for a hosted row. */
+function probeAdapter(name: string): HarnessAdapter {
+  return {
+    name,
+    capabilities: DEEP_AGENT_CAPABILITIES,
+    boot: async () => {},
+    shutdown: async () => {},
+    releaseSession: async () => {},
+    runTurn: async () => ({ kind: "completed" }),
+  };
+}
+
 describe("hosting the table", () => {
   it("replaces every harness's adapter, keeps its name and capabilities, and closes its proxy", async () => {
     const adapter = (name: string): HarnessAdapter => ({
@@ -284,8 +329,8 @@ describe("hosting the table", () => {
     expect(hosted.rows[1]!.adapter, "the native harness is hosted").not.toBe(native);
     expect(hosted.rows.map((row) => row.adapter.name)).toEqual(["cursor", "native"]);
     expect(hosted.rows[1]!.adapter.capabilities).toBe(native.capabilities);
-    // The in-process host serves no warm-up: the answer is a result, never a throw.
-    expect(await hosted.warmCursorSdk()).toEqual({ warmed: false, durationMs: 0, error: expect.stringContaining("warmCursorSdk") });
+    // Nothing booted: nothing to warm, and no host is started for it.
+    expect(await hosted.warmCursorSdk()).toEqual({ warmed: false, durationMs: 0, error: "the Cursor harness is not booted" });
     await hosted.close();
   });
 

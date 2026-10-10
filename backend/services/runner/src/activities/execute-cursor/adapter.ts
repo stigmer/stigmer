@@ -69,8 +69,8 @@ import type { CursorAdapterConfig } from "./turn-setup.js";
  */
 export function resolveCursorConfig(config: Config): CursorAdapterConfig {
   return {
-    proxyEndpoint: transportOf(config),
-    platformKey: config.proxyEndpoint !== null,
+    proxyEndpoint: config.proxyEndpoint,
+    transport: transportOf(config),
     cursorApiKey: config.cursorApiKey,
     stigmerTokenRef: config.stigmerTokenRef,
     workspaceRootDir: config.workspaceRootDir,

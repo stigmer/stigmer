@@ -106,11 +106,11 @@ import { installHitlGate, MAX_HOOK_TIMEOUT_SECONDS, removeHitlGate, type HitlGat
  * idiom): taken from a `Config` at boot (`adapter.ts` `resolveCursorConfig`),
  * a test constructs these fields and nothing else.
  *
- * `proxyEndpoint` is where the SDK's traffic goes: in the agent host, always
- * the local proxy's Cursor lane. `platformKey` is whether the Cursor key
- * behind it is the Stigmer platform's, which decides the wording of a
- * billing error; the two were one setting while the harness ran in the
- * runner's own process.
+ * `transport` is where the SDK's traffic goes: in the agent host, always the
+ * local proxy's Cursor lane, `null` only for an SDK that calls Cursor
+ * itself. `proxyEndpoint` is still the runner's own: whether the Cursor key
+ * is the Stigmer platform's, which decides the wording of a billing error.
+ * The two were one setting while the harness ran in the runner's process.
  */
 export type CursorAdapterConfig = Pick<
   Config,
@@ -121,7 +121,7 @@ export type CursorAdapterConfig = Pick<
   | "cloudModeEnabled"
   | "agentResolveTimeoutMs"
   | "cursorStreamStallTimeoutMs"
-> & { readonly platformKey: boolean };
+> & { readonly transport: string | null };
 
 export type CursorAgentMode = "cloud" | "local";
 
@@ -586,7 +586,7 @@ export async function resolveEngine(
   // In proxy mode, the SDK's API key is the control-plane credential, read
   // from the ref now (per turn) — the proxy validates it and injects the real
   // Cursor API key server-side. In direct mode, the user's own CURSOR_API_KEY.
-  const effectiveApiKey = config.proxyEndpoint
+  const effectiveApiKey = config.transport
     ? config.stigmerTokenRef.current
     : config.cursorApiKey;
   if (!effectiveApiKey || effectiveApiKey === "proxy-managed") {
