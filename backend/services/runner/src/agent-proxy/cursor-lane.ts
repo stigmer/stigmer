@@ -50,6 +50,9 @@
  * stand-in for Connect; a live turn's execution for every call but the
  * SDK's unscoped side calls (`/aiserver.v1.*`, the platform's lane serves
  * those unscoped too); the execution id is the one scope header forwarded.
+ * Of Cursor's `aiserver.v1` surface, only the methods the SDK itself calls
+ * are relayed ({@link CURSOR_SIDE_CALLS}): the rest, which carry the real
+ * token just the same, include one that mints an API key from it.
  */
 
 import { randomBytes } from "node:crypto";
@@ -78,6 +81,30 @@ const REST_PREFIX = "/v1/proxy/cursor/";
 const EXCHANGE_PATH = "/auth/exchange_user_api_key";
 const AGENT_PREFIX = "/agent.v1.";
 const SIDE_CALL_PREFIX = "/aiserver.v1.";
+
+/**
+ * The `aiserver.v1` methods the Cursor SDK calls through a client, read from
+ * `@cursor/sdk` 1.0.31's bundle (#2083), through a client or by `fetch`: its
+ * server config, telemetry and feature flags (`BootstrapStatsig`), and the
+ * dashboard reads for privacy mode, team settings, plugins and skills.
+ * Each dashboard read falls back to a default when it fails. Left out on
+ * purpose: `DashboardService/CreateUserApiKey` (the SDK's login flow, which
+ * mints a key from the access token) and `BidiService/BidiAppend` (the
+ * HTTP/1.1 imitation of the agent run, which an HTTP/2 lane never needs).
+ * The real-SDK wire test (`__tests__/cursor-sdk-wire.test.ts`) fails when
+ * the SDK makes a side call this list leaves out.
+ */
+export const CURSOR_SIDE_CALLS: ReadonlySet<string> = new Set([
+  "/aiserver.v1.ServerConfigService/GetServerConfig",
+  "/aiserver.v1.AnalyticsService/TrackEvents",
+  "/aiserver.v1.AnalyticsService/BootstrapStatsig",
+  "/aiserver.v1.DashboardService/GetUserPrivacyMode",
+  "/aiserver.v1.DashboardService/GetTeamReposOrEmptyIfNotInTeam",
+  "/aiserver.v1.DashboardService/GetTeamAdminSettingsOrEmptyIfNotInTeam",
+  "/aiserver.v1.DashboardService/GetEffectiveUserPlugins",
+  "/aiserver.v1.DashboardService/ResolvePluginsByRef",
+  "/aiserver.v1.DashboardService/GetManagedSkills",
+]);
 const DEFAULT_CONNECT_UPSTREAM = "https://api2.cursor.sh";
 
 /**
@@ -167,6 +194,9 @@ export class CursorLane {
         await this.rest(req, res, path.slice(REST_PREFIX.length), url.search);
         return;
       }
+      if (path.startsWith(SIDE_CALL_PREFIX) && !CURSOR_SIDE_CALLS.has(path)) {
+        throw new LaneRefusal(403, `the Cursor lane relays only the Cursor SDK's own side calls, not ${path}`);
+      }
       if (path.startsWith(AGENT_PREFIX) || path.startsWith(SIDE_CALL_PREFIX)) {
         await this.connect(req, res, `${path}${url.search}`, path.startsWith(AGENT_PREFIX));
         return;
@@ -191,6 +221,13 @@ export class CursorLane {
     const slash = hostAndPath.indexOf("/");
     const host = slash === -1 ? hostAndPath : hostAndPath.slice(0, slash);
     const path = slash === -1 ? "" : hostAndPath.slice(slash);
+    // Cursor's Connect services are the Connect paths' alone, which hold
+    // them to the SDK's own calls; REST never reaches them, by any spelling
+    // a server could read as one (an escape, a doubled slash, another case).
+    const canonical = canonicalPath(path);
+    if (canonical === undefined || canonical.includes(SIDE_CALL_PREFIX) || canonical.includes(AGENT_PREFIX)) {
+      throw new LaneRefusal(403, `the Cursor lane's REST path reaches no Connect service, not ${path}`);
+    }
     const rest = `${path}${search}`;
     const known = cursorHostNamed(host);
     if (known === undefined) throw new LaneRefusal(403, `the Cursor lane reaches Cursor's own hosts only, not ${host}`);
@@ -222,7 +259,7 @@ export class CursorLane {
     // The exchange: the access token stays here; the host gets a stand-in.
     const answer = await requestWhole(upstream);
     let out = answer.body;
-    if (answer.status === 200) {
+    if (answer.status >= 200 && answer.status < 300) {
       // Custody fails closed: an answer this lane cannot take the token out
       // of never reaches the host, and no refresh token ever does.
       const parsed = parseJsonObject(answer.body);
@@ -245,7 +282,9 @@ export class CursorLane {
     const forward = this.config.proxyEndpoint !== null;
     const base = forward ? this.config.proxyEndpoint! : process.env.CURSOR_BACKEND_URL?.trim() || DEFAULT_CONNECT_UPSTREAM;
     const headers: Record<string, string | string[]> = {
-      ...forwardableHeaders(req.headers, forward),
+      // The execution id goes on only once this lane has checked it names a
+      // live turn: the agent run's. A side call's claim is dropped.
+      ...forwardableHeaders(req.headers, forward && scoped),
       authorization: `Bearer ${real}`,
       ...(forward ? { "x-stigmer-auth": `Bearer ${this.runnerCredential()}` } : {}),
     };
@@ -261,7 +300,9 @@ export class CursorLane {
    * One HTTP/2 stream, relayed both ways as it flows: the agent run is a
    * bidirectional stream, so neither side is buffered. The upstream's
    * headers, data and trailers come back as they were; either side's reset
-   * resets the other.
+   * resets the other, with its own code, so a cut-off answer never reads as
+   * a complete one. The relay is done when the upstream stream closes,
+   * however it closes.
    */
   private relayStream(req: Http2ServerRequest, res: Http2ServerResponse, url: URL, headers: Record<string, string | string[]>): Promise<void> {
     return new Promise((resolve) => {
@@ -289,7 +330,7 @@ export class CursorLane {
           if (!name.startsWith(":") && value !== undefined) relayed[name] = value;
         }
         res.writeHead(Number(answer[http2Constants.HTTP2_HEADER_STATUS] ?? 502), relayed);
-        upstream.pipe(res);
+        upstream.pipe(res, { end: false });
       });
       upstream.on("trailers", (trailers) => {
         const relayed: OutgoingHttpHeaders = {};
@@ -298,8 +339,32 @@ export class CursorLane {
         }
         res.addTrailers(relayed);
       });
-      upstream.on("end", () => resolve());
+      let failed = false;
+      // How the host's stream ends follows how Cursor's ended. Node emits
+      // `end` both for a clean END_STREAM and for a reset that cut the
+      // answer off, but marks the reset (its code, and `aborted` while this
+      // side is still sending) before that `end`: so a clean end ends the host's stream with its trailers, and
+      // a reset resets it with Cursor's code. A stream that closes without
+      // either (its session gone) is reset too: a cut-off answer never reads
+      // as a complete one.
+      const reset = (): void => {
+        if (failed || res.writableEnded || res.stream.closed) return;
+        const code = upstream.rstCode;
+        res.stream.close(code !== undefined && code !== http2Constants.NGHTTP2_NO_ERROR ? code : http2Constants.NGHTTP2_CANCEL);
+      };
+      upstream.on("end", () => {
+        const code = upstream.rstCode;
+        if (upstream.aborted || (code !== undefined && code !== http2Constants.NGHTTP2_NO_ERROR)) reset();
+        else if (!res.writableEnded) res.end();
+      });
+      res.once("close", () => resolve());
+      upstream.on("close", () => {
+        res.off("close", abandon);
+        reset();
+        resolve();
+      });
       upstream.on("error", (err) => {
+        failed = true;
         res.off("close", abandon);
         console.warn(`[agent-proxy] the Cursor stream ${url.pathname} failed upstream: ${err.message}`);
         if (res.headersSent) res.stream.close(http2Constants.NGHTTP2_INTERNAL_ERROR);
@@ -351,7 +416,6 @@ export class CursorLane {
   }
 }
 
-/** Is `host` one of Cursor's own, read as a URL parser reads it (no userinfo, port or escape)? */
 /**
  * The Cursor host a REST call names, as the lane's own constant, or
  * `undefined` for anything else. Only the exact host names count: the host's
@@ -365,15 +429,21 @@ function cursorHostNamed(host: string): string | undefined {
 
 /** Does `path` read as the auth API once decoded, lower-cased and stripped of repeated or trailing slashes? */
 function readsAsAuthPath(path: string): boolean {
+  const canonical = canonicalPath(path);
+  return canonical === undefined || canonical === "/auth" || canonical.startsWith("/auth/");
+}
+
+/** `path` decoded, lower-cased and stripped of repeated or trailing slashes; `undefined` when it cannot be decoded. */
+function canonicalPath(path: string): string | undefined {
   let decoded: string;
   try {
     decoded = decodeURIComponent(path);
   } catch {
-    return true;
+    return undefined;
   }
   let canonical = decoded.toLowerCase().replace(/\/{2,}/g, "/");
   while (canonical.endsWith("/")) canonical = canonical.slice(0, -1);
-  return canonical === "/auth" || canonical.startsWith("/auth/");
+  return canonical;
 }
 
 /**
