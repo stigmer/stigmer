@@ -37,7 +37,7 @@
  */
 
 import { setMaxListeners } from "node:events";
-import { heartbeat, CancelledFailure, Context } from "@temporalio/activity";
+import { CancelledFailure, Context } from "@temporalio/activity";
 import { create, type JsonObject } from "@bufbuild/protobuf";
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase, InteractionMode, MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
@@ -199,8 +199,13 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
   let lastActivityDetail: string | undefined;
   let watchdog: StallWatchdog | undefined;
 
-  const cancellationSignal = Context.current().cancellationSignal;
-  const shutdownSignal = getShutdownSignalForQueue(Context.current().info.taskQueue);
+  const activity = Context.current();
+  const cancellationSignal = activity.cancellationSignal;
+  const shutdownSignal = getShutdownSignalForQueue(activity.info.taskQueue);
+  // Bound to this activity, not read from the async context per call: a
+  // hosted turn's persist and progress requests reach the runtime on the
+  // agent host's pipe, whose I/O events carry no activity context (#2090).
+  const heartbeat = (details?: unknown): void => activity.heartbeat(details);
   const periodicHeartbeat = startHeartbeat(PERIODIC_HEARTBEAT_MS, () => ({ phase: heartbeatPhase, execution: executionId }));
 
   const chokepoint = new PersistChokepoint({

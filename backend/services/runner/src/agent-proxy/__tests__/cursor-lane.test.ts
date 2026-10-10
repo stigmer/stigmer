@@ -16,14 +16,22 @@
  *    relayed too;
  *  - bounds: REST needs the host's token, a live execution and a Cursor
  *    host; the agent run needs a live execution; side calls need only the
- *    stand-in; a path outside both is unknown;
+ *    stand-in, and only the side calls the SDK makes are relayed (any other
+ *    `/aiserver.v1.*` method, `CreateUserApiKey` among them, is refused
+ *    before it leaves the runner); a path outside both is unknown;
  *  - terminate mode reaches Cursor with the operator's key and no scope
  *    header; forward mode reaches the platform's proxy with the runner's
  *    credential, the real token, and the execution id as its one scope
  *    header;
- *  - an exchange the upstream refuses, or answers without a token, comes
- *    back as it was; an upstream that cannot be reached is a 502 in the
- *    shape a Connect client reads;
+ *  - an exchange the upstream refuses comes back as it was; any 2xx answer
+ *    without a token is refused, so no Cursor credential reaches the host;
+ *    an upstream that cannot be reached is a 502 in the shape a Connect
+ *    client reads;
+ *  - an upstream stream that is reset after its headers resets the host's
+ *    with its code, never a clean end; one that ends cleanly while the
+ *    host is still sending ends the host's cleanly, with its trailers;
+ *  - in forward mode a side call's execution id, which no live-turn check
+ *    covered, is not forwarded;
  *  - a host that drops its connection mid-stream has its run cancelled at
  *    Cursor, and a drop mid-stream or mid-handshake leaves the lane serving.
  */
@@ -37,6 +45,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import { testConfig } from "../../__test-utils__/config-fixture.js";
 import { FakeUpstream } from "../../__test-utils__/fake-upstream.js";
 import type { Config } from "../../config.js";
+import { CURSOR_SIDE_CALLS } from "../cursor-lane.js";
 import { AgentProxy } from "../server.js";
 
 const HOST_TOKEN = "host-token-cursor-lane";
@@ -57,6 +66,15 @@ class FakeConnectHost {
   readonly closedCodes: number[] = [];
   /** Answer the headers, then reset the stream: an upstream that fails mid-answer. */
   resetAfterHeaders = false;
+  /** Answer, then end the stream cleanly with trailers while the client's half is still open. */
+  endFirst = false;
+  /**
+   * Answer the headers and some data, then reset the stream with CANCEL and
+   * no END_STREAM, as a server that cuts its answer off does. Node's own
+   * \`close(code)\` sends END_STREAM first, so this fake reaches the
+   * stream's native handle, a test's means to a frame the API does not send.
+   */
+  cancelMidAnswer = false;
   url = "";
   private server: Http2Server | undefined;
 
@@ -66,6 +84,23 @@ class FakeConnectHost {
     this.server.on("stream", (stream: ServerHttp2Stream, headers: IncomingHttpHeaders) => {
       this.streams.push({ path: String(headers[":path"]), headers });
       stream.on("close", () => this.closedCodes.push(stream.rstCode));
+      if (this.cancelMidAnswer) {
+        stream.respond({ ":status": 200, "content-type": "application/connect+proto" });
+        stream.on("error", () => {});
+        stream.write("partial");
+        setTimeout(() => {
+          const handle = Object.getOwnPropertySymbols(stream).find((symbol) => symbol.description === "kHandle");
+          (stream as unknown as Record<symbol, { rstStream(code: number): void }>)[handle!]!.rstStream(8);
+        }, 20);
+        return;
+      }
+      if (this.endFirst) {
+        stream.respond({ ":status": 200, "content-type": "application/connect+proto" }, { waitForTrailers: true });
+        stream.on("error", () => {});
+        stream.on("wantTrailers", () => stream.sendTrailers({ "grpc-status": "0" }));
+        stream.end("done");
+        return;
+      }
       if (this.resetAfterHeaders) {
         stream.respond({ ":status": 200, "content-type": "application/connect+proto" });
         stream.on("error", () => {});
@@ -176,6 +211,8 @@ beforeEach(() => {
   rest.answer = FakeUpstream.DEFAULT_ANSWER;
   connectHost.streams.length = 0;
   connectHost.resetAfterHeaders = false;
+  connectHost.endFirst = false;
+  connectHost.cancelMidAnswer = false;
   connectHost.closedCodes.length = 0;
   connectHost.sessions = 0;
   setEnv({ CURSOR_BACKEND_URL: rest.url });
@@ -238,6 +275,59 @@ describe("terminate: a runner that calls Cursor itself", () => {
     expect(answer.status).toBe(200);
     expect(rest.last.path).toBe("/aiserver.v1.ServerConfigService/GetServerConfig");
     expect(rest.last.headers.authorization).toBe(`Bearer ${REAL_TOKEN}`);
+  });
+
+  it("relays only the side calls the SDK makes, and refuses every other aiserver method before it leaves the runner", async () => {
+    const standIn = await exchange();
+    rest.answer = { status: 200, headers: { "content-type": "application/json" }, body: "{}" };
+    // The methods @cursor/sdk 1.0.31 calls through a client or by fetch, read from its bundle (#2083).
+    expect([...CURSOR_SIDE_CALLS].sort()).toEqual([
+      "/aiserver.v1.AnalyticsService/BootstrapStatsig",
+      "/aiserver.v1.AnalyticsService/TrackEvents",
+      "/aiserver.v1.DashboardService/GetEffectiveUserPlugins",
+      "/aiserver.v1.DashboardService/GetManagedSkills",
+      "/aiserver.v1.DashboardService/GetTeamAdminSettingsOrEmptyIfNotInTeam",
+      "/aiserver.v1.DashboardService/GetTeamReposOrEmptyIfNotInTeam",
+      "/aiserver.v1.DashboardService/GetUserPrivacyMode",
+      "/aiserver.v1.DashboardService/ResolvePluginsByRef",
+      "/aiserver.v1.ServerConfigService/GetServerConfig",
+    ]);
+    for (const path of CURSOR_SIDE_CALLS) {
+      expect((await call(path, { authorization: `Bearer ${standIn}` })).status, path).toBe(200);
+      expect(rest.last.path).toBe(path);
+    }
+
+    const sent = rest.received.length;
+    for (const path of [
+      "/aiserver.v1.DashboardService/CreateUserApiKey",
+      "/aiserver.v1.DashboardService/GetTeams",
+      "/aiserver.v1.BidiService/BidiAppend",
+      "/aiserver.v1.DashboardService/getUserPrivacyMode",
+      "/aiserver.v1.DashboardService/GetUserPrivacyMode/",
+      "/aiserver.v1.DashboardService/GetUserPrivacyMode%2F..%2FCreateUserApiKey",
+    ]) {
+      const refused = await call(path, { authorization: `Bearer ${standIn}` });
+      expect(refused.status, path).toBe(403);
+      expect(JSON.parse(refused.body), path).toEqual({ code: "permission_denied", message: expect.stringContaining("relays only the Cursor SDK's own side calls") });
+    }
+    expect(rest.received).toHaveLength(sent);
+  });
+
+  it("refuses a REST path that names one of Cursor's Connect services", async () => {
+    const sent = rest.received.length;
+    for (const path of [
+      "/aiserver.v1.DashboardService/CreateUserApiKey",
+      "/agent.v1.AgentService/Run",
+      "//aiserver.v1.DashboardService/CreateUserApiKey",
+      "/%61iserver.v1.DashboardService/CreateUserApiKey",
+      "/AISERVER.V1.DashboardService/CreateUserApiKey",
+      "/v1/x/..%2Faiserver.v1.DashboardService/CreateUserApiKey",
+      "/%E0%A4%A",
+    ]) {
+      const refused = await call(`/v1/proxy/cursor/api2.cursor.sh${path}`, { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION });
+      expect(refused.status, path).toBe(403);
+    }
+    expect(rest.received).toHaveLength(sent);
   });
 
   it("relays other REST calls with the operator's key, to Cursor's own host when no backend is named", async () => {
@@ -322,12 +412,22 @@ describe("terminate: a runner that calls Cursor itself", () => {
   it("passes an exchange the upstream refused through unchanged, and keeps any other answer without a token from the host", async () => {
     rest.answer = { status: 401, headers: { "content-type": "application/json" }, body: '{"error":"bad key"}' };
     expect(await call(EXCHANGE, { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION })).toEqual({ status: 401, body: '{"error":"bad key"}' });
-    for (const body of ["not json", '{"accessToken":"","refreshToken":"real-refresh"}', '{"access_token":"real-snake","refresh_token":"real-refresh"}']) {
-      rest.answer = { status: 200, headers: {}, body };
+    for (const [status, body] of [
+      [200, "not json"],
+      [200, '{"accessToken":"","refreshToken":"real-refresh"}'],
+      [200, '{"access_token":"real-snake","refresh_token":"real-refresh"}'],
+      [201, '{"refreshToken":"real-refresh"}'],
+    ] as const) {
+      rest.answer = { status, headers: {}, body };
       const answer = await call(EXCHANGE, { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION });
       expect(answer.status, body).toBe(502);
       expect(answer.body, body).not.toContain("real-");
     }
+    rest.answer = { status: 201, headers: { "content-type": "application/json" }, body: JSON.stringify({ accessToken: REAL_TOKEN, refreshToken: "real-refresh" }) };
+    const created = await call(EXCHANGE, { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION });
+    expect(created.status, "another 2xx is held in custody too").toBe(201);
+    expect(created.body).not.toContain(REAL_TOKEN);
+    expect(created.body).not.toContain("real-refresh");
   });
 
   it("cancels Cursor's stream when the host drops its own, and keeps serving after a drop mid-stream or mid-handshake", async () => {
@@ -367,6 +467,60 @@ describe("terminate: a runner that calls Cursor itself", () => {
       req.end("x");
     });
     expect(reset, "an internal-error reset, never a clean end").toBe(2);
+  });
+
+  it("resets the host's stream with Cursor's own cancel when Cursor cuts its answer off, never a clean end, whether or not the host is still sending", async () => {
+    const standIn = await exchange();
+    setEnv({ CURSOR_BACKEND_URL: connectHost.url });
+    connectHost.cancelMidAnswer = true;
+    for (const hostStillSending of [true, false]) {
+      const ended = await new Promise<{ readonly code: number; readonly trailers: boolean }>((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error("the host's stream never ended")), 5_000);
+        const session = connect(proxy.cursorEndpoint, { ca: proxy.cursorCertificate });
+        session.on("error", () => {});
+        const req = session.request({ ":method": "POST", ":path": RUN, authorization: `Bearer ${standIn}`, "x-stigmer-execution-id": EXECUTION });
+        let trailers = false;
+        req.on("error", () => {});
+        req.on("trailers", () => (trailers = true));
+        req.on("close", () => {
+          clearTimeout(timer);
+          session.close();
+          resolve({ code: req.rstCode, trailers });
+        });
+        req.resume();
+        // The agent run's own half stays open; a unary side call's has ended.
+        if (hostStillSending) req.write("x");
+        else req.end("x");
+      });
+      expect(ended, hostStillSending ? "the host still sending" : "the host done sending").toEqual({ code: 8, trailers: false });
+    }
+  });
+
+  it("ends the host's stream cleanly, with the trailers, when Cursor ends its answer while the host is still sending", async () => {
+    const standIn = await exchange();
+    setEnv({ CURSOR_BACKEND_URL: connectHost.url });
+    connectHost.endFirst = true;
+    const ended = await new Promise<{ readonly data: string; readonly trailers: IncomingHttpHeaders; readonly code: number }>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error("the host's stream never ended")), 5_000);
+      const session = connect(proxy.cursorEndpoint, { ca: proxy.cursorCertificate });
+      session.on("error", () => {});
+      const req = session.request({ ":method": "POST", ":path": RUN, authorization: `Bearer ${standIn}`, "x-stigmer-execution-id": EXECUTION });
+      let data = "";
+      let trailers: IncomingHttpHeaders = {};
+      req.on("error", () => {});
+      req.on("data", (chunk: Buffer) => (data += chunk.toString("utf8")));
+      req.on("trailers", (t) => (trailers = t));
+      req.on("end", () => {
+        clearTimeout(timer);
+        resolve({ data, trailers, code: req.rstCode ?? 0 });
+        session.destroy();
+      });
+      // The run's own half stays open, as the agent run's does.
+      req.write("x");
+    });
+    expect(ended.data).toBe("done");
+    expect(ended.trailers["grpc-status"]).toBe("0");
+    expect(ended.code, "a clean end, no reset").toBe(0);
   });
 
   it("opens a fresh upstream connection when the host resets its own, so a recovery never reuses a degraded one", async () => {
@@ -431,6 +585,15 @@ describe("forward: a runner behind the Stigmer platform's proxy", () => {
     expect(rest.last.path).toBe(EXCHANGE);
     expect(rest.last.headers.authorization).toBe(`Bearer ${RUNNER_TOKEN}`);
     expect(Object.keys(rest.last.headers).filter((h) => h.startsWith("x-stigmer-"))).toEqual(["x-stigmer-execution-id"]);
+  });
+
+  it("forwards a side call without the execution id it claims, which no live-turn check covered", async () => {
+    const standIn = await exchange();
+    rest.answer = { status: 200, headers: { "content-type": "application/json" }, body: "{}" };
+    await call("/aiserver.v1.ServerConfigService/GetServerConfig", { authorization: `Bearer ${standIn}`, "x-stigmer-execution-id": "someone-elses-run" });
+    expect(rest.last.path).toBe("/aiserver.v1.ServerConfigService/GetServerConfig");
+    expect(rest.last.headers["x-stigmer-auth"]).toBe(`Bearer ${RUNNER_TOKEN}`);
+    expect(rest.last.headers["x-stigmer-execution-id"]).toBeUndefined();
   });
 
   it("opens the agent run on the platform's lane with the real token, the runner's credential and the execution id alone", async () => {

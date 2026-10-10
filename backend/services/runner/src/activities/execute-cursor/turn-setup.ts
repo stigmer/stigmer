@@ -399,13 +399,6 @@ export async function platformRealRoot(platformDir: string): Promise<string> {
 }
 
 /**
- * The adapter's own read of the adjudicated rows the runtime already turned
- * into verdicts. Create-vs-resume is the adapter's fact about its ENGINE: a
- * bound agent id (`threadId`, engine-minted) means the Cursor agent already
- * holds this session's conversation, so this turn resumes it — the runtime's
- * `isReinvocation` answers its own question and is not consulted here.
- */
-/**
  * What a Cursor agent create or resume that timed out says, by whether the
  * retry on a fresh transport was the last attempt. In the agent host every
  * Cursor call crosses the runner's Cursor lane, so the route it names is the
@@ -422,6 +415,13 @@ export function resolveTimeoutMessage(facts: { readonly resuming: boolean; reado
       : `Resetting the transport and retrying automatically.`);
 }
 
+/**
+ * The adapter's own read of the adjudicated rows the runtime already turned
+ * into verdicts. Create-vs-resume is the adapter's fact about its ENGINE: a
+ * bound agent id (`threadId`, engine-minted) means the Cursor agent already
+ * holds this session's conversation, so this turn resumes it — the runtime's
+ * `isReinvocation` answers its own question and is not consulted here.
+ */
 export function readAdjudicatedRows(input: TurnInput, status: RunStatus): AdjudicatedRows {
   const reinvoked = input.threadId !== "";
   const adjudicated = reinvoked ? reconstructAdjudicatedApprovals(input.execution.status?.messages ?? []) : undefined;

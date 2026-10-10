@@ -13,6 +13,8 @@
  *    after it with the real access token, and nothing Cursor receives
  *    carries the host's token;
  *  - Cursor's answer on the stream comes back to the SDK;
+ *  - the lane refuses none of the SDK's side calls (its allow-list,
+ *    `CURSOR_SIDE_CALLS`, covers every `/aiserver.v1.*` call the SDK made);
  *  - the SDK leaves certificate checks on in the host (it turns them off
  *    for a backend URL that reads as localhost or 127.0.0.1).
  */
@@ -23,10 +25,11 @@ import { createServer as createH2cServer, type ServerHttp2Stream } from "node:ht
 import { createServer as createNetServer, type AddressInfo, type Server as NetServer } from "node:net";
 import { Duplex } from "node:stream";
 import { fileURLToPath } from "node:url";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { testConfig } from "../../__test-utils__/config-fixture.js";
 import { writeTrustedCertificates } from "../../agent-host/hosting.js";
+import { CURSOR_SIDE_CALLS } from "../cursor-lane.js";
 import { AgentProxy } from "../server.js";
 
 const HOST_TOKEN = "host-token-sdk-wire";
@@ -145,7 +148,11 @@ function runSdk(): Promise<{ readonly status: string; readonly error: string | n
 
 describe("the real Cursor SDK through the Cursor lane", () => {
   it("opens its agent run over HTTP/2 on the lane, Cursor sees the runner's credentials only, and Cursor's answer comes back", async () => {
+    const warn = vi.spyOn(console, "warn");
     const result = await runSdk();
+    const refused = warn.mock.calls.map((call) => String(call[0])).filter((line) => line.startsWith("[agent-proxy] refused"));
+    warn.mockRestore();
+    expect(refused, "the lane refused none of the SDK's calls").toEqual([]);
 
     expect(result).toEqual({ status: "error", error: "[unavailable] the fake Cursor ends the run", tlsRejectUnauthorized: null });
 
@@ -159,6 +166,9 @@ describe("the real Cursor SDK through the Cursor lane", () => {
     for (const call of seen.filter((s) => s.path.startsWith("/aiserver.v1.") || s.path.startsWith("/agent.v1."))) {
       expect(call.headers.authorization, call.path).toBe(`Bearer ${REAL_TOKEN}`);
     }
+    const sideCalls = seen.filter((s) => s.path.startsWith("/aiserver.v1.")).map((s) => s.path);
+    expect(sideCalls.length, "the SDK made side calls through the lane").toBeGreaterThan(0);
+    for (const path of sideCalls) expect(CURSOR_SIDE_CALLS.has(path), `${path} is on the lane's list`).toBe(true);
     expect(JSON.stringify(seen.map((s) => s.headers))).not.toContain(HOST_TOKEN);
   }, 60_000);
 });
