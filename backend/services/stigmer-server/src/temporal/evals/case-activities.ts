@@ -255,6 +255,8 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         trySessionRequest({
           org: input.org,
           evalId: input.evalId,
+          cell: input,
+          attempt: attempt(),
           caseName: cell.evalCase.name,
           harness: cell.target.target.harness,
           attachment: armAttachment(input.arm, facts),
@@ -425,12 +427,17 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         return { kind: "failed", reason: CANNOT_ACT_REASON };
       }
       const rubric = voteRubricName(grader);
-      const session = await deps
-        .tries()
-        .createSession(
-          voteSessionRequest({ org: input.org, evalId: input.evalId }),
-          caller,
-        );
+      const session = await deps.tries().createSession(
+        voteSessionRequest({
+          org: input.org,
+          evalId: input.evalId,
+          tryRunId: runId,
+          graderIndex,
+          voteIndex,
+          attempt: attempt(),
+        }),
+        caller,
+      );
       const sessionId = session.metadata?.id ?? "";
       const request = voteRunRequest({
         org: input.org,

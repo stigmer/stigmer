@@ -6,8 +6,11 @@
  * workspace. The session is created first, in-process and server-composed,
  * so it may carry the reserved `stigmer.ai/plugin-eval` label (which keeps
  * it out of the conversation list and lets the eval's delete find it);
- * its subject is the case's name, so no titling call is made; its harness
- * is the target's; it runs the agent its arm names (arm.ts). The run:
+ * it is named after its run (a session create refuses one with no name,
+ * and its slug must be free in the organization, so a retried start, which
+ * may meet the session an earlier attempt left, names its own); its
+ * subject is the case's name, so no titling call is made; its harness is
+ * the target's; it runs the agent its arm names (arm.ts). The run:
  *
  *   - the target's model, and the eval's whole spending limit as its own
  *     cap, so no one try can spend past what the eval allows;
@@ -177,10 +180,21 @@ export function tryRunName(evalId: string, cell: TryCell): string {
   return `try-${slugOf(evalId)}-${cell.caseIndex}-${cell.targetIndex}-${cell.arm}-${cell.tryIndex + 1}`;
 }
 
+/**
+ * A session's name: its run's, and on a retried start (attempt 2 on) the
+ * attempt's too, so it never meets a session an earlier attempt left.
+ */
+export function sessionNameOf(runName: string, attempt: number): string {
+  return attempt > 1 ? `${runName}-attempt-${attempt}` : runName;
+}
+
 /** The session a try runs in (the module header). */
 export function trySessionRequest(input: {
   readonly org: string;
   readonly evalId: string;
+  readonly cell: TryCell;
+  /** The start activity's attempt, from 1. */
+  readonly attempt: number;
   readonly caseName: string;
   readonly harness: Harness;
   readonly attachment: ArmAttachment;
@@ -189,6 +203,7 @@ export function trySessionRequest(input: {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Session",
     metadata: create(ApiResourceMetadataSchema, {
+      name: sessionNameOf(tryRunName(input.evalId, input.cell), input.attempt),
       org: input.org,
       labels: { [PLUGIN_EVAL_LABEL]: input.evalId },
     }),
@@ -240,15 +255,33 @@ export function tryRunRequest(input: {
   });
 }
 
-/** The session a vote runs in: the judge's subject, the native engine. */
+/** A vote's run name: the try's run, the grader and the vote, from 1. */
+export function voteRunName(
+  tryRunId: string,
+  graderIndex: number,
+  voteIndex: number,
+): string {
+  return `vote-${slugOf(tryRunId)}-${graderIndex + 1}-${voteIndex + 1}`;
+}
+
+/** The session a vote runs in: named after its run, the judge's subject, the native engine. */
 export function voteSessionRequest(input: {
   readonly org: string;
   readonly evalId: string;
+  readonly tryRunId: string;
+  readonly graderIndex: number;
+  readonly voteIndex: number;
+  /** The start activity's attempt, from 1. */
+  readonly attempt: number;
 }): Session {
   return create(SessionSchema, {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Session",
     metadata: create(ApiResourceMetadataSchema, {
+      name: sessionNameOf(
+        voteRunName(input.tryRunId, input.graderIndex, input.voteIndex),
+        input.attempt,
+      ),
       org: input.org,
       labels: { [PLUGIN_EVAL_LABEL]: input.evalId },
     }),
@@ -275,7 +308,7 @@ export function voteRunRequest(input: {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Run",
     metadata: create(ApiResourceMetadataSchema, {
-      name: `vote-${slugOf(input.tryRunId)}-${input.graderIndex + 1}-${input.voteIndex + 1}`,
+      name: voteRunName(input.tryRunId, input.graderIndex, input.voteIndex),
       org: input.org,
       labels: {
         [GRADES_RUN_LABEL]: input.tryRunId,

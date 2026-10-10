@@ -142,6 +142,8 @@ describe("a try's session and run", () => {
     const session = trySessionRequest({
       org: "acme",
       evalId: "pev_1",
+      cell: { caseIndex: 0, targetIndex: 1, arm: "with", tryIndex: 2 },
+      attempt: 1,
       caseName: "first-case",
       harness: Harness.UNSPECIFIED,
       attachment: armAttachment("with", {
@@ -154,6 +156,54 @@ describe("a try's session and run", () => {
     expect(session.spec?.subject).toBe("first-case");
     expect(session.spec?.harness).toBe(Harness.NATIVE);
     expect(session.spec?.agentRef?.slug).toBe("thermos");
+  });
+
+  // A session create refuses a session with no name (ResolveSlug), and its
+  // slug must be free in the organization: each try's and each vote's
+  // session is named after its run, and a retried start, which may meet the
+  // session an earlier attempt left, names its own.
+  it("names each session after its run, and a retried start's apart from the first", () => {
+    const cell = {
+      caseIndex: 0,
+      targetIndex: 1,
+      arm: "with",
+      tryIndex: 2,
+    } as const;
+    const attachment = armAttachment("without", {
+      org: "acme",
+      mcpServerSlugs: [],
+    });
+    const tryNames = [1, 2].map(
+      (attempt) =>
+        trySessionRequest({
+          org: "acme",
+          evalId: "pev_1",
+          cell,
+          attempt,
+          caseName: "first-case",
+          harness: Harness.NATIVE,
+          attachment,
+        }).metadata?.name,
+    );
+    expect(tryNames).toEqual([
+      "try-pev-1-0-1-with-3",
+      "try-pev-1-0-1-with-3-attempt-2",
+    ]);
+    const voteNames = [1, 3].map(
+      (attempt) =>
+        voteSessionRequest({
+          org: "acme",
+          evalId: "pev_1",
+          tryRunId: "run_TRY",
+          graderIndex: 1,
+          voteIndex: 0,
+          attempt,
+        }).metadata?.name,
+    );
+    expect(voteNames).toEqual([
+      "vote-run-try-2-1",
+      "vote-run-try-2-1-attempt-3",
+    ]);
   });
 
   it("runs the case's prompt with the target's model, unattended, within the eval's limit", () => {
@@ -187,8 +237,16 @@ describe("a try's session and run", () => {
   });
 
   it("makes a vote a judge run of the try, in a labelled session, at the judge's cap", () => {
-    const session = voteSessionRequest({ org: "acme", evalId: "pev_1" });
+    const session = voteSessionRequest({
+      org: "acme",
+      evalId: "pev_1",
+      tryRunId: "run_TRY",
+      graderIndex: 0,
+      voteIndex: 2,
+      attempt: 1,
+    });
     expect(session.metadata?.labels).toEqual({ [PLUGIN_EVAL_LABEL]: "pev_1" });
+    expect(session.metadata?.name).toBe("vote-run-try-1-3");
     const vote = voteRunRequest({
       org: "acme",
       evalId: "pev_1",
