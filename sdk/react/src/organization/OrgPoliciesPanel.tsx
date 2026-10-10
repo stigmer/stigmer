@@ -59,9 +59,10 @@ export function OrgPoliciesPanel({ org, onUpdated, className }: OrgPoliciesPanel
 
   const policies = organizationPoliciesOf(organization);
 
+  // The switch renders only once the organization has loaded, so the
+  // stored policies spread here are the organization's own.
   const handleToggle = useCallback(
     async (next: boolean) => {
-      if (!organization) return;
       try {
         const updated = await updatePolicies(org, {
           ...organizationPoliciesOf(organization),

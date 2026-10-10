@@ -6,19 +6,26 @@
  *     may create agents);
  *   - flipping the switch sends every policy, as it should stand, through
  *     updatePolicies, never through update;
- *   - someone without can_edit reads the switch but cannot flip it.
+ *   - someone without can_edit reads the switch but cannot flip it;
+ *   - a refused save shows the server's words beside the switch;
+ *   - a failed read offers a retry, and no organization renders nothing.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
   OrganizationSchema,
   type Organization,
 } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import type { UpdateOrganizationPoliciesInput } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
+import { ConnectError, Code } from "@connectrpc/connect";
+import type { ReactNode } from "react";
 import { StigmerContext } from "../../context";
 import { OrgPoliciesPanel } from "../OrgPoliciesPanel";
-import { organizationPoliciesOf } from "../useUpdateOrganizationPolicies";
+import {
+  organizationPoliciesOf,
+  useUpdateOrganizationPolicies,
+} from "../useUpdateOrganizationPolicies";
 
 const ACME_ID = "org_01jaaaaaaaaaaaaaaaaaaaaaaa";
 
@@ -42,13 +49,15 @@ function createMockStigmer(org: Organization, canEdit = true) {
   };
 }
 
-function renderPanel(client: unknown) {
+function renderPanel(client: unknown, org: string = ACME_ID) {
   return render(
     <StigmerContext.Provider value={client as never}>
-      <OrgPoliciesPanel org={ACME_ID} />
+      <OrgPoliciesPanel org={org} />
     </StigmerContext.Provider>,
   );
 }
+
+const REFUSED = new ConnectError("only admins change policies", Code.PermissionDenied);
 
 afterEach(() => {
   cleanup();
@@ -97,5 +106,67 @@ describe("OrgPoliciesPanel", () => {
     );
     expect((toggle as HTMLButtonElement).disabled).toBe(true);
     expect(toggle.getAttribute("aria-checked")).toBe("false");
+  });
+});
+
+describe("OrgPoliciesPanel — failures and absence", () => {
+  it("shows a refused save beside the switch and keeps the stored value", async () => {
+    const client = createMockStigmer(orgWith());
+    client.organization.updatePolicies.mockRejectedValueOnce(REFUSED);
+    renderPanel(client);
+    const toggle = await screen.findByRole("switch", { name: "Members can create agents" });
+    await waitFor(() => expect((toggle as HTMLButtonElement).disabled).toBe(false));
+
+    fireEvent.click(toggle);
+
+    expect(await screen.findByRole("alert")).toBeTruthy();
+    expect(toggle.getAttribute("aria-checked")).toBe("true");
+  });
+
+  it("offers a retry when the organization cannot be read, and reads it again", async () => {
+    const client = createMockStigmer(orgWith());
+    client.organization.get.mockRejectedValueOnce(
+      new ConnectError("unavailable", Code.Unavailable),
+    );
+    renderPanel(client);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Retry" }));
+
+    expect(await screen.findByRole("switch", { name: "Members can create agents" })).toBeTruthy();
+    expect(client.organization.get).toHaveBeenCalledTimes(2);
+  });
+
+  it("renders nothing and asks nothing without an organization", () => {
+    const client = createMockStigmer(orgWith());
+    const { container } = renderPanel(client, "");
+    expect(container.innerHTML).toBe("");
+    expect(client.organization.get).not.toHaveBeenCalled();
+  });
+});
+
+describe("useUpdateOrganizationPolicies", () => {
+  function hookWith(client: unknown) {
+    return renderHook(() => useUpdateOrganizationPolicies(), {
+      wrapper: ({ children }: { children: ReactNode }) => (
+        <StigmerContext.Provider value={client as never}>{children}</StigmerContext.Provider>
+      ),
+    });
+  }
+
+  it("keeps a refused save's error until it is cleared, and rethrows it to the caller", async () => {
+    const client = createMockStigmer(orgWith());
+    client.organization.updatePolicies.mockRejectedValueOnce(REFUSED);
+    const { result } = hookWith(client);
+
+    await act(async () => {
+      await expect(
+        result.current.updatePolicies(ACME_ID, { membersCanCreateAgents: false }),
+      ).rejects.toBe(REFUSED);
+    });
+    expect(result.current.error?.message).toContain("only admins change policies");
+    expect(result.current.isUpdating).toBe(false);
+
+    act(() => result.current.clearError());
+    expect(result.current.error).toBeNull();
   });
 });

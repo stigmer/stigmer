@@ -7,7 +7,9 @@
  *     still loading;
  *   - the answer is the server's for that organization;
  *   - a refused viewer gets AgentCreationWizard's denied state, naming the
- *     setting an admin turns on, instead of a form whose create would fail.
+ *     setting an admin turns on, instead of a form whose create would fail;
+ *   - while the answer is pending the wizard shows neither the form nor the
+ *     refusal.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, render, renderHook, screen, waitFor } from "@testing-library/react";
@@ -84,5 +86,20 @@ describe("AgentCreationWizard — someone who may not create agents", () => {
 
     expect(await screen.findByText("Only admins can create agents here")).toBeTruthy();
     expect(screen.getByText("Ask an admin to turn on 'Members can create agents'.")).toBeTruthy();
+  });
+
+  it("shows neither the form nor the refusal while the answer is pending", () => {
+    const client = {
+      iamPolicy: { checkMyPermission: vi.fn(() => new Promise<never>(() => {})) },
+    };
+    const Wrapper = wrapper(client);
+    const { container } = render(
+      <Wrapper>
+        <AgentCreationWizard org="org_acme" onComplete={() => {}} onCancel={() => {}} />
+      </Wrapper>,
+    );
+
+    expect(container.innerHTML).toBe("");
+    expect(client.iamPolicy.checkMyPermission).toHaveBeenCalledTimes(1);
   });
 });

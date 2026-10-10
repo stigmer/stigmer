@@ -7,7 +7,9 @@
  *   - people who sign in through their organization's own identity
  *     provider (federated) stay people;
  *   - `includeAppUsers={false}` (a team's picker) leaves a product's users
- *     out, and a list of people alone stays flat, with no group headings.
+ *     out, and a list of people alone stays flat, with no group headings;
+ *   - a search matches people and a product's users by name or email, each
+ *     in its own group.
  *
  * The organization's access list and team list are stubbed.
  */
@@ -100,5 +102,20 @@ describe("PrincipalPicker — a product's users", () => {
     expect(within(listbox).queryByText("Pat Product")).toBeNull();
     expect(within(listbox).getByText("Fay Federated")).toBeTruthy();
     expect(within(listbox).queryByRole("group")).toBeNull();
+  });
+
+  it("searches people and a product's users by name or email, each in its own group", () => {
+    members.current = [...ORG_PEOPLE, PRODUCT_USER];
+    const listbox = openPicker();
+    const search = screen.getByRole("combobox");
+
+    fireEvent.change(search, { target: { value: "ida_pat@" } });
+    expect(within(listbox).getAllByRole("option").map((o) => o.textContent ?? "")).toEqual([
+      expect.stringContaining("Pat Product"),
+    ]);
+
+    fireEvent.change(search, { target: { value: "fay" } });
+    const options = within(listbox).getAllByRole("option").map((o) => o.textContent ?? "");
+    expect(options).toEqual([expect.stringContaining("Fay Federated")]);
   });
 });

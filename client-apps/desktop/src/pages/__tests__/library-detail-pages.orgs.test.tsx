@@ -17,6 +17,8 @@ interface Ref {
 }
 
 const page = vi.hoisted(() => ({
+  // The server's answer to "may this person create an agent here?".
+  canCreate: { allowed: true, isLoading: false },
   props: {} as Record<string, Record<string, unknown>[]>,
 }));
 
@@ -41,6 +43,7 @@ vi.mock("@stigmer/react", () => {
     useBreadcrumbOverride: () => ({ setLabel: noop }),
     useResolveRunSession: () => ({ sessionId: null }),
     useActiveOrgId: () => "org_acme",
+    useCanCreateAgent: () => page.canCreate,
     // The person's organizations: the active one and a second one, so a
     // link proves it resolves the linked resource's own org.
     useOrgSlugForId: () => (id: string) =>
@@ -54,7 +57,8 @@ import SkillDetailPage from "../library/SkillDetailPage";
 import ScheduleDetailPage from "../library/ScheduleDetailPage";
 
 function LocationProbe() {
-  return <span data-testid="location">{useLocation().pathname}</span>;
+  const { pathname, search } = useLocation();
+  return <span data-testid="location">{pathname + search}</span>;
 }
 
 function renderDetail(Page: ComponentType) {
@@ -83,6 +87,7 @@ function location(): string | null {
 const SHARED: Ref = { org: "org_shared", slug: "linked" };
 
 beforeEach(() => {
+  page.canCreate = { allowed: true, isLoading: false };
   page.props = {};
 });
 
@@ -143,5 +148,26 @@ describe("desktop ScheduleDetailPage — organizations", () => {
     );
 
     expect(location()).toBe("/library/agents/shared-team/linked");
+  });
+});
+
+describe("desktop PluginDetailPage — creating an agent from its tools", () => {
+  type CreateFromTools = (usages: Array<{ mcpServerRef: { slug: string } }>) => void;
+
+  it("opens the new-agent page with the plugin's servers for someone who may create agents", () => {
+    renderDetail(PluginDetailPage);
+
+    const onCreateAgent = last<{ onCreateAgent?: CreateFromTools }>("PluginDetailView").onCreateAgent;
+    expect(onCreateAgent).toBeDefined();
+    act(() => onCreateAgent!([{ mcpServerRef: { slug: "github" } }, { mcpServerRef: { slug: "a b" } }]));
+
+    expect(location()).toBe("/library/agents/new?mcp=github,a%20b");
+  });
+
+  it("offers no create for someone the server would refuse", () => {
+    page.canCreate = { allowed: false, isLoading: false };
+    renderDetail(PluginDetailPage);
+
+    expect(last<{ onCreateAgent?: CreateFromTools }>("PluginDetailView").onCreateAgent).toBeUndefined();
   });
 });
