@@ -18,7 +18,9 @@
  *  - forward (a runner behind the Stigmer platform's proxy): the runner's
  *    control-plane token replaces the host's, the execution id passes (the
  *    one scope header the proxy checks) and no other scope header does, and
- *    only the platform's lanes are served.
+ *    only the platform's lanes are served;
+ *  - the host's bearer token is read in time linear in the header, however
+ *    many spaces it holds.
  */
 
 import type { IncomingHttpHeaders } from "node:http";
@@ -38,7 +40,7 @@ vi.mock("google-auth-library", () => ({
 import { testConfig } from "../../__test-utils__/config-fixture.js";
 import { FakeUpstream } from "../../__test-utils__/fake-upstream.js";
 import type { Config } from "../../config.js";
-import { AgentProxy } from "../server.js";
+import { AgentProxy, bearerOf } from "../server.js";
 
 const HOST_TOKEN = "host-token-0123456789";
 const RUNNER_TOKEN = "runner-control-plane-token";
@@ -86,6 +88,23 @@ function call(proxy: AgentProxy, path: string, init: { method?: string; headers?
 }
 
 const asHost = { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION };
+
+describe("reading the host's bearer token", () => {
+  it("takes the token after the scheme, in any case and spacing, and nothing else", () => {
+    expect(bearerOf("Bearer abc")).toBe("abc");
+    expect(bearerOf("bearer \t abc ")).toBe("abc");
+    expect(bearerOf("Bearer ")).toBeUndefined();
+    expect(bearerOf("Basic abc")).toBeUndefined();
+    expect(bearerOf("Bearerabc")).toBeUndefined();
+    expect(bearerOf(undefined)).toBeUndefined();
+  });
+
+  it("reads a header of many spaces at once (no backtracking pattern)", () => {
+    const started = performance.now();
+    expect(bearerOf(`bearer ${" ".repeat(200_000)}x`)).toBe("x");
+    expect(performance.now() - started).toBeLessThan(200);
+  });
+});
 
 describe("what a host token buys", () => {
   it("refuses a call with no token, a wrong one, or a previous host's", async () => {

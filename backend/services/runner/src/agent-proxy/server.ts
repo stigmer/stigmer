@@ -188,9 +188,11 @@ function threadsInBody(body: Buffer): string[] {
   return threads;
 }
 
-function bearerOf(header: string | undefined): string | undefined {
-  const match = header?.match(/^Bearer\s+(.+)$/i);
-  return match?.[1];
+/** The token of an `Authorization: Bearer <token>` header, read without a backtracking pattern (the header is the host's to send). */
+export function bearerOf(header: string | undefined): string | undefined {
+  if (header === undefined || !/^bearer\s/i.test(header)) return undefined;
+  const token = header.slice("bearer".length).trim();
+  return token.length > 0 ? token : undefined;
 }
 
 function headerValue(value: string | string[] | undefined): string | undefined {

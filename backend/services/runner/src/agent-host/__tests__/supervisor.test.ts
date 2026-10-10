@@ -19,7 +19,8 @@
  *    be spawned closes its channel instead of throwing; the host outlives
  *    the SIGTERM and SIGINT its process group receives (a daemon's stop, a
  *    terminal's Ctrl-C) and exits only when its pipe closes, so a runner
- *    draining its turns keeps its host;
+ *    draining its turns keeps its host; a host that has not exited a grace
+ *    after it was told to end is killed;
  *  - hosting replaces exactly the hosted harnesses' adapters with remote
  *    ones and leaves the rest as they are.
  */
@@ -228,6 +229,17 @@ describe("the production starter", () => {
     peer.close();
     expect(await exited).toBe(0);
   }, 60_000);
+
+  it("kills a host that has not exited a grace after it was told to end", async () => {
+    const wedged = 'process.on("SIGTERM", () => {}); setInterval(() => {}, 1000);';
+    const { started, child } = spawnHostProcess(process.execPath, ["-e", wedged], { ...process.env }, 200);
+    const exited = new Promise<NodeJS.Signals | null>((resolve) => child.once("exit", (_code, signal) => resolve(signal)));
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    started.kill();
+    started.kill();
+    expect(await exited).toBe("SIGKILL");
+    started.kill();
+  });
 
   it("closes the channel of a host that cannot be spawned instead of throwing", async () => {
     const { started } = spawnHostProcess("/nonexistent/node-for-the-agent-host", [], {});

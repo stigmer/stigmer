@@ -294,6 +294,9 @@ export function processHostStarter(env: () => NodeJS.ProcessEnv): HostStarter {
   };
 }
 
+/** How long a host whose pipe has closed has to exit before it is killed: its own shutdown grace (`entry.ts`), and a margin. */
+export const HOST_KILL_GRACE_MS = 15_000;
+
 /**
  * Spawn one host process with its channel on fd 3 and its output relayed
  * (`processHostStarter` says how). The child is handed back beside the
@@ -303,6 +306,7 @@ export function spawnHostProcess(
   command: string,
   args: readonly string[],
   env: NodeJS.ProcessEnv,
+  killGraceMs: number = HOST_KILL_GRACE_MS,
 ): { readonly started: StartedHost; readonly child: ChildProcess } {
   const child: ChildProcess = spawn(command, args, {
     env,
@@ -319,8 +323,16 @@ export function spawnHostProcess(
     child,
     started: {
       channel,
+      // The host ignores SIGTERM and exits when its pipe closes, after its
+      // adapters' shutdown (`entry.ts`); one that has not exited a grace
+      // later is wedged, and is killed.
       kill: () => {
-        if (child.exitCode === null && child.signalCode === null) child.kill("SIGTERM");
+        if (child.exitCode !== null || child.signalCode !== null) return;
+        const timer = setTimeout(() => {
+          if (child.exitCode === null && child.signalCode === null) child.kill("SIGKILL");
+        }, killGraceMs);
+        timer.unref();
+        child.once("exit", () => clearTimeout(timer));
       },
     },
   };
