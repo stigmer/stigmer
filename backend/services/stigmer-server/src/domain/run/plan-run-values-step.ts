@@ -16,23 +16,21 @@
  * session was repointed, plans for the agent the turn ran.
  *
  * Inputs: the session by the execution's session_id (its own values, its
- * vaults, its workspace entries and its own MCP servers), and the agent
+ * vaults, its workspace entries and its own plugins), and the agent
  * from the stamp alone: the stamped version's spec, or the stamped agent
  * as it is now when the turn recorded no version. A stamped version that
  * no longer resolves refuses, naming it. The agent's organization is read
  * from its row as it is now (none when the row cannot be read), so the
  * resolver keeps the person's own values from another organization's
  * agent. No stamp is the built-in assistant: no agent, and the session's
- * own MCP servers are the whole tool set.
+ * own plugins are the whole tool set. The plugins are the agent version's
+ * and the session's, each once (run-plugins.ts).
  *
  * Which entry fills each key is the vault resolver's one rule
  * (domain/vault/resolve.ts): the session's own repository tokens, its
  * vaults, the surface's vaults for a run with no person, and the person's
  * My vault; a required key found nowhere refuses the create naming who
- * must act. An agent and a conversation that use one tool name for two
- * different servers (or one of them gone) refuse the create, naming it:
- * the runner keeps the conversation's server under a shared name, so
- * values planned for the agent's would reach another server. The run's
+ * must act. Two plugins of one name refuse the create, naming them. The run's
  * person is the one recorded on the run at create (RunStatus.credentials,
  * stamped by StampRunCredentials), read from the run, so recovery uses
  * the person create used, never the recovering caller.
@@ -45,26 +43,22 @@ import { create } from "@bufbuild/protobuf";
 import { ConnectError } from "@connectrpc/connect";
 
 import type { AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import type { McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
 import {
   RunCredentialsSchema,
   RunStatusSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run, RunSchema, RunValueSource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
-import { failedPreconditionError, goWrappedStatusError } from "../../pipeline/errors.js";
+import { goWrappedStatusError } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
-import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
 import type { Store } from "../../store/interface.js";
 import type { VaultResolver } from "../vault/resolve.js";
 import { runPersonOfCaller } from "../vault/resolve.js";
 
 import type { AgentLoader } from "./create-steps.js";
+import { loadRunPlugins, runPluginReferences } from "./run-plugins.js";
 import { sessionIdOf } from "./target.js";
 
 export { SCHEDULE_ID_LABEL_KEY } from "../vault/resolve.js";
@@ -152,11 +146,10 @@ export async function planRunValues(
       execution.status?.agentVersionHash ?? "",
     ));
   }
-  const findServer = serverFinder(deps, executionOrg);
-  await refuseOneNameForTwoServers(agentSpec, session, findServer, executionOrg);
-  const tools = await loadRunTools(
-    mergeAgentAndSessionMcpUsages(agentSpec, session),
-    findServer,
+  const plugins = await loadRunPlugins(
+    deps.store,
+    runPluginReferences(agentSpec, session, executionOrg),
+    executionOrg,
   );
 
   const sources = await deps.vaultResolver.planRun({
@@ -165,7 +158,7 @@ export async function planRunValues(
     agentSpec,
     agentName,
     agentOrg,
-    tools,
+    plugins,
   });
   deps.logger.info("Planned the run's values", {
     executionId,
@@ -279,146 +272,4 @@ async function agentNameAndOrgOf(
   } catch {
     return { name: agentId, org: undefined };
   }
-}
-
-/** Finds an MCP server a usage names, or undefined when it is gone. */
-type ServerFinder = (usage: McpServerUsage) => Promise<McpServer | undefined>;
-
-/**
- * Finds the server a usage names, by slug in the usage's org or the
- * execution's, reading each server once per plan. A server that is gone
- * is undefined; a store fault fails the plan, so a run never starts
- * quietly without a tool it uses.
- */
-function serverFinder(
-  deps: RunValuePlannerDeps,
-  executionOrg: string,
-): ServerFinder {
-  const found = new Map<string, Promise<McpServer | undefined>>();
-  return (usage) => {
-    // Callers pass only named usages. An empty organization would match
-    // a tool of that name in any organization, so none is looked up.
-    const slug = usage.mcpServerRef?.slug ?? "";
-    const org = usage.mcpServerRef?.org || executionOrg;
-    if (org === "") {
-      return Promise.resolve(undefined);
-    }
-    const key = `${org}/${slug}`;
-    let server = found.get(key);
-    if (server === undefined) {
-      server = findResourceBySlug(
-        deps.store,
-        ApiResourceKind.mcp_server,
-        McpServerSchema,
-        slug,
-        org,
-      );
-      found.set(key, server);
-    }
-    return server;
-  };
-}
-
-/**
- * Refuses a run whose agent and conversation use one tool name for two
- * different servers. The runner keeps the conversation's server under a
- * shared name and this plan keeps the agent's, so the values planned here
- * would go to a server nobody planned for. One side naming a server that is
- * gone counts as different: the conversation's server would run unjudged.
- * Both naming the very same server is one tool, used once; both gone is
- * left to the runner's own refusal.
- */
-async function refuseOneNameForTwoServers(
-  agentSpec: AgentSpec | undefined,
-  session: Session,
-  findServer: ServerFinder,
-  executionOrg: string,
-): Promise<void> {
-  const agentUsages = new Map<string, McpServerUsage>();
-  for (const usage of agentSpec?.mcpServerUsages ?? []) {
-    const slug = usage.mcpServerRef?.slug ?? "";
-    if (slug !== "") {
-      agentUsages.set(slug, usage);
-    }
-  }
-  const sessionUsages = new Map<string, McpServerUsage>();
-  for (const usage of session.spec?.mcpServerUsages ?? []) {
-    const slug = usage.mcpServerRef?.slug ?? "";
-    if (slug !== "") {
-      sessionUsages.set(slug, usage);
-    }
-  }
-  for (const [slug, sessionUsage] of sessionUsages) {
-    const agentUsage = agentUsages.get(slug);
-    if (agentUsage === undefined) {
-      continue;
-    }
-    const [agentServer, sessionServer] = await Promise.all([
-      findServer(agentUsage),
-      findServer(sessionUsage),
-    ]);
-    if (agentServer === undefined && sessionServer === undefined) {
-      continue;
-    }
-    if (agentServer?.metadata?.id !== sessionServer?.metadata?.id) {
-      const named = (usage: McpServerUsage): string =>
-        `${usage.mcpServerRef?.org || executionOrg}/${slug}`;
-      throw failedPreconditionError(
-        `the agent and this conversation both use a tool named '${slug}', but they name two different servers ` +
-          `(${named(agentUsage)} and ${named(sessionUsage)}): ` +
-          "remove it from the agent or from the conversation",
-      );
-    }
-  }
-}
-
-/**
- * Loads every MCP server a run uses (the agent's and the session's). A
- * server that cannot be found is skipped: the runner resolves the same
- * usages for real and refuses there with the tool's own error; this pass
- * needs only the declarations of the servers that exist.
- */
-async function loadRunTools(
-  usages: readonly McpServerUsage[],
-  findServer: ServerFinder,
-): Promise<McpServer[]> {
-  const servers: McpServer[] = [];
-  for (const usage of usages) {
-    const server = await findServer(usage);
-    if (server !== undefined) {
-      servers.push(server);
-    }
-  }
-  return servers;
-}
-
-/**
- * Combines MCP server usages from the agent and session, deduplicating by
- * slug with agent-level usages taking priority — so servers added at the
- * session level (e.g. via the UI at runtime) are included in OAuth token
- * injection too (Go mergeAgentAndSessionMcpUsages). A slug both use for
- * two different servers has been refused before this runs
- * (refuseOneNameForTwoServers), so the priority only picks between two
- * references to one server.
- */
-export function mergeAgentAndSessionMcpUsages(
-  agentSpec: AgentSpec | undefined,
-  session: Session | undefined,
-): McpServerUsage[] {
-  const merged = new Map<string, McpServerUsage>();
-  // Session usages first (lower priority).
-  for (const usage of session?.spec?.mcpServerUsages ?? []) {
-    const slug = usage.mcpServerRef?.slug ?? "";
-    if (slug !== "") {
-      merged.set(slug, usage);
-    }
-  }
-  // Agent usages override (higher priority).
-  for (const usage of agentSpec?.mcpServerUsages ?? []) {
-    const slug = usage.mcpServerRef?.slug ?? "";
-    if (slug !== "") {
-      merged.set(slug, usage);
-    }
-  }
-  return [...merged.values()];
 }
