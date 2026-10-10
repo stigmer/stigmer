@@ -59,9 +59,12 @@ plugin's past evals.
 **Run evals** is the form below the cases. It is shown only to people who can
 edit the plugin, and it holds:
 
-- **Models**: one or more engine and model pairs, at most six. **Add a model**
-  adds one; **Default model** is the engine's default.
-- **Tries per case**: tries per case and arm, from 1 to 50; 3 to start.
+- **Use each case's own model**: on by default, it runs each case on the `model`
+  the case names, else on the default model. Off shows **Models**.
+- **Models**: one or more engine and model pairs, at most six, used for every
+  case. **Add a model** adds one; **Default model** is the engine's default.
+- **Tries per case**: tries per case and arm, from 1 to 50. Empty, as it starts,
+  uses each case's own `runs`, else 3.
 - **Cost limit (USD)**: the most the eval may spend, in dollars of estimated
   model cost, at most $1000; $5 to start. Stigmer requires one.
 - **Tries at once**: tries running at once, from 1 to 8; 1 to start.
@@ -69,10 +72,9 @@ edit the plugin, and it holds:
   by default, it runs the without-arm too; off runs the with-arm only and halves
   the cost.
 
-The form's choices apply to every case: a case's own `runs` and `model` are not
-used when you start an eval from the console. To run a case on its own `model`
-or with its own `runs`, start the eval from the CLI without `--model` or
-`--runs`.
+Left as they start, the form runs each case as the CLI does without `--model` or
+`--runs`: on its own `model` and with its own `runs`. Models you pick, or a
+number of tries you enter, apply to every case instead.
 
 An eval runs at most 200 cases and 1000 tries, counting each case on each model
 in each arm for each try. A larger eval is refused when you start it; narrow it
@@ -107,7 +109,7 @@ graded), then the table and a summary line.
 | Option                          | Effect                                                                                                                                 |
 | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | `--case <glob>`                 | Runs only the cases whose name matches, as in `review-*`                                                                               |
-| `--tag <tag>`                   | Runs only the cases carrying the tag; repeat it for several, and a case runs when any matches                                          |
+| `--tag <tags>`                  | Runs only the cases carrying any of the tags; name several (`--tag smoke fast`) or repeat it                                           |
 | `--runs <n>`                    | Tries per case and arm, 1 to 50; each case's own `runs`, else 3                                                                        |
 | `--model <harness>/<model>`     | A model to run on, as `native/claude-sonnet-4-6` or `cursor/gpt-5`; repeat it for up to six; each case's own `model`, else the default |
 | `--ablation with-without\|none` | `with-without`, the default, runs both arms; `none` runs the with-arm only                                                             |
@@ -157,14 +159,19 @@ their reason.
 
 The exit code tells a script or a CI job what happened:
 
-| Exit code | Meaning                                                                                                                                                                                                |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 0         | Every case that ran reached the threshold and every case loaded                                                                                                                                        |
-| 1         | A case scored below the threshold, a case failed to load, no case was found, or an option was not valid; or the eval could not start, or the CLI could not read it for about a minute and cancelled it |
-| 2         | Partial: the cost limit was reached or the Organization ran out of credit; the results cover what ran                                                                                                  |
-| 130       | Interrupted: Ctrl+C cancels the eval and prints the partial results                                                                                                                                    |
+| Exit code | Meaning                                                                                                                                                                                                                                                                                    |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 0         | Every case that ran reached the threshold and every case loaded                                                                                                                                                                                                                            |
+| 1         | A case scored below the threshold, a case failed to load, no case was found, or an option was not valid; or the eval could not start (the plugin was not found, you may not evaluate it, or the server refused the eval), or the CLI could not read it for about a minute and cancelled it |
+| 2         | Partial: the cost limit was reached or the Organization ran out of credit; the results cover what ran                                                                                                                                                                                      |
+| 130       | Interrupted: Ctrl+C cancels the eval and prints the partial results                                                                                                                                                                                                                        |
 
 `Δ` never changes the exit code, and neither does a case listed as not run.
+
+When the CLI cannot reach the server to cancel, after Ctrl+C or after losing
+track of the eval, the eval may still be running. The CLI prints what it has,
+says so in place of "Cancelled", and names the command that cancels it:
+`stigmer plugin eval cancel <id>`. The exit code stays 130 or 1.
 
 ## Read the result file
 
@@ -195,6 +202,9 @@ Stigmer adds fields beside them, which a script written for Claude Code ignores:
 - `runId` and `notGradedReason` on each try, and the eval's `evalId`.
 - `findings[]`: each problem reading the suite, with its `kind`, `path` and
   `message`, which `stigmer plugin eval` prints to stderr without `--json`.
+- `stillRunning`: `true`, beside `partial: true` and
+  `partialReason: "interrupted"`, when the CLI stopped following the eval and
+  could not cancel it, so it may still be running; absent otherwise.
 
 ## What runs, and what is named instead
 
@@ -207,18 +217,20 @@ A case that needs a feature Stigmer does not run yet is never run without it,
 because a degraded run would be a wrong score. It is listed instead, as
 `not run: <feature>`, on the plugin's Evals tab, in the table and in `notRun[]`:
 
-| Not run yet                               | Claude Code's feature                               |
-| ----------------------------------------- | --------------------------------------------------- |
-| `context.scaffold_script`                 | A script that prepares the Workspace before the try |
-| `context.add_dirs`                        | Case folders the try may read                       |
-| `context.history_file`                    | A recorded conversation the try resumes             |
-| `env`                                     | Extra environment variables for the try             |
-| `plugins` naming more than one plugin     | Other plugins the try loads beside the one tested   |
-| A `mock_calls` target or focus, and mocks | Fake MCP servers that answer the try's tool calls   |
-| More than 32 graders on one case          | A grade records at most 32 checks                   |
+| Not run yet                                    | Claude Code's feature                               |
+| ---------------------------------------------- | --------------------------------------------------- |
+| `context.scaffold_script`                      | A script that prepares the Workspace before the try |
+| `context.add_dirs`                             | Case folders the try may read                       |
+| `context.history_file`                         | A recorded conversation the try resumes             |
+| `env`                                          | Extra environment variables for the try             |
+| A `plugins` entry other than the plugin's root | Other plugins the try loads beside the one tested   |
+| A `mock_calls` target or focus, and mocks      | Fake MCP servers that answer the try's tool calls   |
+| More than 32 graders on one case               | A grade records at most 32 checks                   |
 
-A `plugins` list with one entry is read as the format's override of finding the
-plugin, and changes nothing: the plugin under test is always the installed one.
+A case with `plugins` runs only when every entry, resolved against the case's
+folder, is the root of the plugin under test; the list then changes nothing,
+because the plugin under test is always the installed one. Any other entry, a
+single one included, makes the case `not run: plugins`.
 
 A case naming a `model` Stigmer's catalogue does not hold, such as `sonnet`, is
 not run on the default model either: name the model with `--model`, or use a
@@ -282,10 +294,13 @@ bury your conversations. You reach them from the eval's page, or by ID.
 
 The Organization that installed the plugin pays for every try and every vote of
 an AI-graded check, from its own credit. Tries use its own provider keys. The
-cost limit is an estimate checked before each try starts. Each try may spend at
-most an equal share of what is left for the tries that run at once, so tries
-running together never spend more than the eval has left. A try that needs more
-than its share is stopped at it and graded on what it produced.
+cost limit is an estimate, checked before each try starts against what the tries
+already spent plus the share each running try may still spend. Each try may
+spend at most an equal share of what is left for the tries that run at once; a
+try that needs more than its share is stopped at it and shown as not graded.
+Tries already running when the limit is reached finish, and so do their
+AI-graded checks, each vote capped at $0.25, so the spend can pass the limit by
+those.
 
 ## Turn a bad run into a test case
 
