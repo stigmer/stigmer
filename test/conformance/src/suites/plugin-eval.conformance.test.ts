@@ -1,5 +1,6 @@
 // Conformance suite for the PluginEval domain: an eval of an installed
-// plugin's own evals/ cases, created, read and refused with no engine.
+// plugin's own evals/ cases, created, read and refused; no test here waits
+// on a try.
 // Domain: agentic / plugineval — one run of a plugin's suite, a child of its
 // plugin.
 //
@@ -18,6 +19,14 @@
 // Without an engine behind the server (the plain local targets), create
 // cannot start the eval's workflow: the eval is stored and answered failed,
 // naming why, cancelling it changes nothing, and delete removes it.
+//
+// On an engine-backed target every create that is accepted starts the
+// eval's workflow, which runs real tries (spending, or taking the mock
+// model's scripted turns) until cleanup cancels it. So every eval this file
+// creates on such a target is the smallest: no comparison arm
+// (`ablation: none`), one case, one try unless a test counts tries, and the
+// floor of a try's budget as its spending limit. Doubling by the comparison
+// arm is pinned by the server's own create tests.
 //
 // Who may run and read an eval is pinned here too, on the target's
 // enforcing lane (the cloud's primary; open source's OIDC sibling, where
@@ -135,11 +144,21 @@ async function installedWithEvals() {
   );
 }
 
-// Creates an eval and defers its cleanup (cancel when it may still run,
-// then delete), which must run before its plugin's delete.
+// The spending limit of the smallest eval: the floor of a try's budget.
+const SMALLEST_LIMIT_USD = 0.01;
+
+// The smallest eval a test may start (the header says why): one arm, one
+// try, the floor of a try's budget; `opts` overrides.
+function smallestEval(opts: PluginEvalOptions) {
+  return makePluginEval({ ablation: PluginEvalAblation.none, runs: 1, maxCostUsd: SMALLEST_LIMIT_USD, ...opts });
+}
+
+// Creates the smallest eval of `plugin`'s first case and defers its cleanup
+// (cancel when it may still run, then delete), which must run before its
+// plugin's delete.
 async function createEval(plugin: Plugin, opts: Partial<PluginEvalOptions> = {}) {
   const created = await clients.pluginEvalCommand.create(
-    makePluginEval({ org: tenancy.org, pluginId: plugin.metadata!.id, ...opts }),
+    smallestEval({ org: tenancy.org, pluginId: plugin.metadata!.id, caseGlob: "first", ...opts }),
   );
   fixtures.defer(() => cancelAndDeletePluginEval(clients, created.metadata!.id));
   return created;
@@ -148,7 +167,7 @@ async function createEval(plugin: Plugin, opts: Partial<PluginEvalOptions> = {})
 describe("PluginEval — create, get and listByPlugin", () => {
   it("[rpc:PluginEvalCommandController.create] create stamps the current digest, mints the eval's id, counts its tries and marks the comparison provisional", async () => {
     const plugin = await installedWithEvals();
-    const created = await createEval(plugin, { runs: 2 });
+    const created = await createEval(plugin, { runs: 3 });
 
     expect(created.metadata?.id).toMatch(/^pev_[0-9a-z]{26}$/);
     expect(created.metadata?.org).toBe(tenancy.org);
@@ -156,15 +175,15 @@ describe("PluginEval — create, get and listByPlugin", () => {
     expect(created.spec?.pluginDigest, "an empty digest is stamped with the current version").toBe(
       plugin.status!.digest,
     );
-    // Two cases, the case's own (default) target, with and without the plugin, two tries each.
-    expect(created.status?.triesTotal).toBe(8);
+    // One case kept by the glob, the case's own (default) target, one arm, three tries.
+    expect(created.status?.triesTotal).toBe(3);
     expect(created.status?.triesFinished ?? 0).toBe(0);
     expect(created.status?.provisionalDelta).toBe(true);
   });
 
   it("[rpc:PluginEvalQueryController.get] get answers what create stored", async () => {
     const plugin = await installedWithEvals();
-    const created = await createEval(plugin, { ablation: PluginEvalAblation.none, caseGlob: "fir*" });
+    const created = await createEval(plugin, { caseGlob: "fir*" });
 
     const read = await clients.pluginEvalQuery.get({ value: created.metadata!.id });
     expect(read.metadata?.id).toBe(created.metadata!.id);
@@ -423,7 +442,7 @@ describe("PluginEval — who may run and read an eval", () => {
   // The founder's eval of `plugin`, cleaned up before the plugin.
   async function laneEval(lane: EnforcingLane, org: string, plugin: Plugin) {
     const created = await lane.clients.pluginEvalCommand.create(
-      makePluginEval({ org, pluginId: plugin.metadata!.id, ablation: PluginEvalAblation.none }),
+      smallestEval({ org, pluginId: plugin.metadata!.id }),
     );
     const id = created.metadata!.id;
     fixtures.defer(async () => {
