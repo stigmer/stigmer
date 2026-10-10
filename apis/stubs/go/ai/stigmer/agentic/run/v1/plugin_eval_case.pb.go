@@ -101,8 +101,13 @@ type PluginEvalCaseContext struct {
 	AgentMockModel string `protobuf:"bytes,10,opt,name=agent_mock_model,json=agentMockModel,proto3" json:"agent_mock_model,omitempty"`
 	// Calls the agent stand-ins may answer in this try, together.
 	AgentMockCallBudget int32 `protobuf:"varint,11,opt,name=agent_mock_call_budget,json=agentMockCallBudget,proto3" json:"agent_mock_call_budget,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	// The files the case's graders read, relative to the workspace. The
+	// runner returns their contents after the turn in
+	// RunStatus.plugin_eval_files, so a grader can read a file the try did not
+	// change (one the scaffold wrote, for example).
+	ReadFiles     []string `protobuf:"bytes,12,rep,name=read_files,json=readFiles,proto3" json:"read_files,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *PluginEvalCaseContext) Reset() {
@@ -212,6 +217,191 @@ func (x *PluginEvalCaseContext) GetAgentMockCallBudget() int32 {
 	return 0
 }
 
+func (x *PluginEvalCaseContext) GetReadFiles() []string {
+	if x != nil {
+		return x.ReadFiles
+	}
+	return nil
+}
+
+// PluginEvalFiles is the content, after a plugin-eval try's turn, of each
+// file its case's graders read (PluginEvalCaseContext.read_files).
+type PluginEvalFiles struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Each file, once, in the order read_files names them.
+	Files         []*PluginEvalFile `protobuf:"bytes,1,rep,name=files,proto3" json:"files,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PluginEvalFiles) Reset() {
+	*x = PluginEvalFiles{}
+	mi := &file_ai_stigmer_agentic_run_v1_plugin_eval_case_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PluginEvalFiles) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PluginEvalFiles) ProtoMessage() {}
+
+func (x *PluginEvalFiles) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_run_v1_plugin_eval_case_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PluginEvalFiles.ProtoReflect.Descriptor instead.
+func (*PluginEvalFiles) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_run_v1_plugin_eval_case_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *PluginEvalFiles) GetFiles() []*PluginEvalFile {
+	if x != nil {
+		return x.Files
+	}
+	return nil
+}
+
+// PluginEvalFile is one file's content after the turn.
+type PluginEvalFile struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The path as the case's graders name it.
+	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	// What the runner found at the path.
+	//
+	// Types that are valid to be assigned to Content:
+	//
+	//	*PluginEvalFile_Text
+	//	*PluginEvalFile_Binary
+	//	*PluginEvalFile_Absent
+	//	*PluginEvalFile_Unreadable
+	Content       isPluginEvalFile_Content `protobuf_oneof:"content"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PluginEvalFile) Reset() {
+	*x = PluginEvalFile{}
+	mi := &file_ai_stigmer_agentic_run_v1_plugin_eval_case_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PluginEvalFile) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PluginEvalFile) ProtoMessage() {}
+
+func (x *PluginEvalFile) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_run_v1_plugin_eval_case_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PluginEvalFile.ProtoReflect.Descriptor instead.
+func (*PluginEvalFile) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_run_v1_plugin_eval_case_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *PluginEvalFile) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *PluginEvalFile) GetContent() isPluginEvalFile_Content {
+	if x != nil {
+		return x.Content
+	}
+	return nil
+}
+
+func (x *PluginEvalFile) GetText() string {
+	if x != nil {
+		if x, ok := x.Content.(*PluginEvalFile_Text); ok {
+			return x.Text
+		}
+	}
+	return ""
+}
+
+func (x *PluginEvalFile) GetBinary() bool {
+	if x != nil {
+		if x, ok := x.Content.(*PluginEvalFile_Binary); ok {
+			return x.Binary
+		}
+	}
+	return false
+}
+
+func (x *PluginEvalFile) GetAbsent() bool {
+	if x != nil {
+		if x, ok := x.Content.(*PluginEvalFile_Absent); ok {
+			return x.Absent
+		}
+	}
+	return false
+}
+
+func (x *PluginEvalFile) GetUnreadable() string {
+	if x != nil {
+		if x, ok := x.Content.(*PluginEvalFile_Unreadable); ok {
+			return x.Unreadable
+		}
+	}
+	return ""
+}
+
+type isPluginEvalFile_Content interface {
+	isPluginEvalFile_Content()
+}
+
+type PluginEvalFile_Text struct {
+	// The file's text.
+	Text string `protobuf:"bytes,2,opt,name=text,proto3,oneof"`
+}
+
+type PluginEvalFile_Binary struct {
+	// The file is not text.
+	Binary bool `protobuf:"varint,3,opt,name=binary,proto3,oneof"`
+}
+
+type PluginEvalFile_Absent struct {
+	// Nothing is at the path.
+	Absent bool `protobuf:"varint,4,opt,name=absent,proto3,oneof"`
+}
+
+type PluginEvalFile_Unreadable struct {
+	// The file could not be read, and why (too large, not a regular file,
+	// outside the workspace).
+	Unreadable string `protobuf:"bytes,5,opt,name=unreadable,proto3,oneof"`
+}
+
+func (*PluginEvalFile_Text) isPluginEvalFile_Content() {}
+
+func (*PluginEvalFile_Binary) isPluginEvalFile_Content() {}
+
+func (*PluginEvalFile_Absent) isPluginEvalFile_Content() {}
+
+func (*PluginEvalFile_Unreadable) isPluginEvalFile_Content() {}
+
 // PluginEvalMockServer is one plugin MCP server answered by a stand-in.
 type PluginEvalMockServer struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -231,7 +421,7 @@ type PluginEvalMockServer struct {
 
 func (x *PluginEvalMockServer) Reset() {
 	*x = PluginEvalMockServer{}
-	mi := &file_ai_stigmer_agentic_run_v1_plugin_eval_case_proto_msgTypes[1]
+	mi := &file_ai_stigmer_agentic_run_v1_plugin_eval_case_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -243,7 +433,7 @@ func (x *PluginEvalMockServer) String() string {
 func (*PluginEvalMockServer) ProtoMessage() {}
 
 func (x *PluginEvalMockServer) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_plugin_eval_case_proto_msgTypes[1]
+	mi := &file_ai_stigmer_agentic_run_v1_plugin_eval_case_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -256,7 +446,7 @@ func (x *PluginEvalMockServer) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PluginEvalMockServer.ProtoReflect.Descriptor instead.
 func (*PluginEvalMockServer) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_plugin_eval_case_proto_rawDescGZIP(), []int{1}
+	return file_ai_stigmer_agentic_run_v1_plugin_eval_case_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *PluginEvalMockServer) GetServer() string {
@@ -308,7 +498,7 @@ type PluginEvalMockTool struct {
 
 func (x *PluginEvalMockTool) Reset() {
 	*x = PluginEvalMockTool{}
-	mi := &file_ai_stigmer_agentic_run_v1_plugin_eval_case_proto_msgTypes[2]
+	mi := &file_ai_stigmer_agentic_run_v1_plugin_eval_case_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -320,7 +510,7 @@ func (x *PluginEvalMockTool) String() string {
 func (*PluginEvalMockTool) ProtoMessage() {}
 
 func (x *PluginEvalMockTool) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_plugin_eval_case_proto_msgTypes[2]
+	mi := &file_ai_stigmer_agentic_run_v1_plugin_eval_case_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -333,7 +523,7 @@ func (x *PluginEvalMockTool) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PluginEvalMockTool.ProtoReflect.Descriptor instead.
 func (*PluginEvalMockTool) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_plugin_eval_case_proto_rawDescGZIP(), []int{2}
+	return file_ai_stigmer_agentic_run_v1_plugin_eval_case_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *PluginEvalMockTool) GetTool() string {
@@ -382,7 +572,7 @@ var File_ai_stigmer_agentic_run_v1_plugin_eval_case_proto protoreflect.FileDescr
 
 const file_ai_stigmer_agentic_run_v1_plugin_eval_case_proto_rawDesc = "" +
 	"\n" +
-	"0ai/stigmer/agentic/run/v1/plugin_eval_case.proto\x12\x19ai.stigmer.agentic.run.v1\x1a\x1bbuf/validate/validate.proto\"\xa7\x05\n" +
+	"0ai/stigmer/agentic/run/v1/plugin_eval_case.proto\x12\x19ai.stigmer.agentic.run.v1\x1a\x1bbuf/validate/validate.proto\"\xd9\x05\n" +
 	"\x15PluginEvalCaseContext\x12$\n" +
 	"\tplugin_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bpluginId\x12:\n" +
 	"\rplugin_digest\x18\x02 \x01(\tB\x15\xbaH\x12r\x102\x0e^[a-f0-9]{64}$R\fpluginDigest\x12$\n" +
@@ -396,10 +586,23 @@ const file_ai_stigmer_agentic_run_v1_plugin_eval_case_proto_rawDesc = "" +
 	"\x10agent_mock_model\x18\n" +
 	" \x01(\tB\b\xbaH\x05r\x03\x18\x80\x01R\x0eagentMockModel\x12?\n" +
 	"\x16agent_mock_call_budget\x18\v \x01(\x05B\n" +
-	"\xbaH\a\x1a\x05\x18\xa0\x06(\x00R\x13agentMockCallBudget\x1a6\n" +
+	"\xbaH\a\x1a\x05\x18\xa0\x06(\x00R\x13agentMockCallBudget\x120\n" +
+	"\n" +
+	"read_files\x18\f \x03(\tB\x11\xbaH\x0e\x92\x01\v\x10@\"\ar\x05\x10\x01\x18\x80\bR\treadFiles\x1a6\n" +
 	"\bEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xcb\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\\\n" +
+	"\x0fPluginEvalFiles\x12I\n" +
+	"\x05files\x18\x01 \x03(\v2).ai.stigmer.agentic.run.v1.PluginEvalFileB\b\xbaH\x05\x92\x01\x02\x10@R\x05files\"\xa4\x01\n" +
+	"\x0ePluginEvalFile\x12\x1b\n" +
+	"\x04path\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04path\x12\x14\n" +
+	"\x04text\x18\x02 \x01(\tH\x00R\x04text\x12\x18\n" +
+	"\x06binary\x18\x03 \x01(\bH\x00R\x06binary\x12\x18\n" +
+	"\x06absent\x18\x04 \x01(\bH\x00R\x06absent\x12 \n" +
+	"\n" +
+	"unreadable\x18\x05 \x01(\tH\x00R\n" +
+	"unreadableB\t\n" +
+	"\acontent\"\xcb\x01\n" +
 	"\x14PluginEvalMockServer\x12\x1f\n" +
 	"\x06server\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x06server\x12!\n" +
 	"\asegment\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\asegment\x12P\n" +
@@ -435,24 +638,27 @@ func file_ai_stigmer_agentic_run_v1_plugin_eval_case_proto_rawDescGZIP() []byte 
 }
 
 var file_ai_stigmer_agentic_run_v1_plugin_eval_case_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_ai_stigmer_agentic_run_v1_plugin_eval_case_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_ai_stigmer_agentic_run_v1_plugin_eval_case_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_ai_stigmer_agentic_run_v1_plugin_eval_case_proto_goTypes = []any{
 	(PluginEvalMockKind)(0),       // 0: ai.stigmer.agentic.run.v1.PluginEvalMockKind
 	(*PluginEvalCaseContext)(nil), // 1: ai.stigmer.agentic.run.v1.PluginEvalCaseContext
-	(*PluginEvalMockServer)(nil),  // 2: ai.stigmer.agentic.run.v1.PluginEvalMockServer
-	(*PluginEvalMockTool)(nil),    // 3: ai.stigmer.agentic.run.v1.PluginEvalMockTool
-	nil,                           // 4: ai.stigmer.agentic.run.v1.PluginEvalCaseContext.EnvEntry
+	(*PluginEvalFiles)(nil),       // 2: ai.stigmer.agentic.run.v1.PluginEvalFiles
+	(*PluginEvalFile)(nil),        // 3: ai.stigmer.agentic.run.v1.PluginEvalFile
+	(*PluginEvalMockServer)(nil),  // 4: ai.stigmer.agentic.run.v1.PluginEvalMockServer
+	(*PluginEvalMockTool)(nil),    // 5: ai.stigmer.agentic.run.v1.PluginEvalMockTool
+	nil,                           // 6: ai.stigmer.agentic.run.v1.PluginEvalCaseContext.EnvEntry
 }
 var file_ai_stigmer_agentic_run_v1_plugin_eval_case_proto_depIdxs = []int32{
-	4, // 0: ai.stigmer.agentic.run.v1.PluginEvalCaseContext.env:type_name -> ai.stigmer.agentic.run.v1.PluginEvalCaseContext.EnvEntry
-	2, // 1: ai.stigmer.agentic.run.v1.PluginEvalCaseContext.mocks:type_name -> ai.stigmer.agentic.run.v1.PluginEvalMockServer
-	3, // 2: ai.stigmer.agentic.run.v1.PluginEvalMockServer.tools:type_name -> ai.stigmer.agentic.run.v1.PluginEvalMockTool
-	0, // 3: ai.stigmer.agentic.run.v1.PluginEvalMockTool.kind:type_name -> ai.stigmer.agentic.run.v1.PluginEvalMockKind
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	6, // 0: ai.stigmer.agentic.run.v1.PluginEvalCaseContext.env:type_name -> ai.stigmer.agentic.run.v1.PluginEvalCaseContext.EnvEntry
+	4, // 1: ai.stigmer.agentic.run.v1.PluginEvalCaseContext.mocks:type_name -> ai.stigmer.agentic.run.v1.PluginEvalMockServer
+	3, // 2: ai.stigmer.agentic.run.v1.PluginEvalFiles.files:type_name -> ai.stigmer.agentic.run.v1.PluginEvalFile
+	5, // 3: ai.stigmer.agentic.run.v1.PluginEvalMockServer.tools:type_name -> ai.stigmer.agentic.run.v1.PluginEvalMockTool
+	0, // 4: ai.stigmer.agentic.run.v1.PluginEvalMockTool.kind:type_name -> ai.stigmer.agentic.run.v1.PluginEvalMockKind
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_run_v1_plugin_eval_case_proto_init() }
@@ -460,13 +666,19 @@ func file_ai_stigmer_agentic_run_v1_plugin_eval_case_proto_init() {
 	if File_ai_stigmer_agentic_run_v1_plugin_eval_case_proto != nil {
 		return
 	}
+	file_ai_stigmer_agentic_run_v1_plugin_eval_case_proto_msgTypes[2].OneofWrappers = []any{
+		(*PluginEvalFile_Text)(nil),
+		(*PluginEvalFile_Binary)(nil),
+		(*PluginEvalFile_Absent)(nil),
+		(*PluginEvalFile_Unreadable)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_run_v1_plugin_eval_case_proto_rawDesc), len(file_ai_stigmer_agentic_run_v1_plugin_eval_case_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   4,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

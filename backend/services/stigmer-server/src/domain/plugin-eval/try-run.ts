@@ -91,6 +91,7 @@ import {
 } from "../score/judge/judge-run.js";
 import type { ArmAttachment, EvalArm } from "./arm.js";
 import { PLUGIN_EVAL_LABEL } from "./constants.js";
+import { wantedFilesOf } from "./graders/verdict.js";
 
 /** The run's own bounds on `max_tool_rounds` (run/v1/invocation.proto). */
 export const MIN_TOOL_ROUNDS = 10;
@@ -296,6 +297,9 @@ export function tryCaseContextOf(input: {
     mocks,
     agentMockModel: mocks.some((server) => server.tools.some((tool) => tool.kind === PluginEvalMockKind.agent)) ? spec.judgeModel : "",
     agentMockCallBudget: Math.min(4 * evalCase.maxTurns, MAX_AGENT_MOCK_CALLS),
+    // A scaffold's files are no change of the try's, so the ledger cannot
+    // show them: the runner returns what the graders read.
+    readFiles: wantedFilesOf(evalCase.graders),
   });
 }
 

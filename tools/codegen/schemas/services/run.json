@@ -3060,6 +3060,17 @@
         },
         "description": "Whose logins and secrets this turn uses: decided once when the turn is\n created, and kept when it is recovered.",
         "required": false
+      },
+      {
+        "name": "PluginEvalFiles",
+        "jsonName": "pluginEvalFiles",
+        "protoField": "plugin_eval_files",
+        "type": {
+          "kind": "message",
+          "messageType": "PluginEvalFiles"
+        },
+        "description": "The files a plugin eval's graders read, as the try's turn left them.",
+        "required": false
       }
     ]
   },
@@ -5044,6 +5055,96 @@
           },
           "description": "Slug of the plugin whose hook asked for this approval; empty when no\n plugin's hook asked. Copied from ToolCall.approval_policy_hook.",
           "required": false
+        }
+      ]
+    },
+    {
+      "name": "PluginEvalFile",
+      "description": "PluginEvalFile is one file's content after the turn.",
+      "protoType": "ai.stigmer.agentic.run.v1.PluginEvalFile",
+      "protoFile": "apis/ai/stigmer/agentic/run/v1/plugin_eval_case.proto",
+      "fields": [
+        {
+          "name": "Path",
+          "jsonName": "path",
+          "protoField": "path",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The path as the case's graders name it.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Text",
+          "jsonName": "text",
+          "protoField": "text",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The file's text.",
+          "required": false,
+          "oneofGroup": "content"
+        },
+        {
+          "name": "Binary",
+          "jsonName": "binary",
+          "protoField": "binary",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "The file is not text.",
+          "required": false,
+          "oneofGroup": "content"
+        },
+        {
+          "name": "Absent",
+          "jsonName": "absent",
+          "protoField": "absent",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Nothing is at the path.",
+          "required": false,
+          "oneofGroup": "content"
+        },
+        {
+          "name": "Unreadable",
+          "jsonName": "unreadable",
+          "protoField": "unreadable",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The file could not be read, and why (too large, not a regular file,\n outside the workspace).",
+          "required": false,
+          "oneofGroup": "content"
+        }
+      ]
+    },
+    {
+      "name": "PluginEvalFiles",
+      "description": "PluginEvalFiles is the content, after a plugin-eval try's turn, of each\n file its case's graders read (PluginEvalCaseContext.read_files).",
+      "protoType": "ai.stigmer.agentic.run.v1.PluginEvalFiles",
+      "protoFile": "apis/ai/stigmer/agentic/run/v1/plugin_eval_case.proto",
+      "fields": [
+        {
+          "name": "Files",
+          "jsonName": "files",
+          "protoField": "files",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "PluginEvalFile"
+            }
+          },
+          "description": "Each file, once, in the order read_files names them.",
+          "required": false,
+          "validation": {
+            "maxItems": 64
+          }
         }
       ]
     },

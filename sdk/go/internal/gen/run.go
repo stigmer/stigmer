@@ -276,6 +276,7 @@ type PluginEvalCaseContextInput struct {
 	Mocks               []*PluginEvalMockServerInput
 	AgentMockModel      string
 	AgentMockCallBudget int32
+	ReadFiles           []string
 }
 
 // PluginEvalMockServerInput is the SDK input type for PluginEvalMockServer.
@@ -480,6 +481,7 @@ func (i *PluginEvalCaseContextInput) toProto() (*runv1.PluginEvalCaseContext, er
 	}
 	p.AgentMockModel = i.AgentMockModel
 	p.AgentMockCallBudget = i.AgentMockCallBudget
+	p.ReadFiles = i.ReadFiles
 	return p, nil
 }
 
@@ -666,6 +668,7 @@ func pluginEvalCaseContextInputFromProto(p *runv1.PluginEvalCaseContext) *Plugin
 	}
 	input.AgentMockModel = p.GetAgentMockModel()
 	input.AgentMockCallBudget = p.GetAgentMockCallBudget()
+	input.ReadFiles = p.GetReadFiles()
 	return input
 }
 

@@ -11,7 +11,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/run/v1/plugin_eval_case.proto.
  */
 export const file_ai_stigmer_agentic_run_v1_plugin_eval_case: GenFile = /*@__PURE__*/
-  fileDesc("CjBhaS9zdGlnbWVyL2FnZW50aWMvcnVuL3YxL3BsdWdpbl9ldmFsX2Nhc2UucHJvdG8SGWFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEimQQKFVBsdWdpbkV2YWxDYXNlQ29udGV4dBIaCglwbHVnaW5faWQYASABKAlCB7pIBHICEAESLAoNcGx1Z2luX2RpZ2VzdBgCIAEoCUIVukgSchAyDl5bYS1mMC05XXs2NH0kEhoKCXN1aXRlX2RpchgDIAEoCUIHukgEcgIQARIZCghjYXNlX2RpchgEIAEoCUIHukgEcgIQARIXCg9zY2FmZm9sZF9zY3JpcHQYBSABKAkSGgoIYWRkX2RpcnMYBiADKAlCCLpIBZIBAhAgEhQKDGhpc3RvcnlfZmlsZRgHIAEoCRJuCgNlbnYYCCADKAsyOS5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlBsdWdpbkV2YWxDYXNlQ29udGV4dC5FbnZFbnRyeUImukgjmgEgEEAiFXITMhFeRVZBTF9bQS1aMC05X10qJCoFcgMYgCASSAoFbW9ja3MYCSADKAsyLy5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlBsdWdpbkV2YWxNb2NrU2VydmVyQgi6SAWSAQIQIBIiChBhZ2VudF9tb2NrX21vZGVsGAogASgJQgi6SAVyAxiAARIqChZhZ2VudF9tb2NrX2NhbGxfYnVkZ2V0GAsgASgFQgq6SAcaBRigBigAGioKCEVudkVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiqAEKFFBsdWdpbkV2YWxNb2NrU2VydmVyEhcKBnNlcnZlchgBIAEoCUIHukgEcgIQARIYCgdzZWdtZW50GAIgASgJQge6SARyAhABEkkKBXRvb2xzGAMgAygLMi0uYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5QbHVnaW5FdmFsTW9ja1Rvb2xCC7pICJIBBQgBEIABEhIKCnRvb2xzX2ZpbGUYBCABKAki2AEKElBsdWdpbkV2YWxNb2NrVG9vbBIVCgR0b29sGAEgASgJQge6SARyAhABEhUKBGZpbGUYAiABKAlCB7pIBHICEAESRwoEa2luZBgDIAEoDjItLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUGx1Z2luRXZhbE1vY2tLaW5kQgq6SAeCAQQQASAAEg0KBWVycm9yGAQgASgIEh4KC2V4cGVjdF9qc29uGAUgASgJQgm6SAZyBBiAgAESHAoKYWJvcnRfd2hlbhgGIAEoCUIIukgFcgMYgCAqfQoSUGx1Z2luRXZhbE1vY2tLaW5kEiUKIXBsdWdpbl9ldmFsX21vY2tfa2luZF91bnNwZWNpZmllZBAAEh8KG3BsdWdpbl9ldmFsX21vY2tfa2luZF9maXhlZBABEh8KG3BsdWdpbl9ldmFsX21vY2tfa2luZF9hZ2VudBACYgZwcm90bzM", [file_buf_validate_validate]);
+  fileDesc("CjBhaS9zdGlnbWVyL2FnZW50aWMvcnVuL3YxL3BsdWdpbl9ldmFsX2Nhc2UucHJvdG8SGWFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEiwAQKFVBsdWdpbkV2YWxDYXNlQ29udGV4dBIaCglwbHVnaW5faWQYASABKAlCB7pIBHICEAESLAoNcGx1Z2luX2RpZ2VzdBgCIAEoCUIVukgSchAyDl5bYS1mMC05XXs2NH0kEhoKCXN1aXRlX2RpchgDIAEoCUIHukgEcgIQARIZCghjYXNlX2RpchgEIAEoCUIHukgEcgIQARIXCg9zY2FmZm9sZF9zY3JpcHQYBSABKAkSGgoIYWRkX2RpcnMYBiADKAlCCLpIBZIBAhAgEhQKDGhpc3RvcnlfZmlsZRgHIAEoCRJuCgNlbnYYCCADKAsyOS5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlBsdWdpbkV2YWxDYXNlQ29udGV4dC5FbnZFbnRyeUImukgjmgEgEEAiFXITMhFeRVZBTF9bQS1aMC05X10qJCoFcgMYgCASSAoFbW9ja3MYCSADKAsyLy5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlBsdWdpbkV2YWxNb2NrU2VydmVyQgi6SAWSAQIQIBIiChBhZ2VudF9tb2NrX21vZGVsGAogASgJQgi6SAVyAxiAARIqChZhZ2VudF9tb2NrX2NhbGxfYnVkZ2V0GAsgASgFQgq6SAcaBRigBigAEiUKCnJlYWRfZmlsZXMYDCADKAlCEbpIDpIBCxBAIgdyBRABGIAIGioKCEVudkVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiVQoPUGx1Z2luRXZhbEZpbGVzEkIKBWZpbGVzGAEgAygLMikuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5QbHVnaW5FdmFsRmlsZUIIukgFkgECEEAifAoOUGx1Z2luRXZhbEZpbGUSFQoEcGF0aBgBIAEoCUIHukgEcgIQARIOCgR0ZXh0GAIgASgJSAASEAoGYmluYXJ5GAMgASgISAASEAoGYWJzZW50GAQgASgISAASFAoKdW5yZWFkYWJsZRgFIAEoCUgAQgkKB2NvbnRlbnQiqAEKFFBsdWdpbkV2YWxNb2NrU2VydmVyEhcKBnNlcnZlchgBIAEoCUIHukgEcgIQARIYCgdzZWdtZW50GAIgASgJQge6SARyAhABEkkKBXRvb2xzGAMgAygLMi0uYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5QbHVnaW5FdmFsTW9ja1Rvb2xCC7pICJIBBQgBEIABEhIKCnRvb2xzX2ZpbGUYBCABKAki2AEKElBsdWdpbkV2YWxNb2NrVG9vbBIVCgR0b29sGAEgASgJQge6SARyAhABEhUKBGZpbGUYAiABKAlCB7pIBHICEAESRwoEa2luZBgDIAEoDjItLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUGx1Z2luRXZhbE1vY2tLaW5kQgq6SAeCAQQQASAAEg0KBWVycm9yGAQgASgIEh4KC2V4cGVjdF9qc29uGAUgASgJQgm6SAZyBBiAgAESHAoKYWJvcnRfd2hlbhgGIAEoCUIIukgFcgMYgCAqfQoSUGx1Z2luRXZhbE1vY2tLaW5kEiUKIXBsdWdpbl9ldmFsX21vY2tfa2luZF91bnNwZWNpZmllZBAAEh8KG3BsdWdpbl9ldmFsX21vY2tfa2luZF9maXhlZBABEh8KG3BsdWdpbl9ldmFsX21vY2tfa2luZF9hZ2VudBACYgZwcm90bzM", [file_buf_validate_validate]);
 
 /**
  * PluginEvalCaseContext is what one plugin-eval case gives its try beyond
@@ -97,6 +97,16 @@ export type PluginEvalCaseContext = Message<"ai.stigmer.agentic.run.v1.PluginEva
    * @generated from field: int32 agent_mock_call_budget = 11;
    */
   agentMockCallBudget: number;
+
+  /**
+   * The files the case's graders read, relative to the workspace. The
+   * runner returns their contents after the turn in
+   * RunStatus.plugin_eval_files, so a grader can read a file the try did not
+   * change (one the scaffold wrote, for example).
+   *
+   * @generated from field: repeated string read_files = 12;
+   */
+  readFiles: string[];
 };
 
 /**
@@ -105,6 +115,89 @@ export type PluginEvalCaseContext = Message<"ai.stigmer.agentic.run.v1.PluginEva
  */
 export const PluginEvalCaseContextSchema: GenMessage<PluginEvalCaseContext> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_run_v1_plugin_eval_case, 0);
+
+/**
+ * PluginEvalFiles is the content, after a plugin-eval try's turn, of each
+ * file its case's graders read (PluginEvalCaseContext.read_files).
+ *
+ * @generated from message ai.stigmer.agentic.run.v1.PluginEvalFiles
+ */
+export type PluginEvalFiles = Message<"ai.stigmer.agentic.run.v1.PluginEvalFiles"> & {
+  /**
+   * Each file, once, in the order read_files names them.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.run.v1.PluginEvalFile files = 1;
+   */
+  files: PluginEvalFile[];
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.run.v1.PluginEvalFiles.
+ * Use `create(PluginEvalFilesSchema)` to create a new message.
+ */
+export const PluginEvalFilesSchema: GenMessage<PluginEvalFiles> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_run_v1_plugin_eval_case, 1);
+
+/**
+ * PluginEvalFile is one file's content after the turn.
+ *
+ * @generated from message ai.stigmer.agentic.run.v1.PluginEvalFile
+ */
+export type PluginEvalFile = Message<"ai.stigmer.agentic.run.v1.PluginEvalFile"> & {
+  /**
+   * The path as the case's graders name it.
+   *
+   * @generated from field: string path = 1;
+   */
+  path: string;
+
+  /**
+   * What the runner found at the path.
+   *
+   * @generated from oneof ai.stigmer.agentic.run.v1.PluginEvalFile.content
+   */
+  content: {
+    /**
+     * The file's text.
+     *
+     * @generated from field: string text = 2;
+     */
+    value: string;
+    case: "text";
+  } | {
+    /**
+     * The file is not text.
+     *
+     * @generated from field: bool binary = 3;
+     */
+    value: boolean;
+    case: "binary";
+  } | {
+    /**
+     * Nothing is at the path.
+     *
+     * @generated from field: bool absent = 4;
+     */
+    value: boolean;
+    case: "absent";
+  } | {
+    /**
+     * The file could not be read, and why (too large, not a regular file,
+     * outside the workspace).
+     *
+     * @generated from field: string unreadable = 5;
+     */
+    value: string;
+    case: "unreadable";
+  } | { case: undefined; value?: undefined };
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.run.v1.PluginEvalFile.
+ * Use `create(PluginEvalFileSchema)` to create a new message.
+ */
+export const PluginEvalFileSchema: GenMessage<PluginEvalFile> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_run_v1_plugin_eval_case, 2);
 
 /**
  * PluginEvalMockServer is one plugin MCP server answered by a stand-in.
@@ -148,7 +241,7 @@ export type PluginEvalMockServer = Message<"ai.stigmer.agentic.run.v1.PluginEval
  * Use `create(PluginEvalMockServerSchema)` to create a new message.
  */
 export const PluginEvalMockServerSchema: GenMessage<PluginEvalMockServer> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_plugin_eval_case, 1);
+  messageDesc(file_ai_stigmer_agentic_run_v1_plugin_eval_case, 3);
 
 /**
  * PluginEvalMockTool is one mocked tool and how it answers.
@@ -204,7 +297,7 @@ export type PluginEvalMockTool = Message<"ai.stigmer.agentic.run.v1.PluginEvalMo
  * Use `create(PluginEvalMockToolSchema)` to create a new message.
  */
 export const PluginEvalMockToolSchema: GenMessage<PluginEvalMockTool> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_plugin_eval_case, 2);
+  messageDesc(file_ai_stigmer_agentic_run_v1_plugin_eval_case, 4);
 
 /**
  * PluginEvalMockKind is how a mocked tool answers.

@@ -13,7 +13,7 @@
  * Reasons count and name tools, paths and steps; they never quote what
  * the run wrote, which the author reads on the try's own page.
  */
-import type { EvalFocus } from "@stigmer/plugin-package";
+import type { EvalFocus, EvalGrader } from "@stigmer/plugin-package";
 
 import type { EvalTrace } from "../../score/eval/trace.js";
 
@@ -167,4 +167,26 @@ export function focusText(
       return exhausted;
     }
   }
+}
+
+/**
+ * The workspace paths a case's graders read the content of: the try's run
+ * returns them as its turn left them (`RunSpec.plugin_eval_case.read_files`),
+ * and the trace reads each one.
+ */
+export function wantedFilesOf(graders: ReadonlyArray<EvalGrader>): string[] {
+  const paths: string[] = [];
+  for (const grader of graders) {
+    const check = grader.check;
+    const focus =
+      check.type === "regex"
+        ? check.target
+        : check.type === "llm"
+          ? check.focus
+          : undefined;
+    if (focus?.kind === "file" && !paths.includes(focus.path)) {
+      paths.push(focus.path);
+    }
+  }
+  return paths;
 }

@@ -418,6 +418,7 @@ class PluginEvalCaseContextInput:
     mocks: list[PluginEvalMockServerInput] = field(default_factory=list)
     agent_mock_model: str = ""
     agent_mock_call_budget: int = 0
+    read_files: list[str] = field(default_factory=list)
 
     def _to_proto(self) -> spec_pb2.PluginEvalCaseContext:
         msg = spec_pb2.PluginEvalCaseContext(
@@ -436,6 +437,8 @@ class PluginEvalCaseContextInput:
             msg.env.update(self.env)
         for item in self.mocks:
             msg.mocks.append(item._to_proto())
+        if self.read_files:
+            msg.read_files.extend(self.read_files)
         return msg
 
 

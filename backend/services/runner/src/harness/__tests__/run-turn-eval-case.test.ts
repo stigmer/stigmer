@@ -11,6 +11,8 @@
  *    mocks' endpoint is started, bound to the turn's stop and cost cap, and
  *    closed when the turn ends. A mock that stops the try ends the turn
  *    TERMINATED with the mock-abort sentence.
+ *  - The files the case's graders read come back on the run's status as the
+ *    turn left them, the ones the try never changed included.
  *
  * The archive read, the setup and the endpoint are module fakes here: each
  * has its own suite under `shared/plugin-eval/__tests__/`, and what this file
@@ -18,6 +20,8 @@
  * at module level because the subject's `config` is read at collection time.
  */
 
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
@@ -33,6 +37,8 @@ const fakes = vi.hoisted(() => ({
   bindings: [] as MockEndpointBinding[],
   started: 0,
   closed: 0,
+  /** Files the setup writes into the workspace, as a scaffold would. */
+  writes: {} as Record<string, string>,
   /** What the endpoint does once bound: report a cost, then stop the try. */
   onBound: undefined as ((binding: MockEndpointBinding) => void) | undefined,
 }));
@@ -47,6 +53,7 @@ vi.mock("../../shared/plugin-eval/case-archive.js", async (importOriginal) => {
 vi.mock("../../shared/plugin-eval/prepare-case.js", () => ({
   prepareEvalCase: (args: { sessionId: string; primaryDir: string }) => {
     fakes.prepared.push({ sessionId: args.sessionId, primaryDir: args.primaryDir });
+    for (const [path, text] of Object.entries(fakes.writes)) writeFileSync(join(args.primaryDir, path), text);
     if (fakes.outcome === undefined) throw new Error("no outcome scripted");
     return Promise.resolve(fakes.outcome);
   },
@@ -83,8 +90,8 @@ const subject = scriptedSubject({
 });
 const harness: RuntimeContractHarness = { subject, env, clock };
 
-/** A driver whose run is a plugin-eval try, with mocks when `mocked`. */
-function tryDriver(label: string, mocked: boolean): RuntimeExecutionDriver {
+/** A driver whose run is a plugin-eval try, with mocks when `mocked`, whose graders read `readFiles`. */
+function tryDriver(label: string, mocked: boolean, readFiles: string[] = []): RuntimeExecutionDriver {
   const driver = new RuntimeExecutionDriver(harness, label);
   driver.record.execution.spec!.pluginEvalCase = create(PluginEvalCaseContextSchema, {
     pluginId: "plg_1",
@@ -92,6 +99,7 @@ function tryDriver(label: string, mocked: boolean): RuntimeExecutionDriver {
     suiteDir: "evals",
     caseDir: "evals/fix",
     mocks: mocked ? [create(PluginEvalMockServerSchema, { server: "tracker", segment: "plugin_kit_tracker" })] : [],
+    readFiles,
   });
   return driver;
 }
@@ -119,6 +127,7 @@ describe("run-turn: a plugin-eval try's own phases", () => {
     fakes.started = 0;
     fakes.closed = 0;
     fakes.onBound = undefined;
+    fakes.writes = {};
   });
 
   it("a failed scaffold settles the turn TERMINATED with the try stop's sentence, before any engine or endpoint starts", async () => {
@@ -165,5 +174,20 @@ describe("run-turn: a plugin-eval try's own phases", () => {
     expect(fakes.prepared).toHaveLength(1);
     expect(fakes.started).toBe(0);
     expect(driver.record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
+  });
+
+  it("returns the files the case's graders read on the run, as the turn left them", async () => {
+    fakes.outcome = { kind: "ready", prepared: { referenceInputs: [], history: undefined, env: {} } };
+    fakes.writes = { "app.txt": "version = 1\n" };
+    const driver = tryDriver("eval-read-files", false, ["app.txt", "missing.md"]);
+
+    await driver.turn([scenario.say("Done.")]);
+
+    expect(driver.record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
+    const files = driver.record.lastFullStatus?.pluginEvalFiles?.files ?? [];
+    expect(files.map((file) => [file.path, file.content.case, file.content.value])).toEqual([
+      ["app.txt", "text", "version = 1\n"],
+      ["missing.md", "absent", true],
+    ]);
   });
 });

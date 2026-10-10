@@ -13,7 +13,9 @@
  * answered in place of the trace; a run with no assistant text has an
  * empty final message; a change with no captured body reads as empty
  * text. The mock calls are the calls to the servers the run's case mocked,
- * by the server's key, with the answer the mock gave.
+ * by the server's key, with the answer the mock gave. A path no change set
+ * touched is read from the files the runner returned for the graders, a
+ * change set's content winning where both have one.
  */
 import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
@@ -298,6 +300,34 @@ describe("the eval trace's files", () => {
       deps(Harness.NATIVE, { wantedFiles: ["a"] }),
     );
     expect(trace.files).toEqual({ kind: "not-recorded" });
+  });
+
+  it("reads a path no change set touched from the files the runner returned, a change set winning", async () => {
+    const run = runOf([], [baseline("t1"), candidate("t1", [created])]);
+    run.status!.pluginEvalFiles = create(RunStatusSchema, {
+      pluginEvalFiles: {
+        files: [
+          { path: "./app.txt", content: { case: "text", value: "version = 1\n" } },
+          { path: "logo.png", content: { case: "binary", value: true } },
+          { path: "huge.log", content: { case: "unreadable", value: "'huge.log' is larger than 128 KiB" } },
+          { path: "gone.md", content: { case: "absent", value: true } },
+          { path: "CHANGELOG.md", content: { case: "text", value: "stale" } },
+        ],
+      },
+    }).pluginEvalFiles;
+    const trace = await evalTraceOf(
+      run,
+      deps(Harness.NATIVE, { wantedFiles: ["app.txt", "logo.png", "huge.log", "gone.md", "CHANGELOG.md", "never.md"] }),
+    );
+    const contents = trace.files.kind === "recorded" ? trace.files.contents : new Map();
+    expect(Object.fromEntries(contents)).toEqual({
+      "app.txt": { kind: "text", text: "version = 1\n" },
+      "logo.png": { kind: "binary" },
+      "huge.log": { kind: "unreadable", reason: "'huge.log' is larger than 128 KiB" },
+      "gone.md": { kind: "absent" },
+      "CHANGELOG.md": { kind: "text", text: "## 1.0.0" },
+      "never.md": { kind: "absent" },
+    });
   });
 
   it("takes each change set's last candidate, offloaded, binary, deleted and unreadable bodies", async () => {

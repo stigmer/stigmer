@@ -153,6 +153,22 @@
       "validation": {
         "max": 800
       }
+    },
+    {
+      "name": "ReadFiles",
+      "jsonName": "readFiles",
+      "protoField": "read_files",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "The files the case's graders read, relative to the workspace. The\n runner returns their contents after the turn in\n RunStatus.plugin_eval_files, so a grader can read a file the try did not\n change (one the scaffold wrote, for example).",
+      "required": false,
+      "validation": {
+        "maxItems": 64
+      }
     }
   ]
 }

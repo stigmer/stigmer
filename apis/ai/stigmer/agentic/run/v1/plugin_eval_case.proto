@@ -64,6 +64,53 @@ message PluginEvalCaseContext {
     gte: 0
     lte: 800
   }];
+
+  // The files the case's graders read, relative to the workspace. The
+  // runner returns their contents after the turn in
+  // RunStatus.plugin_eval_files, so a grader can read a file the try did not
+  // change (one the scaffold wrote, for example).
+  repeated string read_files = 12 [(buf.validate.field).repeated = {
+    max_items: 64
+    items: {
+      string: {
+        min_len: 1
+        max_len: 1024
+      }
+    }
+  }];
+}
+
+// PluginEvalFiles is the content, after a plugin-eval try's turn, of each
+// file its case's graders read (PluginEvalCaseContext.read_files).
+//
+// @internal
+// Written once by the runner with the turn's terminal status, read only by
+// the case workflow's graders.
+message PluginEvalFiles {
+  // Each file, once, in the order read_files names them.
+  repeated PluginEvalFile files = 1 [(buf.validate.field).repeated.max_items = 64];
+}
+
+// PluginEvalFile is one file's content after the turn.
+message PluginEvalFile {
+  // The path as the case's graders name it.
+  string path = 1 [(buf.validate.field).string.min_len = 1];
+
+  // What the runner found at the path.
+  oneof content {
+    // The file's text.
+    string text = 2;
+
+    // The file is not text.
+    bool binary = 3;
+
+    // Nothing is at the path.
+    bool absent = 4;
+
+    // The file could not be read, and why (too large, not a regular file,
+    // outside the workspace).
+    string unreadable = 5;
+  }
 }
 
 // PluginEvalMockServer is one plugin MCP server answered by a stand-in.

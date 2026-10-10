@@ -350,12 +350,20 @@ describe("a case's mocks and context", () => {
     expect(tools.tools).not.toContain("mcp__github");
   });
 
-  it("carries the case's context, with the mocks in the with-arm only, under the run's server names", () => {
+  it("carries the case's context and the files its graders read, with the mocks in the with-arm only, under the run's server names", () => {
     const withCase = evalCase({
       ...mocked,
       maxTurns: 300,
       env: { EVAL_X: "1" },
       context: { scaffoldScript: "setup.sh", historyFile: "h.jsonl", addDirs: ["resources"] },
+      graders: [
+        {
+          name: "bumped",
+          path: "evals/first-case/graders/bumped.md",
+          weight: 1,
+          check: { type: "regex", pattern: "version = 2", flags: "", match: { kind: "contains" }, target: { kind: "file", path: "app.txt" } },
+        },
+      ],
     });
     const context = tryCaseContextOf({
       evalCase: withCase,
@@ -375,6 +383,7 @@ describe("a case's mocks and context", () => {
       env: { EVAL_X: "1" },
       agentMockModel: "claude-haiku-4.5",
       agentMockCallBudget: MAX_AGENT_MOCK_CALLS,
+      readFiles: ["app.txt"],
     });
     expect(context?.mocks.map((m) => [m.server, m.segment, m.toolsFile, m.tools.map((t) => [t.tool, t.error, t.expectJson, t.abortWhen])])).toEqual([
       [
@@ -390,6 +399,7 @@ describe("a case's mocks and context", () => {
     const without = tryCaseContextOf({ evalCase: withCase, spec: spec(), arm: "without", source: SOURCE, pluginServers: [TRACKER] });
     expect(without?.mocks).toEqual([]);
     expect(without?.scaffoldScript).toBe("setup.sh");
+    expect(without?.readFiles, "both arms' graders read the same files").toEqual(["app.txt"]);
     expect(tryCaseContextOf({ evalCase: mocked, spec: spec(), arm: "without", source: SOURCE, pluginServers: [TRACKER] })).toBeUndefined();
     expect(tryCaseContextOf({ evalCase: mocked, spec: spec({ realMcpServers: true }), arm: "with", source: SOURCE, pluginServers: [TRACKER] })).toBeUndefined();
   });

@@ -702,6 +702,7 @@ public final class RunInput {
         private final java.util.List<PluginEvalMockServerInput> mocks;
         private final String agentMockModel;
         private final int agentMockCallBudget;
+        private final java.util.List<String> readFiles;
 
         private PluginEvalCaseContextInput(Builder builder) {
             this.pluginId = builder.pluginId;
@@ -715,6 +716,7 @@ public final class RunInput {
             this.mocks = builder.mocks;
             this.agentMockModel = builder.agentMockModel;
             this.agentMockCallBudget = builder.agentMockCallBudget;
+            this.readFiles = builder.readFiles;
         }
 
         PluginEvalCaseContext toProto() {
@@ -752,6 +754,9 @@ public final class RunInput {
                 builder.setAgentMockModel(this.agentMockModel);
             }
             builder.setAgentMockCallBudget(this.agentMockCallBudget);
+            if (this.readFiles != null) {
+                builder.addAllReadFiles(this.readFiles);
+            }
             return builder.build();
         }
 
@@ -769,6 +774,7 @@ public final class RunInput {
             private java.util.List<PluginEvalMockServerInput> mocks;
             private String agentMockModel;
             private int agentMockCallBudget;
+            private java.util.List<String> readFiles;
 
             private Builder() {}
 
@@ -783,6 +789,7 @@ public final class RunInput {
             public Builder mocks(java.util.List<PluginEvalMockServerInput> mocks) { this.mocks = mocks; return this; }
             public Builder agentMockModel(String agentMockModel) { this.agentMockModel = agentMockModel; return this; }
             public Builder agentMockCallBudget(int agentMockCallBudget) { this.agentMockCallBudget = agentMockCallBudget; return this; }
+            public Builder readFiles(java.util.List<String> readFiles) { this.readFiles = readFiles; return this; }
 
             public PluginEvalCaseContextInput build() { return new PluginEvalCaseContextInput(this); }
         }

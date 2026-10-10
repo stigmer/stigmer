@@ -1439,6 +1439,8 @@ export interface TurnFrame {
   writeback: WriteBackCoordinator | null;
   /** A plugin-eval try's mock endpoint, bound when the engine's turn starts and closed when the turn ends. */
   evalMocks: MockEndpoint | undefined;
+  /** The files a plugin-eval try's graders read, returned on the run as the turn leaves them (`read-files.ts`); set once its case is prepared. */
+  evalReadFiles: readonly string[] | undefined;
 }
 
 /** What the composer answers: the whole record, or a settlement the caller writes and returns. */
@@ -1490,6 +1492,7 @@ export async function resolveTurnContext(
   if (prepared !== undefined) {
     workspace = prepared.workspace;
     values = prepared.values;
+    frame.evalReadFiles = spec.pluginEvalCase?.readFiles;
   }
 
   const reinvoked = await reconcileReinvocation(deps, {

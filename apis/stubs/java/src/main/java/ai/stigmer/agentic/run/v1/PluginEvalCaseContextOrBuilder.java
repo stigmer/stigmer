@@ -298,4 +298,57 @@ java.lang.String defaultValue);
    * @return The agentMockCallBudget.
    */
   int getAgentMockCallBudget();
+
+  /**
+   * <pre>
+   * The files the case's graders read, relative to the workspace. The
+   * runner returns their contents after the turn in
+   * RunStatus.plugin_eval_files, so a grader can read a file the try did not
+   * change (one the scaffold wrote, for example).
+   * </pre>
+   *
+   * <code>repeated string read_files = 12 [json_name = "readFiles", (.buf.validate.field) = { ... }</code>
+   * @return A list containing the readFiles.
+   */
+  java.util.List<java.lang.String>
+      getReadFilesList();
+  /**
+   * <pre>
+   * The files the case's graders read, relative to the workspace. The
+   * runner returns their contents after the turn in
+   * RunStatus.plugin_eval_files, so a grader can read a file the try did not
+   * change (one the scaffold wrote, for example).
+   * </pre>
+   *
+   * <code>repeated string read_files = 12 [json_name = "readFiles", (.buf.validate.field) = { ... }</code>
+   * @return The count of readFiles.
+   */
+  int getReadFilesCount();
+  /**
+   * <pre>
+   * The files the case's graders read, relative to the workspace. The
+   * runner returns their contents after the turn in
+   * RunStatus.plugin_eval_files, so a grader can read a file the try did not
+   * change (one the scaffold wrote, for example).
+   * </pre>
+   *
+   * <code>repeated string read_files = 12 [json_name = "readFiles", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the element to return.
+   * @return The readFiles at the given index.
+   */
+  java.lang.String getReadFiles(int index);
+  /**
+   * <pre>
+   * The files the case's graders read, relative to the workspace. The
+   * runner returns their contents after the turn in
+   * RunStatus.plugin_eval_files, so a grader can read a file the try did not
+   * change (one the scaffold wrote, for example).
+   * </pre>
+   *
+   * <code>repeated string read_files = 12 [json_name = "readFiles", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the readFiles at the given index.
+   */
+  com.google.protobuf.ByteString
+      getReadFilesBytes(int index);
 }

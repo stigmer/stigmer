@@ -619,6 +619,13 @@ export function applyUpdateStatusMerge(
     status.structuredOutput = requestStatus.structuredOutput;
   }
 
+  // Merge plugin_eval_files: the files a plugin-eval try's graders read, as
+  // its turn left them. Runner-owned and written with each terminal write;
+  // kept only on a try's run, the one run the case workflow grades.
+  if (requestStatus.pluginEvalFiles !== undefined && execution.spec?.pluginEvalCase !== undefined) {
+    status.pluginEvalFiles = requestStatus.pluginEvalFiles;
+  }
+
   logger.debug("Merged status fields", {
     executionId: input.runId,
     phase: RunPhase[status.phase],

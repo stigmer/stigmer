@@ -9,6 +9,7 @@ import "ai/stigmer/agentic/run/v1/enum.proto";
 import "ai/stigmer/agentic/run/v1/filereview.proto";
 import "ai/stigmer/agentic/run/v1/invocation.proto";
 import "ai/stigmer/agentic/run/v1/message.proto";
+import "ai/stigmer/agentic/run/v1/plugin_eval_case.proto";
 import "ai/stigmer/agentic/run/v1/spec.proto";
 import "ai/stigmer/agentic/run/v1/subagent.proto";
 import "ai/stigmer/agentic/run/v1/todo.proto";
@@ -475,6 +476,13 @@ message RunStatus {
   // Whose logins and secrets this turn uses: decided once when the turn is
   // created, and kept when it is recovered.
   RunCredentials credentials = 33;
+
+  // The files a plugin eval's graders read, as the try's turn left them.
+  //
+  // @internal
+  // Set only on a run whose spec carries plugin_eval_case, by the runner,
+  // once, with the turn's terminal status.
+  PluginEvalFiles plugin_eval_files = 34;
 }
 
 // RunCredentials records whose logins and secrets a turn uses.

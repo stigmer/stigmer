@@ -293,6 +293,7 @@ export interface PluginEvalCaseContextInput {
   mocks?: PluginEvalMockServerInput[];
   agentMockModel?: string;
   agentMockCallBudget?: number;
+  readFiles?: string[];
 }
 
 /** SDK input type for PluginEvalMockServer. */
@@ -433,6 +434,7 @@ function buildPluginEvalCaseContextProto(input: PluginEvalCaseContextInput) {
   if (input.mocks) msg.mocks = input.mocks.map(buildPluginEvalMockServerProto);
   if (input.agentMockModel !== undefined) msg.agentMockModel = input.agentMockModel;
   if (input.agentMockCallBudget !== undefined) msg.agentMockCallBudget = input.agentMockCallBudget;
+  if (input.readFiles) msg.readFiles = input.readFiles;
   return msg;
 }
 
@@ -594,6 +596,7 @@ function toPluginEvalCaseContextInput(msg: PluginEvalCaseContext): PluginEvalCas
     mocks: msg.mocks?.length ? msg.mocks.map(toPluginEvalMockServerInput) : undefined,
     agentMockModel: msg.agentMockModel || undefined,
     agentMockCallBudget: msg.agentMockCallBudget || undefined,
+    readFiles: msg.readFiles?.length ? [...msg.readFiles] : undefined,
   };
 }
 

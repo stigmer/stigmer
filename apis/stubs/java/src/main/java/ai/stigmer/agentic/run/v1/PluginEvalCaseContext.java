@@ -44,6 +44,8 @@ private static final long serialVersionUID = 0L;
     historyFile_ = "";
     mocks_ = java.util.Collections.emptyList();
     agentMockModel_ = "";
+    readFiles_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -629,6 +631,71 @@ java.lang.String defaultValue) {
     return agentMockCallBudget_;
   }
 
+  public static final int READ_FILES_FIELD_NUMBER = 12;
+  @SuppressWarnings("serial")
+  private com.google.protobuf.LazyStringArrayList readFiles_ =
+      com.google.protobuf.LazyStringArrayList.emptyList();
+  /**
+   * <pre>
+   * The files the case's graders read, relative to the workspace. The
+   * runner returns their contents after the turn in
+   * RunStatus.plugin_eval_files, so a grader can read a file the try did not
+   * change (one the scaffold wrote, for example).
+   * </pre>
+   *
+   * <code>repeated string read_files = 12 [json_name = "readFiles", (.buf.validate.field) = { ... }</code>
+   * @return A list containing the readFiles.
+   */
+  public com.google.protobuf.ProtocolStringList
+      getReadFilesList() {
+    return readFiles_;
+  }
+  /**
+   * <pre>
+   * The files the case's graders read, relative to the workspace. The
+   * runner returns their contents after the turn in
+   * RunStatus.plugin_eval_files, so a grader can read a file the try did not
+   * change (one the scaffold wrote, for example).
+   * </pre>
+   *
+   * <code>repeated string read_files = 12 [json_name = "readFiles", (.buf.validate.field) = { ... }</code>
+   * @return The count of readFiles.
+   */
+  public int getReadFilesCount() {
+    return readFiles_.size();
+  }
+  /**
+   * <pre>
+   * The files the case's graders read, relative to the workspace. The
+   * runner returns their contents after the turn in
+   * RunStatus.plugin_eval_files, so a grader can read a file the try did not
+   * change (one the scaffold wrote, for example).
+   * </pre>
+   *
+   * <code>repeated string read_files = 12 [json_name = "readFiles", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the element to return.
+   * @return The readFiles at the given index.
+   */
+  public java.lang.String getReadFiles(int index) {
+    return readFiles_.get(index);
+  }
+  /**
+   * <pre>
+   * The files the case's graders read, relative to the workspace. The
+   * runner returns their contents after the turn in
+   * RunStatus.plugin_eval_files, so a grader can read a file the try did not
+   * change (one the scaffold wrote, for example).
+   * </pre>
+   *
+   * <code>repeated string read_files = 12 [json_name = "readFiles", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the readFiles at the given index.
+   */
+  public com.google.protobuf.ByteString
+      getReadFilesBytes(int index) {
+    return readFiles_.getByteString(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -678,6 +745,9 @@ java.lang.String defaultValue) {
     }
     if (agentMockCallBudget_ != 0) {
       output.writeInt32(11, agentMockCallBudget_);
+    }
+    for (int i = 0; i < readFiles_.size(); i++) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 12, readFiles_.getRaw(i));
     }
     getUnknownFields().writeTo(output);
   }
@@ -740,6 +810,14 @@ java.lang.String defaultValue) {
       size += com.google.protobuf.CodedOutputStream
         .computeInt32Size(11, agentMockCallBudget_);
     }
+    {
+      int dataSize = 0;
+      for (int i = 0; i < readFiles_.size(); i++) {
+        dataSize += computeStringSizeNoTag(readFiles_.getRaw(i));
+      }
+      size += dataSize;
+      size += 1 * getReadFilesList().size();
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -777,6 +855,8 @@ java.lang.String defaultValue) {
         .equals(other.getAgentMockModel())) return false;
     if (getAgentMockCallBudget()
         != other.getAgentMockCallBudget()) return false;
+    if (!getReadFilesList()
+        .equals(other.getReadFilesList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -816,6 +896,10 @@ java.lang.String defaultValue) {
     hash = (53 * hash) + getAgentMockModel().hashCode();
     hash = (37 * hash) + AGENT_MOCK_CALL_BUDGET_FIELD_NUMBER;
     hash = (53 * hash) + getAgentMockCallBudget();
+    if (getReadFilesCount() > 0) {
+      hash = (37 * hash) + READ_FILES_FIELD_NUMBER;
+      hash = (53 * hash) + getReadFilesList().hashCode();
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -993,6 +1077,8 @@ java.lang.String defaultValue) {
       bitField0_ = (bitField0_ & ~0x00000100);
       agentMockModel_ = "";
       agentMockCallBudget_ = 0;
+      readFiles_ =
+          com.google.protobuf.LazyStringArrayList.emptyList();
       return this;
     }
 
@@ -1070,6 +1156,10 @@ java.lang.String defaultValue) {
       }
       if (((from_bitField0_ & 0x00000400) != 0)) {
         result.agentMockCallBudget_ = agentMockCallBudget_;
+      }
+      if (((from_bitField0_ & 0x00000800) != 0)) {
+        readFiles_.makeImmutable();
+        result.readFiles_ = readFiles_;
       }
     }
 
@@ -1161,6 +1251,16 @@ java.lang.String defaultValue) {
       }
       if (other.getAgentMockCallBudget() != 0) {
         setAgentMockCallBudget(other.getAgentMockCallBudget());
+      }
+      if (!other.readFiles_.isEmpty()) {
+        if (readFiles_.isEmpty()) {
+          readFiles_ = other.readFiles_;
+          bitField0_ |= 0x00000800;
+        } else {
+          ensureReadFilesIsMutable();
+          readFiles_.addAll(other.readFiles_);
+        }
+        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1255,6 +1355,11 @@ java.lang.String defaultValue) {
               bitField0_ |= 0x00000400;
               break;
             } // case 88
+            case 98: {
+              ensureReadFilesIsMutable();
+              readFiles_.add(input.readStringRequireUtf8());
+              break;
+            } // case 98
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2570,6 +2675,180 @@ java.lang.String defaultValue) {
     public Builder clearAgentMockCallBudget() {
       bitField0_ = (bitField0_ & ~0x00000400);
       agentMockCallBudget_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private com.google.protobuf.LazyStringArrayList readFiles_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+    private void ensureReadFilesIsMutable() {
+      if (!readFiles_.isModifiable()) {
+        readFiles_ = new com.google.protobuf.LazyStringArrayList(readFiles_);
+      }
+      bitField0_ |= 0x00000800;
+    }
+    /**
+     * <pre>
+     * The files the case's graders read, relative to the workspace. The
+     * runner returns their contents after the turn in
+     * RunStatus.plugin_eval_files, so a grader can read a file the try did not
+     * change (one the scaffold wrote, for example).
+     * </pre>
+     *
+     * <code>repeated string read_files = 12 [json_name = "readFiles", (.buf.validate.field) = { ... }</code>
+     * @return A list containing the readFiles.
+     */
+    public com.google.protobuf.ProtocolStringList
+        getReadFilesList() {
+      readFiles_.makeImmutable();
+      return readFiles_;
+    }
+    /**
+     * <pre>
+     * The files the case's graders read, relative to the workspace. The
+     * runner returns their contents after the turn in
+     * RunStatus.plugin_eval_files, so a grader can read a file the try did not
+     * change (one the scaffold wrote, for example).
+     * </pre>
+     *
+     * <code>repeated string read_files = 12 [json_name = "readFiles", (.buf.validate.field) = { ... }</code>
+     * @return The count of readFiles.
+     */
+    public int getReadFilesCount() {
+      return readFiles_.size();
+    }
+    /**
+     * <pre>
+     * The files the case's graders read, relative to the workspace. The
+     * runner returns their contents after the turn in
+     * RunStatus.plugin_eval_files, so a grader can read a file the try did not
+     * change (one the scaffold wrote, for example).
+     * </pre>
+     *
+     * <code>repeated string read_files = 12 [json_name = "readFiles", (.buf.validate.field) = { ... }</code>
+     * @param index The index of the element to return.
+     * @return The readFiles at the given index.
+     */
+    public java.lang.String getReadFiles(int index) {
+      return readFiles_.get(index);
+    }
+    /**
+     * <pre>
+     * The files the case's graders read, relative to the workspace. The
+     * runner returns their contents after the turn in
+     * RunStatus.plugin_eval_files, so a grader can read a file the try did not
+     * change (one the scaffold wrote, for example).
+     * </pre>
+     *
+     * <code>repeated string read_files = 12 [json_name = "readFiles", (.buf.validate.field) = { ... }</code>
+     * @param index The index of the value to return.
+     * @return The bytes of the readFiles at the given index.
+     */
+    public com.google.protobuf.ByteString
+        getReadFilesBytes(int index) {
+      return readFiles_.getByteString(index);
+    }
+    /**
+     * <pre>
+     * The files the case's graders read, relative to the workspace. The
+     * runner returns their contents after the turn in
+     * RunStatus.plugin_eval_files, so a grader can read a file the try did not
+     * change (one the scaffold wrote, for example).
+     * </pre>
+     *
+     * <code>repeated string read_files = 12 [json_name = "readFiles", (.buf.validate.field) = { ... }</code>
+     * @param index The index to set the value at.
+     * @param value The readFiles to set.
+     * @return This builder for chaining.
+     */
+    public Builder setReadFiles(
+        int index, java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureReadFilesIsMutable();
+      readFiles_.set(index, value);
+      bitField0_ |= 0x00000800;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The files the case's graders read, relative to the workspace. The
+     * runner returns their contents after the turn in
+     * RunStatus.plugin_eval_files, so a grader can read a file the try did not
+     * change (one the scaffold wrote, for example).
+     * </pre>
+     *
+     * <code>repeated string read_files = 12 [json_name = "readFiles", (.buf.validate.field) = { ... }</code>
+     * @param value The readFiles to add.
+     * @return This builder for chaining.
+     */
+    public Builder addReadFiles(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureReadFilesIsMutable();
+      readFiles_.add(value);
+      bitField0_ |= 0x00000800;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The files the case's graders read, relative to the workspace. The
+     * runner returns their contents after the turn in
+     * RunStatus.plugin_eval_files, so a grader can read a file the try did not
+     * change (one the scaffold wrote, for example).
+     * </pre>
+     *
+     * <code>repeated string read_files = 12 [json_name = "readFiles", (.buf.validate.field) = { ... }</code>
+     * @param values The readFiles to add.
+     * @return This builder for chaining.
+     */
+    public Builder addAllReadFiles(
+        java.lang.Iterable<java.lang.String> values) {
+      ensureReadFilesIsMutable();
+      com.google.protobuf.AbstractMessageLite.Builder.addAll(
+          values, readFiles_);
+      bitField0_ |= 0x00000800;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The files the case's graders read, relative to the workspace. The
+     * runner returns their contents after the turn in
+     * RunStatus.plugin_eval_files, so a grader can read a file the try did not
+     * change (one the scaffold wrote, for example).
+     * </pre>
+     *
+     * <code>repeated string read_files = 12 [json_name = "readFiles", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearReadFiles() {
+      readFiles_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+      bitField0_ = (bitField0_ & ~0x00000800);;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The files the case's graders read, relative to the workspace. The
+     * runner returns their contents after the turn in
+     * RunStatus.plugin_eval_files, so a grader can read a file the try did not
+     * change (one the scaffold wrote, for example).
+     * </pre>
+     *
+     * <code>repeated string read_files = 12 [json_name = "readFiles", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes of the readFiles to add.
+     * @return This builder for chaining.
+     */
+    public Builder addReadFilesBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      ensureReadFilesIsMutable();
+      readFiles_.add(value);
+      bitField0_ |= 0x00000800;
       onChanged();
       return this;
     }
