@@ -46,8 +46,9 @@
  *     starts after the cancel, and the eval ends partial, "cancelled".
  *   - A child that fails outright is recorded as a try not graded, never
  *     the eval's failure, with what its run spent read by the spend
- *     activity (the try's run by the eval's label and its name), so the
- *     ceiling counts it. That read runs in a non-cancellable scope, so a
+ *     activity (the try's run by the eval's label and its name), plus what
+ *     the votes it had read spent, carried in its failure's details since
+ *     their runs are deleted, so the ceiling counts it. That read runs in a non-cancellable scope, so a
  *     cancel landing during it still records the try.
  *   - A load or a record that fails past its retries ends the eval failed
  *     with the reason, through the finish, once the tries in flight have
@@ -70,6 +71,7 @@
 import {
   ActivityFailure,
   ApplicationFailure,
+  ChildWorkflowFailure,
   CancellationScope,
   CancelledFailure,
   ParentClosePolicy,
@@ -83,6 +85,7 @@ import {
   EVAL_WORKFLOW_FAILED_ERROR,
   FINISH_EVAL_ACTIVITY_NAME,
   LOAD_SUITE_ACTIVITY_NAME,
+  PLUGIN_EVAL_CASE_FAILED_FAILURE_TYPE,
   PLUGIN_EVAL_SUITE_FAILED_FAILURE_TYPE,
   RECORD_TRY_ACTIVITY_NAME,
   RUN_CASE_WORKFLOW_TYPE,
@@ -349,7 +352,7 @@ async function runCell(
     } else {
       // A cancel landing during the spend read still lets the try be recorded.
       result = await CancellationScope.nonCancellable(() =>
-        failedTry(evalId, cell, TRY_FAILED_REASON),
+        failedTry(evalId, cell, TRY_FAILED_REASON, voteCostOf(error)),
       );
     }
   }
@@ -371,11 +374,36 @@ async function runCell(
   return result;
 }
 
-/** A try whose child ended without its answer: not graded for `reason`, with what its run spent, if one is found. */
+/**
+ * What the votes a failed child had read spent, from its failure's details
+ * (CaseFailureDetails); 0 when the failure carries none.
+ */
+function voteCostOf(error: unknown): number {
+  const cause = error instanceof ChildWorkflowFailure ? error.cause : undefined;
+  if (
+    !(cause instanceof ApplicationFailure) ||
+    cause.type !== PLUGIN_EVAL_CASE_FAILED_FAILURE_TYPE
+  ) {
+    return 0;
+  }
+  const details: unknown = cause.details?.[0];
+  const cost =
+    typeof details === "object" && details !== null && "voteCostUsd" in details
+      ? details.voteCostUsd
+      : undefined;
+  return typeof cost === "number" && Number.isFinite(cost) && cost > 0 ? cost : 0;
+}
+
+/**
+ * A try whose child ended without its answer: not graded for `reason`,
+ * with what its run spent, if one is found, and what its read votes spent
+ * (`voteCostUsd`), which no spend read can find.
+ */
 async function failedTry(
   evalId: string,
   cell: SuiteCell,
   reason: string,
+  voteCostUsd = 0,
 ): Promise<TryResult> {
   let spend = { sessionId: "", runId: "", costUsd: 0 };
   try {
@@ -397,7 +425,7 @@ async function failedTry(
     score: 0,
     notGradedReason: reason,
     error: "",
-    costUsd: spend.costUsd,
+    costUsd: spend.costUsd + voteCostUsd,
     durationSeconds: 0,
     outOfCredit: false,
   };

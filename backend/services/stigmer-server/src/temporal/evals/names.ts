@@ -104,6 +104,15 @@ export const PLUGIN_EVAL_BUSY_FAILURE_TYPE = "PluginEvalBusy";
 export const PLUGIN_EVAL_CASE_FAILED_FAILURE_TYPE = "PluginEvalCaseFailed";
 
 /**
+ * The details a PLUGIN_EVAL_CASE_FAILED_FAILURE_TYPE failure carries: what
+ * the votes the try read spent. Their sessions, and so their runs, are
+ * deleted, so the suite's spend read cannot find that cost; it adds it.
+ */
+export interface CaseFailureDetails {
+  readonly voteCostUsd: number;
+}
+
+/**
  * The failure type the suite workflow fails with on an error that is
  * neither a cancellation nor one of its steps failing past its retries,
  * once it has tried to end the eval failed: a plain error would fail only

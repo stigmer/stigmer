@@ -51,6 +51,8 @@ import {
   ActivityFailure,
   ApplicationFailure,
   CancelledFailure,
+  ChildWorkflowFailure,
+  RetryState,
 } from "@temporalio/common";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -627,6 +629,49 @@ describe("the suite workflow", () => {
       expect.objectContaining({ costUsd: 0.2 }),
     ]);
     expect(finished).toEqual([{ phase: "partial", reason: "cost_ceiling" }]);
+  });
+
+  it("adds what a failed child's read votes spent, from its failure's details, to its run's spend", async () => {
+    const { recorded } = suite(
+      { kind: "run", org: "acme", cells: cells(4), maxCostUsd: 10, concurrency: 1 },
+      { sessionId: "ses_9", runId: "run_9", costUsd: 0.2 },
+    );
+    const failures: Error[] = [
+      ApplicationFailure.create({
+        message: "an unreadable poll",
+        type: PLUGIN_EVAL_CASE_FAILED_FAILURE_TYPE,
+        nonRetryable: true,
+        details: [{ voteCostUsd: 0.03 }],
+      }),
+      // Details of another shape, or a failure of another type, add nothing.
+      ApplicationFailure.create({
+        type: PLUGIN_EVAL_CASE_FAILED_FAILURE_TYPE,
+        details: [{ voteCostUsd: "0.03" }],
+      }),
+      ApplicationFailure.create({ type: "Other", details: [{ voteCostUsd: 0.03 }] }),
+    ];
+    let child = 0;
+    seam.child = () => {
+      const cause = failures[child++];
+      return Promise.reject(
+        cause === undefined
+          ? new Error("the child failed")
+          : new ChildWorkflowFailure(
+              "default",
+              { workflowId: "child", runId: "run" },
+              RUN_CASE_WORKFLOW_TYPE,
+              RetryState.NON_RETRYABLE_FAILURE,
+              cause,
+            ),
+      );
+    };
+    await runPluginEval({ evalId: "pev_1" });
+    expect(recorded.map((entry) => entry.result.costUsd)).toEqual([
+      expect.closeTo(0.23, 9),
+      0.2,
+      0.2,
+      0.2,
+    ]);
   });
 
   it("records a failed child with its spend when the eval's cancel lands during the spend read", async () => {
@@ -1350,6 +1395,35 @@ describe("the case workflow", () => {
       ["vote_0_0", "the try's workflow failed"],
       ["run_1", "the try's workflow failed"],
     ]);
+  });
+
+  it("carries what the votes already read spent in its failure's details", async () => {
+    let polls = 0;
+    caseScript({
+      [POLL_RUN_ACTIVITY_NAME]: vi.fn(() => {
+        polls++;
+        // The try's run and the first vote end; the second vote's poll
+        // answers a shape the workflow cannot read.
+        return Promise.resolve(
+          polls <= 2
+            ? ENDED
+            : {
+                get phase(): never {
+                  throw new Error("an unreadable poll");
+                },
+              },
+        );
+      }),
+    });
+    const failure = await runCase(INPUT).then(
+      () => undefined,
+      (error: unknown) => error,
+    );
+    expect(failure).toMatchObject({
+      type: PLUGIN_EVAL_CASE_FAILED_FAILURE_TYPE,
+      nonRetryable: true,
+      details: [{ voteCostUsd: 0.01 }],
+    });
   });
 
   it("fails with a Temporal failure of its own as it is", async () => {

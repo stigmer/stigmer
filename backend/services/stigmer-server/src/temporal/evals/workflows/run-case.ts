@@ -42,7 +42,10 @@
  * fails it outright, as a non-retryable ApplicationFailure of type
  * PLUGIN_EVAL_CASE_FAILED_FAILURE_TYPE: Temporal fails only the workflow
  * task on a plain error, and would retry that task until the execution
- * timeout, so the suite records such a try as a failed child instead.
+ * timeout, so the suite records such a try as a failed child instead. The
+ * failure's details carry what the votes already read spent
+ * (CaseFailureDetails), since their runs are deleted and the suite's
+ * spend read cannot find them.
  * Before it fails, the try's run and any vote's run it knows are stopped,
  * in a non-cancellable scope, so nothing it started keeps spending.
  *
@@ -104,6 +107,7 @@ import {
 } from "../names.js";
 import type {
   CaseActivities,
+  CaseFailureDetails,
   CaseInput,
   RunPoll,
   SpendActivities,
@@ -228,10 +232,13 @@ export async function runCase(input: CaseInput): Promise<TryResult> {
     if (error instanceof TemporalFailure) {
       throw error;
     }
-    throw ApplicationFailure.nonRetryable(
-      error instanceof Error ? error.message : String(error),
-      PLUGIN_EVAL_CASE_FAILED_FAILURE_TYPE,
-    );
+    const details: CaseFailureDetails = { voteCostUsd: known.voteCostUsd };
+    throw ApplicationFailure.create({
+      message: error instanceof Error ? error.message : String(error),
+      type: PLUGIN_EVAL_CASE_FAILED_FAILURE_TYPE,
+      nonRetryable: true,
+      details: [details],
+    });
   }
 }
 
