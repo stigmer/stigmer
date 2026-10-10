@@ -113,9 +113,9 @@ test("the checked-in server's links close over exactly the libs it links, so the
     "apis/stubs/ts",
     "backend/libs/ts/temporal-codecs",
     "backend/libs/ts/zip-structure",
+    "backend/libs/ts/eval-runtime",
     "backend/libs/ts/plugin-package",
     "backend/libs/ts/outbound",
     "backend/libs/ts/tool-vocabulary",
-    "backend/libs/ts/eval-runtime",
   ]);
 });

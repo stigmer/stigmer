@@ -341,6 +341,7 @@ export const LANES = {
       "sdk/typescript/**",
       "sdk/theme/**",
       "backend/libs/ts/plugin-package/**",
+      "backend/libs/ts/eval-runtime/**",
       ".vale.ini",
       ".prettierrc",
       ".lychee.toml",
@@ -470,6 +471,7 @@ export const LANES = {
     paths: [
       "plugins/**",
       "backend/libs/ts/plugin-package/**",
+      "backend/libs/ts/eval-runtime/**",
       // The Makefile its steps' targets come from (ci.all-in-one says why).
       "Makefile",
       // What the lane sets up and installs from (ci.all-in-one says why).

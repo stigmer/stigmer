@@ -62,12 +62,16 @@ export { hasMarketplaceFile, readMarketplace, readMarketplaceFile } from "./mark
 export { readPluginPackage } from "./read-plugin-package.js";
 export {
   DEFAULT_EVAL_DIR,
+  EVAL_CURSOR_UNSUPPORTED_FEATURES,
   EVAL_MAX_APPEND_SYSTEM_PROMPT,
   EVAL_MAX_GRADERS,
   EVAL_UNSUPPORTED_FEATURES,
+  type EvalCursorUnsupportedFeature,
   type EvalUnsupportedFeature,
+  evalCaseUnsupportedOnCursor,
   readEvalSuite,
 } from "./evals/read-eval-suite.js";
+export { MOCKS_DIR } from "./evals/mocks.js";
 export { EVAL_ENV_KEY_PATTERN, EVAL_SCHEMA_VERSION } from "./evals/fields.js";
 export {
   EVAL_SUMMARY_MAX_CASE_TAGS,
@@ -90,6 +94,8 @@ export type {
   EvalGraderArm,
   EvalGraderCheck,
   EvalGraderType,
+  EvalMockServer,
+  EvalMockTool,
   EvalSuite,
   EvalSuiteFinding,
   EvalToolRef,

@@ -2684,10 +2684,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@stigmer/eval-runtime@file:../backend/libs/ts/eval-runtime::locator=stigmer-site%40workspace%3A.":
+  version: 0.0.0-dev
+  resolution: "@stigmer/eval-runtime@file:../backend/libs/ts/eval-runtime#../backend/libs/ts/eval-runtime::hash=e3b303&locator=stigmer-site%40workspace%3A."
+  checksum: 10c0/ea69ea1781911813721d2d8a43afb902c517e920ede6d1a01913ad37dce5e6a8e09b778350677569083a7114bbf971eeb39c959b7cc03c0cf463c49c9ec22a7e
+  languageName: node
+  linkType: hard
+
 "@stigmer/plugin-package@file:../backend/libs/ts/plugin-package::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
   resolution: "@stigmer/plugin-package@file:../backend/libs/ts/plugin-package#../backend/libs/ts/plugin-package::hash=56ccec&locator=stigmer-site%40workspace%3A."
   dependencies:
+    "@stigmer/eval-runtime": "npm:*"
     fflate: "npm:^0.8.3"
     yaml: "npm:^2.8.2"
   checksum: 10c0/3c2ab20c495da0976d4d8de9885f5ac79b150002f19bd5c9cb1b71cd78f2a9455e5ef0a60e79bd8544485c87441c794321072ac8b92eabba10060e99e098f76d

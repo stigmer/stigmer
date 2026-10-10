@@ -18,6 +18,8 @@
  * without it: a degraded run is a wrong score.
  */
 
+import type { JsonObject } from "../documents.js";
+
 /** What a `regex` grader's `target` or an `llm` grader's `focus` names. */
 export type EvalFocus =
   | { readonly kind: "last_message" }
@@ -97,11 +99,41 @@ export interface EvalGrader {
   readonly check: EvalGraderCheck;
 }
 
-/** The `context` block of a `case.yaml`. */
+/**
+ * The `context` block of a `case.yaml`. Each path is relative to the case
+ * directory, normalised (no `./`, no `..`), and checked against the case's
+ * files: the script a file, each directory a directory, the history a
+ * `.jsonl` file whose conversation can be resumed.
+ */
 export interface EvalCaseContext {
   readonly scaffoldScript?: string;
   readonly historyFile?: string;
   readonly addDirs: readonly string[];
+}
+
+/** One mocked tool of a server, as the case's tries answer it. */
+export interface EvalMockTool {
+  readonly tool: string;
+  /** Plugin-relative path of the file whose body answers: the tool's own `<tool>.md`, or the server's `_server.md`. */
+  readonly file: string;
+  /** `fixed` returns the body; `agent` has the judge model answer from it. */
+  readonly kind: "fixed" | "agent";
+  /** `fixed` only: the body is returned as a tool error. */
+  readonly error: boolean;
+  /** The `expect:` block as written, already compiled once by the reader. */
+  readonly expect?: JsonObject;
+  /** `agent` only: the only conditions under which the agent may end the run. */
+  readonly abortWhen?: string;
+}
+
+/** One plugin MCP server a case mocks: its tool mocks, suite and case merged file by file. */
+export interface EvalMockServer {
+  /** The server's key in the plugin's MCP configuration. */
+  readonly server: string;
+  /** The mocked tools, sorted by name; empty when the server's directory holds no tool mock. */
+  readonly tools: readonly EvalMockTool[];
+  /** Plugin-relative path of the server's `_tools.json`, when there is one. */
+  readonly toolsFile?: string;
 }
 
 /** One case of the suite, normalised. */
@@ -139,6 +171,10 @@ export interface EvalCase {
   /** The plugin-relative paths of every file under the case directory. */
   readonly files: readonly string[];
   readonly graders: readonly EvalGrader[];
+  /** The plugin's MCP servers this case has mock directories for, sorted by key. */
+  readonly mocks: readonly EvalMockServer[];
+  /** Whether the case's or the suite's mocks hold adopted replays (`mocks/.replay/`), which Stigmer does not read. */
+  readonly replays: boolean;
   /**
    * The first feature this case uses that Stigmer does not run yet, as a
    * stable phrase the report prints after "not run: ", e.g.
@@ -154,6 +190,7 @@ export interface EvalSuiteFinding {
     | "eval-case-invalid"
     | "eval-grader-invalid"
     | "eval-field-unknown"
+    | "eval-mock-invalid"
     | "eval-schema-version-unsupported";
   /** One user-facing sentence naming the file and field, as the format reports it. */
   readonly message: string;
@@ -168,4 +205,6 @@ export interface EvalSuite {
   /** Cases in directory order (sorted by path). */
   readonly cases: readonly EvalCase[];
   readonly findings: readonly EvalSuiteFinding[];
+  /** The MCP server keys the plugin declares, sorted: the servers a mock may stand in for. */
+  readonly servers: readonly string[];
 }

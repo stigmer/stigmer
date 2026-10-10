@@ -10,7 +10,10 @@
  * (grouping, `results/` and `mocks/` skipped, everything under a case
  * belonging to it); every default the format documents; the precedence of
  * `prompt.md` over `case.yaml`; grader order; one refusal per rule with its
- * sentence; the `unsupported` order; and that the plugin read no longer
+ * sentence; the `context` checks (paths, the resumable history); mocks
+ * (suite and case merged file by file, `_server.md`, `_tools.json`, the
+ * refusals, a server the plugin does not declare); the `unsupported` order
+ * and the Cursor engine's own verdict; and that the plugin read no longer
  * reports `evals/` as an ignored component.
  */
 
@@ -19,7 +22,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { readEvalSuite } from "../evals/read-eval-suite.js";
+import { evalCaseUnsupportedOnCursor, readEvalSuite } from "../evals/read-eval-suite.js";
 import type { EvalSuite, EvalSuiteFinding } from "../evals/types.js";
 import { inMemoryPluginFiles } from "../files.js";
 import { readPluginPackage } from "../read-plugin-package.js";
@@ -46,6 +49,12 @@ function suiteOf(files: Readonly<Record<string, string>>, manifest?: Readonly<Re
 }
 
 const LLM_GRADER = "---\ntype: llm\n---\n\nPASS if the reply answers.\n";
+
+/** A resumable one-exchange transcript. */
+const HISTORY = [
+  JSON.stringify({ type: "user", message: { role: "user", content: "Draft a release note." } }),
+  JSON.stringify({ type: "assistant", message: { role: "assistant", content: [{ type: "text", text: "Here is a draft." }] } }),
+].join("\n");
 
 /** One case `evals/c` with a working grader, plus `files`. */
 function oneCase(files: Readonly<Record<string, string>>): EvalSuite {
@@ -85,6 +94,8 @@ describe("the documentation's examples", () => {
       plugins: [],
       context: { addDirs: [] },
       files: ["evals/first-case/graders/criteria.md", "evals/first-case/graders/skill-fired.md", "evals/first-case/prompt.md"],
+      mocks: [],
+      replays: false,
       graders: [
         {
           name: "criteria",
@@ -117,15 +128,15 @@ describe("the documentation's examples", () => {
     expect(pattern.test(JSON.stringify({ skill: "other" }))).toBe(false);
   });
 
-  it("reads the changelog-from-diff case.yaml beside its prompt.md and names what Stigmer does not run", () => {
+  it("reads the changelog-from-diff case.yaml beside its prompt.md, its scaffold and reference folder included", () => {
     const changelog = suite.cases[0];
     expect(changelog).toMatchObject({
       name: "changelog-from-diff",
       tags: ["smoke"],
       prompt: "Write a changelog entry for the change in this repository's last commit.\n",
       context: { scaffoldScript: "fixture.sh", addDirs: ["resources"] },
-      unsupported: "context.scaffold_script",
     });
+    expect(changelog?.unsupported).toBeUndefined();
     expect(changelog?.files).toContain("evals/changelog-from-diff/resources/style.md");
     expect(changelog?.graders[0]?.check).toEqual({
       type: "regex",
@@ -262,7 +273,7 @@ describe("the eval directory", () => {
   });
 
   it("is an empty suite when the plugin has no eval directory", () => {
-    expect(suiteOf({})).toEqual({ dir: "evals", cases: [], findings: [] });
+    expect(suiteOf({})).toEqual({ dir: "evals", cases: [], findings: [], servers: [] });
   });
 
   it("is read without a manifest, at evals/", () => {
@@ -343,7 +354,7 @@ describe("case discovery", () => {
   it("does not search below the deepest level, whose directories holding only files are no finding", () => {
     const nested = Array.from({ length: 32 }, (_, i) => `d${i}`).join("/");
     const suite = suiteOf({ [`evals/${nested}/notes.txt`]: "Not a case." });
-    expect(suite).toEqual({ dir: "evals", cases: [], findings: [] });
+    expect(suite).toEqual({ dir: "evals", cases: [], findings: [], servers: [] });
   });
 
   it("refuses a second case of the same name", () => {
@@ -888,21 +899,23 @@ describe("unsupported", () => {
   });
 
   it.each([
-    ["plugins", yamlCase(`plugins: ["${TWO_UP}", ${PARENT}/other]\ncontext:\n  scaffold_script: s.sh\n`)],
-    ["context.scaffold_script", yamlCase(`plugins: ["${TWO_UP}"]\ncontext:\n  scaffold_script: s.sh\n  add_dirs: [r]\n  history_file: h.jsonl\n`)],
-    ["context.add_dirs", yamlCase("context:\n  add_dirs: [r]\n  history_file: h.jsonl\n")],
-    ["context.history_file", yamlCase("context:\n  history_file: h.jsonl\n")],
-    ["env", { "evals/c/prompt.md": "---\nenv:\n  EVAL_LEVEL: 2\n---\nHi.", "evals/c/mocks/s/t.md": "x" }],
-    [
-      "mock_calls",
-      { "evals/c/prompt.md": "Hi.", "evals/c/graders/m.md": "---\ntype: regex\npattern: x\ntarget: mock_calls\n---\n", "evals/c/mocks/s/t.md": "x" },
-    ],
-    ["mocks", { "evals/c/prompt.md": "Hi.", "evals/c/mocks/tracker/create_issue.md": "Created." }],
-    ["mocks", { "evals/c/prompt.md": "Hi.", "evals/mocks/tracker/create_issue.md": "Created." }],
+    ["plugins", yamlCase(`plugins: ["${TWO_UP}", ${PARENT}/other]\n`)],
+    ["plugins", { "evals/c/prompt.md": `---\nplugins: ["${PARENT}/x"]\nenv:\n  EVAL_LEVEL: 2\n---\nHi.` }],
   ])("%s, the first feature in order", (feature, files) => {
     const suite = oneCase(files);
     expect(suite.findings).toEqual([]);
     expect(suite.cases[0]?.unsupported).toBe(feature);
+  });
+
+  it.each([
+    ["resumed conversations", { ...yamlCase("context:\n  history_file: h.jsonl\n"), "evals/c/h.jsonl": HISTORY, "evals/c/prompt.md": "---\nenv:\n  EVAL_X: 1\n---\nHi." }],
+    ["env", { "evals/c/prompt.md": "---\nenv:\n  EVAL_X: 1\n---\nHi." }],
+    [undefined, { "evals/c/prompt.md": "Hi." }],
+  ])("is not run on Cursor for %s, and runs on native", (feature, files) => {
+    const evalCase = oneCase(files).cases[0];
+    if (evalCase === undefined) throw new Error("expected the case to load");
+    expect(evalCase.unsupported).toBeUndefined();
+    expect(evalCaseUnsupportedOnCursor(evalCase)).toBe(feature);
   });
 
   it("runs a case whose plugins names only the plugin under test, and keeps the list as written", () => {
@@ -956,5 +969,129 @@ describe("unsupported", () => {
       Object.fromEntries(Array.from({ length: n }, (_, i) => [`evals/c/graders/g${String(i).padStart(2, "0")}.md`, LLM_GRADER]));
     expect(suiteOf({ "evals/c/prompt.md": "Hi.", ...graders(32) }).cases[0]?.unsupported).toBeUndefined();
     expect(suiteOf({ "evals/c/prompt.md": "Hi.", ...graders(33) }).cases[0]?.unsupported).toBe("more than 32 graders");
+  });
+});
+
+describe("context", () => {
+  const withContext = (context: string, files: Readonly<Record<string, string>>): EvalSuite =>
+    oneCase({ "evals/c/case.yaml": `schema_version: "1.1"\nname: c\nexecution:\n  prompt: Hi.\ncontext:\n${context}`, ...files });
+
+  it("normalises each path against the case's files", () => {
+    const suite = withContext("  scaffold_script: ./setup/make.sh\n  add_dirs: [./ref, docs/api]\n  history_file: h.jsonl\n", {
+      "evals/c/setup/make.sh": "git init",
+      "evals/c/ref/a.md": "A",
+      "evals/c/docs/api/b.md": "B",
+      "evals/c/h.jsonl": HISTORY,
+    });
+    expect(suite.findings).toEqual([]);
+    expect(suite.cases[0]?.context).toEqual({ scaffoldScript: "setup/make.sh", historyFile: "h.jsonl", addDirs: ["ref", "docs/api"] });
+  });
+
+  it.each([
+    ["  scaffold_script: missing.sh\n", {}, "evals/c/case.yaml: context.scaffold_script must be a file in the case directory ('missing.sh' is not)"],
+    ["  scaffold_script: ../other/s.sh\n", { "evals/other/s.sh": "x" }, "evals/c/case.yaml: context.scaffold_script must be a file in the case directory ('../other/s.sh' is not)"],
+    ["  add_dirs: [ref]\n", {}, "evals/c/case.yaml: context.add_dirs must be directories inside the case directory ('ref' is not)"],
+    ["  add_dirs: [/etc]\n", {}, "evals/c/case.yaml: context.add_dirs must be directories inside the case directory ('/etc' is not)"],
+    ["  history_file: h.txt\n", { "evals/c/h.txt": HISTORY }, "evals/c/case.yaml: context.history_file must be a .jsonl transcript ('h.txt' is not)"],
+    [
+      "  history_file: h.jsonl\n",
+      { "evals/c/h.jsonl": `${JSON.stringify({ type: "assistant", message: { role: "assistant", content: [{ type: "tool_use", id: "t", name: "Bash", input: {} }] } })}\n` },
+      "evals/c/h.jsonl: the conversation cannot be resumed: the call Bash (t) has no tool_result in the next user message",
+    ],
+  ])("refuses %j", (context, files, message) => {
+    const suite = withContext(context, files);
+    expect(suite.cases).toEqual([]);
+    expect(onlyFinding(suite).message).toBe(message);
+  });
+});
+
+describe("mocks", () => {
+  /** A plugin declaring the MCP servers `tracker` and `orders`, with these extra files. */
+  const withServers = (files: Readonly<Record<string, string>>): EvalSuite => {
+    const plugin = claudePlugin({
+      mcpServers: { tracker: { type: "http", url: "https://tracker.example/mcp" }, orders: { type: "http", url: "https://orders.example/mcp" } },
+    });
+    plugin.set("evals/c/prompt.md", "Hi.");
+    plugin.set("evals/c/graders/judge.md", LLM_GRADER);
+    for (const [path, content] of Object.entries(files)) plugin.set(path, content);
+    return readEvalSuite(inMemoryPluginFiles(plugin));
+  };
+
+  it("merges the suite's and the case's mocks file by file, the case's winning", () => {
+    const suite = withServers({
+      "evals/mocks/tracker/create_issue.md": "---\nexpect:\n  title: string\n  priority: [low, high]\n---\nCreated #1: {{input.title}}",
+      "evals/mocks/tracker/close_issue.md": "Closed.",
+      "evals/mocks/tracker/_tools.json": "{\"tools\": []}",
+      "evals/c/mocks/tracker/close_issue.md": "---\nerror: true\n---\nNo such issue.",
+      "evals/c/mocks/orders/_server.md": "---\ntype: agent\ntools: [lookup_order, cancel_order]\nabort_when: the order id is not numeric\n---\nYou are an orders API.",
+      "evals/c/mocks/orders/cancel_order.md": "Cancelled.",
+    });
+    expect(suite.findings).toEqual([]);
+    expect(suite.servers).toEqual(["orders", "tracker"]);
+    expect(suite.cases[0]?.mocks).toEqual([
+      {
+        server: "orders",
+        tools: [
+          { tool: "cancel_order", file: "evals/c/mocks/orders/cancel_order.md", kind: "fixed", error: false },
+          { tool: "lookup_order", file: "evals/c/mocks/orders/_server.md", kind: "agent", error: false, abortWhen: "the order id is not numeric" },
+        ],
+      },
+      {
+        server: "tracker",
+        tools: [
+          { tool: "close_issue", file: "evals/c/mocks/tracker/close_issue.md", kind: "fixed", error: true },
+          {
+            tool: "create_issue",
+            file: "evals/mocks/tracker/create_issue.md",
+            kind: "fixed",
+            error: false,
+            expect: { title: "string", priority: ["low", "high"] },
+          },
+        ],
+        toolsFile: "evals/mocks/tracker/_tools.json",
+      },
+    ]);
+    expect(suite.cases[0]?.replays).toBe(false);
+  });
+
+  it("lists a server whose directory holds no tool mock with no tools, and notes replays", () => {
+    const suite = withServers({ "evals/mocks/tracker/_tools.json": "[]", "evals/mocks/.replay/tracker/x.json": "{}" });
+    expect(suite.findings).toEqual([]);
+    expect(suite.cases[0]?.mocks).toEqual([{ server: "tracker", tools: [], toolsFile: "evals/mocks/tracker/_tools.json" }]);
+    expect(suite.cases[0]?.replays).toBe(true);
+  });
+
+  it("ignores a server the plugin does not declare, naming each directory once", () => {
+    const suite = withServers({
+      "evals/mocks/billing/charge.md": "Charged.",
+      "evals/d/prompt.md": "Hi.",
+      "evals/d/graders/judge.md": LLM_GRADER,
+    });
+    expect(suite.cases.map((c) => c.mocks)).toEqual([[], []]);
+    expect(onlyFinding(suite)).toEqual({
+      kind: "eval-mock-invalid",
+      path: "evals/mocks/billing",
+      message: "evals/mocks/billing: the plugin declares no MCP server 'billing', so these mocks are ignored",
+    });
+  });
+
+  it.each([
+    ["evals/c/mocks/tracker/t.md", "---\ntype: robot\n---\nx", "evals/c/mocks/tracker/t.md: type must be fixed or agent"],
+    ["evals/c/mocks/tracker/t.md", "---\nfoo: 1\n---\nx", "evals/c/mocks/tracker/t.md: unknown frontmatter key 'foo'"],
+    ["evals/c/mocks/tracker/t.md", "---\ntype: agent\nerror: true\n---\nx", "evals/c/mocks/tracker/t.md: error must be unset on an agent mock (it applies to fixed mocks)"],
+    ["evals/c/mocks/tracker/t.md", "---\nabort_when: never\n---\nx", "evals/c/mocks/tracker/t.md: abort_when must be unset on a fixed mock (it applies to agent mocks)"],
+    ["evals/c/mocks/tracker/t.md", "---\nexpect:\n  id: /(a|b)/\n---\nx", "evals/c/mocks/tracker/t.md: expect.id: the pattern /(a|b)/ uses a group"],
+    ["evals/c/mocks/tracker/t.md", "---\nexpect: [a]\n---\nx", "evals/c/mocks/tracker/t.md: expect must be a map from input paths to rules"],
+    ["evals/c/mocks/tracker/_server.md", "---\ntype: agent\n---\nx", "evals/c/mocks/tracker/_server.md: tools must be a list of the tools it answers"],
+    ["evals/c/mocks/tracker/_server.md", "---\ntype: fixed\ntools: [a]\n---\nx", "evals/c/mocks/tracker/_server.md: type must be agent (a _server.md answers as an agent)"],
+    [
+      "evals/c/mocks/tracker/_server.md",
+      "---\ntools: [a, b]\nexpect:\n  x: string\n---\nx",
+      "evals/c/mocks/tracker/_server.md: expect must be on a tool's own <tool>.md when tools lists more than one tool",
+    ],
+  ])("refuses %s %j", (path, content, message) => {
+    const suite = withServers({ [path]: content });
+    expect(suite.cases).toEqual([]);
+    expect(onlyFinding(suite)).toMatchObject({ kind: "eval-mock-invalid", message });
   });
 });

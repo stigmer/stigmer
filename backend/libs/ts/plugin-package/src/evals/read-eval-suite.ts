@@ -25,7 +25,8 @@
  * inside a case belongs to it (its `graders/`, fixtures, its own `mocks/`).
  * `results/` and `mocks/` at the suite root are the runner's output and the
  * suite's MCP mocks, never cases. Every file is read through the
- * `evalDocument` cap.
+ * `evalDocument` cap. A case's mocks are its own `mocks/` over the suite's,
+ * file by file (`mocks.ts`).
  *
  * The search goes at most {@link EVAL_MAX_CASE_DEPTH} directories below the
  * suite, and a deeper directory is a finding rather than a recursion that
@@ -42,15 +43,24 @@
  * then `graders/*.md` in path order. An unknown key in either file is an
  * error for that case, as Claude Code treats it.
  *
+ * A case's `context` paths are checked against its files, as a baseline
+ * grader's file is: the scaffold script a file, each of `add_dirs` a
+ * directory, the history a `.jsonl` file whose conversation can be resumed
+ * (`@stigmer/eval-runtime`'s transcript reader, tool calls and results
+ * paired). A path that climbs out of the case or names nothing there stops
+ * the case.
+ *
  * A case that uses a feature Stigmer does not run yet still loads, with
  * `unsupported` naming the first such feature in `EVAL_UNSUPPORTED_FEATURES`
- * order: running it without the feature would produce a wrong score.
+ * order: running it without the feature would produce a wrong score. A
+ * feature one engine cannot run is that engine's alone
+ * ({@link evalCaseUnsupportedOnCursor}): the server lists the case as not
+ * run on that engine's targets and runs it on the others.
  */
 
-import { isJsonObject, type JsonObject, readCapped } from "../documents.js";
+import { isJsonObject, type JsonObject } from "../documents.js";
 import { detectManifests } from "../detect.js";
 import { basename, comparePaths, decodeUtf8, joinPath, PluginFileIndex, type PluginFiles } from "../files.js";
-import { extractFrontmatter, parseFrontmatter } from "../frontmatter.js";
 import { Findings } from "../messages.js";
 import {
   CaseFindings,
@@ -69,6 +79,10 @@ import {
 } from "./fields.js";
 import { DEFAULT_EVAL_DIR, type EvalDirResolution, resolveEvalDir } from "./eval-dir.js";
 import { readGrader } from "./graders.js";
+import { readCaseMocks } from "./mocks.js";
+import { normaliseMcpServers } from "../normalise/mcp-servers.js";
+import { parseTranscript } from "@stigmer/eval-runtime";
+import { parseMapping, readDocument, readMarkdown } from "./markdown.js";
 import type { EvalCase, EvalCaseContext, EvalGrader, EvalSuite, EvalSuiteFinding } from "./types.js";
 
 export { DEFAULT_EVAL_DIR } from "./eval-dir.js";
@@ -92,18 +106,27 @@ export const EVAL_MAX_APPEND_SYSTEM_PROMPT = 32_768;
  * The features Stigmer reads but does not run yet, in the order a case is
  * checked for them; `EvalCase.unsupported` is one of these phrases.
  */
-export const EVAL_UNSUPPORTED_FEATURES = [
-  "plugins",
-  "context.scaffold_script",
-  "context.add_dirs",
-  "context.history_file",
-  "env",
-  "mock_calls",
-  "mocks",
-  "more than 32 graders",
-] as const;
+export const EVAL_UNSUPPORTED_FEATURES = ["plugins", "more than 32 graders"] as const;
 
 export type EvalUnsupportedFeature = (typeof EVAL_UNSUPPORTED_FEATURES)[number];
+
+/**
+ * The features the Cursor engine cannot run, in the order a case is
+ * checked for them. Its SDK keeps a conversation's history in a store it
+ * owns, so a recorded conversation cannot be resumed there, and its shell
+ * runs in the runner's process with no per-run environment, so `env` cannot
+ * reach it.
+ */
+export const EVAL_CURSOR_UNSUPPORTED_FEATURES = ["resumed conversations", "env"] as const;
+
+export type EvalCursorUnsupportedFeature = (typeof EVAL_CURSOR_UNSUPPORTED_FEATURES)[number];
+
+/** The first feature of `evalCase` the Cursor engine cannot run, or `undefined`. */
+export function evalCaseUnsupportedOnCursor(evalCase: EvalCase): EvalCursorUnsupportedFeature | undefined {
+  if (evalCase.context.historyFile !== undefined) return "resumed conversations";
+  if (Object.keys(evalCase.env).length > 0) return "env";
+  return undefined;
+}
 
 const PROMPT_FILE = "prompt.md";
 const CASE_FILE = "case.yaml";
@@ -173,15 +196,19 @@ const CONTEXT_KEYS: ReadonlySet<string> = new Set(["scaffold_script", "add_dirs"
 export function readEvalSuite(files: PluginFiles): EvalSuite {
   const index = new PluginFileIndex(files);
   const findings: EvalSuiteFinding[] = [];
-  const { dir, held } = suiteDir(index, findings);
-  if (held) return { dir, cases: [], findings };
-  const suiteMocks = index.isDirectory(`${dir}/mocks`);
+  // The install reports manifest and server problems; this read only needs the values.
+  const set = detectManifests(index, new Findings());
+  const declared = set === undefined ? new Set<string>() : normaliseMcpServers(index, set.mcpSources, new Findings()).declaredNames;
+  const servers = [...declared].sort(comparePaths);
+  const { dir, held } = suiteDir(set, findings);
+  if (held) return { dir, cases: [], findings, servers };
 
+  const suite: SuiteContext = { index, dir, declared, findings, reportedMocks: new Set() };
   const cases: EvalCase[] = [];
   const caseByName = new Map<string, string>();
   for (const caseDir of findCaseDirs(index, dir, findings)) {
     const caseFindings = new CaseFindings();
-    const evalCase = readCase(index, caseDir, suiteMocks, caseFindings);
+    const evalCase = readCase(suite, caseDir, caseFindings);
     if (evalCase !== undefined) {
       const first = caseByName.get(evalCase.name);
       if (first === undefined) {
@@ -193,13 +220,27 @@ export function readEvalSuite(files: PluginFiles): EvalSuite {
     }
     findings.push(...caseFindings.list);
   }
-  return { dir, cases, findings };
+  return { dir, cases, findings, servers };
+}
+
+/** What every case of one suite is read against. */
+interface SuiteContext {
+  readonly index: PluginFileIndex;
+  readonly dir: string;
+  /** The plugin's MCP server keys. */
+  readonly declared: ReadonlySet<string>;
+  /** The suite's findings, where an ignored mock directory is reported. */
+  readonly findings: EvalSuiteFinding[];
+  /** Mock directories already reported as ignored. */
+  readonly reportedMocks: Set<string>;
 }
 
 /** The suite's directory, and whether declared skills hold it, so no case is read; findings for both. */
-function suiteDir(index: PluginFileIndex, findings: EvalSuiteFinding[]): { readonly dir: string; readonly held: boolean } {
-  // The install reports manifest problems; this read only needs the value.
-  const { dir, unusable, heldBySkills } = resolveEvalDir(detectManifests(index, new Findings()));
+function suiteDir(
+  set: ReturnType<typeof detectManifests>,
+  findings: EvalSuiteFinding[],
+): { readonly dir: string; readonly held: boolean } {
+  const { dir, unusable, heldBySkills } = resolveEvalDir(set);
   const fallback = heldBySkills === undefined ? `using ${DEFAULT_EVAL_DIR}/` : `${DEFAULT_EVAL_DIR}/ is not usable either`;
   if (unusable !== undefined) {
     findings.push({ kind: "eval-dir-invalid", path: unusable.manifest, message: evalDirMessage(unusable, fallback) });
@@ -264,50 +305,6 @@ function longerThan(text: string, max: number): boolean {
     if (++characters > max) return true;
   }
   return false;
-}
-
-/** One document's text through the `evalDocument` cap, or `undefined` after a finding of `kind`. */
-function readDocument(index: PluginFileIndex, path: string, kind: EvalFindingKind, findings: CaseFindings): string | undefined {
-  const read = readCapped(index, path, "evalDocument");
-  if (!read.ok) {
-    findings.add(kind, path, `the file is ${read.size} bytes, over the ${read.limit}-byte limit`);
-    return undefined;
-  }
-  return decodeUtf8(read.bytes);
-}
-
-/** A YAML mapping, or `undefined` after a finding. */
-function parseMapping(yaml: string, scope: FieldScope, what: string): JsonObject | undefined {
-  const parsed = parseFrontmatter(yaml);
-  if (!parsed.ok) {
-    scope.findings.add(scope.invalid, scope.path, `${what} is not valid YAML: ${parsed.detail}`);
-    return undefined;
-  }
-  return parsed.fields;
-}
-
-interface MarkdownDocument {
-  readonly fields: JsonObject;
-  readonly body: string;
-}
-
-/**
- * A Markdown file with optional frontmatter: no opening `---` is a body
- * with no fields, an unclosed one is a finding.
- */
-function readMarkdown(index: PluginFileIndex, scope: FieldScope): MarkdownDocument | undefined {
-  const text = readDocument(index, scope.path, scope.invalid, scope.findings);
-  if (text === undefined) return undefined;
-  const extracted = extractFrontmatter(text);
-  if (!extracted.ok) {
-    if (extracted.reason === "unclosed") {
-      scope.findings.add(scope.invalid, scope.path, "the frontmatter is not closed (missing the closing '---')");
-      return undefined;
-    }
-    return { fields: {}, body: text };
-  }
-  const fields = parseMapping(extracted.yaml, scope, "the frontmatter");
-  return fields === undefined ? undefined : { fields, body: extracted.body };
 }
 
 /** The fields `prompt.md` puts at its top level and `case.yaml` at its own. */
@@ -491,7 +488,8 @@ function readGraderFiles(
   return { graders, count: names.length };
 }
 
-function readCase(index: PluginFileIndex, caseDir: string, suiteMocks: boolean, findings: CaseFindings): EvalCase | undefined {
+function readCase(suite: SuiteContext, caseDir: string, findings: CaseFindings): EvalCase | undefined {
+  const { index } = suite;
   if (longerThan(caseDir, EVAL_MAX_CASE_DIR)) {
     findings.add("eval-case-invalid", caseDir, `the case directory's path is over ${EVAL_MAX_CASE_DIR} characters`);
     return undefined;
@@ -535,13 +533,14 @@ function readCase(index: PluginFileIndex, caseDir: string, suiteMocks: boolean, 
     findings.add("eval-case-invalid", source, `the case name ${quote(name)} is over ${EVAL_MAX_CASE_NAME} characters`);
   }
 
+  const context = checkContext(index, caseDir, caseFiles, caseFile?.context ?? { addDirs: [] }, findings);
+  const mocks = readCaseMocks(index, suite.dir, caseDir, suite.declared, findings, suite.findings, suite.reportedMocks);
+
   if (!findings.empty || prompt === undefined) return undefined;
 
-  const context = caseFile?.context ?? { addDirs: [] };
   const env = fields.env ?? {};
-  const mocks = suiteMocks || index.isDirectory(`${caseDir}/mocks`);
   const plugins = fields.plugins ?? [];
-  const unsupported = unsupportedOf(caseDir, plugins, context, env, graders, mocks);
+  const unsupported = unsupportedOf(caseDir, plugins, graders);
   return {
     name,
     dir: caseDir,
@@ -559,7 +558,71 @@ function readCase(index: PluginFileIndex, caseDir: string, suiteMocks: boolean, 
     context,
     files,
     graders,
+    mocks: mocks.servers,
+    replays: mocks.replays,
     ...(unsupported !== undefined && { unsupported }),
+  };
+}
+
+/**
+ * A case-relative path, normalised: no `./`, no empty segment. `undefined`
+ * when it is absolute, backslashed, or climbs with `..`, since every context
+ * path must name something inside the case.
+ */
+function inCase(path: string): string | undefined {
+  if (path.startsWith("/") || path.includes("\\")) return undefined;
+  const parts = path.split("/").filter((part) => part !== "" && part !== ".");
+  if (parts.length === 0 || parts.includes("..")) return undefined;
+  return parts.join("/");
+}
+
+/** The case's `context`, its paths normalised and checked against its files (the module header). */
+function checkContext(
+  index: PluginFileIndex,
+  caseDir: string,
+  caseFiles: ReadonlySet<string>,
+  context: EvalCaseContext,
+  findings: CaseFindings,
+): EvalCaseContext {
+  const path = `${caseDir}/${CASE_FILE}`;
+  const wrongPath = (field: string, expected: string, value: string): undefined => {
+    findings.add("eval-case-invalid", path, `context.${field} must be ${expected} (${quote(value)} is not)`);
+    return undefined;
+  };
+  const file = (field: string, value: string | undefined): string | undefined => {
+    if (value === undefined) return undefined;
+    const normalised = inCase(value);
+    if (normalised === undefined || !caseFiles.has(`${caseDir}/${normalised}`)) {
+      return wrongPath(field, "a file in the case directory", value);
+    }
+    return normalised;
+  };
+  const scaffoldScript = file("scaffold_script", context.scaffoldScript);
+  let historyFile = file("history_file", context.historyFile);
+  if (historyFile !== undefined) {
+    if (!historyFile.endsWith(".jsonl")) {
+      historyFile = wrongPath("history_file", "a .jsonl transcript", historyFile);
+    } else {
+      const text = readDocument(index, `${caseDir}/${historyFile}`, "eval-case-invalid", findings);
+      const parsed = text === undefined ? undefined : parseTranscript(text, { requirePairing: true });
+      if (parsed !== undefined && !parsed.ok) {
+        findings.add("eval-case-invalid", `${caseDir}/${historyFile}`, `the conversation cannot be resumed: ${parsed.error}`);
+      }
+    }
+  }
+  const addDirs: string[] = [];
+  for (const dir of context.addDirs) {
+    const normalised = inCase(dir);
+    if (normalised === undefined || !index.isDirectory(`${caseDir}/${normalised}`)) {
+      wrongPath("add_dirs", "directories inside the case directory", dir);
+    } else {
+      addDirs.push(normalised);
+    }
+  }
+  return {
+    ...(scaffoldScript !== undefined && { scaffoldScript }),
+    ...(historyFile !== undefined && { historyFile }),
+    addDirs,
   };
 }
 
@@ -580,27 +643,6 @@ function namesPluginRoot(caseDir: string, entry: string): boolean {
   return resolved.length === 0;
 }
 
-function usesMockCalls(grader: EvalGrader): boolean {
-  const { check } = grader;
-  switch (check.type) {
-    case "regex":
-      return check.target.kind === "mock_calls";
-    case "llm":
-      return check.focus.kind === "mock_calls";
-    case "tool_used":
-    case "tool_order":
-    case "file_exists":
-    case "baseline":
-      return false;
-    /* v8 ignore start -- @preserve: the never arm; readGrader builds only these check types, so no grader reaches it */
-    default: {
-      const exhaustive: never = check;
-      throw new Error(`unknown grader ${JSON.stringify(exhaustive)}`);
-    }
-    /* v8 ignore stop */
-  }
-}
-
 /**
  * A case's `plugins` names the plugins it runs with, relative to the case.
  * An entry that resolves to this plugin's root is the plugin under test, the
@@ -610,18 +652,9 @@ function usesMockCalls(grader: EvalGrader): boolean {
 function unsupportedOf(
   caseDir: string,
   plugins: readonly string[],
-  context: EvalCaseContext,
-  env: Readonly<Record<string, string>>,
   graders: readonly EvalGrader[],
-  mocks: boolean,
 ): EvalUnsupportedFeature | undefined {
   if (!plugins.every((entry) => namesPluginRoot(caseDir, entry))) return "plugins";
-  if (context.scaffoldScript !== undefined) return "context.scaffold_script";
-  if (context.addDirs.length > 0) return "context.add_dirs";
-  if (context.historyFile !== undefined) return "context.history_file";
-  if (Object.keys(env).length > 0) return "env";
-  if (graders.some(usesMockCalls)) return "mock_calls";
-  if (mocks) return "mocks";
   if (graders.length > EVAL_MAX_GRADERS) return "more than 32 graders";
   return undefined;
 }
