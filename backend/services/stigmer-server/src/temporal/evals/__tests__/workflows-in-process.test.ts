@@ -501,6 +501,35 @@ describe("the suite workflow", () => {
     expect(finished).toEqual([{ phase: "completed" }]);
   });
 
+  it("shares what is left among the tries not yet finished when fewer remain than the concurrency", async () => {
+    suite({
+      kind: "run",
+      org: "acme",
+      cells: cells(2),
+      maxCostUsd: 1,
+      concurrency: 8,
+    });
+    const budgets: number[] = [];
+    const finishes: Array<() => void> = [];
+    seam.child = async (_type, options) => {
+      budgets.push((options.args[0] as CaseInput).budgetUsd);
+      await new Promise<void>((resolve) => finishes.push(resolve));
+      return result({ costUsd: 0.2 });
+    };
+    const running = runPluginEval({ evalId: "pev_1" });
+    const settle = async () => {
+      for (let i = 0; i < 20; i++) await Promise.resolve();
+    };
+    await settle();
+    // Two tries at concurrency 8: each gets half of the limit, not an eighth.
+    expect(budgets).toEqual([0.5, 0.5]);
+    while (finishes.length > 0) {
+      finishes.shift()!();
+      await settle();
+    }
+    await running;
+  });
+
   it("hands a try nothing when nothing is left, and the floor only while something is", () => {
     expect(tryBudgetUsd(0.05, 0.05, 0, 1)).toBe(0);
     expect(tryBudgetUsd(0.05, 0.06, 0, 1)).toBe(0);
