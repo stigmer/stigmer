@@ -411,16 +411,16 @@ var file_ai_stigmer_iam_v1_enum_proto_extTypes = []protoimpl.ExtensionInfo{
 	{
 		ExtendedType:  (*descriptorpb.EnumValueOptions)(nil),
 		ExtensionType: (*IamRoleMeta)(nil),
-		Field:         90301,
+		Field:         91201,
 		Name:          "ai.stigmer.iam.v1.role_meta",
-		Tag:           "bytes,90301,opt,name=role_meta",
+		Tag:           "bytes,91201,opt,name=role_meta",
 		Filename:      "ai/stigmer/iam/v1/enum.proto",
 	},
 }
 
 // Extension fields to descriptorpb.EnumValueOptions.
 var (
-	// optional ai.stigmer.iam.v1.IamRoleMeta role_meta = 90301;
+	// optional ai.stigmer.iam.v1.IamRoleMeta role_meta = 91201;
 	E_RoleMeta = &file_ai_stigmer_iam_v1_enum_proto_extTypes[0]
 )
 
@@ -479,21 +479,21 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\"\x04\b'\x10'\"\x04\b,\x10,*\x13can_create_instance*\x13can_create_workflow*\x16can_create_environment*\x10can_read_secrets*\x1ccan_manage_identity_accounts*\x14login_to_back_office*\x11can_create_runner*\x12can_delete_session*\x0fcan_use_records*\x14can_create_datastore*\x12can_create_project*\x19can_set_public_visibility*\x19can_create_agent_instance*\xb7\x04\n" +
 	"\aIamRole\x12\x18\n" +
 	"\x14iam_role_unspecified\x10\x00\x12U\n" +
-	"\x05owner\x10\x01\x1aJ\xea\x8b,F\n" +
+	"\x05owner\x10\x01\x1aJ\x8a\xc4,F\n" +
 	"\x05Owner\x12=Everything, including deleting it and deciding who has access\x12P\n" +
-	"\x05admin\x10\x02\x1aE\xea\x8b,A\n" +
+	"\x05admin\x10\x02\x1aE\x8a\xc4,A\n" +
 	"\x05Admin\x128Manage the organization's people, settings and resources\x12B\n" +
-	"\x06member\x10\x03\x1a6\xea\x8b,2\n" +
+	"\x06member\x10\x03\x1a6\x8a\xc4,2\n" +
 	"\x06Member\x12(Belongs to it and holds what it is given\x123\n" +
-	"\x06viewer\x10\x04\x1a'\xea\x8b,#\n" +
+	"\x06viewer\x10\x04\x1a'\x8a\xc4,#\n" +
 	"\x06Viewer\x12\x19Read it; cannot change it\x12L\n" +
-	"\vparticipant\x10\x05\x1a;\xea\x8b,7\n" +
+	"\vparticipant\x10\x05\x1a;\x8a\xc4,7\n" +
 	"\vParticipant\x12(Read the conversations and send messages\x12V\n" +
-	"\x06editor\x10\x06\x1aJ\xea\x8b,F\n" +
+	"\x06editor\x10\x06\x1aJ\x8a\xc4,F\n" +
 	"\x06Editor\x12<Change and use it; cannot delete it or decide who has access\x12J\n" +
-	"\x04user\x10\a\x1a@\xea\x8b,<\n" +
+	"\x04user\x10\a\x1a@\x8a\xc4,<\n" +
 	"\aCan use\x121Use this vault's logins and secrets in their runs:`\n" +
-	"\trole_meta\x12!.google.protobuf.EnumValueOptions\x18\xbd\xc1\x05 \x01(\v2\x1e.ai.stigmer.iam.v1.IamRoleMetaR\broleMetaB\xcd\x01\n" +
+	"\trole_meta\x12!.google.protobuf.EnumValueOptions\x18\xc1\xc8\x05 \x01(\v2\x1e.ai.stigmer.iam.v1.IamRoleMetaR\broleMetaB\xcd\x01\n" +
 	"\x15com.ai.stigmer.iam.v1B\tEnumProtoP\x01ZBgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/v1;iamv1\xa2\x02\x03ASI\xaa\x02\x11Ai.Stigmer.Iam.V1\xca\x02\x11Ai\\Stigmer\\Iam\\V1\xe2\x02\x1dAi\\Stigmer\\Iam\\V1\\GPBMetadata\xea\x02\x14Ai::Stigmer::Iam::V1b\x06proto3"
 
 var (

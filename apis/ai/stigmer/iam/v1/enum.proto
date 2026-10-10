@@ -291,7 +291,7 @@ enum IamPermission {
 // Display metadata for an IamRole value: the one place a role's name lives,
 // read by the server's access lists and generated into the SDKs.
 extend google.protobuf.EnumValueOptions {
-  IamRoleMeta role_meta = 90301;
+  IamRoleMeta role_meta = 91201;
 }
 
 // Metadata for one IamRole value.

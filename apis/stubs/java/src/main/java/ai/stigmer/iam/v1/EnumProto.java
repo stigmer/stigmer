@@ -27,7 +27,7 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
     registerAllExtensions(
         (com.google.protobuf.ExtensionRegistryLite) registry);
   }
-  public static final int ROLE_META_FIELD_NUMBER = 90301;
+  public static final int ROLE_META_FIELD_NUMBER = 91201;
   /**
    * <code>extend .google.protobuf.EnumValueOptions { ... }</code>
    */
@@ -90,21 +90,21 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
       "n_create_datastore*\022can_create_project*\031" +
       "can_set_public_visibility*\031can_create_ag" +
       "ent_instance*\267\004\n\007IamRole\022\030\n\024iam_role_uns" +
-      "pecified\020\000\022U\n\005owner\020\001\032J\352\213,F\n\005Owner\022=Ever" +
+      "pecified\020\000\022U\n\005owner\020\001\032J\212\304,F\n\005Owner\022=Ever" +
       "ything, including deleting it and decidi" +
-      "ng who has access\022P\n\005admin\020\002\032E\352\213,A\n\005Admi" +
+      "ng who has access\022P\n\005admin\020\002\032E\212\304,A\n\005Admi" +
       "n\0228Manage the organization\'s people, set" +
-      "tings and resources\022B\n\006member\020\003\0326\352\213,2\n\006M" +
+      "tings and resources\022B\n\006member\020\003\0326\212\304,2\n\006M" +
       "ember\022(Belongs to it and holds what it i" +
-      "s given\0223\n\006viewer\020\004\032\'\352\213,#\n\006Viewer\022\031Read " +
-      "it; cannot change it\022L\n\013participant\020\005\032;\352" +
-      "\213,7\n\013Participant\022(Read the conversations" +
-      " and send messages\022V\n\006editor\020\006\032J\352\213,F\n\006Ed" +
+      "s given\0223\n\006viewer\020\004\032\'\212\304,#\n\006Viewer\022\031Read " +
+      "it; cannot change it\022L\n\013participant\020\005\032;\212" +
+      "\304,7\n\013Participant\022(Read the conversations" +
+      " and send messages\022V\n\006editor\020\006\032J\212\304,F\n\006Ed" +
       "itor\022<Change and use it; cannot delete i" +
-      "t or decide who has access\022J\n\004user\020\007\032@\352\213" +
+      "t or decide who has access\022J\n\004user\020\007\032@\212\304" +
       ",<\n\007Can use\0221Use this vault\'s logins and" +
       " secrets in their runs:`\n\trole_meta\022!.go" +
-      "ogle.protobuf.EnumValueOptions\030\275\301\005 \001(\0132\036" +
+      "ogle.protobuf.EnumValueOptions\030\301\310\005 \001(\0132\036" +
       ".ai.stigmer.iam.v1.IamRoleMetaR\010roleMeta" +
       "BrB\tEnumProtoP\001\242\002\003ASI\252\002\021Ai.Stigmer.Iam.V" +
       "1\312\002\021Ai\\Stigmer\\Iam\\V1\342\002\035Ai\\Stigmer\\Iam\\V" +
