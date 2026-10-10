@@ -12,9 +12,9 @@
  *     per try, where polling every try here would grow it with every poll.
  *   - Record: after each child, an activity folds its result into the
  *     status and recomputes the scores: this workflow is the status's one
- *     writer, so no two writes race. The record takes the result without
- *     its grader results, which it never reads, so this history carries
- *     them once.
+ *     writer, so no two writes race. A result carries no grader verdicts
+ *     (they stay in the try's Score), so each try adds only its summary
+ *     here.
  *   - Spend: before each cell starts, the cost of the finished tries and
  *     their votes, plus the caps the tries still running hold, is compared
  *     with the eval's limit. While they reach it no cell starts; a running
@@ -81,7 +81,6 @@ import {
 } from "../names.js";
 import type {
   CaseInput,
-  RecordedTry,
   RunPluginEvalInput,
   SpendActivities,
   SuiteActivities,
@@ -309,13 +308,11 @@ async function runCell(
       );
     }
   }
-  const { graderResults: _unread, ...recorded } = result;
-  const record: RecordedTry = recorded;
   let recordFailure: StepFailed | undefined;
   try {
     // A finished try is recorded even when the eval is being cancelled.
     await CancellationScope.nonCancellable(() =>
-      steps[RECORD_TRY_ACTIVITY_NAME](evalId, cell, record),
+      steps[RECORD_TRY_ACTIVITY_NAME](evalId, cell, result),
     );
   } catch (error) {
     recordFailure = stepFailed(TRY_NOT_RECORDED_ERROR, error);
@@ -357,7 +354,6 @@ async function failedTry(
     error: "",
     costUsd: spend.costUsd,
     durationSeconds: 0,
-    graderResults: [],
     outOfCredit: false,
   };
 }

@@ -1094,7 +1094,6 @@ describe("record-score beside a graded try", () => {
       state: "not-graded",
       score: 0,
       notGradedReason: TRY_GONE_REASON,
-      graderResults: [],
       outOfCredit: false,
     });
   });
@@ -1115,10 +1114,6 @@ describe("record-score beside a graded try", () => {
       notGradedReason: TRY_GONE_REASON,
       outOfCredit: false,
     });
-    expect(result.graderResults.map((g) => [g.name, g.verdict])).toEqual([
-      ["compare", { passed: true, reason: "covers every change" }],
-      ["notes", { notGraded: TRY_GONE_REASON }],
-    ]);
     const scores = (
       await listRunScores(temp.store, capturingLogger().logger, start.runId)
     ).filter((score) => score.spec?.source === ScoreSource.eval);

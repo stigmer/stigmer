@@ -8,8 +8,8 @@
  * The workflow SDK's activity proxy, its child start and its sleep are
  * replaced at the module seam and answer from a script.
  *
- * The suite: every cell run and recorded (without its grader results), at
- * most `concurrency` children in flight; the cost ceiling checked before
+ * The suite: every cell run and recorded, at most `concurrency` children
+ * in flight; the cost ceiling checked before
  * each cell, each child capped at an equal share of what is left for the
  * children that may run at once, within what the running caps leave (never
  * below the floor); a credit refusal
@@ -81,7 +81,7 @@ import {
 } from "../names.js";
 import type {
   CaseInput,
-  RecordedTry,
+  RunPoll,
   SuiteCell,
   TryGrade,
   TryResult,
@@ -162,7 +162,6 @@ function result(overrides: Partial<TryResult> = {}): TryResult {
     error: "",
     costUsd: 0.1,
     durationSeconds: 1,
-    graderResults: [],
     outOfCredit: false,
     ...overrides,
   };
@@ -181,12 +180,12 @@ function cells(count: number): SuiteCell[] {
 const NO_SPEND: TrySpend = { sessionId: "", runId: "", costUsd: 0 };
 
 function suite(plan: unknown, spend: TrySpend = NO_SPEND) {
-  const recorded: Array<{ cell: SuiteCell; result: RecordedTry }> = [];
+  const recorded: Array<{ cell: SuiteCell; result: TryResult }> = [];
   const finished: unknown[] = [];
   seam.activities = {
     [LOAD_SUITE_ACTIVITY_NAME]: vi.fn(() => Promise.resolve(plan)),
     [RECORD_TRY_ACTIVITY_NAME]: vi.fn(
-      (_id: string, cell: SuiteCell, outcome: RecordedTry) => {
+      (_id: string, cell: SuiteCell, outcome: TryResult) => {
         recorded.push({ cell, result: outcome });
         return Promise.resolve();
       },
@@ -374,25 +373,6 @@ describe("the suite workflow", () => {
       CancelledFailure,
     );
     expect(finished).toEqual([{ phase: "partial", reason: "cancelled" }]);
-  });
-
-  it("records each try without its grader results", async () => {
-    const { recorded } = suite({
-      kind: "run",
-      org: "acme",
-      cells: cells(1),
-      maxCostUsd: 10,
-      concurrency: 1,
-    });
-    seam.child = async () =>
-      result({
-        graderResults: [
-          { name: "a", scored: true, verdict: { passed: true, reason: "ok" } },
-        ],
-      });
-    await runPluginEval({ evalId: "pev_1" });
-    expect(recorded[0]?.result).not.toHaveProperty("graderResults");
-    expect(recorded[0]?.result).toMatchObject({ runId: "run_1", score: 1 });
   });
 
   it("caps each try at what is left of the limit, never below the floor", async () => {
@@ -736,6 +716,23 @@ const INPUT: CaseInput = {
   budgetUsd: 5,
 };
 
+/** A poll of a run that has ended, of one a runner has taken, and of one waiting for a runner. */
+const ENDED: RunPoll = { phase: "ended", startedAtMs: 0 };
+const RUNNING: RunPoll = { phase: "running", startedAtMs: 0 };
+const PENDING: RunPoll = { phase: "pending", startedAtMs: 0 };
+
+/** A stop that records the fake clock at each call. */
+function timedStop(): { readonly fn: ReturnType<typeof vi.fn>; readonly at: number[] } {
+  const at: number[] = [];
+  return {
+    at,
+    fn: vi.fn(() => {
+      at.push(Date.now());
+      return Promise.resolve();
+    }),
+  };
+}
+
 /** What the spend activity finds for the try's run in these scripts. */
 const SPENT: TrySpend = { sessionId: "ses_1", runId: "run_1", costUsd: 0.4 };
 
@@ -751,7 +748,7 @@ function caseScript(overrides: Record<string, ReturnType<typeof vi.fn>> = {}) {
     [START_TRY_ACTIVITY_NAME]: vi.fn(() =>
       Promise.resolve({ kind: "started", sessionId: "ses_1", runId: "run_1" }),
     ),
-    [POLL_RUN_ACTIVITY_NAME]: vi.fn(() => Promise.resolve(true)),
+    [POLL_RUN_ACTIVITY_NAME]: vi.fn(() => Promise.resolve(ENDED)),
     [STOP_RUN_ACTIVITY_NAME]: vi.fn(() => Promise.resolve()),
     [GRADE_TRY_ACTIVITY_NAME]: vi.fn(() => Promise.resolve(GRADE)),
     [START_VOTE_ACTIVITY_NAME]: vi.fn(
@@ -909,7 +906,7 @@ describe("the case workflow", () => {
 
   it("stops the run at the deadline and grades what it produced", async () => {
     const activities = caseScript({
-      [POLL_RUN_ACTIVITY_NAME]: vi.fn(() => Promise.resolve(false)),
+      [POLL_RUN_ACTIVITY_NAME]: vi.fn(() => Promise.resolve(RUNNING)),
     });
     const started = Date.now();
     await runCase(INPUT);
@@ -923,6 +920,129 @@ describe("the case workflow", () => {
       true,
     );
     expect(Date.now() - started).toBeGreaterThanOrEqual(120_000);
+  });
+
+  it("leaves a try whose run no runner took within the capacity wait not graded, platform busy, its run stopped and never scored", async () => {
+    const stop = timedStop();
+    const activities = caseScript({
+      [POLL_RUN_ACTIVITY_NAME]: vi.fn(() => Promise.resolve(PENDING)),
+      [STOP_RUN_ACTIVITY_NAME]: stop.fn,
+    });
+    const started = Date.now();
+    expect(await runCase(INPUT)).toMatchObject({
+      state: "not-graded",
+      notGradedReason: PLATFORM_BUSY_REASON,
+      sessionId: "ses_1",
+      runId: "run_1",
+      costUsd: 0.4,
+    });
+    expect(stop.fn).toHaveBeenCalledWith(
+      "run_1",
+      "no runner took the try in time",
+    );
+    expect(activities[GRADE_TRY_ACTIVITY_NAME]).not.toHaveBeenCalled();
+    expect(activities[RECORD_SCORE_ACTIVITY_NAME]).not.toHaveBeenCalled();
+    // Stopped at the capacity wait, not the case's 120 seconds.
+    expect(stop.at[0]! - started).toBe(30 * 60_000);
+  });
+
+  it("leaves a never-started try whose run cannot be stopped not graded with that reason, and answers a cancel at that stop as cancelled", async () => {
+    caseScript({
+      [POLL_RUN_ACTIVITY_NAME]: vi.fn(() => Promise.resolve(PENDING)),
+      [STOP_RUN_ACTIVITY_NAME]: vi.fn(() =>
+        Promise.reject(new Error("the runner is gone")),
+      ),
+    });
+    expect((await runCase(INPUT)).notGradedReason).toBe(TRY_NOT_STOPPED_REASON);
+
+    caseScript({
+      [POLL_RUN_ACTIVITY_NAME]: vi.fn(() => Promise.resolve(PENDING)),
+      [STOP_RUN_ACTIVITY_NAME]: vi
+        .fn()
+        .mockImplementationOnce(() =>
+          Promise.reject(new CancelledFailure("cancelled")),
+        )
+        .mockImplementation(() => Promise.resolve()),
+    });
+    expect((await runCase(INPUT)).notGradedReason).toBe(TRY_CANCELLED_REASON);
+  });
+
+  it("counts the case's timeout from when the run started, not from the try's start", async () => {
+    const begun = Date.now();
+    // Pending for ten minutes; then running, stamped a minute before that
+    // poll saw it.
+    const stop = timedStop();
+    const activities = caseScript({
+      [POLL_RUN_ACTIVITY_NAME]: vi.fn(() =>
+        Promise.resolve(
+          Date.now() - begun < 10 * 60_000
+            ? PENDING
+            : { phase: "running", startedAtMs: begun + 9 * 60_000 },
+        ),
+      ),
+      [STOP_RUN_ACTIVITY_NAME]: stop.fn,
+    });
+    await runCase(INPUT);
+    expect(stop.fn).toHaveBeenCalledWith("run_1", "timed out after 120s");
+    expect(activities[GRADE_TRY_ACTIVITY_NAME]).toHaveBeenCalledWith(
+      INPUT,
+      "run_1",
+      true,
+    );
+    // At the stamp plus the case's 120 seconds.
+    expect(stop.at[0]! - begun).toBe(9 * 60_000 + 120_000);
+  });
+
+  it("reads a start stamp outside the wait as the try's start or the poll that saw it", async () => {
+    // A stamp from before the try's own start (a skewed clock) counts from
+    // that start; one from the future counts from the poll that saw it,
+    // the first, three seconds in.
+    for (const [stamp, expected] of [
+      [1, 120_000],
+      [Number.MAX_SAFE_INTEGER, 3_000 + 120_000],
+    ] as const) {
+      const begun = Date.now();
+      const stop = timedStop();
+      caseScript({
+        [POLL_RUN_ACTIVITY_NAME]: vi.fn(() =>
+          Promise.resolve({ phase: "running", startedAtMs: stamp }),
+        ),
+        [STOP_RUN_ACTIVITY_NAME]: stop.fn,
+      });
+      await runCase(INPUT);
+      expect(stop.at[0]! - begun).toBe(expected);
+    }
+  });
+
+  it("starts the timeout at the first poll that sees the run out of pending when it carries no stamp", async () => {
+    const begun = Date.now();
+    let seenAt = 0;
+    const stop = timedStop();
+    caseScript({
+      [POLL_RUN_ACTIVITY_NAME]: vi.fn(() => {
+        if (Date.now() - begun < 5 * 60_000) {
+          return Promise.resolve(PENDING);
+        }
+        seenAt ||= Date.now();
+        return Promise.resolve(RUNNING);
+      }),
+      [STOP_RUN_ACTIVITY_NAME]: stop.fn,
+    });
+    await runCase(INPUT);
+    expect(seenAt - begun).toBeGreaterThanOrEqual(5 * 60_000);
+    expect(stop.at[0]! - seenAt).toBe(120_000);
+  });
+
+  it("polls a vote at most about twenty times within its ten minutes", async () => {
+    const voteRun = "vote_0_0";
+    const poll = vi.fn((runId: string) =>
+      Promise.resolve(runId === voteRun ? RUNNING : ENDED),
+    );
+    caseScript({ [POLL_RUN_ACTIVITY_NAME]: poll });
+    await runCase(INPUT);
+    const votePolls = poll.mock.calls.filter(([runId]) => runId === voteRun);
+    expect(votePolls.length).toBeGreaterThanOrEqual(15);
+    expect(votePolls.length).toBeLessThanOrEqual(21);
   });
 
   it("answers each start refusal without a score", async () => {
@@ -985,8 +1105,9 @@ describe("the case workflow", () => {
   it("fails outright, non-retryable, on an unexpected error inside the try, for the suite to record it as a failed child with its spend", async () => {
     // A grade with no outcomes is not a shape the grade activity answers; the
     // workflow's own read of it throws a TypeError, which is failed as an
-    // ApplicationFailure so Temporal fails the workflow, not just its task.
-    caseScript({
+    // ApplicationFailure so Temporal fails the workflow, not just its task,
+    // once the try's run is stopped.
+    const activities = caseScript({
       [GRADE_TRY_ACTIVITY_NAME]: vi.fn(() => Promise.resolve({})),
     });
     const failure = await runCase(INPUT).then(
@@ -1001,6 +1122,37 @@ describe("the case workflow", () => {
     expect((failure as ApplicationFailure).message).toBe(
       "Cannot read properties of undefined (reading 'entries')",
     );
+    expect(activities[STOP_RUN_ACTIVITY_NAME]!.mock.calls).toEqual([
+      ["run_1", "the try's workflow failed"],
+    ]);
+  });
+
+  it("stops the vote's run and the try's before failing on an error of its own while a vote runs", async () => {
+    let polls = 0;
+    const activities = caseScript({
+      [POLL_RUN_ACTIVITY_NAME]: vi.fn(() => {
+        polls++;
+        // The try's run has ended; the vote's poll answers a shape the
+        // workflow cannot read, a defect's answer.
+        return Promise.resolve(
+          polls === 1
+            ? ENDED
+            : {
+                get phase(): never {
+                  throw new Error("an unreadable poll");
+                },
+              },
+        );
+      }),
+    });
+    await expect(runCase(INPUT)).rejects.toMatchObject({
+      type: PLUGIN_EVAL_CASE_FAILED_FAILURE_TYPE,
+      message: "an unreadable poll",
+    });
+    expect(activities[STOP_RUN_ACTIVITY_NAME]!.mock.calls).toEqual([
+      ["vote_0_0", "the try's workflow failed"],
+      ["run_1", "the try's workflow failed"],
+    ]);
   });
 
   it("fails with a Temporal failure of its own as it is", async () => {
@@ -1159,7 +1311,7 @@ describe("the case workflow", () => {
         .mockImplementationOnce(() =>
           Promise.reject(new CancelledFailure("cancelled")),
         )
-        .mockImplementation(() => Promise.resolve(true)),
+        .mockImplementation(() => Promise.resolve(ENDED)),
     });
     expect(await runCase(INPUT)).toMatchObject({
       notGradedReason: TRY_CANCELLED_REASON,
@@ -1178,7 +1330,7 @@ describe("the case workflow", () => {
         .mockImplementationOnce(() =>
           Promise.reject(new CancelledFailure("cancelled")),
         )
-        .mockImplementation(() => Promise.resolve(true)),
+        .mockImplementation(() => Promise.resolve(ENDED)),
       [STOP_RUN_ACTIVITY_NAME]: vi.fn(() =>
         Promise.reject(new Error("the runner is gone")),
       ),
@@ -1245,7 +1397,7 @@ describe("the case workflow", () => {
 
   it("leaves a try whose run could not be stopped not graded, with what the run spent", async () => {
     const activities = caseScript({
-      [POLL_RUN_ACTIVITY_NAME]: vi.fn(() => Promise.resolve(false)),
+      [POLL_RUN_ACTIVITY_NAME]: vi.fn(() => Promise.resolve(RUNNING)),
       [STOP_RUN_ACTIVITY_NAME]: vi.fn(() =>
         Promise.reject(new Error("the runner is gone")),
       ),
@@ -1261,7 +1413,7 @@ describe("the case workflow", () => {
 
   it("answers a cancellation at the deadline's stop as cancelled, stopping the run again", async () => {
     const activities = caseScript({
-      [POLL_RUN_ACTIVITY_NAME]: vi.fn(() => Promise.resolve(false)),
+      [POLL_RUN_ACTIVITY_NAME]: vi.fn(() => Promise.resolve(RUNNING)),
       [STOP_RUN_ACTIVITY_NAME]: vi
         .fn()
         .mockImplementationOnce(() =>
@@ -1332,12 +1484,12 @@ describe("the case workflow", () => {
     const activities = caseScript({
       [POLL_RUN_ACTIVITY_NAME]: vi
         .fn()
-        .mockImplementationOnce(() => Promise.resolve(true))
-        .mockImplementationOnce(() => Promise.resolve(true))
+        .mockImplementationOnce(() => Promise.resolve(ENDED))
+        .mockImplementationOnce(() => Promise.resolve(ENDED))
         .mockImplementationOnce(() =>
           Promise.reject(new CancelledFailure("cancelled")),
         )
-        .mockImplementation(() => Promise.resolve(true)),
+        .mockImplementation(() => Promise.resolve(ENDED)),
     });
     expect(await runCase(INPUT)).toMatchObject({
       notGradedReason: TRY_CANCELLED_REASON,

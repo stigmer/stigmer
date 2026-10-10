@@ -20,7 +20,8 @@
  *     whose plugin has moved past the eval's digest is not started: the
  *     with-plugin arm runs the plugin as installed now, so it would grade
  *     a newer plugin against the eval's suite (PLUGIN_UPDATED_REASON).
- *   - poll-run, stop-run: whether a run has ended; stop one, a run already
+ *   - poll-run, stop-run: whether a run is still waiting for a runner,
+ *     running (with its start stamp), or ended; stop one, a run already
  *     ended or gone being fine.
  *   - grade-try: the try's trace (domain/score/eval/trace.ts), every code
  *     grader (domain/plugin-eval/graders/), and for each AI-graded check
@@ -84,7 +85,6 @@ import type { PatternRunner } from "../../domain/plugin-eval/graders/patterns.js
 import type { GraderVerdict } from "../../domain/plugin-eval/graders/verdict.js";
 import { isNotGraded } from "../../domain/plugin-eval/graders/verdict.js";
 import {
-  criterionNames,
   gradedEvalScore,
   notGradedEvalScore,
   writeEvalScore,
@@ -143,7 +143,7 @@ import {
 import type {
   CaseActivities,
   CaseInput,
-  GraderResult,
+  RunPoll,
   SpendActivities,
   TryGrade,
   TryResult,
@@ -152,7 +152,6 @@ import type {
   VoteRead,
   VoteStart,
   WireOutcome,
-  WireVerdict,
 } from "./names.js";
 import type { PluginEvalTryLane } from "./ports.js";
 
@@ -320,15 +319,8 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
       }
     },
 
-    [POLL_RUN_ACTIVITY_NAME]: async (runId): Promise<boolean> => {
-      const run = await loadRun(deps.store, runId);
-      return (
-        run === undefined ||
-        isTerminalExecutionPhase(
-          run.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED,
-        )
-      );
-    },
+    [POLL_RUN_ACTIVITY_NAME]: async (runId): Promise<RunPoll> =>
+      runPollOf(await loadRun(deps.store, runId)),
 
     [STOP_RUN_ACTIVITY_NAME]: async (runId, reason): Promise<void> => {
       await stopRun(deps, runId, reason);
@@ -589,7 +581,6 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
           state: "not-graded",
           score: 0,
           notGradedReason: TRY_GONE_REASON,
-          graderResults: [],
           outOfCredit: false,
         };
       }
@@ -602,14 +593,6 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         return "votes" in outcome ? tallyVotes(votes[index] ?? []) : outcome;
       });
       const scoring = scoringOf(graders, context.twoArms);
-      const names = criterionNames(graders);
-      const graderResults: GraderResult[] = graders.map((_, index) => ({
-        name: names[index] ?? "",
-        scored: scoring[index]?.scored ?? true,
-        verdict: (verdicts[index] ?? {
-          notGraded: TRY_GONE_REASON,
-        }) satisfies WireVerdict,
-      }));
       const failed = verdicts.find(isNotGraded);
       const run = await loadRun(deps.store, started.runId);
       if (failed !== undefined) {
@@ -623,7 +606,6 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
           state: "not-graded",
           score: 0,
           notGradedReason: failed.notGraded,
-          graderResults,
           outOfCredit: failed.notGraded === OUT_OF_CREDIT_REASON,
         };
       }
@@ -651,7 +633,6 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         state: "graded",
         score,
         notGradedReason: "",
-        graderResults,
         outOfCredit: false,
       };
     },
@@ -924,6 +905,26 @@ function runErrorOf(
     default:
       return "the run did not finish";
   }
+}
+
+/**
+ * A run's progress (names.ts RunPoll): ended once its phase is terminal or
+ * it is gone; pending while it is pending (or carries no phase yet) with
+ * no start stamp, since no runner has taken it; running otherwise.
+ */
+function runPollOf(run: Run | undefined): RunPoll {
+  if (run === undefined) {
+    return { phase: "ended", startedAtMs: 0 };
+  }
+  const phase = run.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
+  const stamp = Date.parse(run.status?.startedAt ?? "");
+  const startedAtMs = Number.isNaN(stamp) ? 0 : stamp;
+  if (isTerminalExecutionPhase(phase)) {
+    return { phase: "ended", startedAtMs };
+  }
+  const waiting =
+    phase === RunPhase.RUN_PENDING || phase === RunPhase.RUN_PHASE_UNSPECIFIED;
+  return { phase: waiting && startedAtMs === 0 ? "pending" : "running", startedAtMs };
 }
 
 /** How long the run ran, from its start and end stamps; 0 when either is missing. */

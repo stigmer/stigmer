@@ -114,7 +114,6 @@ const GRADED: TryResult = {
   error: "",
   costUsd: 0.1,
   durationSeconds: 3,
-  graderResults: [],
   outOfCredit: false,
 };
 
