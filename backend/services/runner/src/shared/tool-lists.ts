@@ -35,108 +35,7 @@
  * without them cannot answer its channel.
  */
 
-/** Claude Code's built-in tool names a list may carry. */
-export type ClaudeTool =
-  | "Bash"
-  | "Read"
-  | "Write"
-  | "Edit"
-  | "Glob"
-  | "Grep"
-  | "Agent"
-  | "WebFetch"
-  | "WebSearch"
-  | "TodoWrite"
-  | "NotebookEdit";
-
-const CLAUDE_TOOLS: ReadonlySet<string> = new Set<ClaudeTool>([
-  "Bash",
-  "Read",
-  "Write",
-  "Edit",
-  "Glob",
-  "Grep",
-  "Agent",
-  "WebFetch",
-  "WebSearch",
-  "TodoWrite",
-  "NotebookEdit",
-]);
-
-/** Claude Code's older spelling of `Agent`, still accepted there. */
-const CLAUDE_ALIASES: ReadonlyMap<string, ClaudeTool> = new Map([["Task", "Agent"]]);
-
-/**
- * The native engine's tool names and the Claude tools each covers. `delete`
- * is listed for completeness: the runner never binds it (file review needs
- * every removal to go through a reviewable write, `deepagents-profiles.ts`).
- */
-export const NATIVE_TOOL_COVERS: ReadonlyMap<string, readonly ClaudeTool[]> = new Map([
-  ["execute", ["Bash"]],
-  ["read_file", ["Read"]],
-  ["write_file", ["Write"]],
-  ["edit_file", ["Edit"]],
-  ["delete", ["Write"]],
-  ["glob", ["Glob"]],
-  ["ls", ["Glob"]],
-  ["grep", ["Grep"]],
-  ["task", ["Agent"]],
-  ["web_fetch", ["WebFetch"]],
-  ["write_todos", ["TodoWrite"]],
-]);
-
-/**
- * The names the Cursor `preToolUse` hook reports, and the Claude tools each
- * covers. The hook reports every file mutation, create or edit, as `Write`
- * (`tool-kind.ts`), so `Write` covers both.
- */
-export const CURSOR_HOOK_TOOL_COVERS: ReadonlyMap<string, readonly ClaudeTool[]> = new Map([
-  ["Shell", ["Bash"]],
-  ["Read", ["Read"]],
-  ["Write", ["Write", "Edit"]],
-  ["StrReplace", ["Edit"]],
-  ["Delete", ["Write"]],
-  ["Glob", ["Glob"]],
-  ["Grep", ["Grep"]],
-  ["SemanticSearch", ["Grep"]],
-  ["Task", ["Agent"]],
-  ["WebFetch", ["WebFetch"]],
-  ["WebSearch", ["WebSearch"]],
-  ["updateTodos", ["TodoWrite"]],
-  ["TodoWrite", ["TodoWrite"]],
-  ["EditNotebook", ["NotebookEdit"]],
-]);
-
-/**
- * The `@cursor/sdk` `AgentOptions.tools` / `disallowedTools` vocabulary (its
- * `ToolName` literals, 1.0.31) and the Claude tools each covers. `mcp` is
- * absent on purpose: it is the whole MCP family, all-or-nothing, so MCP
- * narrowing is the hook's. A name with no Claude tool is an engine extra.
- */
-export const CURSOR_SDK_TOOL_COVERS: ReadonlyMap<string, readonly ClaudeTool[]> = new Map([
-  ["shell", ["Bash"]],
-  ["read", ["Read"]],
-  ["edit", ["Write", "Edit"]],
-  ["delete", ["Write"]],
-  ["glob", ["Glob"]],
-  ["ls", ["Glob"]],
-  ["grep", ["Grep"]],
-  ["semSearch", ["Grep"]],
-  ["task", ["Agent"]],
-  ["webFetch", ["WebFetch"]],
-  ["webSearch", ["WebSearch"]],
-  ["updateTodos", ["TodoWrite"]],
-  ["readTodos", ["TodoWrite"]],
-]);
-
-/** The SDK's built-in names with no Claude tool: hidden by an allow-list, left alone by a deny-list. */
-export const CURSOR_SDK_EXTRA_TOOLS: readonly string[] = [
-  "readLints",
-  "askQuestion",
-  "await",
-  "generateImage",
-  "applyAgentDiff",
-];
+import { CLAUDE_TOOL_ALIASES, CURSOR_SDK_TOOL_COVERS, isClaudeTool, type ClaudeTool } from "@stigmer/tool-vocabulary";
 
 /** One parsed list entry. */
 export type ToolListEntry =
@@ -164,7 +63,7 @@ export function parseToolListEntry(raw: string): ToolListEntry {
   const open = raw.indexOf("(");
   const name = open === -1 ? raw : raw.slice(0, open);
   const specifier = open === -1 ? null : raw.slice(open + 1, raw.endsWith(")") ? -1 : undefined);
-  const tool = CLAUDE_TOOLS.has(name) ? (name as ClaudeTool) : CLAUDE_ALIASES.get(name);
+  const tool = isClaudeTool(name) ? name : CLAUDE_TOOL_ALIASES.get(name);
   if (!tool) return { kind: "unknown", raw };
   const agentTypes =
     tool === "Agent" && specifier !== null

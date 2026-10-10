@@ -104,6 +104,7 @@ test("runner-deps set in this repo names the libs both standalone packages link 
     "@stigmer/plugin-package",
     "@stigmer/protos",
     "@stigmer/temporal-codecs",
+    "@stigmer/tool-vocabulary",
     "@stigmer/zip-structure",
   ]);
   // Every runner-linked lib must also publish, or a released runner could not
@@ -251,6 +252,7 @@ test("turboArgs: task first, one --filter per package, caller flags last", () =>
     "--filter=@stigmer/plugin-package",
     "--filter=@stigmer/protos",
     "--filter=@stigmer/temporal-codecs",
+    "--filter=@stigmer/tool-vocabulary",
     "--filter=@stigmer/zip-structure",
     "--force",
   ]);

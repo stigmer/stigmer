@@ -68,8 +68,8 @@ import { getDefaultModel, getNativeRequestProfile } from "../../shared/model-reg
 import { buildChatModel } from "../../shared/model-client.js";
 import { graphThinks, toAnthropicThinking } from "../../shared/thinking-mode.js";
 import { isUnattendedApprovalMode, type McpApprovalDefault } from "../../shared/approval-policy.js";
+import { NATIVE_TOOL_COVERS } from "@stigmer/tool-vocabulary";
 import {
-  NATIVE_TOOL_COVERS,
   checkToolListResolution,
   claudeToolsOf,
   type ToolScope,

@@ -12,14 +12,8 @@
  */
 
 import { describe, expect, it } from "vitest";
-import {
-  CURSOR_HOOK_TOOL_COVERS,
-  CURSOR_SDK_TOOL_COVERS,
-  ToolScope,
-  type McpScopeTable,
-  type SubAgentTypeTable,
-  type ToolLists,
-} from "../../../shared/tool-lists.js";
+import { CURSOR_HOOK_TOOL_COVERS, CURSOR_SDK_TOOL_COVERS } from "@stigmer/tool-vocabulary";
+import { ToolScope, type McpScopeTable, type SubAgentTypeTable, type ToolLists } from "../../../shared/tool-lists.js";
 import { compileHookToolScope, scopeKey, TOOL_NAME_PLACEHOLDER, UNRESTRICTED_HOOK_SCOPE } from "../hook-scope.js";
 
 /** The hook's lookup, as the generated script performs it. */

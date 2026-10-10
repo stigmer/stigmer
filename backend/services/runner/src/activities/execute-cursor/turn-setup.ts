@@ -45,8 +45,8 @@ import { isUnattendedApprovalMode } from "../../shared/approval-policy.js";
 import { excludeAppliedFromGrants } from "../../shared/exact-apply.js";
 import { getRunnerHitlMasterSecret } from "../../shared/fingerprint-secret.js";
 import { realpath } from "node:fs/promises";
+import { CURSOR_SDK_TOOL_COVERS } from "@stigmer/tool-vocabulary";
 import {
-  CURSOR_SDK_TOOL_COVERS,
   checkToolListResolution,
   claudeToolsOf,
   cursorSdkToolOptions,

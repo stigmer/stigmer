@@ -30,7 +30,8 @@ import { startHookServer } from "../hook-server.js";
 import { CursorEngineToolViews } from "../hook-views.js";
 import { buildApprovalState, grantToken, hookAskDigest, primaryToken, scopeRefusalToken, toolIdentity } from "../approval-state.js";
 import { AGENT_SCOPE_KEY, READ_SCOPE_KEY, compileHookToolScope, scopeKey } from "../hook-scope.js";
-import { CURSOR_SDK_TOOL_COVERS, ToolScope } from "../../../shared/tool-lists.js";
+import { CURSOR_SDK_TOOL_COVERS } from "@stigmer/tool-vocabulary";
+import { ToolScope } from "../../../shared/tool-lists.js";
 import { mcpToolKey } from "../../../shared/approval-policy.js";
 import { contentDigest } from "../../../shared/file-tools.js";
 import {
