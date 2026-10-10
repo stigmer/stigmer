@@ -2,16 +2,17 @@
  * Pins the evals' glob matcher (glob.ts): what each piece of the grammar
  * matches in a path and in a case name; that it and the plugin library's
  * `globError` agree on every row of the shared table, the error sentence
- * included; that a malformed glob is an error value, never a throw; and
- * that the hostile globs a backtracking matcher stalls on, and a glob far
- * past the length cap, finish in well under 50 ms.
+ * included; that a malformed glob is an error value, never a throw; that
+ * a class is capped and weighed by its ranges; and that the hostile globs
+ * a backtracking matcher stalls on, a glob far past the length cap and a
+ * large class behind every alternative finish in well under 50 ms.
  */
 import { describe, expect, it } from "vitest";
 
 import { globError } from "@stigmer/plugin-package";
 import { GLOB_VALIDITY_TABLE } from "@stigmer/plugin-package/testing";
 
-import { GLOB_MAX_ALTERNATIVES, compileGlob } from "../glob.js";
+import { GLOB_MAX_ALTERNATIVES, GLOB_MAX_CLASS_ITEMS, compileGlob } from "../glob.js";
 import type { GlobMode } from "../glob.js";
 
 function matches(glob: string, input: string, mode: GlobMode): boolean {
@@ -107,6 +108,18 @@ describe("validity", () => {
     const sixtyFour = compileGlob("{a,b}".repeat(6), "name");
     expect(sixtyFour.ok && sixtyFour.matches("abbaba")).toBe(true);
   });
+
+  it("matches with a class of the most ranges allowed, weighed by its ranges", () => {
+    expect(GLOB_MAX_CLASS_ITEMS).toBe(32);
+    const glob = `x[${"a-b".repeat(31)}y-z]`;
+    const compiled = compileGlob(glob, "path");
+    expect(compiled.ok && compiled.tokens).toBe(33);
+    expect(matches(glob, "xz", "path")).toBe(true);
+    expect(matches(glob, "xa", "path")).toBe(true);
+    expect(matches(glob, "xm", "path")).toBe(false);
+    expect(matches(`[!${"abcdefghijklmnopqrstuvwxyzABCDEF"}]`, "G", "name")).toBe(true);
+    expect(matches(`[!${"abcdefghijklmnopqrstuvwxyzABCDEF"}]`, "F", "name")).toBe(false);
+  });
 });
 
 describe("hostile globs", () => {
@@ -172,6 +185,17 @@ describe("hostile globs", () => {
     const elapsed = timed(() => {
       expect(matches(glob, `${path}/`, "path")).toBe(true);
       expect(matches(glob, "c", "path")).toBe(false);
+    });
+    expect(elapsed).toBeLessThan(50);
+  });
+
+  it("refuses an 829-character class behind 64 alternatives, and matches the largest class allowed there, at once", () => {
+    const stars = `{${Array(64).fill("**").join(",")}}`;
+    const path = "a/".repeat(500);
+    const elapsed = timed(() => {
+      expect(compileGlob(`${stars}[${"a-z".repeat(275)}ab]`, "path").ok).toBe(false);
+      expect(matches(`${stars}[${"0-1".repeat(31)}a-a]`, `${path}b`, "path")).toBe(false);
+      expect(matches(`${stars}[${"0-1".repeat(31)}a-a]`, `${path}a`, "path")).toBe(true);
     });
     expect(elapsed).toBeLessThan(50);
   });

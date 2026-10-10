@@ -334,4 +334,14 @@ export const GLOB_VALIDITY_TABLE: ReadonlyArray<readonly [glob: string, error: s
   ["{" + "a".repeat(500) + "," + "b".repeat(500) + "}{x,y,z,w,v}", "it expands to more than 4096 tokens"],
   ["{a,b}".repeat(7) + "a".repeat(100), "it expands to more than 64 alternatives"],
   ["{a,b}".repeat(6) + "a".repeat(59) + "[", "'[' at 89 is never closed"],
+  // A class costs its ranges per character, so its size is capped and
+  // counted: 64 alternatives around an 829-character class is refused.
+  ["{" + Array(64).fill("**").join(",") + "}[" + "a-z".repeat(275) + "ab]", "'[' at 193 holds more than 32 ranges or characters"],
+  ["[" + "a-c".repeat(32) + "]", undefined],
+  ["[" + "a-c".repeat(33) + "]", "'[' at 0 holds more than 32 ranges or characters"],
+  ["x[!" + "a".repeat(32) + "]", undefined],
+  ["x[!" + "a".repeat(33) + "]", "'[' at 1 holds more than 32 ranges or characters"],
+  ["[" + "a".repeat(33), "'[' at 0 holds more than 32 ranges or characters"],
+  ["{a,b}".repeat(6) + "[" + "a-z".repeat(32) + "]" + "a".repeat(26), undefined],
+  ["{a,b}".repeat(6) + "[" + "a-z".repeat(32) + "]" + "a".repeat(27), "it expands to more than 4096 tokens"],
 ];

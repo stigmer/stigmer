@@ -18,7 +18,8 @@
  *   - `?`: one character (in a path, not `/`);
  *   - `[...]`: one character of a class, with ranges (`a-z`) and `!` or `^`
  *     first to negate; a `]` right after the opening (or the negation) is
- *     a member; in a path a class never matches `/`;
+ *     a member; in a path a class never matches `/`; a class holds at most
+ *     GLOB_MAX_CLASS_ITEMS ranges or characters;
  *   - `{a,b}`: alternatives, which may nest and hold any of the above; the
  *     glob expands to at most GLOB_MAX_ALTERNATIVES of them, braces nest at
  *     most GLOB_MAX_BRACE_DEPTH deep;
@@ -28,13 +29,15 @@
  * A glob holds at most GLOB_MAX_LENGTH characters and expands to at most
  * GLOB_MAX_TOKENS tokens summed over its alternatives (a `/` right after
  * `**` counted as its own token, so the count is the same in either
- * mode), which bounds a match's cost by GLOB_MAX_TOKENS times the input's
- * length: an author's `file_exists` grader runs on the server's own
+ * mode, and a class counted once per range or character it holds, since
+ * a character is tested against each of them), which bounds a match's
+ * cost by GLOB_MAX_TOKENS times the input's length: an author's `file_exists` grader runs on the server's own
  * thread, once per file a try created, so its grader also bounds the
  * work per try by `tokens` (graders/file-exists.ts).
  *
  * A malformed glob (too long, a class or a brace never closed, a reversed
- * range, too many alternatives or tokens, braces nested too deep) is an
+ * range, a class too large, too many alternatives or tokens, braces nested
+ * too deep) is an
  * error value, never a throw. The plugin library refuses the same globs when it reads a suite
  * (`globError` in @stigmer/plugin-package); the tests pin both readers to
  * one table.
@@ -54,6 +57,9 @@ export const GLOB_MAX_LENGTH = 1024;
 /** The most tokens a glob may expand to, summed over its alternatives. */
 export const GLOB_MAX_TOKENS = 4096;
 
+/** The most ranges or characters one `[...]` class may hold. */
+export const GLOB_MAX_CLASS_ITEMS = 32;
+
 /** Whether `*` and `?` stay inside a path segment. */
 export type GlobMode = "path" | "name";
 
@@ -62,7 +68,7 @@ export type CompiledGlob =
   | {
       readonly ok: true;
       matches(input: string): boolean;
-      /** The tokens of every alternative, in all: one match costs at most this times the input's length. */
+      /** The tokens of every alternative, in all, a class weighed by its ranges: one match costs at most this times the input's length. */
       readonly tokens: number;
     }
   | { readonly ok: false; readonly error: string };
@@ -106,7 +112,7 @@ export function compileGlob(glob: string, mode: GlobMode): CompiledGlob {
   }
   return {
     ok: true,
-    tokens: alternatives.reduce((sum, tokens) => sum + tokens.length, 0),
+    tokens: alternatives.reduce((sum, tokens) => sum + tokens.reduce((weight, token) => weight + tokenWeight(token), 0), 0),
     matches: (input) => {
       const chars = Array.from(input);
       return alternatives.some((tokens) => matchTokens(tokens, chars, mode));
@@ -203,6 +209,9 @@ class Parser {
         ranges.push([point, point]);
         i++;
       }
+      if (ranges.length > GLOB_MAX_CLASS_ITEMS) {
+        throw new GlobSyntaxError(`'[' at ${open} holds more than ${GLOB_MAX_CLASS_ITEMS} ranges or characters`);
+      }
     }
     this.pos = i + 1;
     return { kind: "class", negated, ranges };
@@ -263,7 +272,8 @@ function sizeOf(nodes: ReadonlyArray<Node>): GlobSize {
     if (node.kind !== "group") {
       // `**/` in a path is one token that stands for two characters' worth
       // of a name glob (a star and a `/`), so both modes count alike.
-      tokens = Math.min(tokens + count * (node.kind === "globstar-dir" ? 2 : 1), tokenCap);
+      const weight = tokenWeight(node) + (node.kind === "globstar-dir" ? 1 : 0);
+      tokens = Math.min(tokens + count * weight, tokenCap);
       continue;
     }
     let sum = 0;
@@ -277,6 +287,25 @@ function sizeOf(nodes: ReadonlyArray<Node>): GlobSize {
     count = Math.min(count * sum, countCap);
   }
   return { count, tokens };
+}
+
+/** What one token costs per input character: a class tests the character against each of its ranges. */
+function tokenWeight(token: Token): number {
+  switch (token.kind) {
+    case "class":
+      return token.ranges.length;
+    case "literal":
+    case "one":
+    case "star":
+    case "globstar":
+    case "globstar-dir":
+      return 1;
+    /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
+    default: {
+      const exhausted: never = token;
+      return exhausted;
+    }
+  }
 }
 
 /** Every brace-free token list `nodes` stands for (counted first, so bounded). */

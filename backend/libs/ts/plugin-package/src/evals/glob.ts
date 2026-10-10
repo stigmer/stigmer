@@ -11,12 +11,15 @@
  * characters, and at most GLOB_MAX_TOKENS tokens summed over every
  * alternative it expands to. A token is a literal character, a `?`, a
  * class, or a run of stars; a `/` right after `**` counts as its own token,
- * so the count does not depend on whether the glob matches paths or names.
+ * so the count does not depend on whether the glob matches paths or names,
+ * and a class counts once per range or character it holds, since the
+ * matcher tests a character against each of them. A class holds at most
+ * GLOB_MAX_CLASS_ITEMS ranges or characters.
  *
  * Only validity is checked here: the suite reader refuses a `file_exists`
  * grader whose `path` is malformed (too long, a class or a brace never
- * closed, a reversed range, too many alternatives or tokens, braces nested
- * too deep), so the author hears it at push rather than as a try left not
+ * closed, a reversed range, a class too large, too many alternatives or
+ * tokens, braces nested too deep), so the author hears it at push rather than as a try left not
  * graded. The server
  * compiles and matches globs with its own matcher over the same grammar,
  * and its tests pin the two readers to one table, error sentences
@@ -34,6 +37,9 @@ export const GLOB_MAX_LENGTH = 1024;
 
 /** The most tokens a glob may expand to, summed over its alternatives. */
 export const GLOB_MAX_TOKENS = 4096;
+
+/** The most ranges or characters one `[...]` class may hold. */
+export const GLOB_MAX_CLASS_ITEMS = 32;
 
 /** A sequence's alternatives and their tokens in all, each capped one past its limit. */
 interface Size {
@@ -59,12 +65,13 @@ export function globError(glob: string): string | undefined {
   const cap = GLOB_MAX_ALTERNATIVES + 1;
   const tokenCap = GLOB_MAX_TOKENS + 1;
 
-  /** Skips a class from its `[`; the error when it never closes or holds a reversed range. */
-  const skipClass = (): string | undefined => {
+  /** Skips a class from its `[`: its ranges and characters, or the error when it never closes, holds a reversed range or holds too many. */
+  const skipClass = (): number | string => {
     const open = pos;
     let i = open + 1;
     if (chars[i] === "!" || chars[i] === "^") i++;
     let first = true;
+    let items = 0;
     for (;;) {
       const char = chars[i];
       if (char === undefined) return `'[' at ${open} is never closed`;
@@ -77,9 +84,10 @@ export function globError(glob: string): string | undefined {
       } else {
         i++;
       }
+      if (++items > GLOB_MAX_CLASS_ITEMS) return `'[' at ${open} holds more than ${GLOB_MAX_CLASS_ITEMS} ranges or characters`;
     }
     pos = i + 1;
-    return undefined;
+    return items;
   };
 
   /** The size of a sequence, up to the end or, inside braces, its `,` or `}`. */
@@ -111,15 +119,17 @@ export function globError(glob: string): string | undefined {
         count = Math.min(count * sum, cap);
         continue;
       }
+      let weight = 1;
       if (char === "[") {
-        const error = skipClass();
-        if (error !== undefined) return error;
+        const items = skipClass();
+        if (typeof items === "string") return items;
+        weight = items;
       } else if (char === "*") {
         while (chars[pos] === "*") pos++;
       } else {
         pos++;
       }
-      tokens = Math.min(tokens + count, tokenCap);
+      tokens = Math.min(tokens + count * weight, tokenCap);
     }
     return { count, tokens };
   };

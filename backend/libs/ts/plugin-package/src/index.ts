@@ -80,7 +80,7 @@ export {
   type EvalSuiteSummaryCase,
   summariseEvalSuite,
 } from "./evals/summary.js";
-export { GLOB_MAX_ALTERNATIVES, GLOB_MAX_BRACE_DEPTH, GLOB_MAX_LENGTH, GLOB_MAX_TOKENS, globError } from "./evals/glob.js";
+export { GLOB_MAX_ALTERNATIVES, GLOB_MAX_BRACE_DEPTH, GLOB_MAX_CLASS_ITEMS, GLOB_MAX_LENGTH, GLOB_MAX_TOKENS, globError } from "./evals/glob.js";
 export type {
   EvalCase,
   EvalCaseContext,
