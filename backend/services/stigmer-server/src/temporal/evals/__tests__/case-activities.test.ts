@@ -41,6 +41,7 @@
  */
 import { create } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";
+import { timestampFromMs } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { MockActivityEnvironment } from "@temporalio/testing";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -67,7 +68,9 @@ import { ScoreSource } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { LogFields, Logger } from "../../../boot/logger.js";
+import { PLUGIN_EVAL_LABEL } from "../../../domain/plugin-eval/constants.js";
 import { newPatternPool } from "../../../domain/plugin-eval/graders/patterns.js";
+import { tryRunName } from "../../../domain/plugin-eval/try-run.js";
 import { FILES_NOT_RECORDED_REASON } from "../../../domain/plugin-eval/graders/verdict.js";
 import {
   JUDGE_COST_CAP_REASON,
@@ -96,12 +99,14 @@ import {
   DELETE_VOTE_ACTIVITY_NAME,
   GRADE_TRY_ACTIVITY_NAME,
   OUT_OF_CREDIT_REASON,
+  PLUGIN_EVAL_BUSY_FAILURE_TYPE,
   PLUGIN_UPDATED_REASON,
   READ_VOTE_ACTIVITY_NAME,
   RECORD_SCORE_ACTIVITY_NAME,
   START_TRY_ACTIVITY_NAME,
   START_VOTE_ACTIVITY_NAME,
   STOP_RUN_ACTIVITY_NAME,
+  TRY_MIN_BUDGET_USD,
   TRY_NOT_STARTED_REASON,
   TRY_SPENDING_SHARE_REASON,
   TRY_SPEND_ACTIVITY_NAME,
@@ -521,6 +526,91 @@ describe("start-try beside its main path", () => {
   });
 });
 
+describe("start-try's refused session", () => {
+  it("answers a refused session create as the run's refusal, so it is not retried for capacity", async () => {
+    await seeded();
+    const refusing = (error: Error) =>
+      build({
+        lane: (real) => ({
+          ...real,
+          createSession: () => Promise.reject(error),
+        }),
+      }).cases;
+    expect(
+      await refusing(
+        new ConnectError("agent 'thermos' not found", Code.NotFound),
+      )[START_TRY_ACTIVITY_NAME](CELL),
+    ).toEqual({
+      kind: "refused",
+      failure: "not-started",
+      reason: "agent 'thermos' not found",
+    });
+    expect(
+      await refusing(
+        new ConnectError("out of credits", Code.FailedPrecondition),
+      )[START_TRY_ACTIVITY_NAME](CELL),
+    ).toEqual({
+      kind: "refused",
+      failure: "out-of-credit",
+      reason: OUT_OF_CREDIT_REASON,
+    });
+    await expect(
+      refusing(new ConnectError("full", Code.ResourceExhausted))[
+        START_TRY_ACTIVITY_NAME
+      ](CELL),
+    ).rejects.toMatchObject({ type: PLUGIN_EVAL_BUSY_FAILURE_TYPE });
+    await expect(
+      refusing(new Error("the store is down"))[START_TRY_ACTIVITY_NAME](CELL),
+    ).rejects.toThrow("the store is down");
+  });
+});
+
+describe("start-try beside a raced retry", () => {
+  /** A run row of the try, as a start attempt left it, created at `createdAtMs`. */
+  async function storedTryRun(id: string, createdAtMs: number): Promise<void> {
+    await temp.store.saveResource(
+      ApiResourceKind.run,
+      id,
+      RunSchema,
+      create(RunSchema, {
+        metadata: {
+          id,
+          org: ORG,
+          name: tryRunName(EVAL_ID, CELL),
+          labels: { [PLUGIN_EVAL_LABEL]: EVAL_ID },
+        },
+        status: {
+          phase: RunPhase.RUN_IN_PROGRESS,
+          streamingUsage: { estimatedCostUsd: createdAtMs / 1000 },
+          audit: { specAudit: { createdAt: timestampFromMs(createdAtMs) } },
+        },
+      }),
+    );
+  }
+
+  it("adopts the earliest created of two runs under the try's name, stops the other, and reads that one's spend", async () => {
+    await seeded();
+    await storedTryRun("run_b", 2_000);
+    await storedTryRun("run_a", 3_000);
+    await storedTryRun("run_c", 2_000);
+    const { cases, record } = build();
+    expect(await cases[START_TRY_ACTIVITY_NAME](CELL)).toMatchObject({
+      kind: "started",
+      runId: "run_b",
+    });
+    // A tie on the stamp is broken by the id.
+    expect(record.terminated.sort()).toEqual(["run_a", "run_c"]);
+    expect(record.runs).toEqual([]);
+    const spend = createSpendActivities({ store: temp.store })[
+      TRY_SPEND_ACTIVITY_NAME
+    ];
+    expect(await spend(EVAL_ID, CELL)).toMatchObject({
+      runId: "run_b",
+      costUsd: 2,
+    });
+  });
+});
+
 describe("stop-run", () => {
   it("throws a stop that fails for another reason than an ended or gone run", async () => {
     await seeded();
@@ -681,6 +771,33 @@ describe("grade-try's AI-graded evidence", () => {
     }
   });
 
+  it("reads a cost-limit stop at the floor budget as the eval's share only once the run's cost reached that budget", async () => {
+    await seeded();
+    const { cases } = build();
+    const start = await startTry(cases);
+    const floor = { ...CELL, budgetUsd: TRY_MIN_BUDGET_USD };
+    const capped =
+      "Agent reached the cost limit for this message (~$0.0040 of the $0.004 budget). Send another message to continue.";
+    // The agent's own lower cap stopped it under the floor: graded as a stopped run.
+    await setStatus(start.runId, {
+      phase: RunPhase.RUN_TERMINATED,
+      error: capped,
+      streamingUsage: { estimatedCostUsd: 0.004 },
+    });
+    expect(
+      (await cases[GRADE_TRY_ACTIVITY_NAME](floor, start.runId, false)).outcomes[COMPARE],
+    ).toEqual({ votes: "compare" });
+    // At the floor itself: the eval's share stopped it.
+    await setStatus(start.runId, {
+      phase: RunPhase.RUN_TERMINATED,
+      error: capped,
+      streamingUsage: { estimatedCostUsd: TRY_MIN_BUDGET_USD },
+    });
+    expect(
+      (await cases[GRADE_TRY_ACTIVITY_NAME](floor, start.runId, false)).outcomes[COMPARE],
+    ).toEqual({ notGraded: TRY_SPENDING_SHARE_REASON });
+  });
+
   it("bounds a run's own error and takes reversed stamps as no duration", async () => {
     await seeded();
     const { cases } = build();
@@ -766,6 +883,33 @@ describe("start-vote beside its main path", () => {
       ),
     ).toEqual(gone);
     expect(record.sessions).toHaveLength(1);
+  });
+
+  it("fails a vote whose session create is refused, with the refusal's reason, and rethrows any other failure", async () => {
+    let refusal: Error = new ConnectError("out of credits", Code.FailedPrecondition);
+    let sessions = 0;
+    // The try's own session is created; every vote's is refused.
+    const { cases, start } = await completedTry({
+      lane: (real) => ({
+        ...real,
+        createSession: (session, caller) =>
+          ++sessions === 1
+            ? real.createSession(session, caller)
+            : Promise.reject(refusal),
+      }),
+    });
+    await completeTry(start.runId);
+    expect(
+      await cases[START_VOTE_ACTIVITY_NAME](CELL, start.runId, COMPARE, 0),
+    ).toEqual({ kind: "failed", reason: OUT_OF_CREDIT_REASON });
+    refusal = new ConnectError("judge model withdrawn", Code.InvalidArgument);
+    expect(
+      await cases[START_VOTE_ACTIVITY_NAME](CELL, start.runId, COMPARE, 0),
+    ).toEqual({ kind: "failed", reason: "judge model withdrawn" });
+    refusal = new Error("the store is down");
+    await expect(
+      cases[START_VOTE_ACTIVITY_NAME](CELL, start.runId, COMPARE, 0),
+    ).rejects.toThrow("the store is down");
   });
 
   it("fails a vote whose evidence is not text, with the reason the check gives", async () => {

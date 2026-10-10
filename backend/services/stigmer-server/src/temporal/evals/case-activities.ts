@@ -10,12 +10,14 @@
  *     Every attempt first looks for the run an earlier one created (the
  *     eval's label and the try's run name), so a start whose answer was
  *     lost is adopted, never created twice, whatever attempt number
- *     Temporal reports. A capacity refusal is thrown as
- *     PLUGIN_EVAL_BUSY_FAILURE_TYPE for the workflow's thirty minutes of
- *     retries; a credit refusal (the hosted edition's billing gate, every
- *     denial FAILED_PRECONDITION naming credits) is "out-of-credit"; any
- *     other refusal is the run's own message; a session left by a refused
- *     run is deleted. A caller the seam refuses is "cannot-act", with the
+ *     Temporal reports; should it find two (a start that raced its own
+ *     retry), it adopts the earliest created and stops the other. The
+ *     session's create and the run's are refused alike: a capacity
+ *     refusal is thrown as PLUGIN_EVAL_BUSY_FAILURE_TYPE for the
+ *     workflow's thirty minutes of retries; a credit refusal (the hosted
+ *     edition's billing gate, every denial FAILED_PRECONDITION naming
+ *     credits) is "out-of-credit"; any other refusal is its own message;
+ *     a session left by a refused run is deleted. A caller the seam refuses is "cannot-act", with the
  *     refusal's own not-graded reason when it names one. A try
  *     whose plugin has moved past the eval's digest is not started: the
  *     with-plugin arm runs the plugin as installed now, so it would grade
@@ -52,6 +54,7 @@
  * Proven by __tests__/case-activities.test.ts.
  */
 import { fromBinary } from "@bufbuild/protobuf";
+import { timestampMs } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { ApplicationFailure } from "@temporalio/common";
 import { Context } from "@temporalio/activity";
@@ -266,7 +269,14 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         };
       }
       const name = tryRunName(input.evalId, input);
-      const earlier = await findLabelledRun(deps.store, input.evalId, name);
+      const [earlier, ...extra] = await findLabelledRuns(
+        deps.store,
+        input.evalId,
+        name,
+      );
+      for (const run of extra) {
+        await stopRun(deps, run.metadata?.id ?? "", EXTRA_TRY_RUN_REASON);
+      }
       if (earlier !== undefined) {
         return {
           kind: "started",
@@ -294,18 +304,26 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         spec.pluginId,
         context.plugin.metadata?.org ?? input.org,
       );
-      const session = await deps.tries().createSession(
-        trySessionRequest({
-          org: input.org,
-          evalId: input.evalId,
-          cell: input,
-          attempt: attempt(),
-          caseName: cell.evalCase.name,
-          harness: cell.target.target.harness,
-          attachment: armAttachment(input.arm, facts),
-        }),
-        caller,
-      );
+      let session;
+      try {
+        session = await deps.tries().createSession(
+          trySessionRequest({
+            org: input.org,
+            evalId: input.evalId,
+            cell: input,
+            attempt: attempt(),
+            caseName: cell.evalCase.name,
+            harness: cell.target.target.harness,
+            attachment: armAttachment(input.arm, facts),
+          }),
+          caller,
+        );
+      } catch (error) {
+        if (!(error instanceof ConnectError)) {
+          throw error;
+        }
+        return refusalOf(deps, input.evalId, error);
+      }
       const sessionId = session.metadata?.id ?? "";
       const request = tryRunRequest({
         org: input.org,
@@ -472,17 +490,25 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         return { kind: "failed", reason: caller.cannotAct };
       }
       const rubric = voteRubricName(grader);
-      const session = await deps.tries().createSession(
-        voteSessionRequest({
-          org: input.org,
-          evalId: input.evalId,
-          tryRunId: runId,
-          graderIndex,
-          voteIndex,
-          attempt: attempt(),
-        }),
-        caller,
-      );
+      let session;
+      try {
+        session = await deps.tries().createSession(
+          voteSessionRequest({
+            org: input.org,
+            evalId: input.evalId,
+            tryRunId: runId,
+            graderIndex,
+            voteIndex,
+            attempt: attempt(),
+          }),
+          caller,
+        );
+      } catch (error) {
+        if (!(error instanceof ConnectError)) {
+          throw error;
+        }
+        return voteRefusalOf(refusalOf(deps, input.evalId, error));
+      }
       const sessionId = session.metadata?.id ?? "";
       const request = voteRunRequest({
         org: input.org,
@@ -509,14 +535,7 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
           throw error;
         }
         await deleteSession(deps, sessionId);
-        const refusal = refusalOf(deps, input.evalId, error);
-        return {
-          kind: "failed",
-          reason:
-            refusal.failure === "out-of-credit"
-              ? OUT_OF_CREDIT_REASON
-              : refusal.reason,
-        };
+        return voteRefusalOf(refusalOf(deps, input.evalId, error));
       }
     },
 
@@ -654,9 +673,23 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
   };
 }
 
+/** A vote's answer to a refused create: failed with the refusal's reason. */
+function voteRefusalOf(
+  refusal: Extract<TryStart, { kind: "refused" }>,
+): VoteStart {
+  return {
+    kind: "failed",
+    reason:
+      refusal.failure === "out-of-credit"
+        ? OUT_OF_CREDIT_REASON
+        : refusal.reason,
+  };
+}
+
 /**
- * The start's answer to a refused create (the module header). A capacity
- * refusal is thrown for the workflow's retry policy.
+ * The start's answer to a refused create, of the session or the run (the
+ * module header). A capacity refusal is thrown for the workflow's retry
+ * policy.
  */
 function refusalOf(
   deps: CaseActivityDeps,
@@ -714,7 +747,7 @@ export function createSpendActivities(deps: {
 }): SpendActivities {
   return {
     [TRY_SPEND_ACTIVITY_NAME]: async (evalId, cell): Promise<TrySpend> => {
-      const run = await findLabelledRun(
+      const [run] = await findLabelledRuns(
         deps.store,
         evalId,
         tryRunName(evalId, cell),
@@ -739,25 +772,38 @@ export function createSpendActivities(deps: {
   };
 }
 
-/** The run an earlier attempt of a try's start created, by label and name. */
-async function findLabelledRun(
+/** The reason start-try stops a second run of the same try with. */
+const EXTRA_TRY_RUN_REASON = "a second run of the same try";
+
+/**
+ * The runs earlier attempts of a try's start created, by label and name,
+ * the earliest created first (its id breaking a tie), so the start's
+ * adoption and every spend read pick the same one. More than one is a
+ * start that raced its own retry; start-try stops the rest.
+ */
+async function findLabelledRuns(
   store: Store,
   evalId: string,
   name: string,
-): Promise<Run | undefined> {
+): Promise<Run[]> {
   const rows = await store.findAllByLabel(
     ApiResourceKind.run,
     PLUGIN_EVAL_LABEL,
     evalId,
     RunSchema,
   );
-  for (const row of rows) {
-    const run = fromBinary(RunSchema, row);
-    if (run.metadata?.name === name) {
-      return run;
-    }
-  }
-  return undefined;
+  const runs = rows
+    .map((row) => fromBinary(RunSchema, row))
+    .filter((run) => run.metadata?.name === name);
+  const createdMs = (run: Run): number => {
+    const at = run.status?.audit?.specAudit?.createdAt;
+    return at === undefined ? 0 : timestampMs(at);
+  };
+  return runs.sort(
+    (a, b) =>
+      createdMs(a) - createdMs(b) ||
+      (a.metadata?.id ?? "").localeCompare(b.metadata?.id ?? ""),
+  );
 }
 
 /** The vote run an earlier attempt created, through the run list index's `grades` key. */
@@ -882,14 +928,18 @@ const SHARE_MARGIN_USD = 0.01;
 /**
  * Whether the try's own budget stopped the run: a cost-cap stop
  * (COST_LIMIT_ERROR_PREFIX) with the run's estimated cost within a cent of
- * `budgetUsd`. The run's cap is the tightest of its layers, so a stop below
- * the budget was a lower cap's (the agent's own, its profile's).
+ * `budgetUsd`, or, for a budget no larger than that cent (the floor), at
+ * the budget itself. The run's cap is the tightest of its layers, so a
+ * stop below the budget was a lower cap's (the agent's own, its
+ * profile's).
  */
 function stoppedAtItsShare(run: Run, budgetUsd: number): boolean {
+  const reached =
+    budgetUsd > SHARE_MARGIN_USD ? budgetUsd - SHARE_MARGIN_USD : budgetUsd;
   return (
     run.status?.phase === RunPhase.RUN_TERMINATED &&
     (run.status.error ?? "").startsWith(COST_LIMIT_ERROR_PREFIX) &&
-    (run.status.streamingUsage?.estimatedCostUsd ?? 0) >= budgetUsd - SHARE_MARGIN_USD
+    (run.status.streamingUsage?.estimatedCostUsd ?? 0) >= reached
   );
 }
 
