@@ -506,6 +506,20 @@ describe("start-try beside its main path", () => {
     expect(long.kind === "refused" && long.reason).toBe("x".repeat(500));
   });
 
+  it("takes a refused run's session already gone as deleted, and logs nothing", async () => {
+    await seeded();
+    const { cases, record, lines } = build({
+      sessions: {
+        delete: async () => {
+          throw new ConnectError("no such session", Code.NotFound);
+        },
+      },
+    });
+    record.refuse = new ConnectError("no such model", Code.NotFound);
+    expect(await cases[START_TRY_ACTIVITY_NAME](CELL)).toMatchObject({ kind: "refused" });
+    expect(lines.filter((l) => l.level === "error")).toEqual([]);
+  });
+
   it("deletes nothing for a refused run whose session came back without an id", async () => {
     await seeded();
     const { cases, record } = build({
