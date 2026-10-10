@@ -14,10 +14,12 @@
 // short and unique, and a person tells evals apart by plugin and start time.
 //
 // Streams follow the CLI's law: progress lines, notices and the suite's
-// load findings go to stderr, the table and the summary to stdout. Under
-// `--json` the run is quiet, as in the format: the result document goes to
-// stdout, or to the `.json` path given, and nothing else is printed but an
-// error. A refusal from create or from reading the plugin (an organization
+// load findings go to stderr, the table and the summary to stdout. A load
+// finding prints as the server relays it, on one line: its message already
+// starts with the file's path. Under `--json` the run is quiet, as in the
+// format: the result document goes to stdout, or to the `.json` path given,
+// with the load findings in Stigmer's `findings` field beside the format's,
+// and nothing else is printed but an error. A refusal from create or from reading the plugin (an organization
 // not set, an invalid reference) exits 1, the format's "a run couldn't be
 // started", unless it is the CLI's own sign-in or connection failure; the
 // CLI's usage code 2 is the format's partial run.
@@ -26,9 +28,10 @@
 // interrupt and the outputs are unit-tested without a server or a clock.
 
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import type { PluginWarning } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import type { PluginEval } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
 import { PluginEvalPhase } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
-import { toResultDocument, type Stigmer } from "@stigmer/sdk";
+import { toResultDocument, type PluginEvalResultDocument, type Stigmer } from "@stigmer/sdk";
 import { requireOrganization } from "../../client/single-org.js";
 import { CliExitError, ExitCode, classify } from "../../errors/index.js";
 import { parseReference } from "../reference.js";
@@ -60,6 +63,21 @@ export const POLL_RETRY_BUDGET_MS = POLL_RETRY_WAITS_MS.reduce((sum, ms) => sum 
 /** The plugin kind's id prefix (proto kind_meta). */
 const PLUGIN_ID_PREFIX = "plg";
 
+/** A problem reading the plugin's suite, as the result document carries it. */
+interface ResultFinding {
+  /** The finding's kind, such as `eval-case-invalid`. */
+  readonly kind: string;
+  /** The plugin-relative file it is about; empty for the suite as a whole. */
+  readonly path: string;
+  /** The sentence, which starts with the path. */
+  readonly message: string;
+}
+
+/** The result document the command writes: the SDK's, with the suite's load findings. */
+interface CliResultDocument extends PluginEvalResultDocument {
+  readonly findings: readonly ResultFinding[];
+}
+
 /** Everything the command does to the world besides the API. */
 export interface PluginEvalIo {
   readonly stdout: { write(text: string): void };
@@ -86,8 +104,8 @@ export async function runPluginEval(
   const quiet = options.json.kind !== "none";
   const plugin = await resolvePlugin(client, target.ref, org).catch(asStartRefusal);
   const findings = plugin.status?.evals?.findings ?? [];
-  for (const finding of findings) {
-    io.stderr.write(`evals: ${finding.path === "" ? "" : `${finding.path}: `}${oneLine(finding.message)}\n`);
+  if (!quiet) {
+    for (const finding of findings) io.stderr.write(`evals: ${oneLine(finding.message)}\n`);
   }
   if (!quiet && options.maxCostDefaulted) {
     io.stderr.write(`Spending limit $${options.maxCostUsd.toFixed(2)}, the default; set --max-cost-usd to change it.\n`);
@@ -98,7 +116,7 @@ export async function runPluginEval(
 
   if (!options.wait) {
     if (quiet) {
-      await writeDocument(started, options, io, false);
+      await writeDocument(started, findings, options, io, false);
     } else {
       io.stdout.write(`${id}\n`);
       io.stderr.write(`Started. Follow it with: stigmer get plugin-eval ${id}\n`);
@@ -113,7 +131,7 @@ export async function runPluginEval(
 
   if (lost !== undefined) {
     if (quiet) {
-      await writeDocument(latest, options, io, true);
+      await writeDocument(latest, findings, options, io, true);
     } else {
       printReport(latest, true, io);
     }
@@ -126,7 +144,7 @@ export async function runPluginEval(
   }
   const failed = latest.status?.phase === PluginEvalPhase.failed && !interrupted;
   if (quiet) {
-    await writeDocument(latest, options, io, interrupted);
+    await writeDocument(latest, findings, options, io, interrupted);
   } else if (!failed) {
     printReport(latest, interrupted, io);
   }
@@ -298,11 +316,16 @@ function printReport(pluginEval: PluginEval, interrupted: boolean, io: PluginEva
 
 async function writeDocument(
   pluginEval: PluginEval,
+  findings: readonly PluginWarning[],
   options: PluginEvalOptions,
   io: PluginEvalIo,
   interrupted: boolean,
 ): Promise<void> {
-  const document = `${JSON.stringify(toResultDocument(pluginEval, { interrupted, nowMs: io.now() }), null, 2)}\n`;
+  const result: CliResultDocument = {
+    ...toResultDocument(pluginEval, { interrupted, nowMs: io.now() }),
+    findings: findings.map((finding) => ({ kind: finding.kind, path: finding.path, message: finding.message })),
+  };
+  const document = `${JSON.stringify(result, null, 2)}\n`;
   if (options.json.kind === "file") {
     await io.writeFile(options.json.path, document);
   } else {

@@ -1,7 +1,8 @@
 // Pins the `plugin eval` dispatch against a fake server and fake effects:
 // the plugin is resolved by name and the eval created in its organization
-// with every option; the suite's load findings and the filled spending limit
-// go to stderr; each finished try prints once while the command follows the
+// with every option; the suite's load findings (each once, on one line) and
+// the filled spending limit go to stderr, or under `--json` the findings go
+// into the document's `findings`; each finished try prints once while the command follows the
 // eval; the table and summary go to stdout; `--json` is quiet and writes the
 // result document to stdout or its path; `--no-wait` prints the id and
 // returns (under `--json`, with the started eval's document); Ctrl+C cancels
@@ -162,15 +163,67 @@ describe("runPluginEval", () => {
     expect(fake.listening()).toBe(false);
   });
 
-  it("prints the suite's load findings to stderr and exits 1 for them", async () => {
+  // The server relays the suite reader's findings, whose message already
+  // starts with the file's path (plugin-package's evals/fields.ts).
+  const loadFindings = () => [
+    create(PluginWarningSchema, {
+      kind: "eval-case-invalid",
+      message: "evals/a/prompt.md: unknown key 'max_turn'",
+      path: "evals/a/prompt.md",
+    }),
+    create(PluginWarningSchema, {
+      kind: "eval-grader-invalid",
+      message: "evals/b/graders/x.md: grader 'x': pattern is not a valid regular expression:\nUnterminated group",
+      path: "evals/b/graders/x.md",
+    }),
+  ];
+
+  it("prints each of the suite's load findings once, on one line, to stderr and exits 1 for them", async () => {
     const server = fakeServer([finishedEval()]);
-    plugin.status!.evals!.findings = [
-      create(PluginWarningSchema, { kind: "eval-case-invalid", message: "unknown key 'max_turn'", path: "evals/a/prompt.md" }),
-    ];
+    plugin.status!.evals!.findings = loadFindings();
     try {
       const fake = fakeIo();
       expect(await runPluginEval(server.client, "acme", THERMOS, options(), fake.io)).toBe(1);
-      expect(fake.err()).toContain("evals: evals/a/prompt.md: unknown key 'max_turn'");
+      const lines = fake.err().split("\n").filter((line) => line.startsWith("evals: "));
+      expect(lines).toEqual([
+        "evals: evals/a/prompt.md: unknown key 'max_turn'",
+        "evals: evals/b/graders/x.md: grader 'x': pattern is not a valid regular expression: Unterminated group",
+      ]);
+    } finally {
+      plugin.status!.evals!.findings = [];
+    }
+  });
+
+  it("puts the load findings in the --json document, writes nothing to stderr, and exits 1 for them", async () => {
+    const server = fakeServer([finishedEval()]);
+    plugin.status!.evals!.findings = loadFindings();
+    try {
+      const fake = fakeIo();
+      expect(await runPluginEval(server.client, "acme", THERMOS, options({ json: true }), fake.io)).toBe(1);
+      expect(fake.err()).toBe("");
+      const document = JSON.parse(fake.out()) as { findings: unknown };
+      expect(document.findings).toEqual([
+        { kind: "eval-case-invalid", path: "evals/a/prompt.md", message: "evals/a/prompt.md: unknown key 'max_turn'" },
+        {
+          kind: "eval-grader-invalid",
+          path: "evals/b/graders/x.md",
+          message: "evals/b/graders/x.md: grader 'x': pattern is not a valid regular expression:\nUnterminated group",
+        },
+      ]);
+    } finally {
+      plugin.status!.evals!.findings = [];
+    }
+  });
+
+  it("writes the load findings into the --no-wait --json document too", async () => {
+    const server = fakeServer([finishedEval()]);
+    plugin.status!.evals!.findings = loadFindings();
+    try {
+      const fake = fakeIo();
+      await runPluginEval(server.client, "acme", THERMOS, options({ wait: false, json: "out.json" }), fake.io);
+      expect(fake.err()).toBe("");
+      const document = JSON.parse(fake.files.get("out.json") ?? "{}") as { findings: { path: string }[] };
+      expect(document.findings.map((f) => f.path)).toEqual(["evals/a/prompt.md", "evals/b/graders/x.md"]);
     } finally {
       plugin.status!.evals!.findings = [];
     }
@@ -181,9 +234,10 @@ describe("runPluginEval", () => {
     const fake = fakeIo();
     await runPluginEval(server.client, "acme", THERMOS, options({ json: true }), fake.io);
     expect(fake.err()).toBe("");
-    const document = JSON.parse(fake.out()) as { schemaVersion: number; cases: { name: string }[] };
+    const document = JSON.parse(fake.out()) as { schemaVersion: number; cases: { name: string }[]; findings: unknown[] };
     expect(document.schemaVersion).toBe(1);
     expect(document.cases.map((c) => c.name)).toEqual(["first-case"]);
+    expect(document.findings).toEqual([]);
   });
 
   it("writes the result document to a --json path and prints nothing", async () => {
