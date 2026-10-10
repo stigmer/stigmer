@@ -45,10 +45,15 @@ const PINNED: Readonly<
     revision: 1,
     fingerprint: "evaluator{agent=field:spec.agent_id}",
   },
+  plugin_eval: {
+    revision: 1,
+    fingerprint: "plugin_eval{plugin=field:spec.plugin_id}",
+  },
+  // Revision 3 added the plugin eval label's key.
   session: {
-    revision: 2,
+    revision: 3,
     fingerprint:
-      "session{agent=field:status.agent_id,channel=label:stigmer.ai/channel-id}",
+      "session{agent=field:status.agent_id,channel=label:stigmer.ai/channel-id,plugin_eval=label:stigmer.ai/plugin-eval}",
   },
   vault: {
     revision: 1,

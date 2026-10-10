@@ -68,6 +68,7 @@ const DOCUMENTS = [
   "organization-role-assignment.fga.yaml",
   "plan-catalog-manager.fga.yaml",
   "platform-client-administration.fga.yaml",
+  "plugin-eval-access.fga.yaml",
   "plugin-owner.fga.yaml",
   "provider-standing-viewer.fga.yaml",
   "reserved-label-writer.fga.yaml",

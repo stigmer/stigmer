@@ -48,6 +48,8 @@ module agentic
 # session#plugin_eval@plugin_eval:<id> tuple and inherit the eval's viewer
 # set (the plugin's viewers in its own organization) into can_view ONLY,
 # so an author opens the try that failed and cannot add a turn to it.
+# Open source writes no such link: there the tries act as the eval's
+# creator, who owns them as any session's creator does.
 #
 # Deletion cascades to the session's agent runs. The billing trail is
 # unaffected: llm_call_usage_record rows are immutable and carry their own

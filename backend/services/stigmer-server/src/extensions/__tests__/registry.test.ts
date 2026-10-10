@@ -354,6 +354,31 @@ describe("resolveExtensions — merge semantics", () => {
     );
   });
 
+  it("resolves one PluginEvalCallerMint and throws on a second, naming both units", () => {
+    const mint = {
+      mintPluginEvalCaller: () =>
+        Promise.resolve({
+          identityId: "ida_eval",
+          callerClass: "user" as const,
+          issuer: "stigmer",
+          rawToken: "jwt",
+        }),
+    };
+    expect(
+      resolveExtensions([{ name: "iam", drivers: { pluginEvalCaller: mint } }]).drivers
+        .pluginEvalCaller,
+    ).toBe(mint);
+    expect(resolveExtensions([]).drivers.pluginEvalCaller).toBeUndefined();
+    expect(() =>
+      resolveExtensions([
+        { name: "mint-a", drivers: { pluginEvalCaller: mint } },
+        { name: "mint-b", drivers: { pluginEvalCaller: mint } },
+      ]),
+    ).toThrowError(
+      /extension 'mint-b' registers a PluginEvalCallerMint, but 'mint-a' already did/,
+    );
+  });
+
   it("merges secret codecs as a version-keyed map across units", () => {
     const v2 = fakeCodec("v2");
     const v3 = fakeCodec("v3");
