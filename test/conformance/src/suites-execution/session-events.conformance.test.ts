@@ -19,8 +19,9 @@
 //     refused (the server's alone), another run's credential is
 //     PERMISSION_DENIED, and a finished run takes no more events.
 //
-// What M1's runner does not write yet (the agent's own events) is out of
-// scope here by construction: these arms append them through the RPC.
+// The runner does not write the agent's own events into the log yet (it
+// reports them on the run); these arms append them through the RPC, as a
+// runner will.
 // The outsider contract (no view, no events) is Class A,
 // suites/session-events.conformance.test.ts, on the enforcing lane.
 import { Code, ConnectError } from "@connectrpc/connect";
