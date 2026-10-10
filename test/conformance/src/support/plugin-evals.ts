@@ -24,15 +24,26 @@
 // through the library's own suite reader, and the follower's polling.
 import { dump } from "js-yaml";
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import type { PluginEval, PluginEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
+import type {
+  PluginEval,
+  PluginEvalSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
 import { PluginEvalAblation } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
 import type { PluginEvalTargetSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
-import type { PluginEvalArm, PluginEvalTry } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
+import type {
+  PluginEvalArm,
+  PluginEvalTry,
+} from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
 import { PluginEvalPhase } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
 import type { ConformanceClients } from "../harness/clients";
 import type { FixtureTracker } from "../harness/fixtures";
 import type { InitShape } from "./init-shape";
-import { claudePlugin, pluginArchive, withFile, type PluginFixture } from "./plugins";
+import {
+  claudePlugin,
+  pluginArchive,
+  withFile,
+  type PluginFixture,
+} from "./plugins";
 
 export const PLUGIN_EVAL_API_VERSION = "agentic.stigmer.ai/v1";
 export const PLUGIN_EVAL_KIND = "PluginEval";
@@ -48,7 +59,8 @@ export const INDICATOR_ONLY_REASON = "indicator only";
 
 // ─── Contract copy (byte-pinned in the server) ─────────────────────────────
 
-export const PLUGIN_EVAL_CREATE_DENIED_MESSAGE = "unauthorized to run evals of plugin";
+export const PLUGIN_EVAL_CREATE_DENIED_MESSAGE =
+  "unauthorized to run evals of plugin";
 
 export function pluginEvalOrgMismatchMessage(pluginOrg: string): string {
   return `metadata.org must be the plugin's organization (${pluginOrg})`;
@@ -62,7 +74,10 @@ export function pluginEvalNoCasesMessage(dir: string): string {
   return `this plugin version has no eval cases: add a case directory under ${dir}/ holding a prompt.md or a case.yaml`;
 }
 
-export function pluginEvalTooLargeMessage(cases: number, tries: number): string {
+export function pluginEvalTooLargeMessage(
+  cases: number,
+  tries: number,
+): string {
   return (
     `this eval would run ${cases} case${cases === 1 ? "" : "s"} and ${tries} tr${tries === 1 ? "y" : "ies"}; ` +
     "an eval runs at most 200 cases and 1000 tries: " +
@@ -74,7 +89,11 @@ export function pluginEvalActiveDeleteMessage(evalId: string): string {
   return `plugin eval ${evalId} is still running: cancel it first, then delete it`;
 }
 
-export function pluginEvalOtherPluginToolMessage(entry: string, named: string, plugin: string): string {
+export function pluginEvalOtherPluginToolMessage(
+  entry: string,
+  named: string,
+  plugin: string,
+): string {
   return `allow_tools entry '${entry}' names plugin '${named}', but this eval runs '${plugin}'; a try attaches no other plugin`;
 }
 
@@ -121,21 +140,33 @@ export interface EvalCaseFixture {
   readonly files?: Readonly<Record<string, string>>;
 }
 
-function markdown(frontmatter: Readonly<Record<string, unknown>>, body: string): string {
+function markdown(
+  frontmatter: Readonly<Record<string, unknown>>,
+  body: string,
+): string {
   const fields = Object.keys(frontmatter).length === 0 ? "" : dump(frontmatter);
   return `---\n${fields}---\n\n${body}\n`;
 }
 
 /** The files of one case, by plugin-relative path. */
-export function evalCaseFiles(evalCase: EvalCaseFixture, dir = "evals"): Map<string, string> {
+export function evalCaseFiles(
+  evalCase: EvalCaseFixture,
+  dir = "evals",
+): Map<string, string> {
   const root = `${dir}/${evalCase.name}`;
   const files = new Map<string, string>();
-  files.set(`${root}/prompt.md`, markdown(evalCase.frontmatter ?? {}, evalCase.prompt));
+  files.set(
+    `${root}/prompt.md`,
+    markdown(evalCase.frontmatter ?? {}, evalCase.prompt),
+  );
   if (evalCase.caseYaml !== undefined) {
     files.set(`${root}/case.yaml`, dump(evalCase.caseYaml));
   }
   for (const grader of evalCase.graders) {
-    files.set(`${root}/graders/${grader.name}.md`, markdown(grader.frontmatter, grader.body ?? ""));
+    files.set(
+      `${root}/graders/${grader.name}.md`,
+      markdown(grader.frontmatter, grader.body ?? ""),
+    );
   }
   for (const [path, content] of Object.entries(evalCase.files ?? {})) {
     files.set(`${root}/${path}`, content);
@@ -144,7 +175,11 @@ export function evalCaseFiles(evalCase: EvalCaseFixture, dir = "evals"): Map<str
 }
 
 /** `fixture` with `cases` written under its eval directory. */
-export function withEvalCases(fixture: PluginFixture, cases: readonly EvalCaseFixture[], dir = "evals"): PluginFixture {
+export function withEvalCases(
+  fixture: PluginFixture,
+  cases: readonly EvalCaseFixture[],
+  dir = "evals",
+): PluginFixture {
   let out = fixture;
   for (const evalCase of cases) {
     for (const [path, content] of evalCaseFiles(evalCase, dir)) {
@@ -168,7 +203,10 @@ export interface SkillPluginOptions {
  * A Claude Code plugin with one skill (so its install composes an agent the
  * with-arm runs on) and the given cases under `evals/`.
  */
-export function skillPluginWithEvals(name: string, options: SkillPluginOptions): PluginFixture {
+export function skillPluginWithEvals(
+  name: string,
+  options: SkillPluginOptions,
+): PluginFixture {
   return withEvalCases(
     claudePlugin({
       name,
@@ -189,15 +227,25 @@ export function skillPluginWithEvals(name: string, options: SkillPluginOptions):
 }
 
 /** The `tool_used: Skill` grader of the format's walkthrough, for `skill`. */
-export function skillFiredGrader(skill: string, name = "skill-fired"): EvalGraderFixture {
+export function skillFiredGrader(
+  skill: string,
+  name = "skill-fired",
+): EvalGraderFixture {
   return {
     name,
-    frontmatter: { type: "tool_used", tool: "Skill", input_match: `"skill"\\s*:\\s*"(?:[\\w-]+:)?${skill}"` },
+    frontmatter: {
+      type: "tool_used",
+      tool: "Skill",
+      input_match: `"skill"\\s*:\\s*"(?:[\\w-]+:)?${skill}"`,
+    },
   };
 }
 
 /** A `regex` grader over the final message. */
-export function lastMessageGrader(name: string, pattern: string): EvalGraderFixture {
+export function lastMessageGrader(
+  name: string,
+  pattern: string,
+): EvalGraderFixture {
   return { name, frontmatter: { type: "regex", pattern } };
 }
 
@@ -208,8 +256,13 @@ export async function installPlugin(
   org: string,
   fixture: PluginFixture,
 ): Promise<Plugin> {
-  const plugin = await clients.pluginCommand.push({ org, artifact: pluginArchive(fixture) });
-  fixtures.defer(() => clients.pluginCommand.delete({ value: plugin.metadata!.id }));
+  const plugin = await clients.pluginCommand.push({
+    org,
+    artifact: pluginArchive(fixture),
+  });
+  fixtures.defer(() =>
+    clients.pluginCommand.delete({ value: plugin.metadata!.id }),
+  );
   return plugin;
 }
 
@@ -234,11 +287,16 @@ export interface PluginEvalOptions {
  * case's own targets, one try per arm, with and without the plugin, ten
  * dollars at most, one try at a time.
  */
-export function makePluginEval(opts: PluginEvalOptions): InitShape<typeof PluginEvalSchema> {
+export function makePluginEval(
+  opts: PluginEvalOptions,
+): InitShape<typeof PluginEvalSchema> {
   return {
     apiVersion: PLUGIN_EVAL_API_VERSION,
     kind: PLUGIN_EVAL_KIND,
-    metadata: { org: opts.org, ...(opts.name === undefined ? {} : { name: opts.name }) },
+    metadata: {
+      org: opts.org,
+      ...(opts.name === undefined ? {} : { name: opts.name }),
+    },
     spec: {
       pluginId: opts.pluginId,
       pluginDigest: opts.pluginDigest ?? "",
@@ -261,12 +319,13 @@ export function isActivePhase(phase: PluginEvalPhase | undefined): boolean {
 /** Whether an eval has ended: completed, partial or failed. */
 export function isFinishedPhase(phase: PluginEvalPhase | undefined): boolean {
   return (
-    phase === PluginEvalPhase.completed || phase === PluginEvalPhase.partial || phase === PluginEvalPhase.failed
+    phase === PluginEvalPhase.completed ||
+    phase === PluginEvalPhase.partial ||
+    phase === PluginEvalPhase.failed
   );
 }
 
-function describeEval(pluginEval: PluginEval | undefined): string {
-  if (pluginEval === undefined) return "(not read yet)";
+function describeEval(pluginEval: PluginEval): string {
   const status = pluginEval.status;
   return (
     `phase ${PluginEvalPhase[status?.phase ?? 0]}, tries ${status?.triesFinished ?? 0}/${status?.triesTotal ?? 0}` +
@@ -287,22 +346,33 @@ export async function followPluginEval(
   timeoutMs = 120_000,
 ): Promise<PluginEval> {
   const deadline = Date.now() + timeoutMs;
-  let last: PluginEval | undefined;
   for (;;) {
-    last = await clients.pluginEvalQuery.get({ value: id });
+    const last = await clients.pluginEvalQuery.get({ value: id });
     if (until(last)) {
       return last;
     }
     if (Date.now() > deadline) {
-      throw new Error(`plugin eval ${id} did not reach ${what} within ${timeoutMs} ms; last read: ${describeEval(last)}`);
+      throw new Error(
+        `plugin eval ${id} did not reach ${what} within ${timeoutMs} ms; last read: ${describeEval(last)}`,
+      );
     }
     await new Promise<void>((resolve) => setTimeout(resolve, 500));
   }
 }
 
 /** The eval once it has ended. */
-export function awaitPluginEvalEnd(clients: ConformanceClients, id: string, timeoutMs?: number): Promise<PluginEval> {
-  return followPluginEval(clients, id, (e) => isFinishedPhase(e.status?.phase), "an end", timeoutMs);
+export function awaitPluginEvalEnd(
+  clients: ConformanceClients,
+  id: string,
+  timeoutMs?: number,
+): Promise<PluginEval> {
+  return followPluginEval(
+    clients,
+    id,
+    (e) => isFinishedPhase(e.status?.phase),
+    "an end",
+    timeoutMs,
+  );
 }
 
 /**
@@ -310,7 +380,10 @@ export function awaitPluginEvalEnd(clients: ConformanceClients, id: string, time
  * for it to end, then delete it (its tries' conversations with it). A plugin
  * delete would refuse while one of its evals runs.
  */
-export async function cancelAndDeletePluginEval(clients: ConformanceClients, id: string): Promise<void> {
+export async function cancelAndDeletePluginEval(
+  clients: ConformanceClients,
+  id: string,
+): Promise<void> {
   const current = await clients.pluginEvalQuery.get({ value: id });
   if (isActivePhase(current.status?.phase)) {
     await clients.pluginEvalCommand.cancel({ value: id });
@@ -337,10 +410,20 @@ export function triesOf(pluginEval: PluginEval): LocatedTry[] {
   for (const evalCase of pluginEval.status?.cases ?? []) {
     evalCase.targets.forEach((target, targetIndex) => {
       for (const attempt of armTries(target.withPlugin)) {
-        out.push({ caseName: evalCase.caseName, targetIndex, arm: "with", attempt });
+        out.push({
+          caseName: evalCase.caseName,
+          targetIndex,
+          arm: "with",
+          attempt,
+        });
       }
       for (const attempt of armTries(target.withoutPlugin)) {
-        out.push({ caseName: evalCase.caseName, targetIndex, arm: "without", attempt });
+        out.push({
+          caseName: evalCase.caseName,
+          targetIndex,
+          arm: "without",
+          attempt,
+        });
       }
     });
   }
