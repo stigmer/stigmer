@@ -84,7 +84,7 @@ Plugin plugin = client.plugins().get("plg_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`listMembers`](#listmembers) | List the resources an installed plugin materialised. |
 | [`listVersions`](#listversions) | List version history for a plugin. |
 | [`updateVisibility`](#updatevisibility) | Update the visibility of a plugin and of every resource it materialised. |
-| [`delete`](#delete) | Delete a plugin and every resource it materialised. |
+| [`delete`](#delete) | Delete a plugin and every resource it materialised, its evals included. |
 | [`createArtifactUploadUrl`](#createartifactuploadurl) | Mint a short-lived, single-use upload URL for staging a plugin archive that exceeds the gRPC message-size cap (10MB). |
 | [`push`](#push) | Push a plugin archive to install or upgrade it. |
 
@@ -391,7 +391,7 @@ Plugin plugin = client.plugins().updateVisibility(UpdateVisibilityInput.builder(
 
 ### delete
 
-Delete a plugin and every resource it materialised. Refused when a resource outside the plugin still references a member; the error names the referencing resources.
+Delete a plugin and every resource it materialised, its evals included. Refused when a resource outside the plugin still references a member; the error names the referencing resources. Refused while one of its evals is pending or running: cancel that eval first.
 
 <SDKTabs>
 <Tab value="TypeScript">

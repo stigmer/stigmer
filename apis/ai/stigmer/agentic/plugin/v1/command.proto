@@ -75,15 +75,21 @@ service PluginCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update plugin visibility";
   }
 
-  // Delete a plugin and every resource it materialised.
+  // Delete a plugin and every resource it materialised, its evals included.
   // Refused when a resource outside the plugin still references a member;
-  // the error names the referencing resources.
+  // the error names the referencing resources. Refused while one of its
+  // evals is pending or running: cancel that eval first.
   //
   // @internal
   // Members are deleted through their own delete chains in-process (agent,
   // MCP servers, skills, in that order), then the head; a
   // failure part-way leaves a plugin whose remaining members are still
   // listed, and a retry converges. Audit history is preserved.
+  //
+  // Error Cases:
+  //
+  // - FAILED_PRECONDITION: one of the plugin's evals is pending or running;
+  //   the error names the eval and cancel
   rpc delete(PluginId) returns (Plugin) {
     option (ai.stigmer.commons.rpc.config).resource_kind = plugin;
     option (ai.stigmer.commons.rpc.config).permission = can_delete;

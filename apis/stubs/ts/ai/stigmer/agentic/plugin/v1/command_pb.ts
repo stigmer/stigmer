@@ -67,9 +67,10 @@ export const PluginCommandController: GenService<{
     output: typeof PluginSchema;
   },
   /**
-   * Delete a plugin and every resource it materialised.
+   * Delete a plugin and every resource it materialised, its evals included.
    * Refused when a resource outside the plugin still references a member;
-   * the error names the referencing resources.
+   * the error names the referencing resources. Refused while one of its
+   * evals is pending or running: cancel that eval first.
    *
    * @generated from rpc ai.stigmer.agentic.plugin.v1.PluginCommandController.delete
    */
