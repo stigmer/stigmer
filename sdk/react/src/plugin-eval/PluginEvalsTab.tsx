@@ -5,13 +5,16 @@
  * Stigmer's engines with and without the plugin, and what came of each
  * run of them.
  *
- * Top to bottom: the suite as install read it (cases, tags, findings, and
+ * Top to bottom: the suite as install read it (cases, tags, findings, each
+ * shown by its message, which already starts with its file's path, and
  * the cases Stigmer does not run yet, the feature named); the Run evals
  * form, for the plugin's editors only (each case's own model or the models
  * picked, tries per case, empty for each case's own, the comparison
  * without the plugin, the cost limit, tries at once); the past
  * evals, newest first, each labelled by the plugin and when it started and
- * opening its results, listed again while any of them runs; and Compare,
+ * opening its results, listed again while any of them runs (a read again
+ * that fails keeps the last list with a small notice; only a first read
+ * that fails shows the error alone); and Compare,
  * which puts two evals side by side case by case, how a new version is
  * judged against the last, and shows a read that failed rather than
  * loading forever. The results themselves are {@link PluginEvalResults}.
@@ -124,21 +127,29 @@ export function PluginEvalsTab({
           <p className="stg:px-3 stg:py-2.5 stg:text-xs stg:text-muted-foreground">
             Loading evals…
           </p>
+        ) : evals.length > 0 ? (
+          <>
+            {error !== null && (
+              <p className="stg:px-3 stg:pt-2.5 stg:text-xs stg:text-warning">
+                Could not refresh the evals ({error.message}); this is the
+                last list read.
+              </p>
+            )}
+            <EvalList
+              evals={evals}
+              pluginName={pluginName}
+              selected={shown}
+              onSelect={setSelected}
+            />
+          </>
         ) : error !== null ? (
           <div className="stg:p-3">
             <ErrorMessage error={error} retry={refetch} />
           </div>
-        ) : evals.length === 0 ? (
+        ) : (
           <p className="stg:px-3 stg:py-2.5 stg:text-sm stg:text-muted-foreground">
             No evals have run yet.
           </p>
-        ) : (
-          <EvalList
-            evals={evals}
-            pluginName={pluginName}
-            selected={shown}
-            onSelect={setSelected}
-          />
         )}
       </Section>
       {shown !== null && (
@@ -219,9 +230,6 @@ function SuiteSummary({
                 className="stg:text-xs stg:text-warning"
               >
                 {finding.message}
-                {finding.path !== "" && (
-                  <span className="stg:ml-2 stg:font-mono">{finding.path}</span>
-                )}
               </li>
             ))}
           </ul>

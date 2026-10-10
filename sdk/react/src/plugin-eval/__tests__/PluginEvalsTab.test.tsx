@@ -15,7 +15,9 @@
  * its tries as links to their runs; Cancel for an editor while the eval
  * runs; and Compare, case by case, with a changed case marked, a
  * request for two different evals when both pickers name one, and each
- * read's error when one fails.
+ * read's error when one fails; a failed read again of the past evals keeps
+ * the last list with a notice, and a failed first read shows the error; a
+ * finding shows its message once, which starts with its path.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -84,7 +86,7 @@ const plugin = create(PluginSchema, {
       findings: [
         {
           kind: "eval-case-invalid",
-          message: "unknown key 'foo' in prompt.md",
+          message: "evals/bad/prompt.md: unknown key 'foo'",
           path: "evals/bad/prompt.md",
         },
       ],
@@ -148,7 +150,9 @@ describe("PluginEvalsTab", () => {
     expect(
       within(notRun).getByText(/not run yet: context.scaffold_script/),
     ).toBeDefined();
-    expect(screen.getByText("unknown key 'foo' in prompt.md")).toBeDefined();
+    // The message starts with the path, as the library writes it: shown once.
+    expect(screen.getByText("evals/bad/prompt.md: unknown key 'foo'")).toBeDefined();
+    expect(screen.getAllByText(/evals\/bad\/prompt\.md/)).toHaveLength(1);
     expect(await screen.findByText("No evals have run yet.")).toBeDefined();
   });
 
@@ -344,6 +348,37 @@ describe("PluginEvalsTab", () => {
     await vi.waitFor(() =>
       expect(mock.plugineval.cancel).toHaveBeenCalledWith("pev_1"),
     );
+  });
+
+  it("keeps the last list when a read again fails, with a small stale notice", async () => {
+    const running = evalWith([{ name: "review-fires" }]);
+    running.status!.phase = PluginEvalPhase.running;
+    const mock = client([running]);
+    render(<PluginEvalsTab plugin={plugin} />, { wrapper: wrap(mock) });
+    expect(await screen.findByText(labelOf("pev_1"))).toBeDefined();
+    mock.plugineval.listByPlugin.mockRejectedValueOnce(
+      new Error("the server is unavailable"),
+    );
+    // A cancel reads the list again.
+    fireEvent.click(await screen.findByRole("button", { name: "Cancel" }));
+    expect(
+      await screen.findByText(
+        "Could not refresh the evals (the server is unavailable); this is the last list read.",
+      ),
+    ).toBeDefined();
+    const list = screen.getByRole("list", { name: "Past evals" });
+    expect(within(list).getAllByRole("button")).toHaveLength(1);
+  });
+
+  it("shows the error alone when the first read of the list fails", async () => {
+    const mock = client([]);
+    mock.plugineval.listByPlugin.mockRejectedValueOnce(
+      new Error("the server is unavailable"),
+    );
+    render(<PluginEvalsTab plugin={plugin} />, { wrapper: wrap(mock) });
+    expect(await screen.findByText(/the server is unavailable/)).toBeDefined();
+    expect(screen.queryByRole("list", { name: "Past evals" })).toBeNull();
+    expect(screen.queryByText("No evals have run yet.")).toBeNull();
   });
 
   it("offers no Cancel to someone who cannot edit the plugin", async () => {
