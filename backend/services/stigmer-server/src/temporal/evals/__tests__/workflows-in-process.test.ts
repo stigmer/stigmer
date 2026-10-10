@@ -984,6 +984,27 @@ describe("the case workflow", () => {
     }
   });
 
+  it("answers a cancellation at a vote's read as cancelled, stopping that vote's run and the try's", async () => {
+    const activities = caseScript({
+      [READ_VOTE_ACTIVITY_NAME]: vi.fn(() =>
+        Promise.reject(new CancelledFailure("cancelled")),
+      ),
+    });
+    expect(await runCase(INPUT)).toMatchObject({
+      state: "not-graded",
+      notGradedReason: TRY_CANCELLED_REASON,
+      costUsd: expect.closeTo(0.4),
+    });
+    expect(activities[STOP_RUN_ACTIVITY_NAME]).toHaveBeenCalledWith(
+      "vote_0_0",
+      "the eval was cancelled",
+    );
+    expect(activities[STOP_RUN_ACTIVITY_NAME]).toHaveBeenCalledWith(
+      "run_1",
+      "the eval was cancelled",
+    );
+  });
+
   it("finds the run by the spend activity when a start's answer is lost to the cancellation, and stops nothing when there is none", async () => {
     const found = caseScript({
       [START_TRY_ACTIVITY_NAME]: vi.fn(() =>
