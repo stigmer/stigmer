@@ -7,11 +7,11 @@
  * running refuses the delete, naming cancel: its tries may hold an active
  * run, which a conversation's delete refuses. Runs before every other
  * cascade of the plugin's delete, so a refusal removes nothing. An eval
- * created while the delete runs is swept after the plugin's row goes
+ * created during its plugin's delete is swept after the plugin's row goes
  * (SweepPluginEvalsAfterDelete), its workflow first asked to cancel and
- * waited for. A
- * composition that serves no evals passes no deps, and the steps do
- * nothing.
+ * waited for; one still running after the wait is left for the
+ * organization's purge, logged. A composition that serves no evals passes
+ * no deps, and the steps do nothing.
  *
  * Proven by __tests__/plugin-eval.test.ts (the plugin's delete) and
  * __tests__/cascade.test.ts (the race with a create).
@@ -109,11 +109,12 @@ export function newCascadeDeletePluginEvalsStep<Desc extends DescMessage>(
  * workflow the racing create started stops starting tries; when it took
  * the cancel, the sweep waits for the eval to end (SWEEP_END_WAIT, its
  * phase polled), since a try's session refuses its delete while its run
- * is active. An eval still running after the wait is left, and a warning
- * names it. With create's own re-read of the plugin after it
- * stores the eval (steps.ts EnsureEvaluatedPluginStillExists), no eval
- * outlives its plugin: one stored before this list is found here, and one
- * stored after it meets a plugin already gone and deletes itself.
+ * is active. With create's own re-read of the plugin after it stores the
+ * eval (steps.ts EnsureEvaluatedPluginStillExists), an eval created during
+ * its plugin's delete is swept: one stored before this list is found here,
+ * and one stored after it meets a plugin already gone and deletes itself.
+ * One still running after the wait is left for the organization's purge,
+ * logged (a warning names it).
  */
 export function newSweepPluginEvalsAfterDeleteStep<Desc extends DescMessage>(
   deps: PluginEvalCascadeDeps | undefined,
