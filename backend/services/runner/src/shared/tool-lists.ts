@@ -40,7 +40,10 @@
  *    ({@link ToolScope.hidesSkills}). An allow-list that omits it keeps them,
  *    because skills are platform content, as the confined read already
  *    treats them, so no stored agent changes behaviour. An entry naming it
- *    always names something, the way a platform capability does.
+ *    always names something, the way a platform capability does, and is in
+ *    scope unless a layer denies it: a turn or sub-agent `tools: [Skill]`
+ *    under an agent's `tools: [Read]` resolves, since that agent keeps its
+ *    skills.
  * The platform's own tools (the synthesized channel, conversation and memory
  * attachments) are outside both lists: no plugin can name them, and an agent
  * without them cannot answer its channel.
@@ -520,7 +523,8 @@ function entryNamesSomething(entry: ToolListEntry, inventory: TurnToolInventory)
 function entryInScope(entry: ToolListEntry, scope: ToolScope): boolean {
   switch (entry.kind) {
     case "builtin":
-      return scope.allowsClaudeTool(entry.tool);
+      // An allow-list that omits Skill keeps skills, so only a deny takes it out of scope.
+      return entry.tool === "Skill" ? !scope.hidesSkills : scope.allowsClaudeTool(entry.tool);
     case "mcp":
       return entry.tool === null ? scope.allowsMcpFamily(entry.server) : scope.allowsMcpTool(entry.server ?? "", entry.tool);
     /* v8 ignore start -- @preserve: checkToolListResolution asks only an entry that names something, which an unknown one never does */
