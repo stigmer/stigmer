@@ -380,9 +380,11 @@ async function follow(
     const read = await readEval(client, id, quiet, interrupt, io);
     if (read.kind === "aborted") break;
     if (read.kind === "lost") {
-      // The eval would go on spending with no one watching: stop it.
+      // The eval would go on spending with no one watching: stop it. One
+      // that finished while the reads failed is reported as finished.
       const cancel = await cancelAndRead(client, id, latest, io);
       report(cancel.latest);
+      if (finishedOnItsOwn(cancel.latest)) return { latest: cancel.latest, interrupted: false };
       return { ...cancel, interrupted: true, lost: read.reason };
     }
     latest = read.pluginEval;

@@ -16,7 +16,8 @@
 // no answer in 30 seconds counts as failed; a read that
 // fails is retried with backoff (a Ctrl+C during the wait still cancels),
 // and past about a minute the eval is cancelled, `--json` written with
-// what the command had, and the exit is 1;
+// what the command had, and the exit is 1, unless the cancel found the eval
+// already finished, which is then reported as finished with its own code;
 // when that cancel, or Ctrl+C's, fails too, the report says the eval may
 // still be running in place of "Cancelled", `--json` adds `stillRunning`,
 // and the exit stays 1 (lost) or 130 (Ctrl+C);
@@ -519,6 +520,17 @@ describe("runPluginEval", () => {
     expect(server.calls).toContain("cancel pev_1");
     expect(JSON.parse(fake.files.get("out.json") ?? "{}")).toMatchObject({ partial: true, partialReason: "interrupted" });
     expect(fake.out()).toBe("");
+  });
+
+  it("reports an eval the lost-track cancel found already finished normally, with its own exit code", async () => {
+    // Seven waits between failed reads, so reads 2 to 9 fail and the read after the cancel is the tenth.
+    const reads = new Set(Array.from({ length: 8 }, (_, i) => i + 2));
+    const server = fakeServer([running(), finishedEval()], { failedReads: reads });
+    const fake = fakeIo();
+    expect(await runPluginEval(server.client, "acme", THERMOS, options({ json: "out.json" }), fake.io)).toBe(0);
+    expect(server.calls.slice(-2)).toEqual(["cancel pev_1", "get"]);
+    expect(JSON.parse(fake.files.get("out.json") ?? "{}")).toMatchObject({ partial: false });
+    expect(JSON.parse(fake.files.get("out.json") ?? "{}")).not.toHaveProperty("stillRunning");
   });
 
   it("prints what it has and says the cancel failed too, when the server stays unreachable", async () => {
