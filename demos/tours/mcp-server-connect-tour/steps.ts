@@ -1,50 +1,81 @@
 /**
- * MCP server connect tour — the walkthrough for the "Connect" step of
- * "Connect your tools": the real `McpServerDetailView` going from a freshly
- * registered server (no tools) through the shipped two-click connect flow
- * (Connect opens the credential form *without* connecting; Save connects) to
- * discovered tools, one of which the server marks destructive.
+ * Sign in and check tools — the walkthrough for the "Connect" step of
+ * "Connect your tools": the real plugin page going from a server that asks
+ * you to sign in, through the server's own login page, to "Signed in", and
+ * then the server's tools as "Check tools" and `stigmer connect plugin`
+ * list them, one of which the server marks destructive.
  *
  * Continuity: this tour picks up exactly where `mcp-server-creation-tour`
- * leaves off ("Next, connect it…") — same server, same org, same env var,
- * all sourced from `_shared/order-management-mcp.ts` so the embeds on the
+ * leaves off ("Next, sign in…") — same plugin, same server, same org, all
+ * sourced from `_shared/order-management-plugin.ts` so the embeds on the
  * same docs page cannot drift apart.
  *
- * Determinism (the fixture-determinism rule, demos/README.md): the resource
- * that CHANGES across the timeline — the server before vs after discovery —
- * is data this tour owns. `index.tsx` passes frozen `McpServer` snapshots
- * into the view through its `mcpServerState` prop, so no beat depends on an
- * RPC resolving; the router in `.scenar/providers.tsx` registers nothing.
- * Depicted states via props, remounts via `key` for internal-state resets,
- * never synthetic events.
+ * Determinism (the fixture-determinism rule, demos/README.md): the one
+ * thing that changes across the timeline is whether My vault holds a
+ * login. The page reads it itself, so a beat says which state it shows by
+ * the organization it names: before the sign-in by its slug, after by its
+ * id (the API takes either), and `.scenar/providers.tsx` answers `getMine`
+ * by which one asked. No beat depends on a click having happened.
  *
- * The one thing deliberately not depicted is the "Connecting..." busy state:
- * it lives in `useMcpServerConnect`'s transient state and is not
- * prop-drivable. The narration owns that moment instead — honestly, since
- * the real connect blocks for a few seconds while a workflow talks to the
- * live endpoint.
+ * Two moments are deliberately not depicted on the page: the sign-in's
+ * busy state (it lives in the sign-in hook's transient state) and the list
+ * "Check tools" draws under the server (it lives in the row's own state,
+ * filled by the click). The narration owns the first; the second is shown
+ * where it is a pure function of data, the terminal's
+ * `stigmer connect plugin`, which lists the same tools the same way.
  *
  * Import discipline: `scenar narrate` loads this file in plain Node (tsx),
- * so it must only pull pure modules — the `McpServer` snapshots live in
- * `index.tsx` (a rendering concern); step data carries only semantic tags.
+ * so it must only pull pure modules — the `_shared` data modules and
+ * `@scenar/react` types. Step data carries only semantic tags.
  */
-import type { ScenarioStep } from "@scenar/react";
+import type { ScenarioStep, TerminalLine } from "@scenar/react";
+import { DEMO_ORG } from "../_shared/fixtures";
+import { ORDER_MGMT, ORDER_MGMT_TOOLS } from "../_shared/order-management-plugin";
 
 // ---------------------------------------------------------------------------
 // Data model
 // ---------------------------------------------------------------------------
 
-/** How far the credential form has gotten: just opened, or token pasted. */
-export type CredentialFormPhase = "empty" | "filled";
-
 /** The surface shown at a given step (maps to a branch in `renderStep`). */
 export type McpServerConnectTourStep =
   | {
-      view: "detail";
-      /** Which snapshot the detail view renders: pre- or post-discovery. */
-      phase: "registered" | "connected";
+      view: "plugin-page";
+      /** Whether My vault holds the server's login yet. */
+      signedIn: boolean;
     }
-  | { view: "credentials"; form: CredentialFormPhase };
+  | { view: "login" }
+  | { view: "terminal" };
+
+// ---------------------------------------------------------------------------
+// Terminal fixture
+// ---------------------------------------------------------------------------
+
+/** `stigmer connect plugin`'s name column (the CLI's `NAME_COLUMN`). */
+const NAME_COLUMN = 30;
+
+/**
+ * `stigmer connect plugin order-management-api` after the sign-in, line for
+ * line as the CLI renders a listing: the plugin and its server, each tool
+ * with the destructive mark on the one the server marks, and where the
+ * list came from. The sign-in is already in My vault, so the CLI lists
+ * without asking for one.
+ */
+export const CONNECT_OUTPUT: readonly TerminalLine[] = [
+  { type: "prompt", text: `stigmer connect plugin ${ORDER_MGMT.name}` },
+  { type: "blank", text: "" },
+  { type: "output", text: `Plugin:     ${DEMO_ORG}/${ORDER_MGMT.name}` },
+  { type: "output", text: `MCP server: ${ORDER_MGMT.name} (http: ${ORDER_MGMT.url})` },
+  { type: "blank", text: "" },
+  { type: "output", text: `Tools (${ORDER_MGMT_TOOLS.length}):` },
+  ...ORDER_MGMT_TOOLS.map(
+    (tool): TerminalLine => ({
+      type: "output",
+      text: `  ${tool.name.padEnd(NAME_COLUMN)} ${tool.destructive ? "[destructive] " : ""}${tool.description}`,
+    }),
+  ),
+  { type: "blank", text: "" },
+  { type: "success", text: "✓ Listed as you; nothing stored" },
+];
 
 // ---------------------------------------------------------------------------
 // Timeline
@@ -52,66 +83,59 @@ export type McpServerConnectTourStep =
 
 /*
  * Cursor choreography: each pointing step sets its cursor mid-step and
- * clears it before the step ends, so every step is self-contained. Cursor
- * targets inside the real component (`connect-button`, `credential-form`,
- * `env-form-submit`) are the `data-cursor-target` hooks
- * @stigmer/react ships; the cursor auto-scrolls its target into view.
- * Beats without a cursor open with a `scroll_to` instead, because a `key`
- * remount resets the frame's scroll position to the top.
+ * clears it before the step ends, so every step is self-contained. The
+ * plugin page's `sign-in` and `check-tools` targets are named by
+ * `_shared/CursorTargets`; `login-allow` is the login card's submit.
  */
 export const mcpServerConnectTourSteps: ScenarioStep<McpServerConnectTourStep>[] = [
   {
     delayMs: 0,
-    data: { view: "detail", phase: "registered" },
+    data: { view: "plugin-page", signedIn: false },
     narration:
-      "Here's the server you just created. It's registered, but Stigmer hasn't talked to it yet — the Tools tab is empty until you connect.",
+      "Here's the plugin you just added. Its server asks you to sign in before its first tool call, and the page says so.",
     // No interactions here: the embed arms step-0 interactions at mount
     // (under the poster), so they would fire before Play — a @scenar/react
     // quirk every tour works around by keeping its first step inert.
   },
   {
     delayMs: 2500,
-    data: { view: "detail", phase: "registered" },
-    narration:
-      "Connecting reaches the live server and catalogs every tool it offers. It all starts from this one button.",
+    data: { view: "plugin-page", signedIn: false },
+    narration: "Sign in opens the server's own login page.",
     interactions: [
-      { atPercent: 0.35, type: "set_cursor", target: "connect-button" },
+      { atPercent: 0.35, type: "set_cursor", target: "sign-in" },
       { atPercent: 0.92, type: "clear_cursor" },
     ],
   },
   {
     delayMs: 2500,
-    data: { view: "credentials", form: "empty" },
+    data: { view: "login" },
     narration:
-      "This server declares a bearer token, so Connect asks for it before dialing out. Save in My vault keeps the token for every later connection — you enter it once.",
+      "You sign in there, with the provider's own login. Stigmer never sees your password: the token it gets back is saved in My vault.",
     interactions: [
-      { atPercent: 0.1, type: "scroll_to", target: "mcp-connection" },
-      { atPercent: 0.45, type: "set_cursor", target: "credential-form" },
-      { atPercent: 0.9, type: "clear_cursor" },
+      { atPercent: 0.55, type: "set_cursor", target: "login-allow" },
+      { atPercent: 0.92, type: "clear_cursor" },
     ],
   },
   {
     delayMs: 2500,
-    data: { view: "credentials", form: "filled" },
+    data: { view: "plugin-page", signedIn: true },
     narration:
-      "Paste the token and save. Stigmer stores it securely, connects to the live endpoint, and starts discovery. This takes a few seconds — it's talking to the real server.",
+      "Back on the plugin page, the server says Signed in. The login is saved at the server's address, so every conversation of yours that uses this plugin can call it.",
+  },
+  {
+    delayMs: 2500,
+    data: { view: "plugin-page", signedIn: true },
+    narration:
+      "Check tools asks the server for its tools right now, as you, and stores nothing.",
     interactions: [
-      { atPercent: 0.45, type: "set_cursor", target: "env-form-submit" },
+      { atPercent: 0.35, type: "set_cursor", target: "check-tools" },
       { atPercent: 0.92, type: "clear_cursor" },
     ],
   },
   {
     delayMs: 3000,
-    data: { view: "detail", phase: "connected" },
+    data: { view: "terminal" },
     narration:
-      "Connected. Stigmer found three tools — get order, list orders, and process return — and the header now shows when discovery last ran.",
-    interactions: [{ atPercent: 0.2, type: "scroll_to", target: "mcp-capabilities" }],
-  },
-  {
-    delayMs: 3000,
-    data: { view: "detail", phase: "connected" },
-    narration:
-      "Process return moves money, so the server marks it destructive, and Stigmer asks before any tool so marked. Your agent will pause before any refund goes out — no extra code. The two lookups run on their own.",
-    interactions: [{ atPercent: 0.15, type: "scroll_to", target: "mcp-capabilities" }],
+      "From a terminal, stigmer connect plugin lists the same three tools: get order, list orders, and process return. Process return moves money, so the server marks it destructive, and Stigmer asks a person before any call to it.",
   },
 ];

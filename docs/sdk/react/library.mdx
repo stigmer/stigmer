@@ -191,8 +191,7 @@ if (detection.detected) {
 
 ### useExportResource
 
-Headless export hook for Stigmer resources (Agent, McpServer,
-Schedule).
+Headless export hook for Stigmer resources (Agent, Schedule).
 
 Serializes the resource into YAML and JSON formats and provides
 stable callbacks for copying to clipboard or triggering a file
@@ -243,9 +242,8 @@ const { copyYaml, downloadYaml } = useExportResource({
 
 Behavior hook that updates the visibility of a resource.
 
-Supports blueprints (Agent, Skill, MCP Server, Plugin) with
-the full private/org/child-organizations spectrum (a plugin's change reaches
-every resource it installed, by the server's contract), and shared vaults
+Supports blueprints (Agent, Skill, Plugin) with the full
+private/org/child-organizations spectrum, and shared vaults
 with private/org (saved values never leave the org boundary, so the
 child-organizations level is rejected by the backend).
 
@@ -311,7 +309,7 @@ for Library landing pages and resource dashboards.
 
 Purely presentational: the consumer provides the count (typically
 from [`useAgentCount`](/docs/sdk/react/agent#useagentcount), [`useSkillCount`](/docs/sdk/react/skill#useskillcount), or
-[`useMcpServerCount`](/docs/sdk/react/mcp-server#usemcpservercount)) and the card handles rendering, loading
+[`usePluginCount`](/docs/sdk/react/plugin#useplugincount)) and the card handles rendering, loading
 skeletons, and accessible navigation semantics.
 
 The root element adapts to the provided props:
@@ -331,7 +329,7 @@ All visual properties flow through `--stgm-*` tokens.
     href: { type: "string", description: "URL for the card. When provided, the card renders as an `<a>` element for accessible navigation (right-click, open in new tab, browser status bar URL preview).  For SPA routing, combine with `onClick` and call `preventDefault`:  ```tsx <ResourceCountCard   href=\"/library/agents\"   onClick={(e) => { e.preventDefault(); router.push(\"/library/agents\"); }}   // ... /> ```" },
     icon: { type: "ReactNode", description: "Icon element rendered at the top of the card. Sized by the consumer.  Should be marked `aria-hidden=\"true\"` when purely decorative (typical for resource type icons alongside a text label).", required: true },
     isLoading: { type: "boolean", description: "Whether the count is being fetched. Shows a skeleton pulse when `count` is not yet available." },
-    label: { type: "string", description: "Display label — e.g. \"Agents\", \"Skills\", \"MCP Servers\".", required: true },
+    label: { type: "string", description: "Display label — e.g. \"Agents\", \"Skills\", \"Plugins\".", required: true },
     onClick: { type: "(e: MouseEvent) => void", description: "Click handler. When `href` is also provided, the card renders as `<a>` — call `e.preventDefault()` for SPA navigation. When only `onClick` is provided without `href`, the card renders as `<button>`." },
   }}
 />
@@ -406,7 +404,7 @@ Recall). Escalation is confirmed in proportion to how far access expands:
 de-escalation applies instantly, an Organization escalation shows a light
 inline prompt, and a Child organizations escalation opens a blocking
 [`ConfirmDialog`](/docs/sdk/react/resource-detail#confirmdialog) that names the exact audience. Confirmation is owned
-here so every consumer — agent, MCP server, skill and plugin detail, and
+here so every consumer — agent, skill and plugin detail, and
 any standalone embed — behaves identically.
 
 In `"create"` mode it renders an inline radio list that applies
@@ -457,7 +455,7 @@ link to the resource in the Library (e.g., `/library/agents`).
 
 <TypeTable
   type={{
-    kind: { type: "string", description: "The resource kind that was applied (`\"Agent\"`, `\"McpServer\"`, `\"Skill\"`, …).", required: true },
+    kind: { type: "string", description: "The resource kind that was applied (`\"Agent\"`, `\"Skill\"`, …).", required: true },
     name: { type: "string", description: "The resource name (from response metadata).", required: true },
     org: { type: "string", description: "The organization the resource was applied to.", required: true },
     slug: { type: "string", description: "The URL-friendly slug (from response metadata).", required: true },
@@ -467,7 +465,7 @@ link to the resource in the Library (e.g., `/library/agents`).
 
 ### blueprintVisibilityLevels
 
-The levels a blueprint (agent, skill, mcp_server, plugin)
+The levels a blueprint (agent, skill, plugin)
 selector offers, in escalation order: Private / Organization
 [/ Child organizations]. Organization is the creation default
 (blueprints are shared org assets; Private is an explicit opt-in).
@@ -717,7 +715,7 @@ simple `if (result.detected)` check.
 
 Skill detection is a **parallel** path to YAML resource detection:
 
-- **YAML detection** (`detectStigmerResource`): Agents, MCP Servers — applied via `apply()`
+- **YAML detection** (`detectStigmerResource`): Agents — applied via `apply()`
 - **Package detection** (`detectSkillPackage`): Skill packages (directory with SKILL.md) — pushed via `pushFromRunArtifact()`
 
 
@@ -737,11 +735,11 @@ These correspond to the Stigmer resource types that can appear as
 YAML file artifacts and be applied to an organization via `apply()`:
 
 - `"Agent"` — agent blueprint (`apiVersion: agentic.stigmer.ai/v1`, `kind: Agent`)
-- `"McpServer"` — MCP server definition (`kind: McpServer`)
 
-Skills are **not** included here — they are package-based (directory
-artifacts with SKILL.md) and use a separate detection path via
-[`isSkillPackage`](#isskillpackage) / [`detectSkillPackage`](#detectskillpackage).
+Skills and plugins are **not** included here — they are package-based
+(directory artifacts) and are pushed, never applied; a skill uses a
+separate detection path via [`isSkillPackage`](#isskillpackage) /
+[`detectSkillPackage`](#detectskillpackage).
 
 
 ### StreamingPlan
@@ -764,14 +762,14 @@ Options for [`useExportResource`](#useexportresource).
 
 <TypeTable
   type={{
-    resource: { type: "Agent | McpServer | Schedule | null", description: "The proto resource to export, or `null` when not yet loaded.", required: true },
+    resource: { type: "Agent | Schedule | null", description: "The proto resource to export, or `null` when not yet loaded.", required: true },
   }}
 />
 
 
 ### UseResourceSearchOptions
 
-Shared options for resource search hooks (`useAgentSearch`, `useMcpServerSearch`, `useSkillSearch`).
+Shared options for resource search hooks (`useAgentSearch`, `usePluginSearch`, `useSkillSearch`).
 
 <TypeTable
   type={{
@@ -783,7 +781,7 @@ Shared options for resource search hooks (`useAgentSearch`, `useMcpServerSearch`
 
 ### UseResourceSearchReturn
 
-Shared return value for resource search hooks (`useAgentSearch`, `useMcpServerSearch`, `useSkillSearch`).
+Shared return value for resource search hooks (`useAgentSearch`, `usePluginSearch`, `useSkillSearch`).
 
 <TypeTable
   type={{

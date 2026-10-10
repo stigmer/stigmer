@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import {
   HOSTED_MARKETPLACE_NAME,
   HOSTED_PLUGIN,
@@ -19,25 +19,27 @@ import { getOAuthMcpFixture } from "../../fixtures/oauth-mcp";
 const oauthMcp = getOAuthMcpFixture();
 
 /**
- * The console's plugin journeys, end to end and hermetic. The Marketplace
- * arm: open the Marketplace, see the one built-in source as a chip (the
- * official catalogue, honest about a development server), see the Upload tile first in
- * the grid, add a source through Manage sources, find its card wearing the
- * manifest's display name, install from it, land on the plugin's page,
- * open a session on its agent, and be asked for the variable the plugin's
- * tool needs, because the install declared it on the agent. The upload
- * arm: hand a plugin folder to the directory input as a browser would,
- * read the same preview, install, land on its page. "Starts a session" is
- * the session page opening; no model is involved.
+ * The console's plugin journeys, end to end and hermetic. A plugin is one
+ * thing, used whole: installing it creates nothing beside it, and its page
+ * says what it holds. The Marketplace arm: open the Marketplace, see the
+ * one built-in source as a chip (the official catalogue, honest about a
+ * development server), see the Upload tile first in the grid, add a source
+ * through Manage sources, find its card wearing the manifest's display
+ * name, install from it, land on the plugin's page, read its MCP server
+ * (with the key it reads and its tool names), its skill and its agent by
+ * the names a turn uses, and the key it declares, then "Start a chat",
+ * which opens the launcher with the plugin picked. The upload arm: hand a
+ * plugin folder to the directory input as a browser would, read the same
+ * preview, install, land on its page. No model is involved.
  *
  * The sign-in arm (STIGMER_E2E_OAUTH_MCP=1, `make test-e2e-oauth-mcp`): a
  * plugin whose one server is nothing but a URL installs; the control plane
  * completes its OAuth at save from the fixture's challenge; the plugin's
  * page carries Sign in; the popup consents through the fixture's login
- * server and the callback page; the row reads Signed in; "Add to an agent"
- * hands the server to the agent wizard preselected. No model runs in this
- * stack, so the tool call itself is the live proof's, not the journey's.
- * Skipped on a stack booted without the shape.
+ * server and the callback page; the row reads Signed in; Check tools lists
+ * what the server offers now that the login is in My vault. No model runs
+ * in this stack, so the tool call itself is the live proof's, not the
+ * journey's. Skipped on a stack booted without the shape.
  *
  * Prerequisites:
  * - Local backend (auto-started by the Playwright global setup) and the web
@@ -51,15 +53,16 @@ test.describe("Plugin install journey", () => {
     await routeHostedMarketplace(page, oauthMcp?.mcpUrl);
   });
 
-  test("lists installed plugins and offers the two ways in", async ({ page }) => {
+  test("lists installed plugins and offers the three ways in", async ({ page }) => {
     await page.goto("/library/plugins");
     await expect(page.getByRole("heading", { level: 1, name: "Plugins" })).toBeVisible({ timeout: 15_000 });
     await expect(page.getByLabel("Plugin workbench")).toBeVisible();
     await expect(page.getByRole("link", { name: "Browse Marketplace" }).first()).toBeVisible();
     await expect(page.getByRole("link", { name: "Upload plugin" }).first()).toBeVisible();
+    await expect(page.getByRole("button", { name: "Add MCP server" }).first()).toBeVisible();
   });
 
-  test("the Marketplace: the official catalogue, an added source, install from a card, and the agent asks for its variable", async ({
+  test("the Marketplace: the official catalogue, an added source, install from a card, the plugin's page, and Start a chat", async ({
     page,
   }) => {
     // One journey of several round trips; the default budget is for one page.
@@ -110,40 +113,22 @@ test.describe("Plugin install journey", () => {
     await install.click();
     await page.waitForURL(new RegExp(`/library/plugins/[^/]+/${HOSTED_PLUGIN}$`), { timeout: 30_000 });
     await expect(page.getByRole("heading", { level: 2, name: HOSTED_PLUGIN })).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByRole("button", { name: `Skill ${HOSTED_SKILL}` })).toBeVisible();
-    await expect(page.getByRole("button", { name: `MCP server ${HOSTED_SERVER}` })).toBeVisible();
-    await expect(page.getByRole("button", { name: `Agent ${HOSTED_PLUGIN}` })).toBeVisible();
+    await expectPluginHolds(page, HOSTED_PLUGIN, HOSTED_SKILL, HOSTED_SERVER);
 
-    const pluginUrl = page.url();
+    // The server reads a key, asked for when a conversation that uses it starts.
+    const servers = page.getByRole("list", { name: "MCP servers", exact: true });
+    await expect(servers.getByText(/asked for when a conversation that uses it starts/)).toBeVisible();
+    await expect(servers.getByRole("button", { name: "Check tools" })).toBeVisible();
+    await expect(page.getByRole("list", { name: "Keys this plugin reads" }).getByText("API_TOKEN")).toBeVisible();
 
-    // A member the plugin installed says so.
-    await page.getByRole("button", { name: `Skill ${HOSTED_SKILL}` }).click();
-    await expect(page.getByRole("note")).toContainText(`Installed by the plugin ${HOSTED_PLUGIN}`);
-
-    // Start session is the plugin page's primary action when it carries an
-    // agent. The launcher is driven through the URL the action computes
-    // (the agent page's own Start session uses the same URL): a full load
-    // binds the agent, where a client-side push into an already-mounted
-    // launcher zone does not, which is the console's launcher behaviour
-    // rather than this journey's subject.
-    await page.goto(pluginUrl);
-    await expect(page.getByRole("button", { name: "Start session" })).toBeVisible({ timeout: 15_000 });
-    const org = new URL(pluginUrl).pathname.split("/")[3] ?? "";
-    await page.goto(`/?agent=${encodeURIComponent(`${org}/${HOSTED_PLUGIN}`)}`);
-    await expect(page.getByText("Enter required credentials to use this agent.")).toBeVisible({ timeout: 15_000 });
-    await page.getByRole("textbox", { name: "API_TOKEN secret" }).fill("test-token");
-    await page.getByRole("button", { name: "Save" }).click();
-
-    // The session is created and its page opens. Send stays disabled until
-    // the agent has resolved after the save, so wait for it rather than
-    // pressing Enter into a composer that would ignore it.
-    const composer = page.getByRole("textbox", { name: "Describe what you need help with…" });
-    await composer.fill("Is it warm in here?");
-    const send = page.getByRole("button", { name: "Send message" });
-    await expect(send).toBeEnabled({ timeout: 15_000 });
-    await send.click();
-    await page.waitForURL(/\/sessions\/ses_/, { timeout: 30_000 });
-    await expect(page.getByRole("article", { name: "User message" })).toContainText("Is it warm in here?");
+    // "Start a chat" is the page's primary action: it opens the launcher with
+    // the plugin picked, which the launcher reads once from `?plugin=` and
+    // then drops from the address bar.
+    await page.getByRole("button", { name: "Start a chat" }).first().click();
+    await page.waitForURL((url) => url.pathname === "/", { timeout: 15_000 });
+    await page.getByRole("button", { name: "Configure agent, tools, and skills" }).click();
+    await page.getByRole("menuitem", { name: /^Plugins/ }).click();
+    await expect(page.getByRole("button", { name: `Remove ${HOSTED_PLUGIN}` })).toBeVisible({ timeout: 15_000 });
   });
 
   test("the Marketplace marks the installed plugin, and a second install of the same version reads as already installed", async ({
@@ -170,7 +155,7 @@ test.describe("Plugin install journey", () => {
   // Flaky in the gate: it waits for "Signed in" after swallowing the sign-in
   // popup's close timeout, and fails when the popup has not closed.
   // quarantined: stigmer/stigmer#1571
-  test.skip("a URL-only OAuth server: completed at save, signed in from the plugin's page, handed to a new agent", async ({
+  test.skip("a URL-only OAuth server: completed at save, signed in from the plugin's page, its tools checked", async ({
     page,
     context,
   }) => {
@@ -197,12 +182,11 @@ test.describe("Plugin install journey", () => {
     await expect(install).toBeEnabled({ timeout: 15_000 });
     await install.click();
 
-    // The plugin's page: one server, Sign in, and the tools offered to an agent.
+    // The plugin's page: one server, not signed in, and Sign in beside it.
     await page.waitForURL(new RegExp(`/library/plugins/[^/]+/${OAUTH_PLUGIN}$`), { timeout: 30_000 });
     const signIn = page.getByRole("button", { name: `Sign in to ${OAUTH_SERVER}` });
     await expect(signIn).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText("Sign-in required")).toBeVisible();
-    await expect(page.getByText(/This plugin installed tools and no agent/)).toBeVisible();
+    await expect(page.getByText("Not signed in")).toBeVisible();
 
     // The popup: the fixture's login server consents by redirect to the
     // console's callback page, which posts the code back and closes.
@@ -213,18 +197,11 @@ test.describe("Plugin install journey", () => {
     await expect(page.getByText("Signed in")).toBeVisible({ timeout: 30_000 });
     await expect(page.getByRole("button", { name: `Sign in to ${OAUTH_SERVER}` })).toHaveCount(0);
 
-    // Add to an agent: a new one, with the server already chosen.
-    await page.getByRole("button", { name: "Add to an agent" }).click();
-    const add = page.getByRole("dialog", { name: "Add to an agent" });
-    await expect(add.getByRole("list", { name: "What the agent gets" })).toContainText(OAUTH_SERVER);
-    await add.getByRole("button", { name: "Create a new agent with these tools" }).click();
-    await page.waitForURL(new RegExp(`/library/agents/new\\?mcp=${OAUTH_SERVER}$`), { timeout: 15_000 });
-    // The wizard opened directly on its first step, the picker skipped.
-    const name = page.getByPlaceholder("e.g. PR Review Bot");
-    await expect(name).toBeVisible({ timeout: 15_000 });
-    await name.fill(`Sign-in agent ${OAUTH_PLUGIN}`);
-    await page.getByRole("button", { name: "Next" }).click();
-    await expect(page.getByText(OAUTH_SERVER)).toBeVisible({ timeout: 15_000 });
+    // Check tools asks the server now, with the login My vault holds.
+    await page.getByRole("button", { name: "Check tools" }).click();
+    await expect(page.getByRole("list", { name: `Tools of ${OAUTH_SERVER}` }).getByRole("listitem").first()).toBeVisible({
+      timeout: 30_000,
+    });
   });
 
   test("Upload plugin: a folder handed to the directory input previews as the CLI would and installs", async ({ page }) => {
@@ -247,6 +224,25 @@ test.describe("Plugin install journey", () => {
     await install.click();
     await page.waitForURL(new RegExp(`/library/plugins/[^/]+/${UPLOADED_PLUGIN}$`), { timeout: 30_000 });
     await expect(page.getByRole("heading", { level: 2, name: UPLOADED_PLUGIN })).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByRole("button", { name: `Agent ${UPLOADED_PLUGIN}` })).toBeVisible();
+    await expectPluginHolds(page, UPLOADED_PLUGIN, UPLOADED_SKILL, UPLOADED_SERVER);
   });
 });
+
+/**
+ * The plugin's page says what it holds, from the lists its status recorded
+ * at install: the server with the tool names a turn uses
+ * (`mcp__plugin_<plugin>_<server>__<tool>`), and the skill and the agent by
+ * `<plugin>:<name>`. Nothing is installed beside the plugin, so there is
+ * nothing else to open.
+ */
+async function expectPluginHolds(page: Page, plugin: string, skill: string, server: string): Promise<void> {
+  const servers = page.getByRole("list", { name: "MCP servers", exact: true });
+  await expect(servers.getByText(server, { exact: true })).toBeVisible({ timeout: 15_000 });
+  await expect(servers.getByText(/^mcp__plugin_.+__\*$/)).toBeVisible();
+  const skills = page.getByRole("list", { name: "Skills", exact: true });
+  await expect(skills.getByText(skill, { exact: true })).toBeVisible();
+  await expect(skills.getByText(`${plugin}:${skill}`)).toBeVisible();
+  const agents = page.getByRole("list", { name: "Agents", exact: true });
+  await expect(agents.getByText("checker", { exact: true })).toBeVisible();
+  await expect(agents.getByText(`${plugin}:checker`)).toBeVisible();
+}

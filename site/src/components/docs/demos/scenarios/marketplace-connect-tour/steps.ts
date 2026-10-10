@@ -1,32 +1,37 @@
 /**
- * Connect tour for "Connect an MCP Server" (the scenario id keeps
- * its historical name; the docs inventory keys the embed by it).
+ * Connect tour for "Connect an MCP Server" (the scenario id keeps its
+ * historical name; the docs inventory keys the embed by it).
  *
- * 5-step sequence: the Library's MCP Servers grid → cursor selects
- * Neon → detail view → cursor clicks Connect → tools discovered, one of
- * them marked destructive by the server.
+ * A server lives in a plugin, so connecting one is opening the plugin
+ * that holds it. Five beats: the Library's Plugins grid → cursor selects
+ * Neon → the plugin's page, its one MCP server and the key it reads →
+ * cursor on "Check tools" → the tools the server lists now, one of them
+ * marked destructive by the server.
  *
- * Fixture data modeled after real public MCP servers, so the
- * Library reads like one an Organization would hold. Every
- * fixture uses the http transport: the Connect the tour shows
- * works on any session, while stdio servers are local-runner-only.
+ * Fixture data is modeled after real public MCP servers, so the Library
+ * reads like one an organization would hold. The Neon server is an HTTP
+ * server that reads one key, which the reader's My vault holds (by name;
+ * a read never returns a value), so "Check tools" reaches it as the
+ * person looking, the way the console does.
  */
 
 import { create } from "@bufbuild/protobuf";
+import { PluginSchema, type Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import { PluginDialect, PluginSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/spec_pb";
 import {
-  McpServerSpecSchema,
-  HttpServerConfigSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
+  HttpMcpServerSchema,
+  McpServerEntrySchema,
+  PluginStatusSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import {
-  McpServerStatusSchema,
-  DiscoveredCapabilitiesSchema,
-  DiscoveredToolSchema,
-  ValidationState,
-} from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
+  ListPluginToolsOutputSchema,
+  PluginToolSchema,
+  type ListPluginToolsOutput,
+} from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { samples } from "@stigmer/react/test";
-import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import type { ScenarioStep } from "@scenar/react";
 
@@ -35,192 +40,125 @@ import type { ScenarioStep } from "@scenar/react";
 // ---------------------------------------------------------------------------
 
 export const DEMO_ORG = "acme";
-export const DEMO_SLUG = "mcp-server-neon";
+export const DEMO_SLUG = "neon";
+
+/** The key Neon's server reads, which My vault holds by name. */
+export const NEON_KEY = "NEON_API_KEY";
 
 // ---------------------------------------------------------------------------
-// Grid fixtures — modeled after real public MCP servers
+// Grid fixtures — plugins modeled after real public MCP servers
 // ---------------------------------------------------------------------------
 
 // The tour's own icons, served by the docs site from its public assets.
 const ICON_BASE = "/tours/icons";
 
-export const MARKETPLACE_SERVERS: readonly SearchResult[] = [
-  samples.searchResult({
-    id: "mcp-00000000-0000-0000-0000-000000000001",
-    kind: ApiResourceKind.mcp_server,
-    name: "GitHub",
-    slug: "mcp-server-github",
-    description:
-      "Repository management, code search, issue and PR workflows, branch operations, and team collaboration.",
-    iconUrl: `${ICON_BASE}/github.svg`,
-  }),
-  samples.searchResult({
-    id: "mcp-00000000-0000-0000-0000-000000000002",
-    kind: ApiResourceKind.mcp_server,
-    name: "Slack",
-    slug: "mcp-server-slack",
-    description:
-      "Search channels, send messages, manage canvases, and interact with workspace data.",
-    iconUrl: `${ICON_BASE}/slack.svg`,
-  }),
-  samples.searchResult({
-    id: "mcp-00000000-0000-0000-0000-000000000003",
-    kind: ApiResourceKind.mcp_server,
-    name: "Neon",
-    slug: "mcp-server-neon",
-    description:
-      "Serverless PostgreSQL management — branch creation, database provisioning, schema inspection, and SQL execution.",
-    iconUrl: `${ICON_BASE}/neon.svg`,
-  }),
-  samples.searchResult({
-    id: "mcp-00000000-0000-0000-0000-000000000004",
-    kind: ApiResourceKind.mcp_server,
-    name: "Linear",
-    slug: "mcp-server-linear",
-    description:
-      "Issue tracking, project management, sprint planning, and team workflow automation.",
-    iconUrl: `${ICON_BASE}/linear.svg`,
-  }),
-  samples.searchResult({
-    id: "mcp-00000000-0000-0000-0000-000000000005",
-    kind: ApiResourceKind.mcp_server,
-    name: "Tavily",
-    slug: "mcp-server-tavily",
-    description:
-      "Web search and content extraction optimized for AI agents and research workflows.",
-    iconUrl: `${ICON_BASE}/tavily.svg`,
-  }),
-  samples.searchResult({
-    id: "mcp-00000000-0000-0000-0000-000000000006",
-    kind: ApiResourceKind.mcp_server,
-    name: "Sentry",
-    slug: "mcp-server-sentry",
-    description:
-      "Access error reports, performance data, project configuration, and AI-powered issue analysis.",
-    iconUrl: `${ICON_BASE}/sentry.svg`,
-  }),
-  samples.searchResult({
-    id: "mcp-00000000-0000-0000-0000-000000000007",
-    kind: ApiResourceKind.mcp_server,
-    name: "Stripe",
-    slug: "mcp-server-stripe",
-    description:
-      "Payment processing, customer management, subscription operations, and financial data access.",
-    iconUrl: `${ICON_BASE}/stripe.svg`,
-  }),
-  samples.searchResult({
-    id: "mcp-00000000-0000-0000-0000-000000000008",
-    kind: ApiResourceKind.mcp_server,
-    name: "Figma",
-    slug: "mcp-server-figma",
-    description:
-      "Access design files, inspect components, extract design tokens, and navigate project structures.",
-    iconUrl: `${ICON_BASE}/figma.svg`,
-  }),
-  samples.searchResult({
-    id: "mcp-00000000-0000-0000-0000-000000000009",
-    kind: ApiResourceKind.mcp_server,
-    name: "Notion",
-    slug: "mcp-server-notion",
-    description:
-      "Search pages, read content, manage databases, and organize workspace information.",
-    iconUrl: `${ICON_BASE}/notion.svg`,
-  }),
+function pluginCard(index: number, name: string, slug: string, description: string): SearchResult {
+  return samples.searchResult({
+    id: `plg-00000000-0000-0000-0000-00000000000${index}`,
+    org: DEMO_ORG,
+    kind: ApiResourceKind.plugin,
+    name,
+    slug,
+    description,
+    iconUrl: `${ICON_BASE}/${slug}.svg`,
+  });
+}
+
+export const MARKETPLACE_PLUGINS: readonly SearchResult[] = [
+  pluginCard(1, "GitHub", "github", "Repository management, code search, issue and PR workflows, branch operations, and team collaboration."),
+  pluginCard(2, "Slack", "slack", "Search channels, send messages, manage canvases, and interact with workspace data."),
+  pluginCard(3, "Neon", "neon", "Serverless PostgreSQL management — branch creation, database provisioning, schema inspection, and SQL execution."),
+  pluginCard(4, "Linear", "linear", "Issue tracking, project management, sprint planning, and team workflow automation."),
+  pluginCard(5, "Tavily", "tavily", "Web search and content extraction optimized for AI agents and research workflows."),
+  pluginCard(6, "Sentry", "sentry", "Access error reports, performance data, project configuration, and AI-powered issue analysis."),
+  pluginCard(7, "Stripe", "stripe", "Payment processing, customer management, subscription operations, and financial data access."),
+  pluginCard(8, "Figma", "figma", "Access design files, inspect components, extract design tokens, and navigate project structures."),
+  pluginCard(9, "Notion", "notion", "Search pages, read content, manage databases, and organize workspace information."),
 ];
 
 // ---------------------------------------------------------------------------
-// McpServer detail fixture — Neon
+// Plugin fixture — Neon, one MCP server that reads one key
 // ---------------------------------------------------------------------------
 
-function buildNeonBase(): McpServer {
-  const server = samples.mcpServer({
-    name: "mcp-server-neon",
+/** The Neon plugin as installed: one HTTP server, its key declared by name. */
+export const NEON_PLUGIN: Plugin = create(PluginSchema, {
+  apiVersion: "agentic.stigmer.ai/v1",
+  kind: "Plugin",
+  metadata: create(ApiResourceMetadataSchema, {
+    id: "plg-00000000-0000-0000-0000-000000000003",
+    name: "neon",
+    slug: DEMO_SLUG,
     org: DEMO_ORG,
+  }),
+  spec: create(PluginSpecSchema, {
+    name: "neon",
+    version: "1.2.0",
     description:
-      "Neon MCP server for serverless PostgreSQL management including branch creation, database provisioning, schema inspection, and SQL execution.",
-  });
-
-  server.spec = create(McpServerSpecSchema, {
-    description: server.spec!.description,
-    iconUrl: `${ICON_BASE}/neon.svg`,
-    serverType: {
-      case: "http",
-      value: create(HttpServerConfigSchema, {
-        url: "https://mcp.neon.tech/mcp",
-        headers: {
-          Authorization: "Bearer ${NEON_API_KEY}",
+      "Neon's MCP server for serverless PostgreSQL: branch creation, database provisioning, schema inspection, and SQL execution.",
+    homepage: "https://neon.tech",
+    license: "MIT",
+    dialect: PluginDialect.CLAUDE,
+  }),
+  status: create(PluginStatusSchema, {
+    mcpServers: [
+      create(McpServerEntrySchema, {
+        name: "neon",
+        transport: {
+          case: "http",
+          value: create(HttpMcpServerSchema, {
+            url: "https://mcp.neon.tech/mcp",
+            headers: { Authorization: `Bearer \${${NEON_KEY}}` },
+          }),
         },
+        env: [NEON_KEY],
       }),
-    },
+    ],
     env: {
-      NEON_API_KEY: create(EnvVarDeclarationSchema, {
+      [NEON_KEY]: create(EnvVarDeclarationSchema, {
         isSecret: true,
-        description:
-          "Neon API key (generate at console.neon.tech/app/settings/api-keys)",
+        description: "Neon API key (generate at console.neon.tech/app/settings/api-keys)",
       }),
     },
-  });
+  }),
+});
 
-  return server;
-}
-
-function buildNeonConnected(): McpServer {
-  const server = buildNeonBase();
-
-  server.status = create(McpServerStatusSchema, {
-    validationState: ValidationState.valid,
-    discoveredCapabilities: create(DiscoveredCapabilitiesSchema, {
-      tools: [
-        create(DiscoveredToolSchema, {
-          name: "list_projects",
-          description:
-            "List all Neon projects in your account with their branches and databases.",
-        }),
-        create(DiscoveredToolSchema, {
-          name: "get_database_tables",
-          description:
-            "List all tables in a database with their schemas and row counts.",
-        }),
-        create(DiscoveredToolSchema, {
-          name: "describe_table_schema",
-          description:
-            "Show column definitions, types, constraints, and indexes for a specific table.",
-        }),
-        create(DiscoveredToolSchema, {
-          name: "explain_sql_statement",
-          description:
-            "Run EXPLAIN ANALYZE on a query and return the execution plan with timing data.",
-        }),
-        create(DiscoveredToolSchema, {
-          name: "run_sql",
-          description:
-            "Execute a SQL statement (including INSERT, UPDATE, DELETE, DDL) against a database.",
-          destructiveHint: true,
-        }),
-      ],
+/** What "Check tools" answers: the server's five tools, one marked destructive. */
+export const NEON_TOOLS: ListPluginToolsOutput = create(ListPluginToolsOutputSchema, {
+  tools: [
+    create(PluginToolSchema, {
+      name: "list_projects",
+      description: "List all Neon projects in your account with their branches and databases.",
     }),
-  });
-
-  return server;
-}
+    create(PluginToolSchema, {
+      name: "get_database_tables",
+      description: "List all tables in a database with their schemas and row counts.",
+    }),
+    create(PluginToolSchema, {
+      name: "describe_table_schema",
+      description: "Show column definitions, types, constraints, and indexes for a specific table.",
+    }),
+    create(PluginToolSchema, {
+      name: "explain_sql_statement",
+      description: "Run EXPLAIN ANALYZE on a query and return the execution plan with timing data.",
+    }),
+    create(PluginToolSchema, {
+      name: "run_sql",
+      description: "Execute a SQL statement (including INSERT, UPDATE, DELETE, DDL) against a database.",
+      destructive: true,
+    }),
+  ],
+});
 
 // ---------------------------------------------------------------------------
 // Step data model
 // ---------------------------------------------------------------------------
 
 export type MarketplaceConnectStep =
-  | { view: "grid-browse"; servers: readonly SearchResult[] }
-  | {
-      view: "grid-select";
-      servers: readonly SearchResult[];
-      targetSlug: string;
-    }
-  | { view: "detail-view"; server: McpServer }
-  | { view: "click-connect"; server: McpServer }
-  | { view: "connected-tools"; server: McpServer };
-
-const baseServer = buildNeonBase();
-const connectedServer = buildNeonConnected();
+  | { view: "grid-browse"; plugins: readonly SearchResult[] }
+  | { view: "grid-select"; plugins: readonly SearchResult[]; targetSlug: string }
+  | { view: "plugin-detail" }
+  | { view: "click-check-tools" }
+  | { view: "tools-listed" };
 
 // ---------------------------------------------------------------------------
 // Step sequence
@@ -229,38 +167,30 @@ const connectedServer = buildNeonConnected();
 export const marketplaceConnectSteps: ScenarioStep<MarketplaceConnectStep>[] = [
   {
     delayMs: 0,
-    data: { view: "grid-browse", servers: MARKETPLACE_SERVERS },
+    data: { view: "grid-browse", plugins: MARKETPLACE_PLUGINS },
     narration:
-      "Your Library lists every MCP Server your Organization holds — the ones a plugin installed and the ones you defined yourself. Any of them can be connected.",
+      "Your Library lists every plugin your organization installed. A plugin is what you install and use whole: its skills, its agents and its MCP servers come with it.",
   },
   {
     delayMs: 3000,
-    data: {
-      view: "grid-select",
-      servers: MARKETPLACE_SERVERS,
-      targetSlug: "mcp-server-neon",
-    },
+    data: { view: "grid-select", plugins: MARKETPLACE_PLUGINS, targetSlug: DEMO_SLUG },
   },
   {
     delayMs: 2500,
-    data: { view: "detail-view", server: baseServer },
+    data: { view: "plugin-detail" },
     narration:
-      "Neon is a remote MCP server — Stigmer talks to Neon's hosted endpoint over HTTP. It needs an API key to authenticate.",
-    interactions: [
-      { atPercent: 0.4, type: "scroll_to", target: "capabilities-bottom" },
-    ],
+      "Neon's plugin holds one MCP server, which Stigmer reaches over HTTP at Neon's hosted endpoint. It reads one key, the Neon API key, which your vault holds.",
+    interactions: [{ atPercent: 0.4, type: "scroll_to", target: "plugin-bottom" }],
   },
   {
     delayMs: 3500,
-    data: { view: "click-connect", server: baseServer },
+    data: { view: "click-check-tools" },
   },
   {
     delayMs: 3000,
-    data: { view: "connected-tools", server: connectedServer },
+    data: { view: "tools-listed" },
     narration:
-      "Stigmer connected to the server and discovered five tools. A tool the server marks destructive, like run_sql here, makes the agent pause and ask first; the read operations run on their own.",
-    interactions: [
-      { atPercent: 0.3, type: "scroll_to", target: "capabilities-bottom" },
-    ],
+      "Check tools asks the server for its tools right now. Run SQL is marked destructive, so the agent pauses and asks before it runs; the reads run on their own. A chat or an agent that uses the plugin gets every one of them.",
+    interactions: [{ atPercent: 0.3, type: "scroll_to", target: "plugin-bottom" }],
   },
 ];

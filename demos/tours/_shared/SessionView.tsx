@@ -24,6 +24,9 @@ import "./SessionView.css";
 
 const noop = () => {};
 
+/** One stable empty list, so a beat without plugins memoizes like any other. */
+const NO_PLUGINS: readonly ResourceRef[] = [];
+
 /**
  * The console home's launcher strings, transcribed from the real
  * `NewSessionViewer` prop defaults (sdk/react/src/session/
@@ -72,6 +75,15 @@ interface SessionViewProps {
    * demo — selection callbacks are inert.
    */
   readonly agentRef?: ResourceRef | null;
+  /**
+   * The plugins the depicted conversation uses, each whole: counted on the
+   * composer's Plugins entry in the launcher state (with the sign-in rows
+   * the composer shows for their servers) and listed in the panel's Config
+   * facet in the session state. Omitted, the conversation uses none, as a
+   * fresh console home does. The composer reads each plugin and My vault,
+   * so a tour that passes plugins registers those reads in its providers.
+   */
+  readonly pluginRefs?: readonly ResourceRef[];
   /**
    * Placeholder for the `SessionComposer` textarea. Defaults to the
    * console home's own placeholder; a beat depicting another launcher
@@ -124,6 +136,7 @@ export function SessionView({
   showApprovals = false,
   typingMessage,
   agentRef,
+  pluginRefs = NO_PLUGINS,
   placeholder = HOME_PLACEHOLDER,
   heading = HOME_HEADING,
   panelView,
@@ -135,6 +148,7 @@ export function SessionView({
         execution={execution}
         showApprovals={showApprovals}
         agentRef={agentRef}
+        pluginRefs={pluginRefs}
         panelView={panelView}
         openArtifactName={openArtifactName}
       />
@@ -144,6 +158,7 @@ export function SessionView({
     <LauncherState
       typingMessage={typingMessage}
       agentRef={agentRef}
+      pluginRefs={pluginRefs}
       placeholder={placeholder}
       heading={heading}
     />
@@ -168,12 +183,14 @@ function ThreadState({
   execution,
   showApprovals,
   agentRef,
+  pluginRefs,
   panelView,
   openArtifactName,
 }: {
   readonly execution: Run;
   readonly showApprovals: boolean;
   readonly agentRef?: ResourceRef | null;
+  readonly pluginRefs: readonly ResourceRef[];
   readonly panelView?: SessionPanelFacetId;
   readonly openArtifactName?: string;
 }) {
@@ -181,8 +198,9 @@ function ThreadState({
 
   // The Config facet the console's rail always carries, at the shape
   // SessionViewer builds from its flow state: the depicted agent (default
-  // agent when none is named), no attached MCP servers/skills/variables,
-  // and the default harness — a fresh session's honest configuration.
+  // agent when none is named), the depicted plugins (none unless a beat
+  // names them), no skills or variables, and the default harness — a
+  // fresh session's honest configuration.
   // Read-only by construction: no `mutations`, so SetupTab renders without
   // remove affordances — a paused frame depicts a session being
   // inspected, not reconfigured. Model/Target pills are omitted exactly as
@@ -190,14 +208,13 @@ function ThreadState({
   const sessionConfig = useMemo<SetupTabProps>(
     () => ({
       agentRef: agentRef ?? null,
-      mcpServerUsages: [],
+      pluginRefs,
       skillRefs: [],
-      sessionVariables: null,
       harness: DEFAULT_HARNESS,
       executionTarget: undefined,
       modelId: undefined,
     }),
-    [agentRef],
+    [agentRef, pluginRefs],
   );
 
   // The console's own derivations (pure aggregations over the run):
@@ -306,11 +323,13 @@ function ThreadState({
 function LauncherState({
   typingMessage,
   agentRef,
+  pluginRefs,
   placeholder,
   heading,
 }: {
   readonly typingMessage?: string;
   readonly agentRef?: ResourceRef | null;
+  readonly pluginRefs: readonly ResourceRef[];
   readonly placeholder: string;
   readonly heading: string;
 }) {
@@ -330,7 +349,8 @@ function LauncherState({
     org: DEMO_ORG,
     agentRef,
     onAgentRefChange: noop,
-    onMcpServerUsagesChange: noop,
+    pluginRefs: [...pluginRefs],
+    onPluginRefsChange: noop,
     onSkillRefsChange: noop,
     showHarnessSelector: true,
     harness: DEFAULT_HARNESS,

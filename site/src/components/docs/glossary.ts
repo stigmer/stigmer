@@ -23,8 +23,8 @@ export const glossary: Record<string, string> = {
     "An ongoing conversation with an Agent across multiple messages. A session remembers what was said earlier so the Agent can follow along.",
   Skill:
     "A piece of knowledge you attach to an Agent so it has domain expertise. Skills let you give an Agent specialized information without rewriting its instructions.",
-  "MCP Server":
-    "An external tool connection that lets an Agent interact with other systems — like databases, APIs, or file storage.",
+  "MCP server":
+    "An external tool connection that lets an Agent interact with other systems. In Stigmer an MCP server lives only inside a plugin; it is not a resource of its own.",
   PlatformClient:
     "A credential pair your backend uses to mint Stigmer-signed user tokens. Use it to embed Stigmer in your product without setting up OIDC federation.",
   Organization:

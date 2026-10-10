@@ -1,119 +1,64 @@
 /**
- * MCP server creation tour — the walkthrough for "Connect your tools",
- * showing the flow the console ships today: Library → MCP Servers →
- * Add MCP Server → the creation picker (scratch / template / import) → the
- * real three-step creation wizard (identity & transport, variables & sign-in,
- * review & create) → the Library with the new server.
+ * Add an MCP server — the walkthrough for "Connect your tools", showing the
+ * flow the console ships: Library → Plugins → Add MCP server → the form
+ * (name, URL, what it is for, headers) → the new plugin's page. An MCP
+ * server lives only in a plugin, so "Add MCP server" installs a plugin of
+ * that one server, named after it; the page it lands on is the same page
+ * any installed plugin has.
  *
- * Deliberately NOT an AI-conversation flow — the console's "Add MCP Server"
- * button opens this form wizard, not the mcp-server-creator agent (which
- * still exists as a separate, optional path). A Getting Started tour must
- * depict what a viewer can actually do.
- *
- * The failure beats are the point of this tour: the wizard's real inline
- * validation ("HTTP URL is required") and a real server error on create.
- * Both render through the real exported step components
- * (`IdentityTransportStep`, `ReviewStep`), driven purely by the wizard-data
- * snapshots below — never by synthetic events (steps stay pure functions of
- * step data, so scrubbing and video export reproduce every state exactly).
- *
- * `index.tsx` renders these steps; no RPC fixtures are needed — every beat
- * is prop-driven (`.scenar/providers.tsx` registers nothing).
+ * The form beats are a tour-local replica of `AddMcpServerDialog` (see
+ * `index.tsx` for why the real dialog cannot render in an embed); the
+ * plugin page is the real `PluginDetailView`, fed by the fixtures in
+ * `.scenar/providers.tsx`. Its server reads "Not signed in": the sign-in
+ * is the next tour's story (`mcp-server-connect-tour`).
  *
  * Import discipline: `scenar narrate` imports this file in a plain Node
  * process (no bundler), so it must only pull pure modules — protos, test
- * samples, `@scenar/react` types. The `McpServerWizardData` snapshots the
- * wizard beats render live in `index.tsx` (a rendering concern, compiled by
- * Vite); step data carries only semantic tags for which snapshot to show.
+ * samples, `@scenar/react` types, and the `_shared` data modules. Step data
+ * carries only semantic tags for which state to show.
  */
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { samples } from "@stigmer/react/test";
 import type { ScenarioStep } from "@scenar/react";
 import { DEMO_ORG } from "../_shared/fixtures";
-import { ORDER_MGMT_MCP } from "../_shared/order-management-mcp";
+import { ORDER_MGMT } from "../_shared/order-management-plugin";
 
 // ---------------------------------------------------------------------------
 // Data model
 // ---------------------------------------------------------------------------
 
-/**
- * How far the user has gotten through the wizard's identity step:
- * untouched → clicked Next with the URL missing (validation fires) →
- * URL supplied. `index.tsx` maps each phase to a wizard-data snapshot.
- */
-export type IdentityFormPhase = "empty" | "invalid" | "complete";
+/** How far the person has gotten through the form: just opened, or filled in. */
+export type AddFormPhase = "empty" | "filled";
 
 /** The surface shown at a given step (maps to a branch in `renderStep`). */
 export type McpServerCreationTourStep =
   | { view: "home" }
   | { view: "library-click" }
-  | { view: "mcp-servers-list" }
-  | { view: "creation-picker" }
-  | { view: "wizard-identity"; form: IdentityFormPhase }
-  | { view: "wizard-env-auth" }
-  | { view: "wizard-review"; failed?: boolean }
-  | { view: "import-manifest" }
-  | { view: "library-complete" };
-
-// ---------------------------------------------------------------------------
-// The import path (shown as the alternative door to the same resource)
-// ---------------------------------------------------------------------------
-
-/**
- * The manifest shown in the import beat — the YAML expression of the same
- * server the wizard built, making the point that the form and the file are
- * two doors to one resource (`stigmer apply -f` is the CLI's third).
- */
-export const MCP_SERVER_YAML = `apiVersion: agentic.stigmer.ai/v1
-kind: McpServer
-metadata:
-  org: ${DEMO_ORG}
-  name: ${ORDER_MGMT_MCP.slug}
-spec:
-  description: ${ORDER_MGMT_MCP.description}
-  http:
-    url: ${ORDER_MGMT_MCP.url}
-    headers:
-      Authorization: Bearer \${${ORDER_MGMT_MCP.envKey}}
-  env:
-    ${ORDER_MGMT_MCP.envKey}:
-      description: ${ORDER_MGMT_MCP.envDescription}
-      is_secret: true`;
+  | { view: "plugins-list" }
+  | { view: "add-form"; form: AddFormPhase }
+  | { view: "plugin-page" };
 
 // ---------------------------------------------------------------------------
 // Library fixtures
 // ---------------------------------------------------------------------------
 
-/** The MCP Servers library before the tour: two unrelated existing servers. */
-export const EXISTING_SERVERS = [
+/** The Plugins list before the tour: two plugins the organization already installed. */
+export const EXISTING_PLUGINS = [
   samples.searchResult({
-    id: "mcp-00000000-0000-0000-0000-000000000001",
+    id: "plg-00000000-0000-0000-0000-000000000001",
     org: DEMO_ORG,
-    kind: ApiResourceKind.mcp_server,
-    name: "GitHub",
+    kind: ApiResourceKind.plugin,
+    name: "github",
     slug: "github",
     description: "Repository management, issues, and pull requests.",
   }),
   samples.searchResult({
-    id: "mcp-00000000-0000-0000-0000-000000000002",
+    id: "plg-00000000-0000-0000-0000-000000000002",
     org: DEMO_ORG,
-    kind: ApiResourceKind.mcp_server,
-    name: "Slack Notifications",
-    slug: "slack-notifications",
-    description: "Send messages and manage channels via Slack API.",
-  }),
-];
-
-/** The library after creation: the new order-management server joins. */
-export const ALL_SERVERS = [
-  ...EXISTING_SERVERS,
-  samples.searchResult({
-    id: "mcp-00000000-0000-0000-0000-000000000003",
-    org: DEMO_ORG,
-    kind: ApiResourceKind.mcp_server,
-    name: ORDER_MGMT_MCP.name,
-    slug: ORDER_MGMT_MCP.slug,
-    description: ORDER_MGMT_MCP.description,
+    kind: ApiResourceKind.plugin,
+    name: "slack",
+    slug: "slack",
+    description: "Send messages and manage channels via Slack.",
   }),
 ];
 
@@ -127,19 +72,19 @@ export { DEMO_ORG };
 /*
  * Cursor choreography: each pointing step sets its cursor mid-step and clears
  * it before the step ends, so every step is self-contained — no step depends
- * on a previous step's cursor state (the pattern all ported tours use).
- * Targets inside real components (`creation-path-scratch`, `wizard-next`)
- * are the `data-cursor-target` hooks @stigmer/react ships for guided tours.
+ * on a previous step's cursor state. `add-mcp-server` and `add-submit` are
+ * the replica's own targets; `sign-in` is named on the real page by
+ * `_shared/CursorTargets`.
  */
 export const mcpServerCreationTourSteps: ScenarioStep<McpServerCreationTourStep>[] = [
   {
     delayMs: 0,
     data: { view: "home" },
     narration:
-      "Your agent knows your domain, but it can't act yet. MCP servers are the bridge to your APIs and services — let's register one.",
+      "Your agent knows your domain, but it can't act yet. MCP servers are the bridge to your APIs and services, and on Stigmer every MCP server lives in a plugin. Let's add one.",
     // No cursor here: the embed arms step-0 interactions at mount (under the
-    // poster), so they fire before Play — a @scenar/react quirk every ported
-    // tour works around by keeping its first step cursor-less.
+    // poster), so they fire before Play — a @scenar/react quirk every tour
+    // works around by keeping its first step cursor-less.
   },
   {
     delayMs: 2500,
@@ -151,79 +96,44 @@ export const mcpServerCreationTourSteps: ScenarioStep<McpServerCreationTourStep>
   },
   {
     delayMs: 2000,
-    data: { view: "mcp-servers-list" },
+    data: { view: "plugins-list" },
     narration:
-      "Your organization's MCP servers live in the Library. Click Add MCP Server to register a new one.",
+      "Plugins are what your organization installs: from the Marketplace, uploaded from your computer, or, for a single server, added by its address. Click Add MCP server.",
     interactions: [
-      { atPercent: 0.55, type: "set_cursor", target: "create-mcp-server" },
-      { atPercent: 0.92, type: "clear_cursor" },
-    ],
-  },
-  {
-    delayMs: 2000,
-    data: { view: "creation-picker" },
-    narration:
-      "Start from scratch, pick a pre-built template, or import a YAML file you already have. We'll build this one from scratch.",
-    interactions: [
-      { atPercent: 0.6, type: "set_cursor", target: "creation-path-scratch" },
+      { atPercent: 0.6, type: "set_cursor", target: "add-mcp-server" },
       { atPercent: 0.92, type: "clear_cursor" },
     ],
   },
   {
     delayMs: 1500,
-    data: { view: "wizard-identity", form: "empty" },
+    data: { view: "add-form", form: "empty" },
     narration:
-      "The wizard walks you through three steps. First, identity and transport: name the server and say how Stigmer reaches it — a remote HTTP endpoint, or a local command over stdio.",
-  },
-  {
-    delayMs: 2000,
-    data: { view: "wizard-identity", form: "invalid" },
-    narration:
-      "The form validates as you go. Skip a required field — like the HTTP URL — and the step tells you exactly what's missing before you can continue.",
-    interactions: [
-      { atPercent: 0.25, type: "set_cursor", target: "wizard-next" },
-      { atPercent: 0.85, type: "clear_cursor" },
-    ],
-  },
-  {
-    delayMs: 2000,
-    data: { view: "wizard-identity", form: "complete" },
-    narration:
-      "Add the endpoint URL and you're through. Headers can reference environment variables with the dollar-brace syntax, so no secret ever lands in the config itself.",
-    interactions: [
-      // Bring the filled URL + headers (this beat's payoff) into view inside
-      // the wizard's internal scroll area.
-      { atPercent: 0.2, type: "scroll_to", target: "mcp-transport" },
-    ],
+      "The form asks for a name, the server's address, and what it's for. Headers are optional, and a header names a key in your vault rather than holding its value.",
   },
   {
     delayMs: 2500,
-    data: { view: "wizard-env-auth" },
+    data: { view: "add-form", form: "filled" },
     narration:
-      "Step two declares what the server needs at runtime. API TOKEN is marked secret — Stigmer stores it securely and injects it where the header placeholder points.",
-  },
-  {
-    delayMs: 2500,
-    data: { view: "wizard-review" },
-    narration:
-      "Step three shows the full picture: a summary, and the exact YAML manifest that will be created. The form is just a friendlier way to write this file.",
-  },
-  {
-    delayMs: 3000,
-    data: { view: "wizard-review", failed: true },
-    narration:
-      "If creation fails — say the slug is already taken in your org — the server's exact error appears right here. Adjust and create again; nothing is lost.",
+      "Name it, paste the URL, and add. Stigmer installs a plugin of this one server, named after it.",
+    interactions: [
+      { atPercent: 0.55, type: "set_cursor", target: "add-submit" },
+      { atPercent: 0.92, type: "clear_cursor" },
+    ],
   },
   {
     delayMs: 3000,
-    data: { view: "import-manifest" },
+    data: { view: "plugin-page" },
     narration:
-      "And if you already have that YAML, skip the wizard: the import door accepts a pasted manifest or a file — the console counterpart of stigmer apply dash f.",
+      `The new plugin's page shows what it holds: the ${ORDER_MGMT.name} server, the address it's reached at, and the names its tools take. This server asks you to sign in, so the page says Not signed in.`,
+    interactions: [
+      { atPercent: 0.55, type: "set_cursor", target: "sign-in" },
+      { atPercent: 0.92, type: "clear_cursor" },
+    ],
   },
   {
     delayMs: 3000,
-    data: { view: "library-complete" },
+    data: { view: "plugin-page" },
     narration:
-      "The server is in your Library. Next, connect it — Stigmer will catalog its tools automatically.",
+      "From a terminal, stigmer mcp add does the same in one line. Next, sign in and check its tools.",
   },
 ];

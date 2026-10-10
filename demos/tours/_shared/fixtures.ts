@@ -17,6 +17,14 @@ import { samples, sampleDate } from "@stigmer/react/test";
 export const DEMO_ORG = "acme";
 
 /**
+ * The same organization's id, as the pre-registered organization fixture
+ * (`stigmer-preview.tsx`) carries it. The API takes an organization by slug
+ * or id; a tour that must tell two reads of one organization apart names
+ * it once each way.
+ */
+export const DEMO_ORG_ID = samples.organization().metadata?.id ?? DEMO_ORG;
+
+/**
  * The tour world's clock, as a `Date` — the reference instant the shells
  * pass to the real sidebar so relative stamps ("2h") and time buckets
  * ("Today"/"Yesterday") never read the live clock (the

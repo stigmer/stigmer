@@ -211,7 +211,7 @@ State is managed by a `useReducer` state machine with five phases:
 
 Composes [`useMyVault`](/docs/sdk/react/vault#usemyvault) for My vault
 operations and calls the Stigmer client directly for the agent and
-its MCP servers.
+the plugins it lists.
 
 Pass `null` as `org` to disable all operations (stable no-op).
 
@@ -225,7 +225,7 @@ function useAgentSetup(org: string | null, poolKeys?: Set<string>, conversationV
   type={{
     org: { type: "string | null", description: "Organization id (a slug is also accepted). Pass `null` to disable.", required: true },
     poolKeys: { type: "Set<string>", description: "Optional set of env-var keys filled elsewhere (the   platform's own keys, which the runner sets). Agents whose `env` keys   are fully covered by `poolKeys` and the vaults the run reads   auto-resolve to `ready` without prompting. Reactive — when `poolKeys`   changes, `needsEnvVars` is re-evaluated." },
-    conversationVaults: { type: "ConversationVaults", description: "The vaults the conversation uses (its   sender's My vault when included, then the listed vaults). Only what   they hold counts as saved, and My vault's sign-in grant counts only   when My vault is included. Omitted, the run is taken to read My vault   alone. Reactive — when the choice changes, an agent already resolved   is resolved again over it.", required: true },
+    conversationVaults: { type: "ConversationVaults", description: "The vaults the conversation uses (its   sender's My vault when included, then the listed vaults). Only what   they hold counts as saved, and a login in My vault counts only when   My vault is included. Omitted, the run is taken to read My vault   alone. Reactive — when the choice changes, an agent already resolved   is resolved again over it.", required: true },
   }}
 />
 
@@ -236,7 +236,7 @@ function useAgentSetup(org: string | null, poolKeys?: Set<string>, conversationV
     clearError: { type: "() => void", description: "Clear the error without changing the current phase." },
     reset: { type: "() => void", description: "Reset to `idle` state, clearing all phase data and errors." },
     resolveAgent: { type: "(ref: ResourceRef) => Promise<AgentSetupResult>", description: "Evaluate whether an agent is ready to use or needs env var collection.  Fetches the full agent to read its `env` declarations and diffs them against the user's vaults and the session's variables. Returns `\"ready\"` when the agent can be used immediately, or `\"needsEnvVars\"` when the caller should present AgentEnvForm. A resolution that a newer one (or reset) overtakes still returns its answer, but leaves `state` to the newer one." },
-    signInCompleted: { type: "(mcpServerId: string) => Promise<void>", description: "Record that one of the pending sign-ins completed (the row's own OAuth flow landed). When it was the last one, the agent is resolved again through resolveAgent, which now finds the grant and lands in `ready` or in `needsEnvVars` for its variables alone.  Must only be called when `state.status === \"needsEnvVars\"`." },
+    signInCompleted: { type: "(address: string) => Promise<void>", description: "Record that one of the pending sign-ins completed (the row's own sign-in landed), by the address it saved its login at. When it was the last one, the agent is resolved again through resolveAgent, which now finds the login and lands in `ready` or in `needsEnvVars` for its variables alone.  Must only be called when `state.status === \"needsEnvVars\"`." },
     state: { type: "AgentSetupState", description: "Current state of the agent setup flow.  A discriminated union on `status`: - `\"idle\"` — no agent selected - `\"resolving\"` — evaluating an agent's requirements - `\"needsEnvVars\"` — waiting for user to provide missing variables - `\"submitting\"` — saving in My vault - `\"ready\"` — agent resolved, `resolution` describes how to proceed  `error` is available on all variants (orthogonal to phase).", typeDescriptionLink: "#agentsetupstate" },
     submitEnvVars: { type: "(values: Record<string, EnvVarInput>) => Promise<AgentSetupResult>", description: "Complete the env var collection flow for the pending agent: the values are saved in My vault, the one place a value the person types goes, and the agent is resolved again over the conversation's vault choice, counting what the save wrote. A conversation that includes My vault resolves `ready` (`{ mode: \"saved\" }`); one that leaves it out stays in `needsEnvVars` until it includes My vault, which the composer does for the person who may change the conversation's vaults.  Must only be called when `state.status === \"needsEnvVars\"`." },
   }}
@@ -362,7 +362,7 @@ const agent = await create({
   name: "pr-review-bot",
   org: "acme",
   instructions: "Review pull requests for code quality...",
-  mcpServerUsages: [{ mcpServerRef: { org: "acme", slug: "github" } }],
+  plugins: [{ org: "acme", slug: "github" }],
 });
 // agent.metadata?.slug → "pr-review-bot"
 ```
@@ -438,7 +438,7 @@ Multi-step wizard for creating a new agent blueprint.
 
 Three condensed steps:
 1. **Identity & Instructions** — name, slug, description, icon, system prompt
-2. **Capabilities** — MCP servers + tools, skills, env var declarations (all optional)
+2. **Capabilities** — plugins, skills, env var declarations (all optional)
 3. **Review & Create** — YAML preview + submission
 
 Uses the shared `WizardShell` layout and `useWizardState` hook for
@@ -480,7 +480,7 @@ Operational detail hub for an Agent blueprint.
 Fetches the agent via [`useAgent`](#useagent) internally and renders its
 full configuration inside a [`ResourceDetailShell`](/docs/sdk/react/resource-detail#resourcedetailshell): a
 standardized header with action bar, followed by structured content
-sections (instructions, MCP server usages, tool lists, hooks, skills,
+sections (instructions, plugins, tool lists, hooks, skills,
 sub-agents, and environment variables). Sections with no data are
 omitted entirely — reducing visual noise per Nielsen heuristic #8.
 
@@ -503,8 +503,7 @@ All visual properties flow through `--stgm-*` design tokens.
     className: { type: "string", description: "Additional CSS classes for the root container." },
     defaultTab: { type: "string", description: "Default active tab ID when in uncontrolled mode." },
     editable: { type: "boolean", description: "When `true`, fields on the detail view become click-to-edit. Each field saves independently via `stigmer.agent.update()`." },
-    onMcpServerClick: { type: "(ref: { org: string; slug: string }) => void", description: "Called when an MCP server reference is clicked. Provides `org` and `slug` of the referenced MCP server so the consumer can wire navigation. When the reference has no explicit org, the agent's own org is used as fallback." },
-    onPluginClick: { type: "(ref: { org: string; slug: string }) => void", description: "Called when the user selects the plugin named in the \"installed by a plugin\" notice; the host owns the route to the plugin's page. The notice shows when this resource carries a live plugin's label, and `editable` is then narrowed to `false`: the server refuses a client edit of a plugin's resource, so no edit form is offered." },
+    onPluginClick: { type: "(ref: { org: string; slug: string }) => void", description: "Called when a plugin is selected: one the agent lists in its Plugins section or its dependency graph, or the one named in the \"installed by a plugin\" notice. The host owns the route to the plugin's page. The notice shows when this resource carries a live plugin's label, and `editable` is then narrowed to `false`: the server refuses a client edit of a plugin's resource, so no edit form is offered." },
     onResourceLoad: { type: "(meta: { id: string; name: string }) => void", description: "Called once when the agent resource has been fetched successfully. Provides the resource display name for use cases like breadcrumbs, document titles, or analytics — without requiring the consumer to also call useAgent.  Not called on error or not-found states." },
     onResourceUpdated: { type: "(agent: Agent) => void", description: "Called after a successful inline field save with the updated agent. Consumers can use this to refresh breadcrumbs, sync URL state, etc." },
     onSkillClick: { type: "(ref: { org: string; slug: string }) => void", description: "Called when a skill reference is clicked. Provides `org` and `slug` of the referenced skill." },
@@ -530,7 +529,7 @@ All visual properties flow through `--stgm-*` design tokens.
     { id: "copy-id", label: "Copy ID", onAction: () => copyId(id) },
     { id: "delete", label: "Delete", variant: "destructive", onAction: handleDelete },
   ]}
-  onMcpServerClick={({ org, slug }) => navigateToDetail("mcp-servers", org, slug)}
+  onPluginClick={({ org, slug }) => navigateToDetail("plugins", org, slug)}
   onSkillClick={({ org, slug }) => navigateToDetail("skills", org, slug)}
 />
 ```
@@ -582,7 +581,7 @@ Renders a search input and scrollable list of available agents.
 Designed to be placed inside a popover container — this component
 renders the picker content, not the popover shell.
 
-Unlike the multi-select [`SkillPicker`](/docs/sdk/react/skill#skillpicker) and McpServerPicker,
+Unlike the multi-select [`SkillPicker`](/docs/sdk/react/skill#skillpicker) and PluginPicker,
 this picker enforces single selection: clicking a result replaces
 the current selection. A session runs against exactly one agent.
 
@@ -820,8 +819,8 @@ an `AgentInput` for submission on the final step.
     env: { type: "EnvVarEntry[]", description: "Environment variable declarations.", required: true },
     iconUrl: { type: "string", description: "Icon URL (optional).", required: true },
     instructions: { type: "string", description: "System prompt / instructions (the agent's core content).", required: true },
-    mcpServerUsages: { type: "McpServerUsageInput[]", description: "MCP server usages with tool configuration.", required: true },
     name: { type: "string", description: "Agent display name (required).", required: true },
+    plugins: { type: "ResourceRef[]", description: "Plugins the agent uses, each whole: its skills, agents, hooks and MCP servers.", required: true },
     skillRefs: { type: "ResourceRef[]", description: "Skill references.", required: true },
     slug: { type: "string", description: "URL-friendly slug (auto-derived from name, editable).", required: true },
     slugTouched: { type: "boolean", description: "Whether the slug has been manually edited by the user.", required: true },
@@ -831,18 +830,19 @@ an `AgentInput` for submission on the final step.
 
 ### PendingSignIn
 
-One MCP server the agent uses that authenticates by OAuth and has no
+One MCP server of a plugin the agent lists that signs in and has no
 login in the vaults the run reads. The agent is not ready until each is
-signed in: run would start and fail at the first tool call, so the
+signed in: a run would start and fail at the first tool call, so the
 composer asks first, the way it asks for a missing variable. A sign-in
-is saved in the person's My vault.
+is saved in the person's My vault, at the server's address.
 
 <TypeTable
   type={{
-    health: { type: "OAuthConnectionHealth", description: "The grant's health as the backend graded it; `NO_GRANT` when none exists.", required: true },
-    id: { type: "string", description: "The server's id, the key a sign-in completes under.", required: true },
-    name: { type: "string", description: "The server's display name.", required: true },
-    ref: { type: "ResourceRef", description: "The server's reference, for the row's own read.", required: true },
+    address: { type: "string", description: "The address the login is saved at: the key a sign-in completes under.", required: true },
+    name: { type: "string", description: "The row's display name.", required: true },
+    plugin: { type: "ResourceRef", description: "The plugin the server belongs to.", required: true },
+    pluginName: { type: "string", description: "The plugin's name.", required: true },
+    server: { type: "McpServerEntry", description: "The server, from the plugin's status.", required: true },
   }}
 />
 

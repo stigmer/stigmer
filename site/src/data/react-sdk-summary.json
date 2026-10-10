@@ -169,13 +169,6 @@
       "components": 3
     },
     {
-      "slug": "mcp-server",
-      "title": "MCP Server",
-      "description": "Hooks and components for MCP server connections, setup, credentials, and tool management.",
-      "hooks": 12,
-      "components": 9
-    },
-    {
       "slug": "memory",
       "title": "memory",
       "description": "",
@@ -214,8 +207,8 @@
       "slug": "plugin",
       "title": "plugin",
       "description": "",
-      "hooks": 16,
-      "components": 17
+      "hooks": 18,
+      "components": 21
     },
     {
       "slug": "provider-standing",
@@ -334,7 +327,7 @@
       "title": "Vault",
       "description": "Hooks and components for My vault and shared vaults, their secrets and logins, the vault picker, and the session value pool.",
       "hooks": 8,
-      "components": 5
+      "components": 6
     },
     {
       "slug": "version-history",

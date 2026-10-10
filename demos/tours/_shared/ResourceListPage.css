@@ -123,3 +123,16 @@
 .resource-page__create-wrap[data-hover] .resource-page__create {
   background: color-mix(in oklab, var(--stgm-primary) 88%, var(--stgm-primary-foreground));
 }
+
+/* The console's outlined secondary button (`border border-border px-3
+   py-1.5 text-sm font-medium`), for a way in that is not the page's first. */
+.resource-page__create--secondary {
+  border: 1px solid var(--stgm-border);
+  background: transparent;
+  /* The border sits inside the primary button's box: same outer size. */
+  padding: 5px 11px;
+  color: var(--stgm-foreground);
+}
+.resource-page__create-wrap[data-hover] .resource-page__create--secondary {
+  background: var(--stgm-muted);
+}

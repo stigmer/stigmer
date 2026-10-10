@@ -1,5 +1,13 @@
 "use client";
 
+/**
+ * The session composer, or the conversation it started, as the inline docs
+ * demos depict it: the real `SessionComposer` (empty or pre-filled) and the
+ * real `MessageThread`, over a mock workspace. The pickers the composer
+ * offers (agent, plugins, skills) are wired to no-ops: a demo shows them,
+ * never changes them.
+ */
+
 import { useEffect, useRef } from "react";
 import { MessageThread, SessionComposer } from "@stigmer/react";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
@@ -77,7 +85,7 @@ export function ComposerView({
                   org={DEMO_ORG}
                   agentRef={agentRef}
                   onAgentRefChange={noop}
-                  onMcpServerUsagesChange={noop}
+                  onPluginRefsChange={noop}
                   onSkillRefsChange={noop}
                 />
               )}
@@ -128,7 +136,7 @@ function TypingComposer({
         org={DEMO_ORG}
         agentRef={agentRef}
         onAgentRefChange={noop}
-        onMcpServerUsagesChange={noop}
+        onPluginRefsChange={noop}
         onSkillRefsChange={noop}
       />
     </div>

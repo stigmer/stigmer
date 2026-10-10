@@ -14,7 +14,7 @@
  * project (`_shared/quickstart-workspace.ts`). `SKILL_REFS_CODE` is the
  * exact midpoint of one continuous file — `quickstart-tour`'s DOMAIN_CODE
  * (previous page) plus the `skillRefs` line, and `connect-tools-tour`'s
- * MCP_REFS_CODE (next page) minus the `mcpServerRefs` line. The question
+ * PLUGIN_REFS_CODE (next page) minus the `plugins` line. The question
  * is the one quickstart-tour's final beat asks and fails to answer.
  *
  * Import discipline: `scenar narrate` loads this file in plain Node (tsx),

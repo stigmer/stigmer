@@ -1,11 +1,24 @@
 "use client";
 
+/**
+ * Renders the OAuth connect flow: the real `PluginDetailView` for GitHub's
+ * plugin over preview fixtures (the plugin's read, My vault's read, the
+ * server's tools listing), and a drawn GitHub authorization page between.
+ *
+ * My vault's answer follows the step (nothing saved, then the login at the
+ * server's address), and each detail beat mounts fresh, so the server's
+ * row reads it again: "Not signed in" with its Sign in button, then
+ * "Signed in". `RealButtonTarget` gives the real Sign in button its cursor
+ * target, and on the signed-in beat presses the real "Check tools", whose
+ * `listTools` the fixture answers.
+ */
+
 import { useCallback, useMemo, useRef, useState } from "react";
-import { McpServerDetailView } from "@stigmer/react";
-import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
+import { PluginDetailView } from "@stigmer/react";
+import { PluginCommandController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/command_pb";
+import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
 import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
-import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import type { GetOAuthGrantStatusOutput } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
+import type { Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import {
   ScenarioPlayer,
   useNarrationManifest,
@@ -14,8 +27,9 @@ import {
   BrowserView,
   PulseHighlight,
 } from "@scenar/react";
-import { emptyMyVault } from "../../fixtures";
+import { emptyMyVault, myVaultSignedInAt } from "../../fixtures";
 import { StigmerPreviewProvider } from "../../shared/StigmerPreviewProvider";
+import { RealButtonTarget } from "../../shared/RealButtonTarget";
 import { connectFixture } from "@scenar/preview/connect";
 import { AppShell } from "../../views/AppShell";
 import { DEMO_BROWSER_ZOOM, DEMO_CONTENT_ZOOM } from "../../shared/tokens";
@@ -25,6 +39,10 @@ import {
   oauthConnectSteps,
   DEMO_ORG,
   DEMO_SLUG,
+  GITHUB_PLUGIN,
+  GITHUB_TOOLS,
+  SERVER_ADDRESS,
+  SERVER_NAME,
 } from "./steps";
 
 
@@ -35,7 +53,7 @@ import {
 function cursorTargetFor(step: OAuthConnectStep): string | undefined {
   switch (step.view) {
     case "click-sign-in":
-      return "connect-button";
+      return "sign-in-button";
     case "github-authorize":
       return "authorize-btn";
     default:
@@ -45,13 +63,13 @@ function cursorTargetFor(step: OAuthConnectStep): string | undefined {
 
 function contentKeyFor(step: OAuthConnectStep): string {
   switch (step.view) {
-    case "detail-preconnect":
+    case "detail-signed-out":
     case "click-sign-in":
-      return "detail-preconnect";
+      return "detail-signed-out";
     case "github-authorize":
       return "github-authorize";
-    case "detail-connected":
-      return "detail-connected";
+    case "detail-signed-in":
+      return "detail-signed-in";
   }
 }
 
@@ -59,7 +77,7 @@ function slideDirectionFor(
   step: OAuthConnectStep,
 ): "forward" | "backward" | undefined {
   if (step.view === "github-authorize") return "forward";
-  if (step.view === "detail-connected") return "backward";
+  if (step.view === "detail-signed-in") return "backward";
   return undefined;
 }
 
@@ -181,24 +199,30 @@ function UserIcon() {
 // Exported component
 // ---------------------------------------------------------------------------
 
+/** My vault as the page reads it at a beat: nothing saved until the sign-in lands. */
+function myVaultAt(step: OAuthConnectStep): Vault {
+  return step.view === "detail-signed-in"
+    ? myVaultSignedInAt(SERVER_ADDRESS, "Signed in to GitHub")
+    : emptyMyVault();
+}
+
 /**
  * OAuth connect flow playback for the "OAuth for tools" guide.
  *
- * Four-step walkthrough: MCP server detail (pre-connect with "Sign in
- * to connect") → cursor clicks sign-in → GitHub authorization page
- * in BrowserView → connected detail with discovered tools.
+ * Four-step walkthrough: the GitHub plugin's page (its server "Not signed
+ * in") → cursor on Sign in → GitHub's authorization page in BrowserView →
+ * the page again, signed in, with the server's tools checked.
  */
 export function OAuthConnectFlow() {
   const narrationManifest = useNarrationManifest("oauth-connect-flow");
 
-  const currentServerRef = useRef<McpServer>(null!);
-  const currentGrantRef = useRef<GetOAuthGrantStatusOutput>(null!);
+  const currentVaultRef = useRef<Vault>(emptyMyVault());
 
   const previewFixtures = useMemo(
     () => [
-      connectFixture(McpServerQueryController, "getByReference", () => currentServerRef.current),
-      connectFixture(VaultQueryController, "getMine", emptyMyVault),
-      connectFixture(McpServerQueryController, "getOAuthGrantStatus", () => currentGrantRef.current),
+      connectFixture(PluginQueryController, "getByReference", () => GITHUB_PLUGIN),
+      connectFixture(VaultQueryController, "getMine", () => currentVaultRef.current),
+      connectFixture(PluginCommandController, "listTools", () => GITHUB_TOOLS),
     ],
     [],
   );
@@ -245,9 +269,8 @@ export function OAuthConnectFlow() {
               );
             }
 
-            currentServerRef.current = step.server;
-            currentGrantRef.current = step.grant;
-            const componentKey = `${step.server.metadata?.id ?? ""}:${step.grant.connected}`;
+            currentVaultRef.current = myVaultAt(step);
+            const signedIn = step.view === "detail-signed-in";
 
             return (
               <AppShell
@@ -256,17 +279,22 @@ export function OAuthConnectFlow() {
                 slideDirection={slideDirectionFor(step)}
               >
                 <div
-                  key={componentKey}
+                  key={contentKeyFor(step)}
                   data-scroll-container
                   className="h-full overflow-y-auto"
                   style={{ zoom: DEMO_CONTENT_ZOOM }}
                 >
                   <div className="p-4">
-                    <McpServerDetailView
-                      org={DEMO_ORG}
-                      slug={DEMO_SLUG}
-                    />
-                    <div data-scroll-target="capabilities-bottom" />
+                    {signedIn ? (
+                      <RealButtonTarget label="Check tools" target="check-tools" press>
+                        <PluginDetailView org={DEMO_ORG} slug={DEMO_SLUG} />
+                      </RealButtonTarget>
+                    ) : (
+                      <RealButtonTarget label={`Sign in to ${SERVER_NAME}`} target="sign-in-button">
+                        <PluginDetailView org={DEMO_ORG} slug={DEMO_SLUG} />
+                      </RealButtonTarget>
+                    )}
+                    <div data-scroll-target="plugin-bottom" />
                   </div>
                 </div>
               </AppShell>

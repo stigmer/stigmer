@@ -42,7 +42,8 @@ const pendingApproval = create(PendingApprovalSchema, {
     refund_method: "original_payment",
   }, null, 2),
   requestedAt: new Date().toISOString(),
-  mcpServerSlug: "order-management-api",
+  // The server segment of the tool's name: plugin "order-management", server "orders".
+  mcpServerSlug: "plugin_order-management_orders",
   // Why-gated provenance the server projects onto the pending approval; renders
   // the ApprovalCard's "why this needs approval" line in the demo.
   // The server marks process_return destructive, so the default asks.

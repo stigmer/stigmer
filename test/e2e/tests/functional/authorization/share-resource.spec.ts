@@ -6,7 +6,7 @@ import { openManageAccessFromKebab } from "../../../helpers/access";
  *
  * Every resource with a detail surface opens one canonical dialog composing
  * both access axes: General access (visibility) over People with access
- * (explicit grants). On a static detail page (agent, skill, MCP server)
+ * (explicit grants). On a static detail page (agent, skill, plugin)
  * it opens from a "Manage access" item in the kebab menu.
  *
  * The open-source server does not grant access on a blueprint to individual

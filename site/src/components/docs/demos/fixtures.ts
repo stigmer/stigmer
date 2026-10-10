@@ -1,3 +1,10 @@
+/**
+ * Fixtures the inline docs demos share: the demo organization, the My
+ * vault answers the sign-in demos give (nothing saved, a key by name, a
+ * login at an address; every value blanked as a real read blanks it), an
+ * empty workspace, and a run snapshot builder. All of it is data; nothing
+ * here renders.
+ */
 import { create } from "@bufbuild/protobuf";
 import {
   RunPhase,
@@ -6,6 +13,7 @@ import {
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import type { Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
+import { VaultConnectionSource } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
 import type { UseWorkspaceEntriesReturn } from "@stigmer/react";
@@ -20,6 +28,33 @@ export const DEMO_ORG = "demo-org";
  */
 export function emptyMyVault(): Vault {
   return create(VaultSchema, {});
+}
+
+/**
+ * My vault holding one secret by name and nothing else, as every read
+ * answers it: the value blanked, only the name and what it is for. The
+ * answer a demo gives when the server it replays reads a key the reader
+ * already saved, so a tools check reaches the server as the person looking.
+ */
+export function myVaultHolding(name: string, description: string): Vault {
+  return create(VaultSchema, {
+    spec: { secrets: { [name]: { value: "", description } } },
+  });
+}
+
+/**
+ * My vault holding one login, saved by a sign-in at a server's address,
+ * the token blanked as every read is: the answer a demo gives once its
+ * sign-in has landed, so the server's row says "Signed in".
+ */
+export function myVaultSignedInAt(address: string, description: string): Vault {
+  return create(VaultSchema, {
+    spec: {
+      connections: {
+        [address]: { token: "", source: VaultConnectionSource.sign_in, description },
+      },
+    },
+  });
 }
 
 const noop = () => {};

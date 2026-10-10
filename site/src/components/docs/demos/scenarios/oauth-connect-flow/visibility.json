@@ -1,6 +1,6 @@
 {
   "contract": {
-    "0": { "targets": ["capabilities-bottom"] },
-    "3": { "targets": ["capabilities-bottom"] }
+    "0": { "targets": ["plugin-bottom"] },
+    "3": { "targets": ["plugin-bottom"] }
   }
 }

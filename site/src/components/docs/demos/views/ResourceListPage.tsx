@@ -8,9 +8,9 @@ import { PulseHighlight } from "@scenar/react";
 import { DEMO_CONTENT_ZOOM } from "../shared/tokens";
 
 interface ResourceListPageProps {
-  /** Page heading (e.g. "Skills", "MCP Servers"). */
+  /** Page heading (e.g. "Skills", "Plugins"). */
   readonly title: string;
-  /** Label for the create button (e.g. "Add Skill", "Add MCP Server"). */
+  /** Label for the create button (e.g. "Add Skill", "Add MCP server"). */
   readonly createLabel: string;
   /** `data-cursor-target` value for the create button. */
   readonly cursorTarget: string;
@@ -31,7 +31,7 @@ interface ResourceListPageProps {
  * header and create button. The list is fed by fixture data passed as
  * `items` — no live backend required.
  *
- * Used by the skill-creation and MCP-server-creation guided tours.
+ * Used by the marketplace connect tour's Plugins grid.
  */
 export function ResourceListPage({
   title,

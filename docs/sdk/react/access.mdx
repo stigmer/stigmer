@@ -11,7 +11,7 @@ description: The unified Manage access experience — one dialog composing visib
 
 Wires the unified Manage access dialog to a kebab/overflow menu — the
 trigger shape used by static resource detail views (agent, skill,
-mcp_server, plugin), whose actions live in [`ResourceActionBar`](/docs/sdk/react/resource-detail#resourceactionbar)'s
+plugin), whose actions live in [`ResourceActionBar`](/docs/sdk/react/resource-detail#resourceactionbar)'s
 menu rather than as a standalone button.
 
 Owns the open-state and the `can_view_access` gate (a viewer may open the
@@ -165,7 +165,7 @@ the owning org (drives the org-member typeahead).
   type={{
     id: { type: "string", description: "Resource id.", required: true },
     kind: { type: "ApiResourceKind", description: "ApiResourceKind enum — drives grantable-role lookup and capability.", required: true },
-    kindString: { type: "string", description: "FGA/API kind string (e.g. \"mcp_server\", \"session\", \"agent\").", required: true },
+    kindString: { type: "string", description: "FGA/API kind string (e.g. \"plugin\", \"session\", \"agent\").", required: true },
     name: { type: "string", description: "Optional display name, shown as the dialog subtitle for context." },
     org: { type: "string", description: "Slug of the owning organization (`metadata.org`).", required: true },
   }}
