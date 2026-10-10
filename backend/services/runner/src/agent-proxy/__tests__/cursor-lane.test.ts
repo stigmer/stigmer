@@ -68,6 +68,13 @@ class FakeConnectHost {
   resetAfterHeaders = false;
   /** Answer, then end the stream cleanly with trailers while the client's half is still open. */
   endFirst = false;
+  /**
+   * Answer the headers and some data, then reset the stream with CANCEL and
+   * no END_STREAM, as a server that cuts its answer off does. Node's own
+   * \`close(code)\` sends END_STREAM first, so this fake reaches the
+   * stream's native handle, a test's means to a frame the API does not send.
+   */
+  cancelMidAnswer = false;
   url = "";
   private server: Http2Server | undefined;
 
@@ -77,6 +84,16 @@ class FakeConnectHost {
     this.server.on("stream", (stream: ServerHttp2Stream, headers: IncomingHttpHeaders) => {
       this.streams.push({ path: String(headers[":path"]), headers });
       stream.on("close", () => this.closedCodes.push(stream.rstCode));
+      if (this.cancelMidAnswer) {
+        stream.respond({ ":status": 200, "content-type": "application/connect+proto" });
+        stream.on("error", () => {});
+        stream.write("partial");
+        setTimeout(() => {
+          const handle = Object.getOwnPropertySymbols(stream).find((symbol) => symbol.description === "kHandle");
+          (stream as unknown as Record<symbol, { rstStream(code: number): void }>)[handle!]!.rstStream(8);
+        }, 20);
+        return;
+      }
       if (this.endFirst) {
         stream.respond({ ":status": 200, "content-type": "application/connect+proto" }, { waitForTrailers: true });
         stream.on("error", () => {});
@@ -195,6 +212,7 @@ beforeEach(() => {
   connectHost.streams.length = 0;
   connectHost.resetAfterHeaders = false;
   connectHost.endFirst = false;
+  connectHost.cancelMidAnswer = false;
   connectHost.closedCodes.length = 0;
   connectHost.sessions = 0;
   setEnv({ CURSOR_BACKEND_URL: rest.url });
@@ -441,6 +459,28 @@ describe("terminate: a runner that calls Cursor itself", () => {
       req.end("x");
     });
     expect(reset, "an internal-error reset, never a clean end").toBe(2);
+  });
+
+  it("resets the host's stream with Cursor's own cancel when Cursor cuts its answer off, never a clean end", async () => {
+    const standIn = await exchange();
+    setEnv({ CURSOR_BACKEND_URL: connectHost.url });
+    connectHost.cancelMidAnswer = true;
+    const ended = await new Promise<{ readonly code: number; readonly trailers: boolean }>((resolve) => {
+      const session = connect(proxy.cursorEndpoint, { ca: proxy.cursorCertificate });
+      session.on("error", () => {});
+      const req = session.request({ ":method": "POST", ":path": RUN, authorization: `Bearer ${standIn}`, "x-stigmer-execution-id": EXECUTION });
+      let trailers = false;
+      req.on("error", () => {});
+      req.on("trailers", () => (trailers = true));
+      req.on("close", () => {
+        session.close();
+        resolve({ code: req.rstCode, trailers });
+      });
+      req.resume();
+      // The run's own half stays open, as the agent run's does.
+      req.write("x");
+    });
+    expect(ended).toEqual({ code: 8, trailers: false });
   });
 
   it("ends the host's stream cleanly, with the trailers, when Cursor ends its answer while the host is still sending", async () => {

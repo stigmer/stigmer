@@ -328,7 +328,7 @@ export class CursorLane {
           if (!name.startsWith(":") && value !== undefined) relayed[name] = value;
         }
         res.writeHead(Number(answer[http2Constants.HTTP2_HEADER_STATUS] ?? 502), relayed);
-        upstream.pipe(res);
+        upstream.pipe(res, { end: false });
       });
       upstream.on("trailers", (trailers) => {
         const relayed: OutgoingHttpHeaders = {};
@@ -338,18 +338,26 @@ export class CursorLane {
         res.addTrailers(relayed);
       });
       let failed = false;
-      // A clean END_STREAM ends the host's stream through the pipe, after
-      // the trailers. A reset ends Cursor's stream with no end of its
-      // answer (Node emits no `end` then), so a stream that closes before
-      // its answer ended is reset on the host's side too, with its code:
-      // a cut-off answer never reads as a complete one.
+      // How the host's stream ends follows how Cursor's ended. Node emits
+      // \`end\` both for a clean END_STREAM and for a reset that cut the
+      // answer off, but marks the reset (\`aborted\`, its code) before that
+      // \`end\`: so a clean end ends the host's stream with its trailers, and
+      // a reset resets it with Cursor's code. A stream that closes without
+      // either (its session gone) is reset too: a cut-off answer never reads
+      // as a complete one.
+      const reset = (): void => {
+        if (failed || res.writableEnded || res.stream.closed) return;
+        const code = upstream.rstCode;
+        res.stream.close(code !== undefined && code !== http2Constants.NGHTTP2_NO_ERROR ? code : http2Constants.NGHTTP2_CANCEL);
+      };
+      upstream.on("end", () => {
+        if (upstream.aborted) reset();
+        else if (!res.writableEnded) res.end();
+      });
       res.once("close", () => resolve());
       upstream.on("close", () => {
         res.off("close", abandon);
-        if (!failed && !res.writableEnded && !res.stream.closed) {
-          const code = upstream.rstCode;
-          res.stream.close(code !== undefined && code !== http2Constants.NGHTTP2_NO_ERROR ? code : http2Constants.NGHTTP2_CANCEL);
-        }
+        reset();
         resolve();
       });
       upstream.on("error", (err) => {
