@@ -22,7 +22,7 @@
  *     signed-in person may hold keys), so this step is the one place its
  *     organization is checked.
  *   - CheckDuplicate (the key's own, by name per owner): the shared step's
- *     check is per organization, and a key has none.
+ *     check is per organization, which is not whose a key is.
  *   - PreserveKeyMaterial: update keeps spec.key_hash, spec.fingerprint
  *     and spec.bound_org from the STORED resource, so only the expiry fields are
  *     client-mutable (an update that cleared spec.bound_org would free a limited
@@ -156,10 +156,11 @@ export function newBindApiKeyOrganizationStep(
 /**
  * CheckDuplicate for a key: a name is unique among the keys of one owner,
  * the account the key will speak for (`owner`, read before BuildNewState
- * stamps it). Keys belong to no organization, so the shared step's
- * org-scoped check fell back to every key on the server: two people, or
- * two customers of one hosted server, could not both name a key "ci", and
- * the refusal named the other key's id.
+ * stamps it). The shared step's check is per `metadata.org`, which says
+ * nothing about whose a key is: two people of one organization could not
+ * both name a key "ci", a key created naming no organization was checked
+ * against every key on the server, and the refusal named the other
+ * person's key id (stigmer/stigmer#2111).
  */
 export function newCheckDuplicateKeyNameStep(
   store: Store,

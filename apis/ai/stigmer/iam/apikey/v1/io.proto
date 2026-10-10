@@ -27,7 +27,7 @@ message ApiKeyHash {
 // ApiKeyAccountId names the identity account whose keys are listed.
 message ApiKeyAccountId {
   // Identity account id the keys speak for.
-  string identity_account_id = 1 [(buf.validate.field).required = true];
+  string value = 1 [(buf.validate.field).required = true];
 }
 
 // CreateServiceAccountKeyInput is the command for creating an API key that

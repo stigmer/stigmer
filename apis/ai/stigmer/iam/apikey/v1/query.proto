@@ -50,7 +50,7 @@ service ApiKeyQueryController {
   rpc findByAccount(ApiKeyAccountId) returns (ApiKeys) {
     option (ai.stigmer.commons.rpc.config).resource_kind = identity_account;
     option (ai.stigmer.commons.rpc.config).permission = can_view;
-    option (ai.stigmer.commons.rpc.config).field_path = "identity_account_id";
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to list this account's api keys";
   }
 }

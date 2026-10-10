@@ -165,9 +165,9 @@ func (x *ApiKeyHash) GetValue() string {
 type ApiKeyAccountId struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Identity account id the keys speak for.
-	IdentityAccountId string `protobuf:"bytes,1,opt,name=identity_account_id,json=identityAccountId,proto3" json:"identity_account_id,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	Value         string `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ApiKeyAccountId) Reset() {
@@ -200,9 +200,9 @@ func (*ApiKeyAccountId) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_iam_apikey_v1_io_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *ApiKeyAccountId) GetIdentityAccountId() string {
+func (x *ApiKeyAccountId) GetValue() string {
 	if x != nil {
-		return x.IdentityAccountId
+		return x.Value
 	}
 	return ""
 }
@@ -292,9 +292,9 @@ const file_ai_stigmer_iam_apikey_v1_io_proto_rawDesc = "" +
 	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"*\n" +
 	"\n" +
 	"ApiKeyHash\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"I\n" +
-	"\x0fApiKeyAccountId\x126\n" +
-	"\x13identity_account_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x11identityAccountId\"\xd5\x01\n" +
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"/\n" +
+	"\x0fApiKeyAccountId\x12\x1c\n" +
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xd5\x01\n" +
 	"\x1cCreateServiceAccountKeyInput\x124\n" +
 	"\x12service_account_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x10serviceAccountId\x12\x1f\n" +
 	"\x04name\x18\x02 \x01(\tB\v\xbaH\b\xc8\x01\x01r\x03\x18\x80\x01R\x04name\x129\n" +

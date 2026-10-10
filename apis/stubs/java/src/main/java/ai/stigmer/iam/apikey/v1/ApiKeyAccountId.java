@@ -32,7 +32,7 @@ private static final long serialVersionUID = 0L;
     super(builder);
   }
   private ApiKeyAccountId() {
-    identityAccountId_ = "";
+    value_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -53,27 +53,27 @@ private static final long serialVersionUID = 0L;
             ai.stigmer.iam.apikey.v1.ApiKeyAccountId.class, ai.stigmer.iam.apikey.v1.ApiKeyAccountId.Builder.class);
   }
 
-  public static final int IDENTITY_ACCOUNT_ID_FIELD_NUMBER = 1;
+  public static final int VALUE_FIELD_NUMBER = 1;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object identityAccountId_ = "";
+  private volatile java.lang.Object value_ = "";
   /**
    * <pre>
    * Identity account id the keys speak for.
    * </pre>
    *
-   * <code>string identity_account_id = 1 [json_name = "identityAccountId", (.buf.validate.field) = { ... }</code>
-   * @return The identityAccountId.
+   * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
+   * @return The value.
    */
   @java.lang.Override
-  public java.lang.String getIdentityAccountId() {
-    java.lang.Object ref = identityAccountId_;
+  public java.lang.String getValue() {
+    java.lang.Object ref = value_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      identityAccountId_ = s;
+      value_ = s;
       return s;
     }
   }
@@ -82,18 +82,18 @@ private static final long serialVersionUID = 0L;
    * Identity account id the keys speak for.
    * </pre>
    *
-   * <code>string identity_account_id = 1 [json_name = "identityAccountId", (.buf.validate.field) = { ... }</code>
-   * @return The bytes for identityAccountId.
+   * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for value.
    */
   @java.lang.Override
   public com.google.protobuf.ByteString
-      getIdentityAccountIdBytes() {
-    java.lang.Object ref = identityAccountId_;
+      getValueBytes() {
+    java.lang.Object ref = value_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      identityAccountId_ = b;
+      value_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -114,8 +114,8 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(identityAccountId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 1, identityAccountId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(value_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 1, value_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -126,8 +126,8 @@ private static final long serialVersionUID = 0L;
     if (size != -1) return size;
 
     size = 0;
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(identityAccountId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(1, identityAccountId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(value_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(1, value_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -144,8 +144,8 @@ private static final long serialVersionUID = 0L;
     }
     ai.stigmer.iam.apikey.v1.ApiKeyAccountId other = (ai.stigmer.iam.apikey.v1.ApiKeyAccountId) obj;
 
-    if (!getIdentityAccountId()
-        .equals(other.getIdentityAccountId())) return false;
+    if (!getValue()
+        .equals(other.getValue())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -157,8 +157,8 @@ private static final long serialVersionUID = 0L;
     }
     int hash = 41;
     hash = (19 * hash) + getDescriptor().hashCode();
-    hash = (37 * hash) + IDENTITY_ACCOUNT_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getIdentityAccountId().hashCode();
+    hash = (37 * hash) + VALUE_FIELD_NUMBER;
+    hash = (53 * hash) + getValue().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -294,7 +294,7 @@ private static final long serialVersionUID = 0L;
     public Builder clear() {
       super.clear();
       bitField0_ = 0;
-      identityAccountId_ = "";
+      value_ = "";
       return this;
     }
 
@@ -329,7 +329,7 @@ private static final long serialVersionUID = 0L;
     private void buildPartial0(ai.stigmer.iam.apikey.v1.ApiKeyAccountId result) {
       int from_bitField0_ = bitField0_;
       if (((from_bitField0_ & 0x00000001) != 0)) {
-        result.identityAccountId_ = identityAccountId_;
+        result.value_ = value_;
       }
     }
 
@@ -345,8 +345,8 @@ private static final long serialVersionUID = 0L;
 
     public Builder mergeFrom(ai.stigmer.iam.apikey.v1.ApiKeyAccountId other) {
       if (other == ai.stigmer.iam.apikey.v1.ApiKeyAccountId.getDefaultInstance()) return this;
-      if (!other.getIdentityAccountId().isEmpty()) {
-        identityAccountId_ = other.identityAccountId_;
+      if (!other.getValue().isEmpty()) {
+        value_ = other.value_;
         bitField0_ |= 0x00000001;
         onChanged();
       }
@@ -377,7 +377,7 @@ private static final long serialVersionUID = 0L;
               done = true;
               break;
             case 10: {
-              identityAccountId_ = input.readStringRequireUtf8();
+              value_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000001;
               break;
             } // case 10
@@ -398,22 +398,22 @@ private static final long serialVersionUID = 0L;
     }
     private int bitField0_;
 
-    private java.lang.Object identityAccountId_ = "";
+    private java.lang.Object value_ = "";
     /**
      * <pre>
      * Identity account id the keys speak for.
      * </pre>
      *
-     * <code>string identity_account_id = 1 [json_name = "identityAccountId", (.buf.validate.field) = { ... }</code>
-     * @return The identityAccountId.
+     * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
+     * @return The value.
      */
-    public java.lang.String getIdentityAccountId() {
-      java.lang.Object ref = identityAccountId_;
+    public java.lang.String getValue() {
+      java.lang.Object ref = value_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        identityAccountId_ = s;
+        value_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
@@ -424,17 +424,17 @@ private static final long serialVersionUID = 0L;
      * Identity account id the keys speak for.
      * </pre>
      *
-     * <code>string identity_account_id = 1 [json_name = "identityAccountId", (.buf.validate.field) = { ... }</code>
-     * @return The bytes for identityAccountId.
+     * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
+     * @return The bytes for value.
      */
     public com.google.protobuf.ByteString
-        getIdentityAccountIdBytes() {
-      java.lang.Object ref = identityAccountId_;
+        getValueBytes() {
+      java.lang.Object ref = value_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        identityAccountId_ = b;
+        value_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
@@ -445,14 +445,14 @@ private static final long serialVersionUID = 0L;
      * Identity account id the keys speak for.
      * </pre>
      *
-     * <code>string identity_account_id = 1 [json_name = "identityAccountId", (.buf.validate.field) = { ... }</code>
-     * @param value The identityAccountId to set.
+     * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
+     * @param value The value to set.
      * @return This builder for chaining.
      */
-    public Builder setIdentityAccountId(
+    public Builder setValue(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      identityAccountId_ = value;
+      value_ = value;
       bitField0_ |= 0x00000001;
       onChanged();
       return this;
@@ -462,11 +462,11 @@ private static final long serialVersionUID = 0L;
      * Identity account id the keys speak for.
      * </pre>
      *
-     * <code>string identity_account_id = 1 [json_name = "identityAccountId", (.buf.validate.field) = { ... }</code>
+     * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
-    public Builder clearIdentityAccountId() {
-      identityAccountId_ = getDefaultInstance().getIdentityAccountId();
+    public Builder clearValue() {
+      value_ = getDefaultInstance().getValue();
       bitField0_ = (bitField0_ & ~0x00000001);
       onChanged();
       return this;
@@ -476,15 +476,15 @@ private static final long serialVersionUID = 0L;
      * Identity account id the keys speak for.
      * </pre>
      *
-     * <code>string identity_account_id = 1 [json_name = "identityAccountId", (.buf.validate.field) = { ... }</code>
-     * @param value The bytes for identityAccountId to set.
+     * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes for value to set.
      * @return This builder for chaining.
      */
-    public Builder setIdentityAccountIdBytes(
+    public Builder setValueBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      identityAccountId_ = value;
+      value_ = value;
       bitField0_ |= 0x00000001;
       onChanged();
       return this;

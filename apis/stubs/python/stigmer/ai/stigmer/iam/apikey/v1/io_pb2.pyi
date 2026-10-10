@@ -30,10 +30,10 @@ class ApiKeyHash(_message.Message):
     def __init__(self, value: _Optional[str] = ...) -> None: ...
 
 class ApiKeyAccountId(_message.Message):
-    __slots__ = ("identity_account_id",)
-    IDENTITY_ACCOUNT_ID_FIELD_NUMBER: _ClassVar[int]
-    identity_account_id: str
-    def __init__(self, identity_account_id: _Optional[str] = ...) -> None: ...
+    __slots__ = ("value",)
+    VALUE_FIELD_NUMBER: _ClassVar[int]
+    value: str
+    def __init__(self, value: _Optional[str] = ...) -> None: ...
 
 class CreateServiceAccountKeyInput(_message.Message):
     __slots__ = ("service_account_id", "name", "expires_at", "never_expires")

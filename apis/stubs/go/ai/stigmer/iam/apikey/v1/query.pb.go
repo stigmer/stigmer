@@ -27,12 +27,12 @@ var File_ai_stigmer_iam_apikey_v1_query_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_apikey_v1_query_proto_rawDesc = "" +
 	"\n" +
-	"$ai/stigmer/iam/apikey/v1/query.proto\x12\x18ai.stigmer.iam.apikey.v1\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a\"ai/stigmer/iam/apikey/v1/api.proto\x1a!ai/stigmer/iam/apikey/v1/io.proto\x1a\x1bgoogle/protobuf/empty.proto2\xf0\x03\n" +
+	"$ai/stigmer/iam/apikey/v1/query.proto\x12\x18ai.stigmer.iam.apikey.v1\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a\"ai/stigmer/iam/apikey/v1/api.proto\x1a!ai/stigmer/iam/apikey/v1/io.proto\x1a\x1bgoogle/protobuf/empty.proto2\xe2\x03\n" +
 	"\x15ApiKeyQueryController\x12z\n" +
 	"\x03get\x12\".ai.stigmer.iam.apikey.v1.ApiKeyId\x1a .ai.stigmer.iam.apikey.v1.ApiKey\"-¸\x18)\b\x01\x10\f\"\x05value*\x1cunauthorized to view api key\x12\\\n" +
 	"\fgetByKeyHash\x12$.ai.stigmer.iam.apikey.v1.ApiKeyHash\x1a .ai.stigmer.iam.apikey.v1.ApiKey\"\x04и\x18\x01\x12J\n" +
-	"\afindAll\x12\x16.google.protobuf.Empty\x1a!.ai.stigmer.iam.apikey.v1.ApiKeys\"\x04и\x18\x01\x12\xaa\x01\n" +
-	"\rfindByAccount\x12).ai.stigmer.iam.apikey.v1.ApiKeyAccountId\x1a!.ai.stigmer.iam.apikey.v1.ApiKeys\"K¸\x18G\b\x01\x10\v\"\x13identity_account_id*,unauthorized to list this account's api keys\x1a\x04\xa0\xff+\fB\xfb\x01\n" +
+	"\afindAll\x12\x16.google.protobuf.Empty\x1a!.ai.stigmer.iam.apikey.v1.ApiKeys\"\x04и\x18\x01\x12\x9c\x01\n" +
+	"\rfindByAccount\x12).ai.stigmer.iam.apikey.v1.ApiKeyAccountId\x1a!.ai.stigmer.iam.apikey.v1.ApiKeys\"=¸\x189\b\x01\x10\v\"\x05value*,unauthorized to list this account's api keys\x1a\x04\xa0\xff+\fB\xfb\x01\n" +
 	"\x1ccom.ai.stigmer.iam.apikey.v1B\n" +
 	"QueryProtoP\x01ZJgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/apikey/v1;apikeyv1\xa2\x02\x04ASIA\xaa\x02\x18Ai.Stigmer.Iam.Apikey.V1\xca\x02\x18Ai\\Stigmer\\Iam\\Apikey\\V1\xe2\x02$Ai\\Stigmer\\Iam\\Apikey\\V1\\GPBMetadata\xea\x02\x1cAi::Stigmer::Iam::Apikey::V1b\x06proto3"
 

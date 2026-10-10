@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/apikey/v1/io.proto.
  */
 export const file_ai_stigmer_iam_apikey_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiFhaS9zdGlnbWVyL2lhbS9hcGlrZXkvdjEvaW8ucHJvdG8SGGFpLnN0aWdtZXIuaWFtLmFwaWtleS52MSI8CgdBcGlLZXlzEjEKB2VudHJpZXMYASADKAsyIC5haS5zdGlnbWVyLmlhbS5hcGlrZXkudjEuQXBpS2V5IiEKCEFwaUtleUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIwoKQXBpS2V5SGFzaBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBIjYKD0FwaUtleUFjY291bnRJZBIjChNpZGVudGl0eV9hY2NvdW50X2lkGAEgASgJQga6SAPIAQEipAEKHENyZWF0ZVNlcnZpY2VBY2NvdW50S2V5SW5wdXQSIgoSc2VydmljZV9hY2NvdW50X2lkGAEgASgJQga6SAPIAQESGQoEbmFtZRgCIAEoCUILukgIyAEBcgMYgAESLgoKZXhwaXJlc19hdBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASFQoNbmV2ZXJfZXhwaXJlcxgEIAEoCGIGcHJvdG8z", [file_ai_stigmer_iam_apikey_v1_api, file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("CiFhaS9zdGlnbWVyL2lhbS9hcGlrZXkvdjEvaW8ucHJvdG8SGGFpLnN0aWdtZXIuaWFtLmFwaWtleS52MSI8CgdBcGlLZXlzEjEKB2VudHJpZXMYASADKAsyIC5haS5zdGlnbWVyLmlhbS5hcGlrZXkudjEuQXBpS2V5IiEKCEFwaUtleUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIwoKQXBpS2V5SGFzaBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBIigKD0FwaUtleUFjY291bnRJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBIqQBChxDcmVhdGVTZXJ2aWNlQWNjb3VudEtleUlucHV0EiIKEnNlcnZpY2VfYWNjb3VudF9pZBgBIAEoCUIGukgDyAEBEhkKBG5hbWUYAiABKAlCC7pICMgBAXIDGIABEi4KCmV4cGlyZXNfYXQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhUKDW5ldmVyX2V4cGlyZXMYBCABKAhiBnByb3RvMw", [file_ai_stigmer_iam_apikey_v1_api, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * ApiKeys contains a list of API key resources.
@@ -89,9 +89,9 @@ export type ApiKeyAccountId = Message<"ai.stigmer.iam.apikey.v1.ApiKeyAccountId"
   /**
    * Identity account id the keys speak for.
    *
-   * @generated from field: string identity_account_id = 1;
+   * @generated from field: string value = 1;
    */
-  identityAccountId: string;
+  value: string;
 };
 
 /**

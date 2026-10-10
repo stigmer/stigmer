@@ -14,13 +14,14 @@
  *     an organization's admins may view its service accounts' keys, and
  *     those are listed with findByAccount, never mixed into the admin's own.
  *   - A key's name is unique among its owner's keys, not among every key
- *     on the server (steps.ts CheckDuplicate).
+ *     of its organization (steps.ts CheckDuplicate).
  *
  * createForServiceAccount runs the create chain AS the service account,
  * so the key's creator stamp, the stamp the verifier and the owner tuple
  * read, names the account the key speaks for. Its organization is the
  * service account's, set from the account row. The admin who minted it is
- * named in the server's log line for the create. A service account's own
+ * named in the server's log line for the create. The key is filed in, and
+ * limited to, the service account's organization. A service account's own
  * key is refused every create and update of a key (pipeline/steps/
  * refuse-service-account.ts): it never decides what credentials exist.
  *
@@ -234,7 +235,7 @@ async function createForServiceAccount(
   const apiKey = create(ApiKeySchema, {
     apiVersion: "iam.stigmer.ai/v1",
     kind: "ApiKey",
-    metadata: { name: input.name },
+    metadata: { name: input.name, org: asAccount.boundOrg ?? "" },
     spec: {
       ...(input.expiresAt !== undefined ? { expiresAt: input.expiresAt } : {}),
       neverExpires: input.neverExpires,
@@ -471,7 +472,7 @@ async function findByAccount(
     identity,
     input,
   );
-  const account = await loadAccount(deps, input.identityAccountId);
+  const account = await loadAccount(deps, input.value);
   return listOwnedKeys(deps, identity, [
     account.metadata?.id ?? "",
     account.spec?.idpId ?? "",

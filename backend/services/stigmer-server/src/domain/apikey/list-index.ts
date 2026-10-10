@@ -8,9 +8,9 @@
  * speaks for it (account-keys.ts). Each would
  * otherwise decode every key on the server.
  *
- * Keys belong to no organization (`metadata.org` is empty; a key's
- * organization is `spec.bound_org`), so every read is by owner across
- * organizations.
+ * A key's `metadata.org` is the organization it was created in, and says
+ * nothing about whose it is or where it works (`spec.bound_org` does), so
+ * every read is by owner across organizations.
  *
  * A change to `keys` bumps `revision` (boot/__tests__/list-indexes.test.ts
  * pins the pair).

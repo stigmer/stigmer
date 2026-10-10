@@ -15,18 +15,18 @@ public interface ApiKeyAccountIdOrBuilder extends
    * Identity account id the keys speak for.
    * </pre>
    *
-   * <code>string identity_account_id = 1 [json_name = "identityAccountId", (.buf.validate.field) = { ... }</code>
-   * @return The identityAccountId.
+   * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
+   * @return The value.
    */
-  java.lang.String getIdentityAccountId();
+  java.lang.String getValue();
   /**
    * <pre>
    * Identity account id the keys speak for.
    * </pre>
    *
-   * <code>string identity_account_id = 1 [json_name = "identityAccountId", (.buf.validate.field) = { ... }</code>
-   * @return The bytes for identityAccountId.
+   * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for value.
    */
   com.google.protobuf.ByteString
-      getIdentityAccountIdBytes();
+      getValueBytes();
 }
