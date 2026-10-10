@@ -34,6 +34,7 @@ import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
 import type { ModelCatalogProvider } from "../../modelcatalog/model-catalog-provider.js";
 import { harnessName } from "../../modelcatalog/pin-validation.js";
+import { compileGlob } from "./glob.js";
 
 /** Tries per arm when neither the spec nor the case names a count. */
 export const DEFAULT_EVAL_RUNS = 3;
@@ -193,71 +194,32 @@ function targetsOf(
 }
 
 /**
- * The case filter for `case_glob`: `*` any run of characters, `?` one,
- * `[...]` a class (`[!...]` negated), `{a,b}` alternatives; everything
- * else literal. Matched against the case's name and its directory's last
- * segment, which are the same unless case.yaml renames the case.
+ * The case filter for `case_glob`, in the evals' one glob grammar
+ * (glob.ts, name mode: `*` any run of characters). Matched against the
+ * case's name and its directory's last segment, which are the same unless
+ * case.yaml renames the case. Create refuses a malformed glob; should one
+ * be stored anyway, it keeps no case.
  */
 function caseGlobMatcher(glob: string): (evalCase: EvalCase) => boolean {
   if (glob === "") {
     return () => true;
   }
-  const pattern = globToRegExp(glob);
+  const pattern = compileGlob(glob, "name");
+  if (!pattern.ok) {
+    return () => false;
+  }
   return (evalCase) => {
     const segments = evalCase.dir.split("/");
     const dirName = segments[segments.length - 1] ?? "";
-    return pattern.test(evalCase.name) || pattern.test(dirName);
+    return (
+      pattern.matches(evalCase.name) ||
+      (dirName !== evalCase.name && pattern.matches(dirName))
+    );
   };
 }
 
-/** A glob as an anchored regular expression (caseGlobMatcher's grammar). */
-export function globToRegExp(glob: string): RegExp {
-  let source = "";
-  let braceDepth = 0;
-  for (let i = 0; i < glob.length; i++) {
-    const char = glob[i] ?? "";
-    switch (char) {
-      case "*":
-        source += ".*";
-        break;
-      case "?":
-        source += ".";
-        break;
-      case "[": {
-        const close = glob.indexOf("]", i + 2);
-        if (close === -1) {
-          source += "\\[";
-          break;
-        }
-        let body = glob.slice(i + 1, close);
-        let negate = false;
-        if (body.startsWith("!") || body.startsWith("^")) {
-          negate = true;
-          body = body.slice(1);
-        }
-        source += `[${negate ? "^" : ""}${body.replace(/[\\\]]/g, "\\$&")}]`;
-        i = close;
-        break;
-      }
-      case "{":
-        braceDepth++;
-        source += "(?:";
-        break;
-      case "}":
-        if (braceDepth > 0) {
-          braceDepth--;
-          source += ")";
-        } else {
-          source += "\\}";
-        }
-        break;
-      case ",":
-        source += braceDepth > 0 ? "|" : ",";
-        break;
-      default:
-        source += char.replace(/[.+^$()|\\/]/g, "\\$&");
-    }
-  }
-  source += ")".repeat(braceDepth);
-  return new RegExp(`^${source}$`);
+/** Why `case_glob` is not a glob, or `undefined` when it is one (or empty). */
+export function caseGlobError(glob: string): string | undefined {
+  const compiled = compileGlob(glob, "name");
+  return compiled.ok ? undefined : compiled.error;
 }
