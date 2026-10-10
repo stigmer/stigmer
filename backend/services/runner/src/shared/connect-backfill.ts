@@ -9,12 +9,14 @@
  * starts the connect workflow (discovery only) and blocks until it
  * completes, then the servers are re-resolved so the turn sees the marks.
  *
- * The connect names the run (`run_id`) and carries no values: the server
- * uses the run's planned values for that server, which discovery fetches
- * from their vaults as the turn did, so a key the run took from a shared
- * vault reaches discovery without the runner sending it back. The call is
- * made inside the run's activity, so it presents the run's own credential,
- * the one the server accepts `run_id` from.
+ * A server the run's fetch gave values to is connected naming the run
+ * (`run_id`), with no values: the server uses the run's planned values for
+ * that server, which discovery fetches from their vaults as the turn did,
+ * so a key the run took from a shared vault reaches discovery without the
+ * runner sending it back. The call is made inside the run's activity, so
+ * it presents the run's own credential, the one the server accepts
+ * `run_id` from. A server the fetch gave nothing names no run: it needs no
+ * values, and its connect asks nothing of the run's credential.
  *
  * Backfill trigger: discovered_capabilities is empty or absent. A server
  * discovered at least once is never re-discovered here; reconnecting it
@@ -119,7 +121,7 @@ export async function backfillMcpServersIfNeeded(
       const updated = await withTimeout(
         CONNECT_TIMEOUT_MS,
         `Connect timed out after ${CONNECT_TIMEOUT_MS / 1000}s`,
-        () => client.connectMcpServer(serverId, org, runId),
+        () => client.connectMcpServer(serverId, org, tools.has(serverId) ? runId : undefined),
       );
 
       const toolCount = updated.status?.discoveredCapabilities?.tools.length ?? 0;

@@ -47,6 +47,12 @@ export class WorkspaceProvisionError extends Error {
   }
 }
 
+/** Per-command options for {@link WorkspaceBackend.execute}. */
+export interface ExecuteOptions {
+  readonly cwd?: string;
+  readonly env?: Readonly<Record<string, string>>;
+}
+
 /**
  * Abstraction for executing commands inside a workspace.
  *
@@ -63,12 +69,6 @@ export class WorkspaceProvisionError extends Error {
  * through their read-only `.stigmer/` route over the same dir
  * (`activities/execute-deep-agent/platform-route.ts`).
  */
-/** Per-command options for {@link WorkspaceBackend.execute}. */
-export interface ExecuteOptions {
-  readonly cwd?: string;
-  readonly env?: Readonly<Record<string, string>>;
-}
-
 export interface WorkspaceBackend {
   readonly rootDir: string;
   readonly platformDir?: string;

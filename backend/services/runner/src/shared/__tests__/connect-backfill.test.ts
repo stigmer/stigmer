@@ -179,6 +179,24 @@ describe("backfillMcpServersIfNeeded", () => {
     expect(resolve).toHaveBeenCalledWith(client, usages, TOOLS, platformValues, "stdio-allowed", PLATFORM_ENDPOINTS);
   });
 
+  it("names no run for a server the run's fetch gave no values: it needs none", async () => {
+    const servers = [makeServer({ slug: "keyless", discoveredCapabilitiesEmpty: true })];
+    const usages = [makeUsage("keyless")];
+    const client = makeMockClient({
+      getMcpServerByReference: vi.fn().mockResolvedValue({ metadata: { id: "server-keyless" } }),
+    });
+    vi.spyOn(await import("../mcp-resolver.js"), "resolveMcpServers").mockResolvedValue({
+      resolvedServers: [makeServer({ slug: "keyless", discoveredCapabilitiesEmpty: false })],
+    });
+
+    await backfillMcpServersIfNeeded(
+      client, servers, usages, TOOLS, {}, "org", RUN_ID, "stdio-allowed", PLATFORM_ENDPOINTS,
+    );
+
+    expect(TOOLS.has("server-keyless")).toBe(false);
+    expect(client.connectMcpServer).toHaveBeenCalledWith("server-keyless", "org", undefined);
+  });
+
   it("preserves original servers when connect RPC fails", async () => {
     const servers = [
       makeServer({ slug: "failing", discoveredCapabilitiesEmpty: true }),
