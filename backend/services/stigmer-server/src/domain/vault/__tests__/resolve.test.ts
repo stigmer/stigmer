@@ -70,6 +70,7 @@ import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchan
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { McpServerEntrySchema, PluginStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
+import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
 import type { McpServerEntry } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import { HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { RunValueDeclarerKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
@@ -554,6 +555,27 @@ describe("requirements", () => {
     expect(requirement?.key).toBe("BARE_KEY");
     expect(requirement?.optional).toBe(false);
     expect(requirement?.plainValue).toBeUndefined();
+  });
+
+  it("plans no key the platform fills, even one the plugin declares: no vault value stands in for it", () => {
+    const echo: RunPlugin = {
+      id: "plg_echo",
+      name: "echo",
+      status: create(PluginStatusSchema, {
+        mcpServers: [
+          {
+            name: "api",
+            transport: { case: "http", value: { url: "https://echo.example/mcp" } },
+            env: ["STIGMER_CALLER_IDENTITY_KIND", "STIGMER_CALLER_IDENTITY_VALUE", "STIGMER_SESSION_ID", "STIGMER_SERVER_ADDRESS", "ECHO_KEY"],
+          },
+        ],
+        env: {
+          STIGMER_SERVER_ADDRESS: create(EnvVarDeclarationSchema, { isSecret: false, optional: true }),
+          ECHO_KEY: create(EnvVarDeclarationSchema, { isSecret: true, optional: false }),
+        },
+      }),
+    };
+    expect(toolRequirements(serverOf(echo)).map((requirement) => requirement.key)).toEqual(["ECHO_KEY"]);
   });
 });
 

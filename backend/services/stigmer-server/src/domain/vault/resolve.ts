@@ -138,7 +138,7 @@ import type {
   PluginValues,
   ToolValues,
 } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
-import { hookVariableReferences } from "@stigmer/plugin-package";
+import { hookVariableReferences, PLATFORM_VARIABLES } from "@stigmer/plugin-package";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
@@ -403,10 +403,19 @@ function declarationRequirements(
   }));
 }
 
-/** The declarations of the keys a server reads; a name the plugin did not declare is a required secret. */
+/**
+ * The declarations of the keys a server reads; a name the plugin did not
+ * declare is a required secret. A key the platform fills (the caller's
+ * identity, the session, the Stigmer server's address: `PLATFORM_VARIABLES`)
+ * is no requirement: the runner fills it for every server that reads it, and
+ * no vault value may stand in for it.
+ */
 function declarationsOf(server: PluginServer): Record<string, EnvVarDeclaration> {
   const declarations: Record<string, EnvVarDeclaration> = {};
   for (const name of server.entry.env) {
+    if (PLATFORM_VARIABLES.has(name)) {
+      continue;
+    }
     declarations[name] =
       server.env[name] ?? create(EnvVarDeclarationSchema, { isSecret: true, optional: false });
   }
