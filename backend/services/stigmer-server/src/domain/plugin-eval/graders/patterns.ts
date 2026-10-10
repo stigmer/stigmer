@@ -28,10 +28,15 @@
  * One job counts the matches of one pattern in each of several texts, up
  * to a limit per text (1 answers "found", N+1 answers "exactly N"). The
  * global flag is added for counting; zero-length matches advance by one
- * code point, as `String.prototype.matchAll` does.
+ * code point, as `String.prototype.matchAll` does. A pattern that throws
+ * while it runs (a backtracking pattern overflowing the regex stack on a
+ * long text, a RangeError) is answered "failed" with the error's name,
+ * never a rejected job, so only the check that asked is not graded,
+ * "pattern failed: <name>", and the try's other checks still grade.
  *
  * Proven by __tests__/patterns.test.ts (a catastrophic pattern hits the
- * deadline and the pool recovers) and __tests__/pattern-pool-faults.test.ts
+ * deadline and the pool recovers, a pattern overflowing the regex stack
+ * answers failed) and __tests__/pattern-pool-faults.test.ts
  * (the queue bound, a misbehaving worker).
  */
 import { availableParallelism } from "node:os";
@@ -56,10 +61,14 @@ export interface PatternJob {
   readonly budgetMs: number;
 }
 
-/** A job's answer: the counts, the pattern's refusal, the deadline, or no worker free in time. */
+/**
+ * A job's answer: the counts, the pattern's refusal, a throw while it ran
+ * (named by the error's name), the deadline, or no worker free in time.
+ */
 export type PatternAnswer =
   | { readonly kind: "counts"; readonly counts: ReadonlyArray<number> }
   | { readonly kind: "invalid"; readonly message: string }
+  | { readonly kind: "failed"; readonly name: string }
   | { readonly kind: "timeout" }
   | { readonly kind: "busy" };
 
@@ -85,21 +94,26 @@ parentPort.on("message", (job) => {
   }
   const unicode = re.unicode || re.unicodeSets;
   const counts = [];
-  for (const text of job.texts) {
-    re.lastIndex = 0;
-    let n = 0;
-    while (n < job.limit) {
-      const match = re.exec(text);
-      if (match === null) break;
-      n++;
-      if (match[0] === "") {
-        const at = re.lastIndex;
-        const code = text.codePointAt(at);
-        re.lastIndex = at + (unicode && code !== undefined && code > 0xffff ? 2 : 1);
-        if (re.lastIndex > text.length) break;
+  try {
+    for (const text of job.texts) {
+      re.lastIndex = 0;
+      let n = 0;
+      while (n < job.limit) {
+        const match = re.exec(text);
+        if (match === null) break;
+        n++;
+        if (match[0] === "") {
+          const at = re.lastIndex;
+          const code = text.codePointAt(at);
+          re.lastIndex = at + (unicode && code !== undefined && code > 0xffff ? 2 : 1);
+          if (re.lastIndex > text.length) break;
+        }
       }
+      counts.push(n);
     }
-    counts.push(n);
+  } catch (error) {
+    parentPort.postMessage({ id: job.id, kind: "failed", name: String(error && error.name ? error.name : "Error") });
+    return;
   }
   parentPort.postMessage({ id: job.id, kind: "counts", counts });
 });
@@ -107,9 +121,26 @@ parentPort.on("message", (job) => {
 
 interface WorkerReply {
   readonly id: number;
-  readonly kind: "counts" | "invalid";
+  readonly kind: "counts" | "invalid" | "failed";
   readonly counts?: number[];
   readonly message?: string;
+  readonly name?: string;
+}
+
+function answerOf(reply: WorkerReply): PatternAnswer {
+  switch (reply.kind) {
+    case "counts":
+      return { kind: "counts", counts: reply.counts ?? [] };
+    case "invalid":
+      return { kind: "invalid", message: reply.message ?? "" };
+    case "failed":
+      return { kind: "failed", name: reply.name ?? "Error" };
+    /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
+    default: {
+      const exhausted: never = reply.kind;
+      return exhausted;
+    }
+  }
 }
 
 interface Pending {
@@ -168,11 +199,7 @@ export function newPatternPool(
       }
       slot.timer = undefined;
       slot.busy = undefined;
-      pending.resolve(
-        reply.kind === "counts"
-          ? { kind: "counts", counts: reply.counts ?? [] }
-          : { kind: "invalid", message: reply.message ?? "" },
-      );
+      pending.resolve(answerOf(reply));
       pump();
     });
     worker.on("error", (error) => {

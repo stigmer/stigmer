@@ -3,7 +3,7 @@
  * (passed or failed, with a reason the author reads beside the try), or
  * not graded with the reason the try is left out of every mean. A grader
  * is not graded only when the platform could not judge (a pattern past
- * its deadline, an install that records no files, a judge that failed, a
+ * its deadline or one that threw while it ran, an install that records no files, a judge that failed, a
  * malformed glob the suite reader let through), never because the run did badly, so not graded is never a zero.
  *
  * Also the one reader of what a grader looks at (`focusText`): the final
@@ -45,6 +45,14 @@ export const FILES_NOT_RECORDED_REASON =
 
 /** The not-graded reason of a grader over mock calls, which Stigmer does not run yet. */
 export const MOCK_CALLS_NOT_RUN_REASON = "mock_calls are not run yet";
+
+/**
+ * The not-graded reason of a pattern that threw while it ran (a regex
+ * stack overflow on a long text), named by the error's name.
+ */
+export function patternFailedReason(name: string): string {
+  return `pattern failed: ${name}`;
+}
 
 /** The not-graded reason of a pattern JavaScript refuses. */
 export function invalidPatternReason(message: string): string {
