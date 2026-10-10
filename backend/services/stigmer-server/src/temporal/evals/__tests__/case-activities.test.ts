@@ -13,7 +13,9 @@
  *     create that fails outside the RPC contract, an RPC code
  *     no refusal covers, an empty and an over-long refusal; a refused run
  *     whose session has no id;
- *   - stop-run: a failure other than "already ended or gone" is thrown;
+ *   - stop-run: a failure other than "already ended or gone" is thrown; a
+ *     refused stop is read against the run's phase, an ended or gone run
+ *     stopped, a paused or approval-waiting one thrown as not stopped;
  *   - grade-try: the evidence an AI-graded check cannot be shown (no file
  *     record, an offloaded file and no artifact storage, a reference
  *     transcript the archive lacks); the run's error named per phase when
@@ -665,21 +667,47 @@ describe("stop-run", () => {
     ).rejects.toThrow("engine down");
   });
 
-  it("takes a run that already ended as stopped", async () => {
-    await seeded();
-    const { cases } = build({
+  /** Activities whose stop the run's lifecycle refuses as it refuses an ended, paused or approval-waiting run. */
+  function refusingStops() {
+    return build({
       lane: (real) => ({
         ...real,
         terminateRun: () =>
           Promise.reject(
-            new ConnectError("already ended", Code.FailedPrecondition),
+            new ConnectError("the run cannot be stopped in its phase", Code.FailedPrecondition),
           ),
       }),
     });
+  }
+
+  it("takes a refused stop of a run that already ended, or is gone, as stopped", async () => {
+    await seeded();
+    const { cases } = refusingStops();
+    const start = await startTry(cases);
+    await completeTry(start.runId);
     await expect(
-      cases[STOP_RUN_ACTIVITY_NAME]("run_1", "timed out"),
+      cases[STOP_RUN_ACTIVITY_NAME](start.runId, "timed out"),
+    ).resolves.toBeUndefined();
+    await expect(
+      cases[STOP_RUN_ACTIVITY_NAME]("run_gone", "timed out"),
     ).resolves.toBeUndefined();
   });
+
+  it.each([
+    ["paused", RunPhase.RUN_PAUSED],
+    ["waiting for approval", RunPhase.RUN_WAITING_FOR_APPROVAL],
+  ])(
+    "throws a refused stop of a run %s: it is not stopped",
+    async (_, phase) => {
+      await seeded();
+      const { cases } = refusingStops();
+      const start = await startTry(cases);
+      await setStatus(start.runId, { phase });
+      await expect(
+        cases[STOP_RUN_ACTIVITY_NAME](start.runId, "the eval was cancelled"),
+      ).rejects.toMatchObject({ code: Code.FailedPrecondition });
+    },
+  );
 });
 
 describe("grade-try's AI-graded evidence", () => {

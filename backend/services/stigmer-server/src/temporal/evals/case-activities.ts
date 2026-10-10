@@ -24,7 +24,9 @@
  *     a newer plugin against the eval's suite (PLUGIN_UPDATED_REASON).
  *   - poll-run, stop-run: whether a run is still waiting for a runner,
  *     running (with its start stamp), or ended; stop one, a run already
- *     ended or gone being fine.
+ *     ended or gone being fine. A stop the run's lifecycle refuses is
+ *     read against the run's phase: a paused run, or one waiting for
+ *     approval, is not stopped, and the refusal is thrown.
  *   - grade-try: the try's trace (domain/score/eval/trace.ts), every code
  *     grader (domain/plugin-eval/graders/), and for each AI-graded check
  *     either the verdict its evidence already decides (a missing file, a
@@ -852,7 +854,13 @@ async function findVoteRun(
   return undefined;
 }
 
-/** Stops a run; one already ended or gone is fine. */
+/**
+ * Stops a run; one already ended or gone is fine. The run's lifecycle
+ * refuses a stop with FailedPrecondition both for a run that has ended and
+ * for one paused or waiting for approval, so the refusal is read against
+ * the run's phase: ended or gone is stopped, anything else is a stop that
+ * failed, thrown for the caller's not-stopped path.
+ */
 async function stopRun(
   deps: CaseActivityDeps,
   runId: string,
@@ -861,11 +869,20 @@ async function stopRun(
   try {
     await deps.tries().terminateRun(runId, reason);
   } catch (error) {
-    if (
-      error instanceof ConnectError &&
-      (error.code === Code.FailedPrecondition || error.code === Code.NotFound)
-    ) {
+    if (!(error instanceof ConnectError)) {
+      throw error;
+    }
+    if (error.code === Code.NotFound) {
       return;
+    }
+    if (error.code === Code.FailedPrecondition) {
+      const run = await loadRun(deps.store, runId);
+      if (
+        run === undefined ||
+        isTerminalExecutionPhase(run.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED)
+      ) {
+        return;
+      }
     }
     throw error;
   }
