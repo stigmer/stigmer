@@ -62,15 +62,22 @@ export function isAssignableRole(relation: string): boolean {
   return ROLE_BY_RELATION.has(relation);
 }
 
-/** A role's `role_meta`: its name and its kindless sentence. */
-function roleMetaOf(role: IamRole): { name: string; description: string } {
-  const value = IamRoleSchema.values.find((entry) => entry.number === role);
-  if (value === undefined || !hasOption(value, role_meta)) {
-    return { name: "", description: "" };
-  }
-  const meta = getOption(value, role_meta);
-  return { name: meta.displayName, description: meta.description };
-}
+/**
+ * Each role's `role_meta`: its name and its kindless sentence. Every
+ * assignable role carries one (pinned by the contract's own test).
+ */
+const ROLE_META: ReadonlyMap<IamRole, { readonly name: string; readonly description: string }> =
+  new Map(
+    IamRoleSchema.values
+      .filter((value) => hasOption(value, role_meta))
+      .map((value) => {
+        const meta = getOption(value, role_meta);
+        return [
+          value.number as IamRole,
+          { name: meta.displayName, description: meta.description },
+        ];
+      }),
+  );
 
 /**
  * Relation string → RoleInfo with display metadata, worded for the kind
@@ -85,11 +92,11 @@ export function roleInfoFromRelation(
   if (role === undefined) {
     return create(RoleInfoSchema);
   }
-  const meta = roleMetaOf(role);
+  const meta = ROLE_META.get(role);
   return create(RoleInfoSchema, {
     id: relation,
     code: relation,
-    name: meta.name,
-    description: roleDescriptionsFor(kind).get(role) ?? meta.description,
+    name: meta?.name ?? "",
+    description: roleDescriptionsFor(kind).get(role) ?? meta?.description ?? "",
   });
 }

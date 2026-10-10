@@ -13,7 +13,8 @@
  *     AFTER, a change of nothing writes and announces nothing, a row with
  *     no policies announces either way (an edition never wrote its edge),
  *     and a lifecycle fault fails the request: when closing, with the row
- *     unchanged.
+ *     unchanged; a store fault on the load or the write answers INTERNAL,
+ *     and a failed write announces no opening.
  */
 import { clone, create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -52,7 +53,11 @@ function organization(open: boolean | undefined): Organization {
 }
 
 /** One stored organization, and the log of writes and announcements in order. */
-function rig(stored: Organization, failAnnounce = false) {
+function rig(
+  stored: Organization,
+  failAnnounce = false,
+  faults: { load?: boolean; save?: boolean } = {},
+) {
   const log: string[] = [];
   let row = clone(OrganizationSchema, stored);
   const store = {
@@ -60,9 +65,15 @@ function rig(stored: Organization, failAnnounce = false) {
       if (kind !== ApiResourceKind.organization || id !== ORG) {
         return Promise.reject(new ResourceNotFoundError(id));
       }
+      if (faults.load === true) {
+        return Promise.reject(new Error("store unreachable"));
+      }
       return Promise.resolve(clone(OrganizationSchema, row));
     },
     saveResource: (_kind: ApiResourceKind, _id: string, _schema: unknown, saved: Organization) => {
+      if (faults.save === true) {
+        return Promise.reject(new Error("store unreachable"));
+      }
       log.push(`save:${String(saved.spec?.policies?.membersCanCreateAgents)}`);
       row = clone(OrganizationSchema, saved);
       return Promise.resolve();
@@ -212,6 +223,20 @@ describe("updatePolicies", () => {
     const error = await refusal(() => updatePolicies(r, false));
     expect(error.code).toBe(Code.Internal);
     expect(r.current().spec?.policies?.membersCanCreateAgents).toBe(true);
+  });
+
+  it("answers a store fault on the load INTERNAL, not NotFound", async () => {
+    const r = rig(organization(true), false, { load: true });
+    const error = await refusal(() => updatePolicies(r, false));
+    expect(error.code).toBe(Code.Internal);
+    expect(r.log).toEqual([]);
+  });
+
+  it("answers a store fault on the write INTERNAL, and announces no opening it did not make", async () => {
+    const r = rig(organization(false), false, { save: true });
+    const error = await refusal(() => updatePolicies(r, true));
+    expect(error.code).toBe(Code.Internal);
+    expect(r.log).toEqual([]);
   });
 
   it("answers a missing organization NotFound", async () => {
