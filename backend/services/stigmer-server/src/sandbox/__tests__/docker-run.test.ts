@@ -68,6 +68,12 @@ describe("buildDockerRun", () => {
     expect(args.indexOf("--user")).toBeLessThan(args.indexOf(config.runnerImage));
   });
 
+  it("keeps only the capabilities that start the agent user, and no new privileges", () => {
+    const { args } = buildDockerRun("session", "ses_1", env, config);
+    const before = args.slice(0, args.indexOf(config.runnerImage));
+    expect(before.join(" ")).toContain("--cap-drop ALL --cap-add SETUID --cap-add SETGID --cap-add CHOWN --security-opt no-new-privileges");
+  });
+
   it("hands the start script the server's release only when the server is a release", () => {
     const released = buildDockerRun("session", "ses_1", env, { ...config, serverRelease: "3.42.0" }).args;
     expect(released[released.indexOf(`${SERVER_RELEASE_ENV}=3.42.0`) - 1]).toBe("--env");

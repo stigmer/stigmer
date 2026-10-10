@@ -195,6 +195,9 @@ services:
       # agent workspaces live on the runner-data volume with the session
       # state.
       WORKSPACE_ROOT_DIR: /data/.stigmer/data/workspace
+      # The agent user's home, on the same volume as the runner's state, so
+      # a paused session's checkpoints and approvals persist the same.
+      STIGMER_AGENT_HOME: /data/agent
       ARTIFACT_STORAGE_TYPE: local
       LOCAL_ARTIFACT_PATH: *artifacts-path
       # LLM provider keys (optional at boot; agent executions need one —
@@ -208,6 +211,12 @@ services:
       # it. Each run the runner serves is attributed to the member who
       # started it, not to this key's holder.
       STIGMER_TOKEN: ${STIGMER_TOKEN:-}
+    # The runner starts the agent's side as its own user, stigmer-agent, so
+    # nothing an agent runs can read the keys above. It keeps only the three
+    # capabilities that takes, as the Helm chart's runner does.
+    cap_drop: ["ALL"]
+    cap_add: ["SETUID", "SETGID", "CHOWN"]
+    security_opt: ["no-new-privileges:true"]
     volumes:
       # Runner state (HITL/pause checkpoints, session dirs, workspaces)
       # lives under HOME=/data — on a volume so in-flight paused sessions

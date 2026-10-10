@@ -74,8 +74,21 @@ export const RUNNER_RELEASE_FILE = "/runner/RELEASE";
  */
 export const SERVER_RELEASE_ENV = "STIGMER_SERVER_RELEASE";
 
-/** The uid (and gid) a driver runs the runner as: root. */
+/**
+ * The uid (and gid) a driver runs the runner as: root, which starts the
+ * agent's side as its own user, stigmer-agent (the runner's
+ * `shared/agent-identity.ts`), so nothing an agent runs reads the runner's
+ * keys.
+ */
 export const RUNNER_UID = 0;
+
+/**
+ * The capabilities a driver gives the runner, every other one dropped:
+ * SETUID and SETGID to start its agent user, CHOWN to hand that user its
+ * home and workspace. The runner refuses to start without them, never
+ * running the agent's side as root.
+ */
+export const RUNNER_CAPABILITIES = ["SETUID", "SETGID", "CHOWN"] as const;
 
 /** The `HOME` a driver gives the runner: root's home in every glibc base. */
 export const RUNNER_HOME = "/root";

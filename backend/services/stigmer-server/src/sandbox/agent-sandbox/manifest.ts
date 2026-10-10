@@ -55,6 +55,7 @@ import {
 } from "../naming.js";
 import {
   RUNNER_HOME,
+  RUNNER_CAPABILITIES,
   RUNNER_UID,
   SERVER_RELEASE_ENV,
   runnerCommand,
@@ -177,7 +178,7 @@ export function buildAgentSandboxPodTemplate(
           runAsUser: RUNNER_UID,
           runAsGroup: RUNNER_UID,
           allowPrivilegeEscalation: false,
-          capabilities: { drop: ["ALL"] },
+          capabilities: { drop: ["ALL"], add: [...RUNNER_CAPABILITIES] },
         },
         volumeMounts: [
           { name: WORKSPACE_VOLUME, mountPath: WORKSPACE_MOUNT_PATH },
