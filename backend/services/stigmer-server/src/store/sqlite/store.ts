@@ -225,7 +225,7 @@ export class SqliteStore implements Store {
     db.exec("PRAGMA temp_store=MEMORY"); // Keep temp tables in memory
 
     try {
-      runMigrations(db);
+      runMigrations(db, undefined, logger);
     } catch (error) {
       db.close();
       throw error;

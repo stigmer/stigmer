@@ -39,6 +39,26 @@
  */
 import type { PoolClient } from "pg";
 
+import { NOOP_STORE_LOGGER } from "../logger.js";
+import type { StoreLogger } from "../logger.js";
+import {
+  AGENT_KIND as RETIREMENT_AGENT_KIND,
+  PLUGIN_KIND,
+  POLICY_KIND as RETIREMENT_POLICY_KIND,
+  RETIRED_MCP_SERVER_KIND,
+  RETIREMENT_PAGE_SIZE as SERVER_RETIREMENT_PAGE_SIZE,
+  RetirementFacts,
+  SESSION_KIND as RETIREMENT_SESSION_KIND,
+  SKILL_KIND,
+  memberSkillFactsOf,
+  migrateAgentRow,
+  migrateSessionRow as migrateSessionRowForPlugins,
+  pluginFactsOf,
+  policyNamesRetired,
+  serverFactsOf,
+  unreadableRowError as unreadableRetiredServerRowError,
+} from "../mcp-server-retired.js";
+
 import {
   AGENT_KIND,
   POLICY_KIND,
@@ -156,8 +176,11 @@ export const SCHEMA_VERSION_19 = 19;
 /** v20: the execution context rows removed; a tool connect in flight is a connect attempt row. */
 export const SCHEMA_VERSION_20 = 20;
 
+/** v21: the MCP server rows removed; a plugin's parts became its plugins; a connect attempt names a plugin's server. */
+export const SCHEMA_VERSION_21 = 21;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_20;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_21;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -177,6 +200,7 @@ export const MIGRATION_LOCK_KEY = 0x5354474d5231n;
 export async function runMigrations(
   client: PoolClient,
   targetVersion: number = CURRENT_SCHEMA_VERSION,
+  logger: StoreLogger = NOOP_STORE_LOGGER,
 ): Promise<void> {
   await client.query("SELECT pg_advisory_lock($1)", [MIGRATION_LOCK_KEY]);
   try {
@@ -217,6 +241,7 @@ export async function runMigrations(
       [SCHEMA_VERSION_18, migrateToV18],
       [SCHEMA_VERSION_19, migrateToV19],
       [SCHEMA_VERSION_20, migrateToV20],
+      [SCHEMA_VERSION_21, (migrating) => migrateToV21(migrating, logger)],
     ];
 
     for (const [version, migrate] of chain) {
@@ -1366,6 +1391,131 @@ async function migrateToV20(client: PoolClient): Promise<void> {
       person TEXT NOT NULL DEFAULT '',
       mcp_server_id TEXT NOT NULL,
       run_id TEXT NOT NULL DEFAULT '',
+      created_at BIGINT NOT NULL,
+      expires_at BIGINT NOT NULL
+    );
+
+    CREATE INDEX idx_connect_attempt_org ON connect_attempt (org);
+    CREATE INDEX idx_connect_attempt_expires ON connect_attempt (expires_at);
+  `);
+}
+
+/**
+ * v21: a plugin is one thing — the SQLite driver's v26 in this engine's
+ * terms (../mcp-server-retired.ts says what each row becomes). Plugins, MCP
+ * server rows and the skills a plugin installed are read first; agents are
+ * rewritten as new archived versions, sessions list their plugins and move
+ * to their agent's new version; the grants on the rows that leave go, then
+ * the rows; the connect attempt table is recreated naming a plugin's
+ * server. Runs inside applyInTransaction's BEGIN.
+ */
+async function migrateToV21(client: PoolClient, logger: StoreLogger): Promise<void> {
+  const forEachRow = async (
+    kind: string,
+    visit: (row: { id: string; data: Uint8Array }) => Promise<void> | void,
+  ): Promise<void> => {
+    for (let after = ""; ; ) {
+      const rows = (
+        await client.query<{ id: string; data: Buffer }>(
+          `SELECT id, data FROM resources WHERE kind = $1 AND id > $2 ORDER BY id LIMIT $3`,
+          [kind, after, SERVER_RETIREMENT_PAGE_SIZE],
+        )
+      ).rows;
+      for (const row of rows) {
+        try {
+          await visit({ id: row.id, data: new Uint8Array(row.data) });
+        } catch (error) {
+          throw unreadableRetiredServerRowError(kind, row.id, error);
+        }
+      }
+      if (rows.length < SERVER_RETIREMENT_PAGE_SIZE) {
+        return;
+      }
+      after = rows[rows.length - 1]!.id;
+    }
+  };
+
+  const facts = new RetirementFacts();
+  await forEachRow(PLUGIN_KIND, (row) => facts.addPlugin(pluginFactsOf(row.data)));
+  await forEachRow(RETIRED_MCP_SERVER_KIND, (row) => facts.addServer(serverFactsOf(row.data)));
+  await forEachRow(SKILL_KIND, (row) => {
+    const member = memberSkillFactsOf(row.data);
+    if (member !== undefined) {
+      facts.addMemberSkill(member);
+    }
+  });
+
+  const repinned = new Map<string, string>();
+  await forEachRow(RETIREMENT_AGENT_KIND, async (row) => {
+    const migrated = migrateAgentRow(row.data, facts, logger);
+    if (migrated === undefined) {
+      return;
+    }
+    await client.query(
+      `UPDATE resources SET data = $1, updated_at = now() WHERE kind = $2 AND id = $3`,
+      [Buffer.from(migrated.data), RETIREMENT_AGENT_KIND, row.id],
+    );
+    const archived = await client.query(
+      `SELECT 1 FROM resource_audit WHERE kind = $1 AND resource_id = $2 AND version_hash = $3 LIMIT 1`,
+      [RETIREMENT_AGENT_KIND, row.id, migrated.versionHash],
+    );
+    if (archived.rowCount === 0) {
+      await client.query(
+        `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag, archived_at)
+         VALUES ($1, $2, $3, $4, '', now())`,
+        [RETIREMENT_AGENT_KIND, row.id, Buffer.from(migrated.data), migrated.versionHash],
+      );
+    }
+    repinned.set(row.id, migrated.versionHash);
+  });
+  await forEachRow(RETIREMENT_SESSION_KIND, async (row) => {
+    const migrated = migrateSessionRowForPlugins(row.data, facts, repinned);
+    if (migrated !== undefined) {
+      await client.query(
+        `UPDATE resources SET data = $1, updated_at = now() WHERE kind = $2 AND id = $3`,
+        [Buffer.from(migrated), RETIREMENT_SESSION_KIND, row.id],
+      );
+    }
+  });
+
+  const serverIds = facts.serverIds();
+  const memberSkillIds = facts.memberSkillIds();
+  const retiredPolicies: string[] = [];
+  await forEachRow(RETIREMENT_POLICY_KIND, (row) => {
+    if (policyNamesRetired(row.data, serverIds, memberSkillIds)) {
+      retiredPolicies.push(row.id);
+    }
+  });
+  for (const table of ["resource_list_keys", "resources"]) {
+    await client.query(`DELETE FROM ${table} WHERE kind = $1 AND id = ANY($2::text[])`, [
+      RETIREMENT_POLICY_KIND,
+      retiredPolicies,
+    ]);
+  }
+  await client.query(`DELETE FROM resource_audit WHERE kind = $1 AND resource_id = ANY($2::text[])`, [
+    SKILL_KIND,
+    [...memberSkillIds],
+  ]);
+  for (const table of ["resource_list_keys", "resources"]) {
+    await client.query(`DELETE FROM ${table} WHERE kind = $1 AND id = ANY($2::text[])`, [
+      SKILL_KIND,
+      [...memberSkillIds],
+    ]);
+  }
+  for (const table of ["resource_audit", "resource_list_keys", "resources"]) {
+    await client.query(`DELETE FROM ${table} WHERE kind = $1`, [RETIRED_MCP_SERVER_KIND]);
+  }
+
+  await client.query(`
+    DROP TABLE connect_attempt;
+
+    CREATE TABLE connect_attempt (
+      id TEXT PRIMARY KEY,
+      org TEXT NOT NULL,
+      created_by TEXT NOT NULL,
+      person TEXT NOT NULL DEFAULT '',
+      plugin_id TEXT NOT NULL,
+      server TEXT NOT NULL,
       created_at BIGINT NOT NULL,
       expires_at BIGINT NOT NULL
     );

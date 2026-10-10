@@ -160,6 +160,7 @@ import { registerPlatformServices } from "../domain/platform/controller.js";
 import { SERVER_VERSION } from "../domain/platform/version.js";
 import { registerSessionServices } from "../domain/session/controller.js";
 import { registerPluginServices } from "../domain/plugin/controller.js";
+import { refreshLegacyPluginStatuses } from "../domain/plugin/legacy-status.js";
 import { PLUGIN_ARTIFACT_KEY_PREFIX } from "../domain/plugin/constants.js";
 import { registerSkillServices } from "../domain/skill/controller.js";
 import {
@@ -2246,6 +2247,22 @@ export async function composeServer(
             config.artifactHttpPort !== undefined,
           );
         }
+      }
+      // A plugin installed before plugins were whole has its status
+      // filled from its archive before search indexes it and before any
+      // turn reads it (domain/plugin/legacy-status.ts). Warn-only per
+      // plugin; boot never fails on it.
+      try {
+        await refreshLegacyPluginStatuses({
+          store,
+          artifactStorage: pluginArtifactStorage,
+          outboundFetch,
+          logger,
+        });
+      } catch (error) {
+        logger.warn("Failed to fill the status of plugins installed before plugins were whole", {
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
       // Rebuild the search index before the port binds (Go
       // server.go:617): the index is separate from the resources table,

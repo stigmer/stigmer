@@ -274,8 +274,8 @@ export interface ExtensionDrivers {
    * The outbound-egress policy (single-instance point): which addresses
    * this edition's control plane may dial when it reaches a URL a user
    * supplied. The composition root builds one guarded fetch from it and
-   * hands it to the McpServer connect slice, the only fetch its OAuth code
-   * and its save-time endpoint probe hold. When absent, open source's
+   * hands it to the vault's sign-in code and the plugin install's endpoint
+   * probe, the only fetch they hold. When absent, open source's
    * `relaxedEgressPolicy()` installs at the compose.ts consumption site:
    * everything but the link-local (cloud metadata) range is allowed, so a
    * server beside a self-hosted control plane keeps working

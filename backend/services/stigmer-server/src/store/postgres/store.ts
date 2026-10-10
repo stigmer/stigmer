@@ -213,7 +213,7 @@ export class PostgresStore implements Store {
     // session-scoped, so lock and unlock must ride the same connection.
     const client = await pool.connect();
     try {
-      await runMigrations(client);
+      await runMigrations(client, undefined, logger);
     } catch (error) {
       client.release();
       await pool.end();

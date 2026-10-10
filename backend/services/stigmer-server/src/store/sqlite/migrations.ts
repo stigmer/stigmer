@@ -35,6 +35,26 @@
  */
 import type { DatabaseSync } from "node:sqlite";
 
+import { NOOP_STORE_LOGGER } from "../logger.js";
+import type { StoreLogger } from "../logger.js";
+import {
+  AGENT_KIND as RETIREMENT_AGENT_KIND,
+  PLUGIN_KIND,
+  POLICY_KIND as RETIREMENT_POLICY_KIND,
+  RETIRED_MCP_SERVER_KIND,
+  RETIREMENT_PAGE_SIZE as SERVER_RETIREMENT_PAGE_SIZE,
+  RetirementFacts,
+  SESSION_KIND as RETIREMENT_SESSION_KIND,
+  SKILL_KIND,
+  memberSkillFactsOf,
+  migrateAgentRow,
+  migrateSessionRow as migrateSessionRowForPlugins,
+  pluginFactsOf,
+  policyNamesRetired,
+  serverFactsOf,
+  unreadableRowError as unreadableRetiredServerRowError,
+} from "../mcp-server-retired.js";
+
 import {
   AGENT_KIND,
   POLICY_KIND,
@@ -157,9 +177,11 @@ export const SCHEMA_VERSION_23 = 23;
 export const SCHEMA_VERSION_24 = 24;
 /** v25: the execution context rows removed; a tool connect in flight is a connect attempt row. */
 export const SCHEMA_VERSION_25 = 25;
+/** v26: the MCP server rows removed; a plugin's parts became its plugins; a connect attempt names a plugin's server. */
+export const SCHEMA_VERSION_26 = 26;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_25;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_26;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -168,6 +190,7 @@ export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_25;
 export function runMigrations(
   db: DatabaseSync,
   targetVersion: number = CURRENT_SCHEMA_VERSION,
+  logger: StoreLogger = NOOP_STORE_LOGGER,
 ): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS schema_version (
@@ -209,6 +232,7 @@ export function runMigrations(
     [SCHEMA_VERSION_23, migrateToV23],
     [SCHEMA_VERSION_24, migrateToV24],
     [SCHEMA_VERSION_25, migrateToV25],
+    [SCHEMA_VERSION_26, (migrating) => migrateToV26(migrating, logger)],
   ];
 
   for (const [version, migrate] of chain) {
@@ -1343,6 +1367,125 @@ function migrateToV25(db: DatabaseSync): void {
       run_id         TEXT NOT NULL DEFAULT '',
       created_at     INTEGER NOT NULL,
       expires_at     INTEGER NOT NULL
+    ) WITHOUT ROWID;
+
+    CREATE INDEX idx_connect_attempt_org ON connect_attempt (org);
+    CREATE INDEX idx_connect_attempt_expires ON connect_attempt (expires_at);
+  `);
+}
+
+/**
+ * v26: a plugin is one thing (../mcp-server-retired.ts says what each row
+ * becomes and why an unreadable row fails the step). The plugins, the MCP
+ * server rows and the skills a plugin installed are read first; every
+ * agent is rewritten when it used a plugin's parts, as a new current
+ * version archived like any saved one; every session lists the plugins its
+ * servers and skills came from and moves to its agent's new version; the
+ * grants on the rows that leave go, then the MCP server rows and the
+ * plugins' skills themselves. The connect attempt table is recreated
+ * naming a plugin's server (an attempt lives minutes, so none is carried).
+ * The Postgres driver's v21 in this engine's terms. Runs inside
+ * applyInTransaction's BEGIN.
+ */
+function migrateToV26(db: DatabaseSync, logger: StoreLogger): void {
+  const page = db.prepare(
+    `SELECT id, data FROM resources WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`,
+  );
+  const forEachRow = (kind: string, visit: (row: { id: string; data: Uint8Array }) => void): void => {
+    for (let after = ""; ; ) {
+      const rows = page.all(kind, after, SERVER_RETIREMENT_PAGE_SIZE) as Array<{ id: string; data: Uint8Array }>;
+      for (const row of rows) {
+        try {
+          visit(row);
+        } catch (error) {
+          throw unreadableRetiredServerRowError(kind, row.id, error);
+        }
+      }
+      if (rows.length < SERVER_RETIREMENT_PAGE_SIZE) {
+        return;
+      }
+      after = rows[rows.length - 1]!.id;
+    }
+  };
+
+  const facts = new RetirementFacts();
+  forEachRow(PLUGIN_KIND, (row) => facts.addPlugin(pluginFactsOf(row.data)));
+  forEachRow(RETIRED_MCP_SERVER_KIND, (row) => facts.addServer(serverFactsOf(row.data)));
+  forEachRow(SKILL_KIND, (row) => {
+    const member = memberSkillFactsOf(row.data);
+    if (member !== undefined) {
+      facts.addMemberSkill(member);
+    }
+  });
+
+  const update = db.prepare(
+    `UPDATE resources SET data = ?, updated_at = datetime('now') WHERE kind = ? AND id = ?`,
+  );
+  const archived = db.prepare(
+    `SELECT 1 FROM resource_audit WHERE kind = ? AND resource_id = ? AND version_hash = ? LIMIT 1`,
+  );
+  const archive = db.prepare(
+    `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag, archived_at)
+     VALUES (?, ?, ?, ?, '', datetime('now'))`,
+  );
+  const repinned = new Map<string, string>();
+  forEachRow(RETIREMENT_AGENT_KIND, (row) => {
+    const migrated = migrateAgentRow(row.data, facts, logger);
+    if (migrated === undefined) {
+      return;
+    }
+    update.run(migrated.data, RETIREMENT_AGENT_KIND, row.id);
+    if (archived.get(RETIREMENT_AGENT_KIND, row.id, migrated.versionHash) === undefined) {
+      archive.run(RETIREMENT_AGENT_KIND, row.id, migrated.data, migrated.versionHash);
+    }
+    repinned.set(row.id, migrated.versionHash);
+  });
+  forEachRow(RETIREMENT_SESSION_KIND, (row) => {
+    const migrated = migrateSessionRowForPlugins(row.data, facts, repinned);
+    if (migrated !== undefined) {
+      update.run(migrated, RETIREMENT_SESSION_KIND, row.id);
+    }
+  });
+
+  const serverIds = facts.serverIds();
+  const memberSkillIds = facts.memberSkillIds();
+  const retiredPolicies: string[] = [];
+  forEachRow(RETIREMENT_POLICY_KIND, (row) => {
+    if (policyNamesRetired(row.data, serverIds, memberSkillIds)) {
+      retiredPolicies.push(row.id);
+    }
+  });
+  const deleteRow = ["resource_list_keys", "resources"].map((table) =>
+    db.prepare(`DELETE FROM ${table} WHERE kind = ? AND id = ?`),
+  );
+  for (const id of retiredPolicies) {
+    for (const statement of deleteRow) {
+      statement.run(RETIREMENT_POLICY_KIND, id);
+    }
+  }
+  const deleteAudit = db.prepare(`DELETE FROM resource_audit WHERE kind = ? AND resource_id = ?`);
+  for (const id of memberSkillIds) {
+    deleteAudit.run(SKILL_KIND, id);
+    for (const statement of deleteRow) {
+      statement.run(SKILL_KIND, id);
+    }
+  }
+  for (const table of ["resource_audit", "resource_list_keys", "resources"]) {
+    db.prepare(`DELETE FROM ${table} WHERE kind = ?`).run(RETIRED_MCP_SERVER_KIND);
+  }
+
+  db.exec(`
+    DROP TABLE connect_attempt;
+
+    CREATE TABLE connect_attempt (
+      id          TEXT PRIMARY KEY,
+      org         TEXT NOT NULL,
+      created_by  TEXT NOT NULL,
+      person      TEXT NOT NULL DEFAULT '',
+      plugin_id   TEXT NOT NULL,
+      server      TEXT NOT NULL,
+      created_at  INTEGER NOT NULL,
+      expires_at  INTEGER NOT NULL
     ) WITHOUT ROWID;
 
     CREATE INDEX idx_connect_attempt_org ON connect_attempt (org);
