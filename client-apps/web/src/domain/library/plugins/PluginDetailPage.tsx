@@ -16,7 +16,7 @@ import {
   useRouteDetailYieldsToOverlay,
 } from "@/domain/library/library-navigation";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
-import { getAgentSessionUrl } from "@/domain/session/session-url";
+import { getPluginChatUrl } from "@/domain/session/session-url";
 
 interface PluginDetailPageInnerProps {
   readonly org: string;
@@ -48,7 +48,7 @@ export function PluginDetailPageInner({ org, slug }: PluginDetailPageInnerProps)
     const confirmed = await confirm({
       title: `Remove ${resourceName}?`,
       description:
-        "Removes the plugin and every skill, MCP server and agent it installed. The server refuses if something outside the plugin still uses one of them.",
+        "Removes the plugin and its versions. The server refuses while an agent of the organization uses it; a conversation that uses it fails its next message.",
       confirmLabel: "Remove",
       variant: "destructive",
     });
@@ -95,13 +95,8 @@ export function PluginDetailPageInner({ org, slug }: PluginDetailPageInnerProps)
         org={org}
         slug={slug}
         onResourceLoad={handleResourceLoad}
-        onStartSession={({ org: o, slug: s }) => router.push(getAgentSessionUrl(o, s))}
-        onSkillClick={({ org: o, slug: s }) => navigateToDetail("skills", o, s)}
-        onMcpServerClick={({ org: o, slug: s }) => navigateToDetail("mcp-servers", o, s)}
+        onStartChat={({ org: o, slug: s }) => router.push(getPluginChatUrl(o, s))}
         onAgentClick={({ org: o, slug: s }) => navigateToDetail("agents", o, s)}
-        onCreateAgent={(usages) =>
-          router.push(`/library/agents/new?mcp=${usages.map((u) => encodeURIComponent(u.mcpServerRef.slug)).join(",")}`)
-        }
         actions={actions}
       />
       <ConfirmDialog

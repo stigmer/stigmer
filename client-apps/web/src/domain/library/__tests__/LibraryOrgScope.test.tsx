@@ -1,8 +1,7 @@
 /**
  * Pins where the web library scopes to the viewer's active organization by
  * its id, the way the server names every org: the landing's resource
- * counts and the MCP server page's active org (a connection is made in the
- * viewer's org); the agent page shows the agent where it lives. The views
+ * counts; the agent page shows the agent where it lives. The views
  * and count hooks are pinned in @stigmer/react.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -11,7 +10,6 @@ import { render } from "@testing-library/react";
 const page = vi.hoisted(() => ({
   counted: [] as Array<string | null>,
   agentView: [] as Array<Record<string, unknown>>,
-  mcpView: [] as Array<Record<string, unknown>>,
 }));
 
 vi.mock("@stigmer/react", () => {
@@ -30,18 +28,12 @@ vi.mock("@stigmer/react", () => {
       page.agentView.push(props);
       return null;
     },
-    McpServerDetailView: (props: Record<string, unknown>) => {
-      page.mcpView.push(props);
-      return null;
-    },
     useAgentCount: count,
     useScheduleCount: count,
     useSkillCount: count,
-    useMcpServerCount: count,
     usePluginCount: count,
     useActiveOrgId: () => "org_acme",
     useAgent: () => ({ agent: null, refetch: () => undefined }),
-    useMcpServer: () => ({ mcpServer: null, refetch: () => undefined }),
     useCopyResource: () => ({
       copyId: () => undefined,
       copyQualifiedSlug: () => undefined,
@@ -80,19 +72,17 @@ vi.mock("@/config/env", () => ({
 
 import { LibraryLanding } from "../LibraryLanding";
 import { AgentDetailPageInner } from "../agents/AgentDetailPage";
-import { McpServerDetailPageInner } from "../mcp-servers/McpServerDetailPage";
 
 beforeEach(() => {
   page.counted.length = 0;
   page.agentView.length = 0;
-  page.mcpView.length = 0;
 });
 
 describe("web library org scope", () => {
   it("LibraryLanding counts every kind in the active org by its id", () => {
     render(<LibraryLanding />);
 
-    expect(page.counted).toHaveLength(5);
+    expect(page.counted).toHaveLength(4);
     expect(new Set(page.counted)).toEqual(new Set(["org_acme"]));
   });
 
@@ -101,15 +91,5 @@ describe("web library org scope", () => {
 
     expect(page.agentView.at(-1)).toMatchObject({ org: "other", slug: "helper" });
     expect(page.agentView.at(-1)).not.toHaveProperty("viewerOrg");
-  });
-
-  it("McpServerDetailPageInner shows the server where it lives and connects in the viewer's org id", () => {
-    render(<McpServerDetailPageInner org="other" slug="github" />);
-
-    expect(page.mcpView.at(-1)).toMatchObject({
-      org: "other",
-      slug: "github",
-      activeOrg: "org_acme",
-    });
   });
 });

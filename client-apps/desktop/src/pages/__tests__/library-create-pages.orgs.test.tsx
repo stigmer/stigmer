@@ -23,7 +23,6 @@ vi.mock("@stigmer/react", () => {
   const noop = () => undefined;
   return {
     AgentCreationWizard: capture("AgentCreationWizard"),
-    McpServerCreationWizard: capture("McpServerCreationWizard"),
     CreationPicker: capture("CreationPicker"),
     ScheduleForm: capture("ScheduleForm"),
     SkillUploader: capture("SkillUploader"),
@@ -31,7 +30,6 @@ vi.mock("@stigmer/react", () => {
     MarketplaceCatalog: capture("MarketplaceCatalog"),
     ApplyManifestDialog: () => null,
     AGENT_TEMPLATES: [],
-    MCP_SERVER_TEMPLATES: [],
     toast: { success: noop, error: noop },
     useBreadcrumbOverride: () => ({ setLabel: noop }),
     useActiveOrgId: () => "org_acme",
@@ -44,7 +42,6 @@ vi.mock("@stigmer/react", () => {
 });
 
 import AgentNewPage from "../library/AgentNewPage";
-import McpServerNewPage from "../library/McpServerNewPage";
 import ScheduleNewPage from "../library/ScheduleNewPage";
 import SkillNewPage from "../library/SkillNewPage";
 import PluginUploadPage from "../library/PluginUploadPage";
@@ -90,35 +87,16 @@ beforeEach(() => {
 });
 
 describe("desktop AgentNewPage — organizations", () => {
-  it("preselects ?mcp servers in the active org by id and opens the agent at its org's slug", () => {
-    renderPage(AgentNewPage, "/library/agents/new?mcp=github,linear");
+  it("creates in the active org by id and opens the agent at its org's slug", () => {
+    renderPage(AgentNewPage, "/library/agents/new");
 
-    const wizard = last<Creator<{ org: string; slug: string }> & { initialData: unknown }>("AgentCreationWizard");
+    act(() => last<{ onSelect: (path: { kind: string }) => void }>("CreationPicker").onSelect({ kind: "scratch" }));
+    const wizard = last<Creator<{ org: string; slug: string }>>("AgentCreationWizard");
     expect(wizard.org).toBe("org_acme");
-    expect(wizard.initialData).toEqual({
-      mcpServerUsages: [
-        { mcpServerRef: { org: "org_acme", slug: "github" } },
-        { mcpServerRef: { org: "org_acme", slug: "linear" } },
-      ],
-    });
 
     act(() => wizard.onComplete(SHARED));
 
     expect(location()).toBe("/library/agents/shared-team/made");
-  });
-});
-
-describe("desktop McpServerNewPage — organizations", () => {
-  it("creates in the active org by id and opens the server at its org's slug", () => {
-    renderPage(McpServerNewPage);
-
-    act(() => last<{ onSelect: (path: { kind: string }) => void }>("CreationPicker").onSelect({ kind: "scratch" }));
-    const wizard = last<Creator<{ org: string; slug: string }>>("McpServerCreationWizard");
-    expect(wizard.org).toBe("org_acme");
-
-    act(() => wizard.onComplete(SHARED));
-
-    expect(location()).toBe("/library/mcp-servers/shared-team/made");
   });
 });
 

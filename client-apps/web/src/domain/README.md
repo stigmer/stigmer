@@ -24,7 +24,7 @@ Ask one question: **"Would a platform builder embedding Stigmer need this?"**
 | `library/` | Library landing, resource list/detail pages, library navigation, breadcrumb |
 | `library/agents/` | Agent list and detail pages |
 | `library/skills/` | Skill list and detail pages |
-| `library/mcp-servers/` | MCP Server list and detail pages |
+| `library/plugins/` | Plugin list, upload and detail pages, and "Add MCP server" |
 
 ### Sibling directories (outside `domain/`)
 

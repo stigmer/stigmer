@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   AgentCreationWizard,
   CreationPicker,
@@ -13,17 +13,6 @@ import {
 } from "@stigmer/react";
 import type { CreationPath } from "@stigmer/react";
 import type { AgentWizardData } from "@stigmer/react";
-
-/**
- * `?mcp=<slug>,<slug>`: a plugin's page hands its servers here through
- * "Create a new agent with these tools", and the wizard opens with them
- * preselected, the picker skipped. Read through the router (the billing
- * page's precedent) rather than `window.location`, which a client-side
- * navigation updates only after this page has rendered once.
- */
-function preselectedServerSlugs(raw: string | null): readonly string[] {
-  return raw ? raw.split(",").filter((slug) => slug !== "") : [];
-}
 
 type PageState =
   | { readonly phase: "picking" }
@@ -38,21 +27,15 @@ type PageState =
  * Mounted at `/library/agents/new`. Shows a creation picker ("step 0")
  * with three paths — blank, template, or import. Selecting blank or a
  * template transitions to the `AgentCreationWizard` with optional
- * pre-filled data. Import opens the `ApplyManifestDialog`. With
- * `?mcp=<slug>,<slug>` in the URL the wizard opens directly with those
- * MCP servers preselected (a plugin's "Create a new agent with these tools").
+ * pre-filled data. Import opens the `ApplyManifestDialog`.
  */
 export function AgentNewPage() {
   const org = useActiveOrgId();
   const slugForOrg = useOrgSlugForId();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { setLabel } = useBreadcrumbOverride();
 
-  // The slugs are read once; the org they belong to resolves a render later,
-  // so the usages are built where the wizard is rendered.
-  const [preselected] = useState(() => preselectedServerSlugs(searchParams.get("mcp")));
-  const [state, setState] = useState<PageState>(() => (preselected.length > 0 ? { phase: "wizard" } : { phase: "picking" }));
+  const [state, setState] = useState<PageState>({ phase: "picking" });
   const [importOpen, setImportOpen] = useState(false);
 
   useEffect(() => {
@@ -104,12 +87,7 @@ export function AgentNewPage() {
       ) : (
         <AgentCreationWizard
           org={org}
-          initialData={
-            state.initialData ??
-            (preselected.length > 0
-              ? { mcpServerUsages: preselected.map((slug) => ({ mcpServerRef: { org, slug } })) }
-              : undefined)
-          }
+          initialData={state.initialData}
           onComplete={handleWizardComplete}
           onCancel={handleCancel}
           className="min-h-[480px]"

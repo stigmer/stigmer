@@ -1,13 +1,12 @@
 import { useReducer, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Blocks, Bot, CalendarClock, FileCode2, Sparkles, Server } from "lucide-react";
+import { Blocks, Bot, CalendarClock, FileCode2, Sparkles } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import {
   ApplyManifestDialog,
   useAgentCount,
   useScheduleCount,
   useSkillCount,
-  useMcpServerCount,
   usePluginCount,
   ResourceCountCard,
   useActiveOrgId,
@@ -20,7 +19,6 @@ export default function LibraryLanding() {
   const [refetchToken, refreshCounts] = useReducer((n: number) => n + 1, 0);
   const agents = useAgentCount(org, { refetchToken });
   const skills = useSkillCount(org, { refetchToken });
-  const mcpServers = useMcpServerCount(org, { refetchToken });
   const schedules = useScheduleCount(org, { refetchToken });
   const plugins = usePluginCount(org, { refetchToken });
   const [applyYamlOpen, setApplyYamlOpen] = useState(false);
@@ -42,13 +40,6 @@ export default function LibraryLanding() {
           count={skills.count}
           isLoading={skills.isLoading}
           onClick={() => navigate("/library/skills")}
-        />
-        <ResourceCountCard
-          icon={<Server className="size-5" aria-hidden="true" />}
-          label="MCP Servers"
-          count={mcpServers.count}
-          isLoading={mcpServers.isLoading}
-          onClick={() => navigate("/library/mcp-servers")}
         />
         <ResourceCountCard
           icon={<CalendarClock className="size-5" aria-hidden="true" />}

@@ -3,7 +3,9 @@
  * active organization by its id, the way the server names every org, and
  * the GitHub connection is the one that org holds; an `?agent=org/slug`
  * deep link preselects that agent, and the link a detail page builds with
- * `getAgentSessionUrl` is one the launcher reads back to the same agent.
+ * `getAgentSessionUrl` is one the launcher reads back to the same agent; the
+ * link `getPluginChatUrl` builds starts a chat with no agent that lists the
+ * plugin; and the person's plugin picks are remembered.
  * The viewer is pinned in @stigmer/react.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -40,7 +42,7 @@ vi.mock("@/domain/session/session-navigation", () => ({
 }));
 
 import { SessionLauncher } from "../SessionLauncher";
-import { getAgentSessionUrl } from "../session-url";
+import { getAgentSessionUrl, getPluginChatUrl } from "../session-url";
 
 beforeEach(() => {
   page.viewer.length = 0;
@@ -80,5 +82,23 @@ describe("web SessionLauncher", () => {
     expect(page.viewer.at(-1)).toMatchObject({
       initialAgentRef: { org: "acme", slug: "code-reviewer" },
     });
+  });
+
+  it("starts a chat with no agent that lists the plugin a plugin page's link names", () => {
+    const link = new URL(getPluginChatUrl("acme", "linear"), "https://console.test");
+    page.search = link.searchParams;
+    render(<SessionLauncher />);
+
+    expect(link.pathname).toBe("/");
+    expect(page.viewer.at(-1)).toMatchObject({
+      initialPluginRefs: [{ org: "acme", slug: "linear" }],
+      initialAgentRef: undefined,
+    });
+  });
+
+  it("remembers the person's plugin picks for the next conversation", () => {
+    render(<SessionLauncher />);
+
+    expect(page.viewer.at(-1)).toMatchObject({ rememberPluginPicks: true, initialPluginRefs: undefined });
   });
 });

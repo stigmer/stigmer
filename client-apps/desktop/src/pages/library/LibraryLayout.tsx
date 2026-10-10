@@ -13,7 +13,7 @@ export default function LibraryLayout() {
 
 /** `/library/<kind>/<org>/<slug>`: a detail route, whose org segment is a slug. */
 const LIBRARY_DETAIL_RE =
-  /^\/library\/(agents|skills|mcp-servers|schedules|plugins)\/([^/]+)\/([^/]+)\/?$/;
+  /^\/library\/(agents|skills|schedules|plugins)\/([^/]+)\/([^/]+)\/?$/;
 
 /**
  * Keeps a detail route's org segment on the org's current slug. A link

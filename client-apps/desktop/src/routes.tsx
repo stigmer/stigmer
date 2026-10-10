@@ -31,13 +31,10 @@ const AgentListPage = lazy(() => import("./pages/library/AgentListPage"));
 const AgentDetailPage = lazy(() => import("./pages/library/AgentDetailPage"));
 const SkillListPage = lazy(() => import("./pages/library/SkillListPage"));
 const SkillDetailPage = lazy(() => import("./pages/library/SkillDetailPage"));
-const McpServerListPage = lazy(() => import("./pages/library/McpServerListPage"));
-const McpServerDetailPage = lazy(() => import("./pages/library/McpServerDetailPage"));
 const ScheduleListPage = lazy(() => import("./pages/library/ScheduleListPage"));
 const ScheduleDetailPage = lazy(() => import("./pages/library/ScheduleDetailPage"));
 const AgentNewPage = lazy(() => import("./pages/library/AgentNewPage"));
 const SkillNewPage = lazy(() => import("./pages/library/SkillNewPage"));
-const McpServerNewPage = lazy(() => import("./pages/library/McpServerNewPage"));
 const ScheduleNewPage = lazy(() => import("./pages/library/ScheduleNewPage"));
 const PluginListPage = lazy(() => import("./pages/library/PluginListPage"));
 const PluginDetailPage = lazy(() => import("./pages/library/PluginDetailPage"));
@@ -202,30 +199,6 @@ const routes: RouteObject[] = [
             element: (
               <LazyPage>
                 <PluginDetailPage />
-              </LazyPage>
-            ),
-          },
-          {
-            path: "mcp-servers",
-            element: (
-              <LazyPage>
-                <McpServerListPage />
-              </LazyPage>
-            ),
-          },
-          {
-            path: "mcp-servers/new",
-            element: (
-              <LazyPage>
-                <McpServerNewPage />
-              </LazyPage>
-            ),
-          },
-          {
-            path: "mcp-servers/:org/:slug",
-            element: (
-              <LazyPage>
-                <McpServerDetailPage />
               </LazyPage>
             ),
           },

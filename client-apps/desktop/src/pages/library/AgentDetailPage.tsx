@@ -216,9 +216,6 @@ export default function AgentDetailPage() {
         slug={slug}
         editable
         onResourceLoad={handleResourceLoad}
-        onMcpServerClick={(ref) =>
-          navigate(`/library/mcp-servers/${slugForOrg(ref.org)}/${ref.slug}`)
-        }
         onSkillClick={(ref) =>
           navigate(`/library/skills/${slugForOrg(ref.org)}/${ref.slug}`)
         }

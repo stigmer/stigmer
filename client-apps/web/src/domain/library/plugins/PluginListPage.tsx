@@ -1,10 +1,21 @@
 "use client";
 
-import { useCallback, useMemo, useReducer } from "react";
+/**
+ * The Library's Plugins list: what the organization has installed, with
+ * the three ways in beside it (the Marketplace, an upload from disk, and
+ * "Add MCP server", which installs a plugin of one server built in the
+ * browser). `?add=mcp-server` opens that form on arrival, which is how the
+ * Library's Add menu reaches it.
+ */
+
+import { useCallback, useMemo, useReducer, useState } from "react";
 import Link from "next/link";
-import { Blocks, Copy, ExternalLink, MoreHorizontal, Store, Trash2, Upload } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { Blocks, Copy, ExternalLink, MoreHorizontal, Server, Store, Trash2, Upload } from "lucide-react";
 import { useLibraryNavigation } from "@/domain/library/library-navigation";
+import { ADD_MCP_SERVER, ADD_PARAM } from "@/domain/library/plugins/add-mcp-server";
 import {
+  AddMcpServerDialog,
   ResourceWorkbench,
   ActionMenu,
   useStigmer,
@@ -57,11 +68,11 @@ const PRIMARY_LINK_CLASSES =
 const SECONDARY_LINK_CLASSES =
   "inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
-/** The two ways in, side by side: the Marketplace (what you can get) and an upload from disk (what you have). */
-function WaysIn({ size }: { readonly size: "sm" | "xs" }) {
+/** The ways in, side by side: the Marketplace (what you can get), an upload from disk (what you have), and one MCP server by its address. */
+function WaysIn({ size, onAddMcpServer }: { readonly size: "sm" | "xs"; readonly onAddMcpServer: () => void }) {
   const text = size === "sm" ? "text-sm" : "text-xs";
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       <Link href="/marketplace" className={`${PRIMARY_LINK_CLASSES} ${text}`}>
         <Store className="size-3.5" aria-hidden="true" />
         Browse Marketplace
@@ -70,6 +81,10 @@ function WaysIn({ size }: { readonly size: "sm" | "xs" }) {
         <Upload className="size-3.5" aria-hidden="true" />
         Upload plugin
       </Link>
+      <button type="button" onClick={onAddMcpServer} className={`${SECONDARY_LINK_CLASSES} ${text}`}>
+        <Server className="size-3.5" aria-hidden="true" />
+        Add MCP server
+      </button>
     </div>
   );
 }
@@ -80,6 +95,9 @@ export function PluginListPage() {
   const stigmer = useStigmer();
   const { navigateToDetail } = useLibraryNavigation();
   const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
+  const searchParams = useSearchParams();
+  const [addingServer, setAddingServer] = useState(() => searchParams.get(ADD_PARAM) === ADD_MCP_SERVER);
+  const openAddServer = useCallback(() => setAddingServer(true), []);
 
   // Bumped after a remove to refetch the list in place — no remount
   // flash, pagination and sort preserved.
@@ -90,7 +108,7 @@ export function PluginListPage() {
       const confirmed = await confirm({
         title: `Remove ${item.name || item.slug}?`,
         description:
-          "Removes the plugin and every skill, MCP server and agent it installed. The server refuses if something outside the plugin still uses one of them.",
+          "Removes the plugin and its versions. The server refuses while an agent of the organization uses it; a conversation that uses it fails its next message.",
         confirmLabel: "Remove",
         variant: "destructive",
       });
@@ -100,7 +118,7 @@ export function PluginListPage() {
         toast.success(`${item.name || item.slug} removed`);
         refreshList();
       } catch (error) {
-        // The server's refusal names what still references a member; show it as it is.
+        // The server's refusal names the agent that still uses the plugin; show it as it is.
         toast.error(error instanceof Error ? error.message : "Failed to remove plugin");
       }
     },
@@ -133,9 +151,9 @@ export function PluginListPage() {
         searchPlaceholder="Search plugins…"
         emptyIcon={<Blocks className="size-10" aria-hidden="true" />}
         emptyTitle="No plugins installed"
-        emptyDescription="Install a plugin from the Marketplace, or upload one from your computer, to add skills, MCP servers and an agent that uses them, as one unit."
-        headerAction={<WaysIn size="sm" />}
-        emptyAction={<WaysIn size="xs" />}
+        emptyDescription="Install a plugin from the Marketplace, upload one from your computer, or add an MCP server: a chat or an agent that uses a plugin gets its skills, agents, hooks and MCP servers, as one unit."
+        headerAction={<WaysIn size="sm" onAddMcpServer={openAddServer} />}
+        emptyAction={<WaysIn size="xs" onAddMcpServer={openAddServer} />}
         onItemClick={(item) => navigateToDetail("plugins", item.org, item.slug)}
         renderItemAction={(item) => (
           <div onClick={(e) => e.stopPropagation()}>
@@ -173,6 +191,18 @@ export function PluginListPage() {
         )}
         aria-label="Plugin workbench"
       />
+
+      {org && (
+        <AddMcpServerDialog
+          org={org}
+          open={addingServer}
+          onClose={() => setAddingServer(false)}
+          onAdded={(plugin) => {
+            setAddingServer(false);
+            navigateToDetail("plugins", plugin.metadata?.org ?? org, plugin.metadata?.slug ?? "");
+          }}
+        />
+      )}
 
       <ConfirmDialog
         state={confirmState}

@@ -45,7 +45,6 @@ vi.mock("@stigmer/react", () => ({
   },
   useAgentCount: counter(3),
   useSkillCount: counter(5),
-  useMcpServerCount: counter(1),
   useScheduleCount: counter(4),
   usePluginCount: counter(0),
   useActiveOrgId: () => "org_acme",
@@ -81,7 +80,6 @@ describe("desktop LibraryLanding", () => {
     expect([...page.cards].map(([label, card]) => [label, card.count])).toEqual([
       ["Agents", 3],
       ["Skills", 5],
-      ["MCP Servers", 1],
       ["Schedules", 4],
       ["Plugins", 0],
     ]);
@@ -90,8 +88,8 @@ describe("desktop LibraryLanding", () => {
   it("opens each kind's list from its card", () => {
     renderLanding();
 
-    act(() => page.cards.get("MCP Servers")?.onClick());
-    expect(screen.getByTestId("location").textContent).toBe("/library/mcp-servers");
+    act(() => page.cards.get("Plugins")?.onClick());
+    expect(screen.getByTestId("location").textContent).toBe("/library/plugins");
     act(() => page.cards.get("Schedules")?.onClick());
     expect(screen.getByTestId("location").textContent).toBe("/library/schedules");
   });
@@ -105,6 +103,6 @@ describe("desktop LibraryLanding", () => {
 
     page.tokens.length = 0;
     act(() => page.dialog.at(-1)?.onApplied());
-    expect(page.tokens).toEqual([1, 1, 1, 1, 1]);
+    expect(page.tokens).toEqual([1, 1, 1, 1]);
   });
 });

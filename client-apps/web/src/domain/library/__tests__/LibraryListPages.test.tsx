@@ -5,8 +5,10 @@
  * slug, never the raw id); and a row's "Copy ID" copies the
  * `<org slug>/<slug>` reference a person types elsewhere. A row's Delete on
  * the agents list confirms in the agent detail page's words, the same
- * confirmation for the same act. The workbench and OrgSlugText are pinned
- * in @stigmer/react.
+ * confirmation for the same act. The plugins list offers "Add MCP server"
+ * in the active organization, open on arrival through `?add=mcp-server`
+ * (the Library's Add menu), and goes to the new plugin's page. The
+ * workbench, OrgSlugText and the form are pinned in @stigmer/react.
  */
 import type { ReactNode } from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -34,7 +36,9 @@ const ROW: Row = { id: "agt_1", org: "org_acme", slug: "kit", name: "Kit" };
 
 const page = vi.hoisted(() => ({
   workbench: [] as WorkbenchProps[],
-  connect: [] as Array<Record<string, unknown>>,
+  addServer: [] as Array<Record<string, unknown>>,
+  detail: [] as Array<{ type: string; org: string; slug: string }>,
+  search: new URLSearchParams(),
   confirms: [] as Array<{ title: string; description: string }>,
 }));
 
@@ -81,8 +85,8 @@ vi.mock("@stigmer/react", () => {
     ActionMenu,
     ApplyManifestDialog: () => null,
     ConfirmDialog: () => null,
-    McpServerConnectDialog: (props: Record<string, unknown>) => {
-      page.connect.push(props);
+    AddMcpServerDialog: (props: Record<string, unknown>) => {
+      page.addServer.push(props);
       return null;
     },
     // A stand-in that shows which org id the column handed it.
@@ -94,7 +98,6 @@ vi.mock("@stigmer/react", () => {
       agent: kind,
       skill: kind,
       plugin: kind,
-      mcpServer: kind,
     }),
     useActiveOrgId: () => "org_acme",
     // The person's organizations: org_acme reads "acme".
@@ -118,12 +121,19 @@ vi.mock("next/link", () => ({
   ),
 }));
 
+vi.mock("next/navigation", () => ({
+  useSearchParams: () => page.search,
+}));
+
 vi.mock("@/domain/library/library-navigation", () => ({
-  useLibraryNavigation: () => ({ navigateToDetail: () => undefined }),
+  useLibraryNavigation: () => ({
+    navigateToDetail: (type: string, org: string, slug: string) => {
+      page.detail.push({ type, org, slug });
+    },
+  }),
 }));
 
 import { AgentListPage } from "../agents/AgentListPage";
-import { McpServerListPage } from "../mcp-servers/McpServerListPage";
 import { PluginListPage } from "../plugins/PluginListPage";
 import { ScheduleListPage } from "../schedules/ScheduleListPage";
 import { SkillListPage } from "../skills/SkillListPage";
@@ -133,7 +143,9 @@ let copied: string[] = [];
 
 beforeEach(() => {
   page.workbench.length = 0;
-  page.connect.length = 0;
+  page.addServer.length = 0;
+  page.detail.length = 0;
+  page.search = new URLSearchParams();
   page.confirms.length = 0;
   copied = [];
   vi.spyOn(navigator.clipboard, "writeText").mockImplementation(
@@ -191,18 +203,27 @@ describe("web AgentListPage delete", () => {
   });
 });
 
-describe("web McpServerListPage", () => {
-  it("lists the active org by its id and connects into it", () => {
-    render(<McpServerListPage />);
+describe("web PluginListPage Add MCP server", () => {
+  it("adds the server in the active org by its id, closed until asked", () => {
+    render(<PluginListPage />);
 
-    expect(page.workbench.at(-1)?.org).toBe("org_acme");
-    expect(page.connect.at(-1)?.activeOrg).toBe("org_acme");
+    expect(page.addServer.at(-1)).toMatchObject({ org: "org_acme", open: false });
   });
 
-  it("shows a row's org through OrgSlugText, from the id the row names it by", () => {
-    render(<McpServerListPage />);
+  it("opens on arrival from the Library's Add menu", () => {
+    page.search = new URLSearchParams("add=mcp-server");
+    render(<PluginListPage />);
 
-    expect(orgCell().textContent).toBe("slug of org_acme");
+    expect(page.addServer.at(-1)?.open).toBe(true);
+  });
+
+  it("goes to the new plugin's page once it is added", () => {
+    render(<PluginListPage />);
+
+    const onAdded = page.addServer.at(-1)?.onAdded as (plugin: { metadata: { org: string; slug: string } }) => void;
+    onAdded({ metadata: { org: "org_acme", slug: "linear" } });
+
+    expect(page.detail).toEqual([{ type: "plugins", org: "org_acme", slug: "linear" }]);
   });
 });
 

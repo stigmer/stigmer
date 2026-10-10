@@ -186,9 +186,6 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
         org={org}
         slug={slug}
         onResourceLoad={handleResourceLoad}
-        onMcpServerClick={({ org: o, slug: s }) =>
-          navigateToDetail("mcp-servers", o, s)
-        }
         onSkillClick={({ org: o, slug: s }) =>
           navigateToDetail("skills", o, s)
         }

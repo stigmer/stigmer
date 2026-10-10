@@ -12,12 +12,12 @@ import {
 } from "@stigmer/react";
 
 /**
- * The home-route URL that opens the new-session screen with the agent
- * pre-selected. Mirrors the web `getAgentSessionUrl` helper and the
- * agent detail page's own; the hash router resolves this to `#/?...`.
+ * The home-route URL that opens the new-session screen for a chat with the
+ * assistant that uses the plugin. Mirrors the web `getPluginChatUrl`
+ * helper; the hash router resolves this to `#/?...`.
  */
-function agentSessionUrl(org: string, slug: string): string {
-  return `/?agent=${encodeURIComponent(`${org}/${slug}`)}`;
+function pluginChatUrl(org: string, slug: string): string {
+  return `/?plugin=${encodeURIComponent(`${org}/${slug}`)}`;
 }
 
 export default function PluginDetailPage() {
@@ -46,7 +46,7 @@ export default function PluginDetailPage() {
     const confirmed = await confirm({
       title: `Remove ${resourceName}?`,
       description:
-        "Removes the plugin and every skill, MCP server and agent it installed. The server refuses if something outside the plugin still uses one of them.",
+        "Removes the plugin and its versions. The server refuses while an agent of the organization uses it; a conversation that uses it fails its next message.",
       confirmLabel: "Remove",
       variant: "destructive",
     });
@@ -95,13 +95,8 @@ export default function PluginDetailPage() {
         org={org}
         slug={slug}
         onResourceLoad={handleResourceLoad}
-        onStartSession={({ org: o, slug: s }) => navigate(agentSessionUrl(o, s))}
-        onSkillClick={({ org: o, slug: s }) => navigate(`/library/skills/${slugForOrg(o)}/${s}`)}
-        onMcpServerClick={({ org: o, slug: s }) => navigate(`/library/mcp-servers/${slugForOrg(o)}/${s}`)}
+        onStartChat={({ org: o, slug: s }) => navigate(pluginChatUrl(o, s))}
         onAgentClick={({ org: o, slug: s }) => navigate(`/library/agents/${slugForOrg(o)}/${s}`)}
-        onCreateAgent={(usages) =>
-          navigate(`/library/agents/new?mcp=${usages.map((u) => encodeURIComponent(u.mcpServerRef.slug)).join(",")}`)
-        }
         actions={actions}
       />
       <ConfirmDialog

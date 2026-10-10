@@ -1,11 +1,13 @@
 /**
- * Pins how the desktop library list pages (agents, skills, plugins, MCP
- * servers) name organizations. A listed resource names its
+ * Pins how the desktop library list pages (agents, skills, plugins) name
+ * organizations. A listed resource names its
  * organization by id: the list is scoped to the active organization's id,
  * the Organization column renders that id through `OrgSlugText` (which shows
- * the slug), and every way out of a row (opening it, View details, Copy ID,
- * an MCP server's Connect dialog) carries the slug of the resource's own
- * organization, never the id and never the active organization's slug. A
+ * the slug), and every way out of a row (opening it, View details, Copy ID)
+ * carries the slug of the resource's own organization, never the id and
+ * never the active organization's slug. The plugins list's "Add MCP
+ * server" adds in the active organization and opens the new plugin at its
+ * organization's slug. A
  * row's Delete on the agents list confirms in the words of
  * that resource's detail page, the same confirmation for the same act. The
  * workbench, the action menu and the dialogs are pinned in @stigmer/react.
@@ -35,16 +37,15 @@ interface WorkbenchProps {
   renderItemAction?: (item: Item) => ReactNode;
 }
 
-interface ConnectDialogProps {
+interface AddServerDialogProps {
   org: string;
-  slug: string;
-  activeOrg: string;
   open: boolean;
+  onAdded: (plugin: { metadata: { org: string; slug: string } }) => void;
 }
 
 const page = vi.hoisted(() => ({
   workbench: [] as WorkbenchProps[],
-  connect: [] as ConnectDialogProps[],
+  addServer: [] as AddServerDialogProps[],
   confirms: [] as Array<{ title: string; description: string }>,
   // A resource shared into the viewer's library from another organization:
   // its org id resolves to that organization's slug, not the active one's.
@@ -94,8 +95,8 @@ vi.mock("@stigmer/react", () => {
       );
     },
     OrgSlugText: ({ orgId }: { orgId: string }) => <span data-org-id={orgId} />,
-    McpServerConnectDialog: (props: ConnectDialogProps) => {
-      page.connect.push(props);
+    AddMcpServerDialog: (props: AddServerDialogProps) => {
+      page.addServer.push(props);
       return null;
     },
     ApplyManifestDialog: () => null,
@@ -113,7 +114,6 @@ vi.mock("@stigmer/react", () => {
       agent: resourceClient,
       skill: resourceClient,
       plugin: resourceClient,
-      mcpServer: resourceClient,
     }),
     toast,
     useActiveOrgId: () => "org_acme",
@@ -126,7 +126,6 @@ vi.mock("@stigmer/react", () => {
 import AgentListPage from "../library/AgentListPage";
 import SkillListPage from "../library/SkillListPage";
 import PluginListPage from "../library/PluginListPage";
-import McpServerListPage from "../library/McpServerListPage";
 import { AGENT_DELETE_DESCRIPTION } from "../library/agent-delete-confirmation";
 
 function LocationProbe() {
@@ -150,7 +149,7 @@ function location(): string | null {
 
 beforeEach(() => {
   page.workbench.length = 0;
-  page.connect.length = 0;
+  page.addServer.length = 0;
   page.confirms.length = 0;
   toast.success.mockClear();
 });
@@ -213,33 +212,18 @@ describe.each([
   });
 });
 
-describe("desktop McpServerListPage — organizations", () => {
-  it("lists the active organization by id and shows each row's org through OrgSlugText", () => {
-    renderPage(McpServerListPage);
+describe("desktop PluginListPage — Add MCP server", () => {
+  it("adds the server in the active organization by id, closed until asked", () => {
+    renderPage(PluginListPage);
 
-    expect(page.workbench.at(-1)?.org).toBe("org_acme");
-    expect(screen.getByTestId("cell-org").querySelector("[data-org-id]")?.getAttribute("data-org-id")).toBe(
-      "org_shared",
-    );
+    expect(page.addServer.at(-1)).toMatchObject({ org: "org_acme", open: false });
   });
 
-  it("opens a row at a URL carrying its own organization's slug", () => {
-    renderPage(McpServerListPage);
+  it("opens the new plugin at a URL carrying its organization's slug", () => {
+    renderPage(PluginListPage);
 
-    fireEvent.click(screen.getByRole("button", { name: "open row" }));
+    act(() => page.addServer.at(-1)?.onAdded({ metadata: { org: "org_shared", slug: "linear" } }));
 
-    expect(location()).toBe("/library/mcp-servers/shared-team/triage");
-  });
-
-  it("connects by the server's org id", () => {
-    renderPage(McpServerListPage);
-
-    fireEvent.click(screen.getByRole("button", { name: "Connect Triage" }));
-    expect(page.connect.at(-1)).toMatchObject({
-      org: "org_shared",
-      slug: "triage",
-      activeOrg: "org_acme",
-      open: true,
-    });
+    expect(location()).toBe("/library/plugins/shared-team/linear");
   });
 });

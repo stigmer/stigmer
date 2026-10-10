@@ -6,12 +6,12 @@ import { useRouter } from "next/navigation";
 import { Blocks, Bot, CalendarClock, FileCode2, Plus, Sparkles, Server } from "lucide-react";
 import { Popover } from "@base-ui/react/popover";
 import { cn } from "@stigmer/theme";
+import { ADD_MCP_SERVER_HREF } from "@/domain/library/plugins/add-mcp-server";
 import {
   ApplyManifestDialog,
   useAgentCount,
   useScheduleCount,
   useSkillCount,
-  useMcpServerCount,
   usePluginCount,
   ResourceCountCard,
   useActiveOrgId,
@@ -33,12 +33,6 @@ const RESOURCE_CARDS = [
     label: "Skills",
     href: "/library/skills",
     icon: <Sparkles className="size-5" aria-hidden="true" />,
-  },
-  {
-    key: "mcp-servers",
-    label: "MCP Servers",
-    href: "/library/mcp-servers",
-    icon: <Server className="size-5" aria-hidden="true" />,
   },
   {
     key: "schedules",
@@ -72,9 +66,9 @@ const ADD_MENU_ITEMS: readonly AddMenuItem[] = [
     href: "/library/skills/new",
   },
   {
-    label: "MCP Server",
+    label: "MCP server",
     icon: <Server className="size-4" aria-hidden="true" />,
-    href: "/library/mcp-servers/new",
+    href: ADD_MCP_SERVER_HREF,
   },
   {
     label: "Schedule",
@@ -94,14 +88,12 @@ const ADD_MENU_ITEMS: readonly AddMenuItem[] = [
 function useResourceCounts(org: string | null, refetchToken?: unknown) {
   const agents = useAgentCount(org, { refetchToken });
   const skills = useSkillCount(org, { refetchToken });
-  const mcpServers = useMcpServerCount(org, { refetchToken });
   const schedules = useScheduleCount(org, { refetchToken });
   const plugins = usePluginCount(org, { refetchToken });
 
   return {
     agents,
     skills,
-    "mcp-servers": mcpServers,
     schedules,
     plugins,
   } as const;
@@ -129,7 +121,7 @@ export function LibraryLanding() {
     <>
       <h1 className="text-foreground mb-1 text-xl font-semibold">Library</h1>
       <p className="text-muted-foreground mb-8 text-sm">
-        Browse and manage your agents, skills, and MCP servers.
+        Browse and manage your agents, skills, and plugins.
       </p>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
