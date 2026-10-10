@@ -25,9 +25,16 @@
  *   - everything else, a `}` with no `{` and a `,` outside braces
  *     included, is literal.
  *
- * A malformed glob (a class or a brace never closed, a reversed range, too
- * many alternatives, braces nested too deep) is an error value, never a
- * throw. The plugin library refuses the same globs when it reads a suite
+ * A glob holds at most GLOB_MAX_LENGTH characters and expands to at most
+ * GLOB_MAX_TOKENS tokens summed over its alternatives (a `/` right after
+ * `**` counted as its own token, so the count is the same in either
+ * mode), which bounds a match's cost by GLOB_MAX_TOKENS times the input's
+ * length: an author's `file_exists` grader runs on the server's own
+ * thread, once per file a try created.
+ *
+ * A malformed glob (too long, a class or a brace never closed, a reversed
+ * range, too many alternatives or tokens, braces nested too deep) is an
+ * error value, never a throw. The plugin library refuses the same globs when it reads a suite
  * (`globError` in @stigmer/plugin-package); the tests pin both readers to
  * one table.
  *
@@ -39,6 +46,12 @@ export const GLOB_MAX_ALTERNATIVES = 64;
 
 /** The deepest braces may nest. */
 export const GLOB_MAX_BRACE_DEPTH = 16;
+
+/** The most characters (code points) a glob may hold. */
+export const GLOB_MAX_LENGTH = 1024;
+
+/** The most tokens a glob may expand to, summed over its alternatives. */
+export const GLOB_MAX_TOKENS = 4096;
 
 /** Whether `*` and `?` stay inside a path segment. */
 export type GlobMode = "path" | "name";
@@ -63,12 +76,19 @@ class GlobSyntaxError {
 }
 
 export function compileGlob(glob: string, mode: GlobMode): CompiledGlob {
+  if (longerThanTheCap(glob)) {
+    return { ok: false, error: `it is longer than ${GLOB_MAX_LENGTH} characters` };
+  }
   let alternatives: Token[][];
   try {
     const parser = new Parser(Array.from(glob), mode);
     const sequence = parser.sequence(0);
-    if (countOf(sequence) > GLOB_MAX_ALTERNATIVES) {
+    const size = sizeOf(sequence);
+    if (size.count > GLOB_MAX_ALTERNATIVES) {
       throw new GlobSyntaxError(`it expands to more than ${GLOB_MAX_ALTERNATIVES} alternatives`);
+    }
+    if (size.tokens > GLOB_MAX_TOKENS) {
+      throw new GlobSyntaxError(`it expands to more than ${GLOB_MAX_TOKENS} tokens`);
     }
     alternatives = expand(sequence).map((tokens) => collapseStars(tokens, mode));
   } catch (error) {
@@ -202,19 +222,54 @@ class Parser {
   }
 }
 
-/** How many alternatives `nodes` expands to, stopping counting past the cap. */
-function countOf(nodes: ReadonlyArray<Node>): number {
-  let count = 1;
-  for (const node of nodes) {
-    if (node.kind === "group") {
-      let sum = 0;
-      for (const alternative of node.alternatives) {
-        sum = Math.min(sum + countOf(alternative), GLOB_MAX_ALTERNATIVES + 1);
-      }
-      count = Math.min(count * sum, GLOB_MAX_ALTERNATIVES + 1);
+/** Whether `glob` holds more than GLOB_MAX_LENGTH code points, counting no further. */
+function longerThanTheCap(glob: string): boolean {
+  if (glob.length <= GLOB_MAX_LENGTH) {
+    return false;
+  }
+  let points = 0;
+  for (const _ of glob) {
+    if (++points > GLOB_MAX_LENGTH) {
+      return true;
     }
   }
-  return count;
+  return false;
+}
+
+/** A sequence's alternatives and their tokens in all, each capped one past its limit. */
+interface GlobSize {
+  readonly count: number;
+  readonly tokens: number;
+}
+
+/**
+ * How many alternatives `nodes` expands to and how many tokens they hold
+ * in all, without expanding them: n heads of t tokens in all followed by
+ * m tails of s make n*m alternatives of t*m + s*n tokens.
+ */
+function sizeOf(nodes: ReadonlyArray<Node>): GlobSize {
+  const countCap = GLOB_MAX_ALTERNATIVES + 1;
+  const tokenCap = GLOB_MAX_TOKENS + 1;
+  let count = 1;
+  let tokens = 0;
+  for (const node of nodes) {
+    if (node.kind !== "group") {
+      // `**/` in a path is one token that stands for two characters' worth
+      // of a name glob (a star and a `/`), so both modes count alike.
+      tokens = Math.min(tokens + count * (node.kind === "globstar-dir" ? 2 : 1), tokenCap);
+      continue;
+    }
+    let sum = 0;
+    let sumTokens = 0;
+    for (const alternative of node.alternatives) {
+      const inner = sizeOf(alternative);
+      sum = Math.min(sum + inner.count, countCap);
+      sumTokens = Math.min(sumTokens + inner.tokens, tokenCap);
+    }
+    tokens = Math.min(tokens * sum + sumTokens * count, tokenCap);
+    count = Math.min(count * sum, countCap);
+  }
+  return { count, tokens };
 }
 
 /** Every brace-free token list `nodes` stands for (counted first, so bounded). */

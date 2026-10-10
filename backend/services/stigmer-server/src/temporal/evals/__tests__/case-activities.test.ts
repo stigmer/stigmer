@@ -7,7 +7,8 @@
  *
  *   - start-try: no caller seam (the try acts as the server); a seam that
  *     throws for another reason than a refusal; an eval with no spec; a
- *     retry with no earlier run; the attempt read from the activity
+ *     retry with no earlier run; a run under the try's name adopted on a
+ *     first attempt too; the attempt read from the activity
  *     context; a plugin moved past the eval's version (no try starts); a
  *     create that fails outside the RPC contract, an RPC code
  *     no refusal covers, an empty and an over-long refusal; a refused run
@@ -17,15 +18,19 @@
  *     record, an offloaded file and no artifact storage, a reference
  *     transcript the archive lacks); the run's error named per phase when
  *     the run carries none; the duration with missing or reversed stamps;
- *     a run its own cap stopped leaves every check not graded, where the
- *     deadline's stop and the platform's other stops are graded;
+ *     a run its own cap stopped at the try's budget leaves every check not
+ *     graded, where the deadline's stop, a lower cap's stop and the
+ *     platform's other stops are graded;
  *   - start-vote: a try, eval or grader gone; evidence that is not text;
  *     the reference transcript in the vote's message, or missing; a caller
  *     the seam refuses; a refused create (credit, the run's own reason, a
  *     failure outside the RPC contract);
  *   - read-vote: a vote run gone; an answer that cannot be read; each
- *     ended phase; a session already gone, one whose delete fails, a vote
- *     with no session;
+ *     ended phase; its session kept, so a read retried after a lost answer
+ *     reads the same vote and cost;
+ *   - delete-vote: the vote's session deleted, once and again; a vote run
+ *     gone; a session already gone, one whose delete fails, a vote with no
+ *     session;
  *   - try-spend: no run found is no spend; the try's run found by label
  *     and name, its cost and its stored votes' added;
  *   - record-score: an eval gone; a grader the grade has no outcome for;
@@ -86,6 +91,7 @@ import type { EvalContextLoader } from "../context.js";
 import { newEvalContextLoader } from "../context.js";
 import {
   CANNOT_ACT_REASON,
+  DELETE_VOTE_ACTIVITY_NAME,
   GRADE_TRY_ACTIVITY_NAME,
   OUT_OF_CREDIT_REASON,
   PLUGIN_UPDATED_REASON,
@@ -411,6 +417,18 @@ describe("start-try beside its main path", () => {
     expect(record.runs).toEqual([]);
   });
 
+  it("adopts a run under the try's name on a first attempt too, creating no second one", async () => {
+    await seeded();
+    const slow = build();
+    const started = await slow.cases[START_TRY_ACTIVITY_NAME](CELL);
+    // Temporal reports attempt 1 again (a reset, a replayed child): the run
+    // the first start created is found by its name all the same.
+    const again = build({ attempt: () => 1 });
+    expect(await again.cases[START_TRY_ACTIVITY_NAME](CELL)).toEqual(started);
+    expect(again.record.runs).toEqual([]);
+    expect(again.record.sessions).toEqual([]);
+  });
+
   it("starts afresh on a retry that finds no earlier run", async () => {
     await seeded();
     const { cases, record } = build({ attempt: () => 2 });
@@ -616,8 +634,12 @@ describe("grade-try's AI-graded evidence", () => {
     const { cases } = build();
     const start = await startTry(cases);
     const capped =
-      "Agent reached the cost limit for this message (~$0.0100 of the $0.01 budget). Send another message to continue.";
-    await setStatus(start.runId, { phase: RunPhase.RUN_TERMINATED, error: capped });
+      "Agent reached the cost limit for this message (~$3.9950 of the $4.00 budget). Send another message to continue.";
+    await setStatus(start.runId, {
+      phase: RunPhase.RUN_TERMINATED,
+      error: capped,
+      streamingUsage: { estimatedCostUsd: CELL.budgetUsd - 0.005 },
+    });
     const grade = await cases[GRADE_TRY_ACTIVITY_NAME](CELL, start.runId, false);
     expect(TRY_SPENDING_SHARE_REASON).toBe(
       "stopped at its share of the eval's spending limit",
@@ -634,6 +656,25 @@ describe("grade-try's AI-graded evidence", () => {
     await setStatus(start.runId, { phase: RunPhase.RUN_TERMINATED, error: "stalled" });
     const stalled = await cases[GRADE_TRY_ACTIVITY_NAME](CELL, start.runId, false);
     expect(stalled.outcomes[COMPARE]).toEqual({ votes: "compare" });
+  });
+
+  it("grades a run a lower cap stopped, more than a cent under the try's budget, as a stopped run", async () => {
+    await seeded();
+    const { cases } = build();
+    const start = await startTry(cases);
+    const agentCap =
+      "Agent reached the cost limit for this message (~$0.5000 of the $0.50 budget). Send another message to continue.";
+    for (const spent of [0.5, CELL.budgetUsd - 0.02]) {
+      await setStatus(start.runId, {
+        phase: RunPhase.RUN_TERMINATED,
+        error: agentCap,
+        streamingUsage: { estimatedCostUsd: spent },
+      });
+      const grade = await cases[GRADE_TRY_ACTIVITY_NAME](CELL, start.runId, false);
+      expect(grade.outcomes[COMPARE], `spent ${spent}`).toEqual({ votes: "compare" });
+      expect(grade.error).toBe(agentCap);
+      expect(grade.costUsd).toBe(spent);
+    }
   });
 
   it("bounds a run's own error and takes reversed stamps as no duration", async () => {
@@ -910,7 +951,23 @@ describe("read-vote beside a readable answer", () => {
       message: "a vote's answer could not be read",
       fields: { voteRunId: id },
     });
-    expect(record.deletedSessions).toEqual(["ses_vote"]);
+    expect(record.deletedSessions).toEqual([]);
+  });
+
+  it("keeps the vote's session, so a read retried after a lost answer reads the same vote and cost", async () => {
+    const { cases, record } = build();
+    const id = await storedVote({
+      phase: RunPhase.RUN_COMPLETED,
+      structuredOutput: { compare: { result: "passed", reason: "matches" } },
+      streamingUsage: { estimatedCostUsd: 0.03 },
+    });
+    const first = await cases[READ_VOTE_ACTIVITY_NAME](id, "compare");
+    expect(first).toEqual({
+      vote: { kind: "vote", passed: true, reason: "matches" },
+      costUsd: 0.03,
+    });
+    expect(await cases[READ_VOTE_ACTIVITY_NAME](id, "compare")).toEqual(first);
+    expect(record.deletedSessions).toEqual([]);
   });
 
   it.each([
@@ -927,9 +984,43 @@ describe("read-vote beside a readable answer", () => {
         costUsd: 0,
       });
       expect(record.terminated).toEqual([]);
-      expect(record.deletedSessions).toEqual(["ses_vote"]);
+      expect(record.deletedSessions).toEqual([]);
     },
   );
+});
+
+describe("delete-vote", () => {
+  /** A stored vote run, in session `ses_vote` unless `sessionId` is "". */
+  async function storedVote(sessionId = "ses_vote"): Promise<string> {
+    await temp.store.saveResource(
+      ApiResourceKind.run,
+      "run_vote",
+      RunSchema,
+      create(RunSchema, {
+        metadata: { id: "run_vote", org: ORG },
+        spec:
+          sessionId === ""
+            ? {}
+            : { target: { case: "sessionId", value: sessionId } },
+        status: create(RunStatusSchema, { phase: RunPhase.RUN_COMPLETED }),
+      }),
+    );
+    return "run_vote";
+  }
+
+  it("deletes the vote's session, and a retry deletes it again harmlessly", async () => {
+    const { cases, record } = build();
+    const id = await storedVote();
+    await cases[DELETE_VOTE_ACTIVITY_NAME](id);
+    await cases[DELETE_VOTE_ACTIVITY_NAME](id);
+    expect(record.deletedSessions).toEqual(["ses_vote", "ses_vote"]);
+  });
+
+  it("takes a vote run gone as deleted", async () => {
+    const { cases, record } = build();
+    await expect(cases[DELETE_VOTE_ACTIVITY_NAME]("run_gone")).resolves.toBeUndefined();
+    expect(record.deletedSessions).toEqual([]);
+  });
 
   it("takes a session already gone as deleted, and logs one whose delete fails without throwing", async () => {
     const goneSessions = build({
@@ -938,10 +1029,10 @@ describe("read-vote beside a readable answer", () => {
           Promise.reject(new ConnectError("no session", Code.NotFound)),
       },
     });
-    const id = await storedVote({ phase: RunPhase.RUN_FAILED });
+    const id = await storedVote();
     await expect(
-      goneSessions.cases[READ_VOTE_ACTIVITY_NAME](id, "compare"),
-    ).resolves.toMatchObject({ vote: { kind: "failed" } });
+      goneSessions.cases[DELETE_VOTE_ACTIVITY_NAME](id),
+    ).resolves.toBeUndefined();
     expect(goneSessions.lines).toEqual([]);
 
     const brokenSessions = build({
@@ -950,8 +1041,8 @@ describe("read-vote beside a readable answer", () => {
       },
     });
     await expect(
-      brokenSessions.cases[READ_VOTE_ACTIVITY_NAME](id, "compare"),
-    ).resolves.toMatchObject({ vote: { kind: "failed" } });
+      brokenSessions.cases[DELETE_VOTE_ACTIVITY_NAME](id),
+    ).resolves.toBeUndefined();
     expect(brokenSessions.lines).toEqual([
       {
         level: "error",
@@ -965,15 +1056,15 @@ describe("read-vote beside a readable answer", () => {
     const { cases, lines } = build({
       sessions: { delete: () => Promise.reject("refused") },
     });
-    const id = await storedVote({ phase: RunPhase.RUN_FAILED });
-    await cases[READ_VOTE_ACTIVITY_NAME](id, "compare");
+    const id = await storedVote();
+    await cases[DELETE_VOTE_ACTIVITY_NAME](id);
     expect(lines.map((line) => line.fields?.["reason"])).toEqual(["refused"]);
   });
 
   it("deletes no session for a vote run that names none", async () => {
     const { cases, record } = build();
-    const id = await storedVote({ phase: RunPhase.RUN_FAILED }, "");
-    await cases[READ_VOTE_ACTIVITY_NAME](id, "compare");
+    const id = await storedVote("");
+    await cases[DELETE_VOTE_ACTIVITY_NAME](id);
     expect(record.deletedSessions).toEqual([]);
   });
 });

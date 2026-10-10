@@ -17,8 +17,10 @@
  *     caller answered, and a refused run's session deleted;
  *   - grade-try: the code graders over the trace, the AI-graded check left
  *     to votes, the run's error and cost; a timeout named;
- *   - start-vote and read-vote: the vote's labels, message and cap, its
- *     adoption on a retry, its reading, its stop and its session's delete;
+ *   - start-vote, read-vote and delete-vote: the vote's labels, message
+ *     and cap, its adoption on a retry, its reading and its stop (its
+ *     session kept, so a retried read reads it again), then its session's
+ *     delete;
  *   - record-score: the votes tallied, the try scored, and the Score
  *     written once; a not-graded grader leaves the try not graded.
  */
@@ -53,6 +55,7 @@ import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
 import { createCaseActivities } from "../case-activities.js";
 import { newEvalContextLoader } from "../context.js";
 import {
+  DELETE_VOTE_ACTIVITY_NAME,
   FINISH_EVAL_ACTIVITY_NAME,
   GRADE_TRY_ACTIVITY_NAME,
   LOAD_SUITE_ACTIVITY_NAME,
@@ -607,6 +610,8 @@ describe("grading a try", () => {
       vote: { kind: "failed" },
     });
     expect(record.terminated).toEqual([vote.voteRunId]);
+    expect(record.deletedSessions).toEqual([]);
+    await cases[DELETE_VOTE_ACTIVITY_NAME](vote.voteRunId);
     expect(record.deletedSessions).toEqual([
       record.sessions[1]?.session.metadata?.id,
     ]);

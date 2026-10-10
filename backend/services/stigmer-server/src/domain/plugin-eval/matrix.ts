@@ -1,8 +1,9 @@
 /**
  * The eval's matrix: which cases run, on which (harness, model) targets,
  * in which arms and how many times, in one fixed order (case, target, arm,
- * try). Create counts it against the limits; the eval's workflow walks it,
- * one cell per try. Pure: the same suite, spec and catalog always plan the
+ * try). Create counts it against the limits (sizeOfMatrix, which builds no
+ * cell, so a huge suite is refused at the cost of its cases alone); the
+ * eval's workflow walks it, one cell per try (planMatrix). Pure: the same suite, spec and catalog always plan the
  * same matrix, so a replayed workflow and a retried create agree.
  *
  * The rules, in the order they apply:
@@ -103,18 +104,46 @@ export function unsupportedFeatureReason(feature: string): string {
   return `not run: ${feature}`;
 }
 
+/** How large the matrix is, counted without building its cells. */
+export interface EvalMatrixSize {
+  cases: number;
+  tries: number;
+}
+
 export function planMatrix(
   suite: EvalSuite,
   spec: PluginEvalSpec,
   catalog: EvalModelCatalog,
 ): EvalMatrix {
+  const cells: EvalCell[] = [];
+  const { cases } = walkMatrix(suite, spec, catalog, (cell) => cells.push(cell));
+  return { cases, cells };
+}
+
+/** The matrix's cases and tries, as planMatrix would plan them, with no cell built. */
+export function sizeOfMatrix(
+  suite: EvalSuite,
+  spec: PluginEvalSpec,
+  catalog: EvalModelCatalog,
+): EvalMatrixSize {
+  const { cases, tries } = walkMatrix(suite, spec, catalog, undefined);
+  return { cases: cases.length, tries };
+}
+
+/** The kept cases and the tries in all, handing each cell to `onCell` when one is given. */
+function walkMatrix(
+  suite: EvalSuite,
+  spec: PluginEvalSpec,
+  catalog: EvalModelCatalog,
+  onCell: ((cell: EvalCell) => void) | undefined,
+): { cases: PlannedCase[]; tries: number } {
   const matchesGlob = caseGlobMatcher(spec.caseGlob);
   const wantedTags = new Set(spec.caseTags);
   const arms: ReadonlyArray<"with" | "without"> =
     spec.ablation === PluginEvalAblation.none ? ["with"] : ["with", "without"];
 
   const cases: PlannedCase[] = [];
-  const cells: EvalCell[] = [];
+  let tries = 0;
   for (const evalCase of suite.cases) {
     if (!matchesGlob(evalCase)) {
       continue;
@@ -141,14 +170,18 @@ export function planMatrix(
       if (planned.notRunReason !== undefined) {
         return;
       }
+      tries += arms.length * planned.runs;
+      if (onCell === undefined) {
+        return;
+      }
       for (const arm of arms) {
         for (let tryIndex = 0; tryIndex < planned.runs; tryIndex++) {
-          cells.push({ caseIndex, targetIndex, arm, tryIndex });
+          onCell({ caseIndex, targetIndex, arm, tryIndex });
         }
       }
     });
   }
-  return { cases, cells };
+  return { cases, tries };
 }
 
 function targetsOf(

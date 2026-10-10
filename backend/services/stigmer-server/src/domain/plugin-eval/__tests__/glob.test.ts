@@ -3,8 +3,8 @@
  * matches in a path and in a case name; that it and the plugin library's
  * `globError` agree on every row of the shared table, the error sentence
  * included; that a malformed glob is an error value, never a throw; and
- * that the hostile globs a backtracking matcher stalls on finish in well
- * under 50 ms.
+ * that the hostile globs a backtracking matcher stalls on, and a glob far
+ * past the length cap, finish in well under 50 ms.
  */
 import { describe, expect, it } from "vitest";
 
@@ -147,11 +147,31 @@ describe("hostile globs", () => {
   });
 
   it("matches the most alternatives against long inputs at once", () => {
-    const glob = `${"{a,b}".repeat(6)}${"*a".repeat(30)}`;
+    const glob = `${"{a,b}".repeat(6)}${"*a".repeat(29)}`;
     const elapsed = timed(() => {
       for (let i = 0; i < 20; i++) {
         expect(matches(glob, "c".repeat(200), "name")).toBe(false);
       }
+    });
+    expect(elapsed).toBeLessThan(50);
+  });
+
+  it("refuses a 900 KB glob of ** segments behind six brace groups at once", () => {
+    const glob = `${"{a,b}".repeat(6)}${"**/".repeat(300_000)}x`;
+    const elapsed = timed(() => {
+      for (const mode of ["path", "name"] as const) {
+        expect(compileGlob(glob, mode)).toEqual({ ok: false, error: "it is longer than 1024 characters" });
+      }
+    });
+    expect(elapsed).toBeLessThan(50);
+  });
+
+  it("matches the largest glob the caps allow against a long path at once", () => {
+    const glob = `${"{a,b}".repeat(6)}${"**/".repeat(29)}`;
+    const path = `${"ab".repeat(3)}${"/x".repeat(500)}`;
+    const elapsed = timed(() => {
+      expect(matches(glob, `${path}/`, "path")).toBe(true);
+      expect(matches(glob, "c", "path")).toBe(false);
     });
     expect(elapsed).toBeLessThan(50);
   });

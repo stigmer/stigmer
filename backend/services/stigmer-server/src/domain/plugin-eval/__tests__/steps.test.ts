@@ -1,8 +1,10 @@
 /**
  * Pins the plugin eval steps' arms the composed lanes cannot reach (no
  * engine runs behind them): a workflow that starts leaves the pending row
- * as it is; a failed start never overwrites what the workflow already
- * wrote; a cancel the workflow takes answers the row unchanged, one with no
+ * as it is; a failed start marks a pending eval failed and never
+ * overwrites what the workflow already wrote, a start that timed out
+ * after the workflow's real load wrote running included (the eval stays
+ * running and its tries are recorded); a cancel the workflow takes answers the row unchanged, one with no
  * workflow marks the eval partial "cancelled" unless it finished meanwhile,
  * a finished eval's cancel asks nothing, and a fault is a sanitized
  * INTERNAL; an eval pending or running past its workflow's execution
@@ -16,7 +18,8 @@
  * INTERNAL; a store fault reading the plugin is INTERNAL. The create's
  * defaults refuse a request with no organization or no spec, a plugin
  * with no version to run, and an allow_tools entry naming another
- * plugin; a failed start's write answers NOT_FOUND for a row gone and
+ * plugin; a suite past the limits is refused with its counts and no cell
+ * planned; a failed start's write answers NOT_FOUND for a row gone and
  * INTERNAL for a store fault; a chain built wrong (the plugin, the
  * cancel's target or the delete's row never stashed) fails loudly as
  * INTERNAL instead of answering with nothing.
@@ -24,7 +27,9 @@
 import { create } from "@bufbuild/protobuf";
 import { timestampFromMs } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { claudePlugin, inMemoryPluginFiles } from "@stigmer/plugin-package/testing";
 
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { PluginEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
@@ -44,6 +49,8 @@ import {
   PluginEvalTryState,
   PluginEvalTrySchema,
 } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
+import { PluginEvalTargetSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
+import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
@@ -56,10 +63,23 @@ import { TARGET_RESOURCE_KEY } from "../../../pipeline/steps/load-target.js";
 import type { Store } from "../../../store/interface.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
+import { newEvalContextLoader } from "../../../temporal/evals/context.js";
+import { LOAD_SUITE_ACTIVITY_NAME, RECORD_TRY_ACTIVITY_NAME } from "../../../temporal/evals/names.js";
+import { createSuiteActivities } from "../../../temporal/evals/suite-activities.js";
+import {
+  EVAL_ID,
+  catalog,
+  readEval,
+  seedEval,
+  seedPlugin,
+  suiteSource,
+} from "../../../temporal/evals/__tests__/support.js";
 import {
   PLUGIN_EVAL_WORKFLOW_ENDED_ERROR,
   pluginEvalNoCasesMessage,
+  pluginEvalNotStartedMessage,
   pluginEvalOtherPluginToolMessage,
+  pluginEvalTooLargeMessage,
 } from "../constants.js";
 import {
   EVALUATED_PLUGIN_KEY,
@@ -78,6 +98,13 @@ import {
 } from "../steps.js";
 import { PLUGIN_EVAL_EXECUTION_TIMEOUT_MS } from "../workflows.js";
 import type { PluginEvalWorkflows } from "../workflows.js";
+import * as matrix from "../matrix.js";
+
+// planMatrix as it is, watched: create counts a suite, never plans its cells.
+vi.mock("../matrix.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../matrix.js")>();
+  return { ...actual, planMatrix: vi.fn(actual.planMatrix) };
+});
 
 let temp: TempStore;
 
@@ -166,6 +193,61 @@ describe("StartPluginEvalWorkflow", () => {
     ).execute(ctx);
     expect(ctx.newState.status?.phase).toBe(PluginEvalPhase.completed);
     expect(ctx.newState.status?.error).toBe("");
+  });
+
+  it("marks a pending eval failed with its reason when the start fails", async () => {
+    const row = await saved(evalRow("pev_1", PluginEvalPhase.pending));
+    const ctx = createCtx(row);
+    await newStartPluginEvalWorkflowStep(
+      temp.store,
+      workflows({ start: () => Promise.reject(new Error("no engine")) }),
+      silentLogger,
+    ).execute(ctx);
+    expect(ctx.newState.status?.phase).toBe(PluginEvalPhase.failed);
+    expect(ctx.newState.status?.error).toBe(pluginEvalNotStartedMessage("no engine"));
+    expect((await stored("pev_1")).status?.phase).toBe(PluginEvalPhase.failed);
+  });
+
+  it("leaves an eval running when the start times out after the workflow's load wrote running", async () => {
+    await seedPlugin(temp.store);
+    await seedEval(temp.store);
+    const suite = createSuiteActivities({
+      store: temp.store,
+      logger: silentLogger,
+      contexts: newEvalContextLoader({ store: temp.store, suites: suiteSource(), catalog }),
+      attempt: () => 1,
+    });
+    const startedThenTimedOut = workflows({
+      start: async (id) => {
+        await suite[LOAD_SUITE_ACTIVITY_NAME](id);
+        throw new Error("deadline exceeded");
+      },
+    });
+    const ctx = createCtx(await readEval(temp.store));
+    await newStartPluginEvalWorkflowStep(temp.store, startedThenTimedOut, silentLogger).execute(ctx);
+
+    expect(ctx.newState.status?.phase).toBe(PluginEvalPhase.running);
+    expect(ctx.newState.status?.error).toBe("");
+    await suite[RECORD_TRY_ACTIVITY_NAME](
+      EVAL_ID,
+      { caseIndex: 0, targetIndex: 0, arm: "with", tryIndex: 0, timeoutSeconds: 120 },
+      {
+        sessionId: "ses_x",
+        runId: "run_x",
+        state: "graded",
+        score: 1,
+        notGradedReason: "",
+        error: "",
+        costUsd: 0.42,
+        durationSeconds: 3,
+        outOfCredit: false,
+      },
+    );
+    const status = (await readEval(temp.store)).status;
+    expect(status?.phase).toBe(PluginEvalPhase.running);
+    expect(status?.error).toBe("");
+    expect(status?.finishedAt).toBeUndefined();
+    expect(status?.cases[0]?.targets[0]?.withPlugin?.tries[0]?.state).toBe(PluginEvalTryState.graded);
   });
 });
 
@@ -420,6 +502,33 @@ describe("the create's question and its faults", () => {
     );
     expect(broken.code).toBe(Code.Internal);
     expect(broken.rawMessage).toBe("failed to read the plugin's evals");
+  });
+
+  it("refuses a suite past the limits with its counts, planning no cell", async () => {
+    const catalog = newModelCatalogProviderFromDocument(
+      JSON.stringify({ models: [{ id: "native-model", harness: "native" }] }),
+    );
+    const files = claudePlugin({
+      files: Object.fromEntries(
+        Array.from({ length: 300 }, (_, index) => [
+          [`evals/case-${index}/prompt.md`, "Say yes.\n"],
+          [`evals/case-${index}/graders/says-yes.md`, "---\ntype: regex\npattern: yes\n---\n"],
+        ]).flat(),
+      ),
+    });
+    const row = evalRow("pev_1", PluginEvalPhase.unspecified);
+    row.spec!.pluginDigest = "a".repeat(64);
+    row.spec!.runs = 50;
+    row.spec!.targets = Array.from({ length: 6 }, () => create(PluginEvalTargetSchema, { harness: Harness.NATIVE }));
+    vi.mocked(matrix.planMatrix).mockClear();
+    const tooLarge = await failure(() =>
+      newPlanPluginEvalStep({ readArchive: () => Promise.resolve(inMemoryPluginFiles(files)) }, catalog).execute(
+        createCtx(row),
+      ),
+    );
+    expect(tooLarge.code).toBe(Code.FailedPrecondition);
+    expect(tooLarge.rawMessage).toBe(pluginEvalTooLargeMessage(300, 300 * 6 * 2 * 50));
+    expect(matrix.planMatrix).not.toHaveBeenCalled();
   });
 
   it("is INTERNAL when the plugin cannot be read", async () => {

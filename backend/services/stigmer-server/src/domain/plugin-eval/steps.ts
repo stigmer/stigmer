@@ -12,8 +12,10 @@
  * (temporal/evals/). Create writes the pending row; a start that fails
  * marks it failed, and a cancel that finds no workflow marks it partial
  * "cancelled". Both of those writes go through the store's atomic
- * read-modify-write and change a row only while it is still pending or
- * running, so they never overwrite what the workflow wrote.
+ * read-modify-write and never overwrite what the workflow wrote: a
+ * failed start changes the row only while it is still pending (a start
+ * that timed out after the workflow began finds it running, and leaves
+ * it to the workflow), a cancel only while it is pending or running.
  *
  * Proven by __tests__/steps.test.ts (each step's arms) and
  * __tests__/plugin-eval.test.ts (the composed lanes).
@@ -82,7 +84,7 @@ import {
   pluginEvalNotCurrentVersionMessage,
   pluginEvalTooLargeMessage,
 } from "./constants.js";
-import { caseGlobError, evalModelCatalogOf, planMatrix } from "./matrix.js";
+import { caseGlobError, evalModelCatalogOf, sizeOfMatrix } from "./matrix.js";
 import { listPluginEvals } from "./queries.js";
 import type { EvalSuiteSource } from "./suite.js";
 import { loadEvalSuite, pluginVersionedBinding } from "./suite.js";
@@ -326,9 +328,10 @@ export function newValidatePluginEvalTargetsStep(
  * PlanPluginEval: refuses a case_glob that is not a glob (INVALID_ARGUMENT,
  * naming it), reads the suite from the archive at the stamped digest,
  * refuses a version with no cases and a suite larger than an eval may run
- * (with the computed counts), and writes the pending status: the planned
- * tries, and the comparison marked provisional while the with-arm runs on
- * the agent the plugin's install composed. Runs after BuildNewState and
+ * (with the computed counts, counted without building a cell), and writes
+ * the pending status: the planned tries, and the comparison marked
+ * provisional while the with-arm runs on the agent the plugin's install
+ * composed. Runs after BuildNewState and
  * VaultAttachments, which own the rest of the status.
  */
 export function newPlanPluginEvalStep(
@@ -358,14 +361,12 @@ export function newPlanPluginEvalStep(
       if (loaded.suite.cases.length === 0) {
         throw failedPreconditionError(pluginEvalNoCasesMessage(loaded.suite.dir));
       }
-      const matrix = planMatrix(loaded.suite, spec, evalModelCatalogOf(catalog));
-      const tries = matrix.cells.length;
-      if (matrix.cases.length > PLUGIN_EVAL_MAX_CASES || tries > PLUGIN_EVAL_MAX_TRIES) {
-        throw failedPreconditionError(
-          pluginEvalTooLargeMessage(matrix.cases.length, tries),
-        );
+      // Counted, not planned: the workflow plans the cells of an eval that fits.
+      const { cases, tries } = sizeOfMatrix(loaded.suite, spec, evalModelCatalogOf(catalog));
+      if (cases > PLUGIN_EVAL_MAX_CASES || tries > PLUGIN_EVAL_MAX_TRIES) {
+        throw failedPreconditionError(pluginEvalTooLargeMessage(cases, tries));
       }
-      if (matrix.cases.length === 0) {
+      if (cases === 0) {
         throw failedPreconditionError(
           "no eval case matches case_glob and case_tags",
         );
@@ -428,8 +429,12 @@ export function newEnsureEvaluatedPluginStillExistsStep(
  * StartPluginEvalWorkflow: starts the eval's workflow under its
  * deterministic id, after the row and its access are written. A start
  * that fails (no engine yet, a refusal, the deadline) marks the eval
- * failed with its reason, and the create answers that row: the eval was
- * created, and says why it did not run.
+ * failed with its reason while it is still pending, and the create
+ * answers that row: the eval was created, and says why it did not run.
+ * Only the workflow's load writes running, so a start that failed after
+ * the workflow did begin (its answer lost to the deadline) finds the eval
+ * running and leaves it to the workflow, which records its tries, ends it,
+ * and answers a cancel.
  */
 export function newStartPluginEvalWorkflowStep(
   store: Store,
@@ -449,26 +454,38 @@ export function newStartPluginEvalWorkflowStep(
           evalId,
           cause,
         });
-        const failed = await settleUnlessFinished(store, evalId, (status) => {
-          status.phase = PluginEvalPhase.failed;
-          status.error = pluginEvalNotStartedMessage(cause);
-          status.finishedAt = timestampNow();
-        });
+        const failed = await settleUnlessFinished(
+          store,
+          evalId,
+          (status) => {
+            status.phase = PluginEvalPhase.failed;
+            status.error = pluginEvalNotStartedMessage(cause);
+            status.finishedAt = timestampNow();
+          },
+          isPendingPluginEval,
+        );
         ctx.setNewState(failed);
       }
     },
   };
 }
 
+/** Whether an eval's workflow has not yet written it running. */
+function isPendingPluginEval(pluginEval: PluginEval): boolean {
+  return pluginEval.status?.phase === PluginEvalPhase.pending;
+}
+
 /**
- * Writes `settle` onto an eval's status only while the eval is pending or
- * running, through the store's atomic read-modify-write; answers the row
- * as stored afterwards either way.
+ * Writes `settle` onto an eval's status only while `settleable` holds for
+ * the stored row (by default, while it is pending or running), through the
+ * store's atomic read-modify-write; answers the row as stored afterwards
+ * either way.
  */
 async function settleUnlessFinished(
   store: Store,
   evalId: string,
   settle: (status: NonNullable<PluginEval["status"]>) => void,
+  settleable: (pluginEval: PluginEval) => boolean = isActivePluginEval,
 ): Promise<PluginEval> {
   try {
     return await store.updateResource(
@@ -476,7 +493,7 @@ async function settleUnlessFinished(
       evalId,
       PluginEvalSchema,
       (live) => {
-        if (!isActivePluginEval(live)) {
+        if (!settleable(live)) {
           return;
         }
         settle((live.status ??= create(PluginEvalStatusSchema)));

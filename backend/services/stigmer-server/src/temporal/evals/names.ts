@@ -68,8 +68,14 @@ export const GRADE_TRY_ACTIVITY_NAME = "stigmer/evals/grade-try";
 /** Creates one vote of an AI-graded check, as the eval's caller. */
 export const START_VOTE_ACTIVITY_NAME = "stigmer/evals/start-vote";
 
-/** Reads one vote, stops it if still going, and deletes its session. */
+/**
+ * Reads one vote and stops it if still going. Its session is kept, so a
+ * retried read after a lost answer reads the same vote again.
+ */
 export const READ_VOTE_ACTIVITY_NAME = "stigmer/evals/read-vote";
+
+/** Deletes a read vote's session (and so its run); a vote or session gone is deleted. */
+export const DELETE_VOTE_ACTIVITY_NAME = "stigmer/evals/delete-vote";
 
 /** Scores the try and writes its Score on the try's run. */
 export const RECORD_SCORE_ACTIVITY_NAME = "stigmer/evals/record-score";
@@ -88,6 +94,14 @@ export const TRY_SPEND_ACTIVITY_NAME = "stigmer/evals/try-spend";
  * other failure once the retries are spent.
  */
 export const PLUGIN_EVAL_BUSY_FAILURE_TYPE = "PluginEvalBusy";
+
+/**
+ * The failure type the case workflow fails with on an error of its own
+ * (not a cancellation, not an activity's or a child's failure), so the
+ * workflow fails and its suite records the try, where a plain error would
+ * fail only the workflow task and retry it until the execution timeout.
+ */
+export const PLUGIN_EVAL_CASE_FAILED_FAILURE_TYPE = "PluginEvalCaseFailed";
 
 /** The not-graded reasons the workflows give without an activity. */
 export const PLATFORM_BUSY_REASON = "platform busy";
@@ -303,6 +317,7 @@ export interface CaseActivities {
     voteRunId: string,
     rubric: string,
   ) => Promise<VoteRead>;
+  [DELETE_VOTE_ACTIVITY_NAME]: (voteRunId: string) => Promise<void>;
   [RECORD_SCORE_ACTIVITY_NAME]: (
     input: CaseInput,
     started: { readonly sessionId: string; readonly runId: string },
