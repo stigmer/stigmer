@@ -135,10 +135,10 @@ changes again. A repository whose own guidance says otherwise follows that.
 
    The state says what to run:
    - `current`: nothing more.
-   - `missing`: the one full review, steps 2, 3 and 4. It is missing when no
-     review exists, or when a fix-check answered `needs-review`.
-   - `stale`: a fix-check, steps 2, 3b and 4. A push moved the change past the
-     newest verdict.
+   - `missing`: the one full review, steps 2 to 4. It is missing when no review
+     exists, or when a fix-check answered `needs-review`.
+   - `stale`: a fix-check, steps 2 to 4 with step 3's fix-check prompt. A push
+     moved the change past the newest verdict.
    - `changes-needed`: fix first (step 5), then a fix-check. A blocking finding
      is open on this exact change. A finding you judge wrong is answered in a
      reply, and the fix-check reads it, with or without a push.
@@ -158,14 +158,14 @@ changes again. A repository whose own guidance says otherwise follows that.
    detached worktree made for the review and removed after:
    `git worktree add --detach <path> <head>`, after `git fetch origin <head>`.
 
-3. **Launch the reviewer in a fresh context:** a subagent that starts from
-   nothing but its prompt. In Claude Code that is the `general-purpose` agent,
-   never a fork; in Cursor, a subagent. It runs on the session's main model:
-   launch it with no model override, and in Claude Code with no default subagent
-   model configured, since an agent launched without an override takes that
-   default. Pass the prompt below verbatim, with its five placeholders filled
-   and nothing added. A sentence about what the change is for steers the review
-   toward the author's reading, which is what the review exists to avoid.
+3. **Launch the reader in a fresh context:** a subagent that starts from nothing
+   but its prompt. In Claude Code that is the `general-purpose` agent, never a
+   fork; in Cursor, a subagent. It runs on the session's main model: launch it
+   with no model override, and in Claude Code with no default subagent model
+   configured, since an agent launched without an override takes that default.
+   Pass the prompt below verbatim, with its five placeholders filled and nothing
+   added. A sentence about what the change is for steers the review toward the
+   author's reading, which is what the review exists to avoid.
 
    ```text
    You are reviewing pull request {number} of {repo}, at head commit {head}.
@@ -180,21 +180,21 @@ changes again. A repository whose own guidance says otherwise follows that.
    `{brief}` is this file's absolute path: stigmer's
    `.agents/skills/review-pull-request/SKILL.md` in a local checkout of stigmer.
 
-3b. **Launch the fix-check in a fresh context**, the same way as step 3: a
-`general-purpose` agent on the session's main model, never a fork, never the
-reviewer it follows. Pass this prompt verbatim, with its six placeholders filled
-and nothing added; `{verdict}` is the `review.url` step 1 printed.
+   A fix-check is launched the same way, as a new agent, never the reader before
+   it, with this prompt in place of the one above: verbatim, its six
+   placeholders filled and nothing added. `{verdict}` is the `review.url` step 1
+   printed.
 
-```text
-You are fix-checking pull request {number} of {repo}, at head commit {head}.
-You did not write it, and you have no context beyond this message.
-A checkout at that head is at {checkout}.
-The verdict you continue is {verdict}.
+   ```text
+   You are fix-checking pull request {number} of {repo}, at head commit {head}.
+   You did not write it, and you have no context beyond this message.
+   A checkout at that head is at {checkout}.
+   The verdict you continue is {verdict}.
 
-Read the brief in {brief}, the section "What the fix-check does", and follow
-it exactly. Do not edit any file, push, comment on or merge anything. Your
-last message is the JSON object the brief describes, and nothing else.
-```
+   Read the brief in {brief}, the section "What the fix-check does", and follow
+   it exactly. Do not edit any file, push, comment on or merge anything. Your
+   last message is the JSON object the brief describes, and nothing else.
+   ```
 
 4. **Post the verdict.** Save the reviewer's or the fix-check's JSON to a file
    outside the tree, then, from the same checkout of the base as step 1:
@@ -225,9 +225,9 @@ last message is the JSON object the brief describes, and nothing else.
    as the section above says. Otherwise:
    - On `approve` or `resolved`, the pull request is ready for its merge.
    - On `changes-needed` or `unresolved`, fix each open blocking finding (any
-     minor one too, if you choose), verify, push, and run the fix-check (step
-     3b). A finding you judge wrong is answered in a reply on the pull request,
-     with the reason; the fix-check reads that reply and judges it.
+     minor one too, if you choose), verify, push, and run the fix-check (steps 2
+     to 4). A finding you judge wrong is answered in a reply on the pull
+     request, with the reason; the fix-check reads that reply and judges it.
    - After an `approve` or a `resolved`, you may still push: its minor findings,
      a red `Gate` fixed. Disarm an armed merge first
      (`gh pr merge <n> -R <owner/repo> --disable-auto`), push, run the
