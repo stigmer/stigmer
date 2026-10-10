@@ -222,8 +222,10 @@ export class CursorLane {
     const host = slash === -1 ? hostAndPath : hostAndPath.slice(0, slash);
     const path = slash === -1 ? "" : hostAndPath.slice(slash);
     // Cursor's Connect services are the Connect paths' alone, which hold
-    // them to the SDK's own calls; REST never reaches them.
-    if (path.startsWith(SIDE_CALL_PREFIX) || path.startsWith(AGENT_PREFIX)) {
+    // them to the SDK's own calls; REST never reaches them, by any spelling
+    // a server could read as one (an escape, a doubled slash, another case).
+    const canonical = canonicalPath(path);
+    if (canonical === undefined || canonical.includes(SIDE_CALL_PREFIX) || canonical.includes(AGENT_PREFIX)) {
       throw new LaneRefusal(403, `the Cursor lane's REST path reaches no Connect service, not ${path}`);
     }
     const rest = `${path}${search}`;
@@ -339,9 +341,9 @@ export class CursorLane {
       });
       let failed = false;
       // How the host's stream ends follows how Cursor's ended. Node emits
-      // \`end\` both for a clean END_STREAM and for a reset that cut the
-      // answer off, but marks the reset (\`aborted\`, its code) before that
-      // \`end\`: so a clean end ends the host's stream with its trailers, and
+      // `end` both for a clean END_STREAM and for a reset that cut the
+      // answer off, but marks the reset (its code, and `aborted` while this
+      // side is still sending) before that `end`: so a clean end ends the host's stream with its trailers, and
       // a reset resets it with Cursor's code. A stream that closes without
       // either (its session gone) is reset too: a cut-off answer never reads
       // as a complete one.
@@ -351,7 +353,8 @@ export class CursorLane {
         res.stream.close(code !== undefined && code !== http2Constants.NGHTTP2_NO_ERROR ? code : http2Constants.NGHTTP2_CANCEL);
       };
       upstream.on("end", () => {
-        if (upstream.aborted) reset();
+        const code = upstream.rstCode;
+        if (upstream.aborted || (code !== undefined && code !== http2Constants.NGHTTP2_NO_ERROR)) reset();
         else if (!res.writableEnded) res.end();
       });
       res.once("close", () => resolve());
@@ -426,15 +429,21 @@ function cursorHostNamed(host: string): string | undefined {
 
 /** Does `path` read as the auth API once decoded, lower-cased and stripped of repeated or trailing slashes? */
 function readsAsAuthPath(path: string): boolean {
+  const canonical = canonicalPath(path);
+  return canonical === undefined || canonical === "/auth" || canonical.startsWith("/auth/");
+}
+
+/** `path` decoded, lower-cased and stripped of repeated or trailing slashes; `undefined` when it cannot be decoded. */
+function canonicalPath(path: string): string | undefined {
   let decoded: string;
   try {
     decoded = decodeURIComponent(path);
   } catch {
-    return true;
+    return undefined;
   }
   let canonical = decoded.toLowerCase().replace(/\/{2,}/g, "/");
   while (canonical.endsWith("/")) canonical = canonical.slice(0, -1);
-  return canonical === "/auth" || canonical.startsWith("/auth/");
+  return canonical;
 }
 
 /**

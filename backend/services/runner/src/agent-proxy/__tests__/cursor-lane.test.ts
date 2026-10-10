@@ -315,7 +315,15 @@ describe("terminate: a runner that calls Cursor itself", () => {
 
   it("refuses a REST path that names one of Cursor's Connect services", async () => {
     const sent = rest.received.length;
-    for (const path of ["/aiserver.v1.DashboardService/CreateUserApiKey", "/agent.v1.AgentService/Run"]) {
+    for (const path of [
+      "/aiserver.v1.DashboardService/CreateUserApiKey",
+      "/agent.v1.AgentService/Run",
+      "//aiserver.v1.DashboardService/CreateUserApiKey",
+      "/%61iserver.v1.DashboardService/CreateUserApiKey",
+      "/AISERVER.V1.DashboardService/CreateUserApiKey",
+      "/v1/x/..%2Faiserver.v1.DashboardService/CreateUserApiKey",
+      "/%E0%A4%A",
+    ]) {
       const refused = await call(`/v1/proxy/cursor/api2.cursor.sh${path}`, { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION });
       expect(refused.status, path).toBe(403);
     }
@@ -461,26 +469,31 @@ describe("terminate: a runner that calls Cursor itself", () => {
     expect(reset, "an internal-error reset, never a clean end").toBe(2);
   });
 
-  it("resets the host's stream with Cursor's own cancel when Cursor cuts its answer off, never a clean end", async () => {
+  it("resets the host's stream with Cursor's own cancel when Cursor cuts its answer off, never a clean end, whether or not the host is still sending", async () => {
     const standIn = await exchange();
     setEnv({ CURSOR_BACKEND_URL: connectHost.url });
     connectHost.cancelMidAnswer = true;
-    const ended = await new Promise<{ readonly code: number; readonly trailers: boolean }>((resolve) => {
-      const session = connect(proxy.cursorEndpoint, { ca: proxy.cursorCertificate });
-      session.on("error", () => {});
-      const req = session.request({ ":method": "POST", ":path": RUN, authorization: `Bearer ${standIn}`, "x-stigmer-execution-id": EXECUTION });
-      let trailers = false;
-      req.on("error", () => {});
-      req.on("trailers", () => (trailers = true));
-      req.on("close", () => {
-        session.close();
-        resolve({ code: req.rstCode, trailers });
+    for (const hostStillSending of [true, false]) {
+      const ended = await new Promise<{ readonly code: number; readonly trailers: boolean }>((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error("the host's stream never ended")), 5_000);
+        const session = connect(proxy.cursorEndpoint, { ca: proxy.cursorCertificate });
+        session.on("error", () => {});
+        const req = session.request({ ":method": "POST", ":path": RUN, authorization: `Bearer ${standIn}`, "x-stigmer-execution-id": EXECUTION });
+        let trailers = false;
+        req.on("error", () => {});
+        req.on("trailers", () => (trailers = true));
+        req.on("close", () => {
+          clearTimeout(timer);
+          session.close();
+          resolve({ code: req.rstCode, trailers });
+        });
+        req.resume();
+        // The agent run's own half stays open; a unary side call's has ended.
+        if (hostStillSending) req.write("x");
+        else req.end("x");
       });
-      req.resume();
-      // The run's own half stays open, as the agent run's does.
-      req.write("x");
-    });
-    expect(ended).toEqual({ code: 8, trailers: false });
+      expect(ended, hostStillSending ? "the host still sending" : "the host done sending").toEqual({ code: 8, trailers: false });
+    }
   });
 
   it("ends the host's stream cleanly, with the trailers, when Cursor ends its answer while the host is still sending", async () => {
@@ -507,6 +520,7 @@ describe("terminate: a runner that calls Cursor itself", () => {
     });
     expect(ended.data).toBe("done");
     expect(ended.trailers["grpc-status"]).toBe("0");
+    expect(ended.code, "a clean end, no reset").toBe(0);
   });
 
   it("opens a fresh upstream connection when the host resets its own, so a recovery never reuses a degraded one", async () => {
