@@ -689,6 +689,19 @@ describe("stop-run", () => {
     ).rejects.toThrow("engine down");
   });
 
+  it("throws a stop that fails outside the RPC contract", async () => {
+    await seeded();
+    const { cases } = build({
+      lane: (real) => ({
+        ...real,
+        terminateRun: () => Promise.reject(new Error("socket hang up")),
+      }),
+    });
+    await expect(
+      cases[STOP_RUN_ACTIVITY_NAME]("run_1", "timed out"),
+    ).rejects.toThrow("socket hang up");
+  });
+
   /** Activities whose stop the run's lifecycle refuses as it refuses an ended, paused or approval-waiting run. */
   function refusingStops() {
     return build({
