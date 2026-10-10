@@ -44,7 +44,7 @@ public interface PluginEvalSuiteOrBuilder extends
 
   /**
    * <pre>
-   * Every tag the cases carry, sorted.
+   * The tags the listed cases carry, once each, sorted: at most 200.
    * </pre>
    *
    * <code>repeated string case_tags = 3 [json_name = "caseTags"];</code>
@@ -54,7 +54,7 @@ public interface PluginEvalSuiteOrBuilder extends
       getCaseTagsList();
   /**
    * <pre>
-   * Every tag the cases carry, sorted.
+   * The tags the listed cases carry, once each, sorted: at most 200.
    * </pre>
    *
    * <code>repeated string case_tags = 3 [json_name = "caseTags"];</code>
@@ -63,7 +63,7 @@ public interface PluginEvalSuiteOrBuilder extends
   int getCaseTagsCount();
   /**
    * <pre>
-   * Every tag the cases carry, sorted.
+   * The tags the listed cases carry, once each, sorted: at most 200.
    * </pre>
    *
    * <code>repeated string case_tags = 3 [json_name = "caseTags"];</code>
@@ -73,7 +73,7 @@ public interface PluginEvalSuiteOrBuilder extends
   java.lang.String getCaseTags(int index);
   /**
    * <pre>
-   * Every tag the cases carry, sorted.
+   * The tags the listed cases carry, once each, sorted: at most 200.
    * </pre>
    *
    * <code>repeated string case_tags = 3 [json_name = "caseTags"];</code>

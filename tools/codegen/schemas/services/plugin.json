@@ -1258,7 +1258,7 @@
               "kind": "string"
             }
           },
-          "description": "Every tag the cases carry, sorted.",
+          "description": "The tags the listed cases carry, once each, sorted: at most 200.",
           "required": false
         },
         {

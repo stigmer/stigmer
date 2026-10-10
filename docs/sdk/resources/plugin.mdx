@@ -764,7 +764,7 @@ PluginEvalSuite summarises a plugin's evals/ test cases.
   type={{
     dir: { type: "string", description: "The suite's directory relative to the plugin's root: \"evals\", or the manifest's experimental.evals." },
     caseCount: { type: "number", description: "Cases found in the suite." },
-    caseTags: { type: "string[]", description: "Every tag the cases carry, sorted." },
+    caseTags: { type: "string[]", description: "The tags the listed cases carry, once each, sorted: at most 200." },
     cases: { type: "PluginEvalSuiteCase[]", description: "Each case, in directory order.", typeDescriptionLink: "#pluginevalsuitecase" },
     findings: { type: "PluginWarning[]", description: "Problems reading the suite: a case that cannot load, an unknown field.", typeDescriptionLink: "#pluginwarning" },
   }}

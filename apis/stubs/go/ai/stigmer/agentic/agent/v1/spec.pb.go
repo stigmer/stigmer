@@ -75,8 +75,10 @@ type AgentSpec struct {
 	// Applied before tools, so a tool named in both is excluded.
 	//
 	// Disallowing Skill hides every skill from this agent: no skill is listed
-	// or mounted for its turns, and a read of a skill's files is refused. On
-	// a sub-agent it hides that sub-agent's skills.
+	// or mounted for its turns, and the Read tool refuses reads of skill and
+	// plugin-tree files. Grep, Glob and a shell the agent is granted are not
+	// refused, so they can still reach those files. On a sub-agent it hides
+	// that sub-agent's skills.
 	DisallowedTools []string `protobuf:"bytes,11,rep,name=disallowed_tools,json=disallowedTools,proto3" json:"disallowed_tools,omitempty"`
 	// Hooks that run around this agent's tool calls, and its sub-agents' calls.
 	//

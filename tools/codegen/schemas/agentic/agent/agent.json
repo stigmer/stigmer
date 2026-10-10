@@ -120,7 +120,7 @@
           "kind": "string"
         }
       },
-      "description": "Tools this agent may never use, in the same names as tools.\n Applied before tools, so a tool named in both is excluded.\n\n Disallowing Skill hides every skill from this agent: no skill is listed\n or mounted for its turns, and a read of a skill's files is refused. On\n a sub-agent it hides that sub-agent's skills.",
+      "description": "Tools this agent may never use, in the same names as tools.\n Applied before tools, so a tool named in both is excluded.\n\n Disallowing Skill hides every skill from this agent: no skill is listed\n or mounted for its turns, and the Read tool refuses reads of skill and\n plugin-tree files. Grep, Glob and a shell the agent is granted are not\n refused, so they can still reach those files. On a sub-agent it hides\n that sub-agent's skills.",
       "required": false
     },
     {

@@ -127,7 +127,7 @@ private static final long serialVersionUID = 0L;
       com.google.protobuf.LazyStringArrayList.emptyList();
   /**
    * <pre>
-   * Every tag the cases carry, sorted.
+   * The tags the listed cases carry, once each, sorted: at most 200.
    * </pre>
    *
    * <code>repeated string case_tags = 3 [json_name = "caseTags"];</code>
@@ -139,7 +139,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Every tag the cases carry, sorted.
+   * The tags the listed cases carry, once each, sorted: at most 200.
    * </pre>
    *
    * <code>repeated string case_tags = 3 [json_name = "caseTags"];</code>
@@ -150,7 +150,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Every tag the cases carry, sorted.
+   * The tags the listed cases carry, once each, sorted: at most 200.
    * </pre>
    *
    * <code>repeated string case_tags = 3 [json_name = "caseTags"];</code>
@@ -162,7 +162,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Every tag the cases carry, sorted.
+   * The tags the listed cases carry, once each, sorted: at most 200.
    * </pre>
    *
    * <code>repeated string case_tags = 3 [json_name = "caseTags"];</code>
@@ -956,7 +956,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Every tag the cases carry, sorted.
+     * The tags the listed cases carry, once each, sorted: at most 200.
      * </pre>
      *
      * <code>repeated string case_tags = 3 [json_name = "caseTags"];</code>
@@ -969,7 +969,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Every tag the cases carry, sorted.
+     * The tags the listed cases carry, once each, sorted: at most 200.
      * </pre>
      *
      * <code>repeated string case_tags = 3 [json_name = "caseTags"];</code>
@@ -980,7 +980,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Every tag the cases carry, sorted.
+     * The tags the listed cases carry, once each, sorted: at most 200.
      * </pre>
      *
      * <code>repeated string case_tags = 3 [json_name = "caseTags"];</code>
@@ -992,7 +992,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Every tag the cases carry, sorted.
+     * The tags the listed cases carry, once each, sorted: at most 200.
      * </pre>
      *
      * <code>repeated string case_tags = 3 [json_name = "caseTags"];</code>
@@ -1005,7 +1005,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Every tag the cases carry, sorted.
+     * The tags the listed cases carry, once each, sorted: at most 200.
      * </pre>
      *
      * <code>repeated string case_tags = 3 [json_name = "caseTags"];</code>
@@ -1024,7 +1024,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Every tag the cases carry, sorted.
+     * The tags the listed cases carry, once each, sorted: at most 200.
      * </pre>
      *
      * <code>repeated string case_tags = 3 [json_name = "caseTags"];</code>
@@ -1042,7 +1042,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Every tag the cases carry, sorted.
+     * The tags the listed cases carry, once each, sorted: at most 200.
      * </pre>
      *
      * <code>repeated string case_tags = 3 [json_name = "caseTags"];</code>
@@ -1060,7 +1060,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Every tag the cases carry, sorted.
+     * The tags the listed cases carry, once each, sorted: at most 200.
      * </pre>
      *
      * <code>repeated string case_tags = 3 [json_name = "caseTags"];</code>
@@ -1075,7 +1075,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Every tag the cases carry, sorted.
+     * The tags the listed cases carry, once each, sorted: at most 200.
      * </pre>
      *
      * <code>repeated string case_tags = 3 [json_name = "caseTags"];</code>

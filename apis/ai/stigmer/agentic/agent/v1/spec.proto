@@ -107,8 +107,10 @@ message AgentSpec {
   // Applied before tools, so a tool named in both is excluded.
   //
   // Disallowing Skill hides every skill from this agent: no skill is listed
-  // or mounted for its turns, and a read of a skill's files is refused. On
-  // a sub-agent it hides that sub-agent's skills.
+  // or mounted for its turns, and the Read tool refuses reads of skill and
+  // plugin-tree files. Grep, Glob and a shell the agent is granted are not
+  // refused, so they can still reach those files. On a sub-agent it hides
+  // that sub-agent's skills.
   repeated string disallowed_tools = 11 [(buf.validate.field).repeated.items.string = {
     max_len: 256
     pattern: "^(mcp__\\*|mcp__[a-z][a-z0-9-]*[a-z0-9](__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$"

@@ -120,7 +120,7 @@ export type PluginEvalSuite = Message<"ai.stigmer.agentic.plugin.v1.PluginEvalSu
   caseCount: number;
 
   /**
-   * Every tag the cases carry, sorted.
+   * The tags the listed cases carry, once each, sorted: at most 200.
    *
    * @generated from field: repeated string case_tags = 3;
    */

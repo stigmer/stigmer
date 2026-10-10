@@ -210,7 +210,7 @@ type PluginEvalSuite struct {
 	Dir string `protobuf:"bytes,1,opt,name=dir,proto3" json:"dir,omitempty"`
 	// Cases found in the suite.
 	CaseCount int32 `protobuf:"varint,2,opt,name=case_count,json=caseCount,proto3" json:"case_count,omitempty"`
-	// Every tag the cases carry, sorted.
+	// The tags the listed cases carry, once each, sorted: at most 200.
 	CaseTags []string `protobuf:"bytes,3,rep,name=case_tags,json=caseTags,proto3" json:"case_tags,omitempty"`
 	// Each case, in directory order.
 	Cases []*PluginEvalSuiteCase `protobuf:"bytes,4,rep,name=cases,proto3" json:"cases,omitempty"`

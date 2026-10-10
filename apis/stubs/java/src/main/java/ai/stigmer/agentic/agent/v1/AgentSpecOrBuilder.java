@@ -403,8 +403,10 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
    * Applied before tools, so a tool named in both is excluded.
    *
    * Disallowing Skill hides every skill from this agent: no skill is listed
-   * or mounted for its turns, and a read of a skill's files is refused. On
-   * a sub-agent it hides that sub-agent's skills.
+   * or mounted for its turns, and the Read tool refuses reads of skill and
+   * plugin-tree files. Grep, Glob and a shell the agent is granted are not
+   * refused, so they can still reach those files. On a sub-agent it hides
+   * that sub-agent's skills.
    * </pre>
    *
    * <code>repeated string disallowed_tools = 11 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
@@ -418,8 +420,10 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
    * Applied before tools, so a tool named in both is excluded.
    *
    * Disallowing Skill hides every skill from this agent: no skill is listed
-   * or mounted for its turns, and a read of a skill's files is refused. On
-   * a sub-agent it hides that sub-agent's skills.
+   * or mounted for its turns, and the Read tool refuses reads of skill and
+   * plugin-tree files. Grep, Glob and a shell the agent is granted are not
+   * refused, so they can still reach those files. On a sub-agent it hides
+   * that sub-agent's skills.
    * </pre>
    *
    * <code>repeated string disallowed_tools = 11 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
@@ -432,8 +436,10 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
    * Applied before tools, so a tool named in both is excluded.
    *
    * Disallowing Skill hides every skill from this agent: no skill is listed
-   * or mounted for its turns, and a read of a skill's files is refused. On
-   * a sub-agent it hides that sub-agent's skills.
+   * or mounted for its turns, and the Read tool refuses reads of skill and
+   * plugin-tree files. Grep, Glob and a shell the agent is granted are not
+   * refused, so they can still reach those files. On a sub-agent it hides
+   * that sub-agent's skills.
    * </pre>
    *
    * <code>repeated string disallowed_tools = 11 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
@@ -447,8 +453,10 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
    * Applied before tools, so a tool named in both is excluded.
    *
    * Disallowing Skill hides every skill from this agent: no skill is listed
-   * or mounted for its turns, and a read of a skill's files is refused. On
-   * a sub-agent it hides that sub-agent's skills.
+   * or mounted for its turns, and the Read tool refuses reads of skill and
+   * plugin-tree files. Grep, Glob and a shell the agent is granted are not
+   * refused, so they can still reach those files. On a sub-agent it hides
+   * that sub-agent's skills.
    * </pre>
    *
    * <code>repeated string disallowed_tools = 11 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>

@@ -84,7 +84,7 @@ message PluginEvalSuite {
   // Cases found in the suite.
   int32 case_count = 2;
 
-  // Every tag the cases carry, sorted.
+  // The tags the listed cases carry, once each, sorted: at most 200.
   repeated string case_tags = 3;
 
   // Each case, in directory order.
