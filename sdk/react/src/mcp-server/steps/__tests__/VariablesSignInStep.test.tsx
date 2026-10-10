@@ -1,19 +1,19 @@
 /**
- * The wizard's environment and auth step offers sign-in for an HTTP server
+ * The wizard's variables and sign-in step offers sign-in for an HTTP server
  * only: a local program is told to declare its keys as environment
  * variables, and no sign-in section is shown for it.
  */
 import { describe, it, expect, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
-import { EnvironmentAuthStep } from "../EnvironmentAuthStep";
+import { VariablesSignInStep } from "../VariablesSignInStep";
 import { createInitialMcpServerWizardData } from "../types";
 
 afterEach(cleanup);
 
-describe("EnvironmentAuthStep (MCP server)", () => {
+describe("VariablesSignInStep (MCP server)", () => {
   it("offers sign-in for an HTTP server", () => {
     render(
-      <EnvironmentAuthStep
+      <VariablesSignInStep
         data={{ ...createInitialMcpServerWizardData(), transportType: "http" }}
         updateData={() => {}}
       />,
@@ -23,7 +23,7 @@ describe("EnvironmentAuthStep (MCP server)", () => {
 
   it("tells a local program to declare its keys, with no sign-in section", () => {
     render(
-      <EnvironmentAuthStep
+      <VariablesSignInStep
         data={{ ...createInitialMcpServerWizardData(), transportType: "stdio" }}
         updateData={() => {}}
       />,

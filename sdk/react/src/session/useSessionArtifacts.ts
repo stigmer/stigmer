@@ -7,8 +7,8 @@ import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { isTerminalPhase } from "../run/run-phases.js";
 
 /**
- * A single artifact entry enriched with the execution context needed
- * for content fetching and Apply/Push gating.
+ * A single artifact entry enriched with the run it came from, which
+ * content fetching and Apply/Push gating need.
  *
  * The `executionId` identifies which run produced (or last
  * updated) this artifact — required by {@link useArtifactContent} and
