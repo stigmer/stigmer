@@ -2233,21 +2233,7 @@
               }
             ]
           },
-          "org_viewer": {
-            "directly_related_user_types": [
-              {
-                "type": "identity_account"
-              },
-              {
-                "relation": "viewer",
-                "type": "organization"
-              },
-              {
-                "relation": "member",
-                "type": "team"
-              }
-            ]
-          },
+          "org_viewer": {},
           "organization": {
             "directly_related_user_types": [
               {
@@ -2262,7 +2248,21 @@
               }
             ]
           },
-          "viewer": {}
+          "viewer": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              },
+              {
+                "relation": "viewer",
+                "type": "organization"
+              },
+              {
+                "relation": "member",
+                "type": "team"
+              }
+            ]
+          }
         },
         "source_info": {
           "file": "agentic/plugin.fga"
@@ -2303,30 +2303,21 @@
           "this": {}
         },
         "org_viewer": {
-          "union": {
+          "intersection": {
             "child": [
               {
-                "intersection": {
-                  "child": [
-                    {
-                      "this": {}
-                    },
-                    {
-                      "tupleToUserset": {
-                        "computedUserset": {
-                          "relation": "affiliated"
-                        },
-                        "tupleset": {
-                          "relation": "organization"
-                        }
-                      }
-                    }
-                  ]
+                "computedUserset": {
+                  "relation": "viewer"
                 }
               },
               {
-                "computedUserset": {
-                  "relation": "owner"
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "affiliated"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
                 }
               }
             ]
@@ -2374,8 +2365,27 @@
           "union": {
             "child": [
               {
+                "intersection": {
+                  "child": [
+                    {
+                      "this": {}
+                    },
+                    {
+                      "tupleToUserset": {
+                        "computedUserset": {
+                          "relation": "affiliated"
+                        },
+                        "tupleset": {
+                          "relation": "organization"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
                 "computedUserset": {
-                  "relation": "org_viewer"
+                  "relation": "owner"
                 }
               },
               {
