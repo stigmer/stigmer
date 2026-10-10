@@ -20,7 +20,10 @@
  *     with the eval's limit. While they reach it no cell starts; a running
  *     try that finishes under its cap frees the rest of it, and once the
  *     finished tries alone reach the limit with none running the eval ends
- *     partial, "cost ceiling". Each try's run is capped, when it starts, at
+ *     partial, "cost ceiling". A try whose run could not be stopped
+ *     (TRY_NOT_STOPPED_REASON) may still be spending: its cap stays held
+ *     for the rest of the eval, the spend it reported counted within it.
+ *     Each try's run is capped, when it starts, at
  *     an equal share of what the eval has left for the tries that may run
  *     at once: (limit less recorded spend) / min(concurrency, the tries not
  *     yet finished, the running ones counted), and never more than the
@@ -87,6 +90,7 @@ import {
   TRY_FAILED_REASON,
   TRY_MIN_BUDGET_USD,
   TRY_NOT_RECORDED_ERROR,
+  TRY_NOT_STOPPED_REASON,
   TRY_SPEND_ACTIVITY_NAME,
   runCaseWorkflowId,
 } from "../names.js";
@@ -234,7 +238,10 @@ async function runCells(
   let rejected: unknown;
   let next = 0;
   const inFlight = new Map<number, Promise<void>>();
-  /** The cap each try in flight was handed, by cell index. */
+  /**
+   * The cap each try in flight was handed, by cell index, and of each try
+   * whose run could not be stopped, which keeps it.
+   */
   const caps = new Map<number, number>();
   const scope = CancellationScope.current();
 
@@ -271,8 +278,14 @@ async function runCells(
       const settled = runCell(evalId, org, cell, budgetUsd).then(
         (result) => {
           inFlight.delete(index);
-          caps.delete(index);
-          spent += result.costUsd;
+          if (result.notGradedReason === TRY_NOT_STOPPED_REASON) {
+            // Its run may still be going, up to its cap, and what it spent
+            // so far is within that cap: the cap stays held to the end.
+            caps.set(index, Math.max(budgetUsd, result.costUsd));
+          } else {
+            caps.delete(index);
+            spent += result.costUsd;
+          }
           if (result.outOfCredit && stop === undefined) {
             stop = "out_of_credit";
           }

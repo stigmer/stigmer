@@ -505,6 +505,66 @@ describe("the suite workflow", () => {
     expect(finished).toEqual([{ phase: "completed" }]);
   });
 
+  it("keeps the cap of a try whose run could not be stopped held for the rest of the eval", async () => {
+    const { recorded, finished } = suite({
+      kind: "run",
+      org: "acme",
+      cells: cells(3),
+      maxCostUsd: 1,
+      concurrency: 2,
+    });
+    const budgets: number[] = [];
+    const finishes: Array<(outcome: TryResult) => void> = [];
+    seam.child = async (_type, options) => {
+      budgets.push((options.args[0] as CaseInput).budgetUsd);
+      return new Promise<TryResult>((resolve) => finishes.push(resolve));
+    };
+    const running = runPluginEval({ evalId: "pev_1" });
+    const settle = async () => {
+      for (let i = 0; i < 20; i++) await Promise.resolve();
+    };
+    await settle();
+    expect(budgets).toEqual([0.5, 0.5]);
+    // Its run may still be going: its $0.50 stays held, its $0.10 so far within it.
+    finishes.shift()!(
+      result({
+        state: "not-graded",
+        notGradedReason: TRY_NOT_STOPPED_REASON,
+        costUsd: 0.1,
+      }),
+    );
+    await settle();
+    expect(budgets).toHaveLength(2);
+    finishes.shift()!(result({ costUsd: 0.2 }));
+    await settle();
+    // $1 less the $0.20 spent and the $0.50 still held.
+    expect(budgets[2]).toBeCloseTo(0.3);
+    finishes.shift()!(result({ costUsd: 0.1 }));
+    await settle();
+    await running;
+    expect(recorded).toHaveLength(3);
+    expect(finished).toEqual([{ phase: "completed" }]);
+  });
+
+  it("ends at the cost ceiling once a try whose run could not be stopped holds all that is left", async () => {
+    const { recorded, finished } = suite({
+      kind: "run",
+      org: "acme",
+      cells: cells(2),
+      maxCostUsd: 1,
+      concurrency: 1,
+    });
+    seam.child = async () =>
+      result({
+        state: "not-graded",
+        notGradedReason: TRY_NOT_STOPPED_REASON,
+        costUsd: 0.1,
+      });
+    await runPluginEval({ evalId: "pev_1" });
+    expect(recorded).toHaveLength(1);
+    expect(finished).toEqual([{ phase: "partial", reason: "cost_ceiling" }]);
+  });
+
   it("shares what is left among the tries not yet finished when fewer remain than the concurrency", async () => {
     suite({
       kind: "run",
