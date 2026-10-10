@@ -8,7 +8,8 @@
  * defaulting to zero and always send it, so a limit the caller never set
  * arrived as zero and was refused. Go's nested literal form skipped the
  * fields altogether, so a Go caller's plan limits and prices never reached
- * the wire. These tests run each generator over a copy of the real schemas,
+ * the wire, and its spec-level form assigned the plain value to the
+ * pointer field, which does not compile. These tests run each generator over a copy of the real schemas,
  * with two top-level optional scalars added to the Plan spec so the
  * spec-level paths run too, and read what it wrote.
  */
@@ -129,5 +130,10 @@ describe("the SDK generators keep an optional scalar's presence", () => {
     expect(go).not.toContain("return &platformv1.EntitlementLimits{}, nil");
     expect(go).toContain("\tif i.MaxOrgs != 0 {\n\t\tv := i.MaxOrgs\n\t\tp.MaxOrgs = &v\n\t}\n");
     expect(go).toContain("\tif i.MonthlyMinimumMicros != 0 {\n\t\tv := i.MonthlyMinimumMicros\n\t\tp.MonthlyMinimumMicros = &v\n\t}\n");
+  });
+
+  it("Go sends a spec-level optional scalar the caller set as a pointer", () => {
+    expect(go).toContain("\tif i.TrialDays != 0 {\n\t\tv := i.TrialDays\n\t\tresource.Spec.TrialDays = &v\n\t}\n");
+    expect(go).not.toContain("resource.Spec.TrialDays = i.TrialDays");
   });
 });
