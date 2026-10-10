@@ -5,6 +5,7 @@
     "install-from-a-marketplace",
     "install-from-the-console",
     "use-hooks",
+    "test-a-plugin-with-evals",
     "marketplace-file"
   ]
 }

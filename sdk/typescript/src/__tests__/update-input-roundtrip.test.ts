@@ -336,6 +336,9 @@ describe("toAgentExecutionUpdateInput", () => {
         buildFromPlan: true,
         structuredOutputSchema: { type: "object" },
         autoApproveAll: true,
+        tools: ["Read", "Grep"],
+        disallowedTools: ["Skill"],
+        appendSystemPrompt: "Answer in one paragraph.",
         attachments: [
           {
             filename: "spec.pdf",

@@ -23,6 +23,7 @@ import { registerList } from "./commands/list.js";
 import { registerLogs } from "./commands/logs.js";
 import { registerMarketplace } from "./commands/marketplace.js";
 import { registerMcpServer } from "./commands/mcp-server.js";
+import { registerPlugin } from "./commands/plugin.js";
 import { registerPush } from "./commands/push.js";
 import { registerReset } from "./commands/reset.js";
 import { registerResume } from "./commands/resume.js";
@@ -144,6 +145,7 @@ export function buildProgram(): Command {
   registerPush(program);
   registerInstall(program);
   registerMarketplace(program);
+  registerPlugin(program);
   registerDownload(program);
   registerApply(program);
   registerRun(program);

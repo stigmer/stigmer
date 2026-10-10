@@ -1,7 +1,8 @@
 /**
  * Pure reads over a run's scores for the console: the run-health score and
- * its flags, the AI judge's verdict, and the viewer's own feedback. Kept
- * apart from the components so the rules are unit-testable without React.
+ * its flags, the AI judge's verdict, a plugin eval's checks on one of its
+ * tries, and the viewer's own feedback. Kept apart from the components so
+ * the rules are unit-testable without React.
  *
  * The viewer's feedback is found by the score's creator stamp, compared to
  * the viewer's identity account id and its identity-provider subject (the
@@ -137,6 +138,75 @@ export function judgeViewOf(scores: readonly Score[]): JudgeView {
     criteria,
     model: score.spec?.judgeModel ?? "",
   };
+}
+
+/** The metric a plugin eval's checks on one try are recorded under. */
+export const EVAL_METRIC = "eval";
+
+/**
+ * What the eval chip shows for one run: nothing (the run is not a plugin
+ * eval's try, or it was not graded yet), not graded with a reason, or the
+ * verdict with each check's result and reason. A check reported only as an
+ * indicator (the plugin's skill fired) is not applicable and does not count
+ * as a failure.
+ */
+export type EvalView =
+  | { readonly kind: "none" }
+  | { readonly kind: "not-graded"; readonly reason: string }
+  | {
+      readonly kind: "graded";
+      readonly passed: boolean;
+      readonly failed: number;
+      readonly criteria: readonly JudgeCriterion[];
+    };
+
+/** The run's plugin-eval score, the newest when several graded it. */
+export function evalScoreOf(scores: readonly Score[]): Score | undefined {
+  return scores.find(
+    (score) =>
+      score.spec?.metric === EVAL_METRIC &&
+      score.spec.source === ScoreSource.eval,
+  );
+}
+
+/** The eval chip's view of a run's scores. */
+export function evalViewOf(scores: readonly Score[]): EvalView {
+  const score = evalScoreOf(scores);
+  if (score === undefined || score.status?.state === ScoreState.pending) {
+    return { kind: "none" };
+  }
+  if (score.status?.state === ScoreState.not_graded) {
+    return { kind: "not-graded", reason: score.status.notGradedReason };
+  }
+  const criteria = (score.spec?.criteria ?? []).map((criterion) => ({
+    name: criterion.name,
+    result: criterion.result,
+    reason: criterion.reason,
+  }));
+  return {
+    kind: "graded",
+    passed: thumbsOf(score) === true,
+    failed: criteria.filter(
+      (criterion) => criterion.result === CriterionResult.failed,
+    ).length,
+    criteria,
+  };
+}
+
+/**
+ * The first reason a grader gave for failing the run: the AI judge's, else
+ * the plugin eval's; empty when neither failed it. It seeds the FAIL line
+ * of a test case made from the run.
+ */
+export function failingReasonOf(scores: readonly Score[]): string {
+  for (const score of [judgeScoreOf(scores), evalScoreOf(scores)]) {
+    const failed = (score?.spec?.criteria ?? []).find(
+      (criterion) =>
+        criterion.result === CriterionResult.failed && criterion.reason !== "",
+    );
+    if (failed !== undefined) return failed.reason;
+  }
+  return "";
 }
 
 /** The identity a creator stamp may name: an account id or an IdP subject. */

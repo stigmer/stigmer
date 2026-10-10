@@ -1,0 +1,68 @@
+Evaluate a plugin with its own `evals/` test cases.
+
+`stigmer plugin eval` runs the cases in a plugin's `evals/` folder, written in
+Claude Code's plugin-eval format, the way `claude plugin eval` runs them in
+Claude Code. Each case runs several times with the plugin and several times
+without it, on every engine and model you name, and each case gets a score with
+the plugin, a score without it, the difference (`Δ`), and whether every try
+passed (`PASS^k`). Every try is a conversation the plugin's viewers can open.
+
+The plugin is one installed in your organization, named as `thermos`,
+`acme/thermos` or its ID, optionally at a version: `thermos@<digest>`. The eval
+runs on the server: the command starts it, prints a line as each try finishes,
+then the table. Closing the terminal leaves it running; Ctrl+C cancels it.
+
+{/* AUTO_USAGE */}
+
+### Common patterns
+
+```bash
+# Run every case three times with and without the plugin, on the default model
+stigmer plugin eval thermos
+
+# Compare two models, with a CI-friendly threshold and spending limit
+stigmer plugin eval thermos --model native/claude-sonnet-4-6 --model cursor/gpt-5 \
+  --threshold 0.8 --max-cost-usd 20
+
+# Iterate on one case: one try, no comparison
+stigmer plugin eval thermos --case first-case --runs 1 --ablation none
+
+# Write the result document for a script, and gate on the exit code
+stigmer plugin eval thermos --json results.json
+
+# Start and return; read it later
+stigmer plugin eval thermos --no-wait
+stigmer get plugin-eval pev_01abc123
+
+# Cancel a running eval
+stigmer plugin eval cancel pev_01abc123
+```
+
+{/* AUTO_FLAGS */}
+
+### Exit codes
+
+| Code | Meaning                                                                                              |
+| ---- | ---------------------------------------------------------------------------------------------------- |
+| 0    | Every case that ran reached the threshold and every case file loaded                                 |
+| 1    | A case scored below the threshold, a case file failed to load, no case ran, or an option was invalid |
+| 2    | Partial: the spending limit was reached, or the organization ran out of credit                       |
+| 130  | Interrupted: the eval was cancelled; the results of the tries that finished are printed              |
+
+A case Stigmer does not run yet (it needs a feature such as
+`context.scaffold_script`) is listed under "Not run" with the feature named, and
+does not change the exit code.
+
+### How it differs from `claude plugin eval`
+
+`--model` names an engine and a model (`native/<model>` or `cursor/<model>`),
+because Stigmer runs a model on one of its engines; a bare model ID is the
+native engine's. `--max-cost-usd` is always set: 5 when you omit it. A try the
+platform could not grade, such as one refused for lack of credit, is shown as
+not graded and left out of every score instead of scoring 0. See
+[Test a plugin with evals](/docs/guides/plugins/test-a-plugin-with-evals) for
+the result file, the support table and every difference.
+
+{/* AUTO_SUBCOMMANDS */}
+
+{/* AUTO_GLOBAL_FLAGS */}
