@@ -7,7 +7,8 @@
  *
  *   - start-try: no caller seam (the try acts as the server); a seam that
  *     throws for another reason than a refusal; an eval with no spec; a
- *     retry with no earlier run; the attempt read from the activity
+ *     retry with no earlier run; a run under the try's name adopted on a
+ *     first attempt too; the attempt read from the activity
  *     context; a plugin moved past the eval's version (no try starts); a
  *     create that fails outside the RPC contract, an RPC code
  *     no refusal covers, an empty and an over-long refusal; a refused run
@@ -17,8 +18,9 @@
  *     record, an offloaded file and no artifact storage, a reference
  *     transcript the archive lacks); the run's error named per phase when
  *     the run carries none; the duration with missing or reversed stamps;
- *     a run its own cap stopped leaves every check not graded, where the
- *     deadline's stop and the platform's other stops are graded;
+ *     a run its own cap stopped at the try's budget leaves every check not
+ *     graded, where the deadline's stop, a lower cap's stop and the
+ *     platform's other stops are graded;
  *   - start-vote: a try, eval or grader gone; evidence that is not text;
  *     the reference transcript in the vote's message, or missing; a caller
  *     the seam refuses; a refused create (credit, the run's own reason, a
@@ -411,6 +413,18 @@ describe("start-try beside its main path", () => {
     expect(record.runs).toEqual([]);
   });
 
+  it("adopts a run under the try's name on a first attempt too, creating no second one", async () => {
+    await seeded();
+    const slow = build();
+    const started = await slow.cases[START_TRY_ACTIVITY_NAME](CELL);
+    // Temporal reports attempt 1 again (a reset, a replayed child): the run
+    // the first start created is found by its name all the same.
+    const again = build({ attempt: () => 1 });
+    expect(await again.cases[START_TRY_ACTIVITY_NAME](CELL)).toEqual(started);
+    expect(again.record.runs).toEqual([]);
+    expect(again.record.sessions).toEqual([]);
+  });
+
   it("starts afresh on a retry that finds no earlier run", async () => {
     await seeded();
     const { cases, record } = build({ attempt: () => 2 });
@@ -616,8 +630,12 @@ describe("grade-try's AI-graded evidence", () => {
     const { cases } = build();
     const start = await startTry(cases);
     const capped =
-      "Agent reached the cost limit for this message (~$0.0100 of the $0.01 budget). Send another message to continue.";
-    await setStatus(start.runId, { phase: RunPhase.RUN_TERMINATED, error: capped });
+      "Agent reached the cost limit for this message (~$3.9950 of the $4.00 budget). Send another message to continue.";
+    await setStatus(start.runId, {
+      phase: RunPhase.RUN_TERMINATED,
+      error: capped,
+      streamingUsage: { estimatedCostUsd: CELL.budgetUsd - 0.005 },
+    });
     const grade = await cases[GRADE_TRY_ACTIVITY_NAME](CELL, start.runId, false);
     expect(TRY_SPENDING_SHARE_REASON).toBe(
       "stopped at its share of the eval's spending limit",
@@ -634,6 +652,25 @@ describe("grade-try's AI-graded evidence", () => {
     await setStatus(start.runId, { phase: RunPhase.RUN_TERMINATED, error: "stalled" });
     const stalled = await cases[GRADE_TRY_ACTIVITY_NAME](CELL, start.runId, false);
     expect(stalled.outcomes[COMPARE]).toEqual({ votes: "compare" });
+  });
+
+  it("grades a run a lower cap stopped, more than a cent under the try's budget, as a stopped run", async () => {
+    await seeded();
+    const { cases } = build();
+    const start = await startTry(cases);
+    const agentCap =
+      "Agent reached the cost limit for this message (~$0.5000 of the $0.50 budget). Send another message to continue.";
+    for (const spent of [0.5, CELL.budgetUsd - 0.02]) {
+      await setStatus(start.runId, {
+        phase: RunPhase.RUN_TERMINATED,
+        error: agentCap,
+        streamingUsage: { estimatedCostUsd: spent },
+      });
+      const grade = await cases[GRADE_TRY_ACTIVITY_NAME](CELL, start.runId, false);
+      expect(grade.outcomes[COMPARE], `spent ${spent}`).toEqual({ votes: "compare" });
+      expect(grade.error).toBe(agentCap);
+      expect(grade.costUsd).toBe(spent);
+    }
   });
 
   it("bounds a run's own error and takes reversed stamps as no duration", async () => {

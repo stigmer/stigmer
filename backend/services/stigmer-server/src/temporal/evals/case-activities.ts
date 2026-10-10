@@ -6,10 +6,11 @@
  *   - start-try: the try's session, then its run (domain/plugin-eval/
  *     try-run.ts, arm.ts), the run capped at the budget the suite workflow
  *     hands the try (its share of what the eval has left), both as the eval's caller, minted per
- *     try (extensions/plugin-eval-caller.ts; none composed: the server). A
- *     retried start first looks for the run an earlier attempt created
- *     (the eval's label and the try's run name, read only on a retry, so a
- *     first attempt never scans). A capacity refusal is thrown as
+ *     try (extensions/plugin-eval-caller.ts; none composed: the server).
+ *     Every attempt first looks for the run an earlier one created (the
+ *     eval's label and the try's run name), so a start whose answer was
+ *     lost is adopted, never created twice, whatever attempt number
+ *     Temporal reports. A capacity refusal is thrown as
  *     PLUGIN_EVAL_BUSY_FAILURE_TYPE for the workflow's thirty minutes of
  *     retries; a credit refusal (the hosted edition's billing gate, every
  *     denial FAILED_PRECONDITION naming credits) is "out-of-credit"; any
@@ -26,10 +27,12 @@
  *     either the verdict its evidence already decides (a missing file, a
  *     binary one) or the rubric its votes answer. The run's own failure is
  *     named ("timed out after 300s" when the workflow stopped it), and the
- *     try is graded on what it produced. A run its own cap stopped (its
- *     share of the eval's spending limit) is not graded, every check
- *     "stopped at its share of the eval's spending limit", and asks no
- *     votes: the spend policy and the concurrency never move a score.
+ *     try is graded on what it produced. A run its own cap stopped at its
+ *     share of the eval's spending limit (its estimated cost within a cent
+ *     of the try's budget) is not graded, every check "stopped at its share
+ *     of the eval's spending limit", and asks no votes: the spend policy
+ *     and the concurrency never move a score. A run a lower cap stopped
+ *     (its agent's own, its profile's) is graded as a stopped run.
  *   - start-vote, read-vote: one vote of an AI-graded check, a judge run in
  *     its own session (graders/llm.ts), adopted on a retry through the run
  *     list index's `grades` key; read strictly, stopped if still going, and
@@ -245,15 +248,13 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         };
       }
       const name = tryRunName(input.evalId, input);
-      if (attempt() > 1) {
-        const earlier = await findLabelledRun(deps.store, input.evalId, name);
-        if (earlier !== undefined) {
-          return {
-            kind: "started",
-            sessionId: sessionIdOf(earlier.spec),
-            runId: earlier.metadata?.id ?? "",
-          };
-        }
+      const earlier = await findLabelledRun(deps.store, input.evalId, name);
+      if (earlier !== undefined) {
+        return {
+          kind: "started",
+          sessionId: sessionIdOf(earlier.spec),
+          runId: earlier.metadata?.id ?? "",
+        };
       }
       const spec = context.pluginEval.spec;
       if (spec === undefined) {
@@ -349,7 +350,7 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         };
       }
       const graders = cell.evalCase.graders;
-      if (!timedOut && stoppedAtItsCap(run)) {
+      if (!timedOut && stoppedAtItsShare(run, input.budgetUsd)) {
         return {
           outcomes: graders.map(() => ({ notGraded: TRY_SPENDING_SHARE_REASON })),
           error: runErrorOf(run, timedOut, input.timeoutSeconds),
@@ -869,11 +870,20 @@ async function writeScore(
  */
 const COST_LIMIT_ERROR_PREFIX = "Agent reached the cost limit";
 
-/** Whether the run's own cost cap stopped it (COST_LIMIT_ERROR_PREFIX). */
-function stoppedAtItsCap(run: Run): boolean {
+/** How far under the try's budget a capped run's estimated cost may stop and still be the budget's stop. */
+const SHARE_MARGIN_USD = 0.01;
+
+/**
+ * Whether the try's own budget stopped the run: a cost-cap stop
+ * (COST_LIMIT_ERROR_PREFIX) with the run's estimated cost within a cent of
+ * `budgetUsd`. The run's cap is the tightest of its layers, so a stop below
+ * the budget was a lower cap's (the agent's own, its profile's).
+ */
+function stoppedAtItsShare(run: Run, budgetUsd: number): boolean {
   return (
     run.status?.phase === RunPhase.RUN_TERMINATED &&
-    (run.status.error ?? "").startsWith(COST_LIMIT_ERROR_PREFIX)
+    (run.status.error ?? "").startsWith(COST_LIMIT_ERROR_PREFIX) &&
+    (run.status.streamingUsage?.estimatedCostUsd ?? 0) >= budgetUsd - SHARE_MARGIN_USD
   );
 }
 
