@@ -414,6 +414,20 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
       expect(h.ledger()[0].token).toBe(scopeRefusalToken(READ_SCOPE_KEY, join(h.root, ".stigmer/skills/a/SKILL.md")));
     });
 
+    it("Skill denied: a read anywhere in a mounted plugin's tree, or under a differently cased skills dir, is refused", () => {
+      const h = setup({ lists: { tools: [], disallowedTools: ["Skill"] } });
+      // A manifest-declared skill directory, and a directory whose name
+      // differs from skills/ only in case (as it may on any filesystem).
+      mkdirSync(join(h.platformDir, "plugins/abc/my-skills/solo"), { recursive: true });
+      mkdirSync(join(h.platformDir, "Skills/a"), { recursive: true });
+      writeFileSync(join(h.platformDir, "plugins/abc/my-skills/solo/SKILL.md"), "# declared", "utf-8");
+      writeFileSync(join(h.platformDir, "Skills/a/SKILL.md"), "# cased", "utf-8");
+
+      expect(h.decide(hookBuiltin("Read", { file_path: ".stigmer/plugins/abc/my-skills/solo/SKILL.md" }, h.root)).permission).toBe("deny");
+      expect(h.decide(hookBuiltin("Read", { file_path: join(h.root, ".stigmer/Skills/a/SKILL.md") })).permission).toBe("deny");
+      expect(h.ledger().map((e) => e.kind)).toEqual(["disabled", "disabled"]);
+    });
+
     it("Read excluded on an unlinked turn: a repository's own .stigmer symlink admits nothing", () => {
       const h = setup({ lists: { tools: ["Grep"], disallowedTools: [] }, stigmerLink: "repo" });
       writeFileSync(join(h.root, "repo-state/notes.md"), "repo file", "utf-8");

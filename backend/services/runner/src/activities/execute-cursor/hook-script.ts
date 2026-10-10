@@ -348,7 +348,9 @@ function buildContentDigestScript(): string {
  * baked workspace root (`process.argv[2]`); a missing file is refused. Under
  * lists that deny `Skill`, a `Read` whose real path, relative to `skillRoot`
  * (the platform dir's real path), matches `SKILL_CONTENT_PATTERN` (its
- * source embedded) is refused whether or not `Read` is in scope. A
+ * source and flags embedded) is refused whether or not `Read` is in scope;
+ * both paths are compared in lower case, since the pattern holds a
+ * case-insensitive filesystem's view of the same file. A
  * `Task` call naming its `subagent_type` is held to `Agent(type, …)` here as
  * well as at `subagentStart`, refused under the same discriminator. Both are a
  * second line for a runtime that fires them, never the guard: the 1.0.31
@@ -366,6 +368,7 @@ function buildScopeEvalScript(): string {
   const readKey = JSON.stringify(READ_SCOPE_KEY);
   const agentKey = JSON.stringify(AGENT_SCOPE_KEY);
   const skillPattern = JSON.stringify(SKILL_CONTENT_PATTERN.source);
+  const skillFlags = JSON.stringify(SKILL_CONTENT_PATTERN.flags);
   return [
     `let sv="",stk="",smsg="",disc="";`,
     `try{`,
@@ -404,8 +407,8 @@ function buildScopeEvalScript(): string {
     `if(ok&&key===${readKey}&&s&&typeof sc.skillRoot==="string"&&sc.skillRoot!==""){`,
     `const pth=require("path");`,
     `const base=typeof t.cwd==="string"&&t.cwd?t.cwd:(process.argv[2]||"/");`,
-    `try{const rel=pth.relative(sc.skillRoot,require("fs").realpathSync(pth.resolve(base,s))).split(pth.sep).join("/");`,
-    `if(!rel.startsWith("../")&&rel!==".."&&!pth.isAbsolute(rel)&&new RegExp(${skillPattern}).test(rel))ok=false;}catch(e){}`,
+    `try{const rel=pth.relative(sc.skillRoot.toLowerCase(),require("fs").realpathSync(pth.resolve(base,s)).toLowerCase()).split(pth.sep).join("/");`,
+    `if(!rel.startsWith("../")&&rel!==".."&&!pth.isAbsolute(rel)&&new RegExp(${skillPattern},${skillFlags}).test(rel))ok=false;}catch(e){}`,
     `}`,
     `}`,
     `if(!ok){`,

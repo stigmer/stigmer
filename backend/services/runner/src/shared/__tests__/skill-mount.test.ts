@@ -280,8 +280,22 @@ describe("isSkillContentPath", () => {
     expect(isSkillContentPath("/.stigmer/plugins/abc123/skills/beta/references/x.md")).toBe(true);
     expect(isSkillContentPath("/.stigmer/inputs/../skills/alpha/SKILL.md"), "normalized first").toBe(true);
     expect(isSkillContentPath("/.stigmer/inputs/spec.pdf")).toBe(false);
-    expect(isSkillContentPath("/.stigmer/plugins/abc123/hooks/run.sh")).toBe(false);
     expect(isSkillContentPath("/.stigmer/skillsets/x")).toBe(false);
+    expect(isSkillContentPath("/.stigmer/plugin-data/safety/state.json"), "a plugin's data is not its package").toBe(false);
     expect(isSkillContentPath("/skills/alpha/SKILL.md"), "the workspace's own skills folder").toBe(false);
+  });
+
+  it("names a mounted plugin's whole tree and cached archive, wherever its manifest put its skills", () => {
+    expect(isSkillContentPath("/.stigmer/plugins/abc123/my-skills/solo/SKILL.md"), "a manifest-declared skill dir").toBe(true);
+    expect(isSkillContentPath("/.stigmer/plugins/abc123/SKILL.md"), "a root skill is the whole tree").toBe(true);
+    expect(isSkillContentPath("/.stigmer/plugins/abc123/hooks/run.sh")).toBe(true);
+    expect(isSkillContentPath("/.stigmer/plugins/abc123.zip")).toBe(true);
+  });
+
+  it("matches without regard to case, as a case-insensitive filesystem resolves the path", () => {
+    expect(isSkillContentPath("/.stigmer/Skills/alpha/SKILL.md")).toBe(true);
+    expect(isSkillContentPath("/.STIGMER/skills/alpha/SKILL.md")).toBe(true);
+    expect(isSkillContentPath("/.Stigmer/PLUGINS/abc123/skills/b/SKILL.md")).toBe(true);
+    expect(isSkillContentPath("/.STIGMER/inputs/spec.pdf")).toBe(false);
   });
 });

@@ -52,8 +52,13 @@
  *
  * A scope that denies `Skill` (`ToolScope.hidesSkills`) refuses a `read_file`
  * of a skill's files under `.stigmer/` (`shared/skill-mount.ts`
- * `isSkillContentPath`) whether or not `Read` is in scope: hidden skills are
- * not read through the one tool that activates them.
+ * `isSkillContentPath`: mounted skills and plugin trees, matched without
+ * regard to case) whether or not `Read` is in scope: hidden skills are not
+ * read through the one tool that activates them. Only the read is held:
+ * grep, glob and the shell can still reach a skill an earlier turn left on
+ * disk. Denying `Skill` withdraws the turn's skills (none is listed or
+ * mounted) and refuses their activation; it is not a file wall, and a
+ * scope that must keep a file from the agent denies those tools as well.
  *
  * Pinned by `__tests__/tool-scope.test.ts` on a real deepagents graph.
  */
@@ -158,6 +163,7 @@ export function createToolScopeMiddleware(config: ToolScopeConfig): StigmerMiddl
     if (nameSlugs !== undefined) return nameSlugs.every((slug) => mcpToolInScope(slug, name));
     const path = args[READ_PATH_ARG];
     const read = name === READ_TOOL && typeof path === "string";
+    // The read alone: grep, glob and the shell are out of this check's scope (the header says why).
     if (read && scope.hidesSkills && isSkillContentPath(path)) return false;
     if (scope.allowsEngineTool(name, NATIVE_TOOL_COVERS)) return true;
     return read && (await admitsConfinedRead(path));

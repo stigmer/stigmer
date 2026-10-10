@@ -45,18 +45,24 @@ export const SKILLS_SUBDIR = "skills";
 
 /**
  * A skill's files, as a path relative to the platform dir in posix form: a
- * mounted skill (`skills/<name>/…`) or a skill inside a mounted plugin's tree
- * (`plugins/<digest>/skills/…`, `plugin-mount.ts`). A turn whose tool lists
- * deny `Skill` is refused a read of any of them, on both engines; the Cursor
- * hook embeds this pattern's source.
+ * mounted skill (`skills/<name>/…`), or anything under `plugins/`, a
+ * mounted plugin's tree and its cached archive (`plugin-mount.ts`). The
+ * whole tree counts because a manifest may declare its skills anywhere in
+ * the package and a root skill is the package itself; the tree is there
+ * for the plugin's hooks, which run it as processes, never for the agent
+ * to read. A turn whose tool lists deny `Skill` is refused a read of any of
+ * them, on both engines; the Cursor hook embeds this pattern's source and
+ * flags. Matched without regard to case: on a case-insensitive filesystem
+ * `Skills/a/SKILL.md` is the same file, and on any other the platform dir
+ * holds no such name to over-refuse.
  */
-export const SKILL_CONTENT_PATTERN = /^(?:skills|plugins\/[^/]+\/skills)(?:\/|$)/;
+export const SKILL_CONTENT_PATTERN = /^(?:skills|plugins)(?:\/|$)/i;
 
 /** Whether a canonical virtual path (`/.stigmer/…`, the native engine's) names a skill's files. */
 export function isSkillContentPath(virtualPath: string): boolean {
   const prefix = `/${STIGMER_LOCAL_STATE_DIR}/`;
   const normalized = posix.normalize(virtualPath);
-  return normalized.startsWith(prefix) && SKILL_CONTENT_PATTERN.test(normalized.slice(prefix.length));
+  return normalized.toLowerCase().startsWith(prefix) && SKILL_CONTENT_PATTERN.test(normalized.slice(prefix.length));
 }
 
 /**
