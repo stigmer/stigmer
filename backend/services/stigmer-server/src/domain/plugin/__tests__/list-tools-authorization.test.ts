@@ -13,7 +13,10 @@
  *     attempt is touched;
  *   - a credential bound to one organization, though allowed on the
  *     plugin, is refused with the binding's sentence when the listing
- *     names another organization, before any of those is touched.
+ *     names another organization, before any of those is touched;
+ *   - a caller allowed on the plugin but not able to view the organization
+ *     the listing names is refused, before any of those is touched: the
+ *     listing reads the caller's vault there and starts its sandbox there.
  */
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -32,7 +35,7 @@ import { createLogger } from "../../../boot/logger.js";
 import type { Authorizer, AuthzCheck } from "../../../extensions/authorizer.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
-import { listTools } from "../list-tools.js";
+import { LIST_TOOLS_ORG_DENIED, listTools } from "../list-tools.js";
 import type { PluginToolsDeps } from "../list-tools.js";
 
 const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
@@ -154,5 +157,32 @@ describe("listTools authorization", () => {
       Code.PermissionDenied,
       BOUND_ELSEWHERE_DENY_REASON,
     );
+  });
+
+  it("refuses a caller allowed on the plugin who cannot view the organization the listing names", async () => {
+    await seedPlugin("plg_other_org");
+    const checks: AuthzCheck[] = [];
+    const authorizer: Authorizer = {
+      authorize(_caller, check) {
+        checks.push(check);
+        return Promise.resolve(
+          check.resourceKind === ApiResourceKind.plugin ? { kind: "allow" } : { kind: "deny", reason: "" },
+        );
+      },
+    };
+    await expectRefused(
+      () =>
+        listTools(
+          deps(authorizer),
+          create(ListPluginToolsInputSchema, { pluginId: "plg_other_org", server: "linear", org: "org_not_mine" }),
+          caller,
+        ),
+      Code.PermissionDenied,
+      LIST_TOOLS_ORG_DENIED,
+    );
+    expect(checks.map((check) => [check.resourceKind, check.resourceId])).toEqual([
+      [ApiResourceKind.plugin, "plg_other_org"],
+      [ApiResourceKind.organization, "org_not_mine"],
+    ]);
   });
 });

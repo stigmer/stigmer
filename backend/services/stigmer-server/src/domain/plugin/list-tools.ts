@@ -42,6 +42,7 @@ import type {
 } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
 import type { McpServerEntry } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
@@ -53,7 +54,7 @@ import {
   notFoundError,
   unavailableError,
 } from "../../pipeline/errors.js";
-import { authorizeDirect } from "../../pipeline/steps/authorize.js";
+import { authorizeDirect, authorizeResolvedResource } from "../../pipeline/steps/authorize.js";
 import { refuseBoundElsewhere } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import type { RunnerCredentialProvider } from "../../runnerauth/runner-credential-provider.js";
 import { TOKEN_TYPE_EXECUTION_SCOPED } from "../../runnerauth/runnerauth.js";
@@ -77,6 +78,9 @@ import type { ConnectRoute } from "./tools/sandbox.js";
  * against a dead runner waits the full budget before DEADLINE_EXCEEDED.
  */
 export const LIST_TOOLS_TIMEOUT = { ms: 420_000, label: "7m0s" } as const;
+
+/** The refusal when the caller cannot view the organization a listing would run in. */
+export const LIST_TOOLS_ORG_DENIED = "unauthorized to list plugin tools in this organization";
 
 /** Added to the budget to bound the handler's wait on the result: a backstop only. */
 export const LIST_TOOLS_GET_BUFFER_MS = 15_000;
@@ -121,8 +125,16 @@ export async function listTools(
   // whether the engine is up.
   await authorizeDirect(PluginCommandController.method.listTools, deps.authorizer, identity, input);
   // The listing reads the caller's vault in this organization and records
-  // its attempt there: a credential bound to another may not.
+  // its attempt there (and a hosting edition starts its sandbox there): a
+  // credential bound to another may not, and nor may a caller who cannot
+  // view that organization.
   refuseBoundElsewhere(identity, input.org);
+  await authorizeResolvedResource(
+    deps.authorizer,
+    identity,
+    { permission: IamPermission.can_view, resourceKind: ApiResourceKind.organization, resourceId: input.org },
+    LIST_TOOLS_ORG_DENIED,
+  );
 
   const entry = plugin.status?.mcpServers.find((server) => server.name === input.server);
   if (entry === undefined) {
