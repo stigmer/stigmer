@@ -107,6 +107,12 @@ describe("partialLine", () => {
     expect(partialLine(pluginEval, false)).toBe("Cancelled: 3 of 4 tries ran.");
     expect(partialLine(finishedEval(PluginEvalPhase.running), true)).toBe("Cancelled: 3 of 4 tries ran.");
   });
+
+  it("reads a reason a newer server added as stopped early, never as a bare number", () => {
+    const pluginEval = finishedEval(PluginEvalPhase.partial);
+    pluginEval.status!.partialReason = 99 as PluginEvalPartialReason;
+    expect(partialLine(pluginEval, false)).toBe("Stopped early (reason 99): 3 of 4 tries ran.");
+  });
 });
 
 describe("evalExitCode", () => {
@@ -149,5 +155,9 @@ describe("isSettled", () => {
   it("settles on completed, partial and failed only", () => {
     expect([PluginEvalPhase.completed, PluginEvalPhase.partial, PluginEvalPhase.failed].map((phase) => isSettled(finishedEval(phase)))).toEqual([true, true, true]);
     expect([PluginEvalPhase.pending, PluginEvalPhase.running].map((phase) => isSettled(finishedEval(phase)))).toEqual([false, false]);
+  });
+
+  it("stops following at a phase a newer server added, rather than polling forever", () => {
+    expect(isSettled(finishedEval(99 as PluginEvalPhase))).toBe(true);
   });
 });
