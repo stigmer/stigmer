@@ -84,12 +84,13 @@ export const RUNNER_UID = 0;
 
 /**
  * The capabilities a driver gives the runner, every other one dropped:
- * SETUID and SETGID to start its agent user, KILL to end that user's host
+ * SETUID and SETGID to start its agent user, KILL to end that user's host,
+ * DAC_OVERRIDE to write its own state on a volume it shares with the server
  * when it will not exit, CHOWN to hand that user its
  * home and workspace. The runner refuses to start without them, never
  * running the agent's side as root.
  */
-export const RUNNER_CAPABILITIES = ["SETUID", "SETGID", "CHOWN", "KILL"] as const;
+export const RUNNER_CAPABILITIES = ["SETUID", "SETGID", "CHOWN", "KILL", "DAC_OVERRIDE"] as const;
 
 /** The `HOME` a driver gives the runner: root's home in every glibc base. */
 export const RUNNER_HOME = "/root";

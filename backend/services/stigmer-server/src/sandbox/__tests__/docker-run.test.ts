@@ -71,7 +71,7 @@ describe("buildDockerRun", () => {
   it("keeps only the capabilities that start the agent user, and no new privileges", () => {
     const { args } = buildDockerRun("session", "ses_1", env, config);
     const before = args.slice(0, args.indexOf(config.runnerImage));
-    expect(before.join(" ")).toContain("--cap-drop ALL --cap-add SETUID --cap-add SETGID --cap-add CHOWN --cap-add KILL --security-opt no-new-privileges");
+    expect(before.join(" ")).toContain("--cap-drop ALL --cap-add SETUID --cap-add SETGID --cap-add CHOWN --cap-add KILL --cap-add DAC_OVERRIDE --security-opt no-new-privileges");
   });
 
   it("hands the start script the server's release only when the server is a release", () => {

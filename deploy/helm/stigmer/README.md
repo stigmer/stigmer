@@ -29,7 +29,7 @@ ships.
   kept; a later install of the same release name adopts it.
 - **Safe by default.** Every bundled container runs as a non-root user with no
   privilege to escalate and every capability dropped, but the runner. It runs
-  as root with four capabilities, so it can start the agents' side as a user
+  as root with five capabilities, so it can start the agents' side as a user
   of its own that cannot read the runner's keys. The bundled Postgres and
   Temporal admit only the pods that use them. An install reachable from outside
   the cluster is refused while sign-in is off.
@@ -283,7 +283,7 @@ Services. Treat the pod as one trust domain.
 Inside it, the runner keeps its keys out of the agents' reach. It runs as root
 and starts everything an agent runs (the engines, their commands, MCP servers
 and hooks) as `stigmer-agent`, uid 10001, through `setpriv`, keeping only
-`SETUID`, `SETGID`, `CHOWN` and `KILL` (`runner.securityContext`). That user cannot read
+`SETUID`, `SETGID`, `CHOWN`, `KILL` and `DAC_OVERRIDE` (`runner.securityContext`). That user cannot read
 the runner's process, its state or its keys, and the runner makes every model
 call for it. The agent's home is `/data/agent` on the runner's volume.
 Agents install user-level packages; bake system packages into your own runner

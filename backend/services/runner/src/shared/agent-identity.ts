@@ -82,13 +82,16 @@ export function setprivArgs(identity: AgentIdentity): readonly string[] {
  * The capabilities a separating runner needs, by their bit in the kernel's
  * capability sets: `SETUID` and `SETGID` to drop to the agent, `CHOWN` to
  * hand it its home and workspace, `KILL` to end a host that will not exit
- * (a process of another user cannot be signalled without it).
+ * (a process of another user cannot be signalled without it), and
+ * `DAC_OVERRIDE` to write its own state on a volume it shares with the
+ * server (compose's artifact store belongs to the server's user).
  */
 export const RUNNER_CAPABILITY_BITS: ReadonlyMap<string, number> = new Map([
   ["SETUID", 7],
   ["SETGID", 6],
   ["CHOWN", 0],
   ["KILL", 5],
+  ["DAC_OVERRIDE", 1],
 ]);
 
 /** The names in {@link RUNNER_CAPABILITY_BITS} that `/proc/self/status`'s `CapEff` line lacks. */
@@ -123,7 +126,7 @@ export function prepareAgentSeparation(
   }
   const missing = missingCapabilities(status);
   if (missing.length > 0) {
-    return `the runner lacks the ${missing.join(", ")} capabilit${missing.length === 1 ? "y" : "ies"} it needs to run the agent as its own user (SETUID, SETGID, CHOWN and KILL); ${guide}`;
+    return `the runner lacks the ${missing.join(", ")} capabilit${missing.length === 1 ? "y" : "ies"} it needs to run the agent as its own user (SETUID, SETGID, CHOWN, KILL and DAC_OVERRIDE); ${guide}`;
   }
   try {
     (io.ensureUser ?? ensureAgentUser)(identity);

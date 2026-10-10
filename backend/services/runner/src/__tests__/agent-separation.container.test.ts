@@ -4,7 +4,8 @@
  * path an agent's command would try.
  *
  * The container runs as root with the capability set every shape ships
- * (all dropped but SETUID, SETGID, CHOWN and KILL; no-new-privileges). A
+ * (all dropped but SETUID, SETGID, CHOWN, KILL and DAC_OVERRIDE;
+ * no-new-privileges), so the proof also shows the agent gets none of them. A
  * stand-in runner holds canaries where the runner holds its keys: under
  * each of the runner's secret names in its environment, a cloud credential
  * beside them, a state file only root reads, and code only root writes. It
@@ -103,8 +104,8 @@ interface Attempt {
 
 function runProof(mode: "separated" | "shared"): Record<string, Attempt> & { readonly uid: number; readonly ownEnvironment: string; readonly runnerKillsAgent: string } {
   const dir = mkdtempSync(join(tmpdir(), "agent-separation-"));
-  // Readable by the container's root, which holds no DAC_OVERRIDE to enter
-  // the 0700 directory mkdtemp makes for this machine's user.
+  // Readable by the agent user too, which runs the probe from here: mkdtemp
+  // makes the directory 0700 for this machine's user.
   chmodSync(dir, 0o755);
   writeFileSync(join(dir, "runner.mjs"), RUNNER_SCRIPT);
   writeFileSync(join(dir, "agent.mjs"), AGENT_SCRIPT);
@@ -115,7 +116,7 @@ function runProof(mode: "separated" | "shared"): Record<string, Attempt> & { rea
     "docker",
     [
       "run", "--rm",
-      "--cap-drop", "ALL", "--cap-add", "SETUID", "--cap-add", "SETGID", "--cap-add", "CHOWN", "--cap-add", "KILL",
+      "--cap-drop", "ALL", "--cap-add", "SETUID", "--cap-add", "SETGID", "--cap-add", "CHOWN", "--cap-add", "KILL", "--cap-add", "DAC_OVERRIDE",
       "--security-opt", "no-new-privileges",
       "--volume", `${dir}:/proof:ro`,
       ...env,

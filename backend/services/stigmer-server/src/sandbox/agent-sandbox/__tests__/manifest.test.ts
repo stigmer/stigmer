@@ -118,7 +118,7 @@ describe("the runner container", () => {
       runAsUser: RUNNER_UID,
       runAsGroup: RUNNER_UID,
       allowPrivilegeEscalation: false,
-      capabilities: { drop: ["ALL"], add: ["SETUID", "SETGID", "CHOWN", "KILL"] },
+      capabilities: { drop: ["ALL"], add: ["SETUID", "SETGID", "CHOWN", "KILL", "DAC_OVERRIDE"] },
     });
     expect(container?.env).toContainEqual({ name: "HOME", value: RUNNER_HOME });
     expect(container?.terminationMessagePolicy).toBe("FallbackToLogsOnError");

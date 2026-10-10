@@ -454,6 +454,7 @@ spec:
               - SETGID
               - CHOWN
               - KILL
+              - DAC_OVERRIDE
               drop:
               - ALL
             seccompProfile:

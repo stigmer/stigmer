@@ -212,10 +212,11 @@ services:
       # started it, not to this key's holder.
       STIGMER_TOKEN: ${STIGMER_TOKEN:-}
     # The runner starts the agent's side as its own user, stigmer-agent, so
-    # nothing an agent runs can read the keys above. It keeps only the four
-    # capabilities that takes, as the Helm chart's runner does.
+    # nothing an agent runs can read the keys above. It keeps only the five
+    # capabilities that takes, as the Helm chart's runner does, DAC_OVERRIDE
+    # among them for the artifact volume, which is the server's user's.
     cap_drop: ["ALL"]
-    cap_add: ["SETUID", "SETGID", "CHOWN", "KILL"]
+    cap_add: ["SETUID", "SETGID", "CHOWN", "KILL", "DAC_OVERRIDE"]
     security_opt: ["no-new-privileges:true"]
     volumes:
       # Runner state (HITL/pause checkpoints, session dirs, workspaces)

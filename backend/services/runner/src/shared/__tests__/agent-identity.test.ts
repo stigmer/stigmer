@@ -77,8 +77,8 @@ describe("the agent user on a base image the operator brings", () => {
   });
 });
 
-/** `CapEff` with SETUID, SETGID, CHOWN and KILL, as every shipped shape grants (bits 7, 6, 0, 5). */
-const ALL_FOUR = "Name:\tnode\nCapEff:\t00000000000000e1\n";
+/** `CapEff` with SETUID, SETGID, CHOWN, KILL and DAC_OVERRIDE, as every shipped shape grants (bits 7, 6, 0, 5, 1). */
+const ALL_FOUR = "Name:\tnode\nCapEff:\t00000000000000e3\n";
 
 describe("the agent's state and the drop to it", () => {
   const identity = { name: "stigmer-agent", uid: AGENT_UID, gid: AGENT_GID, home: "/data/agent" };
@@ -102,7 +102,7 @@ describe("the agent's state and the drop to it", () => {
   it("refuses, with its one line, on a process that is not a root runner holding the four capabilities", () => {
     // This test's process is that: no /proc at all on macOS, no capabilities
     // as a Linux user, so the real check refuses either way.
-    expect(prepareAgentSeparation(identity)).toMatch(/^the runner (cannot read its own capabilities|lacks the SETUID, SETGID, CHOWN, KILL capabilities) /);
+    expect(prepareAgentSeparation(identity)).toMatch(/^the runner (cannot read its own capabilities|lacks the SETUID, SETGID, CHOWN, KILL, DAC_OVERRIDE capabilities) /);
     const home = join(mkdtempSync(join(tmpdir(), "agent-home-")), "agent");
     expect(prepareAgentSeparation({ ...identity, home }, { processStatus: () => ALL_FOUR, ensureUser: () => {} }), "no setpriv drop from here").toMatch(
       /^the runner cannot start processes as the agent user/,
@@ -110,12 +110,22 @@ describe("the agent's state and the drop to it", () => {
     expect(existsSync(home), "the home is made, still root's: the handover gives it away").toBe(true);
   });
 
+  it("refuses, with its one line, a runner that cannot read its own capabilities", () => {
+    expect(
+      prepareAgentSeparation(identity, {
+        processStatus: () => {
+          throw new Error("ENOENT: /proc/self/status");
+        },
+      }),
+    ).toMatch(/^the runner cannot read its own capabilities \(ENOENT: \/proc\/self\/status\); see /);
+  });
+
   it("names the fix for each way it cannot drop", () => {
     const fine = { processStatus: () => ALL_FOUR, ensureUser: () => {}, makeHome: () => {} };
-    expect(prepareAgentSeparation(identity, { ...fine, processStatus: () => "Name:\tnode\nCapEff:\t00000000000000c1\n" })).toMatch(
-      /^the runner lacks the KILL capability it needs to run the agent as its own user \(SETUID, SETGID, CHOWN and KILL\); see /,
+    expect(prepareAgentSeparation(identity, { ...fine, processStatus: () => "Name:\tnode\nCapEff:\t00000000000000c3\n" })).toMatch(
+      /^the runner lacks the KILL capability it needs to run the agent as its own user \(SETUID, SETGID, CHOWN, KILL and DAC_OVERRIDE\); see /,
     );
-    expect(prepareAgentSeparation(identity, { ...fine, processStatus: () => "CapEff:\t0000000000000000\n" })).toMatch(/^the runner lacks the SETUID, SETGID, CHOWN, KILL capabilities /);
+    expect(prepareAgentSeparation(identity, { ...fine, processStatus: () => "CapEff:\t0000000000000000\n" })).toMatch(/^the runner lacks the SETUID, SETGID, CHOWN, KILL, DAC_OVERRIDE capabilities /);
     expect(prepareAgentSeparation(identity, { ...fine, probe: () => ({ status: null, error: new Error("spawnSync setpriv ENOENT"), stderr: "" }) })).toMatch(
       /^the runner cannot start processes as the agent user: setpriv is missing \(spawnSync setpriv ENOENT\); add util-linux's setpriv to the base image; see /,
     );
