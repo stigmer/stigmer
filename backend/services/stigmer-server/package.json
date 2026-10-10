@@ -84,6 +84,7 @@
     "ulidx": "2.4.1"
   },
   "devDependencies": {
+    "@anthropic-ai/sdk": "0.131.0",
     "@connectrpc/connect-web": "^2.0.0",
     "@opentelemetry/sdk-metrics": "^2.0.0",
     "@peculiar/x509": "2.1.0",

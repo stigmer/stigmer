@@ -387,6 +387,28 @@ describe("the final stage", () => {
     expect((await store.listScheduleFires("sch_left", 0, 0)).total).toBe(0);
   });
 
+  it("sweeps the session events left behind (a run created into a session while it was deleted)", async () => {
+    await store.saveResource(
+      ApiResourceKind.run,
+      "run_left",
+      RunSchema,
+      create(RunSchema, {
+        metadata: { id: "run_left", org: ORG },
+        spec: { target: { case: "sessionId", value: "ses_left" } },
+        status: { phase: RunPhase.RUN_IN_PROGRESS },
+      }),
+    );
+    await store.sessionEvents.append(
+      "ses_left",
+      ORG,
+      [{ eventId: "left", runId: "run_left", threadId: "", type: "agent.message", data: new Uint8Array() }],
+      { kind: ApiResourceKind.run, id: "run_left", schema: RunSchema, admit: () => undefined },
+    );
+    const { stage } = rig();
+    await stage.run(context);
+    expect(await store.sessionEvents.list("ses_left", { order: "asc", limit: 10 })).toEqual([]);
+  });
+
   it("runs its sweeps to their end before anything final", async () => {
     const order: string[] = [];
     const answers = [true, true, false];

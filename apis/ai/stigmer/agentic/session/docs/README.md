@@ -30,6 +30,8 @@ A Session is not ephemeral. It is a resource you create explicitly (or let the p
 
 **One session, many runs** — A single session can contain an unlimited number of Runs. Each run adds to the thread. The session itself does not "run" — it is the context within which runs run.
 
+**One ordered event log** — Everything that happens in a session is one list of events, in order: the user's messages, the agent's messages, thinking and tool calls, its sub-agents' threads, errors, and the session's own status. The events are Claude Managed Agents session events, named and shaped as Anthropic's SDK types them: the claim is the `managed-agents-2026-04-01` beta at `@anthropic-ai/sdk` 0.131.0, and a test renders every event the contract carries against that SDK's own types. Each event carries its place in the log (`seq`), the run (turn) it belongs to and the thread that produced it. `listEvents` pages through the log (oldest first, or `desc`; by type and by the time each event was accepted), and `streamEvents` sends events as they are appended, with optional live previews of the agent's message and thinking; a client lists to catch up, then streams, and skips ids it has seen. The session's status says what the whole session is doing: `session.status_running` when a turn starts and nothing else was working, `session.status_idle` when the last working turn stops (`end_turn`, or `retries_exhausted` after a `session.error` when it failed), so a session with a second turn queued behind the first stays running until both end. The newest status event is the session's state; a session with none is idle. Only the runner acting for a run writes the agent's events (`appendEvents`); the user's message and the session's status are the server's.
+
 ## Session in the Platform Lifecycle
 
 Sessions are scoped to an organization and are always `visibility_private`. They are not designed to be shared across organizations — they are runtime artifacts, not reusable templates.
@@ -57,8 +59,10 @@ All types in this package are defined in `ai/stigmer/agentic/session/v1/`:
 | `api.proto` | `Session` resource with metadata and `SessionStatus` (`agent_id`, `agent_version_hash`) |
 | `spec.proto` | `SessionSpec` — `agent_ref`, `subject`, `harness_state_id`, `metadata`, `workspace_entries`, `mcp_server_usages`, `skill_refs`, `harness`, `execution_target` |
 | `workspace.proto` | `WorkspaceSource`, `GitRepoSource`, `LocalPathSource` |
-| `command.proto` | `SessionCommandController` — apply, create, update, delete |
-| `query.proto` | `SessionQueryController` — get, list, listByAgent |
+| `command.proto` | `SessionCommandController` — apply, create, update, updateSubject, delete, appendEvents |
+| `query.proto` | `SessionQueryController` — get, list, listByAgent, listByChannel, listEvents, streamEvents |
+| `event.proto` | `SessionEvent` (the log's envelope: `seq`, `session_id`, `run_id`, `thread_id`) and one message per Managed Agents event it carries, each named by its oneof member's `event_type` option; the `EventStart` and `EventDelta` previews |
+| `event_content.proto` | The shapes events share: content blocks and their sources, stop reasons and details, errors and retry status, tool evaluations |
 | `io.proto` | Input/output messages for all RPCs |
 
 ## Further Reading

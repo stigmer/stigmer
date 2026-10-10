@@ -212,6 +212,29 @@ export type {
   PortContractFixture,
 } from "./store/port-contract.js";
 export { portContractCases } from "./store/port-contract.js";
+// A session's ordered event log (store/session-events.ts): the sub-store a
+// Store carries and the atomic resource write that appends with a row, the
+// shapes they speak, and their vitest-free contract kit, so a composition
+// proves the log holds on the database it serves with. The kit hands its
+// fixture factory the options to open the store with.
+export type {
+  ResourceEventWrite,
+  ResourceEventWriteResult,
+  ResourceEventWriter,
+  SessionEventAppend,
+  SessionEventDraft,
+  SessionEventGuard,
+  SessionEventQuery,
+  SessionEventRecord,
+  SessionEventScope,
+  SessionEventStore,
+} from "./store/session-events.js";
+export { SessionEventConflictError } from "./store/session-events.js";
+export type {
+  SessionEventStoreContractCase,
+  SessionEventStoreContractFixture,
+} from "./store/session-events-contract.js";
+export { sessionEventStoreContract } from "./store/session-events-contract.js";
 // The IamPolicy seams: the store PORT a
 // composition drives the domain's grant path through (drivers.iamPolicyStore;
 // a driver throws DuplicatePolicyError for a held id) and its vitest-free

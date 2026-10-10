@@ -37,6 +37,12 @@ driver runs at open derives every unproven row, so the unproven set is empty in
 steady state and reads stay one index range. Every read shape names or forces
 its index, because a freshly written table has no planner statistics.
 
+## The session event log
+
+Each session's ordered event log (`session-events.ts`) is its own table, `session_events`, numbered per session (`seq`) and stamped with the fixed-width UTC time the store accepted each event. Writers reach it two ways: `Store.sessionEvents.append`, a runner's events guarded by its run's row, and `Store.writeResourceAppendingEvents`, the one door for a resource write that must commit with events (a run's phase change and its session's status). The second reads the committed row and counts the session's other working rows from one list key (`working_session` on runs) without decoding a row, hands both to a synchronous writer, and commits the row and its events in one transaction.
+
+One lock order everywhere: the session first, then rows. Postgres takes a transaction-scoped advisory lock on the session (`hashtextextended('session_events/' || id)`), then the row `FOR UPDATE`; an append takes the session's lock, then reads its guard row `FOR SHARE`. SQLite serializes every writer under `BEGIN IMMEDIATE`. So a session's numbers, times and working count are assigned by one writer at a time. The contract both drivers pass, and a composition runs over its own database, is the kit `session-events-contract.ts`.
+
 ## Contract and continuity
 
 The behavioral contract both drivers must satisfy identically is
