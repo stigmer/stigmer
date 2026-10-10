@@ -15,8 +15,8 @@
  * returns, and the store keeps it exact while an older binary still
  * writes (store/interface.ts, `queryResources`). Every other find decodes
  * `listResources(iam_policy)` and filters in memory: they serve the grant
- * path and the access lists, not the check, and the row count behind them
- * is members × organizations on a self-host. The filters are the cloud
+ * path, the access lists and a boot reconcile, not the check, and the row
+ * count behind them is members × organizations on a self-host. The filters are the cloud
  * store's WHERE clauses restated over the proto (store.ts names each), so
  * a driver's test over either edition reads the same contract.
  *
@@ -168,6 +168,14 @@ export function newResourceIamPolicyStore(store: Store): IamPolicyStore {
         }
       }
       return principals.size;
+    },
+
+    findByResourceKindAndRelation(resourceKind, relation) {
+      return where(
+        (policy) =>
+          policy.spec?.resource?.kind === resourceKind &&
+          relationOf(policy) === relation,
+      );
     },
 
     async findScopeTuple(resourceKind, resourceId) {

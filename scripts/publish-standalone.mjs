@@ -20,7 +20,10 @@
  *      IN PLACE and left that way: the slim-artifact steps that follow in
  *      the same job read the stamped version. `--dry-run` restores it.
  *   2. Copy the repo-root LICENSE beside the manifest so the tarball
- *      carries it (the libs' publish does the same).
+ *      carries it (the libs' publish does the same), unless the package
+ *      carries a LICENSE of its own: a package under another license
+ *      publishes with its own text, which this script never overwrites and
+ *      never removes (`rootLicenseCopy`).
  *   3. `npm pack --dry-run` — the published file list, in the log.
  *   4. Wait until every pinned lib at that version is installable from
  *      npm. The `publish` job already put them there (it is this job's
@@ -112,6 +115,25 @@ export const WAIT_MAX_INTERVAL_MS = 60_000;
  * deadline.
  */
 export const REQUEST_TIMEOUT_MS = 30_000;
+
+/**
+ * The repo-root LICENSE copy step 2 makes, or `undefined` when the package
+ * carries its own LICENSE. A package's own text is its license, so the
+ * publish leaves it exactly as committed: never replaced by the root's,
+ * and never removed by the rehearsal's restore, which removes only a copy
+ * this step made. `copy` places the root's text; `remove` undoes it.
+ */
+export function rootLicenseCopy(packageDir, root) {
+  const licensePath = join(packageDir, "LICENSE");
+  const rootLicensePath = join(root, "LICENSE");
+  if (existsSync(licensePath) || !existsSync(rootLicensePath)) {
+    return undefined;
+  }
+  return {
+    copy: () => copyFileSync(rootLicensePath, licensePath),
+    remove: () => rmSync(licensePath, { force: true }),
+  };
+}
 
 /**
  * Returns the manifest with the release version stamped and every
@@ -364,9 +386,7 @@ async function main() {
   if (!packDir) console.log(`  dry-run: ${dryRun}`);
   console.log("");
 
-  const licensePath = join(packageDir, "LICENSE");
-  const licenseCopied =
-    !existsSync(licensePath) && existsSync(join(repoRoot, "LICENSE"));
+  const license = rootLicenseCopy(packageDir, repoRoot);
 
   try {
     if (dryRun) {
@@ -377,7 +397,7 @@ async function main() {
     }
 
     writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
-    if (licenseCopied) copyFileSync(join(repoRoot, "LICENSE"), licensePath);
+    license?.copy();
 
     if (packDir) {
       console.log("\n=== Pack ===");
@@ -421,7 +441,7 @@ async function main() {
     // checkout as it found it.
     if (dryRun || packDir) {
       writeFileSync(manifestPath, original);
-      if (licenseCopied) rmSync(licensePath, { force: true });
+      license?.remove();
     }
   }
 }

@@ -27,6 +27,10 @@
  *     whose repair failed never listens.
  *   - Every field is the composition's one instance, whichever posture
  *     built it: a unit's registration, or open source's built-in. The
+ *     identity accounts are the store binding every lane reads and the
+ *     domain's one create path, so an account a unit creates runs the same
+ *     chain, gets the same derived id and fires the same tuple lifecycle
+ *     as one a person's sign-in creates. The
  *     Authorizer and the list read scope are handed over bound by the
  *     credential binding (authorization/credential-binding.ts), so a unit
  *     that registered its own Authorizer receives the bound one here and
@@ -34,12 +38,29 @@
  */
 import type { Transport } from "@connectrpc/connect";
 
+import type { CreateAccount } from "../domain/identityaccount/provisioning.js";
+import type { IdentityAccountStore } from "../domain/identityaccount/store.js";
+
 import type { AuthorizationQueryEngine } from "./authorization-queries.js";
 import type { Authorizer } from "./authorizer.js";
 import type { ChildOrganizations } from "./child-organizations.js";
 import type { CredentialBinding } from "./credential-binding.js";
 import type { ListReadScope } from "./list-read-scope.js";
 import type { ResourceAuthorizationLifecycle } from "./resource-authorization.js";
+
+/**
+ * The identity-account domain as a unit's own lane meets it: the store
+ * binding (a unit's registered driver, or open source's adapter) and the
+ * one create path, which takes the `federated` provisioning arm an edition
+ * that serves identity providers needs. An update or a delete is an RPC
+ * like any other, over the in-process transport below, so it runs the
+ * domain's own chain (the person's My vaults and access rows go with the
+ * account) and no second path exists.
+ */
+export interface ComposedIdentityAccounts {
+  readonly store: IdentityAccountStore;
+  readonly create: CreateAccount;
+}
 
 export interface ComposedServices {
   /** The one Authorizer the Authorize step of every chain calls. */
@@ -80,4 +101,6 @@ export interface ComposedServices {
     | undefined;
   /** The in-process transport: server code calling another domain's RPCs rides it (boot/inprocess.ts). */
   readonly inProcessTransport: Transport;
+  /** The identity-account store binding and the domain's one create path. */
+  readonly identityAccounts: ComposedIdentityAccounts;
 }

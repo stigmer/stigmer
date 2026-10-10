@@ -59,5 +59,24 @@ export function fakeIdentityAccountStore(): FakeIdentityAccountStore {
         (row) => org !== "" && row.metadata?.org === org,
       );
     },
+    async findByProviderAndIdpId(providerOrg, providerSlug, idpId) {
+      return [...rows.values()].find(
+        (row) =>
+          row.spec?.identityProviderRef?.org === providerOrg &&
+          row.spec.identityProviderRef.slug === providerSlug &&
+          row.spec.idpId === idpId,
+      );
+    },
+    async findByProvider(providerOrg, providerSlug) {
+      return [...rows.values()]
+        .filter(
+          (row) =>
+            row.spec?.identityProviderRef?.org === providerOrg &&
+            row.spec.identityProviderRef.slug === providerSlug,
+        )
+        .sort((a, b) =>
+          (a.metadata?.id ?? "").localeCompare(b.metadata?.id ?? ""),
+        );
+    },
   };
 }
