@@ -110,7 +110,10 @@ import {
   JUDGE_UNREADABLE_REASON,
 } from "../../domain/score/constants.js";
 import type { EvalTrace } from "../../domain/score/eval/trace.js";
-import { evalTraceOf } from "../../domain/score/eval/trace.js";
+import {
+  callsMcpServers,
+  evalTraceOf,
+} from "../../domain/score/eval/trace.js";
 import { GRADES_RUN_LABEL } from "../../domain/score/judge/judge-run.js";
 import type {
   JudgeSessionDeleter,
@@ -213,7 +216,8 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
     }
   };
 
-  const traceOf = (
+  /** The try's trace; the plugin's servers' declared names are read only when the run called one. */
+  const traceOf = async (
     context: EvalContext,
     run: Run,
     graders: ReadonlyArray<EvalGrader>,
@@ -226,6 +230,17 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
       readArtifact:
         deps.readArtifact ??
         (() => Promise.reject(new Error(NO_ARTIFACT_STORAGE))),
+      ...(callsMcpServers(run)
+        ? {
+            mcpServerKeys: (
+              await pluginAttachmentFacts(
+                deps.store,
+                context.plugin.metadata?.id ?? "",
+                context.plugin.metadata?.org ?? "",
+              )
+            ).mcpServerKeys,
+          }
+        : {}),
     });
 
   return {

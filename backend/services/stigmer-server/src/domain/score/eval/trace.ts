@@ -18,8 +18,10 @@
  *     input. An engine name reads as the Claude tool it covers
  *     (`@stigmer/tool-vocabulary` `claudeNameOf`): a tool that writes and
  *     edits reads as Write when its file was created in the run, as Edit
- *     otherwise. An MCP call reads as `mcp__plugin_<plugin>_<server>__<tool>`
- *     from its `mcp_server_slug`. A read of a mounted skill's `SKILL.md`
+ *     otherwise. An MCP call reads as `mcp__plugin_<plugin>_<server>__<tool>`,
+ *     `<server>` the server's name as the plugin declares it (its
+ *     `mcpServers` key), found from the call's `mcp_server_slug` through
+ *     `mcpServerKeys`; a slug the plugin does not name reads as itself. A read of a mounted skill's `SKILL.md`
  *     reads as `Skill {"skill": "<plugin>:<name>"}`, since Stigmer activates
  *     a skill by reading that file on both engines. The input is the
  *     engine's own arguments, which `input_match` patterns read by value;
@@ -117,10 +119,19 @@ export interface EvalTraceDeps {
   readonly pluginName: string;
   /** The engine the try ran on. */
   readonly harness: Harness;
+  /** The plugin's MCP servers' declared names by slug (the module header); none when absent. */
+  readonly mcpServerKeys?: ReadonlyMap<string, string>;
   /** The workspace-relative paths whose content the graders read. */
   readonly wantedFiles: ReadonlyArray<string>;
   /** The run's artifact store, for content the runner offloaded. */
   readArtifact(storageKey: string): Promise<Uint8Array>;
+}
+
+/** Whether `run` called any MCP tool, so a reader knows whether it needs the servers' names. */
+export function callsMcpServers(run: Run): boolean {
+  return (run.status?.messages ?? []).some((message) =>
+    message.toolCalls.some((call) => call.mcpServerSlug !== ""),
+  );
 }
 
 /** The graders' view of `run` (the module header). */
@@ -161,7 +172,7 @@ export async function evalTraceOf(
         }
         const results: JsonValue[] = [];
         for (const call of message.toolCalls) {
-          const named = namedCall(call, engine, deps.pluginName, created);
+          const named = namedCall(call, engine, deps, created);
           toolCalls.push(named);
           content.push({
             type: "tool_use",
@@ -235,14 +246,17 @@ function lastMessageOf(run: Run): string {
 function namedCall(
   call: ToolCall,
   engine: ToolEngine,
-  pluginName: string,
+  deps: EvalTraceDeps,
   created: ReadonlySet<string>,
 ): EvalToolCall {
+  const { pluginName } = deps;
   const args: JsonObject = call.args ?? {};
   const input = JSON.stringify(args);
   if (call.mcpServerSlug !== "") {
+    const server =
+      deps.mcpServerKeys?.get(call.mcpServerSlug) ?? call.mcpServerSlug;
     return {
-      name: `mcp__plugin_${pluginName}_${call.mcpServerSlug}__${call.name}`,
+      name: `mcp__plugin_${pluginName}_${server}__${call.name}`,
       input,
     };
   }
@@ -306,15 +320,11 @@ async function filesOf(run: Run, deps: EvalTraceDeps): Promise<EvalFiles> {
     }
   }
   const changes = [...bySet.values()].flat();
-  const created: string[] = [];
+  const created = new Set<string>();
   for (const change of changes) {
     const path = normalise(change.pathAfter);
-    if (
-      change.kind === FileChangeKind.ADD &&
-      path !== "" &&
-      !created.includes(path)
-    ) {
-      created.push(path);
+    if (change.kind === FileChangeKind.ADD && path !== "") {
+      created.add(path);
     }
   }
   const contents = new Map<string, EvalFileContent>();
@@ -322,7 +332,7 @@ async function filesOf(run: Run, deps: EvalTraceDeps): Promise<EvalFiles> {
     const path = normalise(wanted);
     contents.set(path, await contentOf(changes, path, deps));
   }
-  return { kind: "recorded", created, contents };
+  return { kind: "recorded", created: [...created], contents };
 }
 
 /** One path's content after the run: its last change, read back when offloaded. */

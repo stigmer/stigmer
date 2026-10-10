@@ -46,6 +46,7 @@ import { MockActivityEnvironment } from "@temporalio/testing";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { inMemoryPluginFiles } from "@stigmer/plugin-package";
+import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import {
   RunSchema,
   RunStatusSchema,
@@ -77,6 +78,7 @@ import {
 import type { JudgeSessionDeleter } from "../../../domain/score/ports.js";
 import { listRunScores } from "../../../domain/score/queries.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
+import { PLUGIN_LABEL } from "../../../pipeline/apiresource-labels.js";
 import type { PluginEvalCallerMint } from "../../../extensions/plugin-eval-caller.js";
 import { PluginEvalCallerRefusedError } from "../../../extensions/plugin-eval-caller.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
@@ -109,6 +111,7 @@ import type { PluginEvalTryLane } from "../ports.js";
 import {
   EVAL_ID,
   ORG,
+  PLUGIN_ID,
   catalog,
   lane,
   scoreChain,
@@ -201,11 +204,12 @@ function build(
     readonly wrap?: (real: EvalContextLoader) => EvalContextLoader;
     readonly lane?: (real: PluginEvalTryLane) => PluginEvalTryLane;
     readonly sessions?: JudgeSessionDeleter;
+    readonly suite?: Readonly<Record<string, string>>;
   } = {},
 ) {
   const real = newEvalContextLoader({
     store: temp.store,
-    suites: suiteSource(suiteFiles(JUDGED_SUITE)),
+    suites: suiteSource(suiteFiles(options.suite ?? JUDGED_SUITE)),
     catalog,
   });
   const doubles = lane(temp.store);
@@ -1066,6 +1070,55 @@ describe("delete-vote", () => {
     const id = await storedVote("");
     await cases[DELETE_VOTE_ACTIVITY_NAME](id);
     expect(record.deletedSessions).toEqual([]);
+  });
+});
+
+describe("grade-try over a plugin's MCP server", () => {
+  it("names an MCP call by the server's name as the plugin declares it, so a grader written against Claude Code's name passes", async () => {
+    await seeded();
+    // The plugin's `My_Server` installs under the slug `myserver`.
+    await temp.store.saveResource(
+      ApiResourceKind.mcp_server,
+      "mcp_2",
+      McpServerSchema,
+      create(McpServerSchema, {
+        metadata: {
+          id: "mcp_2",
+          org: ORG,
+          slug: "myserver",
+          name: "My_Server",
+          labels: { [PLUGIN_LABEL]: PLUGIN_ID },
+        },
+      }),
+    );
+    const { cases } = build({
+      suite: {
+        "evals/mcp-case/prompt.md": "Find the bug.\n",
+        "evals/mcp-case/graders/searched.md":
+          "---\ntype: tool_used\ntool: mcp__plugin_thermos_My_Server__search\n---\n",
+      },
+    });
+    const start = await startTry(cases);
+    await setStatus(start.runId, {
+      phase: RunPhase.RUN_COMPLETED,
+      messages: [
+        {
+          type: MessageType.MESSAGE_AI,
+          content: "",
+          toolCalls: [
+            { id: "c1", name: "search", mcpServerSlug: "myserver", args: { q: "bug" } },
+          ],
+        },
+        { type: MessageType.MESSAGE_AI, content: "Found it." },
+      ],
+    });
+    const grade = await cases[GRADE_TRY_ACTIVITY_NAME](CELL, start.runId, false);
+    expect(grade.outcomes).toEqual([
+      {
+        passed: true,
+        reason: "1 call(s) to 'mcp__plugin_thermos_My_Server__search' (step 1); expected at least 1",
+      },
+    ]);
   });
 });
 
