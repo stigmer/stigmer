@@ -111,6 +111,9 @@ export function unsupportedFeatureReason(feature: string): string {
   return `not run: ${feature}`;
 }
 
+/** A try its own share of the eval's spending limit stopped: not graded. */
+export const SPENDING_SHARE_REASON = "stopped at its share of the eval's spending limit";
+
 /** A try the case workflow stopped at its deadline. */
 export function timedOutError(seconds: number): string {
   return `timed out after ${seconds}s`;

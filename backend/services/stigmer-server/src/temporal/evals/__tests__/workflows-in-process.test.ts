@@ -927,6 +927,15 @@ describe("the case workflow", () => {
     expect((await runCase(INPUT)).notGradedReason).toBe(GRADING_FAILED_REASON);
   });
 
+  it("fails outright on an unexpected error inside the try, for the suite to record it as a failed child with its spend", async () => {
+    // A grade with no outcomes is not a shape the grade activity answers; the
+    // workflow's own read of it throws, and no catch turns that into a try.
+    caseScript({
+      [GRADE_TRY_ACTIVITY_NAME]: vi.fn(() => Promise.resolve({})),
+    });
+    await expect(runCase(INPUT)).rejects.toThrow(TypeError);
+  });
+
   it("reads busy through a deeper cause, and any other activity failure as grading failed", async () => {
     caseScript({
       [START_TRY_ACTIVITY_NAME]: vi.fn(() =>

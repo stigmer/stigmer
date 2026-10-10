@@ -19,7 +19,8 @@
 //   - the tries are left out of `session.list` and read by `session.get`;
 //   - an `llm` grader is decided by two of its three votes;
 //   - a spending limit reached stops new tries: the eval ends partial,
-//     `cost_ceiling`;
+//     `cost_ceiling`, and the try its own share of the limit stopped is not
+//     graded, never failed;
 //   - a try past its `timeout_seconds` is stopped and graded on what it
 //     produced, with the error "timed out after Ns";
 //   - a try cannot read the plugin's evals/: a case that does not list
@@ -84,6 +85,7 @@ import { uniqueName } from "../support/naming";
 import {
   EVAL_METRIC,
   INDICATOR_ONLY_REASON,
+  SPENDING_SHARE_REASON,
   PLUGIN_EVAL_LABEL,
   type EvalCaseFixture,
   awaitPluginEvalEnd,
@@ -390,11 +392,14 @@ describe("PluginEval — grading", () => {
     expect(ended.status?.partialReason).toBe(PluginEvalPartialReason.cost_ceiling);
     expect(ended.status?.triesFinished).toBe(1);
     expect(ended.status?.costUsd).toBeGreaterThan(0.000001);
+    // The priced turn passes the try's own share of that limit, so the run
+    // is stopped at it and the try is not graded, never failed.
     expect(triesOf(ended).map((t) => t.attempt.state)).toEqual([
-      PluginEvalTryState.graded,
+      PluginEvalTryState.not_graded,
       PluginEvalTryState.pending,
       PluginEvalTryState.pending,
     ]);
+    expect(triesOf(ended)[0]?.attempt.notGradedReason).toBe(SPENDING_SHARE_REASON);
     expect(mock.consumed()).toBe(1);
   }, 360_000);
 });
