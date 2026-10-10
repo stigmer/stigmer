@@ -19,13 +19,13 @@
 
 export interface ConnectMcpServerWorkflowInput {
   mcp_server_id: string;
+  /** The connect attempt whose values discovery fetches; absent when the server declares nothing. */
   execution_context_id?: string | null;
   /**
-   * Execution-scoped token for reading the connect ExecutionContext's
-   * decrypted credentials (oss#535). Populated by the OSS Go handler, whose
-   * EC read RPCs redact secrets for tokenless callers; absent on cloud,
-   * where the discovery activity's ambient connect_sandbox credential
-   * decrypts on its own.
+   * Execution-scoped token bound to the connect attempt, the authority of
+   * discovery's value fetch (oss#535). Populated by the OSS handler; absent
+   * on cloud, where the discovery activity's ambient connect_sandbox
+   * credential is bound to the attempt on its own.
    */
   execution_context_token?: string | null;
   invoker_identity_account_id?: string | null;

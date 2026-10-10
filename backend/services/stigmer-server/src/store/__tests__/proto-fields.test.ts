@@ -24,7 +24,6 @@ describe("apiResourceKindName", () => {
     [ApiResourceKind.run, "run"],
     [ApiResourceKind.mcp_server, "mcp_server"],
     [ApiResourceKind.agent_share, "agent_share"],
-    [ApiResourceKind.execution_context, "execution_context"],
     [ApiResourceKind.skill, "skill"],
   ])("maps kind %d to Go's kind.String() value %j", (kind, expected) => {
     expect(apiResourceKindName(kind)).toBe(expected);

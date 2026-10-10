@@ -118,8 +118,9 @@ service McpServerCommandController {
   // @internal
   // Typical flows:
   // - Runner backfill: the runner calls connect on first use when
-  //   status.discovered_capabilities is empty, passing runtime_env from the
-  //   execution context (shared/connect-backfill.ts).
+  //   status.discovered_capabilities is empty, naming its run (run_id), so
+  //   the connect uses the run's planned values for this server
+  //   (shared/connect-backfill.ts).
   // - CLI / web console: legacy callers, and the fallback lane when
   //   startConnect answers UNIMPLEMENTED (a backend predating it).
   //
@@ -148,7 +149,7 @@ service McpServerCommandController {
   //
   // Idempotent while an operation is in flight: a startConnect that finds a
   // live CONNECTING operation attaches to it (the in-flight operation's
-  // runtime_env wins) instead of starting a second workflow. A CONNECTING
+  // values serve it) instead of starting a second workflow. A CONNECTING
   // entry orphaned by a backend restart is reconciled against Temporal
   // before a new operation starts.
   //
@@ -158,9 +159,9 @@ service McpServerCommandController {
   // browser fetch drops no-bytes unary responses (~300s), classification
   // budgets scale with tool count past any flat ceiling, and dead-runner
   // feedback rode the same timer. Setup that needs the caller's identity
-  // (sign-in renewal, the caller's vault resolution, EC creation)
-  // happens synchronously in this RPC; only awaiting the workflow moves to
-  // the background.
+  // (the check that the caller's vault holds every required key, the
+  // connect attempt's creation) happens synchronously in this RPC; only
+  // awaiting the workflow moves to the background.
   //
   // Errors (start-time only — post-start failures land in connect_status):
   // - FAILED_PRECONDITION: A required credential is in none of the caller's vaults

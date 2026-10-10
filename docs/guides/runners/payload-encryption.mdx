@@ -2,14 +2,22 @@
 title: Encrypt Temporal payloads at rest
 description:
   Opt-in AES-256-GCM encryption for every Temporal payload the runner produces,
-  so decrypted secrets never rest in Temporal history or appear in the Temporal
-  UI. Two environment variables on the runner and the server.
+  so what a run produces never rests in Temporal history or appears in the
+  Temporal UI in the clear. Two environment variables on the runner and the
+  server.
 ---
 
 Runs move data through Temporal: activity inputs and results, workflow results.
-Without encryption, that data — including the execution-context secrets a run
-resolves — rests in durable Temporal history, readable by anyone with access to
-the Temporal UI or database.
+Without encryption, that data (a run's messages, its tool results, anything the
+model wrote) rests in durable Temporal history, readable by anyone with access
+to the Temporal UI or database.
+
+A run's keys are never part of it. The work Stigmer hands the runner names the
+run and carries the run's own credential, a token bound to that one run that
+stops working once the run is over; the runner then fetches the run's values
+from their [vaults](/docs/concepts/vaults#when-the-values-are-read) straight
+from the server when the work starts. Whether or not this codec is on, no vault
+value is written to Temporal history.
 
 Payload encryption closes the whole class at the codec layer: the runner
 encrypts **every payload its workers hand to Temporal** with AES-256-GCM before

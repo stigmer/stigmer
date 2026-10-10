@@ -113,6 +113,7 @@ import {
   SCHEMA_VERSION_17,
   SCHEMA_VERSION_18,
   SCHEMA_VERSION_19,
+  SCHEMA_VERSION_20,
   runMigrations,
 } from "../migrations.js";
 import { RETIREMENT_PAGE_SIZE } from "../../agent-instance-retired.js";
@@ -354,6 +355,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         );
         expect(names).toEqual([
           "bootstrap_state",
+          "connect_attempt",
           "connect_link",
           "oauth_client_registration",
           "organization_deletions",
@@ -3044,6 +3046,74 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_18)).rejects.toThrow("session 'ses_b_bad'");
           expect(await version(client)).toBe(SCHEMA_VERSION_17);
           expect((await row(client, "session", "ses_a_good")).data).toEqual(good);
+        } finally {
+          await client.end();
+        }
+      });
+    });
+
+    describe("v20: the execution context rows leave the store; a connect in flight is an attempt row", () => {
+      it("deletes every execution context row from every table keyed by kind, leaves other kinds, and creates the attempt table", async () => {
+        await migrateTo(db.databaseUrl, SCHEMA_VERSION_19);
+        const client = new pg.Client({ connectionString: db.databaseUrl });
+        await client.connect();
+        const ORG = "org_01jz0000000000000000000000";
+        const seededAt = new Date("2026-10-10T00:00:00Z");
+        const count = async (table: string, kind: string): Promise<number> =>
+          Number(
+            (await client.query<{ n: string }>(`SELECT COUNT(*) AS n FROM ${table} WHERE kind = $1`, [kind])).rows[0]!.n,
+          );
+        try {
+          for (const [kind, id] of [
+            ["execution_context", "ectx_1"],
+            ["agent", "agt_1"],
+          ] as const) {
+            const data = Buffer.from(new TextEncoder().encode(kind));
+            await client.query(`INSERT INTO resources (kind, id, data, updated_at) VALUES ($1, $2, $3, $4)`, [
+              kind,
+              id,
+              data,
+              seededAt,
+            ]);
+            await client.query(
+              `INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES ($1, $2, 'org', $3, '')`,
+              [kind, id, ORG],
+            );
+            await client.query(
+              `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ($1, $2, $3, '', '')`,
+              [kind, id, data],
+            );
+            await client.query(
+              `INSERT INTO resource_names (kind, org, name, id, state, claimed_at) VALUES ($1, $2, $3, $3, 'current', $4)`,
+              [kind, ORG, id, seededAt],
+            );
+          }
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_20);
+          for (const table of ["resources", "resource_list_keys", "resource_audit", "resource_names"]) {
+            expect(await count(table, "execution_context"), table).toBe(0);
+            expect(await count(table, "agent"), table).toBe(1);
+          }
+          const columns = (
+            await client.query<{ column_name: string }>(
+              `SELECT column_name FROM information_schema.columns WHERE table_name = 'connect_attempt' ORDER BY ordinal_position`,
+            )
+          ).rows.map((row) => row.column_name);
+          expect(columns).toEqual([
+            "id",
+            "org",
+            "created_by",
+            "person",
+            "mcp_server_id",
+            "run_id",
+            "created_at",
+            "expires_at",
+          ]);
+          const indexes = (
+            await client.query<{ indexname: string }>(
+              `SELECT indexname FROM pg_indexes WHERE tablename = 'connect_attempt'`,
+            )
+          ).rows.map((row) => row.indexname);
+          expect(indexes).toEqual(expect.arrayContaining(["idx_connect_attempt_expires", "idx_connect_attempt_org"]));
         } finally {
           await client.end();
         }

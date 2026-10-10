@@ -331,7 +331,6 @@ function ConnectDialogContent({
             onSubmit={(values) => handleCredentialSubmit(values)}
             isSubmitting={creds.isSaving}
             disabled={isConnectingPhase}
-            hideSaveToggle
           />
         </div>
       )}

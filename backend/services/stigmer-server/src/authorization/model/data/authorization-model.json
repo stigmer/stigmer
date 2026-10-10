@@ -1897,41 +1897,6 @@
       "metadata": {
         "module": "agentic",
         "relations": {
-          "can_edit": {},
-          "can_view": {},
-          "owner": {
-            "directly_related_user_types": [
-              {
-                "type": "identity_account"
-              }
-            ]
-          }
-        },
-        "source_info": {
-          "file": "agentic/execution_context.fga"
-        }
-      },
-      "relations": {
-        "can_edit": {
-          "computedUserset": {
-            "relation": "owner"
-          }
-        },
-        "can_view": {
-          "computedUserset": {
-            "relation": "owner"
-          }
-        },
-        "owner": {
-          "this": {}
-        }
-      },
-      "type": "execution_context"
-    },
-    {
-      "metadata": {
-        "module": "agentic",
-        "relations": {
           "can_connect": {},
           "can_delete": {},
           "can_edit": {},

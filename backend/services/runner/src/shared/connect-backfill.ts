@@ -9,6 +9,16 @@
  * starts the connect workflow (discovery only) and blocks until it
  * completes, then the servers are re-resolved so the turn sees the marks.
  *
+ * A server the run's fetch gave values to is connected naming the run
+ * (`run_id`), with no values: the server uses the run's planned values for
+ * that server, which discovery fetches from their vaults as the turn did,
+ * so a key the run took from a shared vault reaches discovery without the
+ * runner sending it back. The call presents the credential the turn's
+ * fetch used (a desktop runner's exchanged token, the activity's run
+ * credential, or the ambient one when it is already bound to this work),
+ * the one the server accepts `run_id` from. A server the fetch gave nothing names no run: it needs no
+ * values, and its connect asks nothing of the run's credential.
+ *
  * Backfill trigger: discovered_capabilities is empty or absent. A server
  * discovered at least once is never re-discovered here; reconnecting it
  * is the owner's act.
@@ -27,6 +37,7 @@ import type { ResolvedMcpServer } from "./mcp-resolver.js";
 import { resolveMcpServers } from "./mcp-resolver.js";
 import type { McpTransportPosture } from "./mcp-transport-guard.js";
 import type { PlatformEndpoints } from "./platform-server-address.js";
+import type { ToolValueGroup } from "./run-values.js";
 import { withTimeout } from "./with-timeout.js";
 import type { StigmerClient } from "../client/stigmer-client.js";
 import type { McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
@@ -70,12 +81,13 @@ export async function backfillMcpServersIfNeeded(
   client: StigmerClient,
   currentServers: ResolvedMcpServer[],
   usages: McpServerUsage[],
-  envVars: Record<string, string>,
+  tools: ReadonlyMap<string, ToolValueGroup>,
+  platformValues: Readonly<Record<string, string>>,
   org: string,
+  runId: string,
   transportPosture: McpTransportPosture,
   platformEndpoints: PlatformEndpoints,
   onHeartbeat?: () => void,
-  secretKeys?: ReadonlySet<string>,
 ): Promise<ResolvedMcpServer[]> {
   const serversNeedingBackfill = currentServers.filter(needsBackfill);
 
@@ -99,8 +111,6 @@ export async function backfillMcpServersIfNeeded(
       const serverId = fullServer.metadata?.id;
       if (!serverId) continue;
 
-      const runtimeEnv = extractRuntimeEnvForServer(fullServer, envVars, secretKeys);
-
       console.log(
         `[connect-backfill] Triggering connect for "${server.slug}" (${serverId})`,
       );
@@ -112,7 +122,20 @@ export async function backfillMcpServersIfNeeded(
       const updated = await withTimeout(
         CONNECT_TIMEOUT_MS,
         `Connect timed out after ${CONNECT_TIMEOUT_MS / 1000}s`,
-        () => client.connectMcpServer(serverId, org, runtimeEnv),
+        async () =>
+          client.connectMcpServer(
+            serverId,
+            org,
+            tools.has(serverId)
+              ? {
+                  runId,
+                  // The credential the turn's fetch used: a desktop
+                  // runner's exchanged token, a run credential, or none
+                  // when the ambient one is already bound to this work.
+                  scopedToken: await client.acquireScopedRunnerToken({ agentExecutionId: runId }),
+                }
+              : undefined,
+          ),
       );
 
       const toolCount = updated.status?.discoveredCapabilities?.tools.length ?? 0;
@@ -140,35 +163,7 @@ export async function backfillMcpServersIfNeeded(
   // Same posture as the initial resolution: every server here already
   // passed the transport guard once, so re-resolving cannot newly reject.
   const refreshed = await resolveMcpServers(
-    client, usages, envVars, transportPosture, platformEndpoints,
+    client, usages, tools, platformValues, transportPosture, platformEndpoints,
   );
   return refreshed.resolvedServers;
-}
-
-/**
- * Extract the MCP server's required env vars from the execution
- * environment. Returns only the keys declared in spec.env that are
- * present in the merged environment.
- *
- * isSecret is derived from the MCP server's env declaration first,
- * then from the execution-level secretKeys set, defaulting to false.
- */
-export function extractRuntimeEnvForServer(
-  server: { spec?: { env?: Record<string, unknown> } },
-  mergedEnv: Record<string, string>,
-  secretKeys?: ReadonlySet<string>,
-): Record<string, { value: string; isSecret: boolean }> | undefined {
-  const envDecls = server.spec?.env;
-  if (!envDecls || Object.keys(envDecls).length === 0) return undefined;
-
-  const runtime: Record<string, { value: string; isSecret: boolean }> = {};
-  for (const key of Object.keys(envDecls)) {
-    if (key in mergedEnv) {
-      const decl = envDecls[key] as { isSecret?: boolean } | undefined;
-      const isSecret = decl?.isSecret ?? secretKeys?.has(key) ?? false;
-      runtime[key] = { value: mergedEnv[key], isSecret };
-    }
-  }
-
-  return Object.keys(runtime).length > 0 ? runtime : undefined;
 }

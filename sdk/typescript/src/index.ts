@@ -175,7 +175,6 @@ export {
   type Page,
   type ListParams,
   type ListResult,
-  type EnvVarInput,
 } from "./gen/types.js";
 
 // Re-export all resource client classes and input types. The
@@ -221,10 +220,6 @@ export {
   type ChannelAppInput,
   type SlackChannelAppConfigInput,
 } from "./gen/channelapp.js";
-export {
-  ExecutionContextClient,
-  type ExecutionContextInput,
-} from "./gen/executioncontext.js";
 export {
   IamPolicyClient,
   type IamPolicyInput,

@@ -5,13 +5,19 @@
 // (stigmer/stigmer#425) — with a blocking-RPC fallback for backends that
 // predate it.
 //
-// OAuth: when a server requires OAuth, has no existing grant, and no --env was
-// supplied, the interactive browser flow (oauth.ts) shepherds the user through
-// the web console and waits for the grant. Off an interactive terminal (CI,
-// pipes) we stop with actionable guidance instead of blocking for 5 minutes.
-// Audit identity (reviewer) and token acquisition stay server-side by design.
+// Values: the server-side connect reads the caller's My vault and nothing the
+// CLI sends; a key is saved there first (`stigmer vault set-secret NAME --mine`).
+// --dry-run discovers on this machine, with the caller's shell environment.
+//
+// OAuth: when a server requires OAuth, has no existing grant, and My vault holds
+// no secret under its login key, the interactive browser flow (oauth.ts)
+// shepherds the user through the web console and waits for the grant. Off an
+// interactive terminal (CI, pipes) we stop with actionable guidance instead of
+// blocking for 5 minutes. Audit identity (reviewer) and token acquisition stay
+// server-side by design.
 
 import { create } from "@bufbuild/protobuf";
+import { Code } from "@connectrpc/connect";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { ConnectInput } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import {
@@ -19,17 +25,18 @@ import {
   GetOAuthGrantStatusInputSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import type { DiscoveredCapabilities } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
+import { GetMyVaultInputSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import {
   connectAndWait,
   ConnectStillRunningError,
   CONNECT_SETTLE_BOUND_MS,
+  StigmerError,
 } from "@stigmer/sdk";
 import { CliExitError, ExitCode, UsageError } from "../../errors/index.js";
 import { defaultRegistry } from "../../registry/index.js";
 import { PlaceholderResolutionError } from "../mcp/placeholder-resolver.js";
-import { buildRuntimeEnv } from "../mcp/runtime-env.js";
 import { parseReference } from "../reference.js";
 import { localDiscover } from "./discover.js";
 
@@ -47,7 +54,6 @@ export interface ConnectOptions {
    */
   readonly pushTimeoutMs?: number;
   readonly dryRun: boolean;
-  readonly envOverrides: readonly string[];
   /** The web console origin for the OAuth flow (resolveConsoleURL). */
   readonly consoleURL: string;
   /** Probe the console before opening the browser (local daemon only). */
@@ -87,11 +93,7 @@ export async function connectMcpServer(
     // discovery cannot authenticate it; say so plainly instead of failing on a 401.
     if (isOAuthOnly(server)) throw oauthOnlyDryRunError(server, opts.reference);
     try {
-      const capabilities = await localDiscover(
-        server.spec,
-        opts.envOverrides,
-        opts.timeoutMs,
-      );
+      const capabilities = await localDiscover(server.spec, opts.timeoutMs);
       return { server, capabilities, updated: undefined };
     } catch (err) {
       // A ${VAR} placeholder that could not be resolved is a configuration
@@ -108,7 +110,6 @@ export async function connectMcpServer(
   const input = create(ConnectInputSchema, {
     mcpServerId: server.metadata?.id ?? "",
     org: opts.org,
-    runtimeEnv: buildRuntimeEnv(server, opts.envOverrides),
   });
   return serverSideConnect(client, server, input, opts);
 }
@@ -183,10 +184,11 @@ async function resolveMcpServer(
   });
 }
 
-// Ensure an OAuth grant exists before connecting an auth-configured server that
-// was given no --env credentials. On an interactive terminal, run the browser
-// flow and wait for the grant; otherwise stop with actionable guidance so
-// scripted callers get a clean, stable failure instead of a 5-minute block.
+// Ensure an OAuth grant exists before connecting an auth-configured server. A
+// server that also accepts a manual token is satisfied by a secret under its
+// login key in My vault. On an interactive terminal, run the browser flow and
+// wait for the grant; otherwise stop with actionable guidance so scripted
+// callers get a clean, stable failure instead of a 5-minute block.
 async function ensureOAuthSatisfied(
   client: Stigmer,
   server: McpServer,
@@ -196,15 +198,6 @@ async function ensureOAuthSatisfied(
 
   const oauthOnly = isOAuthOnly(server);
 
-  // A manually supplied token is a valid bypass for a normal OAuth server (many
-  // vendors also accept a PAT), but an oauth_only endpoint rejects static tokens
-  // outright — so --env cannot connect it. Fail with guidance rather than push a
-  // token the endpoint will reject.
-  if (opts.envOverrides.length > 0) {
-    if (!oauthOnly) return;
-    throw oauthOnlyEnvError(server, opts.reference);
-  }
-
   const status = await client.mcpServer.getOAuthGrantStatus(
     create(GetOAuthGrantStatusInputSchema, {
       resourceId: server.metadata?.id ?? "",
@@ -212,6 +205,10 @@ async function ensureOAuthSatisfied(
     }),
   );
   if (status.connected) return;
+
+  // A manually saved token is a valid bypass for a normal OAuth server (many
+  // vendors also accept a PAT); an oauth_only endpoint rejects static tokens.
+  if (!oauthOnly && (await myVaultHoldsSecret(client, opts.org, loginKeyOf(server)))) return;
 
   if (!opts.interactive)
     throw oauthGuidanceError(server, opts.reference, oauthOnly);
@@ -244,7 +241,7 @@ function unresolvedEnvError(
     const hint = decl.description !== "" ? ` (${decl.description})` : "";
     return new UsageError(
       `MCP server '${slug}' needs environment variable ${err.variableName}${hint}, but it is not set.\n` +
-        `Provide it with --env ${err.variableName}=<value> or export it in your shell before running --dry-run.`,
+        `Export it in your shell before running --dry-run.`,
     );
   }
   const where = err.context !== undefined ? ` in its ${err.context}` : "";
@@ -267,24 +264,13 @@ function oauthGuidanceError(
   // Suggesting it for an oauth_only endpoint would send the user down a dead end.
   if (!oauthOnly) {
     choices.push(
-      `  - Provide credentials directly: stigmer connect mcp-server ${slug} --env TOKEN=...`,
+      `  - Save a token in your vault: stigmer vault set-secret ${loginKeyOf(server)} --mine, then run this command again`,
     );
   }
   return new UsageError(
     `MCP server '${slug}' requires OAuth authentication, which needs an interactive terminal.\n\n` +
       `To connect${oauthOnly ? "" : ", choose one of"}:\n` +
       choices.join("\n"),
-  );
-}
-
-// An oauth_only server whose endpoint rejects static tokens was given a manual
-// token via --env. Explain that OAuth is the only path rather than pushing a
-// credential the endpoint will reject with an opaque 401.
-function oauthOnlyEnvError(server: McpServer, reference: string): UsageError {
-  const slug = server.metadata?.slug ?? server.metadata?.name ?? reference;
-  return new UsageError(
-    `MCP server '${slug}' requires OAuth and rejects manually-entered tokens, so --env cannot connect it.\n` +
-      `Re-run without --env in an interactive terminal to sign in: stigmer connect mcp-server ${slug}`,
   );
 }
 
@@ -303,7 +289,23 @@ function oauthOnlyDryRunError(
 }
 
 function oauthRequired(server: McpServer): boolean {
-  return (server.spec?.auth?.targetEnvVar ?? "") !== "";
+  return loginKeyOf(server) !== "";
+}
+
+function loginKeyOf(server: McpServer): string {
+  return server.spec?.auth?.targetEnvVar ?? "";
+}
+
+// Whether the caller's My vault in `org` holds a secret named `key`. Reads entry
+// names only, never a value; a caller with no My vault yet holds nothing.
+async function myVaultHoldsSecret(client: Stigmer, org: string, key: string): Promise<boolean> {
+  try {
+    const vault = await client.vault.getMine(create(GetMyVaultInputSchema, { org }));
+    return Object.hasOwn(vault.spec?.secrets ?? {}, key);
+  } catch (err) {
+    if (err instanceof StigmerError && err.connectCode === Code.NotFound) return false;
+    throw err;
+  }
 }
 
 function isOAuthOnly(server: McpServer): boolean {

@@ -1,8 +1,8 @@
 /**
  * The lifecycle RPCs — ports cancel.go, terminate.go, pause.go,
- * resume.go, recover.go, recreate_execution_context_step.go, and
- * lifecycle_steps.go: the five phase-transition commands over one shared
- * step vocabulary.
+ * resume.go, recover.go and lifecycle_steps.go: the five phase-transition
+ * commands over one shared step vocabulary; recover plans the run's values
+ * again (RePlanRunValues).
  *
  * Every Temporal touchpoint rides the engine seam. With the engine
  * disconnected the Temporal steps refuse
@@ -18,7 +18,7 @@
  * real); lifecycle simply authors no approval events.
  *
  * That persist makes each transition atomic, not a whole chain. Recover's
- * chain acts on Temporal and on the run's ExecutionContext before its
+ * chain acts on Temporal and on the run's value plan before its
  * persist, all decided on one read of the execution, so two recovers run
  * side by side would both act on a stale FAILED. Recover therefore runs one
  * at a time per execution, inside a turn on the server's KeyedSerializer
@@ -27,8 +27,9 @@
 import { create } from "@bufbuild/protobuf";
 import { ConnectError } from "@connectrpc/connect";
 
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { Run, RunValueSource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
+  RunCredentialsSchema,
   RunSchema,
   RunStatusSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
@@ -75,9 +76,8 @@ import type { Store } from "../../store/interface.js";
 
 import type { SandboxLane } from "../../sandbox/lane.js";
 import { ensureSessionSandboxForExecution } from "../../sandbox/steps.js";
-import { deleteExecutionContextForExecution } from "../executioncontext/internal-delete.js";
-import type { ExecutionContextBuilderDeps } from "./create-execution-context-step.js";
-import { buildAndPersistExecutionContext } from "./create-execution-context-step.js";
+import type { RunValuePlannerDeps } from "./plan-run-values-step.js";
+import { planRunValues } from "./plan-run-values-step.js";
 import type { AgentExecutionTemporalConfig } from "./temporal/config.js";
 import type { ExecutionEngineStateProvider } from "./engine.js";
 import { EngineDispatchError, EngineWorkflowNotFoundError } from "./engine.js";
@@ -113,8 +113,8 @@ export interface LifecycleDeps {
   readonly recoverSerializer: KeyedSerializer;
   readonly broker: StreamBroker;
   readonly engineState: ExecutionEngineStateProvider;
-  /** The shared EC-builder deps, consumed by recover's recreate step. */
-  readonly executionContextBuilder: ExecutionContextBuilderDeps;
+  /** The shared value-planner deps, consumed by recover's re-plan step. */
+  readonly runValuePlanner: RunValuePlannerDeps;
   /** The composed slot registrations — recover's pre-side-effect slot. */
   readonly gateSteps: ResolvedGateSteps;
   /** The composed status-transition observers. */
@@ -668,9 +668,9 @@ export async function resumeExecution(
  * NOT Temporal reset: the runner activity RETURNS its FAILED result, so a
  * reset replays the preserved failure instead of re-dispatching, issue
  * #200; continuity is carried by the harness state, not Temporal
- * history). Order rationale: terminate BEFORE EC recreation (a still-live
- * old workflow's cleanup must not delete the new EC); recreate EC BEFORE
- * workflow start (the runner's setup needs env); start BEFORE the phase
+ * history). Order rationale: terminate BEFORE the re-plan (a still-live
+ * old workflow must not fetch under the new plan); re-plan BEFORE workflow
+ * start (the runner's setup fetches by it); start BEFORE the phase
  * update (a failed start leaves the execution FAILED — recover retries).
  *
  * One recover of an execution runs at a time (stigmer#1672): the chain runs
@@ -751,10 +751,10 @@ function runRecoverPipeline(
         "agent-execution-recover:pre-side-effect-gate",
       ),
       // A turn created before turns recorded their agent records the
-      // session's pin here, persisted before the context is rebuilt and
-      // the fresh workflow's runner reads it (resolve-run-agent.ts).
+      // session's pin here, persisted before the values are planned again
+      // and the fresh workflow's runner reads it (resolve-run-agent.ts).
       newStampRecoveredRunAgentStep(deps.store, deps.logger, alreadyRecovered),
-      newRecreateExecutionContextStep(deps),
+      newRePlanRunValuesStep(deps),
       newStartFreshWorkflowStep(deps),
       // The session-lane sandbox ensure — same position and
       // non-critical posture as the create chain's step: after the
@@ -790,23 +790,19 @@ function runRecoverPipeline(
 }
 
 /**
- * Rebuilds the ExecutionContext for a recovered execution (Go
- * recreateExecutionContextStep): the failed run's workflow cleanup
- * deleted the EC, so a fresh start would hydrate with an empty
- * environment. Re-resolving from CURRENT configuration is the point
- * ("fix the API key, then recover"). A failure here FAILS the
- * recover RPC — the agent EC carries OAuth tokens and declared env vars
- * the run genuinely needs; the execution stays FAILED and recover can be
- * retried. Stale-EC delete first (best-effort): the failure-path cleanup
- * is itself best-effort, and the EC name derives from the execution id.
- * It is the server's own delete of the context, through the context's
- * delete chain (domain/executioncontext/internal-delete.ts, stigmer#1647).
+ * Plans a recovered execution's values again and writes the new source
+ * manifest onto the stored run before the fresh workflow starts, so the
+ * runner's fetch reads the vaults as they are now ("fix the API key, then
+ * recover"). Nothing was stored for the failed run, so nothing is deleted
+ * first. A failure here FAILS the recover RPC with its own code (a
+ * required key nothing holds is FAILED_PRECONDITION, as on create); the
+ * execution stays FAILED and recover can be retried.
  */
-function newRecreateExecutionContextStep(
+function newRePlanRunValuesStep(
   deps: LifecycleDeps,
 ): PipelineStep<typeof RunCommandController.method.recover.input> {
   return {
-    name: "RecreateExecutionContext",
+    name: "RePlanRunValues",
     async execute(ctx) {
       if (ctx.get(ALREADY_IN_TARGET_STATE_KEY) === true) {
         return;
@@ -814,40 +810,39 @@ function newRecreateExecutionContextStep(
       const execution = loadedExecution(ctx);
       const executionId = execution.metadata?.id ?? "";
 
-      const builder = deps.executionContextBuilder;
-      await deleteExecutionContextForExecution(
-        {
-          store: builder.store,
-          deleter: builder.executionContextDeleter,
-          logger: deps.logger,
-        },
-        executionId,
-        "recover",
-      );
-
-      // A persisted execution always carries session_id (the create
-      // pipeline guarantees it) and the agent it runs (its stamp, recorded
-      // by the step before when it had none). Go wraps with %w — the inner
-      // status code survives to the wire (notably the FailedPrecondition
-      // OAuth pre-flight refusal and NotFound loads, exactly as the same
-      // failure surfaces on the create path); plain errors chain to the
-      // pipeline's Internal fallback.
+      let sources: RunValueSource[];
       try {
-        await buildAndPersistExecutionContext(
-          deps.executionContextBuilder,
-          execution,
-        );
+        sources = await planRunValues(deps.runValuePlanner, execution);
       } catch (error) {
         if (error instanceof ConnectError) {
           throw new ConnectError(
-            `recreate execution context for recovered execution ${executionId}: ${error.rawMessage}`,
+            `plan the values of recovered execution ${executionId}: ${error.rawMessage}`,
             error.code,
           );
         }
         throw new Error(
-          `recreate execution context for recovered execution ${executionId}: ${error instanceof Error ? error.message : String(error)}`,
+          `plan the values of recovered execution ${executionId}: ${error instanceof Error ? error.message : String(error)}`,
         );
       }
+
+      let updated: Run;
+      try {
+        updated = await deps.store.updateResource(
+          ApiResourceKind.run,
+          executionId,
+          RunSchema,
+          (loaded) => {
+            (loaded.status ??= create(RunStatusSchema)).credentials ??= create(RunCredentialsSchema);
+            loaded.status.credentials.sources = sources;
+          },
+        );
+      } catch (error) {
+        if (error instanceof ResourceNotFoundError) {
+          throw notFoundError("Run", executionId);
+        }
+        throw internalError(error, "failed to persist execution");
+      }
+      ctx.set(LOADED_EXECUTION_KEY, updated);
     },
   };
 }

@@ -1,8 +1,11 @@
 /**
  * Pins the run's credential resolver (domain/vault/resolve.ts) over a real
- * store and vault service, with a table Authorizer for `can_use`:
+ * store and vault service, with a table Authorizer for `can_use`. Each arm
+ * plans a run (planRun, as create does), stamps the manifest on it, and
+ * opens it (openRun, as the runner's fetch does):
  *
- *   - requirements: the agent's keys, each tool's keys and its login key
+ *   - requirements: the agent's keys (never one a tool of the run declares,
+ *     in its env or as its login), each tool's keys and its login key
  *     (auth.target_env_var, or the variable an `Authorization: Bearer
  *     ${VAR}` header names), and an optional GITHUB_TOKEN per repository;
  *   - the order of sources: a repository's own token (its clone only),
@@ -13,69 +16,42 @@
  *     conversation chose, never a shared vault it did not list; a run with
  *     no person never reads a My vault (include_my_vault ignored) but its
  *     owner's own schedule attachment;
- *   - every named vault checked again: a surface vault whose attacher lost
- *     the use, and a vault that is gone, refuse naming it and the surface;
- *     someone else's My vault listed on a conversation refuses;
- *   - matching: a login by its address first, then (a tool on GitHub's own
- *     API only, with or without a repository in the run) the github.com
- *     login, then a secret by name; a clone by its own token (the
- *     entry of that name and URL, never a same-named repository on another
- *     host) then its host then (github.com only) a GITHUB_TOKEN secret, a plain key
- *     falling back to its declaration's value; the GitHub tool and a clone
- *     sharing GITHUB_TOKEN; two different values for one key refused
- *     naming both declarers;
- *   - which tool a login fills: a sign-in and a pasted login alike, every
- *     HTTP tool at its URL (a sign-in renewed once however many tools use
- *     it), and none at another address; a local program has no address and
- *     takes its keys as secrets by name;
- *   - where a login's token may go when its key is shared: a tool it was
- *     not made for, a clone served by another tool's sign-in, a tool at
- *     another host than GitHub's API for the github.com login, and the
- *     agent's own key no tool claims are refused naming the key, the
- *     address and the declarer, before anything renews; a clone with a
- *     GitHub tool on api.github.com or api.githubcopilot.com, the agent's
- *     copy of its tool's key, and GITHUB_TOKEN beside a clone are served;
- *     a repository's own token goes only where the github.com login may,
- *     any other declarer of GITHUB_TOKEN refused, naming it; a secret by
- *     name still serves every declarer;
+ *   - every named vault checked when planned and again when opened: a
+ *     surface vault whose attacher lost the use, a vault that is gone, a
+ *     use revoked after the plan, a vault the conversation no longer lists
+ *     and My vault left out after the plan refuse, naming it; someone
+ *     else's My vault listed on a conversation refuses;
+ *   - matching per declarer: a tool's login by its address first, then (a
+ *     tool on GitHub's own API only) the github.com login, then a secret by
+ *     name; a clone by its own token (the entry of that name and URL), then
+ *     the github.com login, then a GITHUB_TOKEN secret; the agent's keys by
+ *     secret name, then its plain value, never a connection or a
+ *     repository's token; two declarers of one key take their own values,
+ *     and a login never reaches a declarer it was not made for (that
+ *     declarer is refused as missing the key, or receives nothing when its
+ *     key is optional);
  *   - a missing required key refused naming what the conversation lacks,
- *     one sentence per case (My vault included; left out with vaults
- *     listed; left out with none; another organization's agent; a run with
- *     no person, with and without a surface); an optional one absent;
- *   - a sign-in freshened once per connection per run, and only once the
- *     run is past its missing-key and conflict checks; a refused renewal
- *     refusing the run (the sign-in slice's own freshener included), any
- *     other renewal fault INTERNAL without its text;
+ *     one sentence per case; an optional one absent;
+ *   - planning opens and renews nothing; the fetch renews a sign-in once
+ *     per connection, writing it back as the server acting for the run's
+ *     person; a refused renewal refuses the fetch, any other renewal fault
+ *     INTERNAL without its text;
+ *   - the fetch reads each entry as it is now: a rotated secret is picked
+ *     up, an entry removed since refuses naming the key, its declarer and
+ *     the vault, and a tool moved to another address since refuses its
+ *     login; each tool's URL is answered as read, none for a local program;
  *   - the surfaces found from server-stamped facts: the minting platform
  *     client, the schedule, the share and the channel (each of another
  *     organization contributes nothing);
  *   - a run of an agent of another organization, or one whose row cannot
- *     be read, reads no My vault for any requirement (the agent's keys,
- *     every tool's keys and login, a clone's token), even when the
- *     conversation includes it, while the conversation's listed vaults,
- *     its repositories' tokens and a person-less run's surface vaults
- *     still serve it; a missing key points at the conversation's vaults;
- *   - include_my_vault gives each turn its own sender's My vault: a
- *     second person's turn reads their own, never the first person's,
- *     and both take the conversation's repository tokens;
+ *     be read, reads no My vault for any requirement;
  *   - every value from a vault, a connection or a repository's token is
- *     carried as secret; only a declaration's own plain value stays plain;
- *     a value reaches the run only for a declared key;
- *   - the person is the one the run recorded, so recover resolves as
- *     create did; the stored session row, not a loader's redacted copy,
- *     holds the repository tokens and the vault choice, and a row that is
- *     gone refuses; a conversation's vault its person may not use refuses,
- *     telling them;
- *   - a stored value the server cannot open (no key configured, or
- *     tampered ciphertext), in a vault or as a repository's token,
- *     refuses the whole run with the decryption error: never its
- *     ciphertext passed on, never the key silently dropped; a vault's
- *     value the run does not carry is never decrypted, so one that cannot
- *     be opened refuses nothing, and a run decrypts only what it carries;
- *     so is the token of a repository the run does not clone, and a
- *     sign-in's refresh token unless the sign-in is renewed;
- *   - the connect lane: the request's own values first, then the caller's
- *     My vault for a human caller, none for a runner.
+ *     delivered as secret; only a declaration's own plain value stays plain;
+ *   - a stored value the server cannot open refuses the fetch with the
+ *     decryption error, never its ciphertext passed on; a value the run
+ *     does not carry is never decrypted;
+ *   - the connect lane: the connecting person's My vault only, none for a
+ *     caller who is no person, never a shared vault.
  */
 import { randomBytes } from "node:crypto";
 
@@ -87,13 +63,12 @@ import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spe
 import type { AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
-import { ExecutionValueSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
-import type { ExecutionValue } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { PluginEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
+import { RunCredentialsSchema, RunSchema, RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { Run, RunValueSource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { ExecutionValues } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
@@ -114,12 +89,14 @@ import {
   SecretService,
 } from "../../../encryption/encryption.js";
 import type { Authorizer } from "../../../extensions/authorizer.js";
+import type { CallerIdentity } from "../../../extensions/identity.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { PLUGIN_EVAL_LABEL } from "../../plugin-eval/constants.js";
 import { newSignInFreshener } from "../sign-in/refresh.js";
 
 import {
   CHANNEL_ID_LABEL_KEY,
+  CLONE_TOKEN_KEY,
   SCHEDULE_ID_LABEL_KEY,
   SHARE_ID_LABEL_KEY,
   SignInRenewalError,
@@ -141,6 +118,8 @@ let rig: VaultRig;
 /** Who may use which vault, as "principal:vaultId". */
 let mayUse: Set<string>;
 let freshened: string[];
+/** The caller each renewal was written back as. */
+let renewedAs: CallerIdentity[];
 let freshenFails: boolean;
 let clients: Map<string, PlatformClient>;
 let resolver: VaultResolver;
@@ -157,8 +136,9 @@ const useTable: Authorizer = {
 };
 
 const freshener: SignInFreshener = {
-  freshToken: async (vault, connection) => {
+  freshToken: async (vault, connection, caller) => {
     freshened.push(`${vault.metadata?.id}|${connection.address}`);
+    renewedAs.push(caller);
     if (freshenFails) {
       throw new SignInRenewalError("the provider refused the refresh token");
     }
@@ -170,6 +150,7 @@ beforeEach(() => {
   rig = openVaultRig();
   mayUse = new Set();
   freshened = [];
+  renewedAs = [];
   freshenFails = false;
   clients = new Map();
   resolver = newVaultResolver({
@@ -308,12 +289,13 @@ interface ResolveInit {
   unsaved?: boolean;
 }
 
-async function resolveValues(init: ResolveInit): Promise<Map<string, ExecutionValue>> {
+/** The run's source manifest, as create plans it. */
+async function plan(init: ResolveInit, over: VaultResolver = resolver): Promise<RunValueSource[]> {
   const session = init.session ?? sessionOf();
   if (init.unsaved !== true) {
     await stored(session);
   }
-  return resolver.resolveForRun({
+  return over.planRun({
     execution: init.run,
     session,
     agentSpec: init.agentSpec,
@@ -323,9 +305,74 @@ async function resolveValues(init: ResolveInit): Promise<Map<string, ExecutionVa
   });
 }
 
+/**
+ * Plans the run, stamps the manifest on it, then opens it as the runner's
+ * fetch does: the tools stored so the fetch can load them, the run naming
+ * its conversation. `between` runs after the plan and before the open.
+ */
+async function open(
+  init: ResolveInit,
+  between?: () => Promise<void>,
+  over: VaultResolver = resolver,
+): Promise<ExecutionValues> {
+  for (const tool of init.tools ?? []) {
+    await rig.store.saveResource(ApiResourceKind.mcp_server, tool.metadata!.id, McpServerSchema, tool);
+  }
+  const sources = await plan(init, over);
+  const session = init.session ?? sessionOf();
+  const run = create(RunSchema, init.run);
+  run.spec = create(RunSchema, {
+    spec: { target: { case: "sessionId", value: session.metadata!.id } },
+  }).spec;
+  (run.status ??= create(RunStatusSchema)).credentials = create(RunCredentialsSchema, {
+    ...(run.status.credentials?.person === undefined ? {} : { person: run.status.credentials.person }),
+    sources,
+  });
+  await between?.();
+  return over.openRun(run);
+}
+
+/**
+ * Every value the run receives, keyed by variable: the agent's, each
+ * tool's and each repository's token (as GITHUB_TOKEN). A key two
+ * declarers receive with different values fails the helper: such an arm
+ * asserts per declarer instead.
+ */
+function flatten(values: ExecutionValues): Record<string, string> {
+  const flat: Record<string, string> = {};
+  const put = (key: string, value: string): void => {
+    if (key in flat && flat[key] !== value) {
+      throw new Error(`${key} reaches two declarers with different values; assert per declarer`);
+    }
+    flat[key] = value;
+  };
+  for (const [key, value] of Object.entries(values.agent)) {
+    put(key, value);
+  }
+  for (const tool of values.tools) {
+    for (const [key, value] of Object.entries(tool.values)) {
+      put(key, value);
+    }
+  }
+  for (const repository of values.repositories) {
+    put(CLONE_TOKEN_KEY, repository.token);
+  }
+  return flat;
+}
+
 async function resolve(init: ResolveInit): Promise<Record<string, string>> {
-  const values = await resolveValues(init);
-  return Object.fromEntries([...values].map(([key, value]) => [key, value.value]));
+  return flatten(await open(init));
+}
+
+/** One tool's values, by its server id. */
+function toolValues(values: ExecutionValues, tool: McpServer): Record<string, string> {
+  const group = values.tools.find((entry) => entry.mcpServerId === tool.metadata!.id);
+  return { ...group?.values };
+}
+
+/** The agent's own values. */
+function agentValues(values: ExecutionValues): Record<string, string> {
+  return { ...values.agent };
 }
 
 async function refusal(promise: Promise<unknown>): Promise<ConnectError> {
@@ -944,43 +991,53 @@ describe("what reaches an agent or a surface of another organization", () => {
 // Which values are secret
 // ---------------------------------------------------------------------------
 
-describe("which values the context carries as secret", () => {
+describe("which value fills a plain declaration", () => {
   const PLAIN = { value: "acme-default" };
 
-  it("a plain declaration's own value stays plain; a vault secret filling it is secret", async () => {
-    const fromDeclaration = await resolveValues({
+  /** A key's delivered value, wherever its declarer is. */
+  function deliveredAt(values: ExecutionValues, key: string): string | undefined {
+    const value =
+      values.agent[key] ?? values.tools.map((tool) => tool.values[key]).find((entry) => entry !== undefined);
+    if (value !== undefined) {
+      return value;
+    }
+    return key === CLONE_TOKEN_KEY ? values.repositories[0]?.token : undefined;
+  }
+
+  it("a plain declaration's own value is delivered, and a vault secret of its name wins over it", async () => {
+    const fromDeclaration = await open({
       run: runOf({ person: ANA }),
       agentSpec: agent({ WORKSPACE: PLAIN }),
     });
-    expect(fromDeclaration.get("WORKSPACE")).toMatchObject({ value: "acme-default", isSecret: false });
+    expect(deliveredAt(fromDeclaration, "WORKSPACE")).toBe("acme-default");
 
     await anasVault({ WORKSPACE: "ana-workspace", BARE: "ana-bare" });
-    const fromVault = await resolveValues({
+    const fromVault = await open({
       run: runOf({ person: ANA }),
       agentSpec: agent({ WORKSPACE: PLAIN, BARE: {} }),
     });
-    expect(fromVault.get("WORKSPACE")).toMatchObject({ value: "ana-workspace", isSecret: true });
-    expect(fromVault.get("BARE")).toMatchObject({ value: "ana-bare", isSecret: true });
+    expect(deliveredAt(fromVault, "WORKSPACE")).toBe("ana-workspace");
+    expect(deliveredAt(fromVault, "BARE")).toBe("ana-bare");
   });
 
-  it("a repository's own token is secret, and so is a listed vault's secret filling a plain declaration", async () => {
-    const own = await resolveValues({
+  it("a repository's own token fills its clone, and a listed vault's secret fills a plain declaration", async () => {
+    const own = await open({
       run: runOf({ person: ANA }),
       session: sessionOf({ repo: { url: "https://github.com/acme/app", token: "repo-own" } }),
     });
-    expect(own.get("GITHUB_TOKEN")).toMatchObject({ value: "repo-own", isSecret: true });
+    expect(deliveredAt(own, "GITHUB_TOKEN")).toBe("repo-own");
 
     const team = await seedSharedVault(rig.store, ORG, "integrator", { secrets: { WORKSPACE: "cust" } });
     mayUse.add(`${ADMIN}:${team.metadata!.id}`);
-    const attached = await resolveValues({
+    const attached = await open({
       run: runOf(),
       session: sessionOf({ vaults: ["integrator"], attachers: { [team.metadata!.id]: ADMIN } }),
       agentSpec: agent({ WORKSPACE: PLAIN }),
     });
-    expect(attached.get("WORKSPACE")).toMatchObject({ value: "cust", isSecret: true });
+    expect(deliveredAt(attached, "WORKSPACE")).toBe("cust");
   });
 
-  it("a connection's token is secret even where the tool declares its login key plain", async () => {
+  it("a connection's token fills a login even where the tool declares its login key plain", async () => {
     const mine = await anasVault({});
     await rig.vaults.setConnection(
       mine,
@@ -988,29 +1045,20 @@ describe("which values the context carries as secret", () => {
       { token: "by-address", source: VaultConnectionSource.pasted },
       testCallerIdentity({ identityId: ANA }),
     );
-    const values = await resolveValues({
+    const values = await open({
       run: runOf({ person: ANA }),
-      tools: [tool("linear", { target: "LINEAR_TOKEN", env: { LINEAR_TOKEN: {} } })],
+      tools: [tool("linear", { target: "LINEAR_TOKEN", env: { LINEAR_TOKEN: { value: "plain-but-a-login" } } })],
     });
-    expect(values.get("LINEAR_TOKEN")).toMatchObject({ value: "by-address", isSecret: true });
+    expect(deliveredAt(values, "LINEAR_TOKEN")).toBe("by-address");
   });
 
-  it("the connect lane keeps a plain default plain and marks a My vault value secret", async () => {
+  it("the connect lane delivers a plain default, and a My vault value over it", async () => {
     await anasVault({ TEAM: "ana-team" });
-    const values = await resolver.resolveForConnect({
-      orgId: ORG,
-      caller: testCallerIdentity({ identityId: BEN }),
-      server: tool("linear", { env: { TEAM: PLAIN } }),
-      ownValues: new Map(),
-    });
-    expect(values.get("TEAM")).toMatchObject({ value: "acme-default", isSecret: false });
-    const anas = await resolver.resolveForConnect({
-      orgId: ORG,
-      caller: testCallerIdentity({ identityId: ANA }),
-      server: tool("linear", { env: { TEAM: PLAIN } }),
-      ownValues: new Map(),
-    });
-    expect(anas.get("TEAM")).toMatchObject({ value: "ana-team", isSecret: true });
+    const linear = tool("linear", { env: { TEAM: PLAIN } });
+    const bens = await resolver.openConnect({ orgId: ORG, person: BEN, server: linear });
+    expect(deliveredAt(bens, "TEAM")).toBe("acme-default");
+    const anas = await resolver.openConnect({ orgId: ORG, person: ANA, server: linear });
+    expect(deliveredAt(anas, "TEAM")).toBe("ana-team");
   });
 });
 
@@ -1160,7 +1208,7 @@ describe("matching", () => {
     expect(await resolve({ run: runOf({ person: ANA }), session: twins })).toEqual({});
   });
 
-  it("the GitHub tool on GitHub's own API and a clone share the github.com login as GITHUB_TOKEN; two different values for it refuse, naming both", async () => {
+  it("the GitHub tool on GitHub's own API and a clone share the github.com login as GITHUB_TOKEN; with the repository's own token, each takes its own", async () => {
     const github = tool("github", {
       url: "https://api.githubcopilot.com/mcp/",
       env: { GITHUB_TOKEN: KEY },
@@ -1178,14 +1226,226 @@ describe("matching", () => {
       await resolve({ run: runOf({ person: ANA }), session: cloning, tools: [github] }),
     ).toEqual({ GITHUB_TOKEN: "gh-login" });
 
+    // Two values for one key once refused the run: each declarer now
+    // receives its own, the clone its repository's token and the tool the
+    // github.com login.
     const ownToken = sessionOf({ repo: { url: "https://github.com/acme/app", token: "a-different-pat" } });
-    const conflict = await refusal(
-      resolve({ run: runOf({ person: ANA }), session: ownToken, tools: [github] }),
+    const values = await open({ run: runOf({ person: ANA }), session: ownToken, tools: [github] });
+    expect(toolValues(values, github)).toEqual({ GITHUB_TOKEN: "gh-login" });
+    expect(values.repositories.map((repository) => repository.token)).toEqual(["a-different-pat"]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The fetch reads the vaults as they are now
+// ---------------------------------------------------------------------------
+
+describe("the fetch opens exactly the planned entries, as they are now", () => {
+  const ana = testCallerIdentity({ identityId: ANA });
+
+  it("records where each value lives, never the value", async () => {
+    const mine = await anasVault({ API_KEY: "ana-key" });
+    const sources = await plan({ run: runOf({ person: ANA }), agentSpec: agent({ API_KEY: KEY }) });
+    expect(sources.map((entry) => [entry.key, entry.vaultId, entry.entry, entry.login])).toEqual([
+      ["API_KEY", mine, "API_KEY", false],
+    ]);
+    expect(JSON.stringify(sources)).not.toContain("ana-key");
+  });
+
+  it("picks up a secret rotated after the plan", async () => {
+    const mine = await anasVault({ API_KEY: "before" });
+    const values = await open({ run: runOf({ person: ANA }), agentSpec: agent({ API_KEY: KEY }) }, async () => {
+      await rig.vaults.setSecrets(mine, { API_KEY: { value: "rotated", description: "" } }, ana);
+    });
+    expect(agentValues(values)).toEqual({ API_KEY: "rotated" });
+  });
+
+  it("refuses an entry removed after the plan, naming the key, its declarer and the vault, and saying to recover", async () => {
+    const mine = await anasVault({ API_KEY: "before" });
+    const failure = await refusal(
+      open({ run: runOf({ person: ANA }), agentSpec: agent({ API_KEY: KEY }) }, async () => {
+        await rig.vaults.removeSecrets(mine, ["API_KEY"], ana);
+      }),
     );
-    expect(conflict.code).toBe(Code.FailedPrecondition);
-    expect(conflict.rawMessage).toContain("GITHUB_TOKEN would carry two different values");
-    expect(conflict.rawMessage).toContain("github gets one");
-    expect(conflict.rawMessage).toContain("repository app another");
+    expect(failure.code).toBe(Code.FailedPrecondition);
+    expect(failure.rawMessage).toBe(
+      "the agent Helper needs API_KEY, but My vault no longer holds a secret named API_KEY. Fix it, then recover the turn",
+    );
+  });
+
+  it("refuses a shared vault whose use was revoked after the plan, naming it", async () => {
+    const team = await seedSharedVault(rig.store, ORG, "team", { secrets: { API_KEY: "team-key" } });
+    mayUse.add(`${ANA}:${team.metadata!.id}`);
+    const failure = await refusal(
+      open(
+        { run: runOf({ person: ANA }), session: sessionOf({ vaults: ["team"] }), agentSpec: agent({ API_KEY: KEY }) },
+        async () => {
+          mayUse.delete(`${ANA}:${team.metadata!.id}`);
+        },
+      ),
+    );
+    expect(failure.code).toBe(Code.FailedPrecondition);
+    expect(failure.rawMessage).toContain("the agent Helper needs API_KEY, but vault 'team'");
+    expect(failure.rawMessage).toContain("is not one you may use");
+  });
+
+  it("refuses a vault the conversation no longer lists", async () => {
+    const team = await seedSharedVault(rig.store, ORG, "team", { secrets: { API_KEY: "team-key" } });
+    mayUse.add(`${ANA}:${team.metadata!.id}`);
+    const failure = await refusal(
+      open(
+        { run: runOf({ person: ANA }), session: sessionOf({ vaults: ["team"] }), agentSpec: agent({ API_KEY: KEY }) },
+        async () => {
+          await stored(sessionOf({ vaults: [] }));
+        },
+      ),
+    );
+    expect(failure.code).toBe(Code.FailedPrecondition);
+    expect(failure.rawMessage).toContain(`vault ${team.metadata!.id} is no longer one this conversation uses`);
+  });
+
+  it("refuses My vault once the conversation stops including it", async () => {
+    await anasVault({ API_KEY: "ana-key" });
+    const failure = await refusal(
+      open({ run: runOf({ person: ANA }), agentSpec: agent({ API_KEY: KEY }) }, async () => {
+        await stored(sessionOf({ includeMyVault: false }));
+      }),
+    );
+    expect(failure.code).toBe(Code.FailedPrecondition);
+    expect(failure.rawMessage).toContain("this conversation no longer includes My vault");
+  });
+
+  it("refuses a tool's login once the tool moved to another address: the login never follows it", async () => {
+    const mine = await anasVault({});
+    await rig.vaults.setConnection(
+      mine,
+      "https://mcp.linear.example/mcp",
+      { token: "linear-login", source: VaultConnectionSource.pasted },
+      ana,
+    );
+    const linear = tool("linear", { target: "LINEAR_TOKEN" });
+    const failure = await refusal(
+      open({ run: runOf({ person: ANA }), tools: [linear] }, async () => {
+        const moved = tool("linear", { url: "https://evil.example/mcp", target: "LINEAR_TOKEN" });
+        await rig.store.saveResource(ApiResourceKind.mcp_server, moved.metadata!.id, McpServerSchema, moved);
+      }),
+    );
+    expect(failure.code).toBe(Code.FailedPrecondition);
+    expect(failure.rawMessage).toContain(
+      "linear needs LINEAR_TOKEN, but the tool is no longer at https://mcp.linear.example/mcp",
+    );
+    expect(failure.rawMessage).not.toContain("linear-login");
+  });
+
+  it("refuses a repository's token the conversation no longer holds, naming the repository", async () => {
+    const failure = await refusal(
+      open(
+        {
+          run: runOf({ person: ANA }),
+          session: sessionOf({ repo: { url: "https://github.com/acme/app", token: "repo-own" } }),
+        },
+        async () => {
+          await stored(sessionOf({ repo: { url: "https://github.com/acme/app" } }));
+        },
+      ),
+    );
+    expect(failure.code).toBe(Code.FailedPrecondition);
+    expect(failure.rawMessage).toBe(
+      "repository app needs GITHUB_TOKEN, but the conversation no longer holds that repository's token. Fix it, then recover the turn",
+    );
+  });
+
+  it("refuses a login removed after the plan, naming the address and the vault", async () => {
+    const mine = await anasVault({});
+    await rig.vaults.setConnection(
+      mine,
+      "https://mcp.linear.example/mcp",
+      { token: "linear-login", source: VaultConnectionSource.pasted },
+      ana,
+    );
+    const failure = await refusal(
+      open({ run: runOf({ person: ANA }), tools: [tool("linear", { target: "LINEAR_TOKEN" })] }, async () => {
+        await rig.vaults.removeConnections(mine, ["https://mcp.linear.example/mcp"], ana);
+      }),
+    );
+    expect(failure.code).toBe(Code.FailedPrecondition);
+    expect(failure.rawMessage).toContain(
+      "linear needs LINEAR_TOKEN, but My vault no longer holds a login for https://mcp.linear.example/mcp",
+    );
+  });
+
+  it("refuses My vault once it is gone", async () => {
+    const mine = await anasVault({ API_KEY: "ana-key" });
+    const failure = await refusal(
+      open({ run: runOf({ person: ANA }), agentSpec: agent({ API_KEY: KEY }) }, async () => {
+        await rig.store.deleteResource(ApiResourceKind.vault, mine);
+      }),
+    );
+    expect(failure.code).toBe(Code.FailedPrecondition);
+    expect(failure.rawMessage).toContain("My vault no longer exists");
+  });
+
+  it("refuses a tool's login once the tool became a local program, which has no address", async () => {
+    const mine = await anasVault({});
+    await rig.vaults.setConnection(
+      mine,
+      "https://mcp.linear.example/mcp",
+      { token: "linear-login", source: VaultConnectionSource.pasted },
+      ana,
+    );
+    const failure = await refusal(
+      open({ run: runOf({ person: ANA }), tools: [tool("linear", { target: "LINEAR_TOKEN" })] }, async () => {
+        const program = localTool("linear", { target: "LINEAR_TOKEN" });
+        await rig.store.saveResource(ApiResourceKind.mcp_server, program.metadata!.id, McpServerSchema, program);
+      }),
+    );
+    expect(failure.rawMessage).toContain("the tool is no longer at https://mcp.linear.example/mcp");
+  });
+
+  it("propagates a store fault reading a tool, never reading it as gone", async () => {
+    const mine = await anasVault({});
+    await rig.vaults.setConnection(
+      mine,
+      "https://mcp.linear.example/mcp",
+      { token: "linear-login", source: VaultConnectionSource.pasted },
+      ana,
+    );
+    const linear = tool("linear", { target: "LINEAR_TOKEN" });
+    const sources = await plan({ run: runOf({ person: ANA }), tools: [linear] });
+    const faulty = resolverWith({
+      getResource: async () => {
+        throw new Error("disk gone");
+      },
+      onlyKind: ApiResourceKind.mcp_server,
+    });
+    const run = create(RunSchema, {
+      metadata: { id: "run_resolve", org: ORG },
+      spec: { target: { case: "sessionId", value: "ses_resolve" } },
+      status: { credentials: { person: ANA, sources } },
+    });
+    await expect(faulty.openRun(run)).rejects.toThrow("disk gone");
+  });
+
+  it("refuses a manifest entry with no origin as a fault, never guessing where it lives", async () => {
+    await stored(sessionOf());
+    const run = create(RunSchema, {
+      metadata: { id: "run_resolve", org: ORG },
+      spec: { target: { case: "sessionId", value: "ses_resolve" } },
+      status: { credentials: { person: ANA, sources: [{ key: "API_KEY", entry: "API_KEY" }] } },
+    });
+    const failure = await refusal(resolver.openRun(run));
+    expect(failure.code).toBe(Code.Internal);
+  });
+
+  it("answers each HTTP tool's URL as the fetch read it, and none for a local program", async () => {
+    await anasVault({ LINEAR_TOKEN: "lin", PROGRAM_KEY: "prog" });
+    const linear = tool("linear", { target: "LINEAR_TOKEN" });
+    const program = localTool("program", { target: "PROGRAM_KEY" });
+    const values = await open({ run: runOf({ person: ANA }), tools: [linear, program] });
+    expect(values.tools.map((group) => [group.mcpServerId, group.url])).toEqual([
+      ["mcp_linear", "https://mcp.linear.example/mcp"],
+      ["mcp_program", ""],
+    ]);
   });
 });
 
@@ -1270,10 +1530,10 @@ describe("sign-ins", () => {
     ).toEqual({ LINEAR_TOKEN: "lin-secret" });
   });
 
-  it("a run refused for a missing key renews nothing", async () => {
+  it("planning renews nothing, whatever the plan finds: only the fetch renews", async () => {
     await signedIn();
     const failure = await refusal(
-      resolve({
+      plan({
         run: runOf({ person: ANA }),
         agentSpec: agent({ MISSING: KEY }),
         tools: [tool("linear", { target: "LINEAR_TOKEN" })],
@@ -1281,25 +1541,33 @@ describe("sign-ins", () => {
     );
     expect(failure.code).toBe(Code.FailedPrecondition);
     expect(failure.rawMessage).toContain("needs MISSING");
+    await plan({ run: runOf({ person: ANA }), tools: [tool("linear", { target: "LINEAR_TOKEN" })] });
     expect(freshened).toEqual([]);
   });
 
-  it("a run refused for two values of one key renews nothing", async () => {
+  it("a renewal at the fetch is written back in the run's person's name, as the server acting for them, never the runner's", async () => {
+    await signedIn();
+    await open({ run: runOf({ person: ANA }), tools: [tool("linear", { target: "LINEAR_TOKEN" })] });
+    expect(renewedAs.map((caller) => [caller.identityId, caller.callerClass])).toEqual([
+      [ANA, "internal"],
+    ]);
+  });
+
+  it("the agent's own declaration of the tool's login key reaches the agent nothing: the tool alone takes the sign-in", async () => {
     const mine = await signedIn();
     await rig.vaults.setSecrets(
       mine,
       { LINEAR_TOKEN: { value: "by-name", description: "" } },
       testCallerIdentity({ identityId: ANA }),
     );
-    const failure = await refusal(
-      resolve({
-        run: runOf({ person: ANA }),
-        agentSpec: agent({ LINEAR_TOKEN: KEY }),
-        tools: [tool("linear", { target: "LINEAR_TOKEN" })],
-      }),
-    );
-    expect(failure.rawMessage).toContain("LINEAR_TOKEN would carry two different values");
-    expect(freshened).toEqual([]);
+    const linear = tool("linear", { target: "LINEAR_TOKEN" });
+    const values = await open({
+      run: runOf({ person: ANA }),
+      agentSpec: agent({ LINEAR_TOKEN: KEY }),
+      tools: [linear],
+    });
+    expect(toolValues(values, linear)).toEqual({ LINEAR_TOKEN: "fresh-old" });
+    expect(agentValues(values)).toEqual({});
   });
 
   it("a fault while renewing is INTERNAL, and its text is not handed to the caller", async () => {
@@ -1312,14 +1580,7 @@ describe("sign-ins", () => {
       },
     });
     const failure = await refusal(
-      faulty.resolveForRun({
-        execution: runOf({ person: ANA }),
-        session: await stored(sessionOf()),
-        agentSpec: undefined,
-        agentName: "",
-        agentOrg: undefined,
-        tools: [tool("linear", { target: "LINEAR_TOKEN" })],
-      }),
+      open({ run: runOf({ person: ANA }), tools: [tool("linear", { target: "LINEAR_TOKEN" })] }, undefined, faulty),
     );
     expect(failure.code).toBe(Code.Internal);
     expect(failure.rawMessage).not.toContain("disk gone");
@@ -1332,19 +1593,21 @@ describe("sign-ins", () => {
       resolve({ run: runOf({ person: ANA }), tools: [tool("linear", { target: "LINEAR_TOKEN" })] }),
     );
     expect(failure.code).toBe(Code.FailedPrecondition);
-    expect(failure.rawMessage).toContain("could not be renewed");
+    expect(failure.rawMessage).toContain(
+      "the sign-in for https://mcp.linear.example/mcp in My vault could not be renewed",
+    );
     expect(failure.rawMessage).toContain("Sign in again");
   });
 });
 
 // ---------------------------------------------------------------------------
-// Where a login's token may go
+// Per declarer
 // ---------------------------------------------------------------------------
 
-describe("a login reaches only what it was made for", () => {
+describe("a value reaches only its own declarer", () => {
   const LINEAR_URL = "https://mcp.linear.example/mcp";
 
-  /** Ana's My vault with a Linear sign-in made by mcp_linear; answers its id. */
+  /** Ana's My vault with a Linear sign-in at LINEAR_URL; answers its id. */
   async function linearSignIn(): Promise<string> {
     const mine = await anasVault({});
     await rig.vaults.setConnection(
@@ -1380,8 +1643,9 @@ describe("a login reaches only what it was made for", () => {
   }
 
   const cloning = (): Session => sessionOf({ repo: { url: "https://github.com/acme/app" } });
+  const OPTIONAL = { isSecret: true, optional: true };
 
-  it("refuses a sign-in's token for another tool that declares its key, naming the key, the address and that tool, and renews nothing", async () => {
+  it("never hands a sign-in's token to another tool that declares its key: that tool is refused as missing it, naming it, and nothing renews", async () => {
     await linearSignIn();
     const evil = tool("evil", {
       url: "https://evil.example/mcp",
@@ -1389,20 +1653,18 @@ describe("a login reaches only what it was made for", () => {
       headers: { Authorization: "Bearer ${LINEAR_TOKEN}" },
     });
     const failure = await refusal(
-      resolve({
+      plan({
         run: runOf({ person: ANA }),
         tools: [tool("linear", { url: LINEAR_URL, target: "LINEAR_TOKEN" }), evil],
       }),
     );
     expect(failure.code).toBe(Code.FailedPrecondition);
-    expect(failure.rawMessage).toContain("LINEAR_TOKEN would carry the login for https://mcp.linear.example/mcp");
-    expect(failure.rawMessage).toContain("to evil");
-    expect(failure.rawMessage).toContain("save it as a secret named LINEAR_TOKEN");
+    expect(failure.rawMessage).toContain("evil needs LINEAR_TOKEN");
     expect(failure.rawMessage).not.toContain("linear-login");
     expect(freshened).toEqual([]);
   });
 
-  it("refuses a pasted login for a tool at another URL, its login slot or a plain key alike", async () => {
+  it("gives the tool its login and another tool at another URL nothing, a pasted login and a sign-in alike", async () => {
     const mine = await anasVault({});
     await rig.vaults.setConnection(
       mine,
@@ -1410,82 +1672,53 @@ describe("a login reaches only what it was made for", () => {
       { token: "pasted-linear", source: VaultConnectionSource.pasted },
       testCallerIdentity({ identityId: ANA }),
     );
+    const linear = tool("linear", { url: LINEAR_URL, target: "LINEAR_TOKEN" });
     for (const other of [
-      tool("notes", { url: "https://mcp.linear.example/mcp/v2", target: "LINEAR_TOKEN" }),
-      tool("notes", { url: "https://mcp.notes.example/mcp", env: { LINEAR_TOKEN: KEY } }),
+      tool("notes", { url: "https://mcp.linear.example/mcp/v2", env: { LINEAR_TOKEN: OPTIONAL } }),
+      tool("notes", { url: "https://mcp.notes.example/mcp", env: { LINEAR_TOKEN: OPTIONAL } }),
     ]) {
-      const failure = await refusal(
-        resolve({
-          run: runOf({ person: ANA }),
-          tools: [tool("linear", { url: LINEAR_URL, target: "LINEAR_TOKEN" }), other],
-        }),
-      );
-      expect(failure.code).toBe(Code.FailedPrecondition);
-      expect(failure.rawMessage).toContain("to notes");
+      const values = await open({ run: runOf({ person: ANA }), tools: [linear, other] });
+      expect(toolValues(values, linear)).toEqual({ LINEAR_TOKEN: "pasted-linear" });
+      expect(toolValues(values, other)).toEqual({});
     }
   });
 
-  it("refuses the github.com login a clone uses for a tool at another host that declares GITHUB_TOKEN", async () => {
-    await githubLogin();
-    for (const url of [
-      "https://mcp.other.example/mcp",
-      "https://api.github.com.evil.example/mcp",
-      "http://api.github.com/mcp",
-    ]) {
-      const other = tool("other", {
-        url,
-        env: { GITHUB_TOKEN: KEY },
-        headers: { Authorization: "Bearer ${GITHUB_TOKEN}" },
-      });
-      const failure = await refusal(
-        resolve({ run: runOf({ person: ANA }), session: cloning(), tools: [other] }),
-      );
-      expect(failure.code).toBe(Code.FailedPrecondition);
-      expect(failure.rawMessage).toContain("GITHUB_TOKEN would carry the login for github.com");
-      expect(failure.rawMessage).toContain("to other");
-    }
-  });
-
-  it("refuses a repository's own token for any other declarer of GITHUB_TOKEN than the clone, GitHub's API and the agent beside it, naming that declarer", async () => {
-    const owned = (): Session =>
-      sessionOf({ repo: { url: "https://github.com/acme/app", token: "repo-own" } });
-    for (const other of [
-      tool("other", {
-        url: "https://evil.example/mcp",
-        headers: { Authorization: "Bearer ${GITHUB_TOKEN}" },
-      }),
-      tool("other", {
-        url: "https://api.github.com.evil.example/mcp",
-        headers: { Authorization: "Bearer ${GITHUB_TOKEN}" },
-      }),
-      tool("other", { url: "https://mcp.other.example/mcp", env: { GITHUB_TOKEN: KEY } }),
-    ]) {
-      const failure = await refusal(
-        resolve({ run: runOf({ person: ANA }), session: owned(), tools: [other] }),
-      );
-      expect(failure.code).toBe(Code.FailedPrecondition);
-      expect(failure.rawMessage).toContain("GITHUB_TOKEN would carry repository app's own token");
-      expect(failure.rawMessage).toContain("to other");
-      expect(failure.rawMessage).toContain("remove the tool other");
-      expect(failure.rawMessage).not.toContain("repo-own");
-    }
-
-    const github = tool("github", {
-      url: "https://api.githubcopilot.com/mcp/",
-      headers: { Authorization: "Bearer ${GITHUB_TOKEN}" },
+  it("gives two declarers of one key their own values: the clone the github.com login, the agent its GITHUB_TOKEN secret", async () => {
+    const mine = await githubLogin();
+    await rig.vaults.setSecrets(
+      mine,
+      { GITHUB_TOKEN: { value: "agents-own-pat", description: "" } },
+      testCallerIdentity({ identityId: ANA }),
+    );
+    const values = await open({
+      run: runOf({ person: ANA }),
+      session: cloning(),
+      agentSpec: agent({ GITHUB_TOKEN: KEY }),
     });
-    expect(
-      await resolve({
-        run: runOf({ person: ANA }),
-        session: owned(),
-        agentSpec: agent({ GITHUB_TOKEN: KEY }),
-        tools: [github],
-      }),
-      "the GitHub tool on GitHub's own API and the agent beside the clone",
-    ).toEqual({ GITHUB_TOKEN: "repo-own" });
+    expect(values.repositories.map((repository) => [repository.name, repository.token])).toEqual([
+      ["app", "gh-login"],
+    ]);
+    expect(agentValues(values)).toEqual({ GITHUB_TOKEN: "agents-own-pat" });
   });
 
-  it("lets the github.com login serve a clone and a GitHub tool on GitHub's own API", async () => {
+  it("never plans the github.com login for the agent's own GITHUB_TOKEN beside a clone: the shell takes secrets by name only", async () => {
+    await githubLogin();
+    const failure = await refusal(
+      plan({ run: runOf({ person: ANA }), session: cloning(), agentSpec: agent({ GITHUB_TOKEN: KEY }) }),
+    );
+    expect(failure.code).toBe(Code.FailedPrecondition);
+    expect(failure.rawMessage).toContain("the agent Helper needs GITHUB_TOKEN");
+
+    const values = await open({
+      run: runOf({ person: ANA }),
+      session: cloning(),
+      agentSpec: agent({ GITHUB_TOKEN: OPTIONAL }),
+    });
+    expect(agentValues(values)).toEqual({});
+    expect(values.repositories[0]?.token).toBe("gh-login");
+  });
+
+  it("lets the clone and a GitHub tool on GitHub's own API share the github.com login, and the agent declaring the key gets none of it", async () => {
     await githubLogin();
     for (const url of ["https://api.githubcopilot.com/mcp/", "https://api.github.com/mcp"]) {
       const github = tool("github", {
@@ -1493,10 +1726,53 @@ describe("a login reaches only what it was made for", () => {
         env: { GITHUB_TOKEN: KEY },
         headers: { Authorization: "Bearer ${GITHUB_TOKEN}" },
       });
-      expect(
-        await resolve({ run: runOf({ person: ANA }), session: cloning(), tools: [github] }),
-      ).toEqual({ GITHUB_TOKEN: "gh-login" });
+      const values = await open({
+        run: runOf({ person: ANA }),
+        session: cloning(),
+        agentSpec: agent({ GITHUB_TOKEN: KEY }),
+        tools: [github],
+      });
+      expect(toolValues(values, github)).toEqual({ GITHUB_TOKEN: "gh-login" });
+      expect(values.repositories[0]?.token).toBe("gh-login");
+      expect(agentValues(values), url).toEqual({});
     }
+  });
+
+  it("never hands the github.com login to a tool at another host that declares GITHUB_TOKEN", async () => {
+    await githubLogin();
+    for (const url of [
+      "https://mcp.other.example/mcp",
+      "https://api.github.com.evil.example/mcp",
+      "http://api.github.com/mcp",
+    ]) {
+      const other = tool("other", { url, env: { GITHUB_TOKEN: OPTIONAL } });
+      const values = await open({ run: runOf({ person: ANA }), session: cloning(), tools: [other] });
+      expect(toolValues(values, other), url).toEqual({});
+      expect(values.repositories[0]?.token).toBe("gh-login");
+    }
+  });
+
+  it("hands a repository's own token to its clone alone: never a GitHub tool, never the agent", async () => {
+    const owned = (): Session =>
+      sessionOf({ repo: { url: "https://github.com/acme/app", token: "repo-own" } });
+    const github = tool("github", {
+      url: "https://api.githubcopilot.com/mcp/",
+      headers: { Authorization: "Bearer ${GITHUB_TOKEN}" },
+    });
+    const failure = await refusal(
+      plan({ run: runOf({ person: ANA }), session: owned(), tools: [github] }),
+    );
+    expect(failure.code).toBe(Code.FailedPrecondition);
+    expect(failure.rawMessage).toContain("github needs GITHUB_TOKEN");
+    expect(failure.rawMessage).not.toContain("repo-own");
+
+    const values = await open({
+      run: runOf({ person: ANA }),
+      session: owned(),
+      agentSpec: agent({ GITHUB_TOKEN: OPTIONAL }),
+    });
+    expect(values.repositories.map((repository) => repository.token)).toEqual(["repo-own"]);
+    expect(agentValues(values)).toEqual({});
   });
 
   it("fills a GitHub tool on GitHub's own API from the github.com login with no repository in the run, after the tool's own login and before a secret by name", async () => {
@@ -1555,56 +1831,50 @@ describe("a login reaches only what it was made for", () => {
       }),
       localTool("other", { target: "GITHUB_TOKEN" }),
     ]) {
-      const failure = await refusal(resolve({ run: runOf({ person: ANA }), tools: [other] }));
+      const failure = await refusal(plan({ run: runOf({ person: ANA }), tools: [other] }));
       expect(failure.code).toBe(Code.FailedPrecondition);
       expect(failure.rawMessage).toContain("other needs GITHUB_TOKEN");
     }
   });
 
-  it("lets the agent's copy of its tool's key share the sign-in: the runner keeps a key a tool claims out of the shell", async () => {
+  it("never plans a key a tool of the run declares for the agent, though agent save copied it there: its env or its login alike", async () => {
     await linearSignIn();
-    const linear = tool("linear", { url: LINEAR_URL, env: { LINEAR_TOKEN: KEY }, target: "LINEAR_TOKEN" });
-    expect(
-      await resolve({
+    for (const linear of [
+      tool("linear", { url: LINEAR_URL, env: { LINEAR_TOKEN: KEY }, target: "LINEAR_TOKEN" }),
+      // A login key only a header names is the tool's key too.
+      tool("linear", { url: LINEAR_URL, headers: { Authorization: "Bearer ${LINEAR_TOKEN}" } }),
+    ]) {
+      const sources = await plan({
         run: runOf({ person: ANA }),
         agentSpec: agent({ LINEAR_TOKEN: KEY }),
         tools: [linear],
-      }),
-    ).toEqual({ LINEAR_TOKEN: "fresh-linear-login" });
+      });
+      expect(sources.map((entry) => entry.declarer?.name)).toEqual(["linear"]);
+      const values = await open({
+        run: runOf({ person: ANA }),
+        agentSpec: agent({ LINEAR_TOKEN: KEY }),
+        tools: [linear],
+      });
+      expect(toolValues(values, linear)).toEqual({ LINEAR_TOKEN: "fresh-linear-login" });
+      expect(agentValues(values)).toEqual({});
+    }
   });
 
-  it("refuses a sign-in's token for the agent's own key that no tool claims: the shell would hold it", async () => {
-    await linearSignIn();
-    // The login key named only by a header is not a key the runner
-    // withholds from the shell.
-    const linear = tool("linear", {
-      url: LINEAR_URL,
-      headers: { Authorization: "Bearer ${LINEAR_TOKEN}" },
-    });
-    const failure = await refusal(
-      resolve({
-        run: runOf({ person: ANA }),
-        agentSpec: agent({ LINEAR_TOKEN: KEY }),
-        tools: [linear],
-      }),
+  it("keeps the agent's key from a tool's whose server the runner later skips: the plan alone decides", async () => {
+    await anasVault({ NOTION_KEY: "notion-secret" });
+    const notion = tool("notion", { env: { NOTION_KEY: KEY } });
+    // The tool's row is gone by the time the runner loads it; its key
+    // still never reaches the agent.
+    const values = await open(
+      { run: runOf({ person: ANA }), agentSpec: agent({ NOTION_KEY: KEY }), tools: [notion] },
+      async () => {
+        await rig.store.deleteResource(ApiResourceKind.mcp_server, notion.metadata!.id);
+      },
     );
-    expect(failure.code).toBe(Code.FailedPrecondition);
-    expect(failure.rawMessage).toContain("to the agent Helper");
-    expect(freshened).toEqual([]);
+    expect(agentValues(values)).toEqual({});
   });
 
-  it("lets the agent declare GITHUB_TOKEN beside a github.com clone: the clone puts the token in the shell's reach already", async () => {
-    await githubLogin();
-    expect(
-      await resolve({
-        run: runOf({ person: ANA }),
-        session: cloning(),
-        agentSpec: agent({ GITHUB_TOKEN: KEY }),
-      }),
-    ).toEqual({ GITHUB_TOKEN: "gh-login" });
-  });
-
-  it("refuses another tool's sign-in for a clone: only the github.com login is for github.com", async () => {
+  it("gives a clone nothing from another tool's sign-in: only the github.com login is for github.com", async () => {
     const mine = await anasVault({});
     await rig.vaults.setConnection(
       mine,
@@ -1624,27 +1894,21 @@ describe("a login reaches only what it was made for", () => {
       testCallerIdentity({ identityId: ANA }),
     );
     const proxy = tool("proxy", { url: "https://mcp.gh-proxy.example/mcp", target: "GITHUB_TOKEN" });
-    const failure = await refusal(
-      resolve({ run: runOf({ person: ANA }), session: cloning(), tools: [proxy] }),
-    );
-    expect(failure.code).toBe(Code.FailedPrecondition);
-    expect(failure.rawMessage).toContain("to repository app");
-    expect(freshened).toEqual([]);
+    const values = await open({ run: runOf({ person: ANA }), session: cloning(), tools: [proxy] });
+    expect(toolValues(values, proxy)).toEqual({ GITHUB_TOKEN: "fresh-proxy-login" });
+    expect(values.repositories).toEqual([]);
   });
 
-  it("still shares a secret by name with every declarer of its key", async () => {
+  it("serves a secret by name to every tool that declares its key", async () => {
     await anasVault({ LINEAR_TOKEN: "linear-pat" });
-    const evil = tool("evil", {
-      url: "https://evil.example/mcp",
+    const linear = tool("linear", { url: LINEAR_URL, target: "LINEAR_TOKEN" });
+    const other = tool("other", {
+      url: "https://other.example/mcp",
       headers: { Authorization: "Bearer ${LINEAR_TOKEN}" },
     });
-    expect(
-      await resolve({
-        run: runOf({ person: ANA }),
-        agentSpec: agent({ LINEAR_TOKEN: KEY }),
-        tools: [tool("linear", { url: LINEAR_URL, target: "LINEAR_TOKEN" }), evil],
-      }),
-    ).toEqual({ LINEAR_TOKEN: "linear-pat" });
+    const values = await open({ run: runOf({ person: ANA }), tools: [linear, other] });
+    expect(toolValues(values, linear)).toEqual({ LINEAR_TOKEN: "linear-pat" });
+    expect(toolValues(values, other)).toEqual({ LINEAR_TOKEN: "linear-pat" });
   });
 });
 
@@ -1652,42 +1916,33 @@ describe("a login reaches only what it was made for", () => {
 // The connect lane
 // ---------------------------------------------------------------------------
 
-describe("resolveForConnect", () => {
+describe("the connect lane", () => {
   const linear = tool("linear", { target: "LINEAR_TOKEN", env: { TEAM: { value: "core" } } });
 
-  it("the request's own values come first, then a human caller's My vault", async () => {
+  it("a person's connect reads their My vault, and its plain defaults", async () => {
     await anasVault({ LINEAR_TOKEN: "ana-token" });
-    const human = testCallerIdentity({ identityId: ANA });
-    const fromVault = await resolver.resolveForConnect({
-      orgId: ORG,
-      caller: human,
-      server: linear,
-      ownValues: new Map(),
-    });
-    expect(fromVault.get("LINEAR_TOKEN")?.value).toBe("ana-token");
-    expect(fromVault.get("TEAM")?.value).toBe("core");
-
-    const own = await resolver.resolveForConnect({
-      orgId: ORG,
-      caller: human,
-      server: linear,
-      ownValues: new Map([
-        ["LINEAR_TOKEN", create(ExecutionValueSchema, { value: "one-time", isSecret: true })],
-      ]),
-    });
-    expect(own.get("LINEAR_TOKEN")?.value).toBe("one-time");
+    const values = await resolver.openConnect({ orgId: ORG, person: ANA, server: linear });
+    expect(toolValues(values, linear)).toEqual({ LINEAR_TOKEN: "ana-token", TEAM: "core" });
+    expect(values.agent).toEqual({});
   });
 
-  it("a runner caller reads no My vault: its own values are all it has", async () => {
+  it("a teammate's connect reads the teammate's My vault, never Ana's", async () => {
     await anasVault({ LINEAR_TOKEN: "ana-token" });
-    const failure = await refusal(
-      resolver.resolveForConnect({
-        orgId: ORG,
-        caller: testCallerIdentity({ identityId: ANA, callerClass: "runner" }),
-        server: linear,
-        ownValues: new Map(),
-      }),
-    );
+    const failure = await refusal(resolver.openConnect({ orgId: ORG, person: BEN, server: linear }));
+    expect(failure.code).toBe(Code.FailedPrecondition);
+    expect(failure.rawMessage).toContain("linear needs LINEAR_TOKEN");
+  });
+
+  it("a caller who is no person reads no My vault", async () => {
+    await anasVault({ LINEAR_TOKEN: "ana-token" });
+    const failure = await refusal(resolver.planConnect({ orgId: ORG, person: undefined, server: linear }));
+    expect(failure.code).toBe(Code.FailedPrecondition);
+  });
+
+  it("a sign-in saved into a shared vault never serves a connect", async () => {
+    const team = await seedSharedVault(rig.store, ORG, "team", { secrets: { LINEAR_TOKEN: "team-token" } });
+    mayUse.add(`${ANA}:${team.metadata!.id}`);
+    const failure = await refusal(resolver.planConnect({ orgId: ORG, person: ANA, server: linear }));
     expect(failure.code).toBe(Code.FailedPrecondition);
   });
 });
@@ -1700,14 +1955,20 @@ function resolverWith(overrides: {
   authorizer?: Authorizer;
   freshener?: SignInFreshener;
   getResource?: () => Promise<never>;
+  /** Fault only reads of this kind; every other read reaches the store. */
+  onlyKind?: ApiResourceKind;
 }): VaultResolver {
+  const fault = overrides.getResource;
   const store =
-    overrides.getResource === undefined
+    fault === undefined
       ? rig.store
       : new Proxy(rig.store, {
           get(target, prop, receiver) {
             if (prop === "getResource") {
-              return overrides.getResource;
+              return (...args: Parameters<typeof rig.store.getResource>) =>
+                overrides.onlyKind === undefined || args[0] === overrides.onlyKind
+                  ? fault()
+                  : rig.store.getResource(...args);
             }
             const value = Reflect.get(target, prop, receiver) as unknown;
             return typeof value === "function" ? value.bind(target) : value;
@@ -1795,31 +2056,23 @@ describe("edges", () => {
       authorizer: { authorize: async () => ({ kind: "unavailable", cause: new Error("fga down") }) },
     });
     await expect(
-      outage.resolveForRun({
-        execution: runOf({ person: ANA }),
-        session: await stored(sessionOf({ vaults: ["team"] })),
-        agentSpec: agent({ API_KEY: KEY }),
-        agentName: "Helper",
-        agentOrg: ORG,
-        tools: [],
-      }),
+      plan(
+        { run: runOf({ person: ANA }), session: sessionOf({ vaults: ["team"] }), agentSpec: agent({ API_KEY: KEY }) },
+        outage,
+      ),
     ).rejects.toThrow("fga down");
   });
 
   it("a store fault reading the conversation propagates", async () => {
     await expect(
-      resolverWith({
-        getResource: async () => {
-          throw new Error("disk gone");
-        },
-      }).resolveForRun({
-        execution: runOf({ person: ANA }),
-        session: sessionOf(),
-        agentSpec: undefined,
-        agentName: "",
-        agentOrg: undefined,
-        tools: [],
-      }),
+      plan(
+        { run: runOf({ person: ANA }), unsaved: true },
+        resolverWith({
+          getResource: async () => {
+            throw new Error("disk gone");
+          },
+        }),
+      ),
     ).rejects.toThrow("disk gone");
   });
 
@@ -1848,14 +2101,7 @@ describe("edges", () => {
       freshener,
     });
     await expect(
-      faulty.resolveForRun({
-        execution: runOf({ labels: { [SCHEDULE_ID_LABEL_KEY]: "sch_any" } }),
-        session: await stored(sessionOf()),
-        agentSpec: undefined,
-        agentName: "",
-        agentOrg: undefined,
-        tools: [],
-      }),
+      plan({ run: runOf({ labels: { [SCHEDULE_ID_LABEL_KEY]: "sch_any" } }) }, faulty),
     ).rejects.toThrow("disk gone");
   });
 
@@ -1888,19 +2134,12 @@ describe("edges", () => {
       }),
     });
     const failure = await refusal(
-      real.resolveForRun({
-        execution: runOf({ person: ANA }),
-        session: await stored(sessionOf()),
-        agentSpec: undefined,
-        agentName: "",
-        agentOrg: undefined,
-        tools: [tool("linear", { target: "LINEAR_TOKEN" })],
-      }),
+      open({ run: runOf({ person: ANA }), tools: [tool("linear", { target: "LINEAR_TOKEN" })] }, undefined, real),
     );
     expect(failure.code).toBe(Code.FailedPrecondition);
     expect(failure.rawMessage).toBe(
       "the sign-in for https://mcp.linear.example/mcp in My vault could not be renewed: " +
-        "it has expired and no refresh token is available. Sign in again",
+        "it has expired and no refresh token is available. Sign in again, then recover the turn",
     );
   });
 
@@ -1931,14 +2170,7 @@ describe("edges", () => {
       },
     });
     const failure = await refusal(
-      refusing.resolveForRun({
-        execution: runOf({ person: ANA }),
-        session: await stored(sessionOf()),
-        agentSpec: undefined,
-        agentName: "",
-        agentOrg: undefined,
-        tools: [tool("linear", { target: "LINEAR_TOKEN" })],
-      }),
+      open({ run: runOf({ person: ANA }), tools: [tool("linear", { target: "LINEAR_TOKEN" })] }, undefined, refusing),
     );
     expect(failure.code).toBe(Code.Unauthenticated);
   });
@@ -2001,39 +2233,39 @@ describe("a stored value the server cannot open", () => {
     });
   }
 
-  /** The run's failure; a run that resolves fails the test, naming what it carried. */
-  async function failureOfRun(run: Promise<Map<string, ExecutionValue>>): Promise<Error> {
-    let values: Map<string, ExecutionValue>;
+  /** The fetch's failure; a fetch that opens fails the test, naming what it carried. */
+  async function failureOfFetch(fetched: Promise<ExecutionValues>): Promise<Error> {
+    let values: ExecutionValues;
     try {
-      values = await run;
+      values = await fetched;
     } catch (error) {
       if (error instanceof Error) {
         return error;
       }
       throw error;
     }
-    throw new Error(`expected the run refused; it carried ${JSON.stringify([...values.keys()])}`);
+    throw new Error(`expected the fetch refused; it carried ${JSON.stringify(flatten(values))}`);
   }
 
   it.each(["no key configured", "tampered"] as const)(
-    "a vault's secret (%s) refuses the run, and no value reaches it",
+    "a vault's secret (%s) is planned without opening it, then refuses the fetch, and no value reaches it",
     async (how) => {
       const cannot = await unopenable(how);
       const team = await seedSharedVault(rig.store, ORG, "sealed", {
         secrets: { API_KEY: cannot.stored },
       });
       mayUse.add(`${ANA}:${team.metadata!.id}`);
+      const over = resolverOver(cannot.secrets);
+      const decrypt = vi.spyOn(cannot.secrets, "decrypt");
       // Optional, so a key silently dropped would let the run start without it.
-      const failure = await failureOfRun(
-        resolverOver(cannot.secrets).resolveForRun({
-          execution: runOf({ person: ANA }),
-          session: await stored(sessionOf({ vaults: ["sealed"] })),
-          agentSpec: agent({ API_KEY: { isSecret: true, optional: true } }),
-          agentName: "Helper",
-          agentOrg: ORG,
-          tools: [],
-        }),
-      );
+      const init: ResolveInit = {
+        run: runOf({ person: ANA }),
+        session: sessionOf({ vaults: ["sealed"] }),
+        agentSpec: agent({ API_KEY: { isSecret: true, optional: true } }),
+      };
+      expect((await plan(init, over)).map((entry) => entry.key)).toEqual(["API_KEY"]);
+      expect(decrypt, "planning opens nothing").not.toHaveBeenCalled();
+      const failure = await failureOfFetch(open(init, undefined, over));
       expect(failure).toBeInstanceOf(cannot.error);
       expect(failure.message).toBe(cannot.message);
       expect(failure.message).not.toContain(cannot.stored);
@@ -2069,17 +2301,12 @@ describe("a stored value the server cannot open", () => {
     await rig.store.saveResource(ApiResourceKind.vault, id, VaultSchema, row);
 
     const decrypt = vi.spyOn(cannot.secrets, "decrypt");
-    const values = await resolverOver(cannot.secrets).resolveForRun({
-      execution: runOf({ person: ANA }),
-      session: await stored(sessionOf()),
-      agentSpec: agent({ NEEDED: KEY }),
-      agentName: "Helper",
-      agentOrg: ORG,
-      tools: [],
-    });
-    expect(Object.fromEntries([...values].map(([key, value]) => [key, value.value]))).toEqual({
-      NEEDED: "needed-value",
-    });
+    const values = await open(
+      { run: runOf({ person: ANA }), agentSpec: agent({ NEEDED: KEY }) },
+      undefined,
+      resolverOver(cannot.secrets),
+    );
+    expect(flatten(values)).toEqual({ NEEDED: "needed-value" });
     // One decrypt, of the one value the run carries.
     expect(decrypt.mock.calls.map(([value]) => value)).toEqual([row.spec!.secrets["NEEDED"]!.value]);
   });
@@ -2103,17 +2330,12 @@ describe("a stored value the server cannot open", () => {
       }),
     );
     const decrypt = vi.spyOn(cannot.secrets, "decrypt");
-    const values = await resolverOver(cannot.secrets).resolveForRun({
-      execution: runOf({ person: ANA }),
-      session,
-      agentSpec: undefined,
-      agentName: "",
-      agentOrg: undefined,
-      tools: [],
-    });
-    expect(Object.fromEntries([...values].map(([key, value]) => [key, value.value]))).toEqual({
-      GITHUB_TOKEN: "own-value",
-    });
+    const values = await open(
+      { run: runOf({ person: ANA }), session, unsaved: true },
+      undefined,
+      resolverOver(cannot.secrets),
+    );
+    expect(flatten(values)).toEqual({ GITHUB_TOKEN: "own-value" });
     expect(decrypt.mock.calls.map(([value]) => value)).toEqual([own]);
   });
 
@@ -2150,7 +2372,8 @@ describe("a stored value the server cannot open", () => {
     await rig.store.saveResource(ApiResourceKind.vault, id, VaultSchema, row);
 
     const decrypt = vi.spyOn(cannot.secrets, "decrypt");
-    const values = await newVaultResolver({
+    const linear = tool("linear", { target: "LINEAR_TOKEN" });
+    const over = newVaultResolver({
       store: rig.store,
       logger: silentLogger,
       authorizer: useTable,
@@ -2164,34 +2387,26 @@ describe("a stored value the server cannot open", () => {
         secretService: cannot.secrets,
         logger: silentLogger,
       }),
-    }).resolveForRun({
-      execution: runOf({ person: ANA }),
-      session: await stored(sessionOf()),
-      agentSpec: undefined,
-      agentName: "",
-      agentOrg: undefined,
-      tools: [tool("linear", { target: "LINEAR_TOKEN" })],
     });
-    expect(values.get("LINEAR_TOKEN")?.value).toBe("linear-token");
+    const values = await open({ run: runOf({ person: ANA }), tools: [linear] }, undefined, over);
+    expect(toolValues(values, linear)).toEqual({ LINEAR_TOKEN: "linear-token" });
     expect(decrypt.mock.calls.map(([value]) => value)).toEqual([login.token]);
   });
 
   it.each(["no key configured", "tampered"] as const)(
-    "a repository's own token (%s) refuses the run, and no value reaches it",
+    "a repository's own token (%s) refuses the fetch, and no value reaches it",
     async (how) => {
       const cannot = await unopenable(how);
       // A clone's token is optional, so a dropped one would let the run start unseen.
-      const failure = await failureOfRun(
-        resolverOver(cannot.secrets).resolveForRun({
-          execution: runOf({ person: ANA }),
-          session: await stored(
-            sessionOf({ repo: { url: "https://github.com/acme/app", token: cannot.stored } }),
-          ),
-          agentSpec: undefined,
-          agentName: "",
-          agentOrg: undefined,
-          tools: [],
-        }),
+      const failure = await failureOfFetch(
+        open(
+          {
+            run: runOf({ person: ANA }),
+            session: sessionOf({ repo: { url: "https://github.com/acme/app", token: cannot.stored } }),
+          },
+          undefined,
+          resolverOver(cannot.secrets),
+        ),
       );
       expect(failure).toBeInstanceOf(cannot.error);
       expect(failure.message).toBe(cannot.message);

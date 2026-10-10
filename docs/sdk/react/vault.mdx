@@ -280,6 +280,26 @@ Compact form for creating a shared vault.
 
 ### EnvVarForm
 
+Compact form that collects environment variable values for any
+resource that declares `env` variables (Agents, MCP servers, etc.).
+
+Renders one labeled input per variable. Secret variables use a
+password field with a visibility toggle. The form validates that
+all fields are non-empty before allowing submission.
+
+The values are for My vault: a value typed for a chat, an agent or a
+tool is saved there, because neither a conversation nor a connect keeps
+values of its own.
+
+This is a **pure presentational component** with no knowledge of
+vaults, sessions, or orchestration. It
+can be used standalone by platform builders for their own env
+setup UIs, or composed by higher-level hooks like
+[`useAgentSetup`](/docs/sdk/react/agent#useagentsetup) or `useMcpServerSetup` within the
+[`SessionComposer`](/docs/sdk/react/composer#sessioncomposer).
+
+All visual properties flow through `--stgm-*` design tokens.
+
 **Props** — `EnvVarFormProps`
 
 <TypeTable
@@ -287,20 +307,30 @@ Compact form for creating a shared vault.
     ariaLabel: { type: "string", description: "Overrides the `aria-label` on the `<form>` element. When omitted, falls back to `\"Configure {title}\"` if a title is provided, or `\"Configure environment variables\"` as a generic fallback." },
     cancelLabel: { type: "string", description: "Overrides the default cancel button label (`\"Back\"`)." },
     className: { type: "string", description: "Additional CSS class names for the root container." },
-    defaultSaveForFuture: { type: "boolean", description: "Initial state of the \"Save in My vault\" toggle, when the form offers one (`unsavedScope`)." },
     description: { type: "string", description: "Subtitle shown below the title. Only rendered when `title` is also provided." },
     disabled: { type: "boolean", description: "When `true`, all inputs and buttons are disabled." },
-    hideSaveToggle: { type: "boolean", description: "When `true`, the save toggle is hidden and the form always uses `defaultSaveForFuture` as the submit value. Only meaningful with `unsavedScope`; without it there is no toggle." },
     isSubmitting: { type: "boolean", description: "When true, the submit button shows a spinner and inputs are disabled." },
     onCancel: { type: "() => void", description: "Called when the user clicks the cancel/back button." },
-    onSubmit: { type: "(values: Record<string, EnvVarInput>, options: EnvVarFormSubmitOptions) => void", description: "Called with the collected values and the save toggle state when the user submits the form.", required: true },
+    onSubmit: { type: "(values: Record<string, EnvVarInput>) => void", description: "Called with the collected values when the user submits the form. The values are for My vault: a conversation and a connect keep no values of their own.", required: true },
     poolValues: { type: "(key: string) => EnvVarInput | undefined", description: "Pre-fill values from another source the host holds.  When provided, fields whose keys return a value are pre-populated with it, and a subtle indicator says the value was pre-filled." },
-    submitLabel: { type: "string", description: "Overrides the default submit button label. When omitted, the button shows `\"Save\"` while the values are to be saved, and otherwise names where the unsaved values are used (`unsavedScope`)." },
+    submitLabel: { type: "string", description: "Overrides the default submit button label (`\"Save\"`)." },
     title: { type: "string", description: "Optional heading rendered above the fields. When omitted, no header section is rendered — useful when the form is embedded inside a panel that provides its own header." },
-    unsavedScope: { type: "\"connection\"", description: "Offer the \"Save in My vault\" toggle, naming where values the person chooses not to save are used: `\"connection\"`, one connection to a tool, not kept. Omitted, the form has no toggle and always saves: a conversation never keeps values of its own, so a value typed for a chat is saved in My vault." },
     variables: { type: "EnvVarFormVariable[]", description: "Variables to collect. Each entry renders one input field, in order. Must contain at least one variable.", required: true },
   }}
 />
+
+```tsx
+<EnvVarForm
+  title="GitHub MCP Server"
+  description="Enter required credentials."
+  variables={[
+    { key: "GITHUB_TOKEN", isSecret: true, description: "Personal access token" },
+    { key: "REPO_OWNER", isSecret: false },
+  ]}
+  onSubmit={(values) => saveToMyVault(values)}
+  onCancel={() => console.log("cancelled")}
+/>
+```
 
 
 ### VaultEntriesEditor
@@ -432,17 +462,6 @@ independently of hooks, providers, or API calls.
 ```tsx
 function diffEnv(envDeclarations: Record<string, { description?: string; isSecret: boolean; optional?: boolean; value?: string }>, existingKeys: Set<string>, poolKeys?: Set<string>): EnvVarFormVariable[]
 ```
-
-
-### EnvVarFormSubmitOptions
-
-Options reported by the form alongside the collected values on submit.
-
-<TypeTable
-  type={{
-    saveForFuture: { type: "boolean", description: "Whether the values are to be saved in My vault. Always `true` unless the form offers its save toggle (`unsavedScope`) and the person turned it off.", required: true },
-  }}
-/>
 
 
 ### EnvVarFormVariable

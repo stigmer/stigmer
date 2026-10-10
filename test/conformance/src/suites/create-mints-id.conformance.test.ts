@@ -62,7 +62,6 @@ import { makeAgentShare } from "../support/agentshares";
 import { makeApiKey } from "../support/apikeys";
 import { makeSlackChannelApp } from "../support/channelapps";
 import { makeSharedVault } from "../support/vaults";
-import { makeExecutionContext } from "../support/executioncontexts";
 import { makeEvaluator } from "../support/evaluators";
 import {
   cancelAndDeletePluginEval,
@@ -347,42 +346,6 @@ const ROWS: readonly Row[] = [
     },
     async read(id) {
       return (await clients.vaultQuery.get({ value: id })).metadata?.id;
-    },
-  },
-  {
-    title: "[rpc:ExecutionContextCommandController.create] ExecutionContext",
-    key: "ExecutionContextCommandController.create",
-    kind: ApiResourceKind.execution_context,
-    async send({ org }, chosenId) {
-      const name = uniqueName("mint-ectx");
-      // A unique parent execution id: a context is looked up by it, so two
-      // rows must never share one.
-      const created = await clients.executionContextCommand.create({
-        ...makeExecutionContext({ org, name, executionId: uniqueName("aex") }),
-        metadata: { id: chosenId, name, org },
-      });
-      fixtures.defer(() => clients.executionContextCommand.delete({ resourceId: created.metadata!.id }));
-      return answerOf(this.key, created.metadata);
-    },
-    async read(id) {
-      return (await clients.executionContextQuery.get({ value: id })).metadata?.id;
-    },
-  },
-  {
-    title: "[rpc:ExecutionContextCommandController.apply] ExecutionContext (apply as a create)",
-    key: "ExecutionContextCommandController.apply",
-    kind: ApiResourceKind.execution_context,
-    async send({ org }, chosenId) {
-      const name = uniqueName("mint-ectx");
-      const applied = await clients.executionContextCommand.apply({
-        ...makeExecutionContext({ org, name, executionId: uniqueName("aex") }),
-        metadata: { id: chosenId, name, org },
-      });
-      fixtures.defer(() => clients.executionContextCommand.delete({ resourceId: applied.metadata!.id }));
-      return answerOf(this.key, applied.metadata);
-    },
-    async read(id) {
-      return (await clients.executionContextQuery.get({ value: id })).metadata?.id;
     },
   },
   {

@@ -2495,6 +2495,129 @@ func (FileReviewBlockReason) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_run_v1_enum_proto_rawDescGZIP(), []int{30}
 }
 
+// Who declared a value a turn uses.
+type RunValueDeclarerKind int32
+
+const (
+	// Default; never written.
+	RunValueDeclarerKind_RUN_VALUE_DECLARER_KIND_UNSPECIFIED RunValueDeclarerKind = 0
+	// The turn's agent, in its env.
+	RunValueDeclarerKind_RUN_VALUE_DECLARER_KIND_AGENT RunValueDeclarerKind = 1
+	// A tool (an MCP server) the turn uses, in its env or its login.
+	RunValueDeclarerKind_RUN_VALUE_DECLARER_KIND_TOOL RunValueDeclarerKind = 2
+	// A repository the turn clones, for its token.
+	RunValueDeclarerKind_RUN_VALUE_DECLARER_KIND_REPOSITORY RunValueDeclarerKind = 3
+)
+
+// Enum value maps for RunValueDeclarerKind.
+var (
+	RunValueDeclarerKind_name = map[int32]string{
+		0: "RUN_VALUE_DECLARER_KIND_UNSPECIFIED",
+		1: "RUN_VALUE_DECLARER_KIND_AGENT",
+		2: "RUN_VALUE_DECLARER_KIND_TOOL",
+		3: "RUN_VALUE_DECLARER_KIND_REPOSITORY",
+	}
+	RunValueDeclarerKind_value = map[string]int32{
+		"RUN_VALUE_DECLARER_KIND_UNSPECIFIED": 0,
+		"RUN_VALUE_DECLARER_KIND_AGENT":       1,
+		"RUN_VALUE_DECLARER_KIND_TOOL":        2,
+		"RUN_VALUE_DECLARER_KIND_REPOSITORY":  3,
+	}
+)
+
+func (x RunValueDeclarerKind) Enum() *RunValueDeclarerKind {
+	p := new(RunValueDeclarerKind)
+	*p = x
+	return p
+}
+
+func (x RunValueDeclarerKind) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (RunValueDeclarerKind) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_run_v1_enum_proto_enumTypes[31].Descriptor()
+}
+
+func (RunValueDeclarerKind) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_run_v1_enum_proto_enumTypes[31]
+}
+
+func (x RunValueDeclarerKind) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use RunValueDeclarerKind.Descriptor instead.
+func (RunValueDeclarerKind) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_run_v1_enum_proto_rawDescGZIP(), []int{31}
+}
+
+// Where a value a turn uses lives.
+type RunValueOrigin int32
+
+const (
+	// Default; never written.
+	RunValueOrigin_RUN_VALUE_ORIGIN_UNSPECIFIED RunValueOrigin = 0
+	// The conversation's own token for the repository.
+	RunValueOrigin_RUN_VALUE_ORIGIN_REPOSITORY_TOKEN RunValueOrigin = 1
+	// The turn's person's My vault.
+	RunValueOrigin_RUN_VALUE_ORIGIN_MY_VAULT RunValueOrigin = 2
+	// A vault the conversation lists.
+	RunValueOrigin_RUN_VALUE_ORIGIN_VAULT RunValueOrigin = 3
+	// A vault of the surface a turn with no person came through (its
+	// schedule, share, channel or platform client).
+	RunValueOrigin_RUN_VALUE_ORIGIN_SURFACE_VAULT RunValueOrigin = 4
+	// The declaration's own plain default.
+	RunValueOrigin_RUN_VALUE_ORIGIN_DECLARATION RunValueOrigin = 5
+)
+
+// Enum value maps for RunValueOrigin.
+var (
+	RunValueOrigin_name = map[int32]string{
+		0: "RUN_VALUE_ORIGIN_UNSPECIFIED",
+		1: "RUN_VALUE_ORIGIN_REPOSITORY_TOKEN",
+		2: "RUN_VALUE_ORIGIN_MY_VAULT",
+		3: "RUN_VALUE_ORIGIN_VAULT",
+		4: "RUN_VALUE_ORIGIN_SURFACE_VAULT",
+		5: "RUN_VALUE_ORIGIN_DECLARATION",
+	}
+	RunValueOrigin_value = map[string]int32{
+		"RUN_VALUE_ORIGIN_UNSPECIFIED":      0,
+		"RUN_VALUE_ORIGIN_REPOSITORY_TOKEN": 1,
+		"RUN_VALUE_ORIGIN_MY_VAULT":         2,
+		"RUN_VALUE_ORIGIN_VAULT":            3,
+		"RUN_VALUE_ORIGIN_SURFACE_VAULT":    4,
+		"RUN_VALUE_ORIGIN_DECLARATION":      5,
+	}
+)
+
+func (x RunValueOrigin) Enum() *RunValueOrigin {
+	p := new(RunValueOrigin)
+	*p = x
+	return p
+}
+
+func (x RunValueOrigin) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (RunValueOrigin) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_run_v1_enum_proto_enumTypes[32].Descriptor()
+}
+
+func (RunValueOrigin) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_run_v1_enum_proto_enumTypes[32]
+}
+
+func (x RunValueOrigin) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use RunValueOrigin.Descriptor instead.
+func (RunValueOrigin) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_run_v1_enum_proto_rawDescGZIP(), []int{32}
+}
+
 var File_ai_stigmer_agentic_run_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_run_v1_enum_proto_rawDesc = "" +
@@ -2686,7 +2809,19 @@ const file_ai_stigmer_agentic_run_v1_enum_proto_rawDesc = "" +
 	"$FILE_REVIEW_BLOCK_REASON_UNSPECIFIED\x10\x00\x12,\n" +
 	"(FILE_REVIEW_BLOCK_REASON_SECRET_WITHHELD\x10\x01\x12(\n" +
 	"$FILE_REVIEW_BLOCK_REASON_SIZE_ELIDED\x10\x02\x12)\n" +
-	"%FILE_REVIEW_BLOCK_REASON_UNREVIEWABLE\x10\x03B\xfd\x01\n" +
+	"%FILE_REVIEW_BLOCK_REASON_UNREVIEWABLE\x10\x03*\xac\x01\n" +
+	"\x14RunValueDeclarerKind\x12'\n" +
+	"#RUN_VALUE_DECLARER_KIND_UNSPECIFIED\x10\x00\x12!\n" +
+	"\x1dRUN_VALUE_DECLARER_KIND_AGENT\x10\x01\x12 \n" +
+	"\x1cRUN_VALUE_DECLARER_KIND_TOOL\x10\x02\x12&\n" +
+	"\"RUN_VALUE_DECLARER_KIND_REPOSITORY\x10\x03*\xda\x01\n" +
+	"\x0eRunValueOrigin\x12 \n" +
+	"\x1cRUN_VALUE_ORIGIN_UNSPECIFIED\x10\x00\x12%\n" +
+	"!RUN_VALUE_ORIGIN_REPOSITORY_TOKEN\x10\x01\x12\x1d\n" +
+	"\x19RUN_VALUE_ORIGIN_MY_VAULT\x10\x02\x12\x1a\n" +
+	"\x16RUN_VALUE_ORIGIN_VAULT\x10\x03\x12\"\n" +
+	"\x1eRUN_VALUE_ORIGIN_SURFACE_VAULT\x10\x04\x12 \n" +
+	"\x1cRUN_VALUE_ORIGIN_DECLARATION\x10\x05B\xfd\x01\n" +
 	"\x1dcom.ai.stigmer.agentic.run.v1B\tEnumProtoP\x01ZHgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/run/v1;runv1\xa2\x02\x04ASAR\xaa\x02\x19Ai.Stigmer.Agentic.Run.V1\xca\x02\x19Ai\\Stigmer\\Agentic\\Run\\V1\xe2\x02%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata\xea\x02\x1dAi::Stigmer::Agentic::Run::V1b\x06proto3"
 
 var (
@@ -2701,7 +2836,7 @@ func file_ai_stigmer_agentic_run_v1_enum_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_run_v1_enum_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_run_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 31)
+var file_ai_stigmer_agentic_run_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 33)
 var file_ai_stigmer_agentic_run_v1_enum_proto_goTypes = []any{
 	(RunPhase)(0),                 // 0: ai.stigmer.agentic.run.v1.RunPhase
 	(MessageType)(0),              // 1: ai.stigmer.agentic.run.v1.MessageType
@@ -2734,6 +2869,8 @@ var file_ai_stigmer_agentic_run_v1_enum_proto_goTypes = []any{
 	(FileReviewEventType)(0),      // 28: ai.stigmer.agentic.run.v1.FileReviewEventType
 	(FileReviewFailureKind)(0),    // 29: ai.stigmer.agentic.run.v1.FileReviewFailureKind
 	(FileReviewBlockReason)(0),    // 30: ai.stigmer.agentic.run.v1.FileReviewBlockReason
+	(RunValueDeclarerKind)(0),     // 31: ai.stigmer.agentic.run.v1.RunValueDeclarerKind
+	(RunValueOrigin)(0),           // 32: ai.stigmer.agentic.run.v1.RunValueOrigin
 }
 var file_ai_stigmer_agentic_run_v1_enum_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -2753,7 +2890,7 @@ func file_ai_stigmer_agentic_run_v1_enum_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_run_v1_enum_proto_rawDesc), len(file_ai_stigmer_agentic_run_v1_enum_proto_rawDesc)),
-			NumEnums:      31,
+			NumEnums:      33,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,

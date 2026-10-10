@@ -105,7 +105,7 @@ export function synthesizeConversationAttachment(
     slug: CONVERSATION_ATTACHMENT_SLUG,
     destructiveTools: [],
     discoveredToolNames: null,
-    declaredEnvKeys: [],
+    serverId: "",
     pluginOrigin: null,
     discoveredCapabilitiesEmpty: false,
     connectionType: "http",

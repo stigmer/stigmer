@@ -253,16 +253,12 @@ function generateResourceClient(
   const typeMap = new Map<string, TypeSchema>();
   for (const t of specTypes) typeMap.set(t.name, t);
 
-  let needsExecutionContext = false;
   let needsTimestamppb = false;
   let needsRefKindOverride = false;
   const crossPkgImports = new Map<string, string>();
   if (specSchema !== null) {
     const scanFieldsForImports = (fields: FieldSchema[]): void => {
       for (const f of fields) {
-        if (f.type.kind === "map" && f.type.valueType?.messageType === "ExecutionValue") {
-          needsExecutionContext = true;
-        }
         // A message field, a repeated one (`repeated McpServerUsage` in
         // another package's spec), or a map's message value (`map<string,
         // EnvVarDeclaration>`) imports the message's own package.
@@ -278,7 +274,7 @@ function generateResourceClient(
           const ts = typeMap.get(msgName);
           if (ts !== undefined && ts.protoType !== "") {
             const a = protoTypeToPackageAlias(ts.protoType);
-            if (a !== "" && a !== alias && a !== "executioncontextv1") {
+            if (a !== "" && a !== alias) {
               const idx = ts.protoType.lastIndexOf(".");
               if (idx > 0) {
                 const protoPkg = ts.protoType.slice(0, idx);
@@ -395,9 +391,6 @@ function generateResourceClient(
   if (needsSearch) {
     buf.push('\trpc "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"\n');
     buf.push('\tsearchv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/search/v1"\n');
-  }
-  if (needsExecutionContext) {
-    buf.push('\texecutioncontextv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/executioncontext/v1"\n');
   }
   if (crossPkgImports.size > 0) {
     const aliases: string[] = [];
@@ -714,8 +707,6 @@ function goTypeForTypeSpec(ts: TypeSpec): string {
     }
     case "message":
       switch (ts.messageType) {
-        case "ExecutionValue":
-          return "EnvVarInput";
         case "ApiResourceReference":
           return "ResourceRef";
         default:
@@ -874,27 +865,19 @@ function emitToProtoField(buf: string[], f: FieldSchema, alias: string, typeMap:
   } else if (t.kind === "map") {
     if (t.valueType?.kind === "message") {
       const elemMsg = t.valueType.messageType ?? "";
-      if (elemMsg === "ExecutionValue") {
-        buf.push(`\tif len(i.${f.name}) > 0 {\n`);
-        buf.push(`\t\tresource.Spec.${protoField} = make(map[string]*executioncontextv1.ExecutionValue, len(i.${f.name}))\n`);
-        buf.push(`\t\tfor k, v := range i.${f.name} {\n`);
-        buf.push(`\t\t\tresource.Spec.${protoField}[k] = &executioncontextv1.ExecutionValue{Value: v.Value, IsSecret: v.IsSecret}\n`);
-        buf.push("\t\t}\n\t}\n");
-      } else {
-        let elemAlias = alias;
-        const ts = typeMap.get(elemMsg);
-        if (ts !== undefined && ts.protoType !== "") {
-          const derivedAlias = protoTypeToPackageAlias(ts.protoType);
-          if (derivedAlias !== "") elemAlias = derivedAlias;
-        }
-        buf.push(`\tif len(i.${f.name}) > 0 {\n`);
-        buf.push(`\t\tresource.Spec.${protoField} = make(map[string]*${elemAlias}.${elemMsg}, len(i.${f.name}))\n`);
-        buf.push(`\t\tfor k, val := range i.${f.name} {\n`);
-        buf.push("\t\t\tpv, err := val.toProto()\n");
-        buf.push(`\t\t\tif err != nil {\n\t\t\t\treturn nil, keyErr(${goQuote(f.name)}, k, err)\n\t\t\t}\n`);
-        buf.push(`\t\t\tresource.Spec.${protoField}[k] = pv\n`);
-        buf.push("\t\t}\n\t}\n");
+      let elemAlias = alias;
+      const ts = typeMap.get(elemMsg);
+      if (ts !== undefined && ts.protoType !== "") {
+        const derivedAlias = protoTypeToPackageAlias(ts.protoType);
+        if (derivedAlias !== "") elemAlias = derivedAlias;
       }
+      buf.push(`\tif len(i.${f.name}) > 0 {\n`);
+      buf.push(`\t\tresource.Spec.${protoField} = make(map[string]*${elemAlias}.${elemMsg}, len(i.${f.name}))\n`);
+      buf.push(`\t\tfor k, val := range i.${f.name} {\n`);
+      buf.push("\t\t\tpv, err := val.toProto()\n");
+      buf.push(`\t\t\tif err != nil {\n\t\t\t\treturn nil, keyErr(${goQuote(f.name)}, k, err)\n\t\t\t}\n`);
+      buf.push(`\t\t\tresource.Spec.${protoField}[k] = pv\n`);
+      buf.push("\t\t}\n\t}\n");
     } else {
       buf.push(`\tresource.Spec.${protoField} = i.${f.name}\n`);
     }
@@ -1302,21 +1285,13 @@ function emitFromProtoField(buf: string[], f: FieldSchema): void {
   } else if (t.kind === "map") {
     if (t.valueType?.kind === "message") {
       const elemMsg = t.valueType.messageType ?? "";
-      if (elemMsg === "ExecutionValue") {
-        buf.push(`\t\tif len(s.${getter}) > 0 {\n`);
-        buf.push(`\t\t\tinput.${f.name} = make(map[string]EnvVarInput, len(s.${getter}))\n`);
-        buf.push(`\t\t\tfor k, v := range s.${getter} {\n`);
-        buf.push(`\t\t\t\tinput.${f.name}[k] = EnvVarInput{Value: v.GetValue(), IsSecret: v.GetIsSecret()}\n`);
-        buf.push("\t\t\t}\n\t\t}\n");
-      } else {
-        const converterName = lowerFirst(elemMsg) + "InputFromProto";
-        const goType = elemMsg + "Input";
-        buf.push(`\t\tif len(s.${getter}) > 0 {\n`);
-        buf.push(`\t\t\tinput.${f.name} = make(map[string]*${goType}, len(s.${getter}))\n`);
-        buf.push(`\t\t\tfor k, v := range s.${getter} {\n`);
-        buf.push(`\t\t\t\tinput.${f.name}[k] = ${converterName}(v)\n`);
-        buf.push("\t\t\t}\n\t\t}\n");
-      }
+      const converterName = lowerFirst(elemMsg) + "InputFromProto";
+      const goType = elemMsg + "Input";
+      buf.push(`\t\tif len(s.${getter}) > 0 {\n`);
+      buf.push(`\t\t\tinput.${f.name} = make(map[string]*${goType}, len(s.${getter}))\n`);
+      buf.push(`\t\t\tfor k, v := range s.${getter} {\n`);
+      buf.push(`\t\t\t\tinput.${f.name}[k] = ${converterName}(v)\n`);
+      buf.push("\t\t\t}\n\t\t}\n");
     } else {
       buf.push(`\t\tinput.${f.name} = s.${getter}\n`);
     }
@@ -1556,7 +1531,6 @@ function generateSDKTypesFile(sdkRootDir: string, resources: GoResourceGenInfo[]
   buf.push("type Page = gen.Page\n");
   buf.push("type ListParams = gen.ListParams\n");
   buf.push("type ListResult = gen.ListResult\n");
-  buf.push("type EnvVarInput = gen.EnvVarInput\n");
 
   fs.writeFileSync(path.join(sdkRootDir, "types.go"), gofmt(buf.join(""), "types.go"));
 }
@@ -1841,13 +1815,6 @@ type ListResult struct {
 	Entries    []*searchv1.SearchResult
 	TotalCount int32
 	TotalPages int32
-}
-
-// EnvVarInput describes a single environment variable.
-type EnvVarInput struct {
-	Value       string
-	IsSecret    bool
-	Description string
 }
 
 // ResourceRefFromProto creates a ResourceRef from a proto ApiResourceReference.

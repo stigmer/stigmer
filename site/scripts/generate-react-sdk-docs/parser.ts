@@ -295,7 +295,6 @@ const PROTO_TYPE_TO_SLUG: Record<string, string> = {
   IamPolicy: "iam-policy",
   IdentityAccount: "identity-account",
   IdentityProvider: "identity-provider",
-  ExecutionContext: "execution-context",
 };
 
 // Source-path segments that map to non-obvious domain slugs

@@ -76,7 +76,7 @@ import { approvalDecisionsOf } from "./approval-decisions.js";
 import type { ArtifactStorage } from "../shared/artifact-storage.js";
 import type { TimingRecorder } from "../shared/cold-start-timing.js";
 import { resolveBlueprint, type ResolvedBlueprint } from "../shared/blueprint-resolver.js";
-import { resolveExecutionEnv } from "../shared/env-resolver.js";
+import { fetchTurnValues, RunValuesRefusedError, type RepositoryToken } from "../shared/run-values.js";
 import { provisionSessionWorkspace } from "../shared/workspace/session-provision.js";
 import { WriteBackCoordinator } from "../shared/workspace/writeback-coordinator.js";
 import { isGitWorkTree } from "../shared/filereview/git-substrate.js";
@@ -91,7 +91,7 @@ import {
 import { LocalWorkspaceBackend } from "../shared/workspace/local-backend.js";
 import { resolveMcpServers } from "../shared/mcp-resolver.js";
 import { resolveMcpTransportPosture } from "../shared/mcp-transport-guard.js";
-import { injectCallerIdentityEnv, resolveCallerIdentity } from "../shared/caller-identity.js";
+import { callerIdentityValues, resolveCallerIdentity } from "../shared/caller-identity.js";
 import { backfillMcpServersIfNeeded } from "../shared/connect-backfill.js";
 import { discoverChannelMessaging, synthesizeChannelAttachment } from "../shared/channel-attachment.js";
 import { readChannelConversationId, synthesizeConversationAttachment } from "../shared/conversation-attachment.js";
@@ -224,6 +224,11 @@ export interface TurnReinvocation {
  *  - `workspace-lock-timeout`: another turn held the primary tree past
  *    `Config.workspaceLockTimeoutMs`. FAILED, returned (a Temporal retry
  *    would queue behind the same holder).
+ *  - `values-refused`: the run's value fetch was refused for a reason its
+ *    person fixes (an entry gone from its vault, a vault the run may no
+ *    longer use, a tool moved to another address, a sign-in that cannot be
+ *    renewed). FAILED with the server's message, returned: a retry would
+ *    read the same vaults.
  *  - `file-review-resolved`: a pure file-review resume; the agent already
  *    finished its turn during capture and the reconcile is the whole act.
  *    COMPLETED, returned, with the write-back finalized first when the
@@ -244,7 +249,17 @@ export type TurnSettlement =
       /** The agent's hooks cannot run as written; `message` names what and why, for the person who owns the agent. */
       readonly kind: "hooks-refused";
       readonly message: string;
+    }
+  | {
+      /** The run's values could not be fetched; `message` is the server's, naming the key, its declarer and the vault. */
+      readonly kind: "values-refused";
+      readonly message: string;
     };
+
+/** The environment phase's answer: the run's values, or the settlement a refused fetch produces. */
+export type EnvironmentOutcome =
+  | { readonly kind: "ready"; readonly environment: TurnEnvironment }
+  | { readonly kind: "settled"; readonly settlement: Extract<TurnSettlement, { kind: "values-refused" }> };
 
 /** The lock phase's answer: the release handle (absent when there is no primary tree), or the one settlement a lock can produce. */
 export type WorkspaceLockOutcome =
@@ -454,13 +469,25 @@ export async function resolveAgentBlueprint(
   return { session, blueprint };
 }
 
-/** Phase 2b: the execution environment (MCP server credentials). */
-export async function resolveEnvironment(deps: ResolutionDeps): Promise<TurnEnvironment> {
+/**
+ * Phase 2b: the run's values, fetched from their vaults now and grouped by
+ * declarer (`shared/run-values.ts`). A fetch refused for a reason the
+ * person fixes settles the turn with the server's message.
+ */
+export async function resolveEnvironment(deps: ResolutionDeps): Promise<EnvironmentOutcome> {
   deps.enterPhase("resolve_environment");
   await deps.reportProgress("Resolving environment");
-  const { envVars, secretKeys } = await resolveExecutionEnv(deps.client, deps.input.executionId);
+  let environment: TurnEnvironment;
+  try {
+    environment = await fetchTurnValues(deps.client, deps.input.executionId);
+  } catch (err) {
+    if (err instanceof RunValuesRefusedError) {
+      return { kind: "settled", settlement: { kind: "values-refused", message: err.message } };
+    }
+    throw err;
+  }
   deps.timing.mark("resolve_environment");
-  return { envVars, secretKeys };
+  return { kind: "ready", environment };
 }
 
 /**
@@ -490,11 +517,11 @@ export async function resolveEnvironment(deps: ResolutionDeps): Promise<TurnEnvi
  */
 export async function provisionWorkspace(
   deps: ResolutionDeps,
-  args: { readonly session: Session; readonly sessionId: string; readonly envVars: Record<string, string> },
+  args: { readonly session: Session; readonly sessionId: string; readonly repositories: readonly RepositoryToken[] },
 ): Promise<{ readonly workspace: TurnWorkspace; readonly writeback: WriteBackCoordinator | null }> {
   deps.enterPhase("provision_workspace");
   await deps.reportProgress("Provisioning workspace");
-  const provision = await provisionSessionWorkspace(deps.config, args.session, args.envVars, args.sessionId);
+  const provision = await provisionSessionWorkspace(deps.config, args.session, args.repositories, args.sessionId);
   deps.timing.mark("provision_workspace");
 
   const writeback = provision.provisionResults.length > 0
@@ -502,7 +529,7 @@ export async function provisionWorkspace(
         writeBacks: deps.transcript,
         executionId: deps.input.executionId,
         sessionId: args.sessionId,
-        githubToken: args.envVars.GITHUB_TOKEN ?? "",
+        repositories: args.repositories,
         provisionResults: provision.provisionResults,
         workspaceEntries: args.session.spec?.workspaceEntries ?? [],
         workspaceBackend: provision.workspaceBackend,
@@ -722,8 +749,7 @@ export async function resolveMcpServersAndPolicies(
   deps.enterPhase("resolve_mcp_servers");
   await deps.reportProgress("Resolving MCP servers");
   const transportPosture = resolveMcpTransportPosture(config.mode);
-  const mcpEnvVars = injectCallerIdentityEnv(
-    environment.envVars,
+  const platformValues = callerIdentityValues(
     resolveCallerIdentity(
       blueprint.sessionSpec.metadata,
       session.status?.audit?.specAudit?.createdBy,
@@ -732,15 +758,15 @@ export async function resolveMcpServersAndPolicies(
   );
   const platformServerSlugs = new Set<string>();
   let servers = (await resolveMcpServers(
-    client, blueprint.mergedMcpServerUsages, mcpEnvVars, transportPosture, config,
+    client, blueprint.mergedMcpServerUsages, environment.tools, platformValues, transportPosture, config,
   )).resolvedServers;
   deps.timing.mark("resolve_mcp_servers");
 
   // Phase 4a: Connect backfill for undiscovered MCP servers.
   const sessionOrg = session.metadata?.org ?? "";
   servers = await backfillMcpServersIfNeeded(
-    client, servers, blueprint.mergedMcpServerUsages, mcpEnvVars, sessionOrg,
-    transportPosture, config, deps.heartbeat, environment.secretKeys,
+    client, servers, blueprint.mergedMcpServerUsages, environment.tools, platformValues, sessionOrg,
+    executionId, transportPosture, config, deps.heartbeat,
   );
   deps.timing.mark("backfill_mcp");
 
@@ -1280,8 +1306,10 @@ export async function resolveTurnContext(
   const { session, blueprint } = await resolveAgentBlueprint(deps, execution, sessionId);
   const unrunnable = refuseUnrunnableHooks(blueprint, capabilities);
   if (unrunnable !== undefined) return { kind: "settled", settlement: unrunnable };
-  const environment = await resolveEnvironment(deps);
-  const { workspace, writeback } = await provisionWorkspace(deps, { session, sessionId, envVars: environment.envVars });
+  const fetched = await resolveEnvironment(deps);
+  if (fetched.kind === "settled") return { kind: "settled", settlement: fetched.settlement };
+  const { environment } = fetched;
+  const { workspace, writeback } = await provisionWorkspace(deps, { session, sessionId, repositories: environment.repositories });
   frame.primaryDir = workspace.primaryDir;
   frame.writeback = writeback;
 

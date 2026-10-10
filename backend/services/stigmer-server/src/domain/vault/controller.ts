@@ -51,6 +51,7 @@ import type {
 } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
 import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
 import { ConnectLinkController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/connect_link_pb";
+import { VaultValueController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
 import { VaultConnectionSource } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type {
@@ -144,6 +145,8 @@ import { decodeVaultRows, vaultListIndex } from "./list-index.js";
 import { redactVault } from "./redact.js";
 import type { VaultService } from "./service.js";
 import { isMyVault, personOf } from "./service.js";
+import { fetchExecutionValues } from "./values.js";
+import type { ExecutionValuesDeps } from "./values.js";
 import {
   newClaimExternalIdStep,
   newKeepStoredOwnerAndEntriesStep,
@@ -165,6 +168,8 @@ export interface VaultControllerDeps {
   readonly vaults: VaultService;
   /** A sign-in at an address and Connect links: their stores, the login apps and the egress-guarded fetch. */
   readonly signIn: ConnectLinkDeps;
+  /** The runner's fetch of an execution's values: its credential check and the resolver that opens them. */
+  readonly values: ExecutionValuesDeps;
 }
 
 /** Registers both vault services on the router (routes stage). */
@@ -204,6 +209,14 @@ export function registerVaultServices(
     getConnectLink: (input) => getConnectLink(deps.signIn, input),
     startConnectLink: (input) => startConnectLink(deps.signIn, input),
     completeConnectLink: (input) => completeConnectLink(deps.signIn, input),
+  });
+  // The runner's fetch of an execution's values: the runner credential
+  // is the authority (values.ts).
+  router.service(VaultValueController, {
+    fetchValues: async (input, ctx) => {
+      await validated(VaultValueController.method.fetchValues.input, input, callerIdentityOf(ctx), ctx, deps);
+      return fetchExecutionValues(deps.values, input, ctx);
+    },
   });
   router.service(VaultQueryController, {
     get: (id, ctx) => get(deps, id, ctx),

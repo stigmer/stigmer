@@ -2206,6 +2206,60 @@
       ]
     },
     {
+      "name": "RunValueDeclarerKind",
+      "description": "Who declared a value a turn uses.",
+      "protoType": "ai.stigmer.agentic.run.v1.RunValueDeclarerKind",
+      "values": [
+        {
+          "name": "RUN_VALUE_DECLARER_KIND_AGENT",
+          "number": 1,
+          "description": "The turn's agent, in its env."
+        },
+        {
+          "name": "RUN_VALUE_DECLARER_KIND_TOOL",
+          "number": 2,
+          "description": "A tool (an MCP server) the turn uses, in its env or its login."
+        },
+        {
+          "name": "RUN_VALUE_DECLARER_KIND_REPOSITORY",
+          "number": 3,
+          "description": "A repository the turn clones, for its token."
+        }
+      ]
+    },
+    {
+      "name": "RunValueOrigin",
+      "description": "Where a value a turn uses lives.",
+      "protoType": "ai.stigmer.agentic.run.v1.RunValueOrigin",
+      "values": [
+        {
+          "name": "RUN_VALUE_ORIGIN_REPOSITORY_TOKEN",
+          "number": 1,
+          "description": "The conversation's own token for the repository."
+        },
+        {
+          "name": "RUN_VALUE_ORIGIN_MY_VAULT",
+          "number": 2,
+          "description": "The turn's person's My vault."
+        },
+        {
+          "name": "RUN_VALUE_ORIGIN_VAULT",
+          "number": 3,
+          "description": "A vault the conversation lists."
+        },
+        {
+          "name": "RUN_VALUE_ORIGIN_SURFACE_VAULT",
+          "number": 4,
+          "description": "A vault of the surface a turn with no person came through (its\n schedule, share, channel or platform client)."
+        },
+        {
+          "name": "RUN_VALUE_ORIGIN_DECLARATION",
+          "number": 5,
+          "description": "The declaration's own plain default."
+        }
+      ]
+    },
+    {
       "name": "SnapshotKind",
       "description": "SnapshotKind is the substrate backing a SnapshotRef.",
       "protoType": "ai.stigmer.agentic.run.v1.SnapshotKind",
@@ -2583,11 +2637,6 @@
           "name": "channel_app",
           "number": 48,
           "description": "Customer-owned messaging-platform app (e.g. a Slack app) that agent\n channels can install through instead of the shared platform app."
-        },
-        {
-          "name": "execution_context",
-          "number": 54,
-          "description": "User-owned runtime context for managing execution state."
         },
         {
           "name": "schedule",
@@ -5276,6 +5325,161 @@
           "description": "The person whose turn this is, by identity account id. Absent for a\n turn no person sent: a schedule's, a channel's, a share link guest's, a\n platform client user's or a machine account's, which use only the\n vaults their session and surface name.",
           "required": false,
           "oneofGroup": "_person"
+        },
+        {
+          "name": "Sources",
+          "jsonName": "sources",
+          "protoField": "sources",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "RunValueSource"
+            }
+          },
+          "description": "Where each value the turn uses lives: one entry per key and declarer,\n naming a vault and an entry, never a value. A runner fetches the\n values from these vaults when the turn's work starts\n (VaultValueController.fetchValues). An optional key nothing holds has\n no entry.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "RunValueDeclarer",
+      "description": "RunValueDeclarer names who declared a value a turn uses.",
+      "protoType": "ai.stigmer.agentic.run.v1.RunValueDeclarer",
+      "protoFile": "apis/ai/stigmer/agentic/run/v1/api.proto",
+      "fields": [
+        {
+          "name": "Kind",
+          "jsonName": "kind",
+          "protoField": "kind",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.run.v1.RunValueDeclarerKind",
+            "enumValues": [
+              "RUN_VALUE_DECLARER_KIND_AGENT",
+              "RUN_VALUE_DECLARER_KIND_TOOL",
+              "RUN_VALUE_DECLARER_KIND_REPOSITORY"
+            ]
+          },
+          "description": "Agent, tool or repository.",
+          "required": false
+        },
+        {
+          "name": "Name",
+          "jsonName": "name",
+          "protoField": "name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The agent's or tool's name, or the repository entry's name.",
+          "required": false
+        },
+        {
+          "name": "McpServerId",
+          "jsonName": "mcpServerId",
+          "protoField": "mcp_server_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The tool's MCP server id; empty for an agent or a repository.",
+          "required": false
+        },
+        {
+          "name": "RepositoryUrl",
+          "jsonName": "repositoryUrl",
+          "protoField": "repository_url",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The repository's URL; empty for an agent or a tool.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "RunValueSource",
+      "description": "RunValueSource says where one value a turn uses lives. It names no value.",
+      "protoType": "ai.stigmer.agentic.run.v1.RunValueSource",
+      "protoFile": "apis/ai/stigmer/agentic/run/v1/api.proto",
+      "fields": [
+        {
+          "name": "Key",
+          "jsonName": "key",
+          "protoField": "key",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The environment variable.",
+          "required": false
+        },
+        {
+          "name": "Declarer",
+          "jsonName": "declarer",
+          "protoField": "declarer",
+          "type": {
+            "kind": "message",
+            "messageType": "RunValueDeclarer"
+          },
+          "description": "Who declared it.",
+          "required": false
+        },
+        {
+          "name": "Origin",
+          "jsonName": "origin",
+          "protoField": "origin",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.run.v1.RunValueOrigin",
+            "enumValues": [
+              "RUN_VALUE_ORIGIN_REPOSITORY_TOKEN",
+              "RUN_VALUE_ORIGIN_MY_VAULT",
+              "RUN_VALUE_ORIGIN_VAULT",
+              "RUN_VALUE_ORIGIN_SURFACE_VAULT",
+              "RUN_VALUE_ORIGIN_DECLARATION"
+            ]
+          },
+          "description": "Where it lives.",
+          "required": false
+        },
+        {
+          "name": "VaultId",
+          "jsonName": "vaultId",
+          "protoField": "vault_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The vault holding it; empty for a repository's own token and a\n declaration's default.",
+          "required": false
+        },
+        {
+          "name": "Entry",
+          "jsonName": "entry",
+          "protoField": "entry",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The entry: a secret's name, a login's address, or the repository\n entry's name for its own token; empty for a declaration's default.",
+          "required": false
+        },
+        {
+          "name": "Login",
+          "jsonName": "login",
+          "protoField": "login",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Whether the entry is a login (a connection at an address) rather than a\n secret by name. A sign-in among them is renewed when it is fetched, as\n the vault records it then.",
+          "required": false
+        },
+        {
+          "name": "PlainValue",
+          "jsonName": "plainValue",
+          "protoField": "plain_value",
+          "type": {
+            "kind": "string"
+          },
+          "description": "A declaration's own plain default, the one value a manifest holds: it\n is a fixed setting of the agent or tool, never a secret.",
+          "required": false
         }
       ]
     },

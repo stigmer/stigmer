@@ -1132,7 +1132,6 @@
               "agent_share",
               "agent_channel",
               "channel_app",
-              "execution_context",
               "schedule",
               "memory",
               "plugin",
@@ -1453,11 +1452,6 @@
           "name": "channel_app",
           "number": 48,
           "description": "Customer-owned messaging-platform app (e.g. a Slack app) that agent\n channels can install through instead of the shared platform app."
-        },
-        {
-          "name": "execution_context",
-          "number": 54,
-          "description": "User-owned runtime context for managing execution state."
         },
         {
           "name": "schedule",

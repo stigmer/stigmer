@@ -291,6 +291,13 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
         console.warn(`${activityName} refused the turn: execution=${executionId}, ${settlement.message}`);
         return settleWith(failedArm(settlement.message, "actionable"));
       }
+      case "values-refused": {
+        // The run's values could not be fetched for a reason its person
+        // fixes in a vault; the server's sentence names the key, its
+        // declarer and the vault. A retry would read the same vaults.
+        console.warn(`${activityName} could not fetch the run's values: execution=${executionId}, ${settlement.message}`);
+        return settleWith(failedArm(settlement.message, "actionable"));
+      }
       default: {
         const exhaustive: never = settlement;
         throw new Error(`${activityName}: unknown resolution settlement ${String(exhaustive)}`);

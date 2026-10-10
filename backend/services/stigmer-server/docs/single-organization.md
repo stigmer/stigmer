@@ -11,7 +11,7 @@ This document is the inventory of which field the fill sets, one row per method 
 - **`metadata.org`**: otherwise, the input carries an `ApiResourceMetadata` and its service's `api_resource_kind` is scoped to an organization (`AUTHORIZATION_SCOPE_TYPE_ORGANIZATION`), or to a parent (`AUTHORIZATION_SCOPE_TYPE_PARENT`: an agent run's organization is its session's).
 - **Not filled**:
   - the Organization service's own methods, because an organization's own `metadata.org` stays empty;
-  - the kinds that belong to no organization (`AUTHORIZATION_SCOPE_TYPE_OWNER_ONLY` and `AUTHORIZATION_SCOPE_TYPE_NONE`: identity accounts, API keys, execution contexts, the platform, plans and licences);
+  - the kinds that belong to no organization (`AUTHORIZATION_SCOPE_TYPE_OWNER_ONLY` and `AUTHORIZATION_SCOPE_TYPE_NONE`: identity accounts, API keys, the platform, plans and licences);
   - nested messages other than a `VaultTarget`, because a spec reference with no organization takes its resource's own (`NormalizeReferences`, `src/pipeline/steps/references.ts`);
   - streams, because no streaming method takes an organization.
 
@@ -229,7 +229,6 @@ These kinds are owned by a person, not an organization, yet these methods take a
 
 | Method | Fills |
 |---|---|
-| ExecutionContextQueryController.getByReference | org |
 | IdentityAccountCommandController.createFederatedAccount | org |
 | IdentityAccountCommandController.deprovisionFederatedAccount | org |
 | IdentityAccountCommandController.updateFederatedAccount | org |
@@ -237,12 +236,8 @@ These kinds are owned by a person, not an organization, yet these methods take a
 
 ## Not filled
 
-One of these still needs its organization named. An execution context belongs to no organization, but an outside caller's `create` or `apply` of one is permitted by the organization it will run in, read from `metadata.org` (`AuthorizeCreate`, `src/domain/executioncontext/steps.ts`), so on this server too a request that names none is refused. No shipped client makes that call: the agent run machinery creates execution contexts in-process, authorized by the run it serves.
-
 | Method | Fills |
 |---|---|
-| ExecutionContextCommandController.apply | not filled: kind belongs to no organization |
-| ExecutionContextCommandController.create | not filled: kind belongs to no organization |
 | ApiKeyCommandController.create | not filled: kind belongs to no organization |
 | ApiKeyCommandController.update | not filled: kind belongs to no organization |
 | IdentityAccountCommandController.create | not filled: kind belongs to no organization |

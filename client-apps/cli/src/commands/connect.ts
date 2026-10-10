@@ -21,7 +21,6 @@ import { omitsOrganization, requireOrganization } from "../client/single-org.js"
 interface ConnectFlags {
   timeout?: string;
   dryRun?: boolean;
-  env: string[];
 }
 
 const DEFAULT_TIMEOUT_SECONDS = 30;
@@ -43,12 +42,6 @@ export function registerConnect(program: Command): void {
     .option(
       "--dry-run",
       "discover and display results without pushing to the backend",
-    )
-    .option(
-      "--env <KEY=VALUE>",
-      "environment variable for the MCP server (repeatable)",
-      (value: string, previous: string[]) => [...previous, value],
-      [],
     )
     .action((reference: string, options: ConnectFlags, command: Command) =>
       runConnect(reference, options, command),
@@ -96,7 +89,6 @@ async function runConnect(
     timeoutMs,
     pushTimeoutMs: timeoutIsExplicit ? timeoutMs : undefined,
     dryRun: options.dryRun === true,
-    envOverrides: options.env,
     consoleURL: resolveConsoleURL(client.config),
     probeLocalConsole: activeBackend(client.config).entry === undefined,
     interactive: process.stderr.isTTY === true,

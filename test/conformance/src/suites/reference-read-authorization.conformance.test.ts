@@ -33,7 +33,6 @@ import { makeSlackAgentChannel } from "../support/agentchannels";
 import { makeAgentShare } from "../support/agentshares";
 import { makeSlackChannelApp } from "../support/channelapps";
 import { makeSharedVault } from "../support/vaults";
-import { makeExecutionContext } from "../support/executioncontexts";
 import { makeMcpServer } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";
 import { makeOAuthApp } from "../support/oauthapps";
@@ -187,27 +186,6 @@ const KINDS: ReadonlyArray<ReferenceKind> = [
       using.vaultQuery.getByReference({ org, slug }),
     cleanup: (using, id) => using.vaultCommand.delete({ resourceId: id }),
     deniedCopy: "unauthorized to get vault",
-  },
-  {
-    name: "execution_context",
-    visible: false,
-    memberReads: false,
-    async seed(using, org) {
-      const created = await using.executionContextCommand.create(
-        makeExecutionContext({
-          org,
-          name: uniqueName("ref-ectx"),
-          executionId: uniqueName("exec-ref"),
-        }),
-      );
-      return { id: created.metadata!.id, slug: created.metadata!.slug };
-    },
-    getById: (using, id) => using.executionContextQuery.get({ value: id }),
-    getByReference: (using, org, slug) =>
-      using.executionContextQuery.getByReference({ org, slug }),
-    cleanup: (using, id) =>
-      using.executionContextCommand.delete({ resourceId: id }),
-    deniedCopy: "unauthorized to get execution context",
   },
   {
     name: "agent_share",

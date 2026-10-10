@@ -15,12 +15,10 @@
  */
 
 import type { ProvisionResult, WorkspaceBackend } from "./types.js";
-import { WorkspaceProvisionError } from "./types.js";
 import { provisionEmpty } from "./sources/empty.js";
 import { provisionLocalPath } from "./sources/local-path.js";
 import { provisionGit } from "./sources/git.js";
-
-const PROVISION_KEY_PREFIX = "WORKSPACE_PROVISION_";
+import { repositoryTokenFor, type RepositoryToken } from "../run-values.js";
 
 export interface WorkspaceEntry {
   name: string;
@@ -43,67 +41,22 @@ export interface LocalPathSource {
 }
 
 export class WorkspaceProvisioner {
+  /**
+   * Provisions one entry. A git entry's token is its own repository value,
+   * matched by the entry's name and URL together; no other run value
+   * reaches provisioning.
+   */
   async provision(
-    workspaceSource: WorkspaceSource | undefined,
+    entry: WorkspaceEntry,
     backend: WorkspaceBackend,
-    mergedEnv: Record<string, string>,
+    repositories: readonly RepositoryToken[],
     isLocalMode: boolean,
     options?: {
       targetSubdir?: string;
-      configureCredentials?: boolean;
+      writeBack?: boolean;
     },
   ): Promise<ProvisionResult> {
-    const result = await this.dispatch(
-      workspaceSource, backend, mergedEnv, isLocalMode, options,
-    );
-
-    const prefixKeys = Object.keys(mergedEnv)
-      .filter(k => k.startsWith(PROVISION_KEY_PREFIX));
-
-    const allConsumed = mergeConsumedKeys(result.consumedKeys, prefixKeys);
-    if (allConsumed.length !== result.consumedKeys.length) {
-      return { ...result, consumedKeys: allConsumed };
-    }
-    return result;
-  }
-
-  async provisionAll(
-    entries: WorkspaceEntry[],
-    backend: WorkspaceBackend,
-    mergedEnv: Record<string, string>,
-    isLocalMode: boolean,
-    configureCredentials = false,
-  ): Promise<ProvisionResult[]> {
-    if (entries.length === 0) return [];
-
-    const useSubdirs = entries.length > 1;
-    const results: ProvisionResult[] = [];
-
-    for (const entry of entries) {
-      const targetSubdir = useSubdirs ? entry.name : undefined;
-      const result = await this.provision(
-        entry.source,
-        backend,
-        mergedEnv,
-        isLocalMode,
-        { targetSubdir, configureCredentials },
-      );
-      results.push({ ...result, entryName: entry.name });
-    }
-
-    return results;
-  }
-
-  private async dispatch(
-    workspaceSource: WorkspaceSource | undefined,
-    backend: WorkspaceBackend,
-    mergedEnv: Record<string, string>,
-    isLocalMode: boolean,
-    options?: {
-      targetSubdir?: string;
-      configureCredentials?: boolean;
-    },
-  ): Promise<ProvisionResult> {
+    const workspaceSource = entry.source;
     if (!workspaceSource || !workspaceSource.source?.case) {
       return provisionEmpty(backend);
     }
@@ -115,10 +68,10 @@ export class WorkspaceProvisioner {
           url: gitSource.url,
           branch: gitSource.branch,
           backend,
-          envVars: mergedEnv,
+          token: repositoryTokenFor(repositories, entry.name, gitSource.url),
           isLocalMode,
           targetSubdir: options?.targetSubdir,
-          configureCredentials: options?.configureCredentials,
+          writeBack: options?.writeBack,
         });
       }
 
@@ -136,15 +89,31 @@ export class WorkspaceProvisioner {
         return provisionEmpty(backend);
     }
   }
-}
 
-function mergeConsumedKeys(
-  sourceKeys: readonly string[],
-  prefixKeys: string[],
-): string[] {
-  if (prefixKeys.length === 0) return [...sourceKeys];
-  const merged = new Map<string, true>();
-  for (const k of sourceKeys) merged.set(k, true);
-  for (const k of prefixKeys) merged.set(k, true);
-  return [...merged.keys()];
+  async provisionAll(
+    entries: WorkspaceEntry[],
+    backend: WorkspaceBackend,
+    repositories: readonly RepositoryToken[],
+    isLocalMode: boolean,
+    writeBack = false,
+  ): Promise<ProvisionResult[]> {
+    if (entries.length === 0) return [];
+
+    const useSubdirs = entries.length > 1;
+    const results: ProvisionResult[] = [];
+
+    for (const entry of entries) {
+      const targetSubdir = useSubdirs ? entry.name : undefined;
+      const result = await this.provision(
+        entry,
+        backend,
+        repositories,
+        isLocalMode,
+        { targetSubdir, writeBack },
+      );
+      results.push({ ...result, entryName: entry.name });
+    }
+
+    return results;
+  }
 }

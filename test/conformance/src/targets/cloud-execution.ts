@@ -18,8 +18,8 @@
 // token — the same single authenticated door a desktop embedder uses. That
 // identity choice is load-bearing: runner credentials carry the user as `sub`
 // (see StigmerTokenType in stigmer-cloud), so FGA authorizes the runner as the
-// owner of every execution the suites create, and the per-execution
-// ExecutionContext decrypt rides the runner's ordinary scoped-token exchange
+// owner of every execution the suites create, and the per-execution values
+// fetch rides the runner's ordinary scoped-token exchange
 // (getRunnerScopedToken, issue #156). Nothing here is test-only plumbing.
 //
 // setup() boot order mirrors local-execution: fixtures before the runner

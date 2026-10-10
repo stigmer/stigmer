@@ -9,11 +9,11 @@
  *   - the five pipelines over a real SQLite store with a stub engine:
  *     phase refusals, idempotent already-in-target, NotFound, the
  *     disconnected-engine refusal, warn-and-proceed on workflow-not-found,
- *     and recover's full terminate → EC-recreate → fresh-start chain,
- *     the run's stale context deleted through the server's own delete
- *     edge before the new one is created (stigmer#1647);
+ *     and recover's full terminate → re-plan → fresh-start chain, the new
+ *     source manifest persisted on the run before the fresh workflow
+ *     starts, so its runner's fetch reads the vaults as they are now;
  *   - recover records the session's pin on a turn that recorded no agent,
- *     persisted before the context is rebuilt and handed to the fresh
+ *     persisted before the values are planned again and handed to the fresh
  *     workflow; a turn that recorded its agent keeps it, and a session
  *     pinning none leaves the turn the built-in assistant's; a caller who
  *     may no longer run the agent is refused before the previous workflow
@@ -45,11 +45,17 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import {
+  RunCredentialsSchema,
+  RunSchema,
+  RunStatusSchema,
+  RunValueSourceSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   ApprovalAction,
   ApprovalEventType,
   RunPhase,
+  RunValueOrigin,
   SubAgentStatus,
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
@@ -69,8 +75,6 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
 import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
-import type { ExecutionContext } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
-import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -79,12 +83,13 @@ import type { RunStatusTransition } from "../../../extensions/status-hooks.js";
 import { KeyedSerializer } from "../../../pipeline/keyed-serializer.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import type { Store } from "../../../store/interface.js";
+import { ResourceNotFoundError } from "../../../store/interface.js";
 
 import {
   ensureApprovalRequests,
   recordDecisionEvent,
 } from "../approval/author.js";
-import type { ExecutionContextBuilderDeps } from "../create-execution-context-step.js";
+import type { RunValuePlannerDeps } from "../plan-run-values-step.js";
 import { newConfigFromEnv } from "../temporal/config.js";
 import type {
   ConnectedExecutionEngine,
@@ -409,20 +414,23 @@ async function seedExecution(init: {
 }
 
 /**
- * The EC-builder deps recover consumes, stubbed at the in-process edges
- * (the builder logic itself is real). The store is the shared SQLite
- * store, so schedule label lookups run for real (and find
- * nothing here).
+ * The value-planner deps recover consumes, stubbed at the in-process edges
+ * (the planner logic itself is real). The store is the shared SQLite
+ * store, so schedule label lookups run for real (and find nothing here).
+ * The resolver answers one entry, so a test can see the manifest land on
+ * the stored run.
  */
-function stubBuilderDeps(overrides?: {
-  onEcCreate?: (ec: ExecutionContext) => void;
-  onEcDelete?: (contextId: string) => void;
+function stubPlannerDeps(overrides?: {
+  onPlan?: (execution: Run) => void;
   onAgentGet?: (agentId: string) => void;
-}): ExecutionContextBuilderDeps {
+}): RunValuePlannerDeps {
   const agent: Agent = create(AgentSchema, {
     metadata: { id: "agt_lc", org: "acme", slug: "lc-agent" },
     spec: {},
   });
+  const never = async (): Promise<never> => {
+    throw new Error("recover plans; it never opens a value or connects");
+  };
   return {
     store,
     logger: silentLogger,
@@ -442,23 +450,26 @@ function stubBuilderDeps(overrides?: {
           status: { agentId: "agt_lc" },
         }),
     }),
-    executionContextCreator: () => ({
-      create: async (ec) => {
-        overrides?.onEcCreate?.(ec);
-        return ec;
-      },
-    }),
-    executionContextDeleter: () => ({
-      delete: async (contextId) => {
-        overrides?.onEcDelete?.(contextId);
-      },
-    }),
-    // Nothing here needs a login or a secret: the resolver answers empty.
     vaultResolver: {
-      resolveForRun: async () => new Map(),
-      resolveForConnect: async () => new Map(),
+      planRun: async (input) => {
+        overrides?.onPlan?.(input.execution);
+        return [plannedSource()];
+      },
+      openRun: never,
+      planConnect: never,
+      openConnect: never,
     },
   };
+}
+
+/** The one entry the stub resolver plans: a secret by name in a vault. */
+function plannedSource() {
+  return create(RunValueSourceSchema, {
+    key: "LINEAR_API_KEY",
+    origin: RunValueOrigin.VAULT,
+    vaultId: "vlt_lc",
+    entry: "LINEAR_API_KEY",
+  });
 }
 
 function lifecycleDeps(engineState: ExecutionEngineState): LifecycleDeps {
@@ -469,7 +480,7 @@ function lifecycleDeps(engineState: ExecutionEngineState): LifecycleDeps {
     recoverSerializer: new KeyedSerializer(),
     broker: new StreamBroker(silentLogger),
     engineState: () => engineState,
-    executionContextBuilder: stubBuilderDeps(),
+    runValuePlanner: stubPlannerDeps(),
     gateSteps: new Map(),
     statusObservers: [],
     // The OSS default sandbox posture: lane disabled — the
@@ -813,10 +824,10 @@ describe("lifecycle pipelines", () => {
     expect(result.status?.completedAt).toBe("");
   });
 
-  it("recover runs terminate → EC recreate → fresh start → clears error", async () => {
+  it("recover runs terminate → re-plan → fresh start → clears error", async () => {
     const terminations: Array<{ executionId: string; reason: string }> = [];
     const starts: string[] = [];
-    const createdEcs: ExecutionContext[] = [];
+    const plans: Run[] = [];
     const deps: LifecycleDeps = {
       store,
       logger: silentLogger,
@@ -838,8 +849,8 @@ describe("lifecycle pipelines", () => {
             },
           }),
         ),
-      executionContextBuilder: stubBuilderDeps({
-        onEcCreate: (ec) => createdEcs.push(ec),
+      runValuePlanner: stubPlannerDeps({
+        onPlan: (execution) => plans.push(execution),
       }),
     };
 
@@ -860,109 +871,62 @@ describe("lifecycle pipelines", () => {
         reason: "Recovery: terminating before fresh workflow start",
       },
     ]);
-    expect(createdEcs).toHaveLength(1);
-    expect(createdEcs[0]?.spec?.executionId).toBe(id);
-    expect(createdEcs[0]?.metadata?.name).toBe(`exec-ctx-${id}`);
+    expect(plans).toHaveLength(1);
+    expect(plans[0]?.metadata?.id).toBe(id);
     expect(starts).toEqual([id]);
     expect(result.status?.phase).toBe(RunPhase.RUN_IN_PROGRESS);
     expect(result.status?.error).toBe("");
     expect(result.status?.completedAt).toBe("");
   });
 
-  it("recover deletes the run's stale context through the server's delete edge before recreating it", async () => {
-    const order: string[] = [];
+  it("recover persists the new manifest on the run before the fresh workflow starts, replacing the old one", async () => {
+    let manifestAtStart: string[] | undefined;
     const deps: LifecycleDeps = {
       ...lifecycleDeps(
         connected(
           stubConnectedEngine({
             terminateWorkflow: async () => {},
-            startInvokeWorkflow: async () => {},
+            startInvokeWorkflow: async (params) => {
+              // What the fresh workflow's runner fetches by.
+              const stored = await store.getResource(ApiResourceKind.run, params.executionId, RunSchema);
+              manifestAtStart = stored.status?.credentials?.sources.map((entry) => entry.key);
+            },
           }),
         ),
       ),
-      executionContextBuilder: stubBuilderDeps({
-        onEcDelete: (contextId) => order.push(`delete ${contextId}`),
-        onEcCreate: () => order.push("create"),
-      }),
     };
     const id = await seedExecution({
       phase: RunPhase.RUN_FAILED,
       sessionId: "ses_lc",
       error: "runner exploded",
     });
-    const staleId = `ectx_stale_${id}`;
-    await store.saveResource(
-      ApiResourceKind.execution_context,
-      staleId,
-      ExecutionContextSchema,
-      create(ExecutionContextSchema, {
-        apiVersion: "agentic.stigmer.ai/v1",
-        kind: "ExecutionContext",
-        metadata: { id: staleId, name: `stale-${id}`, org: "acme" },
-        spec: { executionId: id },
-      }),
-    );
-
-    await recoverExecution(deps, recoverInput(id), testCallerIdentity());
-
-    expect(order).toEqual([`delete ${staleId}`, "create"]);
-  });
-
-  it("recover proceeds when the stale context's delete fails (best-effort)", async () => {
-    const attempted: string[] = [];
-    const createdEcs: ExecutionContext[] = [];
-    const deps: LifecycleDeps = {
-      ...lifecycleDeps(
-        connected(
-          stubConnectedEngine({
-            terminateWorkflow: async () => {},
-            startInvokeWorkflow: async () => {},
+    await store.updateResource(ApiResourceKind.run, id, RunSchema, (loaded) => {
+      (loaded.status ??= create(RunStatusSchema)).credentials = create(RunCredentialsSchema, {
+        person: "ida_ana",
+        sources: [
+          create(RunValueSourceSchema, {
+            key: "OLD_KEY",
+            origin: RunValueOrigin.VAULT,
+            vaultId: "vlt_old",
+            entry: "OLD_KEY",
           }),
-        ),
-      ),
-      executionContextBuilder: stubBuilderDeps({
-        onEcDelete: (contextId) => {
-          attempted.push(contextId);
-          throw new Error("the delete chain is down");
-        },
-        onEcCreate: (ec) => createdEcs.push(ec),
-      }),
-    };
-    const id = await seedExecution({
-      phase: RunPhase.RUN_FAILED,
-      sessionId: "ses_lc",
-      error: "runner exploded",
+        ],
+      });
     });
-    const staleId = `ectx_stale_${id}`;
-    await store.saveResource(
-      ApiResourceKind.execution_context,
-      staleId,
-      ExecutionContextSchema,
-      create(ExecutionContextSchema, {
-        apiVersion: "agentic.stigmer.ai/v1",
-        kind: "ExecutionContext",
-        metadata: { id: staleId, name: `stale-${id}`, org: "acme" },
-        spec: { executionId: id },
-      }),
-    );
 
-    const result = await recoverExecution(
-      deps,
-      recoverInput(id),
-      testCallerIdentity(),
-    );
+    const result = await recoverExecution(deps, recoverInput(id), testCallerIdentity());
 
-    expect(attempted, "the delete was tried, and it failed").toEqual([staleId]);
-    expect(createdEcs).toHaveLength(1);
-    expect(result.status?.phase).toBe(RunPhase.RUN_IN_PROGRESS);
+    expect(manifestAtStart).toEqual(["LINEAR_API_KEY"]);
+    expect(result.status?.credentials?.sources.map((entry) => entry.key)).toEqual(["LINEAR_API_KEY"]);
+    expect(result.status?.credentials?.person, "the person create recorded stays").toBe("ida_ana");
   });
 
   it("recover proceeds when the previous workflow is already gone (NotFound = success)", async () => {
     // Go terminate_existing_workflow_step_test.go NotFound_Succeeds: a
     // FAILED execution's workflow has normally already completed; the
-    // recreate + fresh start must still run.
+    // re-plan + fresh start must still run.
     const starts: string[] = [];
-    const createdEcs: ExecutionContext[] = [];
+    const plans: Run[] = [];
     const deps: LifecycleDeps = {
       store,
       logger: silentLogger,
@@ -984,8 +948,8 @@ describe("lifecycle pipelines", () => {
             },
           }),
         ),
-      executionContextBuilder: stubBuilderDeps({
-        onEcCreate: (ec) => createdEcs.push(ec),
+      runValuePlanner: stubPlannerDeps({
+        onPlan: (execution) => plans.push(execution),
       }),
     };
     const id = await seedExecution({
@@ -998,7 +962,7 @@ describe("lifecycle pipelines", () => {
       recoverInput(id),
       testCallerIdentity(),
     );
-    expect(createdEcs).toHaveLength(1);
+    expect(plans).toHaveLength(1);
     expect(starts).toEqual([id]);
     expect(result.status?.phase).toBe(RunPhase.RUN_IN_PROGRESS);
   });
@@ -1008,7 +972,7 @@ describe("lifecycle pipelines", () => {
     // workflow ID must be terminal before the fresh start reuses it, so a
     // genuine terminate failure gates the whole recovery.
     const starts: string[] = [];
-    const createdEcs: ExecutionContext[] = [];
+    const plans: Run[] = [];
     const deps: LifecycleDeps = {
       store,
       logger: silentLogger,
@@ -1030,8 +994,8 @@ describe("lifecycle pipelines", () => {
             },
           }),
         ),
-      executionContextBuilder: stubBuilderDeps({
-        onEcCreate: (ec) => createdEcs.push(ec),
+      runValuePlanner: stubPlannerDeps({
+        onPlan: (execution) => plans.push(execution),
       }),
     };
     const id = await seedExecution({
@@ -1046,7 +1010,7 @@ describe("lifecycle pipelines", () => {
     expect(err.rawMessage).toBe(
       "failed to terminate previous workflow during recovery",
     );
-    expect(createdEcs).toHaveLength(0);
+    expect(plans).toHaveLength(0);
     expect(starts).toHaveLength(0);
     // The execution stays FAILED (recover can be retried).
     const persisted = await store.getResource(
@@ -1083,8 +1047,8 @@ describe("lifecycle pipelines", () => {
             },
           }),
         ),
-      executionContextBuilder: stubBuilderDeps({
-        onEcCreate: () => {
+      runValuePlanner: stubPlannerDeps({
+        onPlan: () => {
           engineCalls += 1;
         },
       }),
@@ -1132,13 +1096,13 @@ describe("lifecycle pipelines", () => {
             }),
           ),
         ),
-        executionContextBuilder: stubBuilderDeps({
+        runValuePlanner: stubPlannerDeps({
           onAgentGet: (agentId) => record.agentGets.push(agentId),
         }),
       };
     }
 
-    it("stamps an unstamped turn with its session's pin, persisted before the context is rebuilt", async () => {
+    it("stamps an unstamped turn with its session's pin, persisted before the values are planned again", async () => {
       await storePinnedSession("ses_pinned", "agt_lc");
       const record = {
         agentGets: [] as string[],
@@ -1287,12 +1251,12 @@ describe("lifecycle pipelines", () => {
     });
   });
 
-  it("recover surfaces the inner status code when the EC rebuild fails (never Internal)", async () => {
-    // Go's recreate step wraps with %w: a NotFound session load (or the
-    // FailedPrecondition OAuth refusal) keeps its code on the wire with
-    // the recover prefix — the caller-actionable copy must not collapse
-    // into an opaque 500.
-    const builderDeps = stubBuilderDeps();
+  it("recover surfaces the inner status code when the re-plan fails (never Internal)", async () => {
+    // The re-plan step wraps like Go's %w: a NotFound session load (or a
+    // FailedPrecondition refusal of a required key) keeps its code on the
+    // wire with the recover prefix — the caller-actionable copy must not
+    // collapse into an opaque 500.
+    const plannerDeps = stubPlannerDeps();
     const deps: LifecycleDeps = {
       store,
       logger: silentLogger,
@@ -1304,8 +1268,8 @@ describe("lifecycle pipelines", () => {
       sandboxLane: { enabled: false },
       temporalConfig: newConfigFromEnv(),
       engineState: () => connected(stubConnectedEngine()),
-      executionContextBuilder: {
-        ...builderDeps,
+      runValuePlanner: {
+        ...plannerDeps,
         sessionLoader: () => ({
           get: async () => {
             throw new ConnectError(
@@ -1325,10 +1289,70 @@ describe("lifecycle pipelines", () => {
       Code.NotFound,
     );
     expect(err.rawMessage).toBe(
-      `recreate execution context for recovered execution ${id}: ` +
+      `plan the values of recovered execution ${id}: ` +
         "resolve session: load session ses_gone: " +
         "rpc error: code = NotFound desc = session not found: ses_gone",
     );
+  });
+
+  it("recover answers a re-plan failure that is not a status as a sanitized Internal", async () => {
+    const plannerDeps = stubPlannerDeps();
+    const deps: LifecycleDeps = {
+      ...lifecycleDeps(connected(stubConnectedEngine({ terminateWorkflow: async () => {} }))),
+      runValuePlanner: {
+        ...plannerDeps,
+        sessionLoader: () => ({
+          get: async () => {
+            throw new Error("socket hang up");
+          },
+        }),
+      },
+    };
+    const id = await seedExecution({ phase: RunPhase.RUN_FAILED, sessionId: "ses_lc" });
+    const failure = await expectCode(
+      () => recoverExecution(deps, recoverInput(id), testCallerIdentity()),
+      Code.Internal,
+    );
+    expect(failure.rawMessage).not.toContain("socket hang up");
+  });
+
+  it.each([
+    ["a run deleted since it was loaded is NotFound", () => new ResourceNotFoundError("run"), Code.NotFound],
+    ["any other store failure is a sanitized Internal", () => new Error("SQLITE_BUSY"), Code.Internal],
+  ])("recover's write of the new manifest: %s", async (_label, fault, code) => {
+    const failing = new Proxy(store, {
+      get(target, prop, receiver) {
+        if (prop === "updateResource") {
+          return (...args: Parameters<Store["updateResource"]>) => {
+            // The re-plan's write is the one that stamps sources.
+            const probe = create(RunSchema, {});
+            (args[3] as (row: Run) => void)(probe);
+            return probe.status?.credentials?.sources.length
+              ? Promise.reject(fault())
+              : store.updateResource(...args);
+          };
+        }
+        const value = Reflect.get(target, prop, receiver) as unknown;
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+    const starts: string[] = [];
+    const deps: LifecycleDeps = {
+      ...lifecycleDeps(
+        connected(
+          stubConnectedEngine({
+            terminateWorkflow: async () => {},
+            startInvokeWorkflow: async (params) => {
+              starts.push(params.executionId);
+            },
+          }),
+        ),
+      ),
+      store: failing,
+    };
+    const id = await seedExecution({ phase: RunPhase.RUN_FAILED, sessionId: "ses_lc" });
+    await expectCode(() => recoverExecution(deps, recoverInput(id), testCallerIdentity()), code);
+    expect(starts, "no fresh workflow starts without its manifest").toEqual([]);
   });
 
   it("recover with a disconnected engine refuses before any side effect", async () => {
@@ -1361,7 +1385,7 @@ describe("recover runs one at a time per execution (stigmer#1672)", () => {
     const releaseFirst = deferred();
     let terminations = 0;
     const starts: string[] = [];
-    const createdEcs: ExecutionContext[] = [];
+    const plans: Run[] = [];
     const deps: LifecycleDeps = {
       ...lifecycleDeps(
         connected(
@@ -1387,8 +1411,8 @@ describe("recover runs one at a time per execution (stigmer#1672)", () => {
           secondQueued.resolve();
         }
       }),
-      executionContextBuilder: stubBuilderDeps({
-        onEcCreate: (ec) => createdEcs.push(ec),
+      runValuePlanner: stubPlannerDeps({
+        onPlan: (execution) => plans.push(execution),
       }),
     };
     const id = await seedExecution({
@@ -1423,7 +1447,7 @@ describe("recover runs one at a time per execution (stigmer#1672)", () => {
       RunPhase.RUN_IN_PROGRESS,
     );
     expect(terminations).toBe(1);
-    expect(createdEcs).toHaveLength(1);
+    expect(plans).toHaveLength(1);
     expect(starts).toEqual([id]);
   });
 
@@ -1613,7 +1637,7 @@ describe("lifecycle persist uses the atomic updateResource", () => {
         recoverSerializer: new KeyedSerializer(),
         broker: new StreamBroker(silentLogger),
         engineState: () => connected(stubConnectedEngine()),
-        executionContextBuilder: stubBuilderDeps(),
+        runValuePlanner: stubPlannerDeps(),
         gateSteps: new Map(),
         statusObservers: [],
         sandboxLane: { enabled: false },

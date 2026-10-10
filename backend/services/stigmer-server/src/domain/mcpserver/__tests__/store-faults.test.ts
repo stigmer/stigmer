@@ -75,7 +75,6 @@ function connectDeps(
     logger: silentLogger,
     authorizer: newPermissiveSingleTeamAuthorizer(),
     engineState: untouchable("engineState"),
-    executionContext: untouchable("executionContext"),
     runnerAuth: untouchable("runnerAuth"),
     vaults: untouchable("vaults"),
     vaultResolver: untouchable("vaultResolver"),
@@ -100,7 +99,7 @@ const HANDLER_LOADS: ReadonlyArray<
     "connect",
     LOAD_FAULT_COPY,
     (store) =>
-      connect(connectDeps({ store }), connectInput(), testCallerIdentity()),
+      connect(connectDeps({ store }), connectInput(), testCallerIdentity(), ""),
   ],
   [
     "startConnect — the first load",
@@ -110,6 +109,7 @@ const HANDLER_LOADS: ReadonlyArray<
         connectDeps({ store }),
         connectInput(),
         testCallerIdentity(),
+        "",
       ),
   ],
 ];
@@ -131,7 +131,7 @@ describe.each(HANDLER_LOADS)("%s", (_surface, faultCopy, run) => {
 });
 
 describe("startConnect — the attach arm's re-read after losing the start race", () => {
-  /** No env and no auth block: prepareConnect creates no ExecutionContext and reads no grant. */
+  /** No env and no auth block: prepareConnect plans nothing and mints no credential; it records the attempt. */
   const SERVER = create(McpServerSchema, {
     metadata: { id: SERVER_ID, name: "Store Fault", org: ORG },
     spec: {
@@ -162,14 +162,24 @@ describe("startConnect — the attach arm's re-read after losing the start race"
       .mockResolvedValueOnce(SERVER)
       .mockRejectedValueOnce(reReadError);
 
+    // The attempt the lane records and ends around the start; its own
+    // rows are pinned in connect.test.ts.
+    const connectAttempts: Store["connectAttempts"] = {
+      create: () => Promise.resolve(),
+      findLive: () => Promise.resolve(undefined),
+      delete: () => Promise.resolve(),
+      deleteExpired: () => Promise.resolve(0),
+      deleteByOrg: () => Promise.resolve(0),
+    };
     const error = await errorOf(() =>
       startConnect(
         connectDeps({
-          store: { getResource } as unknown as Store,
+          store: { getResource, connectAttempts } as unknown as Store,
           engineState: () => ({ connected: true, engine }),
         }),
         connectInput(),
         testCallerIdentity(),
+        "",
       ),
     );
 

@@ -31,10 +31,8 @@ export async function buildHookEvaluator(
   const primaryDir = input.workspace.primaryDir;
   return buildEvaluator({
     sources: input.hooks.sources,
-    runValues: input.environment.envVars,
-    agentEnv: input.blueprint.agent?.spec?.env,
+    runValues: input.environment,
     mcpServers: input.mcp.servers,
-    provisionResults: input.workspace.provision.provisionResults,
     views: new NativeToolViews({
       workspaceRoot: primaryDir,
       toVirtualPath: (path) => normalizeWorkspacePathArg(path, primaryDir),

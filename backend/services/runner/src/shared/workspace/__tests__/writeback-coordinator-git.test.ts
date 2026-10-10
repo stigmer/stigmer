@@ -2,7 +2,11 @@
  * Real-git tests for the session-scoped write-back lifecycle.
  *
  * A hermetic origin (local bare repo) and a working clone stand in for
- * GitHub + the session workspace; only the PR API is mocked. These prove the
+ * GitHub + the session workspace; only the PR API is mocked. The clone's
+ * origin is the conversation's github.com URL, as a provisioned clone's
+ * is (a token is handed only to a clone whose origin is that URL), and a
+ * private global `url.<base>.insteadOf` sends it to the local bare
+ * repository, so nothing reaches the network. These prove the
  * behaviors the mocked unit suite cannot: that `ensureBranch`'s checkout
  * cases and the always-`-u` push compose correctly against real git across
  * SEQUENTIAL COORDINATOR INSTANCES (turn 1 and turn 2 of one session), and
@@ -25,6 +29,7 @@ import type { ProvisionResult } from "../types.js";
 import { AGENT_GIT_AUTHOR_EMAIL } from "../git-identity.js";
 
 const SESSION_ID = "ses-int-01";
+const REPO_URL = "https://github.com/acme/repo.git";
 const SESSION_BRANCH = `stigmer/${SESSION_ID}`;
 
 // Real git spawns (init/clone/commit/push, ~a dozen per test) are slow under
@@ -56,21 +61,20 @@ function makeCoordinator(
   const provisionResult: ProvisionResult = {
     rootDir: workDir,
     sourceType: "git_repo",
-    consumedKeys: [],
     workspaceDescription: "integration",
     entryName: "repo",
     gitMetadata: {
-      repoUrl: "https://github.com/acme/repo.git",
+      repoUrl: REPO_URL,
       branch: "main",
       baseCommit: git(workDir, ["rev-parse", "main"]).trim(),
-      gitCredentialsConfigured: true,
+      writeBackReady: true,
     },
   };
   return new WriteBackCoordinator({
     writeBacks,
     executionId,
     sessionId: SESSION_ID,
-    githubToken: "ghp_test",
+    repositories: [{ name: "repo", url: REPO_URL, token: "ghp_test" }],
     provisionResults: [provisionResult],
     workspaceEntries: [
       {
@@ -78,7 +82,7 @@ function makeCoordinator(
         source: {
           source: {
             case: "gitRepo" as const,
-            value: { writeBackMode: GitWriteBackMode.GIT_WRITE_BACK_BRANCH_AND_PR },
+            value: { writeBackMode: GitWriteBackMode.GIT_WRITE_BACK_BRANCH_AND_PR, url: REPO_URL },
           },
         },
       } as any,
@@ -117,14 +121,24 @@ beforeEach(() => {
   workDir = join(tmpRoot, "work");
 
   execFileSync("git", ["init", "--bare", "-b", "main", originDir], { stdio: "pipe" });
-  execFileSync("git", ["clone", originDir, workDir], { stdio: "pipe" });
+  const globalConfig = join(tmpRoot, "gitconfig");
+  writeFileSync(globalConfig, `[url "file://${originDir}"]\n\tinsteadOf = ${REPO_URL}\n[protocol "file"]\n\tallow = always\n`);
+  vi.stubEnv("GIT_CONFIG_GLOBAL", globalConfig);
+  vi.stubEnv("GIT_CONFIG_NOSYSTEM", "1");
+  cloneWorkDir();
   writeFileSync(join(workDir, "README.md"), "# seed\n");
   git(workDir, ["add", "-A"]);
   git(workDir, ["commit", "-m", "seed"]);
   git(workDir, ["push", "-u", "origin", "main"]);
 });
 
+/** A working clone of the conversation's repository at workDir. */
+function cloneWorkDir(): void {
+  execFileSync("git", ["clone", REPO_URL, workDir], { stdio: "pipe" });
+}
+
 afterEach(() => {
+  vi.unstubAllEnvs();
   globalThis.fetch = originalFetch;
   rmSync(tmpRoot, { recursive: true, force: true });
 });
@@ -206,7 +220,7 @@ describe("WriteBackCoordinator against real git", () => {
       // The sandbox is torn down; a fresh clone knows nothing of the local
       // branch (only origin has it).
       rmSync(workDir, { recursive: true, force: true });
-      execFileSync("git", ["clone", originDir, workDir], { stdio: "pipe" });
+      cloneWorkDir();
       expect(git(workDir, ["branch", "--show-current"]).trim()).toBe("main");
 
       // Turn 2 in the fresh clone must continue the SAME branch, not fork a

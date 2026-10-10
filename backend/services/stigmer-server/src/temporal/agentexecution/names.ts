@@ -73,3 +73,17 @@ export const UPDATE_EXECUTION_STATUS_ACTIVITY_NAME = "UpdateExecutionStatus";
 
 export const LOAD_AGENT_EXECUTION_ACTIVITY_NAME = "LoadAgentExecution";
 export const READ_HARNESS_STATE_ID_ACTIVITY_NAME = "ReadHarnessStateId";
+
+/**
+ * The retired run-end delete of a run's stored copy of its values. A run
+ * no longer stores one (its values are fetched from their vaults when its
+ * work starts), so new runs never call it: the workflow skips the call
+ * behind VALUES_FETCHED_PATCH_ID. A run started before that change has the
+ * call in its history, and a replay must make it again, so the worker
+ * still registers the name, with a body that does nothing (the upgrade's
+ * migration deleted every stored copy). Byte-pinned.
+ */
+export const RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME = "DeleteExecutionContext";
+
+/** The workflow patch that stops new runs calling the retired delete above. Byte-pinned. */
+export const VALUES_FETCHED_PATCH_ID = "values-fetched-from-vaults";

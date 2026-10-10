@@ -115,6 +115,7 @@ import {
   policyNamesRetiredEnvironment,
   unreadableRetiredEnvironmentRowError,
 } from "../environment-retired.js";
+import { RETIRED_EXECUTION_CONTEXT_KIND } from "../execution-context-retired.js";
 
 export const SCHEMA_VERSION_1 = 1;
 export const SCHEMA_VERSION_2 = 2;
@@ -152,8 +153,11 @@ export const SCHEMA_VERSION_18 = 18;
 /** v19: a sign-in starts from an address: its pending state reshaped, registered clients kept, Connect links. */
 export const SCHEMA_VERSION_19 = 19;
 
+/** v20: the execution context rows removed; a tool connect in flight is a connect attempt row. */
+export const SCHEMA_VERSION_20 = 20;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_19;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_20;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -212,6 +216,7 @@ export async function runMigrations(
       [SCHEMA_VERSION_17, migrateToV17],
       [SCHEMA_VERSION_18, migrateToV18],
       [SCHEMA_VERSION_19, migrateToV19],
+      [SCHEMA_VERSION_20, migrateToV20],
     ];
 
     for (const [version, migrate] of chain) {
@@ -1336,5 +1341,36 @@ async function migrateToV19(client: PoolClient): Promise<void> {
     CREATE INDEX idx_connect_link_vault ON connect_link (vault_id);
     CREATE INDEX idx_connect_link_org ON connect_link (org);
     CREATE INDEX idx_connect_link_expires ON connect_link (expires_at);
+  `);
+}
+
+/**
+ * v20: a run's values are fetched from their vaults, never copied
+ * (../execution-context-retired.ts says what leaves and why nothing is
+ * carried). Every execution context row is deleted from every table keyed
+ * by kind, and the connect attempt table is created. The SQLite driver's
+ * v25 in this engine's terms. The chain's advisory lock keeps a second
+ * instance's boot out of the step.
+ */
+async function migrateToV20(client: PoolClient): Promise<void> {
+  for (const table of RUN_KIND_TABLES) {
+    await client.query(`DELETE FROM ${table} WHERE kind = $1`, [
+      RETIRED_EXECUTION_CONTEXT_KIND,
+    ]);
+  }
+  await client.query(`
+    CREATE TABLE connect_attempt (
+      id TEXT PRIMARY KEY,
+      org TEXT NOT NULL,
+      created_by TEXT NOT NULL,
+      person TEXT NOT NULL DEFAULT '',
+      mcp_server_id TEXT NOT NULL,
+      run_id TEXT NOT NULL DEFAULT '',
+      created_at BIGINT NOT NULL,
+      expires_at BIGINT NOT NULL
+    );
+
+    CREATE INDEX idx_connect_attempt_org ON connect_attempt (org);
+    CREATE INDEX idx_connect_attempt_expires ON connect_attempt (expires_at);
   `);
 }

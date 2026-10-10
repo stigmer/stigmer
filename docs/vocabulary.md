@@ -715,9 +715,10 @@ and decide who may use them.
   entry matched by the address of the tool or Git host it is for
   (`https://mcp.linear.app/mcp`, `github.com`); a sign-in saves one. **Can use**
   is the grant that lets a person or a Team use a shared vault.
-- **Note**: Do not confuse with "Execution Context" (`kind: execution_context`,
-  prefix `ectx`), which carries the values a single run received. See
-  [Execution Context](#execution-context).
+- **Note**: A run keeps no copy of its values. Its status records where each
+  value lives (`credentials.sources`: a vault ID and an entry, never a value),
+  and the runner fetches the values from those vaults when the run's work
+  starts.
 
 ---
 
@@ -1342,17 +1343,6 @@ harness via the `@cursor/sdk`.
   directly.
 - **Related terms**: Harness (user-facing concept), Cursor harness (Tier 2),
   Agent Runner (the native equivalent).
-
----
-
-#### Execution Context
-
-Ephemeral runtime secrets and variables scoped to a specific run.
-
-- **API surface**: `kind: execution_context`, prefix `ectx`. proto:
-  `executioncontext/v1/api.proto`.
-- **Context rule**: Reference docs only. Do not confuse with Vault (persistent,
-  named) vs Execution Context (ephemeral, per-run).
 
 ---
 

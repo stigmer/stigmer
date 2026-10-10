@@ -2,8 +2,9 @@
  * Pins the MCP discovery activity: its one registered name, the platform
  * address fill, the destructive mark each tool carries (an explicit
  * `destructiveHint: true` and nothing else), that the server's previous
- * status is never read, the credential-delivery failures (issue #239), the
- * per-transport init bounds, and the heartbeat contract.
+ * status is never read, the connect's values fetched for its own server
+ * only (and refused when its URL moved), the credential-delivery failures
+ * (issue #239), the per-transport init bounds, and the heartbeat contract.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type {
@@ -72,14 +73,14 @@ describe("DiscoverMcpServer activity", () => {
   describe("the platform STIGMER_SERVER_ADDRESS fill", () => {
     async function connectionConfigFor(
       spec: any,
-      executionContext: any,
+      values: Record<string, string>,
       platformEndpoints = PLATFORM_ENDPOINTS,
     ): Promise<any> {
       const { discoverMcpServer } = await import("../discover-mcp-server.js");
       const { MultiServerMCPClient } = await import("@langchain/mcp-adapters");
       const mockClient = makeMockStigmerClient({
         mcpServer: makeMcpServer({ metadata: { slug: "stigmer" }, spec }),
-        executionContext,
+        values,
       });
       mockInitializeConnections.mockResolvedValue({});
       mockGetClient.mockResolvedValue(makeMockMcpClient({ tools: [] }));
@@ -94,19 +95,19 @@ describe("DiscoverMcpServer activity", () => {
       const spec = makeStdioSpec("stigmer", ["mcp-server"]);
       spec.env = { STIGMER_SERVER_ADDRESS: { description: "gRPC host:port" } };
 
-      const config = await connectionConfigFor(spec, { spec: { data: {} } });
+      const config = await connectionConfigFor(spec, {});
 
       // testConfig's backend endpoint is http://127.0.0.1:1.
       expect(config.env.STIGMER_SERVER_ADDRESS).toBe("127.0.0.1:1");
     });
 
-    it("keeps an address the execution context delivered", async () => {
+    it("keeps an address the connect's values delivered", async () => {
       const spec = makeStdioSpec("stigmer", ["mcp-server"]);
       spec.env = { STIGMER_SERVER_ADDRESS: { description: "gRPC host:port" } };
 
       const config = await connectionConfigFor(
         spec,
-        { spec: { data: { STIGMER_SERVER_ADDRESS: { value: "other.example:7234" } } } },
+        { STIGMER_SERVER_ADDRESS: "other.example:7234" },
         testConfig({ mcpPublicEndpoint: "https://api.example.com" }),
       );
 
@@ -120,7 +121,7 @@ describe("DiscoverMcpServer activity", () => {
 
       const config = await connectionConfigFor(
         spec,
-        { spec: { data: {} } },
+        {},
         testConfig({ mcpPublicEndpoint: "https://api.example.com" }),
       );
 
@@ -133,7 +134,7 @@ describe("DiscoverMcpServer activity", () => {
       spec.env = { STIGMER_SERVER_ADDRESS: {} };
       const mockClient = makeMockStigmerClient({
         mcpServer: makeMcpServer({ metadata: { slug: "stigmer" }, spec }),
-        executionContext: { spec: { data: {} } },
+        values: {},
       });
 
       const promise = discoverMcpServer(
@@ -267,7 +268,7 @@ describe("DiscoverMcpServer activity", () => {
       ).rejects.toThrow("no valid server type configured");
     });
 
-    it("resolves env vars from ExecutionContext when provided", async () => {
+    it("fetches the connect's values when an attempt is named", async () => {
       const { discoverMcpServer } = await import("../discover-mcp-server.js");
 
       const mockClient = makeMockStigmerClient({
@@ -275,14 +276,7 @@ describe("DiscoverMcpServer activity", () => {
           metadata: { slug: "with-env" },
           spec: makeStdioSpec("npx", ["server"]),
         }),
-        executionContext: {
-          spec: {
-            data: {
-              API_KEY: { value: "secret-123", isSecret: true },
-              REGION: { value: "us-east-1", isSecret: false },
-            },
-          },
-        },
+        values: { API_KEY: "secret-123", REGION: "us-east-1" },
       });
 
       const mockMcpClient = makeMockMcpClient({ tools: [] });
@@ -295,12 +289,12 @@ describe("DiscoverMcpServer activity", () => {
       );
 
       expect(result.tools).toEqual([]);
-      // No payload-carried token -> the read goes out without a per-call
+      // No payload-carried token -> the fetch goes out without a per-call
       // credential (the cloud shape, where the ambient credential applies).
-      expect(mockClient.getExecutionContextByExecutionId).toHaveBeenCalledWith("ctx-abc", undefined);
+      expect(mockClient.fetchExecutionValues).toHaveBeenCalledWith("ctx-abc", undefined);
     });
 
-    it("presents the payload-carried EC token on the ExecutionContext read (oss#535)", async () => {
+    it("presents the payload-carried token on the value fetch (oss#535)", async () => {
       const { discoverMcpServer } = await import("../discover-mcp-server.js");
 
       const mockClient = makeMockStigmerClient({
@@ -308,13 +302,7 @@ describe("DiscoverMcpServer activity", () => {
           metadata: { slug: "with-token" },
           spec: makeStdioSpec("npx", ["server"]),
         }),
-        executionContext: {
-          spec: {
-            data: {
-              API_KEY: { value: "secret-123", isSecret: true },
-            },
-          },
-        },
+        values: { API_KEY: "secret-123" },
       });
 
       const mockMcpClient = makeMockMcpClient({ tools: [] });
@@ -330,7 +318,7 @@ describe("DiscoverMcpServer activity", () => {
         { stigmerClient: mockClient as any, transportPosture: "stdio-allowed", platformEndpoints: PLATFORM_ENDPOINTS },
       );
 
-      expect(mockClient.getExecutionContextByExecutionId).toHaveBeenCalledWith(
+      expect(mockClient.fetchExecutionValues).toHaveBeenCalledWith(
         "ctx-abc",
         "scoped-ec-token",
       );
@@ -360,9 +348,7 @@ describe("DiscoverMcpServer activity", () => {
 
       const mockClient = makeMockStigmerClient({
         mcpServer: makeMcpServer({ metadata: { slug: "isc-gym" }, spec }),
-        executionContext: {
-          spec: { data: { ISC_SHARED_SECRET: { value: "s3cret", isSecret: true } } },
-        },
+        values: { ISC_SHARED_SECRET: "s3cret" },
       });
 
       const mockMcpClient = makeMockMcpClient({
@@ -385,7 +371,7 @@ describe("DiscoverMcpServer activity", () => {
       });
     });
 
-    it("returns empty env when no executionContextId provided", async () => {
+    it("fetches nothing when no connect attempt is named", async () => {
       const { discoverMcpServer } = await import("../discover-mcp-server.js");
 
       const mockClient = makeMockStigmerClient({
@@ -404,7 +390,7 @@ describe("DiscoverMcpServer activity", () => {
         { stigmerClient: mockClient as any, transportPosture: "stdio-allowed", platformEndpoints: PLATFORM_ENDPOINTS },
       );
 
-      expect(mockClient.getExecutionContextByExecutionId).not.toHaveBeenCalled();
+      expect(mockClient.fetchExecutionValues).not.toHaveBeenCalled();
     });
 
     it("gracefully handles resource templates not being supported", async () => {
@@ -500,7 +486,7 @@ describe("DiscoverMcpServer activity", () => {
       });
     });
 
-    it("fails closed when the EC read errors and the server requires credentials", async () => {
+    it("fails closed when the fetch errors and the server requires credentials", async () => {
       // Issue #239: limping ahead with an empty env either died later as an
       // opaque PlaceholderResolutionError or dialed the endpoint with a
       // garbage credential and wedged in the 4xx → SSE-fallback limbo. The
@@ -512,7 +498,7 @@ describe("DiscoverMcpServer activity", () => {
       const mockClient = makeMockStigmerClient({
         mcpServer: makeMcpServer({ metadata: { slug: "monday" }, spec }),
       });
-      mockClient.getExecutionContextByExecutionId = vi
+      mockClient.fetchExecutionValues = vi
         .fn()
         .mockRejectedValue(new Error("PERMISSION_DENIED: not scope-bound"));
 
@@ -525,7 +511,7 @@ describe("DiscoverMcpServer activity", () => {
       expect(mockInitializeConnections).not.toHaveBeenCalled();
     });
 
-    it("keeps the lenient path when the EC read errors but no env is declared", async () => {
+    it("keeps the lenient path when the fetch errors but no env is declared", async () => {
       const { discoverMcpServer } = await import("../discover-mcp-server.js");
 
       const mockClient = makeMockStigmerClient({
@@ -534,7 +520,7 @@ describe("DiscoverMcpServer activity", () => {
           spec: makeHttpSpec("https://mcp.example.com"),
         }),
       });
-      mockClient.getExecutionContextByExecutionId = vi
+      mockClient.fetchExecutionValues = vi
         .fn()
         .mockRejectedValue(new Error("transient"));
 
@@ -559,7 +545,7 @@ describe("DiscoverMcpServer activity", () => {
       const mockClient = makeMockStigmerClient({
         mcpServer: makeMcpServer({ metadata: { slug: "optional-only" }, spec }),
       });
-      mockClient.getExecutionContextByExecutionId = vi
+      mockClient.fetchExecutionValues = vi
         .fn()
         .mockRejectedValue(new Error("transient"));
 
@@ -573,14 +559,14 @@ describe("DiscoverMcpServer activity", () => {
       expect(result.tools).toEqual([]);
     });
 
-    it("fails closed when the EC is empty and the server requires credentials", async () => {
+    it("fails closed when the fetch names no values for the server and it requires credentials", async () => {
       const { discoverMcpServer, CredentialResolutionError } = await import("../discover-mcp-server.js");
 
       const spec = makeHttpSpec("https://mcp.monday.com/mcp");
       spec.env = { MONDAY_ACCESS_TOKEN: { isSecret: true } };
       const mockClient = makeMockStigmerClient({
         mcpServer: makeMcpServer({ metadata: { slug: "monday" }, spec }),
-        executionContext: { spec: { data: {} } },
+        values: {},
       });
 
       const promise = discoverMcpServer(
@@ -592,27 +578,59 @@ describe("DiscoverMcpServer activity", () => {
       expect(mockInitializeConnections).not.toHaveBeenCalled();
     });
 
-    it("fails closed when a delivered credential is the redaction sentinel", async () => {
-      // A redacted value means the server-side decrypt gate refused this
-      // runner's credential class/scope — dialing with the literal sentinel
-      // can only produce a misleading 401 (the mechanism behind #239).
+    it("carries the server's own refusal: the key, the vault and what to do", async () => {
       const { discoverMcpServer, CredentialResolutionError } = await import("../discover-mcp-server.js");
+      const { Code, ConnectError } = await import("@connectrpc/connect");
 
       const spec = makeHttpSpec("https://mcp.monday.com/mcp");
       spec.env = { MONDAY_ACCESS_TOKEN: { isSecret: true } };
       const mockClient = makeMockStigmerClient({
         mcpServer: makeMcpServer({ metadata: { slug: "monday" }, spec }),
-        executionContext: {
-          spec: { data: { MONDAY_ACCESS_TOKEN: { value: "***REDACTED***", isSecret: true } } },
-        },
       });
+      mockClient.fetchExecutionValues = vi.fn().mockRejectedValue(
+        new ConnectError("monday needs MONDAY_ACCESS_TOKEN: add MONDAY_ACCESS_TOKEN to My vault", Code.FailedPrecondition),
+      );
 
       const promise = discoverMcpServer(
         { mcpServerId: "mcp-monday", executionContextId: "ctx-5" },
         { stigmerClient: mockClient as any, transportPosture: "stdio-forbidden", platformEndpoints: PLATFORM_ENDPOINTS },
       );
       await expect(promise).rejects.toThrow(CredentialResolutionError);
-      await expect(promise).rejects.toThrow(/MONDAY_ACCESS_TOKEN.*delivered redacted|delivered redacted.*MONDAY_ACCESS_TOKEN/s);
+      await expect(promise).rejects.toThrow("MCP server 'monday': monday needs MONDAY_ACCESS_TOKEN: add MONDAY_ACCESS_TOKEN to My vault");
+      expect(mockInitializeConnections).not.toHaveBeenCalled();
+    });
+
+    it("takes only its own server's group, and none whose URL moved while connecting", async () => {
+      const { discoverMcpServer, CredentialResolutionError } = await import("../discover-mcp-server.js");
+
+      const spec = makeHttpSpec("https://mcp.monday.com/mcp");
+      spec.env = { MONDAY_ACCESS_TOKEN: { isSecret: true } };
+      const server = makeMcpServer({ metadata: { slug: "monday" }, spec });
+      const otherOnly = makeMockStigmerClient({
+        mcpServer: server,
+        answer: { agent: {}, repositories: [], tools: [{ mcpServerId: "mcp-other", url: "", values: { MONDAY_ACCESS_TOKEN: { value: "x" } } }] },
+      });
+      await expect(
+        discoverMcpServer(
+          { mcpServerId: "mcp-monday", executionContextId: "ctx-6" },
+          { stigmerClient: otherOnly as any, transportPosture: "stdio-forbidden", platformEndpoints: PLATFORM_ENDPOINTS },
+        ),
+      ).rejects.toThrow(/delivered no credentials/);
+
+      const moved = makeMockStigmerClient({
+        mcpServer: server,
+        answer: {
+          agent: {},
+          repositories: [],
+          tools: [{ mcpServerId: "mcp-test", url: "https://elsewhere.example/mcp", values: { MONDAY_ACCESS_TOKEN: { value: "tok" } } }],
+        },
+      });
+      const promise = discoverMcpServer(
+        { mcpServerId: "mcp-monday", executionContextId: "ctx-7" },
+        { stigmerClient: moved as any, transportPosture: "stdio-forbidden", platformEndpoints: PLATFORM_ENDPOINTS },
+      );
+      await expect(promise).rejects.toThrow(CredentialResolutionError);
+      await expect(promise).rejects.toThrow(/changed its URL while it was connecting/);
       expect(mockInitializeConnections).not.toHaveBeenCalled();
     });
 
@@ -661,7 +679,7 @@ describe("DiscoverMcpServer activity", () => {
         url: "https://mcp.monday.com/mcp",
         destructiveTools: [],
         discoveredToolNames: null,
-        declaredEnvKeys: [],
+        serverId: "",
         pluginOrigin: null,
         discoveredCapabilitiesEmpty: true,
       });
@@ -678,7 +696,7 @@ describe("DiscoverMcpServer activity", () => {
         command: "npx",
         destructiveTools: [],
         discoveredToolNames: null,
-        declaredEnvKeys: [],
+        serverId: "",
         pluginOrigin: null,
         discoveredCapabilitiesEmpty: true,
       });
@@ -810,15 +828,27 @@ function makeHttpSpec(url: string): any {
   };
 }
 
+/**
+ * A client whose value fetch answers `values` as the server's own group
+ * (keyed by its id, at the URL it dials), or the whole `answer` given.
+ */
 function makeMockStigmerClient(opts: {
   mcpServer?: any;
-  executionContext?: any;
+  values?: Record<string, string>;
+  answer?: any;
 }) {
+  const serverType = opts.mcpServer?.spec?.serverType;
+  const url = serverType?.case === "http" ? serverType.value.url : "";
+  const tools = opts.values === undefined
+    ? []
+    : [{
+        mcpServerId: opts.mcpServer?.metadata?.id ?? "",
+        url,
+        values: { ...opts.values },
+      }];
   return {
     getMcpServer: vi.fn().mockResolvedValue(opts.mcpServer),
-    getExecutionContextByExecutionId: vi.fn().mockResolvedValue(
-      opts.executionContext ?? { spec: { data: {} } },
-    ),
+    fetchExecutionValues: vi.fn().mockResolvedValue(opts.answer ?? { agent: {}, tools, repositories: [] }),
   };
 }
 

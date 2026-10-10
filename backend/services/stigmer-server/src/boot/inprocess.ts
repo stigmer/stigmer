@@ -30,7 +30,6 @@ import { ApiResourceDeleteInputSchema } from "@stigmer/protos/ai/stigmer/commons
 import { SkillCommandController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/command_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import { SkillIdSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
-import { ExecutionContextCommandController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/command_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { SessionIdSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
@@ -43,18 +42,13 @@ import type {
   AgentLoader,
   SessionCreator,
 } from "../domain/run/create-steps.js";
-import type {
-  ExecutionContextCreator,
-  SessionLoader,
-} from "../domain/run/create-execution-context-step.js";
-import type { ExecutionContextDeleter } from "../domain/executioncontext/internal-delete.js";
+import type { SessionLoader } from "../domain/run/plan-run-values-step.js";
 import type {
   JudgeRunCreator,
   JudgeSessionDeleter,
   ScoreDeleter,
   ScoreRecorder,
 } from "../domain/score/ports.js";
-import type { ConnectExecutionContextClient } from "../domain/mcpserver/connect.js";
 import type { PluginMaterializer } from "../domain/plugin/materialize/ports.js";
 import { UpdateVisibilityInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -76,19 +70,11 @@ import type { CallOptions } from "@connectrpc/connect";
 
 /** The narrow in-process surfaces the domains consume. */
 export interface InProcessClients {
-  // The agentexecution create/EC-builder edges: the controller's
-  // agent/session/executioncontext in-process clients.
+  // The run create and value-planner edges: the controller's agent and
+  // session in-process clients.
   readonly executionAgentLoader: AgentLoader;
   readonly executionSessionLoader: SessionLoader;
   readonly executionSessionCreator: SessionCreator;
-  readonly executionContextCreator: ExecutionContextCreator;
-  /**
-   * The server's own delete of a run's ExecutionContext — the run-end
-   * activity on the run worker and the recover step
-   * (domain/executioncontext/internal-delete.ts): the context's delete
-   * chain, so its cleanup event and search-row delete run (stigmer#1647).
-   */
-  readonly executionContextDeleter: ExecutionContextDeleter;
   /**
    * The grading code's write of a run's run-health score
    * (temporal/grading/, domain/score/grading-observer.ts): the score's
@@ -125,16 +111,10 @@ export interface InProcessClients {
    */
   readonly pluginEvalTries: PluginEvalTryLane;
   /**
-   * The connect lanes' ephemeral-EC lifecycle (server.go 693–705: the
-   * mcpserver controller's executioncontext client) — create before the
-   * discovery workflow starts, delete when the operation settles.
-   */
-  readonly connectExecutionContextClient: ConnectExecutionContextClient;
-  /**
    * The schedule clock's fire edge (server.go 581: the RunStarter's
    * in-process agentexecution client): every fire — cron tick or manual
    * trigger — enters the FULL execution create pipeline, so session
-   * auto-create, execution context, launch gates, and workflow start all
+   * auto-create, the value plan, launch gates, and workflow start all
    * run exactly as for an external create.
    */
   readonly scheduleExecutionCreator: ScheduleExecutionCreator;
@@ -214,10 +194,6 @@ export function createInProcessClients(
   const agentQuery = createClient(AgentQueryController, transport);
   const sessionCommand = createClient(SessionCommandController, transport);
   const sessionQuery = createClient(SessionQueryController, transport);
-  const executionContextCommand = createClient(
-    ExecutionContextCommandController,
-    transport,
-  );
   const agentExecutionCommand = createClient(
     RunCommandController,
     transport,
@@ -263,16 +239,6 @@ export function createInProcessClients(
       createAsCaller: (session, caller) =>
         sessionCommand.create(session, asCaller(caller)),
     },
-    executionContextCreator: {
-      create: (ec) => executionContextCommand.create(ec),
-    },
-    // The server acting for itself, as the create above: the context is the
-    // server's, and so is its removal (the connect lane's rule below).
-    executionContextDeleter: {
-      delete: async (contextId) => {
-        await executionContextCommand.delete({ resourceId: contextId });
-      },
-    },
     // The server acting for itself: a check's verdict is the platform's,
     // and so is the removal of a deleted run's scores.
     scoreRecorder: {
@@ -316,16 +282,6 @@ export function createInProcessClients(
           create(TerminateRunInputSchema, { id: runId, reason }),
         );
       },
-    },
-    // The connect lane's ephemeral EC is created AS THE CONNECTING PERSON
-    // (the asCaller lane): its creator stamp is what the
-    // runner-subject verifier resolves the connect token's bearer to under
-    // the built-in posture (runnerauth/bound-execution.ts). The delete
-    // stays the server's own act — the row is the lane's, whoever asked.
-    connectExecutionContextClient: {
-      create: (ec, caller) =>
-        executionContextCommand.create(ec, asCaller(caller)),
-      delete: (input) => executionContextCommand.delete(input),
     },
     // The schedule clock's fire edge — the plain Create RPC (Go's
     // ExecutionCreator). Every call through this transport

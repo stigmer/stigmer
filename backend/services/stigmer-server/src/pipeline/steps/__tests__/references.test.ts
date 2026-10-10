@@ -34,7 +34,6 @@ import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchan
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
-import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
@@ -106,7 +105,6 @@ const SCHEMAS_UNDER_THE_RULE: ReadonlyArray<DescMessage> = [
   AgentShareSchema,
   SessionSchema,
   RunSchema,
-  ExecutionContextSchema,
   PlatformClientSchema,
 ];
 

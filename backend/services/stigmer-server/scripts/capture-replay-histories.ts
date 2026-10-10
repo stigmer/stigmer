@@ -51,6 +51,9 @@ const activities = {
   LoadAgentExecution: async () =>
     loadResults.length > 1 ? loadResults.shift()! : loadResults[0]!,
   ReadHarnessStateId: async () => "",
+  // The retired run-end cleanup (temporal/agentexecution/names.ts): a new
+  // capture records its patch and never calls it; registered so the
+  // committed histories that do still replay.
   DeleteExecutionContext: async () => {},
 };
 
@@ -121,7 +124,7 @@ async function main(): Promise<void> {
     console.log(`captured ${name}.json`);
   }
 
-  // 1. Happy path: EnsureThread → one completed turn → EC cleanup.
+  // 1. Happy path: EnsureThread → one completed turn.
   executeBehaviors = [async () => slim("EXECUTION_COMPLETED")];
   loadResults = [];
   await capture(
@@ -191,8 +194,7 @@ async function main(): Promise<void> {
   );
 
   // 5. User cancel while the turn runs: the workflow's cancellation
-  //    cleanup (the CANCELLED status write, then the ExecutionContext
-  //    delete) on a non-cancellable scope, without waiting for the
+  //    cleanup (the CANCELLED status write) on a non-cancellable scope, without waiting for the
   //    runner activity to acknowledge (the proxy's default TRY_CANCEL).
   //    The held turn is released afterwards so worker shutdown, which
   //    waits for in-flight activities, can complete.

@@ -11,7 +11,6 @@ export function provisionEmpty(backend: WorkspaceBackend): ProvisionResult {
   return {
     rootDir: backend.rootDir,
     sourceType: "empty",
-    consumedKeys: [],
     workspaceDescription:
       "Your workspace is empty. " +
       "Create files and directories as needed for your task.",

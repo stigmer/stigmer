@@ -73,15 +73,11 @@ export interface CapabilityFlags {
   // pre-signed URLs — where false, the suite pins that the RPCs answer
   // Unimplemented (the fallback contract clients rely on).
   skillArtifactTransferLane: boolean;
-  // NOTE: there is deliberately no ExecutionContext secret-redaction
-  // capability. The EC surface is edition-CONVERGED since stigmer#535 (the
-  // stigmer#405 spawned EC-at-rest port): both editions encrypt EC values at
-  // rest, redact every user-shaped EC read, and decrypt only for a
-  // scope-bound runner credential (cloud: ResolveExecutionContextValuesForCaller;
-  // OSS: the execution-scoped token lane on getByExecutionId). The EC and
-  // vault-resolution suites assert redaction unconditionally — the flag that
-  // used to gate this (executionContextSecretRedaction) was retired at
-  // convergence (stigmer#405).
+  // NOTE: there is deliberately no values-fetch capability. Both editions
+  // serve VaultValueController.fetchValues only to a runner credential bound
+  // to the live execution (cloud: its composed authorizeExecutionValuesRead;
+  // OSS: the execution-scoped token), and refuse every other caller; the
+  // vault-resolution suite asserts that unconditionally.
   // Schedules actually FIRE here: a trigger records status.last_fire_at,
   // repeated failed fires accumulate status.consecutive_failures into the
   // platform auto-pause, and resume + re-trigger fires again. Requires a
@@ -135,8 +131,7 @@ export interface CapabilityFlags {
   // service's MinIO-backed artifact routes via the runner's
   // STIGMER_ARTIFACT_PROXY_ENDPOINT override (stigmer#803). The flag that
   // used to gate the attachment-materialization assertions
-  // (sharedRunnerArtifactStore) was retired when that lane landed — the
-  // executionContextSecretRedaction retirement precedent.
+  // (sharedRunnerArtifactStore) was retired when that lane landed.
   // The conformance caller passes the Memory create RPC's strict
   // first-party-human-operator gate, which memory capture inherits.
   //

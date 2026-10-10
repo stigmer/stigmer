@@ -8,7 +8,6 @@
     "channel-app",
     "commons",
     "evaluator",
-    "execution-context",
     "iam-policy",
     "identity-account",
     "identity-provider",

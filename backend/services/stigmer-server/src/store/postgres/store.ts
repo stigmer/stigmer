@@ -46,6 +46,8 @@ import {
 import type {
   AuditRecord,
   BootstrapStateStore,
+  ConnectAttemptRecord,
+  ConnectAttemptStore,
   ConnectLinkRecord,
   ConnectLinkStore,
   OAuthClientRegistrationStore,
@@ -152,6 +154,7 @@ export class PostgresStore implements Store {
   readonly pendingOAuthStates: PendingOAuthStateStore;
   readonly oauthClientRegistrations: OAuthClientRegistrationStore;
   readonly connectLinks: ConnectLinkStore;
+  readonly connectAttempts: ConnectAttemptStore;
   readonly organizationDeletions: OrganizationDeletionStore;
 
   private pool: Pool | undefined;
@@ -175,6 +178,7 @@ export class PostgresStore implements Store {
       () => this.open(),
     );
     this.connectLinks = new PostgresConnectLinkStore(() => this.open());
+    this.connectAttempts = new PostgresConnectAttemptStore(() => this.open());
     this.organizationDeletions = new PostgresOrganizationDeletionStore(() =>
       this.open(),
     );
@@ -1854,6 +1858,83 @@ function connectLinkOf(row: ConnectLinkRow): ConnectLinkRecord {
     createdAt: Number(row.created_at),
     expiresAt: Number(row.expires_at),
     usedAt: Number(row.used_at),
+  };
+}
+
+const CONNECT_ATTEMPT_COLUMNS =
+  "id, org, created_by, person, mcp_server_id, run_id, created_at, expires_at";
+
+interface ConnectAttemptRow {
+  id: string;
+  org: string;
+  created_by: string;
+  person: string;
+  mcp_server_id: string;
+  run_id: string;
+  created_at: string | number;
+  expires_at: string | number;
+}
+
+class PostgresConnectAttemptStore implements ConnectAttemptStore {
+  constructor(private readonly open: () => Pool) {}
+
+  async create(attempt: ConnectAttemptRecord): Promise<void> {
+    await this.open().query(
+      `INSERT INTO connect_attempt (${CONNECT_ATTEMPT_COLUMNS})
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [
+        attempt.id,
+        attempt.org,
+        attempt.createdBy,
+        attempt.person,
+        attempt.mcpServerId,
+        attempt.runId,
+        attempt.createdAt,
+        attempt.expiresAt,
+      ],
+    );
+  }
+
+  async findLive(id: string, now: number): Promise<ConnectAttemptRecord | undefined> {
+    const result = await this.open().query<ConnectAttemptRow>(
+      `SELECT ${CONNECT_ATTEMPT_COLUMNS} FROM connect_attempt WHERE id = $1 AND expires_at > $2`,
+      [id, now],
+    );
+    const row = result.rows[0];
+    return row === undefined ? undefined : connectAttemptOf(row);
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.open().query(`DELETE FROM connect_attempt WHERE id = $1`, [id]);
+  }
+
+  async deleteExpired(now: number): Promise<number> {
+    const result = await this.open().query(
+      `DELETE FROM connect_attempt WHERE expires_at <= $1`,
+      [now],
+    );
+    return result.rowCount ?? 0;
+  }
+
+  async deleteByOrg(org: string): Promise<number> {
+    const result = await this.open().query(
+      `DELETE FROM connect_attempt WHERE org = $1`,
+      [org],
+    );
+    return result.rowCount ?? 0;
+  }
+}
+
+function connectAttemptOf(row: ConnectAttemptRow): ConnectAttemptRecord {
+  return {
+    id: row.id,
+    org: row.org,
+    createdBy: row.created_by,
+    person: row.person,
+    mcpServerId: row.mcp_server_id,
+    runId: row.run_id,
+    createdAt: Number(row.created_at),
+    expiresAt: Number(row.expires_at),
   };
 }
 

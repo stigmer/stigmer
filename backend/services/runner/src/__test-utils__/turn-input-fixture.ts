@@ -35,6 +35,7 @@ import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/ap
 import type { TurnInput } from "../harness/types.js";
 import type { ResolvedBlueprint, RunAgent } from "../shared/blueprint-resolver.js";
 import { ToolScope } from "../shared/tool-lists.js";
+import { NO_RUN_VALUES } from "../shared/run-values.js";
 import { mockWorkspaceBackend } from "./mock-workspace.js";
 
 /** The ids a fixture record carries when a test does not name its own. */
@@ -118,7 +119,7 @@ export function turnInputFixture(overrides: TurnInputFixtureOverrides = {}): Tur
     execution,
     session,
     blueprint,
-    environment: overrides.environment ?? { envVars: {}, secretKeys: new Set() },
+    environment: overrides.environment ?? NO_RUN_VALUES,
     workspace: overrides.workspace ?? {
       dirs: [workspaceDir],
       primaryDir: workspaceDir,

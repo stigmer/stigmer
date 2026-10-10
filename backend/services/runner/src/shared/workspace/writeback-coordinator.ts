@@ -38,6 +38,8 @@ import { GitWriteBackMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import type { WorkspaceBackend, ProvisionResult } from "./types.js";
 import { gitCommitAsAgent } from "./git-identity.js";
+import { runNetworkGit } from "./git-credential.js";
+import { repositoryTokenFor, type RepositoryToken } from "../run-values.js";
 
 /**
  * Where a write-back record is registered: the one member of the turn's
@@ -76,6 +78,18 @@ interface EligibleEntry {
   readonly baseBranch: string;
   readonly rootDir: string;
   readonly entryName: string;
+  /**
+   * The repository's own token from the run's values: handed to this
+   * entry's network git commands (../git-credential.ts) and the GitHub PR
+   * API, nothing else. Empty when the run has none.
+   */
+  readonly githubToken: string;
+}
+
+/** One entry's git commands: `exec` runs without a credential, `network` hands the entry's token to the command. */
+interface EntryGit {
+  readonly exec: (cmd: string) => Promise<string>;
+  readonly network: (cmd: string) => Promise<string>;
 }
 
 export class WriteBackCoordinator {
@@ -83,14 +97,6 @@ export class WriteBackCoordinator {
   private readonly executionId: string;
   private readonly workspaceBackend: WorkspaceBackend;
   private readonly branchName: string;
-  /**
-   * Token for the GitHub PR API, plumbed explicitly from the resolved
-   * execution env (the same GITHUB_TOKEN that credentials the clone/push).
-   * Empty when the session has none — commit/push may still succeed via the
-   * repo-local credential store, so an empty token degrades to PUSHED with an
-   * actionable error rather than blocking the write-back.
-   */
-  private readonly githubToken: string;
 
   private readonly eligible = new Map<string, EligibleEntry>();
   private readonly state = new Map<string, EntryState>();
@@ -100,7 +106,8 @@ export class WriteBackCoordinator {
     executionId: string;
     /** The owning session's id — the branch/PR are session-scoped. */
     sessionId: string;
-    githubToken: string;
+    /** The run's repository tokens; each entry takes its own by name and URL. */
+    repositories: readonly RepositoryToken[];
     provisionResults: readonly ProvisionResult[];
     workspaceEntries: readonly WorkspaceEntry[];
     workspaceBackend: WorkspaceBackend;
@@ -108,12 +115,11 @@ export class WriteBackCoordinator {
     this.writeBacks = opts.writeBacks;
     this.executionId = opts.executionId;
     this.workspaceBackend = opts.workspaceBackend;
-    this.githubToken = opts.githubToken;
     // The FULL session id: a truncated ULID is timestamp-dominated, so two
     // sessions created near-simultaneously would collide on a short prefix.
     this.branchName = `stigmer/${opts.sessionId}`;
 
-    this.initEligibleEntries(opts.provisionResults, opts.workspaceEntries);
+    this.initEligibleEntries(opts.provisionResults, opts.workspaceEntries, opts.repositories);
   }
 
   get hasEligibleEntries(): boolean {
@@ -144,19 +150,22 @@ export class WriteBackCoordinator {
   private initEligibleEntries(
     provisionResults: readonly ProvisionResult[],
     workspaceEntries: readonly WorkspaceEntry[],
+    repositories: readonly RepositoryToken[],
   ): void {
     const modeMap = new Map<string, GitWriteBackMode>();
+    const tokenMap = new Map<string, string>();
     for (const entry of workspaceEntries) {
       const source = entry.source;
       if (source?.source.case === "gitRepo") {
         modeMap.set(entry.name, source.source.value.writeBackMode);
+        tokenMap.set(entry.name, repositoryTokenFor(repositories, entry.name, source.source.value.url) ?? "");
       }
     }
 
     for (const pr of provisionResults) {
       if (pr.sourceType !== "git_repo") continue;
       if (!pr.gitMetadata) continue;
-      if (!pr.gitMetadata.gitCredentialsConfigured) continue;
+      if (!pr.gitMetadata.writeBackReady) continue;
 
       const mode = modeMap.get(pr.entryName) ?? GitWriteBackMode.GIT_WRITE_BACK_MODE_UNSPECIFIED;
       if (!WRITE_BACK_ENABLED_MODES.has(mode)) continue;
@@ -166,6 +175,7 @@ export class WriteBackCoordinator {
         baseBranch: pr.gitMetadata.branch,
         rootDir: pr.rootDir,
         entryName: pr.entryName,
+        githubToken: tokenMap.get(pr.entryName) ?? "",
       });
 
       this.state.set(pr.entryName, {
@@ -208,15 +218,24 @@ export class WriteBackCoordinator {
     const exec = async (cmd: string): Promise<string> => {
       return this.workspaceBackend.execute(`cd ${rootDir} && ${cmd}`);
     };
+    const git: EntryGit = {
+      exec,
+      network: (cmd) =>
+        runNetworkGit(this.workspaceBackend, cmd, {
+          cwd: rootDir,
+          remoteUrl: entry.provisionResult.gitMetadata!.repoUrl,
+          token: entry.githubToken,
+        }),
+    };
 
     try {
       const hasChanges = await this.hasChanges(exec);
       if (!hasChanges) return;
 
       if (!entryState.branchReady) {
-        await this.ensureBranch(entryName, entryState, exec);
+        await this.ensureBranch(entryName, entryState, git);
       }
-      await this.commitAndPush(entryName, entryState, exec);
+      await this.commitAndPush(entryName, entryState, git);
     } catch (err) {
       console.warn(
         `[WriteBack] execution=${this.executionId} entry=${entryName} — ` +
@@ -280,7 +299,7 @@ export class WriteBackCoordinator {
   private async ensureBranch(
     entryName: string,
     entryState: EntryState,
-    exec: (cmd: string) => Promise<string>,
+    { exec, network }: EntryGit,
   ): Promise<void> {
     const current = (await exec("git branch --show-current").catch(() => "")).trim();
     if (current === this.branchName) {
@@ -295,11 +314,13 @@ export class WriteBackCoordinator {
     if (localRef) {
       await exec(`git checkout ${this.branchName}`);
     } else {
+      // An empty answer is "no such branch"; a failure (refused, too old a
+      // git, an untrusted clone) is a failure, never read as no branch.
       const remoteRef = (
-        await exec(`git ls-remote --heads origin ${this.branchName}`).catch(() => "")
+        await network(`git ls-remote --heads origin ${this.branchName}`)
       ).trim();
       if (remoteRef) {
-        await exec(`git fetch origin ${this.branchName}`);
+        await network(`git fetch origin ${this.branchName}`);
         await exec(`git checkout -b ${this.branchName} origin/${this.branchName}`);
       } else {
         await exec(`git checkout -b ${this.branchName}`);
@@ -316,7 +337,7 @@ export class WriteBackCoordinator {
   private async commitAndPush(
     entryName: string,
     entryState: EntryState,
-    exec: (cmd: string) => Promise<string>,
+    { exec, network }: EntryGit,
   ): Promise<void> {
     await exec("git add -A");
     // Committed as the agent identity: the cloud sandbox has no git identity
@@ -331,7 +352,7 @@ export class WriteBackCoordinator {
 
     // Always -u: idempotent whether this push creates the remote branch or
     // appends to it, and it (re-)establishes tracking after a re-provision.
-    await exec(`git push -u origin ${this.branchName}`);
+    await network(`git push -u origin ${this.branchName}`);
 
     console.log(
       `[WriteBack] execution=${this.executionId} entry=${entryName} — ` +
@@ -359,15 +380,15 @@ export class WriteBackCoordinator {
       entryState.githubRepo = repo;
     }
 
-    if (!this.githubToken) {
+    if (!entry.githubToken) {
       throw new Error(
         "No GitHub token available to open a pull request. The branch " +
-        `'${this.branchName}' was pushed — open the PR manually, or configure ` +
-        "GITHUB_TOKEN for the session so PRs are created automatically.",
+        `'${this.branchName}' was pushed — open the PR manually, or give the ` +
+        "repository a token so PRs are created automatically.",
       );
     }
 
-    const existing = await this.findOpenPr(entryState);
+    const existing = await this.findOpenPr(entryState, entry.githubToken);
     if (existing) {
       entryState.prCreated = true;
       entryState.prUrl = existing.url;
@@ -390,7 +411,7 @@ export class WriteBackCoordinator {
       `${GITHUB_API}/repos/${entryState.githubOwner}/${entryState.githubRepo}/pulls`,
       {
         method: "POST",
-        headers: this.githubHeaders(),
+        headers: githubHeaders(entry.githubToken),
         body: JSON.stringify({
           title: `Stigmer agent changes (${shortSessionId})`,
           body: prBody,
@@ -419,12 +440,13 @@ export class WriteBackCoordinator {
   /** The open PR whose head is the session branch, if one exists. */
   private async findOpenPr(
     entryState: EntryState,
+    githubToken: string,
   ): Promise<{ url: string; number: number } | null> {
     const head = `${entryState.githubOwner}:${this.branchName}`;
     const resp = await fetch(
       `${GITHUB_API}/repos/${entryState.githubOwner}/${entryState.githubRepo}` +
       `/pulls?head=${encodeURIComponent(head)}&state=open`,
-      { headers: this.githubHeaders() },
+      { headers: githubHeaders(githubToken) },
     );
 
     if (!resp.ok) {
@@ -436,14 +458,6 @@ export class WriteBackCoordinator {
     const pr = data[0];
     if (!pr) return null;
     return { url: pr.html_url ?? "", number: pr.number ?? 0 };
-  }
-
-  private githubHeaders(): Record<string, string> {
-    return {
-      "Authorization": `Bearer ${this.githubToken}`,
-      "Accept": "application/vnd.github+json",
-      "Content-Type": "application/json",
-    };
   }
 
   // ── Status Reporting ────────────────────────────────────────────────
@@ -496,4 +510,13 @@ export function parseGithubRepo(repoUrl: string): { owner: string; repo: string 
     return { owner: httpsMatch[1], repo: httpsMatch[2] };
   }
   throw new Error(`Cannot parse GitHub owner/repo from URL: ${repoUrl}`);
+}
+
+/** The GitHub API headers for one repository's token. */
+function githubHeaders(githubToken: string): Record<string, string> {
+  return {
+    "Authorization": `Bearer ${githubToken}`,
+    "Accept": "application/vnd.github+json",
+    "Content-Type": "application/json",
+  };
 }

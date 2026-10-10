@@ -26,8 +26,8 @@
  *
  * Never filled: the Organization service (an organization's own
  * `metadata.org` stays empty), the kinds that belong to no organization
- * (`OWNER_ONLY` and `NONE` scope: accounts, API keys, execution contexts,
- * platform, plans, licences), nested messages other than a VaultTarget (a
+ * (`OWNER_ONLY` and `NONE` scope: accounts, API keys, platform, plans,
+ * licences), nested messages other than a VaultTarget (a
  * spec reference follows `metadata.org` through NormalizeReferences), and
  * streams (no streaming method takes an organization). The per-method inventory is
  * docs/single-organization.md, which single-organization-inventory.test.ts

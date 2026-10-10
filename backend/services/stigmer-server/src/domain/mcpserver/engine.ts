@@ -21,20 +21,23 @@
 /**
  * The connect workflow's input — matches the runner's
  * ConnectMcpServerWorkflowInput (Go connectWorkflowInput). Snake_case keys
- * are the Temporal JSON payload wire contract; ids-only except
- * execution_context_token, the ONE deliberate exception (oss#535): the EC
- * read RPC redacts secrets unless the caller presents an execution-scoped
- * runner token, and the discovery activity has no execution of its own to
- * exchange for one — the capability travels with the work item. It is a
- * short-TTL token bound to this connect flow's ephemeral EC (deleted when
- * the connect settles, on the blocking lane and the async one alike) and
- * useless once either expires. What it unlocks depends on the posture:
- * under trusted-local it is a decrypt-lane discriminator and nothing more;
- * under the built-in authorization posture the same token also admits its
- * bearer AS THE PERSON who asked for the connect, on every RPC, for as
- * long as the EC row exists (runnerauth/runnerauth.ts, the two lanes by
- * posture; runnerauth/bound-execution.ts, the `mcp-connect` binding). It
- * sits in Temporal history in the clear like every server-written input.
+ * are the Temporal JSON payload wire contract (the two execution_context_*
+ * names are pinned bytes from before values were fetched from vaults:
+ * execution_context_id carries the connect's attempt id). Ids-only except
+ * execution_context_token, the ONE deliberate exception (oss#535): the
+ * values fetch answers only a runner credential bound to the execution,
+ * and the discovery activity has no execution of its own to exchange for
+ * one — the capability travels with the work item. It is a short-TTL
+ * token bound to this connect's attempt (ended when the connect settles,
+ * on the blocking lane and the async one alike) and useless once either
+ * ends. What it unlocks depends on the posture: under trusted-local it
+ * fetches that connect's values and nothing more; under the built-in
+ * authorization posture the same token also admits its bearer AS THE
+ * PERSON who asked for the connect, on every RPC, for as long as the
+ * attempt row exists (runnerauth/runnerauth.ts, the two lanes by posture;
+ * runnerauth/bound-execution.ts, the `mcp-connect` binding). It sits in
+ * Temporal history in the clear like every server-written input; no vault
+ * value does.
  */
 export interface ConnectWorkflowInput {
   readonly mcp_server_id: string;

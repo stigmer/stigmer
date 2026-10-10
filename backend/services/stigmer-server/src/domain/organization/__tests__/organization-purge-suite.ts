@@ -316,6 +316,17 @@ export function describeOrganizationPurge(
         expiresAt: now + 1800,
         usedAt: 0,
       });
+      // A connect in flight: its attempt names the organization.
+      await store.connectAttempts.create({
+        id: `connect-mcp_${slug}-attempt`,
+        org,
+        createdBy: "ida_purge_reader",
+        person: "ida_purge_reader",
+        mcpServerId: `mcp_${slug}`,
+        runId: "",
+        createdAt: now,
+        expiresAt: now + 600,
+      });
       await store.upsertScheduleFire({
         scheduleId: `schedule_${slug}`,
         org,

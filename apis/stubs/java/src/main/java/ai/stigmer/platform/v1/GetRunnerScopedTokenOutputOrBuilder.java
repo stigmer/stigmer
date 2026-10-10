@@ -13,7 +13,7 @@ public interface GetRunnerScopedTokenOutputOrBuilder extends
   /**
    * <pre>
    * Stigmer-signed token scoped to the requested work. The runner presents it
-   * for ExecutionContext reads in place of its unscoped bootstrap token.
+   * to fetch a run's values in place of its unscoped bootstrap token.
    * </pre>
    *
    * <code>string runner_scoped_token = 1 [json_name = "runnerScopedToken"];</code>
@@ -23,7 +23,7 @@ public interface GetRunnerScopedTokenOutputOrBuilder extends
   /**
    * <pre>
    * Stigmer-signed token scoped to the requested work. The runner presents it
-   * for ExecutionContext reads in place of its unscoped bootstrap token.
+   * to fetch a run's values in place of its unscoped bootstrap token.
    * </pre>
    *
    * <code>string runner_scoped_token = 1 [json_name = "runnerScopedToken"];</code>

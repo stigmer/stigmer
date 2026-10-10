@@ -478,11 +478,6 @@
           "description": "Customer-owned messaging-platform app (e.g. a Slack app) that agent\n channels can install through instead of the shared platform app."
         },
         {
-          "name": "execution_context",
-          "number": 54,
-          "description": "User-owned runtime context for managing execution state."
-        },
-        {
           "name": "schedule",
           "number": 56,
           "description": "Recurring trigger that runs an agent on a cron schedule."

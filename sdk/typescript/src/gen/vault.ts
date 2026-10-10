@@ -12,6 +12,7 @@ import { ConnectLinkController, ConnectLinkTokenInputSchema, ConnectLinkInfoSche
 import { SetVaultSecretsInputSchema, RemoveVaultSecretsInputSchema, SetVaultConnectionInputSchema, RemoveVaultConnectionsInputSchema, StartSignInInputSchema, StartSignInOutputSchema, CompleteSignInInputSchema, CompleteSignInOutputSchema, CreateConnectLinkInputSchema, ConnectLinkSchema, GetMyVaultInputSchema, GetVaultByExternalIdInputSchema, ListVaultsRequestSchema, VaultListSchema, type SetVaultSecretsInput, type RemoveVaultSecretsInput, type SetVaultConnectionInput, type RemoveVaultConnectionsInput, type StartSignInInput, type StartSignInOutput, type CompleteSignInInput, type CompleteSignInOutput, type CreateConnectLinkInput, type ConnectLink, type GetMyVaultInput, type GetVaultByExternalIdInput, type ListVaultsRequest, type VaultList } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
 import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
 import { VaultSpecSchema, VaultConnectionSource, VaultSecretSchema, VaultConnectionSignInSchema, VaultConnectionSchema, type VaultSecret, type VaultConnectionSignIn, type VaultConnection } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
+import { VaultValueController, FetchExecutionValuesInputSchema, ExecutionValuesSchema, type FetchExecutionValuesInput, type ExecutionValues } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInputSchema, type UpdateVisibilityInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -22,11 +23,13 @@ export class VaultClient {
   private readonly command: Client<typeof VaultCommandController>;
   private readonly connectLink: Client<typeof ConnectLinkController>;
   private readonly query: Client<typeof VaultQueryController>;
+  private readonly vaultValue: Client<typeof VaultValueController>;
 
   constructor(transport: Transport) {
     this.command = createClient(VaultCommandController, transport);
     this.connectLink = createClient(ConnectLinkController, transport);
     this.query = createClient(VaultQueryController, transport);
+    this.vaultValue = createClient(VaultValueController, transport);
   }
 
   async create(input: VaultInput): Promise<Vault> {
@@ -144,6 +147,12 @@ export class VaultClient {
   async list(input: ListVaultsRequest): Promise<VaultList> {
     try {
       return await this.query.list(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async fetchValues(input: FetchExecutionValuesInput): Promise<ExecutionValues> {
+    try {
+      return await this.vaultValue.fetchValues(input);
     } catch (e) { throw wrapError(e); }
   }
 }

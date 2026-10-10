@@ -49,7 +49,7 @@ import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { internalError, notFoundError } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
-import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
+import { callerIdentityOf, parseBearerToken } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import {
@@ -142,10 +142,12 @@ export function registerMcpServerServices(
     update: (server, ctx) => update(deps, server, ctx),
     updateVisibility: (input, ctx) => updateVisibility(deps, input, ctx),
     delete: (input, ctx) => deleteMcpServer(deps, input, ctx),
+    // The bearer is read for a backfill's run_id: the runner presents
+    // the run credential the connect may use that run's values under.
     connect: (input, ctx) =>
-      connect(deps.connect, input, callerIdentityOf(ctx)),
+      connect(deps.connect, input, callerIdentityOf(ctx), bearerOf(ctx)),
     startConnect: (input, ctx) =>
-      startConnect(deps.connect, input, callerIdentityOf(ctx)),
+      startConnect(deps.connect, input, callerIdentityOf(ctx), bearerOf(ctx)),
     disconnectOAuth: (input, ctx) =>
       disconnectOAuth(deps.connect, input, callerIdentityOf(ctx)),
   });
@@ -597,4 +599,9 @@ async function getByReference(
     .build()
     .execute(reqCtx);
   return reqCtx.get(TARGET_RESOURCE_KEY) as McpServer;
+}
+
+/** The request's Bearer credential, or "" (pipeline/interceptors/auth.ts parses it). */
+function bearerOf(ctx: HandlerContext): string {
+  return parseBearerToken(ctx.requestHeader.get("authorization") ?? "");
 }

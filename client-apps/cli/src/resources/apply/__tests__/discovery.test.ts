@@ -29,12 +29,12 @@ beforeEach(() => {
   connectCalls = [];
 });
 
-// A stdio MCP server with no env declarations, so discovery does not skip it and
-// buildRuntimeEnv stays empty (no local process needed — connect is mocked).
-function stdioServer(id: string, org: string) {
+// A stdio MCP server (no local process needed — connect is mocked). `env`
+// declares keys the connect would read from My vault on the server.
+function stdioServer(id: string, org: string, env: Record<string, { isSecret: boolean }> = {}) {
   return create(McpServerSchema, {
     metadata: { id, name: id, slug: id, org },
-    spec: { serverType: { case: "stdio", value: { command: "noop" } } },
+    spec: { serverType: { case: "stdio", value: { command: "noop" } }, env },
   });
 }
 
@@ -44,6 +44,9 @@ beforeAll(async () => {
       connect: (req) => {
         if (req.org === "") {
           throw new ConnectError("org – value length must be at least 1 characters", Code.InvalidArgument);
+        }
+        if (req.mcpServerId === "mcp_needs_key") {
+          throw new ConnectError("mcp_needs_key needs API_TOKEN: add API_TOKEN to My vault", Code.FailedPrecondition);
         }
         connectCalls.push(req);
         return create(McpServerSchema, { metadata: { id: req.mcpServerId } });
@@ -86,6 +89,32 @@ describe("discoverAppliedMcpServers", () => {
     // the happy-path org assertion above is a real guard, not a tautology.
     expect(connectCalls).toHaveLength(0);
     expect(lines.join("\n")).toContain("Discovery failed for mcp_1");
+  });
+
+  it("connects a server that declares a secret whatever this machine's environment holds, sending no values", async () => {
+    const original = process.env;
+    process.env = { ...original, API_TOKEN: "from-this-shell" };
+    try {
+      await discoverAppliedMcpServers(client, [stdioServer("mcp_1", "acme", { API_TOKEN: { isSecret: true } })], "acme");
+    } finally {
+      process.env = original;
+    }
+    expect(connectCalls).toHaveLength(1);
+    expect(JSON.stringify(connectCalls[0])).not.toContain("from-this-shell");
+  });
+
+  it("names the vault command when the server refuses a missing key", async () => {
+    const lines: string[] = [];
+    await discoverAppliedMcpServers(
+      client,
+      [stdioServer("mcp_needs_key", "acme", { API_TOKEN: { isSecret: true } })],
+      "acme",
+      (l) => lines.push(l),
+    );
+    const text = lines.join("\n");
+    expect(text).toContain("Discovery failed for mcp_needs_key: ");
+    expect(text).toContain("API_TOKEN");
+    expect(text).toContain("stigmer vault set-secret <NAME> --mine");
   });
 
   it("skips non-stdio servers without calling connect", async () => {

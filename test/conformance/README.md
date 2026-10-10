@@ -66,16 +66,6 @@ Covered against the `local` target:
   included), only admins creating shared vaults, and the list never showing
   another person's My vault. How a run's values are resolved from vaults is
   the execution suite `vault-resolution`.
-- **ExecutionContext** — the execution-scoped, flat resource the engine creates per
-  run. Coverage: CRUD & identity (`ectx_` id, slug derivation); resolution by id,
-  by reference, and by parent **`getByExecutionId`**; the distinctive **`apply` is
-  create-or-fail** semantics (a real `AlreadyExists` over an existing slug, since
-  there is no `update` RPC); and secret handling (redacted on every user-shaped
-  read in both editions since stigmer#535; decrypted values flow only through
-  the scope-bound runner lane). The
-  resolution from vaults that populates `spec.data` at execution start is out of
-  scope here (it needs a live execution) and is covered by the
-  `vault-resolution` execution suite.
 - **Session** — the runtime conversation thread, on the agent it names by
   reference (`spec.agent_ref`) or on the built-in assistant. Coverage: CRUD &
   identity (`ses_` id, slug derivation, apply create/update branching, update
@@ -498,9 +488,9 @@ single-holder primitive), and
 open-source edition, where the single-organization suite runs (every other
 target spawns or reaches a server with many organizations).
 Capabilities are retired when a surface converges: secret redaction was gated
-per edition until the Environment (stigmer#405) and ExecutionContext
-(stigmer#535) surfaces converged, after which the suites assert redaction
-unconditionally.
+per edition until the Environment (stigmer#405) surface converged, after which
+the suites assert it unconditionally, and both editions serve a run's values
+only to a runner bound to it (`vault-resolution`).
 
 **The enforcing lane** (`TargetProfile.enforcingLane()`, built by
 `harness/enforcing-lane.ts`): an authorization arm needs a server whose
@@ -515,8 +505,8 @@ targets — with one contract for people (`provisionIdentity`, `provisionMember`
 `provisionWithRole`) and tenancies. The same arm therefore runs on the cloud
 and on both open-source store drivers, which is what makes the authorization
 suites (`run-gate`, `list-read-scoping`, `direct-handler-authorization`,
-`role-enforcement`, the enforcing blocks of `iampolicy`, `organization` and
-`executioncontext`) a cross-edition contract rather than a cloud-only one.
+`role-enforcement`, the enforcing blocks of `iampolicy` and `organization`) a
+cross-edition contract rather than a cloud-only one.
 Where a newcomer arrives holding roles (open source's membership rules make
 every later arrival a member of every organization), the lane revokes them
 everywhere the founder can see, so "no grant" and "exactly member" are
@@ -724,7 +714,7 @@ src/
   targets/          target (interface + capabilities), local, local-execution, local-postgres, cloud, cloud-execution, index
   contract/         errors, parity
   support/          naming, run-poll, runs, file-review, stigmer-mcp-stdio, working-agent (the benchmark's
-                    working agent), agents, mcpservers, memories, skills, environments, executioncontexts, sessions,
+                    working agent), agents, mcpservers, memories, skills, environments, sessions,
                     request-shape (the golden renderers), …
   benchmark/        report (the contract a run writes), cells, quality-tasks, run (the direct-mode stack and driver), session
                     (the per-turn driver), the readers stream-watch, status-facts, timing-lines, temporal-history,

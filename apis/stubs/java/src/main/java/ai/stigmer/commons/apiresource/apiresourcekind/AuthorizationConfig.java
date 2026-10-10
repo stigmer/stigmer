@@ -56,7 +56,7 @@ package ai.stigmer.commons.apiresource.apiresourcekind;
  * owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
  * grantable_roles: [owner, admin, member]
  *
- * Owner-only resource with no role sharing (api_key, execution_context):
+ * Owner-only resource with no role sharing (api_key):
  * scope_type: AUTHORIZATION_SCOPE_TYPE_OWNER_ONLY
  * owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
  * grantable_roles: [] (empty — owner is set at creation, no sharing)
@@ -367,7 +367,7 @@ private static final long serialVersionUID = 0L;
    * and structural relations are excluded.
    *
    * Empty means no user-grantable roles: the resource is either owner-only
-   * (api_key, execution_context), inherits authorization from a parent
+   * (api_key), inherits authorization from a parent
    * (run), is self-owned (identity_account), or has no
    * authorization (platform, api_resource_version).
    * </pre>
@@ -390,7 +390,7 @@ private static final long serialVersionUID = 0L;
    * and structural relations are excluded.
    *
    * Empty means no user-grantable roles: the resource is either owner-only
-   * (api_key, execution_context), inherits authorization from a parent
+   * (api_key), inherits authorization from a parent
    * (run), is self-owned (identity_account), or has no
    * authorization (platform, api_resource_version).
    * </pre>
@@ -412,7 +412,7 @@ private static final long serialVersionUID = 0L;
    * and structural relations are excluded.
    *
    * Empty means no user-grantable roles: the resource is either owner-only
-   * (api_key, execution_context), inherits authorization from a parent
+   * (api_key), inherits authorization from a parent
    * (run), is self-owned (identity_account), or has no
    * authorization (platform, api_resource_version).
    * </pre>
@@ -435,7 +435,7 @@ private static final long serialVersionUID = 0L;
    * and structural relations are excluded.
    *
    * Empty means no user-grantable roles: the resource is either owner-only
-   * (api_key, execution_context), inherits authorization from a parent
+   * (api_key), inherits authorization from a parent
    * (run), is self-owned (identity_account), or has no
    * authorization (platform, api_resource_version).
    * </pre>
@@ -458,7 +458,7 @@ private static final long serialVersionUID = 0L;
    * and structural relations are excluded.
    *
    * Empty means no user-grantable roles: the resource is either owner-only
-   * (api_key, execution_context), inherits authorization from a parent
+   * (api_key), inherits authorization from a parent
    * (run), is self-owned (identity_account), or has no
    * authorization (platform, api_resource_version).
    * </pre>
@@ -915,7 +915,7 @@ private static final long serialVersionUID = 0L;
    * owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
    * grantable_roles: [owner, admin, member]
    *
-   * Owner-only resource with no role sharing (api_key, execution_context):
+   * Owner-only resource with no role sharing (api_key):
    * scope_type: AUTHORIZATION_SCOPE_TYPE_OWNER_ONLY
    * owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
    * grantable_roles: [] (empty — owner is set at creation, no sharing)
@@ -2185,7 +2185,7 @@ private static final long serialVersionUID = 0L;
      * and structural relations are excluded.
      *
      * Empty means no user-grantable roles: the resource is either owner-only
-     * (api_key, execution_context), inherits authorization from a parent
+     * (api_key), inherits authorization from a parent
      * (run), is self-owned (identity_account), or has no
      * authorization (platform, api_resource_version).
      * </pre>
@@ -2207,7 +2207,7 @@ private static final long serialVersionUID = 0L;
      * and structural relations are excluded.
      *
      * Empty means no user-grantable roles: the resource is either owner-only
-     * (api_key, execution_context), inherits authorization from a parent
+     * (api_key), inherits authorization from a parent
      * (run), is self-owned (identity_account), or has no
      * authorization (platform, api_resource_version).
      * </pre>
@@ -2228,7 +2228,7 @@ private static final long serialVersionUID = 0L;
      * and structural relations are excluded.
      *
      * Empty means no user-grantable roles: the resource is either owner-only
-     * (api_key, execution_context), inherits authorization from a parent
+     * (api_key), inherits authorization from a parent
      * (run), is self-owned (identity_account), or has no
      * authorization (platform, api_resource_version).
      * </pre>
@@ -2250,7 +2250,7 @@ private static final long serialVersionUID = 0L;
      * and structural relations are excluded.
      *
      * Empty means no user-grantable roles: the resource is either owner-only
-     * (api_key, execution_context), inherits authorization from a parent
+     * (api_key), inherits authorization from a parent
      * (run), is self-owned (identity_account), or has no
      * authorization (platform, api_resource_version).
      * </pre>
@@ -2278,7 +2278,7 @@ private static final long serialVersionUID = 0L;
      * and structural relations are excluded.
      *
      * Empty means no user-grantable roles: the resource is either owner-only
-     * (api_key, execution_context), inherits authorization from a parent
+     * (api_key), inherits authorization from a parent
      * (run), is self-owned (identity_account), or has no
      * authorization (platform, api_resource_version).
      * </pre>
@@ -2304,7 +2304,7 @@ private static final long serialVersionUID = 0L;
      * and structural relations are excluded.
      *
      * Empty means no user-grantable roles: the resource is either owner-only
-     * (api_key, execution_context), inherits authorization from a parent
+     * (api_key), inherits authorization from a parent
      * (run), is self-owned (identity_account), or has no
      * authorization (platform, api_resource_version).
      * </pre>
@@ -2332,7 +2332,7 @@ private static final long serialVersionUID = 0L;
      * and structural relations are excluded.
      *
      * Empty means no user-grantable roles: the resource is either owner-only
-     * (api_key, execution_context), inherits authorization from a parent
+     * (api_key), inherits authorization from a parent
      * (run), is self-owned (identity_account), or has no
      * authorization (platform, api_resource_version).
      * </pre>
@@ -2356,7 +2356,7 @@ private static final long serialVersionUID = 0L;
      * and structural relations are excluded.
      *
      * Empty means no user-grantable roles: the resource is either owner-only
-     * (api_key, execution_context), inherits authorization from a parent
+     * (api_key), inherits authorization from a parent
      * (run), is self-owned (identity_account), or has no
      * authorization (platform, api_resource_version).
      * </pre>
@@ -2379,7 +2379,7 @@ private static final long serialVersionUID = 0L;
      * and structural relations are excluded.
      *
      * Empty means no user-grantable roles: the resource is either owner-only
-     * (api_key, execution_context), inherits authorization from a parent
+     * (api_key), inherits authorization from a parent
      * (run), is self-owned (identity_account), or has no
      * authorization (platform, api_resource_version).
      * </pre>
@@ -2401,7 +2401,7 @@ private static final long serialVersionUID = 0L;
      * and structural relations are excluded.
      *
      * Empty means no user-grantable roles: the resource is either owner-only
-     * (api_key, execution_context), inherits authorization from a parent
+     * (api_key), inherits authorization from a parent
      * (run), is self-owned (identity_account), or has no
      * authorization (platform, api_resource_version).
      * </pre>
@@ -2428,7 +2428,7 @@ private static final long serialVersionUID = 0L;
      * and structural relations are excluded.
      *
      * Empty means no user-grantable roles: the resource is either owner-only
-     * (api_key, execution_context), inherits authorization from a parent
+     * (api_key), inherits authorization from a parent
      * (run), is self-owned (identity_account), or has no
      * authorization (platform, api_resource_version).
      * </pre>
@@ -2454,7 +2454,7 @@ private static final long serialVersionUID = 0L;
      * and structural relations are excluded.
      *
      * Empty means no user-grantable roles: the resource is either owner-only
-     * (api_key, execution_context), inherits authorization from a parent
+     * (api_key), inherits authorization from a parent
      * (run), is self-owned (identity_account), or has no
      * authorization (platform, api_resource_version).
      * </pre>

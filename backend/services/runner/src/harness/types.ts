@@ -94,6 +94,7 @@ import type { EffectiveThinkingMode } from "../shared/thinking-mode.js";
 import type { SenderIdentity } from "../shared/sender-identity.js";
 import type { DeclaredPreferencesContent } from "../shared/declared-preferences.js";
 import type { RecalledMemoriesContent } from "../shared/recalled-memories.js";
+import type { RunValues } from "../shared/run-values.js";
 import type { CasTouchedReader } from "../shared/filereview/cas-touched.js";
 import type { HarnessCapabilities } from "./capabilities.js";
 import type { TranscriptBuilder } from "./transcript/builder.js";
@@ -179,11 +180,8 @@ export interface HarnessAdapter {
 // The resolved record
 // ---------------------------------------------------------------------------
 
-/** The resolved environment (phase 2b): the MCP-bound env map and the keys that are secrets. */
-export interface TurnEnvironment {
-  readonly envVars: Record<string, string>;
-  readonly secretKeys: ReadonlySet<string>;
-}
+/** The resolved environment (phase 2b): the run's values, per declarer (`shared/run-values.ts`). */
+export type TurnEnvironment = RunValues;
 
 /** The provisioned workspace (phase 2c) and the capture posture derived from it. */
 export interface TurnWorkspace {

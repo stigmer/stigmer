@@ -32,6 +32,7 @@ import { MEMORY_ATTACHMENT_SLUG } from "../../shared/memory-attachment.js";
 import type { ResolvedBlueprint, RunAgent } from "../../shared/blueprint-resolver.js";
 import { mockStigmerClient } from "../../__test-utils__/mock-client.js";
 import { testConfig } from "../../__test-utils__/config-fixture.js";
+import { NO_RUN_VALUES } from "../../shared/run-values.js";
 
 const EXECUTION_ID = "aex_mcp_1";
 
@@ -87,7 +88,7 @@ function args(options: { readonly agentLists?: { tools: string[]; disallowedTool
       recalledMemories: options.attachments ? create(RecalledMemoriesSchema, { enabled: true }) : undefined,
     }),
   });
-  return { execution, session, sessionId: "ses_1", blueprint, environment: { envVars: {}, secretKeys: new Set<string>() } };
+  return { execution, session, sessionId: "ses_1", blueprint, environment: NO_RUN_VALUES };
 }
 
 describe("resolveMcpServersAndPolicies — platform servers and the agent's scope", () => {

@@ -4,7 +4,11 @@
  *
  * Three things cross:
  *
- *  - The `TurnInput` (`harness/types.ts`), as {@link WireTurnInput}. Plain
+ *  - The `TurnInput` (`harness/types.ts`), as {@link WireTurnInput}. The
+ *    run's values cross per declarer, as the runner fetched them, minus
+ *    one group: a repository's token is the runner's alone (its clone and
+ *    write-back run there), so it never reaches the host, which decodes no
+ *    repositories. Plain
  *    data stays JSON; protobuf messages cross as base64 of their binary
  *    form, which round-trips them exactly (unknown fields included); Maps
  *    and Sets cross as entry arrays. The aliases the runtime builds are
@@ -121,7 +125,11 @@ export interface WireTurnInput {
     readonly mergedSkillRefs: readonly string[];
     readonly cloudRepos: readonly CloudRepo[];
   };
-  readonly environment: { readonly envVars: Record<string, string>; readonly secretKeys: readonly string[] };
+  /** The agent's own values, and each tool's by MCP server id; never a repository's token. */
+  readonly environment: {
+    readonly agent: Readonly<Record<string, string>>;
+    readonly tools: ReadonlyArray<readonly [string, { readonly url: string; readonly values: Readonly<Record<string, string>> }]>;
+  };
   readonly workspace: {
     readonly dirs: readonly string[];
     readonly primaryDir: string;
@@ -203,7 +211,7 @@ export function encodeTurnInput(input: TurnInput): WireTurnInput {
       mergedSkillRefs: blueprint.mergedSkillRefs.map((r) => encodeMessage(ApiResourceReferenceSchema, r)),
       cloudRepos: blueprint.cloudRepos,
     },
-    environment: { envVars: input.environment.envVars, secretKeys: [...input.environment.secretKeys] },
+    environment: { agent: input.environment.agent, tools: [...input.environment.tools] },
     workspace: {
       dirs: workspace.dirs,
       primaryDir: workspace.primaryDir,
@@ -312,7 +320,7 @@ export function decodeTurnInput(wire: WireTurnInput, services: HostTurnServices)
       mergedSkillRefs: wire.blueprint.mergedSkillRefs.map((r) => decodeMessage(ApiResourceReferenceSchema, r)),
       cloudRepos: [...wire.blueprint.cloudRepos],
     },
-    environment: { envVars: wire.environment.envVars, secretKeys: new Set(wire.environment.secretKeys) },
+    environment: { agent: wire.environment.agent, tools: new Map(wire.environment.tools), repositories: [] },
     workspace: {
       dirs: wire.workspace.dirs,
       primaryDir: wire.workspace.primaryDir,

@@ -13,6 +13,15 @@
  * SDK — so a behavioral change here (like the transport guard) lands in
  * both execution paths by construction.
  *
+ * Each server is filled only from its own values: the group the run's
+ * value fetch answered for its server id (shared/run-values.ts), plus the
+ * platform-filled keys the caller hands over (the caller identity), through
+ * the per-declarer filter. A server the fetch named no group for gets no
+ * run values. A server whose URL is not, byte for byte, the URL its group
+ * was checked against is skipped for the turn with a warning naming it:
+ * the server checked each login's address against that URL when it handed
+ * the values over, and a value goes nowhere else.
+ *
  * The one platform key filled here is STIGMER_SERVER_ADDRESS
  * (platform-server-address.ts), before the declared-key filter so the filter
  * sees the key present; discovery applies the same fill itself because it
@@ -34,6 +43,7 @@ import {
   PlaceholderResolutionError,
 } from "./placeholder-resolver.js";
 import { fillPlatformServerAddress, type PlatformEndpoints } from "./platform-server-address.js";
+import type { ToolValueGroup } from "./run-values.js";
 
 /**
  * Harness-agnostic intermediate representation of a resolved MCP server.
@@ -68,14 +78,12 @@ export interface ResolvedMcpServer {
    */
   discoveredToolNames: readonly string[] | null;
   /**
-   * Every run value this server claims: the keys its `spec.env` declares
-   * and its OAuth token's target variable. The agent's shell never
-   * receives one (shared/shell-env.ts), even though
-   * agent save copies them into the agent's own `env`. REQUIRED for the
-   * same reason as {@link destructiveTools}: a synthesized server declares
-   * none and says so.
+   * The McpServer's id, which keys its values in the run's fetch; "" for a
+   * synthesized server, which has no row. Read to name the server whose
+   * value a hook asks for (shared/hooks/setup.ts). REQUIRED for the same
+   * reason as {@link destructiveTools}.
    */
-  declaredEnvKeys: readonly string[];
+  serverId: string;
   /**
    * The plugin that brought this server, and the server's key in that
    * plugin, or `null` for any other server. Read only to show a hook the
@@ -113,6 +121,9 @@ export interface McpResolutionResult {
 /**
  * Fetch McpServer resources and resolve into intermediate format.
  *
+ * @param tools The run's values per tool, by McpServer id.
+ * @param platformValues Platform-filled keys every server may declare (the
+ *        caller identity); authoritative over a same-named run value.
  * @param transportPosture Whether stdio servers may run here (derive via
  *        resolveMcpTransportPosture(config.mode)). A stdio server under a
  *        forbidding posture throws {@link McpTransportError} and fails the
@@ -124,7 +135,8 @@ export interface McpResolutionResult {
 export async function resolveMcpServers(
   client: StigmerClient,
   usages: McpServerUsage[],
-  envVars: Record<string, string>,
+  tools: ReadonlyMap<string, ToolValueGroup>,
+  platformValues: Readonly<Record<string, string>>,
   transportPosture: McpTransportPosture,
   platformEndpoints: PlatformEndpoints,
 ): Promise<McpResolutionResult> {
@@ -136,9 +148,17 @@ export async function resolveMcpServers(
 
     try {
       const mcpServer = await client.getMcpServerByReference(ref);
+      const group = tools.get(mcpServer.metadata?.id ?? "");
+      if (group !== undefined && group.url !== dialedUrlOf(mcpServer)) {
+        console.warn(
+          `MCP server ${ref.org}/${ref.slug} no longer dials the URL its values were checked against ` +
+            "when this turn started: it is skipped for this turn. Recover the run to plan its values again.",
+        );
+        continue;
+      }
       const serverEnv = filterEnvToDeclaredKeys(
         mcpServer.spec?.env,
-        fillPlatformServerAddress(mcpServer, envVars, platformEndpoints),
+        fillPlatformServerAddress(mcpServer, { ...group?.values, ...platformValues }, platformEndpoints),
         `MCP server '${ref.slug}'`,
       );
       const server = mcpServerToResolved(mcpServer, ref.slug, serverEnv);
@@ -167,14 +187,10 @@ export async function resolveMcpServers(
   return { resolvedServers: resolved };
 }
 
-/** The run values a server claims: its declared keys and its OAuth token's target. */
-export function declaredEnvKeysOf(server: McpServer): string[] {
-  const keys = new Set(Object.keys(server.spec?.env ?? {}));
-  const oauthTarget = server.spec?.auth?.targetEnvVar ?? "";
-  if (oauthTarget !== "") {
-    keys.add(oauthTarget);
-  }
-  return [...keys];
+/** The URL a server dials: its HTTP URL, or "" for a local program. */
+export function dialedUrlOf(server: McpServer): string {
+  const serverType = server.spec?.serverType;
+  return serverType?.case === "http" ? serverType.value.url : "";
 }
 
 export function mcpServerToResolved(
@@ -193,7 +209,7 @@ export function mcpServerToResolved(
     discoveredCapabilitiesEmpty,
     destructiveTools: (discovered?.tools ?? []).filter((t) => t.destructiveHint).map((t) => t.name),
     discoveredToolNames: discovered ? discovered.tools.map((t) => t.name) : null,
-    declaredEnvKeys: declaredEnvKeysOf(server),
+    serverId: server.metadata?.id ?? "",
     pluginOrigin: pluginOriginOf(server),
   };
 

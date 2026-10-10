@@ -89,14 +89,6 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | EvaluatorCommandController.create | `metadata.org` |
 | EvaluatorCommandController.update | `metadata.org` |
 
-## `ai.stigmer.agentic.executioncontext.v1`
-
-| Method | Organization fields |
-|---|---|
-| ExecutionContextCommandController.apply | `metadata.org` |
-| ExecutionContextCommandController.create | `metadata.org` |
-| ExecutionContextQueryController.getByReference | `org` |
-
 ## `ai.stigmer.agentic.mcpserver.v1`
 
 | Method | Organization fields |

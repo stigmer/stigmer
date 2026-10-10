@@ -128,7 +128,7 @@ export function synthesizeMemoryAttachment(
     slug: MEMORY_ATTACHMENT_SLUG,
     destructiveTools: [],
     discoveredToolNames: null,
-    declaredEnvKeys: [],
+    serverId: "",
     pluginOrigin: null,
     discoveredCapabilitiesEmpty: false,
   };

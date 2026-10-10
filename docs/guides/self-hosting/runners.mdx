@@ -332,6 +332,7 @@ can't run it, and says why. The requirements:
 | `bash`, `git`, and `/proc`                                                  | refused                                                                                                               |
 | `cat`, `sed`, `grep`, `head`, `cut`, `awk`, `tr`, `base64`, `dirname`       | refused: the Cursor harness's approval hook runs them                                                                 |
 | CA certificates for `git` and `curl`                                        | cloning a repository over HTTPS fails                                                                                 |
+| `git` 2.31 or newer                                                         | cloning a private repository fails, naming the version it needs (Debian 11 ships 2.30); a public one still clones     |
 | `rg` (ripgrep)                                                              | a warning; the native harness's grep falls back to a plain search                                                     |
 | nothing of your own at `/runner`                                            | the layer replaces it                                                                                                 |
 

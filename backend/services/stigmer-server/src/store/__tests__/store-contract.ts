@@ -1672,6 +1672,49 @@ export function describeStoreContract(
     });
   });
 
+  describe("connect attempts", () => {
+    const NOW = 1_800_000_000;
+    const attempt = {
+      id: "connect-mcp_1-a",
+      org: "org_a",
+      createdBy: "ida_1",
+      person: "ida_1",
+      mcpServerId: "mcp_1",
+      runId: "",
+      createdAt: NOW,
+      expiresAt: NOW + 600,
+    };
+
+    it("finds an attempt only while it is unexpired, and never after it ends", async () => {
+      const attempts = fx.store.connectAttempts;
+      await attempts.create(attempt);
+      expect(await attempts.findLive(attempt.id, NOW)).toEqual(attempt);
+      expect(await attempts.findLive(attempt.id, NOW + 600), "expired at its expiry").toBeUndefined();
+      expect(await attempts.findLive("ghost", NOW)).toBeUndefined();
+      await attempts.delete(attempt.id);
+      expect(await attempts.findLive(attempt.id, NOW)).toBeUndefined();
+      await expect(attempts.delete(attempt.id), "ending twice is a no-op").resolves.toBeUndefined();
+    });
+
+    it("keeps a backfill's run and a caller who is no person as written", async () => {
+      const attempts = fx.store.connectAttempts;
+      const backfill = { ...attempt, id: "connect-mcp_1-b", person: "", runId: "run_1" };
+      await attempts.create(backfill);
+      expect(await attempts.findLive(backfill.id, NOW)).toEqual(backfill);
+    });
+
+    it("removes expired attempts and an organization's attempts", async () => {
+      const attempts = fx.store.connectAttempts;
+      await attempts.create(attempt);
+      await attempts.create({ ...attempt, id: "connect-mcp_1-c", expiresAt: NOW + 10 });
+      await attempts.create({ ...attempt, id: "connect-mcp_1-d", org: "org_b" });
+      expect(await attempts.deleteExpired(NOW + 10)).toBe(1);
+      expect(await attempts.deleteByOrg("org_a")).toBe(1);
+      expect(await attempts.deleteByOrg("org_a")).toBe(0);
+      expect(await attempts.findLive("connect-mcp_1-d", NOW)).toBeDefined();
+    });
+  });
+
   describe("organization deletions", () => {
     const T0 = "2026-10-05T10:00:00.000Z";
     const T1 = "2026-10-05T10:01:00.000Z";

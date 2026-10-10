@@ -17,7 +17,6 @@ swap:
   '\bAgent Executions\b': runs
   agent instance: Agent Instance
   agent runner: Agent Runner
-  execution context: Execution Context
   mcp server: MCP Server
   mcp servers: MCP Servers
   '\bsession\b': Session

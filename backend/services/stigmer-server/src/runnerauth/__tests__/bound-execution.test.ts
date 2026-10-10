@@ -7,10 +7,9 @@
  *   - the kind is read off the id alone: the run by the contract's
  *     prefix table, the connect binding by its own predicate;
  *     anything else is `undefined` with no store read;
- *   - a connect binding resolves through the connect's ExecutionContext
- *     row (by `spec.executionId`), is live while that row exists, and is
- *     not a run (`bindsARun`) — the shape both no-`exp` lanes refuse; two
- *     rows naming one connect bind nothing (no first-match guess);
+ *   - a connect binding resolves through the connect's attempt row (by
+ *     its id), is live while that row exists and has not expired, and is
+ *     not a run (`bindsARun`) — the shape both no-`exp` lanes refuse;
  *   - live is "not terminal" for the run's OWN terminal set (its
  *     TERMINATED and WAITING_FOR_APPROVAL are the arms that differ from a
  *     naive set);
@@ -20,18 +19,17 @@
  *   - a missing row is `undefined`; any other store failure propagates as
  *     the same error object.
  */
-import { create, toBinary } from "@bufbuild/protobuf";
+import { create } from "@bufbuild/protobuf";
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 import { describe, expect, it, vi } from "vitest";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase as AgentPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
-import type { ExecutionContext } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { newConnectExecutionId } from "../../domain/mcpserver/connect-execution-id.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
+import type { ConnectAttemptRecord, ConnectAttemptStore } from "../../store/interface.js";
 import {
   bindsARun,
   boundExecutionKindOf,
@@ -45,21 +43,16 @@ const iso = (offsetMs: number): string =>
   new Date(NOW + offsetMs).toISOString();
 
 /**
- * A store of rows by id, plus the connect ECs by the execution id they
- * were created for (`findAllByField` on `spec.executionId`, as stored
- * bytes; one id may carry several rows). `reads` records every lookup key,
- * so an arm can assert "no store read" and which read.
+ * A store of rows by id, plus the connect attempts by their id.
+ * `reads` records every lookup key, so an arm can assert "no store read"
+ * and which read.
  */
 function storeOf(
   rows: Record<string, unknown>,
-  executionContexts: Record<string, ExecutionContext | ExecutionContext[]> = {},
+  attempts: Record<string, ConnectAttemptRecord> = {},
 ): BoundExecutionStore & {
   reads: string[];
 } {
-  const contextsFor = (value: string): ExecutionContext[] => {
-    const entry = executionContexts[value];
-    return entry === undefined ? [] : Array.isArray(entry) ? entry : [entry];
-  };
   const reads: string[] = [];
   return {
     reads,
@@ -74,31 +67,53 @@ function storeOf(
         ? Promise.reject(new ResourceNotFoundError(`${kind}/${id}`))
         : Promise.resolve(row as MessageShape<Desc>);
     },
-    findAllByField<Desc extends DescMessage>(
-      kind: ApiResourceKind,
-      fieldPath: string,
-      value: string,
-      _schema: Desc,
-    ): Promise<Uint8Array[]> {
-      reads.push(`${fieldPath}=${value}`);
+    connectAttempts: attemptStore(attempts, reads),
+  };
+}
+
+/** An attempt store over a fixed table: `findLive` answers by expiry, as both drivers do. */
+function attemptStore(
+  attempts: Record<string, ConnectAttemptRecord>,
+  reads: string[] = [],
+  fault?: Error,
+): ConnectAttemptStore {
+  const unused = (): Promise<never> => Promise.reject(new Error("unused"));
+  return {
+    create: unused,
+    delete: unused,
+    deleteExpired: unused,
+    deleteByOrg: unused,
+    findLive(id, now) {
+      reads.push(`connect_attempt=${id}`);
+      if (fault !== undefined) {
+        return Promise.reject(fault);
+      }
+      const attempt = attempts[id];
       return Promise.resolve(
-        kind === ApiResourceKind.execution_context &&
-          fieldPath === "spec.executionId"
-          ? contextsFor(value).map((row) =>
-              toBinary(ExecutionContextSchema, row),
-            )
-          : [],
+        attempt !== undefined && attempt.expiresAt > now ? attempt : undefined,
       );
     },
   };
 }
 
-function connectContext(executionId: string, createdBy: string, org = "acme") {
-  return create(ExecutionContextSchema, {
-    metadata: { id: "ectx_1", name: `exec-ctx-${executionId}`, org },
-    spec: { executionId },
-    status: { audit: { specAudit: { createdBy: { id: createdBy } } } },
-  });
+const NOW_SECONDS = Math.floor(NOW / 1000);
+
+function connectAttempt(
+  id: string,
+  createdBy: string,
+  org = "acme",
+  expiresAt = NOW_SECONDS + 60,
+): ConnectAttemptRecord {
+  return {
+    id,
+    org,
+    createdBy,
+    person: createdBy,
+    mcpServerId: "mcps_1",
+    runId: "",
+    createdAt: NOW_SECONDS - 60,
+    expiresAt,
+  };
 }
 
 function runRow(
@@ -173,13 +188,13 @@ describe("loadBoundExecution", () => {
     expect(store.reads).toEqual([]);
   });
 
-  describe("the connect binding — the ExecutionContext row by its execution id", () => {
+  describe("the connect binding — the connect's attempt row by its id", () => {
     const connectId = newConnectExecutionId("mcps_1");
 
-    it("resolves to the row's creator and org, no session, live while the row exists", async () => {
+    it("resolves to the attempt's creator and org, no session, live while the row exists", async () => {
       const store = storeOf(
         {},
-        { [connectId]: connectContext(connectId, "ida_member", "acme") },
+        { [connectId]: connectAttempt(connectId, "ida_member", "acme") },
       );
       expect(await loadBoundExecution(store, connectId, NOW)).toEqual({
         kind: "mcp-connect",
@@ -189,8 +204,8 @@ describe("loadBoundExecution", () => {
         sessionId: "",
         live: true,
       });
-      // The read getByExecutionId already makes, and no primary-key read.
-      expect(store.reads).toEqual([`spec.executionId=${connectId}`]);
+      // One read of the attempt, and no resource read.
+      expect(store.reads).toEqual([`connect_attempt=${connectId}`]);
     });
 
     it("a connect whose row is gone (the connect settled) is undefined — the credential names no row", async () => {
@@ -199,24 +214,19 @@ describe("loadBoundExecution", () => {
       ).toBeUndefined();
     });
 
-    it("two contexts naming one connect bind nothing — the lookup refuses to guess, and the credential fails closed", async () => {
+    it("an attempt past its expiry binds nothing — a crash's leftover row ends with its clock", async () => {
       const store = storeOf(
         {},
-        {
-          [connectId]: [
-            connectContext(connectId, "ida_member", "acme"),
-            connectContext(connectId, "ida_other", "acme"),
-          ],
-        },
+        { [connectId]: connectAttempt(connectId, "ida_member", "acme", NOW_SECONDS) },
       );
       expect(await loadBoundExecution(store, connectId, NOW)).toBeUndefined();
     });
 
-    it("a store fault on the EC read propagates as the same error object", async () => {
+    it("a store fault on the attempt read propagates as the same error object", async () => {
       const fault = new Error("connection reset");
       const store: BoundExecutionStore = {
         getResource: vi.fn(() => Promise.reject(new Error("unreachable"))),
-        findAllByField: vi.fn(() => Promise.reject(fault)),
+        connectAttempts: attemptStore({}, [], fault),
       };
       await expect(loadBoundExecution(store, connectId, NOW)).rejects.toBe(
         fault,
@@ -234,7 +244,7 @@ describe("loadBoundExecution", () => {
     const fault = new Error("connection reset");
     const store: BoundExecutionStore = {
       getResource: vi.fn(() => Promise.reject(fault)),
-      findAllByField: vi.fn(() => Promise.reject(new Error("unreachable"))),
+      connectAttempts: attemptStore({}, [], new Error("unreachable")),
     };
     await expect(loadBoundExecution(store, "aex_1", NOW)).rejects.toBe(fault);
   });

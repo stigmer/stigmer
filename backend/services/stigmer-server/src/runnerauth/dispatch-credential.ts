@@ -19,8 +19,8 @@
  *     a dispatch never fails because a credential could not be minted
  *     (the connect lane's precedent, ruled 2026-09-16). The runner then
  *     falls back to the platform exchange and, refused there for a run
- *     that is not the key-holder's, reads redacted and fails the run
- *     loudly at its first read — attributable, never silent. The default
+ *     that is not the key-holder's, is refused its values fetch and fails
+ *     the run loudly — attributable, never silent. The default
  *     provider throws only for an empty execution id (a programming
  *     error), so this arm exists to be pinned, not expected.
  *

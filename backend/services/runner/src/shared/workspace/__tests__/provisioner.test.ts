@@ -1,3 +1,8 @@
+/**
+ * Pins the workspace provisioner's dispatch (empty, local path, git), that
+ * a git entry receives only its own repository token, matched by name and
+ * URL, and the local backend's command, file and per-command env behavior.
+ */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mkdtempSync, mkdirSync, writeFileSync, existsSync, readlinkSync } from "node:fs";
 import { join } from "node:path";
@@ -5,6 +10,8 @@ import { tmpdir } from "node:os";
 import { WorkspaceProvisioner } from "../provisioner.js";
 import { WorkspaceProvisionError } from "../types.js";
 import { LocalWorkspaceBackend } from "../local-backend.js";
+import { forgetGitVersion } from "../git-credential.js";
+import { mockWorkspaceBackend } from "../../../__test-utils__/mock-workspace.js";
 
 function makeTempDir(): string {
   return mkdtempSync(join(tmpdir(), "ws-test-"));
@@ -15,24 +22,24 @@ describe("WorkspaceProvisioner", () => {
 
   beforeEach(() => {
     provisioner = new WorkspaceProvisioner();
+    forgetGitVersion();
   });
 
   describe("empty workspace", () => {
     it("returns EMPTY source type when no source is provided", async () => {
       const root = makeTempDir();
       const backend = new LocalWorkspaceBackend(root);
-      const result = await provisioner.provision(undefined, backend, {}, true);
+      const result = await provisioner.provision({ name: "" }, backend, [], true);
       expect(result.sourceType).toBe("empty");
       expect(result.rootDir).toBe(root);
-      expect(result.consumedKeys).toEqual([]);
     });
 
     it("returns EMPTY when source case is undefined", async () => {
       const root = makeTempDir();
       const backend = new LocalWorkspaceBackend(root);
       const result = await provisioner.provision(
-        { source: { case: undefined, value: undefined } },
-        backend, {}, true,
+        { name: "", source: { source: { case: undefined, value: undefined } } },
+        backend, [], true,
       );
       expect(result.sourceType).toBe("empty");
     });
@@ -44,8 +51,8 @@ describe("WorkspaceProvisioner", () => {
       const projectDir = makeTempDir();
       const backend = new LocalWorkspaceBackend(root);
       const result = await provisioner.provision(
-        { source: { case: "localPath", value: { path: projectDir } } },
-        backend, {}, true,
+        { name: "", source: { source: { case: "localPath", value: { path: projectDir } } } },
+        backend, [], true,
       );
       expect(result.sourceType).toBe("local_path");
       expect(result.rootDir).toBe(projectDir);
@@ -56,8 +63,8 @@ describe("WorkspaceProvisioner", () => {
       const backend = new LocalWorkspaceBackend(root);
       await expect(
         provisioner.provision(
-          { source: { case: "localPath", value: { path: "relative/path" } } },
-          backend, {}, true,
+          { name: "", source: { source: { case: "localPath", value: { path: "relative/path" } } } },
+          backend, [], true,
         ),
       ).rejects.toThrow(WorkspaceProvisionError);
     });
@@ -67,8 +74,8 @@ describe("WorkspaceProvisioner", () => {
       const backend = new LocalWorkspaceBackend(root);
       await expect(
         provisioner.provision(
-          { source: { case: "localPath", value: { path: root } } },
-          backend, {}, false,
+          { name: "", source: { source: { case: "localPath", value: { path: root } } } },
+          backend, [], false,
         ),
       ).rejects.toThrow("only supported in local mode");
     });
@@ -78,8 +85,8 @@ describe("WorkspaceProvisioner", () => {
       const backend = new LocalWorkspaceBackend(root);
       await expect(
         provisioner.provision(
-          { source: { case: "localPath", value: { path: "/nonexistent/path" } } },
-          backend, {}, true,
+          { name: "", source: { source: { case: "localPath", value: { path: "/nonexistent/path" } } } },
+          backend, [], true,
         ),
       ).rejects.toThrow("does not exist");
     });
@@ -89,7 +96,7 @@ describe("WorkspaceProvisioner", () => {
     it("returns empty array for no entries", async () => {
       const root = makeTempDir();
       const backend = new LocalWorkspaceBackend(root);
-      const results = await provisioner.provisionAll([], backend, {}, true);
+      const results = await provisioner.provisionAll([], backend, [], true);
       expect(results).toEqual([]);
     });
 
@@ -98,7 +105,7 @@ describe("WorkspaceProvisioner", () => {
       const backend = new LocalWorkspaceBackend(root);
       const results = await provisioner.provisionAll(
         [{ name: "app", source: undefined }],
-        backend, {}, true,
+        backend, [], true,
       );
       expect(results).toHaveLength(1);
       expect(results[0].entryName).toBe("app");
@@ -106,19 +113,47 @@ describe("WorkspaceProvisioner", () => {
     });
   });
 
-  describe("WORKSPACE_PROVISION_ key stripping", () => {
-    it("adds prefixed keys to consumedKeys", async () => {
-      const root = makeTempDir();
-      const backend = new LocalWorkspaceBackend(root);
-      const env = { WORKSPACE_PROVISION_TOKEN: "secret", OTHER: "value" };
-      const result = await provisioner.provision(undefined, backend, env, true);
-      expect(result.consumedKeys).toContain("WORKSPACE_PROVISION_TOKEN");
-      expect(result.consumedKeys).not.toContain("OTHER");
+  describe("a git entry's token", () => {
+    it("is its own repository value, matched by the entry's name and URL together", async () => {
+      const url = "https://github.com/acme/app.git";
+      const execute = vi.fn(async (cmd: string) => {
+        if (cmd === "git --version") return "git version 2.39.5\n";
+        if (cmd === "git config --list --show-scope --name-only") return "local\tremote.origin.url\n";
+        if (cmd === "git config --local --get remote.origin.url") return `${url}\n`;
+        return "";
+      });
+      const backend = mockWorkspaceBackend({ execute });
+      const repositories = [
+        { name: "app", url: "https://github.com/acme/other.git", token: "ghp_other_url" },
+        { name: "web", url, token: "ghp_other_name" },
+        { name: "app", url, token: "ghp_own" },
+      ];
+
+      await provisioner.provisionAll(
+        [{ name: "app", source: { source: { case: "gitRepo", value: { url, branch: "main" } } } }],
+        backend, repositories, false, true,
+      );
+
+      const envs = execute.mock.calls.map((call) => (call as unknown[])[1] as { env?: Record<string, string> } | undefined)
+        .map((options) => options?.env?.GIT_CONFIG_VALUE_4)
+        .filter((value): value is string => value !== undefined);
+      expect(envs.length).toBeGreaterThan(0);
+      for (const value of envs) {
+        expect(Buffer.from(value.replace("AUTHORIZATION: basic ", ""), "base64").toString()).toBe("x-access-token:ghp_own");
+      }
     });
   });
 });
 
 describe("LocalWorkspaceBackend", () => {
+  it("adds a command's env to that child alone, never to the runner's own", async () => {
+    const backend = new LocalWorkspaceBackend(makeTempDir());
+    const output = await backend.execute('printf %s "$ONLY_HERE"', { env: { ONLY_HERE: "child" } });
+    expect(output).toBe("child");
+    expect(process.env.ONLY_HERE).toBeUndefined();
+    expect(await backend.execute('printf %s "${ONLY_HERE:-unset}"')).toBe("unset");
+  });
+
   it("executes shell commands in the workspace root", async () => {
     const root = makeTempDir();
     writeFileSync(join(root, "test.txt"), "hello");

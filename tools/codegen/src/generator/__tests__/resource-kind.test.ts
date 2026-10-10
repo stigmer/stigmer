@@ -17,7 +17,7 @@ describe("organization-less kinds", () => {
 
   it("does not name an organization-scoped kind, or an owner-only kind that carries one", () => {
     expect(isOrglessKind("agent")).toBe(false);
-    expect(isOrglessKind("execution_context")).toBe(false);
+    expect(isOrglessKind("api_key")).toBe(false);
   });
 
   it("answers false for a name that is not a kind", () => {

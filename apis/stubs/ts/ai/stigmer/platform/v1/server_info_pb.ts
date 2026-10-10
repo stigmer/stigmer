@@ -295,7 +295,7 @@ export type GetRunnerScopedTokenInput = Message<"ai.stigmer.platform.v1.GetRunne
   scope: {
     /**
      * Run id — yields a token scoped to the run's parent
-     * session, valid for every ExecutionContext in that session (multi-turn).
+     * session, valid for every run in that session (multi-turn).
      *
      * @generated from field: string run_id = 1;
      */
@@ -399,7 +399,7 @@ export const TokenRenewalSchema: GenMessage<TokenRenewal> = /*@__PURE__*/
 export type GetRunnerScopedTokenOutput = Message<"ai.stigmer.platform.v1.GetRunnerScopedTokenOutput"> & {
   /**
    * Stigmer-signed token scoped to the requested work. The runner presents it
-   * for ExecutionContext reads in place of its unscoped bootstrap token.
+   * to fetch a run's values in place of its unscoped bootstrap token.
    *
    * @generated from field: string runner_scoped_token = 1;
    */
@@ -582,7 +582,7 @@ export const PlatformQueryController: GenService<{
    * the exact work they serve. At task start the runner presents its bootstrap
    * token and names the run it was dispatched; the control plane verifies
    * the caller and returns a short-lived token scoped to that work, which the
-   * runner then uses for its ExecutionContext fetch. This makes a desktop
+   * runner then uses to fetch the run's values. This makes a desktop
    * runner indistinguishable, at the secret-release gate, from a
    * server-provisioned sandbox runner.
    *

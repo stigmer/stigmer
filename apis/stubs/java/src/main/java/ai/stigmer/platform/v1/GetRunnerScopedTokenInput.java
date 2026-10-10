@@ -100,7 +100,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Run id — yields a token scoped to the run's parent
-   * session, valid for every ExecutionContext in that session (multi-turn).
+   * session, valid for every run in that session (multi-turn).
    * </pre>
    *
    * <code>string run_id = 1 [json_name = "runId"];</code>
@@ -112,7 +112,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Run id — yields a token scoped to the run's parent
-   * session, valid for every ExecutionContext in that session (multi-turn).
+   * session, valid for every run in that session (multi-turn).
    * </pre>
    *
    * <code>string run_id = 1 [json_name = "runId"];</code>
@@ -136,7 +136,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Run id — yields a token scoped to the run's parent
-   * session, valid for every ExecutionContext in that session (multi-turn).
+   * session, valid for every run in that session (multi-turn).
    * </pre>
    *
    * <code>string run_id = 1 [json_name = "runId"];</code>
@@ -662,7 +662,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Run id — yields a token scoped to the run's parent
-     * session, valid for every ExecutionContext in that session (multi-turn).
+     * session, valid for every run in that session (multi-turn).
      * </pre>
      *
      * <code>string run_id = 1 [json_name = "runId"];</code>
@@ -675,7 +675,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Run id — yields a token scoped to the run's parent
-     * session, valid for every ExecutionContext in that session (multi-turn).
+     * session, valid for every run in that session (multi-turn).
      * </pre>
      *
      * <code>string run_id = 1 [json_name = "runId"];</code>
@@ -700,7 +700,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Run id — yields a token scoped to the run's parent
-     * session, valid for every ExecutionContext in that session (multi-turn).
+     * session, valid for every run in that session (multi-turn).
      * </pre>
      *
      * <code>string run_id = 1 [json_name = "runId"];</code>
@@ -726,7 +726,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Run id — yields a token scoped to the run's parent
-     * session, valid for every ExecutionContext in that session (multi-turn).
+     * session, valid for every run in that session (multi-turn).
      * </pre>
      *
      * <code>string run_id = 1 [json_name = "runId"];</code>
@@ -744,7 +744,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Run id — yields a token scoped to the run's parent
-     * session, valid for every ExecutionContext in that session (multi-turn).
+     * session, valid for every run in that session (multi-turn).
      * </pre>
      *
      * <code>string run_id = 1 [json_name = "runId"];</code>
@@ -761,7 +761,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Run id — yields a token scoped to the run's parent
-     * session, valid for every ExecutionContext in that session (multi-turn).
+     * session, valid for every run in that session (multi-turn).
      * </pre>
      *
      * <code>string run_id = 1 [json_name = "runId"];</code>

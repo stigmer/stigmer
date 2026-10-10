@@ -692,9 +692,6 @@ function tsTypeForTypeSpec(ts: TypeSpec, imports: TsImportSet): string {
     }
     case "message":
       switch (ts.messageType) {
-        case "ExecutionValue":
-          imports.addType("./types", "EnvVarInput");
-          return "EnvVarInput";
         case "ApiResourceReference":
           imports.addType("./types", "ResourceRef");
           return "ResourceRef";
@@ -928,13 +925,6 @@ function emitTSPreComputeField(buf: string[], f: FieldSchema, imports: TsImportS
     }
   } else if (t.kind === "array" && t.elementType?.kind === "message") {
     buf.push(`  const ${fieldName} = input.${fieldName}?.map(build${t.elementType.messageType}Proto);\n`);
-  } else if (t.kind === "map" && t.valueType?.messageType === "ExecutionValue") {
-    imports.addValue("@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb", "ExecutionValueSchema");
-    buf.push(`  let ${fieldName};\n`);
-    buf.push(`  if (input.${fieldName}) {\n`);
-    buf.push(`    ${fieldName} = Object.fromEntries(Object.entries(input.${fieldName}).map(([k, v]) =>\n`);
-    buf.push("      [k, create(ExecutionValueSchema, { value: v.value, isSecret: v.isSecret })]));\n");
-    buf.push("  }\n");
   } else if (t.kind === "map" && t.valueType?.kind === "message") {
     buf.push(`  let ${fieldName};\n`);
     buf.push(`  if (input.${fieldName}) {\n`);
@@ -1102,13 +1092,6 @@ function emitTSNestedFieldAssign(buf: string[], f: FieldSchema, typeMap: Map<str
     }
   } else if (t.kind === "map" && (t.valueType === undefined || t.valueType.kind === "string")) {
     buf.push(`  if (input.${fieldName}) Object.assign(msg.${fieldName}, input.${fieldName});\n`);
-  } else if (t.kind === "map" && t.valueType?.messageType === "ExecutionValue") {
-    imports.addValue("@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb", "ExecutionValueSchema");
-    buf.push(`  if (input.${fieldName}) {\n`);
-    buf.push(`    for (const [k, v] of Object.entries(input.${fieldName})) {\n`);
-    buf.push(`      msg.${fieldName}[k] = create(ExecutionValueSchema, { value: v.value, isSecret: v.isSecret });\n`);
-    buf.push("    }\n");
-    buf.push("  }\n");
   } else if (t.kind === "map" && t.valueType?.kind === "message") {
     const elemMsg = t.valueType.messageType ?? "";
     if (!isSpecialType(elemMsg)) {
@@ -1166,7 +1149,7 @@ function generateTSClientFile(outputDir: string, resources: ResourceGenInfo[]): 
       }
     }
   }
-  buf.push('export { type ListParams, type ListResult, type DeleteResourceInput, type ResourceRef, type EnvVarInput, type Page } from "./types.js";\n');
+  buf.push('export { type ListParams, type ListResult, type DeleteResourceInput, type ResourceRef, type Page } from "./types.js";\n');
   buf.push('export { StigmerError, type ErrorCode, isNotFound, isUnauthenticated, isPermissionDenied, isRetryable, isUnimplemented } from "./errors.js";\n');
 
   fs.writeFileSync(path.join(outputDir, "client.ts"), buf.join(""));

@@ -10,7 +10,6 @@ import type { DiscoveredTool } from "@stigmer/protos/ai/stigmer/agentic/mcpserve
 import {
   EnvVarForm,
   type EnvVarFormVariable,
-  type EnvVarFormSubmitOptions,
 } from "../vault/EnvVarForm.js";
 import { VendorApprovalBlockedNotice } from "./VendorApprovalBlockedNotice.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
@@ -35,11 +34,8 @@ import {
 export interface McpServerCredentialsProps {
   /** Missing env vars to collect (one form field per variable). */
   readonly variables: EnvVarFormVariable[];
-  /** Called when the user submits credentials via the form. */
-  readonly onSubmit: (
-    values: Record<string, EnvVarInput>,
-    options: EnvVarFormSubmitOptions,
-  ) => void;
+  /** Called when the user submits credentials via the form (for My vault). */
+  readonly onSubmit: (values: Record<string, EnvVarInput>) => void;
   /** When true, form inputs are disabled and the submit button shows a spinner. */
   readonly isSubmitting?: boolean;
   /**
@@ -211,7 +207,7 @@ export interface McpServerConfigPanelProps {
  *   mcpServer={server}
  *   credentials={{
  *     variables: missingVars,
- *     onSubmit: (values, opts) => submitEnvVars(ref, values, opts),
+ *     onSubmit: (values) => submitEnvVars(ref, values),
  *   }}
  *   discoveredTools={tools}
  *   onBack={() => setView("list")}
@@ -249,8 +245,8 @@ export function McpServerConfigPanel({
     : false;
 
   const handleCredentialSubmit = useCallback(
-    (values: Record<string, EnvVarInput>, options: EnvVarFormSubmitOptions) => {
-      credentials?.onSubmit(values, options);
+    (values: Record<string, EnvVarInput>) => {
+      credentials?.onSubmit(values);
     },
     [credentials],
   );

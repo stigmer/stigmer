@@ -336,7 +336,7 @@ describe("readNextSteps", () => {
         server: "warmth",
         variables: ["API_TOKEN"],
         askedAt: "connect",
-        command: "stigmer connect mcp-server warmth --env API_TOKEN=...",
+        command: "stigmer vault set-secret API_TOKEN --mine && stigmer connect mcp-server warmth",
       },
       { kind: "add-to-agent", servers: ["linear", "notion", "warmth", "weather", "ghost"] },
     ]);
@@ -357,7 +357,7 @@ describe("readNextSteps", () => {
     });
     const result = renderPushOutcome(
       { plugin, members: [member("linear")], archiveBytes: 10 },
-      { next: next.slice(0, 1) },
+      { next },
     );
     const lines: string[] = [];
     const original = process.stderr.write.bind(process.stderr);
@@ -375,6 +375,9 @@ describe("readNextSteps", () => {
     expect(text).not.toContain("0 skills");
     expect(text).toContain("Next");
     expect(text).toContain("Sign in to linear:  stigmer connect mcp-server linear");
+    expect(text).toContain(
+      "warmth needs API_TOKEN; save them in your vault, then connect:  stigmer vault set-secret API_TOKEN --mine && stigmer connect mcp-server warmth",
+    );
   });
 });
 

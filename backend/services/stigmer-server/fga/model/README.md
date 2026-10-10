@@ -290,7 +290,6 @@ fga/
 │       ├── agent_share.fga         # An agent's shared pages (owner-scoped)
 │       ├── channel_app.fga         # Bring-your-own channel provider apps (restricted)
 │       ├── evaluator.fga           # An agent's AI grading settings (the agent's access)
-│       ├── execution_context.fga   # Ephemeral runtime contexts (owner-only)
 │       ├── mcp_server.fga          # MCP tool servers (open access)
 │       ├── memory.fga              # An identity's memories (subject-only)
 │       ├── plugin.fga              # Installed plugins, the unit of install
