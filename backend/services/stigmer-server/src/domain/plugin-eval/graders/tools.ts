@@ -68,6 +68,7 @@ async function matchingCalls(
       return {
         positions: named.filter((_, index) => (answer.counts[index] ?? 0) > 0),
       };
+    /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
     default: {
       const exhausted: never = answer;
       return exhausted;

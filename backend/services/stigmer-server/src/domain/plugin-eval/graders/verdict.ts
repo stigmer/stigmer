@@ -67,6 +67,7 @@ export function focusLabel(focus: EvalFocus): string {
       return `'${focus.path}'`;
     case "mock_calls":
       return "the mock calls";
+    /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
     default: {
       const exhausted: never = focus;
       return exhausted;
@@ -117,6 +118,7 @@ export function focusText(
           return { notGraded: binaryFileReason(path) };
         case "unreadable":
           return { notGraded: content.reason };
+        /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
         default: {
           const exhausted: never = content;
           return exhausted;
@@ -125,6 +127,7 @@ export function focusText(
     }
     case "mock_calls":
       return { notGraded: MOCK_CALLS_NOT_RUN_REASON };
+    /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
     default: {
       const exhausted: never = focus;
       return exhausted;

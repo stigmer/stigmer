@@ -4,7 +4,8 @@
  * backtracking pattern answers "timeout" near its budget instead of
  * blocking, the overrunning worker is replaced, and the pool keeps
  * answering. Queued jobs wait for a free worker and their budget starts
- * when one takes them. A closed pool refuses work.
+ * when one takes them. A closed pool refuses work, and closing a pool
+ * rejects the job a worker is running and the jobs still queued.
  */
 import { afterAll, describe, expect, it } from "vitest";
 
@@ -109,4 +110,33 @@ describe("the pattern pool", () => {
       }),
     ).rejects.toThrow("closed");
   });
+
+  it("rejects the running job and the queued ones when the pool closes", async () => {
+    const closing = newPatternPool(1);
+    const running = closing.count({
+      pattern: "^(a+)+$",
+      flags: "",
+      texts: [`${"a".repeat(40)}!`],
+      limit: 1,
+      budgetMs: 60_000,
+    });
+    const queued = closing.count({
+      pattern: "a",
+      flags: "",
+      texts: ["a"],
+      limit: 1,
+      budgetMs: 60_000,
+    });
+    const settled = Promise.allSettled([running, queued]);
+    await closing.close();
+    const outcomes = await settled;
+    expect(
+      outcomes.map((outcome) =>
+        outcome.status === "rejected" ? String(outcome.reason) : "fulfilled",
+      ),
+    ).toEqual([
+      "Error: the pattern pool is closed",
+      "Error: the pattern pool is closed",
+    ]);
+  }, 15_000);
 });

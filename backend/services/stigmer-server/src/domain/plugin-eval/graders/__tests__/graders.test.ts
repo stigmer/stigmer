@@ -11,7 +11,14 @@
  * reading of a vote, the reference transcript, and the tally (two of three
  * decide; a vote that failed counts for neither side).
  *
- * The patterns run in the real pattern pool.
+ * A pattern past its deadline leaves each pattern grader not graded with
+ * the time-limit reason, as does an unreadable file target with its own
+ * reason; a tool grader whose input pattern is refused is not graded,
+ * whichever side of a `tool_order` it is on. Long evidence, transcripts and
+ * tallies are cut to their bounds with the judge's marker.
+ *
+ * The patterns run in the real pattern pool, except where a fake engine
+ * stands for the deadline.
  */
 import { afterAll, describe, expect, it } from "vitest";
 
@@ -36,10 +43,13 @@ import {
 } from "../llm.js";
 import { pathGlobToRegExp } from "../file-exists.js";
 import { newPatternPool } from "../patterns.js";
+import type { PatternAnswer, PatternRunner } from "../patterns.js";
 import {
   FILES_NOT_RECORDED_REASON,
   MOCK_CALLS_NOT_RUN_REASON,
+  PATTERN_TIME_LIMIT_REASON,
   fileAbsentReason,
+  focusLabel,
 } from "../verdict.js";
 
 const pool = newPatternPool();
@@ -107,6 +117,20 @@ function regex(
 async function verdictOf(check: EvalGraderCheck, view: EvalTrace = trace()) {
   return gradeCheck(grader(check), view, pool);
 }
+
+/** A pattern engine that answers every job with `answer`, counting the jobs. */
+function answering(answer: PatternAnswer): PatternRunner & { jobs: number } {
+  const runner = {
+    jobs: 0,
+    count(): Promise<PatternAnswer> {
+      runner.jobs++;
+      return Promise.resolve(answer);
+    },
+  };
+  return runner;
+}
+
+const TIMED_OUT = answering({ kind: "timeout" });
 
 describe("regex", () => {
   it("passes when the pattern is found in the final message, and honours flags", async () => {
@@ -492,5 +516,250 @@ describe("the AI-graded checks", () => {
     expect(tallyVotes([pass, broken, fail])).toEqual({
       notGraded: broken.reason,
     });
+  });
+});
+
+describe("when a pattern cannot run", () => {
+  const invalidReason = expect.stringMatching(
+    /^the pattern is not a valid JavaScript regular expression: /,
+  );
+
+  it("leaves a regex past its deadline not graded, never failed", async () => {
+    expect(
+      await gradeCheck(grader(regex("fetchUser")), trace(), TIMED_OUT),
+    ).toEqual({ notGraded: PATTERN_TIME_LIMIT_REASON });
+  });
+
+  it("leaves a regex over an unreadable file not graded with the file's reason", async () => {
+    const view = trace({
+      files: {
+        kind: "recorded",
+        created: [],
+        contents: new Map([
+          [
+            "locked.md",
+            { kind: "unreadable", reason: "'locked.md' could not be read" },
+          ],
+        ]),
+      },
+    });
+    expect(
+      await verdictOf(regex("x", { kind: "file", path: "locked.md" }), view),
+    ).toEqual({ notGraded: "'locked.md' could not be read" });
+  });
+
+  it("leaves tool_used not graded when its input pattern is refused or runs past its deadline", async () => {
+    const check: EvalGraderCheck = {
+      type: "tool_used",
+      tool: "Read",
+      inputMatch: "(",
+      min: 1,
+    };
+    expect(await verdictOf(check)).toEqual({ notGraded: invalidReason });
+    expect(await gradeCheck(grader(check), trace(), TIMED_OUT)).toEqual({
+      notGraded: PATTERN_TIME_LIMIT_REASON,
+    });
+  });
+
+  it("asks no pattern of a tool that was never called", async () => {
+    const runner = answering({ kind: "timeout" });
+    const check: EvalGraderCheck = {
+      type: "tool_used",
+      tool: "Write",
+      inputMatch: "anything",
+      min: 0,
+      max: 0,
+    };
+    expect(await gradeCheck(grader(check), trace(), runner)).toMatchObject({
+      passed: true,
+    });
+    expect(runner.jobs).toBe(0);
+  });
+
+  it("leaves tool_order not graded when either side's input pattern is refused", async () => {
+    expect(
+      await verdictOf({
+        type: "tool_order",
+        before: { tool: "Read", inputMatch: "(" },
+        after: { tool: "Bash" },
+      }),
+    ).toEqual({ notGraded: invalidReason });
+    expect(
+      await verdictOf({
+        type: "tool_order",
+        before: { tool: "Skill" },
+        after: { tool: "Read", inputMatch: "[" },
+      }),
+    ).toEqual({ notGraded: invalidReason });
+  });
+});
+
+describe("path globs", () => {
+  it("lets a trailing ** cross every segment below it", () => {
+    const glob = pathGlobToRegExp("src/**");
+    expect(glob.test("src/new/thing.ts")).toBe(true);
+    expect(glob.test("src/a")).toBe(true);
+    expect(glob.test("lib/a")).toBe(false);
+  });
+
+  it("reads an unclosed [ and an unopened } as literal characters", () => {
+    expect(pathGlobToRegExp("a[b").test("a[b")).toBe(true);
+    expect(pathGlobToRegExp("a[b").test("ab")).toBe(false);
+    expect(pathGlobToRegExp("a}b").test("a}b")).toBe(true);
+    expect(pathGlobToRegExp("a}b").test("ab")).toBe(false);
+  });
+
+  it("matches a created file through an unclosed bracket in file_exists", async () => {
+    const view = trace({
+      files: { kind: "recorded", created: ["notes[1.md"], contents: new Map() },
+    });
+    expect(
+      await verdictOf(
+        { type: "file_exists", path: "notes[1.md", exists: true },
+        view,
+      ),
+    ).toEqual({ passed: true, reason: "1 created file(s) match 'notes[1.md'" });
+  });
+});
+
+describe("the AI-graded checks' evidence and bounds", () => {
+  const long = Array.from({ length: 30 }, (_, index) => `line ${index}`);
+  const shownTrace = judgeTraceLines(long).join("\n");
+
+  it("shows a baseline vote and an llm trace focus the elided trace", () => {
+    const view = trace({ traceLines: long });
+    const baseline: Extract<EvalGraderCheck, { type: "baseline" }> = {
+      type: "baseline",
+      baselineFile: "ref.jsonl",
+      criteria: "as good",
+    };
+    expect(voteEvidence(baseline, view)).toEqual({
+      label: "the trace",
+      text: shownTrace,
+    });
+    expect(
+      voteEvidence(
+        { type: "llm", criteria: "c", focus: { kind: "trace" } },
+        view,
+      ),
+    ).toEqual({ label: "the trace", text: shownTrace });
+  });
+
+  it("names the mock calls as a focus", () => {
+    expect(focusLabel({ kind: "mock_calls" })).toBe("the mock calls");
+  });
+
+  it("asks a baseline vote to compare with the reference transcript it carries", () => {
+    const message = voteMessage({
+      rubric: "base",
+      check: {
+        type: "baseline",
+        baselineFile: "ref.jsonl",
+        criteria: "Renames every call site.",
+      },
+      evidenceLabel: "the trace",
+      evidence: "the run",
+      reference: "user: rename it",
+    });
+    expect(message).toContain(
+      "- base: Passed when the run satisfies the criteria below at least as well as the reference transcript does.",
+    );
+    expect(message).toContain(
+      "The evidence is the trace of the run being graded, beside the reference transcript it is compared with.",
+    );
+    const lines = message.split("\n");
+    const fenced = lines[lines.indexOf("<evidence>") + 1] ?? "";
+    expect(JSON.parse(fenced)).toEqual({
+      evidence: "the run",
+      reference_transcript: "user: rename it",
+    });
+  });
+
+  it("cuts evidence past its bound with the judge's marker", () => {
+    const message = voteMessage({
+      rubric: "criteria",
+      check: { type: "llm", criteria: "c", focus: { kind: "last_message" } },
+      evidenceLabel: "the final message",
+      evidence: "x".repeat(70_000),
+    });
+    const lines = message.split("\n");
+    const document = JSON.parse(
+      lines[lines.indexOf("<evidence>") + 1] ?? "",
+    ) as { evidence: string };
+    expect(document.evidence).toHaveLength(60_000);
+    expect(document.evidence.endsWith("x [cut]")).toBe(true);
+  });
+
+  it("cuts a tally's reason to a criterion reason's bound", () => {
+    const verdict = tallyVotes([
+      { kind: "vote", passed: true, reason: "y".repeat(600) },
+      { kind: "vote", passed: true, reason: "z" },
+    ]);
+    expect(verdict).toMatchObject({ passed: true });
+    const reason = "reason" in verdict ? verdict.reason : "";
+    expect(reason).toHaveLength(500);
+    expect(reason.startsWith("2 of 2 votes passed: yyy")).toBe(true);
+    expect(reason.endsWith(" [cut]")).toBe(true);
+  });
+
+  it("leaves a check no vote decided not graded with the default reason", () => {
+    expect(tallyVotes([])).toEqual({
+      notGraded: "the judge's votes did not decide",
+    });
+  });
+
+  function filesOf(path: string, content: string): PluginFiles {
+    return {
+      entries: [
+        { path, size: content.length } as PluginFiles["entries"][number],
+      ],
+      read: () => new TextEncoder().encode(content),
+    };
+  }
+
+  it("renders every transcript line shape it meets, and keeps what it cannot read as it is", () => {
+    const content = [
+      "42",
+      JSON.stringify({ type: "summary", summary: "s" }),
+      JSON.stringify({ uuid: "u1" }),
+      JSON.stringify({
+        type: "user",
+        message: {
+          role: "user",
+          content: [
+            "plain",
+            { type: "tool_result", content: "ok" },
+            { type: "tool_result", content: [{ type: "text", text: "t" }] },
+            { type: "image", source: "s" },
+            { type: "text", text: 7 },
+          ],
+        },
+      }),
+      "",
+    ].join("\n");
+    const rendered = referenceTranscript(
+      filesOf("evals/c/ref.jsonl", content),
+      "evals/c",
+      "ref.jsonl",
+    );
+    expect(rendered).toEqual({
+      text: [
+        "42",
+        'summary: {"type":"summary","summary":"s"}',
+        'entry: {"uuid":"u1"}',
+        'user: "plain" [tool result: ok] [tool result: [{"type":"text","text":"t"}]] {"type":"image","source":"s"} ',
+      ].join("\n"),
+    });
+  });
+
+  it("cuts a long reference transcript to its bound", () => {
+    const rendered = referenceTranscript(
+      filesOf("evals/c/ref.jsonl", "r".repeat(40_000)),
+      "evals/c",
+      "ref.jsonl",
+    );
+    const text = "text" in rendered ? rendered.text : "";
+    expect(text).toHaveLength(30_000);
+    expect(text.endsWith("r [cut]")).toBe(true);
   });
 });
