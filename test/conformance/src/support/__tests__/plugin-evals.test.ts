@@ -8,7 +8,7 @@
 // asked for and fails loudly, naming what it last read, once its budget is
 // spent; `triesOf` walks the status in case, target and arm order; the
 // copied refusal copy is the server's, byte for byte; install defers the
-// plugin's delete; cleanup cancels an eval that may still run, waits for its
+// plugin's delete and pushes at the visibility asked; cleanup cancels an eval that may still run, waits for its
 // end, then deletes it, and deletes a finished one at once. The
 // clients are stubbed; nothing here starts a server.
 import { create } from "@bufbuild/protobuf";
@@ -18,6 +18,7 @@ import { PluginEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/
 import type { PluginEval } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
 import { PluginEvalAblation } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
 import { PluginEvalPhase } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../../harness/clients";
 import { FixtureTracker } from "../../harness/fixtures";
@@ -296,6 +297,27 @@ describe("installPlugin", () => {
     expect(calls).toEqual(["push acme"]);
     await fixtures.cleanup();
     expect(calls).toEqual(["push acme", "delete plg_1"]);
+  });
+
+  it("pushes at the visibility it is given", async () => {
+    const calls: string[] = [];
+    const clients = {
+      pluginCommand: {
+        push: async ({ org, visibility }: { org: string; visibility?: ApiResourceVisibility }) => {
+          calls.push(`push ${org} at ${visibility}`);
+          return { metadata: { id: "plg_2" } };
+        },
+        delete: async () => ({}),
+      },
+    } as unknown as ConformanceClients;
+    await installPlugin(
+      clients,
+      new FixtureTracker(),
+      "acme",
+      skillPluginWithEvals("notes", { skill: "s", cases: [] }),
+      ApiResourceVisibility.visibility_private,
+    );
+    expect(calls).toEqual([`push acme at ${ApiResourceVisibility.visibility_private}`]);
   });
 });
 

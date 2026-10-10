@@ -35,6 +35,7 @@ import type {
   PluginEvalTry,
 } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
 import { PluginEvalPhase } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
+import type { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import type { ConformanceClients } from "../harness/clients";
 import type { FixtureTracker } from "../harness/fixtures";
 import type { InitShape } from "./init-shape";
@@ -249,16 +250,22 @@ export function lastMessageGrader(
   return { name, frontmatter: { type: "regex", pattern } };
 }
 
-/** Pushes `fixture` into `org` through the real install; its delete (which cascades its evals) is deferred. */
+/**
+ * Pushes `fixture` into `org` through the real install, at `visibility`
+ * when one is given (the kind's default, organization, otherwise); its
+ * delete (which cascades its evals) is deferred.
+ */
 export async function installPlugin(
   clients: ConformanceClients,
   fixtures: FixtureTracker,
   org: string,
   fixture: PluginFixture,
+  visibility?: ApiResourceVisibility,
 ): Promise<Plugin> {
   const plugin = await clients.pluginCommand.push({
     org,
     artifact: pluginArchive(fixture),
+    visibility,
   });
   fixtures.defer(() =>
     clients.pluginCommand.delete({ value: plugin.metadata!.id }),
