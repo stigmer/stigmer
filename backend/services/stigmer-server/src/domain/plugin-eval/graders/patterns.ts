@@ -164,7 +164,11 @@ export function newPatternPool(size: number = PATTERN_POOL_SIZE): PatternPool {
   };
 
   const pump = (): void => {
-    while (queue.length > 0 && !closed) {
+    while (!closed) {
+      const pending = queue[0];
+      if (pending === undefined) {
+        return;
+      }
       let slot = slots.find((candidate) => candidate.busy === undefined);
       if (slot === undefined) {
         if (slots.length >= size) {
@@ -172,10 +176,7 @@ export function newPatternPool(size: number = PATTERN_POOL_SIZE): PatternPool {
         }
         slot = spawn();
       }
-      const pending = queue.shift();
-      if (pending === undefined) {
-        return;
-      }
+      queue.shift();
       const running = slot;
       running.busy = pending;
       running.timer = setTimeout(

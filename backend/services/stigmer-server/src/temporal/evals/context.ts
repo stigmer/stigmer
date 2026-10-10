@@ -7,6 +7,8 @@
  * archive once per worker and digest and kept for the next activities of
  * the same eval (a small cache, by digest, since a digest's bytes never
  * change).
+ *
+ * Proven by __tests__/context.test.ts.
  */
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 
@@ -98,9 +100,8 @@ export function newEvalContextLoader(deps: EvalContextDeps): EvalContextLoader {
     if (loaded === undefined) {
       loaded = await loadEvalSuite(deps.suites, spec.pluginId, digest);
       cache.set(digest, loaded);
-      while (cache.size > SUITE_CACHE_SIZE) {
-        const oldest = cache.keys().next().value;
-        if (oldest === undefined) {
+      for (const oldest of cache.keys()) {
+        if (cache.size <= SUITE_CACHE_SIZE) {
           break;
         }
         cache.delete(oldest);

@@ -4,7 +4,8 @@
  * case, then 3), ablation `none`, an unsupported case planned with no
  * cells, the target rules when the spec names none (the case's catalog
  * model, never an alias; the native default with no model), and the
- * glob grammar.
+ * glob grammar (an unclosed class and a stray closing brace read as
+ * themselves).
  */
 import { create } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";
@@ -245,6 +246,11 @@ describe("globToRegExp", () => {
     ["a.b", "a.b", true],
     ["a.b", "axb", false],
     ["(x)", "(x)", true],
+    ["case-[", "case-[", true],
+    ["case-[", "case-1", false],
+    ["case-[1", "case-[1", true],
+    ["fix}", "fix}", true],
+    ["fix}", "fix", false],
   ])("%s against %s is %s", (glob, name, expected) => {
     expect(globToRegExp(glob).test(name)).toBe(expected);
   });

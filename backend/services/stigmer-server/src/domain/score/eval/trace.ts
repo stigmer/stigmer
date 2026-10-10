@@ -32,7 +32,8 @@
  *     files are `not-recorded` and a file grader leaves the try not graded.
  *
  * Sub-agent runs are not traversed, as the other two readers do not
- * traverse them.
+ * traverse them. A system or thinking message, and a message type this
+ * server does not know, add no line.
  *
  * The skill mount: the runner writes each skill's file at
  * `.stigmer/skills/<name>/SKILL.md` in the workspace, a link into the
@@ -201,8 +202,12 @@ export async function evalTraceOf(
       case MessageType.MESSAGE_TYPE_UNSPECIFIED:
         break;
       default: {
-        const exhausted: never = message.type;
-        return exhausted;
+        // Proto enums are open: a type this server's protos do not name
+        // (an engine newer than it) decodes as its number. Left out, as a
+        // system message is, so the try is still graded.
+        const unknown: never = message.type;
+        void unknown;
+        break;
       }
     }
   }
@@ -365,6 +370,7 @@ async function contentOf(
     }
     case undefined:
       return { kind: "text", text: "" };
+    /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
     default: {
       const exhausted: never = after.body;
       return exhausted;

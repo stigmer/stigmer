@@ -288,6 +288,7 @@ export function readVote(
     return { refused: reading.cause };
   }
   const verdict = reading.verdicts[0];
+  /* v8 ignore next -- @preserve: readVerdict reads exactly the rubrics it is given, so a read of one rubric always carries its one verdict */
   if (verdict === undefined) {
     return { refused: "the judge returned no verdict" };
   }

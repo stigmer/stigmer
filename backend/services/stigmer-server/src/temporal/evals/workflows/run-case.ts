@@ -139,6 +139,7 @@ export async function runCase(input: CaseInput): Promise<TryResult> {
         return notGraded("", "", CANNOT_ACT_REASON);
       case "not-started":
         return notGraded("", "", started.reason);
+      /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
       default: {
         const exhausted: never = started.failure;
         return exhausted;
