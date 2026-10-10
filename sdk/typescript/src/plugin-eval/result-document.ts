@@ -1,5 +1,8 @@
 // A plugin eval as Claude Code's plugin-eval result document, so a CI script
-// written for `claude plugin eval --json` reads Stigmer's file unchanged.
+// written for `claude plugin eval --json` reads Stigmer's file unchanged,
+// save one field: a case's `aggregates.score` is `null` when none of its
+// with-arm tries was graded, where Claude Code always writes a number, so a
+// gate such as `score < 0.8` must handle `null` (the guide says so).
 //
 // Only the fields Claude Code documents are mimicked, under their names and
 // meanings: `schemaVersion` 1, `partial` and `partialReason`, the suite's
@@ -14,7 +17,8 @@
 //
 // Two readings differ from Claude Code on purpose. A try the platform could
 // not grade (out of credit, platform busy) has `score: null`, never 0, and
-// is left out of every mean; a cancelled eval reports `interrupted`, the
+// is left out of every mean, so a case with no graded with-arm try has a
+// `null` score too; a cancelled eval reports `interrupted`, the
 // format's word for a run stopped by hand, and an eval that ran out of
 // credit reports `out_of_credit`, a reason the format does not have. With
 // several targets the top-level `cases` are the first target's, so a script
