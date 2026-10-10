@@ -453,6 +453,7 @@ spec:
               - SETUID
               - SETGID
               - CHOWN
+              - KILL
               drop:
               - ALL
             seccompProfile:

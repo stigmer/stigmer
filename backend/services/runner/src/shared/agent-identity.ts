@@ -79,9 +79,30 @@ export function setprivArgs(identity: AgentIdentity): readonly string[] {
 }
 
 /**
- * Ready a separating runner to start its host as the agent: the agent user
- * exists, its home exists and is the agent's (the directory itself, never
- * followed or recursed), and `setpriv` can drop to it. Returns `null` when
+ * The capabilities a separating runner needs, by their bit in the kernel's
+ * capability sets: `SETUID` and `SETGID` to drop to the agent, `CHOWN` to
+ * hand it its home and workspace, `KILL` to end a host that will not exit
+ * (a process of another user cannot be signalled without it).
+ */
+export const RUNNER_CAPABILITY_BITS: ReadonlyMap<string, number> = new Map([
+  ["SETUID", 7],
+  ["SETGID", 6],
+  ["CHOWN", 0],
+  ["KILL", 5],
+]);
+
+/** The names in {@link RUNNER_CAPABILITY_BITS} that `/proc/self/status`'s `CapEff` line lacks. */
+export function missingCapabilities(status: string): readonly string[] {
+  const line = status.split("\n").find((l) => l.startsWith("CapEff:"));
+  const effective = line === undefined ? 0n : BigInt(`0x${line.slice("CapEff:".length).trim()}`);
+  return [...RUNNER_CAPABILITY_BITS].filter(([, bit]) => (effective & (1n << BigInt(bit))) === 0n).map(([name]) => name);
+}
+
+/**
+ * Ready a separating runner to start its host as the agent: it holds the
+ * capabilities that takes, the agent user exists, its home exists and is
+ * the agent's (the directory itself, never followed or recursed), and
+ * `setpriv` can drop to it. Returns `null` when
  * all hold, else the one line the runner exits 78 with: a container runner
  * never runs the agent's side as root.
  */
@@ -91,9 +112,14 @@ export function prepareAgentSeparation(
     readonly ensureUser?: (identity: AgentIdentity) => void;
     readonly makeHome?: (identity: AgentIdentity) => void;
     readonly probe?: (args: readonly string[]) => { readonly status: number | null; readonly error?: Error | undefined; readonly stderr: string };
+    readonly processStatus?: () => string;
   } = {},
 ): string | null {
   const guide = "see docs/guides/self-hosting/runners.mdx (the agent user)";
+  const missing = missingCapabilities((io.processStatus ?? (() => readFileSync("/proc/self/status", "utf8")))());
+  if (missing.length > 0) {
+    return `the runner lacks the ${missing.join(", ")} capabilit${missing.length === 1 ? "y" : "ies"} it needs to run the agent as its own user (SETUID, SETGID, CHOWN and KILL); ${guide}`;
+  }
   try {
     (io.ensureUser ?? ensureAgentUser)(identity);
     (io.makeHome ?? makeAgentHome)(identity);
@@ -105,7 +131,7 @@ export function prepareAgentSeparation(
     return `the runner cannot start processes as the agent user: setpriv is missing (${probe.error.message}); add util-linux's setpriv to the base image; ${guide}`;
   }
   if (probe.status !== 0) {
-    return `the runner cannot start processes as the agent user (${probe.stderr.trim() || `setpriv exited ${probe.status}`}); the runner needs the SETUID and SETGID capabilities; ${guide}`;
+    return `the runner cannot start processes as the agent user (${probe.stderr.trim() || `setpriv exited ${probe.status}`}); check the pod's or container's security settings; ${guide}`;
   }
   return null;
 }

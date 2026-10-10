@@ -84,11 +84,12 @@ export const RUNNER_UID = 0;
 
 /**
  * The capabilities a driver gives the runner, every other one dropped:
- * SETUID and SETGID to start its agent user, CHOWN to hand that user its
+ * SETUID and SETGID to start its agent user, KILL to end that user's host
+ * when it will not exit, CHOWN to hand that user its
  * home and workspace. The runner refuses to start without them, never
  * running the agent's side as root.
  */
-export const RUNNER_CAPABILITIES = ["SETUID", "SETGID", "CHOWN"] as const;
+export const RUNNER_CAPABILITIES = ["SETUID", "SETGID", "CHOWN", "KILL"] as const;
 
 /** The `HOME` a driver gives the runner: root's home in every glibc base. */
 export const RUNNER_HOME = "/root";

@@ -176,16 +176,17 @@ runner:
   # The runner runs as root and starts the agent's side (the engines, their
   # commands, MCP servers and hooks) as its own user, stigmer-agent (uid
   # 10001), so nothing an agent runs can read the runner's keys. Every
-  # capability is dropped but the three that needs: SETUID and SETGID to
-  # drop to that user, CHOWN to hand it its home and workspace. Root is
-  # required, not a default to tighten: the image's start script
-  # (/runner/bin/start) refuses to start the runner as any other user, so a
-  # runAsUser or runAsNonRoot here stops the pod at once.
+  # capability is dropped but the four that needs: SETUID and SETGID to
+  # drop to that user, CHOWN to hand it its home and workspace, KILL to end
+  # its host when it will not exit. Root is required, not a default to
+  # tighten: the image's start script (/runner/bin/start) refuses to start
+  # the runner as any other user, so a runAsUser or runAsNonRoot here stops
+  # the pod at once.
   securityContext:
     allowPrivilegeEscalation: false
     capabilities:
       drop: ["ALL"]
-      add: ["SETUID", "SETGID", "CHOWN"]
+      add: ["SETUID", "SETGID", "CHOWN", "KILL"]
     seccompProfile:
       type: RuntimeDefault
   # As server.extraEnv: a name the chart sets itself is refused.

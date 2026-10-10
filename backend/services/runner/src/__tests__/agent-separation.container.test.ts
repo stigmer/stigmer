@@ -4,7 +4,7 @@
  * path an agent's command would try.
  *
  * The container runs as root with the capability set every shape ships
- * (all dropped but SETUID, SETGID and CHOWN; no-new-privileges). A
+ * (all dropped but SETUID, SETGID, CHOWN and KILL; no-new-privileges). A
  * stand-in runner holds canaries where the runner holds its keys: under
  * each of the runner's secret names in its environment, a cloud credential
  * beside them, a state file only root reads, and code only root writes. It
@@ -15,7 +15,8 @@
  *
  * Pinned, as the agent: the runner's `/proc/<pid>/environ` and `mem`, its
  * state file, a link planted into `/proc/<runner>`, rewriting its code, and
- * `su` are all refused, and no canary is in the agent's own environment.
+ * `su` are all refused, and no canary is in the agent's own environment;
+ * and the runner can still end that process (a host that will not exit).
  * Red first, in the same container: the same probe started without the drop
  * reads the canaries from `/proc`.
  *
@@ -45,7 +46,7 @@ const runnerEnv: Record<string, string> = {
 
 /** The stand-in runner: root, holding the canaries, starting the probe as the supervisor starts the host. */
 const RUNNER_SCRIPT = `
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 const plan = JSON.parse(readFileSync("/proof/plan.json", "utf8"));
 mkdirSync("/runner-state", { mode: 0o700 });
@@ -57,7 +58,17 @@ spawnSync("useradd", ["--uid", "${AGENT_UID}", "--gid", "${AGENT_GID}", "--no-cr
 const probe = [process.execPath, "/proof/agent.mjs", String(process.pid)];
 const command = process.argv[2] === "separated" ? ["setpriv", ...plan.setpriv, "--", ...probe] : probe;
 const result = spawnSync(command[0], command.slice(1), { env: plan.env, encoding: "utf8" });
-process.stdout.write(result.stdout);
+const sleeper = spawn("setpriv", [...plan.setpriv, "--", "sleep", "30"], { stdio: "ignore" });
+await new Promise((resolve) => setTimeout(resolve, 300));
+let killed;
+try {
+  process.kill(sleeper.pid, "SIGKILL");
+  killed = await new Promise((resolve) => sleeper.once("exit", (_code, signal) => resolve(signal)));
+} catch (err) {
+  killed = err.code;
+}
+const report = JSON.parse(result.stdout.trim().split("\\n").at(-1));
+process.stdout.write(JSON.stringify({ ...report, runnerKillsAgent: killed }) + "\\n");
 process.stderr.write(result.stderr);
 `;
 
@@ -90,7 +101,7 @@ interface Attempt {
   readonly error?: string;
 }
 
-function runProof(mode: "separated" | "shared"): Record<string, Attempt> & { readonly uid: number; readonly ownEnvironment: string } {
+function runProof(mode: "separated" | "shared"): Record<string, Attempt> & { readonly uid: number; readonly ownEnvironment: string; readonly runnerKillsAgent: string } {
   const dir = mkdtempSync(join(tmpdir(), "agent-separation-"));
   writeFileSync(join(dir, "runner.mjs"), RUNNER_SCRIPT);
   writeFileSync(join(dir, "agent.mjs"), AGENT_SCRIPT);
@@ -101,7 +112,7 @@ function runProof(mode: "separated" | "shared"): Record<string, Attempt> & { rea
     "docker",
     [
       "run", "--rm",
-      "--cap-drop", "ALL", "--cap-add", "SETUID", "--cap-add", "SETGID", "--cap-add", "CHOWN",
+      "--cap-drop", "ALL", "--cap-add", "SETUID", "--cap-add", "SETGID", "--cap-add", "CHOWN", "--cap-add", "KILL",
       "--security-opt", "no-new-privileges",
       "--volume", `${dir}:/proof:ro`,
       ...env,
@@ -121,6 +132,7 @@ describe.skipIf(!RUN)("the agent user, in a container shaped as every runner shi
       expect(agent[path]?.ok, `${path}: ${JSON.stringify(agent[path])}`).toBe(false);
     }
     expect(agent.ownEnvironment).not.toContain(CANARY);
+    expect(agent.runnerKillsAgent, "the runner ends a host that will not exit").toBe("SIGKILL");
   }, 180_000);
 
   it("is red without the drop: the same probe, run as the runner's own user, reads the canaries", () => {

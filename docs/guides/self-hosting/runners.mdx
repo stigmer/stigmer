@@ -377,10 +377,10 @@ Agent's side of every turn (the engines, the commands they run, MCP servers and
 hooks) as a user of its own, `stigmer-agent` (uid and gid 10001), through
 `setpriv`. That user cannot read the runner's process, its files or its keys,
 which is the boundary that keeps a prompt-injected command from taking the
-runner's credentials. The runner keeps three capabilities, `SETUID`, `SETGID`
-and `CHOWN`, and drops every other; a runner that cannot start that user stops
-with exit code 78 rather than run the Agent's side as root. The default image
-creates the user; on your own base image the runner adds it at start. The
+runner's credentials. The runner keeps four capabilities, `SETUID`, `SETGID`,
+`CHOWN` and `KILL`, and drops every other; a runner that cannot start that user
+stops with exit code 78 rather than run the Agent's side as root. The default
+image creates the user; on your own base image the runner adds it at start. The
 Agent's home is where its session state persists: `/data/agent` on the chart's
 and compose's volume, `/home/stigmer-agent` under the drivers. Agents install
 user-level packages (`pip install --user`, `npm` and `uv` into their own

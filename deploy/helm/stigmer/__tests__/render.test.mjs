@@ -107,7 +107,7 @@ for (const profile of PROFILES) {
     );
   });
 
-  test(`[${profile}] the server runs as uid 1000 by number; the runner drops every capability but the three that start its agent user`, () => {
+  test(`[${profile}] the server runs as uid 1000 by number; the runner drops every capability but the four that run its agent user`, () => {
     const pod = findOne(renderProfile(profile), "Deployment", RELEASE).spec
       .template.spec;
     const server = containerNamed(pod, "server").securityContext;
@@ -119,7 +119,7 @@ for (const profile of PROFILES) {
     const runner = containerNamed(pod, "runner").securityContext;
     assert.equal(runner.allowPrivilegeEscalation, false);
     assert.deepEqual(runner.capabilities?.drop, ["ALL"]);
-    assert.deepEqual(runner.capabilities?.add, ["SETUID", "SETGID", "CHOWN"]);
+    assert.deepEqual(runner.capabilities?.add, ["SETUID", "SETGID", "CHOWN", "KILL"]);
     const runnerEnv = containerNamed(pod, "runner").env;
     assert.deepEqual(
       runnerEnv.find((e) => e.name === "STIGMER_AGENT_HOME"),
