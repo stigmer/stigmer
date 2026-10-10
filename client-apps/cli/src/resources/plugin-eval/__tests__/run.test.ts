@@ -7,8 +7,9 @@
 // returns (under `--json`, with the started eval's document); Ctrl+C cancels
 // the eval and exits 130 with the partial results and why it stopped, the
 // cancel's own answer standing when the read after it fails; a read that
-// fails is retried with backoff, and past about a minute the eval is
-// cancelled, `--json` written with what the command had, and the exit is 1;
+// fails is retried with backoff (a Ctrl+C during the wait still cancels),
+// and past about a minute the eval is cancelled, `--json` written with
+// what the command had, and the exit is 1;
 // the eval is sent with no name (the server names it by its id); a create
 // refused as a usage error, an organization not set, or a plugin read
 // refused as invalid exits 1, any other create failure passes on unchanged;
@@ -281,6 +282,14 @@ describe("runPluginEval", () => {
     expect(fake.waits).toEqual([POLL_INTERVAL_MS, 1_000, 2_000, POLL_INTERVAL_MS]);
     expect(server.calls).not.toContain("cancel pev_1");
     expect(fake.out()).toContain("1 case(s) · mean Δ +0.67");
+  });
+
+  it("cancels on a Ctrl+C during a retry's wait and exits 130", async () => {
+    const server = fakeServer([running()], { failedReads: new Set([1]) });
+    const fake = fakeIo({ interruptAfterSleeps: 2 });
+    expect(await runPluginEval(server.client, "acme", THERMOS, options(), fake.io)).toBe(130);
+    expect(fake.waits).toEqual([POLL_INTERVAL_MS, 1_000]);
+    expect(server.calls.slice(-2)).toEqual(["cancel pev_1", "get"]);
   });
 
   it("cancels the eval, writes --json with what it has and exits 1 once reads have failed for about a minute", async () => {
