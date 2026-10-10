@@ -85,6 +85,9 @@ import { ScheduleSyncer } from "../temporal/schedule/syncer.js";
 import { newScheduleWorkerFactory } from "../temporal/schedule/worker.js";
 import { newGradingConfigFromEnv } from "../temporal/grading/config.js";
 import { newGradingWorkerFactory } from "../temporal/grading/worker.js";
+import { newEvalsConfigFromEnv } from "../temporal/evals/config.js";
+import { newEvalsWorkerFactory } from "../temporal/evals/worker.js";
+import { evalModelCatalogOf } from "../domain/plugin-eval/matrix.js";
 import { registerScheduleServices } from "../domain/schedule/controller.js";
 import { registerAgentChannelServices } from "../domain/agentchannel/controller.js";
 import { registerChannelConversationServices } from "../domain/agentchannel/conversation.js";
@@ -1095,12 +1098,13 @@ export async function composeServer(
     deleter: scoreDeleter,
   });
   // Plugin evals: one suite workflow per eval (temporal/evals/), started by
-  // create and cancelled by cancel, on the grading queue its worker polls.
+  // create and cancelled by cancel, on the eval queue its worker polls.
   // A try's conversation is deleted through the session domain's own
   // delete as the server, the judge session's lane.
+  const evalsTemporalConfig = newEvalsConfigFromEnv();
   const pluginEvalWorkflows = newTemporalPluginEvalWorkflows({
     client: () => temporalManager.getClient(),
-    taskQueue: gradingTemporalConfig.stigmerQueue,
+    taskQueue: evalsTemporalConfig.stigmerQueue,
   });
   /* v8 ignore next -- @preserve: called only by an eval's delete, after boot */
   const pluginEvalTrySessions = () => requireInProcess().judgeSessionDeleter;
@@ -1188,6 +1192,31 @@ export async function composeServer(
         /* v8 ignore next -- @preserve: called only by a judge activity on a live engine */
         judgeSessions: () => requireInProcess().judgeSessionDeleter,
         gradingCaller,
+        logger,
+      }),
+      // Plugin evals: the suite and case workflows on their own queue
+      // (temporal/evals/). The archive reader, the artifact read and the
+      // in-process lane are resolved when an activity runs, after the
+      // stores below and the routes exist.
+      newEvalsWorkerFactory({
+        store,
+        config: evalsTemporalConfig,
+        /* v8 ignore start -- @preserve: called only by an eval activity on a live engine */
+        suites: {
+          readArchive: (pluginId, digest) =>
+            newPluginArchiveReader({ store, archives: pluginArtifactStorage }).readArchive(
+              pluginId,
+              digest,
+            ),
+        },
+        catalog: evalModelCatalogOf(modelCatalog),
+        tries: () => requireInProcess().pluginEvalTries,
+        sessions: pluginEvalTrySessions,
+        readArtifact: (storageKey) => artifactStorage.download(storageKey),
+        /* v8 ignore stop */
+        recorder: scoreRecorder,
+        deleter: scoreDeleter,
+        pluginEvalCaller,
         logger,
       }),
       // Extension workers append after the OSS set — their own queues,
