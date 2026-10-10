@@ -2,7 +2,7 @@
  * Hermetic arm: the run's value fetch is refused for a reason its person
  * fixes (an entry gone from its vault since the run was planned).
  *
- * Invariant pinned: the runtime's environment phase settles the turn as
+ * Invariant pinned: the runtime's values phase settles the turn as
  * RUN_FAILED on the actionable surface with the server's own sentence —
  * the key, its declarer and the vault — unframed, with one
  * `Execution failed:` row, and RETURNS (a retry would read the same

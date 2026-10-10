@@ -29,7 +29,7 @@
  * of the non-git / HYBRID turn-boundary capture — no new divergence.
  */
 
-import { readFile, stat } from "node:fs/promises";
+import { agentFs } from "../agent-fs.js";
 import { join } from "node:path";
 import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { classifyCasChange } from "./cas-substrate.js";
@@ -139,7 +139,7 @@ export function createCasProgressSubstrate(opts: {
 
 async function statOrNull(abs: string): Promise<{ size: number; mtimeMs: number } | null> {
   try {
-    const s = await stat(abs);
+    const s = await agentFs().stat(abs);
     return { size: s.size, mtimeMs: s.mtimeMs };
   } catch {
     return null;
@@ -148,7 +148,7 @@ async function statOrNull(abs: string): Promise<{ size: number; mtimeMs: number 
 
 async function readFileOrNull(abs: string): Promise<Uint8Array | null> {
   try {
-    return await readFile(abs);
+    return await agentFs().readFile(abs);
   } catch {
     return null;
   }

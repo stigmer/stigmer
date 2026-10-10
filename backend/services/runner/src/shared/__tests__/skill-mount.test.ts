@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { ConnectError, Code } from "@connectrpc/connect";
 import {
   MOUNT_MARKER_FILE,
+  isSkillContentPath,
   mountIsFresh,
   downloadArtifact,
   writeSkillMount,
@@ -145,6 +146,58 @@ describe("writeSkillMount — marker mechanics", () => {
     expect(statSync(join(skillDir, "scripts", "check")).mode & 0o111).not.toBe(0);
     expect(statSync(join(skillDir, "scripts", "README")).mode & 0o111).toBe(0);
   });
+
+  it("never mounts an eval suite a root skill's archive still carries, by its cleaned name", async () => {
+    // A root skill's archive is the whole plugin, its manifest included; one
+    // stored before the suite was stripped at push still holds `evals/`,
+    // which a try must not read.
+    const artifact = buildZip([
+      { name: "./plugin.json", content: JSON.stringify({ name: "p" }) },
+      { name: "references/guide.md", content: "guide" },
+      { name: "evals/evals.json", content: "{}" },
+      { name: "./evals/basic/case.yaml", content: "prompt: hi" },
+      { name: "x/../evals/graders/g.yaml", content: "type: llm" },
+      { name: "evalsx/kept.md", content: "not the suite" },
+    ]);
+    await writeSkillMount(makeSkillProto({ versionHash: "hash-v1" }), skillDir, artifact);
+
+    expect(existsSync(join(skillDir, "evals"))).toBe(false);
+    expect(readFileSync(join(skillDir, "references", "guide.md"), "utf-8")).toBe("guide");
+    expect(readFileSync(join(skillDir, "evalsx", "kept.md"), "utf-8")).toBe("not the suite");
+  });
+
+  it("mounts a standalone skill's own evals/, which holds no plugin manifest", async () => {
+    // skill-creator keeps a skill's tests in `evals/evals.json`; only a
+    // plugin's root skill can carry the plugin's suite.
+    const artifact = buildZip([
+      { name: "references/guide.md", content: "guide" },
+      { name: "evals/evals.json", content: "{}" },
+      { name: "nested/plugin.json", content: "{}" },
+    ]);
+    await writeSkillMount(makeSkillProto({ versionHash: "hash-v1" }), skillDir, artifact);
+
+    expect(readFileSync(join(skillDir, "evals", "evals.json"), "utf-8")).toBe("{}");
+    expect(readFileSync(join(skillDir, "references", "guide.md"), "utf-8")).toBe("guide");
+  });
+
+  it("never mounts a suite the root skill's own manifest moves", async () => {
+    // `experimental.evals` moves the suite out of `evals/`; the mount reads
+    // the archive's manifest by the plugin mount's rule.
+    const artifact = buildZip([
+      { name: ".claude-plugin/plugin.json", content: JSON.stringify({ name: "p", experimental: { evals: "qa" } }) },
+      { name: "references/guide.md", content: "guide" },
+      { name: "qa/evals.json", content: "{}" },
+      { name: "qa/basic/prompt.md", content: "hi" },
+      { name: "evals/stale/prompt.md", content: "hi" },
+      { name: "qa-notes/kept.md", content: "not the suite" },
+    ]);
+    await writeSkillMount(makeSkillProto({ versionHash: "hash-v1" }), skillDir, artifact);
+
+    expect(existsSync(join(skillDir, "qa"))).toBe(false);
+    expect(existsSync(join(skillDir, "evals"))).toBe(false);
+    expect(readFileSync(join(skillDir, "references", "guide.md"), "utf-8")).toBe("guide");
+    expect(readFileSync(join(skillDir, "qa-notes", "kept.md"), "utf-8")).toBe("not the suite");
+  });
 });
 
 // ─── downloadArtifact — transfer lane routing (#675) ─────────────────────
@@ -269,5 +322,32 @@ describe("downloadArtifact — transfer lane routing", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 403 }));
 
     await expect(downloadArtifact(client, "skills/a.zip")).rejects.toThrow("artifact fetch failed: HTTP 403 from the minted download URL");
+  });
+});
+
+describe("isSkillContentPath", () => {
+  it("names a mounted skill's files and a mounted plugin's skills, never other platform content", () => {
+    expect(isSkillContentPath("/.stigmer/skills/alpha/SKILL.md")).toBe(true);
+    expect(isSkillContentPath("/.stigmer/skills")).toBe(true);
+    expect(isSkillContentPath("/.stigmer/plugins/abc123/skills/beta/references/x.md")).toBe(true);
+    expect(isSkillContentPath("/.stigmer/inputs/../skills/alpha/SKILL.md"), "normalized first").toBe(true);
+    expect(isSkillContentPath("/.stigmer/inputs/spec.pdf")).toBe(false);
+    expect(isSkillContentPath("/.stigmer/skillsets/x")).toBe(false);
+    expect(isSkillContentPath("/.stigmer/plugin-data/safety/state.json"), "a plugin's data is not its package").toBe(false);
+    expect(isSkillContentPath("/skills/alpha/SKILL.md"), "the workspace's own skills folder").toBe(false);
+  });
+
+  it("names a mounted plugin's whole tree and cached archive, wherever its manifest put its skills", () => {
+    expect(isSkillContentPath("/.stigmer/plugins/abc123/my-skills/solo/SKILL.md"), "a manifest-declared skill dir").toBe(true);
+    expect(isSkillContentPath("/.stigmer/plugins/abc123/SKILL.md"), "a root skill is the whole tree").toBe(true);
+    expect(isSkillContentPath("/.stigmer/plugins/abc123/hooks/run.sh")).toBe(true);
+    expect(isSkillContentPath("/.stigmer/plugins/abc123.zip")).toBe(true);
+  });
+
+  it("matches without regard to case, as a case-insensitive filesystem resolves the path", () => {
+    expect(isSkillContentPath("/.stigmer/Skills/alpha/SKILL.md")).toBe(true);
+    expect(isSkillContentPath("/.STIGMER/skills/alpha/SKILL.md")).toBe(true);
+    expect(isSkillContentPath("/.Stigmer/PLUGINS/abc123/skills/b/SKILL.md")).toBe(true);
+    expect(isSkillContentPath("/.STIGMER/inputs/spec.pdf")).toBe(false);
   });
 });

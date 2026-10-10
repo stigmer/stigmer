@@ -24,6 +24,7 @@ public class GeneratedClient {
     public final PlanClient plan;
     public final PlatformClientClient platformclient;
     public final PluginClient plugin;
+    public final PluginEvalClient plugineval;
     public final ProviderKeyClient providerkey;
     public final RunClient run;
     public final ScheduleClient schedule;
@@ -53,6 +54,7 @@ public class GeneratedClient {
         this.plan = new PlanClient(channel);
         this.platformclient = new PlatformClientClient(channel);
         this.plugin = new PluginClient(channel);
+        this.plugineval = new PluginEvalClient(channel);
         this.providerkey = new ProviderKeyClient(channel);
         this.run = new RunClient(channel);
         this.schedule = new ScheduleClient(channel);

@@ -49,9 +49,10 @@ type PluginCommandControllerClient interface {
 	// Update the visibility of a plugin and of every resource it materialised.
 	// Only modifies metadata.visibility on the plugin and its members.
 	UpdateVisibility(ctx context.Context, in *apiresource.UpdateVisibilityInput, opts ...grpc.CallOption) (*Plugin, error)
-	// Delete a plugin and every resource it materialised.
+	// Delete a plugin and every resource it materialised, its evals included.
 	// Refused when a resource outside the plugin still references a member;
-	// the error names the referencing resources.
+	// the error names the referencing resources. Refused while one of its
+	// evals is pending or running: cancel that eval first.
 	Delete(ctx context.Context, in *PluginId, opts ...grpc.CallOption) (*Plugin, error)
 }
 
@@ -126,9 +127,10 @@ type PluginCommandControllerServer interface {
 	// Update the visibility of a plugin and of every resource it materialised.
 	// Only modifies metadata.visibility on the plugin and its members.
 	UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*Plugin, error)
-	// Delete a plugin and every resource it materialised.
+	// Delete a plugin and every resource it materialised, its evals included.
 	// Refused when a resource outside the plugin still references a member;
-	// the error names the referencing resources.
+	// the error names the referencing resources. Refused while one of its
+	// evals is pending or running: cancel that eval first.
 	Delete(context.Context, *PluginId) (*Plugin, error)
 }
 

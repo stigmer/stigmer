@@ -262,6 +262,9 @@ const (
 	// AI grading switched on for one agent: its sample rate, monthly spending
 	// limit and judge model.
 	ApiResourceKind_evaluator ApiResourceKind = 62
+	// One run of a plugin's own evals/ cases: every case tried with and
+	// without the plugin, on the models the eval names.
+	ApiResourceKind_plugin_eval ApiResourceKind = 63
 	// Catalog entry naming a bundle of entitlements and the terms that buy it.
 	//
 	// Platform-level: a plan belongs to no organization, so it carries no
@@ -313,6 +316,7 @@ var (
 		59: "vault",
 		61: "score",
 		62: "evaluator",
+		63: "plugin_eval",
 		70: "plan",
 		71: "subscription",
 		72: "license",
@@ -344,6 +348,7 @@ var (
 		"vault":                     59,
 		"score":                     61,
 		"evaluator":                 62,
+		"plugin_eval":               63,
 		"plan":                      70,
 		"subscription":              71,
 		"license":                   72,
@@ -553,7 +558,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"enterprise\x10\x03*A\n" +
 	"\x0fPlatformIdValue\x12!\n" +
 	"\x1dplatform_id_value_unspecified\x10\x00\x12\v\n" +
-	"\astigmer\x10\x01*\xaf!\n" +
+	"\astigmer\x10\x01*\x8f\"\n" +
 	"\x0fApiResourceKind\x12\x1d\n" +
 	"\x19api_resource_kind_unknown\x10\x00\x12[\n" +
 	"\x14api_resource_version\x10\x01\x1aA\xaa\xff+=\b\x01\x10\x01\x1a\x12ApiResourceVersion\"\x14API Resource Version*\x03ver8\x01@\x02J\x04\b\x05\x10\x04\x12?\n" +
@@ -597,7 +602,10 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\x05score\x10=\x1a9\xaa\xff+5\b\x01\x10\x01\x1a\x05Score\"\x05Score*\x03scr8\x01@\x01J\x18\b\x03\x10\x01\x1a\x12\n" +
 	"\x03run\x12\x03run\x1a\x06run_id\x12V\n" +
 	"\tevaluator\x10>\x1aG\xaa\xff+C\b\x01\x10\x01\x1a\tEvaluator\"\tEvaluator*\x03evl8\x01@\x01J\x1e\b\x03\x10\x04\x1a\x18\n" +
-	"\x05agent\x12\x05agent\x1a\bagent_id\x12-\n" +
+	"\x05agent\x12\x05agent\x1a\bagent_id\x12^\n" +
+	"\vplugin_eval\x10?\x1aM\xaa\xff+I\b\x01\x10\x01\x1a\n" +
+	"PluginEval\"\vPlugin Eval*\x03pev8\x01@\x01J!\b\x03\x10\x04\x1a\x1b\n" +
+	"\x06plugin\x12\x06plugin\x1a\tplugin_id\x12-\n" +
 	"\x04plan\x10F\x1a#\xaa\xff+\x1f\b\x04\x10\x01\x1a\x04Plan\"\x04Plan*\x03pln8\x01@\x02J\x04\b\x05\x10\x04\x12E\n" +
 	"\fsubscription\x10G\x1a3\xaa\xff+/\b\x04\x10\x01\x1a\fSubscription\"\fSubscription*\x03sub8\x01@\x02J\x04\b\x02\x10\x04\x126\n" +
 	"\alicense\x10H\x1a)\xaa\xff+%\b\x04\x10\x01\x1a\aLicense\"\aLicense*\x03lic8\x01@\x02J\x04\b\x05\x10\x04\"\x04\b-\x10-\"\x04\b1\x101\"\x04\b2\x102\"\x04\b3\x103\"\x04\b4\x104\"\x04\b5\x105\"\x04\b6\x106\"\x04\b7\x107\"\x04\b<\x10<*\x0eagent_instance*\tdatastore*\bworkflow*\x11workflow_instance*\fworkflow_run*\venvironment*\x11execution_context*\bartifact*\aproject:\x85\x01\n" +

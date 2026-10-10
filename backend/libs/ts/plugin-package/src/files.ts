@@ -76,6 +76,12 @@ export const PLUGIN_DOCUMENT_LIMITS = {
    * leaves room for catalogues an order of magnitude larger.
    */
   marketplace: 1024 * 1024,
+  /**
+   * A file of a plugin's eval suite the reader opens: a `prompt.md`, a
+   * `case.yaml`, a `graders/*.md`. Prompts and rubrics, so the `SKILL.md`
+   * cap.
+   */
+  evalDocument: 1024 * 1024,
 } as const;
 
 export type PluginDocumentClass = keyof typeof PLUGIN_DOCUMENT_LIMITS;

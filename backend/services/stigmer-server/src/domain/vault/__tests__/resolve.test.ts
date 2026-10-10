@@ -69,6 +69,7 @@ import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchan
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import { PluginEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
 import { RunCredentialsSchema, RunSchema, RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run, RunValueSource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { ExecutionValues } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
@@ -94,6 +95,7 @@ import {
 import type { Authorizer } from "../../../extensions/authorizer.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
+import { PLUGIN_EVAL_LABEL } from "../../plugin-eval/constants.js";
 import { newSignInFreshener } from "../sign-in/refresh.js";
 
 import {
@@ -598,6 +600,66 @@ describe("which vaults a run uses", () => {
     mayUse.add(`${ADMIN}:${team.metadata!.id}`);
     const gone = await refusal(resolve(guestRun));
     expect(gone.rawMessage).toContain(`vault ${ORG}/gone, named by share 'public', no longer exists`);
+  });
+
+  it("a plugin eval's vaults reach its tries, checked against their attacher", async () => {
+    const keys = await seedSharedVault(rig.store, ORG, "eval-keys", { secrets: { A: "from-eval" } });
+    await rig.store.saveResource(
+      ApiResourceKind.plugin_eval,
+      "pev_nightly",
+      PluginEvalSchema,
+      create(PluginEvalSchema, {
+        metadata: { id: "pev_nightly", name: "thermos run", org: ORG },
+        spec: { pluginId: "plg_thermos", vaults: [vaultRef("eval-keys")] },
+        status: { vaultAttachers: { [keys.metadata!.id]: ADMIN } },
+      }),
+    );
+    const evalTry = {
+      run: runOf({ labels: { [PLUGIN_EVAL_LABEL]: "pev_nightly" } }),
+      session: sessionOf({ includeMyVault: false }),
+      agentSpec: agent({ A: KEY }),
+    };
+    const revoked = await refusal(resolve(evalTry));
+    expect(revoked.rawMessage).toContain(
+      "vault 'eval-keys', named by plugin eval 'thermos run', may no longer be used",
+    );
+    mayUse.add(`${ADMIN}:${keys.metadata!.id}`);
+    expect(await resolve(evalTry)).toEqual({ A: "from-eval" });
+
+    // A try acting as a person (open source acts as the eval's creator)
+    // reads its conversation's vaults first, then the eval's.
+    await seedSharedVault(rig.store, ORG, "chat-keys", { secrets: { B: "from-chat" } });
+    mayUse.add(`${ANA}:vlt_acme_chat_keys`);
+    expect(
+      await resolve({
+        run: runOf({ person: ANA, labels: { [PLUGIN_EVAL_LABEL]: "pev_nightly" } }),
+        session: sessionOf({ vaults: ["chat-keys"], includeMyVault: false }),
+        agentSpec: agent({ A: KEY, B: KEY }),
+      }),
+    ).toEqual({ A: "from-eval", B: "from-chat" });
+  });
+
+  it("a plugin eval that is gone, or of another organization, contributes no vaults to its tries", async () => {
+    await seedSharedVault(rig.store, "rival", "rival-keys", { secrets: { API_KEY: "rival" } });
+    await rig.store.saveResource(
+      ApiResourceKind.plugin_eval,
+      "pev_rival",
+      PluginEvalSchema,
+      create(PluginEvalSchema, {
+        metadata: { id: "pev_rival", name: "rival", org: "rival" },
+        spec: { pluginId: "plg_rival", vaults: [{ kind: ApiResourceKind.vault, org: "rival", slug: "rival-keys" }] },
+        status: { vaultAttachers: { "vlt_rival_rival_keys": ADMIN } },
+      }),
+    );
+    mayUse.add(`${ADMIN}:vlt_rival_rival_keys`);
+    for (const evalId of ["pev_gone", "pev_rival"]) {
+      expect(
+        await resolve({
+          run: runOf({ labels: { [PLUGIN_EVAL_LABEL]: evalId } }),
+          agentSpec: agent({ API_KEY: { isSecret: true, optional: true } }),
+        }),
+      ).toEqual({});
+    }
   });
 
   it("a schedule that is gone contributes no vaults to its run", async () => {

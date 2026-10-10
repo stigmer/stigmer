@@ -161,6 +161,60 @@ message RunSpec {
   // status.structured_output.
   google.protobuf.Struct structured_output_schema = 21;
 
+  // Tools this turn may use, in the same names as an agent's tools; empty
+  // leaves the agent's tools as they are.
+  //
+  // A turn can only narrow: a tool its agent (or the assistant) does not
+  // have stays unavailable whatever this lists. Like interaction_mode, it
+  // applies to this message only. Skill is a name here too: listing tools
+  // without Skill keeps the agent's skills, a list of Skill alone resolves
+  // unless the agent denies Skill, and disallowed_tools with Skill removes
+  // them.
+  //
+  // @internal
+  // One more layer of the conjunction the runner already resolves for an
+  // agent's lists (runner shared/tool-lists.ts): disallowed first, then
+  // allowed, each layer intersected with the one before. Plugin evals set
+  // it from a case's allowed_tools.
+  repeated string tools = 22 [(buf.validate.field).repeated = {
+    max_items: 128
+    items: {
+      string: {
+        max_len: 256
+        pattern: "^(mcp__\\*|mcp__[a-z][a-z0-9-]*[a-z0-9](__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$"
+      }
+    }
+  }];
+
+  // Tools this turn may never use, in the same names as tools. Applied
+  // before tools, so a tool named in both is excluded. Disallowing Skill
+  // hides every skill from this turn.
+  repeated string disallowed_tools = 23 [(buf.validate.field).repeated = {
+    max_items: 128
+    items: {
+      string: {
+        max_len: 256
+        pattern: "^(mcp__\\*|mcp__[a-z][a-z0-9-]*[a-z0-9](__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$"
+      }
+    }
+  }];
+
+  // Text appended to the system prompt for this turn, as Claude Code's
+  // --append-system-prompt.
+  //
+  // A person who may create a run in the session may set it; a visitor (a
+  // share-link guest, a channel sender) may not, as the agent's system
+  // prompt is its owner's to steer. On the native engine it lands after
+  // the agent's instructions and the platform's sections, for this turn
+  // only. On the Cursor engine it is sent with the turn's message, before
+  // the structured-output directive when structured_output_schema is set
+  // (the output contract closes the message), so it stays in that
+  // conversation's history and later turns still see it.
+  //
+  // @internal
+  // Plugin evals set it from a case's append_system_prompt.
+  string append_system_prompt = 24 [(buf.validate.field).string.max_len = 32768];
+
   // Field 5 held runtime_env, a turn's own variables and secrets, until a
   // run's values moved to vaults: a key is saved in a vault, and the
   // conversation names the vaults it uses on session_spec.

@@ -1242,7 +1242,7 @@ func (x *PauseRunInput) GetReason() string {
 // When an agent is resumed:
 // 1. A "resume" signal is sent to the paused Temporal workflow
 // 2. Workflow unblocks from its wait state
-// 3. Activity is re-invoked with same execution context
+// 3. Activity is re-invoked with the same input
 // 4. LangGraph loads checkpoint using thread_id
 // 5. Agent continues from exact pause point
 //

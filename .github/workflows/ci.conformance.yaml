@@ -52,6 +52,10 @@ jobs:
       - name: Build proto stubs
         run: npm run build -w @stigmer/protos
 
+      # The plugin-eval support arms read suites through the library's dist.
+      - name: Build the plugin package
+        run: npm run build -w @stigmer/plugin-package
+
       # The behavior inventory gate: fails in seconds, before any boot,
       # when a conformance row lacks a test or a tag names no row.
       - name: Check the cloud-capability inventory

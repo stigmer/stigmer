@@ -26,17 +26,77 @@
  * with each harness; only the per-skill-directory mechanics live here.
  * The archive's transport, the rebuild and the file modes are the shared
  * archive mount's (`archive-mount.ts`), one copy for skills and plugins.
+ *
+ * Also the one statement of where a skill's files live under the platform
+ * dir ({@link SKILL_CONTENT_PATTERN}), which both harnesses' confined reads
+ * consult when a turn's tool lists deny `Skill`, each by the real path the
+ * read would open ({@link skillContentReadCheck}, the Cursor hook's
+ * `realpathSync`).
  */
 
-import { readFile, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { agentFs } from "./agent-fs.js";
+import { join, posix, relative, sep } from "node:path";
 import type { StigmerClient } from "../client/stigmer-client.js";
 import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { extractZipFileEntries } from "./zip-extract.js";
 import { downloadArchive, resetDirectory, writeArchiveEntries } from "./archive-mount.js";
+import { holdsPluginManifest, manifestEvalDir, withoutEvalSuite } from "./plugin-mount.js";
+import { STIGMER_LOCAL_STATE_DIR } from "./workspace/stigmer-link.js";
 
 /** Subdirectory of the platform dir where skill mounts live. */
 export const SKILLS_SUBDIR = "skills";
+
+/**
+ * A skill's files, as a path relative to the platform dir in posix form: a
+ * mounted skill (`skills/<name>/…`), or anything under `plugins/`, a
+ * mounted plugin's tree and its cached archive (`plugin-mount.ts`). The
+ * whole tree counts because a manifest may declare its skills anywhere in
+ * the package and a root skill is the package itself; the tree is there
+ * for the plugin's hooks, which run it as processes, never for the agent
+ * to read. A turn whose tool lists deny `Skill` is refused a read of any of
+ * them, on both engines; the Cursor hook embeds this pattern's source and
+ * flags. Matched without regard to case: on a case-insensitive filesystem
+ * `Skills/a/SKILL.md` is the same file, and on any other the platform dir
+ * holds no such name to over-refuse.
+ */
+export const SKILL_CONTENT_PATTERN = /^(?:skills|plugins)(?:\/|$)/i;
+
+/** The native engine's virtual prefix for the platform dir. */
+const PLATFORM_PREFIX = `/${STIGMER_LOCAL_STATE_DIR}/`;
+
+/** Whether a canonical virtual path (`/.stigmer/…`, the native engine's) names a skill's files. */
+export function isSkillContentPath(virtualPath: string): boolean {
+  const normalized = posix.normalize(virtualPath);
+  return normalized.toLowerCase().startsWith(PLATFORM_PREFIX) && SKILL_CONTENT_PATTERN.test(normalized.slice(PLATFORM_PREFIX.length));
+}
+
+/**
+ * Whether a native `read_file` of this canonical virtual path would open a
+ * skill's files: by its text ({@link isSkillContentPath}), or, for a path
+ * under `.stigmer/`, by the real path it resolves to inside the platform
+ * dir. The native route follows a link that stays inside the platform dir
+ * (`execute-deep-agent/platform-route.ts`), so a link a plugin's hook leaves
+ * under `plugin-data/` pointing into `skills/` reads the skill unless its
+ * real path is judged; the Cursor hook judges every read the same way.
+ * Compared without regard to case, as the pattern is. A path that does not
+ * resolve (nothing there, a dangling link) opens nothing and is not
+ * refused here. Costs two `realpath` calls, and only on a turn that denies
+ * `Skill`. Without a platform dir there is nothing to resolve against.
+ */
+export function skillContentReadCheck(platformDir: string | undefined): (virtualPath: string) => Promise<boolean> {
+  return async (virtualPath) => {
+    if (isSkillContentPath(virtualPath)) return true;
+    const normalized = posix.normalize(virtualPath);
+    if (platformDir === undefined || !normalized.toLowerCase().startsWith(PLATFORM_PREFIX)) return false;
+    try {
+      const [root, target] = await Promise.all([agentFs().realpath(platformDir), agentFs().realpath(join(platformDir, normalized.slice(PLATFORM_PREFIX.length)))]);
+      const inside = relative(root.toLowerCase(), target.toLowerCase()).split(sep).join("/");
+      return !inside.startsWith("../") && inside !== ".." && SKILL_CONTENT_PATTERN.test(inside);
+    } catch {
+      return false;
+    }
+  };
+}
 
 /**
  * Marker recording what a skill's mount directory currently holds. Written
@@ -70,7 +130,7 @@ export async function mountIsFresh(
   wantsArtifact: boolean,
 ): Promise<boolean> {
   try {
-    const raw = await readFile(join(skillDir, MOUNT_MARKER_FILE), "utf-8");
+    const raw = (await agentFs().readFile(join(skillDir, MOUNT_MARKER_FILE))).toString("utf8");
     const marker = JSON.parse(raw) as Partial<MountMarker>;
     return marker.versionHash === versionHash && (marker.artifactMounted === true || !wantsArtifact);
   } catch {
@@ -115,6 +175,20 @@ export async function downloadArtifact(
  * Every extracted entry must resolve inside `skillDir` (the archive
  * mount's escape check): the server already rejects traversal at push, and
  * this is the runner's defence in depth.
+ *
+ * A plugin's root skill mounts nothing under the archive's `evals/`, or
+ * under the directory the archive's own manifest moves the suite to
+ * (`experimental.evals`), matched by its cleaned, root-relative name as the
+ * plugin mount matches it (`plugin-mount.ts` `withoutEvalSuite`,
+ * `manifestEvalDir`). Its archive is the whole plugin, one stored before
+ * the install left the suite out still carries it, and an agent under test
+ * must not read the cases it is graded on. A root skill's archive is told
+ * by the plugin manifest it always holds (`holdsPluginManifest`). Any other
+ * skill keeps its own `evals/`: a skill pushed on its own may keep its
+ * tests there (skill-creator's `evals/evals.json`), and a plugin's other
+ * skills never hold the plugin's suite, since the install refuses a suite
+ * directory that overlaps a skill and leaves each skill's own `evals/` out
+ * of its archive.
  */
 export async function writeSkillMount(
   skill: Skill,
@@ -123,17 +197,18 @@ export async function writeSkillMount(
 ): Promise<void> {
   await resetDirectory(skillDir);
 
-  await writeFile(join(skillDir, "SKILL.md"), skill.spec!.skillMd, "utf-8");
+  await agentFs().writeFile(join(skillDir, "SKILL.md"), skill.spec!.skillMd);
 
   const artifactMounted = artifactBytes !== undefined && artifactBytes.length > 0;
   if (artifactMounted) {
-    const entries = await extractZipFileEntries(artifactBytes, { exclude: ["SKILL.md", MOUNT_MARKER_FILE] });
+    const extracted = await extractZipFileEntries(artifactBytes, { exclude: ["SKILL.md", MOUNT_MARKER_FILE] });
+    const entries = holdsPluginManifest(extracted) ? withoutEvalSuite(extracted, manifestEvalDir(extracted)) : extracted;
     await writeArchiveEntries(skillDir, entries, "skill artifact");
   }
 
   const versionHash = skill.status?.versionHash ?? "";
   if (versionHash !== "") {
     const marker: MountMarker = { versionHash, artifactMounted };
-    await writeFile(join(skillDir, MOUNT_MARKER_FILE), JSON.stringify(marker), "utf-8");
+    await agentFs().writeFile(join(skillDir, MOUNT_MARKER_FILE), JSON.stringify(marker));
   }
 }

@@ -97,10 +97,9 @@ type VaultSpec struct {
 	// Secrets by name. A secret fills the requirement with the same name, such
 	// as OPENAI_API_KEY.
 	Secrets map[string]*VaultSecret `protobuf:"bytes,5,rep,name=secrets,proto3" json:"secrets,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// Connections by address. A pasted connection fills the login of an HTTP
-	// tool at that address, whose requests carry the token there, or clones
-	// from a Git host such as github.com; a sign-in fills only the tool that
-	// signed in.
+	// Connections by address. A pasted login or a sign-in fills the login of
+	// every HTTP tool at that address, whose requests carry the token there,
+	// or clones from a Git host such as github.com.
 	Connections   map[string]*VaultConnection `protobuf:"bytes,6,rep,name=connections,proto3" json:"connections,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

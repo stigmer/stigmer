@@ -14,6 +14,7 @@ import { registerRunsApprove } from "./approve.js";
 import { registerRunsControl } from "./control.js";
 import { registerRunsLogs } from "./logs.js";
 import { registerRunsScores } from "./scores.js";
+import { registerRunsToEvalCase } from "./to-eval-case.js";
 import { registerRunsTrace } from "./trace.js";
 
 export function registerRuns(program: Command): void {
@@ -25,5 +26,6 @@ export function registerRuns(program: Command): void {
   registerRunsLogs(runs);
   registerRunsTrace(runs);
   registerRunsScores(runs);
+  registerRunsToEvalCase(runs);
   registerRunsApprove(runs);
 }

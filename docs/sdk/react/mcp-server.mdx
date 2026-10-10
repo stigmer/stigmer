@@ -621,29 +621,6 @@ function useUpdateMcpServer(): UseUpdateMcpServerReturn
 
 ## Components
 
-### EnvironmentAuthStep
-
-Wizard step 2: Environment variables and sign-in.
-
-Both sections are optional. Env vars start expanded if any exist;
-sign-in starts collapsed unless already enabled, and is offered only for
-an HTTP server: a local program takes its keys as environment variables.
-No validation gate — the user can proceed with zero configuration.
-
-Fully presentational: form state lives in the `data` prop and edits
-flow out through `updateData`, so standalone consumers (embedded
-builders, guided tours) can render any configuration state from props.
-
-**Props** — `EnvironmentAuthStepProps`
-
-<TypeTable
-  type={{
-    data: { type: "McpServerWizardData", description: "", required: true, typeDescriptionLink: "#mcpserverwizarddata" },
-    updateData: { type: "(partial: Partial<McpServerWizardData>) => void", description: "", required: true },
-  }}
-/>
-
-
 ### IdentityTransportStep
 
 Wizard step 1: MCP server identity and transport configuration.
@@ -781,7 +758,7 @@ Multi-step wizard for creating a new MCP server blueprint.
 
 Three steps:
 1. **Identity & Transport** — name, slug, description, icon, transport config
-2. **Environment & Auth** — env var declarations, OAuth auth configuration (all optional)
+2. **Variables & Sign-in** — env var declarations, OAuth sign-in configuration (all optional)
 3. **Review & Create** — YAML preview + submission
 
 Uses the shared `WizardShell` layout and `useWizardState` hook for
@@ -993,6 +970,29 @@ any review state — success preview or failure — deterministically.
     error: { type: "Error | null", description: "", required: true },
     isCreating: { type: "boolean", description: "", required: true },
     org: { type: "string", description: "", required: true },
+  }}
+/>
+
+
+### VariablesSignInStep
+
+Wizard step 2: Environment variables and sign-in.
+
+Both sections are optional. Env vars start expanded if any exist;
+sign-in starts collapsed unless already enabled, and is offered only for
+an HTTP server: a local program takes its keys as environment variables.
+No validation gate — the user can proceed with zero configuration.
+
+Fully presentational: form state lives in the `data` prop and edits
+flow out through `updateData`, so standalone consumers (embedded
+builders, guided tours) can render any configuration state from props.
+
+**Props** — `VariablesSignInStepProps`
+
+<TypeTable
+  type={{
+    data: { type: "McpServerWizardData", description: "", required: true, typeDescriptionLink: "#mcpserverwizarddata" },
+    updateData: { type: "(partial: Partial<McpServerWizardData>) => void", description: "", required: true },
   }}
 />
 

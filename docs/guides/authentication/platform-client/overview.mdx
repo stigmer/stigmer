@@ -240,9 +240,9 @@ own, such as a shared API secret. Put that credential in a shared
 `vaults`. Every run a user signed in through that PlatformClient starts then
 uses the vault, and so does a recovery of that run. The Agent stays as it is.
 
-- **Only what you attach.** A user signed in through a PlatformClient has no
-  vault of their own, so their runs use the vaults their Session names and the
-  PlatformClient's, nothing else.
+- **Only what you attach.** The runs of a user signed in through a
+  PlatformClient read no vault of that user's own, so they use the vaults their
+  Session names and the PlatformClient's, nothing else.
 - **Same Organization.** The vaults must belong to the PlatformClient's
   Organization, and they are used only by runs in that Organization.
 - **Kept up to date.** Stigmer reads the PlatformClient when each run starts, so
@@ -252,6 +252,9 @@ uses the vault, and so does a recovery of that run. The Agent stays as it is.
   until you remove it from `vaults`.
 
 Runs started by a Schedule use the schedule's vaults, not the PlatformClient's.
+A key that belongs to one of your customers goes in that customer's own vault
+instead: see
+[Keep your customers' keys](/docs/guides/authentication/customer-keys).
 
 ## Error handling
 

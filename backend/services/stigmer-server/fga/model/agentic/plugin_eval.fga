@@ -1,0 +1,35 @@
+module agentic
+
+# ========================================
+# PLUGIN EVAL TYPE (Plugin-bound)
+# ========================================
+# One run of a plugin's own evals/ cases: each case tried with and without
+# the plugin, on the models the eval names.
+#
+# Authorization model:
+# - The plugin's editors start, cancel and delete its evals, as an agent's
+#   editors own its evaluator.
+# - The plugin's viewers in the plugin's own organization read the eval
+#   and, through the session link (session#plugin_eval), its tries. A
+#   child organization's viewer of the plugin does not: a try spends the
+#   plugin organization's credit and may act with its connections. The
+#   model has no `but not`, so plugin.fga names that set `org_viewer`.
+# - No owner of its own (OWNER_ATTRIBUTION_TYPE_NONE). The plugin's owner
+#   already includes the organization's admins, who hold the purse the
+#   eval spends.
+
+type plugin_eval
+  relations
+    # ========================================
+    # PARENT PLUGIN
+    # ========================================
+    # FGA tuple: plugin_eval:<eval_id>#plugin@plugin:<plugin_id>
+    define plugin: [plugin]
+
+    # ========================================
+    # OPERATIONS
+    # ========================================
+    define viewer: org_viewer from plugin
+    define can_view: viewer
+    define can_edit: can_edit from plugin
+    define can_delete: can_edit from plugin

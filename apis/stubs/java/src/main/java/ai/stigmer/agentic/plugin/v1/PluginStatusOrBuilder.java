@@ -221,4 +221,34 @@ public interface PluginStatusOrBuilder extends
    * <code>.ai.stigmer.agentic.plugin.v1.HookConfig hooks = 7 [json_name = "hooks"];</code>
    */
   ai.stigmer.agentic.plugin.v1.HookConfigOrBuilder getHooksOrBuilder();
+
+  /**
+   * <pre>
+   * The plugin's evals/ test cases, as read at install; unset when the
+   * plugin carries none.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.plugin.v1.PluginEvalSuite evals = 8 [json_name = "evals"];</code>
+   * @return Whether the evals field is set.
+   */
+  boolean hasEvals();
+  /**
+   * <pre>
+   * The plugin's evals/ test cases, as read at install; unset when the
+   * plugin carries none.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.plugin.v1.PluginEvalSuite evals = 8 [json_name = "evals"];</code>
+   * @return The evals.
+   */
+  ai.stigmer.agentic.plugin.v1.PluginEvalSuite getEvals();
+  /**
+   * <pre>
+   * The plugin's evals/ test cases, as read at install; unset when the
+   * plugin carries none.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.plugin.v1.PluginEvalSuite evals = 8 [json_name = "evals"];</code>
+   */
+  ai.stigmer.agentic.plugin.v1.PluginEvalSuiteOrBuilder getEvalsOrBuilder();
 }

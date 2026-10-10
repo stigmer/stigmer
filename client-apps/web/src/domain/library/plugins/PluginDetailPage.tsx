@@ -19,6 +19,7 @@ import {
 } from "@/domain/library/library-navigation";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
 import { getAgentSessionUrl } from "@/domain/session/session-url";
+import { useRunNavigation } from "@/domain/runs/run-navigation";
 
 interface PluginDetailPageInnerProps {
   readonly org: string;
@@ -32,6 +33,7 @@ export function PluginDetailPageInner({ org, slug }: PluginDetailPageInnerProps)
   // with these tools" shows only to someone the server lets create one there.
   const activeOrg = useActiveOrgId();
   const { allowed: canCreateAgent } = useCanCreateAgent(activeOrg || null);
+  const { navigateToRun } = useRunNavigation();
   const { setLabel } = useBreadcrumbOverride();
   const [resourceId, setResourceId] = useState<string | null>(null);
   const [resourceName, setResourceName] = useState<string>("Plugin");
@@ -111,6 +113,7 @@ export function PluginDetailPageInner({ org, slug }: PluginDetailPageInnerProps)
               router.push(`/library/agents/new?mcp=${usages.map((u) => encodeURIComponent(u.mcpServerRef.slug)).join(",")}`)
             : undefined
         }
+        onNavigateToRun={navigateToRun}
         actions={actions}
       />
       <ConfirmDialog

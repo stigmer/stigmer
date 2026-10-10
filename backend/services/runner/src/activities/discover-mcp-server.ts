@@ -30,11 +30,12 @@
  *   Output: DiscoverMcpServerOutput
  */
 
-import { MultiServerMCPClient } from "@langchain/mcp-adapters";
+import { MultiServerMCPClient, type Connection } from "@langchain/mcp-adapters";
 import { activityStarted, activityFinished } from "../idle-watchdog.js";
 import { StigmerClient } from "../client/stigmer-client.js";
 import { dialedUrlOf, mcpServerToResolved, type ResolvedMcpServer } from "../shared/mcp-resolver.js";
 import { toMcpClientConfig } from "../shared/mcp-manager.js";
+import { agentIdentity, setprivArgs, type AgentIdentity } from "../shared/agent-identity.js";
 import {
   assertTransportAllowed,
   resolveMcpTransportPosture,
@@ -222,7 +223,7 @@ export async function discoverMcpServer(
 
   assertTransportAllowed(resolved.slug, resolved.connectionType, deps.transportPosture);
 
-  const connectionConfig = toMcpClientConfig([resolved]);
+  const connectionConfig = stdioAsAgent(toMcpClientConfig([resolved]));
   const { tools, resourceTemplates } = await connectAndDiscover(
     slug,
     connectionConfig,
@@ -361,6 +362,31 @@ export function initTimeoutMessageFor(slug: string, resolved: ResolvedMcpServer)
     `streamable HTTP while leaving its SSE fallback stream silently open. ` +
     `Verify the URL points at a live streamable-HTTP MCP endpoint.`
   );
+}
+
+/**
+ * Discovery starts a stdio MCP server in the runner's own process, not in
+ * the agent host, so in a separating runner (`shared/agent-identity.ts`) it
+ * starts it as the agent user, as the host starts everything an agent runs:
+ * through `setpriv`, with the agent's home as `HOME`. The server's command is
+ * the user's, and must never run with the runner's rights (#2016). An HTTP
+ * server, and every server on a runner that does not separate, is unchanged.
+ */
+export function stdioAsAgent(config: Record<string, Connection>, identity: AgentIdentity | null = agentIdentity()): Record<string, Connection> {
+  if (identity === null) return config;
+  const out: Record<string, Connection> = {};
+  for (const [slug, connection] of Object.entries(config)) {
+    out[slug] =
+      connection.transport === "stdio"
+        ? {
+            ...connection,
+            command: "setpriv",
+            args: [...setprivArgs(identity), "--", connection.command, ...(connection.args ?? [])],
+            env: { ...connection.env, HOME: identity.home },
+          }
+        : connection;
+  }
+  return out;
 }
 
 async function connectAndDiscover(

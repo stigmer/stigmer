@@ -119,6 +119,12 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | PluginQueryController.getByReference | `org` |
 | PluginQueryController.listVersions | `org` |
 
+## `ai.stigmer.agentic.plugineval.v1`
+
+| Method | Organization fields |
+|---|---|
+| PluginEvalCommandController.create | `metadata.org`, `spec.vaults.org` |
+
 ## `ai.stigmer.agentic.schedule.v1`
 
 | Method | Organization fields |

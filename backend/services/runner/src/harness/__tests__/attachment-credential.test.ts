@@ -68,7 +68,7 @@ async function resolveWith(exchange: () => Promise<string | undefined>, runnerKe
     session,
     sessionId: "ses-attach",
     blueprint,
-    environment: NO_RUN_VALUES,
+    values: NO_RUN_VALUES,
   });
   return { mcp, status };
 }

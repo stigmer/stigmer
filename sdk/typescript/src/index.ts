@@ -275,6 +275,34 @@ export {
   toEvaluatorUpdateInput,
   type EvaluatorInput,
 } from "./gen/evaluator.js";
+// Plugin evals: one run of a plugin's own evals/ cases. An eval is started
+// and read, never applied, so it has no update input; the result document
+// and the case builder are the pure reads the CLI and the console share.
+export {
+  PluginEvalClient,
+  buildPluginEvalProto,
+  type PluginEvalInput,
+  type PluginEvalTargetInput,
+} from "./gen/plugineval.js";
+export {
+  toResultDocument,
+  pluginEvalTargetLabel,
+  type PluginEvalResultDocument,
+  type ResultCase,
+  type ResultDocumentOptions,
+  type ResultNotRun,
+  type ResultPartialReason,
+  type ResultRun,
+  type ResultTarget,
+} from "./plugin-eval/result-document.js";
+export {
+  caseFromRun,
+  suggestCaseName,
+  MULTI_TURN_NOTE,
+  type CaseFile,
+  type CaseFromRun,
+  type CaseFromRunInput,
+} from "./plugin-eval/case-from-run.js";
 export {
   VaultClient,
   buildVaultProto,

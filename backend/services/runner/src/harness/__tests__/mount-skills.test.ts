@@ -10,7 +10,10 @@
  * that owner alone (the root's skills stand; the sub-agent gets what
  * resolved), and that a harness without sub-agents (`capabilities.subAgents`
  * false) resolves the root only — the flag's first reader. The phase reports
- * its one label, so the runtime's label list is unchanged.
+ * its one label, so the runtime's label list is unchanged. A scope that
+ * denies `Skill` hides skills: the main scope's deny (the agent's or the
+ * turn's) fetches nothing for any owner, a sub-agent's own deny only its
+ * own, and an allow-list that omits `Skill` keeps them.
  *
  * The control-plane client is doubled at its module boundary with scripted
  * skills; `HOME` is the hermetic environment's, so the mounts land under a
@@ -31,6 +34,7 @@ import { mockStigmerClient } from "../../__test-utils__/mock-client.js";
 import { testConfig } from "../../__test-utils__/config-fixture.js";
 import { turnInputFixture } from "../../__test-utils__/turn-input-fixture.js";
 import { TimingRecorder } from "../../shared/cold-start-timing.js";
+import { ToolScope } from "../../shared/tool-lists.js";
 import { TranscriptBuilder } from "../transcript/builder.js";
 import { mountSkills, type ResolutionDeps } from "../turn-context.js";
 
@@ -84,11 +88,16 @@ function depsWith(client: ResolutionDeps["client"], sessionId: string): { deps: 
   };
 }
 
-function blueprintWith(rootRefs: readonly string[], subAgents: ReadonlyArray<{ name: string; refs: readonly string[] }>) {
+function blueprintWith(
+  rootRefs: readonly string[],
+  subAgents: ReadonlyArray<{ name: string; refs: readonly string[]; disallowedTools?: string[] }>,
+) {
   return turnInputFixture({
     blueprint: {
       mergedSkillRefs: rootRefs.map(ref),
-      subAgents: subAgents.map((sa) => create(SubAgentSchema, { name: sa.name, skillRefs: sa.refs.map(ref) })),
+      subAgents: subAgents.map((sa) =>
+        create(SubAgentSchema, { name: sa.name, skillRefs: sa.refs.map(ref), disallowedTools: sa.disallowedTools ?? [] }),
+      ),
     },
   }).blueprint;
 }
@@ -118,6 +127,7 @@ describe("mountSkills: the runtime resolves every owner's skills", () => {
       sessionId,
       primaryDir,
       subAgents: true,
+      toolScope: ToolScope.unrestricted(),
     });
     expect(skills.root.map((s) => s.name)).toEqual(["alpha"]);
     expect([...skills.bySubAgent.keys()]).toEqual(["researcher"]);
@@ -135,6 +145,7 @@ describe("mountSkills: the runtime resolves every owner's skills", () => {
       sessionId,
       primaryDir,
       subAgents: true,
+      toolScope: ToolScope.unrestricted(),
     });
     expect(skills.root.map((s) => s.name)).toEqual(["shared"]);
     expect(skills.bySubAgent.get("researcher")!.map((s) => s.name)).toEqual(["shared"]);
@@ -151,6 +162,7 @@ describe("mountSkills: the runtime resolves every owner's skills", () => {
       sessionId,
       primaryDir,
       subAgents: true,
+      toolScope: ToolScope.unrestricted(),
     });
     expect(skills.root.map((s) => s.name)).toEqual(["alpha"]);
     expect(skills.bySubAgent.get("researcher")!.map((s) => s.name), "warned and skipped, never thrown").toEqual(["beta"]);
@@ -164,9 +176,43 @@ describe("mountSkills: the runtime resolves every owner's skills", () => {
       sessionId,
       primaryDir,
       subAgents: false,
+      toolScope: ToolScope.unrestricted(),
     });
     expect(skills.root.map((s) => s.name)).toEqual(["alpha"]);
     expect(skills.bySubAgent.size).toBe(0);
     expect(fetches).toEqual(["alpha"]);
+  });
+
+  it("a turn that denies Skill fetches and mounts no skill for any owner, so no prompt can list one", async () => {
+    const { client, fetches } = skillClient(["alpha", "beta"]);
+    const { deps } = depsWith(client, sessionId);
+    const skills = await mountSkills(deps, {
+      blueprint: blueprintWith(["alpha"], [{ name: "researcher", refs: ["beta"] }]),
+      sessionId,
+      primaryDir,
+      subAgents: true,
+      toolScope: ToolScope.ofMain([{ owner: "The turn", lists: { tools: [], disallowedTools: ["Skill"] } }]),
+    });
+    expect(skills.root).toEqual([]);
+    expect(skills.bySubAgent.size).toBe(0);
+    expect(fetches).toEqual([]);
+  });
+
+  it("a sub-agent whose own lists deny Skill loses its skills alone; an allow-list that omits Skill keeps them", async () => {
+    const { client, fetches } = skillClient(["alpha", "beta", "gamma"]);
+    const { deps } = depsWith(client, sessionId);
+    const skills = await mountSkills(deps, {
+      blueprint: blueprintWith(["alpha"], [
+        { name: "researcher", refs: ["beta"], disallowedTools: ["Skill"] },
+        { name: "writer", refs: ["gamma"] },
+      ]),
+      sessionId,
+      primaryDir,
+      subAgents: true,
+      toolScope: ToolScope.of("The agent", { tools: ["Read"], disallowedTools: [] }),
+    });
+    expect(skills.root.map((s) => s.name), "Read alone still keeps the platform's skills").toEqual(["alpha"]);
+    expect([...skills.bySubAgent.keys()]).toEqual(["writer"]);
+    expect(fetches).toEqual(["alpha", "gamma"]);
   });
 });

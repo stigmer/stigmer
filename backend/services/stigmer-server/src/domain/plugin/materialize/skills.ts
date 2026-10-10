@@ -5,6 +5,9 @@
  * strips `dir + "/"` to put SKILL.md at the archive root, where the skill
  * gate requires it; a Claude root-single-skill plugin (`dir === ""`) is the
  * whole package as one skill, manifests included, harmless under the caps.
+ * The eval suite is never in an archive: the library leaves it out of
+ * every skill's files, so a skill mounted for a try cannot show the agent
+ * its own cases.
  *
  * The skill's identity is the frontmatter's, exactly as a CLI push: the
  * slug planned here is `generateSlug(name)`, the same function

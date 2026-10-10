@@ -5,8 +5,8 @@
  * Stigmer runs an agent turn through one of several engines ("harnesses"):
  * the native LangGraph deep-agent, the Cursor SDK, and in future the Claude
  * Agent SDK and the Codex SDK. Everything about a turn that does NOT touch a
- * vendor SDK — fetching the execution, resolving the blueprint and the
- * environment, provisioning and locking the workspace, mounting skills,
+ * vendor SDK — fetching the execution, resolving the blueprint, fetching the
+ * run's values, provisioning and locking the workspace, mounting skills,
  * resolving MCP servers, the approval default and the tool scope, seeding the transcript, the
  * persist chokepoint, the stall watchdog, the Temporal heartbeat, pause vs
  * shutdown, the cost cap, the terminal mapping — is the RUNTIME's
@@ -180,9 +180,6 @@ export interface HarnessAdapter {
 // The resolved record
 // ---------------------------------------------------------------------------
 
-/** The resolved environment (phase 2b): the run's values, per declarer (`shared/run-values.ts`). */
-export type TurnEnvironment = RunValues;
-
 /** The provisioned workspace (phase 2c) and the capture posture derived from it. */
 export interface TurnWorkspace {
   /** The directories the agent operates in; never empty (`provisionSessionWorkspace` guarantees it). */
@@ -213,9 +210,10 @@ export interface TurnMcp {
    */
   readonly platformServerSlugs: ReadonlySet<string>;
   /**
-   * The main agent's tool scope, from its `tools` and `disallowed_tools`
-   * (`shared/tool-lists.ts`); unrestricted for an agent with no lists and for
-   * the built-in assistant. A sub-agent's scope narrows this one.
+   * The main agent's tool scope, from its `tools` and `disallowed_tools`,
+   * narrowed by the turn's own (`RunSpec.tools`, `RunSpec.disallowed_tools`;
+   * `shared/tool-lists.ts`); unrestricted when neither carries a list. A
+   * sub-agent's scope narrows this one.
    */
   readonly toolScope: ToolScope;
 }
@@ -341,7 +339,8 @@ export interface TurnInput extends NormalizedActivityInput {
   /** The same object as `blueprint.session`; `bindHarnessState` writes it. */
   readonly session: Session;
   readonly blueprint: ResolvedBlueprint;
-  readonly environment: TurnEnvironment;
+  /** The run's values (phase 2b), per declarer (`shared/run-values.ts`). */
+  readonly values: RunValues;
   readonly workspace: TurnWorkspace;
   readonly mcp: TurnMcp;
   readonly skills: TurnSkills;
@@ -352,6 +351,14 @@ export interface TurnInput extends NormalizedActivityInput {
   readonly model: TurnModelPreferences;
   /** `spec.structuredOutputSchema`, when this message asks for structured output. */
   readonly structuredOutputSchema: Record<string, unknown> | undefined;
+  /**
+   * `spec.appendSystemPrompt`: text this message appends to the system
+   * prompt, after the agent's instructions and the platform's sections, for
+   * this turn only; "" for none. Each harness places it at the end of what
+   * it sends as the system prompt; on Cursor, which sends it with the
+   * turn's message, a structured-output directive still follows it.
+   */
+  readonly appendSystemPrompt: string;
   readonly standing: TurnStandingContext;
   /** Resolved once by the runtime before any phase; absent when no substrate works. */
   readonly artifactStorage: ArtifactStorage | undefined;

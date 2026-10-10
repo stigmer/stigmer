@@ -20,6 +20,7 @@
     "mcp-server",
     "skill",
     "plugin",
+    "plugin-eval",
     "library",
     "memory",
     "---Vaults & Config---",

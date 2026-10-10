@@ -55,6 +55,7 @@ import {
 } from "./naming.js";
 import {
   RUNNER_HOME,
+  RUNNER_CAPABILITIES,
   RUNNER_UID,
   SERVER_RELEASE_ENV,
   runnerCommand,
@@ -93,6 +94,11 @@ export function buildDockerRun(
     `${SANDBOX_ID_LABEL}=${id}`,
     "--user",
     `${RUNNER_UID}:${RUNNER_UID}`,
+    "--cap-drop",
+    "ALL",
+    ...RUNNER_CAPABILITIES.flatMap((capability) => ["--cap-add", capability]),
+    "--security-opt",
+    "no-new-privileges",
     "--workdir",
     CONTAINER_WORKSPACE_DIR,
     "--env",

@@ -189,6 +189,9 @@ type RunInput struct {
 	InteractionMode        runv1.InteractionMode
 	BuildFromPlan          bool
 	StructuredOutputSchema map[string]any
+	Tools                  []string
+	DisallowedTools        []string
+	AppendSystemPrompt     string
 	AutoApproveAll         bool
 	Attachments            []*AttachmentInput
 	WorkspaceFileRefs      []string
@@ -227,9 +230,12 @@ type WorkspaceSourceInput struct {
 
 // GitRepoSourceInput is the SDK input type for GitRepoSource.
 type GitRepoSourceInput struct {
-	Url           string
-	Branch        string
-	Commit        string
+	Url    string
+	Branch string
+	Commit string
+	// Depth is not sent when zero: this input cannot tell a zero you set from
+	// none, so zero means unset. Number of commits to include in the clone
+	// history.
 	Depth         int32
 	WriteBackMode sessionv1.GitWriteBackMode
 	Token         string
@@ -331,6 +337,9 @@ func (i *RunInput) toProto() (*runv1.Run, error) {
 		}
 		resource.Spec.StructuredOutputSchema = v
 	}
+	resource.Spec.Tools = i.Tools
+	resource.Spec.DisallowedTools = i.DisallowedTools
+	resource.Spec.AppendSystemPrompt = i.AppendSystemPrompt
 	resource.Spec.AutoApproveAll = i.AutoApproveAll
 	for idx, item := range i.Attachments {
 		v, err := item.toProto()
@@ -433,6 +442,9 @@ func RunInputFromProto(p *runv1.Run) *RunInput {
 		if sv := s.GetStructuredOutputSchema(); sv != nil {
 			input.StructuredOutputSchema = sv.AsMap()
 		}
+		input.Tools = s.GetTools()
+		input.DisallowedTools = s.GetDisallowedTools()
+		input.AppendSystemPrompt = s.GetAppendSystemPrompt()
 		input.AutoApproveAll = s.GetAutoApproveAll()
 		for _, item := range s.GetAttachments() {
 			input.Attachments = append(input.Attachments, attachmentInputFromProto(item))

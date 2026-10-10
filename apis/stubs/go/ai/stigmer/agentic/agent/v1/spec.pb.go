@@ -63,9 +63,22 @@ type AgentSpec struct {
 	// built-in sub-agents back, so it refuses a turn whose agent limits Agent to
 	// types. The lists hold on both engines, and under "approve everything"
 	// too.
+	//
+	// Skill is a name here too, for the agent's skills: a list without Skill
+	// keeps them, and a list holding only Skill names them, so it does not
+	// refuse the turn, also under an outer list that omits Skill (a
+	// sub-agent's under its agent's, a turn's under the agent's). Denying
+	// Skill in disallowed_tools removes them, and then a list of Skill alone
+	// in a narrower layer refuses the turn.
 	Tools []string `protobuf:"bytes,10,rep,name=tools,proto3" json:"tools,omitempty"`
 	// Tools this agent may never use, in the same names as tools.
 	// Applied before tools, so a tool named in both is excluded.
+	//
+	// Disallowing Skill hides every skill from this agent: no skill is listed
+	// or mounted for its turns, and the Read tool refuses reads of skill and
+	// plugin-tree files. Grep, Glob and a shell the agent is granted are not
+	// refused, so they can still reach those files. On a sub-agent it hides
+	// that sub-agent's skills.
 	DisallowedTools []string `protobuf:"bytes,11,rep,name=disallowed_tools,json=disallowedTools,proto3" json:"disallowed_tools,omitempty"`
 	// Hooks that run around this agent's tool calls, and its sub-agents' calls.
 	//
@@ -331,6 +344,7 @@ type SubAgent struct {
 	// turn whose sub-agent carries its own lists; the native engine runs it.
 	Tools []string `protobuf:"bytes,7,rep,name=tools,proto3" json:"tools,omitempty"`
 	// Tools this sub-agent may never use, in the same names as tools.
+	// Disallowing Skill hides this sub-agent's skills, as on AgentSpec.
 	DisallowedTools []string `protobuf:"bytes,8,rep,name=disallowed_tools,json=disallowedTools,proto3" json:"disallowed_tools,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache

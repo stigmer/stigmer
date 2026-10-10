@@ -117,8 +117,16 @@ reason for each flag ("the last call to create_ticket failed (step 7)"),
 and, where the run's agent has AI grading switched on, the judge chip:
 "Judge: grading…" while the grade is in progress, then "Judge: passed" or
 "Judge: 1 of 2 failed", which opens to each rubric's reason and the model
-that graded it. A run the platform could not grade says so quietly, with
-the reason.
+that graded it. A try of a plugin eval carries the eval chip ("Eval:
+passed", "Eval: 1 of 3 failed"), which opens to each check's verdict and
+reason. A run the platform could not grade says so quietly, with the
+reason.
+
+"Make a test case", revealed with the thumbs, downloads the run as a case
+folder for a plugin's evals/ (a zip of `prompt.md` and an `llm` rubric
+seeded from the first failing grader's reason or the viewer's thumbs-down
+comment). Stigmer never writes into the author's repository; the author
+unzips it there and commits it.
 
 Reads the thread's scores from `MessageThread`'s provider (enabled by its
 `runScores` prop), so it renders nothing outside one. Each person rates

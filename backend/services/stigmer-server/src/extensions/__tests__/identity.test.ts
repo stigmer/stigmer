@@ -8,9 +8,10 @@
  * (guest) is never one.
  *
  * Also pins `isServerComposedRequest`, the narrower predicate the label
- * guard, the memory-capture gate and the execution-context create check
- * share: `internal` or an in-process origin, and never a wire `machine` account — the one row
- * where the two predicates part, pinned so a step trusting server-composed
+ * guard, the memory-capture gate, the evaluator and score steps, run status
+ * updates and the first-party check share: `internal` or an in-process
+ * origin, and never a wire `machine` account — the one row where the two
+ * predicates part, pinned so a step trusting server-composed
  * state can never be widened to the wire by picking the wrong one.
  *
  * And pins `isFirstPartyHumanOperator` (stigmer#1387), the allow-list

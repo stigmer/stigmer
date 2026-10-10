@@ -1,4 +1,4 @@
 {
   "title": "Authentication",
-  "pages": ["overview", "federation", "platform-client"]
+  "pages": ["overview", "federation", "platform-client", "customer-keys"]
 }

@@ -61,16 +61,13 @@
  *   never disturbed.
  */
 
-import { execFile } from "node:child_process";
-import { mkdir, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { promisify } from "node:util";
 import { FileChangeType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { agentFs } from "../agent-fs.js";
 import { bytesLookBinary } from "../file-change.js";
 import { sha256Bytes } from "./digest.js";
 import type { CapturedContent } from "./events.js";
 
-const execFileAsync = promisify(execFile);
 
 /** Build `:(exclude)` pathspecs for the runner-owned files a harness passes in. */
 function excludePathspecs(excludePaths: readonly string[]): string[] {
@@ -149,23 +146,23 @@ async function git(
   args: string[],
   env?: Record<string, string>,
 ): Promise<string> {
-  const { stdout } = await execFileAsync("git", args, {
+  // Run by the agent's operations: the repository is the agent's, so are its
+  // hooks and config, and the process gets the performer's environment.
+  const { stdout } = await agentFs().execFile("git", args, {
     cwd: gitRoot,
-    env: env ? { ...process.env, ...env } : process.env,
+    ...(env ? { env } : {}),
     maxBuffer: 256 * 1024 * 1024,
-    encoding: "utf-8",
   });
-  return stdout;
+  return stdout.toString("utf8");
 }
 
 /** Run a git command returning raw stdout BYTES (for exact file-body reads). */
 async function gitBuffer(gitRoot: string, args: string[]): Promise<Buffer> {
-  const { stdout } = await execFileAsync("git", args, {
+  const { stdout } = await agentFs().execFile("git", args, {
     cwd: gitRoot,
     maxBuffer: 256 * 1024 * 1024,
-    encoding: "buffer",
   });
-  return stdout as unknown as Buffer;
+  return stdout;
 }
 
 /**
@@ -235,12 +232,12 @@ async function writeWorkingTree(
 ): Promise<string> {
   const tmpIndex = join(gitDir, `stigmer-index-${label}-${executionId}`);
   try {
-    await rm(tmpIndex, { force: true });
+    await agentFs().rm(tmpIndex, { force: true });
     const env = { GIT_INDEX_FILE: tmpIndex };
     await git(gitRoot, ["add", "-A", "--", ".", ...excludePathspecs(excludePaths)], env);
     return (await git(gitRoot, ["write-tree"], env)).trim();
   } finally {
-    await rm(tmpIndex, { force: true });
+    await agentFs().rm(tmpIndex, { force: true });
   }
 }
 
@@ -420,7 +417,7 @@ export async function restoreToBaseline(
   for (const change of changes) {
     const abs = join(gitRoot, change.path);
     if (change.changeType === FileChangeType.CREATE) {
-      await rm(abs, { force: true });
+      await agentFs().rm(abs, { force: true });
     } else {
       // MODIFY or DELETE: the baseline holds the file — restore its exact bytes.
       await writeBlobToDisk(gitRoot, baselineTree, change.path, abs);
@@ -446,7 +443,7 @@ export async function applyApprovedPaths(
   for (const change of approved) {
     const abs = join(gitRoot, change.path);
     if (change.changeType === FileChangeType.DELETE) {
-      await rm(abs, { force: true });
+      await agentFs().rm(abs, { force: true });
     } else {
       // CREATE or MODIFY: write the agent's approved bytes from the after tree.
       await writeBlobToDisk(gitRoot, afterTree, change.path, abs);
@@ -636,8 +633,8 @@ async function writeBlobToDisk(
   abs: string,
 ): Promise<void> {
   const buf = await gitBuffer(gitRoot, ["cat-file", "-p", `${tree}:${path}`]);
-  await mkdir(dirname(abs), { recursive: true });
-  await writeFile(abs, buf);
+  await agentFs().mkdir(dirname(abs), { recursive: true });
+  await agentFs().writeFile(abs, buf);
 }
 
 /** An empty inline side — the default when a MODIFY blob is unexpectedly absent. */

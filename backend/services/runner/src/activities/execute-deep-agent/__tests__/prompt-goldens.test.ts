@@ -51,6 +51,9 @@
  * - 2026-10-09 (the AI judge): the built-in judge's prompt is its own
  *   golden, the minimal shape with the judge's instruction
  *   (shared/builtin-judge.ts); it moves only with BUILT_IN_JUDGE_VERSION.
+ * - 2026-10-10 (a turn's appended system prompt): a new golden, the minimal
+ *   shape with `append_system_prompt`, which closes the prompt after every
+ *   platform section; no existing golden moved.
  */
 
 import { describe, it, expect } from "vitest";
@@ -255,6 +258,17 @@ describe("native system prompt goldens", () => {
       skillsPromptSection: "",
     });
     await expect(prompt).toMatchFileSnapshot("./goldens/system-prompt.minimal.prompt.md");
+  });
+
+  it("a turn's appended system prompt closes the minimal shape, after every platform section", async () => {
+    const prompt = buildEnhancedSystemPrompt({
+      instructions: "",
+      provisionResults: [],
+      containerRoot: "",
+      skillsPromptSection: "",
+      appendSystemPrompt: "Always answer in exactly one sentence.\nNever ask a question back.",
+    });
+    await expect(prompt).toMatchFileSnapshot("./goldens/system-prompt.minimal.append.prompt.md");
   });
 
   it("the built-in judge: its instruction in the minimal shape", async () => {

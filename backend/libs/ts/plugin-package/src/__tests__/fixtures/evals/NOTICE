@@ -1,0 +1,4 @@
+Plugins whose eval suites are built from the examples in Claude Code's "Test
+plugins with evals" documentation: the commit-message case, the skill-fired
+grader, the changelog-from-diff case.yaml, a grouped case, and a manifest that
+moves the suite with experimental.evals. Written for these tests.

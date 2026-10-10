@@ -126,7 +126,7 @@ export interface WireTurnInput {
     readonly cloudRepos: readonly CloudRepo[];
   };
   /** The agent's own values, and each tool's by MCP server id; never a repository's token. */
-  readonly environment: {
+  readonly values: {
     readonly agent: Readonly<Record<string, string>>;
     readonly tools: ReadonlyArray<readonly [string, { readonly url: string; readonly values: Readonly<Record<string, string>> }]>;
   };
@@ -176,6 +176,8 @@ export interface WireTurnInput {
     readonly thinkingMode: EffectiveThinkingMode;
   };
   readonly structuredOutputSchema: Record<string, unknown> | null;
+  /** The turn's `RunSpec.append_system_prompt`; empty when unset. */
+  readonly appendSystemPrompt: string;
   readonly standing: {
     readonly contextBridge: string | null;
     readonly senderIdentity: SenderIdentity | null;
@@ -209,7 +211,7 @@ export function encodeTurnInput(input: TurnInput): WireTurnInput {
       mergedSkillRefs: blueprint.mergedSkillRefs.map((r) => encodeMessage(ApiResourceReferenceSchema, r)),
       cloudRepos: blueprint.cloudRepos,
     },
-    environment: { agent: input.environment.agent, tools: [...input.environment.tools] },
+    values: { agent: input.values.agent, tools: [...input.values.tools] },
     workspace: {
       dirs: workspace.dirs,
       primaryDir: workspace.primaryDir,
@@ -264,6 +266,7 @@ export function encodeTurnInput(input: TurnInput): WireTurnInput {
     appliedToolCallIds: [...input.appliedToolCallIds],
     model: { requested: input.model.requested, serviceTier: input.model.serviceTier, thinkingMode: input.model.thinkingMode },
     structuredOutputSchema: input.structuredOutputSchema ?? null,
+    appendSystemPrompt: input.appendSystemPrompt,
     standing: {
       contextBridge: standing.contextBridge ?? null,
       senderIdentity: standing.senderIdentity ?? null,
@@ -317,7 +320,7 @@ export function decodeTurnInput(wire: WireTurnInput, services: HostTurnServices)
       mergedSkillRefs: wire.blueprint.mergedSkillRefs.map((r) => decodeMessage(ApiResourceReferenceSchema, r)),
       cloudRepos: [...wire.blueprint.cloudRepos],
     },
-    environment: { agent: wire.environment.agent, tools: new Map(wire.environment.tools), repositories: [] },
+    values: { agent: wire.values.agent, tools: new Map(wire.values.tools), repositories: [] },
     workspace: {
       dirs: wire.workspace.dirs,
       primaryDir: wire.workspace.primaryDir,
@@ -372,6 +375,7 @@ export function decodeTurnInput(wire: WireTurnInput, services: HostTurnServices)
     appliedToolCallIds: new Set(wire.appliedToolCallIds),
     model: wire.model,
     structuredOutputSchema: wire.structuredOutputSchema ?? undefined,
+    appendSystemPrompt: wire.appendSystemPrompt,
     standing: {
       contextBridge: wire.standing.contextBridge ?? undefined,
       senderIdentity: wire.standing.senderIdentity ?? undefined,

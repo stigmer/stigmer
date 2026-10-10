@@ -3,7 +3,10 @@
  * run's health and what its chip says (pending, healthy, flagged with each
  * failed check's reason, not graded with the reason), which feedback is
  * the viewer's (by account id or identity-provider subject, never another
- * person's or a check), and the per-run grouping.
+ * person's or a check), the per-run grouping, and a plugin eval's try:
+ * its verdict (an indicator-only check is not a failure), not graded with
+ * the reason, nothing while pending, and the failing reason a test case is
+ * seeded from (the judge's before the eval's).
  */
 import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
@@ -17,6 +20,8 @@ import {
   ScoreState,
 } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
 import {
+  evalViewOf,
+  failingReasonOf,
   runHealthViewOf,
   scoresByRun,
   thumbsOf,
@@ -160,5 +165,83 @@ describe("scoresByRun", () => {
       feedback("run_a", "ida_1", true),
     ]);
     expect([...grouped.keys()]).toEqual(["run_a"]);
+  });
+});
+
+describe("a plugin eval's try", () => {
+  function graded(
+    metric: string,
+    source: ScoreSource,
+    failedReason: string | null,
+    state = ScoreState.graded,
+  ): Score {
+    return create(ScoreSchema, {
+      spec: {
+        runId: "run_a",
+        metric,
+        source,
+        value: { case: "passed", value: failedReason === null },
+        criteria: [
+          {
+            name: "skill-fired",
+            result: CriterionResult.not_applicable,
+            reason: "indicator only",
+          },
+          ...(failedReason === null
+            ? []
+            : [
+                {
+                  name: "criteria",
+                  result: CriterionResult.failed,
+                  reason: failedReason,
+                },
+              ]),
+        ],
+      },
+      status: {
+        state,
+        notGradedReason: state === ScoreState.not_graded ? "platform busy" : "",
+      },
+    });
+  }
+
+  it("reads its verdict, counting only failed checks", () => {
+    expect(evalViewOf([graded("eval", ScoreSource.eval, null)])).toMatchObject({
+      kind: "graded",
+      passed: true,
+      failed: 0,
+    });
+    expect(
+      evalViewOf([graded("eval", ScoreSource.eval, "no file")]),
+    ).toMatchObject({ kind: "graded", passed: false, failed: 1 });
+  });
+
+  it("says why it was not graded, and shows nothing while pending or for another source", () => {
+    expect(
+      evalViewOf([
+        graded("eval", ScoreSource.eval, null, ScoreState.not_graded),
+      ]),
+    ).toEqual({
+      kind: "not-graded",
+      reason: "platform busy",
+    });
+    expect(
+      evalViewOf([graded("eval", ScoreSource.eval, null, ScoreState.pending)]),
+    ).toEqual({ kind: "none" });
+    expect(evalViewOf([graded("judge", ScoreSource.judge, "x")])).toEqual({
+      kind: "none",
+    });
+  });
+
+  it("seeds a test case from the judge's failing reason before the eval's", () => {
+    const evalFail = graded("eval", ScoreSource.eval, "no file");
+    expect(failingReasonOf([evalFail])).toBe("no file");
+    expect(
+      failingReasonOf([
+        evalFail,
+        graded("judge", ScoreSource.judge, "made it up"),
+      ]),
+    ).toBe("made it up");
+    expect(failingReasonOf([graded("eval", ScoreSource.eval, null)])).toBe("");
   });
 });

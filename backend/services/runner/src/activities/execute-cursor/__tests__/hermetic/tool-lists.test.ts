@@ -21,11 +21,23 @@
  *    surfacing on the root stream too, settles as FAILED rows carrying the
  *    refusal the model read, and the turn completes: it is never read as a
  *    foreign hook's block (#205).
+ *  - a turn's own lists (`spec.tools`, `spec.disallowed_tools`) narrow the
+ *    agent's on both the SDK's options and the resolution check, and a turn
+ *    `tools` the agent leaves nothing of refuses the turn in the turn's name;
+ *  - a turn whose lists deny `Skill` sends no `<available_skills>` though
+ *    the agent references a skill, and the real hook refuses a `Read` of a
+ *    skill's `SKILL.md` an earlier turn mounted, by its platform path;
+ *    without the deny the skill is listed and the read passes;
+ *  - `spec.append_system_prompt` ends the prompt the SDK is sent; with a
+ *    `structured_output_schema` too, the appended text comes before the
+ *    output directive, so the directive stays the prompt's last word.
  * The hook's own refusals are pinned on the real script in
  * `hook-script.test.ts`; resume's re-pass of the options in
  * `session-lifecycle.test.ts`.
  */
 
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { SubAgentSchema, type SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
@@ -64,11 +76,12 @@ import {
   type CursorRecordOptions,
 } from "../../__test-utils__/hermetic-cursor.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
+import { getPlatformDir } from "../../../../shared/workspace/platform-dir.js";
 
 const USER_MESSAGE = "Summarise the README.";
 const ANSWER = "It is a readme.";
 
-function answeringAgent(agentId: string, runId: string, clock: ScriptedClock): ScriptedCursorAgent {
+function answeringAgent(agentId: string, runId: string, clock: ScriptedClock, answer: string = ANSWER): ScriptedCursorAgent {
   return new ScriptedCursorAgent({
     agentId,
     runIds: [runId],
@@ -80,11 +93,11 @@ function answeringAgent(agentId: string, runId: string, clock: ScriptedClock): S
           type: "assistant",
           agent_id: agentId,
           run_id: runId,
-          message: { role: "assistant", content: [{ type: "text", text: ANSWER }] },
+          message: { role: "assistant", content: [{ type: "text", text: answer }] },
         }),
         step.turnEnded({ inputTokens: 100, outputTokens: 10, cacheReadTokens: 0, cacheWriteTokens: 0 }),
         step.finished({
-          result: ANSWER,
+          result: answer,
           model: { id: FIXTURE.model, params: [{ id: "fast", value: "false" }, { id: "thinking", value: "false" }] },
         }),
       ],
@@ -270,5 +283,91 @@ describe("ExecuteCursor hermetic — tool lists", () => {
     expect(final.error).toBe(message);
     expect(systemRows(final)).toEqual([`Execution failed: ${message}`]);
     expect(scenario.sdk.resolutions).toHaveLength(0);
+  });
+
+  it("a turn's disallowed_tools narrows the SDK's options over an agent with no lists", async () => {
+    const { scenario, phase } = await run(
+      { message: USER_MESSAGE, turnDisallowedTools: ["Write"] },
+      answeringAgent("agent-turn-deny", "run-turn-deny", clock),
+    );
+    expect(phase).toBe("RUN_COMPLETED");
+    const options = scenario.sdk.resolutions[0].options!;
+    expect(options.disallowedTools).toEqual(["edit", "delete"]);
+    expect(options.tools).toBeUndefined();
+  });
+
+  it("a turn's tools cannot widen the agent's: a list the agent leaves nothing of refuses the turn in the turn's name", async () => {
+    const neverUsed = new ScriptedCursorAgent({ agentId: "agent-turn-widen", turns: [] });
+    const { scenario, phase, final } = await run(
+      { message: USER_MESSAGE, disallowedTools: ["Bash"], turnTools: ["Bash"] },
+      neverUsed,
+    );
+    expect(phase).toBe("RUN_FAILED");
+    expect(final.error).toBe(new ToolListResolutionError("The turn", ["Bash"]).message);
+    expect(scenario.sdk.resolutions).toHaveLength(0);
+  });
+
+  for (const hidden of [true, false]) {
+    it(`Skill ${hidden ? "denied by the turn: no skills sent, and the hook refuses a read of a mounted skill" : "not denied: the skill is sent and its read passes"}`, async () => {
+      // What an earlier turn of the session mounted.
+      const skillDir = join(getPlatformDir(FIXTURE.sessionId), "skills", "alpha");
+      mkdirSync(skillDir, { recursive: true });
+      writeFileSync(join(skillDir, "SKILL.md"), "# alpha", "utf-8");
+      const agentId = `agent-skill-${hidden}`;
+      const runId = `run-skill-${hidden}`;
+      const evs = sdkEvents(agentId, runId);
+      const decisions: string[] = [];
+      const agent = new ScriptedCursorAgent({
+        agentId,
+        runIds: [runId],
+        observeStep: () => clock.tick(),
+        turns: [
+          [
+            step.event(evs.init()),
+            // By its platform path: a turn that mounts no skill makes no
+            // `.stigmer` link, and the file is still on disk.
+            step.effect("hook: the skill's read", () => {
+              decisions.push(runWorkspaceHook(sessionWorkspaceDir(env), hookBuiltin("Read", { file_path: join(skillDir, "SKILL.md") })).permission);
+            }),
+            step.event(evs.assistant(ANSWER)),
+            step.turnEnded({ inputTokens: 100, outputTokens: 10, cacheReadTokens: 0, cacheWriteTokens: 0 }),
+            step.finished({ result: ANSWER, model: { id: FIXTURE.model, params: [] } }),
+          ],
+        ],
+      });
+      const { phase } = await run(
+        {
+          message: USER_MESSAGE,
+          skills: [{ slug: "alpha", description: "The alpha skill", skillMd: "# alpha" }],
+          ...(hidden ? { turnDisallowedTools: ["Skill"] } : {}),
+        },
+        agent,
+      );
+      expect(phase).toBe("RUN_COMPLETED");
+      expect(agent.sends).toHaveLength(1);
+      expect(String(agent.sends[0]!.message).includes("<available_skills>")).toBe(!hidden);
+      expect(decisions).toEqual([hidden ? "deny" : "allow"]);
+    });
+  }
+
+  it("append_system_prompt ends the prompt the SDK is sent", async () => {
+    const APPENDED = "Always answer in exactly one sentence.";
+    const agent = answeringAgent("agent-append", "run-append", clock);
+    const { phase } = await run({ message: USER_MESSAGE, appendSystemPrompt: APPENDED }, agent);
+    expect(phase).toBe("RUN_COMPLETED");
+    expect(String(agent.sends[0]!.message).endsWith(`<user_request>\n${USER_MESSAGE}\n</user_request>\n\n---\n\n${APPENDED}`)).toBe(true);
+  });
+
+  it("append_system_prompt comes before the structured-output directive when the turn sets both", async () => {
+    const APPENDED = "Always answer in exactly one sentence.";
+    const schema = { type: "object", properties: { answer: { type: "string" } }, required: ["answer"] };
+    const agent = answeringAgent("agent-append-schema", "run-append-schema", clock, '{"answer":"one"}');
+    const { phase, final } = await run({ message: USER_MESSAGE, appendSystemPrompt: APPENDED, structuredOutputSchema: schema }, agent);
+    expect(phase).toBe("RUN_COMPLETED");
+    const sent = String(agent.sends[0]!.message);
+    expect(sent).toContain(`<user_request>\n${USER_MESSAGE}\n</user_request>\n\n---\n\n${APPENDED}\n\n---\nCRITICAL OUTPUT REQUIREMENT:`);
+    expect(sent.endsWith("Respond with ONLY the JSON object. Nothing else.")).toBe(true);
+    expect(sent.indexOf(APPENDED)).toBe(sent.lastIndexOf(APPENDED));
+    expect(final.structuredOutput).toEqual({ answer: "one" });
   });
 });

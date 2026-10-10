@@ -84,7 +84,7 @@ Plugin plugin = client.plugins().get("plg_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`listMembers`](#listmembers) | List the resources an installed plugin materialised. |
 | [`listVersions`](#listversions) | List version history for a plugin. |
 | [`updateVisibility`](#updatevisibility) | Update the visibility of a plugin and of every resource it materialised. |
-| [`delete`](#delete) | Delete a plugin and every resource it materialised. |
+| [`delete`](#delete) | Delete a plugin and every resource it materialised, its evals included. |
 | [`createArtifactUploadUrl`](#createartifactuploadurl) | Mint a short-lived, single-use upload URL for staging a plugin archive that exceeds the gRPC message-size cap (10MB). |
 | [`push`](#push) | Push a plugin archive to install or upgrade it. |
 
@@ -391,7 +391,7 @@ Plugin plugin = client.plugins().updateVisibility(UpdateVisibilityInput.builder(
 
 ### delete
 
-Delete a plugin and every resource it materialised. Refused when a resource outside the plugin still references a member; the error names the referencing resources.
+Delete a plugin and every resource it materialised, its evals included. Refused when a resource outside the plugin still references a member; the error names the referencing resources. Refused while one of its evals is pending or running: cancel that eval first.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -715,6 +715,7 @@ PluginStatus is the system-managed state of an installed plugin: the archive ide
     materialized: { type: "PluginMaterialization", description: "What the last push materialised, by kind.", typeDescriptionLink: "#pluginmaterialization" },
     warnings: { type: "PluginWarning[]", description: "Warnings the last push recorded: components Stigmer does not carry, model hints it did not apply, names that shadow built-ins.", typeDescriptionLink: "#pluginwarning" },
     hooks: { type: "HookConfig", description: "The plugin's tool-call hooks, as recorded at install; unset when the plugin carries none.", typeDescriptionLink: "#hookconfig" },
+    evals: { type: "PluginEvalSuite", description: "The plugin's evals/ test cases, as read at install; unset when the plugin carries none.", typeDescriptionLink: "#pluginevalsuite" },
   }}
 />
 
@@ -752,6 +753,33 @@ HookHandler is one command a hook runs.
     timeoutSeconds: { type: "number", description: "Seconds the command may run before it is stopped; zero means the format's default, 600 seconds for Claude Code and 60 for Cursor." },
     condition: { type: "string", description: "A permission rule that narrows when the handler runs, e.g. \"Bash(git push *)\"; empty means whenever the group matches." },
     failClosed: { type: "boolean", description: "Whether a crash, timeout or missing answer blocks the call instead of letting it through." },
+  }}
+/>
+
+### PluginEvalSuite
+
+PluginEvalSuite summarises a plugin's evals/ test cases.
+
+<TypeTable
+  type={{
+    dir: { type: "string", description: "The suite's directory relative to the plugin's root: \"evals\", or the manifest's experimental.evals." },
+    caseCount: { type: "number", description: "Cases found in the suite." },
+    caseTags: { type: "string[]", description: "The tags the listed cases carry, once each, sorted: at most 200." },
+    cases: { type: "PluginEvalSuiteCase[]", description: "Each case, in directory order.", typeDescriptionLink: "#pluginevalsuitecase" },
+    findings: { type: "PluginWarning[]", description: "Problems reading the suite: a case that cannot load, an unknown field.", typeDescriptionLink: "#pluginwarning" },
+  }}
+/>
+
+### PluginEvalSuiteCase
+
+PluginEvalSuiteCase is one case of a plugin's eval suite.
+
+<TypeTable
+  type={{
+    caseName: { type: "string", description: "The case's name." },
+    path: { type: "string", description: "The case's directory, relative to the plugin's root." },
+    caseTags: { type: "string[]", description: "The case's tags." },
+    unsupported: { type: "string", description: "Why Stigmer cannot run the case yet, naming the feature, as in \"context.scaffold_script\"; empty when it can." },
   }}
 />
 

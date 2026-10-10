@@ -51,6 +51,9 @@ class SessionQueryControllerServicer(object):
 
     def list(self, request, context):
         """List all sessions with pagination and optional filtering.
+
+        A plugin eval's tries are left out: each runs in a session of its own,
+        read through the eval (PluginEvalQueryController.get) instead.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -59,7 +62,8 @@ class SessionQueryControllerServicer(object):
     def listByAgent(self, request, context):
         """List the conversations on one agent, whichever version each runs.
 
-        Results are filtered to the sessions the caller can view.
+        Results are filtered to the sessions the caller can view. A plugin
+        eval's tries are left out, as in list.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

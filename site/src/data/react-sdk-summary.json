@@ -218,6 +218,13 @@
       "components": 17
     },
     {
+      "slug": "plugin-eval",
+      "title": "plugin-eval",
+      "description": "",
+      "hooks": 4,
+      "components": 2
+    },
+    {
       "slug": "provider-standing",
       "title": "provider-standing",
       "description": "",

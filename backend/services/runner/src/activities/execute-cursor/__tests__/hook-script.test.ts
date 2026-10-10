@@ -16,7 +16,7 @@
 
 import { describe, it, expect, onTestFinished } from "vitest";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, symlinkSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -30,7 +30,8 @@ import { startHookServer } from "../hook-server.js";
 import { CursorEngineToolViews } from "../hook-views.js";
 import { buildApprovalState, grantToken, hookAskDigest, primaryToken, scopeRefusalToken, toolIdentity } from "../approval-state.js";
 import { AGENT_SCOPE_KEY, READ_SCOPE_KEY, compileHookToolScope, scopeKey } from "../hook-scope.js";
-import { CURSOR_SDK_TOOL_COVERS, ToolScope } from "../../../shared/tool-lists.js";
+import { CURSOR_SDK_TOOL_COVERS } from "@stigmer/tool-vocabulary";
+import { ToolScope } from "../../../shared/tool-lists.js";
 import { mcpToolKey } from "../../../shared/approval-policy.js";
 import { contentDigest } from "../../../shared/file-tools.js";
 import {
@@ -392,6 +393,52 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
       expect(h.ledger().map((e) => e.kind)).toEqual(["disabled", "disabled", "disabled", "disabled"]);
       // A Read refusal names the call: the path as given.
       expect(h.ledger()[0].token).toBe(scopeRefusalToken(READ_SCOPE_KEY, join(h.root, "src/main.ts")));
+    });
+
+    it("Skill denied: a read of a skill's files is refused even with Read in scope; other platform content still reads", () => {
+      const h = setup({ lists: { tools: [], disallowedTools: ["Skill"] } });
+      mkdirSync(join(h.platformDir, "skills/a"), { recursive: true });
+      mkdirSync(join(h.platformDir, "plugins/abc/skills/b"), { recursive: true });
+      mkdirSync(join(h.platformDir, "inputs"), { recursive: true });
+      writeFileSync(join(h.platformDir, "skills/a/SKILL.md"), "# skill", "utf-8");
+      writeFileSync(join(h.platformDir, "plugins/abc/skills/b/SKILL.md"), "# plugin skill", "utf-8");
+      writeFileSync(join(h.platformDir, "inputs/spec.pdf"), "pdf", "utf-8");
+      writeFileSync(join(h.root, "notes.md"), "notes", "utf-8");
+
+      expect(h.decide(hookBuiltin("Read", { file_path: join(h.root, ".stigmer/skills/a/SKILL.md") })).permission).toBe("deny");
+      expect(h.decide(hookBuiltin("Read", { file_path: ".stigmer/plugins/abc/skills/b/SKILL.md" }, h.root)).permission).toBe("deny");
+      expect(h.decide(hookBuiltin("Read", { file_path: join(h.root, ".stigmer/inputs/spec.pdf") })).permission).toBe("allow");
+      expect(h.decide(hookBuiltin("Read", { file_path: join(h.root, "notes.md") })).permission).toBe("allow");
+      expect(h.decide(hookBuiltin("Read", { file_path: join(h.root, "missing.md") })).permission, "a missing file is the read's own error").toBe("allow");
+      expect(h.ledger().map((e) => e.kind)).toEqual(["disabled", "disabled"]);
+      expect(h.ledger()[0].token).toBe(scopeRefusalToken(READ_SCOPE_KEY, join(h.root, ".stigmer/skills/a/SKILL.md")));
+    });
+
+    it("Skill denied: a read anywhere in a mounted plugin's tree, or under a differently cased skills dir, is refused", () => {
+      const h = setup({ lists: { tools: [], disallowedTools: ["Skill"] } });
+      // A manifest-declared skill directory, and a directory whose name
+      // differs from skills/ only in case (as it may on any filesystem).
+      mkdirSync(join(h.platformDir, "plugins/abc/my-skills/solo"), { recursive: true });
+      mkdirSync(join(h.platformDir, "Skills/a"), { recursive: true });
+      writeFileSync(join(h.platformDir, "plugins/abc/my-skills/solo/SKILL.md"), "# declared", "utf-8");
+      writeFileSync(join(h.platformDir, "Skills/a/SKILL.md"), "# cased", "utf-8");
+
+      expect(h.decide(hookBuiltin("Read", { file_path: ".stigmer/plugins/abc/my-skills/solo/SKILL.md" }, h.root)).permission).toBe("deny");
+      expect(h.decide(hookBuiltin("Read", { file_path: join(h.root, ".stigmer/Skills/a/SKILL.md") })).permission).toBe("deny");
+      expect(h.ledger().map((e) => e.kind)).toEqual(["disabled", "disabled"]);
+    });
+
+    it("Skill denied: a case-folded spelling of skills/ that the filesystem opens is refused", (ctx) => {
+      const h = setup({ lists: { tools: [], disallowedTools: ["Skill"] } });
+      mkdirSync(join(h.platformDir, "skills/a"), { recursive: true });
+      writeFileSync(join(h.platformDir, "skills/a/SKILL.md"), "# skill", "utf-8");
+      // U+017F (long s) folds to "s" on a case-insensitive filesystem but
+      // not under toLowerCase: only the path on disk names skills/.
+      const variant = join(h.root, ".stigmer/\u017Fkills/a/SKILL.md");
+      if (!existsSync(variant)) ctx.skip();
+
+      expect(h.decide(hookBuiltin("Read", { file_path: variant })).permission).toBe("deny");
+      expect(h.ledger().map((e) => e.kind)).toEqual(["disabled"]);
     });
 
     it("Read excluded on an unlinked turn: a repository's own .stigmer symlink admits nothing", () => {

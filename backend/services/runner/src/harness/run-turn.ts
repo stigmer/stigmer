@@ -203,7 +203,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
   const cancellationSignal = activity.cancellationSignal;
   const shutdownSignal = getShutdownSignalForQueue(activity.info.taskQueue);
   // Bound to this activity, not read from the async context per call: a
-  // hosted turn's persist and progress requests reach the runtime on the
+  // hosted turn's persist requests reach the runtime on the
   // agent host's pipe, whose I/O events carry no activity context (#2090).
   const heartbeat = (details?: unknown): void => activity.heartbeat(details);
   const periodicHeartbeat = startHeartbeat(PERIODIC_HEARTBEAT_MS, () => ({ phase: heartbeatPhase, execution: executionId }));

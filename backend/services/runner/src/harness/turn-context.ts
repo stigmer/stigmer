@@ -4,7 +4,7 @@
  *
  * A turn begins with a dozen reads and provisions that have nothing to do
  * with the engine that will run it: the execution and its session, the
- * agent blueprint, the environment, the workspace and its lock, what the
+ * agent blueprint, the run's values, the workspace and its lock, what the
  * previous turn left waiting for approval, the MCP servers with the
  * approval default and the agent's tool scope, the attachments, the standing context. Until #1070
  * that sequence lived inline in the Cursor orchestrator
@@ -77,7 +77,7 @@ import { approvalDecisionsOf } from "./approval-decisions.js";
 import type { ArtifactStorage } from "../shared/artifact-storage.js";
 import type { TimingRecorder } from "../shared/cold-start-timing.js";
 import { resolveBlueprint, type ResolvedBlueprint } from "../shared/blueprint-resolver.js";
-import { fetchTurnValues, RunValuesRefusedError, type RepositoryToken } from "../shared/run-values.js";
+import { fetchTurnValues, RunValuesRefusedError, type RepositoryToken, type RunValues } from "../shared/run-values.js";
 import { provisionSessionWorkspace } from "../shared/workspace/session-provision.js";
 import { WriteBackCoordinator } from "../shared/workspace/writeback-coordinator.js";
 import { isGitWorkTree } from "../shared/filereview/git-substrate.js";
@@ -127,7 +127,6 @@ import type { FileReviewIdentity, HarnessCapabilities, PausePrimitive, StateIdSo
 import type { TranscriptBuilder } from "./transcript/builder.js";
 import type {
   TurnAttachments,
-  TurnEnvironment,
   TurnHookSource,
   TurnHooks,
   TurnInput,
@@ -258,9 +257,9 @@ export type TurnSettlement =
       readonly message: string;
     };
 
-/** The environment phase's answer: the run's values, or the settlement a refused fetch produces. */
-export type EnvironmentOutcome =
-  | { readonly kind: "ready"; readonly environment: TurnEnvironment }
+/** The values phase's answer: the run's values, or the settlement a refused fetch produces. */
+export type ValuesOutcome =
+  | { readonly kind: "ready"; readonly values: RunValues }
   | { readonly kind: "settled"; readonly settlement: Extract<TurnSettlement, { kind: "values-refused" }> };
 
 /** The lock phase's answer: the release handle (absent when there is no primary tree), or the one settlement a lock can produce. */
@@ -476,20 +475,20 @@ export async function resolveAgentBlueprint(
  * declarer (`shared/run-values.ts`). A fetch refused for a reason the
  * person fixes settles the turn with the server's message.
  */
-export async function resolveEnvironment(deps: ResolutionDeps): Promise<EnvironmentOutcome> {
-  deps.enterPhase("resolve_environment");
-  await deps.reportProgress("Resolving environment");
-  let environment: TurnEnvironment;
+export async function fetchValues(deps: ResolutionDeps): Promise<ValuesOutcome> {
+  deps.enterPhase("fetch_values");
+  await deps.reportProgress("Fetching values from vaults");
+  let values: RunValues;
   try {
-    environment = await fetchTurnValues(deps.client, deps.input.executionId);
+    values = await fetchTurnValues(deps.client, deps.input.executionId);
   } catch (err) {
     if (err instanceof RunValuesRefusedError) {
       return { kind: "settled", settlement: { kind: "values-refused", message: err.message } };
     }
     throw err;
   }
-  deps.timing.mark("resolve_environment");
-  return { kind: "ready", environment };
+  deps.timing.mark("fetch_values");
+  return { kind: "ready", values };
 }
 
 /**
@@ -697,6 +696,10 @@ export async function reconcileReinvocation(
   return { kind: "ready", reinvocation: { isReinvocation: reinvoked, approvalDecisions } };
 }
 
+/** The transcript row a turn without the platform's own MCP servers carries (#2062). */
+export const PLATFORM_TOOLS_OFF_NOTICE =
+  "The platform's own tools (memory, channel messaging and the conversation tools) are off for this turn: no credential scoped to this run could be had.";
+
 /**
  * Phases 4 to 4b: the tool surface.
  *
@@ -718,11 +721,14 @@ export async function reconcileReinvocation(
  *  - memory capture: the recall snapshot's enabled bit IS the
  *    decision, server-stamped at execution create.
  *
- * Their credential story: the exchanged scoped runner token
- * authenticates the discovery reads per call; the exchange is opportunistic
- * (every consumer degrades to an empty answer by contract, and the server
- * refuses the ambient fallback safely), so a failed exchange must not kill
- * the run, unlike the env read, where secrets are load-bearing.
+ * Their credential story: the exchanged scoped runner token authenticates
+ * the discovery reads per call and goes into the attachments. The runner's
+ * own key never does (#2062): without a scoped token, a credential already
+ * scoped below the runner (a cloud sandbox's session token) is used, a
+ * runner holding none runs them without one, and otherwise the turn runs
+ * without the platform's own servers and says so (\`PLATFORM_TOOLS_OFF_NOTICE\`).
+ * The exchange is opportunistic, so a failed one never kills the run,
+ * unlike the env read, where secrets are load-bearing.
  *
  * The approval default's MCP half is built last (which tools their servers
  * mark destructive), with two bypasses shared with the native harness
@@ -734,10 +740,6 @@ export async function reconcileReinvocation(
  * from `servers` after this returns, exactly once, so every mutation is
  * visible by construction.
  */
-/** The transcript row a turn without the platform's own MCP servers carries (#2062). */
-export const PLATFORM_TOOLS_OFF_NOTICE =
-  "The platform's own tools (memory, channel messaging and the conversation tools) are off for this turn: no credential scoped to this run could be had.";
-
 export async function resolveMcpServersAndPolicies(
   deps: ResolutionDeps,
   args: {
@@ -745,12 +747,12 @@ export async function resolveMcpServersAndPolicies(
     readonly session: Session;
     readonly sessionId: string;
     readonly blueprint: ResolvedBlueprint;
-    readonly environment: TurnEnvironment;
+    readonly values: RunValues;
   },
 ): Promise<TurnMcp> {
   const { client, config } = deps;
   const { executionId } = deps.input;
-  const { execution, session, sessionId, blueprint, environment } = args;
+  const { execution, session, sessionId, blueprint, values } = args;
 
   deps.enterPhase("resolve_mcp_servers");
   await deps.reportProgress("Resolving MCP servers");
@@ -764,14 +766,14 @@ export async function resolveMcpServersAndPolicies(
   );
   const platformServerSlugs = new Set<string>();
   let servers = (await resolveMcpServers(
-    client, blueprint.mergedMcpServerUsages, environment.tools, platformValues, transportPosture, config,
+    client, blueprint.mergedMcpServerUsages, values.tools, platformValues, transportPosture, config,
   )).resolvedServers;
   deps.timing.mark("resolve_mcp_servers");
 
   // Phase 4a: Connect backfill for undiscovered MCP servers.
   const sessionOrg = session.metadata?.org ?? "";
   servers = await backfillMcpServersIfNeeded(
-    client, servers, blueprint.mergedMcpServerUsages, environment.tools, platformValues, sessionOrg,
+    client, servers, blueprint.mergedMcpServerUsages, values.tools, platformValues, sessionOrg,
     executionId, transportPosture, config, deps.heartbeat,
   );
   deps.timing.mark("backfill_mcp");
@@ -848,18 +850,28 @@ export async function resolveMcpServersAndPolicies(
     platformServerSlugs.add(memoryAttachment.slug);
   }
 
-  // Phase 4b: the approval default's MCP half, and the agent's tool scope.
+  // Phase 4b: the approval default's MCP half, and the turn's tool scope:
+  // the agent's lists, then this turn's over them, which can only narrow.
   const leases = deriveActiveLeases(execution);
   const mcpDefault = buildMcpApprovalDefault(servers, leases);
-  const agentSpec = blueprint.agent?.spec;
-  const toolScope = agentSpec
-    ? ToolScope.of("The agent", {
-        tools: agentSpec.tools,
-        disallowedTools: agentSpec.disallowedTools,
-      })
-    : ToolScope.unrestricted();
+  const toolScope = mainToolScope(blueprint, execution.spec);
 
   return { servers, channelMessaging, leases, mcpDefault, platformServerSlugs, toolScope };
+}
+
+/**
+ * The main agent's tool scope for one turn: the agent's two lists, then the
+ * turn's own (`RunSpec.tools`, `RunSpec.disallowed_tools`) as one more layer,
+ * so a turn narrows its agent's tools (or the built-in assistant's, which has
+ * no lists) and never widens them (`shared/tool-lists.ts`). Unrestricted
+ * when neither carries a list.
+ */
+export function mainToolScope(blueprint: ResolvedBlueprint, spec: RunSpec | undefined): ToolScope {
+  const agentSpec = blueprint.agent?.spec;
+  return ToolScope.ofMain([
+    ...(agentSpec ? [{ owner: "The agent", lists: { tools: agentSpec.tools, disallowedTools: agentSpec.disallowedTools } }] : []),
+    { owner: "The turn", lists: { tools: spec?.tools ?? [], disallowedTools: spec?.disallowedTools ?? [] } },
+  ]);
 }
 
 /**
@@ -882,6 +894,12 @@ export async function resolveMcpServersAndPolicies(
  * blueprint's sub-agents are that harness's to compile, so their skills are
  * its to render. One progress label for the whole phase, as before.
  *
+ * A scope that denies `Skill` hides skills (`ToolScope.hidesSkills`): the
+ * root's when the main scope denies it, a sub-agent's when its own lists
+ * narrowed from the main scope do. A hidden owner's skills are neither
+ * fetched nor mounted, so no prompt lists them; the harness's confined read
+ * refuses the skill files an earlier turn mounted.
+ *
  * The `.stigmer` link this and the attachment phase create is removed in
  * the runtime's finally, after the harness's own teardown. Until #1096 the
  * native orchestrator fetched and mounted sub-agent skills itself
@@ -895,16 +913,24 @@ export async function mountSkills(
     readonly sessionId: string;
     readonly primaryDir: string;
     readonly subAgents: boolean;
+    /** The main scope ({@link mainToolScope}), which decides whether skills are hidden. */
+    readonly toolScope: ToolScope;
   },
 ): Promise<TurnSkills> {
   deps.enterPhase("resolve_skills");
   await deps.reportProgress("Resolving skills");
   const options = { sessionId: args.sessionId, primaryWorkspaceDir: args.primaryDir };
-  const root = await resolveSkills(deps.client, args.blueprint.mergedSkillRefs, options);
+  const { toolScope } = args;
+  if (toolScope.hidesSkills) {
+    console.log(`[resolveSkills] execution=${deps.input.executionId}: the tool lists deny Skill; no skills this turn`);
+  }
+  const root = toolScope.hidesSkills ? [] : await resolveSkills(deps.client, args.blueprint.mergedSkillRefs, options);
   const bySubAgent = new Map<string, readonly SkillMetadata[]>();
   if (args.subAgents) {
     for (const subAgent of args.blueprint.subAgents) {
       if (subAgent.skillRefs.length === 0) continue;
+      const scope = toolScope.narrow(subAgent.name, { tools: subAgent.tools, disallowedTools: subAgent.disallowedTools });
+      if (scope.hidesSkills) continue;
       bySubAgent.set(subAgent.name, await resolveSkills(deps.client, subAgent.skillRefs, options));
     }
   }
@@ -1302,10 +1328,10 @@ export async function resolveTurnContext(
   const { session, blueprint } = await resolveAgentBlueprint(deps, execution, sessionId);
   const unrunnable = refuseUnrunnableHooks(blueprint, capabilities);
   if (unrunnable !== undefined) return { kind: "settled", settlement: unrunnable };
-  const fetched = await resolveEnvironment(deps);
+  const fetched = await fetchValues(deps);
   if (fetched.kind === "settled") return { kind: "settled", settlement: fetched.settlement };
-  const { environment } = fetched;
-  const { workspace, writeback } = await provisionWorkspace(deps, { session, sessionId, repositories: environment.repositories });
+  const { values } = fetched;
+  const { workspace, writeback } = await provisionWorkspace(deps, { session, sessionId, repositories: values.repositories });
   frame.primaryDir = workspace.primaryDir;
   frame.writeback = writeback;
 
@@ -1323,12 +1349,13 @@ export async function resolveTurnContext(
   });
   if (reinvoked.kind === "settled") return { kind: "settled", settlement: reinvoked.settlement };
 
-  const mcp = await resolveMcpServersAndPolicies(deps, { execution, session, sessionId, blueprint, environment });
+  const mcp = await resolveMcpServersAndPolicies(deps, { execution, session, sessionId, blueprint, values });
   const skills = await mountSkills(deps, {
     blueprint,
     sessionId,
     primaryDir: workspace.primaryDir,
     subAgents: capabilities.subAgents,
+    toolScope: mcp.toolScope,
   });
   const hookResolution = await resolveHooks(deps, { blueprint, sessionId, servers: mcp.servers });
   if (hookResolution.kind === "settled") return hookResolution;
@@ -1362,7 +1389,7 @@ export async function resolveTurnContext(
       execution,
       session,
       blueprint,
-      environment,
+      values,
       workspace,
       mcp,
       skills,
@@ -1371,6 +1398,7 @@ export async function resolveTurnContext(
       appliedToolCallIds,
       model: resolveModelPreferences(execution.status?.runConfig),
       structuredOutputSchema: structuredOutputSchemaOf(spec),
+      appendSystemPrompt: spec.appendSystemPrompt,
       standing: resolveStandingContext(deps, { execution, spec, blueprint }),
       artifactStorage: deps.artifactStorage,
     },

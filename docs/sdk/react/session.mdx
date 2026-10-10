@@ -1728,8 +1728,8 @@ fields preserve the session's existing values.
 
 ### SessionArtifactEntry
 
-A single artifact entry enriched with the execution context needed
-for content fetching and Apply/Push gating.
+A single artifact entry enriched with the run it came from, which
+content fetching and Apply/Push gating need.
 
 The `executionId` identifies which run produced (or last
 updated) this artifact — required by [`useArtifactContent`](/docs/sdk/react/run#useartifactcontent) and
@@ -1904,8 +1904,7 @@ no `modelName` is a pinned invariant.
 
 ### SessionWriteBackEntry
 
-A single write-back entry enriched with the execution context that
-produced it.
+A single write-back entry enriched with the run it came from.
 
 The `executionId` links the write-back to its originating run
 for traceability in the UI (e.g., tooltip or detail view).

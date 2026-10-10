@@ -5,8 +5,7 @@ import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { WorkspaceWriteBack } from "@stigmer/protos/ai/stigmer/agentic/run/v1/writeback_pb";
 
 /**
- * A single write-back entry enriched with the execution context that
- * produced it.
+ * A single write-back entry enriched with the run it came from.
  *
  * The `executionId` links the write-back to its originating run
  * for traceability in the UI (e.g., tooltip or detail view).

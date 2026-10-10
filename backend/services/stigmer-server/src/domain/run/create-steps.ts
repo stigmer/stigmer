@@ -38,13 +38,14 @@ import { clone } from "@bufbuild/protobuf";
 
 import type { Logger } from "../../boot/logger.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
-import { isFirstPartyHumanOperator } from "../../extensions/identity.js";
+import { isFirstPartyHumanOperator, isServerComposedRequest } from "../../extensions/identity.js";
 import type { VisitorClassifier } from "../../extensions/visitor-classifier.js";
 import {
   failedPreconditionError,
   goWrappedStatusError,
   internalError,
   invalidArgumentError,
+  permissionDeniedError,
 } from "../../pipeline/errors.js";
 import { ConnectError } from "@connectrpc/connect";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
@@ -71,6 +72,7 @@ import type { ModelCatalogProvider } from "../../modelcatalog/model-catalog-prov
 import { notifyStatusObservers } from "./status-observers.js";
 import { newSessionSpecOf, sessionIdOf } from "./target.js";
 import { unavailableError } from "../../pipeline/errors.js";
+import { isPluginEvalRun } from "../plugin-eval/plugin-eval-run.js";
 import { isJudgeRun } from "../score/judge/judge-run.js";
 
 type CreateDesc = typeof RunSchema;
@@ -310,6 +312,13 @@ export function newComposeDeclaredPreferencesStep(
         logger.debug("Judge run, composing no standing context");
         return;
       }
+      // A plugin eval's try measures the plugin, not who started the eval:
+      // nothing personal loads, as in Claude Code's evals
+      // (domain/plugin-eval/plugin-eval-run.ts).
+      if (isPluginEvalRun(execution)) {
+        logger.debug("Plugin eval run, composing no standing context");
+        return;
+      }
 
       // Verbatim: the server stamps content only;
       // blank-is-absent is the runner's read-side convention.
@@ -336,6 +345,39 @@ export function newComposeDeclaredPreferencesStep(
         "Failed to load the run's person for declared preferences - degrading user context to none (best-effort contract)",
       );
       declared.userContext = person?.spec?.preferences?.standingContext ?? "";
+    },
+  };
+}
+
+/** The refusal of a visitor's appended system prompt. */
+export const VISITOR_APPENDED_PROMPT_MESSAGE =
+  "a visitor cannot append to the agent's system prompt (spec.append_system_prompt)";
+
+/**
+ * RefuseVisitorAppendedPrompt: a caller the composed classifier names a
+ * visitor (a share-link guest, a channel sender) may not set
+ * `spec.append_system_prompt`. On the native engine that text lands in the
+ * system prompt after the agent owner's instructions, which is the owner's
+ * to steer, as the organization's standing context is withheld from
+ * visitors (ComposeDeclaredPreferences). The server's own in-process
+ * requests pass: a plugin eval's tries set it from the case.
+ */
+export function newRefuseVisitorAppendedPromptStep(
+  logger: Logger,
+  visitorClassifier?: VisitorClassifier,
+): PipelineStep<CreateDesc> {
+  return {
+    name: "RefuseVisitorAppendedPrompt",
+    async execute(ctx) {
+      if ((ctx.newState.spec?.appendSystemPrompt ?? "") === "") {
+        return;
+      }
+      if (isServerComposedRequest(ctx.callerIdentity)) {
+        return;
+      }
+      if (isVisitor(visitorClassifier, ctx.callerIdentity, logger)) {
+        throw permissionDeniedError(VISITOR_APPENDED_PROMPT_MESSAGE);
+      }
     },
   };
 }
@@ -486,6 +528,12 @@ export function newComposeRecalledMemoriesStep(
       // remember tool is offered to the judge.
       if (isJudgeRun(execution)) {
         logger.debug("Judge run, composing no recalled memories");
+        return;
+      }
+      // Nor does a plugin eval's try: an organization's memory must not
+      // move its score.
+      if (isPluginEvalRun(execution)) {
+        logger.debug("Plugin eval run, composing no recalled memories");
         return;
       }
 

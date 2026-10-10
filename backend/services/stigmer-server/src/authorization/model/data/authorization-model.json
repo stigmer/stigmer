@@ -2224,6 +2224,7 @@
               }
             ]
           },
+          "org_viewer": {},
           "organization": {
             "directly_related_user_types": [
               {
@@ -2291,6 +2292,27 @@
         },
         "child_org_viewer": {
           "this": {}
+        },
+        "org_viewer": {
+          "intersection": {
+            "child": [
+              {
+                "computedUserset": {
+                  "relation": "viewer"
+                }
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "affiliated"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
+          }
         },
         "organization": {
           "this": {}
@@ -2367,6 +2389,68 @@
         }
       },
       "type": "plugin"
+    },
+    {
+      "metadata": {
+        "module": "agentic",
+        "relations": {
+          "can_delete": {},
+          "can_edit": {},
+          "can_view": {},
+          "plugin": {
+            "directly_related_user_types": [
+              {
+                "type": "plugin"
+              }
+            ]
+          },
+          "viewer": {}
+        },
+        "source_info": {
+          "file": "agentic/plugin_eval.fga"
+        }
+      },
+      "relations": {
+        "can_delete": {
+          "tupleToUserset": {
+            "computedUserset": {
+              "relation": "can_edit"
+            },
+            "tupleset": {
+              "relation": "plugin"
+            }
+          }
+        },
+        "can_edit": {
+          "tupleToUserset": {
+            "computedUserset": {
+              "relation": "can_edit"
+            },
+            "tupleset": {
+              "relation": "plugin"
+            }
+          }
+        },
+        "can_view": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "plugin": {
+          "this": {}
+        },
+        "viewer": {
+          "tupleToUserset": {
+            "computedUserset": {
+              "relation": "org_viewer"
+            },
+            "tupleset": {
+              "relation": "plugin"
+            }
+          }
+        }
+      },
+      "type": "plugin_eval"
     },
     {
       "metadata": {
@@ -2720,6 +2804,13 @@
               }
             ]
           },
+          "plugin_eval": {
+            "directly_related_user_types": [
+              {
+                "type": "plugin_eval"
+              }
+            ]
+          },
           "schedule": {
             "directly_related_user_types": [
               {
@@ -2787,6 +2878,16 @@
                     "relation": "schedule"
                   }
                 }
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "viewer"
+                  },
+                  "tupleset": {
+                    "relation": "plugin_eval"
+                  }
+                }
               }
             ]
           }
@@ -2850,6 +2951,9 @@
               }
             ]
           }
+        },
+        "plugin_eval": {
+          "this": {}
         },
         "schedule": {
           "this": {}

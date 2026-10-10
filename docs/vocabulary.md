@@ -349,9 +349,10 @@ An ongoing conversation with an Agent across multiple messages.
 - **Key fields**: `agent_ref` (the Agent the conversation runs; empty for the
   built-in assistant), `status.agent_version_hash` (the Agent version the
   conversation runs until someone updates it), `thread_id` (persists across
-  runs), `subject` (display title), `workspace_entries`, `sandbox_id`. Sessions
-  can add `mcp_server_usages` and `skill_refs` to the Agent's; the Agent's tool
-  lists still govern every tool.
+  runs), `subject` (display title), `workspace_entries`, `sandbox_id`, `vaults`
+  (the vaults the conversation uses, in order) and `include_my_vault` (use each
+  sender's own My vault first). Sessions can add `mcp_server_usages` and
+  `skill_refs` to the Agent's; the Agent's tool lists still govern every tool.
 - **Related terms**: A Session contains multiple runs. Each message exchange
   within a Session is one run. The proto also uses `MessageType` (HUMAN, AI,
   TOOL, SYSTEM) for individual messages.
@@ -664,13 +665,16 @@ Organization an integrator runs for one of its customers.
 
 #### External id
 
-The identifier a parent organization keeps for one of its child organizations:
-an integrator's own customer id (`cust-4411`).
+The identifier an integrator keeps for one of its customers (`cust-4411`), set
+on that customer's child organization or on the vault that holds that customer's
+keys.
 
 - **Capitalize**: No.
 - **API surface**: `OrganizationSpec.external_id`, unique among one parent's
   children; `getByExternalId(parent_org, external_id)`; an Identity Provider's
   `external_id_claim` names the JWT claim that carries it.
+  `VaultSpec.external_id`, unique in the vault's Organization;
+  `getByExternalId(org, external_id)`.
 - **Context rule**: "external id" in prose, `external_id` in identifiers. Not
   "external org id" and not "tenant id".
 
@@ -710,6 +714,11 @@ and decide who may use them.
   `external_id`. Values are write-only: no read returns one. Surfaces name
   vaults in an ordered `vaults` list; a Session also sets `include_my_vault` to
   use each sender's own My vault first. An Agent names no vaults.
+- **Surfaces**: a Session, a Schedule (`agent.vaults`), an Agent Channel, an
+  Agent Share (a public-audience share only: members' runs use their own) and a
+  PlatformClient each carry `vaults`. A run with no person (a schedule fire, a
+  channel or guest message, a PlatformClient user's turn) uses its surface's
+  vaults after the conversation's.
 - **Related terms**: a **secret** is a vault entry matched by its name
   (`OPENAI_API_KEY`). A **connection** (in the console, a **login**) is a vault
   entry matched by the address of the tool or Git host it is for
@@ -920,7 +929,8 @@ mint Stigmer-signed user tokens for embedding Stigmer in your product.
 - **API surface**: `kind: platform_client`, prefix `pc`. proto:
   `iam/platformclient/v1/spec.proto`, `iam/platformclient/v1/token.proto`.
 - **Key fields**: `client_id`, `client_secret_hash`,
-  `create_accounts_on_sign_in`, `sign_in_role`, `allowed_origins`.
+  `create_accounts_on_sign_in`, `sign_in_role`, `allowed_origins`, `vaults` (the
+  integrator's own keys, used by the runs of the users it signs in).
 - **Context rule**: Do not use on the sales site---say "embed Stigmer in your
   app" or "add Stigmer to your product." In quickstart, avoid unless the
   tutorial covers PlatformClient setup. In concepts and how-to, capitalize as
@@ -1049,10 +1059,10 @@ fee reminders every morning at nine.
   `agentic/schedule/v1/spec.proto`. CLI: `stigmer get schedule`,
   `stigmer list schedule`.
 - **Key fields**: `cron` (classic 5-field form, evaluated in `time_zone`),
-  `time_zone` (IANA name), `enabled`, and the target (`agent` with `agent_ref`
-  and `message`). Firing observations (`next_fire_at`, `consecutive_failures`,
-  `paused_reason`) live in `status`, written only by the platform---applying a
-  manifest never touches them.
+  `time_zone` (IANA name), `enabled`, and the target (`agent` with `agent_ref`,
+  `message` and `vaults`). Firing observations (`next_fire_at`,
+  `consecutive_failures`, `paused_reason`) live in `status`, written only by the
+  platform---applying a manifest never touches them.
 - **Disabled vs. paused**: two words, two levers, two writers. A schedule is
   **disabled** when its owner sets `enabled: false` in the spec---the owner's
   switch, cleared by the owner editing the spec. A schedule is **paused** when
@@ -1073,27 +1083,27 @@ fee reminders every morning at nine.
 #### Score
 
 One grade of a finished run: a person's thumbs up or down on the final answer,
-the free run-health checks Stigmer runs on every completed run, or an AI judge's
-verdict.
+the free run-health checks Stigmer runs on every completed run, an AI judge's
+verdict, or a plugin eval's checks on one try.
 
 - **Capitalize**: As the resource name in labels and reference pages
   (`kind: Score`). In prose say "score" in lower case, as "run".
 - **API surface**: `kind: Score`, prefix `scr`. proto:
   `agentic/score/v1/spec.proto`. Written by a person rating a run in the
-  console, by the platform's checks or by its AI judge; there is no `apply` and
-  no manifest. CLI:
+  console, by the platform's checks, by its AI judge or by a plugin eval; there
+  is no `apply` and no manifest. CLI:
 
   ```bash
   stigmer runs scores <run-id>
   stigmer get score <id>
   ```
 
-- **Key fields**: `run_id`, `metric` (what is measured: `feedback`, `run-health`
-  or `judge`), `source` (`score_source_human`, `score_source_check` or
-  `score_source_judge`), `passed`, `criteria` (one per check or rubric, each
-  with its reason), `comment` (a person's feedback only), `judge_model` (a
-  judge's only), and `status.state` (`graded`, `not_graded` with a reason, or
-  `pending` while a judge grades).
+- **Key fields**: `run_id`, `metric` (what is measured: `feedback`,
+  `run-health`, `judge` or `eval`), `source` (`score_source_human`,
+  `score_source_check`, `score_source_judge` or `score_source_eval`), `passed`,
+  `criteria` (one per check or rubric, each with its reason), `comment` (a
+  person's feedback only), `judge_model` (a judge's only), and `status.state`
+  (`graded`, `not_graded` with a reason, or `pending` while a judge grades).
 - **Boundaries**: a Score is not a usage report (cost and tokens), and a
   not-graded score is never a failing one: it means the run could not be graded.
 - **Note**: a score's visibility is its run's. Whoever can see the run sees its
@@ -1128,6 +1138,92 @@ the monthly spending limit, and the judge's model.
 - **Note**: the name is Langfuse's word for an LLM judge configured to run on
   live data. Access is the Agent's: whoever may edit the Agent configures its
   grading, whoever may view it sees the settings.
+
+---
+
+#### Plugin Eval
+
+One run of a plugin's own test cases: every case in the plugin's evals folder is
+tried several times with the plugin and several times without it, on each model
+the eval names. The eval records both scores and the difference the plugin
+makes.
+
+- **User-facing alternative**: "eval" in prose ("start an eval", "the plugin's
+  evals"), the word Claude Code's `claude plugin eval` uses. The cases are the
+  plugin's "test cases" or its "suite".
+- **Capitalize**: As the resource name in labels and reference pages
+  (`kind: PluginEval`, display name "Plugin Eval"). In prose say "eval" or
+  "plugin eval" in lower case.
+- **API surface**: `kind: PluginEval`, prefix `pev`. proto:
+  `agentic/plugineval/v1/spec.proto`. Started from the plugin's Evals tab in the
+  console or with `stigmer plugin eval`; there is no `apply`, no update and no
+  manifest. CLI:
+
+  ```bash
+  stigmer plugin eval <plugin>
+  stigmer plugin eval cancel <id>
+  stigmer get plugin-eval <id>
+  stigmer delete plugin-eval <id>
+  ```
+
+- **Key fields**: `plugin_id`, `plugin_digest` (the version evaluated),
+  `targets` (engine and model pairs), `runs`, `ablation` (`with_without` or
+  `none`), `threshold`, `max_cost_usd`, and the status's `phase`, per-case
+  results per target and arm, `aggregates` and `cost_usd`.
+- **Boundaries**: a Plugin Eval measures a plugin, an Evaluator grades an
+  Agent's live runs. The criteria live in the plugin's `evals/` folder, in
+  Claude Code's plugin-eval format, never in an Agent's YAML.
+- **Note**: the plugin's editors start, cancel and delete its evals; its viewers
+  in its own Organization read them. The Organization that installed the plugin
+  pays for every try.
+- **Editions**: in Stigmer Cloud every viewer of the plugin in its Organization
+  opens each try's conversation, read-only. In open source the tries belong to
+  the eval's creator, who opens them; the plugin's other viewers read the eval,
+  its results and each try's scores, and cannot open a try's conversation.
+
+---
+
+#### Try
+
+One run of one test case in a plugin eval, in a fresh conversation of its own:
+what Claude Code calls a run of a case.
+
+- **Capitalize**: No.
+- **API surface**: `PluginEvalTry` in `agentic/plugineval/v1/status.proto`, with
+  its `run_id`, `score`, and `not_graded_reason`.
+- **Boundaries**: a try is an ordinary run; "try" names its place in the eval.
+  Say "try" for the eval's unit and "run" for the run itself, so "three tries
+  per case" never reads as three separate commands.
+- **Note**: a try the platform could not run or grade is "not graded" with a
+  reason and left out of every score, never a zero.
+
+---
+
+#### Arm (with-arm, without-arm)
+
+One side of a plugin eval's comparison: the with-arm is a case's tries with the
+plugin, the without-arm the same number of tries with nothing attached.
+
+- **Capitalize**: No. Write "with-arm" and "without-arm" with hyphens.
+- **API surface**: `PluginEvalCaseTarget.with_plugin` and `without_plugin`
+  (`PluginEvalArm`); `ablation: plugin_eval_ablation_none` runs the with-arm
+  only. In the result file: `cases[].arms.with` and `cases[].arms.without`.
+- **Note**: the difference between the two arms' scores is `Δ` ("delta"), what
+  the plugin contributed. The table headers are `WITH` and `W/OUT`, as in Claude
+  Code.
+
+---
+
+#### pass^k
+
+Whether every one of a case's k with-arm tries scored 1.0: a case that passes^k
+works every time, not only on average.
+
+- **Capitalize**: No; written `pass^k` in prose and `PASS^k` as a table header.
+- **API surface**: `PluginEvalCaseTarget.pass_k`; `passK` in the result file.
+- **Boundaries**: Stigmer's addition to Claude Code's format, which reports the
+  mean score and "perfect runs" (the share of with-arm runs where every grader
+  passed) instead.
 
 ---
 
@@ -1395,7 +1491,7 @@ and SDK docs use precise technical language. The guidance now lives in
 
 ---
 
-### 4. Cloud README lists "Credential" as a concept
+### 4. Cloud README lists "Credential" as a concept---RESOLVED
 
 **What**: The Cloud README architecture table includes "Credential" as a
 resource type with the description "Encrypted credentials---AWS keys, GitHub
@@ -1413,6 +1509,10 @@ authentication tokens).
 hasn't been implemented, or whether it's a misnomer for vault secrets. Update
 the Cloud README accordingly. If credentials are managed through vaults, remove
 the "Credential" row and clarify in the Vault description.
+
+**Resolution**: The Cloud README no longer has an architecture table, and names
+no Credential, Environment or Vault (checked 2026-10-10). Logins and secrets
+live in vaults ([Vault](#vault)).
 
 ---
 

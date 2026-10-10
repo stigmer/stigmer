@@ -13,7 +13,8 @@
  * run (the install warnings of `HOOK_WARNING_KINDS`, listed here rather
  * than among the other warnings); what the manifest said (version, format,
  * author); what else the server warned about at install; and the version
- * history. When the plugin carries an agent, the primary action is to start
+ * history, and on the Evals tab its own evals/ test cases, run with and
+ * without it (`PluginEvalsTab`). When the plugin carries an agent, the primary action is to start
  * a session on it; "Use with an agent" adds the plugin to one of the
  * organization's agents: its tools when it carries tools and no agent, its
  * hooks whenever it has hooks that run. Nothing here edits a member: a
@@ -56,8 +57,10 @@ import { usePlugin } from "./usePlugin.js";
 import { usePluginMembers } from "./usePluginMembers.js";
 import { usePluginVersions } from "./usePluginVersions.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
+import { PluginEvalsTab } from "../plugin-eval/PluginEvalsTab.js";
 
 const OVERVIEW_TAB: TabItem = { id: "overview", label: "Overview" };
+const EVALS_TAB: TabItem = { id: "evals", label: "Evals" };
 const VERSIONS_TAB: TabItem = { id: "versions", label: "Versions" };
 
 /** A member's reference as the host navigates to it. */
@@ -93,9 +96,15 @@ export interface PluginDetailViewProps {
    * own page or from "Add to an agent".
    */
   readonly onCreateAgent?: (usages: readonly McpServerUsageInput[]) => void;
+  /**
+   * Called with a run id when the user opens one of an eval's tries from
+   * the Evals tab; the host owns the route. Tries are listed without links
+   * when omitted.
+   */
+  readonly onNavigateToRun?: (runId: string) => void;
   /** Secondary actions rendered in the kebab overflow menu (remove lives here). */
   readonly actions?: readonly DetailAction[];
-  /** Additional tabs beside the built-in Overview and Versions. */
+  /** Additional tabs beside the built-in Overview, Evals and Versions. */
   readonly additionalTabs?: readonly AdditionalTab[];
   readonly activeTab?: string;
   readonly onTabChange?: (tabId: string) => void;
@@ -132,6 +141,7 @@ export function PluginDetailView({
   onMcpServerClick,
   onAgentClick,
   onCreateAgent,
+  onNavigateToRun,
   actions,
   additionalTabs,
   activeTab,
@@ -145,7 +155,7 @@ export function PluginDetailView({
   const { versions, isEmpty: noVersions } = usePluginVersions(org, slug);
 
   const builtInTabs = useMemo<readonly TabItem[]>(
-    () => (noVersions ? [OVERVIEW_TAB] : [OVERVIEW_TAB, VERSIONS_TAB]),
+    () => (noVersions ? [OVERVIEW_TAB, EVALS_TAB] : [OVERVIEW_TAB, EVALS_TAB, VERSIONS_TAB]),
     [noVersions],
   );
   const { effectiveTabs, effectiveActiveTab, effectiveOnTabChange, activeAdditionalTab } = useDetailTabs({
@@ -221,6 +231,8 @@ export function PluginDetailView({
   let tabContent: React.ReactNode;
   if (activeAdditionalTab) {
     tabContent = activeAdditionalTab.content;
+  } else if (effectiveActiveTab === "evals") {
+    tabContent = <PluginEvalsTab plugin={plugin} onNavigateToRun={onNavigateToRun} />;
   } else if (effectiveActiveTab === "versions" && versions.length > 0) {
     tabContent = <VersionTimeline entries={versions} />;
   } else {

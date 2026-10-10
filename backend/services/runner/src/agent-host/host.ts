@@ -35,6 +35,7 @@ import type { TurnOutcome } from "../harness/types.js";
 import { runWithExecutionContext } from "../shared/execution-context.js";
 import type { ArtifactStorage } from "../shared/artifact-storage.js";
 import { Peer, type LineChannel } from "./channel.js";
+import { serveExec, serveFs } from "./fs-service.js";
 import { decodeTurnInput, encodeAdapterProjection, encodeCasSnapshot } from "./codec.js";
 import { HostTurn, type HostPeer } from "./host-sink.js";
 import {
@@ -105,6 +106,10 @@ export function serveAgentHost(channel: LineChannel, rows: readonly HarnessRow[]
   });
 
   peer.onNotice("stopTurn", ({ turnId, reason }) => turns.get(turnId)?.stop(reason));
+
+  // The runtime's operations on the agent's paths, performed with the agent's rights.
+  peer.handle("fs", (request) => serveFs(request));
+  peer.handle("exec", (request) => serveExec(request));
 
   // The SDK the warm-up loads is the host's: the runner loads no engine.
   peer.handle("warmCursorSdk", async () => {

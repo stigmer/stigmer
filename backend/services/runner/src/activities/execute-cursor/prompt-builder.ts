@@ -23,6 +23,8 @@
  *    `formatToolApprovalProtocol`) and would be false on an engine that
  *    interrupts before a tool runs.
  *
+ * The turn's `append_system_prompt` ends whichever shape is sent.
+ *
  * The whole rendered prompt, per shape, is pinned by
  * `__tests__/prompt-goldens.test.ts`; `__tests__/build-prompt.test.ts` pins
  * every branch of the selection.
@@ -836,6 +838,16 @@ export interface BuildPromptInput {
    * work to tell.
    */
   turnRecoveryDigest?: string;
+  /**
+   * The turn's own addition to the system prompt (`spec.append_system_prompt`,
+   * Claude Code's `--append-system-prompt`). PER-TURN: it ends every shape
+   * this turn builds, after the platform's sections and the request, since
+   * the SDK takes no system prompt and the first message is the nearest
+   * thing to one. A structured-output directive, when the turn asks for
+   * one, is appended after it (`appendStructuredOutputDirective`): the
+   * output contract closes the message.
+   */
+  appendSystemPrompt?: string;
 }
 
 /**
@@ -927,6 +939,12 @@ export function appendStructuredOutputDirective(
 }
 
 export function buildPrompt(input: BuildPromptInput): string {
+  const shaped = promptShape(input);
+  return input.appendSystemPrompt ? `${shaped}\n\n---\n\n${input.appendSystemPrompt}` : shaped;
+}
+
+/** The shape {@link buildPrompt} selects, before the turn's appended text. */
+function promptShape(input: BuildPromptInput): string {
   const {
     resolution,
     approvalDecisions,

@@ -25,7 +25,8 @@
  * they name), removal of one organization's side-store records, the
  * closed-store failure mode, and
  * the list index (../list-index.ts): one organization's or one parent's
- * rows newest first, a cursor walk with no gap and no duplicate, keys
+ * rows newest first, a cursor walk with no gap and no duplicate, rows
+ * left out by the keys they hold, keys
  * that follow an update and vanish with a delete, and exactness whoever
  * wrote the row — a row written the way a binary that does not know the
  * index writes it is read from its bytes and repaired, the reconciliation
@@ -1972,6 +1973,85 @@ export function describeStoreContract(
         await fx.store.queryResources(CONTRACT_SESSION_INDEX, { anyKey: [] }),
         "an empty key list matches nothing",
       ).toEqual([]);
+    });
+
+    it("leaves out rows holding a value for any key it is told to, the unproven included", async () => {
+      await save(session("ses_1", "acme", 1, { agentId: "agt_1" }));
+      await save(session("ses_2", "acme", 2, { channel: "ach_1" }));
+      await save(
+        session("ses_3", "acme", 3, { agentId: "agt_1", channel: "ach_2" }),
+      );
+      await save(session("ses_4", "acme", 4));
+      await save(session("ses_5", "other", 5, { channel: "ach_3" }));
+
+      expect(
+        ids(
+          await fx.store.queryResources(CONTRACT_SESSION_INDEX, {
+            org: "acme",
+            withoutKeys: ["channel"],
+          }),
+        ),
+      ).toEqual(["ses_4", "ses_1"]);
+      expect(
+        ids(
+          await fx.store.queryResources(CONTRACT_SESSION_INDEX, {
+            anyKey: [{ name: "agent", value: "agt_1" }],
+            withoutKeys: ["channel"],
+          }),
+        ),
+        "a key read leaves them out too",
+      ).toEqual(["ses_1"]);
+      expect(
+        ids(
+          await fx.store.queryResources(CONTRACT_SESSION_INDEX, {
+            withoutKeys: ["channel", "agent"],
+          }),
+        ),
+        "any listed key excludes",
+      ).toEqual(["ses_4"]);
+      expect(
+        ids(
+          await fx.store.queryResources(CONTRACT_SESSION_INDEX, {
+            org: "acme",
+            withoutKeys: [],
+          }),
+        ),
+        "an empty list excludes nothing",
+      ).toEqual(["ses_4", "ses_3", "ses_2", "ses_1"]);
+      expect(
+        ids(
+          await fx.store.queryResources(CONTRACT_SESSION_INDEX, {
+            org: "acme",
+            withoutKeys: ["channel"],
+            limit: 1,
+            after: { createdAt: "1970-01-01T00:00:04.000000000Z", id: "ses_4" },
+          }),
+        ),
+        "the limit counts only the rows kept",
+      ).toEqual(["ses_1"]);
+
+      await fx.writeAsOlderBinary(
+        SESSION,
+        "ses_old_channel",
+        toBinary(
+          SessionSchema,
+          session("ses_old_channel", "acme", 10, { channel: "ach_9" }),
+        ),
+      );
+      await fx.writeAsOlderBinary(
+        SESSION,
+        "ses_old_plain",
+        toBinary(SessionSchema, session("ses_old_plain", "acme", 9)),
+      );
+      expect(
+        ids(
+          await fx.store.queryResources(CONTRACT_SESSION_INDEX, {
+            org: "acme",
+            withoutKeys: ["channel"],
+          }),
+        ),
+        "a row read from its bytes is judged by the same rule",
+      ).toEqual(["ses_old_plain", "ses_4", "ses_1"]);
     });
 
     it("keeps rows created at or after a bound, and rows with no stamp", async () => {

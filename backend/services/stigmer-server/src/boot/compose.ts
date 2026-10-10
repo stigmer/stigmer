@@ -45,6 +45,7 @@ import {
 } from "../authorization/posture.js";
 import { newStoredResources } from "../authorization/stored-resources.js";
 import { newBuiltInGradingCaller } from "../authorization/grading-caller.js";
+import { newBuiltInPluginEvalCaller } from "../authorization/plugin-eval-caller.js";
 import { newBuiltInScheduleFireCaller } from "../authorization/schedule-fire-caller.js";
 import { newTrustedLocalAuthorizer } from "../authorization/trusted-local-authorizer.js";
 import type { Authorizer } from "../extensions/authorizer.js";
@@ -54,6 +55,7 @@ import { relaxedEgressPolicy } from "../extensions/outbound-egress.js";
 import type { ListReadScope } from "../extensions/list-read-scope.js";
 import type { OrganizationDirectory } from "../extensions/organization-directory.js";
 import type { GradingCallerMint } from "../extensions/grading-caller.js";
+import type { PluginEvalCallerMint } from "../extensions/plugin-eval-caller.js";
 import type { ScheduleFireCallerMint } from "../extensions/schedule-fire-caller.js";
 import { registerAgentServices } from "../domain/agent/controller.js";
 import {
@@ -83,6 +85,9 @@ import { ScheduleSyncer } from "../temporal/schedule/syncer.js";
 import { newScheduleWorkerFactory } from "../temporal/schedule/worker.js";
 import { newGradingConfigFromEnv } from "../temporal/grading/config.js";
 import { newGradingWorkerFactory } from "../temporal/grading/worker.js";
+import { newEvalsConfigFromEnv } from "../temporal/evals/config.js";
+import { newEvalsWorkerFactory } from "../temporal/evals/worker.js";
+import { evalModelCatalogOf } from "../domain/plugin-eval/matrix.js";
 import { registerScheduleServices } from "../domain/schedule/controller.js";
 import { registerAgentChannelServices } from "../domain/agentchannel/controller.js";
 import { registerChannelConversationServices } from "../domain/agentchannel/conversation.js";
@@ -130,6 +135,9 @@ import { registerGitHubServices } from "../domain/github/controller.js";
 import { registerMemoryServices } from "../domain/memory/controller.js";
 import { newRunScoreCascade } from "../domain/score/cascade.js";
 import { registerEvaluatorServices } from "../domain/evaluator/controller.js";
+import { registerPluginEvalServices } from "../domain/plugin-eval/controller.js";
+import { newPluginArchiveReader } from "../domain/plugin-eval/suite.js";
+import { newTemporalPluginEvalWorkflows } from "../domain/plugin-eval/workflows.js";
 import { registerScoreServices } from "../domain/score/controller.js";
 import { newGradingObserver } from "../domain/score/grading-observer.js";
 import type {
@@ -741,6 +749,17 @@ export async function composeServer(
     (authorizationPosture === "built-in"
       ? newBuiltInGradingCaller({ store, accounts: identityAccounts, authorizer })
       : undefined);
+  // Who a plugin eval's tries and AI-graded checks act as: a unit's eval
+  // caller (the hosted edition's per-organization eval account), else the
+  // eval's creator under the built-in posture, while they may still edit
+  // the eval's plugin, else the server itself on the trusted-local laptop
+  // (extensions/plugin-eval-caller.ts). The eval's worker
+  // (temporal/evals/) mints through it per try and per vote.
+  const pluginEvalCaller: PluginEvalCallerMint | undefined =
+    extensions.drivers.pluginEvalCaller ??
+    (authorizationPosture === "built-in"
+      ? newBuiltInPluginEvalCaller({ store, accounts: identityAccounts, authorizer })
+      : undefined);
   const organizationDirectory: OrganizationDirectory | undefined =
     postureOrganizationDirectory === undefined
       ? undefined
@@ -1077,6 +1096,17 @@ export async function composeServer(
     logger,
     deleter: scoreDeleter,
   });
+  // Plugin evals: one suite workflow per eval (temporal/evals/), started by
+  // create and cancelled by cancel, on the eval queue its worker polls.
+  // A try's conversation is deleted through the session domain's own
+  // delete as the server, the judge session's lane.
+  const evalsTemporalConfig = newEvalsConfigFromEnv();
+  const pluginEvalWorkflows = newTemporalPluginEvalWorkflows({
+    client: () => temporalManager.getClient(),
+    taskQueue: evalsTemporalConfig.stigmerQueue,
+  });
+  /* v8 ignore next -- @preserve: called only by an eval's delete, after boot */
+  const pluginEvalTrySessions = () => requireInProcess().judgeSessionDeleter;
   const scheduleSyncer = new ScheduleSyncer(
     scheduleClientProvider,
     store,
@@ -1157,6 +1187,31 @@ export async function composeServer(
         /* v8 ignore next -- @preserve: called only by a judge activity on a live engine */
         judgeSessions: () => requireInProcess().judgeSessionDeleter,
         gradingCaller,
+        logger,
+      }),
+      // Plugin evals: the suite and case workflows on their own queue
+      // (temporal/evals/). The archive reader, the artifact read and the
+      // in-process lane are resolved when an activity runs, after the
+      // stores below and the routes exist.
+      newEvalsWorkerFactory({
+        store,
+        config: evalsTemporalConfig,
+        /* v8 ignore start -- @preserve: called only by an eval activity on a live engine */
+        suites: {
+          readArchive: (pluginId, digest) =>
+            newPluginArchiveReader({ store, archives: pluginArtifactStorage }).readArchive(
+              pluginId,
+              digest,
+            ),
+        },
+        catalog: evalModelCatalogOf(modelCatalog),
+        tries: () => requireInProcess().pluginEvalTries,
+        sessions: pluginEvalTrySessions,
+        readArtifact: (storageKey) => artifactStorage.download(storageKey),
+        /* v8 ignore stop */
+        recorder: scoreRecorder,
+        deleter: scoreDeleter,
+        pluginEvalCaller,
         logger,
       }),
       // Extension workers append after the OSS set — their own queues,
@@ -1535,6 +1590,7 @@ export async function composeServer(
     accounts: identityAccounts,
     accountLifecycle: roleLifecycle,
     runScores,
+    pluginEvalWorkflows,
   });
   const purgeQuiesce = newQuiesceStage({
     store,
@@ -1827,6 +1883,16 @@ export async function composeServer(
       authorizer,
       authorizationLifecycle,
     });
+    registerPluginEvalServices(router, {
+      store,
+      logger,
+      authorizer,
+      authorizationLifecycle,
+      modelCatalog,
+      suites: newPluginArchiveReader({ store, archives: pluginArtifactStorage }),
+      workflows: pluginEvalWorkflows,
+      sessions: pluginEvalTrySessions,
+    });
     registerAgentExecutionServices(router, {
       store,
       logger,
@@ -1903,6 +1969,13 @@ export async function composeServer(
       artifactStorage: pluginArtifactStorage,
       materializerProvider: () => requireInProcess().pluginMaterializer,
       staging: skillArchiveStaging,
+      pluginEvals: {
+        store,
+        logger,
+        authorizationLifecycle,
+        sessions: pluginEvalTrySessions,
+        workflows: pluginEvalWorkflows,
+      },
     });
     // The two CQRS query services register between the domains and the
     // github/platform tail, mirroring Go's registration order

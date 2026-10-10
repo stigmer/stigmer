@@ -50,7 +50,7 @@ export interface HookSetupInput {
     readonly format: HookFormatName;
     readonly groups: readonly HookGroup[];
   }[];
-  /** The run's values, per declarer (`TurnInput.environment`). */
+  /** The run's values, per declarer (`TurnInput.values`). */
   readonly runValues: Pick<RunValues, "agent" | "tools">;
   readonly mcpServers: readonly ResolvedMcpServer[];
   /** The engine's views of its calls. */

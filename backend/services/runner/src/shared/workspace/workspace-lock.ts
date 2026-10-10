@@ -41,7 +41,9 @@
 import { join, resolve } from "node:path";
 import { homedir } from "node:os";
 import { createHash } from "node:crypto";
-import { mkdir, realpath } from "node:fs/promises";
+import { mkdir } from "node:fs/promises";
+
+import { agentFs } from "../agent-fs.js";
 import lockfile from "proper-lockfile";
 
 /** How long a waiter polls between acquisition attempts. */
@@ -141,7 +143,9 @@ export async function acquireWorkspaceLock(
   // does not exist yet cannot be realpath'd, so it locks on its canonical
   // absolute spelling instead — proper-lockfile never touches the target
   // itself (the artifact lives at lockfilePath), so the lock still works.
-  const resolvedRoot = await realpath(workspaceRoot).catch(() => resolve(workspaceRoot));
+  // The root is the agent's: resolved by the agent's operations. The lock
+  // itself lives in the runner's own state.
+  const resolvedRoot = await agentFs().realpath(workspaceRoot).catch(() => resolve(workspaceRoot));
   const key = createHash("sha256").update(resolvedRoot).digest("hex").slice(0, 16);
   await mkdir(lockDir, { recursive: true });
   const lockfilePath = join(lockDir, `${key}.lock`);

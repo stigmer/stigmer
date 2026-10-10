@@ -22,8 +22,10 @@ The subcommands fall into three areas:
   one from its last checkpoint.
 - **Observability** — `logs` views or streams a run's messages; `trace` shows
   the tool-call structure with status and timing; `scores` shows how good a
-  finished run was: each person's thumbs and the run-health checks
-  ([Scores](/docs/concepts/scores)).
+  finished run was: each person's thumbs, the run-health checks, the AI judge
+  and, on a plugin eval's try, each check of its case
+  ([Scores](/docs/concepts/scores)); `to-eval-case` writes a run as a test case
+  in a local plugin's `evals/` folder.
 - **Approval** — `approve` submits a decision for a run waiting on an approval
   for a tool call.
 
@@ -71,6 +73,22 @@ stigmer runs scores run_01abc123
 # The scores as JSON, for a script
 stigmer runs scores run_01abc123 -o json
 ```
+
+### Turn a run into a test case
+
+```bash
+# Write evals/<name from the request>/prompt.md and graders/criteria.md
+stigmer runs to-eval-case run_01abc123
+
+# Name the case, and also check that the plugin's review skill fired
+stigmer runs to-eval-case run_01abc123 --name finds-the-bug --skill thermos:review
+```
+
+The FAIL line of `graders/criteria.md` names what went wrong in the run (the AI
+judge's reason, else a plugin eval's failing check, else a person's thumbs-down
+comment); write its PASS line yourself. An existing case directory is never
+overwritten. See
+[Test a plugin with evals](/docs/guides/plugins/test-a-plugin-with-evals).
 
 ### Approve a waiting run
 
@@ -141,7 +159,8 @@ stigmer runs resume <run-id>
 
 ### stigmer runs scores
 
-show a run's scores: people's thumbs and the run-health checks
+show a run's scores: people's thumbs, run-health checks, the AI judge and plugin
+evals
 
 ```bash
 stigmer runs scores <run-id> [flags]
@@ -163,6 +182,20 @@ stigmer runs terminate <run-id> [flags]
 | Flag       | Type     | Default | Description            |
 | ---------- | -------- | ------- | ---------------------- |
 | `--reason` | `string` |         | reason for termination |
+
+### stigmer runs to-eval-case
+
+write a run as a test case in the local plugin's evals/ folder
+
+```bash
+stigmer runs to-eval-case <run-id> [flags]
+```
+
+| Flag      | Type     | Default | Description                                                     |
+| --------- | -------- | ------- | --------------------------------------------------------------- |
+| `--dir`   | `string` | `evals` | the plugin's eval directory to write into                       |
+| `--name`  | `string` |         | the case's name and directory (default: from the run's request) |
+| `--skill` | `string` |         | also check that this skill of the plugin fired                  |
 
 ### stigmer runs trace
 

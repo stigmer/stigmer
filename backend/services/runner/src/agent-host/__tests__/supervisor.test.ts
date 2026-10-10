@@ -44,7 +44,9 @@ import { testConfig } from "../../__test-utils__/config-fixture.js";
 import type { HarnessAdapter } from "../../harness/types.js";
 import { RUNNER_ENTRY_URL } from "../../runner-entry.js";
 import { Peer, loopbackChannels } from "../channel.js";
-import { hostHarnesses, logCursorWarmup, writeTrustedCertificates } from "../hosting.js";
+import { agentFs, installAgentFs, localAgentFs } from "../../shared/agent-fs.js";
+import { serveAgentHost } from "../host.js";
+import { handOver, hostHarnesses, logCursorWarmup, writeTrustedCertificates } from "../hosting.js";
 import { AGENT_HOST_MODE_ARG, AGENT_HOST_PROTOCOL_VERSION, type HostCalls, type HostNotices, type RunnerCalls, type RunnerNotices } from "../protocol.js";
 import { AgentHostSupervisor, agentHostCommand, processHostStarter, spawnHostProcess, type HostStarter } from "../supervisor.js";
 
@@ -272,6 +274,95 @@ describe("the production starter", () => {
     expect(env, "plain Node needs nothing").toEqual({});
     expect(agentHostCommand({ ...process.versions, electron: "33.2.0" }).env, "Electron runs the entry as Node").toEqual({ ELECTRON_RUN_AS_NODE: "1" });
     expect(fileURLToPath(RUNNER_ENTRY_URL).endsWith("main.ts")).toBe(true);
+  });
+
+  it("starts the host as the agent user through setpriv, with the agent's home, on a separating runner", () => {
+    const identity = { name: "stigmer-agent", uid: 10001, gid: 10001, home: "/data/agent" };
+    const { command, args, env } = agentHostCommand(process.versions, identity);
+    expect(command).toBe("setpriv");
+    expect(args).toEqual([
+      "--reuid=10001",
+      "--regid=10001",
+      "--clear-groups",
+      "--inh-caps=-all",
+      "--no-new-privs",
+      "--",
+      process.execPath,
+      "--import",
+      "tsx",
+      fileURLToPath(RUNNER_ENTRY_URL),
+      AGENT_HOST_MODE_ARG,
+    ]);
+    expect(env).toEqual({ HOME: "/data/agent" });
+  });
+
+  // As root on Linux holding the five capabilities (a dev container), the real
+  // preparation would add the agent user to this machine's /etc/passwd.
+  it.skipIf(process.getuid?.() === 0)("prepares the separation itself by default, and stops when it cannot", async () => {
+    const identity = { name: "stigmer-agent", uid: 10001, gid: 10001, home: join(mkdtempSync(join(tmpdir(), "agent-home-")), "agent") };
+    const exits: number[] = [];
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    // This process is not a root runner holding the five capabilities, so the
+    // real preparation refuses, as a misconfigured container runner would.
+    await expect(hostHarnesses([], testConfig(), { identity, exit: (code) => void exits.push(code) })).rejects.toThrow(/^the runner /);
+    expect(exits).toEqual([78]);
+  });
+
+  it("hands the agent its files on boot, and turns a failed handover into the refusal", () => {
+    const base = mkdtempSync(join(tmpdir(), "hosting-handover-"));
+    const identity = { name: "stigmer-agent", uid: 10001, gid: 10001, home: join(base, "agent") };
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    expect(handOver(identity, join(base, "workspace"), join(base, "runner"), { chown: () => {} })).toBeNull();
+    expect(
+      handOver(identity, join(base, "workspace-2"), join(base, "runner-2"), {
+        chown: () => {
+          throw new Error("EPERM: operation not permitted");
+        },
+      }),
+    ).toBe("the runner cannot hand the agent user its files: EPERM: operation not permitted");
+  });
+
+  it("routes the runtime's file and process operations to the host it starts", async () => {
+    const hosted = await hostHarnesses([], testConfig(), {
+      identity: null,
+      start: async () => {
+        const [runnerEnd, hostEnd] = loopbackChannels();
+        serveAgentHost(hostEnd, []);
+        return { channel: runnerEnd, kill: () => hostEnd.close() };
+      },
+    });
+    expect((await agentFs().stat(tmpdir())).isDirectory()).toBe(true);
+    expect((await agentFs().execFile("sh", ["-c", "printf host"])).stdout.toString()).toBe("host");
+    await hosted.close();
+  });
+
+  it("stops a separating runner that cannot drop to the agent with 78, before any harness boots", async () => {
+    const identity = { name: "stigmer-agent", uid: 10001, gid: 10001, home: "/data/agent" };
+    const exits: number[] = [];
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    let started = 0;
+    await expect(
+      hostHarnesses([], testConfig(), {
+        identity,
+        prepareSeparation: () => "the runner cannot start processes as the agent user: setpriv is missing",
+        exit: (code) => void exits.push(code),
+        start: async () => {
+          started += 1;
+          throw new Error("never started");
+        },
+      }),
+    ).rejects.toThrow("setpriv is missing");
+    expect(exits).toEqual([78]);
+    expect(errors).toHaveBeenCalledWith("[agent-host] the runner cannot start processes as the agent user: setpriv is missing");
+    expect(started).toBe(0);
+
+    const ready = await hostHarnesses([], testConfig(), { identity, prepareSeparation: () => null, start: inProcessHosts().start });
+    try {
+      await ready.close();
+    } finally {
+      // A separating runner refuses the agent's operations once its host has closed; later tests get the local ones back.
+      installAgentFs(localAgentFs);
+    }
   });
 
   it("starts a real host that announces itself, and ends it when the runner is done", async () => {

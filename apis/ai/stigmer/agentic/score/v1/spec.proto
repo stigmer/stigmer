@@ -24,7 +24,8 @@ message ScoreSpec {
   string session_id = 2;
 
   // What is measured: `feedback` for a person's thumbs, `run-health` for
-  // the free checks, `judge` for an AI judge's verdict.
+  // the free checks, `judge` for an AI judge's verdict, `eval` for a
+  // plugin eval's checks on one try.
   //
   // @internal
   // A string, not an enum, because later sources name their own metrics
@@ -32,7 +33,8 @@ message ScoreSpec {
   // called `name`: the SDK generators read a top-level spec field of that
   // name as the resource's metadata name. The create chain requires the
   // metric to agree with the source: feedback with score_source_human,
-  // run-health with score_source_check, judge with score_source_judge.
+  // run-health with score_source_check, judge with score_source_judge,
+  // eval with score_source_eval.
   string metric = 3 [(buf.validate.field).string = {
     min_len: 1
     max_len: 63
@@ -50,8 +52,9 @@ message ScoreSpec {
   // @internal
   // For run-health, the SHA-256 of the check identifiers and thresholds;
   // for judge, the SHA-256 of the rubric texts, the verdict schema and the
-  // judge instruction's version. Each is pinned by a server test. Empty for
-  // a person's feedback.
+  // judge instruction's version; for eval, the plugin archive's digest and
+  // the judge instruction's version. Each is pinned by a server test. Empty
+  // for a person's feedback.
   string evaluator_version = 5 [(buf.validate.field).string.max_len = 128];
 
   // The result.
@@ -63,7 +66,7 @@ message ScoreSpec {
   // first writer.
   oneof value {
     // True when the run passed: thumbs up, every applicable check passed,
-    // or no rubric failed.
+    // no rubric failed, or every scored eval check passed.
     bool passed = 6;
   }
 

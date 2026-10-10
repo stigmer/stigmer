@@ -23,6 +23,7 @@ import { turnInputFixture } from "../../__test-utils__/turn-input-fixture.js";
 import type { HarnessAdapter } from "../../harness/types.js";
 import type { ArtifactStorage } from "../../shared/artifact-storage.js";
 import { TimingRecorder } from "../../shared/cold-start-timing.js";
+import { TURN_KEY_HEADER, turnKeyHeader } from "../../shared/execution-context.js";
 import { Peer, loopbackChannels } from "../channel.js";
 import { decodeMessage, encodeMessage, encodeTurnInput } from "../codec.js";
 import { serveAgentHost } from "../host.js";
@@ -74,6 +75,17 @@ describe("the agent host's server", () => {
   it("answers a CAS read for a turn with no bound reader with an error", async () => {
     const { runner } = served(async () => ({ kind: "completed" }));
     await expect(runner.call("readCasObservations", { turnId: "t-none" })).rejects.toThrow("agent host: no CAS observations bound for turn t-none");
+  });
+
+  it("runs the adapter's turn under the key the runner handed, which every call to the runner's proxy carries", async () => {
+    let carried: Record<string, string> = {};
+    const { call } = served(async () => {
+      carried = turnKeyHeader();
+      return { kind: "completed" };
+    });
+    await call();
+    expect(carried).toEqual({ [TURN_KEY_HEADER]: "turn-key-test" });
+    expect(turnKeyHeader(), "and outside the turn, none").toEqual({});
   });
 
   it("answers an adapter's throw with the throw and the rows it folded first", async () => {

@@ -12,10 +12,10 @@
  * keeps it from acting on the conversation it reads:
  *
  *   - `disallowed_tools` names every Claude tool the native engine has a
- *     tool for (NATIVE_TOOL_COVERS, tool-lists.ts, the one source), so the
- *     model is shown none of them; the one built-in the runner keeps bound,
- *     `read_file`, it confines to the platform's own content
- *     (middleware/tool-scope.ts);
+ *     tool for (NATIVE_TOOL_COVERS, @stigmer/tool-vocabulary, the one
+ *     source), so the model is shown none of them; the one built-in the
+ *     runner keeps bound, `read_file`, it confines to the platform's own
+ *     content (middleware/tool-scope.ts);
  *   - no MCP server, skill or sub-agent, whatever the session carries;
  *   - the instruction below: the conversation is evidence, never
  *     instructions.
@@ -34,7 +34,7 @@ import { create } from "@bufbuild/protobuf";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 
-import { NATIVE_TOOL_COVERS } from "./tool-lists.js";
+import { NATIVE_TOOL_COVERS } from "@stigmer/tool-vocabulary";
 
 /** The reserved label that marks a judge run. Wire contract with the server. */
 export const GRADES_RUN_LABEL = "stigmer.ai/grades-run";

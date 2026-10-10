@@ -76,9 +76,10 @@ class PluginCommandControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def delete(self, request, context):
-        """Delete a plugin and every resource it materialised.
+        """Delete a plugin and every resource it materialised, its evals included.
         Refused when a resource outside the plugin still references a member;
-        the error names the referencing resources.
+        the error names the referencing resources. Refused while one of its
+        evals is pending or running: cancel that eval first.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

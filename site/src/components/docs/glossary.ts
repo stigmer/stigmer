@@ -16,9 +16,11 @@ export const glossary: Record<string, string> = {
   Run:
     "One run of an Agent from start to finish: what a user starts when they send a message, fire a schedule or open a share link.",
   Score:
-    "One grade of a finished run: a person's thumbs up or down on the final answer, the free run-health checks Stigmer runs on every completed run, or an AI judge's verdict.",
+    "One grade of a finished run: a person's thumbs up or down on the final answer, the free run-health checks Stigmer runs on every completed run, an AI judge's verdict, or a plugin eval's checks on one try.",
   Evaluator:
     "AI grading switched on for one Agent: how many of its runs an AI judge grades, the monthly spending limit, and the judge's model.",
+  "Plugin Eval":
+    "One run of a plugin's own test cases: every case in the plugin's evals folder is tried several times with the plugin and several times without it, on each model the eval names. The eval records both scores and the difference the plugin makes.",
   Session:
     "An ongoing conversation with an Agent across multiple messages. A session remembers what was said earlier so the Agent can follow along.",
   Skill:

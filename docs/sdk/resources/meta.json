@@ -20,6 +20,7 @@
     "plan",
     "platform-client",
     "plugin",
+    "plugin-eval",
     "provider-key",
     "run",
     "schedule",
