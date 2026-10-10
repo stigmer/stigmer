@@ -66,6 +66,7 @@ describe("useSettingsNavGroups on a server that holds one organization", () => {
     expect(SINGLE_ORG_SETTINGS_NAV_GROUPS[0]?.label).toBe("General");
     expect(SINGLE_ORG_SETTINGS_NAV_GROUPS[0]?.items.map((i) => i.label)).toEqual([
       "Preferences",
+      "Policies",
       "Members",
       "Teams",
       "Invitations",

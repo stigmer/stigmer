@@ -718,6 +718,7 @@ describe("toOrganizationUpdateInput (tripwire)", () => {
         externalId: "cust-4411",
         parentOrg: "org_01jaaaaaaaaaaaaaaaaaaaaaaa",
         preferences: { standingContext: "We deploy to us-east-1." },
+        policies: { membersCanCreateAgents: true },
       },
     });
 
