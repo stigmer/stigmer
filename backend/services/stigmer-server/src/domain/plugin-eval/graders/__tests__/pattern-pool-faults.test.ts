@@ -6,14 +6,23 @@
  * worker that errors rejects the job it held, is terminated, and the next
  * job runs on a fresh worker; a job that waits past the queue bound for a
  * worker is answered "busy" and never posted, while one a worker takes in
- * time is not. The default pool's size is min(4, the machine's
- * parallelism). The real worker's counting is pinned by patterns.test.ts.
+ * time is not. Evals take turns: one eval holds at most four jobs in the
+ * queue, its later jobs joining the tail behind other evals' as its own
+ * leave, a backlogged job answered busy past the same bound, and a closed
+ * pool rejects the backlog too. The default pool's size is min(4, the
+ * machine's parallelism). The real worker's counting is pinned by
+ * patterns.test.ts.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { availableParallelism } from "node:os";
 
-import { PATTERN_POOL_SIZE, newPatternPool } from "../patterns.js";
+import {
+  PATTERN_POOL_SIZE,
+  PATTERN_QUEUE_PER_OWNER,
+  newPatternPool,
+  patternsFor,
+} from "../patterns.js";
 
 interface PostedJob {
   readonly id: number;
@@ -96,6 +105,60 @@ describe("the pattern pool's queue bound", () => {
 
   it("sizes the default pool at min(4, the machine's parallelism)", () => {
     expect(PATTERN_POOL_SIZE).toBe(Math.min(4, availableParallelism()));
+  });
+});
+
+describe("the pattern pool's turns between evals", () => {
+  /** Answers the one worker's jobs in turn, `count` of them, naming each pattern it was posted. */
+  async function drain(count: number): Promise<string[]> {
+    const held = worker(0);
+    for (let answered = 0; answered < count; answered++) {
+      const posted = held.posted[answered];
+      held.emit("message", { id: posted?.id, kind: "counts", counts: [1] });
+      await Promise.resolve();
+    }
+    return held.posted.map((entry) => entry.pattern);
+  }
+
+  it("holds at most four of one eval's jobs in the queue, so another eval's job runs before its backlog", async () => {
+    expect(PATTERN_QUEUE_PER_OWNER).toBe(4);
+    const pool = newPatternPool(1);
+    const first = patternsFor(pool, "pev_a");
+    const second = patternsFor(pool, "pev_b");
+    const answers = [
+      ...Array.from({ length: 10 }, (_, i) => first.count(job(`a${i}`))),
+      second.count(job("b0")),
+      second.count(job("b1")),
+    ];
+    expect(await drain(answers.length)).toEqual([
+      "a0", "a1", "a2", "a3", "a4", "b0", "b1", "a5", "a6", "a7", "a8", "a9",
+    ]);
+    for (const answer of answers) {
+      expect(await answer).toEqual({ kind: "counts", counts: [1] });
+    }
+    await pool.close();
+  });
+
+  it("answers a backlogged job busy past the queue bound, never running it", async () => {
+    const pool = newPatternPool(1, { queueWaitMs: 20 });
+    const eval1 = patternsFor(pool, "pev_a");
+    const answers = Array.from({ length: 6 }, (_, i) => eval1.count(job(`a${i}`)));
+    for (const answer of answers.slice(1)) {
+      expect(await answer).toEqual({ kind: "busy" });
+    }
+    expect(worker(0).posted.map((entry) => entry.pattern)).toEqual(["a0"]);
+    await pool.close();
+    await expect(answers[0]).rejects.toThrow("the pattern pool is closed");
+  });
+
+  it("rejects the backlog as the queue when the pool closes", async () => {
+    const pool = newPatternPool(1);
+    const eval1 = patternsFor(pool, "pev_a");
+    const answers = Array.from({ length: 6 }, (_, i) => eval1.count(job(`a${i}`)));
+    await pool.close();
+    for (const answer of answers) {
+      await expect(answer).rejects.toThrow("the pattern pool is closed");
+    }
   });
 });
 

@@ -95,6 +95,7 @@ import {
   voteRubricName,
   voteSchema,
 } from "../../domain/plugin-eval/graders/llm.js";
+import { patternsFor } from "../../domain/plugin-eval/graders/patterns.js";
 import type { PatternRunner } from "../../domain/plugin-eval/graders/patterns.js";
 import type { GraderVerdict } from "../../domain/plugin-eval/graders/verdict.js";
 import { isNotGraded } from "../../domain/plugin-eval/graders/verdict.js";
@@ -412,7 +413,11 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         graders,
         cell.target.target.harness,
       );
-      const checked = await gradeChecks(graders, trace, deps.patterns);
+      const checked = await gradeChecks(
+        graders,
+        trace,
+        patternsFor(deps.patterns, input.evalId),
+      );
       const scoring = scoringOf(graders, context.twoArms);
       const outcomes: WireOutcome[] = checked.map((outcome, index) => {
         const grader = graders[index];

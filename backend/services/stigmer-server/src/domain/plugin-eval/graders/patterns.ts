@@ -21,9 +21,16 @@
  * and its wait for a worker is bounded: a job queued past
  * PATTERN_QUEUE_WAIT_MS is answered "busy", which its grader reports as a
  * platform failure ("platform busy"), never a pattern timeout, so one
- * suite of slow patterns cannot hold another's grading past its time. The worker's body is a plain script
- * evaluated from a string, so it needs no file beside the compiled module
- * and runs the same from src/, dist/ and the slim bundle.
+ * suite of slow patterns cannot hold another's grading past its time.
+ * And the queue is fair between evals: each job names the eval it grades
+ * for (`owner`, set by `patternsFor`), an eval holds at most
+ * PATTERN_QUEUE_PER_OWNER jobs in the queue at once, and its later jobs
+ * wait in its own backlog, each joining the queue's tail, behind every
+ * other eval's queued jobs, as one of its own leaves the queue. So the
+ * evals take turns (round-robin), and one eval's many slow patterns
+ * cannot queue the others past their wait. The worker's body is a plain
+ * script evaluated from a string, so it needs no file beside the compiled
+ * module and runs the same from src/, dist/ and the slim bundle.
  *
  * One job counts the matches of one pattern in each of several texts, up
  * to a limit per text (1 answers "found", N+1 answers "exactly N"). The
@@ -37,7 +44,7 @@
  * Proven by __tests__/patterns.test.ts (a catastrophic pattern hits the
  * deadline and the pool recovers, a pattern overflowing the regex stack
  * answers failed) and __tests__/pattern-pool-faults.test.ts
- * (the queue bound, a misbehaving worker).
+ * (the queue bound, the turns between evals, a misbehaving worker).
  */
 import { availableParallelism } from "node:os";
 import { Worker } from "node:worker_threads";
@@ -51,6 +58,9 @@ export const PATTERN_POOL_SIZE = Math.min(4, availableParallelism());
 /** The longest a job waits for a worker before it is answered busy, in milliseconds. */
 export const PATTERN_QUEUE_WAIT_MS = 60_000;
 
+/** The most jobs one eval holds in the pool's queue at once; its later jobs wait their turn. */
+export const PATTERN_QUEUE_PER_OWNER = 4;
+
 /** One job: a pattern, its flags, the texts, and the most matches to count in each. */
 export interface PatternJob {
   readonly pattern: string;
@@ -59,6 +69,8 @@ export interface PatternJob {
   readonly limit: number;
   /** How long the job may run once a worker takes it. */
   readonly budgetMs: number;
+  /** The eval the job grades for, the queue's fairness key; jobs without one share a turn. */
+  readonly owner?: string;
 }
 
 /**
@@ -75,6 +87,11 @@ export type PatternAnswer =
 /** What the graders ask of a pattern engine. */
 export interface PatternRunner {
   count(job: PatternJob): Promise<PatternAnswer>;
+}
+
+/** `runner` with every job it is asked marked as `owner`'s, so the pool gives that eval its turns. */
+export function patternsFor(runner: PatternRunner, owner: string): PatternRunner {
+  return { count: (job) => runner.count({ ...job, owner }) };
 }
 
 /** A pool that can be shut down. */
@@ -170,9 +187,40 @@ export function newPatternPool(
 ): PatternPool {
   const queueWaitMs = options.queueWaitMs ?? PATTERN_QUEUE_WAIT_MS;
   const slots: Slot[] = [];
+  /** The jobs waiting for a worker, at most PATTERN_QUEUE_PER_OWNER of each owner. */
   const queue: Pending[] = [];
+  /** Each owner's jobs past its share of the queue, in order. */
+  const backlogs = new Map<string, Pending[]>();
   let nextId = 1;
   let closed = false;
+
+  const ownerOf = (pending: Pending): string => pending.job.owner ?? "";
+
+  /** Queues `pending` when its owner holds less than its share, else backlogs it. */
+  const enqueue = (pending: Pending): void => {
+    const owner = ownerOf(pending);
+    const held = queue.filter((queued) => ownerOf(queued) === owner).length;
+    if (held < PATTERN_QUEUE_PER_OWNER) {
+      queue.push(pending);
+      return;
+    }
+    const backlog = backlogs.get(owner) ?? [];
+    backlog.push(pending);
+    backlogs.set(owner, backlog);
+  };
+
+  /** One of `owner`'s jobs left the queue: its next backlogged job joins the queue's tail. */
+  const admitNext = (owner: string): void => {
+    const backlog = backlogs.get(owner);
+    const next = backlog?.shift();
+    if (backlog?.length === 0) {
+      backlogs.delete(owner);
+    }
+    if (next !== undefined) {
+      queue.push(next);
+    }
+  };
+
 
   const retire = (slot: Slot): void => {
     const index = slots.indexOf(slot);
@@ -227,6 +275,7 @@ export function newPatternPool(
         slot = spawn();
       }
       queue.shift();
+      admitNext(ownerOf(pending));
       clearTimeout(pending.waiting);
       pending.waiting = undefined;
       const running = slot;
@@ -266,13 +315,18 @@ export function newPatternPool(
           reject,
           waiting: undefined,
         };
-        queue.push(pending);
+        enqueue(pending);
         pump();
-        if (queue.includes(pending)) {
+        if (slots.every((slot) => slot.busy !== pending)) {
+          // The wait runs from the ask. A backlogged job's owner's earlier
+          // jobs began theirs sooner, so each has left the queue (taken, or
+          // answered busy) and admitted the next before this one's ends:
+          // the job is in the queue by then, unless a worker took it.
           pending.waiting = setTimeout(() => {
             const index = queue.indexOf(pending);
             if (index !== -1) {
               queue.splice(index, 1);
+              admitNext(ownerOf(pending));
               resolve({ kind: "busy" });
             }
           }, queueWaitMs);
@@ -282,7 +336,9 @@ export function newPatternPool(
     },
     async close(): Promise<void> {
       closed = true;
-      for (const pending of queue.splice(0)) {
+      const waiting = [...queue.splice(0), ...[...backlogs.values()].flat()];
+      backlogs.clear();
+      for (const pending of waiting) {
         clearTimeout(pending.waiting);
         pending.reject(new Error("the pattern pool is closed"));
       }
