@@ -8,11 +8,7 @@
  *
  *   - plan: the run's agent has an enabled evaluator in the run's own
  *     organization (grading never reaches across organizations), the run
- *     is not itself a judge nor a plugin eval's try or vote (an eval grades
- *     its own tries, and a try with the plugin runs on the plugin's agent,
- *     which may have an evaluator; a live grade there would also adopt the
- *     eval's votes, which carry the judge label naming the try), it is in
- *     the sample (domain/score/judge/
+ *     is not itself a judge, it is in the sample (domain/score/judge/
  *     sampling.ts), and it has no judge verdict yet. The grade's cap is
  *     set aside (domain/evaluator/budget.ts), then the run is recorded as
  *     pending; a refusal of the cap is recorded as "spending limit
@@ -68,7 +64,6 @@ import { ScoreState } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb"
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
-import { PLUGIN_EVAL_LABEL } from "../../domain/plugin-eval/constants.js";
 import { periodOf, reserve, settle } from "../../domain/evaluator/budget.js";
 import type { GradeEnd } from "../../domain/evaluator/budget.js";
 import { listAgentEvaluators } from "../../domain/evaluator/queries.js";
@@ -170,7 +165,6 @@ export function createJudgeActivities(deps: JudgeActivityDeps): JudgeActivities 
       if (
         run === undefined ||
         isJudgeRun(run) ||
-        isPluginEvalRun(run) ||
         run.status?.phase !== RunPhase.RUN_COMPLETED
       ) {
         return { kind: "skip" };
@@ -335,11 +329,6 @@ export function createJudgeActivities(deps: JudgeActivityDeps): JudgeActivities 
       return outcome;
     },
   };
-}
-
-/** Whether `run` is a plugin eval's try or vote (domain/plugin-eval/constants.ts). */
-function isPluginEvalRun(run: Run): boolean {
-  return (run.metadata?.labels[PLUGIN_EVAL_LABEL] ?? "") !== "";
 }
 
 /** The run's agent's evaluator in the run's own organization, if any. */

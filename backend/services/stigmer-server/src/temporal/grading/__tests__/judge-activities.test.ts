@@ -4,8 +4,7 @@
  * the main paths through the composed server:
  *   - plan: an evaluator switched off between its read and the
  *     reservation leaves no pending score; a judged run deleted meanwhile
- *     is skipped; a plugin eval's try or vote is never planned, though the
- *     try runs on an agent whose evaluator is on;
+ *     is skipped;
  *   - start: a judged run that is gone is not started; an earlier attempt's
  *     judge run is found by name, also when the create loses the race, and
  *     adopted only when it carries the judge label naming the judged run and
@@ -39,7 +38,6 @@ import { ScoreStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/s
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { periodOf } from "../../../domain/evaluator/budget.js";
-import { PLUGIN_EVAL_LABEL } from "../../../domain/plugin-eval/constants.js";
 import {
   JUDGE_BUSY_REASON,
   JUDGE_NOT_FINISHED_REASON,
@@ -220,19 +218,6 @@ function evaluatorGoneOnWrite(store: Store): Store {
 }
 
 describe("plan-judge", () => {
-  it("never plans a plugin eval's try or vote, though the try's agent grades its runs", async () => {
-    await seedEvaluator();
-    await seedRun("run_try", { agentId: "agt_1", labels: { [PLUGIN_EVAL_LABEL]: "pev_1" } });
-    await seedRun("run_vote", {
-      labels: { [PLUGIN_EVAL_LABEL]: "pev_1", [GRADES_RUN_LABEL]: "run_try" },
-    });
-    const plan = activities()[PLAN_JUDGE_ACTIVITY_NAME];
-    expect(await plan("run_try")).toEqual({ kind: "skip" });
-    expect(await plan("run_vote")).toEqual({ kind: "skip" });
-    expect(await judgeScores("run_try")).toEqual([]);
-    expect((await evaluatorStatus())?.reservedUsd ?? 0).toBe(0);
-  });
-
   it("leaves no pending score when the evaluator went between its read and the reservation", async () => {
     await seedEvaluator();
     await seedRun("run_1", { agentId: "agt_1" });
