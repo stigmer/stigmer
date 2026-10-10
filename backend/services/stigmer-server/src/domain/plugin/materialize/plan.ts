@@ -15,11 +15,16 @@
  * hooks the library read ride on the plan unchanged, to become
  * `PluginStatus.hooks`: they are not a member, so a plugin whose only
  * content is hooks installs with no members. Both engines run them, in
- * either format, once an agent's `hooks` references the plugin.
+ * either format, once an agent's `hooks` references the plugin. The eval
+ * suite rides the same way, read from the same files, to become
+ * `PluginStatus.evals` (`evals.ts`); its findings stay on the suite rather
+ * than joining the warnings, since they are about the author's tests and
+ * not about what was installed.
  */
 import { create } from "@bufbuild/protobuf";
 
 import type {
+  EvalSuite,
   PluginFiles,
   PluginHooks,
   PluginPackage,
@@ -38,6 +43,7 @@ import type { PlannedMember } from "../members.js";
 import type { ParsedOverlays } from "../overlay/documents.js";
 import { planAgent } from "./agent.js";
 import type { PlannedAgent } from "./agent.js";
+import { planEvals } from "./evals.js";
 import type { PluginIdentity } from "./identity.js";
 import { planMcpServers } from "./mcp-servers.js";
 import type { PlannedMcpServer } from "./mcp-servers.js";
@@ -54,6 +60,8 @@ export interface MaterializationPlan {
   readonly tag: string;
   /** The tool-call hooks read, for `PluginStatus.hooks`; absent when there are none. */
   readonly hooks: PluginHooks | undefined;
+  /** The eval suite read, for `PluginStatus.evals`; absent when the plugin carries none. */
+  readonly evals: EvalSuite | undefined;
   readonly warnings: readonly PluginWarning[];
 }
 
@@ -153,6 +161,7 @@ export function planMaterialization(
     members,
     tag,
     hooks: plugin.hooks,
+    evals: planEvals(files),
     warnings,
   };
 }

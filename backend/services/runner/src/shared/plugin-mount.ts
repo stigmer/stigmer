@@ -34,6 +34,17 @@
  * `${CLAUDE_PLUGIN_DATA}` is the plugin's writable place, and its hooks run
  * with Python's bytecode cache off (`hooks/evaluate.ts`).
  *
+ * The plugin's eval suite is never mounted: `evals/`, and the directory
+ * `PluginStatus.evals.dir` names when the manifest moved the suite, are
+ * left out of the tree, so an agent under test cannot read the cases it is
+ * graded on, as Claude Code hides them from its own runs. Hooks never need
+ * them; the suite is the eval workflow's, which reads the archive itself.
+ * For the same reason an archive that carries a suite is never cached on
+ * disk: the cache must hash to the digest, so it is the whole archive, and
+ * the shell could unzip it. Such an archive is fetched on every turn
+ * instead (plugins are small), and a cached copy an earlier runner left is
+ * removed.
+ *
  * Turns of one workspace are serialised (`harness/turn-context.ts`
  * `acquireWorkspaceTurnLock`), so no two turns mount one tree at once; within
  * a turn, concurrent hook runs share one check in flight.
@@ -41,7 +52,7 @@
 
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
-import { lstat, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { StigmerClient } from "../client/stigmer-client.js";
@@ -125,13 +136,20 @@ export async function mountPlugin(
 
   const pluginsDir = join(platformDir, PLUGINS_SUBDIR);
   await mkdir(pluginsDir, { recursive: true });
-  const archive = await cachedArchive(client, join(pluginsDir, `${digest}.zip`), digest, storageKey, slug);
+  const archivePath = join(pluginsDir, `${digest}.zip`);
+  const archive = await cachedArchive(client, archivePath, digest, storageKey, slug);
   const entries = await extractZipFileEntries(archive);
   if (entries.length === 0) {
     throw new PluginMountError(slug, "its archive holds no files");
   }
+  const mountable = withoutEvalSuite(entries, plugin.status?.evals?.dir);
+  if (mountable.length === entries.length) {
+    await writeFile(archivePath, archive);
+  } else {
+    await rm(archivePath, { force: true });
+  }
 
-  const tree = new PluginTree(join(pluginsDir, digest), entries);
+  const tree = new PluginTree(join(pluginsDir, digest), mountable);
   await tree.verify();
 
   const data = join(platformDir, PLUGIN_DATA_SUBDIR, slug);
@@ -146,7 +164,27 @@ export async function mountPlugin(
   };
 }
 
-/** The archive's bytes, from the session's cache when they still hash to `digest`, else fetched, verified and cached. */
+/** The suite's default directory; always skipped, whatever the status names. */
+const DEFAULT_EVAL_DIR = "evals";
+
+/**
+ * The archive's entries minus the eval suite: everything under `evals/`,
+ * and under `configured` when the install recorded another directory.
+ * Both sides are plugin-relative paths of plain segments (the archive's
+ * entries as the server wrote them, the directory as the library read it).
+ */
+export function withoutEvalSuite(entries: readonly ZipFileEntry[], configured: string | undefined): readonly ZipFileEntry[] {
+  const prefixes = [DEFAULT_EVAL_DIR, configured]
+    .filter((dir): dir is string => dir !== undefined && dir !== "")
+    .map((dir) => `${dir}/`);
+  return entries.filter((entry) => !prefixes.some((prefix) => entry.path.startsWith(prefix)));
+}
+
+/**
+ * The archive's bytes, from the session's cache when they still hash to
+ * `digest`, else fetched and verified. The caller decides whether to cache
+ * them ({@link mountPlugin}: never an archive carrying an eval suite).
+ */
 async function cachedArchive(
   client: StigmerClient,
   archivePath: string,
@@ -178,7 +216,6 @@ async function cachedArchive(
   if (sha256Hex(fetched) !== digest) {
     throw new PluginMountError(slug, "the fetched archive does not match the installed version's digest");
   }
-  await writeFile(archivePath, fetched);
   return fetched;
 }
 

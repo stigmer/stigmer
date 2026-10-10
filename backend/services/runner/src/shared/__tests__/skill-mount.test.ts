@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { ConnectError, Code } from "@connectrpc/connect";
 import {
   MOUNT_MARKER_FILE,
+  isSkillContentPath,
   mountIsFresh,
   downloadArtifact,
   writeSkillMount,
@@ -269,5 +270,18 @@ describe("downloadArtifact — transfer lane routing", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 403 }));
 
     await expect(downloadArtifact(client, "skills/a.zip")).rejects.toThrow("artifact fetch failed: HTTP 403 from the minted download URL");
+  });
+});
+
+describe("isSkillContentPath", () => {
+  it("names a mounted skill's files and a mounted plugin's skills, never other platform content", () => {
+    expect(isSkillContentPath("/.stigmer/skills/alpha/SKILL.md")).toBe(true);
+    expect(isSkillContentPath("/.stigmer/skills")).toBe(true);
+    expect(isSkillContentPath("/.stigmer/plugins/abc123/skills/beta/references/x.md")).toBe(true);
+    expect(isSkillContentPath("/.stigmer/inputs/../skills/alpha/SKILL.md"), "normalized first").toBe(true);
+    expect(isSkillContentPath("/.stigmer/inputs/spec.pdf")).toBe(false);
+    expect(isSkillContentPath("/.stigmer/plugins/abc123/hooks/run.sh")).toBe(false);
+    expect(isSkillContentPath("/.stigmer/skillsets/x")).toBe(false);
+    expect(isSkillContentPath("/skills/alpha/SKILL.md"), "the workspace's own skills folder").toBe(false);
   });
 });

@@ -9,7 +9,12 @@
  *    removed file, a mode change, a file swapped for a link, and a file
  *    replaced together with any marker beside it, because its reference
  *    lives in memory;
- *  - an entry that escapes the mount refuses.
+ *  - an entry that escapes the mount refuses;
+ *  - the eval suite is never mounted: `evals/` always, and the directory
+ *    the install recorded in `status.evals.dir`, so an agent under test
+ *    cannot read its cases; the tamper guard holds the tree to the archive
+ *    without them, and an archive carrying a suite is never left in the
+ *    session's cache, where the shell could unzip it.
  */
 
 import { createHash } from "node:crypto";
@@ -23,7 +28,7 @@ import { buildZip } from "@stigmer/zip-structure/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { StigmerClient } from "../../client/stigmer-client.js";
 import { archiveFileMode } from "../archive-mount.js";
-import { mountPlugin, PluginMountError, PluginTree, PLUGINS_SUBDIR } from "../plugin-mount.js";
+import { mountPlugin, PluginMountError, PluginTree, PLUGINS_SUBDIR, withoutEvalSuite } from "../plugin-mount.js";
 
 const FILES = {
   ".claude-plugin/plugin.json": '{"name":"safety"}',
@@ -187,5 +192,71 @@ describe("archiveFileMode", () => {
     expect(archiveFileMode("hooks/check", text("#!/bin/sh\n"))).toBe(0o755);
     expect(archiveFileMode("README", text("# readme"))).toBe(0o644);
     expect(archiveFileMode("x", new Uint8Array([0x23]))).toBe(0o644);
+  });
+});
+
+describe("the eval suite is not mounted", () => {
+  const suiteFiles = {
+    ...FILES,
+    "evals/first-case/prompt.md": "Write me a commit message.",
+    "evals/first-case/graders/criteria.md": "---\ntype: llm\n---\nPASS if it is imperative.",
+    "quality/evals/other/prompt.md": "Say hello.",
+    "quality/notes.md": "kept",
+    "evalsbook/readme.md": "kept: only the directory itself is skipped",
+  };
+
+  function suitePlugin(bytes: Uint8Array, evalsDir: string | undefined): Plugin {
+    return create(PluginSchema, {
+      metadata: { slug: "safety", name: "Safety Rails" },
+      status: {
+        digest: createHash("sha256").update(bytes).digest("hex"),
+        artifactStorageKey: "plugins/abc.zip",
+        ...(evalsDir !== undefined && { evals: { dir: evalsDir } }),
+      },
+    });
+  }
+
+  it("leaves evals/ and a configured quality/evals out of the tree, and keeps it so across checks", async () => {
+    const bytes = buildZip(Object.entries(suiteFiles).map(([name, content]) => ({ name, content })));
+    const mounted = await mountPlugin(clientServing(bytes), suitePlugin(bytes, "quality/evals"), platformDir);
+    expect(existsSync(join(mounted.root, "evals"))).toBe(false);
+    expect(existsSync(join(mounted.root, "quality/evals"))).toBe(false);
+    expect(readFileSync(join(mounted.root, "quality/notes.md"), "utf-8")).toBe("kept");
+    expect(existsSync(join(mounted.root, "evalsbook/readme.md"))).toBe(true);
+    expect(readFileSync(join(mounted.root, "hooks/hooks.json"), "utf-8")).toBe(FILES["hooks/hooks.json"]);
+
+    // The guard's reference is the tree without the suite: an intact tree is
+    // not rebuilt, and a suite file planted into it is removed.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    await mounted.verify();
+    expect(warn).not.toHaveBeenCalled();
+    writeFileSync(join(mounted.root, "hooks/planted.md"), "x");
+    await mounted.verify();
+    expect(existsSync(join(mounted.root, "hooks/planted.md"))).toBe(false);
+    warn.mockRestore();
+  });
+
+  it("skips evals/ even when the install recorded no suite", async () => {
+    const bytes = buildZip(Object.entries(suiteFiles).map(([name, content]) => ({ name, content })));
+    const mounted = await mountPlugin(clientServing(bytes), suitePlugin(bytes, undefined), platformDir);
+    expect(existsSync(join(mounted.root, "evals"))).toBe(false);
+    expect(existsSync(join(mounted.root, "quality/evals/other/prompt.md"))).toBe(true);
+  });
+
+  it("never caches an archive carrying a suite, and removes a cached copy an earlier runner left", async () => {
+    const bytes = buildZip(Object.entries(suiteFiles).map(([name, content]) => ({ name, content })));
+    const plugin = suitePlugin(bytes, undefined);
+    const cachePath = join(platformDir, PLUGINS_SUBDIR, `${plugin.status?.digest ?? ""}.zip`);
+    await mountPlugin(clientServing(bytes), plugin, platformDir);
+    expect(existsSync(cachePath)).toBe(false);
+
+    writeFileSync(cachePath, bytes);
+    await mountPlugin(clientServing(bytes), plugin, platformDir);
+    expect(existsSync(cachePath)).toBe(false);
+  });
+
+  it("filters by directory, never by name prefix", () => {
+    const entries = ["evals/a.md", "evals", "evalsx/b.md", "qa/c.md", "qa-more/d.md"].map((path) => ({ path, content: new Uint8Array() }));
+    expect(withoutEvalSuite(entries, "qa").map((e) => e.path)).toEqual(["evals", "evalsx/b.md", "qa-more/d.md"]);
   });
 });

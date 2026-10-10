@@ -395,6 +395,25 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
       expect(h.ledger()[0].token).toBe(scopeRefusalToken(READ_SCOPE_KEY, join(h.root, "src/main.ts")));
     });
 
+    it("Skill denied: a read of a skill's files is refused even with Read in scope; other platform content still reads", () => {
+      const h = setup({ lists: { tools: [], disallowedTools: ["Skill"] } });
+      mkdirSync(join(h.platformDir, "skills/a"), { recursive: true });
+      mkdirSync(join(h.platformDir, "plugins/abc/skills/b"), { recursive: true });
+      mkdirSync(join(h.platformDir, "inputs"), { recursive: true });
+      writeFileSync(join(h.platformDir, "skills/a/SKILL.md"), "# skill", "utf-8");
+      writeFileSync(join(h.platformDir, "plugins/abc/skills/b/SKILL.md"), "# plugin skill", "utf-8");
+      writeFileSync(join(h.platformDir, "inputs/spec.pdf"), "pdf", "utf-8");
+      writeFileSync(join(h.root, "notes.md"), "notes", "utf-8");
+
+      expect(h.decide(hookBuiltin("Read", { file_path: join(h.root, ".stigmer/skills/a/SKILL.md") })).permission).toBe("deny");
+      expect(h.decide(hookBuiltin("Read", { file_path: ".stigmer/plugins/abc/skills/b/SKILL.md" }, h.root)).permission).toBe("deny");
+      expect(h.decide(hookBuiltin("Read", { file_path: join(h.root, ".stigmer/inputs/spec.pdf") })).permission).toBe("allow");
+      expect(h.decide(hookBuiltin("Read", { file_path: join(h.root, "notes.md") })).permission).toBe("allow");
+      expect(h.decide(hookBuiltin("Read", { file_path: join(h.root, "missing.md") })).permission, "a missing file is the read's own error").toBe("allow");
+      expect(h.ledger().map((e) => e.kind)).toEqual(["disabled", "disabled"]);
+      expect(h.ledger()[0].token).toBe(scopeRefusalToken(READ_SCOPE_KEY, join(h.root, ".stigmer/skills/a/SKILL.md")));
+    });
+
     it("Read excluded on an unlinked turn: a repository's own .stigmer symlink admits nothing", () => {
       const h = setup({ lists: { tools: ["Grep"], disallowedTools: [] }, stigmerLink: "repo" });
       writeFileSync(join(h.root, "repo-state/notes.md"), "repo file", "utf-8");
