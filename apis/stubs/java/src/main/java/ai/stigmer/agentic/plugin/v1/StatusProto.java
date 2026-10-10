@@ -112,34 +112,33 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
       "\020\005J\004\010\005\020\006R\005stateR\005errorR\014materialized\"W\n\013" +
       "PluginSkill\022\022\n\004name\030\001 \001(\tR\004name\022 \n\013descr" +
       "iption\030\002 \001(\tR\013description\022\022\n\004path\030\003 \001(\tR" +
-      "\004path\"\326\001\n\013PluginAgent\022\022\n\004name\030\001 \001(\tR\004nam" +
+      "\004path\"\300\001\n\013PluginAgent\022\022\n\004name\030\001 \001(\tR\004nam" +
       "e\022 \n\013description\030\002 \001(\tR\013description\022\"\n\014i" +
-      "nstructions\030\003 \001(\tR\014instructions\022\024\n\005model" +
-      "\030\004 \001(\tR\005model\022\024\n\005tools\030\005 \003(\tR\005tools\022)\n\020d" +
-      "isallowed_tools\030\006 \003(\tR\017disallowedTools\022\026" +
-      "\n\006skills\030\007 \003(\tR\006skills\"\224\002\n\016McpServerEntr" +
-      "y\022\022\n\004name\030\001 \001(\tR\004name\022D\n\005stdio\030\002 \001(\0132,.a" +
-      "i.stigmer.agentic.plugin.v1.StdioMcpServ" +
-      "erH\000R\005stdio\022A\n\004http\030\003 \001(\0132+.ai.stigmer.a" +
-      "gentic.plugin.v1.HttpMcpServerH\000R\004http\022\020" +
-      "\n\003env\030\004 \003(\tR\003env\022F\n\007sign_in\030\005 \001(\0132-.ai.s" +
-      "tigmer.agentic.plugin.v1.McpServerSignIn" +
-      "R\006signInB\013\n\ttransport\">\n\016StdioMcpServer\022" +
-      "\030\n\007command\030\001 \001(\tR\007command\022\022\n\004args\030\002 \003(\tR" +
-      "\004args\"\332\001\n\rHttpMcpServer\022\020\n\003url\030\001 \001(\tR\003ur" +
-      "l\022R\n\007headers\030\002 \003(\01328.ai.stigmer.agentic." +
-      "plugin.v1.HttpMcpServer.HeadersEntryR\007he" +
-      "aders\022\'\n\017timeout_seconds\030\003 \001(\005R\016timeoutS" +
-      "econds\032:\n\014HeadersEntry\022\020\n\003key\030\001 \001(\tR\003key" +
-      "\022\024\n\005value\030\002 \001(\tR\005value:\0028\001\"0\n\017McpServerS" +
-      "ignIn\022\035\n\noauth_only\030\001 \001(\010R\toauthOnly\"Q\n\r" +
-      "PluginWarning\022\022\n\004kind\030\001 \001(\tR\004kind\022\030\n\007mes" +
-      "sage\030\002 \001(\tR\007message\022\022\n\004path\030\003 \001(\tR\004pathB" +
-      "\242\001B\013StatusProtoP\001\242\002\004ASAP\252\002\034Ai.Stigmer.Ag" +
-      "entic.Plugin.V1\312\002\034Ai\\Stigmer\\Agentic\\Plu" +
-      "gin\\V1\342\002(Ai\\Stigmer\\Agentic\\Plugin\\V1\\GP" +
-      "BMetadata\352\002 Ai::Stigmer::Agentic::Plugin" +
-      "::V1b\006proto3"
+      "nstructions\030\003 \001(\tR\014instructions\022\024\n\005tools" +
+      "\030\004 \003(\tR\005tools\022)\n\020disallowed_tools\030\005 \003(\tR" +
+      "\017disallowedTools\022\026\n\006skills\030\006 \003(\tR\006skills" +
+      "\"\224\002\n\016McpServerEntry\022\022\n\004name\030\001 \001(\tR\004name\022" +
+      "D\n\005stdio\030\002 \001(\0132,.ai.stigmer.agentic.plug" +
+      "in.v1.StdioMcpServerH\000R\005stdio\022A\n\004http\030\003 " +
+      "\001(\0132+.ai.stigmer.agentic.plugin.v1.HttpM" +
+      "cpServerH\000R\004http\022\020\n\003env\030\004 \003(\tR\003env\022F\n\007si" +
+      "gn_in\030\005 \001(\0132-.ai.stigmer.agentic.plugin." +
+      "v1.McpServerSignInR\006signInB\013\n\ttransport\"" +
+      ">\n\016StdioMcpServer\022\030\n\007command\030\001 \001(\tR\007comm" +
+      "and\022\022\n\004args\030\002 \003(\tR\004args\"\332\001\n\rHttpMcpServe" +
+      "r\022\020\n\003url\030\001 \001(\tR\003url\022R\n\007headers\030\002 \003(\01328.a" +
+      "i.stigmer.agentic.plugin.v1.HttpMcpServe" +
+      "r.HeadersEntryR\007headers\022\'\n\017timeout_secon" +
+      "ds\030\003 \001(\005R\016timeoutSeconds\032:\n\014HeadersEntry" +
+      "\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005value" +
+      ":\0028\001\"0\n\017McpServerSignIn\022\035\n\noauth_only\030\001 " +
+      "\001(\010R\toauthOnly\"Q\n\rPluginWarning\022\022\n\004kind\030" +
+      "\001 \001(\tR\004kind\022\030\n\007message\030\002 \001(\tR\007message\022\022\n" +
+      "\004path\030\003 \001(\tR\004pathB\242\001B\013StatusProtoP\001\242\002\004AS" +
+      "AP\252\002\034Ai.Stigmer.Agentic.Plugin.V1\312\002\034Ai\\S" +
+      "tigmer\\Agentic\\Plugin\\V1\342\002(Ai\\Stigmer\\Ag" +
+      "entic\\Plugin\\V1\\GPBMetadata\352\002 Ai::Stigme" +
+      "r::Agentic::Plugin::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -172,7 +171,7 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_plugin_v1_PluginAgent_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_plugin_v1_PluginAgent_descriptor,
-        new java.lang.String[] { "Name", "Description", "Instructions", "Model", "Tools", "DisallowedTools", "Skills", });
+        new java.lang.String[] { "Name", "Description", "Instructions", "Tools", "DisallowedTools", "Skills", });
     internal_static_ai_stigmer_agentic_plugin_v1_McpServerEntry_descriptor =
       getDescriptor().getMessageType(3);
     internal_static_ai_stigmer_agentic_plugin_v1_McpServerEntry_fieldAccessorTable = new

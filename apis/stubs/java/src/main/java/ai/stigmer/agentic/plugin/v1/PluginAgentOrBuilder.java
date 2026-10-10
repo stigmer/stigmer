@@ -72,32 +72,12 @@ public interface PluginAgentOrBuilder extends
 
   /**
    * <pre>
-   * The model this agent runs; empty means the model the turn runs.
-   * </pre>
-   *
-   * <code>string model = 4 [json_name = "model"];</code>
-   * @return The model.
-   */
-  java.lang.String getModel();
-  /**
-   * <pre>
-   * The model this agent runs; empty means the model the turn runs.
-   * </pre>
-   *
-   * <code>string model = 4 [json_name = "model"];</code>
-   * @return The bytes for model.
-   */
-  com.google.protobuf.ByteString
-      getModelBytes();
-
-  /**
-   * <pre>
    * Tools this agent may use, in Claude Code's names; empty means all of the
-   * turn's. Checked at install: a list that fails the agent's rules is
-   * dropped with a warning.
+   * turn's. Checked at install: an entry the agent's rules refuse is dropped
+   * with a warning, and an agent whose list loses every entry is left out.
    * </pre>
    *
-   * <code>repeated string tools = 5 [json_name = "tools"];</code>
+   * <code>repeated string tools = 4 [json_name = "tools"];</code>
    * @return A list containing the tools.
    */
   java.util.List<java.lang.String>
@@ -105,22 +85,22 @@ public interface PluginAgentOrBuilder extends
   /**
    * <pre>
    * Tools this agent may use, in Claude Code's names; empty means all of the
-   * turn's. Checked at install: a list that fails the agent's rules is
-   * dropped with a warning.
+   * turn's. Checked at install: an entry the agent's rules refuse is dropped
+   * with a warning, and an agent whose list loses every entry is left out.
    * </pre>
    *
-   * <code>repeated string tools = 5 [json_name = "tools"];</code>
+   * <code>repeated string tools = 4 [json_name = "tools"];</code>
    * @return The count of tools.
    */
   int getToolsCount();
   /**
    * <pre>
    * Tools this agent may use, in Claude Code's names; empty means all of the
-   * turn's. Checked at install: a list that fails the agent's rules is
-   * dropped with a warning.
+   * turn's. Checked at install: an entry the agent's rules refuse is dropped
+   * with a warning, and an agent whose list loses every entry is left out.
    * </pre>
    *
-   * <code>repeated string tools = 5 [json_name = "tools"];</code>
+   * <code>repeated string tools = 4 [json_name = "tools"];</code>
    * @param index The index of the element to return.
    * @return The tools at the given index.
    */
@@ -128,11 +108,11 @@ public interface PluginAgentOrBuilder extends
   /**
    * <pre>
    * Tools this agent may use, in Claude Code's names; empty means all of the
-   * turn's. Checked at install: a list that fails the agent's rules is
-   * dropped with a warning.
+   * turn's. Checked at install: an entry the agent's rules refuse is dropped
+   * with a warning, and an agent whose list loses every entry is left out.
    * </pre>
    *
-   * <code>repeated string tools = 5 [json_name = "tools"];</code>
+   * <code>repeated string tools = 4 [json_name = "tools"];</code>
    * @param index The index of the value to return.
    * @return The bytes of the tools at the given index.
    */
@@ -144,7 +124,7 @@ public interface PluginAgentOrBuilder extends
    * Tools this agent may never use, in the same names as tools.
    * </pre>
    *
-   * <code>repeated string disallowed_tools = 6 [json_name = "disallowedTools"];</code>
+   * <code>repeated string disallowed_tools = 5 [json_name = "disallowedTools"];</code>
    * @return A list containing the disallowedTools.
    */
   java.util.List<java.lang.String>
@@ -154,7 +134,7 @@ public interface PluginAgentOrBuilder extends
    * Tools this agent may never use, in the same names as tools.
    * </pre>
    *
-   * <code>repeated string disallowed_tools = 6 [json_name = "disallowedTools"];</code>
+   * <code>repeated string disallowed_tools = 5 [json_name = "disallowedTools"];</code>
    * @return The count of disallowedTools.
    */
   int getDisallowedToolsCount();
@@ -163,7 +143,7 @@ public interface PluginAgentOrBuilder extends
    * Tools this agent may never use, in the same names as tools.
    * </pre>
    *
-   * <code>repeated string disallowed_tools = 6 [json_name = "disallowedTools"];</code>
+   * <code>repeated string disallowed_tools = 5 [json_name = "disallowedTools"];</code>
    * @param index The index of the element to return.
    * @return The disallowedTools at the given index.
    */
@@ -173,7 +153,7 @@ public interface PluginAgentOrBuilder extends
    * Tools this agent may never use, in the same names as tools.
    * </pre>
    *
-   * <code>repeated string disallowed_tools = 6 [json_name = "disallowedTools"];</code>
+   * <code>repeated string disallowed_tools = 5 [json_name = "disallowedTools"];</code>
    * @param index The index of the value to return.
    * @return The bytes of the disallowedTools at the given index.
    */
@@ -185,7 +165,7 @@ public interface PluginAgentOrBuilder extends
    * The plugin's own skills this agent uses, by name.
    * </pre>
    *
-   * <code>repeated string skills = 7 [json_name = "skills"];</code>
+   * <code>repeated string skills = 6 [json_name = "skills"];</code>
    * @return A list containing the skills.
    */
   java.util.List<java.lang.String>
@@ -195,7 +175,7 @@ public interface PluginAgentOrBuilder extends
    * The plugin's own skills this agent uses, by name.
    * </pre>
    *
-   * <code>repeated string skills = 7 [json_name = "skills"];</code>
+   * <code>repeated string skills = 6 [json_name = "skills"];</code>
    * @return The count of skills.
    */
   int getSkillsCount();
@@ -204,7 +184,7 @@ public interface PluginAgentOrBuilder extends
    * The plugin's own skills this agent uses, by name.
    * </pre>
    *
-   * <code>repeated string skills = 7 [json_name = "skills"];</code>
+   * <code>repeated string skills = 6 [json_name = "skills"];</code>
    * @param index The index of the element to return.
    * @return The skills at the given index.
    */
@@ -214,7 +194,7 @@ public interface PluginAgentOrBuilder extends
    * The plugin's own skills this agent uses, by name.
    * </pre>
    *
-   * <code>repeated string skills = 7 [json_name = "skills"];</code>
+   * <code>repeated string skills = 6 [json_name = "skills"];</code>
    * @param index The index of the value to return.
    * @return The bytes of the skills at the given index.
    */

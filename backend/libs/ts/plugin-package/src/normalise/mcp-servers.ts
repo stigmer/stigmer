@@ -7,8 +7,8 @@
  * each transport's field set (an unknown field refuses the entry), while a
  * vendor `.mcp.json` infers the transport from `command` or `url` and
  * carries fields Stigmer does not read as warnings (Cursor's undocumented
- * `auth` block has its own, because OAuth on Stigmer has its own home in the
- * `ai.stigmer/` overlay). `streamable-http` and `http` are one transport;
+ * `auth` block has its own, because on Stigmer a person signs in to a
+ * server at its address). `streamable-http` and `http` are one transport;
  * the legacy `sse` maps to it with a warning, because the runner connects
  * both with Streamable HTTP and its adapter falls back to SSE when the
  * server rejects that.
@@ -68,11 +68,6 @@ export interface McpServersResult {
    * a consequence of the refusal rather than advice, and is not warned.
    */
   readonly refused: number;
-  /**
-   * Every server name the sources declared, accepted or refused. The overlay
-   * checks against this, so a refused server's overlay is not a second refusal.
-   */
-  readonly declaredNames: ReadonlySet<string>;
 }
 
 export function normaliseMcpServers(index: PluginFileIndex, sources: readonly McpConfigSource[], findings: Findings): McpServersResult {
@@ -97,7 +92,7 @@ export function normaliseMcpServers(index: PluginFileIndex, sources: readonly Mc
       else refused++;
     }
   }
-  return { servers, refused, declaredNames: seen };
+  return { servers, refused };
 }
 
 interface ServerEntries {

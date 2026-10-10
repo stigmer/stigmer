@@ -26,6 +26,20 @@ export const PLACEHOLDER_PATTERN = /\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g;
 /** A variable name the runner's scanner can reference. */
 export const VARIABLE_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
+/**
+ * The names the runner fills itself for a server that references them: who
+ * is calling (a kind and a value) and the conversation it calls from. A
+ * plugin references them in a header or an argument to know its caller; it
+ * never declares them, and no vault holds them, so each is declared here as
+ * an optional, non-secret variable the platform supplies. The runner reads
+ * this list too (`shared/caller-identity.ts`), so the two cannot drift.
+ */
+export const PLATFORM_VARIABLES: ReadonlySet<string> = new Set([
+  "STIGMER_CALLER_IDENTITY_KIND",
+  "STIGMER_CALLER_IDENTITY_VALUE",
+  "STIGMER_SESSION_ID",
+]);
+
 const USER_CONFIG_PATTERN = /\$\{user_config\.([A-Za-z_][A-Za-z0-9_]*)\}/g;
 
 /**

@@ -1,33 +1,30 @@
 /**
- * Where one MCP connect runs: the one module that decides a connect's task
- * queue and owns the connect sandbox's lifecycle (stigmer/stigmer#1474).
+ * Where one tools listing runs: the one module that decides a listing's
+ * task queue and owns the connect sandbox's lifecycle (stigmer/stigmer#1474).
  *
  * Without a sandbox provisioner (the external-runner posture, the OSS
- * default) a connect runs on the shared runner queue exactly as it always
- * has: an operator-managed runner polls it, and nothing is provisioned.
+ * default) a listing runs on the shared runner queue: an operator-managed
+ * runner polls it, and nothing is provisioned.
  *
  * With a provisioner composed, that queue has no poller at all: boot
  * requires per-session routing beside a provisioner (boot/compose.ts), so
  * session sandboxes serve `session:<id>` and nobody serves
- * `stigmer_runner`. A connect
- * started there waited until its run timeout with a "no runner" advisory
- * on its status. Here every connect instead gets a request-scoped connect
+ * `stigmer_runner`. Every listing instead gets a request-scoped connect
  * sandbox (the provisioner contract's CONNECT scope, sandbox/provisioner.ts)
- * whose runner polls the connect's own queue
- * (temporal/mcpserver/names.ts `connectTaskQueueFor`), and the lane that
- * started the run releases it when the run settles.
+ * whose runner polls the listing's own queue
+ * (temporal/plugintools/names.ts `connectTaskQueueFor`), and the lane
+ * releases it when the run settles.
  *
- * The sandbox's credential acts as the person who asked for the connect.
- * The runner reads the McpServer and records its tools through the
- * proxy with the credential baked into its sandbox, so it is minted for
- * that person, scoped to this one connect (`scope: "connect"`,
- * runnerauth/runner-credential-provider.ts). On the OSS execution-scoped
- * lane the binding resolves the person from the connect's attempt row
- * (runnerauth/bound-execution.ts, the `mcp-connect` binding), which
- * prepareConnect records for every connect. A composed mintSandboxCredential
- * capability mints its own edition's equivalent from the same request.
+ * The sandbox's credential acts as the person who asked for the listing.
+ * The runner reads the plugin through the proxy with the credential baked
+ * into its sandbox, so it is minted for that person, scoped to this one
+ * listing (`scope: "connect"`, runnerauth/runner-credential-provider.ts).
+ * On the OSS execution-scoped lane the binding resolves the person from
+ * the listing's attempt row (runnerauth/bound-execution.ts, the
+ * `mcp-connect` binding). A composed mintSandboxCredential capability
+ * mints its own edition's equivalent from the same request.
  *
- * Failure posture: provisioning is CRITICAL here. A connect whose sandbox
+ * Failure posture: provisioning is CRITICAL here. A listing whose sandbox
  * cannot be created fails at once with an honest Unavailable instead of
  * starving to its run timeout.
  * Release is best-effort and never throws: a settle must never fail on
@@ -35,12 +32,12 @@
  * orphan sweep exists for (the cloud reaps every connect object past its
  * grace; OSS has no reaper, a known window).
  */
-import type { Logger } from "../../boot/logger.js";
-import { unavailableError } from "../../pipeline/errors.js";
-import { mintSandboxToken, type SandboxLane } from "../../sandbox/lane.js";
-import type { SandboxCaller } from "../../sandbox/steps.js";
-import { connectTaskQueueFor } from "../../temporal/mcpserver/names.js";
-import type { ConnectTaskQueue } from "./engine.js";
+import type { Logger } from "../../../boot/logger.js";
+import { unavailableError } from "../../../pipeline/errors.js";
+import { mintSandboxToken, type SandboxLane } from "../../../sandbox/lane.js";
+import type { SandboxCaller } from "../../../sandbox/steps.js";
+import { connectTaskQueueFor } from "../../../temporal/plugintools/names.js";
+import type { ToolsTaskQueue } from "./engine.js";
 
 /** The refusal when a connect sandbox cannot be provisioned. */
 export const CONNECT_SANDBOX_PROVISIONING_FAILED =
@@ -48,7 +45,7 @@ export const CONNECT_SANDBOX_PROVISIONING_FAILED =
 
 /** A connect's route: the queue its run starts on, and how to give back what serving it took. */
 export interface ConnectRoute {
-  readonly taskQueue: ConnectTaskQueue;
+  readonly taskQueue: ToolsTaskQueue;
   /** Tears down the connect sandbox, if one was provisioned. Idempotent; never throws. */
   release(): Promise<void>;
 }

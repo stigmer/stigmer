@@ -19,9 +19,8 @@
  * is refused with PERMISSION_DENIED: no lane answers redacted.
  *
  * What it opens. A run's manifest, every entry (VaultResolver.openRun). A
- * connect's attempt: for the runner's backfill of a run's tool, that
- * tool's entries in the run's manifest; otherwise a plan made now over the
- * connecting person's My vault (VaultResolver.openConnect). A refusal at
+ * tools listing's attempt: a plan made now over the listing person's My
+ * vault, for the one server listed (VaultResolver.openConnect). A refusal at
  * opening (an entry gone, a vault no longer usable, a tool moved, a
  * renewal refused) is FAILED_PRECONDITION with the resolver's message,
  * which the runner shows the person as the turn's failure.
@@ -33,8 +32,8 @@
  */
 import type { HandlerContext } from "@connectrpc/connect";
 
-import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type {
@@ -181,7 +180,7 @@ async function loadRun(deps: ExecutionValuesDeps, runId: string): Promise<Run> {
   }
 }
 
-/** A connect's values: its run's planned values for the tool (the backfill), or a plan made now over the person's My vault. */
+/** A listing's values: a plan made now over the person's My vault, for the one server listed. */
 async function openConnectValues(
   deps: ExecutionValuesDeps,
   connectId: string,
@@ -189,33 +188,33 @@ async function openConnectValues(
   const now = Math.floor((deps.now ?? Date.now)() / 1000);
   const attempt = await deps.store.connectAttempts.findLive(connectId, now);
   if (attempt === undefined) {
-    throw failedPreconditionError("this connect is over: connect the tool again");
+    throw failedPreconditionError("this tools listing is over: list the tools again");
   }
-  if (attempt.runId !== "") {
-    const run = await loadRun(deps, attempt.runId);
-    if ((run.metadata?.org ?? "") !== attempt.org) {
-      throw permissionDeniedError(NOT_BOUND_MESSAGE);
-    }
-    return deps.vaultResolver.openRun(run, attempt.mcpServerId);
-  }
-  let server: McpServer;
+  let plugin: Plugin;
   try {
-    server = await deps.store.getResource(
-      ApiResourceKind.mcp_server,
-      attempt.mcpServerId,
-      McpServerSchema,
-    );
+    plugin = await deps.store.getResource(ApiResourceKind.plugin, attempt.pluginId, PluginSchema);
   } catch (error) {
     if (error instanceof ResourceNotFoundError) {
       throw failedPreconditionError(
-        `MCP server ${attempt.mcpServerId} no longer exists: its connect cannot continue`,
+        `plugin ${attempt.pluginId} no longer exists: its tools cannot be listed`,
       );
     }
-    throw internalError(error, "failed to load the connect's MCP server");
+    throw internalError(error, "failed to load the listing's plugin");
+  }
+  const entry = plugin.status?.mcpServers.find((server) => server.name === attempt.server);
+  if (entry === undefined) {
+    throw failedPreconditionError(
+      `plugin ${plugin.metadata?.name ?? attempt.pluginId} no longer has a server named ${attempt.server}: its tools cannot be listed`,
+    );
   }
   return deps.vaultResolver.openConnect({
     orgId: attempt.org,
     person: attempt.person === "" ? undefined : attempt.person,
-    server,
+    server: {
+      pluginId: attempt.pluginId,
+      pluginName: plugin.metadata?.name ?? "",
+      entry,
+      env: plugin.status?.env ?? {},
+    },
   });
 }

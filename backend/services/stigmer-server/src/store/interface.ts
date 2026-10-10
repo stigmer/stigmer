@@ -528,21 +528,21 @@ export interface ConnectLinkStore {
 }
 
 /**
- * A tool connect in flight, as stored: the binding of the runner credential
- * the connect mints, never a value. Times are Unix seconds.
+ * A tools listing in flight, as stored: the binding of the runner credential
+ * the listing mints, never a value. Times are Unix seconds.
  */
 export interface ConnectAttemptRecord {
-  /** The connect's execution id: the id its runner credential is bound to. */
+  /** The listing's execution id: the id its runner credential is bound to. */
   readonly id: string;
   readonly org: string;
-  /** The identity account that started the connect: whom its runner credential acts as. */
+  /** The identity account that asked: whom its runner credential acts as. */
   readonly createdBy: string;
-  /** The connecting person whose My vault the connect reads; "" for a caller who is no first-party person. */
+  /** The listing person whose My vault it reads; "" for a caller who is no first-party person. */
   readonly person: string;
-  /** The tool (MCP server) the connect reaches. */
-  readonly mcpServerId: string;
-  /** The run whose planned values for the tool the connect uses (the runner's backfill); "" otherwise. */
-  readonly runId: string;
+  /** The plugin whose server is listed. */
+  readonly pluginId: string;
+  /** The server's name in the plugin. */
+  readonly server: string;
   readonly createdAt: number;
   readonly expiresAt: number;
 }

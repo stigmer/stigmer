@@ -1,9 +1,9 @@
 /**
- * Pins the `ai.stigmer/` overlay (the two document shapes located and
- * handed over as bytes with the server check, any other document refused)
- * and the ignored-component
- * record (directories and files on disk, manifest fields, deduplicated,
- * never per file; `hooks/` only where no vendor manifest reads it).
+ * Pins that the `ai.stigmer/` folder is read by nothing (one warning names
+ * it, whatever it holds, and the plugin installs without it) and the
+ * ignored-component record (directories and files on disk, manifest
+ * fields, deduplicated, never per file; `hooks/` only where no vendor
+ * manifest reads it).
  */
 
 import { describe, expect, it } from "vitest";
@@ -11,28 +11,23 @@ import { describe, expect, it } from "vitest";
 import { claudePlugin, cursorPlugin, openPlugin } from "../testing.js";
 import { accepted, kindsOf, read } from "../__test-utils__/read.js";
 
-describe("the ai.stigmer/ overlay", () => {
-  it("locates the agent and server documents and hands them over as bytes", () => {
+describe("the ai.stigmer/ folder", () => {
+  it("is warned once and read by nothing, whatever it holds", () => {
     const files = openPlugin({
       mcpServers: { gh: { type: "streamable-http", url: "https://gh.example.com/mcp" } },
       files: {
         "ai.stigmer/agent.yaml": "kind: Agent\n",
         "ai.stigmer/mcp-servers/gh.yaml": "spec:\n  auth: {}\n",
+        "ai.stigmer/workflows/triage.yaml": "kind: Workflow\n",
       },
     });
-    const overlay = accepted(read(files)).overlay;
-    expect(overlay.agent?.path).toBe("ai.stigmer/agent.yaml");
-    expect(new TextDecoder().decode(overlay.agent?.bytes)).toBe("kind: Agent\n");
-    expect(overlay.mcpServers.map((s) => [s.server, s.path])).toEqual([["gh", "ai.stigmer/mcp-servers/gh.yaml"]]);
+    const outcome = read(files);
+    expect(kindsOf(outcome)).toEqual({ errors: [], warnings: ["stigmer-folder-ignored"] });
+    expect(accepted(outcome).mcpServers.map((server) => server.name)).toEqual(["gh"]);
   });
 
-  it("is empty when the folder is absent", () => {
-    expect(accepted(read(openPlugin())).overlay).toEqual({ mcpServers: [] });
-  });
-
-  it("refuses any other document under the folder, a subfolder's included", () => {
-    const outcome = read(openPlugin({ files: { "ai.stigmer/workflows/triage.yaml": "kind: Workflow\n" } }));
-    expect(kindsOf(outcome).errors).toEqual(["overlay-document-unknown"]);
+  it("says nothing when the folder is absent", () => {
+    expect(kindsOf(read(openPlugin()))).toEqual({ errors: [], warnings: [] });
   });
 });
 

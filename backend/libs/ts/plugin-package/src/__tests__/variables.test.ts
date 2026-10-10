@@ -3,8 +3,10 @@
  * deciding `optional`, Claude `userConfig` carries `sensitive` and
  * `required`, titles and descriptions are joined, the unsupported Claude
  * attributes warn once each, an undeclared reference is declared as a
- * required secret with a warning naming the server, and a declared
- * variable no server uses is warned.
+ * required secret with a warning naming the server, a declared
+ * variable no server uses is warned, and a name the runner fills itself is
+ * declared as the platform's, optional and no secret, even over a
+ * manifest's required declaration.
  */
 
 import { describe, expect, it } from "vitest";
@@ -90,5 +92,27 @@ describe("reconciliation with references", () => {
       ),
     );
     expect(plugin.variables.map((v) => v.name)).toEqual(["Z", "A", "B", "M"]);
+  });
+
+  it("declares the caller-identity names the runner fills as the platform's, optional, with no warning", () => {
+    const outcome = read(
+      cursorPlugin({
+        variables: { STIGMER_SESSION_ID: { type: "string" } },
+        mcpServers: {
+          s: {
+            type: "http",
+            url: "https://x.example.com/mcp",
+            headers: { "X-Caller": "${STIGMER_CALLER_IDENTITY_KIND}:${STIGMER_CALLER_IDENTITY_VALUE}", "X-Session": "${STIGMER_SESSION_ID}" },
+          },
+        },
+        required: ["STIGMER_SESSION_ID"],
+      }),
+    );
+    expect(kindsOf(outcome)).toEqual({ errors: [], warnings: [] });
+    expect(accepted(outcome).variables.map(({ name, isSecret, optional, declaredBy }) => ({ name, isSecret, optional, declaredBy }))).toEqual([
+      { name: "STIGMER_CALLER_IDENTITY_KIND", isSecret: false, optional: true, declaredBy: "platform" },
+      { name: "STIGMER_CALLER_IDENTITY_VALUE", isSecret: false, optional: true, declaredBy: "platform" },
+      { name: "STIGMER_SESSION_ID", isSecret: false, optional: true, declaredBy: "platform" },
+    ]);
   });
 });

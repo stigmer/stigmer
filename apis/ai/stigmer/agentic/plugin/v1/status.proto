@@ -95,26 +95,22 @@ message PluginAgent {
   string description = 2;
 
   // The agent's system prompt: the body of its file.
-  string instructions = 3;
-
-  // The model this agent runs; empty means the model the turn runs.
   //
   // @internal
-  // Resolved at install from the file's model hint against the model
-  // registry; a hint that resolves to no model leaves this empty with a
-  // warning.
-  string model = 4;
+  // The agent runs on the model the turn runs: a model the file names is
+  // recorded in PluginStatus.warnings and not applied.
+  string instructions = 3;
 
   // Tools this agent may use, in Claude Code's names; empty means all of the
-  // turn's. Checked at install: a list that fails the agent's rules is
-  // dropped with a warning.
-  repeated string tools = 5;
+  // turn's. Checked at install: an entry the agent's rules refuse is dropped
+  // with a warning, and an agent whose list loses every entry is left out.
+  repeated string tools = 4;
 
   // Tools this agent may never use, in the same names as tools.
-  repeated string disallowed_tools = 6;
+  repeated string disallowed_tools = 5;
 
   // The plugin's own skills this agent uses, by name.
-  repeated string skills = 7;
+  repeated string skills = 6;
 }
 
 // McpServerEntry is one MCP server a plugin carries: a local program or an
@@ -178,9 +174,9 @@ message McpServerSignIn {
 
 // PluginWarning is one thing a push noticed but did not refuse.
 message PluginWarning {
-  // Stable warning kind, e.g. "component-ignored", "model-hint-unresolved",
-  // "sub-agent-name-builtin", "tool-list-entry-dropped",
-  // "version-not-taggable".
+  // Stable warning kind, e.g. "agent-not-installed", "component-ignored",
+  // "model-hint-unresolved", "settings-agent-not-applied",
+  // "tool-list-entry-dropped", "version-not-taggable".
   //
   // @internal
   // The library's PluginWarningKind values plus the server's own; a string

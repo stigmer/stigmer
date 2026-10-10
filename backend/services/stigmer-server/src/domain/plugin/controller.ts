@@ -1,23 +1,20 @@
 /**
  * Plugin controller — the Plugin kind's command and query sides. A plugin
- * is the unit of install: `push` reads an Agent Plugins archive and
- * materialises skills, MCP servers and an agent in the
- * organization as the installing caller (push.ts holds the steps and the
- * install discipline); `delete` removes them through their own chains;
- * `updateVisibility` moves the plugin and every member together;
- * `listMembers` derives membership from the label on the children;
+ * is one thing: `push` reads an Agent Plugins archive and stores the
+ * plugin with what it holds in its status, and creates nothing else
+ * (push.ts holds the steps); `delete` is refused while an agent lists it;
+ * `updateVisibility` moves the plugin alone; `listTools` lists one of its
+ * servers' tools now, through a runner (list-tools.ts);
  * `getByReference` and `listVersions` are the shared content-addressed
  * version steps bound to the plugin's digest and manifest version;
  * `getArtifact` and `getArtifactDownloadUrl` hand the runner the archive a
- * plugin was installed from, so it can mount the plugin whose hooks an
- * runs (the skill controller's pair, over the plugin store).
+ * plugin was installed from, so it can mount a plugin a turn lists (the
+ * skill controller's pair, over the plugin store).
  *
  * Wiring mirrors the skill controller's: the store and the archive store
  * are required; the transfer lane is an OPTIONAL modelled state (absent,
  * createArtifactUploadUrl answers FailedPrecondition and push accepts
- * inline bytes only); the materializer is a lazy provider because the
- * in-process clients it rides exist only after the routes this controller
- * is registered in.
+ * inline bytes only).
  *
  * Proven by __tests__/plugin.test.ts (composed-server round-trips),
  * __tests__/store-faults.test.ts and plugin.conformance.test.ts
@@ -26,6 +23,7 @@
 import { posix } from "node:path";
 
 import { create, fromBinary } from "@bufbuild/protobuf";
+import type { OutboundFetch } from "@stigmer/outbound/egress";
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 
@@ -35,25 +33,21 @@ import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb
 import { PluginCommandController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/command_pb";
 import {
   GetArtifactResponseSchema,
-  ListPluginMembersResponseSchema,
-  ListPluginVersionsResponseSchema,
   PluginArtifactDownloadUrlSchema,
   PluginArtifactUploadUrlSchema,
-  PluginMemberSchema,
-  PluginVersionEntrySchema,
   PushPluginRequestSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
 import type {
   CreatePluginArtifactUploadUrlRequest,
   GetArtifactRequest,
   GetArtifactResponse,
-  ListPluginMembersResponse,
+  ListPluginToolsInput,
+  ListPluginToolsOutput,
   ListPluginVersionsInput,
   ListPluginVersionsResponse,
   PluginArtifactDownloadUrl,
   PluginArtifactUploadUrl,
   PluginId,
-  PluginVersionEntry,
   PushPluginRequest,
 } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
 import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
@@ -117,7 +111,6 @@ import {
   loadedTargetAsMethod,
   newAuthorizeResolvedTargetStep,
 } from "../../pipeline/steps/authorize-resolved-target.js";
-import type { VersionHistoryBinding } from "../../pipeline/steps/version-history.js";
 import { metadataOf } from "../../pipeline/steps/shapes.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
@@ -130,9 +123,8 @@ import {
   PLUGIN_ARTIFACT_KEY_PREFIX,
   TRANSFER_LANE_NOT_CONFIGURED,
 } from "./constants.js";
-import type { PluginMaterializerProvider } from "./materialize/ports.js";
-import { findMembers } from "./members.js";
-import type { Member } from "./members.js";
+import { listTools } from "./list-tools.js";
+import type { PluginToolsDeps } from "./list-tools.js";
 import {
   PLUGIN_CONVERGED_KEY,
   PLUGIN_KEY,
@@ -140,25 +132,20 @@ import {
   newArchiveCurrentPluginStep,
   newBuildInitialPluginStep,
   newCheckAndStoreArtifactStep,
-  newFinalizePluginStatusStep,
   newFindExistingPluginBySlugStep,
   newGateAndHashArchiveStep,
   newGeneratePluginIdIfNeededStep,
   newGuardPluginVisibilityStep,
   newIndexPluginSearchStep,
-  newMaterializeMembersStep,
-  newParseOverlayDocumentsStep,
-  newPlanMaterializationStep,
+  newPlanPluginStatusStep,
   newPluginPushAuthorizationTuplesStep,
   newPopulatePluginFieldsStep,
+  newProbeServerSignInsStep,
   newReadPluginPackageStep,
-  newRemoveDroppedMembersStep,
   newResolveConvergenceStep,
-  newSanitizePluginMetadataStep,
   newStorePluginStep,
-  orderForDeletion,
-  pluginLiveTag,
 } from "./push.js";
+import { pluginVersionBinding } from "./versions.js";
 import { pluginSearchExtractor } from "./search-extractor.js";
 
 export interface PluginControllerDeps {
@@ -167,9 +154,12 @@ export interface PluginControllerDeps {
   readonly authorizer: Authorizer;
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   readonly artifactStorage: ContentAddressedArchiveStore;
-  readonly materializerProvider: PluginMaterializerProvider;
+  /** The one fetch install's sign-in probe dials a plugin's server addresses with, under the edition's egress policy. */
+  readonly outboundFetch: OutboundFetch;
   /** The skill lane's staging port (one upload surface for every archive); absent, the lane answers FailedPrecondition. */
   readonly staging?: ArchiveStaging;
+  /** The tools listing's lane: a runner reaches the server as the caller. */
+  readonly tools: PluginToolsDeps;
 }
 
 /** Registers both plugin services on the router (routes stage). */
@@ -183,11 +173,12 @@ export function registerPluginServices(
       createArtifactUploadUrl(deps, req, ctx),
     updateVisibility: (input, ctx) => updateVisibility(deps, input, ctx),
     delete: (id, ctx) => deletePlugin(deps, id, ctx),
+    listTools: (input: ListPluginToolsInput, ctx): Promise<ListPluginToolsOutput> =>
+      listTools(deps.tools, input, callerIdentityOf(ctx)),
   });
   router.service(PluginQueryController, {
     get: (id, ctx) => get(deps, id, ctx),
     getByReference: (ref, ctx) => getByReference(deps, ref, ctx),
-    listMembers: (id, ctx) => listMembers(deps, id, ctx),
     listVersions: (req, ctx) => listVersions(deps, req, ctx),
     getArtifact: (req, ctx) => getArtifact(deps, req, ctx),
     getArtifactDownloadUrl: (req, ctx) =>
@@ -242,9 +233,7 @@ async function push(
     .addStep(newBuildInitialPluginStep())
     .addStep(newFindExistingPluginBySlugStep(deps.store))
     .addStep(newGeneratePluginIdIfNeededStep())
-    .addStep(newParseOverlayDocumentsStep(deps.store))
-    .addStep(newSanitizePluginMetadataStep(deps.authorizer))
-    .addStep(newPlanMaterializationStep(deps.store, deps.authorizer))
+    .addStep(newPlanPluginStatusStep())
     .addStep(newGuardPluginVisibilityStep(deps.store))
     .addStep(newResolveConvergenceStep())
     .build()
@@ -258,26 +247,16 @@ async function push(
     "plugin-push-install",
     deps.logger,
   )
+    .addStep(
+      newProbeServerSignInsStep({
+        outboundFetch: deps.outboundFetch,
+        logger: deps.logger,
+      }),
+    )
     .addStep(newCheckAndStoreArtifactStep(deps.artifactStorage))
     .addStep(newPopulatePluginFieldsStep())
     .addStep(newArchiveCurrentPluginStep(deps.store, deps.logger))
     .addStep(newStorePluginStep(deps.store, "StorePlugin"))
-    .addStep(
-      newMaterializeMembersStep(
-        deps.store,
-        deps.materializerProvider,
-        deps.logger,
-      ),
-    )
-    .addStep(
-      newRemoveDroppedMembersStep(
-        deps.store,
-        deps.materializerProvider,
-        deps.logger,
-      ),
-    )
-    .addStep(newFinalizePluginStatusStep())
-    .addStep(newStorePluginStep(deps.store, "StorePluginReady"))
     .addStep(
       newPluginPushAuthorizationTuplesStep(
         deps.authorizationLifecycle,
@@ -350,9 +329,8 @@ type UpdateVisibilityDesc =
   typeof PluginCommandController.method.updateVisibility.input;
 
 /**
- * A targeted metadata update on the plugin, then the same level on every
- * member through its kind's own updateVisibility door, in-process as the
- * caller. Load runs before level validation so NOT_FOUND wins.
+ * A targeted metadata update on the plugin. Load runs before level
+ * validation so NOT_FOUND wins.
  */
 async function updateVisibility(
   deps: PluginControllerDeps,
@@ -393,9 +371,6 @@ async function updateVisibility(
         deps.authorizationLifecycle,
         UPDATE_VISIBILITY_PLUGIN_KEY,
       ),
-    )
-    .addStep(
-      newFanOutVisibilityToMembersStep(deps.store, deps.materializerProvider),
     )
     .addStep(
       newIndexPluginStep(
@@ -455,40 +430,15 @@ function newSetPluginVisibilityStep(): PipelineStep<UpdateVisibilityDesc> {
   };
 }
 
-/** The plugin's level, applied to every member through its own door. */
-function newFanOutVisibilityToMembersStep(
-  store: Store,
-  materializerProvider: PluginMaterializerProvider,
-): PipelineStep<UpdateVisibilityDesc> {
-  return {
-    name: "FanOutVisibilityToMembers",
-    async execute(ctx: RequestContext<UpdateVisibilityDesc>): Promise<void> {
-      const plugin = ctx.get(UPDATE_VISIBILITY_PLUGIN_KEY) as Plugin;
-      const members = await membersOf(store, plugin);
-      const materializer = materializerProvider();
-      for (const member of members) {
-        await materializer.updateVisibility(
-          member.kind,
-          member.id,
-          ctx.input.visibility,
-          ctx.callerIdentity,
-        );
-      }
-    },
-  };
-}
-
 // ─── delete ──────────────────────────────────────────────────────────────
 
 type DeleteDesc = typeof PluginCommandController.method.delete.input;
-const DELETE_MEMBERS_KEY = "deletePluginMembers";
 
 /**
- * Delete — refuses while a resource outside the plugin references a
- * member, then removes members through their own chains (agent first,
- * then the rest in reverse materialisation order), then the head.
- * Children first so a failure leaves a plugin whose remaining members are
- * still listed; a retry converges. Returns the deleted plugin.
+ * Delete — refuses while an agent of the organization lists the plugin,
+ * then removes it, its archived versions, its grants and its search entry.
+ * A conversation that lists it fails its next turn naming it, as one that
+ * names a deleted agent does. Returns the deleted plugin.
  */
 async function deletePlugin(
   deps: PluginControllerDeps,
@@ -508,10 +458,7 @@ async function deletePlugin(
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, PluginSchema))
-    .addStep(newGuardMembersUnreferencedStep(deps.store))
-    .addStep(
-      newCascadeDeleteMembersStep(deps.materializerProvider, deps.logger),
-    )
+    .addStep(newGuardPluginUnlistedStep(deps.store))
     .addStep(
       newDeleteVersionArchivesStep(deps.store, deps.logger, {
         stepName: "DeletePluginArchives",
@@ -536,107 +483,48 @@ async function deletePlugin(
 }
 
 /**
- * GuardMembersUnreferenced — a user's own agent that references
- * a member, or an agent whose hooks name the plugin itself, blocks the
- * uninstall, naming the referrers and what to undo: a dangling `skill_ref`
- * found at the next session, or an agent whose next turn is refused for a
- * plugin that is gone, is the worse outcome. A plugin with no members (one
- * that is only hooks) is checked too. Members referencing each other are
- * the plugin's business and pass. The scan covers the plugin's own
- * organization (stigmer#1956).
+ * GuardPluginUnlisted — an agent of the plugin's organization that lists
+ * the plugin blocks the uninstall, naming the agents: an agent whose next
+ * turn is refused for a plugin that is gone is the worse outcome. The scan
+ * covers the plugin's own organization (stigmer#1956).
  */
-function newGuardMembersUnreferencedStep(
-  store: Store,
-): PipelineStep<DeleteDesc> {
+function newGuardPluginUnlistedStep(store: Store): PipelineStep<DeleteDesc> {
   return {
-    name: "GuardMembersUnreferenced",
+    name: "GuardPluginUnlisted",
     async execute(ctx: RequestContext<DeleteDesc>): Promise<void> {
       const plugin = ctx.get(EXISTING_RESOURCE_KEY) as Plugin;
-      const members = await membersOf(store, plugin);
-      ctx.set(DELETE_MEMBERS_KEY, members);
       const org = plugin.metadata?.org ?? "";
-      const pluginKey = `${ApiResourceKind.plugin}:${plugin.metadata?.slug ?? ""}`;
-      const memberKeys = new Set(
-        members.map((member) => `${member.kind}:${member.slug}`),
-      );
-      const memberIds = new Set(members.map((member) => member.id));
+      const slug = plugin.metadata?.slug ?? "";
+      let rows: Uint8Array[];
+      try {
+        rows = await store.listResources(ApiResourceKind.agent);
+      } catch (error) {
+        throw internalError(
+          error,
+          "failed to list agents for the plugin reference check",
+        );
+      }
       const referrers: string[] = [];
-      let usesMembers = false;
-      let usesHooks = false;
-      for (const { kind, schema, noun } of [
-        { kind: ApiResourceKind.agent, schema: AgentSchema, noun: "agent" },
-      ]) {
-        let rows: Uint8Array[];
-        try {
-          rows = await store.listResources(kind);
-        } catch (error) {
-          throw internalError(
-            error,
-            `failed to list ${noun}s for the plugin reference check`,
-          );
+      for (const raw of rows) {
+        const agent = fromBinary(AgentSchema, raw);
+        const metadata = metadataOf(agent);
+        if (metadata === undefined || metadata.org !== org) {
+          continue;
         }
-        for (const raw of rows) {
-          const resource = fromBinary(schema, raw);
-          const metadata = metadataOf(resource);
-          if (
-            metadata === undefined ||
-            metadata.org !== org ||
-            memberIds.has(metadata.id)
-          ) {
-            continue;
-          }
-          const keys = collectSpecReferences(schema, resource)
-            .filter((ref) => ref.org === "" || ref.org === org)
-            .map((ref) => `${ref.kind}:${ref.slug}`);
-          const member = keys.some((key) => memberKeys.has(key));
-          const hooks = keys.includes(pluginKey);
-          if (member || hooks) {
-            referrers.push(`${noun} '${metadata.slug}'`);
-            usesMembers ||= member;
-            usesHooks ||= hooks;
-          }
+        const lists = collectSpecReferences(AgentSchema, agent).some(
+          (ref) =>
+            ref.kind === ApiResourceKind.plugin &&
+            ref.slug === slug &&
+            (ref.org === "" || ref.org === org),
+        );
+        if (lists) {
+          referrers.push(`agent '${metadata.slug}'`);
         }
       }
       if (referrers.length > 0) {
-        const remedy =
-          usesMembers && usesHooks
-            ? "detach them from the plugin's skills and servers, and switch the plugin's hooks off on them, first"
-            : usesHooks
-              ? "switch the plugin's hooks off on them first"
-              : "detach them from the plugin's skills and servers first";
         throw failedPreconditionError(
-          `plugin '${plugin.metadata?.slug ?? ""}' is still used by ${referrers.sort().join(", ")}; ${remedy}`,
+          `plugin '${slug}' is still used by ${referrers.sort().join(", ")}; remove it from their plugins first`,
         );
-      }
-    },
-  };
-}
-
-/** CascadeDeleteMembers — every member through its own delete chain, agent first. */
-function newCascadeDeleteMembersStep(
-  materializerProvider: PluginMaterializerProvider,
-  logger: Logger,
-): PipelineStep<DeleteDesc> {
-  return {
-    name: "CascadeDeleteMembers",
-    async execute(ctx: RequestContext<DeleteDesc>): Promise<void> {
-      const plugin = ctx.get(EXISTING_RESOURCE_KEY) as Plugin;
-      const members = ctx.get(DELETE_MEMBERS_KEY) as Member[];
-      const materializer = materializerProvider();
-      for (const member of orderForDeletion(members)) {
-        await materializer.deleteByKind(
-          member.kind,
-          member.id,
-          ctx.callerIdentity,
-        );
-      }
-      if (members.length > 0) {
-        logger.info("Deleted plugin members", {
-          pluginId: plugin.metadata?.id ?? "",
-          members: members.map(
-            (member) => `${ApiResourceKind[member.kind]}:${member.slug}`,
-          ),
-        });
       }
     },
   };
@@ -671,44 +559,6 @@ async function get(
 
 type ListVersionsDesc = typeof PluginQueryController.method.listVersions.input;
 
-/** Where a plugin keeps its hash and its tag, and how its history renders. */
-const pluginVersionBinding: VersionHistoryBinding<
-  typeof PluginSchema,
-  ListVersionsDesc,
-  PluginVersionEntry,
-  ListPluginVersionsResponse
-> = {
-  kind: ApiResourceKind.plugin,
-  schema: PluginSchema,
-  noun: "plugin",
-  headHashOf: (plugin) => plugin.status?.digest ?? "",
-  liveTagOf: pluginLiveTag,
-  // No overlayTag: a plugin's tag is its manifest version, which is
-  // content, so a fetched version is never rewritten to another tag.
-  input: (req) => req,
-  mapEntry: (plugin, isCurrent, tag) => {
-    const entry = create(PluginVersionEntrySchema, { isCurrent, tag });
-    if (plugin.status !== undefined) {
-      entry.digest = plugin.status.digest;
-      entry.artifactStorageKey = plugin.status.artifactStorageKey;
-      const specAudit = plugin.status.audit?.specAudit;
-      if (specAudit !== undefined) {
-        entry.pushedAt = specAudit.updatedAt ?? specAudit.createdAt;
-        entry.pushedBy = specAudit.updatedBy ?? specAudit.createdBy;
-      }
-    }
-    if (plugin.metadata?.version !== undefined) {
-      entry.message = plugin.metadata.version.message;
-    }
-    return entry;
-  },
-  response: (versions, nextPageToken, totalCount) =>
-    create(ListPluginVersionsResponseSchema, {
-      versions,
-      nextPageToken,
-      totalCount,
-    }),
-};
 
 /**
  * GetByReference — slug + org with the version ladder, then can_view on
@@ -754,57 +604,6 @@ async function getByReference(
     .build()
     .execute(reqCtx);
   return reqCtx.get(TARGET_RESOURCE_KEY) as Plugin;
-}
-
-const LIST_MEMBERS_RESPONSE_KEY = "listMembersResponse";
-
-/** ListMembers — the four label scans, in materialisation order. */
-async function listMembers(
-  deps: PluginControllerDeps,
-  id: PluginId,
-  ctx: HandlerContext,
-): Promise<ListPluginMembersResponse> {
-  const reqCtx = new RequestContext(
-    PluginQueryController.method.listMembers.input,
-    id,
-    callerIdentityOf(ctx),
-    kindOf(ctx),
-  );
-  await newPipeline<typeof PluginQueryController.method.listMembers.input>(
-    "plugin-list-members",
-    deps.logger,
-  )
-    .addStep(
-      newAuthorizeStep(
-        PluginQueryController.method.listMembers,
-        deps.authorizer,
-      ),
-    )
-    .addStep(newValidateProtoStep())
-    .addStep(newLoadTargetStep(deps.store, PluginSchema))
-    .addStep({
-      name: "ListPluginMembers",
-      async execute(stepCtx): Promise<void> {
-        const plugin = stepCtx.get(TARGET_RESOURCE_KEY) as Plugin;
-        const members = await membersOf(deps.store, plugin);
-        stepCtx.set(
-          LIST_MEMBERS_RESPONSE_KEY,
-          create(ListPluginMembersResponseSchema, {
-            members: members.map((member) =>
-              create(PluginMemberSchema, {
-                kind: member.kind,
-                id: member.id,
-                slug: member.slug,
-                name: member.name,
-              }),
-            ),
-          }),
-        );
-      },
-    })
-    .build()
-    .execute(reqCtx);
-  return reqCtx.get(LIST_MEMBERS_RESPONSE_KEY) as ListPluginMembersResponse;
 }
 
 /**
@@ -984,18 +783,6 @@ async function listVersions(
 }
 
 // ─── shared helpers ──────────────────────────────────────────────────────
-
-async function membersOf(store: Store, plugin: Plugin): Promise<Member[]> {
-  try {
-    return await findMembers(
-      store,
-      plugin.metadata?.id ?? "",
-      plugin.metadata?.org ?? "",
-    );
-  } catch (error) {
-    throw internalError(error, "failed to list plugin members");
-  }
-}
 
 function newPersistPluginStep<Desc extends UpdateVisibilityDesc>(
   store: Store,

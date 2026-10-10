@@ -27,7 +27,7 @@
  * slash, query, a bare host, refusals), a two-tools-one-host case, and a
  * clone URL's host for HTTPS only.
  */
-import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import type { McpServerEntry } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 
 /** Why an address was refused, said once for every caller. */
 export const ADDRESS_RULE =
@@ -122,13 +122,13 @@ export function gitHostOf(cloneUrl: string): string | undefined {
  * A tool's address: its HTTP URL, or none for a local program. A URL that
  * cannot be normalized (a placeholder in it) is none.
  */
-export function toolAddressOf(server: McpServer): string | undefined {
-  const serverType = server.spec?.serverType;
-  if (serverType?.case !== "http") {
+export function toolAddressOf(server: McpServerEntry): string | undefined {
+  const transport = server.transport;
+  if (transport.case !== "http") {
     return undefined;
   }
   try {
-    return normalizeToolUrl(serverType.value.url);
+    return normalizeToolUrl(transport.value.url);
   } catch {
     return undefined;
   }

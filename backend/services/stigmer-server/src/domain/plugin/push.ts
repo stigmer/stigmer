@@ -5,33 +5,25 @@
  *
  *   plan:    Authorize → ValidateProto → ResolveArtifactSource →
  *            GateAndHashArchive → ReadPluginPackage → BuildInitialPlugin →
- *            FindExistingBySlug → GenerateIDIfNeeded → ParseOverlayDocuments →
- *            SanitizePluginMetadata → PlanMaterialization →
+ *            FindExistingBySlug → GenerateIDIfNeeded → PlanPluginStatus →
  *            GuardPluginVisibility → ResolveConvergence
- *   install: CheckAndStoreArtifact → PopulatePluginFields →
- *            ArchiveCurrentPlugin → StorePlugin (INSTALLING) →
- *            MaterializeMembers → RemoveDroppedMembers →
- *            FinalizePluginStatus → StorePlugin → PluginPushAuthorizationTuples →
- *            IndexPluginSearch
+ *   install: ProbeServerSignIns → CheckAndStoreArtifact →
+ *            PopulatePluginFields → ArchiveCurrentPlugin → StorePlugin →
+ *            PluginPushAuthorizationTuples → IndexPluginSearch
  *
- * The split is the apply chain's shape (plan, then branch): when the plan
- * chain finds the stored plugin already converged on this archive (same
- * digest, READY, every member present and stamped with it) the controller
- * returns the head and the install chain never runs, so a re-push writes
- * nothing. Everything that can refuse — the archive, the package, the
- * overlay, a reserved label, a held slug (unless it is system content the
- * plugin replaces, which is adopted in place: members.ts, judgeSlug), a
- * missing permission, the level — refuses in the plan chain BEFORE any
- * write; the install chain's own
- * failures are a child's, wrapped with the plugin's name, and leave a head
- * that says FAILED so the next push of the same archive converges.
+ * Install writes the plugin and nothing else: what the archive holds is
+ * read into the plugin's status (plan-status.ts), and a turn that lists
+ * the plugin gets every part of it, named under the plugin. So an install
+ * either stores a ready plugin in one write or refuses; there is no
+ * half-installed state to report or converge. Everything that can refuse
+ * — the archive, the package, a server whose tool names could not be told
+ * apart, a missing permission, the level — refuses in the plan chain
+ * before any write. When the stored plugin already is this archive at
+ * this level (same digest, same visibility), the controller returns it and
+ * the install chain never runs.
  *
  * Skill push is the precedent (domain/skill/push.ts): content addressing,
- * repoint-never-duplicate, the audit tag as the single holder, non-
- * transactional materialisation that a retry converges. What is a
- * plugin's: the library reads the package, the plan is checked whole
- * before the first child write, and every child is written through the
- * in-process lane as the installing caller.
+ * repoint-never-duplicate, the audit tag as the single holder.
  *
  * Proven by __tests__/plugin.test.ts (composed-server round-trips) and the
  * plugin conformance suite.
@@ -40,6 +32,7 @@ import { create } from "@bufbuild/protobuf";
 
 import type { PluginFinding, PluginHooks, PluginPackage } from "@stigmer/plugin-package";
 import { readPluginPackage } from "@stigmer/plugin-package";
+import type { OutboundFetch } from "@stigmer/outbound/egress";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { PushPluginRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
@@ -56,32 +49,24 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import type { HookConfig } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import {
-  PluginMaterializationSchema,
-  PluginState,
   PluginStatusSchema,
   PluginWarningSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
-import type { PluginWarning } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import {
   ApiResourceMetadataSchema,
   ApiResourceMetadataVersionSchema,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { ApiResourceAuditSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
-import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
-import { Code, ConnectError } from "@connectrpc/connect";
 
 import type { Logger } from "../../boot/logger.js";
 import type { ContentAddressedArchiveStore } from "../../archive/content-store.js";
-import type { Authorizer } from "../../extensions/authorizer.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import {
   defaultVisibilityFor,
   getIdPrefix,
 } from "../../pipeline/apiresource-meta.js";
 import {
-  alreadyExistsError,
   internalError,
   invalidArgumentError,
 } from "../../pipeline/errors.js";
@@ -104,30 +89,13 @@ import {
   rejectUnsupportedVisibility,
 } from "../../pipeline/steps/validate-visibility.js";
 import { newArchiveCurrentVersionStep } from "../../pipeline/steps/version-archive.js";
-import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import { openPluginArchive } from "./archive.js";
-import { SERVER_WARNING_KINDS, VERSION_TAG_PATTERN } from "./constants.js";
+import { VERSION_TAG_PATTERN } from "./constants.js";
 import type { OpenedPluginArchive } from "./archive.js";
-import type { PluginIdentity } from "./materialize/identity.js";
-import { McpServerOverlayError } from "./materialize/mcp-servers.js";
-import { ToolListEmptiedError } from "./materialize/tool-lists.js";
-import { planMaterialization } from "./materialize/plan.js";
-import type { MaterializationPlan } from "./materialize/plan.js";
-import type { PluginMaterializerProvider } from "./materialize/ports.js";
-import {
-  droppedMembers,
-  findMembers,
-  judgeSlug,
-  membersConverge,
-  slugHolder,
-} from "./members.js";
-import type { Member, PlannedMember } from "./members.js";
-import { newOrganizationNameResolver, organizationSlugOf } from "../organization/names.js";
-import { parseOverlays, resolveOverlayOrganizations } from "./overlay/documents.js";
-import type { ParsedOverlays } from "./overlay/documents.js";
-import { OverlayParseError } from "./overlay/parse.js";
-import { sanitizeOverlays } from "./overlay/sanitize.js";
+import { planPluginStatus, ServerNameError } from "./plan-status.js";
+import type { PluginStatusPlan } from "./plan-status.js";
+import { probeSignIns } from "./probe-sign-in.js";
 import { pluginSearchExtractor } from "./search-extractor.js";
 
 type PushDesc = typeof PushPluginRequestSchema;
@@ -139,9 +107,7 @@ export const PLUGIN_PACKAGE_KEY = "pluginPackage";
 export const PLUGIN_LIBRARY_WARNINGS_KEY = "pluginLibraryWarnings";
 export const EXISTING_PLUGIN_KEY = "existingPlugin";
 export const SHOULD_CREATE_PLUGIN_KEY = "shouldCreatePlugin";
-export const PLUGIN_OVERLAYS_KEY = "pluginOverlays";
 export const PLUGIN_PLAN_KEY = "pluginPlan";
-export const EXISTING_MEMBERS_KEY = "pluginExistingMembers";
 export const PLUGIN_CONVERGED_KEY = "pluginConverged";
 export const ARTIFACT_STORAGE_KEY_KEY = "artifactStorageKey";
 
@@ -284,80 +250,6 @@ export function newGeneratePluginIdIfNeededStep(): PipelineStep<PushDesc> {
   };
 }
 
-/**
- * ParseOverlayDocuments — the `ai.stigmer/` documents become protos,
- * strictly, with every organization they name by slug resolved to its id
- * (they are written through the in-process lane, which resolves nothing).
- */
-export function newParseOverlayDocumentsStep(
-  store: Store,
-): PipelineStep<PushDesc> {
-  const resolver = newOrganizationNameResolver(store);
-  return {
-    name: "ParseOverlayDocuments",
-    async execute(ctx: RequestContext<PushDesc>): Promise<void> {
-      const pkg = ctx.get(PLUGIN_PACKAGE_KEY) as PluginPackage;
-      try {
-        const overlays = parseOverlays(pkg.overlay);
-        await resolveOverlayOrganizations(overlays, ctx.input.org, resolver, (org) => organizationSlugOf(store, org));
-        ctx.set(PLUGIN_OVERLAYS_KEY, overlays);
-      } catch (error) {
-        if (error instanceof OverlayParseError) {
-          throw invalidArgumentError(error.message);
-        }
-        throw error;
-      }
-    },
-  };
-}
-
-/** SanitizePluginMetadata — what an overlay author may not say (overlay/sanitize.ts). */
-export function newSanitizePluginMetadataStep(
-  authorizer: Authorizer,
-): PipelineStep<PushDesc> {
-  return {
-    name: "SanitizePluginMetadata",
-    async execute(ctx: RequestContext<PushDesc>): Promise<void> {
-      const pkg = ctx.get(PLUGIN_PACKAGE_KEY) as PluginPackage;
-      const overlays = ctx.get(PLUGIN_OVERLAYS_KEY) as ParsedOverlays;
-      await sanitizeOverlays(
-        overlays,
-        { pluginName: pkg.name },
-        authorizer,
-        ctx.callerIdentity,
-      );
-    },
-  };
-}
-
-/**
- * The create permission each member kind's own chain will evaluate for the
- * caller, checked here first so a missing one is a sentence before any
- * write. MCP server create carries `is_skip_authorization` in its
- * contract (mcpserver/v1/command.proto), so it has no row.
- */
-const MEMBER_CREATE_PERMISSIONS: ReadonlyMap<ApiResourceKind, IamPermission> =
-  new Map([
-    [ApiResourceKind.skill, IamPermission.can_create_skill],
-    [ApiResourceKind.agent, IamPermission.can_create_agent],
-  ]);
-
-/** The plugin as its members see it, from the head and the archive. */
-export function identityOf(
-  plugin: Plugin,
-  digest: string,
-  visibility: ApiResourceVisibility,
-): PluginIdentity {
-  return {
-    org: plugin.metadata!.org,
-    id: plugin.metadata!.id,
-    slug: plugin.metadata!.slug,
-    name: plugin.metadata!.name,
-    digest,
-    visibility,
-  };
-}
-
 /** The level this push installs at: the request's, or the kind's default. */
 export function requestedVisibility(
   ctx: RequestContext<PushDesc>,
@@ -369,179 +261,34 @@ export function requestedVisibility(
 }
 
 /**
- * PlanMaterialization — everything the push will write, checked whole:
- * every child slug against metadata.slug's rules (`checkDerivedSlug`) and
- * against the organization (free, ours, adopted system
- * content, or refused naming the holder), the caller's permission for
- * every member kind, and the plugin's current members for the convergence
- * and drop decisions. An adopted slug is recorded as a warning on the plan,
- * so the install receipt says which rows the plugin took over.
+ * PlanPluginStatus — what the archive holds, as the plugin's status will
+ * list it (plan-status.ts): its skills, agents, server entries, the
+ * variables they read and its hooks, with every warning the plan raised.
+ * A server whose tool names could not be told apart refuses here, before
+ * anything is written.
  */
-export function newPlanMaterializationStep(
-  store: Store,
-  authorizer: Authorizer,
-): PipelineStep<PushDesc> {
+export function newPlanPluginStatusStep(): PipelineStep<PushDesc> {
   return {
-    name: "PlanMaterialization",
-    async execute(ctx: RequestContext<PushDesc>): Promise<void> {
-      const plugin = ctx.get(PLUGIN_KEY) as Plugin;
+    name: "PlanPluginStatus",
+    execute(ctx: RequestContext<PushDesc>): void {
       const pkg = ctx.get(PLUGIN_PACKAGE_KEY) as PluginPackage;
-      const archive = ctx.get(PLUGIN_ARCHIVE_KEY) as OpenedPluginArchive;
-      const overlays = ctx.get(PLUGIN_OVERLAYS_KEY) as ParsedOverlays;
-      const identity = identityOf(
-        plugin,
-        archive.digest,
-        requestedVisibility(ctx),
-      );
-
-      let plan: MaterializationPlan;
       try {
-        plan = planMaterialization(
-          pkg,
-          archive.files,
-          overlays,
-          identity,
-          ctx.input.message,
-        );
+        ctx.set(PLUGIN_PLAN_KEY, planPluginStatus(pkg));
       } catch (error) {
-        if (
-          error instanceof McpServerOverlayError ||
-          error instanceof ToolListEmptiedError
-        ) {
+        if (error instanceof ServerNameError) {
           throw invalidArgumentError(error.message);
         }
         throw error;
       }
-
-      // Every member's slug is derived from a name in the package (a
-      // skill's frontmatter, an mcp.json key), so each is held to the slug
-      // rules here, before the first write: a member refused later, by its
-      // own chain, would leave the members before it installed.
-      for (const member of plan.members) {
-        checkDerivedSlug(member.slug, {
-          from: `the plugin's ${memberNoun(member.kind)} '${member.name}'`,
-          fix: "rename it in the plugin",
-        });
-      }
-
-      const adopted: PluginWarning[] = [];
-      for (const member of plan.members) {
-        let holder;
-        try {
-          holder = await slugHolder(store, member, identity.org);
-        } catch (error) {
-          throw internalError(error, "failed to check a member slug");
-        }
-        const decision = judgeSlug(holder, member, identity.id);
-        const noun = memberNoun(member.kind);
-        switch (decision.kind) {
-          case "free":
-          case "ours":
-            break;
-          case "adopt":
-            adopted.push(
-              create(PluginWarningSchema, {
-                kind: SERVER_WARNING_KINDS.memberAdopted,
-                path: declaringDocumentOf(overlays, member),
-                message:
-                  `${noun} '${member.slug}' (${decision.holder.id}) was seeded by the platform before this plugin and is now managed by it; ` +
-                  "its definition is the plugin's, and its instances and conversations continue",
-              }),
-            );
-            break;
-          case "held-unmanaged":
-            throw alreadyExistsError(
-              noun,
-              `'${member.slug}' exists in org '${await organizationSlugOf(store, identity.org)}' and is not managed by a plugin; rename or delete it first`,
-            );
-          case "held-by-plugin":
-            throw alreadyExistsError(
-              noun,
-              `'${member.slug}' is held by plugin '${await pluginSlugOf(store, decision.pluginId)}'`,
-            );
-          default: {
-            const exhaustive: never = decision;
-            throw internalError(
-              new Error(`unknown slug decision ${JSON.stringify(exhaustive)}`),
-              "failed to check a member slug",
-            );
-          }
-        }
-      }
-
-      const missing: string[] = [];
-      for (const kind of new Set(plan.members.map((member) => member.kind))) {
-        const permission = MEMBER_CREATE_PERMISSIONS.get(kind);
-        if (permission === undefined) {
-          continue;
-        }
-        let decision;
-        try {
-          decision = await authorizer.authorize(ctx.callerIdentity, {
-            permission,
-            resourceKind: ApiResourceKind.organization,
-            resourceId: identity.org,
-          });
-        } catch (error) {
-          throw internalError(
-            error,
-            "plugin install authorization could not be completed",
-          );
-        }
-        switch (decision.kind) {
-          case "allow":
-            break;
-          case "deny":
-          case "not-found":
-            missing.push(IamPermission[permission] ?? String(permission));
-            break;
-          case "unavailable":
-            throw internalError(
-              decision.cause,
-              "plugin install authorization could not be completed",
-            );
-          default: {
-            const exhaustive: never = decision;
-            throw internalError(
-              new Error(`unknown decision ${JSON.stringify(exhaustive)}`),
-              "plugin install authorization could not be completed",
-            );
-          }
-        }
-      }
-      if (missing.length > 0) {
-        throw new ConnectError(
-          `installing plugin '${identity.slug}' needs ${missing.join(", ")} in organization '${await organizationSlugOf(store, identity.org)}'`,
-          Code.PermissionDenied,
-        );
-      }
-
-      let members: Member[];
-      try {
-        members = await findMembers(store, identity.id, identity.org);
-      } catch (error) {
-        throw internalError(error, "failed to list plugin members");
-      }
-      // An adoption is something this push noticed and did not refuse, so it
-      // rides the plan's warnings onto the install receipt like the rest.
-      ctx.set(PLUGIN_PLAN_KEY, {
-        ...plan,
-        warnings: [...plan.warnings, ...adopted],
-      } satisfies MaterializationPlan);
-      ctx.set(EXISTING_MEMBERS_KEY, members);
     },
   };
 }
 
 /**
- * GuardPluginVisibility — the requested level must be one the plugin and
- * every planned member kind support: the push chain's counterpart of the
- * ValidateVisibility step on the resource create chains, asked here for
- * the head and for each member kind before anything is written, so a
- * plugin cannot be installed at a level one of its members may not hold,
- * nor shared with child organizations from an organization that is a child.
- * Each member's own chain checks again in-process; refusing here keeps the
- * head from being written before the answer is known.
+ * GuardPluginVisibility — the requested level must be one the plugin
+ * supports, and a child organization may not share with child
+ * organizations: the push chain's counterpart of the ValidateVisibility
+ * step on the resource create chains, asked before anything is written.
  */
 export function newGuardPluginVisibilityStep(
   store: Store,
@@ -550,11 +297,7 @@ export function newGuardPluginVisibilityStep(
     name: "GuardPluginVisibility",
     async execute(ctx: RequestContext<PushDesc>): Promise<void> {
       const level = requestedVisibility(ctx);
-      const plan = ctx.get(PLUGIN_PLAN_KEY) as MaterializationPlan;
       rejectUnsupportedVisibility(ctx.apiResourceKind, level);
-      for (const kind of new Set(plan.members.map((member) => member.kind))) {
-        rejectUnsupportedVisibility(kind, level);
-      }
       await refuseChildOrgsVisibilityInChild(store, ctx.input.org, level);
     },
   };
@@ -562,8 +305,8 @@ export function newGuardPluginVisibilityStep(
 
 /**
  * ResolveConvergence — the no-op decision: the stored plugin already IS
- * this archive when its digest matches, it is READY, and every planned
- * member exists stamped with the digest. Anything less installs.
+ * this archive at this level when its digest and its visibility match.
+ * Anything less installs.
  */
 export function newResolveConvergenceStep(): PipelineStep<PushDesc> {
   return {
@@ -571,17 +314,35 @@ export function newResolveConvergenceStep(): PipelineStep<PushDesc> {
     execute(ctx: RequestContext<PushDesc>): void {
       const existing = ctx.get(EXISTING_PLUGIN_KEY) as Plugin | undefined;
       const archive = ctx.get(PLUGIN_ARCHIVE_KEY) as OpenedPluginArchive;
-      const plan = ctx.get(PLUGIN_PLAN_KEY) as MaterializationPlan;
-      const members = ctx.get(EXISTING_MEMBERS_KEY) as Member[];
       const converged =
         existing !== undefined &&
         existing.status?.digest === archive.digest &&
-        existing.status.state === PluginState.READY &&
         (existing.metadata?.visibility ??
           ApiResourceVisibility.api_resource_visibility_unspecified) ===
-          requestedVisibility(ctx) &&
-        membersConverge(members, plan.members, archive.digest);
+          requestedVisibility(ctx);
       ctx.set(PLUGIN_CONVERGED_KEY, converged);
+    },
+  };
+}
+
+/**
+ * ProbeServerSignIns — each server at an address that says nothing about
+ * authentication is asked once whether it wants a sign-in, and completed
+ * when it does (probe-sign-in.ts). A re-push of the installed archive
+ * reuses what the plugin already records and asks nothing.
+ */
+export function newProbeServerSignInsStep(deps: {
+  readonly outboundFetch: OutboundFetch;
+  readonly logger: Logger;
+}): PipelineStep<PushDesc> {
+  return {
+    name: "ProbeServerSignIns",
+    async execute(ctx: RequestContext<PushDesc>): Promise<void> {
+      const plan = ctx.get(PLUGIN_PLAN_KEY) as PluginStatusPlan;
+      const archive = ctx.get(PLUGIN_ARCHIVE_KEY) as OpenedPluginArchive;
+      const existing = ctx.get(EXISTING_PLUGIN_KEY) as Plugin | undefined;
+      const probed = await probeSignIns(deps, plan, archive.digest, existing?.status);
+      ctx.set(PLUGIN_PLAN_KEY, { ...plan, ...probed } satisfies PluginStatusPlan);
     },
   };
 }
@@ -617,12 +378,13 @@ export function newCheckAndStoreArtifactStep(
 }
 
 /**
- * PopulatePluginFields — the manifest into the spec, the archive identity
- * and INSTALLING into the status, the level, the metadata.version chain,
- * and the audit stamping discipline: creates stamp both slots; updates copy
- * the loaded head's slot pointers and stamp spec_audit only (a push is a
- * definition change; the helper sets a fresh spec_audit, never mutating
- * the copied pointer, #540).
+ * PopulatePluginFields — the manifest into the spec; the archive identity
+ * and what it holds into the status, with every warning (the library's and
+ * the plan's) and the hooks recorded; the level; the metadata.version
+ * chain; and the audit stamping discipline: creates stamp both slots;
+ * updates copy the loaded head's slot pointers and stamp spec_audit only (a
+ * push is a definition change; the helper sets a fresh spec_audit, never
+ * mutating the copied pointer, #540).
  */
 export function newPopulatePluginFieldsStep(): PipelineStep<PushDesc> {
   return {
@@ -634,6 +396,10 @@ export function newPopulatePluginFieldsStep(): PipelineStep<PushDesc> {
       const storageKey = ctx.get(ARTIFACT_STORAGE_KEY_KEY) as string;
       const shouldCreate = ctx.get(SHOULD_CREATE_PLUGIN_KEY) as boolean;
       const existing = ctx.get(EXISTING_PLUGIN_KEY) as Plugin | undefined;
+      const plan = ctx.get(PLUGIN_PLAN_KEY) as PluginStatusPlan;
+      const libraryWarnings = ctx.get(
+        PLUGIN_LIBRARY_WARNINGS_KEY,
+      ) as readonly PluginFinding[];
 
       plugin.spec = create(PluginSpecSchema, {
         name: pkg.name,
@@ -663,8 +429,21 @@ export function newPopulatePluginFieldsStep(): PipelineStep<PushDesc> {
       const status = plugin.status!;
       status.digest = archive.digest;
       status.artifactStorageKey = storageKey;
-      status.state = PluginState.INSTALLING;
-      status.error = "";
+      status.skills = [...plan.skills];
+      status.agents = [...plan.agents];
+      status.mcpServers = [...plan.mcpServers];
+      status.env = { ...plan.env };
+      status.hooks = plan.hooks === undefined ? undefined : hooksOf(plan.hooks);
+      status.warnings = [
+        ...libraryWarnings.map((finding) =>
+          create(PluginWarningSchema, {
+            kind: finding.kind,
+            message: finding.message,
+            path: finding.path ?? "",
+          }),
+        ),
+        ...plan.warnings,
+      ];
 
       if (shouldCreate) {
         setAuditFieldsForCreate(PluginSchema, plugin, ctx.callerIdentity);
@@ -725,7 +504,7 @@ export function pluginLiveTag(plugin: Plugin): string {
   return VERSION_TAG_PATTERN.test(version) ? version : "";
 }
 
-/** StorePlugin — persists the head; runs twice, before and after materialisation. */
+/** StorePlugin — persists the plugin, the install's one write. */
 export function newStorePluginStep(
   store: Store,
   stepName: string,
@@ -744,196 +523,6 @@ export function newStorePluginStep(
       } catch (error) {
         throw internalError(error, "failed to save plugin");
       }
-    },
-  };
-}
-
-/**
- * MaterializeMembers — skills, MCP servers and the agent, each
- * through the in-process lane as the installing caller, in the order
- * references resolve. An existing member whose level differs from the
- * plugin's is moved through its kind's updateVisibility afterwards (apply
- * preserves a stored level by contract). A child failure records FAILED on
- * the head, persists it, and fails the request with the plugin named.
- */
-export function newMaterializeMembersStep(
-  store: Store,
-  materializerProvider: PluginMaterializerProvider,
-  logger: Logger,
-): PipelineStep<PushDesc> {
-  return {
-    name: "MaterializeMembers",
-    async execute(ctx: RequestContext<PushDesc>): Promise<void> {
-      const plugin = ctx.get(PLUGIN_KEY) as Plugin;
-      const plan = ctx.get(PLUGIN_PLAN_KEY) as MaterializationPlan;
-      const materializer = materializerProvider();
-      const caller = ctx.callerIdentity;
-      const level = requestedVisibility(ctx);
-
-      const reconcileLevel = async (
-        kind: ApiResourceKind,
-        applied: {
-          readonly metadata?: {
-            readonly id: string;
-            readonly visibility: ApiResourceVisibility;
-          };
-        },
-      ): Promise<void> => {
-        const metadata = applied.metadata;
-        if (metadata !== undefined && metadata.visibility !== level) {
-          await materializer.updateVisibility(kind, metadata.id, level, caller);
-        }
-      };
-
-      const materialize = async <T>(
-        kind: ApiResourceKind,
-        slug: string,
-        write: () => Promise<T>,
-      ): Promise<T> => {
-        try {
-          return await write();
-        } catch (error) {
-          throw await recordFailure(store, ctx, plugin, kind, slug, error);
-        }
-      };
-
-      for (const skill of plan.skills) {
-        const pushed = await materialize(
-          ApiResourceKind.skill,
-          skill.slug,
-          () => materializer.pushSkill(skill.request, caller),
-        );
-        await materialize(ApiResourceKind.skill, skill.slug, () =>
-          reconcileLevel(ApiResourceKind.skill, pushed),
-        );
-      }
-      for (const server of plan.mcpServers) {
-        const applied = await materialize(
-          ApiResourceKind.mcp_server,
-          server.slug,
-          () => materializer.applyMcpServer(server.resource, caller),
-        );
-        await materialize(ApiResourceKind.mcp_server, server.slug, () =>
-          reconcileLevel(ApiResourceKind.mcp_server, applied),
-        );
-      }
-      if (plan.agent !== undefined) {
-        const agent = plan.agent;
-        const applied = await materialize(
-          ApiResourceKind.agent,
-          agent.slug,
-          () => materializer.applyAgent(agent.resource, caller),
-        );
-        await materialize(ApiResourceKind.agent, agent.slug, () =>
-          reconcileLevel(ApiResourceKind.agent, applied),
-        );
-      }
-
-      logger.info("Materialized plugin members", {
-        pluginId: plugin.metadata!.id,
-        skills: plan.skills.length,
-        mcpServers: plan.mcpServers.length,
-        agents: plan.agent === undefined ? 0 : 1,
-      });
-    },
-  };
-}
-
-/**
- * RemoveDroppedMembers — an upgrade whose archive no longer names a member
- * deletes it through the member's own delete chain (agent first, so a
- * user's own resource still referencing it is judged by that chain, then
- * the rest in reverse materialisation order).
- */
-export function newRemoveDroppedMembersStep(
-  store: Store,
-  materializerProvider: PluginMaterializerProvider,
-  logger: Logger,
-): PipelineStep<PushDesc> {
-  return {
-    name: "RemoveDroppedMembers",
-    async execute(ctx: RequestContext<PushDesc>): Promise<void> {
-      const plugin = ctx.get(PLUGIN_KEY) as Plugin;
-      const plan = ctx.get(PLUGIN_PLAN_KEY) as MaterializationPlan;
-      const existing = ctx.get(EXISTING_MEMBERS_KEY) as Member[];
-      const dropped = droppedMembers(existing, plan.members);
-      if (dropped.length === 0) {
-        return;
-      }
-      const materializer = materializerProvider();
-      for (const member of orderForDeletion(dropped)) {
-        try {
-          await materializer.deleteByKind(
-            member.kind,
-            member.id,
-            ctx.callerIdentity,
-          );
-        } catch (error) {
-          throw await recordFailure(
-            store,
-            ctx,
-            plugin,
-            member.kind,
-            member.slug,
-            error,
-            "remove",
-          );
-        }
-      }
-      logger.info("Removed members the new archive dropped", {
-        pluginId: plugin.metadata!.id,
-        dropped: dropped.map(
-          (member) => `${ApiResourceKind[member.kind]}:${member.slug}`,
-        ),
-      });
-    },
-  };
-}
-
-/** Cascade order: the agent first (it references the rest), then reverse materialisation order. */
-export function orderForDeletion(members: readonly Member[]): Member[] {
-  const rank = new Map<ApiResourceKind, number>([
-    [ApiResourceKind.agent, 0],
-    [ApiResourceKind.mcp_server, 1],
-    [ApiResourceKind.skill, 2],
-  ]);
-  return [...members].sort(
-    (a, b) => (rank.get(a.kind) ?? 9) - (rank.get(b.kind) ?? 9),
-  );
-}
-
-/**
- * FinalizePluginStatus — the install receipt: counts, every warning (the
- * library's and the plan's), the tool-call hooks recorded, READY.
- */
-export function newFinalizePluginStatusStep(): PipelineStep<PushDesc> {
-  return {
-    name: "FinalizePluginStatus",
-    execute(ctx: RequestContext<PushDesc>): void {
-      const plugin = ctx.get(PLUGIN_KEY) as Plugin;
-      const plan = ctx.get(PLUGIN_PLAN_KEY) as MaterializationPlan;
-      const libraryWarnings = ctx.get(
-        PLUGIN_LIBRARY_WARNINGS_KEY,
-      ) as readonly PluginFinding[];
-      const status = plugin.status!;
-      status.state = PluginState.READY;
-      status.error = "";
-      status.materialized = create(PluginMaterializationSchema, {
-        skills: plan.skills.length,
-        mcpServers: plan.mcpServers.length,
-        agents: plan.agent === undefined ? 0 : 1,
-      });
-      status.warnings = [
-        ...libraryWarnings.map((finding) =>
-          create(PluginWarningSchema, {
-            kind: finding.kind,
-            message: finding.message,
-            path: finding.path ?? "",
-          }),
-        ),
-        ...plan.warnings,
-      ];
-      status.hooks = plan.hooks === undefined ? undefined : hooksOf(plan.hooks);
     },
   };
 }
@@ -1035,96 +624,6 @@ export function newIndexPluginSearchStep(
 }
 
 // ─── helpers ─────────────────────────────────────────────────────────────
-
-const MEMBER_NOUNS: ReadonlyMap<ApiResourceKind, string> = new Map([
-  [ApiResourceKind.skill, "skill"],
-  [ApiResourceKind.mcp_server, "MCP server"],
-  [ApiResourceKind.agent, "agent"],
-]);
-
-function memberNoun(kind: ApiResourceKind): string {
-  return MEMBER_NOUNS.get(kind) ?? ApiResourceKind[kind] ?? String(kind);
-}
-
-/**
- * The overlay document that declared an adopted member, for the warning's
- * path: only an overlay can carry the system label, so a skill (whose
- * request carries the plugin's labels alone) never reaches this.
- */
-function declaringDocumentOf(
-  overlays: ParsedOverlays,
-  member: PlannedMember,
-): string {
-  switch (member.kind) {
-    case ApiResourceKind.agent:
-      return overlays.agent?.path ?? "";
-    case ApiResourceKind.mcp_server:
-      return (
-        overlays.mcpServers.find((document) => document.server === member.name)
-          ?.path ?? ""
-      );
-    default:
-      return "";
-  }
-}
-
-/** The holding plugin's slug for a refusal; a dangling id names itself. */
-async function pluginSlugOf(store: Store, pluginId: string): Promise<string> {
-  try {
-    const plugin = await store.getResource(
-      ApiResourceKind.plugin,
-      pluginId,
-      PluginSchema,
-    );
-    return plugin.metadata?.slug ?? pluginId;
-  } catch (error) {
-    if (error instanceof ResourceNotFoundError) {
-      return pluginId;
-    }
-    throw internalError(error, "failed to load the holding plugin");
-  }
-}
-
-/**
- * A child failed: the head records FAILED with one sentence and is
- * persisted before the request fails, so `get plugin` tells the truth and
- * the next push of the same archive re-materialises.
- */
-async function recordFailure(
-  store: Store,
-  ctx: RequestContext<PushDesc>,
-  plugin: Plugin,
-  kind: ApiResourceKind,
-  slug: string,
-  error: unknown,
-  verb: "materialize" | "remove" = "materialize",
-): Promise<ConnectError> {
-  const cause =
-    error instanceof ConnectError
-      ? error.rawMessage
-      : error instanceof Error
-        ? error.message
-        : String(error);
-  const sentence = `failed to ${verb} ${memberNoun(kind)} '${slug}' from plugin '${plugin.metadata?.slug ?? ""}': ${cause}`;
-  const status = plugin.status!;
-  status.state = PluginState.FAILED;
-  status.error = sentence;
-  try {
-    await store.saveResource(
-      ctx.apiResourceKind,
-      plugin.metadata!.id,
-      PluginSchema,
-      plugin,
-    );
-  } catch {
-    // The original failure is the one the caller must hear; a second
-    // failure persisting the receipt would only hide it.
-  }
-  if (error instanceof ConnectError) {
-    return new ConnectError(sentence, error.code, undefined, undefined, error);
-  }
-  return internalError(error, sentence);
-}
 
 /** The library's hooks in the contract's shape, field for field. */
 export function hooksOf(hooks: PluginHooks): HookConfig {

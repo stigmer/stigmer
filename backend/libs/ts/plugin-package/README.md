@@ -8,8 +8,7 @@ configuration. This library reads the open Agent Plugins 1.0.0 format and
 the three vendor dialects that preceded it (Cursor `.cursor-plugin/`,
 Claude Code `.claude-plugin/`, Codex `.codex-plugin/`) unchanged, and hands
 back a `PluginPackage`: the skills, MCP servers, sub-agents and variables in
-the shapes Stigmer's resources take, the `ai.stigmer/` overlay documents as
-opaque bytes, and every component it ignored. What Stigmer cannot carry is
+the shapes a plugin's status takes, and every component it ignored. What Stigmer cannot carry is
 refused with one fixed sentence per problem, and the reader keeps scanning
 past a refusal so one run reports every problem at once.
 
@@ -38,8 +37,8 @@ One runtime dependency, `yaml` (the CLI's and the SDK's YAML library), for
 `SKILL.md` and sub-agent frontmatter. No dependency on `@stigmer/protos`:
 the library describes the plugin format, and the CLI's offline validation
 should not pull the resource schemas in for a parse. Field names in the
-normalised types mirror the protos (`SubAgent`, `EnvVarDeclaration`,
-`McpServerSpec`) so the server's mapping is one function per kind.
+normalised types mirror the protos (`PluginAgent`, `EnvVarDeclaration`,
+`McpServerEntry`) so the server's mapping is one function per part.
 
 ## Design notes
 

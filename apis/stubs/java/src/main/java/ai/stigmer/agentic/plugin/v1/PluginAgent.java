@@ -35,7 +35,6 @@ private static final long serialVersionUID = 0L;
     name_ = "";
     description_ = "";
     instructions_ = "";
-    model_ = "";
     tools_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
     disallowedTools_ =
@@ -203,65 +202,18 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int MODEL_FIELD_NUMBER = 4;
-  @SuppressWarnings("serial")
-  private volatile java.lang.Object model_ = "";
-  /**
-   * <pre>
-   * The model this agent runs; empty means the model the turn runs.
-   * </pre>
-   *
-   * <code>string model = 4 [json_name = "model"];</code>
-   * @return The model.
-   */
-  @java.lang.Override
-  public java.lang.String getModel() {
-    java.lang.Object ref = model_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      model_ = s;
-      return s;
-    }
-  }
-  /**
-   * <pre>
-   * The model this agent runs; empty means the model the turn runs.
-   * </pre>
-   *
-   * <code>string model = 4 [json_name = "model"];</code>
-   * @return The bytes for model.
-   */
-  @java.lang.Override
-  public com.google.protobuf.ByteString
-      getModelBytes() {
-    java.lang.Object ref = model_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      model_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
-  }
-
-  public static final int TOOLS_FIELD_NUMBER = 5;
+  public static final int TOOLS_FIELD_NUMBER = 4;
   @SuppressWarnings("serial")
   private com.google.protobuf.LazyStringArrayList tools_ =
       com.google.protobuf.LazyStringArrayList.emptyList();
   /**
    * <pre>
    * Tools this agent may use, in Claude Code's names; empty means all of the
-   * turn's. Checked at install: a list that fails the agent's rules is
-   * dropped with a warning.
+   * turn's. Checked at install: an entry the agent's rules refuse is dropped
+   * with a warning, and an agent whose list loses every entry is left out.
    * </pre>
    *
-   * <code>repeated string tools = 5 [json_name = "tools"];</code>
+   * <code>repeated string tools = 4 [json_name = "tools"];</code>
    * @return A list containing the tools.
    */
   public com.google.protobuf.ProtocolStringList
@@ -271,11 +223,11 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Tools this agent may use, in Claude Code's names; empty means all of the
-   * turn's. Checked at install: a list that fails the agent's rules is
-   * dropped with a warning.
+   * turn's. Checked at install: an entry the agent's rules refuse is dropped
+   * with a warning, and an agent whose list loses every entry is left out.
    * </pre>
    *
-   * <code>repeated string tools = 5 [json_name = "tools"];</code>
+   * <code>repeated string tools = 4 [json_name = "tools"];</code>
    * @return The count of tools.
    */
   public int getToolsCount() {
@@ -284,11 +236,11 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Tools this agent may use, in Claude Code's names; empty means all of the
-   * turn's. Checked at install: a list that fails the agent's rules is
-   * dropped with a warning.
+   * turn's. Checked at install: an entry the agent's rules refuse is dropped
+   * with a warning, and an agent whose list loses every entry is left out.
    * </pre>
    *
-   * <code>repeated string tools = 5 [json_name = "tools"];</code>
+   * <code>repeated string tools = 4 [json_name = "tools"];</code>
    * @param index The index of the element to return.
    * @return The tools at the given index.
    */
@@ -298,11 +250,11 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Tools this agent may use, in Claude Code's names; empty means all of the
-   * turn's. Checked at install: a list that fails the agent's rules is
-   * dropped with a warning.
+   * turn's. Checked at install: an entry the agent's rules refuse is dropped
+   * with a warning, and an agent whose list loses every entry is left out.
    * </pre>
    *
-   * <code>repeated string tools = 5 [json_name = "tools"];</code>
+   * <code>repeated string tools = 4 [json_name = "tools"];</code>
    * @param index The index of the value to return.
    * @return The bytes of the tools at the given index.
    */
@@ -311,7 +263,7 @@ private static final long serialVersionUID = 0L;
     return tools_.getByteString(index);
   }
 
-  public static final int DISALLOWED_TOOLS_FIELD_NUMBER = 6;
+  public static final int DISALLOWED_TOOLS_FIELD_NUMBER = 5;
   @SuppressWarnings("serial")
   private com.google.protobuf.LazyStringArrayList disallowedTools_ =
       com.google.protobuf.LazyStringArrayList.emptyList();
@@ -320,7 +272,7 @@ private static final long serialVersionUID = 0L;
    * Tools this agent may never use, in the same names as tools.
    * </pre>
    *
-   * <code>repeated string disallowed_tools = 6 [json_name = "disallowedTools"];</code>
+   * <code>repeated string disallowed_tools = 5 [json_name = "disallowedTools"];</code>
    * @return A list containing the disallowedTools.
    */
   public com.google.protobuf.ProtocolStringList
@@ -332,7 +284,7 @@ private static final long serialVersionUID = 0L;
    * Tools this agent may never use, in the same names as tools.
    * </pre>
    *
-   * <code>repeated string disallowed_tools = 6 [json_name = "disallowedTools"];</code>
+   * <code>repeated string disallowed_tools = 5 [json_name = "disallowedTools"];</code>
    * @return The count of disallowedTools.
    */
   public int getDisallowedToolsCount() {
@@ -343,7 +295,7 @@ private static final long serialVersionUID = 0L;
    * Tools this agent may never use, in the same names as tools.
    * </pre>
    *
-   * <code>repeated string disallowed_tools = 6 [json_name = "disallowedTools"];</code>
+   * <code>repeated string disallowed_tools = 5 [json_name = "disallowedTools"];</code>
    * @param index The index of the element to return.
    * @return The disallowedTools at the given index.
    */
@@ -355,7 +307,7 @@ private static final long serialVersionUID = 0L;
    * Tools this agent may never use, in the same names as tools.
    * </pre>
    *
-   * <code>repeated string disallowed_tools = 6 [json_name = "disallowedTools"];</code>
+   * <code>repeated string disallowed_tools = 5 [json_name = "disallowedTools"];</code>
    * @param index The index of the value to return.
    * @return The bytes of the disallowedTools at the given index.
    */
@@ -364,7 +316,7 @@ private static final long serialVersionUID = 0L;
     return disallowedTools_.getByteString(index);
   }
 
-  public static final int SKILLS_FIELD_NUMBER = 7;
+  public static final int SKILLS_FIELD_NUMBER = 6;
   @SuppressWarnings("serial")
   private com.google.protobuf.LazyStringArrayList skills_ =
       com.google.protobuf.LazyStringArrayList.emptyList();
@@ -373,7 +325,7 @@ private static final long serialVersionUID = 0L;
    * The plugin's own skills this agent uses, by name.
    * </pre>
    *
-   * <code>repeated string skills = 7 [json_name = "skills"];</code>
+   * <code>repeated string skills = 6 [json_name = "skills"];</code>
    * @return A list containing the skills.
    */
   public com.google.protobuf.ProtocolStringList
@@ -385,7 +337,7 @@ private static final long serialVersionUID = 0L;
    * The plugin's own skills this agent uses, by name.
    * </pre>
    *
-   * <code>repeated string skills = 7 [json_name = "skills"];</code>
+   * <code>repeated string skills = 6 [json_name = "skills"];</code>
    * @return The count of skills.
    */
   public int getSkillsCount() {
@@ -396,7 +348,7 @@ private static final long serialVersionUID = 0L;
    * The plugin's own skills this agent uses, by name.
    * </pre>
    *
-   * <code>repeated string skills = 7 [json_name = "skills"];</code>
+   * <code>repeated string skills = 6 [json_name = "skills"];</code>
    * @param index The index of the element to return.
    * @return The skills at the given index.
    */
@@ -408,7 +360,7 @@ private static final long serialVersionUID = 0L;
    * The plugin's own skills this agent uses, by name.
    * </pre>
    *
-   * <code>repeated string skills = 7 [json_name = "skills"];</code>
+   * <code>repeated string skills = 6 [json_name = "skills"];</code>
    * @param index The index of the value to return.
    * @return The bytes of the skills at the given index.
    */
@@ -440,17 +392,14 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(instructions_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 3, instructions_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(model_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 4, model_);
-    }
     for (int i = 0; i < tools_.size(); i++) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 5, tools_.getRaw(i));
+      com.google.protobuf.GeneratedMessage.writeString(output, 4, tools_.getRaw(i));
     }
     for (int i = 0; i < disallowedTools_.size(); i++) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 6, disallowedTools_.getRaw(i));
+      com.google.protobuf.GeneratedMessage.writeString(output, 5, disallowedTools_.getRaw(i));
     }
     for (int i = 0; i < skills_.size(); i++) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 7, skills_.getRaw(i));
+      com.google.protobuf.GeneratedMessage.writeString(output, 6, skills_.getRaw(i));
     }
     getUnknownFields().writeTo(output);
   }
@@ -469,9 +418,6 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(instructions_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(3, instructions_);
-    }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(model_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(4, model_);
     }
     {
       int dataSize = 0;
@@ -518,8 +464,6 @@ private static final long serialVersionUID = 0L;
         .equals(other.getDescription())) return false;
     if (!getInstructions()
         .equals(other.getInstructions())) return false;
-    if (!getModel()
-        .equals(other.getModel())) return false;
     if (!getToolsList()
         .equals(other.getToolsList())) return false;
     if (!getDisallowedToolsList()
@@ -543,8 +487,6 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getDescription().hashCode();
     hash = (37 * hash) + INSTRUCTIONS_FIELD_NUMBER;
     hash = (53 * hash) + getInstructions().hashCode();
-    hash = (37 * hash) + MODEL_FIELD_NUMBER;
-    hash = (53 * hash) + getModel().hashCode();
     if (getToolsCount() > 0) {
       hash = (37 * hash) + TOOLS_FIELD_NUMBER;
       hash = (53 * hash) + getToolsList().hashCode();
@@ -695,7 +637,6 @@ private static final long serialVersionUID = 0L;
       name_ = "";
       description_ = "";
       instructions_ = "";
-      model_ = "";
       tools_ =
           com.google.protobuf.LazyStringArrayList.emptyList();
       disallowedTools_ =
@@ -745,17 +686,14 @@ private static final long serialVersionUID = 0L;
         result.instructions_ = instructions_;
       }
       if (((from_bitField0_ & 0x00000008) != 0)) {
-        result.model_ = model_;
-      }
-      if (((from_bitField0_ & 0x00000010) != 0)) {
         tools_.makeImmutable();
         result.tools_ = tools_;
       }
-      if (((from_bitField0_ & 0x00000020) != 0)) {
+      if (((from_bitField0_ & 0x00000010) != 0)) {
         disallowedTools_.makeImmutable();
         result.disallowedTools_ = disallowedTools_;
       }
-      if (((from_bitField0_ & 0x00000040) != 0)) {
+      if (((from_bitField0_ & 0x00000020) != 0)) {
         skills_.makeImmutable();
         result.skills_ = skills_;
       }
@@ -788,15 +726,10 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000004;
         onChanged();
       }
-      if (!other.getModel().isEmpty()) {
-        model_ = other.model_;
-        bitField0_ |= 0x00000008;
-        onChanged();
-      }
       if (!other.tools_.isEmpty()) {
         if (tools_.isEmpty()) {
           tools_ = other.tools_;
-          bitField0_ |= 0x00000010;
+          bitField0_ |= 0x00000008;
         } else {
           ensureToolsIsMutable();
           tools_.addAll(other.tools_);
@@ -806,7 +739,7 @@ private static final long serialVersionUID = 0L;
       if (!other.disallowedTools_.isEmpty()) {
         if (disallowedTools_.isEmpty()) {
           disallowedTools_ = other.disallowedTools_;
-          bitField0_ |= 0x00000020;
+          bitField0_ |= 0x00000010;
         } else {
           ensureDisallowedToolsIsMutable();
           disallowedTools_.addAll(other.disallowedTools_);
@@ -816,7 +749,7 @@ private static final long serialVersionUID = 0L;
       if (!other.skills_.isEmpty()) {
         if (skills_.isEmpty()) {
           skills_ = other.skills_;
-          bitField0_ |= 0x00000040;
+          bitField0_ |= 0x00000020;
         } else {
           ensureSkillsIsMutable();
           skills_.addAll(other.skills_);
@@ -865,25 +798,20 @@ private static final long serialVersionUID = 0L;
               break;
             } // case 26
             case 34: {
-              model_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000008;
-              break;
-            } // case 34
-            case 42: {
               ensureToolsIsMutable();
               tools_.add(input.readStringRequireUtf8());
               break;
-            } // case 42
-            case 50: {
+            } // case 34
+            case 42: {
               ensureDisallowedToolsIsMutable();
               disallowedTools_.add(input.readStringRequireUtf8());
               break;
-            } // case 50
-            case 58: {
+            } // case 42
+            case 50: {
               ensureSkillsIsMutable();
               skills_.add(input.readStringRequireUtf8());
               break;
-            } // case 58
+            } // case 50
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1177,114 +1105,22 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private java.lang.Object model_ = "";
-    /**
-     * <pre>
-     * The model this agent runs; empty means the model the turn runs.
-     * </pre>
-     *
-     * <code>string model = 4 [json_name = "model"];</code>
-     * @return The model.
-     */
-    public java.lang.String getModel() {
-      java.lang.Object ref = model_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        model_ = s;
-        return s;
-      } else {
-        return (java.lang.String) ref;
-      }
-    }
-    /**
-     * <pre>
-     * The model this agent runs; empty means the model the turn runs.
-     * </pre>
-     *
-     * <code>string model = 4 [json_name = "model"];</code>
-     * @return The bytes for model.
-     */
-    public com.google.protobuf.ByteString
-        getModelBytes() {
-      java.lang.Object ref = model_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        model_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-    /**
-     * <pre>
-     * The model this agent runs; empty means the model the turn runs.
-     * </pre>
-     *
-     * <code>string model = 4 [json_name = "model"];</code>
-     * @param value The model to set.
-     * @return This builder for chaining.
-     */
-    public Builder setModel(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      model_ = value;
-      bitField0_ |= 0x00000008;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * The model this agent runs; empty means the model the turn runs.
-     * </pre>
-     *
-     * <code>string model = 4 [json_name = "model"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearModel() {
-      model_ = getDefaultInstance().getModel();
-      bitField0_ = (bitField0_ & ~0x00000008);
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * The model this agent runs; empty means the model the turn runs.
-     * </pre>
-     *
-     * <code>string model = 4 [json_name = "model"];</code>
-     * @param value The bytes for model to set.
-     * @return This builder for chaining.
-     */
-    public Builder setModelBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      model_ = value;
-      bitField0_ |= 0x00000008;
-      onChanged();
-      return this;
-    }
-
     private com.google.protobuf.LazyStringArrayList tools_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
     private void ensureToolsIsMutable() {
       if (!tools_.isModifiable()) {
         tools_ = new com.google.protobuf.LazyStringArrayList(tools_);
       }
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000008;
     }
     /**
      * <pre>
      * Tools this agent may use, in Claude Code's names; empty means all of the
-     * turn's. Checked at install: a list that fails the agent's rules is
-     * dropped with a warning.
+     * turn's. Checked at install: an entry the agent's rules refuse is dropped
+     * with a warning, and an agent whose list loses every entry is left out.
      * </pre>
      *
-     * <code>repeated string tools = 5 [json_name = "tools"];</code>
+     * <code>repeated string tools = 4 [json_name = "tools"];</code>
      * @return A list containing the tools.
      */
     public com.google.protobuf.ProtocolStringList
@@ -1295,11 +1131,11 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Tools this agent may use, in Claude Code's names; empty means all of the
-     * turn's. Checked at install: a list that fails the agent's rules is
-     * dropped with a warning.
+     * turn's. Checked at install: an entry the agent's rules refuse is dropped
+     * with a warning, and an agent whose list loses every entry is left out.
      * </pre>
      *
-     * <code>repeated string tools = 5 [json_name = "tools"];</code>
+     * <code>repeated string tools = 4 [json_name = "tools"];</code>
      * @return The count of tools.
      */
     public int getToolsCount() {
@@ -1308,11 +1144,11 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Tools this agent may use, in Claude Code's names; empty means all of the
-     * turn's. Checked at install: a list that fails the agent's rules is
-     * dropped with a warning.
+     * turn's. Checked at install: an entry the agent's rules refuse is dropped
+     * with a warning, and an agent whose list loses every entry is left out.
      * </pre>
      *
-     * <code>repeated string tools = 5 [json_name = "tools"];</code>
+     * <code>repeated string tools = 4 [json_name = "tools"];</code>
      * @param index The index of the element to return.
      * @return The tools at the given index.
      */
@@ -1322,11 +1158,11 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Tools this agent may use, in Claude Code's names; empty means all of the
-     * turn's. Checked at install: a list that fails the agent's rules is
-     * dropped with a warning.
+     * turn's. Checked at install: an entry the agent's rules refuse is dropped
+     * with a warning, and an agent whose list loses every entry is left out.
      * </pre>
      *
-     * <code>repeated string tools = 5 [json_name = "tools"];</code>
+     * <code>repeated string tools = 4 [json_name = "tools"];</code>
      * @param index The index of the value to return.
      * @return The bytes of the tools at the given index.
      */
@@ -1337,11 +1173,11 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Tools this agent may use, in Claude Code's names; empty means all of the
-     * turn's. Checked at install: a list that fails the agent's rules is
-     * dropped with a warning.
+     * turn's. Checked at install: an entry the agent's rules refuse is dropped
+     * with a warning, and an agent whose list loses every entry is left out.
      * </pre>
      *
-     * <code>repeated string tools = 5 [json_name = "tools"];</code>
+     * <code>repeated string tools = 4 [json_name = "tools"];</code>
      * @param index The index to set the value at.
      * @param value The tools to set.
      * @return This builder for chaining.
@@ -1351,18 +1187,18 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       ensureToolsIsMutable();
       tools_.set(index, value);
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
     /**
      * <pre>
      * Tools this agent may use, in Claude Code's names; empty means all of the
-     * turn's. Checked at install: a list that fails the agent's rules is
-     * dropped with a warning.
+     * turn's. Checked at install: an entry the agent's rules refuse is dropped
+     * with a warning, and an agent whose list loses every entry is left out.
      * </pre>
      *
-     * <code>repeated string tools = 5 [json_name = "tools"];</code>
+     * <code>repeated string tools = 4 [json_name = "tools"];</code>
      * @param value The tools to add.
      * @return This builder for chaining.
      */
@@ -1371,18 +1207,18 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       ensureToolsIsMutable();
       tools_.add(value);
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
     /**
      * <pre>
      * Tools this agent may use, in Claude Code's names; empty means all of the
-     * turn's. Checked at install: a list that fails the agent's rules is
-     * dropped with a warning.
+     * turn's. Checked at install: an entry the agent's rules refuse is dropped
+     * with a warning, and an agent whose list loses every entry is left out.
      * </pre>
      *
-     * <code>repeated string tools = 5 [json_name = "tools"];</code>
+     * <code>repeated string tools = 4 [json_name = "tools"];</code>
      * @param values The tools to add.
      * @return This builder for chaining.
      */
@@ -1391,35 +1227,35 @@ private static final long serialVersionUID = 0L;
       ensureToolsIsMutable();
       com.google.protobuf.AbstractMessageLite.Builder.addAll(
           values, tools_);
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
     /**
      * <pre>
      * Tools this agent may use, in Claude Code's names; empty means all of the
-     * turn's. Checked at install: a list that fails the agent's rules is
-     * dropped with a warning.
+     * turn's. Checked at install: an entry the agent's rules refuse is dropped
+     * with a warning, and an agent whose list loses every entry is left out.
      * </pre>
      *
-     * <code>repeated string tools = 5 [json_name = "tools"];</code>
+     * <code>repeated string tools = 4 [json_name = "tools"];</code>
      * @return This builder for chaining.
      */
     public Builder clearTools() {
       tools_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
-      bitField0_ = (bitField0_ & ~0x00000010);;
+      bitField0_ = (bitField0_ & ~0x00000008);;
       onChanged();
       return this;
     }
     /**
      * <pre>
      * Tools this agent may use, in Claude Code's names; empty means all of the
-     * turn's. Checked at install: a list that fails the agent's rules is
-     * dropped with a warning.
+     * turn's. Checked at install: an entry the agent's rules refuse is dropped
+     * with a warning, and an agent whose list loses every entry is left out.
      * </pre>
      *
-     * <code>repeated string tools = 5 [json_name = "tools"];</code>
+     * <code>repeated string tools = 4 [json_name = "tools"];</code>
      * @param value The bytes of the tools to add.
      * @return This builder for chaining.
      */
@@ -1429,7 +1265,7 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       ensureToolsIsMutable();
       tools_.add(value);
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
@@ -1440,14 +1276,14 @@ private static final long serialVersionUID = 0L;
       if (!disallowedTools_.isModifiable()) {
         disallowedTools_ = new com.google.protobuf.LazyStringArrayList(disallowedTools_);
       }
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000010;
     }
     /**
      * <pre>
      * Tools this agent may never use, in the same names as tools.
      * </pre>
      *
-     * <code>repeated string disallowed_tools = 6 [json_name = "disallowedTools"];</code>
+     * <code>repeated string disallowed_tools = 5 [json_name = "disallowedTools"];</code>
      * @return A list containing the disallowedTools.
      */
     public com.google.protobuf.ProtocolStringList
@@ -1460,7 +1296,7 @@ private static final long serialVersionUID = 0L;
      * Tools this agent may never use, in the same names as tools.
      * </pre>
      *
-     * <code>repeated string disallowed_tools = 6 [json_name = "disallowedTools"];</code>
+     * <code>repeated string disallowed_tools = 5 [json_name = "disallowedTools"];</code>
      * @return The count of disallowedTools.
      */
     public int getDisallowedToolsCount() {
@@ -1471,7 +1307,7 @@ private static final long serialVersionUID = 0L;
      * Tools this agent may never use, in the same names as tools.
      * </pre>
      *
-     * <code>repeated string disallowed_tools = 6 [json_name = "disallowedTools"];</code>
+     * <code>repeated string disallowed_tools = 5 [json_name = "disallowedTools"];</code>
      * @param index The index of the element to return.
      * @return The disallowedTools at the given index.
      */
@@ -1483,7 +1319,7 @@ private static final long serialVersionUID = 0L;
      * Tools this agent may never use, in the same names as tools.
      * </pre>
      *
-     * <code>repeated string disallowed_tools = 6 [json_name = "disallowedTools"];</code>
+     * <code>repeated string disallowed_tools = 5 [json_name = "disallowedTools"];</code>
      * @param index The index of the value to return.
      * @return The bytes of the disallowedTools at the given index.
      */
@@ -1496,7 +1332,7 @@ private static final long serialVersionUID = 0L;
      * Tools this agent may never use, in the same names as tools.
      * </pre>
      *
-     * <code>repeated string disallowed_tools = 6 [json_name = "disallowedTools"];</code>
+     * <code>repeated string disallowed_tools = 5 [json_name = "disallowedTools"];</code>
      * @param index The index to set the value at.
      * @param value The disallowedTools to set.
      * @return This builder for chaining.
@@ -1506,7 +1342,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       ensureDisallowedToolsIsMutable();
       disallowedTools_.set(index, value);
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
@@ -1515,7 +1351,7 @@ private static final long serialVersionUID = 0L;
      * Tools this agent may never use, in the same names as tools.
      * </pre>
      *
-     * <code>repeated string disallowed_tools = 6 [json_name = "disallowedTools"];</code>
+     * <code>repeated string disallowed_tools = 5 [json_name = "disallowedTools"];</code>
      * @param value The disallowedTools to add.
      * @return This builder for chaining.
      */
@@ -1524,7 +1360,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       ensureDisallowedToolsIsMutable();
       disallowedTools_.add(value);
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
@@ -1533,7 +1369,7 @@ private static final long serialVersionUID = 0L;
      * Tools this agent may never use, in the same names as tools.
      * </pre>
      *
-     * <code>repeated string disallowed_tools = 6 [json_name = "disallowedTools"];</code>
+     * <code>repeated string disallowed_tools = 5 [json_name = "disallowedTools"];</code>
      * @param values The disallowedTools to add.
      * @return This builder for chaining.
      */
@@ -1542,7 +1378,7 @@ private static final long serialVersionUID = 0L;
       ensureDisallowedToolsIsMutable();
       com.google.protobuf.AbstractMessageLite.Builder.addAll(
           values, disallowedTools_);
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
@@ -1551,13 +1387,13 @@ private static final long serialVersionUID = 0L;
      * Tools this agent may never use, in the same names as tools.
      * </pre>
      *
-     * <code>repeated string disallowed_tools = 6 [json_name = "disallowedTools"];</code>
+     * <code>repeated string disallowed_tools = 5 [json_name = "disallowedTools"];</code>
      * @return This builder for chaining.
      */
     public Builder clearDisallowedTools() {
       disallowedTools_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
-      bitField0_ = (bitField0_ & ~0x00000020);;
+      bitField0_ = (bitField0_ & ~0x00000010);;
       onChanged();
       return this;
     }
@@ -1566,7 +1402,7 @@ private static final long serialVersionUID = 0L;
      * Tools this agent may never use, in the same names as tools.
      * </pre>
      *
-     * <code>repeated string disallowed_tools = 6 [json_name = "disallowedTools"];</code>
+     * <code>repeated string disallowed_tools = 5 [json_name = "disallowedTools"];</code>
      * @param value The bytes of the disallowedTools to add.
      * @return This builder for chaining.
      */
@@ -1576,7 +1412,7 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       ensureDisallowedToolsIsMutable();
       disallowedTools_.add(value);
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
@@ -1587,14 +1423,14 @@ private static final long serialVersionUID = 0L;
       if (!skills_.isModifiable()) {
         skills_ = new com.google.protobuf.LazyStringArrayList(skills_);
       }
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
     }
     /**
      * <pre>
      * The plugin's own skills this agent uses, by name.
      * </pre>
      *
-     * <code>repeated string skills = 7 [json_name = "skills"];</code>
+     * <code>repeated string skills = 6 [json_name = "skills"];</code>
      * @return A list containing the skills.
      */
     public com.google.protobuf.ProtocolStringList
@@ -1607,7 +1443,7 @@ private static final long serialVersionUID = 0L;
      * The plugin's own skills this agent uses, by name.
      * </pre>
      *
-     * <code>repeated string skills = 7 [json_name = "skills"];</code>
+     * <code>repeated string skills = 6 [json_name = "skills"];</code>
      * @return The count of skills.
      */
     public int getSkillsCount() {
@@ -1618,7 +1454,7 @@ private static final long serialVersionUID = 0L;
      * The plugin's own skills this agent uses, by name.
      * </pre>
      *
-     * <code>repeated string skills = 7 [json_name = "skills"];</code>
+     * <code>repeated string skills = 6 [json_name = "skills"];</code>
      * @param index The index of the element to return.
      * @return The skills at the given index.
      */
@@ -1630,7 +1466,7 @@ private static final long serialVersionUID = 0L;
      * The plugin's own skills this agent uses, by name.
      * </pre>
      *
-     * <code>repeated string skills = 7 [json_name = "skills"];</code>
+     * <code>repeated string skills = 6 [json_name = "skills"];</code>
      * @param index The index of the value to return.
      * @return The bytes of the skills at the given index.
      */
@@ -1643,7 +1479,7 @@ private static final long serialVersionUID = 0L;
      * The plugin's own skills this agent uses, by name.
      * </pre>
      *
-     * <code>repeated string skills = 7 [json_name = "skills"];</code>
+     * <code>repeated string skills = 6 [json_name = "skills"];</code>
      * @param index The index to set the value at.
      * @param value The skills to set.
      * @return This builder for chaining.
@@ -1653,7 +1489,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       ensureSkillsIsMutable();
       skills_.set(index, value);
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
@@ -1662,7 +1498,7 @@ private static final long serialVersionUID = 0L;
      * The plugin's own skills this agent uses, by name.
      * </pre>
      *
-     * <code>repeated string skills = 7 [json_name = "skills"];</code>
+     * <code>repeated string skills = 6 [json_name = "skills"];</code>
      * @param value The skills to add.
      * @return This builder for chaining.
      */
@@ -1671,7 +1507,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       ensureSkillsIsMutable();
       skills_.add(value);
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
@@ -1680,7 +1516,7 @@ private static final long serialVersionUID = 0L;
      * The plugin's own skills this agent uses, by name.
      * </pre>
      *
-     * <code>repeated string skills = 7 [json_name = "skills"];</code>
+     * <code>repeated string skills = 6 [json_name = "skills"];</code>
      * @param values The skills to add.
      * @return This builder for chaining.
      */
@@ -1689,7 +1525,7 @@ private static final long serialVersionUID = 0L;
       ensureSkillsIsMutable();
       com.google.protobuf.AbstractMessageLite.Builder.addAll(
           values, skills_);
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
@@ -1698,13 +1534,13 @@ private static final long serialVersionUID = 0L;
      * The plugin's own skills this agent uses, by name.
      * </pre>
      *
-     * <code>repeated string skills = 7 [json_name = "skills"];</code>
+     * <code>repeated string skills = 6 [json_name = "skills"];</code>
      * @return This builder for chaining.
      */
     public Builder clearSkills() {
       skills_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
-      bitField0_ = (bitField0_ & ~0x00000040);;
+      bitField0_ = (bitField0_ & ~0x00000020);;
       onChanged();
       return this;
     }
@@ -1713,7 +1549,7 @@ private static final long serialVersionUID = 0L;
      * The plugin's own skills this agent uses, by name.
      * </pre>
      *
-     * <code>repeated string skills = 7 [json_name = "skills"];</code>
+     * <code>repeated string skills = 6 [json_name = "skills"];</code>
      * @param value The bytes of the skills to add.
      * @return This builder for chaining.
      */
@@ -1723,7 +1559,7 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       ensureSkillsIsMutable();
       skills_.add(value);
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }

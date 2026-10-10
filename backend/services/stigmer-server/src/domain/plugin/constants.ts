@@ -16,25 +16,6 @@ export const PLUGIN_ARTIFACT_KEY_PREFIX = "plugins/";
  */
 export const VERSION_TAG_PATTERN = /^[a-zA-Z0-9._-]+$/;
 
-/**
- * The runner's built-in sub-agents. A plugin sub-agent bearing one of these
- * names shadows a built-in at run time; the runner only warns, so the
- * install warns too rather than refusing.
- */
-export const BUILT_IN_SUB_AGENT_NAMES: ReadonlySet<string> = new Set([
-  "explore",
-  "shell",
-  "general-purpose",
-]);
-
-/**
- * The materialisation order and the kinds a plugin may own, in the order
- * references resolve: an agent names skills and servers. Cascade deletes
- * in reverse.
- */
-export const MATERIALIZATION_ORDER = ["skill", "mcp_server", "agent"] as const;
-export type MaterializedKindName = (typeof MATERIALIZATION_ORDER)[number];
-
 /** FailedPrecondition copy when the upload lane was not configured. */
 export const TRANSFER_LANE_NOT_CONFIGURED =
   "plugin artifact transfer lane is not configured on this server";
@@ -45,16 +26,13 @@ export const TRANSFER_LANE_NOT_CONFIGURED =
  * is kept equal to this one because the SDK docs are generated from it.
  */
 export const SERVER_WARNING_KINDS = {
+  /** An agent left out because every entry of its `tools` list was dropped. */
+  agentNotInstalled: "agent-not-installed",
   componentIgnored: "component-ignored",
-  /** A system-content row the plugin took over in place (members.ts, judgeSlug). */
-  memberAdopted: "member-adopted",
   modelHintUnresolved: "model-hint-unresolved",
-  /** A plugin's settings name a main agent, but its `ai.stigmer/agent.yaml` defines the agent. */
+  /** A Claude plugin's settings name a main agent, which a conversation's own agent replaces. */
   settingsAgentNotApplied: "settings-agent-not-applied",
-  subAgentNameBuiltin: "sub-agent-name-builtin",
-  /** A sub-agent left out because every entry of its `tools` list was dropped. */
-  subAgentNotInstalled: "sub-agent-not-installed",
-  /** A tool-list entry the contract cannot store, after Stigmer's names apply. */
+  /** A tool-list entry the contract cannot store. */
   toolListEntryDropped: "tool-list-entry-dropped",
   versionNotTaggable: "version-not-taggable",
 } as const;

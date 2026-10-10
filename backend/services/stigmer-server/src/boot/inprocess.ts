@@ -25,11 +25,8 @@ import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { AgentIdSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 import { GetAgentVersionInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
-import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
-import { ApiResourceDeleteInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { SkillCommandController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/command_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
-import { SkillIdSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { SessionIdSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
@@ -49,10 +46,6 @@ import type {
   ScoreDeleter,
   ScoreRecorder,
 } from "../domain/score/ports.js";
-import type { PluginMaterializer } from "../domain/plugin/materialize/ports.js";
-import { UpdateVisibilityInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import type { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { ExecutionStatusWriter } from "../temporal/agentexecution/activities.js";
 import type { ScheduleExecutionCreator } from "../temporal/schedule/run-starter.js";
 import { buildInterceptorChain } from "../pipeline/chain.js";
@@ -123,16 +116,6 @@ export interface InProcessClients {
    */
   readonly executionStatusWriter: ExecutionStatusWriter;
   /**
-   * The plugin controller's materialisation edge: every member a plugin
-   * installs, upgrades, re-levels or removes goes through the owning
-   * domain's FULL chain (skill push, the three applies, updateVisibility,
-   * delete) AS THE INSTALLING CALLER (the asCaller call options), so a
-   * materialised skill is attributed to the user who installed it and
-   * carries the plugin's reserved labels by the in-process origin the
-   * guards pass structurally.
-   */
-  readonly pluginMaterializer: PluginMaterializer;
-  /**
    * The boot step of a composition that declares one organization
    * (boot/single-organization.ts): the organization's FULL create chain AS
    * THE CALLER compose.ts names (the operator's account under trusted-local,
@@ -194,7 +177,6 @@ export function createInProcessClients(
     OrganizationCommandController,
     transport,
   );
-  const mcpServerCommand = createClient(McpServerCommandController, transport);
   const skillCommand = createClient(SkillCommandController, transport);
   const scoreCommand = createClient(ScoreCommandController, transport);
 
@@ -280,92 +262,11 @@ export function createInProcessClients(
     executionStatusWriter: {
       updateStatus: (input) => agentExecutionCommand.updateStatus(input),
     },
-    pluginMaterializer: {
-      pushSkill: (request, caller) =>
-        skillCommand.push(request, asCaller(caller)),
-      applyMcpServer: (server, caller) =>
-        mcpServerCommand.apply(server, asCaller(caller)),
-      applyAgent: (agent, caller) =>
-        agentCommand.apply(agent, asCaller(caller)),
-      updateVisibility: (kind, resourceId, visibility, caller) =>
-        updateVisibilityByKind(kind, resourceId, visibility, asCaller(caller)),
-      deleteByKind: (kind, resourceId, caller) =>
-        deleteByKind(kind, resourceId, asCaller(caller)),
-    },
     singleOrganizationCreator: {
       createAsCaller: (organization, caller) =>
         organizationCommand.create(organization, asCaller(caller)),
     },
   };
-
-  /**
-   * Delete routing for the three member kinds a plugin materialises, used
-   * by the plugin controller as the installing caller. Every member delete
-   * runs the owning domain's FULL pipeline (referential blocks included)
-   * through the same interceptor chain as an external delete. The
-   * unsupported-kind default is defense-in-depth: the plugin's member
-   * reader refuses unsupported kinds before any delete is attempted.
-   */
-  async function deleteByKind(
-    kind: ApiResourceKind,
-    resourceId: string,
-    options?: CallOptions,
-  ): Promise<void> {
-    switch (kind) {
-      case ApiResourceKind.agent:
-        await agentCommand.delete(
-          create(AgentIdSchema, { value: resourceId }),
-          options,
-        );
-        return;
-      case ApiResourceKind.mcp_server:
-        // McpServer's delete input is the commons ApiResourceDeleteInput
-        // (not an id wrapper) — Go's client builds the same message.
-        await mcpServerCommand.delete(
-          create(ApiResourceDeleteInputSchema, { resourceId }),
-          options,
-        );
-        return;
-      case ApiResourceKind.skill:
-        await skillCommand.delete(
-          create(SkillIdSchema, { value: resourceId }),
-          options,
-        );
-        return;
-      default:
-        throw new Error(
-          `unsupported resource kind for delete: ${ApiResourceKind[kind] ?? String(kind)}`,
-        );
-    }
-  }
-
-  /** The one door for a level change on each member kind (metadata.proto). */
-  async function updateVisibilityByKind(
-    kind: ApiResourceKind,
-    resourceId: string,
-    visibility: ApiResourceVisibility,
-    options: CallOptions,
-  ): Promise<void> {
-    const input = create(UpdateVisibilityInputSchema, {
-      resourceId,
-      visibility,
-    });
-    switch (kind) {
-      case ApiResourceKind.agent:
-        await agentCommand.updateVisibility(input, options);
-        return;
-      case ApiResourceKind.mcp_server:
-        await mcpServerCommand.updateVisibility(input, options);
-        return;
-      case ApiResourceKind.skill:
-        await skillCommand.updateVisibility(input, options);
-        return;
-      default:
-        throw new Error(
-          `unsupported resource kind for updateVisibility: ${ApiResourceKind[kind] ?? String(kind)}`,
-        );
-    }
-  }
 
   return { clients, transport };
 }

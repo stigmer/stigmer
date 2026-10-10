@@ -1462,16 +1462,6 @@
           "required": false
         },
         {
-          "name": "Model",
-          "jsonName": "model",
-          "protoField": "model",
-          "type": {
-            "kind": "string"
-          },
-          "description": "The model this agent runs; empty means the model the turn runs.",
-          "required": false
-        },
-        {
           "name": "Tools",
           "jsonName": "tools",
           "protoField": "tools",
@@ -1481,7 +1471,7 @@
               "kind": "string"
             }
           },
-          "description": "Tools this agent may use, in Claude Code's names; empty means all of the\n turn's. Checked at install: a list that fails the agent's rules is\n dropped with a warning.",
+          "description": "Tools this agent may use, in Claude Code's names; empty means all of the\n turn's. Checked at install: an entry the agent's rules refuse is dropped\n with a warning, and an agent whose list loses every entry is left out.",
           "required": false
         },
         {

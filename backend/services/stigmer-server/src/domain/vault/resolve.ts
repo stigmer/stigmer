@@ -6,12 +6,13 @@
  *
  * What a run needs (requirements), each with its declarer:
  *   - every key its agent declares (`AgentSpec.env`), except a key any
- *     tool of the run declares (its env or its login): agent save copies
- *     its tools' keys into the agent's env, and a tool's key never reaches
- *     the agent's shell;
- *   - every key each tool it uses declares (the agent's MCP servers and the
- *     session's own), and each tool's login key: `auth.target_env_var`,
- *     else the variable its `Authorization: Bearer ${VAR}` header names;
+ *     tool or plugin of the run declares: an agent saved before plugins were
+ *     whole may hold copies of its tools' keys, and a tool's key never
+ *     reaches the agent's shell;
+ *   - every key each tool it uses reads (each MCP server of each plugin the
+ *     agent and the conversation list), and each tool's login key: the
+ *     variable its `Authorization: Bearer ${VAR}` header names;
+ *   - every key each listed plugin's hooks read, for those hooks only;
  *   - GITHUB_TOKEN for each github.com repository the session clones
  *     (optional: a public repository needs none). The runner sends that
  *     key only to git for an HTTPS URL whose host is github.com, so a
@@ -91,17 +92,16 @@
  * naming the key, its declarer and the vault, and saying to fix it and
  * recover; any other fault during renewal is INTERNAL. The values are
  * answered grouped by declarer: the agent's, each tool's with the URL the
- * fetch read, each repository's token.
+ * fetch read, each plugin's for its hooks, each repository's token.
  *
  * A manifest names where a value lives and carries no value, except a
  * plain declaration's own default, a fixed setting of the agent or tool
  * that is no secret. What the fetch answers is the values alone: whoever
  * receives one treats every value as secret.
  *
- * The connect lane has no conversation: planConnect reads the connecting
- * person's My vault only (a sign-in saved into a shared vault serves the
- * runs that use that vault, never connect), and the runner's backfill of a
- * run's tool opens that tool's entries in the run's manifest.
+ * A tools listing has no conversation: planConnect reads the listing
+ * person's My vault only, for the one server listed (a sign-in saved into a
+ * shared vault serves the runs that use that vault, never a listing).
  *
  * Proven by __tests__/resolve.test.ts and the vault conformance suites.
  */
@@ -112,8 +112,8 @@ import { ConnectError } from "@connectrpc/connect";
 import type { AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
-import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import type { McpServerEntry, PluginStatus } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import { RunValueSourceSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run, RunValueSource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
@@ -124,17 +124,21 @@ import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/a
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
+import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
 import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
 import { VaultConnectionSource } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
 import {
   ExecutionValuesSchema,
+  PluginValuesSchema,
   RepositoryValuesSchema,
   ToolValuesSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
 import type {
   ExecutionValues,
+  PluginValues,
   ToolValues,
 } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
+import { hookVariableReferences } from "@stigmer/plugin-package";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
@@ -219,8 +223,40 @@ export interface SignInFreshener {
 /** Who declares a requirement. */
 export type Declarer =
   | { readonly kind: "agent"; readonly name: string }
-  | { readonly kind: "tool"; readonly name: string; readonly mcpServerId: string }
+  | {
+      readonly kind: "tool";
+      /** `plugin:<plugin>:<server>`, as Claude Code names a plugin's server. */
+      readonly name: string;
+      readonly pluginId: string;
+      readonly server: string;
+    }
+  | { readonly kind: "plugin"; readonly name: string; readonly pluginId: string }
   | { readonly kind: "repository"; readonly name: string; readonly url: string };
+
+/** A plugin a run lists, at the version it resolved to. */
+export interface RunPlugin {
+  readonly id: string;
+  readonly name: string;
+  readonly status: PluginStatus;
+}
+
+/** One MCP server of a plugin, with the plugin's declarations of the keys it reads. */
+export interface PluginServer {
+  readonly pluginId: string;
+  readonly pluginName: string;
+  readonly entry: McpServerEntry;
+  readonly env: { readonly [key: string]: EnvVarDeclaration };
+}
+
+/** Each MCP server of a plugin. */
+export function serversOf(plugin: RunPlugin): PluginServer[] {
+  return plugin.status.mcpServers.map((entry) => ({
+    pluginId: plugin.id,
+    pluginName: plugin.name,
+    entry,
+    env: plugin.status.env,
+  }));
+}
 
 /** One value a run needs. */
 export interface Requirement {
@@ -289,29 +325,26 @@ export interface RunCredentialInput {
    * unreadable one) reads no My vault, for any requirement.
    */
   readonly agentOrg: string | undefined;
-  readonly tools: readonly McpServer[];
+  /** Every plugin the run lists (its agent's and its conversation's), each once. */
+  readonly plugins: readonly RunPlugin[];
 }
 
-/** A connect's planning input: whose My vault, in which organization, for which tool. */
+/** A tools listing's planning input: whose My vault, in which organization, for which server. */
 export interface ConnectPlanInput {
   readonly orgId: string;
-  /** The connecting person; undefined for a caller who is no first-party person (reads no vault). */
+  /** The listing person; undefined for a caller who is no first-party person (reads no vault). */
   readonly person: string | undefined;
-  readonly server: McpServer;
+  readonly server: PluginServer;
 }
 
 export interface VaultResolver {
   /** The run's source manifest: where each value it needs lives. Refuses a required key nothing holds. */
   planRun(input: RunCredentialInput): Promise<RunValueSource[]>;
-  /**
-   * The values a stored run's manifest names, opened as they are now and
-   * grouped by declarer. `onlyTool` keeps one tool's entries (the
-   * runner's backfill connect of that tool).
-   */
-  openRun(execution: Run, onlyTool?: string): Promise<ExecutionValues>;
-  /** A connect's plan: the server's requirements over the person's My vault. */
+  /** The values a stored run's manifest names, opened as they are now and grouped by declarer. */
+  openRun(execution: Run): Promise<ExecutionValues>;
+  /** A listing's plan: the server's requirements over the person's My vault. */
   planConnect(input: ConnectPlanInput): Promise<RunValueSource[]>;
-  /** A connect's values: planned now over the person's My vault, then opened. */
+  /** A listing's values: planned now over the person's My vault, then opened. */
   openConnect(input: ConnectPlanInput): Promise<ExecutionValues>;
 }
 
@@ -333,17 +366,13 @@ export function recordedRunPerson(execution: Run): string | undefined {
 
 const BEARER_VARIABLE = /^\s*Bearer\s+\$\{([A-Za-z_][A-Za-z0-9_]*)\}\s*$/i;
 
-/** A tool's login key: auth.target_env_var, else the variable its bearer header names. */
-export function loginKeyOf(server: McpServer): string | undefined {
-  const target = server.spec?.auth?.targetEnvVar ?? "";
-  if (target !== "") {
-    return target;
-  }
-  const serverType = server.spec?.serverType;
-  if (serverType?.case !== "http") {
+/** A tool's login key: the variable its `Authorization: Bearer ${VAR}` header names. */
+export function loginKeyOf(server: McpServerEntry): string | undefined {
+  const transport = server.transport;
+  if (transport.case !== "http") {
     return undefined;
   }
-  for (const [header, value] of Object.entries(serverType.value.headers)) {
+  for (const [header, value] of Object.entries(transport.value.headers)) {
     if (header.toLowerCase() !== "authorization") {
       continue;
     }
@@ -355,8 +384,9 @@ export function loginKeyOf(server: McpServer): string | undefined {
   return undefined;
 }
 
-function nameOfTool(server: McpServer): string {
-  return server.metadata?.name || server.metadata?.slug || server.metadata?.id || "a tool";
+/** `plugin:<plugin>:<server>`, as Claude Code names a plugin's server. */
+export function toolNameOf(pluginName: string, serverName: string): string {
+  return `plugin:${pluginName}:${serverName}`;
 }
 
 function declarationRequirements(
@@ -373,20 +403,31 @@ function declarationRequirements(
   }));
 }
 
+/** The declarations of the keys a server reads; a name the plugin did not declare is a required secret. */
+function declarationsOf(server: PluginServer): Record<string, EnvVarDeclaration> {
+  const declarations: Record<string, EnvVarDeclaration> = {};
+  for (const name of server.entry.env) {
+    declarations[name] =
+      server.env[name] ?? create(EnvVarDeclarationSchema, { isSecret: true, optional: false });
+  }
+  return declarations;
+}
+
 /** Every requirement of a tool: its declarations, with its login key marked. */
-export function toolRequirements(server: McpServer): Requirement[] {
+export function toolRequirements(server: PluginServer): Requirement[] {
   const declarer: Declarer = {
     kind: "tool",
-    name: nameOfTool(server),
-    mcpServerId: server.metadata?.id ?? "",
+    name: toolNameOf(server.pluginName, server.entry.name),
+    pluginId: server.pluginId,
+    server: server.entry.name,
   };
-  const loginKey = loginKeyOf(server);
-  const address = toolAddressOf(server);
-  const signIn = server.spec?.auth !== undefined;
+  const loginKey = loginKeyOf(server.entry);
+  const address = toolAddressOf(server.entry);
+  const signIn = server.entry.signIn !== undefined;
   const tool = {
-    sendsToAddress: server.spec?.serverType?.case === "http",
+    sendsToAddress: server.entry.transport.case === "http",
   };
-  const requirements = declarationRequirements(server.spec?.env ?? {}, declarer).map(
+  const requirements = declarationRequirements(declarationsOf(server), declarer).map(
     (requirement): Requirement => {
       if (requirement.key !== loginKey || address === undefined) {
         return requirement;
@@ -411,24 +452,43 @@ export function toolRequirements(server: McpServer): Requirement[] {
   return requirements;
 }
 
+/** Every key a plugin's hooks read, declared by the plugin, for those hooks only. */
+export function pluginHookRequirements(plugin: RunPlugin): Requirement[] {
+  const hooks = plugin.status.hooks;
+  if (hooks === undefined) {
+    return [];
+  }
+  const declarations: Record<string, EnvVarDeclaration> = {};
+  for (const name of hookVariableReferences(hooks)) {
+    declarations[name] =
+      plugin.status.env[name] ?? create(EnvVarDeclarationSchema, { isSecret: true, optional: false });
+  }
+  return declarationRequirements(declarations, {
+    kind: "plugin",
+    name: plugin.name,
+    pluginId: plugin.id,
+  });
+}
+
 /**
  * Every requirement of a run. The agent's own declaration of a key any of
- * the run's tools declares is no requirement of the agent's: that key is
- * the tool's, and the agent's shell never holds it.
+ * the run's tools or plugins declares is no requirement of the agent's:
+ * that key is theirs, and the agent's shell never holds it.
  */
 export function runRequirements(input: RunCredentialInput): Requirement[] {
-  const tools = input.tools.flatMap(toolRequirements);
-  const toolKeys = new Set(tools.map((requirement) => requirement.key));
+  const tools = input.plugins.flatMap((plugin) => serversOf(plugin).flatMap(toolRequirements));
+  const hooks = input.plugins.flatMap(pluginHookRequirements);
+  const pluginKeys = new Set([...tools, ...hooks].map((requirement) => requirement.key));
   const requirements: Requirement[] = [];
   if (input.agentSpec !== undefined) {
     requirements.push(
       ...declarationRequirements(input.agentSpec.env, {
         kind: "agent",
         name: input.agentName,
-      }).filter((requirement) => !toolKeys.has(requirement.key)),
+      }).filter((requirement) => !pluginKeys.has(requirement.key)),
     );
   }
-  requirements.push(...tools);
+  requirements.push(...tools, ...hooks);
   for (const entry of input.session.spec?.workspaceEntries ?? []) {
     const source = entry.source?.source;
     if (source?.case !== "gitRepo" || gitHostOf(source.value.url) !== GITHUB_HOST) {
@@ -519,6 +579,7 @@ function locate(requirement: Requirement, sources: readonly Source[]): Location 
 const DECLARER_KINDS: Readonly<Record<Declarer["kind"], RunValueDeclarerKind>> = {
   agent: RunValueDeclarerKind.AGENT,
   tool: RunValueDeclarerKind.TOOL,
+  plugin: RunValueDeclarerKind.PLUGIN,
   repository: RunValueDeclarerKind.REPOSITORY,
 };
 
@@ -530,7 +591,8 @@ function sourceEntry(requirement: Requirement, location: Location): RunValueSour
     declarer: {
       kind: DECLARER_KINDS[declarer.kind],
       name: declarer.name,
-      mcpServerId: declarer.kind === "tool" ? declarer.mcpServerId : "",
+      pluginId: declarer.kind === "tool" || declarer.kind === "plugin" ? declarer.pluginId : "",
+      server: declarer.kind === "tool" ? declarer.server : "",
       repositoryUrl: declarer.kind === "repository" ? declarer.url : "",
     },
   });
@@ -566,6 +628,7 @@ function sourceEntry(requirement: Requirement, location: Location): RunValueSour
 const DECLARER_WORDS: Readonly<Record<Declarer["kind"], (name: string) => string>> = {
   agent: (name) => `the agent ${name}`,
   tool: (name) => name,
+  plugin: (name) => `the hooks of plugin ${name}`,
   repository: (name) => `repository ${name}`,
 };
 
@@ -643,7 +706,9 @@ function declarerOfEntry(entry: RunValueSource): Declarer {
   const declarer = entry.declarer;
   switch (declarer?.kind) {
     case RunValueDeclarerKind.TOOL:
-      return { kind: "tool", name: declarer.name, mcpServerId: declarer.mcpServerId };
+      return { kind: "tool", name: declarer.name, pluginId: declarer.pluginId, server: declarer.server };
+    case RunValueDeclarerKind.PLUGIN:
+      return { kind: "plugin", name: declarer.name, pluginId: declarer.pluginId };
     case RunValueDeclarerKind.REPOSITORY:
       return { kind: "repository", name: declarer.name, url: declarer.repositoryUrl };
     default:
@@ -1048,10 +1113,14 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
     };
   }
 
-  /** Loads a tool a manifest names, or undefined when it is gone. */
-  async function loadTool(mcpServerId: string): Promise<McpServer | undefined> {
+  /**
+   * Loads the server a manifest names, from its plugin as installed now, or
+   * undefined when the plugin or the server is gone.
+   */
+  async function loadTool(pluginId: string, server: string): Promise<McpServerEntry | undefined> {
     try {
-      return await deps.store.getResource(ApiResourceKind.mcp_server, mcpServerId, McpServerSchema);
+      const plugin = await deps.store.getResource(ApiResourceKind.plugin, pluginId, PluginSchema);
+      return plugin.status?.mcpServers.find((entry) => entry.name === server);
     } catch (error) {
       if (error instanceof ResourceNotFoundError) {
         return undefined;
@@ -1061,7 +1130,7 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
   }
 
   /** Whether a connection at `address` may still fill the login of `tool` as it is now. */
-  function loginStillFor(tool: McpServer, address: string): boolean {
+  function loginStillFor(tool: McpServerEntry, address: string): boolean {
     const toolAddress = toolAddressOf(tool);
     if (toolAddress === undefined) {
       return false;
@@ -1078,12 +1147,14 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
     const vaults = new Map<string, Promise<CheckedVault>>();
     const renewals = new Map<string, Promise<string>>();
     const tools = new Map<string, ToolValues>();
-    const loadedTools = new Map<string, Promise<McpServer | undefined>>();
-    const toolOf = (id: string): Promise<McpServer | undefined> => {
-      let loaded = loadedTools.get(id);
+    const plugins = new Map<string, PluginValues>();
+    const loadedTools = new Map<string, Promise<McpServerEntry | undefined>>();
+    const toolOf = (pluginId: string, server: string): Promise<McpServerEntry | undefined> => {
+      const key = `${pluginId}\u0000${server}`;
+      let loaded = loadedTools.get(key);
       if (loaded === undefined) {
-        loaded = loadTool(id);
-        loadedTools.set(id, loaded);
+        loaded = loadTool(pluginId, server);
+        loadedTools.set(key, loaded);
       }
       return loaded;
     };
@@ -1124,7 +1195,7 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
               throw unopenable(entry, `${vault.label} no longer holds a login for ${entry.entry}`);
             }
             if (declarer?.kind === RunValueDeclarerKind.TOOL) {
-              const tool = await toolOf(declarer.mcpServerId);
+              const tool = await toolOf(declarer.pluginId, declarer.server);
               if (tool === undefined || !loginStillFor(tool, entry.entry)) {
                 throw unopenable(
                   entry,
@@ -1157,16 +1228,27 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
 
       switch (declarer?.kind) {
         case RunValueDeclarerKind.TOOL: {
-          let group = tools.get(declarer.mcpServerId);
+          const key = `${declarer.pluginId}\u0000${declarer.server}`;
+          let group = tools.get(key);
           if (group === undefined) {
-            const tool = await toolOf(declarer.mcpServerId);
-            const serverType = tool?.spec?.serverType;
+            const transport = (await toolOf(declarer.pluginId, declarer.server))?.transport;
             group = create(ToolValuesSchema, {
-              mcpServerId: declarer.mcpServerId,
-              url: serverType?.case === "http" ? serverType.value.url : "",
+              pluginId: declarer.pluginId,
+              server: declarer.server,
+              url: transport?.case === "http" ? transport.value.url : "",
             });
-            tools.set(declarer.mcpServerId, group);
+            tools.set(key, group);
             values.tools.push(group);
+          }
+          group.values[entry.key] = value;
+          break;
+        }
+        case RunValueDeclarerKind.PLUGIN: {
+          let group = plugins.get(declarer.pluginId);
+          if (group === undefined) {
+            group = create(PluginValuesSchema, { pluginId: declarer.pluginId });
+            plugins.set(declarer.pluginId, group);
+            values.plugins.push(group);
           }
           group.values[entry.key] = value;
           break;
@@ -1214,16 +1296,11 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
     }
   }
 
-  async function openRun(execution: Run, onlyTool?: string): Promise<ExecutionValues> {
+  async function openRun(execution: Run): Promise<ExecutionValues> {
     const person = recordedRunPerson(execution);
     const stored = await storedSession(sessionIdOf(execution.spec));
     const own = openSessionValues(deps.secretService, stored);
-    const entries = (execution.status?.credentials?.sources ?? []).filter(
-      (entry) =>
-        onlyTool === undefined ||
-        (entry.declarer?.kind === RunValueDeclarerKind.TOOL &&
-          entry.declarer.mcpServerId === onlyTool),
-    );
+    const entries = execution.status?.credentials?.sources ?? [];
     const values = await open(entries, {
       vaultFor: runScopeVaults(execution, stored, person),
       repositoryTokens: own.repositoryTokens,
@@ -1236,7 +1313,7 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
     return values;
   }
 
-  /** A connect's sources: the person's My vault, nothing else. */
+  /** A listing's sources: the person's My vault, nothing else. */
   async function connectSources(input: ConnectPlanInput): Promise<Source[]> {
     if (input.person === undefined) {
       return [];
