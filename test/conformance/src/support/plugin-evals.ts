@@ -66,8 +66,8 @@ export function pluginEvalOrgMismatchMessage(pluginOrg: string): string {
   return `metadata.org must be the plugin's organization (${pluginOrg})`;
 }
 
-export function pluginEvalUnknownDigestMessage(digest: string): string {
-  return `spec.plugin_digest ${digest} is not a version of this plugin`;
+export function pluginEvalNotCurrentVersionMessage(current: string): string {
+  return `an eval runs the plugin's current version (${current}); evaluating an earlier version is not supported yet`;
 }
 
 export function pluginEvalNoCasesMessage(dir: string): string {

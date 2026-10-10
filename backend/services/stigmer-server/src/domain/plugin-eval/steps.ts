@@ -75,10 +75,11 @@ import {
   pluginEvalNotStartedMessage,
   pluginEvalOrgMismatchMessage,
   pluginEvalOtherPluginToolMessage,
+  pluginEvalCaseGlobMessage,
+  pluginEvalNotCurrentVersionMessage,
   pluginEvalTooLargeMessage,
-  pluginEvalUnknownDigestMessage,
 } from "./constants.js";
-import { evalModelCatalogOf, planMatrix } from "./matrix.js";
+import { caseGlobError, evalModelCatalogOf, planMatrix } from "./matrix.js";
 import { listPluginEvals } from "./queries.js";
 import type { EvalSuiteSource } from "./suite.js";
 import { loadEvalSuite, pluginVersionedBinding } from "./suite.js";
@@ -161,7 +162,9 @@ function evaluatedPluginOf(ctx: RequestContext<typeof PluginEvalSchema>): Plugin
  * interceptor covers the lane, and the organization that installed the
  * plugin is the one that pays); the id is minted here so an unnamed eval
  * is named by it; spec.plugin_digest is stamped with the plugin's current
- * version when empty, and refused when it names no version of the plugin;
+ * version when empty, and refused (FAILED_PRECONDITION) when it names any
+ * other: the with-plugin arm runs the plugin as installed now (arm.ts), so
+ * an earlier version's suite would be graded against today's plugin;
  * spec.allow_tools is held in Stigmer's names (allow-tools.ts).
  */
 export function newResolvePluginEvalDefaultsStep(
@@ -183,18 +186,18 @@ export function newResolvePluginEvalDefaultsStep(
       if (spec === undefined) {
         throw invalidArgumentError("spec is required for a plugin eval");
       }
-      const requested = spec.pluginDigest;
+      const current = pluginVersionedBinding.headHashOf(plugin);
+      if (current === "") {
+        throw failedPreconditionError(pluginEvalNoCasesMessage("evals"));
+      }
       const digest = await resolveVersionHash(
         store,
         pluginVersionedBinding,
         plugin,
-        requested,
+        spec.pluginDigest,
       );
-      if (digest === undefined) {
-        throw invalidArgumentError(pluginEvalUnknownDigestMessage(requested));
-      }
-      if (digest === "") {
-        throw failedPreconditionError(pluginEvalNoCasesMessage("evals"));
+      if (digest !== current) {
+        throw failedPreconditionError(pluginEvalNotCurrentVersionMessage(current));
       }
       spec.pluginDigest = digest;
       const allowed = stigmerAllowTools(spec.allowTools, {
@@ -244,7 +247,8 @@ export function newValidatePluginEvalTargetsStep(
 }
 
 /**
- * PlanPluginEval: reads the suite from the archive at the stamped digest,
+ * PlanPluginEval: refuses a case_glob that is not a glob (INVALID_ARGUMENT,
+ * naming it), reads the suite from the archive at the stamped digest,
  * refuses a version with no cases and a suite larger than an eval may run
  * (with the computed counts), and writes the pending status: the planned
  * tries, and the comparison marked provisional while the with-arm runs on
@@ -261,6 +265,10 @@ export function newPlanPluginEvalStep(
       const spec = ctx.newState.spec;
       if (spec === undefined) {
         throw invalidArgumentError("spec is required for a plugin eval");
+      }
+      const globError = caseGlobError(spec.caseGlob);
+      if (globError !== undefined) {
+        throw invalidArgumentError(pluginEvalCaseGlobMessage(spec.caseGlob, globError));
       }
       let loaded;
       try {

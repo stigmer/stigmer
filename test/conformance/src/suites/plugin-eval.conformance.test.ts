@@ -10,11 +10,11 @@
 //   - get answers what create stored; listByPlugin answers the plugin's
 //     evals newest first, and no other plugin's;
 //   - create refuses, before anything is stored: a plugin version with no
-//     evals/ or with no case in it, a digest that names no version of the
-//     plugin, an organization that is not the plugin's, a target model the
-//     catalog does not know, a suite past the limits (with the computed
-//     counts), an allow_tools entry naming another plugin's MCP tools, and
-//     a plugin that does not exist.
+//     evals/ or with no case in it, a digest that is not the plugin's
+//     current version, an organization that is not the plugin's, a target
+//     model the catalog does not know, a suite past the limits (with the
+//     computed counts), an allow_tools entry naming another plugin's MCP
+//     tools, and a plugin that does not exist.
 // Without an engine behind the server (the plain local targets), create
 // cannot start the eval's workflow: the eval is stored and answered failed,
 // naming why, cancelling it changes nothing, and delete removes it.
@@ -47,7 +47,7 @@ import {
   pluginEvalOrgMismatchMessage,
   pluginEvalOtherPluginToolMessage,
   pluginEvalTooLargeMessage,
-  pluginEvalUnknownDigestMessage,
+  pluginEvalNotCurrentVersionMessage,
   skillFiredGrader,
   skillPluginWithEvals,
   withEvalCases,
@@ -207,7 +207,7 @@ describe("PluginEval — create refusals", () => {
     expect(err.rawMessage).toBe(pluginEvalNoCasesMessage("evals"));
   });
 
-  it("[rpc:PluginEvalCommandController.create] a digest that names no version of the plugin is INVALID_ARGUMENT", async () => {
+  it("[rpc:PluginEvalCommandController.create] a digest that is not the plugin's current version is FAILED_PRECONDITION naming the current one", async () => {
     const plugin = await installedWithEvals();
     const digest = "0".repeat(64);
     const err = await expectGrpcCode(
@@ -215,10 +215,10 @@ describe("PluginEval — create refusals", () => {
         clients.pluginEvalCommand.create(
           makePluginEval({ org: tenancy.org, pluginId: plugin.metadata!.id, pluginDigest: digest }),
         ),
-      Code.InvalidArgument,
-      "create naming an unknown digest",
+      Code.FailedPrecondition,
+      "create naming a digest other than the current version",
     );
-    expect(err.rawMessage).toBe(pluginEvalUnknownDigestMessage(digest));
+    expect(err.rawMessage).toBe(pluginEvalNotCurrentVersionMessage(plugin.status!.digest));
   });
 
   it("[rpc:PluginEvalCommandController.create] an organization that is not the plugin's is FAILED_PRECONDITION naming the plugin's", async () => {
@@ -304,8 +304,8 @@ describe("PluginEval — create refusals", () => {
         clients.pluginEvalCommand.create(
           makePluginEval({ org: tenancy.org, pluginId: plugin.metadata!.id, pluginDigest: "f".repeat(64) }),
         ),
-      Code.InvalidArgument,
-      "create naming an unknown digest",
+      Code.FailedPrecondition,
+      "create naming a digest other than the current version",
     );
     const list = await clients.pluginEvalQuery.listByPlugin({ pluginId: plugin.metadata!.id });
     expect(list.items).toEqual([]);

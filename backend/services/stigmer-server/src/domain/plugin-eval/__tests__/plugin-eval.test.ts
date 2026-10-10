@@ -3,9 +3,10 @@
  * temp SQLite store with no engine behind it, raw Connect clients, plugins
  * pushed as the CLI pushes them. Pins: create mints the eval's own id,
  * stamps the plugin's current version, plans its tries and, with no engine
- * to start its workflow, answers the eval failed with the reason; a digest
- * of another version is kept; create refuses an organization that is not
- * the plugin's, a digest that is no version of it, a missing plugin, a
+ * to start its workflow, answers the eval failed with the reason; create
+ * refuses a digest that is not the plugin's current version (an earlier
+ * one, or one that is no version of it), an organization that is not the
+ * plugin's, a case_glob that is not a glob, a missing plugin, a
  * version without eval cases, a filter that keeps no case, a suite larger
  * than an eval may run (naming the counts) and a target model the catalog
  * does not know; listByPlugin answers a plugin's evals newest first;
@@ -53,6 +54,7 @@ import {
   PLUGIN_EVAL_LABEL,
   pluginEvalActiveDeleteMessage,
   pluginEvalActiveOnPluginDeleteMessage,
+  pluginEvalNotCurrentVersionMessage,
   pluginEvalTooLargeMessage,
 } from "../constants.js";
 
@@ -209,7 +211,7 @@ describe("plugin eval create", () => {
     expect(read.spec?.pluginDigest).toBe(plugin.status?.digest);
   });
 
-  it("keeps a digest naming an earlier version, and plans by the spec's runs and ablation", async () => {
+  it("refuses a digest naming an earlier version, and plans by the spec's runs and ablation", async () => {
     const first = await install(CASES, "1.0.0");
     const firstDigest = first.status!.digest;
     const upgraded = await plugins.push({
@@ -219,16 +221,24 @@ describe("plugin eval create", () => {
           name: first.metadata!.slug,
           version: "1.1.0",
           skills: [{ name: `${first.metadata!.slug}-review`, description: "Review code", body: "# Review\nNewer." }],
-          files: { "evals/only/prompt.md": "Just this one.\n" },
+          files: {
+            "evals/only/prompt.md": "Just this one.\n",
+            "evals/only/graders/says-one.md": "---\ntype: regex\npattern: one\n---\n",
+          },
         }),
       ),
     });
-    expect(upgraded.status?.digest).not.toBe(firstDigest);
+    const current = upgraded.status!.digest;
+    expect(current).not.toBe(firstDigest);
+    const earlier = await refusal(evals.create(evalOf(first, { pluginDigest: firstDigest })));
+    expect(earlier.code).toBe(Code.FailedPrecondition);
+    expect(earlier.rawMessage).toBe(pluginEvalNotCurrentVersionMessage(current));
+
     const created = await evals.create(
-      evalOf(first, { pluginDigest: firstDigest, runs: 1, ablation: PluginEvalAblation.none }),
+      evalOf(first, { pluginDigest: current, runs: 1, ablation: PluginEvalAblation.none }),
     );
-    expect(created.spec?.pluginDigest).toBe(firstDigest);
-    expect(created.status?.triesTotal).toBe(2);
+    expect(created.spec?.pluginDigest).toBe(current);
+    expect(created.status?.triesTotal).toBe(1);
   });
 
   it("refuses what an eval cannot run, before writing anything", async () => {
@@ -241,8 +251,12 @@ describe("plugin eval create", () => {
     expect(otherOrgId).not.toBe(orgId);
 
     const unknownDigest = await refusal(evals.create(evalOf(plugin, { pluginDigest: "a".repeat(64) })));
-    expect(unknownDigest.code).toBe(Code.InvalidArgument);
-    expect(unknownDigest.rawMessage).toBe(`spec.plugin_digest ${"a".repeat(64)} is not a version of this plugin`);
+    expect(unknownDigest.code).toBe(Code.FailedPrecondition);
+    expect(unknownDigest.rawMessage).toBe(pluginEvalNotCurrentVersionMessage(plugin.status!.digest));
+
+    const badGlob = await refusal(evals.create(evalOf(plugin, { caseGlob: "review-[z-a]" })));
+    expect(badGlob.code).toBe(Code.InvalidArgument);
+    expect(badGlob.rawMessage).toBe("spec.case_glob 'review-[z-a]' is not a valid glob: range 'z-a' is reversed");
 
     const missing = await refusal(evals.create({ ...evalOf(plugin), spec: { pluginId: "plg_absent", maxCostUsd: 5 } }));
     expect(missing.code).toBe(Code.NotFound);
