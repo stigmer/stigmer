@@ -17,7 +17,9 @@
  *    whatever path dialect the model writes, and no symlink stretches that
  *    over the workspace (`platform-route.ts` `confinedReadAdmission`, pinned
  *    on a real temp workspace);
- *  - a sub-agent's graph enforces its own narrowed scope.
+ *  - a sub-agent's graph enforces its own narrowed scope;
+ *  - with `Skill` denied, `read_file` of a skill's files is refused whether
+ *    `Read` is in scope or confined, and the admission is never asked.
  * The attribution of an MCP tool by object (never by a shared name) is pinned
  * on the middleware directly, since a graph refuses two tools of one name.
  */
@@ -349,6 +351,25 @@ describe("tool scope attribution, on the middleware itself", () => {
     expect(await callRefused(cfg, "read_file", undefined, { file_path: "/src/a.ts" })).toBe(true);
     expect(await callRefused(cfg, "read_file", undefined, {})).toBe(true);
     expect(asked).toEqual(["/large_tool_results/a.txt", "/src/a.ts"]);
+  });
+
+  it("with Skill denied, refuses read_file of a skill's files whether Read is in scope or confined, and reads the rest", async () => {
+    const asked: string[] = [];
+    const confined: ToolScopeConfig = {
+      ...config({ tools: ["Grep"], disallowedTools: ["Skill"] }),
+      admitsConfinedRead: async (path) => {
+        asked.push(path);
+        return true;
+      },
+    };
+    expect(await callRefused(confined, "read_file", undefined, { file_path: "/.stigmer/skills/a/SKILL.md" })).toBe(true);
+    expect(await callRefused(confined, "read_file", undefined, { file_path: "/.stigmer/plugins/d1/skills/b/SKILL.md" })).toBe(true);
+    expect(await callRefused(confined, "read_file", undefined, { file_path: "/.stigmer/inputs/spec.pdf" })).toBe(false);
+    expect(asked, "a hidden skill's path never reaches the admission").toEqual(["/.stigmer/inputs/spec.pdf"]);
+    const open = config({ tools: [], disallowedTools: ["Skill"] });
+    expect(await callRefused(open, "read_file", undefined, { file_path: "/.stigmer/skills/a/SKILL.md" })).toBe(true);
+    expect(await callRefused(open, "read_file", undefined, { file_path: "/src/a.ts" })).toBe(false);
+    expect(await callRefused(open, "grep", undefined, { pattern: "x" }), "only the read is the skill's activation").toBe(false);
   });
 
   it("leaves alone what carries no name (a provider tool), and passes a request with no tools through", () => {

@@ -141,6 +141,7 @@ export function turnInputFixture(overrides: TurnInputFixtureOverrides = {}): Tur
     appliedToolCallIds: overrides.appliedToolCallIds ?? new Set(),
     model: overrides.model ?? { requested: "default", serviceTier: ServiceTier.STANDARD, thinkingMode: ThinkingMode.DISABLED },
     structuredOutputSchema: overrides.structuredOutputSchema,
+    appendSystemPrompt: overrides.appendSystemPrompt ?? "",
     standing: overrides.standing ?? {
       contextBridge: undefined,
       senderIdentity: undefined,

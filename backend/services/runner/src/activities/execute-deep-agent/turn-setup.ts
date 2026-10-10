@@ -70,6 +70,7 @@ import { graphThinks, toAnthropicThinking } from "../../shared/thinking-mode.js"
 import { isUnattendedApprovalMode, type McpApprovalDefault } from "../../shared/approval-policy.js";
 import { NATIVE_TOOL_COVERS } from "@stigmer/tool-vocabulary";
 import {
+  checkMainToolListResolution,
   checkToolListResolution,
   claudeToolsOf,
   type ToolScope,
@@ -325,6 +326,7 @@ export function composeSystemPrompt(input: TurnInput, recalledMemories: Recalled
     sessionContext: input.standing.sessionContext,
     declaredPreferences: input.standing.declaredPreferences,
     recalledMemories,
+    appendSystemPrompt: input.appendSystemPrompt,
   });
 }
 
@@ -676,8 +678,8 @@ export function turnToolInventory(
 }
 
 /**
- * Check the agent's lists and each declared sub-agent's against what its
- * graph binds: an entry naming nothing is logged, and a `tools` list that
+ * Check the agent's lists (and the turn's over them) and each declared
+ * sub-agent's against what its graph binds: an entry naming nothing is logged, and a `tools` list that
  * resolves to nothing throws `ToolListResolutionError`. A sub-agent's graph
  * binds the parent's tools without the to-do list. Only a sub-agent the main
  * agent's `Agent(type, …)` admits is checked: one it keeps from compiling
@@ -693,7 +695,7 @@ export function checkTurnToolLists(
   const log = (line: string): void => console.warn(`[turn-setup] ${line}`);
   const { platformServerSlugs } = input.mcp;
   const parentNames = nativeBoundToolNames({ shellCapable, todos: true });
-  checkToolListResolution(parentScope, turnToolInventory(parentNames, tools, platformServerSlugs), log);
+  checkMainToolListResolution(parentScope, turnToolInventory(parentNames, tools, platformServerSlugs), log);
   const subAgentInventory = turnToolInventory(nativeBoundToolNames({ shellCapable, todos: false }), tools, platformServerSlugs);
   for (const subAgent of input.blueprint.subAgents) {
     const hasLists = subAgent.tools.length > 0 || subAgent.disallowedTools.length > 0;

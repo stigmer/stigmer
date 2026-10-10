@@ -220,6 +220,7 @@ export function setupCursorHookHarness(opts: CursorHookHarnessOptions = {}): Cur
       servers: opts.mcpServers ?? [],
       platformServerSlugs: new Set(opts.platformServerSlugs ?? []),
       readRoot,
+      platformRoot: realpathSync(platformDir),
       subAgentTypes: opts.subAgentTypes ?? [],
     });
     const state = buildApprovalState(

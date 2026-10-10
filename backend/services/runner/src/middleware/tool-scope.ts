@@ -50,11 +50,17 @@
  * which for an offload root checks the real path on disk, so a symlink cannot
  * stretch the confinement over the workspace.
  *
+ * A scope that denies `Skill` (`ToolScope.hidesSkills`) refuses a `read_file`
+ * of a skill's files under `.stigmer/` (`shared/skill-mount.ts`
+ * `isSkillContentPath`) whether or not `Read` is in scope: hidden skills are
+ * not read through the one tool that activates them.
+ *
  * Pinned by `__tests__/tool-scope.test.ts` on a real deepagents graph.
  */
 
 import { ToolMessage } from "@langchain/core/messages";
 import { NATIVE_TOOL_COVERS } from "@stigmer/tool-vocabulary";
+import { isSkillContentPath } from "../shared/skill-mount.js";
 import { outOfScopeMessage, type ToolScope } from "../shared/tool-lists.js";
 import type { StigmerMiddleware, ToolCallRequest } from "./types.js";
 
@@ -150,9 +156,11 @@ export function createToolScopeMiddleware(config: ToolScopeConfig): StigmerMiddl
     if (objectSlug !== undefined) return mcpToolInScope(objectSlug, name);
     const nameSlugs = serversOfName.get(name);
     if (nameSlugs !== undefined) return nameSlugs.every((slug) => mcpToolInScope(slug, name));
-    if (scope.allowsEngineTool(name, NATIVE_TOOL_COVERS)) return true;
     const path = args[READ_PATH_ARG];
-    return name === READ_TOOL && typeof path === "string" && (await admitsConfinedRead(path));
+    const read = name === READ_TOOL && typeof path === "string";
+    if (read && scope.hidesSkills && isSkillContentPath(path)) return false;
+    if (scope.allowsEngineTool(name, NATIVE_TOOL_COVERS)) return true;
+    return read && (await admitsConfinedRead(path));
   };
 
   return {

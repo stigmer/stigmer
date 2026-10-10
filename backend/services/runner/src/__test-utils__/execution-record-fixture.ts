@@ -33,6 +33,7 @@ import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { AgentSpecSchema, type HookSource, type SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -101,6 +102,18 @@ export interface ExecutionRecordOptions {
   readonly tools?: string[];
   /** The agent's `AgentSpec.disallowed_tools` ("never these"). */
   readonly disallowedTools?: string[];
+  /** The turn's own `spec.tools`, narrowing the agent's for this message. */
+  readonly turnTools?: string[];
+  /** The turn's own `spec.disallowed_tools`. */
+  readonly turnDisallowedTools?: string[];
+  /** `spec.append_system_prompt`: text this message appends to the system prompt. */
+  readonly appendSystemPrompt?: string;
+  /**
+   * Skills the agent references (`AgentSpec.skill_refs`), each held by the
+   * control plane as a skill whose `SKILL.md` is `skillMd` (no artifact, so
+   * the mount is `SKILL.md` alone).
+   */
+  readonly skills?: ReadonlyArray<{ readonly slug: string; readonly description: string; readonly skillMd: string }>;
   /** The agent's `AgentSpec.hooks`: plugin references and its own hooks block. */
   readonly hooks?: HookSource[];
   /**
@@ -127,6 +140,9 @@ export function executionRecordFixture(options: ExecutionRecordOptions): Executi
       runConfig: options.requestRunConfig,
       // A `google.protobuf.Struct` field is a plain `JsonObject` in protobuf-es.
       structuredOutputSchema: options.structuredOutputSchema,
+      tools: options.turnTools ?? [],
+      disallowedTools: options.turnDisallowedTools ?? [],
+      appendSystemPrompt: options.appendSystemPrompt ?? "",
     }),
     status: create(RunStatusSchema, {
       agentId: builtIn ? "" : ids.agentId,
@@ -170,7 +186,15 @@ export function executionRecordFixture(options: ExecutionRecordOptions): Executi
       tools: options.tools ?? [],
       disallowedTools: options.disallowedTools ?? [],
       hooks: options.hooks ?? [],
+      skillRefs: (options.skills ?? []).map((s) => create(ApiResourceReferenceSchema, { org: ids.org, slug: s.slug })),
     }),
   });
-  return new ExecutionRecord({ execution, session, agent, controlSignal: options.controlSignal });
+  const skills = (options.skills ?? []).map((s) =>
+    create(SkillSchema, {
+      metadata: create(ApiResourceMetadataSchema, { id: `skill-${s.slug}`, org: ids.org, name: s.slug, slug: s.slug }),
+      spec: { name: s.slug, description: s.description, skillMd: s.skillMd },
+      status: { versionHash: `hash-${s.slug}` },
+    }),
+  );
+  return new ExecutionRecord({ execution, session, agent, controlSignal: options.controlSignal, skills });
 }
