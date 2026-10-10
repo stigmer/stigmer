@@ -289,6 +289,15 @@ enum IamPermission {
   // run's person, or of the account that attached the vault when the run
   // has no person.
   can_use = 53;
+
+  // Whether the caller may create, list and revoke a service account's API
+  // keys: its organization's admins.
+  //
+  // @internal
+  // Asked on createForServiceAccount; an API key's view and delete reach the
+  // admins through it. A person's account has no organization link, so
+  // nobody holds it over a person's keys.
+  can_manage_keys = 55;
 }
 
 // Display metadata for an IamRole value: the one place a role's name lives,

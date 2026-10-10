@@ -5,6 +5,7 @@ package ai.stigmer.iam.identityaccount.v1;
 import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/commons/rpc/pagination.proto";
 import "ai/stigmer/iam/identityaccount/v1/api.proto";
+import "ai/stigmer/iam/v1/enum.proto";
 import "buf/validate/validate.proto";
 
 // IdentityAccounts contains a list of identity account resources.
@@ -49,7 +50,7 @@ message IdentityAccountsList {
 
 // ListWithIdentityOrg is the input for paginated queries scoped to an organization.
 message ListWithIdentityOrg {
-  // Organization slug to list identity accounts for.
+  // Organization to list identity accounts for, by id or slug.
   string org = 1;
   // Pagination parameters.
   ai.stigmer.commons.rpc.PageInfo page = 2;
@@ -181,4 +182,29 @@ message DeprovisionFederatedAccountInput {
   // When true: revoke access AND delete the identity account; a just-in-time or
   // SSO provider creates a new one at the user's next sign-in.
   bool delete_account = 4;
+}
+
+// CreateServiceAccountInput is the command for creating an organization's
+// service account.
+message CreateServiceAccountInput {
+  option (buf.validate.message).cel = {
+    id: "service_account.role_not_owner"
+    message: "role must be admin, member or viewer; a service account never owns its organization"
+    expression: "this.role == 2 || this.role == 3 || this.role == 4"
+  };
+
+  // Organization the service account belongs to, by id or slug.
+  // Used as the authorization scope: caller must have can_create_identity_account
+  // permission on this organization.
+  string org = 1 [(buf.validate.field).required = true];
+
+  // The service account's name, unique among the organization's service
+  // accounts (e.g., "ci-deploy").
+  string name = 2 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.max_len = 128
+  ];
+
+  // The organization role the service account holds: admin, member or viewer.
+  ai.stigmer.iam.v1.IamRole role = 3;
 }

@@ -76,6 +76,7 @@ const DOCUMENTS = [
   "schedule-owner.fga.yaml",
   "schedule-session-visibility.fga.yaml",
   "score-visibility.fga.yaml",
+  "service-account-administration.fga.yaml",
   "session-personal-resource.fga.yaml",
   "team-membership.fga.yaml",
   "vault-access.fga.yaml",

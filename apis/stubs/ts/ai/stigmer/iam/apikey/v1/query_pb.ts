@@ -8,7 +8,7 @@ import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../.
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
 import type { ApiKeySchema } from "./api_pb.js";
 import { file_ai_stigmer_iam_apikey_v1_api } from "./api_pb.js";
-import type { ApiKeyHashSchema, ApiKeyIdSchema, ApiKeysSchema } from "./io_pb.js";
+import type { ApiKeyAccountIdSchema, ApiKeyHashSchema, ApiKeyIdSchema, ApiKeysSchema } from "./io_pb.js";
 import { file_ai_stigmer_iam_apikey_v1_io } from "./io_pb.js";
 import type { EmptySchema } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_empty } from "@bufbuild/protobuf/wkt";
@@ -17,7 +17,7 @@ import { file_google_protobuf_empty } from "@bufbuild/protobuf/wkt";
  * Describes the file ai/stigmer/iam/apikey/v1/query.proto.
  */
 export const file_ai_stigmer_iam_apikey_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CiRhaS9zdGlnbWVyL2lhbS9hcGlrZXkvdjEvcXVlcnkucHJvdG8SGGFpLnN0aWdtZXIuaWFtLmFwaWtleS52MTLDAgoVQXBpS2V5UXVlcnlDb250cm9sbGVyEnoKA2dldBIiLmFpLnN0aWdtZXIuaWFtLmFwaWtleS52MS5BcGlLZXlJZBogLmFpLnN0aWdtZXIuaWFtLmFwaWtleS52MS5BcGlLZXkiLcK4GCkIARAMIgV2YWx1ZSocdW5hdXRob3JpemVkIHRvIHZpZXcgYXBpIGtleRJcCgxnZXRCeUtleUhhc2gSJC5haS5zdGlnbWVyLmlhbS5hcGlrZXkudjEuQXBpS2V5SGFzaBogLmFpLnN0aWdtZXIuaWFtLmFwaWtleS52MS5BcGlLZXkiBNC4GAESSgoHZmluZEFsbBIWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRohLmFpLnN0aWdtZXIuaWFtLmFwaWtleS52MS5BcGlLZXlzIgTQuBgBGgSg/ysMYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_apikey_v1_api, file_ai_stigmer_iam_apikey_v1_io, file_google_protobuf_empty]);
+  fileDesc("CiRhaS9zdGlnbWVyL2lhbS9hcGlrZXkvdjEvcXVlcnkucHJvdG8SGGFpLnN0aWdtZXIuaWFtLmFwaWtleS52MTLwAwoVQXBpS2V5UXVlcnlDb250cm9sbGVyEnoKA2dldBIiLmFpLnN0aWdtZXIuaWFtLmFwaWtleS52MS5BcGlLZXlJZBogLmFpLnN0aWdtZXIuaWFtLmFwaWtleS52MS5BcGlLZXkiLcK4GCkIARAMIgV2YWx1ZSocdW5hdXRob3JpemVkIHRvIHZpZXcgYXBpIGtleRJcCgxnZXRCeUtleUhhc2gSJC5haS5zdGlnbWVyLmlhbS5hcGlrZXkudjEuQXBpS2V5SGFzaBogLmFpLnN0aWdtZXIuaWFtLmFwaWtleS52MS5BcGlLZXkiBNC4GAESSgoHZmluZEFsbBIWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRohLmFpLnN0aWdtZXIuaWFtLmFwaWtleS52MS5BcGlLZXlzIgTQuBgBEqoBCg1maW5kQnlBY2NvdW50EikuYWkuc3RpZ21lci5pYW0uYXBpa2V5LnYxLkFwaUtleUFjY291bnRJZBohLmFpLnN0aWdtZXIuaWFtLmFwaWtleS52MS5BcGlLZXlzIkvCuBhHCAEQCyITaWRlbnRpdHlfYWNjb3VudF9pZCosdW5hdXRob3JpemVkIHRvIGxpc3QgdGhpcyBhY2NvdW50J3MgYXBpIGtleXMaBKD/KwxiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_apikey_v1_api, file_ai_stigmer_iam_apikey_v1_io, file_google_protobuf_empty]);
 
 /**
  * ApiKeyQueryController handles read operations for API keys.
@@ -48,13 +48,29 @@ export const ApiKeyQueryController: GenService<{
   /**
    * List all API keys belonging to the authenticated user.
    *
-   * Returns only the keys owned by the identity account in the auth header.
+   * Returns only the keys that speak for the identity account in the auth
+   * header; a service account's keys are listed with findByAccount.
    *
    * @generated from rpc ai.stigmer.iam.apikey.v1.ApiKeyQueryController.findAll
    */
   findAll: {
     methodKind: "unary";
     input: typeof EmptySchema;
+    output: typeof ApiKeysSchema;
+  },
+  /**
+   * List the API keys that speak for an identity account.
+   *
+   * An organization's admins list a service account's keys with it; a person
+   * lists their own.
+   *
+   * Authorization: Requires can_view on the identity account.
+   *
+   * @generated from rpc ai.stigmer.iam.apikey.v1.ApiKeyQueryController.findByAccount
+   */
+  findByAccount: {
+    methodKind: "unary";
+    input: typeof ApiKeyAccountIdSchema;
     output: typeof ApiKeysSchema;
   },
 }> = /*@__PURE__*/

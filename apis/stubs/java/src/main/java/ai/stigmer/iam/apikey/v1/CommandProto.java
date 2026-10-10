@@ -41,9 +41,14 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "roto\032+ai/stigmer/commons/rpc/method_opti" +
       "ons.proto\032\"ai/stigmer/iam/apikey/v1/api." +
       "proto\032!ai/stigmer/iam/apikey/v1/io.proto" +
-      "2\372\002\n\027ApiKeyCommandController\022R\n\006create\022 " +
+      "2\302\004\n\027ApiKeyCommandController\022R\n\006create\022 " +
       ".ai.stigmer.iam.apikey.v1.ApiKey\032 .ai.st" +
-      "igmer.iam.apikey.v1.ApiKey\"\004\320\270\030\001\022\203\001\n\006upd" +
+      "igmer.iam.apikey.v1.ApiKey\"\004\320\270\030\001\022\305\001\n\027cre" +
+      "ateForServiceAccount\0226.ai.stigmer.iam.ap" +
+      "ikey.v1.CreateServiceAccountKeyInput\032 .a" +
+      "i.stigmer.iam.apikey.v1.ApiKey\"P\302\270\030L\0107\020\013" +
+      "\"\022service_account_id*2unauthorized to ma" +
+      "nage this service account\'s keys\022\203\001\n\006upd" +
       "ate\022 .ai.stigmer.iam.apikey.v1.ApiKey\032 ." +
       "ai.stigmer.iam.apikey.v1.ApiKey\"5\302\270\0301\010\002\020" +
       "\014\"\013metadata.id*\036unauthorized to update a" +

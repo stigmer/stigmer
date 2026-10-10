@@ -57,6 +57,14 @@
           "description": "Deprovision a federated identity account by revoking access or deleting it.\n\n Looks up the account by natural key (identity_provider_ref + external_sub).\n When delete_account is false, revokes all IAM policies in the organization.\n When delete_account is true, revokes policies and deletes the account.\n Under a just-in-time or SSO provider, a deleted account is created again at\n the user's next sign-in, with any role the provider grants automatically; a\n revoked account that is kept is never granted a role at sign-in.\n\n Called by platform backends during user offboarding.\n\n Served by the Enterprise and Cloud editions; the open-source server\n answers UNIMPLEMENTED.\n\n Authorization: Requires can_create_identity_account on the organization\n that owns the identity provider."
         },
         {
+          "name": "CreateServiceAccount",
+          "inputType": "CreateServiceAccountInput",
+          "inputFullType": "ai.stigmer.iam.identityaccount.v1.CreateServiceAccountInput",
+          "outputType": "IdentityAccount",
+          "outputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccount",
+          "description": "Create a service account: an organization's own non-person account for\n automation, holding one organization role.\n\n The account belongs to `org` for its whole life. It holds `role` on the\n organization (admin, member or viewer; never owner) and acts only through\n API keys created for it with ApiKeyCommandController.createForServiceAccount.\n Its name is unique among the organization's service accounts; a name in\n use answers ALREADY_EXISTS. A server running without sign-in answers\n FAILED_PRECONDITION, since no key could authenticate there.\n\n Rename it with update, change its role through IAM policies, and delete\n it with delete, which ends every key it has.\n\n Authorization: Requires can_create_identity_account on the organization.\n A service account's own key is refused."
+        },
+        {
           "name": "ProvisionMyAccount",
           "inputType": "Empty",
           "inputFullType": "google.protobuf.Empty",
@@ -110,6 +118,14 @@
           "outputType": "IdentityAccount",
           "outputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccount",
           "description": "Get a federated identity account by identity provider reference and external subject.\n\n Used by platform backends to check whether a federated account already exists\n for a given OIDC subject before calling createFederatedAccount.\n\n Served by the Enterprise and Cloud editions; the open-source server\n answers UNIMPLEMENTED.\n\n Authorization: Requires can_create_identity_account on the organization\n that owns the identity provider."
+        },
+        {
+          "name": "ListServiceAccounts",
+          "inputType": "ListWithIdentityOrg",
+          "inputFullType": "ai.stigmer.iam.identityaccount.v1.ListWithIdentityOrg",
+          "outputType": "IdentityAccountsList",
+          "outputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccountsList",
+          "description": "List an organization's service accounts, newest first.\n\n Lists every service account of the organization, including one whose\n role was removed, so it can still be found and deleted.\n\n Authorization: Requires can_create_identity_account on the organization."
         },
         {
           "name": "GetActorInfo",
@@ -355,6 +371,61 @@
       ]
     },
     {
+      "name": "CreateServiceAccountInput",
+      "description": "CreateServiceAccountInput is the command for creating an organization's\n service account.",
+      "protoType": "ai.stigmer.iam.identityaccount.v1.CreateServiceAccountInput",
+      "protoFile": "apis/ai/stigmer/iam/identityaccount/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization the service account belongs to, by id or slug.\n Used as the authorization scope: caller must have can_create_identity_account\n permission on this organization.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Name",
+          "jsonName": "name",
+          "protoField": "name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The service account's name, unique among the organization's service\n accounts (e.g., \"ci-deploy\").",
+          "required": true,
+          "validation": {
+            "required": true,
+            "maxLength": 128
+          }
+        },
+        {
+          "name": "Role",
+          "jsonName": "role",
+          "protoField": "role",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.iam.v1.IamRole",
+            "enumValues": [
+              "owner",
+              "admin",
+              "member",
+              "viewer",
+              "participant",
+              "editor",
+              "user"
+            ]
+          },
+          "description": "The organization role the service account holds: admin, member or viewer.",
+          "required": false
+        }
+      ]
+    },
+    {
       "name": "IdentityAccountEmail",
       "description": "IdentityAccountEmail identifies an identity account by its email address.",
       "protoType": "ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail",
@@ -421,6 +492,67 @@
       ]
     },
     {
+      "name": "ListWithIdentityOrg",
+      "description": "ListWithIdentityOrg is the input for paginated queries scoped to an organization.",
+      "protoType": "ai.stigmer.iam.identityaccount.v1.ListWithIdentityOrg",
+      "protoFile": "apis/ai/stigmer/iam/identityaccount/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization to list identity accounts for, by id or slug.",
+          "required": false
+        },
+        {
+          "name": "Page",
+          "jsonName": "page",
+          "protoField": "page",
+          "type": {
+            "kind": "message",
+            "messageType": "PageInfo"
+          },
+          "description": "Pagination parameters.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "IdentityAccountsList",
+      "description": "IdentityAccountsList is a paginated response containing identity accounts.",
+      "protoType": "ai.stigmer.iam.identityaccount.v1.IdentityAccountsList",
+      "protoFile": "apis/ai/stigmer/iam/identityaccount/v1/io.proto",
+      "fields": [
+        {
+          "name": "TotalPages",
+          "jsonName": "totalPages",
+          "protoField": "total_pages",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total number of pages available.",
+          "required": false
+        },
+        {
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "IdentityAccount"
+            }
+          },
+          "description": "Identity accounts in the current page.",
+          "required": false
+        }
+      ]
+    },
+    {
       "name": "ApiResourceAuditActor",
       "description": "ApiResourceAuditActor represents the entity that performed an action.\n\n This is the platform's single actor vocabulary: every \"who did this\"\n reference (created_by / updated_by, version-history applied_by / pushed_by,\n approval resolved_by_actor) uses this message, so actor rendering is\n uniform across all surfaces.",
       "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
@@ -481,6 +613,48 @@
   ],
   "enumTypes": [
     {
+      "name": "IamRole",
+      "description": "IamRole defines the roles that can be assigned to principals on resources\n via IAM policies.\n\n Roles are human-assigned and represent a principal's relationship to a\n resource. They are distinct from permissions (which are computed from roles\n and checked by the authorization interceptor) and structural relations\n (which are internal FGA wiring like organization or session links).\n\n Each ApiResourceKind declares which of these roles are grantable via\n the grantable_roles field in its AuthorizationConfig, and what each one\n means there in role_descriptions.",
+      "protoType": "ai.stigmer.iam.v1.IamRole",
+      "values": [
+        {
+          "name": "owner",
+          "number": 1,
+          "description": "Full control of the resource. Typically assigned to the creator."
+        },
+        {
+          "name": "admin",
+          "number": 2,
+          "description": "Administrative access. Grants most permissions except ownership transfer."
+        },
+        {
+          "name": "member",
+          "number": 3,
+          "description": "Membership-level access. Grants read and limited write permissions."
+        },
+        {
+          "name": "viewer",
+          "number": 4,
+          "description": "Read-only access to the resource."
+        },
+        {
+          "name": "participant",
+          "number": 5,
+          "description": "A person who takes part in a conversation: reads it and sends messages.\n On a conversation (session), a participant's messages run in the\n conversation's own workspace, as its creator, using only the vaults the\n conversation names; stopping and approving stay with its owners. On an\n agent channel, a participant reads the channel's conversations and\n speaks to its customers as the business (reply, take over, hand back,\n clear attention), and is not a channel configurator."
+        },
+        {
+          "name": "editor",
+          "number": 6,
+          "description": "Editor of a blueprint (an agent or an MCP server): may change\n its definition and do whatever a viewer can, and may not delete it,\n change its visibility, publish it on a share link or a channel, or decide\n who else has access."
+        },
+        {
+          "name": "user",
+          "number": 7,
+          "description": "May use a shared vault: the runs of a person who holds it use the\n vault's logins and secrets. Shown as \"Can use\"."
+        }
+      ]
+    },
+    {
       "name": "ApiResourceVisibility",
       "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines which\n users, inside that organization or in its child organizations, can read\n the resource. No level reaches every\n account on the server.\n\n The visibility levels map to FGA tuples:\n - PRIVATE: no additional viewer tuples (owner-only access)\n - ORG: resource#viewer@organization:\u003corg\u003e#viewer tuple (everyone in the\n   org — the org role hierarchy flows downward, so owners, admins, members\n   AND read-only viewers all satisfy the organization#viewer userset)\n - CHILD_ORGS: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer\n   (everyone in every child organization of the owning organization)\n - PUBLIC: retired; see the value's own comment.",
       "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
@@ -531,6 +705,11 @@
           "name": "platform_client",
           "number": 4,
           "description": "Account provisioned via a PlatformClient's mintUserToken endpoint.\n\n The idp_id for these accounts uses the composite encoding\n \"stgm_pc|{org}|{external_user_id}\", where org is the owning organization of\n the PlatformClient that minted the token and external_user_id is the user\n identifier supplied by the platform builder. Every PlatformClient of one\n organization therefore resolves the same user to the same account. The\n \"stgm_pc|\" prefix is reserved: no other provisioning mode may use it.\n\n Unlike federated accounts, PlatformClient is not an ongoing authentication\n authority. Stigmer signs its own JWTs for these users; the PlatformClient\n is the admission credential used at mint time only."
+        },
+        {
+          "name": "service_account",
+          "number": 5,
+          "description": "An organization's own non-person account: the principal its automation\n (a CI job, a script, an integration) acts as, so the automation keeps\n working when the person who set it up leaves.\n\n Created by an organization admin with createServiceAccount, it belongs to\n that one organization for its whole life, holds one organization role\n (admin, member or viewer, never owner) and acts only through API keys\n the organization's admins create for it. Its keys work only in its\n organization, and deleting it ends every key at once.\n\n The idp_id uses the composite encoding \"stgm_sa|{org}|{random}\", where\n org is the owning organization's id and random is drawn at creation, so\n a service account deleted and created again under the same name is a\n new principal that inherits nothing. The \"stgm_sa|\" prefix is reserved:\n no other provisioning mode may use it, and no sign-in resolves to it."
         }
       ]
     },

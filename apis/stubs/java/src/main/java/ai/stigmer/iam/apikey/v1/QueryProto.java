@@ -41,7 +41,7 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "to\032+ai/stigmer/commons/rpc/method_option" +
       "s.proto\032\"ai/stigmer/iam/apikey/v1/api.pr" +
       "oto\032!ai/stigmer/iam/apikey/v1/io.proto\032\033" +
-      "google/protobuf/empty.proto2\303\002\n\025ApiKeyQu" +
+      "google/protobuf/empty.proto2\360\003\n\025ApiKeyQu" +
       "eryController\022z\n\003get\022\".ai.stigmer.iam.ap" +
       "ikey.v1.ApiKeyId\032 .ai.stigmer.iam.apikey" +
       ".v1.ApiKey\"-\302\270\030)\010\001\020\014\"\005value*\034unauthorize" +
@@ -49,11 +49,16 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "tigmer.iam.apikey.v1.ApiKeyHash\032 .ai.sti" +
       "gmer.iam.apikey.v1.ApiKey\"\004\320\270\030\001\022J\n\007findA" +
       "ll\022\026.google.protobuf.Empty\032!.ai.stigmer." +
-      "iam.apikey.v1.ApiKeys\"\004\320\270\030\001\032\004\240\377+\014B\221\001B\nQu" +
-      "eryProtoP\001\242\002\004ASIA\252\002\030Ai.Stigmer.Iam.Apike" +
-      "y.V1\312\002\030Ai\\Stigmer\\Iam\\Apikey\\V1\342\002$Ai\\Sti" +
-      "gmer\\Iam\\Apikey\\V1\\GPBMetadata\352\002\034Ai::Sti" +
-      "gmer::Iam::Apikey::V1b\006proto3"
+      "iam.apikey.v1.ApiKeys\"\004\320\270\030\001\022\252\001\n\rfindByAc" +
+      "count\022).ai.stigmer.iam.apikey.v1.ApiKeyA" +
+      "ccountId\032!.ai.stigmer.iam.apikey.v1.ApiK" +
+      "eys\"K\302\270\030G\010\001\020\013\"\023identity_account_id*,unau" +
+      "thorized to list this account\'s api keys" +
+      "\032\004\240\377+\014B\221\001B\nQueryProtoP\001\242\002\004ASIA\252\002\030Ai.Stig" +
+      "mer.Iam.Apikey.V1\312\002\030Ai\\Stigmer\\Iam\\Apike" +
+      "y\\V1\342\002$Ai\\Stigmer\\Iam\\Apikey\\V1\\GPBMetad" +
+      "ata\352\002\034Ai::Stigmer::Iam::Apikey::V1b\006prot" +
+      "o3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

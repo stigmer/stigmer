@@ -4,6 +4,7 @@ package ai.stigmer.iam.apikey.v1;
 
 import "ai/stigmer/iam/apikey/v1/api.proto";
 import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
 
 // ApiKeys contains a list of API key resources.
 message ApiKeys {
@@ -21,4 +22,29 @@ message ApiKeyId {
 message ApiKeyHash {
   // Hash of the raw API key.
   string value = 1 [(buf.validate.field).required = true];
+}
+
+// ApiKeyAccountId names the identity account whose keys are listed.
+message ApiKeyAccountId {
+  // Identity account id the keys speak for.
+  string identity_account_id = 1 [(buf.validate.field).required = true];
+}
+
+// CreateServiceAccountKeyInput is the command for creating an API key that
+// speaks for a service account.
+message CreateServiceAccountKeyInput {
+  // Identity account id of the service account the key speaks for.
+  string service_account_id = 1 [(buf.validate.field).required = true];
+
+  // The key's name, shown beside its fingerprint (e.g., "github-actions").
+  string name = 2 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.max_len = 128
+  ];
+
+  // Expiration time for the key. Ignored when never_expires is true.
+  google.protobuf.Timestamp expires_at = 3;
+
+  // When true, the key never expires regardless of expires_at.
+  bool never_expires = 4;
 }

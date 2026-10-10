@@ -49,6 +49,7 @@ class IamPermission(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     can_create_vault: _ClassVar[IamPermission]
     can_create_shared_vault: _ClassVar[IamPermission]
     can_use: _ClassVar[IamPermission]
+    can_manage_keys: _ClassVar[IamPermission]
 
 class IamRole(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -101,6 +102,7 @@ can_view_settings: IamPermission
 can_create_vault: IamPermission
 can_create_shared_vault: IamPermission
 can_use: IamPermission
+can_manage_keys: IamPermission
 iam_role_unspecified: IamRole
 owner: IamRole
 admin: IamRole

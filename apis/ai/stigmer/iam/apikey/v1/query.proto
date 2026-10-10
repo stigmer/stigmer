@@ -32,11 +32,25 @@ service ApiKeyQueryController {
 
   // List all API keys belonging to the authenticated user.
   //
-  // Returns only the keys owned by the identity account in the auth header.
+  // Returns only the keys that speak for the identity account in the auth
+  // header; a service account's keys are listed with findByAccount.
   //
   // @internal
   // Scoped to the caller's own keys, so authorization is skipped.
   rpc findAll(google.protobuf.Empty) returns (ApiKeys) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // List the API keys that speak for an identity account.
+  //
+  // An organization's admins list a service account's keys with it; a person
+  // lists their own.
+  //
+  // Authorization: Requires can_view on the identity account.
+  rpc findByAccount(ApiKeyAccountId) returns (ApiKeys) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = identity_account;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "identity_account_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to list this account's api keys";
   }
 }

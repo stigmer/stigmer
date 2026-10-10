@@ -61,6 +61,12 @@ class IdentityAccountClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def create_service_account(self, input: io_pb2.CreateServiceAccountInput) -> api_pb2.IdentityAccount:
+        try:
+            return self._command.createServiceAccount(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def provision_my_account(self) -> api_pb2.IdentityAccount:
         try:
             return self._command.provisionMyAccount(empty_pb2.Empty())
@@ -94,6 +100,12 @@ class IdentityAccountClient:
     def get_by_external_sub(self, input: io_pb2.ExternalSubLookup) -> api_pb2.IdentityAccount:
         try:
             return self._query.getByExternalSub(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def list_service_accounts(self, input: io_pb2.ListWithIdentityOrg) -> io_pb2.IdentityAccountsList:
+        try:
+            return self._query.listServiceAccounts(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 

@@ -12,8 +12,9 @@ package ai.stigmer.iam.identityaccount.v1;
  * An identity account represents a user or machine principal in Stigmer.
  * Accounts can be direct (signed up via Stigmer), federated (provisioned
  * through an external identity provider), machine (service-to-service
- * credentials), or platform_client (provisioned via a PlatformClient's
- * mintUserToken endpoint).
+ * credentials), platform_client (provisioned via a PlatformClient's
+ * mintUserToken endpoint), or service_account (an organization's own
+ * non-person account, created by its admins for automation).
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec}
@@ -87,6 +88,8 @@ private static final long serialVersionUID = 0L;
    * Scoping by org (not by PlatformClient) means the same user_id presented
    * via any PlatformClient in the same org resolves to the same IdentityAccount.
    * Globally unique by construction — no additional scope field is needed.
+   * For service_account accounts: composite "stgm_sa|{org}|{random}", assigned
+   * by the server at createServiceAccount and never supplied by a caller.
    * </pre>
    *
    * <code>string idp_id = 1 [json_name = "idpId", (.buf.validate.field) = { ... }</code>
@@ -124,6 +127,8 @@ private static final long serialVersionUID = 0L;
    * Scoping by org (not by PlatformClient) means the same user_id presented
    * via any PlatformClient in the same org resolves to the same IdentityAccount.
    * Globally unique by construction — no additional scope field is needed.
+   * For service_account accounts: composite "stgm_sa|{org}|{random}", assigned
+   * by the server at createServiceAccount and never supplied by a caller.
    * </pre>
    *
    * <code>string idp_id = 1 [json_name = "idpId", (.buf.validate.field) = { ... }</code>
@@ -734,8 +739,9 @@ private static final long serialVersionUID = 0L;
    * An identity account represents a user or machine principal in Stigmer.
    * Accounts can be direct (signed up via Stigmer), federated (provisioned
    * through an external identity provider), machine (service-to-service
-   * credentials), or platform_client (provisioned via a PlatformClient's
-   * mintUserToken endpoint).
+   * credentials), platform_client (provisioned via a PlatformClient's
+   * mintUserToken endpoint), or service_account (an organization's own
+   * non-person account, created by its admins for automation).
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec}
@@ -1026,6 +1032,8 @@ private static final long serialVersionUID = 0L;
      * Scoping by org (not by PlatformClient) means the same user_id presented
      * via any PlatformClient in the same org resolves to the same IdentityAccount.
      * Globally unique by construction — no additional scope field is needed.
+     * For service_account accounts: composite "stgm_sa|{org}|{random}", assigned
+     * by the server at createServiceAccount and never supplied by a caller.
      * </pre>
      *
      * <code>string idp_id = 1 [json_name = "idpId", (.buf.validate.field) = { ... }</code>
@@ -1062,6 +1070,8 @@ private static final long serialVersionUID = 0L;
      * Scoping by org (not by PlatformClient) means the same user_id presented
      * via any PlatformClient in the same org resolves to the same IdentityAccount.
      * Globally unique by construction — no additional scope field is needed.
+     * For service_account accounts: composite "stgm_sa|{org}|{random}", assigned
+     * by the server at createServiceAccount and never supplied by a caller.
      * </pre>
      *
      * <code>string idp_id = 1 [json_name = "idpId", (.buf.validate.field) = { ... }</code>
@@ -1099,6 +1109,8 @@ private static final long serialVersionUID = 0L;
      * Scoping by org (not by PlatformClient) means the same user_id presented
      * via any PlatformClient in the same org resolves to the same IdentityAccount.
      * Globally unique by construction — no additional scope field is needed.
+     * For service_account accounts: composite "stgm_sa|{org}|{random}", assigned
+     * by the server at createServiceAccount and never supplied by a caller.
      * </pre>
      *
      * <code>string idp_id = 1 [json_name = "idpId", (.buf.validate.field) = { ... }</code>
@@ -1132,6 +1144,8 @@ private static final long serialVersionUID = 0L;
      * Scoping by org (not by PlatformClient) means the same user_id presented
      * via any PlatformClient in the same org resolves to the same IdentityAccount.
      * Globally unique by construction — no additional scope field is needed.
+     * For service_account accounts: composite "stgm_sa|{org}|{random}", assigned
+     * by the server at createServiceAccount and never supplied by a caller.
      * </pre>
      *
      * <code>string idp_id = 1 [json_name = "idpId", (.buf.validate.field) = { ... }</code>
@@ -1162,6 +1176,8 @@ private static final long serialVersionUID = 0L;
      * Scoping by org (not by PlatformClient) means the same user_id presented
      * via any PlatformClient in the same org resolves to the same IdentityAccount.
      * Globally unique by construction — no additional scope field is needed.
+     * For service_account accounts: composite "stgm_sa|{org}|{random}", assigned
+     * by the server at createServiceAccount and never supplied by a caller.
      * </pre>
      *
      * <code>string idp_id = 1 [json_name = "idpId", (.buf.validate.field) = { ... }</code>

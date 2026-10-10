@@ -32,6 +32,11 @@ class ApiKeyQueryControllerStub(object):
                 request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_io__pb2.ApiKeys.FromString,
                 _registered_method=True)
+        self.findByAccount = channel.unary_unary(
+                '/ai.stigmer.iam.apikey.v1.ApiKeyQueryController/findByAccount',
+                request_serializer=ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_io__pb2.ApiKeyAccountId.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_io__pb2.ApiKeys.FromString,
+                _registered_method=True)
 
 
 class ApiKeyQueryControllerServicer(object):
@@ -55,7 +60,20 @@ class ApiKeyQueryControllerServicer(object):
     def findAll(self, request, context):
         """List all API keys belonging to the authenticated user.
 
-        Returns only the keys owned by the identity account in the auth header.
+        Returns only the keys that speak for the identity account in the auth
+        header; a service account's keys are listed with findByAccount.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def findByAccount(self, request, context):
+        """List the API keys that speak for an identity account.
+
+        An organization's admins list a service account's keys with it; a person
+        lists their own.
+
+        Authorization: Requires can_view on the identity account.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -77,6 +95,11 @@ def add_ApiKeyQueryControllerServicer_to_server(servicer, server):
             'findAll': grpc.unary_unary_rpc_method_handler(
                     servicer.findAll,
                     request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                    response_serializer=ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_io__pb2.ApiKeys.SerializeToString,
+            ),
+            'findByAccount': grpc.unary_unary_rpc_method_handler(
+                    servicer.findByAccount,
+                    request_deserializer=ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_io__pb2.ApiKeyAccountId.FromString,
                     response_serializer=ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_io__pb2.ApiKeys.SerializeToString,
             ),
     }
@@ -161,6 +184,33 @@ class ApiKeyQueryController(object):
             target,
             '/ai.stigmer.iam.apikey.v1.ApiKeyQueryController/findAll',
             google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_io__pb2.ApiKeys.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def findByAccount(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.iam.apikey.v1.ApiKeyQueryController/findByAccount',
+            ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_io__pb2.ApiKeyAccountId.SerializeToString,
             ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_io__pb2.ApiKeys.FromString,
             options,
             channel_credentials,

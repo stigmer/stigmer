@@ -1,6 +1,7 @@
 from ai.stigmer.commons.apiresource import io_pb2 as _io_pb2
 from ai.stigmer.commons.rpc import pagination_pb2 as _pagination_pb2
 from ai.stigmer.iam.identityaccount.v1 import api_pb2 as _api_pb2
+from ai.stigmer.iam.v1 import enum_pb2 as _enum_pb2
 from buf.validate import validate_pb2 as _validate_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
@@ -115,3 +116,13 @@ class DeprovisionFederatedAccountInput(_message.Message):
     external_sub: str
     delete_account: bool
     def __init__(self, org: _Optional[str] = ..., identity_provider_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., external_sub: _Optional[str] = ..., delete_account: bool = ...) -> None: ...
+
+class CreateServiceAccountInput(_message.Message):
+    __slots__ = ("org", "name", "role")
+    ORG_FIELD_NUMBER: _ClassVar[int]
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    ROLE_FIELD_NUMBER: _ClassVar[int]
+    org: str
+    name: str
+    role: _enum_pb2.IamRole
+    def __init__(self, org: _Optional[str] = ..., name: _Optional[str] = ..., role: _Optional[_Union[_enum_pb2.IamRole, str]] = ...) -> None: ...

@@ -19,9 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ApiKeyCommandController_Create_FullMethodName = "/ai.stigmer.iam.apikey.v1.ApiKeyCommandController/create"
-	ApiKeyCommandController_Update_FullMethodName = "/ai.stigmer.iam.apikey.v1.ApiKeyCommandController/update"
-	ApiKeyCommandController_Delete_FullMethodName = "/ai.stigmer.iam.apikey.v1.ApiKeyCommandController/delete"
+	ApiKeyCommandController_Create_FullMethodName                  = "/ai.stigmer.iam.apikey.v1.ApiKeyCommandController/create"
+	ApiKeyCommandController_CreateForServiceAccount_FullMethodName = "/ai.stigmer.iam.apikey.v1.ApiKeyCommandController/createForServiceAccount"
+	ApiKeyCommandController_Update_FullMethodName                  = "/ai.stigmer.iam.apikey.v1.ApiKeyCommandController/update"
+	ApiKeyCommandController_Delete_FullMethodName                  = "/ai.stigmer.iam.apikey.v1.ApiKeyCommandController/delete"
 )
 
 // ApiKeyCommandControllerClient is the client API for ApiKeyCommandController service.
@@ -35,6 +36,17 @@ type ApiKeyCommandControllerClient interface {
 	// The raw key value is included in the response and is never returned again.
 	// Store it securely before discarding the response.
 	Create(ctx context.Context, in *ApiKey, opts ...grpc.CallOption) (*ApiKey, error)
+	// Create an API key for a service account.
+	//
+	// The key speaks for the service account, not for the caller who creates
+	// it: it keeps working when that caller leaves, it works only in the
+	// service account's organization, and resources it creates name the
+	// service account as their creator. The raw key value is included in the
+	// response and is never returned again.
+	//
+	// Authorization: Requires can_manage_keys on the service account, which
+	// its organization's admins hold. A service account's own key is refused.
+	CreateForServiceAccount(ctx context.Context, in *CreateServiceAccountKeyInput, opts ...grpc.CallOption) (*ApiKey, error)
 	// Update an existing API key.
 	Update(ctx context.Context, in *ApiKey, opts ...grpc.CallOption) (*ApiKey, error)
 	// Delete an API key.
@@ -53,6 +65,16 @@ func (c *apiKeyCommandControllerClient) Create(ctx context.Context, in *ApiKey, 
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ApiKey)
 	err := c.cc.Invoke(ctx, ApiKeyCommandController_Create_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *apiKeyCommandControllerClient) CreateForServiceAccount(ctx context.Context, in *CreateServiceAccountKeyInput, opts ...grpc.CallOption) (*ApiKey, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ApiKey)
+	err := c.cc.Invoke(ctx, ApiKeyCommandController_CreateForServiceAccount_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -90,6 +112,17 @@ type ApiKeyCommandControllerServer interface {
 	// The raw key value is included in the response and is never returned again.
 	// Store it securely before discarding the response.
 	Create(context.Context, *ApiKey) (*ApiKey, error)
+	// Create an API key for a service account.
+	//
+	// The key speaks for the service account, not for the caller who creates
+	// it: it keeps working when that caller leaves, it works only in the
+	// service account's organization, and resources it creates name the
+	// service account as their creator. The raw key value is included in the
+	// response and is never returned again.
+	//
+	// Authorization: Requires can_manage_keys on the service account, which
+	// its organization's admins hold. A service account's own key is refused.
+	CreateForServiceAccount(context.Context, *CreateServiceAccountKeyInput) (*ApiKey, error)
 	// Update an existing API key.
 	Update(context.Context, *ApiKey) (*ApiKey, error)
 	// Delete an API key.
@@ -105,6 +138,9 @@ type UnimplementedApiKeyCommandControllerServer struct{}
 
 func (UnimplementedApiKeyCommandControllerServer) Create(context.Context, *ApiKey) (*ApiKey, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
+}
+func (UnimplementedApiKeyCommandControllerServer) CreateForServiceAccount(context.Context, *CreateServiceAccountKeyInput) (*ApiKey, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateForServiceAccount not implemented")
 }
 func (UnimplementedApiKeyCommandControllerServer) Update(context.Context, *ApiKey) (*ApiKey, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
@@ -146,6 +182,24 @@ func _ApiKeyCommandController_Create_Handler(srv interface{}, ctx context.Contex
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ApiKeyCommandControllerServer).Create(ctx, req.(*ApiKey))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ApiKeyCommandController_CreateForServiceAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateServiceAccountKeyInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ApiKeyCommandControllerServer).CreateForServiceAccount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ApiKeyCommandController_CreateForServiceAccount_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ApiKeyCommandControllerServer).CreateForServiceAccount(ctx, req.(*CreateServiceAccountKeyInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -196,6 +250,10 @@ var ApiKeyCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "create",
 			Handler:    _ApiKeyCommandController_Create_Handler,
+		},
+		{
+			MethodName: "createForServiceAccount",
+			Handler:    _ApiKeyCommandController_CreateForServiceAccount_Handler,
 		},
 		{
 			MethodName: "update",

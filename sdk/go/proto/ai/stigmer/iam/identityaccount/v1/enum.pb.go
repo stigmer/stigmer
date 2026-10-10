@@ -46,6 +46,22 @@ const (
 	// authority. Stigmer signs its own JWTs for these users; the PlatformClient
 	// is the admission credential used at mint time only.
 	IdentityAccountProvisioningMode_platform_client IdentityAccountProvisioningMode = 4
+	// An organization's own non-person account: the principal its automation
+	// (a CI job, a script, an integration) acts as, so the automation keeps
+	// working when the person who set it up leaves.
+	//
+	// Created by an organization admin with createServiceAccount, it belongs to
+	// that one organization for its whole life, holds one organization role
+	// (admin, member or viewer, never owner) and acts only through API keys
+	// the organization's admins create for it. Its keys work only in its
+	// organization, and deleting it ends every key at once.
+	//
+	// The idp_id uses the composite encoding "stgm_sa|{org}|{random}", where
+	// org is the owning organization's id and random is drawn at creation, so
+	// a service account deleted and created again under the same name is a
+	// new principal that inherits nothing. The "stgm_sa|" prefix is reserved:
+	// no other provisioning mode may use it, and no sign-in resolves to it.
+	IdentityAccountProvisioningMode_service_account IdentityAccountProvisioningMode = 5
 )
 
 // Enum value maps for IdentityAccountProvisioningMode.
@@ -56,6 +72,7 @@ var (
 		2: "federated",
 		3: "machine",
 		4: "platform_client",
+		5: "service_account",
 	}
 	IdentityAccountProvisioningMode_value = map[string]int32{
 		"identity_account_provisioning_mode_unspecified": 0,
@@ -63,6 +80,7 @@ var (
 		"federated":       2,
 		"machine":         3,
 		"platform_client": 4,
+		"service_account": 5,
 	}
 )
 
@@ -97,14 +115,15 @@ var File_ai_stigmer_iam_identityaccount_v1_enum_proto protoreflect.FileDescripto
 
 const file_ai_stigmer_iam_identityaccount_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	",ai/stigmer/iam/identityaccount/v1/enum.proto\x12!ai.stigmer.iam.identityaccount.v1*\x92\x01\n" +
+	",ai/stigmer/iam/identityaccount/v1/enum.proto\x12!ai.stigmer.iam.identityaccount.v1*\xa7\x01\n" +
 	"\x1fIdentityAccountProvisioningMode\x122\n" +
 	".identity_account_provisioning_mode_unspecified\x10\x00\x12\n" +
 	"\n" +
 	"\x06direct\x10\x01\x12\r\n" +
 	"\tfederated\x10\x02\x12\v\n" +
 	"\amachine\x10\x03\x12\x13\n" +
-	"\x0fplatform_client\x10\x04B\xbb\x02\n" +
+	"\x0fplatform_client\x10\x04\x12\x13\n" +
+	"\x0fservice_account\x10\x05B\xbb\x02\n" +
 	"%com.ai.stigmer.iam.identityaccount.v1B\tEnumProtoP\x01Z^github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/identityaccount/v1;identityaccountv1\xa2\x02\x04ASII\xaa\x02!Ai.Stigmer.Iam.Identityaccount.V1\xca\x02!Ai\\Stigmer\\Iam\\Identityaccount\\V1\xe2\x02-Ai\\Stigmer\\Iam\\Identityaccount\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Iam::Identityaccount::V1b\x06proto3"
 
 var (

@@ -5,7 +5,7 @@
 
 import { ApiKey } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { ApiKeyId } from "./io_pbjs";
+import { ApiKeyId, CreateServiceAccountKeyInput } from "./io_pbjs";
 
 /**
  * ApiKeyCommandController handles write operations for API keys.
@@ -26,6 +26,26 @@ export const ApiKeyCommandController = {
     create: {
       name: "create",
       I: ApiKey,
+      O: ApiKey,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Create an API key for a service account.
+     *
+     * The key speaks for the service account, not for the caller who creates
+     * it: it keeps working when that caller leaves, it works only in the
+     * service account's organization, and resources it creates name the
+     * service account as their creator. The raw key value is included in the
+     * response and is never returned again.
+     *
+     * Authorization: Requires can_manage_keys on the service account, which
+     * its organization's admins hold. A service account's own key is refused.
+     *
+     * @generated from rpc ai.stigmer.iam.apikey.v1.ApiKeyCommandController.createForServiceAccount
+     */
+    createForServiceAccount: {
+      name: "createForServiceAccount",
+      I: CreateServiceAccountKeyInput,
       O: ApiKey,
       kind: MethodKind.Unary,
     },

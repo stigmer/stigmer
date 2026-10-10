@@ -113,6 +113,28 @@ service IdentityAccountCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to manage identity accounts in this organization";
   }
 
+  // Create a service account: an organization's own non-person account for
+  // automation, holding one organization role.
+  //
+  // The account belongs to `org` for its whole life. It holds `role` on the
+  // organization (admin, member or viewer; never owner) and acts only through
+  // API keys created for it with ApiKeyCommandController.createForServiceAccount.
+  // Its name is unique among the organization's service accounts; a name in
+  // use answers ALREADY_EXISTS. A server running without sign-in answers
+  // FAILED_PRECONDITION, since no key could authenticate there.
+  //
+  // Rename it with update, change its role through IAM policies, and delete
+  // it with delete, which ends every key it has.
+  //
+  // Authorization: Requires can_create_identity_account on the organization.
+  // A service account's own key is refused.
+  rpc createServiceAccount(CreateServiceAccountInput) returns (IdentityAccount) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_create_identity_account;
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to create service accounts in this organization";
+  }
+
   // Provision the caller's own identity account.
   //
   // The first-sign-in step every client runs when whoAmI() returns NOT_FOUND:

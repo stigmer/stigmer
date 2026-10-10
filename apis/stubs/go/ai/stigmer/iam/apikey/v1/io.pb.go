@@ -10,6 +10,7 @@ import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -160,18 +161,146 @@ func (x *ApiKeyHash) GetValue() string {
 	return ""
 }
 
+// ApiKeyAccountId names the identity account whose keys are listed.
+type ApiKeyAccountId struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Identity account id the keys speak for.
+	IdentityAccountId string `protobuf:"bytes,1,opt,name=identity_account_id,json=identityAccountId,proto3" json:"identity_account_id,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *ApiKeyAccountId) Reset() {
+	*x = ApiKeyAccountId{}
+	mi := &file_ai_stigmer_iam_apikey_v1_io_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ApiKeyAccountId) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ApiKeyAccountId) ProtoMessage() {}
+
+func (x *ApiKeyAccountId) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_iam_apikey_v1_io_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ApiKeyAccountId.ProtoReflect.Descriptor instead.
+func (*ApiKeyAccountId) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_iam_apikey_v1_io_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *ApiKeyAccountId) GetIdentityAccountId() string {
+	if x != nil {
+		return x.IdentityAccountId
+	}
+	return ""
+}
+
+// CreateServiceAccountKeyInput is the command for creating an API key that
+// speaks for a service account.
+type CreateServiceAccountKeyInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Identity account id of the service account the key speaks for.
+	ServiceAccountId string `protobuf:"bytes,1,opt,name=service_account_id,json=serviceAccountId,proto3" json:"service_account_id,omitempty"`
+	// The key's name, shown beside its fingerprint (e.g., "github-actions").
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// Expiration time for the key. Ignored when never_expires is true.
+	ExpiresAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	// When true, the key never expires regardless of expires_at.
+	NeverExpires  bool `protobuf:"varint,4,opt,name=never_expires,json=neverExpires,proto3" json:"never_expires,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateServiceAccountKeyInput) Reset() {
+	*x = CreateServiceAccountKeyInput{}
+	mi := &file_ai_stigmer_iam_apikey_v1_io_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateServiceAccountKeyInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateServiceAccountKeyInput) ProtoMessage() {}
+
+func (x *CreateServiceAccountKeyInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_iam_apikey_v1_io_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateServiceAccountKeyInput.ProtoReflect.Descriptor instead.
+func (*CreateServiceAccountKeyInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_iam_apikey_v1_io_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *CreateServiceAccountKeyInput) GetServiceAccountId() string {
+	if x != nil {
+		return x.ServiceAccountId
+	}
+	return ""
+}
+
+func (x *CreateServiceAccountKeyInput) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *CreateServiceAccountKeyInput) GetExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return nil
+}
+
+func (x *CreateServiceAccountKeyInput) GetNeverExpires() bool {
+	if x != nil {
+		return x.NeverExpires
+	}
+	return false
+}
+
 var File_ai_stigmer_iam_apikey_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_apikey_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"!ai/stigmer/iam/apikey/v1/io.proto\x12\x18ai.stigmer.iam.apikey.v1\x1a\"ai/stigmer/iam/apikey/v1/api.proto\x1a\x1bbuf/validate/validate.proto\"E\n" +
+	"!ai/stigmer/iam/apikey/v1/io.proto\x12\x18ai.stigmer.iam.apikey.v1\x1a\"ai/stigmer/iam/apikey/v1/api.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"E\n" +
 	"\aApiKeys\x12:\n" +
 	"\aentries\x18\x01 \x03(\v2 .ai.stigmer.iam.apikey.v1.ApiKeyR\aentries\"(\n" +
 	"\bApiKeyId\x12\x1c\n" +
 	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"*\n" +
 	"\n" +
 	"ApiKeyHash\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05valueB\xf8\x01\n" +
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"I\n" +
+	"\x0fApiKeyAccountId\x126\n" +
+	"\x13identity_account_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x11identityAccountId\"\xd5\x01\n" +
+	"\x1cCreateServiceAccountKeyInput\x124\n" +
+	"\x12service_account_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x10serviceAccountId\x12\x1f\n" +
+	"\x04name\x18\x02 \x01(\tB\v\xbaH\b\xc8\x01\x01r\x03\x18\x80\x01R\x04name\x129\n" +
+	"\n" +
+	"expires_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12#\n" +
+	"\rnever_expires\x18\x04 \x01(\bR\fneverExpiresB\xf8\x01\n" +
 	"\x1ccom.ai.stigmer.iam.apikey.v1B\aIoProtoP\x01ZJgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/apikey/v1;apikeyv1\xa2\x02\x04ASIA\xaa\x02\x18Ai.Stigmer.Iam.Apikey.V1\xca\x02\x18Ai\\Stigmer\\Iam\\Apikey\\V1\xe2\x02$Ai\\Stigmer\\Iam\\Apikey\\V1\\GPBMetadata\xea\x02\x1cAi::Stigmer::Iam::Apikey::V1b\x06proto3"
 
 var (
@@ -186,20 +315,24 @@ func file_ai_stigmer_iam_apikey_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_iam_apikey_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_iam_apikey_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_ai_stigmer_iam_apikey_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_ai_stigmer_iam_apikey_v1_io_proto_goTypes = []any{
-	(*ApiKeys)(nil),    // 0: ai.stigmer.iam.apikey.v1.ApiKeys
-	(*ApiKeyId)(nil),   // 1: ai.stigmer.iam.apikey.v1.ApiKeyId
-	(*ApiKeyHash)(nil), // 2: ai.stigmer.iam.apikey.v1.ApiKeyHash
-	(*ApiKey)(nil),     // 3: ai.stigmer.iam.apikey.v1.ApiKey
+	(*ApiKeys)(nil),                      // 0: ai.stigmer.iam.apikey.v1.ApiKeys
+	(*ApiKeyId)(nil),                     // 1: ai.stigmer.iam.apikey.v1.ApiKeyId
+	(*ApiKeyHash)(nil),                   // 2: ai.stigmer.iam.apikey.v1.ApiKeyHash
+	(*ApiKeyAccountId)(nil),              // 3: ai.stigmer.iam.apikey.v1.ApiKeyAccountId
+	(*CreateServiceAccountKeyInput)(nil), // 4: ai.stigmer.iam.apikey.v1.CreateServiceAccountKeyInput
+	(*ApiKey)(nil),                       // 5: ai.stigmer.iam.apikey.v1.ApiKey
+	(*timestamppb.Timestamp)(nil),        // 6: google.protobuf.Timestamp
 }
 var file_ai_stigmer_iam_apikey_v1_io_proto_depIdxs = []int32{
-	3, // 0: ai.stigmer.iam.apikey.v1.ApiKeys.entries:type_name -> ai.stigmer.iam.apikey.v1.ApiKey
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	5, // 0: ai.stigmer.iam.apikey.v1.ApiKeys.entries:type_name -> ai.stigmer.iam.apikey.v1.ApiKey
+	6, // 1: ai.stigmer.iam.apikey.v1.CreateServiceAccountKeyInput.expires_at:type_name -> google.protobuf.Timestamp
+	2, // [2:2] is the sub-list for method output_type
+	2, // [2:2] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_iam_apikey_v1_io_proto_init() }
@@ -214,7 +347,7 @@ func file_ai_stigmer_iam_apikey_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_iam_apikey_v1_io_proto_rawDesc), len(file_ai_stigmer_iam_apikey_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

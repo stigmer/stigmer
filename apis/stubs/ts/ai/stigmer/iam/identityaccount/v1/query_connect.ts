@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ExternalSubLookup, IdentityAccountEmail, IdentityAccountId, IdpId } from "./io_pbjs";
+import { ExternalSubLookup, IdentityAccountEmail, IdentityAccountId, IdentityAccountsList, IdpId, ListWithIdentityOrg } from "./io_pbjs";
 import { IdentityAccount } from "./api_pbjs";
 import { Empty, MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceAuditActor } from "../../../commons/apiresource/status_pbjs";
@@ -88,6 +88,22 @@ export const IdentityAccountQueryController = {
       name: "getByExternalSub",
       I: ExternalSubLookup,
       O: IdentityAccount,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * List an organization's service accounts, newest first.
+     *
+     * Lists every service account of the organization, including one whose
+     * role was removed, so it can still be found and deleted.
+     *
+     * Authorization: Requires can_create_identity_account on the organization.
+     *
+     * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController.listServiceAccounts
+     */
+    listServiceAccounts: {
+      name: "listServiceAccounts",
+      I: ListWithIdentityOrg,
+      O: IdentityAccountsList,
       kind: MethodKind.Unary,
     },
     /**

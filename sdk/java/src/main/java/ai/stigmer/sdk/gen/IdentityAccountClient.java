@@ -4,6 +4,7 @@ package ai.stigmer.sdk.gen;
 
 import ai.stigmer.commons.apiresource.ApiResourceAuditActor;
 import ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput;
+import ai.stigmer.iam.identityaccount.v1.CreateServiceAccountInput;
 import ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput;
 import ai.stigmer.iam.identityaccount.v1.ExternalSubLookup;
 import ai.stigmer.iam.identityaccount.v1.IdentityAccount;
@@ -11,7 +12,9 @@ import ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandControllerGrpc;
 import ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail;
 import ai.stigmer.iam.identityaccount.v1.IdentityAccountId;
 import ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryControllerGrpc;
+import ai.stigmer.iam.identityaccount.v1.IdentityAccountsList;
 import ai.stigmer.iam.identityaccount.v1.IdpId;
+import ai.stigmer.iam.identityaccount.v1.ListWithIdentityOrg;
 import ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput;
 import com.google.protobuf.Empty;
 import io.grpc.Channel;
@@ -63,6 +66,12 @@ public final class IdentityAccountClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
+    public IdentityAccount createServiceAccount(CreateServiceAccountInput input) {
+        try {
+            return command.createServiceAccount(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
     public IdentityAccount provisionMyAccount() {
         try {
             return command.provisionMyAccount(Empty.getDefaultInstance());
@@ -96,6 +105,12 @@ public final class IdentityAccountClient {
     public IdentityAccount getByExternalSub(ExternalSubLookup input) {
         try {
             return query.getByExternalSub(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public IdentityAccountsList listServiceAccounts(ListWithIdentityOrg input) {
+        try {
+            return query.listServiceAccounts(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

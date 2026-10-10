@@ -7,13 +7,15 @@ import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { ApiKey } from "./api_pb.js";
 import { file_ai_stigmer_iam_apikey_v1_api } from "./api_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
+import type { Timestamp } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ai/stigmer/iam/apikey/v1/io.proto.
  */
 export const file_ai_stigmer_iam_apikey_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiFhaS9zdGlnbWVyL2lhbS9hcGlrZXkvdjEvaW8ucHJvdG8SGGFpLnN0aWdtZXIuaWFtLmFwaWtleS52MSI8CgdBcGlLZXlzEjEKB2VudHJpZXMYASADKAsyIC5haS5zdGlnbWVyLmlhbS5hcGlrZXkudjEuQXBpS2V5IiEKCEFwaUtleUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIwoKQXBpS2V5SGFzaBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBYgZwcm90bzM", [file_ai_stigmer_iam_apikey_v1_api, file_buf_validate_validate]);
+  fileDesc("CiFhaS9zdGlnbWVyL2lhbS9hcGlrZXkvdjEvaW8ucHJvdG8SGGFpLnN0aWdtZXIuaWFtLmFwaWtleS52MSI8CgdBcGlLZXlzEjEKB2VudHJpZXMYASADKAsyIC5haS5zdGlnbWVyLmlhbS5hcGlrZXkudjEuQXBpS2V5IiEKCEFwaUtleUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIwoKQXBpS2V5SGFzaBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBIjYKD0FwaUtleUFjY291bnRJZBIjChNpZGVudGl0eV9hY2NvdW50X2lkGAEgASgJQga6SAPIAQEipAEKHENyZWF0ZVNlcnZpY2VBY2NvdW50S2V5SW5wdXQSIgoSc2VydmljZV9hY2NvdW50X2lkGAEgASgJQga6SAPIAQESGQoEbmFtZRgCIAEoCUILukgIyAEBcgMYgAESLgoKZXhwaXJlc19hdBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASFQoNbmV2ZXJfZXhwaXJlcxgEIAEoCGIGcHJvdG8z", [file_ai_stigmer_iam_apikey_v1_api, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * ApiKeys contains a list of API key resources.
@@ -77,4 +79,68 @@ export type ApiKeyHash = Message<"ai.stigmer.iam.apikey.v1.ApiKeyHash"> & {
  */
 export const ApiKeyHashSchema: GenMessage<ApiKeyHash> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_iam_apikey_v1_io, 2);
+
+/**
+ * ApiKeyAccountId names the identity account whose keys are listed.
+ *
+ * @generated from message ai.stigmer.iam.apikey.v1.ApiKeyAccountId
+ */
+export type ApiKeyAccountId = Message<"ai.stigmer.iam.apikey.v1.ApiKeyAccountId"> & {
+  /**
+   * Identity account id the keys speak for.
+   *
+   * @generated from field: string identity_account_id = 1;
+   */
+  identityAccountId: string;
+};
+
+/**
+ * Describes the message ai.stigmer.iam.apikey.v1.ApiKeyAccountId.
+ * Use `create(ApiKeyAccountIdSchema)` to create a new message.
+ */
+export const ApiKeyAccountIdSchema: GenMessage<ApiKeyAccountId> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_iam_apikey_v1_io, 3);
+
+/**
+ * CreateServiceAccountKeyInput is the command for creating an API key that
+ * speaks for a service account.
+ *
+ * @generated from message ai.stigmer.iam.apikey.v1.CreateServiceAccountKeyInput
+ */
+export type CreateServiceAccountKeyInput = Message<"ai.stigmer.iam.apikey.v1.CreateServiceAccountKeyInput"> & {
+  /**
+   * Identity account id of the service account the key speaks for.
+   *
+   * @generated from field: string service_account_id = 1;
+   */
+  serviceAccountId: string;
+
+  /**
+   * The key's name, shown beside its fingerprint (e.g., "github-actions").
+   *
+   * @generated from field: string name = 2;
+   */
+  name: string;
+
+  /**
+   * Expiration time for the key. Ignored when never_expires is true.
+   *
+   * @generated from field: google.protobuf.Timestamp expires_at = 3;
+   */
+  expiresAt?: Timestamp;
+
+  /**
+   * When true, the key never expires regardless of expires_at.
+   *
+   * @generated from field: bool never_expires = 4;
+   */
+  neverExpires: boolean;
+};
+
+/**
+ * Describes the message ai.stigmer.iam.apikey.v1.CreateServiceAccountKeyInput.
+ * Use `create(CreateServiceAccountKeyInputSchema)` to create a new message.
+ */
+export const CreateServiceAccountKeyInputSchema: GenMessage<CreateServiceAccountKeyInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_iam_apikey_v1_io, 4);
 

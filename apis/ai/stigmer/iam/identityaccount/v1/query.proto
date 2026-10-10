@@ -72,6 +72,19 @@ service IdentityAccountQueryController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to look up identity accounts in this organization";
   }
 
+  // List an organization's service accounts, newest first.
+  //
+  // Lists every service account of the organization, including one whose
+  // role was removed, so it can still be found and deleted.
+  //
+  // Authorization: Requires can_create_identity_account on the organization.
+  rpc listServiceAccounts(ListWithIdentityOrg) returns (IdentityAccountsList) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_create_identity_account;
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to list service accounts in this organization";
+  }
+
   // Get lightweight actor information for an identity account.
   //
   // @internal

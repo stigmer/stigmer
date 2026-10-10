@@ -763,6 +763,11 @@
           "name": "platform_client",
           "number": 4,
           "description": "Account provisioned via a PlatformClient's mintUserToken endpoint.\n\n The idp_id for these accounts uses the composite encoding\n \"stgm_pc|{org}|{external_user_id}\", where org is the owning organization of\n the PlatformClient that minted the token and external_user_id is the user\n identifier supplied by the platform builder. Every PlatformClient of one\n organization therefore resolves the same user to the same account. The\n \"stgm_pc|\" prefix is reserved: no other provisioning mode may use it.\n\n Unlike federated accounts, PlatformClient is not an ongoing authentication\n authority. Stigmer signs its own JWTs for these users; the PlatformClient\n is the admission credential used at mint time only."
+        },
+        {
+          "name": "service_account",
+          "number": 5,
+          "description": "An organization's own non-person account: the principal its automation\n (a CI job, a script, an integration) acts as, so the automation keeps\n working when the person who set it up leaves.\n\n Created by an organization admin with createServiceAccount, it belongs to\n that one organization for its whole life, holds one organization role\n (admin, member or viewer, never owner) and acts only through API keys\n the organization's admins create for it. Its keys work only in its\n organization, and deleting it ends every key at once.\n\n The idp_id uses the composite encoding \"stgm_sa|{org}|{random}\", where\n org is the owning organization's id and random is drawn at creation, so\n a service account deleted and created again under the same name is a\n new principal that inherits nothing. The \"stgm_sa|\" prefix is reserved:\n no other provisioning mode may use it, and no sign-in resolves to it."
         }
       ]
     }

@@ -42,7 +42,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "ns/rpc/method_options.proto\032+ai/stigmer/" +
       "iam/identityaccount/v1/api.proto\032*ai/sti" +
       "gmer/iam/identityaccount/v1/io.proto\032\033go" +
-      "ogle/protobuf/empty.proto2\213\n\n IdentityAc" +
+      "ogle/protobuf/empty.proto2\343\013\n IdentityAc" +
       "countCommandController\022v\n\006create\0222.ai.st" +
       "igmer.iam.identityaccount.v1.IdentityAcc" +
       "ount\0322.ai.stigmer.iam.identityaccount.v1" +
@@ -72,14 +72,20 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "2.ai.stigmer.iam.identityaccount.v1.Iden" +
       "tityAccount\"L\302\270\030H\010\025\020\036\"\003org*=unauthorized" +
       " to manage identity accounts in this org" +
-      "anization\022f\n\022provisionMyAccount\022\026.google" +
-      ".protobuf.Empty\0322.ai.stigmer.iam.identit" +
-      "yaccount.v1.IdentityAccount\"\004\320\270\030\001\032\004\240\377+\013B" +
-      "\267\001B\014CommandProtoP\001\242\002\004ASII\252\002!Ai.Stigmer.I" +
-      "am.Identityaccount.V1\312\002!Ai\\Stigmer\\Iam\\I" +
-      "dentityaccount\\V1\342\002-Ai\\Stigmer\\Iam\\Ident" +
-      "ityaccount\\V1\\GPBMetadata\352\002%Ai::Stigmer:" +
-      ":Iam::Identityaccount::V1b\006proto3"
+      "anization\022\325\001\n\024createServiceAccount\022<.ai." +
+      "stigmer.iam.identityaccount.v1.CreateSer" +
+      "viceAccountInput\0322.ai.stigmer.iam.identi" +
+      "tyaccount.v1.IdentityAccount\"K\302\270\030G\010\025\020\036\"\003" +
+      "org*<unauthorized to create service acco" +
+      "unts in this organization\022f\n\022provisionMy" +
+      "Account\022\026.google.protobuf.Empty\0322.ai.sti" +
+      "gmer.iam.identityaccount.v1.IdentityAcco" +
+      "unt\"\004\320\270\030\001\032\004\240\377+\013B\267\001B\014CommandProtoP\001\242\002\004ASI" +
+      "I\252\002!Ai.Stigmer.Iam.Identityaccount.V1\312\002!" +
+      "Ai\\Stigmer\\Iam\\Identityaccount\\V1\342\002-Ai\\S" +
+      "tigmer\\Iam\\Identityaccount\\V1\\GPBMetadat" +
+      "a\352\002%Ai::Stigmer::Iam::Identityaccount::V" +
+      "1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

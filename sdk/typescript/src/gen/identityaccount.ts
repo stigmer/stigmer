@@ -13,7 +13,7 @@ import { type ApiResourceAuditActor } from "@stigmer/protos/ai/stigmer/commons/a
 import { IdentityAccountSchema, type IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
-import { IdentityAccountIdSchema, CreateFederatedAccountInputSchema, UpdateFederatedAccountInputSchema, DeprovisionFederatedAccountInputSchema, IdentityAccountEmailSchema, IdpIdSchema, ExternalSubLookupSchema, type CreateFederatedAccountInput, type UpdateFederatedAccountInput, type DeprovisionFederatedAccountInput, type IdentityAccountEmail, type ExternalSubLookup } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/io_pb";
+import { IdentityAccountIdSchema, CreateFederatedAccountInputSchema, UpdateFederatedAccountInputSchema, DeprovisionFederatedAccountInputSchema, CreateServiceAccountInputSchema, IdentityAccountEmailSchema, IdpIdSchema, ExternalSubLookupSchema, ListWithIdentityOrgSchema, IdentityAccountsListSchema, type CreateFederatedAccountInput, type UpdateFederatedAccountInput, type DeprovisionFederatedAccountInput, type CreateServiceAccountInput, type IdentityAccountEmail, type ExternalSubLookup, type ListWithIdentityOrg, type IdentityAccountsList } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/io_pb";
 import { IdentityAccountQueryController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/query_pb";
 import { IdentityAccountSpecSchema, IdentityAccountPreferencesSchema, type IdentityAccountPreferences } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/spec_pb";
 
@@ -63,6 +63,12 @@ export class IdentityAccountClient {
     } catch (e) { throw wrapError(e); }
   }
 
+  async createServiceAccount(input: CreateServiceAccountInput): Promise<IdentityAccount> {
+    try {
+      return await this.command.createServiceAccount(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
   async provisionMyAccount(): Promise<IdentityAccount> {
     try {
       return await this.command.provisionMyAccount(create(EmptySchema, {}));
@@ -96,6 +102,12 @@ export class IdentityAccountClient {
   async getByExternalSub(input: ExternalSubLookup): Promise<IdentityAccount> {
     try {
       return await this.query.getByExternalSub(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async listServiceAccounts(input: ListWithIdentityOrg): Promise<IdentityAccountsList> {
+    try {
+      return await this.query.listServiceAccounts(input);
     } catch (e) { throw wrapError(e); }
   }
 

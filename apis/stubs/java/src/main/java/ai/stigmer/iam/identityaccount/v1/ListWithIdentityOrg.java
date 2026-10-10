@@ -59,7 +59,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object org_ = "";
   /**
    * <pre>
-   * Organization slug to list identity accounts for.
+   * Organization to list identity accounts for, by id or slug.
    * </pre>
    *
    * <code>string org = 1 [json_name = "org"];</code>
@@ -80,7 +80,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Organization slug to list identity accounts for.
+   * Organization to list identity accounts for, by id or slug.
    * </pre>
    *
    * <code>string org = 1 [json_name = "org"];</code>
@@ -485,7 +485,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object org_ = "";
     /**
      * <pre>
-     * Organization slug to list identity accounts for.
+     * Organization to list identity accounts for, by id or slug.
      * </pre>
      *
      * <code>string org = 1 [json_name = "org"];</code>
@@ -505,7 +505,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Organization slug to list identity accounts for.
+     * Organization to list identity accounts for, by id or slug.
      * </pre>
      *
      * <code>string org = 1 [json_name = "org"];</code>
@@ -526,7 +526,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Organization slug to list identity accounts for.
+     * Organization to list identity accounts for, by id or slug.
      * </pre>
      *
      * <code>string org = 1 [json_name = "org"];</code>
@@ -543,7 +543,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Organization slug to list identity accounts for.
+     * Organization to list identity accounts for, by id or slug.
      * </pre>
      *
      * <code>string org = 1 [json_name = "org"];</code>
@@ -557,7 +557,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Organization slug to list identity accounts for.
+     * Organization to list identity accounts for, by id or slug.
      * </pre>
      *
      * <code>string org = 1 [json_name = "org"];</code>

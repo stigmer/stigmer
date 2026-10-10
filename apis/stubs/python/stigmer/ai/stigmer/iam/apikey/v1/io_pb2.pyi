@@ -1,5 +1,8 @@
+import datetime
+
 from ai.stigmer.iam.apikey.v1 import api_pb2 as _api_pb2
 from buf.validate import validate_pb2 as _validate_pb2
+from google.protobuf import timestamp_pb2 as _timestamp_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
@@ -25,3 +28,21 @@ class ApiKeyHash(_message.Message):
     VALUE_FIELD_NUMBER: _ClassVar[int]
     value: str
     def __init__(self, value: _Optional[str] = ...) -> None: ...
+
+class ApiKeyAccountId(_message.Message):
+    __slots__ = ("identity_account_id",)
+    IDENTITY_ACCOUNT_ID_FIELD_NUMBER: _ClassVar[int]
+    identity_account_id: str
+    def __init__(self, identity_account_id: _Optional[str] = ...) -> None: ...
+
+class CreateServiceAccountKeyInput(_message.Message):
+    __slots__ = ("service_account_id", "name", "expires_at", "never_expires")
+    SERVICE_ACCOUNT_ID_FIELD_NUMBER: _ClassVar[int]
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    EXPIRES_AT_FIELD_NUMBER: _ClassVar[int]
+    NEVER_EXPIRES_FIELD_NUMBER: _ClassVar[int]
+    service_account_id: str
+    name: str
+    expires_at: _timestamp_pb2.Timestamp
+    never_expires: bool
+    def __init__(self, service_account_id: _Optional[str] = ..., name: _Optional[str] = ..., expires_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., never_expires: bool = ...) -> None: ...

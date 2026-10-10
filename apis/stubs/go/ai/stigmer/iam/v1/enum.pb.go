@@ -153,6 +153,9 @@ const (
 	IamPermission_can_create_shared_vault IamPermission = 52
 	// Whether a person's runs may use a vault's logins and secrets.
 	IamPermission_can_use IamPermission = 53
+	// Whether the caller may create, list and revoke a service account's API
+	// keys: its organization's admins.
+	IamPermission_can_manage_keys IamPermission = 55
 )
 
 // Enum value maps for IamPermission.
@@ -199,6 +202,7 @@ var (
 		51: "can_create_vault",
 		52: "can_create_shared_vault",
 		53: "can_use",
+		55: "can_manage_keys",
 	}
 	IamPermission_value = map[string]int32{
 		"unspecified":                 0,
@@ -242,6 +246,7 @@ var (
 		"can_create_vault":            51,
 		"can_create_shared_vault":     52,
 		"can_use":                     53,
+		"can_manage_keys":             55,
 	}
 )
 
@@ -444,7 +449,7 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1\x1a google/protobuf/descriptor.proto\"R\n" +
 	"\vIamRoleMeta\x12!\n" +
 	"\fdisplay_name\x18\x01 \x01(\tR\vdisplayName\x12 \n" +
-	"\vdescription\x18\x02 \x01(\tR\vdescription*\xc8\n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription*\xdd\n" +
 	"\n" +
 	"\rIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\f\n" +
@@ -488,7 +493,8 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x11can_view_settings\x102\x12\x14\n" +
 	"\x10can_create_vault\x103\x12\x1b\n" +
 	"\x17can_create_shared_vault\x104\x12\v\n" +
-	"\acan_use\x105\"\x04\b\x0e\x10\x0e\"\x04\b\a\x10\a\"\x04\b\f\x10\f\"\x04\b\x10\x10\x10\"\x04\b\x12\x10\x12\"\x04\b\x14\x10\x14\"\x04\b\x19\x10\x19\"\x04\b\x1a\x10\x1a\"\x04\b!\x10!\"\x04\b\"\x10\"\"\x04\b\n" +
+	"\acan_use\x105\x12\x13\n" +
+	"\x0fcan_manage_keys\x107\"\x04\b\x0e\x10\x0e\"\x04\b\a\x10\a\"\x04\b\f\x10\f\"\x04\b\x10\x10\x10\"\x04\b\x12\x10\x12\"\x04\b\x14\x10\x14\"\x04\b\x19\x10\x19\"\x04\b\x1a\x10\x1a\"\x04\b!\x10!\"\x04\b\"\x10\"\"\x04\b\n" +
 	"\x10\n" +
 	"\"\x04\b'\x10'\"\x04\b,\x10,*\x13can_create_instance*\x13can_create_workflow*\x16can_create_environment*\x10can_read_secrets*\x1ccan_manage_identity_accounts*\x14login_to_back_office*\x11can_create_runner*\x12can_delete_session*\x0fcan_use_records*\x14can_create_datastore*\x12can_create_project*\x19can_set_public_visibility*\x19can_create_agent_instance*\xb7\x04\n" +
 	"\aIamRole\x12\x18\n" +

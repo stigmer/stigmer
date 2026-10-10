@@ -27,7 +27,7 @@ var File_ai_stigmer_iam_identityaccount_v1_query_proto protoreflect.FileDescript
 
 const file_ai_stigmer_iam_identityaccount_v1_query_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/iam/identityaccount/v1/query.proto\x12!ai.stigmer.iam.identityaccount.v1\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a+ai/stigmer/iam/identityaccount/v1/api.proto\x1a*ai/stigmer/iam/identityaccount/v1/io.proto\x1a\x1bgoogle/protobuf/empty.proto2\x83\b\n" +
+	"-ai/stigmer/iam/identityaccount/v1/query.proto\x12!ai.stigmer.iam.identityaccount.v1\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a+ai/stigmer/iam/identityaccount/v1/api.proto\x1a*ai/stigmer/iam/identityaccount/v1/io.proto\x1a\x1bgoogle/protobuf/empty.proto2\xd7\t\n" +
 	"\x1eIdentityAccountQueryController\x12\xa6\x01\n" +
 	"\x03get\x124.ai.stigmer.iam.identityaccount.v1.IdentityAccountId\x1a2.ai.stigmer.iam.identityaccount.v1.IdentityAccount\"5¸\x181\b\x01\x10\v\"\x05value*$unauthorized to get identity account\x12Z\n" +
 	"\x06whoAmI\x12\x16.google.protobuf.Empty\x1a2.ai.stigmer.iam.identityaccount.v1.IdentityAccount\"\x04и\x18\x01\x12\xb0\x01\n" +
@@ -35,7 +35,8 @@ const file_ai_stigmer_iam_identityaccount_v1_query_proto_rawDesc = "" +
 	"getByEmail\x127.ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail\x1a2.ai.stigmer.iam.identityaccount.v1.IdentityAccount\"5¸\x181\b\x01\x10\v\"\x05value*$unauthorized to get identity account\x12\xa1\x01\n" +
 	"\n" +
 	"getByIdpId\x12(.ai.stigmer.iam.identityaccount.v1.IdpId\x1a2.ai.stigmer.iam.identityaccount.v1.IdentityAccount\"5¸\x181\b\x01\x10\v\"\x05value*$unauthorized to get identity account\x12\xcb\x01\n" +
-	"\x10getByExternalSub\x124.ai.stigmer.iam.identityaccount.v1.ExternalSubLookup\x1a2.ai.stigmer.iam.identityaccount.v1.IdentityAccount\"M¸\x18I\b\x15\x10\x1e\"\x03org*>unauthorized to look up identity accounts in this organization\x12\xb0\x01\n" +
+	"\x10getByExternalSub\x124.ai.stigmer.iam.identityaccount.v1.ExternalSubLookup\x1a2.ai.stigmer.iam.identityaccount.v1.IdentityAccount\"M¸\x18I\b\x15\x10\x1e\"\x03org*>unauthorized to look up identity accounts in this organization\x12\xd1\x01\n" +
+	"\x13listServiceAccounts\x126.ai.stigmer.iam.identityaccount.v1.ListWithIdentityOrg\x1a7.ai.stigmer.iam.identityaccount.v1.IdentityAccountsList\"I¸\x18E\b\x15\x10\x1e\"\x03org*:unauthorized to list service accounts in this organization\x12\xb0\x01\n" +
 	"\fgetActorInfo\x124.ai.stigmer.iam.identityaccount.v1.IdentityAccountId\x1a5.ai.stigmer.commons.apiresource.ApiResourceAuditActor\"3¸\x18/\b\x01\x10\v\"\x05value*\"unauthorized to look up actor info\x1a\x04\xa0\xff+\vB\xba\x02\n" +
 	"%com.ai.stigmer.iam.identityaccount.v1B\n" +
 	"QueryProtoP\x01Z\\github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/identityaccount/v1;identityaccountv1\xa2\x02\x04ASII\xaa\x02!Ai.Stigmer.Iam.Identityaccount.V1\xca\x02!Ai\\Stigmer\\Iam\\Identityaccount\\V1\xe2\x02-Ai\\Stigmer\\Iam\\Identityaccount\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Iam::Identityaccount::V1b\x06proto3"
@@ -46,8 +47,10 @@ var file_ai_stigmer_iam_identityaccount_v1_query_proto_goTypes = []any{
 	(*IdentityAccountEmail)(nil),              // 2: ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail
 	(*IdpId)(nil),                             // 3: ai.stigmer.iam.identityaccount.v1.IdpId
 	(*ExternalSubLookup)(nil),                 // 4: ai.stigmer.iam.identityaccount.v1.ExternalSubLookup
-	(*IdentityAccount)(nil),                   // 5: ai.stigmer.iam.identityaccount.v1.IdentityAccount
-	(*apiresource.ApiResourceAuditActor)(nil), // 6: ai.stigmer.commons.apiresource.ApiResourceAuditActor
+	(*ListWithIdentityOrg)(nil),               // 5: ai.stigmer.iam.identityaccount.v1.ListWithIdentityOrg
+	(*IdentityAccount)(nil),                   // 6: ai.stigmer.iam.identityaccount.v1.IdentityAccount
+	(*IdentityAccountsList)(nil),              // 7: ai.stigmer.iam.identityaccount.v1.IdentityAccountsList
+	(*apiresource.ApiResourceAuditActor)(nil), // 8: ai.stigmer.commons.apiresource.ApiResourceAuditActor
 }
 var file_ai_stigmer_iam_identityaccount_v1_query_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController.get:input_type -> ai.stigmer.iam.identityaccount.v1.IdentityAccountId
@@ -55,15 +58,17 @@ var file_ai_stigmer_iam_identityaccount_v1_query_proto_depIdxs = []int32{
 	2, // 2: ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController.getByEmail:input_type -> ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail
 	3, // 3: ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController.getByIdpId:input_type -> ai.stigmer.iam.identityaccount.v1.IdpId
 	4, // 4: ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController.getByExternalSub:input_type -> ai.stigmer.iam.identityaccount.v1.ExternalSubLookup
-	0, // 5: ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController.getActorInfo:input_type -> ai.stigmer.iam.identityaccount.v1.IdentityAccountId
-	5, // 6: ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController.get:output_type -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
-	5, // 7: ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController.whoAmI:output_type -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
-	5, // 8: ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController.getByEmail:output_type -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
-	5, // 9: ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController.getByIdpId:output_type -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
-	5, // 10: ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController.getByExternalSub:output_type -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
-	6, // 11: ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController.getActorInfo:output_type -> ai.stigmer.commons.apiresource.ApiResourceAuditActor
-	6, // [6:12] is the sub-list for method output_type
-	0, // [0:6] is the sub-list for method input_type
+	5, // 5: ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController.listServiceAccounts:input_type -> ai.stigmer.iam.identityaccount.v1.ListWithIdentityOrg
+	0, // 6: ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController.getActorInfo:input_type -> ai.stigmer.iam.identityaccount.v1.IdentityAccountId
+	6, // 7: ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController.get:output_type -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
+	6, // 8: ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController.whoAmI:output_type -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
+	6, // 9: ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController.getByEmail:output_type -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
+	6, // 10: ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController.getByIdpId:output_type -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
+	6, // 11: ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController.getByExternalSub:output_type -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
+	7, // 12: ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController.listServiceAccounts:output_type -> ai.stigmer.iam.identityaccount.v1.IdentityAccountsList
+	8, // 13: ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController.getActorInfo:output_type -> ai.stigmer.commons.apiresource.ApiResourceAuditActor
+	7, // [7:14] is the sub-list for method output_type
+	0, // [0:7] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

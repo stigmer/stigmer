@@ -29,6 +29,8 @@ public interface IdentityAccountSpecOrBuilder extends
    * Scoping by org (not by PlatformClient) means the same user_id presented
    * via any PlatformClient in the same org resolves to the same IdentityAccount.
    * Globally unique by construction — no additional scope field is needed.
+   * For service_account accounts: composite "stgm_sa|{org}|{random}", assigned
+   * by the server at createServiceAccount and never supplied by a caller.
    * </pre>
    *
    * <code>string idp_id = 1 [json_name = "idpId", (.buf.validate.field) = { ... }</code>
@@ -54,6 +56,8 @@ public interface IdentityAccountSpecOrBuilder extends
    * Scoping by org (not by PlatformClient) means the same user_id presented
    * via any PlatformClient in the same org resolves to the same IdentityAccount.
    * Globally unique by construction — no additional scope field is needed.
+   * For service_account accounts: composite "stgm_sa|{org}|{random}", assigned
+   * by the server at createServiceAccount and never supplied by a caller.
    * </pre>
    *
    * <code>string idp_id = 1 [json_name = "idpId", (.buf.validate.field) = { ... }</code>

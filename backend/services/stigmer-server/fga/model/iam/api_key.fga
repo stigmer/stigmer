@@ -4,12 +4,16 @@ module iam
 # API KEY TYPE (User-scoped)
 # ========================================
 # API keys for programmatic access to Stigmer APIs.
-# Each key belongs to an identity account (user or machine account).
-# Keys are always private - only owner can access.
+# Each key belongs to the identity account it speaks for (a person or a
+# service account).
 #
 # Security model:
 # - Owner: Full CRUD access to their own API keys
-# - No sharing: API keys are always private to the owner
+# - A service account's keys: also viewed and revoked by whoever holds
+#   can_manage_keys on the service account (its organization's admins).
+#   A person's account holds no organization link, so nobody but the
+#   person reaches a person's keys.
+# - No sharing: access to a key is never granted
 #
 # FGA tuples on creation:
 # - api_key:key1#owner@identity_account:alice
@@ -24,9 +28,9 @@ type api_key
     # ========================================
     # CRUD OPERATIONS
     # ========================================
-    define can_view: owner
-    define can_edit: owner
-    define can_delete: owner
+    define can_view: owner or can_manage_keys from owner
+    define can_edit: owner or can_manage_keys from owner
+    define can_delete: owner or can_manage_keys from owner
     
     # ========================================
     # IAM POLICY MANAGEMENT
