@@ -3,10 +3,12 @@
  * the cases not run yet with their feature) or the sentence for a plugin
  * with no cases; the Run evals form only for the plugin's editors, whose
  * start sends the plugin's id, organization and the form's settings and
- * opens the new eval; an eval's view with a row per case, WITH, W/OUT and
- * a provisional Δ, and its tries as links to their runs; Cancel for an
- * editor while the eval runs; and Compare, case by case, with a changed
- * case marked.
+ * opens the new eval, its targets added, switched to another engine (which
+ * drops the model picked) and removed; a past eval opened from the list;
+ * an eval's view with a row per case, WITH, W/OUT and a provisional Δ, and
+ * its tries as links to their runs; Cancel for an editor while the eval
+ * runs; and Compare, case by case, with a changed case marked, and a
+ * request for two different evals when both pickers name one.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -31,12 +33,19 @@ import { evalWith } from "./eval-fixture";
 vi.mock("../../models/ModelSelector.js", () => ({
   ModelSelector: ({
     onValueChange,
+    onHarnessChange,
   }: {
     onValueChange: (modelId: string) => void;
+    onHarnessChange: (harness: "cursor") => void;
   }) => (
-    <button type="button" onClick={() => onValueChange("claude-haiku-4-5")}>
-      pick a model
-    </button>
+    <>
+      <button type="button" onClick={() => onValueChange("claude-haiku-4-5")}>
+        pick a model
+      </button>
+      <button type="button" onClick={() => onHarnessChange("cursor")}>
+        use cursor
+      </button>
+    </>
   ),
 }));
 
@@ -179,6 +188,30 @@ describe("PluginEvalsTab", () => {
     expect(await screen.findByText("thermos evals pev_new")).toBeDefined();
   });
 
+  it("builds the targets from the form: adds a model, switches an engine (dropping its model), removes one, and sets tries at once", async () => {
+    const started = evalWith([], undefined, "pev_new");
+    const mock = client([], { started });
+    render(<PluginEvalsTab plugin={plugin} />, { wrapper: wrap(mock) });
+    expect(screen.queryByRole("button", { name: /^Remove model/ })).toBeNull();
+    fireEvent.click(await screen.findByRole("button", { name: "Add a model" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "pick a model" })[1]!);
+    fireEvent.click(screen.getAllByRole("button", { name: "use cursor" })[1]!);
+    fireEvent.click(screen.getByRole("button", { name: "Remove model 1" }));
+    expect(screen.getAllByRole("button", { name: "pick a model" })).toHaveLength(1);
+    expect(screen.queryByRole("button", { name: /^Remove model/ })).toBeNull();
+    fireEvent.change(screen.getByLabelText("Tries at once"), {
+      target: { value: "4" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Run evals" }));
+    await vi.waitFor(() => expect(mock.plugineval.create).toHaveBeenCalled());
+    expect(mock.plugineval.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        targets: [{ harness: Harness.CURSOR }],
+        concurrency: 4,
+      }),
+    );
+  });
+
   it("refuses to start with a cost limit the API refuses", async () => {
     render(<PluginEvalsTab plugin={plugin} />, { wrapper: wrap(client([])) });
     fireEvent.change(await screen.findByLabelText("Cost limit (USD)"), {
@@ -216,6 +249,23 @@ describe("PluginEvalsTab", () => {
     expect(
       screen.getByText("with #2: not graded: platform busy"),
     ).toBeDefined();
+  });
+
+  it("opens a past eval picked from the list", async () => {
+    const newer = evalWith([{ name: "a", score: 1 }], undefined, "pev_2");
+    const older = evalWith([{ name: "a", score: 0.5 }], undefined, "pev_1");
+    render(<PluginEvalsTab plugin={plugin} />, {
+      wrapper: wrap(client([newer, older])),
+    });
+    expect(await screen.findByText("thermos evals pev_2")).toBeDefined();
+    const list = screen.getByRole("list", { name: "Past evals" });
+    const [first, second] = within(list).getAllByRole("button");
+    expect(first?.getAttribute("aria-current")).toBe("true");
+    fireEvent.click(second!);
+    expect(await screen.findByText("thermos evals pev_1")).toBeDefined();
+    expect(screen.queryByText("thermos evals pev_2")).toBeNull();
+    expect(second?.getAttribute("aria-current")).toBe("true");
+    expect(first?.getAttribute("aria-current")).toBeNull();
   });
 
   it("offers an editor Cancel while the eval runs", async () => {
@@ -265,5 +315,23 @@ describe("PluginEvalsTab", () => {
         .getByRole("row", { name: /steady/ })
         .getAttribute("data-changed"),
     ).toBeNull();
+  });
+
+  it("asks for two different evals when both pickers name the same one", async () => {
+    const newer = evalWith([{ name: "a", score: 1 }], undefined, "pev_2");
+    const older = evalWith([{ name: "a", score: 0.5 }], undefined, "pev_1");
+    render(<PluginEvalsTab plugin={plugin} />, {
+      wrapper: wrap(client([newer, older])),
+    });
+    expect(screen.queryByText("Pick two different evals.")).toBeNull();
+    fireEvent.change(await screen.findByLabelText("After"), {
+      target: { value: "pev_1" },
+    });
+    expect(screen.getByText("Pick two different evals.")).toBeDefined();
+    expect(
+      screen
+        .queryAllByRole("table")
+        .some((table) => within(table).queryByText("Δ before") !== null),
+    ).toBe(false);
   });
 });
