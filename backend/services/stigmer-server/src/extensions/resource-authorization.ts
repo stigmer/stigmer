@@ -68,12 +68,27 @@
  * child's row is first stored; the edges never change (`spec.parent_org` is fixed at create)
  * and die with the child's delete cleanup, which removes tuples naming
  * the child on either side.
+ *
+ * An organization's policies (`spec.policies`) ride it too, as an edge
+ * from the organization to itself:
+ * `organization:<org>#agent_creation_open@organization:<org>` while members
+ * may create agents. Open source derives it from the row at check time
+ * (authorization/model/organization-policies.ts); an edition that stores
+ * tuples keeps it from `onOrganizationPoliciesChanged`, fired by the
+ * organization's create and its updatePolicies only (update and apply keep
+ * the stored policies). Its order is fail-closed, the policy hooks' rule:
+ *   - a change that OPENS an act fires AFTER the row persists;
+ *   - a change that CLOSES one fires BEFORE the row persists;
+ *   - a throw fails the request; a change that opens and closes nothing
+ *     does not fire. The organization's delete cleanup removes the edge
+ *     with every tuple naming the organization.
  */
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { OwnerAttributionType } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
 import type { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import type { IamPolicySpec } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import type { OrganizationPolicies } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/spec_pb";
 
 import type { CallerIdentity } from "./identity.js";
 
@@ -202,6 +217,20 @@ export interface ChildOrganizationLinkedEvent {
 }
 
 /**
+ * An organization's policies are changing (`spec.policies`): the driver
+ * makes each policy's edge match `after` (today one,
+ * `organization:<org>#agent_creation_open@organization:<org>`, present
+ * exactly while `after.membersCanCreateAgents`). `before` is the stored
+ * policies, absent on the organization's create. Fired only when an edge
+ * changes; the writes are idempotent.
+ */
+export interface OrganizationPoliciesChangedEvent {
+  readonly organizationId: string;
+  readonly before: OrganizationPolicies | undefined;
+  readonly after: OrganizationPolicies;
+}
+
+/**
  * Fired synchronously AFTER an IamPolicy row is persisted by the domain's
  * grant path — and on the duplicate arm, when the triple was already held
  * and no row was written, so a composition heals a row whose tuple never
@@ -261,6 +290,16 @@ export interface ResourceAuthorizationLifecycle {
    * check time).
    */
   onChildOrganizationLinked?(event: ChildOrganizationLinkedEvent): Promise<void>;
+  /**
+   * OPTIONAL: synchronous; fired by an organization's create and its
+   * updatePolicies when a policy's edge changes: AFTER the row persists
+   * for a change that opens an act, BEFORE it for one that closes it. A
+   * throw fails the request. Absent method = the edges are derived from
+   * the row at check time (the OSS posture).
+   */
+  onOrganizationPoliciesChanged?(
+    event: OrganizationPoliciesChangedEvent,
+  ): Promise<void>;
   /**
    * OPTIONAL: synchronous, AFTER the row
    * persist, on the duplicate arm too; a throw fails the grant with the

@@ -55,6 +55,7 @@ import type {
   OrganizationId,
   OrganizationList,
   Organizations,
+  UpdateOrganizationPoliciesInput,
 } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
@@ -67,6 +68,14 @@ import type { IamPolicyGrantPath } from "../iampolicy/grant-path.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { internalError } from "../../pipeline/errors.js";
+import {
+  POLICIES_ORGANIZATION_KEY,
+  newAnnounceCreatedOrganizationPoliciesStep,
+  newChangeOrganizationPoliciesStep,
+  newDefaultOrganizationPoliciesStep,
+  newLoadOrganizationForPoliciesStep,
+  newPreservePoliciesStep,
+} from "./policies.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
@@ -176,6 +185,7 @@ export function registerOrganizationServices(
     apply: (org, ctx) => apply(deps, org, ctx),
     create: (org, ctx) => createOrganization(deps, org, ctx),
     update: (org, ctx) => update(deps, org, ctx),
+    updatePolicies: (input, ctx) => updatePolicies(deps, input, ctx),
     rename: (input, ctx) => rename(deps, input, ctx),
     delete: (orgId, ctx) => deleteOrganization(deps, orgId, ctx),
   });
@@ -258,6 +268,7 @@ async function createOrganization(
     .addStep(newValidateProtoStep())
     .addStep(newRefuseOrganizationOrgStep(newOrganizationNameResolver(deps.store)))
     .addStep(newValidateVisibilityStep())
+    .addStep(newDefaultOrganizationPoliciesStep())
     .addStep(newCheckOrgDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
@@ -297,7 +308,8 @@ async function createOrganization(
         deps.logger,
         childOwnerAttribution,
       ),
-    );
+    )
+    .addStep(newAnnounceCreatedOrganizationPoliciesStep(deps.authorizationLifecycle));
   // The post-persist gate slot (see the doc comment above for the
   // inherited failure semantics). Empty in OSS.
   for (const step of stepsForSlot<typeof OrganizationSchema>(
@@ -348,6 +360,7 @@ async function update(
     .addStep(newLoadExistingOrganizationStep(deps.store))
     .addStep(newBuildUpdateStateStep())
     .addStep(newPreserveChildLinkStep())
+    .addStep(newPreservePoliciesStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newPersistStep(deps.store))
     .addStep(newSettleOrganizationSlugStep(deps.store, deps.logger))
@@ -357,6 +370,41 @@ async function update(
     .build()
     .execute(reqCtx);
   return reqCtx.newState;
+}
+
+/**
+ * UpdatePolicies — the only writer of an organization's policies
+ * (policies.ts): update and apply keep them. Replaces the whole message
+ * and returns the organization.
+ */
+async function updatePolicies(
+  deps: OrganizationControllerDeps,
+  input: UpdateOrganizationPoliciesInput,
+  ctx: HandlerContext,
+): Promise<Organization> {
+  type PoliciesDesc =
+    typeof OrganizationCommandController.method.updatePolicies.input;
+  const reqCtx = new RequestContext(
+    OrganizationCommandController.method.updatePolicies.input,
+    input,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
+  await newPipeline<PoliciesDesc>("organization-update-policies", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        OrganizationCommandController.method.updatePolicies,
+        deps.authorizer,
+      ),
+    )
+    .addStep(newValidateProtoStep())
+    .addStep(newLoadOrganizationForPoliciesStep(deps.store))
+    .addStep(
+      newChangeOrganizationPoliciesStep(deps.store, deps.authorizationLifecycle),
+    )
+    .build()
+    .execute(reqCtx);
+  return reqCtx.get(POLICIES_ORGANIZATION_KEY) as Organization;
 }
 
 /**

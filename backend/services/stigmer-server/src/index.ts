@@ -133,6 +133,7 @@ export type { ResolvedExtensionDrivers } from "./extensions/registry.js";
 export type {
   ChildOrganizationLinkedEvent,
   OrganizationAffiliationEvent,
+  OrganizationPoliciesChangedEvent,
   PolicyGrantedEvent,
   PolicyRevokedEvent,
   ResourceAuthorizationLifecycle,
@@ -143,6 +144,10 @@ export type {
   ResolvedParentLink,
 } from "./extensions/resource-authorization.js";
 export type { OrganizationDirectory } from "./extensions/organization-directory.js";
+// Who a chat link reaches: the one predicate every edition's guest lane
+// asks (an omitted audience means the organization; only public admits
+// anyone).
+export { shareAdmitsAnyone } from "./domain/agentshare/audience.js";
 // The child-organization lookups (ComposedServices.childOrganizations): a
 // composition's sign-in routing by external id and its billing roll-up.
 export type { ChildOrganizations } from "./extensions/child-organizations.js";
