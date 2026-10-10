@@ -50,9 +50,19 @@ export function handOverToAgent(
   const agentState = join(identity.home, ".stigmer");
   const marker = join(runnerState, HANDOVER_MARKER);
 
+  if (runnerState === agentState) {
+    throw new Error(`the agent's home (${identity.home}) is the runner's own; set STIGMER_AGENT_HOME to a directory of the agent's own`);
+  }
   mkdirSync(paths.workspaceRoot, { recursive: true });
   mkdirSync(identity.home, { recursive: true, mode: 0o700 });
-  if (existsSync(marker)) {
+  // Already handed over: the marker says so, or (where the runner's own home
+  // does not persist, a sandbox's) nothing is left to move and the workspace
+  // is the agent's already. Only the two directories themselves are made
+  // sure of; the walk over a workspace runs once, not at every wake.
+  const handedOver =
+    existsSync(marker) ||
+    (!AGENT_STATE_DIRS.some((name) => existsSync(join(runnerState, name))) && lstatSync(paths.workspaceRoot).uid === identity.uid);
+  if (handedOver) {
     io.chown(identity.home, identity.uid, identity.gid);
     io.chown(paths.workspaceRoot, identity.uid, identity.gid);
     return { moved: [], firstTime: false };
@@ -61,23 +71,17 @@ export function handOverToAgent(
   // Root holds CHOWN but not DAC_OVERRIDE: it works inside a directory only
   // while that directory is its own. So it takes the agent's home back
   // first, moves the state in, and hands everything to the agent last.
-  const sharedHome = runnerState === agentState;
   const moved: string[] = [];
-  if (!sharedHome) {
-    io.chown(identity.home, 0, 0);
-    mkdirSync(agentState, { recursive: true });
-    for (const name of AGENT_STATE_DIRS) {
-      const from = join(runnerState, name);
-      const to = join(agentState, name);
-      if (!existsSync(from) || existsSync(to)) continue;
-      move(from, to);
-      moved.push(name);
-    }
-    chownTree(identity.home, identity, io);
-  } else {
-    // A home the runner shares: only the agent's own folders are handed over.
-    for (const name of AGENT_STATE_DIRS) chownTree(join(agentState, name), identity, io);
+  io.chown(identity.home, 0, 0);
+  mkdirSync(agentState, { recursive: true });
+  for (const name of AGENT_STATE_DIRS) {
+    const from = join(runnerState, name);
+    const to = join(agentState, name);
+    if (!existsSync(from) || existsSync(to)) continue;
+    move(from, to);
+    moved.push(name);
   }
+  chownTree(identity.home, identity, io);
   chownTree(paths.workspaceRoot, identity, io);
   for (const dir of ancestorsWithin(paths.runnerHome, paths.workspaceRoot)) chmodSync(dir, 0o711);
 

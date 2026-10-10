@@ -64,6 +64,12 @@ describe("the agent user on a base image the operator brings", () => {
     expect(readFileSync(f.group, "utf8")).toBe("root:x:0:\nstigmer-agent:x:10001:\n");
   });
 
+  it("refuses an agent account whose ids are not the ones the runner starts it as", () => {
+    expect(() => ensureAgentUser(identity, files("root:x:0:0::/root:/bin/sh\nstigmer-agent:x:1500:1500::/home/stigmer-agent:/bin/sh\n", "root:x:0:\nstigmer-agent:x:10001:\n"))).toThrow(
+      "gives stigmer-agent id 1500; the runner starts the agent as 10001, so the account must have that id",
+    );
+  });
+
   it("refuses an id another account already holds", () => {
     expect(() => ensureAgentUser(identity, files("root:x:0:0::/root:/bin/sh\nsomeone:x:10001:10001::/home/someone:/bin/sh\n", "root:x:0:\n"))).toThrow(
       "already gives id 10001 to someone; the agent user stigmer-agent needs it for its own",

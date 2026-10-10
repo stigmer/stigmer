@@ -20,7 +20,8 @@
  * needs to run (the path, the locale, the time zone, a terminal, a temporary
  * directory), the network's proxy and trust settings, and the engines' and
  * the runner's non-secret settings (`CURSOR_`, `STIGMER_`, `OTEL_` and
- * `NODE_` names, the runner's secrets still dropped). A cloud credential
+ * `NODE_` names, the runner's secrets still dropped, and the OpenTelemetry
+ * exporter's `*_HEADERS`, which carry a collector's token). A cloud credential
  * the operator gave the runner (`AWS_*`, `GOOGLE_APPLICATION_CREDENTIALS`,
  * `AZURE_*`) does not pass: the runner's model lanes sign for the host
  * (`agent-proxy/lanes.ts`). An operator who wants more names in the agent's
@@ -53,6 +54,9 @@ const ALLOWED_NAMES: ReadonlySet<string> = new Set([
 
 const ALLOWED_PREFIXES = ["LC_", "CURSOR_", "STIGMER_", "OTEL_", "NODE_"] as const;
 
+/** Names under those prefixes that carry a credential, not a setting: a collector's auth headers (`OTEL_EXPORTER_OTLP_HEADERS` and its per-signal forms). */
+const CARRIES_A_CREDENTIAL = /^OTEL_.*_HEADERS$/;
+
 /** The operator's own additions to a separating runner's agent environment. */
 export const AGENT_ENV_PASSTHROUGH = "STIGMER_AGENT_ENV_PASSTHROUGH";
 
@@ -62,7 +66,7 @@ export function agentHostEnvironment(env: NodeJS.ProcessEnv = process.env, separ
   const out: NodeJS.ProcessEnv = {};
   for (const [name, value] of Object.entries(env)) {
     if (value === undefined || RUNNER_SECRETS.has(name)) continue;
-    if (separating && !ALLOWED_NAMES.has(name) && !ALLOWED_PREFIXES.some((prefix) => name.startsWith(prefix)) && !passthrough.has(name)) continue;
+    if (separating && !passthrough.has(name) && (!(ALLOWED_NAMES.has(name) || ALLOWED_PREFIXES.some((prefix) => name.startsWith(prefix))) || CARRIES_A_CREDENTIAL.test(name))) continue;
     out[name] = value;
   }
   return out;

@@ -40,6 +40,8 @@ describe("the agent host's environment", () => {
       CURSOR_STREAM_STALL_TIMEOUT_MS: "1000",
       STIGMER_RUNNER_LAYER: "1",
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel:4318",
+      OTEL_EXPORTER_OTLP_HEADERS: "authorization=Bearer collector-canary",
+      OTEL_EXPORTER_OTLP_TRACES_HEADERS: "x-api-key=collector-canary",
       NODE_OPTIONS: "--max-old-space-size=2048",
       AWS_ACCESS_KEY_ID: "AKIA-canary",
       AWS_SECRET_ACCESS_KEY: "aws-canary",

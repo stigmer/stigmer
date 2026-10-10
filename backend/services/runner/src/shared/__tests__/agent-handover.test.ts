@@ -124,15 +124,35 @@ describe("handing over across filesystems and outside the runner's state", () =>
     expect(() => handOverToAgent(t.who, { runnerHome: t.runnerHome, workspaceRoot: t.workspaceRoot }, { chown: () => {} })).toThrow("EACCES");
   });
 
-  it("closes no directory above a workspace root outside the runner's state, and leaves an agent home without state alone", () => {
+  it("closes no directory above a workspace root outside the runner's state", () => {
     const base = mkdtempSync(join(tmpdir(), "agent-handover-driver-"));
     const runnerHome = join(base, "root");
     const workspaceRoot = join(base, "workspace");
-    mkdirSync(runnerHome, { recursive: true });
+    mkdirSync(join(runnerHome, ".stigmer"), { recursive: true });
     const chowned: string[] = [];
-    const who = { ...identity, home: runnerHome };
+    const who = { ...identity, home: join(base, "home", "stigmer-agent") };
     expect(handOverToAgent(who, { runnerHome, workspaceRoot }, { chown: (path) => void chowned.push(path) })).toEqual({ moved: [], firstTime: true });
     expect(chowned).toContain(workspaceRoot);
     expect(statSync(join(runnerHome, ".stigmer")).mode & 0o777, "nothing above the workspace is the runner's").not.toBe(0o711);
+  });
+
+  it("refuses an agent home that is the runner's own", () => {
+    const base = mkdtempSync(join(tmpdir(), "agent-handover-shared-"));
+    expect(() => handOverToAgent({ ...identity, home: base }, { runnerHome: base, workspaceRoot: join(base, "workspace") }, { chown: () => {} })).toThrow(
+      "the agent's home (" + base + ") is the runner's own; set STIGMER_AGENT_HOME to a directory of the agent's own",
+    );
+  });
+
+  it("walks nothing on a sandbox's wake: no state to move, and a workspace that is the agent's already", () => {
+    // The runner's home does not persist in a sandbox, so its marker is gone
+    // at every wake; the workspace claim, the agent's since the first boot,
+    // is what says the handover ran.
+    const base = mkdtempSync(join(tmpdir(), "agent-handover-wake-"));
+    const workspaceRoot = join(base, "workspace");
+    mkdirSync(join(workspaceRoot, "node_modules", "deep"), { recursive: true });
+    const owner = { ...identity, uid: process.getuid!(), gid: process.getgid!(), home: join(base, "agent") };
+    const chowned: string[] = [];
+    expect(handOverToAgent(owner, { runnerHome: join(base, "root"), workspaceRoot }, { chown: (path) => void chowned.push(path) })).toEqual({ moved: [], firstTime: false });
+    expect(chowned).toEqual([owner.home, workspaceRoot]);
   });
 });

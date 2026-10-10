@@ -296,7 +296,9 @@ describe("the production starter", () => {
     expect(env).toEqual({ HOME: "/data/agent" });
   });
 
-  it("prepares the separation itself by default, and stops when it cannot", async () => {
+  // As root on Linux holding the four capabilities (a dev container), the real
+  // preparation would add the agent user to this machine's /etc/passwd.
+  it.skipIf(process.getuid?.() === 0)("prepares the separation itself by default, and stops when it cannot", async () => {
     const identity = { name: "stigmer-agent", uid: 10001, gid: 10001, home: join(mkdtempSync(join(tmpdir(), "agent-home-")), "agent") };
     const exits: number[] = [];
     vi.spyOn(console, "error").mockImplementation(() => {});

@@ -164,7 +164,12 @@ export function ensureAgentUser(identity: AgentIdentity, files: { readonly passw
     const existing = readFileSync(file, "utf8").split("\n").filter((l) => l.length > 0);
     for (const entry of existing) {
       const [name, , entryId] = entry.split(":");
-      if (name === identity.name) return;
+      if (name === identity.name) {
+        if (entryId !== String(id)) {
+          throw new Error(`${file} gives ${identity.name} id ${entryId}; the runner starts the agent as ${id}, so the account must have that id`);
+        }
+        return;
+      }
       if (entryId === String(id)) {
         throw new Error(`${file} already gives id ${id} to ${name}; the agent user ${identity.name} needs it for its own`);
       }

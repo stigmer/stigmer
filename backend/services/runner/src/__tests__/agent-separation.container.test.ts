@@ -25,7 +25,7 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -103,6 +103,9 @@ interface Attempt {
 
 function runProof(mode: "separated" | "shared"): Record<string, Attempt> & { readonly uid: number; readonly ownEnvironment: string; readonly runnerKillsAgent: string } {
   const dir = mkdtempSync(join(tmpdir(), "agent-separation-"));
+  // Readable by the container's root, which holds no DAC_OVERRIDE to enter
+  // the 0700 directory mkdtemp makes for this machine's user.
+  chmodSync(dir, 0o755);
   writeFileSync(join(dir, "runner.mjs"), RUNNER_SCRIPT);
   writeFileSync(join(dir, "agent.mjs"), AGENT_SCRIPT);
   const identity = { name: "stigmer-agent", uid: AGENT_UID, gid: AGENT_GID, home: "/home/stigmer-agent" };
