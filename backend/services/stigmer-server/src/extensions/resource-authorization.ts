@@ -79,9 +79,13 @@
  * the stored policies). Its order is fail-closed, the policy hooks' rule:
  *   - a change that OPENS an act fires AFTER the row persists;
  *   - a change that CLOSES one fires BEFORE the row persists;
- *   - a throw fails the request; a change that opens and closes nothing
- *     does not fire. The organization's delete cleanup removes the edge
- *     with every tuple naming the organization.
+ *   - a throw fails the request;
+ *   - an updatePolicies that changes nothing fires with before equal to
+ *     after and writes no row, so a retry repairs an edge an earlier
+ *     announcement failed to write.
+ * The driver makes the edge match `after` (written while open, removed
+ * while closed), idempotently, whatever `before` says. The organization's
+ * delete cleanup removes the edge with every tuple naming the organization.
  */
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { OwnerAttributionType } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
@@ -292,10 +296,11 @@ export interface ResourceAuthorizationLifecycle {
   onChildOrganizationLinked?(event: ChildOrganizationLinkedEvent): Promise<void>;
   /**
    * OPTIONAL: synchronous; fired by an organization's create and its
-   * updatePolicies when a policy's edge changes: AFTER the row persists
-   * for a change that opens an act, BEFORE it for one that closes it. A
-   * throw fails the request. Absent method = the edges are derived from
-   * the row at check time (the OSS posture).
+   * updatePolicies: AFTER the row persists for a change that opens an act,
+   * BEFORE it for one that closes it, and with no write for an
+   * updatePolicies that changes nothing. The driver makes the edge match
+   * `after`, idempotently. A throw fails the request. Absent method = the
+   * edges are derived from the row at check time (the OSS posture).
    */
   onOrganizationPoliciesChanged?(
     event: OrganizationPoliciesChangedEvent,

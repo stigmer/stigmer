@@ -10,7 +10,9 @@
  *     carries, and keep "none stored" as none;
  *   - updatePolicies replaces the whole message: a change that closes
  *     agent creation is announced BEFORE the write, one that opens it
- *     AFTER, a change of nothing writes and announces nothing, a row with
+ *     AFTER, a change of nothing writes nothing and announces the standing
+ *     policy again (so a retry repairs an edge a failed announcement left
+ *     unwritten), a row with
  *     no policies announces either way (an edition never wrote its edge),
  *     and a lifecycle fault fails the request: when closing, with the row
  *     unchanged; a store fault on the load or the write answers INTERNAL,
@@ -202,10 +204,26 @@ describe("updatePolicies", () => {
     expect(r.log).toEqual(["save:true", "announce:false->true"]);
   });
 
-  it("writes and announces nothing for a change of nothing", async () => {
-    const r = rig(organization(true));
-    await updatePolicies(r, true);
-    expect(r.log).toEqual([]);
+  it("writes nothing for a change of nothing, and announces the standing policy again", async () => {
+    const open = rig(organization(true));
+    await updatePolicies(open, true);
+    expect(open.log).toEqual(["announce:true->true"]);
+
+    const closed = rig(organization(false));
+    await updatePolicies(closed, false);
+    expect(closed.log).toEqual(["announce:false->false"]);
+  });
+
+  it("repairs on retry an opening whose announcement failed after the write", async () => {
+    const failing = rig(organization(false), true);
+    const error = await refusal(() => updatePolicies(failing, true));
+    expect(error.code).toBe(Code.Internal);
+    // The row says open, but the edition's edge was never written.
+    expect(failing.current().spec?.policies?.membersCanCreateAgents).toBe(true);
+
+    const retry = rig(failing.current());
+    await updatePolicies(retry, true);
+    expect(retry.log).toEqual(["announce:true->true"]);
   });
 
   it("announces either way for a row stored with no policies", async () => {

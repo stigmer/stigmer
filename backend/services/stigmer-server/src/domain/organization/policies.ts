@@ -19,8 +19,11 @@
  *   - updatePolicies (its own chain): replaces the whole message. Its order
  *     is fail-closed (extensions/resource-authorization.ts): a change that
  *     closes an act is announced BEFORE the row persists, one that opens an
- *     act AFTER; a throw fails the request; a change of nothing announces
- *     nothing.
+ *     act AFTER; a throw fails the request. A change of nothing writes
+ *     nothing and announces the standing policy again, so a retry repairs
+ *     an edge an earlier announcement failed to write (the row persisted,
+ *     its announcement threw): the lifecycle makes the edge match the
+ *     policy it is told, idempotently.
  *
  * Open source derives the policy edge from the row at check time
  * (authorization/model/organization-policies.ts), so with no lifecycle
@@ -200,6 +203,7 @@ export function newChangeOrganizationPoliciesStep(
         before !== undefined &&
         before.membersCanCreateAgents === after.membersCanCreateAgents
       ) {
+        await announce(lifecycle, id, before, after);
         return;
       }
       if (closesAgentCreation(before, after)) {
