@@ -2300,6 +2300,14 @@ describe("edges", () => {
       "the sign-in for https://mcp.linear.example/mcp in My vault could not be renewed: " +
         "it has expired and no refresh token is available. Sign in again, then recover the turn",
     );
+    // A tools listing has no turn to recover: its way out is to list again.
+    const listing = await refusal(
+      real.openConnect({ orgId: ORG, person: ANA, server: serverOf(tool("linear", { target: "LINEAR_TOKEN" })) }),
+    );
+    expect(listing.rawMessage).toBe(
+      "the sign-in for https://mcp.linear.example/mcp in My vault could not be renewed: " +
+        "it has expired and no refresh token is available. Sign in again, then list the tools again",
+    );
   });
 
   it("a renewal refused with a status passes that status through", async () => {

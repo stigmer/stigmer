@@ -726,9 +726,9 @@ function declarerOfEntry(entry: RunValueSource): Declarer {
 }
 
 /** A refusal at the fetch: the key, its declarer, what went wrong, and the way out. */
-function unopenable(entry: RunValueSource, what: string): ConnectError {
+function unopenable(entry: RunValueSource, what: string, retry: string): ConnectError {
   return failedPreconditionError(
-    `${describeDeclarer(declarerOfEntry(entry))} needs ${entry.key}, but ${what}. Fix it, then recover the turn`,
+    `${describeDeclarer(declarerOfEntry(entry))} needs ${entry.key}, but ${what}. Fix it, then ${retry}`,
   );
 }
 
@@ -743,6 +743,8 @@ interface OpenScope {
   vaultFor(entry: RunValueSource): Promise<CheckedVault>;
   readonly repositoryTokens: ReadonlyMap<string, SealedValue>;
   readonly actor: CallerIdentity;
+  /** The way out a refusal names: "recover the turn" for a run, "list the tools again" for a listing. */
+  readonly retry: string;
 }
 
 /** A vault a run names, with what to say about it and whose permission to ask. */
@@ -1180,7 +1182,7 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
             repositoryTokenKey(entry.entry, declarer?.repositoryUrl ?? ""),
           );
           if (sealed?.present !== true) {
-            throw unopenable(entry, "the conversation no longer holds that repository's token");
+            throw unopenable(entry, "the conversation no longer holds that repository's token", scope.retry);
           }
           value = await sealed.open();
           break;
@@ -1195,13 +1197,13 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
           }
           const vault = await checked;
           if (!vault.ok) {
-            throw unopenable(entry, vault.why);
+            throw unopenable(entry, vault.why, scope.retry);
           }
           const sealed = deps.vaults.entries(vault.vault);
           if (entry.login) {
             const connection = sealed.connections.get(entry.entry);
             if (connection?.present !== true) {
-              throw unopenable(entry, `${vault.label} no longer holds a login for ${entry.entry}`);
+              throw unopenable(entry, `${vault.label} no longer holds a login for ${entry.entry}`, scope.retry);
             }
             if (declarer?.kind === RunValueDeclarerKind.TOOL) {
               const tool = await toolOf(declarer.pluginId, declarer.server);
@@ -1209,20 +1211,21 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
                 throw unopenable(
                   entry,
                   `the tool is no longer at ${entry.entry}, the address its login in ${vault.label} was made for`,
+                  scope.retry,
                 );
               }
             }
             const once = `${entry.vaultId}\u0000${entry.entry}`;
             let renewal = renewals.get(once);
             if (renewal === undefined) {
-              renewal = openLogin(entry, vault.vault, vault.label, connection, scope.actor);
+              renewal = openLogin(entry, vault.vault, vault.label, connection, scope.actor, scope.retry);
               renewals.set(once, renewal);
             }
             value = await renewal;
           } else {
             const secret = sealed.secrets.get(entry.entry);
             if (secret?.present !== true) {
-              throw unopenable(entry, `${vault.label} no longer holds a secret named ${entry.entry}`);
+              throw unopenable(entry, `${vault.label} no longer holds a secret named ${entry.entry}`, scope.retry);
             }
             value = await secret.open();
           }
@@ -1285,6 +1288,7 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
     label: string,
     connection: SealedConnection,
     actor: CallerIdentity,
+    retry: string,
   ): Promise<string> {
     const opened = await connection.open();
     if (opened.source !== VaultConnectionSource.sign_in) {
@@ -1298,7 +1302,7 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
       }
       if (error instanceof SignInRenewalError) {
         throw failedPreconditionError(
-          `the sign-in for ${entry.entry} in ${label} could not be renewed: ${error.message}. Sign in again, then recover the turn`,
+          `the sign-in for ${entry.entry} in ${label} could not be renewed: ${error.message}. Sign in again, then ${retry}`,
         );
       }
       throw internalError(error, `failed to renew the sign-in for ${entry.entry} in ${label}`);
@@ -1314,6 +1318,7 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
       vaultFor: runScopeVaults(execution, stored, person),
       repositoryTokens: own.repositoryTokens,
       actor: serverActingFor(person ?? "system"),
+      retry: "recover the turn",
     });
     logger.info("Opened run values", {
       executionId: execution.metadata?.id ?? "",
@@ -1353,6 +1358,7 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
       },
       repositoryTokens: NO_REPOSITORY_TOKENS,
       actor: serverActingFor(person ?? "system"),
+      retry: "list the tools again",
     });
   }
 
