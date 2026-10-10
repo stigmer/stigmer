@@ -33,7 +33,9 @@
  *      and ANTHROPIC_BASE_URL in the env file), pointed at a fake Anthropic
  *      API on this host (test/install/lib/fake-model.mjs), and the run must
  *      complete with the fake's reply as its last message;
- *   7. clean teardown (`docker compose down --volumes`).
+ *   7. the runner wrote to its artifact store, the volume it shares with
+ *      the server: no turn degraded with an "[artifact-storage]" warning;
+ *   8. clean teardown (`docker compose down --volumes`).
  *
  * Usage:
  *   node test/install/smoke-compose.mjs --build
@@ -167,6 +169,14 @@ async function main() {
     // the model path a user configures answered.
     const run = await runAgentToReply(baseUrl, RUN_COMPLETED_TIMEOUT_MS, { expectText: fake.replyText, log });
     log(`agent run: execution ${run.executionId} COMPLETED with the model's reply (${fake.requests()} model calls)`);
+
+    // 7. The runner could write its artifact store, the volume it shares with
+    // the server (the server's user owns it): with every capability dropped
+    // but the ones it keeps, a missing DAC_OVERRIDE leaves the turn without
+    // file capture, which the reply alone does not show.
+    const unavailable = stack.logs("stigmer-runner").split("\n").filter((line) => /\[artifact-storage\] (unavailable|local path not writable)/.test(line));
+    if (unavailable.length > 0) throw new Error(`the runner's artifact store was not writable: ${unavailable[0]}`);
+    log("artifact store: the runner wrote to the shared volume");
 
     log("PASS");
   } catch (error) {
