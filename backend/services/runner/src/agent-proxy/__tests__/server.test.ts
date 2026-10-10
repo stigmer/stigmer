@@ -364,6 +364,7 @@ describe("forward: a runner behind the Stigmer platform's proxy", () => {
     const mixed = JSON.stringify({ writes: [{ thread_id: thread }, { thread_id: "thread-ses-other" }] });
     expect((await call(proxy, "/v1/proxy/checkpoints/writes", { method: "PUT", headers: asHost, body: mixed })).status, "every entry of a write").toBe(403);
     expect((await call(proxy, "/v1/proxy/checkpoints/checkpoint", { method: "PUT", headers: asHost, body: JSON.stringify({ checkpoint_id: "c" }) })).status, "a write that names no thread").toBe(403);
+    expect((await call(proxy, "/v1/proxy/checkpoints/checkpoint", { method: "GET", headers: asHost })).status, "a read that names no thread").toBe(403);
     expect(upstream.received).toHaveLength(sent);
   });
 
