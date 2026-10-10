@@ -328,9 +328,10 @@ export function newValidatePluginEvalTargetsStep(
  * PlanPluginEval: refuses a case_glob that is not a glob (INVALID_ARGUMENT,
  * naming it), reads the suite from the archive at the stamped digest,
  * refuses a version with no cases and a suite larger than an eval may run
- * (with the computed counts, counted without building a cell), and writes the pending status: the planned
- * tries, and the comparison marked provisional while the with-arm runs on
- * the agent the plugin's install composed. Runs after BuildNewState and
+ * (with the computed counts, counted without building a cell), and writes
+ * the pending status: the planned tries, and the comparison marked
+ * provisional while the with-arm runs on the agent the plugin's install
+ * composed. Runs after BuildNewState and
  * VaultAttachments, which own the rest of the status.
  */
 export function newPlanPluginEvalStep(
