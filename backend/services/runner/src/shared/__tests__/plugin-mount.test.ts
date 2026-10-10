@@ -13,7 +13,8 @@
  *  - the eval suite is never mounted: `evals/` always, and the directory
  *    the install recorded in `status.evals.dir`, so an agent under test
  *    cannot read its cases; the tamper guard holds the tree to the archive
- *    without them.
+ *    without them, and an archive carrying a suite is never left in the
+ *    session's cache, where the shell could unzip it.
  */
 
 import { createHash } from "node:crypto";
@@ -240,6 +241,18 @@ describe("the eval suite is not mounted", () => {
     const mounted = await mountPlugin(clientServing(bytes), suitePlugin(bytes, undefined), platformDir);
     expect(existsSync(join(mounted.root, "evals"))).toBe(false);
     expect(existsSync(join(mounted.root, "quality/evals/other/prompt.md"))).toBe(true);
+  });
+
+  it("never caches an archive carrying a suite, and removes a cached copy an earlier runner left", async () => {
+    const bytes = buildZip(Object.entries(suiteFiles).map(([name, content]) => ({ name, content })));
+    const plugin = suitePlugin(bytes, undefined);
+    const cachePath = join(platformDir, PLUGINS_SUBDIR, `${plugin.status?.digest ?? ""}.zip`);
+    await mountPlugin(clientServing(bytes), plugin, platformDir);
+    expect(existsSync(cachePath)).toBe(false);
+
+    writeFileSync(cachePath, bytes);
+    await mountPlugin(clientServing(bytes), plugin, platformDir);
+    expect(existsSync(cachePath)).toBe(false);
   });
 
   it("filters by directory, never by name prefix", () => {

@@ -39,6 +39,11 @@
  * left out of the tree, so an agent under test cannot read the cases it is
  * graded on, as Claude Code hides them from its own runs. Hooks never need
  * them; the suite is the eval workflow's, which reads the archive itself.
+ * For the same reason an archive that carries a suite is never cached on
+ * disk: the cache must hash to the digest, so it is the whole archive, and
+ * the shell could unzip it. Such an archive is fetched on every turn
+ * instead (plugins are small), and a cached copy an earlier runner left is
+ * removed.
  *
  * Turns of one workspace are serialised (`harness/turn-context.ts`
  * `acquireWorkspaceTurnLock`), so no two turns mount one tree at once; within
@@ -47,7 +52,7 @@
 
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
-import { lstat, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { StigmerClient } from "../client/stigmer-client.js";
@@ -131,13 +136,20 @@ export async function mountPlugin(
 
   const pluginsDir = join(platformDir, PLUGINS_SUBDIR);
   await mkdir(pluginsDir, { recursive: true });
-  const archive = await cachedArchive(client, join(pluginsDir, `${digest}.zip`), digest, storageKey, slug);
+  const archivePath = join(pluginsDir, `${digest}.zip`);
+  const archive = await cachedArchive(client, archivePath, digest, storageKey, slug);
   const entries = await extractZipFileEntries(archive);
   if (entries.length === 0) {
     throw new PluginMountError(slug, "its archive holds no files");
   }
+  const mountable = withoutEvalSuite(entries, plugin.status?.evals?.dir);
+  if (mountable.length === entries.length) {
+    await writeFile(archivePath, archive);
+  } else {
+    await rm(archivePath, { force: true });
+  }
 
-  const tree = new PluginTree(join(pluginsDir, digest), withoutEvalSuite(entries, plugin.status?.evals?.dir));
+  const tree = new PluginTree(join(pluginsDir, digest), mountable);
   await tree.verify();
 
   const data = join(platformDir, PLUGIN_DATA_SUBDIR, slug);
@@ -168,7 +180,11 @@ export function withoutEvalSuite(entries: readonly ZipFileEntry[], configured: s
   return entries.filter((entry) => !prefixes.some((prefix) => entry.path.startsWith(prefix)));
 }
 
-/** The archive's bytes, from the session's cache when they still hash to `digest`, else fetched, verified and cached. */
+/**
+ * The archive's bytes, from the session's cache when they still hash to
+ * `digest`, else fetched and verified. The caller decides whether to cache
+ * them ({@link mountPlugin}: never an archive carrying an eval suite).
+ */
 async function cachedArchive(
   client: StigmerClient,
   archivePath: string,
@@ -200,7 +216,6 @@ async function cachedArchive(
   if (sha256Hex(fetched) !== digest) {
     throw new PluginMountError(slug, "the fetched archive does not match the installed version's digest");
   }
-  await writeFile(archivePath, fetched);
   return fetched;
 }
 
