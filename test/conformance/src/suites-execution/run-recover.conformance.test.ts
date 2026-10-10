@@ -184,8 +184,7 @@ describe("Run recover — concurrency", () => {
     const completed = await awaitPhase(clients, executionId, RunPhase.RUN_COMPLETED);
     expect(completed.status?.error, "a completed run carries no error").toBeFalsy();
     // One re-dispatch: the failure turn plus the one recovery turn. A second
-    // recover that raced the first would dispatch the runner again or fail
-    // the run on two execution contexts.
+    // recover that raced the first would dispatch the runner a second time.
     expect(mock.consumed(), "the runner should be re-dispatched exactly once").toBe(2);
     expect(mock.remaining(), "no scripted turn should be left").toBe(0);
   });

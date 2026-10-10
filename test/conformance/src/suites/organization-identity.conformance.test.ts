@@ -15,8 +15,8 @@
 //
 // Vaults carry the org-scoped arms because they hold a secret: an entry
 // saved before a rename is still held after it, untouched. Values are
-// write-only on the wire and reach only a run's execution context, which no
-// target without an engine creates, so the arm reads the entry and when it
+// write-only on the wire and reach only a running run's runner, which no
+// target without an engine starts, so the arm reads the entry and when it
 // was saved, never the value; that the sealed value still opens after a
 // rename is proven by the server's own test
 // (backend/services/stigmer-server/src/domain/vault/__tests__/organization-rename.test.ts).

@@ -21,7 +21,7 @@
  * entry is representable only as `KEY: "${KEY}"`).
  *
  * Every `${VAR}` in a header, an argument, an `env` value or an `auth` value
- * is a reference to the caller's Environment, listed on the server's `env`;
+ * is a reference to a value the run's vaults hold, listed on the server's `env`;
  * the variables module declares the undeclared ones. Claude's
  * `${user_config.KEY}` is rewritten to `${KEY}` before anything is scanned.
  */
