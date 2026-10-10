@@ -41,8 +41,10 @@
  * a vote that cannot start counted as failed; a vote that cannot be read
  * past its retries stopped, the try not graded with what its run and every
  * vote spent; each read vote's session deleted after its read, a delete
- * that fails leaving the vote counted, a cancellation at the delete
- * counting that vote once, through the spend read.
+ * that fails past its retries leaving the vote counted once, by the
+ * workflow on a graded try and by the spend read, which still holds its
+ * run, on any other, a cancellation at the delete counting that vote
+ * once, through the spend read.
  */
 import {
   ActivityCancellationType,
@@ -965,12 +967,63 @@ describe("the case workflow", () => {
   it("counts a read vote whose session cannot be deleted, leaving the session", async () => {
     caseScript({
       [DELETE_VOTE_ACTIVITY_NAME]: vi.fn(() =>
-        Promise.reject(new Error("the store is down")),
+        Promise.reject(stepFailure(DELETE_VOTE_ACTIVITY_NAME, "the store is down")),
       ),
     });
     expect(await runCase(INPUT)).toMatchObject({
       state: "graded",
       costUsd: expect.closeTo(0.23),
+    });
+  });
+
+  it("leaves a vote whose delete failed to the spend read, which still holds it, never counting it twice", async () => {
+    /** The first vote's delete fails past its retries; the third vote cannot be read. */
+    const script = (spend: ReturnType<typeof vi.fn>) =>
+      caseScript({
+        [DELETE_VOTE_ACTIVITY_NAME]: vi
+          .fn()
+          .mockImplementationOnce(() =>
+            Promise.reject(stepFailure(DELETE_VOTE_ACTIVITY_NAME, "the store is down")),
+          )
+          .mockImplementation(() => Promise.resolve()),
+        [READ_VOTE_ACTIVITY_NAME]: vi
+          .fn()
+          .mockImplementationOnce(() =>
+            Promise.resolve({ vote: { kind: "vote", passed: true, reason: "yes" }, costUsd: 0.01 }),
+          )
+          .mockImplementationOnce(() =>
+            Promise.resolve({ vote: { kind: "vote", passed: true, reason: "yes" }, costUsd: 0.01 }),
+          )
+          .mockImplementation(() => Promise.reject(new Error("the store is down"))),
+        [TRY_SPEND_ACTIVITY_NAME]: spend,
+      });
+    // The spend read (0.4) holds the try's run, the undeleted vote and the
+    // unread one; the tally holds only the vote deleted.
+    script(vi.fn(() => Promise.resolve(SPENT)));
+    expect(await runCase(INPUT)).toMatchObject({
+      notGradedReason: VOTE_NOT_READ_REASON,
+      costUsd: expect.closeTo(0.41),
+    });
+    // A spend read that fails too: the grade's cost and both votes read.
+    script(vi.fn(() => Promise.reject(new Error("down"))));
+    expect((await runCase(INPUT)).costUsd).toBeCloseTo(0.22);
+  });
+
+  it("counts a vote whose delete failed once when the try is cancelled and its spend cannot be read", async () => {
+    caseScript({
+      [DELETE_VOTE_ACTIVITY_NAME]: vi
+        .fn()
+        .mockImplementationOnce(() =>
+          Promise.reject(stepFailure(DELETE_VOTE_ACTIVITY_NAME, "the store is down")),
+        )
+        .mockImplementationOnce(() =>
+          Promise.reject(new CancelledFailure("cancelled")),
+        ),
+      [TRY_SPEND_ACTIVITY_NAME]: vi.fn(() => Promise.reject(new Error("down"))),
+    });
+    expect(await runCase(INPUT)).toMatchObject({
+      notGradedReason: TRY_CANCELLED_REASON,
+      costUsd: expect.closeTo(0.01),
     });
   });
 

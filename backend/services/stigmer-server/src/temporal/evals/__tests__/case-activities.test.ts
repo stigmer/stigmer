@@ -29,8 +29,9 @@
  *     ended phase; its session kept, so a read retried after a lost answer
  *     reads the same vote and cost;
  *   - delete-vote: the vote's session deleted, once and again; a vote run
- *     gone; a session already gone, one whose delete fails, a vote with no
- *     session;
+ *     gone; a session already gone as deleted, one whose delete fails
+ *     thrown for the activity's retries, a vote with no session; a refused
+ *     run's session delete, by contrast, logged and never thrown;
  *   - try-spend: no run found is no spend; the try's run found by label
  *     and name, its cost and its stored votes' added;
  *   - record-score: an eval gone; a grader the grade has no outcome for;
@@ -1194,7 +1195,7 @@ describe("delete-vote", () => {
     expect(record.deletedSessions).toEqual([]);
   });
 
-  it("takes a session already gone as deleted, and logs one whose delete fails without throwing", async () => {
+  it("takes a session already gone as deleted, and throws one whose delete fails, for the activity's retries", async () => {
     const goneSessions = build({
       sessions: {
         delete: () =>
@@ -1214,23 +1215,34 @@ describe("delete-vote", () => {
     });
     await expect(
       brokenSessions.cases[DELETE_VOTE_ACTIVITY_NAME](id),
-    ).resolves.toBeUndefined();
-    expect(brokenSessions.lines).toEqual([
-      {
-        level: "error",
-        message: "a plugin eval's session could not be deleted; it is left",
-        fields: { sessionId: "ses_vote", reason: "the database is down" },
+    ).rejects.toThrow("the database is down");
+    const refused = build({
+      sessions: {
+        delete: () =>
+          Promise.reject(new ConnectError("refused", Code.PermissionDenied)),
       },
-    ]);
+    });
+    await expect(
+      refused.cases[DELETE_VOTE_ACTIVITY_NAME](id),
+    ).rejects.toMatchObject({ code: Code.PermissionDenied });
   });
 
   it("logs a non-Error delete failure by its text", async () => {
+    // A refused run's session is deleted on a best effort: its failure is
+    // logged, where a vote's delete throws.
     const { cases, lines } = build({
       sessions: { delete: () => Promise.reject("refused") },
+      lane: (real) => ({
+        ...real,
+        createRun: () =>
+          Promise.reject(new ConnectError("no such model", Code.InvalidArgument)),
+      }),
     });
-    const id = await storedVote();
-    await cases[DELETE_VOTE_ACTIVITY_NAME](id);
-    expect(lines.map((line) => line.fields?.["reason"])).toEqual(["refused"]);
+    await seeded();
+    expect(await cases[START_TRY_ACTIVITY_NAME](CELL)).toMatchObject({
+      kind: "refused",
+    });
+    expect(lines.map((line) => line.fields?.["reason"])).toContain("refused");
   });
 
   it("deletes no session for a vote run that names none", async () => {

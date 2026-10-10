@@ -42,7 +42,11 @@
  *     if still going; then its session deleted, as the AI judge's grading
  *     deletes its own. The read deletes nothing, so a read retried after
  *     its answer was lost reads the same vote and cost again; the delete
- *     is its own step, and a vote or session already gone is deleted.
+ *     is its own step, and a vote or session already gone is deleted. A
+ *     delete that fails is thrown, for the activity's retries and then the
+ *     workflow, which then leaves that vote's cost to the spend read: the
+ *     vote's run is still stored. (A refused run's session, by contrast,
+ *     is deleted on a best effort, its failure logged.)
  *   - try-spend: what a try's run and its stored votes spent, found by
  *     the eval's label (the run list index's `plugin_eval` key) and the
  *     try's run name, for the workflows to count a try whose own workflow
@@ -585,8 +589,17 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
 
     [DELETE_VOTE_ACTIVITY_NAME]: async (voteRunId): Promise<void> => {
       const vote = await loadRun(deps.store, voteRunId);
-      if (vote !== undefined) {
-        await deleteSession(deps, sessionIdOf(vote.spec));
+      const sessionId = vote === undefined ? "" : sessionIdOf(vote.spec);
+      if (sessionId === "") {
+        return;
+      }
+      try {
+        await deps.sessions().delete(sessionId);
+      } catch (error) {
+        if (error instanceof ConnectError && error.code === Code.NotFound) {
+          return;
+        }
+        throw error;
       }
     },
 
