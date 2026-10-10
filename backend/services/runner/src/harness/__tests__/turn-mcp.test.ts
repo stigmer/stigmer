@@ -8,7 +8,10 @@
  *  - the agent's tool scope is resolved from its two lists, under its slug;
  *  - the built-in assistant (no agent) is unrestricted;
  *  - a turn's own lists (`mainToolScope`) are one more layer, over the
- *    agent's or over the assistant's nothing.
+ *    agent's or over the assistant's nothing;
+ *  - a server the lists exclude whole is not connected, while a server
+ *    excluded tool by tool and the platform's own still are (#2106):
+ *    `callableServers` is the one filter before either engine connects.
  * The fetch-and-provision phases around it are pinned end to end by the
  * hermetic goldens.
  */
@@ -23,7 +26,9 @@ import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import type { MessagingChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
 
-import { mainToolScope, resolveMcpServersAndPolicies, type ResolutionDeps } from "../turn-context.js";
+import { callableServers, mainToolScope, resolveMcpServersAndPolicies, type ResolutionDeps } from "../turn-context.js";
+import type { ResolvedMcpServer } from "../../shared/mcp-resolver.js";
+import { ToolScope } from "../../shared/tool-lists.js";
 import { TranscriptBuilder } from "../transcript/builder.js";
 import { TimingRecorder } from "../../shared/cold-start-timing.js";
 import { CHANNEL_ATTACHMENT_SLUG } from "../../shared/channel-attachment.js";
@@ -138,5 +143,34 @@ describe("resolveMcpServersAndPolicies — platform servers and the agent's scop
     expect(assistant.depth).toBe(1);
     expect(assistant.allowsClaudeTool("Bash")).toBe(false);
     expect(mainToolScope({ agent: undefined } as ResolvedBlueprint, undefined).restricted).toBe(false);
+  });
+});
+
+describe("callableServers — a server no tool of which can be called is never connected (#2106)", () => {
+  const server = (slug: string): ResolvedMcpServer => ({
+    slug,
+    connectionType: "http",
+    url: `https://${slug}.example.com/mcp`,
+    discoveredCapabilitiesEmpty: false,
+    destructiveTools: [],
+    discoveredToolNames: null,
+    serverId: `mcp_${slug}`,
+    pluginOrigin: null,
+  });
+  const servers = [server("tracker"), server("orders"), server("wiki"), server(MEMORY_ATTACHMENT_SLUG)];
+  const slugs = (scope: ToolScope): string[] => callableServers(servers, scope, new Set([MEMORY_ATTACHMENT_SLUG])).map((s) => s.slug);
+
+  it("leaves out a server the lists deny whole, keeping one denied tool by tool", () => {
+    const scope = ToolScope.of("The agent", { tools: [], disallowedTools: ["mcp__tracker", "mcp__orders__refund"] });
+    expect(slugs(scope)).toEqual(["orders", "wiki", MEMORY_ATTACHMENT_SLUG]);
+  });
+
+  it("leaves out every server an allow-list names nothing of, and keeps the platform's own", () => {
+    expect(slugs(ToolScope.of("The agent", { tools: ["Read"], disallowedTools: [] }))).toEqual([MEMORY_ATTACHMENT_SLUG]);
+    expect(slugs(ToolScope.of("The agent", { tools: ["Read", "mcp__wiki__search"], disallowedTools: [] }))).toEqual(["wiki", MEMORY_ATTACHMENT_SLUG]);
+  });
+
+  it("connects every server for an unrestricted turn", () => {
+    expect(slugs(ToolScope.unrestricted())).toEqual(["tracker", "orders", "wiki", MEMORY_ATTACHMENT_SLUG]);
   });
 });

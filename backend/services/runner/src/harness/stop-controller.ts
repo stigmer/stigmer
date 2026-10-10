@@ -4,13 +4,16 @@
  * The adapter contract gives an engine ONE signal (`TurnSink.stopSignal`) for
  * every cause of stopping and forbids it to branch on the cause; the runtime
  * keeps the cause here, as evidence its terminal table reads after the
- * adapter settles `interrupted`. Four producers abort the signal: the stall
- * watchdog, the usage accumulator's cost cap, the persist chokepoint's
+ * adapter settles `interrupted`. Five producers abort the signal: the stall
+ * watchdog, a plugin-eval try's mock (`shared/plugin-eval/mock-endpoint.ts`:
+ * an input guard violated, an agent mock ending the run, the agent mocks'
+ * budget spent), the usage accumulator's cost cap, the persist chokepoint's
  * platform STOP, and Temporal's own cancellation (a pause, a worker
  * shutdown, a heartbeat timeout — told apart later from the signal's reason,
  * `shared/worker-shutdown.ts`). The first cause wins the abort; every cause
- * is recorded, because the table's precedence (stall over cost cap over
- * cancellation over platform stop) is decided at settlement, not at abort.
+ * is recorded, because the table's precedence (stall over mock abort over
+ * cost cap over cancellation over platform stop) is decided at settlement,
+ * not at abort.
  *
  * Nothing here is engine-specific and nothing here persists; the Cursor
  * orchestrator kept the same facts as flags on its stream state
@@ -22,13 +25,23 @@ import type { StallTimeoutError } from "../shared/stall-watchdog.js";
 /** Why the runtime stopped the turn. */
 export type StopCause =
   | { readonly kind: "stall"; readonly error: StallTimeoutError }
+  | { readonly kind: "mock-abort"; readonly abort: MockAbort }
   | { readonly kind: "cost-cap" }
   | { readonly kind: "platform-stop" }
   | { readonly kind: "cancellation" };
 
+/** Which mock stopped a plugin-eval try, and why. */
+export interface MockAbort {
+  /** The mocked server's key in the plugin's MCP configuration. */
+  readonly server: string;
+  readonly tool: string;
+  readonly reason: string;
+}
+
 /** What the terminal table reads. Each field is set by the first cause of its kind and never cleared. */
 export interface StopEvidence {
   readonly stall: StallTimeoutError | undefined;
+  readonly mockAbort: MockAbort | undefined;
   readonly costCapExceeded: boolean;
   readonly platformStop: boolean;
   /** Temporal delivered a cancellation; its reason is on the cancellation signal itself. */
@@ -38,6 +51,7 @@ export interface StopEvidence {
 export class StopController {
   private readonly controller = new AbortController();
   private stall: StallTimeoutError | undefined;
+  private mockAbort: MockAbort | undefined;
   private costCapExceeded = false;
   private platformStop = false;
   private cancellation = false;
@@ -50,6 +64,7 @@ export class StopController {
   get evidence(): StopEvidence {
     return {
       stall: this.stall,
+      mockAbort: this.mockAbort,
       costCapExceeded: this.costCapExceeded,
       platformStop: this.platformStop,
       cancellation: this.cancellation,
@@ -61,6 +76,9 @@ export class StopController {
     switch (cause.kind) {
       case "stall":
         this.stall ??= cause.error;
+        break;
+      case "mock-abort":
+        this.mockAbort ??= cause.abort;
         break;
       case "cost-cap":
         this.costCapExceeded = true;

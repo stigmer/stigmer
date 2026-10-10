@@ -57,6 +57,8 @@ import { formatStallFailure, type StallTimeoutError } from "../shared/stall-watc
 import { utcTimestamp } from "../shared/status.js";
 import type { WorkspaceLockTimeoutError } from "../shared/workspace/workspace-lock.js";
 import type { FailureSurface } from "./types.js";
+import type { MockAbort } from "./stop-controller.js";
+import { formatTryStop } from "@stigmer/eval-runtime";
 
 /** How the activity ends after the arm is written and persisted. */
 export type TerminalDisposition = { readonly kind: "return" } | { readonly kind: "throw"; readonly message: string };
@@ -115,6 +117,24 @@ export function stallArm(error: StallTimeoutError): TerminalArm {
     rows: [
       `Execution failed: the agent made no progress for too long and was stopped (${error.message}). You can retry or resume.`,
     ],
+    completes: true,
+    disposition: RETURN,
+  };
+}
+
+/**
+ * A plugin-eval try's mock stopped the turn: its input guard was violated,
+ * its agent ended the run, or the agent mocks' call budget ran out.
+ * TERMINATED, as the cost cap: the platform stopped the run on purpose. The
+ * error is the try stop's sentence (`@stigmer/eval-runtime`
+ * `formatTryStop`), which the eval reads back as the try's `aborted`.
+ * RETURN: a retry would make the same call.
+ */
+export function mockAbortArm(abort: MockAbort): TerminalArm {
+  return {
+    phase: RunPhase.RUN_TERMINATED,
+    error: formatTryStop({ kind: "mock-aborted", server: abort.server, tool: abort.tool, reason: abort.reason }),
+    rows: [`A mock stopped this run: ${abort.server}.${abort.tool}: ${abort.reason}`],
     completes: true,
     disposition: RETURN,
   };

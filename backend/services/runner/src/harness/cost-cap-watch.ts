@@ -35,6 +35,16 @@ export class CostCapWatch {
   /** Add one delta. True exactly once: on the delta that reaches the cap. */
   add(delta: UsageDelta): boolean {
     this.accumulator.addTurn(delta);
+    return this.reached();
+  }
+
+  /** Add a runtime call's cost (`UsageAccumulator.addAuxiliaryCost`). True exactly once, as {@link add}. */
+  addAuxiliary(costUsd: number): boolean {
+    this.accumulator.addAuxiliaryCost(costUsd);
+    return this.reached();
+  }
+
+  private reached(): boolean {
     if (this.crossed || !costCapExceeded(this.maxCostUsd, this.accumulator.snapshot().estimatedCostUsd)) return false;
     this.crossed = true;
     return true;

@@ -100,11 +100,13 @@ async function readRange(path: string, offset: number, length: number): Promise<
   }
 }
 
-/** Run one process here, with this process's environment plus the request's. */
+/** Run one process here, with this process's environment plus the request's, or the request's alone. */
 export async function serveExec(request: ExecRequest, fs: AgentFs = localAgentFs): Promise<ExecReply> {
   const options = {
     ...(request.cwd === null ? {} : { cwd: request.cwd }),
     env: request.env,
+    replaceEnv: request.replaceEnv,
+    ...(request.timeoutMs === null ? {} : { timeoutMs: request.timeoutMs }),
     maxBuffer: request.maxBuffer,
     ...(request.input === null ? {} : { input: Buffer.from(request.input, "base64") }),
   };

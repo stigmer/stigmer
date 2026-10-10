@@ -87,6 +87,7 @@ import { CasCaptureObserver } from "./cas-capture-observer.js";
 import { createCasCaptureBackend } from "./cas-capture-backend.js";
 import { confinedReadAdmission, mountPlatformRoute } from "./platform-route.js";
 import { resolveResumeInput, type GraphStateSnapshot } from "./hitl.js";
+import { resumedMessages, threadIsEmpty } from "./resumed-history.js";
 import { buildEnhancedSystemPrompt, composeUserMessage, renderSkillsSection } from "./prompt-builder.js";
 import { buildShellEnv, shellRunValues } from "../../shared/shell-env.js";
 import { subAgentScope, transformAndCompileSubagents, type SubagentScopeBase } from "./subagent-transformer.js";
@@ -719,7 +720,9 @@ export function checkTurnToolLists(
  * MESSAGE so it enters the checkpointer with the turn and the system prompt
  * stays the session's), the structured-output contract appended, and
  * the inline images FIRST as content blocks when the turn carries any (per
- * Anthropic's images-before-text guidance; a plain string otherwise).
+ * Anthropic's images-before-text guidance; a plain string otherwise). A
+ * plugin-eval try's recorded conversation goes ahead of that message when
+ * the thread holds none yet (`resumed-history.ts`).
  */
 export async function composeGraphInput(input: TurnInput, engine: DeepAgentEngine): Promise<DeepAgentGraphInput> {
   const graphState: GraphStateSnapshot = await engine.graph.getState(engine.langgraphConfig);
@@ -733,10 +736,12 @@ export async function composeGraphInput(input: TurnInput, engine: DeepAgentEngin
     userMessage += `\n\n---\nIMPORTANT: When your analysis is complete, provide your findings as structured output matching the required schema. The system will capture your structured response automatically.`;
   }
   const { visionImages } = input.attachments;
+  const history = input.resumedHistory !== undefined && threadIsEmpty(graphState.values) ? resumedMessages(input.resumedHistory) : [];
   return {
     kind: "message",
     input: {
       messages: [
+        ...history,
         {
           role: "user",
           content: visionImages.length > 0
