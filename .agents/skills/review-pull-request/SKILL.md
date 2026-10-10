@@ -326,10 +326,11 @@ on its own. A long read of the logic is no reason to skip them; they are what a
 single pass most often misses.
 
 - **Every line switched off:** each comment the diff adds that turns a check off
-  for a line (a coverage ignore hint, a `Stryker disable`, a lint or type
-  suppression). Try to reach the line from a test, the way the tests beside it
-  reach theirs. If you can, or if the reason describes something else, it is a
-  finding.
+  for a line. For a coverage ignore hint or a `Stryker disable`, try to reach
+  the line from a test, the way the tests beside it reach theirs; if you can, or
+  if the reason describes something else, it is a finding. For a lint or type
+  suppression, ask whether its reason is true and whether the code could be
+  fixed instead.
 - **Every change to what a check reads:** a workflow, `buf.yaml` or another
   proto setting, a lint, type or coverage config, a floors file, a skip list.
   Say what it stops checking, for which files, and until when.
