@@ -10,7 +10,8 @@
  *
  * The directory is `evals/`, or a Claude-shaped manifest's
  * `experimental.evals` when that is a relative path of plain directory
- * names clear of the plugin's skills; any other value is an
+ * names clear of the plugin's skills (with or without a `./` prefix, or an
+ * array's first entry); any other value is an
  * `eval-dir-invalid` finding and `evals/` is used, the format's rule for an
  * unusable manifest value. Skills a manifest declares in `evals/` leave the
  * plugin no suite: an `eval-dir-invalid` finding and no case, since the
@@ -25,6 +26,14 @@
  * `results/` and `mocks/` at the suite root are the runner's output and the
  * suite's MCP mocks, never cases. Every file is read through the
  * `evalDocument` cap.
+ *
+ * The search goes at most {@link EVAL_MAX_CASE_DEPTH} directories below the
+ * suite, and a deeper directory is a finding rather than a recursion that
+ * runs out of stack: the install accepts any depth its archive holds. A
+ * case's name is at most {@link EVAL_MAX_CASE_NAME} characters and its
+ * directory's path at most {@link EVAL_MAX_CASE_DIR} characters, else the
+ * case is invalid: both are matched against an eval's `case_glob` on the
+ * server's request path, and both are stored on the plugin and every eval.
  *
  * Fields follow the format's precedence: `prompt.md` frontmatter overrides
  * the matching `case.yaml` field (a whole field, a list included, never
@@ -66,6 +75,15 @@ export { DEFAULT_EVAL_DIR } from "./eval-dir.js";
 
 /** Graders a case may carry and still run: one Score criterion per grader, and a Score holds 32. */
 export const EVAL_MAX_GRADERS = 32;
+
+/** The most directories a case may sit below the suite's directory. */
+export const EVAL_MAX_CASE_DEPTH = 32;
+
+/** The longest case name, in characters (code points). */
+export const EVAL_MAX_CASE_NAME = 200;
+
+/** The longest plugin-relative path of a case's directory, in characters (code points). */
+export const EVAL_MAX_CASE_DIR = 1024;
 
 /** The longest `append_system_prompt` a case may carry, in characters: the most a run takes (`RunSpec.append_system_prompt`). */
 export const EVAL_MAX_APPEND_SYSTEM_PROMPT = 32_768;
@@ -161,7 +179,7 @@ export function readEvalSuite(files: PluginFiles): EvalSuite {
 
   const cases: EvalCase[] = [];
   const caseByName = new Map<string, string>();
-  for (const caseDir of findCaseDirs(index, dir)) {
+  for (const caseDir of findCaseDirs(index, dir, findings)) {
     const caseFindings = new CaseFindings();
     const evalCase = readCase(index, caseDir, suiteMocks, caseFindings);
     if (evalCase !== undefined) {
@@ -211,19 +229,41 @@ function evalDirMessage(unusable: NonNullable<EvalDirResolution["unusable"]>, fa
   }
 }
 
-/** Every case directory under the suite, sorted by path. */
-function findCaseDirs(index: PluginFileIndex, root: string): readonly string[] {
+/**
+ * Every case directory under the suite, sorted by path, at most
+ * {@link EVAL_MAX_CASE_DEPTH} levels down; a directory at that depth that
+ * is no case and still holds directories is a finding, and its contents
+ * are not searched.
+ */
+function findCaseDirs(index: PluginFileIndex, root: string, findings: EvalSuiteFinding[]): readonly string[] {
   const found: string[] = [];
-  const visit = (dir: string, atRoot: boolean): void => {
+  const visit = (dir: string, depth: number): void => {
     for (const child of index.childDirectories(dir)) {
-      if (atRoot && (child === "results" || child === "mocks")) continue;
+      if (depth === 0 && (child === "results" || child === "mocks")) continue;
       const path = joinPath(dir, child);
       if (index.has(`${path}/${PROMPT_FILE}`) || index.has(`${path}/${CASE_FILE}`)) found.push(path);
-      else visit(path, false);
+      else if (depth + 1 < EVAL_MAX_CASE_DEPTH) visit(path, depth + 1);
+      else if (index.childDirectories(path).length > 0) {
+        findings.push({
+          kind: "eval-case-invalid",
+          path,
+          message: `${path}: the directory is nested too deep (cases sit at most ${EVAL_MAX_CASE_DEPTH} directories below ${root}/), so nothing beneath it is read`,
+        });
+      }
     }
   };
-  visit(root, true);
+  visit(root, 0);
   return found.sort(comparePaths);
+}
+
+/** Whether `text` has more than `max` characters (code points), reading no further than it must. */
+function longerThan(text: string, max: number): boolean {
+  if (text.length <= max) return false;
+  let characters = 0;
+  for (const _ of text) {
+    if (++characters > max) return true;
+  }
+  return false;
 }
 
 /** One document's text through the `evalDocument` cap, or `undefined` after a finding of `kind`. */
@@ -312,14 +352,8 @@ function readExecutionFields(object: JsonObject, scope: FieldScope): CaseFields 
  */
 function readAppendSystemPrompt(object: JsonObject, scope: FieldScope): string | undefined {
   const value = readString(object, "append_system_prompt", scope);
-  if (value === undefined || value.length <= EVAL_MAX_APPEND_SYSTEM_PROMPT) return value;
-  let characters = 0;
-  for (const _ of value) {
-    if (++characters > EVAL_MAX_APPEND_SYSTEM_PROMPT) {
-      return wrong(scope, "append_system_prompt", `at most ${EVAL_MAX_APPEND_SYSTEM_PROMPT} characters`);
-    }
-  }
-  return value;
+  if (value === undefined || !longerThan(value, EVAL_MAX_APPEND_SYSTEM_PROMPT)) return value;
+  return wrong(scope, "append_system_prompt", `at most ${EVAL_MAX_APPEND_SYSTEM_PROMPT} characters`);
 }
 
 interface PromptFile {
@@ -458,6 +492,10 @@ function readGraderFiles(
 }
 
 function readCase(index: PluginFileIndex, caseDir: string, suiteMocks: boolean, findings: CaseFindings): EvalCase | undefined {
+  if (longerThan(caseDir, EVAL_MAX_CASE_DIR)) {
+    findings.add("eval-case-invalid", caseDir, `the case directory's path is over ${EVAL_MAX_CASE_DIR} characters`);
+    return undefined;
+  }
   const files = index.filesUnder(caseDir);
   const caseFiles = new Set(files);
   const promptPath = `${caseDir}/${PROMPT_FILE}`;
@@ -490,16 +528,22 @@ function readCase(index: PluginFileIndex, caseDir: string, suiteMocks: boolean, 
     );
   }
 
+  const fields: CaseFields = { ...caseFile?.fields, ...promptFile?.fields };
+  const name = fields.name ?? basename(caseDir);
+  if (longerThan(name, EVAL_MAX_CASE_NAME)) {
+    const source = promptFile?.fields.name !== undefined ? promptPath : caseFile?.fields.name !== undefined ? casePath : caseDir;
+    findings.add("eval-case-invalid", source, `the case name ${quote(name)} is over ${EVAL_MAX_CASE_NAME} characters`);
+  }
+
   if (!findings.empty || prompt === undefined) return undefined;
 
-  const fields: CaseFields = { ...caseFile?.fields, ...promptFile?.fields };
   const context = caseFile?.context ?? { addDirs: [] };
   const env = fields.env ?? {};
   const mocks = suiteMocks || index.isDirectory(`${caseDir}/mocks`);
   const plugins = fields.plugins ?? [];
   const unsupported = unsupportedOf(caseDir, plugins, context, env, graders, mocks);
   return {
-    name: fields.name ?? basename(caseDir),
+    name,
     dir: caseDir,
     ...(fields.description !== undefined && { description: fields.description }),
     tags: fields.tags ?? [],

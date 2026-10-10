@@ -160,7 +160,33 @@ describe("the eval directory", () => {
     expect(plugin.ignored).toEqual([]);
   });
 
-  it.each([["/abs/evals"], ["../evals"], ["quality//evals"], ["quality/evals/"], ["./qa"], [""], [42]])(
+  it.each([["./quality/evals"], [["./quality/evals", "qa"]], [["quality/evals"]]])(
+    "reads %j, with or without the ./ prefix and as an array's first entry, as quality/evals",
+    (value) => {
+      const suite = suiteOf(
+        { "quality/evals/c/prompt.md": "Hello.", "quality/evals/c/graders/judge.md": LLM_GRADER },
+        { experimental: { evals: value } },
+      );
+      expect(suite.findings).toEqual([]);
+      expect(suite.dir).toBe("quality/evals");
+      expect(suite.cases.map((c) => c.dir)).toEqual(["quality/evals/c"]);
+    },
+  );
+
+  it.each([
+    ["/abs/evals"],
+    ["../evals"],
+    ["quality//evals"],
+    ["quality/evals/"],
+    ["./"],
+    ["././qa"],
+    [""],
+    [42],
+    [[]],
+    [[7, "qa"]],
+    [["../qa", "qa"]],
+    ["q".repeat(1025)],
+  ])(
     "refuses %j and falls back to evals/",
     (value) => {
       const suite = suiteOf({ "evals/c/prompt.md": "Hello.", "evals/c/graders/judge.md": LLM_GRADER }, { experimental: { evals: value } });
@@ -169,8 +195,10 @@ describe("the eval directory", () => {
       const finding = onlyFinding(suite);
       expect(finding.kind).toBe("eval-dir-invalid");
       expect(finding.path).toBe(".claude-plugin/plugin.json");
+      const json = JSON.stringify(value);
+      const quoted = json.length > 200 ? `${json.slice(0, 200)}…` : json;
       expect(finding.message).toBe(
-        `.claude-plugin/plugin.json: experimental.evals ${JSON.stringify(value)} is not a relative path of plain directory names ` +
+        `.claude-plugin/plugin.json: experimental.evals ${quoted} is not a relative path of plain directory names ` +
           "(such as 'qa' or 'quality/evals'); using evals/",
       );
     },
@@ -293,6 +321,29 @@ describe("case discovery", () => {
     });
     expect(suite.cases.map((c) => c.name)).toEqual(["good"]);
     expect(onlyFinding(suite).path).toBe("evals/bad");
+  });
+
+  it("searches 32 directories below the suite, and names a deeper directory instead of running out of stack", () => {
+    const nested = (prefix: string, depth: number): string => Array.from({ length: depth }, (_, i) => `${prefix}${i}`).join("/");
+    const deepest = `evals/${nested("d", 32)}`;
+    const suite = suiteOf({
+      [`${deepest}/prompt.md`]: "Deep.",
+      [`${deepest}/graders/judge.md`]: LLM_GRADER,
+      [`evals/${nested("e", 5000)}/prompt.md`]: "Far too deep.",
+    });
+    expect(suite.cases.map((c) => c.dir)).toEqual([deepest]);
+    const tooDeep = `evals/${nested("e", 32)}`;
+    expect(onlyFinding(suite)).toEqual({
+      kind: "eval-case-invalid",
+      path: tooDeep,
+      message: `${tooDeep}: the directory is nested too deep (cases sit at most 32 directories below evals/), so nothing beneath it is read`,
+    });
+  });
+
+  it("does not search below the deepest level, whose directories holding only files are no finding", () => {
+    const nested = Array.from({ length: 32 }, (_, i) => `d${i}`).join("/");
+    const suite = suiteOf({ [`evals/${nested}/notes.txt`]: "Not a case." });
+    expect(suite).toEqual({ dir: "evals", cases: [], findings: [] });
   });
 
   it("refuses a second case of the same name", () => {
@@ -466,6 +517,7 @@ describe("grader defaults and options", () => {
 
   it("weight and arm as written", () => {
     expect(graderOf("type: tool_used\ntool: Skill\nweight: 2.5\narm: with-only")).toMatchObject({ weight: 2.5, arm: "with-only" });
+    expect(graderOf("type: tool_used\ntool: Skill\nweight: 1000")).toMatchObject({ weight: 1000 });
   });
 
   it("a case.yaml entry takes the same keys, criteria for llm", () => {
@@ -670,6 +722,8 @@ describe("refusals", () => {
     ["a tool_order side that is a list", "type: tool_order\nbefore: [Read]\nafter: Bash", "before must be a tool name or { tool, input_match }"],
     ["a tool_order side with an unknown key", "type: tool_order\nbefore: Read\nafter: { tool: Bash, when: last }", "after must be a tool name or { tool, input_match }"],
     ["a weight of 0", "type: tool_used\ntool: Read\nweight: 0", "weight must be a positive number"],
+    ["a weight over 1000", "type: tool_used\ntool: Read\nweight: 1000.5", "weight must be a positive number no larger than 1000"],
+    ["a weight of 1e308", "type: tool_used\ntool: Read\nweight: 1e308", "weight must be a positive number no larger than 1000"],
     ["an unknown arm", "type: tool_used\ntool: Read\narm: without", "arm must be 'with-only' or 'both'"],
     ["min above max", "type: tool_used\ntool: Read\nmin: 2\nmax: 1", "min must be at most max (1)"],
     ["a negative min", "type: tool_used\ntool: Read\nmin: -1", "min must be a whole number, 0 or more"],
@@ -771,6 +825,46 @@ describe("refusals", () => {
       `evals/d/case.yaml: schema_version "${"a".repeat(199)}… is not supported; this reader reads "1.1"`,
       `evals/e/case.yaml: execution.env key '${cut}' must match EVAL_[A-Z0-9_]*`,
     ]);
+  });
+
+  it("keeps a case name of 200 characters, counted in characters, and refuses a longer one from either file or the directory", () => {
+    // Each emoji is one character and two UTF-16 code units.
+    const longest = "\u{1F600}".repeat(200);
+    const kept = oneCase({ "evals/c/prompt.md": `---\nname: ${longest}\n---\nHi.` });
+    expect(kept.findings).toEqual([]);
+    expect(kept.cases[0]?.name).toBe(longest);
+
+    const long = "n".repeat(201);
+    const quoted = `'${"n".repeat(200)}…'`;
+    const fromPrompt = oneCase({ "evals/c/prompt.md": `---\nname: ${long}\n---\nHi.` });
+    expect(fromPrompt.cases).toEqual([]);
+    expect(onlyFinding(fromPrompt)).toEqual({
+      kind: "eval-case-invalid",
+      path: "evals/c/prompt.md",
+      message: `evals/c/prompt.md: the case name ${quoted} is over 200 characters`,
+    });
+    const fromCase = oneCase({ "evals/c/case.yaml": `schema_version: "1.1"\nname: ${long}\nexecution:\n  prompt: Hi.\n` });
+    expect(onlyFinding(fromCase).path).toBe("evals/c/case.yaml");
+    const fromDir = suiteOf({ [`evals/${long}/prompt.md`]: "Hi.", [`evals/${long}/graders/judge.md`]: LLM_GRADER });
+    expect(fromDir.cases).toEqual([]);
+    expect(onlyFinding(fromDir)).toMatchObject({ kind: "eval-case-invalid", path: `evals/${long}` });
+  });
+
+  it("refuses a case whose directory's path is over 1024 characters, and keeps one at 1024", () => {
+    // Ten 99-character groups bring the path to 1006 characters, well within the depth limit.
+    const groups = `evals/${`${"g".repeat(99)}/`.repeat(10)}`;
+    const atLimit = `${groups}${"c".repeat(1024 - groups.length)}`;
+    const kept = suiteOf({ [`${atLimit}/prompt.md`]: "Hi.", [`${atLimit}/graders/judge.md`]: LLM_GRADER });
+    expect(kept.findings).toEqual([]);
+    expect(kept.cases.map((c) => c.dir.length)).toEqual([1024]);
+    const over = `${atLimit}c`;
+    const refused = suiteOf({ [`${over}/prompt.md`]: "Hi.", [`${over}/graders/judge.md`]: LLM_GRADER });
+    expect(refused.cases).toEqual([]);
+    expect(onlyFinding(refused)).toEqual({
+      kind: "eval-case-invalid",
+      path: over,
+      message: `${over}: the case directory's path is over 1024 characters`,
+    });
   });
 
   it("never cuts a quoted value inside a surrogate pair", () => {

@@ -13,7 +13,8 @@
  *  - the eval suite is never mounted: `evals/` always, the directory the
  *    install recorded in `status.evals.dir`, and the archive manifest's own
  *    `experimental.evals` under the library's usability rule (a plain
- *    relative path clear of `skills/` and every declared skill path, so a
+ *    relative path, a `./` prefix stripped and an array read by its first
+ *    entry, clear of `skills/` and every declared skill path, so a
  *    skill is never mounted short of its files), each entry
  *    judged by its cleaned root-relative name, so an agent under test
  *    cannot read its cases; the tamper guard holds the tree to the archive
@@ -265,7 +266,7 @@ describe("the eval suite is not mounted", () => {
   });
 
   it("falls back to evals/ alone when the manifest's experimental.evals is unusable, as the library does", async () => {
-    const unusable = ["../outside", "/abs", "quality//evals", "./quality/evals", 7, "quality\\evals"];
+    const unusable = ["../outside", "/abs", "quality//evals", "././quality/evals", 7, "quality\\evals", [], ["../outside", "quality/evals"]];
     for (const value of unusable) {
       const files = { ...suiteFiles, ".claude-plugin/plugin.json": JSON.stringify({ name: "safety", experimental: { evals: value } }) };
       const bytes = buildZip(Object.entries(files).map(([name, content]) => ({ name, content })));
@@ -273,6 +274,17 @@ describe("the eval suite is not mounted", () => {
       const mounted = await mountPlugin(clientServing(bytes), suitePlugin(bytes, undefined), root);
       expect(existsSync(join(mounted.root, "evals")), String(value)).toBe(false);
       expect(existsSync(join(mounted.root, "quality/evals/other/prompt.md")), String(value)).toBe(true);
+    }
+  });
+
+  it("reads experimental.evals with a ./ prefix, and an array by its first entry, as the library does", async () => {
+    for (const value of ["./quality/evals", ["./quality/evals", "evals"], ["quality/evals"]]) {
+      const files = { ...suiteFiles, ".claude-plugin/plugin.json": JSON.stringify({ name: "safety", experimental: { evals: value } }) };
+      const bytes = buildZip(Object.entries(files).map(([name, content]) => ({ name, content })));
+      const root = join(platformDir, createHash("sha256").update(JSON.stringify(value)).digest("hex").slice(0, 8));
+      const mounted = await mountPlugin(clientServing(bytes), suitePlugin(bytes, undefined), root);
+      expect(existsSync(join(mounted.root, "quality/evals")), JSON.stringify(value)).toBe(false);
+      expect(readFileSync(join(mounted.root, "quality/notes.md"), "utf-8"), JSON.stringify(value)).toBe("kept");
     }
   });
 

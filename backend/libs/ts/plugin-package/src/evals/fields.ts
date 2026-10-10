@@ -32,8 +32,13 @@ export const QUOTED_TEXT_LIMIT = 200;
 
 /** `text`, cut to {@link QUOTED_TEXT_LIMIT} characters and an ellipsis when longer, never inside a surrogate pair. */
 export function excerpt(text: string): string {
-  if (text.length <= QUOTED_TEXT_LIMIT) return text;
-  const cut = text.slice(0, QUOTED_TEXT_LIMIT);
+  return cutText(text, QUOTED_TEXT_LIMIT);
+}
+
+/** `text`, cut to `limit` UTF-16 code units and an ellipsis when longer, never inside a surrogate pair. */
+export function cutText(text: string, limit: number): string {
+  if (text.length <= limit) return text;
+  const cut = text.slice(0, limit);
   return `${/[\uD800-\uDBFF]$/.test(cut) ? cut.slice(0, -1) : cut}…`;
 }
 

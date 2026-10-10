@@ -16,6 +16,9 @@
  * a pattern from the body is trimmed too, since its trailing newline would
  * otherwise be part of the expression.
  *
+ * A weight is at most {@link EVAL_MAX_GRADER_WEIGHT}, so a weighted mean
+ * of passing checks never overflows to a score that is not a number.
+ *
  * Defaults the format documents are applied here: weight 1, regex flags
  * empty and `match: contains`, `target`/`focus` `last_message`,
  * `tool_used` min 1 and max unlimited, `file_exists` `exists: true`. A
@@ -95,10 +98,19 @@ export function readGrader(source: GraderSource, scope: FieldScope, noun: string
   };
 }
 
+/**
+ * The heaviest weight a grader may carry. A try's score is a weighted mean
+ * over a case's at most 32 graders, so this keeps every sum of weights and
+ * of weighted scores finite.
+ */
+export const EVAL_MAX_GRADER_WEIGHT = 1000;
+
 function readWeight(fields: JsonObject, scope: FieldScope): number | undefined {
   const value = fields["weight"];
   if (value === undefined) return undefined;
-  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return wrong(scope, "weight", "a positive number");
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0 || value > EVAL_MAX_GRADER_WEIGHT) {
+    return wrong(scope, "weight", `a positive number no larger than ${EVAL_MAX_GRADER_WEIGHT}`);
+  }
   return value;
 }
 

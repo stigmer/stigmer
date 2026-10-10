@@ -215,7 +215,8 @@ const DEFAULT_SKILLS_DIR = "skills";
 /**
  * The suite directory the archive's own manifest names, by the library's
  * rule (`@stigmer/plugin-package` `evals/eval-dir.ts` `resolveEvalDir`):
- * the first manifest carrying `experimental.evals` decides, and its value
+ * the first manifest carrying `experimental.evals` decides (an array by its
+ * first entry, a `./` prefix stripped), and its value
  * is used only when it is a relative path of plain directory names that
  * does not overlap the skills (`skills/` or a declared skill path, other
  * than the plugin's root, being it, holding it or lying inside it);
@@ -232,11 +233,27 @@ export function manifestEvalDir(entries: readonly ZipFileEntry[]): string | unde
     const experimental = manifest?.["experimental"];
     const value = isObject(experimental) ? experimental["evals"] : undefined;
     if (value === undefined) continue;
-    if (typeof value !== "string" || !isPlainRelativePath(value)) return undefined;
+    const dir = declaredEvalDir(value);
+    if (dir === undefined) return undefined;
     const skillDirs = [DEFAULT_SKILLS_DIR, ...declaredSkillDirs(entries)];
-    return skillDirs.some((skillDir) => skillDir !== "" && pathsOverlap(value, skillDir)) ? undefined : value;
+    return skillDirs.some((skillDir) => skillDir !== "" && pathsOverlap(dir, skillDir)) ? undefined : dir;
   }
   return undefined;
+}
+
+/** The library's `EVAL_DIR_MAX_LENGTH`: the longest suite directory a manifest may name, in UTF-16 code units. */
+const EVAL_DIR_MAX_LENGTH = 1024;
+
+/**
+ * The library's `declaredEvalDir`: an array's first entry, one `./`
+ * stripped, a plain relative path no longer than
+ * {@link EVAL_DIR_MAX_LENGTH}, or `undefined`.
+ */
+function declaredEvalDir(value: unknown): string | undefined {
+  const entry: unknown = Array.isArray(value) ? value[0] : value;
+  if (typeof entry !== "string") return undefined;
+  const path = entry.startsWith("./") ? entry.slice(2) : entry;
+  return path.length <= EVAL_DIR_MAX_LENGTH && isPlainRelativePath(path) ? path : undefined;
 }
 
 /** A manifest of the archive as a JSON object; `undefined` when absent, unreadable or not an object. */

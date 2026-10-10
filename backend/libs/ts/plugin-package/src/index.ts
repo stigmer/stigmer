@@ -70,9 +70,12 @@ export {
 } from "./evals/read-eval-suite.js";
 export { EVAL_ENV_KEY_PATTERN, EVAL_SCHEMA_VERSION } from "./evals/fields.js";
 export {
+  EVAL_SUMMARY_MAX_CASE_TAGS,
   EVAL_SUMMARY_MAX_CASES,
   EVAL_SUMMARY_MAX_FINDINGS,
+  EVAL_SUMMARY_MAX_MESSAGE,
   EVAL_SUMMARY_MAX_PATH,
+  EVAL_SUMMARY_MAX_TEXT,
   type EvalSuiteSummary,
   type EvalSuiteSummaryCase,
   summariseEvalSuite,

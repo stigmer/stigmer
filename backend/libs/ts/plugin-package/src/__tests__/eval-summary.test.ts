@@ -1,18 +1,23 @@
 /**
  * Pins `summariseEvalSuite`, the suite as a plugin stores it: at most 200
  * cases and 50 findings, in the reader's order, while `caseCount` and the
- * tags still cover every case; a finding's path cut to 200 characters and
- * an ellipsis in its `path` and at the start of its message; a short path
- * left alone.
+ * tags still cover every case; every text the summary copies (a case's
+ * name, directory and tags, a finding's path) cut to 200 characters and an
+ * ellipsis, a finding's path also at the start of its message, and its
+ * message to 1000; at most 32 tags per case, the suite's tags drawn from those;
+ * short text left alone.
  */
 
 import { describe, expect, it } from "vitest";
 
 import { readEvalSuite } from "../evals/read-eval-suite.js";
 import {
+  EVAL_SUMMARY_MAX_CASE_TAGS,
   EVAL_SUMMARY_MAX_CASES,
   EVAL_SUMMARY_MAX_FINDINGS,
+  EVAL_SUMMARY_MAX_MESSAGE,
   EVAL_SUMMARY_MAX_PATH,
+  EVAL_SUMMARY_MAX_TEXT,
   summariseEvalSuite,
 } from "../evals/summary.js";
 import type { EvalSuite } from "../evals/types.js";
@@ -47,7 +52,7 @@ describe("summariseEvalSuite", () => {
     const long = "d".repeat(300);
     const files: Record<string, string> = {};
     for (let i = 0; i < 60; i += 1) {
-      const dir = `evals/${long}${String(i).padStart(2, "0")}`;
+      const dir = `evals/${long}/${String(i).padStart(2, "0")}`;
       files[`${dir}/prompt.md`] = "---\nruns: 0\n---\nHi.";
       files[`${dir}/graders/judge.md`] = LLM_GRADER;
     }
@@ -62,6 +67,27 @@ describe("summariseEvalSuite", () => {
       path: `${cut}…`,
       message: `${cut}…: runs must be a whole number from 1 to 50`,
     });
+  });
+
+  it("cuts an oversized case name, directory and tags, keeps 32 tags a case, and cuts a long finding message to 1000", () => {
+    const read = suiteOf({ "evals/c/prompt.md": "Hi.", "evals/c/graders/judge.md": LLM_GRADER });
+    const evalCase = read.cases[0]!;
+    const huge = "n".repeat(1_000_000);
+    const tags = Array.from({ length: 40 }, (_, i) => `${String(i).padStart(2, "0")}${"t".repeat(300)}`);
+    const suite: EvalSuite = {
+      ...read,
+      cases: [{ ...evalCase, name: huge, dir: `evals/${huge}`, tags }],
+      findings: [{ kind: "eval-case-invalid", path: "evals/c", message: `evals/c: ${"m".repeat(5000)}` }],
+    };
+    const summary = summariseEvalSuite(suite);
+    const cut = (text: string): string => `${text.slice(0, EVAL_SUMMARY_MAX_TEXT)}…`;
+    const kept = tags.slice(0, EVAL_SUMMARY_MAX_CASE_TAGS).map(cut);
+    expect(summary.cases).toEqual([{ name: cut(huge), dir: cut(`evals/${huge}`), tags: kept }]);
+    expect(summary.caseTags).toEqual(kept);
+    expect(summary.findings).toEqual([
+      { kind: "eval-case-invalid", path: "evals/c", message: `evals/c: ${"m".repeat(EVAL_SUMMARY_MAX_MESSAGE - "evals/c: ".length)}…` },
+    ]);
+    expect(JSON.stringify(summary).length).toBeLessThan(20_000);
   });
 
   it("leaves a short path and its message as the reader wrote them, and keeps a case's unsupported feature", () => {

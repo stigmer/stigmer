@@ -6,7 +6,11 @@
  * The directory is `evals/`, or a Claude-shaped manifest's
  * `experimental.evals` when that is a relative path of plain directory
  * names (the first manifest in the set's order that carries the key) that
- * does not overlap the plugin's skills. Any other value is unusable and
+ * does not overlap the plugin's skills. The value is written with or
+ * without a `./` prefix, which is stripped, and may be an array, whose
+ * first entry is used, as Claude Code's manifest reference reads it. A
+ * path longer than {@link EVAL_DIR_MAX_LENGTH} characters is refused, since
+ * the plugin stores it whole. Any other value is unusable and
  * `evals/` is used, the format's rule; the resolution says why, and the
  * suite reader turns it into its finding.
  *
@@ -37,6 +41,9 @@ export const DEFAULT_EVAL_DIR = "evals";
 /** The open format's fixed skills directory, read whatever the manifests declare. */
 export const DEFAULT_SKILLS_DIR = "skills";
 
+/** The longest suite directory a manifest may name, in UTF-16 code units: the longest case directory the reader takes. */
+export const EVAL_DIR_MAX_LENGTH = 1024;
+
 /** Why a manifest's `experimental.evals` was not used. */
 export type EvalDirUnusableReason = "not-a-plain-path" | "overlaps-skills";
 
@@ -54,14 +61,28 @@ export function resolveEvalDir(set: ManifestSet | undefined): EvalDirResolution 
   if (set === undefined) return { dir: DEFAULT_EVAL_DIR };
   if (declared === undefined) return defaultDir(set);
   const { value, manifest } = declared;
-  if (typeof value !== "string" || !isContainedPath(value)) {
+  const dir = declaredEvalDir(value);
+  if (dir === undefined) {
     return defaultDir(set, { value, manifest, reason: "not-a-plain-path" });
   }
   const skillDirs = [DEFAULT_SKILLS_DIR, ...set.manifests.flatMap((m) => m.skillPaths.map((p) => p.path))];
-  if (skillDirs.some((skillDir) => skillDir !== "" && pathsOverlap(value, skillDir))) {
+  if (skillDirs.some((skillDir) => skillDir !== "" && pathsOverlap(dir, skillDir))) {
     return defaultDir(set, { value, manifest, reason: "overlaps-skills" });
   }
-  return { dir: value };
+  return { dir };
+}
+
+/**
+ * The plugin-relative directory a manifest's `experimental.evals` names:
+ * an array's first entry, one `./` prefix stripped, then a path of plain
+ * directory names no longer than {@link EVAL_DIR_MAX_LENGTH}; `undefined`
+ * for anything else.
+ */
+function declaredEvalDir(value: unknown): string | undefined {
+  const entry: unknown = Array.isArray(value) ? value[0] : value;
+  if (typeof entry !== "string") return undefined;
+  const path = entry.startsWith("./") ? entry.slice(2) : entry;
+  return path.length <= EVAL_DIR_MAX_LENGTH && isContainedPath(path) ? path : undefined;
 }
 
 /** `evals/`, with why the manifest's value was not used, and the declared skill path that holds it, if any. */
