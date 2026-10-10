@@ -215,9 +215,7 @@ function resultText(content: unknown): string {
 
 /** The first pairing violation (the module header), or `undefined`. */
 function pairingError(messages: readonly TranscriptMessage[]): string | undefined {
-  for (let i = 0; i < messages.length; i++) {
-    const message = messages[i];
-    if (message === undefined) continue;
+  for (const [i, message] of messages.entries()) {
     const before = messages[i - 1];
     const after = messages[i + 1];
     if (message.role === "assistant") {

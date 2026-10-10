@@ -37,5 +37,7 @@ describe("formatTryStop and parseTryStop", () => {
   it("reads any other error as no try stop", () => {
     expect(parseTryStop("timed out after 300s")).toBeUndefined();
     expect(parseTryStop("A mock stopped the run: garbled")).toBeUndefined();
+    expect(parseTryStop('A mock stopped the run: server "\\q", tool "t": r')).toBeUndefined();
+    expect(parseTryStop('A mock stopped the run: server "s", tool "\\q": r')).toBeUndefined();
   });
 });

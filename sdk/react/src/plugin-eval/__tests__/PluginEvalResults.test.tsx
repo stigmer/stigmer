@@ -3,7 +3,7 @@
  * a column group per target, named, when the eval ran on several; a case
  * not run on one target shows the reason there, and a dash where the case
  * has no result; the cases not run listed with their reasons; a case's
- * notes when it is opened; the reason a partial eval stopped, in words (a
+ * notes and MCP servers when it is opened; the reason a partial eval stopped, in words (a
  * reason this client does not know as "stopped early"); the heading, the
  * plugin and when the eval started; a refused cancel kept as an alert; a
  * failed read again keeping the last results with a stale notice; and each
@@ -20,8 +20,10 @@ import {
   within,
 } from "@testing-library/react";
 import type { ReactNode } from "react";
+import { create } from "@bufbuild/protobuf";
 import type { PluginEval } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
 import {
+  PluginEvalMockedServerSchema,
   PluginEvalPartialReason,
   PluginEvalPhase,
 } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
@@ -173,6 +175,33 @@ describe("PluginEvalResults", () => {
     ).toEqual([
       "graded on the files the run wrote",
       "the without arm ran no tools",
+    ]);
+  });
+
+  it("shows a case's MCP servers, as its tries saw them, when it is opened", async () => {
+    const pluginEval = evalWith([{ name: "a", score: 1 }]);
+    pluginEval.status!.cases[0]!.mockedServers = [
+      create(PluginEvalMockedServerSchema, {
+        name: "plugin_kit_tracker",
+        tools: ["create_issue"],
+      }),
+      create(PluginEvalMockedServerSchema, {
+        name: "plugin_kit_wiki",
+        notStartedReason: "not started: no mock",
+      }),
+    ];
+    render(<PluginEvalResults evalId="pev_1" />, {
+      wrapper: wrap(client(pluginEval)),
+    });
+    fireEvent.click(await screen.findByRole("button", { name: "a" }));
+    const servers = screen.getByRole("list", { name: "MCP servers of a" });
+    expect(
+      within(servers)
+        .getAllByRole("listitem")
+        .map((item) => item.textContent),
+    ).toEqual([
+      "plugin_kit_tracker mocked: create_issue",
+      "plugin_kit_wiki not started: no mock",
     ]);
   });
 

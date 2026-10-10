@@ -1082,7 +1082,10 @@ describe("mocks", () => {
     ["evals/c/mocks/tracker/t.md", "---\nabort_when: never\n---\nx", "evals/c/mocks/tracker/t.md: abort_when must be unset on a fixed mock (it applies to agent mocks)"],
     ["evals/c/mocks/tracker/t.md", "---\nexpect:\n  id: /(a|b)/\n---\nx", "evals/c/mocks/tracker/t.md: expect.id: the pattern /(a|b)/ uses a group"],
     ["evals/c/mocks/tracker/t.md", "---\nexpect: [a]\n---\nx", "evals/c/mocks/tracker/t.md: expect must be a map from input paths to rules"],
+    ["evals/c/mocks/tracker/t.md", "---\nerror: yes please\n---\nx", "evals/c/mocks/tracker/t.md: error must be true or false"],
+    ["evals/c/mocks/tracker/t.md", "---\ntype: fixed\nx", "evals/c/mocks/tracker/t.md: the frontmatter is not closed (missing the closing '---')"],
     ["evals/c/mocks/tracker/_server.md", "---\ntype: agent\n---\nx", "evals/c/mocks/tracker/_server.md: tools must be a list of the tools it answers"],
+    ["evals/c/mocks/tracker/_server.md", "---\ntools: [a]\nx", "evals/c/mocks/tracker/_server.md: the frontmatter is not closed (missing the closing '---')"],
     ["evals/c/mocks/tracker/_server.md", "---\ntype: fixed\ntools: [a]\n---\nx", "evals/c/mocks/tracker/_server.md: type must be agent (a _server.md answers as an agent)"],
     [
       "evals/c/mocks/tracker/_server.md",

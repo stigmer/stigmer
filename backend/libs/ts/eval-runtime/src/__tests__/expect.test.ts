@@ -59,6 +59,14 @@ describe("checkExpect", () => {
     });
     expect(compileExpect({ a: [] })).toEqual({ ok: false, error: "expect.a: a list must name at least one value" });
     expect(compileExpect({ a: "/(x|y)/" })).toEqual({ ok: false, error: "expect.a: the pattern /(x|y)/ uses a group" });
+    expect(compileExpect({ a: ["x", { y: 1 }] })).toEqual({ ok: false, error: "expect.a: a list must hold literals only" });
+  });
+
+  it("reads a string that is no type name and no /regex/ as a literal, and a null as no type", () => {
+    const guard = compiled({ state: "open", title: "string" });
+    expect(checkExpect(guard, { state: "open", title: "x" })).toBeUndefined();
+    expect(checkExpect(guard, { state: "closed", title: "x" })).toBe('input.state must be "open"');
+    expect(checkExpect(guard, { state: "open", title: null })).toBe("input.title must be a string");
   });
 });
 
@@ -71,6 +79,8 @@ describe("compilePattern", () => {
     ["[^\\s]?x{3}y{1,}", ""],
     ["\\$\\^\\(", ""],
     ["[]a]", ""],
+    ["a\\$", ""],
+    ["[\\n\\t\\-]", ""],
   ])("accepts %s /%s", (source, flags) => {
     expect(typeof compilePattern(source, flags)).toBe("object");
   });
@@ -92,6 +102,8 @@ describe("compilePattern", () => {
     ["a{x}", "", "has a { that is not a {m,n} quantifier"],
     ["a{0,2000}", "", "expands to more than 1024 steps"],
     ["a\\", "", "ends with a lone backslash"],
+    ["[\\", "", "has a class that never closes"],
+    ["a".repeat(513), "", "is longer than 512 characters"],
   ])("refuses %s /%s: %s", (source, flags, why) => {
     expect(compilePattern(source, flags)).toBe(why);
   });
@@ -117,6 +129,9 @@ describe("matchPattern", () => {
     expect(matchPattern(pattern("^[A-C]+$", "i"), "abc")).toBe(true);
     expect(matchPattern(pattern("^a.b$"), "a\nb")).toBe(false);
     expect(matchPattern(pattern("^a.b$", "s"), "a\nb")).toBe(true);
+    expect(matchPattern(pattern("a\\$"), "a$")).toBe(true);
+    expect(matchPattern(pattern("a\\$"), "a")).toBe(false);
+    expect(matchPattern(pattern("^[\\n\\t\\-]+$"), "\n\t-")).toBe(true);
   });
 
   it("stays linear on input that makes a backtracking engine explode", () => {

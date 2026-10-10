@@ -94,6 +94,46 @@ describe("parseTranscript", () => {
     });
   });
 
+  it("refuses a result carried by the assistant and a call carried by the user", () => {
+    expect(
+      parseTranscript([user("go"), assistant([{ type: "tool_result", tool_use_id: "t1", content: "x" }])].join("\n"), {
+        requirePairing: true,
+      }),
+    ).toEqual({ ok: false, error: "an assistant message carries a tool_result" });
+    expect(parseTranscript(user([{ type: "tool_use", id: "t1", name: "Bash", input: {} }]), { requirePairing: true })).toEqual({
+      ok: false,
+      error: "a user message carries a tool_use",
+    });
+  });
+
+  it("skips blank lines and records or blocks of any other shape", () => {
+    const text = [
+      "",
+      line({ type: "user", message: "not a message" }),
+      line({ type: "user", message: { role: "user", content: 7 } }),
+      user("   "),
+      user(["a bare string", { type: "tool_use", id: "t0", input: {} }, { type: "text", text: "" }, { type: "text", text: "kept" }]),
+      "   ",
+      assistant([{ type: "tool_use", name: "Bash", input: "not a map" }]),
+      user([
+        { type: "tool_result", content: 3 },
+        { type: "tool_result", tool_use_id: "t2", content: ["loose", { type: "image" }, { kind: "x" }, { type: "text", text: "T" }] },
+      ]),
+    ].join("\n");
+    const parsed = parseTranscript(text, { requirePairing: false });
+    expect(parsed.ok && parsed.messages).toEqual([
+      { role: "user", blocks: [{ type: "text", text: "kept" }] },
+      { role: "assistant", blocks: [{ type: "tool_use", id: "", name: "Bash", input: {} }] },
+      {
+        role: "user",
+        blocks: [
+          { type: "tool_result", toolUseId: "", content: "", isError: false },
+          { type: "tool_result", toolUseId: "t2", content: "\n[image]\n[content]\nT", isError: false },
+        ],
+      },
+    ]);
+  });
+
   it("reads an unpaired transcript when pairing is not asked", () => {
     const text = [user("go"), assistant([{ type: "tool_use", id: "t1", name: "Bash", input: {} }])].join("\n");
     expect(parseTranscript(text, { requirePairing: false }).ok).toBe(true);
@@ -117,5 +157,9 @@ describe("renderTranscript", () => {
     expect(renderTranscript([user("a"), "oops", user("b"), line({ type: "summary" }), assistant("c")].join("\n"))).toBe(
       ["user: a", "oops", "user: b", "assistant: c"].join("\n"),
     );
+  });
+
+  it("joins one role's consecutive records on one line, and skips blank lines", () => {
+    expect(renderTranscript([user("a"), "", user("b"), assistant("c")].join("\n"))).toBe(["user: a b", "assistant: c"].join("\n"));
   });
 });

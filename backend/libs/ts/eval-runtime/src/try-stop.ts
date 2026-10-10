@@ -71,12 +71,21 @@ export function parseTryStop(error: string): TryStop | undefined {
   if (error.startsWith(MOCK_PREFIX)) {
     const parts = /^server ("(?:[^"\\]|\\.)*"), tool ("(?:[^"\\]|\\.)*"): ([\s\S]*)$/.exec(error.slice(MOCK_PREFIX.length));
     if (parts === null) return undefined;
-    const server: unknown = JSON.parse(parts[1] ?? '""');
-    const tool: unknown = JSON.parse(parts[2] ?? '""');
-    if (typeof server !== "string" || typeof tool !== "string") return undefined;
+    const server = unquoted(parts[1] ?? '""');
+    const tool = unquoted(parts[2] ?? '""');
+    if (server === undefined || tool === undefined) return undefined;
     return { kind: "mock-aborted", server, tool, reason: parts[3] ?? "" };
   }
   return undefined;
+}
+
+/** A JSON string literal's value, or `undefined` for an escape JSON refuses. */
+function unquoted(literal: string): string | undefined {
+  try {
+    return JSON.parse(literal) as string;
+  } catch {
+    return undefined;
+  }
 }
 
 /** A detail on one line, so the sentence stays one. */

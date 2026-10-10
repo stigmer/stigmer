@@ -1,0 +1,143 @@
+// Unit arms for the benchmark's quality arm as the run drives it, with no
+// stack: the registry is a stubbed fetch and the API clients a fake whose
+// organization create refuses.
+// Domain: conformance benchmark (the quality arm).
+//
+// Pinned: the run refuses a quality target whose model the registry does not
+// carry for its harness, and runs one eval for the rest; a failure to push the
+// plugin lands in the report by stage, never thrown; a plan with no quality
+// target leaves `quality` null; the summary ends with the quality table, read
+// from the result document as JSON: one row per case and target (a score that
+// is not a number reads "n/a"), then the cases not run, with their target
+// where the document names one, then the eval's failure.
+import { afterEach, describe, expect, it, vi } from "vitest";
+import type { ConformanceClients } from "../../harness/clients";
+import { JUDGE_MODEL, PARITY_MODEL, type CellPlan } from "../cells";
+import { renderQuality } from "../quality-eval";
+import type { QualityEval } from "../report";
+import { renderSummary, runBenchmark, type BenchmarkStack, type RunOptions } from "../run";
+
+const REGISTRY = {
+  models: [
+    { id: PARITY_MODEL["deep-agent"], harness: "native" },
+    { id: PARITY_MODEL.cursor, harness: "cursor" },
+  ],
+};
+
+const OPTIONS: RunOptions = {
+  reps: 1,
+  qualityReps: 3,
+  git: { head_sha: "abc1234", main_sha: "abc1234" },
+  titlingSuppressed: true,
+};
+
+/** A stack whose only reachable seam is the organization create, which refuses. */
+function refusingStack(): BenchmarkStack {
+  const clients = {
+    organizationCommand: { create: () => Promise.reject(new Error("organizations are closed")) },
+  } as unknown as ConformanceClients;
+  return { clients, serverBaseUrl: "http://stack.invalid" } as unknown as BenchmarkStack;
+}
+
+function quietIo(): { now: () => number; log: (line: string) => void; lines: string[] } {
+  const lines: string[] = [];
+  return { now: () => Date.UTC(2026, 9, 11), log: (line) => lines.push(line), lines };
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+describe("runBenchmark's quality arm", () => {
+  it("refuses a target the registry does not carry, runs one eval for the rest, and records a failed push by stage", async () => {
+    vi.stubGlobal("fetch", () => Promise.resolve(new Response(JSON.stringify(REGISTRY))));
+    const plan: CellPlan = {
+      cells: [],
+      quality: [
+        { id: "quality/deep-agent", harness: "deep-agent", modelRequested: PARITY_MODEL["deep-agent"] },
+        { id: "quality/cursor", harness: "cursor", modelRequested: "not-a-cursor-model" },
+      ],
+      refused: [],
+    };
+    const io = quietIo();
+
+    const report = await runBenchmark(refusingStack(), plan, OPTIONS, io);
+
+    expect(report.refused).toEqual([{ cell: "quality/cursor", reason: "model not in registry for harness" }]);
+    expect(report.quality).toEqual({
+      plugin: "",
+      eval_id: "",
+      targets: [`native/${PARITY_MODEL["deep-agent"]}`],
+      judge_model: JUDGE_MODEL,
+      runs: 3,
+      document: null,
+      failure: { stage: "create", message: "push the working agent's plugin: organizations are closed" },
+    });
+    expect(io.lines).toEqual([
+      "quality: one eval, quality/deep-agent, 3 tries per case",
+      "quality: create: push the working agent's plugin: organizations are closed",
+    ]);
+    expect(renderSummary(report).split("\n").slice(-7)).toEqual([
+      "",
+      `Quality: plugin eval (not created), judge ${JUDGE_MODEL}, 3 tries per case`,
+      "",
+      "Quality eval: create: push the working agent's plugin: organizations are closed",
+      "",
+      "Refused:",
+      "- quality/cursor: model not in registry for harness",
+    ]);
+  });
+
+  it("leaves quality null when no target is planned", async () => {
+    vi.stubGlobal("fetch", () => Promise.resolve(new Response(JSON.stringify(REGISTRY))));
+    const report = await runBenchmark(refusingStack(), { cells: [], quality: [], refused: [] }, OPTIONS, quietIo());
+    expect(report.quality).toBeNull();
+  });
+});
+
+describe("renderQuality", () => {
+  it("renders nothing without an eval", () => {
+    expect(renderQuality(null)).toEqual([]);
+  });
+
+  it("reads one row per case and target, the cases not run, and the failure", () => {
+    const quality: QualityEval = {
+      plugin: "working-agent",
+      eval_id: "pev_1",
+      targets: ["native/claude-sonnet-4.6"],
+      judge_model: JUDGE_MODEL,
+      runs: 2,
+      document: {
+        targets: [
+          {
+            label: "native/claude-sonnet-4.6",
+            cases: [
+              { name: "repo-question", aggregates: { score: 0.5 }, passK: true },
+              { name: "config-fix", aggregates: {}, passK: false },
+            ],
+          },
+        ],
+        notRun: [
+          { name: "refine-over-turns", target: "cursor/claude-sonnet-4-6", reason: "not run on Cursor: resumed conversations" },
+          { name: "other", reason: "not run: plugins" },
+        ],
+      },
+      failure: { stage: "execution", message: "the eval failed: out of credit" },
+    };
+    expect(renderQuality(quality)).toEqual([
+      "",
+      `Quality: plugin eval pev_1, judge ${JUDGE_MODEL}, 2 tries per case`,
+      "",
+      "| quality case | target | score | pass^k |",
+      "|---|---|---|---|",
+      "| repo-question | native/claude-sonnet-4.6 | 0.50 | yes |",
+      "| config-fix | native/claude-sonnet-4.6 | n/a | no |",
+      "",
+      "Quality cases not run:",
+      "- refine-over-turns on cursor/claude-sonnet-4-6: not run on Cursor: resumed conversations",
+      "- other: not run: plugins",
+      "",
+      "Quality eval: execution: the eval failed: out of credit",
+    ]);
+  });
+});

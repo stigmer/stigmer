@@ -45,6 +45,10 @@ describe("renderMockAnswer", () => {
       ok: false,
       error: "the fixture 'fixtures/7.json' does not exist",
     });
+    expect(renderMockAnswer("{{file:fixtures/7.json}} then {{input.id}}", { id: "1" }, read)).toEqual({
+      ok: false,
+      error: "the fixture 'fixtures/7.json' does not exist",
+    });
   });
 });
 

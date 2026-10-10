@@ -6,7 +6,10 @@
  * error; a violated `expect:` stops the try with the guard's sentence; an
  * agent mock answers through the model, reports its cost, keeps the
  * server's history, ends the run when the model does, and stops the try
- * past the shared budget; a call without the token is refused.
+ * past the shared budget; a call without the token is refused, and so is a
+ * path naming no stand-in; a case with no mocks starts no endpoint; an
+ * unmocked tool, a call before the turn binds the endpoint and a fixture the
+ * archive lacks answer as tool errors.
  */
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -35,6 +38,7 @@ const ARCHIVE = caseArchiveOf([
   { path: "evals/mocks/orders/fixtures/7.json", content: encode('{"from":"suite"}') },
   { path: "evals/fix/mocks/orders/fixtures/7.json", content: encode('{"from":"case"}') },
   { path: "evals/mocks/orders/_server.md", content: encode("---\ntype: agent\ntools: [refund]\n---\nYou refund orders.") },
+  { path: "evals/mocks/orders/receipt.md", content: encode("{{file:fixtures/missing.json}}") },
 ]);
 
 const tool = (fields: { tool: string; file: string; kind: PluginEvalMockKind; error?: boolean; expectJson?: string; abortWhen?: string }) =>
@@ -62,6 +66,7 @@ function contextOf(budget: number) {
         segment: "plugin_kit_orders",
         tools: [
           tool({ tool: "lookup_order", file: "evals/mocks/orders/lookup_order.md", kind: PluginEvalMockKind.fixed }),
+          tool({ tool: "receipt", file: "evals/mocks/orders/receipt.md", kind: PluginEvalMockKind.fixed }),
           tool({ tool: "refund", file: "evals/mocks/orders/_server.md", kind: PluginEvalMockKind.agent, abortWhen: "the order is unknown" }),
         ],
       }),
@@ -101,7 +106,7 @@ describe("the mock endpoint", () => {
     const { connect } = await started(4, noModel);
     expect(endpoint?.servers.map((s) => [s.slug, s.discoveredToolNames, s.pluginOrigin])).toEqual([
       ["plugin_kit_tracker", ["close_issue", "create_issue"], { pluginId: "plg_1", server: "tracker" }],
-      ["plugin_kit_orders", ["lookup_order", "refund"], { pluginId: "plg_1", server: "orders" }],
+      ["plugin_kit_orders", ["lookup_order", "receipt", "refund"], { pluginId: "plg_1", server: "orders" }],
     ]);
     const tracker = await connect("plugin_kit_tracker");
     const { tools } = await tracker.listTools();
@@ -167,5 +172,42 @@ describe("the mock endpoint", () => {
     const url = endpoint?.servers[0]?.url ?? "";
     const response = await fetch(url, { method: "POST", body: "{}", headers: { "content-type": "application/json" } });
     expect(response.status).toBe(401);
+  });
+
+  it("answers 404 for a path that names no stand-in", async () => {
+    await started(4, noModel);
+    const known = endpoint?.servers[0];
+    const url = (known?.url ?? "").replace("plugin_kit_tracker", "plugin_kit_unknown");
+    const response = await fetch(url, { method: "POST", body: "{}", headers: { ...known?.headers, "content-type": "application/json" } });
+    expect(response.status).toBe(404);
+    const root = await fetch(new URL("/", url), { headers: known?.headers });
+    expect(root.status).toBe(404);
+  });
+
+  it("starts nothing for a case that mocks no server", async () => {
+    const context = create(PluginEvalCaseContextSchema, { pluginId: "plg_1" });
+    expect(await startMockEndpoint({ context, archive: ARCHIVE, agentModel: noModel })).toBeUndefined();
+  });
+
+  it("answers an unmocked tool and a missing fixture as tool errors", async () => {
+    const { connect, aborts } = await started(4, noModel);
+    const orders = await connect("plugin_kit_orders");
+    const unmocked = await orders.callTool({ name: "cancel_order", arguments: {} });
+    expect([unmocked.isError, text(unmocked)]).toEqual([true, "the tool 'cancel_order' is not mocked"]);
+    const receipt = await orders.callTool({ name: "receipt", arguments: {} });
+    expect(receipt.isError).toBe(true);
+    expect(text(receipt)).toContain("missing.json");
+    expect(aborts).toEqual([]);
+    await orders.close();
+  });
+
+  it("refuses a call made before the turn binds the endpoint", async () => {
+    endpoint = await startMockEndpoint({ context: contextOf(4), archive: ARCHIVE, agentModel: noModel });
+    const server = endpoint?.servers.find((s) => s.slug === "plugin_kit_tracker");
+    const client = new Client({ name: "test", version: "1.0.0" });
+    await client.connect(new StreamableHTTPClientTransport(new URL(server?.url ?? ""), { requestInit: { headers: server?.headers } }));
+    const early = await client.callTool({ name: "create_issue", arguments: { title: "Crash" } });
+    expect([early.isError, text(early)]).toEqual([true, "the mock is not ready"]);
+    await client.close();
   });
 });

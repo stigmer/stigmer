@@ -123,6 +123,26 @@ describe("the scaffold", () => {
     expect(failureDetail(killed)).toBe(`timed out after ${SCAFFOLD_TIMEOUT_MS / 1000}s`);
     expect(failureDetail(new AgentExecError("x", "ENOENT", null, Buffer.from(""), Buffer.from("")))).toBe("could not start (ENOENT)");
   });
+
+  it("reads a failure that is not the script's own as its message", () => {
+    expect(failureDetail(new Error("disk full"))).toBe("disk full");
+    expect(failureDetail("gone")).toBe("gone");
+  });
+
+  it("refuses an archive without the suite or without the script, over a workspace not yet made", async () => {
+    const absent = join(workspace, "not-yet");
+    await expect(
+      prepareEvalCase({ context: contextOf({ scaffoldScript: "setup.sh" }), archive: caseArchiveOf([]), sessionId: "s7", primaryDir: absent }),
+    ).rejects.toThrow("the archive holds no suite at 'evals'");
+    await expect(
+      prepareEvalCase({
+        context: contextOf({ scaffoldScript: "setup.sh" }),
+        archive: caseArchiveOf([{ path: "evals/fix/prompt.md", content: encode("Fix it.") }]),
+        sessionId: "s8",
+        primaryDir: absent,
+      }),
+    ).rejects.toThrow("the archive holds no scaffold at 'evals/fix/setup.sh'");
+  });
 });
 
 describe("reference folders, history and variables", () => {
@@ -152,5 +172,21 @@ describe("reference folders, history and variables", () => {
     await expect(
       prepareEvalCase({ context: contextOf({ historyFile: "missing.jsonl" }), archive: caseArchiveOf([]), sessionId: "s6", primaryDir: workspace }),
     ).rejects.toThrow("the archive holds no history at 'evals/fix/missing.jsonl'");
+  });
+
+  it("refuses a history whose tool call is never answered", async () => {
+    const unpaired = [
+      JSON.stringify({ type: "user", message: { role: "user", content: "Look it up." } }),
+      JSON.stringify({ type: "assistant", message: { role: "assistant", content: [{ type: "tool_use", id: "t1", name: "Read", input: {} }] } }),
+      JSON.stringify({ type: "assistant", message: { role: "assistant", content: [{ type: "text", text: "Done." }] } }),
+    ].join("\n");
+    await expect(
+      prepareEvalCase({
+        context: contextOf({ historyFile: "h.jsonl" }),
+        archive: caseArchiveOf([{ path: "evals/fix/h.jsonl", content: encode(unpaired) }]),
+        sessionId: "s9",
+        primaryDir: workspace,
+      }),
+    ).rejects.toThrow("the history 'evals/fix/h.jsonl' cannot be resumed: ");
   });
 });
