@@ -7,13 +7,14 @@ package ai.stigmer.agentic.plugin.v1;
 
 /**
  * <pre>
- * Plugin is an installed Agent Plugins package: the unit of install, upgrade
- * and removal for a set of skills, MCP servers and an agent.
+ * Plugin is an installed Agent Plugins package: one thing holding skills,
+ * agents, hooks and MCP servers, installed, upgraded and removed whole.
  *
- * A plugin is what you install; an agent is what runs. Installing a plugin
- * materialises ordinary Stigmer resources in the organization, each labelled
- * with the plugin's id; the plugin owns their grouping, version and removal
- * while execution, authorization and sharing stay on the resources.
+ * Installing a plugin adds it to the organization and creates nothing else.
+ * An agent or a conversation lists the plugins it uses; a turn then gets
+ * every part of each, named under the plugin: its skills as
+ * &lt;plugin&gt;:&lt;skill&gt;, its agents as &lt;plugin&gt;:&lt;agent&gt;, its hooks, and its
+ * servers' tools.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.plugin.v1.Plugin}
@@ -488,13 +489,14 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Plugin is an installed Agent Plugins package: the unit of install, upgrade
-   * and removal for a set of skills, MCP servers and an agent.
+   * Plugin is an installed Agent Plugins package: one thing holding skills,
+   * agents, hooks and MCP servers, installed, upgraded and removed whole.
    *
-   * A plugin is what you install; an agent is what runs. Installing a plugin
-   * materialises ordinary Stigmer resources in the organization, each labelled
-   * with the plugin's id; the plugin owns their grouping, version and removal
-   * while execution, authorization and sharing stay on the resources.
+   * Installing a plugin adds it to the organization and creates nothing else.
+   * An agent or a conversation lists the plugins it uses; a turn then gets
+   * every part of each, named under the plugin: its skills as
+   * &lt;plugin&gt;:&lt;skill&gt;, its agents as &lt;plugin&gt;:&lt;agent&gt;, its hooks, and its
+   * servers' tools.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.plugin.v1.Plugin}

@@ -28,7 +28,7 @@ import "buf/validate/validate.proto";
 // SessionSpec and validating the illegal fields away. Exclusions,
 // each with its reason: a repository's token (plaintext secrets in
 // manifests leak; vaults are the vehicle), attachments
-// (one-shot uploads don't recur), mcp_server_usages/skill_refs (the
+// (one-shot uploads don't recur), plugins/skill_refs (the
 // agent blueprint owns its tool set), interaction_mode (Plan mode's
 // deliverable is a plan for a human who isn't there), cursor_mode
 // (runner-owned constant). Surface-specific constraints live in the

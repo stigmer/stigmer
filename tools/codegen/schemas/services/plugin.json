@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.agentic.plugin.v1.PushPluginRequest",
           "outputType": "Plugin",
           "outputFullType": "ai.stigmer.agentic.plugin.v1.Plugin",
-          "description": "Push a plugin archive to install or upgrade it.\n Creates the plugin if it does not exist, or installs a new version of an\n existing plugin; pushing the archive already installed changes nothing.\n The archive is a plugin folder in the Agent Plugins, Cursor, Claude Code\n or Codex layout; the response's status names what was materialised and\n what was skipped."
+          "description": "Push a plugin archive to install or upgrade it.\n Creates the plugin if it does not exist, or installs a new version of an\n existing plugin; pushing the archive already installed changes nothing.\n The archive is a plugin folder in the Agent Plugins, Cursor, Claude Code\n or Codex layout; the response's status lists what the plugin holds and\n what was skipped."
         },
         {
           "name": "CreateArtifactUploadUrl",
@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
           "outputType": "Plugin",
           "outputFullType": "ai.stigmer.agentic.plugin.v1.Plugin",
-          "description": "Update the visibility of a plugin and of every resource it materialised.\n Only modifies metadata.visibility on the plugin and its members."
+          "description": "Update the visibility of a plugin.\n Only modifies metadata.visibility."
         },
         {
           "name": "Delete",
@@ -38,7 +38,15 @@
           "inputFullType": "ai.stigmer.agentic.plugin.v1.PluginId",
           "outputType": "Plugin",
           "outputFullType": "ai.stigmer.agentic.plugin.v1.Plugin",
-          "description": "Delete a plugin and every resource it materialised.\n Refused when a resource outside the plugin still references a member;\n the error names the referencing resources."
+          "description": "Delete a plugin.\n Refused while an agent of the organization lists it; the error names the\n agents."
+        },
+        {
+          "name": "ListTools",
+          "inputType": "ListPluginToolsInput",
+          "inputFullType": "ai.stigmer.agentic.plugin.v1.ListPluginToolsInput",
+          "outputType": "ListPluginToolsOutput",
+          "outputFullType": "ai.stigmer.agentic.plugin.v1.ListPluginToolsOutput",
+          "description": "List the tools one of a plugin's MCP servers offers now, signed in as\n the caller. Nothing is stored.\n\n Errors:\n - FAILED_PRECONDITION: a key the server needs is in none of the caller's\n   vaults, or the server needs a sign-in the caller has not made\n - NOT_FOUND: the plugin, or the server in it, does not exist"
         }
       ]
     },
@@ -62,14 +70,6 @@
           "outputType": "Plugin",
           "outputFullType": "ai.stigmer.agentic.plugin.v1.Plugin",
           "description": "Get a plugin by API resource reference with version support.\n\n Version resolution (via ApiResourceReference.version field):\n - Empty/\"latest\" → Returns the installed version\n - Tag name (the manifest version, e.g. \"1.2.0\") → Resolves to the version holding this tag\n - SHA-256 digest (64 hex chars) → Returns the exact immutable version"
-        },
-        {
-          "name": "ListMembers",
-          "inputType": "PluginId",
-          "inputFullType": "ai.stigmer.agentic.plugin.v1.PluginId",
-          "outputType": "ListPluginMembersResponse",
-          "outputFullType": "ai.stigmer.agentic.plugin.v1.ListPluginMembersResponse",
-          "description": "List the resources an installed plugin materialised.\n\n Returns every skill, MCP server and agent the plugin owns, in\n materialisation order."
         },
         {
           "name": "GetArtifact",
@@ -126,7 +126,7 @@
           "type": {
             "kind": "bytes"
           },
-          "description": "The plugin package as a ZIP archive: the plugin folder with its manifest,\n skills/, mcp.json, agents/ and ai.stigmer/ at the archive root.\n\n Mutually exclusive with artifact_upload_ref (see the message comment).",
+          "description": "The plugin package as a ZIP archive: the plugin folder with its manifest,\n skills/, mcp.json, agents/ and hooks/ at the archive root.\n\n Mutually exclusive with artifact_upload_ref (see the message comment).",
           "required": false
         },
         {
@@ -153,7 +153,7 @@
               "visibility_child_orgs"
             ]
           },
-          "description": "Visibility for the plugin and every resource it materialises.\n Unspecified means the kind's default (organization).",
+          "description": "Visibility for the plugin. Unspecified means the kind's default\n (organization).",
           "required": false
         },
         {
@@ -239,7 +239,7 @@
     },
     {
       "name": "UpdateVisibilityInput",
-      "description": "Input for updating the visibility of any API resource.\n\n Used by resource-specific command controllers to change visibility.\n Each controller's updateVisibility RPC accepts this shared input\n and returns the full updated resource.\n\n Visibility transitions trigger FGA tuple management in Cloud mode. Each\n level maps to exactly one tuple shape; on a transition the tuple for the\n old level is removed and the tuple for the new level is created:\n - PRIVATE:  no visibility tuple (owner + explicit grants only)\n - ORG:      resource#viewer@organization:\u003corg\u003e#viewer\n - CHILD_ORGS: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer\n\n Not all resources support all visibility levels — the supported set is\n declared per kind via VisibilityConfig in kind_meta:\n - Blueprints (agent, skill, mcp_server, plugin):\n     PRIVATE, ORG, or CHILD_ORGS\n - Org-only kinds (vault):\n     PRIVATE or ORG (never CHILD_ORGS — tenant isolation)\n\n visibility_public is refused for every kind (INVALID_ARGUMENT naming the\n supported levels); the level is retired.",
+      "description": "Input for updating the visibility of any API resource.\n\n Used by resource-specific command controllers to change visibility.\n Each controller's updateVisibility RPC accepts this shared input\n and returns the full updated resource.\n\n Visibility transitions trigger FGA tuple management in Cloud mode. Each\n level maps to exactly one tuple shape; on a transition the tuple for the\n old level is removed and the tuple for the new level is created:\n - PRIVATE:  no visibility tuple (owner + explicit grants only)\n - ORG:      resource#viewer@organization:\u003corg\u003e#viewer\n - CHILD_ORGS: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer\n\n Not all resources support all visibility levels — the supported set is\n declared per kind via VisibilityConfig in kind_meta:\n - Blueprints (agent, skill, plugin):\n     PRIVATE, ORG, or CHILD_ORGS\n - Org-only kinds (vault):\n     PRIVATE or ORG (never CHILD_ORGS — tenant isolation)\n\n visibility_public is refused for every kind (INVALID_ARGUMENT naming the\n supported levels); the level is retired.",
       "protoType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
       "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
       "fields": [
@@ -276,8 +276,77 @@
       ]
     },
     {
+      "name": "ListPluginToolsInput",
+      "description": "ListPluginToolsInput names one MCP server of an installed plugin whose\n tools to list.",
+      "protoType": "ai.stigmer.agentic.plugin.v1.ListPluginToolsInput",
+      "protoFile": "apis/ai/stigmer/agentic/plugin/v1/io.proto",
+      "fields": [
+        {
+          "name": "PluginId",
+          "jsonName": "pluginId",
+          "protoField": "plugin_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "System-generated ID of the plugin.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Server",
+          "jsonName": "server",
+          "protoField": "server",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The server's name in the plugin (an McpServerEntry name).",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization whose runner reaches the server; the caller's My vault in\n it supplies the server's keys and sign-in.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "ListPluginToolsOutput",
+      "description": "ListPluginToolsOutput lists the tools one MCP server offers now.",
+      "protoType": "ai.stigmer.agentic.plugin.v1.ListPluginToolsOutput",
+      "protoFile": "apis/ai/stigmer/agentic/plugin/v1/io.proto",
+      "fields": [
+        {
+          "name": "Tools",
+          "jsonName": "tools",
+          "protoField": "tools",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "PluginTool"
+            }
+          },
+          "description": "The tools, in the order the server listed them.",
+          "required": false
+        }
+      ]
+    },
+    {
       "name": "ApiResourceReference",
-      "description": "Generic reference to any API resource by org and slug.\n Used across resources to reference other resources (e.g., Vault, Agent, Skill).\n Canonical format: \"org/slug\" (e.g., \"acme/web-search\", \"acme/my-agent\").\n\n Every reference in a resource's spec is checked when the resource is\n written: the target must exist, and a target in another organization\n must be one the writing organization's parent shares with its child\n organizations (visibility_child_orgs) to be referenced at all. A blueprint may not be\n more visible than the skills, MCP servers and agents it references, so\n what a person can run they can also read. A reference that fails the\n check is refused at write, never at run.",
+      "description": "Generic reference to any API resource by org and slug.\n Used across resources to reference other resources (e.g., Vault, Agent, Skill).\n Canonical format: \"org/slug\" (e.g., \"acme/web-search\", \"acme/my-agent\").\n\n Every reference in a resource's spec is checked when the resource is\n written: the target must exist, and a target in another organization\n must be one the writing organization's parent shares with its child\n organizations (visibility_child_orgs) to be referenced at all. A blueprint may not be\n more visible than the skills, plugins and agents it references, so\n what a person can run they can also read. A reference that fails the\n check is refused at write, never at run.",
       "protoType": "ai.stigmer.commons.apiresource.ApiResourceReference",
       "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
       "fields": [
@@ -318,7 +387,6 @@
               "run",
               "session",
               "skill",
-              "mcp_server",
               "agent_share",
               "agent_channel",
               "channel_app",
@@ -364,28 +432,6 @@
           "validation": {
             "pattern": "^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$"
           }
-        }
-      ]
-    },
-    {
-      "name": "ListPluginMembersResponse",
-      "description": "ListPluginMembersResponse lists the resources an installed plugin owns.",
-      "protoType": "ai.stigmer.agentic.plugin.v1.ListPluginMembersResponse",
-      "protoFile": "apis/ai/stigmer/agentic/plugin/v1/io.proto",
-      "fields": [
-        {
-          "name": "Members",
-          "jsonName": "members",
-          "protoField": "members",
-          "type": {
-            "kind": "array",
-            "elementType": {
-              "kind": "message",
-              "messageType": "PluginMember"
-            }
-          },
-          "description": "Members in materialisation order: skills, MCP servers, agents.",
-          "required": false
         }
       ]
     },
@@ -572,7 +618,7 @@
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for personal and run-scoped resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (sessions) stay creator-only."
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for personal and run-scoped resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, plugin), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (sessions) stay creator-only."
         },
         {
           "name": "visibility_public",
@@ -672,11 +718,6 @@
           "description": "Knowledge resource that provides domain-specific context to an agent."
         },
         {
-          "name": "mcp_server",
-          "number": 44,
-          "description": "External tool server connected via the Model Context Protocol."
-        },
-        {
           "name": "agent_share",
           "number": 46,
           "description": "Hosted chat link for an agent with its own audience, origins, and credentials."
@@ -704,7 +745,7 @@
         {
           "name": "plugin",
           "number": 58,
-          "description": "An installed Agent Plugins package: the archive Stigmer materialised into\n skills, MCP servers and an agent, and the handle that upgrades\n and removes them together. A plugin is what you install; an agent is what\n runs. Members are the resources labelled with the plugin's id."
+          "description": "An installed Agent Plugins package: one thing holding skills, agents,\n hooks and MCP servers, which agents and conversations list whole."
         },
         {
           "name": "vault",
@@ -735,28 +776,6 @@
           "name": "license",
           "number": 72,
           "description": "A signed grant of entitlements to a self-hosting customer for a term.\n\n Platform-level: issued by the cloud's operators and verified offline by\n the Enterprise server, so the customer is a value inside the license\n (which may or may not name a cloud organization) and the kind has no\n authorization scope and no owner. Claims are immutable once signed; a\n renewal is a new License."
-        }
-      ]
-    },
-    {
-      "name": "PluginState",
-      "description": "PluginState is the lifecycle state of a plugin install.",
-      "protoType": "ai.stigmer.agentic.plugin.v1.PluginState",
-      "values": [
-        {
-          "name": "PLUGIN_STATE_INSTALLING",
-          "number": 1,
-          "description": "The archive is stored and its members are being materialised."
-        },
-        {
-          "name": "PLUGIN_STATE_READY",
-          "number": 2,
-          "description": "Every member of the last push is materialised."
-        },
-        {
-          "name": "PLUGIN_STATE_FAILED",
-          "number": 3,
-          "description": "A member failed to materialise; `error` names it."
         }
       ]
     },
@@ -805,10 +824,10 @@
       ]
     }
   ],
-  "resourceDescription": "Plugin is an installed Agent Plugins package: the unit of install, upgrade\n and removal for a set of skills, MCP servers and an agent.\n\n A plugin is what you install; an agent is what runs. Installing a plugin\n materialises ordinary Stigmer resources in the organization, each labelled\n with the plugin's id; the plugin owns their grouping, version and removal\n while execution, authorization and sharing stay on the resources.",
+  "resourceDescription": "Plugin is an installed Agent Plugins package: one thing holding skills,\n agents, hooks and MCP servers, installed, upgraded and removed whole.\n\n Installing a plugin adds it to the organization and creates nothing else.\n An agent or a conversation lists the plugins it uses; a turn then gets\n every part of each, named under the plugin: its skills as\n \u003cplugin\u003e:\u003cskill\u003e, its agents as \u003cplugin\u003e:\u003cagent\u003e, its hooks, and its\n servers' tools.",
   "statusType": {
     "name": "PluginStatus",
-    "description": "PluginStatus is the system-managed state of an installed plugin: the\n archive identity and the receipt of the last push.",
+    "description": "PluginStatus is the system-managed state of an installed plugin: the\n archive identity and what the archive holds, read when the plugin was\n installed.",
     "protoType": "ai.stigmer.agentic.plugin.v1.PluginStatus",
     "protoFile": "apis/ai/stigmer/agentic/plugin/v1/status.proto",
     "fields": [
@@ -847,43 +866,6 @@
         "required": false
       },
       {
-        "name": "State",
-        "jsonName": "state",
-        "protoField": "state",
-        "type": {
-          "kind": "string",
-          "enumType": "ai.stigmer.agentic.plugin.v1.PluginState",
-          "enumValues": [
-            "PLUGIN_STATE_INSTALLING",
-            "PLUGIN_STATE_READY",
-            "PLUGIN_STATE_FAILED"
-          ]
-        },
-        "description": "Current lifecycle state of the install.",
-        "required": false
-      },
-      {
-        "name": "Error",
-        "jsonName": "error",
-        "protoField": "error",
-        "type": {
-          "kind": "string"
-        },
-        "description": "One sentence naming what failed when state is FAILED; empty otherwise.",
-        "required": false
-      },
-      {
-        "name": "Materialized",
-        "jsonName": "materialized",
-        "protoField": "materialized",
-        "type": {
-          "kind": "message",
-          "messageType": "PluginMaterialization"
-        },
-        "description": "What the last push materialised, by kind.",
-        "required": false
-      },
-      {
         "name": "Warnings",
         "jsonName": "warnings",
         "protoField": "warnings",
@@ -906,6 +888,65 @@
           "messageType": "HookConfig"
         },
         "description": "The plugin's tool-call hooks, as recorded at install; unset when the\n plugin carries none.",
+        "required": false
+      },
+      {
+        "name": "Skills",
+        "jsonName": "skills",
+        "protoField": "skills",
+        "type": {
+          "kind": "array",
+          "elementType": {
+            "kind": "message",
+            "messageType": "PluginSkill"
+          }
+        },
+        "description": "The plugin's skills. A turn names each as \u003cplugin\u003e:\u003cskill\u003e.",
+        "required": false
+      },
+      {
+        "name": "Agents",
+        "jsonName": "agents",
+        "protoField": "agents",
+        "type": {
+          "kind": "array",
+          "elementType": {
+            "kind": "message",
+            "messageType": "PluginAgent"
+          }
+        },
+        "description": "The plugin's agents, from its agents folder. A turn names each as\n \u003cplugin\u003e:\u003cagent\u003e.",
+        "required": false
+      },
+      {
+        "name": "McpServers",
+        "jsonName": "mcpServers",
+        "protoField": "mcp_servers",
+        "type": {
+          "kind": "array",
+          "elementType": {
+            "kind": "message",
+            "messageType": "McpServerEntry"
+          }
+        },
+        "description": "The plugin's MCP servers.",
+        "required": false
+      },
+      {
+        "name": "Env",
+        "jsonName": "env",
+        "protoField": "env",
+        "type": {
+          "kind": "map",
+          "keyType": {
+            "kind": "string"
+          },
+          "valueType": {
+            "kind": "message",
+            "messageType": "EnvVarDeclaration"
+          }
+        },
+        "description": "The variables the plugin's servers and hooks read, by name: the\n plugin's own declarations, a required secret for each name it uses but\n does not declare, and the login key of a server that signs in.",
         "required": false
       }
     ]
@@ -1060,6 +1101,57 @@
       ]
     },
     {
+      "name": "EnvVarDeclaration",
+      "description": "EnvVarDeclaration declares an environment variable a blueprint (an agent\n or an MCP server) needs, or optionally accepts.\n\n A declaration describes what the blueprint needs, never a person's or a\n deployment's value: a secret is found by its name in a vault when a run\n starts, and a plain setting that is the same wherever the blueprint runs\n may carry its value here.",
+      "protoType": "ai.stigmer.agentic.vault.v1.EnvVarDeclaration",
+      "protoFile": "apis/ai/stigmer/agentic/vault/v1/declaration.proto",
+      "fields": [
+        {
+          "name": "IsSecret",
+          "jsonName": "isSecret",
+          "protoField": "is_secret",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Whether the value is a secret, found in a vault when a run starts.",
+          "required": false
+        },
+        {
+          "name": "Description",
+          "jsonName": "description",
+          "protoField": "description",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable description shown where the value is asked for.\n Should explain what the variable is used for and where to obtain it.",
+          "required": false
+        },
+        {
+          "name": "Optional",
+          "jsonName": "optional",
+          "protoField": "optional",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Whether this variable is optional.",
+          "required": false
+        },
+        {
+          "name": "Value",
+          "jsonName": "value",
+          "protoField": "value",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The fixed value of a setting that is not a secret and is the same\n wherever the blueprint runs, such as a log level or a response format.\n\n A value that differs per deployment, team or person (a workspace name,\n a host) belongs in a vault secret of the same name instead, which takes\n this value's place when a run starts.",
+          "required": false,
+          "validation": {
+            "maxLength": 65536
+          }
+        }
+      ]
+    },
+    {
       "name": "HookConfig",
       "description": "HookConfig is a set of tool-call hooks: commands that run before or after an\n agent's tool calls and can refuse a call, ask a person first, or let it run.\n\n A plugin's hooks are recorded here at install; an agent can also carry a\n block of its own (AgentSpec.hooks). Both engines, native and Cursor, run\n hooks in Claude Code's format (PreToolUse and PostToolUse) and in Cursor's\n (preToolUse, beforeShellExecution, beforeMCPExecution, postToolUse and\n afterMCPExecution).",
       "protoType": "ai.stigmer.agentic.plugin.v1.HookConfig",
@@ -1206,39 +1298,254 @@
       ]
     },
     {
-      "name": "PluginMaterialization",
-      "description": "PluginMaterialization counts what a push produced, by kind.",
-      "protoType": "ai.stigmer.agentic.plugin.v1.PluginMaterialization",
+      "name": "HttpMcpServer",
+      "description": "HttpMcpServer is an MCP server at an address.",
+      "protoType": "ai.stigmer.agentic.plugin.v1.HttpMcpServer",
       "protoFile": "apis/ai/stigmer/agentic/plugin/v1/status.proto",
       "fields": [
+        {
+          "name": "Url",
+          "jsonName": "url",
+          "protoField": "url",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The server's URL.",
+          "required": false
+        },
+        {
+          "name": "Headers",
+          "jsonName": "headers",
+          "protoField": "headers",
+          "type": {
+            "kind": "map",
+            "keyType": {
+              "kind": "string"
+            },
+            "valueType": {
+              "kind": "string"
+            }
+          },
+          "description": "Headers sent with every request; a value may name a variable as\n ${NAME}.",
+          "required": false
+        },
+        {
+          "name": "TimeoutSeconds",
+          "jsonName": "timeoutSeconds",
+          "protoField": "timeout_seconds",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Seconds to wait for one request; zero means the runner's default.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "McpServerEntry",
+      "description": "McpServerEntry is one MCP server a plugin carries: a local program or an\n address.",
+      "protoType": "ai.stigmer.agentic.plugin.v1.McpServerEntry",
+      "protoFile": "apis/ai/stigmer/agentic/plugin/v1/status.proto",
+      "fields": [
+        {
+          "name": "Name",
+          "jsonName": "name",
+          "protoField": "name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The server's key in the plugin's MCP configuration. A turn names its\n tools mcp__plugin_\u003cplugin\u003e_\u003cserver\u003e__\u003ctool\u003e, as Claude Code does.",
+          "required": false
+        },
+        {
+          "name": "Stdio",
+          "jsonName": "stdio",
+          "protoField": "stdio",
+          "type": {
+            "kind": "message",
+            "messageType": "StdioMcpServer"
+          },
+          "description": "A local program the runner starts.",
+          "required": false,
+          "oneofGroup": "transport"
+        },
+        {
+          "name": "Http",
+          "jsonName": "http",
+          "protoField": "http",
+          "type": {
+            "kind": "message",
+            "messageType": "HttpMcpServer"
+          },
+          "description": "A server at an address.",
+          "required": false,
+          "oneofGroup": "transport"
+        },
+        {
+          "name": "Env",
+          "jsonName": "env",
+          "protoField": "env",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "The names of the variables this server reads, declared in\n PluginStatus.env.",
+          "required": false
+        },
+        {
+          "name": "SignIn",
+          "jsonName": "signIn",
+          "protoField": "sign_in",
+          "type": {
+            "kind": "message",
+            "messageType": "McpServerSignIn"
+          },
+          "description": "How a person signs in to this server; unset when it needs no sign-in or\n takes a key the plugin names.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "McpServerSignIn",
+      "description": "McpServerSignIn says how a person signs in to a server.",
+      "protoType": "ai.stigmer.agentic.plugin.v1.McpServerSignIn",
+      "protoFile": "apis/ai/stigmer/agentic/plugin/v1/status.proto",
+      "fields": [
+        {
+          "name": "OauthOnly",
+          "jsonName": "oauthOnly",
+          "protoField": "oauth_only",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Whether the server accepts only a sign-in, and no pasted key.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "PluginAgent",
+      "description": "PluginAgent is one agent a plugin carries, read from its agent file.",
+      "protoType": "ai.stigmer.agentic.plugin.v1.PluginAgent",
+      "protoFile": "apis/ai/stigmer/agentic/plugin/v1/status.proto",
+      "fields": [
+        {
+          "name": "Name",
+          "jsonName": "name",
+          "protoField": "name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The agent's name.",
+          "required": false
+        },
+        {
+          "name": "Description",
+          "jsonName": "description",
+          "protoField": "description",
+          "type": {
+            "kind": "string"
+          },
+          "description": "What the agent specializes in.",
+          "required": false
+        },
+        {
+          "name": "Instructions",
+          "jsonName": "instructions",
+          "protoField": "instructions",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The agent's system prompt: the body of its file.",
+          "required": false
+        },
+        {
+          "name": "Model",
+          "jsonName": "model",
+          "protoField": "model",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The model this agent runs; empty means the model the turn runs.",
+          "required": false
+        },
+        {
+          "name": "Tools",
+          "jsonName": "tools",
+          "protoField": "tools",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "Tools this agent may use, in Claude Code's names; empty means all of the\n turn's. Checked at install: a list that fails the agent's rules is\n dropped with a warning.",
+          "required": false
+        },
+        {
+          "name": "DisallowedTools",
+          "jsonName": "disallowedTools",
+          "protoField": "disallowed_tools",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "Tools this agent may never use, in the same names as tools.",
+          "required": false
+        },
         {
           "name": "Skills",
           "jsonName": "skills",
           "protoField": "skills",
           "type": {
-            "kind": "int32"
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
           },
-          "description": "Skills materialised.",
+          "description": "The plugin's own skills this agent uses, by name.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "PluginSkill",
+      "description": "PluginSkill is one skill a plugin carries.",
+      "protoType": "ai.stigmer.agentic.plugin.v1.PluginSkill",
+      "protoFile": "apis/ai/stigmer/agentic/plugin/v1/status.proto",
+      "fields": [
+        {
+          "name": "Name",
+          "jsonName": "name",
+          "protoField": "name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The skill's name, from its SKILL.md.",
           "required": false
         },
         {
-          "name": "McpServers",
-          "jsonName": "mcpServers",
-          "protoField": "mcp_servers",
+          "name": "Description",
+          "jsonName": "description",
+          "protoField": "description",
           "type": {
-            "kind": "int32"
+            "kind": "string"
           },
-          "description": "MCP servers materialised.",
+          "description": "What the skill is for, from its SKILL.md.",
           "required": false
         },
         {
-          "name": "Agents",
-          "jsonName": "agents",
-          "protoField": "agents",
+          "name": "Path",
+          "jsonName": "path",
+          "protoField": "path",
           "type": {
-            "kind": "int32"
+            "kind": "string"
           },
-          "description": "Agents materialised: one when the plugin carries a skill, a sub-agent or\n an agent overlay; zero for an MCP-only plugin.",
+          "description": "The skill's folder inside the plugin archive; empty when the plugin is\n one skill with SKILL.md at its root.",
           "required": false
         }
       ]
@@ -1256,7 +1563,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Stable warning kind, e.g. \"component-ignored\", \"member-adopted\",\n \"model-hint-unresolved\", \"settings-agent-not-applied\",\n \"sub-agent-name-builtin\", \"sub-agent-not-installed\",\n \"tool-list-entry-dropped\", \"version-not-taggable\".",
+          "description": "Stable warning kind, e.g. \"component-ignored\", \"model-hint-unresolved\",\n \"sub-agent-name-builtin\", \"tool-list-entry-dropped\",\n \"version-not-taggable\".",
           "required": false
         },
         {
@@ -1277,6 +1584,37 @@
             "kind": "string"
           },
           "description": "The plugin-relative path the warning points at, when it has one.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "StdioMcpServer",
+      "description": "StdioMcpServer is a local program serving MCP over its standard input and\n output.",
+      "protoType": "ai.stigmer.agentic.plugin.v1.StdioMcpServer",
+      "protoFile": "apis/ai/stigmer/agentic/plugin/v1/status.proto",
+      "fields": [
+        {
+          "name": "Command",
+          "jsonName": "command",
+          "protoField": "command",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The program to run.",
+          "required": false
+        },
+        {
+          "name": "Args",
+          "jsonName": "args",
+          "protoField": "args",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "Its arguments.",
           "required": false
         }
       ]

@@ -187,7 +187,7 @@
           "inputFullType": "ai.stigmer.agentic.vault.v1.FetchExecutionValuesInput",
           "outputType": "ExecutionValues",
           "outputFullType": "ai.stigmer.agentic.vault.v1.ExecutionValues",
-          "description": "Fetch the values of a run or of a tool connect, grouped by who declared\n them, opened from the vaults the run's source manifest names\n (RunStatus.credentials.sources) as they are now."
+          "description": "Fetch the values of a run or of a tools listing, grouped by who declared\n them, opened from the vaults the run's source manifest names\n (RunStatus.credentials.sources) as they are now."
         }
       ]
     }
@@ -195,7 +195,7 @@
   "methodTypes": [
     {
       "name": "UpdateVisibilityInput",
-      "description": "Input for updating the visibility of any API resource.\n\n Used by resource-specific command controllers to change visibility.\n Each controller's updateVisibility RPC accepts this shared input\n and returns the full updated resource.\n\n Visibility transitions trigger FGA tuple management in Cloud mode. Each\n level maps to exactly one tuple shape; on a transition the tuple for the\n old level is removed and the tuple for the new level is created:\n - PRIVATE:  no visibility tuple (owner + explicit grants only)\n - ORG:      resource#viewer@organization:\u003corg\u003e#viewer\n - CHILD_ORGS: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer\n\n Not all resources support all visibility levels — the supported set is\n declared per kind via VisibilityConfig in kind_meta:\n - Blueprints (agent, skill, mcp_server, plugin):\n     PRIVATE, ORG, or CHILD_ORGS\n - Org-only kinds (vault):\n     PRIVATE or ORG (never CHILD_ORGS — tenant isolation)\n\n visibility_public is refused for every kind (INVALID_ARGUMENT naming the\n supported levels); the level is retired.",
+      "description": "Input for updating the visibility of any API resource.\n\n Used by resource-specific command controllers to change visibility.\n Each controller's updateVisibility RPC accepts this shared input\n and returns the full updated resource.\n\n Visibility transitions trigger FGA tuple management in Cloud mode. Each\n level maps to exactly one tuple shape; on a transition the tuple for the\n old level is removed and the tuple for the new level is created:\n - PRIVATE:  no visibility tuple (owner + explicit grants only)\n - ORG:      resource#viewer@organization:\u003corg\u003e#viewer\n - CHILD_ORGS: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer\n\n Not all resources support all visibility levels — the supported set is\n declared per kind via VisibilityConfig in kind_meta:\n - Blueprints (agent, skill, plugin):\n     PRIVATE, ORG, or CHILD_ORGS\n - Org-only kinds (vault):\n     PRIVATE or ORG (never CHILD_ORGS — tenant isolation)\n\n visibility_public is refused for every kind (INVALID_ARGUMENT naming the\n supported levels); the level is retired.",
       "protoType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
       "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
       "fields": [
@@ -865,7 +865,7 @@
     },
     {
       "name": "ApiResourceReference",
-      "description": "Generic reference to any API resource by org and slug.\n Used across resources to reference other resources (e.g., Vault, Agent, Skill).\n Canonical format: \"org/slug\" (e.g., \"acme/web-search\", \"acme/my-agent\").\n\n Every reference in a resource's spec is checked when the resource is\n written: the target must exist, and a target in another organization\n must be one the writing organization's parent shares with its child\n organizations (visibility_child_orgs) to be referenced at all. A blueprint may not be\n more visible than the skills, MCP servers and agents it references, so\n what a person can run they can also read. A reference that fails the\n check is refused at write, never at run.",
+      "description": "Generic reference to any API resource by org and slug.\n Used across resources to reference other resources (e.g., Vault, Agent, Skill).\n Canonical format: \"org/slug\" (e.g., \"acme/web-search\", \"acme/my-agent\").\n\n Every reference in a resource's spec is checked when the resource is\n written: the target must exist, and a target in another organization\n must be one the writing organization's parent shares with its child\n organizations (visibility_child_orgs) to be referenced at all. A blueprint may not be\n more visible than the skills, plugins and agents it references, so\n what a person can run they can also read. A reference that fails the\n check is refused at write, never at run.",
       "protoType": "ai.stigmer.commons.apiresource.ApiResourceReference",
       "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
       "fields": [
@@ -906,7 +906,6 @@
               "run",
               "session",
               "skill",
-              "mcp_server",
               "agent_share",
               "agent_channel",
               "channel_app",
@@ -1087,7 +1086,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "The run's id, or the id of a tool connect's attempt.",
+          "description": "The run's id, or the id of a tools listing's connect attempt.",
           "required": false,
           "validation": {
             "minLength": 1
@@ -1114,7 +1113,7 @@
               "kind": "string"
             }
           },
-          "description": "The agent's own keys, for its shell and hooks: secrets by name and plain\n defaults, never a connection or a repository's token, and never a key a\n tool of the run declares.",
+          "description": "The agent's own keys, for its shell and its own hooks: secrets by name\n and plain defaults, never a connection or a repository's token, and\n never a key a tool or a plugin of the run declares.",
           "required": false
         },
         {
@@ -1144,6 +1143,20 @@
           },
           "description": "Each repository's token, for its clone and write-back only.",
           "required": false
+        },
+        {
+          "name": "Plugins",
+          "jsonName": "plugins",
+          "protoField": "plugins",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "PluginValues"
+            }
+          },
+          "description": "Each plugin's keys, for that plugin's hooks only.",
+          "required": false
         }
       ]
     }
@@ -1157,7 +1170,7 @@
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for personal and run-scoped resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (sessions) stay creator-only."
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for personal and run-scoped resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, plugin), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (sessions) stay creator-only."
         },
         {
           "name": "visibility_public",
@@ -1279,11 +1292,6 @@
           "description": "Knowledge resource that provides domain-specific context to an agent."
         },
         {
-          "name": "mcp_server",
-          "number": 44,
-          "description": "External tool server connected via the Model Context Protocol."
-        },
-        {
           "name": "agent_share",
           "number": 46,
           "description": "Hosted chat link for an agent with its own audience, origins, and credentials."
@@ -1311,7 +1319,7 @@
         {
           "name": "plugin",
           "number": 58,
-          "description": "An installed Agent Plugins package: the archive Stigmer materialised into\n skills, MCP servers and an agent, and the handle that upgrades\n and removes them together. A plugin is what you install; an agent is what\n runs. Members are the resources labelled with the plugin's id."
+          "description": "An installed Agent Plugins package: one thing holding skills, agents,\n hooks and MCP servers, which agents and conversations list whole."
         },
         {
           "name": "vault",

@@ -33,7 +33,7 @@ const (
 	// FGA tuple: resource#platform@platform:stigmer
 	AuthorizationScopeType_AUTHORIZATION_SCOPE_TYPE_PLATFORM AuthorizationScopeType = 1
 	// Links to an organization.
-	// Used for: agent, skill, vault, session, mcp_server, etc.
+	// Used for: agent, skill, vault, session, plugin, etc.
 	// FGA tuple: resource#organization@organization:<org_id>
 	AuthorizationScopeType_AUTHORIZATION_SCOPE_TYPE_ORGANIZATION AuthorizationScopeType = 2
 	// Links to a parent resource.
@@ -188,7 +188,7 @@ func (OwnerAttributionType) EnumDescriptor() ([]byte, []int) {
 // tuples (session, runs, etc.).
 //
 // Current classification:
-//   - Blueprint kinds (agent, skill, mcp_server, plugin):
+//   - Blueprint kinds (agent, skill, plugin):
 //     private, org, child_orgs
 //   - Org-only kinds (vault):
 //     private, org — child_orgs is deliberately excluded to preserve
@@ -204,7 +204,7 @@ type VisibilityConfig struct {
 	// Whether resources of this kind can be set to visibility_child_orgs.
 	// FGA tuple: resource#child_org_viewer@organization:<org>#child_org_viewer
 	//
-	// Reserved for blueprint kinds (agent, skill, mcp_server, plugin).
+	// Reserved for blueprint kinds (agent, skill, plugin).
 	// Instance kinds are deliberately excluded to preserve tenant
 	// isolation.
 	SupportsChildOrgs bool `protobuf:"varint,2,opt,name=supports_child_orgs,json=supportsChildOrgs,proto3" json:"supports_child_orgs,omitempty"`
@@ -219,7 +219,7 @@ type VisibilityConfig struct {
 	// with unspecified visibility. When false (or when no visibility config
 	// is declared), unspecified visibility defaults to visibility_private.
 	//
-	// Set on blueprint kinds (agent, skill, mcp_server): blueprints
+	// Set on blueprint kinds (agent, skill, plugin): blueprints
 	// are shared org assets, and before private visibility became real (the
 	// unconditional `viewer from organization` FGA grant was removed) every
 	// blueprint was effectively org-visible regardless of its enum value.

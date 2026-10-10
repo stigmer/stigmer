@@ -7,19 +7,20 @@ import "ai/stigmer/agentic/plugin/v1/status.proto";
 import "ai/stigmer/commons/apiresource/metadata.proto";
 import "buf/validate/validate.proto";
 
-// Plugin is an installed Agent Plugins package: the unit of install, upgrade
-// and removal for a set of skills, MCP servers and an agent.
+// Plugin is an installed Agent Plugins package: one thing holding skills,
+// agents, hooks and MCP servers, installed, upgraded and removed whole.
 //
-// A plugin is what you install; an agent is what runs. Installing a plugin
-// materialises ordinary Stigmer resources in the organization, each labelled
-// with the plugin's id; the plugin owns their grouping, version and removal
-// while execution, authorization and sharing stay on the resources.
+// Installing a plugin adds it to the organization and creates nothing else.
+// An agent or a conversation lists the plugins it uses; a turn then gets
+// every part of each, named under the plugin: its skills as
+// <plugin>:<skill>, its agents as <plugin>:<agent>, its hooks, and its
+// servers' tools.
 //
 // @internal
 // Identity is the archive: the SHA-256 of the pushed ZIP is the version
 // (status.digest, metadata.version.id) and the previous head is archived on
-// every push, the skill discipline. Membership is derived on read from the
-// stigmer.ai/plugin label on the children and is never stored here.
+// every push, the skill discipline. What the archive holds is read once, at
+// push, into status.
 message Plugin {
   // API version for this resource type.
   string api_version = 1 [(buf.validate.field).string.const = 'agentic.stigmer.ai/v1'];

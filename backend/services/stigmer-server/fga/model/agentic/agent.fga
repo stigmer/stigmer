@@ -14,7 +14,7 @@ module agentic
 # - CHILD_ORGS: agent#child_org_viewer@organization:<org>#child_org_viewer
 #             — PLUS the org tuple (the "org floor", see below).
 # - Owners (creators) and org admins can edit/delete (the GitHub
-#   org-admin model — mirrors mcp_server).
+#   org-admin model — mirrors skill and plugin).
 # - Editors (a per-resource grant) edit, run and schedule it; they never
 #   delete it or change who reaches it (visibility, shares, channels, grants).
 #

@@ -6,7 +6,6 @@ import (
 	"context"
 
 	agentv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agent/v1"
-	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/mcpserver/v1"
 	pluginv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/plugin/v1"
 	runv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/run/v1"
 	sessionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1"
@@ -132,7 +131,6 @@ type AgentInput struct {
 	Description     string
 	IconUrl         string
 	Instructions    string
-	McpServerUsages []*McpServerUsageInput
 	SkillRefs       []ResourceRef
 	SubAgents       []*SubAgentInput
 	Env             map[string]*EnvVarDeclarationInput
@@ -141,11 +139,7 @@ type AgentInput struct {
 	Hooks           []*HookSourceInput
 	RunConfig       *RunConfigInput
 	Harness         sessionv1.Harness
-}
-
-// McpServerUsageInput is the SDK input type for McpServerUsage.
-type McpServerUsageInput struct {
-	McpServerRef ResourceRef
+	Plugins         []ResourceRef
 }
 
 // SubAgentInput is the SDK input type for SubAgent.
@@ -169,7 +163,6 @@ type EnvVarDeclarationInput struct {
 
 // HookSourceInput is the SDK input type for HookSource.
 type HookSourceInput struct {
-	Plugin ResourceRef
 	Inline *HookConfigInput
 }
 
@@ -227,13 +220,6 @@ func (i *AgentInput) toProto() (*agentv1.Agent, error) {
 	resource.Spec.Description = i.Description
 	resource.Spec.IconUrl = i.IconUrl
 	resource.Spec.Instructions = i.Instructions
-	for idx, item := range i.McpServerUsages {
-		v, err := item.toProto()
-		if err != nil {
-			return nil, indexErr("McpServerUsages", idx, err)
-		}
-		resource.Spec.McpServerUsages = append(resource.Spec.McpServerUsages, v)
-	}
 	for _, r := range i.SkillRefs {
 		ref := r.toProto()
 		ref.Kind = apiresourcekind.ApiResourceKind_skill
@@ -273,17 +259,12 @@ func (i *AgentInput) toProto() (*agentv1.Agent, error) {
 		resource.Spec.RunConfig = v
 	}
 	resource.Spec.Harness = i.Harness
-	return resource, nil
-}
-
-func (i *McpServerUsageInput) toProto() (*mcpserverv1.McpServerUsage, error) {
-	p := &mcpserverv1.McpServerUsage{}
-	if i.McpServerRef.Org != "" || i.McpServerRef.Slug != "" {
-		ref := i.McpServerRef.toProto()
-		ref.Kind = apiresourcekind.ApiResourceKind_mcp_server
-		p.McpServerRef = ref
+	for _, r := range i.Plugins {
+		ref := r.toProto()
+		ref.Kind = apiresourcekind.ApiResourceKind_plugin
+		resource.Spec.Plugins = append(resource.Spec.Plugins, ref)
 	}
-	return p, nil
+	return resource, nil
 }
 
 func (i *SubAgentInput) toProto() (*agentv1.SubAgent, error) {
@@ -324,11 +305,6 @@ func (i *HookSourceInput) toProto() (*agentv1.HookSource, error) {
 			m.Groups = append(m.Groups, v)
 		}
 		p.Source = &agentv1.HookSource_Inline{Inline: m}
-	}
-	if i.Plugin.Org != "" || i.Plugin.Slug != "" {
-		ref := i.Plugin.toProto()
-		ref.Kind = apiresourcekind.ApiResourceKind_plugin
-		p.Source = &agentv1.HookSource_Plugin{Plugin: ref}
 	}
 	return p, nil
 }
@@ -386,9 +362,6 @@ func AgentInputFromProto(p *agentv1.Agent) *AgentInput {
 		input.Description = s.GetDescription()
 		input.IconUrl = s.GetIconUrl()
 		input.Instructions = s.GetInstructions()
-		for _, item := range s.GetMcpServerUsages() {
-			input.McpServerUsages = append(input.McpServerUsages, mcpServerUsageInputFromProto(item))
-		}
 		for _, r := range s.GetSkillRefs() {
 			input.SkillRefs = append(input.SkillRefs, resourceRefFromProto(r))
 		}
@@ -408,16 +381,10 @@ func AgentInputFromProto(p *agentv1.Agent) *AgentInput {
 		}
 		input.RunConfig = runConfigInputFromProto(s.GetRunConfig())
 		input.Harness = s.GetHarness()
+		for _, r := range s.GetPlugins() {
+			input.Plugins = append(input.Plugins, resourceRefFromProto(r))
+		}
 	}
-	return input
-}
-
-func mcpServerUsageInputFromProto(p *mcpserverv1.McpServerUsage) *McpServerUsageInput {
-	if p == nil {
-		return nil
-	}
-	input := &McpServerUsageInput{}
-	input.McpServerRef = resourceRefFromProto(p.GetMcpServerRef())
 	return input
 }
 
@@ -455,7 +422,6 @@ func hookSourceInputFromProto(p *agentv1.HookSource) *HookSourceInput {
 		return nil
 	}
 	input := &HookSourceInput{}
-	input.Plugin = resourceRefFromProto(p.GetPlugin())
 	input.Inline = hookConfigInputFromProto(p.GetInline())
 	return input
 }

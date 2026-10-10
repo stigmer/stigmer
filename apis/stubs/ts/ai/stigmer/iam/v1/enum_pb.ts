@@ -9,7 +9,7 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv1";
  * Describes the file ai/stigmer/iam/v1/enum.proto.
  */
 export const file_ai_stigmer_iam_v1_enum: GenFile = /*@__PURE__*/
-  fileDesc("ChxhaS9zdGlnbWVyL2lhbS92MS9lbnVtLnByb3RvEhFhaS5zdGlnbWVyLmlhbS52MSqqCgoNSWFtUGVybWlzc2lvbhIPCgt1bnNwZWNpZmllZBAAEgwKCGNhbl92aWV3EAESDAoIY2FuX2VkaXQQAhIOCgpjYW5fZGVsZXRlEAMSFAoQY2FuX2dyYW50X2FjY2VzcxAEEhMKD2Nhbl92aWV3X2FjY2VzcxAFEhQKEGNhbl9hc3NpZ25fcm9sZXMQLxIXChNjYW5fbWFuYWdlX2F1ZGllbmNlEDASFAoQY2FuX2NyZWF0ZV9hZ2VudBAGEhYKEmNhbl9jcmVhdGVfc2Vzc2lvbhAIEhQKEGNhbl9jcmVhdGVfc2tpbGwQCRISCg5jYW5fY3JlYXRlX2lkcBALEh8KG2Nhbl9jcmVhdGVfaWRlbnRpdHlfYWNjb3VudBAVEhgKFGNhbl9jcmVhdGVfb2F1dGhfYXBwEBcSHgoaY2FuX2NyZWF0ZV9wbGF0Zm9ybV9jbGllbnQQGBIVChFjYW5fY3JlYXRlX3J1bl9pbhANEg8KC2Nhbl9leGVjdXRlEA8SFQoRY2FuX2Jvb3RzdHJhcF9pYW0QERIPCgtjYW5fY29ubmVjdBAWEhQKEGNhbl92aWV3X2JpbGxpbmcQGxIWChJjYW5fbWFuYWdlX2JpbGxpbmcQHBIbChdjYW5fZXhlY3V0ZV9iaWxsaW5nX29wcxAdEhoKFmNhbl9jcmVhdGVfYWdlbnRfc2hhcmUQHhIaChZjYW5fY3JlYXRlX2NoYW5uZWxfYXBwEB8SHAoYY2FuX21hbmFnZV9tb2RlbF9wcmljaW5nECASHgoaY2FuX21hbmFnZV9jdXJzb3JfYWNjb3VudHMQIxITCg9jYW5fcGFydGljaXBhdGUQJBIdChljYW5fd3JpdGVfcmVzZXJ2ZWRfbGFiZWxzECUSHgoaY2FuX3ZpZXdfcHJvdmlkZXJfc3RhbmRpbmcQJhIVChFjYW5fY3JlYXRlX3BsdWdpbhAoEhQKEGNhbl9tYW5hZ2VfcGxhbnMQKRIVChFjYW5faXNzdWVfbGljZW5zZRAqEhkKFWNhbl9jcmVhdGVfbWNwX3NlcnZlchArEhMKD2Nhbl9jcmVhdGVfdGVhbRAtEhYKEmNhbl9tYW5hZ2VfY3JlZGl0cxAuEhkKFWNhbl9tYW5hZ2VfY2hpbGRfb3JncxAxEhUKEWNhbl92aWV3X3NldHRpbmdzEDISFAoQY2FuX2NyZWF0ZV92YXVsdBAzEhsKF2Nhbl9jcmVhdGVfc2hhcmVkX3ZhdWx0EDQSCwoHY2FuX3VzZRA1IgQIDhAOIgQIBxAHIgQIDBAMIgQIEBAQIgQIEhASIgQIFBAUIgQIGRAZIgQIGhAaIgQIIRAhIgQIIhAiIgQIChAKIgQIJxAnIgQILBAsKhNjYW5fY3JlYXRlX2luc3RhbmNlKhNjYW5fY3JlYXRlX3dvcmtmbG93KhZjYW5fY3JlYXRlX2Vudmlyb25tZW50KhBjYW5fcmVhZF9zZWNyZXRzKhxjYW5fbWFuYWdlX2lkZW50aXR5X2FjY291bnRzKhRsb2dpbl90b19iYWNrX29mZmljZSoRY2FuX2NyZWF0ZV9ydW5uZXIqEmNhbl9kZWxldGVfc2Vzc2lvbioPY2FuX3VzZV9yZWNvcmRzKhRjYW5fY3JlYXRlX2RhdGFzdG9yZSoSY2FuX2NyZWF0ZV9wcm9qZWN0KhljYW5fc2V0X3B1YmxpY192aXNpYmlsaXR5KhljYW5fY3JlYXRlX2FnZW50X2luc3RhbmNlKngKB0lhbVJvbGUSGAoUaWFtX3JvbGVfdW5zcGVjaWZpZWQQABIJCgVvd25lchABEgkKBWFkbWluEAISCgoGbWVtYmVyEAMSCgoGdmlld2VyEAQSDwoLcGFydGljaXBhbnQQBRIKCgZlZGl0b3IQBhIICgR1c2VyEAdiBnByb3RvMw");
+  fileDesc("ChxhaS9zdGlnbWVyL2lhbS92MS9lbnVtLnByb3RvEhFhaS5zdGlnbWVyLmlhbS52MSquCgoNSWFtUGVybWlzc2lvbhIPCgt1bnNwZWNpZmllZBAAEgwKCGNhbl92aWV3EAESDAoIY2FuX2VkaXQQAhIOCgpjYW5fZGVsZXRlEAMSFAoQY2FuX2dyYW50X2FjY2VzcxAEEhMKD2Nhbl92aWV3X2FjY2VzcxAFEhQKEGNhbl9hc3NpZ25fcm9sZXMQLxIXChNjYW5fbWFuYWdlX2F1ZGllbmNlEDASFAoQY2FuX2NyZWF0ZV9hZ2VudBAGEhYKEmNhbl9jcmVhdGVfc2Vzc2lvbhAIEhQKEGNhbl9jcmVhdGVfc2tpbGwQCRISCg5jYW5fY3JlYXRlX2lkcBALEh8KG2Nhbl9jcmVhdGVfaWRlbnRpdHlfYWNjb3VudBAVEhgKFGNhbl9jcmVhdGVfb2F1dGhfYXBwEBcSHgoaY2FuX2NyZWF0ZV9wbGF0Zm9ybV9jbGllbnQQGBIVChFjYW5fY3JlYXRlX3J1bl9pbhANEg8KC2Nhbl9leGVjdXRlEA8SFQoRY2FuX2Jvb3RzdHJhcF9pYW0QERIUChBjYW5fdmlld19iaWxsaW5nEBsSFgoSY2FuX21hbmFnZV9iaWxsaW5nEBwSGwoXY2FuX2V4ZWN1dGVfYmlsbGluZ19vcHMQHRIaChZjYW5fY3JlYXRlX2FnZW50X3NoYXJlEB4SGgoWY2FuX2NyZWF0ZV9jaGFubmVsX2FwcBAfEhwKGGNhbl9tYW5hZ2VfbW9kZWxfcHJpY2luZxAgEh4KGmNhbl9tYW5hZ2VfY3Vyc29yX2FjY291bnRzECMSEwoPY2FuX3BhcnRpY2lwYXRlECQSHQoZY2FuX3dyaXRlX3Jlc2VydmVkX2xhYmVscxAlEh4KGmNhbl92aWV3X3Byb3ZpZGVyX3N0YW5kaW5nECYSFQoRY2FuX2NyZWF0ZV9wbHVnaW4QKBIUChBjYW5fbWFuYWdlX3BsYW5zECkSFQoRY2FuX2lzc3VlX2xpY2Vuc2UQKhITCg9jYW5fY3JlYXRlX3RlYW0QLRIWChJjYW5fbWFuYWdlX2NyZWRpdHMQLhIZChVjYW5fbWFuYWdlX2NoaWxkX29yZ3MQMRIVChFjYW5fdmlld19zZXR0aW5ncxAyEhQKEGNhbl9jcmVhdGVfdmF1bHQQMxIbChdjYW5fY3JlYXRlX3NoYXJlZF92YXVsdBA0EgsKB2Nhbl91c2UQNSIECA4QDiIECAcQByIECAwQDCIECBAQECIECBYQFiIECBIQEiIECBQQFCIECBkQGSIECBoQGiIECCEQISIECCIQIiIECAoQCiIECCcQJyIECCsQKyIECCwQLCoTY2FuX2NyZWF0ZV9pbnN0YW5jZSoTY2FuX2NyZWF0ZV93b3JrZmxvdyoWY2FuX2NyZWF0ZV9lbnZpcm9ubWVudCoQY2FuX3JlYWRfc2VjcmV0cyoLY2FuX2Nvbm5lY3QqHGNhbl9tYW5hZ2VfaWRlbnRpdHlfYWNjb3VudHMqFGxvZ2luX3RvX2JhY2tfb2ZmaWNlKhFjYW5fY3JlYXRlX3J1bm5lcioSY2FuX2RlbGV0ZV9zZXNzaW9uKg9jYW5fdXNlX3JlY29yZHMqFGNhbl9jcmVhdGVfZGF0YXN0b3JlKhJjYW5fY3JlYXRlX3Byb2plY3QqGWNhbl9zZXRfcHVibGljX3Zpc2liaWxpdHkqFWNhbl9jcmVhdGVfbWNwX3NlcnZlcioZY2FuX2NyZWF0ZV9hZ2VudF9pbnN0YW5jZSp4CgdJYW1Sb2xlEhgKFGlhbV9yb2xlX3Vuc3BlY2lmaWVkEAASCQoFb3duZXIQARIJCgVhZG1pbhACEgoKBm1lbWJlchADEgoKBnZpZXdlchAEEg8KC3BhcnRpY2lwYW50EAUSCgoGZWRpdG9yEAYSCAoEdXNlchAHYgZwcm90bzM");
 
 /**
  * IamPermission defines the permissions checked by the authorization
@@ -135,13 +135,6 @@ export enum IamPermission {
   can_bootstrap_iam = 17,
 
   /**
-   * MCP server connect permission.
-   *
-   * @generated from enum value: can_connect = 22;
-   */
-  can_connect = 22,
-
-  /**
    * Billing permissions (org-scoped).
    *
    * @generated from enum value: can_view_billing = 27;
@@ -234,11 +227,8 @@ export enum IamPermission {
 
   /**
    * Organization-level permission to install a plugin: push an Agent
-   * Plugins archive that the server materialises into skills, MCP servers
-   * and an agent in the organization. Distinct from the child
-   * kinds' create permissions, which the materialisation also evaluates for
-   * the installing caller: who may bring a package into an organization is a
-   * policy an administrator sets on its own.
+   * Plugins archive into the organization. Who may bring a package into an
+   * organization is a policy an administrator sets on its own.
    *
    * @generated from enum value: can_create_plugin = 40;
    */
@@ -265,14 +255,6 @@ export enum IamPermission {
    * @generated from enum value: can_issue_license = 42;
    */
   can_issue_license = 42,
-
-  /**
-   * Organization-level permission to create an MCP server in the
-   * organization.
-   *
-   * @generated from enum value: can_create_mcp_server = 43;
-   */
-  can_create_mcp_server = 43,
 
   /**
    * Organization-level permission to create a team in the organization.
@@ -395,7 +377,7 @@ export enum IamRole {
   participant = 5,
 
   /**
-   * Editor of a blueprint (an agent or an MCP server): may change
+   * Editor of a blueprint (an agent): may change
    * its definition and do whatever a viewer can, and may not delete it,
    * change its visibility, publish it on a share link or a channel, or decide
    * who else has access.

@@ -27,7 +27,6 @@ export const KIND_TIERS: ReadonlyMap<ApiResourceKind, ResourceTier> = new Map([
   [ApiResourceKind.run, ResourceTier.open_source],
   [ApiResourceKind.session, ResourceTier.open_source],
   [ApiResourceKind.skill, ResourceTier.open_source],
-  [ApiResourceKind.mcp_server, ResourceTier.open_source],
   [ApiResourceKind.agent_share, ResourceTier.open_source],
   [ApiResourceKind.agent_channel, ResourceTier.open_source],
   [ApiResourceKind.channel_app, ResourceTier.open_source],

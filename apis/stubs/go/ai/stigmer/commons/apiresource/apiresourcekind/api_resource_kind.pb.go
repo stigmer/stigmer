@@ -235,8 +235,6 @@ const (
 	ApiResourceKind_session ApiResourceKind = 42
 	// Knowledge resource that provides domain-specific context to an agent.
 	ApiResourceKind_skill ApiResourceKind = 43
-	// External tool server connected via the Model Context Protocol.
-	ApiResourceKind_mcp_server ApiResourceKind = 44
 	// Hosted chat link for an agent with its own audience, origins, and credentials.
 	ApiResourceKind_agent_share ApiResourceKind = 46
 	// Connection binding an agent to an external messaging platform workspace.
@@ -248,10 +246,8 @@ const (
 	ApiResourceKind_schedule ApiResourceKind = 56
 	// Agent-proposed, user-confirmed fact the platform remembers about a person.
 	ApiResourceKind_memory ApiResourceKind = 57
-	// An installed Agent Plugins package: the archive Stigmer materialised into
-	// skills, MCP servers and an agent, and the handle that upgrades
-	// and removes them together. A plugin is what you install; an agent is what
-	// runs. Members are the resources labelled with the plugin's id.
+	// An installed Agent Plugins package: one thing holding skills, agents,
+	// hooks and MCP servers, which agents and conversations list whole.
 	ApiResourceKind_plugin ApiResourceKind = 58
 	// A person's or an organization's box of logins (matched by a tool's
 	// address) and secrets (matched by name) that runs use.
@@ -303,7 +299,6 @@ var (
 		41: "run",
 		42: "session",
 		43: "skill",
-		44: "mcp_server",
 		46: "agent_share",
 		47: "agent_channel",
 		48: "channel_app",
@@ -334,7 +329,6 @@ var (
 		"run":                       41,
 		"session":                   42,
 		"skill":                     43,
-		"mcp_server":                44,
 		"agent_share":               46,
 		"agent_channel":             47,
 		"channel_app":               48,
@@ -553,7 +547,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"enterprise\x10\x03*A\n" +
 	"\x0fPlatformIdValue\x12!\n" +
 	"\x1dplatform_id_value_unspecified\x10\x00\x12\v\n" +
-	"\astigmer\x10\x01*\xec\x11\n" +
+	"\astigmer\x10\x01*\xaf\x11\n" +
 	"\x0fApiResourceKind\x12\x1d\n" +
 	"\x19api_resource_kind_unknown\x10\x00\x12[\n" +
 	"\x14api_resource_version\x10\x01\x1aA\xaa\xff+=\b\x01\x10\x01\x1a\x12ApiResourceVersion\"\x14API Resource Version*\x03ver8\x01@\x02J\x04\b\x05\x10\x04\x12?\n" +
@@ -579,10 +573,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\asession\x12\asession\x1a\n" +
 	"session_idR\x03aex\x128\n" +
 	"\asession\x10*\x1a+\xaa\xff+'\b\x01\x10\x01\x1a\aSession\"\aSession*\x03ses@\x01J\b\b\x02\x10\x01:\x02\x01\x04\x12?\n" +
-	"\x05skill\x10+\x1a4\xaa\xff+0\b\x01\x10\x01\x1a\x05Skill\"\x05Skill*\x03skl0\x01@\x01J\x13\b\x02\x10\x01*\x06\x10\x01\x18\x01 \x01:\x02\x01\x04B\x01\x04\x12M\n" +
-	"\n" +
-	"mcp_server\x10,\x1a=\xaa\xff+9\b\x01\x10\x01\x1a\tMcpServer\"\n" +
-	"MCP Server*\x03mcp@\x01J\x15\b\x02\x10\x01*\x06\x10\x01\x18\x01 \x01:\x03\x01\x06\x04B\x02\x06\x04\x12E\n" +
+	"\x05skill\x10+\x1a4\xaa\xff+0\b\x01\x10\x01\x1a\x05Skill\"\x05Skill*\x03skl0\x01@\x01J\x13\b\x02\x10\x01*\x06\x10\x01\x18\x01 \x01:\x02\x01\x04B\x01\x04\x12E\n" +
 	"\vagent_share\x10.\x1a4\xaa\xff+0\b\x01\x10\x01\x1a\n" +
 	"AgentShare\"\vAgent Share*\x03ash8\x01@\x01J\b\b\x02\x10\x01:\x02\x01\x04\x12P\n" +
 	"\ragent_channel\x10/\x1a=\xaa\xff+9\b\x01\x10\x01\x1a\fAgentChannel\"\rAgent Channel*\x03ach8\x01@\x01J\r\b\x02\x10\x01:\x03\x01\x04\x05B\x02\x04\x05\x12F\n" +
@@ -601,7 +592,8 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\x05agent\x12\x05agent\x1a\bagent_id\x12-\n" +
 	"\x04plan\x10F\x1a#\xaa\xff+\x1f\b\x04\x10\x01\x1a\x04Plan\"\x04Plan*\x03pln8\x01@\x02J\x04\b\x05\x10\x04\x12E\n" +
 	"\fsubscription\x10G\x1a3\xaa\xff+/\b\x04\x10\x01\x1a\fSubscription\"\fSubscription*\x03sub8\x01@\x02J\x04\b\x02\x10\x04\x126\n" +
-	"\alicense\x10H\x1a)\xaa\xff+%\b\x04\x10\x01\x1a\aLicense\"\aLicense*\x03lic8\x01@\x02J\x04\b\x05\x10\x04\"\x04\b-\x10-\"\x04\b1\x101\"\x04\b2\x102\"\x04\b3\x103\"\x04\b4\x104\"\x04\b5\x105\"\x04\b6\x106\"\x04\b7\x107\"\x04\b<\x10<*\x0eagent_instance*\tdatastore*\bworkflow*\x11workflow_instance*\fworkflow_run*\venvironment*\x11execution_context*\bartifact*\aproject:\x85\x01\n" +
+	"\alicense\x10H\x1a)\xaa\xff+%\b\x04\x10\x01\x1a\aLicense\"\aLicense*\x03lic8\x01@\x02J\x04\b\x05\x10\x04\"\x04\b,\x10,\"\x04\b-\x10-\"\x04\b1\x101\"\x04\b2\x102\"\x04\b3\x103\"\x04\b4\x104\"\x04\b5\x105\"\x04\b6\x106\"\x04\b7\x107\"\x04\b<\x10<*\n" +
+	"mcp_server*\x0eagent_instance*\tdatastore*\bworkflow*\x11workflow_instance*\fworkflow_run*\venvironment*\x11execution_context*\bartifact*\aproject:\x85\x01\n" +
 	"\tkind_meta\x12!.google.protobuf.EnumValueOptions\x18\xf5\xbf\x05 \x01(\v2C.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindMetaR\bkindMetaB\x81\x03\n" +
 	"2com.ai.stigmer.commons.apiresource.apiresourcekindB\x14ApiResourceKindProtoP\x01ZWgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind\xa2\x02\x05ASCAA\xaa\x02.Ai.Stigmer.Commons.Apiresource.Apiresourcekind\xca\x02.Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\xe2\x02:Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\\GPBMetadata\xea\x022Ai::Stigmer::Commons::Apiresource::Apiresourcekindb\x06proto3"
 

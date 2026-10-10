@@ -3,17 +3,18 @@ syntax = "proto3";
 package ai.stigmer.agentic.plugin.v1;
 
 import "ai/stigmer/agentic/plugin/v1/hooks.proto";
+import "ai/stigmer/agentic/vault/v1/declaration.proto";
 import "ai/stigmer/commons/apiresource/status.proto";
 import "buf/validate/validate.proto";
 
 // PluginStatus is the system-managed state of an installed plugin: the
-// archive identity and the receipt of the last push.
+// archive identity and what the archive holds, read when the plugin was
+// installed.
 //
 // @internal
-// The counts and warnings describe what the LAST push produced; they are
-// not a membership claim. Membership is derived on read from the
-// stigmer.ai/plugin label on the children (listMembers), so nothing here
-// can drift from the store.
+// Install writes the plugin and nothing else, so everything here describes
+// the archive at status.digest. A run reads the lists at turn start, from the
+// version its reference names or the installed one.
 message PluginStatus {
   // Standard audit information tracking creation and modification.
   //
@@ -25,27 +26,18 @@ message PluginStatus {
   //
   // @internal
   // Calculated by the server from the pushed ZIP bytes; equals
-  // metadata.version.id. Every child carries it as the
-  // stigmer.ai/plugin-version label, the per-child convergence marker a
-  // re-push compares against before deciding it has nothing to do.
+  // metadata.version.id. A re-push of the same digest changes nothing.
   string digest = 1 [(buf.validate.field).string.pattern = "^$|^[a-f0-9]{64}$"];
 
   // Storage key of the plugin archive.
   string artifact_storage_key = 2;
 
-  // Current lifecycle state of the install.
-  PluginState state = 3;
-
-  // One sentence naming what failed when state is FAILED; empty otherwise.
-  //
-  // @internal
-  // The child's own refusal wrapped as "failed to materialize <kind>
-  // '<slug>' from plugin '<slug>': <cause>". A retry of the same archive
-  // re-materialises; apply and push are idempotent.
-  string error = 4;
-
-  // What the last push materialised, by kind.
-  PluginMaterialization materialized = 5;
+  // Fields 3 to 5 held the install's lifecycle state, the failure naming the
+  // member that did not install, and the per-kind counts, while install
+  // created a resource per skill, server and composed agent. Install now
+  // stores the plugin alone in one write, so none of them can be set.
+  reserved 3, 4, 5;
+  reserved "state", "error", "materialized";
 
   // Warnings the last push recorded: components Stigmer does not carry,
   // model hints it did not apply, names that shadow built-ins.
@@ -55,58 +47,140 @@ message PluginStatus {
   // plugin carries none.
   //
   // @internal
-  // Derived at push from the archive, beside materialized and warnings, so
-  // it is versioned with the archive like the rest of this status. The hooks
-  // the plugin carries but Stigmer does not read are named in warnings. An
-  // agent runs them when its AgentSpec.hooks references the plugin; install
-  // adds that reference to the agent it composes, in either format.
+  // Derived at push from the archive, beside the lists below, so it is
+  // versioned with the archive like the rest of this status. The hooks the
+  // plugin carries but Stigmer does not read are named in warnings. A turn
+  // runs them when its agent or its conversation lists the plugin.
   HookConfig hooks = 7;
-}
 
-// PluginState is the lifecycle state of a plugin install.
-enum PluginState {
-  // Unspecified state (default/invalid).
-  PLUGIN_STATE_UNSPECIFIED = 0;
+  // The plugin's skills. A turn names each as <plugin>:<skill>.
+  repeated PluginSkill skills = 9;
 
-  // The archive is stored and its members are being materialised.
+  // The plugin's agents, from its agents folder. A turn names each as
+  // <plugin>:<agent>.
+  repeated PluginAgent agents = 10;
+
+  // The plugin's MCP servers.
+  repeated McpServerEntry mcp_servers = 11;
+
+  // The variables the plugin's servers and hooks read, by name: the
+  // plugin's own declarations, a required secret for each name it uses but
+  // does not declare, and the login key of a server that signs in.
   //
   // @internal
-  // Persisted before the first child write so a crash mid-install leaves
-  // a head that says so; the next push of the same archive converges.
-  PLUGIN_STATE_INSTALLING = 1;
-
-  // Every member of the last push is materialised.
-  PLUGIN_STATE_READY = 2;
-
-  // A member failed to materialise; `error` names it.
-  PLUGIN_STATE_FAILED = 3;
+  // The platform's caller-identity keys are declared optional here: the
+  // runner fills them, so no vault is asked for them.
+  map<string, ai.stigmer.agentic.vault.v1.EnvVarDeclaration> env = 12;
 }
 
-// PluginMaterialization counts what a push produced, by kind.
-message PluginMaterialization {
-  // Skills materialised.
-  int32 skills = 1;
+// PluginSkill is one skill a plugin carries.
+message PluginSkill {
+  // The skill's name, from its SKILL.md.
+  string name = 1;
 
-  // MCP servers materialised.
-  int32 mcp_servers = 2;
+  // What the skill is for, from its SKILL.md.
+  string description = 2;
 
-  // Agents materialised: one when the plugin carries a skill, a sub-agent or
-  // an agent overlay; zero for an MCP-only plugin.
-  int32 agents = 3;
+  // The skill's folder inside the plugin archive; empty when the plugin is
+  // one skill with SKILL.md at its root.
+  string path = 3;
+}
 
-  // Field 4 counted the workflows a push materialised from the plugin's
-  // Stigmer overlay until the workflow product was removed platform-wide.
-  // Reserved so the number and name are never reused for a different count.
-  reserved 4;
-  reserved "workflows";
+// PluginAgent is one agent a plugin carries, read from its agent file.
+message PluginAgent {
+  // The agent's name.
+  string name = 1;
+
+  // What the agent specializes in.
+  string description = 2;
+
+  // The agent's system prompt: the body of its file.
+  string instructions = 3;
+
+  // The model this agent runs; empty means the model the turn runs.
+  //
+  // @internal
+  // Resolved at install from the file's model hint against the model
+  // registry; a hint that resolves to no model leaves this empty with a
+  // warning.
+  string model = 4;
+
+  // Tools this agent may use, in Claude Code's names; empty means all of the
+  // turn's. Checked at install: a list that fails the agent's rules is
+  // dropped with a warning.
+  repeated string tools = 5;
+
+  // Tools this agent may never use, in the same names as tools.
+  repeated string disallowed_tools = 6;
+
+  // The plugin's own skills this agent uses, by name.
+  repeated string skills = 7;
+}
+
+// McpServerEntry is one MCP server a plugin carries: a local program or an
+// address.
+message McpServerEntry {
+  // The server's key in the plugin's MCP configuration. A turn names its
+  // tools mcp__plugin_<plugin>_<server>__<tool>, as Claude Code does.
+  string name = 1;
+
+  // How the server is reached.
+  oneof transport {
+    // A local program the runner starts.
+    StdioMcpServer stdio = 2;
+
+    // A server at an address.
+    HttpMcpServer http = 3;
+  }
+
+  // The names of the variables this server reads, declared in
+  // PluginStatus.env.
+  repeated string env = 4;
+
+  // How a person signs in to this server; unset when it needs no sign-in or
+  // takes a key the plugin names.
+  McpServerSignIn sign_in = 5;
+}
+
+// StdioMcpServer is a local program serving MCP over its standard input and
+// output.
+message StdioMcpServer {
+  // The program to run.
+  string command = 1;
+
+  // Its arguments.
+  repeated string args = 2;
+}
+
+// HttpMcpServer is an MCP server at an address.
+message HttpMcpServer {
+  // The server's URL.
+  string url = 1;
+
+  // Headers sent with every request; a value may name a variable as
+  // ${NAME}.
+  map<string, string> headers = 2;
+
+  // Seconds to wait for one request; zero means the runner's default.
+  int32 timeout_seconds = 3;
+}
+
+// McpServerSignIn says how a person signs in to a server.
+message McpServerSignIn {
+  // Whether the server accepts only a sign-in, and no pasted key.
+  //
+  // @internal
+  // Set at install when the server's address answered an unauthenticated
+  // probe with an OAuth challenge; the entry then carries an Authorization
+  // header naming its login key, declared in PluginStatus.env.
+  bool oauth_only = 1;
 }
 
 // PluginWarning is one thing a push noticed but did not refuse.
 message PluginWarning {
-  // Stable warning kind, e.g. "component-ignored", "member-adopted",
-  // "model-hint-unresolved", "settings-agent-not-applied",
-  // "sub-agent-name-builtin", "sub-agent-not-installed",
-  // "tool-list-entry-dropped", "version-not-taggable".
+  // Stable warning kind, e.g. "component-ignored", "model-hint-unresolved",
+  // "sub-agent-name-builtin", "tool-list-entry-dropped",
+  // "version-not-taggable".
   //
   // @internal
   // The library's PluginWarningKind values plus the server's own; a string

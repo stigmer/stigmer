@@ -477,7 +477,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object mcpServerSlug_ = "";
   /**
    * <pre>
-   * Slug of the MCP server providing this tool; empty for built-in tools.
+   * Name of the MCP server providing this tool; empty for built-in tools.
    * Copied from ToolCall.mcp_server_slug.
    * </pre>
    *
@@ -499,7 +499,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Slug of the MCP server providing this tool; empty for built-in tools.
+   * Name of the MCP server providing this tool; empty for built-in tools.
    * Copied from ToolCall.mcp_server_slug.
    * </pre>
    *
@@ -2026,7 +2026,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object mcpServerSlug_ = "";
     /**
      * <pre>
-     * Slug of the MCP server providing this tool; empty for built-in tools.
+     * Name of the MCP server providing this tool; empty for built-in tools.
      * Copied from ToolCall.mcp_server_slug.
      * </pre>
      *
@@ -2047,7 +2047,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Slug of the MCP server providing this tool; empty for built-in tools.
+     * Name of the MCP server providing this tool; empty for built-in tools.
      * Copied from ToolCall.mcp_server_slug.
      * </pre>
      *
@@ -2069,7 +2069,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Slug of the MCP server providing this tool; empty for built-in tools.
+     * Name of the MCP server providing this tool; empty for built-in tools.
      * Copied from ToolCall.mcp_server_slug.
      * </pre>
      *
@@ -2087,7 +2087,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Slug of the MCP server providing this tool; empty for built-in tools.
+     * Name of the MCP server providing this tool; empty for built-in tools.
      * Copied from ToolCall.mcp_server_slug.
      * </pre>
      *
@@ -2102,7 +2102,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Slug of the MCP server providing this tool; empty for built-in tools.
+     * Name of the MCP server providing this tool; empty for built-in tools.
      * Copied from ToolCall.mcp_server_slug.
      * </pre>
      *

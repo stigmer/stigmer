@@ -151,14 +151,6 @@ public enum ApiResourceKind
   skill(43),
   /**
    * <pre>
-   * External tool server connected via the Model Context Protocol.
-   * </pre>
-   *
-   * <code>mcp_server = 44 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
-   */
-  mcp_server(44),
-  /**
-   * <pre>
    * Hosted chat link for an agent with its own audience, origins, and credentials.
    * </pre>
    *
@@ -200,10 +192,8 @@ public enum ApiResourceKind
   memory(57),
   /**
    * <pre>
-   * An installed Agent Plugins package: the archive Stigmer materialised into
-   * skills, MCP servers and an agent, and the handle that upgrades
-   * and removes them together. A plugin is what you install; an agent is what
-   * runs. Members are the resources labelled with the plugin's id.
+   * An installed Agent Plugins package: one thing holding skills, agents,
+   * hooks and MCP servers, which agents and conversations list whole.
    * </pre>
    *
    * <code>plugin = 58 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
@@ -422,14 +412,6 @@ public enum ApiResourceKind
   public static final int skill_VALUE = 43;
   /**
    * <pre>
-   * External tool server connected via the Model Context Protocol.
-   * </pre>
-   *
-   * <code>mcp_server = 44 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
-   */
-  public static final int mcp_server_VALUE = 44;
-  /**
-   * <pre>
    * Hosted chat link for an agent with its own audience, origins, and credentials.
    * </pre>
    *
@@ -471,10 +453,8 @@ public enum ApiResourceKind
   public static final int memory_VALUE = 57;
   /**
    * <pre>
-   * An installed Agent Plugins package: the archive Stigmer materialised into
-   * skills, MCP servers and an agent, and the handle that upgrades
-   * and removes them together. A plugin is what you install; an agent is what
-   * runs. Members are the resources labelled with the plugin's id.
+   * An installed Agent Plugins package: one thing holding skills, agents,
+   * hooks and MCP servers, which agents and conversations list whole.
    * </pre>
    *
    * <code>plugin = 58 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
@@ -587,7 +567,6 @@ public enum ApiResourceKind
       case 41: return run;
       case 42: return session;
       case 43: return skill;
-      case 44: return mcp_server;
       case 46: return agent_share;
       case 47: return agent_channel;
       case 48: return channel_app;

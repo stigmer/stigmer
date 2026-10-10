@@ -133,7 +133,7 @@ export const OrganizationCommandController = {
      * of its resources, answers NOT_FOUND, a second delete included, and
      * nothing new can start inside it. A purge then removes, in the
      * background, everything the organization owned: its agents, sessions,
-     * runs and their files, skills, MCP servers, plugins,
+     * runs and their files, skills, plugins,
      * vaults and their logins and secrets, sandboxes, channels and their
      * conversations, and every permission naming it or its resources. Its
      * slug stays held until the purge finishes, then is released: a later

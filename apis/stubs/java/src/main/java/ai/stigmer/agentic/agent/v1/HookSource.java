@@ -7,8 +7,7 @@ package ai.stigmer.agentic.agent.v1;
 
 /**
  * <pre>
- * HookSource is one source of an agent's hooks: a plugin, or a hooks block
- * written in the agent.
+ * HookSource is a hooks block written in the agent.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agent.v1.HookSource}
@@ -59,7 +58,6 @@ private static final long serialVersionUID = 0L;
   public enum SourceCase
       implements com.google.protobuf.Internal.EnumLite,
           com.google.protobuf.AbstractMessage.InternalOneOfEnum {
-    PLUGIN(1),
     INLINE(2),
     SOURCE_NOT_SET(0);
     private final int value;
@@ -78,7 +76,6 @@ private static final long serialVersionUID = 0L;
 
     public static SourceCase forNumber(int value) {
       switch (value) {
-        case 1: return PLUGIN;
         case 2: return INLINE;
         case 0: return SOURCE_NOT_SET;
         default: return null;
@@ -93,49 +90,6 @@ private static final long serialVersionUID = 0L;
   getSourceCase() {
     return SourceCase.forNumber(
         sourceCase_);
-  }
-
-  public static final int PLUGIN_FIELD_NUMBER = 1;
-  /**
-   * <pre>
-   * A plugin whose recorded hooks apply to this agent.
-   * </pre>
-   *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference plugin = 1 [json_name = "plugin", (.buf.validate.field) = { ... }</code>
-   * @return Whether the plugin field is set.
-   */
-  @java.lang.Override
-  public boolean hasPlugin() {
-    return sourceCase_ == 1;
-  }
-  /**
-   * <pre>
-   * A plugin whose recorded hooks apply to this agent.
-   * </pre>
-   *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference plugin = 1 [json_name = "plugin", (.buf.validate.field) = { ... }</code>
-   * @return The plugin.
-   */
-  @java.lang.Override
-  public ai.stigmer.commons.apiresource.ApiResourceReference getPlugin() {
-    if (sourceCase_ == 1) {
-       return (ai.stigmer.commons.apiresource.ApiResourceReference) source_;
-    }
-    return ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance();
-  }
-  /**
-   * <pre>
-   * A plugin whose recorded hooks apply to this agent.
-   * </pre>
-   *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference plugin = 1 [json_name = "plugin", (.buf.validate.field) = { ... }</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getPluginOrBuilder() {
-    if (sourceCase_ == 1) {
-       return (ai.stigmer.commons.apiresource.ApiResourceReference) source_;
-    }
-    return ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance();
   }
 
   public static final int INLINE_FIELD_NUMBER = 2;
@@ -195,9 +149,6 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    if (sourceCase_ == 1) {
-      output.writeMessage(1, (ai.stigmer.commons.apiresource.ApiResourceReference) source_);
-    }
     if (sourceCase_ == 2) {
       output.writeMessage(2, (ai.stigmer.agentic.plugin.v1.HookConfig) source_);
     }
@@ -210,10 +161,6 @@ private static final long serialVersionUID = 0L;
     if (size != -1) return size;
 
     size = 0;
-    if (sourceCase_ == 1) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(1, (ai.stigmer.commons.apiresource.ApiResourceReference) source_);
-    }
     if (sourceCase_ == 2) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(2, (ai.stigmer.agentic.plugin.v1.HookConfig) source_);
@@ -235,10 +182,6 @@ private static final long serialVersionUID = 0L;
 
     if (!getSourceCase().equals(other.getSourceCase())) return false;
     switch (sourceCase_) {
-      case 1:
-        if (!getPlugin()
-            .equals(other.getPlugin())) return false;
-        break;
       case 2:
         if (!getInline()
             .equals(other.getInline())) return false;
@@ -258,10 +201,6 @@ private static final long serialVersionUID = 0L;
     int hash = 41;
     hash = (19 * hash) + getDescriptor().hashCode();
     switch (sourceCase_) {
-      case 1:
-        hash = (37 * hash) + PLUGIN_FIELD_NUMBER;
-        hash = (53 * hash) + getPlugin().hashCode();
-        break;
       case 2:
         hash = (37 * hash) + INLINE_FIELD_NUMBER;
         hash = (53 * hash) + getInline().hashCode();
@@ -368,8 +307,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * HookSource is one source of an agent's hooks: a plugin, or a hooks block
-   * written in the agent.
+   * HookSource is a hooks block written in the agent.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agent.v1.HookSource}
@@ -405,9 +343,6 @@ private static final long serialVersionUID = 0L;
     public Builder clear() {
       super.clear();
       bitField0_ = 0;
-      if (pluginBuilder_ != null) {
-        pluginBuilder_.clear();
-      }
       if (inlineBuilder_ != null) {
         inlineBuilder_.clear();
       }
@@ -452,10 +387,6 @@ private static final long serialVersionUID = 0L;
     private void buildPartialOneofs(ai.stigmer.agentic.agent.v1.HookSource result) {
       result.sourceCase_ = sourceCase_;
       result.source_ = this.source_;
-      if (sourceCase_ == 1 &&
-          pluginBuilder_ != null) {
-        result.source_ = pluginBuilder_.build();
-      }
       if (sourceCase_ == 2 &&
           inlineBuilder_ != null) {
         result.source_ = inlineBuilder_.build();
@@ -475,10 +406,6 @@ private static final long serialVersionUID = 0L;
     public Builder mergeFrom(ai.stigmer.agentic.agent.v1.HookSource other) {
       if (other == ai.stigmer.agentic.agent.v1.HookSource.getDefaultInstance()) return this;
       switch (other.getSourceCase()) {
-        case PLUGIN: {
-          mergePlugin(other.getPlugin());
-          break;
-        }
         case INLINE: {
           mergeInline(other.getInline());
           break;
@@ -513,13 +440,6 @@ private static final long serialVersionUID = 0L;
             case 0:
               done = true;
               break;
-            case 10: {
-              input.readMessage(
-                  internalGetPluginFieldBuilder().getBuilder(),
-                  extensionRegistry);
-              sourceCase_ = 1;
-              break;
-            } // case 10
             case 18: {
               input.readMessage(
                   internalGetInlineFieldBuilder().getBuilder(),
@@ -558,184 +478,6 @@ private static final long serialVersionUID = 0L;
     }
 
     private int bitField0_;
-
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> pluginBuilder_;
-    /**
-     * <pre>
-     * A plugin whose recorded hooks apply to this agent.
-     * </pre>
-     *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference plugin = 1 [json_name = "plugin", (.buf.validate.field) = { ... }</code>
-     * @return Whether the plugin field is set.
-     */
-    @java.lang.Override
-    public boolean hasPlugin() {
-      return sourceCase_ == 1;
-    }
-    /**
-     * <pre>
-     * A plugin whose recorded hooks apply to this agent.
-     * </pre>
-     *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference plugin = 1 [json_name = "plugin", (.buf.validate.field) = { ... }</code>
-     * @return The plugin.
-     */
-    @java.lang.Override
-    public ai.stigmer.commons.apiresource.ApiResourceReference getPlugin() {
-      if (pluginBuilder_ == null) {
-        if (sourceCase_ == 1) {
-          return (ai.stigmer.commons.apiresource.ApiResourceReference) source_;
-        }
-        return ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance();
-      } else {
-        if (sourceCase_ == 1) {
-          return pluginBuilder_.getMessage();
-        }
-        return ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance();
-      }
-    }
-    /**
-     * <pre>
-     * A plugin whose recorded hooks apply to this agent.
-     * </pre>
-     *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference plugin = 1 [json_name = "plugin", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder setPlugin(ai.stigmer.commons.apiresource.ApiResourceReference value) {
-      if (pluginBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        source_ = value;
-        onChanged();
-      } else {
-        pluginBuilder_.setMessage(value);
-      }
-      sourceCase_ = 1;
-      return this;
-    }
-    /**
-     * <pre>
-     * A plugin whose recorded hooks apply to this agent.
-     * </pre>
-     *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference plugin = 1 [json_name = "plugin", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder setPlugin(
-        ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
-      if (pluginBuilder_ == null) {
-        source_ = builderForValue.build();
-        onChanged();
-      } else {
-        pluginBuilder_.setMessage(builderForValue.build());
-      }
-      sourceCase_ = 1;
-      return this;
-    }
-    /**
-     * <pre>
-     * A plugin whose recorded hooks apply to this agent.
-     * </pre>
-     *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference plugin = 1 [json_name = "plugin", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder mergePlugin(ai.stigmer.commons.apiresource.ApiResourceReference value) {
-      if (pluginBuilder_ == null) {
-        if (sourceCase_ == 1 &&
-            source_ != ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance()) {
-          source_ = ai.stigmer.commons.apiresource.ApiResourceReference.newBuilder((ai.stigmer.commons.apiresource.ApiResourceReference) source_)
-              .mergeFrom(value).buildPartial();
-        } else {
-          source_ = value;
-        }
-        onChanged();
-      } else {
-        if (sourceCase_ == 1) {
-          pluginBuilder_.mergeFrom(value);
-        } else {
-          pluginBuilder_.setMessage(value);
-        }
-      }
-      sourceCase_ = 1;
-      return this;
-    }
-    /**
-     * <pre>
-     * A plugin whose recorded hooks apply to this agent.
-     * </pre>
-     *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference plugin = 1 [json_name = "plugin", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder clearPlugin() {
-      if (pluginBuilder_ == null) {
-        if (sourceCase_ == 1) {
-          sourceCase_ = 0;
-          source_ = null;
-          onChanged();
-        }
-      } else {
-        if (sourceCase_ == 1) {
-          sourceCase_ = 0;
-          source_ = null;
-        }
-        pluginBuilder_.clear();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * A plugin whose recorded hooks apply to this agent.
-     * </pre>
-     *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference plugin = 1 [json_name = "plugin", (.buf.validate.field) = { ... }</code>
-     */
-    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder getPluginBuilder() {
-      return internalGetPluginFieldBuilder().getBuilder();
-    }
-    /**
-     * <pre>
-     * A plugin whose recorded hooks apply to this agent.
-     * </pre>
-     *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference plugin = 1 [json_name = "plugin", (.buf.validate.field) = { ... }</code>
-     */
-    @java.lang.Override
-    public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getPluginOrBuilder() {
-      if ((sourceCase_ == 1) && (pluginBuilder_ != null)) {
-        return pluginBuilder_.getMessageOrBuilder();
-      } else {
-        if (sourceCase_ == 1) {
-          return (ai.stigmer.commons.apiresource.ApiResourceReference) source_;
-        }
-        return ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance();
-      }
-    }
-    /**
-     * <pre>
-     * A plugin whose recorded hooks apply to this agent.
-     * </pre>
-     *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference plugin = 1 [json_name = "plugin", (.buf.validate.field) = { ... }</code>
-     */
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
-        internalGetPluginFieldBuilder() {
-      if (pluginBuilder_ == null) {
-        if (!(sourceCase_ == 1)) {
-          source_ = ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance();
-        }
-        pluginBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
-                (ai.stigmer.commons.apiresource.ApiResourceReference) source_,
-                getParentForChildren(),
-                isClean());
-        source_ = null;
-      }
-      sourceCase_ = 1;
-      onChanged();
-      return pluginBuilder_;
-    }
 
     private com.google.protobuf.SingleFieldBuilder<
         ai.stigmer.agentic.plugin.v1.HookConfig, ai.stigmer.agentic.plugin.v1.HookConfig.Builder, ai.stigmer.agentic.plugin.v1.HookConfigOrBuilder> inlineBuilder_;

@@ -81,8 +81,11 @@ enum IamPermission {
   // Platform-level permissions.
   can_bootstrap_iam = 17;
 
-  // MCP server connect permission.
-  can_connect = 22;
+  // Value 22 was the permission to connect to an MCP server, removed with
+  // the MCP server kind: a plugin's server is checked by whoever may view
+  // the plugin.
+  reserved 22;
+  reserved "can_connect";
 
   // Values 18, 20, 25 and 26 held can_manage_identity_accounts,
   // login_to_back_office, can_create_runner and can_delete_session. No RPC,
@@ -177,11 +180,8 @@ enum IamPermission {
   reserved "can_set_public_visibility";
 
   // Organization-level permission to install a plugin: push an Agent
-  // Plugins archive that the server materialises into skills, MCP servers
-  // and an agent in the organization. Distinct from the child
-  // kinds' create permissions, which the materialisation also evaluates for
-  // the installing caller: who may bring a package into an organization is a
-  // policy an administrator sets on its own.
+  // Plugins archive into the organization. Who may bring a package into an
+  // organization is a policy an administrator sets on its own.
   can_create_plugin = 40;
 
   // Platform-level permission to create and retire Plans, the catalog the
@@ -198,15 +198,11 @@ enum IamPermission {
   // different act, and a different audit line, from editing the catalog.
   can_issue_license = 42;
 
-  // Organization-level permission to create an MCP server in the
-  // organization.
-  //
-  // @internal
-  // An MCP server is a blueprint kind like an agent or a skill, and takes
-  // the same bar (admin). Before this relation existed, McpServer.create
-  // was is_skip_authorization in both editions and any member could author
-  // one; the annotation now names this relation on metadata.org.
-  can_create_mcp_server = 43;
+  // Value 43 was the organization-level permission to create an MCP server,
+  // removed with the MCP server kind: a one-off server is a plugin, and
+  // takes can_create_plugin.
+  reserved 43;
+  reserved "can_create_mcp_server";
 
   // Value 44 was the organization-level permission to create an agent
   // instance, removed with the instance kind.
@@ -314,7 +310,7 @@ enum IamRole {
   // hold it too (agent_channel's team_grantable_roles).
   participant = 5;
 
-  // Editor of a blueprint (an agent or an MCP server): may change
+  // Editor of a blueprint (an agent): may change
   // its definition and do whatever a viewer can, and may not delete it,
   // change its visibility, publish it on a share link or a channel, or decide
   // who else has access.

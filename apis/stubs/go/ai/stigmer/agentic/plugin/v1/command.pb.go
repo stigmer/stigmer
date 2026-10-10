@@ -26,12 +26,13 @@ var File_ai_stigmer_agentic_plugin_v1_command_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_plugin_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/agentic/plugin/v1/command.proto\x12\x1cai.stigmer.agentic.plugin.v1\x1a&ai/stigmer/agentic/plugin/v1/api.proto\x1a%ai/stigmer/agentic/plugin/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xda\x05\n" +
+	"*ai/stigmer/agentic/plugin/v1/command.proto\x12\x1cai.stigmer.agentic.plugin.v1\x1a&ai/stigmer/agentic/plugin/v1/api.proto\x1a%ai/stigmer/agentic/plugin/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x89\a\n" +
 	"\x17PluginCommandController\x12\xa1\x01\n" +
 	"\x04push\x12/.ai.stigmer.agentic.plugin.v1.PushPluginRequest\x1a$.ai.stigmer.agentic.plugin.v1.Plugin\"B¸\x18>\b(\x10\x1e\"\x03org*3unauthorized to install plugin in this organization\x12\xd8\x01\n" +
 	"\x17createArtifactUploadUrl\x12B.ai.stigmer.agentic.plugin.v1.CreatePluginArtifactUploadUrlRequest\x1a5.ai.stigmer.agentic.plugin.v1.PluginArtifactUploadUrl\"B¸\x18>\b(\x10\x1e\"\x03org*3unauthorized to install plugin in this organization\x12\xb0\x01\n" +
 	"\x10updateVisibility\x125.ai.stigmer.commons.apiresource.UpdateVisibilityInput\x1a$.ai.stigmer.agentic.plugin.v1.Plugin\"?¸\x18;\b0\x10:\"\vresource_id*(unauthorized to update plugin visibility\x12\x86\x01\n" +
-	"\x06delete\x12&.ai.stigmer.agentic.plugin.v1.PluginId\x1a$.ai.stigmer.agentic.plugin.v1.Plugin\".¸\x18*\b\x03\x10:\"\x05value*\x1dunauthorized to delete plugin\x1a\x04\xa0\xff+:B\x95\x02\n" +
+	"\x06delete\x12&.ai.stigmer.agentic.plugin.v1.PluginId\x1a$.ai.stigmer.agentic.plugin.v1.Plugin\".¸\x18*\b\x03\x10:\"\x05value*\x1dunauthorized to delete plugin\x12\xac\x01\n" +
+	"\tlistTools\x122.ai.stigmer.agentic.plugin.v1.ListPluginToolsInput\x1a3.ai.stigmer.agentic.plugin.v1.ListPluginToolsOutput\"6¸\x182\b\x01\x10:\"\tplugin_id*!unauthorized to list plugin tools\x1a\x04\xa0\xff+:B\x95\x02\n" +
 	" com.ai.stigmer.agentic.plugin.v1B\fCommandProtoP\x01ZNgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/plugin/v1;pluginv1\xa2\x02\x04ASAP\xaa\x02\x1cAi.Stigmer.Agentic.Plugin.V1\xca\x02\x1cAi\\Stigmer\\Agentic\\Plugin\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Plugin\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Plugin::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_plugin_v1_command_proto_goTypes = []any{
@@ -39,20 +40,24 @@ var file_ai_stigmer_agentic_plugin_v1_command_proto_goTypes = []any{
 	(*CreatePluginArtifactUploadUrlRequest)(nil), // 1: ai.stigmer.agentic.plugin.v1.CreatePluginArtifactUploadUrlRequest
 	(*apiresource.UpdateVisibilityInput)(nil),    // 2: ai.stigmer.commons.apiresource.UpdateVisibilityInput
 	(*PluginId)(nil),                             // 3: ai.stigmer.agentic.plugin.v1.PluginId
-	(*Plugin)(nil),                               // 4: ai.stigmer.agentic.plugin.v1.Plugin
-	(*PluginArtifactUploadUrl)(nil),              // 5: ai.stigmer.agentic.plugin.v1.PluginArtifactUploadUrl
+	(*ListPluginToolsInput)(nil),                 // 4: ai.stigmer.agentic.plugin.v1.ListPluginToolsInput
+	(*Plugin)(nil),                               // 5: ai.stigmer.agentic.plugin.v1.Plugin
+	(*PluginArtifactUploadUrl)(nil),              // 6: ai.stigmer.agentic.plugin.v1.PluginArtifactUploadUrl
+	(*ListPluginToolsOutput)(nil),                // 7: ai.stigmer.agentic.plugin.v1.ListPluginToolsOutput
 }
 var file_ai_stigmer_agentic_plugin_v1_command_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.plugin.v1.PluginCommandController.push:input_type -> ai.stigmer.agentic.plugin.v1.PushPluginRequest
 	1, // 1: ai.stigmer.agentic.plugin.v1.PluginCommandController.createArtifactUploadUrl:input_type -> ai.stigmer.agentic.plugin.v1.CreatePluginArtifactUploadUrlRequest
 	2, // 2: ai.stigmer.agentic.plugin.v1.PluginCommandController.updateVisibility:input_type -> ai.stigmer.commons.apiresource.UpdateVisibilityInput
 	3, // 3: ai.stigmer.agentic.plugin.v1.PluginCommandController.delete:input_type -> ai.stigmer.agentic.plugin.v1.PluginId
-	4, // 4: ai.stigmer.agentic.plugin.v1.PluginCommandController.push:output_type -> ai.stigmer.agentic.plugin.v1.Plugin
-	5, // 5: ai.stigmer.agentic.plugin.v1.PluginCommandController.createArtifactUploadUrl:output_type -> ai.stigmer.agentic.plugin.v1.PluginArtifactUploadUrl
-	4, // 6: ai.stigmer.agentic.plugin.v1.PluginCommandController.updateVisibility:output_type -> ai.stigmer.agentic.plugin.v1.Plugin
-	4, // 7: ai.stigmer.agentic.plugin.v1.PluginCommandController.delete:output_type -> ai.stigmer.agentic.plugin.v1.Plugin
-	4, // [4:8] is the sub-list for method output_type
-	0, // [0:4] is the sub-list for method input_type
+	4, // 4: ai.stigmer.agentic.plugin.v1.PluginCommandController.listTools:input_type -> ai.stigmer.agentic.plugin.v1.ListPluginToolsInput
+	5, // 5: ai.stigmer.agentic.plugin.v1.PluginCommandController.push:output_type -> ai.stigmer.agentic.plugin.v1.Plugin
+	6, // 6: ai.stigmer.agentic.plugin.v1.PluginCommandController.createArtifactUploadUrl:output_type -> ai.stigmer.agentic.plugin.v1.PluginArtifactUploadUrl
+	5, // 7: ai.stigmer.agentic.plugin.v1.PluginCommandController.updateVisibility:output_type -> ai.stigmer.agentic.plugin.v1.Plugin
+	5, // 8: ai.stigmer.agentic.plugin.v1.PluginCommandController.delete:output_type -> ai.stigmer.agentic.plugin.v1.Plugin
+	7, // 9: ai.stigmer.agentic.plugin.v1.PluginCommandController.listTools:output_type -> ai.stigmer.agentic.plugin.v1.ListPluginToolsOutput
+	5, // [5:10] is the sub-list for method output_type
+	0, // [0:5] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

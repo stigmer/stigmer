@@ -17,7 +17,6 @@ type Client struct {
 	IdentityProvider *IdentityProviderClient
 	Invitation       *InvitationClient
 	License          *LicenseClient
-	McpServer        *McpServerClient
 	Memory           *MemoryClient
 	OAuthApp         *OAuthAppClient
 	Organization     *OrganizationClient
@@ -49,7 +48,6 @@ func NewClient(conn grpc.ClientConnInterface) *Client {
 		IdentityProvider: NewIdentityProviderClient(conn),
 		Invitation:       NewInvitationClient(conn),
 		License:          NewLicenseClient(conn),
-		McpServer:        NewMcpServerClient(conn),
 		Memory:           NewMemoryClient(conn),
 		OAuthApp:         NewOAuthAppClient(conn),
 		Organization:     NewOrganizationClient(conn),

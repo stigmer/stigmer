@@ -12,7 +12,7 @@ public interface RunValueDeclarerOrBuilder extends
 
   /**
    * <pre>
-   * Agent, tool or repository.
+   * Agent, tool, plugin or repository.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.RunValueDeclarerKind kind = 1 [json_name = "kind"];</code>
@@ -21,7 +21,7 @@ public interface RunValueDeclarerOrBuilder extends
   int getKindValue();
   /**
    * <pre>
-   * Agent, tool or repository.
+   * Agent, tool, plugin or repository.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.RunValueDeclarerKind kind = 1 [json_name = "kind"];</code>
@@ -31,7 +31,8 @@ public interface RunValueDeclarerOrBuilder extends
 
   /**
    * <pre>
-   * The agent's or tool's name, or the repository entry's name.
+   * The agent's name; a tool's name as plugin:&lt;plugin&gt;:&lt;server&gt;; the
+   * plugin's name; or the repository entry's name.
    * </pre>
    *
    * <code>string name = 2 [json_name = "name"];</code>
@@ -40,7 +41,8 @@ public interface RunValueDeclarerOrBuilder extends
   java.lang.String getName();
   /**
    * <pre>
-   * The agent's or tool's name, or the repository entry's name.
+   * The agent's name; a tool's name as plugin:&lt;plugin&gt;:&lt;server&gt;; the
+   * plugin's name; or the repository entry's name.
    * </pre>
    *
    * <code>string name = 2 [json_name = "name"];</code>
@@ -51,27 +53,7 @@ public interface RunValueDeclarerOrBuilder extends
 
   /**
    * <pre>
-   * The tool's MCP server id; empty for an agent or a repository.
-   * </pre>
-   *
-   * <code>string mcp_server_id = 3 [json_name = "mcpServerId"];</code>
-   * @return The mcpServerId.
-   */
-  java.lang.String getMcpServerId();
-  /**
-   * <pre>
-   * The tool's MCP server id; empty for an agent or a repository.
-   * </pre>
-   *
-   * <code>string mcp_server_id = 3 [json_name = "mcpServerId"];</code>
-   * @return The bytes for mcpServerId.
-   */
-  com.google.protobuf.ByteString
-      getMcpServerIdBytes();
-
-  /**
-   * <pre>
-   * The repository's URL; empty for an agent or a tool.
+   * The repository's URL; empty for an agent, a tool or a plugin.
    * </pre>
    *
    * <code>string repository_url = 4 [json_name = "repositoryUrl"];</code>
@@ -80,7 +62,7 @@ public interface RunValueDeclarerOrBuilder extends
   java.lang.String getRepositoryUrl();
   /**
    * <pre>
-   * The repository's URL; empty for an agent or a tool.
+   * The repository's URL; empty for an agent, a tool or a plugin.
    * </pre>
    *
    * <code>string repository_url = 4 [json_name = "repositoryUrl"];</code>
@@ -88,4 +70,46 @@ public interface RunValueDeclarerOrBuilder extends
    */
   com.google.protobuf.ByteString
       getRepositoryUrlBytes();
+
+  /**
+   * <pre>
+   * The plugin that declared it: a tool's plugin, or the plugin whose hooks
+   * read it; empty for an agent or a repository.
+   * </pre>
+   *
+   * <code>string plugin_id = 5 [json_name = "pluginId"];</code>
+   * @return The pluginId.
+   */
+  java.lang.String getPluginId();
+  /**
+   * <pre>
+   * The plugin that declared it: a tool's plugin, or the plugin whose hooks
+   * read it; empty for an agent or a repository.
+   * </pre>
+   *
+   * <code>string plugin_id = 5 [json_name = "pluginId"];</code>
+   * @return The bytes for pluginId.
+   */
+  com.google.protobuf.ByteString
+      getPluginIdBytes();
+
+  /**
+   * <pre>
+   * The tool's server name in its plugin; empty for everything else.
+   * </pre>
+   *
+   * <code>string server = 6 [json_name = "server"];</code>
+   * @return The server.
+   */
+  java.lang.String getServer();
+  /**
+   * <pre>
+   * The tool's server name in its plugin; empty for everything else.
+   * </pre>
+   *
+   * <code>string server = 6 [json_name = "server"];</code>
+   * @return The bytes for server.
+   */
+  com.google.protobuf.ByteString
+      getServerBytes();
 }

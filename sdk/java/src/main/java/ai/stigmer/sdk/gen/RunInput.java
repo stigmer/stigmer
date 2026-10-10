@@ -2,7 +2,6 @@
 
 package ai.stigmer.sdk.gen;
 
-import ai.stigmer.agentic.mcpserver.v1.McpServerUsage;
 import ai.stigmer.agentic.run.v1.Attachment;
 import ai.stigmer.agentic.run.v1.ConversationCatchup;
 import ai.stigmer.agentic.run.v1.InteractionMode;
@@ -188,13 +187,13 @@ public final class RunInput {
         private final java.util.List<String> harnessStateIdHistory;
         private final java.util.Map<String, String> metadata;
         private final java.util.List<WorkspaceEntryInput> workspaceEntries;
-        private final java.util.List<McpServerUsageInput> mcpServerUsages;
         private final java.util.List<ResourceRef> skillRefs;
         private final Harness harness;
         private final CursorMode cursorMode;
         private final ExecutionTarget executionTarget;
         private final java.util.List<ResourceRef> vaults;
         private final boolean includeMyVault;
+        private final java.util.List<ResourceRef> plugins;
 
         private SessionSpecInput(Builder builder) {
             this.agentRef = builder.agentRef;
@@ -203,13 +202,13 @@ public final class RunInput {
             this.harnessStateIdHistory = builder.harnessStateIdHistory;
             this.metadata = builder.metadata;
             this.workspaceEntries = builder.workspaceEntries;
-            this.mcpServerUsages = builder.mcpServerUsages;
             this.skillRefs = builder.skillRefs;
             this.harness = builder.harness;
             this.cursorMode = builder.cursorMode;
             this.executionTarget = builder.executionTarget;
             this.vaults = builder.vaults;
             this.includeMyVault = builder.includeMyVault;
+            this.plugins = builder.plugins;
         }
 
         SessionSpec toProto() {
@@ -235,11 +234,6 @@ public final class RunInput {
                     builder.addWorkspaceEntries(item.toProto());
                 }
             }
-            if (this.mcpServerUsages != null) {
-                for (McpServerUsageInput item : this.mcpServerUsages) {
-                    builder.addMcpServerUsages(item.toProto());
-                }
-            }
             if (this.skillRefs != null) {
                 for (ResourceRef item : this.skillRefs) {
                     builder.addSkillRefs(item.toProto().toBuilder()
@@ -262,6 +256,12 @@ public final class RunInput {
                 }
             }
             builder.setIncludeMyVault(this.includeMyVault);
+            if (this.plugins != null) {
+                for (ResourceRef item : this.plugins) {
+                    builder.addPlugins(item.toProto().toBuilder()
+                        .setKind(ApiResourceKind.plugin).build());
+                }
+            }
             return builder.build();
         }
 
@@ -274,13 +274,13 @@ public final class RunInput {
             private java.util.List<String> harnessStateIdHistory;
             private java.util.Map<String, String> metadata;
             private java.util.List<WorkspaceEntryInput> workspaceEntries;
-            private java.util.List<McpServerUsageInput> mcpServerUsages;
             private java.util.List<ResourceRef> skillRefs;
             private Harness harness;
             private CursorMode cursorMode;
             private ExecutionTarget executionTarget;
             private java.util.List<ResourceRef> vaults;
             private boolean includeMyVault;
+            private java.util.List<ResourceRef> plugins;
 
             private Builder() {}
 
@@ -290,13 +290,13 @@ public final class RunInput {
             public Builder harnessStateIdHistory(java.util.List<String> harnessStateIdHistory) { this.harnessStateIdHistory = harnessStateIdHistory; return this; }
             public Builder metadata(java.util.Map<String, String> metadata) { this.metadata = metadata; return this; }
             public Builder workspaceEntries(java.util.List<WorkspaceEntryInput> workspaceEntries) { this.workspaceEntries = workspaceEntries; return this; }
-            public Builder mcpServerUsages(java.util.List<McpServerUsageInput> mcpServerUsages) { this.mcpServerUsages = mcpServerUsages; return this; }
             public Builder skillRefs(java.util.List<ResourceRef> skillRefs) { this.skillRefs = skillRefs; return this; }
             public Builder harness(Harness harness) { this.harness = harness; return this; }
             public Builder cursorMode(CursorMode cursorMode) { this.cursorMode = cursorMode; return this; }
             public Builder executionTarget(ExecutionTarget executionTarget) { this.executionTarget = executionTarget; return this; }
             public Builder vaults(java.util.List<ResourceRef> vaults) { this.vaults = vaults; return this; }
             public Builder includeMyVault(boolean includeMyVault) { this.includeMyVault = includeMyVault; return this; }
+            public Builder plugins(java.util.List<ResourceRef> plugins) { this.plugins = plugins; return this; }
 
             public SessionSpecInput build() { return new SessionSpecInput(this); }
         }
@@ -464,36 +464,6 @@ public final class RunInput {
             public Builder path(String path) { this.path = path; return this; }
 
             public LocalPathSourceInput build() { return new LocalPathSourceInput(this); }
-        }
-    }
-
-    /** SDK input type for McpServerUsage. */
-    public static final class McpServerUsageInput {
-        private final ResourceRef mcpServerRef;
-
-        private McpServerUsageInput(Builder builder) {
-            this.mcpServerRef = builder.mcpServerRef;
-        }
-
-        McpServerUsage toProto() {
-            McpServerUsage.Builder builder = McpServerUsage.newBuilder();
-            if (this.mcpServerRef != null && this.mcpServerRef.hasIdentifier()) {
-                builder.setMcpServerRef(this.mcpServerRef.toProto().toBuilder()
-                    .setKind(ApiResourceKind.mcp_server).build());
-            }
-            return builder.build();
-        }
-
-        public static Builder builder() { return new Builder(); }
-
-        public static final class Builder {
-            private ResourceRef mcpServerRef;
-
-            private Builder() {}
-
-            public Builder mcpServerRef(ResourceRef mcpServerRef) { this.mcpServerRef = mcpServerRef; return this; }
-
-            public McpServerUsageInput build() { return new McpServerUsageInput(this); }
         }
     }
 

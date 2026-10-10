@@ -35,7 +35,6 @@ private static final long serialVersionUID = 0L;
     description_ = "";
     iconUrl_ = "";
     instructions_ = "";
-    mcpServerUsages_ = java.util.Collections.emptyList();
     skillRefs_ = java.util.Collections.emptyList();
     subAgents_ = java.util.Collections.emptyList();
     tools_ =
@@ -44,6 +43,7 @@ private static final long serialVersionUID = 0L;
         com.google.protobuf.LazyStringArrayList.emptyList();
     hooks_ = java.util.Collections.emptyList();
     harness_ = 0;
+    plugins_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -218,72 +218,6 @@ private static final long serialVersionUID = 0L;
     } else {
       return (com.google.protobuf.ByteString) ref;
     }
-  }
-
-  public static final int MCP_SERVER_USAGES_FIELD_NUMBER = 4;
-  @SuppressWarnings("serial")
-  private java.util.List<ai.stigmer.agentic.mcpserver.v1.McpServerUsage> mcpServerUsages_;
-  /**
-   * <pre>
-   * MCP servers this agent can use.
-   * Each entry must reference a unique McpServer resource by slug.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-   */
-  @java.lang.Override
-  public java.util.List<ai.stigmer.agentic.mcpserver.v1.McpServerUsage> getMcpServerUsagesList() {
-    return mcpServerUsages_;
-  }
-  /**
-   * <pre>
-   * MCP servers this agent can use.
-   * Each entry must reference a unique McpServer resource by slug.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-   */
-  @java.lang.Override
-  public java.util.List<? extends ai.stigmer.agentic.mcpserver.v1.McpServerUsageOrBuilder> 
-      getMcpServerUsagesOrBuilderList() {
-    return mcpServerUsages_;
-  }
-  /**
-   * <pre>
-   * MCP servers this agent can use.
-   * Each entry must reference a unique McpServer resource by slug.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-   */
-  @java.lang.Override
-  public int getMcpServerUsagesCount() {
-    return mcpServerUsages_.size();
-  }
-  /**
-   * <pre>
-   * MCP servers this agent can use.
-   * Each entry must reference a unique McpServer resource by slug.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.mcpserver.v1.McpServerUsage getMcpServerUsages(int index) {
-    return mcpServerUsages_.get(index);
-  }
-  /**
-   * <pre>
-   * MCP servers this agent can use.
-   * Each entry must reference a unique McpServer resource by slug.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.mcpserver.v1.McpServerUsageOrBuilder getMcpServerUsagesOrBuilder(
-      int index) {
-    return mcpServerUsages_.get(index);
   }
 
   public static final int SKILL_REFS_FIELD_NUMBER = 5;
@@ -534,9 +468,11 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * Tools this agent may use; empty means every tool it has.
    *
    * Entries use Claude Code's names: a built-in such as Read, Grep, Bash,
-   * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server-slug&gt; for every tool of
-   * one MCP server, mcp__&lt;server-slug&gt;__&lt;tool&gt; for one tool, and mcp__* for
-   * every MCP tool. A specifier in parentheses, as in Bash(git push *), is
+   * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server&gt; for every tool of one
+   * MCP server, mcp__&lt;server&gt;__&lt;tool&gt; for one tool, and mcp__* for every MCP
+   * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
+   * names it, with every character outside letters, digits, _ and - written
+   * as _. A specifier in parentheses, as in Bash(git push *), is
    * accepted and governs the whole tool. Agent(explore, shell) also limits
    * which sub-agents this agent may start; the Cursor engine cannot hold its
    * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
@@ -556,9 +492,11 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * Tools this agent may use; empty means every tool it has.
    *
    * Entries use Claude Code's names: a built-in such as Read, Grep, Bash,
-   * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server-slug&gt; for every tool of
-   * one MCP server, mcp__&lt;server-slug&gt;__&lt;tool&gt; for one tool, and mcp__* for
-   * every MCP tool. A specifier in parentheses, as in Bash(git push *), is
+   * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server&gt; for every tool of one
+   * MCP server, mcp__&lt;server&gt;__&lt;tool&gt; for one tool, and mcp__* for every MCP
+   * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
+   * names it, with every character outside letters, digits, _ and - written
+   * as _. A specifier in parentheses, as in Bash(git push *), is
    * accepted and governs the whole tool. Agent(explore, shell) also limits
    * which sub-agents this agent may start; the Cursor engine cannot hold its
    * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
@@ -577,9 +515,11 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * Tools this agent may use; empty means every tool it has.
    *
    * Entries use Claude Code's names: a built-in such as Read, Grep, Bash,
-   * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server-slug&gt; for every tool of
-   * one MCP server, mcp__&lt;server-slug&gt;__&lt;tool&gt; for one tool, and mcp__* for
-   * every MCP tool. A specifier in parentheses, as in Bash(git push *), is
+   * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server&gt; for every tool of one
+   * MCP server, mcp__&lt;server&gt;__&lt;tool&gt; for one tool, and mcp__* for every MCP
+   * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
+   * names it, with every character outside letters, digits, _ and - written
+   * as _. A specifier in parentheses, as in Bash(git push *), is
    * accepted and governs the whole tool. Agent(explore, shell) also limits
    * which sub-agents this agent may start; the Cursor engine cannot hold its
    * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
@@ -599,9 +539,11 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * Tools this agent may use; empty means every tool it has.
    *
    * Entries use Claude Code's names: a built-in such as Read, Grep, Bash,
-   * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server-slug&gt; for every tool of
-   * one MCP server, mcp__&lt;server-slug&gt;__&lt;tool&gt; for one tool, and mcp__* for
-   * every MCP tool. A specifier in parentheses, as in Bash(git push *), is
+   * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server&gt; for every tool of one
+   * MCP server, mcp__&lt;server&gt;__&lt;tool&gt; for one tool, and mcp__* for every MCP
+   * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
+   * names it, with every character outside letters, digits, _ and - written
+   * as _. A specifier in parentheses, as in Bash(git push *), is
    * accepted and governs the whole tool. Agent(explore, shell) also limits
    * which sub-agents this agent may start; the Cursor engine cannot hold its
    * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
@@ -680,10 +622,10 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
   private java.util.List<ai.stigmer.agentic.agent.v1.HookSource> hooks_;
   /**
    * <pre>
-   * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+   * Hooks written in this agent itself, run around its tool calls and its
+   * sub-agents' calls, after the hooks of the plugins it lists.
    *
-   * Each entry is a plugin whose hooks apply, or a hooks block written in the
-   * agent itself. A hook can refuse a call, ask a person first, or let it run
+   * A hook can refuse a call, ask a person first, or let it run
    * without the approval it would otherwise need. Both engines run hooks in
    * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
    * web search reach no hook, so an agent whose PreToolUse hooks would match
@@ -699,10 +641,10 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
   }
   /**
    * <pre>
-   * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+   * Hooks written in this agent itself, run around its tool calls and its
+   * sub-agents' calls, after the hooks of the plugins it lists.
    *
-   * Each entry is a plugin whose hooks apply, or a hooks block written in the
-   * agent itself. A hook can refuse a call, ask a person first, or let it run
+   * A hook can refuse a call, ask a person first, or let it run
    * without the approval it would otherwise need. Both engines run hooks in
    * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
    * web search reach no hook, so an agent whose PreToolUse hooks would match
@@ -719,10 +661,10 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
   }
   /**
    * <pre>
-   * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+   * Hooks written in this agent itself, run around its tool calls and its
+   * sub-agents' calls, after the hooks of the plugins it lists.
    *
-   * Each entry is a plugin whose hooks apply, or a hooks block written in the
-   * agent itself. A hook can refuse a call, ask a person first, or let it run
+   * A hook can refuse a call, ask a person first, or let it run
    * without the approval it would otherwise need. Both engines run hooks in
    * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
    * web search reach no hook, so an agent whose PreToolUse hooks would match
@@ -738,10 +680,10 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
   }
   /**
    * <pre>
-   * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+   * Hooks written in this agent itself, run around its tool calls and its
+   * sub-agents' calls, after the hooks of the plugins it lists.
    *
-   * Each entry is a plugin whose hooks apply, or a hooks block written in the
-   * agent itself. A hook can refuse a call, ask a person first, or let it run
+   * A hook can refuse a call, ask a person first, or let it run
    * without the approval it would otherwise need. Both engines run hooks in
    * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
    * web search reach no hook, so an agent whose PreToolUse hooks would match
@@ -757,10 +699,10 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
   }
   /**
    * <pre>
-   * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+   * Hooks written in this agent itself, run around its tool calls and its
+   * sub-agents' calls, after the hooks of the plugins it lists.
    *
-   * Each entry is a plugin whose hooks apply, or a hooks block written in the
-   * agent itself. A hook can refuse a call, ask a person first, or let it run
+   * A hook can refuse a call, ask a person first, or let it run
    * without the approval it would otherwise need. Both engines run hooks in
    * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
    * web search reach no hook, so an agent whose PreToolUse hooks would match
@@ -894,6 +836,72 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     return result == null ? ai.stigmer.agentic.session.v1.Harness.UNRECOGNIZED : result;
   }
 
+  public static final int PLUGINS_FIELD_NUMBER = 16;
+  @SuppressWarnings("serial")
+  private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> plugins_;
+  /**
+   * <pre>
+   * Plugins this agent uses, each whole: its skills, agents, hooks and MCP
+   * servers.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> getPluginsList() {
+    return plugins_;
+  }
+  /**
+   * <pre>
+   * Plugins this agent uses, each whole: its skills, agents, hooks and MCP
+   * servers.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public java.util.List<? extends ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
+      getPluginsOrBuilderList() {
+    return plugins_;
+  }
+  /**
+   * <pre>
+   * Plugins this agent uses, each whole: its skills, agents, hooks and MCP
+   * servers.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public int getPluginsCount() {
+    return plugins_.size();
+  }
+  /**
+   * <pre>
+   * Plugins this agent uses, each whole: its skills, agents, hooks and MCP
+   * servers.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.commons.apiresource.ApiResourceReference getPlugins(int index) {
+    return plugins_.get(index);
+  }
+  /**
+   * <pre>
+   * Plugins this agent uses, each whole: its skills, agents, hooks and MCP
+   * servers.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getPluginsOrBuilder(
+      int index) {
+    return plugins_.get(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -916,9 +924,6 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(instructions_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 3, instructions_);
-    }
-    for (int i = 0; i < mcpServerUsages_.size(); i++) {
-      output.writeMessage(4, mcpServerUsages_.get(i));
     }
     for (int i = 0; i < skillRefs_.size(); i++) {
       output.writeMessage(5, skillRefs_.get(i));
@@ -947,6 +952,9 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     if (harness_ != ai.stigmer.agentic.session.v1.Harness.HARNESS_UNSPECIFIED.getNumber()) {
       output.writeEnum(14, harness_);
     }
+    for (int i = 0; i < plugins_.size(); i++) {
+      output.writeMessage(16, plugins_.get(i));
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -965,15 +973,6 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(instructions_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(3, instructions_);
     }
-
-        {
-          final int count = mcpServerUsages_.size();
-          for (int i = 0; i < count; i++) {
-            size += com.google.protobuf.CodedOutputStream
-              .computeMessageSizeNoTag(mcpServerUsages_.get(i));
-          }
-          size += 1 * count;
-        }
 
         {
           final int count = skillRefs_.size();
@@ -1035,6 +1034,15 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(14, harness_);
     }
+
+        {
+          final int count = plugins_.size();
+          for (int i = 0; i < count; i++) {
+            size += com.google.protobuf.CodedOutputStream
+              .computeMessageSizeNoTag(plugins_.get(i));
+          }
+          size += 2 * count;
+        }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -1056,8 +1064,6 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
         .equals(other.getIconUrl())) return false;
     if (!getInstructions()
         .equals(other.getInstructions())) return false;
-    if (!getMcpServerUsagesList()
-        .equals(other.getMcpServerUsagesList())) return false;
     if (!getSkillRefsList()
         .equals(other.getSkillRefsList())) return false;
     if (!getSubAgentsList()
@@ -1076,6 +1082,8 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
           .equals(other.getRunConfig())) return false;
     }
     if (harness_ != other.harness_) return false;
+    if (!getPluginsList()
+        .equals(other.getPluginsList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -1093,10 +1101,6 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     hash = (53 * hash) + getIconUrl().hashCode();
     hash = (37 * hash) + INSTRUCTIONS_FIELD_NUMBER;
     hash = (53 * hash) + getInstructions().hashCode();
-    if (getMcpServerUsagesCount() > 0) {
-      hash = (37 * hash) + MCP_SERVER_USAGES_FIELD_NUMBER;
-      hash = (53 * hash) + getMcpServerUsagesList().hashCode();
-    }
     if (getSkillRefsCount() > 0) {
       hash = (37 * hash) + SKILL_REFS_FIELD_NUMBER;
       hash = (53 * hash) + getSkillRefsList().hashCode();
@@ -1127,6 +1131,10 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     }
     hash = (37 * hash) + HARNESS_FIELD_NUMBER;
     hash = (53 * hash) + harness_;
+    if (getPluginsCount() > 0) {
+      hash = (37 * hash) + PLUGINS_FIELD_NUMBER;
+      hash = (53 * hash) + getPluginsList().hashCode();
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1283,11 +1291,11 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     private void maybeForceBuilderInitialization() {
       if (com.google.protobuf.GeneratedMessage
               .alwaysUseFieldBuilders) {
-        internalGetMcpServerUsagesFieldBuilder();
         internalGetSkillRefsFieldBuilder();
         internalGetSubAgentsFieldBuilder();
         internalGetHooksFieldBuilder();
         internalGetRunConfigFieldBuilder();
+        internalGetPluginsFieldBuilder();
       }
     }
     @java.lang.Override
@@ -1297,27 +1305,20 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       description_ = "";
       iconUrl_ = "";
       instructions_ = "";
-      if (mcpServerUsagesBuilder_ == null) {
-        mcpServerUsages_ = java.util.Collections.emptyList();
-      } else {
-        mcpServerUsages_ = null;
-        mcpServerUsagesBuilder_.clear();
-      }
-      bitField0_ = (bitField0_ & ~0x00000008);
       if (skillRefsBuilder_ == null) {
         skillRefs_ = java.util.Collections.emptyList();
       } else {
         skillRefs_ = null;
         skillRefsBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000010);
+      bitField0_ = (bitField0_ & ~0x00000008);
       if (subAgentsBuilder_ == null) {
         subAgents_ = java.util.Collections.emptyList();
       } else {
         subAgents_ = null;
         subAgentsBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000020);
+      bitField0_ = (bitField0_ & ~0x00000010);
       internalGetMutableEnv().clear();
       tools_ =
           com.google.protobuf.LazyStringArrayList.emptyList();
@@ -1329,13 +1330,20 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
         hooks_ = null;
         hooksBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000200);
+      bitField0_ = (bitField0_ & ~0x00000100);
       runConfig_ = null;
       if (runConfigBuilder_ != null) {
         runConfigBuilder_.dispose();
         runConfigBuilder_ = null;
       }
       harness_ = 0;
+      if (pluginsBuilder_ == null) {
+        plugins_ = java.util.Collections.emptyList();
+      } else {
+        plugins_ = null;
+        pluginsBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00000800);
       return this;
     }
 
@@ -1369,41 +1377,41 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     }
 
     private void buildPartialRepeatedFields(ai.stigmer.agentic.agent.v1.AgentSpec result) {
-      if (mcpServerUsagesBuilder_ == null) {
-        if (((bitField0_ & 0x00000008) != 0)) {
-          mcpServerUsages_ = java.util.Collections.unmodifiableList(mcpServerUsages_);
-          bitField0_ = (bitField0_ & ~0x00000008);
-        }
-        result.mcpServerUsages_ = mcpServerUsages_;
-      } else {
-        result.mcpServerUsages_ = mcpServerUsagesBuilder_.build();
-      }
       if (skillRefsBuilder_ == null) {
-        if (((bitField0_ & 0x00000010) != 0)) {
+        if (((bitField0_ & 0x00000008) != 0)) {
           skillRefs_ = java.util.Collections.unmodifiableList(skillRefs_);
-          bitField0_ = (bitField0_ & ~0x00000010);
+          bitField0_ = (bitField0_ & ~0x00000008);
         }
         result.skillRefs_ = skillRefs_;
       } else {
         result.skillRefs_ = skillRefsBuilder_.build();
       }
       if (subAgentsBuilder_ == null) {
-        if (((bitField0_ & 0x00000020) != 0)) {
+        if (((bitField0_ & 0x00000010) != 0)) {
           subAgents_ = java.util.Collections.unmodifiableList(subAgents_);
-          bitField0_ = (bitField0_ & ~0x00000020);
+          bitField0_ = (bitField0_ & ~0x00000010);
         }
         result.subAgents_ = subAgents_;
       } else {
         result.subAgents_ = subAgentsBuilder_.build();
       }
       if (hooksBuilder_ == null) {
-        if (((bitField0_ & 0x00000200) != 0)) {
+        if (((bitField0_ & 0x00000100) != 0)) {
           hooks_ = java.util.Collections.unmodifiableList(hooks_);
-          bitField0_ = (bitField0_ & ~0x00000200);
+          bitField0_ = (bitField0_ & ~0x00000100);
         }
         result.hooks_ = hooks_;
       } else {
         result.hooks_ = hooksBuilder_.build();
+      }
+      if (pluginsBuilder_ == null) {
+        if (((bitField0_ & 0x00000800) != 0)) {
+          plugins_ = java.util.Collections.unmodifiableList(plugins_);
+          bitField0_ = (bitField0_ & ~0x00000800);
+        }
+        result.plugins_ = plugins_;
+      } else {
+        result.plugins_ = pluginsBuilder_.build();
       }
     }
 
@@ -1418,25 +1426,25 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       if (((from_bitField0_ & 0x00000004) != 0)) {
         result.instructions_ = instructions_;
       }
-      if (((from_bitField0_ & 0x00000040) != 0)) {
+      if (((from_bitField0_ & 0x00000020) != 0)) {
         result.env_ = internalGetEnv().build(EnvDefaultEntryHolder.defaultEntry);
       }
-      if (((from_bitField0_ & 0x00000080) != 0)) {
+      if (((from_bitField0_ & 0x00000040) != 0)) {
         tools_.makeImmutable();
         result.tools_ = tools_;
       }
-      if (((from_bitField0_ & 0x00000100) != 0)) {
+      if (((from_bitField0_ & 0x00000080) != 0)) {
         disallowedTools_.makeImmutable();
         result.disallowedTools_ = disallowedTools_;
       }
       int to_bitField0_ = 0;
-      if (((from_bitField0_ & 0x00000400) != 0)) {
+      if (((from_bitField0_ & 0x00000200) != 0)) {
         result.runConfig_ = runConfigBuilder_ == null
             ? runConfig_
             : runConfigBuilder_.build();
         to_bitField0_ |= 0x00000001;
       }
-      if (((from_bitField0_ & 0x00000800) != 0)) {
+      if (((from_bitField0_ & 0x00000400) != 0)) {
         result.harness_ = harness_;
       }
       result.bitField0_ |= to_bitField0_;
@@ -1469,37 +1477,11 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
         bitField0_ |= 0x00000004;
         onChanged();
       }
-      if (mcpServerUsagesBuilder_ == null) {
-        if (!other.mcpServerUsages_.isEmpty()) {
-          if (mcpServerUsages_.isEmpty()) {
-            mcpServerUsages_ = other.mcpServerUsages_;
-            bitField0_ = (bitField0_ & ~0x00000008);
-          } else {
-            ensureMcpServerUsagesIsMutable();
-            mcpServerUsages_.addAll(other.mcpServerUsages_);
-          }
-          onChanged();
-        }
-      } else {
-        if (!other.mcpServerUsages_.isEmpty()) {
-          if (mcpServerUsagesBuilder_.isEmpty()) {
-            mcpServerUsagesBuilder_.dispose();
-            mcpServerUsagesBuilder_ = null;
-            mcpServerUsages_ = other.mcpServerUsages_;
-            bitField0_ = (bitField0_ & ~0x00000008);
-            mcpServerUsagesBuilder_ = 
-              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
-                 internalGetMcpServerUsagesFieldBuilder() : null;
-          } else {
-            mcpServerUsagesBuilder_.addAllMessages(other.mcpServerUsages_);
-          }
-        }
-      }
       if (skillRefsBuilder_ == null) {
         if (!other.skillRefs_.isEmpty()) {
           if (skillRefs_.isEmpty()) {
             skillRefs_ = other.skillRefs_;
-            bitField0_ = (bitField0_ & ~0x00000010);
+            bitField0_ = (bitField0_ & ~0x00000008);
           } else {
             ensureSkillRefsIsMutable();
             skillRefs_.addAll(other.skillRefs_);
@@ -1512,7 +1494,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
             skillRefsBuilder_.dispose();
             skillRefsBuilder_ = null;
             skillRefs_ = other.skillRefs_;
-            bitField0_ = (bitField0_ & ~0x00000010);
+            bitField0_ = (bitField0_ & ~0x00000008);
             skillRefsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetSkillRefsFieldBuilder() : null;
@@ -1525,7 +1507,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
         if (!other.subAgents_.isEmpty()) {
           if (subAgents_.isEmpty()) {
             subAgents_ = other.subAgents_;
-            bitField0_ = (bitField0_ & ~0x00000020);
+            bitField0_ = (bitField0_ & ~0x00000010);
           } else {
             ensureSubAgentsIsMutable();
             subAgents_.addAll(other.subAgents_);
@@ -1538,7 +1520,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
             subAgentsBuilder_.dispose();
             subAgentsBuilder_ = null;
             subAgents_ = other.subAgents_;
-            bitField0_ = (bitField0_ & ~0x00000020);
+            bitField0_ = (bitField0_ & ~0x00000010);
             subAgentsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetSubAgentsFieldBuilder() : null;
@@ -1549,11 +1531,11 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       }
       internalGetMutableEnv().mergeFrom(
           other.internalGetEnv());
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
       if (!other.tools_.isEmpty()) {
         if (tools_.isEmpty()) {
           tools_ = other.tools_;
-          bitField0_ |= 0x00000080;
+          bitField0_ |= 0x00000040;
         } else {
           ensureToolsIsMutable();
           tools_.addAll(other.tools_);
@@ -1563,7 +1545,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       if (!other.disallowedTools_.isEmpty()) {
         if (disallowedTools_.isEmpty()) {
           disallowedTools_ = other.disallowedTools_;
-          bitField0_ |= 0x00000100;
+          bitField0_ |= 0x00000080;
         } else {
           ensureDisallowedToolsIsMutable();
           disallowedTools_.addAll(other.disallowedTools_);
@@ -1574,7 +1556,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
         if (!other.hooks_.isEmpty()) {
           if (hooks_.isEmpty()) {
             hooks_ = other.hooks_;
-            bitField0_ = (bitField0_ & ~0x00000200);
+            bitField0_ = (bitField0_ & ~0x00000100);
           } else {
             ensureHooksIsMutable();
             hooks_.addAll(other.hooks_);
@@ -1587,7 +1569,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
             hooksBuilder_.dispose();
             hooksBuilder_ = null;
             hooks_ = other.hooks_;
-            bitField0_ = (bitField0_ & ~0x00000200);
+            bitField0_ = (bitField0_ & ~0x00000100);
             hooksBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetHooksFieldBuilder() : null;
@@ -1601,6 +1583,32 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       }
       if (other.harness_ != 0) {
         setHarnessValue(other.getHarnessValue());
+      }
+      if (pluginsBuilder_ == null) {
+        if (!other.plugins_.isEmpty()) {
+          if (plugins_.isEmpty()) {
+            plugins_ = other.plugins_;
+            bitField0_ = (bitField0_ & ~0x00000800);
+          } else {
+            ensurePluginsIsMutable();
+            plugins_.addAll(other.plugins_);
+          }
+          onChanged();
+        }
+      } else {
+        if (!other.plugins_.isEmpty()) {
+          if (pluginsBuilder_.isEmpty()) {
+            pluginsBuilder_.dispose();
+            pluginsBuilder_ = null;
+            plugins_ = other.plugins_;
+            bitField0_ = (bitField0_ & ~0x00000800);
+            pluginsBuilder_ = 
+              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                 internalGetPluginsFieldBuilder() : null;
+          } else {
+            pluginsBuilder_.addAllMessages(other.plugins_);
+          }
+        }
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1643,19 +1651,6 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
               bitField0_ |= 0x00000004;
               break;
             } // case 26
-            case 34: {
-              ai.stigmer.agentic.mcpserver.v1.McpServerUsage m =
-                  input.readMessage(
-                      ai.stigmer.agentic.mcpserver.v1.McpServerUsage.parser(),
-                      extensionRegistry);
-              if (mcpServerUsagesBuilder_ == null) {
-                ensureMcpServerUsagesIsMutable();
-                mcpServerUsages_.add(m);
-              } else {
-                mcpServerUsagesBuilder_.addMessage(m);
-              }
-              break;
-            } // case 34
             case 42: {
               ai.stigmer.commons.apiresource.ApiResourceReference m =
                   input.readMessage(
@@ -1688,7 +1683,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
                   EnvDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
               internalGetMutableEnv().ensureBuilderMap().put(
                   env__.getKey(), env__.getValue());
-              bitField0_ |= 0x00000040;
+              bitField0_ |= 0x00000020;
               break;
             } // case 58
             case 82: {
@@ -1718,14 +1713,27 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
               input.readMessage(
                   internalGetRunConfigFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000400;
+              bitField0_ |= 0x00000200;
               break;
             } // case 106
             case 112: {
               harness_ = input.readEnum();
-              bitField0_ |= 0x00000800;
+              bitField0_ |= 0x00000400;
               break;
             } // case 112
+            case 130: {
+              ai.stigmer.commons.apiresource.ApiResourceReference m =
+                  input.readMessage(
+                      ai.stigmer.commons.apiresource.ApiResourceReference.parser(),
+                      extensionRegistry);
+              if (pluginsBuilder_ == null) {
+                ensurePluginsIsMutable();
+                plugins_.add(m);
+              } else {
+                pluginsBuilder_.addMessage(m);
+              }
+              break;
+            } // case 130
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2024,342 +2032,12 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       return this;
     }
 
-    private java.util.List<ai.stigmer.agentic.mcpserver.v1.McpServerUsage> mcpServerUsages_ =
-      java.util.Collections.emptyList();
-    private void ensureMcpServerUsagesIsMutable() {
-      if (!((bitField0_ & 0x00000008) != 0)) {
-        mcpServerUsages_ = new java.util.ArrayList<ai.stigmer.agentic.mcpserver.v1.McpServerUsage>(mcpServerUsages_);
-        bitField0_ |= 0x00000008;
-       }
-    }
-
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.mcpserver.v1.McpServerUsage, ai.stigmer.agentic.mcpserver.v1.McpServerUsage.Builder, ai.stigmer.agentic.mcpserver.v1.McpServerUsageOrBuilder> mcpServerUsagesBuilder_;
-
-    /**
-     * <pre>
-     * MCP servers this agent can use.
-     * Each entry must reference a unique McpServer resource by slug.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-     */
-    public java.util.List<ai.stigmer.agentic.mcpserver.v1.McpServerUsage> getMcpServerUsagesList() {
-      if (mcpServerUsagesBuilder_ == null) {
-        return java.util.Collections.unmodifiableList(mcpServerUsages_);
-      } else {
-        return mcpServerUsagesBuilder_.getMessageList();
-      }
-    }
-    /**
-     * <pre>
-     * MCP servers this agent can use.
-     * Each entry must reference a unique McpServer resource by slug.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-     */
-    public int getMcpServerUsagesCount() {
-      if (mcpServerUsagesBuilder_ == null) {
-        return mcpServerUsages_.size();
-      } else {
-        return mcpServerUsagesBuilder_.getCount();
-      }
-    }
-    /**
-     * <pre>
-     * MCP servers this agent can use.
-     * Each entry must reference a unique McpServer resource by slug.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-     */
-    public ai.stigmer.agentic.mcpserver.v1.McpServerUsage getMcpServerUsages(int index) {
-      if (mcpServerUsagesBuilder_ == null) {
-        return mcpServerUsages_.get(index);
-      } else {
-        return mcpServerUsagesBuilder_.getMessage(index);
-      }
-    }
-    /**
-     * <pre>
-     * MCP servers this agent can use.
-     * Each entry must reference a unique McpServer resource by slug.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder setMcpServerUsages(
-        int index, ai.stigmer.agentic.mcpserver.v1.McpServerUsage value) {
-      if (mcpServerUsagesBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureMcpServerUsagesIsMutable();
-        mcpServerUsages_.set(index, value);
-        onChanged();
-      } else {
-        mcpServerUsagesBuilder_.setMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * MCP servers this agent can use.
-     * Each entry must reference a unique McpServer resource by slug.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder setMcpServerUsages(
-        int index, ai.stigmer.agentic.mcpserver.v1.McpServerUsage.Builder builderForValue) {
-      if (mcpServerUsagesBuilder_ == null) {
-        ensureMcpServerUsagesIsMutable();
-        mcpServerUsages_.set(index, builderForValue.build());
-        onChanged();
-      } else {
-        mcpServerUsagesBuilder_.setMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * MCP servers this agent can use.
-     * Each entry must reference a unique McpServer resource by slug.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder addMcpServerUsages(ai.stigmer.agentic.mcpserver.v1.McpServerUsage value) {
-      if (mcpServerUsagesBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureMcpServerUsagesIsMutable();
-        mcpServerUsages_.add(value);
-        onChanged();
-      } else {
-        mcpServerUsagesBuilder_.addMessage(value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * MCP servers this agent can use.
-     * Each entry must reference a unique McpServer resource by slug.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder addMcpServerUsages(
-        int index, ai.stigmer.agentic.mcpserver.v1.McpServerUsage value) {
-      if (mcpServerUsagesBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureMcpServerUsagesIsMutable();
-        mcpServerUsages_.add(index, value);
-        onChanged();
-      } else {
-        mcpServerUsagesBuilder_.addMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * MCP servers this agent can use.
-     * Each entry must reference a unique McpServer resource by slug.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder addMcpServerUsages(
-        ai.stigmer.agentic.mcpserver.v1.McpServerUsage.Builder builderForValue) {
-      if (mcpServerUsagesBuilder_ == null) {
-        ensureMcpServerUsagesIsMutable();
-        mcpServerUsages_.add(builderForValue.build());
-        onChanged();
-      } else {
-        mcpServerUsagesBuilder_.addMessage(builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * MCP servers this agent can use.
-     * Each entry must reference a unique McpServer resource by slug.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder addMcpServerUsages(
-        int index, ai.stigmer.agentic.mcpserver.v1.McpServerUsage.Builder builderForValue) {
-      if (mcpServerUsagesBuilder_ == null) {
-        ensureMcpServerUsagesIsMutable();
-        mcpServerUsages_.add(index, builderForValue.build());
-        onChanged();
-      } else {
-        mcpServerUsagesBuilder_.addMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * MCP servers this agent can use.
-     * Each entry must reference a unique McpServer resource by slug.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder addAllMcpServerUsages(
-        java.lang.Iterable<? extends ai.stigmer.agentic.mcpserver.v1.McpServerUsage> values) {
-      if (mcpServerUsagesBuilder_ == null) {
-        ensureMcpServerUsagesIsMutable();
-        com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, mcpServerUsages_);
-        onChanged();
-      } else {
-        mcpServerUsagesBuilder_.addAllMessages(values);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * MCP servers this agent can use.
-     * Each entry must reference a unique McpServer resource by slug.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder clearMcpServerUsages() {
-      if (mcpServerUsagesBuilder_ == null) {
-        mcpServerUsages_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000008);
-        onChanged();
-      } else {
-        mcpServerUsagesBuilder_.clear();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * MCP servers this agent can use.
-     * Each entry must reference a unique McpServer resource by slug.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder removeMcpServerUsages(int index) {
-      if (mcpServerUsagesBuilder_ == null) {
-        ensureMcpServerUsagesIsMutable();
-        mcpServerUsages_.remove(index);
-        onChanged();
-      } else {
-        mcpServerUsagesBuilder_.remove(index);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * MCP servers this agent can use.
-     * Each entry must reference a unique McpServer resource by slug.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-     */
-    public ai.stigmer.agentic.mcpserver.v1.McpServerUsage.Builder getMcpServerUsagesBuilder(
-        int index) {
-      return internalGetMcpServerUsagesFieldBuilder().getBuilder(index);
-    }
-    /**
-     * <pre>
-     * MCP servers this agent can use.
-     * Each entry must reference a unique McpServer resource by slug.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-     */
-    public ai.stigmer.agentic.mcpserver.v1.McpServerUsageOrBuilder getMcpServerUsagesOrBuilder(
-        int index) {
-      if (mcpServerUsagesBuilder_ == null) {
-        return mcpServerUsages_.get(index);  } else {
-        return mcpServerUsagesBuilder_.getMessageOrBuilder(index);
-      }
-    }
-    /**
-     * <pre>
-     * MCP servers this agent can use.
-     * Each entry must reference a unique McpServer resource by slug.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-     */
-    public java.util.List<? extends ai.stigmer.agentic.mcpserver.v1.McpServerUsageOrBuilder> 
-         getMcpServerUsagesOrBuilderList() {
-      if (mcpServerUsagesBuilder_ != null) {
-        return mcpServerUsagesBuilder_.getMessageOrBuilderList();
-      } else {
-        return java.util.Collections.unmodifiableList(mcpServerUsages_);
-      }
-    }
-    /**
-     * <pre>
-     * MCP servers this agent can use.
-     * Each entry must reference a unique McpServer resource by slug.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-     */
-    public ai.stigmer.agentic.mcpserver.v1.McpServerUsage.Builder addMcpServerUsagesBuilder() {
-      return internalGetMcpServerUsagesFieldBuilder().addBuilder(
-          ai.stigmer.agentic.mcpserver.v1.McpServerUsage.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * MCP servers this agent can use.
-     * Each entry must reference a unique McpServer resource by slug.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-     */
-    public ai.stigmer.agentic.mcpserver.v1.McpServerUsage.Builder addMcpServerUsagesBuilder(
-        int index) {
-      return internalGetMcpServerUsagesFieldBuilder().addBuilder(
-          index, ai.stigmer.agentic.mcpserver.v1.McpServerUsage.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * MCP servers this agent can use.
-     * Each entry must reference a unique McpServer resource by slug.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-     */
-    public java.util.List<ai.stigmer.agentic.mcpserver.v1.McpServerUsage.Builder> 
-         getMcpServerUsagesBuilderList() {
-      return internalGetMcpServerUsagesFieldBuilder().getBuilderList();
-    }
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.mcpserver.v1.McpServerUsage, ai.stigmer.agentic.mcpserver.v1.McpServerUsage.Builder, ai.stigmer.agentic.mcpserver.v1.McpServerUsageOrBuilder> 
-        internalGetMcpServerUsagesFieldBuilder() {
-      if (mcpServerUsagesBuilder_ == null) {
-        mcpServerUsagesBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
-            ai.stigmer.agentic.mcpserver.v1.McpServerUsage, ai.stigmer.agentic.mcpserver.v1.McpServerUsage.Builder, ai.stigmer.agentic.mcpserver.v1.McpServerUsageOrBuilder>(
-                mcpServerUsages_,
-                ((bitField0_ & 0x00000008) != 0),
-                getParentForChildren(),
-                isClean());
-        mcpServerUsages_ = null;
-      }
-      return mcpServerUsagesBuilder_;
-    }
-
     private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> skillRefs_ =
       java.util.Collections.emptyList();
     private void ensureSkillRefsIsMutable() {
-      if (!((bitField0_ & 0x00000010) != 0)) {
+      if (!((bitField0_ & 0x00000008) != 0)) {
         skillRefs_ = new java.util.ArrayList<ai.stigmer.commons.apiresource.ApiResourceReference>(skillRefs_);
-        bitField0_ |= 0x00000010;
+        bitField0_ |= 0x00000008;
        }
     }
 
@@ -2553,7 +2231,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     public Builder clearSkillRefs() {
       if (skillRefsBuilder_ == null) {
         skillRefs_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000010);
+        bitField0_ = (bitField0_ & ~0x00000008);
         onChanged();
       } else {
         skillRefsBuilder_.clear();
@@ -2658,7 +2336,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
         skillRefsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
                 skillRefs_,
-                ((bitField0_ & 0x00000010) != 0),
+                ((bitField0_ & 0x00000008) != 0),
                 getParentForChildren(),
                 isClean());
         skillRefs_ = null;
@@ -2669,9 +2347,9 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     private java.util.List<ai.stigmer.agentic.agent.v1.SubAgent> subAgents_ =
       java.util.Collections.emptyList();
     private void ensureSubAgentsIsMutable() {
-      if (!((bitField0_ & 0x00000020) != 0)) {
+      if (!((bitField0_ & 0x00000010) != 0)) {
         subAgents_ = new java.util.ArrayList<ai.stigmer.agentic.agent.v1.SubAgent>(subAgents_);
-        bitField0_ |= 0x00000020;
+        bitField0_ |= 0x00000010;
        }
     }
 
@@ -2887,7 +2565,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     public Builder clearSubAgents() {
       if (subAgentsBuilder_ == null) {
         subAgents_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000020);
+        bitField0_ = (bitField0_ & ~0x00000010);
         onChanged();
       } else {
         subAgentsBuilder_.clear();
@@ -3006,7 +2684,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
         subAgentsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.agent.v1.SubAgent, ai.stigmer.agentic.agent.v1.SubAgent.Builder, ai.stigmer.agentic.agent.v1.SubAgentOrBuilder>(
                 subAgents_,
-                ((bitField0_ & 0x00000020) != 0),
+                ((bitField0_ & 0x00000010) != 0),
                 getParentForChildren(),
                 isClean());
         subAgents_ = null;
@@ -3042,7 +2720,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       if (env_ == null) {
         env_ = new com.google.protobuf.MapFieldBuilder<>(envConverter);
       }
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
       onChanged();
       return env_;
     }
@@ -3128,7 +2806,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       return envConverter.build(map.get(key));
     }
     public Builder clearEnv() {
-      bitField0_ = (bitField0_ & ~0x00000040);
+      bitField0_ = (bitField0_ & ~0x00000020);
       internalGetMutableEnv().clear();
       return this;
     }
@@ -3155,7 +2833,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     @java.lang.Deprecated
     public java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration>
         getMutableEnv() {
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
       return internalGetMutableEnv().ensureMessageMap();
     }
     /**
@@ -3175,7 +2853,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       if (value == null) { throw new NullPointerException("map value"); }
       internalGetMutableEnv().ensureBuilderMap()
           .put(key, value);
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
       return this;
     }
     /**
@@ -3197,7 +2875,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       }
       internalGetMutableEnv().ensureBuilderMap()
           .putAll(values);
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
       return this;
     }
     /**
@@ -3231,16 +2909,18 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       if (!tools_.isModifiable()) {
         tools_ = new com.google.protobuf.LazyStringArrayList(tools_);
       }
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000040;
     }
     /**
      * <pre>
      * Tools this agent may use; empty means every tool it has.
      *
      * Entries use Claude Code's names: a built-in such as Read, Grep, Bash,
-     * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server-slug&gt; for every tool of
-     * one MCP server, mcp__&lt;server-slug&gt;__&lt;tool&gt; for one tool, and mcp__* for
-     * every MCP tool. A specifier in parentheses, as in Bash(git push *), is
+     * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server&gt; for every tool of one
+     * MCP server, mcp__&lt;server&gt;__&lt;tool&gt; for one tool, and mcp__* for every MCP
+     * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
+     * names it, with every character outside letters, digits, _ and - written
+     * as _. A specifier in parentheses, as in Bash(git push *), is
      * accepted and governs the whole tool. Agent(explore, shell) also limits
      * which sub-agents this agent may start; the Cursor engine cannot hold its
      * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
@@ -3261,9 +2941,11 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * Tools this agent may use; empty means every tool it has.
      *
      * Entries use Claude Code's names: a built-in such as Read, Grep, Bash,
-     * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server-slug&gt; for every tool of
-     * one MCP server, mcp__&lt;server-slug&gt;__&lt;tool&gt; for one tool, and mcp__* for
-     * every MCP tool. A specifier in parentheses, as in Bash(git push *), is
+     * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server&gt; for every tool of one
+     * MCP server, mcp__&lt;server&gt;__&lt;tool&gt; for one tool, and mcp__* for every MCP
+     * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
+     * names it, with every character outside letters, digits, _ and - written
+     * as _. A specifier in parentheses, as in Bash(git push *), is
      * accepted and governs the whole tool. Agent(explore, shell) also limits
      * which sub-agents this agent may start; the Cursor engine cannot hold its
      * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
@@ -3282,9 +2964,11 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * Tools this agent may use; empty means every tool it has.
      *
      * Entries use Claude Code's names: a built-in such as Read, Grep, Bash,
-     * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server-slug&gt; for every tool of
-     * one MCP server, mcp__&lt;server-slug&gt;__&lt;tool&gt; for one tool, and mcp__* for
-     * every MCP tool. A specifier in parentheses, as in Bash(git push *), is
+     * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server&gt; for every tool of one
+     * MCP server, mcp__&lt;server&gt;__&lt;tool&gt; for one tool, and mcp__* for every MCP
+     * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
+     * names it, with every character outside letters, digits, _ and - written
+     * as _. A specifier in parentheses, as in Bash(git push *), is
      * accepted and governs the whole tool. Agent(explore, shell) also limits
      * which sub-agents this agent may start; the Cursor engine cannot hold its
      * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
@@ -3304,9 +2988,11 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * Tools this agent may use; empty means every tool it has.
      *
      * Entries use Claude Code's names: a built-in such as Read, Grep, Bash,
-     * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server-slug&gt; for every tool of
-     * one MCP server, mcp__&lt;server-slug&gt;__&lt;tool&gt; for one tool, and mcp__* for
-     * every MCP tool. A specifier in parentheses, as in Bash(git push *), is
+     * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server&gt; for every tool of one
+     * MCP server, mcp__&lt;server&gt;__&lt;tool&gt; for one tool, and mcp__* for every MCP
+     * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
+     * names it, with every character outside letters, digits, _ and - written
+     * as _. A specifier in parentheses, as in Bash(git push *), is
      * accepted and governs the whole tool. Agent(explore, shell) also limits
      * which sub-agents this agent may start; the Cursor engine cannot hold its
      * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
@@ -3327,9 +3013,11 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * Tools this agent may use; empty means every tool it has.
      *
      * Entries use Claude Code's names: a built-in such as Read, Grep, Bash,
-     * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server-slug&gt; for every tool of
-     * one MCP server, mcp__&lt;server-slug&gt;__&lt;tool&gt; for one tool, and mcp__* for
-     * every MCP tool. A specifier in parentheses, as in Bash(git push *), is
+     * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server&gt; for every tool of one
+     * MCP server, mcp__&lt;server&gt;__&lt;tool&gt; for one tool, and mcp__* for every MCP
+     * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
+     * names it, with every character outside letters, digits, _ and - written
+     * as _. A specifier in parentheses, as in Bash(git push *), is
      * accepted and governs the whole tool. Agent(explore, shell) also limits
      * which sub-agents this agent may start; the Cursor engine cannot hold its
      * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
@@ -3347,7 +3035,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       ensureToolsIsMutable();
       tools_.set(index, value);
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -3356,9 +3044,11 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * Tools this agent may use; empty means every tool it has.
      *
      * Entries use Claude Code's names: a built-in such as Read, Grep, Bash,
-     * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server-slug&gt; for every tool of
-     * one MCP server, mcp__&lt;server-slug&gt;__&lt;tool&gt; for one tool, and mcp__* for
-     * every MCP tool. A specifier in parentheses, as in Bash(git push *), is
+     * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server&gt; for every tool of one
+     * MCP server, mcp__&lt;server&gt;__&lt;tool&gt; for one tool, and mcp__* for every MCP
+     * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
+     * names it, with every character outside letters, digits, _ and - written
+     * as _. A specifier in parentheses, as in Bash(git push *), is
      * accepted and governs the whole tool. Agent(explore, shell) also limits
      * which sub-agents this agent may start; the Cursor engine cannot hold its
      * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
@@ -3375,7 +3065,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       ensureToolsIsMutable();
       tools_.add(value);
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -3384,9 +3074,11 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * Tools this agent may use; empty means every tool it has.
      *
      * Entries use Claude Code's names: a built-in such as Read, Grep, Bash,
-     * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server-slug&gt; for every tool of
-     * one MCP server, mcp__&lt;server-slug&gt;__&lt;tool&gt; for one tool, and mcp__* for
-     * every MCP tool. A specifier in parentheses, as in Bash(git push *), is
+     * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server&gt; for every tool of one
+     * MCP server, mcp__&lt;server&gt;__&lt;tool&gt; for one tool, and mcp__* for every MCP
+     * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
+     * names it, with every character outside letters, digits, _ and - written
+     * as _. A specifier in parentheses, as in Bash(git push *), is
      * accepted and governs the whole tool. Agent(explore, shell) also limits
      * which sub-agents this agent may start; the Cursor engine cannot hold its
      * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
@@ -3403,7 +3095,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       ensureToolsIsMutable();
       com.google.protobuf.AbstractMessageLite.Builder.addAll(
           values, tools_);
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -3412,9 +3104,11 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * Tools this agent may use; empty means every tool it has.
      *
      * Entries use Claude Code's names: a built-in such as Read, Grep, Bash,
-     * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server-slug&gt; for every tool of
-     * one MCP server, mcp__&lt;server-slug&gt;__&lt;tool&gt; for one tool, and mcp__* for
-     * every MCP tool. A specifier in parentheses, as in Bash(git push *), is
+     * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server&gt; for every tool of one
+     * MCP server, mcp__&lt;server&gt;__&lt;tool&gt; for one tool, and mcp__* for every MCP
+     * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
+     * names it, with every character outside letters, digits, _ and - written
+     * as _. A specifier in parentheses, as in Bash(git push *), is
      * accepted and governs the whole tool. Agent(explore, shell) also limits
      * which sub-agents this agent may start; the Cursor engine cannot hold its
      * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
@@ -3428,7 +3122,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     public Builder clearTools() {
       tools_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
-      bitField0_ = (bitField0_ & ~0x00000080);;
+      bitField0_ = (bitField0_ & ~0x00000040);;
       onChanged();
       return this;
     }
@@ -3437,9 +3131,11 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * Tools this agent may use; empty means every tool it has.
      *
      * Entries use Claude Code's names: a built-in such as Read, Grep, Bash,
-     * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server-slug&gt; for every tool of
-     * one MCP server, mcp__&lt;server-slug&gt;__&lt;tool&gt; for one tool, and mcp__* for
-     * every MCP tool. A specifier in parentheses, as in Bash(git push *), is
+     * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server&gt; for every tool of one
+     * MCP server, mcp__&lt;server&gt;__&lt;tool&gt; for one tool, and mcp__* for every MCP
+     * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
+     * names it, with every character outside letters, digits, _ and - written
+     * as _. A specifier in parentheses, as in Bash(git push *), is
      * accepted and governs the whole tool. Agent(explore, shell) also limits
      * which sub-agents this agent may start; the Cursor engine cannot hold its
      * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
@@ -3457,7 +3153,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       checkByteStringIsUtf8(value);
       ensureToolsIsMutable();
       tools_.add(value);
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -3468,7 +3164,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       if (!disallowedTools_.isModifiable()) {
         disallowedTools_ = new com.google.protobuf.LazyStringArrayList(disallowedTools_);
       }
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000080;
     }
     /**
      * <pre>
@@ -3539,7 +3235,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       ensureDisallowedToolsIsMutable();
       disallowedTools_.set(index, value);
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
@@ -3558,7 +3254,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       ensureDisallowedToolsIsMutable();
       disallowedTools_.add(value);
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
@@ -3577,7 +3273,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       ensureDisallowedToolsIsMutable();
       com.google.protobuf.AbstractMessageLite.Builder.addAll(
           values, disallowedTools_);
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
@@ -3593,7 +3289,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     public Builder clearDisallowedTools() {
       disallowedTools_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
-      bitField0_ = (bitField0_ & ~0x00000100);;
+      bitField0_ = (bitField0_ & ~0x00000080);;
       onChanged();
       return this;
     }
@@ -3613,7 +3309,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       checkByteStringIsUtf8(value);
       ensureDisallowedToolsIsMutable();
       disallowedTools_.add(value);
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
@@ -3621,9 +3317,9 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     private java.util.List<ai.stigmer.agentic.agent.v1.HookSource> hooks_ =
       java.util.Collections.emptyList();
     private void ensureHooksIsMutable() {
-      if (!((bitField0_ & 0x00000200) != 0)) {
+      if (!((bitField0_ & 0x00000100) != 0)) {
         hooks_ = new java.util.ArrayList<ai.stigmer.agentic.agent.v1.HookSource>(hooks_);
-        bitField0_ |= 0x00000200;
+        bitField0_ |= 0x00000100;
        }
     }
 
@@ -3632,10 +3328,10 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
 
     /**
      * <pre>
-     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     * Hooks written in this agent itself, run around its tool calls and its
+     * sub-agents' calls, after the hooks of the plugins it lists.
      *
-     * Each entry is a plugin whose hooks apply, or a hooks block written in the
-     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * A hook can refuse a call, ask a person first, or let it run
      * without the approval it would otherwise need. Both engines run hooks in
      * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
      * web search reach no hook, so an agent whose PreToolUse hooks would match
@@ -3654,10 +3350,10 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     * Hooks written in this agent itself, run around its tool calls and its
+     * sub-agents' calls, after the hooks of the plugins it lists.
      *
-     * Each entry is a plugin whose hooks apply, or a hooks block written in the
-     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * A hook can refuse a call, ask a person first, or let it run
      * without the approval it would otherwise need. Both engines run hooks in
      * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
      * web search reach no hook, so an agent whose PreToolUse hooks would match
@@ -3676,10 +3372,10 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     * Hooks written in this agent itself, run around its tool calls and its
+     * sub-agents' calls, after the hooks of the plugins it lists.
      *
-     * Each entry is a plugin whose hooks apply, or a hooks block written in the
-     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * A hook can refuse a call, ask a person first, or let it run
      * without the approval it would otherwise need. Both engines run hooks in
      * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
      * web search reach no hook, so an agent whose PreToolUse hooks would match
@@ -3698,10 +3394,10 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     * Hooks written in this agent itself, run around its tool calls and its
+     * sub-agents' calls, after the hooks of the plugins it lists.
      *
-     * Each entry is a plugin whose hooks apply, or a hooks block written in the
-     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * A hook can refuse a call, ask a person first, or let it run
      * without the approval it would otherwise need. Both engines run hooks in
      * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
      * web search reach no hook, so an agent whose PreToolUse hooks would match
@@ -3727,10 +3423,10 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     * Hooks written in this agent itself, run around its tool calls and its
+     * sub-agents' calls, after the hooks of the plugins it lists.
      *
-     * Each entry is a plugin whose hooks apply, or a hooks block written in the
-     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * A hook can refuse a call, ask a person first, or let it run
      * without the approval it would otherwise need. Both engines run hooks in
      * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
      * web search reach no hook, so an agent whose PreToolUse hooks would match
@@ -3753,10 +3449,10 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     * Hooks written in this agent itself, run around its tool calls and its
+     * sub-agents' calls, after the hooks of the plugins it lists.
      *
-     * Each entry is a plugin whose hooks apply, or a hooks block written in the
-     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * A hook can refuse a call, ask a person first, or let it run
      * without the approval it would otherwise need. Both engines run hooks in
      * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
      * web search reach no hook, so an agent whose PreToolUse hooks would match
@@ -3781,10 +3477,10 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     * Hooks written in this agent itself, run around its tool calls and its
+     * sub-agents' calls, after the hooks of the plugins it lists.
      *
-     * Each entry is a plugin whose hooks apply, or a hooks block written in the
-     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * A hook can refuse a call, ask a person first, or let it run
      * without the approval it would otherwise need. Both engines run hooks in
      * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
      * web search reach no hook, so an agent whose PreToolUse hooks would match
@@ -3810,10 +3506,10 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     * Hooks written in this agent itself, run around its tool calls and its
+     * sub-agents' calls, after the hooks of the plugins it lists.
      *
-     * Each entry is a plugin whose hooks apply, or a hooks block written in the
-     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * A hook can refuse a call, ask a person first, or let it run
      * without the approval it would otherwise need. Both engines run hooks in
      * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
      * web search reach no hook, so an agent whose PreToolUse hooks would match
@@ -3836,10 +3532,10 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     * Hooks written in this agent itself, run around its tool calls and its
+     * sub-agents' calls, after the hooks of the plugins it lists.
      *
-     * Each entry is a plugin whose hooks apply, or a hooks block written in the
-     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * A hook can refuse a call, ask a person first, or let it run
      * without the approval it would otherwise need. Both engines run hooks in
      * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
      * web search reach no hook, so an agent whose PreToolUse hooks would match
@@ -3862,10 +3558,10 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     * Hooks written in this agent itself, run around its tool calls and its
+     * sub-agents' calls, after the hooks of the plugins it lists.
      *
-     * Each entry is a plugin whose hooks apply, or a hooks block written in the
-     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * A hook can refuse a call, ask a person first, or let it run
      * without the approval it would otherwise need. Both engines run hooks in
      * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
      * web search reach no hook, so an agent whose PreToolUse hooks would match
@@ -3889,10 +3585,10 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     * Hooks written in this agent itself, run around its tool calls and its
+     * sub-agents' calls, after the hooks of the plugins it lists.
      *
-     * Each entry is a plugin whose hooks apply, or a hooks block written in the
-     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * A hook can refuse a call, ask a person first, or let it run
      * without the approval it would otherwise need. Both engines run hooks in
      * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
      * web search reach no hook, so an agent whose PreToolUse hooks would match
@@ -3905,7 +3601,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     public Builder clearHooks() {
       if (hooksBuilder_ == null) {
         hooks_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000200);
+        bitField0_ = (bitField0_ & ~0x00000100);
         onChanged();
       } else {
         hooksBuilder_.clear();
@@ -3914,10 +3610,10 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     * Hooks written in this agent itself, run around its tool calls and its
+     * sub-agents' calls, after the hooks of the plugins it lists.
      *
-     * Each entry is a plugin whose hooks apply, or a hooks block written in the
-     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * A hook can refuse a call, ask a person first, or let it run
      * without the approval it would otherwise need. Both engines run hooks in
      * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
      * web search reach no hook, so an agent whose PreToolUse hooks would match
@@ -3939,10 +3635,10 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     * Hooks written in this agent itself, run around its tool calls and its
+     * sub-agents' calls, after the hooks of the plugins it lists.
      *
-     * Each entry is a plugin whose hooks apply, or a hooks block written in the
-     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * A hook can refuse a call, ask a person first, or let it run
      * without the approval it would otherwise need. Both engines run hooks in
      * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
      * web search reach no hook, so an agent whose PreToolUse hooks would match
@@ -3958,10 +3654,10 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     * Hooks written in this agent itself, run around its tool calls and its
+     * sub-agents' calls, after the hooks of the plugins it lists.
      *
-     * Each entry is a plugin whose hooks apply, or a hooks block written in the
-     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * A hook can refuse a call, ask a person first, or let it run
      * without the approval it would otherwise need. Both engines run hooks in
      * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
      * web search reach no hook, so an agent whose PreToolUse hooks would match
@@ -3980,10 +3676,10 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     * Hooks written in this agent itself, run around its tool calls and its
+     * sub-agents' calls, after the hooks of the plugins it lists.
      *
-     * Each entry is a plugin whose hooks apply, or a hooks block written in the
-     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * A hook can refuse a call, ask a person first, or let it run
      * without the approval it would otherwise need. Both engines run hooks in
      * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
      * web search reach no hook, so an agent whose PreToolUse hooks would match
@@ -4003,10 +3699,10 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     * Hooks written in this agent itself, run around its tool calls and its
+     * sub-agents' calls, after the hooks of the plugins it lists.
      *
-     * Each entry is a plugin whose hooks apply, or a hooks block written in the
-     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * A hook can refuse a call, ask a person first, or let it run
      * without the approval it would otherwise need. Both engines run hooks in
      * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
      * web search reach no hook, so an agent whose PreToolUse hooks would match
@@ -4022,10 +3718,10 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     * Hooks written in this agent itself, run around its tool calls and its
+     * sub-agents' calls, after the hooks of the plugins it lists.
      *
-     * Each entry is a plugin whose hooks apply, or a hooks block written in the
-     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * A hook can refuse a call, ask a person first, or let it run
      * without the approval it would otherwise need. Both engines run hooks in
      * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
      * web search reach no hook, so an agent whose PreToolUse hooks would match
@@ -4042,10 +3738,10 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+     * Hooks written in this agent itself, run around its tool calls and its
+     * sub-agents' calls, after the hooks of the plugins it lists.
      *
-     * Each entry is a plugin whose hooks apply, or a hooks block written in the
-     * agent itself. A hook can refuse a call, ask a person first, or let it run
+     * A hook can refuse a call, ask a person first, or let it run
      * without the approval it would otherwise need. Both engines run hooks in
      * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
      * web search reach no hook, so an agent whose PreToolUse hooks would match
@@ -4066,7 +3762,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
         hooksBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.agent.v1.HookSource, ai.stigmer.agentic.agent.v1.HookSource.Builder, ai.stigmer.agentic.agent.v1.HookSourceOrBuilder>(
                 hooks_,
-                ((bitField0_ & 0x00000200) != 0),
+                ((bitField0_ & 0x00000100) != 0),
                 getParentForChildren(),
                 isClean());
         hooks_ = null;
@@ -4098,7 +3794,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * @return Whether the runConfig field is set.
      */
     public boolean hasRunConfig() {
-      return ((bitField0_ & 0x00000400) != 0);
+      return ((bitField0_ & 0x00000200) != 0);
     }
     /**
      * <pre>
@@ -4155,7 +3851,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       } else {
         runConfigBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }
@@ -4185,7 +3881,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       } else {
         runConfigBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }
@@ -4210,7 +3906,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      */
     public Builder mergeRunConfig(ai.stigmer.agentic.run.v1.RunConfig value) {
       if (runConfigBuilder_ == null) {
-        if (((bitField0_ & 0x00000400) != 0) &&
+        if (((bitField0_ & 0x00000200) != 0) &&
           runConfig_ != null &&
           runConfig_ != ai.stigmer.agentic.run.v1.RunConfig.getDefaultInstance()) {
           getRunConfigBuilder().mergeFrom(value);
@@ -4221,7 +3917,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
         runConfigBuilder_.mergeFrom(value);
       }
       if (runConfig_ != null) {
-        bitField0_ |= 0x00000400;
+        bitField0_ |= 0x00000200;
         onChanged();
       }
       return this;
@@ -4246,7 +3942,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.RunConfig run_config = 13 [json_name = "runConfig"];</code>
      */
     public Builder clearRunConfig() {
-      bitField0_ = (bitField0_ & ~0x00000400);
+      bitField0_ = (bitField0_ & ~0x00000200);
       runConfig_ = null;
       if (runConfigBuilder_ != null) {
         runConfigBuilder_.dispose();
@@ -4275,7 +3971,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.RunConfig run_config = 13 [json_name = "runConfig"];</code>
      */
     public ai.stigmer.agentic.run.v1.RunConfig.Builder getRunConfigBuilder() {
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000200;
       onChanged();
       return internalGetRunConfigFieldBuilder().getBuilder();
     }
@@ -4381,7 +4077,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      */
     public Builder setHarnessValue(int value) {
       harness_ = value;
-      bitField0_ |= 0x00000800;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }
@@ -4427,7 +4123,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      */
     public Builder setHarness(ai.stigmer.agentic.session.v1.Harness value) {
       if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00000800;
+      bitField0_ |= 0x00000400;
       harness_ = value.getNumber();
       onChanged();
       return this;
@@ -4450,10 +4146,340 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * @return This builder for chaining.
      */
     public Builder clearHarness() {
-      bitField0_ = (bitField0_ & ~0x00000800);
+      bitField0_ = (bitField0_ & ~0x00000400);
       harness_ = 0;
       onChanged();
       return this;
+    }
+
+    private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> plugins_ =
+      java.util.Collections.emptyList();
+    private void ensurePluginsIsMutable() {
+      if (!((bitField0_ & 0x00000800) != 0)) {
+        plugins_ = new java.util.ArrayList<ai.stigmer.commons.apiresource.ApiResourceReference>(plugins_);
+        bitField0_ |= 0x00000800;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> pluginsBuilder_;
+
+    /**
+     * <pre>
+     * Plugins this agent uses, each whole: its skills, agents, hooks and MCP
+     * servers.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     */
+    public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> getPluginsList() {
+      if (pluginsBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(plugins_);
+      } else {
+        return pluginsBuilder_.getMessageList();
+      }
+    }
+    /**
+     * <pre>
+     * Plugins this agent uses, each whole: its skills, agents, hooks and MCP
+     * servers.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     */
+    public int getPluginsCount() {
+      if (pluginsBuilder_ == null) {
+        return plugins_.size();
+      } else {
+        return pluginsBuilder_.getCount();
+      }
+    }
+    /**
+     * <pre>
+     * Plugins this agent uses, each whole: its skills, agents, hooks and MCP
+     * servers.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReference getPlugins(int index) {
+      if (pluginsBuilder_ == null) {
+        return plugins_.get(index);
+      } else {
+        return pluginsBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <pre>
+     * Plugins this agent uses, each whole: its skills, agents, hooks and MCP
+     * servers.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder setPlugins(
+        int index, ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (pluginsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensurePluginsIsMutable();
+        plugins_.set(index, value);
+        onChanged();
+      } else {
+        pluginsBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Plugins this agent uses, each whole: its skills, agents, hooks and MCP
+     * servers.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder setPlugins(
+        int index, ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
+      if (pluginsBuilder_ == null) {
+        ensurePluginsIsMutable();
+        plugins_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        pluginsBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Plugins this agent uses, each whole: its skills, agents, hooks and MCP
+     * servers.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addPlugins(ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (pluginsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensurePluginsIsMutable();
+        plugins_.add(value);
+        onChanged();
+      } else {
+        pluginsBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Plugins this agent uses, each whole: its skills, agents, hooks and MCP
+     * servers.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addPlugins(
+        int index, ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (pluginsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensurePluginsIsMutable();
+        plugins_.add(index, value);
+        onChanged();
+      } else {
+        pluginsBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Plugins this agent uses, each whole: its skills, agents, hooks and MCP
+     * servers.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addPlugins(
+        ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
+      if (pluginsBuilder_ == null) {
+        ensurePluginsIsMutable();
+        plugins_.add(builderForValue.build());
+        onChanged();
+      } else {
+        pluginsBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Plugins this agent uses, each whole: its skills, agents, hooks and MCP
+     * servers.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addPlugins(
+        int index, ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
+      if (pluginsBuilder_ == null) {
+        ensurePluginsIsMutable();
+        plugins_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        pluginsBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Plugins this agent uses, each whole: its skills, agents, hooks and MCP
+     * servers.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addAllPlugins(
+        java.lang.Iterable<? extends ai.stigmer.commons.apiresource.ApiResourceReference> values) {
+      if (pluginsBuilder_ == null) {
+        ensurePluginsIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, plugins_);
+        onChanged();
+      } else {
+        pluginsBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Plugins this agent uses, each whole: its skills, agents, hooks and MCP
+     * servers.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder clearPlugins() {
+      if (pluginsBuilder_ == null) {
+        plugins_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000800);
+        onChanged();
+      } else {
+        pluginsBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Plugins this agent uses, each whole: its skills, agents, hooks and MCP
+     * servers.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder removePlugins(int index) {
+      if (pluginsBuilder_ == null) {
+        ensurePluginsIsMutable();
+        plugins_.remove(index);
+        onChanged();
+      } else {
+        pluginsBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Plugins this agent uses, each whole: its skills, agents, hooks and MCP
+     * servers.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder getPluginsBuilder(
+        int index) {
+      return internalGetPluginsFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <pre>
+     * Plugins this agent uses, each whole: its skills, agents, hooks and MCP
+     * servers.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getPluginsOrBuilder(
+        int index) {
+      if (pluginsBuilder_ == null) {
+        return plugins_.get(index);  } else {
+        return pluginsBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <pre>
+     * Plugins this agent uses, each whole: its skills, agents, hooks and MCP
+     * servers.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     */
+    public java.util.List<? extends ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
+         getPluginsOrBuilderList() {
+      if (pluginsBuilder_ != null) {
+        return pluginsBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(plugins_);
+      }
+    }
+    /**
+     * <pre>
+     * Plugins this agent uses, each whole: its skills, agents, hooks and MCP
+     * servers.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder addPluginsBuilder() {
+      return internalGetPluginsFieldBuilder().addBuilder(
+          ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Plugins this agent uses, each whole: its skills, agents, hooks and MCP
+     * servers.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder addPluginsBuilder(
+        int index) {
+      return internalGetPluginsFieldBuilder().addBuilder(
+          index, ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Plugins this agent uses, each whole: its skills, agents, hooks and MCP
+     * servers.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     */
+    public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference.Builder> 
+         getPluginsBuilderList() {
+      return internalGetPluginsFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
+        internalGetPluginsFieldBuilder() {
+      if (pluginsBuilder_ == null) {
+        pluginsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
+                plugins_,
+                ((bitField0_ & 0x00000800) != 0),
+                getParentForChildren(),
+                isClean());
+        plugins_ = null;
+      }
+      return pluginsBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agent.v1.AgentSpec)

@@ -42,7 +42,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "igmer/commons/apiresource/io.proto\0328ai/s" +
       "tigmer/commons/apiresource/rpc_service_o" +
       "ptions.proto\032+ai/stigmer/commons/rpc/met" +
-      "hod_options.proto2\332\005\n\027PluginCommandContr" +
+      "hod_options.proto2\211\007\n\027PluginCommandContr" +
       "oller\022\241\001\n\004push\022/.ai.stigmer.agentic.plug" +
       "in.v1.PushPluginRequest\032$.ai.stigmer.age" +
       "ntic.plugin.v1.Plugin\"B\302\270\030>\010(\020\036\"\003org*3un" +
@@ -60,12 +60,16 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "ibility\022\206\001\n\006delete\022&.ai.stigmer.agentic." +
       "plugin.v1.PluginId\032$.ai.stigmer.agentic." +
       "plugin.v1.Plugin\".\302\270\030*\010\003\020:\"\005value*\035unaut" +
-      "horized to delete plugin\032\004\240\377+:B\243\001B\014Comma" +
-      "ndProtoP\001\242\002\004ASAP\252\002\034Ai.Stigmer.Agentic.Pl" +
-      "ugin.V1\312\002\034Ai\\Stigmer\\Agentic\\Plugin\\V1\342\002" +
-      "(Ai\\Stigmer\\Agentic\\Plugin\\V1\\GPBMetadat" +
-      "a\352\002 Ai::Stigmer::Agentic::Plugin::V1b\006pr" +
-      "oto3"
+      "horized to delete plugin\022\254\001\n\tlistTools\0222" +
+      ".ai.stigmer.agentic.plugin.v1.ListPlugin" +
+      "ToolsInput\0323.ai.stigmer.agentic.plugin.v" +
+      "1.ListPluginToolsOutput\"6\302\270\0302\010\001\020:\"\tplugi" +
+      "n_id*!unauthorized to list plugin tools\032" +
+      "\004\240\377+:B\243\001B\014CommandProtoP\001\242\002\004ASAP\252\002\034Ai.Sti" +
+      "gmer.Agentic.Plugin.V1\312\002\034Ai\\Stigmer\\Agen" +
+      "tic\\Plugin\\V1\342\002(Ai\\Stigmer\\Agentic\\Plugi" +
+      "n\\V1\\GPBMetadata\352\002 Ai::Stigmer::Agentic:" +
+      ":Plugin::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

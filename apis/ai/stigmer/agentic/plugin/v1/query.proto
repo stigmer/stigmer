@@ -34,20 +34,6 @@ service PluginQueryController {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
-  // List the resources an installed plugin materialised.
-  //
-  // Returns every skill, MCP server and agent the plugin owns, in
-  // materialisation order.
-  //
-  // @internal
-  // Derived on read from the stigmer.ai/plugin label on the three child kinds.
-  rpc listMembers(PluginId) returns (ListPluginMembersResponse) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = plugin;
-    option (ai.stigmer.commons.rpc.config).permission = can_view;
-    option (ai.stigmer.commons.rpc.config).field_path = "value";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to list plugin members";
-  }
-
   // Download a plugin archive from storage by its storage key.
   // Returns the ZIP file the plugin was installed from.
   //

@@ -167,7 +167,7 @@ export const FindApiResourcesRequestSchema: GenMessage<FindApiResourcesRequest> 
  *
  * Not all resources support all visibility levels — the supported set is
  * declared per kind via VisibilityConfig in kind_meta:
- * - Blueprints (agent, skill, mcp_server, plugin):
+ * - Blueprints (agent, skill, plugin):
  *     PRIVATE, ORG, or CHILD_ORGS
  * - Org-only kinds (vault):
  *     PRIVATE or ORG (never CHILD_ORGS — tenant isolation)
@@ -245,7 +245,7 @@ export const RenameInputSchema: GenMessage<RenameInput> = /*@__PURE__*/
  * written: the target must exist, and a target in another organization
  * must be one the writing organization's parent shares with its child
  * organizations (visibility_child_orgs) to be referenced at all. A blueprint may not be
- * more visible than the skills, MCP servers and agents it references, so
+ * more visible than the skills, plugins and agents it references, so
  * what a person can run they can also read. A reference that fails the
  * check is refused at write, never at run.
  *

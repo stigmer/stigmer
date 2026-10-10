@@ -132,14 +132,6 @@ public enum IamPermission
   can_bootstrap_iam(17),
   /**
    * <pre>
-   * MCP server connect permission.
-   * </pre>
-   *
-   * <code>can_connect = 22;</code>
-   */
-  can_connect(22),
-  /**
-   * <pre>
    * Billing permissions (org-scoped).
    * </pre>
    *
@@ -240,11 +232,8 @@ public enum IamPermission
   /**
    * <pre>
    * Organization-level permission to install a plugin: push an Agent
-   * Plugins archive that the server materialises into skills, MCP servers
-   * and an agent in the organization. Distinct from the child
-   * kinds' create permissions, which the materialisation also evaluates for
-   * the installing caller: who may bring a package into an organization is a
-   * policy an administrator sets on its own.
+   * Plugins archive into the organization. Who may bring a package into an
+   * organization is a policy an administrator sets on its own.
    * </pre>
    *
    * <code>can_create_plugin = 40;</code>
@@ -274,15 +263,6 @@ public enum IamPermission
    * <code>can_issue_license = 42;</code>
    */
   can_issue_license(42),
-  /**
-   * <pre>
-   * Organization-level permission to create an MCP server in the
-   * organization.
-   * </pre>
-   *
-   * <code>can_create_mcp_server = 43;</code>
-   */
-  can_create_mcp_server(43),
   /**
    * <pre>
    * Organization-level permission to create a team in the organization.
@@ -466,14 +446,6 @@ public enum IamPermission
   public static final int can_bootstrap_iam_VALUE = 17;
   /**
    * <pre>
-   * MCP server connect permission.
-   * </pre>
-   *
-   * <code>can_connect = 22;</code>
-   */
-  public static final int can_connect_VALUE = 22;
-  /**
-   * <pre>
    * Billing permissions (org-scoped).
    * </pre>
    *
@@ -574,11 +546,8 @@ public enum IamPermission
   /**
    * <pre>
    * Organization-level permission to install a plugin: push an Agent
-   * Plugins archive that the server materialises into skills, MCP servers
-   * and an agent in the organization. Distinct from the child
-   * kinds' create permissions, which the materialisation also evaluates for
-   * the installing caller: who may bring a package into an organization is a
-   * policy an administrator sets on its own.
+   * Plugins archive into the organization. Who may bring a package into an
+   * organization is a policy an administrator sets on its own.
    * </pre>
    *
    * <code>can_create_plugin = 40;</code>
@@ -608,15 +577,6 @@ public enum IamPermission
    * <code>can_issue_license = 42;</code>
    */
   public static final int can_issue_license_VALUE = 42;
-  /**
-   * <pre>
-   * Organization-level permission to create an MCP server in the
-   * organization.
-   * </pre>
-   *
-   * <code>can_create_mcp_server = 43;</code>
-   */
-  public static final int can_create_mcp_server_VALUE = 43;
   /**
    * <pre>
    * Organization-level permission to create a team in the organization.
@@ -724,7 +684,6 @@ public enum IamPermission
       case 13: return can_create_run_in;
       case 15: return can_execute;
       case 17: return can_bootstrap_iam;
-      case 22: return can_connect;
       case 27: return can_view_billing;
       case 28: return can_manage_billing;
       case 29: return can_execute_billing_ops;
@@ -738,7 +697,6 @@ public enum IamPermission
       case 40: return can_create_plugin;
       case 41: return can_manage_plans;
       case 42: return can_issue_license;
-      case 43: return can_create_mcp_server;
       case 45: return can_create_team;
       case 46: return can_manage_credits;
       case 49: return can_manage_child_orgs;

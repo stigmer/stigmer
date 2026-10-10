@@ -134,7 +134,7 @@ export type SearchResponse = Message<"ai.stigmer.search.v1.SearchResponse"> & {
    * (not just the current page).
    *
    * Useful for rendering UI tabs or filter badges showing counts.
-   * Example: {"agent": 5, "skill": 12, "mcp_server": 3}
+   * Example: {"agent": 5, "skill": 12, "plugin": 3}
    *
    * @generated from field: map<string, int32> counts_by_kind = 2;
    */
@@ -183,7 +183,7 @@ export const SearchResponseSchema: GenMessage<SearchResponse> = /*@__PURE__*/
  */
 export type SearchResult = Message<"ai.stigmer.search.v1.SearchResult"> & {
   /**
-   * Type of API resource this result represents (e.g., agent, skill, mcp_server).
+   * Type of API resource this result represents (e.g., agent, skill, plugin).
    *
    * @generated from field: ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kind = 1;
    */

@@ -23,13 +23,14 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Plugin is an installed Agent Plugins package: the unit of install, upgrade
-// and removal for a set of skills, MCP servers and an agent.
+// Plugin is an installed Agent Plugins package: one thing holding skills,
+// agents, hooks and MCP servers, installed, upgraded and removed whole.
 //
-// A plugin is what you install; an agent is what runs. Installing a plugin
-// materialises ordinary Stigmer resources in the organization, each labelled
-// with the plugin's id; the plugin owns their grouping, version and removal
-// while execution, authorization and sharing stay on the resources.
+// Installing a plugin adds it to the organization and creates nothing else.
+// An agent or a conversation lists the plugins it uses; a turn then gets
+// every part of each, named under the plugin: its skills as
+// <plugin>:<skill>, its agents as <plugin>:<agent>, its hooks, and its
+// servers' tools.
 type Plugin struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// API version for this resource type.

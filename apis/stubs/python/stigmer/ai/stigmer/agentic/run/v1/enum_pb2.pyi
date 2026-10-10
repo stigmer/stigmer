@@ -254,6 +254,7 @@ class RunValueDeclarerKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     RUN_VALUE_DECLARER_KIND_AGENT: _ClassVar[RunValueDeclarerKind]
     RUN_VALUE_DECLARER_KIND_TOOL: _ClassVar[RunValueDeclarerKind]
     RUN_VALUE_DECLARER_KIND_REPOSITORY: _ClassVar[RunValueDeclarerKind]
+    RUN_VALUE_DECLARER_KIND_PLUGIN: _ClassVar[RunValueDeclarerKind]
 
 class RunValueOrigin(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -418,6 +419,7 @@ RUN_VALUE_DECLARER_KIND_UNSPECIFIED: RunValueDeclarerKind
 RUN_VALUE_DECLARER_KIND_AGENT: RunValueDeclarerKind
 RUN_VALUE_DECLARER_KIND_TOOL: RunValueDeclarerKind
 RUN_VALUE_DECLARER_KIND_REPOSITORY: RunValueDeclarerKind
+RUN_VALUE_DECLARER_KIND_PLUGIN: RunValueDeclarerKind
 RUN_VALUE_ORIGIN_UNSPECIFIED: RunValueOrigin
 RUN_VALUE_ORIGIN_REPOSITORY_TOKEN: RunValueOrigin
 RUN_VALUE_ORIGIN_MY_VAULT: RunValueOrigin

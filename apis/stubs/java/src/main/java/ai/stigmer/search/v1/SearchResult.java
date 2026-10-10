@@ -76,7 +76,7 @@ private static final long serialVersionUID = 0L;
   private int kind_ = 0;
   /**
    * <pre>
-   * Type of API resource this result represents (e.g., agent, skill, mcp_server).
+   * Type of API resource this result represents (e.g., agent, skill, plugin).
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kind = 1 [json_name = "kind"];</code>
@@ -87,7 +87,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Type of API resource this result represents (e.g., agent, skill, mcp_server).
+   * Type of API resource this result represents (e.g., agent, skill, plugin).
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kind = 1 [json_name = "kind"];</code>
@@ -1302,7 +1302,7 @@ private static final long serialVersionUID = 0L;
     private int kind_ = 0;
     /**
      * <pre>
-     * Type of API resource this result represents (e.g., agent, skill, mcp_server).
+     * Type of API resource this result represents (e.g., agent, skill, plugin).
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kind = 1 [json_name = "kind"];</code>
@@ -1313,7 +1313,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Type of API resource this result represents (e.g., agent, skill, mcp_server).
+     * Type of API resource this result represents (e.g., agent, skill, plugin).
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kind = 1 [json_name = "kind"];</code>
@@ -1329,7 +1329,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Type of API resource this result represents (e.g., agent, skill, mcp_server).
+     * Type of API resource this result represents (e.g., agent, skill, plugin).
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kind = 1 [json_name = "kind"];</code>
@@ -1342,7 +1342,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Type of API resource this result represents (e.g., agent, skill, mcp_server).
+     * Type of API resource this result represents (e.g., agent, skill, plugin).
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kind = 1 [json_name = "kind"];</code>
@@ -1358,7 +1358,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Type of API resource this result represents (e.g., agent, skill, mcp_server).
+     * Type of API resource this result represents (e.g., agent, skill, plugin).
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kind = 1 [json_name = "kind"];</code>

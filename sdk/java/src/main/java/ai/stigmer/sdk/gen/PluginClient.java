@@ -5,7 +5,8 @@ package ai.stigmer.sdk.gen;
 import ai.stigmer.agentic.plugin.v1.CreatePluginArtifactUploadUrlRequest;
 import ai.stigmer.agentic.plugin.v1.GetArtifactRequest;
 import ai.stigmer.agentic.plugin.v1.GetArtifactResponse;
-import ai.stigmer.agentic.plugin.v1.ListPluginMembersResponse;
+import ai.stigmer.agentic.plugin.v1.ListPluginToolsInput;
+import ai.stigmer.agentic.plugin.v1.ListPluginToolsOutput;
 import ai.stigmer.agentic.plugin.v1.ListPluginVersionsInput;
 import ai.stigmer.agentic.plugin.v1.ListPluginVersionsResponse;
 import ai.stigmer.agentic.plugin.v1.Plugin;
@@ -60,6 +61,12 @@ public final class PluginClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
+    public ListPluginToolsOutput listTools(ListPluginToolsInput input) {
+        try {
+            return command.listTools(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
     public Plugin get(String id) {
         try {
             return query.get(PluginId.newBuilder().setValue(id).build());
@@ -69,12 +76,6 @@ public final class PluginClient {
     public Plugin getByReference(ResourceRef ref) {
         try {
             return query.getByReference(ref.toProto().toBuilder().setKind(ApiResourceKind.plugin).build());
-        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
-    }
-
-    public ListPluginMembersResponse listMembers(String id) {
-        try {
-            return query.listMembers(PluginId.newBuilder().setValue(id).build());
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

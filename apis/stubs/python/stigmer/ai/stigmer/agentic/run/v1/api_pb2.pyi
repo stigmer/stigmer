@@ -128,16 +128,18 @@ class RunValueSource(_message.Message):
     def __init__(self, key: _Optional[str] = ..., declarer: _Optional[_Union[RunValueDeclarer, _Mapping]] = ..., origin: _Optional[_Union[_enum_pb2.RunValueOrigin, str]] = ..., vault_id: _Optional[str] = ..., entry: _Optional[str] = ..., login: bool = ..., plain_value: _Optional[str] = ...) -> None: ...
 
 class RunValueDeclarer(_message.Message):
-    __slots__ = ("kind", "name", "mcp_server_id", "repository_url")
+    __slots__ = ("kind", "name", "repository_url", "plugin_id", "server")
     KIND_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
-    MCP_SERVER_ID_FIELD_NUMBER: _ClassVar[int]
     REPOSITORY_URL_FIELD_NUMBER: _ClassVar[int]
+    PLUGIN_ID_FIELD_NUMBER: _ClassVar[int]
+    SERVER_FIELD_NUMBER: _ClassVar[int]
     kind: _enum_pb2.RunValueDeclarerKind
     name: str
-    mcp_server_id: str
     repository_url: str
-    def __init__(self, kind: _Optional[_Union[_enum_pb2.RunValueDeclarerKind, str]] = ..., name: _Optional[str] = ..., mcp_server_id: _Optional[str] = ..., repository_url: _Optional[str] = ...) -> None: ...
+    plugin_id: str
+    server: str
+    def __init__(self, kind: _Optional[_Union[_enum_pb2.RunValueDeclarerKind, str]] = ..., name: _Optional[str] = ..., repository_url: _Optional[str] = ..., plugin_id: _Optional[str] = ..., server: _Optional[str] = ...) -> None: ...
 
 class SetupProgress(_message.Message):
     __slots__ = ("current_phase",)

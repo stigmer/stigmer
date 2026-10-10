@@ -544,17 +544,27 @@ message RunValueSource {
 
 // RunValueDeclarer names who declared a value a turn uses.
 message RunValueDeclarer {
-  // Agent, tool or repository.
+  // Agent, tool, plugin or repository.
   RunValueDeclarerKind kind = 1;
 
-  // The agent's or tool's name, or the repository entry's name.
+  // The agent's name; a tool's name as plugin:<plugin>:<server>; the
+  // plugin's name; or the repository entry's name.
   string name = 2;
 
-  // The tool's MCP server id; empty for an agent or a repository.
-  string mcp_server_id = 3;
+  // Field 3 held a tool's MCP server id until an MCP server became an entry
+  // inside a plugin; a tool is named by plugin_id and server.
+  reserved 3;
+  reserved "mcp_server_id";
 
-  // The repository's URL; empty for an agent or a tool.
+  // The repository's URL; empty for an agent, a tool or a plugin.
   string repository_url = 4;
+
+  // The plugin that declared it: a tool's plugin, or the plugin whose hooks
+  // read it; empty for an agent or a repository.
+  string plugin_id = 5;
+
+  // The tool's server name in its plugin; empty for everything else.
+  string server = 6;
 }
 
 // Setup progress reported during the RUN_PENDING phase.

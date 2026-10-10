@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { CreatePluginArtifactUploadUrlRequest, PluginArtifactUploadUrl, PluginId, PushPluginRequest } from "./io_pbjs";
+import { CreatePluginArtifactUploadUrlRequest, ListPluginToolsInput, ListPluginToolsOutput, PluginArtifactUploadUrl, PluginId, PushPluginRequest } from "./io_pbjs";
 import { Plugin } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { UpdateVisibilityInput } from "../../../commons/apiresource/io_pbjs";
@@ -21,7 +21,7 @@ export const PluginCommandController = {
      * Creates the plugin if it does not exist, or installs a new version of an
      * existing plugin; pushing the archive already installed changes nothing.
      * The archive is a plugin folder in the Agent Plugins, Cursor, Claude Code
-     * or Codex layout; the response's status names what was materialised and
+     * or Codex layout; the response's status lists what the plugin holds and
      * what was skipped.
      *
      * @generated from rpc ai.stigmer.agentic.plugin.v1.PluginCommandController.push
@@ -49,8 +49,8 @@ export const PluginCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Update the visibility of a plugin and of every resource it materialised.
-     * Only modifies metadata.visibility on the plugin and its members.
+     * Update the visibility of a plugin.
+     * Only modifies metadata.visibility.
      *
      * @generated from rpc ai.stigmer.agentic.plugin.v1.PluginCommandController.updateVisibility
      */
@@ -61,9 +61,9 @@ export const PluginCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Delete a plugin and every resource it materialised.
-     * Refused when a resource outside the plugin still references a member;
-     * the error names the referencing resources.
+     * Delete a plugin.
+     * Refused while an agent of the organization lists it; the error names the
+     * agents.
      *
      * @generated from rpc ai.stigmer.agentic.plugin.v1.PluginCommandController.delete
      */
@@ -71,6 +71,23 @@ export const PluginCommandController = {
       name: "delete",
       I: PluginId,
       O: Plugin,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * List the tools one of a plugin's MCP servers offers now, signed in as
+     * the caller. Nothing is stored.
+     *
+     * Errors:
+     * - FAILED_PRECONDITION: a key the server needs is in none of the caller's
+     *   vaults, or the server needs a sign-in the caller has not made
+     * - NOT_FOUND: the plugin, or the server in it, does not exist
+     *
+     * @generated from rpc ai.stigmer.agentic.plugin.v1.PluginCommandController.listTools
+     */
+    listTools: {
+      name: "listTools",
+      I: ListPluginToolsInput,
+      O: ListPluginToolsOutput,
       kind: MethodKind.Unary,
     },
   }

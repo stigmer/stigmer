@@ -194,7 +194,7 @@ public interface ApprovalRequestOrBuilder extends
 
   /**
    * <pre>
-   * Slug of the MCP server providing this tool; empty for built-in tools.
+   * Name of the MCP server providing this tool; empty for built-in tools.
    * Copied from ToolCall.mcp_server_slug.
    * </pre>
    *
@@ -204,7 +204,7 @@ public interface ApprovalRequestOrBuilder extends
   java.lang.String getMcpServerSlug();
   /**
    * <pre>
-   * Slug of the MCP server providing this tool; empty for built-in tools.
+   * Name of the MCP server providing this tool; empty for built-in tools.
    * Copied from ToolCall.mcp_server_slug.
    * </pre>
    *

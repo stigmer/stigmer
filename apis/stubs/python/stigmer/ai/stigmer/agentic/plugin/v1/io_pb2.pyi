@@ -1,6 +1,5 @@
 import datetime
 
-from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2 as _api_resource_kind_pb2
 from ai.stigmer.commons.apiresource import enum_pb2 as _enum_pb2
 from ai.stigmer.commons.apiresource import status_pb2 as _status_pb2
 from buf.validate import validate_pb2 as _validate_pb2
@@ -73,23 +72,31 @@ class PluginArtifactDownloadUrl(_message.Message):
     size_bytes: int
     def __init__(self, url: _Optional[str] = ..., ttl_seconds: _Optional[int] = ..., size_bytes: _Optional[int] = ...) -> None: ...
 
-class PluginMember(_message.Message):
-    __slots__ = ("kind", "id", "slug", "name")
-    KIND_FIELD_NUMBER: _ClassVar[int]
-    ID_FIELD_NUMBER: _ClassVar[int]
-    SLUG_FIELD_NUMBER: _ClassVar[int]
-    NAME_FIELD_NUMBER: _ClassVar[int]
-    kind: _api_resource_kind_pb2.ApiResourceKind
-    id: str
-    slug: str
-    name: str
-    def __init__(self, kind: _Optional[_Union[_api_resource_kind_pb2.ApiResourceKind, str]] = ..., id: _Optional[str] = ..., slug: _Optional[str] = ..., name: _Optional[str] = ...) -> None: ...
+class ListPluginToolsInput(_message.Message):
+    __slots__ = ("plugin_id", "server", "org")
+    PLUGIN_ID_FIELD_NUMBER: _ClassVar[int]
+    SERVER_FIELD_NUMBER: _ClassVar[int]
+    ORG_FIELD_NUMBER: _ClassVar[int]
+    plugin_id: str
+    server: str
+    org: str
+    def __init__(self, plugin_id: _Optional[str] = ..., server: _Optional[str] = ..., org: _Optional[str] = ...) -> None: ...
 
-class ListPluginMembersResponse(_message.Message):
-    __slots__ = ("members",)
-    MEMBERS_FIELD_NUMBER: _ClassVar[int]
-    members: _containers.RepeatedCompositeFieldContainer[PluginMember]
-    def __init__(self, members: _Optional[_Iterable[_Union[PluginMember, _Mapping]]] = ...) -> None: ...
+class ListPluginToolsOutput(_message.Message):
+    __slots__ = ("tools",)
+    TOOLS_FIELD_NUMBER: _ClassVar[int]
+    tools: _containers.RepeatedCompositeFieldContainer[PluginTool]
+    def __init__(self, tools: _Optional[_Iterable[_Union[PluginTool, _Mapping]]] = ...) -> None: ...
+
+class PluginTool(_message.Message):
+    __slots__ = ("name", "description", "destructive")
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    DESCRIPTION_FIELD_NUMBER: _ClassVar[int]
+    DESTRUCTIVE_FIELD_NUMBER: _ClassVar[int]
+    name: str
+    description: str
+    destructive: bool
+    def __init__(self, name: _Optional[str] = ..., description: _Optional[str] = ..., destructive: bool = ...) -> None: ...
 
 class ListPluginVersionsInput(_message.Message):
     __slots__ = ("org", "slug", "page_token", "page_size")

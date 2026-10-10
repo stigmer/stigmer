@@ -37,12 +37,12 @@ private static final long serialVersionUID = 0L;
     harnessStateIdHistory_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
     workspaceEntries_ = java.util.Collections.emptyList();
-    mcpServerUsages_ = java.util.Collections.emptyList();
     skillRefs_ = java.util.Collections.emptyList();
     harness_ = 0;
     cursorMode_ = 0;
     executionTarget_ = 0;
     vaults_ = java.util.Collections.emptyList();
+    plugins_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -82,7 +82,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * The agent this conversation runs, as 'org/slug' with an optional
    * version; empty means no agent, and the built-in assistant answers with
-   * the MCP servers and skills this session itself declares.
+   * the plugins and skills this session itself declares.
    *
    * The conversation runs the agent version this reference resolved to
    * when it was written, recorded in status.agent_id and
@@ -114,7 +114,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * The agent this conversation runs, as 'org/slug' with an optional
    * version; empty means no agent, and the built-in assistant answers with
-   * the MCP servers and skills this session itself declares.
+   * the plugins and skills this session itself declares.
    *
    * The conversation runs the agent version this reference resolved to
    * when it was written, recorded in status.agent_id and
@@ -146,7 +146,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * The agent this conversation runs, as 'org/slug' with an optional
    * version; empty means no agent, and the built-in assistant answers with
-   * the MCP servers and skills this session itself declares.
+   * the plugins and skills this session itself declares.
    *
    * The conversation runs the agent version this reference resolved to
    * when it was written, recorded in status.agent_id and
@@ -545,92 +545,6 @@ java.lang.String defaultValue) {
     return workspaceEntries_.get(index);
   }
 
-  public static final int MCP_SERVER_USAGES_FIELD_NUMBER = 7;
-  @SuppressWarnings("serial")
-  private java.util.List<ai.stigmer.agentic.mcpserver.v1.McpServerUsage> mcpServerUsages_;
-  /**
-   * <pre>
-   * MCP servers to make available in this session.
-   *
-   * Augments the agent's tool set for this specific conversation without
-   * modifying the agent blueprint. Each usage references an McpServer
-   * resource. The agent's tool lists govern these servers like its own: an
-   * agent whose tools list does not name a session server cannot use it.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-   */
-  @java.lang.Override
-  public java.util.List<ai.stigmer.agentic.mcpserver.v1.McpServerUsage> getMcpServerUsagesList() {
-    return mcpServerUsages_;
-  }
-  /**
-   * <pre>
-   * MCP servers to make available in this session.
-   *
-   * Augments the agent's tool set for this specific conversation without
-   * modifying the agent blueprint. Each usage references an McpServer
-   * resource. The agent's tool lists govern these servers like its own: an
-   * agent whose tools list does not name a session server cannot use it.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-   */
-  @java.lang.Override
-  public java.util.List<? extends ai.stigmer.agentic.mcpserver.v1.McpServerUsageOrBuilder> 
-      getMcpServerUsagesOrBuilderList() {
-    return mcpServerUsages_;
-  }
-  /**
-   * <pre>
-   * MCP servers to make available in this session.
-   *
-   * Augments the agent's tool set for this specific conversation without
-   * modifying the agent blueprint. Each usage references an McpServer
-   * resource. The agent's tool lists govern these servers like its own: an
-   * agent whose tools list does not name a session server cannot use it.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-   */
-  @java.lang.Override
-  public int getMcpServerUsagesCount() {
-    return mcpServerUsages_.size();
-  }
-  /**
-   * <pre>
-   * MCP servers to make available in this session.
-   *
-   * Augments the agent's tool set for this specific conversation without
-   * modifying the agent blueprint. Each usage references an McpServer
-   * resource. The agent's tool lists govern these servers like its own: an
-   * agent whose tools list does not name a session server cannot use it.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.mcpserver.v1.McpServerUsage getMcpServerUsages(int index) {
-    return mcpServerUsages_.get(index);
-  }
-  /**
-   * <pre>
-   * MCP servers to make available in this session.
-   *
-   * Augments the agent's tool set for this specific conversation without
-   * modifying the agent blueprint. Each usage references an McpServer
-   * resource. The agent's tool lists govern these servers like its own: an
-   * agent whose tools list does not name a session server cannot use it.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.mcpserver.v1.McpServerUsageOrBuilder getMcpServerUsagesOrBuilder(
-      int index) {
-    return mcpServerUsages_.get(index);
-  }
-
   public static final int SKILL_REFS_FIELD_NUMBER = 8;
   @SuppressWarnings("serial")
   private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> skillRefs_;
@@ -985,6 +899,92 @@ java.lang.String defaultValue) {
     return includeMyVault_;
   }
 
+  public static final int PLUGINS_FIELD_NUMBER = 19;
+  @SuppressWarnings("serial")
+  private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> plugins_;
+  /**
+   * <pre>
+   * Plugins this conversation uses, each whole, besides its agent's: their
+   * skills, agents, hooks and MCP servers. A chat with the built-in
+   * assistant gets its tools from these.
+   *
+   * The agent's tool lists govern a conversation's plugins like its own: an
+   * agent whose tools list does not name a plugin's server cannot use it.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 19 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> getPluginsList() {
+    return plugins_;
+  }
+  /**
+   * <pre>
+   * Plugins this conversation uses, each whole, besides its agent's: their
+   * skills, agents, hooks and MCP servers. A chat with the built-in
+   * assistant gets its tools from these.
+   *
+   * The agent's tool lists govern a conversation's plugins like its own: an
+   * agent whose tools list does not name a plugin's server cannot use it.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 19 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public java.util.List<? extends ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
+      getPluginsOrBuilderList() {
+    return plugins_;
+  }
+  /**
+   * <pre>
+   * Plugins this conversation uses, each whole, besides its agent's: their
+   * skills, agents, hooks and MCP servers. A chat with the built-in
+   * assistant gets its tools from these.
+   *
+   * The agent's tool lists govern a conversation's plugins like its own: an
+   * agent whose tools list does not name a plugin's server cannot use it.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 19 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public int getPluginsCount() {
+    return plugins_.size();
+  }
+  /**
+   * <pre>
+   * Plugins this conversation uses, each whole, besides its agent's: their
+   * skills, agents, hooks and MCP servers. A chat with the built-in
+   * assistant gets its tools from these.
+   *
+   * The agent's tool lists govern a conversation's plugins like its own: an
+   * agent whose tools list does not name a plugin's server cannot use it.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 19 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.commons.apiresource.ApiResourceReference getPlugins(int index) {
+    return plugins_.get(index);
+  }
+  /**
+   * <pre>
+   * Plugins this conversation uses, each whole, besides its agent's: their
+   * skills, agents, hooks and MCP servers. A chat with the built-in
+   * assistant gets its tools from these.
+   *
+   * The agent's tool lists govern a conversation's plugins like its own: an
+   * agent whose tools list does not name a plugin's server cannot use it.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 19 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getPluginsOrBuilder(
+      int index) {
+    return plugins_.get(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -1014,9 +1014,6 @@ java.lang.String defaultValue) {
     for (int i = 0; i < workspaceEntries_.size(); i++) {
       output.writeMessage(6, workspaceEntries_.get(i));
     }
-    for (int i = 0; i < mcpServerUsages_.size(); i++) {
-      output.writeMessage(7, mcpServerUsages_.get(i));
-    }
     for (int i = 0; i < skillRefs_.size(); i++) {
       output.writeMessage(8, skillRefs_.get(i));
     }
@@ -1040,6 +1037,9 @@ java.lang.String defaultValue) {
     }
     if (includeMyVault_ != false) {
       output.writeBool(18, includeMyVault_);
+    }
+    for (int i = 0; i < plugins_.size(); i++) {
+      output.writeMessage(19, plugins_.get(i));
     }
     getUnknownFields().writeTo(output);
   }
@@ -1072,15 +1072,6 @@ java.lang.String defaultValue) {
           for (int i = 0; i < count; i++) {
             size += com.google.protobuf.CodedOutputStream
               .computeMessageSizeNoTag(workspaceEntries_.get(i));
-          }
-          size += 1 * count;
-        }
-
-        {
-          final int count = mcpServerUsages_.size();
-          for (int i = 0; i < count; i++) {
-            size += com.google.protobuf.CodedOutputStream
-              .computeMessageSizeNoTag(mcpServerUsages_.get(i));
           }
           size += 1 * count;
         }
@@ -1130,6 +1121,15 @@ java.lang.String defaultValue) {
       size += com.google.protobuf.CodedOutputStream
         .computeBoolSize(18, includeMyVault_);
     }
+
+        {
+          final int count = plugins_.size();
+          for (int i = 0; i < count; i++) {
+            size += com.google.protobuf.CodedOutputStream
+              .computeMessageSizeNoTag(plugins_.get(i));
+          }
+          size += 2 * count;
+        }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -1160,8 +1160,6 @@ java.lang.String defaultValue) {
         other.internalGetMetadata())) return false;
     if (!getWorkspaceEntriesList()
         .equals(other.getWorkspaceEntriesList())) return false;
-    if (!getMcpServerUsagesList()
-        .equals(other.getMcpServerUsagesList())) return false;
     if (!getSkillRefsList()
         .equals(other.getSkillRefsList())) return false;
     if (harness_ != other.harness_) return false;
@@ -1171,6 +1169,8 @@ java.lang.String defaultValue) {
         .equals(other.getVaultsList())) return false;
     if (getIncludeMyVault()
         != other.getIncludeMyVault()) return false;
+    if (!getPluginsList()
+        .equals(other.getPluginsList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -1202,10 +1202,6 @@ java.lang.String defaultValue) {
       hash = (37 * hash) + WORKSPACE_ENTRIES_FIELD_NUMBER;
       hash = (53 * hash) + getWorkspaceEntriesList().hashCode();
     }
-    if (getMcpServerUsagesCount() > 0) {
-      hash = (37 * hash) + MCP_SERVER_USAGES_FIELD_NUMBER;
-      hash = (53 * hash) + getMcpServerUsagesList().hashCode();
-    }
     if (getSkillRefsCount() > 0) {
       hash = (37 * hash) + SKILL_REFS_FIELD_NUMBER;
       hash = (53 * hash) + getSkillRefsList().hashCode();
@@ -1223,6 +1219,10 @@ java.lang.String defaultValue) {
     hash = (37 * hash) + INCLUDE_MY_VAULT_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getIncludeMyVault());
+    if (getPluginsCount() > 0) {
+      hash = (37 * hash) + PLUGINS_FIELD_NUMBER;
+      hash = (53 * hash) + getPluginsList().hashCode();
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1381,9 +1381,9 @@ java.lang.String defaultValue) {
               .alwaysUseFieldBuilders) {
         internalGetAgentRefFieldBuilder();
         internalGetWorkspaceEntriesFieldBuilder();
-        internalGetMcpServerUsagesFieldBuilder();
         internalGetSkillRefsFieldBuilder();
         internalGetVaultsFieldBuilder();
+        internalGetPluginsFieldBuilder();
       }
     }
     @java.lang.Override
@@ -1407,20 +1407,13 @@ java.lang.String defaultValue) {
         workspaceEntriesBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000020);
-      if (mcpServerUsagesBuilder_ == null) {
-        mcpServerUsages_ = java.util.Collections.emptyList();
-      } else {
-        mcpServerUsages_ = null;
-        mcpServerUsagesBuilder_.clear();
-      }
-      bitField0_ = (bitField0_ & ~0x00000040);
       if (skillRefsBuilder_ == null) {
         skillRefs_ = java.util.Collections.emptyList();
       } else {
         skillRefs_ = null;
         skillRefsBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000080);
+      bitField0_ = (bitField0_ & ~0x00000040);
       harness_ = 0;
       cursorMode_ = 0;
       executionTarget_ = 0;
@@ -1430,8 +1423,15 @@ java.lang.String defaultValue) {
         vaults_ = null;
         vaultsBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000800);
+      bitField0_ = (bitField0_ & ~0x00000400);
       includeMyVault_ = false;
+      if (pluginsBuilder_ == null) {
+        plugins_ = java.util.Collections.emptyList();
+      } else {
+        plugins_ = null;
+        pluginsBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00001000);
       return this;
     }
 
@@ -1474,32 +1474,32 @@ java.lang.String defaultValue) {
       } else {
         result.workspaceEntries_ = workspaceEntriesBuilder_.build();
       }
-      if (mcpServerUsagesBuilder_ == null) {
-        if (((bitField0_ & 0x00000040) != 0)) {
-          mcpServerUsages_ = java.util.Collections.unmodifiableList(mcpServerUsages_);
-          bitField0_ = (bitField0_ & ~0x00000040);
-        }
-        result.mcpServerUsages_ = mcpServerUsages_;
-      } else {
-        result.mcpServerUsages_ = mcpServerUsagesBuilder_.build();
-      }
       if (skillRefsBuilder_ == null) {
-        if (((bitField0_ & 0x00000080) != 0)) {
+        if (((bitField0_ & 0x00000040) != 0)) {
           skillRefs_ = java.util.Collections.unmodifiableList(skillRefs_);
-          bitField0_ = (bitField0_ & ~0x00000080);
+          bitField0_ = (bitField0_ & ~0x00000040);
         }
         result.skillRefs_ = skillRefs_;
       } else {
         result.skillRefs_ = skillRefsBuilder_.build();
       }
       if (vaultsBuilder_ == null) {
-        if (((bitField0_ & 0x00000800) != 0)) {
+        if (((bitField0_ & 0x00000400) != 0)) {
           vaults_ = java.util.Collections.unmodifiableList(vaults_);
-          bitField0_ = (bitField0_ & ~0x00000800);
+          bitField0_ = (bitField0_ & ~0x00000400);
         }
         result.vaults_ = vaults_;
       } else {
         result.vaults_ = vaultsBuilder_.build();
+      }
+      if (pluginsBuilder_ == null) {
+        if (((bitField0_ & 0x00001000) != 0)) {
+          plugins_ = java.util.Collections.unmodifiableList(plugins_);
+          bitField0_ = (bitField0_ & ~0x00001000);
+        }
+        result.plugins_ = plugins_;
+      } else {
+        result.plugins_ = pluginsBuilder_.build();
       }
     }
 
@@ -1526,16 +1526,16 @@ java.lang.String defaultValue) {
         result.metadata_ = internalGetMetadata();
         result.metadata_.makeImmutable();
       }
-      if (((from_bitField0_ & 0x00000100) != 0)) {
+      if (((from_bitField0_ & 0x00000080) != 0)) {
         result.harness_ = harness_;
       }
-      if (((from_bitField0_ & 0x00000200) != 0)) {
+      if (((from_bitField0_ & 0x00000100) != 0)) {
         result.cursorMode_ = cursorMode_;
       }
-      if (((from_bitField0_ & 0x00000400) != 0)) {
+      if (((from_bitField0_ & 0x00000200) != 0)) {
         result.executionTarget_ = executionTarget_;
       }
-      if (((from_bitField0_ & 0x00001000) != 0)) {
+      if (((from_bitField0_ & 0x00000800) != 0)) {
         result.includeMyVault_ = includeMyVault_;
       }
       result.bitField0_ |= to_bitField0_;
@@ -1605,37 +1605,11 @@ java.lang.String defaultValue) {
           }
         }
       }
-      if (mcpServerUsagesBuilder_ == null) {
-        if (!other.mcpServerUsages_.isEmpty()) {
-          if (mcpServerUsages_.isEmpty()) {
-            mcpServerUsages_ = other.mcpServerUsages_;
-            bitField0_ = (bitField0_ & ~0x00000040);
-          } else {
-            ensureMcpServerUsagesIsMutable();
-            mcpServerUsages_.addAll(other.mcpServerUsages_);
-          }
-          onChanged();
-        }
-      } else {
-        if (!other.mcpServerUsages_.isEmpty()) {
-          if (mcpServerUsagesBuilder_.isEmpty()) {
-            mcpServerUsagesBuilder_.dispose();
-            mcpServerUsagesBuilder_ = null;
-            mcpServerUsages_ = other.mcpServerUsages_;
-            bitField0_ = (bitField0_ & ~0x00000040);
-            mcpServerUsagesBuilder_ = 
-              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
-                 internalGetMcpServerUsagesFieldBuilder() : null;
-          } else {
-            mcpServerUsagesBuilder_.addAllMessages(other.mcpServerUsages_);
-          }
-        }
-      }
       if (skillRefsBuilder_ == null) {
         if (!other.skillRefs_.isEmpty()) {
           if (skillRefs_.isEmpty()) {
             skillRefs_ = other.skillRefs_;
-            bitField0_ = (bitField0_ & ~0x00000080);
+            bitField0_ = (bitField0_ & ~0x00000040);
           } else {
             ensureSkillRefsIsMutable();
             skillRefs_.addAll(other.skillRefs_);
@@ -1648,7 +1622,7 @@ java.lang.String defaultValue) {
             skillRefsBuilder_.dispose();
             skillRefsBuilder_ = null;
             skillRefs_ = other.skillRefs_;
-            bitField0_ = (bitField0_ & ~0x00000080);
+            bitField0_ = (bitField0_ & ~0x00000040);
             skillRefsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetSkillRefsFieldBuilder() : null;
@@ -1670,7 +1644,7 @@ java.lang.String defaultValue) {
         if (!other.vaults_.isEmpty()) {
           if (vaults_.isEmpty()) {
             vaults_ = other.vaults_;
-            bitField0_ = (bitField0_ & ~0x00000800);
+            bitField0_ = (bitField0_ & ~0x00000400);
           } else {
             ensureVaultsIsMutable();
             vaults_.addAll(other.vaults_);
@@ -1683,7 +1657,7 @@ java.lang.String defaultValue) {
             vaultsBuilder_.dispose();
             vaultsBuilder_ = null;
             vaults_ = other.vaults_;
-            bitField0_ = (bitField0_ & ~0x00000800);
+            bitField0_ = (bitField0_ & ~0x00000400);
             vaultsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetVaultsFieldBuilder() : null;
@@ -1694,6 +1668,32 @@ java.lang.String defaultValue) {
       }
       if (other.getIncludeMyVault() != false) {
         setIncludeMyVault(other.getIncludeMyVault());
+      }
+      if (pluginsBuilder_ == null) {
+        if (!other.plugins_.isEmpty()) {
+          if (plugins_.isEmpty()) {
+            plugins_ = other.plugins_;
+            bitField0_ = (bitField0_ & ~0x00001000);
+          } else {
+            ensurePluginsIsMutable();
+            plugins_.addAll(other.plugins_);
+          }
+          onChanged();
+        }
+      } else {
+        if (!other.plugins_.isEmpty()) {
+          if (pluginsBuilder_.isEmpty()) {
+            pluginsBuilder_.dispose();
+            pluginsBuilder_ = null;
+            plugins_ = other.plugins_;
+            bitField0_ = (bitField0_ & ~0x00001000);
+            pluginsBuilder_ = 
+              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                 internalGetPluginsFieldBuilder() : null;
+          } else {
+            pluginsBuilder_.addAllMessages(other.plugins_);
+          }
+        }
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1753,19 +1753,6 @@ java.lang.String defaultValue) {
               }
               break;
             } // case 50
-            case 58: {
-              ai.stigmer.agentic.mcpserver.v1.McpServerUsage m =
-                  input.readMessage(
-                      ai.stigmer.agentic.mcpserver.v1.McpServerUsage.parser(),
-                      extensionRegistry);
-              if (mcpServerUsagesBuilder_ == null) {
-                ensureMcpServerUsagesIsMutable();
-                mcpServerUsages_.add(m);
-              } else {
-                mcpServerUsagesBuilder_.addMessage(m);
-              }
-              break;
-            } // case 58
             case 66: {
               ai.stigmer.commons.apiresource.ApiResourceReference m =
                   input.readMessage(
@@ -1781,17 +1768,17 @@ java.lang.String defaultValue) {
             } // case 66
             case 80: {
               harness_ = input.readEnum();
-              bitField0_ |= 0x00000100;
+              bitField0_ |= 0x00000080;
               break;
             } // case 80
             case 88: {
               cursorMode_ = input.readEnum();
-              bitField0_ |= 0x00000200;
+              bitField0_ |= 0x00000100;
               break;
             } // case 88
             case 96: {
               executionTarget_ = input.readEnum();
-              bitField0_ |= 0x00000400;
+              bitField0_ |= 0x00000200;
               break;
             } // case 96
             case 106: {
@@ -1821,9 +1808,22 @@ java.lang.String defaultValue) {
             } // case 122
             case 144: {
               includeMyVault_ = input.readBool();
-              bitField0_ |= 0x00001000;
+              bitField0_ |= 0x00000800;
               break;
             } // case 144
+            case 154: {
+              ai.stigmer.commons.apiresource.ApiResourceReference m =
+                  input.readMessage(
+                      ai.stigmer.commons.apiresource.ApiResourceReference.parser(),
+                      extensionRegistry);
+              if (pluginsBuilder_ == null) {
+                ensurePluginsIsMutable();
+                plugins_.add(m);
+              } else {
+                pluginsBuilder_.addMessage(m);
+              }
+              break;
+            } // case 154
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1848,7 +1848,7 @@ java.lang.String defaultValue) {
      * <pre>
      * The agent this conversation runs, as 'org/slug' with an optional
      * version; empty means no agent, and the built-in assistant answers with
-     * the MCP servers and skills this session itself declares.
+     * the plugins and skills this session itself declares.
      *
      * The conversation runs the agent version this reference resolved to
      * when it was written, recorded in status.agent_id and
@@ -1879,7 +1879,7 @@ java.lang.String defaultValue) {
      * <pre>
      * The agent this conversation runs, as 'org/slug' with an optional
      * version; empty means no agent, and the built-in assistant answers with
-     * the MCP servers and skills this session itself declares.
+     * the plugins and skills this session itself declares.
      *
      * The conversation runs the agent version this reference resolved to
      * when it was written, recorded in status.agent_id and
@@ -1914,7 +1914,7 @@ java.lang.String defaultValue) {
      * <pre>
      * The agent this conversation runs, as 'org/slug' with an optional
      * version; empty means no agent, and the built-in assistant answers with
-     * the MCP servers and skills this session itself declares.
+     * the plugins and skills this session itself declares.
      *
      * The conversation runs the agent version this reference resolved to
      * when it was written, recorded in status.agent_id and
@@ -1954,7 +1954,7 @@ java.lang.String defaultValue) {
      * <pre>
      * The agent this conversation runs, as 'org/slug' with an optional
      * version; empty means no agent, and the built-in assistant answers with
-     * the MCP servers and skills this session itself declares.
+     * the plugins and skills this session itself declares.
      *
      * The conversation runs the agent version this reference resolved to
      * when it was written, recorded in status.agent_id and
@@ -1992,7 +1992,7 @@ java.lang.String defaultValue) {
      * <pre>
      * The agent this conversation runs, as 'org/slug' with an optional
      * version; empty means no agent, and the built-in assistant answers with
-     * the MCP servers and skills this session itself declares.
+     * the plugins and skills this session itself declares.
      *
      * The conversation runs the agent version this reference resolved to
      * when it was written, recorded in status.agent_id and
@@ -2037,7 +2037,7 @@ java.lang.String defaultValue) {
      * <pre>
      * The agent this conversation runs, as 'org/slug' with an optional
      * version; empty means no agent, and the built-in assistant answers with
-     * the MCP servers and skills this session itself declares.
+     * the plugins and skills this session itself declares.
      *
      * The conversation runs the agent version this reference resolved to
      * when it was written, recorded in status.agent_id and
@@ -2074,7 +2074,7 @@ java.lang.String defaultValue) {
      * <pre>
      * The agent this conversation runs, as 'org/slug' with an optional
      * version; empty means no agent, and the built-in assistant answers with
-     * the MCP servers and skills this session itself declares.
+     * the plugins and skills this session itself declares.
      *
      * The conversation runs the agent version this reference resolved to
      * when it was written, recorded in status.agent_id and
@@ -2106,7 +2106,7 @@ java.lang.String defaultValue) {
      * <pre>
      * The agent this conversation runs, as 'org/slug' with an optional
      * version; empty means no agent, and the built-in assistant answers with
-     * the MCP servers and skills this session itself declares.
+     * the plugins and skills this session itself declares.
      *
      * The conversation runs the agent version this reference resolved to
      * when it was written, recorded in status.agent_id and
@@ -2141,7 +2141,7 @@ java.lang.String defaultValue) {
      * <pre>
      * The agent this conversation runs, as 'org/slug' with an optional
      * version; empty means no agent, and the built-in assistant answers with
-     * the MCP servers and skills this session itself declares.
+     * the plugins and skills this session itself declares.
      *
      * The conversation runs the agent version this reference resolved to
      * when it was written, recorded in status.agent_id and
@@ -3175,414 +3175,12 @@ java.lang.String defaultValue) {
       return workspaceEntriesBuilder_;
     }
 
-    private java.util.List<ai.stigmer.agentic.mcpserver.v1.McpServerUsage> mcpServerUsages_ =
-      java.util.Collections.emptyList();
-    private void ensureMcpServerUsagesIsMutable() {
-      if (!((bitField0_ & 0x00000040) != 0)) {
-        mcpServerUsages_ = new java.util.ArrayList<ai.stigmer.agentic.mcpserver.v1.McpServerUsage>(mcpServerUsages_);
-        bitField0_ |= 0x00000040;
-       }
-    }
-
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.mcpserver.v1.McpServerUsage, ai.stigmer.agentic.mcpserver.v1.McpServerUsage.Builder, ai.stigmer.agentic.mcpserver.v1.McpServerUsageOrBuilder> mcpServerUsagesBuilder_;
-
-    /**
-     * <pre>
-     * MCP servers to make available in this session.
-     *
-     * Augments the agent's tool set for this specific conversation without
-     * modifying the agent blueprint. Each usage references an McpServer
-     * resource. The agent's tool lists govern these servers like its own: an
-     * agent whose tools list does not name a session server cannot use it.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-     */
-    public java.util.List<ai.stigmer.agentic.mcpserver.v1.McpServerUsage> getMcpServerUsagesList() {
-      if (mcpServerUsagesBuilder_ == null) {
-        return java.util.Collections.unmodifiableList(mcpServerUsages_);
-      } else {
-        return mcpServerUsagesBuilder_.getMessageList();
-      }
-    }
-    /**
-     * <pre>
-     * MCP servers to make available in this session.
-     *
-     * Augments the agent's tool set for this specific conversation without
-     * modifying the agent blueprint. Each usage references an McpServer
-     * resource. The agent's tool lists govern these servers like its own: an
-     * agent whose tools list does not name a session server cannot use it.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-     */
-    public int getMcpServerUsagesCount() {
-      if (mcpServerUsagesBuilder_ == null) {
-        return mcpServerUsages_.size();
-      } else {
-        return mcpServerUsagesBuilder_.getCount();
-      }
-    }
-    /**
-     * <pre>
-     * MCP servers to make available in this session.
-     *
-     * Augments the agent's tool set for this specific conversation without
-     * modifying the agent blueprint. Each usage references an McpServer
-     * resource. The agent's tool lists govern these servers like its own: an
-     * agent whose tools list does not name a session server cannot use it.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-     */
-    public ai.stigmer.agentic.mcpserver.v1.McpServerUsage getMcpServerUsages(int index) {
-      if (mcpServerUsagesBuilder_ == null) {
-        return mcpServerUsages_.get(index);
-      } else {
-        return mcpServerUsagesBuilder_.getMessage(index);
-      }
-    }
-    /**
-     * <pre>
-     * MCP servers to make available in this session.
-     *
-     * Augments the agent's tool set for this specific conversation without
-     * modifying the agent blueprint. Each usage references an McpServer
-     * resource. The agent's tool lists govern these servers like its own: an
-     * agent whose tools list does not name a session server cannot use it.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder setMcpServerUsages(
-        int index, ai.stigmer.agentic.mcpserver.v1.McpServerUsage value) {
-      if (mcpServerUsagesBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureMcpServerUsagesIsMutable();
-        mcpServerUsages_.set(index, value);
-        onChanged();
-      } else {
-        mcpServerUsagesBuilder_.setMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * MCP servers to make available in this session.
-     *
-     * Augments the agent's tool set for this specific conversation without
-     * modifying the agent blueprint. Each usage references an McpServer
-     * resource. The agent's tool lists govern these servers like its own: an
-     * agent whose tools list does not name a session server cannot use it.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder setMcpServerUsages(
-        int index, ai.stigmer.agentic.mcpserver.v1.McpServerUsage.Builder builderForValue) {
-      if (mcpServerUsagesBuilder_ == null) {
-        ensureMcpServerUsagesIsMutable();
-        mcpServerUsages_.set(index, builderForValue.build());
-        onChanged();
-      } else {
-        mcpServerUsagesBuilder_.setMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * MCP servers to make available in this session.
-     *
-     * Augments the agent's tool set for this specific conversation without
-     * modifying the agent blueprint. Each usage references an McpServer
-     * resource. The agent's tool lists govern these servers like its own: an
-     * agent whose tools list does not name a session server cannot use it.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder addMcpServerUsages(ai.stigmer.agentic.mcpserver.v1.McpServerUsage value) {
-      if (mcpServerUsagesBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureMcpServerUsagesIsMutable();
-        mcpServerUsages_.add(value);
-        onChanged();
-      } else {
-        mcpServerUsagesBuilder_.addMessage(value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * MCP servers to make available in this session.
-     *
-     * Augments the agent's tool set for this specific conversation without
-     * modifying the agent blueprint. Each usage references an McpServer
-     * resource. The agent's tool lists govern these servers like its own: an
-     * agent whose tools list does not name a session server cannot use it.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder addMcpServerUsages(
-        int index, ai.stigmer.agentic.mcpserver.v1.McpServerUsage value) {
-      if (mcpServerUsagesBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureMcpServerUsagesIsMutable();
-        mcpServerUsages_.add(index, value);
-        onChanged();
-      } else {
-        mcpServerUsagesBuilder_.addMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * MCP servers to make available in this session.
-     *
-     * Augments the agent's tool set for this specific conversation without
-     * modifying the agent blueprint. Each usage references an McpServer
-     * resource. The agent's tool lists govern these servers like its own: an
-     * agent whose tools list does not name a session server cannot use it.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder addMcpServerUsages(
-        ai.stigmer.agentic.mcpserver.v1.McpServerUsage.Builder builderForValue) {
-      if (mcpServerUsagesBuilder_ == null) {
-        ensureMcpServerUsagesIsMutable();
-        mcpServerUsages_.add(builderForValue.build());
-        onChanged();
-      } else {
-        mcpServerUsagesBuilder_.addMessage(builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * MCP servers to make available in this session.
-     *
-     * Augments the agent's tool set for this specific conversation without
-     * modifying the agent blueprint. Each usage references an McpServer
-     * resource. The agent's tool lists govern these servers like its own: an
-     * agent whose tools list does not name a session server cannot use it.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder addMcpServerUsages(
-        int index, ai.stigmer.agentic.mcpserver.v1.McpServerUsage.Builder builderForValue) {
-      if (mcpServerUsagesBuilder_ == null) {
-        ensureMcpServerUsagesIsMutable();
-        mcpServerUsages_.add(index, builderForValue.build());
-        onChanged();
-      } else {
-        mcpServerUsagesBuilder_.addMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * MCP servers to make available in this session.
-     *
-     * Augments the agent's tool set for this specific conversation without
-     * modifying the agent blueprint. Each usage references an McpServer
-     * resource. The agent's tool lists govern these servers like its own: an
-     * agent whose tools list does not name a session server cannot use it.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder addAllMcpServerUsages(
-        java.lang.Iterable<? extends ai.stigmer.agentic.mcpserver.v1.McpServerUsage> values) {
-      if (mcpServerUsagesBuilder_ == null) {
-        ensureMcpServerUsagesIsMutable();
-        com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, mcpServerUsages_);
-        onChanged();
-      } else {
-        mcpServerUsagesBuilder_.addAllMessages(values);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * MCP servers to make available in this session.
-     *
-     * Augments the agent's tool set for this specific conversation without
-     * modifying the agent blueprint. Each usage references an McpServer
-     * resource. The agent's tool lists govern these servers like its own: an
-     * agent whose tools list does not name a session server cannot use it.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder clearMcpServerUsages() {
-      if (mcpServerUsagesBuilder_ == null) {
-        mcpServerUsages_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000040);
-        onChanged();
-      } else {
-        mcpServerUsagesBuilder_.clear();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * MCP servers to make available in this session.
-     *
-     * Augments the agent's tool set for this specific conversation without
-     * modifying the agent blueprint. Each usage references an McpServer
-     * resource. The agent's tool lists govern these servers like its own: an
-     * agent whose tools list does not name a session server cannot use it.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder removeMcpServerUsages(int index) {
-      if (mcpServerUsagesBuilder_ == null) {
-        ensureMcpServerUsagesIsMutable();
-        mcpServerUsages_.remove(index);
-        onChanged();
-      } else {
-        mcpServerUsagesBuilder_.remove(index);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * MCP servers to make available in this session.
-     *
-     * Augments the agent's tool set for this specific conversation without
-     * modifying the agent blueprint. Each usage references an McpServer
-     * resource. The agent's tool lists govern these servers like its own: an
-     * agent whose tools list does not name a session server cannot use it.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-     */
-    public ai.stigmer.agentic.mcpserver.v1.McpServerUsage.Builder getMcpServerUsagesBuilder(
-        int index) {
-      return internalGetMcpServerUsagesFieldBuilder().getBuilder(index);
-    }
-    /**
-     * <pre>
-     * MCP servers to make available in this session.
-     *
-     * Augments the agent's tool set for this specific conversation without
-     * modifying the agent blueprint. Each usage references an McpServer
-     * resource. The agent's tool lists govern these servers like its own: an
-     * agent whose tools list does not name a session server cannot use it.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-     */
-    public ai.stigmer.agentic.mcpserver.v1.McpServerUsageOrBuilder getMcpServerUsagesOrBuilder(
-        int index) {
-      if (mcpServerUsagesBuilder_ == null) {
-        return mcpServerUsages_.get(index);  } else {
-        return mcpServerUsagesBuilder_.getMessageOrBuilder(index);
-      }
-    }
-    /**
-     * <pre>
-     * MCP servers to make available in this session.
-     *
-     * Augments the agent's tool set for this specific conversation without
-     * modifying the agent blueprint. Each usage references an McpServer
-     * resource. The agent's tool lists govern these servers like its own: an
-     * agent whose tools list does not name a session server cannot use it.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-     */
-    public java.util.List<? extends ai.stigmer.agentic.mcpserver.v1.McpServerUsageOrBuilder> 
-         getMcpServerUsagesOrBuilderList() {
-      if (mcpServerUsagesBuilder_ != null) {
-        return mcpServerUsagesBuilder_.getMessageOrBuilderList();
-      } else {
-        return java.util.Collections.unmodifiableList(mcpServerUsages_);
-      }
-    }
-    /**
-     * <pre>
-     * MCP servers to make available in this session.
-     *
-     * Augments the agent's tool set for this specific conversation without
-     * modifying the agent blueprint. Each usage references an McpServer
-     * resource. The agent's tool lists govern these servers like its own: an
-     * agent whose tools list does not name a session server cannot use it.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-     */
-    public ai.stigmer.agentic.mcpserver.v1.McpServerUsage.Builder addMcpServerUsagesBuilder() {
-      return internalGetMcpServerUsagesFieldBuilder().addBuilder(
-          ai.stigmer.agentic.mcpserver.v1.McpServerUsage.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * MCP servers to make available in this session.
-     *
-     * Augments the agent's tool set for this specific conversation without
-     * modifying the agent blueprint. Each usage references an McpServer
-     * resource. The agent's tool lists govern these servers like its own: an
-     * agent whose tools list does not name a session server cannot use it.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-     */
-    public ai.stigmer.agentic.mcpserver.v1.McpServerUsage.Builder addMcpServerUsagesBuilder(
-        int index) {
-      return internalGetMcpServerUsagesFieldBuilder().addBuilder(
-          index, ai.stigmer.agentic.mcpserver.v1.McpServerUsage.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * MCP servers to make available in this session.
-     *
-     * Augments the agent's tool set for this specific conversation without
-     * modifying the agent blueprint. Each usage references an McpServer
-     * resource. The agent's tool lists govern these servers like its own: an
-     * agent whose tools list does not name a session server cannot use it.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-     */
-    public java.util.List<ai.stigmer.agentic.mcpserver.v1.McpServerUsage.Builder> 
-         getMcpServerUsagesBuilderList() {
-      return internalGetMcpServerUsagesFieldBuilder().getBuilderList();
-    }
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.mcpserver.v1.McpServerUsage, ai.stigmer.agentic.mcpserver.v1.McpServerUsage.Builder, ai.stigmer.agentic.mcpserver.v1.McpServerUsageOrBuilder> 
-        internalGetMcpServerUsagesFieldBuilder() {
-      if (mcpServerUsagesBuilder_ == null) {
-        mcpServerUsagesBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
-            ai.stigmer.agentic.mcpserver.v1.McpServerUsage, ai.stigmer.agentic.mcpserver.v1.McpServerUsage.Builder, ai.stigmer.agentic.mcpserver.v1.McpServerUsageOrBuilder>(
-                mcpServerUsages_,
-                ((bitField0_ & 0x00000040) != 0),
-                getParentForChildren(),
-                isClean());
-        mcpServerUsages_ = null;
-      }
-      return mcpServerUsagesBuilder_;
-    }
-
     private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> skillRefs_ =
       java.util.Collections.emptyList();
     private void ensureSkillRefsIsMutable() {
-      if (!((bitField0_ & 0x00000080) != 0)) {
+      if (!((bitField0_ & 0x00000040) != 0)) {
         skillRefs_ = new java.util.ArrayList<ai.stigmer.commons.apiresource.ApiResourceReference>(skillRefs_);
-        bitField0_ |= 0x00000080;
+        bitField0_ |= 0x00000040;
        }
     }
 
@@ -3820,7 +3418,7 @@ java.lang.String defaultValue) {
     public Builder clearSkillRefs() {
       if (skillRefsBuilder_ == null) {
         skillRefs_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000080);
+        bitField0_ = (bitField0_ & ~0x00000040);
         onChanged();
       } else {
         skillRefsBuilder_.clear();
@@ -3953,7 +3551,7 @@ java.lang.String defaultValue) {
         skillRefsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
                 skillRefs_,
-                ((bitField0_ & 0x00000080) != 0),
+                ((bitField0_ & 0x00000040) != 0),
                 getParentForChildren(),
                 isClean());
         skillRefs_ = null;
@@ -4009,7 +3607,7 @@ java.lang.String defaultValue) {
      */
     public Builder setHarnessValue(int value) {
       harness_ = value;
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
@@ -4061,7 +3659,7 @@ java.lang.String defaultValue) {
      */
     public Builder setHarness(ai.stigmer.agentic.session.v1.Harness value) {
       if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000080;
       harness_ = value.getNumber();
       onChanged();
       return this;
@@ -4087,7 +3685,7 @@ java.lang.String defaultValue) {
      * @return This builder for chaining.
      */
     public Builder clearHarness() {
-      bitField0_ = (bitField0_ & ~0x00000100);
+      bitField0_ = (bitField0_ & ~0x00000080);
       harness_ = 0;
       onChanged();
       return this;
@@ -4133,7 +3731,7 @@ java.lang.String defaultValue) {
      */
     public Builder setCursorModeValue(int value) {
       cursorMode_ = value;
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
@@ -4177,7 +3775,7 @@ java.lang.String defaultValue) {
      */
     public Builder setCursorMode(ai.stigmer.agentic.session.v1.CursorMode value) {
       if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000100;
       cursorMode_ = value.getNumber();
       onChanged();
       return this;
@@ -4199,7 +3797,7 @@ java.lang.String defaultValue) {
      * @return This builder for chaining.
      */
     public Builder clearCursorMode() {
-      bitField0_ = (bitField0_ & ~0x00000200);
+      bitField0_ = (bitField0_ & ~0x00000100);
       cursorMode_ = 0;
       onChanged();
       return this;
@@ -4253,7 +3851,7 @@ java.lang.String defaultValue) {
      */
     public Builder setExecutionTargetValue(int value) {
       executionTarget_ = value;
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }
@@ -4305,7 +3903,7 @@ java.lang.String defaultValue) {
      */
     public Builder setExecutionTarget(ai.stigmer.agentic.session.v1.ExecutionTarget value) {
       if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000200;
       executionTarget_ = value.getNumber();
       onChanged();
       return this;
@@ -4331,7 +3929,7 @@ java.lang.String defaultValue) {
      * @return This builder for chaining.
      */
     public Builder clearExecutionTarget() {
-      bitField0_ = (bitField0_ & ~0x00000400);
+      bitField0_ = (bitField0_ & ~0x00000200);
       executionTarget_ = 0;
       onChanged();
       return this;
@@ -4340,9 +3938,9 @@ java.lang.String defaultValue) {
     private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> vaults_ =
       java.util.Collections.emptyList();
     private void ensureVaultsIsMutable() {
-      if (!((bitField0_ & 0x00000800) != 0)) {
+      if (!((bitField0_ & 0x00000400) != 0)) {
         vaults_ = new java.util.ArrayList<ai.stigmer.commons.apiresource.ApiResourceReference>(vaults_);
-        bitField0_ |= 0x00000800;
+        bitField0_ |= 0x00000400;
        }
     }
 
@@ -4646,7 +4244,7 @@ java.lang.String defaultValue) {
     public Builder clearVaults() {
       if (vaultsBuilder_ == null) {
         vaults_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000800);
+        bitField0_ = (bitField0_ & ~0x00000400);
         onChanged();
       } else {
         vaultsBuilder_.clear();
@@ -4821,7 +4419,7 @@ java.lang.String defaultValue) {
         vaultsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
                 vaults_,
-                ((bitField0_ & 0x00000800) != 0),
+                ((bitField0_ & 0x00000400) != 0),
                 getParentForChildren(),
                 isClean());
         vaults_ = null;
@@ -4864,7 +4462,7 @@ java.lang.String defaultValue) {
     public Builder setIncludeMyVault(boolean value) {
 
       includeMyVault_ = value;
-      bitField0_ |= 0x00001000;
+      bitField0_ |= 0x00000800;
       onChanged();
       return this;
     }
@@ -4882,10 +4480,412 @@ java.lang.String defaultValue) {
      * @return This builder for chaining.
      */
     public Builder clearIncludeMyVault() {
-      bitField0_ = (bitField0_ & ~0x00001000);
+      bitField0_ = (bitField0_ & ~0x00000800);
       includeMyVault_ = false;
       onChanged();
       return this;
+    }
+
+    private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> plugins_ =
+      java.util.Collections.emptyList();
+    private void ensurePluginsIsMutable() {
+      if (!((bitField0_ & 0x00001000) != 0)) {
+        plugins_ = new java.util.ArrayList<ai.stigmer.commons.apiresource.ApiResourceReference>(plugins_);
+        bitField0_ |= 0x00001000;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> pluginsBuilder_;
+
+    /**
+     * <pre>
+     * Plugins this conversation uses, each whole, besides its agent's: their
+     * skills, agents, hooks and MCP servers. A chat with the built-in
+     * assistant gets its tools from these.
+     *
+     * The agent's tool lists govern a conversation's plugins like its own: an
+     * agent whose tools list does not name a plugin's server cannot use it.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 19 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     */
+    public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> getPluginsList() {
+      if (pluginsBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(plugins_);
+      } else {
+        return pluginsBuilder_.getMessageList();
+      }
+    }
+    /**
+     * <pre>
+     * Plugins this conversation uses, each whole, besides its agent's: their
+     * skills, agents, hooks and MCP servers. A chat with the built-in
+     * assistant gets its tools from these.
+     *
+     * The agent's tool lists govern a conversation's plugins like its own: an
+     * agent whose tools list does not name a plugin's server cannot use it.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 19 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     */
+    public int getPluginsCount() {
+      if (pluginsBuilder_ == null) {
+        return plugins_.size();
+      } else {
+        return pluginsBuilder_.getCount();
+      }
+    }
+    /**
+     * <pre>
+     * Plugins this conversation uses, each whole, besides its agent's: their
+     * skills, agents, hooks and MCP servers. A chat with the built-in
+     * assistant gets its tools from these.
+     *
+     * The agent's tool lists govern a conversation's plugins like its own: an
+     * agent whose tools list does not name a plugin's server cannot use it.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 19 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReference getPlugins(int index) {
+      if (pluginsBuilder_ == null) {
+        return plugins_.get(index);
+      } else {
+        return pluginsBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <pre>
+     * Plugins this conversation uses, each whole, besides its agent's: their
+     * skills, agents, hooks and MCP servers. A chat with the built-in
+     * assistant gets its tools from these.
+     *
+     * The agent's tool lists govern a conversation's plugins like its own: an
+     * agent whose tools list does not name a plugin's server cannot use it.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 19 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder setPlugins(
+        int index, ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (pluginsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensurePluginsIsMutable();
+        plugins_.set(index, value);
+        onChanged();
+      } else {
+        pluginsBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Plugins this conversation uses, each whole, besides its agent's: their
+     * skills, agents, hooks and MCP servers. A chat with the built-in
+     * assistant gets its tools from these.
+     *
+     * The agent's tool lists govern a conversation's plugins like its own: an
+     * agent whose tools list does not name a plugin's server cannot use it.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 19 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder setPlugins(
+        int index, ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
+      if (pluginsBuilder_ == null) {
+        ensurePluginsIsMutable();
+        plugins_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        pluginsBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Plugins this conversation uses, each whole, besides its agent's: their
+     * skills, agents, hooks and MCP servers. A chat with the built-in
+     * assistant gets its tools from these.
+     *
+     * The agent's tool lists govern a conversation's plugins like its own: an
+     * agent whose tools list does not name a plugin's server cannot use it.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 19 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addPlugins(ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (pluginsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensurePluginsIsMutable();
+        plugins_.add(value);
+        onChanged();
+      } else {
+        pluginsBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Plugins this conversation uses, each whole, besides its agent's: their
+     * skills, agents, hooks and MCP servers. A chat with the built-in
+     * assistant gets its tools from these.
+     *
+     * The agent's tool lists govern a conversation's plugins like its own: an
+     * agent whose tools list does not name a plugin's server cannot use it.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 19 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addPlugins(
+        int index, ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (pluginsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensurePluginsIsMutable();
+        plugins_.add(index, value);
+        onChanged();
+      } else {
+        pluginsBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Plugins this conversation uses, each whole, besides its agent's: their
+     * skills, agents, hooks and MCP servers. A chat with the built-in
+     * assistant gets its tools from these.
+     *
+     * The agent's tool lists govern a conversation's plugins like its own: an
+     * agent whose tools list does not name a plugin's server cannot use it.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 19 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addPlugins(
+        ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
+      if (pluginsBuilder_ == null) {
+        ensurePluginsIsMutable();
+        plugins_.add(builderForValue.build());
+        onChanged();
+      } else {
+        pluginsBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Plugins this conversation uses, each whole, besides its agent's: their
+     * skills, agents, hooks and MCP servers. A chat with the built-in
+     * assistant gets its tools from these.
+     *
+     * The agent's tool lists govern a conversation's plugins like its own: an
+     * agent whose tools list does not name a plugin's server cannot use it.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 19 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addPlugins(
+        int index, ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
+      if (pluginsBuilder_ == null) {
+        ensurePluginsIsMutable();
+        plugins_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        pluginsBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Plugins this conversation uses, each whole, besides its agent's: their
+     * skills, agents, hooks and MCP servers. A chat with the built-in
+     * assistant gets its tools from these.
+     *
+     * The agent's tool lists govern a conversation's plugins like its own: an
+     * agent whose tools list does not name a plugin's server cannot use it.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 19 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addAllPlugins(
+        java.lang.Iterable<? extends ai.stigmer.commons.apiresource.ApiResourceReference> values) {
+      if (pluginsBuilder_ == null) {
+        ensurePluginsIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, plugins_);
+        onChanged();
+      } else {
+        pluginsBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Plugins this conversation uses, each whole, besides its agent's: their
+     * skills, agents, hooks and MCP servers. A chat with the built-in
+     * assistant gets its tools from these.
+     *
+     * The agent's tool lists govern a conversation's plugins like its own: an
+     * agent whose tools list does not name a plugin's server cannot use it.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 19 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder clearPlugins() {
+      if (pluginsBuilder_ == null) {
+        plugins_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00001000);
+        onChanged();
+      } else {
+        pluginsBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Plugins this conversation uses, each whole, besides its agent's: their
+     * skills, agents, hooks and MCP servers. A chat with the built-in
+     * assistant gets its tools from these.
+     *
+     * The agent's tool lists govern a conversation's plugins like its own: an
+     * agent whose tools list does not name a plugin's server cannot use it.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 19 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder removePlugins(int index) {
+      if (pluginsBuilder_ == null) {
+        ensurePluginsIsMutable();
+        plugins_.remove(index);
+        onChanged();
+      } else {
+        pluginsBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Plugins this conversation uses, each whole, besides its agent's: their
+     * skills, agents, hooks and MCP servers. A chat with the built-in
+     * assistant gets its tools from these.
+     *
+     * The agent's tool lists govern a conversation's plugins like its own: an
+     * agent whose tools list does not name a plugin's server cannot use it.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 19 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder getPluginsBuilder(
+        int index) {
+      return internalGetPluginsFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <pre>
+     * Plugins this conversation uses, each whole, besides its agent's: their
+     * skills, agents, hooks and MCP servers. A chat with the built-in
+     * assistant gets its tools from these.
+     *
+     * The agent's tool lists govern a conversation's plugins like its own: an
+     * agent whose tools list does not name a plugin's server cannot use it.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 19 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getPluginsOrBuilder(
+        int index) {
+      if (pluginsBuilder_ == null) {
+        return plugins_.get(index);  } else {
+        return pluginsBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <pre>
+     * Plugins this conversation uses, each whole, besides its agent's: their
+     * skills, agents, hooks and MCP servers. A chat with the built-in
+     * assistant gets its tools from these.
+     *
+     * The agent's tool lists govern a conversation's plugins like its own: an
+     * agent whose tools list does not name a plugin's server cannot use it.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 19 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     */
+    public java.util.List<? extends ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
+         getPluginsOrBuilderList() {
+      if (pluginsBuilder_ != null) {
+        return pluginsBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(plugins_);
+      }
+    }
+    /**
+     * <pre>
+     * Plugins this conversation uses, each whole, besides its agent's: their
+     * skills, agents, hooks and MCP servers. A chat with the built-in
+     * assistant gets its tools from these.
+     *
+     * The agent's tool lists govern a conversation's plugins like its own: an
+     * agent whose tools list does not name a plugin's server cannot use it.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 19 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder addPluginsBuilder() {
+      return internalGetPluginsFieldBuilder().addBuilder(
+          ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Plugins this conversation uses, each whole, besides its agent's: their
+     * skills, agents, hooks and MCP servers. A chat with the built-in
+     * assistant gets its tools from these.
+     *
+     * The agent's tool lists govern a conversation's plugins like its own: an
+     * agent whose tools list does not name a plugin's server cannot use it.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 19 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder addPluginsBuilder(
+        int index) {
+      return internalGetPluginsFieldBuilder().addBuilder(
+          index, ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Plugins this conversation uses, each whole, besides its agent's: their
+     * skills, agents, hooks and MCP servers. A chat with the built-in
+     * assistant gets its tools from these.
+     *
+     * The agent's tool lists govern a conversation's plugins like its own: an
+     * agent whose tools list does not name a plugin's server cannot use it.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 19 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     */
+    public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference.Builder> 
+         getPluginsBuilderList() {
+      return internalGetPluginsFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
+        internalGetPluginsFieldBuilder() {
+      if (pluginsBuilder_ == null) {
+        pluginsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
+                plugins_,
+                ((bitField0_ & 0x00001000) != 0),
+                getParentForChildren(),
+                isClean());
+        plugins_ = null;
+      }
+      return pluginsBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.session.v1.SessionSpec)

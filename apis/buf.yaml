@@ -29,3 +29,37 @@ breaking:
   except:
     - EXTENSION_NO_DELETE
     - FIELD_SAME_DEFAULT
+  # One pull request makes a plugin one thing and the only home of an MCP
+  # server. It deletes the mcpserver package, the kind's enum value and its
+  # two permissions, the plugin's install lifecycle and member listing, and
+  # re-keys a run's tool values from a server id to a plugin and server (each
+  # removed number and name reserved). It is made before launch: the release
+  # notes name every change under Upgrading. This block exists for that one
+  # pull request. While it stays, buf breaking does not report these rules on
+  # the listed files, so the pull request that removes it lands straight
+  # after the merge (https://github.com/stigmer/stigmer/issues/2103).
+  ignore_only:
+    FILE_NO_DELETE:
+      - ai/stigmer/agentic/mcpserver/v1/api.proto
+      - ai/stigmer/agentic/mcpserver/v1/command.proto
+      - ai/stigmer/agentic/mcpserver/v1/io.proto
+      - ai/stigmer/agentic/mcpserver/v1/query.proto
+      - ai/stigmer/agentic/mcpserver/v1/spec.proto
+      - ai/stigmer/agentic/mcpserver/v1/status.proto
+      - ai/stigmer/agentic/mcpserver/v1/usage.proto
+    FIELD_NO_DELETE:
+      - ai/stigmer/agentic/agent/v1/spec.proto
+      - ai/stigmer/agentic/session/v1/spec.proto
+      - ai/stigmer/agentic/plugin/v1/status.proto
+      - ai/stigmer/agentic/run/v1/api.proto
+      - ai/stigmer/agentic/vault/v1/values.proto
+    MESSAGE_NO_DELETE:
+      - ai/stigmer/agentic/plugin/v1/io.proto
+      - ai/stigmer/agentic/plugin/v1/status.proto
+    ENUM_NO_DELETE:
+      - ai/stigmer/agentic/plugin/v1/status.proto
+    ENUM_VALUE_NO_DELETE:
+      - ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto
+      - ai/stigmer/iam/v1/enum.proto
+    RPC_NO_DELETE:
+      - ai/stigmer/agentic/plugin/v1/query.proto

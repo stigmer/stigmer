@@ -471,35 +471,12 @@ enum ApiResourceKind {
     }
   }];
 
-  // External tool server connected via the Model Context Protocol.
-  mcp_server = 44 [(kind_meta) = {
-    group: agentic
-    version: v1
-    name: "McpServer"
-    display_name: "MCP Server"
-    id_prefix: "mcp"
-    is_versioned: false
-    not_search_indexed: false
-    tier: open_source
-    authorization: {
-      scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
-      owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
-      visibility: {
-        supports_org: true
-        supports_child_orgs: true
-        defaults_to_org_visibility: true
-      }
-      grantable_roles: [
-        owner,
-        editor,
-        viewer
-      ]
-      team_grantable_roles: [
-        editor,
-        viewer
-      ]
-    }
-  }];
+  // Value 44 was the MCP server (id prefix "mcp"), a saved connection to a
+  // tool server, removed when an MCP server became configuration inside a
+  // plugin. Stored rows of the retired kind are removed by the store
+  // migration that retired it.
+  reserved 44;
+  reserved "mcp_server";
 
   // Value 45 was the agent instance, a configured deployment of an agent,
   // removed when conversations came to name their agent directly. Stored
@@ -705,10 +682,8 @@ enum ApiResourceKind {
 
   // Agentic - Plugin (the unit of install)
 
-  // An installed Agent Plugins package: the archive Stigmer materialised into
-  // skills, MCP servers and an agent, and the handle that upgrades
-  // and removes them together. A plugin is what you install; an agent is what
-  // runs. Members are the resources labelled with the plugin's id.
+  // An installed Agent Plugins package: one thing holding skills, agents,
+  // hooks and MCP servers, which agents and conversations list whole.
   plugin = 58 [(kind_meta) = {
     group: agentic
     version: v1

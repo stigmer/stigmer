@@ -204,13 +204,13 @@ type SessionSpecInput struct {
 	HarnessStateIdHistory []string
 	Metadata              map[string]string
 	WorkspaceEntries      []*WorkspaceEntryInput
-	McpServerUsages       []*McpServerUsageInput
 	SkillRefs             []ResourceRef
 	Harness               sessionv1.Harness
 	CursorMode            sessionv1.CursorMode
 	ExecutionTarget       sessionv1.ExecutionTarget
 	Vaults                []ResourceRef
 	IncludeMyVault        bool
+	Plugins               []ResourceRef
 }
 
 // WorkspaceEntryInput is the SDK input type for WorkspaceEntry.
@@ -288,13 +288,6 @@ func (i *RunInput) toProto() (*runv1.Run, error) {
 			}
 			m.WorkspaceEntries = append(m.WorkspaceEntries, v)
 		}
-		for idx, item := range i.SessionSpec.McpServerUsages {
-			v, err := item.toProto()
-			if err != nil {
-				return nil, indexErr("SessionSpec.McpServerUsages", idx, err)
-			}
-			m.McpServerUsages = append(m.McpServerUsages, v)
-		}
 		for _, r := range i.SessionSpec.SkillRefs {
 			ref := r.toProto()
 			ref.Kind = apiresourcekind.ApiResourceKind_skill
@@ -309,6 +302,11 @@ func (i *RunInput) toProto() (*runv1.Run, error) {
 			m.Vaults = append(m.Vaults, ref)
 		}
 		m.IncludeMyVault = i.SessionSpec.IncludeMyVault
+		for _, r := range i.SessionSpec.Plugins {
+			ref := r.toProto()
+			ref.Kind = apiresourcekind.ApiResourceKind_plugin
+			m.Plugins = append(m.Plugins, ref)
+		}
 		resource.Spec.Target = &runv1.RunSpec_SessionSpec{SessionSpec: m}
 	}
 	if i.SessionId != "" {
@@ -461,9 +459,6 @@ func sessionSpecInputFromProto(p *sessionv1.SessionSpec) *SessionSpecInput {
 	for _, item := range p.GetWorkspaceEntries() {
 		input.WorkspaceEntries = append(input.WorkspaceEntries, workspaceEntryInputFromProto(item))
 	}
-	for _, item := range p.GetMcpServerUsages() {
-		input.McpServerUsages = append(input.McpServerUsages, mcpServerUsageInputFromProto(item))
-	}
 	for _, r := range p.GetSkillRefs() {
 		input.SkillRefs = append(input.SkillRefs, resourceRefFromProto(r))
 	}
@@ -474,6 +469,9 @@ func sessionSpecInputFromProto(p *sessionv1.SessionSpec) *SessionSpecInput {
 		input.Vaults = append(input.Vaults, resourceRefFromProto(r))
 	}
 	input.IncludeMyVault = p.GetIncludeMyVault()
+	for _, r := range p.GetPlugins() {
+		input.Plugins = append(input.Plugins, resourceRefFromProto(r))
+	}
 	return input
 }
 

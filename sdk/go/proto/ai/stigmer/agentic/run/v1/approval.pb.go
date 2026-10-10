@@ -65,7 +65,8 @@ type PendingApproval struct {
 	// Example: "code-reviewer", "researcher", "debugger"
 	// Empty if from_sub_agent is false.
 	SubAgentName string `protobuf:"bytes,7,opt,name=sub_agent_name,json=subAgentName,proto3" json:"sub_agent_name,omitempty"`
-	// Slug of the MCP server that provides this tool.
+	// Name of the MCP server that provides this tool, as its tools are named
+	// (plugin_<plugin>_<server> for a plugin's server).
 	// Copied from ToolCall.mcp_server_slug for UI convenience.
 	// Empty for built-in sandbox tools (read, write, shell, etc.).
 	//
@@ -73,7 +74,7 @@ type PendingApproval struct {
 	// structured argument previews (scalar grids, humanized names)
 	// instead of falling back to raw JSON.
 	//
-	// Examples: "planton", "github", "slack"
+	// Examples: "plugin_linear_linear", "plugin_github_github"
 	McpServerSlug string `protobuf:"bytes,8,opt,name=mcp_server_slug,json=mcpServerSlug,proto3" json:"mcp_server_slug,omitempty"`
 	// Concise subject/description of the sub-agent's task (3-10 words).
 	// Copied from SubAgentRun.subject when from_sub_agent is true.
@@ -295,7 +296,7 @@ type ApprovalRequest struct {
 	// Concise subject of the sub-agent's task when from_sub_agent is true; empty
 	// otherwise. Copied from SubAgentRun.subject.
 	SubAgentSubject string `protobuf:"bytes,9,opt,name=sub_agent_subject,json=subAgentSubject,proto3" json:"sub_agent_subject,omitempty"`
-	// Slug of the MCP server providing this tool; empty for built-in tools.
+	// Name of the MCP server providing this tool; empty for built-in tools.
 	// Copied from ToolCall.mcp_server_slug.
 	McpServerSlug string `protobuf:"bytes,10,opt,name=mcp_server_slug,json=mcpServerSlug,proto3" json:"mcp_server_slug,omitempty"`
 	// Harness-agnostic tool category. Copied from ToolCall.tool_kind.

@@ -4,8 +4,6 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
-import type { McpServerUsage } from "../../mcpserver/v1/usage_pb.js";
-import { file_ai_stigmer_agentic_mcpserver_v1_usage } from "../../mcpserver/v1/usage_pb.js";
 import type { CursorMode, ExecutionTarget, Harness } from "./enum_pb.js";
 import { file_ai_stigmer_agentic_session_v1_enum } from "./enum_pb.js";
 import type { WorkspaceEntry } from "./workspace_pb.js";
@@ -20,7 +18,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/session/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zcGVjLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSKxCgoLU2Vzc2lvblNwZWMSsQEKCWFnZW50X3JlZhgOIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJoukhhugFeChZzZXNzaW9uX2FnZW50X3JlZi5raW5kEjNhZ2VudF9yZWYgbXVzdCByZWZlcmVuY2UgYSByZXNvdXJjZSB3aXRoIGtpbmQ9YWdlbnQaD3RoaXMua2luZCA9PSA0MOCFLCgSDwoHc3ViamVjdBgCIAEoCRIYChBoYXJuZXNzX3N0YXRlX2lkGAMgASgJEiAKGGhhcm5lc3Nfc3RhdGVfaWRfaGlzdG9yeRgNIAMoCRJKCghtZXRhZGF0YRgFIAMoCzI4LmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25TcGVjLk1ldGFkYXRhRW50cnkSSAoRd29ya3NwYWNlX2VudHJpZXMYBiADKAsyLS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5Xb3Jrc3BhY2VFbnRyeRLdAQoRbWNwX3NlcnZlcl91c2FnZXMYByADKAsyLy5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk1jcFNlcnZlclVzYWdlQpABukiMAZIBiAEihQG6AYEBCh5zZXNzaW9uX21jcF9zZXJ2ZXJfdXNhZ2VzLmtpbmQSP21jcF9zZXJ2ZXJfdXNhZ2VzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9bWNwX3NlcnZlchoedGhpcy5tY3Bfc2VydmVyX3JlZi5raW5kID09IDQ0ErgBCgpza2lsbF9yZWZzGAggAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQm66SGeSAWQiYroBXwoXc2Vzc2lvbl9za2lsbF9yZWZzLmtpbmQSM3NraWxsX3JlZnMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1za2lsbBoPdGhpcy5raW5kID09IDQz4IUsKxI3CgdoYXJuZXNzGAogASgOMiYuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuSGFybmVzcxI+CgtjdXJzb3JfbW9kZRgLIAEoDjIpLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkN1cnNvck1vZGUSSAoQZXhlY3V0aW9uX3RhcmdldBgMIAEoDjIuLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkV4ZWN1dGlvblRhcmdldBKmAQoGdmF1bHRzGA8gAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQmC6SFmSAVYQFCJSugFPCgt2YXVsdHMua2luZBIvdmF1bHRzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9dmF1bHQaD3RoaXMua2luZCA9PSA1OeCFLDsSGAoQaW5jbHVkZV9teV92YXVsdBgSIAEoCBovCg1NZXRhZGF0YUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAFKBAgBEAJKBAgQEBFKBAgREBJSEWFnZW50X2luc3RhbmNlX2lkUgdzZWNyZXRzUgtjb25uZWN0aW9uc2IGcHJvdG8z", [file_ai_stigmer_agentic_mcpserver_v1_usage, file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_session_v1_workspace, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zcGVjLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSKdCgoLU2Vzc2lvblNwZWMSsQEKCWFnZW50X3JlZhgOIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJoukhhugFeChZzZXNzaW9uX2FnZW50X3JlZi5raW5kEjNhZ2VudF9yZWYgbXVzdCByZWZlcmVuY2UgYSByZXNvdXJjZSB3aXRoIGtpbmQ9YWdlbnQaD3RoaXMua2luZCA9PSA0MOCFLCgSDwoHc3ViamVjdBgCIAEoCRIYChBoYXJuZXNzX3N0YXRlX2lkGAMgASgJEiAKGGhhcm5lc3Nfc3RhdGVfaWRfaGlzdG9yeRgNIAMoCRJKCghtZXRhZGF0YRgFIAMoCzI4LmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25TcGVjLk1ldGFkYXRhRW50cnkSSAoRd29ya3NwYWNlX2VudHJpZXMYBiADKAsyLS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5Xb3Jrc3BhY2VFbnRyeRK4AQoKc2tpbGxfcmVmcxgIIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJuukhnkgFkImK6AV8KF3Nlc3Npb25fc2tpbGxfcmVmcy5raW5kEjNza2lsbF9yZWZzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9c2tpbGwaD3RoaXMua2luZCA9PSA0M+CFLCsSNwoHaGFybmVzcxgKIAEoDjImLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkhhcm5lc3MSPgoLY3Vyc29yX21vZGUYCyABKA4yKS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5DdXJzb3JNb2RlEkgKEGV4ZWN1dGlvbl90YXJnZXQYDCABKA4yLi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5FeGVjdXRpb25UYXJnZXQSpgEKBnZhdWx0cxgPIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJgukhZkgFWEBQiUroBTwoLdmF1bHRzLmtpbmQSL3ZhdWx0cyBtdXN0IHJlZmVyZW5jZSByZXNvdXJjZXMgd2l0aCBraW5kPXZhdWx0Gg90aGlzLmtpbmQgPT0gNTnghSw7EhgKEGluY2x1ZGVfbXlfdmF1bHQYEiABKAgSsAEKB3BsdWdpbnMYEyADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCabpIYpIBXyJdugFaChRzZXNzaW9uX3BsdWdpbnMua2luZBIxcGx1Z2lucyBtdXN0IHJlZmVyZW5jZSByZXNvdXJjZXMgd2l0aCBraW5kPXBsdWdpbhoPdGhpcy5raW5kID09IDU44IUsOhovCg1NZXRhZGF0YUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAFKBAgBEAJKBAgHEAhKBAgQEBFKBAgREBJSEWFnZW50X2luc3RhbmNlX2lkUhFtY3Bfc2VydmVyX3VzYWdlc1IHc2VjcmV0c1ILY29ubmVjdGlvbnNiBnByb3RvMw", [file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_session_v1_workspace, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * SessionSpec defines the configurable properties of a session.
@@ -31,7 +29,7 @@ export type SessionSpec = Message<"ai.stigmer.agentic.session.v1.SessionSpec"> &
   /**
    * The agent this conversation runs, as 'org/slug' with an optional
    * version; empty means no agent, and the built-in assistant answers with
-   * the MCP servers and skills this session itself declares.
+   * the plugins and skills this session itself declares.
    *
    * The conversation runs the agent version this reference resolved to
    * when it was written, recorded in status.agent_id and
@@ -110,18 +108,6 @@ export type SessionSpec = Message<"ai.stigmer.agentic.session.v1.SessionSpec"> &
    * @generated from field: repeated ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6;
    */
   workspaceEntries: WorkspaceEntry[];
-
-  /**
-   * MCP servers to make available in this session.
-   *
-   * Augments the agent's tool set for this specific conversation without
-   * modifying the agent blueprint. Each usage references an McpServer
-   * resource. The agent's tool lists govern these servers like its own: an
-   * agent whose tools list does not name a session server cannot use it.
-   *
-   * @generated from field: repeated ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 7;
-   */
-  mcpServerUsages: McpServerUsage[];
 
   /**
    * Skills to inject into this session's context.
@@ -215,6 +201,18 @@ export type SessionSpec = Message<"ai.stigmer.agentic.session.v1.SessionSpec"> &
    * @generated from field: bool include_my_vault = 18;
    */
   includeMyVault: boolean;
+
+  /**
+   * Plugins this conversation uses, each whole, besides its agent's: their
+   * skills, agents, hooks and MCP servers. A chat with the built-in
+   * assistant gets its tools from these.
+   *
+   * The agent's tool lists govern a conversation's plugins like its own: an
+   * agent whose tools list does not name a plugin's server cannot use it.
+   *
+   * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference plugins = 19;
+   */
+  plugins: ApiResourceReference[];
 };
 
 /**

@@ -49,8 +49,8 @@ tuples:
   - {user: organization:acme, relation: organization, object: agent:triage}
   - {user: team:sre#member, relation: viewer, object: agent:triage}
   - {user: team:ghost#member, relation: viewer, object: agent:triage}
-  - {user: organization:acme, relation: organization, object: mcp_server:runbook}
-  - {user: team:sre#member, relation: editor, object: mcp_server:runbook}
+  - {user: organization:acme, relation: organization, object: agent:runbook}
+  - {user: team:sre#member, relation: editor, object: agent:runbook}
   - {user: organization:acme, relation: organization, object: agent:partner}
   - {user: team:partners#member, relation: viewer, object: agent:partner}
   - {user: organization:acme, relation: organization, object: agent_channel:support}
@@ -140,21 +140,21 @@ tests:
     list_objects:
       - user: identity_account:vic
         type: agent
-        assertions: {viewer: [agent:triage]}
+        assertions: {viewer: [agent:runbook, agent:triage]}
       - user: identity_account:left
         type: agent
         assertions: {viewer: []}
       - user: identity_account:back
         type: agent
-        assertions: {viewer: [agent:triage]}
+        assertions: {viewer: [agent:runbook, agent:triage]}
       - user: identity_account:ext
         type: agent
         assertions: {viewer: []}
   - name: a team granted editor makes exactly its bounded members editors
     check:
-      - {user: identity_account:vic, object: mcp_server:runbook, assertions: {editor: true, can_edit: true, can_delete: false, can_grant_access: false}}
-      - {user: identity_account:mem, object: mcp_server:runbook, assertions: {editor: true, can_edit: true}}
-      - {user: identity_account:back, object: mcp_server:runbook, assertions: {editor: true}}
-      - {user: identity_account:gus, object: mcp_server:runbook, assertions: {editor: false, can_edit: false}}
-      - {user: identity_account:left, object: mcp_server:runbook, assertions: {editor: false, can_edit: false}}
-      - {user: identity_account:out, object: mcp_server:runbook, assertions: {editor: false, can_edit: false}}
+      - {user: identity_account:vic, object: agent:runbook, assertions: {editor: true, can_edit: true, can_delete: false, can_grant_access: false}}
+      - {user: identity_account:mem, object: agent:runbook, assertions: {editor: true, can_edit: true}}
+      - {user: identity_account:back, object: agent:runbook, assertions: {editor: true}}
+      - {user: identity_account:gus, object: agent:runbook, assertions: {editor: false, can_edit: false}}
+      - {user: identity_account:left, object: agent:runbook, assertions: {editor: false, can_edit: false}}
+      - {user: identity_account:out, object: agent:runbook, assertions: {editor: false, can_edit: false}}

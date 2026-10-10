@@ -107,7 +107,7 @@ message SearchResponse {
   // (not just the current page).
   //
   // Useful for rendering UI tabs or filter badges showing counts.
-  // Example: {"agent": 5, "skill": 12, "mcp_server": 3}
+  // Example: {"agent": 5, "skill": 12, "plugin": 3}
   map<string, int32> counts_by_kind = 2;
 
   // Total count of matching resources across all kinds.
@@ -137,9 +137,9 @@ message SearchResponse {
 // The description field is populated by each resource's Searchable interface:
 // - Agent: spec.instructions (may be truncated)
 // - Skill: spec.description
-// - McpServer: spec.description
+// - Plugin: spec.description
 message SearchResult {
-  // Type of API resource this result represents (e.g., agent, skill, mcp_server).
+  // Type of API resource this result represents (e.g., agent, skill, plugin).
   ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kind = 1;
 
   // System-generated unique identifier (UUID).
@@ -187,7 +187,7 @@ message SearchResult {
   // The source field varies by resource type:
   // - Agent: spec.instructions (may be truncated)
   // - Skill: spec.description
-  // - McpServer: spec.description
+  // - Plugin: spec.description
   // Truncation for display is a presentation concern (CLI/UI responsibility).
   string description = 7;
 

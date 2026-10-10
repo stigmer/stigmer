@@ -20,13 +20,14 @@ export const file_ai_stigmer_agentic_plugin_v1_api: GenFile = /*@__PURE__*/
   fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvcGx1Z2luL3YxL2FwaS5wcm90bxIcYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MSKbAgoGUGx1Z2luEjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVYWdlbnRpYy5zdGlnbWVyLmFpL3YxEhsKBGtpbmQYAiABKAlCDbpICnIICgZQbHVnaW4STQoIbWV0YWRhdGEYAyABKAsyMy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VNZXRhZGF0YUIGukgDyAEBEjYKBHNwZWMYBCABKAsyKC5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLlBsdWdpblNwZWMSOgoGc3RhdHVzGAUgASgLMiouYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5QbHVnaW5TdGF0dXMiZAoKUGx1Z2luTGlzdBITCgthcGlfdmVyc2lvbhgBIAEoCRIMCgRraW5kGAIgASgJEjMKBWl0ZW1zGAMgAygLMiQuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5QbHVnaW5iBnByb3RvMw", [file_ai_stigmer_agentic_plugin_v1_spec, file_ai_stigmer_agentic_plugin_v1_status, file_ai_stigmer_commons_apiresource_metadata, file_buf_validate_validate]);
 
 /**
- * Plugin is an installed Agent Plugins package: the unit of install, upgrade
- * and removal for a set of skills, MCP servers and an agent.
+ * Plugin is an installed Agent Plugins package: one thing holding skills,
+ * agents, hooks and MCP servers, installed, upgraded and removed whole.
  *
- * A plugin is what you install; an agent is what runs. Installing a plugin
- * materialises ordinary Stigmer resources in the organization, each labelled
- * with the plugin's id; the plugin owns their grouping, version and removal
- * while execution, authorization and sharing stay on the resources.
+ * Installing a plugin adds it to the organization and creates nothing else.
+ * An agent or a conversation lists the plugins it uses; a turn then gets
+ * every part of each, named under the plugin: its skills as
+ * <plugin>:<skill>, its agents as <plugin>:<agent>, its hooks, and its
+ * servers' tools.
  *
  * @generated from message ai.stigmer.agentic.plugin.v1.Plugin
  */

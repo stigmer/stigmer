@@ -31,8 +31,8 @@ export interface SdkResourceConfig {
 
 // Fields that always come from ApiResourceMetadata; spec fields with these
 // names are skipped to avoid conflicts with the metadata-derived input
-// header. "Tags" is deliberately NOT here (McpServer has a real spec-level
-// tags field).
+// header. "Tags" is deliberately NOT here (a spec may carry its own tags
+// field).
 export const META_FIELD_NAMES = new Set(["Name", "Org", "Visibility", "Labels"]);
 
 /** Tracks generated type names per resource for client.ts generation. */

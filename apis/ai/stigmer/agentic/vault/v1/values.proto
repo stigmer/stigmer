@@ -16,7 +16,7 @@ import "buf/validate/validate.proto";
 // permission: runners act as the person who owns the run, so a permission
 // cannot tell them apart from that person.
 service VaultValueController {
-  // Fetch the values of a run or of a tool connect, grouped by who declared
+  // Fetch the values of a run or of a tools listing, grouped by who declared
   // them, opened from the vaults the run's source manifest names
   // (RunStatus.credentials.sources) as they are now.
   //
@@ -39,9 +39,8 @@ service VaultValueController {
   // entry gone since the run was planned, a vault the run may no longer
   // use, a tool moved to another address, or a renewal the provider
   // refuses answers FAILED_PRECONDITION naming the key, its declarer and
-  // the vault. A connect is planned when it fetches: the connecting
-  // person's My vault, or, for the runner's backfill of a run's tool, that
-  // tool's entries in the run's manifest.
+  // the vault. A plugin tools listing is planned when it fetches: the
+  // listing person's My vault for that one server.
   rpc fetchValues(FetchExecutionValuesInput) returns (ExecutionValues) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
@@ -49,16 +48,16 @@ service VaultValueController {
 
 // Which execution's values to fetch.
 message FetchExecutionValuesInput {
-  // The run's id, or the id of a tool connect's attempt.
+  // The run's id, or the id of a tools listing's connect attempt.
   string execution_id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 // ExecutionValues are one execution's values, grouped by who declared them:
 // each declarer receives only its own.
 message ExecutionValues {
-  // The agent's own keys, for its shell and hooks: secrets by name and plain
-  // defaults, never a connection or a repository's token, and never a key a
-  // tool of the run declares.
+  // The agent's own keys, for its shell and its own hooks: secrets by name
+  // and plain defaults, never a connection or a repository's token, and
+  // never a key a tool or a plugin of the run declares.
   map<string, string> agent = 1;
 
   // Each tool's keys, by tool.
@@ -66,12 +65,24 @@ message ExecutionValues {
 
   // Each repository's token, for its clone and write-back only.
   repeated RepositoryValues repositories = 3;
+
+  // Each plugin's keys, for that plugin's hooks only.
+  repeated PluginValues plugins = 4;
 }
 
-// ToolValues are the values of one tool (an MCP server) of the execution.
+// ToolValues are the values of one tool (an MCP server in a plugin) of the
+// execution.
 message ToolValues {
-  // The tool's MCP server id.
-  string mcp_server_id = 1;
+  // Field 1 held the tool's MCP server id until an MCP server became an
+  // entry inside a plugin; a tool is named by plugin_id and server.
+  reserved 1;
+  reserved "mcp_server_id";
+
+  // The tool's plugin.
+  string plugin_id = 4;
+
+  // The tool's server name in its plugin.
+  string server = 5;
 
   // The tool's URL as the fetch read it, whose address was checked against
   // each login it receives; empty for a local program. A runner sends the
@@ -80,6 +91,15 @@ message ToolValues {
 
   // The tool's keys and their values.
   map<string, string> values = 3;
+}
+
+// PluginValues are the keys one plugin's hooks read.
+message PluginValues {
+  // The plugin.
+  string plugin_id = 1;
+
+  // Its keys and their values.
+  map<string, string> values = 2;
 }
 
 // RepositoryValues is the token of one repository the execution clones.

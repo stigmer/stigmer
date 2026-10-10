@@ -62,8 +62,6 @@ const (
 	IamPermission_can_execute IamPermission = 15
 	// Platform-level permissions.
 	IamPermission_can_bootstrap_iam IamPermission = 17
-	// MCP server connect permission.
-	IamPermission_can_connect IamPermission = 22
 	// Billing permissions (org-scoped).
 	IamPermission_can_view_billing   IamPermission = 27
 	IamPermission_can_manage_billing IamPermission = 28
@@ -107,11 +105,8 @@ const (
 	// platform permissions: the standing console only observes.
 	IamPermission_can_view_provider_standing IamPermission = 38
 	// Organization-level permission to install a plugin: push an Agent
-	// Plugins archive that the server materialises into skills, MCP servers
-	// and an agent in the organization. Distinct from the child
-	// kinds' create permissions, which the materialisation also evaluates for
-	// the installing caller: who may bring a package into an organization is a
-	// policy an administrator sets on its own.
+	// Plugins archive into the organization. Who may bring a package into an
+	// organization is a policy an administrator sets on its own.
 	IamPermission_can_create_plugin IamPermission = 40
 	// Platform-level permission to create and retire Plans, the catalog the
 	// cloud sells subscriptions and licenses against. A human operator
@@ -125,9 +120,6 @@ const (
 	// can_manage_plans because issuing a license to a named customer is a
 	// different act, and a different audit line, from editing the catalog.
 	IamPermission_can_issue_license IamPermission = 42
-	// Organization-level permission to create an MCP server in the
-	// organization.
-	IamPermission_can_create_mcp_server IamPermission = 43
 	// Organization-level permission to create a team in the organization.
 	IamPermission_can_create_team IamPermission = 45
 	// Platform-level permission to add or remove an organization's credits
@@ -172,7 +164,6 @@ var (
 		13: "can_create_run_in",
 		15: "can_execute",
 		17: "can_bootstrap_iam",
-		22: "can_connect",
 		27: "can_view_billing",
 		28: "can_manage_billing",
 		29: "can_execute_billing_ops",
@@ -186,7 +177,6 @@ var (
 		40: "can_create_plugin",
 		41: "can_manage_plans",
 		42: "can_issue_license",
-		43: "can_create_mcp_server",
 		45: "can_create_team",
 		46: "can_manage_credits",
 		49: "can_manage_child_orgs",
@@ -214,7 +204,6 @@ var (
 		"can_create_run_in":           13,
 		"can_execute":                 15,
 		"can_bootstrap_iam":           17,
-		"can_connect":                 22,
 		"can_view_billing":            27,
 		"can_manage_billing":          28,
 		"can_execute_billing_ops":     29,
@@ -228,7 +217,6 @@ var (
 		"can_create_plugin":           40,
 		"can_manage_plans":            41,
 		"can_issue_license":           42,
-		"can_create_mcp_server":       43,
 		"can_create_team":             45,
 		"can_manage_credits":          46,
 		"can_manage_child_orgs":       49,
@@ -292,7 +280,7 @@ const (
 	// conversations and speak to its customers as the business (reply, take
 	// over, hand back, clear attention). Not a channel configurator.
 	IamRole_participant IamRole = 5
-	// Editor of a blueprint (an agent or an MCP server): may change
+	// Editor of a blueprint (an agent): may change
 	// its definition and do whatever a viewer can, and may not delete it,
 	// change its visibility, publish it on a share link or a channel, or decide
 	// who else has access.
@@ -357,7 +345,7 @@ var File_ai_stigmer_iam_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xaa\n" +
+	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xae\n" +
 	"\n" +
 	"\rIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\f\n" +
@@ -378,8 +366,7 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x1acan_create_platform_client\x10\x18\x12\x15\n" +
 	"\x11can_create_run_in\x10\r\x12\x0f\n" +
 	"\vcan_execute\x10\x0f\x12\x15\n" +
-	"\x11can_bootstrap_iam\x10\x11\x12\x0f\n" +
-	"\vcan_connect\x10\x16\x12\x14\n" +
+	"\x11can_bootstrap_iam\x10\x11\x12\x14\n" +
 	"\x10can_view_billing\x10\x1b\x12\x16\n" +
 	"\x12can_manage_billing\x10\x1c\x12\x1b\n" +
 	"\x17can_execute_billing_ops\x10\x1d\x12\x1a\n" +
@@ -392,17 +379,16 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x1acan_view_provider_standing\x10&\x12\x15\n" +
 	"\x11can_create_plugin\x10(\x12\x14\n" +
 	"\x10can_manage_plans\x10)\x12\x15\n" +
-	"\x11can_issue_license\x10*\x12\x19\n" +
-	"\x15can_create_mcp_server\x10+\x12\x13\n" +
+	"\x11can_issue_license\x10*\x12\x13\n" +
 	"\x0fcan_create_team\x10-\x12\x16\n" +
 	"\x12can_manage_credits\x10.\x12\x19\n" +
 	"\x15can_manage_child_orgs\x101\x12\x15\n" +
 	"\x11can_view_settings\x102\x12\x14\n" +
 	"\x10can_create_vault\x103\x12\x1b\n" +
 	"\x17can_create_shared_vault\x104\x12\v\n" +
-	"\acan_use\x105\"\x04\b\x0e\x10\x0e\"\x04\b\a\x10\a\"\x04\b\f\x10\f\"\x04\b\x10\x10\x10\"\x04\b\x12\x10\x12\"\x04\b\x14\x10\x14\"\x04\b\x19\x10\x19\"\x04\b\x1a\x10\x1a\"\x04\b!\x10!\"\x04\b\"\x10\"\"\x04\b\n" +
+	"\acan_use\x105\"\x04\b\x0e\x10\x0e\"\x04\b\a\x10\a\"\x04\b\f\x10\f\"\x04\b\x10\x10\x10\"\x04\b\x16\x10\x16\"\x04\b\x12\x10\x12\"\x04\b\x14\x10\x14\"\x04\b\x19\x10\x19\"\x04\b\x1a\x10\x1a\"\x04\b!\x10!\"\x04\b\"\x10\"\"\x04\b\n" +
 	"\x10\n" +
-	"\"\x04\b'\x10'\"\x04\b,\x10,*\x13can_create_instance*\x13can_create_workflow*\x16can_create_environment*\x10can_read_secrets*\x1ccan_manage_identity_accounts*\x14login_to_back_office*\x11can_create_runner*\x12can_delete_session*\x0fcan_use_records*\x14can_create_datastore*\x12can_create_project*\x19can_set_public_visibility*\x19can_create_agent_instance*x\n" +
+	"\"\x04\b'\x10'\"\x04\b+\x10+\"\x04\b,\x10,*\x13can_create_instance*\x13can_create_workflow*\x16can_create_environment*\x10can_read_secrets*\vcan_connect*\x1ccan_manage_identity_accounts*\x14login_to_back_office*\x11can_create_runner*\x12can_delete_session*\x0fcan_use_records*\x14can_create_datastore*\x12can_create_project*\x19can_set_public_visibility*\x15can_create_mcp_server*\x19can_create_agent_instance*x\n" +
 	"\aIamRole\x12\x18\n" +
 	"\x14iam_role_unspecified\x10\x00\x12\t\n" +
 	"\x05owner\x10\x01\x12\t\n" +

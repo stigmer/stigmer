@@ -1211,6 +1211,9 @@ enum RunValueDeclarerKind {
 
   // A repository the turn clones, for its token.
   RUN_VALUE_DECLARER_KIND_REPOSITORY = 3;
+
+  // A plugin the turn uses, for its hooks.
+  RUN_VALUE_DECLARER_KIND_PLUGIN = 4;
 }
 
 // Where a value a turn uses lives.

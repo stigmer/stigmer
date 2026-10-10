@@ -48,7 +48,7 @@ function resourceNamespaces(moduleFiles: DescFile[]): string[] {
 
 // Resources that use SearchService for listing — a server-side indexing
 // concern mirrored from the Go tool.
-const SEARCH_LIST_RESOURCES = new Set(["agent", "skill", "mcpserver", "plugin"]);
+const SEARCH_LIST_RESOURCES = new Set(["agent", "skill", "plugin"]);
 
 // Curated commons types/enums for SDK reference documentation; internal
 // types like AuthorizationConfig and ApiResourceKindMeta are excluded.

@@ -1,8 +1,8 @@
 from ai.stigmer.agentic.plugin.v1 import hooks_pb2 as _hooks_pb2
+from ai.stigmer.agentic.vault.v1 import declaration_pb2 as _declaration_pb2
 from ai.stigmer.commons.apiresource import status_pb2 as _status_pb2
 from buf.validate import validate_pb2 as _validate_pb2
 from google.protobuf.internal import containers as _containers
-from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from collections.abc import Iterable as _Iterable, Mapping as _Mapping
@@ -10,46 +10,107 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
-class PluginState(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
-    __slots__ = ()
-    PLUGIN_STATE_UNSPECIFIED: _ClassVar[PluginState]
-    PLUGIN_STATE_INSTALLING: _ClassVar[PluginState]
-    PLUGIN_STATE_READY: _ClassVar[PluginState]
-    PLUGIN_STATE_FAILED: _ClassVar[PluginState]
-PLUGIN_STATE_UNSPECIFIED: PluginState
-PLUGIN_STATE_INSTALLING: PluginState
-PLUGIN_STATE_READY: PluginState
-PLUGIN_STATE_FAILED: PluginState
-
 class PluginStatus(_message.Message):
-    __slots__ = ("audit", "digest", "artifact_storage_key", "state", "error", "materialized", "warnings", "hooks")
+    __slots__ = ("audit", "digest", "artifact_storage_key", "warnings", "hooks", "skills", "agents", "mcp_servers", "env")
+    class EnvEntry(_message.Message):
+        __slots__ = ("key", "value")
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: _declaration_pb2.EnvVarDeclaration
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[_Union[_declaration_pb2.EnvVarDeclaration, _Mapping]] = ...) -> None: ...
     AUDIT_FIELD_NUMBER: _ClassVar[int]
     DIGEST_FIELD_NUMBER: _ClassVar[int]
     ARTIFACT_STORAGE_KEY_FIELD_NUMBER: _ClassVar[int]
-    STATE_FIELD_NUMBER: _ClassVar[int]
-    ERROR_FIELD_NUMBER: _ClassVar[int]
-    MATERIALIZED_FIELD_NUMBER: _ClassVar[int]
     WARNINGS_FIELD_NUMBER: _ClassVar[int]
     HOOKS_FIELD_NUMBER: _ClassVar[int]
+    SKILLS_FIELD_NUMBER: _ClassVar[int]
+    AGENTS_FIELD_NUMBER: _ClassVar[int]
+    MCP_SERVERS_FIELD_NUMBER: _ClassVar[int]
+    ENV_FIELD_NUMBER: _ClassVar[int]
     audit: _status_pb2.ApiResourceAudit
     digest: str
     artifact_storage_key: str
-    state: PluginState
-    error: str
-    materialized: PluginMaterialization
     warnings: _containers.RepeatedCompositeFieldContainer[PluginWarning]
     hooks: _hooks_pb2.HookConfig
-    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., digest: _Optional[str] = ..., artifact_storage_key: _Optional[str] = ..., state: _Optional[_Union[PluginState, str]] = ..., error: _Optional[str] = ..., materialized: _Optional[_Union[PluginMaterialization, _Mapping]] = ..., warnings: _Optional[_Iterable[_Union[PluginWarning, _Mapping]]] = ..., hooks: _Optional[_Union[_hooks_pb2.HookConfig, _Mapping]] = ...) -> None: ...
+    skills: _containers.RepeatedCompositeFieldContainer[PluginSkill]
+    agents: _containers.RepeatedCompositeFieldContainer[PluginAgent]
+    mcp_servers: _containers.RepeatedCompositeFieldContainer[McpServerEntry]
+    env: _containers.MessageMap[str, _declaration_pb2.EnvVarDeclaration]
+    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., digest: _Optional[str] = ..., artifact_storage_key: _Optional[str] = ..., warnings: _Optional[_Iterable[_Union[PluginWarning, _Mapping]]] = ..., hooks: _Optional[_Union[_hooks_pb2.HookConfig, _Mapping]] = ..., skills: _Optional[_Iterable[_Union[PluginSkill, _Mapping]]] = ..., agents: _Optional[_Iterable[_Union[PluginAgent, _Mapping]]] = ..., mcp_servers: _Optional[_Iterable[_Union[McpServerEntry, _Mapping]]] = ..., env: _Optional[_Mapping[str, _declaration_pb2.EnvVarDeclaration]] = ...) -> None: ...
 
-class PluginMaterialization(_message.Message):
-    __slots__ = ("skills", "mcp_servers", "agents")
+class PluginSkill(_message.Message):
+    __slots__ = ("name", "description", "path")
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    DESCRIPTION_FIELD_NUMBER: _ClassVar[int]
+    PATH_FIELD_NUMBER: _ClassVar[int]
+    name: str
+    description: str
+    path: str
+    def __init__(self, name: _Optional[str] = ..., description: _Optional[str] = ..., path: _Optional[str] = ...) -> None: ...
+
+class PluginAgent(_message.Message):
+    __slots__ = ("name", "description", "instructions", "model", "tools", "disallowed_tools", "skills")
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    DESCRIPTION_FIELD_NUMBER: _ClassVar[int]
+    INSTRUCTIONS_FIELD_NUMBER: _ClassVar[int]
+    MODEL_FIELD_NUMBER: _ClassVar[int]
+    TOOLS_FIELD_NUMBER: _ClassVar[int]
+    DISALLOWED_TOOLS_FIELD_NUMBER: _ClassVar[int]
     SKILLS_FIELD_NUMBER: _ClassVar[int]
-    MCP_SERVERS_FIELD_NUMBER: _ClassVar[int]
-    AGENTS_FIELD_NUMBER: _ClassVar[int]
-    skills: int
-    mcp_servers: int
-    agents: int
-    def __init__(self, skills: _Optional[int] = ..., mcp_servers: _Optional[int] = ..., agents: _Optional[int] = ...) -> None: ...
+    name: str
+    description: str
+    instructions: str
+    model: str
+    tools: _containers.RepeatedScalarFieldContainer[str]
+    disallowed_tools: _containers.RepeatedScalarFieldContainer[str]
+    skills: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, name: _Optional[str] = ..., description: _Optional[str] = ..., instructions: _Optional[str] = ..., model: _Optional[str] = ..., tools: _Optional[_Iterable[str]] = ..., disallowed_tools: _Optional[_Iterable[str]] = ..., skills: _Optional[_Iterable[str]] = ...) -> None: ...
+
+class McpServerEntry(_message.Message):
+    __slots__ = ("name", "stdio", "http", "env", "sign_in")
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    STDIO_FIELD_NUMBER: _ClassVar[int]
+    HTTP_FIELD_NUMBER: _ClassVar[int]
+    ENV_FIELD_NUMBER: _ClassVar[int]
+    SIGN_IN_FIELD_NUMBER: _ClassVar[int]
+    name: str
+    stdio: StdioMcpServer
+    http: HttpMcpServer
+    env: _containers.RepeatedScalarFieldContainer[str]
+    sign_in: McpServerSignIn
+    def __init__(self, name: _Optional[str] = ..., stdio: _Optional[_Union[StdioMcpServer, _Mapping]] = ..., http: _Optional[_Union[HttpMcpServer, _Mapping]] = ..., env: _Optional[_Iterable[str]] = ..., sign_in: _Optional[_Union[McpServerSignIn, _Mapping]] = ...) -> None: ...
+
+class StdioMcpServer(_message.Message):
+    __slots__ = ("command", "args")
+    COMMAND_FIELD_NUMBER: _ClassVar[int]
+    ARGS_FIELD_NUMBER: _ClassVar[int]
+    command: str
+    args: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, command: _Optional[str] = ..., args: _Optional[_Iterable[str]] = ...) -> None: ...
+
+class HttpMcpServer(_message.Message):
+    __slots__ = ("url", "headers", "timeout_seconds")
+    class HeadersEntry(_message.Message):
+        __slots__ = ("key", "value")
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: str
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
+    URL_FIELD_NUMBER: _ClassVar[int]
+    HEADERS_FIELD_NUMBER: _ClassVar[int]
+    TIMEOUT_SECONDS_FIELD_NUMBER: _ClassVar[int]
+    url: str
+    headers: _containers.ScalarMap[str, str]
+    timeout_seconds: int
+    def __init__(self, url: _Optional[str] = ..., headers: _Optional[_Mapping[str, str]] = ..., timeout_seconds: _Optional[int] = ...) -> None: ...
+
+class McpServerSignIn(_message.Message):
+    __slots__ = ("oauth_only",)
+    OAUTH_ONLY_FIELD_NUMBER: _ClassVar[int]
+    oauth_only: bool
+    def __init__(self, oauth_only: bool = ...) -> None: ...
 
 class PluginWarning(_message.Message):
     __slots__ = ("kind", "message", "path")

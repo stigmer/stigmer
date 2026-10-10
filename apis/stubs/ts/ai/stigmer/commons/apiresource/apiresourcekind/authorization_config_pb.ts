@@ -39,7 +39,7 @@ export const file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_c
  * tuples (session, runs, etc.).
  *
  * Current classification:
- * - Blueprint kinds (agent, skill, mcp_server, plugin):
+ * - Blueprint kinds (agent, skill, plugin):
  *     private, org, child_orgs
  * - Org-only kinds (vault):
  *     private, org — child_orgs is deliberately excluded to preserve
@@ -58,7 +58,7 @@ export type VisibilityConfig = Message<"ai.stigmer.commons.apiresource.apiresour
    * Whether resources of this kind can be set to visibility_child_orgs.
    * FGA tuple: resource#child_org_viewer@organization:<org>#child_org_viewer
    *
-   * Reserved for blueprint kinds (agent, skill, mcp_server, plugin).
+   * Reserved for blueprint kinds (agent, skill, plugin).
    * Instance kinds are deliberately excluded to preserve tenant
    * isolation.
    *
@@ -83,7 +83,7 @@ export type VisibilityConfig = Message<"ai.stigmer.commons.apiresource.apiresour
    * with unspecified visibility. When false (or when no visibility config
    * is declared), unspecified visibility defaults to visibility_private.
    *
-   * Set on blueprint kinds (agent, skill, mcp_server): blueprints
+   * Set on blueprint kinds (agent, skill, plugin): blueprints
    * are shared org assets, and before private visibility became real (the
    * unconditional `viewer from organization` FGA grant was removed) every
    * blueprint was effectively org-visible regardless of its enum value.
@@ -348,7 +348,7 @@ export enum AuthorizationScopeType {
 
   /**
    * Links to an organization.
-   * Used for: agent, skill, vault, session, mcp_server, etc.
+   * Used for: agent, skill, vault, session, plugin, etc.
    * FGA tuple: resource#organization@organization:<org_id>
    *
    * @generated from enum value: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION = 2;

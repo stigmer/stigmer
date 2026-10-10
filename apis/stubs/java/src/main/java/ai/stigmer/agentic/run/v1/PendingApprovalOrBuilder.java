@@ -183,7 +183,8 @@ public interface PendingApprovalOrBuilder extends
 
   /**
    * <pre>
-   * Slug of the MCP server that provides this tool.
+   * Name of the MCP server that provides this tool, as its tools are named
+   * (plugin_&lt;plugin&gt;_&lt;server&gt; for a plugin's server).
    * Copied from ToolCall.mcp_server_slug for UI convenience.
    * Empty for built-in sandbox tools (read, write, shell, etc.).
    *
@@ -191,7 +192,7 @@ public interface PendingApprovalOrBuilder extends
    * structured argument previews (scalar grids, humanized names)
    * instead of falling back to raw JSON.
    *
-   * Examples: "planton", "github", "slack"
+   * Examples: "plugin_linear_linear", "plugin_github_github"
    * </pre>
    *
    * <code>string mcp_server_slug = 8 [json_name = "mcpServerSlug"];</code>
@@ -200,7 +201,8 @@ public interface PendingApprovalOrBuilder extends
   java.lang.String getMcpServerSlug();
   /**
    * <pre>
-   * Slug of the MCP server that provides this tool.
+   * Name of the MCP server that provides this tool, as its tools are named
+   * (plugin_&lt;plugin&gt;_&lt;server&gt; for a plugin's server).
    * Copied from ToolCall.mcp_server_slug for UI convenience.
    * Empty for built-in sandbox tools (read, write, shell, etc.).
    *
@@ -208,7 +210,7 @@ public interface PendingApprovalOrBuilder extends
    * structured argument previews (scalar grids, humanized names)
    * instead of falling back to raw JSON.
    *
-   * Examples: "planton", "github", "slack"
+   * Examples: "plugin_linear_linear", "plugin_github_github"
    * </pre>
    *
    * <code>string mcp_server_slug = 8 [json_name = "mcpServerSlug"];</code>

@@ -139,6 +139,37 @@ public final class PluginCommandControllerGrpc {
     return getDeleteMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.plugin.v1.ListPluginToolsInput,
+      ai.stigmer.agentic.plugin.v1.ListPluginToolsOutput> getListToolsMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "listTools",
+      requestType = ai.stigmer.agentic.plugin.v1.ListPluginToolsInput.class,
+      responseType = ai.stigmer.agentic.plugin.v1.ListPluginToolsOutput.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.plugin.v1.ListPluginToolsInput,
+      ai.stigmer.agentic.plugin.v1.ListPluginToolsOutput> getListToolsMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.plugin.v1.ListPluginToolsInput, ai.stigmer.agentic.plugin.v1.ListPluginToolsOutput> getListToolsMethod;
+    if ((getListToolsMethod = PluginCommandControllerGrpc.getListToolsMethod) == null) {
+      synchronized (PluginCommandControllerGrpc.class) {
+        if ((getListToolsMethod = PluginCommandControllerGrpc.getListToolsMethod) == null) {
+          PluginCommandControllerGrpc.getListToolsMethod = getListToolsMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.plugin.v1.ListPluginToolsInput, ai.stigmer.agentic.plugin.v1.ListPluginToolsOutput>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "listTools"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.plugin.v1.ListPluginToolsInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.plugin.v1.ListPluginToolsOutput.getDefaultInstance()))
+              .setSchemaDescriptor(new PluginCommandControllerMethodDescriptorSupplier("listTools"))
+              .build();
+        }
+      }
+    }
+    return getListToolsMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -211,7 +242,7 @@ public final class PluginCommandControllerGrpc {
      * Creates the plugin if it does not exist, or installs a new version of an
      * existing plugin; pushing the archive already installed changes nothing.
      * The archive is a plugin folder in the Agent Plugins, Cursor, Claude Code
-     * or Codex layout; the response's status names what was materialised and
+     * or Codex layout; the response's status lists what the plugin holds and
      * what was skipped.
      * </pre>
      */
@@ -236,8 +267,8 @@ public final class PluginCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update the visibility of a plugin and of every resource it materialised.
-     * Only modifies metadata.visibility on the plugin and its members.
+     * Update the visibility of a plugin.
+     * Only modifies metadata.visibility.
      * </pre>
      */
     default void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
@@ -247,14 +278,29 @@ public final class PluginCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete a plugin and every resource it materialised.
-     * Refused when a resource outside the plugin still references a member;
-     * the error names the referencing resources.
+     * Delete a plugin.
+     * Refused while an agent of the organization lists it; the error names the
+     * agents.
      * </pre>
      */
     default void delete(ai.stigmer.agentic.plugin.v1.PluginId request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.plugin.v1.Plugin> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getDeleteMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * List the tools one of a plugin's MCP servers offers now, signed in as
+     * the caller. Nothing is stored.
+     * Errors:
+     * - FAILED_PRECONDITION: a key the server needs is in none of the caller's
+     *   vaults, or the server needs a sign-in the caller has not made
+     * - NOT_FOUND: the plugin, or the server in it, does not exist
+     * </pre>
+     */
+    default void listTools(ai.stigmer.agentic.plugin.v1.ListPluginToolsInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.plugin.v1.ListPluginToolsOutput> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListToolsMethod(), responseObserver);
     }
   }
 
@@ -297,7 +343,7 @@ public final class PluginCommandControllerGrpc {
      * Creates the plugin if it does not exist, or installs a new version of an
      * existing plugin; pushing the archive already installed changes nothing.
      * The archive is a plugin folder in the Agent Plugins, Cursor, Claude Code
-     * or Codex layout; the response's status names what was materialised and
+     * or Codex layout; the response's status lists what the plugin holds and
      * what was skipped.
      * </pre>
      */
@@ -324,8 +370,8 @@ public final class PluginCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update the visibility of a plugin and of every resource it materialised.
-     * Only modifies metadata.visibility on the plugin and its members.
+     * Update the visibility of a plugin.
+     * Only modifies metadata.visibility.
      * </pre>
      */
     public void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
@@ -336,15 +382,31 @@ public final class PluginCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete a plugin and every resource it materialised.
-     * Refused when a resource outside the plugin still references a member;
-     * the error names the referencing resources.
+     * Delete a plugin.
+     * Refused while an agent of the organization lists it; the error names the
+     * agents.
      * </pre>
      */
     public void delete(ai.stigmer.agentic.plugin.v1.PluginId request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.plugin.v1.Plugin> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getDeleteMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * List the tools one of a plugin's MCP servers offers now, signed in as
+     * the caller. Nothing is stored.
+     * Errors:
+     * - FAILED_PRECONDITION: a key the server needs is in none of the caller's
+     *   vaults, or the server needs a sign-in the caller has not made
+     * - NOT_FOUND: the plugin, or the server in it, does not exist
+     * </pre>
+     */
+    public void listTools(ai.stigmer.agentic.plugin.v1.ListPluginToolsInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.plugin.v1.ListPluginToolsOutput> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getListToolsMethod(), getCallOptions()), request, responseObserver);
     }
   }
 
@@ -373,7 +435,7 @@ public final class PluginCommandControllerGrpc {
      * Creates the plugin if it does not exist, or installs a new version of an
      * existing plugin; pushing the archive already installed changes nothing.
      * The archive is a plugin folder in the Agent Plugins, Cursor, Claude Code
-     * or Codex layout; the response's status names what was materialised and
+     * or Codex layout; the response's status lists what the plugin holds and
      * what was skipped.
      * </pre>
      */
@@ -398,8 +460,8 @@ public final class PluginCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update the visibility of a plugin and of every resource it materialised.
-     * Only modifies metadata.visibility on the plugin and its members.
+     * Update the visibility of a plugin.
+     * Only modifies metadata.visibility.
      * </pre>
      */
     public ai.stigmer.agentic.plugin.v1.Plugin updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) throws io.grpc.StatusException {
@@ -409,14 +471,29 @@ public final class PluginCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete a plugin and every resource it materialised.
-     * Refused when a resource outside the plugin still references a member;
-     * the error names the referencing resources.
+     * Delete a plugin.
+     * Refused while an agent of the organization lists it; the error names the
+     * agents.
      * </pre>
      */
     public ai.stigmer.agentic.plugin.v1.Plugin delete(ai.stigmer.agentic.plugin.v1.PluginId request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getDeleteMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * List the tools one of a plugin's MCP servers offers now, signed in as
+     * the caller. Nothing is stored.
+     * Errors:
+     * - FAILED_PRECONDITION: a key the server needs is in none of the caller's
+     *   vaults, or the server needs a sign-in the caller has not made
+     * - NOT_FOUND: the plugin, or the server in it, does not exist
+     * </pre>
+     */
+    public ai.stigmer.agentic.plugin.v1.ListPluginToolsOutput listTools(ai.stigmer.agentic.plugin.v1.ListPluginToolsInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getListToolsMethod(), getCallOptions(), request);
     }
   }
 
@@ -445,7 +522,7 @@ public final class PluginCommandControllerGrpc {
      * Creates the plugin if it does not exist, or installs a new version of an
      * existing plugin; pushing the archive already installed changes nothing.
      * The archive is a plugin folder in the Agent Plugins, Cursor, Claude Code
-     * or Codex layout; the response's status names what was materialised and
+     * or Codex layout; the response's status lists what the plugin holds and
      * what was skipped.
      * </pre>
      */
@@ -470,8 +547,8 @@ public final class PluginCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update the visibility of a plugin and of every resource it materialised.
-     * Only modifies metadata.visibility on the plugin and its members.
+     * Update the visibility of a plugin.
+     * Only modifies metadata.visibility.
      * </pre>
      */
     public ai.stigmer.agentic.plugin.v1.Plugin updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) {
@@ -481,14 +558,29 @@ public final class PluginCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete a plugin and every resource it materialised.
-     * Refused when a resource outside the plugin still references a member;
-     * the error names the referencing resources.
+     * Delete a plugin.
+     * Refused while an agent of the organization lists it; the error names the
+     * agents.
      * </pre>
      */
     public ai.stigmer.agentic.plugin.v1.Plugin delete(ai.stigmer.agentic.plugin.v1.PluginId request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getDeleteMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * List the tools one of a plugin's MCP servers offers now, signed in as
+     * the caller. Nothing is stored.
+     * Errors:
+     * - FAILED_PRECONDITION: a key the server needs is in none of the caller's
+     *   vaults, or the server needs a sign-in the caller has not made
+     * - NOT_FOUND: the plugin, or the server in it, does not exist
+     * </pre>
+     */
+    public ai.stigmer.agentic.plugin.v1.ListPluginToolsOutput listTools(ai.stigmer.agentic.plugin.v1.ListPluginToolsInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getListToolsMethod(), getCallOptions(), request);
     }
   }
 
@@ -517,7 +609,7 @@ public final class PluginCommandControllerGrpc {
      * Creates the plugin if it does not exist, or installs a new version of an
      * existing plugin; pushing the archive already installed changes nothing.
      * The archive is a plugin folder in the Agent Plugins, Cursor, Claude Code
-     * or Codex layout; the response's status names what was materialised and
+     * or Codex layout; the response's status lists what the plugin holds and
      * what was skipped.
      * </pre>
      */
@@ -544,8 +636,8 @@ public final class PluginCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update the visibility of a plugin and of every resource it materialised.
-     * Only modifies metadata.visibility on the plugin and its members.
+     * Update the visibility of a plugin.
+     * Only modifies metadata.visibility.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.plugin.v1.Plugin> updateVisibility(
@@ -556,9 +648,9 @@ public final class PluginCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete a plugin and every resource it materialised.
-     * Refused when a resource outside the plugin still references a member;
-     * the error names the referencing resources.
+     * Delete a plugin.
+     * Refused while an agent of the organization lists it; the error names the
+     * agents.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.plugin.v1.Plugin> delete(
@@ -566,12 +658,29 @@ public final class PluginCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getDeleteMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * List the tools one of a plugin's MCP servers offers now, signed in as
+     * the caller. Nothing is stored.
+     * Errors:
+     * - FAILED_PRECONDITION: a key the server needs is in none of the caller's
+     *   vaults, or the server needs a sign-in the caller has not made
+     * - NOT_FOUND: the plugin, or the server in it, does not exist
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.plugin.v1.ListPluginToolsOutput> listTools(
+        ai.stigmer.agentic.plugin.v1.ListPluginToolsInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getListToolsMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_PUSH = 0;
   private static final int METHODID_CREATE_ARTIFACT_UPLOAD_URL = 1;
   private static final int METHODID_UPDATE_VISIBILITY = 2;
   private static final int METHODID_DELETE = 3;
+  private static final int METHODID_LIST_TOOLS = 4;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -605,6 +714,10 @@ public final class PluginCommandControllerGrpc {
         case METHODID_DELETE:
           serviceImpl.delete((ai.stigmer.agentic.plugin.v1.PluginId) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.plugin.v1.Plugin>) responseObserver);
+          break;
+        case METHODID_LIST_TOOLS:
+          serviceImpl.listTools((ai.stigmer.agentic.plugin.v1.ListPluginToolsInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.plugin.v1.ListPluginToolsOutput>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -652,6 +765,13 @@ public final class PluginCommandControllerGrpc {
               ai.stigmer.agentic.plugin.v1.PluginId,
               ai.stigmer.agentic.plugin.v1.Plugin>(
                 service, METHODID_DELETE)))
+        .addMethod(
+          getListToolsMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.plugin.v1.ListPluginToolsInput,
+              ai.stigmer.agentic.plugin.v1.ListPluginToolsOutput>(
+                service, METHODID_LIST_TOOLS)))
         .build();
   }
 
@@ -704,6 +824,7 @@ public final class PluginCommandControllerGrpc {
               .addMethod(getCreateArtifactUploadUrlMethod())
               .addMethod(getUpdateVisibilityMethod())
               .addMethod(getDeleteMethod())
+              .addMethod(getListToolsMethod())
               .build();
         }
       }

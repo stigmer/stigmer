@@ -5,7 +5,6 @@ import { stripUndefined, toResourceRefInput, toResourceRefInputs } from "./proto
 import { type ResourceRef } from "./types.js";
 import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
-import { McpServerUsageSchema, type McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
 import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { Harness, CursorMode, ExecutionTarget, GitWriteBackMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
@@ -102,13 +101,13 @@ export interface SessionInput {
   harnessStateIdHistory?: string[];
   metadata?: Record<string, string>;
   workspaceEntries?: WorkspaceEntryInput[];
-  mcpServerUsages?: McpServerUsageInput[];
   skillRefs?: ResourceRef[];
   harness?: Harness;
   cursorMode?: CursorMode;
   executionTarget?: ExecutionTarget;
   vaults?: ResourceRef[];
   includeMyVault?: boolean;
+  plugins?: ResourceRef[];
 }
 
 /** SDK input type for WorkspaceEntry. */
@@ -136,11 +135,6 @@ export interface GitRepoSourceInput {
 /** SDK input type for LocalPathSource. */
 export interface LocalPathSourceInput {
   path?: string;
-}
-
-/** SDK input type for McpServerUsage. */
-export interface McpServerUsageInput {
-  mcpServerRef: ResourceRef;
 }
 
 function buildGitRepoSourceProto(input: GitRepoSourceInput) {
@@ -177,18 +171,12 @@ function buildWorkspaceEntryProto(input: WorkspaceEntryInput) {
   return msg;
 }
 
-function buildMcpServerUsageProto(input: McpServerUsageInput) {
-  const msg = create(McpServerUsageSchema);
-  if (input.mcpServerRef?.slug || input.mcpServerRef?.org) msg.mcpServerRef = create(ApiResourceReferenceSchema, { ...input.mcpServerRef, kind: 44 });
-  return msg;
-}
-
 export function buildSessionProto(input: SessionInput): Session {
   const agentRef = (input.agentRef?.slug || input.agentRef?.org) ? create(ApiResourceReferenceSchema, { ...input.agentRef, kind: 40 }) : undefined;
   const workspaceEntries = input.workspaceEntries?.map(buildWorkspaceEntryProto);
-  const mcpServerUsages = input.mcpServerUsages?.map(buildMcpServerUsageProto);
   const skillRefs = input.skillRefs?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 43 }));
   const vaults = input.vaults?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 59 }));
+  const plugins = input.plugins?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 58 }));
   return Object.assign(create(SessionSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Session",
@@ -207,13 +195,13 @@ export function buildSessionProto(input: SessionInput): Session {
       harnessStateIdHistory: input.harnessStateIdHistory,
       metadata: input.metadata,
       workspaceEntries,
-      mcpServerUsages,
       skillRefs,
       harness: input.harness,
       cursorMode: input.cursorMode,
       executionTarget: input.executionTarget,
       vaults,
       includeMyVault: input.includeMyVault,
+      plugins,
     })),
   }) as Session;
 }
@@ -249,12 +237,6 @@ function toWorkspaceEntryInput(msg: WorkspaceEntry): WorkspaceEntryInput {
   };
 }
 
-function toMcpServerUsageInput(msg: McpServerUsage): McpServerUsageInput {
-  return {
-    mcpServerRef: toResourceRefInput(msg.mcpServerRef) ?? { org: "", slug: "" },
-  };
-}
-
 /**
  * Maps a fetched {@link Session} to a complete {@link SessionInput} for `update()`.
  *
@@ -286,12 +268,12 @@ export function toSessionUpdateInput(resource: Session): SessionInput {
     harnessStateIdHistory: spec.harnessStateIdHistory?.length ? [...spec.harnessStateIdHistory] : undefined,
     metadata: Object.keys(spec.metadata ?? {}).length > 0 ? { ...spec.metadata } : undefined,
     workspaceEntries: spec.workspaceEntries?.length ? spec.workspaceEntries.map(toWorkspaceEntryInput) : undefined,
-    mcpServerUsages: spec.mcpServerUsages?.length ? spec.mcpServerUsages.map(toMcpServerUsageInput) : undefined,
     skillRefs: toResourceRefInputs(spec.skillRefs),
     harness: spec.harness || undefined,
     cursorMode: spec.cursorMode || undefined,
     executionTarget: spec.executionTarget || undefined,
     vaults: toResourceRefInputs(spec.vaults),
     includeMyVault: spec.includeMyVault || undefined,
+    plugins: toResourceRefInputs(spec.plugins),
   };
 }

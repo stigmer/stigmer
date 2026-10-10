@@ -32,7 +32,7 @@ type Agent struct {
 	Kind string `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
 	// Resource metadata including name, organization, visibility, and labels.
 	Metadata *apiresource.ApiResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
-	// Configurable properties: instructions, MCP servers, skills, and sub-agents.
+	// Configurable properties: instructions, plugins, skills, and sub-agents.
 	Spec *AgentSpec `protobuf:"bytes,4,opt,name=spec,proto3" json:"spec,omitempty"`
 	// System-managed state including audit trail and current version hash.
 	Status        *AgentStatus `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`

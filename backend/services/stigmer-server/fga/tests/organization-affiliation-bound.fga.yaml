@@ -34,11 +34,6 @@ tuples:
   - {user: identity_account:left, relation: owner, object: agent:x}
   - {user: identity_account:back, relation: owner, object: agent:x}
   - {user: identity_account:left, relation: viewer, object: agent:x}
-  - {user: organization:acme, relation: organization, object: mcp_server:x}
-  - {user: identity_account:stays, relation: owner, object: mcp_server:x}
-  - {user: identity_account:left, relation: owner, object: mcp_server:x}
-  - {user: identity_account:back, relation: owner, object: mcp_server:x}
-  - {user: identity_account:left, relation: viewer, object: mcp_server:x}
   - {user: organization:acme, relation: organization, object: skill:x}
   - {user: identity_account:stays, relation: owner, object: skill:x}
   - {user: identity_account:left, relation: owner, object: skill:x}
@@ -93,7 +88,6 @@ tuples:
   - {user: identity_account:left, relation: viewer, object: platform_client:x}
   - {user: identity_account:left, relation: participant, object: agent_channel:x}
   - {user: identity_account:left, relation: editor, object: agent:x}
-  - {user: identity_account:left, relation: editor, object: mcp_server:x}
   - {user: organization:acme, relation: organization, object: session:guest-chat}
   - {user: identity_account:sys-guest, relation: owner, object: session:guest-chat}
   - {user: organization:acme, relation: organization, object: memory:x}
@@ -108,7 +102,6 @@ tests:
   - name: someone outside the organization reaches nothing, whatever the grant
     check:
       - {user: identity_account:left, object: agent:x, assertions: {owner: false, viewer: false, can_view: false}}
-      - {user: identity_account:left, object: mcp_server:x, assertions: {owner: false, viewer: false, can_view: false}}
       - {user: identity_account:left, object: skill:x, assertions: {owner: false, viewer: false, can_view: false}}
       - {user: identity_account:left, object: plugin:x, assertions: {owner: false, viewer: false, can_view: false}}
       - {user: identity_account:left, object: agent_channel:x, assertions: {owner: false, viewer: false, can_view: false}}
@@ -123,12 +116,10 @@ tests:
       - {user: identity_account:left, object: platform_client:x, assertions: {viewer: false, can_view: false}}
       - {user: identity_account:left, object: agent_channel:x, assertions: {participant: false}}
       - {user: identity_account:left, object: agent:x, assertions: {editor: false, can_edit: false}}
-      - {user: identity_account:left, object: mcp_server:x, assertions: {editor: false, can_edit: false}}
       - {user: identity_account:left, object: memory:left, assertions: {can_view: false, can_edit: false, can_delete: false}}
   - name: a member keeps what they authored
     check:
       - {user: identity_account:stays, object: agent:x, assertions: {owner: true, can_view: true}}
-      - {user: identity_account:stays, object: mcp_server:x, assertions: {owner: true, can_view: true}}
       - {user: identity_account:stays, object: skill:x, assertions: {owner: true, can_view: true}}
       - {user: identity_account:stays, object: plugin:x, assertions: {owner: true, can_view: true}}
       - {user: identity_account:stays, object: agent_channel:x, assertions: {owner: true, can_view: true}}
@@ -145,7 +136,6 @@ tests:
   - name: rejoining gives back what the person authored
     check:
       - {user: identity_account:back, object: agent:x, assertions: {owner: true, can_view: true}}
-      - {user: identity_account:back, object: mcp_server:x, assertions: {owner: true, can_view: true}}
       - {user: identity_account:back, object: skill:x, assertions: {owner: true, can_view: true}}
       - {user: identity_account:back, object: plugin:x, assertions: {owner: true, can_view: true}}
       - {user: identity_account:back, object: agent_channel:x, assertions: {owner: true, can_view: true}}

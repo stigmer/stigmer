@@ -79,72 +79,6 @@ public interface PluginStatusOrBuilder extends
 
   /**
    * <pre>
-   * Current lifecycle state of the install.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.plugin.v1.PluginState state = 3 [json_name = "state"];</code>
-   * @return The enum numeric value on the wire for state.
-   */
-  int getStateValue();
-  /**
-   * <pre>
-   * Current lifecycle state of the install.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.plugin.v1.PluginState state = 3 [json_name = "state"];</code>
-   * @return The state.
-   */
-  ai.stigmer.agentic.plugin.v1.PluginState getState();
-
-  /**
-   * <pre>
-   * One sentence naming what failed when state is FAILED; empty otherwise.
-   * </pre>
-   *
-   * <code>string error = 4 [json_name = "error"];</code>
-   * @return The error.
-   */
-  java.lang.String getError();
-  /**
-   * <pre>
-   * One sentence naming what failed when state is FAILED; empty otherwise.
-   * </pre>
-   *
-   * <code>string error = 4 [json_name = "error"];</code>
-   * @return The bytes for error.
-   */
-  com.google.protobuf.ByteString
-      getErrorBytes();
-
-  /**
-   * <pre>
-   * What the last push materialised, by kind.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.plugin.v1.PluginMaterialization materialized = 5 [json_name = "materialized"];</code>
-   * @return Whether the materialized field is set.
-   */
-  boolean hasMaterialized();
-  /**
-   * <pre>
-   * What the last push materialised, by kind.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.plugin.v1.PluginMaterialization materialized = 5 [json_name = "materialized"];</code>
-   * @return The materialized.
-   */
-  ai.stigmer.agentic.plugin.v1.PluginMaterialization getMaterialized();
-  /**
-   * <pre>
-   * What the last push materialised, by kind.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.plugin.v1.PluginMaterialization materialized = 5 [json_name = "materialized"];</code>
-   */
-  ai.stigmer.agentic.plugin.v1.PluginMaterializationOrBuilder getMaterializedOrBuilder();
-
-  /**
-   * <pre>
    * Warnings the last push recorded: components Stigmer does not carry,
    * model hints it did not apply, names that shadow built-ins.
    * </pre>
@@ -221,4 +155,205 @@ public interface PluginStatusOrBuilder extends
    * <code>.ai.stigmer.agentic.plugin.v1.HookConfig hooks = 7 [json_name = "hooks"];</code>
    */
   ai.stigmer.agentic.plugin.v1.HookConfigOrBuilder getHooksOrBuilder();
+
+  /**
+   * <pre>
+   * The plugin's skills. A turn names each as &lt;plugin&gt;:&lt;skill&gt;.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginSkill skills = 9 [json_name = "skills"];</code>
+   */
+  java.util.List<ai.stigmer.agentic.plugin.v1.PluginSkill> 
+      getSkillsList();
+  /**
+   * <pre>
+   * The plugin's skills. A turn names each as &lt;plugin&gt;:&lt;skill&gt;.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginSkill skills = 9 [json_name = "skills"];</code>
+   */
+  ai.stigmer.agentic.plugin.v1.PluginSkill getSkills(int index);
+  /**
+   * <pre>
+   * The plugin's skills. A turn names each as &lt;plugin&gt;:&lt;skill&gt;.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginSkill skills = 9 [json_name = "skills"];</code>
+   */
+  int getSkillsCount();
+  /**
+   * <pre>
+   * The plugin's skills. A turn names each as &lt;plugin&gt;:&lt;skill&gt;.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginSkill skills = 9 [json_name = "skills"];</code>
+   */
+  java.util.List<? extends ai.stigmer.agentic.plugin.v1.PluginSkillOrBuilder> 
+      getSkillsOrBuilderList();
+  /**
+   * <pre>
+   * The plugin's skills. A turn names each as &lt;plugin&gt;:&lt;skill&gt;.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginSkill skills = 9 [json_name = "skills"];</code>
+   */
+  ai.stigmer.agentic.plugin.v1.PluginSkillOrBuilder getSkillsOrBuilder(
+      int index);
+
+  /**
+   * <pre>
+   * The plugin's agents, from its agents folder. A turn names each as
+   * &lt;plugin&gt;:&lt;agent&gt;.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginAgent agents = 10 [json_name = "agents"];</code>
+   */
+  java.util.List<ai.stigmer.agentic.plugin.v1.PluginAgent> 
+      getAgentsList();
+  /**
+   * <pre>
+   * The plugin's agents, from its agents folder. A turn names each as
+   * &lt;plugin&gt;:&lt;agent&gt;.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginAgent agents = 10 [json_name = "agents"];</code>
+   */
+  ai.stigmer.agentic.plugin.v1.PluginAgent getAgents(int index);
+  /**
+   * <pre>
+   * The plugin's agents, from its agents folder. A turn names each as
+   * &lt;plugin&gt;:&lt;agent&gt;.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginAgent agents = 10 [json_name = "agents"];</code>
+   */
+  int getAgentsCount();
+  /**
+   * <pre>
+   * The plugin's agents, from its agents folder. A turn names each as
+   * &lt;plugin&gt;:&lt;agent&gt;.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginAgent agents = 10 [json_name = "agents"];</code>
+   */
+  java.util.List<? extends ai.stigmer.agentic.plugin.v1.PluginAgentOrBuilder> 
+      getAgentsOrBuilderList();
+  /**
+   * <pre>
+   * The plugin's agents, from its agents folder. A turn names each as
+   * &lt;plugin&gt;:&lt;agent&gt;.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginAgent agents = 10 [json_name = "agents"];</code>
+   */
+  ai.stigmer.agentic.plugin.v1.PluginAgentOrBuilder getAgentsOrBuilder(
+      int index);
+
+  /**
+   * <pre>
+   * The plugin's MCP servers.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugin.v1.McpServerEntry mcp_servers = 11 [json_name = "mcpServers"];</code>
+   */
+  java.util.List<ai.stigmer.agentic.plugin.v1.McpServerEntry> 
+      getMcpServersList();
+  /**
+   * <pre>
+   * The plugin's MCP servers.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugin.v1.McpServerEntry mcp_servers = 11 [json_name = "mcpServers"];</code>
+   */
+  ai.stigmer.agentic.plugin.v1.McpServerEntry getMcpServers(int index);
+  /**
+   * <pre>
+   * The plugin's MCP servers.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugin.v1.McpServerEntry mcp_servers = 11 [json_name = "mcpServers"];</code>
+   */
+  int getMcpServersCount();
+  /**
+   * <pre>
+   * The plugin's MCP servers.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugin.v1.McpServerEntry mcp_servers = 11 [json_name = "mcpServers"];</code>
+   */
+  java.util.List<? extends ai.stigmer.agentic.plugin.v1.McpServerEntryOrBuilder> 
+      getMcpServersOrBuilderList();
+  /**
+   * <pre>
+   * The plugin's MCP servers.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugin.v1.McpServerEntry mcp_servers = 11 [json_name = "mcpServers"];</code>
+   */
+  ai.stigmer.agentic.plugin.v1.McpServerEntryOrBuilder getMcpServersOrBuilder(
+      int index);
+
+  /**
+   * <pre>
+   * The variables the plugin's servers and hooks read, by name: the
+   * plugin's own declarations, a required secret for each name it uses but
+   * does not declare, and the login key of a server that signs in.
+   * </pre>
+   *
+   * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.EnvVarDeclaration&gt; env = 12 [json_name = "env"];</code>
+   */
+  int getEnvCount();
+  /**
+   * <pre>
+   * The variables the plugin's servers and hooks read, by name: the
+   * plugin's own declarations, a required secret for each name it uses but
+   * does not declare, and the login key of a server that signs in.
+   * </pre>
+   *
+   * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.EnvVarDeclaration&gt; env = 12 [json_name = "env"];</code>
+   */
+  boolean containsEnv(
+      java.lang.String key);
+  /**
+   * Use {@link #getEnvMap()} instead.
+   */
+  @java.lang.Deprecated
+  java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration>
+  getEnv();
+  /**
+   * <pre>
+   * The variables the plugin's servers and hooks read, by name: the
+   * plugin's own declarations, a required secret for each name it uses but
+   * does not declare, and the login key of a server that signs in.
+   * </pre>
+   *
+   * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.EnvVarDeclaration&gt; env = 12 [json_name = "env"];</code>
+   */
+  java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration>
+  getEnvMap();
+  /**
+   * <pre>
+   * The variables the plugin's servers and hooks read, by name: the
+   * plugin's own declarations, a required secret for each name it uses but
+   * does not declare, and the login key of a server that signs in.
+   * </pre>
+   *
+   * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.EnvVarDeclaration&gt; env = 12 [json_name = "env"];</code>
+   */
+  /* nullable */
+ai.stigmer.agentic.vault.v1.EnvVarDeclaration getEnvOrDefault(
+      java.lang.String key,
+      /* nullable */
+ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
+  /**
+   * <pre>
+   * The variables the plugin's servers and hooks read, by name: the
+   * plugin's own declarations, a required secret for each name it uses but
+   * does not declare, and the login key of a server that signs in.
+   * </pre>
+   *
+   * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.EnvVarDeclaration&gt; env = 12 [json_name = "env"];</code>
+   */
+  ai.stigmer.agentic.vault.v1.EnvVarDeclaration getEnvOrThrow(
+      java.lang.String key);
 }

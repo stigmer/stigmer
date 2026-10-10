@@ -8,7 +8,8 @@ package ai.stigmer.agentic.plugin.v1;
 /**
  * <pre>
  * PluginStatus is the system-managed state of an installed plugin: the
- * archive identity and the receipt of the last push.
+ * archive identity and what the archive holds, read when the plugin was
+ * installed.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.plugin.v1.PluginStatus}
@@ -35,9 +36,10 @@ private static final long serialVersionUID = 0L;
   private PluginStatus() {
     digest_ = "";
     artifactStorageKey_ = "";
-    state_ = 0;
-    error_ = "";
     warnings_ = java.util.Collections.emptyList();
+    skills_ = java.util.Collections.emptyList();
+    agents_ = java.util.Collections.emptyList();
+    mcpServers_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -50,6 +52,18 @@ private static final long serialVersionUID = 0L;
     return ai.stigmer.agentic.plugin.v1.StatusProto.internal_static_ai_stigmer_agentic_plugin_v1_PluginStatus_descriptor;
   }
 
+  @SuppressWarnings({"rawtypes"})
+  @java.lang.Override
+  protected com.google.protobuf.MapFieldReflectionAccessor internalGetMapFieldReflection(
+      int number) {
+    switch (number) {
+      case 12:
+        return internalGetEnv();
+      default:
+        throw new RuntimeException(
+            "Invalid map field number: " + number);
+    }
+  }
   @java.lang.Override
   protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internalGetFieldAccessorTable() {
@@ -191,117 +205,6 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int STATE_FIELD_NUMBER = 3;
-  private int state_ = 0;
-  /**
-   * <pre>
-   * Current lifecycle state of the install.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.plugin.v1.PluginState state = 3 [json_name = "state"];</code>
-   * @return The enum numeric value on the wire for state.
-   */
-  @java.lang.Override public int getStateValue() {
-    return state_;
-  }
-  /**
-   * <pre>
-   * Current lifecycle state of the install.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.plugin.v1.PluginState state = 3 [json_name = "state"];</code>
-   * @return The state.
-   */
-  @java.lang.Override public ai.stigmer.agentic.plugin.v1.PluginState getState() {
-    ai.stigmer.agentic.plugin.v1.PluginState result = ai.stigmer.agentic.plugin.v1.PluginState.forNumber(state_);
-    return result == null ? ai.stigmer.agentic.plugin.v1.PluginState.UNRECOGNIZED : result;
-  }
-
-  public static final int ERROR_FIELD_NUMBER = 4;
-  @SuppressWarnings("serial")
-  private volatile java.lang.Object error_ = "";
-  /**
-   * <pre>
-   * One sentence naming what failed when state is FAILED; empty otherwise.
-   * </pre>
-   *
-   * <code>string error = 4 [json_name = "error"];</code>
-   * @return The error.
-   */
-  @java.lang.Override
-  public java.lang.String getError() {
-    java.lang.Object ref = error_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      error_ = s;
-      return s;
-    }
-  }
-  /**
-   * <pre>
-   * One sentence naming what failed when state is FAILED; empty otherwise.
-   * </pre>
-   *
-   * <code>string error = 4 [json_name = "error"];</code>
-   * @return The bytes for error.
-   */
-  @java.lang.Override
-  public com.google.protobuf.ByteString
-      getErrorBytes() {
-    java.lang.Object ref = error_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      error_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
-  }
-
-  public static final int MATERIALIZED_FIELD_NUMBER = 5;
-  private ai.stigmer.agentic.plugin.v1.PluginMaterialization materialized_;
-  /**
-   * <pre>
-   * What the last push materialised, by kind.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.plugin.v1.PluginMaterialization materialized = 5 [json_name = "materialized"];</code>
-   * @return Whether the materialized field is set.
-   */
-  @java.lang.Override
-  public boolean hasMaterialized() {
-    return ((bitField0_ & 0x00000002) != 0);
-  }
-  /**
-   * <pre>
-   * What the last push materialised, by kind.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.plugin.v1.PluginMaterialization materialized = 5 [json_name = "materialized"];</code>
-   * @return The materialized.
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.plugin.v1.PluginMaterialization getMaterialized() {
-    return materialized_ == null ? ai.stigmer.agentic.plugin.v1.PluginMaterialization.getDefaultInstance() : materialized_;
-  }
-  /**
-   * <pre>
-   * What the last push materialised, by kind.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.plugin.v1.PluginMaterialization materialized = 5 [json_name = "materialized"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.plugin.v1.PluginMaterializationOrBuilder getMaterializedOrBuilder() {
-    return materialized_ == null ? ai.stigmer.agentic.plugin.v1.PluginMaterialization.getDefaultInstance() : materialized_;
-  }
-
   public static final int WARNINGS_FIELD_NUMBER = 6;
   @SuppressWarnings("serial")
   private java.util.List<ai.stigmer.agentic.plugin.v1.PluginWarning> warnings_;
@@ -381,7 +284,7 @@ private static final long serialVersionUID = 0L;
    */
   @java.lang.Override
   public boolean hasHooks() {
-    return ((bitField0_ & 0x00000004) != 0);
+    return ((bitField0_ & 0x00000002) != 0);
   }
   /**
    * <pre>
@@ -409,6 +312,297 @@ private static final long serialVersionUID = 0L;
     return hooks_ == null ? ai.stigmer.agentic.plugin.v1.HookConfig.getDefaultInstance() : hooks_;
   }
 
+  public static final int SKILLS_FIELD_NUMBER = 9;
+  @SuppressWarnings("serial")
+  private java.util.List<ai.stigmer.agentic.plugin.v1.PluginSkill> skills_;
+  /**
+   * <pre>
+   * The plugin's skills. A turn names each as &lt;plugin&gt;:&lt;skill&gt;.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginSkill skills = 9 [json_name = "skills"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<ai.stigmer.agentic.plugin.v1.PluginSkill> getSkillsList() {
+    return skills_;
+  }
+  /**
+   * <pre>
+   * The plugin's skills. A turn names each as &lt;plugin&gt;:&lt;skill&gt;.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginSkill skills = 9 [json_name = "skills"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<? extends ai.stigmer.agentic.plugin.v1.PluginSkillOrBuilder> 
+      getSkillsOrBuilderList() {
+    return skills_;
+  }
+  /**
+   * <pre>
+   * The plugin's skills. A turn names each as &lt;plugin&gt;:&lt;skill&gt;.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginSkill skills = 9 [json_name = "skills"];</code>
+   */
+  @java.lang.Override
+  public int getSkillsCount() {
+    return skills_.size();
+  }
+  /**
+   * <pre>
+   * The plugin's skills. A turn names each as &lt;plugin&gt;:&lt;skill&gt;.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginSkill skills = 9 [json_name = "skills"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.plugin.v1.PluginSkill getSkills(int index) {
+    return skills_.get(index);
+  }
+  /**
+   * <pre>
+   * The plugin's skills. A turn names each as &lt;plugin&gt;:&lt;skill&gt;.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginSkill skills = 9 [json_name = "skills"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.plugin.v1.PluginSkillOrBuilder getSkillsOrBuilder(
+      int index) {
+    return skills_.get(index);
+  }
+
+  public static final int AGENTS_FIELD_NUMBER = 10;
+  @SuppressWarnings("serial")
+  private java.util.List<ai.stigmer.agentic.plugin.v1.PluginAgent> agents_;
+  /**
+   * <pre>
+   * The plugin's agents, from its agents folder. A turn names each as
+   * &lt;plugin&gt;:&lt;agent&gt;.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginAgent agents = 10 [json_name = "agents"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<ai.stigmer.agentic.plugin.v1.PluginAgent> getAgentsList() {
+    return agents_;
+  }
+  /**
+   * <pre>
+   * The plugin's agents, from its agents folder. A turn names each as
+   * &lt;plugin&gt;:&lt;agent&gt;.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginAgent agents = 10 [json_name = "agents"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<? extends ai.stigmer.agentic.plugin.v1.PluginAgentOrBuilder> 
+      getAgentsOrBuilderList() {
+    return agents_;
+  }
+  /**
+   * <pre>
+   * The plugin's agents, from its agents folder. A turn names each as
+   * &lt;plugin&gt;:&lt;agent&gt;.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginAgent agents = 10 [json_name = "agents"];</code>
+   */
+  @java.lang.Override
+  public int getAgentsCount() {
+    return agents_.size();
+  }
+  /**
+   * <pre>
+   * The plugin's agents, from its agents folder. A turn names each as
+   * &lt;plugin&gt;:&lt;agent&gt;.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginAgent agents = 10 [json_name = "agents"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.plugin.v1.PluginAgent getAgents(int index) {
+    return agents_.get(index);
+  }
+  /**
+   * <pre>
+   * The plugin's agents, from its agents folder. A turn names each as
+   * &lt;plugin&gt;:&lt;agent&gt;.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginAgent agents = 10 [json_name = "agents"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.plugin.v1.PluginAgentOrBuilder getAgentsOrBuilder(
+      int index) {
+    return agents_.get(index);
+  }
+
+  public static final int MCP_SERVERS_FIELD_NUMBER = 11;
+  @SuppressWarnings("serial")
+  private java.util.List<ai.stigmer.agentic.plugin.v1.McpServerEntry> mcpServers_;
+  /**
+   * <pre>
+   * The plugin's MCP servers.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugin.v1.McpServerEntry mcp_servers = 11 [json_name = "mcpServers"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<ai.stigmer.agentic.plugin.v1.McpServerEntry> getMcpServersList() {
+    return mcpServers_;
+  }
+  /**
+   * <pre>
+   * The plugin's MCP servers.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugin.v1.McpServerEntry mcp_servers = 11 [json_name = "mcpServers"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<? extends ai.stigmer.agentic.plugin.v1.McpServerEntryOrBuilder> 
+      getMcpServersOrBuilderList() {
+    return mcpServers_;
+  }
+  /**
+   * <pre>
+   * The plugin's MCP servers.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugin.v1.McpServerEntry mcp_servers = 11 [json_name = "mcpServers"];</code>
+   */
+  @java.lang.Override
+  public int getMcpServersCount() {
+    return mcpServers_.size();
+  }
+  /**
+   * <pre>
+   * The plugin's MCP servers.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugin.v1.McpServerEntry mcp_servers = 11 [json_name = "mcpServers"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.plugin.v1.McpServerEntry getMcpServers(int index) {
+    return mcpServers_.get(index);
+  }
+  /**
+   * <pre>
+   * The plugin's MCP servers.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugin.v1.McpServerEntry mcp_servers = 11 [json_name = "mcpServers"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.plugin.v1.McpServerEntryOrBuilder getMcpServersOrBuilder(
+      int index) {
+    return mcpServers_.get(index);
+  }
+
+  public static final int ENV_FIELD_NUMBER = 12;
+  private static final class EnvDefaultEntryHolder {
+    static final com.google.protobuf.MapEntry<
+        java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration> defaultEntry =
+            com.google.protobuf.MapEntry
+            .<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration>newDefaultInstance(
+                ai.stigmer.agentic.plugin.v1.StatusProto.internal_static_ai_stigmer_agentic_plugin_v1_PluginStatus_EnvEntry_descriptor, 
+                com.google.protobuf.WireFormat.FieldType.STRING,
+                "",
+                com.google.protobuf.WireFormat.FieldType.MESSAGE,
+                ai.stigmer.agentic.vault.v1.EnvVarDeclaration.getDefaultInstance());
+  }
+  @SuppressWarnings("serial")
+  private com.google.protobuf.MapField<
+      java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration> env_;
+  private com.google.protobuf.MapField<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration>
+  internalGetEnv() {
+    if (env_ == null) {
+      return com.google.protobuf.MapField.emptyMapField(
+          EnvDefaultEntryHolder.defaultEntry);
+    }
+    return env_;
+  }
+  public int getEnvCount() {
+    return internalGetEnv().getMap().size();
+  }
+  /**
+   * <pre>
+   * The variables the plugin's servers and hooks read, by name: the
+   * plugin's own declarations, a required secret for each name it uses but
+   * does not declare, and the login key of a server that signs in.
+   * </pre>
+   *
+   * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.EnvVarDeclaration&gt; env = 12 [json_name = "env"];</code>
+   */
+  @java.lang.Override
+  public boolean containsEnv(
+      java.lang.String key) {
+    if (key == null) { throw new NullPointerException("map key"); }
+    return internalGetEnv().getMap().containsKey(key);
+  }
+  /**
+   * Use {@link #getEnvMap()} instead.
+   */
+  @java.lang.Override
+  @java.lang.Deprecated
+  public java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration> getEnv() {
+    return getEnvMap();
+  }
+  /**
+   * <pre>
+   * The variables the plugin's servers and hooks read, by name: the
+   * plugin's own declarations, a required secret for each name it uses but
+   * does not declare, and the login key of a server that signs in.
+   * </pre>
+   *
+   * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.EnvVarDeclaration&gt; env = 12 [json_name = "env"];</code>
+   */
+  @java.lang.Override
+  public java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration> getEnvMap() {
+    return internalGetEnv().getMap();
+  }
+  /**
+   * <pre>
+   * The variables the plugin's servers and hooks read, by name: the
+   * plugin's own declarations, a required secret for each name it uses but
+   * does not declare, and the login key of a server that signs in.
+   * </pre>
+   *
+   * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.EnvVarDeclaration&gt; env = 12 [json_name = "env"];</code>
+   */
+  @java.lang.Override
+  public /* nullable */
+ai.stigmer.agentic.vault.v1.EnvVarDeclaration getEnvOrDefault(
+      java.lang.String key,
+      /* nullable */
+ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
+    if (key == null) { throw new NullPointerException("map key"); }
+    java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration> map =
+        internalGetEnv().getMap();
+    return map.containsKey(key) ? map.get(key) : defaultValue;
+  }
+  /**
+   * <pre>
+   * The variables the plugin's servers and hooks read, by name: the
+   * plugin's own declarations, a required secret for each name it uses but
+   * does not declare, and the login key of a server that signs in.
+   * </pre>
+   *
+   * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.EnvVarDeclaration&gt; env = 12 [json_name = "env"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.vault.v1.EnvVarDeclaration getEnvOrThrow(
+      java.lang.String key) {
+    if (key == null) { throw new NullPointerException("map key"); }
+    java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration> map =
+        internalGetEnv().getMap();
+    if (!map.containsKey(key)) {
+      throw new java.lang.IllegalArgumentException();
+    }
+    return map.get(key);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -429,21 +623,27 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(artifactStorageKey_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 2, artifactStorageKey_);
     }
-    if (state_ != ai.stigmer.agentic.plugin.v1.PluginState.PLUGIN_STATE_UNSPECIFIED.getNumber()) {
-      output.writeEnum(3, state_);
-    }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(error_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 4, error_);
-    }
-    if (((bitField0_ & 0x00000002) != 0)) {
-      output.writeMessage(5, getMaterialized());
-    }
     for (int i = 0; i < warnings_.size(); i++) {
       output.writeMessage(6, warnings_.get(i));
     }
-    if (((bitField0_ & 0x00000004) != 0)) {
+    if (((bitField0_ & 0x00000002) != 0)) {
       output.writeMessage(7, getHooks());
     }
+    for (int i = 0; i < skills_.size(); i++) {
+      output.writeMessage(9, skills_.get(i));
+    }
+    for (int i = 0; i < agents_.size(); i++) {
+      output.writeMessage(10, agents_.get(i));
+    }
+    for (int i = 0; i < mcpServers_.size(); i++) {
+      output.writeMessage(11, mcpServers_.get(i));
+    }
+    com.google.protobuf.GeneratedMessage
+      .serializeStringMapTo(
+        output,
+        internalGetEnv(),
+        EnvDefaultEntryHolder.defaultEntry,
+        12);
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(99, getAudit());
     }
@@ -462,17 +662,6 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(artifactStorageKey_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(2, artifactStorageKey_);
     }
-    if (state_ != ai.stigmer.agentic.plugin.v1.PluginState.PLUGIN_STATE_UNSPECIFIED.getNumber()) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeEnumSize(3, state_);
-    }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(error_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(4, error_);
-    }
-    if (((bitField0_ & 0x00000002) != 0)) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(5, getMaterialized());
-    }
 
         {
           final int count = warnings_.size();
@@ -482,9 +671,46 @@ private static final long serialVersionUID = 0L;
           }
           size += 1 * count;
         }
-    if (((bitField0_ & 0x00000004) != 0)) {
+    if (((bitField0_ & 0x00000002) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(7, getHooks());
+    }
+
+        {
+          final int count = skills_.size();
+          for (int i = 0; i < count; i++) {
+            size += com.google.protobuf.CodedOutputStream
+              .computeMessageSizeNoTag(skills_.get(i));
+          }
+          size += 1 * count;
+        }
+
+        {
+          final int count = agents_.size();
+          for (int i = 0; i < count; i++) {
+            size += com.google.protobuf.CodedOutputStream
+              .computeMessageSizeNoTag(agents_.get(i));
+          }
+          size += 1 * count;
+        }
+
+        {
+          final int count = mcpServers_.size();
+          for (int i = 0; i < count; i++) {
+            size += com.google.protobuf.CodedOutputStream
+              .computeMessageSizeNoTag(mcpServers_.get(i));
+          }
+          size += 1 * count;
+        }
+    for (java.util.Map.Entry<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration> entry
+         : internalGetEnv().getMap().entrySet()) {
+      com.google.protobuf.MapEntry<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration>
+      env__ = EnvDefaultEntryHolder.defaultEntry.newBuilderForType()
+          .setKey(entry.getKey())
+          .setValue(entry.getValue())
+          .buildPartial();
+      size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(12, env__);
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
@@ -514,14 +740,6 @@ private static final long serialVersionUID = 0L;
         .equals(other.getDigest())) return false;
     if (!getArtifactStorageKey()
         .equals(other.getArtifactStorageKey())) return false;
-    if (state_ != other.state_) return false;
-    if (!getError()
-        .equals(other.getError())) return false;
-    if (hasMaterialized() != other.hasMaterialized()) return false;
-    if (hasMaterialized()) {
-      if (!getMaterialized()
-          .equals(other.getMaterialized())) return false;
-    }
     if (!getWarningsList()
         .equals(other.getWarningsList())) return false;
     if (hasHooks() != other.hasHooks()) return false;
@@ -529,6 +747,14 @@ private static final long serialVersionUID = 0L;
       if (!getHooks()
           .equals(other.getHooks())) return false;
     }
+    if (!getSkillsList()
+        .equals(other.getSkillsList())) return false;
+    if (!getAgentsList()
+        .equals(other.getAgentsList())) return false;
+    if (!getMcpServersList()
+        .equals(other.getMcpServersList())) return false;
+    if (!internalGetEnv().equals(
+        other.internalGetEnv())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -548,14 +774,6 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getDigest().hashCode();
     hash = (37 * hash) + ARTIFACT_STORAGE_KEY_FIELD_NUMBER;
     hash = (53 * hash) + getArtifactStorageKey().hashCode();
-    hash = (37 * hash) + STATE_FIELD_NUMBER;
-    hash = (53 * hash) + state_;
-    hash = (37 * hash) + ERROR_FIELD_NUMBER;
-    hash = (53 * hash) + getError().hashCode();
-    if (hasMaterialized()) {
-      hash = (37 * hash) + MATERIALIZED_FIELD_NUMBER;
-      hash = (53 * hash) + getMaterialized().hashCode();
-    }
     if (getWarningsCount() > 0) {
       hash = (37 * hash) + WARNINGS_FIELD_NUMBER;
       hash = (53 * hash) + getWarningsList().hashCode();
@@ -563,6 +781,22 @@ private static final long serialVersionUID = 0L;
     if (hasHooks()) {
       hash = (37 * hash) + HOOKS_FIELD_NUMBER;
       hash = (53 * hash) + getHooks().hashCode();
+    }
+    if (getSkillsCount() > 0) {
+      hash = (37 * hash) + SKILLS_FIELD_NUMBER;
+      hash = (53 * hash) + getSkillsList().hashCode();
+    }
+    if (getAgentsCount() > 0) {
+      hash = (37 * hash) + AGENTS_FIELD_NUMBER;
+      hash = (53 * hash) + getAgentsList().hashCode();
+    }
+    if (getMcpServersCount() > 0) {
+      hash = (37 * hash) + MCP_SERVERS_FIELD_NUMBER;
+      hash = (53 * hash) + getMcpServersList().hashCode();
+    }
+    if (!internalGetEnv().getMap().isEmpty()) {
+      hash = (37 * hash) + ENV_FIELD_NUMBER;
+      hash = (53 * hash) + internalGetEnv().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -664,7 +898,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * PluginStatus is the system-managed state of an installed plugin: the
-   * archive identity and the receipt of the last push.
+   * archive identity and what the archive holds, read when the plugin was
+   * installed.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.plugin.v1.PluginStatus}
@@ -678,6 +913,28 @@ private static final long serialVersionUID = 0L;
       return ai.stigmer.agentic.plugin.v1.StatusProto.internal_static_ai_stigmer_agentic_plugin_v1_PluginStatus_descriptor;
     }
 
+    @SuppressWarnings({"rawtypes"})
+    protected com.google.protobuf.MapFieldReflectionAccessor internalGetMapFieldReflection(
+        int number) {
+      switch (number) {
+        case 12:
+          return internalGetEnv();
+        default:
+          throw new RuntimeException(
+              "Invalid map field number: " + number);
+      }
+    }
+    @SuppressWarnings({"rawtypes"})
+    protected com.google.protobuf.MapFieldReflectionAccessor internalGetMutableMapFieldReflection(
+        int number) {
+      switch (number) {
+        case 12:
+          return internalGetMutableEnv();
+        default:
+          throw new RuntimeException(
+              "Invalid map field number: " + number);
+      }
+    }
     @java.lang.Override
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
@@ -700,9 +957,11 @@ private static final long serialVersionUID = 0L;
       if (com.google.protobuf.GeneratedMessage
               .alwaysUseFieldBuilders) {
         internalGetAuditFieldBuilder();
-        internalGetMaterializedFieldBuilder();
         internalGetWarningsFieldBuilder();
         internalGetHooksFieldBuilder();
+        internalGetSkillsFieldBuilder();
+        internalGetAgentsFieldBuilder();
+        internalGetMcpServersFieldBuilder();
       }
     }
     @java.lang.Override
@@ -716,25 +975,40 @@ private static final long serialVersionUID = 0L;
       }
       digest_ = "";
       artifactStorageKey_ = "";
-      state_ = 0;
-      error_ = "";
-      materialized_ = null;
-      if (materializedBuilder_ != null) {
-        materializedBuilder_.dispose();
-        materializedBuilder_ = null;
-      }
       if (warningsBuilder_ == null) {
         warnings_ = java.util.Collections.emptyList();
       } else {
         warnings_ = null;
         warningsBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000040);
+      bitField0_ = (bitField0_ & ~0x00000008);
       hooks_ = null;
       if (hooksBuilder_ != null) {
         hooksBuilder_.dispose();
         hooksBuilder_ = null;
       }
+      if (skillsBuilder_ == null) {
+        skills_ = java.util.Collections.emptyList();
+      } else {
+        skills_ = null;
+        skillsBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00000020);
+      if (agentsBuilder_ == null) {
+        agents_ = java.util.Collections.emptyList();
+      } else {
+        agents_ = null;
+        agentsBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00000040);
+      if (mcpServersBuilder_ == null) {
+        mcpServers_ = java.util.Collections.emptyList();
+      } else {
+        mcpServers_ = null;
+        mcpServersBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00000080);
+      internalGetMutableEnv().clear();
       return this;
     }
 
@@ -769,13 +1043,40 @@ private static final long serialVersionUID = 0L;
 
     private void buildPartialRepeatedFields(ai.stigmer.agentic.plugin.v1.PluginStatus result) {
       if (warningsBuilder_ == null) {
-        if (((bitField0_ & 0x00000040) != 0)) {
+        if (((bitField0_ & 0x00000008) != 0)) {
           warnings_ = java.util.Collections.unmodifiableList(warnings_);
-          bitField0_ = (bitField0_ & ~0x00000040);
+          bitField0_ = (bitField0_ & ~0x00000008);
         }
         result.warnings_ = warnings_;
       } else {
         result.warnings_ = warningsBuilder_.build();
+      }
+      if (skillsBuilder_ == null) {
+        if (((bitField0_ & 0x00000020) != 0)) {
+          skills_ = java.util.Collections.unmodifiableList(skills_);
+          bitField0_ = (bitField0_ & ~0x00000020);
+        }
+        result.skills_ = skills_;
+      } else {
+        result.skills_ = skillsBuilder_.build();
+      }
+      if (agentsBuilder_ == null) {
+        if (((bitField0_ & 0x00000040) != 0)) {
+          agents_ = java.util.Collections.unmodifiableList(agents_);
+          bitField0_ = (bitField0_ & ~0x00000040);
+        }
+        result.agents_ = agents_;
+      } else {
+        result.agents_ = agentsBuilder_.build();
+      }
+      if (mcpServersBuilder_ == null) {
+        if (((bitField0_ & 0x00000080) != 0)) {
+          mcpServers_ = java.util.Collections.unmodifiableList(mcpServers_);
+          bitField0_ = (bitField0_ & ~0x00000080);
+        }
+        result.mcpServers_ = mcpServers_;
+      } else {
+        result.mcpServers_ = mcpServersBuilder_.build();
       }
     }
 
@@ -794,23 +1095,14 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000004) != 0)) {
         result.artifactStorageKey_ = artifactStorageKey_;
       }
-      if (((from_bitField0_ & 0x00000008) != 0)) {
-        result.state_ = state_;
-      }
       if (((from_bitField0_ & 0x00000010) != 0)) {
-        result.error_ = error_;
-      }
-      if (((from_bitField0_ & 0x00000020) != 0)) {
-        result.materialized_ = materializedBuilder_ == null
-            ? materialized_
-            : materializedBuilder_.build();
-        to_bitField0_ |= 0x00000002;
-      }
-      if (((from_bitField0_ & 0x00000080) != 0)) {
         result.hooks_ = hooksBuilder_ == null
             ? hooks_
             : hooksBuilder_.build();
-        to_bitField0_ |= 0x00000004;
+        to_bitField0_ |= 0x00000002;
+      }
+      if (((from_bitField0_ & 0x00000100) != 0)) {
+        result.env_ = internalGetEnv().build(EnvDefaultEntryHolder.defaultEntry);
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -840,22 +1132,11 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000004;
         onChanged();
       }
-      if (other.state_ != 0) {
-        setStateValue(other.getStateValue());
-      }
-      if (!other.getError().isEmpty()) {
-        error_ = other.error_;
-        bitField0_ |= 0x00000010;
-        onChanged();
-      }
-      if (other.hasMaterialized()) {
-        mergeMaterialized(other.getMaterialized());
-      }
       if (warningsBuilder_ == null) {
         if (!other.warnings_.isEmpty()) {
           if (warnings_.isEmpty()) {
             warnings_ = other.warnings_;
-            bitField0_ = (bitField0_ & ~0x00000040);
+            bitField0_ = (bitField0_ & ~0x00000008);
           } else {
             ensureWarningsIsMutable();
             warnings_.addAll(other.warnings_);
@@ -868,7 +1149,7 @@ private static final long serialVersionUID = 0L;
             warningsBuilder_.dispose();
             warningsBuilder_ = null;
             warnings_ = other.warnings_;
-            bitField0_ = (bitField0_ & ~0x00000040);
+            bitField0_ = (bitField0_ & ~0x00000008);
             warningsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetWarningsFieldBuilder() : null;
@@ -880,6 +1161,87 @@ private static final long serialVersionUID = 0L;
       if (other.hasHooks()) {
         mergeHooks(other.getHooks());
       }
+      if (skillsBuilder_ == null) {
+        if (!other.skills_.isEmpty()) {
+          if (skills_.isEmpty()) {
+            skills_ = other.skills_;
+            bitField0_ = (bitField0_ & ~0x00000020);
+          } else {
+            ensureSkillsIsMutable();
+            skills_.addAll(other.skills_);
+          }
+          onChanged();
+        }
+      } else {
+        if (!other.skills_.isEmpty()) {
+          if (skillsBuilder_.isEmpty()) {
+            skillsBuilder_.dispose();
+            skillsBuilder_ = null;
+            skills_ = other.skills_;
+            bitField0_ = (bitField0_ & ~0x00000020);
+            skillsBuilder_ = 
+              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                 internalGetSkillsFieldBuilder() : null;
+          } else {
+            skillsBuilder_.addAllMessages(other.skills_);
+          }
+        }
+      }
+      if (agentsBuilder_ == null) {
+        if (!other.agents_.isEmpty()) {
+          if (agents_.isEmpty()) {
+            agents_ = other.agents_;
+            bitField0_ = (bitField0_ & ~0x00000040);
+          } else {
+            ensureAgentsIsMutable();
+            agents_.addAll(other.agents_);
+          }
+          onChanged();
+        }
+      } else {
+        if (!other.agents_.isEmpty()) {
+          if (agentsBuilder_.isEmpty()) {
+            agentsBuilder_.dispose();
+            agentsBuilder_ = null;
+            agents_ = other.agents_;
+            bitField0_ = (bitField0_ & ~0x00000040);
+            agentsBuilder_ = 
+              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                 internalGetAgentsFieldBuilder() : null;
+          } else {
+            agentsBuilder_.addAllMessages(other.agents_);
+          }
+        }
+      }
+      if (mcpServersBuilder_ == null) {
+        if (!other.mcpServers_.isEmpty()) {
+          if (mcpServers_.isEmpty()) {
+            mcpServers_ = other.mcpServers_;
+            bitField0_ = (bitField0_ & ~0x00000080);
+          } else {
+            ensureMcpServersIsMutable();
+            mcpServers_.addAll(other.mcpServers_);
+          }
+          onChanged();
+        }
+      } else {
+        if (!other.mcpServers_.isEmpty()) {
+          if (mcpServersBuilder_.isEmpty()) {
+            mcpServersBuilder_.dispose();
+            mcpServersBuilder_ = null;
+            mcpServers_ = other.mcpServers_;
+            bitField0_ = (bitField0_ & ~0x00000080);
+            mcpServersBuilder_ = 
+              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                 internalGetMcpServersFieldBuilder() : null;
+          } else {
+            mcpServersBuilder_.addAllMessages(other.mcpServers_);
+          }
+        }
+      }
+      internalGetMutableEnv().mergeFrom(
+          other.internalGetEnv());
+      bitField0_ |= 0x00000100;
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -916,23 +1278,6 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000004;
               break;
             } // case 18
-            case 24: {
-              state_ = input.readEnum();
-              bitField0_ |= 0x00000008;
-              break;
-            } // case 24
-            case 34: {
-              error_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000010;
-              break;
-            } // case 34
-            case 42: {
-              input.readMessage(
-                  internalGetMaterializedFieldBuilder().getBuilder(),
-                  extensionRegistry);
-              bitField0_ |= 0x00000020;
-              break;
-            } // case 42
             case 50: {
               ai.stigmer.agentic.plugin.v1.PluginWarning m =
                   input.readMessage(
@@ -950,9 +1295,57 @@ private static final long serialVersionUID = 0L;
               input.readMessage(
                   internalGetHooksFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000080;
+              bitField0_ |= 0x00000010;
               break;
             } // case 58
+            case 74: {
+              ai.stigmer.agentic.plugin.v1.PluginSkill m =
+                  input.readMessage(
+                      ai.stigmer.agentic.plugin.v1.PluginSkill.parser(),
+                      extensionRegistry);
+              if (skillsBuilder_ == null) {
+                ensureSkillsIsMutable();
+                skills_.add(m);
+              } else {
+                skillsBuilder_.addMessage(m);
+              }
+              break;
+            } // case 74
+            case 82: {
+              ai.stigmer.agentic.plugin.v1.PluginAgent m =
+                  input.readMessage(
+                      ai.stigmer.agentic.plugin.v1.PluginAgent.parser(),
+                      extensionRegistry);
+              if (agentsBuilder_ == null) {
+                ensureAgentsIsMutable();
+                agents_.add(m);
+              } else {
+                agentsBuilder_.addMessage(m);
+              }
+              break;
+            } // case 82
+            case 90: {
+              ai.stigmer.agentic.plugin.v1.McpServerEntry m =
+                  input.readMessage(
+                      ai.stigmer.agentic.plugin.v1.McpServerEntry.parser(),
+                      extensionRegistry);
+              if (mcpServersBuilder_ == null) {
+                ensureMcpServersIsMutable();
+                mcpServers_.add(m);
+              } else {
+                mcpServersBuilder_.addMessage(m);
+              }
+              break;
+            } // case 90
+            case 98: {
+              com.google.protobuf.MapEntry<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration>
+              env__ = input.readMessage(
+                  EnvDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
+              internalGetMutableEnv().ensureBuilderMap().put(
+                  env__.getKey(), env__.getValue());
+              bitField0_ |= 0x00000100;
+              break;
+            } // case 98
             case 794: {
               input.readMessage(
                   internalGetAuditFieldBuilder().getBuilder(),
@@ -1318,333 +1711,12 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private int state_ = 0;
-    /**
-     * <pre>
-     * Current lifecycle state of the install.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.plugin.v1.PluginState state = 3 [json_name = "state"];</code>
-     * @return The enum numeric value on the wire for state.
-     */
-    @java.lang.Override public int getStateValue() {
-      return state_;
-    }
-    /**
-     * <pre>
-     * Current lifecycle state of the install.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.plugin.v1.PluginState state = 3 [json_name = "state"];</code>
-     * @param value The enum numeric value on the wire for state to set.
-     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
-     * @return This builder for chaining.
-     */
-    public Builder setStateValue(int value) {
-      state_ = value;
-      bitField0_ |= 0x00000008;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Current lifecycle state of the install.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.plugin.v1.PluginState state = 3 [json_name = "state"];</code>
-     * @return The state.
-     */
-    @java.lang.Override
-    public ai.stigmer.agentic.plugin.v1.PluginState getState() {
-      ai.stigmer.agentic.plugin.v1.PluginState result = ai.stigmer.agentic.plugin.v1.PluginState.forNumber(state_);
-      return result == null ? ai.stigmer.agentic.plugin.v1.PluginState.UNRECOGNIZED : result;
-    }
-    /**
-     * <pre>
-     * Current lifecycle state of the install.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.plugin.v1.PluginState state = 3 [json_name = "state"];</code>
-     * @param value The state to set.
-     * @return This builder for chaining.
-     */
-    public Builder setState(ai.stigmer.agentic.plugin.v1.PluginState value) {
-      if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00000008;
-      state_ = value.getNumber();
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Current lifecycle state of the install.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.plugin.v1.PluginState state = 3 [json_name = "state"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearState() {
-      bitField0_ = (bitField0_ & ~0x00000008);
-      state_ = 0;
-      onChanged();
-      return this;
-    }
-
-    private java.lang.Object error_ = "";
-    /**
-     * <pre>
-     * One sentence naming what failed when state is FAILED; empty otherwise.
-     * </pre>
-     *
-     * <code>string error = 4 [json_name = "error"];</code>
-     * @return The error.
-     */
-    public java.lang.String getError() {
-      java.lang.Object ref = error_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        error_ = s;
-        return s;
-      } else {
-        return (java.lang.String) ref;
-      }
-    }
-    /**
-     * <pre>
-     * One sentence naming what failed when state is FAILED; empty otherwise.
-     * </pre>
-     *
-     * <code>string error = 4 [json_name = "error"];</code>
-     * @return The bytes for error.
-     */
-    public com.google.protobuf.ByteString
-        getErrorBytes() {
-      java.lang.Object ref = error_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        error_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-    /**
-     * <pre>
-     * One sentence naming what failed when state is FAILED; empty otherwise.
-     * </pre>
-     *
-     * <code>string error = 4 [json_name = "error"];</code>
-     * @param value The error to set.
-     * @return This builder for chaining.
-     */
-    public Builder setError(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      error_ = value;
-      bitField0_ |= 0x00000010;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * One sentence naming what failed when state is FAILED; empty otherwise.
-     * </pre>
-     *
-     * <code>string error = 4 [json_name = "error"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearError() {
-      error_ = getDefaultInstance().getError();
-      bitField0_ = (bitField0_ & ~0x00000010);
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * One sentence naming what failed when state is FAILED; empty otherwise.
-     * </pre>
-     *
-     * <code>string error = 4 [json_name = "error"];</code>
-     * @param value The bytes for error to set.
-     * @return This builder for chaining.
-     */
-    public Builder setErrorBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      error_ = value;
-      bitField0_ |= 0x00000010;
-      onChanged();
-      return this;
-    }
-
-    private ai.stigmer.agentic.plugin.v1.PluginMaterialization materialized_;
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.plugin.v1.PluginMaterialization, ai.stigmer.agentic.plugin.v1.PluginMaterialization.Builder, ai.stigmer.agentic.plugin.v1.PluginMaterializationOrBuilder> materializedBuilder_;
-    /**
-     * <pre>
-     * What the last push materialised, by kind.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.plugin.v1.PluginMaterialization materialized = 5 [json_name = "materialized"];</code>
-     * @return Whether the materialized field is set.
-     */
-    public boolean hasMaterialized() {
-      return ((bitField0_ & 0x00000020) != 0);
-    }
-    /**
-     * <pre>
-     * What the last push materialised, by kind.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.plugin.v1.PluginMaterialization materialized = 5 [json_name = "materialized"];</code>
-     * @return The materialized.
-     */
-    public ai.stigmer.agentic.plugin.v1.PluginMaterialization getMaterialized() {
-      if (materializedBuilder_ == null) {
-        return materialized_ == null ? ai.stigmer.agentic.plugin.v1.PluginMaterialization.getDefaultInstance() : materialized_;
-      } else {
-        return materializedBuilder_.getMessage();
-      }
-    }
-    /**
-     * <pre>
-     * What the last push materialised, by kind.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.plugin.v1.PluginMaterialization materialized = 5 [json_name = "materialized"];</code>
-     */
-    public Builder setMaterialized(ai.stigmer.agentic.plugin.v1.PluginMaterialization value) {
-      if (materializedBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        materialized_ = value;
-      } else {
-        materializedBuilder_.setMessage(value);
-      }
-      bitField0_ |= 0x00000020;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * What the last push materialised, by kind.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.plugin.v1.PluginMaterialization materialized = 5 [json_name = "materialized"];</code>
-     */
-    public Builder setMaterialized(
-        ai.stigmer.agentic.plugin.v1.PluginMaterialization.Builder builderForValue) {
-      if (materializedBuilder_ == null) {
-        materialized_ = builderForValue.build();
-      } else {
-        materializedBuilder_.setMessage(builderForValue.build());
-      }
-      bitField0_ |= 0x00000020;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * What the last push materialised, by kind.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.plugin.v1.PluginMaterialization materialized = 5 [json_name = "materialized"];</code>
-     */
-    public Builder mergeMaterialized(ai.stigmer.agentic.plugin.v1.PluginMaterialization value) {
-      if (materializedBuilder_ == null) {
-        if (((bitField0_ & 0x00000020) != 0) &&
-          materialized_ != null &&
-          materialized_ != ai.stigmer.agentic.plugin.v1.PluginMaterialization.getDefaultInstance()) {
-          getMaterializedBuilder().mergeFrom(value);
-        } else {
-          materialized_ = value;
-        }
-      } else {
-        materializedBuilder_.mergeFrom(value);
-      }
-      if (materialized_ != null) {
-        bitField0_ |= 0x00000020;
-        onChanged();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * What the last push materialised, by kind.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.plugin.v1.PluginMaterialization materialized = 5 [json_name = "materialized"];</code>
-     */
-    public Builder clearMaterialized() {
-      bitField0_ = (bitField0_ & ~0x00000020);
-      materialized_ = null;
-      if (materializedBuilder_ != null) {
-        materializedBuilder_.dispose();
-        materializedBuilder_ = null;
-      }
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * What the last push materialised, by kind.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.plugin.v1.PluginMaterialization materialized = 5 [json_name = "materialized"];</code>
-     */
-    public ai.stigmer.agentic.plugin.v1.PluginMaterialization.Builder getMaterializedBuilder() {
-      bitField0_ |= 0x00000020;
-      onChanged();
-      return internalGetMaterializedFieldBuilder().getBuilder();
-    }
-    /**
-     * <pre>
-     * What the last push materialised, by kind.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.plugin.v1.PluginMaterialization materialized = 5 [json_name = "materialized"];</code>
-     */
-    public ai.stigmer.agentic.plugin.v1.PluginMaterializationOrBuilder getMaterializedOrBuilder() {
-      if (materializedBuilder_ != null) {
-        return materializedBuilder_.getMessageOrBuilder();
-      } else {
-        return materialized_ == null ?
-            ai.stigmer.agentic.plugin.v1.PluginMaterialization.getDefaultInstance() : materialized_;
-      }
-    }
-    /**
-     * <pre>
-     * What the last push materialised, by kind.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.plugin.v1.PluginMaterialization materialized = 5 [json_name = "materialized"];</code>
-     */
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.plugin.v1.PluginMaterialization, ai.stigmer.agentic.plugin.v1.PluginMaterialization.Builder, ai.stigmer.agentic.plugin.v1.PluginMaterializationOrBuilder> 
-        internalGetMaterializedFieldBuilder() {
-      if (materializedBuilder_ == null) {
-        materializedBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            ai.stigmer.agentic.plugin.v1.PluginMaterialization, ai.stigmer.agentic.plugin.v1.PluginMaterialization.Builder, ai.stigmer.agentic.plugin.v1.PluginMaterializationOrBuilder>(
-                getMaterialized(),
-                getParentForChildren(),
-                isClean());
-        materialized_ = null;
-      }
-      return materializedBuilder_;
-    }
-
     private java.util.List<ai.stigmer.agentic.plugin.v1.PluginWarning> warnings_ =
       java.util.Collections.emptyList();
     private void ensureWarningsIsMutable() {
-      if (!((bitField0_ & 0x00000040) != 0)) {
+      if (!((bitField0_ & 0x00000008) != 0)) {
         warnings_ = new java.util.ArrayList<ai.stigmer.agentic.plugin.v1.PluginWarning>(warnings_);
-        bitField0_ |= 0x00000040;
+        bitField0_ |= 0x00000008;
        }
     }
 
@@ -1849,7 +1921,7 @@ private static final long serialVersionUID = 0L;
     public Builder clearWarnings() {
       if (warningsBuilder_ == null) {
         warnings_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000040);
+        bitField0_ = (bitField0_ & ~0x00000008);
         onChanged();
       } else {
         warningsBuilder_.clear();
@@ -1961,7 +2033,7 @@ private static final long serialVersionUID = 0L;
         warningsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.plugin.v1.PluginWarning, ai.stigmer.agentic.plugin.v1.PluginWarning.Builder, ai.stigmer.agentic.plugin.v1.PluginWarningOrBuilder>(
                 warnings_,
-                ((bitField0_ & 0x00000040) != 0),
+                ((bitField0_ & 0x00000008) != 0),
                 getParentForChildren(),
                 isClean());
         warnings_ = null;
@@ -1982,7 +2054,7 @@ private static final long serialVersionUID = 0L;
      * @return Whether the hooks field is set.
      */
     public boolean hasHooks() {
-      return ((bitField0_ & 0x00000080) != 0);
+      return ((bitField0_ & 0x00000010) != 0);
     }
     /**
      * <pre>
@@ -2017,7 +2089,7 @@ private static final long serialVersionUID = 0L;
       } else {
         hooksBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
@@ -2036,7 +2108,7 @@ private static final long serialVersionUID = 0L;
       } else {
         hooksBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
@@ -2050,7 +2122,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergeHooks(ai.stigmer.agentic.plugin.v1.HookConfig value) {
       if (hooksBuilder_ == null) {
-        if (((bitField0_ & 0x00000080) != 0) &&
+        if (((bitField0_ & 0x00000010) != 0) &&
           hooks_ != null &&
           hooks_ != ai.stigmer.agentic.plugin.v1.HookConfig.getDefaultInstance()) {
           getHooksBuilder().mergeFrom(value);
@@ -2061,7 +2133,7 @@ private static final long serialVersionUID = 0L;
         hooksBuilder_.mergeFrom(value);
       }
       if (hooks_ != null) {
-        bitField0_ |= 0x00000080;
+        bitField0_ |= 0x00000010;
         onChanged();
       }
       return this;
@@ -2075,7 +2147,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.plugin.v1.HookConfig hooks = 7 [json_name = "hooks"];</code>
      */
     public Builder clearHooks() {
-      bitField0_ = (bitField0_ & ~0x00000080);
+      bitField0_ = (bitField0_ & ~0x00000010);
       hooks_ = null;
       if (hooksBuilder_ != null) {
         hooksBuilder_.dispose();
@@ -2093,7 +2165,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.plugin.v1.HookConfig hooks = 7 [json_name = "hooks"];</code>
      */
     public ai.stigmer.agentic.plugin.v1.HookConfig.Builder getHooksBuilder() {
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000010;
       onChanged();
       return internalGetHooksFieldBuilder().getBuilder();
     }
@@ -2133,6 +2205,1163 @@ private static final long serialVersionUID = 0L;
         hooks_ = null;
       }
       return hooksBuilder_;
+    }
+
+    private java.util.List<ai.stigmer.agentic.plugin.v1.PluginSkill> skills_ =
+      java.util.Collections.emptyList();
+    private void ensureSkillsIsMutable() {
+      if (!((bitField0_ & 0x00000020) != 0)) {
+        skills_ = new java.util.ArrayList<ai.stigmer.agentic.plugin.v1.PluginSkill>(skills_);
+        bitField0_ |= 0x00000020;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.plugin.v1.PluginSkill, ai.stigmer.agentic.plugin.v1.PluginSkill.Builder, ai.stigmer.agentic.plugin.v1.PluginSkillOrBuilder> skillsBuilder_;
+
+    /**
+     * <pre>
+     * The plugin's skills. A turn names each as &lt;plugin&gt;:&lt;skill&gt;.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginSkill skills = 9 [json_name = "skills"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.plugin.v1.PluginSkill> getSkillsList() {
+      if (skillsBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(skills_);
+      } else {
+        return skillsBuilder_.getMessageList();
+      }
+    }
+    /**
+     * <pre>
+     * The plugin's skills. A turn names each as &lt;plugin&gt;:&lt;skill&gt;.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginSkill skills = 9 [json_name = "skills"];</code>
+     */
+    public int getSkillsCount() {
+      if (skillsBuilder_ == null) {
+        return skills_.size();
+      } else {
+        return skillsBuilder_.getCount();
+      }
+    }
+    /**
+     * <pre>
+     * The plugin's skills. A turn names each as &lt;plugin&gt;:&lt;skill&gt;.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginSkill skills = 9 [json_name = "skills"];</code>
+     */
+    public ai.stigmer.agentic.plugin.v1.PluginSkill getSkills(int index) {
+      if (skillsBuilder_ == null) {
+        return skills_.get(index);
+      } else {
+        return skillsBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <pre>
+     * The plugin's skills. A turn names each as &lt;plugin&gt;:&lt;skill&gt;.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginSkill skills = 9 [json_name = "skills"];</code>
+     */
+    public Builder setSkills(
+        int index, ai.stigmer.agentic.plugin.v1.PluginSkill value) {
+      if (skillsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureSkillsIsMutable();
+        skills_.set(index, value);
+        onChanged();
+      } else {
+        skillsBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's skills. A turn names each as &lt;plugin&gt;:&lt;skill&gt;.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginSkill skills = 9 [json_name = "skills"];</code>
+     */
+    public Builder setSkills(
+        int index, ai.stigmer.agentic.plugin.v1.PluginSkill.Builder builderForValue) {
+      if (skillsBuilder_ == null) {
+        ensureSkillsIsMutable();
+        skills_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        skillsBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's skills. A turn names each as &lt;plugin&gt;:&lt;skill&gt;.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginSkill skills = 9 [json_name = "skills"];</code>
+     */
+    public Builder addSkills(ai.stigmer.agentic.plugin.v1.PluginSkill value) {
+      if (skillsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureSkillsIsMutable();
+        skills_.add(value);
+        onChanged();
+      } else {
+        skillsBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's skills. A turn names each as &lt;plugin&gt;:&lt;skill&gt;.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginSkill skills = 9 [json_name = "skills"];</code>
+     */
+    public Builder addSkills(
+        int index, ai.stigmer.agentic.plugin.v1.PluginSkill value) {
+      if (skillsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureSkillsIsMutable();
+        skills_.add(index, value);
+        onChanged();
+      } else {
+        skillsBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's skills. A turn names each as &lt;plugin&gt;:&lt;skill&gt;.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginSkill skills = 9 [json_name = "skills"];</code>
+     */
+    public Builder addSkills(
+        ai.stigmer.agentic.plugin.v1.PluginSkill.Builder builderForValue) {
+      if (skillsBuilder_ == null) {
+        ensureSkillsIsMutable();
+        skills_.add(builderForValue.build());
+        onChanged();
+      } else {
+        skillsBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's skills. A turn names each as &lt;plugin&gt;:&lt;skill&gt;.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginSkill skills = 9 [json_name = "skills"];</code>
+     */
+    public Builder addSkills(
+        int index, ai.stigmer.agentic.plugin.v1.PluginSkill.Builder builderForValue) {
+      if (skillsBuilder_ == null) {
+        ensureSkillsIsMutable();
+        skills_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        skillsBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's skills. A turn names each as &lt;plugin&gt;:&lt;skill&gt;.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginSkill skills = 9 [json_name = "skills"];</code>
+     */
+    public Builder addAllSkills(
+        java.lang.Iterable<? extends ai.stigmer.agentic.plugin.v1.PluginSkill> values) {
+      if (skillsBuilder_ == null) {
+        ensureSkillsIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, skills_);
+        onChanged();
+      } else {
+        skillsBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's skills. A turn names each as &lt;plugin&gt;:&lt;skill&gt;.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginSkill skills = 9 [json_name = "skills"];</code>
+     */
+    public Builder clearSkills() {
+      if (skillsBuilder_ == null) {
+        skills_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000020);
+        onChanged();
+      } else {
+        skillsBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's skills. A turn names each as &lt;plugin&gt;:&lt;skill&gt;.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginSkill skills = 9 [json_name = "skills"];</code>
+     */
+    public Builder removeSkills(int index) {
+      if (skillsBuilder_ == null) {
+        ensureSkillsIsMutable();
+        skills_.remove(index);
+        onChanged();
+      } else {
+        skillsBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's skills. A turn names each as &lt;plugin&gt;:&lt;skill&gt;.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginSkill skills = 9 [json_name = "skills"];</code>
+     */
+    public ai.stigmer.agentic.plugin.v1.PluginSkill.Builder getSkillsBuilder(
+        int index) {
+      return internalGetSkillsFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <pre>
+     * The plugin's skills. A turn names each as &lt;plugin&gt;:&lt;skill&gt;.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginSkill skills = 9 [json_name = "skills"];</code>
+     */
+    public ai.stigmer.agentic.plugin.v1.PluginSkillOrBuilder getSkillsOrBuilder(
+        int index) {
+      if (skillsBuilder_ == null) {
+        return skills_.get(index);  } else {
+        return skillsBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <pre>
+     * The plugin's skills. A turn names each as &lt;plugin&gt;:&lt;skill&gt;.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginSkill skills = 9 [json_name = "skills"];</code>
+     */
+    public java.util.List<? extends ai.stigmer.agentic.plugin.v1.PluginSkillOrBuilder> 
+         getSkillsOrBuilderList() {
+      if (skillsBuilder_ != null) {
+        return skillsBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(skills_);
+      }
+    }
+    /**
+     * <pre>
+     * The plugin's skills. A turn names each as &lt;plugin&gt;:&lt;skill&gt;.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginSkill skills = 9 [json_name = "skills"];</code>
+     */
+    public ai.stigmer.agentic.plugin.v1.PluginSkill.Builder addSkillsBuilder() {
+      return internalGetSkillsFieldBuilder().addBuilder(
+          ai.stigmer.agentic.plugin.v1.PluginSkill.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * The plugin's skills. A turn names each as &lt;plugin&gt;:&lt;skill&gt;.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginSkill skills = 9 [json_name = "skills"];</code>
+     */
+    public ai.stigmer.agentic.plugin.v1.PluginSkill.Builder addSkillsBuilder(
+        int index) {
+      return internalGetSkillsFieldBuilder().addBuilder(
+          index, ai.stigmer.agentic.plugin.v1.PluginSkill.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * The plugin's skills. A turn names each as &lt;plugin&gt;:&lt;skill&gt;.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginSkill skills = 9 [json_name = "skills"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.plugin.v1.PluginSkill.Builder> 
+         getSkillsBuilderList() {
+      return internalGetSkillsFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.plugin.v1.PluginSkill, ai.stigmer.agentic.plugin.v1.PluginSkill.Builder, ai.stigmer.agentic.plugin.v1.PluginSkillOrBuilder> 
+        internalGetSkillsFieldBuilder() {
+      if (skillsBuilder_ == null) {
+        skillsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.agentic.plugin.v1.PluginSkill, ai.stigmer.agentic.plugin.v1.PluginSkill.Builder, ai.stigmer.agentic.plugin.v1.PluginSkillOrBuilder>(
+                skills_,
+                ((bitField0_ & 0x00000020) != 0),
+                getParentForChildren(),
+                isClean());
+        skills_ = null;
+      }
+      return skillsBuilder_;
+    }
+
+    private java.util.List<ai.stigmer.agentic.plugin.v1.PluginAgent> agents_ =
+      java.util.Collections.emptyList();
+    private void ensureAgentsIsMutable() {
+      if (!((bitField0_ & 0x00000040) != 0)) {
+        agents_ = new java.util.ArrayList<ai.stigmer.agentic.plugin.v1.PluginAgent>(agents_);
+        bitField0_ |= 0x00000040;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.plugin.v1.PluginAgent, ai.stigmer.agentic.plugin.v1.PluginAgent.Builder, ai.stigmer.agentic.plugin.v1.PluginAgentOrBuilder> agentsBuilder_;
+
+    /**
+     * <pre>
+     * The plugin's agents, from its agents folder. A turn names each as
+     * &lt;plugin&gt;:&lt;agent&gt;.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginAgent agents = 10 [json_name = "agents"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.plugin.v1.PluginAgent> getAgentsList() {
+      if (agentsBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(agents_);
+      } else {
+        return agentsBuilder_.getMessageList();
+      }
+    }
+    /**
+     * <pre>
+     * The plugin's agents, from its agents folder. A turn names each as
+     * &lt;plugin&gt;:&lt;agent&gt;.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginAgent agents = 10 [json_name = "agents"];</code>
+     */
+    public int getAgentsCount() {
+      if (agentsBuilder_ == null) {
+        return agents_.size();
+      } else {
+        return agentsBuilder_.getCount();
+      }
+    }
+    /**
+     * <pre>
+     * The plugin's agents, from its agents folder. A turn names each as
+     * &lt;plugin&gt;:&lt;agent&gt;.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginAgent agents = 10 [json_name = "agents"];</code>
+     */
+    public ai.stigmer.agentic.plugin.v1.PluginAgent getAgents(int index) {
+      if (agentsBuilder_ == null) {
+        return agents_.get(index);
+      } else {
+        return agentsBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <pre>
+     * The plugin's agents, from its agents folder. A turn names each as
+     * &lt;plugin&gt;:&lt;agent&gt;.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginAgent agents = 10 [json_name = "agents"];</code>
+     */
+    public Builder setAgents(
+        int index, ai.stigmer.agentic.plugin.v1.PluginAgent value) {
+      if (agentsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureAgentsIsMutable();
+        agents_.set(index, value);
+        onChanged();
+      } else {
+        agentsBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's agents, from its agents folder. A turn names each as
+     * &lt;plugin&gt;:&lt;agent&gt;.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginAgent agents = 10 [json_name = "agents"];</code>
+     */
+    public Builder setAgents(
+        int index, ai.stigmer.agentic.plugin.v1.PluginAgent.Builder builderForValue) {
+      if (agentsBuilder_ == null) {
+        ensureAgentsIsMutable();
+        agents_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        agentsBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's agents, from its agents folder. A turn names each as
+     * &lt;plugin&gt;:&lt;agent&gt;.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginAgent agents = 10 [json_name = "agents"];</code>
+     */
+    public Builder addAgents(ai.stigmer.agentic.plugin.v1.PluginAgent value) {
+      if (agentsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureAgentsIsMutable();
+        agents_.add(value);
+        onChanged();
+      } else {
+        agentsBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's agents, from its agents folder. A turn names each as
+     * &lt;plugin&gt;:&lt;agent&gt;.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginAgent agents = 10 [json_name = "agents"];</code>
+     */
+    public Builder addAgents(
+        int index, ai.stigmer.agentic.plugin.v1.PluginAgent value) {
+      if (agentsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureAgentsIsMutable();
+        agents_.add(index, value);
+        onChanged();
+      } else {
+        agentsBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's agents, from its agents folder. A turn names each as
+     * &lt;plugin&gt;:&lt;agent&gt;.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginAgent agents = 10 [json_name = "agents"];</code>
+     */
+    public Builder addAgents(
+        ai.stigmer.agentic.plugin.v1.PluginAgent.Builder builderForValue) {
+      if (agentsBuilder_ == null) {
+        ensureAgentsIsMutable();
+        agents_.add(builderForValue.build());
+        onChanged();
+      } else {
+        agentsBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's agents, from its agents folder. A turn names each as
+     * &lt;plugin&gt;:&lt;agent&gt;.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginAgent agents = 10 [json_name = "agents"];</code>
+     */
+    public Builder addAgents(
+        int index, ai.stigmer.agentic.plugin.v1.PluginAgent.Builder builderForValue) {
+      if (agentsBuilder_ == null) {
+        ensureAgentsIsMutable();
+        agents_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        agentsBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's agents, from its agents folder. A turn names each as
+     * &lt;plugin&gt;:&lt;agent&gt;.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginAgent agents = 10 [json_name = "agents"];</code>
+     */
+    public Builder addAllAgents(
+        java.lang.Iterable<? extends ai.stigmer.agentic.plugin.v1.PluginAgent> values) {
+      if (agentsBuilder_ == null) {
+        ensureAgentsIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, agents_);
+        onChanged();
+      } else {
+        agentsBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's agents, from its agents folder. A turn names each as
+     * &lt;plugin&gt;:&lt;agent&gt;.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginAgent agents = 10 [json_name = "agents"];</code>
+     */
+    public Builder clearAgents() {
+      if (agentsBuilder_ == null) {
+        agents_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000040);
+        onChanged();
+      } else {
+        agentsBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's agents, from its agents folder. A turn names each as
+     * &lt;plugin&gt;:&lt;agent&gt;.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginAgent agents = 10 [json_name = "agents"];</code>
+     */
+    public Builder removeAgents(int index) {
+      if (agentsBuilder_ == null) {
+        ensureAgentsIsMutable();
+        agents_.remove(index);
+        onChanged();
+      } else {
+        agentsBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's agents, from its agents folder. A turn names each as
+     * &lt;plugin&gt;:&lt;agent&gt;.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginAgent agents = 10 [json_name = "agents"];</code>
+     */
+    public ai.stigmer.agentic.plugin.v1.PluginAgent.Builder getAgentsBuilder(
+        int index) {
+      return internalGetAgentsFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <pre>
+     * The plugin's agents, from its agents folder. A turn names each as
+     * &lt;plugin&gt;:&lt;agent&gt;.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginAgent agents = 10 [json_name = "agents"];</code>
+     */
+    public ai.stigmer.agentic.plugin.v1.PluginAgentOrBuilder getAgentsOrBuilder(
+        int index) {
+      if (agentsBuilder_ == null) {
+        return agents_.get(index);  } else {
+        return agentsBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <pre>
+     * The plugin's agents, from its agents folder. A turn names each as
+     * &lt;plugin&gt;:&lt;agent&gt;.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginAgent agents = 10 [json_name = "agents"];</code>
+     */
+    public java.util.List<? extends ai.stigmer.agentic.plugin.v1.PluginAgentOrBuilder> 
+         getAgentsOrBuilderList() {
+      if (agentsBuilder_ != null) {
+        return agentsBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(agents_);
+      }
+    }
+    /**
+     * <pre>
+     * The plugin's agents, from its agents folder. A turn names each as
+     * &lt;plugin&gt;:&lt;agent&gt;.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginAgent agents = 10 [json_name = "agents"];</code>
+     */
+    public ai.stigmer.agentic.plugin.v1.PluginAgent.Builder addAgentsBuilder() {
+      return internalGetAgentsFieldBuilder().addBuilder(
+          ai.stigmer.agentic.plugin.v1.PluginAgent.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * The plugin's agents, from its agents folder. A turn names each as
+     * &lt;plugin&gt;:&lt;agent&gt;.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginAgent agents = 10 [json_name = "agents"];</code>
+     */
+    public ai.stigmer.agentic.plugin.v1.PluginAgent.Builder addAgentsBuilder(
+        int index) {
+      return internalGetAgentsFieldBuilder().addBuilder(
+          index, ai.stigmer.agentic.plugin.v1.PluginAgent.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * The plugin's agents, from its agents folder. A turn names each as
+     * &lt;plugin&gt;:&lt;agent&gt;.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginAgent agents = 10 [json_name = "agents"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.plugin.v1.PluginAgent.Builder> 
+         getAgentsBuilderList() {
+      return internalGetAgentsFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.plugin.v1.PluginAgent, ai.stigmer.agentic.plugin.v1.PluginAgent.Builder, ai.stigmer.agentic.plugin.v1.PluginAgentOrBuilder> 
+        internalGetAgentsFieldBuilder() {
+      if (agentsBuilder_ == null) {
+        agentsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.agentic.plugin.v1.PluginAgent, ai.stigmer.agentic.plugin.v1.PluginAgent.Builder, ai.stigmer.agentic.plugin.v1.PluginAgentOrBuilder>(
+                agents_,
+                ((bitField0_ & 0x00000040) != 0),
+                getParentForChildren(),
+                isClean());
+        agents_ = null;
+      }
+      return agentsBuilder_;
+    }
+
+    private java.util.List<ai.stigmer.agentic.plugin.v1.McpServerEntry> mcpServers_ =
+      java.util.Collections.emptyList();
+    private void ensureMcpServersIsMutable() {
+      if (!((bitField0_ & 0x00000080) != 0)) {
+        mcpServers_ = new java.util.ArrayList<ai.stigmer.agentic.plugin.v1.McpServerEntry>(mcpServers_);
+        bitField0_ |= 0x00000080;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.plugin.v1.McpServerEntry, ai.stigmer.agentic.plugin.v1.McpServerEntry.Builder, ai.stigmer.agentic.plugin.v1.McpServerEntryOrBuilder> mcpServersBuilder_;
+
+    /**
+     * <pre>
+     * The plugin's MCP servers.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.McpServerEntry mcp_servers = 11 [json_name = "mcpServers"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.plugin.v1.McpServerEntry> getMcpServersList() {
+      if (mcpServersBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(mcpServers_);
+      } else {
+        return mcpServersBuilder_.getMessageList();
+      }
+    }
+    /**
+     * <pre>
+     * The plugin's MCP servers.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.McpServerEntry mcp_servers = 11 [json_name = "mcpServers"];</code>
+     */
+    public int getMcpServersCount() {
+      if (mcpServersBuilder_ == null) {
+        return mcpServers_.size();
+      } else {
+        return mcpServersBuilder_.getCount();
+      }
+    }
+    /**
+     * <pre>
+     * The plugin's MCP servers.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.McpServerEntry mcp_servers = 11 [json_name = "mcpServers"];</code>
+     */
+    public ai.stigmer.agentic.plugin.v1.McpServerEntry getMcpServers(int index) {
+      if (mcpServersBuilder_ == null) {
+        return mcpServers_.get(index);
+      } else {
+        return mcpServersBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <pre>
+     * The plugin's MCP servers.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.McpServerEntry mcp_servers = 11 [json_name = "mcpServers"];</code>
+     */
+    public Builder setMcpServers(
+        int index, ai.stigmer.agentic.plugin.v1.McpServerEntry value) {
+      if (mcpServersBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureMcpServersIsMutable();
+        mcpServers_.set(index, value);
+        onChanged();
+      } else {
+        mcpServersBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's MCP servers.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.McpServerEntry mcp_servers = 11 [json_name = "mcpServers"];</code>
+     */
+    public Builder setMcpServers(
+        int index, ai.stigmer.agentic.plugin.v1.McpServerEntry.Builder builderForValue) {
+      if (mcpServersBuilder_ == null) {
+        ensureMcpServersIsMutable();
+        mcpServers_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        mcpServersBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's MCP servers.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.McpServerEntry mcp_servers = 11 [json_name = "mcpServers"];</code>
+     */
+    public Builder addMcpServers(ai.stigmer.agentic.plugin.v1.McpServerEntry value) {
+      if (mcpServersBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureMcpServersIsMutable();
+        mcpServers_.add(value);
+        onChanged();
+      } else {
+        mcpServersBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's MCP servers.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.McpServerEntry mcp_servers = 11 [json_name = "mcpServers"];</code>
+     */
+    public Builder addMcpServers(
+        int index, ai.stigmer.agentic.plugin.v1.McpServerEntry value) {
+      if (mcpServersBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureMcpServersIsMutable();
+        mcpServers_.add(index, value);
+        onChanged();
+      } else {
+        mcpServersBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's MCP servers.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.McpServerEntry mcp_servers = 11 [json_name = "mcpServers"];</code>
+     */
+    public Builder addMcpServers(
+        ai.stigmer.agentic.plugin.v1.McpServerEntry.Builder builderForValue) {
+      if (mcpServersBuilder_ == null) {
+        ensureMcpServersIsMutable();
+        mcpServers_.add(builderForValue.build());
+        onChanged();
+      } else {
+        mcpServersBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's MCP servers.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.McpServerEntry mcp_servers = 11 [json_name = "mcpServers"];</code>
+     */
+    public Builder addMcpServers(
+        int index, ai.stigmer.agentic.plugin.v1.McpServerEntry.Builder builderForValue) {
+      if (mcpServersBuilder_ == null) {
+        ensureMcpServersIsMutable();
+        mcpServers_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        mcpServersBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's MCP servers.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.McpServerEntry mcp_servers = 11 [json_name = "mcpServers"];</code>
+     */
+    public Builder addAllMcpServers(
+        java.lang.Iterable<? extends ai.stigmer.agentic.plugin.v1.McpServerEntry> values) {
+      if (mcpServersBuilder_ == null) {
+        ensureMcpServersIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, mcpServers_);
+        onChanged();
+      } else {
+        mcpServersBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's MCP servers.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.McpServerEntry mcp_servers = 11 [json_name = "mcpServers"];</code>
+     */
+    public Builder clearMcpServers() {
+      if (mcpServersBuilder_ == null) {
+        mcpServers_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000080);
+        onChanged();
+      } else {
+        mcpServersBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's MCP servers.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.McpServerEntry mcp_servers = 11 [json_name = "mcpServers"];</code>
+     */
+    public Builder removeMcpServers(int index) {
+      if (mcpServersBuilder_ == null) {
+        ensureMcpServersIsMutable();
+        mcpServers_.remove(index);
+        onChanged();
+      } else {
+        mcpServersBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's MCP servers.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.McpServerEntry mcp_servers = 11 [json_name = "mcpServers"];</code>
+     */
+    public ai.stigmer.agentic.plugin.v1.McpServerEntry.Builder getMcpServersBuilder(
+        int index) {
+      return internalGetMcpServersFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <pre>
+     * The plugin's MCP servers.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.McpServerEntry mcp_servers = 11 [json_name = "mcpServers"];</code>
+     */
+    public ai.stigmer.agentic.plugin.v1.McpServerEntryOrBuilder getMcpServersOrBuilder(
+        int index) {
+      if (mcpServersBuilder_ == null) {
+        return mcpServers_.get(index);  } else {
+        return mcpServersBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <pre>
+     * The plugin's MCP servers.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.McpServerEntry mcp_servers = 11 [json_name = "mcpServers"];</code>
+     */
+    public java.util.List<? extends ai.stigmer.agentic.plugin.v1.McpServerEntryOrBuilder> 
+         getMcpServersOrBuilderList() {
+      if (mcpServersBuilder_ != null) {
+        return mcpServersBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(mcpServers_);
+      }
+    }
+    /**
+     * <pre>
+     * The plugin's MCP servers.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.McpServerEntry mcp_servers = 11 [json_name = "mcpServers"];</code>
+     */
+    public ai.stigmer.agentic.plugin.v1.McpServerEntry.Builder addMcpServersBuilder() {
+      return internalGetMcpServersFieldBuilder().addBuilder(
+          ai.stigmer.agentic.plugin.v1.McpServerEntry.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * The plugin's MCP servers.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.McpServerEntry mcp_servers = 11 [json_name = "mcpServers"];</code>
+     */
+    public ai.stigmer.agentic.plugin.v1.McpServerEntry.Builder addMcpServersBuilder(
+        int index) {
+      return internalGetMcpServersFieldBuilder().addBuilder(
+          index, ai.stigmer.agentic.plugin.v1.McpServerEntry.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * The plugin's MCP servers.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugin.v1.McpServerEntry mcp_servers = 11 [json_name = "mcpServers"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.plugin.v1.McpServerEntry.Builder> 
+         getMcpServersBuilderList() {
+      return internalGetMcpServersFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.plugin.v1.McpServerEntry, ai.stigmer.agentic.plugin.v1.McpServerEntry.Builder, ai.stigmer.agentic.plugin.v1.McpServerEntryOrBuilder> 
+        internalGetMcpServersFieldBuilder() {
+      if (mcpServersBuilder_ == null) {
+        mcpServersBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.agentic.plugin.v1.McpServerEntry, ai.stigmer.agentic.plugin.v1.McpServerEntry.Builder, ai.stigmer.agentic.plugin.v1.McpServerEntryOrBuilder>(
+                mcpServers_,
+                ((bitField0_ & 0x00000080) != 0),
+                getParentForChildren(),
+                isClean());
+        mcpServers_ = null;
+      }
+      return mcpServersBuilder_;
+    }
+
+    private static final class EnvConverter implements com.google.protobuf.MapFieldBuilder.Converter<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclarationOrBuilder, ai.stigmer.agentic.vault.v1.EnvVarDeclaration> {
+      @java.lang.Override
+      public ai.stigmer.agentic.vault.v1.EnvVarDeclaration build(ai.stigmer.agentic.vault.v1.EnvVarDeclarationOrBuilder val) {
+        if (val instanceof ai.stigmer.agentic.vault.v1.EnvVarDeclaration) { return (ai.stigmer.agentic.vault.v1.EnvVarDeclaration) val; }
+        return ((ai.stigmer.agentic.vault.v1.EnvVarDeclaration.Builder) val).build();
+      }
+
+      @java.lang.Override
+      public com.google.protobuf.MapEntry<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration> defaultEntry() {
+        return EnvDefaultEntryHolder.defaultEntry;
+      }
+    };
+    private static final EnvConverter envConverter = new EnvConverter();
+
+    private com.google.protobuf.MapFieldBuilder<
+        java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclarationOrBuilder, ai.stigmer.agentic.vault.v1.EnvVarDeclaration, ai.stigmer.agentic.vault.v1.EnvVarDeclaration.Builder> env_;
+    private com.google.protobuf.MapFieldBuilder<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclarationOrBuilder, ai.stigmer.agentic.vault.v1.EnvVarDeclaration, ai.stigmer.agentic.vault.v1.EnvVarDeclaration.Builder>
+        internalGetEnv() {
+      if (env_ == null) {
+        return new com.google.protobuf.MapFieldBuilder<>(envConverter);
+      }
+      return env_;
+    }
+    private com.google.protobuf.MapFieldBuilder<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclarationOrBuilder, ai.stigmer.agentic.vault.v1.EnvVarDeclaration, ai.stigmer.agentic.vault.v1.EnvVarDeclaration.Builder>
+        internalGetMutableEnv() {
+      if (env_ == null) {
+        env_ = new com.google.protobuf.MapFieldBuilder<>(envConverter);
+      }
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return env_;
+    }
+    public int getEnvCount() {
+      return internalGetEnv().ensureBuilderMap().size();
+    }
+    /**
+     * <pre>
+     * The variables the plugin's servers and hooks read, by name: the
+     * plugin's own declarations, a required secret for each name it uses but
+     * does not declare, and the login key of a server that signs in.
+     * </pre>
+     *
+     * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.EnvVarDeclaration&gt; env = 12 [json_name = "env"];</code>
+     */
+    @java.lang.Override
+    public boolean containsEnv(
+        java.lang.String key) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      return internalGetEnv().ensureBuilderMap().containsKey(key);
+    }
+    /**
+     * Use {@link #getEnvMap()} instead.
+     */
+    @java.lang.Override
+    @java.lang.Deprecated
+    public java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration> getEnv() {
+      return getEnvMap();
+    }
+    /**
+     * <pre>
+     * The variables the plugin's servers and hooks read, by name: the
+     * plugin's own declarations, a required secret for each name it uses but
+     * does not declare, and the login key of a server that signs in.
+     * </pre>
+     *
+     * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.EnvVarDeclaration&gt; env = 12 [json_name = "env"];</code>
+     */
+    @java.lang.Override
+    public java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration> getEnvMap() {
+      return internalGetEnv().getImmutableMap();
+    }
+    /**
+     * <pre>
+     * The variables the plugin's servers and hooks read, by name: the
+     * plugin's own declarations, a required secret for each name it uses but
+     * does not declare, and the login key of a server that signs in.
+     * </pre>
+     *
+     * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.EnvVarDeclaration&gt; env = 12 [json_name = "env"];</code>
+     */
+    @java.lang.Override
+    public /* nullable */
+ai.stigmer.agentic.vault.v1.EnvVarDeclaration getEnvOrDefault(
+        java.lang.String key,
+        /* nullable */
+ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclarationOrBuilder> map = internalGetMutableEnv().ensureBuilderMap();
+      return map.containsKey(key) ? envConverter.build(map.get(key)) : defaultValue;
+    }
+    /**
+     * <pre>
+     * The variables the plugin's servers and hooks read, by name: the
+     * plugin's own declarations, a required secret for each name it uses but
+     * does not declare, and the login key of a server that signs in.
+     * </pre>
+     *
+     * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.EnvVarDeclaration&gt; env = 12 [json_name = "env"];</code>
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.vault.v1.EnvVarDeclaration getEnvOrThrow(
+        java.lang.String key) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclarationOrBuilder> map = internalGetMutableEnv().ensureBuilderMap();
+      if (!map.containsKey(key)) {
+        throw new java.lang.IllegalArgumentException();
+      }
+      return envConverter.build(map.get(key));
+    }
+    public Builder clearEnv() {
+      bitField0_ = (bitField0_ & ~0x00000100);
+      internalGetMutableEnv().clear();
+      return this;
+    }
+    /**
+     * <pre>
+     * The variables the plugin's servers and hooks read, by name: the
+     * plugin's own declarations, a required secret for each name it uses but
+     * does not declare, and the login key of a server that signs in.
+     * </pre>
+     *
+     * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.EnvVarDeclaration&gt; env = 12 [json_name = "env"];</code>
+     */
+    public Builder removeEnv(
+        java.lang.String key) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      internalGetMutableEnv().ensureBuilderMap()
+          .remove(key);
+      return this;
+    }
+    /**
+     * Use alternate mutation accessors instead.
+     */
+    @java.lang.Deprecated
+    public java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration>
+        getMutableEnv() {
+      bitField0_ |= 0x00000100;
+      return internalGetMutableEnv().ensureMessageMap();
+    }
+    /**
+     * <pre>
+     * The variables the plugin's servers and hooks read, by name: the
+     * plugin's own declarations, a required secret for each name it uses but
+     * does not declare, and the login key of a server that signs in.
+     * </pre>
+     *
+     * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.EnvVarDeclaration&gt; env = 12 [json_name = "env"];</code>
+     */
+    public Builder putEnv(
+        java.lang.String key,
+        ai.stigmer.agentic.vault.v1.EnvVarDeclaration value) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      if (value == null) { throw new NullPointerException("map value"); }
+      internalGetMutableEnv().ensureBuilderMap()
+          .put(key, value);
+      bitField0_ |= 0x00000100;
+      return this;
+    }
+    /**
+     * <pre>
+     * The variables the plugin's servers and hooks read, by name: the
+     * plugin's own declarations, a required secret for each name it uses but
+     * does not declare, and the login key of a server that signs in.
+     * </pre>
+     *
+     * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.EnvVarDeclaration&gt; env = 12 [json_name = "env"];</code>
+     */
+    public Builder putAllEnv(
+        java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration> values) {
+      for (java.util.Map.Entry<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration> e : values.entrySet()) {
+        if (e.getKey() == null || e.getValue() == null) {
+          throw new NullPointerException();
+        }
+      }
+      internalGetMutableEnv().ensureBuilderMap()
+          .putAll(values);
+      bitField0_ |= 0x00000100;
+      return this;
+    }
+    /**
+     * <pre>
+     * The variables the plugin's servers and hooks read, by name: the
+     * plugin's own declarations, a required secret for each name it uses but
+     * does not declare, and the login key of a server that signs in.
+     * </pre>
+     *
+     * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.EnvVarDeclaration&gt; env = 12 [json_name = "env"];</code>
+     */
+    public ai.stigmer.agentic.vault.v1.EnvVarDeclaration.Builder putEnvBuilderIfAbsent(
+        java.lang.String key) {
+      java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclarationOrBuilder> builderMap = internalGetMutableEnv().ensureBuilderMap();
+      ai.stigmer.agentic.vault.v1.EnvVarDeclarationOrBuilder entry = builderMap.get(key);
+      if (entry == null) {
+        entry = ai.stigmer.agentic.vault.v1.EnvVarDeclaration.newBuilder();
+        builderMap.put(key, entry);
+      }
+      if (entry instanceof ai.stigmer.agentic.vault.v1.EnvVarDeclaration) {
+        entry = ((ai.stigmer.agentic.vault.v1.EnvVarDeclaration) entry).toBuilder();
+        builderMap.put(key, entry);
+      }
+      return (ai.stigmer.agentic.vault.v1.EnvVarDeclaration.Builder) entry;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.plugin.v1.PluginStatus)

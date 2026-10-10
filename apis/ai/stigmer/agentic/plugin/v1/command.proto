@@ -16,21 +16,17 @@ service PluginCommandController {
   // Creates the plugin if it does not exist, or installs a new version of an
   // existing plugin; pushing the archive already installed changes nothing.
   // The archive is a plugin folder in the Agent Plugins, Cursor, Claude Code
-  // or Codex layout; the response's status names what was materialised and
+  // or Codex layout; the response's status lists what the plugin holds and
   // what was skipped.
   //
   // @internal
-  // Authorization: can_create_plugin in the organization; each materialised
-  // child runs its own create chain in-process AS THE CALLER, so the child
-  // kinds' create permissions are evaluated too.
+  // Authorization: can_create_plugin in the organization.
   //
-  // The backend reads the package, refuses reserved labels in the overlay,
-  // plans every child slug against the organization, stores the archive
-  // (deduplicated by digest), archives the previous version, persists the
-  // head as INSTALLING, materialises skills, MCP servers and the agent,
-  // removes members the new archive dropped, and persists the
-  // head as READY. A re-push whose digest, state and members already
-  // converge returns the head with no child writes.
+  // The backend reads the package, plans the status from it (a server at an
+  // address with no key is probed once for a sign-in), stores the archive
+  // (deduplicated by digest), archives the previous version and stores the
+  // plugin in one write. A re-push of the installed digest returns the head
+  // unchanged.
   rpc push(PushPluginRequest) returns (Plugin) {
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
     option (ai.stigmer.commons.rpc.config).permission = can_create_plugin;
@@ -56,18 +52,15 @@ service PluginCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to install plugin in this organization";
   }
 
-  // Update the visibility of a plugin and of every resource it materialised.
-  // Only modifies metadata.visibility on the plugin and its members.
+  // Update the visibility of a plugin.
+  // Only modifies metadata.visibility.
   //
   // @internal
   // Authorization: can_manage_audience on the plugin for every transition.
   // Visibility decides who reaches the resource, so it is the owner's decision
   // and not an edit: an editor may change the definition but not its audience.
-  // The level is checked against the plugin's and every member kind's
-  // VisibilityConfig (visibility_public is refused for every kind). The
-  // fan-out to members rides each kind's own updateVisibility chain in-process
-  // as the caller, skills and MCP servers before the agents that reference
-  // them, so every member meets its reference floor.
+  // The level is checked against the plugin's VisibilityConfig
+  // (visibility_public is refused).
   rpc updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput) returns (Plugin) {
     option (ai.stigmer.commons.rpc.config).resource_kind = plugin;
     option (ai.stigmer.commons.rpc.config).permission = can_manage_audience;
@@ -75,19 +68,38 @@ service PluginCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update plugin visibility";
   }
 
-  // Delete a plugin and every resource it materialised.
-  // Refused when a resource outside the plugin still references a member;
-  // the error names the referencing resources.
+  // Delete a plugin.
+  // Refused while an agent of the organization lists it; the error names the
+  // agents.
   //
   // @internal
-  // Members are deleted through their own delete chains in-process (agent,
-  // MCP servers, skills, in that order), then the head; a
-  // failure part-way leaves a plugin whose remaining members are still
-  // listed, and a retry converges. Audit history is preserved.
+  // A conversation that lists a deleted plugin fails its next turn naming
+  // it, as one naming a deleted agent does. Audit history is preserved.
   rpc delete(PluginId) returns (Plugin) {
     option (ai.stigmer.commons.rpc.config).resource_kind = plugin;
     option (ai.stigmer.commons.rpc.config).permission = can_delete;
     option (ai.stigmer.commons.rpc.config).field_path = "value";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete plugin";
+  }
+
+  // List the tools one of a plugin's MCP servers offers now, signed in as
+  // the caller. Nothing is stored.
+  //
+  // Errors:
+  // - FAILED_PRECONDITION: a key the server needs is in none of the caller's
+  //   vaults, or the server needs a sign-in the caller has not made
+  // - NOT_FOUND: the plugin, or the server in it, does not exist
+  //
+  // @internal
+  // The server is reached by a runner of the organization, through the
+  // connect lane: a connect attempt names the plugin and the server, and the
+  // runner fetches the caller's My vault values for that entry with the
+  // attempt's credential. The workflow answers the listing; the plugin is
+  // never written.
+  rpc listTools(ListPluginToolsInput) returns (ListPluginToolsOutput) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = plugin;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "plugin_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to list plugin tools";
   }
 }

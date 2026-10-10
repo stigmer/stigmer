@@ -74,7 +74,8 @@ message PendingApproval {
   // Empty if from_sub_agent is false.
   string sub_agent_name = 7;
 
-  // Slug of the MCP server that provides this tool.
+  // Name of the MCP server that provides this tool, as its tools are named
+  // (plugin_<plugin>_<server> for a plugin's server).
   // Copied from ToolCall.mcp_server_slug for UI convenience.
   // Empty for built-in sandbox tools (read, write, shell, etc.).
   //
@@ -82,7 +83,7 @@ message PendingApproval {
   // structured argument previews (scalar grids, humanized names)
   // instead of falling back to raw JSON.
   //
-  // Examples: "planton", "github", "slack"
+  // Examples: "plugin_linear_linear", "plugin_github_github"
   string mcp_server_slug = 8;
 
   // Concise subject/description of the sub-agent's task (3-10 words).
@@ -222,7 +223,7 @@ message ApprovalRequest {
   // otherwise. Copied from SubAgentRun.subject.
   string sub_agent_subject = 9;
 
-  // Slug of the MCP server providing this tool; empty for built-in tools.
+  // Name of the MCP server providing this tool; empty for built-in tools.
   // Copied from ToolCall.mcp_server_slug.
   string mcp_server_slug = 10;
 

@@ -74,55 +74,6 @@ public interface AgentSpecOrBuilder extends
 
   /**
    * <pre>
-   * MCP servers this agent can use.
-   * Each entry must reference a unique McpServer resource by slug.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-   */
-  java.util.List<ai.stigmer.agentic.mcpserver.v1.McpServerUsage> 
-      getMcpServerUsagesList();
-  /**
-   * <pre>
-   * MCP servers this agent can use.
-   * Each entry must reference a unique McpServer resource by slug.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-   */
-  ai.stigmer.agentic.mcpserver.v1.McpServerUsage getMcpServerUsages(int index);
-  /**
-   * <pre>
-   * MCP servers this agent can use.
-   * Each entry must reference a unique McpServer resource by slug.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-   */
-  int getMcpServerUsagesCount();
-  /**
-   * <pre>
-   * MCP servers this agent can use.
-   * Each entry must reference a unique McpServer resource by slug.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-   */
-  java.util.List<? extends ai.stigmer.agentic.mcpserver.v1.McpServerUsageOrBuilder> 
-      getMcpServerUsagesOrBuilderList();
-  /**
-   * <pre>
-   * MCP servers this agent can use.
-   * Each entry must reference a unique McpServer resource by slug.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-   */
-  ai.stigmer.agentic.mcpserver.v1.McpServerUsageOrBuilder getMcpServerUsagesOrBuilder(
-      int index);
-
-  /**
-   * <pre>
    * Skill resources providing additional knowledge to the agent.
    * </pre>
    *
@@ -293,9 +244,11 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
    * Tools this agent may use; empty means every tool it has.
    *
    * Entries use Claude Code's names: a built-in such as Read, Grep, Bash,
-   * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server-slug&gt; for every tool of
-   * one MCP server, mcp__&lt;server-slug&gt;__&lt;tool&gt; for one tool, and mcp__* for
-   * every MCP tool. A specifier in parentheses, as in Bash(git push *), is
+   * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server&gt; for every tool of one
+   * MCP server, mcp__&lt;server&gt;__&lt;tool&gt; for one tool, and mcp__* for every MCP
+   * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
+   * names it, with every character outside letters, digits, _ and - written
+   * as _. A specifier in parentheses, as in Bash(git push *), is
    * accepted and governs the whole tool. Agent(explore, shell) also limits
    * which sub-agents this agent may start; the Cursor engine cannot hold its
    * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
@@ -313,9 +266,11 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
    * Tools this agent may use; empty means every tool it has.
    *
    * Entries use Claude Code's names: a built-in such as Read, Grep, Bash,
-   * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server-slug&gt; for every tool of
-   * one MCP server, mcp__&lt;server-slug&gt;__&lt;tool&gt; for one tool, and mcp__* for
-   * every MCP tool. A specifier in parentheses, as in Bash(git push *), is
+   * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server&gt; for every tool of one
+   * MCP server, mcp__&lt;server&gt;__&lt;tool&gt; for one tool, and mcp__* for every MCP
+   * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
+   * names it, with every character outside letters, digits, _ and - written
+   * as _. A specifier in parentheses, as in Bash(git push *), is
    * accepted and governs the whole tool. Agent(explore, shell) also limits
    * which sub-agents this agent may start; the Cursor engine cannot hold its
    * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
@@ -332,9 +287,11 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
    * Tools this agent may use; empty means every tool it has.
    *
    * Entries use Claude Code's names: a built-in such as Read, Grep, Bash,
-   * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server-slug&gt; for every tool of
-   * one MCP server, mcp__&lt;server-slug&gt;__&lt;tool&gt; for one tool, and mcp__* for
-   * every MCP tool. A specifier in parentheses, as in Bash(git push *), is
+   * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server&gt; for every tool of one
+   * MCP server, mcp__&lt;server&gt;__&lt;tool&gt; for one tool, and mcp__* for every MCP
+   * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
+   * names it, with every character outside letters, digits, _ and - written
+   * as _. A specifier in parentheses, as in Bash(git push *), is
    * accepted and governs the whole tool. Agent(explore, shell) also limits
    * which sub-agents this agent may start; the Cursor engine cannot hold its
    * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
@@ -352,9 +309,11 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
    * Tools this agent may use; empty means every tool it has.
    *
    * Entries use Claude Code's names: a built-in such as Read, Grep, Bash,
-   * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server-slug&gt; for every tool of
-   * one MCP server, mcp__&lt;server-slug&gt;__&lt;tool&gt; for one tool, and mcp__* for
-   * every MCP tool. A specifier in parentheses, as in Bash(git push *), is
+   * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server&gt; for every tool of one
+   * MCP server, mcp__&lt;server&gt;__&lt;tool&gt; for one tool, and mcp__* for every MCP
+   * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
+   * names it, with every character outside letters, digits, _ and - written
+   * as _. A specifier in parentheses, as in Bash(git push *), is
    * accepted and governs the whole tool. Agent(explore, shell) also limits
    * which sub-agents this agent may start; the Cursor engine cannot hold its
    * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
@@ -416,10 +375,10 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
 
   /**
    * <pre>
-   * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+   * Hooks written in this agent itself, run around its tool calls and its
+   * sub-agents' calls, after the hooks of the plugins it lists.
    *
-   * Each entry is a plugin whose hooks apply, or a hooks block written in the
-   * agent itself. A hook can refuse a call, ask a person first, or let it run
+   * A hook can refuse a call, ask a person first, or let it run
    * without the approval it would otherwise need. Both engines run hooks in
    * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
    * web search reach no hook, so an agent whose PreToolUse hooks would match
@@ -433,10 +392,10 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
       getHooksList();
   /**
    * <pre>
-   * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+   * Hooks written in this agent itself, run around its tool calls and its
+   * sub-agents' calls, after the hooks of the plugins it lists.
    *
-   * Each entry is a plugin whose hooks apply, or a hooks block written in the
-   * agent itself. A hook can refuse a call, ask a person first, or let it run
+   * A hook can refuse a call, ask a person first, or let it run
    * without the approval it would otherwise need. Both engines run hooks in
    * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
    * web search reach no hook, so an agent whose PreToolUse hooks would match
@@ -449,10 +408,10 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
   ai.stigmer.agentic.agent.v1.HookSource getHooks(int index);
   /**
    * <pre>
-   * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+   * Hooks written in this agent itself, run around its tool calls and its
+   * sub-agents' calls, after the hooks of the plugins it lists.
    *
-   * Each entry is a plugin whose hooks apply, or a hooks block written in the
-   * agent itself. A hook can refuse a call, ask a person first, or let it run
+   * A hook can refuse a call, ask a person first, or let it run
    * without the approval it would otherwise need. Both engines run hooks in
    * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
    * web search reach no hook, so an agent whose PreToolUse hooks would match
@@ -465,10 +424,10 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
   int getHooksCount();
   /**
    * <pre>
-   * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+   * Hooks written in this agent itself, run around its tool calls and its
+   * sub-agents' calls, after the hooks of the plugins it lists.
    *
-   * Each entry is a plugin whose hooks apply, or a hooks block written in the
-   * agent itself. A hook can refuse a call, ask a person first, or let it run
+   * A hook can refuse a call, ask a person first, or let it run
    * without the approval it would otherwise need. Both engines run hooks in
    * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
    * web search reach no hook, so an agent whose PreToolUse hooks would match
@@ -482,10 +441,10 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
       getHooksOrBuilderList();
   /**
    * <pre>
-   * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+   * Hooks written in this agent itself, run around its tool calls and its
+   * sub-agents' calls, after the hooks of the plugins it lists.
    *
-   * Each entry is a plugin whose hooks apply, or a hooks block written in the
-   * agent itself. A hook can refuse a call, ask a person first, or let it run
+   * A hook can refuse a call, ask a person first, or let it run
    * without the approval it would otherwise need. Both engines run hooks in
    * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
    * web search reach no hook, so an agent whose PreToolUse hooks would match
@@ -597,4 +556,53 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
    * @return The harness.
    */
   ai.stigmer.agentic.session.v1.Harness getHarness();
+
+  /**
+   * <pre>
+   * Plugins this agent uses, each whole: its skills, agents, hooks and MCP
+   * servers.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+   */
+  java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> 
+      getPluginsList();
+  /**
+   * <pre>
+   * Plugins this agent uses, each whole: its skills, agents, hooks and MCP
+   * servers.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+   */
+  ai.stigmer.commons.apiresource.ApiResourceReference getPlugins(int index);
+  /**
+   * <pre>
+   * Plugins this agent uses, each whole: its skills, agents, hooks and MCP
+   * servers.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+   */
+  int getPluginsCount();
+  /**
+   * <pre>
+   * Plugins this agent uses, each whole: its skills, agents, hooks and MCP
+   * servers.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+   */
+  java.util.List<? extends ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
+      getPluginsOrBuilderList();
+  /**
+   * <pre>
+   * Plugins this agent uses, each whole: its skills, agents, hooks and MCP
+   * servers.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+   */
+  ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getPluginsOrBuilder(
+      int index);
 }

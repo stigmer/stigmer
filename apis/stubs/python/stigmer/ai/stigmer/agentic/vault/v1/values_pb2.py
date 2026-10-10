@@ -26,7 +26,7 @@ from ai.stigmer.commons.rpc import method_options_pb2 as ai_dot_stigmer_dot_comm
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n(ai/stigmer/agentic/vault/v1/values.proto\x12\x1b\x61i.stigmer.agentic.vault.v1\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a\x1b\x62uf/validate/validate.proto\"G\n\x19\x46\x65tchExecutionValuesInput\x12*\n\x0c\x65xecution_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x0b\x65xecutionId\"\xac\x02\n\x0f\x45xecutionValues\x12M\n\x05\x61gent\x18\x01 \x03(\x0b\x32\x37.ai.stigmer.agentic.vault.v1.ExecutionValues.AgentEntryR\x05\x61gent\x12=\n\x05tools\x18\x02 \x03(\x0b\x32\'.ai.stigmer.agentic.vault.v1.ToolValuesR\x05tools\x12Q\n\x0crepositories\x18\x03 \x03(\x0b\x32-.ai.stigmer.agentic.vault.v1.RepositoryValuesR\x0crepositories\x1a\x38\n\nAgentEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\"\xca\x01\n\nToolValues\x12\"\n\rmcp_server_id\x18\x01 \x01(\tR\x0bmcpServerId\x12\x10\n\x03url\x18\x02 \x01(\tR\x03url\x12K\n\x06values\x18\x03 \x03(\x0b\x32\x33.ai.stigmer.agentic.vault.v1.ToolValues.ValuesEntryR\x06values\x1a\x39\n\x0bValuesEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\"N\n\x10RepositoryValues\x12\x12\n\x04name\x18\x01 \x01(\tR\x04name\x12\x10\n\x03url\x18\x02 \x01(\tR\x03url\x12\x14\n\x05token\x18\x03 \x01(\tR\x05token2\x91\x01\n\x14VaultValueController\x12y\n\x0b\x66\x65tchValues\x12\x36.ai.stigmer.agentic.vault.v1.FetchExecutionValuesInput\x1a,.ai.stigmer.agentic.vault.v1.ExecutionValues\"\x04\xd0\xb8\x18\x01\x42\xbf\x01\n\x1f\x63om.ai.stigmer.agentic.vault.v1B\x0bValuesProtoP\x01\xa2\x02\x04\x41SAV\xaa\x02\x1b\x41i.Stigmer.Agentic.Vault.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Vault\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Vault\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Vault::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n(ai/stigmer/agentic/vault/v1/values.proto\x12\x1b\x61i.stigmer.agentic.vault.v1\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a\x1b\x62uf/validate/validate.proto\"G\n\x19\x46\x65tchExecutionValuesInput\x12*\n\x0c\x65xecution_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x0b\x65xecutionId\"\xf1\x02\n\x0f\x45xecutionValues\x12M\n\x05\x61gent\x18\x01 \x03(\x0b\x32\x37.ai.stigmer.agentic.vault.v1.ExecutionValues.AgentEntryR\x05\x61gent\x12=\n\x05tools\x18\x02 \x03(\x0b\x32\'.ai.stigmer.agentic.vault.v1.ToolValuesR\x05tools\x12Q\n\x0crepositories\x18\x03 \x03(\x0b\x32-.ai.stigmer.agentic.vault.v1.RepositoryValuesR\x0crepositories\x12\x43\n\x07plugins\x18\x04 \x03(\x0b\x32).ai.stigmer.agentic.vault.v1.PluginValuesR\x07plugins\x1a\x38\n\nAgentEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\"\xf0\x01\n\nToolValues\x12\x1b\n\tplugin_id\x18\x04 \x01(\tR\x08pluginId\x12\x16\n\x06server\x18\x05 \x01(\tR\x06server\x12\x10\n\x03url\x18\x02 \x01(\tR\x03url\x12K\n\x06values\x18\x03 \x03(\x0b\x32\x33.ai.stigmer.agentic.vault.v1.ToolValues.ValuesEntryR\x06values\x1a\x39\n\x0bValuesEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01J\x04\x08\x01\x10\x02R\rmcp_server_id\"\xb5\x01\n\x0cPluginValues\x12\x1b\n\tplugin_id\x18\x01 \x01(\tR\x08pluginId\x12M\n\x06values\x18\x02 \x03(\x0b\x32\x35.ai.stigmer.agentic.vault.v1.PluginValues.ValuesEntryR\x06values\x1a\x39\n\x0bValuesEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\"N\n\x10RepositoryValues\x12\x12\n\x04name\x18\x01 \x01(\tR\x04name\x12\x10\n\x03url\x18\x02 \x01(\tR\x03url\x12\x14\n\x05token\x18\x03 \x01(\tR\x05token2\x91\x01\n\x14VaultValueController\x12y\n\x0b\x66\x65tchValues\x12\x36.ai.stigmer.agentic.vault.v1.FetchExecutionValuesInput\x1a,.ai.stigmer.agentic.vault.v1.ExecutionValues\"\x04\xd0\xb8\x18\x01\x42\xbf\x01\n\x1f\x63om.ai.stigmer.agentic.vault.v1B\x0bValuesProtoP\x01\xa2\x02\x04\x41SAV\xaa\x02\x1b\x41i.Stigmer.Agentic.Vault.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Vault\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Vault\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Vault::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -40,20 +40,26 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_EXECUTIONVALUES_AGENTENTRY']._serialized_options = b'8\001'
   _globals['_TOOLVALUES_VALUESENTRY']._loaded_options = None
   _globals['_TOOLVALUES_VALUESENTRY']._serialized_options = b'8\001'
+  _globals['_PLUGINVALUES_VALUESENTRY']._loaded_options = None
+  _globals['_PLUGINVALUES_VALUESENTRY']._serialized_options = b'8\001'
   _globals['_VAULTVALUECONTROLLER'].methods_by_name['fetchValues']._loaded_options = None
   _globals['_VAULTVALUECONTROLLER'].methods_by_name['fetchValues']._serialized_options = b'\320\270\030\001'
   _globals['_FETCHEXECUTIONVALUESINPUT']._serialized_start=147
   _globals['_FETCHEXECUTIONVALUESINPUT']._serialized_end=218
   _globals['_EXECUTIONVALUES']._serialized_start=221
-  _globals['_EXECUTIONVALUES']._serialized_end=521
-  _globals['_EXECUTIONVALUES_AGENTENTRY']._serialized_start=465
-  _globals['_EXECUTIONVALUES_AGENTENTRY']._serialized_end=521
-  _globals['_TOOLVALUES']._serialized_start=524
-  _globals['_TOOLVALUES']._serialized_end=726
-  _globals['_TOOLVALUES_VALUESENTRY']._serialized_start=669
-  _globals['_TOOLVALUES_VALUESENTRY']._serialized_end=726
-  _globals['_REPOSITORYVALUES']._serialized_start=728
-  _globals['_REPOSITORYVALUES']._serialized_end=806
-  _globals['_VAULTVALUECONTROLLER']._serialized_start=809
-  _globals['_VAULTVALUECONTROLLER']._serialized_end=954
+  _globals['_EXECUTIONVALUES']._serialized_end=590
+  _globals['_EXECUTIONVALUES_AGENTENTRY']._serialized_start=534
+  _globals['_EXECUTIONVALUES_AGENTENTRY']._serialized_end=590
+  _globals['_TOOLVALUES']._serialized_start=593
+  _globals['_TOOLVALUES']._serialized_end=833
+  _globals['_TOOLVALUES_VALUESENTRY']._serialized_start=755
+  _globals['_TOOLVALUES_VALUESENTRY']._serialized_end=812
+  _globals['_PLUGINVALUES']._serialized_start=836
+  _globals['_PLUGINVALUES']._serialized_end=1017
+  _globals['_PLUGINVALUES_VALUESENTRY']._serialized_start=755
+  _globals['_PLUGINVALUES_VALUESENTRY']._serialized_end=812
+  _globals['_REPOSITORYVALUES']._serialized_start=1019
+  _globals['_REPOSITORYVALUES']._serialized_end=1097
+  _globals['_VAULTVALUECONTROLLER']._serialized_start=1100
+  _globals['_VAULTVALUECONTROLLER']._serialized_end=1245
 # @@protoc_insertion_point(module_scope)

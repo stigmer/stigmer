@@ -9,7 +9,6 @@ import (
 	agentsharev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentshare/v1"
 	channelappv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/channelapp/v1"
 	evaluatorv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/evaluator/v1"
-	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/mcpserver/v1"
 	memoryv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/memory/v1"
 	pluginv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/plugin/v1"
 	runv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/run/v1"
@@ -85,11 +84,6 @@ func InvitationInputFromProto(p *invitationv1.Invitation) *InvitationInput {
 // LicenseInputFromProto creates a LicenseInput from a proto License resource.
 func LicenseInputFromProto(p *licensev1.License) *LicenseInput {
 	return gen.LicenseInputFromProto(p)
-}
-
-// McpServerInputFromProto creates a McpServerInput from a proto McpServer resource.
-func McpServerInputFromProto(p *mcpserverv1.McpServer) *McpServerInput {
-	return gen.McpServerInputFromProto(p)
 }
 
 // MemoryInputFromProto creates a MemoryInput from a proto Memory resource.

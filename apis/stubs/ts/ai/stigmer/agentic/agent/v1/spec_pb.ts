@@ -4,8 +4,6 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
-import type { McpServerUsage } from "../../mcpserver/v1/usage_pb.js";
-import { file_ai_stigmer_agentic_mcpserver_v1_usage } from "../../mcpserver/v1/usage_pb.js";
 import type { HookConfig } from "../../plugin/v1/hooks_pb.js";
 import { file_ai_stigmer_agentic_plugin_v1_hooks } from "../../plugin/v1/hooks_pb.js";
 import type { RunConfig } from "../../run/v1/invocation_pb.js";
@@ -24,7 +22,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agent/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_agent_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvc3BlYy5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxIqUJCglBZ2VudFNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSEAoIaWNvbl91cmwYAiABKAkSHQoMaW5zdHJ1Y3Rpb25zGAMgASgJQge6SARyAhAKEtIBChFtY3Bfc2VydmVyX3VzYWdlcxgEIAMoCzIvLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyVXNhZ2VChQG6SIEBkgF+Iny6AXkKFm1jcF9zZXJ2ZXJfdXNhZ2VzLmtpbmQSP21jcF9zZXJ2ZXJfdXNhZ2VzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9bWNwX3NlcnZlchoedGhpcy5tY3Bfc2VydmVyX3JlZi5raW5kID09IDQ0ErABCgpza2lsbF9yZWZzGAUgAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQma6SF+SAVwiWroBVwoPc2tpbGxfcmVmcy5raW5kEjNza2lsbF9yZWZzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9c2tpbGwaD3RoaXMua2luZCA9PSA0M+CFLCsSOQoKc3ViX2FnZW50cxgGIAMoCzIlLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5TdWJBZ2VudBI8CgNlbnYYByADKAsyLy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnRTcGVjLkVudkVudHJ5EoMBCgV0b29scxgKIAMoCUJ0ukhxkgFuImxyahiAAjJlXihtY3BfX1wqfG1jcF9fW2Etel1bYS16MC05LV0qW2EtejAtOV0oX18oXCp8W0EtWmEtejAtOV8uLV0rKSk/fFtBLVpdW0EtWmEtejAtOV9dKihcKFteKClcclxuXStcKSk/KSQSjgEKEGRpc2FsbG93ZWRfdG9vbHMYCyADKAlCdLpIcZIBbiJscmoYgAIyZV4obWNwX19cKnxtY3BfX1thLXpdW2EtejAtOS1dKlthLXowLTldKF9fKFwqfFtBLVphLXowLTlfLi1dKykpP3xbQS1aXVtBLVphLXowLTlfXSooXChbXigpXHJcbl0rXCkpPykkEjYKBWhvb2tzGAwgAygLMicuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkhvb2tTb3VyY2USOAoKcnVuX2NvbmZpZxgNIAEoCzIkLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUnVuQ29uZmlnEjcKB2hhcm5lc3MYDiABKA4yJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5IYXJuZXNzGloKCEVudkVudHJ5EgsKA2tleRgBIAEoCRI9CgV2YWx1ZRgCIAEoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5FbnZWYXJEZWNsYXJhdGlvbjoCOAFKBAgIEAlKBAgJEApKBAgPEBBSB3NoYXJpbmdSEGRhdGFzdG9yZV91c2FnZXNSBnZhdWx0cyKLAgoKSG9va1NvdXJjZRKvAQoGcGx1Z2luGAEgASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQme6SGC6AV0KF2hvb2tfc291cmNlX3BsdWdpbi5raW5kEjFwbHVnaW4gbXVzdCByZWZlcmVuY2UgYSByZXNvdXJjZSB3aXRoIGtpbmQ9cGx1Z2luGg90aGlzLmtpbmQgPT0gNTjghSw6SAASOgoGaW5saW5lGAIgASgLMiguYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5Ib29rQ29uZmlnSABCDwoGc291cmNlEgW6SAIIASLIBAoIU3ViQWdlbnQSFAoEbmFtZRgBIAEoCUIGukgDyAEBEhMKC2Rlc2NyaXB0aW9uGAIgASgJEh0KDGluc3RydWN0aW9ucxgDIAEoCUIHukgEcgIQChKwAQoKc2tpbGxfcmVmcxgFIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJmukhfkgFcIlq6AVcKD3NraWxsX3JlZnMua2luZBIzc2tpbGxfcmVmcyBtdXN0IHJlZmVyZW5jZSByZXNvdXJjZXMgd2l0aCBraW5kPXNraWxsGg90aGlzLmtpbmQgPT0gNDPghSwrEhYKDm1vZGVsX292ZXJyaWRlGAYgASgJEoMBCgV0b29scxgHIAMoCUJ0ukhxkgFuImxyahiAAjJlXihtY3BfX1wqfG1jcF9fW2Etel1bYS16MC05LV0qW2EtejAtOV0oX18oXCp8W0EtWmEtejAtOV8uLV0rKSk/fFtBLVpdW0EtWmEtejAtOV9dKihcKFteKClcclxuXStcKSk/KSQSjgEKEGRpc2FsbG93ZWRfdG9vbHMYCCADKAlCdLpIcZIBbiJscmoYgAIyZV4obWNwX19cKnxtY3BfX1thLXpdW2EtejAtOS1dKlthLXowLTldKF9fKFwqfFtBLVphLXowLTlfLi1dKykpP3xbQS1aXVtBLVphLXowLTlfXSooXChbXigpXHJcbl0rXCkpPykkSgQIBBAFUgptY3BfYWNjZXNzYgZwcm90bzM", [file_ai_stigmer_agentic_mcpserver_v1_usage, file_ai_stigmer_agentic_plugin_v1_hooks, file_ai_stigmer_agentic_run_v1_invocation, file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_vault_v1_declaration, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvc3BlYy5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxItIJCglBZ2VudFNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSEAoIaWNvbl91cmwYAiABKAkSHQoMaW5zdHJ1Y3Rpb25zGAMgASgJQge6SARyAhAKErABCgpza2lsbF9yZWZzGAUgAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQma6SF+SAVwiWroBVwoPc2tpbGxfcmVmcy5raW5kEjNza2lsbF9yZWZzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9c2tpbGwaD3RoaXMua2luZCA9PSA0M+CFLCsSOQoKc3ViX2FnZW50cxgGIAMoCzIlLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5TdWJBZ2VudBI8CgNlbnYYByADKAsyLy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnRTcGVjLkVudkVudHJ5EqIBCgV0b29scxgKIAMoCUKSAbpIjgGSAYoBIocBcoQBGIACMn9eKG1jcF9fXCp8bWNwX18oW2Etel1bYS16MC05LV0qW2EtejAtOV18cGx1Z2luKF9bQS1aYS16MC05LV0rKSspKF9fKFwqfFtBLVphLXowLTlfLi1dKykpP3xbQS1aXVtBLVphLXowLTlfXSooXChbXigpXHJcbl0rXCkpPykkEq0BChBkaXNhbGxvd2VkX3Rvb2xzGAsgAygJQpIBukiOAZIBigEihwFyhAEYgAIyf14obWNwX19cKnxtY3BfXyhbYS16XVthLXowLTktXSpbYS16MC05XXxwbHVnaW4oX1tBLVphLXowLTktXSspKykoX18oXCp8W0EtWmEtejAtOV8uLV0rKSk/fFtBLVpdW0EtWmEtejAtOV9dKihcKFteKClcclxuXStcKSk/KSQSNgoFaG9va3MYDCADKAsyJy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuSG9va1NvdXJjZRI4CgpydW5fY29uZmlnGA0gASgLMiQuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW5Db25maWcSNwoHaGFybmVzcxgOIAEoDjImLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkhhcm5lc3MSqAEKB3BsdWdpbnMYECADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCYbpIWpIBVyJVugFSCgxwbHVnaW5zLmtpbmQSMXBsdWdpbnMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1wbHVnaW4aD3RoaXMua2luZCA9PSA1OOCFLDoaWgoIRW52RW50cnkSCwoDa2V5GAEgASgJEj0KBXZhbHVlGAIgASgLMi4uYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLkVudlZhckRlY2xhcmF0aW9uOgI4AUoECAQQBUoECAgQCUoECAkQCkoECA8QEFIRbWNwX3NlcnZlcl91c2FnZXNSB3NoYXJpbmdSEGRhdGFzdG9yZV91c2FnZXNSBnZhdWx0cyJnCgpIb29rU291cmNlEjoKBmlubGluZRgCIAEoCzIoLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuSG9va0NvbmZpZ0gAQg8KBnNvdXJjZRIFukgCCAFKBAgBEAJSBnBsdWdpbiKGBQoIU3ViQWdlbnQSFAoEbmFtZRgBIAEoCUIGukgDyAEBEhMKC2Rlc2NyaXB0aW9uGAIgASgJEh0KDGluc3RydWN0aW9ucxgDIAEoCUIHukgEcgIQChKwAQoKc2tpbGxfcmVmcxgFIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJmukhfkgFcIlq6AVcKD3NraWxsX3JlZnMua2luZBIzc2tpbGxfcmVmcyBtdXN0IHJlZmVyZW5jZSByZXNvdXJjZXMgd2l0aCBraW5kPXNraWxsGg90aGlzLmtpbmQgPT0gNDPghSwrEhYKDm1vZGVsX292ZXJyaWRlGAYgASgJEqIBCgV0b29scxgHIAMoCUKSAbpIjgGSAYoBIocBcoQBGIACMn9eKG1jcF9fXCp8bWNwX18oW2Etel1bYS16MC05LV0qW2EtejAtOV18cGx1Z2luKF9bQS1aYS16MC05LV0rKSspKF9fKFwqfFtBLVphLXowLTlfLi1dKykpP3xbQS1aXVtBLVphLXowLTlfXSooXChbXigpXHJcbl0rXCkpPykkEq0BChBkaXNhbGxvd2VkX3Rvb2xzGAggAygJQpIBukiOAZIBigEihwFyhAEYgAIyf14obWNwX19cKnxtY3BfXyhbYS16XVthLXowLTktXSpbYS16MC05XXxwbHVnaW4oX1tBLVphLXowLTktXSspKykoX18oXCp8W0EtWmEtejAtOV8uLV0rKSk/fFtBLVpdW0EtWmEtejAtOV9dKihcKFteKClcclxuXStcKSk/KSRKBAgEEAVSCm1jcF9hY2Nlc3NiBnByb3RvMw", [file_ai_stigmer_agentic_plugin_v1_hooks, file_ai_stigmer_agentic_run_v1_invocation, file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_vault_v1_declaration, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * AgentSpec defines the configurable properties of an agent.
@@ -53,14 +51,6 @@ export type AgentSpec = Message<"ai.stigmer.agentic.agent.v1.AgentSpec"> & {
    * @generated from field: string instructions = 3;
    */
   instructions: string;
-
-  /**
-   * MCP servers this agent can use.
-   * Each entry must reference a unique McpServer resource by slug.
-   *
-   * @generated from field: repeated ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 4;
-   */
-  mcpServerUsages: McpServerUsage[];
 
   /**
    * Skill resources providing additional knowledge to the agent.
@@ -92,9 +82,11 @@ export type AgentSpec = Message<"ai.stigmer.agentic.agent.v1.AgentSpec"> & {
    * Tools this agent may use; empty means every tool it has.
    *
    * Entries use Claude Code's names: a built-in such as Read, Grep, Bash,
-   * Write, Edit, Glob, Agent or WebFetch; mcp__<server-slug> for every tool of
-   * one MCP server, mcp__<server-slug>__<tool> for one tool, and mcp__* for
-   * every MCP tool. A specifier in parentheses, as in Bash(git push *), is
+   * Write, Edit, Glob, Agent or WebFetch; mcp__<server> for every tool of one
+   * MCP server, mcp__<server>__<tool> for one tool, and mcp__* for every MCP
+   * tool. A plugin's server is named plugin_<plugin>_<server>, as Claude Code
+   * names it, with every character outside letters, digits, _ and - written
+   * as _. A specifier in parentheses, as in Bash(git push *), is
    * accepted and governs the whole tool. Agent(explore, shell) also limits
    * which sub-agents this agent may start; the Cursor engine cannot hold its
    * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
@@ -114,10 +106,10 @@ export type AgentSpec = Message<"ai.stigmer.agentic.agent.v1.AgentSpec"> & {
   disallowedTools: string[];
 
   /**
-   * Hooks that run around this agent's tool calls, and its sub-agents' calls.
+   * Hooks written in this agent itself, run around its tool calls and its
+   * sub-agents' calls, after the hooks of the plugins it lists.
    *
-   * Each entry is a plugin whose hooks apply, or a hooks block written in the
-   * agent itself. A hook can refuse a call, ask a person first, or let it run
+   * A hook can refuse a call, ask a person first, or let it run
    * without the approval it would otherwise need. Both engines run hooks in
    * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
    * web search reach no hook, so an agent whose PreToolUse hooks would match
@@ -162,6 +154,14 @@ export type AgentSpec = Message<"ai.stigmer.agentic.agent.v1.AgentSpec"> & {
    * @generated from field: ai.stigmer.agentic.session.v1.Harness harness = 14;
    */
   harness: Harness;
+
+  /**
+   * Plugins this agent uses, each whole: its skills, agents, hooks and MCP
+   * servers.
+   *
+   * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16;
+   */
+  plugins: ApiResourceReference[];
 };
 
 /**
@@ -172,8 +172,7 @@ export const AgentSpecSchema: GenMessage<AgentSpec> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 0);
 
 /**
- * HookSource is one source of an agent's hooks: a plugin, or a hooks block
- * written in the agent.
+ * HookSource is a hooks block written in the agent.
  *
  * @generated from message ai.stigmer.agentic.agent.v1.HookSource
  */
@@ -182,14 +181,6 @@ export type HookSource = Message<"ai.stigmer.agentic.agent.v1.HookSource"> & {
    * @generated from oneof ai.stigmer.agentic.agent.v1.HookSource.source
    */
   source: {
-    /**
-     * A plugin whose recorded hooks apply to this agent.
-     *
-     * @generated from field: ai.stigmer.commons.apiresource.ApiResourceReference plugin = 1;
-     */
-    value: ApiResourceReference;
-    case: "plugin";
-  } | {
     /**
      * A hooks block in Claude Code's hooks.json shape, written in the agent.
      *

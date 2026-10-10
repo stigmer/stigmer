@@ -6,7 +6,6 @@ import ai.stigmer.agentic.agent.v1.Agent;
 import ai.stigmer.agentic.agent.v1.AgentSpec;
 import ai.stigmer.agentic.agent.v1.HookSource;
 import ai.stigmer.agentic.agent.v1.SubAgent;
-import ai.stigmer.agentic.mcpserver.v1.McpServerUsage;
 import ai.stigmer.agentic.plugin.v1.HookConfig;
 import ai.stigmer.agentic.plugin.v1.HookFormat;
 import ai.stigmer.agentic.plugin.v1.HookGroup;
@@ -33,7 +32,6 @@ public final class AgentInput {
     private final String description;
     private final String iconUrl;
     private final String instructions;
-    private final java.util.List<McpServerUsageInput> mcpServerUsages;
     private final java.util.List<ResourceRef> skillRefs;
     private final java.util.List<SubAgentInput> subAgents;
     private final java.util.Map<String, EnvVarDeclarationInput> env;
@@ -42,6 +40,7 @@ public final class AgentInput {
     private final java.util.List<HookSourceInput> hooks;
     private final RunConfigInput runConfig;
     private final Harness harness;
+    private final java.util.List<ResourceRef> plugins;
 
     private AgentInput(Builder builder) {
         this.id = builder.id;
@@ -54,7 +53,6 @@ public final class AgentInput {
         this.description = builder.description;
         this.iconUrl = builder.iconUrl;
         this.instructions = builder.instructions;
-        this.mcpServerUsages = builder.mcpServerUsages;
         this.skillRefs = builder.skillRefs;
         this.subAgents = builder.subAgents;
         this.env = builder.env;
@@ -63,6 +61,7 @@ public final class AgentInput {
         this.hooks = builder.hooks;
         this.runConfig = builder.runConfig;
         this.harness = builder.harness;
+        this.plugins = builder.plugins;
     }
 
     Agent toProto() {
@@ -75,11 +74,6 @@ public final class AgentInput {
         }
         if (this.instructions != null) {
             spec.setInstructions(this.instructions);
-        }
-        if (this.mcpServerUsages != null) {
-            for (McpServerUsageInput item : this.mcpServerUsages) {
-                spec.addMcpServerUsages(item.toProto());
-            }
         }
         if (this.skillRefs != null) {
             for (ResourceRef item : this.skillRefs) {
@@ -113,6 +107,12 @@ public final class AgentInput {
         }
         if (this.harness != null) {
             spec.setHarness(this.harness);
+        }
+        if (this.plugins != null) {
+            for (ResourceRef item : this.plugins) {
+                spec.addPlugins(item.toProto().toBuilder()
+                    .setKind(ApiResourceKind.plugin).build());
+            }
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name);
@@ -157,7 +157,6 @@ public final class AgentInput {
         private String description;
         private String iconUrl;
         private String instructions;
-        private java.util.List<McpServerUsageInput> mcpServerUsages;
         private java.util.List<ResourceRef> skillRefs;
         private java.util.List<SubAgentInput> subAgents;
         private java.util.Map<String, EnvVarDeclarationInput> env;
@@ -166,6 +165,7 @@ public final class AgentInput {
         private java.util.List<HookSourceInput> hooks;
         private RunConfigInput runConfig;
         private Harness harness;
+        private java.util.List<ResourceRef> plugins;
 
         private Builder() {}
 
@@ -184,7 +184,6 @@ public final class AgentInput {
         public Builder description(String description) { this.description = description; return this; }
         public Builder iconUrl(String iconUrl) { this.iconUrl = iconUrl; return this; }
         public Builder instructions(String instructions) { this.instructions = instructions; return this; }
-        public Builder mcpServerUsages(java.util.List<McpServerUsageInput> mcpServerUsages) { this.mcpServerUsages = mcpServerUsages; return this; }
         public Builder skillRefs(java.util.List<ResourceRef> skillRefs) { this.skillRefs = skillRefs; return this; }
         public Builder subAgents(java.util.List<SubAgentInput> subAgents) { this.subAgents = subAgents; return this; }
         public Builder env(java.util.Map<String, EnvVarDeclarationInput> env) { this.env = env; return this; }
@@ -193,38 +192,9 @@ public final class AgentInput {
         public Builder hooks(java.util.List<HookSourceInput> hooks) { this.hooks = hooks; return this; }
         public Builder runConfig(RunConfigInput runConfig) { this.runConfig = runConfig; return this; }
         public Builder harness(Harness harness) { this.harness = harness; return this; }
+        public Builder plugins(java.util.List<ResourceRef> plugins) { this.plugins = plugins; return this; }
 
         public AgentInput build() { return new AgentInput(this); }
-    }
-
-    /** SDK input type for McpServerUsage. */
-    public static final class McpServerUsageInput {
-        private final ResourceRef mcpServerRef;
-
-        private McpServerUsageInput(Builder builder) {
-            this.mcpServerRef = builder.mcpServerRef;
-        }
-
-        McpServerUsage toProto() {
-            McpServerUsage.Builder builder = McpServerUsage.newBuilder();
-            if (this.mcpServerRef != null && this.mcpServerRef.hasIdentifier()) {
-                builder.setMcpServerRef(this.mcpServerRef.toProto().toBuilder()
-                    .setKind(ApiResourceKind.mcp_server).build());
-            }
-            return builder.build();
-        }
-
-        public static Builder builder() { return new Builder(); }
-
-        public static final class Builder {
-            private ResourceRef mcpServerRef;
-
-            private Builder() {}
-
-            public Builder mcpServerRef(ResourceRef mcpServerRef) { this.mcpServerRef = mcpServerRef; return this; }
-
-            public McpServerUsageInput build() { return new McpServerUsageInput(this); }
-        }
     }
 
     /** SDK input type for SubAgent. */
@@ -349,11 +319,9 @@ public final class AgentInput {
 
     /** SDK input type for HookSource. */
     public static final class HookSourceInput {
-        private final ResourceRef plugin;
         private final HookConfigInput inline;
 
         private HookSourceInput(Builder builder) {
-            this.plugin = builder.plugin;
             this.inline = builder.inline;
         }
 
@@ -362,22 +330,16 @@ public final class AgentInput {
             if (this.inline != null) {
                 builder.setInline(this.inline.toProto());
             }
-            if (this.plugin != null && this.plugin.hasIdentifier()) {
-                builder.setPlugin(this.plugin.toProto().toBuilder()
-                    .setKind(ApiResourceKind.plugin).build());
-            }
             return builder.build();
         }
 
         public static Builder builder() { return new Builder(); }
 
         public static final class Builder {
-            private ResourceRef plugin;
             private HookConfigInput inline;
 
             private Builder() {}
 
-            public Builder plugin(ResourceRef plugin) { this.plugin = plugin; return this; }
             public Builder inline(HookConfigInput inline) { this.inline = inline; return this; }
 
             public HookSourceInput build() { return new HookSourceInput(this); }

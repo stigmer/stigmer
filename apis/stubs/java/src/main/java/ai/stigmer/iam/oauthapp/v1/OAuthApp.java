@@ -18,9 +18,7 @@ package ai.stigmer.iam.oauthapp.v1;
  * *into* Stigmer, OAuthApp configures how Stigmer authenticates *outward*
  * to external services.
  *
- * Referenced by McpServer resources via McpServerAuth to enable
- * automated credential acquisition for MCP servers that require
- * vendor-specific OAuth.
+ * Used for the sign-in of MCP servers that require vendor-specific OAuth.
  *
  * Example YAML:
  * apiVersion: iam.stigmer.ai/v1
@@ -525,9 +523,7 @@ private static final long serialVersionUID = 0L;
    * *into* Stigmer, OAuthApp configures how Stigmer authenticates *outward*
    * to external services.
    *
-   * Referenced by McpServer resources via McpServerAuth to enable
-   * automated credential acquisition for MCP servers that require
-   * vendor-specific OAuth.
+   * Used for the sign-in of MCP servers that require vendor-specific OAuth.
    *
    * Example YAML:
    * apiVersion: iam.stigmer.ai/v1

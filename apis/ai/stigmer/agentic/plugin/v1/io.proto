@@ -2,7 +2,6 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.plugin.v1;
 
-import "ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto";
 import "ai/stigmer/commons/apiresource/enum.proto";
 import "ai/stigmer/commons/apiresource/status.proto";
 import "buf/validate/validate.proto";
@@ -23,8 +22,8 @@ message PluginId {
 //   createArtifactUploadUrl() + HTTP PUT, for archives above the cap.
 //
 // @internal
-// The manifest, skills, servers, sub-agents, variables and overlay are read
-// by the backend from the archive with @stigmer/plugin-package, the same
+// The manifest, skills, servers, agents, hooks and variables are read by the
+// backend from the archive with @stigmer/plugin-package, the same
 // library `stigmer validate -f` runs offline, so a refusal here carries the
 // sentences the CLI already printed. The client sends no metadata.
 message PushPluginRequest {
@@ -38,7 +37,7 @@ message PushPluginRequest {
   string org = 1 [(buf.validate.field).required = true];
 
   // The plugin package as a ZIP archive: the plugin folder with its manifest,
-  // skills/, mcp.json, agents/ and ai.stigmer/ at the archive root.
+  // skills/, mcp.json, agents/ and hooks/ at the archive root.
   //
   // Mutually exclusive with artifact_upload_ref (see the message comment).
   bytes artifact = 2;
@@ -48,12 +47,11 @@ message PushPluginRequest {
   // Mutually exclusive with artifact (see the message comment).
   string artifact_upload_ref = 3;
 
-  // Visibility for the plugin and every resource it materialises.
-  // Unspecified means the kind's default (organization).
+  // Visibility for the plugin. Unspecified means the kind's default
+  // (organization).
   //
   // @internal
-  // PUBLIC is operator-gated exactly as on every other kind; the same gates
-  // run on the head and, in-process, on each child.
+  // PUBLIC is operator-gated exactly as on every other kind.
   ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 4 [(buf.validate.field).enum.defined_only = true];
 
   // Optional human-readable message describing this version, kept in
@@ -119,29 +117,37 @@ message PluginArtifactDownloadUrl {
   int64 size_bytes = 3;
 }
 
-// PluginMember is one resource an installed plugin materialised.
-message PluginMember {
-  // The member's resource kind.
-  ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kind = 1;
+// ListPluginToolsInput names one MCP server of an installed plugin whose
+// tools to list.
+message ListPluginToolsInput {
+  // System-generated ID of the plugin.
+  string plugin_id = 1 [(buf.validate.field).required = true];
 
-  // The member's resource id.
-  string id = 2;
+  // The server's name in the plugin (an McpServerEntry name).
+  string server = 2 [(buf.validate.field).required = true];
 
-  // The member's slug within the organization.
-  string slug = 3;
-
-  // The member's display name.
-  string name = 4;
+  // Organization whose runner reaches the server; the caller's My vault in
+  // it supplies the server's keys and sign-in.
+  string org = 3 [(buf.validate.field).string.min_len = 1];
 }
 
-// ListPluginMembersResponse lists the resources an installed plugin owns.
-//
-// @internal
-// Derived on read from the stigmer.ai/plugin label on the three child kinds;
-// nothing is stored on the plugin, so nothing can drift.
-message ListPluginMembersResponse {
-  // Members in materialisation order: skills, MCP servers, agents.
-  repeated PluginMember members = 1;
+// ListPluginToolsOutput lists the tools one MCP server offers now.
+message ListPluginToolsOutput {
+  // The tools, in the order the server listed them.
+  repeated PluginTool tools = 1;
+}
+
+// PluginTool is one tool an MCP server offers.
+message PluginTool {
+  // The tool's name as the server lists it.
+  string name = 1;
+
+  // What the tool does, as the server describes it.
+  string description = 2;
+
+  // Whether the server marks the tool destructive, so a person is asked
+  // before a turn calls it.
+  bool destructive = 3;
 }
 
 // ListPluginVersionsInput requests the version history for a plugin.

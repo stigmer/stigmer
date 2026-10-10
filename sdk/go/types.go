@@ -16,7 +16,6 @@ type IdentityAccountClient = gen.IdentityAccountClient
 type IdentityProviderClient = gen.IdentityProviderClient
 type InvitationClient = gen.InvitationClient
 type LicenseClient = gen.LicenseClient
-type McpServerClient = gen.McpServerClient
 type MemoryClient = gen.MemoryClient
 type OAuthAppClient = gen.OAuthAppClient
 type OrganizationClient = gen.OrganizationClient
@@ -38,7 +37,6 @@ type VaultClient = gen.VaultClient
 
 // Input types for resource mutation (Create, Update, Apply).
 type AgentInput = gen.AgentInput
-type McpServerUsageInput = gen.McpServerUsageInput
 type SubAgentInput = gen.SubAgentInput
 type EnvVarDeclarationInput = gen.EnvVarDeclarationInput
 type HookSourceInput = gen.HookSourceInput
@@ -66,10 +64,6 @@ type LicenseInput = gen.LicenseInput
 type LicenseCustomerInput = gen.LicenseCustomerInput
 type EntitlementsInput = gen.EntitlementsInput
 type EntitlementLimitsInput = gen.EntitlementLimitsInput
-type McpServerInput = gen.McpServerInput
-type StdioServerConfigInput = gen.StdioServerConfigInput
-type HttpServerConfigInput = gen.HttpServerConfigInput
-type McpServerAuthInput = gen.McpServerAuthInput
 type MemoryInput = gen.MemoryInput
 type MemoryProvenanceInput = gen.MemoryProvenanceInput
 type OAuthAppInput = gen.OAuthAppInput

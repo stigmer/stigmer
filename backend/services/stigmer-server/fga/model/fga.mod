@@ -22,7 +22,6 @@ contents:
   - agentic/agent_share.fga
   - agentic/channel_app.fga
   - agentic/evaluator.fga
-  - agentic/mcp_server.fga
   - agentic/memory.fga
   - agentic/plugin.fga
   - agentic/run.fga

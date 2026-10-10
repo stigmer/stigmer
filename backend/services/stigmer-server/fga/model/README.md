@@ -39,11 +39,11 @@ Individual grants (`resource#viewer@identity_account:<user>`) work at any visibi
 
 ### Roles on blueprints: viewer, editor, owner
 
-A blueprint (`agent`, `mcp_server`) is granted to a person or a team in one of three roles:
+A blueprint (`agent`) is granted to a person or a team in one of three roles:
 
 | Role | Can | Cannot |
 |---|---|---|
-| `viewer` | read it and use it: run an agent, use an MCP server, clone it | change it |
+| `viewer` | read it and use it: run an agent, clone it | change it |
 | `editor` | everything a viewer can, and change its definition (`can_edit`): update, tag a version, schedule an agent | delete it, or decide who else reaches it |
 | `owner` | everything (the creator, and the organization's admins by inheritance) | |
 
@@ -73,7 +73,7 @@ Templates discoverable by all org members, with optional child-organization visi
 define viewer: ([identity_account, organization#viewer, team#member] and affiliated from organization) or owner or editor or child_org_viewer
 ```
 
-Resources: `agent`, `skill`, `mcp_server`, `plugin`
+Resources: `agent`, `skill`, `plugin`
 
 ### Personal Resource (Sessions)
 
@@ -288,7 +288,6 @@ fga/
 │       ├── agent_share.fga         # An agent's shared pages (owner-scoped)
 │       ├── channel_app.fga         # Bring-your-own channel provider apps (restricted)
 │       ├── evaluator.fga           # An agent's AI grading settings (the agent's access)
-│       ├── mcp_server.fga          # MCP tool servers (open access)
 │       ├── memory.fga              # An identity's memories (subject-only)
 │       ├── plugin.fga              # Installed plugins, the unit of install
 │       ├── run.fga                 # Runs (inherits from session)

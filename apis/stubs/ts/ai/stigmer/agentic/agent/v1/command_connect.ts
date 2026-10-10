@@ -58,7 +58,7 @@ export const AgentCommandController = {
      * widen or narrow who can read the agent without sending the entire agent
      * resource (avoiding read-modify-write races).
      *
-     * Raising the level is refused while a skill, MCP server or agent the
+     * Raising the level is refused while a skill, plugin or agent the
      * agent references is less visible than the requested level: what a
      * person can run they must also be able to read.
      *

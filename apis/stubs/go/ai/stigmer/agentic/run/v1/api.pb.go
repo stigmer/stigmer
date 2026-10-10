@@ -655,14 +655,18 @@ func (x *RunValueSource) GetPlainValue() string {
 // RunValueDeclarer names who declared a value a turn uses.
 type RunValueDeclarer struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Agent, tool or repository.
+	// Agent, tool, plugin or repository.
 	Kind RunValueDeclarerKind `protobuf:"varint,1,opt,name=kind,proto3,enum=ai.stigmer.agentic.run.v1.RunValueDeclarerKind" json:"kind,omitempty"`
-	// The agent's or tool's name, or the repository entry's name.
+	// The agent's name; a tool's name as plugin:<plugin>:<server>; the
+	// plugin's name; or the repository entry's name.
 	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	// The tool's MCP server id; empty for an agent or a repository.
-	McpServerId string `protobuf:"bytes,3,opt,name=mcp_server_id,json=mcpServerId,proto3" json:"mcp_server_id,omitempty"`
-	// The repository's URL; empty for an agent or a tool.
+	// The repository's URL; empty for an agent, a tool or a plugin.
 	RepositoryUrl string `protobuf:"bytes,4,opt,name=repository_url,json=repositoryUrl,proto3" json:"repository_url,omitempty"`
+	// The plugin that declared it: a tool's plugin, or the plugin whose hooks
+	// read it; empty for an agent or a repository.
+	PluginId string `protobuf:"bytes,5,opt,name=plugin_id,json=pluginId,proto3" json:"plugin_id,omitempty"`
+	// The tool's server name in its plugin; empty for everything else.
+	Server        string `protobuf:"bytes,6,opt,name=server,proto3" json:"server,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -711,16 +715,23 @@ func (x *RunValueDeclarer) GetName() string {
 	return ""
 }
 
-func (x *RunValueDeclarer) GetMcpServerId() string {
+func (x *RunValueDeclarer) GetRepositoryUrl() string {
 	if x != nil {
-		return x.McpServerId
+		return x.RepositoryUrl
 	}
 	return ""
 }
 
-func (x *RunValueDeclarer) GetRepositoryUrl() string {
+func (x *RunValueDeclarer) GetPluginId() string {
 	if x != nil {
-		return x.RepositoryUrl
+		return x.PluginId
+	}
+	return ""
+}
+
+func (x *RunValueDeclarer) GetServer() string {
+	if x != nil {
+		return x.Server
 	}
 	return ""
 }
@@ -904,12 +915,13 @@ const file_ai_stigmer_agentic_run_v1_api_proto_rawDesc = "" +
 	"\x05entry\x18\x05 \x01(\tR\x05entry\x12\x14\n" +
 	"\x05login\x18\x06 \x01(\bR\x05login\x12\x1f\n" +
 	"\vplain_value\x18\b \x01(\tR\n" +
-	"plainValueJ\x04\b\a\x10\bR\asign_in\"\xb6\x01\n" +
+	"plainValueJ\x04\b\a\x10\bR\asign_in\"\xdc\x01\n" +
 	"\x10RunValueDeclarer\x12C\n" +
 	"\x04kind\x18\x01 \x01(\x0e2/.ai.stigmer.agentic.run.v1.RunValueDeclarerKindR\x04kind\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12\"\n" +
-	"\rmcp_server_id\x18\x03 \x01(\tR\vmcpServerId\x12%\n" +
-	"\x0erepository_url\x18\x04 \x01(\tR\rrepositoryUrl\"4\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12%\n" +
+	"\x0erepository_url\x18\x04 \x01(\tR\rrepositoryUrl\x12\x1b\n" +
+	"\tplugin_id\x18\x05 \x01(\tR\bpluginId\x12\x16\n" +
+	"\x06server\x18\x06 \x01(\tR\x06serverJ\x04\b\x03\x10\x04R\rmcp_server_id\"4\n" +
 	"\rSetupProgress\x12#\n" +
 	"\rcurrent_phase\x18\x01 \x01(\tR\fcurrentPhase\"\x9c\x01\n" +
 	"\x16RecalledMemoriesReport\x12)\n" +

@@ -16,7 +16,7 @@ import "ai/stigmer/search/v1/io.proto";
 //
 // @internal
 // This is a CQRS Query Service on the read-side. It queries multiple domain
-// aggregates (Agent, Skill, McpServer) and returns display-optimized
+// aggregates (Agent, Skill, Plugin) and returns display-optimized
 // projections. It does not modify state.
 //
 // Search is cross-aggregate query infrastructure, not a domain bounded context.

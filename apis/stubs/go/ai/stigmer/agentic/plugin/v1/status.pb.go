@@ -8,6 +8,7 @@ package pluginv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
+	v1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/vault/v1"
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -23,65 +24,9 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// PluginState is the lifecycle state of a plugin install.
-type PluginState int32
-
-const (
-	// Unspecified state (default/invalid).
-	PluginState_PLUGIN_STATE_UNSPECIFIED PluginState = 0
-	// The archive is stored and its members are being materialised.
-	PluginState_PLUGIN_STATE_INSTALLING PluginState = 1
-	// Every member of the last push is materialised.
-	PluginState_PLUGIN_STATE_READY PluginState = 2
-	// A member failed to materialise; `error` names it.
-	PluginState_PLUGIN_STATE_FAILED PluginState = 3
-)
-
-// Enum value maps for PluginState.
-var (
-	PluginState_name = map[int32]string{
-		0: "PLUGIN_STATE_UNSPECIFIED",
-		1: "PLUGIN_STATE_INSTALLING",
-		2: "PLUGIN_STATE_READY",
-		3: "PLUGIN_STATE_FAILED",
-	}
-	PluginState_value = map[string]int32{
-		"PLUGIN_STATE_UNSPECIFIED": 0,
-		"PLUGIN_STATE_INSTALLING":  1,
-		"PLUGIN_STATE_READY":       2,
-		"PLUGIN_STATE_FAILED":      3,
-	}
-)
-
-func (x PluginState) Enum() *PluginState {
-	p := new(PluginState)
-	*p = x
-	return p
-}
-
-func (x PluginState) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (PluginState) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_plugin_v1_status_proto_enumTypes[0].Descriptor()
-}
-
-func (PluginState) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_plugin_v1_status_proto_enumTypes[0]
-}
-
-func (x PluginState) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use PluginState.Descriptor instead.
-func (PluginState) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_plugin_v1_status_proto_rawDescGZIP(), []int{0}
-}
-
 // PluginStatus is the system-managed state of an installed plugin: the
-// archive identity and the receipt of the last push.
+// archive identity and what the archive holds, read when the plugin was
+// installed.
 type PluginStatus struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Standard audit information tracking creation and modification.
@@ -90,18 +35,23 @@ type PluginStatus struct {
 	Digest string `protobuf:"bytes,1,opt,name=digest,proto3" json:"digest,omitempty"`
 	// Storage key of the plugin archive.
 	ArtifactStorageKey string `protobuf:"bytes,2,opt,name=artifact_storage_key,json=artifactStorageKey,proto3" json:"artifact_storage_key,omitempty"`
-	// Current lifecycle state of the install.
-	State PluginState `protobuf:"varint,3,opt,name=state,proto3,enum=ai.stigmer.agentic.plugin.v1.PluginState" json:"state,omitempty"`
-	// One sentence naming what failed when state is FAILED; empty otherwise.
-	Error string `protobuf:"bytes,4,opt,name=error,proto3" json:"error,omitempty"`
-	// What the last push materialised, by kind.
-	Materialized *PluginMaterialization `protobuf:"bytes,5,opt,name=materialized,proto3" json:"materialized,omitempty"`
 	// Warnings the last push recorded: components Stigmer does not carry,
 	// model hints it did not apply, names that shadow built-ins.
 	Warnings []*PluginWarning `protobuf:"bytes,6,rep,name=warnings,proto3" json:"warnings,omitempty"`
 	// The plugin's tool-call hooks, as recorded at install; unset when the
 	// plugin carries none.
-	Hooks         *HookConfig `protobuf:"bytes,7,opt,name=hooks,proto3" json:"hooks,omitempty"`
+	Hooks *HookConfig `protobuf:"bytes,7,opt,name=hooks,proto3" json:"hooks,omitempty"`
+	// The plugin's skills. A turn names each as <plugin>:<skill>.
+	Skills []*PluginSkill `protobuf:"bytes,9,rep,name=skills,proto3" json:"skills,omitempty"`
+	// The plugin's agents, from its agents folder. A turn names each as
+	// <plugin>:<agent>.
+	Agents []*PluginAgent `protobuf:"bytes,10,rep,name=agents,proto3" json:"agents,omitempty"`
+	// The plugin's MCP servers.
+	McpServers []*McpServerEntry `protobuf:"bytes,11,rep,name=mcp_servers,json=mcpServers,proto3" json:"mcp_servers,omitempty"`
+	// The variables the plugin's servers and hooks read, by name: the
+	// plugin's own declarations, a required secret for each name it uses but
+	// does not declare, and the login key of a server that signs in.
+	Env           map[string]*v1.EnvVarDeclaration `protobuf:"bytes,12,rep,name=env,proto3" json:"env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -157,27 +107,6 @@ func (x *PluginStatus) GetArtifactStorageKey() string {
 	return ""
 }
 
-func (x *PluginStatus) GetState() PluginState {
-	if x != nil {
-		return x.State
-	}
-	return PluginState_PLUGIN_STATE_UNSPECIFIED
-}
-
-func (x *PluginStatus) GetError() string {
-	if x != nil {
-		return x.Error
-	}
-	return ""
-}
-
-func (x *PluginStatus) GetMaterialized() *PluginMaterialization {
-	if x != nil {
-		return x.Materialized
-	}
-	return nil
-}
-
 func (x *PluginStatus) GetWarnings() []*PluginWarning {
 	if x != nil {
 		return x.Warnings
@@ -192,34 +121,62 @@ func (x *PluginStatus) GetHooks() *HookConfig {
 	return nil
 }
 
-// PluginMaterialization counts what a push produced, by kind.
-type PluginMaterialization struct {
+func (x *PluginStatus) GetSkills() []*PluginSkill {
+	if x != nil {
+		return x.Skills
+	}
+	return nil
+}
+
+func (x *PluginStatus) GetAgents() []*PluginAgent {
+	if x != nil {
+		return x.Agents
+	}
+	return nil
+}
+
+func (x *PluginStatus) GetMcpServers() []*McpServerEntry {
+	if x != nil {
+		return x.McpServers
+	}
+	return nil
+}
+
+func (x *PluginStatus) GetEnv() map[string]*v1.EnvVarDeclaration {
+	if x != nil {
+		return x.Env
+	}
+	return nil
+}
+
+// PluginSkill is one skill a plugin carries.
+type PluginSkill struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Skills materialised.
-	Skills int32 `protobuf:"varint,1,opt,name=skills,proto3" json:"skills,omitempty"`
-	// MCP servers materialised.
-	McpServers int32 `protobuf:"varint,2,opt,name=mcp_servers,json=mcpServers,proto3" json:"mcp_servers,omitempty"`
-	// Agents materialised: one when the plugin carries a skill, a sub-agent or
-	// an agent overlay; zero for an MCP-only plugin.
-	Agents        int32 `protobuf:"varint,3,opt,name=agents,proto3" json:"agents,omitempty"`
+	// The skill's name, from its SKILL.md.
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// What the skill is for, from its SKILL.md.
+	Description string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	// The skill's folder inside the plugin archive; empty when the plugin is
+	// one skill with SKILL.md at its root.
+	Path          string `protobuf:"bytes,3,opt,name=path,proto3" json:"path,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *PluginMaterialization) Reset() {
-	*x = PluginMaterialization{}
+func (x *PluginSkill) Reset() {
+	*x = PluginSkill{}
 	mi := &file_ai_stigmer_agentic_plugin_v1_status_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *PluginMaterialization) String() string {
+func (x *PluginSkill) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*PluginMaterialization) ProtoMessage() {}
+func (*PluginSkill) ProtoMessage() {}
 
-func (x *PluginMaterialization) ProtoReflect() protoreflect.Message {
+func (x *PluginSkill) ProtoReflect() protoreflect.Message {
 	mi := &file_ai_stigmer_agentic_plugin_v1_status_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -231,39 +188,425 @@ func (x *PluginMaterialization) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use PluginMaterialization.ProtoReflect.Descriptor instead.
-func (*PluginMaterialization) Descriptor() ([]byte, []int) {
+// Deprecated: Use PluginSkill.ProtoReflect.Descriptor instead.
+func (*PluginSkill) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_plugin_v1_status_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *PluginMaterialization) GetSkills() int32 {
+func (x *PluginSkill) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *PluginSkill) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *PluginSkill) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+// PluginAgent is one agent a plugin carries, read from its agent file.
+type PluginAgent struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The agent's name.
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// What the agent specializes in.
+	Description string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	// The agent's system prompt: the body of its file.
+	Instructions string `protobuf:"bytes,3,opt,name=instructions,proto3" json:"instructions,omitempty"`
+	// The model this agent runs; empty means the model the turn runs.
+	Model string `protobuf:"bytes,4,opt,name=model,proto3" json:"model,omitempty"`
+	// Tools this agent may use, in Claude Code's names; empty means all of the
+	// turn's. Checked at install: a list that fails the agent's rules is
+	// dropped with a warning.
+	Tools []string `protobuf:"bytes,5,rep,name=tools,proto3" json:"tools,omitempty"`
+	// Tools this agent may never use, in the same names as tools.
+	DisallowedTools []string `protobuf:"bytes,6,rep,name=disallowed_tools,json=disallowedTools,proto3" json:"disallowed_tools,omitempty"`
+	// The plugin's own skills this agent uses, by name.
+	Skills        []string `protobuf:"bytes,7,rep,name=skills,proto3" json:"skills,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PluginAgent) Reset() {
+	*x = PluginAgent{}
+	mi := &file_ai_stigmer_agentic_plugin_v1_status_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PluginAgent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PluginAgent) ProtoMessage() {}
+
+func (x *PluginAgent) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_plugin_v1_status_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PluginAgent.ProtoReflect.Descriptor instead.
+func (*PluginAgent) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_plugin_v1_status_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *PluginAgent) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *PluginAgent) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *PluginAgent) GetInstructions() string {
+	if x != nil {
+		return x.Instructions
+	}
+	return ""
+}
+
+func (x *PluginAgent) GetModel() string {
+	if x != nil {
+		return x.Model
+	}
+	return ""
+}
+
+func (x *PluginAgent) GetTools() []string {
+	if x != nil {
+		return x.Tools
+	}
+	return nil
+}
+
+func (x *PluginAgent) GetDisallowedTools() []string {
+	if x != nil {
+		return x.DisallowedTools
+	}
+	return nil
+}
+
+func (x *PluginAgent) GetSkills() []string {
 	if x != nil {
 		return x.Skills
 	}
-	return 0
+	return nil
 }
 
-func (x *PluginMaterialization) GetMcpServers() int32 {
+// McpServerEntry is one MCP server a plugin carries: a local program or an
+// address.
+type McpServerEntry struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The server's key in the plugin's MCP configuration. A turn names its
+	// tools mcp__plugin_<plugin>_<server>__<tool>, as Claude Code does.
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// How the server is reached.
+	//
+	// Types that are valid to be assigned to Transport:
+	//
+	//	*McpServerEntry_Stdio
+	//	*McpServerEntry_Http
+	Transport isMcpServerEntry_Transport `protobuf_oneof:"transport"`
+	// The names of the variables this server reads, declared in
+	// PluginStatus.env.
+	Env []string `protobuf:"bytes,4,rep,name=env,proto3" json:"env,omitempty"`
+	// How a person signs in to this server; unset when it needs no sign-in or
+	// takes a key the plugin names.
+	SignIn        *McpServerSignIn `protobuf:"bytes,5,opt,name=sign_in,json=signIn,proto3" json:"sign_in,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *McpServerEntry) Reset() {
+	*x = McpServerEntry{}
+	mi := &file_ai_stigmer_agentic_plugin_v1_status_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *McpServerEntry) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*McpServerEntry) ProtoMessage() {}
+
+func (x *McpServerEntry) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_plugin_v1_status_proto_msgTypes[3]
 	if x != nil {
-		return x.McpServers
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use McpServerEntry.ProtoReflect.Descriptor instead.
+func (*McpServerEntry) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_plugin_v1_status_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *McpServerEntry) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *McpServerEntry) GetTransport() isMcpServerEntry_Transport {
+	if x != nil {
+		return x.Transport
+	}
+	return nil
+}
+
+func (x *McpServerEntry) GetStdio() *StdioMcpServer {
+	if x != nil {
+		if x, ok := x.Transport.(*McpServerEntry_Stdio); ok {
+			return x.Stdio
+		}
+	}
+	return nil
+}
+
+func (x *McpServerEntry) GetHttp() *HttpMcpServer {
+	if x != nil {
+		if x, ok := x.Transport.(*McpServerEntry_Http); ok {
+			return x.Http
+		}
+	}
+	return nil
+}
+
+func (x *McpServerEntry) GetEnv() []string {
+	if x != nil {
+		return x.Env
+	}
+	return nil
+}
+
+func (x *McpServerEntry) GetSignIn() *McpServerSignIn {
+	if x != nil {
+		return x.SignIn
+	}
+	return nil
+}
+
+type isMcpServerEntry_Transport interface {
+	isMcpServerEntry_Transport()
+}
+
+type McpServerEntry_Stdio struct {
+	// A local program the runner starts.
+	Stdio *StdioMcpServer `protobuf:"bytes,2,opt,name=stdio,proto3,oneof"`
+}
+
+type McpServerEntry_Http struct {
+	// A server at an address.
+	Http *HttpMcpServer `protobuf:"bytes,3,opt,name=http,proto3,oneof"`
+}
+
+func (*McpServerEntry_Stdio) isMcpServerEntry_Transport() {}
+
+func (*McpServerEntry_Http) isMcpServerEntry_Transport() {}
+
+// StdioMcpServer is a local program serving MCP over its standard input and
+// output.
+type StdioMcpServer struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The program to run.
+	Command string `protobuf:"bytes,1,opt,name=command,proto3" json:"command,omitempty"`
+	// Its arguments.
+	Args          []string `protobuf:"bytes,2,rep,name=args,proto3" json:"args,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StdioMcpServer) Reset() {
+	*x = StdioMcpServer{}
+	mi := &file_ai_stigmer_agentic_plugin_v1_status_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StdioMcpServer) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StdioMcpServer) ProtoMessage() {}
+
+func (x *StdioMcpServer) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_plugin_v1_status_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StdioMcpServer.ProtoReflect.Descriptor instead.
+func (*StdioMcpServer) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_plugin_v1_status_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *StdioMcpServer) GetCommand() string {
+	if x != nil {
+		return x.Command
+	}
+	return ""
+}
+
+func (x *StdioMcpServer) GetArgs() []string {
+	if x != nil {
+		return x.Args
+	}
+	return nil
+}
+
+// HttpMcpServer is an MCP server at an address.
+type HttpMcpServer struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The server's URL.
+	Url string `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
+	// Headers sent with every request; a value may name a variable as
+	// ${NAME}.
+	Headers map[string]string `protobuf:"bytes,2,rep,name=headers,proto3" json:"headers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// Seconds to wait for one request; zero means the runner's default.
+	TimeoutSeconds int32 `protobuf:"varint,3,opt,name=timeout_seconds,json=timeoutSeconds,proto3" json:"timeout_seconds,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *HttpMcpServer) Reset() {
+	*x = HttpMcpServer{}
+	mi := &file_ai_stigmer_agentic_plugin_v1_status_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HttpMcpServer) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HttpMcpServer) ProtoMessage() {}
+
+func (x *HttpMcpServer) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_plugin_v1_status_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HttpMcpServer.ProtoReflect.Descriptor instead.
+func (*HttpMcpServer) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_plugin_v1_status_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *HttpMcpServer) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+func (x *HttpMcpServer) GetHeaders() map[string]string {
+	if x != nil {
+		return x.Headers
+	}
+	return nil
+}
+
+func (x *HttpMcpServer) GetTimeoutSeconds() int32 {
+	if x != nil {
+		return x.TimeoutSeconds
 	}
 	return 0
 }
 
-func (x *PluginMaterialization) GetAgents() int32 {
+// McpServerSignIn says how a person signs in to a server.
+type McpServerSignIn struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Whether the server accepts only a sign-in, and no pasted key.
+	OauthOnly     bool `protobuf:"varint,1,opt,name=oauth_only,json=oauthOnly,proto3" json:"oauth_only,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *McpServerSignIn) Reset() {
+	*x = McpServerSignIn{}
+	mi := &file_ai_stigmer_agentic_plugin_v1_status_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *McpServerSignIn) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*McpServerSignIn) ProtoMessage() {}
+
+func (x *McpServerSignIn) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_plugin_v1_status_proto_msgTypes[6]
 	if x != nil {
-		return x.Agents
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
 	}
-	return 0
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use McpServerSignIn.ProtoReflect.Descriptor instead.
+func (*McpServerSignIn) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_plugin_v1_status_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *McpServerSignIn) GetOauthOnly() bool {
+	if x != nil {
+		return x.OauthOnly
+	}
+	return false
 }
 
 // PluginWarning is one thing a push noticed but did not refuse.
 type PluginWarning struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Stable warning kind, e.g. "component-ignored", "member-adopted",
-	// "model-hint-unresolved", "settings-agent-not-applied",
-	// "sub-agent-name-builtin", "sub-agent-not-installed",
-	// "tool-list-entry-dropped", "version-not-taggable".
+	// Stable warning kind, e.g. "component-ignored", "model-hint-unresolved",
+	// "sub-agent-name-builtin", "tool-list-entry-dropped",
+	// "version-not-taggable".
 	Kind string `protobuf:"bytes,1,opt,name=kind,proto3" json:"kind,omitempty"`
 	// The warning as one user-facing sentence.
 	Message string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
@@ -275,7 +618,7 @@ type PluginWarning struct {
 
 func (x *PluginWarning) Reset() {
 	*x = PluginWarning{}
-	mi := &file_ai_stigmer_agentic_plugin_v1_status_proto_msgTypes[2]
+	mi := &file_ai_stigmer_agentic_plugin_v1_status_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -287,7 +630,7 @@ func (x *PluginWarning) String() string {
 func (*PluginWarning) ProtoMessage() {}
 
 func (x *PluginWarning) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_plugin_v1_status_proto_msgTypes[2]
+	mi := &file_ai_stigmer_agentic_plugin_v1_status_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -300,7 +643,7 @@ func (x *PluginWarning) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PluginWarning.ProtoReflect.Descriptor instead.
 func (*PluginWarning) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_plugin_v1_status_proto_rawDescGZIP(), []int{2}
+	return file_ai_stigmer_agentic_plugin_v1_status_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *PluginWarning) GetKind() string {
@@ -328,30 +671,58 @@ var File_ai_stigmer_agentic_plugin_v1_status_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_plugin_v1_status_proto_rawDesc = "" +
 	"\n" +
-	")ai/stigmer/agentic/plugin/v1/status.proto\x12\x1cai.stigmer.agentic.plugin.v1\x1a(ai/stigmer/agentic/plugin/v1/hooks.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\"\xf3\x03\n" +
+	")ai/stigmer/agentic/plugin/v1/status.proto\x12\x1cai.stigmer.agentic.plugin.v1\x1a(ai/stigmer/agentic/plugin/v1/hooks.proto\x1a-ai/stigmer/agentic/vault/v1/declaration.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\"\xf5\x05\n" +
 	"\fPluginStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x120\n" +
 	"\x06digest\x18\x01 \x01(\tB\x18\xbaH\x15r\x132\x11^$|^[a-f0-9]{64}$R\x06digest\x120\n" +
-	"\x14artifact_storage_key\x18\x02 \x01(\tR\x12artifactStorageKey\x12?\n" +
-	"\x05state\x18\x03 \x01(\x0e2).ai.stigmer.agentic.plugin.v1.PluginStateR\x05state\x12\x14\n" +
-	"\x05error\x18\x04 \x01(\tR\x05error\x12W\n" +
-	"\fmaterialized\x18\x05 \x01(\v23.ai.stigmer.agentic.plugin.v1.PluginMaterializationR\fmaterialized\x12G\n" +
+	"\x14artifact_storage_key\x18\x02 \x01(\tR\x12artifactStorageKey\x12G\n" +
 	"\bwarnings\x18\x06 \x03(\v2+.ai.stigmer.agentic.plugin.v1.PluginWarningR\bwarnings\x12>\n" +
-	"\x05hooks\x18\a \x01(\v2(.ai.stigmer.agentic.plugin.v1.HookConfigR\x05hooks\"y\n" +
-	"\x15PluginMaterialization\x12\x16\n" +
-	"\x06skills\x18\x01 \x01(\x05R\x06skills\x12\x1f\n" +
-	"\vmcp_servers\x18\x02 \x01(\x05R\n" +
-	"mcpServers\x12\x16\n" +
-	"\x06agents\x18\x03 \x01(\x05R\x06agentsJ\x04\b\x04\x10\x05R\tworkflows\"Q\n" +
+	"\x05hooks\x18\a \x01(\v2(.ai.stigmer.agentic.plugin.v1.HookConfigR\x05hooks\x12A\n" +
+	"\x06skills\x18\t \x03(\v2).ai.stigmer.agentic.plugin.v1.PluginSkillR\x06skills\x12A\n" +
+	"\x06agents\x18\n" +
+	" \x03(\v2).ai.stigmer.agentic.plugin.v1.PluginAgentR\x06agents\x12M\n" +
+	"\vmcp_servers\x18\v \x03(\v2,.ai.stigmer.agentic.plugin.v1.McpServerEntryR\n" +
+	"mcpServers\x12E\n" +
+	"\x03env\x18\f \x03(\v23.ai.stigmer.agentic.plugin.v1.PluginStatus.EnvEntryR\x03env\x1af\n" +
+	"\bEnvEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12D\n" +
+	"\x05value\x18\x02 \x01(\v2..ai.stigmer.agentic.vault.v1.EnvVarDeclarationR\x05value:\x028\x01J\x04\b\x03\x10\x04J\x04\b\x04\x10\x05J\x04\b\x05\x10\x06R\x05stateR\x05errorR\fmaterialized\"W\n" +
+	"\vPluginSkill\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x12\n" +
+	"\x04path\x18\x03 \x01(\tR\x04path\"\xd6\x01\n" +
+	"\vPluginAgent\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\"\n" +
+	"\finstructions\x18\x03 \x01(\tR\finstructions\x12\x14\n" +
+	"\x05model\x18\x04 \x01(\tR\x05model\x12\x14\n" +
+	"\x05tools\x18\x05 \x03(\tR\x05tools\x12)\n" +
+	"\x10disallowed_tools\x18\x06 \x03(\tR\x0fdisallowedTools\x12\x16\n" +
+	"\x06skills\x18\a \x03(\tR\x06skills\"\x94\x02\n" +
+	"\x0eMcpServerEntry\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12D\n" +
+	"\x05stdio\x18\x02 \x01(\v2,.ai.stigmer.agentic.plugin.v1.StdioMcpServerH\x00R\x05stdio\x12A\n" +
+	"\x04http\x18\x03 \x01(\v2+.ai.stigmer.agentic.plugin.v1.HttpMcpServerH\x00R\x04http\x12\x10\n" +
+	"\x03env\x18\x04 \x03(\tR\x03env\x12F\n" +
+	"\asign_in\x18\x05 \x01(\v2-.ai.stigmer.agentic.plugin.v1.McpServerSignInR\x06signInB\v\n" +
+	"\ttransport\">\n" +
+	"\x0eStdioMcpServer\x12\x18\n" +
+	"\acommand\x18\x01 \x01(\tR\acommand\x12\x12\n" +
+	"\x04args\x18\x02 \x03(\tR\x04args\"\xda\x01\n" +
+	"\rHttpMcpServer\x12\x10\n" +
+	"\x03url\x18\x01 \x01(\tR\x03url\x12R\n" +
+	"\aheaders\x18\x02 \x03(\v28.ai.stigmer.agentic.plugin.v1.HttpMcpServer.HeadersEntryR\aheaders\x12'\n" +
+	"\x0ftimeout_seconds\x18\x03 \x01(\x05R\x0etimeoutSeconds\x1a:\n" +
+	"\fHeadersEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"0\n" +
+	"\x0fMcpServerSignIn\x12\x1d\n" +
+	"\n" +
+	"oauth_only\x18\x01 \x01(\bR\toauthOnly\"Q\n" +
 	"\rPluginWarning\x12\x12\n" +
 	"\x04kind\x18\x01 \x01(\tR\x04kind\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12\x12\n" +
-	"\x04path\x18\x03 \x01(\tR\x04path*y\n" +
-	"\vPluginState\x12\x1c\n" +
-	"\x18PLUGIN_STATE_UNSPECIFIED\x10\x00\x12\x1b\n" +
-	"\x17PLUGIN_STATE_INSTALLING\x10\x01\x12\x16\n" +
-	"\x12PLUGIN_STATE_READY\x10\x02\x12\x17\n" +
-	"\x13PLUGIN_STATE_FAILED\x10\x03B\x94\x02\n" +
+	"\x04path\x18\x03 \x01(\tR\x04pathB\x94\x02\n" +
 	" com.ai.stigmer.agentic.plugin.v1B\vStatusProtoP\x01ZNgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/plugin/v1;pluginv1\xa2\x02\x04ASAP\xaa\x02\x1cAi.Stigmer.Agentic.Plugin.V1\xca\x02\x1cAi\\Stigmer\\Agentic\\Plugin\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Plugin\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Plugin::V1b\x06proto3"
 
 var (
@@ -366,27 +737,40 @@ func file_ai_stigmer_agentic_plugin_v1_status_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_plugin_v1_status_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_plugin_v1_status_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_ai_stigmer_agentic_plugin_v1_status_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_ai_stigmer_agentic_plugin_v1_status_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_ai_stigmer_agentic_plugin_v1_status_proto_goTypes = []any{
-	(PluginState)(0),                     // 0: ai.stigmer.agentic.plugin.v1.PluginState
-	(*PluginStatus)(nil),                 // 1: ai.stigmer.agentic.plugin.v1.PluginStatus
-	(*PluginMaterialization)(nil),        // 2: ai.stigmer.agentic.plugin.v1.PluginMaterialization
-	(*PluginWarning)(nil),                // 3: ai.stigmer.agentic.plugin.v1.PluginWarning
-	(*apiresource.ApiResourceAudit)(nil), // 4: ai.stigmer.commons.apiresource.ApiResourceAudit
-	(*HookConfig)(nil),                   // 5: ai.stigmer.agentic.plugin.v1.HookConfig
+	(*PluginStatus)(nil),                 // 0: ai.stigmer.agentic.plugin.v1.PluginStatus
+	(*PluginSkill)(nil),                  // 1: ai.stigmer.agentic.plugin.v1.PluginSkill
+	(*PluginAgent)(nil),                  // 2: ai.stigmer.agentic.plugin.v1.PluginAgent
+	(*McpServerEntry)(nil),               // 3: ai.stigmer.agentic.plugin.v1.McpServerEntry
+	(*StdioMcpServer)(nil),               // 4: ai.stigmer.agentic.plugin.v1.StdioMcpServer
+	(*HttpMcpServer)(nil),                // 5: ai.stigmer.agentic.plugin.v1.HttpMcpServer
+	(*McpServerSignIn)(nil),              // 6: ai.stigmer.agentic.plugin.v1.McpServerSignIn
+	(*PluginWarning)(nil),                // 7: ai.stigmer.agentic.plugin.v1.PluginWarning
+	nil,                                  // 8: ai.stigmer.agentic.plugin.v1.PluginStatus.EnvEntry
+	nil,                                  // 9: ai.stigmer.agentic.plugin.v1.HttpMcpServer.HeadersEntry
+	(*apiresource.ApiResourceAudit)(nil), // 10: ai.stigmer.commons.apiresource.ApiResourceAudit
+	(*HookConfig)(nil),                   // 11: ai.stigmer.agentic.plugin.v1.HookConfig
+	(*v1.EnvVarDeclaration)(nil),         // 12: ai.stigmer.agentic.vault.v1.EnvVarDeclaration
 }
 var file_ai_stigmer_agentic_plugin_v1_status_proto_depIdxs = []int32{
-	4, // 0: ai.stigmer.agentic.plugin.v1.PluginStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
-	0, // 1: ai.stigmer.agentic.plugin.v1.PluginStatus.state:type_name -> ai.stigmer.agentic.plugin.v1.PluginState
-	2, // 2: ai.stigmer.agentic.plugin.v1.PluginStatus.materialized:type_name -> ai.stigmer.agentic.plugin.v1.PluginMaterialization
-	3, // 3: ai.stigmer.agentic.plugin.v1.PluginStatus.warnings:type_name -> ai.stigmer.agentic.plugin.v1.PluginWarning
-	5, // 4: ai.stigmer.agentic.plugin.v1.PluginStatus.hooks:type_name -> ai.stigmer.agentic.plugin.v1.HookConfig
-	5, // [5:5] is the sub-list for method output_type
-	5, // [5:5] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	10, // 0: ai.stigmer.agentic.plugin.v1.PluginStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
+	7,  // 1: ai.stigmer.agentic.plugin.v1.PluginStatus.warnings:type_name -> ai.stigmer.agentic.plugin.v1.PluginWarning
+	11, // 2: ai.stigmer.agentic.plugin.v1.PluginStatus.hooks:type_name -> ai.stigmer.agentic.plugin.v1.HookConfig
+	1,  // 3: ai.stigmer.agentic.plugin.v1.PluginStatus.skills:type_name -> ai.stigmer.agentic.plugin.v1.PluginSkill
+	2,  // 4: ai.stigmer.agentic.plugin.v1.PluginStatus.agents:type_name -> ai.stigmer.agentic.plugin.v1.PluginAgent
+	3,  // 5: ai.stigmer.agentic.plugin.v1.PluginStatus.mcp_servers:type_name -> ai.stigmer.agentic.plugin.v1.McpServerEntry
+	8,  // 6: ai.stigmer.agentic.plugin.v1.PluginStatus.env:type_name -> ai.stigmer.agentic.plugin.v1.PluginStatus.EnvEntry
+	4,  // 7: ai.stigmer.agentic.plugin.v1.McpServerEntry.stdio:type_name -> ai.stigmer.agentic.plugin.v1.StdioMcpServer
+	5,  // 8: ai.stigmer.agentic.plugin.v1.McpServerEntry.http:type_name -> ai.stigmer.agentic.plugin.v1.HttpMcpServer
+	6,  // 9: ai.stigmer.agentic.plugin.v1.McpServerEntry.sign_in:type_name -> ai.stigmer.agentic.plugin.v1.McpServerSignIn
+	9,  // 10: ai.stigmer.agentic.plugin.v1.HttpMcpServer.headers:type_name -> ai.stigmer.agentic.plugin.v1.HttpMcpServer.HeadersEntry
+	12, // 11: ai.stigmer.agentic.plugin.v1.PluginStatus.EnvEntry.value:type_name -> ai.stigmer.agentic.vault.v1.EnvVarDeclaration
+	12, // [12:12] is the sub-list for method output_type
+	12, // [12:12] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_plugin_v1_status_proto_init() }
@@ -395,19 +779,22 @@ func file_ai_stigmer_agentic_plugin_v1_status_proto_init() {
 		return
 	}
 	file_ai_stigmer_agentic_plugin_v1_hooks_proto_init()
+	file_ai_stigmer_agentic_plugin_v1_status_proto_msgTypes[3].OneofWrappers = []any{
+		(*McpServerEntry_Stdio)(nil),
+		(*McpServerEntry_Http)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_plugin_v1_status_proto_rawDesc), len(file_ai_stigmer_agentic_plugin_v1_status_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   3,
+			NumEnums:      0,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_ai_stigmer_agentic_plugin_v1_status_proto_goTypes,
 		DependencyIndexes: file_ai_stigmer_agentic_plugin_v1_status_proto_depIdxs,
-		EnumInfos:         file_ai_stigmer_agentic_plugin_v1_status_proto_enumTypes,
 		MessageInfos:      file_ai_stigmer_agentic_plugin_v1_status_proto_msgTypes,
 	}.Build()
 	File_ai_stigmer_agentic_plugin_v1_status_proto = out.File

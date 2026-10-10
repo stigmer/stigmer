@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { PluginSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_plugin_v1_api } from "./api_pb.js";
-import type { CreatePluginArtifactUploadUrlRequestSchema, PluginArtifactUploadUrlSchema, PluginIdSchema, PushPluginRequestSchema } from "./io_pb.js";
+import type { CreatePluginArtifactUploadUrlRequestSchema, ListPluginToolsInputSchema, ListPluginToolsOutputSchema, PluginArtifactUploadUrlSchema, PluginIdSchema, PushPluginRequestSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_plugin_v1_io } from "./io_pb.js";
 import type { UpdateVisibilityInputSchema } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
@@ -17,7 +17,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/plugin/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_plugin_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvcGx1Z2luL3YxL2NvbW1hbmQucHJvdG8SHGFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEy2gUKF1BsdWdpbkNvbW1hbmRDb250cm9sbGVyEqEBCgRwdXNoEi8uYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5QdXNoUGx1Z2luUmVxdWVzdBokLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuUGx1Z2luIkLCuBg+CCgQHiIDb3JnKjN1bmF1dGhvcml6ZWQgdG8gaW5zdGFsbCBwbHVnaW4gaW4gdGhpcyBvcmdhbml6YXRpb24S2AEKF2NyZWF0ZUFydGlmYWN0VXBsb2FkVXJsEkIuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5DcmVhdGVQbHVnaW5BcnRpZmFjdFVwbG9hZFVybFJlcXVlc3QaNS5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLlBsdWdpbkFydGlmYWN0VXBsb2FkVXJsIkLCuBg+CCgQHiIDb3JnKjN1bmF1dGhvcml6ZWQgdG8gaW5zdGFsbCBwbHVnaW4gaW4gdGhpcyBvcmdhbml6YXRpb24SsAEKEHVwZGF0ZVZpc2liaWxpdHkSNS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuVXBkYXRlVmlzaWJpbGl0eUlucHV0GiQuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5QbHVnaW4iP8K4GDsIMBA6IgtyZXNvdXJjZV9pZCoodW5hdXRob3JpemVkIHRvIHVwZGF0ZSBwbHVnaW4gdmlzaWJpbGl0eRKGAQoGZGVsZXRlEiYuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5QbHVnaW5JZBokLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuUGx1Z2luIi7CuBgqCAMQOiIFdmFsdWUqHXVuYXV0aG9yaXplZCB0byBkZWxldGUgcGx1Z2luGgSg/ys6YgZwcm90bzM", [file_ai_stigmer_agentic_plugin_v1_api, file_ai_stigmer_agentic_plugin_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvcGx1Z2luL3YxL2NvbW1hbmQucHJvdG8SHGFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEyiQcKF1BsdWdpbkNvbW1hbmRDb250cm9sbGVyEqEBCgRwdXNoEi8uYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5QdXNoUGx1Z2luUmVxdWVzdBokLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuUGx1Z2luIkLCuBg+CCgQHiIDb3JnKjN1bmF1dGhvcml6ZWQgdG8gaW5zdGFsbCBwbHVnaW4gaW4gdGhpcyBvcmdhbml6YXRpb24S2AEKF2NyZWF0ZUFydGlmYWN0VXBsb2FkVXJsEkIuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5DcmVhdGVQbHVnaW5BcnRpZmFjdFVwbG9hZFVybFJlcXVlc3QaNS5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLlBsdWdpbkFydGlmYWN0VXBsb2FkVXJsIkLCuBg+CCgQHiIDb3JnKjN1bmF1dGhvcml6ZWQgdG8gaW5zdGFsbCBwbHVnaW4gaW4gdGhpcyBvcmdhbml6YXRpb24SsAEKEHVwZGF0ZVZpc2liaWxpdHkSNS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuVXBkYXRlVmlzaWJpbGl0eUlucHV0GiQuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5QbHVnaW4iP8K4GDsIMBA6IgtyZXNvdXJjZV9pZCoodW5hdXRob3JpemVkIHRvIHVwZGF0ZSBwbHVnaW4gdmlzaWJpbGl0eRKGAQoGZGVsZXRlEiYuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5QbHVnaW5JZBokLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuUGx1Z2luIi7CuBgqCAMQOiIFdmFsdWUqHXVuYXV0aG9yaXplZCB0byBkZWxldGUgcGx1Z2luEqwBCglsaXN0VG9vbHMSMi5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLkxpc3RQbHVnaW5Ub29sc0lucHV0GjMuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5MaXN0UGx1Z2luVG9vbHNPdXRwdXQiNsK4GDIIARA6IglwbHVnaW5faWQqIXVuYXV0aG9yaXplZCB0byBsaXN0IHBsdWdpbiB0b29scxoEoP8rOmIGcHJvdG8z", [file_ai_stigmer_agentic_plugin_v1_api, file_ai_stigmer_agentic_plugin_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * PluginCommandController handles write operations for plugins.
@@ -30,7 +30,7 @@ export const PluginCommandController: GenService<{
    * Creates the plugin if it does not exist, or installs a new version of an
    * existing plugin; pushing the archive already installed changes nothing.
    * The archive is a plugin folder in the Agent Plugins, Cursor, Claude Code
-   * or Codex layout; the response's status names what was materialised and
+   * or Codex layout; the response's status lists what the plugin holds and
    * what was skipped.
    *
    * @generated from rpc ai.stigmer.agentic.plugin.v1.PluginCommandController.push
@@ -56,8 +56,8 @@ export const PluginCommandController: GenService<{
     output: typeof PluginArtifactUploadUrlSchema;
   },
   /**
-   * Update the visibility of a plugin and of every resource it materialised.
-   * Only modifies metadata.visibility on the plugin and its members.
+   * Update the visibility of a plugin.
+   * Only modifies metadata.visibility.
    *
    * @generated from rpc ai.stigmer.agentic.plugin.v1.PluginCommandController.updateVisibility
    */
@@ -67,9 +67,9 @@ export const PluginCommandController: GenService<{
     output: typeof PluginSchema;
   },
   /**
-   * Delete a plugin and every resource it materialised.
-   * Refused when a resource outside the plugin still references a member;
-   * the error names the referencing resources.
+   * Delete a plugin.
+   * Refused while an agent of the organization lists it; the error names the
+   * agents.
    *
    * @generated from rpc ai.stigmer.agentic.plugin.v1.PluginCommandController.delete
    */
@@ -77,6 +77,22 @@ export const PluginCommandController: GenService<{
     methodKind: "unary";
     input: typeof PluginIdSchema;
     output: typeof PluginSchema;
+  },
+  /**
+   * List the tools one of a plugin's MCP servers offers now, signed in as
+   * the caller. Nothing is stored.
+   *
+   * Errors:
+   * - FAILED_PRECONDITION: a key the server needs is in none of the caller's
+   *   vaults, or the server needs a sign-in the caller has not made
+   * - NOT_FOUND: the plugin, or the server in it, does not exist
+   *
+   * @generated from rpc ai.stigmer.agentic.plugin.v1.PluginCommandController.listTools
+   */
+  listTools: {
+    methodKind: "unary";
+    input: typeof ListPluginToolsInputSchema;
+    output: typeof ListPluginToolsOutputSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_agentic_plugin_v1_command, 0);

@@ -23,11 +23,12 @@ _sym_db = _symbol_database.Default()
 
 
 from ai.stigmer.agentic.plugin.v1 import hooks_pb2 as ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_hooks__pb2
+from ai.stigmer.agentic.vault.v1 import declaration_pb2 as ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_declaration__pb2
 from ai.stigmer.commons.apiresource import status_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_status__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n)ai/stigmer/agentic/plugin/v1/status.proto\x12\x1c\x61i.stigmer.agentic.plugin.v1\x1a(ai/stigmer/agentic/plugin/v1/hooks.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1b\x62uf/validate/validate.proto\"\xf3\x03\n\x0cPluginStatus\x12\x46\n\x05\x61udit\x18\x63 \x01(\x0b\x32\x30.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05\x61udit\x12\x30\n\x06\x64igest\x18\x01 \x01(\tB\x18\xbaH\x15r\x13\x32\x11^$|^[a-f0-9]{64}$R\x06\x64igest\x12\x30\n\x14\x61rtifact_storage_key\x18\x02 \x01(\tR\x12\x61rtifactStorageKey\x12?\n\x05state\x18\x03 \x01(\x0e\x32).ai.stigmer.agentic.plugin.v1.PluginStateR\x05state\x12\x14\n\x05\x65rror\x18\x04 \x01(\tR\x05\x65rror\x12W\n\x0cmaterialized\x18\x05 \x01(\x0b\x32\x33.ai.stigmer.agentic.plugin.v1.PluginMaterializationR\x0cmaterialized\x12G\n\x08warnings\x18\x06 \x03(\x0b\x32+.ai.stigmer.agentic.plugin.v1.PluginWarningR\x08warnings\x12>\n\x05hooks\x18\x07 \x01(\x0b\x32(.ai.stigmer.agentic.plugin.v1.HookConfigR\x05hooks\"y\n\x15PluginMaterialization\x12\x16\n\x06skills\x18\x01 \x01(\x05R\x06skills\x12\x1f\n\x0bmcp_servers\x18\x02 \x01(\x05R\nmcpServers\x12\x16\n\x06\x61gents\x18\x03 \x01(\x05R\x06\x61gentsJ\x04\x08\x04\x10\x05R\tworkflows\"Q\n\rPluginWarning\x12\x12\n\x04kind\x18\x01 \x01(\tR\x04kind\x12\x18\n\x07message\x18\x02 \x01(\tR\x07message\x12\x12\n\x04path\x18\x03 \x01(\tR\x04path*y\n\x0bPluginState\x12\x1c\n\x18PLUGIN_STATE_UNSPECIFIED\x10\x00\x12\x1b\n\x17PLUGIN_STATE_INSTALLING\x10\x01\x12\x16\n\x12PLUGIN_STATE_READY\x10\x02\x12\x17\n\x13PLUGIN_STATE_FAILED\x10\x03\x42\xc4\x01\n com.ai.stigmer.agentic.plugin.v1B\x0bStatusProtoP\x01\xa2\x02\x04\x41SAP\xaa\x02\x1c\x41i.Stigmer.Agentic.Plugin.V1\xca\x02\x1c\x41i\\Stigmer\\Agentic\\Plugin\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Plugin\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Plugin::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n)ai/stigmer/agentic/plugin/v1/status.proto\x12\x1c\x61i.stigmer.agentic.plugin.v1\x1a(ai/stigmer/agentic/plugin/v1/hooks.proto\x1a-ai/stigmer/agentic/vault/v1/declaration.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1b\x62uf/validate/validate.proto\"\xf5\x05\n\x0cPluginStatus\x12\x46\n\x05\x61udit\x18\x63 \x01(\x0b\x32\x30.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05\x61udit\x12\x30\n\x06\x64igest\x18\x01 \x01(\tB\x18\xbaH\x15r\x13\x32\x11^$|^[a-f0-9]{64}$R\x06\x64igest\x12\x30\n\x14\x61rtifact_storage_key\x18\x02 \x01(\tR\x12\x61rtifactStorageKey\x12G\n\x08warnings\x18\x06 \x03(\x0b\x32+.ai.stigmer.agentic.plugin.v1.PluginWarningR\x08warnings\x12>\n\x05hooks\x18\x07 \x01(\x0b\x32(.ai.stigmer.agentic.plugin.v1.HookConfigR\x05hooks\x12\x41\n\x06skills\x18\t \x03(\x0b\x32).ai.stigmer.agentic.plugin.v1.PluginSkillR\x06skills\x12\x41\n\x06\x61gents\x18\n \x03(\x0b\x32).ai.stigmer.agentic.plugin.v1.PluginAgentR\x06\x61gents\x12M\n\x0bmcp_servers\x18\x0b \x03(\x0b\x32,.ai.stigmer.agentic.plugin.v1.McpServerEntryR\nmcpServers\x12\x45\n\x03\x65nv\x18\x0c \x03(\x0b\x32\x33.ai.stigmer.agentic.plugin.v1.PluginStatus.EnvEntryR\x03\x65nv\x1a\x66\n\x08\x45nvEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x44\n\x05value\x18\x02 \x01(\x0b\x32..ai.stigmer.agentic.vault.v1.EnvVarDeclarationR\x05value:\x02\x38\x01J\x04\x08\x03\x10\x04J\x04\x08\x04\x10\x05J\x04\x08\x05\x10\x06R\x05stateR\x05\x65rrorR\x0cmaterialized\"W\n\x0bPluginSkill\x12\x12\n\x04name\x18\x01 \x01(\tR\x04name\x12 \n\x0b\x64\x65scription\x18\x02 \x01(\tR\x0b\x64\x65scription\x12\x12\n\x04path\x18\x03 \x01(\tR\x04path\"\xd6\x01\n\x0bPluginAgent\x12\x12\n\x04name\x18\x01 \x01(\tR\x04name\x12 \n\x0b\x64\x65scription\x18\x02 \x01(\tR\x0b\x64\x65scription\x12\"\n\x0cinstructions\x18\x03 \x01(\tR\x0cinstructions\x12\x14\n\x05model\x18\x04 \x01(\tR\x05model\x12\x14\n\x05tools\x18\x05 \x03(\tR\x05tools\x12)\n\x10\x64isallowed_tools\x18\x06 \x03(\tR\x0f\x64isallowedTools\x12\x16\n\x06skills\x18\x07 \x03(\tR\x06skills\"\x94\x02\n\x0eMcpServerEntry\x12\x12\n\x04name\x18\x01 \x01(\tR\x04name\x12\x44\n\x05stdio\x18\x02 \x01(\x0b\x32,.ai.stigmer.agentic.plugin.v1.StdioMcpServerH\x00R\x05stdio\x12\x41\n\x04http\x18\x03 \x01(\x0b\x32+.ai.stigmer.agentic.plugin.v1.HttpMcpServerH\x00R\x04http\x12\x10\n\x03\x65nv\x18\x04 \x03(\tR\x03\x65nv\x12\x46\n\x07sign_in\x18\x05 \x01(\x0b\x32-.ai.stigmer.agentic.plugin.v1.McpServerSignInR\x06signInB\x0b\n\ttransport\">\n\x0eStdioMcpServer\x12\x18\n\x07\x63ommand\x18\x01 \x01(\tR\x07\x63ommand\x12\x12\n\x04\x61rgs\x18\x02 \x03(\tR\x04\x61rgs\"\xda\x01\n\rHttpMcpServer\x12\x10\n\x03url\x18\x01 \x01(\tR\x03url\x12R\n\x07headers\x18\x02 \x03(\x0b\x32\x38.ai.stigmer.agentic.plugin.v1.HttpMcpServer.HeadersEntryR\x07headers\x12\'\n\x0ftimeout_seconds\x18\x03 \x01(\x05R\x0etimeoutSeconds\x1a:\n\x0cHeadersEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\"0\n\x0fMcpServerSignIn\x12\x1d\n\noauth_only\x18\x01 \x01(\x08R\toauthOnly\"Q\n\rPluginWarning\x12\x12\n\x04kind\x18\x01 \x01(\tR\x04kind\x12\x18\n\x07message\x18\x02 \x01(\tR\x07message\x12\x12\n\x04path\x18\x03 \x01(\tR\x04pathB\xc4\x01\n com.ai.stigmer.agentic.plugin.v1B\x0bStatusProtoP\x01\xa2\x02\x04\x41SAP\xaa\x02\x1c\x41i.Stigmer.Agentic.Plugin.V1\xca\x02\x1c\x41i\\Stigmer\\Agentic\\Plugin\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Plugin\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Plugin::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -35,14 +36,30 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'ai.stigmer.agentic.plugin.v
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n com.ai.stigmer.agentic.plugin.v1B\013StatusProtoP\001\242\002\004ASAP\252\002\034Ai.Stigmer.Agentic.Plugin.V1\312\002\034Ai\\Stigmer\\Agentic\\Plugin\\V1\342\002(Ai\\Stigmer\\Agentic\\Plugin\\V1\\GPBMetadata\352\002 Ai::Stigmer::Agentic::Plugin::V1'
+  _globals['_PLUGINSTATUS_ENVENTRY']._loaded_options = None
+  _globals['_PLUGINSTATUS_ENVENTRY']._serialized_options = b'8\001'
   _globals['_PLUGINSTATUS'].fields_by_name['digest']._loaded_options = None
   _globals['_PLUGINSTATUS'].fields_by_name['digest']._serialized_options = b'\272H\025r\0232\021^$|^[a-f0-9]{64}$'
-  _globals['_PLUGINSTATE']._serialized_start=899
-  _globals['_PLUGINSTATE']._serialized_end=1020
-  _globals['_PLUGINSTATUS']._serialized_start=192
-  _globals['_PLUGINSTATUS']._serialized_end=691
-  _globals['_PLUGINMATERIALIZATION']._serialized_start=693
-  _globals['_PLUGINMATERIALIZATION']._serialized_end=814
-  _globals['_PLUGINWARNING']._serialized_start=816
-  _globals['_PLUGINWARNING']._serialized_end=897
+  _globals['_HTTPMCPSERVER_HEADERSENTRY']._loaded_options = None
+  _globals['_HTTPMCPSERVER_HEADERSENTRY']._serialized_options = b'8\001'
+  _globals['_PLUGINSTATUS']._serialized_start=239
+  _globals['_PLUGINSTATUS']._serialized_end=996
+  _globals['_PLUGINSTATUS_ENVENTRY']._serialized_start=848
+  _globals['_PLUGINSTATUS_ENVENTRY']._serialized_end=950
+  _globals['_PLUGINSKILL']._serialized_start=998
+  _globals['_PLUGINSKILL']._serialized_end=1085
+  _globals['_PLUGINAGENT']._serialized_start=1088
+  _globals['_PLUGINAGENT']._serialized_end=1302
+  _globals['_MCPSERVERENTRY']._serialized_start=1305
+  _globals['_MCPSERVERENTRY']._serialized_end=1581
+  _globals['_STDIOMCPSERVER']._serialized_start=1583
+  _globals['_STDIOMCPSERVER']._serialized_end=1645
+  _globals['_HTTPMCPSERVER']._serialized_start=1648
+  _globals['_HTTPMCPSERVER']._serialized_end=1866
+  _globals['_HTTPMCPSERVER_HEADERSENTRY']._serialized_start=1808
+  _globals['_HTTPMCPSERVER_HEADERSENTRY']._serialized_end=1866
+  _globals['_MCPSERVERSIGNIN']._serialized_start=1868
+  _globals['_MCPSERVERSIGNIN']._serialized_end=1916
+  _globals['_PLUGINWARNING']._serialized_start=1918
+  _globals['_PLUGINWARNING']._serialized_end=1999
 # @@protoc_insertion_point(module_scope)

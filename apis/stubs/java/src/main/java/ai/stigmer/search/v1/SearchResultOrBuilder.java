@@ -12,7 +12,7 @@ public interface SearchResultOrBuilder extends
 
   /**
    * <pre>
-   * Type of API resource this result represents (e.g., agent, skill, mcp_server).
+   * Type of API resource this result represents (e.g., agent, skill, plugin).
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kind = 1 [json_name = "kind"];</code>
@@ -21,7 +21,7 @@ public interface SearchResultOrBuilder extends
   int getKindValue();
   /**
    * <pre>
-   * Type of API resource this result represents (e.g., agent, skill, mcp_server).
+   * Type of API resource this result represents (e.g., agent, skill, plugin).
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kind = 1 [json_name = "kind"];</code>

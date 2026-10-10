@@ -2224,6 +2224,11 @@
           "name": "RUN_VALUE_DECLARER_KIND_REPOSITORY",
           "number": 3,
           "description": "A repository the turn clones, for its token."
+        },
+        {
+          "name": "RUN_VALUE_DECLARER_KIND_PLUGIN",
+          "number": 4,
+          "description": "A plugin the turn uses, for its hooks."
         }
       ]
     },
@@ -2451,7 +2456,7 @@
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for personal and run-scoped resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (sessions) stay creator-only."
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for personal and run-scoped resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, plugin), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (sessions) stay creator-only."
         },
         {
           "name": "visibility_public",
@@ -2619,11 +2624,6 @@
           "description": "Knowledge resource that provides domain-specific context to an agent."
         },
         {
-          "name": "mcp_server",
-          "number": 44,
-          "description": "External tool server connected via the Model Context Protocol."
-        },
-        {
           "name": "agent_share",
           "number": 46,
           "description": "Hosted chat link for an agent with its own audience, origins, and credentials."
@@ -2651,7 +2651,7 @@
         {
           "name": "plugin",
           "number": 58,
-          "description": "An installed Agent Plugins package: the archive Stigmer materialised into\n skills, MCP servers and an agent, and the handle that upgrades\n and removes them together. A plugin is what you install; an agent is what\n runs. Members are the resources labelled with the plugin's id."
+          "description": "An installed Agent Plugins package: one thing holding skills, agents,\n hooks and MCP servers, which agents and conversations list whole."
         },
         {
           "name": "vault",
@@ -3567,7 +3567,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Slug of the MCP server providing this tool; empty for built-in tools.\n Copied from ToolCall.mcp_server_slug.",
+          "description": "Name of the MCP server providing this tool; empty for built-in tools.\n Copied from ToolCall.mcp_server_slug.",
           "required": false
         },
         {
@@ -4918,7 +4918,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Slug of the MCP server that provides this tool.\n Copied from ToolCall.mcp_server_slug for UI convenience.\n Empty for built-in sandbox tools (read, write, shell, etc.).\n\n Enables the approval card to classify MCP tools and render\n structured argument previews (scalar grids, humanized names)\n instead of falling back to raw JSON.\n\n Examples: \"planton\", \"github\", \"slack\"",
+          "description": "Name of the MCP server that provides this tool, as its tools are named\n (plugin_\u003cplugin\u003e_\u003cserver\u003e for a plugin's server).\n Copied from ToolCall.mcp_server_slug for UI convenience.\n Empty for built-in sandbox tools (read, write, shell, etc.).\n\n Enables the approval card to classify MCP tools and render\n structured argument previews (scalar grids, humanized names)\n instead of falling back to raw JSON.\n\n Examples: \"plugin_linear_linear\", \"plugin_github_github\"",
           "required": false
         },
         {
@@ -5353,10 +5353,11 @@
             "enumValues": [
               "RUN_VALUE_DECLARER_KIND_AGENT",
               "RUN_VALUE_DECLARER_KIND_TOOL",
-              "RUN_VALUE_DECLARER_KIND_REPOSITORY"
+              "RUN_VALUE_DECLARER_KIND_REPOSITORY",
+              "RUN_VALUE_DECLARER_KIND_PLUGIN"
             ]
           },
-          "description": "Agent, tool or repository.",
+          "description": "Agent, tool, plugin or repository.",
           "required": false
         },
         {
@@ -5366,17 +5367,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "The agent's or tool's name, or the repository entry's name.",
-          "required": false
-        },
-        {
-          "name": "McpServerId",
-          "jsonName": "mcpServerId",
-          "protoField": "mcp_server_id",
-          "type": {
-            "kind": "string"
-          },
-          "description": "The tool's MCP server id; empty for an agent or a repository.",
+          "description": "The agent's name; a tool's name as plugin:\u003cplugin\u003e:\u003cserver\u003e; the\n plugin's name; or the repository entry's name.",
           "required": false
         },
         {
@@ -5386,7 +5377,27 @@
           "type": {
             "kind": "string"
           },
-          "description": "The repository's URL; empty for an agent or a tool.",
+          "description": "The repository's URL; empty for an agent, a tool or a plugin.",
+          "required": false
+        },
+        {
+          "name": "PluginId",
+          "jsonName": "pluginId",
+          "protoField": "plugin_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The plugin that declared it: a tool's plugin, or the plugin whose hooks\n read it; empty for an agent or a repository.",
+          "required": false
+        },
+        {
+          "name": "Server",
+          "jsonName": "server",
+          "protoField": "server",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The tool's server name in its plugin; empty for everything else.",
           "required": false
         }
       ]
@@ -6220,7 +6231,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Slug of the MCP server that provides this tool.\n Empty for built-in sandbox tools.\n Populated by the worker using the mcp_tools_config reverse lookup.\n\n Examples: \"planton\", \"github\", \"slack\"\n\n Used by CLI/UI to render a qualified tool name (e.g., \"planton/search\")\n so users can distinguish tools with the same name from different servers.",
+          "description": "Name of the MCP server that provides this tool, as its tools are named\n (plugin_\u003cplugin\u003e_\u003cserver\u003e for a plugin's server).\n Empty for built-in sandbox tools.\n Populated by the worker using the mcp_tools_config reverse lookup.\n\n Examples: \"plugin_linear_linear\", \"plugin_github_github\"\n\n Used by CLI/UI to render a qualified tool name (e.g., \"planton/search\")\n so users can distinguish tools with the same name from different servers.",
           "required": false
         },
         {

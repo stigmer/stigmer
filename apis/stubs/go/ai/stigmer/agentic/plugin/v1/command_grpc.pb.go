@@ -24,6 +24,7 @@ const (
 	PluginCommandController_CreateArtifactUploadUrl_FullMethodName = "/ai.stigmer.agentic.plugin.v1.PluginCommandController/createArtifactUploadUrl"
 	PluginCommandController_UpdateVisibility_FullMethodName        = "/ai.stigmer.agentic.plugin.v1.PluginCommandController/updateVisibility"
 	PluginCommandController_Delete_FullMethodName                  = "/ai.stigmer.agentic.plugin.v1.PluginCommandController/delete"
+	PluginCommandController_ListTools_FullMethodName               = "/ai.stigmer.agentic.plugin.v1.PluginCommandController/listTools"
 )
 
 // PluginCommandControllerClient is the client API for PluginCommandController service.
@@ -36,7 +37,7 @@ type PluginCommandControllerClient interface {
 	// Creates the plugin if it does not exist, or installs a new version of an
 	// existing plugin; pushing the archive already installed changes nothing.
 	// The archive is a plugin folder in the Agent Plugins, Cursor, Claude Code
-	// or Codex layout; the response's status names what was materialised and
+	// or Codex layout; the response's status lists what the plugin holds and
 	// what was skipped.
 	Push(ctx context.Context, in *PushPluginRequest, opts ...grpc.CallOption) (*Plugin, error)
 	// Mint a short-lived, single-use upload URL for staging a plugin archive
@@ -46,13 +47,21 @@ type PluginCommandControllerClient interface {
 	// 2. HTTP PUT the ZIP bytes to url
 	// 3. push(PushPluginRequest{ artifact_upload_ref })
 	CreateArtifactUploadUrl(ctx context.Context, in *CreatePluginArtifactUploadUrlRequest, opts ...grpc.CallOption) (*PluginArtifactUploadUrl, error)
-	// Update the visibility of a plugin and of every resource it materialised.
-	// Only modifies metadata.visibility on the plugin and its members.
+	// Update the visibility of a plugin.
+	// Only modifies metadata.visibility.
 	UpdateVisibility(ctx context.Context, in *apiresource.UpdateVisibilityInput, opts ...grpc.CallOption) (*Plugin, error)
-	// Delete a plugin and every resource it materialised.
-	// Refused when a resource outside the plugin still references a member;
-	// the error names the referencing resources.
+	// Delete a plugin.
+	// Refused while an agent of the organization lists it; the error names the
+	// agents.
 	Delete(ctx context.Context, in *PluginId, opts ...grpc.CallOption) (*Plugin, error)
+	// List the tools one of a plugin's MCP servers offers now, signed in as
+	// the caller. Nothing is stored.
+	//
+	// Errors:
+	//   - FAILED_PRECONDITION: a key the server needs is in none of the caller's
+	//     vaults, or the server needs a sign-in the caller has not made
+	//   - NOT_FOUND: the plugin, or the server in it, does not exist
+	ListTools(ctx context.Context, in *ListPluginToolsInput, opts ...grpc.CallOption) (*ListPluginToolsOutput, error)
 }
 
 type pluginCommandControllerClient struct {
@@ -103,6 +112,16 @@ func (c *pluginCommandControllerClient) Delete(ctx context.Context, in *PluginId
 	return out, nil
 }
 
+func (c *pluginCommandControllerClient) ListTools(ctx context.Context, in *ListPluginToolsInput, opts ...grpc.CallOption) (*ListPluginToolsOutput, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListPluginToolsOutput)
+	err := c.cc.Invoke(ctx, PluginCommandController_ListTools_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PluginCommandControllerServer is the server API for PluginCommandController service.
 // All implementations should embed UnimplementedPluginCommandControllerServer
 // for forward compatibility.
@@ -113,7 +132,7 @@ type PluginCommandControllerServer interface {
 	// Creates the plugin if it does not exist, or installs a new version of an
 	// existing plugin; pushing the archive already installed changes nothing.
 	// The archive is a plugin folder in the Agent Plugins, Cursor, Claude Code
-	// or Codex layout; the response's status names what was materialised and
+	// or Codex layout; the response's status lists what the plugin holds and
 	// what was skipped.
 	Push(context.Context, *PushPluginRequest) (*Plugin, error)
 	// Mint a short-lived, single-use upload URL for staging a plugin archive
@@ -123,13 +142,21 @@ type PluginCommandControllerServer interface {
 	// 2. HTTP PUT the ZIP bytes to url
 	// 3. push(PushPluginRequest{ artifact_upload_ref })
 	CreateArtifactUploadUrl(context.Context, *CreatePluginArtifactUploadUrlRequest) (*PluginArtifactUploadUrl, error)
-	// Update the visibility of a plugin and of every resource it materialised.
-	// Only modifies metadata.visibility on the plugin and its members.
+	// Update the visibility of a plugin.
+	// Only modifies metadata.visibility.
 	UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*Plugin, error)
-	// Delete a plugin and every resource it materialised.
-	// Refused when a resource outside the plugin still references a member;
-	// the error names the referencing resources.
+	// Delete a plugin.
+	// Refused while an agent of the organization lists it; the error names the
+	// agents.
 	Delete(context.Context, *PluginId) (*Plugin, error)
+	// List the tools one of a plugin's MCP servers offers now, signed in as
+	// the caller. Nothing is stored.
+	//
+	// Errors:
+	//   - FAILED_PRECONDITION: a key the server needs is in none of the caller's
+	//     vaults, or the server needs a sign-in the caller has not made
+	//   - NOT_FOUND: the plugin, or the server in it, does not exist
+	ListTools(context.Context, *ListPluginToolsInput) (*ListPluginToolsOutput, error)
 }
 
 // UnimplementedPluginCommandControllerServer should be embedded to have
@@ -150,6 +177,9 @@ func (UnimplementedPluginCommandControllerServer) UpdateVisibility(context.Conte
 }
 func (UnimplementedPluginCommandControllerServer) Delete(context.Context, *PluginId) (*Plugin, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
+}
+func (UnimplementedPluginCommandControllerServer) ListTools(context.Context, *ListPluginToolsInput) (*ListPluginToolsOutput, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListTools not implemented")
 }
 func (UnimplementedPluginCommandControllerServer) testEmbeddedByValue() {}
 
@@ -243,6 +273,24 @@ func _PluginCommandController_Delete_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PluginCommandController_ListTools_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListPluginToolsInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PluginCommandControllerServer).ListTools(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PluginCommandController_ListTools_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PluginCommandControllerServer).ListTools(ctx, req.(*ListPluginToolsInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PluginCommandController_ServiceDesc is the grpc.ServiceDesc for PluginCommandController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -265,6 +313,10 @@ var PluginCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "delete",
 			Handler:    _PluginCommandController_Delete_Handler,
+		},
+		{
+			MethodName: "listTools",
+			Handler:    _PluginCommandController_ListTools_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

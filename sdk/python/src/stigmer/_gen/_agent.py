@@ -18,7 +18,6 @@ from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2
 from ai.stigmer.search.v1 import query_pb2_grpc as search_query_pb2_grpc
 from ai.stigmer.search.v1 import io_pb2 as search_io_pb2
 from ai.stigmer.commons.rpc import pagination_pb2
-from ai.stigmer.agentic.mcpserver.v1 import usage_pb2 as mcpserver_usage_pb2
 from ai.stigmer.agentic.plugin.v1 import hooks_pb2 as plugin_hooks_pb2
 from ai.stigmer.agentic.run.v1 import invocation_pb2 as run_invocation_pb2
 from ai.stigmer.agentic.vault.v1 import declaration_pb2 as vault_declaration_pb2
@@ -133,7 +132,6 @@ class AgentInput:
     description: str = ""
     icon_url: str = ""
     instructions: str = ""
-    mcp_server_usages: list[McpServerUsageInput] = field(default_factory=list)
     skill_refs: list[ResourceRef] = field(default_factory=list)
     sub_agents: list[SubAgentInput] = field(default_factory=list)
     env: dict[str, EnvVarDeclarationInput] = field(default_factory=dict)
@@ -142,6 +140,7 @@ class AgentInput:
     hooks: list[HookSourceInput] = field(default_factory=list)
     run_config: RunConfigInput | None = None
     harness: int = 0
+    plugins: list[ResourceRef] = field(default_factory=list)
 
     def _to_proto(self) -> api_pb2.Agent:
         spec = spec_pb2.AgentSpec(
@@ -150,8 +149,6 @@ class AgentInput:
             instructions=self.instructions,
             harness=self.harness,
         )
-        for item in self.mcp_server_usages:
-            spec.mcp_server_usages.append(item._to_proto())
         for ref in self.skill_refs:
             _ref = ref._to_proto()
             _ref.kind = 43
@@ -168,6 +165,10 @@ class AgentInput:
             spec.hooks.append(item._to_proto())
         if self.run_config is not None:
             spec.run_config.CopyFrom(self.run_config._to_proto())
+        for ref in self.plugins:
+            _ref = ref._to_proto()
+            _ref.kind = 58
+            spec.plugins.append(_ref)
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,
@@ -190,21 +191,6 @@ class AgentInput:
             metadata=metadata,
             spec=spec,
         )
-
-
-@dataclass
-class McpServerUsageInput:
-    """SDK input type for McpServerUsage."""
-
-    mcp_server_ref: ResourceRef | None
-
-    def _to_proto(self) -> mcpserver_usage_pb2.McpServerUsage:
-        msg = mcpserver_usage_pb2.McpServerUsage()
-        if self.mcp_server_ref is not None and (self.mcp_server_ref.org or self.mcp_server_ref.slug):
-            _ref = self.mcp_server_ref._to_proto()
-            _ref.kind = 44
-            msg.mcp_server_ref.CopyFrom(_ref)
-        return msg
 
 
 @dataclass
@@ -260,17 +246,12 @@ class EnvVarDeclarationInput:
 class HookSourceInput:
     """SDK input type for HookSource."""
 
-    plugin: ResourceRef | None = None
     inline: HookConfigInput | None = None
 
     def _to_proto(self) -> spec_pb2.HookSource:
         msg = spec_pb2.HookSource()
         if self.inline is not None:
             msg.inline.CopyFrom(self.inline._to_proto())
-        if self.plugin is not None and (self.plugin.org or self.plugin.slug):
-            _ref = self.plugin._to_proto()
-            _ref.kind = 58
-            msg.plugin.CopyFrom(_ref)
         return msg
 
 
