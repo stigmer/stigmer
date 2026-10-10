@@ -16,7 +16,7 @@
 
 import { describe, it, expect, onTestFinished } from "vitest";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, symlinkSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -426,6 +426,19 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
       expect(h.decide(hookBuiltin("Read", { file_path: ".stigmer/plugins/abc/my-skills/solo/SKILL.md" }, h.root)).permission).toBe("deny");
       expect(h.decide(hookBuiltin("Read", { file_path: join(h.root, ".stigmer/Skills/a/SKILL.md") })).permission).toBe("deny");
       expect(h.ledger().map((e) => e.kind)).toEqual(["disabled", "disabled"]);
+    });
+
+    it("Skill denied: a case-folded spelling of skills/ that the filesystem opens is refused", (ctx) => {
+      const h = setup({ lists: { tools: [], disallowedTools: ["Skill"] } });
+      mkdirSync(join(h.platformDir, "skills/a"), { recursive: true });
+      writeFileSync(join(h.platformDir, "skills/a/SKILL.md"), "# skill", "utf-8");
+      // U+017F (long s) folds to "s" on a case-insensitive filesystem but
+      // not under toLowerCase: only the path on disk names skills/.
+      const variant = join(h.root, ".stigmer/\u017Fkills/a/SKILL.md");
+      if (!existsSync(variant)) ctx.skip();
+
+      expect(h.decide(hookBuiltin("Read", { file_path: variant })).permission).toBe("deny");
+      expect(h.ledger().map((e) => e.kind)).toEqual(["disabled"]);
     });
 
     it("Read excluded on an unlinked turn: a repository's own .stigmer symlink admits nothing", () => {
