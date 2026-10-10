@@ -5,7 +5,8 @@
  * Pins:
  *   - createForServiceAccount and findByAccount answer INTERNAL with the
  *     lane's own copy when the account read faults, never NOT_FOUND (an
- *     outage must never read as "no account");
+ *     outage must never read as "no account"), and the domain's NOT_FOUND
+ *     for an account that does not exist;
  *   - the owner-scoped name check answers INTERNAL when the owner's keys
  *     cannot be read, and when the chain reached it with no slug;
  *   - the owner read skips a row that does not decode and keeps only the
@@ -64,6 +65,10 @@ function keyOwnedBy(owner: string, id: string, slug = "ci") {
 
 /** The key services over a router whose every request is made by a person. */
 function clientsWithFailingAccounts() {
+  return clientsWithAccounts(() => Promise.reject(new Error("account store down")));
+}
+
+function clientsWithAccounts(findById: (id: string) => Promise<undefined>) {
   const transport = createRouterTransport(
     (router) =>
       registerApiKeyServices(router, {
@@ -72,7 +77,7 @@ function clientsWithFailingAccounts() {
         authorizer: ALLOW_ALL,
         authorizationLifecycle: undefined,
         listReadScope: undefined,
-        accounts: { findById: () => Promise.reject(new Error("account store down")) },
+        accounts: { findById },
       }),
     {
       router: {
@@ -117,6 +122,20 @@ describe("a service account's key lanes when the account read faults", () => {
     const error = await refusal(query.findByAccount({ value: "ida_sa" }));
     expect(error.code).toBe(Code.Internal);
     expect(error.rawMessage).toContain("failed to load identity account");
+  });
+});
+
+describe("a service account's key lanes for an account that does not exist", () => {
+  it("createForServiceAccount and findByAccount answer the domain's NOT_FOUND", async () => {
+    const { command, query } = clientsWithAccounts(() => Promise.resolve(undefined));
+    for (const work of [
+      command.createForServiceAccount({ serviceAccountId: "ida_gone", name: "ci", neverExpires: true }),
+      query.findByAccount({ value: "ida_gone" }),
+    ]) {
+      const error = await refusal(work);
+      expect(error.code).toBe(Code.NotFound);
+      expect(error.rawMessage).toBe("Identity account not found: ida_gone");
+    }
   });
 });
 
