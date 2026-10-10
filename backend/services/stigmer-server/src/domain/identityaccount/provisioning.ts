@@ -83,12 +83,57 @@ export class UserInfoFetchError extends Error {
  *     not use the `stgm_pc|` prefix platform-client accounts reserve.
  *   - `platform_client`: an end user a PlatformClient's mint provisioned
  *     (domain/platformclient/mint.ts). Its subject is the reserved
- *     composite, and it belongs to the client's owning organization, which
- *     only this arm carries.
+ *     composite, and it belongs to the client's owning organization.
+ *   - `federated`: a person an organization's identity provider vouches
+ *     for, provisioned by the edition that serves identity providers. Its
+ *     subject is the provider's to choose, so none of the direct arm's
+ *     subject rules apply; its id is derived from the provider and the
+ *     subject (constants.ts `federatedAccountIdFor`), and it belongs to the
+ *     provider's organization. `provider` is the stored reference's
+ *     absolute form: the organization id and the provider's slug.
  */
 export type AccountProvisioning =
   | { readonly mode: "direct" }
-  | { readonly mode: "platform_client"; readonly org: string };
+  | { readonly mode: "platform_client"; readonly org: string }
+  | {
+      readonly mode: "federated";
+      readonly provider: FederatedProvider;
+    };
+
+/** The identity provider a federated account belongs to, as its stored reference names it. */
+export interface FederatedProvider {
+  /** The provider's organization id. */
+  readonly org: string;
+  readonly slug: string;
+}
+
+/**
+ * Each provisioning arm's owning organization, keyed by mode so the
+ * compiler holds the table exhaustive: a new arm does not compile until it
+ * says which organization its accounts belong to.
+ */
+const OWNING_ORGANIZATION: {
+  readonly [Mode in AccountProvisioning["mode"]]: (
+    provisioning: Extract<AccountProvisioning, { readonly mode: Mode }>,
+  ) => string;
+} = {
+  direct: () => "",
+  platform_client: (provisioning) => provisioning.org,
+  federated: (provisioning) => provisioning.provider.org,
+};
+
+/** The organization an account being created belongs to; "" for a direct account, which belongs to none. */
+export function owningOrganizationOf(
+  provisioning: AccountProvisioning,
+): string {
+  // TypeScript cannot correlate the arm with its entry's parameter, so the
+  // entry is read at the union; the table's type is what keeps each pair
+  // matched.
+  const owningOrganization = OWNING_ORGANIZATION[provisioning.mode] as (
+    provisioning: AccountProvisioning,
+  ) => string;
+  return owningOrganization(provisioning);
+}
 
 /** What a caller of the create path supplies: the rest is the chain's. */
 export interface CreateAccountInput {
@@ -101,8 +146,9 @@ export interface CreateAccountInput {
 /**
  * The domain's one create path, as its callers see it: runs the create
  * chain AS `caller` and answers the persisted account. Built by the
- * controller (newCreateAccountPath); the provisioner and the operator
- * ensure call it, nothing else builds an account.
+ * controller (newCreateAccountPath); the provisioner, the operator ensure
+ * and the platform-client mint call it, and a unit reaches it through
+ * `ComposedServices.identityAccounts`; nothing else builds an account.
  */
 export type CreateAccount = (
   input: CreateAccountInput,

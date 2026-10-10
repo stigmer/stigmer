@@ -51,6 +51,7 @@ const CONTRACT_CASE_NAMES = [
   "findByResourceWithRelations filters to the allowlist; an empty allowlist matches nothing",
   "countDistinctPrincipalsByResource counts (kind, id) pairs, not rows, optionally by principal kind",
   "findScopeTuple skips identity_account and team principals and owner and creator relations",
+  "findByResourceKindAndRelation answers every row granting the relation on the kind, and nothing on another kind or relation",
   "deleteById removes the row; the triple is free to be granted again",
   "a change record changes nothing about the row: save and deleteById behave as without one",
   "deleteById of an unknown id resolves",
