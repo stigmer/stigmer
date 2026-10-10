@@ -2424,21 +2424,29 @@ async function lockSession(client: PoolClient, sessionId: string): Promise<void>
   );
 }
 
-/** The type of the session's newest event among `types`, through the (session_id, type, seq) index. */
+/**
+ * The type of the session's newest event among `types`: one lookup per type,
+ * each the newest entry of the (session_id, type, seq) index, so the cost
+ * never grows with the session's log (an ANY over the types could be
+ * planned as a backward scan of the session's events filtered by type).
+ */
 async function latestOfTypes(
   client: PoolClient,
   sessionId: string,
   types: ReadonlyArray<string>,
 ): Promise<string | undefined> {
-  if (types.length === 0) {
-    return undefined;
+  let newest: { readonly seq: number; readonly type: string } | undefined;
+  for (const type of types) {
+    const result = await client.query(
+      `SELECT seq FROM session_events WHERE session_id = $1 AND type = $2 ORDER BY seq DESC LIMIT 1`,
+      [sessionId, type],
+    );
+    const row = result.rows[0] as { seq: string } | undefined;
+    if (row !== undefined && (newest === undefined || Number(row.seq) > newest.seq)) {
+      newest = { seq: Number(row.seq), type };
+    }
   }
-  const result = await client.query(
-    `SELECT type FROM session_events WHERE session_id = $1 AND type = ANY($2::text[])
-     ORDER BY seq DESC LIMIT 1`,
-    [sessionId, [...types]],
-  );
-  return (result.rows[0] as { type: string } | undefined)?.type;
+  return newest?.type;
 }
 
 /** Appends drafts after the session's newest event, under the caller's session lock. */

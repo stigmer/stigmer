@@ -178,6 +178,32 @@ describe("what a runner may append", () => {
     expect(await stored("ses_a")).toEqual(["err"]);
   });
 
+  it("refuses a preview past the size cap, before anything is stored", async () => {
+    await seedRun("run_a", "ses_a");
+    const error = await refusal(
+      append(
+        {
+          runId: "run_a",
+          events: [message("m1")],
+          previews: [
+            {
+              preview: {
+                case: "eventDelta",
+                value: {
+                  eventId: "m2",
+                  delta: { type: "content_delta", content: { type: "text", text: "x".repeat(SESSION_EVENT_MAX_BYTES) } },
+                },
+              },
+            },
+          ],
+        },
+        auth.mintRunCredential("run_a"),
+      ),
+    );
+    expect(error.code).toBe(Code.InvalidArgument);
+    expect(await stored("ses_a")).toEqual([]);
+  });
+
   it("refuses an id in the server's own prefix", async () => {
     await seedRun("run_a", "ses_a");
     const error = await refusal(append({ runId: "run_a", events: [message("sevt_01forged")] }, auth.mintRunCredential("run_a")));

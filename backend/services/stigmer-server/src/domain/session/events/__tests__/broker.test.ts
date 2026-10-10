@@ -144,7 +144,7 @@ describe("the stream", () => {
     const authorizer = {
       authorize: async () => {
         asked += 1;
-        return asked === 1 ? { kind: "allow" as const } : { kind: "deny" as const, reason: "revoked" };
+        return asked <= 2 ? { kind: "allow" as const } : { kind: "deny" as const, reason: "revoked" };
       },
     } as unknown as Parameters<typeof streamSessionEvents>[0]["authorizer"];
     const stream = streamSessionEvents(
@@ -160,8 +160,13 @@ describe("the stream", () => {
     const second = stream.next();
     await new Promise((resolve) => setImmediate(resolve));
     broker.publish("s1", [thinking("b", 2)]);
-    await expect(second).rejects.toMatchObject({ code: Code.PermissionDenied });
-    expect(asked).toBe(2);
+    expect((await second).value?.frame.case, "still allowed: the frame flows").toBe("event");
+    clock = 2 * SESSION_EVENT_STREAM_REAUTHORIZE_MS;
+    const third = stream.next();
+    await new Promise((resolve) => setImmediate(resolve));
+    broker.publish("s1", [thinking("c", 3)]);
+    await expect(third).rejects.toMatchObject({ code: Code.PermissionDenied });
+    expect(asked).toBe(3);
     expect(broker.subscriberCount("s1")).toBe(0);
   });
 

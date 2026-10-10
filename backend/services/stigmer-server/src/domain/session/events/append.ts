@@ -22,8 +22,10 @@
  * its own id, unique in the session: a resent id with the same event is
  * accepted again without a second entry, the same id with another event is
  * ALREADY_EXISTS, and the batch is stored whole or not at all. An encoded
- * event is at most 256 KiB, the runner's own per-tool-output cap; the
- * request as a whole is bounded by the transport's message limit.
+ * event and an encoded preview are each at most 256 KiB, the runner's own
+ * per-tool-output cap (a larger preview would pass the stream's own
+ * message limit as one frame); the request as a whole is bounded by the
+ * transport's message limit.
  *
  * Previews are streamed to the session's watchers before the batch's
  * stored events (a stored event replaces its preview), and never stored.
@@ -34,7 +36,7 @@
  * Proven by __tests__/append.test.ts and the session-events conformance
  * suite.
  */
-import { clone, create } from "@bufbuild/protobuf";
+import { clone, create, toBinary } from "@bufbuild/protobuf";
 import type { HandlerContext } from "@connectrpc/connect";
 import { Code, ConnectError } from "@connectrpc/connect";
 
@@ -44,6 +46,7 @@ import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionEventSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import {
   AppendSessionEventsResponseSchema,
+  SessionEventPreviewSchema,
   type AppendSessionEventsInput,
   type AppendSessionEventsResponse,
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
@@ -130,6 +133,15 @@ export async function appendSessionEvents(
       );
     }
     return draft;
+  });
+
+  input.previews.forEach((preview, index) => {
+    const size = toBinary(SessionEventPreviewSchema, preview).length;
+    if (size > SESSION_EVENT_MAX_BYTES) {
+      throw invalidArgumentError(
+        `previews[${index}] is ${size} bytes; a preview holds at most ${SESSION_EVENT_MAX_BYTES}`,
+      );
+    }
   });
 
   let stored: SessionEventAppend = { records: [], appended: [] };

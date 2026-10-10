@@ -2373,16 +2373,17 @@ function latestOfTypes(
   sessionId: string,
   types: ReadonlyArray<string>,
 ): string | undefined {
-  if (types.length === 0) {
-    return undefined;
+  const newestOf = db.prepare(
+    `SELECT seq FROM session_events WHERE session_id = ? AND type = ? ORDER BY seq DESC LIMIT 1`,
+  );
+  let newest: { readonly seq: number; readonly type: string } | undefined;
+  for (const type of types) {
+    const row = newestOf.get(sessionId, type) as { seq: number } | undefined;
+    if (row !== undefined && (newest === undefined || Number(row.seq) > newest.seq)) {
+      newest = { seq: Number(row.seq), type };
+    }
   }
-  const row = db
-    .prepare(
-      `SELECT type FROM session_events WHERE session_id = ? AND type IN (${types.map(() => "?").join(", ")})
-       ORDER BY seq DESC LIMIT 1`,
-    )
-    .get(sessionId, ...types) as { type: string } | undefined;
-  return row?.type;
+  return newest?.type;
 }
 
 /** Appends drafts after the session's newest event, on the caller's open write transaction. */
