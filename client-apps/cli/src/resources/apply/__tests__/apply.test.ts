@@ -11,6 +11,9 @@
 // by slug; a lookup that fails for another reason fails the apply. The
 // dry-run preview names the organization by slug too.
 // And the Organization handler's rename binding, which the follow-up drives.
+// An organization's policies follow the visibility precedent: update and
+// apply keep the stored policies, so a manifest that declares different ones
+// lands them through updatePolicies, and a refusal says the spec landed.
 
 import { create, type Message } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -21,6 +24,8 @@ import { RenameInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresourc
 import type { RenameInput, UpdateVisibilityInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
+import type { UpdateOrganizationPoliciesInput } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
+import { UpdateOrganizationPoliciesInputSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
 import { describe, expect, it } from "vitest";
 import { applyMessage } from "../apply.js";
 import { APPLY_HANDLERS } from "../handlers.js";
@@ -420,5 +425,105 @@ describe("the Organization apply handler", () => {
     expect(services).toEqual([OrganizationCommandController]);
     expect(renames).toEqual([input]);
     expect((renamed as { metadata?: { slug?: string } } | undefined)?.metadata?.slug).toBe("acme-corp");
+  });
+});
+
+function organizationWithPolicies(membersCanCreateAgents: boolean | undefined) {
+  return create(OrganizationSchema, {
+    metadata: { id: ACME_ID, name: "Acme", slug: "acme" },
+    spec: membersCanCreateAgents === undefined ? {} : { policies: { membersCanCreateAgents } },
+  });
+}
+
+function policiesHandler(
+  applyReturns: Message,
+  updatePolicies: (input: UpdateOrganizationPoliciesInput) => Promise<Message>,
+) {
+  const calls: UpdateOrganizationPoliciesInput[] = [];
+  const handler: ApplyHandler = {
+    kind: ApiResourceKind.organization,
+    displayName: "Organization",
+    schema: OrganizationSchema,
+    applyOrder: 0,
+    apply: () => Promise.resolve(applyReturns),
+    updatePolicies: (_c: ControllerFn, input: UpdateOrganizationPoliciesInput) => {
+      calls.push(input);
+      return updatePolicies(input);
+    },
+  };
+  return { handler, calls };
+}
+
+describe("applyMessage declared-policies follow-up", () => {
+  it("lands declared policies that differ from the stored ones, and reflects them on the outcome", async () => {
+    const { handler, calls } = policiesHandler(organizationWithPolicies(true), () =>
+      Promise.resolve(organizationWithPolicies(false)),
+    );
+
+    const outcome = await applyMessage(controller, handler, organizationWithPolicies(false), "", false);
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].orgId).toBe(ACME_ID);
+    expect(calls[0].policies?.membersCanCreateAgents).toBe(false);
+    expect((outcome.applied as ReturnType<typeof organizationWithPolicies>).spec?.policies?.membersCanCreateAgents).toBe(
+      false,
+    );
+  });
+
+  it("skips the follow-up when the manifest declares no policies or the stored ones", async () => {
+    const { handler, calls } = policiesHandler(organizationWithPolicies(false), () =>
+      Promise.reject(new Error("must not be called")),
+    );
+
+    await applyMessage(controller, handler, organizationWithPolicies(undefined), "", false);
+    await applyMessage(controller, handler, organizationWithPolicies(false), "", false);
+
+    expect(calls).toHaveLength(0);
+  });
+
+  it("reads an organization stored without policies as holding the defaults", async () => {
+    const { handler, calls } = policiesHandler(organizationWithPolicies(undefined), () =>
+      Promise.reject(new Error("must not be called")),
+    );
+
+    await applyMessage(controller, handler, organizationWithPolicies(true), "", false);
+
+    expect(calls).toHaveLength(0);
+  });
+
+  it("fails loudly when the change is refused, saying the spec landed", async () => {
+    const { handler } = policiesHandler(organizationWithPolicies(true), () =>
+      Promise.reject(new ConnectError("unauthorized to update organization policies", Code.PermissionDenied)),
+    );
+
+    await expect(applyMessage(controller, handler, organizationWithPolicies(false), "", false)).rejects.toThrow(
+      /^Organization spec applied, but the manifest's policies change was rejected: .*unauthorized to update organization policies/,
+    );
+  });
+});
+
+describe("the Organization apply handler's policies door", () => {
+  it("sends a policies change through the Organization service's updatePolicies", async () => {
+    const handler = APPLY_HANDLERS.get(ApiResourceKind.organization);
+    const services: unknown[] = [];
+    const inputs: UpdateOrganizationPoliciesInput[] = [];
+    const recording = ((service: unknown) => {
+      services.push(service);
+      return {
+        updatePolicies: (input: UpdateOrganizationPoliciesInput) => {
+          inputs.push(input);
+          return Promise.resolve(organizationWithPolicies(input.policies?.membersCanCreateAgents));
+        },
+      };
+    }) as unknown as ControllerFn;
+    const input = create(UpdateOrganizationPoliciesInputSchema, {
+      orgId: ACME_ID,
+      policies: { membersCanCreateAgents: false },
+    });
+
+    await handler?.updatePolicies?.(recording, input);
+
+    expect(services).toEqual([OrganizationCommandController]);
+    expect(inputs).toEqual([input]);
   });
 });

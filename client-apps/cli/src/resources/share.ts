@@ -142,12 +142,14 @@ export async function shareAgent(
   // just to mark it disabled would materialize a resource the owner never
   // asked for. The one exception is an explicit --audience org, which is
   // real configuration worth persisting as a paused share (mirroring the
-  // pre-promotion behavior of storing audience on a disabled block).
+  // pre-promotion behavior of storing audience on a disabled block). The
+  // test is what the owner passed, not the target: a never-shared agent's
+  // target is org by default, and that alone asks for nothing.
   const alreadyInState =
     share !== null
       ? (current?.enabled ?? false) === options.enabled &&
         currentAudience === targetAudience
-      : !options.enabled && targetAudience !== "org";
+      : !options.enabled && options.audience !== "org";
 
   if (!alreadyInState) {
     // Apply the COMPLETE spec with only the requested fields changed, so a
@@ -209,10 +211,11 @@ async function resolveCanonicalShare(
   );
 }
 
-// Unspecified means public by contract (a share created without an explicit
-// audience is an anyone-with-link share).
+// Unspecified means the organization by contract: a link reaches anyone on
+// the internet only when public is chosen, so a never-shared agent's first
+// share without --audience is organization-only.
 function audienceFromProto(audience: AgentShareAudience | undefined): ShareAudience {
-  return audience === AgentShareAudience.org ? "org" : "public";
+  return audience === AgentShareAudience.public ? "public" : "org";
 }
 
 // The full share input with the desired `enabled` and audience, preserving
@@ -222,7 +225,7 @@ function audienceFromProto(audience: AgentShareAudience | undefined): ShareAudie
 // applying with the agent's slug would create a SECOND share — and from the
 // agent's org + the agent's slug otherwise (the server's own default,
 // made explicit). The audience is written explicitly — never left
-// unspecified — so a console-managed org share can't drift back to public.
+// unspecified — so every stored share says what it means.
 function preservingShareInput(
   agent: Agent,
   share: AgentShare | null,
@@ -317,7 +320,9 @@ function describeOutcome(
       result.hint("Re-share the new link with the people who should keep access.");
     }
   }
-  if (options.isLocal) {
+  // Only a public link needs guest sign-in; an organization link is the one
+  // a self-hosted server serves.
+  if (options.isLocal && audience === "public") {
     result.hint("Guest chat is a Stigmer Cloud capability — this local link won't serve visitors.");
   }
   return result;

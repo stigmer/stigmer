@@ -39,7 +39,7 @@ export function registerShare(program: Command): void {
     .option("--off", "disable sharing (the link stops working immediately)")
     .option(
       "--audience <audience>",
-      "who can chat: 'public' (anyone with the link) or 'org' (signed-in organization members only); omit to keep the current audience",
+      "who can chat: 'public' (anyone with the link) or 'org' (signed-in organization members only); omit to keep the current audience (organization for a new link)",
     )
     .option(
       "--reset-link",

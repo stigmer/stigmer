@@ -43,7 +43,9 @@ const SHARE_ID = "ash_01ARZ3NDEKTSV4RRFFQ69G5FAV";
 const CLOUD_LINK = `https://app.stigmer.ai/chat/${SHARE_ID}`;
 
 // Plain-object AgentShare fixture: the CLI reads it structurally (metadata /
-// spec / status), so proto construction adds nothing here.
+// spec / status), so proto construction adds nothing here. A fixture share is
+// public unless it says otherwise, the way the server stores an audience:
+// written out, never left unspecified.
 function makeShare(fixture: ShareFixture = {}) {
   const { shareLinkToken, slug, ...spec } = fixture;
   return {
@@ -55,6 +57,7 @@ function makeShare(fixture: ShareFixture = {}) {
     },
     spec: {
       agentRef: { org: "acme", slug: "support-agent" },
+      audience: AgentShareAudience.public,
       ...spec,
     },
     ...(shareLinkToken !== undefined ? { status: { shareLinkToken } } : {}),
@@ -199,12 +202,16 @@ describe("shareAgent merge-preservation (fails closed)", () => {
     expect(result.sections).toHaveLength(0);
   });
 
-  it("enabling a never-shared agent creates the canonical share", async () => {
+  it("enabling a never-shared agent creates the canonical share, organization-only", async () => {
     const { client, applies } = fakeClient(makeAgent(), null);
 
-    await shareAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD });
+    const result = await shareAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD });
 
     expect(applies).toHaveLength(1);
+    // A link reaches the internet only by an explicit --audience public.
+    expect(applies[0].audience).toBe(AgentShareAudience.org);
+    expect(result.sections.find((s) => s.title === "Member chat link")).toBeDefined();
+    expect(result.sections.find((s) => s.title === "Embed on your site")).toBeUndefined();
     // Create identity: the agent's own org/slug (the server's default,
     // made explicit) with the agent reference and empty config.
     expect(applies[0].slug).toBe("support-agent");
@@ -348,9 +355,31 @@ describe("shareAgent idempotency", () => {
     const result = await shareAgent(client, "acme/support-agent", "acme", { enabled: false, ...CLOUD });
 
     // Materializing a share row just to mark it disabled would create a
-    // resource the owner never asked for.
+    // resource the owner never asked for, though a new link's audience is
+    // the organization by default.
     expect(applies).toHaveLength(0);
     expect(result.message).toContain("already off");
+  });
+
+  it("disabling a never-shared agent with an explicit --audience org stores a paused share", async () => {
+    const { client, applies } = fakeClient(makeAgent(), null);
+
+    await shareAgent(client, "acme/support-agent", "acme", { enabled: false, audience: "org", ...CLOUD });
+
+    expect(applies).toHaveLength(1);
+    expect(applies[0].enabled).toBe(false);
+    expect(applies[0].audience).toBe(AgentShareAudience.org);
+  });
+
+  it("reads a stored unspecified audience as the organization (it only narrows)", async () => {
+    const share = makeShare({ enabled: true, audience: AgentShareAudience.unspecified });
+    const { client, applies } = fakeClient(makeAgent(), share);
+
+    const result = await shareAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD });
+
+    expect(applies).toHaveLength(0);
+    expect(result.sections.find((s) => s.title === "Member chat link")?.items).toEqual([CLOUD_LINK]);
+    expect(result.sections.find((s) => s.title === "Public chat link")).toBeUndefined();
   });
 });
 
@@ -418,6 +447,20 @@ describe("shareAgent output", () => {
     expect(result.hints.some((h) => h.includes("Stigmer Cloud"))).toBe(true);
   });
 
+  it("omits the local warning for an organization link, the one a self-hosted server serves", async () => {
+    const { client } = fakeClient(
+      makeAgent(),
+      makeShare({ enabled: false, audience: AgentShareAudience.org }),
+    );
+
+    const result = await shareAgent(client, "acme/support-agent", "acme", { enabled: true, ...LOCAL });
+
+    expect(result.sections.find((s) => s.title === "Member chat link")?.items).toEqual([
+      `http://localhost:7234/chat/${SHARE_ID}`,
+    ]);
+    expect(result.hints.some((h) => h.includes("Stigmer Cloud"))).toBe(false);
+  });
+
   it("omits the local warning on a cloud backend", async () => {
     const { client } = fakeClient(makeAgent(), makeShare({ enabled: false }));
 
@@ -457,13 +500,14 @@ describe("shareAgent --reset-link (rotatable share token)", () => {
     expect(result.hints.some((h) => h.includes("Re-share the new link"))).toBe(true);
   });
 
-  it("enable + reset on a never-shared agent creates the share, then rotates it", async () => {
+  it("enable + reset on a never-shared agent creates the public share, then rotates it", async () => {
     const { client, applies, rotationCount } = fakeClient(makeAgent(), null, {
       rotatedToken: "fresh-token",
     });
 
     const result = await shareAgent(client, "acme/support-agent", "acme", {
       enabled: true,
+      audience: "public",
       resetLink: true,
       ...CLOUD,
     });
