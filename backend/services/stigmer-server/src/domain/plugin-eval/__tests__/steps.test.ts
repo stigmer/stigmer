@@ -1,8 +1,10 @@
 /**
  * Pins the plugin eval steps' arms the composed lanes cannot reach (no
  * engine runs behind them): a workflow that starts leaves the pending row
- * as it is; a failed start never overwrites what the workflow already
- * wrote; a cancel the workflow takes answers the row unchanged, one with no
+ * as it is; a failed start marks a pending eval failed and never
+ * overwrites what the workflow already wrote, a start that timed out
+ * after the workflow's real load wrote running included (the eval stays
+ * running and its tries are recorded); a cancel the workflow takes answers the row unchanged, one with no
  * workflow marks the eval partial "cancelled" unless it finished meanwhile,
  * a finished eval's cancel asks nothing, and a fault is a sanitized
  * INTERNAL; an eval pending or running past its workflow's execution
@@ -56,9 +58,21 @@ import { TARGET_RESOURCE_KEY } from "../../../pipeline/steps/load-target.js";
 import type { Store } from "../../../store/interface.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
+import { newEvalContextLoader } from "../../../temporal/evals/context.js";
+import { LOAD_SUITE_ACTIVITY_NAME, RECORD_TRY_ACTIVITY_NAME } from "../../../temporal/evals/names.js";
+import { createSuiteActivities } from "../../../temporal/evals/suite-activities.js";
+import {
+  EVAL_ID,
+  catalog,
+  readEval,
+  seedEval,
+  seedPlugin,
+  suiteSource,
+} from "../../../temporal/evals/__tests__/support.js";
 import {
   PLUGIN_EVAL_WORKFLOW_ENDED_ERROR,
   pluginEvalNoCasesMessage,
+  pluginEvalNotStartedMessage,
   pluginEvalOtherPluginToolMessage,
 } from "../constants.js";
 import {
@@ -166,6 +180,61 @@ describe("StartPluginEvalWorkflow", () => {
     ).execute(ctx);
     expect(ctx.newState.status?.phase).toBe(PluginEvalPhase.completed);
     expect(ctx.newState.status?.error).toBe("");
+  });
+
+  it("marks a pending eval failed with its reason when the start fails", async () => {
+    const row = await saved(evalRow("pev_1", PluginEvalPhase.pending));
+    const ctx = createCtx(row);
+    await newStartPluginEvalWorkflowStep(
+      temp.store,
+      workflows({ start: () => Promise.reject(new Error("no engine")) }),
+      silentLogger,
+    ).execute(ctx);
+    expect(ctx.newState.status?.phase).toBe(PluginEvalPhase.failed);
+    expect(ctx.newState.status?.error).toBe(pluginEvalNotStartedMessage("no engine"));
+    expect((await stored("pev_1")).status?.phase).toBe(PluginEvalPhase.failed);
+  });
+
+  it("leaves an eval running when the start times out after the workflow's load wrote running", async () => {
+    await seedPlugin(temp.store);
+    await seedEval(temp.store);
+    const suite = createSuiteActivities({
+      store: temp.store,
+      logger: silentLogger,
+      contexts: newEvalContextLoader({ store: temp.store, suites: suiteSource(), catalog }),
+      attempt: () => 1,
+    });
+    const startedThenTimedOut = workflows({
+      start: async (id) => {
+        await suite[LOAD_SUITE_ACTIVITY_NAME](id);
+        throw new Error("deadline exceeded");
+      },
+    });
+    const ctx = createCtx(await readEval(temp.store));
+    await newStartPluginEvalWorkflowStep(temp.store, startedThenTimedOut, silentLogger).execute(ctx);
+
+    expect(ctx.newState.status?.phase).toBe(PluginEvalPhase.running);
+    expect(ctx.newState.status?.error).toBe("");
+    await suite[RECORD_TRY_ACTIVITY_NAME](
+      EVAL_ID,
+      { caseIndex: 0, targetIndex: 0, arm: "with", tryIndex: 0, timeoutSeconds: 120 },
+      {
+        sessionId: "ses_x",
+        runId: "run_x",
+        state: "graded",
+        score: 1,
+        notGradedReason: "",
+        error: "",
+        costUsd: 0.42,
+        durationSeconds: 3,
+        outOfCredit: false,
+      },
+    );
+    const status = (await readEval(temp.store)).status;
+    expect(status?.phase).toBe(PluginEvalPhase.running);
+    expect(status?.error).toBe("");
+    expect(status?.finishedAt).toBeUndefined();
+    expect(status?.cases[0]?.targets[0]?.withPlugin?.tries[0]?.state).toBe(PluginEvalTryState.graded);
   });
 });
 
