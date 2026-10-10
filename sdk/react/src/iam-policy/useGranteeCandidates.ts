@@ -1,21 +1,34 @@
 "use client";
 
 /**
- * Who a share can be granted to in an organization: its people and, where
- * the edition serves teams and the caller asks for them, its teams.
+ * Who a share can be granted to in an organization: its people, the
+ * accounts an integrator's product created for its own users ("Users from
+ * your product", the Members page's name for them) and, where the edition
+ * serves teams and the caller asks for them, its teams.
  *
  * People are the organization's own access list, the member list the
  * caller can already see, so choosing someone introduces no new account
  * enumeration. That list holds only the organization's roles (owner,
  * admin, member, viewer); the cloud's share-link guests are never on it,
  * so every person offered here is an organization viewer and a valid team
- * member too. Teams come from the organization's team list, fetched only
- * when asked for, so an edition without teams never makes the call.
+ * member too. Accounts a platform client provisioned are split out of the
+ * people (`isPlatformClientAccount`), so a picker labels them rather than
+ * presenting them as the organization's people; a team's picker leaves
+ * them out (`includeAppUsers: false`). People who sign in through their
+ * organization's own identity provider are people. Teams come from the
+ * organization's team list, fetched only when asked for, so an edition
+ * without teams never makes the call.
  */
 import { useMemo } from "react";
 import type { ApiResourceRefView } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
 import type { Team } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
-import { granteeFromView, personGrantee, teamGrantee, type Grantee } from "@stigmer/sdk";
+import {
+  granteeFromView,
+  isPlatformClientAccount,
+  personGrantee,
+  teamGrantee,
+  type Grantee,
+} from "@stigmer/sdk";
 import { useTeamList } from "../team/useTeamList.js";
 import { useResourceAccess } from "./useResourceAccess.js";
 
@@ -52,11 +65,23 @@ export interface UseGranteeCandidatesOptions {
   readonly org: string | null;
   /** Offer the organization's teams too. Pass `false` where teams cannot be granted. */
   readonly includeTeams: boolean;
+  /**
+   * Offer the accounts a platform client provisioned for an integrator's
+   * own users, in `appUsers`. Defaults to `true`; pass `false` where only
+   * the organization's people belong (a team's members).
+   */
+  readonly includeAppUsers?: boolean;
 }
 
 /** Return value of {@link useGranteeCandidates}. */
 export interface UseGranteeCandidatesReturn {
+  /** The organization's people, federated sign-ins included. */
   readonly people: readonly PersonCandidate[];
+  /**
+   * Accounts a platform client provisioned for an integrator's own users
+   * ("Users from your product"); empty when `includeAppUsers` is `false`.
+   */
+  readonly appUsers: readonly PersonCandidate[];
   readonly teams: readonly TeamCandidate[];
   /** `true` while either list is loading for the first time. */
   readonly isLoading: boolean;
@@ -69,7 +94,7 @@ export interface UseGranteeCandidatesReturn {
  *
  * @example
  * ```tsx
- * const { people, teams } = useGranteeCandidates({
+ * const { people, appUsers, teams } = useGranteeCandidates({
  *   org,
  *   includeTeams: share.canShareWithTeams,
  * });
@@ -78,11 +103,12 @@ export interface UseGranteeCandidatesReturn {
 export function useGranteeCandidates({
   org: orgId,
   includeTeams,
+  includeAppUsers = true,
 }: UseGranteeCandidatesOptions): UseGranteeCandidatesReturn {
   const access = useResourceAccess(orgId ? { kind: "organization", id: orgId } : null);
   const teamList = useTeamList(includeTeams ? orgId : null);
 
-  const people = useMemo(() => {
+  const { people, appUsers } = useMemo(() => {
     const byId = new Map<string, PersonCandidate>();
     for (const entry of access.members) {
       const view = entry.principal;
@@ -96,8 +122,14 @@ export function useGranteeCandidates({
         view,
       });
     }
-    return [...byId.values()];
-  }, [access.members]);
+    const all = [...byId.values()];
+    return {
+      people: all.filter((person) => !isPlatformClientAccount(person.view)),
+      appUsers: includeAppUsers
+        ? all.filter((person) => isPlatformClientAccount(person.view))
+        : [],
+    };
+  }, [access.members, includeAppUsers]);
 
   const teams = useMemo(
     () =>
@@ -123,7 +155,7 @@ export function useGranteeCandidates({
   const error = access.error ?? (includeTeams ? teamList.error : null);
 
   return useMemo(
-    () => ({ people, teams, isLoading, error }),
-    [people, teams, isLoading, error],
+    () => ({ people, appUsers, teams, isLoading, error }),
+    [people, appUsers, teams, isLoading, error],
   );
 }
