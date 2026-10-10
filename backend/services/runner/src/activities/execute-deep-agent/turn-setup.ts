@@ -677,6 +677,15 @@ export function turnToolInventory(
  * agent's `Agent(type, …)` admits is checked: one it keeps from compiling
  * (`transformAndCompileSubagents` applies the same filter) can never run, so
  * its lists cannot refuse the turn.
+ *
+ * A sub-agent's lists are judged against the agent's layers alone, the
+ * prefix of the main scope before the turn's (`mainToolScope` puts the
+ * agent's first, and adds it only when it carries a list): the agent's
+ * definition is what a sub-agent's lists are written against, so a turn
+ * that narrows the agent, as an eval's read-only set does, never refuses
+ * the turn over a sub-agent that lists only write or shell tools. The turn
+ * still narrows what the sub-agent may use, since its graph runs under the
+ * whole scope (`subAgentScope` over the parent's).
  */
 export function checkTurnToolLists(
   input: Pick<TurnInput, "mcp" | "blueprint">,
@@ -689,10 +698,13 @@ export function checkTurnToolLists(
   const parentNames = nativeBoundToolNames({ shellCapable, todos: true });
   checkMainToolListResolution(parentScope, turnToolInventory(parentNames, tools, platformServerSlugs), log);
   const subAgentInventory = turnToolInventory(nativeBoundToolNames({ shellCapable, todos: false }), tools, platformServerSlugs);
+  const agentSpec = input.blueprint.agent?.spec;
+  const agentHasLists = agentSpec !== undefined && (agentSpec.tools.length > 0 || agentSpec.disallowedTools.length > 0);
+  const agentScope = parentScope.upTo(agentHasLists ? 1 : 0);
   for (const subAgent of input.blueprint.subAgents) {
     const hasLists = subAgent.tools.length > 0 || subAgent.disallowedTools.length > 0;
     if (!hasLists || !parentScope.allowsSubAgentType(subAgent.name)) continue;
-    checkToolListResolution(subAgentScope(parentScope, subAgent), subAgentInventory, log);
+    checkToolListResolution(subAgentScope(agentScope, subAgent), subAgentInventory, log);
   }
 }
 
