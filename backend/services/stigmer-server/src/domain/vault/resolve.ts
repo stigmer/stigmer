@@ -1084,6 +1084,13 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
           if (surface !== undefined) {
             await add(surface.named, RunValueOrigin.SURFACE_VAULT);
           }
+        } else {
+          // A plugin eval's try acting as its creator: the eval's vaults are
+          // the run's, as the plan found them.
+          const evalSurface = await pluginEvalSurfaceOf(execution);
+          if (evalSurface !== undefined) {
+            await add(await namedOf([evalSurface]), RunValueOrigin.SURFACE_VAULT);
+          }
         }
         return byId;
       })();
