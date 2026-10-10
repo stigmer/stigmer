@@ -38,7 +38,9 @@
  * a start that fails leaving the try not graded with what its run spent;
  * a vote that cannot start counted as failed; a vote that cannot be read
  * past its retries stopped, the try not graded with what its run and every
- * vote spent.
+ * vote spent; each read vote's session deleted after its read, a delete
+ * that fails leaving the vote counted, a cancellation at the delete
+ * counting that vote once, through the spend read.
  */
 import {
   ActivityCancellationType,
@@ -50,6 +52,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   CANNOT_ACT_REASON,
+  DELETE_VOTE_ACTIVITY_NAME,
   FINISH_EVAL_ACTIVITY_NAME,
   GRADE_TRY_ACTIVITY_NAME,
   GRADING_FAILED_REASON,
@@ -764,6 +767,7 @@ function caseScript(overrides: Record<string, ReturnType<typeof vi.fn>> = {}) {
         costUsd: 0.01,
       }),
     ),
+    [DELETE_VOTE_ACTIVITY_NAME]: vi.fn(() => Promise.resolve()),
     [RECORD_SCORE_ACTIVITY_NAME]: vi.fn(
       (
         _input: CaseInput,
@@ -823,6 +827,45 @@ describe("the case workflow", () => {
     ]);
     expect(outcome.costUsd).toBeCloseTo(0.23);
     expect(activities[STOP_RUN_ACTIVITY_NAME]).not.toHaveBeenCalled();
+    expect(activities[DELETE_VOTE_ACTIVITY_NAME]!.mock.calls).toEqual([
+      ["vote_0_0"],
+      ["vote_0_1"],
+      ["vote_0_2"],
+    ]);
+  });
+
+  it("counts a read vote whose session cannot be deleted, leaving the session", async () => {
+    caseScript({
+      [DELETE_VOTE_ACTIVITY_NAME]: vi.fn(() =>
+        Promise.reject(new Error("the store is down")),
+      ),
+    });
+    expect(await runCase(INPUT)).toMatchObject({
+      state: "graded",
+      costUsd: expect.closeTo(0.23),
+    });
+  });
+
+  it("answers a cancellation at a vote's delete as cancelled, counting that vote once, through the spend still stored", async () => {
+    const activities = caseScript({
+      [DELETE_VOTE_ACTIVITY_NAME]: vi
+        .fn()
+        .mockImplementationOnce(() => Promise.resolve())
+        .mockImplementationOnce(() =>
+          Promise.reject(new CancelledFailure("cancelled")),
+        ),
+    });
+    // The spend read (0.4) holds the try's run and the undeleted vote; the
+    // tally holds the one vote already deleted.
+    expect(await runCase(INPUT)).toMatchObject({
+      notGradedReason: TRY_CANCELLED_REASON,
+      costUsd: expect.closeTo(0.41),
+    });
+    expect(activities[STOP_RUN_ACTIVITY_NAME]!.mock.calls).toEqual([
+      ["vote_0_1", "the eval was cancelled"],
+      ["run_1", "the eval was cancelled"],
+    ]);
+    expect(activities[RECORD_SCORE_ACTIVITY_NAME]).not.toHaveBeenCalled();
   });
 
   it("leaves the try not graded when a vote cannot be read, stopping that vote and counting every vote's spend", async () => {

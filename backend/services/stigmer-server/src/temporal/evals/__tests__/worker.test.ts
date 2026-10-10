@@ -18,6 +18,7 @@ import {
   newEvalsConfigFromEnv,
 } from "../config.js";
 import {
+  DELETE_VOTE_ACTIVITY_NAME,
   FINISH_EVAL_ACTIVITY_NAME,
   GRADE_TRY_ACTIVITY_NAME,
   LOAD_SUITE_ACTIVITY_NAME,
@@ -85,6 +86,7 @@ describe("the plugin-eval worker factory", () => {
           GRADE_TRY_ACTIVITY_NAME,
           START_VOTE_ACTIVITY_NAME,
           READ_VOTE_ACTIVITY_NAME,
+          DELETE_VOTE_ACTIVITY_NAME,
           RECORD_SCORE_ACTIVITY_NAME,
           TRY_SPEND_ACTIVITY_NAME,
         ].sort(),

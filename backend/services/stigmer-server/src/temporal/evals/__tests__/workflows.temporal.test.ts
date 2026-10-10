@@ -191,6 +191,7 @@ function scriptedActivities(): SuiteActivities &
       vote: { kind: "vote", passed: true, reason: "yes" },
       costUsd: 0,
     }),
+    "stigmer/evals/delete-vote": async () => {},
     "stigmer/evals/record-score": async (_input, started, grade) => ({
       sessionId: started.sessionId,
       runId: started.runId,

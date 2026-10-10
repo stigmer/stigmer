@@ -16,10 +16,13 @@
  *     a timeout.
  *   - Grade: the code graders over the try's trace; then each AI-graded
  *     check's three votes, one after another, each a judge run in a session
- *     of its own, each read and its session deleted before the next. A
- *     vote whose read fails past its retries is stopped, and the try is not
- *     graded, "the AI-graded check could not be read", with what its run
- *     and every vote spent (the unread vote's read from its stored run).
+ *     of its own, each read and then its session deleted before the next
+ *     (two steps, so a retried read reads the same vote; a vote's cost
+ *     joins the workflow's tally once its session, which held it, is
+ *     deleted). A vote whose read fails past its retries is stopped, and
+ *     the try is not graded, "the AI-graded check could not be read", with
+ *     what its run and every vote spent (the unread vote's read from its
+ *     stored run).
  *   - Record: the votes tallied (two of three decide), the try's score,
  *     and its Score on its run.
  *
@@ -63,6 +66,7 @@ import {
 
 import {
   CANNOT_ACT_REASON,
+  DELETE_VOTE_ACTIVITY_NAME,
   GRADE_TRY_ACTIVITY_NAME,
   GRADING_FAILED_REASON,
   OUT_OF_CREDIT_REASON,
@@ -314,8 +318,8 @@ async function runTry(input: CaseInput, known: Known): Promise<TryResult> {
 }
 
 /**
- * One vote: start, wait within its budget, read (graders/llm.ts).
- * Undefined when the read fails past its retries; the vote's run is then
+ * One vote: start, wait within its budget, read (graders/llm.ts), delete
+ * its session. Undefined when the read fails past its retries; the vote's run is then
  * stopped and left in `known.voteRunId`, its spend still stored.
  */
 async function vote(
@@ -362,6 +366,14 @@ async function vote(
     await stopQuietly(start.voteRunId, UNREAD_VOTE_STOP_REASON);
     await awaitRun(start.voteRunId, STOP_GRACE_MS);
     return undefined;
+  }
+  try {
+    await steps[DELETE_VOTE_ACTIVITY_NAME](start.voteRunId);
+  } catch (error) {
+    if (isCancellation(error)) {
+      throw error;
+    }
+    // The session is left; the vote was read, and its cost is counted here.
   }
   known.voteRunId = "";
   return read;

@@ -33,10 +33,13 @@
  *     of the eval's spending limit", and asks no votes: the spend policy
  *     and the concurrency never move a score. A run a lower cap stopped
  *     (its agent's own, its profile's) is graded as a stopped run.
- *   - start-vote, read-vote: one vote of an AI-graded check, a judge run in
- *     its own session (graders/llm.ts), adopted on a retry through the run
- *     list index's `grades` key; read strictly, stopped if still going, and
- *     its session deleted, as the AI judge's grading deletes its own.
+ *   - start-vote, read-vote, delete-vote: one vote of an AI-graded check, a
+ *     judge run in its own session (graders/llm.ts), adopted on a retry
+ *     through the run list index's `grades` key; read strictly and stopped
+ *     if still going; then its session deleted, as the AI judge's grading
+ *     deletes its own. The read deletes nothing, so a read retried after
+ *     its answer was lost reads the same vote and cost again; the delete
+ *     is its own step, and a vote or session already gone is deleted.
  *   - try-spend: what a try's run and its stored votes spent, found by
  *     the eval's label and the try's run name, for the workflows to count
  *     a try whose own workflow could not report it.
@@ -122,6 +125,7 @@ import type { EvalContext, EvalContextLoader } from "./context.js";
 import { cellOf, loadRun, pluginNameOf, wantedFilesOf } from "./context.js";
 import {
   CANNOT_ACT_REASON,
+  DELETE_VOTE_ACTIVITY_NAME,
   GRADE_TRY_ACTIVITY_NAME,
   OUT_OF_CREDIT_REASON,
   PLUGIN_EVAL_BUSY_FAILURE_TYPE,
@@ -551,8 +555,14 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         default:
           read = { kind: "failed", reason: JUDGE_NOT_FINISHED_REASON };
       }
-      await deleteSession(deps, sessionIdOf(vote.spec));
       return { vote: read, costUsd };
+    },
+
+    [DELETE_VOTE_ACTIVITY_NAME]: async (voteRunId): Promise<void> => {
+      const vote = await loadRun(deps.store, voteRunId);
+      if (vote !== undefined) {
+        await deleteSession(deps, sessionIdOf(vote.spec));
+      }
     },
 
     [RECORD_SCORE_ACTIVITY_NAME]: async (

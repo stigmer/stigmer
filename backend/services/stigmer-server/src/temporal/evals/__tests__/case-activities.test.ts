@@ -26,8 +26,11 @@
  *     the seam refuses; a refused create (credit, the run's own reason, a
  *     failure outside the RPC contract);
  *   - read-vote: a vote run gone; an answer that cannot be read; each
- *     ended phase; a session already gone, one whose delete fails, a vote
- *     with no session;
+ *     ended phase; its session kept, so a read retried after a lost answer
+ *     reads the same vote and cost;
+ *   - delete-vote: the vote's session deleted, once and again; a vote run
+ *     gone; a session already gone, one whose delete fails, a vote with no
+ *     session;
  *   - try-spend: no run found is no spend; the try's run found by label
  *     and name, its cost and its stored votes' added;
  *   - record-score: an eval gone; a grader the grade has no outcome for;
@@ -88,6 +91,7 @@ import type { EvalContextLoader } from "../context.js";
 import { newEvalContextLoader } from "../context.js";
 import {
   CANNOT_ACT_REASON,
+  DELETE_VOTE_ACTIVITY_NAME,
   GRADE_TRY_ACTIVITY_NAME,
   OUT_OF_CREDIT_REASON,
   PLUGIN_UPDATED_REASON,
@@ -947,7 +951,23 @@ describe("read-vote beside a readable answer", () => {
       message: "a vote's answer could not be read",
       fields: { voteRunId: id },
     });
-    expect(record.deletedSessions).toEqual(["ses_vote"]);
+    expect(record.deletedSessions).toEqual([]);
+  });
+
+  it("keeps the vote's session, so a read retried after a lost answer reads the same vote and cost", async () => {
+    const { cases, record } = build();
+    const id = await storedVote({
+      phase: RunPhase.RUN_COMPLETED,
+      structuredOutput: { compare: { result: "passed", reason: "matches" } },
+      streamingUsage: { estimatedCostUsd: 0.03 },
+    });
+    const first = await cases[READ_VOTE_ACTIVITY_NAME](id, "compare");
+    expect(first).toEqual({
+      vote: { kind: "vote", passed: true, reason: "matches" },
+      costUsd: 0.03,
+    });
+    expect(await cases[READ_VOTE_ACTIVITY_NAME](id, "compare")).toEqual(first);
+    expect(record.deletedSessions).toEqual([]);
   });
 
   it.each([
@@ -964,9 +984,43 @@ describe("read-vote beside a readable answer", () => {
         costUsd: 0,
       });
       expect(record.terminated).toEqual([]);
-      expect(record.deletedSessions).toEqual(["ses_vote"]);
+      expect(record.deletedSessions).toEqual([]);
     },
   );
+});
+
+describe("delete-vote", () => {
+  /** A stored vote run, in session `ses_vote` unless `sessionId` is "". */
+  async function storedVote(sessionId = "ses_vote"): Promise<string> {
+    await temp.store.saveResource(
+      ApiResourceKind.run,
+      "run_vote",
+      RunSchema,
+      create(RunSchema, {
+        metadata: { id: "run_vote", org: ORG },
+        spec:
+          sessionId === ""
+            ? {}
+            : { target: { case: "sessionId", value: sessionId } },
+        status: create(RunStatusSchema, { phase: RunPhase.RUN_COMPLETED }),
+      }),
+    );
+    return "run_vote";
+  }
+
+  it("deletes the vote's session, and a retry deletes it again harmlessly", async () => {
+    const { cases, record } = build();
+    const id = await storedVote();
+    await cases[DELETE_VOTE_ACTIVITY_NAME](id);
+    await cases[DELETE_VOTE_ACTIVITY_NAME](id);
+    expect(record.deletedSessions).toEqual(["ses_vote", "ses_vote"]);
+  });
+
+  it("takes a vote run gone as deleted", async () => {
+    const { cases, record } = build();
+    await expect(cases[DELETE_VOTE_ACTIVITY_NAME]("run_gone")).resolves.toBeUndefined();
+    expect(record.deletedSessions).toEqual([]);
+  });
 
   it("takes a session already gone as deleted, and logs one whose delete fails without throwing", async () => {
     const goneSessions = build({
@@ -975,10 +1029,10 @@ describe("read-vote beside a readable answer", () => {
           Promise.reject(new ConnectError("no session", Code.NotFound)),
       },
     });
-    const id = await storedVote({ phase: RunPhase.RUN_FAILED });
+    const id = await storedVote();
     await expect(
-      goneSessions.cases[READ_VOTE_ACTIVITY_NAME](id, "compare"),
-    ).resolves.toMatchObject({ vote: { kind: "failed" } });
+      goneSessions.cases[DELETE_VOTE_ACTIVITY_NAME](id),
+    ).resolves.toBeUndefined();
     expect(goneSessions.lines).toEqual([]);
 
     const brokenSessions = build({
@@ -987,8 +1041,8 @@ describe("read-vote beside a readable answer", () => {
       },
     });
     await expect(
-      brokenSessions.cases[READ_VOTE_ACTIVITY_NAME](id, "compare"),
-    ).resolves.toMatchObject({ vote: { kind: "failed" } });
+      brokenSessions.cases[DELETE_VOTE_ACTIVITY_NAME](id),
+    ).resolves.toBeUndefined();
     expect(brokenSessions.lines).toEqual([
       {
         level: "error",
@@ -1002,15 +1056,15 @@ describe("read-vote beside a readable answer", () => {
     const { cases, lines } = build({
       sessions: { delete: () => Promise.reject("refused") },
     });
-    const id = await storedVote({ phase: RunPhase.RUN_FAILED });
-    await cases[READ_VOTE_ACTIVITY_NAME](id, "compare");
+    const id = await storedVote();
+    await cases[DELETE_VOTE_ACTIVITY_NAME](id);
     expect(lines.map((line) => line.fields?.["reason"])).toEqual(["refused"]);
   });
 
   it("deletes no session for a vote run that names none", async () => {
     const { cases, record } = build();
-    const id = await storedVote({ phase: RunPhase.RUN_FAILED }, "");
-    await cases[READ_VOTE_ACTIVITY_NAME](id, "compare");
+    const id = await storedVote("");
+    await cases[DELETE_VOTE_ACTIVITY_NAME](id);
     expect(record.deletedSessions).toEqual([]);
   });
 });
