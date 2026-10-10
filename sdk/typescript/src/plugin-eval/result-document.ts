@@ -1,16 +1,21 @@
-// A plugin eval as Claude Code's plugin-eval result document, so a CI script
-// written for `claude plugin eval --json` reads Stigmer's file unchanged,
-// save one field: a case's `aggregates.score` is `null` when none of its
+// A plugin eval in the shape of Claude Code's plugin-eval result document,
+// for the gating scripts its documentation describes: the document carries
+// the fields that documentation lists for them, under its names and
+// meanings, so a script that gates on them reads Stigmer's file. One reads
+// differently: a case's `aggregates.score` is `null` when none of its
 // with-arm tries was graded, where Claude Code always writes a number, so a
 // gate such as `score < 0.8` must handle `null` (the guide says so).
 //
-// Only the fields Claude Code documents are mimicked, under their names and
-// meanings: `schemaVersion` 1, `partial` and `partialReason`, the suite's
-// `aggregates`, each case's `name`, `aggregates.score` and
+// The fields carried: `schemaVersion` 1, `partial` and `partialReason`, the
+// suite's `aggregates`, each case's `name`, `aggregates.score` and
 // `aggregates.delta`, each run's `error` under `arms.with` and
-// `arms.without`, `costUsd` and `durationSeconds`. The format tells scripts
-// to ignore fields they do not recognise, so Stigmer's additions ride
-// beside them: `targets` (every engine and model with its own cases),
+// `arms.without`, `costUsd` and `durationSeconds`. Listed fields for
+// features Stigmer does not have are absent (a run's `aborted` and
+// `skippedPaidGraders`, `claudeVersion`), and the rest of Claude Code's
+// file is not mimicked: its echo of the suite's configuration, its grader
+// definitions and its per-run grader results. The format tells scripts to
+// ignore fields they do not recognise, so Stigmer's additions ride beside
+// them: `targets` (every engine and model with its own cases),
 // `passK` per case, `provisionalDelta`, `notRun` (the cases listed but not
 // run, with the feature named), and per run its id and why it was not
 // graded.

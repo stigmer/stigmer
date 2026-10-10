@@ -159,14 +159,14 @@ their reason.
 
 The exit code tells a script or a CI job what happened:
 
-| Exit code | Meaning                                                                                                                                                                                                                                                                                    |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 0         | Every case that ran reached the threshold and every case loaded                                                                                                                                                                                                                            |
-| 1         | A case scored below the threshold, a case failed to load, no case was found, or an option was not valid; or the eval could not start (the plugin was not found, you may not evaluate it, or the server refused the eval), or the CLI could not read it for about a minute and cancelled it |
-| 2         | Partial: the cost limit was reached or the Organization ran out of credit; the results cover what ran                                                                                                                                                                                      |
-| 3         | The server could not be reached (the CLI's own code for a connection failure)                                                                                                                                                                                                              |
-| 4         | You are not signed in, or your sign-in expired (the CLI's own code for a sign-in failure)                                                                                                                                                                                                  |
-| 130       | Interrupted: the eval was cancelled, by Ctrl+C or any other cancel (the console's Cancel, `stigmer plugin eval cancel`); the results cover the tries that finished                                                                                                                         |
+| Exit code | Meaning                                                                                                                                                                                                                                                                                                                                                                                     |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0         | Every case that ran reached the threshold and every case loaded                                                                                                                                                                                                                                                                                                                             |
+| 1         | A case scored below the threshold, a case failed to load, no case was found, a case's with-plugin tries on a model were all not graded (a case that never ran is not a pass), or an option was not valid; or the eval could not start (the plugin was not found, you may not evaluate it, or the server refused the eval), or the CLI could not read it for about a minute and cancelled it |
+| 2         | Partial: the cost limit was reached or the Organization ran out of credit; the results cover what ran                                                                                                                                                                                                                                                                                       |
+| 3         | The server could not be reached (the CLI's own code for a connection failure)                                                                                                                                                                                                                                                                                                               |
+| 4         | You are not signed in, or your sign-in expired (the CLI's own code for a sign-in failure)                                                                                                                                                                                                                                                                                                   |
+| 130       | Interrupted: the eval was cancelled, by Ctrl+C or any other cancel (the console's Cancel, `stigmer plugin eval cancel`); the results cover the tries that finished                                                                                                                                                                                                                          |
 
 `Δ` never changes the exit code, and neither does a case listed as not run.
 
@@ -177,11 +177,16 @@ says so in place of "Cancelled", and names the command that cancels it:
 
 ## Read the result file
 
-`--json` writes the result document Claude Code writes, so a script written for
-`claude plugin eval --json` reads Stigmer's file unchanged, with one exception:
+`--json` writes a result document in the shape of Claude Code's. It carries the
+fields Claude Code's documentation lists for gating scripts, under the same
+names, so a script that gates on them reads Stigmer's file, with one difference:
 `cases[].aggregates.score` is `null` when none of the case's with-arm tries was
 graded, where Claude Code always writes a number, so a check such as
-`score < 0.8` must handle `null`. These are the format's fields:
+`score < 0.8` must handle `null`. The listed fields for features Stigmer does
+not have (`aborted`, `skippedPaidGraders`, `claudeVersion`) are absent, and the
+rest of Claude Code's file is not mimicked: its copy of the suite's
+configuration, its grader definitions and each run's grader results. These are
+the fields it carries:
 
 | Field                                                  | Meaning                                                                                                                  |
 | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
@@ -264,6 +269,10 @@ reading the suite and not loaded, and the rest of the suite still runs.
   try cannot load the plugin's Skills, as in Claude Code. `Grep` and `Glob` are
   outside that check: a try that lists them can still find a Skill's files by
   searching the plugin's folder.
+- **A turn cap below 10 runs with 10 tool rounds.** A case's `max_turns` below
+  10 runs with the run's minimum of 10 tool rounds, and the case carries a note
+  saying so. A case that counts on a lower cap can pass here and fail under
+  `claude plugin eval`.
 - **`Δ` is provisional.** The with-arm runs on the Agent Stigmer composes for
   the plugin at install, whose instructions name the plugin; the without-arm
   runs on the assistant with nothing attached. So `Δ` measures that Agent's
@@ -315,16 +324,19 @@ an AI-graded check, from its own credit. Tries use its own provider keys. The
 vaults an eval names for its tries' logins and secrets are shared vaults; an
 eval refuses a person's own vault, its creator's included, because in Stigmer
 Cloud every viewer of the plugin reads each try, and a hook's or MCP server's
-output can show what a key unlocked. The cost limit is an estimate, checked
-before each try starts against what the tries already spent plus the share each
-running try may still spend. Each try may spend at most an equal share of what
-is left for the tries that run at once; a try that needs more than its share is
-stopped at it and shown as not graded. Tries already running when the limit is
-reached finish, and so do their AI-graded checks, each vote capped at $0.25, so
-the spend can pass the limit by those. So can a try whose start failed or whose
-stop failed: it is recorded as not graded, and its run may still spend a little
-after that. So can a second run created by a start that raced its own retry: the
-try keeps the first run and stops the other when it finds it.
+output can show what a key unlocked. A shared vault is accepted whoever else may
+use it, so in Stigmer Cloud every viewer of the plugin in the Organization can
+read a try whose output shows a value from an attached vault. Whoever attaches a
+vault chooses that audience. The cost limit is an estimate, checked before each
+try starts against what the tries already spent plus the share each running try
+may still spend. Each try may spend at most an equal share of what is left for
+the tries that run at once; a try that needs more than its share is stopped at
+it and shown as not graded. Tries already running when the limit is reached
+finish, and so do their AI-graded checks, each vote capped at $0.25, so the
+spend can pass the limit by those. So can a try whose start failed or whose stop
+failed: it is recorded as not graded, and its run may still spend a little after
+that. So can a second run created by a start that raced its own retry: the try
+keeps the first run and stops the other when it finds it.
 
 ## Turn a bad run into a test case
 
