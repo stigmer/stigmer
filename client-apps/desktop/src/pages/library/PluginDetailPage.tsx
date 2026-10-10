@@ -9,6 +9,7 @@ import {
   useBreadcrumbOverride,
   type DetailAction,
   useOrgSlugForId,
+  useResolveRunSession,
 } from "@stigmer/react";
 
 /**
@@ -30,6 +31,17 @@ export default function PluginDetailPage() {
   const { copyId, copyQualifiedSlug } = useCopyResource();
   const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
   const { deleteResource, isDeleting } = useDeleteResource("plugin", resourceId, resourceName);
+
+  // An eval's try is a run (run_…); on desktop it is viewed through its
+  // parent session, the resolve-then-navigate pattern of the schedule page.
+  const [pendingRunId, setPendingRunId] = useState<string | null>(null);
+  const { sessionId } = useResolveRunSession(pendingRunId);
+
+  useEffect(() => {
+    if (sessionId) {
+      navigate(`/sessions/${sessionId}`);
+    }
+  }, [sessionId, navigate]);
 
   useEffect(() => () => setLabel(null), [setLabel]);
 
@@ -102,6 +114,7 @@ export default function PluginDetailPage() {
         onCreateAgent={(usages) =>
           navigate(`/library/agents/new?mcp=${usages.map((u) => encodeURIComponent(u.mcpServerRef.slug)).join(",")}`)
         }
+        onNavigateToRun={setPendingRunId}
         actions={actions}
       />
       <ConfirmDialog
