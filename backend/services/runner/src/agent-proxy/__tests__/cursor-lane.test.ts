@@ -249,6 +249,7 @@ describe("terminate: a runner that calls Cursor itself", () => {
       "/v1/proxy/cursor/api2.cursor.sh/auth/exchange%5Fuser%5Fapi%5Fkey",
       "/v1/proxy/cursor/api2.cursor.sh/AUTH/exchange_user_api_key",
       "/v1/proxy/cursor/api2.cursor.sh/auth/other",
+      "/v1/proxy/cursor/api2.cursor.sh/%E0%A4%A",
     ]) {
       const answer = await call(variant, { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION });
       expect(answer.status, variant).toBe(403);
