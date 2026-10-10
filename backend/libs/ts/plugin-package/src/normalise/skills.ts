@@ -22,11 +22,16 @@
  * is invoked, for the rest of the session, which Stigmer does not run, so
  * it is named (`skill-hooks-not-run`) rather than carried silently. Every
  * file under the skill directory is listed for the installer's per-skill
- * archive; only `SKILL.md` is ever read.
+ * archive, except an eval suite: the plugin's (`evals/`, or where the
+ * manifest's `experimental.evals` moved it, by the suite reader's own rule
+ * in `evals/eval-dir.ts`), which a root skill would otherwise carry whole,
+ * and a skill's own `evals/`. An agent the skill is mounted for must not
+ * read the cases it is graded on. Only `SKILL.md` is ever read.
  */
 
 import type { ManifestSet } from "../detect.js";
 import { readText } from "../documents.js";
+import { DEFAULT_EVAL_DIR, resolveEvalDir } from "../evals/eval-dir.js";
 import { basename, comparePaths, joinPath, type PluginFileIndex } from "../files.js";
 import { extractFrontmatter, parseFrontmatter, SKILL_NAME_PATTERN } from "../frontmatter.js";
 import type { Findings } from "../messages.js";
@@ -38,9 +43,10 @@ export const DEFAULT_SKILLS_DIR = "skills";
 export function normaliseSkills(index: PluginFileIndex, set: ManifestSet, findings: Findings): readonly PluginSkill[] {
   const skills: PluginSkill[] = [];
   const seenNames = new Map<string, string>();
+  const suiteDir = resolveEvalDir(set).dir;
 
   for (const dir of discoverSkillDirs(index, set, findings)) {
-    const skill = readSkill(index, dir, set, findings);
+    const skill = readSkill(index, dir, set, suiteDir, findings);
     if (skill === undefined) continue;
     const previous = seenNames.get(skill.name);
     if (previous !== undefined) {
@@ -83,7 +89,7 @@ function discoverSkillDirs(index: PluginFileIndex, set: ManifestSet, findings: F
   return [...dirs].sort(comparePaths);
 }
 
-function readSkill(index: PluginFileIndex, dir: string, set: ManifestSet, findings: Findings): PluginSkill | undefined {
+function readSkill(index: PluginFileIndex, dir: string, set: ManifestSet, suiteDir: string, findings: Findings): PluginSkill | undefined {
   const path = joinPath(dir, SKILL_FILE);
   const text = readText(index, path, "skillMd", findings);
   if (text === undefined) return undefined;
@@ -125,6 +131,12 @@ function readSkill(index: PluginFileIndex, dir: string, set: ManifestSet, findin
     name,
     ...(typeof description === "string" && description !== "" && { description }),
     dir,
-    files: index.filesUnder(dir),
+    files: withoutEvalSuites(index.filesUnder(dir), dir, suiteDir),
   };
+}
+
+/** A skill's files minus the plugin's suite and the skill's own `evals/`. */
+function withoutEvalSuites(files: readonly string[], dir: string, suiteDir: string): readonly string[] {
+  const prefixes = [`${suiteDir}/`, `${joinPath(dir, DEFAULT_EVAL_DIR)}/`];
+  return files.filter((path) => !prefixes.some((prefix) => path.startsWith(prefix)));
 }

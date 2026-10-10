@@ -13,7 +13,8 @@
  * names; any other value is an `eval-dir-invalid` finding and `evals/` is
  * used, the format's rule for an unusable manifest value. The manifest is
  * found by the library's own detection, so the reader and the install never
- * disagree on which manifest a plugin has.
+ * disagree on which manifest a plugin has, and the rule is `eval-dir.ts`'s,
+ * which the skill listing shares to leave the suite out of every skill.
  *
  * A case is a directory under the suite holding `prompt.md` or `case.yaml`;
  * a directory that is neither may group cases beneath it, and everything
@@ -36,7 +37,7 @@
 
 import { isJsonObject, type JsonObject, readCapped } from "../documents.js";
 import { detectManifests } from "../detect.js";
-import { basename, comparePaths, decodeUtf8, isContainedPath, joinPath, PluginFileIndex, type PluginFiles } from "../files.js";
+import { basename, comparePaths, decodeUtf8, joinPath, PluginFileIndex, type PluginFiles } from "../files.js";
 import { extractFrontmatter, parseFrontmatter } from "../frontmatter.js";
 import { Findings } from "../messages.js";
 import {
@@ -52,11 +53,11 @@ import {
   unknownKeys,
   wrong,
 } from "./fields.js";
+import { DEFAULT_EVAL_DIR, resolveEvalDir } from "./eval-dir.js";
 import { readGrader } from "./graders.js";
 import type { EvalCase, EvalCaseContext, EvalGrader, EvalSuite, EvalSuiteFinding } from "./types.js";
 
-/** The suite's directory when the manifest names none. */
-export const DEFAULT_EVAL_DIR = "evals";
+export { DEFAULT_EVAL_DIR } from "./eval-dir.js";
 
 /** Graders a case may carry and still run: one Score criterion per grader, and a Score holds 32. */
 export const EVAL_MAX_GRADERS = 32;
@@ -145,7 +146,7 @@ const CONTEXT_KEYS: ReadonlySet<string> = new Set(["scaffold_script", "add_dirs"
 export function readEvalSuite(files: PluginFiles): EvalSuite {
   const index = new PluginFileIndex(files);
   const findings: EvalSuiteFinding[] = [];
-  const dir = resolveEvalDir(index, findings);
+  const dir = suiteDir(index, findings);
   const suiteMocks = index.isDirectory(`${dir}/mocks`);
 
   const cases: EvalCase[] = [];
@@ -167,21 +168,19 @@ export function readEvalSuite(files: PluginFiles): EvalSuite {
   return { dir, cases, findings };
 }
 
-function resolveEvalDir(index: PluginFileIndex, findings: EvalSuiteFinding[]): string {
+function suiteDir(index: PluginFileIndex, findings: EvalSuiteFinding[]): string {
   // The install reports manifest problems; this read only needs the value.
-  const set = detectManifests(index, new Findings());
-  const declared = set?.manifests.find((manifest) => manifest.evalsDir !== undefined)?.evalsDir;
-  if (declared === undefined) return DEFAULT_EVAL_DIR;
-  const { value, manifest } = declared;
-  if (typeof value === "string" && isContainedPath(value)) return value;
-  findings.push({
-    kind: "eval-dir-invalid",
-    path: manifest,
-    message:
-      `${manifest}: experimental.evals ${JSON.stringify(value)} is not a relative path of plain directory names ` +
-      `(such as 'qa' or 'quality/evals'); using ${DEFAULT_EVAL_DIR}/`,
-  });
-  return DEFAULT_EVAL_DIR;
+  const { dir, unusable } = resolveEvalDir(detectManifests(index, new Findings()));
+  if (unusable !== undefined) {
+    findings.push({
+      kind: "eval-dir-invalid",
+      path: unusable.manifest,
+      message:
+        `${unusable.manifest}: experimental.evals ${JSON.stringify(unusable.value)} is not a relative path of plain directory names ` +
+        `(such as 'qa' or 'quality/evals'); using ${DEFAULT_EVAL_DIR}/`,
+    });
+  }
+  return dir;
 }
 
 /** Every case directory under the suite, sorted by path. */
