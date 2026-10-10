@@ -8,9 +8,8 @@
  * with a clear error — use git_repo for cloud deployments.
  */
 
-import { existsSync, statSync, symlinkSync, readlinkSync, unlinkSync, mkdirSync } from "node:fs";
 import { join, isAbsolute } from "node:path";
-import { realpathSync } from "node:fs";
+import { agentFs } from "../../agent-fs.js";
 import {
   WorkspaceProvisionError,
   type ProvisionResult,
@@ -23,7 +22,7 @@ export interface LocalPathProvisionOptions {
   backendRootDir?: string;
 }
 
-export function provisionLocalPath(options: LocalPathProvisionOptions): ProvisionResult {
+export async function provisionLocalPath(options: LocalPathProvisionOptions): Promise<ProvisionResult> {
   const { path, isLocalMode, targetSubdir, backendRootDir } = options;
 
   if (!isLocalMode) {
@@ -41,14 +40,15 @@ export function provisionLocalPath(options: LocalPathProvisionOptions): Provisio
     );
   }
 
-  if (!existsSync(path)) {
+  const stats = await agentFs().stat(path).catch(() => undefined);
+  if (stats === undefined) {
     throw new WorkspaceProvisionError(
       "local_path",
       `Path does not exist: '${path}'`,
     );
   }
 
-  if (!statSync(path).isDirectory()) {
+  if (!stats.isDirectory()) {
     throw new WorkspaceProvisionError(
       "local_path",
       `Path is not a directory: '${path}'`,
@@ -56,7 +56,7 @@ export function provisionLocalPath(options: LocalPathProvisionOptions): Provisio
   }
 
   if (targetSubdir && backendRootDir) {
-    createEntrySymlink(backendRootDir, targetSubdir, path);
+    await createEntrySymlink(backendRootDir, targetSubdir, path);
   }
 
   return {
@@ -75,17 +75,18 @@ export function provisionLocalPath(options: LocalPathProvisionOptions): Provisio
   };
 }
 
-function createEntrySymlink(backendRootDir: string, targetSubdir: string, path: string): void {
+async function createEntrySymlink(backendRootDir: string, targetSubdir: string, path: string): Promise<void> {
+  const fs = agentFs();
   const linkPath = join(backendRootDir, targetSubdir);
 
   try {
-    const existing = readlinkSync(linkPath);
-    if (realpathSync(existing) === realpathSync(path)) return;
-    unlinkSync(linkPath);
+    const existing = await fs.readlink(linkPath);
+    if ((await fs.realpath(existing)) === (await fs.realpath(path))) return;
+    await fs.unlink(linkPath);
   } catch {
     // link doesn't exist — will create below
   }
 
-  mkdirSync(backendRootDir, { recursive: true });
-  symlinkSync(path, linkPath);
+  await fs.mkdir(backendRootDir, { recursive: true });
+  await fs.symlink(path, linkPath);
 }

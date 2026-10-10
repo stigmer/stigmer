@@ -33,6 +33,7 @@ import {
   meetsGitCredentialFloor,
   runNetworkGit,
 } from "../git-credential.js";
+import { agentHostEnvironment } from "../../../agent-host/environment.js";
 import { LocalWorkspaceBackend } from "../local-backend.js";
 import { provisionGit } from "../sources/git.js";
 import { WriteBackCoordinator } from "../writeback-coordinator.js";
@@ -92,6 +93,26 @@ describe("the header and the floor", () => {
     expect(env.GIT_CONFIG_KEY_2).toBe("core.hooksPath");
     expect(env.GIT_CONFIG_KEY_6).toBe("http.https://github.com/.extraheader");
     expect(gitTokenEnv(TOKEN, { GIT_CONFIG_COUNT: "garbage" }).GIT_CONFIG_COUNT).toBe("5");
+  });
+
+  it("numbers from the environment the command runs with: a separating runner's host, which drops the runner's own entries", () => {
+    const runner = { PATH: process.env.PATH, GIT_CONFIG_COUNT: "2", GIT_CONFIG_KEY_0: "safe.directory", GIT_CONFIG_VALUE_0: "*", GIT_CONFIG_KEY_1: "user.name", GIT_CONFIG_VALUE_1: "runner" };
+    const host = agentHostEnvironment(runner, true);
+    expect(host.GIT_CONFIG_COUNT).toBeUndefined();
+    const readHeader = (inherited: NodeJS.ProcessEnv) =>
+      execFileSync("git", ["config", "--get", "http.https://github.com/.extraheader"], { env: { ...host, ...gitTokenEnv(TOKEN, inherited) }, encoding: "utf8" }).trim();
+    expect(readHeader(host)).toBe(`AUTHORIZATION: basic ${BASIC}`);
+    // Numbered from the runner's own environment, the entries start at 2 and git refuses the gap.
+    expect(() => readHeader(runner)).toThrow(/GIT_CONFIG_KEY_0/);
+  });
+
+  it("takes the agent host's environment by default, which on a runner that does not separate keeps the runner's entries", () => {
+    vi.stubEnv("GIT_CONFIG_COUNT", "1");
+    try {
+      expect(gitTokenEnv(TOKEN).GIT_CONFIG_COUNT).toBe("6");
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it("reads 2.31 and later as meeting the floor, and nothing older or unreadable", () => {

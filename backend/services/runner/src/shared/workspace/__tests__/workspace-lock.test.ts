@@ -76,6 +76,13 @@ describe("acquireWorkspaceLock", () => {
     await release();
   });
 
+  it("locks a workspace root that does not exist yet on its absolute spelling", async () => {
+    const missing = join(baseDir, "not-yet");
+    const release = await acquireWorkspaceLock(missing, { lockDir });
+    await expect(acquireWorkspaceLock(missing, { lockDir, pollIntervalMs: 20, timeoutMs: 100 })).rejects.toBeInstanceOf(WorkspaceLockTimeoutError);
+    await release();
+  });
+
   it("does not contend across distinct workspaces", async () => {
     const otherDir = join(baseDir, "other-workspace");
     await mkdir(otherDir, { recursive: true });

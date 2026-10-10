@@ -43,8 +43,7 @@
  * Turn-end removal is the conservative half: it only ever removes a SYMLINK.
  */
 
-import { cp, lstat, mkdir, readdir, readlink, realpath, rename, rm, rmdir, symlink, unlink } from "node:fs/promises";
-import type { Stats } from "node:fs";
+import { agentFs, type AgentStats } from "../agent-fs.js";
 import { dirname, isAbsolute, join, relative, sep } from "node:path";
 import { getDisplacedDir } from "./platform-dir.js";
 
@@ -65,37 +64,37 @@ export async function ensureStigmerSymlink(
 ): Promise<void> {
   const linkPath = join(workspaceDir, STIGMER_LOCAL_STATE_DIR);
 
-  let entry: Stats | undefined;
+  let entry: AgentStats | undefined;
   try {
-    entry = await lstat(linkPath);
+    entry = await agentFs().lstat(linkPath);
   } catch (err) {
     if (errnoCode(err) !== "ENOENT") throw err;
   }
 
   if (entry?.isSymbolicLink()) {
-    if ((await readlink(linkPath)) === platformDir) return;
-    await unlink(linkPath);
+    if ((await agentFs().readlink(linkPath)) === platformDir) return;
+    await agentFs().unlink(linkPath);
   } else if (entry !== undefined) {
     await displaceRealEntry(linkPath, platformDir, entry);
   }
 
-  await symlink(platformDir, linkPath, "dir");
+  await agentFs().symlink(platformDir, linkPath);
 }
 
 /**
  * Clear a real `.stigmer` entry out of the link's place without losing it:
  * refuse the Stigmer home, remove an empty directory, move anything else.
  */
-async function displaceRealEntry(linkPath: string, platformDir: string, entry: Stats): Promise<void> {
+async function displaceRealEntry(linkPath: string, platformDir: string, entry: AgentStats): Promise<void> {
   if (entry.isDirectory()) {
     await refuseDirHoldingPlatform(linkPath, platformDir);
-    if ((await readdir(linkPath)).length === 0) {
-      await rmdir(linkPath);
+    if ((await agentFs().readdir(linkPath)).length === 0) {
+      await agentFs().rmdir(linkPath);
       return;
     }
   }
   const destination = getDisplacedDir(platformDir, displacementStamp(new Date()));
-  await mkdir(dirname(destination), { recursive: true });
+  await agentFs().mkdir(dirname(destination), { recursive: true });
   await moveEntry(linkPath, destination);
   console.warn(
     `ensureStigmerSymlink: moved the real ${linkPath} out of the workspace to ${destination}; ` +
@@ -111,7 +110,7 @@ async function displaceRealEntry(linkPath: string, platformDir: string, entry: S
  * either side cannot slip past.
  */
 async function refuseDirHoldingPlatform(linkPath: string, platformDir: string): Promise<void> {
-  const [realLink, realPlatform] = await Promise.all([realpath(linkPath), realpath(platformDir)]);
+  const [realLink, realPlatform] = await Promise.all([agentFs().realpath(linkPath), agentFs().realpath(platformDir)]);
   const fromLink = relative(realLink, realPlatform);
   const outside = fromLink === ".." || fromLink.startsWith(`..${sep}`) || isAbsolute(fromLink);
   if (!outside) {
@@ -125,11 +124,11 @@ async function refuseDirHoldingPlatform(linkPath: string, platformDir: string): 
 /** Rename, or copy then remove when the destination is on another filesystem (a cloud workspace volume and `$HOME` are). */
 async function moveEntry(source: string, destination: string): Promise<void> {
   try {
-    await rename(source, destination);
+    await agentFs().rename(source, destination);
   } catch (err) {
     if (errnoCode(err) !== "EXDEV") throw err;
-    await cp(source, destination, { recursive: true, errorOnExist: true, force: false, verbatimSymlinks: true });
-    await rm(source, { recursive: true, force: true });
+    await agentFs().cp(source, destination, { recursive: true, errorOnExist: true, force: false, verbatimSymlinks: true });
+    await agentFs().rm(source, { recursive: true, force: true });
   }
 }
 
@@ -153,7 +152,7 @@ function errnoCode(err: unknown): string | undefined {
  */
 export async function stigmerSymlinkPointsAt(workspaceDir: string, platformDir: string): Promise<boolean> {
   try {
-    return (await readlink(join(workspaceDir, STIGMER_LOCAL_STATE_DIR))) === platformDir;
+    return (await agentFs().readlink(join(workspaceDir, STIGMER_LOCAL_STATE_DIR))) === platformDir;
   } catch {
     return false;
   }
@@ -171,9 +170,9 @@ export async function stigmerSymlinkPointsAt(workspaceDir: string, platformDir: 
 export async function removeStigmerSymlink(workspaceDir: string): Promise<void> {
   const linkPath = join(workspaceDir, STIGMER_LOCAL_STATE_DIR);
   try {
-    const stat = await lstat(linkPath);
+    const stat = await agentFs().lstat(linkPath);
     if (stat.isSymbolicLink()) {
-      await unlink(linkPath);
+      await agentFs().unlink(linkPath);
     }
   } catch (err) {
     if (errnoCode(err) !== "ENOENT") {

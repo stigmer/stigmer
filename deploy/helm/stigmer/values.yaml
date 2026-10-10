@@ -173,15 +173,21 @@ runner:
     # the Secret). Kept on uninstall anyway.
     size: 10Gi
     storageClass: ""
-  # The compose-runner image runs as root by its own contract (it installs
-  # packages at runtime), as it does in compose. Every capability is
-  # dropped. Root is required, not a default to tighten: the image's start
-  # script (/runner/bin/start) refuses to start the runner as any other
-  # user, so a runAsUser or runAsNonRoot here stops the pod at once.
+  # The runner runs as root and starts the agent's side (the engines, their
+  # commands, MCP servers and hooks) as its own user, stigmer-agent (uid
+  # 10001), so nothing an agent runs can read the runner's keys. Every
+  # capability is dropped but the five that needs: SETUID and SETGID to
+  # drop to that user, CHOWN to hand it its home and workspace, KILL to end
+  # its host when it will not exit, DAC_OVERRIDE to write its own state on
+  # volumes it shares with the server. The agent's side holds none of them.
+  # Root is required, not a default to tighten: the image's start script
+  # (/runner/bin/start) refuses to start the runner as any other user, so a
+  # runAsUser or runAsNonRoot here stops the pod at once.
   securityContext:
     allowPrivilegeEscalation: false
     capabilities:
       drop: ["ALL"]
+      add: ["SETUID", "SETGID", "CHOWN", "KILL", "DAC_OVERRIDE"]
     seccompProfile:
       type: RuntimeDefault
   # As server.extraEnv: a name the chart sets itself is refused.

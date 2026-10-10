@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { LocalWorkspaceBackend, initializeLocalWorkspace } from "../local-backend.js";
@@ -89,6 +89,12 @@ describe("LocalWorkspaceBackend", () => {
       await backend.writeFile("target.txt", "second");
       const content = await backend.readFile("target.txt");
       expect(content).toBe("second");
+    });
+
+    it("writes bytes exactly", async () => {
+      const bytes = Buffer.from([0, 255, 10, 13, 0x80]);
+      await backend.writeFileBuffer("blob.bin", bytes);
+      expect(readFileSync(join(root, "blob.bin")).equals(bytes)).toBe(true);
     });
 
     it("supports absolute paths", async () => {

@@ -18,7 +18,7 @@
 // compute what this machine lacks (the loader, /proc, root) and expect
 // exactly that beside the tools a case hides. The success case (the Node
 // beside the script exec'd with its arguments unchanged, NODE_OPTIONS and
-// NODE_PATH gone) and the release cases, which the script reaches only
+// NODE_PATH gone, STIGMER_RUNNER_LAYER set) and the release cases, which the script reaches only
 // once the base passes, run only as root on glibc and otherwise skip. The
 // runner lane runs this file again as root in Node's Debian image, with
 // STIGMER_TEST_AS_ROOT=1, where that skip is a failure; the image itself
@@ -65,13 +65,17 @@ const isRoot = process.getuid?.() === 0;
 const work = mkdtempSync(join(tmpdir(), "runner-layer-start-"));
 after(() => rmSync(work, { recursive: true, force: true }));
 
-/** A directory holding links to the named tools from this machine's PATH. */
+/**
+ * A directory holding links to the named tools from this machine's PATH. The
+ * script only asks whether each is there (it runs none of them), so a tool
+ * this machine lacks (setpriv, on macOS) is stood in for by a stub.
+ */
 function pathWith(tools) {
   const dir = mkdtempSync(join(work, "path-"));
   for (const tool of tools) {
     const real = which(tool);
-    assert.ok(real, `this machine has no ${tool} to put on the case's PATH`);
-    symlinkSync(real, join(dir, tool));
+    if (real) symlinkSync(real, join(dir, tool));
+    else writeFileSync(join(dir, tool), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
   }
   return dir;
 }
@@ -89,7 +93,7 @@ function layerBin(release) {
   copyFileSync(SCRIPT, join(bin, "start"));
   writeFileSync(
     join(bin, "node"),
-    '#!/bin/sh\nprintf "args=%s|" "$@"\nprintf "NODE_OPTIONS=%s NODE_PATH=%s\\n" "${NODE_OPTIONS-unset}" "${NODE_PATH-unset}"\n',
+    '#!/bin/sh\nprintf "args=%s|" "$@"\nprintf "NODE_OPTIONS=%s NODE_PATH=%s LAYER=%s\\n" "${NODE_OPTIONS-unset}" "${NODE_PATH-unset}" "${STIGMER_RUNNER_LAYER-unset}"\n',
     { mode: 0o755 },
   );
   if (release !== undefined) writeFileSync(join(root, "RELEASE"), release);
@@ -177,7 +181,7 @@ test("a layer of the server's own release starts, with or without the file's new
       STIGMER_SERVER_RELEASE: "3.42.0-rc.1",
     });
     assert.equal(result.status, 0, result.stderr);
-    assert.equal(result.stdout, "args=/runner/dist/main.js|NODE_OPTIONS=unset NODE_PATH=unset\n");
+    assert.equal(result.stdout, "args=/runner/dist/main.js|NODE_OPTIONS=unset NODE_PATH=unset LAYER=1\n");
     assert.deepEqual(withoutToolWarnings(result.stderr), []);
   }
 });
@@ -196,7 +200,7 @@ test("a layer naming no release, empty or without the file, is warned about unde
       STIGMER_SERVER_RELEASE: "3.42.0",
     });
     assert.equal(result.status, 0, result.stderr);
-    assert.equal(result.stdout, "args=/runner/dist/main.js|NODE_OPTIONS=unset NODE_PATH=unset\n");
+    assert.equal(result.stdout, "args=/runner/dist/main.js|NODE_OPTIONS=unset NODE_PATH=unset LAYER=1\n");
     assert.deepEqual(withoutToolWarnings(result.stderr), [
       `stigmer runner: warning: this runner layer names no release, so it is not checked against the server, which is 3.42.0 (${GUIDE_URL})`,
     ]);
@@ -212,7 +216,7 @@ test(
       NODE_PATH: "/somewhere",
     });
     assert.equal(result.status, 0, result.stderr);
-    assert.equal(result.stdout, "args=/runner/dist/main.js|args=a b|NODE_OPTIONS=unset NODE_PATH=unset\n");
+    assert.equal(result.stdout, "args=/runner/dist/main.js|args=a b|NODE_OPTIONS=unset NODE_PATH=unset LAYER=1\n");
     const warnings = result.stderr.trimEnd().split("\n");
     assert.deepEqual(
       warnings.map((line) => line.match(/^stigmer runner: warning: (\S+) is not on PATH/)?.[1]),

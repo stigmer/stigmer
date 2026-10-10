@@ -18,13 +18,17 @@
  */
 
 import { dirname, join } from "node:path";
-import { mkdir } from "node:fs/promises";
-import { homedir } from "node:os";
+import { agentFs } from "../agent-fs.js";
+import { agentStateHome } from "../agent-identity.js";
 import { createHash } from "node:crypto";
 
-/** The runner-owned `~/.stigmer` root (overridable via HOME for tests/sandboxes). */
+/**
+ * The home `~/.stigmer` hangs from: the agent's (`shared/agent-identity.ts`),
+ * which is this process's `HOME` unless the runner separates (overridable
+ * via HOME for tests/sandboxes).
+ */
 function getStigmerHome(): string {
-  return process.env.HOME || process.env.USERPROFILE || homedir();
+  return agentStateHome();
 }
 
 /** Root of a session's runner-owned directory tree (outside the workspace). */
@@ -67,7 +71,7 @@ export function getHitlGatesRoot(): string {
  */
 export async function ensureHitlGateDir(workspaceRoot: string): Promise<string> {
   const dir = getHitlGateDir(workspaceRoot);
-  await mkdir(dir, { recursive: true });
+  await agentFs().mkdir(dir, { recursive: true });
   return dir;
 }
 
@@ -101,7 +105,7 @@ export function getCheckpointDbPath(sessionId: string): string {
  * executions, HITL reinvocations, and activity retries.
  */
 export async function ensureCheckpointDbPath(sessionId: string): Promise<string> {
-  await mkdir(getSessionDir(sessionId), { recursive: true });
+  await agentFs().mkdir(getSessionDir(sessionId), { recursive: true });
   return getCheckpointDbPath(sessionId);
 }
 
@@ -113,7 +117,7 @@ export async function ensureCheckpointDbPath(sessionId: string): Promise<string>
  */
 export async function ensurePlatformDir(sessionId: string): Promise<string> {
   const dir = getPlatformDir(sessionId);
-  await mkdir(dir, { recursive: true });
+  await agentFs().mkdir(dir, { recursive: true });
   return dir;
 }
 
@@ -154,6 +158,6 @@ export function getHitlDir(sessionId: string): string {
  */
 export async function ensureHitlDir(sessionId: string): Promise<string> {
   const dir = getHitlDir(sessionId);
-  await mkdir(dir, { recursive: true });
+  await agentFs().mkdir(dir, { recursive: true });
   return dir;
 }

@@ -271,8 +271,7 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       await persistsFromOutside.boot(subject.config);
       clock.reset();
       const driver = new RuntimeExecutionDriver(fromOutside, "fake-persists-from-outside");
-      const invocation = await driver.turn([]);
-      outside.close();
+      const invocation = await driver.turn([]).finally(() => outside.close());
 
       expect(persisted).toBe("persisted");
       expect(slimOf(fromOutside.subject, invocation).phase).toBe("RUN_COMPLETED");

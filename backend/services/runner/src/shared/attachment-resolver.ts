@@ -57,7 +57,7 @@
  * PR for this one pipeline.
  */
 
-import { mkdir, copyFile, readFile, stat, writeFile } from "node:fs/promises";
+import { agentFs } from "./agent-fs.js";
 import { join, basename, dirname, posix } from "node:path";
 import type { Attachment } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import type { ArtifactStorage } from "./artifact-storage.js";
@@ -155,7 +155,7 @@ export async function resolveAttachments(
 
   const platformDir = getPlatformDir(options.sessionId);
   const inputsDir = join(platformDir, INPUTS_SUBDIR);
-  await mkdir(inputsDir, { recursive: true });
+  await agentFs().mkdir(inputsDir, { recursive: true });
 
   // The symlink is what makes `inputs/` visible in the workspace; without it
   // every resolved path below would dangle (the skill resolver also ensures
@@ -195,7 +195,7 @@ async function resolveAttachment(
   // the original attachment.filename no longer names the file on disk, and
   // the vision label must match what the prompt lists.
   const filename = posix.basename(relative);
-  await mkdir(dirname(join(inputsDir, relative)), { recursive: true });
+  await agentFs().mkdir(dirname(join(inputsDir, relative)), { recursive: true });
 
   // Local-mode fast path: the file is already on this machine's disk.
   if (options.mode === "local" && attachment.localPath) {
@@ -218,7 +218,7 @@ async function resolveAttachment(
     return {
       filename,
       relativePath: join(STIGMER_LOCAL_STATE_DIR, INPUTS_SUBDIR, relative),
-      sizeBytes: (await stat(join(inputsDir, relative))).size,
+      sizeBytes: (await agentFs().stat(join(inputsDir, relative))).size,
       ...(renamedFrom !== undefined ? { renamedFrom } : {}),
       ...visionOutcomeFields(vision),
       ...(downloadUrl !== undefined ? { downloadUrl } : {}),
@@ -227,7 +227,7 @@ async function resolveAttachment(
 
   // Universal path: download the uploaded content by storage key.
   const content = await downloadFromStorage(attachment, options);
-  await writeFile(join(inputsDir, relative), content);
+  await agentFs().writeFile(join(inputsDir, relative), content);
 
   // The bytes are already in hand for the file write — offer them to the
   // vision budget before they go out of scope (the sniff decides eligibility;
@@ -269,8 +269,8 @@ async function extractArchive(
     const bytes = await decompressEntry(entry, attachment.filename);
     const relative = posix.join(mountDir, entry.relativePath);
     const dest = join(inputsDir, relative);
-    await mkdir(dirname(dest), { recursive: true });
-    await writeFile(dest, bytes);
+    await agentFs().mkdir(dirname(dest), { recursive: true });
+    await agentFs().writeFile(dest, bytes);
     results.push({
       filename: posix.basename(entry.relativePath),
       relativePath: join(STIGMER_LOCAL_STATE_DIR, INPUTS_SUBDIR, relative),
@@ -284,7 +284,7 @@ async function extractArchive(
 async function bytesOf(attachment: Attachment, options: AttachmentResolverOptions): Promise<Buffer> {
   if (options.mode === "local" && attachment.localPath) {
     try {
-      return await readFile(attachment.localPath);
+      return await agentFs().readFile(attachment.localPath);
     } catch (err) {
       throw new AttachmentResolutionError(
         attachment.filename,
@@ -419,23 +419,23 @@ async function materializeLocalFile(
   visionBudget: VisionBudget | undefined,
 ): Promise<VisionOutcome | undefined> {
   if (!visionBudget || !isVisionCandidate(attachment.contentType, filename)) {
-    await copyFile(attachment.localPath, dest);
+    await agentFs().copyFile(attachment.localPath, dest);
     return undefined;
   }
   // Blind-model check BEFORE the size check: a blind model's oversized image
   // must report the honest model_no_vision reason, never too_large's "resend
   // smaller" advice — and an in-cap image needn't be read at all.
   if (visionBudget.modelCannotSee()) {
-    await copyFile(attachment.localPath, dest);
+    await agentFs().copyFile(attachment.localPath, dest);
     return visionBudget.offerBlind();
   }
-  const info = await stat(attachment.localPath);
+  const info = await agentFs().stat(attachment.localPath);
   if (visionBudget.exceedsImageCap(info.size)) {
-    await copyFile(attachment.localPath, dest);
+    await agentFs().copyFile(attachment.localPath, dest);
     return visionBudget.offerOversized();
   }
-  const content = await readFile(attachment.localPath);
-  await writeFile(dest, content);
+  const content = await agentFs().readFile(attachment.localPath);
+  await agentFs().writeFile(dest, content);
   return visionBudget.offer(filename, attachment.contentType, content);
 }
 

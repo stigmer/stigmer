@@ -877,3 +877,26 @@ function makeMockMcpClient(opts: MockMcpClientOpts) {
     ),
   };
 }
+
+describe("a stdio server discovery starts on a separating runner", () => {
+  const identity = { name: "stigmer-agent", uid: 10001, gid: 10001, home: "/data/agent" };
+
+  it("runs as the agent user through setpriv, with the agent's home, and leaves an HTTP server alone", async () => {
+    const { stdioAsAgent } = await import("../discover-mcp-server.js");
+    const config = {
+      tool: { transport: "stdio" as const, command: "npx", args: ["-y", "some-mcp"], env: { API_URL: "https://example.test" }, cwd: "/workspace" },
+      remote: { transport: "http" as const, url: "https://mcp.example.test" },
+    };
+    expect(stdioAsAgent(config, identity)).toEqual({
+      tool: {
+        transport: "stdio",
+        command: "setpriv",
+        args: ["--reuid=10001", "--regid=10001", "--clear-groups", "--inh-caps=-all", "--no-new-privs", "--", "npx", "-y", "some-mcp"],
+        env: { API_URL: "https://example.test", HOME: "/data/agent" },
+        cwd: "/workspace",
+      },
+      remote: config.remote,
+    });
+    expect(stdioAsAgent(config, null), "a runner that does not separate starts it as before").toBe(config);
+  });
+});

@@ -114,6 +114,10 @@ becomes %20, the encoding a URL's user and path segments read.
   value: stigmer_runner
 - name: WORKSPACE_ROOT_DIR
   value: /data/.stigmer/data/workspace
+# The agent user's home, on the runner's volume beside the runner's own
+# state, so a paused session's checkpoints and approvals persist the same.
+- name: STIGMER_AGENT_HOME
+  value: /data/agent
 - name: ARTIFACT_STORAGE_TYPE
   value: local
 - name: LOCAL_ARTIFACT_PATH
