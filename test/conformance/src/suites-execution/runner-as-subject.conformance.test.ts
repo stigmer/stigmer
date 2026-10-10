@@ -50,7 +50,11 @@
 //     scope refuses; the server's resolver unit arms pin that the person is
 //     the turn's recorded person.) A run reads only the vaults its
 //     conversation chose: an agent carries none, so a usable team vault
-//     serves a member's run only once the conversation lists it, and a schedule's
+//     serves a member's run only once the conversation lists it. A user
+//     signed in through a PlatformClient is no person of their run, so
+//     their run reads no My vault, even their own and even when the
+//     conversation includes it: only the conversation's vaults serve it
+//     (an integrator keeps such a user's keys in a vault it names). A schedule's
 //     vault stops serving its fires once the account that attached it may
 //     no longer use it. A member's run with memory
 //     on, whose agent calls `remember`, writes a Memory whose subject is the
@@ -86,6 +90,7 @@ import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ConnectPhase } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { ScheduleFireOutcome } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
@@ -110,6 +115,11 @@ import { makeApiKey, plaintextKeyOf } from "../support/apikeys";
 import { makeSchedule } from "../support/schedules";
 import { makeSessionSpec } from "../support/sessions";
 import { organizationRole } from "../support/iampolicies";
+import {
+  createPlatformClient,
+  deletePlatformClient,
+  mintUserToken,
+} from "../support/platformclients";
 import { makeSharedVault, myVaultTarget, setSecretsInput, vaultTarget } from "../support/vaults";
 import { RunValueOrigin, agentSourceOf, fetchRunValues, runSourcesOf, sourcesFor } from "../support/run-values";
 import { pollUntil } from "../support/run-poll";
@@ -887,6 +897,106 @@ describe.skipIf(!runnerActsAsRunCreator)(
       );
       expect(teamSource?.origin).toBe(RunValueOrigin.VAULT);
       expect(teamSource?.vaultId).toBe(team.metadata!.id);
+    });
+
+    it("[rpc:RunCommandController.create] a PlatformClient user's run reads no My vault, their own included, even when the conversation includes it: only its vaults serve the run", async (ctx) => {
+      const { lane, mock } = laneOrSkip(ctx);
+      if (!target.capabilities.platformClientTokens) {
+        return ctx.skip("this target's enforcing lane mints no PlatformClient user tokens");
+      }
+      const people = await provisionPeople(lane);
+      const client = await createPlatformClient(people.founder, {
+        org: people.org,
+        name: uniqueName("ras-pc"),
+        signInRole: IamRole.member,
+      });
+      fixtures.defer(() => deletePlatformClient(people.founder, client.id));
+      const user = lane.clientsPresenting(
+        await mintUserToken(people.founder, client.credentials, uniqueName("ras-pc-user")),
+      );
+
+      // The user may keep a My vault (the first write creates it), and the
+      // founder keeps the integrator's copy of the key in a shared vault
+      // every member may use, on an agent that requires it.
+      const userVaultId = await saveToMyVault(user, people.org, {
+        RAS_PC_KEY: "user-own-value",
+      });
+      const team = await people.founder.vaultCommand.create(
+        makeSharedVault({ org: people.org, name: uniqueName("ras-pc-customer") }),
+      );
+      fixtures.defer(() =>
+        people.founder.vaultCommand.delete({ resourceId: team.metadata!.id }),
+      );
+      await people.founder.vaultCommand.setSecrets(
+        setSecretsInput(vaultTarget(people.org, team.metadata!.id), {
+          RAS_PC_KEY: "customer-vault-value",
+        }),
+      );
+      await people.founder.vaultCommand.updateVisibility({
+        resourceId: team.metadata!.id,
+        visibility: ApiResourceVisibility.visibility_org,
+      });
+      const input = makeAgent({
+        org: people.org,
+        name: uniqueName("ras-pc-agent"),
+        env: { RAS_PC_KEY: {} },
+      });
+      input.metadata = {
+        ...input.metadata,
+        visibility: ApiResourceVisibility.visibility_org,
+      };
+      const agent = await people.founder.agentCommand.create(input);
+      fixtures.defer(() =>
+        people.founder.agentCommand.delete({ value: agent.metadata!.id }),
+      );
+
+      // Including My vault reaches nothing: the key only there is missing.
+      const refused = await expectGrpcCode(
+        () =>
+          user.agentExecutionCommand.create(
+            makeAgentExecution({
+              org: people.org,
+              name: uniqueName("ras-pc-mine"),
+              agentRef: agentRefOf(agent),
+              sessionSpec: makeSessionSpec({
+                subject: "platform client user, My vault included",
+                includeMyVault: true,
+              }),
+            }),
+          ),
+        Code.FailedPrecondition,
+        "a PlatformClient user's run whose key is only in their own My vault",
+      );
+      expect(refused.rawMessage).toContain("RAS_PC_KEY");
+
+      // Listed by the conversation, the shared vault serves the run, and the
+      // user's own My vault still contributes nothing.
+      mock.enqueue(anthropicText("Working..."), { delayMs: 30_000 });
+      const created = await user.agentExecutionCommand.create(
+        makeAgentExecution({
+          org: people.org,
+          name: uniqueName("ras-pc-listed"),
+          agentRef: agentRefOf(agent),
+          sessionSpec: makeSessionSpec({
+            subject: "platform client user, customer vault listed",
+            includeMyVault: true,
+            vaults: [team.metadata!.slug],
+          }),
+        }),
+      );
+      fixtures.defer(async () => {
+        mock.releaseHolds();
+        await awaitTerminal(user, created.metadata!.id);
+        await user.agentExecutionCommand.delete({ value: created.metadata!.id });
+      });
+      const sources = await runSourcesOf(user, created.metadata!.id);
+      const source = agentSourceOf(sources, "RAS_PC_KEY");
+      expect(source?.origin, "the key comes from the listed vault").toBe(RunValueOrigin.VAULT);
+      expect(source?.vaultId).toBe(team.metadata!.id);
+      expect(
+        sources.some((entry) => entry.vaultId === userVaultId),
+        "nothing is planned from the user's own My vault",
+      ).toBe(false);
     });
 
     it("[rpc:ScheduleCommandController.trigger] a schedule's vault stops serving its fires once the account that attached it may no longer use it", async (ctx) => {

@@ -2,7 +2,7 @@
  * MCP server creation tour — the walkthrough for "Connect your tools",
  * showing the flow the console ships today: Library → MCP Servers →
  * Add MCP Server → the creation picker (scratch / template / import) → the
- * real three-step creation wizard (identity & transport, environment & auth,
+ * real three-step creation wizard (identity & transport, variables & sign-in,
  * review & create) → the Library with the new server.
  *
  * Deliberately NOT an AI-conversation flow — the console's "Add MCP Server"

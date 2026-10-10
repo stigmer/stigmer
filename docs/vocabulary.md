@@ -349,9 +349,10 @@ An ongoing conversation with an Agent across multiple messages.
 - **Key fields**: `agent_ref` (the Agent the conversation runs; empty for the
   built-in assistant), `status.agent_version_hash` (the Agent version the
   conversation runs until someone updates it), `thread_id` (persists across
-  runs), `subject` (display title), `workspace_entries`, `sandbox_id`. Sessions
-  can add `mcp_server_usages` and `skill_refs` to the Agent's; the Agent's tool
-  lists still govern every tool.
+  runs), `subject` (display title), `workspace_entries`, `sandbox_id`, `vaults`
+  (the vaults the conversation uses, in order) and `include_my_vault` (use each
+  sender's own My vault first). Sessions can add `mcp_server_usages` and
+  `skill_refs` to the Agent's; the Agent's tool lists still govern every tool.
 - **Related terms**: A Session contains multiple runs. Each message exchange
   within a Session is one run. The proto also uses `MessageType` (HUMAN, AI,
   TOOL, SYSTEM) for individual messages.
@@ -664,13 +665,16 @@ Organization an integrator runs for one of its customers.
 
 #### External id
 
-The identifier a parent organization keeps for one of its child organizations:
-an integrator's own customer id (`cust-4411`).
+The identifier an integrator keeps for one of its customers (`cust-4411`), set
+on that customer's child organization or on the vault that holds that customer's
+keys.
 
 - **Capitalize**: No.
 - **API surface**: `OrganizationSpec.external_id`, unique among one parent's
   children; `getByExternalId(parent_org, external_id)`; an Identity Provider's
   `external_id_claim` names the JWT claim that carries it.
+  `VaultSpec.external_id`, unique in the vault's Organization;
+  `getByExternalId(org, external_id)`.
 - **Context rule**: "external id" in prose, `external_id` in identifiers. Not
   "external org id" and not "tenant id".
 
@@ -710,6 +714,11 @@ and decide who may use them.
   `external_id`. Values are write-only: no read returns one. Surfaces name
   vaults in an ordered `vaults` list; a Session also sets `include_my_vault` to
   use each sender's own My vault first. An Agent names no vaults.
+- **Surfaces**: a Session, a Schedule (`agent.vaults`), an Agent Channel, an
+  Agent Share (a public-audience share only: members' runs use their own) and a
+  PlatformClient each carry `vaults`. A run with no person (a schedule fire, a
+  channel or guest message, a PlatformClient user's turn) uses its surface's
+  vaults after the conversation's.
 - **Related terms**: a **secret** is a vault entry matched by its name
   (`OPENAI_API_KEY`). A **connection** (in the console, a **login**) is a vault
   entry matched by the address of the tool or Git host it is for
@@ -920,7 +929,8 @@ mint Stigmer-signed user tokens for embedding Stigmer in your product.
 - **API surface**: `kind: platform_client`, prefix `pc`. proto:
   `iam/platformclient/v1/spec.proto`, `iam/platformclient/v1/token.proto`.
 - **Key fields**: `client_id`, `client_secret_hash`,
-  `create_accounts_on_sign_in`, `sign_in_role`, `allowed_origins`.
+  `create_accounts_on_sign_in`, `sign_in_role`, `allowed_origins`, `vaults` (the
+  integrator's own keys, used by the runs of the users it signs in).
 - **Context rule**: Do not use on the sales site---say "embed Stigmer in your
   app" or "add Stigmer to your product." In quickstart, avoid unless the
   tutorial covers PlatformClient setup. In concepts and how-to, capitalize as
@@ -1049,10 +1059,10 @@ fee reminders every morning at nine.
   `agentic/schedule/v1/spec.proto`. CLI: `stigmer get schedule`,
   `stigmer list schedule`.
 - **Key fields**: `cron` (classic 5-field form, evaluated in `time_zone`),
-  `time_zone` (IANA name), `enabled`, and the target (`agent` with `agent_ref`
-  and `message`). Firing observations (`next_fire_at`, `consecutive_failures`,
-  `paused_reason`) live in `status`, written only by the platform---applying a
-  manifest never touches them.
+  `time_zone` (IANA name), `enabled`, and the target (`agent` with `agent_ref`,
+  `message` and `vaults`). Firing observations (`next_fire_at`,
+  `consecutive_failures`, `paused_reason`) live in `status`, written only by the
+  platform---applying a manifest never touches them.
 - **Disabled vs. paused**: two words, two levers, two writers. A schedule is
   **disabled** when its owner sets `enabled: false` in the spec---the owner's
   switch, cleared by the owner editing the spec. A schedule is **paused** when
@@ -1395,7 +1405,7 @@ and SDK docs use precise technical language. The guidance now lives in
 
 ---
 
-### 4. Cloud README lists "Credential" as a concept
+### 4. Cloud README lists "Credential" as a concept---RESOLVED
 
 **What**: The Cloud README architecture table includes "Credential" as a
 resource type with the description "Encrypted credentials---AWS keys, GitHub
@@ -1413,6 +1423,10 @@ authentication tokens).
 hasn't been implemented, or whether it's a misnomer for vault secrets. Update
 the Cloud README accordingly. If credentials are managed through vaults, remove
 the "Credential" row and clarify in the Vault description.
+
+**Resolution**: The Cloud README no longer has an architecture table, and names
+no Credential, Environment or Vault (checked 2026-10-10). Logins and secrets
+live in vaults ([Vault](#vault)).
 
 ---
 

@@ -91,7 +91,8 @@ refuse a call, ask a person first, or let it run.
 ## Blueprint vs. runtime
 
 An Agent definition is a **blueprint**. It contains zero secrets, zero
-Environment-specific values, and zero runtime state. This separation is a hard
+per-deployment values, and zero runtime state: a value that differs per
+deployment lives in a [vault](/docs/concepts/vaults). This separation is a hard
 architectural invariant — it means the same Agent definition works identically
 in development, staging, and production.
 

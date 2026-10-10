@@ -2,13 +2,13 @@
  * Temporal PayloadCodec that encrypts payloads at rest in workflow
  * history.
  *
- * Why: the workflow engine runs inside the Temporal deterministic
- * sandbox, so decrypted execution-context values cross the history
- * boundary in many places — the hydrate activity result, the runtime
- * env passed as an input to every per-task activity, and expression
- * results recorded as local-activity markers. Encrypting at the payload
- * codec layer closes the entire class with one mechanism instead of
- * chasing each crossing.
+ * Why: Temporal history is durable, and an agent run puts customer data
+ * there at every crossing — the run credential on each runner activity's
+ * input, and each activity result carrying the run's status (its errors,
+ * its pending approvals, what the run said and did). A run's vault values
+ * never ride history (the runner fetches them when the work starts), but
+ * the rest is still a customer's. Encrypting at the payload codec layer
+ * covers every crossing with one mechanism instead of chasing each one.
  *
  * Envelope (cross-SDK contract — the Java decode-only codec in
  * stigmer-cloud's temporal-starter must match it byte-for-byte, pinned

@@ -156,8 +156,8 @@ private static final long serialVersionUID = 0L;
    * Use for authentication, API versioning, or custom routing.
    *
    * Header values can reference environment variables using ${VAR_NAME} syntax.
-   * These placeholders are resolved at runtime from the environment values
-   * the run receives.
+   * These placeholders are filled when the run's work starts, from the vaults
+   * the run uses.
    *
    * Examples:
    * "Authorization": "Bearer ${API_TOKEN}"
@@ -187,8 +187,8 @@ private static final long serialVersionUID = 0L;
    * Use for authentication, API versioning, or custom routing.
    *
    * Header values can reference environment variables using ${VAR_NAME} syntax.
-   * These placeholders are resolved at runtime from the environment values
-   * the run receives.
+   * These placeholders are filled when the run's work starts, from the vaults
+   * the run uses.
    *
    * Examples:
    * "Authorization": "Bearer ${API_TOKEN}"
@@ -208,8 +208,8 @@ private static final long serialVersionUID = 0L;
    * Use for authentication, API versioning, or custom routing.
    *
    * Header values can reference environment variables using ${VAR_NAME} syntax.
-   * These placeholders are resolved at runtime from the environment values
-   * the run receives.
+   * These placeholders are filled when the run's work starts, from the vaults
+   * the run uses.
    *
    * Examples:
    * "Authorization": "Bearer ${API_TOKEN}"
@@ -236,8 +236,8 @@ java.lang.String defaultValue) {
    * Use for authentication, API versioning, or custom routing.
    *
    * Header values can reference environment variables using ${VAR_NAME} syntax.
-   * These placeholders are resolved at runtime from the environment values
-   * the run receives.
+   * These placeholders are filled when the run's work starts, from the vaults
+   * the run uses.
    *
    * Examples:
    * "Authorization": "Bearer ${API_TOKEN}"
@@ -966,8 +966,8 @@ java.lang.String defaultValue) {
      * Use for authentication, API versioning, or custom routing.
      *
      * Header values can reference environment variables using ${VAR_NAME} syntax.
-     * These placeholders are resolved at runtime from the environment values
-     * the run receives.
+     * These placeholders are filled when the run's work starts, from the vaults
+     * the run uses.
      *
      * Examples:
      * "Authorization": "Bearer ${API_TOKEN}"
@@ -997,8 +997,8 @@ java.lang.String defaultValue) {
      * Use for authentication, API versioning, or custom routing.
      *
      * Header values can reference environment variables using ${VAR_NAME} syntax.
-     * These placeholders are resolved at runtime from the environment values
-     * the run receives.
+     * These placeholders are filled when the run's work starts, from the vaults
+     * the run uses.
      *
      * Examples:
      * "Authorization": "Bearer ${API_TOKEN}"
@@ -1018,8 +1018,8 @@ java.lang.String defaultValue) {
      * Use for authentication, API versioning, or custom routing.
      *
      * Header values can reference environment variables using ${VAR_NAME} syntax.
-     * These placeholders are resolved at runtime from the environment values
-     * the run receives.
+     * These placeholders are filled when the run's work starts, from the vaults
+     * the run uses.
      *
      * Examples:
      * "Authorization": "Bearer ${API_TOKEN}"
@@ -1046,8 +1046,8 @@ java.lang.String defaultValue) {
      * Use for authentication, API versioning, or custom routing.
      *
      * Header values can reference environment variables using ${VAR_NAME} syntax.
-     * These placeholders are resolved at runtime from the environment values
-     * the run receives.
+     * These placeholders are filled when the run's work starts, from the vaults
+     * the run uses.
      *
      * Examples:
      * "Authorization": "Bearer ${API_TOKEN}"
@@ -1080,8 +1080,8 @@ java.lang.String defaultValue) {
      * Use for authentication, API versioning, or custom routing.
      *
      * Header values can reference environment variables using ${VAR_NAME} syntax.
-     * These placeholders are resolved at runtime from the environment values
-     * the run receives.
+     * These placeholders are filled when the run's work starts, from the vaults
+     * the run uses.
      *
      * Examples:
      * "Authorization": "Bearer ${API_TOKEN}"
@@ -1113,8 +1113,8 @@ java.lang.String defaultValue) {
      * Use for authentication, API versioning, or custom routing.
      *
      * Header values can reference environment variables using ${VAR_NAME} syntax.
-     * These placeholders are resolved at runtime from the environment values
-     * the run receives.
+     * These placeholders are filled when the run's work starts, from the vaults
+     * the run uses.
      *
      * Examples:
      * "Authorization": "Bearer ${API_TOKEN}"
@@ -1140,8 +1140,8 @@ java.lang.String defaultValue) {
      * Use for authentication, API versioning, or custom routing.
      *
      * Header values can reference environment variables using ${VAR_NAME} syntax.
-     * These placeholders are resolved at runtime from the environment values
-     * the run receives.
+     * These placeholders are filled when the run's work starts, from the vaults
+     * the run uses.
      *
      * Examples:
      * "Authorization": "Bearer ${API_TOKEN}"

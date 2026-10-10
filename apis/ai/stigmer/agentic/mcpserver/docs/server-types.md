@@ -71,7 +71,7 @@ spec:
 
 ### Credential Injection for Stdio
 
-Environment variables are the standard mechanism for injecting credentials into stdio servers. Declare them in the spec's `env` map — the agent runner will populate them from the run's resolved environment before starting the process:
+Environment variables are the standard mechanism for injecting credentials into stdio servers. Declare them in the spec's `env` map — the agent runner fills them from the run's vaults before starting the process:
 
 ```yaml
 spec:
@@ -166,7 +166,7 @@ spec:
 
 ### Environment Variable Interpolation
 
-HTTP headers and query parameter values support `${VAR_NAME}` substitution. Placeholders are resolved at runtime from the run's resolved environment.
+HTTP headers and query parameter values support `${VAR_NAME}` substitution. Placeholders are filled from the run's vaults when the run's work starts.
 
 ```yaml
 headers:
@@ -178,7 +178,7 @@ headers:
 
 | Syntax | Used In | Resolved By | Example |
 |---|---|---|---|
-| `${VAR_NAME}` | HTTP headers and query params | Agent runner, from environment binding | `"Bearer ${API_TOKEN}"` |
+| `${VAR_NAME}` | HTTP headers and query params | Agent runner, from the run's vaults | `"Bearer ${API_TOKEN}"` |
 
 `${VAR_NAME}` is for environment variable injection into the HTTP connection configuration, and nothing else in an McpServer resolves it.
 

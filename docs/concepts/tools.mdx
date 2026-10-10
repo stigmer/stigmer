@@ -70,7 +70,7 @@ its definition for your Organization.
 ## MCP Server resource
 
 An MCP Server is a Stigmer resource that defines a tool connection. It describes
-how to reach the tool server and what Environment variables it needs:
+how to reach the tool server and what environment variables it needs:
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -109,7 +109,7 @@ supported only on sessions that run on a local runner (the desktop app or
 servers when a run is created, with a clear error naming the server and the
 remediation.
 
-### Environment declarations
+### Variable declarations
 
 The `env` map declares what the MCP Server needs at runtime — API keys, service
 URLs, configuration values. A secret is found by its name in a

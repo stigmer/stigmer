@@ -210,7 +210,7 @@ All configuration is environment-driven. Every variable the runner's source read
 
 ### Payload encryption (Temporal history at rest)
 
-The encryption codec encrypts every Temporal payload the runner produces (AES-256-GCM), so decrypted execution-context secrets never rest in workflow history or the Temporal UI. Payloads the runner did not encrypt (orchestrator inputs, signals, pre-rollout histories) pass through untouched. A key without its id — or a malformed key — fails the boot rather than silently running plaintext.
+The encryption codec encrypts every Temporal payload the runner produces (AES-256-GCM), so a run's fetched values never rest in workflow history or the Temporal UI. Payloads the runner did not encrypt (orchestrator inputs, signals, pre-rollout histories) pass through untouched. A key without its id — or a malformed key — fails the boot rather than silently running plaintext.
 
 Keys come from two sources with strict precedence: the env vars below (the operator's explicit choice — self-hosted deployments and cloud sandboxes), or, when the env is silent, server-managed per-identity keys delivered by `getRunnerBootstrapConfig` (desktop-class runners on cloud; held in memory only, re-fetched each boot). See `src/encryption/config.ts`.
 

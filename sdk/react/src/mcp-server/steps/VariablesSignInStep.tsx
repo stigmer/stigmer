@@ -4,8 +4,8 @@ import { useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/theme";
 import type { McpServerWizardData, EnvVarEntry } from "./types.js";
 
-/** Props for {@link EnvironmentAuthStep}. */
-export interface EnvironmentAuthStepProps {
+/** Props for {@link VariablesSignInStep}. */
+export interface VariablesSignInStepProps {
   readonly data: McpServerWizardData;
   readonly updateData: (partial: Partial<McpServerWizardData>) => void;
 }
@@ -22,10 +22,10 @@ export interface EnvironmentAuthStepProps {
  * flow out through `updateData`, so standalone consumers (embedded
  * builders, guided tours) can render any configuration state from props.
  */
-export function EnvironmentAuthStep({
+export function VariablesSignInStep({
   data,
   updateData,
-}: EnvironmentAuthStepProps) {
+}: VariablesSignInStepProps) {
   const baseId = useId();
   const [envExpanded, setEnvExpanded] = useState(data.env.length > 0);
 
@@ -33,11 +33,11 @@ export function EnvironmentAuthStep({
     <div className="stg:flex stg:flex-col stg:gap-6">
       <div>
         <h2 className="stg:text-lg stg:font-semibold stg:text-foreground">
-          Environment & Auth
+          Variables & Sign-in
         </h2>
         <p className="stg:mt-1 stg:text-sm stg:text-muted-foreground">
-          Declare environment variables and configure authentication.
-          Both sections are optional.
+          Declare the variables the server needs and how people sign in to
+          it. Both sections are optional.
         </p>
       </div>
 

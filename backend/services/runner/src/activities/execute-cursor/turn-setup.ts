@@ -325,7 +325,7 @@ export async function prepareHooks(
   const primaryDir = input.workspace.primaryDir;
   const evaluator = await buildHookEvaluator({
     sources: input.hooks.sources,
-    runValues: input.environment,
+    runValues: input.values,
     mcpServers: input.mcp.servers,
     views: new CursorEngineToolViews({
       workspaceRoot: primaryDir,

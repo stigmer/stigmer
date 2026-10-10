@@ -101,7 +101,7 @@ apiVersion: agentic.stigmer.ai/v1
 
 ### Using a placeholder syntax other than `${VAR_NAME}`
 
-HTTP `headers` and `query_params` values resolve `${VAR_NAME}` from the run's resolved environment, at server startup or request time. No other placeholder syntax resolves.
+HTTP `headers` and `query_params` values resolve `${VAR_NAME}` from the run's vaults when the run's work starts. No other placeholder syntax resolves.
 
 ```yaml
 # Wrong — {{}} is not a placeholder here
@@ -160,7 +160,7 @@ env_spec:
     GITHUB_TOKEN:
       description: "GitHub PAT with repo scope"
       is_secret: true
-      # value is empty — provided from the run's resolved environment
+      # value is empty — filled from the run's vaults
 ```
 
 ### Setting `status` fields in YAML

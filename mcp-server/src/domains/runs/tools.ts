@@ -108,9 +108,10 @@ export function registerRunTools(server: McpServer, target: BackendTarget): stri
         "Get a run's status: phase, messages, pending approvals, errors, timing. " +
         "Runs have no event log — poll this tool to track a run started with run_agent " +
         "(terminal phases: completed, failed, cancelled, terminated). The default compact view " +
-        "returns the last few messages and omits bulky bookkeeping fields (resolved context, " +
-        "approval ledger, sub-agent transcripts); total_messages tells you when the tail is a " +
-        "window. Use view=full for the complete record.",
+        "returns the last few messages and omits bulky bookkeeping fields (approval ledger, " +
+        "sub-agent transcripts); total_messages tells you when the tail is a window. " +
+        "credentials.sources names the vault and entry each key the run uses came from, " +
+        "never a value. Use view=full for the complete record.",
       inputSchema: {
         run_id: z.string().describe("Run ID (run_*, or aex_* for a run created before the rename)."),
         view: z

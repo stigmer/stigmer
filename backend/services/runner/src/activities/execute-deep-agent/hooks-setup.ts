@@ -31,7 +31,7 @@ export async function buildHookEvaluator(
   const primaryDir = input.workspace.primaryDir;
   return buildEvaluator({
     sources: input.hooks.sources,
-    runValues: input.environment,
+    runValues: input.values,
     mcpServers: input.mcp.servers,
     views: new NativeToolViews({
       workspaceRoot: primaryDir,

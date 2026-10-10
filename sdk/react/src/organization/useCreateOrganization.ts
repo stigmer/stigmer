@@ -23,7 +23,7 @@ export interface UseCreateOrganizationReturn {
  * state.
  *
  * Creates an Organization resource — a tenancy boundary that owns
- * agents, environments, skills, MCP servers, and other platform
+ * agents, vaults, skills, MCP servers, and other platform
  * resources. The caller provides an {@link OrganizationInput} with
  * `name`, `org`, and optionally `description` and `logoUrl`.
  *

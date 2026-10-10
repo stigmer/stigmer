@@ -36,7 +36,7 @@ export interface McpServerWizardData {
   /** Stdio working directory. */
   readonly stdioWorkingDir: string;
 
-  // --- Step 2: Environment & Auth ---
+  // --- Step 2: Variables & Sign-in ---
   /** Environment variable declarations. */
   readonly env: EnvVarEntry[];
   /** Whether OAuth auth configuration is enabled. */

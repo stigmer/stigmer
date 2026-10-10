@@ -84,7 +84,7 @@
           "messageType": "VaultConnection"
         }
       },
-      "description": "Connections by address. A pasted connection fills the login of an HTTP\n tool at that address, whose requests carry the token there, or clones\n from a Git host such as github.com; a sign-in fills only the tool that\n signed in.",
+      "description": "Connections by address. A pasted login or a sign-in fills the login of\n every HTTP tool at that address, whose requests carry the token there,\n or clones from a Git host such as github.com.",
       "required": false
     }
   ]

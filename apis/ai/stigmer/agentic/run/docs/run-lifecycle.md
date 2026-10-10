@@ -170,7 +170,7 @@ stigmer runs pause run_abc123 --reason "Reviewing progress before continuing"
 
 ### `resume` — Continue from Pause
 
-Sends a "resume" signal to the paused Temporal workflow. The workflow re-invokes the activity with the same execution context; LangGraph loads the checkpoint automatically and continues from the exact pause point.
+Sends a "resume" signal to the paused Temporal workflow. The workflow re-invokes the activity with the same input; LangGraph loads the checkpoint automatically and continues from the exact pause point.
 
 ```bash
 stigmer runs resume run_abc123

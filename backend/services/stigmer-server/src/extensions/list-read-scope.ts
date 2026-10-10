@@ -61,8 +61,8 @@
  *     per edition and is a silent short list the day one edition
  *     forgets (stigmer#1207: a composed driver scoped the class and
  *     every server-internal list read came back empty — the
- *     credential reads at execution-context creation and MCP connect in
- *     this repository, and a composition's own in-process readers of a
+ *     credential reads at run creation and MCP connect in this
+ *     repository, and a composition's own in-process readers of a
  *     session's executions).
  *     The enumeration verb is a wire caller's verb: no in-process edge
  *     reaches `authorizedResourceIds`, and only a scanning driver can

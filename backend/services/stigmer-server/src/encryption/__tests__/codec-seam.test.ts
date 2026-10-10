@@ -328,11 +328,11 @@ describe("EncryptionScope (the Java record's validation invariants)", () => {
   it("attaches keyNames to located scopes for singular encrypts", () => {
     const located = EncryptionScope.forOrganizationResource(
       "acme",
-      "environment",
-      "prod-env",
+      "vault",
+      "vlt_prod",
     ).withKeyName("API_KEY");
     expect(located.keyName).toBe("API_KEY");
-    expect(located.kind).toBe("environment");
-    expect(located.id).toBe("prod-env");
+    expect(located.kind).toBe("vault");
+    expect(located.id).toBe("vlt_prod");
   });
 });

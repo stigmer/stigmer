@@ -34,7 +34,7 @@ describe("SecretFlowErrorGuide", () => {
 
   it("keeps a recover's wrapping prefix out of the declarer", () => {
     const error = preconditionError(
-      "recreate execution context for recovered execution run_1: GitHub needs GITHUB_TOKEN: add GITHUB_TOKEN to My vault",
+      "plan the values of recovered execution run_1: GitHub needs GITHUB_TOKEN: add GITHUB_TOKEN to My vault",
     );
     render(<SecretFlowErrorGuide error={error} />);
     expect(screen.getByText("GitHub")).toBeTruthy();

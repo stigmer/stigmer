@@ -69,8 +69,8 @@
  * by name.
  *
  * Planning (planRun, at create and on recover) reads which names and
- * addresses each vault holds, and which tool each sign-in was made for,
- * from the sealed row; it decrypts nothing and renews nothing. Its result
+ * addresses each vault holds from the sealed row; it decrypts nothing and
+ * renews nothing. Its result
  * is the run's source manifest (RunStatus.credentials.sources): for each
  * key and declarer, the vault by id and the entry, never a value. A
  * required key nothing holds refuses the create with FAILED_PRECONDITION
