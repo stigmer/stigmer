@@ -701,6 +701,26 @@ describe("the case workflow", () => {
     });
   });
 
+  it("keeps the try's ids at no cost when its failed grade's run cannot be found or read", async () => {
+    for (const spend of [
+      vi.fn(() => Promise.resolve({ sessionId: "", runId: "", costUsd: 0 })),
+      vi.fn(() => Promise.reject(new Error("the store is down"))),
+    ]) {
+      caseScript({
+        [GRADE_TRY_ACTIVITY_NAME]: vi.fn(() =>
+          Promise.reject(new Error("store down")),
+        ),
+        [TRY_SPEND_ACTIVITY_NAME]: spend,
+      });
+      expect(await runCase(INPUT)).toMatchObject({
+        notGradedReason: GRADING_FAILED_REASON,
+        sessionId: "ses_1",
+        runId: "run_1",
+        costUsd: 0,
+      });
+    }
+  });
+
   it("leaves a try whose run could not be stopped not graded, with what the run spent", async () => {
     const activities = caseScript({
       [POLL_RUN_ACTIVITY_NAME]: vi.fn(() => Promise.resolve(false)),

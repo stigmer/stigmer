@@ -168,7 +168,10 @@ export async function runCase(input: CaseInput): Promise<TryResult> {
         if (isCancellation(error)) {
           throw error;
         }
-        return await spentNotGraded(input, TRY_NOT_STOPPED_REASON);
+        return await spentNotGraded(input, TRY_NOT_STOPPED_REASON, {
+          sessionId,
+          runId,
+        });
       }
       await awaitRun(runId, STOP_GRACE_MS);
     }
@@ -188,7 +191,7 @@ export async function runCase(input: CaseInput): Promise<TryResult> {
     if (isCancellation(error)) {
       throw error;
     }
-    return spentNotGraded(input, GRADING_FAILED_REASON);
+    return spentNotGraded(input, GRADING_FAILED_REASON, { sessionId, runId });
   }
 
   let voteCost = 0;
@@ -305,21 +308,28 @@ async function awaitRun(runId: string, budgetMs: number): Promise<boolean> {
 
 /**
  * A try not graded for `reason` whose run may have spent: its session, run
- * and cost as the spend activity finds them (nothing found, or a read that
- * fails, is no spend).
+ * and cost as the spend activity finds them. Nothing found, or a read that
+ * fails, is no spend, and keeps the ids the workflow already knows.
  */
 async function spentNotGraded(
   input: CaseInput,
   reason: string,
+  known: { readonly sessionId: string; readonly runId: string } = {
+    sessionId: "",
+    runId: "",
+  },
 ): Promise<TryResult> {
-  let spend = { sessionId: "", runId: "", costUsd: 0 };
+  let spend = { ...known, costUsd: 0 };
   try {
-    spend = await steps[TRY_SPEND_ACTIVITY_NAME](input.evalId, {
+    const found = await steps[TRY_SPEND_ACTIVITY_NAME](input.evalId, {
       caseIndex: input.caseIndex,
       targetIndex: input.targetIndex,
       arm: input.arm,
       tryIndex: input.tryIndex,
     });
+    if (found.runId !== "") {
+      spend = found;
+    }
   } catch (error) {
     if (isCancellation(error)) {
       throw error;

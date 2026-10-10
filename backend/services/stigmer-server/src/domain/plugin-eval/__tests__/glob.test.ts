@@ -60,6 +60,8 @@ describe("path globs", () => {
     ["\\x", "\\x", true],
     ["é?", "éü", true],
     ["[😀-😂]", "😁", true],
+    ["{src/**,lib}*", "src/a/b.ts", true],
+    ["{a/*,b}*", "a/x/y", false],
   ])("%s against %s is %s", (glob, input, expected) => {
     expect(matches(glob, input, "path")).toBe(expected);
   });
@@ -84,6 +86,8 @@ describe("case-name globs", () => {
     ["fix}", "fix}", true],
     ["fix}", "fix", false],
     ["**z", "a/z", true],
+    ["{a*,b}*", "axyz", true],
+    ["{a*,b}*c", "abc", true],
   ])("%s against %s is %s", (glob, input, expected) => {
     expect(matches(glob, input, "name")).toBe(expected);
   });
