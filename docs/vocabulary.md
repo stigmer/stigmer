@@ -673,7 +673,7 @@ keys.
 - **API surface**: `OrganizationSpec.external_id`, unique among one parent's
   children; `getByExternalId(parent_org, external_id)`; an Identity Provider's
   `external_id_claim` names the JWT claim that carries it.
-  `VaultSpec.external_id`, unique in the vault's organization;
+  `VaultSpec.external_id`, unique in the vault's Organization;
   `getByExternalId(org, external_id)`.
 - **Context rule**: "external id" in prose, `external_id` in identifiers. Not
   "external org id" and not "tenant id".

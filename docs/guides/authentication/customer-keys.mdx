@@ -6,7 +6,7 @@ description:
 ---
 
 A product built on Stigmer often needs keys that belong to its customers: Acme
-Helpdesk's agent reads each customer's Zendesk with that customer's own key.
+Helpdesk's Agent reads each customer's Zendesk with that customer's own key.
 Stigmer keeps every key in a [vault](/docs/concepts/vaults), and a conversation
 uses only the vaults it names. This guide shows how to give each customer a
 vault no other customer can name, put a key in it, and replace the key when it
@@ -127,11 +127,10 @@ customer's vault. See
 
 ## What never goes in a vault
 
-A vault holds keys. A customer's context, such as the project or account they
-have open in your product, is not a key, and Stigmer has no per-conversation
-place for values. Your own MCP server carries that context: it knows who is
-calling from the
-[caller identity](/docs/guides/integrations/caller-identity-for-mcp-servers)
+A vault holds keys. A customer's context, such as the project they have open in
+your product, is not a key, and Stigmer has no per-conversation place for
+values. Your own MCP server carries that context: it knows who is calling from
+the [caller identity](/docs/guides/integrations/caller-identity-for-mcp-servers)
 Stigmer sends it, and looks up the rest in your product. The
 [standing user context](/docs/guides/sharing/embed-an-agent#give-the-agent-standing-user-context)
 an embed passes is neither authorization nor a way to send secrets.
