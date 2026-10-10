@@ -618,6 +618,20 @@ test("a rendered fix-check parses back to what was posted", () => {
   assert.match(renderFixCheck({ verdict: "resolved", head: LATER_HEAD, reviewed: LATER_DIGEST, continues: DIGEST, reviewer: "m", security: SECURITY, answers: [], regressions: [] }), /\nAnswers: none\nFindings: none\n$/);
 });
 
+test("a verdict that contradicts itself makes the chain invalid, though only a hand-written one could say so", () => {
+  const noBlocker = reviewState({ comments: [comment("owner", review({ verdict: "changes-needed", findings: `Findings:\n- ${TYPO}` }))], digest: DIGEST, trusted });
+  assert.equal(noBlocker.state, "invalid");
+  assert.match(noBlocker.reason, /a changes-needed names no blocking finding/);
+  const blockedApprove = reviewState({ comments: [comment("owner", review({ findings: `Findings:\n- ${CRASH}` }))], digest: DIGEST, trusted });
+  assert.equal(blockedApprove.state, "invalid");
+  assert.match(blockedApprove.reason, /an approve carries a blocking finding/);
+  // A fix-check after a needs-review continues nothing: that link asked for a full review.
+  const afterNeedsReview = [comment("owner", changesNeeded()), comment("owner", fixCheck({ verdict: "needs-review" })), comment("owner", fixCheck({ head: HEAD, reviewed: LATEST_DIGEST, continues: LATER_DIGEST }))];
+  const result = reviewState({ comments: afterNeedsReview, digest: LATEST_DIGEST, trusted });
+  assert.equal(result.state, "invalid");
+  assert.match(result.reason, /follows a needs-review/);
+});
+
 // postVerdict for a fix-check reads the chain it continues.
 const FIX_BODY = "";
 const FIX_REVIEWED = changeDigest({ changeId: "1234", declarations: declarationText(FIX_BODY) });
@@ -658,6 +672,18 @@ test("a fix-check that skips, invents or continues the wrong link is not posted"
     assert.match(result.lines[0], pattern);
     assert.deepEqual(posted, []);
   }
+});
+
+test("a fix-check that would not read back as posted is not posted", () => {
+  // The answer's note delimiter inside a finding's own text: the comment would
+  // parse to a different finding, and the chain it joins would break.
+  const tricky = "a.ts:3 (blocking) splits -- note: here";
+  const comments = [comment("owner", review({ verdict: "changes-needed", findings: `Findings:\n- ${tricky}` }))];
+  const { lookups, posted } = fixLookups(comments);
+  const result = postFix({ ...resolvedFix, answers: [{ finding: tricky, resolved: true }] }, lookups);
+  assert.equal(result.exit, 1);
+  assert.match(result.lines[0], /would not read back as posted: .*unanswered/);
+  assert.deepEqual(posted, []);
 });
 
 test("a fix-check needs a review to continue, and is refused when the chain asks for a full review", () => {

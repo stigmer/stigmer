@@ -354,9 +354,16 @@ export function reviewState({ comments, digest, trusted }) {
       const which = link === newest ? `the newest ${link.kind}` : `a ${link.kind} in the chain`;
       return { state: "invalid", reason: `${which} does not parse: ${link.problems.join("; ")}${where}`, review: newest };
     }
+    // `--write` refuses each contradiction below; the reader refuses it too,
+    // so a verdict written by hand cannot pass where the script would not.
     if (link.kind === "review") {
       open = blockingFindings(link.findings);
+      if (link.verdict === "changes-needed" && open.length === 0) return { state: "invalid", reason: `a changes-needed names no blocking finding${where}`, review: newest };
+      if (link.verdict === "approve" && open.length > 0) return { state: "invalid", reason: `an approve carries a blocking finding${where}`, review: newest };
       continue;
+    }
+    if (chain[i - 1].kind === "fix-check" && chain[i - 1].verdict === "needs-review") {
+      return { state: "invalid", reason: `a fix-check follows a needs-review, which asked for a full review, not another fix-check${where}`, review: newest };
     }
     if (link.continues !== chain[i - 1].reviewed) {
       return { state: "invalid", reason: `a fix-check continues ${link.continues}, not the verdict before it (${chain[i - 1].reviewed})${where}`, review: newest };
@@ -649,25 +656,36 @@ function comment(repo, number, body) {
   }
 }
 
+/** Who a comment about to be posted is read as written by: no GitHub login has a space. */
+const ABOUT_TO_POST = "this post";
+
 /**
  * Why a fix-check cannot continue the pull request's chain as it stands, or
  * undefined when it can: the newest verdict by a writer is the one it names,
- * and its answers are exactly the blocking findings open after that verdict.
+ * its answers are exactly the blocking findings open after that verdict, and
+ * its comment (`body`) reads back as that, so nothing is posted that would
+ * break the chain it joins.
  */
-function chainRefusal({ repo, number, output, digest }, look) {
+function chainRefusal({ repo, number, output, digest, body }, look) {
   const known = new Map();
   const trusted = (login) => {
     if (!known.has(login)) known.set(login, look.canWrite(repo, login));
     return known.get(login);
   };
-  const chain = reviewState({ comments: look.reviewComments(repo, number), digest, trusted });
+  const comments = look.reviewComments(repo, number);
+  const chain = reviewState({ comments, digest, trusted });
   if (!chain.review) return `a fix-check continues a review: ${chain.reason}; run the full review`;
   if (chain.state === "invalid") return `the chain does not read: ${chain.reason}`;
   if (chain.state === "missing") return chain.reason;
   if (output.continues !== chain.review.reviewed) {
     return `the fix-check continues ${output.continues}, but the newest verdict on #${number} is ${chain.review.url ?? `the ${chain.review.kind}`} (${chain.review.reviewed}); fix-check that one`;
   }
-  return answersMismatch(chain.open, output.answers.map((a) => ({ finding: oneLine(a.finding) })));
+  const mismatch = answersMismatch(chain.open, output.answers.map((a) => ({ finding: oneLine(a.finding) })));
+  if (mismatch) return mismatch;
+  const after = reviewState({ comments: [...comments, { author: ABOUT_TO_POST, body }], digest, trusted: (login) => login === ABOUT_TO_POST || trusted(login) });
+  const expected = { resolved: "current", unresolved: "changes-needed", "needs-review": "missing" }[output.verdict];
+  if (after.state !== expected) return `the comment would not read back as posted: ${after.reason}`;
+  return undefined;
 }
 
 /**
@@ -692,17 +710,14 @@ export function postVerdict({ repo, number, dir, output, reviewedHead, reviewedD
   if (reviewed !== reviewedDigest) {
     return { exit: 1, lines: [`#${number}'s change or declarations moved during ${reading} (digest ${reviewed}, reviewed ${reviewedDigest}); ${again}`] };
   }
+  const body = fix
+    ? renderFixCheck({ verdict: output.verdict, head: pr.headRefOid, reviewed, continues: output.continues, reviewer: output.reviewer, security: output.security, answers: output.answers, regressions: output.regressions })
+    : renderReview({ verdict: output.verdict, head: pr.headRefOid, reviewed, reviewer: output.reviewer, security: output.security, findings: output.findings });
   if (fix) {
-    const refusal = chainRefusal({ repo, number, output, digest: reviewed }, look);
+    const refusal = chainRefusal({ repo, number, output, digest: reviewed, body }, look);
     if (refusal) return { exit: 1, lines: [`the fix-check is refused: ${refusal}`] };
   }
-  look.comment(
-    repo,
-    number,
-    fix
-      ? renderFixCheck({ verdict: output.verdict, head: pr.headRefOid, reviewed, continues: output.continues, reviewer: output.reviewer, security: output.security, answers: output.answers, regressions: output.regressions })
-      : renderReview({ verdict: output.verdict, head: pr.headRefOid, reviewed, reviewer: output.reviewer, security: output.security, findings: output.findings }),
-  );
+  look.comment(repo, number, body);
   const posted = `posted ${fix ? "fix-check " : ""}${output.verdict} on ${repo}#${number} at ${pr.headRefOid.slice(0, 10)}`;
   try {
     return { exit: 0, lines: [posted, look.rejudge(repo, pr.headRefOid)] };
