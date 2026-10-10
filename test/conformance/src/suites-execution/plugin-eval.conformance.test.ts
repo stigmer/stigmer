@@ -22,10 +22,11 @@
 //     `cost_ceiling`;
 //   - a try past its `timeout_seconds` is stopped and graded on what it
 //     produced, with the error "timed out after Ns";
-//   - a try cannot read the plugin's evals/: a read of a case's prompt
-//     fails, and the plugin tree mounted into its session for its hooks has
+//   - a try cannot read the plugin's evals/: a case that does not list
+//     `Skill` has its read of the plugin tree refused and is offered no
+//     skill, and the plugin tree mounted into its session for its hooks has
 //     every other part of the plugin and no evals/, nor the archive that
-//     holds them; and a case that does not list `Skill` is offered no skill;
+//     holds them;
 //   - a try composes no standing context and no memory, although its
 //     organization has both and an ordinary run there gets them;
 //   - delete is refused while the eval runs, naming cancel; cancel ends it
@@ -421,9 +422,12 @@ describe("PluginEval — what a try is given", () => {
     const caseRead = allToolCalls(run).find((call) => call.id === "call_read_case");
     expect(caseRead, "the scripted read was made").toBeDefined();
     const answered = `${caseRead?.result ?? ""}${caseRead?.error ?? ""}`;
-    expect(answered, "the read fails").toContain("does not exist");
+    // The case lists Read only, so the try withholds Skill: a read anywhere in
+    // the mounted plugin tree is refused by the turn's tool scope, and the
+    // tree below proves the mount carries no evals/ in any case.
+    expect(answered, "the read is refused").toContain("is not available to this agent");
     expect(answered, "the case's prompt never reaches the agent").not.toContain("renamed getUser");
-    // The case lists Read only: withholding Skill withholds the plugin's skills.
+    // Withholding Skill also withholds the plugin's skills.
     const [request] = mock.scriptedRequests();
     expect(systemTextOf(request?.body)).not.toContain(`### ${installation.skill}`);
 
