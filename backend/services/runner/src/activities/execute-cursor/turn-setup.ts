@@ -51,7 +51,7 @@ import {
   cursorSdkToolOptions,
   type TurnToolInventory,
 } from "../../shared/tool-lists.js";
-import type { ResolvedMcpServer } from "../../shared/mcp-resolver.js";
+import { declaredServerCount, type ResolvedMcpServer } from "../../shared/mcp-resolver.js";
 import type { McpToolListing } from "../../shared/mcp-tool-listing.js";
 import { ensureHitlDir, getPlatformDir } from "../../shared/workspace/platform-dir.js";
 import type { HookEvaluator } from "../../shared/hooks/evaluate.js";
@@ -731,7 +731,7 @@ export async function resolveEngine(
     harness: "cursor",
     agent_resumed: resolution.resumed,
     cursor_mode: agentMode,
-    mcp_server_count: input.mcp.servers.length,
+    mcp_server_count: declaredServerCount(input.mcp.servers),
     skill_count: blueprint.mergedSkillRefs.length,
     workspace_entry_count: session.spec?.workspaceEntries?.length ?? 0,
   }, sink.setupTiming);

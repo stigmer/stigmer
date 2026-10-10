@@ -61,6 +61,7 @@ import {
 } from "./turn-stream.js";
 import type { AdjudicatedRows, CursorEngine, CursorGate, CursorPrompt, CursorAdapterConfig } from "./turn-setup.js";
 import { createFreshAgent } from "./turn-setup.js";
+import { declaredServerCount } from "../../shared/mcp-resolver.js";
 
 /** Everything the settle reads that setup produced. */
 export interface CursorTurnFrame {
@@ -141,7 +142,7 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
           session_id: sessionId,
           harness: "cursor",
           agent_resumed: engine.resolution.resumed,
-          mcp_server_count: mcp.servers.length,
+          mcp_server_count: declaredServerCount(mcp.servers),
         }, turnStartTiming);
       }
       primaryOnDelta(event);

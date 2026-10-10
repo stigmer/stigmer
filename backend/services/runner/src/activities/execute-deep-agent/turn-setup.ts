@@ -92,6 +92,7 @@ import { subAgentScope, transformAndCompileSubagents, type SubagentScopeBase } f
 import { ENGINE_TOOL } from "./engine-tools.js";
 import { createTodoListMiddleware } from "./todo-list.js";
 import { buildHookEvaluator } from "./hooks-setup.js";
+import { declaredServerCount } from "../../shared/mcp-resolver.js";
 
 /**
  * The runner config this harness reads per turn, as a named slice
@@ -636,7 +637,7 @@ export async function buildEngine(
     execution_id: executionId,
     session_id: sessionId,
     harness: "native",
-    mcp_server_count: input.mcp.servers.length,
+    mcp_server_count: declaredServerCount(input.mcp.servers),
     skill_count: blueprint.mergedSkillRefs.length,
     workspace_entry_count: input.session.spec?.workspaceEntries?.length ?? 0,
   }, sink.setupTiming);

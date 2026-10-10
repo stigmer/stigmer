@@ -148,6 +148,15 @@ export function resolvePluginServers(
   return { resolvedServers: resolved };
 }
 
+/**
+ * How many of a turn's servers the agent and session declared: the
+ * plugins' servers, the platform's own attachments excluded (the timing
+ * record's `mcp_server_count`, read by benchmark/report.ts).
+ */
+export function declaredServerCount(servers: readonly ResolvedMcpServer[]): number {
+  return servers.filter((server) => server.pluginOrigin !== null).length;
+}
+
 /** The keys a server reads, as the env filter takes them. */
 export function declaredKeysOf(entry: McpServerEntry): Record<string, true> {
   return Object.fromEntries(entry.env.map((key) => [key, true as const]));

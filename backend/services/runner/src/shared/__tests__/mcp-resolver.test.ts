@@ -19,7 +19,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
-import { declaredKeysOf, dialedUrlOf, entryToResolved, resolvePluginServers } from "../mcp-resolver.js";
+import { declaredKeysOf, declaredServerCount, dialedUrlOf, entryToResolved, resolvePluginServers } from "../mcp-resolver.js";
 import { toolValuesKey, type ToolValueGroup } from "../run-values.js";
 import { McpTransportError } from "../mcp-transport-guard.js";
 import { testConfig } from "../../__test-utils__/config-fixture.js";
@@ -236,6 +236,13 @@ describe("an entry's own facts", () => {
       headers: undefined,
       pluginOrigin: null,
     });
+  });
+
+  it("counts the servers the agent and session declared, never the platform's own attachments", () => {
+    const declared = entryToResolved(httpEntry("h"), "plugin_linear_h", {}, { pluginId: "plg_1", plugin: "linear", server: "h" });
+    const attachment = entryToResolved(httpEntry("memory"), "stigmer-memory", {}, null);
+    expect(declaredServerCount([declared, attachment].flatMap((server) => (server === null ? [] : [server])))).toBe(1);
+    expect(declaredServerCount([])).toBe(0);
   });
 });
 
