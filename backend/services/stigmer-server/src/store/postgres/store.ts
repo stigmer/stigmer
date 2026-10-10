@@ -557,11 +557,10 @@ export class PostgresStore implements Store {
     const unproven = await this.open().query(UNPROVEN_ROWS_SQL, [kindName, declaration.revision]);
     const own = (unproven.rows as Array<{ id: string; data: Uint8Array }>).find((row) => row.id === id);
     if (own !== undefined) {
+      // A row that does not decode reads as in no session; the write then
+      // fails decoding it, before anything is written.
       const facts = factsOfBytes(declaration, own.data);
-      if (facts === undefined) {
-        throw new Error(`${kindName}/${id} does not decode; its session cannot be read`);
-      }
-      return keyValue(facts, sessionKey);
+      return facts === undefined ? "" : keyValue(facts, sessionKey);
     }
     const result = await this.open().query(
       `SELECT k.value FROM resources r

@@ -272,6 +272,7 @@ function sourceFingerprint(source: ListKeySource): string {
       return `label:${source.label}`;
     case "fieldWhen":
       return `fieldWhen:${source.path}?${source.when.path}=${[...source.when.in].sort((a, b) => a - b).join("|")}`;
+    /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
     default: {
       const exhaustive: never = source;
       throw new Error(`unknown list key source: ${String(exhaustive)}`);

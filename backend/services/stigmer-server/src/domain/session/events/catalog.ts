@@ -65,6 +65,7 @@ for (const member of SessionEventSchema.oneofs.find((o) => o.name === "event")?.
 
 function typeOfMember(member: DescField): string {
   const type = getOption(member, event_type);
+  /* v8 ignore next -- @preserve: every member of the contract declares one (the catalog test pins each type); a member added without it fails here at module load */
   if (type === "") {
     throw new Error(`SessionEvent member '${member.name}' declares no event_type`);
   }

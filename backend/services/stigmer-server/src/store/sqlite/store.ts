@@ -2315,11 +2315,10 @@ function storedSessionOf(
   }>;
   const own = unproven.find((row) => row.id === id);
   if (own !== undefined) {
+    // A row that does not decode reads as in no session; the write then
+    // fails decoding it, before anything is written.
     const facts = factsOfBytes(declaration, own.data);
-    if (facts === undefined) {
-      throw new Error(`${kindName}/${id} does not decode; its session cannot be read`);
-    }
-    return keyValue(facts, sessionKey);
+    return facts === undefined ? "" : keyValue(facts, sessionKey);
   }
   if (db.prepare(`SELECT 1 FROM resources WHERE kind = ? AND id = ?`).get(kindName, id) === undefined) {
     throw new ResourceNotFoundError(`${kindName}/${id}`);

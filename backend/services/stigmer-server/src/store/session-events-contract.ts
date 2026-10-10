@@ -159,6 +159,8 @@ const DECLARATIONS: ReadonlyArray<PortContractDeclaration<Store>> = [
       assert.deepEqual(again.records.map((x) => [x.eventId, x.seq]), [["a", 1], ["b", 2]]);
       assert.equal(again.records[0]?.processedAt, first.records[0]?.processedAt);
       assert.deepEqual(again.appended.map((x) => x.eventId), ["b"]);
+      const whole = await store.sessionEvents.append(s, "org-kit", [draft("a", r), draft("b", r)], runGuard(r));
+      assert.deepEqual(whole.appended, [], "a batch that is all resends appends nothing");
       assert.deepEqual(await seqs(store, s), [1, 2]);
     },
   ],
@@ -218,6 +220,7 @@ const DECLARATIONS: ReadonlyArray<PortContractDeclaration<Store>> = [
         store.sessionEvents.append(s, "org-kit", [draft("a", "run_absent")], runGuard("run_absent")),
         ResourceNotFoundError,
       );
+      await assert.rejects(store.sessionEvents.append("", "org-kit", [draft("a", r)], runGuard(r)), /need a session/);
       assert.deepEqual(await seqs(store, s), []);
     },
   ],
@@ -376,6 +379,7 @@ const DECLARATIONS: ReadonlyArray<PortContractDeclaration<Store>> = [
           ApiResourceKind.run,
           "run_absent",
           RunSchema,
+          /* v8 ignore next -- @preserve: the writer must not run for a row that is not stored; its running is the failure */
           () => assert.fail("the writer runs only for a found row"),
           RUN_SCOPE,
         ),

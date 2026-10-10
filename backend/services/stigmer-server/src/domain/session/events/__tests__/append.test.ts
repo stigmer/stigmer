@@ -23,6 +23,7 @@ import { createLogger } from "../../../../boot/logger.js";
 import { newExecutionScopedRunnerCredentialProvider } from "../../../../runnerauth/runner-credential-provider.js";
 import type { RunnerCredentialProvider } from "../../../../runnerauth/runner-credential-provider.js";
 import { RunnerAuthService } from "../../../../runnerauth/runnerauth.js";
+import { ResourceNotFoundError } from "../../../../store/interface.js";
 import { tempStore } from "../../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../../store/sqlite/__tests__/support.js";
 import { NOT_THE_RUNS_RUNNER_MESSAGE, SESSION_EVENT_MAX_BYTES, appendSessionEvents } from "../append.js";
@@ -256,5 +257,60 @@ describe("live delivery", () => {
     const stream = broker.subscribe("ses_a", []);
     await append({ runId: "run_a", events: [message("m1")] }, token);
     expect(stream.queue).toEqual([]);
+  });
+});
+
+describe("the edges", () => {
+  it("refuses a request that names no run, and a run in no session", async () => {
+    const noRun = await refusal(append({ runId: "", events: [message("m1")] }, auth.mintRunCredential("run_a")));
+    expect(noRun.code).toBe(Code.InvalidArgument);
+    await temp.store.saveResource(
+      ApiResourceKind.run,
+      "run_lone",
+      RunSchema,
+      create(RunSchema, { metadata: { id: "run_lone", org: "acme" }, status: { phase: RunPhase.RUN_IN_PROGRESS } }),
+    );
+    const lone = await refusal(append({ runId: "run_lone", events: [message("m1")] }, auth.mintRunCredential("run_lone")));
+    expect(lone.code).toBe(Code.FailedPrecondition);
+  });
+
+  it("a run that finished, or was deleted, between the load and the store's lock is refused as it would be before", async () => {
+    await seedRun("run_a", "ses_a");
+    const racing = (finish: (guard: { admit(row: unknown): void }) => never | Promise<never>) =>
+      deps({
+        store: {
+          getResource: (...args: Parameters<typeof temp.store.getResource>) => temp.store.getResource(...args),
+          sessionEvents: {
+            append: async (_s: string, _o: string, _d: unknown, guard: { admit(row: unknown): void }) => finish(guard),
+          },
+        } as unknown as AppendSessionEventsDeps["store"],
+      });
+    const finished = await refusal(
+      append({ runId: "run_a", events: [message("m1")] }, auth.mintRunCredential("run_a"), racing((guard) => {
+        guard.admit(create(RunSchema, { metadata: { id: "run_a" }, status: { phase: RunPhase.RUN_COMPLETED } }));
+        throw new Error("unreachable");
+      })),
+    );
+    expect(finished.code).toBe(Code.FailedPrecondition);
+    const deleted = await refusal(
+      append({ runId: "run_a", events: [message("m1")] }, auth.mintRunCredential("run_a"), racing(() => {
+        throw new ResourceNotFoundError("run/run_a");
+      })),
+    );
+    expect(deleted.code).toBe(Code.PermissionDenied);
+    const fault = await refusal(
+      append({ runId: "run_a", events: [message("m1")] }, auth.mintRunCredential("run_a"), racing(() => {
+        throw new Error("database is locked");
+      })),
+    );
+    expect(fault.code).toBe(Code.Internal);
+  });
+
+  it("a fault loading the run is a sanitized INTERNAL, not a refusal", async () => {
+    const failing = deps({
+      store: { getResource: () => Promise.reject(new Error("database is locked")) } as unknown as AppendSessionEventsDeps["store"],
+    });
+    const error = await refusal(append({ runId: "run_a", events: [message("m1")] }, auth.mintRunCredential("run_a"), failing));
+    expect(error.code).toBe(Code.Internal);
   });
 });

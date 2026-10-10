@@ -39,12 +39,11 @@ import { eventTypeOf } from "./catalog.js";
 
 /** An event's Managed Agents JSON. */
 export function toManagedAgentsJson(event: SessionEvent): JsonObject {
-  if (event.event.case === undefined) {
+  const schema = event.event.case === undefined ? undefined : MEMBER_SCHEMAS.get(event.event.case);
+  if (schema === undefined || event.event.value === undefined) {
     throw new Error("a session event must hold an event");
   }
-  const inner = event.event.value;
-  const schema = innerSchemaOf(event);
-  return { ...messageJson(schema, inner), type: eventTypeOf(event) };
+  return { ...messageJson(schema, event.event.value), type: eventTypeOf(event) };
 }
 
 /** A stream frame's Managed Agents JSON: the event, or an event_start / event_delta preview. */
@@ -58,6 +57,7 @@ export function toManagedAgentsStreamJson(frame: StreamSessionEventsResponse): J
       return { ...messageJson(EventDeltaSchema, frame.frame.value), type: "event_delta" };
     case undefined:
       throw new Error("a stream frame must hold a frame");
+    /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
     default: {
       const exhaustive: never = frame.frame;
       throw new Error(`unknown stream frame ${String(exhaustive)}`);
@@ -70,14 +70,6 @@ for (const member of SessionEventSchema.oneofs.find((o) => o.name === "event")?.
   if (member.message !== undefined) {
     MEMBER_SCHEMAS.set(member.localName, member.message);
   }
-}
-
-function innerSchemaOf(event: SessionEvent): DescMessage {
-  const schema = MEMBER_SCHEMAS.get(event.event.case ?? "");
-  if (schema === undefined) {
-    throw new Error(`no schema for session event member '${String(event.event.case)}'`);
-  }
-  return schema;
 }
 
 /** Protobuf JSON with proto field names, then `null` for every unset `optional` field, at every depth. */

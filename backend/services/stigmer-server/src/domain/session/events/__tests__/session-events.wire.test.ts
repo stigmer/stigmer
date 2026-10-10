@@ -227,6 +227,22 @@ describe("streamEvents", () => {
   });
 });
 
+describe("appendEvents over the wire", () => {
+  it("the run's credential appends; a request with no credential is refused", async () => {
+    const sessionId = await newSession();
+    const runId = `run_${counter}_appending`;
+    await turn(sessionId, runId, false);
+    const event = { event: { case: "agentThinking" as const, value: { id: "evt-wire" } } };
+    const appended = await command.appendEvents(
+      { runId, events: [event] },
+      { headers: { authorization: `Bearer ${server.runnerAuthService.mintRunCredential(runId)}` } },
+    );
+    expect(appended.events.map(eventTypeOf)).toEqual(["agent.thinking"]);
+    const refused = await refusal(command.appendEvents({ runId, events: [event] }));
+    expect(refused.code).toBe(Code.PermissionDenied);
+  });
+});
+
 describe("a run's delete", () => {
   it("deleting the session's only working run ends its turn: the log reads idle, and the run's own events are gone", async () => {
     const sessionId = await newSession();

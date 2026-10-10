@@ -16,6 +16,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import { createLogger } from "../../../../boot/logger.js";
 import { ResourceNotFoundError } from "../../../../store/interface.js";
+import type { Store } from "../../../../store/interface.js";
 import { tempStore } from "../../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../../store/sqlite/__tests__/support.js";
 import { SessionEventBroker } from "../broker.js";
@@ -25,6 +26,8 @@ import {
   createRunAppendingEvents,
   overwriteRunAppendingEvents,
   removeRunAppendingEvents,
+  runCreateWriter,
+  runRemover,
   updateRunAppendingEvents,
 } from "../run-writes.js";
 import type { RunEventWriteDeps } from "../run-writes.js";
@@ -189,5 +192,37 @@ describe("delivery and edges", () => {
 
   it("a session with no status event reads idle", async () => {
     expect(await readSessionState(temp.store, "s_new")).toBe("idle");
+  });
+});
+
+describe("the chain writers and store faults", () => {
+  it("the create chain's writer and the delete chain's remover write through the event writes", async () => {
+    await runCreateWriter(deps)(run("a", "s1"));
+    expect(await readSessionState(temp.store, "s1")).toBe("running");
+    await runRemover(deps)("a");
+    expect(await readSessionState(temp.store, "s1")).toBe("idle");
+  });
+
+  it("an update whose row vanished under the lock is not found", async () => {
+    const vanished: RunEventWriteDeps = {
+      ...deps,
+      store: {
+        writeResourceAppendingEvents: async (...args: Parameters<Store["writeResourceAppendingEvents"]>) => {
+          args[3](undefined, 0);
+          throw new Error("unreachable");
+        },
+      } as unknown as Store,
+    };
+    await expect(updateRunAppendingEvents(vanished, "a", setPhase(RunPhase.RUN_COMPLETED))).rejects.toBeInstanceOf(
+      ResourceNotFoundError,
+    );
+  });
+
+  it("a removal's store fault is a fault, never 'already gone'", async () => {
+    const faulty: RunEventWriteDeps = {
+      ...deps,
+      store: { writeResourceAppendingEvents: () => Promise.reject(new Error("database is locked")) } as unknown as Store,
+    };
+    await expect(removeRunAppendingEvents(faulty, "a")).rejects.toThrow("database is locked");
   });
 });

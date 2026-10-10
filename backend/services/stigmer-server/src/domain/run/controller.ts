@@ -141,10 +141,7 @@ import {
 } from "./session-binding.js";
 import type { StreamBroker } from "./stream-broker.js";
 import type { SessionEventBroker } from "../session/events/broker.js";
-import {
-  createRunAppendingEvents,
-  removeRunAppendingEvents,
-} from "../session/events/run-writes.js";
+import { runCreateWriter, runRemover } from "../session/events/run-writes.js";
 import { submitApproval } from "./submit-approval.js";
 import { submitFileDecision } from "./submit-file-decision.js";
 import { subscribeExecution } from "./subscribe.js";
@@ -465,7 +462,7 @@ async function createExecution(
     .addStep(newProcessAttachmentsStep(deps.logger))
     // The run commits with its user message and, when it starts its
     // session's work, the session's running status.
-    .addStep(newPersistStep(deps.store, (run) => createRunAppendingEvents(deps, run)))
+    .addStep(newPersistStep(deps.store, runCreateWriter(deps)))
     .addStep(
       newCreateAuthorizationTuplesStep(
         deps.authorizationLifecycle,
@@ -594,7 +591,7 @@ async function deleteExecution(
     .addStep(newCascadeDeleteScoresStep(deps.runScores))
     // The run's own events go with it, and a working run's removal ends
     // its session's turn when nothing else in the session works.
-    .addStep(newDeleteResourceStep(deps.store, (id) => removeRunAppendingEvents(deps, id)))
+    .addStep(newDeleteResourceStep(deps.store, runRemover(deps)))
     .addStep(
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
     )

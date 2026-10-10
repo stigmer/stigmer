@@ -83,6 +83,16 @@ function draftsFor(
   return sessionEventsForTransition(transition, others).map(draftOf);
 }
 
+/** The run create chain's Persist writer (pipeline/steps/persist.ts). */
+export function runCreateWriter(deps: RunEventWriteDeps): (run: Run) => Promise<void> {
+  return (run) => createRunAppendingEvents(deps, run);
+}
+
+/** The run delete chain's DeleteResource remover (pipeline/steps/delete.ts). */
+export function runRemover(deps: RunEventWriteDeps): (runId: string) => Promise<void> {
+  return (runId) => removeRunAppendingEvents(deps, runId);
+}
+
 /** Persists a new run with its user message and, when it starts the session's work, the running status. */
 export async function createRunAppendingEvents(deps: RunEventWriteDeps, run: Run): Promise<void> {
   const runId = run.metadata?.id ?? "";

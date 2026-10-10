@@ -119,6 +119,7 @@ export class SessionEventBroker {
           break;
         case undefined:
           continue;
+        /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
         default: {
           const exhaustive: never = preview.preview;
           throw new Error(`unknown preview ${String(exhaustive)}`);

@@ -71,11 +71,10 @@ export async function* streamSessionEvents(
         yield frame;
         continue;
       }
-      if (subscription.overflowed) {
-        throw new ConnectError(STREAM_FELL_BEHIND_MESSAGE, Code.ResourceExhausted);
-      }
+      // A subscription closes only when it overflowed or this stream
+      // unsubscribed it, so a closed one with no frames left fell behind.
       if (subscription.closed) {
-        return;
+        throw new ConnectError(STREAM_FELL_BEHIND_MESSAGE, Code.ResourceExhausted);
       }
       await Promise.race([
         abort,

@@ -6,8 +6,23 @@
  * kit's case list is pinned by name here, so a case cannot drop out of the
  * kit unnoticed: the cloud's test iterates the same export and would
  * silently prove less.
+ *
+ * Beside the kit, what only a driver's own test can set up: a second store
+ * on the same database opened without the run index, the binary an older
+ * pod runs while a roll overlaps it with the new one. The rows it writes
+ * are unproven for the new store, so the working count and a row's
+ * session are read from their bytes, and their stale key rows are not
+ * believed.
  */
+import { create } from "@bufbuild/protobuf";
 import { afterAll, describe, expect, it } from "vitest";
+
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+
+import { LIST_INDEXES } from "../../boot/list-indexes.js";
+import { SqliteStore } from "../sqlite/store.js";
 
 import type { Store, StoreOpenOptions } from "../interface.js";
 import { PostgresStore } from "../postgres/store.js";
@@ -43,6 +58,8 @@ interface DriverFixture {
   readonly name: string;
   readonly skip: boolean;
   open(options: StoreOpenOptions): Promise<{ store: Store; close(): Promise<void> }>;
+  /** The new binary's store and an older one's (no list indexes) on one database. */
+  openPair(): Promise<{ store: Store; old: Store; close(): Promise<void> }>;
 }
 
 const sqliteFixture: DriverFixture = {
@@ -51,6 +68,18 @@ const sqliteFixture: DriverFixture = {
   async open(options) {
     const temp = tempStore(options);
     return { store: temp.store, close: () => temp.cleanup() };
+  },
+  async openPair() {
+    const temp = tempStore({ listIndexes: LIST_INDEXES });
+    const old = SqliteStore.open(temp.dbPath, undefined, {});
+    return {
+      store: temp.store,
+      old,
+      close: async () => {
+        await old.close();
+        await temp.cleanup();
+      },
+    };
   },
 };
 
@@ -63,7 +92,32 @@ const postgresFixture: DriverFixture = {
     const store = await PostgresStore.open(postgresDatabase.databaseUrl, undefined, options);
     return { store, close: () => store.close() };
   },
+  async openPair() {
+    postgresDatabase ??= await createTestDatabase();
+    const store = await PostgresStore.open(postgresDatabase.databaseUrl, undefined, { listIndexes: LIST_INDEXES });
+    const old = await PostgresStore.open(postgresDatabase.databaseUrl, undefined, {});
+    return {
+      store,
+      old,
+      close: async () => {
+        await old.close();
+        await store.close();
+      },
+    };
+  },
 };
+
+let counter = 0;
+function run(sessionId: string, phase: RunPhase) {
+  counter += 1;
+  return create(RunSchema, {
+    metadata: { id: `run_pair_${Date.now().toString(36)}_${counter}`, org: "org-pair" },
+    spec: { target: { case: "sessionId", value: sessionId } },
+    status: { phase },
+  });
+}
+
+const SCOPE = { sessionKey: "session", workingKey: "working_session" };
 
 afterAll(async () => {
   await postgresDatabase?.drop();
@@ -87,5 +141,70 @@ describe.each([sqliteFixture, postgresFixture])("the session event log ($name)",
     for (const contractCase of cases) {
       it(contractCase.name, contractCase.run);
     }
+  });
+
+  describe.skipIf(fixture.skip)("rows an older binary wrote, and a store without the run index", () => {
+    it("counts an older binary's working run from its bytes, and does not believe its stale key rows", async () => {
+      const { store, old, close } = await fixture.openPair();
+      try {
+        const sessionId = `ses_pair_${Date.now().toString(36)}_${++counter}`;
+        // Proven as working by the new binary, then finished by the old one:
+        // its key row still says working, its bytes say finished.
+        const finished = run(sessionId, RunPhase.RUN_IN_PROGRESS);
+        await store.saveResource(ApiResourceKind.run, finished.metadata!.id, RunSchema, finished);
+        finished.status!.phase = RunPhase.RUN_COMPLETED;
+        await old.saveResource(ApiResourceKind.run, finished.metadata!.id, RunSchema, finished);
+        // Working, written only by the old binary: no key row at all.
+        const working = run(sessionId, RunPhase.RUN_IN_PROGRESS);
+        await old.saveResource(ApiResourceKind.run, working.metadata!.id, RunSchema, working);
+
+        const mine = run(sessionId, RunPhase.RUN_PENDING);
+        let others = -1;
+        await store.writeResourceAppendingEvents(
+          ApiResourceKind.run,
+          mine.metadata!.id,
+          RunSchema,
+          (_previous, count) => {
+            others = count;
+            return { put: mine, events: [] };
+          },
+          { ...SCOPE, sessionId },
+        );
+        expect(others).toBe(1);
+
+        // The old binary's row names its session only in its bytes.
+        const result = await store.writeResourceAppendingEvents(
+          ApiResourceKind.run,
+          working.metadata!.id,
+          RunSchema,
+          (previous) => ({
+            put: previous!,
+            events: [{ eventId: "e1", runId: working.metadata!.id, threadId: "", type: "agent.message", data: new Uint8Array() }],
+          }),
+          SCOPE,
+        );
+        expect(result.events[0]?.sessionId).toBe(sessionId);
+      } finally {
+        await close();
+      }
+    });
+
+    it("a store opened without the kind's list index refuses a write that appends events", async () => {
+      const opened = await fixture.open({});
+      try {
+        const row = run("ses_unindexed", RunPhase.RUN_PENDING);
+        await expect(
+          opened.store.writeResourceAppendingEvents(
+            ApiResourceKind.run,
+            row.metadata!.id,
+            RunSchema,
+            () => ({ put: row, events: [] }),
+            { ...SCOPE, sessionId: "ses_unindexed" },
+          ),
+        ).rejects.toThrow(/is not list-indexed/);
+      } finally {
+        await opened.close();
+      }
+    });
   });
 });

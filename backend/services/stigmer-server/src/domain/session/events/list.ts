@@ -54,8 +54,6 @@ export interface ListSessionEventsDeps {
   readonly authorizer: Authorizer;
 }
 
-const RESULT_KEY = "sessionEventList";
-
 export async function listSessionEvents(
   deps: ListSessionEventsDeps,
   req: ListSessionEventsRequest,
@@ -67,6 +65,7 @@ export async function listSessionEvents(
     callerIdentityOf(ctx),
     ApiResourceKind.session,
   );
+  let result = create(SessionEventListSchema);
   await newPipeline<typeof SessionQueryController.method.listEvents.input>(
     "session-list-events",
     deps.logger,
@@ -76,19 +75,19 @@ export async function listSessionEvents(
     .addStep({
       name: "ListSessionEvents",
       async execute(stepCtx) {
-        stepCtx.set(RESULT_KEY, await readPage(deps.store, stepCtx.input));
+        result = await readSessionEventPage(deps.store, stepCtx.input);
       },
     })
     .build()
     .execute(reqCtx);
-  const result = reqCtx.get(RESULT_KEY);
-  if (result === undefined) {
-    throw internalError(new Error("list result missing"), "failed to list session events");
-  }
-  return result as SessionEventList;
+  return result;
 }
 
-async function readPage(store: Store, req: ListSessionEventsRequest): Promise<SessionEventList> {
+/** One page of a request, read from the store (the chain's last step, after authorization). */
+export async function readSessionEventPage(
+  store: Store,
+  req: ListSessionEventsRequest,
+): Promise<SessionEventList> {
   const order = req.order === "desc" ? "desc" : "asc";
   const size = req.pageSize === 0 ? SESSION_EVENT_PAGE_DEFAULT_SIZE : req.pageSize;
   const fingerprint = listPageFingerprint({
