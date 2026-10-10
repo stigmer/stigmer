@@ -654,6 +654,13 @@ describe.skipIf(collectionTarget.engineCoordinates === undefined)("vault resolut
     );
     const decoded = payloadData(history);
     expect(decoded.length, "the history carries payloads to search").toBeGreaterThan(0);
+    // The positive control: the payloads read as plaintext (no codec sealed
+    // them), so the run's own id is found in them, and an absent secret is
+    // an absence, not an unreadable payload.
+    expect(
+      decoded.some((data) => data.includes(executionId)),
+      "the payloads are readable: the run's id is in them",
+    ).toBe(true);
     expect(
       decoded.filter((data) => data.includes(secretValue)),
       "no payload of the run's history holds the secret",

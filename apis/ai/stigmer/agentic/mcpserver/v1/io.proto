@@ -96,8 +96,11 @@ message ConnectInput {
   //
   // @internal
   // The runner's backfill only: accepted only from a runner credential
-  // bound to that live run (the fetch's own gate), and only for a server
-  // the run's source manifest names. can_connect still applies.
+  // bound to that live run in the connect's organization (the fetch's own
+  // gate). The connect then receives this server's entries in the run's
+  // source manifest, or none when the manifest names no entry for it (a
+  // server that declares no key still needs its destructive marks), never
+  // another server's. can_connect still applies.
   string run_id = 4;
 }
 

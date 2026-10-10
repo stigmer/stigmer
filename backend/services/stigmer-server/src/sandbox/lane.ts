@@ -11,8 +11,9 @@
  * lane — execution-scoped (runnerauth). The token is
  * minted per execution at ensure time, so the cloud's stale-token refresh
  * arm degenerates to per-execution re-mint here; a disabled mint lane
- * launches the sandbox with no token, and its runner's values fetch is
- * refused (oss#535's posture), so a run that needs values fails loudly.
+ * launches the sandbox with no token, and its runner, which fetches every
+ * turn's values, fails each turn loudly (oss#535's posture) instead of
+ * running one without its keys.
  *
  * A provider with the mintSandboxCredential capability owns the mint
  * instead: the ensure steps hand it the full

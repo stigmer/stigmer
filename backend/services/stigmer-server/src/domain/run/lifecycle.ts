@@ -1,8 +1,8 @@
 /**
  * The lifecycle RPCs — ports cancel.go, terminate.go, pause.go,
- * resume.go, recover.go, recreate_execution_context_step.go, and
- * lifecycle_steps.go: the five phase-transition commands over one shared
- * step vocabulary.
+ * resume.go, recover.go and lifecycle_steps.go: the five phase-transition
+ * commands over one shared step vocabulary; recover plans the run's values
+ * again (RePlanRunValues).
  *
  * Every Temporal touchpoint rides the engine seam. With the engine
  * disconnected the Temporal steps refuse

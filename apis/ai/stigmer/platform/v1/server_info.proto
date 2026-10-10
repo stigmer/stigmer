@@ -142,8 +142,8 @@ service PlatformQueryController {
   // Cloud mints via SandboxTokenService: a run_id yields a
   // token_type=sandbox token carrying the run's parent session_id (one
   // session sandbox serves multi-turn runs). It is then bound by
-  // RunnerScopeVerifier on the getByExecutionId decrypt path exactly like
-  // cloud-sandbox-injected tokens.
+  // RunnerScopeVerifier on the values fetch (VaultValueController.
+  // fetchValues) exactly like cloud-sandbox-injected tokens.
   //
   // is_skip_authorization because the FGA target is derived from the input
   // oneof, which the declarative interceptor cannot express — the handler

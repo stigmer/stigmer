@@ -1,6 +1,6 @@
 /**
- * Pins the in-process agent loader's version read: the ExecutionContext
- * build reads the agent version a turn recorded through
+ * Pins the in-process agent loader's version read: the run's value plan
+ * reads the agent version a turn recorded through
  * `executionAgentLoader.getVersion`, which must be the AgentQueryController
  * getVersion RPC over the in-process transport, carrying the turn's agent id
  * and hash as given, its answer passed through and its refusal surfaced.

@@ -13,9 +13,8 @@
  *   - a request carrying only the reserved field 2 (the retired
  *     workflow_run_id arm) gets the unset-scope InvalidArgument, the
  *     same code and message as a request naming no scope, never a token;
- *   - a minted token actually verifies against the SAME key the
- *     executioncontext decrypt lane uses, bound to exactly the named
- *     execution id;
+ *   - a minted token actually verifies against the SAME key the values
+ *     fetch uses, bound to exactly the named execution id;
  *   - getRunnerBootstrapConfig echoes the configured Temporal coordinates
  *     with the token fields empty (minting a proxy token is cloud-only),
  *     and publishes the runner-bootstrap address rather than the one the
@@ -196,7 +195,7 @@ describe("platform domain (composed server)", () => {
     expect(out.tokenType).toBe("Bearer");
     expect(out.expiresInSeconds).toBe(3600);
 
-    // The minted token verifies against the SAME key the EC decrypt lane
+    // The minted token verifies against the SAME key the values fetch
     // uses, and its binding is the named execution id.
     expect(server.runnerAuthService.verify(out.runnerScopedToken)).toBe(
       "aexec_01platformtest",
