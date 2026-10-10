@@ -32,10 +32,11 @@ const PINNED: Readonly<
   },
   // The run kind's stored name changed (SQLite v21, Postgres v16) and its
   // keys did not, so the rename kept revision 1; revision 2 added the judge
-  // label's key.
+  // label's key, revision 3 the plugin eval label's.
   run: {
-    revision: 2,
-    fingerprint: "run{grades=label:stigmer.ai/grades-run,session=field:spec.session_id}",
+    revision: 3,
+    fingerprint:
+      "run{grades=label:stigmer.ai/grades-run,plugin_eval=label:stigmer.ai/plugin-eval,session=field:spec.session_id}",
   },
   score: {
     revision: 1,

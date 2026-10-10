@@ -44,7 +44,7 @@ import type { MessageInitShape } from "@bufbuild/protobuf";
 import { timestampFromMs } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { MockActivityEnvironment } from "@temporalio/testing";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { inMemoryPluginFiles } from "@stigmer/plugin-package";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
@@ -608,6 +608,30 @@ describe("start-try beside a raced retry", () => {
       runId: "run_b",
       costUsd: 2,
     });
+  });
+
+  it("finds the try's run through the run list index, never scanning the run kind", async () => {
+    await seeded();
+    await storedTryRun("run_b", 2_000);
+    const scans = [
+      vi.spyOn(temp.store, "findAllByLabel"),
+      vi.spyOn(temp.store, "listResources"),
+    ];
+    const { cases } = build();
+    expect(await cases[START_TRY_ACTIVITY_NAME](CELL)).toMatchObject({
+      kind: "started",
+      runId: "run_b",
+    });
+    const spend = createSpendActivities({ store: temp.store })[
+      TRY_SPEND_ACTIVITY_NAME
+    ];
+    expect(await spend(EVAL_ID, CELL)).toMatchObject({ runId: "run_b" });
+    // The kinds each scan was asked for: the run kind is never one.
+    for (const scan of scans) {
+      expect(scan.mock.calls.map((call) => call[0])).not.toContain(
+        ApiResourceKind.run,
+      );
+    }
   });
 });
 

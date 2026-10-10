@@ -44,8 +44,9 @@
  *     its answer was lost reads the same vote and cost again; the delete
  *     is its own step, and a vote or session already gone is deleted.
  *   - try-spend: what a try's run and its stored votes spent, found by
- *     the eval's label and the try's run name, for the workflows to count
- *     a try whose own workflow could not report it.
+ *     the eval's label (the run list index's `plugin_eval` key) and the
+ *     try's run name, for the workflows to count a try whose own workflow
+ *     could not report it.
  *   - record-score: the votes tallied, the try scored
  *     (domain/plugin-eval/scoring.ts), and its Score written on the run
  *     (domain/plugin-eval/score-writer.ts). A grader left not graded leaves
@@ -64,14 +65,12 @@ import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import {
   armAttachment,
   pluginAttachmentFacts,
 } from "../../domain/plugin-eval/arm.js";
-import { PLUGIN_EVAL_LABEL } from "../../domain/plugin-eval/constants.js";
 import { gradeChecks } from "../../domain/plugin-eval/graders/grade.js";
 import {
   isJudgedGrader,
@@ -779,21 +778,20 @@ const EXTRA_TRY_RUN_REASON = "a second run of the same try";
  * The runs earlier attempts of a try's start created, by label and name,
  * the earliest created first (its id breaking a tie), so the start's
  * adoption and every spend read pick the same one. More than one is a
- * start that raced its own retry; start-try stops the rest.
+ * start that raced its own retry; start-try stops the rest. The eval's
+ * runs are read through the run list index's `plugin_eval` key, so only
+ * they are decoded, never every run of the platform.
  */
 async function findLabelledRuns(
   store: Store,
   evalId: string,
   name: string,
 ): Promise<Run[]> {
-  const rows = await store.findAllByLabel(
-    ApiResourceKind.run,
-    PLUGIN_EVAL_LABEL,
-    evalId,
-    RunSchema,
-  );
+  const rows = await store.queryResources(agentExecutionListIndex, {
+    anyKey: [{ name: "plugin_eval", value: evalId }],
+  });
   const runs = rows
-    .map((row) => fromBinary(RunSchema, row))
+    .map((row) => fromBinary(RunSchema, row.data))
     .filter((run) => run.metadata?.name === name);
   const createdMs = (run: Run): number => {
     const at = run.status?.audit?.specAudit?.createdAt;
