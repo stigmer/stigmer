@@ -32,7 +32,7 @@ import { buildZip } from "@stigmer/zip-structure/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { StigmerClient } from "../../client/stigmer-client.js";
 import { archiveFileMode } from "../archive-mount.js";
-import { mountPlugin, PluginMountError, PluginTree, PLUGINS_SUBDIR, withoutEvalSuite } from "../plugin-mount.js";
+import { manifestEvalDir, mountPlugin, PluginMountError, PluginTree, PLUGINS_SUBDIR, withoutEvalSuite } from "../plugin-mount.js";
 
 const FILES = {
   ".claude-plugin/plugin.json": '{"name":"safety"}',
@@ -330,6 +330,15 @@ describe("the eval suite is not mounted", () => {
       expect(existsSync(join(mounted.root, "evals")), text).toBe(false);
       expect(existsSync(join(mounted.root, "quality/evals/other/prompt.md")), text).toBe(true);
     }
+  });
+
+  it("reads a declared skill path of a long slash run in linear time", () => {
+    const skills = `./${"/".repeat(40_000)}x`;
+    const manifest = JSON.stringify({ name: "safety", skills, experimental: { evals: "quality/evals" } });
+    const entries = [{ path: ".claude-plugin/plugin.json", content: new TextEncoder().encode(manifest) }];
+    const started = performance.now();
+    expect(manifestEvalDir(entries)).toBe("quality/evals");
+    expect(performance.now() - started).toBeLessThan(250);
   });
 
   it("skips a suite entry by its cleaned, root-relative path, as the server's reader names it", () => {

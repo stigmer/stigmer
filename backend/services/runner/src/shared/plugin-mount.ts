@@ -274,9 +274,22 @@ function declaredSkillDirs(entries: readonly ZipFileEntry[]): readonly string[] 
 function declaredPath(value: string): string | undefined {
   if (/[*?[\]{}]/.test(value)) return undefined;
   if (!value.startsWith("./") && value !== ".") return undefined;
-  const trimmed = value.slice(2).replace(/\/+$/, "");
+  const trimmed = trimTrailingSlashes(value.slice(2));
   if (trimmed === "") return "";
   return isPlainRelativePath(trimmed) ? trimmed : undefined;
+}
+
+/**
+ * `value` without its trailing slashes: the library's `trimTrailing`
+ * (`@stigmer/plugin-package` `trim.ts`), copied since the runner does not
+ * depend on the library. A `/\/+$/` regex rescans the run from every
+ * starting position, quadratic in a long run a manifest can carry; this
+ * walks it once.
+ */
+function trimTrailingSlashes(value: string): string {
+  let end = value.length;
+  while (end > 0 && value[end - 1] === "/") end -= 1;
+  return value.slice(0, end);
 }
 
 /** Whether one plugin-relative directory is the other or lies inside it. */
