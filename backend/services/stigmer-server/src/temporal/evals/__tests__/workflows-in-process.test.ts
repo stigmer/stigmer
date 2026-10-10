@@ -10,8 +10,9 @@
  *
  * The suite: every cell run and recorded (without its grader results), at
  * most `concurrency` children in flight; the cost ceiling checked before
- * each cell, each child capped at what is left of the limit less the caps
- * of the children still running (never below the floor); a credit refusal
+ * each cell, each child capped at an equal share of what is left for the
+ * children that may run at once, within what the running caps leave (never
+ * below the floor); a credit refusal
  * stopping new cells; a child that fails recorded as not graded with what
  * its run spent, which the ceiling counts; a cancellation recording every
  * child in flight (its own cancelled answer, or one read through the spend
@@ -384,7 +385,7 @@ describe("the suite workflow", () => {
     expect(budgets[2]).toBe(TRY_MIN_BUDGET_USD);
   });
 
-  it("caps each try at the limit less the recorded spend and the caps still running", async () => {
+  it("caps each try at an equal share of what is left, within what the running caps leave", async () => {
     suite({
       kind: "run",
       org: "acme",
@@ -404,16 +405,16 @@ describe("the suite workflow", () => {
       for (let i = 0; i < 20; i++) await Promise.resolve();
     };
     await settle();
-    // The first try holds the whole limit, so the second starts at the floor.
-    expect(budgets).toEqual([1, TRY_MIN_BUDGET_USD]);
+    // Two may run at once: each starts with half of the limit.
+    expect(budgets).toEqual([0.5, 0.5]);
     finishes.shift()!();
     await settle();
-    // 1 - 0.3 spent - the floor the second still holds.
-    expect(budgets[2]).toBeCloseTo(0.69);
+    // Half of the 0.7 left is 0.35, but the second still holds 0.5: 0.2.
+    expect(budgets[2]).toBeCloseTo(0.2);
     finishes.shift()!();
     await settle();
-    // 1 - 0.6 spent - the 0.69 the third still holds: the floor.
-    expect(budgets[3]).toBe(TRY_MIN_BUDGET_USD);
+    // Half of the 0.4 left is 0.2, and the third holds 0.2: 0.2.
+    expect(budgets[3]).toBeCloseTo(0.2);
     while (finishes.length > 0) {
       finishes.shift()!();
       await settle();

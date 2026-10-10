@@ -19,12 +19,14 @@
  *     their votes is compared with the eval's limit; once it is reached no
  *     cell starts, the tries already running finish (so the spend can pass
  *     the limit by those, as in the format), and the eval ends partial,
- *     "cost ceiling". Each try's run is capped, when it starts, at the
- *     limit less what the recorded tries spent and less the caps of the
- *     tries still running, never below TRY_MIN_BUDGET_USD (a cap of 0 is
- *     no cap). So the tries running at once cannot together spend more
- *     than the eval has left, but for that floor each; a try started while
- *     the others' caps hold the whole remainder runs at the floor.
+ *     "cost ceiling". Each try's run is capped, when it starts, at an equal
+ *     share of what the eval has left for the tries that may run at once:
+ *     (limit less recorded spend) / concurrency, and never more than the
+ *     limit less the recorded spend and the caps of the tries still running
+ *     (tryBudgetUsd). So the tries running at once cannot together spend
+ *     more than the eval has left, and no try starts with a sliver while
+ *     another holds the rest. Never below TRY_MIN_BUDGET_USD (a cap of 0 is
+ *     no cap).
  *   - Credit: a try the organization's credit refused stops new cells the
  *     same way, and the eval ends partial, "out of credit".
  *   - Cancel: cancelling this workflow (the eval's cancel) cancels the
@@ -210,7 +212,7 @@ async function runCells(
       for (const cap of caps.values()) {
         held += cap;
       }
-      const budgetUsd = Math.max(TRY_MIN_BUDGET_USD, maxCostUsd - spent - held);
+      const budgetUsd = tryBudgetUsd(maxCostUsd, spent, held, concurrency);
       caps.set(index, budgetUsd);
       const settled = runCell(evalId, org, cell, budgetUsd).then(
         (result) => {
@@ -332,4 +334,15 @@ async function failedTry(
     graderResults: [],
     outOfCredit: false,
   };
+}
+
+/**
+ * A try's run cap: an equal share of what the eval has left for the
+ * `concurrency` tries that may run at once, bounded by what the caps
+ * already handed out leave, never below the floor (the module header).
+ */
+export function tryBudgetUsd(maxCostUsd: number, spent: number, held: number, concurrency: number): number {
+  const left = maxCostUsd - spent;
+  const share = left / Math.max(1, concurrency);
+  return Math.max(TRY_MIN_BUDGET_USD, Math.min(share, left - held));
 }

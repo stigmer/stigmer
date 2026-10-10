@@ -282,8 +282,10 @@ bury your conversations. You reach them from the eval's page, or by ID.
 
 The Organization that installed the plugin pays for every try and every vote of
 an AI-graded check, from its own credit. Tries use its own provider keys. The
-cost limit is an estimate checked before each try starts. Tries that already
-started finish, so the spend can pass the limit by those tries.
+cost limit is an estimate checked before each try starts. Each try may spend
+at most an equal share of what is left for the tries that run at once, so tries
+running together never spend more than the eval has left. A try that needs more
+than its share is stopped at it and graded on what it produced.
 
 ## Turn a bad run into a test case
 
