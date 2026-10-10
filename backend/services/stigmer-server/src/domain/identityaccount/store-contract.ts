@@ -546,6 +546,28 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountStore>> = [
     },
   ],
   [
+    "findDirectByEmail answers the direct account when federated and platform-client rows share its email",
+    async ({ store }) => {
+      await store.save(
+        federatedAccount({ idpId: "okta|shared", email: "shared@example.com" }),
+      );
+      await store.save(
+        platformClientAccount({
+          idpId: "stgm_pc|acme|shared",
+          email: "shared@example.com",
+        }),
+      );
+      await store.save(
+        directAccount({ idpId: "auth0|shared", email: "shared@example.com" }),
+      );
+      assert.equal(
+        (await store.findDirectByEmail("shared@example.com"))?.spec?.idpId,
+        "auth0|shared",
+        "a row of another mode carrying the same email must never hide the direct account",
+      );
+    },
+  ],
+  [
     "findDirectByIdpId and findDirectByEmail never answer a platform-client account, while findByIdpId (any mode) does",
     async ({ store }) => {
       await store.save(

@@ -10,7 +10,7 @@
  *     scan), the federated sign-in's lookup included. Asserted with a spy
  *     over the real store, not by inspection; findDirectByEmail and
  *     findByProvider are the lookups that scan (an administrative RPC and
- *     a provider's removal);
+ *     a provider's removal), each reading every matching row;
  *   - save refuses a direct account whose id is not its derived id, and a
  *     federated account whose id is not the address of its provider and
  *     subject — the invariants that make the primary-key reads correct,
@@ -67,6 +67,7 @@ const CONTRACT_CASE_NAMES = [
   "findByProviderAndIdpId keeps two providers' same subject apart, and never answers a direct row sharing the subject",
   "findByProvider answers every row the provider vouches for, in id order, and none of another provider's or a direct row",
   "an outage is a fault on both federated reads, never 'no account'",
+  "findDirectByEmail answers the direct account when federated and platform-client rows share its email",
   "findDirectByIdpId and findDirectByEmail never answer a platform-client account, while findByIdpId (any mode) does",
   "findByOrg answers the accounts whose row names the organization, and never a person's own",
   "findByIds answers one row per distinct id, in first-occurrence order; an empty request answers an empty list",
@@ -323,7 +324,7 @@ describe.each([sqliteFixture, postgresFixture])(
         expect(
           await accounts.findDirectByEmail("nobody@example.com"),
         ).toBeUndefined();
-        expect(findByFieldPaths).toEqual(["spec.email", "spec.email"]);
+        expect(findAllByFieldPaths).toEqual(["spec.email", "spec.email"]);
       });
 
       it("refuses to save a direct account whose id is not its derived id", async () => {

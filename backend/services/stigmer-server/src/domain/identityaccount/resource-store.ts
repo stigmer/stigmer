@@ -20,9 +20,13 @@
  * edition with its own table keys federated rows by an index and keeps
  * the ids it minted.
  * `findDirectByEmail` and `findByProvider` are the lookups that scan
- * (Store.findByField and findAllByField, a decode-and-scan of the kind's
- * rows): an administrative RPC and a provider's removal, never a
- * per-request path.
+ * (Store.findAllByField, a decode-and-scan of the kind's rows): an
+ * administrative RPC and a provider's removal, never a per-request path.
+ * The email scan reads every row with the email and answers the direct
+ * one, because the email axis is shared: a federated or platform-client
+ * row may carry a direct person's email, and a first-match read would
+ * answer that row and then filter it away, hiding the person by scan
+ * order.
  *
  * `save` and `update` are both read-then-write because the generic
  * Store's saveResource is an upsert with neither a create-only nor an
@@ -136,21 +140,15 @@ export function newResourceIdentityAccountStore(
     },
 
     async findDirectByEmail(email): Promise<IdentityAccount | undefined> {
-      let account: IdentityAccount;
-      try {
-        account = await store.findByField(
-          KIND,
-          "spec.email",
-          email,
-          IdentityAccountSchema,
-        );
-      } catch (error) {
-        if (error instanceof ResourceNotFoundError) {
-          return undefined;
-        }
-        throw error;
-      }
-      return isDirect(account) ? account : undefined;
+      const rows = await store.findAllByField(
+        KIND,
+        "spec.email",
+        email,
+        IdentityAccountSchema,
+      );
+      return rows
+        .map((bytes) => fromBinary(IdentityAccountSchema, bytes))
+        .find(isDirect);
     },
 
     async findByIds(ids): Promise<ReadonlyArray<IdentityAccount>> {
