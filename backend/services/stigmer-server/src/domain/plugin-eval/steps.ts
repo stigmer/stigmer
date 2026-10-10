@@ -74,10 +74,10 @@ import {
   PLUGIN_EVAL_MAX_CASES,
   PLUGIN_EVAL_MAX_TRIES,
   PLUGIN_EVAL_NO_ENGINE_MESSAGE,
+  PLUGIN_EVAL_NOT_STARTED_ERROR,
   PLUGIN_EVAL_WORKFLOW_ENDED_ERROR,
   pluginEvalActiveDeleteMessage,
   pluginEvalNoCasesMessage,
-  pluginEvalNotStartedMessage,
   pluginEvalOrgMismatchMessage,
   pluginEvalOtherPluginToolMessage,
   pluginEvalCaseGlobMessage,
@@ -429,8 +429,9 @@ export function newEnsureEvaluatedPluginStillExistsStep(
  * StartPluginEvalWorkflow: starts the eval's workflow under its
  * deterministic id, after the row and its access are written. A start
  * that fails (no engine yet, a refusal, the deadline) marks the eval
- * failed with its reason while it is still pending, and the create
- * answers that row: the eval was created, and says why it did not run.
+ * failed while it is still pending, with a fixed sentence every viewer of
+ * the plugin may read (the engine's own error is logged), and the create
+ * answers that row: the eval was created, and did not run.
  * Only the workflow's load writes running, so a start that failed after
  * the workflow did begin (its answer lost to the deadline) finds the eval
  * running and leaves it to the workflow, which records its tries, ends it,
@@ -459,7 +460,7 @@ export function newStartPluginEvalWorkflowStep(
           evalId,
           (status) => {
             status.phase = PluginEvalPhase.failed;
-            status.error = pluginEvalNotStartedMessage(cause);
+            status.error = PLUGIN_EVAL_NOT_STARTED_ERROR;
             status.finishedAt = timestampNow();
           },
           isPendingPluginEval,

@@ -207,7 +207,7 @@ describe("plugin eval create", () => {
     expect(created.status?.triesTotal).toBe(2 * 3 + 2 * 2);
     expect(created.status?.provisionalDelta).toBe(true);
     expect(created.status?.phase).toBe(PluginEvalPhase.failed);
-    expect(created.status?.error).toBe("the eval could not start: no engine connection");
+    expect(created.status?.error).toBe("the eval's workflow could not be started");
 
     const read = await evalQuery.get({ value: created.metadata!.id });
     expect(read.status?.phase).toBe(PluginEvalPhase.failed);

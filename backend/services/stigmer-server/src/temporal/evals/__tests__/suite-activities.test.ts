@@ -230,7 +230,7 @@ describe("load-suite against an eval that ends while it reads", () => {
           PluginEvalSchema,
           (live) => {
             live.status!.phase = PluginEvalPhase.failed;
-            live.status!.error = "the eval could not start: deadline exceeded";
+            live.status!.error = "the eval's workflow could not be started";
           },
         );
         if (options.broken) {
@@ -252,7 +252,7 @@ describe("load-suite against an eval that ends while it reads", () => {
     ).toEqual({ kind: "stop" });
     const status = (await readEval(temp.store)).status;
     expect(status?.phase).toBe(PluginEvalPhase.failed);
-    expect(status?.error).toBe("the eval could not start: deadline exceeded");
+    expect(status?.error).toBe("the eval's workflow could not be started");
     expect(status?.cases).toEqual([]);
   });
 
@@ -267,7 +267,7 @@ describe("load-suite against an eval that ends while it reads", () => {
       })[LOAD_SUITE_ACTIVITY_NAME](EVAL_ID),
     ).toEqual({ kind: "stop" });
     expect((await readEval(temp.store)).status?.error).toBe(
-      "the eval could not start: deadline exceeded",
+      "the eval's workflow could not be started",
     );
   });
 });
