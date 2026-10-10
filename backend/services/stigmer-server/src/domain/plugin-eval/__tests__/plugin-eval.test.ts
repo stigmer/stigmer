@@ -8,7 +8,8 @@
  * one, or one that is no version of it), an organization that is not the
  * plugin's, a case_glob that is not a glob, a missing plugin, a
  * version without eval cases, a filter that keeps no case, a suite larger
- * than an eval may run (naming the counts) and a target model the catalog
+ * than an eval may run (naming the counts; 200 cases and 1000 tries run,
+ * one more of either is refused) and a target model the catalog
  * does not know; listByPlugin answers a plugin's evals newest first;
  * cancel answers a finished eval unchanged and is UNAVAILABLE for a running
  * one with no engine to stop it; delete is refused while the eval runs,
@@ -56,6 +57,8 @@ import {
   pluginEvalActiveOnPluginDeleteMessage,
   pluginEvalNotCurrentVersionMessage,
   pluginEvalTooLargeMessage,
+  PLUGIN_EVAL_MAX_CASES,
+  PLUGIN_EVAL_MAX_TRIES,
 } from "../constants.js";
 
 const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
@@ -282,6 +285,34 @@ describe("plugin eval create", () => {
     expect(typo.rawMessage).toContain("spec.targets[0].model_name: model 'claude-sonet-4.6' is not in the model registry");
 
     expect((await evalQuery.listByPlugin({ pluginId: plugin.metadata!.id })).items).toHaveLength(before);
+  });
+
+  it("runs at most 200 cases and 1000 tries, refusing one more of either", async () => {
+    expect([PLUGIN_EVAL_MAX_CASES, PLUGIN_EVAL_MAX_TRIES]).toEqual([200, 1000]);
+    const many = (count: number) =>
+      install(
+        Object.fromEntries(
+          Array.from({ length: count }, (_, index) => [
+            [`evals/case-${index}/prompt.md`, "Say yes.\n"],
+            [`evals/case-${index}/graders/says-yes.md`, "---\ntype: regex\npattern: yes\n---\n"],
+          ]).flat(),
+        ),
+      );
+    const single = { ablation: PluginEvalAblation.none };
+
+    const atLimit = await many(200);
+    const largest = await evals.create(evalOf(atLimit, { ...single, runs: 5 }));
+    expect(largest.status?.triesTotal).toBe(1000);
+
+    const oneCaseOver = await many(201);
+    const cases = await refusal(evals.create(evalOf(oneCaseOver, { ...single, runs: 1 })));
+    expect(cases.code).toBe(Code.FailedPrecondition);
+    expect(cases.rawMessage).toBe(pluginEvalTooLargeMessage(201, 201));
+
+    const oneTryOver = await many(91);
+    const tries = await refusal(evals.create(evalOf(oneTryOver, { ...single, runs: 11 })));
+    expect(tries.code).toBe(Code.FailedPrecondition);
+    expect(tries.rawMessage).toBe(pluginEvalTooLargeMessage(91, 1001));
   });
 });
 
