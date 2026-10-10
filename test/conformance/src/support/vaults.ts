@@ -9,7 +9,7 @@
 // create shapes; entry writes are composed with the request helpers below so
 // each suite says which vault it writes.
 //
-// Blueprint env-var declarations (what an Agent or McpServer puts in its
+// Blueprint env-var declarations (what an Agent puts in its
 // spec.env) live here too: EnvVarDeclaration belongs to the vault package. A
 // declaration carries no person's value; a secret is found in a vault by its
 // name when a run starts, and a plain setting may carry a default `value`.
@@ -39,7 +39,7 @@ export interface EnvVarDeclarationInit {
 
 // Projects a keyed map of declarations into the proto map<string,
 // EnvVarDeclaration> init shape, with the same defaults on every field so the
-// Agent and McpServer builders compose blueprint env maps identically.
+// builders compose blueprint env maps identically.
 export function makeEnvDeclarations(
   env: Record<string, EnvVarDeclarationInit>,
 ): Record<string, InitShape<typeof EnvVarDeclarationSchema>> {

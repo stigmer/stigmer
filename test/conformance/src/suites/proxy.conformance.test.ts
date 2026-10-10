@@ -37,7 +37,6 @@ import { makeAgent, agentRefOf } from "../support/agents";
 import { makeAgentExecution } from "../support/runs";
 import { requireCloudFixtures, type CloudFixturesClient } from "../support/cloud-fixtures-client";
 import { bidiHandshake, HTTP2_REFUSED_STREAM } from "../support/cursor-bidi";
-import { makeMcpServer } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";
 import { makeSession } from "../support/sessions";
 import { createTarget, type TargetProfile } from "../targets";
@@ -53,7 +52,6 @@ let primaryToken: string;
 const fixtures = new FixtureTracker();
 
 const EXECUTION_HEADER = "x-stigmer-execution-id";
-const MCP_SERVER_HEADER = "x-stigmer-mcp-server-id";
 const PLATFORM_CAPACITY_SENTINEL = "STIGMER_PLATFORM_MODEL_CAPACITY";
 
 async function fundedOrg(): Promise<TenancyContext> {
@@ -249,24 +247,6 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
       }
       expect(after.llmCallCount).toBe(before.llmCallCount + 3);
       expect(after.runCount).toBe(1);
-    });
-
-    it("[proxy.llm.usage.mcp-scope-authorized-not-metered] an MCP-server scope is authorized but records no usage", async () => {
-      const { org } = await fundedOrg();
-      const mcp = await clients.mcpServerCommand.create(makeMcpServer({ org, name: uniqueName("mcp") }));
-      fixtures.defer(() => clients.mcpServerCommand.delete({ resourceId: mcp.metadata!.id }));
-      const before = await usageReport(org);
-      await control.llm.enqueue({ kind: "anthropic", body: anthropicText("mcp", { inputTokens: 9, outputTokens: 9 }) });
-      const response = await proxyFetch("/v1/proxy/llm/anthropic/v1/messages", {
-        method: "POST",
-        scope: { [MCP_SERVER_HEADER]: mcp.metadata!.id },
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ model: "claude-sonnet-4-6", stream: true, messages: [] }),
-      });
-      expect(response.status).toBe(200);
-      await response.text();
-      await new Promise((r) => setTimeout(r, 1500));
-      expect((await usageReport(org)).llmCallCount).toBe(before.llmCallCount);
     });
 
     it("[proxy.llm.unknown-provider-400] an unknown provider answers 400 without touching the upstream", async () => {

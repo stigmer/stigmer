@@ -3,9 +3,9 @@
 // HITL contract (that lives in run-approval.conformance.test.ts).
 //
 // This is the cheap, permanent guard that the local-execution target's MCP
-// machinery works end-to-end: an HTTP McpServer is registered (create only — no
-// connect/discovery), an agent references it, and a real run dispatches the
-// fixture's `echo` tool live. Approval is bypassed here (auto_approve_all) so the
+// machinery works end-to-end: a plugin whose one HTTP MCP server is the
+// fixture is pushed (nothing connects ahead of the run), an agent lists it,
+// and a real run dispatches the fixture's `echo` tool live. Approval is bypassed here (auto_approve_all) so the
 // path under test is purely connect-live -> list-tools -> dispatch -> result;
 // the approval dance is a separate suite.
 //
@@ -25,10 +25,11 @@ import { agentRefOf, makeAgent } from "../support/agents";
 import {
   awaitTerminal,
   makeAgentExecution,
+  pushFixturePlugin,
   requireLlmProxy,
   requireMcpFixture,
 } from "../support/runs";
-import { makeHttpMcpServer } from "../support/mcpservers";
+import { toolServerSegment } from "../support/plugins";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 
@@ -56,20 +57,20 @@ afterAll(async () => {
 });
 
 describe("Execution harness smoke — MCP tool dispatch", () => {
-  it("runs an agent that calls a live MCP tool (no connect/discovery), reaching COMPLETED", async () => {
+  it("runs an agent that calls a live MCP tool of a plugin it lists (nothing connected first), reaching COMPLETED", async () => {
     const { org } = await target.provisionTenancy();
 
-    // Register the in-process HTTP MCP fixture. Create only — the runner connects
-    // to its url() live at execution setup.
-    const server = await clients.mcpServerCommand.create(
-      makeHttpMcpServer({ org, name: uniqueName("mcp"), url: mcp.url() }),
-    );
-    fixtures.defer(() => clients.mcpServerCommand.delete({ resourceId: server.metadata!.id }));
-    const slug = server.metadata!.slug;
+    // A plugin whose one server is the in-process HTTP MCP fixture. Pushed
+    // only — the runner connects to its url() live at turn start.
+    const plugin = await pushFixturePlugin(clients, mcp, fixtures, {
+      org,
+      name: uniqueName("mcp"),
+      tools: [ECHO_TOOL_NAME],
+    });
 
-    // An agent that uses the MCP server, so the runner binds its `echo` tool.
+    // An agent that lists the plugin, so the runner binds its `echo` tool.
     const agent = await clients.agentCommand.create(
-      makeAgent({ org, name: uniqueName("agent-mcp-smoke"), mcpServerRefs: [slug] }),
+      makeAgent({ org, name: uniqueName("agent-mcp-smoke"), plugins: [plugin.metadata!.slug] }),
     );
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
 
@@ -100,6 +101,9 @@ describe("Execution harness smoke — MCP tool dispatch", () => {
     const echo = toolCalls.find((tc) => tc.name === ECHO_TOOL_NAME);
     expect(echo, "an echo tool call should be recorded in status.messages").toBeTruthy();
     expect(echo?.status, "the echo tool call should be COMPLETED").toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    expect(echo?.mcpServerSlug, "the call names the plugin's server").toBe(
+      toolServerSegment(plugin.metadata!.name),
+    );
 
     // The agent loop consumed exactly its two scripted turns.
     expect(mock.remaining(), "both queued turns were consumed").toBe(0);

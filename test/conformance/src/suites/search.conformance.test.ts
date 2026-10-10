@@ -25,8 +25,8 @@ import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { makeAgent } from "../support/agents";
-import { makeMcpServer } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";
+import { pushPlugin, thermosLike } from "../support/plugins";
 import { createTarget, type TargetProfile } from "../targets";
 
 let target: TargetProfile;
@@ -109,19 +109,18 @@ describe("Search conformance — search mode (text query)", () => {
     expect(response.entries[0]?.score).toBeGreaterThan(0);
   });
 
-  it("[rpc:SearchService.search] discover mode (empty kinds) spans searchable kinds, and an agent and an MCP server each index themselves alone", async () => {
+  it("[rpc:SearchService.search] discover mode (empty kinds) spans searchable kinds, and an agent and a plugin each index themselves alone", async () => {
     const { org } = await target.provisionTenancy();
     const token = uniqueToken();
     await createAgentNamed(org, `disc-${token}-agent`);
-    const server = await clients.mcpServerCommand.create(
-      makeMcpServer({ org, name: `disc-${token}-mcp` }),
-    );
-    fixtures.defer(() => clients.mcpServerCommand.delete({ resourceId: server.metadata!.id }));
+    // The plugin carries a skill, an agent and an MCP server named after the
+    // token too: they are parts of the one plugin row, never rows of their own.
+    await pushPlugin(clients, fixtures, org, thermosLike(`disc-${token}-plg`, { skill: `disc-${token}-skill` }));
 
     const response = await clients.search.search({ query: token, org });
 
-    // Two hits from two creates: neither an agent nor an MCP server writes a
-    // row beside itself. Compared on the NON-ZERO
+    // Two hits from two writes: neither an agent nor a plugin install writes
+    // a row beside itself. Compared on the NON-ZERO
     // entries: whether zero-count kinds appear in the map is an edition
     // presentation difference (the multi-tenant edition enumerates every
     // kind at 0; local omits them), while the non-zero membership is the
@@ -132,7 +131,7 @@ describe("Search conformance — search mode (text query)", () => {
     );
     expect(nonZeroCounts).toEqual({
       agent: 1,
-      mcp_server: 1,
+      plugin: 1,
     });
   });
 

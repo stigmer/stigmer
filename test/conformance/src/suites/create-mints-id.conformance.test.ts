@@ -62,7 +62,6 @@ import { makeApiKey } from "../support/apikeys";
 import { makeSlackChannelApp } from "../support/channelapps";
 import { makeSharedVault } from "../support/vaults";
 import { makeEvaluator } from "../support/evaluators";
-import { makeMcpServer } from "../support/mcpservers";
 import { enableOrganizationMemory, makeMemory } from "../support/memories";
 import { foreignId, uniqueName, uniqueOrg } from "../support/naming";
 import { makeOAuthApp } from "../support/oauthapps";
@@ -338,40 +337,6 @@ const ROWS: readonly Row[] = [
     },
     async read(id) {
       return (await clients.vaultQuery.get({ value: id })).metadata?.id;
-    },
-  },
-  {
-    title: "[rpc:McpServerCommandController.create] McpServer",
-    key: "McpServerCommandController.create",
-    kind: ApiResourceKind.mcp_server,
-    async send({ org }, chosenId) {
-      const name = uniqueName("mint-mcp");
-      const created = await clients.mcpServerCommand.create({
-        ...makeMcpServer({ org, name }),
-        metadata: { id: chosenId, name, org },
-      });
-      fixtures.defer(() => clients.mcpServerCommand.delete({ resourceId: created.metadata!.id }));
-      return answerOf(this.key, created.metadata);
-    },
-    async read(id) {
-      return (await clients.mcpServerQuery.get({ value: id })).metadata?.id;
-    },
-  },
-  {
-    title: "[rpc:McpServerCommandController.apply] McpServer (apply as a create)",
-    key: "McpServerCommandController.apply",
-    kind: ApiResourceKind.mcp_server,
-    async send({ org }, chosenId) {
-      const name = uniqueName("mint-mcp");
-      const applied = await clients.mcpServerCommand.apply({
-        ...makeMcpServer({ org, name }),
-        metadata: { id: chosenId, name, org },
-      });
-      fixtures.defer(() => clients.mcpServerCommand.delete({ resourceId: applied.metadata!.id }));
-      return answerOf(this.key, applied.metadata);
-    },
-    async read(id) {
-      return (await clients.mcpServerQuery.get({ value: id })).metadata?.id;
     },
   },
   {

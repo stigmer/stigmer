@@ -7,9 +7,16 @@
 // branching, immutable identity fields, reference resolution, slug semantics,
 // and spec-first negative paths. An agent is run directly: a conversation
 // names it by reference (the session suite), so creating one provisions
-// nothing beside it. The cross-aggregate
-// Agent->McpServer reference invariant lives in
-// agent-mcpserver-references.conformance.test.ts.
+// nothing beside it. The last block pins the one reference rule every spec
+// reference is judged by at write, on the plugins an agent uses whole and on
+// its skills: a same-organization target must exist; another
+// organization's target is admitted only when it is the writer's parent's,
+// shared with its child organizations, and the refusal is ONE sentence
+// whether the target is missing, merely not shared or another parent's, so
+// a create is never an existence probe over another organization's rows;
+// and the FLOOR — an agent may not be more visible than a plugin it runs
+// with, at create and when its level is raised — because what a person can
+// run they must also be able to read. An agent lists each plugin once.
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
@@ -23,6 +30,8 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { AGENT_API_VERSION, AGENT_KIND, makeAgent, makeAgentSpec } from "../support/agents";
 import { uniqueName, uniqueOrg } from "../support/naming";
+import { createChildOrganization, organizationSlug } from "../support/organizations";
+import { pushPlugin, thermosLike } from "../support/plugins";
 import { createTarget, type TargetProfile } from "../targets";
 
 let target: TargetProfile;
@@ -46,7 +55,7 @@ afterAll(async () => {
   await target?.teardown();
 });
 
-async function createAgent(org: string, name: string, opts: { description?: string; mcpServerRefs?: string[] } = {}) {
+async function createAgent(org: string, name: string, opts: { description?: string; plugins?: string[] } = {}) {
   const agent = await clients.agentCommand.create(makeAgent({ org, name, ...opts }));
   fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
   return agent;
@@ -468,4 +477,181 @@ describe("Agent conformance — plain-update visibility door (stigmer#573)", () 
     expect(stored.metadata?.visibility, "the stored level is untouched").toBe(ApiResourceVisibility.visibility_org);
   });
 
+});
+
+describe("Agent conformance — the reference rule at write", () => {
+  async function installPlugin(org: string, visibility?: ApiResourceVisibility) {
+    const name = uniqueName("tools");
+    return pushPlugin(clients, fixtures, org, thermosLike(name), visibility !== undefined ? { visibility } : {});
+  }
+
+  /** An agent whose one plugin reference names `slug` in `refOrg` explicitly. */
+  function agentListing(org: string, refOrg: string, slug: string) {
+    const input = makeAgent({ org, name: uniqueName("agent") });
+    input.spec = {
+      ...makeAgentSpec(),
+      plugins: [{ kind: ApiResourceKind.plugin, org: refOrg, slug }],
+    };
+    return input;
+  }
+
+  it("[rpc:AgentCommandController.create] accepts an agent listing an existing plugin and normalizes the reference org", async () => {
+    const { org } = await target.provisionTenancy();
+    const plugin = await installPlugin(org);
+    const slug = plugin.metadata!.slug;
+
+    const agent = await createAgent(org, uniqueName("agent"), { plugins: [slug] });
+
+    const plugins = agent.spec?.plugins ?? [];
+    expect(plugins.map((ref) => [ref.kind, ref.slug]), "the listed plugin is preserved on the agent").toEqual([
+      [ApiResourceKind.plugin, slug],
+    ]);
+    // The request left org empty; NormalizeReferences resolves it to the agent's org.
+    expect(plugins[0]?.org, "the empty reference org is normalized to the agent's org").toBe(org);
+  });
+
+  it("[rpc:AgentCommandController.create] a same-organization plugin reference must name an installed plugin (FailedPrecondition, the slug named)", async () => {
+    const { org } = await target.provisionTenancy();
+    const err = await expectGrpcCode(
+      () => clients.agentCommand.create(makeAgent({ org, name: uniqueName("agent"), plugins: ["ghost-plugin"] })),
+      Code.FailedPrecondition,
+      "create agent listing a missing plugin",
+    );
+    expect(err.rawMessage).toContain(
+      `referenced plugin(s) not found: 'ghost-plugin' (org: ${await organizationSlug(clients.organizationQuery, org)}).`,
+    );
+  });
+
+  it("[rpc:AgentCommandController.create] lists each plugin once: a second entry naming the same plugin is refused (InvalidArgument)", async () => {
+    const { org } = await target.provisionTenancy();
+    const plugin = await installPlugin(org);
+    const slug = plugin.metadata!.slug;
+    const err = await expectGrpcCode(
+      () => clients.agentCommand.create(makeAgent({ org, name: uniqueName("agent"), plugins: [slug, slug] })),
+      Code.InvalidArgument,
+      "create agent listing one plugin twice",
+    );
+    expect(err.rawMessage).toContain(
+      `plugins lists '${slug}' more than once; list each plugin once, and never two plugins that share a slug`,
+    );
+  });
+
+  it("[rpc:AgentCommandController.create] a same-organization skill reference must name an existing skill (FailedPrecondition, the slug named)", async () => {
+    const { org } = await target.provisionTenancy();
+    const input = makeAgent({ org, name: uniqueName("agent") });
+    input.spec = {
+      ...makeAgentSpec(),
+      skillRefs: [{ kind: ApiResourceKind.skill, slug: "ghost-skill" }],
+    };
+    const err = await expectGrpcCode(
+      () => clients.agentCommand.create(input),
+      Code.FailedPrecondition,
+      "create agent with a missing skill reference",
+    );
+    expect(err.message).toContain(
+      `referenced skill(s) not found: 'ghost-skill' (org: ${await organizationSlug(clients.organizationQuery, org)}).`,
+    );
+  });
+
+  it("[rpc:AgentCommandController.create] the parent organization's plugin is admitted when it shares it with its children, and every other organization's is refused with one sentence, whether it exists or not", async () => {
+    // The writer's organization is a child of otherOrg; strangerOrg is another parent.
+    const { org: otherOrg } = await target.provisionTenancy();
+    const { org: strangerOrg } = await target.provisionTenancy();
+    const { id: org } = await createChildOrganization(clients.organizationCommand, otherOrg, "the writer's organization");
+    fixtures.defer(() => clients.organizationCommand.delete({ value: org }));
+    const shared = await installPlugin(otherOrg, ApiResourceVisibility.visibility_child_orgs);
+    const internal = await installPlugin(otherOrg);
+    const stranger = await installPlugin(strangerOrg, ApiResourceVisibility.visibility_child_orgs);
+
+    const admitted = await clients.agentCommand.create(agentListing(org, otherOrg, shared.metadata!.slug));
+    fixtures.defer(() => clients.agentCommand.delete({ value: admitted.metadata!.id }));
+    expect(admitted.spec?.plugins[0]?.org).toBe(otherOrg);
+
+    const sentenceFor = (slug: string) =>
+      `referenced plugin '${slug}' of another organization is not available to this organization; ` +
+      "another organization's resource can be referenced only when it is this organization's parent and shares it with its child organizations.";
+
+    const notShared = await expectGrpcCode(
+      () => clients.agentCommand.create(agentListing(org, otherOrg, internal.metadata!.slug)),
+      Code.FailedPrecondition,
+      "create agent listing another organization's org-visible plugin",
+    );
+    expect(notShared.rawMessage).toBe(sentenceFor(internal.metadata!.slug));
+
+    const missing = await expectGrpcCode(
+      () => clients.agentCommand.create(agentListing(org, otherOrg, "no-such-plugin")),
+      Code.FailedPrecondition,
+      "create agent listing another organization's missing plugin",
+    );
+    expect(missing.rawMessage).toBe(sentenceFor("no-such-plugin"));
+
+    const anotherParents = await expectGrpcCode(
+      () => clients.agentCommand.create(agentListing(org, strangerOrg, stranger.metadata!.slug)),
+      Code.FailedPrecondition,
+      "create agent listing a plugin another parent shares with its children",
+    );
+    expect(anotherParents.rawMessage).toBe(sentenceFor(stranger.metadata!.slug));
+
+    // A name no organization holds reads exactly as a held one: the refusal
+    // never tells the writer which names exist.
+    const unheld = await expectGrpcCode(
+      () => clients.agentCommand.create(agentListing(org, uniqueName("nobody-org"), "no-such-plugin")),
+      Code.FailedPrecondition,
+      "create agent listing a plugin of an organization nobody holds",
+    );
+    expect(unheld.rawMessage).toBe(sentenceFor("no-such-plugin"));
+  });
+
+  it("[rpc:AgentCommandController.create] [rpc:AgentCommandController.updateVisibility] the floor at both doors: an org-visible agent may not run a private plugin, at create and when raised", async () => {
+    const { org } = await target.provisionTenancy();
+    const mine = await installPlugin(org, ApiResourceVisibility.visibility_private);
+    const slug = mine.metadata!.slug;
+    const floorSentence =
+      `referenced plugin '${await organizationSlug(clients.organizationQuery, org)}/${slug}' is visibility_private while this resource is visibility_org; ` +
+      "a resource may not be more visible than the plugins it runs with. " +
+      "Widen the referenced resource's visibility or narrow this one.";
+
+    // The spec door: an agent defaults to org visibility, so the create is refused.
+    const atCreate = await expectGrpcCode(
+      () => clients.agentCommand.create(agentListing(org, org, slug)),
+      Code.FailedPrecondition,
+      "create an org-visible agent over a private plugin",
+    );
+    expect(atCreate.rawMessage).toBe(floorSentence);
+
+    // A private agent clears the floor; raising it does not.
+    const privateInput = agentListing(org, org, slug);
+    privateInput.metadata = {
+      ...privateInput.metadata,
+      visibility: ApiResourceVisibility.visibility_private,
+    };
+    const created = await clients.agentCommand.create(privateInput);
+    fixtures.defer(() => clients.agentCommand.delete({ value: created.metadata!.id }));
+
+    const atEscalation = await expectGrpcCode(
+      () =>
+        clients.agentCommand.updateVisibility({
+          resourceId: created.metadata!.id,
+          visibility: ApiResourceVisibility.visibility_org,
+        }),
+      Code.FailedPrecondition,
+      "raise an agent above the plugin it runs with",
+    );
+    expect(atEscalation.rawMessage).toBe(floorSentence);
+    const stored = await clients.agentQuery.get({ value: created.metadata!.id });
+    expect(stored.metadata?.visibility, "the refused escalation leaves the level").toBe(
+      ApiResourceVisibility.visibility_private,
+    );
+
+    // Widen the dependency and the same escalation passes.
+    await clients.pluginCommand.updateVisibility({
+      resourceId: mine.metadata!.id,
+      visibility: ApiResourceVisibility.visibility_org,
+    });
+    const raised = await clients.agentCommand.updateVisibility({
+      resourceId: created.metadata!.id,
+      visibility: ApiResourceVisibility.visibility_org,
+    });
+    expect(raised.metadata?.visibility).toBe(ApiResourceVisibility.visibility_org);
+  });
 });

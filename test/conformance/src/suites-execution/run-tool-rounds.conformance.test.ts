@@ -32,10 +32,10 @@ import {
   allToolCalls,
   awaitTerminal,
   makeAgentExecution,
+  pushFixturePlugin,
   requireLlmProxy,
   requireMcpFixture,
 } from "../support/runs";
-import { makeHttpMcpServer } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 
@@ -82,13 +82,14 @@ describe("Run run_config.max_tool_rounds", () => {
   it("[rpc:RunCommandController.create] ends the run at its budget, with exactly that many tool rounds made", async () => {
     const { org } = await target.provisionTenancy();
 
-    const server = await clients.mcpServerCommand.create(
-      makeHttpMcpServer({ org, name: uniqueName("mcp-rounds"), url: mcp.url() }),
-    );
-    fixtures.defer(() => clients.mcpServerCommand.delete({ resourceId: server.metadata!.id }));
+    const plugin = await pushFixturePlugin(clients, mcp, fixtures, {
+      org,
+      name: uniqueName("mcp-rounds"),
+      tools: [ECHO_TOOL_NAME],
+    });
 
     const agent = await clients.agentCommand.create(
-      makeAgent({ org, name: uniqueName("agent-rounds"), mcpServerRefs: [server.metadata!.slug] }),
+      makeAgent({ org, name: uniqueName("agent-rounds"), plugins: [plugin.metadata!.slug] }),
     );
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
 

@@ -28,13 +28,19 @@
 //   - listByAgent answers the sessions pinned to an agent, whichever version.
 // Who may name or change an agent (the run gate) is the run-gate suite's.
 //
+// A conversation's own plugins (spec.plugins): each must name an installed
+// plugin, and a conversation whose turns would run where a plugin's local
+// program (a stdio MCP server) cannot start — the cloud target served by a
+// cloud-mode sandbox — is refused when it is made, naming the plugin and
+// the server; one on the local target keeps its local programs.
+//
 // Session has NO Temporal involvement — it only persists conversation
 // configuration that later drives agent-execution dispatch. The lifecycle-bound
 // behaviors it gates (harness_state_id, and the harness / execution_target
 // immutability sentinels that fire only once harness_state_id is set by a real
 // execution) are therefore out of scope here and belong to the execution-lifecycle
-// suites, as is the runtime merge of session-level mcp_server_usages /
-// skill_refs into the agent graph.
+// suites, as is the runtime merge of the session's plugins / skill_refs with
+// the agent's.
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { type Session, SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
@@ -54,6 +60,7 @@ import { makeSlackAgentChannel } from "../support/agentchannels";
 import { uniqueName } from "../support/naming";
 import { SESSION_API_VERSION, SESSION_KIND, makeSession, makeSessionSpec } from "../support/sessions";
 import { makeSkillArtifact } from "../support/skills";
+import { oneServerPlugin, pushPlugin } from "../support/plugins";
 import { createTarget, type TargetProfile } from "../targets";
 
 let target: TargetProfile;
@@ -61,6 +68,9 @@ let target: TargetProfile;
 // by design, so the cases seeded through the privileged scope report SKIPPED
 // there, never passes that returned early.
 const hasPrivilegedScope = createTarget().provisionPrivilegedScope !== undefined;
+// Read at collection time so an edition without a capability reports its cases
+// SKIPPED (the conformance guide's rule), never as passes that returned early.
+const capabilities = createTarget().capabilities;
 let clients: ConformanceClients;
 const fixtures = new FixtureTracker();
 
@@ -887,5 +897,67 @@ describe("Session conformance — references across organizations and on update"
 
     expect(updated.spec?.subject).toBe("renamed");
     expect(updated.spec?.skillRefs.map((ref) => ref.slug)).toEqual([skill.metadata!.slug]);
+  });
+});
+
+describe("Session conformance — the conversation's own plugins", () => {
+  // A plugin whose one MCP server is a local program the runner would start.
+  async function installLocalProgramPlugin(org: string) {
+    return pushPlugin(
+      clients,
+      fixtures,
+      org,
+      oneServerPlugin({ name: uniqueName("plg-local"), serverName: "notes", server: { command: "npx", args: ["-y", "notes-mcp"] } }),
+    );
+  }
+
+  it("[rpc:SessionCommandController.create] a session on the local target listing a plugin with a local program is created, its reference filed under the session's organization", async () => {
+    const { org } = await target.provisionTenancy();
+    const plugin = await installLocalProgramPlugin(org);
+    const session = await clients.sessionCommand.create(
+      makeSession({
+        org,
+        name: uniqueName("local-programs"),
+        executionTarget: ExecutionTarget.LOCAL,
+        plugins: [plugin.metadata!.slug],
+      }),
+    );
+    fixtures.defer(() => clients.sessionCommand.delete({ value: session.metadata!.id }));
+    expect(session.spec?.plugins.map((ref) => [ref.kind, ref.org, ref.slug])).toEqual([
+      [ApiResourceKind.plugin, org, plugin.metadata!.slug],
+    ]);
+  });
+
+  it("[rpc:SessionCommandController.create] a session listing a plugin nobody installed is refused (FailedPrecondition, the slug named)", async () => {
+    const { org } = await target.provisionTenancy();
+    const err = await expectGrpcCode(
+      () => clients.sessionCommand.create(makeSession({ org, name: uniqueName("ghost-plugin"), plugins: ["ghost-plugin"] })),
+      Code.FailedPrecondition,
+      "create session listing a missing plugin",
+    );
+    expect(err.rawMessage).toContain("referenced plugin(s) not found: 'ghost-plugin'");
+  });
+
+  describe.skipIf(!capabilities.cloudTargetRefusesLocalPrograms)("on a cloud target served by a cloud-mode sandbox", () => {
+    it("[rpc:SessionCommandController.create] a session on the cloud target listing a plugin with a local program is refused, naming the plugin and the server", async () => {
+      const { org } = await target.provisionTenancy();
+      const plugin = await installLocalProgramPlugin(org);
+      const err = await expectGrpcCode(
+        () =>
+          clients.sessionCommand.create(
+            makeSession({
+              org,
+              name: uniqueName("cloud-local-programs"),
+              executionTarget: ExecutionTarget.CLOUD,
+              plugins: [plugin.metadata!.slug],
+            }),
+          ),
+        Code.FailedPrecondition,
+        "create a cloud-target session with a local program",
+      );
+      expect(err.rawMessage).toContain(
+        `plugin '${plugin.metadata!.name}' runs its MCP server 'notes' as a local program, which runs only in the desktop app or the CLI`,
+      );
+    });
   });
 });

@@ -5,7 +5,8 @@
 // level, but a useful agent carries `instructions` (min_len=10). These builders
 // give the suite one canonical *valid* agent so CRUD and cross-resource tests
 // share a single source of truth and vary it deliberately — notably via
-// `mcpServerRefs`, which composes the Agent->McpServer reference invariant
+// `plugins`, the plugins the agent uses whole (their skills, agents, hooks
+// and MCP servers), which composes the Agent->Plugin reference rule
 // exercised by ValidateReferencesStep.
 //
 // A conversation names its agent by reference (`AgentRefInit`, projected by
@@ -55,10 +56,11 @@ export interface AgentSpecOptions {
   instructions?: string;
   // Sub-agents projected into spec.sub_agents (the delegation arms).
   subAgents?: SubAgentOption[];
-  // McpServer slugs to reference via spec.mcp_server_usages. Each becomes an
-  // mcp_server_ref with kind=mcp_server (the CEL constraint the agent spec
-  // enforces). Org is left empty so the server normalizes it to the agent's org.
-  mcpServerRefs?: string[];
+  // Plugin slugs the agent uses (spec.plugins), each with kind=plugin (the
+  // CEL constraint the agent spec enforces). Org is left empty so the server
+  // normalizes it to the agent's org; an arm that names another
+  // organization's plugin writes the reference inline.
+  plugins?: string[];
   // The agent's two tool lists (spec.tools, spec.disallowed_tools), in Claude
   // Code's names: "only these" and "never these". Passed through verbatim;
   // what an entry means is the runner's to resolve.
@@ -76,19 +78,20 @@ export interface AgentSpecOptions {
   // both at save.
   runConfig?: InitShape<typeof RunConfigSchema>;
   harness?: Harness;
-  // The agent's hooks: plugin references and its own hooks block, as written.
+  // The agent's own hooks block, as written (a plugin's hooks come with the
+  // plugin when it is listed in `plugins`).
   hooks?: InitShape<typeof HookSourceSchema>[];
 }
 
 // A valid AgentSpec: instructions satisfy the min_len=10 constraint, and any
-// requested McpServer references are projected into mcp_server_usages.
+// requested plugin references are projected into plugins.
 export function makeAgentSpec(opts: AgentSpecOptions = {}): InitShape<typeof AgentSpecSchema> {
   return {
     description: opts.description ?? "conformance fixture",
     instructions: opts.instructions ?? "Review code carefully and suggest improvements.",
-    mcpServerUsages: (opts.mcpServerRefs ?? []).map((slug) => ({
-      mcpServerRef: { slug, kind: ApiResourceKind.mcp_server },
-    })),
+    ...(opts.plugins !== undefined
+      ? { plugins: opts.plugins.map((slug) => ({ slug, kind: ApiResourceKind.plugin })) }
+      : {}),
     ...(opts.skillRefs !== undefined
       ? { skillRefs: opts.skillRefs.map((slug) => ({ slug, kind: ApiResourceKind.skill })) }
       : {}),

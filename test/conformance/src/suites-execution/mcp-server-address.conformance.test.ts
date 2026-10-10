@@ -1,12 +1,15 @@
 // Conformance suite for the platform-filled STIGMER_SERVER_ADDRESS (Class B).
 // Domain: agentic / agentexecution: My vault → execution → the runner's fill
-// → a remote MCP server's templated header.
+// → a plugin's remote MCP server's templated header.
 //
-// The contract under test (stigmer/stigmer#1446, #1451, #1458): a value the
-// user SAVED for STIGMER_SERVER_ADDRESS (in their My vault, which fills every
-// key the run declares when the conversation includes it) is the value their
-// MCP server receives, and when nothing is saved the runner fills the key from the public
-// endpoint its launcher gave it, so the server still receives an address. The
+// The contract under test (stigmer/stigmer#1446, #1451, #1458): a plugin's
+// server that references STIGMER_SERVER_ADDRESS in a header declares nothing
+// for it (the platform supplies the key, so the plugin library declares it
+// optional and no vault is required for it). A value the user SAVED for it
+// (in their My vault, which the conversation includes) is the value the
+// server receives, and when nothing is saved the runner fills the key from
+// the public endpoint its launcher gave it, so the server still receives an
+// address and the run's source manifest lists no vault entry for it. The
 // platform fills the key only when it is missing (the runner's
 // platform-server-address module), below every saved value, so a saved one
 // is never replaced by the platform's own address. The chain crosses four
@@ -40,9 +43,15 @@ import { ECHO_TOOL_NAME } from "../harness/mcp-server";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
 import { agentRefOf, makeAgent } from "../support/agents";
-import { awaitTerminal, makeAgentExecution, requireLlmProxy, requireMcpFixture } from "../support/runs";
+import {
+  awaitTerminal,
+  makeAgentExecution,
+  pushFixturePlugin,
+  requireLlmProxy,
+  requireMcpFixture,
+} from "../support/runs";
+import { runSourcesOf, sourcesFor } from "../support/run-values";
 import { myVaultTarget, setSecretsInput } from "../support/vaults";
-import { makeHttpMcpServer } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";
 import { makeSession } from "../support/sessions";
 import { createTarget, type TargetProfile } from "../targets";
@@ -88,7 +97,7 @@ afterAll(async () => {
   await target?.teardown();
 });
 
-describe("platform STIGMER_SERVER_ADDRESS (My vault → execution → headers)", () => {
+describe("platform STIGMER_SERVER_ADDRESS (My vault → execution → a plugin server's headers)", () => {
   it("delivers the address the user saved, never the platform's own", async () => {
     const { org } = await target.provisionTenancy();
     const saved = "saved.example.com:7234";
@@ -98,19 +107,15 @@ describe("platform STIGMER_SERVER_ADDRESS (My vault → execution → headers)",
     );
     fixtures.defer(() => clients.vaultCommand.delete({ resourceId: mine.metadata!.id }));
 
-    const server = await clients.mcpServerCommand.create(
-      makeHttpMcpServer({
-        org,
-        name: uniqueName("mcp-address"),
-        url: mcp.url(),
-        headers: { "X-Stigmer-Server-Address": `\${${SERVER_ADDRESS_ENV_KEY}}` },
-        env: { [SERVER_ADDRESS_ENV_KEY]: { optional: true, description: "Filled by the platform when not saved" } },
-      }),
-    );
-    fixtures.defer(() => clients.mcpServerCommand.delete({ resourceId: server.metadata!.id }));
+    const plugin = await pushFixturePlugin(clients, mcp, fixtures, {
+      org,
+      name: uniqueName("mcp-address"),
+      tools: [ECHO_TOOL_NAME],
+      headers: { "X-Stigmer-Server-Address": `\${${SERVER_ADDRESS_ENV_KEY}}` },
+    });
 
     const agent = await clients.agentCommand.create(
-      makeAgent({ org, name: uniqueName("agent-address"), mcpServerRefs: [server.metadata!.slug] }),
+      makeAgent({ org, name: uniqueName("agent-address"), plugins: [plugin.metadata!.slug] }),
     );
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
 
@@ -146,28 +151,24 @@ describe("platform STIGMER_SERVER_ADDRESS (My vault → execution → headers)",
     }
   });
 
-  it("fills the address from the endpoint the runner was launched with when nothing is saved", async () => {
+  it("fills the address from the endpoint the runner was launched with when nothing is saved, asking no vault for it", async () => {
     if (target.runnerPublicEndpoint === undefined) {
       throw new Error(`target ${target.name} spawns no runner; the fill arm needs the endpoint it was given`);
     }
     const expected = filledAddressFrom(target.runnerPublicEndpoint());
     const { org } = await target.provisionTenancy();
 
-    const server = await clients.mcpServerCommand.create(
-      makeHttpMcpServer({
-        org,
-        name: uniqueName("mcp-address-fill"),
-        url: mcp.url(),
-        headers: { "X-Stigmer-Server-Address": `\${${SERVER_ADDRESS_ENV_KEY}}` },
-        env: { [SERVER_ADDRESS_ENV_KEY]: { optional: true, description: "Filled by the platform when not saved" } },
-      }),
-    );
-    fixtures.defer(() => clients.mcpServerCommand.delete({ resourceId: server.metadata!.id }));
+    const plugin = await pushFixturePlugin(clients, mcp, fixtures, {
+      org,
+      name: uniqueName("mcp-address-fill"),
+      tools: [ECHO_TOOL_NAME],
+      headers: { "X-Stigmer-Server-Address": `\${${SERVER_ADDRESS_ENV_KEY}}` },
+    });
 
     // No vault anywhere on the chain: the agent runs straight, so nothing
     // is saved for the key and the fill is the only source of its value.
     const agent = await clients.agentCommand.create(
-      makeAgent({ org, name: uniqueName("agent-address-fill"), mcpServerRefs: [server.metadata!.slug] }),
+      makeAgent({ org, name: uniqueName("agent-address-fill"), plugins: [plugin.metadata!.slug] }),
     );
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
 
@@ -184,6 +185,10 @@ describe("platform STIGMER_SERVER_ADDRESS (My vault → execution → headers)",
     );
     const executionId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
+    expect(
+      sourcesFor(await runSourcesOf(clients, executionId), SERVER_ADDRESS_ENV_KEY),
+      `execution ${executionId}: the platform's key is asked of no vault`,
+    ).toEqual([]);
 
     const final = await awaitTerminal(clients, executionId);
     expect(

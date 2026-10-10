@@ -38,8 +38,9 @@ import {
   makeAgentExecution,
   requireLlmProxy,
   requireMcpFixture,
+  pushFixturePlugin,
 } from "../support/runs";
-import { makeHttpMcpServer } from "../support/mcpservers";
+import { toolServerSegment } from "../support/plugins";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 
@@ -82,20 +83,23 @@ function anthropicThinkingThenText(thinking: string, text: string): AnthropicMes
 // default) and runs one execution with the queued script to a terminal phase.
 async function runAgent(opts: {
   tools?: readonly FixtureTool[];
+  // The name of the plugin carrying the surface; defaults to a unique one.
+  pluginName?: string;
   modelName?: string;
   message?: string;
 }): Promise<Run> {
   const { org } = await target.provisionTenancy();
-  let mcpServerRefs: string[] = [];
+  const plugins: string[] = [];
   if (opts.tools !== undefined) {
-    const server = await clients.mcpServerCommand.create(
-      makeHttpMcpServer({ org, name: uniqueName("mcp"), url: mcp.url(opts.tools) }),
-    );
-    fixtures.defer(() => clients.mcpServerCommand.delete({ resourceId: server.metadata!.id }));
-    mcpServerRefs = [server.metadata!.slug];
+    const plugin = await pushFixturePlugin(clients, mcp, fixtures, {
+      org,
+      name: opts.pluginName ?? uniqueName("messages"),
+      tools: opts.tools,
+    });
+    plugins.push(plugin.metadata!.slug);
   }
   const agent = await clients.agentCommand.create(
-    makeAgent({ org, name: uniqueName("agent-messages"), mcpServerRefs }),
+    makeAgent({ org, name: uniqueName("agent-messages"), plugins }),
   );
   fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
 
@@ -183,7 +187,8 @@ describe("Run messages — MCP tool calls", () => {
     mock.enqueue(anthropicToolUse("call_echo_fields", ECHO_TOOL_NAME, { text: "fields" }));
     mock.enqueue(anthropicText("Done."));
 
-    const final = await runAgent({ tools: [ECHO_TOOL_NAME] });
+    const pluginName = uniqueName("fields");
+    const final = await runAgent({ tools: [ECHO_TOOL_NAME], pluginName });
 
     expectCompleted(final);
     const echo = allToolCalls(final).find((tc) => tc.name === ECHO_TOOL_NAME);
@@ -193,7 +198,7 @@ describe("Run messages — MCP tool calls", () => {
     expect(echo!.startedAt, "started_at is stamped").not.toBe("");
     expect(echo!.completedAt, "completed_at is stamped").not.toBe("");
     expect(echo!.result, "the echo result carries the input back").toContain("fields");
-    expect(echo!.mcpServerSlug, "the call names the McpServer it ran on").not.toBe("");
+    expect(echo!.mcpServerSlug, "the call names the plugin server it ran on").toBe(toolServerSegment(pluginName));
   });
 });
 

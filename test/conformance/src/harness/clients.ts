@@ -32,8 +32,6 @@ import { SubscriptionCommandController } from "@stigmer/protos/ai/stigmer/billin
 import { SubscriptionQueryController } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/query_pb";
 import { ChannelAppCommandController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/command_pb";
 import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
-import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
-import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
 import { MemoryCommandController } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/command_pb";
 import { MemoryQueryController } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/query_pb";
 import { ScheduleCommandController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/command_pb";
@@ -115,8 +113,6 @@ export interface ConformanceClients {
   vaultQuery: Client<typeof VaultQueryController>;
   connectLink: Client<typeof ConnectLinkController>;
   vaultValue: Client<typeof VaultValueController>;
-  mcpServerCommand: Client<typeof McpServerCommandController>;
-  mcpServerQuery: Client<typeof McpServerQueryController>;
   memoryCommand: Client<typeof MemoryCommandController>;
   memoryQuery: Client<typeof MemoryQueryController>;
   scheduleCommand: Client<typeof ScheduleCommandController>;
@@ -246,8 +242,6 @@ export function makeClients(transport: Transport): ConformanceClients {
     vaultQuery: createClient(VaultQueryController, transport),
     connectLink: createClient(ConnectLinkController, transport),
     vaultValue: createClient(VaultValueController, transport),
-    mcpServerCommand: createClient(McpServerCommandController, transport),
-    mcpServerQuery: createClient(McpServerQueryController, transport),
     memoryCommand: createClient(MemoryCommandController, transport),
     memoryQuery: createClient(MemoryQueryController, transport),
     scheduleCommand: createClient(ScheduleCommandController, transport),

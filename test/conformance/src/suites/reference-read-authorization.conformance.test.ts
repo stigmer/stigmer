@@ -32,7 +32,7 @@ import { makeSlackAgentChannel } from "../support/agentchannels";
 import { makeAgentShare } from "../support/agentshares";
 import { makeSlackChannelApp } from "../support/channelapps";
 import { makeSharedVault } from "../support/vaults";
-import { makeMcpServer } from "../support/mcpservers";
+import { openPlugin, pluginArchive } from "../support/plugins";
 import { uniqueName } from "../support/naming";
 import { makeOAuthApp } from "../support/oauthapps";
 import { makeSchedule } from "../support/schedules";
@@ -155,20 +155,24 @@ const KINDS: ReadonlyArray<ReferenceKind> = [
     deniedCopy: "unauthorized to get skill",
   },
   {
-    name: "mcp_server",
+    name: "plugin",
     visible: true,
     memberReads: true,
     async seed(using, org, visibility) {
-      const input = makeMcpServer({ org, name: uniqueName("ref-mcp") });
-      input.metadata = { ...input.metadata, visibility };
-      const created = await using.mcpServerCommand.create(input);
-      return { id: created.metadata!.id, slug: created.metadata!.slug };
+      const pushed = await using.pluginCommand.push({
+        org,
+        artifact: pluginArchive(
+          openPlugin({ name: uniqueName("ref-plugin"), version: "0.1.0" }),
+        ),
+        visibility,
+      });
+      return { id: pushed.metadata!.id, slug: pushed.metadata!.slug };
     },
-    getById: (using, id) => using.mcpServerQuery.get({ value: id }),
+    getById: (using, id) => using.pluginQuery.get({ value: id }),
     getByReference: (using, org, slug) =>
-      using.mcpServerQuery.getByReference({ org, slug }),
-    cleanup: (using, id) => using.mcpServerCommand.delete({ resourceId: id }),
-    deniedCopy: "unauthorized to view mcp server",
+      using.pluginQuery.getByReference({ org, slug }),
+    cleanup: (using, id) => using.pluginCommand.delete({ value: id }),
+    deniedCopy: "unauthorized to get plugin",
   },
   {
     name: "vault",
@@ -280,7 +284,7 @@ const KINDS: ReadonlyArray<ReferenceKind> = [
 describe.each(KINDS)(
   "$name — a read by reference answers as the read by id",
   (kind) => {
-    // The table speaks the ApiResourceKind vocabulary (`mcp_server`), the
+    // The table speaks the ApiResourceKind vocabulary (`agent_share`), the
     // reference lane speaks slugs (`^[a-z][a-z0-9-]*[a-z0-9]$`, the
     // ApiResourceReference rule in commons/apiresource/io.proto). A literal
     // that fails the slug rule is refused INVALID_ARGUMENT by protovalidate

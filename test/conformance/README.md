@@ -29,14 +29,23 @@ task.
 Covered against the `local` target:
 
 - **Organization** — the flat tenancy resource.
-- **Agent** and **McpServer** — flat (non-versioned) agentic blueprints (CRUD &
-  identity, apply create/update branching, slug semantics, `getByReference`
+- **Agent** — a flat (non-versioned) agentic blueprint (CRUD & identity,
+  apply create/update branching, slug semantics, `getByReference`
   resolution, and Layer-1 protovalidate negatives). An agent is run directly:
-  creating one provisions nothing beside it. The Agent suite also proves the cross-aggregate
-  **Agent -> McpServer reference invariant** (`ValidateReferencesStep`): an
-  agent referencing an existing McpServer is accepted with its reference org
-  normalized, and one referencing a missing McpServer is rejected with
-  `FailedPrecondition`.
+  creating one provisions nothing beside it. The Agent suite also proves the
+  cross-aggregate **Agent -> Plugin reference rule** (`ValidateReferencesStep`):
+  an agent listing an existing plugin is accepted with its reference org
+  normalized, one listing a missing plugin is rejected with
+  `FailedPrecondition`, and the floor and the parent-organization clause hold.
+- **Plugin** — the unit of install and the only home of an MCP server. A
+  plugin is pushed as the archive of a plugin folder; install writes the one
+  plugin row, whose status lists what the archive holds (skills, agents, MCP
+  server entries, the variables they read, hooks), and a turn that lists the
+  plugin gets every part of it, named under the plugin. The `plugin` suite
+  pins install, versions, visibility and the delete guard;
+  `plugin-sign-in-probe` the install-time question a URL-only server is
+  asked; `plugin-oauth` a sign-in at a plugin server's address; and the
+  execution suite `plugin-tools` the `listTools` lane.
 - **Skill** — a **versioned** domain whose versioning is **artifact-based**.
   A skill is `push`ed as a ZIP whose root `SKILL.md` carries
   YAML frontmatter; identity (`metadata.name` == `metadata.slug`) is derived
@@ -88,13 +97,12 @@ Covered against the `local` target:
   Temporal involvement**, so the lifecycle-bound behaviors it only gates — the
   `harness_state_id` sentinel and the `harness`/`execution_target` immutability it
   enables once an execution has run, plus the runtime merge of session-level
-  `mcp_server_usages`/`skill_refs` into the agent graph — are out of scope here and
+  `plugins`/`skill_refs` into the agent graph — are out of scope here and
   belong to the execution-lifecycle slice.
 
-Note: the **McpServer domain** suite (`mcpserver.conformance.test.ts`) is
-distinct from `mcp.conformance.test.ts`, which exercises the `@stigmer/mcp-server`
-**bridge** — its MCP tool surface against a live server — not the McpServer
-resource controllers.
+Note: `mcp.conformance.test.ts` exercises the `@stigmer/mcp-server`
+**bridge** — Stigmer's own MCP tool surface against a live server — not a
+plugin's MCP servers, which the plugin suites cover.
 
 The harness, target-profile abstraction, capability flags and parity comparison
 built here are reused by every later slice (more domains, execution lifecycle,
@@ -570,12 +578,13 @@ retry, and LangChain's AsyncCaller retries a 5xx six times. `McpToolFixture`
 names its tool surface in the URL: `url()` is the one-tool `echo` server
 most suites call unattended; `url(["echo", "fail"])` adds the failing tool
 the messages suite needs; `echo_destructive` is the same echo declaring
-`destructiveHint: true`, the tool the approval default asks before once a
-connect has stored the hint (`createConnectedMcpServer` in
-`support/agentexecutions.ts` creates, connects and checks the stored hints); `requireOAuth({ resourceMetadataUrl })` turns
+`destructiveHint: true`, the tool the approval default asks before, read
+live from the server's listing at turn start (`pushFixturePlugin` in
+`support/runs.ts` pushes a one-server plugin on a surface and checks its
+stored entry); `requireOAuth({ resourceMetadataUrl })` turns
 it into a hosted server's OAuth posture (a 401 challenge to every
-credential-less request), the lever the endpoint-auth facet completes a
-URL-only server from; with `authorizationServerOrigin` it also serves the
+credential-less request), the lever the sign-in probe facet completes a
+URL-only plugin server from; with `authorizationServerOrigin` it also serves the
 RFC 9728 document a sign-in at its URL walks, naming the resource its URL
 describes. `MockOAuthAuthorizationServer` is the login server of every
 sign-in suite: `resourceAddress(name)` is an address on its own origin whose
@@ -587,7 +596,7 @@ read, while it records every registration and the `resource` each request
 carried.
 
 **Fixture hosts are unreachable by construction.** The control plane dials a
-URL-only HTTP MCP server once at save (`CompleteEndpointAuth`), so a fixture
+plugin's URL-only HTTP MCP server once at install (`ProbeServerSignIns`), so a fixture
 that names a resolvable public host would put a real request on the wire
 from every run. A fixture endpoint is a loopback harness component
 (`McpToolFixture`, `MockOAuthAuthorizationServer`), a literal
@@ -639,18 +648,16 @@ through one enum-agnostic core (`support/run-poll.ts`).
 
 `run-approval.conformance.test.ts` adds the **HITL tool-approval**
 (`submitApproval`) contract. It is the first slice that exercises a real *tool*:
-an agent can only reach `EXECUTION_WAITING_FOR_APPROVAL` when it references an
-McpServer that exposes an approval-gated tool, so the `local-execution` target
+an agent can only reach `EXECUTION_WAITING_FOR_APPROVAL` when it lists a
+plugin whose MCP server exposes an approval-gated tool, so the `local-execution` target
 also boots a **TS-pure HTTP (Streamable) MCP fixture** (`harness/mcp-server.ts`):
 a long-lived `node:http` server fronting `@modelcontextprotocol/sdk`'s `McpServer`
 that exposes one deterministic `echo` tool by default (other surfaces add
 `fail` and `echo_destructive`; see Harness). The gate comes from the approval
 default, which asks before a tool its server marks destructive: the suite's
-server exposes `echo_destructive` and is **created and connected**, because
-the runner connects to the server *live* at execution setup but reads the
-destructive mark only from the stored discovery
-(`DiscoveredTool.destructive_hint`; the conformance runner sets
-`SKIP_MCP_CONNECT_BACKFILL=true`, so nothing else discovers it). The suite
+plugin server exposes `echo_destructive`, and the runner reads the mark *live*
+from the tools it loads at turn start, so nothing is connected or stored
+ahead of the run. The suite
 asserts the server-owned contract — the phase lifecycle (gate reached ->
 COMPLETED) for APPROVE/SKIP/REJECT/APPROVE_ALL, the `pending_approvals` read
 model (`tool_call_id`, `tool_name`, `mcp_server_slug`, and the provenance
@@ -679,8 +686,8 @@ strip under the runner's capture throttle), `run-memory-selection`
 `stigmer mcp-server` over stdio, the always-on proof of the stdio lane), plus additions to
 `run` (idempotent cancel/terminate), `run-approval` (the
 approval ledger, the APPROVE_ALL lease across turns, durable resume) and
-`mcpserver-connect` (the stored `destructive_hint` per tool, and a connect
-that asks no model). `run-tool-lists` pins an agent's `tools` and
+`plugin-tools` (`listTools`: each tool of a plugin's server with its
+destructive mark, read as the caller, storing nothing, and asking no model). `run-tool-lists` pins an agent's `tools` and
 `disallowed_tools` on the native engine: a tool outside them is never
 offered, a call to it anyway is a failed tool call with the out-of-scope
 message, and no approval is requested for it, under the default and under
@@ -714,7 +721,7 @@ src/
   targets/          target (interface + capabilities), local, local-execution, local-postgres, cloud, cloud-execution, index
   contract/         errors, parity
   support/          naming, run-poll, runs, file-review, stigmer-mcp-stdio, working-agent (the benchmark's
-                    working agent), agents, mcpservers, memories, skills, vaults, sessions,
+                    working agent), agents, plugins, memories, skills, vaults, sessions,
                     request-shape (the golden renderers), …
   benchmark/        report (the contract a run writes), cells, quality-tasks, run (the direct-mode stack and driver), session
                     (the per-turn driver), the readers stream-watch, status-facts, timing-lines, temporal-history,
@@ -724,7 +731,7 @@ src/
                     + run*.conformance.test.ts (lifecycle, approval, recover, messages, subagent, provider-error,
                       structured-output, file-review, file-review-progress, memory-retrieval, memory-selection, stigmer-mcp-stdio,
                       request-shape, tool-lists)
-                    + mcpserver-connect, mcp-caller-identity, mcp-server-address, vault-resolution, session-immutability, schedule-firing, billing-*  (Class B)
+                    + plugin-tools, run-plugins, mcp-caller-identity, mcp-server-address, vault-resolution, session-immutability, schedule-firing, billing-*  (Class B)
                     + goldens/  (the request-shape facet's file goldens; regenerated only under a ruling)
 scripts/            check-inventory, cloud-fixtures-serve, benchmark-harnesses (+ benchmark-harnesses/quality-tasks.yaml)
 fixtures/           working-agent/ (the working agent's Go workspace and skills: data, outside the TypeScript include)

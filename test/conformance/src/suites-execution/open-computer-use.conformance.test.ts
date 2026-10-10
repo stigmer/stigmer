@@ -1,6 +1,6 @@
 // Local-only execution test for the Open Computer Use desktop-automation server.
-// Domain: agentic / agentexecution — proves an open-computer-use McpServer
-// (a stdio server spawned through npx) actually drives the GUI through the real runner stack
+// Domain: agentic / agentexecution — proves a plugin whose MCP server is
+// open-computer-use (a stdio server spawned through npx) actually drives the GUI through the real runner stack
 // (Temporal orchestrator + TS runner + stdio MCP subprocess + mock LLM).
 //
 // Why this is skip-gated rather than always-on:
@@ -24,7 +24,7 @@ import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
 import { agentRefOf, makeAgent } from "../support/agents";
 import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/runs";
-import { makeMcpServer } from "../support/mcpservers";
+import { oneServerPlugin, pushPlugin } from "../support/plugins";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 
@@ -58,25 +58,26 @@ describe.skipIf(!ENABLED)("Open Computer Use — desktop tool dispatch (local-on
   it("dispatches get_app_state(Finder) through the runner and reaches COMPLETED with the screenshot relayed", async () => {
     const { org } = await target.provisionTenancy();
 
-    // The server's documented invocation: a stdio subprocess launched via npx. The
-    // runner spawns it live and speaks JSON-RPC over stdio — no connect/discovery.
-    const server = await clients.mcpServerCommand.create(
-      makeMcpServer({
-        org,
+    // The server's documented invocation: a stdio subprocess launched via npx,
+    // as a plugin's one local program. The runner spawns it live and speaks
+    // JSON-RPC over stdio; nothing connects ahead of the run.
+    const plugin = await pushPlugin(
+      clients,
+      fixtures,
+      org,
+      oneServerPlugin({
         name: uniqueName("ocu"),
-        command: "npx",
-        args: ["-y", "@qwen-code/open-computer-use", "mcp"],
+        server: { command: "npx", args: ["-y", "@qwen-code/open-computer-use", "mcp"] },
       }),
     );
-    fixtures.defer(() => clients.mcpServerCommand.delete({ resourceId: server.metadata!.id }));
-    const slug = server.metadata!.slug;
+    const slug = plugin.metadata!.slug;
 
     const agent = await clients.agentCommand.create(
       makeAgent({
         org,
         name: uniqueName("agent-ocu"),
         instructions: "You operate the macOS desktop via the Computer Use tools.",
-        mcpServerRefs: [slug],
+        plugins: [slug],
       }),
     );
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));

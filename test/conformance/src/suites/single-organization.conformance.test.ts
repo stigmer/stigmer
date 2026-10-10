@@ -9,7 +9,7 @@
 //     one, whose own metadata.org is empty;
 //   - a request that names no organization acts in that one, for one method
 //     of each shape the contract has: an annotated create (agent, session,
-//     vault), an apply (MCP server), a reference lookup (agent
+//     vault), a push (plugin), a reference lookup (agent
 //     getByReference), a list with a top-level org (vault list), a vault
 //     entry write whose target names no organization (setSecrets), and
 //     search;
@@ -36,7 +36,7 @@ import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { makeAgent } from "../support/agents";
 import { makeApiKey } from "../support/apikeys";
-import { makeMcpServer } from "../support/mcpservers";
+import { openPlugin, pluginArchive } from "../support/plugins";
 import {
   makeSharedVault,
   setSecretsInput,
@@ -119,11 +119,12 @@ describe.skipIf(!capabilities.singleOrganization)(
       expect(Object.keys(saved.spec?.secrets ?? {})).toEqual(["API_KEY"]);
     });
 
-    it("[rpc:McpServerCommandController.apply] an MCP server applied with no organization lives in the one", async () => {
-      const applied = await clients.mcpServerCommand.apply(
-        makeMcpServer({ org: NOBODY, name: uniqueName("tools") }),
-      );
-      expect(applied.metadata?.org).toBe(theOrganization);
+    it("[rpc:PluginCommandController.push] a plugin pushed with no organization is installed in the one", async () => {
+      const installed = await clients.pluginCommand.push({
+        org: NOBODY,
+        artifact: pluginArchive(openPlugin({ name: uniqueName("tools"), version: "0.1.0" })),
+      });
+      expect(installed.metadata?.org).toBe(theOrganization);
     });
 
     it("[rpc:SessionCommandController.create] a session created with no organization lives in the one", async () => {

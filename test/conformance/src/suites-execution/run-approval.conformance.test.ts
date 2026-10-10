@@ -3,13 +3,16 @@
 // approval-gate lifecycle a tool-using run goes through.
 //
 // This is the first suite that exercises a real *tool*: the engine can only
-// reach RUN_WAITING_FOR_APPROVAL when an agent references an McpServer that
-// exposes an approval-gated tool. The harness provides that surface via the
-// in-process HTTP MCP fixture (harness/mcp-server.ts, the `echo_destructive`
-// tool, which declares `destructiveHint: true`); the McpServer is created and
-// connected, because the approval default asks before a tool its server marks
-// destructive and the runner reads that mark from the stored discovery. No
-// agent-side setting gates it. Every run is scripted on the mock LLM: a
+// reach RUN_WAITING_FOR_APPROVAL when an agent lists a plugin whose MCP
+// server exposes an approval-gated tool. The harness provides that surface
+// via the in-process HTTP MCP fixture (harness/mcp-server.ts, the
+// `echo_destructive` tool, which declares `destructiveHint: true`), as the
+// one server of a pushed plugin (support/runs.ts pushFixturePlugin). Nothing
+// is connected or stored ahead of the run: the approval default asks before
+// a tool its server marks destructive, and the runner reads that mark LIVE
+// from the tools it loads at turn start, so every gate arm below is also
+// the proof that a destructive mark is read live. No agent-side setting
+// gates it. Every run is scripted on the mock LLM: a
 // tool_use turn drives the agent to the gate, and a terminating text turn lets
 // it finish once the gate resolves.
 //
@@ -39,14 +42,16 @@
 //   pending_approvals empty) and the run completes without re-gating.
 // - spec.auto_approve_all bypasses the gate entirely (no submit needed).
 // - pending_approvals is the read model (no list-pending RPC): each entry
-//   carries tool_call_id, tool_name, mcp_server_slug, and the provenance
+//   carries tool_call_id, tool_name, mcp_server_slug (the plugin server's
+//   segment, `plugin_<plugin>_<server>`), and the provenance
 //   ANNOTATION_DESTRUCTIVE_TIGHTEN (the default asked because the server
 //   marks the tool destructive).
 // - An agent's own hooks block decides before the default: a hook's deny
 //   fails the call's row (provenance HOOK) and the run completes; a hook's ask
 //   parks the run on a pending approval with provenance HOOK and the hook's
-//   reason as its message, and approving it completes the run. A pushed
-//   plugin's hooks do the same, in Claude Code's format or Cursor's.
+//   reason as its message, and approving it completes the run. A plugin the
+//   agent lists brings its hooks with it, and they do the same, in Claude
+//   Code's format or Cursor's.
 // - A real plugin, Anthropic's hookify vendored unchanged, refuses through
 //   its own rule with its own text, under trust and without; its "no opinion"
 //   falls to the default's card; and an edit the agent's own shell makes to
@@ -57,6 +62,15 @@
 //   validation); unknown tool_call_id on a gated execution -> InvalidArgument;
 //   missing execution -> NotFound; submit on a terminal execution ->
 //   FailedPrecondition.
+//
+// Out of scope: a server whose tool listing fails asks before every one of
+// its tools (fail closed). On the native engine, which every arm here runs
+// on, that case does not arise: the engine reads the marks from the tools it
+// loads, and a server it could not load offers the model no tool to call.
+// The Cursor engine lists each server separately and asks for every tool of
+// one whose listing failed; no conformance suite drives the Cursor engine
+// (it needs Cursor's own service), so that arm is the runner's unit
+// contract (runner shared/mcp-tool-listing.ts, shared/approval-policy.ts).
 //
 // Every gate-resolving submit goes through submitApprovalPerContract (the seam
 // in support/agentexecutions.ts): the synchronous
@@ -86,17 +100,17 @@ import {
   allToolCalls,
   awaitPhase,
   awaitTerminal,
-  createConnectedMcpServer,
   decidedByOf,
   makeAgentExecution,
   requireLlmProxy,
   requireMcpFixture,
+  pushFixturePlugin,
   sessionIdOf,
   submitApprovalPerContract,
 } from "../support/runs";
+import { toolServerSegment } from "../support/plugins";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { zipFiles } from "../support/skills";
 import { awaitFileReview, requireReviewSet, submitFileDecisionByPath } from "../support/file-review";
 import { execFileSync } from "node:child_process";
@@ -125,20 +139,19 @@ afterAll(async () => {
   await target?.teardown();
 });
 
-// Provision an agent that uses the HTTP MCP fixture's destructive echo. The
-// McpServer is created and connected (createConnectedMcpServer), so the
-// default asks before the tool. Returns the agent reference and the server
-// slug the tests need.
+// Provision an agent that lists a plugin whose one server is the HTTP MCP
+// fixture's destructive echo, so the default asks before the tool. Returns
+// the agent reference and the server segment a pending approval names.
 async function provisionGatedAgent(org: string): Promise<{ agentRef: AgentRefInit; mcpSlug: string }> {
-  const server = await createConnectedMcpServer(clients, mcp, fixtures, {
+  const plugin = await pushFixturePlugin(clients, mcp, fixtures, {
     org,
-    name: uniqueName("mcp"),
+    name: uniqueName("gated"),
     tools: [DESTRUCTIVE_ECHO_TOOL_NAME],
   });
-  const mcpSlug = server.metadata!.slug;
+  const mcpSlug = toolServerSegment(plugin.metadata!.name);
 
   const agent = await clients.agentCommand.create(
-    makeAgent({ org, name: uniqueName("agent-hitl"), mcpServerRefs: [mcpSlug] }),
+    makeAgent({ org, name: uniqueName("agent-hitl"), plugins: [plugin.metadata!.slug] }),
   );
   fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
   return { agentRef: agentRefOf(agent), mcpSlug };
@@ -359,7 +372,7 @@ describe("Run submitApproval — spec bypass and read model", () => {
     const pending = gated.status!.pendingApprovals[0]!;
     expect(pending.toolCallId, "pending approval carries the tool call id").toBeTruthy();
     expect(pending.toolName, "pending approval names the tool").toBe(DESTRUCTIVE_ECHO_TOOL_NAME);
-    expect(pending.mcpServerSlug, "pending approval carries the server slug").toBe(mcpSlug);
+    expect(pending.mcpServerSlug, "pending approval names the plugin server").toBe(mcpSlug);
     expect(
       ApprovalPolicySource[pending.approvalPolicySource],
       "the default asked because the server marks the tool destructive",
@@ -626,16 +639,16 @@ describe("Run submitApproval — negatives", () => {
 // commands run in bash on the runner, as Claude Code's do.
 describe("Run — an agent's hooks decide at the gate", () => {
   async function provisionHookedAgent(org: string, command: string): Promise<AgentRefInit> {
-    const server = await createConnectedMcpServer(clients, mcp, fixtures, {
+    const plugin = await pushFixturePlugin(clients, mcp, fixtures, {
       org,
-      name: uniqueName("mcp"),
+      name: uniqueName("hooked"),
       tools: [DESTRUCTIVE_ECHO_TOOL_NAME],
     });
     const agent = await clients.agentCommand.create(
       makeAgent({
         org,
         name: uniqueName("agent-hooks"),
-        mcpServerRefs: [server.metadata!.slug],
+        plugins: [plugin.metadata!.slug],
         hooks: [{
           source: {
             case: "inline",
@@ -703,9 +716,9 @@ describe("Run — an agent's hooks decide at the gate", () => {
 });
 
 // A plugin's hooks, end to end over the wire: a hooks-only Claude Code plugin
-// is pushed, an agent references it, and the runner reads it by reference,
-// downloads its archive over the transfer lane, verifies and mounts it, and
-// runs the plugin's own extensionless script.
+// is pushed, an agent lists it in its plugins, and the runner reads it by
+// reference, downloads its archive over the transfer lane, verifies and
+// mounts it, and runs the plugin's own extensionless script.
 describe("Run — a pushed plugin's hooks decide at the gate", () => {
   const GUARD = [
     "#!/usr/bin/env bash",
@@ -738,7 +751,7 @@ describe("Run — a pushed plugin's hooks decide at the gate", () => {
       makeAgent({
         org,
         name: uniqueName("agent-plugin-hooks"),
-        hooks: [{ source: { case: "plugin", value: { kind: ApiResourceKind.plugin, slug } } }],
+        plugins: [slug],
       }),
     );
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
@@ -821,7 +834,7 @@ describe("Run — a pushed Cursor-format plugin's hooks decide at the gate", () 
       makeAgent({
         org,
         name: uniqueName("agent-cursor-plugin-hooks"),
-        hooks: [{ source: { case: "plugin", value: { kind: ApiResourceKind.plugin, slug } } }],
+        plugins: [slug],
       }),
     );
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
@@ -919,7 +932,7 @@ describe("Run — a real plugin, unchanged, refuses at the gate and survives a t
       makeAgent({
         org,
         name: uniqueName("agent-hookify"),
-        hooks: [{ source: { case: "plugin", value: { kind: ApiResourceKind.plugin, slug } } }],
+        plugins: [slug],
       }),
     );
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));

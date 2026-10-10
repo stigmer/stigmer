@@ -7,22 +7,24 @@
 // runner's stdio lane and the `@stigmer/mcp-server` roster on CI, where they
 // are otherwise proven only by the vault resolution arms (the desktop-only
 // open-computer-use suite does not run there). So the instructions live here,
-// reduced to the one tool the arms script by name, and the McpServer is the
-// real full roster spawned by the runner as a stdio child exactly as an OSS
-// install spawns it (the way the memory lane already spawns it, runner
-// shared/memory-attachment.ts — `stigmer mcp-server`; the CLI shim is on PATH
-// wherever the execution class runs, see ci.conformance-execution.yaml).
+// reduced to the one tool the arms script by name, and the plugin's one MCP
+// server is the real full roster spawned by the runner as a stdio child
+// exactly as an OSS install spawns it (the way the memory lane already
+// spawns it, runner shared/memory-attachment.ts — `stigmer mcp-server`; the
+// CLI shim is on PATH wherever the execution class runs, see
+// ci.conformance-execution.yaml).
 //
 // The stdio child needs the server's gRPC address (STIGMER_SERVER_ADDRESS,
 // mcp-server/src/config.ts). The runner hands a stdio server ONLY the values
-// resolved for the keys its spec declares — never the runner's own process
-// env — so the McpServer declares the key with the address as its plain
-// default value: a setting, not a secret, lives in the definition.
+// resolved for the variables it references — never the runner's own process
+// env — and STIGMER_SERVER_ADDRESS is one the platform fills itself (from
+// the runner's public endpoint), so the plugin references it in the server's
+// environment and no vault is asked for it. A plugin never carries a literal
+// value in a server's environment: the library refuses one.
 import type { InitShape } from "./init-shape";
 import type { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { makeAgent } from "./agents";
-import { makeMcpServer } from "./mcpservers";
+import { type PluginFixture, oneServerPlugin } from "./plugins";
 
 // The mcp-server tool the fixture's instructions direct it to call; the arms
 // script tool_use turns by this name and assert the ToolCalls carry it. A read
@@ -41,32 +43,24 @@ export const STDIO_AGENT_INSTRUCTIONS = [
   "asked about, and answer with the agent's description.",
 ].join("\n");
 
-export interface StigmerMcpServerOptions {
-  org: string;
-  name: string;
-  // The server under test's base URL; the declaration carries its host:port.
-  serverBaseUrl: string;
-}
+// The server's name inside the stdio plugin.
+export const STIGMER_STDIO_SERVER = "stigmer";
 
 // The address the mcp-server's gRPC target takes: host:port, no scheme.
 export function stigmerServerAddressOf(serverBaseUrl: string): string {
   return new URL(serverBaseUrl).host;
 }
 
-// The `stigmer mcp-server` full roster as a stdio McpServer, declaring the one
-// env key it needs with the server's address as its plain value.
-export function makeStigmerMcpServer(opts: StigmerMcpServerOptions): InitShape<typeof McpServerSchema> {
-  return makeMcpServer({
-    org: opts.org,
-    name: opts.name,
-    description: "the stigmer mcp-server full roster over stdio (conformance stdio fixture)",
-    command: "stigmer",
-    args: ["mcp-server"],
-    env: {
-      [STIGMER_SERVER_ADDRESS_ENV]: {
-        description: "gRPC host:port of the server under test",
-        value: stigmerServerAddressOf(opts.serverBaseUrl),
-      },
+// The `stigmer mcp-server` full roster as a plugin's one local program,
+// referencing the one variable it needs, which the platform fills.
+export function stigmerMcpPlugin(name: string): PluginFixture {
+  return oneServerPlugin({
+    name,
+    serverName: STIGMER_STDIO_SERVER,
+    server: {
+      command: "stigmer",
+      args: ["mcp-server"],
+      env: { [STIGMER_SERVER_ADDRESS_ENV]: `\${${STIGMER_SERVER_ADDRESS_ENV}}` },
     },
   });
 }
@@ -77,8 +71,8 @@ export interface StdioAgentOptions {
   // The agent's description: what the read through the stdio server returns,
   // so an arm can tell this server's answer from anything else.
   description: string;
-  // Slug of the McpServer makeStigmerMcpServer registered.
-  stigmerMcpServerSlug: string;
+  // Slug of the plugin stigmerMcpPlugin was pushed as.
+  stigmerMcpPluginSlug: string;
 }
 
 export function makeStdioAgent(opts: StdioAgentOptions): InitShape<typeof AgentSchema> {
@@ -87,7 +81,6 @@ export function makeStdioAgent(opts: StdioAgentOptions): InitShape<typeof AgentS
     name: opts.name,
     description: opts.description,
     instructions: STDIO_AGENT_INSTRUCTIONS,
-    mcpServerRefs: [opts.stigmerMcpServerSlug],
+    plugins: [opts.stigmerMcpPluginSlug],
   });
 }
-

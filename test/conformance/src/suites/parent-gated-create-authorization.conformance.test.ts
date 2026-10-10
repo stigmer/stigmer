@@ -6,8 +6,9 @@
 // handler asks the bar its proto states once its resolve step has loaded
 // the parent. This suite pins those bars on the enforcing lane:
 //
-//   - McpServer.create: the admin bar (`can_create_mcp_server`), so a member
-//     is refused and an outsider naming the organization is refused;
+//   - Plugin.push: the admin bar on the organization the plugin installs in
+//     (`can_create_plugin`), so a member is refused and an outsider naming
+//     the organization is refused, and neither refusal installs anything;
 //   - Schedule, AgentShare, AgentChannel: `can_edit` on the referenced agent,
 //     so a member who may run an org-visible agent may not schedule, share or
 //     channel-bind it, and an outsider is refused; the admin may;
@@ -24,6 +25,7 @@
 // the server's reference unit pins it
 // (pipeline/steps/__tests__/references.test.ts).
 import { Code } from "@connectrpc/connect";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
@@ -33,7 +35,7 @@ import { FixtureTracker } from "../harness/fixtures";
 import { makeAgent } from "../support/agents";
 import { makeSlackAgentChannel } from "../support/agentchannels";
 import { makeAgentShare } from "../support/agentshares";
-import { makeMcpServer } from "../support/mcpservers";
+import { openPlugin, pluginArchive } from "../support/plugins";
 import {
   enableMyMemory,
   enableOrganizationMemory,
@@ -98,8 +100,8 @@ async function castOf(lane: EnforcingLane): Promise<Cast> {
 
 // The deny copies, byte for byte: the Java handlers' where the lane had one,
 // the annotation family's where the check is new.
-const MCP_SERVER_ORG_DENIED =
-  "unauthorized to create mcp server in this organization";
+const PLUGIN_ORG_DENIED =
+  "unauthorized to install plugin in this organization";
 const SCHEDULE_DENIED = "You don't have permission to schedule this agent";
 const SHARE_DENIED = "You don't have permission to share this agent";
 const CHANNEL_DENIED =
@@ -129,26 +131,41 @@ async function expectDenied(
   expect(denied.rawMessage, `${context}: copy`).toBe(copy);
 }
 
-describe("McpServer.create asks the blueprint bar", () => {
-  it("[rpc:McpServerCommandController.create] an admin authors an MCP server; a member and an outsider are refused with the organization's copy", async (ctx) => {
+describe("Plugin.push asks the blueprint bar", () => {
+  it("[rpc:PluginCommandController.push] an admin installs a plugin; a member and an outsider are refused with the organization's copy, and nothing is installed", async (ctx) => {
     const c = await castOf(laneOrSkip(ctx));
-    const created = await c.admin.mcpServerCommand.create(
-      makeMcpServer({ org: c.org, name: uniqueName("gate-mcp") }),
-    );
+    const archive = () =>
+      pluginArchive(openPlugin({ name: uniqueName("gate-plugin"), version: "0.1.0" }));
+    const installed = await c.admin.pluginCommand.push({
+      org: c.org,
+      artifact: archive(),
+    });
     fixtures.defer(() =>
-      c.owner.mcpServerCommand.delete({ resourceId: created.metadata!.id }),
+      c.owner.pluginCommand.delete({ value: installed.metadata!.id }),
     );
     for (const [who, using] of [
       ["member", c.member],
       ["outsider", c.outsider],
     ] as const) {
+      const name = uniqueName("gate-plugin");
       await expectDenied(
         () =>
-          using.mcpServerCommand.create(
-            makeMcpServer({ org: c.org, name: uniqueName("gate-mcp") }),
-          ),
-        MCP_SERVER_ORG_DENIED,
-        `${who} creates an MCP server`,
+          using.pluginCommand.push({
+            org: c.org,
+            artifact: pluginArchive(openPlugin({ name, version: "0.1.0" })),
+          }),
+        PLUGIN_ORG_DENIED,
+        `${who} installs a plugin`,
+      );
+      await expectGrpcCode(
+        () =>
+          c.owner.pluginQuery.getByReference({
+            org: c.org,
+            kind: ApiResourceKind.plugin,
+            slug: name,
+          }),
+        Code.NotFound,
+        `the plugin the ${who} was refused was not installed`,
       );
     }
   });

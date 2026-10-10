@@ -34,7 +34,7 @@
 // Out of scope here: a Client ID Metadata Document (the server under test
 // offers one only on a public https origin, which no hermetic target has; the
 // server's unit suite pins it), the run and connect use of the saved login
-// (suites-execution/mcpserver-connect.conformance.test.ts), and Connect
+// (suites-execution/plugin-tools.conformance.test.ts), and Connect
 // links (vault-connect-link.conformance.test.ts).
 //
 // Every network counterparty is the suite-owned mock login server

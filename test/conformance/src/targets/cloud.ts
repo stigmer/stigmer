@@ -136,6 +136,9 @@ export class CloudTarget implements TargetProfile {
     publicLane: true,
     // The sharing unit mints guest tokens by share id.
     guestMinting: true,
+    // The readout substrate boots no cloud-mode sandbox lane (target.ts
+    // says why the refusal is unobservable here).
+    cloudTargetRefusesLocalPrograms: false,
   };
 
   private grpcBaseUrl: string | undefined;

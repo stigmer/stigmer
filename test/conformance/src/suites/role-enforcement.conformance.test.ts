@@ -14,21 +14,19 @@
 // model; a red on any lane is a divergence between editions, never a cell
 // to re-stage.
 //
-//   - Blueprints (agent, skill, mcp_server — the visibility-axis
+//   - Blueprints (agent, skill, plugin — the visibility-axis
 //     kinds): owner and admin edit and delete both a private and an
 //     org-visible row (`can_edit`/`can_delete` are the creator OR
 //     `admin from organization`); a member reads org-visible and is refused
 //     private (`can_view: viewer`, where org-visible derives
 //     `organization#viewer` and private derives nobody but the creator); a
 //     viewer reads org-visible only; neither edits; a member may not create
-//     (`can_create_agent/skill: admin`); an outsider — a person
+//     (`can_create_agent/skill/plugin: admin`); an outsider — a person
 //     with no role on the organization — is PERMISSION_DENIED on an
 //     existing row and NOT_FOUND on a missing id (the Authorizer's
 //     existence probe: a missing target is never dressed as a denial).
-//     `McpServer.create` takes the same admin bar (`can_create_mcp_server`)
-//     since the annotation and the model line landed; before that a member
-//     authored MCP servers in both editions, and this suite pinned the
-//     admission by name so the line's arrival flipped it visibly.
+//     A plugin is installed by push at its level, and its `can_edit` guards
+//     `updateVisibility` (a plugin has no update), as a skill's does.
 //   - Personal rows (a session, a My vault, an API key): the person's
 //     own; another member and the organization's ADMIN are refused on
 //     `get`, and every list — theirs, the admin's — omits the row. The
@@ -95,12 +93,7 @@ import {
 } from "../support/agents";
 import { myVaultTarget, setSecretsInput } from "../support/vaults";
 import { organizationRole, ref } from "../support/iampolicies";
-import {
-  makeMcpServer,
-  makeMcpServerSpec,
-  MCPSERVER_API_VERSION,
-  MCPSERVER_KIND,
-} from "../support/mcpservers";
+import { openPlugin, pluginArchive } from "../support/plugins";
 import { uniqueName } from "../support/naming";
 import { makeSlackChannelApp } from "../support/channelapps";
 import { makeOAuthApp } from "../support/oauthapps";
@@ -170,7 +163,7 @@ const ORG_VISIBLE = ApiResourceVisibility.visibility_org;
 // One blueprint kind as the wire offers it: how a row is created at a
 // visibility, read, edited and deleted. `edit` is whatever mutation the
 // kind's `can_edit` guards — `update` where the kind has one, and
-// `updateVisibility` for skills, which are pushed, never updated.
+// `updateVisibility` for skills and plugins, which are pushed, never updated.
 interface BlueprintKind {
   readonly name: string;
   create(
@@ -227,22 +220,24 @@ const BLUEPRINT_KINDS: ReadonlyArray<BlueprintKind> = [
     delete: (using, id) => using.skillCommand.delete({ value: id }),
   },
   {
-    name: "mcp_server",
+    name: "plugin",
     async create(using, org, visibility) {
-      const input = makeMcpServer({ org, name: uniqueName("role-mcp") });
-      input.metadata = { ...input.metadata, visibility };
-      const created = await using.mcpServerCommand.create(input);
-      return created.metadata!.id;
+      const pushed = await using.pluginCommand.push({
+        org,
+        artifact: pluginArchive(
+          openPlugin({ name: uniqueName("role-plugin"), version: "0.1.0" }),
+        ),
+        visibility,
+      });
+      return pushed.metadata!.id;
     },
-    get: (using, id) => using.mcpServerQuery.get({ value: id }),
+    get: (using, id) => using.pluginQuery.get({ value: id }),
     edit: (using, id) =>
-      using.mcpServerCommand.update({
-        apiVersion: MCPSERVER_API_VERSION,
-        kind: MCPSERVER_KIND,
-        metadata: { id, name: uniqueName("role-mcp-renamed") },
-        spec: makeMcpServerSpec({ description: "edited by a role" }),
+      using.pluginCommand.updateVisibility({
+        resourceId: id,
+        visibility: ORG_VISIBLE,
       }),
-    delete: (using, id) => using.mcpServerCommand.delete({ resourceId: id }),
+    delete: (using, id) => using.pluginCommand.delete({ value: id }),
   },
 ];
 

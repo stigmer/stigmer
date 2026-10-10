@@ -43,9 +43,10 @@ export interface SessionSpecOptions {
   // exercise the harness / execution_target immutability validators hermetically
   // (it is a plain client-settable spec field). Omitted by default.
   harnessStateId?: string;
-  // Session-level McpServer slugs, projected into spec.mcp_server_usages. Org is
-  // left empty so the server normalizes it to the session's org.
-  mcpServerRefs?: string[];
+  // Session-level plugin slugs, projected into spec.plugins (added to the
+  // agent's own, one entry per plugin). Org is left empty so the server
+  // normalizes it to the session's org.
+  plugins?: string[];
   // Session-level Skill slugs, projected into spec.skill_refs.
   skillRefs?: string[];
   // Workspaces mounted for the session's turns (spec.workspace_entries), each a
@@ -78,9 +79,9 @@ export function makeSessionSpec(opts: SessionSpecOptions = {}): InitShape<typeof
     ...(opts.harness !== undefined ? { harness: opts.harness } : {}),
     ...(opts.executionTarget !== undefined ? { executionTarget: opts.executionTarget } : {}),
     ...(opts.harnessStateId !== undefined ? { harnessStateId: opts.harnessStateId } : {}),
-    mcpServerUsages: (opts.mcpServerRefs ?? []).map((slug) => ({
-      mcpServerRef: { slug, kind: ApiResourceKind.mcp_server },
-    })),
+    ...(opts.plugins !== undefined
+      ? { plugins: opts.plugins.map((slug) => ({ slug, kind: ApiResourceKind.plugin })) }
+      : {}),
     skillRefs: (opts.skillRefs ?? []).map((slug) => ({ slug, kind: ApiResourceKind.skill })),
     ...(opts.localWorkspaces !== undefined ? { workspaceEntries: localWorkspaceEntries(opts.localWorkspaces) } : {}),
     ...(opts.vaults !== undefined ? { vaults: opts.vaults.map((slug) => ({ slug, kind: ApiResourceKind.vault })) } : {}),
