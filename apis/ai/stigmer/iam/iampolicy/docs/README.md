@@ -23,7 +23,7 @@ IamPolicies are the source of truth for authorization. They are synced to [OpenF
 | Concept | Detail |
 |---|---|
 | **Principal** | The entity being granted access. Can be an `identity_account`, `team`, `organization`, or any resource that acts as an identity. |
-| **Resource** | The entity being protected. Can be any API resource: `organization`, `environment`, `agent`, `mcp_server`, etc. |
+| **Resource** | The entity being protected. Can be any API resource: `organization`, `vault`, `agent`, `mcp_server`, etc. |
 | **Relation** | The permission being granted. Maps to a role code (e.g., `admin`, `editor`, `viewer`, `owner`, `member`). |
 | **OpenFGA tuple** | The underlying representation. Each IamPolicy produces a tuple: `principal_kind:principal_id#principal_relation@resource_kind:resource_id#relation`. |
 | **Idempotency** | Creating a policy that already exists is a no-op — no error, no duplicate. |

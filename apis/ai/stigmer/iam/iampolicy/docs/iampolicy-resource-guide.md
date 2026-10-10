@@ -57,7 +57,7 @@ An `ApiResourceRef` identifying the entity being protected.
 
 | Field | Required | Description |
 |---|---|---|
-| `resource.kind` | Yes | Resource kind of the protected entity. Examples: `organization`, `environment`, `agent`, `mcp_server`, `cloud_resource`. |
+| `resource.kind` | Yes | Resource kind of the protected entity. Examples: `organization`, `vault`, `agent`, `mcp_server`, `cloud_resource`. |
 | `resource.id` | Yes | ID of the protected resource. |
 | `resource.relation` | No | Rarely used for resources. Leave unset in most cases. |
 

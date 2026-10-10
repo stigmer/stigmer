@@ -31,7 +31,7 @@ Run is more than a log record. It provides active runtime control:
 - **Run settings**: one `run_config` per message (model, speed tier, thinking, cost and tool limits), resolved with the agent's defaults and recorded on `status.run_config`; see [run-resource-guide.md](run-resource-guide.md#run-settings-run_config)
 - **Context management**: automatic context window summarization for long-running conversations, by the model's Model Registry entry
 - **Usage metrics**: real-time token and LLM call tracking per run and per sub-agent
-- **Resolved context visibility**: see exactly which MCP servers, environment keys, and skills the agent had access to
+- **Credential sources**: `status.credentials.sources` names, for every key the run uses, the vault and entry it comes from, never the value
 
 ## Documentation Index
 

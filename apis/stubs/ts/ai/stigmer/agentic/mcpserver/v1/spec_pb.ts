@@ -143,11 +143,11 @@ export type StdioServerConfig = Message<"ai.stigmer.agentic.mcpserver.v1.StdioSe
    * Arguments to pass to the command.
    *
    * Argument values can reference environment variables using ${VAR_NAME} syntax.
-   * These placeholders are resolved at runtime from the execution environment
-   * (same source as HTTP header/query param placeholders). This enables MCP
-   * servers that take core configuration as positional CLI arguments (e.g.
-   * database connection URLs, directory paths) to be parameterized per-user
-   * through env declarations.
+   * These placeholders are filled when the run's work starts, from the vaults
+   * the run uses (the same source as HTTP header and query placeholders).
+   * This enables MCP servers that take core configuration as positional CLI
+   * arguments (e.g. database connection URLs, directory paths) to be
+   * parameterized per-user through env declarations.
    *
    * Resolution uses strict mode: missing variables produce a clear error
    * rather than passing a literal "${VAR}" to the subprocess.
@@ -206,8 +206,8 @@ export type HttpServerConfig = Message<"ai.stigmer.agentic.mcpserver.v1.HttpServ
    * Use for authentication, API versioning, or custom routing.
    *
    * Header values can reference environment variables using ${VAR_NAME} syntax.
-   * These placeholders are resolved at runtime from the environment values
-   * the run receives.
+   * These placeholders are filled when the run's work starts, from the vaults
+   * the run uses.
    *
    * Examples:
    *   "Authorization": "Bearer ${API_TOKEN}"
