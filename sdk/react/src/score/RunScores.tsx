@@ -4,14 +4,18 @@ import { useState, type FormEvent } from "react";
 import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import { cn } from "@stigmer/theme";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
+import { downloadBinaryFile } from "../internal/download.js";
+import { testCaseOfRun, zipTestCase } from "../plugin-eval/test-case.js";
 import { useRunScoresData } from "./RunScoresContext.js";
 import { RATING_COMMENT_MAX_LENGTH } from "./rating-input.js";
 import { CriterionResult } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
 import {
+  evalViewOf,
   judgeViewOf,
   runHealthViewOf,
   thumbsOf,
   viewerFeedbackOf,
+  type EvalView,
   type JudgeView,
   type RunHealthView,
 } from "./score-view.js";
@@ -32,8 +36,16 @@ export interface RunScoresProps {
  * and, where the run's agent has AI grading switched on, the judge chip:
  * "Judge: grading…" while the grade is in progress, then "Judge: passed" or
  * "Judge: 1 of 2 failed", which opens to each rubric's reason and the model
- * that graded it. A run the platform could not grade says so quietly, with
- * the reason.
+ * that graded it. A try of a plugin eval carries the eval chip ("Eval:
+ * passed", "Eval: 1 of 3 failed"), which opens to each check's verdict and
+ * reason. A run the platform could not grade says so quietly, with the
+ * reason.
+ *
+ * "Make a test case", revealed with the thumbs, downloads the run as a case
+ * folder for a plugin's evals/ (a zip of `prompt.md` and an `llm` rubric
+ * seeded from the first failing grader's reason or the viewer's thumbs-down
+ * comment). Stigmer never writes into the author's repository; the author
+ * unzips it there and commits it.
  *
  * Reads the thread's scores from `MessageThread`'s provider (enabled by its
  * `runScores` prop), so it renders nothing outside one. Each person rates
@@ -58,7 +70,9 @@ export function RunScores({ runId, className }: RunScoresProps) {
   const thumbs = thumbsOf(mine);
   const health = runHealthViewOf(scores);
   const judge = judgeViewOf(scores);
+  const evalView = evalViewOf(scores);
   const org = data.orgOf(runId);
+  const request = data.requestOf(runId);
 
   const rate = async (passed: boolean, note: string): Promise<void> => {
     try {
@@ -105,6 +119,19 @@ export function RunScores({ runId, className }: RunScoresProps) {
         />
         <HealthChip view={health} />
         <JudgeChip view={judge} />
+        <EvalChip view={evalView} />
+        {request !== "" && (
+          <MakeTestCaseButton
+            onMake={() =>
+              testCaseOfRun({
+                request,
+                scores,
+                viewer: data.viewer,
+                multiTurn: data.followsEarlierRun(runId),
+              })
+            }
+          />
+        )}
       </div>
       {commentOpen && thumbs !== undefined && (
         <form
@@ -295,6 +322,104 @@ function JudgeChip({ view }: { readonly view: JudgeView }) {
         </ul>
       )}
     </span>
+  );
+}
+
+function EvalChip({ view }: { readonly view: EvalView }) {
+  const [open, setOpen] = useState(false);
+  if (view.kind === "none") return null;
+  if (view.kind === "not-graded") {
+    return (
+      <span className="stg:ml-1 stg:text-xs stg:text-muted-foreground-subtle">
+        Eval: not graded{view.reason !== "" ? `: ${view.reason}` : ""}
+      </span>
+    );
+  }
+  // Narrowed to "graded": a kind added to the union fails to compile here.
+  const label = view.passed
+    ? "Eval: passed"
+    : `Eval: ${view.failed} of ${view.criteria.length} failed`;
+  return (
+    <span className="stg:ml-1 stg:inline-flex stg:flex-col stg:gap-1">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+        className={cn(
+          "stg:inline-flex stg:h-6 stg:items-center stg:rounded-full stg:border stg:border-border stg:px-2 stg:text-xs",
+          view.passed ? "stg:text-muted-foreground" : "stg:text-warning",
+          "stg:hover:bg-accent-hover stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+        )}
+      >
+        {label}
+      </button>
+      {open && (
+        <ul
+          className={cn(
+            UNSTYLED_LIST,
+            "stg:flex stg:flex-col stg:gap-0.5 stg:text-xs stg:text-muted-foreground",
+          )}
+        >
+          {view.criteria.map((criterion) => (
+            <li key={criterion.name}>
+              {criterion.name}: {RESULT_LABELS[criterion.result]}
+              {criterion.reason !== "" ? ` — ${criterion.reason}` : ""}
+            </li>
+          ))}
+        </ul>
+      )}
+    </span>
+  );
+}
+
+/**
+ * Builds the run's test case when pressed and downloads it as a zip; a run
+ * that continued a conversation says the case holds only its last request.
+ */
+function MakeTestCaseButton({
+  onMake,
+}: {
+  readonly onMake: () => ReturnType<typeof testCaseOfRun>;
+}) {
+  const [note, setNote] = useState<string | null>(null);
+  const onClick = (): void => {
+    const testCase = onMake();
+    downloadBinaryFile(
+      zipTestCase(testCase),
+      `${testCase.caseName}.zip`,
+      "application/zip",
+    );
+    setNote(
+      testCase.note === undefined
+        ? null
+        : `Test case ${testCase.caseName}: ${testCase.note}.`,
+    );
+  };
+  return (
+    <>
+      <button
+        type="button"
+        onClick={onClick}
+        className={cn(
+          "stg:ml-1 stg:inline-flex stg:h-6 stg:items-center stg:rounded-md stg:px-2 stg:text-xs stg:transition",
+          "stg:hover:bg-accent-hover stg:hover:text-foreground",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+          note === null
+            ? "stg:text-muted-foreground-subtle stg:opacity-0 stg:group-hover:opacity-100 stg:focus-visible:opacity-100"
+            : "stg:text-muted-foreground",
+        )}
+      >
+        Make a test case
+      </button>
+      {note !== null && (
+        <span
+          role="status"
+          className="stg:ml-1 stg:text-xs stg:text-muted-foreground-subtle"
+        >
+          {note}
+        </span>
+      )}
+    </>
   );
 }
 

@@ -1,0 +1,269 @@
+/**
+ * Pins the plugin's Evals tab: the suite summary (cases, tags, findings,
+ * the cases not run yet with their feature) or the sentence for a plugin
+ * with no cases; the Run evals form only for the plugin's editors, whose
+ * start sends the plugin's id, organization and the form's settings and
+ * opens the new eval; an eval's view with a row per case, WITH, W/OUT and
+ * a provisional Δ, and its tries as links to their runs; Cancel for an
+ * editor while the eval runs; and Compare, case by case, with a changed
+ * case marked.
+ */
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
+import type { ReactNode } from "react";
+import { create } from "@bufbuild/protobuf";
+import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import { PluginEvalAblation } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
+import { PluginEvalPhase } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
+import type { PluginEval } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
+import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { StigmerContext } from "../../context";
+import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { PluginEvalsTab } from "../PluginEvalsTab";
+import { evalWith } from "./eval-fixture";
+
+vi.mock("../../models/ModelSelector.js", () => ({
+  ModelSelector: ({
+    onValueChange,
+  }: {
+    onValueChange: (modelId: string) => void;
+  }) => (
+    <button type="button" onClick={() => onValueChange("claude-haiku-4-5")}>
+      pick a model
+    </button>
+  ),
+}));
+
+afterEach(() => {
+  cleanup();
+  vi.clearAllMocks();
+});
+
+const plugin = create(PluginSchema, {
+  metadata: { id: "plg_1", org: "org_acme", name: "thermos", slug: "thermos" },
+  status: {
+    evals: {
+      dir: "evals",
+      caseCount: 2,
+      caseTags: ["smoke"],
+      cases: [
+        { caseName: "review-fires", path: "evals/review-fires" },
+        {
+          caseName: "needs-fixture",
+          path: "evals/needs-fixture",
+          unsupported: "context.scaffold_script",
+        },
+      ],
+      findings: [
+        {
+          kind: "eval-case-invalid",
+          message: "unknown key 'foo' in prompt.md",
+          path: "evals/bad/prompt.md",
+        },
+      ],
+    },
+  },
+});
+
+function client(
+  evals: PluginEval[],
+  opts: { canEdit?: boolean; started?: PluginEval } = {},
+) {
+  const byId = new Map(
+    evals.map((pluginEval) => [pluginEval.metadata?.id ?? "", pluginEval]),
+  );
+  if (opts.started) byId.set(opts.started.metadata?.id ?? "", opts.started);
+  return {
+    plugineval: {
+      listByPlugin: vi.fn(async () => ({
+        totalCount: evals.length,
+        items: evals,
+      })),
+      get: vi.fn(async (id: string) => byId.get(id)),
+      create: vi.fn(async () => opts.started),
+      cancel: vi.fn(async (id: string) => byId.get(id)),
+    },
+    iamPolicy: {
+      checkMyPermission: vi.fn(async () => ({
+        isAuthorized: opts.canEdit ?? true,
+      })),
+    },
+  };
+}
+
+function wrap(mock: unknown) {
+  return function Wrapper({ children }: { children: ReactNode }) {
+    return (
+      <FetchCacheContext.Provider value={null}>
+        <StigmerContext.Provider value={mock as never}>
+          {children}
+        </StigmerContext.Provider>
+      </FetchCacheContext.Provider>
+    );
+  };
+}
+
+describe("PluginEvalsTab", () => {
+  it("summarises the suite: cases, tags, findings, and the cases not run yet", async () => {
+    render(<PluginEvalsTab plugin={plugin} />, { wrapper: wrap(client([])) });
+    expect(screen.getByText(/2 cases in/)).toBeDefined();
+    expect(screen.getByText(/tags: smoke/)).toBeDefined();
+    const notRun = screen.getByRole("list", { name: "Cases not run yet" });
+    expect(
+      within(notRun).getByText(/not run yet: context.scaffold_script/),
+    ).toBeDefined();
+    expect(screen.getByText("unknown key 'foo' in prompt.md")).toBeDefined();
+    expect(await screen.findByText("No evals have run yet.")).toBeDefined();
+  });
+
+  it("says so for a plugin with no evals/ cases, and offers no form", async () => {
+    const bare = create(PluginSchema, {
+      metadata: { id: "plg_2", org: "org_acme", name: "bare" },
+    });
+    render(<PluginEvalsTab plugin={bare} />, { wrapper: wrap(client([])) });
+    expect(screen.getByText(/This plugin has no evals\/ cases/)).toBeDefined();
+    await screen.findByText("No evals have run yet.");
+    expect(screen.queryByRole("button", { name: "Run evals" })).toBeNull();
+  });
+
+  it("hides Run evals from someone who cannot edit the plugin", async () => {
+    const mock = client([], { canEdit: false });
+    render(<PluginEvalsTab plugin={plugin} />, { wrapper: wrap(mock) });
+    await screen.findByText("No evals have run yet.");
+    await vi.waitFor(() =>
+      expect(mock.iamPolicy.checkMyPermission).toHaveBeenCalled(),
+    );
+    await vi.waitFor(() =>
+      expect(screen.queryByRole("button", { name: "Run evals" })).toBeNull(),
+    );
+  });
+
+  it("starts an eval for the plugin with the form's settings and opens it", async () => {
+    const started = evalWith(
+      [{ name: "review-fires", score: 1, delta: 0.67 }],
+      undefined,
+      "pev_new",
+    );
+    const mock = client([], { started });
+    render(<PluginEvalsTab plugin={plugin} />, { wrapper: wrap(mock) });
+    fireEvent.click(
+      await screen.findByRole("button", { name: "pick a model" }),
+    );
+    fireEvent.change(screen.getByLabelText("Tries per case"), {
+      target: { value: "5" },
+    });
+    fireEvent.change(screen.getByLabelText("Cost limit (USD)"), {
+      target: { value: "2" },
+    });
+    fireEvent.click(screen.getByRole("switch"));
+    fireEvent.click(screen.getByRole("button", { name: "Run evals" }));
+    await vi.waitFor(() => expect(mock.plugineval.create).toHaveBeenCalled());
+    expect(mock.plugineval.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        org: "org_acme",
+        pluginId: "plg_1",
+        name: expect.stringMatching(/^thermos evals /),
+        targets: [{ harness: Harness.NATIVE, modelName: "claude-haiku-4-5" }],
+        runs: 5,
+        ablation: PluginEvalAblation.none,
+        maxCostUsd: 2,
+        concurrency: 1,
+      }),
+    );
+    expect(await screen.findByText("thermos evals pev_new")).toBeDefined();
+  });
+
+  it("refuses to start with a cost limit the API refuses", async () => {
+    render(<PluginEvalsTab plugin={plugin} />, { wrapper: wrap(client([])) });
+    fireEvent.change(await screen.findByLabelText("Cost limit (USD)"), {
+      target: { value: "0" },
+    });
+    expect(screen.getByText(/more than \$0/)).toBeDefined();
+    expect(
+      (screen.getByRole("button", { name: "Run evals" }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
+  });
+
+  it("shows the newest eval case by case, a provisional Δ, and its tries as links to their runs", async () => {
+    const latest = evalWith([{ name: "review-fires", score: 1, delta: 0.67 }]);
+    latest.status!.provisionalDelta = true;
+    const onNavigateToRun = vi.fn();
+    render(
+      <PluginEvalsTab plugin={plugin} onNavigateToRun={onNavigateToRun} />,
+      { wrapper: wrap(client([latest])) },
+    );
+    const table = await screen.findByRole("table");
+    expect(
+      within(table).getByRole("columnheader", {
+        name: /Difference.*provisional/,
+      }),
+    ).toBeDefined();
+    const row = within(table).getByRole("row", { name: /review-fires/ });
+    expect(within(row).getByText("1.00")).toBeDefined();
+    expect(within(row).getByText("0.33")).toBeDefined();
+    expect(within(row).getByText("+0.67")).toBeDefined();
+    expect(screen.getByText(/Δ is provisional/)).toBeDefined();
+    fireEvent.click(within(row).getByRole("button", { name: "review-fires" }));
+    fireEvent.click(screen.getByRole("button", { name: "with #1: 1.00" }));
+    expect(onNavigateToRun).toHaveBeenCalledWith("run_review-fires_1");
+    expect(
+      screen.getByText("with #2: not graded: platform busy"),
+    ).toBeDefined();
+  });
+
+  it("offers an editor Cancel while the eval runs", async () => {
+    const running = evalWith([{ name: "review-fires" }]);
+    running.status!.phase = PluginEvalPhase.running;
+    const mock = client([running]);
+    render(<PluginEvalsTab plugin={plugin} />, { wrapper: wrap(mock) });
+    fireEvent.click(await screen.findByRole("button", { name: "Cancel" }));
+    await vi.waitFor(() =>
+      expect(mock.plugineval.cancel).toHaveBeenCalledWith("pev_1"),
+    );
+  });
+
+  it("compares two evals case by case and marks a changed case", async () => {
+    const newer = evalWith(
+      [
+        { name: "steady", score: 1, delta: 0.5 },
+        { name: "better", score: 1, delta: 0.6 },
+      ],
+      undefined,
+      "pev_2",
+    );
+    const older = evalWith(
+      [
+        { name: "steady", score: 1, delta: 0.5 },
+        { name: "better", score: 0.5, delta: 0.1 },
+      ],
+      undefined,
+      "pev_1",
+    );
+    render(<PluginEvalsTab plugin={plugin} />, {
+      wrapper: wrap(client([newer, older])),
+    });
+    expect(await screen.findByLabelText("Before")).toBeDefined();
+    const compare = await vi.waitFor(() => {
+      const found = screen
+        .queryAllByRole("table")
+        .find((table) => within(table).queryByText("Δ before") !== null);
+      if (found === undefined) throw new Error("no comparison yet");
+      return found;
+    });
+    const changed = within(compare).getByRole("row", { name: /better/ });
+    expect(changed.getAttribute("data-changed")).toBe("true");
+    expect(within(changed).getByText("changed")).toBeDefined();
+    expect(
+      within(compare)
+        .getByRole("row", { name: /steady/ })
+        .getAttribute("data-changed"),
+    ).toBeNull();
+  });
+});

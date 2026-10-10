@@ -1066,8 +1066,8 @@ export type {
 } from "./memory/index.js";
 
 // Scores — a person's thumbs on a run's final answer, the platform's free
-// run-health checks and an AI judge's verdict, shown on every completed run
-// its viewers can see
+// run-health checks, an AI judge's verdict and a plugin eval's checks, shown
+// on every completed run its viewers can see
 export {
   RunScores,
   useSessionScores,
@@ -1095,6 +1095,48 @@ export type {
   UseSaveEvaluatorReturn,
   GradingSettings,
 } from "./evaluator/index.js";
+
+// Plugin evals — a plugin's own evals/ test cases run with and without it
+// on the models an eval names (the plugin's Evals tab), and a run made into
+// a test case
+export {
+  PluginEvalsTab,
+  PluginEvalResults,
+  usePluginEvals,
+  usePluginEval,
+  useStartPluginEval,
+  useCancelPluginEval,
+  PLUGIN_EVAL_POLL_MS,
+  DEFAULT_EVAL_FORM,
+  MAX_EVAL_CONCURRENCY,
+  MAX_EVAL_COST_USD,
+  MAX_EVAL_RUNS,
+  MAX_EVAL_TARGETS,
+  evalCaseRowsOf,
+  compareEvals,
+  evalFormProblem,
+  pluginEvalInputOf,
+  evalTargetLabelsOf,
+  testCaseOfRun,
+  zipTestCase,
+} from "./plugin-eval/index.js";
+export type {
+  PluginEvalsTabProps,
+  PluginEvalResultsProps,
+  UsePluginEvalsReturn,
+  UsePluginEvalReturn,
+  UseStartPluginEvalReturn,
+  UseCancelPluginEvalReturn,
+  EvalCaseRow,
+  EvalCaseCell,
+  EvalCompareRow,
+  EvalCompareSide,
+  EvalFormSettings,
+  EvalFormTarget,
+  EvalPluginRef,
+  EvalTryView,
+  RunForTestCase,
+} from "./plugin-eval/index.js";
 
 // IAM Policy — data hooks, behavior hooks, headless hook, and styled components for access management
 export {
