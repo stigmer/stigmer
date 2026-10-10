@@ -1,10 +1,15 @@
 /**
  * Pins how a repository's token reaches git (git-credential.ts): the header
- * git's per-command configuration carries, the version floor, the masking of
- * a failed command's text, and — against real git — that git reads the
- * header from the environment, and that a clone, a reused clone (in local
- * and cloud modes) and a write-back leave no byte of the token anywhere
- * under `.git` or in the origin URL. The real arms point a github.com URL
+ * git's per-command configuration carries beside hooks and the fsmonitor
+ * switched off, appended after the runner's own per-command configuration;
+ * the version floor (read again after a failed read); the refusal of a
+ * clone whose own configuration could carry the token elsewhere or whose
+ * origin moved; the masking of a failed command's text; and — against real
+ * git — that git reads the header from the environment, that a hook the
+ * agent planted (in `.git/hooks` or through `core.hooksPath`) never runs
+ * with the token, and that a clone, a reused clone (in local and cloud
+ * modes) and a write-back leave no byte of the token anywhere under `.git`
+ * or in the origin URL. The real arms point a github.com URL
  * at a local bare repository through `url.<base>.insteadOf` in a private
  * global config, so nothing reaches the network.
  */
@@ -24,6 +29,7 @@ import {
   gitTokenEnv,
   GitTooOldError,
   maskToken,
+  UntrustedGitConfigError,
   meetsGitCredentialFloor,
   runNetworkGit,
 } from "../git-credential.js";
@@ -38,15 +44,41 @@ const REPO_URL = "https://github.com/acme/app.git";
 // Real git spawns are slow under full-suite parallel load.
 const GIT_TEST_TIMEOUT_MS = 120_000;
 
+const AT = { cwd: "/w", remoteUrl: REPO_URL } as const;
+
+/** A backend whose git is 2.39.5, whose clone at /w has `localConfig` and an origin of `origin`. */
+function gitBackend(init: { localConfig?: string; origin?: string; run?: (cmd: string) => string } = {}) {
+  const execute = vi.fn(async (cmd: string) => {
+    if (cmd === "git --version") return "git version 2.39.5 (Apple Git-146)\n";
+    if (cmd === "git config --local --name-only --list") return init.localConfig ?? "remote.origin.url\ncore.bare\n";
+    if (cmd === "git config --local --get remote.origin.url") return `${init.origin ?? REPO_URL}\n`;
+    return init.run?.(cmd) ?? "ok";
+  });
+  return { backend: mockWorkspaceBackend({ execute }), execute };
+}
+
 beforeEach(() => forgetGitVersion());
 
 describe("the header and the floor", () => {
-  it("carries the token as GitHub's basic header, scoped to https://github.com/", () => {
-    expect(gitTokenEnv(TOKEN)).toEqual({
-      GIT_CONFIG_COUNT: "1",
-      GIT_CONFIG_KEY_0: "http.https://github.com/.extraheader",
-      GIT_CONFIG_VALUE_0: `AUTHORIZATION: basic ${BASIC}`,
+  it("carries the token as GitHub's basic header, scoped to https://github.com/, with hooks and the fsmonitor off", () => {
+    expect(gitTokenEnv(TOKEN, {})).toEqual({
+      GIT_CONFIG_COUNT: "3",
+      GIT_CONFIG_KEY_0: "core.hooksPath",
+      GIT_CONFIG_VALUE_0: "/dev/null",
+      GIT_CONFIG_KEY_1: "core.fsmonitor",
+      GIT_CONFIG_VALUE_1: "false",
+      GIT_CONFIG_KEY_2: "http.https://github.com/.extraheader",
+      GIT_CONFIG_VALUE_2: `AUTHORIZATION: basic ${BASIC}`,
     });
+  });
+
+  it("appends after the per-command configuration the runner already carries, never over it", () => {
+    const env = gitTokenEnv(TOKEN, { GIT_CONFIG_COUNT: "2", GIT_CONFIG_KEY_0: "safe.directory", GIT_CONFIG_VALUE_0: "*" });
+    expect(env.GIT_CONFIG_COUNT).toBe("5");
+    expect(env.GIT_CONFIG_KEY_0).toBeUndefined();
+    expect(env.GIT_CONFIG_KEY_2).toBe("core.hooksPath");
+    expect(env.GIT_CONFIG_KEY_4).toBe("http.https://github.com/.extraheader");
+    expect(gitTokenEnv(TOKEN, { GIT_CONFIG_COUNT: "garbage" }).GIT_CONFIG_COUNT).toBe("3");
   });
 
   it("reads 2.31 and later as meeting the floor, and nothing older or unreadable", () => {
@@ -64,18 +96,17 @@ describe("the header and the floor", () => {
   });
 
   it("reads the version once per process", async () => {
-    const execute = vi.fn(async (cmd: string) => (cmd === "git --version" ? "git version 2.39.5 (Apple Git-146)\n" : ""));
-    const backend = mockWorkspaceBackend({ execute });
+    const { backend, execute } = gitBackend();
 
-    await runNetworkGit(backend, "git fetch", { token: TOKEN });
-    await runNetworkGit(backend, "git push", { token: TOKEN });
+    await runNetworkGit(backend, "git fetch", { ...AT, token: TOKEN });
+    await runNetworkGit(backend, "git push", { ...AT, token: TOKEN });
 
     expect(execute.mock.calls.filter((call) => call[0] === "git --version")).toHaveLength(1);
   });
 
   it("refuses before running anything on an older or unreadable git, and runs a tokenless command as it is", async () => {
     const old = mockWorkspaceBackend({ execute: vi.fn(async () => "git version 2.30.2\n") });
-    await expect(runNetworkGit(old, "git fetch", { token: TOKEN })).rejects.toBeInstanceOf(GitTooOldError);
+    await expect(runNetworkGit(old, "git fetch", { ...AT, token: TOKEN })).rejects.toBeInstanceOf(GitTooOldError);
 
     forgetGitVersion();
     const broken = mockWorkspaceBackend({
@@ -84,21 +115,71 @@ describe("the header and the floor", () => {
         return "";
       }),
     });
-    await expect(runNetworkGit(broken, "git fetch", { token: TOKEN })).rejects.toThrow(/git is unreadable/);
+    await expect(runNetworkGit(broken, "git fetch", { ...AT, token: TOKEN })).rejects.toThrow(/git is unreadable/);
 
     const plain = mockWorkspaceBackend({ execute: vi.fn(async () => "ok") });
-    await expect(runNetworkGit(plain, "git fetch", { cwd: "/w" })).resolves.toBe("ok");
+    await expect(runNetworkGit(plain, "git fetch", AT)).resolves.toBe("ok");
     expect(plain.execute).toHaveBeenCalledWith("git fetch", { cwd: "/w" });
   });
 
-  it("masks the token in the error a failing command throws", async () => {
-    const backend = mockWorkspaceBackend({
-      execute: vi.fn(async (cmd: string) => {
-        if (cmd === "git --version") return "git version 2.39.5\n";
-        throw new Error(`Command failed: header ${BASIC}`);
-      }),
+  it("asks for the version again after a read that failed, and keeps only a successful one", async () => {
+    let attempts = 0;
+    const { backend, execute } = gitBackend();
+    execute.mockImplementation(async (cmd: string) => {
+      if (cmd === "git --version") {
+        attempts += 1;
+        if (attempts === 1) throw new Error("spawn EAGAIN");
+        return "git version 2.39.5\n";
+      }
+      if (cmd === "git config --local --name-only --list") return "remote.origin.url\n";
+      if (cmd === "git config --local --get remote.origin.url") return `${REPO_URL}\n`;
+      return "ok";
     });
-    await expect(runNetworkGit(backend, "git push", { token: TOKEN })).rejects.toThrow("Command failed: header ***");
+
+    await expect(runNetworkGit(backend, "git fetch", { ...AT, token: TOKEN })).rejects.toBeInstanceOf(GitTooOldError);
+    await expect(runNetworkGit(backend, "git fetch", { ...AT, token: TOKEN })).resolves.toBe("ok");
+    await expect(runNetworkGit(backend, "git push", { ...AT, token: TOKEN })).resolves.toBe("ok");
+    expect(attempts).toBe(2);
+  });
+
+  it.each([
+    ["http.sslverify", "a TLS setting"],
+    ["http.https://github.com/acme/app.git.proxy", "a URL-scoped proxy"],
+    ["https.proxy", "an https setting"],
+    ["url.https://evil.example/.insteadof", "a rewrite"],
+    ["include.path", "an include"],
+    ["includeif.gitdir:/w.path", "a conditional include"],
+    ["credential.helper", "a credential helper"],
+    ["core.sshcommand", "an ssh command"],
+    ["core.gitproxy", "a proxy command"],
+    ["remote.origin.pushurl", "a push URL"],
+    ["remote.origin.proxy", "a remote's proxy"],
+    ["remote.origin.receivepack", "a remote's receive-pack"],
+  ])("refuses a clone whose own configuration sets %s (%s), running nothing with the token", async (key) => {
+    const { backend, execute } = gitBackend({ localConfig: `remote.origin.url\n${key}\n` });
+    await expect(runNetworkGit(backend, "git push", { ...AT, token: TOKEN })).rejects.toBeInstanceOf(UntrustedGitConfigError);
+    expect(execute).not.toHaveBeenCalledWith("git push", expect.anything());
+  });
+
+  it("refuses a clone whose origin no longer is the conversation's repository", async () => {
+    const { backend, execute } = gitBackend({ origin: "https://github.com/evil/fork.git" });
+    await expect(runNetworkGit(backend, "git push", { ...AT, token: TOKEN })).rejects.toThrow(/points origin somewhere other/);
+    expect(execute).not.toHaveBeenCalledWith("git push", expect.anything());
+  });
+
+  it("hands the token past a clone's ordinary settings, a hook path of its own included", async () => {
+    const { backend, execute } = gitBackend({ localConfig: "core.bare\ncore.hookspath\nremote.origin.url\nremote.origin.fetch\nbranch.main.remote\nuser.name\n" });
+    await expect(runNetworkGit(backend, "git push", { ...AT, token: TOKEN })).resolves.toBe("ok");
+    expect(execute).toHaveBeenCalledWith("git push", { cwd: "/w", env: expect.objectContaining({ GIT_CONFIG_VALUE_0: "/dev/null" }) });
+  });
+
+  it("masks the token in the error a failing command throws", async () => {
+    const { backend } = gitBackend({
+      run: () => {
+        throw new Error(`Command failed: header ${BASIC}`);
+      },
+    });
+    await expect(runNetworkGit(backend, "git push", { ...AT, token: TOKEN })).rejects.toThrow("Command failed: header ***");
   });
 });
 
@@ -146,16 +227,84 @@ describe("against real git", () => {
 
   afterEach(() => {
     vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
     vi.restoreAllMocks();
     rmSync(root, { recursive: true, force: true });
   });
 
+  /** A repository at root/repo whose origin is the conversation's URL. */
+  function repoWithOrigin(): string {
+    const repo = join(root, "repo");
+    execFileSync("git", ["init", "-q", repo], { stdio: "pipe" });
+    execFileSync("git", ["remote", "add", "origin", REPO_URL], { cwd: repo, stdio: "pipe" });
+    return repo;
+  }
+
   it("hands git the header through the environment alone", async () => {
+    const repo = repoWithOrigin();
     const backend = new LocalWorkspaceBackend(root);
-    const header = await runNetworkGit(backend, "git config --get http.https://github.com/.extraheader", { token: TOKEN });
+    const header = await runNetworkGit(backend, "git config --get http.https://github.com/.extraheader", { cwd: repo, remoteUrl: REPO_URL, token: TOKEN });
     expect(header.trim()).toBe(`AUTHORIZATION: basic ${BASIC}`);
     // Without the command's environment git holds no such setting (exit 1).
-    expect(() => execFileSync("git", ["config", "--get-all", "http.https://github.com/.extraheader"], { cwd: root, stdio: "pipe" })).toThrow();
+    expect(() => execFileSync("git", ["config", "--get-all", "http.https://github.com/.extraheader"], { cwd: repo, stdio: "pipe" })).toThrow();
+  }, GIT_TEST_TIMEOUT_MS);
+
+  it("refuses a real clone whose own configuration turns TLS checks off", async () => {
+    const repo = repoWithOrigin();
+    execFileSync("git", ["config", "http.https://github.com/acme/app.git.sslVerify", "false"], { cwd: repo, stdio: "pipe" });
+    const backend = new LocalWorkspaceBackend(root);
+    await expect(
+      runNetworkGit(backend, "git ls-remote origin", { cwd: repo, remoteUrl: REPO_URL, token: TOKEN }),
+    ).rejects.toBeInstanceOf(UntrustedGitConfigError);
+  }, GIT_TEST_TIMEOUT_MS);
+
+  it("never runs a hook the agent planted while the token is in git's environment", async () => {
+    const workspace = join(root, "ws");
+    const backend = new LocalWorkspaceBackend(workspace);
+    execFileSync("mkdir", ["-p", workspace]);
+    const provisioned = await provisionGit({ url: REPO_URL, branch: "main", backend, token: TOKEN, isLocalMode: false, writeBack: true });
+    // The agent's plant: hooks in .git/hooks, and a hook directory of its
+    // own named by the clone's core.hooksPath, each writing git's whole
+    // environment where the agent reads it next turn.
+    const loot = join(root, "loot.txt");
+    const hook = `#!/bin/sh
+env >> ${loot}
+`;
+    const ownHooks = join(root, "own-hooks");
+    execFileSync("mkdir", ["-p", ownHooks]);
+    for (const dir of [join(workspace, ".git", "hooks"), ownHooks]) {
+      for (const name of ["pre-push", "reference-transaction", "post-checkout", "pre-commit", "post-commit"]) {
+        writeFileSync(join(dir, name), hook, { mode: 0o755 });
+      }
+    }
+    execFileSync("git", ["config", "core.hooksPath", ownHooks], { cwd: workspace, stdio: "pipe" });
+    writeFileSync(join(workspace, "change.txt"), "agent work\n");
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("[]", { status: 200 })));
+    const entry = {
+      name: "app",
+      source: { source: { case: "gitRepo", value: { url: REPO_URL, writeBackMode: GitWriteBackMode.GIT_WRITE_BACK_BRANCH_AND_PR } } },
+    } as unknown as WorkspaceEntry;
+
+    await new WriteBackCoordinator({
+      writeBacks: new TranscriptBuilder("exec-hook", create(RunStatusSchema, {})),
+      executionId: "exec-hook",
+      sessionId: "ses-hook",
+      repositories: [{ name: "app", url: REPO_URL, token: TOKEN }],
+      provisionResults: [{ ...provisioned, entryName: "app" }],
+      workspaceEntries: [entry],
+      workspaceBackend: backend,
+    }).finalize();
+
+    expect(execFileSync("git", ["branch", "--list", "stigmer/ses-hook"], { cwd: origin, encoding: "utf-8" })).toContain("stigmer/ses-hook");
+    // Hooks of tokenless commands (the commit) may run; none ever saw the token.
+    const seen = (() => {
+      try {
+        return readFileSync(loot, "utf-8");
+      } catch {
+        return "";
+      }
+    })();
+    expect(seen.includes(TOKEN) || seen.includes(BASIC), "a planted hook saw the token").toBe(false);
   }, GIT_TEST_TIMEOUT_MS);
 
   it.each([
@@ -197,7 +346,7 @@ describe("against real git", () => {
     execFileSync("mkdir", ["-p", workspace]);
     const provisioned = await provisionGit({ url: REPO_URL, branch: "main", backend, token: TOKEN, isLocalMode: false, writeBack: true });
     writeFileSync(join(workspace, "change.txt"), "agent work\n");
-    globalThis.fetch = vi.fn(async () => new Response("[]", { status: 200 })) as typeof fetch;
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("[]", { status: 200 })));
     const entry = {
       name: "app",
       source: { source: { case: "gitRepo", value: { url: REPO_URL, writeBackMode: GitWriteBackMode.GIT_WRITE_BACK_BRANCH_AND_PR } } },

@@ -176,11 +176,11 @@ async function cloneInPlace(
 
   const exec = (cmd: string) => backend.execute(cmd, { cwd: cloneDir });
   await exec(`git remote add origin ${shellQuote(cloneUrl)}`);
-  await runNetworkGit(backend, "git fetch --quiet origin", { cwd: cloneDir, token });
+  await runNetworkGit(backend, "git fetch --quiet origin", { cwd: cloneDir, remoteUrl: cloneUrl, token });
 
   const targetBranch = branch && branch.length > 0
     ? branch
-    : await resolveDefaultBranch(backend, cloneDir, token);
+    : await resolveDefaultBranch(backend, cloneDir, cloneUrl, token);
 
   // No target branch means the remote has no branches (empty repository).
   // Leave the initialized repo as-is, matching `git clone` of an empty repo.
@@ -197,10 +197,11 @@ async function cloneInPlace(
 async function resolveDefaultBranch(
   backend: WorkspaceBackend,
   cloneDir: string,
+  cloneUrl: string,
   token: string,
 ): Promise<string> {
   try {
-    await runNetworkGit(backend, "git remote set-head origin --auto", { cwd: cloneDir, token });
+    await runNetworkGit(backend, "git remote set-head origin --auto", { cwd: cloneDir, remoteUrl: cloneUrl, token });
     const ref = (await backend.execute("git symbolic-ref --short refs/remotes/origin/HEAD", { cwd: cloneDir })).trim();
     return ref.replace(/^origin\//, "");
   } catch {

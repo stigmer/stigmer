@@ -220,7 +220,12 @@ export class WriteBackCoordinator {
     };
     const git: EntryGit = {
       exec,
-      network: (cmd) => runNetworkGit(this.workspaceBackend, `cd ${rootDir} && ${cmd}`, { token: entry.githubToken }),
+      network: (cmd) =>
+        runNetworkGit(this.workspaceBackend, cmd, {
+          cwd: rootDir,
+          remoteUrl: entry.provisionResult.gitMetadata!.repoUrl,
+          token: entry.githubToken,
+        }),
     };
 
     try {
@@ -309,8 +314,10 @@ export class WriteBackCoordinator {
     if (localRef) {
       await exec(`git checkout ${this.branchName}`);
     } else {
+      // An empty answer is "no such branch"; a failure (refused, too old a
+      // git, an untrusted clone) is a failure, never read as no branch.
       const remoteRef = (
-        await network(`git ls-remote --heads origin ${this.branchName}`).catch(() => "")
+        await network(`git ls-remote --heads origin ${this.branchName}`)
       ).trim();
       if (remoteRef) {
         await network(`git fetch origin ${this.branchName}`);
