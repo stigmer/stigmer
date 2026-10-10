@@ -205,12 +205,8 @@ export function newResourceIdentityAccountStore(
       );
       return rows
         .map((bytes) => fromBinary(IdentityAccountSchema, bytes))
-        .filter((account) =>
-          isVouchedForBy(account, providerOrg, providerSlug),
-        )
-        .sort((a, b) =>
-          compareIds(a.metadata?.id ?? "", b.metadata?.id ?? ""),
-        );
+        .filter((account) => isVouchedForBy(account, providerOrg, providerSlug))
+        .sort((a, b) => compareIds(a.metadata?.id ?? "", b.metadata?.id ?? ""));
     },
 
     async findByOrg(org): Promise<ReadonlyArray<IdentityAccount>> {

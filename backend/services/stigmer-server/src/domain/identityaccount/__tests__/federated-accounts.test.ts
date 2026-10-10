@@ -128,8 +128,13 @@ describe("the create path's federated arm", () => {
   it("is reached by the federated read and by no subject lookup; a direct account under the subject is another person", async () => {
     await createAccount(federated("shared|sam"), SIGN_IN);
     expect(
-      (await accounts.findByProviderAndIdpId(ACME_ORG, "acme-okta", "shared|sam"))
-        ?.metadata?.id,
+      (
+        await accounts.findByProviderAndIdpId(
+          ACME_ORG,
+          "acme-okta",
+          "shared|sam",
+        )
+      )?.metadata?.id,
     ).toBe(federatedAccountIdFor(ACME_ORG, "acme-okta", "shared|sam"));
     expect(await accounts.findDirectByIdpId("shared|sam")).toBeUndefined();
     expect(await accounts.findByIdpId("shared|sam")).toBeUndefined();
@@ -149,14 +154,19 @@ describe("the create path's federated arm", () => {
   });
 
   it("accepts any subject its provider asserts, a reserved-looking one included", async () => {
-    const account = await createAccount(federated("stgm_pc|acme|user-7"), SIGN_IN);
+    const account = await createAccount(
+      federated("stgm_pc|acme|user-7"),
+      SIGN_IN,
+    );
     expect(account.spec?.idpId).toBe("stgm_pc|acme|user-7");
     expect(await accounts.findByIdpId("stgm_pc|acme|user-7")).toBeUndefined();
   });
 
   it("answers ALREADY_EXISTS for a second create of one provider and subject", async () => {
     await createAccount(federated("okta|frank"), SIGN_IN);
-    const denied = await refusal(createAccount(federated("okta|frank"), SIGN_IN));
+    const denied = await refusal(
+      createAccount(federated("okta|frank"), SIGN_IN),
+    );
     expect(denied.code).toBe(Code.AlreadyExists);
   });
 
@@ -179,7 +189,10 @@ describe("the create path's federated arm", () => {
 
   it("answers a provider reference the path cannot address as a server fault", async () => {
     const denied = await refusal(
-      createAccount(federated("okta|gil", { org: "", slug: "acme-okta" }), SIGN_IN),
+      createAccount(
+        federated("okta|gil", { org: "", slug: "acme-okta" }),
+        SIGN_IN,
+      ),
     );
     expect(denied.code).toBe(Code.Internal);
   });

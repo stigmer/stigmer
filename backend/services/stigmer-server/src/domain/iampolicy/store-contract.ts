@@ -378,7 +378,10 @@ const CASES: ReadonlyArray<PortContractDeclaration<IamPolicyStore>> = [
       ]);
       assert.deepEqual(
         (
-          await store.findByResourceKindAndRelation("identity_provider", "owner")
+          await store.findByResourceKindAndRelation(
+            "identity_provider",
+            "owner",
+          )
         )
           .map(idOf)
           .sort(),
@@ -478,7 +481,10 @@ const CASES: ReadonlyArray<PortContractDeclaration<IamPolicyStore>> = [
         "a pair read on a disconnected store must reject, never read as an empty list",
       );
       await assert.rejects(
-        fixture.store.findByResourceKindAndRelation("identity_provider", "owner"),
+        fixture.store.findByResourceKindAndRelation(
+          "identity_provider",
+          "owner",
+        ),
         "a kind read on a disconnected store must reject: a reconcile that read no rows would leave every one standing",
       );
     },

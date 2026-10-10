@@ -117,9 +117,16 @@ test("a package's own LICENSE is kept and never removed; the root's is copied on
     const copy = rootLicenseCopy(none, root);
     assert.ok(copy, "a package with no LICENSE gets the root's");
     copy.copy();
-    assert.equal(readFileSync(join(none, "LICENSE"), "utf8"), "root license text\n");
+    assert.equal(
+      readFileSync(join(none, "LICENSE"), "utf8"),
+      "root license text\n",
+    );
     copy.remove();
-    assert.equal(existsSync(join(none, "LICENSE")), false, "the restore removes the copy it made");
+    assert.equal(
+      existsSync(join(none, "LICENSE")),
+      false,
+      "the restore removes the copy it made",
+    );
 
     const bare = mkdtempSync(join(tmpdir(), "publish-standalone-no-root-"));
     try {

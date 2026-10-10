@@ -108,7 +108,9 @@ export interface FederatedProvider {
 }
 
 /** The organization an account being created belongs to; "" for a direct account, which belongs to none. */
-export function owningOrganizationOf(provisioning: AccountProvisioning): string {
+export function owningOrganizationOf(
+  provisioning: AccountProvisioning,
+): string {
   switch (provisioning.mode) {
     case "direct":
       return "";
