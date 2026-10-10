@@ -14,7 +14,7 @@
  *    `setpriv` drop all work, and each failure is one line naming its fix.
  */
 
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -91,6 +91,20 @@ describe("the agent's state and the drop to it", () => {
     const ok = { processStatus: () => ALL_FOUR, ensureUser: () => void steps.push("user"), makeHome: () => void steps.push("home"), probe: (args: readonly string[]) => (steps.push(args.join(" ")), { status: 0, stderr: "" }) };
     expect(prepareAgentSeparation(identity, ok)).toBeNull();
     expect(steps).toEqual(["user", "home", "--reuid=10001 --regid=10001 --clear-groups --inh-caps=-all --no-new-privs -- true"]);
+  });
+
+  it("refuses, with its one line, on a process that is not a root runner holding the four capabilities", () => {
+    // This test's process is that: no /proc at all on macOS, no capabilities
+    // as a Linux user, so the real check refuses either way.
+    expect(prepareAgentSeparation(identity)).toMatch(/^the runner (cannot read its own capabilities|lacks the SETUID, SETGID, CHOWN, KILL capabilities) /);
+    const home = join(mkdtempSync(join(tmpdir(), "agent-home-")), "agent");
+    expect(prepareAgentSeparation({ ...identity, home }, { processStatus: () => ALL_FOUR, ensureUser: () => {} }), "the home cannot be given away").toMatch(
+      /^the runner cannot prepare the agent user stigmer-agent: .*EPERM/,
+    );
+    expect(existsSync(home), "but it was made").toBe(true);
+    expect(prepareAgentSeparation(identity, { processStatus: () => ALL_FOUR, ensureUser: () => {}, makeHome: () => {} }), "no setpriv drop from here").toMatch(
+      /^the runner cannot start processes as the agent user/,
+    );
   });
 
   it("names the fix for each way it cannot drop", () => {

@@ -23,7 +23,8 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { DEEP_AGENT_CAPABILITIES } from "../../activities/execute-deep-agent/deep-agent-capabilities.js";
-import { AgentExecError } from "../../shared/agent-fs.js";
+import { AgentExecError, localAgentFs } from "../../shared/agent-fs.js";
+import { serveExec } from "../fs-service.js";
 import { Peer, loopbackChannels } from "../channel.js";
 import { serveAgentHost } from "../host.js";
 import { FS_CHUNK_BYTES, type ExecRequest, type HostCalls, type HostNotices, type RunnerCalls, type RunnerNotices } from "../protocol.js";
@@ -131,6 +132,14 @@ describe("the agent's processes, run by the host", () => {
     expect((failure as AgentExecError).stderr.toString()).toBe("err\n");
     await expect(fs.execFile("no-such-binary-anywhere", [])).rejects.toMatchObject({ code: "ENOENT" });
     close();
+  });
+
+  it("answers a process that could not be run at all as a failure the runner rebuilds", async () => {
+    const reply = await serveExec(
+      { file: "anything", args: [], cwd: null, env: {}, maxBuffer: 1024, input: null },
+      { ...localAgentFs, execFile: () => Promise.reject(new Error("no such process table")) },
+    );
+    expect(reply).toEqual({ stdout: { inline: "" }, stderr: { inline: "" }, failure: { message: "no such process table", code: null, signal: null } });
   });
 
   it("sends only the variables the caller named, and the process sees them", async () => {

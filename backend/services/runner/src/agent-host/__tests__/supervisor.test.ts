@@ -44,7 +44,9 @@ import { testConfig } from "../../__test-utils__/config-fixture.js";
 import type { HarnessAdapter } from "../../harness/types.js";
 import { RUNNER_ENTRY_URL } from "../../runner-entry.js";
 import { Peer, loopbackChannels } from "../channel.js";
-import { hostHarnesses, logCursorWarmup, writeTrustedCertificates } from "../hosting.js";
+import { agentFs } from "../../shared/agent-fs.js";
+import { serveAgentHost } from "../host.js";
+import { handOver, hostHarnesses, logCursorWarmup, writeTrustedCertificates } from "../hosting.js";
 import { AGENT_HOST_MODE_ARG, AGENT_HOST_PROTOCOL_VERSION, type HostCalls, type HostNotices, type RunnerCalls, type RunnerNotices } from "../protocol.js";
 import { AgentHostSupervisor, agentHostCommand, processHostStarter, spawnHostProcess, type HostStarter } from "../supervisor.js";
 
@@ -292,6 +294,44 @@ describe("the production starter", () => {
       AGENT_HOST_MODE_ARG,
     ]);
     expect(env).toEqual({ HOME: "/data/agent" });
+  });
+
+  it("prepares the separation itself by default, and stops when it cannot", async () => {
+    const identity = { name: "stigmer-agent", uid: 10001, gid: 10001, home: join(mkdtempSync(join(tmpdir(), "agent-home-")), "agent") };
+    const exits: number[] = [];
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    // This process is not a root runner holding the four capabilities, so the
+    // real preparation refuses, as a misconfigured container runner would.
+    await expect(hostHarnesses([], testConfig(), { identity, exit: (code) => void exits.push(code) })).rejects.toThrow(/^the runner /);
+    expect(exits).toEqual([78]);
+  });
+
+  it("hands the agent its files on boot, and turns a failed handover into the refusal", () => {
+    const base = mkdtempSync(join(tmpdir(), "hosting-handover-"));
+    const identity = { name: "stigmer-agent", uid: 10001, gid: 10001, home: join(base, "agent") };
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    expect(handOver(identity, join(base, "workspace"), join(base, "runner"), { chown: () => {} })).toBeNull();
+    expect(
+      handOver(identity, join(base, "workspace-2"), join(base, "runner-2"), {
+        chown: () => {
+          throw new Error("EPERM: operation not permitted");
+        },
+      }),
+    ).toBe("the runner cannot hand the agent user its files: EPERM: operation not permitted");
+  });
+
+  it("routes the runtime's file and process operations to the host it starts", async () => {
+    const hosted = await hostHarnesses([], testConfig(), {
+      identity: null,
+      start: async () => {
+        const [runnerEnd, hostEnd] = loopbackChannels();
+        serveAgentHost(hostEnd, []);
+        return { channel: runnerEnd, kill: () => hostEnd.close() };
+      },
+    });
+    expect((await agentFs().stat(tmpdir())).isDirectory()).toBe(true);
+    expect((await agentFs().execFile("sh", ["-c", "printf host"])).stdout.toString()).toBe("host");
+    await hosted.close();
   });
 
   it("stops a separating runner that cannot drop to the agent with 78, before any harness boots", async () => {
