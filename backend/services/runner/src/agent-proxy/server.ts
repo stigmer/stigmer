@@ -87,7 +87,7 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
     return proxy;
   }
 
-  /** The Cursor lane, `https://127.0.0.1:<port>`. */
+  /** The Cursor lane, `https://2130706433:<port>`, 127.0.0.1 written as one number so the Cursor SDK keeps certificate checks on (`agent-proxy/cursor-lane.ts`). */
   get cursorEndpoint(): string {
     return this.cursor.endpoint;
   }
@@ -146,7 +146,7 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
       }
       if (path === CHECKPOINT_PREFIX || path.startsWith(`${CHECKPOINT_PREFIX}/`)) {
         const body = await readBody(req);
-        this.requireLiveThreads(url, body);
+        this.requireLiveThreads(url, body, req.method === "PUT" && path === `${CHECKPOINT_PREFIX}/writes`);
         await relay(res, checkpointUpstream(this.config, `${path.slice(CHECKPOINT_PREFIX.length)}${url.search}`, req, body));
         return;
       }
@@ -180,7 +180,7 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
   }
 
   /** Every thread a checkpoint call names must be a live turn's. */
-  private requireLiveThreads(url: URL, body: Buffer): void {
+  private requireLiveThreads(url: URL, body: Buffer, isWriteBatch: boolean): void {
     const threads = new Set<string>();
     const queried = url.searchParams.get("thread_id");
     if (queried !== null) threads.add(queried);
@@ -188,7 +188,7 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
     // An empty write batch names no thread and writes nothing: LangGraph sends
     // one for a task whose writes all go to untracked channels, and the
     // platform answers it as a no-op.
-    if (threads.size === 0 && isEmptyWriteBatch(body)) return;
+    if (threads.size === 0 && isWriteBatch && isEmptyWriteBatch(body)) return;
     if (threads.size === 0) throw new LaneRefusal(403, "a checkpoint call must name its thread");
     const liveThreads = new Set([...this.live.values()].map((t) => t.threadId));
     for (const thread of threads) {

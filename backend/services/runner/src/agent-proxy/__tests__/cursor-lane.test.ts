@@ -241,6 +241,29 @@ describe("terminate: a runner that calls Cursor itself", () => {
     expect(rest.last.headers.authorization).toBe(`Bearer ${OPERATOR_KEY}`);
   });
 
+  it("serves the key exchange at its one spelling only, so no variant carries the real token past custody", async () => {
+    rest.answer = { status: 200, headers: { "content-type": "application/json" }, body: JSON.stringify({ accessToken: REAL_TOKEN, refreshToken: "refresh-me" }) };
+    for (const variant of [
+      "/v1/proxy/cursor/api2.cursor.sh/auth/exchange_user_api_key/",
+      "/v1/proxy/cursor/api2.cursor.sh//auth/exchange_user_api_key",
+      "/v1/proxy/cursor/api2.cursor.sh/auth/exchange%5Fuser%5Fapi%5Fkey",
+      "/v1/proxy/cursor/api2.cursor.sh/AUTH/exchange_user_api_key",
+      "/v1/proxy/cursor/api2.cursor.sh/auth/other",
+    ]) {
+      const answer = await call(variant, { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION });
+      expect(answer.status, variant).toBe(403);
+      expect(answer.body).not.toContain(REAL_TOKEN);
+    }
+    expect(rest.received).toEqual([]);
+  });
+
+  it("checks the REST host as a parsed hostname", async () => {
+    for (const host of ["user@api2.cursor.sh", "api2.cursor.sh:444", "evil.example%2F.api2.cursor.sh"]) {
+      expect((await call(`/v1/proxy/cursor/${host}/v1/models`, { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION })).status, host).toBe(403);
+    }
+    expect(rest.received).toEqual([]);
+  });
+
   it("refuses REST without the host's token, without a live execution, or to a host that is not Cursor's", async () => {
     expect((await call(EXCHANGE, { "x-stigmer-execution-id": EXECUTION })).status).toBe(401);
     expect((await call(EXCHANGE, { authorization: `Bearer ${HOST_TOKEN}` })).status).toBe(403);
@@ -334,6 +357,16 @@ describe("terminate: a runner that calls Cursor itself", () => {
       req.end("x");
     });
     expect(reset, "an internal-error reset, never a clean end").toBe(2);
+  });
+
+  it("closes promptly while a host still holds connections open", async () => {
+    const session = connect(proxy.cursorEndpoint, { ca: proxy.cursorCertificate });
+    session.on("error", () => {});
+    await new Promise<void>((resolve) => session.once("connect", () => resolve()));
+    const closed = await Promise.race([proxy.close().then(() => "closed"), new Promise((resolve) => setTimeout(() => resolve("hung"), 2_000))]);
+    expect(closed).toBe("closed");
+    session.destroy();
+    proxy = await AgentProxy.start(testConfig({ proxyEndpoint: null, cursorApiKey: OPERATOR_KEY }));
   });
 
   it("answers 502 when Cursor cannot be reached, on the stream and on the exchange", async () => {

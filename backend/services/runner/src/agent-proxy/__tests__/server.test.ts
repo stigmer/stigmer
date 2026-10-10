@@ -372,6 +372,9 @@ describe("forward: a runner behind the Stigmer platform's proxy", () => {
     const res = await call(proxy, "/v1/proxy/checkpoints/writes", { method: "PUT", headers: asHost, body: JSON.stringify({ writes: [] }) });
     expect(res.status).toBe(200);
     expect(upstream.last.path).toBe("/v1/proxy/checkpoints/writes");
+    const sent = upstream.received.length;
+    expect((await call(proxy, "/v1/proxy/checkpoints/thread", { method: "DELETE", headers: asHost, body: JSON.stringify({ writes: [] }) })).status, "only a write batch").toBe(403);
+    expect(upstream.received).toHaveLength(sent);
   });
 
   it("serves the thread the turn itself names, whatever its shape", async () => {

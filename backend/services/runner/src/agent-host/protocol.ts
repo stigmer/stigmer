@@ -96,7 +96,7 @@ export interface HostConfigWire {
   readonly workspaceLockTimeoutMs: number;
   /** The runner's local proxy, `http://127.0.0.1:<port>`. */
   readonly proxyEndpoint: string;
-  /** The local proxy's Cursor lane, `https://127.0.0.1:<port>`, whose certificate the host trusts. */
+  /** The local proxy's Cursor lane, `https://2130706433:<port>`, 127.0.0.1 written as one number so the Cursor SDK keeps certificate checks on (`agent-proxy/cursor-lane.ts`), whose certificate the host trusts. */
   readonly cursorEndpoint: string;
   /** The host's credential at that proxy. */
   readonly token: string;

@@ -64,7 +64,7 @@ import {
   type Http2ServerResponse,
   type OutgoingHttpHeaders,
 } from "node:http2";
-import type { AddressInfo } from "node:net";
+import type { AddressInfo, Socket } from "node:net";
 
 import type { Config } from "../config.js";
 import { LaneRefusal, laneUrl } from "./lanes.js";
@@ -104,10 +104,12 @@ type LaneResponse = RelayResponse;
 export class CursorLane {
   private readonly custody = new TokenCustody();
   private readonly sessions = new Map<string, ClientHttp2Session>();
+  /** Every connection a host has open to the lane, so a close does not wait on them. */
+  private readonly inbound = new Set<Socket>();
 
   private constructor(
     private readonly server: Http2SecureServer,
-    /** `https://127.0.0.1:<port>`. */
+    /** `https://2130706433:<port>`, 127.0.0.1 written as one number so the Cursor SDK keeps certificate checks on (`agent-proxy/cursor-lane.ts`). */
     readonly endpoint: string,
     /** The certificate the host trusts, PEM. */
     readonly certPem: string,
@@ -128,6 +130,11 @@ export class CursorLane {
     server.unref();
     const { port } = server.address() as AddressInfo;
     lane = new CursorLane(server, `https://${LOOPBACK_AS_NUMBER}:${port}`, certPem, config, gate);
+    const inbound = lane.inbound;
+    server.on("connection", (socket: Socket) => {
+      inbound.add(socket);
+      socket.once("close", () => inbound.delete(socket));
+    });
     return lane;
   }
 
@@ -136,10 +143,13 @@ export class CursorLane {
     this.custody.clear();
   }
 
+  /** Close the listener, ending every connection a host still holds, as the model lanes' listener does. */
   close(): Promise<void> {
     for (const session of this.sessions.values()) session.destroy();
     this.sessions.clear();
-    return new Promise((resolve) => this.server.close(() => resolve()));
+    const closed = new Promise<void>((resolve) => this.server.close(() => resolve()));
+    for (const socket of this.inbound) socket.destroy();
+    return closed;
   }
 
   private async handle(req: LaneRequest, res: LaneResponse): Promise<void> {
@@ -173,10 +183,14 @@ export class CursorLane {
     this.gate.requireLiveExecution(req);
     const slash = hostAndPath.indexOf("/");
     const host = slash === -1 ? hostAndPath : hostAndPath.slice(0, slash);
-    const rest = `${slash === -1 ? "" : hostAndPath.slice(slash)}${search}`;
-    if (!CURSOR_HOSTS.some((known) => host === known || host.endsWith(`.${known}`))) {
-      throw new LaneRefusal(403, `the Cursor lane reaches Cursor's own hosts only, not ${host}`);
-    }
+    const path = slash === -1 ? "" : hostAndPath.slice(slash);
+    const rest = `${path}${search}`;
+    if (!isCursorHost(host)) throw new LaneRefusal(403, `the Cursor lane reaches Cursor's own hosts only, not ${host}`);
+    const exchange = path === EXCHANGE_PATH;
+    // Custody turns on this one path. Any other spelling that a server could
+    // read as the auth API (a trailing or doubled slash, an escape, another
+    // case) is refused, so no answer carrying a token is relayed unchanged.
+    if (!exchange && readsAsAuthPath(path)) throw new LaneRefusal(403, "the Cursor lane serves the auth API at its key exchange's own path only");
     const body = await readBody(req);
     const forward = this.config.proxyEndpoint !== null;
     const upstream: Upstream =
@@ -193,7 +207,7 @@ export class CursorLane {
           headers: { ...forwardableHeaders(req.headers, false), authorization: `Bearer ${this.operatorKey()}` },
           body,
         };
-    if (rest.split("?")[0] !== EXCHANGE_PATH) {
+    if (!exchange) {
       await relay(res, upstream);
       return;
     }
@@ -310,6 +324,30 @@ export class CursorLane {
     if (!this.config.cursorApiKey) throw new LaneRefusal(500, "the Cursor lane needs CURSOR_API_KEY on the runner");
     return this.config.cursorApiKey;
   }
+}
+
+/** Is `host` one of Cursor's own, read as a URL parser reads it (no userinfo, port or escape)? */
+function isCursorHost(host: string): boolean {
+  let parsed: string;
+  try {
+    parsed = new URL(`https://${host}`).hostname;
+  } catch {
+    return false;
+  }
+  return parsed === host.toLowerCase() && CURSOR_HOSTS.some((known) => parsed === known || parsed.endsWith(`.${known}`));
+}
+
+/** Does `path` read as the auth API once decoded, lower-cased and stripped of repeated or trailing slashes? */
+function readsAsAuthPath(path: string): boolean {
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(path);
+  } catch {
+    return true;
+  }
+  let canonical = decoded.toLowerCase().replace(/\/{2,}/g, "/");
+  while (canonical.endsWith("/")) canonical = canonical.slice(0, -1);
+  return canonical === "/auth" || canonical.startsWith("/auth/");
 }
 
 /**

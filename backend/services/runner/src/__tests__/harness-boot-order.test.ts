@@ -10,8 +10,8 @@
  * `node:http2`, whose ESM facade is snapshotted at its first import by
  * `@connectrpc/connect-node` — proves the patch reached the facade, and only
  * then loads `@cursor/sdk`; that ordering now holds inside the host's own
- * fresh process, and a host whose graph imported connect-node first would
- * fail the first arm.
+ * fresh process; a host that imported `node:http2` first fails on the
+ * facade, which the third arm proves with a host started that way.
  *
  * The runner itself loads no engine. The child runs with
  * `__test-utils__/refuse-engine-sdks.ts`, a resolve hook that refuses
@@ -42,24 +42,27 @@ interface ChildVerdict {
   readonly line: string;
 }
 
-async function runChild(arm: "boot" | "import-engine"): Promise<ChildVerdict> {
+async function runChild(arm: "boot" | "import-engine" | "host-http2-first"): Promise<ChildVerdict> {
   const home = mkdtempSync(join(tmpdir(), "stigmer-boot-order-"));
   try {
     const { stdout } = await execFileAsync(process.execPath, ["--import", "tsx", "--import", REFUSE_ENGINES, CHILD, arm], {
       env: { ...process.env, HOME: home },
       timeout: 25_000,
     });
-    return { exitCode: 0, line: lastLine(stdout) };
+    return { exitCode: 0, line: verdictLine(stdout, "") };
   } catch (err) {
     const failure = err as { code?: number; stdout?: string; stderr?: string };
-    return { exitCode: failure.code ?? -1, line: lastLine(`${failure.stdout ?? ""}${failure.stderr ?? ""}`) };
+    return { exitCode: failure.code ?? -1, line: verdictLine(failure.stdout ?? "", failure.stderr ?? "") };
   } finally {
     rmSync(home, { recursive: true, force: true });
   }
 }
 
-function lastLine(text: string): string {
-  const lines = text.trim().split("\n");
+/** The child's own verdict line; else the last line it wrote (a crash before it could print one). The host's relayed output can follow it. */
+function verdictLine(stdout: string, stderr: string): string {
+  const verdict = stdout.split("\n").filter((line) => line.startsWith("harness-boot-order:")).at(-1);
+  if (verdict !== undefined) return verdict;
+  const lines = `${stdout}${stderr}`.trim().split("\n");
   return lines[lines.length - 1] ?? "";
 }
 
@@ -68,6 +71,12 @@ describe("harness boot order (fresh process)", () => {
     const verdict = await runChild("boot");
     expect(verdict.line, "the child's verdict").toBe("harness-boot-order: ok");
     expect(verdict.exitCode).toBe(0);
+  });
+
+  it("fails loudly on the facade in a host that imported node:http2 first (the guard is live in the host)", async () => {
+    const verdict = await runChild("host-http2-first");
+    expect(verdict.exitCode).toBe(1);
+    expect(verdict.line).toMatch(/node:http2 ESM facade is unpatched/);
   });
 
   it("refuses an engine's SDK in the runner's process (the fence is live)", async () => {

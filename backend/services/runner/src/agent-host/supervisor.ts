@@ -66,7 +66,7 @@ export type HostStarter = () => StartedHost | Promise<StartedHost>;
 export interface AgentProxyGate {
   /** `http://127.0.0.1:<port>`. */
   readonly endpoint: string;
-  /** The Cursor lane, `https://127.0.0.1:<port>`. */
+  /** The Cursor lane, `https://2130706433:<port>`, 127.0.0.1 written as one number so the Cursor SDK keeps certificate checks on (`agent-proxy/cursor-lane.ts`). */
   readonly cursorEndpoint: string;
   /** Make `token` the one host token the proxy accepts. */
   authorizeHost(token: string): void;
