@@ -28,6 +28,7 @@
  * this file.
  */
 
+import { createServer, connect, type AddressInfo } from "node:net";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { ApprovalAction, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
@@ -218,6 +219,63 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       expect(final.messages.map((m) => [m.content, m.isStreaming]), "the message the adapter left open is closed").toEqual([["half a thou", false]]);
       const row = final.messages[0]!.toolCalls[0]!;
       expect([row.id, row.isStreaming, row.result], "the row the adapter left streaming output is closed, its output kept").toEqual(["t1", false, "building"]);
+    });
+  });
+
+  describe("a write the agent host requests", () => {
+    // The host's calls reach the runner on its pipe's I/O events, which carry
+    // no activity context (stigmer#2090). A server made here, outside the
+    // activity, runs the request on its own socket's event the same way.
+    function outsideTheActivity(): Promise<{ readonly run: <T>(call: () => Promise<T>) => Promise<T>; readonly close: () => void }> {
+      return new Promise((ready) => {
+        const queue: (() => void)[] = [];
+        const server = createServer((socket) => socket.on("data", () => queue.shift()?.()));
+        server.listen(0, "127.0.0.1", () => {
+          const client = connect((server.address() as AddressInfo).port, "127.0.0.1", () =>
+            ready({
+              run: (call) =>
+                new Promise((resolve, reject) => {
+                  queue.push(() => void call().then(resolve, reject));
+                  client.write("x");
+                }),
+              close: () => {
+                client.destroy();
+                server.close();
+              },
+            }),
+          );
+        });
+      });
+    }
+
+    it("persists it, heartbeat included, when it arrives outside the activity's async context", async () => {
+      const outside = await outsideTheActivity();
+      let persisted: string | undefined;
+      const persistsFromOutside: HarnessAdapter = {
+        ...subject.adapter,
+        name: "persists-from-outside",
+        boot: (config) => subject.adapter.boot(config),
+        shutdown: () => subject.adapter.shutdown(),
+        releaseSession: (sessionId) => subject.adapter.releaseSession(sessionId),
+        async runTurn(_input, sink) {
+          sink.transcript.apply({ kind: "message_start", runId: "r1" });
+          sink.transcript.apply({ kind: "text_delta", runId: "r1", text: "from the host" });
+          persisted = await outside.run(() => sink.requestPersist()).then(
+            () => "persisted",
+            (err: unknown) => (err instanceof Error ? err.message : String(err)),
+          );
+          return { kind: "completed" };
+        },
+      };
+      const fromOutside: RuntimeContractHarness = { ...harness, subject: { ...subject, name: persistsFromOutside.name, adapter: persistsFromOutside } };
+      await persistsFromOutside.boot(subject.config);
+      clock.reset();
+      const driver = new RuntimeExecutionDriver(fromOutside, "fake-persists-from-outside");
+      const invocation = await driver.turn([]);
+      outside.close();
+
+      expect(persisted).toBe("persisted");
+      expect(slimOf(fromOutside.subject, invocation).phase).toBe("RUN_COMPLETED");
     });
   });
 
