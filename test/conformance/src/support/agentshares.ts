@@ -6,7 +6,10 @@
 // (server-owned, in status). The canonical share carries the
 // agent's own slug — created by omitting BOTH metadata.name and slug, which
 // the defaults resolver fills from the referenced agent — so the builder
-// makes the name optional on purpose.
+// makes the name optional on purpose. The builder writes a public audience
+// unless told otherwise: an omitted audience means the organization's
+// members, and most fixtures exercise the anyone-with-the-link lanes (guest
+// mint, vaults, run options), which need public said out loud.
 import type { InitShape } from "./init-shape";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { AgentShareAudience } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/spec_pb";
@@ -25,8 +28,9 @@ export interface AgentShareOptions {
   // tag or a content hash; empty is the agent's current version.
   agentRefVersion?: string;
   enabled?: boolean;
-  // Unspecified deliberately means PUBLIC (the proto's documented default) —
-  // set org for the member-gated audience.
+  // Omitted here means PUBLIC, written out. Set org for the member-gated
+  // audience, or unspecified to leave the field off the wire, which the
+  // server stores as org (the proto's default).
   audience?: AgentShareAudience;
   // Vault slugs a guest's runs use (spec.vaults); public audience only.
   vaults?: string[];
@@ -50,7 +54,9 @@ export function makeAgentShare(
         ...(options.agentRefVersion !== undefined ? { version: options.agentRefVersion } : {}),
       },
       enabled: options.enabled ?? true,
-      ...(options.audience !== undefined ? { audience: options.audience } : {}),
+      ...(options.audience === AgentShareAudience.unspecified
+        ? {}
+        : { audience: options.audience ?? AgentShareAudience.public }),
       ...(options.vaults !== undefined
         ? { vaults: options.vaults.map((slug) => ({ slug, kind: ApiResourceKind.vault })) }
         : {}),

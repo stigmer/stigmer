@@ -1489,7 +1489,9 @@ describe("IamPolicy conformance — the membership rules on an OIDC sibling", ()
   // blueprint before provisioning is an admin after — nobody loses access
   // on upgrade") is not stageable here: under the enforcing sibling an
   // unprovisioned caller cannot create a blueprint (`can_create_agent` is
-  // `admin`), and the rows the arm heals were written before enforcement
+  // an admin's, or a member's while the organization's policy allows it,
+  // and such a caller holds no role), and the rows the arm heals were
+  // written before enforcement
   // existed. The rule is pinned over a seeded store in the server's own
   // `domain/iampolicy/__tests__/membership.test.ts` ("a blueprint's creator
   // in someone else's organization becomes admin there").
