@@ -215,8 +215,9 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object notRunReason_ = "";
   /**
    * <pre>
-   * Why the case is not run, naming the feature Stigmer does not run yet,
-   * as in "not run: context.scaffold_script"; empty when the case runs.
+   * Why the case is not run, as in "not run: plugins" for a feature
+   * Stigmer does not run yet, or "not run: scaffold skipped"; empty when
+   * the case runs.
    * </pre>
    *
    * <code>string not_run_reason = 4 [json_name = "notRunReason"];</code>
@@ -237,8 +238,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Why the case is not run, naming the feature Stigmer does not run yet,
-   * as in "not run: context.scaffold_script"; empty when the case runs.
+   * Why the case is not run, as in "not run: plugins" for a feature
+   * Stigmer does not run yet, or "not run: scaffold skipped"; empty when
+   * the case runs.
    * </pre>
    *
    * <code>string not_run_reason = 4 [json_name = "notRunReason"];</code>
@@ -1354,8 +1356,9 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object notRunReason_ = "";
     /**
      * <pre>
-     * Why the case is not run, naming the feature Stigmer does not run yet,
-     * as in "not run: context.scaffold_script"; empty when the case runs.
+     * Why the case is not run, as in "not run: plugins" for a feature
+     * Stigmer does not run yet, or "not run: scaffold skipped"; empty when
+     * the case runs.
      * </pre>
      *
      * <code>string not_run_reason = 4 [json_name = "notRunReason"];</code>
@@ -1375,8 +1378,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Why the case is not run, naming the feature Stigmer does not run yet,
-     * as in "not run: context.scaffold_script"; empty when the case runs.
+     * Why the case is not run, as in "not run: plugins" for a feature
+     * Stigmer does not run yet, or "not run: scaffold skipped"; empty when
+     * the case runs.
      * </pre>
      *
      * <code>string not_run_reason = 4 [json_name = "notRunReason"];</code>
@@ -1397,8 +1401,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Why the case is not run, naming the feature Stigmer does not run yet,
-     * as in "not run: context.scaffold_script"; empty when the case runs.
+     * Why the case is not run, as in "not run: plugins" for a feature
+     * Stigmer does not run yet, or "not run: scaffold skipped"; empty when
+     * the case runs.
      * </pre>
      *
      * <code>string not_run_reason = 4 [json_name = "notRunReason"];</code>
@@ -1415,8 +1420,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Why the case is not run, naming the feature Stigmer does not run yet,
-     * as in "not run: context.scaffold_script"; empty when the case runs.
+     * Why the case is not run, as in "not run: plugins" for a feature
+     * Stigmer does not run yet, or "not run: scaffold skipped"; empty when
+     * the case runs.
      * </pre>
      *
      * <code>string not_run_reason = 4 [json_name = "notRunReason"];</code>
@@ -1430,8 +1436,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Why the case is not run, naming the feature Stigmer does not run yet,
-     * as in "not run: context.scaffold_script"; empty when the case runs.
+     * Why the case is not run, as in "not run: plugins" for a feature
+     * Stigmer does not run yet, or "not run: scaffold skipped"; empty when
+     * the case runs.
      * </pre>
      *
      * <code>string not_run_reason = 4 [json_name = "notRunReason"];</code>

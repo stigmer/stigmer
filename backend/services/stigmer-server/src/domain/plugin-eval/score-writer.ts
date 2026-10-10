@@ -23,6 +23,10 @@
  *     graded score; the try is then not graded.
  *   - A try the platform could not grade is a not-graded score with the
  *     reason, never a failing value.
+ *   - A try its case stopped (a failed scaffold, a mock's abort) is a
+ *     failing score: `passed` false, each grader a `not_applicable`
+ *     criterion whose reason says it was not checked and why. Its graders
+ *     are never consulted: an empty run would pass a `max: 0` grader.
  *
  * Written through `replaceUnlessGraded` (domain/score/record.ts), so a
  * retried activity that meets its earlier attempt's score keeps it, and a
@@ -138,6 +142,27 @@ export function gradedEvalScore(
         ),
       });
     });
+  }
+  return score;
+}
+
+/** The failing eval score of a try its case stopped (the module header); `why` as "the scaffold failed". */
+export function stoppedEvalScore(
+  run: Run,
+  digest: string,
+  graders: ReadonlyArray<EvalGrader>,
+  why: string,
+): Score {
+  const score = baseScore(run, digest);
+  if (score.spec !== undefined) {
+    score.spec.value = { case: "passed", value: false };
+    score.spec.criteria = criterionNames(graders).map((name) =>
+      create(ScoreCriterionSchema, {
+        name,
+        result: CriterionResult.not_applicable,
+        reason: cut(`not checked: ${why}`),
+      }),
+    );
   }
   return score;
 }

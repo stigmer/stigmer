@@ -18,7 +18,9 @@
  * one role are joined into one message, which is also what a model API
  * requires.
  *
- * What a block is. `text`, `tool_use` and `tool_result` are kept.
+ * What a block is. `text`, `tool_use` and `tool_result` are kept; a call
+ * or result missing its id is kept with an empty one, which a rendering
+ * shows and the pairing rule refuses.
  * `thinking` and `redacted_thinking` are dropped: a thinking block carries
  * a signature that binds it to the turn that produced it, and a resumed
  * conversation is a new turn. An image becomes the words "[image]", since
@@ -104,15 +106,38 @@ export function parseTranscript(text: string, options: TranscriptParseOptions): 
 
 /**
  * A transcript as text for a judge, one message per line: "role: text",
- * with tool calls and results named in brackets. A transcript that cannot
- * be read renders as its raw text.
+ * with tool calls and results named in brackets. Records that are not the
+ * conversation are dropped as {@link parseTranscript} drops them; a line
+ * that is not JSON is kept where it stands, as written, so a judge still
+ * reads what an author put there.
  */
 export function renderTranscript(text: string): string {
-  const parsed = parseTranscript(text, { requirePairing: false });
-  if (!parsed.ok) return text;
-  return parsed.messages
-    .map((message) => `${message.role}: ${message.blocks.map(renderBlock).join(" ")}`)
-    .join("\n");
+  const out: string[] = [];
+  let last: { role: "user" | "assistant"; parts: string[] } | undefined;
+  for (const raw of text.split("\n")) {
+    const line = raw.trim();
+    if (line === "") continue;
+    let record: unknown;
+    try {
+      record = JSON.parse(line);
+    } catch {
+      if (last !== undefined) out.push(`${last.role}: ${last.parts.join(" ")}`);
+      last = undefined;
+      out.push(line);
+      continue;
+    }
+    const read = messageOf(record);
+    if (read === undefined || read.blocks.length === 0) continue;
+    const parts = read.blocks.map(renderBlock);
+    if (last !== undefined && last.role === read.role) {
+      last.parts.push(...parts);
+    } else {
+      if (last !== undefined) out.push(`${last.role}: ${last.parts.join(" ")}`);
+      last = { role: read.role, parts };
+    }
+  }
+  if (last !== undefined) out.push(`${last.role}: ${last.parts.join(" ")}`);
+  return out.join("\n");
 }
 
 function renderBlock(block: TranscriptBlock): string {
@@ -151,15 +176,14 @@ function blockOf(block: unknown): TranscriptBlock[] {
         ? [{ type: "text", text: block["text"] }]
         : [];
     case "tool_use": {
-      const id = block["id"];
+      const id = typeof block["id"] === "string" ? block["id"] : "";
       const name = block["name"];
-      if (typeof id !== "string" || typeof name !== "string") return [];
+      if (typeof name !== "string") return [];
       const input = isRecord(block["input"]) ? block["input"] : {};
       return [{ type: "tool_use", id, name, input }];
     }
     case "tool_result": {
-      const toolUseId = block["tool_use_id"];
-      if (typeof toolUseId !== "string") return [];
+      const toolUseId = typeof block["tool_use_id"] === "string" ? block["tool_use_id"] : "";
       return [
         {
           type: "tool_result",

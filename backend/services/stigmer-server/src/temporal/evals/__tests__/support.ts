@@ -62,8 +62,8 @@ export const SUITE_FILES: Readonly<Record<string, string>> = {
     '---\ntype: tool_used\ntool: Skill\ninput_match: \'"skill"\\s*:\\s*"(?:[\\w-]+:)?commit-message"\'\n---\n',
   "evals/first-case/graders/criteria.md":
     "---\ntype: llm\n---\n\nPASS if the message names the rename.\n",
-  "evals/scaffolded/case.yaml":
-    'schema_version: "1.1"\nname: scaffolded\ncontext:\n  scaffold_script: fixture.sh\nexecution:\n  prompt: go\ngraders:\n  - name: any\n    type: regex\n    pattern: x\n',
+  "evals/other-plugin/case.yaml":
+    'schema_version: "1.1"\nname: other-plugin\nplugins: [/plugins/other]\nexecution:\n  prompt: go\ngraders:\n  - name: any\n    type: regex\n    pattern: x\n',
 };
 
 export function suiteFiles(

@@ -112,7 +112,10 @@ describe("renderTranscript", () => {
     );
   });
 
-  it("renders an unreadable transcript as its text", () => {
+  it("keeps a line that is not JSON where it stands, and drops records that are not the conversation", () => {
     expect(renderTranscript("not json")).toBe("not json");
+    expect(renderTranscript([user("a"), "oops", user("b"), line({ type: "summary" }), assistant("c")].join("\n"))).toBe(
+      ["user: a", "oops", "user: b", "assistant: c"].join("\n"),
+    );
   });
 });

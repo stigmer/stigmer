@@ -12,7 +12,8 @@
  * (an engine newer than it) is left out as a system message is, never
  * answered in place of the trace; a run with no assistant text has an
  * empty final message; a change with no captured body reads as empty
- * text.
+ * text. The mock calls are the calls to the servers the run's case mocked,
+ * by the server's key, with the answer the mock gave.
  */
 import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
@@ -39,6 +40,11 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+
+import {
+  PluginEvalCaseContextSchema,
+  PluginEvalMockServerSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/plugin_eval_case_pb";
 
 import { SKILL_READ_PATH, callsMcpServers, evalTraceOf } from "../trace.js";
 import type { EvalTraceDeps } from "../trace.js";
@@ -184,6 +190,26 @@ describe("the eval trace, native transcript", () => {
     );
     expect(callsMcpServers(run)).toBe(true);
     expect(callsMcpServers(runOf([call("r1", "read_file", {})], []))).toBe(false);
+  });
+
+  it("lists the calls to the servers the case mocked, by the server's key, with the mock's answer", async () => {
+    const run = runOf(
+      [
+        call("m1", "create_issue", { title: "Crash" }, { mcpServerSlug: "tracker-acme" }),
+        call("m2", "close_issue", { id: "9" }, { mcpServerSlug: "tracker-acme", error: "No such issue." }),
+        call("m3", "search", { q: "bug" }, { mcpServerSlug: "github" }),
+      ],
+      [],
+    );
+    run.spec!.pluginEvalCase = create(PluginEvalCaseContextSchema, {
+      mocks: [create(PluginEvalMockServerSchema, { server: "tracker", segment: "tracker-acme" })],
+    });
+    const trace = await evalTraceOf(run, deps(Harness.NATIVE));
+    expect(trace.mockCalls.map((line) => JSON.parse(line) as unknown)).toEqual([
+      { server: "tracker", tool: "create_issue", input: { title: "Crash" }, answer: "result of m1" },
+      { server: "tracker", tool: "close_issue", input: { id: "9" }, answer: "No such issue." },
+    ]);
+    expect((await evalTraceOf(runOf([], []), deps(Harness.NATIVE))).mockCalls).toEqual([]);
   });
 
   it("writes the trace as Claude Code's JSON lines and keeps the final message", async () => {

@@ -64,7 +64,7 @@ describe("the eval suite on the install plan", () => {
         "evals/b-case/prompt.md": "---\ntags: [smoke, greet]\n---\nSay hi.",
         "evals/b-case/graders/judge.md": JUDGE,
         "evals/a-case/case.yaml":
-          'schema_version: "1.1"\nname: first\ntags: [smoke]\ncontext:\n  scaffold_script: s.sh\nexecution:\n  prompt: Hi.\n',
+          'schema_version: "1.1"\nname: first\ntags: [smoke]\nplugins: [/plugins/other]\nexecution:\n  prompt: Hi.\n',
         "evals/a-case/graders/judge.md": JUDGE,
         "evals/broken/prompt.md": "---\nfoo: 1\n---\nHi.",
         "evals/broken/graders/judge.md": JUDGE,
@@ -91,7 +91,7 @@ describe("the eval suite on the install plan", () => {
         caseName: "first",
         path: "evals/a-case",
         caseTags: ["smoke"],
-        unsupported: "context.scaffold_script",
+        unsupported: "plugins",
       },
       {
         caseName: "b-case",

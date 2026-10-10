@@ -177,8 +177,8 @@ export interface EvalCase {
   readonly replays: boolean;
   /**
    * The first feature this case uses that Stigmer does not run yet, as a
-   * stable phrase the report prints after "not run: ", e.g.
-   * "context.scaffold_script"; absent when Stigmer runs the case.
+   * stable phrase the report prints after "not run: ", e.g. "plugins";
+   * absent when Stigmer runs the case.
    */
   readonly unsupported?: string;
 }

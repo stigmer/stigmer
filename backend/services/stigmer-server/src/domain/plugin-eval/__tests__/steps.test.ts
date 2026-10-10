@@ -79,6 +79,7 @@ import {
   PLUGIN_EVAL_WORKFLOW_ENDED_ERROR,
   pluginEvalNoCasesMessage,
   pluginEvalOtherPluginToolMessage,
+  PLUGIN_EVAL_REAL_SERVERS_CONFLICT_MESSAGE,
   pluginEvalTooLargeMessage,
 } from "../constants.js";
 import {
@@ -609,6 +610,17 @@ describe("ResolvePluginEvalDefaults' refusals", () => {
     expect(refused.rawMessage).toBe(
       "allow_tools entry 'mcp__plugin_other_github__search_issues' names plugin 'other', but this eval runs 'thermos'; a try attaches no other plugin",
     );
+  });
+
+  it("refuses real servers asked for both beside the mocks and instead of them", async () => {
+    const row = evalRow("", PluginEvalPhase.unspecified);
+    row.spec!.allowRealServers = true;
+    row.spec!.realMcpServers = true;
+    const refused = await failure(() =>
+      newResolvePluginEvalDefaultsStep(temp.store).execute(evaluated(row)),
+    );
+    expect(refused.code).toBe(Code.InvalidArgument);
+    expect(refused.rawMessage).toBe(PLUGIN_EVAL_REAL_SERVERS_CONFLICT_MESSAGE);
   });
 });
 

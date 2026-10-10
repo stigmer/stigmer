@@ -95,8 +95,9 @@ public interface PluginEvalCaseOrBuilder extends
 
   /**
    * <pre>
-   * Why the case is not run, naming the feature Stigmer does not run yet,
-   * as in "not run: context.scaffold_script"; empty when the case runs.
+   * Why the case is not run, as in "not run: plugins" for a feature
+   * Stigmer does not run yet, or "not run: scaffold skipped"; empty when
+   * the case runs.
    * </pre>
    *
    * <code>string not_run_reason = 4 [json_name = "notRunReason"];</code>
@@ -105,8 +106,9 @@ public interface PluginEvalCaseOrBuilder extends
   java.lang.String getNotRunReason();
   /**
    * <pre>
-   * Why the case is not run, naming the feature Stigmer does not run yet,
-   * as in "not run: context.scaffold_script"; empty when the case runs.
+   * Why the case is not run, as in "not run: plugins" for a feature
+   * Stigmer does not run yet, or "not run: scaffold skipped"; empty when
+   * the case runs.
    * </pre>
    *
    * <code>string not_run_reason = 4 [json_name = "notRunReason"];</code>

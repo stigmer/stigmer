@@ -8,8 +8,15 @@
 // and a model, `native/claude-sonnet-4-6` or `cursor/gpt-5`, because Stigmer
 // runs a model on one of its engines; a bare model id is the native engine's.
 // `--max-cost-usd` is required by the API, so the CLI fills 5 when it is
-// omitted and says so. `--real-mcp-servers` is the format's `--mocks off`:
-// the plugin's MCP servers run for real with the organization's connections.
+// omitted and says so. `--mocks off` (and its older spelling
+// `--real-mcp-servers`) runs the plugin's MCP servers for real with the
+// organization's connections and ignores the mocks; `--allow-real-servers`
+// starts only the servers no mock answers, and is refused with `--mocks
+// off`, as the format pairs it with `--mocks record`. `--no-scaffold` skips
+// each case's scaffold, listing such a case as not run. `--scaffold` is
+// accepted and changes nothing: a scaffold runs in the try's own sandbox,
+// so Stigmer asks no opt-in, and a CI line written for Claude Code runs
+// unchanged.
 //
 // A refusal exits 1, as the format exits 1 for an invalid option, not the
 // CLI's usual usage code 2, which the format keeps for a partial run.
@@ -52,6 +59,10 @@ export interface PluginEvalFlags {
   readonly allowTools?: readonly string[];
   readonly judgeModel?: string;
   readonly realMcpServers?: boolean;
+  readonly mocks?: string;
+  readonly allowRealServers?: boolean;
+  /** False under `--no-scaffold`; `--scaffold` changes nothing (the module header). */
+  readonly scaffold?: boolean;
   /** `true` for bare `--json`, a path for `--json <path>`. */
   readonly json?: boolean | string;
   /** False under `--no-wait`. */
@@ -78,6 +89,8 @@ export interface PluginEvalOptions {
   readonly allowTools: readonly string[];
   readonly judgeModel: string;
   readonly realMcpServers: boolean;
+  readonly allowRealServers: boolean;
+  readonly skipScaffold: boolean;
   readonly json: JsonTarget;
   readonly wait: boolean;
 }
@@ -130,6 +143,11 @@ export function readPluginEvalOptions(flags: PluginEvalFlags): PluginEvalOptions
       );
     }
   }
+  const realMcpServers = mocksOff(flags.mocks) || flags.realMcpServers === true;
+  const allowRealServers = flags.allowRealServers === true;
+  if (realMcpServers && allowRealServers) {
+    throw invalid("--allow-real-servers goes with --mocks record: --mocks off already starts every server");
+  }
   const judgeModel = (flags.judgeModel ?? "").trim();
   if (judgeModel.length > 128) {
     throw invalid("--judge-model is longer than 128 characters");
@@ -146,7 +164,9 @@ export function readPluginEvalOptions(flags: PluginEvalFlags): PluginEvalOptions
     concurrency: flags.concurrency === undefined ? 0 : integer("--concurrency", flags.concurrency, 1, 8),
     allowTools,
     judgeModel,
-    realMcpServers: flags.realMcpServers === true,
+    realMcpServers,
+    allowRealServers,
+    skipScaffold: flags.scaffold === false,
     json: jsonTargetOf(flags.json),
     wait: flags.wait !== false,
   };
@@ -166,6 +186,19 @@ export function parseTarget(raw: string): PluginEvalTargetInput {
     throw invalid(`--model '${raw}' names no model: write ${engine}/<model id>, as in native/claude-sonnet-4-6`);
   }
   return { harness, modelName: model === "default" ? "" : model };
+}
+
+/** Whether `--mocks` turns mocks off; `record`, the default, keeps them. */
+function mocksOff(raw: string | undefined): boolean {
+  switch (raw) {
+    case undefined:
+    case "record":
+      return false;
+    case "off":
+      return true;
+    default:
+      throw invalid(`--mocks must be record or off, not '${raw}'`);
+  }
 }
 
 function ablationOf(raw: string | undefined): PluginEvalAblation {

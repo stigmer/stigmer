@@ -40,6 +40,10 @@ export function pluginEvalNotCurrentVersionMessage(current: string): string {
 }
 
 /** The refusal of a case_glob that is not a glob (domain/plugin-eval/glob.ts). */
+/** The refusal of an eval asking for real servers both beside its mocks and instead of them. */
+export const PLUGIN_EVAL_REAL_SERVERS_CONFLICT_MESSAGE =
+  "spec.allow_real_servers starts real servers beside the mocks, and spec.real_mcp_servers ignores the mocks: set one of them";
+
 export function pluginEvalCaseGlobMessage(glob: string, error: string): string {
   return `spec.case_glob '${glob}' is not a valid glob: ${error}`;
 }

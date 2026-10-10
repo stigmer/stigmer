@@ -23,7 +23,10 @@
  *     the run carries none; the duration with missing or reversed stamps;
  *     a run its own cap stopped at the try's budget leaves every check not
  *     graded, where the deadline's stop, a lower cap's stop and the
- *     platform's other stops are graded;
+ *     platform's other stops are graded; a run its case stopped (a failed
+ *     scaffold, a mock's abort) asks no votes and is recorded as a 0 with
+ *     the scaffold's error or the abort, its score failing with every
+ *     grader not checked;
  *   - start-vote: a try, eval or grader gone; evidence that is not text;
  *     the reference transcript in the vote's message, or missing; a caller
  *     the seam refuses; a refused create (credit, the run's own reason, a
@@ -1327,6 +1330,47 @@ describe("delete-vote", () => {
     const id = await storedVote("");
     await cases[DELETE_VOTE_ACTIVITY_NAME](id);
     expect(record.deletedSessions).toEqual([]);
+  });
+});
+
+describe("a try its case stopped", () => {
+  it.each([
+    [
+      "a failed scaffold",
+      "The eval case's scaffold failed: exit 2: git: not found",
+      { kind: "scaffold-failed", detail: "exit 2: git: not found" },
+      { error: "scaffold failed: exit 2: git: not found" },
+      "not checked: the scaffold failed",
+    ],
+    [
+      "a mock's abort",
+      'A mock stopped the run: server "tracker", tool "create_issue": input.title must be a string',
+      { kind: "mock-aborted", server: "tracker", tool: "create_issue", reason: "input.title must be a string" },
+      { error: "", aborted: { server: "tracker", tool: "create_issue", reason: "input.title must be a string" } },
+      "not checked: aborted by tracker.create_issue",
+    ],
+  ])("asks no votes after %s, and records the try as a 0", async (_name, error, stopped, recorded, why) => {
+    await seeded();
+    const { cases } = build();
+    const start = await startTry(cases);
+    await setStatus(start.runId, {
+      phase: RunPhase.RUN_TERMINATED,
+      error,
+      streamingUsage: { estimatedCostUsd: 0.2 },
+    });
+    const grade = await cases[GRADE_TRY_ACTIVITY_NAME](CELL, start.runId, false);
+    expect(grade.stopped).toEqual(stopped);
+    expect(grade.outcomes.every((outcome) => !("votes" in outcome))).toBe(true);
+    expect(grade.costUsd).toBe(0.2);
+    const result = await cases[RECORD_SCORE_ACTIVITY_NAME](CELL, start, grade, grade.outcomes.map(() => []));
+    expect(result).toMatchObject({ state: "graded", score: 0, notGradedReason: "", ...recorded });
+    const [score] = (
+      await listRunScores(temp.store, capturingLogger().logger, start.runId)
+    ).filter((written) => written.spec?.source === ScoreSource.eval);
+    expect(score?.spec?.value).toEqual({ case: "passed", value: false });
+    expect(score?.spec?.criteria.map((c) => [c.result, c.reason])).toEqual(
+      grade.outcomes.map(() => [CriterionResult.not_applicable, why]),
+    );
   });
 });
 

@@ -104,6 +104,7 @@ import {
 import type { SessionCreatorProvider } from "./create-steps.js";
 import {
   newComposeDeclaredPreferencesStep,
+  newGuardPluginEvalCaseStep,
   newRefuseVisitorAppendedPromptStep,
   newComposeRecalledMemoriesStep,
   newCreateSessionIfNeededStep,
@@ -406,6 +407,7 @@ async function createExecution(
     )
     .addStep(newValidateServiceTierStep(deps.modelRegistry))
     .addStep(newValidateThinkingModeStep(deps.modelRegistry))
+    .addStep(newGuardPluginEvalCaseStep())
     .addStep(
       newRefuseVisitorAppendedPromptStep(deps.logger, deps.visitorClassifier),
     )

@@ -214,7 +214,7 @@ describe("load-suite", () => {
     expect(status.startedAt).toBeDefined();
     expect(status.cases.map((c) => [c.caseName, c.notRunReason])).toEqual([
       ["first-case", ""],
-      ["scaffolded", "not run: context.scaffold_script"],
+      ["other-plugin", "not run: plugins"],
     ]);
     const first = status.cases[0]!;
     expect(first.notes).toEqual([

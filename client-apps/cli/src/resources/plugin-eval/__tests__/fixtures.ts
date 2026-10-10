@@ -68,7 +68,7 @@ export function finishedEval(phase: PluginEvalPhase = PluginEvalPhase.completed)
             },
           ],
         },
-        { caseName: "needs-fixture", path: "evals/needs-fixture", notRunReason: "not run: context.scaffold_script" },
+        { caseName: "needs-fixture", path: "evals/needs-fixture", notRunReason: "not run: plugins" },
       ],
     },
   });

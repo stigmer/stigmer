@@ -157,8 +157,9 @@ export type PluginEvalCase = Message<"ai.stigmer.agentic.plugineval.v1.PluginEva
   caseTags: string[];
 
   /**
-   * Why the case is not run, naming the feature Stigmer does not run yet,
-   * as in "not run: context.scaffold_script"; empty when the case runs.
+   * Why the case is not run, as in "not run: plugins" for a feature
+   * Stigmer does not run yet, or "not run: scaffold skipped"; empty when
+   * the case runs.
    *
    * @generated from field: string not_run_reason = 4;
    */
@@ -247,7 +248,8 @@ export type PluginEvalCaseTarget = Message<"ai.stigmer.agentic.plugineval.v1.Plu
 
   /**
    * Why this case did not run on this target, as in "not run: model
-   * 'sonnet' is not in Stigmer's catalog"; empty when it ran.
+   * 'sonnet' is not in Stigmer's catalog" or "not run on Cursor:
+   * resumed conversations"; empty when it ran.
    *
    * @generated from field: string not_run_reason = 2;
    */

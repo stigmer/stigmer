@@ -57,9 +57,10 @@ stigmer plugin eval cancel pev_01abc123
 | 4    | Not signed in, or the sign-in expired, the CLI's own code for a sign-in failure                                                                                                                                                                                                                                                                   |
 | 130  | Interrupted: the eval was cancelled, by Ctrl+C or any other cancel (the console's Cancel, `stigmer plugin eval cancel`); the results of the tries that finished are printed. If Ctrl+C's cancel cannot reach the server, the command says the eval may still be running and how to cancel it                                                      |
 
-A case Stigmer does not run yet (it needs a feature such as
-`context.scaffold_script`) is listed under "Not run" with the feature named, and
-does not change the exit code.
+A case Stigmer does not run (one that runs with another plugin, a case whose
+scaffold `--no-scaffold` skips, or a resumed conversation or `env` on a Cursor
+model) is listed under "Not run" with the reason, and does not change the exit
+code.
 
 ### How it differs from `claude plugin eval`
 
@@ -67,7 +68,9 @@ does not change the exit code.
 because Stigmer runs a model on one of its engines; a bare model ID is the
 native engine's. `--max-cost-usd` is always set: 5 when you omit it. A try the
 platform could not grade, such as one refused for lack of credit, is shown as
-not graded and left out of every score instead of scoring 0. See
+not graded and left out of every score instead of scoring 0. A scaffold runs
+without `--scaffold`, inside the try's own sandbox; `--scaffold` is accepted and
+changes nothing. See
 [Test a plugin with evals](/docs/guides/plugins/test-a-plugin-with-evals) for
 the result file, the support table and every difference.
 

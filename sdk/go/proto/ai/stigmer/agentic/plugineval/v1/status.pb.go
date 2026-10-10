@@ -375,8 +375,9 @@ type PluginEvalCase struct {
 	Path string `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
 	// The case's tags.
 	CaseTags []string `protobuf:"bytes,3,rep,name=case_tags,json=caseTags,proto3" json:"case_tags,omitempty"`
-	// Why the case is not run, naming the feature Stigmer does not run yet,
-	// as in "not run: context.scaffold_script"; empty when the case runs.
+	// Why the case is not run, as in "not run: plugins" for a feature
+	// Stigmer does not run yet, or "not run: scaffold skipped"; empty when
+	// the case runs.
 	NotRunReason string `protobuf:"bytes,4,opt,name=not_run_reason,json=notRunReason,proto3" json:"not_run_reason,omitempty"`
 	// Results per target, in the eval's target order.
 	Targets []*PluginEvalCaseTarget `protobuf:"bytes,5,rep,name=targets,proto3" json:"targets,omitempty"`
@@ -541,7 +542,8 @@ type PluginEvalCaseTarget struct {
 	// The engine and model.
 	Target *PluginEvalTarget `protobuf:"bytes,1,opt,name=target,proto3" json:"target,omitempty"`
 	// Why this case did not run on this target, as in "not run: model
-	// 'sonnet' is not in Stigmer's catalog"; empty when it ran.
+	// 'sonnet' is not in Stigmer's catalog" or "not run on Cursor:
+	// resumed conversations"; empty when it ran.
 	NotRunReason string `protobuf:"bytes,2,opt,name=not_run_reason,json=notRunReason,proto3" json:"not_run_reason,omitempty"`
 	// The tries with the plugin.
 	WithPlugin *PluginEvalArm `protobuf:"bytes,3,opt,name=with_plugin,json=withPlugin,proto3" json:"with_plugin,omitempty"`

@@ -141,7 +141,7 @@ describe("PluginEvalResults", () => {
     pluginEval.status!.cases.push({
       ...pluginEval.status!.cases[0]!,
       caseName: "fixture",
-      notRunReason: "not run: context.add_dirs",
+      notRunReason: "not run: plugins",
     });
     render(<PluginEvalResults evalId="pev_1" />, {
       wrapper: wrap(client(pluginEval)),
@@ -151,7 +151,7 @@ describe("PluginEvalResults", () => {
       within(list)
         .getAllByRole("listitem")
         .map((item) => item.textContent),
-    ).toEqual(["fixture: not run: context.add_dirs"]);
+    ).toEqual(["fixture: not run: plugins"]);
   });
 
   it("shows a case's notes when it is opened", async () => {

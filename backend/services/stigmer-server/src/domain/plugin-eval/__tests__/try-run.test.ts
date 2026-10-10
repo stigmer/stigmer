@@ -8,7 +8,13 @@
  * names Stigmer runs nothing for left out, a not-granted tool noted;
  * max_turns clamped to the run's 10..1000 with a note; the reserved label
  * on the session and run; the case name as the subject; auto-approve; the
- * vote's judge label and cap.
+ * vote's judge label and cap. A case's mocks: each mocked tool granted in
+ * the with-arm and its server left off the deny-list, a server neither
+ * mocked nor run real still denied, `allow_real_servers` starting the
+ * unmocked ones; the case context the run carries (paths, variables, the
+ * with-arm's mocks under the run's server names, the agent mocks' model and
+ * budget), absent when the case gives its try nothing; the mocked-servers
+ * line and the case's notes.
  */
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
@@ -25,7 +31,12 @@ import {
 import { PROVISIONAL_DELTA, armAttachment } from "../arm.js";
 import { PLUGIN_EVAL_LABEL } from "../constants.js";
 import {
+  MAX_AGENT_MOCK_CALLS,
+  NOT_STARTED_NO_MOCK,
+  REPLAYS_NOT_READ_NOTE,
   caseNotesOf,
+  mockedServersOf,
+  tryCaseContextOf,
   toolRoundsOf,
   tryRunRequest,
   trySessionRequest,
@@ -34,7 +45,9 @@ import {
   voteSessionRequest,
 } from "../try-run.js";
 
-const spec = (init: { allowTools?: string[]; realMcpServers?: boolean } = {}) =>
+const spec = (
+  init: { allowTools?: string[]; realMcpServers?: boolean; allowRealServers?: boolean; judgeModel?: string } = {},
+) =>
   create(PluginEvalSpecSchema, { pluginId: "plg_1", maxCostUsd: 5, ...init });
 
 const evalCase = (overrides: Partial<EvalCase> = {}): EvalCase => ({
@@ -51,8 +64,13 @@ const evalCase = (overrides: Partial<EvalCase> = {}): EvalCase => ({
   context: { addDirs: [] },
   files: [],
   graders: [],
+  mocks: [],
+  replays: false,
   ...overrides,
 });
+
+const GITHUB = { slug: "github", key: "github" };
+const SOURCE = { pluginId: "plg_1", digest: "d".repeat(64), suiteDir: "evals" };
 
 describe("which agent a try runs on", () => {
   const facts = {
@@ -115,15 +133,15 @@ describe("a try's tools", () => {
     // tool every engine's main loop has that acts on nothing outside the
     // run: the engines' extras and any other MCP server are out of scope,
     // as for a read-only case.
-    const none = tryToolsOf(evalCase(), spec(), ["github"]);
+    const none = tryToolsOf(evalCase(), spec(), [GITHUB]);
     expect(none.tools).toEqual(["TodoWrite"]);
     expect(none.disallowedTools).toEqual(["Skill", "mcp__github"]);
-    const read = tryToolsOf(evalCase({ allowedTools: ["Read"] }), spec(), ["github"]);
+    const read = tryToolsOf(evalCase({ allowedTools: ["Read"] }), spec(), [GITHUB]);
     expect(read.disallowedTools).toEqual(none.disallowedTools);
     const real = tryToolsOf(
       evalCase({ allowedTools: ["Skill"] }),
       spec({ realMcpServers: true, allowTools: ["mcp__github__*"] }),
-      ["github"],
+      [GITHUB],
     );
     expect(real.tools).toEqual(["Skill", "mcp__github__*"]);
     expect(real.disallowedTools).toEqual([]);
@@ -225,7 +243,9 @@ describe("a try's session and run", () => {
       spec: spec(),
       modelName: "claude-sonnet-4-6",
       budgetUsd: 3.5,
-      pluginServerSlugs: ["github"],
+      pluginServers: [GITHUB],
+      arm: "without",
+      source: SOURCE,
     });
     expect(run.metadata?.name).toBe("try-pev-1-0-1-without-3");
     expect(run.metadata?.labels).toEqual({ [PLUGIN_EVAL_LABEL]: "pev_1" });
@@ -240,6 +260,7 @@ describe("a try's session and run", () => {
     expect(run.spec?.tools).toEqual(["Read"]);
     expect(run.spec?.disallowedTools).toEqual(["Skill", "mcp__github"]);
     expect(run.spec?.appendSystemPrompt).toBe("Be brief.");
+    expect(run.spec?.pluginEvalCase).toBeUndefined();
   });
 
   it("sends a case that grants nothing an allow-list too, so nothing beyond the to-do list is in scope", () => {
@@ -252,7 +273,9 @@ describe("a try's session and run", () => {
       spec: spec(),
       modelName: "claude-sonnet-4-6",
       budgetUsd: 1,
-      pluginServerSlugs: ["github"],
+      pluginServers: [GITHUB],
+      arm: "with",
+      source: SOURCE,
     });
     expect(run.spec?.tools).toEqual(["TodoWrite"]);
     expect(run.spec?.disallowedTools).toEqual(["Skill", "mcp__github"]);
@@ -287,5 +310,105 @@ describe("a try's session and run", () => {
     expect(vote.metadata?.name).toBe("vote-run-try-1-3");
     expect(vote.spec?.runConfig?.maxCostUsd).toBe(PER_GRADE_CAP_USD);
     expect(vote.spec?.structuredOutputSchema).toEqual({ type: "object" });
+  });
+});
+
+describe("a case's mocks and context", () => {
+  const TRACKER = { slug: "tracker-acme", key: "tracker" };
+  const mocked = evalCase({
+    mocks: [
+      {
+        server: "tracker",
+        tools: [
+          { tool: "close_issue", file: "evals/mocks/tracker/close_issue.md", kind: "fixed", error: true },
+          {
+            tool: "create_issue",
+            file: "evals/mocks/tracker/create_issue.md",
+            kind: "agent",
+            error: false,
+            expect: { title: "string" },
+            abortWhen: "the title is empty",
+          },
+        ],
+        toolsFile: "evals/mocks/tracker/_tools.json",
+      },
+    ],
+  });
+
+  it("grants each mocked tool in the with-arm and leaves its server off the deny-list", () => {
+    const withArm = tryToolsOf(mocked, spec(), [TRACKER, GITHUB], "with");
+    expect(withArm.tools).toEqual(["mcp__tracker-acme__close_issue", "mcp__tracker-acme__create_issue"]);
+    expect(withArm.disallowedTools).toEqual(["Skill", "mcp__github"]);
+    const without = tryToolsOf(mocked, spec(), [TRACKER, GITHUB], "without");
+    expect(without.tools).toEqual(["TodoWrite"]);
+    expect(without.disallowedTools).toEqual(["Skill", "mcp__github"]);
+  });
+
+  it("starts the unmocked servers with allow_real_servers, their tools granted only by allow_tools", () => {
+    const tools = tryToolsOf(mocked, spec({ allowRealServers: true }), [TRACKER, GITHUB], "with");
+    expect(tools.disallowedTools).toEqual(["Skill"]);
+    expect(tools.tools).not.toContain("mcp__github");
+  });
+
+  it("carries the case's context, with the mocks in the with-arm only, under the run's server names", () => {
+    const withCase = evalCase({
+      ...mocked,
+      maxTurns: 300,
+      env: { EVAL_X: "1" },
+      context: { scaffoldScript: "setup.sh", historyFile: "h.jsonl", addDirs: ["resources"] },
+    });
+    const context = tryCaseContextOf({
+      evalCase: withCase,
+      spec: spec({ judgeModel: "claude-haiku-4.5" }),
+      arm: "with",
+      source: SOURCE,
+      pluginServers: [TRACKER, GITHUB],
+    });
+    expect(context).toMatchObject({
+      pluginId: "plg_1",
+      pluginDigest: "d".repeat(64),
+      suiteDir: "evals",
+      caseDir: "evals/first-case",
+      scaffoldScript: "setup.sh",
+      historyFile: "h.jsonl",
+      addDirs: ["resources"],
+      env: { EVAL_X: "1" },
+      agentMockModel: "claude-haiku-4.5",
+      agentMockCallBudget: MAX_AGENT_MOCK_CALLS,
+    });
+    expect(context?.mocks.map((m) => [m.server, m.segment, m.toolsFile, m.tools.map((t) => [t.tool, t.error, t.expectJson, t.abortWhen])])).toEqual([
+      [
+        "tracker",
+        "tracker-acme",
+        "evals/mocks/tracker/_tools.json",
+        [
+          ["close_issue", true, "", ""],
+          ["create_issue", false, '{"title":"string"}', "the title is empty"],
+        ],
+      ],
+    ]);
+    const without = tryCaseContextOf({ evalCase: withCase, spec: spec(), arm: "without", source: SOURCE, pluginServers: [TRACKER] });
+    expect(without?.mocks).toEqual([]);
+    expect(without?.scaffoldScript).toBe("setup.sh");
+    expect(tryCaseContextOf({ evalCase: mocked, spec: spec(), arm: "without", source: SOURCE, pluginServers: [TRACKER] })).toBeUndefined();
+    expect(tryCaseContextOf({ evalCase: mocked, spec: spec({ realMcpServers: true }), arm: "with", source: SOURCE, pluginServers: [TRACKER] })).toBeUndefined();
+  });
+
+  it("lists the plugin's servers as the format's mocked: line names them", () => {
+    expect(mockedServersOf(mocked, spec(), "acme-kit", ["github", "tracker"]).map((m) => [m.name, m.tools, m.notStartedReason])).toEqual([
+      ["plugin_acme-kit_github", [], NOT_STARTED_NO_MOCK],
+      ["plugin_acme-kit_tracker", ["close_issue", "create_issue"], ""],
+    ]);
+    expect(mockedServersOf(mocked, spec({ allowRealServers: true }), "acme-kit", ["github", "tracker"]).map((m) => m.name)).toEqual([
+      "plugin_acme-kit_tracker",
+    ]);
+    expect(mockedServersOf(mocked, spec({ realMcpServers: true }), "acme-kit", ["github"])).toEqual([]);
+  });
+
+  it("notes a resumed conversation and adopted replays", () => {
+    expect(caseNotesOf(evalCase({ context: { addDirs: [], historyFile: "h.jsonl" }, replays: true }), spec())).toEqual([
+      "resumed from h.jsonl",
+      REPLAYS_NOT_READ_NOTE,
+    ]);
   });
 });

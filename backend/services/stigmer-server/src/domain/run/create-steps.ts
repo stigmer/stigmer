@@ -349,6 +349,32 @@ export function newComposeDeclaredPreferencesStep(
   };
 }
 
+/** The refusal of a plugin-eval case's context on a request the server did not compose. */
+export const PLUGIN_EVAL_CASE_NOT_COMPOSED_MESSAGE =
+  "spec.plugin_eval_case is set only by the server's plugin evals";
+
+/**
+ * GuardPluginEvalCase: `spec.plugin_eval_case` makes the runner run a
+ * plugin's scaffold, resume a recorded conversation, set variables and
+ * answer the plugin's MCP servers with stand-ins. Only the server's
+ * plugin-eval case workflow composes it, from the eval's own plugin at the
+ * eval's digest; any other request that carries it is refused, whoever
+ * sends it.
+ */
+export function newGuardPluginEvalCaseStep(): PipelineStep<CreateDesc> {
+  return {
+    name: "GuardPluginEvalCase",
+    async execute(ctx) {
+      if (ctx.newState.spec?.pluginEvalCase === undefined) {
+        return;
+      }
+      if (!isServerComposedRequest(ctx.callerIdentity)) {
+        throw permissionDeniedError(PLUGIN_EVAL_CASE_NOT_COMPOSED_MESSAGE);
+      }
+    },
+  };
+}
+
 /** The refusal of a visitor's appended system prompt. */
 export const VISITOR_APPENDED_PROMPT_MESSAGE =
   "a visitor cannot append to the agent's system prompt (spec.append_system_prompt)";

@@ -2,7 +2,8 @@
  * Pins the eval's matrix (matrix.ts): the fixed cell order (case, target,
  * arm, try), the case filter by glob and tags, the runs ladder (spec, then
  * case, then 3), ablation `none`, an unsupported case planned with no
- * cells, the target rules when the spec names none (the case's catalog
+ * cells, a scaffolded case not run when the eval skips scaffolds, a Cursor
+ * target not run for a resumed conversation or `env` while native runs, the target rules when the spec names none (the case's catalog
  * model, never an alias; the native default with no model), and a
  * case_glob that is not a glob keeping no case (the grammar itself is
  * glob.test.ts's); and sizeOfMatrix counting what planMatrix plans, with
@@ -24,7 +25,9 @@ import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { newModelCatalogProviderFromDocument } from "../../../modelcatalog/document-catalog.js";
 import type { EvalModelCatalog } from "../matrix.js";
 import {
+  SCAFFOLD_SKIPPED_REASON,
   caseGlobError,
+  engineUnsupportedReason,
   evalModelCatalogOf,
   modelNotInCatalogReason,
   planMatrix,
@@ -46,12 +49,14 @@ function evalCase(name: string, overrides: Partial<EvalCase> = {}): EvalCase {
     context: { addDirs: [] },
     files: [`evals/${name}/prompt.md`],
     graders: [],
+    mocks: [],
+    replays: false,
     ...overrides,
   };
 }
 
 function suiteOf(...cases: EvalCase[]): EvalSuite {
-  return { dir: "evals", cases, findings: [] };
+  return { dir: "evals", cases, findings: [], servers: [] };
 }
 
 function specOf(
@@ -160,19 +165,49 @@ describe("planMatrix", () => {
   it("plans an unsupported case with its feature named and no cells", () => {
     const matrix = planMatrix(
       suiteOf(
-        evalCase("scaffolded", { unsupported: "context.scaffold_script" }),
+        evalCase("scaffolded", { unsupported: "plugins" }),
         evalCase("plain", { runs: 1 }),
       ),
       specOf(),
       catalog,
     );
     expect(matrix.cases[0]).toMatchObject({
-      notRunReason: "not run: context.scaffold_script",
+      notRunReason: "not run: plugins",
       targets: [],
     });
     expect(matrix.cells).toEqual([
       { caseIndex: 1, targetIndex: 0, arm: "with", tryIndex: 0 },
       { caseIndex: 1, targetIndex: 0, arm: "without", tryIndex: 0 },
+    ]);
+  });
+
+  it("skips a scaffolded case when the eval skips scaffolds, and runs it otherwise", () => {
+    const scaffolded = evalCase("scaffolded", { runs: 1, context: { addDirs: [], scaffoldScript: "setup.sh" } });
+    const skipped = planMatrix(suiteOf(scaffolded), specOf({ skipScaffold: true }), catalog);
+    expect(skipped.cases[0]).toMatchObject({ notRunReason: SCAFFOLD_SKIPPED_REASON, targets: [] });
+    expect(skipped.cells).toEqual([]);
+    expect(planMatrix(suiteOf(scaffolded), specOf(), catalog).cells).toHaveLength(2);
+  });
+
+  it("lists a resumed conversation or env as not run on a Cursor target, and runs it on native", () => {
+    const targets = [create(PluginEvalTargetSchema, { harness: Harness.NATIVE }), create(PluginEvalTargetSchema, { harness: Harness.CURSOR })];
+    const matrix = planMatrix(
+      suiteOf(
+        evalCase("resumed", { runs: 1, context: { addDirs: [], historyFile: "h.jsonl" } }),
+        evalCase("vars", { runs: 1, env: { EVAL_X: "1" } }),
+      ),
+      specOf({ targets }),
+      catalog,
+    );
+    expect(matrix.cases.map((c) => c.targets.map((t) => t.notRunReason))).toEqual([
+      [undefined, engineUnsupportedReason("Cursor", "resumed conversations")],
+      [undefined, "not run on Cursor: env"],
+    ]);
+    expect(matrix.cells.map((c) => [c.caseIndex, c.targetIndex])).toEqual([
+      [0, 0],
+      [0, 0],
+      [1, 0],
+      [1, 0],
     ]);
   });
 

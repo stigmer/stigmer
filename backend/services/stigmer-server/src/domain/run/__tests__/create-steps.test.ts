@@ -23,8 +23,11 @@
  * every lane keeps it but a visitor, whose run never reads the
  * organization, and a classifier that throws withholds it. The same
  * classifier refuses a visitor's appended system prompt
- * (RefuseVisitorAppendedPrompt), the server's own requests excepted.
+ * (RefuseVisitorAppendedPrompt), the server's own requests excepted; and a
+ * plugin-eval case's context, refused on any request the server did not
+ * compose (GuardPluginEvalCase).
  */
+import { PluginEvalCaseContextSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/plugin_eval_case_pb";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import type { CallerIdentity } from "../../../extensions/identity.js";
@@ -76,6 +79,8 @@ import {
   buildAutoCreateSessionSpec,
   newComposeDeclaredPreferencesStep,
   newRefuseVisitorAppendedPromptStep,
+  newGuardPluginEvalCaseStep,
+  PLUGIN_EVAL_CASE_NOT_COMPOSED_MESSAGE,
   VISITOR_APPENDED_PROMPT_MESSAGE,
   newComposeRecalledMemoriesStep,
   newCreateSessionIfNeededStep,
@@ -1438,3 +1443,32 @@ describe("newRefuseVisitorAppendedPromptStep", () => {
   });
 });
 
+describe("newGuardPluginEvalCaseStep", () => {
+  const step = newGuardPluginEvalCaseStep();
+
+  function withCase(caller: CallerIdentity, set: boolean) {
+    const execution = newExecution("ses_1");
+    if (set) {
+      execution.spec!.pluginEvalCase = create(PluginEvalCaseContextSchema, {
+        pluginId: "plg_1",
+        pluginDigest: "a".repeat(64),
+        suiteDir: "evals",
+        caseDir: "evals/c",
+        scaffoldScript: "setup.sh",
+      });
+    }
+    return newContext(execution, caller);
+  }
+
+  it("refuses a case context from any caller the server did not compose", async () => {
+    await expect(step.execute(withCase(testCallerIdentity(), true))).rejects.toThrow(PLUGIN_EVAL_CASE_NOT_COMPOSED_MESSAGE);
+    await expect(step.execute(withCase(testCallerIdentity({ callerClass: "api_key" }), true))).rejects.toThrow(
+      PLUGIN_EVAL_CASE_NOT_COMPOSED_MESSAGE,
+    );
+  });
+
+  it("passes the server's own request, and any request without one", async () => {
+    await step.execute(withCase(testCallerIdentity({ origin: "in-process" }), true));
+    await step.execute(withCase(testCallerIdentity(), false));
+  });
+});

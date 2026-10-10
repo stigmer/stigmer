@@ -920,7 +920,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Why the case is not run, naming the feature Stigmer does not run yet,\n as in \"not run: context.scaffold_script\"; empty when the case runs.",
+          "description": "Why the case is not run, as in \"not run: plugins\" for a feature\n Stigmer does not run yet, or \"not run: scaffold skipped\"; empty when\n the case runs.",
           "required": false
         },
         {
@@ -990,7 +990,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Why this case did not run on this target, as in \"not run: model\n 'sonnet' is not in Stigmer's catalog\"; empty when it ran.",
+          "description": "Why this case did not run on this target, as in \"not run: model\n 'sonnet' is not in Stigmer's catalog\" or \"not run on Cursor:\n resumed conversations\"; empty when it ran.",
           "required": false
         },
         {

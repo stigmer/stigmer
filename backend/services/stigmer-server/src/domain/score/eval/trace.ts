@@ -25,6 +25,11 @@
  *     reads as `Skill {"skill": "<plugin>:<name>"}`, since Stigmer activates
  *     a skill by reading that file on both engines. The input is the
  *     engine's own arguments, which `input_match` patterns read by value;
+ *   - the mock calls: each call to a server the try's case mocked (the
+ *     run's own `spec.plugin_eval_case.mocks`, by the name the run gave
+ *     the server), one JSON line each, `{"server", "tool", "input",
+ *     "answer"}`, the server by its key in the plugin and the answer the
+ *     mock gave, an error's text included;
  *   - the files: the paths created in the run (`kind` ADD in the
  *     file-review ledger's captured change sets) and the contents, after
  *     the run, of the paths the graders name, inline or read back through
@@ -94,6 +99,8 @@ export interface EvalTrace {
   /** The session as JSON lines, one message per line. */
   readonly traceLines: ReadonlyArray<string>;
   readonly toolCalls: ReadonlyArray<EvalToolCall>;
+  /** The calls to mocked servers, one JSON line each (the module header). */
+  readonly mockCalls: ReadonlyArray<string>;
   readonly files: EvalFiles;
 }
 
@@ -147,6 +154,10 @@ export async function evalTraceOf(
 
   const toolCalls: EvalToolCall[] = [];
   const traceLines: string[] = [];
+  const mockCalls: string[] = [];
+  const mockedServers = new Map(
+    (run.spec?.pluginEvalCase?.mocks ?? []).map((mock) => [mock.segment, mock.server] as const),
+  );
   if (!messages.some((message) => message.type === MessageType.MESSAGE_HUMAN)) {
     traceLines.push(
       line({
@@ -174,6 +185,17 @@ export async function evalTraceOf(
         for (const call of message.toolCalls) {
           const named = namedCall(call, engine, deps, created);
           toolCalls.push(named);
+          const mockedServer = mockedServers.get(call.mcpServerSlug);
+          if (call.mcpServerSlug !== "" && mockedServer !== undefined) {
+            mockCalls.push(
+              line({
+                server: mockedServer,
+                tool: call.name,
+                input: call.args ?? {},
+                answer: call.error !== "" ? call.error : call.result,
+              }),
+            );
+          }
           content.push({
             type: "tool_use",
             id: call.id,
@@ -223,7 +245,7 @@ export async function evalTraceOf(
     }
   }
 
-  return { lastMessage: lastMessageOf(run), traceLines, toolCalls, files };
+  return { lastMessage: lastMessageOf(run), traceLines, toolCalls, mockCalls, files };
 }
 
 function line(value: JsonObject): string {

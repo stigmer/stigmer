@@ -508,7 +508,7 @@ PluginEvalCase is one case of the suite and its results.
     caseName: { type: "string", description: "The case's name, from its case.yaml or its directory." },
     path: { type: "string", description: "The case's directory, relative to the plugin's root, as in \"evals/review-fires\"." },
     caseTags: { type: "string[]", description: "The case's tags." },
-    notRunReason: { type: "string", description: "Why the case is not run, naming the feature Stigmer does not run yet, as in \"not run: context.scaffold_script\"; empty when the case runs." },
+    notRunReason: { type: "string", description: "Why the case is not run, as in \"not run: plugins\" for a feature Stigmer does not run yet, or \"not run: scaffold skipped\"; empty when the case runs." },
     targets: { type: "PluginEvalCaseTarget[]", description: "Results per target, in the eval's target order.", typeDescriptionLink: "#pluginevalcasetarget" },
     notes: { type: "string[]", description: "Notes about how the case was run, as in \"max_turns 4 raised to the run's minimum of 10 tool rounds\"." },
     mockedServers: { type: "PluginEvalMockedServer[]", description: "The plugin's MCP servers the case answers with mocks, and those it leaves unstarted, as Claude Code's mocked: line.", typeDescriptionLink: "#pluginevalmockedserver" },
@@ -522,7 +522,7 @@ PluginEvalCaseTarget is one case's results on one target.
 <TypeTable
   type={{
     target: { type: "PluginEvalTarget", description: "The engine and model.", typeDescriptionLink: "#pluginevaltarget" },
-    notRunReason: { type: "string", description: "Why this case did not run on this target, as in \"not run: model 'sonnet' is not in Stigmer's catalog\"; empty when it ran." },
+    notRunReason: { type: "string", description: "Why this case did not run on this target, as in \"not run: model 'sonnet' is not in Stigmer's catalog\" or \"not run on Cursor: resumed conversations\"; empty when it ran." },
     withPlugin: { type: "PluginEvalArm", description: "The tries with the plugin.", typeDescriptionLink: "#pluginevalarm" },
     withoutPlugin: { type: "PluginEvalArm", description: "The tries without the plugin; unset when the eval makes no comparison.", typeDescriptionLink: "#pluginevalarm" },
     delta: { type: "number", description: "The with-plugin score minus the without-plugin score; unset when either is missing." },

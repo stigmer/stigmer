@@ -59,8 +59,6 @@ export const FILES_NOT_RECORDED_REASON =
  */
 export const TOO_MANY_CREATED_FILES_REASON = "too many created files to match";
 
-/** The not-graded reason of a grader over mock calls, which Stigmer does not run yet. */
-export const MOCK_CALLS_NOT_RUN_REASON = "mock_calls are not run yet";
 
 /**
  * The not-graded reason of a pattern that threw while it ran (a regex
@@ -162,7 +160,7 @@ export function focusText(
       }
     }
     case "mock_calls":
-      return { notGraded: MOCK_CALLS_NOT_RUN_REASON };
+      return { text: trace.mockCalls.join("\n") };
     /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
     default: {
       const exhausted: never = focus;

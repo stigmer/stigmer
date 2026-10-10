@@ -243,10 +243,26 @@ export type WireVerdict =
 /** A grader's outcome after the code graders ran: a verdict, or votes to take. */
 export type WireOutcome = WireVerdict | { readonly votes: string };
 
+/**
+ * A try its case stopped before the run's work could be graded: the
+ * scaffold failed, or a mock stopped the run. The try scores 0 and its
+ * graders are not consulted.
+ */
+export type TryStopped =
+  | { readonly kind: "scaffold-failed"; readonly detail: string }
+  | {
+      readonly kind: "mock-aborted";
+      readonly server: string;
+      readonly tool: string;
+      readonly reason: string;
+    };
+
 /** What grading the try's run found. */
 export interface TryGrade {
   /** One per grader, in order; `votes` names the rubric the AI-graded ones answer. */
   readonly outcomes: ReadonlyArray<WireOutcome>;
+  /** Set when the case stopped the try; the outcomes then ask no votes. */
+  readonly stopped?: TryStopped;
   /** The run's own failure, as "timed out after 300s"; empty when it completed. */
   readonly error: string;
   readonly costUsd: number;
@@ -293,6 +309,12 @@ export interface TryResult {
   readonly durationSeconds: number;
   /** The organization's credit refused the try: the suite stops starting tries. */
   readonly outOfCredit: boolean;
+  /** Which mock stopped the try, and why; absent otherwise. */
+  readonly aborted?: {
+    readonly server: string;
+    readonly tool: string;
+    readonly reason: string;
+  };
 }
 
 
