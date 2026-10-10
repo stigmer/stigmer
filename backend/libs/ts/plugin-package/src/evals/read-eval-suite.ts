@@ -67,6 +67,7 @@ export const EVAL_MAX_GRADERS = 32;
  * checked for them; `EvalCase.unsupported` is one of these phrases.
  */
 export const EVAL_UNSUPPORTED_FEATURES = [
+  "plugins",
   "context.scaffold_script",
   "context.add_dirs",
   "context.history_file",
@@ -451,7 +452,8 @@ function readCase(index: PluginFileIndex, caseDir: string, suiteMocks: boolean, 
   const context = caseFile?.context ?? { addDirs: [] };
   const env = fields.env ?? {};
   const mocks = suiteMocks || index.isDirectory(`${caseDir}/mocks`);
-  const unsupported = unsupportedOf(context, env, graders, mocks);
+  const plugins = fields.plugins ?? [];
+  const unsupported = unsupportedOf(plugins, context, env, graders, mocks);
   return {
     name: fields.name ?? basename(caseDir),
     dir: caseDir,
@@ -465,7 +467,7 @@ function readCase(index: PluginFileIndex, caseDir: string, suiteMocks: boolean, 
     allowedTools: fields.allowedTools ?? [],
     ...(fields.appendSystemPrompt !== undefined && { appendSystemPrompt: fields.appendSystemPrompt }),
     env,
-    plugins: fields.plugins ?? [],
+    plugins,
     context,
     files,
     graders,
@@ -494,12 +496,19 @@ function usesMockCalls(grader: EvalGrader): boolean {
   }
 }
 
+/**
+ * A case's `plugins` names the plugins it runs with, relative to the case.
+ * One entry is the plugin under test, the format's override of auto-detect;
+ * a second is a plugin Stigmer would not attach, so the case does not run.
+ */
 function unsupportedOf(
+  plugins: readonly string[],
   context: EvalCaseContext,
   env: Readonly<Record<string, string>>,
   graders: readonly EvalGrader[],
   mocks: boolean,
 ): EvalUnsupportedFeature | undefined {
+  if (plugins.length > 1) return "plugins";
   if (context.scaffoldScript !== undefined) return "context.scaffold_script";
   if (context.addDirs.length > 0) return "context.add_dirs";
   if (context.historyFile !== undefined) return "context.history_file";
