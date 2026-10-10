@@ -10,7 +10,10 @@
  *     created for the account and shown once, and a revoke is the key's
  *     delete;
  *   - a delete asks first, says the keys stop working at once, and is the
- *     account's delete.
+ *     account's delete; a refused delete says why, and cancelling clears it;
+ *   - every Cancel (rename, role, new key, delete) and an unchanged rename
+ *     send nothing, and a shown key is dismissed for good;
+ *   - a refused key create says why.
  *
  * The generated client is a fake behind the one provider seam; the
  * organization's access list is that fake's answer too.
@@ -40,6 +43,8 @@ const calls = vi.hoisted(() => ({
   updates: [] as { id?: string; name: string; idpId: string }[],
   keys: [] as CreateServiceAccountKeyInput[],
   refuseGrant: false,
+  refuseDelete: false,
+  refuseKey: false,
 }));
 
 const ACCOUNT: IdentityAccount = create(IdentityAccountSchema, {
@@ -59,6 +64,7 @@ function wrapper({ children }: { children: ReactNode }) {
       },
       delete: async (id: string) => {
         calls.log.push(`delete account ${id}`);
+        if (calls.refuseDelete) throw new Error("the account is still being created");
         return ACCOUNT;
       },
     },
@@ -91,6 +97,7 @@ function wrapper({ children }: { children: ReactNode }) {
       },
       createForServiceAccount: async (input: CreateServiceAccountKeyInput) => {
         calls.keys.push(input);
+        if (calls.refuseKey) throw new Error("unauthorized to manage this service account's keys");
         return create(ApiKeySchema, {
           metadata: { id: "key_new", name: input.name },
           spec: { keyHash: "stk_new_raw" },
@@ -111,6 +118,8 @@ afterEach(() => {
   calls.updates = [];
   calls.keys = [];
   calls.refuseGrant = false;
+  calls.refuseDelete = false;
+  calls.refuseKey = false;
 });
 
 function renderPanel(props: Partial<Parameters<typeof ServiceAccountDetailPanel>[0]> = {}) {
@@ -187,5 +196,65 @@ describe("ServiceAccountDetailPanel", () => {
     fireEvent.click(within(confirm).getByRole("button", { name: "Delete" }));
     await waitFor(() => expect(onDeleted).toHaveBeenCalled());
     expect(calls.log).toContain("delete account ida_sa_ci");
+  });
+
+  it("sends nothing for an unchanged rename, or when any act is cancelled", async () => {
+    renderPanel();
+    await screen.findByText(/acts with the Member role/);
+
+    fireEvent.click(screen.getByRole("button", { name: "Rename" }));
+    fireEvent.submit(screen.getByLabelText("Name").closest("form") as HTMLFormElement);
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.getByRole("button", { name: "Rename" })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("radio", { name: /^Viewer/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("button", { name: "Save role" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "+ New key" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByLabelText("Key name")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete service account" }));
+    fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+
+    expect(calls.updates).toEqual([]);
+    expect(calls.keys).toEqual([]);
+    expect(calls.log.filter((l) => !l.startsWith("list keys"))).toEqual([]);
+  });
+
+  it("dismisses a shown key for good", async () => {
+    renderPanel();
+    fireEvent.click(screen.getByRole("button", { name: "+ New key" }));
+    fireEvent.change(screen.getByLabelText("Key name"), { target: { value: "nightly" } });
+    fireEvent.click(screen.getByRole("button", { name: "Create key" }));
+    expect(await screen.findByText("stk_new_raw")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Dismiss" }));
+    expect(screen.queryByText("stk_new_raw")).toBeNull();
+    expect(screen.getByRole("button", { name: "+ New key" })).toBeTruthy();
+  });
+
+  it("says why a key create was refused", async () => {
+    calls.refuseKey = true;
+    renderPanel();
+    fireEvent.click(screen.getByRole("button", { name: "+ New key" }));
+    fireEvent.change(screen.getByLabelText("Key name"), { target: { value: "nightly" } });
+    fireEvent.click(screen.getByRole("button", { name: "Create key" }));
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toMatch(/unauthorized to manage/));
+  });
+
+  it("says why a delete was refused, and drops that reason when the confirmation is cancelled", async () => {
+    calls.refuseDelete = true;
+    const onDeleted = vi.fn();
+    renderPanel({ onDeleted });
+    fireEvent.click(screen.getByRole("button", { name: "Delete service account" }));
+    fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Delete" }));
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toMatch(/still being created/));
+    expect(onDeleted).not.toHaveBeenCalled();
+
+    fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Cancel" }));
+    fireEvent.click(screen.getByRole("button", { name: "Delete service account" }));
+    expect(screen.queryByText(/still being created/)).toBeNull();
   });
 });

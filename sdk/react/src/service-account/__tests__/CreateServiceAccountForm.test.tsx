@@ -9,7 +9,11 @@
  *     no key request sent;
  *   - a first key is created for the new account, never for the caller, and
  *     its raw value is shown once, with the flow ending on dismiss;
- *   - a refused create says why and leaves the form on the first step.
+ *   - a refused create says why and leaves the form on the first step;
+ *   - submitting either step with no name (Enter in an empty field) sends
+ *     nothing;
+ *   - a key given a lifetime is sent with that expiry, not as never
+ *     expiring.
  *
  * The generated client is a fake behind the one provider seam.
  */
@@ -135,5 +139,35 @@ describe("CreateServiceAccountForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "Create service account" }));
     await waitFor(() => expect(screen.getByRole("alert").textContent).toMatch(/already exists/));
     expect(screen.getByRole("button", { name: "Create service account" })).toBeTruthy();
+  });
+
+  it("sends nothing when either step is submitted with no name", async () => {
+    render(<CreateServiceAccountForm org="org_acme" />, { wrapper });
+    fireEvent.submit(screen.getByLabelText("Name").closest("form") as HTMLFormElement);
+    expect(sent.accounts).toEqual([]);
+
+    fillName("ci-deploy");
+    fireEvent.click(screen.getByRole("button", { name: "Create service account" }));
+    const keyName = await screen.findByLabelText("Key name");
+    fireEvent.submit(keyName.closest("form") as HTMLFormElement);
+    expect(sent.keys).toEqual([]);
+  });
+
+  it("sends a key given a lifetime with that expiry", async () => {
+    render(<CreateServiceAccountForm org="org_acme" />, { wrapper });
+    fillName("ci-deploy");
+    fireEvent.click(screen.getByRole("button", { name: "Create service account" }));
+    fireEvent.change(await screen.findByLabelText("Key name"), { target: { value: "gha" } });
+    fireEvent.click(screen.getByRole("radio", { name: "30 days" }));
+    const before = Date.now();
+    fireEvent.click(screen.getByRole("button", { name: "Create key" }));
+    await screen.findByText("stk_raw_once");
+
+    const [key] = sent.keys;
+    expect(key?.neverExpires).toBe(false);
+    const expiresMs = Number(key?.expiresAt?.seconds ?? 0n) * 1000;
+    const days = (expiresMs - before) / 86_400_000;
+    expect(days).toBeGreaterThan(29);
+    expect(days).toBeLessThan(31);
   });
 });

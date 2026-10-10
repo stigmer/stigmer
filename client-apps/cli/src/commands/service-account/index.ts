@@ -25,7 +25,8 @@
 
 import type { Command } from "commander";
 import { ensureAuthenticated, resolveOrganization } from "../../config/index.js";
-import type { OutputFlags } from "../../output/index.js";
+import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
+import type { OutputFlags, OutputFormat } from "../../output/index.js";
 import { addReadFlags, addResultFlags, globalOrg, readFormat, resultFormat } from "../shared.js";
 
 export interface ServiceAccountCreateFlags extends OutputFlags {
@@ -79,21 +80,11 @@ export function registerServiceAccount(program: Command): void {
         import("@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb"),
       ]);
       const accounts = await resources.listServiceAccounts(session.client, session.org);
-      if (format === "json") {
-        process.stdout.write(output.renderProtoListJson(IdentityAccountSchema, accounts));
-        return;
-      }
-      if (format === "yaml") {
-        process.stdout.write(output.renderProtoListYaml(IdentityAccountSchema, accounts));
-        return;
-      }
-      if (accounts.length === 0) {
-        process.stdout.write(output.renderEmpty("service accounts"));
-        return;
-      }
-      process.stdout.write(
-        output.renderTable(resources.SERVICE_ACCOUNT_TABLE_HEADERS, resources.serviceAccountRows(accounts)),
-      );
+      writeList(output, format, IdentityAccountSchema, accounts, {
+        empty: "service accounts",
+        headers: resources.SERVICE_ACCOUNT_TABLE_HEADERS,
+        rows: resources.serviceAccountRows,
+      });
     });
   addReadFlags(listCmd);
 
@@ -109,21 +100,11 @@ export function registerServiceAccount(program: Command): void {
         import("@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb"),
       ]);
       const keys = await resources.listServiceAccountKeys(session.client, session.org, name);
-      if (format === "json") {
-        process.stdout.write(output.renderProtoListJson(ApiKeySchema, keys));
-        return;
-      }
-      if (format === "yaml") {
-        process.stdout.write(output.renderProtoListYaml(ApiKeySchema, keys));
-        return;
-      }
-      if (keys.length === 0) {
-        process.stdout.write(output.renderEmpty("API keys"));
-        return;
-      }
-      process.stdout.write(
-        output.renderTable(resources.SERVICE_ACCOUNT_KEY_TABLE_HEADERS, resources.serviceAccountKeyRows(keys)),
-      );
+      writeList(output, format, ApiKeySchema, keys, {
+        empty: "API keys",
+        headers: resources.SERVICE_ACCOUNT_KEY_TABLE_HEADERS,
+        rows: resources.serviceAccountKeyRows,
+      });
     });
   addReadFlags(keysCmd);
 
@@ -151,6 +132,34 @@ export function registerServiceAccount(program: Command): void {
       renderResult(await staged.perform(), format);
     });
   addResultFlags(deleteCmd);
+}
+
+type OutputModule = typeof import("../../output/index.js");
+
+/**
+ * A read verb's list: the protos as JSON or YAML, otherwise a table, or the
+ * standard empty-state line when there is nothing to show.
+ */
+function writeList<Desc extends DescMessage>(
+  output: OutputModule,
+  format: OutputFormat,
+  schema: Desc,
+  items: readonly MessageShape<Desc>[],
+  table: {
+    readonly empty: string;
+    readonly headers: readonly string[];
+    readonly rows: (items: readonly MessageShape<Desc>[]) => string[][];
+  },
+): void {
+  if (format === "json") {
+    process.stdout.write(output.renderProtoListJson(schema, items));
+  } else if (format === "yaml") {
+    process.stdout.write(output.renderProtoListYaml(schema, items));
+  } else if (items.length === 0) {
+    process.stdout.write(output.renderEmpty(table.empty));
+  } else {
+    process.stdout.write(output.renderTable(table.headers, table.rows(items)));
+  }
 }
 
 interface Session {

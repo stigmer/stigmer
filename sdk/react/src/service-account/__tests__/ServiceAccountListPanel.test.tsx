@@ -7,12 +7,15 @@
  *   - each row names the account's organization role from the
  *     organization's access list, and an account whose role was removed is
  *     still listed, as "No role";
- *   - opening a row hands the host that account.
+ *   - opening a row hands the host that account;
+ *   - a row says when the account was created;
+ *   - the refetch handed to the host re-reads the accounts and their roles;
+ *   - a refused list says why, and an organization with none says so.
  *
  * The generated client is a fake behind the one provider seam.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/sdk";
@@ -24,10 +27,19 @@ import { ResourceAccessByPrincipalListSchema } from "@stigmer/protos/ai/stigmer/
 import { StigmerContext } from "../../context";
 import { ServiceAccountListPanel } from "../ServiceAccountListPanel";
 
-const asked = vi.hoisted(() => ({ pages: [] as [string, number][] }));
+const asked = vi.hoisted(() => ({
+  pages: [] as [string, number][],
+  accessReads: 0,
+  answer: "pages" as "pages" | "none" | "refused",
+}));
 
 const PAGES = [
-  [{ metadata: { id: "ida_sa_new", name: "nightly-evals" } }],
+  [
+    {
+      metadata: { id: "ida_sa_new", name: "nightly-evals" },
+      status: { audit: { specAudit: { createdAt: { seconds: 1767225600n } } } },
+    },
+  ],
   [{ metadata: { id: "ida_sa_old", name: "ci-deploy" } }],
 ];
 
@@ -37,6 +49,8 @@ function wrapper({ children }: { children: ReactNode }) {
       listServiceAccounts: async (input: ListWithIdentityOrg) => {
         const num = input.page?.num ?? 0;
         asked.pages.push([input.org, num]);
+        if (asked.answer === "refused") throw new Error("unauthorized to list service accounts in this organization");
+        if (asked.answer === "none") return create(IdentityAccountsListSchema, { totalPages: 0, entries: [] });
         return create(IdentityAccountsListSchema, {
           totalPages: PAGES.length,
           entries: PAGES[num - 1] ?? [],
@@ -44,15 +58,17 @@ function wrapper({ children }: { children: ReactNode }) {
       },
     },
     iamPolicy: {
-      listResourceAccessByPrincipal: async () =>
-        create(ResourceAccessByPrincipalListSchema, {
+      listResourceAccessByPrincipal: async () => {
+        asked.accessReads++;
+        return create(ResourceAccessByPrincipalListSchema, {
           entries: [
             {
               principal: { kind: "identity_account", id: "ida_sa_old", name: "ci-deploy" },
               roles: [{ role: { code: "admin", name: "Admin" } }],
             },
           ],
-        }),
+        });
+      },
     },
   } as unknown as Stigmer;
   return <StigmerContext.Provider value={client}>{children}</StigmerContext.Provider>;
@@ -61,6 +77,8 @@ function wrapper({ children }: { children: ReactNode }) {
 afterEach(() => {
   cleanup();
   asked.pages = [];
+  asked.accessReads = 0;
+  asked.answer = "pages";
 });
 
 describe("ServiceAccountListPanel", () => {
@@ -91,5 +109,37 @@ describe("ServiceAccountListPanel", () => {
     render(<ServiceAccountListPanel org="org_acme" onOpen={onOpen} />, { wrapper });
     fireEvent.click(await screen.findByRole("button", { name: "Open ci-deploy" }));
     expect(onOpen.mock.calls.map(([account]) => account.metadata?.id)).toEqual(["ida_sa_old"]);
+  });
+
+  it("says when each account was created", async () => {
+    render(<ServiceAccountListPanel org="org_acme" />, { wrapper });
+    const row = await screen.findByRole("button", { name: "Open nightly-evals" });
+    expect(row.textContent).toMatch(/Created .*2026/);
+  });
+
+  it("hands the host a refetch that re-reads the accounts and their roles", async () => {
+    let refetch: (() => void) | null = null;
+    render(
+      <ServiceAccountListPanel org="org_acme" onRefetchRef={(fn) => (refetch = fn)} />,
+      { wrapper },
+    );
+    await screen.findByRole("button", { name: "Open ci-deploy" });
+    await waitFor(() => expect(asked.accessReads).toBe(1));
+    asked.pages = [];
+    act(() => refetch?.());
+    await waitFor(() => expect(asked.pages.length).toBe(2));
+    await waitFor(() => expect(asked.accessReads).toBe(2));
+  });
+
+  it("says why the list was refused", async () => {
+    asked.answer = "refused";
+    render(<ServiceAccountListPanel org="org_acme" />, { wrapper });
+    expect((await screen.findByRole("alert")).textContent).toMatch(/unauthorized to list/);
+  });
+
+  it("says so when the organization has none", async () => {
+    asked.answer = "none";
+    render(<ServiceAccountListPanel org="org_acme" />, { wrapper });
+    expect(await screen.findByText("No service accounts yet.")).toBeTruthy();
   });
 });

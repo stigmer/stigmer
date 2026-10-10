@@ -256,11 +256,9 @@ function RoleSection({
 
   const isWorking = isCreating || isDeleting;
   const chosen = selected ?? current?.role ?? null;
-  const canSave = selected !== null && selected !== current?.role && !isWorking;
   const refetchAccess = access.refetch;
 
-  const handleSave = useCallback(async () => {
-    if (selected === null) return;
+  const handleSave = useCallback(async (role: IamRole) => {
     setError(null);
     const specFor = (relation: string) =>
       create(IamPolicySpecSchema, {
@@ -272,7 +270,7 @@ function RoleSection({
       // Grant first, then revoke: a refusal of either step leaves the
       // account holding a role, never none, and the revoke is the one that
       // can be retried.
-      await grant(specFor(iamRoleToString(selected)));
+      await grant(specFor(iamRoleToString(role)));
       if (current) await revoke(specFor(current.code));
       setSelected(null);
       refetchAccess();
@@ -280,7 +278,7 @@ function RoleSection({
     } catch (err) {
       setError(err instanceof Error ? err : new Error("Failed to change the role"));
     }
-  }, [selected, accountId, org, grant, current, revoke, refetchAccess, onChanged]);
+  }, [accountId, org, grant, current, revoke, refetchAccess, onChanged]);
 
   return (
     <div className="stg:space-y-2">
@@ -306,7 +304,12 @@ function RoleSection({
       )}
       {selected !== null && selected !== current?.role && (
         <div className="stg:flex stg:items-center stg:gap-2">
-          <button type="button" onClick={handleSave} disabled={!canSave} className={PRIMARY_BUTTON}>
+          <button
+            type="button"
+            onClick={() => void handleSave(selected)}
+            disabled={isWorking}
+            className={PRIMARY_BUTTON}
+          >
             {isWorking && <SpinnerIcon size={12} />}
             {isWorking ? "Changing role…" : "Save role"}
           </button>
@@ -403,7 +406,7 @@ function DeleteSection({
   readonly name: string;
   readonly onDeleted?: () => void;
 }) {
-  const { deleteServiceAccount, isDeleting, error } = useDeleteServiceAccount();
+  const { deleteServiceAccount, isDeleting, error, clearError } = useDeleteServiceAccount();
   const [confirming, setConfirming] = useState(false);
 
   const handleDelete = useCallback(async () => {
@@ -461,7 +464,11 @@ function DeleteSection({
         </button>
         <button
           type="button"
-          onClick={() => setConfirming(false)}
+          onClick={() => {
+            // A refused delete's reason belongs to that attempt, not the next.
+            clearError();
+            setConfirming(false);
+          }}
           disabled={isDeleting}
           className={QUIET_BUTTON}
         >

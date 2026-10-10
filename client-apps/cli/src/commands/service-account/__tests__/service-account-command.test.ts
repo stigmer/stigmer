@@ -41,6 +41,9 @@ const backend = vi.hoisted(() => ({
   listed: [] as [string, number][],
   deleted: [] as string[],
   keysOf: [] as string[],
+  // The organization has no service accounts, or the account has no keys.
+  noAccounts: false,
+  noKeys: false,
 }));
 
 // Two pages: the newest account first.
@@ -66,8 +69,8 @@ vi.mock("../../../backend.js", async () => {
             const num = input.page?.num ?? 0;
             backend.listed.push([input.org, num]);
             return create(IdentityAccountsListSchema, {
-              totalPages: PAGES.length,
-              entries: PAGES[num - 1] ?? [],
+              totalPages: backend.noAccounts ? 0 : PAGES.length,
+              entries: backend.noAccounts ? [] : (PAGES[num - 1] ?? []),
             });
           },
           delete: async (id: string) => {
@@ -79,7 +82,7 @@ vi.mock("../../../backend.js", async () => {
           findByAccount: async (id: string) => {
             backend.keysOf.push(id);
             return create(ApiKeysSchema, {
-              entries: [
+              entries: backend.noKeys ? [] : [
                 { metadata: { id: "key_gha", name: "github-actions" }, spec: { fingerprint: "a1b2c3", neverExpires: true } },
               ],
             });
@@ -130,6 +133,8 @@ describe("stigmer service-account", () => {
     backend.listed.length = 0;
     backend.deleted.length = 0;
     backend.keysOf.length = 0;
+    backend.noAccounts = false;
+    backend.noKeys = false;
     originalHome = process.env.HOME;
     home = mkdtempSync(join(tmpdir(), "stigmer-service-account-"));
     process.env.HOME = home;
@@ -211,6 +216,22 @@ describe("stigmer service-account", () => {
 
     const json = await run(["service-account", "keys", "ci-deploy", "--json"]);
     expect((JSON.parse(json.stdout) as { metadata: { id: string } }[]).map((k) => k.metadata.id)).toEqual(["key_gha"]);
+  });
+
+  it("prints the accounts and the keys as YAML", async () => {
+    const accounts = await run(["service-account", "list", "-o", "yaml"]);
+    expect(accounts.stdout.startsWith("- metadata:")).toBe(true);
+    expect(accounts.stdout).toContain("id: ida_sa_new");
+    const keys = await run(["service-account", "keys", "ci-deploy", "-o", "yaml"]);
+    expect(keys.stdout.startsWith("- metadata:")).toBe(true);
+    expect(keys.stdout).toContain("id: key_gha");
+  });
+
+  it("says so when there is no service account, or the account has no keys", async () => {
+    backend.noKeys = true;
+    expect((await run(["service-account", "keys", "ci-deploy"])).stdout).toContain("No API keys found");
+    backend.noAccounts = true;
+    expect((await run(["service-account", "list"])).stdout).toContain("No service accounts found");
   });
 
   it("deletes the named account by its id with --force, and says its keys no longer work", async () => {

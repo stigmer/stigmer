@@ -12,14 +12,23 @@
  * so the section explains that and offers no create; a server too old to say
  * is offered the button; while the server's answer loads no button shows.
  *
- * The panels are proven by their own tests and stubbed here; the permission
- * check and the server's answer are stubbed.
+ * The flow between the panels: opening an account shows its detail panel,
+ * a rename keeps it open under its new name, and going back or deleting it
+ * returns to the list and re-reads it; a create re-reads the list as soon as
+ * the account exists, and its end (or a cancel) returns to the list.
+ *
+ * The panels are proven by their own tests and stubbed here, each exposing
+ * its callbacks as buttons; the permission check and the server's answer are
+ * stubbed.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { UseServerInfoReturn } from "../../server-info";
 
 let serverInfo: UseServerInfoReturn;
+
+// How many times the section asked the list to re-read itself.
+const list = vi.hoisted(() => ({ refetches: 0 }));
 
 const permission = vi.hoisted(() => ({
   allowed: true,
@@ -40,13 +49,70 @@ vi.mock("../../iam-policy/useCheckPermission.js", () => ({
   },
 }));
 vi.mock("../../service-account/ServiceAccountListPanel.js", () => ({
-  ServiceAccountListPanel: ({ org }: { org: string }) => (
-    <div data-testid="list-panel">service accounts of {org}</div>
-  ),
+  ServiceAccountListPanel: ({
+    org,
+    onOpen,
+    onRefetchRef,
+  }: {
+    org: string;
+    onOpen?: (account: { metadata: { id: string; name: string } }) => void;
+    onRefetchRef?: (refetch: () => void) => void;
+  }) => {
+    onRefetchRef?.(() => {
+      list.refetches++;
+    });
+    return (
+      <div data-testid="list-panel">
+        service accounts of {org}
+        {onOpen && (
+          <button type="button" onClick={() => onOpen({ metadata: { id: "ida_sa_ci", name: "ci-deploy" } })}>
+            open ci-deploy
+          </button>
+        )}
+      </div>
+    );
+  },
 }));
 vi.mock("../../service-account/CreateServiceAccountForm.js", () => ({
-  CreateServiceAccountForm: ({ org }: { org: string }) => (
-    <div data-testid="create-form">create in {org}</div>
+  CreateServiceAccountForm: ({
+    org,
+    onCreated,
+    onDone,
+    onCancel,
+  }: {
+    org: string;
+    onCreated?: () => void;
+    onDone?: () => void;
+    onCancel?: () => void;
+  }) => (
+    <div data-testid="create-form">
+      create in {org}
+      <button type="button" onClick={onCreated}>account created</button>
+      <button type="button" onClick={onDone}>flow done</button>
+      <button type="button" onClick={onCancel}>cancel create</button>
+    </div>
+  ),
+}));
+vi.mock("../../service-account/ServiceAccountDetailPanel.js", () => ({
+  ServiceAccountDetailPanel: ({
+    serviceAccount,
+    onUpdated,
+    onDeleted,
+    onBack,
+  }: {
+    serviceAccount: { metadata?: { id?: string; name?: string } };
+    onUpdated?: (account: { metadata: { id: string; name: string } }) => void;
+    onDeleted?: () => void;
+    onBack?: () => void;
+  }) => (
+    <div data-testid="detail-panel">
+      managing {serviceAccount.metadata?.name}
+      <button type="button" onClick={() => onUpdated?.({ metadata: { id: "ida_sa_ci", name: "ci-release" } })}>
+        renamed
+      </button>
+      <button type="button" onClick={onDeleted}>deleted</button>
+      <button type="button" onClick={onBack}>back</button>
+    </div>
   ),
 }));
 
@@ -73,6 +139,7 @@ afterEach(() => {
   permission.allowed = true;
   permission.isLoading = false;
   permission.checked = [];
+  list.refetches = 0;
 });
 
 describe("ServiceAccountsSection's caller gate", () => {
@@ -135,5 +202,50 @@ describe("ServiceAccountsSection's posture gate", () => {
     serverInfo = { serverInfo: null, isLoading: true, error: null };
     render(<ServiceAccountsSection />);
     expect(screen.queryByRole("button", NEW_BUTTON)).toBeNull();
+  });
+});
+
+describe("ServiceAccountsSection's flow", () => {
+  it("opens an account, keeps it open under a new name, and returns to a re-read list on back", () => {
+    serverInfo = answering(true);
+    render(<ServiceAccountsSection />);
+    fireEvent.click(screen.getByRole("button", { name: "open ci-deploy" }));
+    expect(screen.getByTestId("detail-panel").textContent).toContain("managing ci-deploy");
+    expect(screen.queryByRole("button", NEW_BUTTON)).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "renamed" }));
+    expect(screen.getByTestId("detail-panel").textContent).toContain("managing ci-release");
+
+    const before = list.refetches;
+    fireEvent.click(screen.getByRole("button", { name: "back" }));
+    expect(screen.getByTestId("list-panel")).toBeTruthy();
+    expect(list.refetches).toBe(before + 1);
+  });
+
+  it("returns to a re-read list once an account is deleted", () => {
+    serverInfo = answering(true);
+    render(<ServiceAccountsSection />);
+    fireEvent.click(screen.getByRole("button", { name: "open ci-deploy" }));
+    const before = list.refetches;
+    fireEvent.click(screen.getByRole("button", { name: "deleted" }));
+    expect(screen.queryByTestId("detail-panel")).toBeNull();
+    expect(list.refetches).toBe(before + 1);
+  });
+
+  it("re-reads the list as soon as an account is created, and returns to it when the flow ends or is cancelled", () => {
+    serverInfo = answering(true);
+    render(<ServiceAccountsSection />);
+    fireEvent.click(screen.getByRole("button", NEW_BUTTON));
+    fireEvent.click(screen.getByRole("button", { name: "account created" }));
+    expect(list.refetches).toBe(1);
+    expect(screen.getByTestId("create-form")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "flow done" }));
+    expect(screen.queryByTestId("create-form")).toBeNull();
+    expect(list.refetches).toBe(2);
+
+    fireEvent.click(screen.getByRole("button", NEW_BUTTON));
+    fireEvent.click(screen.getByRole("button", { name: "cancel create" }));
+    expect(screen.queryByTestId("create-form")).toBeNull();
   });
 });

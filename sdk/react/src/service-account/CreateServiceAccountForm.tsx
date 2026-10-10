@@ -43,8 +43,16 @@ export interface CreateServiceAccountFormProps {
 
 type Step =
   | { readonly phase: "account" }
-  | { readonly phase: "firstKey"; readonly account: IdentityAccount; readonly role: IamRole }
-  | { readonly phase: "revealed"; readonly rawKey: string; readonly keyName: string };
+  | {
+      readonly phase: "firstKey";
+      readonly account: IdentityAccount;
+      readonly role: IamRole;
+    }
+  | {
+      readonly phase: "revealed";
+      readonly rawKey: string;
+      readonly keyName: string;
+    };
 
 /**
  * The create flow for a service account and its first key.
@@ -70,62 +78,59 @@ export function CreateServiceAccountForm({
 }: CreateServiceAccountFormProps) {
   const [step, setStep] = useState<Step>({ phase: "account" });
 
-  switch (step.phase) {
-    case "account":
-      return (
-        <AccountStep
-          org={org}
-          className={className}
-          onCancel={onCancel}
-          onCreated={(account, role) => {
-            onCreated?.(account);
-            setStep({ phase: "firstKey", account, role });
-          }}
-        />
-      );
-    case "firstKey": {
-      const name = step.account.metadata?.name ?? "";
-      return (
-        <div className={cn("stg:space-y-3", className)}>
-          <div>
-            <p className="stg:text-sm stg:font-medium stg:text-foreground">
-              {name} created with the {iamRoleDisplayName(step.role)} role
-            </p>
-            <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">
-              Create its first API key now, for the CI job or script that
-              will act as {name}.
-            </p>
-          </div>
-          <CreateServiceAccountKeyForm
-            serviceAccountId={step.account.metadata?.id ?? ""}
-            serviceAccountName={name}
-            onCreated={(apiKey) =>
-              setStep({
-                phase: "revealed",
-                rawKey: apiKey.spec?.keyHash ?? "",
-                keyName: apiKey.metadata?.name ?? "API key",
-              })
-            }
-            onCancel={onDone}
-            cancelLabel="Not now"
-          />
-        </div>
-      );
-    }
-    case "revealed":
-      return (
-        <ApiKeyCreatedAlert
-          rawKey={step.rawKey}
-          keyName={step.keyName}
-          onDismiss={() => onDone?.()}
-          className={className}
-        />
-      );
-    default: {
-      const unreachable: never = step;
-      return unreachable;
-    }
+  if (step.phase === "account") {
+    return (
+      <AccountStep
+        org={org}
+        className={className}
+        onCancel={onCancel}
+        onCreated={(account, role) => {
+          onCreated?.(account);
+          setStep({ phase: "firstKey", account, role });
+        }}
+      />
+    );
   }
+
+  if (step.phase === "firstKey") {
+    const name = step.account.metadata?.name ?? "";
+    return (
+      <div className={cn("stg:space-y-3", className)}>
+        <div>
+          <p className="stg:text-sm stg:font-medium stg:text-foreground">
+            {name} created with the {iamRoleDisplayName(step.role)} role
+          </p>
+          <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">
+            Create its first API key now, for the CI job or script that will act
+            as {name}.
+          </p>
+        </div>
+        <CreateServiceAccountKeyForm
+          serviceAccountId={step.account.metadata?.id ?? ""}
+          serviceAccountName={name}
+          onCreated={(apiKey) =>
+            setStep({
+              phase: "revealed",
+              rawKey: apiKey.spec?.keyHash ?? "",
+              keyName: apiKey.metadata?.name ?? "API key",
+            })
+          }
+          onCancel={onDone}
+          cancelLabel="Not now"
+        />
+      </div>
+    );
+  }
+
+  // The last step: the first key, shown once.
+  return (
+    <ApiKeyCreatedAlert
+      rawKey={step.rawKey}
+      keyName={step.keyName}
+      onDismiss={() => onDone?.()}
+      className={className}
+    />
+  );
 }
 
 // ---------------------------------------------------------------------------
