@@ -132,7 +132,7 @@ message ApiResourceReference {
     (buf.validate.field).string.pattern = "^$|^[a-z][a-z0-9-]*[a-z0-9]$|^org_[0-9a-z]{26}$"
   ];
 
-  // Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).
+  // Kind of the referenced resource (e.g., SKILL, AGENT, PLUGIN).
   ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kind = 2;
 
   // Resource slug (user-friendly identifier, unique within org).
