@@ -30,7 +30,8 @@
  * `**` counted as its own token, so the count is the same in either
  * mode), which bounds a match's cost by GLOB_MAX_TOKENS times the input's
  * length: an author's `file_exists` grader runs on the server's own
- * thread, once per file a try created.
+ * thread, once per file a try created, so its grader also bounds the
+ * work per try by `tokens` (graders/file-exists.ts).
  *
  * A malformed glob (too long, a class or a brace never closed, a reversed
  * range, too many alternatives or tokens, braces nested too deep) is an
@@ -58,7 +59,12 @@ export type GlobMode = "path" | "name";
 
 /** A compiled glob, or why it is not one. */
 export type CompiledGlob =
-  | { readonly ok: true; matches(input: string): boolean }
+  | {
+      readonly ok: true;
+      matches(input: string): boolean;
+      /** The tokens of every alternative, in all: one match costs at most this times the input's length. */
+      readonly tokens: number;
+    }
   | { readonly ok: false; readonly error: string };
 
 type Token =
@@ -100,6 +106,7 @@ export function compileGlob(glob: string, mode: GlobMode): CompiledGlob {
   }
   return {
     ok: true,
+    tokens: alternatives.reduce((sum, tokens) => sum + tokens.length, 0),
     matches: (input) => {
       const chars = Array.from(input);
       return alternatives.some((tokens) => matchTokens(tokens, chars, mode));

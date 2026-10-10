@@ -22,6 +22,16 @@ export type GraderVerdict =
   | { readonly passed: boolean; readonly reason: string }
   | { readonly notGraded: string };
 
+/** The longest reason a grader gives: a Score criterion's reason (score/v1/spec.proto). */
+export const GRADER_REASON_MAX_LENGTH = 500;
+
+/** `reason` cut to GRADER_REASON_MAX_LENGTH, marked where it was cut. */
+export function cutReason(reason: string): string {
+  return reason.length <= GRADER_REASON_MAX_LENGTH
+    ? reason
+    : `${reason.slice(0, GRADER_REASON_MAX_LENGTH - 6)} [cut]`;
+}
+
 /** Whether `verdict` left its grader not graded. */
 export function isNotGraded(
   verdict: GraderVerdict,
@@ -42,6 +52,12 @@ export const PATTERN_POOL_BUSY_REASON = "platform busy";
 /** The not-graded reason of a file grader where no created file is recorded. */
 export const FILES_NOT_RECORDED_REASON =
   "this install does not record created files";
+
+/**
+ * The not-graded reason of every `file_exists` grader of a try whose
+ * matching would pass the per-try budget (file-exists.ts FILE_MATCH_BUDGET).
+ */
+export const TOO_MANY_CREATED_FILES_REASON = "too many created files to match";
 
 /** The not-graded reason of a grader over mock calls, which Stigmer does not run yet. */
 export const MOCK_CALLS_NOT_RUN_REASON = "mock_calls are not run yet";

@@ -47,9 +47,13 @@ import {
 } from "../llm.js";
 import { PATTERN_DEADLINE_MS, newPatternPool } from "../patterns.js";
 import type { PatternAnswer, PatternJob, PatternRunner } from "../patterns.js";
+import { FILE_MATCH_BUDGET, fileMatchCost } from "../file-exists.js";
 import {
+  GRADER_REASON_MAX_LENGTH,
   PATTERN_POOL_BUSY_REASON,
   FILES_NOT_RECORDED_REASON,
+  TOO_MANY_CREATED_FILES_REASON,
+  cutReason,
   MOCK_CALLS_NOT_RUN_REASON,
   PATTERN_TIME_LIMIT_REASON,
   fileAbsentReason,
@@ -702,6 +706,77 @@ describe("path globs", () => {
       await verdictOf({ type: "file_exists", path: `${"**/".repeat(8)}x`, exists: true }, view),
     ).toMatchObject({ passed: false });
     expect(performance.now() - started).toBeLessThan(50);
+  });
+});
+
+describe("the work and the reasons per try", () => {
+  /** The reviewer's shape, scaled down: many long created paths and a many-token glob, under a small budget. */
+  const view = trace({
+    files: {
+      kind: "recorded",
+      created: Array.from({ length: 10 }, (_, i) => `${"a/".repeat(45)}file-${i}.txt`),
+      contents: new Map(),
+    },
+  });
+  const totalLength = view.files.kind === "recorded"
+    ? view.files.created.reduce((sum, path) => sum + path.length, 0)
+    : 0;
+  const glob = `**/${"*a".repeat(20)}*.md`;
+  const fileCheck = (exists: boolean): EvalGrader =>
+    grader({ type: "file_exists", path: glob, exists }, `files-${String(exists)}`);
+  const other = grader(regex("fetchUser"), "mentions");
+
+  it("costs a file grader its glob's tokens times the created paths' total length", () => {
+    const check = { type: "file_exists", path: glob, exists: true } as const;
+    // `**/` (one token once compiled), 20 pairs of `*` and `a`, then `*`, `.`, `m`, `d`.
+    expect(fileMatchCost(check, view)).toBe((1 + 40 + 4) * totalLength);
+    expect(fileMatchCost(check, trace({ files: NOT_RECORDED }))).toBe(0);
+    expect(
+      fileMatchCost({ type: "file_exists", path: "notes[1.md", exists: true }, view),
+    ).toBe(0);
+    expect(FILE_MATCH_BUDGET).toBe(20_000_000);
+  });
+
+  it("leaves every file grader of a try not graded once their work summed passes the budget, and grades the rest", async () => {
+    const one = fileMatchCost({ type: "file_exists", path: glob, exists: true }, view);
+    const graders = [fileCheck(true), other, fileCheck(false)];
+    // Two file graders cost twice one: a budget between one and two refuses both.
+    const over = await gradeChecks(graders, view, pool, one + 1);
+    expect(over).toEqual([
+      { notGraded: TOO_MANY_CREATED_FILES_REASON },
+      { passed: true, reason: "the pattern was found in the final message" },
+      { notGraded: TOO_MANY_CREATED_FILES_REASON },
+    ]);
+    expect(TOO_MANY_CREATED_FILES_REASON).toBe("too many created files to match");
+    const within = await gradeChecks(graders, view, pool, 2 * one);
+    expect(within[0]).toMatchObject({ passed: false });
+    expect(within[2]).toMatchObject({ passed: true });
+  });
+
+  it("cuts every code grader's reason to a criterion's 500 characters, and lists at most twenty steps", async () => {
+    const calls = Array.from({ length: 300 }, () => ({ name: "Read", input: "{}" }));
+    const [used] = await gradeChecks(
+      [grader({ type: "tool_used", tool: "Read", min: 1 })],
+      trace({ toolCalls: calls }),
+      pool,
+    );
+    expect(used).toEqual({
+      passed: true,
+      reason: `300 call(s) to 'Read' (step ${Array.from({ length: 20 }, (_, i) => i + 1).join(", ")} and 280 more); expected at least 1`,
+    });
+    const long = `${"x".repeat(600)}*`;
+    const [failed, refused] = await gradeChecks(
+      [
+        grader({ type: "file_exists", path: long, exists: true }, "long"),
+        grader({ type: "file_exists", path: `${long}[`, exists: true }, "bad"),
+      ],
+      view,
+      pool,
+    );
+    expect(failed).toEqual({ passed: false, reason: cutReason(`no file created in the run matches '${long}'`) });
+    expect((failed as { reason: string }).reason).toHaveLength(GRADER_REASON_MAX_LENGTH);
+    expect((failed as { reason: string }).reason.endsWith(" [cut]")).toBe(true);
+    expect((refused as { notGraded: string }).notGraded).toHaveLength(GRADER_REASON_MAX_LENGTH);
   });
 });
 

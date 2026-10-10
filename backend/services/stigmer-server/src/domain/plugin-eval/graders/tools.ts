@@ -9,6 +9,9 @@
  *   - `tool_order`: both tools were called, and the first call matching
  *     `before` precedes the first call matching `after`.
  *
+ * A `tool_used` reason lists the first STEPS_LISTED matching steps and
+ * counts the rest, so it stays short however often the tool was called.
+ *
  * A tool name compares exactly, except Claude Code's older `Task`, which
  * names `Agent` as it does there. Input patterns run in the pattern pool,
  * each under its own deadline from when a worker takes it (patterns.ts),
@@ -87,6 +90,9 @@ async function matchingCalls(
   }
 }
 
+/** The most steps a `tool_used` reason lists; the rest are counted. */
+const STEPS_LISTED = 20;
+
 function describeRef(ref: EvalToolRef): string {
   return ref.inputMatch === undefined
     ? `'${ref.tool}'`
@@ -120,10 +126,13 @@ export async function gradeToolUsed(
         : `${check.min} to ${check.max}`;
   const within =
     count >= check.min && (check.max === undefined || count <= check.max);
-  const steps =
-    count === 0
-      ? ""
-      : ` (step ${matched.positions.map((position) => position + 1).join(", ")})`;
+  const listed = matched.positions
+    .slice(0, STEPS_LISTED)
+    .map((position) => position + 1)
+    .join(", ");
+  const more =
+    count > STEPS_LISTED ? ` and ${count - STEPS_LISTED} more` : "";
+  const steps = count === 0 ? "" : ` (step ${listed}${more})`;
   return {
     passed: within,
     reason: `${count} call(s) to ${describeRef(ref)}${steps}; expected ${range}`,
