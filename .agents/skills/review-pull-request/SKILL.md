@@ -320,6 +320,28 @@ for its siblings in the same pass: the other shapes, the other inputs, the other
 edges. Report the class in one finding that names it and lists every instance
 you found, so a fix that closes one example does not pass the fix-check.
 
+**Sweep the diff before you answer.** Whatever you found so far, go through the
+diff once more for each item below, list every instance you meet, and judge each
+on its own. A long read of the logic is no reason to skip them; they are what a
+single pass most often misses.
+
+- **Every line switched off:** each comment the diff adds that turns a check off
+  for a line (a coverage ignore hint, a `Stryker disable`, a lint or type
+  suppression). Try to reach the line from a test, the way the tests beside it
+  reach theirs. If you can, or if the reason describes something else, it is a
+  finding.
+- **Every change to what a check reads:** a workflow, `buf.yaml` or another
+  proto setting, a lint, type or coverage config, a floors file, a skip list.
+  Say what it stops checking, for which files, and until when.
+- **Every declaration in the body**, by "Each declaration" above.
+- **Every claim in the body a reader acts on:** the rollback (does reverting the
+  change still boot and serve on a store the new code already wrote?), the
+  upgrade notes, the security posture, and each test-plan line against the path
+  it claims to cover.
+- **Every piece of new logic that writes state:** its second run, a run
+  concurrent with itself, a run that fails halfway and leaves a mark, and a
+  store an older version left behind.
+
 **Verify before you answer.** Before writing the answer, take each candidate
 finding in turn: re-open the code, confirm the line says what you think, and
 name a concrete case that fails (these inputs, this wrong outcome or this
