@@ -23,6 +23,10 @@ code.
   doesn't require it.
 </Callout>
 
+Here is where this tutorial ends up: your order management API in a plugin,
+signed in, a chat started with it, then the same plugin listed on a Session from
+code, an order lookup, and an approval before a return.
+
 <ScenarEmbed id="connect-tools-tour" title="Connect your tools overview" />
 
 ## The problem
@@ -109,7 +113,9 @@ address once, and it answered with an OAuth challenge.
 />
 
 From the CLI, `stigmer connect plugin order-management-api` signs in when the
-server needs it and prints the same list.
+server needs it and prints the same list. To try the tools before writing any
+code, click **Start a chat** on the plugin's page: it opens a conversation that
+uses the plugin whole.
 
 In this example, three tools come back: `get_order`, `list_orders`, and
 `process_return`. A tool the server marks destructive (its author set the MCP

@@ -13,7 +13,7 @@
  * Usage: npm run demo:seed
  */
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -32,18 +32,26 @@ const stigmer = (...args) => {
 // 1. The organization.
 stigmer("apply", "-f", join(here, "resources/organization.yaml"));
 
-// 2. The MCP server — the committed manifest carries a placeholder for
-// this checkout's absolute path (a local stdio server runs from wherever
-// the repo lives); render it and apply the rendered copy.
+// 2. The meridian-ops plugin — one stdio MCP server (mcp/meridian-ops.mjs)
+// in Claude Code's plugin layout (plugins/meridian-ops/). A plugin server
+// cannot name a working directory, so the committed .mcp.json passes the
+// script's absolute path as its argument, behind a placeholder for this
+// checkout's location. The script must run from the demo directory, not
+// from a copy inside the plugin archive: it imports the MCP SDK from
+// marketing/node_modules. Render the placeholder into a temp copy and push
+// that; pushing unchanged content again reports "unchanged", so re-runs are
+// no-ops.
+//
+// Rebooking moves real money, so it always stops for a human: the server
+// marks rebook_booking destructive (MCP annotation destructiveHint: true),
+// and Stigmer asks before any tool so marked.
 const rendered = mkdtempSync(join(tmpdir(), "meridian-seed-"));
 try {
-  const manifest = readFileSync(join(here, "resources/meridian-ops.yaml"), "utf8").replaceAll(
-    "__MERIDIAN_DEMO_DIR__",
-    here,
-  );
-  const renderedPath = join(rendered, "meridian-ops.yaml");
-  writeFileSync(renderedPath, manifest);
-  stigmer("apply", "-f", renderedPath);
+  const plugin = join(rendered, "meridian-ops");
+  cpSync(join(here, "plugins/meridian-ops"), plugin, { recursive: true });
+  const mcpConfig = join(plugin, ".mcp.json");
+  writeFileSync(mcpConfig, readFileSync(mcpConfig, "utf8").replaceAll("__MERIDIAN_DEMO_DIR__", here));
+  stigmer("--org", ORG, "push", "plugin", plugin, "-m", "Meridian operations tools");
 } finally {
   rmSync(rendered, { recursive: true, force: true });
 }

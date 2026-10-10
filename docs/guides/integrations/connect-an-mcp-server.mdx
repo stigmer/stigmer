@@ -20,6 +20,11 @@ tools, and puts it to work.
   guide.
 </Callout>
 
+The walkthrough below opens Neon's plugin from the Library's Plugins page. Its
+one MCP server is reached over HTTP at Neon's hosted endpoint and reads one key,
+the Neon API key, which your vault holds. **Check tools** lists the server's
+five tools, and marks `run_sql` destructive.
+
 <DemoMarketplaceConnectTour />
 
 ## Connect an MCP server
@@ -124,18 +129,18 @@ give the server to an Agent, list its plugin in the Agent's `plugins`, or choose
 spec:
   plugins:
     - kind: plugin
-      slug: postgres
-  tools: [Read, mcp__plugin_postgres_postgres]
-  disallowed_tools: [mcp__plugin_postgres_postgres__run_sql]
+      slug: neon
+  tools: [Read, mcp__plugin_neon_neon]
+  disallowed_tools: [mcp__plugin_neon_neon__run_sql]
 ```
 
 The Agent gets every tool of every plugin it lists, unless its two lists, in
 Claude Code's names, say otherwise: `tools` keeps only the entries listed, and
 `disallowed_tools` removes entries first. `mcp__plugin_<plugin>_<server>` names
 every tool of one server and `mcp__plugin_<plugin>_<server>__<tool>` one tool; a
-server added with `stigmer mcp add` has the plugin's name, so `postgres` above
-is both. This Agent can read files and use the Postgres server, but never
-`run_sql`, and cannot run shell commands or write files. See
+server added with `stigmer mcp add` has the plugin's name, so `neon` above is
+both. This Agent can read files and use the Neon server, but never `run_sql`,
+and cannot run shell commands or write files. See
 [Approval Flows](/docs/concepts/approval-flows) for everything the lists cover.
 
 For a hands-on walk through adding a server and running a Session on it, see the
