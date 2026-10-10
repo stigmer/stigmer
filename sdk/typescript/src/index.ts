@@ -96,6 +96,7 @@ export {
   iamRoleFromString,
   iamRoleDisplayName,
   iamRoleDescription,
+  grantableRoleDescription,
 } from "./iam-role.js";
 export { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 

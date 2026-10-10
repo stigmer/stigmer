@@ -100,7 +100,7 @@ function generateTSAuthorizationConfig(outputDir: string, entries: ReturnType<ty
   buf.push("export const ROLE_DESCRIPTIONS: ReadonlyMap<ApiResourceKind, ReadonlyMap<IamRole, string>> = new Map([\n");
   for (const entry of entries) {
     if (entry.roleDescriptions.length === 0) continue;
-    buf.push(`  [ApiResourceKind.${entry.enumName}, new Map([\n`);
+    buf.push(`  [ApiResourceKind.${entry.enumName}, new Map<IamRole, string>([\n`);
     for (const { role, description } of entry.roleDescriptions) {
       buf.push(`    [IamRole.${iamRoleName(role)}, ${JSON.stringify(description)}],\n`);
     }

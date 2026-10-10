@@ -6,8 +6,8 @@ import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import {
   getGrantableRoles,
   getTeamGrantableRoles,
+  grantableRoleDescription,
   iamRoleDisplayName,
-  iamRoleDescription,
   iamRoleToString,
   type GranteeKind,
 } from "@stigmer/sdk";
@@ -21,7 +21,7 @@ export interface RoleOption {
   readonly role: IamRole;
   /** Human-readable display name (e.g. "Admin"). */
   readonly label: string;
-  /** Short description suitable for tooltips (e.g. "Edit access and member management"). */
+  /** What the role means on this kind (e.g. "Read the conversation; cannot send messages"). */
   readonly description: string;
   /** The FGA relation string (e.g. "admin"). */
   readonly value: string;
@@ -91,7 +91,7 @@ export function useRoleSelector(
     return roles.map((role) => ({
       role,
       label: iamRoleDisplayName(role),
-      description: iamRoleDescription(role),
+      description: grantableRoleDescription(kind, role),
       value: iamRoleToString(role),
     }));
   }, [kind, granteeKind, omit]);
