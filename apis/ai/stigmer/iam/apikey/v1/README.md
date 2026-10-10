@@ -23,7 +23,7 @@ API keys provide programmatic access to Stigmer without requiring interactive OA
 **Authentication:**
 - Used in `Authorization: Bearer stk_...` header (same as JWT)
 - Validated by a direct lookup of the key's hash in the server's store, with no cache, so a deleted key is refused on the very next request
-- Resolved to the identity account that created the key
+- Resolved to the identity account the key speaks for: the person who created it, or, for a key an organization admin created with `createForServiceAccount`, the organization's service account. A service account's key works in its organization only, and keeps working when the admin who created it leaves
 - A key created while the server had sign-in turned off is refused once sign-in is on. Its creator was the local operator, who is not the account anyone signs in as. The refusal is `UNAUTHENTICATED` with the `ErrorInfo` reason `API_KEY_CREATED_BEFORE_SIGN_IN` (domain `stigmer.ai`, no metadata), so a client can tell it apart from a wrong or expired key. The fix is to sign in and create a new key.
 
 ## API Endpoints
@@ -52,7 +52,27 @@ spec:
 {}  # Uses identity from auth header
 ```
 
-**Response:** List of API keys (without raw keys, only fingerprints)
+**Response:** The caller's own API keys (without raw keys, only fingerprints)
+
+### Create a Service Account's API Key
+
+```yaml
+# POST /ai.stigmer.iam.apikey.v1.ApiKeyCommandController/createForServiceAccount
+serviceAccountId: ida_...
+name: github-actions
+neverExpires: true
+```
+
+**Response:** Full ApiKey with `spec.keyHash` containing the raw key **ONCE**. Its organization's admins only.
+
+### List an Account's API Keys
+
+```yaml
+# POST /ai.stigmer.iam.apikey.v1.ApiKeyQueryController/findByAccount
+value: ida_...
+```
+
+**Response:** The keys that speak for the account, for whoever may view it: a person's own, or a service account's for its organization's admins.
 
 ### Get API Key
 

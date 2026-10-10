@@ -4,13 +4,15 @@ How IdentityAccounts are created and what distinguishes each mode.
 
 ## Overview
 
-Every IdentityAccount is created in one of three provisioning modes. The mode is determined automatically at creation time based on the `idp_id` value and the provisioning context. Users cannot set `provisioning_mode` directly.
+Every IdentityAccount is created in one of five provisioning modes. The mode is determined automatically at creation time based on the `idp_id` value and the provisioning context. Users cannot set `provisioning_mode` directly.
 
 | Mode | `provisioning_mode` value | Who creates it | `idp_id` format |
 |---|---|---|---|
 | Direct | `direct` | Auth0 authentication (JIT on first login) | `auth0\|{subject}` |
 | Federated | `federated` | The platform via API, or Stigmer on the first sign-in when the IdentityProvider provisions accounts | Raw OIDC sub (e.g., `google-oauth2\|109876543210`) |
 | Machine | `machine` | Platform bootstrap / M2M setup | `{client_id}@clients` |
+| Platform client | `platform_client` | A PlatformClient's `mintUserToken` | `stgm_pc\|{org}\|{external_user_id}` |
+| Service account | `service_account` | An organization admin, through `createServiceAccount` | `stgm_sa\|{org id}\|{random}` |
 | Legacy | `identity_account_provisioning_mode_unspecified` | Pre-dates the provisioning_mode field | Varies |
 
 ## Direct Mode
@@ -100,6 +102,31 @@ A machine account represents an Auth0 M2M client credential. It is used for inte
 - `is_machine_account`: `true` (computed)
 - `email`, `first_name`, `last_name`: typically empty — machine accounts have no human profile
 - The account authenticates via client credentials, not user login
+
+## Service Account Mode
+
+A service account is an organization's own non-person account: the principal its automation (a CI job, a script, an integration) acts as, so the automation keeps working when the person who set it up leaves.
+
+### Flow
+
+```
+1. An organization admin calls createServiceAccount with a name and a role
+   (admin, member or viewer; never owner)
+2. Stigmer creates the account with idp_id = "stgm_sa|{org id}|{random}",
+   metadata.org = the organization, and grants it the role
+3. The admin creates its keys with ApiKeyCommandController.createForServiceAccount
+4. The automation presents a key; it acts as the service account, in its
+   organization only
+```
+
+### Characteristics
+
+- `provisioning_mode`: `service_account`
+- `idp_id`: the reserved `stgm_sa|` composite, assigned by the server; no sign-in ever resolves to it
+- `metadata.name`: its one name, unique among the organization's service accounts; `email`, `first_name`, `last_name` and `picture_url` stay empty
+- Managed by the organization's admins: they rename it, change its role, list, create and revoke its keys, and delete it, which ends every key at once
+- Its key is never a person: it is refused creating keys, service accounts or organizations, changing any identity account, granting or revoking a role on the organization, and creating invitations; it is never a team member
+- Deleted and created again under the same name, it is a new principal: the random part of its subject is never reissued
 
 ## Related Documentation
 
