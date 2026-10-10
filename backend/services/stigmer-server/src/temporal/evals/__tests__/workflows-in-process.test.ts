@@ -31,7 +31,9 @@
  * activity when the start's answer is unknown, and answered as a try not
  * graded, "cancelled", with its ids and what it spent; a grade, a stop or
  * a start that fails leaving the try not graded with what its run spent;
- * a vote that cannot start counted as failed.
+ * a vote that cannot start counted as failed; a vote that cannot be read
+ * past its retries stopped, the try not graded with what its run and every
+ * vote spent.
  */
 import {
   ActivityFailure,
@@ -64,6 +66,7 @@ import {
   TRY_NOT_STOPPED_REASON,
   TRY_CANCELLED_REASON,
   TRY_SPEND_ACTIVITY_NAME,
+  VOTE_NOT_READ_REASON,
 } from "../names.js";
 import type {
   CaseInput,
@@ -735,6 +738,45 @@ describe("the case workflow", () => {
     expect(activities[STOP_RUN_ACTIVITY_NAME]).not.toHaveBeenCalled();
   });
 
+  it("leaves the try not graded when a vote cannot be read, stopping that vote and counting every vote's spend", async () => {
+    const reads = () => {
+      let count = 0;
+      return vi.fn(() => {
+        count++;
+        return count === 3
+          ? Promise.reject(new Error("the store is down"))
+          : Promise.resolve({
+              vote: { kind: "vote", passed: true, reason: "yes" },
+              costUsd: 0.01,
+            });
+      });
+    };
+    const activities = caseScript({ [READ_VOTE_ACTIVITY_NAME]: reads() });
+    const outcome = await runCase(INPUT);
+    expect(VOTE_NOT_READ_REASON).toBe("the AI-graded check could not be read");
+    expect(outcome).toMatchObject({
+      sessionId: "ses_1",
+      runId: "run_1",
+      state: "not-graded",
+      notGradedReason: VOTE_NOT_READ_REASON,
+      durationSeconds: 5,
+    });
+    // The try's run and the unread vote, still stored, plus the two votes read.
+    expect(outcome.costUsd).toBeCloseTo(0.4 + 0.02);
+    expect(activities[STOP_RUN_ACTIVITY_NAME]).toHaveBeenCalledWith(
+      "vote_0_2",
+      expect.any(String),
+    );
+    expect(activities[RECORD_SCORE_ACTIVITY_NAME]).not.toHaveBeenCalled();
+
+    // A spend read that fails too falls back to the grade's cost and the votes read.
+    caseScript({
+      [READ_VOTE_ACTIVITY_NAME]: reads(),
+      [TRY_SPEND_ACTIVITY_NAME]: vi.fn(() => Promise.reject(new Error("down"))),
+    });
+    expect((await runCase(INPUT)).costUsd).toBeCloseTo(0.2 + 0.02);
+  });
+
   it("stops the run at the deadline and grades what it produced", async () => {
     const activities = caseScript({
       [POLL_RUN_ACTIVITY_NAME]: vi.fn(() => Promise.resolve(false)),
@@ -1059,15 +1101,6 @@ describe("the case workflow", () => {
       runId: "",
       costUsd: 0,
     });
-  });
-
-  it("fails outright on a failure that is not a cancellation, for the suite to read the try's spend", async () => {
-    caseScript({
-      [READ_VOTE_ACTIVITY_NAME]: vi.fn(() =>
-        Promise.reject(new Error("the store is down")),
-      ),
-    });
-    await expect(runCase(INPUT)).rejects.toThrow("the store is down");
   });
 
   it("counts a vote that cannot start, or a refused one, as failed", async () => {

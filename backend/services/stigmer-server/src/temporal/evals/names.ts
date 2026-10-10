@@ -104,6 +104,8 @@ export const TRY_NOT_STOPPED_REASON = "the try's run could not be stopped";
  */
 export const TRY_SPENDING_SHARE_REASON =
   "stopped at its share of the eval's spending limit";
+/** A try one of whose AI-graded votes could not be read past its retries. */
+export const VOTE_NOT_READ_REASON = "the AI-graded check could not be read";
 /** A try the eval's cancel stopped: its run is stopped and what it spent is still counted. */
 export const TRY_CANCELLED_REASON = "cancelled";
 
