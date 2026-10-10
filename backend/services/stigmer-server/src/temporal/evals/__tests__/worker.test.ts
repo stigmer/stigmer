@@ -28,6 +28,7 @@ import {
   START_TRY_ACTIVITY_NAME,
   START_VOTE_ACTIVITY_NAME,
   STOP_RUN_ACTIVITY_NAME,
+  TRY_SPEND_ACTIVITY_NAME,
 } from "../names.js";
 import { newEvalsWorkerFactory } from "../worker.js";
 import { catalog, suiteSource } from "./support.js";
@@ -85,6 +86,7 @@ describe("the plugin-eval worker factory", () => {
           START_VOTE_ACTIVITY_NAME,
           READ_VOTE_ACTIVITY_NAME,
           RECORD_SCORE_ACTIVITY_NAME,
+          TRY_SPEND_ACTIVITY_NAME,
         ].sort(),
       );
       const workflows = options.workflows as {

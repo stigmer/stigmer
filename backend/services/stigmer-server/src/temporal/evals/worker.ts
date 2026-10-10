@@ -22,7 +22,10 @@ import type { PluginEvalCallerMint } from "../../extensions/plugin-eval-caller.j
 import type { Store } from "../../store/interface.js";
 import type { WorkerFactory } from "../manager.js";
 import { resolveWorkflowSource } from "../workflow-source.js";
-import { createCaseActivities } from "./case-activities.js";
+import {
+  createCaseActivities,
+  createSpendActivities,
+} from "./case-activities.js";
 import type { EvalsTemporalConfig } from "./config.js";
 import { newEvalContextLoader } from "./context.js";
 import type { PluginEvalTryLane } from "./ports.js";
@@ -76,6 +79,7 @@ export function newEvalsWorkerFactory(deps: EvalsWorkerDeps): WorkerFactory {
         pluginEvalCaller: deps.pluginEvalCaller,
         patterns,
       }),
+      ...createSpendActivities({ store: deps.store }),
     };
 
     const workflowSource = resolveWorkflowSource({

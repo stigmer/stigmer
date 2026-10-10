@@ -25,11 +25,12 @@ import {
   RUN_PLUGIN_EVAL_WORKFLOW_TYPE,
   runPluginEvalWorkflowId,
   type CaseActivities,
+  type RecordedTry,
+  type SpendActivities,
   type SuiteActivities,
   type SuiteCell,
   type SuiteEnd,
   type SuitePlan,
-  type TryResult,
 } from "../names.js";
 
 const TASK_QUEUE = "plugin-eval-workflow-test";
@@ -59,7 +60,7 @@ interface Script {
   inFlight: number;
   most: number;
   votes: number;
-  recorded: Array<{ cell: SuiteCell; result: TryResult }>;
+  recorded: Array<{ cell: SuiteCell; result: RecordedTry }>;
   finished: SuiteEnd[];
   stopped: string[];
 }
@@ -102,8 +103,15 @@ resetScript();
 
 // Typed as the real activity surfaces, so a signature change flags these
 // doubles at compile time.
-function scriptedActivities(): SuiteActivities & CaseActivities {
+function scriptedActivities(): SuiteActivities &
+  CaseActivities &
+  SpendActivities {
   return {
+    "stigmer/evals/try-spend": async () => ({
+      sessionId: "",
+      runId: "",
+      costUsd: 0,
+    }),
     "stigmer/evals/load-suite": async () => script.plan,
     "stigmer/evals/record-try": async (_evalId, cell, result) => {
       script.recorded.push({ cell, result });

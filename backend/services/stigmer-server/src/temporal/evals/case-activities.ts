@@ -1,10 +1,12 @@
 /**
  * The case workflow's activities (workflows/run-case.ts): start a try,
- * poll and stop runs, grade the try, run its votes, record its score.
+ * poll and stop runs, grade the try, run its votes, record its score; and
+ * the spend activity both workflows read a try's cost through.
  *
  *   - start-try: the try's session, then its run (domain/plugin-eval/
- *     try-run.ts, arm.ts), both as the eval's caller, minted per try
- *     (extensions/plugin-eval-caller.ts; none composed: the server). A
+ *     try-run.ts, arm.ts), the run capped at what the suite workflow says
+ *     is left of the eval's budget, both as the eval's caller, minted per
+ *     try (extensions/plugin-eval-caller.ts; none composed: the server). A
  *     retried start first looks for the run an earlier attempt created
  *     (the eval's label and the try's run name, read only on a retry, so a
  *     first attempt never scans). A capacity refusal is thrown as
@@ -12,7 +14,10 @@
  *     retries; a credit refusal (the hosted edition's billing gate, every
  *     denial FAILED_PRECONDITION naming credits) is "out-of-credit"; any
  *     other refusal is the run's own message; a session left by a refused
- *     run is deleted. A caller the seam refuses is "cannot-act".
+ *     run is deleted. A caller the seam refuses is "cannot-act". A try
+ *     whose plugin has moved past the eval's digest is not started: the
+ *     with-plugin arm runs the plugin as installed now, so it would grade
+ *     a newer plugin against the eval's suite (PLUGIN_UPDATED_REASON).
  *   - poll-run, stop-run: whether a run has ended; stop one, a run already
  *     ended or gone being fine.
  *   - grade-try: the try's trace (domain/score/eval/trace.ts), every code
@@ -25,6 +30,9 @@
  *     its own session (graders/llm.ts), adopted on a retry through the run
  *     list index's `grades` key; read strictly, stopped if still going, and
  *     its session deleted, as the AI judge's grading deletes its own.
+ *   - try-spend: what a try's run and its stored votes spent, found by
+ *     the eval's label and the try's run name, for the workflows to count
+ *     a try whose own workflow could not report it.
  *   - record-score: the votes tallied, the try scored
  *     (domain/plugin-eval/scoring.ts), and its Score written on the run
  *     (domain/plugin-eval/score-writer.ts). A grader left not graded leaves
@@ -110,6 +118,7 @@ import {
   GRADE_TRY_ACTIVITY_NAME,
   OUT_OF_CREDIT_REASON,
   PLUGIN_EVAL_BUSY_FAILURE_TYPE,
+  PLUGIN_UPDATED_REASON,
   POLL_RUN_ACTIVITY_NAME,
   READ_VOTE_ACTIVITY_NAME,
   RECORD_SCORE_ACTIVITY_NAME,
@@ -117,13 +126,16 @@ import {
   START_VOTE_ACTIVITY_NAME,
   STOP_RUN_ACTIVITY_NAME,
   TRY_NOT_STARTED_REASON,
+  TRY_SPEND_ACTIVITY_NAME,
 } from "./names.js";
 import type {
   CaseActivities,
   CaseInput,
   GraderResult,
+  SpendActivities,
   TryGrade,
   TryResult,
+  TrySpend,
   TryStart,
   VoteRead,
   VoteStart,
@@ -246,6 +258,13 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
           reason: TRY_UNPLANNED_REASON,
         };
       }
+      if ((context.plugin.status?.digest ?? "") !== context.digest) {
+        return {
+          kind: "refused",
+          failure: "not-started",
+          reason: PLUGIN_UPDATED_REASON,
+        };
+      }
       const facts = await pluginAttachmentFacts(
         deps.store,
         spec.pluginId,
@@ -272,6 +291,7 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         evalCase: cell.evalCase,
         spec,
         modelName: cell.target.target.modelName,
+        budgetUsd: input.budgetUsd,
         pluginServerSlugs: facts.mcpServerSlugs,
       });
       try {
@@ -660,6 +680,43 @@ function refusalOf(
     default:
       throw error;
   }
+}
+
+/**
+ * The spend activity (names.ts TRY_SPEND_ACTIVITY_NAME): the try's run by
+ * the eval's label and its run name, its estimated cost, and the cost of
+ * each of its votes still stored (a vote that was read has had its session,
+ * and so its run, deleted, and its cost was reported with the try). No run
+ * found is no spend.
+ */
+export function createSpendActivities(deps: {
+  readonly store: Store;
+}): SpendActivities {
+  return {
+    [TRY_SPEND_ACTIVITY_NAME]: async (evalId, cell): Promise<TrySpend> => {
+      const run = await findLabelledRun(
+        deps.store,
+        evalId,
+        tryRunName(evalId, cell),
+      );
+      if (run === undefined) {
+        return { sessionId: "", runId: "", costUsd: 0 };
+      }
+      const runId = run.metadata?.id ?? "";
+      const rows = await deps.store.queryResources(agentExecutionListIndex, {
+        org: run.metadata?.org ?? "",
+        anyKey: [{ name: "grades", value: runId }],
+      });
+      let costUsd = run.status?.streamingUsage?.estimatedCostUsd ?? 0;
+      for (const row of rows) {
+        const vote = fromBinary(RunSchema, row.data);
+        if (vote.metadata?.labels[GRADES_RUN_LABEL] === runId) {
+          costUsd += vote.status?.streamingUsage?.estimatedCostUsd ?? 0;
+        }
+      }
+      return { sessionId: sessionIdOf(run.spec), runId, costUsd };
+    },
+  };
 }
 
 /** The run an earlier attempt of a try's start created, by label and name. */
