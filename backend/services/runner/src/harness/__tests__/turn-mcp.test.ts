@@ -11,15 +11,38 @@
  *    agent's or over the assistant's nothing;
  *  - a server the lists exclude whole is not connected, while a server
  *    excluded tool by tool and the platform's own still are (#2106):
- *    `callableServers` is the one filter before either engine connects.
+ *    `callableServers` is the one filter, applied before the discovery
+ *    backfill (itself a connection) and so before either engine connects;
+ *    a plugin-eval try's mocked server never reaches the backfill either.
  * The fetch-and-provision phases around it are pinned end to end by the
  * hermetic goldens.
  */
 
 import { describe, expect, it, vi } from "vitest";
+
+/** What the mocked resolver answers, and what reached the backfill, per test. */
+const resolution = vi.hoisted(() => ({
+  resolved: [] as unknown[],
+  backfilled: [] as string[][],
+}));
+vi.mock("../../shared/mcp-resolver.js", async (original) => ({
+  ...(await original<typeof import("../../shared/mcp-resolver.js")>()),
+  resolveMcpServers: () => Promise.resolve({ resolvedServers: [...resolution.resolved] }),
+}));
+vi.mock("../../shared/connect-backfill.js", async (original) => ({
+  ...(await original<typeof import("../../shared/connect-backfill.js")>()),
+  backfillMcpServersIfNeeded: (_client: unknown, servers: { slug: string }[]) => {
+    resolution.backfilled.push(servers.map((server) => server.slug));
+    return Promise.resolve(servers);
+  },
+}));
 import { create } from "@bufbuild/protobuf";
 import { RunSchema, RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunSpecSchema, RecalledMemoriesSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
+import {
+  PluginEvalCaseContextSchema,
+  PluginEvalMockServerSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/plugin_eval_case_pb";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
@@ -172,5 +195,22 @@ describe("callableServers — a server no tool of which can be called is never c
 
   it("connects every server for an unrestricted turn", () => {
     expect(slugs(ToolScope.unrestricted())).toEqual(["tracker", "orders", "wiki", MEMORY_ATTACHMENT_SLUG]);
+  });
+
+  it("filters before the discovery backfill, and leaves a plugin-eval try's mocked server to its stand-in", async () => {
+    resolution.resolved = [server("tracker"), server("orders"), server("wiki")];
+    resolution.backfilled = [];
+    try {
+      const turn = args({ attachments: false, agentLists: { tools: [], disallowedTools: ["mcp__wiki"] } });
+      turn.execution.spec!.pluginEvalCase = create(PluginEvalCaseContextSchema, {
+        mocks: [create(PluginEvalMockServerSchema, { server: "tracker", segment: "tracker" })],
+      });
+      vi.spyOn(console, "log").mockImplementation(() => undefined);
+      const mcp = await resolveMcpServersAndPolicies(deps({ channels: false }), turn);
+      expect(resolution.backfilled).toEqual([["orders"]]);
+      expect(mcp.servers.map((s) => s.slug)).toEqual(["orders"]);
+    } finally {
+      resolution.resolved = [];
+    }
   });
 });

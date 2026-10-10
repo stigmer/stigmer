@@ -881,6 +881,22 @@ export async function resolveMcpServersAndPolicies(
   )).resolvedServers;
   deps.timing.mark("resolve_mcp_servers");
 
+  // The turn's tool scope (the agent's lists, then this turn's over them,
+  // which can only narrow), and the servers it leaves standing, before
+  // anything connects, the backfill included: a server the lists exclude
+  // whole is never started or dialled, since no tool of it could be called
+  // (#2106). A plugin-eval try's mocked servers are left out too: their
+  // stand-ins take their names (`startEvalMocks`), and the real ones must
+  // never start. The platform's own servers, added below, are always kept.
+  const toolScope = mainToolScope(blueprint, execution.spec);
+  const standIns = new Set((execution.spec?.pluginEvalCase?.mocks ?? []).map((mock) => mock.segment));
+  const resolved = servers;
+  servers = callableServers(resolved, toolScope, new Set()).filter((server) => !standIns.has(server.slug));
+  if (servers.length < resolved.length) {
+    const left = resolved.filter((server) => !servers.includes(server)).map((server) => server.slug);
+    console.log(`[turn-context] execution=${executionId}: not connecting ${left.join(", ")}: excluded whole by the turn's tool lists, or answered by a stand-in`);
+  }
+
   // Phase 4a: Connect backfill for undiscovered MCP servers.
   const sessionOrg = session.metadata?.org ?? "";
   servers = await backfillMcpServersIfNeeded(
@@ -961,22 +977,12 @@ export async function resolveMcpServersAndPolicies(
     platformServerSlugs.add(memoryAttachment.slug);
   }
 
-  // Phase 4b: the turn's tool scope (the agent's lists, then this turn's
-  // over them, which can only narrow), then the servers it leaves standing:
-  // a server the lists exclude whole is never started or dialled, since no
-  // tool of it could be called (#2106). The platform's own servers stay, as
-  // the scope always admits them. Then the approval default's MCP half,
-  // over what remains.
-  const toolScope = mainToolScope(blueprint, execution.spec);
-  const callable = callableServers(servers, toolScope, platformServerSlugs);
-  if (callable.length < servers.length) {
-    const left = servers.filter((server) => !callable.includes(server)).map((server) => server.slug);
-    console.log(`[turn-context] execution=${executionId}: not connecting ${left.join(", ")}: the turn's tool lists exclude them whole`);
-  }
+  // Phase 4b: the approval default's MCP half, over the servers the turn
+  // connects.
   const leases = deriveActiveLeases(execution);
-  const mcpDefault = buildMcpApprovalDefault(callable, leases);
+  const mcpDefault = buildMcpApprovalDefault(servers, leases);
 
-  return { servers: callable, channelMessaging, leases, mcpDefault, platformServerSlugs, toolScope };
+  return { servers, channelMessaging, leases, mcpDefault, platformServerSlugs, toolScope };
 }
 
 /**
