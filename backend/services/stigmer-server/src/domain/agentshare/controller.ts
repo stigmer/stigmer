@@ -255,11 +255,12 @@ async function update(
       ),
     )
     .addStep(newValidateProtoStep())
-    .addStep(newResolveShareAudienceStep())
     .addStep(newResolveSlugStep({ update: true }))
     .addStep(newLoadExistingStep(deps.store))
     .addStep(newValidateShareUpdateStep())
     .addStep(newBuildUpdateStateStep())
+    // After BuildUpdateState, which rebuilds the state from the request.
+    .addStep(newResolveShareAudienceStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))

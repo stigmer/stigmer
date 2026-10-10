@@ -5,8 +5,9 @@
  * meaning everywhere:
  *
  *   - ResolveShareAudience writes an omitted audience out as org on
- *     create, update and apply, right after ValidateProto, so every stored
- *     share and every echo says what it means.
+ *     create, update and apply (right after ValidateProto, and on update
+ *     after BuildUpdateState, which rebuilds the state from the request),
+ *     so every stored share and every echo says what it means.
  *   - shareAdmitsAnyone is the one question every reader asks (exactly
  *     public). A row stored before the server wrote the audience out, still
  *     holding 0, therefore reads as organization-only: it narrows, never
@@ -31,7 +32,7 @@ export function shareAdmitsAnyone(spec: AgentShareSpec | undefined): boolean {
  * ResolveShareAudience: an omitted audience becomes org, before anything
  * else reads the spec. Runs after ValidateProto, whose rules already treat
  * an omitted audience as organization-only (vaults and saved run settings
- * need an explicit public).
+ * need an explicit public); on update, after BuildUpdateState.
  */
 export function newResolveShareAudienceStep(): PipelineStep<
   typeof AgentShareSchema
