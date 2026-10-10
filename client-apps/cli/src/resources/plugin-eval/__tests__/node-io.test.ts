@@ -1,6 +1,7 @@
 // Pins the real effects behind `plugin eval`: the process's own streams; a
 // `--json <path>` write that lands on disk; a sleep that waits its time,
-// ends early on Ctrl+C's abort and returns at once when already aborted;
+// ends early on Ctrl+C's abort and returns at once when already aborted,
+// and is also each call's deadline;
 // `now` as the epoch clock; a SIGINT listener added and removed again, so a
 // finished eval leaves Ctrl+C to the process; and `exit` as process.exit.
 // No real signal is raised: the listener is called through the process's
@@ -40,6 +41,7 @@ describe("nodePluginEvalIo", () => {
   it("sleeps its time, ends early on abort, and returns at once when already aborted", async () => {
     vi.useFakeTimers();
     const io = nodePluginEvalIo();
+    expect(io.timeout, "a call's deadline is the same timer").toBe(io.sleep);
 
     let done = false;
     const full = io.sleep(2_000, new AbortController().signal).then(() => (done = true));

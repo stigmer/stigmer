@@ -7,7 +7,11 @@
 // result document to stdout or its path; `--no-wait` prints the id and
 // returns (under `--json`, with the started eval's document); Ctrl+C cancels
 // the eval and exits 130 with the partial results and why it stopped, the
-// cancel's own answer standing when the read after it fails; a read that
+// cancel's own answer standing when the read after it fails; a Ctrl+C
+// during a read that hangs still sends the cancel, and a second one says how
+// to cancel; an eval that finished as Ctrl+C landed, or that the cancel found
+// done, is reported as finished with its own code; a read or a cancel with
+// no answer in 30 seconds counts as failed; a read that
 // fails is retried with backoff (a Ctrl+C during the wait still cancels),
 // and past about a minute the eval is cancelled, `--json` written with
 // what the command had, and the exit is 1;
@@ -58,6 +62,10 @@ function fakeServer(
     /** The eval reads that fail, counted from the first read. */
     failedReads?: ReadonlySet<number>;
     cancelError?: Error;
+    /** The eval reads that never answer, counted from the first read. */
+    hungReads?: ReadonlySet<number>;
+    /** Called as each eval read starts, with its count from the first read. */
+    onRead?: (count: number) => void;
   } = {},
 ) {
   const calls: string[] = [];
@@ -85,6 +93,8 @@ function fakeServer(
         calls.push("get");
         if (cancelled && opts.getErrorAfterCancel !== undefined) throw opts.getErrorAfterCancel;
         readCount += 1;
+        opts.onRead?.(readCount);
+        if (opts.hungReads?.has(readCount) === true) return new Promise<never>(() => undefined);
         if (opts.failedReads?.has(readCount) === true) throw new StigmerError("unavailable", "the server is unavailable", Code.Unavailable);
         const read = reads[Math.min(next, reads.length - 1)]!;
         next += 1;
@@ -111,6 +121,7 @@ function fakeIo(opts: { interruptAfterSleeps?: number } = {}) {
   let handler: (() => void) | undefined;
   let sleeps = 0;
   const waits: number[] = [];
+  const deadlines: (() => void)[] = [];
   const io: PluginEvalIo = {
     stdout: { write: (text) => void (stdout += text) },
     stderr: { write: (text) => void (stderr += text) },
@@ -120,6 +131,13 @@ function fakeIo(opts: { interruptAfterSleeps?: number } = {}) {
       waits.push(ms);
       if (opts.interruptAfterSleeps !== undefined && sleeps >= opts.interruptAfterSleeps) handler?.();
     },
+    // A call's deadline passes only when the test says so, or ends on the signal.
+    timeout: (_ms, signal) =>
+      new Promise<void>((resolve) => {
+        deadlines.push(resolve);
+        if (signal.aborted) resolve();
+        signal.addEventListener("abort", () => resolve(), { once: true });
+      }),
     now: () => 1_074_000,
     onInterrupt: (h) => {
       handler = h;
@@ -131,7 +149,17 @@ function fakeIo(opts: { interruptAfterSleeps?: number } = {}) {
       throw new Error(`exit ${code}`);
     },
   };
-  return { io, out: () => stdout, err: () => stderr, files, waits, listening: () => handler !== undefined };
+  return {
+    io,
+    out: () => stdout,
+    err: () => stderr,
+    files,
+    waits,
+    listening: () => handler !== undefined,
+    interrupt: () => handler?.(),
+    /** Passes the deadline of every call waiting on one. */
+    expire: () => deadlines.splice(0).forEach((resolve) => resolve()),
+  };
 }
 
 function options(flags: PluginEvalFlags = {}) {
@@ -289,7 +317,7 @@ describe("runPluginEval", () => {
     expect(fake.out()).toContain("\nCancelled: 3 of 4 tries ran.\n");
   });
 
-  it("exits at once on a second Ctrl+C", async () => {
+  it("exits at once on a second Ctrl+C, saying how to cancel the eval", async () => {
     const server = fakeServer([running()]);
     const fake = fakeIo();
     let handler: (() => void) | undefined;
@@ -302,6 +330,53 @@ describe("runPluginEval", () => {
       },
     };
     await expect(runPluginEval(server.client, "acme", THERMOS, options(), io)).rejects.toThrow("exit 130");
+    expect(fake.err()).toContain("Stopped following pev_1; if it is still running, cancel it with: stigmer plugin eval cancel pev_1\n");
+  });
+
+  it("sends the cancel on Ctrl+C while a read hangs, and exits 130", async () => {
+    const fake = fakeIo();
+    const server = fakeServer([running()], { hungReads: new Set([1]), onRead: (count) => count === 1 && fake.interrupt() });
+    expect(await runPluginEval(server.client, "acme", THERMOS, options(), fake.io)).toBe(130);
+    expect(server.calls.slice(-3)).toEqual(["get", "cancel pev_1", "get"]);
+    expect(fake.err()).toContain("Cancelling pev_1…");
+    expect(fake.err()).not.toContain("Could not read");
+    expect(fake.out()).toContain("\nCancelled: 3 of 4 tries ran.\n");
+  });
+
+  it("treats a read with no answer in 30 seconds as a failed read, tried again", async () => {
+    const fake = fakeIo();
+    const server = fakeServer([running(), finishedEval()], { hungReads: new Set([1]), onRead: (count) => count === 1 && setTimeout(fake.expire, 0) });
+    expect(await runPluginEval(server.client, "acme", THERMOS, options(), fake.io)).toBe(0);
+    expect(fake.err()).toContain("Could not read pev_1 (no answer in 30s); trying again in 1s.");
+    expect(fake.waits).toEqual([POLL_INTERVAL_MS, 1_000, POLL_INTERVAL_MS]);
+  });
+
+  it("says the eval may still be running when Ctrl+C's cancel has no answer in 30 seconds", async () => {
+    const fake = fakeIo();
+    const server = fakeServer([running()], { onRead: (count) => count === 1 && fake.interrupt() });
+    const hungCancel = { ...server.client.plugineval, cancel: () => (setTimeout(fake.expire, 0), new Promise<never>(() => undefined)) };
+    const client = { ...server.client, plugineval: hungCancel } as unknown as Stigmer;
+    const error = await runPluginEval(client, "acme", THERMOS, options(), fake.io).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(CliExitError);
+    expect((error as CliExitError).exitCode).toBe(130);
+    expect((error as CliExitError).message).toBe("could not cancel eval pev_1 (no answer in 30s); cancel it with: stigmer plugin eval cancel pev_1");
+  });
+
+  it("reports an eval that finished as Ctrl+C landed normally, with its own exit code", async () => {
+    const fake = fakeIo();
+    const server = fakeServer([finishedEval()], { onRead: (count) => count === 1 && fake.interrupt() });
+    expect(await runPluginEval(server.client, "acme", THERMOS, options({ json: "out.json" }), fake.io)).toBe(0);
+    expect(server.calls).not.toContain("cancel pev_1");
+    expect(JSON.parse(fake.files.get("out.json") ?? "{}")).toMatchObject({ partial: false });
+  });
+
+  it("reports an eval the cancel found already finished normally, not as cancelled", async () => {
+    const server = fakeServer([running(), finishedEval()]);
+    const fake = fakeIo({ interruptAfterSleeps: 2 });
+    expect(await runPluginEval(server.client, "acme", THERMOS, options(), fake.io)).toBe(0);
+    expect(server.calls).toContain("cancel pev_1");
+    expect(fake.out()).not.toContain("Cancelled");
+    expect(fake.out()).toContain("1 case(s) · mean Δ +0.67");
   });
 
   it("exits 1, not the usage code, when the server refuses to start the suite", async () => {

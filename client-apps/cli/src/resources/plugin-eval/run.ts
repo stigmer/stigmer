@@ -5,7 +5,13 @@
 // again every two seconds; closing the terminal leaves it running, and
 // `--no-wait` returns at once with its id. Ctrl+C is the format's interrupt:
 // the command cancels the eval (tries in flight stop), prints the results
-// of the tries that finished, and exits 130; a second Ctrl+C exits at once.
+// of the tries that finished, and exits 130; a second Ctrl+C exits at once,
+// saying how to cancel. An eval that finished before the cancel took hold
+// (Ctrl+C landed during the last read, or the cancel found it done) is
+// reported as finished, with its own exit code. Every read and the cancel
+// race Ctrl+C and a 30-second deadline: the transport has no call timeout,
+// and a half-open connection would otherwise swallow the interrupt. A read
+// past its deadline counts as a failed read.
 // A read that fails is tried again with backoff for about a minute; past
 // that the command cancels the eval rather than leave it spending unwatched,
 // prints or writes what it had, and exits 1. When that cancel, or Ctrl+C's,
@@ -38,7 +44,7 @@ import { Code } from "@connectrpc/connect";
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { PluginWarning } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import type { PluginEval } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
-import { PluginEvalPhase } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
+import { PluginEvalPartialReason, PluginEvalPhase } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
 import { toResultDocument, type PluginEvalResultDocument, type Stigmer } from "@stigmer/sdk";
 import { requireOrganization } from "../../client/single-org.js";
 import { CliExitError, ExitCode, classify } from "../../errors/index.js";
@@ -67,6 +73,12 @@ const POLL_RETRY_WAITS_MS = [1_000, 2_000, 4_000, 8_000, 15_000, 15_000, 15_000]
 
 /** How long a failing read is tried again before the command gives the eval up. */
 export const POLL_RETRY_BUDGET_MS = POLL_RETRY_WAITS_MS.reduce((sum, ms) => sum + ms, 0);
+
+/** How long one call to the server may go unanswered before it counts as failed. */
+export const CALL_DEADLINE_MS = 30_000;
+
+/** Why a call past {@link CALL_DEADLINE_MS} failed, as the command says it. */
+const NO_ANSWER = `no answer in ${CALL_DEADLINE_MS / 1_000}s`;
 
 /** The plugin kind's id prefix (proto kind_meta). */
 const PLUGIN_ID_PREFIX = "plg";
@@ -98,6 +110,8 @@ export interface PluginEvalIo {
   writeFile(path: string, content: string): Promise<void>;
   /** Waits `ms`, or resolves early when `signal` aborts. */
   sleep(ms: number, signal: AbortSignal): Promise<void>;
+  /** A call's deadline: resolves after `ms`, or early when `signal` aborts. Apart from `sleep`, which paces the reads. */
+  timeout(ms: number, signal: AbortSignal): Promise<void>;
   /** Epoch milliseconds. */
   now(): number;
   /** Calls `handler` on each Ctrl+C until the returned function is called. */
@@ -258,19 +272,44 @@ interface Followed {
 
 type Read = { readonly kind: "read"; readonly pluginEval: PluginEval } | { readonly kind: "lost"; readonly reason: string } | { readonly kind: "aborted" };
 
-/** Reads the eval, trying again with backoff while the read fails. */
+/** A call raced against Ctrl+C and its deadline. */
+type Bounded<T> = { readonly kind: "answer"; readonly value: T } | { readonly kind: "no-answer" } | { readonly kind: "aborted" };
+
+/**
+ * Waits for `call` until it answers, `signal` aborts or
+ * {@link CALL_DEADLINE_MS} passes, whichever is first; a call that fails
+ * rejects. The deadline's timer is cleared once the race is decided.
+ */
+async function bounded<T>(call: Promise<T>, signal: AbortSignal | undefined, io: PluginEvalIo): Promise<Bounded<T>> {
+  const decided = new AbortController();
+  const deadline = io.timeout(CALL_DEADLINE_MS, signal === undefined ? decided.signal : AbortSignal.any([signal, decided.signal]));
+  try {
+    return await Promise.race([
+      call.then((value): Bounded<T> => ({ kind: "answer", value })),
+      deadline.then((): Bounded<T> => (signal?.aborted === true ? { kind: "aborted" } : { kind: "no-answer" })),
+    ]);
+  } finally {
+    decided.abort();
+  }
+}
+
+/** Reads the eval, trying again with backoff while the read fails or goes unanswered. */
 async function readEval(client: Stigmer, id: string, quiet: boolean, signal: AbortSignal, io: PluginEvalIo): Promise<Read> {
   for (let failures = 0; ; failures += 1) {
+    let reason: string;
     try {
-      return { kind: "read", pluginEval: await client.plugineval.get(id) };
+      const read = await bounded(client.plugineval.get(id), signal, io);
+      if (read.kind === "aborted") return read;
+      if (read.kind === "answer") return { kind: "read", pluginEval: read.value };
+      reason = NO_ANSWER;
     } catch (error) {
-      const reason = oneLine(classify(error)?.message ?? "") || "the read failed";
-      const wait = POLL_RETRY_WAITS_MS[failures];
-      if (wait === undefined) return { kind: "lost", reason };
-      if (!quiet) io.stderr.write(`Could not read ${id} (${reason}); trying again in ${wait / 1_000}s.\n`);
-      await io.sleep(wait, signal);
-      if (signal.aborted) return { kind: "aborted" };
+      reason = oneLine(classify(error)?.message ?? "") || "the read failed";
     }
+    const wait = POLL_RETRY_WAITS_MS[failures];
+    if (wait === undefined) return { kind: "lost", reason };
+    if (!quiet) io.stderr.write(`Could not read ${id} (${reason}); trying again in ${wait / 1_000}s.\n`);
+    await io.sleep(wait, signal);
+    if (signal.aborted) return { kind: "aborted" };
   }
 }
 
@@ -285,7 +324,10 @@ async function follow(
   let interrupts = 0;
   const stopListening = io.onInterrupt(() => {
     interrupts += 1;
-    if (interrupts > 1) io.exit(EvalExit.Interrupted);
+    if (interrupts > 1) {
+      io.stderr.write(`Stopped following ${id}; if it is still running, cancel it with: stigmer plugin eval cancel ${id}\n`);
+      io.exit(EvalExit.Interrupted);
+    }
     interrupt.abort();
   });
   const seen = new Set<string>();
@@ -306,41 +348,52 @@ async function follow(
       if (read.kind === "aborted") break;
       if (read.kind === "lost") {
         // The eval would go on spending with no one watching: stop it.
-        const cancel = await cancelAndRead(client, id, latest);
+        const cancel = await cancelAndRead(client, id, latest, io);
         report(cancel.latest);
         return { ...cancel, interrupted: true, lost: read.reason };
       }
       latest = read.pluginEval;
       report(latest);
     }
-    if (!interrupt.signal.aborted) {
+    // Ctrl+C during the read that found the eval finished cancels nothing.
+    if (!interrupt.signal.aborted || isSettled(latest)) {
       return { latest, interrupted: false };
     }
     if (!quiet) io.stderr.write(`Cancelling ${id}…\n`);
-    const cancel = await cancelAndRead(client, id, latest);
+    const cancel = await cancelAndRead(client, id, latest, io);
     report(cancel.latest);
-    return { ...cancel, interrupted: true };
+    return { ...cancel, interrupted: !finishedOnItsOwn(cancel.latest) };
   } finally {
     stopListening();
   }
 }
 
+/** Whether the eval ended without being cancelled: it finished before the cancel took hold. */
+function finishedOnItsOwn(pluginEval: PluginEval): boolean {
+  return isSettled(pluginEval) && pluginEval.status?.partialReason !== PluginEvalPartialReason.cancelled;
+}
+
 /**
- * Cancels the eval and reads it once more. The cancel's own answer stands
- * when the read fails; when the cancel fails, `last` stands with the reason.
+ * Cancels the eval and reads it once more, each call within its deadline.
+ * The cancel's own answer stands when the read fails; when the cancel
+ * fails or goes unanswered, `last` stands with the reason.
  */
 async function cancelAndRead(
   client: Stigmer,
   id: string,
   last: PluginEval,
+  io: PluginEvalIo,
 ): Promise<{ readonly latest: PluginEval; readonly cancelFailure?: string }> {
   let cancelled: PluginEval;
   try {
-    cancelled = await client.plugineval.cancel(id);
+    const cancel = await bounded(client.plugineval.cancel(id), undefined, io);
+    if (cancel.kind !== "answer") return { latest: last, cancelFailure: NO_ANSWER };
+    cancelled = cancel.value;
   } catch (error) {
     return { latest: last, cancelFailure: oneLine(classify(error)?.message ?? "") || "the cancel failed" };
   }
-  return { latest: await client.plugineval.get(id).catch(() => cancelled) };
+  const read = await bounded(client.plugineval.get(id), undefined, io).catch(() => undefined);
+  return { latest: read?.kind === "answer" ? read.value : cancelled };
 }
 
 /**
