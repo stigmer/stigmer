@@ -110,8 +110,11 @@ describe("federatedAccountIdFor — the address of a federated account", () => {
     expect(federatedAccountIdFor(ORG, "acme-okta", "shared|sam")).not.toBe(
       federatedAccountIdFor(ORG, "acme-azure", "shared|sam"),
     );
-    expect(federatedAccountIdFor(ORG, "acme-okta", "a|b")).not.toBe(
-      federatedAccountIdFor(ORG, "acme-okta|a", "b"),
+    // The one other reading of `acme-okta|a|b` would move the separator
+    // into the slug, which is refused: the text has one reading.
+    expect(federatedAccountIdFor(ORG, "acme-okta", "a|b")).toMatch(CROCKFORD_ID);
+    expect(() => federatedAccountIdFor(ORG, "acme-okta|a", "b")).toThrow(
+      "must not hold '|'",
     );
   });
 
