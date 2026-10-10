@@ -719,6 +719,32 @@ describe("unsupported", () => {
     expect(suite.cases[0]?.plugins).toEqual([TWO_UP]);
   });
 
+  it("runs a case whose every plugins entry resolves to the plugin's root, however it is spelled", () => {
+    const suite = oneCase({ "evals/c/prompt.md": `---\nplugins: ["./${TWO_UP}/", "${PARENT}/./${PARENT}", "${TWO_UP}/skills/${PARENT}"]\n---\nHi.` });
+    expect(suite.findings).toEqual([]);
+    expect(suite.cases[0]?.unsupported).toBeUndefined();
+  });
+
+  it.each([
+    ["a sibling of the case", `${PARENT}/other-plugin`],
+    ["a plugin beside this one", `${TWO_UP}/${PARENT}/other-plugin`],
+    ["a directory inside this plugin", `${TWO_UP}/skills`],
+    ["the case itself", "."],
+    ["an absolute path", "/plugins/mine"],
+    ["a Windows path", `${PARENT}\\${PARENT}`],
+  ])("does not run a case whose single plugins entry is %s", (_name, entry) => {
+    const suite = oneCase({ "evals/c/prompt.md": `---\nplugins: [${JSON.stringify(entry)}]\n---\nHi.` });
+    expect(suite.findings).toEqual([]);
+    expect(suite.cases[0]?.unsupported).toBe("plugins");
+  });
+
+  it("resolves plugins against a nested case's own directory", () => {
+    const nested = (entry: string): EvalSuite =>
+      suiteOf({ "evals/negative/n/graders/judge.md": LLM_GRADER, "evals/negative/n/prompt.md": `---\nplugins: ["${entry}"]\n---\nHi.` });
+    expect(nested(`${TWO_UP}/${PARENT}`).cases[0]?.unsupported).toBeUndefined();
+    expect(nested(TWO_UP).cases[0]?.unsupported).toBe("plugins");
+  });
+
   it("does not run a case whose plugins lists a second plugin", () => {
     const suite = oneCase({ "evals/c/prompt.md": `---\nplugins: ["${TWO_UP}", ${TWO_UP}/${PARENT}/helper]\n---\nHi.` });
     expect(suite.findings).toEqual([]);

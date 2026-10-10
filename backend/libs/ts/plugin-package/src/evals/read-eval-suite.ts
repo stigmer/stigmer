@@ -464,7 +464,7 @@ function readCase(index: PluginFileIndex, caseDir: string, suiteMocks: boolean, 
   const env = fields.env ?? {};
   const mocks = suiteMocks || index.isDirectory(`${caseDir}/mocks`);
   const plugins = fields.plugins ?? [];
-  const unsupported = unsupportedOf(plugins, context, env, graders, mocks);
+  const unsupported = unsupportedOf(caseDir, plugins, context, env, graders, mocks);
   return {
     name: fields.name ?? basename(caseDir),
     dir: caseDir,
@@ -484,6 +484,23 @@ function readCase(index: PluginFileIndex, caseDir: string, suiteMocks: boolean, 
     graders,
     ...(unsupported !== undefined && { unsupported }),
   };
+}
+
+/**
+ * Whether `entry`, read relative to the plugin-relative `caseDir`, is the
+ * plugin's root. Resolved lexically, segment by segment, the way the reader
+ * sees the package: an absolute or backslashed path, or one that climbs
+ * above the root on the way, names something outside the package read here.
+ */
+function namesPluginRoot(caseDir: string, entry: string): boolean {
+  if (entry.startsWith("/") || entry.includes("\\")) return false;
+  const resolved = caseDir.split("/");
+  for (const segment of entry.split("/")) {
+    if (segment === "" || segment === ".") continue;
+    if (segment !== "..") resolved.push(segment);
+    else if (resolved.pop() === undefined) return false;
+  }
+  return resolved.length === 0;
 }
 
 function usesMockCalls(grader: EvalGrader): boolean {
@@ -509,17 +526,19 @@ function usesMockCalls(grader: EvalGrader): boolean {
 
 /**
  * A case's `plugins` names the plugins it runs with, relative to the case.
- * One entry is the plugin under test, the format's override of auto-detect;
- * a second is a plugin Stigmer would not attach, so the case does not run.
+ * An entry that resolves to this plugin's root is the plugin under test, the
+ * format's override of auto-detect; any other entry is a plugin Stigmer would
+ * not attach, so the case does not run rather than score without it.
  */
 function unsupportedOf(
+  caseDir: string,
   plugins: readonly string[],
   context: EvalCaseContext,
   env: Readonly<Record<string, string>>,
   graders: readonly EvalGrader[],
   mocks: boolean,
 ): EvalUnsupportedFeature | undefined {
-  if (plugins.length > 1) return "plugins";
+  if (!plugins.every((entry) => namesPluginRoot(caseDir, entry))) return "plugins";
   if (context.scaffoldScript !== undefined) return "context.scaffold_script";
   if (context.addDirs.length > 0) return "context.add_dirs";
   if (context.historyFile !== undefined) return "context.history_file";
