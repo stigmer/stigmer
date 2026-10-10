@@ -107,7 +107,6 @@ function move(from: string, to: string): void {
  * closed to root) and handed over after its contents.
  */
 function chownTree(root: string, identity: AgentIdentity, io: HandoverIo): void {
-  if (!existsSync(root)) return;
   const pending: { readonly path: string; readonly listed: boolean }[] = [{ path: root, listed: false }];
   while (pending.length > 0) {
     const { path, listed } = pending.pop()!;
