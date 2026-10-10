@@ -122,7 +122,7 @@ git commit -am "chore(release): bump the release pins to <X.Y.Z>"
 git push -u origin chore/release-pins-<X.Y.Z>
 gh pr create --title "chore(release): bump the release pins to <X.Y.Z>" --body "The five release pins for v<X.Y.Z>."
 # review it when the brief's "When a review is needed" says so (.agents/skills/review-pull-request/SKILL.md)
-gh pr merge <n> --auto --match-head-commit "$(git rev-parse HEAD)"   # add --squash while the ruleset has no merge queue
+gh pr merge <n> --auto --match-head-commit "$(git rev-parse HEAD)"   # add --squash when the brief's ruleset read gives queue: false
 gh pr view <n> --json state,mergeCommit   # repeat until MERGED
 git switch main && git pull --ff-only
 ```

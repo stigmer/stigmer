@@ -33,16 +33,22 @@ merge runs it again only when the verdict is missing or stale.
 
 ```bash
 gh api repos/stigmer/<repo>/rules/branches/main \
-  --jq '[.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context]'
+  --jq '{checks: [.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context], queue: any(.[]; .type == "merge_queue")}'
 ```
 
-- **While it lists `Review verdict`**, every pull request gets a review, run by
-  the procedure below until its verdict is a current `approve`.
+`checks` is what a merge needs; `queue` says whether a merge goes through the
+merge queue, or arms `gh pr merge --auto --squash` and lands on its own head's
+checks.
+
+- **While `checks` lists `Review verdict`**, every pull request gets a review,
+  run by the procedure below until its verdict is a current `approve`.
 - **While it does not**, a stigmer pull request whose diff touches a security
   boundary below, or a file test rule 5 lists (`test/README.md`, "The rules
   every test keeps"), gets **one** round, by the same procedure. In that round:
-  - each blocking finding about security is fixed, verified and pushed, with no
-    second review;
+  - each blocking finding about security, and each blocking finding under "The
+    gate itself" below, is fixed, verified and pushed, with no second review;
+    the push leaves the posted verdict stale, which is expected here and asks
+    for no new round;
   - each other blocking finding is filed as an issue, linked in a reply on the
     pull request;
   - minor findings are left;
@@ -58,7 +64,12 @@ gh api repos/stigmer/<repo>/rules/branches/main \
     `backend/services/stigmer-server/src/sandbox`,
     `backend/services/stigmer-server/src/transport` and
     `backend/services/stigmer-server/src/pipeline`;
-  - its domains `backend/services/stigmer-server/src/domain/vault`,
+  - its domains `backend/services/stigmer-server/src/domain/apikey`,
+    `backend/services/stigmer-server/src/domain/iampolicy`,
+    `backend/services/stigmer-server/src/domain/identityaccount`,
+    `backend/services/stigmer-server/src/domain/agentshare`,
+    `backend/services/stigmer-server/src/domain/organization`,
+    `backend/services/stigmer-server/src/domain/vault`,
     `backend/services/stigmer-server/src/domain/oauthapp`,
     `backend/services/stigmer-server/src/domain/platformclient`,
     `backend/services/stigmer-server/src/domain/mcpserver` and
@@ -84,7 +95,11 @@ gh api repos/stigmer/<repo>/rules/branches/main \
     `client-apps/web/src/app/auth`, `client-apps/web/src/app/oauth` and
     `client-apps/desktop/src/auth`;
   - the identity and vault APIs, `apis/ai/stigmer/iam` and
-    `apis/ai/stigmer/agentic/vault`.
+    `apis/ai/stigmer/agentic/vault`;
+  - the RPC authorization posture:
+    `apis/ai/stigmer/commons/rpc/authorization_config.proto`, and any diff that
+    adds, removes or changes a method's authorization option in a proto under
+    `apis`.
 
   Whether the diff touches one:
 

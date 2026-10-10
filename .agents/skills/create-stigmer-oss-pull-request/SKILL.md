@@ -113,9 +113,9 @@ and `Test integrity` on the pull request, and, while the ruleset says so,
 on the queue's commit. When a review is needed, and what a verdict is, is in
 `.agents/skills/review-pull-request/SKILL.md` ("When a review is needed"); a
 verdict is a comment, never a section of this body. The merge arms
-`gh pr merge <n> --auto` (with `--squash` when there is no queue) and hands
-back; nobody waits. The local checks the test plan quotes still come first,
-because a red `Gate` costs a round trip.
+`gh pr merge <n> --auto` (with `--squash` when the brief's ruleset read gives
+`queue: false`) and hands back; nobody waits. The local checks the test plan
+quotes still come first, because a red `Gate` costs a round trip.
 
 ## Opening it
 
