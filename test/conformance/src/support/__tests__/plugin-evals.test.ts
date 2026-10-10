@@ -303,7 +303,13 @@ describe("installPlugin", () => {
     const calls: string[] = [];
     const clients = {
       pluginCommand: {
-        push: async ({ org, visibility }: { org: string; visibility?: ApiResourceVisibility }) => {
+        push: async ({
+          org,
+          visibility,
+        }: {
+          org: string;
+          visibility?: ApiResourceVisibility;
+        }) => {
           calls.push(`push ${org} at ${visibility}`);
           return { metadata: { id: "plg_2" } };
         },
@@ -317,7 +323,9 @@ describe("installPlugin", () => {
       skillPluginWithEvals("notes", { skill: "s", cases: [] }),
       ApiResourceVisibility.visibility_private,
     );
-    expect(calls).toEqual([`push acme at ${ApiResourceVisibility.visibility_private}`]);
+    expect(calls).toEqual([
+      `push acme at ${ApiResourceVisibility.visibility_private}`,
+    ]);
   });
 });
 
