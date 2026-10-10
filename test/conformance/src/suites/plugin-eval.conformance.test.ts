@@ -19,27 +19,44 @@
 // cannot start the eval's workflow: the eval is stored and answered failed,
 // naming why, cancelling it changes nothing, and delete removes it.
 //
+// Who may run and read an eval is pinned here too, on the target's
+// enforcing lane (the cloud's primary; open source's OIDC sibling, where
+// the built-in Authorizer evaluates the model): the plugin's owner
+// creates, cancels and deletes its evals and a member who only views the
+// plugin does none of them; a viewer of the plugin in its own organization
+// gets and lists them; a person who cannot view the plugin (another
+// organization's, or a member when the plugin is private) is refused get,
+// listByPlugin and create with PERMISSION_DENIED; and a child
+// organization's viewer of a plugin its parent shares gets an empty
+// listByPlugin and is refused get, because a try spends the parent's
+// credit. A target with no enforcing lane skips those arms visibly. The
+// relations themselves are the authorization model's store tests
+// (backend/services/stigmer-server/fga/tests/plugin-eval-access.fga.yaml).
+//
 // Out of scope here, pinned in the execution class with an engine
 // (suites-execution/plugin-eval.conformance.test.ts): an eval answered
 // pending and run to its end, delete refused while it runs (naming cancel),
 // cancel of a finished eval, and delete removing its tries' conversations.
-// Who may create and read an eval is the server's composed suite
-// (backend/services/stigmer-server/src/domain/plugin-eval/__tests__/plugin-eval.test.ts).
 import { Code } from "@connectrpc/connect";
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { PluginEvalAblation } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
 import { PluginEvalPhase } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
-import { uniqueName } from "../support/naming";
+import { organizationRole } from "../support/iampolicies";
+import { uniqueName, uniqueOrg } from "../support/naming";
 import {
   NO_ENGINE_CAUSE,
+  PLUGIN_EVAL_CREATE_DENIED_MESSAGE,
   type EvalCaseFixture,
+  awaitPluginEvalEnd,
   cancelAndDeletePluginEval,
   installPlugin,
+  isActivePhase,
   lastMessageGrader,
   makePluginEval,
   pluginEvalNoCasesMessage,
@@ -54,7 +71,7 @@ import {
   type PluginEvalOptions,
 } from "../support/plugin-evals";
 import { claudePlugin, withFile } from "../support/plugins";
-import { createTarget, type TargetProfile } from "../targets";
+import { createTarget, enforcingLaneOf, type EnforcingLane, type TargetProfile } from "../targets";
 import type { TenancyContext } from "../targets/target";
 
 let target: TargetProfile;
@@ -367,6 +384,197 @@ describe.skipIf(capabilities.scheduleFiring)("PluginEval — without an engine b
       () => clients.pluginEvalQuery.get({ value: created.metadata!.id }),
       Code.NotFound,
       "get of an eval whose plugin was deleted",
+    );
+  });
+});
+
+// ─── Who may run and read an eval, on a server that enforces it ─────────────
+
+// The arms below run on the target's enforcing lane: the primary on the
+// cloud, open source's OIDC sibling on the local targets (where the
+// built-in Authorizer evaluates the model). A target with no lane skips
+// them visibly. The lane's founder created the organization, so it is an
+// admin there, and only an admin installs a plugin: the founder is every
+// plugin's owner below.
+describe("PluginEval — who may run and read an eval", () => {
+  async function laneTenancy(lane: EnforcingLane): Promise<TenancyContext> {
+    const context = await lane.provisionTenancy();
+    fixtures.defer(() => lane.cleanupTenancy(context));
+    return context;
+  }
+
+  // A plugin with one skill and one case, installed by the founder.
+  async function laneInstalled(
+    lane: EnforcingLane,
+    org: string,
+    visibility?: ApiResourceVisibility,
+  ): Promise<Plugin> {
+    const name = uniqueName("pev-authz");
+    const skill = skillOf(name);
+    return installPlugin(
+      lane.clients,
+      fixtures,
+      org,
+      skillPluginWithEvals(name, { skill, cases: [caseNamed("only", skill)] }),
+      visibility,
+    );
+  }
+
+  // The founder's eval of `plugin`, cleaned up before the plugin.
+  async function laneEval(lane: EnforcingLane, org: string, plugin: Plugin) {
+    const created = await lane.clients.pluginEvalCommand.create(
+      makePluginEval({ org, pluginId: plugin.metadata!.id, ablation: PluginEvalAblation.none }),
+    );
+    const id = created.metadata!.id;
+    fixtures.defer(async () => {
+      const current = await lane.clients.pluginEvalQuery.get({ value: id }).catch(() => undefined);
+      if (current !== undefined) await cancelAndDeletePluginEval(lane.clients, id);
+    });
+    return created;
+  }
+
+  // A fresh person holding exactly `role` in `org`, granted by the founder.
+  async function personWith(lane: EnforcingLane, org: string, role: string): Promise<ConformanceClients> {
+    const person = await lane.provisionIdentity();
+    await lane.clients.iamPolicyCommand.create(organizationRole(await lane.accountIdOf(person), role, org));
+    return person;
+  }
+
+  it("[rpc:PluginEvalCommandController.create] [rpc:PluginEvalCommandController.cancel] [rpc:PluginEvalCommandController.delete] the plugin's owner creates, cancels and deletes its evals; a member who only views the plugin does none of them", async (ctx) => {
+    const enforcing = await enforcingLaneOf(target);
+    if (enforcing.lane === undefined) return ctx.skip(enforcing.reason);
+    const lane = enforcing.lane;
+    const org = (await laneTenancy(lane)).org;
+    const plugin = await laneInstalled(lane, org);
+    const pluginId = plugin.metadata!.id;
+    const member = await lane.provisionMember({ org });
+    expect(
+      (await member.pluginQuery.get({ value: pluginId })).metadata?.id,
+      "the member views the organization's plugin",
+    ).toBe(pluginId);
+
+    const refused = await expectGrpcCode(
+      () => member.pluginEvalCommand.create(makePluginEval({ org, pluginId })),
+      Code.PermissionDenied,
+      "a member who cannot edit the plugin starting an eval",
+    );
+    expect(refused.rawMessage).toBe(PLUGIN_EVAL_CREATE_DENIED_MESSAGE);
+    expect(
+      (await lane.clients.pluginEvalQuery.listByPlugin({ pluginId })).items,
+      "the refused create stored nothing",
+    ).toEqual([]);
+
+    const created = await laneEval(lane, org, plugin);
+    const id = created.metadata!.id;
+    const before = await lane.clients.pluginEvalQuery.get({ value: id });
+    await expectGrpcCode(
+      () => member.pluginEvalCommand.cancel({ value: id }),
+      Code.PermissionDenied,
+      "a member who cannot edit the plugin cancelling its eval",
+    );
+    await expectGrpcCode(
+      () => member.pluginEvalCommand.delete({ value: id }),
+      Code.PermissionDenied,
+      "a member who cannot edit the plugin deleting its eval",
+    );
+    const after = await lane.clients.pluginEvalQuery.get({ value: id });
+    expect(after.metadata?.id, "the refused delete left the eval").toBe(id);
+    expect(after.status?.partialReason, "the refused cancel changed nothing").toBe(before.status?.partialReason);
+
+    const cancelled = await lane.clients.pluginEvalCommand.cancel({ value: id });
+    expect(cancelled.metadata?.id).toBe(id);
+    if (isActivePhase((await lane.clients.pluginEvalQuery.get({ value: id })).status?.phase)) {
+      await awaitPluginEvalEnd(lane.clients, id, 60_000);
+    }
+    const deleted = await lane.clients.pluginEvalCommand.delete({ value: id });
+    expect(deleted.metadata?.id).toBe(id);
+    await expectGrpcCode(
+      () => lane.clients.pluginEvalQuery.get({ value: id }),
+      Code.NotFound,
+      "get after the owner's delete",
+    );
+  });
+
+  it("[rpc:PluginEvalQueryController.get] [rpc:PluginEvalQueryController.listByPlugin] a viewer of the plugin in its own organization reads and lists its evals", async (ctx) => {
+    const enforcing = await enforcingLaneOf(target);
+    if (enforcing.lane === undefined) return ctx.skip(enforcing.reason);
+    const lane = enforcing.lane;
+    const org = (await laneTenancy(lane)).org;
+    const plugin = await laneInstalled(lane, org);
+    const created = await laneEval(lane, org, plugin);
+    const viewer = await lane.provisionMember({ org });
+
+    const read = await viewer.pluginEvalQuery.get({ value: created.metadata!.id });
+    expect(read.metadata?.id).toBe(created.metadata!.id);
+    expect(read.spec?.pluginId).toBe(plugin.metadata!.id);
+    const list = await viewer.pluginEvalQuery.listByPlugin({ pluginId: plugin.metadata!.id });
+    expect(list.items.map((e) => e.metadata?.id)).toEqual([created.metadata!.id]);
+  });
+
+  it("[rpc:PluginEvalQueryController.get] [rpc:PluginEvalQueryController.listByPlugin] [rpc:PluginEvalCommandController.create] a person who cannot view the plugin reads, lists and starts nothing: another organization's person, and a member when the plugin is private", async (ctx) => {
+    const enforcing = await enforcingLaneOf(target);
+    if (enforcing.lane === undefined) return ctx.skip(enforcing.reason);
+    const lane = enforcing.lane;
+    const org = (await laneTenancy(lane)).org;
+    const shared = await laneInstalled(lane, org);
+    const sharedEval = await laneEval(lane, org, shared);
+    const hidden = await laneInstalled(lane, org, ApiResourceVisibility.visibility_private);
+    const hiddenEval = await laneEval(lane, org, hidden);
+    const outsider = await lane.provisionIdentity();
+    const member = await lane.provisionMember({ org });
+
+    const cases: ReadonlyArray<{ who: string; as: ConformanceClients; plugin: Plugin; evalId: string }> = [
+      { who: "another organization's person", as: outsider, plugin: shared, evalId: sharedEval.metadata!.id },
+      { who: "a member, of a private plugin", as: member, plugin: hidden, evalId: hiddenEval.metadata!.id },
+    ];
+    for (const { who, as, plugin, evalId } of cases) {
+      await expectGrpcCode(
+        () => as.pluginEvalQuery.get({ value: evalId }),
+        Code.PermissionDenied,
+        `${who} reading the eval`,
+      );
+      await expectGrpcCode(
+        () => as.pluginEvalQuery.listByPlugin({ pluginId: plugin.metadata!.id }),
+        Code.PermissionDenied,
+        `${who} listing the plugin's evals`,
+      );
+      const refused = await expectGrpcCode(
+        () => as.pluginEvalCommand.create(makePluginEval({ org, pluginId: plugin.metadata!.id })),
+        Code.PermissionDenied,
+        `${who} starting an eval`,
+      );
+      expect(refused.rawMessage).toBe(PLUGIN_EVAL_CREATE_DENIED_MESSAGE);
+    }
+  });
+
+  it("[rpc:PluginEvalQueryController.listByPlugin] [rpc:PluginEvalQueryController.get] a child organization's viewer of a plugin its parent shares lists none of its evals and reads none", async (ctx) => {
+    const enforcing = await enforcingLaneOf(target);
+    if (enforcing.lane === undefined) return ctx.skip(enforcing.reason);
+    const lane = enforcing.lane;
+    const parent = (await laneTenancy(lane)).org;
+    const child = await lane.clients.organizationCommand.create({
+      apiVersion: "tenancy.stigmer.ai/v1",
+      kind: "Organization",
+      metadata: { name: uniqueOrg() },
+      spec: { parentOrg: parent, externalId: uniqueName("cust") },
+    });
+    const childOrg = child.metadata!.id;
+    fixtures.defer(() => lane.clients.organizationCommand.delete({ value: childOrg }));
+    const plugin = await laneInstalled(lane, parent, ApiResourceVisibility.visibility_child_orgs);
+    const pluginId = plugin.metadata!.id;
+    const created = await laneEval(lane, parent, plugin);
+    const childViewer = await personWith(lane, childOrg, "viewer");
+
+    expect(
+      (await childViewer.pluginQuery.get({ value: pluginId })).metadata?.id,
+      "the child's viewer views the plugin its parent shares",
+    ).toBe(pluginId);
+    const list = await childViewer.pluginEvalQuery.listByPlugin({ pluginId });
+    expect(list.items, "a try spends the parent's credit: the child's viewer lists no eval").toEqual([]);
+    await expectGrpcCode(
+      () => childViewer.pluginEvalQuery.get({ value: created.metadata!.id }),
+      Code.PermissionDenied,
+      "a child organization's viewer reading the parent's eval",
     );
   });
 });
