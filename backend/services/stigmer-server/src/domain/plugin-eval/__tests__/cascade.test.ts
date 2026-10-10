@@ -5,7 +5,10 @@
  *   - the plugin's delete, after its row is gone, sweeps every eval of the
  *     plugin it finds, whatever its phase, with its tries' conversations
  *     and its access, first asking a pending or running eval's workflow
- *     to cancel (best effort: a cancel that fails still deletes the eval);
+ *     to cancel and waiting, bounded, for it to end, so a try's active run
+ *     no longer refuses its session's delete; an eval still running after
+ *     the wait is left, named in a warning; a cancel that fails, or finds
+ *     no workflow, deletes the eval at once;
  *     a composition with no evals does nothing; a fault listing the evals
  *     is INTERNAL;
  *   - create, after it stores the eval and its access, reads the plugin
@@ -34,12 +37,14 @@ import type {
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { RequestContext } from "../../../pipeline/request-context.js";
 import { EXISTING_RESOURCE_KEY } from "../../../pipeline/steps/load-existing.js";
+import type { LogFields, Logger } from "../../../boot/logger.js";
 import type { Store } from "../../../store/interface.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
 import { newSweepPluginEvalsAfterDeleteStep } from "../cascade.js";
 import { PLUGIN_EVAL_LABEL } from "../constants.js";
 import { newEnsureEvaluatedPluginStillExistsStep } from "../steps.js";
+import type { TrySessionDeleter } from "../tries.js";
 
 let temp: TempStore;
 
@@ -156,33 +161,102 @@ describe("SweepPluginEvalsAfterDelete", () => {
     expect(access.cleaned).toEqual(["plugin_eval pev_late"]);
   });
 
-  it("asks a pending or running eval's workflow to cancel before deleting it, and deletes it when the cancel fails", async () => {
+  /** The sweep with a fake engine whose cancel is `cancel`, and a short wait for an eval to end. */
+  function sweep(
+    cancel: (evalId: string) => Promise<"requested" | "not-found">,
+    logger: Logger = silentLogger,
+    sessions: TrySessionDeleter = { delete: () => Promise.resolve() },
+  ) {
+    return newSweepPluginEvalsAfterDeleteStep({
+      store: temp.store,
+      logger,
+      authorizationLifecycle: undefined,
+      sessions: () => sessions,
+      workflows: {
+        start: () => Promise.resolve(),
+        cancel,
+      },
+      endWait: { pollMs: 5, maxMs: 300 },
+    }).execute(deleteCtx());
+  }
+
+  /** A workflow that, a moment after its cancel, ends its eval partial. */
+  function endingAfterCancel(cancelled: string[]) {
+    return async (evalId: string): Promise<"requested"> => {
+      cancelled.push(evalId);
+      expect(await exists(ApiResourceKind.plugin_eval, evalId), "cancelled before its row goes").toBe(true);
+      setTimeout(() => {
+        void temp.store.updateResource(ApiResourceKind.plugin_eval, evalId, PluginEvalSchema, (live) => {
+          live.status!.phase = PluginEvalPhase.partial;
+          return live;
+        });
+      }, 30);
+      return "requested";
+    };
+  }
+
+  it("asks a pending or running eval's workflow to cancel, waits for it to end, then deletes it; a failed or unneeded cancel deletes at once", async () => {
     await saved(evalRow("pev_running", PluginEvalPhase.running));
     await saved(evalRow("pev_done", PluginEvalPhase.completed));
     const cancelled: string[] = [];
-    const sweep = (cancel: (evalId: string) => Promise<"requested" | "not-found">) =>
-      newSweepPluginEvalsAfterDeleteStep({
-        store: temp.store,
-        logger: silentLogger,
-        authorizationLifecycle: undefined,
-        sessions: () => ({ delete: () => Promise.resolve() }),
-        workflows: {
-          start: () => Promise.resolve(),
-          cancel,
-        },
-      }).execute(deleteCtx());
-    await sweep(async (evalId) => {
-      cancelled.push(evalId);
-      expect(await exists(ApiResourceKind.plugin_eval, evalId), "cancelled before its row goes").toBe(true);
-      return "requested";
-    });
+    // The try's session refuses its delete while the eval still runs.
+    let ended = false;
+    const sessions: TrySessionDeleter = {
+      delete: async () => {
+        const live = await temp.store.getResource(ApiResourceKind.plugin_eval, "pev_running", PluginEvalSchema);
+        ended = live.status?.phase === PluginEvalPhase.partial;
+        if (!ended) {
+          throw new Error("the session has an active run");
+        }
+      },
+    };
+    await temp.store.saveResource(
+      ApiResourceKind.session,
+      "ses_try",
+      SessionSchema,
+      create(SessionSchema, {
+        metadata: { id: "ses_try", name: "try", org: "org_1", labels: { [PLUGIN_EVAL_LABEL]: "pev_running" } },
+      }),
+    );
+    await sweep(endingAfterCancel(cancelled), silentLogger, sessions);
     expect(cancelled).toEqual(["pev_running"]);
+    expect(ended).toBe(true);
     expect(await exists(ApiResourceKind.plugin_eval, "pev_running")).toBe(false);
     expect(await exists(ApiResourceKind.plugin_eval, "pev_done")).toBe(false);
 
     await saved(evalRow("pev_stuck", PluginEvalPhase.pending));
     await sweep(() => Promise.reject(new Error("no engine connection")));
     expect(await exists(ApiResourceKind.plugin_eval, "pev_stuck")).toBe(false);
+
+    await saved(evalRow("pev_unstarted", PluginEvalPhase.pending));
+    await sweep(() => Promise.resolve("not-found"));
+    expect(await exists(ApiResourceKind.plugin_eval, "pev_unstarted")).toBe(false);
+  });
+
+  it("leaves an eval whose workflow has not ended in time, naming it in a warning, and still sweeps the rest", async () => {
+    await saved(evalRow("pev_slow", PluginEvalPhase.running));
+    await saved(evalRow("pev_gone", PluginEvalPhase.running));
+    const warnings: Array<{ message: string; fields: LogFields | undefined }> = [];
+    const logger: Logger = {
+      ...silentLogger,
+      warn: (message, fields) => {
+        warnings.push({ message, fields });
+      },
+    };
+    const started = Date.now();
+    await sweep(async (evalId) => {
+      if (evalId === "pev_gone") {
+        // A workflow that ends its eval by deleting it meanwhile.
+        await temp.store.deleteResource(ApiResourceKind.plugin_eval, evalId);
+      }
+      return "requested";
+    }, logger);
+    expect(Date.now() - started).toBeLessThan(2_000);
+    expect(await exists(ApiResourceKind.plugin_eval, "pev_slow")).toBe(true);
+    expect(warnings).toContainEqual({
+      message: "a swept plugin eval's workflow has not ended; leaving the eval",
+      fields: { evalId: "pev_slow", pluginId: "plg_1" },
+    });
   });
 
   it("does nothing in a composition with no evals, and is INTERNAL when the evals cannot be listed", async () => {

@@ -16,17 +16,21 @@
  *     its grader results, which it never reads, so this history carries
  *     them once.
  *   - Spend: before each cell starts, the cost of the finished tries and
- *     their votes is compared with the eval's limit; once it is reached no
- *     cell starts, the tries already running finish (so the spend can pass
- *     the limit by those, as in the format), and the eval ends partial,
- *     "cost ceiling". Each try's run is capped, when it starts, at an equal
- *     share of what the eval has left for the tries that may run at once:
- *     (limit less recorded spend) / concurrency, and never more than the
- *     limit less the recorded spend and the caps of the tries still running
- *     (tryBudgetUsd). So the tries running at once cannot together spend
- *     more than the eval has left, and no try starts with a sliver while
- *     another holds the rest. Never below TRY_MIN_BUDGET_USD (a cap of 0 is
- *     no cap).
+ *     their votes, plus the caps the tries still running hold, is compared
+ *     with the eval's limit. While they reach it no cell starts; a running
+ *     try that finishes under its cap frees the rest of it, and once the
+ *     finished tries alone reach the limit with none running the eval ends
+ *     partial, "cost ceiling". Each try's run is capped, when it starts, at
+ *     an equal share of what the eval has left for the tries that may run
+ *     at once: (limit less recorded spend) / concurrency, and never more
+ *     than the limit less the recorded spend and the caps held
+ *     (tryBudgetUsd), so no try starts with a sliver while another holds
+ *     the rest. While something is left the cap is never below
+ *     TRY_MIN_BUDGET_USD (a cap of 0 is no cap), so the last tries can
+ *     pass the limit by that floor. An AI-graded check's votes are not
+ *     under the try's cap: each vote is capped at the judge's own $0.25.
+ *     So tries already running and their AI-graded checks finish, and the
+ *     spend can pass the limit by those.
  *   - Credit: a try the organization's credit refused stops new cells the
  *     same way, and the eval ends partial, "out of credit".
  *   - Cancel: cancelling this workflow (the eval's cancel) cancels the
@@ -39,10 +43,14 @@
  *   - A child that fails outright is recorded as a try not graded, never
  *     the eval's failure, with what its run spent read by the spend
  *     activity (the try's run by the eval's label and its name), so the
- *     ceiling counts it.
+ *     ceiling counts it. That read runs in a non-cancellable scope, so a
+ *     cancel landing during it still records the try.
  *   - A load or a record that fails past its retries ends the eval failed
  *     with the reason, through the finish, once the tries in flight have
- *     settled: the workflow never ends leaving the eval running.
+ *     settled, in a non-cancellable scope. The finish is retried with no
+ *     bound of its own, so the workflow does not end leaving the eval
+ *     running; only the engine ending it (its execution timeout, or a stop
+ *     from outside) can, and the eval's reads then answer it failed.
  *
  * WORKFLOW-BUNDLE IMPORT DISCIPLINE: this module runs in the deterministic
  * sandbox; imports are limited to @temporalio/workflow and the pure names
@@ -94,18 +102,26 @@ const steps = proxyActivities<SuiteActivities & SpendActivities>({
 });
 
 /**
- * The finish, retried for up to twenty minutes so a store outage does not
- * leave the eval running for ever.
+ * The finish, retried with no bound of its own, so a store outage of any
+ * length within the workflow's execution timeout still ends the eval; an
+ * eval whose workflow that timeout ends is answered failed by its reads
+ * (domain/plugin-eval/steps.ts pluginEvalOutlivedItsWorkflow).
  */
 const finishing = proxyActivities<SuiteActivities>({
   startToCloseTimeout: "1 minute",
-  scheduleToCloseTimeout: "20 minutes",
   retry: {
     initialInterval: "2 seconds",
     backoffCoefficient: 2,
     maximumInterval: "1 minute",
   },
 });
+
+/**
+ * What counts as nothing left, in dollars: sums of cents in floating point
+ * leave a remainder far below any run's metering (0.05 - 0.02 - 0.03 is
+ * not 0), which must not start a try.
+ */
+const SPEND_EPSILON_USD = 1e-9;
 
 /** The longest cause a failed eval's error quotes. */
 const CAUSE_MAX_LENGTH = 500;
@@ -163,10 +179,13 @@ export async function runPluginEval(input: RunPluginEvalInput): Promise<void> {
     }
     if (error instanceof StepFailed) {
       // The eval's failure is its status; this workflow has done its job.
-      await finishing[FINISH_EVAL_ACTIVITY_NAME](evalId, {
-        phase: "failed",
-        error: error.message,
-      });
+      // A cancel landing meanwhile must not leave the eval running.
+      await CancellationScope.nonCancellable(() =>
+        finishing[FINISH_EVAL_ACTIVITY_NAME](evalId, {
+          phase: "failed",
+          error: error.message,
+        }),
+      );
       return;
     }
     throw error;
@@ -202,17 +221,21 @@ async function runCells(
       next < cells.length &&
       inFlight.size < concurrency
     ) {
-      if (spent >= maxCostUsd) {
-        stop = "cost_ceiling";
-        break;
-      }
-      const index = next++;
-      const cell = cells[index]!;
       let held = 0;
       for (const cap of caps.values()) {
         held += cap;
       }
       const budgetUsd = tryBudgetUsd(maxCostUsd, spent, held, concurrency);
+      if (budgetUsd === 0) {
+        // Nothing is left beyond the caps held: wait for a running try to
+        // free its cap, or, with none running, the limit is reached.
+        if (inFlight.size === 0) {
+          stop = "cost_ceiling";
+        }
+        break;
+      }
+      const index = next++;
+      const cell = cells[index]!;
       caps.set(index, budgetUsd);
       const settled = runCell(evalId, org, cell, budgetUsd).then(
         (result) => {
@@ -280,7 +303,10 @@ async function runCell(
         failedTry(evalId, cell, TRY_CANCELLED_REASON),
       );
     } else {
-      result = await failedTry(evalId, cell, TRY_FAILED_REASON);
+      // A cancel landing during the spend read still lets the try be recorded.
+      result = await CancellationScope.nonCancellable(() =>
+        failedTry(evalId, cell, TRY_FAILED_REASON),
+      );
     }
   }
   const { graderResults: _unread, ...recorded } = result;
@@ -339,10 +365,16 @@ async function failedTry(
 /**
  * A try's run cap: an equal share of what the eval has left for the
  * `concurrency` tries that may run at once, bounded by what the caps
- * already handed out leave, never below the floor (the module header).
+ * already handed out leave, never below the floor while something is
+ * left; 0, start nothing, once the recorded spend and the caps held reach
+ * the limit (the module header).
  */
 export function tryBudgetUsd(maxCostUsd: number, spent: number, held: number, concurrency: number): number {
   const left = maxCostUsd - spent;
+  const free = left - held;
+  if (free <= SPEND_EPSILON_USD) {
+    return 0;
+  }
   const share = left / Math.max(1, concurrency);
-  return Math.max(TRY_MIN_BUDGET_USD, Math.min(share, left - held));
+  return Math.max(TRY_MIN_BUDGET_USD, Math.min(share, free));
 }

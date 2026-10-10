@@ -4,8 +4,8 @@
  * eval's status.
  *
  *   - Start: the try's session and run, as the eval's caller, the run
- *     capped at the budget the suite passes (what is left of the eval's
- *     limit). A capacity refusal is retried for up to thirty minutes, then
+ *     capped at the budget the suite passes (its equal share of what the
+ *     eval has left, the suite workflow's tryBudgetUsd). A capacity refusal is retried for up to thirty minutes, then
  *     the try is not graded, "platform busy"; a credit refusal is reported
  *     so the suite stops; a target the organization cannot start is not
  *     graded with the run's own refusal.
@@ -16,7 +16,10 @@
  *     a timeout.
  *   - Grade: the code graders over the try's trace; then each AI-graded
  *     check's three votes, one after another, each a judge run in a session
- *     of its own, each read and its session deleted before the next.
+ *     of its own, each read and its session deleted before the next. A
+ *     vote whose read fails past its retries is stopped, and the try is not
+ *     graded, "the AI-graded check could not be read", with what its run
+ *     and every vote spent (the unread vote's read from its stored run).
  *   - Record: the votes tallied (two of three decide), the try's score,
  *     and its Score on its run.
  *
@@ -66,6 +69,7 @@ import {
   TRY_CANCELLED_REASON,
   TRY_NOT_STOPPED_REASON,
   TRY_SPEND_ACTIVITY_NAME,
+  VOTE_NOT_READ_REASON,
 } from "../names.js";
 import type {
   CaseActivities,
@@ -249,6 +253,9 @@ async function runTry(input: CaseInput, known: Known): Promise<TryResult> {
           voteIndex,
           outcome.votes,
         );
+        if (read === undefined) {
+          return unreadVoteTry(input, known, grade);
+        }
         known.voteCostUsd += read.costUsd;
         cast.push(read.vote);
       }
@@ -280,14 +287,18 @@ async function runTry(input: CaseInput, known: Known): Promise<TryResult> {
   }
 }
 
-/** One vote: start, wait within its budget, read (graders/llm.ts). */
+/**
+ * One vote: start, wait within its budget, read (graders/llm.ts).
+ * Undefined when the read fails past its retries; the vote's run is then
+ * stopped and left in `known.voteRunId`, its spend still stored.
+ */
 async function vote(
   input: CaseInput,
   known: Known,
   graderIndex: number,
   voteIndex: number,
   rubric: string,
-): Promise<VoteRead> {
+): Promise<VoteRead | undefined> {
   let start;
   try {
     start = await voteStart[START_VOTE_ACTIVITY_NAME](
@@ -315,9 +326,44 @@ async function vote(
   }
   known.voteRunId = start.voteRunId;
   await awaitRun(start.voteRunId, VOTE_BUDGET_MS);
-  const read = await steps[READ_VOTE_ACTIVITY_NAME](start.voteRunId, rubric);
+  let read: VoteRead;
+  try {
+    read = await steps[READ_VOTE_ACTIVITY_NAME](start.voteRunId, rubric);
+  } catch (error) {
+    if (isCancellation(error)) {
+      throw error;
+    }
+    await stopQuietly(start.voteRunId, UNREAD_VOTE_STOP_REASON);
+    await awaitRun(start.voteRunId, STOP_GRACE_MS);
+    return undefined;
+  }
   known.voteRunId = "";
   return read;
+}
+
+/** The reason an unread vote's run is stopped with. */
+const UNREAD_VOTE_STOP_REASON = "the vote could not be read";
+
+/**
+ * The try whose vote could not be read (the module header): not graded,
+ * with what the try's run and every vote spent. The spend activity reads
+ * the try's run and the votes still stored, the unread one included; the
+ * votes already read had their sessions deleted, so their spend is the
+ * workflow's own tally. A spend read that fails falls back to the grade's
+ * cost.
+ */
+async function unreadVoteTry(
+  input: CaseInput,
+  known: Known,
+  grade: TryGrade,
+): Promise<TryResult> {
+  const stored = (await spendOf(input))?.costUsd ?? grade.costUsd;
+  return {
+    ...notGraded(known.sessionId, known.runId, VOTE_NOT_READ_REASON),
+    error: grade.error,
+    costUsd: stored + known.voteCostUsd,
+    durationSeconds: grade.durationSeconds,
+  };
 }
 
 /** The reason a cancel gives the runs it stops. */
@@ -353,10 +399,13 @@ async function cancelledTry(input: CaseInput, known: Known): Promise<TryResult> 
   };
 }
 
-/** Stops `runId` for the cancel; a stop that fails leaves the run to its own cap. */
-async function stopQuietly(runId: string): Promise<void> {
+/** Stops `runId` (for the cancel, by default); a stop that fails leaves the run to its own cap. */
+async function stopQuietly(
+  runId: string,
+  reason: string = CANCELLED_STOP_REASON,
+): Promise<void> {
   try {
-    await steps[STOP_RUN_ACTIVITY_NAME](runId, CANCELLED_STOP_REASON);
+    await steps[STOP_RUN_ACTIVITY_NAME](runId, reason);
   } catch {
     // The run keeps its spending cap; the try is answered either way.
   }

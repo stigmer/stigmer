@@ -55,6 +55,7 @@ import {
   fileAbsentReason,
   focusLabel,
   invalidPathGlobReason,
+  patternFailedReason,
 } from "../verdict.js";
 
 const pool = newPatternPool();
@@ -526,6 +527,36 @@ describe("when a pattern cannot run", () => {
     expect(
       await gradeCheck(grader(regex("fetchUser")), trace(), TIMED_OUT),
     ).toEqual({ notGraded: PATTERN_TIME_LIMIT_REASON });
+  });
+
+  it("leaves a regex that throws while it runs not graded and grades the try's other checks", async () => {
+    const view = trace({ lastMessage: "a".repeat(5_000_000) });
+    const outcomes = await gradeChecks(
+      [
+        grader(regex("^(a)*\\1x"), "overflows"),
+        grader(regex("^a"), "found"),
+        grader({ type: "tool_used", tool: "Read", min: 1 }, "used"),
+      ],
+      view,
+      pool,
+    );
+    expect(outcomes).toEqual([
+      { notGraded: patternFailedReason("RangeError") },
+      { passed: true, reason: "the pattern was found in the final message" },
+      expect.objectContaining({ passed: true }),
+    ]);
+    expect(patternFailedReason("RangeError")).toBe("pattern failed: RangeError");
+  });
+
+  it("leaves tool_used not graded when its input pattern throws while it runs", async () => {
+    const failed = answering({ kind: "failed", name: "RangeError" });
+    expect(
+      await gradeCheck(
+        grader({ type: "tool_used", tool: "Read", inputMatch: "x", min: 1 }),
+        trace(),
+        failed,
+      ),
+    ).toEqual({ notGraded: "pattern failed: RangeError" });
   });
 
   it("leaves a regex over an unreadable file not graded with the file's reason", async () => {

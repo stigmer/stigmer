@@ -98,6 +98,14 @@ export const TRY_NOT_STARTED_REASON = "the try could not start";
 export const GRADING_FAILED_REASON = "grading failed";
 export const TRY_FAILED_REASON = "the try could not be run";
 export const TRY_NOT_STOPPED_REASON = "the try's run could not be stopped";
+/**
+ * A try whose run its own cap stopped: its equal share of what the eval
+ * had left, so the spend policy and the concurrency never move a score.
+ */
+export const TRY_SPENDING_SHARE_REASON =
+  "stopped at its share of the eval's spending limit";
+/** A try one of whose AI-graded votes could not be read past its retries. */
+export const VOTE_NOT_READ_REASON = "the AI-graded check could not be read";
 /** A try the eval's cancel stopped: its run is stopped and what it spent is still counted. */
 export const TRY_CANCELLED_REASON = "cancelled";
 
@@ -148,9 +156,10 @@ export type SuiteEnd =
   | { readonly phase: "failed"; readonly error: string };
 
 /**
- * The least a try's run is capped at. A run's cap of 0 means no cap
- * (run/v1/invocation.proto `max_cost_usd`), so what is left of the eval's
- * budget is never passed below this.
+ * The least a try's run is capped at while the eval has anything left. A
+ * run's cap of 0 means no cap (run/v1/invocation.proto `max_cost_usd`), so
+ * a try's share is never passed below this; with nothing left, no try
+ * starts.
  */
 export const TRY_MIN_BUDGET_USD = 0.01;
 
@@ -159,10 +168,11 @@ export interface CaseInput extends SuiteCell {
   readonly evalId: string;
   readonly org: string;
   /**
-   * The try's run's spending cap: the eval's `max_cost_usd` less what its
-   * recorded tries spent and the caps of the tries still running when this
-   * one started, at least TRY_MIN_BUDGET_USD. Set by the suite workflow, so a replay passes the
-   * same.
+   * The try's run's spending cap, set when it starts: an equal share of
+   * what the eval has left for the tries that may run at once, within what
+   * the caps of the tries still running leave, at least TRY_MIN_BUDGET_USD
+   * (the suite workflow's tryBudgetUsd). Set by the suite workflow, so a
+   * replay passes the same.
    */
   readonly budgetUsd: number;
 }

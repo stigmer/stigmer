@@ -751,8 +751,8 @@ export async function composeServer(
       : undefined);
   // Who a plugin eval's tries and AI-graded checks act as: a unit's eval
   // caller (the hosted edition's per-organization eval account), else the
-  // eval's creator under the built-in posture, while they may still read
-  // the eval, else the server itself on the trusted-local laptop
+  // eval's creator under the built-in posture, while they may still edit
+  // the eval's plugin, else the server itself on the trusted-local laptop
   // (extensions/plugin-eval-caller.ts). The eval's worker
   // (temporal/evals/) mints through it per try and per vote.
   const pluginEvalCaller: PluginEvalCallerMint | undefined =

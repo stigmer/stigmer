@@ -14,12 +14,15 @@
  * children that may run at once, within what the running caps leave (never
  * below the floor); a credit refusal
  * stopping new cells; a child that fails recorded as not graded with what
- * its run spent, which the ceiling counts; a cancellation recording every
+ * its run spent, which the ceiling counts, even when the eval's cancel
+ * lands during that spend read; a cancellation recording every
  * child in flight (its own cancelled answer, or one read through the spend
  * activity), starting no cell after, ending the eval partial "cancelled"
  * and rethrown;
  * a load or a record failing past its retries ending the eval failed with
- * the reason; an eval planning nothing ending at once.
+ * the reason, that end written even when a cancel lands during it, and the
+ * finish retried with no bound of its own; an eval planning nothing ending
+ * at once.
  *
  * The case: start, wait, grade, three votes per AI-graded check, record;
  * the deadline stopping the run and grading what it produced; each start
@@ -31,7 +34,9 @@
  * activity when the start's answer is unknown, and answered as a try not
  * graded, "cancelled", with its ids and what it spent; a grade, a stop or
  * a start that fails leaving the try not graded with what its run spent;
- * a vote that cannot start counted as failed.
+ * a vote that cannot start counted as failed; a vote that cannot be read
+ * past its retries stopped, the try not graded with what its run and every
+ * vote spent.
  */
 import {
   ActivityFailure,
@@ -64,6 +69,7 @@ import {
   TRY_NOT_STOPPED_REASON,
   TRY_CANCELLED_REASON,
   TRY_SPEND_ACTIVITY_NAME,
+  VOTE_NOT_READ_REASON,
 } from "../names.js";
 import type {
   CaseInput,
@@ -78,6 +84,10 @@ const seam = vi.hoisted(() => ({
   activities: {} as Record<string, ReturnType<typeof vi.fn>>,
   /** Whether the workflow's scope has been cancelled. */
   cancelled: false,
+  /** How many non-cancellable scopes are open, for an activity to tell whether a cancel reaches it. */
+  shielded: 0,
+  /** Every activity proxy's options, as the workflow modules declared them at load. */
+  proxies: [] as unknown[],
   child: (() => Promise.reject(new Error("no child expected"))) as (
     type: string,
     options: { workflowId: string; args: unknown[] },
@@ -88,14 +98,23 @@ vi.mock("@temporalio/workflow", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@temporalio/workflow")>();
   return {
     ...actual,
-    proxyActivities: () =>
-      new Proxy({}, { get: (_target, name: string) => seam.activities[name] }),
+    proxyActivities: (options: unknown) => {
+      seam.proxies.push(options);
+      return new Proxy({}, { get: (_target, name: string) => seam.activities[name] });
+    },
     executeChild: (
       type: string,
       options: { workflowId: string; args: unknown[] },
     ) => seam.child(type, options),
     CancellationScope: {
-      nonCancellable: <T>(fn: () => Promise<T>) => fn(),
+      nonCancellable: async <T>(fn: () => Promise<T>) => {
+        seam.shielded++;
+        try {
+          return await fn();
+        } finally {
+          seam.shielded--;
+        }
+      },
       current: () => ({
         get consideredCancelled() {
           return seam.cancelled;
@@ -109,13 +128,16 @@ vi.mock("@temporalio/workflow", async (importOriginal) => {
   };
 });
 
-const { runPluginEval } = await import("../workflows/run-plugin-eval.js");
+const { runPluginEval, tryBudgetUsd } = await import(
+  "../workflows/run-plugin-eval.js"
+);
 const { runCase } = await import("../workflows/run-case.js");
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["Date"] });
   seam.activities = {};
   seam.cancelled = false;
+  seam.shielded = 0;
 });
 
 afterEach(() => {
@@ -423,6 +445,84 @@ describe("the suite workflow", () => {
     expect(budgets).toHaveLength(4);
   });
 
+  it("starts no try while the finished spend and the caps still held reach the limit", async () => {
+    const { recorded, finished } = suite({
+      kind: "run",
+      org: "acme",
+      cells: cells(8),
+      maxCostUsd: 0.05,
+      concurrency: 8,
+    });
+    const budgets: number[] = [];
+    const finishes: Array<() => void> = [];
+    seam.child = async (_type, options) => {
+      budgets.push((options.args[0] as CaseInput).budgetUsd);
+      await new Promise<void>((resolve) => finishes.push(resolve));
+      return result({ costUsd: 0.01 });
+    };
+    const running = runPluginEval({ evalId: "pev_1" });
+    const settle = async () => {
+      for (let i = 0; i < 20; i++) await Promise.resolve();
+    };
+    await settle();
+    // An eighth of $0.05 is below the floor, so each try holds the floor,
+    // and the sixth would find nothing left once five hold it all.
+    expect(budgets).toEqual(Array.from({ length: 5 }, () => TRY_MIN_BUDGET_USD));
+    while (finishes.length > 0) {
+      finishes.shift()!();
+      await settle();
+    }
+    await running;
+    expect(budgets).toHaveLength(5);
+    expect(recorded).toHaveLength(5);
+    expect(finished).toEqual([{ phase: "partial", reason: "cost_ceiling" }]);
+  });
+
+  it("starts a held-back try once a running one finishes under its cap", async () => {
+    const { recorded, finished } = suite({
+      kind: "run",
+      org: "acme",
+      cells: cells(8),
+      maxCostUsd: 0.05,
+      concurrency: 8,
+    });
+    const budgets: number[] = [];
+    const finishes: Array<() => void> = [];
+    seam.child = async (_type, options) => {
+      budgets.push((options.args[0] as CaseInput).budgetUsd);
+      await new Promise<void>((resolve) => finishes.push(resolve));
+      return result({ costUsd: 0.001 });
+    };
+    const running = runPluginEval({ evalId: "pev_1" });
+    const settle = async () => {
+      for (let i = 0; i < 20; i++) await Promise.resolve();
+    };
+    await settle();
+    expect(budgets).toHaveLength(5);
+    finishes.shift()!();
+    await settle();
+    // The first spent $0.001 of its $0.01: $0.009 is left beyond the caps held.
+    expect(budgets).toHaveLength(6);
+    while (finishes.length > 0) {
+      finishes.shift()!();
+      await settle();
+    }
+    await running;
+    expect(budgets).toHaveLength(8);
+    expect(recorded).toHaveLength(8);
+    expect(finished).toEqual([{ phase: "completed" }]);
+  });
+
+  it("hands a try nothing when nothing is left, and the floor only while something is", () => {
+    expect(tryBudgetUsd(0.05, 0.05, 0, 1)).toBe(0);
+    expect(tryBudgetUsd(0.05, 0.06, 0, 1)).toBe(0);
+    expect(tryBudgetUsd(0.05, 0, 0.05, 8)).toBe(0);
+    // Floating point leaves 3.5e-18 here, which is nothing.
+    expect(tryBudgetUsd(0.05, 0.02, 0.03, 8)).toBe(0);
+    expect(tryBudgetUsd(0.05, 0, 0.049, 8)).toBe(TRY_MIN_BUDGET_USD);
+    expect(tryBudgetUsd(1, 0.2, 0, 2)).toBeCloseTo(0.4);
+  });
+
   it("counts what a failed child's run spent, read by its label and name, against the limit", async () => {
     const { recorded, finished } = suite(
       { kind: "run", org: "acme", cells: cells(5), maxCostUsd: 0.25, concurrency: 1 },
@@ -444,6 +544,35 @@ describe("the suite workflow", () => {
       expect.objectContaining({ costUsd: 0.2 }),
     ]);
     expect(finished).toEqual([{ phase: "partial", reason: "cost_ceiling" }]);
+  });
+
+  it("records a failed child with its spend when the eval's cancel lands during the spend read", async () => {
+    const { recorded, finished } = suite({
+      kind: "run",
+      org: "acme",
+      cells: cells(2),
+      maxCostUsd: 10,
+      concurrency: 1,
+    });
+    seam.child = () => Promise.reject(new Error("the child failed"));
+    seam.activities[TRY_SPEND_ACTIVITY_NAME] = vi.fn(() => {
+      seam.cancelled = true;
+      // A cancellable scope would see the cancel land here.
+      return seam.shielded > 0
+        ? Promise.resolve({ sessionId: "ses_9", runId: "run_9", costUsd: 0.2 })
+        : Promise.reject(new CancelledFailure("cancelled"));
+    });
+    await expect(runPluginEval({ evalId: "pev_1" })).rejects.toBeInstanceOf(
+      CancelledFailure,
+    );
+    expect(recorded.map((entry) => entry.result)).toEqual([
+      expect.objectContaining({
+        runId: "run_9",
+        costUsd: 0.2,
+        notGradedReason: TRY_FAILED_REASON,
+      }),
+    ]);
+    expect(finished).toEqual([{ phase: "partial", reason: "cancelled" }]);
   });
 
   it("records a failed child at no cost when its spend cannot be read, and rethrows a cancellation there", async () => {
@@ -521,6 +650,35 @@ describe("the suite workflow", () => {
     expect(again.finished).toEqual([
       { phase: "failed", error: `${EVAL_NOT_PLANNED_ERROR}: not an activity failure` },
     ]);
+  });
+
+  it("writes a failed eval's end even when the eval's cancel lands during it", async () => {
+    suite({ kind: "stop" });
+    const ends: unknown[] = [];
+    seam.activities[LOAD_SUITE_ACTIVITY_NAME] = vi.fn(() =>
+      Promise.reject(stepFailure(LOAD_SUITE_ACTIVITY_NAME, "")),
+    );
+    seam.activities[FINISH_EVAL_ACTIVITY_NAME] = vi.fn((_id: string, end: unknown) => {
+      seam.cancelled = true;
+      if (seam.shielded === 0) {
+        return Promise.reject(new CancelledFailure("cancelled"));
+      }
+      ends.push(end);
+      return Promise.resolve();
+    });
+    await runPluginEval({ evalId: "pev_1" });
+    expect(ends).toEqual([{ phase: "failed", error: EVAL_NOT_PLANNED_ERROR }]);
+  });
+
+  it("retries the finish without a bound of its own, within the workflow's execution timeout", () => {
+    expect(seam.proxies).toContainEqual({
+      startToCloseTimeout: "1 minute",
+      retry: {
+        initialInterval: "2 seconds",
+        backoffCoefficient: 2,
+        maximumInterval: "1 minute",
+      },
+    });
   });
 
   it("rethrows a cancellation of the load after ending the eval cancelled", async () => {
@@ -655,6 +813,45 @@ describe("the case workflow", () => {
     expect(activities[STOP_RUN_ACTIVITY_NAME]).not.toHaveBeenCalled();
   });
 
+  it("leaves the try not graded when a vote cannot be read, stopping that vote and counting every vote's spend", async () => {
+    const reads = () => {
+      let count = 0;
+      return vi.fn(() => {
+        count++;
+        return count === 3
+          ? Promise.reject(new Error("the store is down"))
+          : Promise.resolve({
+              vote: { kind: "vote", passed: true, reason: "yes" },
+              costUsd: 0.01,
+            });
+      });
+    };
+    const activities = caseScript({ [READ_VOTE_ACTIVITY_NAME]: reads() });
+    const outcome = await runCase(INPUT);
+    expect(VOTE_NOT_READ_REASON).toBe("the AI-graded check could not be read");
+    expect(outcome).toMatchObject({
+      sessionId: "ses_1",
+      runId: "run_1",
+      state: "not-graded",
+      notGradedReason: VOTE_NOT_READ_REASON,
+      durationSeconds: 5,
+    });
+    // The try's run and the unread vote, still stored, plus the two votes read.
+    expect(outcome.costUsd).toBeCloseTo(0.4 + 0.02);
+    expect(activities[STOP_RUN_ACTIVITY_NAME]).toHaveBeenCalledWith(
+      "vote_0_2",
+      expect.any(String),
+    );
+    expect(activities[RECORD_SCORE_ACTIVITY_NAME]).not.toHaveBeenCalled();
+
+    // A spend read that fails too falls back to the grade's cost and the votes read.
+    caseScript({
+      [READ_VOTE_ACTIVITY_NAME]: reads(),
+      [TRY_SPEND_ACTIVITY_NAME]: vi.fn(() => Promise.reject(new Error("down"))),
+    });
+    expect((await runCase(INPUT)).costUsd).toBeCloseTo(0.2 + 0.02);
+  });
+
   it("stops the run at the deadline and grades what it produced", async () => {
     const activities = caseScript({
       [POLL_RUN_ACTIVITY_NAME]: vi.fn(() => Promise.resolve(false)),
@@ -785,6 +982,27 @@ describe("the case workflow", () => {
         ).not.toHaveBeenCalled();
       }
     }
+  });
+
+  it("answers a cancellation at a vote's read as cancelled, stopping that vote's run and the try's", async () => {
+    const activities = caseScript({
+      [READ_VOTE_ACTIVITY_NAME]: vi.fn(() =>
+        Promise.reject(new CancelledFailure("cancelled")),
+      ),
+    });
+    expect(await runCase(INPUT)).toMatchObject({
+      state: "not-graded",
+      notGradedReason: TRY_CANCELLED_REASON,
+      costUsd: expect.closeTo(0.4),
+    });
+    expect(activities[STOP_RUN_ACTIVITY_NAME]).toHaveBeenCalledWith(
+      "vote_0_0",
+      "the eval was cancelled",
+    );
+    expect(activities[STOP_RUN_ACTIVITY_NAME]).toHaveBeenCalledWith(
+      "run_1",
+      "the eval was cancelled",
+    );
   });
 
   it("finds the run by the spend activity when a start's answer is lost to the cancellation, and stops nothing when there is none", async () => {
@@ -979,15 +1197,6 @@ describe("the case workflow", () => {
       runId: "",
       costUsd: 0,
     });
-  });
-
-  it("fails outright on a failure that is not a cancellation, for the suite to read the try's spend", async () => {
-    caseScript({
-      [READ_VOTE_ACTIVITY_NAME]: vi.fn(() =>
-        Promise.reject(new Error("the store is down")),
-      ),
-    });
-    await expect(runCase(INPUT)).rejects.toThrow("the store is down");
   });
 
   it("counts a vote that cannot start, or a refused one, as failed", async () => {

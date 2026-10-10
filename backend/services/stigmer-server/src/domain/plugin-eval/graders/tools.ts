@@ -28,6 +28,7 @@ import {
   PATTERN_POOL_BUSY_REASON,
   PATTERN_TIME_LIMIT_REASON,
   invalidPatternReason,
+  patternFailedReason,
 } from "./verdict.js";
 
 type ToolUsedCheck = Extract<EvalGraderCheck, { type: "tool_used" }>;
@@ -72,6 +73,8 @@ async function matchingCalls(
       return { notGraded: PATTERN_POOL_BUSY_REASON };
     case "invalid":
       return { notGraded: invalidPatternReason(answer.message) };
+    case "failed":
+      return { notGraded: patternFailedReason(answer.name) };
     case "counts":
       return {
         positions: named.filter((_, index) => (answer.counts[index] ?? 0) > 0),

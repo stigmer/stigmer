@@ -40,7 +40,7 @@ export interface BuiltInPluginEvalCallerDeps {
   readonly store: Store;
   /** The account port: the stamp is resolved as an account id, then as a direct subject. */
   readonly accounts: AccountsByCaller;
-  /** The composed authorizer: may the creator still read the eval. */
+  /** The composed authorizer: may the creator still edit the eval's plugin (`can_edit`). */
   readonly authorizer: Authorizer;
 }
 

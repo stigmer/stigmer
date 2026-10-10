@@ -73,6 +73,12 @@ export function pluginEvalNotStartedMessage(cause: string): string {
   return `the eval could not start: ${cause}`;
 }
 
+/**
+ * The error of an eval whose workflow closed without writing its end: its
+ * execution timeout passed, or it was stopped from outside.
+ */
+export const PLUGIN_EVAL_WORKFLOW_ENDED_ERROR = "the eval's workflow ended without finishing";
+
 /** The cancel's answer when no engine is connected to stop the eval. */
 export const PLUGIN_EVAL_NO_ENGINE_MESSAGE =
   "the eval cannot be cancelled while the server has no engine connection; try again shortly";

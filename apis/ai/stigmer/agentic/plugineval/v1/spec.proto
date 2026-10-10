@@ -77,8 +77,9 @@ message PluginEvalSpec {
 
   // The most this eval may spend, in estimated US dollars of model cost.
   //
-  // Checked before each try starts: tries already running finish, so the
-  // spend can pass the limit by those tries.
+  // Checked before each try starts, counting what tries already spent and
+  // the cap each running try still holds: tries already running and their
+  // AI-graded checks finish, so the spend can pass the limit by those.
   double max_cost_usd = 10 [(buf.validate.field).double = {
     gt: 0
     lte: 1000

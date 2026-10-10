@@ -21,6 +21,7 @@ import {
   focusLabel,
   focusText,
   invalidPatternReason,
+  patternFailedReason,
 } from "./verdict.js";
 
 type RegexCheck = Extract<EvalGraderCheck, { type: "regex" }>;
@@ -49,6 +50,8 @@ export async function gradeRegex(
       return { notGraded: PATTERN_POOL_BUSY_REASON };
     case "invalid":
       return { notGraded: invalidPatternReason(answer.message) };
+    case "failed":
+      return { notGraded: patternFailedReason(answer.name) };
     case "counts":
       break;
     /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */

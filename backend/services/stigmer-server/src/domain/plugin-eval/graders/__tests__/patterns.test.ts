@@ -3,7 +3,9 @@
  * refused pattern answered as invalid, and the deadline: a catastrophically
  * backtracking pattern answers "timeout" near its budget instead of
  * blocking, the overrunning worker is replaced, and the pool keeps
- * answering. Queued jobs wait for a free worker and their budget starts
+ * answering. A pattern that overflows the regex stack on a long text (a
+ * real RangeError from exec, cheap to raise) answers "failed" with the
+ * error's name and the worker takes the next job. Queued jobs wait for a free worker and their budget starts
  * when one takes them. A closed pool refuses work, and closing a pool
  * rejects the job a worker is running and the jobs still queued.
  */
@@ -68,6 +70,27 @@ describe("the pattern pool", () => {
     });
     expect(after).toEqual({ kind: "counts", counts: [1] });
   }, 15_000);
+
+  it("answers a pattern that throws while it runs as failed, and keeps the worker", async () => {
+    const started = Date.now();
+    const answer = await pool.count({
+      pattern: "^(a)*\\1x",
+      flags: "",
+      texts: ["ab", "a".repeat(5_000_000)],
+      limit: 1,
+      budgetMs: 2_000,
+    });
+    expect(answer).toEqual({ kind: "failed", name: "RangeError" });
+    expect(Date.now() - started).toBeLessThan(1_500);
+    const after = await pool.count({
+      pattern: "b",
+      flags: "",
+      texts: ["abc"],
+      limit: 1,
+      budgetMs: 2_000,
+    });
+    expect(after).toEqual({ kind: "counts", counts: [1] });
+  });
 
   it("queues jobs behind a busy worker", async () => {
     const answers = await Promise.all(
