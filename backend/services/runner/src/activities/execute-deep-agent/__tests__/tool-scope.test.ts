@@ -19,7 +19,11 @@
  *    on a real temp workspace);
  *  - a sub-agent's graph enforces its own narrowed scope;
  *  - with `Skill` denied, `read_file` of a skill's files is refused whether
- *    `Read` is in scope or confined, and the admission is never asked.
+ *    `Read` is in scope or confined, and the admission is never asked; a
+ *    `.stigmer/` path is judged by its real path, so a link a plugin's hook
+ *    leaves under `plugin-data/` pointing into `skills/` is refused too
+ *    (`shared/skill-mount.ts` `skillContentReadCheck`, on a real temp
+ *    platform dir).
  * The attribution of an MCP tool by object (never by a shared name) is pinned
  * on the middleware directly, since a graph refuses two tools of one name.
  */
@@ -43,6 +47,7 @@ import { createCasCaptureBackend } from "../cas-capture-backend.js";
 import { CasCaptureObserver } from "../cas-capture-observer.js";
 import { compileSubagents } from "../subagent-transformer.js";
 import { confinedReadAdmission } from "../platform-route.js";
+import { skillContentReadCheck } from "../../../shared/skill-mount.js";
 import { ScriptedModel, readPendingInterrupts, type ScriptSelector, type ScriptedToolCall } from "../__test-utils__/scripted-model.js";
 
 const NO_GATE_DEFAULT = { destructive: new Set<string>(), leasedServers: new Set<string>() };
@@ -95,6 +100,7 @@ describe("tool scope on a real deepagents graph", () => {
       ]),
       platformServerSlugs: new Set(["stigmer-channels"]),
       admitsConfinedRead: confinedReadAdmission(root),
+      readsSkillContent: skillContentReadCheck(undefined),
     };
     const gate: ApprovalGateConfig | null = options.gate
       ? {
@@ -255,7 +261,12 @@ describe("tool scope on a real deepagents graph", () => {
         workspaceRootDir: root,
         casObserver: observer,
         shellEnv: {},
-        scopeBase: { serverToolMap: new Map(), platformServerSlugs: new Set(), admitsConfinedRead: confinedReadAdmission(root) },
+        scopeBase: {
+          serverToolMap: new Map(),
+          platformServerSlugs: new Set(),
+          admitsConfinedRead: confinedReadAdmission(root),
+          readsSkillContent: skillContentReadCheck(undefined),
+        },
         modelFactory: async () => new ScriptedModel(roles),
       },
     );
@@ -290,6 +301,7 @@ describe("tool scope attribution, on the middleware itself", () => {
     ]),
     platformServerSlugs: new Set(),
     admitsConfinedRead: async () => true,
+    readsSkillContent: skillContentReadCheck(undefined),
   });
 
   function visibleTools(cfg: ToolScopeConfig, tools: unknown[]): unknown[] {
@@ -370,6 +382,58 @@ describe("tool scope attribution, on the middleware itself", () => {
     expect(await callRefused(open, "read_file", undefined, { file_path: "/.stigmer/skills/a/SKILL.md" })).toBe(true);
     expect(await callRefused(open, "read_file", undefined, { file_path: "/src/a.ts" })).toBe(false);
     expect(await callRefused(open, "grep", undefined, { pattern: "x" }), "only the read is the skill's activation").toBe(false);
+  });
+
+  describe("with Skill denied, over a real platform dir", () => {
+    let platformDir: string;
+
+    beforeEach(async () => {
+      platformDir = await mkdtemp(join(tmpdir(), "skill-read-"));
+      await mkdir(join(platformDir, "skills", "a"), { recursive: true });
+      await writeFile(join(platformDir, "skills", "a", "SKILL.md"), "skill body");
+      await mkdir(join(platformDir, "plugin-data", "p"), { recursive: true });
+      await writeFile(join(platformDir, "plugin-data", "p", "own.txt"), "the plugin's own data");
+      await symlink(join("..", "..", "skills", "a", "SKILL.md"), join(platformDir, "plugin-data", "p", "file-link"));
+      await symlink(join("..", "..", "skills"), join(platformDir, "plugin-data", "p", "dir-link"));
+      await symlink(join("..", "..", "skills", "gone.md"), join(platformDir, "plugin-data", "p", "dangling"));
+    });
+
+    afterEach(async () => {
+      await rm(platformDir, { recursive: true, force: true });
+    });
+
+    it("refuses a read whose real path lands in skills/, by a file or a directory link", async () => {
+      const cfg: ToolScopeConfig = {
+        ...config({ tools: [], disallowedTools: ["Skill"] }),
+        readsSkillContent: skillContentReadCheck(platformDir),
+      };
+      expect(await callRefused(cfg, "read_file", undefined, { file_path: "/.stigmer/plugin-data/p/file-link" })).toBe(true);
+      expect(await callRefused(cfg, "read_file", undefined, { file_path: "/.stigmer/plugin-data/p/dir-link/a/SKILL.md" })).toBe(true);
+      expect(await callRefused(cfg, "read_file", undefined, { file_path: "/.stigmer/Skills/a/SKILL.md" }), "by the path's text").toBe(true);
+      expect(await callRefused(cfg, "read_file", undefined, { file_path: "/.stigmer/plugin-data/p/own.txt" })).toBe(false);
+      expect(await callRefused(cfg, "read_file", undefined, { file_path: "/.stigmer/plugin-data/p/dangling" }), "nothing to read").toBe(false);
+      expect(await callRefused(cfg, "read_file", undefined, { file_path: "/src/a.ts" }), "outside the route").toBe(false);
+    });
+
+    it("reads the same links when the scope keeps Skill", async () => {
+      const cfg: ToolScopeConfig = {
+        ...config({ tools: [], disallowedTools: [] }),
+        readsSkillContent: skillContentReadCheck(platformDir),
+      };
+      expect(await callRefused(cfg, "read_file", undefined, { file_path: "/.stigmer/plugin-data/p/file-link" })).toBe(false);
+    });
+
+    it("judges a link by its real path through a platform dir that is itself reached by a link", async () => {
+      const linked = `${platformDir}-link`;
+      await symlink(platformDir, linked);
+      try {
+        const check = skillContentReadCheck(linked);
+        expect(await check("/.stigmer/plugin-data/p/file-link")).toBe(true);
+        expect(await check("/.stigmer/plugin-data/p/own.txt")).toBe(false);
+      } finally {
+        await rm(linked, { force: true });
+      }
+    });
   });
 
   it("leaves alone what carries no name (a provider tool), and passes a request with no tools through", () => {

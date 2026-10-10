@@ -29,11 +29,13 @@
  *
  * Also the one statement of where a skill's files live under the platform
  * dir ({@link SKILL_CONTENT_PATTERN}), which both harnesses' confined reads
- * consult when a turn's tool lists deny `Skill`.
+ * consult when a turn's tool lists deny `Skill`, each by the real path the
+ * read would open ({@link skillContentReadCheck}, the Cursor hook's
+ * `realpathSync`).
  */
 
-import { readFile, writeFile } from "node:fs/promises";
-import { join, posix } from "node:path";
+import { readFile, realpath, writeFile } from "node:fs/promises";
+import { join, posix, relative, sep } from "node:path";
 import type { StigmerClient } from "../client/stigmer-client.js";
 import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { extractZipFileEntries } from "./zip-extract.js";
@@ -58,11 +60,41 @@ export const SKILLS_SUBDIR = "skills";
  */
 export const SKILL_CONTENT_PATTERN = /^(?:skills|plugins)(?:\/|$)/i;
 
+/** The native engine's virtual prefix for the platform dir. */
+const PLATFORM_PREFIX = `/${STIGMER_LOCAL_STATE_DIR}/`;
+
 /** Whether a canonical virtual path (`/.stigmer/…`, the native engine's) names a skill's files. */
 export function isSkillContentPath(virtualPath: string): boolean {
-  const prefix = `/${STIGMER_LOCAL_STATE_DIR}/`;
   const normalized = posix.normalize(virtualPath);
-  return normalized.toLowerCase().startsWith(prefix) && SKILL_CONTENT_PATTERN.test(normalized.slice(prefix.length));
+  return normalized.toLowerCase().startsWith(PLATFORM_PREFIX) && SKILL_CONTENT_PATTERN.test(normalized.slice(PLATFORM_PREFIX.length));
+}
+
+/**
+ * Whether a native `read_file` of this canonical virtual path would open a
+ * skill's files: by its text ({@link isSkillContentPath}), or, for a path
+ * under `.stigmer/`, by the real path it resolves to inside the platform
+ * dir. The native route follows a link that stays inside the platform dir
+ * (`execute-deep-agent/platform-route.ts`), so a link a plugin's hook leaves
+ * under `plugin-data/` pointing into `skills/` reads the skill unless its
+ * real path is judged; the Cursor hook judges every read the same way.
+ * Compared without regard to case, as the pattern is. A path that does not
+ * resolve (nothing there, a dangling link) opens nothing and is not
+ * refused here. Costs two `realpath` calls, and only on a turn that denies
+ * `Skill`. Without a platform dir there is nothing to resolve against.
+ */
+export function skillContentReadCheck(platformDir: string | undefined): (virtualPath: string) => Promise<boolean> {
+  return async (virtualPath) => {
+    if (isSkillContentPath(virtualPath)) return true;
+    const normalized = posix.normalize(virtualPath);
+    if (platformDir === undefined || !normalized.startsWith(PLATFORM_PREFIX)) return false;
+    try {
+      const [root, target] = await Promise.all([realpath(platformDir), realpath(join(platformDir, normalized.slice(PLATFORM_PREFIX.length)))]);
+      const inside = relative(root.toLowerCase(), target.toLowerCase()).split(sep).join("/");
+      return !inside.startsWith("../") && inside !== ".." && SKILL_CONTENT_PATTERN.test(inside);
+    } catch {
+      return false;
+    }
+  };
 }
 
 /**

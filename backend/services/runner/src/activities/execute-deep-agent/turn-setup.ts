@@ -82,6 +82,7 @@ import type { RecalledMemoriesContent } from "../../shared/recalled-memories.js"
 import { toLangChainImageBlocks } from "../../shared/attachment-vision.js";
 import { backstopRecursionLimit, resolveToolRoundLimit } from "../../shared/tool-rounds.js";
 import { jsonSchemaToZod } from "../../shared/json-schema-to-zod.js";
+import { skillContentReadCheck } from "../../shared/skill-mount.js";
 import { CasCaptureObserver } from "./cas-capture-observer.js";
 import { createCasCaptureBackend } from "./cas-capture-backend.js";
 import { confinedReadAdmission, mountPlatformRoute } from "./platform-route.js";
@@ -448,6 +449,7 @@ export async function buildEngine(
     serverToolMap: tools.serverToolMap,
     platformServerSlugs: input.mcp.platformServerSlugs,
     admitsConfinedRead: confinedReadAdmission(primaryDir),
+    readsSkillContent: skillContentReadCheck(workspace.backend.platformDir),
   };
 
   // The agent's hooks, run inside the gate before the default

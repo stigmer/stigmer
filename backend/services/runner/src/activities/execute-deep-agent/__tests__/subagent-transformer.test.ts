@@ -41,6 +41,7 @@ const SCOPE_BASE: SubagentScopeBase = {
   serverToolMap: new Map(),
   platformServerSlugs: new Set(),
   admitsConfinedRead: async () => false,
+  readsSkillContent: async () => false,
 };
 
 function mockTool(name: string): StructuredTool {
