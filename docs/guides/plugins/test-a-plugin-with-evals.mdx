@@ -240,6 +240,11 @@ A case naming a `model` Stigmer's catalogue does not hold, such as `sonnet`, is
 not run on the default model either: name the model with `--model`, or use a
 catalogue ID in the case.
 
+Stigmer reads a case at most 32 folders below the suite's folder, with a name of
+at most 200 characters, a folder path of at most 1024 characters and grader
+weights of at most 1000. A case past any of these is reported as a problem
+reading the suite and not loaded, and the rest of the suite still runs.
+
 ## How Stigmer differs from claude plugin eval
 
 - **A tool specifier grants the whole tool.** `--allow-tools "Bash(npm test *)"`
@@ -338,8 +343,9 @@ The case holds:
 - `prompt.md`: the run's request as the body, with `max_turns: 10` and
   `allowed_tools: [Read, Glob, Grep, Skill]`;
 - `graders/criteria.md`: an `llm` grader whose FAIL line names what went wrong,
-  from the AI judge's failing reason or the comment left with a thumbs-down; you
-  write the PASS line, since only you know what a correct reply holds;
+  from the AI judge's failing reason, else a plugin eval's failing check, else
+  the comment left with a thumbs-down; you write the PASS line, since only you
+  know what a correct reply holds;
 - `graders/skill-fired.md` with `--skill`: a `tool_used: Skill` grader that
   passes when the try used that Skill.
 
