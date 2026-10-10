@@ -20,6 +20,11 @@
       "branches": 86,
       "cases": 54
     },
+    "backend/libs/ts/tool-vocabulary": {
+      "lines": 100,
+      "branches": 100,
+      "cases": 21
+    },
     "backend/libs/ts/zip-structure": {
       "lines": 97.2,
       "branches": 90.6,

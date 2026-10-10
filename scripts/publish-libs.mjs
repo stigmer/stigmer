@@ -96,6 +96,11 @@ export const PACKAGES = [
   // and the MCP OAuth rules they share) and pin the exact release version at
   // stamp time.
   "backend/libs/ts/outbound",
+  // @stigmer/tool-vocabulary has no deps at all, so its position is
+  // order-free. It MUST publish: the runner reads its tool lists through it
+  // and the server names recorded tool calls with it, and both pin the exact
+  // release version at stamp time.
+  "backend/libs/ts/tool-vocabulary",
   "sdk/typescript",
   "sdk/theme",
   "sdk/react",

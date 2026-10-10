@@ -39,10 +39,9 @@
 
 import { approvalCategory } from "./approval-policy.js";
 import type { ResolvedMcpServer } from "../../shared/mcp-resolver.js";
+import { CURSOR_HOOK_TOOL_COVERS, type ClaudeTool } from "@stigmer/tool-vocabulary";
 import {
-  CURSOR_HOOK_TOOL_COVERS,
   outOfScopeMessage,
-  type ClaudeTool,
   type McpScopeTable,
   type SubAgentTypeTable,
   type ToolScope,

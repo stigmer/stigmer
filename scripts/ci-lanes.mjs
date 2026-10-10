@@ -93,6 +93,7 @@ export const LANES = {
       "backend/libs/ts/outbound/**",
       "backend/libs/ts/plugin-package/**",
       "backend/libs/ts/temporal-codecs/**",
+      "backend/libs/ts/tool-vocabulary/**",
       "backend/libs/ts/zip-structure/**",
       // The Temporal CLI the lane installs through .github/actions/temporal-cli:
       // the installer and the CLI source that holds its pin.

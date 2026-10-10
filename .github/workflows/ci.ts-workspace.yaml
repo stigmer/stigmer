@@ -212,6 +212,7 @@ jobs:
             backend/libs/ts/zip-structure/coverage/
             backend/libs/ts/plugin-package/coverage/
             backend/libs/ts/outbound/coverage/
+            backend/libs/ts/tool-vocabulary/coverage/
             sdk/typescript/coverage/
             sdk/theme/coverage/
             sdk/embed/coverage/

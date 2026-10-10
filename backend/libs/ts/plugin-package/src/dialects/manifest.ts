@@ -77,6 +77,12 @@ export interface DialectManifest {
   readonly variables?: VariablesDeclaration;
   /** A Claude manifest's inline `settings` object, raw. */
   readonly settings?: unknown;
+  /**
+   * A Claude-shaped manifest's `experimental.evals`, raw: where the plugin's
+   * eval suite lives when not `evals/`. The eval reader validates it; the
+   * install never reads it.
+   */
+  readonly evalsDir?: { readonly value: unknown; readonly manifest: string };
   readonly ignored: readonly IgnoredComponent[];
 }
 
@@ -249,10 +255,11 @@ export function ignoredFieldComponents(object: JsonObject, path: string): Ignore
   return ignored;
 }
 
+// `experimental.evals` is not here: it names the eval suite's directory,
+// which the eval reader reads (`evals/read-eval-suite.ts`).
 const EXPERIMENTAL_KINDS: Readonly<Record<string, IgnoredComponentKind>> = {
   themes: "themes",
   monitors: "monitors",
-  evals: "evals",
 };
 
 /**

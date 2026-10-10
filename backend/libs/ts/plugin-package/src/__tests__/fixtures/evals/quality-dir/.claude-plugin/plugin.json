@@ -1,0 +1,6 @@
+{
+  "name": "quality-dir",
+  "experimental": {
+    "evals": "quality/evals"
+  }
+}
