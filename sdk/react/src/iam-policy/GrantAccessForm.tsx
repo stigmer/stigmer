@@ -11,8 +11,8 @@
  * team always reaches the wire as its members.
  */
 import { useCallback, useState, type FormEvent } from "react";
-import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import { create } from "@bufbuild/protobuf";
 import {
@@ -79,6 +79,14 @@ export interface GrantAccessFormProps {
  * />
  * ```
  */
+/**
+ * What sharing a conversation as Participant means beyond the role's own
+ * sentence: whose workspace and logins a participant's message runs with,
+ * and which decisions stay with the conversation's owner.
+ */
+const SESSION_PARTICIPANT_NOTE =
+  "Participants send messages. The agent answers in this conversation's workspace, using only the vaults the conversation names; stopping and approving stay with its owner.";
+
 export function GrantAccessForm({
   resourceKind,
   resourceKindString,
@@ -165,6 +173,12 @@ export function GrantAccessForm({
           onSelect={setSelectedRole}
           disabled={isCreating}
         />
+
+        {resourceKind === ApiResourceKind.session && selectedRole === IamRole.participant && (
+          <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+            {SESSION_PARTICIPANT_NOTE}
+          </p>
+        )}
       </div>
 
       {error && (

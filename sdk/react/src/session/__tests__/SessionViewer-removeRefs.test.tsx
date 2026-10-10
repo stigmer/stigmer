@@ -133,6 +133,12 @@ vi.mock("../useSessionPageFlow", () => ({
 // organizations too. It is one stable client: OrgProvider refetches the
 // organizations whenever the client it is handed changes.
 const client = vi.hoisted(() => ({ current: null as unknown }));
+// The reader's own access to the conversation: an owner's, unless a case
+// says otherwise.
+vi.mock("../useSessionAccess", () => ({
+  useSessionAccess: () => ({ canSend: true, canDecide: true }),
+}));
+
 vi.mock("../../hooks", () => ({
   useStigmer: () => {
     client.current ??= {
