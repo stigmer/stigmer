@@ -28,7 +28,7 @@
  */
 
 import { existsSync, lchownSync, lstatSync, mkdirSync, readdirSync, renameSync, chmodSync, writeFileSync, cpSync, rmSync } from "node:fs";
-import { dirname, join, relative, sep } from "node:path";
+import { dirname, isAbsolute, join, relative, sep } from "node:path";
 
 import type { AgentIdentity } from "./agent-identity.js";
 
@@ -140,8 +140,7 @@ function chownTree(root: string, identity: AgentIdentity, io: HandoverIo): void 
  * running every turn on a workspace its agent cannot open.
  */
 function refuseUnreachableWorkspace(identity: AgentIdentity, paths: { readonly runnerHome: string; readonly workspaceRoot: string }): void {
-  const rel = relative(paths.runnerHome, paths.workspaceRoot);
-  if (rel === "" || rel.startsWith("..") || rel.startsWith(sep)) return;
+  if (paths.workspaceRoot === paths.runnerHome || !within(paths.runnerHome, paths.workspaceRoot)) return;
   for (let dir = dirname(paths.workspaceRoot); ; dir = dirname(dir)) {
     const stats = lstatSync(dir);
     if (stats.uid !== identity.uid && (stats.mode & 0o001) === 0) {
@@ -153,17 +152,16 @@ function refuseUnreachableWorkspace(identity: AgentIdentity, paths: { readonly r
   }
 }
 
-/** Whether `path` is `dir` or lies inside it. */
+/** Whether `path` is `dir` or lies inside it (a name inside that merely starts with `..` included). */
 function within(dir: string, path: string): boolean {
   const rel = relative(dir, path);
-  return rel === "" || !(rel.startsWith("..") || rel.startsWith(sep));
+  return !(rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel));
 }
 
 /** The directories strictly between `home` and `target`, when `target` lies inside `home`'s `.stigmer`. */
 function ancestorsWithin(home: string, target: string): string[] {
   const state = join(home, ".stigmer");
-  const rel = relative(state, target);
-  if (rel === "" || rel.startsWith("..") || rel.startsWith(sep)) return [];
+  if (target === state || !within(state, target)) return [];
   const dirs: string[] = [];
   for (let dir = dirname(target); dir.length >= state.length; dir = dirname(dir)) {
     dirs.push(dir);

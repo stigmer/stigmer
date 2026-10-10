@@ -8,8 +8,9 @@
  * named with why it touches only the runner's own files.
  *
  * The walk starts at `harness/run-turn.ts` and at every activity the runner
- * itself runs (the ones `runner.ts` imports beside the harness registry,
- * read from its source, so a new one is walked too), and follows static and
+ * itself runs (the ones `runner.ts` and `runner-manager.ts` import beside
+ * the harness registry, read from their source, so a new one is walked
+ * too), and follows static and
  * dynamic imports, stopping at the rest of `activities/`: the adapters run
  * in the host, as the agent (`agent-host/`). Pinned also: hosting routes the
  * operations to the host while it runs, back when it closes, and on a
@@ -46,10 +47,14 @@ function importsOf(file: string): string[] {
   return specs;
 }
 
-/** The activities the runner runs in its own process: those `runner.ts` imports to build its activity table. */
+/** The activities the runner runs in its own process: those either composition root imports to build its activity table. */
 function runnerSideActivities(): string[] {
-  const text = readFileSync(join(SRC, "runner.ts"), "utf8");
-  return [...text.matchAll(/import\(\s*["']\.\/(activities\/[^"']+)\.js["']\s*\)/g)].map((match) => `${match[1]!}.ts`);
+  const found = new Set<string>();
+  for (const root of ["runner.ts", "runner-manager.ts"]) {
+    const text = readFileSync(join(SRC, root), "utf8");
+    for (const match of text.matchAll(/import\(\s*["']\.\/(activities\/[^"']+)\.js["']\s*\)/g)) found.add(`${match[1]!}.ts`);
+  }
+  return [...found];
 }
 
 function rawAccessInRuntime(): Map<string, string[]> {
@@ -84,7 +89,7 @@ describe("the turn runtime and the agent's paths", () => {
   });
 
   it("routes the operations to the host while the runner hosts its harnesses, and back when it closes", async () => {
-    const hosted = await hostHarnesses([], testConfig(), { start: async () => ({ channel: loopbackChannels()[0], kill: () => {} }) });
+    const hosted = await hostHarnesses([], testConfig(), { identity: null, start: async () => ({ channel: loopbackChannels()[0], kill: () => {} }) });
     expect(agentFs()).not.toBe(localAgentFs);
     await hosted.close();
     expect(agentFs()).toBe(localAgentFs);

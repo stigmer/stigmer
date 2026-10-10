@@ -385,32 +385,36 @@ holds none of them; a runner that cannot start that user stops with exit code 78
 rather than run the Agent's side as root. The default image creates the user; on
 your own base image the runner adds it at start. The Agent's home is where its
 session state persists: `/data/agent` on the chart's and compose's volume,
-`/home/stigmer-agent` under the drivers. The Agent must reach its workspace: one
-inside the runner's own home, where the Agent cannot pass (the default workspace
-under `/root`), stops the runner with exit code 78, so set `WORKSPACE_ROOT_DIR`
-outside it. Agents install user-level packages (`pip install --user`, `npm` and
-`uv` into their own folders); a system package your Agents need goes into your
-own base image. The Agent's environment is an allow-list: the path, locale and
-proxy settings, and Stigmer's and the engines' own settings. A cloud credential
-you give the runner as a variable stays with the runner, which signs the model
-calls itself; to pass another variable to Agents, list its name in
-`STIGMER_AGENT_ENV_PASSTHROUGH`. A credential the runner reads from a file (a
-Temporal client key, a cloud key file, a projected service-account token) stays
-out of reach only if the file is readable by root alone: mount it with mode
-`0400` or `0600`, not Kubernetes' default `0644`. A cloud identity served over
-the network (an instance metadata endpoint) is reachable from the Agent's side
-too; block that endpoint for the runner's pod or container if you use one.
-Running Stigmer on your own machine (`stigmer up`, the desktop app) does not
-change: there the Agent already runs as you. Neither does the all-in-one
-container, which runs `stigmer up` as one user. The `agent-sandbox` and `docker`
-drivers set the user to root, `HOME` to `/root` and the working directory to
-`/workspace` whatever your image says. Agent Substrate can't set a container's
-user, so on the `substrate` driver your image's own `USER` must be root, or the
-runner refuses to start. The runner clears `NODE_OPTIONS` and `NODE_PATH` before
-it starts, so a monitoring library your image loads through them (an APM tracer,
-say) never loads into the runner, nor into the commands Agents run. To trust an
-extra certificate authority in Node, use `NODE_EXTRA_CA_CERTS`, which is kept.
-The server refuses to boot when either cleared name is on its runner lists.
+`/home/stigmer-agent` under the drivers. If you set `STIGMER_AGENT_HOME`, keep
+it beside the runner's state: a home above the runner's own, or inside its
+`.stigmer`, stops the runner with exit code 78. The Agent must reach its
+workspace: one inside the runner's own home, where the Agent cannot pass (the
+default workspace under `/root`), stops the runner with exit code 78, so set
+`WORKSPACE_ROOT_DIR` outside it. Agents install user-level packages
+(`pip install --user`, `npm` and `uv` into their own folders); a system package
+your Agents need goes into your own base image. The Agent's environment is an
+allow-list: the path, locale and proxy settings, and Stigmer's and the engines'
+own settings. A cloud credential you give the runner as a variable stays with
+the runner, which signs the model calls itself; to pass another variable to
+Agents, list its name in `STIGMER_AGENT_ENV_PASSTHROUGH`. An npm registry token
+(`NODE_AUTH_TOKEN`) is held back too unless you list it there. A credential the
+runner reads from a file (a Temporal client key, a cloud key file, a projected
+service-account token) stays out of reach only if the file is readable by root
+alone: mount it with mode `0400` or `0600`, not Kubernetes' default `0644`. A
+cloud identity served over the network (an instance metadata endpoint) is
+reachable from the Agent's side too; block that endpoint for the runner's pod or
+container if you use one. Running Stigmer on your own machine (`stigmer up`, the
+desktop app) does not change: there the Agent already runs as you. Neither does
+the all-in-one container, which runs `stigmer up` as one user. The
+`agent-sandbox` and `docker` drivers set the user to root, `HOME` to `/root` and
+the working directory to `/workspace` whatever your image says. Agent Substrate
+can't set a container's user, so on the `substrate` driver your image's own
+`USER` must be root, or the runner refuses to start. The runner clears
+`NODE_OPTIONS` and `NODE_PATH` before it starts, so a monitoring library your
+image loads through them (an APM tracer, say) never loads into the runner, nor
+into the commands Agents run. To trust an extra certificate authority in Node,
+use `NODE_EXTRA_CA_CERTS`, which is kept. The server refuses to boot when either
+cleared name is on its runner lists.
 
 **Stigmer's toolbox plus one tool.** To keep Stigmer's default tools and add
 one, start your base from `ghcr.io/stigmer/runner-base`, the default image

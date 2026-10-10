@@ -158,7 +158,7 @@ describe("handing over across filesystems and outside the runner's state", () =>
     const base = mkdtempSync(join(tmpdir(), "agent-handover-enclosing-"));
     const runnerHome = join(base, "data");
     const refusal = `would hold the runner's own files (${join(runnerHome, ".stigmer")}); set STIGMER_AGENT_HOME to a directory of the agent's own, outside the runner's state`;
-    for (const home of ["/", base, join(runnerHome, ".stigmer", "agent")]) {
+    for (const home of ["/", base, join(runnerHome, ".stigmer", "agent"), join(runnerHome, ".stigmer", "..agent")]) {
       expect(() => handOverToAgent({ ...identity, home }, { runnerHome, workspaceRoot: join(base, "workspace") }, { chown: () => {} }), home).toThrow(refusal);
     }
     expect(existsSync(join(base, "workspace")), "refused before anything is made").toBe(false);
