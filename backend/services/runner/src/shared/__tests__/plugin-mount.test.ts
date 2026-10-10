@@ -10,8 +10,10 @@
  *    replaced together with any marker beside it, because its reference
  *    lives in memory;
  *  - an entry that escapes the mount refuses;
- *  - the eval suite is never mounted: `evals/` always, and the directory
- *    the install recorded in `status.evals.dir`, so an agent under test
+ *  - the eval suite is never mounted: `evals/` always, the directory the
+ *    install recorded in `status.evals.dir`, and the archive manifest's own
+ *    `experimental.evals` under the library's usability rule, each entry
+ *    judged by its cleaned root-relative name, so an agent under test
  *    cannot read its cases; the tamper guard holds the tree to the archive
  *    without them, and an archive carrying a suite is never left in the
  *    session's cache, where the shell could unzip it.
@@ -236,11 +238,52 @@ describe("the eval suite is not mounted", () => {
     warn.mockRestore();
   });
 
-  it("skips evals/ even when the install recorded no suite", async () => {
+  it("skips evals/ even when the install recorded no suite, and mounts a directory no manifest moved the suite to", async () => {
     const bytes = buildZip(Object.entries(suiteFiles).map(([name, content]) => ({ name, content })));
     const mounted = await mountPlugin(clientServing(bytes), suitePlugin(bytes, undefined), platformDir);
     expect(existsSync(join(mounted.root, "evals"))).toBe(false);
     expect(existsSync(join(mounted.root, "quality/evals/other/prompt.md"))).toBe(true);
+  });
+
+  it("reads the manifest's experimental.evals itself for a plugin whose install recorded no suite directory", async () => {
+    for (const manifest of [".claude-plugin/plugin.json", ".codex-plugin/plugin.json"]) {
+      const files = { ...suiteFiles, ".claude-plugin/plugin.json": '{"name":"safety"}', [manifest]: '{"name":"safety","experimental":{"evals":"quality/evals"}}' };
+      const bytes = buildZip(Object.entries(files).map(([name, content]) => ({ name, content })));
+      const root = join(platformDir, manifest.slice(1, 7));
+      const mounted = await mountPlugin(clientServing(bytes), suitePlugin(bytes, undefined), root);
+      expect(existsSync(join(mounted.root, "quality/evals")), manifest).toBe(false);
+      expect(existsSync(join(mounted.root, "evals")), manifest).toBe(false);
+      expect(readFileSync(join(mounted.root, "quality/notes.md"), "utf-8"), manifest).toBe("kept");
+    }
+  });
+
+  it("falls back to evals/ alone when the manifest's experimental.evals is unusable, as the library does", async () => {
+    const unusable = ["../outside", "/abs", "quality//evals", "./quality/evals", 7, "quality\\evals"];
+    for (const value of unusable) {
+      const files = { ...suiteFiles, ".claude-plugin/plugin.json": JSON.stringify({ name: "safety", experimental: { evals: value } }) };
+      const bytes = buildZip(Object.entries(files).map(([name, content]) => ({ name, content })));
+      const root = join(platformDir, `u${unusable.indexOf(value)}`);
+      const mounted = await mountPlugin(clientServing(bytes), suitePlugin(bytes, undefined), root);
+      expect(existsSync(join(mounted.root, "evals")), String(value)).toBe(false);
+      expect(existsSync(join(mounted.root, "quality/evals/other/prompt.md")), String(value)).toBe(true);
+    }
+  });
+
+  it("mounts everything but evals/ when the manifest cannot be read or carries no evals key", async () => {
+    for (const text of ["{not json", '["a list"]', '{"name":"safety","experimental":"x"}', '{"name":"safety","experimental":{}}']) {
+      const files = { ...suiteFiles, ".claude-plugin/plugin.json": text };
+      const bytes = buildZip(Object.entries(files).map(([name, content]) => ({ name, content })));
+      const root = join(platformDir, createHash("sha256").update(text).digest("hex").slice(0, 8));
+      const mounted = await mountPlugin(clientServing(bytes), suitePlugin(bytes, undefined), root);
+      expect(existsSync(join(mounted.root, "evals")), text).toBe(false);
+      expect(existsSync(join(mounted.root, "quality/evals/other/prompt.md")), text).toBe(true);
+    }
+  });
+
+  it("skips a suite entry by its cleaned, root-relative path, as the server's reader names it", () => {
+    const names = ["./evals/c/prompt.md", "x/../evals/c/prompt.md", "evals\\c\\prompt.md", "./qa/c.md", "a/./../qa/d.md", "evals/../kept.md"];
+    const entries = names.map((path) => ({ path, content: new Uint8Array() }));
+    expect(withoutEvalSuite(entries, "qa").map((e) => e.path)).toEqual(["evals/../kept.md"]);
   });
 
   it("never caches an archive carrying a suite, and removes a cached copy an earlier runner left", async () => {

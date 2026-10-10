@@ -34,10 +34,15 @@
  * `${CLAUDE_PLUGIN_DATA}` is the plugin's writable place, and its hooks run
  * with Python's bytecode cache off (`hooks/evaluate.ts`).
  *
- * The plugin's eval suite is never mounted: `evals/`, and the directory
- * `PluginStatus.evals.dir` names when the manifest moved the suite, are
+ * The plugin's eval suite is never mounted: `evals/`, the directory
+ * `PluginStatus.evals.dir` names when the manifest moved the suite, and the
+ * manifest's own `experimental.evals` read from the archive (a plugin
+ * installed before the status carried the directory has none recorded) are
  * left out of the tree, so an agent under test cannot read the cases it is
- * graded on, as Claude Code hides them from its own runs. Hooks never need
+ * graded on, as Claude Code hides them from its own runs. An entry is
+ * judged by its cleaned, root-relative name, the name the server's suite
+ * reader gives it, so `./evals/…` or `x/../evals/…` is a suite file here
+ * too. Hooks never need
  * them; the suite is the eval workflow's, which reads the archive itself.
  * For the same reason an archive that carries a suite is never cached on
  * disk: the cache must hash to the digest, so it is the whole archive, and
@@ -53,7 +58,7 @@
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { lstat, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
-import { join, relative } from "node:path";
+import { join, posix, relative } from "node:path";
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { StigmerClient } from "../client/stigmer-client.js";
 import { archiveFileMode, downloadArchive, entryPathIn, resetDirectory, writeArchiveEntries } from "./archive-mount.js";
@@ -142,7 +147,7 @@ export async function mountPlugin(
   if (entries.length === 0) {
     throw new PluginMountError(slug, "its archive holds no files");
   }
-  const mountable = withoutEvalSuite(entries, plugin.status?.evals?.dir);
+  const mountable = withoutEvalSuite(entries, plugin.status?.evals?.dir, manifestEvalDir(entries));
   if (mountable.length === entries.length) {
     await writeFile(archivePath, archive);
   } else {
@@ -169,15 +174,81 @@ const DEFAULT_EVAL_DIR = "evals";
 
 /**
  * The archive's entries minus the eval suite: everything under `evals/`,
- * and under `configured` when the install recorded another directory.
- * Both sides are plugin-relative paths of plain segments (the archive's
- * entries as the server wrote them, the directory as the library read it).
+ * and under each of `dirs` (the directory the install recorded, the one
+ * the manifest names) that is set. An entry is matched by
+ * {@link cleanEntryPath}, the directories are plugin-relative paths of
+ * plain segments.
  */
-export function withoutEvalSuite(entries: readonly ZipFileEntry[], configured: string | undefined): readonly ZipFileEntry[] {
-  const prefixes = [DEFAULT_EVAL_DIR, configured]
+export function withoutEvalSuite(entries: readonly ZipFileEntry[], ...dirs: readonly (string | undefined)[]): readonly ZipFileEntry[] {
+  const prefixes = [DEFAULT_EVAL_DIR, ...dirs]
     .filter((dir): dir is string => dir !== undefined && dir !== "")
     .map((dir) => `${dir}/`);
-  return entries.filter((entry) => !prefixes.some((prefix) => entry.path.startsWith(prefix)));
+  return entries.filter((entry) => {
+    const path = cleanEntryPath(entry.path);
+    return !prefixes.some((prefix) => path.startsWith(prefix));
+  });
+}
+
+/**
+ * An entry's name as the server's archive gate sanitises it before the
+ * suite reader sees it (`stigmer-server` `archive/prefilter.ts`
+ * `sanitizePath`): backslashes as slashes, `.` and `..` resolved against
+ * the root, no leading slash.
+ */
+function cleanEntryPath(name: string): string {
+  return posix.normalize(`/${name.replaceAll("\\", "/")}`).slice(1);
+}
+
+/**
+ * The Claude-shaped manifests that may move the suite, in the order the
+ * library ranks them (`@stigmer/plugin-package` `detect.ts`: the root
+ * manifest is the open format's, which carries no `experimental.evals`).
+ */
+const SUITE_MANIFESTS = [".claude-plugin/plugin.json", ".codex-plugin/plugin.json"] as const;
+
+/**
+ * The suite directory the archive's own manifest names, by the library's
+ * rule (`@stigmer/plugin-package` `evals/eval-dir.ts` `resolveEvalDir`):
+ * the first manifest carrying `experimental.evals` decides, and its value
+ * is used only when it is a relative path of plain directory names;
+ * anything else leaves `evals/` alone, as the library falls back to it. A
+ * manifest that does not parse contributes nothing, as the library reads
+ * it. Parsed here rather than through the library, which the runner does
+ * not depend on (it would bring its YAML and ZIP dependencies into every
+ * runner build for one field).
+ */
+export function manifestEvalDir(entries: readonly ZipFileEntry[]): string | undefined {
+  for (const location of SUITE_MANIFESTS) {
+    const entry = entries.find((candidate) => cleanEntryPath(candidate.path) === location);
+    if (entry === undefined) continue;
+    const value = experimentalEvals(entry.content);
+    if (value === undefined) continue;
+    return typeof value === "string" && isPlainRelativePath(value) ? value : undefined;
+  }
+  return undefined;
+}
+
+/** A manifest's raw `experimental.evals`; `undefined` when absent or the manifest is not a JSON object. */
+function experimentalEvals(content: Uint8Array): unknown {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(new TextDecoder().decode(content));
+  } catch {
+    return undefined;
+  }
+  if (!isObject(parsed)) return undefined;
+  const experimental = parsed["experimental"];
+  return isObject(experimental) ? experimental["evals"] : undefined;
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** The library's `isContainedPath`: relative, forward slashes, no empty, `.` or `..` segment. */
+function isPlainRelativePath(path: string): boolean {
+  if (path === "" || path.startsWith("/") || path.includes("\\")) return false;
+  return path.split("/").every((segment) => segment !== "" && segment !== "." && segment !== "..");
 }
 
 /**
