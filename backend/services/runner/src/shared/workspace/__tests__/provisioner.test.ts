@@ -135,7 +135,7 @@ describe("WorkspaceProvisioner", () => {
       );
 
       const envs = execute.mock.calls.map((call) => (call as unknown[])[1] as { env?: Record<string, string> } | undefined)
-        .map((options) => options?.env?.GIT_CONFIG_VALUE_2)
+        .map((options) => options?.env?.GIT_CONFIG_VALUE_4)
         .filter((value): value is string => value !== undefined);
       expect(envs.length).toBeGreaterThan(0);
       for (const value of envs) {

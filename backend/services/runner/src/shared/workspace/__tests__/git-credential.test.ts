@@ -69,25 +69,29 @@ function gitBackend(init: { localConfig?: string; origin?: string; run?: (cmd: s
 beforeEach(() => forgetGitVersion());
 
 describe("the header and the floor", () => {
-  it("carries the token as GitHub's basic header, scoped to https://github.com/, with hooks and the fsmonitor off", () => {
+  it("carries the token as GitHub's basic header, scoped to https://github.com/, with hooks, the fsmonitor and submodule recursion off", () => {
     expect(gitTokenEnv(TOKEN, {})).toEqual({
-      GIT_CONFIG_COUNT: "3",
+      GIT_CONFIG_COUNT: "5",
       GIT_CONFIG_KEY_0: "core.hooksPath",
       GIT_CONFIG_VALUE_0: "/dev/null",
       GIT_CONFIG_KEY_1: "core.fsmonitor",
       GIT_CONFIG_VALUE_1: "false",
-      GIT_CONFIG_KEY_2: "http.https://github.com/.extraheader",
-      GIT_CONFIG_VALUE_2: `AUTHORIZATION: basic ${BASIC}`,
+      GIT_CONFIG_KEY_2: "fetch.recurseSubmodules",
+      GIT_CONFIG_VALUE_2: "false",
+      GIT_CONFIG_KEY_3: "push.recurseSubmodules",
+      GIT_CONFIG_VALUE_3: "no",
+      GIT_CONFIG_KEY_4: "http.https://github.com/.extraheader",
+      GIT_CONFIG_VALUE_4: `AUTHORIZATION: basic ${BASIC}`,
     });
   });
 
   it("appends after the per-command configuration the runner already carries, never over it", () => {
     const env = gitTokenEnv(TOKEN, { GIT_CONFIG_COUNT: "2", GIT_CONFIG_KEY_0: "safe.directory", GIT_CONFIG_VALUE_0: "*" });
-    expect(env.GIT_CONFIG_COUNT).toBe("5");
+    expect(env.GIT_CONFIG_COUNT).toBe("7");
     expect(env.GIT_CONFIG_KEY_0).toBeUndefined();
     expect(env.GIT_CONFIG_KEY_2).toBe("core.hooksPath");
-    expect(env.GIT_CONFIG_KEY_4).toBe("http.https://github.com/.extraheader");
-    expect(gitTokenEnv(TOKEN, { GIT_CONFIG_COUNT: "garbage" }).GIT_CONFIG_COUNT).toBe("3");
+    expect(env.GIT_CONFIG_KEY_6).toBe("http.https://github.com/.extraheader");
+    expect(gitTokenEnv(TOKEN, { GIT_CONFIG_COUNT: "garbage" }).GIT_CONFIG_COUNT).toBe("5");
   });
 
   it("reads 2.31 and later as meeting the floor, and nothing older or unreadable", () => {
@@ -172,6 +176,15 @@ describe("the header and the floor", () => {
   ])("refuses a clone whose own configuration sets %s (%s), running nothing with the token", async (key) => {
     const { backend, execute } = gitBackend({ localConfig: `remote.origin.url\n${key}\n` });
     await expect(runNetworkGit(backend, "git push", { ...AT, token: TOKEN })).rejects.toBeInstanceOf(UntrustedGitConfigError);
+    expect(execute).not.toHaveBeenCalledWith("git push", expect.anything());
+  });
+
+  it("refuses a setting git printed with a tab in its name, never dropping it from the check", async () => {
+    const { backend, execute } = gitBackend({ localConfig: "remote.origin.url\nlocal\thttp.https://github.com/\tx.proxy\n" });
+    // Split on the first tab only: the name keeps its tab and is judged.
+    await expect(runNetworkGit(backend, "git push", { ...AT, token: TOKEN })).rejects.toBeInstanceOf(UntrustedGitConfigError);
+    const unreadable = gitBackend({ localConfig: "remote.origin.url\nlocal\t\n" });
+    await expect(runNetworkGit(unreadable.backend, "git push", { ...AT, token: TOKEN })).rejects.toThrow(/printed unreadably/);
     expect(execute).not.toHaveBeenCalledWith("git push", expect.anything());
   });
 

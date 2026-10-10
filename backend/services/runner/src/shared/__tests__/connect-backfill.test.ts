@@ -52,6 +52,8 @@ function makeMockClient(overrides: Record<string, unknown> = {}) {
         discoveredCapabilities: { tools: [{ name: "tool1" }], resourceTemplates: [] },
       },
     }),
+    // The turn's credential: a desktop runner's exchanged token.
+    acquireScopedRunnerToken: vi.fn().mockResolvedValue("scoped-run-token"),
     ...overrides,
   } as any;
 }
@@ -124,7 +126,7 @@ describe("backfillMcpServersIfNeeded", () => {
     );
 
     expect(client.getMcpServerByReference).toHaveBeenCalledOnce();
-    expect(client.connectMcpServer).toHaveBeenCalledWith("server-id-123", "org", RUN_ID);
+    expect(client.connectMcpServer).toHaveBeenCalledWith("server-id-123", "org", { runId: RUN_ID, scopedToken: "scoped-run-token" });
     expect(result).not.toBe(servers);
     expect(result[0].discoveredCapabilitiesEmpty).toBe(false);
   });
@@ -173,10 +175,41 @@ describe("backfillMcpServersIfNeeded", () => {
       client, servers, usages, TOOLS, platformValues, "org", RUN_ID, "stdio-allowed", PLATFORM_ENDPOINTS,
     );
 
-    expect(client.connectMcpServer).toHaveBeenCalledWith("server-id-123", "org", RUN_ID);
+    expect(client.connectMcpServer).toHaveBeenCalledWith("server-id-123", "org", { runId: RUN_ID, scopedToken: "scoped-run-token" });
     expect(JSON.stringify(client.connectMcpServer.mock.calls)).not.toContain("secret");
     // Re-resolution reads the same per-tool values the turn fetched.
     expect(resolve).toHaveBeenCalledWith(client, usages, TOOLS, platformValues, "stdio-allowed", PLATFORM_ENDPOINTS);
+  });
+
+  it("presents the credential the turn's fetch used, not the ambient one, when it names its run", async () => {
+    const servers = [makeServer({ slug: "needs-backfill", discoveredCapabilitiesEmpty: true })];
+    const client = makeMockClient();
+    vi.spyOn(await import("../mcp-resolver.js"), "resolveMcpServers").mockResolvedValue({
+      resolvedServers: [makeServer({ slug: "needs-backfill", discoveredCapabilitiesEmpty: false })],
+    });
+
+    await backfillMcpServersIfNeeded(
+      client, servers, [makeUsage("needs-backfill")], TOOLS, {}, "org", RUN_ID, "stdio-allowed", PLATFORM_ENDPOINTS,
+    );
+
+    expect(client.acquireScopedRunnerToken).toHaveBeenCalledWith({ agentExecutionId: RUN_ID });
+    expect(client.connectMcpServer.mock.calls[0][2]).toEqual({ runId: RUN_ID, scopedToken: "scoped-run-token" });
+  });
+
+  it("records no marks, and says so, when no credential bound to the run can be had", async () => {
+    const servers = [makeServer({ slug: "needs-backfill", discoveredCapabilitiesEmpty: true })];
+    const client = makeMockClient({
+      acquireScopedRunnerToken: vi.fn().mockRejectedValue(new Error("Server minted no scoped runner token")),
+    });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const result = await backfillMcpServersIfNeeded(
+      client, servers, [makeUsage("needs-backfill")], TOOLS, {}, "org", RUN_ID, "stdio-allowed", PLATFORM_ENDPOINTS,
+    );
+
+    expect(client.connectMcpServer).not.toHaveBeenCalled();
+    expect(result).toBe(servers);
+    expect(warn.mock.calls.flat().join(" ")).toContain("Server minted no scoped runner token");
   });
 
   it("names no run for a server the run's fetch gave no values: it needs none", async () => {

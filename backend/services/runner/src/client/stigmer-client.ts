@@ -534,19 +534,24 @@ export class StigmerClient {
   }
 
   /**
-   * Connect an MCP server (discovery). `runId` names the run whose planned
+   * Connect an MCP server (discovery). `run` names the run whose planned
    * values for this server the connect uses — the backfill's path; the
    * server accepts it only from a runner credential bound to that live run,
-   * which the interceptor presents for every RPC made inside the run's
-   * activity.
+   * presented per call when the runner holds a scoped one.
    */
   async connectMcpServer(
     mcpServerId: string,
     org: string,
-    runId?: string,
+    run?: { readonly runId: string; readonly scopedToken: string | undefined },
   ): Promise<McpServer> {
     return this.mcpServerCommand.connect(
-      create(ConnectInputSchema, { mcpServerId, org, runId: runId ?? "" }),
+      create(ConnectInputSchema, { mcpServerId, org, runId: run?.runId ?? "" }),
+      // A connect naming its run presents the run's own credential, per
+      // call as the values fetch does (fetchExecutionValues): the server
+      // accepts run_id only from a credential bound to that run.
+      run?.scopedToken
+        ? { headers: { authorization: `Bearer ${run.scopedToken}` } }
+        : undefined,
     );
   }
 

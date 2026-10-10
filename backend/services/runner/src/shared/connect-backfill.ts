@@ -13,9 +13,10 @@
  * (`run_id`), with no values: the server uses the run's planned values for
  * that server, which discovery fetches from their vaults as the turn did,
  * so a key the run took from a shared vault reaches discovery without the
- * runner sending it back. The call is made inside the run's activity, so
- * it presents the run's own credential, the one the server accepts
- * `run_id` from. A server the fetch gave nothing names no run: it needs no
+ * runner sending it back. The call presents the credential the turn's
+ * fetch used (a desktop runner's exchanged token, the activity's run
+ * credential, or the ambient one when it is already bound to this work),
+ * the one the server accepts `run_id` from. A server the fetch gave nothing names no run: it needs no
  * values, and its connect asks nothing of the run's credential.
  *
  * Backfill trigger: discovered_capabilities is empty or absent. A server
@@ -121,7 +122,20 @@ export async function backfillMcpServersIfNeeded(
       const updated = await withTimeout(
         CONNECT_TIMEOUT_MS,
         `Connect timed out after ${CONNECT_TIMEOUT_MS / 1000}s`,
-        () => client.connectMcpServer(serverId, org, tools.has(serverId) ? runId : undefined),
+        async () =>
+          client.connectMcpServer(
+            serverId,
+            org,
+            tools.has(serverId)
+              ? {
+                  runId,
+                  // The credential the turn's fetch used: a desktop
+                  // runner's exchanged token, a run credential, or none
+                  // when the ambient one is already bound to this work.
+                  scopedToken: await client.acquireScopedRunnerToken({ agentExecutionId: runId }),
+                }
+              : undefined,
+          ),
       );
 
       const toolCount = updated.status?.discoveredCapabilities?.tools.length ?? 0;

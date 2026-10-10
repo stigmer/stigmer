@@ -171,8 +171,8 @@ describe("provisionGit", () => {
       expect(run.env).toMatchObject({
         GIT_CONFIG_KEY_0: "core.hooksPath",
         GIT_CONFIG_VALUE_0: "/dev/null",
-        GIT_CONFIG_KEY_2: "http.https://github.com/.extraheader",
-        GIT_CONFIG_VALUE_2: `AUTHORIZATION: basic ${basic}`,
+        GIT_CONFIG_KEY_4: "http.https://github.com/.extraheader",
+        GIT_CONFIG_VALUE_4: `AUTHORIZATION: basic ${basic}`,
       });
     }
     for (const run of runs(backend)) expect(run.cmd).not.toContain(TOKEN);

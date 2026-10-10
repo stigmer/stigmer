@@ -12,13 +12,18 @@
  * arguments), never in a remote URL, never in a credential store. What a
  * shell command of the agent can read afterwards holds no token: the
  * remote URL is clean and `.git` holds nothing. While one git command runs,
- * its environment is readable by processes of the same OS user; that is
- * the residual, and which user that is belongs to the runner's process
+ * its environment is readable by processes of the same OS user, and that
+ * user's own git configuration (`~/.gitconfig`, which this module does not
+ * judge: it is the operator's, and on a laptop holds their proxy and
+ * rewrites) is honoured; both are the residual of the agent and the runner
+ * being one OS user, and which user that is belongs to the runner's process
  * layout.
  *
  * The clone is the agent's to write, so the token's command does not trust
- * it. Hooks and the fsmonitor are switched off at command scope, which no
- * repository setting outranks. And every setting the clone itself holds
+ * it. Hooks, the fsmonitor and submodule recursion are switched off at
+ * command scope, which no repository setting outranks (a submodule's own
+ * configuration under `.git/modules` is the agent's too, and is never
+ * reached). And every setting the clone itself holds
  * (its own configuration and its worktree configuration, read with their
  * scope) must be one a clone ordinarily holds: its format, its file-system
  * flags, its one origin and how it fetches, its branches' upstreams, an
@@ -63,6 +68,8 @@ export function gitTokenEnv(
   const entries: ReadonlyArray<readonly [string, string]> = [
     ["core.hooksPath", "/dev/null"],
     ["core.fsmonitor", "false"],
+    ["fetch.recurseSubmodules", "false"],
+    ["push.recurseSubmodules", "no"],
     [GITHUB_EXTRAHEADER_KEY, `AUTHORIZATION: basic ${basic}`],
   ];
   const parsed = Number.parseInt(inherited.GIT_CONFIG_COUNT ?? "0", 10);
@@ -164,11 +171,19 @@ async function refuseUntrustedClone(
 ): Promise<void> {
   // Every scope with its name, so the worktree configuration (honoured once
   // the clone sets extensions.worktreeConfig) is read as well as its own.
+  // Each line is "<scope>\t<name>"; a name may itself hold a tab (git
+  // accepts one in a subsection), so only the first tab splits, and a line
+  // that does not read as a scope and a name refuses rather than passes.
   const settings = (await backend.execute("git config --list --show-scope --name-only", { cwd }))
     .split("\n")
-    .map((line) => line.trim().split("\t"))
-    .filter((parts): parts is [string, string] => parts.length === 2)
-    .map(([scope, name]) => ({ scope, name: name.toLowerCase() }));
+    .filter((line) => line.trim() !== "")
+    .map((line) => {
+      const tab = line.indexOf("\t");
+      if (tab <= 0 || tab === line.length - 1) {
+        throw new UntrustedGitConfigError(`holds a setting git printed unreadably (${JSON.stringify(line)})`);
+      }
+      return { scope: line.slice(0, tab), name: line.slice(tab + 1).toLowerCase() };
+    });
   const clones = settings.filter(({ scope }) => scope === "local" || scope === "worktree");
   const offending = clones.find(({ name }) => !ORDINARY_CLONE_KEY.test(name));
   if (offending !== undefined) {

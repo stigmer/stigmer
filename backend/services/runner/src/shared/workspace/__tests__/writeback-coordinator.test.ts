@@ -272,7 +272,7 @@ describe("WriteBackCoordinator", () => {
     const basic = Buffer.from("x-access-token:ghp_entry_token").toString("base64");
     for (const run of runs.filter((r) => r.env !== undefined)) {
       expect(run.env?.GIT_CONFIG_VALUE_0).toBe("/dev/null");
-      expect(run.env?.GIT_CONFIG_VALUE_2).toBe(`AUTHORIZATION: basic ${basic}`);
+      expect(run.env?.GIT_CONFIG_VALUE_4).toBe(`AUTHORIZATION: basic ${basic}`);
     }
     for (const run of runs) expect(run.cmd).not.toContain("ghp_entry_token");
   });

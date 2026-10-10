@@ -569,16 +569,21 @@ describe("StigmerClient", () => {
   });
 
   describe("connectMcpServer", () => {
-    it("names the run for the backfill and carries no values", async () => {
+    it("names the run for the backfill, presents the run's scoped credential per call, and carries no values", async () => {
       const client = new StigmerClient({ endpoint: "http://localhost", token: null });
       const connect = vi.fn().mockResolvedValue({});
       (client as any).mcpServerCommand = { connect };
 
-      await client.connectMcpServer("mcp_1", "acme", "run_1");
+      await client.connectMcpServer("mcp_1", "acme", { runId: "run_1", scopedToken: "scoped-run-token" });
+      await client.connectMcpServer("mcp_1", "acme", { runId: "run_1", scopedToken: undefined });
       await client.connectMcpServer("mcp_1", "acme");
 
       expect(connect.mock.calls[0][0]).toEqual(expect.objectContaining({ mcpServerId: "mcp_1", org: "acme", runId: "run_1" }));
-      expect(connect.mock.calls[1][0]).toEqual(expect.objectContaining({ runId: "" }));
+      expect(connect.mock.calls[0][1]).toEqual({ headers: { authorization: "Bearer scoped-run-token" } });
+      // An ambient credential already bound to the work rides the interceptor.
+      expect(connect.mock.calls[1][1]).toBeUndefined();
+      expect(connect.mock.calls[2][0]).toEqual(expect.objectContaining({ runId: "" }));
+      expect(connect.mock.calls[2][1]).toBeUndefined();
     });
   });
 
