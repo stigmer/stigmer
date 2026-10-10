@@ -246,8 +246,9 @@ describe("terminate: a runner that calls Cursor itself", () => {
   it("relays only the side calls the SDK makes, and refuses every other aiserver method before it leaves the runner", async () => {
     const standIn = await exchange();
     rest.answer = { status: 200, headers: { "content-type": "application/json" }, body: "{}" };
-    // The methods @cursor/sdk 1.0.31 calls through a client, read from its bundle (#2083).
+    // The methods @cursor/sdk 1.0.31 calls through a client or by fetch, read from its bundle (#2083).
     expect([...CURSOR_SIDE_CALLS].sort()).toEqual([
+      "/aiserver.v1.AnalyticsService/BootstrapStatsig",
       "/aiserver.v1.AnalyticsService/TrackEvents",
       "/aiserver.v1.DashboardService/GetEffectiveUserPlugins",
       "/aiserver.v1.DashboardService/GetManagedSkills",

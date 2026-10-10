@@ -84,8 +84,9 @@ const SIDE_CALL_PREFIX = "/aiserver.v1.";
 
 /**
  * The `aiserver.v1` methods the Cursor SDK calls through a client, read from
- * `@cursor/sdk` 1.0.31's bundle (#2083): its server config, telemetry, and
- * the dashboard reads for privacy mode, team settings, plugins and skills.
+ * `@cursor/sdk` 1.0.31's bundle (#2083), through a client or by `fetch`: its
+ * server config, telemetry and feature flags (`BootstrapStatsig`), and the
+ * dashboard reads for privacy mode, team settings, plugins and skills.
  * Each dashboard read falls back to a default when it fails. Left out on
  * purpose: `DashboardService/CreateUserApiKey` (the SDK's login flow, which
  * mints a key from the access token) and `BidiService/BidiAppend` (the
@@ -96,6 +97,7 @@ const SIDE_CALL_PREFIX = "/aiserver.v1.";
 export const CURSOR_SIDE_CALLS: ReadonlySet<string> = new Set([
   "/aiserver.v1.ServerConfigService/GetServerConfig",
   "/aiserver.v1.AnalyticsService/TrackEvents",
+  "/aiserver.v1.AnalyticsService/BootstrapStatsig",
   "/aiserver.v1.DashboardService/GetUserPrivacyMode",
   "/aiserver.v1.DashboardService/GetTeamReposOrEmptyIfNotInTeam",
   "/aiserver.v1.DashboardService/GetTeamAdminSettingsOrEmptyIfNotInTeam",
