@@ -296,13 +296,13 @@ describe("the production starter", () => {
     expect(env).toEqual({ HOME: "/data/agent" });
   });
 
-  // As root on Linux holding the four capabilities (a dev container), the real
+  // As root on Linux holding the five capabilities (a dev container), the real
   // preparation would add the agent user to this machine's /etc/passwd.
   it.skipIf(process.getuid?.() === 0)("prepares the separation itself by default, and stops when it cannot", async () => {
     const identity = { name: "stigmer-agent", uid: 10001, gid: 10001, home: join(mkdtempSync(join(tmpdir(), "agent-home-")), "agent") };
     const exits: number[] = [];
     vi.spyOn(console, "error").mockImplementation(() => {});
-    // This process is not a root runner holding the four capabilities, so the
+    // This process is not a root runner holding the five capabilities, so the
     // real preparation refuses, as a misconfigured container runner would.
     await expect(hostHarnesses([], testConfig(), { identity, exit: (code) => void exits.push(code) })).rejects.toThrow(/^the runner /);
     expect(exits).toEqual([78]);

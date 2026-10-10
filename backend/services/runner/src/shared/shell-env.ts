@@ -15,7 +15,8 @@
  * shell, whether or not the tool that declares it resolves this turn. An
  * agent that declares nothing gets no run values. An agent whose shell runs
  * `gh` saves a GITHUB_TOKEN secret for it; the clone's token is handed to
- * each git command alone (workspace/git-credential.ts).
+ * each network git command alone (workspace/git-credential.ts), whose own
+ * environment the agent's processes can read while it runs (#2095).
  *
  * Still built per execution — the snapshot must reflect the env as it is
  * now, not at process start.

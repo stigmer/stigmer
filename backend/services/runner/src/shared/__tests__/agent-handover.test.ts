@@ -21,7 +21,7 @@
  *    an agent's home without state yet is left as it is.
  */
 
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
@@ -134,6 +134,22 @@ describe("handing over across filesystems and outside the runner's state", () =>
     expect(handOverToAgent(who, { runnerHome, workspaceRoot }, { chown: (path) => void chowned.push(path) })).toEqual({ moved: [], firstTime: true });
     expect(chowned).toContain(workspaceRoot);
     expect(statSync(join(runnerHome, ".stigmer")).mode & 0o777, "nothing above the workspace is the runner's").not.toBe(0o711);
+  });
+
+  it("refuses the default workspace under a runner home the agent cannot pass, naming WORKSPACE_ROOT_DIR", () => {
+    // A driver's HOME is /root, 0700: the default ~/.stigmer/workspaces/runner
+    // under it would be a workspace the agent cannot open.
+    const base = mkdtempSync(join(tmpdir(), "agent-handover-closed-"));
+    const runnerHome = join(base, "root");
+    const workspaceRoot = join(runnerHome, ".stigmer", "workspaces", "runner");
+    mkdirSync(runnerHome, { mode: 0o700 });
+    chmodSync(runnerHome, 0o700);
+    const who = { ...identity, home: join(base, "home", "stigmer-agent") };
+    expect(() => handOverToAgent(who, { runnerHome, workspaceRoot }, { chown: () => {} })).toThrow(
+      `the workspace root ${workspaceRoot} is out of the agent's reach: ${runnerHome} (mode 0700) is closed to it; set WORKSPACE_ROOT_DIR to a directory outside the runner's home`,
+    );
+    chmodSync(runnerHome, 0o755);
+    expect(handOverToAgent(who, { runnerHome, workspaceRoot }, { chown: () => {} }).firstTime).toBe(true);
   });
 
   it("refuses an agent home that is the runner's own", () => {

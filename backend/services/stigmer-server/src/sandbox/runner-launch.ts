@@ -32,8 +32,8 @@
  *
  * The base image contract has two halves: what the start script checks,
  * and what the drivers set. A driver runs the runner as root (uid 0, which
- * the runner needs to install packages at runtime) with `HOME` at root's
- * home, whatever the base image's own `USER` and `ENV` say; a driver whose
+ * the runner needs to start the agent's side as a user of its own) with
+ * `HOME` at root's home, whatever the base image's own `USER` and `ENV` say; a driver whose
  * platform cannot set the user (Substrate) leaves it to the start script's
  * refusal.
  *
@@ -84,11 +84,11 @@ export const RUNNER_UID = 0;
 
 /**
  * The capabilities a driver gives the runner, every other one dropped:
- * SETUID and SETGID to start its agent user, KILL to end that user's host,
- * DAC_OVERRIDE to write its own state on a volume it shares with the server
- * when it will not exit, CHOWN to hand that user its
- * home and workspace. The runner refuses to start without them, never
- * running the agent's side as root.
+ * SETUID and SETGID to start its agent user, CHOWN to hand that user its
+ * home and workspace, KILL to end that user's host when it will not exit,
+ * DAC_OVERRIDE to write its own state on a volume it shares with the
+ * server. The runner refuses to start without them, never running the
+ * agent's side as root.
  */
 export const RUNNER_CAPABILITIES = ["SETUID", "SETGID", "CHOWN", "KILL", "DAC_OVERRIDE"] as const;
 

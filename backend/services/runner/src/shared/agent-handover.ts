@@ -65,12 +65,13 @@ export function handOverToAgent(
   if (handedOver) {
     io.chown(identity.home, identity.uid, identity.gid);
     io.chown(paths.workspaceRoot, identity.uid, identity.gid);
+    refuseUnreachableWorkspace(identity, paths);
     return { moved: [], firstTime: false };
   }
 
-  // Root holds CHOWN but not DAC_OVERRIDE: it works inside a directory only
-  // while that directory is its own. So it takes the agent's home back
-  // first, moves the state in, and hands everything to the agent last.
+  // Nothing is the agent's while the walk works in it: the agent's home is
+  // taken back to root first, the state moved in, and everything handed to
+  // the agent last.
   const moved: string[] = [];
   io.chown(identity.home, 0, 0);
   mkdirSync(agentState, { recursive: true });
@@ -84,6 +85,7 @@ export function handOverToAgent(
   chownTree(identity.home, identity, io);
   chownTree(paths.workspaceRoot, identity, io);
   for (const dir of ancestorsWithin(paths.runnerHome, paths.workspaceRoot)) chmodSync(dir, 0o711);
+  refuseUnreachableWorkspace(identity, paths);
 
   mkdirSync(runnerState, { recursive: true });
   writeFileSync(marker, `${new Date().toISOString()}\n`, { mode: 0o600 });
@@ -117,6 +119,29 @@ function chownTree(root: string, identity: AgentIdentity, io: HandoverIo): void 
     io.chown(path, 0, 0);
     pending.push({ path, listed: true });
     for (const name of readdirSync(path)) pending.push({ path: join(path, name), listed: false });
+  }
+}
+
+/**
+ * A workspace root inside the runner's home must be reachable by the agent
+ * through every directory from that home down: the walk opens only those
+ * inside `~/.stigmer`, and the home itself is the operator's (a driver's
+ * `/root` is 0700). The runner's default workspace,
+ * `~/.stigmer/workspaces/runner`, lies there, so a container runner that
+ * names no `WORKSPACE_ROOT_DIR` refuses to start, naming it, instead of
+ * running every turn on a workspace its agent cannot open.
+ */
+function refuseUnreachableWorkspace(identity: AgentIdentity, paths: { readonly runnerHome: string; readonly workspaceRoot: string }): void {
+  const rel = relative(paths.runnerHome, paths.workspaceRoot);
+  if (rel === "" || rel.startsWith("..") || rel.startsWith(sep)) return;
+  for (let dir = dirname(paths.workspaceRoot); ; dir = dirname(dir)) {
+    const stats = lstatSync(dir);
+    if (stats.uid !== identity.uid && (stats.mode & 0o001) === 0) {
+      throw new Error(
+        `the workspace root ${paths.workspaceRoot} is out of the agent's reach: ${dir} (mode ${(stats.mode & 0o777).toString(8).padStart(4, "0")}) is closed to it; set WORKSPACE_ROOT_DIR to a directory outside the runner's home`,
+      );
+    }
+    if (dir === paths.runnerHome || dir === dirname(dir)) return;
   }
 }
 
