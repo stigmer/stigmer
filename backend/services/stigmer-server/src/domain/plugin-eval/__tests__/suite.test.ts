@@ -4,7 +4,8 @@
  * digest that is no version of the plugin, or a plugin that does not
  * exist, is NOT_FOUND before any archive is read; an archive whose bytes
  * do not hash to the version is refused; a version that recorded no key
- * reads its content-addressed key.
+ * reads its content-addressed key; `loadEvalSuite` hands the files it read
+ * to the library's reader and returns both.
  */
 import { createHash } from "node:crypto";
 
@@ -22,7 +23,7 @@ import { ArtifactNotFoundError } from "../../../archive/content-store.js";
 import { writeArchive } from "../../../archive/write.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
-import { newPluginArchiveReader } from "../suite.js";
+import { loadEvalSuite, newPluginArchiveReader } from "../suite.js";
 
 const encoder = new TextEncoder();
 
@@ -150,5 +151,35 @@ describe("newPluginArchiveReader", () => {
     await expect(reader.readArchive("plg_1", v1.digest)).rejects.toThrow(
       /does not hash to version/,
     );
+  });
+});
+
+describe("loadEvalSuite", () => {
+  it("reads the suite from the version's archive", async () => {
+    const v1 = archiveOf({
+      "evals/first-case/prompt.md": "Look over my diff.\n",
+      "evals/first-case/graders/criteria.md":
+        "---\ntype: llm\n---\n\nPASS if the reply names the bug.\n",
+    });
+    const archives = memoryArchives();
+    await archives.store(v1.digest, v1.bytes);
+    await temp.store.saveResource(
+      ApiResourceKind.plugin,
+      "plg_1",
+      PluginSchema,
+      pluginAt(v1.digest, `plugins/${v1.digest}.zip`),
+    );
+    const loaded = await loadEvalSuite(
+      newPluginArchiveReader({ store: temp.store, archives }),
+      "plg_1",
+      v1.digest,
+    );
+    expect(loaded.files.entries.map((e) => e.path)).toContain(
+      "evals/first-case/prompt.md",
+    );
+    expect(loaded.suite.dir).toBe("evals");
+    expect(loaded.suite.cases.map((c) => [c.name, c.prompt.trim(), c.graders.length])).toEqual([
+      ["first-case", "Look over my diff.", 1],
+    ]);
   });
 });
