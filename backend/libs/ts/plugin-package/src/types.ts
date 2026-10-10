@@ -188,7 +188,6 @@ export type IgnoredComponentKind =
   | "commands"
   | "default-enabled"
   | "dependencies"
-  | "evals"
   | "extension"
   | "logo"
   | "lsp-servers"
