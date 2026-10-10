@@ -381,9 +381,14 @@ async function buildStigmerRunner(
       // decision reads.
       markBoot("worker_polling");
       emitRunnerBootTiming({ task_queue: config.taskQueue, mode: config.mode });
-      await worker.run();
-      console.log("Worker stopped");
-      await releaseAfterDrain({ shutdownHarnesses: releaseHosted, connection });
+      // Released however the worker ended, so a run that fails leaves no
+      // host child holding an embedder's event loop open.
+      try {
+        await worker.run();
+        console.log("Worker stopped");
+      } finally {
+        await releaseAfterDrain({ shutdownHarnesses: releaseHosted, connection });
+      }
     },
     shutdown() {
       tokenRenewal?.stop();

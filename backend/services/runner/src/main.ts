@@ -434,6 +434,7 @@ async function main(): Promise<void> {
   if (process.argv[2] === AGENT_HOST_MODE_ARG) {
     const { runAgentHost } = await import("./agent-host/entry.js");
     await runAgentHost();
+    return;
   }
   /* v8 ignore stop */
 

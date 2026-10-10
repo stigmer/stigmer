@@ -367,6 +367,12 @@ describe("forward: a runner behind the Stigmer platform's proxy", () => {
     expect(upstream.received).toHaveLength(sent);
   });
 
+  it("passes an empty write batch through, as the platform answers it", async () => {
+    const res = await call(proxy, "/v1/proxy/checkpoints/writes", { method: "PUT", headers: asHost, body: JSON.stringify({ writes: [] }) });
+    expect(res.status).toBe(200);
+    expect(upstream.last.path).toBe("/v1/proxy/checkpoints/writes");
+  });
+
   it("serves the thread the turn itself names, whatever its shape", async () => {
     const close = proxy.openTurn({ executionId: "aex-ephemeral", threadId: "ephemeral-agt-1" });
     const read = await call(proxy, "/v1/proxy/checkpoints/checkpoint?thread_id=ephemeral-agt-1", { method: "GET", headers: asHost });

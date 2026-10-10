@@ -21,6 +21,7 @@ const fakes = vi.hoisted(() => ({
   bound: [] as unknown[],
   release: () => {},
   bootstrapFails: false,
+  runFails: false,
 }));
 
 vi.mock("../worker.js", () => ({
@@ -29,7 +30,7 @@ vi.mock("../worker.js", () => ({
       fakes.release = resolve;
     });
     return {
-      worker: { run: () => drained, shutdown: () => fakes.release() },
+      worker: { run: () => (fakes.runFails ? Promise.reject(new Error("the worker died")) : drained), shutdown: () => fakes.release() },
       connection: { close: async () => void fakes.order.push("connection closed") },
     };
   },
@@ -91,6 +92,25 @@ describe("the static root runs the hosted table", () => {
     const started = runner.start();
     runner.shutdown();
     await started;
+    expect(fakes.order).toEqual(["harnesses shut down", "proxy closed", "connection closed"]);
+  });
+
+  it("releases the hosted harnesses, the proxy and the connection when the worker's run fails", async () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    fakes.order.length = 0;
+    const runner = await createStigmerRunner({
+      taskQueue: "stigmer_runner",
+      stigmerEndpoint: "localhost:7234",
+      temporalAddress: "127.0.0.1:7233",
+      workspaceRootDir: join(tmpdir(), "stigmer-runner-hosting-test"),
+    });
+    fakes.runFails = true;
+    try {
+      await expect(runner.start()).rejects.toThrow("the worker died");
+    } finally {
+      fakes.runFails = false;
+    }
     expect(fakes.order).toEqual(["harnesses shut down", "proxy closed", "connection closed"]);
   });
 

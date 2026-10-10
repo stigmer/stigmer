@@ -185,12 +185,23 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
     const queried = url.searchParams.get("thread_id");
     if (queried !== null) threads.add(queried);
     for (const thread of threadsInBody(body)) threads.add(thread);
+    // An empty write batch names no thread and writes nothing: LangGraph sends
+    // one for a task whose writes all go to untracked channels, and the
+    // platform answers it as a no-op.
+    if (threads.size === 0 && isEmptyWriteBatch(body)) return;
     if (threads.size === 0) throw new LaneRefusal(403, "a checkpoint call must name its thread");
     const liveThreads = new Set([...this.live.values()].map((t) => t.threadId));
     for (const thread of threads) {
       if (!liveThreads.has(thread)) throw new LaneRefusal(403, `thread ${thread} belongs to no turn running on this runner`);
     }
   }
+}
+
+/** A body that is exactly a write batch with no writes. */
+function isEmptyWriteBatch(body: Buffer): boolean {
+  if (body.length === 0) return false;
+  const parsed: unknown = JSON.parse(body.toString("utf8"));
+  return typeof parsed === "object" && parsed !== null && Array.isArray((parsed as { writes?: unknown }).writes) && (parsed as { writes: unknown[] }).writes.length === 0;
 }
 
 /** The `thread_id`s a checkpoint write names: the checkpoint's own, or each write entry's. */
