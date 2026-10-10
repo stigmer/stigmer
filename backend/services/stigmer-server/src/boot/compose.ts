@@ -628,6 +628,7 @@ export async function composeServer(
         policies: iamPolicies,
         store,
         operatorEmail: operatorIdentity.email,
+        edition: extensions.edition,
       })
     : undefined;
   // Stage: runner credentials. The concrete service is
@@ -2221,8 +2222,9 @@ export async function composeServer(
 
   // The hand-over (extensions/composed-services.ts): every unit receives
   // the composition's own instances — the one Authorizer the Authorize
-  // step calls, the list read scope, the policy check, the tuple lifecycle
-  // and the in-process transport — before composeServer returns, because a
+  // step calls, the list read scope, the policy check, the tuple lifecycle,
+  // the in-process transport and the identity accounts' store binding and
+  // create path — before composeServer returns, because a
   // unit's lanes may be called by anyone from then on. The policy check is
   // the registered engine's, or under the built-in posture the evaluator's.
   const composedServices: ComposedServices = {
@@ -2242,6 +2244,10 @@ export async function composeServer(
         : undefined),
     resourceAuthorizationLifecycle: authorizationLifecycle,
     inProcessTransport: inProcessWiring.transport,
+    identityAccounts: {
+      store: identityAccounts,
+      create: createIdentityAccount,
+    },
   };
   for (const { hook } of extensions.onComposed) {
     hook(composedServices);

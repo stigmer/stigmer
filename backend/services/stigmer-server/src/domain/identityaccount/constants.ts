@@ -18,7 +18,9 @@
  * subject never leaks into the `created_by.id` stamps that ride on every
  * resource. The golden vectors in __tests__/constants.test.ts are
  * wire-adjacent contract: a change here re-addresses every direct account
- * open source ever created.
+ * open source ever created. A federated account's id is derived the same
+ * way from its own natural key, the provider and the subject, under the
+ * reserved `stgm_fed|` text (`federatedAccountIdFor`, below).
  *
  * `idpIdOf` is the ONE place a CallerIdentity becomes a subject. An
  * issuer-vouched token is read for its `sub` (already verified at
@@ -142,6 +144,67 @@ export function isPlatformClientSubject(idpId: string): boolean {
 }
 
 /**
+ * The address namespace of federated accounts: a federated account's id is
+ * `derivedId("ida", "stgm_fed|<provider org>|<provider slug>|<subject>")`
+ * (`federatedAccountIdFor`). Its natural key is the pair the port's
+ * federated read takes, the identity provider that vouches for the subject
+ * and the subject, because two providers may assert the same subject for
+ * two people. The prefix is the text that address hashes, never a subject:
+ * the account's `spec.idp_id` stays the subject its provider asserted.
+ * Reserved for the same reason as `stgm_pc|`: derived ids make every
+ * hashed text one namespace, so a direct subject spelled
+ * `stgm_fed|acme|okta|dana` would otherwise derive a federated person's
+ * address. The direct arm refuses it.
+ *
+ * Unambiguous by construction: the provider's organization (an
+ * organization id or slug) and its slug cannot hold `|` (the reference's
+ * own patterns), so the subject, which may, is the whole remainder. The
+ * organization is the stored reference's, the organization id, so a
+ * rename never re-addresses an account.
+ */
+export const FEDERATED_SUBJECT_PREFIX = "stgm_fed|";
+
+export function isFederatedSubject(idpId: string): boolean {
+  return idpId.startsWith(FEDERATED_SUBJECT_PREFIX);
+}
+
+/** The separator `federatedAccountIdFor` joins its three parts with; the two leading parts may not hold it. */
+const FEDERATED_KEY_SEPARATOR = "|";
+
+/**
+ * The derived id of the federated account the identity provider
+ * `<providerOrg>/<providerSlug>` vouches for under `idpId`. Pure; refuses
+ * an empty part (no provider or no subject is no address) and a provider
+ * part holding the separator (the text would be ambiguous), the way
+ * `policyIdFor` refuses an ambiguous triple. The golden vector in
+ * __tests__/constants.test.ts is wire-adjacent: a change here re-addresses
+ * every federated account open source ever created.
+ */
+export function federatedAccountIdFor(
+  providerOrg: string,
+  providerSlug: string,
+  idpId: string,
+): string {
+  if (providerOrg === "" || providerSlug === "" || idpId === "") {
+    throw new Error(
+      "a federated account's provider organization, provider slug and idp_id must not be empty",
+    );
+  }
+  if (
+    providerOrg.includes(FEDERATED_KEY_SEPARATOR) ||
+    providerSlug.includes(FEDERATED_KEY_SEPARATOR)
+  ) {
+    throw new Error(
+      `a federated account's provider organization and slug must not hold '${FEDERATED_KEY_SEPARATOR}'`,
+    );
+  }
+  return derivedId(
+    ACCOUNT_ID_PREFIX,
+    `${FEDERATED_SUBJECT_PREFIX}${providerOrg}${FEDERATED_KEY_SEPARATOR}${providerSlug}${FEDERATED_KEY_SEPARATOR}${idpId}`,
+  );
+}
+
+/**
  * The subject namespace of an organization's service accounts:
  * `stgm_sa|<org id>|<random>` (serviceAccountSubjectFor). Reserved in both
  * directions, as `stgm_pc|` is: no sign-in arm may provision or resolve a
@@ -168,11 +231,15 @@ export function serviceAccountSubjectFor(org: string): string {
 }
 
 /**
- * The refusal of a subject inside a namespace a provisioning arm reserves,
- * or undefined when `idpId` is in none. Every arm that takes a
- * caller-chosen subject asks it, so the namespaces stay disjoint.
+ * The refusal of a subject inside a namespace a provisioning arm reserves
+ * (INVALID_ARGUMENT), or undefined when `idpId` is in none. Every arm that
+ * takes a caller-chosen subject asks it, so the namespaces stay disjoint.
+ * The `stgm_pc|` sentence is existing wire copy, kept byte for byte.
  */
 export function reservedSubjectMessage(idpId: string): string | undefined {
+  if (isFederatedSubject(idpId)) {
+    return `subject '${idpId}' uses the '${FEDERATED_SUBJECT_PREFIX}' prefix reserved for the addresses of accounts an identity provider vouches for`;
+  }
   if (isPlatformClientSubject(idpId)) {
     return `subject '${idpId}' uses the '${PLATFORM_CLIENT_SUBJECT_PREFIX}' prefix reserved for accounts a platform client provisions`;
   }

@@ -9,10 +9,11 @@
  * pipeline steps take this interface, never `Store`. Open source's own
  * implementation is resource-store.ts over the generic Store.
  *
- * What the port deliberately does not carry: the two federation lookups
- * (`findByProviderAndIdpId`, `findByOrgAndSlug`) stay on the cloud's own
- * store behind the IdentityFederation capability — a port does not carry
- * methods only one edition calls.
+ * The two federated reads (`findByProviderAndIdpId`, `findByProvider`)
+ * joined the port when a second edition came to call them: the Enterprise
+ * edition serves identity providers over this port as the cloud does over
+ * its own table, and a read two editions make belongs on the port. A port
+ * still carries no method only one edition calls.
  *
  * Contract every implementation must satisfy — proven by the port-contract
  * kit (store-contract.ts, exported), which the OSS adapter's test iterates
@@ -45,6 +46,14 @@
  *     account's;
  *   - `findByIds` answers one row per distinct id, in first-occurrence
  *     order, and skips unknown ids;
+ *   - `findByProviderAndIdpId` answers only a federated account, by the
+ *     identity provider that vouches for it and its subject: never one
+ *     under another provider (two providers may assert one subject for two
+ *     people) and never a direct account sharing the subject (the
+ *     federated lane must never resolve a platform person);
+ *   - `findByProvider` answers every federated account the provider
+ *     vouches for, in id order, and nothing of another provider's or any
+ *     direct row;
  *   - a typed not-found reads as `undefined`; any other storage failure
  *     propagates as the infrastructure fault it is (the store-fault
  *     mapping — an outage must never read as "no account").
@@ -86,6 +95,22 @@ export interface IdentityAccountStore {
   /** The present ones, once per distinct id, in first-occurrence order; unknown ids are skipped. */
   findByIds(
     ids: ReadonlyArray<string>,
+  ): Promise<ReadonlyArray<IdentityAccount>>;
+  /**
+   * The federated account the identity provider `<providerOrg>/<providerSlug>`
+   * vouches for under `idpId` — the federated sign-in's lookup, and the
+   * natural key a federated account is reached by. `providerOrg` is the
+   * provider's organization id, as the stored reference holds it.
+   */
+  findByProviderAndIdpId(
+    providerOrg: string,
+    providerSlug: string,
+    idpId: string,
+  ): Promise<IdentityAccount | undefined>;
+  /** Every federated account the identity provider vouches for, in id order: what the provider's removal deletes. */
+  findByProvider(
+    providerOrg: string,
+    providerSlug: string,
   ): Promise<ReadonlyArray<IdentityAccount>>;
   /**
    * The accounts that belong to one organization: every account whose row

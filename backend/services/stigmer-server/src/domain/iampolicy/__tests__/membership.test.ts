@@ -17,7 +17,9 @@
  *     organization must not hand it to the next stranger;
  *   - `admin` when the account's email is STIGMER_OPERATOR_EMAIL (and that
  *     email is configured — an empty one matches nobody);
- *   - `member` otherwise;
+ *   - `member` otherwise, in the open-source edition; above it nothing,
+ *     at first sign-in and in the reconciliation alike, while arms 1 to 4
+ *     still answer;
  *   - nothing on an organization being deleted (its delete revoked every
  *     row, which is the state arms 4 and 5 grant on);
  *   - nothing for a non-`user` caller class; nothing on an organization
@@ -74,6 +76,7 @@ import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityacc
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 
 import type { CallerIdentity } from "../../../extensions/identity.js";
@@ -139,6 +142,7 @@ describe("membership rules", () => {
   function rulesOver(
     port: IamPolicyStore,
     operatorEmail: string = OPERATOR_EMAIL,
+    edition: ServerEdition = ServerEdition.oss,
   ): MembershipRules {
     return newMembershipRules({
       grantPath: newIamPolicyGrantPath({
@@ -150,6 +154,7 @@ describe("membership rules", () => {
       policies: port,
       store,
       operatorEmail,
+      edition,
     });
   }
 
@@ -168,6 +173,7 @@ describe("membership rules", () => {
       policies,
       store,
       operatorEmail: OPERATOR_EMAIL,
+      edition: ServerEdition.oss,
     });
   });
 
@@ -772,6 +778,7 @@ describe("membership rules", () => {
         roleFor({
           serverOrganization: false,
           laptopOperatorStamps: NO_LAPTOP_OPERATOR,
+          everyPersonJoins: true,
           ...input,
         }),
       ).toBe(expected);
@@ -835,6 +842,7 @@ describe("membership rules", () => {
       expect(
         roleFor({
           laptopOperatorStamps: NO_LAPTOP_OPERATOR,
+          everyPersonJoins: true,
           ...input,
           serverOrganization: true,
         }),
@@ -876,6 +884,7 @@ describe("membership rules", () => {
         expect(
           roleFor({
             ...bob,
+            everyPersonJoins: true,
             organization: madeOnTheLaptop,
             blueprintsInOrganization: [
               {
@@ -901,6 +910,7 @@ describe("membership rules", () => {
         operatorEmail: "",
         serverOrganization: false,
         laptopOperatorStamps: NO_LAPTOP_OPERATOR,
+        everyPersonJoins: true,
       };
       expect(roleFor(question)).toBe(IamRole.admin);
       expect(
@@ -909,6 +919,42 @@ describe("membership rules", () => {
           email: OPERATOR_EMAIL,
           operatorEmail: OPERATOR_EMAIL,
           organizationHasRows: true,
+        }),
+      ).toBe(IamRole.admin);
+    });
+
+    it("above the open-source edition arm 5 answers no role, and arms 1 to 4 answer as before", () => {
+      const stranger = {
+        ...bob,
+        organization: acme,
+        blueprintsInOrganization: [agentBy("auth0|alice")],
+        organizationHasRows: true,
+        operatorEmail: "",
+        serverOrganization: false,
+        laptopOperatorStamps: NO_LAPTOP_OPERATOR,
+      };
+      expect(roleFor({ ...stranger, everyPersonJoins: true })).toBe(
+        IamRole.member,
+      );
+      expect(roleFor({ ...stranger, everyPersonJoins: false })).toBeUndefined();
+      expect(
+        roleFor({ ...stranger, ...alice, everyPersonJoins: false }),
+      ).toBe(IamRole.owner);
+      expect(
+        roleFor({
+          ...stranger,
+          email: OPERATOR_EMAIL,
+          operatorEmail: OPERATOR_EMAIL,
+          everyPersonJoins: false,
+        }),
+      ).toBe(IamRole.admin);
+      expect(
+        roleFor({
+          ...stranger,
+          organization: { ...acme, createdBy: "" },
+          blueprintsInOrganization: [],
+          organizationHasRows: false,
+          everyPersonJoins: false,
         }),
       ).toBe(IamRole.admin);
     });
@@ -984,6 +1030,62 @@ describe("membership rules", () => {
         metadata: { id: "ida_bare", name: "bare" },
       });
       expect(isPersonAccount(bare)).toBe(false);
+    });
+  });
+
+  describe("above the open-source edition", () => {
+    it("a stranger who signs in joins no organization, while the founder, the operator and the fresh install's first caller still get their roles", async () => {
+      const enterprise = rulesOver(policies, OPERATOR_EMAIL, ServerEdition.enterprise);
+      await seedOrg("acme", "auth0|alice");
+      await seedAgent("agt_alice", "acme", "auth0|alice");
+      await seedOrg("globex", "auth0|alice");
+      await seedAgent("agt_globex", "globex", "auth0|alice");
+      await seedOrg("fresh", "system");
+
+      const alice = account("auth0|alice", "alice@example.com");
+      await enterprise.onAccountCreated(alice, userCaller(alice.metadata!.id));
+      expect(rolesOf(alice.metadata!.id)).toEqual([
+        "admin@fresh",
+        "owner@acme",
+        "owner@globex",
+      ]);
+
+      const mallory = account("auth0|mallory", "mallory@example.com");
+      await enterprise.onAccountCreated(
+        mallory,
+        userCaller(mallory.metadata!.id),
+      );
+      expect(rolesOf(mallory.metadata!.id)).toEqual([]);
+
+      const operator = account("auth0|operator", OPERATOR_EMAIL);
+      await enterprise.onAccountCreated(
+        operator,
+        userCaller(operator.metadata!.id),
+      );
+      expect(rolesOf(operator.metadata!.id)).toEqual([
+        "admin@acme",
+        "admin@fresh",
+        "admin@globex",
+      ]);
+    });
+
+    it("the reconciliation grants no membership either", async () => {
+      const enterprise = rulesOver(policies, OPERATOR_EMAIL, ServerEdition.enterprise);
+      await seedOrg("acme", "auth0|alice");
+      await seedAgent("agt_alice", "acme", "auth0|alice");
+      const alice = await seedAccount("auth0|alice", "alice@example.com", 1);
+      const dave = await seedAccount("auth0|dave", "dave@example.com", 2);
+      await enterprise.ensureRolesForExistingAccounts();
+      expect(rolesOf(alice.metadata!.id)).toEqual(["owner@acme"]);
+      expect(rolesOf(dave.metadata!.id)).toEqual([]);
+    });
+
+    it("the same database under the open-source edition makes the stranger a member", async () => {
+      await seedOrg("acme", "auth0|alice");
+      await seedAgent("agt_alice", "acme", "auth0|alice");
+      const mallory = account("auth0|mallory", "mallory@example.com");
+      await rules.onAccountCreated(mallory, userCaller(mallory.metadata!.id));
+      expect(rolesOf(mallory.metadata!.id)).toEqual(["member@acme"]);
     });
   });
 

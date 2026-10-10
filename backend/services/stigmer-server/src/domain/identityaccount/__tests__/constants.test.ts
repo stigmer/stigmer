@@ -7,6 +7,12 @@
  *     and the primary key is the one home of "one account per subject".
  *     The golden vectors are wire-adjacent constants: a change here
  *     re-addresses every direct account open source ever created;
+ *   - the federated address — the same derivation over
+ *     `stgm_fed|<provider org>|<provider slug>|<subject>`, pinned by its own
+ *     golden vector, refusing an empty part and a provider part holding the
+ *     separator, and never equal to a direct subject's id;
+ *   - the reserved-subject refusals, the `stgm_pc|` sentence byte for byte
+ *     and the `stgm_fed|` sentence beside it;
  *   - `idpIdOf(caller)` — the ONE place a caller becomes an issuer subject:
  *     a token-bearing caller's JWT `sub`; `local|<identityId>` for a caller
  *     with no issuer and no token (the trusted-local posture);
@@ -29,8 +35,10 @@ import {
   LOCAL_IDP_ID_PREFIX,
   NO_IDP_ID_MESSAGE,
   USERINFO_UNAVAILABLE_PREFIX,
+  FEDERATED_SUBJECT_PREFIX,
   accountIdFor,
   accountNotFoundMessage,
+  federatedAccountIdFor,
   federationUnimplementedMessage,
   idpIdImmutableMessage,
   idpIdOf,
@@ -85,6 +93,67 @@ describe("accountIdFor — the derived account id", () => {
 
   it("refuses an empty subject — no principal, no address", () => {
     expect(() => accountIdFor("")).toThrow("idp_id must not be empty");
+  });
+});
+
+describe("federatedAccountIdFor — the address of a federated account", () => {
+  const ORG = "org_01hzacme000000000000000000";
+
+  it("pins the golden vector (a change re-addresses every OSS federated account)", () => {
+    expect(federatedAccountIdFor(ORG, "acme-okta", "okta|dana")).toBe(
+      "ida_j2tx1qsp0dk7qrbf0726a04ahh",
+    );
+  });
+
+  it("is the derived id of the reserved text, never the subject's own address", () => {
+    expect(federatedAccountIdFor(ORG, "acme-okta", "okta|dana")).toBe(
+      accountIdFor(`${FEDERATED_SUBJECT_PREFIX}${ORG}|acme-okta|okta|dana`),
+    );
+    expect(federatedAccountIdFor(ORG, "acme-okta", "okta|dana")).not.toBe(
+      accountIdFor("okta|dana"),
+    );
+    expect(federatedAccountIdFor(ORG, "acme-okta", "x")).toMatch(CROCKFORD_ID);
+  });
+
+  it("keeps two providers' same subject apart, and a subject holding the separator is the whole remainder", () => {
+    expect(federatedAccountIdFor(ORG, "acme-okta", "shared|sam")).not.toBe(
+      federatedAccountIdFor(ORG, "acme-azure", "shared|sam"),
+    );
+    // The one other reading of `acme-okta|a|b` would move the separator
+    // into the slug, which is refused: the text has one reading.
+    expect(federatedAccountIdFor(ORG, "acme-okta", "a|b")).toMatch(
+      CROCKFORD_ID,
+    );
+    expect(() => federatedAccountIdFor(ORG, "acme-okta|a", "b")).toThrow(
+      "must not hold '|'",
+    );
+  });
+
+  it("refuses an empty part and a provider part holding the separator", () => {
+    expect(() => federatedAccountIdFor("", "acme-okta", "okta|dana")).toThrow(
+      "must not be empty",
+    );
+    expect(() => federatedAccountIdFor(ORG, "", "okta|dana")).toThrow(
+      "must not be empty",
+    );
+    expect(() => federatedAccountIdFor(ORG, "acme-okta", "")).toThrow(
+      "must not be empty",
+    );
+    expect(() => federatedAccountIdFor(ORG, "acme|okta", "dana")).toThrow(
+      "must not hold '|'",
+    );
+    expect(() => federatedAccountIdFor("acme|x", "okta", "dana")).toThrow(
+      "must not hold '|'",
+    );
+  });
+
+  it("the refusal of a direct subject names the prefix it took", () => {
+    expect(reservedSubjectMessage("stgm_pc|acme|user-7")).toBe(
+      "subject 'stgm_pc|acme|user-7' uses the 'stgm_pc|' prefix reserved for accounts a platform client provisions",
+    );
+    expect(reservedSubjectMessage("stgm_fed|acme|okta|dana")).toBe(
+      "subject 'stgm_fed|acme|okta|dana' uses the 'stgm_fed|' prefix reserved for the addresses of accounts an identity provider vouches for",
+    );
   });
 });
 

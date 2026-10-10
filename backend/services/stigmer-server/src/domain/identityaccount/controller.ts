@@ -122,7 +122,7 @@ import type {
   CreateAccountInput,
   DirectAccountProvisioner,
 } from "./provisioning.js";
-import { UserInfoFetchError } from "./provisioning.js";
+import { UserInfoFetchError, owningOrganizationOf } from "./provisioning.js";
 import { accountForCaller, mayProvisionDirectAccount } from "./resolve.js";
 import {
   createServiceAccount as createServiceAccountHandler,
@@ -333,7 +333,7 @@ async function runCreateChain(
     .addStep(newValidateProtoStep())
     .addStep(newDefaultAccountNameStep())
     .addStep(newResolveAccountSlugStep())
-    .addStep(newDeriveAccountIdStep())
+    .addStep(newDeriveAccountIdStep(provisioning))
     .addStep(newCheckDuplicateStep(deps.accounts))
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
@@ -354,9 +354,9 @@ async function runCreateChain(
  * The create path as its in-process callers see it (provisioning.ts
  * `CreateAccount`): the input becomes the resource envelope the chain
  * expects, tagged with the kind this controller serves. A platform-client
- * account and a service account carry their owning organization, as the
- * cloud has always written the former; a direct account belongs to no
- * organization.
+ * account and a service account carry their owning organization and a
+ * federated account its provider's, as the cloud has always written the
+ * first two; a direct account belongs to no organization.
  */
 export function newCreateAccountPath(
   deps: CreateAccountPathDeps,
@@ -371,9 +371,7 @@ export function newCreateAccountPath(
         metadata: {
           name: input.name,
           ...(input.slug !== undefined ? { slug: input.slug } : {}),
-          ...(input.provisioning.mode !== "direct"
-            ? { org: input.provisioning.org }
-            : {}),
+          org: owningOrganizationOf(input.provisioning),
         },
         spec: input.spec,
       }),

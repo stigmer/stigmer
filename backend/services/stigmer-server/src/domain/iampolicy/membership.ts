@@ -31,7 +31,15 @@
  *                   founder's own stamp counts as a person, so a
  *                   revoked founder's empty organization is not handed
  *                   over either;
- *     5. `member` — everyone else.
+ *     5. `member` — everyone else, in the open-source edition only.
+ *   Above it (a composition whose edition serves many organizations under
+ *   the built-in posture) arm 5 answers nothing: a person joins an
+ *   organization by invitation, single sign-on or an administrator's
+ *   grant, never by signing in, or everyone who signs in through the
+ *   operator's issuer would become a member of every organization the
+ *   server holds. The edition is the composition's one declaration of
+ *   that difference, so the rule reads it and adds no setting of its own.
+ *   Arms 1 to 4 run in every edition.
  *   Arms 3 and 4 both answer `admin`; 3 is checked first because it is a
  *   string compare and 4 reads the organization's rows. On the server's
  *   organization, the one a one-organization server holds (the id recorded
@@ -74,8 +82,9 @@
  *   one of them would be an outsider on every organization with nobody
  *   able to grant a way back. At the first boot where the bootstrap-state
  *   marker (ROLES_RECONCILED_KEY) is absent, the arms above run for every
- *   PERSON account (`isPersonAccount`: not a machine, platform-client or
- *   federated account, the row-level twin of the `user`-class gate),
+ *   PERSON account (`isPersonAccount`: a direct or legacy account, never a
+ *   machine, platform-client, federated or service account; the row-level
+ *   twin of the `user`-class gate),
  *   acting as that account, in
  *   creation order — the order the sign-ins would have run the hook in,
  *   so arm 4 hands an unclaimed organization to its first sign-in and
@@ -167,6 +176,7 @@ import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityacc
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 
 import { SINGLE_ORG_KEY } from "../organization/limit.js";
@@ -198,6 +208,8 @@ export interface MembershipRulesDeps {
   readonly store: Store;
   /** STIGMER_OPERATOR_EMAIL as the operator seam holds it; "" when unconfigured. */
   readonly operatorEmail: string;
+  /** The composition's edition: arm 5 runs in open source's only (the header). */
+  readonly edition: ServerEdition;
 }
 
 export interface MembershipRules extends AccountCreatedHook {
@@ -300,6 +312,8 @@ export interface RoleQuestion {
   readonly serverOrganization: boolean;
   /** The laptop operator accounts' creator stamps (account ids and emails): on the server's organization, nobody's. */
   readonly laptopOperatorStamps: ReadonlySet<string>;
+  /** Whether arm 5 runs: true in the open-source edition, false above it (the header). */
+  readonly everyPersonJoins: boolean;
 }
 
 /**
@@ -307,9 +321,10 @@ export interface RoleQuestion {
  * read — the one statement of "which role does this person get here",
  * shared by the first-sign-in hook and the boot reconciliation so the two
  * moments cannot drift. Arms 3 and 4 both answer `admin`; 3 comes first
- * because it is a string compare and 4 needs the rows read.
+ * because it is a string compare and 4 needs the rows read. `undefined`
+ * is "no role here": arm 5's answer above the open-source edition.
  */
-export function roleFor(question: RoleQuestion): IamRole {
+export function roleFor(question: RoleQuestion): IamRole | undefined {
   const {
     accountId,
     subject,
@@ -320,6 +335,7 @@ export function roleFor(question: RoleQuestion): IamRole {
     organizationHasRows,
     serverOrganization,
     laptopOperatorStamps,
+    everyPersonJoins,
   } = question;
   const isMine = (stamp: string): boolean =>
     stamp !== "" && (stamp === subject || stamp === accountId);
@@ -346,7 +362,7 @@ export function roleFor(question: RoleQuestion): IamRole {
       ? IamRole.owner
       : IamRole.admin;
   }
-  return IamRole.member;
+  return everyPersonJoins ? IamRole.member : undefined;
 }
 
 /** The world one pass of the arms reads: scanned ONCE by the caller, whether for one account or for all. */
@@ -375,6 +391,7 @@ function createdAtMillisOf(account: IdentityAccount): number {
 
 export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
   const { grantPath, policies, store, operatorEmail } = deps;
+  const everyPersonJoins = deps.edition === ServerEdition.oss;
 
   async function scan(kind: ApiResourceKind): Promise<ScannedResource[]> {
     const schema = CREATOR_SCAN_SCHEMAS.get(kind);
@@ -530,7 +547,11 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
         ),
         serverOrganization,
         laptopOperatorStamps: world.laptopOperators.stamps,
+        everyPersonJoins,
       });
+      if (role === undefined) {
+        continue;
+      }
       await grantPath.grant(
         organizationRole(accountId, role, organization.id),
         caller,
