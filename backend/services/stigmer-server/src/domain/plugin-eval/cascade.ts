@@ -9,8 +9,9 @@
  * cascade of the plugin's delete, so a refusal removes nothing. An eval
  * created during its plugin's delete is swept after the plugin's row goes
  * (SweepPluginEvalsAfterDelete), its workflow first asked to cancel and
- * waited for; one still running after the wait is left for the
- * organization's purge, logged. A composition that serves no evals passes
+ * waited for; one still running after the wait is deleted all the same,
+ * so no eval outlives its plugin: its workflow then finds no row, and its
+ * writes do nothing. A composition that serves no evals passes
  * no deps, and the steps do nothing.
  *
  * Proven by __tests__/plugin-eval.test.ts (the plugin's delete) and
@@ -113,8 +114,11 @@ export function newCascadeDeletePluginEvalsStep<Desc extends DescMessage>(
  * eval (steps.ts EnsureEvaluatedPluginStillExists), an eval created during
  * its plugin's delete is swept: one stored before this list is found here,
  * and one stored after it meets a plugin already gone and deletes itself.
- * One still running after the wait is left for the organization's purge,
- * logged (a warning names it).
+ * One still running after the wait is deleted all the same, once its
+ * workflow took the cancel (a warning names it): the workflow's record and
+ * finish find no row and write nothing, its tries stop their runs, and a
+ * try whose session still refuses its delete is left, logged. So no eval
+ * outlives its plugin, viewable, cancellable and deletable by no one.
  */
 export function newSweepPluginEvalsAfterDeleteStep<Desc extends DescMessage>(
   deps: PluginEvalCascadeDeps | undefined,
@@ -145,14 +149,14 @@ export function newSweepPluginEvalsAfterDeleteStep<Desc extends DescMessage>(
           pluginEval,
           "a swept plugin eval's workflow could not be cancelled",
         );
-        if (asked && !(await awaitPluginEvalEnd(deps.store, evalId, deps.endWait ?? SWEEP_END_WAIT))) {
-          deps.logger.warn("a swept plugin eval's workflow has not ended; leaving the eval", {
+        const ended = !asked || (await awaitPluginEvalEnd(deps.store, evalId, deps.endWait ?? SWEEP_END_WAIT));
+        if (!ended) {
+          deps.logger.warn("a swept plugin eval's workflow has not ended; deleting the eval all the same", {
             evalId,
             pluginId,
           });
-          continue;
         }
-        await deleteEval(deps, ctx, pluginEval, pluginId);
+        await deleteEval(deps, ctx, pluginEval, pluginId, { leaveRefused: !ended });
       }
     },
   };
@@ -210,15 +214,16 @@ async function awaitPluginEvalEnd(store: Store, evalId: string, wait: SweepEndWa
   }
 }
 
-/** One eval of a deleted plugin: its tries' conversations, its row, then its access. */
+/** One eval of a deleted plugin: its tries' conversations (those refused left, when told), its row, then its access. */
 async function deleteEval<Desc extends DescMessage>(
   deps: PluginEvalCascadeDeps,
   ctx: RequestContext<Desc>,
   pluginEval: PluginEval,
   pluginId: string,
+  tries: { readonly leaveRefused?: boolean } = {},
 ): Promise<void> {
   const evalId = pluginEval.metadata?.id ?? "";
-  await deletePluginEvalTries(deps.store, deps.sessions(), deps.logger, evalId);
+  await deletePluginEvalTries(deps.store, deps.sessions(), deps.logger, evalId, tries);
   try {
     await deps.store.deleteResource(ApiResourceKind.plugin_eval, evalId);
   } catch (error) {

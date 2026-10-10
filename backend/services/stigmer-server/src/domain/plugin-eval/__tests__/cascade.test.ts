@@ -7,8 +7,10 @@
  *     and its access, first asking a pending or running eval's workflow
  *     to cancel and waiting, bounded, for it to end, so a try's active run
  *     no longer refuses its session's delete; an eval still running after
- *     the wait is left, named in a warning; a cancel that fails, or finds
- *     no workflow, deletes the eval at once;
+ *     the wait is deleted all the same, named in a warning, a try whose
+ *     session still refuses its delete left and logged, and the
+ *     workflow's record and finish then write nothing; a cancel that
+ *     fails, or finds no workflow, deletes the eval at once;
  *     a composition with no evals does nothing; a fault listing the evals
  *     is INTERNAL;
  *   - create, after it stores the eval and its access, reads the plugin
@@ -233,9 +235,17 @@ describe("SweepPluginEvalsAfterDelete", () => {
     expect(await exists(ApiResourceKind.plugin_eval, "pev_unstarted")).toBe(false);
   });
 
-  it("leaves an eval whose workflow has not ended in time, naming it in a warning, and still sweeps the rest", async () => {
+  it("deletes an eval whose workflow has not ended in time all the same, naming it in a warning, leaving a try that refuses its delete, and sweeps the rest", async () => {
     await saved(evalRow("pev_slow", PluginEvalPhase.running));
     await saved(evalRow("pev_gone", PluginEvalPhase.running));
+    await temp.store.saveResource(
+      ApiResourceKind.session,
+      "ses_busy",
+      SessionSchema,
+      create(SessionSchema, {
+        metadata: { id: "ses_busy", name: "try", org: "org_1", labels: { [PLUGIN_EVAL_LABEL]: "pev_slow" } },
+      }),
+    );
     const warnings: Array<{ message: string; fields: LogFields | undefined }> = [];
     const logger: Logger = {
       ...silentLogger,
@@ -244,19 +254,46 @@ describe("SweepPluginEvalsAfterDelete", () => {
       },
     };
     const started = Date.now();
-    await sweep(async (evalId) => {
-      if (evalId === "pev_gone") {
-        // A workflow that ends its eval by deleting it meanwhile.
-        await temp.store.deleteResource(ApiResourceKind.plugin_eval, evalId);
-      }
-      return "requested";
-    }, logger);
+    await sweep(
+      async (evalId) => {
+        if (evalId === "pev_gone") {
+          // A workflow that ends its eval by deleting it meanwhile.
+          await temp.store.deleteResource(ApiResourceKind.plugin_eval, evalId);
+        }
+        return "requested";
+      },
+      logger,
+      { delete: () => Promise.reject(new ConnectError("the session has an active run", Code.FailedPrecondition)) },
+    );
     expect(Date.now() - started).toBeLessThan(2_000);
-    expect(await exists(ApiResourceKind.plugin_eval, "pev_slow")).toBe(true);
+    expect(await exists(ApiResourceKind.plugin_eval, "pev_slow")).toBe(false);
+    expect(await exists(ApiResourceKind.session, "ses_busy")).toBe(true);
     expect(warnings).toContainEqual({
-      message: "a swept plugin eval's workflow has not ended; leaving the eval",
+      message: "a swept plugin eval's workflow has not ended; deleting the eval all the same",
       fields: { evalId: "pev_slow", pluginId: "plg_1" },
     });
+    expect(warnings).toContainEqual({
+      message: "a plugin eval's try could not be deleted with its eval; it is left",
+      fields: { evalId: "pev_slow", sessionId: "ses_busy", error: "[failed_precondition] the session has an active run" },
+    });
+  });
+
+  it("throws a try's refused delete when the eval's workflow has ended, keeping the eval", async () => {
+    await saved(evalRow("pev_done", PluginEvalPhase.completed));
+    await temp.store.saveResource(
+      ApiResourceKind.session,
+      "ses_busy",
+      SessionSchema,
+      create(SessionSchema, {
+        metadata: { id: "ses_busy", name: "try", org: "org_1", labels: { [PLUGIN_EVAL_LABEL]: "pev_done" } },
+      }),
+    );
+    await expect(
+      sweep(() => Promise.resolve("not-found"), silentLogger, {
+        delete: () => Promise.reject(new Error("the session store is down")),
+      }),
+    ).rejects.toThrow("the session store is down");
+    expect(await exists(ApiResourceKind.plugin_eval, "pev_done")).toBe(true);
   });
 
   it("does nothing in a composition with no evals, and is INTERNAL when the evals cannot be listed", async () => {

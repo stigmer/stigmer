@@ -14,7 +14,8 @@
  *   - a try recorded for an eval gone writes nothing and does not throw; a
  *     try not started because the plugin was updated notes it on its case,
  *     once;
- *   - the finish ends an eval failed with the workflow's error;
+ *   - the finish ends an eval failed with the workflow's error, and writes
+ *     nothing for an eval deleted while its workflow ran;
  *   - an eval another writer ended between the finish's read and its write
  *     keeps that end;
  *   - a row deleted between a read and the write is left gone, while a
@@ -344,6 +345,18 @@ describe("record-try", () => {
 });
 
 describe("finish-eval", () => {
+  it("writes nothing for an eval deleted while its workflow ran, and does not throw", async () => {
+    await seedPlugin(temp.store);
+    await seedEval(temp.store);
+    await activities()[LOAD_SUITE_ACTIVITY_NAME](EVAL_ID);
+    // The plugin's delete removed the eval before its cancelled workflow ended.
+    await temp.store.deleteResource(ApiResourceKind.plugin_eval, EVAL_ID);
+    await expect(
+      activities()[FINISH_EVAL_ACTIVITY_NAME](EVAL_ID, { phase: "partial", reason: "cancelled" }),
+    ).resolves.toBeUndefined();
+    await expect(readEval(temp.store)).rejects.toBeInstanceOf(ResourceNotFoundError);
+  });
+
   it("ends the eval failed with the workflow's error", async () => {
     await seedPlugin(temp.store);
     await seedEval(temp.store);

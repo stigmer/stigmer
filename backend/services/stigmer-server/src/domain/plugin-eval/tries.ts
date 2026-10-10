@@ -4,7 +4,11 @@
  * its runs and their scores and releases its sandbox, so nothing an eval
  * created outlives it. The tries are found through the session index's
  * `plugin_eval` key, so a try whose session the workflow created but never
- * recorded on the eval is found too.
+ * recorded on the eval is found too. A session already gone is deleted.
+ * A delete that fails is thrown, unless the caller leaves refused tries
+ * (`leaveRefused`): the plugin's sweep, deleting an eval whose cancelled
+ * workflow has not ended, leaves a try whose run is still being stopped,
+ * logged, rather than keep the eval.
  *
  * Proven by __tests__/plugin-eval.test.ts (the delete lane and the
  * plugin's cascade).
@@ -26,6 +30,7 @@ export async function deletePluginEvalTries(
   sessions: TrySessionDeleter,
   logger: Logger,
   evalId: string,
+  options: { readonly leaveRefused?: boolean } = {},
 ): Promise<void> {
   let sessionIds: string[];
   try {
@@ -40,7 +45,14 @@ export async function deletePluginEvalTries(
       if (error instanceof ConnectError && error.code === Code.NotFound) {
         continue;
       }
-      throw error;
+      if (options.leaveRefused !== true) {
+        throw error;
+      }
+      logger.warn("a plugin eval's try could not be deleted with its eval; it is left", {
+        evalId,
+        sessionId,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 }
