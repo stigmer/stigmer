@@ -40,6 +40,7 @@ import type { StigmerClient } from "../client/stigmer-client.js";
 import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { extractZipFileEntries } from "./zip-extract.js";
 import { downloadArchive, resetDirectory, writeArchiveEntries } from "./archive-mount.js";
+import { withoutEvalSuite } from "./plugin-mount.js";
 import { STIGMER_LOCAL_STATE_DIR } from "./workspace/stigmer-link.js";
 
 /** Subdirectory of the platform dir where skill mounts live. */
@@ -86,7 +87,7 @@ export function skillContentReadCheck(platformDir: string | undefined): (virtual
   return async (virtualPath) => {
     if (isSkillContentPath(virtualPath)) return true;
     const normalized = posix.normalize(virtualPath);
-    if (platformDir === undefined || !normalized.startsWith(PLATFORM_PREFIX)) return false;
+    if (platformDir === undefined || !normalized.toLowerCase().startsWith(PLATFORM_PREFIX)) return false;
     try {
       const [root, target] = await Promise.all([realpath(platformDir), realpath(join(platformDir, normalized.slice(PLATFORM_PREFIX.length)))]);
       const inside = relative(root.toLowerCase(), target.toLowerCase()).split(sep).join("/");
@@ -174,6 +175,13 @@ export async function downloadArtifact(
  * Every extracted entry must resolve inside `skillDir` (the archive
  * mount's escape check): the server already rejects traversal at push, and
  * this is the runner's defence in depth.
+ *
+ * Nothing under the archive's `evals/` is mounted, matched by its cleaned,
+ * root-relative name as the plugin mount matches it (`plugin-mount.ts`
+ * `withoutEvalSuite`). A skill's own `evals/` is never one of its files,
+ * and a root skill's archive is the whole plugin: one stored before the
+ * install left the suite out still carries it, and an agent under test
+ * must not read the cases it is graded on.
  */
 export async function writeSkillMount(
   skill: Skill,
@@ -186,7 +194,7 @@ export async function writeSkillMount(
 
   const artifactMounted = artifactBytes !== undefined && artifactBytes.length > 0;
   if (artifactMounted) {
-    const entries = await extractZipFileEntries(artifactBytes, { exclude: ["SKILL.md", MOUNT_MARKER_FILE] });
+    const entries = withoutEvalSuite(await extractZipFileEntries(artifactBytes, { exclude: ["SKILL.md", MOUNT_MARKER_FILE] }));
     await writeArchiveEntries(skillDir, entries, "skill artifact");
   }
 

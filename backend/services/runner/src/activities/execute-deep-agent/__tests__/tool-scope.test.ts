@@ -410,6 +410,7 @@ describe("tool scope attribution, on the middleware itself", () => {
       expect(await callRefused(cfg, "read_file", undefined, { file_path: "/.stigmer/plugin-data/p/file-link" })).toBe(true);
       expect(await callRefused(cfg, "read_file", undefined, { file_path: "/.stigmer/plugin-data/p/dir-link/a/SKILL.md" })).toBe(true);
       expect(await callRefused(cfg, "read_file", undefined, { file_path: "/.stigmer/Skills/a/SKILL.md" }), "by the path's text").toBe(true);
+      expect(await callRefused(cfg, "read_file", undefined, { file_path: "/.STIGMER/plugin-data/p/file-link" }), "the prefix in any letter case").toBe(true);
       expect(await callRefused(cfg, "read_file", undefined, { file_path: "/.stigmer/plugin-data/p/own.txt" })).toBe(false);
       expect(await callRefused(cfg, "read_file", undefined, { file_path: "/.stigmer/plugin-data/p/dangling" }), "nothing to read").toBe(false);
       expect(await callRefused(cfg, "read_file", undefined, { file_path: "/src/a.ts" }), "outside the route").toBe(false);

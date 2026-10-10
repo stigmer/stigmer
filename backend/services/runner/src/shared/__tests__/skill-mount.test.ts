@@ -146,6 +146,23 @@ describe("writeSkillMount — marker mechanics", () => {
     expect(statSync(join(skillDir, "scripts", "check")).mode & 0o111).not.toBe(0);
     expect(statSync(join(skillDir, "scripts", "README")).mode & 0o111).toBe(0);
   });
+
+  it("never mounts an eval suite a root skill's archive still carries, by its cleaned name", async () => {
+    // A root skill's archive is the whole plugin; one stored before the
+    // suite was stripped at push still holds `evals/`, which a try must not read.
+    const artifact = buildZip([
+      { name: "references/guide.md", content: "guide" },
+      { name: "evals/evals.json", content: "{}" },
+      { name: "./evals/basic/case.yaml", content: "prompt: hi" },
+      { name: "x/../evals/graders/g.yaml", content: "type: llm" },
+      { name: "evalsx/kept.md", content: "not the suite" },
+    ]);
+    await writeSkillMount(makeSkillProto({ versionHash: "hash-v1" }), skillDir, artifact);
+
+    expect(existsSync(join(skillDir, "evals"))).toBe(false);
+    expect(readFileSync(join(skillDir, "references", "guide.md"), "utf-8")).toBe("guide");
+    expect(readFileSync(join(skillDir, "evalsx", "kept.md"), "utf-8")).toBe("not the suite");
+  });
 });
 
 // ─── downloadArtifact — transfer lane routing (#675) ─────────────────────
