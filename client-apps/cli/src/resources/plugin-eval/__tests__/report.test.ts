@@ -3,12 +3,19 @@
 // run's error); the format's table, one block per target, with Stigmer's
 // PASS^k column (no block for a target nothing ran on), and SCORE PASS%
 // when the eval made no comparison; the summary line with "Δ provisional";
-// the not-run cases with the feature named; why a partial eval stopped; and
-// the exit codes 0, 1, 2 and 130.
+// the not-run cases with the feature named; a target's model name, which a
+// suite writes, kept on one line everywhere it is printed; why a partial
+// eval stopped; and the exit codes 0, 1, 2 and 130, a case whose
+// with-plugin tries were all not graded never a 0.
 
 import { create } from "@bufbuild/protobuf";
 import { PluginEvalAblation, PluginEvalTargetSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
-import { PluginEvalPartialReason, PluginEvalPhase } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
+import {
+  PluginEvalCaseTargetSchema,
+  PluginEvalPartialReason,
+  PluginEvalPhase,
+  PluginEvalTryState,
+} from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { describe, expect, it } from "vitest";
 import {
@@ -95,6 +102,27 @@ describe("renderNotRun", () => {
   });
 });
 
+describe("a target's model name", () => {
+  it("never writes an escape sequence or a newline to the terminal, wherever the label is printed", () => {
+    const pluginEval = finishedEval();
+    const hostile = { harness: Harness.NATIVE, modelName: "evil\u001b]0;owned\u0007\n\u001b[2J" };
+    pluginEval.spec!.targets[0] = create(PluginEvalTargetSchema, hostile);
+    const target = pluginEval.status!.cases[0]!.targets[0]!;
+    target.target = create(PluginEvalTargetSchema, hostile);
+    pluginEval.status!.cases.push({ ...pluginEval.status!.cases[0]!, caseName: "second", notRunReason: "" });
+    pluginEval.status!.cases[2]!.targets = [{ ...target, notRunReason: "not run: unknown model" }];
+    const printed = [
+      renderNotRun(pluginEval),
+      renderEvalTables(pluginEval),
+      ...finishedTries(pluginEval).map((attempt) => attempt.line),
+    ].join("\n");
+    expect(printed).toContain("second on native/evil ]0;owned [2J: not run: unknown model");
+    expect(printed).toContain("first-case · native/evil ]0;owned [2J · with · try 1/2 · 1.00");
+    expect(printed.split("\n")).toContain("native/evil ]0;owned [2J");
+    expect(printed).not.toMatch(/[\u001b\u0007]/);
+  });
+});
+
 describe("partialLine", () => {
   it("says why an eval stopped, and nothing for one that finished", () => {
     const pluginEval = finishedEval(PluginEvalPhase.partial);
@@ -133,6 +161,25 @@ describe("evalExitCode", () => {
     empty.status!.aggregates!.casesPassed = 0;
     expect(exit(empty)).toBe(EvalExit.Failed);
     expect(exit(finishedEval(PluginEvalPhase.failed))).toBe(EvalExit.Failed);
+  });
+
+  it("is 1, never 0, for a case whose with-plugin tries on a target were all not graded", () => {
+    // The server leaves such a case out of its counts, so every other case
+    // passing would read as a pass.
+    const unrun = finishedEval();
+    const tries = unrun.status!.cases[0]!.targets[0]!.withPlugin!.tries;
+    tries[0]!.state = PluginEvalTryState.not_graded;
+    tries[0]!.notGradedReason = "platform busy";
+    expect(exit(unrun)).toBe(EvalExit.Failed);
+    // A target not run, and a case not run, are named, never failed.
+    const notRun = finishedEval();
+    notRun.status!.cases[0]!.targets.push(
+      create(PluginEvalCaseTargetSchema, {
+        notRunReason: "not run: unknown model",
+        withPlugin: { tries: [{ index: 1, state: PluginEvalTryState.pending }] },
+      }),
+    );
+    expect(exit(notRun)).toBe(EvalExit.Passed);
   });
 
   it("is 2 for a partial run, at the spending limit or out of credit", () => {

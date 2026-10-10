@@ -13,13 +13,20 @@
 //
 // The exit code is the format's: 0 when every case that ran reached the
 // threshold and every case file loaded; 1 for a case below it, a load
-// finding, or no case at all; 2 for a partial run (the spending limit, the
+// finding, no case at all, or a case whose with-plugin tries on a target
+// were all not graded (a case that never ran is not a pass); 2 for a
+// partial run (the spending limit, the
 // organization out of credit, or a reason or phase a newer server added);
 // 130 when the eval was cancelled, by this command's Ctrl+C or any other
 // cancel (the console's Cancel, `plugin eval cancel`). A connection or
-// sign-in failure keeps the CLI's own 3 or 4, outside this file. A case Stigmer lists as not run (a
-// feature it does not run yet) is named, not failed: it never ran, and
-// `--case` or `--tag` leaves it out.
+// sign-in failure keeps the CLI's own 3 or 4, outside this file. A case
+// Stigmer lists as not run (a feature it does not run yet) is named, not
+// failed: it never ran, and `--case` or `--tag` leaves it out.
+//
+// Every text that reaches the terminal from the eval (a case name, a
+// target's model name as the suite's case.yaml wrote it, a reason, an
+// error) goes through `oneLine`, so a suite cannot write a newline or an
+// escape sequence there.
 
 import { pluginEvalTargetLabel } from "@stigmer/sdk";
 import type { PluginEval } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
@@ -59,7 +66,7 @@ export function finishedTries(pluginEval: PluginEval): FinishedTry[] {
   const finished: FinishedTry[] = [];
   for (const evalCase of pluginEval.status?.cases ?? []) {
     for (const result of evalCase.targets) {
-      const target = pluginEvalTargetLabel(result.target);
+      const target = targetLabel(result.target);
       for (const [arm, tries] of armsOf(result)) {
         for (const attempt of tries) {
           if (!isFinished(attempt)) continue;
@@ -81,7 +88,7 @@ export function renderEvalTables(pluginEval: PluginEval): string {
   const blocks: string[] = [];
   for (const label of targetLabels(pluginEval)) {
     const rows = cases.flatMap((evalCase) => {
-      const result = evalCase.targets.find((candidate) => pluginEvalTargetLabel(candidate.target) === label);
+      const result = evalCase.targets.find((candidate) => targetLabel(candidate.target) === label);
       if (result === undefined || result.notRunReason !== "") return [];
       return [oneArm ? oneArmRow(evalCase, result) : twoArmRow(evalCase, result)];
     });
@@ -127,7 +134,7 @@ export function renderNotRun(pluginEval: PluginEval): string {
     }
     for (const result of evalCase.targets) {
       if (result.notRunReason !== "") {
-        lines.push(`  ${oneLine(evalCase.caseName)} on ${pluginEvalTargetLabel(result.target)}: ${oneLine(result.notRunReason)}`);
+        lines.push(`  ${oneLine(evalCase.caseName)} on ${targetLabel(result.target)}: ${oneLine(result.notRunReason)}`);
       }
     }
   }
@@ -191,10 +198,32 @@ export function evalExitCode(
   }
   const aggregates = status?.aggregates;
   const total = aggregates?.casesTotal ?? 0;
-  if (total === 0 || opts.loadFindings > 0 || (aggregates?.casesPassed ?? 0) < total) {
+  if (
+    total === 0 ||
+    opts.loadFindings > 0 ||
+    (aggregates?.casesPassed ?? 0) < total ||
+    (status?.cases ?? []).some(neverGradedWithPlugin)
+  ) {
     return EvalExit.Failed;
   }
   return EvalExit.Passed;
+}
+
+/**
+ * Whether a case that ran left a target with-plugin tries none of which
+ * was graded: the server leaves such a case out of its counts, but it
+ * never ran there, so it is not a pass.
+ */
+function neverGradedWithPlugin(evalCase: PluginEvalCase): boolean {
+  if (evalCase.notRunReason !== "") return false;
+  return evalCase.targets.some((result) => {
+    const tries = result.withPlugin?.tries ?? [];
+    return (
+      result.notRunReason === "" &&
+      tries.length > 0 &&
+      tries.every((attempt) => attempt.state !== PluginEvalTryState.graded)
+    );
+  });
 }
 
 /** Whether the eval has stopped changing. */
@@ -217,14 +246,19 @@ export function isSettled(pluginEval: PluginEval): boolean {
   }
 }
 
+/** A target's label as one line: its model name is the suite author's text. */
+function targetLabel(target: Parameters<typeof pluginEvalTargetLabel>[0]): string {
+  return oneLine(pluginEvalTargetLabel(target));
+}
+
 function targetLabels(pluginEval: PluginEval): string[] {
   const labels: string[] = [];
   const add = (label: string): void => {
     if (!labels.includes(label)) labels.push(label);
   };
-  for (const target of pluginEval.spec?.targets ?? []) add(pluginEvalTargetLabel(target));
+  for (const target of pluginEval.spec?.targets ?? []) add(targetLabel(target));
   for (const evalCase of pluginEval.status?.cases ?? []) {
-    for (const result of evalCase.targets) add(pluginEvalTargetLabel(result.target));
+    for (const result of evalCase.targets) add(targetLabel(result.target));
   }
   return labels;
 }
