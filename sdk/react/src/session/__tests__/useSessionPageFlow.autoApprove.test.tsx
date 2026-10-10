@@ -473,3 +473,43 @@ describe("useSessionPageFlow — armed responder (#816, the walk-away scenario)"
     expect(mockSubmitApproval).not.toHaveBeenCalled();
   });
 });
+
+describe("useSessionPageFlow — a participant's follow-up (canDecide false)", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+    mockConv.activeStreamRun = null;
+  });
+
+  it("sends the message alone: no settings rewrite, and never auto-approve, even when armed", async () => {
+    // Armed three ways at once: the host default, the in-flight run, and
+    // the gate's "approve all". None reaches a participant's turn.
+    mockConv.activeStreamRun = { spec: { autoApproveAll: true } };
+    const { result } = renderHook(
+      () => useSessionPageFlow({ ...OPTS, canDecide: false }),
+      { wrapper: hostDefaultWrapper(true) },
+    );
+    expect(result.current.autoApproveAll).toBe(true);
+
+    await act(async () => {
+      await result.current.handleSubmit("a question from a participant");
+    });
+
+    expect(mockSendFollowUp).toHaveBeenCalledTimes(1);
+    const [message, sent] = mockSendFollowUp.mock.calls[0] as [string, Record<string, unknown>];
+    expect(message).toBe("a question from a participant");
+    expect(sent.autoApproveAll).toBeUndefined();
+    for (const setting of ["agentRef", "workspaceEntries", "mcpServerUsages", "skillRefs", "vaults", "includeMyVault"]) {
+      expect(sent, setting).not.toHaveProperty(setting);
+    }
+    expect(sent.modelName).toBe("model-x");
+  });
+
+  it("never releases a gate on the owners' behalf while armed", () => {
+    mockConv.activeStreamRun = { spec: { autoApproveAll: true } };
+    mockConv.pendingApprovals = [{ toolCallId: "tc_participant" }];
+    renderHook(() => useSessionPageFlow({ ...OPTS, canDecide: false }));
+    expect(mockSubmitApproval).not.toHaveBeenCalled();
+    mockConv.pendingApprovals = [];
+  });
+});
+

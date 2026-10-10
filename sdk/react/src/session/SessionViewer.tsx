@@ -40,10 +40,10 @@ import {
   type SessionPlan,
 } from "../library/detect-plan-artifact.js";
 import { findStreamingPlan } from "../library/detect-streaming-plan.js";
+import { useSessionAccess } from "./useSessionAccess.js";
 import { useSessionPageFlow } from "./useSessionPageFlow.js";
 import { useOrgIdForRef } from "../organization/useOrgRefs.js";
 import { isChannelOriginSession } from "./channelOrigin.js";
-import { useSessionAccess } from "./useSessionAccess.js";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { useOpenFileChange } from "./useOpenFileChange.js";
 import { usePlanDraft, planDraftKey, type PlanDraftController } from "./usePlanDraft.js";
@@ -410,12 +410,20 @@ export function SessionViewer({
   threadSlots,
   className,
 }: SessionViewerProps) {
+  // What this reader may do in a shared conversation, asked of the server
+  // for a console's own conversations (guests and observers already have
+  // their presentation and ask nothing). Asked before the flow, which sends
+  // a participant's follow-up as the message alone.
+  const access = useSessionAccess(
+    audience !== "guest" && audience !== "observer" && sessionId ? sessionId : null,
+  );
   const flow = useSessionPageFlow({
     sessionId,
     org: orgProp,
     audience,
     runConfig,
     accountDefaults,
+    canDecide: access.canDecide,
   });
   const { conv } = flow;
   // Everything org-scoped below acts in the session's own organization once
@@ -445,9 +453,9 @@ export function SessionViewer({
   // the conversation's owners (run#can_edit is the session owner's). Both
   // checks fail open, so a transient error never hides a control; the
   // server refuses whatever the answer misses.
-  const { canSend, canDecide } = useSessionAccess(
-    !isGuest && !isObserver && sessionId ? sessionId : null,
-  );
+  const { canSend, canDecide } = isObserver
+    ? { canSend: true, canDecide: true }
+    : access;
   const readsOnly = !isObserver && !canSend;
   const isReader = isObserver || readsOnly;
   const isParticipant = !isReader && !canDecide;
