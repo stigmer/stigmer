@@ -15,8 +15,8 @@
 //     the last message scores, `Δ` is computed and marked provisional;
 //   - each try's run carries one Score, source eval, one criterion per
 //     grader, the indicator `not_applicable`;
-//   - a case that needs `context.scaffold_script` is listed "not run" and
-//     starts no run;
+//   - a case that runs with another plugin is listed "not run" and starts
+//     no run;
 //   - the tries are left out of `session.list` and read by `session.get`;
 //   - an `llm` grader is decided by two of its three votes;
 //   - a spending limit reached stops new tries: the eval ends partial,
@@ -33,7 +33,23 @@
 //     organization has both and an ordinary run there gets them;
 //   - delete is refused while the eval runs, naming cancel; cancel ends it
 //     partial `cancelled`; cancel of an eval that ended changes nothing;
-//     delete removes the eval and its tries' conversations.
+//     delete removes the eval and its tries' conversations;
+//   - a case's scaffold builds its starting folder from a fixture beside the
+//     case, its file a try changes is read and never counted as created, a
+//     reference folder is read under `.stigmer/inputs/`, and an `EVAL_*`
+//     variable reaches the shell; a failed scaffold scores the try 0 with
+//     its error and starts no turn;
+//   - a resumed case's first model request carries the recorded turns, and
+//     a Cursor target lists the case as not run;
+//   - a mocked server answers under the plugin server's name: a fixed mock
+//     and an agent mock (answered by the scripted model) are graded through
+//     `mock_calls`, and the case lists its servers; an `expect:` violation
+//     stops the try, reported `aborted` with a 0.
+//
+// Every engine-backed describe runs only where the runner creates the try's
+// run as the eval's caller (CapabilityFlags.runnerActsAsRunCreator): on the
+// cloud-execution target a try's run belongs to another subject, as for the
+// AI judge (stigmer#2105).
 //
 // Out of scope here, with the reason:
 //   - a credit refusal ending the eval `out_of_credit`: open source meters
@@ -65,6 +81,7 @@ import {
   PluginEvalTryState,
 } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { CriterionResult, ScoreSource, ScoreState } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
 import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
@@ -73,7 +90,7 @@ import {
   OrganizationPreferencesSchema,
   OrganizationSpecSchema,
 } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/spec_pb";
-import { readAnthropicRequest } from "@stigmer/test-support/llm-wire";
+import { readAnthropicRequest, readLastUserText, readTurnShapes } from "@stigmer/test-support/llm-wire";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
@@ -93,6 +110,8 @@ import {
   cancelAndDeletePluginEval,
   followPluginEval,
   installPlugin,
+  NOT_STARTED_NO_MOCK,
+  engineUnsupportedReason,
   lastMessageGrader,
   makePluginEval,
   pluginEvalActiveDeleteMessage,
@@ -106,6 +125,10 @@ import {
 import { allToolCalls, awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/runs";
 import { createTarget, type TargetProfile } from "../targets";
 import type { TenancyContext } from "../targets/target";
+
+// Read once at collection time to gate the engine-backed arms (constructing
+// a target is side-effect-free; setup() is what boots processes).
+const runnerServesTries = createTarget().capabilities.runnerActsAsRunCreator;
 
 let target: TargetProfile;
 let clients: ConformanceClients;
@@ -169,7 +192,7 @@ interface Installed {
 // A one-skill plugin carrying `cases` (built from its skill's name), installed in `org`.
 async function installed(
   cases: (skill: string) => readonly EvalCaseFixture[],
-  opts: { org?: string; hooks?: Readonly<Record<string, unknown>> } = {},
+  opts: { org?: string; hooks?: Readonly<Record<string, unknown>>; files?: Readonly<Record<string, string>> } = {},
 ): Promise<Installed> {
   const name = uniqueName("pev");
   const skill = `${name}-notes`;
@@ -177,7 +200,12 @@ async function installed(
     clients,
     fixtures,
     opts.org ?? tenancy.org,
-    skillPluginWithEvals(name, { skill, cases: cases(skill), ...(opts.hooks === undefined ? {} : { hooks: opts.hooks }) }),
+    skillPluginWithEvals(name, {
+      skill,
+      cases: cases(skill),
+      ...(opts.hooks === undefined ? {} : { hooks: opts.hooks }),
+      ...(opts.files === undefined ? {} : { files: opts.files }),
+    }),
   );
   return { plugin, skill };
 }
@@ -225,21 +253,20 @@ function describeTries(pluginEval: PluginEval): string {
     .join("; ");
 }
 
-describe("PluginEval — a suite with and without the plugin", () => {
+describe.skipIf(!runnerServesTries)("PluginEval — a suite with and without the plugin", () => {
   it("[rpc:PluginEvalCommandController.create] [rpc:PluginEvalQueryController.get] [rpc:ScoreQueryController.listByRun] [rpc:SessionQueryController.list] [rpc:SessionQueryController.get] two cases, two tries per arm: the with-arm reads the skill, the regex scores, Δ is computed and provisional", async () => {
     const installation = await installed((skill) => [
       scoredCase("first-notes", skill),
       scoredCase("second-notes", skill),
       {
-        name: "needs-scaffold",
+        name: "other-plugin",
         prompt: "Summarise the repository.",
-        caseYaml: { schema_version: "1.1", name: "needs-scaffold", context: { scaffold_script: "fixture.sh" } },
+        frontmatter: { plugins: ["/plugins/other"] },
         graders: [lastMessageGrader("says-done", "^DONE")],
-        files: { "fixture.sh": "#!/bin/bash\ntouch README.md\n" },
       },
     ]);
     const { skill } = installation;
-    // Matrix order: the case, then the arm, then the try; the scaffold case plans none.
+    // Matrix order: the case, then the arm, then the try; the other-plugin case plans none.
     for (let caseIndex = 0; caseIndex < 2; caseIndex++) {
       for (let attempt = 1; attempt <= 2; attempt++) {
         mock.enqueue(skillRead(skill, `call_skill_${caseIndex}_${attempt}`));
@@ -258,12 +285,12 @@ describe("PluginEval — a suite with and without the plugin", () => {
     expect(ended.status?.phase, describeTries(ended)).toBe(PluginEvalPhase.completed);
     expect(ended.status?.triesFinished).toBe(8);
     expect(ended.status?.provisionalDelta).toBe(true);
-    expect(mock.consumed(), "exactly the scripted turns: the scaffold case started no run").toBe(12);
+    expect(mock.consumed(), "exactly the scripted turns: the other-plugin case started no run").toBe(12);
 
     const status = ended.status!;
-    expect(status.cases.map((c) => c.caseName)).toEqual(["first-notes", "needs-scaffold", "second-notes"]);
-    const scaffold = status.cases.find((c) => c.caseName === "needs-scaffold")!;
-    expect(scaffold.notRunReason).toBe(unsupportedFeatureReason("context.scaffold_script"));
+    expect(status.cases.map((c) => c.caseName)).toEqual(["first-notes", "other-plugin", "second-notes"]);
+    const scaffold = status.cases.find((c) => c.caseName === "other-plugin")!;
+    expect(scaffold.notRunReason).toBe(unsupportedFeatureReason("plugins"));
     expect(scaffold.targets.flatMap((t) => [...(t.withPlugin?.tries ?? []), ...(t.withoutPlugin?.tries ?? [])])).toEqual(
       [],
     );
@@ -329,7 +356,7 @@ describe("PluginEval — a suite with and without the plugin", () => {
   }, 360_000);
 });
 
-describe("PluginEval — grading", () => {
+describe.skipIf(!runnerServesTries)("PluginEval — grading", () => {
   it("[rpc:PluginEvalQueryController.get] [rpc:ScoreQueryController.listByRun] an llm grader is decided by two of its three votes", async () => {
     const installation = await installed(() => [
       {
@@ -407,7 +434,7 @@ describe("PluginEval — grading", () => {
   }, 360_000);
 });
 
-describe("PluginEval — what a try is given", () => {
+describe.skipIf(!runnerServesTries)("PluginEval — what a try is given", () => {
   it("[rpc:PluginEvalQueryController.get] a try cannot read the plugin's evals/: the tree mounted into its session has none", async () => {
     const installation = await installed(
       (skill) => [scoredCase("hidden-cases", skill, { frontmatter: { allowed_tools: ["Read"] } })],
@@ -497,7 +524,7 @@ describe("PluginEval — what a try is given", () => {
   }, 360_000);
 });
 
-describe("PluginEval — cancel and delete with an engine", () => {
+describe.skipIf(!runnerServesTries)("PluginEval — cancel and delete with an engine", () => {
   it("[rpc:PluginEvalCommandController.delete] [rpc:PluginEvalCommandController.cancel] delete is refused while the eval runs, naming cancel; cancel ends it partial cancelled", async () => {
     const installation = await installed((skill) => [scoredCase("held-notes", skill)]);
     mock.enqueue(anthropicText(DONE), { delayMs: 120_000 });
@@ -574,4 +601,191 @@ describe("PluginEval — cancel and delete with an engine", () => {
       );
     }
   }, 360_000);
+});
+
+describe.skipIf(!runnerServesTries)("PluginEval — fixtures, resumed conversations, variables and mocks", () => {
+  /** The one try of a one-case, one-arm eval. */
+  async function onlyTry(installation: Installed, opts: Partial<PluginEvalOptions> = {}) {
+    const created = await startEval(installation, { ablation: PluginEvalAblation.none, ...opts });
+    const ended = await awaitPluginEvalEnd(clients, created.metadata!.id, 240_000);
+    expect(ended.status?.phase, describeTries(ended)).toBe(PluginEvalPhase.completed);
+    const tries = triesOf(ended);
+    expect(tries, describeTries(ended)).toHaveLength(1);
+    return { ended, attempt: tries[0]!.attempt };
+  }
+
+  it("[rpc:PluginEvalQueryController.get] a scaffold builds the starting folder from a shared fixture, a reference folder is read, and an EVAL_* variable reaches the shell", async () => {
+    const installation = await installed(
+      () => [
+        {
+          name: "fixture-case",
+          prompt: "Bump the version.",
+          frontmatter: { allowed_tools: ["Read"], env: { EVAL_X: "eval-x-value" } },
+          caseYaml: {
+            schema_version: "1.1",
+            name: "fixture-case",
+            context: { scaffold_script: "setup.sh", add_dirs: ["resources"] },
+          },
+          files: {
+            "setup.sh": 'cp "$(dirname "$0")/../_fixture/app.txt" app.txt\ngit init -q .\n',
+            "resources/style.md": "STYLE-MARKER: one line per change.\n",
+          },
+          graders: [
+            { name: "read-reference", frontmatter: { type: "regex", pattern: "STYLE-MARKER", target: "trace" } },
+            { name: "env-reached", frontmatter: { type: "regex", pattern: "eval-x-value", target: "trace" } },
+            { name: "bumped", frontmatter: { type: "regex", pattern: "version = 2", target: { source: "file", path: "app.txt" } } },
+            { name: "not-created", frontmatter: { type: "file_exists", path: "app.txt", exists: false } },
+            lastMessageGrader("says-done", "^DONE"),
+          ],
+        },
+      ],
+      { files: { "evals/_fixture/app.txt": "version = 1\n" } },
+    );
+    mock.enqueue(anthropicToolUse("call_ref", "read_file", { file_path: ".stigmer/inputs/resources/style.md" }));
+    mock.enqueue(anthropicToolUse("call_env", "execute", { command: 'echo "$EVAL_X"' }));
+    mock.enqueue(anthropicToolUse("call_edit", "edit_file", { file_path: "app.txt", old_string: "version = 1", new_string: "version = 2" }));
+    mock.enqueue(anthropicText(DONE));
+
+    const { attempt } = await onlyTry(installation, { allowTools: ["Bash", "Edit"] });
+    expect(attempt.state, `error "${attempt.error}"`).toBe(PluginEvalTryState.graded);
+    const score = await evalScoreOf(attempt.runId);
+    expect(score.spec?.criteria.map((c) => [c.name, c.result, c.reason])).toEqual(
+      ["read-reference", "env-reached", "bumped", "not-created", "says-done"].map((name) => [
+        name,
+        CriterionResult.passed,
+        expect.any(String),
+      ]),
+    );
+    expect(attempt.score).toBe(1);
+  }, 300_000);
+
+  it("[rpc:PluginEvalQueryController.get] [rpc:ScoreQueryController.listByRun] a failed scaffold scores the try 0 with its error, and starts no turn", async () => {
+    const installation = await installed(() => [
+      {
+        name: "broken-scaffold",
+        prompt: "Anything.",
+        caseYaml: { schema_version: "1.1", name: "broken-scaffold", context: { scaffold_script: "setup.sh" } },
+        files: { "setup.sh": "echo no such repository >&2\nexit 3\n" },
+        graders: [{ name: "never-calls-bash", frontmatter: { type: "tool_used", tool: "Bash", max: 0 } }],
+      },
+    ]);
+    const { ended, attempt } = await onlyTry(installation);
+    expect(mock.consumed(), "the engine never started").toBe(0);
+    expect(attempt.state, describeTries(ended)).toBe(PluginEvalTryState.graded);
+    expect(attempt.score, describeTries(ended)).toBe(0);
+    expect(attempt.error).toBe("scaffold failed: exit 3: no such repository");
+    const score = await evalScoreOf(attempt.runId);
+    expect(score.spec?.value).toEqual({ case: "passed", value: false });
+    expect(score.spec?.criteria.map((c) => [c.result, c.reason])).toEqual([
+      [CriterionResult.not_applicable, "not checked: the scaffold failed"],
+    ]);
+  }, 300_000);
+
+  it("[rpc:PluginEvalQueryController.get] a resumed case's first request carries the recorded turns, and a Cursor target lists it as not run", async () => {
+    const history = [
+      JSON.stringify({ type: "user", message: { role: "user", content: "Draft a release note for the rename." } }),
+      JSON.stringify({ type: "assistant", message: { role: "assistant", content: [{ type: "text", text: "Draft: renamed getUser to fetchUser." }] } }),
+    ].join("\n");
+    const installation = await installed(() => [
+      {
+        name: "resumed",
+        prompt: "Now shorten it.",
+        caseYaml: { schema_version: "1.1", name: "resumed", context: { history_file: "history.jsonl" } },
+        files: { "history.jsonl": `${history}\n` },
+        graders: [lastMessageGrader("short", "^Short")],
+      },
+    ]);
+    mock.enqueue(anthropicText("Short: getUser is fetchUser."));
+
+    const { ended, attempt } = await onlyTry(installation, {
+      targets: [{ harness: Harness.NATIVE }, { harness: Harness.CURSOR }],
+    });
+    expect(attempt.score).toBe(1);
+    const [request] = mock.scriptedRequests();
+    expect(readTurnShapes(request!.body).map((turn) => turn.role)).toEqual(["user", "assistant", "user"]);
+    expect(JSON.stringify(request!.body)).toContain("Draft a release note for the rename.");
+    expect(readLastUserText(request!.body)).toContain("Now shorten it.");
+    const resumed = ended.status!.cases[0]!;
+    expect(resumed.notes).toContain("resumed from history.jsonl");
+    expect(resumed.targets.map((t) => t.notRunReason)).toEqual(["", engineUnsupportedReason("Cursor", "resumed conversations")]);
+  }, 300_000);
+
+  /** A one-skill plugin with the MCP servers `tracker` and `wiki`, and the suite's mocks of `tracker`. */
+  async function mockedPlugin(cases: (skill: string) => readonly EvalCaseFixture[]): Promise<Installed> {
+    const name = uniqueName("pev");
+    const skill = `${name}-notes`;
+    const plugin = await installPlugin(
+      clients,
+      fixtures,
+      tenancy.org,
+      skillPluginWithEvals(name, {
+        skill,
+        cases: cases(skill),
+        mcpServers: {
+          tracker: { type: "http", url: "https://tracker.mock.invalid/mcp" },
+          wiki: { type: "http", url: "https://wiki.mock.invalid/mcp" },
+        },
+        files: {
+          "evals/mocks/tracker/create_issue.md":
+            "---\nexpect:\n  title: string\n---\n\nCreated issue #4821: {{input.title}}\n",
+          "evals/mocks/tracker/triage.md": "---\ntype: agent\n---\n\nYou triage issues. Answer with one label.\n",
+        },
+      }),
+    );
+    return { plugin, skill };
+  }
+
+  it("[rpc:PluginEvalQueryController.get] [rpc:ScoreQueryController.listByRun] a fixed and an agent mock answer under the plugin server's name and are graded through mock_calls", async () => {
+    const installation = await mockedPlugin(() => [
+      {
+        name: "files-a-bug",
+        prompt: "File the crash on save, then triage it.",
+        graders: [
+          { name: "asked-tracker", frontmatter: { type: "regex", pattern: '"title":"Crash on save"', target: "mock_calls" } },
+          { name: "fixed-answered", frontmatter: { type: "regex", pattern: "Created issue #4821: Crash on save", target: "trace" } },
+          { name: "agent-answered", frontmatter: { type: "regex", pattern: "LABEL-BUG", target: "trace" } },
+          lastMessageGrader("says-done", "^DONE"),
+        ],
+      },
+    ]);
+    mock.enqueue(anthropicToolUse("call_create", "create_issue", { title: "Crash on save" }));
+    mock.enqueue(anthropicToolUse("call_triage", "triage", { issue: 4821 }));
+    mock.enqueue(anthropicText("LABEL-BUG")); // the agent mock's own model call
+    mock.enqueue(anthropicText(DONE));
+
+    const { ended, attempt } = await onlyTry(installation);
+    expect(attempt.state, `error "${attempt.error}"`).toBe(PluginEvalTryState.graded);
+    expect(attempt.score).toBe(1);
+    const agentMockRequest = mock.scriptedRequests()[2]!;
+    expect(systemTextOf(agentMockRequest.body)).toContain("standing in for the MCP server 'tracker'");
+    const pluginName = installation.plugin.metadata!.name;
+    expect(ended.status!.cases[0]!.mockedServers.map((m) => [m.name, m.tools, m.notStartedReason])).toEqual([
+      [`plugin_${pluginName}_tracker`, ["create_issue", "triage"], ""],
+      [`plugin_${pluginName}_wiki`, [], NOT_STARTED_NO_MOCK],
+    ]);
+    // The mocked call is a two-arm indicator, but this eval runs one arm, so every grader scored.
+    const score = await evalScoreOf(attempt.runId);
+    expect(score.spec?.criteria.every((c) => c.result === CriterionResult.passed)).toBe(true);
+  }, 300_000);
+
+  it("[rpc:PluginEvalQueryController.get] [rpc:ScoreQueryController.listByRun] a call that breaks a mock's expect: stops the try, reported aborted with a 0", async () => {
+    const installation = await mockedPlugin(() => [
+      {
+        name: "bad-title",
+        prompt: "File the crash.",
+        graders: [lastMessageGrader("says-done", "^DONE")],
+      },
+    ]);
+    mock.enqueue(anthropicToolUse("call_create", "create_issue", { title: 7 }));
+
+    const { attempt } = await onlyTry(installation);
+    expect(attempt.state).toBe(PluginEvalTryState.graded);
+    expect(attempt.score).toBe(0);
+    expect(attempt.error).toBe("");
+    expect(attempt.aborted).toMatchObject({ server: "tracker", tool: "create_issue", reason: "input.title must be a string" });
+    const run = await runOf(attempt.runId);
+    expect(run.status?.phase).toBe(RunPhase.RUN_TERMINATED);
+    const score = await evalScoreOf(attempt.runId);
+    expect(score.spec?.criteria.map((c) => c.reason)).toEqual(["not checked: aborted by tracker.create_issue"]);
+  }, 300_000);
 });
