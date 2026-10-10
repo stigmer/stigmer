@@ -4,8 +4,8 @@ The three first-party clients: `cli` (the `stigmer` command, commander plus the
 Ink session view from `sdk/ink`), `web` (the Next.js console) and `desktop`
 (Tauri, Vite and React Router). The web console and the desktop app are thin
 shells over `@stigmer/react`; the CLI is a thin shell over `@stigmer/sdk`.
-Anything a platform builder could need belongs in `sdk/`, whose guide binds
-there. This guide is an index; the READMEs and headers it names are the truth.
+Anything a platform builder could need belongs in `sdk/`. This guide is an
+index; the READMEs and headers it names are the truth.
 
 ## Read in this order
 
@@ -27,8 +27,9 @@ there. This guide is an index; the READMEs and headers it names are the truth.
   errors. `-o json` (and `yaml`, `ndjson`) prints clean, undecorated data.
 - Errors are translated, never leaked: what happened, why, what to do, through
   the one exit point in `cli/src/errors/handle.ts`; exit codes follow
-  `cli/src/errors/exit-codes.ts` so scripts branch on `$?`. Raw stacks appear
-  only in debug mode.
+  `cli/src/errors/exit-codes.ts` so scripts branch on `$?`; `plugin eval` uses
+  Claude Code's 0, 1, 2, 130, keeping 3 and 4. Raw stacks appear only in debug
+  mode.
 - Off a TTY there are no colours, spinners or prompts: colour honours the stream
   and `NO_COLOR`, a destructive command without `--force` aborts, and a headless
   run resolves each approval by `--approve-default` (skip when unset), never by
@@ -75,6 +76,6 @@ there. This guide is an index; the READMEs and headers it names are the truth.
 ## Verify
 
 The root map's rows for `cli`, `web` and `desktop`, plus `make gen-cli-docs`
-when a command or flag changes so `docs/cli/commands/` stays generated, and the
-desktop's Rust checks (`cargo fmt --check`, `cargo clippy`, `cargo test` in
-`desktop/src-tauri`) when the host changes.
+when a command or flag changes, and the desktop's Rust checks
+(`cargo fmt --check`, `cargo clippy`, `cargo test` in `desktop/src-tauri`) when
+the host changes.

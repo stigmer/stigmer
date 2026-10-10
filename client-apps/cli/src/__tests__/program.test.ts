@@ -104,6 +104,16 @@ describe("buildProgram", () => {
     );
   });
 
+  it("lists plugin eval's exit codes in its help: the format's, and the CLI's own 3 and 4", () => {
+    const evalCommand = buildProgram()
+      .commands.find((command) => command.name() === "plugin")
+      ?.commands.find((command) => command.name() === "eval");
+    let help = "";
+    evalCommand?.configureOutput({ writeOut: (text) => void (help += text) });
+    evalCommand?.outputHelp();
+    for (const code of ["0", "1", "2", "3", "4", "130"]) expect(help).toMatch(new RegExp(`^  ${code} +\\S`, "m"));
+  });
+
   it("routes plugin eval cancel to its subcommand and any other word to the eval itself", async () => {
     const seen: string[] = [];
     const program = buildProgram();

@@ -164,6 +164,8 @@ The exit code tells a script or a CI job what happened:
 | 0         | Every case that ran reached the threshold and every case loaded                                                                                                                                                                                                                            |
 | 1         | A case scored below the threshold, a case failed to load, no case was found, or an option was not valid; or the eval could not start (the plugin was not found, you may not evaluate it, or the server refused the eval), or the CLI could not read it for about a minute and cancelled it |
 | 2         | Partial: the cost limit was reached or the Organization ran out of credit; the results cover what ran                                                                                                                                                                                      |
+| 3         | The server could not be reached (the CLI's own code for a connection failure)                                                                                                                                                                                                              |
+| 4         | You are not signed in, or your sign-in expired (the CLI's own code for a sign-in failure)                                                                                                                                                                                                  |
 | 130       | Interrupted: Ctrl+C cancels the eval and prints the partial results                                                                                                                                                                                                                        |
 
 `Δ` never changes the exit code, and neither does a case listed as not run.
@@ -263,6 +265,13 @@ catalogue ID in the case.
   real with the Organization's connections; Stigmer has no mocks yet. Their
   tools are granted by either name: Claude Code's
   `mcp__plugin_<plugin>_<server>__<tool>`, or Stigmer's `mcp__<server>__<tool>`.
+- **A `tool_used` with only `max` lowers `min` to it.** Without `min`, the
+  grader's `min` is the smaller of 1 and `max`, so `max: 0` alone passes when
+  the tool is never called. Claude Code keeps `min` at 1, where `max: 0` alone
+  can never pass.
+- **An `llm` grader does not look at images.** A grader whose focus is an image
+  file, or any other binary file, leaves the try not graded. Claude Code shows a
+  PNG, JPEG, GIF or WebP file to the judge as an image.
 - **Created files need artifact storage.** `files` and file targets read what a
   try created through Stigmer's file review. An install without artifact storage
   records no created files, so a grader that reads them leaves the try not
@@ -300,7 +309,8 @@ spend at most an equal share of what is left for the tries that run at once; a
 try that needs more than its share is stopped at it and shown as not graded.
 Tries already running when the limit is reached finish, and so do their
 AI-graded checks, each vote capped at $0.25, so the spend can pass the limit by
-those.
+those. So can a try whose start failed or whose stop failed: it is recorded as
+not graded, and its run may keep spending briefly after that.
 
 ## Turn a bad run into a test case
 

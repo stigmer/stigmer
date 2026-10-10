@@ -12,7 +12,9 @@
 // Thin handler: read the options, resolve credentials and the
 // organization, delegate to resources/plugin-eval. Heavy modules load
 // lazily so `--help` stays fast. The exit code is the format's (0, 1, 2,
-// 130), carried out through the one exit point as a silent CliExitError.
+// 130), carried out through the one exit point as a silent CliExitError;
+// a connection or sign-in failure keeps the CLI's own 3 or 4. The help
+// lists them all.
 // `--tag` and `--allow-tools` take a list, as Claude Code's do, so a target
 // written after them reads as one of their values; the format says to put
 // the target first.
@@ -21,6 +23,17 @@ import type { Command } from "commander";
 import { ensureAuthenticated, resolveOrganization } from "../config/index.js";
 import type { PluginEvalFlags } from "../resources/plugin-eval/options.js";
 import { globalOrg } from "./shared.js";
+
+/** `plugin eval`'s exit codes: Claude Code's plugin-eval codes, and the CLI's 3 and 4. */
+const EVAL_EXIT_CODES = `
+Exit codes:
+  0    every case that ran reached the threshold and every case loaded
+  1    a case scored below the threshold, a case did not load, no case ran, an
+       option was not valid, the eval could not start, or it was lost and cancelled
+  2    partial: the spending limit was reached or the organization ran out of credit
+  3    the server could not be reached
+  4    not signed in, or the sign-in expired
+  130  interrupted: Ctrl+C cancelled the eval`;
 
 function collect(value: string, previous: readonly string[] | undefined): string[] {
   return [...(previous ?? []), value];
@@ -53,6 +66,7 @@ export function registerPlugin(program: Command): void {
     .option("--real-mcp-servers", "run the plugin's MCP servers for real, with the organization's connections")
     .option("--json [path]", "print the result document, or write it to a path ending in .json; no progress or table")
     .option("--no-wait", "start the eval, print its id, and return")
+    .addHelpText("after", EVAL_EXIT_CODES)
     .action((target: string, options: PluginEvalFlags, command: Command) => runPluginEvalCommand(target, options, command));
 
   evalCommand
