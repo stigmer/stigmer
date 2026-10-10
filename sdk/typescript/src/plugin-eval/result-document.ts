@@ -49,7 +49,7 @@ export interface ResultRun {
   readonly score: number | null;
   /** Why the try produced no score, as in "platform busy"; `null` when graded. */
   readonly notGradedReason: string | null;
-  /** The try's run, which the eval's viewers can open; empty until it exists. */
+  /** The try's run; empty until it exists. */
   readonly runId: string;
 }
 

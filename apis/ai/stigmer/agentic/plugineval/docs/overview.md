@@ -6,8 +6,9 @@ function", "the skill was used" or a pass-or-fail rubric for an AI judge.
 An eval runs every case several times with the plugin and several times without
 it, on each engine and model it names, and records per case the score with and
 without the plugin, the difference the plugin makes, and whether every try
-passed. Every try is a conversation the eval's viewers can open from the
-eval.
+passed. Every try is a conversation, linked from the eval: in Stigmer Cloud the
+eval's viewers open it, read-only; in open source the eval's creator owns it,
+and the other viewers read its scores on the eval.
 
 The plugin's editors start, cancel and delete evals; the plugin's viewers in
 its own organization read them. The organization that installed the plugin

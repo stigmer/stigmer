@@ -20,7 +20,8 @@ version: the version it was installed or last updated at. Each case runs several
 times with the plugin and several times without it, on each model you name. For
 each case you get the score with the plugin, the score without it, the
 difference the plugin makes, and whether every try passed. Every try is a real
-conversation you can open.
+conversation; who can open it depends on the edition (see
+[Who sees an eval](#who-sees-an-eval-and-who-pays)).
 
 ## What Stigmer runs, and what it measures
 
@@ -192,6 +193,8 @@ Stigmer adds fields beside them, which a script written for Claude Code ignores:
 - `notRun[]`: each case, or case on one model, that was not run, with the
   reason.
 - `runId` and `notGradedReason` on each try, and the eval's `evalId`.
+- `findings[]`: each problem reading the suite, with its `kind`, `path` and
+  `message`, which `stigmer plugin eval` prints to stderr without `--json`.
 
 ## What runs, and what is named instead
 
@@ -210,8 +213,12 @@ because a degraded run would be a wrong score. It is listed instead, as
 | `context.add_dirs`                        | Case folders the try may read                       |
 | `context.history_file`                    | A recorded conversation the try resumes             |
 | `env`                                     | Extra environment variables for the try             |
+| `plugins` naming more than one plugin     | Other plugins the try loads beside the one tested   |
 | A `mock_calls` target or focus, and mocks | Fake MCP servers that answer the try's tool calls   |
 | More than 32 graders on one case          | A grade records at most 32 checks                   |
+
+A `plugins` list with one entry is read as the format's override of finding the
+plugin, and changes nothing: the plugin under test is always the installed one.
 
 A case naming a `model` Stigmer's catalogue does not hold, such as `sonnet`, is
 not run on the default model either: name the model with `--model`, or use a
@@ -256,13 +263,22 @@ memories, so a score never depends on who started the eval.
 ## Who sees an eval, and who pays
 
 The plugin's editors start, cancel, and delete its evals. The plugin's viewers
-in its own Organization read them and open their tries. A viewer in a child
-Organization, who can see a parent's plugin, does not see its evals: a try
-spends the Organization's credit and may act with its connections.
+in its own Organization read them: the results and each try's scores, on the
+eval's page. A viewer in a child Organization, who can see a parent's plugin,
+does not see its evals: a try spends the Organization's credit and may act with
+its connections.
+
+Who opens a try's conversation depends on the edition:
+
+- **Stigmer Cloud**: every viewer of the plugin in its Organization opens each
+  try, read-only: its conversation, run and scores, without adding a turn.
+- **Self-hosted open source**: the tries belong to the eval's creator, who opens
+  them as their own conversations. The plugin's other viewers read the eval, its
+  results and each try's scores on the eval's page, and cannot open a try's
+  conversation.
 
 Tries are kept out of the conversation list, so an eval of 200 tries does not
-bury your conversations. You reach them from the eval's page, or by ID. A try is
-read-only: its viewers can open it and its scores, and cannot add a turn.
+bury your conversations. You reach them from the eval's page, or by ID.
 
 The Organization that installed the plugin pays for every try and every vote of
 an AI-graded check, from its own credit. Tries use its own provider keys. The

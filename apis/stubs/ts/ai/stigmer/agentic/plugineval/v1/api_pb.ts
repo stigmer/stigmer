@@ -28,8 +28,9 @@ export const file_ai_stigmer_agentic_plugineval_v1_api: GenFile = /*@__PURE__*/
  * used" or a rubric for an AI judge. A PluginEval runs every case several
  * times with the plugin and several times without it, on each model it
  * names, and records per case the score with and without the plugin, the
- * difference, and whether every try passed. Every try is a conversation
- * the eval's viewers can open.
+ * difference, and whether every try passed. Every try is a conversation:
+ * in Stigmer Cloud the eval's viewers open it, read-only; in open source the
+ * eval's creator owns it, and the other viewers read its scores.
  *
  * @generated from message ai.stigmer.agentic.plugineval.v1.PluginEval
  */
