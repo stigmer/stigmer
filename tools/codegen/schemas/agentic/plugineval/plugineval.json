@@ -194,7 +194,7 @@
           "messageType": "ApiResourceReference"
         }
       },
-      "description": "Vaults whose logins and secrets the tries use, in order: the first\n vault holding a match wins. At most 20.\n\n A try has no person, so these vaults are all its hooks and servers\n use. The eval's creator may attach their own My vault; nobody else's.",
+      "description": "Vaults whose logins and secrets the tries use, in order: the first\n vault holding a match wins. At most 20.\n\n A try has no person, so these vaults are all its hooks and servers\n use. No My vault may be attached, the creator's own included: every\n viewer of the plugin can read a try's transcript.",
       "required": false,
       "referenceKind": 59,
       "validation": {

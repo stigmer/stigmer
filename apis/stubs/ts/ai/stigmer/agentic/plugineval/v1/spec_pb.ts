@@ -141,7 +141,8 @@ export type PluginEvalSpec = Message<"ai.stigmer.agentic.plugineval.v1.PluginEva
    * vault holding a match wins. At most 20.
    *
    * A try has no person, so these vaults are all its hooks and servers
-   * use. The eval's creator may attach their own My vault; nobody else's.
+   * use. No My vault may be attached, the creator's own included: every
+   * viewer of the plugin can read a try's transcript.
    *
    * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference vaults = 14;
    */
