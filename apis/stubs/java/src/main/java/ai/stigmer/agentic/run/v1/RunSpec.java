@@ -713,8 +713,9 @@ private static final long serialVersionUID = 0L;
    * Text appended to the system prompt for this turn, as Claude Code's
    * --append-system-prompt.
    *
-   * Anyone who may create a run in the session may set it, on any agent the
-   * session runs, a shared one included. On the native engine it lands after
+   * A person who may create a run in the session may set it; a visitor (a
+   * share-link guest, a channel sender) may not, as the agent's system
+   * prompt is its owner's to steer. On the native engine it lands after
    * the agent's instructions and the platform's sections, for this turn
    * only. On the Cursor engine it is sent with the turn's message, before
    * the structured-output directive when structured_output_schema is set
@@ -743,8 +744,9 @@ private static final long serialVersionUID = 0L;
    * Text appended to the system prompt for this turn, as Claude Code's
    * --append-system-prompt.
    *
-   * Anyone who may create a run in the session may set it, on any agent the
-   * session runs, a shared one included. On the native engine it lands after
+   * A person who may create a run in the session may set it; a visitor (a
+   * share-link guest, a channel sender) may not, as the agent's system
+   * prompt is its owner's to steer. On the native engine it lands after
    * the agent's instructions and the platform's sections, for this turn
    * only. On the Cursor engine it is sent with the turn's message, before
    * the structured-output directive when structured_output_schema is set
@@ -3725,8 +3727,9 @@ private static final long serialVersionUID = 0L;
      * Text appended to the system prompt for this turn, as Claude Code's
      * --append-system-prompt.
      *
-     * Anyone who may create a run in the session may set it, on any agent the
-     * session runs, a shared one included. On the native engine it lands after
+     * A person who may create a run in the session may set it; a visitor (a
+     * share-link guest, a channel sender) may not, as the agent's system
+     * prompt is its owner's to steer. On the native engine it lands after
      * the agent's instructions and the platform's sections, for this turn
      * only. On the Cursor engine it is sent with the turn's message, before
      * the structured-output directive when structured_output_schema is set
@@ -3754,8 +3757,9 @@ private static final long serialVersionUID = 0L;
      * Text appended to the system prompt for this turn, as Claude Code's
      * --append-system-prompt.
      *
-     * Anyone who may create a run in the session may set it, on any agent the
-     * session runs, a shared one included. On the native engine it lands after
+     * A person who may create a run in the session may set it; a visitor (a
+     * share-link guest, a channel sender) may not, as the agent's system
+     * prompt is its owner's to steer. On the native engine it lands after
      * the agent's instructions and the platform's sections, for this turn
      * only. On the Cursor engine it is sent with the turn's message, before
      * the structured-output directive when structured_output_schema is set
@@ -3784,8 +3788,9 @@ private static final long serialVersionUID = 0L;
      * Text appended to the system prompt for this turn, as Claude Code's
      * --append-system-prompt.
      *
-     * Anyone who may create a run in the session may set it, on any agent the
-     * session runs, a shared one included. On the native engine it lands after
+     * A person who may create a run in the session may set it; a visitor (a
+     * share-link guest, a channel sender) may not, as the agent's system
+     * prompt is its owner's to steer. On the native engine it lands after
      * the agent's instructions and the platform's sections, for this turn
      * only. On the Cursor engine it is sent with the turn's message, before
      * the structured-output directive when structured_output_schema is set
@@ -3810,8 +3815,9 @@ private static final long serialVersionUID = 0L;
      * Text appended to the system prompt for this turn, as Claude Code's
      * --append-system-prompt.
      *
-     * Anyone who may create a run in the session may set it, on any agent the
-     * session runs, a shared one included. On the native engine it lands after
+     * A person who may create a run in the session may set it; a visitor (a
+     * share-link guest, a channel sender) may not, as the agent's system
+     * prompt is its owner's to steer. On the native engine it lands after
      * the agent's instructions and the platform's sections, for this turn
      * only. On the Cursor engine it is sent with the turn's message, before
      * the structured-output directive when structured_output_schema is set
@@ -3833,8 +3839,9 @@ private static final long serialVersionUID = 0L;
      * Text appended to the system prompt for this turn, as Claude Code's
      * --append-system-prompt.
      *
-     * Anyone who may create a run in the session may set it, on any agent the
-     * session runs, a shared one included. On the native engine it lands after
+     * A person who may create a run in the session may set it; a visitor (a
+     * share-link guest, a channel sender) may not, as the agent's system
+     * prompt is its owner's to steer. On the native engine it lands after
      * the agent's instructions and the platform's sections, for this turn
      * only. On the Cursor engine it is sent with the turn's message, before
      * the structured-output directive when structured_output_schema is set
