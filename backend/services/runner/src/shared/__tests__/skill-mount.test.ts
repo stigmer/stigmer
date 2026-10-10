@@ -163,6 +163,25 @@ describe("writeSkillMount — marker mechanics", () => {
     expect(readFileSync(join(skillDir, "references", "guide.md"), "utf-8")).toBe("guide");
     expect(readFileSync(join(skillDir, "evalsx", "kept.md"), "utf-8")).toBe("not the suite");
   });
+
+  it("never mounts a suite the root skill's own manifest moves", async () => {
+    // `experimental.evals` moves the suite out of `evals/`; the mount reads
+    // the archive's manifest by the plugin mount's rule.
+    const artifact = buildZip([
+      { name: ".claude-plugin/plugin.json", content: JSON.stringify({ name: "p", experimental: { evals: "qa" } }) },
+      { name: "references/guide.md", content: "guide" },
+      { name: "qa/evals.json", content: "{}" },
+      { name: "qa/basic/prompt.md", content: "hi" },
+      { name: "evals/stale/prompt.md", content: "hi" },
+      { name: "qa-notes/kept.md", content: "not the suite" },
+    ]);
+    await writeSkillMount(makeSkillProto({ versionHash: "hash-v1" }), skillDir, artifact);
+
+    expect(existsSync(join(skillDir, "qa"))).toBe(false);
+    expect(existsSync(join(skillDir, "evals"))).toBe(false);
+    expect(readFileSync(join(skillDir, "references", "guide.md"), "utf-8")).toBe("guide");
+    expect(readFileSync(join(skillDir, "qa-notes", "kept.md"), "utf-8")).toBe("not the suite");
+  });
 });
 
 // ─── downloadArtifact — transfer lane routing (#675) ─────────────────────
