@@ -49,6 +49,7 @@ import {
   ResourceTier,
   kind_meta,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { PluginEvalAblation } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
 import type { ApiResourceKindMeta } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
@@ -63,6 +64,13 @@ import { makeSlackChannelApp } from "../support/channelapps";
 import { makeSharedVault } from "../support/vaults";
 import { makeExecutionContext } from "../support/executioncontexts";
 import { makeEvaluator } from "../support/evaluators";
+import {
+  cancelAndDeletePluginEval,
+  installPlugin,
+  lastMessageGrader,
+  makePluginEval,
+  skillPluginWithEvals,
+} from "../support/plugin-evals";
 import { makeMcpServer } from "../support/mcpservers";
 import { enableOrganizationMemory, makeMemory } from "../support/memories";
 import { foreignId, uniqueName, uniqueOrg } from "../support/naming";
@@ -446,6 +454,34 @@ const ROWS: readonly Row[] = [
     },
   },
   {
+    // On a server with no engine the eval is stored failed (its workflow
+    // cannot start), which still mints and stores its id.
+    title: "[rpc:PluginEvalCommandController.create] PluginEval",
+    key: "PluginEvalCommandController.create",
+    kind: ApiResourceKind.plugin_eval,
+    async send({ org }, chosenId) {
+      const name = uniqueName("mint-pev");
+      const plugin = await installPlugin(
+        clients,
+        fixtures,
+        org,
+        skillPluginWithEvals(name, {
+          skill: `${name}-notes`,
+          cases: [{ name: "only", prompt: "Say DONE.", graders: [lastMessageGrader("says-done", "DONE")] }],
+        }),
+      );
+      const created = await clients.pluginEvalCommand.create({
+        ...makePluginEval({ org, pluginId: plugin.metadata!.id, ablation: PluginEvalAblation.none }),
+        metadata: { id: chosenId, org },
+      });
+      fixtures.defer(() => cancelAndDeletePluginEval(clients, created.metadata!.id));
+      return answerOf(this.key, created.metadata);
+    },
+    async read(id) {
+      return (await clients.pluginEvalQuery.get({ value: id })).metadata?.id;
+    },
+  },
+  {
     title: "[rpc:ScheduleCommandController.create] Schedule",
     key: "ScheduleCommandController.create",
     kind: ApiResourceKind.schedule,
@@ -626,10 +662,6 @@ const EXEMPT_BY_NAME: ReadonlyMap<string, string> = new Map([
   [
     "IdentityAccountCommandController.create",
     "create is internal: every wire caller is refused PermissionDenied on every edition (suites/identityaccount.conformance.test.ts)",
-  ],
-  [
-    "PluginEvalCommandController.create",
-    "an eval runs an installed plugin's evals/ cases and its create starts the eval's workflow, which needs an engine; the server's composed suite pins that create mints the eval's own id (backend/services/stigmer-server/src/domain/plugin-eval/__tests__/plugin-eval.test.ts)",
   ],
   [
     "ScoreCommandController.create",

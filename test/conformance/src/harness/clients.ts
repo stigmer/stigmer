@@ -48,6 +48,8 @@ import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/ses
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { PluginCommandController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/command_pb";
 import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
+import { PluginEvalCommandController } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/command_pb";
+import { PluginEvalQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/query_pb";
 import { SkillCommandController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/command_pb";
 import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
 import { OAuthAppCommandController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/command_pb";
@@ -133,6 +135,8 @@ export interface ConformanceClients {
   skillQuery: Client<typeof SkillQueryController>;
   pluginCommand: Client<typeof PluginCommandController>;
   pluginQuery: Client<typeof PluginQueryController>;
+  pluginEvalCommand: Client<typeof PluginEvalCommandController>;
+  pluginEvalQuery: Client<typeof PluginEvalQueryController>;
   platformQuery: Client<typeof PlatformQueryController>;
   // The standard gRPC health service — an external proto both editions serve
   // on the RPC port. The authentication suite pins its tokenless reachability
@@ -271,6 +275,8 @@ export function makeClients(transport: Transport): ConformanceClients {
     skillQuery: createClient(SkillQueryController, transport),
     pluginCommand: createClient(PluginCommandController, transport),
     pluginQuery: createClient(PluginQueryController, transport),
+    pluginEvalCommand: createClient(PluginEvalCommandController, transport),
+    pluginEvalQuery: createClient(PluginEvalQueryController, transport),
     platformQuery: createClient(PlatformQueryController, transport),
     health: createClient(Health, transport),
     githubQuery: createClient(GitHubQueryController, transport),
