@@ -20,6 +20,7 @@ import { join } from "node:path";
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -125,6 +126,20 @@ describe("whoamiResult", () => {
       { created: false, org: "acme", singleOrg: false },
     );
     expect(fields(result)["Account Type"]).toBe("Machine Account");
+  });
+
+  it("names an organization's service account, the account a CI job's key speaks for", () => {
+    const result = whoamiResult(
+      create(IdentityAccountSchema, {
+        metadata: { id: "ida_ci", name: "ci-deploy", org: "org_acme" },
+        spec: {
+          idpId: "stgm_sa|org_acme|0f",
+          provisioningMode: IdentityAccountProvisioningMode.service_account,
+        },
+      }),
+      { created: false, org: "acme", singleOrg: false },
+    );
+    expect(fields(result)["Account Type"]).toBe("Service Account");
   });
 });
 
