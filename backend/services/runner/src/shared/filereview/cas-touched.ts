@@ -21,7 +21,7 @@
  * many edits to one path collapse to one before/after.
  */
 
-import { readFile } from "node:fs/promises";
+import { agentFs } from "../agent-fs.js";
 import { join } from "node:path";
 import type { FileCaptureClass } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { CasPathCapture } from "./cas-substrate.js";
@@ -82,7 +82,7 @@ export async function buildCasTurnCaptures(
 /** Raw bytes of a file, or `null` when it does not exist (a DELETE, or an ADD since removed). */
 async function readFileOrNull(absolutePath: string): Promise<Uint8Array | null> {
   try {
-    return await readFile(absolutePath);
+    return await agentFs().readFile(absolutePath);
   } catch {
     return null;
   }
