@@ -17,6 +17,8 @@
  *     record, an offloaded file and no artifact storage, a reference
  *     transcript the archive lacks); the run's error named per phase when
  *     the run carries none; the duration with missing or reversed stamps;
+ *     a run its own cap stopped leaves every check not graded, where the
+ *     deadline's stop and the platform's other stops are graded;
  *   - start-vote: a try, eval or grader gone; evidence that is not text;
  *     the reference transcript in the vote's message, or missing; a caller
  *     the seam refuses; a refused create (credit, the run's own reason, a
@@ -93,6 +95,7 @@ import {
   START_VOTE_ACTIVITY_NAME,
   STOP_RUN_ACTIVITY_NAME,
   TRY_NOT_STARTED_REASON,
+  TRY_SPENDING_SHARE_REASON,
   TRY_SPEND_ACTIVITY_NAME,
 } from "../names.js";
 import type { CaseInput, TryGrade } from "../names.js";
@@ -607,6 +610,31 @@ describe("grade-try's AI-graded evidence", () => {
       expect(grade.durationSeconds).toBe(0);
     },
   );
+
+  it("leaves every check not graded when the run stopped at its share of the eval's spending limit", async () => {
+    await seeded();
+    const { cases } = build();
+    const start = await startTry(cases);
+    const capped =
+      "Agent reached the cost limit for this message (~$0.0100 of the $0.01 budget). Send another message to continue.";
+    await setStatus(start.runId, { phase: RunPhase.RUN_TERMINATED, error: capped });
+    const grade = await cases[GRADE_TRY_ACTIVITY_NAME](CELL, start.runId, false);
+    expect(TRY_SPENDING_SHARE_REASON).toBe(
+      "stopped at its share of the eval's spending limit",
+    );
+    expect(grade.outcomes).toEqual([
+      { notGraded: TRY_SPENDING_SHARE_REASON },
+      { notGraded: TRY_SPENDING_SHARE_REASON },
+    ]);
+    expect(grade.error).toBe(capped);
+    // A run the deadline stopped is graded on what it produced, as before.
+    const timedOut = await cases[GRADE_TRY_ACTIVITY_NAME](CELL, start.runId, true);
+    expect(timedOut.outcomes[COMPARE]).toEqual({ votes: "compare" });
+    // A run the platform stopped for another reason is graded too.
+    await setStatus(start.runId, { phase: RunPhase.RUN_TERMINATED, error: "stalled" });
+    const stalled = await cases[GRADE_TRY_ACTIVITY_NAME](CELL, start.runId, false);
+    expect(stalled.outcomes[COMPARE]).toEqual({ votes: "compare" });
+  });
 
   it("bounds a run's own error and takes reversed stamps as no duration", async () => {
     await seeded();

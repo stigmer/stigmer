@@ -98,6 +98,12 @@ export const TRY_NOT_STARTED_REASON = "the try could not start";
 export const GRADING_FAILED_REASON = "grading failed";
 export const TRY_FAILED_REASON = "the try could not be run";
 export const TRY_NOT_STOPPED_REASON = "the try's run could not be stopped";
+/**
+ * A try whose run its own cap stopped: its equal share of what the eval
+ * had left, so the spend policy and the concurrency never move a score.
+ */
+export const TRY_SPENDING_SHARE_REASON =
+  "stopped at its share of the eval's spending limit";
 /** A try the eval's cancel stopped: its run is stopped and what it spent is still counted. */
 export const TRY_CANCELLED_REASON = "cancelled";
 

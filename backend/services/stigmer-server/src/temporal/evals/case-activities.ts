@@ -26,7 +26,10 @@
  *     either the verdict its evidence already decides (a missing file, a
  *     binary one) or the rubric its votes answer. The run's own failure is
  *     named ("timed out after 300s" when the workflow stopped it), and the
- *     try is graded on what it produced.
+ *     try is graded on what it produced. A run its own cap stopped (its
+ *     share of the eval's spending limit) is not graded, every check
+ *     "stopped at its share of the eval's spending limit", and asks no
+ *     votes: the spend policy and the concurrency never move a score.
  *   - start-vote, read-vote: one vote of an AI-graded check, a judge run in
  *     its own session (graders/llm.ts), adopted on a retry through the run
  *     list index's `grades` key; read strictly, stopped if still going, and
@@ -127,6 +130,7 @@ import {
   START_VOTE_ACTIVITY_NAME,
   STOP_RUN_ACTIVITY_NAME,
   TRY_NOT_STARTED_REASON,
+  TRY_SPENDING_SHARE_REASON,
   TRY_SPEND_ACTIVITY_NAME,
 } from "./names.js";
 import type {
@@ -345,6 +349,14 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         };
       }
       const graders = cell.evalCase.graders;
+      if (!timedOut && stoppedAtItsCap(run)) {
+        return {
+          outcomes: graders.map(() => ({ notGraded: TRY_SPENDING_SHARE_REASON })),
+          error: runErrorOf(run, timedOut, input.timeoutSeconds),
+          costUsd: run.status?.streamingUsage?.estimatedCostUsd ?? 0,
+          durationSeconds: durationOf(run),
+        };
+      }
       const trace = await traceOf(
         context,
         run,
@@ -846,6 +858,22 @@ async function writeScore(
       deleter: deps.deleter(),
     },
     build(),
+  );
+}
+
+/**
+ * The leading words of the error a run carries when its own cost cap
+ * stopped it: the runner's stable prefix (runner/src/shared/cost-guard.ts
+ * COST_LIMIT_ERROR_PREFIX), the one way a run tells that stop from the
+ * platform's others, since its status names no termination reason.
+ */
+const COST_LIMIT_ERROR_PREFIX = "Agent reached the cost limit";
+
+/** Whether the run's own cost cap stopped it (COST_LIMIT_ERROR_PREFIX). */
+function stoppedAtItsCap(run: Run): boolean {
+  return (
+    run.status?.phase === RunPhase.RUN_TERMINATED &&
+    (run.status.error ?? "").startsWith(COST_LIMIT_ERROR_PREFIX)
   );
 }
 
