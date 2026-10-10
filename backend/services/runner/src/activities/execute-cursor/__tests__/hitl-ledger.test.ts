@@ -289,6 +289,26 @@ describe("reconcileDeniedToolCalls", () => {
     expect(tc.approvalMessage).toBe("Execute apply_x");
   });
 
+  it("resolves the unlisted-server message for a denied tool of a server whose tools could not be listed", async () => {
+    const tc = toolCall({
+      id: "c1",
+      name: "anything",
+      mcpServerSlug: "plugin_kit_api",
+      status: ToolCallStatus.TOOL_CALL_COMPLETED,
+    });
+    const messages = [aiMessageWith([tc])];
+    const policies: McpApprovalDefault = { destructive: new Set(), unlisted: new Set(["plugin_kit_api"]), leasedServers: new Set() };
+
+    await reconcileDeniedToolCalls(messages, builderOver(messages), [
+      { toolName: "anything", token: grantToken("plugin_kit_api/anything", "") },
+    ], policies);
+
+    expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+    expect(tc.approvalMessage).toBe(
+      "Execute anything (its server's tools could not be listed this turn, so whether it changes anything is unknown)",
+    );
+  });
+
   it("grants a hook-asked MCP call under its whole input, while the row keeps the identity its retry resumes onto", async () => {
     const tc = toolCall({ id: "c1", name: "merge", mcpServerSlug: "srv", status: ToolCallStatus.TOOL_CALL_COMPLETED, args: { pr: 1 } });
     const messages = [aiMessageWith([tc])];

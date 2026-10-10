@@ -41,6 +41,7 @@ import { AGENT_SCOPE_KEY, READ_SCOPE_KEY, SCOPE_KEY_PREFIX, scopeKey } from "./h
 import {
   DESTRUCTIVE_MCP_APPROVAL_MESSAGE,
   mcpToolKey,
+  UNLISTED_MCP_APPROVAL_MESSAGE,
   POLICY_ENGINE_VERSION,
   resolveApprovalProvenance,
   unattendedSkipMessage,
@@ -1363,7 +1364,9 @@ export function stampHookRefusedToolCalls(
 
 /**
  * Resolve a human-readable approval message for a denied tool, preferring the
- * destructive-MCP template, then the built-in template, then a generic fallback.
+ * destructive-MCP template, then the unlisted-server one (a server whose
+ * tools could not be listed this turn, so every tool of it asks), then the
+ * built-in template, then a generic fallback.
  */
 function resolveDeniedApprovalMessage(
   name: string,
@@ -1373,6 +1376,9 @@ function resolveDeniedApprovalMessage(
 ): string {
   if (mcpDefault && mcpServerSlug && mcpDefault.destructive.has(mcpToolKey(mcpServerSlug, name))) {
     return resolveApprovalMessage(DESTRUCTIVE_MCP_APPROVAL_MESSAGE, name, args);
+  }
+  if (mcpDefault && mcpServerSlug && mcpDefault.unlisted.has(mcpServerSlug)) {
+    return resolveApprovalMessage(UNLISTED_MCP_APPROVAL_MESSAGE, name, args);
   }
   if (!mcpServerSlug) {
     const message = resolveBuiltInApprovalMessage(name, args);
