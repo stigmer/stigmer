@@ -6,7 +6,8 @@
  * Pins what a reader of those tours sees: the run's messages in the real
  * `MessageThread` (the prompt synthesised from `spec.message`, the agent's
  * reply), a "Run details" sidebar carrying the real `RunProgress` badge for
- * the run's phase, and no sidebar at all when a step passes no aside. The
+ * the run's phase, and no sidebar at all when a step passes no aside. And the
+ * step before it: the real `SessionComposer` with the prompt typed in. The
  * views need a `StigmerProvider` (the widgets read it); its client points at
  * a transport whose fetches never settle, so nothing leaves the test and no
  * late state update lands after it.
@@ -86,5 +87,14 @@ describe("the conversation step of a playback demo", () => {
     );
 
     expect(screen.queryByRole("complementary", { name: "Run details" })).toBeNull();
+  });
+});
+
+describe("the typing step of a playback demo", () => {
+  it("fills the real composer's text box with the prompt being typed", () => {
+    renderInProvider(<ComposerView typingMessage="What is the status of order 42?" />);
+
+    const box = screen.getByRole("textbox") as HTMLTextAreaElement;
+    expect(box.value).toBe("What is the status of order 42?");
   });
 });

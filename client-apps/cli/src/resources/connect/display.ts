@@ -58,10 +58,6 @@ function reachedBy(result: ConnectResult): string {
       return `${serverTransport(result.server)}: ${transport.value.url}`;
     case undefined:
       return serverTransport(result.server);
-    default: {
-      const exhaustive: never = transport;
-      return String(exhaustive);
-    }
   }
 }
 

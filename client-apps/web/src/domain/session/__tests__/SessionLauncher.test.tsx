@@ -5,7 +5,9 @@
  * deep link preselects that agent, and the link a detail page builds with
  * `getAgentSessionUrl` is one the launcher reads back to the same agent; the
  * link `getPluginChatUrl` builds starts a chat with no agent that lists the
- * plugin; and the person's plugin picks are remembered.
+ * plugin; a link that arrives after the launcher is open is read too, and
+ * the address is cleaned once read; and the person's plugin picks are
+ * remembered.
  * The viewer is pinned in @stigmer/react.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -94,6 +96,22 @@ describe("web SessionLauncher", () => {
       initialPluginRefs: [{ org: "acme", slug: "linear" }],
       initialAgentRef: undefined,
     });
+  });
+
+  it("reads an agent and a plugin link that arrive after the launcher opened, and cleans the address", () => {
+    const replaced = vi.spyOn(window.history, "replaceState");
+    const { rerender } = render(<SessionLauncher />);
+    expect(replaced).not.toHaveBeenCalled();
+
+    page.search = new URLSearchParams("agent=acme/helper&plugin=acme/linear");
+    rerender(<SessionLauncher />);
+
+    expect(page.viewer.at(-1)).toMatchObject({
+      initialAgentRef: { org: "acme", slug: "helper" },
+      initialPluginRefs: [{ org: "acme", slug: "linear" }],
+    });
+    expect(replaced).toHaveBeenCalledWith({}, "", "/");
+    replaced.mockRestore();
   });
 
   it("remembers the person's plugin picks for the next conversation", () => {

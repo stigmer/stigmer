@@ -6,10 +6,15 @@
 // mark included. Also asserts a crashing subprocess surfaces its stderr
 // instead of hanging, and that a ${VAR} argument resolves from the shell, else
 // the plugin's declared default, and is refused unresolved before spawning.
+// An address is reached over HTTP with its headers resolved, and a refused
+// connection names the server; an entry naming no program, no address or no
+// transport at all is refused before anything starts.
 
 import { create } from "@bufbuild/protobuf";
 import { McpServerEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
+import { createServer } from "node:net";
+import type { AddressInfo } from "node:net";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import { goRunEnvOverrides, localDiscover } from "../discover.js";
@@ -93,6 +98,47 @@ describe("localDiscover (${VAR} argument expansion — issue #141)", () => {
       PlaceholderResolutionError,
     );
   }, 15_000);
+});
+
+describe("localDiscover (an address, and an entry that names nothing to start)", () => {
+  const original = process.env;
+  afterEach(() => {
+    process.env = original;
+  });
+
+  // A loopback port with nothing listening: taken from a listener just closed.
+  async function closedPort(): Promise<number> {
+    const listener = createServer();
+    await new Promise<void>((resolve) => listener.listen(0, "127.0.0.1", resolve));
+    const { port } = listener.address() as AddressInfo;
+    await new Promise<void>((resolve) => listener.close(() => resolve()));
+    return port;
+  }
+
+  it("reaches an address with its headers resolved, and names the server when the connection is refused", async () => {
+    process.env = { ...original, DISCOVER_TOKEN: "t" };
+    const port = await closedPort();
+    const headerSets: Record<string, string>[] = [{ Authorization: "Bearer ${DISCOVER_TOKEN}" }, {}];
+    for (const headers of headerSets) {
+      const server = create(McpServerEntrySchema, {
+        name: "remote",
+        transport: { case: "http", value: { url: `http://127.0.0.1:${port}/mcp`, headers } },
+        env: ["DISCOVER_TOKEN"],
+      });
+      await expect(localDiscover(server, {}, 5_000)).rejects.toThrow(/^failed to connect to MCP server 'remote': /);
+    }
+  }, 15_000);
+
+  it("refuses an entry naming no program, no address, or no transport", async () => {
+    const noProgram = create(McpServerEntrySchema, { name: "a", transport: { case: "stdio", value: { command: "" } } });
+    const noAddress = create(McpServerEntrySchema, { name: "b", transport: { case: "http", value: { url: "" } } });
+    const nothing = create(McpServerEntrySchema, { name: "c" });
+    await expect(localDiscover(noProgram, {}, 1_000)).rejects.toThrow("MCP server 'a' names no program to run");
+    await expect(localDiscover(noAddress, {}, 1_000)).rejects.toThrow("MCP server 'b' names no address");
+    await expect(localDiscover(nothing, {}, 1_000)).rejects.toThrow(
+      "MCP server 'c' has no transport (expected a program or an address)",
+    );
+  });
 });
 
 describe("goRunEnvOverrides (a freshly tagged `go run` module)", () => {

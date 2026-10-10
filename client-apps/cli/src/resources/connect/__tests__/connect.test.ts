@@ -1,7 +1,7 @@
 // In-process test for `connect plugin` orchestration over an in-memory
 // backend serving the plugin and vault controllers.
 //
-// Pins: the plugin resolves by slug in the caller's organization; the one
+// Pins: the plugin resolves by slug in the caller's organization, or by id; the one
 // server is used without --server, several are refused naming them, and an
 // unknown --server or a plugin without servers is refused; the listing is
 // the server's listTools with the plugin id, the server's name and the org,
@@ -9,9 +9,14 @@
 // without one when My vault holds a login at its normalized address (or, for
 // a server that accepts a pasted key, its login key), and off a terminal it
 // stops with the commands (a pasted key offered only where the server takes
-// one); --dry-run lists from this machine (a stdio fixture) with no RPC, and
-// refuses a sign-in-only server. The renderer marks destructive tools and
-// says where the list came from.
+// one), and on a terminal runs the browser sign-in, which first refuses a
+// local console that does not answer; an address that names no login (a
+// placeholder host) needs no sign-in; --dry-run lists from this machine (a
+// stdio fixture) with no RPC, refuses a sign-in-only server, and turns an
+// unset ${VAR} into the variable to export, or, for one the server does not
+// read, a problem with the plugin. The renderer marks destructive tools, says
+// where the list came from, shows an empty list, and says how each server is
+// reached.
 
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { Code, ConnectError, createRouterTransport } from "@connectrpc/connect";
@@ -57,6 +62,10 @@ const client = new Stigmer({
   getAccessToken: () => "t",
   customTransport: createRouterTransport(({ service }) => {
     service(PluginQueryController, {
+      get: (id) => {
+        if (id.value !== "plg_1") throw new ConnectError("no plugin", Code.NotFound);
+        return served;
+      },
       getByReference: (ref) => {
         if (ref.org !== "acme" || ref.slug !== "linear") throw new ConnectError("no plugin", Code.NotFound);
         return served;
@@ -128,6 +137,12 @@ describe("connectPlugin: choosing the server", () => {
     expect(listCalls[0]?.server).toBe("docs");
   });
 
+  it("resolves a plugin named by its id", async () => {
+    const result = await connectPlugin(client, options({ reference: "plg_1" }));
+    expect(result.plugin.metadata?.id).toBe("plg_1");
+    expect(listCalls[0]?.pluginId).toBe("plg_1");
+  });
+
   it("refuses an unknown --server and a plugin with no server", async () => {
     await expect(connectPlugin(client, options({ server: "nope" }))).rejects.toThrow(
       "plugin 'linear' has no MCP server 'nope'; its servers are: linear",
@@ -180,6 +195,27 @@ describe("connectPlugin: a server that takes a sign-in", () => {
   });
 });
 
+describe("connectPlugin: a sign-in on a terminal", () => {
+  it("runs the browser sign-in, which refuses a local console that does not answer, before any listing", async () => {
+    served = pluginWith([http("linear", "https://mcp.linear.app/mcp", { signIn: { oauthOnly: true } })]);
+    const err = await connectPlugin(
+      client,
+      options({ interactive: true, probeLocalConsole: true, consoleURL: "http://127.0.0.1:1" }),
+    ).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(UsageError);
+    expect(String((err as Error).message)).toContain(
+      "Signing in to 'linear' returns to the web console, which is not running for this local backend",
+    );
+    expect(listCalls).toHaveLength(0);
+  });
+
+  it("lists without a sign-in when the address names no login (a placeholder host)", async () => {
+    served = pluginWith([http("linear", "https://${HOST}/mcp", { signIn: { oauthOnly: true } })]);
+    await connectPlugin(client, options());
+    expect(listCalls).toHaveLength(1);
+  });
+});
+
 describe("connectPlugin --dry-run", () => {
   it("lists a local program's tools from this machine, calling no RPC", async () => {
     served = pluginWith([
@@ -193,6 +229,36 @@ describe("connectPlugin --dry-run", () => {
     ]);
     expect(listCalls).toHaveLength(0);
   }, 15_000);
+
+  it("names the variable to export when a ${VAR} the server reads is unset", async () => {
+    const original = process.env;
+    process.env = { ...original };
+    delete process.env.CONNECT_TEST_DIR;
+    try {
+      served = pluginWith([
+        {
+          name: "local",
+          transport: { case: "stdio", value: { command: process.execPath, args: [FIXTURE, "${CONNECT_TEST_DIR}"] } },
+          env: ["CONNECT_TEST_DIR"],
+        },
+      ]);
+      await expect(connectPlugin(client, options({ dryRun: true }))).rejects.toThrow(
+        "MCP server 'local' of plugin 'linear' needs CONNECT_TEST_DIR, but it is not set.\nExport it in your shell before running --dry-run.",
+      );
+
+      served = pluginWith([
+        {
+          name: "local",
+          transport: { case: "stdio", value: { command: process.execPath, args: [FIXTURE, "${CONNECT_TEST_DIR}"] } },
+        },
+      ]);
+      await expect(connectPlugin(client, options({ dryRun: true }))).rejects.toThrow(
+        "MCP server 'local' of plugin 'linear' references ${CONNECT_TEST_DIR} in its stdio arg[1] but does not read CONNECT_TEST_DIR.",
+      );
+    } finally {
+      process.env = original;
+    }
+  });
 
   it("refuses a sign-in-only server, whose token never leaves the server", async () => {
     served = pluginWith([http("linear", "https://mcp.linear.app/mcp", { signIn: { oauthOnly: true } })]);
@@ -217,5 +283,22 @@ describe("renderConnectResult", () => {
     lines.length = 0;
     renderConnectResult({ ...result, dryRun: true }, (line) => lines.push(line), false);
     expect(lines.join("\n")).toContain("Dry run: listed from this machine; nothing stored");
+  });
+
+  it("shows an empty list, a local program's command line, and a server with no transport", () => {
+    const plugin = pluginWith([
+      { name: "local", transport: { case: "stdio", value: { command: "npx", args: ["-y", "linear-mcp"] } } },
+      { name: "bare" },
+    ]);
+    const [local, bare] = plugin.status?.mcpServers ?? [];
+    const lines: string[] = [];
+    renderConnectResult({ plugin, server: local, tools: [], dryRun: true }, (line) => lines.push(line), false);
+    expect(lines).toContain("MCP server: local (stdio: npx -y linear-mcp)");
+    expect(lines).toContain("Tools (0):");
+    expect(lines).toContain("  (none)");
+
+    lines.length = 0;
+    renderConnectResult({ plugin, server: bare, tools: [], dryRun: true }, (line) => lines.push(line), false);
+    expect(lines).toContain("MCP server: bare (unknown)");
   });
 });

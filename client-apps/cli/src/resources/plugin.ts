@@ -537,10 +537,6 @@ export function serverTransport(server: McpServerEntry): string {
       return "http";
     case undefined:
       return "unknown";
-    default: {
-      const exhaustive: never = server.transport;
-      return String(exhaustive);
-    }
   }
 }
 

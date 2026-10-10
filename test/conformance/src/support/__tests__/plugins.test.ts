@@ -8,6 +8,12 @@
 //   kept, the tool name built on it, and the run-values declarer.
 // - pushPlugin pushes the archive and defers a best-effort delete;
 //   pluginRefOf refuses a plugin the server did not return.
+// - The shaped plugins the suites install name their one server by a fixed
+//   name: thermos's `github` address behind a declared variable with its
+//   reviewer agent and skills, the open-format `api` address, and the
+//   Claude Code `notes` program reading its `userConfig` variable.
+// - A conversation's session spec lists its plugins by slug with the plugin
+//   kind, and sets no list when given none.
 // Pure: hand-built maps and stubbed clients, no target.
 // Domain: conformance support (plugins).
 import { create } from "@bufbuild/protobuf";
@@ -17,14 +23,18 @@ import { describe, expect, it, vi } from "vitest";
 import type { ConformanceClients } from "../../harness/clients";
 import { FixtureTracker } from "../../harness/fixtures";
 import {
+  claudeLike,
   FIXTURE_SERVER,
+  mcpOnly,
   oneServerPlugin,
   pluginRefOf,
   pluginToolDeclarer,
   pluginToolName,
   pushPlugin,
+  thermosLike,
   toolServerSegment,
 } from "../plugins";
+import { makeSessionSpec } from "../sessions";
 
 function json(fixture: Map<string, string | Uint8Array>, path: string): unknown {
   const content = fixture.get(path);
@@ -96,5 +106,58 @@ describe("pushPlugin and pluginRefOf", () => {
 
     expect(pluginRefOf(installed, "0.1.0")).toEqual({ kind: ApiResourceKind.plugin, org: "org-unit", slug: "acme", version: "0.1.0" });
     expect(() => pluginRefOf(create(PluginSchema, {}))).toThrow("pluginRefOf needs a plugin the server returned");
+  });
+});
+
+describe("the shaped plugins the suites install", () => {
+  it("thermos: a Cursor plugin whose `github` address reads a declared variable, with its agent and skills", () => {
+    const fixture = thermosLike("thermos", { extraSkill: "thermos-more" });
+    expect(json(fixture, ".cursor-plugin/plugin.json")).toMatchObject({ name: "thermos", version: "1.2.0" });
+    expect(json(fixture, "mcp.json")).toEqual({
+      mcpServers: {
+        github: { type: "http", url: "https://api.github.test/mcp/", headers: { Authorization: "Bearer ${GITHUB_TOKEN}" } },
+      },
+    });
+    expect([...fixture.keys()].filter((path) => path.startsWith("skills/")).sort()).toEqual([
+      "skills/thermos-more/SKILL.md",
+      "skills/thermos-review/SKILL.md",
+    ]);
+    expect(fixture.has("agents/reviewer.md")).toBe(true);
+
+    const named = thermosLike("thermos", { skill: "audit" });
+    expect([...named.keys()].filter((path) => path.startsWith("skills/"))).toEqual(["skills/audit/SKILL.md"]);
+  });
+
+  it("mcpOnly: an open-format plugin whose one `api` server is a streamable-http address", () => {
+    const fixture = mcpOnly("vendor");
+    expect(json(fixture, "plugin.json")).toMatchObject({ name: "vendor", version: "0.1.0" });
+    expect(json(fixture, "mcp.json")).toMatchObject({
+      mcpServers: {
+        api: { type: "streamable-http", url: "https://mcp.vendor.test/mcp", headers: { Authorization: "Bearer ${TOKEN}" } },
+      },
+    });
+  });
+
+  it("claudeLike: a Claude Code plugin whose `notes` program reads its userConfig variable", () => {
+    const fixture = claudeLike("notes");
+    expect(json(fixture, ".claude-plugin/plugin.json")).toMatchObject({
+      name: "notes",
+      version: "0.3.0",
+      userConfig: { NOTES_TOKEN: { type: "string", sensitive: true, required: true } },
+    });
+    expect(json(fixture, ".mcp.json")).toEqual({
+      mcpServers: { notes: { command: "npx", args: ["-y", "notes-mcp"], env: { NOTES_TOKEN: "${NOTES_TOKEN}" } } },
+    });
+    expect(fixture.has("skills/notes-notes/SKILL.md")).toBe(true);
+  });
+});
+
+describe("a conversation's plugins", () => {
+  it("lists each plugin by slug with the plugin kind, and none when given none", () => {
+    expect(makeSessionSpec({ plugins: ["acme", "vendor"] }).plugins).toEqual([
+      { slug: "acme", kind: ApiResourceKind.plugin },
+      { slug: "vendor", kind: ApiResourceKind.plugin },
+    ]);
+    expect(makeSessionSpec()).not.toHaveProperty("plugins");
   });
 });

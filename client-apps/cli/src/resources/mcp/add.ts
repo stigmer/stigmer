@@ -59,25 +59,12 @@ export async function prepareServerPlugin(
   url: string,
   headers: Readonly<Record<string, string>>,
 ): Promise<PreparedPluginPush> {
-  const documents = serverPluginDocuments(name, url, headers);
-  const encoder = new TextEncoder();
-  const bytes = new Map([...documents].map(([path, text]) => [path, encoder.encode(text)]));
-  const entries = [...bytes]
-    .map(([path, content]) => ({ path, size: content.length }))
-    .sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
-  const files: PluginFiles = {
-    entries,
-    read: (path) => {
-      const content = bytes.get(path);
-      if (content === undefined) throw new Error(`no file '${path}' in the plugin`);
-      return content;
-    },
-  };
+  const files = documentFiles(serverPluginDocuments(name, url, headers));
   const stats = {
-    filesIncluded: entries.length,
+    filesIncluded: files.entries.length,
     filesIgnored: 0,
     dirsSkipped: 0,
-    totalSize: entries.reduce((sum, entry) => sum + entry.size, 0),
+    totalSize: files.entries.reduce((sum, entry) => sum + entry.size, 0),
   };
   const outcome = await preparePluginArchive({ files, stats });
   if (!outcome.ok) throw pluginRefusal(`mcp add ${name}`, outcome.errors, outcome.warnings);
@@ -89,6 +76,26 @@ export async function prepareServerPlugin(
     warnings: outcome.prepared.warnings,
     archive: outcome.prepared.archive,
     digest: outcome.prepared.digest,
+  };
+}
+
+/**
+ * Documents held in memory as the file set the archive is read from: entries
+ * sorted by path, and a read that refuses a path the set does not hold.
+ */
+export function documentFiles(documents: ReadonlyMap<string, string>): PluginFiles {
+  const encoder = new TextEncoder();
+  const bytes = new Map([...documents].map(([path, text]) => [path, encoder.encode(text)]));
+  const entries = [...bytes]
+    .map(([path, content]) => ({ path, size: content.length }))
+    .sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+  return {
+    entries,
+    read: (path) => {
+      const content = bytes.get(path);
+      if (content === undefined) throw new Error(`no file '${path}' in the plugin`);
+      return content;
+    },
   };
 }
 

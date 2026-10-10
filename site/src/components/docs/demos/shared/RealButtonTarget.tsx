@@ -37,6 +37,7 @@ export function RealButtonTarget({ label, target, press = false, children }: Rea
 
   useEffect(() => {
     const root = rootRef.current;
+    /* v8 ignore next -- @preserve: React attaches the ref to the div this component always renders before any effect runs, so the guard only narrows the ref's type */
     if (root === null) return;
     let pressed = false;
     const tag = (): void => {

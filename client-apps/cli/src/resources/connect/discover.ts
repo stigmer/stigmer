@@ -103,10 +103,6 @@ async function buildTransport(
     }
     case undefined:
       throw new Error(`MCP server '${server.name}' has no transport (expected a program or an address)`);
-    default: {
-      const exhaustive: never = transport;
-      return exhaustive;
-    }
   }
 }
 

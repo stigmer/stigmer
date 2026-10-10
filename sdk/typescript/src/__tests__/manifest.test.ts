@@ -6,7 +6,7 @@ import { ScheduleSchema, type Schedule } from "@stigmer/protos/ai/stigmer/agenti
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { parse as parseYaml } from "yaml";
-import { parseManifest } from "../manifest/parse";
+import { MCP_SERVER_WAY_FORWARD, mcpServerWayForward, parseManifest } from "../manifest/parse";
 import { serializeManifest } from "../manifest/serialize";
 import { manifestDocumentForResource } from "../manifest/document";
 import { manifestKinds, manifestHandlerForYamlKind } from "../manifest/registry";
@@ -188,6 +188,15 @@ describe("parseManifest", () => {
     expect(() => parseManifest(yaml)).toThrow(
       /Invalid Agent.*stigmer mcp add <name> <url>.*`plugins`/s,
     );
+  });
+
+  it("names the way forward only for a retired MCP server document, never for a non-mapping one", () => {
+    expect(mcpServerWayForward({ kind: "McpServer" })).toBe(MCP_SERVER_WAY_FORWARD);
+    expect(mcpServerWayForward({ kind: "Agent", spec: { mcpServerUsages: [] } })).toBe(MCP_SERVER_WAY_FORWARD);
+    expect(mcpServerWayForward({ kind: "Agent", spec: { instructions: "x" } })).toBeUndefined();
+    for (const document of [null, undefined, "kind: McpServer", 42, [{ kind: "McpServer" }]]) {
+      expect(mcpServerWayForward(document)).toBeUndefined();
+    }
   });
 
   it("rejects empty input with actionable guidance", () => {

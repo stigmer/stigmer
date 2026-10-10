@@ -3,12 +3,13 @@
 // server of the same name, headers sorted), that the shared library reads
 // them as that plugin with a `${NAME}` header value declared as a variable,
 // that the same input makes the same archive and digest, that a name a
-// plugin may not carry is refused with the library's sentence, and the
-// `--header NAME=VALUE` parsing with its refusals.
+// plugin may not carry is refused with the library's sentence, the
+// in-memory file set (sorted entries, a read that refuses a path it does not
+// hold), and the `--header NAME=VALUE` parsing with its refusals.
 
 import { describe, expect, it } from "vitest";
 import { UsageError } from "../../../errors/index.js";
-import { parseHeaders, prepareServerPlugin, serverPluginDocuments } from "../add.js";
+import { documentFiles, parseHeaders, prepareServerPlugin, serverPluginDocuments } from "../add.js";
 
 describe("serverPluginDocuments", () => {
   it("writes a manifest naming the plugin and one HTTP server of the same name", () => {
@@ -25,6 +26,18 @@ describe("serverPluginDocuments", () => {
   it("leaves headers out when none are given", () => {
     const mcp = JSON.parse(serverPluginDocuments("linear", "https://mcp.linear.app/mcp", {}).get(".mcp.json") ?? "");
     expect(mcp.mcpServers.linear).toEqual({ type: "http", url: "https://mcp.linear.app/mcp" });
+  });
+});
+
+describe("documentFiles", () => {
+  it("lists the documents sorted by path with their byte sizes, reads each, and refuses a path it does not hold", () => {
+    const files = documentFiles(new Map([["b.json", "{}"], ["a.txt", "héllo"]]));
+    expect(files.entries).toEqual([
+      { path: "a.txt", size: 6 },
+      { path: "b.json", size: 2 },
+    ]);
+    expect(new TextDecoder().decode(files.read("a.txt"))).toBe("héllo");
+    expect(() => files.read("c.md")).toThrow("no file 'c.md' in the plugin");
   });
 });
 

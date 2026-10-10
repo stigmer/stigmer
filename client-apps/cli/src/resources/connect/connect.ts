@@ -130,10 +130,9 @@ function pickServer(plugin: Plugin, name: string, wanted: string | undefined): M
 
 // The variables an address's headers name: a signing-in server's login key
 // is the one its Authorization header carries.
-function loginKeysOf(server: McpServerEntry): string[] {
-  if (server.transport.case !== "http") return [];
+function loginKeysOf(headers: Readonly<Record<string, string>>): string[] {
   const keys: string[] = [];
-  for (const value of Object.values(server.transport.value.headers)) {
+  for (const value of Object.values(headers)) {
     for (const match of value.matchAll(PLACEHOLDER_PATTERN)) keys.push(match[1]);
   }
   return keys;
@@ -153,7 +152,7 @@ async function ensureSignedIn(
   if (address === undefined) return;
 
   const oauthOnly = server.signIn.oauthOnly;
-  const loginKey = oauthOnly ? undefined : loginKeysOf(server)[0];
+  const loginKey = oauthOnly ? undefined : loginKeysOf(server.transport.value.headers)[0];
   const vault = await readMyVault(client, opts.org);
   if (vault !== undefined) {
     if (holdsLoginFor(vault.spec?.connections ?? {}, address)) return;
