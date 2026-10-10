@@ -4,9 +4,21 @@
  * Env-var-driven: reads OTEL_EXPORTER_OTLP_ENDPOINT and configures an
  * OTLP/gRPC exporter with W3C TraceContext + Baggage propagation. When
  * the env var is unset, returns null — zero overhead.
+ *
+ * `processRole` tells apart the two processes of one runner (`"agent-host"`
+ * for the host that runs the engines, `agent-host/entry.ts`): both export
+ * under the runner's service name, and a cumulative series two processes
+ * report under one resource would read as one counter going backwards.
  */
 
-export async function initTracing(serviceName: string): Promise<(() => Promise<void>) | null> {
+/** The resource attribute that names which of a runner's processes exported a span or a series. */
+export const ATTR_RUNNER_PROCESS = "stigmer.runner.process";
+
+function runnerResourceAttributes(serviceName: string, processRole: string | undefined): Record<string, string> {
+  return { "service.name": serviceName, ...(processRole ? { [ATTR_RUNNER_PROCESS]: processRole } : {}) };
+}
+
+export async function initTracing(serviceName: string, processRole?: string): Promise<(() => Promise<void>) | null> {
   const endpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
   if (!endpoint) {
     return null;
@@ -19,7 +31,7 @@ export async function initTracing(serviceName: string): Promise<(() => Promise<v
   const { W3CTraceContextPropagator, CompositePropagator, W3CBaggagePropagator } = await import("@opentelemetry/core");
   const otelApi = await import("@opentelemetry/api");
 
-  const resource = resourceFromAttributes({ "service.name": serviceName });
+  const resource = resourceFromAttributes(runnerResourceAttributes(serviceName, processRole));
   const exporter = new OTLPTraceExporter({ url: endpoint });
   const provider = new NodeTracerProvider({
     resource,
@@ -40,7 +52,7 @@ export async function initTracing(serviceName: string): Promise<(() => Promise<v
   };
 }
 
-export async function initMetrics(serviceName: string): Promise<(() => Promise<void>) | null> {
+export async function initMetrics(serviceName: string, processRole?: string): Promise<(() => Promise<void>) | null> {
   const endpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
   if (!endpoint) {
     return null;
@@ -51,7 +63,7 @@ export async function initMetrics(serviceName: string): Promise<(() => Promise<v
   const { resourceFromAttributes } = await import("@opentelemetry/resources");
   const otelApi = await import("@opentelemetry/api");
 
-  const resource = resourceFromAttributes({ "service.name": serviceName });
+  const resource = resourceFromAttributes(runnerResourceAttributes(serviceName, processRole));
   const exporter = new OTLPMetricExporter({ url: endpoint });
   const reader = new PeriodicExportingMetricReader({
     exporter,

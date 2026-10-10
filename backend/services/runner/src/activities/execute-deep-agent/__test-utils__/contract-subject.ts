@@ -96,6 +96,7 @@ import type {
 } from "../../../__test-utils__/harness-contract/types.js";
 import type { HermeticEnvironment } from "../../../__test-utils__/hermetic-activity.js";
 import { resolveWorkspacePath } from "../../../shared/file-change.js";
+import { loopbackHostedRow } from "../../../__test-utils__/loopback-host.js";
 import { createDeepAgentAdapter } from "../adapter.js";
 import { ENGINE_TOOL } from "../engine-tools.js";
 import { hermeticDeepAgentConfig } from "./hermetic-deep-agent.js";
@@ -155,7 +156,9 @@ class DeepAgentSubject implements DeepAgentContractSubject {
 
   constructor(private readonly env: HermeticEnvironment) {
     this.config = hermeticDeepAgentConfig(env, "sqlite");
-    this.adapter = createDeepAgentAdapter();
+    // The production path: the remote adapter in front, the real one in an
+    // agent host behind the pipe (`__test-utils__/loopback-host.ts`).
+    this.adapter = loopbackHostedRow({ harness: "deep-agent", adapter: createDeepAgentAdapter() }).adapter;
     bindScriptedModel((opts) => {
       const executionId = opts.headerScope?.executionId;
       const engine = executionId ? this.engines.get(executionId) : undefined;

@@ -1200,3 +1200,23 @@ describe("TranscriptBuilder — the observer sees every folded event, after the 
     expect(rowOf(status, "call-1").status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
   });
 });
+
+describe("relayObserved (an event the agent host's builder folded)", () => {
+  it("tells the observer the event and its instant, folds nothing, and survives a failing observer", () => {
+    const status = create(RunStatusSchema);
+    const seen: Array<[string, number | undefined]> = [];
+    const builder = new TranscriptBuilder("exe-relay", status, (event, at) => void seen.push([event.kind, at]));
+    builder.relayObserved({ kind: "message_start", runId: "r" }, 42);
+    expect(seen).toEqual([["message_start", 42]]);
+    expect(status.messages, "the host's builder folded it; this one only relays").toEqual([]);
+
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    const failing = new TranscriptBuilder("exe-relay", create(RunStatusSchema), () => {
+      throw new Error("observer bug");
+    });
+    expect(() => failing.relayObserved({ kind: "message_start", runId: "r" }, 1)).not.toThrow();
+    expect(errors).toHaveBeenCalledTimes(1);
+    errors.mockRestore();
+    new TranscriptBuilder("exe-relay", create(RunStatusSchema)).relayObserved({ kind: "message_start", runId: "r" }, 1);
+  });
+});
