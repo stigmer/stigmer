@@ -10,6 +10,9 @@
  * sign-in only when a provider grants a sign-in role (an SSO provider
  * always does); a provider that creates accounts without a role adds no
  * one to the organization, so it shows no notice.
+ *
+ * And that the host's link to the service-accounts page reaches the panel
+ * as given, so a hash-routed host (the desktop app) is linked correctly.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -33,8 +36,10 @@ vi.mock("../../identity-provider/useIdentityProviderList.js", () => ({
   useIdentityProviderList: () => ({ identityProviders: providers.list }),
 }));
 vi.mock("../../iam-policy/OrgMembersPanel.js", () => ({
-  OrgMembersPanel: ({ org }: { org: string }) => (
-    <div data-testid="members-panel">panel for {org}</div>
+  OrgMembersPanel: ({ org, serviceAccountsHref }: { org: string; serviceAccountsHref?: string }) => (
+    <div data-testid="members-panel" data-service-accounts-href={serviceAccountsHref ?? ""}>
+      panel for {org}
+    </div>
   ),
 }));
 
@@ -107,5 +112,24 @@ describe("MembersSection sign-in notice", () => {
     providers.list = [provider({ createAccountsOnSignIn: true })];
     renderSection("cloud");
     expect(screen.queryByText(SIGN_IN_NOTICE)).toBeNull();
+  });
+});
+
+describe("MembersSection and the service-accounts link", () => {
+  it("hands the panel the host's link, and leaves the panel's default otherwise", () => {
+    render(
+      <DeploymentModeContext.Provider value="local">
+        <MembersSection serviceAccountsHref="#/settings/service-accounts" />
+      </DeploymentModeContext.Provider>,
+    );
+    expect(
+      screen.getByTestId("members-panel").getAttribute("data-service-accounts-href"),
+    ).toBe("#/settings/service-accounts");
+    cleanup();
+
+    renderSection("local");
+    expect(
+      screen.getByTestId("members-panel").getAttribute("data-service-accounts-href"),
+    ).toBe("");
   });
 });

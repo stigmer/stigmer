@@ -2,6 +2,7 @@ export {
   SETTINGS_NAV_GROUPS,
   SINGLE_ORG_SETTINGS_NAV_GROUPS,
   PLATFORM_SETTINGS_NAV_GROUP,
+  ORG_ADMIN_SETTINGS_NAV_ITEMS,
 } from "./settings-nav.js";
 export type { SettingsNavItem, SettingsNavGroup } from "./settings-nav.js";
 export { useSettingsNavGroups } from "./useSettingsNavGroups.js";
@@ -10,6 +11,7 @@ export { ApiKeysSection } from "./ApiKeysSection.js";
 export { BillingSection } from "./BillingSection.js";
 export type { BillingSectionProps } from "./BillingSection.js";
 export { MembersSection } from "./MembersSection.js";
+export type { MembersSectionProps } from "./MembersSection.js";
 export { OrgProfileSection } from "./OrgProfileSection.js";
 export { OrgPreferencesSection } from "./OrgPreferencesSection.js";
 export { OrgPoliciesSection } from "./OrgPoliciesSection.js";
@@ -20,6 +22,7 @@ export { InvitationsSection } from "./InvitationsSection.js";
 export { IdentityProvidersSection } from "./IdentityProvidersSection.js";
 export type { IdentityProvidersSectionProps } from "./IdentityProvidersSection.js";
 export { PlatformClientsSection } from "./PlatformClientsSection.js";
+export { ServiceAccountsSection } from "./ServiceAccountsSection.js";
 export { TeamsSection } from "./TeamsSection.js";
 export { OAuthAppsSection } from "./OAuthAppsSection.js";
 export { ChannelAppsSection } from "./ChannelAppsSection.js";

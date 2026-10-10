@@ -65,12 +65,58 @@ export function ApiKeyListPanel({
   now,
 }: ApiKeyListPanelProps) {
   const { apiKeys, isLoading, error, refetch } = useApiKeyList();
-  const orgs = useOptionalOrg()?.orgs ?? NO_ORGS;
-  const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   if (onRefetchRef) {
     onRefetchRef(refetch);
   }
+
+  return (
+    <ApiKeyListView
+      apiKeys={apiKeys}
+      isLoading={isLoading}
+      error={error}
+      onDeleted={refetch}
+      emptyText="No API keys yet."
+      className={className}
+      now={now}
+    />
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ApiKeyListView (package-internal)
+// ---------------------------------------------------------------------------
+
+/** Props for {@link ApiKeyListView}. */
+export interface ApiKeyListViewProps {
+  readonly apiKeys: readonly ApiKey[];
+  readonly isLoading: boolean;
+  readonly error: Error | null;
+  /** Fired after a key is revoked, so the owner of the list re-reads it. */
+  readonly onDeleted: () => void;
+  /** Shown when the list is empty. */
+  readonly emptyText: string;
+  readonly className?: string;
+  readonly now?: Date;
+}
+
+/**
+ * The rows of a key list with their inline revoke confirmation, whoever's
+ * keys they are: the caller's own ({@link ApiKeyListPanel}) or a service
+ * account's (`ServiceAccountKeyListPanel`). Revoking is the ordinary
+ * `apiKey.delete` either way. Not exported from the package barrel.
+ */
+export function ApiKeyListView({
+  apiKeys,
+  isLoading,
+  error,
+  onDeleted,
+  emptyText,
+  className,
+  now,
+}: ApiKeyListViewProps) {
+  const orgs = useOptionalOrg()?.orgs ?? NO_ORGS;
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -104,7 +150,7 @@ export function ApiKeyListPanel({
           className,
         )}
       >
-        No API keys yet.
+        {emptyText}
       </p>
     );
   }
@@ -128,7 +174,7 @@ export function ApiKeyListPanel({
             onCancelDelete={() => setConfirmingId(null)}
             onDeleted={() => {
               setConfirmingId(null);
-              refetch();
+              onDeleted();
             }}
           />
         );

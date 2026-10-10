@@ -558,6 +558,18 @@ pages:
       where the request originates and who makes it.
     medium: none
 
+  guides/authentication/service-accounts:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Create a service account with one Organization role, give it a key, use
+      the key in CI, and manage or delete it; what a service account may never
+      do.
+    medium: screenshot-journey
+    why:
+      Creating a service account and its first key is a console procedure the
+      reader follows at their own pace; the CLI path sits beside each step.
+
   guides/authentication/federation/overview:
     fate: keep
     diataxis: landing

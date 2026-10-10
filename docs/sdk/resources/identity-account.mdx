@@ -56,11 +56,13 @@ IdentityAccount identityAccount = client.identityAccounts().get("ida_01j5q3k7m8r
 | [`getByEmail`](#getbyemail) | Get a direct identity account by email address. |
 | [`getByExternalSub`](#getbyexternalsub) | Get a federated identity account by identity provider reference and external subject. |
 | [`getByIdpId`](#getbyidpid) | Get an identity account by identity provider ID (Auth0 subject). |
+| [`listServiceAccounts`](#listserviceaccounts) | List an organization's service accounts, newest first. |
 | [`create`](#create) | Create a new identity account. |
 | [`update`](#update) | Update an existing identity account. |
 | [`updateFederatedAccount`](#updatefederatedaccount) | Update profile fields on a federated identity account. |
 | [`delete`](#delete) | Delete an identity account. |
 | [`createFederatedAccount`](#createfederatedaccount) | Create a federated identity account for an external platform user. |
+| [`createServiceAccount`](#createserviceaccount) | Create a service account: an organization's own non-person account for automation, holding one organization role. |
 | [`deprovisionFederatedAccount`](#deprovisionfederatedaccount) | Deprovision a federated identity account by revoking access or deleting it. |
 | [`provisionMyAccount`](#provisionmyaccount) | Provision the caller's own identity account. |
 | [`whoAmI`](#whoami) | Get the identity account of the currently authenticated user. |
@@ -265,6 +267,53 @@ IdentityAccount identityAccount = client.identityAccounts().getByIdpId(id);
 | `id` | `string` | Identity Account identifier. |
 
 **Returns**: [`IdentityAccount`](#identityaccount)
+
+### listServiceAccounts
+
+List an organization's service accounts, newest first.
+
+Lists every service account of the organization, including one whose role was removed, so it can still be found and deleted.
+
+Authorization: Requires can_create_identity_account on the organization.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const result = await stigmer.identityAccount.listServiceAccounts({
+  org: "...",
+  page: {},
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+result, err := client.IdentityAccount.ListServiceAccounts(ctx, &stigmer.ListWithIdentityOrg{
+  Org:  "...",
+  Page: &stigmer.PageInfoInput{},
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+result = client.identity_accounts.list_service_accounts(ListWithIdentityOrg(
+    org="...",
+    page=None,
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+IdentityAccountsList result = client.identityAccounts().listServiceAccounts(ListWithIdentityOrg.builder()
+    .org("...")
+    .page(null)
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`ListWithIdentityOrg`](#listwithidentityorg)
+
+**Returns**: [`IdentityAccountsList`](#identityaccountslist)
 
 ### create
 
@@ -617,6 +666,59 @@ IdentityAccount identityAccount = client.identityAccounts().createFederatedAccou
 
 **Returns**: [`IdentityAccount`](#identityaccount)
 
+### createServiceAccount
+
+Create a service account: an organization's own non-person account for automation, holding one organization role.
+
+The account belongs to `org` for its whole life. It holds `role` on the organization (admin, member or viewer; never owner) and acts only through API keys created for it with ApiKeyCommandController.createForServiceAccount. Its name is unique among the organization's service accounts; a name in use answers ALREADY_EXISTS. A server running without sign-in answers FAILED_PRECONDITION, since no key could authenticate there.
+
+Rename it with update, change its role through IAM policies, and delete it with delete, which ends every key it has.
+
+Authorization: Requires can_create_identity_account on the organization. A service account's own key is refused.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const identityAccount = await stigmer.identityAccount.createServiceAccount({
+  org: "...",
+  name: "...",
+  role: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+identityAccount, err := client.IdentityAccount.CreateServiceAccount(ctx, &stigmer.CreateServiceAccountInput{
+  Org:  "...",
+  Name: "...",
+  Role: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+identity_account = client.identity_accounts.create_service_account(CreateServiceAccountInput(
+    org="...",
+    name="...",
+    role="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+IdentityAccount identityAccount = client.identityAccounts().createServiceAccount(CreateServiceAccountInput.builder()
+    .org("...")
+    .name("...")
+    .role("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`CreateServiceAccountInput`](#createserviceaccountinput)
+
+**Returns**: [`IdentityAccount`](#identityaccount)
+
 ### deprovisionFederatedAccount
 
 Deprovision a federated identity account by revoking access or deleting it.
@@ -835,6 +937,18 @@ DeprovisionFederatedAccountInput is the command for revoking a federated identit
   }}
 />
 
+### CreateServiceAccountInput
+
+CreateServiceAccountInput is the command for creating an organization's service account.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization the service account belongs to, by id or slug.", required: true },
+    name: { type: "string", description: "The service account's name, unique among the organization's service accounts (e.g., \"ci-deploy\").", required: true },
+    role: { type: "IamRole", description: "The organization role the service account holds: admin, member or viewer.", typeDescriptionLink: "#iamrole" },
+  }}
+/>
+
 ### IdentityAccountEmail
 
 IdentityAccountEmail identifies an identity account by its email address.
@@ -857,6 +971,28 @@ ExternalSubLookup identifies a federated identity account by its identity provid
   }}
 />
 
+### ListWithIdentityOrg
+
+ListWithIdentityOrg is the input for paginated queries scoped to an organization.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization to list identity accounts for, by id or slug." },
+    page: { type: "PageInfoInput", description: "Pagination parameters." },
+  }}
+/>
+
+### IdentityAccountsList
+
+IdentityAccountsList is a paginated response containing identity accounts.
+
+<TypeTable
+  type={{
+    totalPages: { type: "number", description: "Total number of pages available." },
+    entries: { type: "IdentityAccountInput[]", description: "Identity accounts in the current page.", typeDescriptionLink: "#identityaccountinput" },
+  }}
+/>
+
 ### IdentityAccount
 
 IdentityAccount represents a user or machine principal in Stigmer.
@@ -871,6 +1007,20 @@ IdentityAccount represents a user or machine principal in Stigmer.
   }}
 />
 
+### IamRole
+
+IamRole defines the roles that can be assigned to principals on resources via IAM policies.
+
+| Value | Description |
+|-------|-------------|
+| `owner` | Full control of the resource. |
+| `admin` | Administrative access. |
+| `member` | Membership-level access. |
+| `viewer` | Read-only access to the resource. |
+| `participant` | A person who takes part in a conversation: reads it and sends messages. |
+| `editor` | Editor of a blueprint (an agent or an MCP server): may change its definition and do whatever a viewer can, and may not delete it, change its visibility, publish it on a share link or a channel, or decide who else has access. |
+| `user` | May use a shared vault: the runs of a person who holds it use the vault's logins and secrets. |
+
 ### IdentityAccountProvisioningMode
 
 IdentityAccountProvisioningMode defines how an identity account was created.
@@ -881,4 +1031,5 @@ IdentityAccountProvisioningMode defines how an identity account was created.
 | `federated` | Account was created by the platform for federated authentication via an IdentityProvider. |
 | `machine` | Machine-to-machine client credentials account for inter-service communication. |
 | `platform_client` | Account provisioned via a PlatformClient's mintUserToken endpoint. |
+| `service_account` | An organization's own non-person account: the principal its automation (a CI job, a script, an integration) acts as, so the automation keeps working when the person who set it up leaves. |
 

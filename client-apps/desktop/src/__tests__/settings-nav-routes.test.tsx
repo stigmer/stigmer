@@ -1,6 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
 import { matchRoutes } from "react-router-dom";
-import { PLATFORM_SETTINGS_NAV_GROUP, SETTINGS_NAV_GROUPS } from "@stigmer/react";
+import {
+  ORG_ADMIN_SETTINGS_NAV_ITEMS,
+  PLATFORM_SETTINGS_NAV_GROUP,
+  SETTINGS_NAV_GROUPS,
+} from "@stigmer/react";
 
 // Every settings sidebar item has a desktop route (stigmer#1227). The sidebar
 // is SDK-owned (settings-nav.ts), so an item can be added there without the
@@ -36,9 +40,12 @@ vi.mock("@tauri-apps/plugin-updater", () => ({
   check: vi.fn().mockResolvedValue(null),
 }));
 
-const hrefs = [...SETTINGS_NAV_GROUPS, PLATFORM_SETTINGS_NAV_GROUP].flatMap((group) =>
-  group.items.map((item) => item.href),
-);
+const hrefs = [
+  ...[...SETTINGS_NAV_GROUPS, PLATFORM_SETTINGS_NAV_GROUP].flatMap((group) =>
+    group.items.map((item) => item.href),
+  ),
+  ...ORG_ADMIN_SETTINGS_NAV_ITEMS.map((item) => item.href),
+];
 
 describe("settings nav routes", () => {
   it.each(hrefs)("%s has a desktop route", async (href) => {

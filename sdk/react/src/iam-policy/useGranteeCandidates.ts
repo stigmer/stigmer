@@ -3,8 +3,9 @@
 /**
  * Who a share can be granted to in an organization: its people, the
  * accounts an integrator's product created for its own users ("Users from
- * your product", the Members page's name for them) and, where the edition
- * serves teams and the caller asks for them, its teams.
+ * your product", the Members page's name for them), its service accounts
+ * and, where the edition serves teams and the caller asks for them, its
+ * teams.
  *
  * People are the organization's own access list, the member list the
  * caller can already see, so choosing someone introduces no new account
@@ -14,8 +15,12 @@
  * member too. Accounts a platform client provisioned are split out of the
  * people (`isPlatformClientAccount`), so a picker labels them rather than
  * presenting them as the organization's people; a team's picker leaves
- * them out (`includeAppUsers: false`). People who sign in through their
- * organization's own identity provider are people. Teams come from the
+ * them out (`includeAppUsers: false`). Service accounts, the accounts the
+ * organization's automation acts as, are split out the same way
+ * (`isServiceAccount`): a resource can be shared with one, but a team is a
+ * group of people and never takes one (`includeServiceAccounts: false`).
+ * People who sign in through their organization's own identity provider are
+ * people. Teams come from the
  * organization's team list, fetched only when asked for, so an edition
  * without teams never makes the call.
  */
@@ -25,6 +30,7 @@ import type { Team } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
 import {
   granteeFromView,
   isPlatformClientAccount,
+  isServiceAccount,
   personGrantee,
   teamGrantee,
   type Grantee,
@@ -71,6 +77,12 @@ export interface UseGranteeCandidatesOptions {
    * the organization's people belong (a team's members).
    */
   readonly includeAppUsers?: boolean;
+  /**
+   * Offer the organization's service accounts, in `serviceAccounts`.
+   * Defaults to `true`; pass `false` where only people belong (a team's
+   * members).
+   */
+  readonly includeServiceAccounts?: boolean;
 }
 
 /** Return value of {@link useGranteeCandidates}. */
@@ -82,6 +94,11 @@ export interface UseGranteeCandidatesReturn {
    * ("Users from your product"); empty when `includeAppUsers` is `false`.
    */
   readonly appUsers: readonly PersonCandidate[];
+  /**
+   * The organization's service accounts; empty when `includeServiceAccounts`
+   * is `false`.
+   */
+  readonly serviceAccounts: readonly PersonCandidate[];
   readonly teams: readonly TeamCandidate[];
   /** `true` while either list is loading for the first time. */
   readonly isLoading: boolean;
@@ -94,7 +111,7 @@ export interface UseGranteeCandidatesReturn {
  *
  * @example
  * ```tsx
- * const { people, appUsers, teams } = useGranteeCandidates({
+ * const { people, appUsers, serviceAccounts, teams } = useGranteeCandidates({
  *   org,
  *   includeTeams: share.canShareWithTeams,
  * });
@@ -104,11 +121,12 @@ export function useGranteeCandidates({
   org: orgId,
   includeTeams,
   includeAppUsers = true,
+  includeServiceAccounts = true,
 }: UseGranteeCandidatesOptions): UseGranteeCandidatesReturn {
   const access = useResourceAccess(orgId ? { kind: "organization", id: orgId } : null);
   const teamList = useTeamList(includeTeams ? orgId : null);
 
-  const { people, appUsers } = useMemo(() => {
+  const { people, appUsers, serviceAccounts } = useMemo(() => {
     const byId = new Map<string, PersonCandidate>();
     for (const entry of access.members) {
       const view = entry.principal;
@@ -124,12 +142,17 @@ export function useGranteeCandidates({
     }
     const all = [...byId.values()];
     return {
-      people: all.filter((person) => !isPlatformClientAccount(person.view)),
+      people: all.filter(
+        (person) => !isPlatformClientAccount(person.view) && !isServiceAccount(person.view),
+      ),
       appUsers: includeAppUsers
         ? all.filter((person) => isPlatformClientAccount(person.view))
         : [],
+      serviceAccounts: includeServiceAccounts
+        ? all.filter((person) => isServiceAccount(person.view))
+        : [],
     };
-  }, [access.members, includeAppUsers]);
+  }, [access.members, includeAppUsers, includeServiceAccounts]);
 
   const teams = useMemo(
     () =>
@@ -155,7 +178,7 @@ export function useGranteeCandidates({
   const error = access.error ?? (includeTeams ? teamList.error : null);
 
   return useMemo(
-    () => ({ people, appUsers, teams, isLoading, error }),
-    [people, appUsers, teams, isLoading, error],
+    () => ({ people, appUsers, serviceAccounts, teams, isLoading, error }),
+    [people, appUsers, serviceAccounts, teams, isLoading, error],
   );
 }

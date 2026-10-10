@@ -38,6 +38,7 @@
     "invitation",
     "oauth-app",
     "api-key",
+    "service-account",
     "platform-client",
     "---Platform Building Blocks---",
     "sidebar",

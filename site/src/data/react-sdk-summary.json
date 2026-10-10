@@ -274,6 +274,13 @@
       "components": 1
     },
     {
+      "slug": "service-account",
+      "title": "service-account",
+      "description": "",
+      "hooks": 5,
+      "components": 5
+    },
+    {
       "slug": "session",
       "title": "Session",
       "description": "Hooks for session lifecycle, message history, conversation state, and usage tracking.",
@@ -285,7 +292,7 @@
       "title": "Settings",
       "description": "Pre-composed settings sections for organization console embedding.",
       "hooks": 1,
-      "components": 15
+      "components": 16
     },
     {
       "slug": "sharing",

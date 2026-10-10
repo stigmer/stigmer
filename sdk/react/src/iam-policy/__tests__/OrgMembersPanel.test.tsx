@@ -8,8 +8,11 @@
  * its sign-in role. The panel lists and counts the organization's people
  * only; those accounts sit apart in a collapsed group that names how many
  * there are, whose Remove says that signing in through the product again
- * does not restore the access. The count is read from the list itself, so
- * it always equals the rows shown.
+ * does not restore the access. The organization's service accounts sit
+ * apart the same way, in a collapsed "Service accounts" group that lists
+ * them read-only and links to the settings page that manages them; they are
+ * not counted either. The count is read from the list itself, so it always
+ * equals the rows shown.
  *
  * The owner rule:
  *
@@ -107,7 +110,21 @@ function membersBadge(): string | null {
   return screen.getByText("Members").nextElementSibling?.textContent ?? null;
 }
 
+/** An organization's service account, holding its one role. */
+function serviceAccount(id: string, name: string, role = "member"): PrincipalAccess {
+  return create(PrincipalAccessSchema, {
+    principal: {
+      kind: "identity_account",
+      id,
+      name,
+      identityOrigin: { provisioningMode: IdentityAccountProvisioningMode.service_account },
+    },
+    roles: [{ role: { code: role, name: role } }],
+  });
+}
+
 const PRODUCT_GROUP = /^Users from your product/;
+const SERVICE_ACCOUNT_GROUP = /^Service accounts/;
 
 afterEach(() => {
   cleanup();
@@ -194,6 +211,63 @@ describe("OrgMembersPanel and who is a member", () => {
     expect(screen.getByText("No members found.")).toBeTruthy();
     expect(membersBadge()).toBeNull();
     expect(screen.getByRole("button", { name: PRODUCT_GROUP })).toBeTruthy();
+  });
+});
+
+describe("OrgMembersPanel and service accounts", () => {
+  it("leaves service accounts out of the people and the count, in a collapsed group of their own", () => {
+    state.members = [
+      member("ida_dave", "Dave", "member"),
+      serviceAccount("ida_sa_ci", "ci-deploy", "admin"),
+      productUser("ida_pc_1", "Customer One"),
+    ];
+    render(<OrgMembersPanel org="acme" />);
+
+    const people = within(screen.getByRole("list", { name: "Organization members" }));
+    expect(people.getAllByRole("listitem").map((row) => row.textContent)).toEqual([
+      expect.stringContaining("Dave"),
+    ]);
+    expect(membersBadge()).toBe("1");
+
+    const toggle = screen.getByRole("button", { name: SERVICE_ACCOUNT_GROUP });
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(toggle.textContent).toContain("1");
+    expect(screen.queryByText("ci-deploy")).toBeNull();
+
+    fireEvent.click(toggle);
+    const group = within(screen.getByRole("list", { name: "Service accounts" }));
+    expect(group.getAllByRole("listitem").map((row) => row.textContent)).toEqual([
+      expect.stringContaining("ci-deploy"),
+    ]);
+    expect(group.getByText("admin")).toBeTruthy();
+  });
+
+  it("lists them read only and links to the page that manages them", () => {
+    state.canAssignOwner = true;
+    state.members = [member("ida_dave", "Dave", "member"), serviceAccount("ida_sa_ci", "ci-deploy")];
+    render(<OrgMembersPanel org="acme" />);
+
+    fireEvent.click(screen.getByRole("button", { name: SERVICE_ACCOUNT_GROUP }));
+    expect(screen.queryByRole("button", { name: "Remove ci-deploy" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Change role for ci-deploy" })).toBeNull();
+    expect(
+      screen.getByRole("link", { name: "Manage service accounts" }).getAttribute("href"),
+    ).toBe("/settings/service-accounts");
+  });
+
+  it("links where the host says the page is", () => {
+    state.members = [serviceAccount("ida_sa_ci", "ci-deploy")];
+    render(<OrgMembersPanel org="acme" serviceAccountsHref="#/settings/service-accounts" />);
+    expect(
+      screen.getByRole("link", { name: "Manage service accounts" }).getAttribute("href"),
+    ).toBe("#/settings/service-accounts");
+    expect(screen.getByText("No members found.")).toBeTruthy();
+  });
+
+  it("renders no group when the organization has no service account", () => {
+    state.members = [member("ida_dave", "Dave", "member")];
+    render(<OrgMembersPanel org="acme" />);
+    expect(screen.queryByRole("button", { name: SERVICE_ACCOUNT_GROUP })).toBeNull();
   });
 });
 

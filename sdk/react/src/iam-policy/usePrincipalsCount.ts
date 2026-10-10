@@ -26,12 +26,12 @@ export interface UsePrincipalsCountReturn {
  * Wraps `iamPolicy.getPrincipalsCount()`: every principal of the kind
  * that holds a role on the organization. For identity accounts that
  * includes the accounts a PlatformClient provisioned for the
- * organization's own product and any machine account granted a role, so
- * it is the size of the access list, not the number of the
- * organization's people. A member count reads the organization's access
+ * organization's own product, its service accounts and any machine
+ * account granted a role, so it is the size of the access list, not the
+ * number of the organization's people. A member count reads the organization's access
  * list ({@link useResourceAccess}) and leaves out the entries
- * `isPlatformClientAccount` (from `@stigmer/sdk`) marks, as
- * `OrgMembersPanel` does.
+ * `isPlatformClientAccount` and `isServiceAccount` (from `@stigmer/sdk`)
+ * mark, as `OrgMembersPanel` does.
  *
  * Pass `null` as `org` to skip fetching (stable no-op).
  *

@@ -15,6 +15,7 @@ import {
   iamRoleFromString,
   iamRoleToString,
   isPlatformClientAccount,
+  isServiceAccount,
 } from "@stigmer/sdk";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { useOwnerAssignment } from "./useOwnerAssignment.js";
@@ -27,6 +28,7 @@ import { RoleSelector } from "./RoleSelector.js";
 import { ProviderBadge } from "./ProviderBadge.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
+import { SERVICE_ACCOUNTS_SETTINGS_HREF } from "../service-account/copy.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -38,6 +40,11 @@ export interface OrgMembersPanelProps {
   readonly org: string;
   /** Exposed refetch for parent-triggered refresh. */
   readonly onRefetchRef?: (refetch: () => void) => void;
+  /**
+   * Where the "Service accounts" group links to manage them. Defaults to
+   * the settings page the hosts route, `/settings/service-accounts`.
+   */
+  readonly serviceAccountsHref?: string;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -65,6 +72,11 @@ export interface OrgMembersPanelProps {
  * product's users, not the organization's people. The panel lists them
  * apart, in a collapsed "Users from your product" group, and leaves them
  * out of the member count; the server authorizes the same actions on them.
+ * The organization's service accounts, the accounts its automation acts as
+ * through API keys, hold a role here too and are not people either. They
+ * are listed in their own collapsed "Service accounts" group, with their
+ * roles and a link to the settings page where admins manage them, and are
+ * left out of the count as well.
  * The count is the number of member rows, read from the one access list
  * the panel fetches, so it always equals what is shown.
  *
@@ -78,6 +90,7 @@ export interface OrgMembersPanelProps {
 export function OrgMembersPanel({
   org: orgId,
   onRefetchRef,
+  serviceAccountsHref = SERVICE_ACCOUNTS_SETTINGS_HREF,
   className,
 }: OrgMembersPanelProps) {
   const resource = orgId ? { kind: "organization", id: orgId } : null;
@@ -89,18 +102,23 @@ export function OrgMembersPanel({
   const [actionMemberId, setActionMemberId] = useState<string | null>(null);
   const [productUsersOpen, setProductUsersOpen] = useState(false);
   const productUsersId = useId();
+  const [serviceAccountsOpen, setServiceAccountsOpen] = useState(false);
+  const serviceAccountsId = useId();
 
-  const { people, productUsers } = useMemo(() => {
+  const { people, productUsers, serviceAccounts } = useMemo(() => {
     const people: PrincipalAccess[] = [];
     const productUsers: PrincipalAccess[] = [];
+    const serviceAccounts: PrincipalAccess[] = [];
     for (const entry of members) {
       if (entry.principal && isPlatformClientAccount(entry.principal)) {
         productUsers.push(entry);
+      } else if (entry.principal && isServiceAccount(entry.principal)) {
+        serviceAccounts.push(entry);
       } else {
         people.push(entry);
       }
     }
-    return { people, productUsers };
+    return { people, productUsers, serviceAccounts };
   }, [members]);
 
   if (onRefetchRef) {
@@ -207,6 +225,82 @@ export function OrgMembersPanel({
           )}
         </div>
       )}
+
+      {/* The organization's automation: service accounts, managed in settings */}
+      {serviceAccounts.length > 0 && (
+        <div className="stg:space-y-2 stg:pt-1">
+          <button
+            type="button"
+            onClick={() => setServiceAccountsOpen((open) => !open)}
+            aria-expanded={serviceAccountsOpen}
+            aria-controls={serviceAccountsId}
+            className="stg:flex stg:items-center stg:gap-2 stg:rounded stg:text-left stg:hover:text-foreground stg:transition-colors"
+          >
+            <ChevronIcon expanded={serviceAccountsOpen} />
+            <span className="stg:text-xs stg:font-medium stg:text-foreground">
+              Service accounts
+            </span>
+            <span className="stg:inline-flex stg:items-center stg:rounded-full stg:bg-muted stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground">
+              {serviceAccounts.length}
+            </span>
+          </button>
+          <p className="stg:text-muted-foreground stg:text-xs">
+            Your automation acts as these accounts through their API keys. They
+            are not people.{" "}
+            <a
+              href={serviceAccountsHref}
+              className="stg:text-primary stg:hover:text-primary-hover stg:underline stg:underline-offset-2"
+            >
+              Manage service accounts
+            </a>
+          </p>
+          {serviceAccountsOpen && (
+            <div
+              id={serviceAccountsId}
+              role="list"
+              aria-label="Service accounts"
+              className="stg:space-y-2"
+            >
+              {serviceAccounts.map((entry) => (
+                <ServiceAccountRow key={entry.principal?.id ?? ""} entry={entry} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ServiceAccountRow (internal)
+// ---------------------------------------------------------------------------
+
+/**
+ * A service account in the Members page: its name and roles, read only.
+ * Its role, keys and deletion are managed on the settings page the group
+ * links to, where the act names what it does to the account's keys.
+ */
+function ServiceAccountRow({ entry }: { entry: PrincipalAccess }) {
+  const principal = entry.principal;
+  const name = principal?.name || principal?.id || "";
+  const directRoles = entry.roles.filter((r) => !r.isInherited);
+  return (
+    <div
+      role="listitem"
+      className="stg:flex stg:items-center stg:gap-3 stg:rounded-lg stg:border stg:border-border-muted stg:px-3 stg:py-2.5"
+    >
+      <div className="stg:flex stg:size-8 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-md stg:bg-muted stg:text-xs stg:font-medium stg:text-muted-foreground">
+        {name.charAt(0).toUpperCase()}
+      </div>
+      <span className="stg:min-w-0 stg:flex-1 stg:truncate stg:text-sm stg:font-medium stg:text-foreground">
+        {name}
+      </span>
+      <div className="stg:hidden stg:sm:flex stg:shrink-0 stg:items-center stg:gap-1.5">
+        {directRoles.map((grant) => (
+          <RoleBadge key={grant.role?.code ?? ""} grant={grant} />
+        ))}
+      </div>
     </div>
   );
 }

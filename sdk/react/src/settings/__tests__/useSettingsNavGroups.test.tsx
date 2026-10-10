@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { useRef, useState } from "react";
 import {
+  ORG_ADMIN_SETTINGS_NAV_ITEMS,
   SETTINGS_NAV_GROUPS,
   SINGLE_ORG_SETTINGS_NAV_GROUPS,
   PLATFORM_SETTINGS_NAV_GROUP,
@@ -15,16 +16,26 @@ import { useSettingsNavGroups } from "../useSettingsNavGroups";
 // granted independently.
 let verdicts: Record<string, boolean> = {};
 let checkedRelations: string[] = [];
-let lastCheckArgs: readonly unknown[] = [];
+let checks: (readonly [unknown, string, { fail?: string } | undefined])[] = [];
 
 vi.mock("../../iam-policy/useCheckPermission", () => ({
   useCheckPermission: (
     ...args: [unknown, string, { fail?: string } | undefined]
   ) => {
-    lastCheckArgs = args;
+    checks.push(args);
     checkedRelations.push(args[1]);
-    return { allowed: verdicts[args[1]] === true, isLoading: false, error: null };
+    // A skipped check (no resource) answers as the closed fail mode does.
+    return { allowed: args[0] !== null && verdicts[args[1]] === true, isLoading: false, error: null };
   },
+}));
+
+// The active organization, as an enclosing OrgProvider reports it; `null`
+// is a host with no OrgProvider.
+let activeOrgId: string | null = "org_acme";
+
+vi.mock("../../organization/OrgProvider", () => ({
+  useOptionalOrg: () =>
+    activeOrgId === null ? null : { activeOrg: { metadata: { id: activeOrgId } } },
 }));
 
 // Whether the server holds one organization, as useSingleOrg reports it:
@@ -39,7 +50,9 @@ afterEach(() => {
   cleanup();
   verdicts = {};
   checkedRelations = [];
+  checks = [];
   singleOrg = false;
+  activeOrgId = "org_acme";
 });
 
 function GroupsProbe() {
@@ -186,8 +199,11 @@ describe("useSettingsNavGroups", () => {
       expect(permission, "platform items must declare requiredPermission").toBeDefined();
       expect(checkedRelations).toContain(permission);
     }
-    expect(lastCheckArgs[0]).toEqual({ kind: "platform", id: "stigmer" });
-    expect(lastCheckArgs[2]).toEqual({ fail: "closed" });
+    for (const [resource, relation, options] of checks) {
+      if (!declared.includes(relation)) continue;
+      expect(resource).toEqual({ kind: "platform", id: "stigmer" });
+      expect(options).toEqual({ fail: "closed" });
+    }
   });
 
   it("keeps the array reference stable across re-renders", () => {
@@ -213,5 +229,60 @@ describe("useSettingsNavGroups", () => {
     const el = screen.getByTestId("stability");
     fireEvent.click(el);
     expect(el.getAttribute("data-stable")).toBe("true");
+  });
+});
+
+describe("useSettingsNavGroups and the organization's admin entries", () => {
+  function FirstGroupProbe() {
+    const groups = useSettingsNavGroups();
+    return (
+      <div
+        data-testid="first"
+        data-label={groups[0]?.label ?? ""}
+        data-items={groups[0]?.items.map((i) => i.href).join(",") ?? ""}
+      />
+    );
+  }
+
+  const items = () => screen.getByTestId("first").getAttribute("data-items")?.split(",") ?? [];
+
+  it("adds Service accounts after Teams for a caller who manages them on the active organization", () => {
+    verdicts = { can_create_identity_account: true };
+    render(<FirstGroupProbe />);
+    const hrefs = items();
+    expect(hrefs.indexOf("/settings/service-accounts")).toBe(hrefs.indexOf("/settings/teams") + 1);
+    expect(checks).toContainEqual([
+      { kind: "organization", id: "org_acme" },
+      "can_create_identity_account",
+      { fail: "closed" },
+    ]);
+  });
+
+  it("adds it to General on a server that holds one organization", () => {
+    singleOrg = true;
+    verdicts = { can_create_identity_account: true };
+    render(<FirstGroupProbe />);
+    expect(screen.getByTestId("first").getAttribute("data-label")).toBe("General");
+    expect(items()).toContain("/settings/service-accounts");
+  });
+
+  it("shows it to nobody the server has not said yes for, and with no organization active", () => {
+    render(<FirstGroupProbe />);
+    expect(items()).not.toContain("/settings/service-accounts");
+    cleanup();
+
+    activeOrgId = null;
+    verdicts = { can_create_identity_account: true };
+    render(<FirstGroupProbe />);
+    expect(items()).not.toContain("/settings/service-accounts");
+  });
+
+  it("declares every organization entry's permission, and checks each", () => {
+    verdicts = { can_create_identity_account: true };
+    render(<FirstGroupProbe />);
+    for (const item of ORG_ADMIN_SETTINGS_NAV_ITEMS) {
+      expect(item.requiredPermission).toBeDefined();
+      expect(checkedRelations).toContain(item.requiredPermission);
+    }
   });
 });

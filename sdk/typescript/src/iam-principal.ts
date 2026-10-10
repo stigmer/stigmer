@@ -23,6 +23,13 @@
  * skip it for that reason. A members view lists and counts the
  * organization's people without these accounts; an access audit still
  * shows everyone who holds a role.
+ *
+ * `isServiceAccount` reads the same origin for the organization's own
+ * non-person accounts: the principals its automation acts as through API
+ * keys. Such an account holds an organization role and can be shared with,
+ * but it is not a person, so a members view lists it apart and a team
+ * picker never offers it. Both predicates read only the provisioning mode
+ * the server resolved, so an entry it could not resolve is neither.
  */
 import { create } from "@bufbuild/protobuf";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -107,6 +114,20 @@ export function isPlatformClientAccount(
   return (
     view.kind === PERSON_KIND &&
     view.identityOrigin?.provisioningMode === IdentityAccountProvisioningMode.platform_client
+  );
+}
+
+/**
+ * Whether an access-list entry is an organization's service account: a
+ * person kind whose identity origin is `service_account`. An entry the
+ * server could not resolve carries no origin and reads `false`.
+ */
+export function isServiceAccount(
+  view: Pick<ApiResourceRefView, "kind" | "identityOrigin">,
+): boolean {
+  return (
+    view.kind === PERSON_KIND &&
+    view.identityOrigin?.provisioningMode === IdentityAccountProvisioningMode.service_account
   );
 }
 

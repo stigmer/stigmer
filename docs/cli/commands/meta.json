@@ -39,6 +39,7 @@
     "completion",
     "config",
     "marketplace",
+    "service-account",
     "version"
   ]
 }

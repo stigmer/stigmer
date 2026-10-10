@@ -62,6 +62,7 @@ export const DOMAIN_GROUPS: readonly DomainGroup[] = [
       "invitation",
       "oauth-app",
       "api-key",
+      "service-account",
       "platform-client",
     ],
   },

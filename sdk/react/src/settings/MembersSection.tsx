@@ -6,6 +6,16 @@ import { useResourceAvailable, ApiResourceKind } from "../deployment-mode.js";
 import { useOrg } from "../organization/OrgProvider.js";
 import { useIdentityProviderList } from "../identity-provider/useIdentityProviderList.js";
 
+/** Props for {@link MembersSection}. */
+export interface MembersSectionProps {
+  /**
+   * Where the members list's "Service accounts" group links. Defaults to
+   * `/settings/service-accounts`; a host that routes by hash (the desktop
+   * app) passes its own spelling.
+   */
+  readonly serviceAccountsHref?: string;
+}
+
 /**
  * Settings section for organization membership and role management.
  *
@@ -17,7 +27,7 @@ import { useIdentityProviderList } from "../identity-provider/useIdentityProvide
  * organization the first time they sign in and the server records their
  * role, so this section says so.
  */
-export function MembersSection() {
+export function MembersSection({ serviceAccountsHref }: MembersSectionProps = {}) {
   const headingId = useId();
   const { activeOrg } = useOrg();
   const invitationsAvailable = useResourceAvailable(
@@ -73,7 +83,7 @@ export function MembersSection() {
               </p>
             </div>
           )}
-          <OrgMembersPanel org={org} />
+          <OrgMembersPanel org={org} serviceAccountsHref={serviceAccountsHref} />
         </>
       )}
     </section>

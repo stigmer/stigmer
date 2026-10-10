@@ -1466,11 +1466,13 @@ export {
   SETTINGS_NAV_GROUPS,
   SINGLE_ORG_SETTINGS_NAV_GROUPS,
   PLATFORM_SETTINGS_NAV_GROUP,
+  ORG_ADMIN_SETTINGS_NAV_ITEMS,
   useSettingsNavGroups,
 } from "./settings/index.js";
 export type { SettingsNavItem, SettingsNavGroup } from "./settings/index.js";
 export { ApiKeysSection } from "./settings/index.js";
 export { MembersSection } from "./settings/index.js";
+export type { MembersSectionProps } from "./settings/index.js";
 export { OrgProfileSection } from "./settings/index.js";
 export { OrgPreferencesSection, OrgPoliciesSection } from "./settings/index.js";
 export { AccountPreferencesSection } from "./settings/index.js";
@@ -1480,6 +1482,7 @@ export { InvitationsSection } from "./settings/index.js";
 export { IdentityProvidersSection } from "./settings/index.js";
 export type { IdentityProvidersSectionProps } from "./settings/index.js";
 export { PlatformClientsSection } from "./settings/index.js";
+export { ServiceAccountsSection } from "./settings/index.js";
 export { TeamsSection } from "./settings/index.js";
 export { OAuthAppsSection } from "./settings/index.js";
 export { ChannelAppsSection } from "./settings/index.js";
@@ -1519,6 +1522,35 @@ export type {
   CreateApiKeyFormProps,
   ApiKeyCreatedAlertProps,
 } from "./api-key/index.js";
+
+// Service Account — an organization's own accounts for automation and their API keys
+export {
+  useServiceAccountList,
+  useCreateServiceAccount,
+  useDeleteServiceAccount,
+  useServiceAccountKeyList,
+  useCreateServiceAccountKey,
+  ServiceAccountListPanel,
+  ServiceAccountDetailPanel,
+  ServiceAccountKeyListPanel,
+  CreateServiceAccountForm,
+  CreateServiceAccountKeyForm,
+  SERVICE_ACCOUNTS_SETTINGS_HREF,
+} from "./service-account/index.js";
+export type {
+  UseServiceAccountListReturn,
+  CreateServiceAccountParams,
+  UseCreateServiceAccountReturn,
+  UseDeleteServiceAccountReturn,
+  UseServiceAccountKeyListReturn,
+  CreateServiceAccountKeyParams,
+  UseCreateServiceAccountKeyReturn,
+  ServiceAccountListPanelProps,
+  ServiceAccountDetailPanelProps,
+  ServiceAccountKeyListPanelProps,
+  CreateServiceAccountFormProps,
+  CreateServiceAccountKeyFormProps,
+} from "./service-account/index.js";
 
 // Platform Client — data hooks, mutation hooks, and styled components for platform client lifecycle
 export {
