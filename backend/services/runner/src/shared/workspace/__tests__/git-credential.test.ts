@@ -170,6 +170,7 @@ describe("the header and the floor", () => {
     ["remote.origin.receivepack", "a remote's receive-pack"],
     ["core.alternaterefscommand", "a program run during a fetch"],
     ["filter.lfs.process", "a filter program"],
+    ["lfs.customtransfer.evil.path", "a git-lfs transfer program"],
     ["extensions.worktreeconfig", "a worktree configuration"],
     ["worktree\thttp.proxy", "a proxy in the worktree configuration"],
     ["worktree\thttp.sslverify", "a TLS setting in the worktree configuration"],
@@ -201,7 +202,11 @@ describe("the header and the floor", () => {
   });
 
   it("hands the token past a clone's ordinary settings and the operator's own, a hook path of the clone's own included", async () => {
-    const { backend, execute } = gitBackend({ localConfig: "core.bare\ncore.hookspath\nremote.origin.url\nremote.origin.fetch\nbranch.main.remote\nuser.name\n" });
+    const { backend, execute } = gitBackend({
+      localConfig:
+        "core.bare\ncore.hookspath\nremote.origin.url\nremote.origin.fetch\nbranch.main.remote\nuser.name\n" +
+        "extensions.refstorage\nbranch.fix/x.pushremote\nbranch.fix/x.gh-merge-base\n",
+    });
     await expect(runNetworkGit(backend, "git push", { ...AT, token: TOKEN })).resolves.toBe("ok");
     expect(execute).toHaveBeenCalledWith("git push", { cwd: "/w", env: expect.objectContaining({ GIT_CONFIG_VALUE_0: "/dev/null" }) });
   });

@@ -86,9 +86,9 @@ export function gitTokenEnv(
 
 /**
  * The settings a clone may hold of its own and still be handed a token
- * (lower-cased, as git prints names): what `git init`, `remote add`,
- * `fetch`, `checkout`, `push -u` and an author's `git config user.*`
- * write, the file-system flags git sets for the platform, and the two
+ * (lower-cased, as git prints names): what `git init` (its object format
+ * and ref store included), `remote add`, `fetch`, `checkout`, `push -u`,
+ * `gh pr checkout` and an author's `git config user.*` write, the file-system flags git sets for the platform, and the two
  * settings this module overrides at command scope (a hook path, the
  * fsmonitor), which cannot take effect.
  */
@@ -97,9 +97,12 @@ const ORDINARY_CLONE_KEY = new RegExp(
     [
       "core\\.(?:repositoryformatversion|filemode|bare|logallrefupdates|ignorecase|precomposeunicode|symlinks|autocrlf|safecrlf|eol|quotepath|hookspath|fsmonitor)",
       "remote\\.origin\\.(?:url|fetch)",
-      "branch\\..+\\.(?:remote|merge)",
+      // An upstream, the remote `gh pr checkout` pushes to (every tokened
+      // push names origin), and the base it records.
+      "branch\\..+\\.(?:remote|merge|pushremote|gh-merge-base)",
       "user\\.(?:name|email)",
-      "extensions\\.objectformat",
+      // The object format and the ref store (reftable, Git 3's default).
+      "extensions\\.(?:objectformat|refstorage)",
     ].join("|") +
     ")$",
 );
