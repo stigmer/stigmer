@@ -222,7 +222,8 @@ const NAMED_FOCUS: Readonly<Record<string, EvalFocus>> = {
 function readFocus(value: unknown, field: string, scope: FieldScope): EvalFocus | undefined {
   if (value === undefined) return { kind: "last_message" };
   const expected = "last_message, trace, files, mock_calls, or { source: file, path: <path> }";
-  if (typeof value === "string") return NAMED_FOCUS[value] ?? wrong(scope, field, expected);
+  // Own keys only: an author's `toString` or `constructor` is not a focus.
+  if (typeof value === "string") return Object.hasOwn(NAMED_FOCUS, value) ? NAMED_FOCUS[value] : wrong(scope, field, expected);
   if (!isJsonObject(value)) return wrong(scope, field, expected);
   const keys = Object.keys(value);
   const path = value["path"];
