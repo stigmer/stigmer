@@ -11,14 +11,17 @@
  * author's edit plans for what the turn ran; a recorded version that no
  * longer resolves refuses, naming it), the agent's own organization (a
  * parent organization's agent's, not the run's; none when its row cannot
- * be read), and every MCP server the run uses, the agent's and the
- * session's (a server that cannot be found is skipped; a store fault
- * reading one fails the plan; one tool name the agent and the conversation
- * use for two different servers refuses the plan, as does one side naming
- * a server that is gone, and the very same server is one tool). The plan
- * it records is exactly the resolver's source manifest, written onto the
- * run's status before Persist and nowhere else, and a resolver refusal
- * reaches the caller with its code.
+ * be read), and every plugin the run lists, the agent version's and the
+ * session's (run-plugins.ts: a plugin that is gone is skipped, a store
+ * fault reading one fails the plan, the conversation's reference wins
+ * where both name one plugin, the very same plugin is listed once, and two
+ * plugins of one name refuse the plan before any value is asked for). A
+ * deployment whose hosted sandbox cannot start a local program refuses a
+ * listed plugin's stdio server before any value is asked for; one that
+ * wires no such rule plans it. The plan it records is exactly the
+ * resolver's source manifest, written onto the run's status before Persist
+ * and nowhere else, and a resolver refusal reaches the caller with its
+ * code.
  *
  * And StampRunCredentials, the create step before the planner: the run's
  * person is the platform's one rule for a first-party human operator,
@@ -38,13 +41,16 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentVersionEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
 import type { AgentVersionEntry } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
-import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import type { McpServerEntry } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
+import { McpServerEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import type { Run, RunValueSource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunSchema, RunValueSourceSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase, RunValueOrigin } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunUpdateStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { createLogger } from "../../../boot/logger.js";
@@ -55,6 +61,7 @@ import { SqliteStore } from "../../../store/sqlite/store.js";
 import type { Store } from "../../../store/interface.js";
 import type { RunCredentialInput } from "../../vault/resolve.js";
 
+import type { LocalProgramPolicy } from "../local-programs.js";
 import type { RunValuePlannerDeps } from "../plan-run-values-step.js";
 import {
   newPlanRunValuesStep,
@@ -70,29 +77,64 @@ const silentLogger = createLogger({
 });
 
 const ORG = "acme";
+const OTHER_ORG = "elsewhere";
+const PLUGIN_HEAD = "c".repeat(64);
+const PLUGIN_OLDER = "d".repeat(64);
 
 let dir: string;
 let store: Store;
 
+function httpServer(name: string): McpServerEntry {
+  return create(McpServerEntrySchema, {
+    name,
+    transport: { case: "http", value: { url: `https://mcp.${name}.example/mcp` } },
+  });
+}
+
+/** Saves a plugin row named after its slug; `digest` is its installed version. */
+async function savePlugin(
+  id: string,
+  org: string,
+  slug: string,
+  servers: McpServerEntry[],
+  digest = PLUGIN_HEAD,
+): Promise<void> {
+  await store.saveResource(
+    ApiResourceKind.plugin,
+    id,
+    PluginSchema,
+    create(PluginSchema, {
+      metadata: { id, name: slug, slug, org },
+      spec: { name: slug, version: "2.0.0" },
+      status: { digest, mcpServers: servers },
+    }),
+  );
+}
+
 beforeAll(async () => {
   dir = mkdtempSync(path.join(tmpdir(), "run-planner-test-"));
   store = SqliteStore.open(path.join(dir, "stigmer.db"));
-  for (const slug of ["linear", "notion"]) {
-    await store.saveResource(
-      ApiResourceKind.mcp_server,
-      `mcp_${slug}`,
-      McpServerSchema,
-      create(McpServerSchema, {
-        metadata: { id: `mcp_${slug}`, name: slug, slug, org: ORG },
-        spec: {
-          serverType: {
-            case: "http",
-            value: { url: `https://mcp.${slug}.example/mcp` },
-          },
-        },
-      }),
-    );
-  }
+  await savePlugin("plg_linear", ORG, "linear", [httpServer("linear")]);
+  await store.saveAudit(
+    ApiResourceKind.plugin,
+    "plg_linear",
+    PluginSchema,
+    create(PluginSchema, {
+      metadata: { id: "plg_linear", name: "linear", slug: "linear", org: ORG },
+      spec: { name: "linear", version: "1.0.0" },
+      status: { digest: PLUGIN_OLDER, mcpServers: [httpServer("linear-v1")] },
+    }),
+    PLUGIN_OLDER,
+    "1.0.0",
+  );
+  await savePlugin("plg_notion", ORG, "notion", [httpServer("notion")]);
+  await savePlugin("plg_linear_elsewhere", OTHER_ORG, "linear", [httpServer("theirs")]);
+  await savePlugin("plg_files", ORG, "files", [
+    create(McpServerEntrySchema, {
+      name: "disk",
+      transport: { case: "stdio", value: { command: "npx", args: ["files-server"] } },
+    }),
+  ]);
 });
 
 afterAll(() => {
@@ -119,8 +161,10 @@ function deps(opts: {
   readonly resolve?: (input: RunCredentialInput) => Promise<RunValueSource[]>;
   readonly asked: RunCredentialInput[];
   readonly store?: Store;
+  readonly localPrograms?: LocalProgramPolicy;
 }): RunValuePlannerDeps {
   return {
+    ...(opts.localPrograms === undefined ? {} : { localPrograms: opts.localPrograms }),
     store: opts.store ?? store,
     logger: silentLogger,
     agentLoader: () => ({
@@ -167,14 +211,14 @@ function turn(id: string, status: Record<string, unknown> = {}): Run {
 }
 
 describe("the builder hands the resolver the run's whole picture", () => {
-  it("passes the session, the recorded version's spec, the agent's name and every server the run uses, and answers the resolver's manifest", async () => {
+  it("passes the session, the recorded version's spec, the agent's name and every plugin the run lists, and answers the resolver's manifest", async () => {
     const asked: RunCredentialInput[] = [];
     const session = create(SessionSchema, {
       metadata: { id: "ses_rec", org: ORG },
       spec: {
-        mcpServerUsages: [
-          { mcpServerRef: { org: ORG, slug: "notion" } },
-          { mcpServerRef: { org: ORG, slug: "no-such-server" } },
+        plugins: [
+          { org: ORG, slug: "notion" },
+          { org: ORG, slug: "no-such-plugin" },
         ],
       },
     });
@@ -186,7 +230,7 @@ describe("the builder hands the resolver the run's whole picture", () => {
             versionHash: RECORDED_HASH,
             specSnapshot: {
               env: { RECORDED_KEY: { isSecret: true } },
-              mcpServerUsages: [{ mcpServerRef: { org: ORG, slug: "linear" } }],
+              plugins: [{ org: ORG, slug: "linear" }],
             },
           }),
         resolve: async () => sources({ RECORDED_KEY: "vlt_team" }),
@@ -201,16 +245,17 @@ describe("the builder hands the resolver the run's whole picture", () => {
     expect(Object.keys(input.agentSpec?.env ?? {})).toEqual(["RECORDED_KEY"]);
     expect(input.agentName).toBe("Recorded Agent");
     expect(input.agentOrg).toBe(ORG);
-    expect(input.tools.map((tool) => tool.metadata?.slug).sort()).toEqual([
-      "linear",
-      "notion",
+    expect(input.plugins.map((plugin) => [plugin.id, plugin.name])).toEqual([
+      ["plg_linear", "linear"],
+      ["plg_notion", "notion"],
     ]);
+    expect(input.plugins[0]?.status.mcpServers.map((server) => server.name)).toEqual(["linear"]);
     expect(planned.map((entry) => [entry.key, entry.vaultId, entry.entry])).toEqual([
       ["RECORDED_KEY", "vlt_team", "RECORDED_KEY"],
     ]);
   });
 
-  it("fails the plan on a store fault reading a server the run uses, rather than running without it", async () => {
+  it("fails the plan on a store fault reading a plugin the run lists, rather than running without it", async () => {
     const faulty = new Proxy(store, {
       get(target, prop, receiver) {
         if (prop === "listResources") {
@@ -227,44 +272,45 @@ describe("the builder hands the resolver the run's whole picture", () => {
       deps({
         session: create(SessionSchema, {
           metadata: { id: "ses_rec", org: ORG },
-          spec: { mcpServerUsages: [{ mcpServerRef: { org: ORG, slug: "notion" } }] },
+          spec: { plugins: [{ org: ORG, slug: "notion" }] },
         }),
         asked,
         store: faulty,
       }),
-      turn("aex_server_fault"),
+      turn("aex_plugin_fault"),
     ).catch((e: unknown) => e);
-    expect((failure as Error).message).toContain("disk gone");
+    expect(failure).toBeInstanceOf(ConnectError);
+    expect((failure as ConnectError).code).toBe(Code.Internal);
     expect(asked).toEqual([]);
   });
 
-  it("looks up no server for a usage that names no tool, never matching one by an empty name", async () => {
+  it("looks up no plugin for a reference that names no slug, never matching one by an empty name", async () => {
     const asked: RunCredentialInput[] = [];
     await planRunValues(
       deps({
         session: create(SessionSchema, {
           metadata: { id: "ses_rec", org: ORG },
           spec: {
-            mcpServerUsages: [
-              { mcpServerRef: { org: ORG, slug: "" } },
-              { mcpServerRef: { org: ORG, slug: "notion" } },
+            plugins: [
+              { org: ORG, slug: "" },
+              { org: ORG, slug: "notion" },
             ],
           },
         }),
         asked,
       }),
-      turn("aex_unnamed_tool"),
+      turn("aex_unnamed_plugin"),
     );
-    expect(asked[0]?.tools.map((tool) => tool.metadata?.slug)).toEqual(["notion"]);
+    expect(asked[0]?.plugins.map((plugin) => plugin.id)).toEqual(["plg_notion"]);
   });
 
-  it("looks up no server by name when neither the usage nor the run names an organization", async () => {
+  it("refuses a reference when neither it nor the run names an organization, never resolving another organization's plugin of that name", async () => {
     const asked: RunCredentialInput[] = [];
-    await planRunValues(
+    const failure = await planRunValues(
       deps({
         session: create(SessionSchema, {
           metadata: { id: "ses_rec", org: ORG },
-          spec: { mcpServerUsages: [{ mcpServerRef: { slug: "notion" } }] },
+          spec: { plugins: [{ slug: "notion" }] },
         }),
         asked,
       }),
@@ -272,8 +318,9 @@ describe("the builder hands the resolver the run's whole picture", () => {
         metadata: { id: "aex_no_org" },
         spec: { target: { case: "sessionId", value: "ses_rec" }, message: "hi" },
       }),
-    );
-    expect(asked[0]?.tools, "never another organization's tool of that name").toEqual([]);
+    ).catch((e: unknown) => e);
+    expect((failure as ConnectError).code).toBe(Code.InvalidArgument);
+    expect(asked).toEqual([]);
   });
 
   it("gives the agent's own organization, not the run's, when the agent belongs to another (a parent organization's agent)", async () => {
@@ -297,7 +344,7 @@ describe("the builder hands the resolver the run's whole picture", () => {
           head: parentAgent,
           version,
           asked,
-          }),
+        }),
         turn(id, status),
       );
       expect(asked[0]?.agentName, id).toBe("Parent Agent");
@@ -384,39 +431,23 @@ describe("the builder hands the resolver the run's whole picture", () => {
   });
 });
 
-describe("a tool name the agent and the conversation both use", () => {
-  const OTHER_ORG = "elsewhere";
-
-  beforeAll(async () => {
-    await store.saveResource(
-      ApiResourceKind.mcp_server,
-      "mcp_linear_elsewhere",
-      McpServerSchema,
-      create(McpServerSchema, {
-        metadata: { id: "mcp_linear_elsewhere", name: "linear", slug: "linear", org: OTHER_ORG },
-        spec: {
-          serverType: { case: "http", value: { url: "https://mcp.elsewhere.example/mcp" } },
-        },
-      }),
-    );
-  });
-
-  /** A turn whose agent uses `agentRef` and whose conversation uses `sessionRef`. */
+describe("a plugin the agent and the conversation both list", () => {
+  /** A turn whose agent lists `agentRef` and whose conversation lists `sessionRef`. */
   function both(
-    agentRef: { org: string; slug: string },
-    sessionRef: { org: string; slug: string },
+    agentRef: { org: string; slug: string; version?: string },
+    sessionRef: { org: string; slug: string; version?: string },
     asked: RunCredentialInput[],
   ): Promise<RunValueSource[]> {
     return planRunValues(
       deps({
         session: create(SessionSchema, {
           metadata: { id: "ses_rec", org: ORG },
-          spec: { mcpServerUsages: [{ mcpServerRef: sessionRef }] },
+          spec: { plugins: [sessionRef] },
         }),
         version: async () =>
           create(AgentVersionEntrySchema, {
             versionHash: RECORDED_HASH,
-            specSnapshot: { mcpServerUsages: [{ mcpServerRef: agentRef }] },
+            specSnapshot: { plugins: [agentRef] },
           }),
         asked,
       }),
@@ -424,9 +455,9 @@ describe("a tool name the agent and the conversation both use", () => {
     );
   }
 
-  it("refuses the run when the name points at two different servers, naming it, before asking for any value", async () => {
-    // The runner keeps the conversation's server under a shared name, so a
-    // login planned for the agent's server would reach another one.
+  it("refuses the run when one name is two organizations' plugins, naming both, before asking for any value", async () => {
+    // A turn names a plugin's skills, agents and tools by its name, so the
+    // two would share every name.
     const asked: RunCredentialInput[] = [];
     const failure = await both(
       { org: ORG, slug: "linear" },
@@ -436,27 +467,74 @@ describe("a tool name the agent and the conversation both use", () => {
     expect(failure).toBeInstanceOf(ConnectError);
     expect((failure as ConnectError).code).toBe(Code.FailedPrecondition);
     expect((failure as ConnectError).rawMessage).toContain("'linear'");
+    expect((failure as ConnectError).rawMessage).toContain(`${OTHER_ORG}/linear`);
     expect((failure as ConnectError).rawMessage).toContain("remove");
     expect(asked).toEqual([]);
   });
 
-  it("refuses when one side names a server that is gone: the conversation's would run unplanned", async () => {
+  it("plans the conversation's version where both name one plugin", async () => {
+    const asked: RunCredentialInput[] = [];
+    await both({ org: ORG, slug: "linear" }, { org: "", slug: "linear", version: "1.0.0" }, asked);
+    expect(asked[0]?.plugins.map((plugin) => [plugin.id, plugin.status.digest])).toEqual([
+      ["plg_linear", PLUGIN_OLDER],
+    ]);
+
+    const again: RunCredentialInput[] = [];
+    await both({ org: ORG, slug: "linear", version: "1.0.0" }, { org: ORG, slug: "linear" }, again);
+    expect(again[0]?.plugins.map((plugin) => [plugin.id, plugin.status.digest])).toEqual([
+      ["plg_linear", PLUGIN_HEAD],
+    ]);
+  });
+
+  it("plans the plugin that exists when the other side names one that is gone", async () => {
     for (const [agentRef, sessionRef] of [
       [{ org: ORG, slug: "linear" }, { org: "nowhere", slug: "linear" }],
       [{ org: "nowhere", slug: "linear" }, { org: ORG, slug: "linear" }],
     ] as const) {
       const asked: RunCredentialInput[] = [];
-      const failure = await both(agentRef, sessionRef, asked).catch((e: unknown) => e);
-      expect((failure as ConnectError).code).toBe(Code.FailedPrecondition);
-      expect((failure as ConnectError).rawMessage).toContain("nowhere/linear");
-      expect(asked).toEqual([]);
+      await both(agentRef, sessionRef, asked);
+      expect(asked[0]?.plugins.map((plugin) => plugin.id)).toEqual(["plg_linear"]);
     }
   });
+});
 
-  it("uses the server once when both name the very same one", async () => {
+describe("a plugin's local program", () => {
+  const refusing: LocalProgramPolicy = {
+    refusesLocalPrograms: (target) => target === ExecutionTarget.CLOUD,
+  };
+
+  function onTarget(executionTarget: ExecutionTarget): Session {
+    return create(SessionSchema, {
+      metadata: { id: "ses_rec", org: ORG },
+      spec: { executionTarget, plugins: [{ org: ORG, slug: "notion" }, { org: ORG, slug: "files" }] },
+    });
+  }
+
+  it("refuses a hosted conversation listing a stdio server, naming the plugin and the server, before asking for any value", async () => {
     const asked: RunCredentialInput[] = [];
-    await both({ org: ORG, slug: "linear" }, { org: "", slug: "linear" }, asked);
-    expect(asked[0]?.tools.map((tool) => tool.metadata?.id)).toEqual(["mcp_linear"]);
+    const failure = await planRunValues(
+      deps({ session: onTarget(ExecutionTarget.CLOUD), asked, localPrograms: refusing }),
+      turn("aex_local_program"),
+    ).catch((e: unknown) => e);
+    expect(failure).toBeInstanceOf(ConnectError);
+    expect((failure as ConnectError).code).toBe(Code.FailedPrecondition);
+    expect((failure as ConnectError).rawMessage).toContain("plugin 'files'");
+    expect((failure as ConnectError).rawMessage).toContain("'disk'");
+    expect(asked).toEqual([]);
+  });
+
+  it("plans it on a target the policy keeps, and on a deployment that wires no policy", async () => {
+    for (const [what, session, localPrograms] of [
+      ["local target", onTarget(ExecutionTarget.LOCAL), refusing],
+      ["no policy", onTarget(ExecutionTarget.CLOUD), undefined],
+    ] as const) {
+      const asked: RunCredentialInput[] = [];
+      await planRunValues(
+        deps({ session, asked, ...(localPrograms === undefined ? {} : { localPrograms }) }),
+        turn("aex_local_kept"),
+      );
+      expect(asked[0]?.plugins.map((plugin) => plugin.id), what).toEqual(["plg_notion", "plg_files"]);
+    }
   });
 });
 

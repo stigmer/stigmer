@@ -1,32 +1,28 @@
 /**
  * Composed-server round-trips for the Plugin kind: a real server over a
  * temp SQLite store, raw Connect clients, archives written by the server's
- * own writer from the library's fixture builders. Pins the install
- * contract the conformance suite proves per edition: a Cursor plugin with
- * skills, a sub-agent and an MCP server materialises exactly those
- * members with both labels; an MCP-only plugin materialises no agent; a
- * Claude plugin's hooks reach the status while its settings' main agent
- * and its agents' tool lists, rewritten to Stigmer's names, reach the
- * agent, which references the plugin's hooks and declares the variables
- * they read, with no warning that they do not run; a plugin that is only
- * hooks installs with no members; the archive a plugin was installed from
- * is served back by key, inline and over the transfer lane, and a key
- * outside the plugin store is not found; a
- * re-push of the same archive writes nothing; a client's edit, re-push or
- * delete of a member is refused naming the plugin while the plugin's own
- * upgrade drops what the archive dropped; uninstall removes every member
- * and is refused while a user's own agent still references one or names
- * the plugin in its hooks, a plugin that is only hooks included; a slug an
- * unmanaged resource holds refuses the install, and a user's row is never
- * adopted whichever side declares system content; a bad overlay refuses
- * before any write, and so does a plugin or member name whose derived slug
- * breaks the slug rules, named in the refusal. A second composition,
- * under an authorizer that decides `can_write_reserved_labels` per test,
- * pins the reserved-label refusal the
- * open-source posture allows by design, and the one adoption the platform
- * makes: an operator's plugin taking over the system-content row it
- * replaces in place, the row's id kept, a member's
- * identical push refused before the slug is judged.
+ * own writer from the library's fixture builders, and the server's one
+ * outbound fetch replaced at the composition's test seam so the install's
+ * sign-in probe never leaves the process.
+ *
+ * Pins the install contract of a plugin that is one thing: an install
+ * writes the plugin and nothing else (no skill, agent or server row
+ * appears), and its status lists what the archive holds (skills, agents,
+ * MCP server entries, the variables they read, the hooks), so two plugins
+ * carrying a skill of the same name both install; a server whose tool
+ * segment would hold `__` refuses before any write; an `ai.stigmer/` folder
+ * is a warning and is not read; a re-push of the same digest at the same
+ * level writes nothing, and at another level reuses the recorded sign-in
+ * answers without asking the server again; a URL-only server answering an
+ * OAuth challenge is completed with `sign_in.oauth_only`, the
+ * `Authorization: Bearer ${<SERVER>_ACCESS_TOKEN}` header and the variable,
+ * declared as a required secret, while one that answers without a
+ * challenge is installed as written. Delete is refused while an agent of
+ * the organization lists the plugin and allowed once none does;
+ * updateVisibility moves the plugin alone. The archive a plugin was
+ * installed from is served back by key, inline and over the transfer lane,
+ * and a key outside the plugin store is not found; refusals of the archive,
+ * the package and a name whose slug breaks the slug rules write nothing.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -41,42 +37,27 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   claudePlugin,
   cursorPlugin,
-  openPlugin,
   withFile,
 } from "@stigmer/plugin-package/testing";
 import type { PluginFixture } from "@stigmer/plugin-package/testing";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
-import {
-  AgentSpecSchema,
-  HookSourceSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import { McpServerUsageSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
-import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
-import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
+import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { PluginCommandController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/command_pb";
 import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
 import { HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
-import { PluginState } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
-import { SkillCommandController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/command_pb";
-import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import { writeArchive } from "../../../archive/write.js";
 import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
-import type { Authorizer, AuthzCheck } from "../../../extensions/authorizer.js";
 import { createLogger } from "../../../boot/logger.js";
-import {
-  PLUGIN_LABEL,
-  PLUGIN_VERSION_LABEL,
-  SYSTEM_LABEL,
-} from "../../../pipeline/apiresource-labels.js";
 import {
   organizationId,
   seedOrganizations,
@@ -88,29 +69,60 @@ const silentLogger = createLogger({
   write: () => {},
 });
 const ORG = "acme";
-// The id the server minted for ORG: the refusal copies name the
-// organization by the id its rows store.
+// The id the server minted for ORG: rows store the organization by id.
 let ORG_ID: string;
+
+/**
+ * Server addresses the fake answers: literal loopback hosts, so the
+ * guarded fetch's egress check needs no DNS. Each path is one server's
+ * behaviour; every probe is counted by URL.
+ */
+const PROBE_ORIGIN = "http://127.0.0.1:9";
+const OAUTH_PATH = "/oauth-mcp";
+const OPEN_PATH = "/open-mcp";
+const probes = new Map<string, number>();
+
+/**
+ * The fake under the guarded fetch: a 401 with an OAuth challenge for the
+ * OAuth server, a 200 for the open one; anything else is not a probe and
+ * goes to the real fetch.
+ */
+const fakeFetch: typeof fetch = (input, init) => {
+  const url = new URL(input instanceof Request ? input.url : String(input));
+  if (url.origin !== PROBE_ORIGIN) {
+    return fetch(input, init);
+  }
+  probes.set(url.pathname, (probes.get(url.pathname) ?? 0) + 1);
+  if (url.pathname === OAUTH_PATH) {
+    return Promise.resolve(
+      new Response(null, {
+        status: 401,
+        headers: {
+          "www-authenticate": `Bearer resource_metadata="${PROBE_ORIGIN}/.well-known/oauth-protected-resource"`,
+        },
+      }),
+    );
+  }
+  return Promise.resolve(
+    new Response(JSON.stringify({ jsonrpc: "2.0", id: 1, result: {} }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    }),
+  );
+};
 
 let server: ComposedServer;
 let plugins: Client<typeof PluginCommandController>;
 let pluginQuery: Client<typeof PluginQueryController>;
 let agents: Client<typeof AgentCommandController>;
 let agentQuery: Client<typeof AgentQueryController>;
-let skills: Client<typeof SkillCommandController>;
-let skillQuery: Client<typeof SkillQueryController>;
-let mcpServers: Client<typeof McpServerCommandController>;
-let mcpServerQuery: Client<typeof McpServerQueryController>;
 let dir: string;
 
 beforeAll(async () => {
   dir = mkdtempSync(path.join(tmpdir(), "plugin-domain-test-"));
   // An ephemeral port needs no reservation: the transfer lane mints its
   // capability URLs for the port the listener actually binds
-  // (boot/skill-transfer-origin.ts, stigmer#1386), and the artifact lane
-  // binds ephemeral beside it (boot/artifact-lane.ts). A port probed and
-  // released first could be taken by another worker before the bind
-  // (stigmer#1353).
+  // (boot/skill-transfer-origin.ts, stigmer#1386).
   server = await composeServer({
     config: loadConfig({
       STIGMER_MODEL_REGISTRY_REFRESH: "off",
@@ -122,6 +134,7 @@ beforeAll(async () => {
     logger: silentLogger,
     portOverride: 0,
     host: "127.0.0.1",
+    fetchImpl: fakeFetch,
   });
   const port = await server.start();
   const transport: Transport = createGrpcTransport({
@@ -132,10 +145,6 @@ beforeAll(async () => {
   pluginQuery = createClient(PluginQueryController, transport);
   agents = createClient(AgentCommandController, transport);
   agentQuery = createClient(AgentQueryController, transport);
-  skills = createClient(SkillCommandController, transport);
-  skillQuery = createClient(SkillQueryController, transport);
-  mcpServers = createClient(McpServerCommandController, transport);
-  mcpServerQuery = createClient(McpServerQueryController, transport);
 });
 
 afterAll(async () => {
@@ -161,8 +170,22 @@ function uniqueName(prefix: string): string {
   return `${prefix}-${counter}`;
 }
 
-/** A user's own agent that switches on the hooks of plugin `plugin`. */
-function agentUsingHooksOf(plugin: string, agent: string) {
+/** How many rows of `kind` the store holds: an install must not change it for any kind but plugin. */
+async function rowCount(kind: ApiResourceKind): Promise<number> {
+  return (await server.store.listResources(kind)).length;
+}
+
+/** A plugin's reference, as an agent lists it. */
+function pluginRef(slug: string) {
+  return createMessage(ApiResourceReferenceSchema, {
+    org: ORG,
+    kind: ApiResourceKind.plugin,
+    slug,
+  });
+}
+
+/** A user's own agent that lists plugin `plugin`. */
+function agentListing(plugin: string, agent: string): Agent {
   return createMessage(AgentSchema, {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Agent",
@@ -171,64 +194,47 @@ function agentUsingHooksOf(plugin: string, agent: string) {
       name: agent,
     }),
     spec: createMessage(AgentSpecSchema, {
-      instructions: "You work under the plugin's hooks.",
-      hooks: [
-        createMessage(HookSourceSchema, {
-          source: {
-            case: "plugin",
-            value: createMessage(ApiResourceReferenceSchema, {
-              org: ORG,
-              kind: ApiResourceKind.plugin,
-              slug: plugin,
-            }),
-          },
-        }),
-      ],
+      instructions: "You work with the plugin's skills and servers.",
+      plugins: [pluginRef(plugin)],
     }),
   });
 }
 
-/** A Cursor plugin with one skill, one sub-agent and one HTTP server: the thermos shape. */
+/**
+ * A Cursor plugin with one skill, one sub-agent, an HTTP server that says
+ * how it authenticates (never probed) and a hook: the thermos shape.
+ */
 function thermosLike(
   name: string,
-  options: { readonly skill?: string; readonly extraSkill?: string } = {},
+  options: { readonly skill?: string } = {},
 ): PluginFixture {
-  const skill = options.skill ?? `${name}-review`;
   return cursorPlugin({
     name,
     version: "1.2.0",
     description: "Code review with a thermonuclear standard",
     skills: [
       {
-        name: skill,
+        name: options.skill ?? `${name}-review`,
         description: "Review code thoroughly",
         body: "# Review\nRead everything.",
       },
-      ...(options.extraSkill === undefined
-        ? []
-        : [
-            {
-              name: options.extraSkill,
-              description: "Another skill",
-              body: "# More\nAnd more.",
-            },
-          ]),
     ],
     agents: [
       {
         file: "reviewer",
         frontmatter: {
-          name: `${name}-reviewer`,
+          name: "reviewer",
           description: "Reviews pull requests",
           model: "sonnet",
+          skills: [options.skill ?? `${name}-review`],
         },
         body: "You review pull requests with care and name every risk you see.",
       },
     ],
     mcpServers: {
-      [`${name}-github`]: {
+      github: {
         type: "http",
-        url: "https://api.githubcopilot.com/mcp/",
+        url: `${PROBE_ORIGIN}/github`,
         headers: { Authorization: "Bearer ${GITHUB_TOKEN}" },
       },
     },
@@ -240,6 +246,9 @@ function thermosLike(
       },
     },
     required: ["GITHUB_TOKEN"],
+    hooks: {
+      preToolUse: [{ command: "./hooks/guard.sh" }],
+    },
   });
 }
 
@@ -262,8 +271,13 @@ async function expectCode(
   throw new Error(`expected ${Code[code]}, the call succeeded`);
 }
 
-describe("Plugin push — materialisation", () => {
-  it("installs a Cursor plugin as one skill, one MCP server and one agent, each labelled with the plugin id and digest", async () => {
+describe("Plugin push — one row", () => {
+  it("writes the plugin and nothing else; its status lists the skills, agents, servers, variables and hooks", async () => {
+    const before = {
+      skill: await rowCount(ApiResourceKind.skill),
+      agent: await rowCount(ApiResourceKind.agent),
+      plugin: await rowCount(ApiResourceKind.plugin),
+    };
     const name = uniqueName("thermos");
     const installed = await plugins.push({
       org: ORG,
@@ -272,125 +286,92 @@ describe("Plugin push — materialisation", () => {
 
     expect(installed.metadata?.id).toMatch(/^plg_/);
     expect(installed.metadata?.slug).toBe(name);
-    expect(installed.spec?.name).toBe(name);
     expect(installed.spec?.version).toBe("1.2.0");
-    expect(installed.status?.state).toBe(PluginState.READY);
     expect(installed.status?.digest).toMatch(/^[a-f0-9]{64}$/);
-    expect(installed.status?.materialized).toMatchObject({
-      skills: 1,
-      mcpServers: 1,
-      agents: 1,
-    });
+    expect(installed.status?.artifactStorageKey).toBe(
+      `plugins/${installed.status?.digest}.zip`,
+    );
+
+    const status = installed.status!;
+    expect(status.skills.map((s) => [s.name, s.description, s.path])).toEqual([
+      [`${name}-review`, "Review code thoroughly", `skills/${name}-review`],
+    ]);
+    expect(
+      status.agents.map((a) => [
+        a.name,
+        a.description,
+        a.instructions,
+        a.skills,
+      ]),
+    ).toEqual([
+      [
+        "reviewer",
+        "Reviews pull requests",
+        "You review pull requests with care and name every risk you see.",
+        [`${name}-review`],
+      ],
+    ]);
+    expect(status.mcpServers).toHaveLength(1);
+    const github = status.mcpServers[0]!;
+    expect(github.name).toBe("github");
+    expect(github.env).toEqual(["GITHUB_TOKEN"]);
+    expect(github.signIn).toBeUndefined();
+    expect(github.transport.case).toBe("http");
+    if (github.transport.case === "http") {
+      expect(github.transport.value.url).toBe(`${PROBE_ORIGIN}/github`);
+      expect(github.transport.value.headers).toEqual({
+        Authorization: "Bearer ${GITHUB_TOKEN}",
+      });
+    }
+    expect(Object.keys(status.env)).toEqual(["GITHUB_TOKEN"]);
+    expect(status.env["GITHUB_TOKEN"]?.optional).toBe(false);
+    expect(status.hooks?.format).toBe(HookFormat.CURSOR);
+    expect(status.hooks?.groups.map((g) => g.event)).toEqual(["preToolUse"]);
     // The sub-agent's model hint is recorded, never applied.
-    expect(installed.status?.warnings.map((w) => w.kind)).toContain(
+    expect(status.warnings.map((w) => w.kind)).toContain(
       "model-hint-unresolved",
     );
+    // A server that names its key is the author speaking about
+    // authentication: it is never asked.
+    expect(probes.get("/github")).toBeUndefined();
 
-    const members = await pluginQuery.listMembers({
-      value: installed.metadata!.id,
-    });
-    expect(
-      members.members.map((m) => `${ApiResourceKind[m.kind]}:${m.slug}`),
-    ).toEqual([
-      `skill:${name}-review`,
-      `mcp_server:${name}-github`,
-      `agent:${name}`,
-    ]);
+    expect(await rowCount(ApiResourceKind.skill)).toBe(before.skill);
+    expect(await rowCount(ApiResourceKind.agent)).toBe(before.agent);
+    expect(await rowCount(ApiResourceKind.plugin)).toBe(before.plugin + 1);
 
-    const digest = installed.status!.digest;
-    for (const member of members.members) {
-      const labels =
-        member.kind === ApiResourceKind.skill
-          ? (await skillQuery.get({ value: member.id })).metadata!.labels
-          : member.kind === ApiResourceKind.mcp_server
-            ? (await mcpServerQuery.get({ value: member.id })).metadata!.labels
-            : (await agentQuery.get({ value: member.id })).metadata!.labels;
-      expect(labels[PLUGIN_LABEL]).toBe(installed.metadata!.id);
-      expect(labels[PLUGIN_VERSION_LABEL]).toBe(digest);
-    }
-
-    const agent = await agentQuery.getByReference(
-      createMessage(ApiResourceReferenceSchema, {
-        org: ORG,
-        kind: ApiResourceKind.agent,
-        slug: name,
-      }),
-    );
-    expect(agent.spec?.skillRefs.map((r) => r.slug)).toEqual([
-      `${name}-review`,
-    ]);
-    expect(
-      agent.spec?.mcpServerUsages.map((u) => u.mcpServerRef?.slug),
-    ).toEqual([`${name}-github`]);
-    expect(agent.spec?.subAgents.map((s) => s.name)).toEqual([
-      `${name}-reviewer`,
-    ]);
-    expect(agent.spec?.subAgents[0]?.modelOverride).toBe("");
-    expect(agent.spec?.subAgents[0]?.tools).toEqual([]);
-    expect(agent.spec?.subAgents[0]?.disallowedTools).toEqual([]);
-
-    const serverResource = await mcpServerQuery.getByReference(
-      createMessage(ApiResourceReferenceSchema, {
-        org: ORG,
-        kind: ApiResourceKind.mcp_server,
-        slug: `${name}-github`,
-      }),
-    );
-    expect(serverResource.spec?.env["GITHUB_TOKEN"]).toMatchObject({
-      isSecret: true,
-      optional: false,
-    });
-    // The agent declares the same variable, which is what makes a session
-    // ask for it and the execution's least-privilege filter pass it.
-    expect(agent.spec?.env["GITHUB_TOKEN"]).toMatchObject({
-      isSecret: true,
-      optional: false,
-    });
+    const read = await pluginQuery.get({ value: installed.metadata!.id });
+    expect(read.status?.skills.map((s) => s.name)).toEqual([`${name}-review`]);
+    expect(read.status?.agents.map((a) => a.name)).toEqual(["reviewer"]);
   });
 
-  it("installs an MCP-only plugin as its servers and no agent", async () => {
-    const name = uniqueName("github");
-    const installed = await plugins.push({
+  it("installs two plugins that carry a skill of the same name, each listing its own", async () => {
+    const first = uniqueName("twin");
+    const second = uniqueName("twin");
+    const a = await plugins.push({
       org: ORG,
-      artifact: archiveOf(
-        openPlugin({
-          name,
-          version: "0.1.0",
-          // The open format's word for the transport is `streamable-http`.
-          mcpServers: {
-            [name]: {
-              type: "streamable-http",
-              url: "https://example.com/mcp",
-              headers: { Authorization: "Bearer ${TOKEN}" },
-            },
-          },
-        }),
-      ),
+      artifact: archiveOf(thermosLike(first, { skill: "review" })),
     });
-    expect(installed.status?.materialized).toMatchObject({
-      skills: 0,
-      mcpServers: 1,
-      agents: 0,
+    const b = await plugins.push({
+      org: ORG,
+      artifact: archiveOf(thermosLike(second, { skill: "review" })),
     });
-    const members = await pluginQuery.listMembers({
-      value: installed.metadata!.id,
-    });
-    expect(members.members.map((m) => ApiResourceKind[m.kind])).toEqual([
-      "mcp_server",
-    ]);
+    expect(a.metadata?.id).not.toBe(b.metadata?.id);
+    expect(a.status?.skills.map((s) => s.name)).toEqual(["review"]);
+    expect(b.status?.skills.map((s) => s.name)).toEqual(["review"]);
   });
 
-  it("installs a Claude plugin's hooks on the status and its main agent and tool lists, in Stigmer's names, on the agent", async () => {
+  it("records a Claude plugin's hooks and the variables they read, and keeps its agents' tool lists in Claude Code's names", async () => {
     const name = uniqueName("scanner");
     const installed = await plugins.push({
       org: ORG,
       artifact: archiveOf(
         claudePlugin({
           name,
-          version: "1.0.0",
-          description: "Scans for vulnerabilities",
+          userConfig: {
+            WEBHOOK: { type: "string", sensitive: true, required: true },
+          },
           mcpServers: {
-            [`${name}_db`]: { command: "npx", args: ["-y", "@acme/db-mcp"] },
+            db: { command: "npx", args: ["-y", "@acme/db-mcp"] },
           },
           hooks: {
             PreToolUse: [
@@ -399,172 +380,180 @@ describe("Plugin push — materialisation", () => {
                 hooks: [
                   {
                     type: "command",
-                    command: 'python3 "${CLAUDE_PLUGIN_ROOT}/hooks/guard.py"',
-                    if: "Bash(git push *)",
+                    command: "node",
+                    args: ["notify.js", "${user_config.WEBHOOK}"],
                     timeout: 5,
                   },
                 ],
               },
             ],
-            Stop: [{ hooks: [{ type: "command", command: "summary" }] }],
           },
-          settings: { agent: `${name}:lead` },
           agents: [
             {
               file: "lead",
               frontmatter: {
                 description: "Leads the scan.",
-                tools: `Read, Agent(${name}:explore), mcp__plugin_${name}_${name}_db__query, mcp__claude_ai_Slack__post`,
+                tools: `Read, Agent(${name}:explore), mcp__plugin_${name}_db__query`,
               },
               body: "You lead the scan and delegate the exploring.",
-            },
-            {
-              file: "explore",
-              frontmatter: {
-                description: "Explores.",
-                tools: ["Read", "Grep"],
-                disallowedTools: `mcp__plugin_${name}_${name}_db`,
-              },
-            },
-            {
-              file: "notify",
-              frontmatter: {
-                description: "Notifies.",
-                tools: "mcp__claude_ai_Slack__post",
-              },
             },
           ],
         }),
       ),
     });
 
-    expect(installed.status?.state).toBe(PluginState.READY);
-    expect(installed.status?.hooks?.format).toBe(HookFormat.CLAUDE_CODE);
+    const status = installed.status!;
+    expect(status.hooks?.format).toBe(HookFormat.CLAUDE_CODE);
     expect(
-      installed.status?.hooks?.groups.map((g) => ({
+      status.hooks?.groups.map((g) => ({
         event: g.event,
         matcher: g.matcher,
-        handlers: g.handlers.map((h) => ({
-          command: h.command,
-          args: h.args,
-          timeoutSeconds: h.timeoutSeconds,
-          condition: h.condition,
-          failClosed: h.failClosed,
-        })),
+        handlers: g.handlers.map((h) => [h.command, h.args, h.timeoutSeconds]),
       })),
     ).toEqual([
       {
         event: "PreToolUse",
         matcher: "Bash",
-        handlers: [
-          {
-            command: 'python3 "${CLAUDE_PLUGIN_ROOT}/hooks/guard.py"',
-            args: [],
-            timeoutSeconds: 5,
-            condition: "Bash(git push *)",
-            failClosed: false,
-          },
-        ],
+        handlers: [["node", ["notify.js", "${user_config.WEBHOOK}"], 5]],
       },
     ]);
-    expect(
-      installed.status?.warnings.map((w) => `${w.kind}:${w.path}`),
-    ).toEqual(
-      expect.arrayContaining([
-        "hook-event-not-run:hooks/hooks.json",
-        "tool-list-entry-dropped:agents/lead.md",
-        "tool-list-entry-dropped:agents/notify.md",
-        "sub-agent-not-installed:agents/notify.md",
-      ]),
-    );
-
-    const agent = await agentQuery.getByReference(
-      createMessage(ApiResourceReferenceSchema, {
-        org: ORG,
-        kind: ApiResourceKind.agent,
-        slug: name,
-      }),
-    );
-    expect(agent.spec?.instructions).toBe(
-      "You lead the scan and delegate the exploring.",
-    );
-    expect(agent.spec?.tools).toEqual([
-      "Read",
-      "Agent(explore)",
-      `mcp__${name}db__query`,
-    ]);
-    expect(
-      agent.spec?.subAgents.map((s) => [s.name, s.tools, s.disallowedTools]),
-    ).toEqual([["explore", ["Read", "Grep"], [`mcp__${name}db`]]]);
-    expect(
-      agent.spec?.mcpServerUsages.map((u) => u.mcpServerRef?.slug),
-    ).toEqual([`${name}db`]);
-    expect(
-      agent.spec?.hooks.map((source) =>
-        source.source.case === "plugin"
-          ? {
-              kind: source.source.value.kind,
-              org: source.source.value.org,
-              slug: source.source.value.slug,
-              version: source.source.value.version,
-            }
-          : source.source.case,
-      ),
-    ).toEqual([
-      {
-        kind: ApiResourceKind.plugin,
-        org: ORG_ID,
-        slug: installed.metadata?.slug,
-        version: "",
-      },
-    ]);
-  });
-
-  it("declares on the composed agent the variables its hooks read, and serves the archive back by key", async () => {
-    const name = uniqueName("notify");
-    const artifact = archiveOf(
-      claudePlugin({
-        name,
-        skills: [{ name: `${name}-howto`, description: "How to", body: "# How\nDo it." }],
-        userConfig: { WEBHOOK: { type: "string", sensitive: true, required: true } },
-        hooks: {
-          PostToolUse: [
-            {
-              hooks: [
-                {
-                  type: "command",
-                  command: "node",
-                  args: ["notify.js", "${user_config.WEBHOOK}"],
-                },
-              ],
-            },
-          ],
-        },
-      }),
-    );
-    const installed = await plugins.push({ org: ORG, artifact });
-    const agent = await agentQuery.getByReference(
-      createMessage(ApiResourceReferenceSchema, {
-        org: ORG,
-        kind: ApiResourceKind.agent,
-        slug: name,
-      }),
-    );
-    expect(agent.spec?.env["WEBHOOK"]).toMatchObject({
+    expect(status.env["WEBHOOK"]).toMatchObject({
       isSecret: true,
       optional: false,
     });
+    expect(status.mcpServers.map((s) => [s.name, s.transport.case])).toEqual([
+      ["db", "stdio"],
+    ]);
+    expect(status.agents.map((a) => [a.name, a.tools])).toEqual([
+      [
+        "lead",
+        ["Read", `Agent(${name}:explore)`, `mcp__plugin_${name}_db__query`],
+      ],
+    ]);
+  });
+
+  it("warns about an ai.stigmer/ folder and does not read it", async () => {
+    const name = uniqueName("folder");
+    const installed = await plugins.push({
+      org: ORG,
+      artifact: archiveOf(
+        withFile(
+          cursorPlugin({ name }),
+          "ai.stigmer/agent.yaml",
+          `apiVersion: agentic.stigmer.ai/v1\nkind: Agent\nmetadata:\n  name: ${name}\nspec:\n  instructions: Ten characters or more of instructions.\n`,
+        ),
+      ),
+    });
+    expect(
+      installed.status?.warnings.map((w) => `${w.kind}:${w.path}`),
+    ).toContain("stigmer-folder-ignored:ai.stigmer/");
+    expect(installed.status?.agents).toEqual([]);
+    await expectCode(
+      agentQuery.getByReference(
+        createMessage(ApiResourceReferenceSchema, {
+          org: ORG,
+          kind: ApiResourceKind.agent,
+          slug: name,
+        }),
+      ),
+      Code.NotFound,
+    );
+  });
+
+  it("re-pushing the same archive at the same level writes nothing: same digest, one version, the audit untouched", async () => {
+    const name = uniqueName("idem");
+    const first = await plugins.push({
+      org: ORG,
+      artifact: archiveOf(thermosLike(name)),
+    });
+    const stored = await pluginQuery.get({ value: first.metadata!.id });
+    const second = await plugins.push({
+      org: ORG,
+      artifact: archiveOf(thermosLike(name)),
+    });
+    expect(second.metadata?.id).toBe(first.metadata?.id);
+    expect(second.status?.digest).toBe(first.status?.digest);
+    expect(await pluginQuery.get({ value: first.metadata!.id })).toEqual(
+      stored,
+    );
+    expect(second.status?.audit?.specAudit?.updatedAt).toEqual(
+      first.status?.audit?.specAudit?.updatedAt,
+    );
+    const versions = await pluginQuery.listVersions({ org: ORG, slug: name });
+    expect(versions.totalCount).toBe(1);
+    expect(versions.versions[0]?.tag).toBe("1.2.0");
+  });
+
+  it("an upgrade replaces the lists and grows the version history; getByReference resolves latest, the digest and the tag", async () => {
+    const name = uniqueName("upgrade");
+    const first = await plugins.push({
+      org: ORG,
+      artifact: archiveOf(thermosLike(name, { skill: "first" })),
+    });
+    const second = await plugins.push({
+      org: ORG,
+      artifact: archiveOf(
+        withFile(
+          thermosLike(name, { skill: "second" }),
+          ".cursor-plugin/plugin.json",
+          JSON.stringify({
+            name,
+            version: "1.3.0",
+            skills: "./skills/",
+            agents: "./agents/",
+            mcpServers: "./mcp.json",
+            hooks: "./hooks/hooks.json",
+          }),
+        ),
+      ),
+    });
+    expect(second.metadata?.id).toBe(first.metadata?.id);
+    expect(second.status?.digest).not.toBe(first.status?.digest);
+    expect(second.status?.skills.map((s) => s.name)).toEqual(["second"]);
+    const versions = await pluginQuery.listVersions({ org: ORG, slug: name });
+    expect(versions.totalCount).toBe(2);
+    expect(
+      versions.versions.filter((v) => v.isCurrent).map((v) => v.digest),
+    ).toEqual([second.status?.digest]);
+    for (const version of ["", "latest", second.status!.digest, "1.3.0"]) {
+      const resolved = await pluginQuery.getByReference(
+        createMessage(ApiResourceReferenceSchema, {
+          org: ORG,
+          kind: ApiResourceKind.plugin,
+          slug: name,
+          version,
+        }),
+      );
+      expect(resolved.status?.digest, version).toBe(second.status?.digest);
+    }
+    const old = await pluginQuery.getByReference(
+      createMessage(ApiResourceReferenceSchema, {
+        org: ORG,
+        kind: ApiResourceKind.plugin,
+        slug: name,
+        version: "1.2.0",
+      }),
+    );
+    expect(old.status?.skills.map((s) => s.name)).toEqual(["first"]);
+  });
+
+  it("serves the archive back by key, inline and over the transfer lane; a key outside the plugin store is not found", async () => {
+    const name = uniqueName("served");
+    const artifact = archiveOf(thermosLike(name));
+    const installed = await plugins.push({ org: ORG, artifact });
 
     const key = installed.status!.artifactStorageKey;
     const inline = await pluginQuery.getArtifact({ artifactStorageKey: key });
-    expect(inline.artifact).toEqual(artifact);
+    expect(new Uint8Array(inline.artifact)).toEqual(new Uint8Array(artifact));
     const minted = await pluginQuery.getArtifactDownloadUrl({
       artifactStorageKey: key,
     });
     expect(minted.sizeBytes).toBe(BigInt(artifact.length));
     const response = await fetch(minted.url);
     expect(response.status).toBe(200);
-    expect(new Uint8Array(await response.arrayBuffer())).toEqual(artifact);
+    expect(new Uint8Array(await response.arrayBuffer())).toEqual(
+      new Uint8Array(artifact),
+    );
 
     await expectCode(
       pluginQuery.getArtifact({ artifactStorageKey: "plugins/deadbeef.zip" }),
@@ -578,7 +567,10 @@ describe("Plugin push — materialisation", () => {
       Code.NotFound,
       "plugin artifact not found",
     );
-    for (const climbing of [`plugins/../${key}`, `plugins/./${key.slice("plugins/".length)}`]) {
+    for (const climbing of [
+      `plugins/../${key}`,
+      `plugins/./${key.slice("plugins/".length)}`,
+    ]) {
       await expectCode(
         pluginQuery.getArtifact({ artifactStorageKey: climbing }),
         Code.NotFound,
@@ -586,461 +578,101 @@ describe("Plugin push — materialisation", () => {
       );
     }
   });
-
-  it("installs a plugin that is only hooks with no members, and a re-push keeps its hooks", async () => {
-    const name = uniqueName("guard");
-    const artifact = archiveOf(
-      claudePlugin({
-        name,
-        hooks: {
-          PreToolUse: [
-            { hooks: [{ type: "command", command: "node guard.js" }] },
-          ],
-        },
-      }),
-    );
-    const installed = await plugins.push({ org: ORG, artifact });
-    expect(installed.status?.state).toBe(PluginState.READY);
-    expect(installed.status?.materialized).toMatchObject({
-      skills: 0,
-      mcpServers: 0,
-      agents: 0,
-    });
-    expect(installed.status?.hooks?.groups.map((g) => g.event)).toEqual([
-      "PreToolUse",
-    ]);
-    const members = await pluginQuery.listMembers({
-      value: installed.metadata!.id,
-    });
-    expect(members.members).toEqual([]);
-
-    const again = await plugins.push({ org: ORG, artifact });
-    expect(again.status?.digest).toBe(installed.status?.digest);
-    expect(again.status?.hooks?.groups.map((g) => g.event)).toEqual([
-      "PreToolUse",
-    ]);
-  });
-
-  it("re-pushing the same archive writes nothing: same digest, one version, members untouched", async () => {
-    const name = uniqueName("idem");
-    const first = await plugins.push({
-      org: ORG,
-      artifact: archiveOf(thermosLike(name)),
-    });
-    const skillBefore = await skillQuery.getByReference(
-      createMessage(ApiResourceReferenceSchema, {
-        org: ORG,
-        kind: ApiResourceKind.skill,
-        slug: `${name}-review`,
-      }),
-    );
-    const second = await plugins.push({
-      org: ORG,
-      artifact: archiveOf(thermosLike(name)),
-    });
-    expect(second.metadata?.id).toBe(first.metadata?.id);
-    expect(second.status?.digest).toBe(first.status?.digest);
-    const versions = await pluginQuery.listVersions({ org: ORG, slug: name });
-    expect(versions.totalCount).toBe(1);
-    expect(versions.versions[0]?.tag).toBe("1.2.0");
-    const skillAfter = await skillQuery.getByReference(
-      createMessage(ApiResourceReferenceSchema, {
-        org: ORG,
-        kind: ApiResourceKind.skill,
-        slug: `${name}-review`,
-      }),
-    );
-    expect(skillAfter.status?.audit?.specAudit?.updatedAt).toEqual(
-      skillBefore.status?.audit?.specAudit?.updatedAt,
-    );
-  });
-
-  it("an upgrade that drops a skill removes it and keeps the agent valid; the version history grows", async () => {
-    const name = uniqueName("upgrade");
-    const first = await plugins.push({
-      org: ORG,
-      artifact: archiveOf(thermosLike(name, { extraSkill: `${name}-extra` })),
-    });
-    expect(first.status?.materialized?.skills).toBe(2);
-
-    const second = await plugins.push({
-      org: ORG,
-      artifact: archiveOf(thermosLike(name)),
-    });
-    expect(second.status?.materialized?.skills).toBe(1);
-    expect(second.status?.digest).not.toBe(first.status?.digest);
-
-    await expectCode(
-      skillQuery.getByReference(
-        createMessage(ApiResourceReferenceSchema, {
-          org: ORG,
-          kind: ApiResourceKind.skill,
-          slug: `${name}-extra`,
-        }),
-      ),
-      Code.NotFound,
-    );
-    const agent = await agentQuery.getByReference(
-      createMessage(ApiResourceReferenceSchema, {
-        org: ORG,
-        kind: ApiResourceKind.agent,
-        slug: name,
-      }),
-    );
-    expect(agent.spec?.skillRefs.map((r) => r.slug)).toEqual([
-      `${name}-review`,
-    ]);
-    const versions = await pluginQuery.listVersions({ org: ORG, slug: name });
-    expect(versions.totalCount).toBe(2);
-    expect(
-      versions.versions.filter((v) => v.isCurrent).map((v) => v.digest),
-    ).toEqual([second.status?.digest]);
-  });
-
-  it("getByReference resolves latest, the digest and the manifest version tag", async () => {
-    const name = uniqueName("ref");
-    const installed = await plugins.push({
-      org: ORG,
-      artifact: archiveOf(thermosLike(name)),
-    });
-    for (const version of ["", "latest", installed.status!.digest, "1.2.0"]) {
-      const resolved = await pluginQuery.getByReference(
-        createMessage(ApiResourceReferenceSchema, {
-          org: ORG,
-          kind: ApiResourceKind.plugin,
-          slug: name,
-          version,
-        }),
-      );
-      expect(resolved.status?.digest, version).toBe(installed.status?.digest);
-    }
-  });
 });
 
-describe("Plugin members are the plugin's to redefine", () => {
-  it("refuses a client update, delete and visibility change of a member, naming the plugin", async () => {
-    const name = uniqueName("managed");
-    const installed = await plugins.push({
-      org: ORG,
-      artifact: archiveOf(thermosLike(name)),
-    });
-    const members = await pluginQuery.listMembers({
-      value: installed.metadata!.id,
-    });
-    const agentMember = members.members.find(
-      (m) => m.kind === ApiResourceKind.agent,
-    )!;
-    const serverMember = members.members.find(
-      (m) => m.kind === ApiResourceKind.mcp_server,
-    )!;
-
-    const agent = await agentQuery.get({ value: agentMember.id });
-    agent.spec!.description = "edited by a client";
-    await expectCode(
-      agents.update(agent),
-      Code.FailedPrecondition,
-      `agent '${name}' is managed by plugin '${name}'`,
-    );
-    await expectCode(
-      mcpServers.delete({ resourceId: serverMember.id }),
-      Code.FailedPrecondition,
-      `MCP server '${name}-github' is managed by plugin '${name}'`,
-    );
-    await expectCode(
-      agents.updateVisibility({ resourceId: agentMember.id, visibility: 3 }),
-      Code.FailedPrecondition,
-      "is managed by plugin",
-    );
-    // A materialised agent is versioned like any other, and which version
-    // a tag names is the plugin's word too.
-    expect(agent.status?.versionHash).toMatch(/^[a-f0-9]{64}$/);
-    await expectCode(
-      agents.tagVersion({
-        agentId: agentMember.id,
-        versionHash: agent.status!.versionHash,
-        tag: "stable",
-      }),
-      Code.FailedPrecondition,
-      `agent '${name}' is managed by plugin '${name}'`,
-    );
-  });
-
-  it("refuses a client re-push of a managed skill under the same name", async () => {
-    const name = uniqueName("skillpush");
-    await plugins.push({ org: ORG, artifact: archiveOf(thermosLike(name)) });
-    const rogue = writeArchive([
-      {
-        path: "SKILL.md",
-        bytes: encoder.encode(
-          `---\nname: ${name}-review\ndescription: hijack\n---\n# Mine now`,
-        ),
+describe("Plugin push — sign-in probe", () => {
+  it("completes a URL-only server that answers an OAuth challenge, and leaves one that does not as written", async () => {
+    const name = uniqueName("signin");
+    const fixture = cursorPlugin({
+      name,
+      mcpServers: {
+        linear: { type: "http", url: `${PROBE_ORIGIN}${OAUTH_PATH}` },
+        docs: { type: "http", url: `${PROBE_ORIGIN}${OPEN_PATH}` },
       },
-    ]);
-    await expectCode(
-      skills.push({ org: ORG, artifact: rogue }),
-      Code.FailedPrecondition,
-      `skill '${name}-review' is managed by plugin '${name}'`,
-    );
-  });
-
-  it("refuses to install over a slug an unmanaged resource holds, naming it", async () => {
-    const name = uniqueName("collide");
-    const skillName = `${name}-review`;
-    await skills.push({
-      org: ORG,
-      artifact: writeArchive([
-        {
-          path: "SKILL.md",
-          bytes: encoder.encode(
-            `---\nname: ${skillName}\ndescription: mine\n---\n# Mine`,
-          ),
-        },
-      ]),
     });
-    await expectCode(
-      plugins.push({ org: ORG, artifact: archiveOf(thermosLike(name)) }),
-      Code.AlreadyExists,
-      `'${skillName}' exists in org '${ORG}' and is not managed by a plugin`,
-    );
-  });
-
-  it("never adopts a user's agent: a same-slug row without the system label is refused even when the plugin declares system content, and a system row is refused by a plugin that does not", async () => {
-    // The open-source authorizer grants reserved-label writes to everyone,
-    // so this is the posture where the label alone would be a weak guard;
-    // the rule needs BOTH sides to carry it.
-    const name = uniqueName("users-own");
-    await agents.create(
-      createMessage(AgentSchema, {
-        apiVersion: "agentic.stigmer.ai/v1",
-        kind: "Agent",
-        metadata: createMessage(ApiResourceMetadataSchema, { org: ORG, name }),
-        spec: createMessage(AgentSpecSchema, {
-          instructions: "Mine, written by hand, under my own name.",
-        }),
-      }),
-    );
-    await expectCode(
-      plugins.push({ org: ORG, artifact: archiveOf(systemOverlay(name)) }),
-      Code.AlreadyExists,
-      `'${name}' exists in org '${ORG}' and is not managed by a plugin`,
-    );
-
-    const seeded = uniqueName("seeded-row");
-    await agents.create(
-      createMessage(AgentSchema, {
-        apiVersion: "agentic.stigmer.ai/v1",
-        kind: "Agent",
-        metadata: createMessage(ApiResourceMetadataSchema, {
-          org: ORG,
-          name: seeded,
-          labels: { [SYSTEM_LABEL]: "true" },
-        }),
-        spec: createMessage(AgentSpecSchema, {
-          instructions: "System content a plain plugin may not take over.",
-        }),
-      }),
-    );
-    await expectCode(
-      plugins.push({
-        org: ORG,
-        artifact: archiveOf(
-          withFile(
-            thermosLike(seeded),
-            "ai.stigmer/agent.yaml",
-            [
-              "apiVersion: agentic.stigmer.ai/v1",
-              "kind: Agent",
-              "metadata:",
-              `  name: ${seeded}`,
-              "spec:",
-              "  instructions: A plain overlay that declares no system content.",
-              "",
-            ].join("\n"),
-          ),
-        ),
-      }),
-      Code.AlreadyExists,
-      `'${seeded}' exists in org '${ORG}' and is not managed by a plugin`,
-    );
-  });
-
-  it("refuses to install a slug another plugin holds, naming that plugin", async () => {
-    const first = uniqueName("holder");
-    const second = uniqueName("claimant");
-    const shared = `${first}-shared`;
-    await plugins.push({
-      org: ORG,
-      artifact: archiveOf(thermosLike(first, { skill: shared })),
-    });
-    await expectCode(
-      plugins.push({
-        org: ORG,
-        artifact: archiveOf(thermosLike(second, { skill: shared })),
-      }),
-      Code.AlreadyExists,
-      `'${shared}' is held by plugin '${first}'`,
-    );
-  });
-});
-
-describe("Plugin delete", () => {
-  it("removes every member and the head; a fresh install of the same archive works afterwards", async () => {
-    const name = uniqueName("remove");
+    const oauthBefore = probes.get(OAUTH_PATH) ?? 0;
+    const openBefore = probes.get(OPEN_PATH) ?? 0;
     const installed = await plugins.push({
       org: ORG,
-      artifact: archiveOf(thermosLike(name)),
+      artifact: archiveOf(fixture),
     });
-    const members = await pluginQuery.listMembers({
-      value: installed.metadata!.id,
-    });
-    expect(members.members).toHaveLength(3);
+    expect(probes.get(OAUTH_PATH)).toBe(oauthBefore + 1);
+    expect(probes.get(OPEN_PATH)).toBe(openBefore + 1);
 
-    await plugins.delete({ value: installed.metadata!.id });
-
-    await expectCode(
-      pluginQuery.get({ value: installed.metadata!.id }),
-      Code.NotFound,
+    const byName = new Map(
+      installed.status!.mcpServers.map((entry) => [entry.name, entry]),
     );
-    for (const member of members.members) {
-      const lookup =
-        member.kind === ApiResourceKind.skill
-          ? skillQuery.get({ value: member.id })
-          : member.kind === ApiResourceKind.mcp_server
-            ? mcpServerQuery.get({ value: member.id })
-            : agentQuery.get({ value: member.id });
-      await expectCode(lookup, Code.NotFound);
+    const linear = byName.get("linear")!;
+    expect(linear.signIn?.oauthOnly).toBe(true);
+    expect(linear.env).toEqual(["LINEAR_ACCESS_TOKEN"]);
+    expect(linear.transport.case).toBe("http");
+    if (linear.transport.case === "http") {
+      expect(linear.transport.value.headers).toEqual({
+        Authorization: "Bearer ${LINEAR_ACCESS_TOKEN}",
+      });
     }
-    const again = await plugins.push({
-      org: ORG,
-      artifact: archiveOf(thermosLike(name)),
+    expect(installed.status?.env["LINEAR_ACCESS_TOKEN"]).toMatchObject({
+      isSecret: true,
+      optional: false,
     });
-    expect(again.status?.state).toBe(PluginState.READY);
-    expect(again.metadata?.id).not.toBe(installed.metadata?.id);
-  });
 
-  it("is refused while a user's own agent references a member, and succeeds once it is detached", async () => {
-    const name = uniqueName("referenced");
-    const installed = await plugins.push({
-      org: ORG,
-      artifact: archiveOf(thermosLike(name)),
-    });
-    const mine = await agents.create(
-      createMessage(AgentSchema, {
-        apiVersion: "agentic.stigmer.ai/v1",
-        kind: "Agent",
-        metadata: createMessage(ApiResourceMetadataSchema, {
-          org: ORG,
-          name: `${name}-composer`,
-        }),
-        spec: createMessage(AgentSpecSchema, {
-          instructions: "You compose over the plugin's tools.",
-          mcpServerUsages: [
-            createMessage(McpServerUsageSchema, {
-              mcpServerRef: createMessage(ApiResourceReferenceSchema, {
-                org: ORG,
-                kind: ApiResourceKind.mcp_server,
-                slug: `${name}-github`,
-              }),
-            }),
-          ],
-        }),
-      }),
-    );
-    await expectCode(
-      plugins.delete({ value: installed.metadata!.id }),
-      Code.FailedPrecondition,
-      `plugin '${name}' is still used by agent '${name}-composer'`,
-    );
-    await agents.delete({ value: mine.metadata!.id });
-    await plugins.delete({ value: installed.metadata!.id });
-    await expectCode(
-      pluginQuery.get({ value: installed.metadata!.id }),
-      Code.NotFound,
-    );
-  });
+    const docs = byName.get("docs")!;
+    expect(docs.signIn).toBeUndefined();
+    expect(docs.env).toEqual([]);
+    if (docs.transport.case === "http") {
+      expect(docs.transport.value.headers).toEqual({});
+    }
+    expect(Object.keys(installed.status!.env)).toEqual(["LINEAR_ACCESS_TOKEN"]);
 
-  it("is refused while a user's agent's hooks use a plugin that is only hooks, and succeeds once they are switched off", async () => {
-    const name = uniqueName("hooked");
-    const installed = await plugins.push({
+    // The same archive at another level installs again, from the answers
+    // the plugin already records: no server is asked twice.
+    const moved = await plugins.push({
       org: ORG,
-      artifact: archiveOf(
-        claudePlugin({
-          name,
-          hooks: {
-            PreToolUse: [
-              { hooks: [{ type: "command", command: "node guard.js" }] },
-            ],
-          },
-        }),
-      ),
+      artifact: archiveOf(fixture),
+      visibility: ApiResourceVisibility.visibility_private,
     });
-    const guarded = await agents.create(agentUsingHooksOf(name, `${name}-guarded`));
-    await expectCode(
-      plugins.delete({ value: installed.metadata!.id }),
-      Code.FailedPrecondition,
-      `plugin '${name}' is still used by agent '${name}-guarded'; switch the plugin's hooks off on them first`,
+    expect(moved.metadata?.visibility).toBe(
+      ApiResourceVisibility.visibility_private,
     );
-    guarded.spec!.hooks = [];
-    await agents.update(guarded);
-    await plugins.delete({ value: installed.metadata!.id });
-    await expectCode(
-      pluginQuery.get({ value: installed.metadata!.id }),
-      Code.NotFound,
-    );
-  });
-
-  it("names both remedies when one agent uses a member and another the plugin's hooks", async () => {
-    const name = uniqueName("bothways");
-    const installed = await plugins.push({
-      org: ORG,
-      artifact: archiveOf(
-        withFile(
-          thermosLike(name),
-          "hooks/hooks.json",
-          JSON.stringify({
-            version: 1,
-            hooks: { preToolUse: [{ command: "node guard.js" }] },
-          }),
-        ),
-      ),
-    });
-    expect(installed.status?.hooks?.groups).toHaveLength(1);
-    const guarded = await agents.create(agentUsingHooksOf(name, `${name}-guarded`));
-    const composer = await agents.create(
-      createMessage(AgentSchema, {
-        apiVersion: "agentic.stigmer.ai/v1",
-        kind: "Agent",
-        metadata: createMessage(ApiResourceMetadataSchema, {
-          org: ORG,
-          name: `${name}-composer`,
-        }),
-        spec: createMessage(AgentSpecSchema, {
-          instructions: "You compose over the plugin's tools.",
-          mcpServerUsages: [
-            createMessage(McpServerUsageSchema, {
-              mcpServerRef: createMessage(ApiResourceReferenceSchema, {
-                org: ORG,
-                kind: ApiResourceKind.mcp_server,
-                slug: `${name}-github`,
-              }),
-            }),
-          ],
-        }),
-      }),
-    );
-    await expectCode(
-      plugins.delete({ value: installed.metadata!.id }),
-      Code.FailedPrecondition,
-      `plugin '${name}' is still used by agent '${name}-composer', agent '${name}-guarded'; ` +
-        "detach them from the plugin's skills and servers, and switch the plugin's hooks off on them, first",
-    );
-    await agents.delete({ value: guarded.metadata!.id });
-    await agents.delete({ value: composer.metadata!.id });
-    await plugins.delete({ value: installed.metadata!.id });
+    expect(probes.get(OAUTH_PATH)).toBe(oauthBefore + 1);
+    expect(probes.get(OPEN_PATH)).toBe(openBefore + 1);
+    expect(
+      moved.status?.mcpServers.find((s) => s.name === "linear")?.signIn
+        ?.oauthOnly,
+    ).toBe(true);
   });
 });
 
 describe("Plugin push — refusals before any write", () => {
+  it("refuses a server whose tool names could not be told apart, naming it", async () => {
+    const name = uniqueName("segment");
+    await expectCode(
+      plugins.push({
+        org: ORG,
+        artifact: archiveOf(
+          cursorPlugin({
+            name,
+            mcpServers: {
+              db__x: { command: "npx", args: ["-y", "@acme/db-mcp"] },
+            },
+          }),
+        ),
+      }),
+      Code.InvalidArgument,
+      `MCP server 'db__x' of plugin '${name}' would name its tools 'mcp__plugin_${name.replace(/[^A-Za-z0-9_-]/g, "_")}_db__x__<tool>'`,
+    );
+    await expectCode(
+      pluginQuery.getByReference(
+        createMessage(ApiResourceReferenceSchema, {
+          org: ORG,
+          kind: ApiResourceKind.plugin,
+          slug: name,
+        }),
+      ),
+      Code.NotFound,
+    );
+  });
+
   it("refuses a package the library refuses, with its sentences", async () => {
     const name = uniqueName("badurl");
     const broken = cursorPlugin({
@@ -1065,70 +697,6 @@ describe("Plugin push — refusals before any write", () => {
     );
   });
 
-  it("refuses a plugin whose main agent keeps none of its tools, naming the agent", async () => {
-    const name = uniqueName("emptied");
-    await expectCode(
-      plugins.push({
-        org: ORG,
-        artifact: archiveOf(
-          claudePlugin({
-            name,
-            settings: { agent: "lead" },
-            agents: [
-              {
-                file: "lead",
-                frontmatter: {
-                  description: "Leads.",
-                  tools: "mcp__claude_ai_Slack__post",
-                },
-              },
-            ],
-          }),
-        ),
-      }),
-      Code.InvalidArgument,
-      "main agent 'lead' keeps none of the tools its 'tools' list names",
-    );
-    await expectCode(
-      pluginQuery.getByReference(
-        createMessage(ApiResourceReferenceSchema, {
-          org: ORG,
-          kind: ApiResourceKind.plugin,
-          slug: name,
-        }),
-      ),
-      Code.NotFound,
-    );
-  });
-
-  it("refuses an agent overlay with an unknown field, naming the document", async () => {
-    const name = uniqueName("overlay");
-    const fixture = withFile(
-      thermosLike(name),
-      "ai.stigmer/agent.yaml",
-      `apiVersion: agentic.stigmer.ai/v1\nkind: Agent\nmetadata:\n  name: ${name}\nspec:\n  instructions: Ten characters or more of instructions.\n  favourite_colour: blue\n`,
-    );
-    await expectCode(
-      plugins.push({ org: ORG, artifact: archiveOf(fixture) }),
-      Code.InvalidArgument,
-      "overlay document 'ai.stigmer/agent.yaml'",
-    );
-  });
-
-  it("refuses an agent overlay that names another resource", async () => {
-    const name = uniqueName("overlayname");
-    const fixture = withFile(
-      thermosLike(name),
-      "ai.stigmer/agent.yaml",
-      `apiVersion: agentic.stigmer.ai/v1\nkind: Agent\nmetadata:\n  name: somebody-else\nspec:\n  instructions: Ten characters or more of instructions.\n`,
-    );
-    await expectCode(
-      plugins.push({ org: ORG, artifact: archiveOf(fixture) }),
-      Code.InvalidArgument,
-      "names 'somebody-else'",
-    );
-  });
-
   it("refuses bytes that are not an archive", async () => {
     await expectCode(
       plugins.push({ org: ORG, artifact: encoder.encode("not a zip") }),
@@ -1147,354 +715,80 @@ describe("Plugin push — refusals before any write", () => {
       `the plugin name '${name}' derives the slug '${name}' (64 characters), which is not a valid slug`,
     );
   });
-
-  it("refuses a member whose name derives an invalid slug before any member is written, naming the member", async () => {
-    const name = uniqueName("longmember");
-    const server = `${name}-${"s".repeat(64)}`;
-    const fixture = cursorPlugin({
-      name,
-      skills: [
-        {
-          name: `${name}-review`,
-          description: "Review code thoroughly",
-          body: "# Review\nRead everything.",
-        },
-      ],
-      mcpServers: {
-        [server]: { type: "http", url: "https://api.githubcopilot.com/mcp/" },
-      },
-    });
-    await expectCode(
-      plugins.push({ org: ORG, artifact: archiveOf(fixture) }),
-      Code.InvalidArgument,
-      `the plugin's MCP server '${server}' derives the slug '${server}' (${server.length} characters), which is not a valid slug`,
-    );
-    // The skill planned before the server was never pushed.
-    await expectCode(
-      skillQuery.getByReference(
-        createMessage(ApiResourceReferenceSchema, {
-          org: ORG,
-          kind: ApiResourceKind.skill,
-          slug: `${name}-review`,
-        }),
-      ),
-      Code.NotFound,
-    );
-  });
-
-  it("applies an agent overlay wholesale when it names the plugin", async () => {
-    const name = uniqueName("overlayok");
-    const fixture = withFile(
-      thermosLike(name),
-      "ai.stigmer/agent.yaml",
-      `apiVersion: agentic.stigmer.ai/v1\nkind: Agent\nmetadata:\n  name: ${name}\nspec:\n  description: authored\n  instructions: The author's own instructions for this agent.\n`,
-    );
-    const installed = await plugins.push({
-      org: ORG,
-      artifact: archiveOf(fixture),
-    });
-    expect(installed.status?.state).toBe(PluginState.READY);
-    const agent = await agentQuery.getByReference(
-      createMessage(ApiResourceReferenceSchema, {
-        org: ORG,
-        kind: ApiResourceKind.agent,
-        slug: name,
-      }),
-    );
-    expect(agent.spec?.instructions).toBe(
-      "The author's own instructions for this agent.",
-    );
-    expect(agent.metadata?.labels[PLUGIN_LABEL]).toBe(installed.metadata?.id);
-  });
-
-  it("refuses an overlay that names another organization, naming the installing one by its slug", async () => {
-    const name = uniqueName("overlayforeign");
-    const fixture = withFile(
-      thermosLike(name),
-      "ai.stigmer/agent.yaml",
-      `apiVersion: agentic.stigmer.ai/v1\nkind: Agent\nmetadata:\n  name: ${name}\n  org: somebody-else\nspec:\n  instructions: The author's own instructions for this agent.\n`,
-    );
-    await expectCode(
-      plugins.push({ org: ORG, artifact: archiveOf(fixture) }),
-      Code.InvalidArgument,
-      `metadata.org 'somebody-else' is not the organization the plugin is installed into ('${ORG}')`,
-    );
-  });
-
-  it("installs an overlay that names its organization by slug, filing it under the organization's id", async () => {
-    const name = uniqueName("overlayslug");
-    const fixture = withFile(
-      thermosLike(name),
-      "ai.stigmer/agent.yaml",
-      `apiVersion: agentic.stigmer.ai/v1\nkind: Agent\nmetadata:\n  name: ${name}\n  org: ${ORG}\nspec:\n  instructions: The author's own instructions for this agent.\n`,
-    );
-    const installed = await plugins.push({ org: ORG, artifact: archiveOf(fixture) });
-    expect(installed.status?.state).toBe(PluginState.READY);
-    const agent = await agentQuery.getByReference(
-      createMessage(ApiResourceReferenceSchema, { org: ORG, kind: ApiResourceKind.agent, slug: name }),
-    );
-    expect(agent.metadata?.org).toBe(ORG_ID);
-  });
 });
 
-/**
- * The reserved-label refusal where an authorizer enforces. The open-source
- * built-in authorizer allows `can_write_reserved_labels` by design, so the
- * default composition above cannot show the refusal; this composition
- * registers an authorizer that denies exactly that permission and allows
- * everything else, the posture a hosted edition takes. An archive whose
- * overlay carries a `stigmer.ai/*` label is refused before a byte is
- * written, and a plain overlay under the same authorizer still installs —
- * so the sanitiser asks the platform capability and nothing broader.
- */
-describe("Plugin push under an authorizer that enforces reserved labels", () => {
-  let enforcingDir: string;
-  let enforcing: ComposedServer;
-  let enforcingPlugins: Client<typeof PluginCommandController>;
-  let enforcingQuery: Client<typeof PluginQueryController>;
-  let enforcingAgents: Client<typeof AgentCommandController>;
-  let enforcingAgentQuery: Client<typeof AgentQueryController>;
-  const observed: AuthzCheck[] = [];
-  // Who the caller is to this authorizer: a member (reserved labels denied,
-  // the hosted default) or the platform operator (granted). The tests flip
-  // it, so one composition shows both sides of every reserved-label rule.
-  let reservedLabels: "deny" | "allow" = "deny";
-  // Whether the caller may create skills in the organization, which a
-  // plugin's skill members need.
-  let createSkills: "deny" | "allow" = "allow";
-
-  beforeAll(async () => {
-    enforcingDir = mkdtempSync(path.join(tmpdir(), "plugin-domain-enforcing-"));
-    const authorizer: Authorizer = {
-      authorize(_caller, check) {
-        if (check.permission === IamPermission.can_write_reserved_labels) {
-          observed.push(check);
-          return Promise.resolve(
-            reservedLabels === "allow"
-              ? { kind: "allow" }
-              : { kind: "deny", reason: "reserved labels are the platform's" },
-          );
-        }
-        if (check.permission === IamPermission.can_create_skill && createSkills === "deny") {
-          return Promise.resolve({ kind: "deny", reason: "members may not create skills" });
-        }
-        return Promise.resolve({ kind: "allow" });
-      },
-    };
-    enforcing = await composeServer({
-      config: loadConfig({
-        STIGMER_MODEL_REGISTRY_REFRESH: "off",
-        TEMPORAL_HOST_PORT: "127.0.0.1:1",
-        DB_PATH: path.join(enforcingDir, "stigmer.db"),
-        ARTIFACT_LOCAL_BASE_PATH: path.join(enforcingDir, "artifacts"),
-        STORAGE_PATH: path.join(enforcingDir, "storage"),
-      }),
-      logger: silentLogger,
-      // Ephemeral, as the composition above: no port is reserved ahead.
-      portOverride: 0,
-      host: "127.0.0.1",
-      extensions: [{ name: "reserved-labels-enforced", authorizer }],
-    });
-    const port = await enforcing.start();
-    const transport: Transport = createGrpcTransport({
-      baseUrl: `http://127.0.0.1:${port}`,
-    });
-    enforcingPlugins = createClient(PluginCommandController, transport);
-    enforcingQuery = createClient(PluginQueryController, transport);
-    enforcingAgents = createClient(AgentCommandController, transport);
-    enforcingAgentQuery = createClient(AgentQueryController, transport);
-  });
-
-  afterAll(async () => {
-    await enforcing.shutdown();
-    rmSync(enforcingDir, { recursive: true, force: true });
-  });
-
-  it("refuses an archive whose overlay carries a reserved label, naming the document and the key, and writes nothing", async () => {
-    const name = uniqueName("plg-forged");
-    const forged = withFile(
-      thermosLike(name),
-      "ai.stigmer/agent.yaml",
-      [
-        "apiVersion: agentic.stigmer.ai/v1",
-        "kind: Agent",
-        "metadata:",
-        `  name: ${name}`,
-        "  labels:",
-        "    stigmer.ai/plugin: plg_somebody_else",
-        "spec:",
-        "  instructions: Long enough instructions for the forged agent.",
-        "",
-      ].join("\n"),
-    );
-    const error = await expectCode(
-      enforcingPlugins.push({ org: ORG, artifact: archiveOf(forged) }),
-      Code.InvalidArgument,
-    );
-    expect(error.rawMessage).toContain(
-      "cannot be set by a plugin (ai.stigmer/agent.yaml: stigmer.ai/plugin)",
-    );
-    expect(observed.map((c) => c.permission)).toEqual([
-      IamPermission.can_write_reserved_labels,
-    ]);
-    await expectCode(
-      enforcingQuery.getByReference(
-        createMessage(ApiResourceReferenceSchema, {
-          org: ORG,
-          kind: ApiResourceKind.plugin,
-          slug: name,
-        }),
-      ),
-      Code.NotFound,
-    );
-  });
-
-  it("refuses an install whose members the caller may not create, naming the permission and the organization", async () => {
-    createSkills = "deny";
-    try {
-      await expectCode(
-        enforcingPlugins.push({ org: ORG, artifact: archiveOf(thermosLike(uniqueName("plg-noskill"))) }),
-        Code.PermissionDenied,
-        `needs can_create_skill in organization '${ORG}'`,
-      );
-    } finally {
-      createSkills = "allow";
-    }
-  });
-
-  it("installs a plain overlay under the same authorizer: the platform stamps its own labels through the in-process origin", async () => {
-    const name = uniqueName("plg-honest");
-    const installed = await enforcingPlugins.push({
+describe("Plugin delete and visibility", () => {
+  it("is refused while an agent lists the plugin, naming it, and allowed once none does", async () => {
+    const name = uniqueName("listed");
+    const installed = await plugins.push({
       org: ORG,
       artifact: archiveOf(thermosLike(name)),
     });
-    expect(installed.status?.state).toBe(PluginState.READY);
-    const { members } = await enforcingQuery.listMembers({
-      value: installed.metadata!.id,
+    const mine = await agents.create(agentListing(name, `${name}-user`));
+    // The guard matches the plugin by the organization id the reference
+    // rule files the listing under.
+    expect(mine.spec?.plugins.map((ref) => [ref.org, ref.slug])).toEqual([
+      [ORG_ID, name],
+    ]);
+
+    await expectCode(
+      plugins.delete({ value: installed.metadata!.id }),
+      Code.FailedPrecondition,
+      `plugin '${name}' is still used by agent '${name}-user'; remove it from their plugins first`,
+    );
+    await pluginQuery.get({ value: installed.metadata!.id });
+
+    mine.spec!.plugins = [];
+    await agents.update(mine);
+    const deleted = await plugins.delete({ value: installed.metadata!.id });
+    expect(deleted.metadata?.id).toBe(installed.metadata?.id);
+    await expectCode(
+      pluginQuery.get({ value: installed.metadata!.id }),
+      Code.NotFound,
+    );
+
+    // A fresh install of the same archive works afterwards, under a new id.
+    const again = await plugins.push({
+      org: ORG,
+      artifact: archiveOf(thermosLike(name)),
     });
-    expect(members).toHaveLength(3);
+    expect(again.metadata?.id).not.toBe(installed.metadata?.id);
   });
 
-  it("adopts a system-content row the operator's plugin replaces: same id, the plugin's definition, one warning", async () => {
-    reservedLabels = "allow";
-    const name = uniqueName("plg-adopt");
-    // The row the platform seeded before plugins existed: system content,
-    // no plugin label.
-    const seeded = await enforcingAgents.create(
-      createMessage(AgentSchema, {
-        apiVersion: "agentic.stigmer.ai/v1",
-        kind: "Agent",
-        metadata: createMessage(ApiResourceMetadataSchema, {
-          org: ORG,
-          name,
-          labels: { [SYSTEM_LABEL]: "true" },
-        }),
-        spec: createMessage(AgentSpecSchema, {
-          instructions: "The instructions the seedpack wrote, long ago.",
-        }),
-      }),
-    );
-    const seededId = seeded.metadata!.id;
-
-    const installed = await enforcingPlugins.push({
+  it("updateVisibility moves the plugin alone: an agent that lists it keeps its level and its definition", async () => {
+    const name = uniqueName("level");
+    const installed = await plugins.push({
       org: ORG,
-      artifact: archiveOf(systemOverlay(name)),
+      artifact: archiveOf(thermosLike(name)),
     });
-    expect(installed.status?.state).toBe(PluginState.READY);
-    const adopted = installed.status!.warnings.filter(
-      (warning) => warning.kind === "member-adopted",
+    expect(installed.metadata?.visibility).toBe(
+      ApiResourceVisibility.visibility_org,
     );
-    expect(adopted).toHaveLength(1);
-    expect(adopted[0]!.path).toBe("ai.stigmer/agent.yaml");
-    expect(adopted[0]!.message).toContain(`agent '${name}' (${seededId})`);
-    expect(adopted[0]!.message).toContain("conversations continue");
+    const mine = await agents.create(agentListing(name, `${name}-user`));
+    const skillsBefore = await rowCount(ApiResourceKind.skill);
 
-    const after = await enforcingAgentQuery.get({ value: seededId });
-    expect(after.metadata?.labels[PLUGIN_LABEL]).toBe(installed.metadata!.id);
-    expect(after.metadata?.labels[PLUGIN_VERSION_LABEL]).toBe(
-      installed.status!.digest,
-    );
-    expect(after.metadata?.labels[SYSTEM_LABEL]).toBe("true");
-    expect(after.spec?.instructions).toBe(
-      "You are the platform's own agent, re-homed under a plugin.",
-    );
-
-    const { members } = await enforcingQuery.listMembers({
-      value: installed.metadata!.id,
+    const moved = await plugins.updateVisibility({
+      resourceId: installed.metadata!.id,
+      visibility: ApiResourceVisibility.visibility_private,
     });
-    expect(
-      members.find((member) => member.kind === ApiResourceKind.agent)?.id,
-    ).toBe(seededId);
+    expect(moved.metadata?.visibility).toBe(
+      ApiResourceVisibility.visibility_private,
+    );
+    expect(moved.status?.digest).toBe(installed.status?.digest);
+    expect(moved.status?.skills).toEqual(installed.status?.skills);
 
-    // The second push of the same archive converges without a write.
-    const again = await enforcingPlugins.push({
-      org: ORG,
-      artifact: archiveOf(systemOverlay(name)),
-    });
-    expect(again.status?.digest).toBe(installed.status?.digest);
-    expect(
-      (await enforcingAgentQuery.get({ value: seededId })).status?.versionHash,
-    ).toBe(after.status?.versionHash);
-    reservedLabels = "deny";
-  });
+    const agentAfter = await agentQuery.get({ value: mine.metadata!.id });
+    expect(agentAfter.metadata?.visibility).toBe(mine.metadata?.visibility);
+    expect(agentAfter.status?.audit?.specAudit?.updatedAt).toEqual(
+      mine.status?.audit?.specAudit?.updatedAt,
+    );
+    expect(agentAfter.status?.audit?.statusAudit?.updatedAt).toEqual(
+      mine.status?.audit?.statusAudit?.updatedAt,
+    );
+    expect(await rowCount(ApiResourceKind.skill)).toBe(skillsBefore);
+    const versions = await pluginQuery.listVersions({ org: ORG, slug: name });
+    expect(versions.totalCount).toBe(1);
 
-  it("refuses the same archive from a member before the slug is judged, and leaves the seeded row untouched", async () => {
-    reservedLabels = "allow";
-    const name = uniqueName("plg-member");
-    const seeded = await enforcingAgents.create(
-      createMessage(AgentSchema, {
-        apiVersion: "agentic.stigmer.ai/v1",
-        kind: "Agent",
-        metadata: createMessage(ApiResourceMetadataSchema, {
-          org: ORG,
-          name,
-          labels: { [SYSTEM_LABEL]: "true" },
-        }),
-        spec: createMessage(AgentSpecSchema, {
-          instructions: "The instructions the seedpack wrote, long ago.",
-        }),
-      }),
-    );
-    reservedLabels = "deny";
-    const error = await expectCode(
-      enforcingPlugins.push({
-        org: ORG,
-        artifact: archiveOf(systemOverlay(name)),
-      }),
-      Code.InvalidArgument,
-    );
-    expect(error.rawMessage).toContain(
-      `cannot be set by a plugin (ai.stigmer/agent.yaml: ${SYSTEM_LABEL})`,
-    );
-    const untouched = await enforcingAgentQuery.get({
-      value: seeded.metadata!.id,
-    });
-    expect(untouched.metadata?.labels[PLUGIN_LABEL]).toBeUndefined();
-    expect(untouched.spec?.instructions).toBe(
-      "The instructions the seedpack wrote, long ago.",
-    );
+    await agents.delete({ value: mine.metadata!.id });
   });
 });
-
-/**
- * A plugin whose agent overlay declares system content under the given
- * name: the shape of the official `assistant` plugin, whose agent replaces
- * the row the retired seedpack wrote under the same slug.
- */
-function systemOverlay(name: string): PluginFixture {
-  return withFile(
-    thermosLike(name),
-    "ai.stigmer/agent.yaml",
-    [
-      "apiVersion: agentic.stigmer.ai/v1",
-      "kind: Agent",
-      "metadata:",
-      `  name: ${name}`,
-      "  labels:",
-      `    ${SYSTEM_LABEL}: "true"`,
-      "spec:",
-      "  instructions: You are the platform's own agent, re-homed under a plugin.",
-      "",
-    ].join("\n"),
-  );
-}

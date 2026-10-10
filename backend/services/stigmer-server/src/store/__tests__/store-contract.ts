@@ -1674,12 +1674,12 @@ export function describeStoreContract(
   describe("connect attempts", () => {
     const NOW = 1_800_000_000;
     const attempt = {
-      id: "connect-mcp_1-a",
+      id: "connect-plg_1-a",
       org: "org_a",
       createdBy: "ida_1",
       person: "ida_1",
-      mcpServerId: "mcp_1",
-      runId: "",
+      pluginId: "plg_1",
+      server: "tickets",
       createdAt: NOW,
       expiresAt: NOW + 600,
     };
@@ -1695,22 +1695,28 @@ export function describeStoreContract(
       await expect(attempts.delete(attempt.id), "ending twice is a no-op").resolves.toBeUndefined();
     });
 
-    it("keeps a backfill's run and a caller who is no person as written", async () => {
+    it("keeps the plugin, the server and a caller who is no person as written", async () => {
       const attempts = fx.store.connectAttempts;
-      const backfill = { ...attempt, id: "connect-mcp_1-b", person: "", runId: "run_1" };
-      await attempts.create(backfill);
-      expect(await attempts.findLive(backfill.id, NOW)).toEqual(backfill);
+      const machine = {
+        ...attempt,
+        id: "connect-plg_1-b",
+        person: "",
+        pluginId: "plg_2",
+        server: "docs-search",
+      };
+      await attempts.create(machine);
+      expect(await attempts.findLive(machine.id, NOW)).toEqual(machine);
     });
 
     it("removes expired attempts and an organization's attempts", async () => {
       const attempts = fx.store.connectAttempts;
       await attempts.create(attempt);
-      await attempts.create({ ...attempt, id: "connect-mcp_1-c", expiresAt: NOW + 10 });
-      await attempts.create({ ...attempt, id: "connect-mcp_1-d", org: "org_b" });
+      await attempts.create({ ...attempt, id: "connect-plg_1-c", expiresAt: NOW + 10 });
+      await attempts.create({ ...attempt, id: "connect-plg_1-d", org: "org_b" });
       expect(await attempts.deleteExpired(NOW + 10)).toBe(1);
       expect(await attempts.deleteByOrg("org_a")).toBe(1);
       expect(await attempts.deleteByOrg("org_a")).toBe(0);
-      expect(await attempts.findLive("connect-mcp_1-d", NOW)).toBeDefined();
+      expect(await attempts.findLive("connect-plg_1-d", NOW)).toBeDefined();
     });
   });
 

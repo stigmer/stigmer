@@ -4,13 +4,13 @@
  * trailing slash trimmed, query and fragment dropped), and a Git host's
  * bare lowercased name. The refusals name the rule. Two tools on one host
  * under different paths keep different addresses, so they never share a
- * login. A tool's own address is its HTTP URL; a local program has none,
- * and a URL holding a placeholder names none.
+ * login. A tool's own address (a plugin's MCP server entry) is its HTTP
+ * URL; a local program has none, and a URL holding a placeholder names none.
  */
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
-import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import { McpServerEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 
 import {
   ADDRESS_RULE,
@@ -113,12 +113,11 @@ describe("gitHostOf", () => {
 
 describe("toolAddressOf", () => {
   it("is an HTTP tool's URL, normalized", () => {
-    const server = create(McpServerSchema, {
-      spec: {
-        serverType: {
-          case: "http",
-          value: { url: "https://MCP.Linear.app/mcp/" },
-        },
+    const server = create(McpServerEntrySchema, {
+      name: "linear",
+      transport: {
+        case: "http",
+        value: { url: "https://MCP.Linear.app/mcp/" },
       },
     });
     expect(toolAddressOf(server)).toBe("https://mcp.linear.app/mcp");
@@ -127,19 +126,19 @@ describe("toolAddressOf", () => {
   it("is none for a local program, and for a URL holding a placeholder", () => {
     expect(
       toolAddressOf(
-        create(McpServerSchema, {
-          spec: { serverType: { case: "stdio", value: { command: "npx" } } },
+        create(McpServerEntrySchema, {
+          name: "local",
+          transport: { case: "stdio", value: { command: "npx" } },
         }),
       ),
     ).toBeUndefined();
     expect(
       toolAddressOf(
-        create(McpServerSchema, {
-          spec: {
-            serverType: {
-              case: "http",
-              value: { url: "https://${HOST}/mcp" },
-            },
+        create(McpServerEntrySchema, {
+          name: "templated",
+          transport: {
+            case: "http",
+            value: { url: "https://${HOST}/mcp" },
           },
         }),
       ),

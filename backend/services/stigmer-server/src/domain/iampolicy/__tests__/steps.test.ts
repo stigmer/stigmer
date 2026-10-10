@@ -12,7 +12,7 @@
  * names no relation qualifier; a team is granted only its kind's team
  * roles (never ownership, never on a kind that lists none), always as its
  * members, and nothing at all under open source's organization-only scope.
- * The editor role is granted on the three blueprints to a person or a team
+ * The editor role is granted on an agent to a person or a team
  * where the scope passes the proto through, refused on a kind that does not
  * list it, and granted nowhere under open source's scope.
  *
@@ -350,12 +350,9 @@ describe("ValidateGrantableRole", () => {
     });
     const person = { kind: "identity_account", id: "ida_bob" };
     const team = { kind: "team", id: "tm_sre", relation: "member" };
-    const blueprints = [
-      ["agent", "agt_1"],
-      ["mcp_server", "mcp_1"],
-    ] as const;
+    const blueprints = [["agent", "agt_1"]] as const;
 
-    it("is granted on an agent and an MCP server, to a person and to a team", () => {
+    it("is granted on an agent, to a person and to a team", () => {
       for (const [kind, id] of blueprints) {
         for (const principal of [person, team]) {
           expect(

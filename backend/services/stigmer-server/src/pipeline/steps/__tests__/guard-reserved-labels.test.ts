@@ -36,7 +36,6 @@ import {
 } from "../guard-reserved-labels.js";
 import { EXISTING_RESOURCE_KEY } from "../load-existing.js";
 import { newPermissiveSingleTeamAuthorizer } from "../authorize.js";
-import { recordServerStampedReservedLabels } from "../server-stamped-reserved-labels.js";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { GRADES_RUN_LABEL } from "../../../domain/score/judge/judge-run.js";
 
@@ -256,32 +255,6 @@ describe("GuardReservedLabels", () => {
       },
     );
     await expect(Promise.resolve(step.execute(ctx))).resolves.toBeUndefined();
-  });
-
-  it("server-stamped keys pass while an unstamped sibling still refuses", async () => {
-    // The server-stamped arm (Java ServerStampedReservedLabels):
-    // a step's per-request record exempts exactly the recorded keys — a
-    // smuggled sibling in the same request is still rejected.
-    const step = newGuardReservedLabelsStep<typeof AgentSchema>(denying());
-    const vouched = agentCtx({ "stigmer.ai/mcp-auth": "endpoint" });
-    recordServerStampedReservedLabels(vouched, "stigmer.ai/mcp-auth");
-    await expect(
-      Promise.resolve(step.execute(vouched)),
-    ).resolves.toBeUndefined();
-
-    const smuggled = agentCtx({
-      "stigmer.ai/mcp-auth": "endpoint",
-      "stigmer.ai/default-agent": "true",
-    });
-    recordServerStampedReservedLabels(smuggled, "stigmer.ai/mcp-auth");
-    const error = await step.execute(smuggled)?.catch((e: unknown) => e);
-    expect(error).toBeInstanceOf(ConnectError);
-    expect((error as ConnectError).rawMessage).toContain(
-      "stigmer.ai/default-agent",
-    );
-    expect((error as ConnectError).rawMessage).not.toContain(
-      "stigmer.ai/mcp-auth",
-    );
   });
 });
 

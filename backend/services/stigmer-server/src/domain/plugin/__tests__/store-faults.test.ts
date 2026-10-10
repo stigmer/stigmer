@@ -8,8 +8,8 @@
  * The surface is updateVisibility, reached through the registered handler on
  * an in-process router. The composed suites reach only a real store, which
  * cannot fail selectively, so it runs here against a store whose read throws.
- * The archive store and the member materializer are untouchable: a load that
- * fails must stop the call before the plugin's level fans out to its members.
+ * The archive store, the outbound fetch and the tools lane are untouchable:
+ * a load that fails must stop the call before anything else is reached.
  *
  * Out of scope: the NotFound copy itself (wire contract).
  */
@@ -63,7 +63,11 @@ function pluginCommand(store: Store): Client<typeof PluginCommandController> {
         authorizer: newPermissiveSingleTeamAuthorizer(),
         authorizationLifecycle: undefined,
         artifactStorage: untouchable("artifactStorage"),
-        materializerProvider: untouchable("materializerProvider"),
+        outboundFetch: () =>
+          Promise.reject(
+            new Error("outboundFetch reached after a failed load"),
+          ),
+        tools: untouchable("tools"),
       });
     },
     {

@@ -25,9 +25,6 @@
  *     names ("Vendor @ana"), else by the host;
  *   - the return choice builds the redirect: the console's callback, the same
  *     with the desktop bridge, or a loopback port;
- *   - McpServer's status and disconnect read the caller's sign-in at the
- *     server's address, whichever page started it, never a pasted login or a
- *     teammate's;
  *   - a renewal writes through the vault and presents the login app's secret
  *     (found by the sign-in's recorded login_app) only while the app's
  *     client id and token URL are the sign-in's; a catalog entry's secret
@@ -39,12 +36,6 @@ import { create } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import {
-  DisconnectOAuthInputSchema,
-  GetOAuthGrantStatusInputSchema,
-  OAuthConnectionHealth,
-} from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import {
   CompleteSignInInputSchema,
   SignInReturn,
@@ -57,9 +48,6 @@ import { VendorApprovalStatus } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1
 
 import type { CallerIdentity } from "../../../../extensions/identity.js";
 import { testCallerIdentity } from "../../../../pipeline/__tests__/support.js";
-import type { McpServerConnectDeps } from "../../../mcpserver/connect.js";
-import { disconnectOAuth } from "../../../mcpserver/disconnect-oauth.js";
-import { getOAuthGrantStatus } from "../../../mcpserver/get-oauth-grant-status.js";
 import { MAX_VAULT_ENTRIES } from "../../constants.js";
 import { VaultConnectionSource } from "../../service.js";
 import { completePersonSignIn, startPersonSignIn } from "../person.js";
@@ -468,125 +456,6 @@ describe("the saved login's description and the redirect", () => {
     expect(new URLSearchParams(tokenRequests()[0]!.body).get("redirect_uri")).toBe(
       "http://127.0.0.1:17237/auth/oauth/callback",
     );
-  });
-});
-
-describe("McpServer's status and disconnect read the caller's sign-in at the server's address", () => {
-  async function seedServer(url = VENDOR_ADDRESS): Promise<void> {
-    await rig.store.saveResource(
-      ApiResourceKind.mcp_server,
-      "mcps_vendor",
-      McpServerSchema,
-      create(McpServerSchema, {
-        apiVersion: "agentic.stigmer.ai/v1",
-        kind: "McpServer",
-        metadata: { id: "mcps_vendor", name: "Vendor", slug: "vendor", org: ORG },
-        spec: {
-          serverType: { case: "http", value: { url } },
-          auth: { targetEnvVar: "VENDOR_TOKEN" },
-          env: { VENDOR_TOKEN: { isSecret: true } },
-        },
-      }),
-    );
-  }
-  function connectDeps(): McpServerConnectDeps {
-    const unused = <T extends object>(name: string): T =>
-      new Proxy({} as T, {
-        get(_target, prop) {
-          throw new Error(`${name}.${String(prop)} reached by a sign-in read`);
-        },
-      });
-    const deps = rig.deps();
-    return {
-      store: deps.store,
-      logger: silentLogger,
-      authorizer: deps.authorizer,
-      engineState: unused("engineState"),
-      runnerAuth: unused("runnerAuth"),
-      vaults: rig.vaults,
-      vaultResolver: unused("vaultResolver"),
-      sandboxLane: { enabled: false },
-      outboundFetch: deps.outboundFetch,
-    };
-  }
-  const status = (caller: CallerIdentity) =>
-    getOAuthGrantStatus(connectDeps(), create(GetOAuthGrantStatusInputSchema, { resourceId: "mcps_vendor", org: ORG }), caller);
-  const disconnect = (caller: CallerIdentity) =>
-    disconnectOAuth(connectDeps(), create(DisconnectOAuthInputSchema, { resourceId: "mcps_vendor", org: ORG }), caller);
-
-  it("a sign-in started at the address is connected for its signer, absent for a teammate; a teammate's disconnect leaves it", async () => {
-    await seedOrganizationApp(rig);
-    await seedServer();
-    await signIn(alice, { access: "at-alice", refresh: "rt-alice" });
-
-    const hers = await status(alice);
-    expect(hers.connected).toBe(true);
-    expect(hers.targetEnvVar).toBe("VENDOR_TOKEN");
-    expect(hers.authMethod).toBe("vendor_oauth");
-    expect(hers.connectionHealth).toBe(OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_HEALTHY);
-
-    expect((await status(ben)).connectionHealth).toBe(OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_NO_GRANT);
-    expect((await disconnect(ben)).disconnected).toBe(false);
-    expect(await myLogin(rig, alice, VENDOR_ADDRESS)).toBe("at-alice");
-
-    expect((await disconnect(alice)).disconnected).toBe(true);
-    expect(await myLogin(rig, alice, VENDOR_ADDRESS)).toBeUndefined();
-    expect((await disconnect(alice)).disconnected).toBe(false);
-  });
-
-  it("health reads the sign-in record: expired with a refresh token is refreshable, without one expired", async () => {
-    await seedServer();
-    const mine = await rig.vaults.ensureMine(ORG, alice);
-    const saveExpired = (refreshToken: string) =>
-      rig.vaults.setConnection(
-        mine.metadata!.id,
-        VENDOR_ADDRESS,
-        {
-          token: "at-old",
-          source: VaultConnectionSource.sign_in,
-          signIn: {
-            expiresAt: BigInt(Math.floor(Date.now() / 1000) - 3600),
-            clientId: "vendor-client",
-            authMethod: "vendor_oauth",
-            tokenEndpoint: VENDOR_TOKEN_URL,
-            refreshToken,
-            loginApp: "org:oap_vendor",
-          },
-        },
-        alice,
-      );
-    await saveExpired("rt-old");
-    expect((await status(alice)).connectionHealth).toBe(OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED_REFRESHABLE);
-    await saveExpired("");
-    expect((await status(alice)).connectionHealth).toBe(OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED);
-  });
-
-  it("a pasted login at the address is no sign-in: status answers NO_GRANT and disconnect leaves it", async () => {
-    await seedServer();
-    const mine = await rig.vaults.ensureMine(ORG, alice);
-    await rig.vaults.setConnection(mine.metadata!.id, VENDOR_ADDRESS, { token: "pasted", source: VaultConnectionSource.pasted }, alice);
-    expect((await status(alice)).connected).toBe(false);
-    expect((await disconnect(alice)).disconnected).toBe(false);
-    expect(await myLogin(rig, alice, VENDOR_ADDRESS)).toBe("pasted");
-  });
-
-  it("a sign-in at another address is not the server's: a server moved elsewhere reads NO_GRANT and disconnect leaves it", async () => {
-    await seedOrganizationApp(rig);
-    await seedServer();
-    await signIn(alice, { access: "at-alice", refresh: "rt-alice" });
-    await seedServer("https://mcp.vendor.example/v2/mcp");
-    expect((await status(alice)).connectionHealth).toBe(OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_NO_GRANT);
-    expect((await disconnect(alice)).disconnected).toBe(false);
-    expect(await myLogin(rig, alice, VENDOR_ADDRESS)).toBe("at-alice");
-  });
-
-  it("answers NOT_FOUND for a server that does not exist", async () => {
-    await expectRefusal(
-      getOAuthGrantStatus(connectDeps(), create(GetOAuthGrantStatusInputSchema, { resourceId: "mcps_missing", org: ORG }), alice),
-      Code.NotFound,
-      "mcps_missing",
-    );
-    await expectRefusal(disconnect(alice), Code.NotFound, "mcps_vendor");
   });
 });
 

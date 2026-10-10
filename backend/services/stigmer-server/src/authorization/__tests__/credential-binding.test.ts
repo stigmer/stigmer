@@ -448,24 +448,25 @@ describe("the rule, for a caller bound to one organization", () => {
     ).toBe("outside");
   });
 
-  it("admits connecting to an MCP server the parent shares with its children, never editing it", async () => {
+  it("admits viewing a plugin the parent shares with its children, which is how its servers' tools are listed, never editing it", async () => {
     const f = fixture([
       ...ORGANIZATIONS,
-      row("mcp_server", "mcps_shared", BETA, {
+      row("plugin", "plg_shared", BETA, {
         visibility: ApiResourceVisibility.visibility_child_orgs,
       }),
     ]);
     const binding = newCredentialBinding(f.deps);
     const verdictOf = (permission: string) =>
       binding.verdict(boundTo(ALPHA), {
-        kind: ApiResourceKind.mcp_server,
-        id: "mcps_shared",
+        kind: ApiResourceKind.plugin,
+        id: "plg_shared",
         permission,
       });
-    expect(await verdictOf(IamPermission[IamPermission.can_connect])).toBe(
-      "admitted",
-    );
+    expect(await verdictOf(VIEW)).toBe("admitted");
     expect(await verdictOf(EDIT)).toBe("outside");
+    // No permission is admitted outside beyond reading and running: the
+    // retired connect permission is no exception any more.
+    expect(await verdictOf("can_connect")).toBe("outside");
   });
 
   it("keeps list candidates by their facts: every one for an unbound caller, the organization by id, and kinds no organization owns", async () => {

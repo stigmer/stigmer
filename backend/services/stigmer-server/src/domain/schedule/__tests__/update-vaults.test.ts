@@ -185,7 +185,7 @@ async function fire(...keys: string[]): Promise<Record<string, string>> {
     }),
     agentName: "Helper",
     agentOrg: ORG,
-    tools: [],
+    plugins: [],
   });
   execution.status = create(RunStatusSchema, { credentials: { sources } });
   const values = await resolver.openRun(execution);

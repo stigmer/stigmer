@@ -715,27 +715,19 @@ describe("references (agent spec as the vehicle)", () => {
     expect(explicit.newState.spec?.skillRefs[0]?.org).toBe("other-org");
   });
 
-  it("ValidateReferences rejects a missing MCP server with FailedPrecondition and Go's copy", async () => {
-    const withMcp = create(AgentSchema, {
+  it("ValidateReferences rejects a missing plugin with FailedPrecondition and Go's copy", async () => {
+    const withPlugin = create(AgentSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "Agent",
       metadata: { name: "Helper", org: "acme" },
       spec: {
         instructions: "help the user with their tasks",
-        mcpServerUsages: [
-          {
-            mcpServerRef: {
-              kind: ApiResourceKind.mcp_server,
-              slug: "ghost",
-              org: "acme",
-            },
-          },
-        ],
+        plugins: [{ kind: ApiResourceKind.plugin, slug: "ghost", org: "acme" }],
       },
     });
     const ctx = new RequestContext(
       AgentSchema,
-      withMcp,
+      withPlugin,
       testCallerIdentity(),
       ApiResourceKind.agent,
     );
@@ -747,7 +739,7 @@ describe("references (agent spec as the vehicle)", () => {
     );
     expect((error as ConnectError).code).toBe(Code.FailedPrecondition);
     expect((error as ConnectError).rawMessage).toContain(
-      "referenced MCP server(s) not found: 'ghost' (org: acme)",
+      "referenced plugin(s) not found: 'ghost' (org: acme)",
     );
   });
 });

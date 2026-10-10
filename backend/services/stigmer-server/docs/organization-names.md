@@ -30,9 +30,9 @@ Rows read `| Service.method | <field>, <field>, … |`.
 
 | Method | Organization fields |
 |---|---|
-| AgentCommandController.apply | `metadata.org`, `spec.mcp_server_usages.mcp_server_ref.org`, `spec.skill_refs.org`, `spec.sub_agents.skill_refs.org`, `spec.hooks.plugin.org` |
-| AgentCommandController.create | `metadata.org`, `spec.mcp_server_usages.mcp_server_ref.org`, `spec.skill_refs.org`, `spec.sub_agents.skill_refs.org`, `spec.hooks.plugin.org` |
-| AgentCommandController.update | `metadata.org`, `spec.mcp_server_usages.mcp_server_ref.org`, `spec.skill_refs.org`, `spec.sub_agents.skill_refs.org`, `spec.hooks.plugin.org` |
+| AgentCommandController.apply | `metadata.org`, `spec.skill_refs.org`, `spec.sub_agents.skill_refs.org`, `spec.plugins.org` |
+| AgentCommandController.create | `metadata.org`, `spec.skill_refs.org`, `spec.sub_agents.skill_refs.org`, `spec.plugins.org` |
+| AgentCommandController.update | `metadata.org`, `spec.skill_refs.org`, `spec.sub_agents.skill_refs.org`, `spec.plugins.org` |
 | AgentQueryController.getByReference | `org` |
 | AgentQueryController.listVersions | `org` |
 
@@ -54,8 +54,8 @@ Rows read `| Service.method | <field>, <field>, … |`.
 
 | Method | Organization fields |
 |---|---|
-| RunCommandController.create | `metadata.org`, `spec.session_spec.agent_ref.org`, `spec.session_spec.mcp_server_usages.mcp_server_ref.org`, `spec.session_spec.skill_refs.org`, `spec.session_spec.vaults.org` |
-| RunCommandController.update | `metadata.org`, `spec.session_spec.agent_ref.org`, `spec.session_spec.mcp_server_usages.mcp_server_ref.org`, `spec.session_spec.skill_refs.org`, `spec.session_spec.vaults.org` |
+| RunCommandController.create | `metadata.org`, `spec.session_spec.agent_ref.org`, `spec.session_spec.skill_refs.org`, `spec.session_spec.vaults.org`, `spec.session_spec.plugins.org` |
+| RunCommandController.update | `metadata.org`, `spec.session_spec.agent_ref.org`, `spec.session_spec.skill_refs.org`, `spec.session_spec.vaults.org`, `spec.session_spec.plugins.org` |
 | RunQueryController.getAgentUsageReport | `org` |
 | RunQueryController.getRunSummary | `org` |
 | RunQueryController.getOrgUsageReport | `org` |
@@ -89,19 +89,6 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | EvaluatorCommandController.create | `metadata.org` |
 | EvaluatorCommandController.update | `metadata.org` |
 
-## `ai.stigmer.agentic.mcpserver.v1`
-
-| Method | Organization fields |
-|---|---|
-| McpServerCommandController.apply | `metadata.org` |
-| McpServerCommandController.connect | `org` |
-| McpServerCommandController.create | `metadata.org` |
-| McpServerCommandController.disconnectOAuth | `org` |
-| McpServerCommandController.startConnect | `org` |
-| McpServerCommandController.update | `metadata.org` |
-| McpServerQueryController.getByReference | `org` |
-| McpServerQueryController.getOAuthGrantStatus | `org` |
-
 ## `ai.stigmer.agentic.memory.v1`
 
 | Method | Organization fields |
@@ -115,6 +102,7 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | Method | Organization fields |
 |---|---|
 | PluginCommandController.createArtifactUploadUrl | `org` |
+| PluginCommandController.listTools | `org` |
 | PluginCommandController.push | `org` |
 | PluginQueryController.getByReference | `org` |
 | PluginQueryController.listVersions | `org` |
@@ -141,9 +129,9 @@ Rows read `| Service.method | <field>, <field>, … |`.
 
 | Method | Organization fields |
 |---|---|
-| SessionCommandController.apply | `metadata.org`, `spec.agent_ref.org`, `spec.mcp_server_usages.mcp_server_ref.org`, `spec.skill_refs.org`, `spec.vaults.org` |
-| SessionCommandController.create | `metadata.org`, `spec.agent_ref.org`, `spec.mcp_server_usages.mcp_server_ref.org`, `spec.skill_refs.org`, `spec.vaults.org` |
-| SessionCommandController.update | `metadata.org`, `spec.agent_ref.org`, `spec.mcp_server_usages.mcp_server_ref.org`, `spec.skill_refs.org`, `spec.vaults.org` |
+| SessionCommandController.apply | `metadata.org`, `spec.agent_ref.org`, `spec.skill_refs.org`, `spec.vaults.org`, `spec.plugins.org` |
+| SessionCommandController.create | `metadata.org`, `spec.agent_ref.org`, `spec.skill_refs.org`, `spec.vaults.org`, `spec.plugins.org` |
+| SessionCommandController.update | `metadata.org`, `spec.agent_ref.org`, `spec.skill_refs.org`, `spec.vaults.org`, `spec.plugins.org` |
 | SessionQueryController.list | `org` |
 
 ## `ai.stigmer.agentic.skill.v1`

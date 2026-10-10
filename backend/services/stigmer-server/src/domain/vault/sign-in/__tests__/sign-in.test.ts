@@ -6,17 +6,14 @@
  * endpoint), and the real vault domain the login is saved into:
  *
  *   - a person's startSignIn and completeSignIn on VaultCommandController,
- *     from an address with no MCP server involved, save into their My vault,
- *     and McpServer's status reads that sign-in for a server at the address;
+ *     from an address with no MCP server involved, save into their My vault
+ *     at that address, and a second sign-in reuses the registered client;
  *   - a Connect link made with createConnectLink, for an address the
  *     organization's own login app lists, works through the public
  *     ConnectLinkController, saves into its shared vault, answers its return
  *     URL, and works once;
  *   - Stigmer's OAuth client document is served on the unified port when the
- *     server has a public https origin, listing every redirect a sign-in uses;
- *   - connect and startConnect still refuse on a server with no engine
- *     behind it (this composed server has none), while every sign-in lane
- *     works.
+ *     server has a public https origin, listing every redirect a sign-in uses.
  */
 import { createServer } from "node:http";
 import type { Server } from "node:http";
@@ -29,9 +26,6 @@ import type { Client, Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
-import { OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
-import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
 import { VaultCommandController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/command_pb";
 import { ConnectLinkController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/connect_link_pb";
 import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
@@ -124,8 +118,6 @@ let port: number;
 let vaultCommand: Client<typeof VaultCommandController>;
 let vaultQuery: Client<typeof VaultQueryController>;
 let links: Client<typeof ConnectLinkController>;
-let mcpCommand: Client<typeof McpServerCommandController>;
-let mcpQuery: Client<typeof McpServerQueryController>;
 let oauthApps: Client<typeof OAuthAppCommandController>;
 let login: MockLoginServer;
 let dir: string;
@@ -156,8 +148,6 @@ beforeAll(async () => {
   vaultCommand = createClient(VaultCommandController, transport);
   vaultQuery = createClient(VaultQueryController, transport);
   links = createClient(ConnectLinkController, transport);
-  mcpCommand = createClient(McpServerCommandController, transport);
-  mcpQuery = createClient(McpServerQueryController, transport);
   oauthApps = createClient(OAuthAppCommandController, transport);
 });
 
@@ -178,7 +168,7 @@ async function expectCode(promise: Promise<unknown>, code: Code, fragment: strin
 }
 
 describe("a person's sign-in at an address", () => {
-  it("starts from the address alone, saves into My vault, and serves an MCP server at the address", async () => {
+  it("starts from the address alone and saves into My vault at that address", async () => {
     const address = `${login.base}/mcp`;
     const started = await vaultCommand.startSignIn({ vault: { org: ORG, vault: { case: "mine", value: true } }, address });
     const params = new URL(started.authorizationUrl).searchParams;
@@ -203,39 +193,9 @@ describe("a person's sign-in at an address", () => {
     expect(mine.spec?.connections[address]?.token).toBe("");
     expect(mine.spec?.connections[address]?.description).toBe(done.description);
 
-    const tool = await mcpCommand.apply({
-      apiVersion: "agentic.stigmer.ai/v1",
-      kind: "McpServer",
-      metadata: { name: "Signed In Tool", org: ORG },
-      spec: {
-        serverType: { case: "http", value: { url: address } },
-        auth: { targetEnvVar: "TOOL_TOKEN" },
-      },
-    });
-    const status = await mcpQuery.getOAuthGrantStatus({ resourceId: tool.metadata!.id, org: ORG });
-    expect(status.connected).toBe(true);
-    expect(status.connectionHealth).toBe(OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_HEALTHY);
-
     // A second sign-in reuses the client registered for the first.
     await vaultCommand.startSignIn({ vault: { org: ORG, vault: { case: "mine", value: true } }, address });
     expect(login.registrations).toBe(1);
-  });
-
-  it("refuses a local program carrying an auth block at save", async () => {
-    await expectCode(
-      mcpCommand.apply({
-        apiVersion: "agentic.stigmer.ai/v1",
-        kind: "McpServer",
-        metadata: { name: "Local With Auth", org: ORG },
-        spec: {
-          serverType: { case: "stdio", value: { command: "npx" } },
-          auth: { targetEnvVar: "TOKEN" },
-          env: { TOKEN: { isSecret: true } },
-        },
-      }),
-      Code.InvalidArgument,
-      "a local program takes its keys as environment variables: declare them in env",
-    );
   });
 });
 
@@ -313,20 +273,5 @@ describe("Stigmer's OAuth client document", () => {
     expect(head.status).toBe(200);
     expect(await head.text()).toBe("");
     expect((await fetch(`http://127.0.0.1:${port}/v1/oauth/client.json`, { method: "POST" })).status).toBe(405);
-  });
-});
-
-describe("engine-unavailable connect refusals (the Temporal-less counterpart)", () => {
-  it("connect and startConnect refuse FailedPrecondition while every sign-in lane above works", async () => {
-    const tool = await mcpCommand.apply({
-      apiVersion: "agentic.stigmer.ai/v1",
-      kind: "McpServer",
-      metadata: { name: "No Engine Tool", org: ORG },
-      spec: { serverType: { case: "http", value: { url: `${login.base}/other` } } },
-    });
-    // The byte-pinned copy.
-    const copy = "connect is not available: Temporal not configured";
-    await expectCode(mcpCommand.connect({ mcpServerId: tool.metadata!.id, org: ORG }), Code.FailedPrecondition, copy);
-    await expectCode(mcpCommand.startConnect({ mcpServerId: tool.metadata!.id, org: ORG }), Code.FailedPrecondition, copy);
   });
 });

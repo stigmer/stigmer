@@ -27,7 +27,7 @@ import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase as AgentPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
-import { newConnectExecutionId } from "../../domain/mcpserver/connect-execution-id.js";
+import { newConnectExecutionId } from "../../domain/plugin/tools/execution-id.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { ConnectAttemptRecord, ConnectAttemptStore } from "../../store/interface.js";
 import {
@@ -109,8 +109,8 @@ function connectAttempt(
     org,
     createdBy,
     person: createdBy,
-    mcpServerId: "mcps_1",
-    runId: "",
+    pluginId: "plg_1",
+    server: "tickets",
     createdAt: NOW_SECONDS - 60,
     expiresAt,
   };
@@ -139,7 +139,7 @@ describe("boundExecutionKindOf", () => {
     // A run minted before the run kind's prefix became `run` keeps its id,
     // so a pre-upgrade run waiting on an approval keeps its credential.
     ["aex_1", "agent-execution"],
-    [newConnectExecutionId("mcps_1"), "mcp-connect"],
+    [newConnectExecutionId("plg_1"), "mcp-connect"],
   ])("%s binds %s", (id, kind) => {
     expect(boundExecutionKindOf(id)).toBe(kind);
   });
@@ -189,7 +189,7 @@ describe("loadBoundExecution", () => {
   });
 
   describe("the connect binding — the connect's attempt row by its id", () => {
-    const connectId = newConnectExecutionId("mcps_1");
+    const connectId = newConnectExecutionId("plg_1");
 
     it("resolves to the attempt's creator and org, no session, live while the row exists", async () => {
       const store = storeOf(

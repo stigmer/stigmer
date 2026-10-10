@@ -18,7 +18,7 @@ import type { ContentAddressedArchiveStore } from "../../../archive/content-stor
 import { createLogger } from "../../../boot/logger.js";
 import { createApiResourceInterceptor } from "../../../pipeline/interceptors/apiresource.js";
 import { createVerifierChainInterceptor } from "../../../pipeline/interceptors/auth.js";
-import { errorOf, failingStore } from "../../../pipeline/__tests__/support.js";
+import { errorOf, failingStore, untouchable } from "../../../pipeline/__tests__/support.js";
 import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
 import type { ArchiveStaging } from "../../skill/transfer/staging.js";
 
@@ -59,9 +59,8 @@ function pluginQuery(artifactStorage: ContentAddressedArchiveStore, staging?: Ar
         authorizer: newPermissiveSingleTeamAuthorizer(),
         authorizationLifecycle: undefined,
         artifactStorage,
-        materializerProvider: () => {
-          throw new Error("no install here");
-        },
+        outboundFetch: () => Promise.reject(new Error("no install here")),
+        tools: untouchable("tools"),
         ...(staging !== undefined ? { staging } : {}),
       });
     },

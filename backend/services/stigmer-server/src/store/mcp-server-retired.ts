@@ -171,10 +171,16 @@ export class RetirementFacts {
     return this.memberSkills.get(`${ref.org || org}/${ref.slug}`);
   }
 
-  /** Each plugin server's old tool-name prefix and the one a turn uses now. */
-  toolRenames(): ReadonlyMap<string, string> {
+  /**
+   * Each plugin server of `org`'s old tool-name prefix and the one a turn
+   * uses now. A tool list names a server by slug alone, which another
+   * organization may hold too, so only the agent's own organization's
+   * servers rename its entries.
+   */
+  toolRenames(org: string): ReadonlyMap<string, string> {
     const renames = new Map<string, string>();
     for (const server of this.servers.values()) {
+      if (server.org !== org) continue;
       const plugin = server.pluginId === undefined ? undefined : this.plugins.get(server.pluginId);
       if (plugin !== undefined) {
         renames.set(`mcp__${server.slug}`, `mcp__${toolServerSegment(plugin.name, server.name)}`);
@@ -307,7 +313,7 @@ export function migrateAgentRow(
     spec.subAgents = [];
   }
 
-  const renames = facts.toolRenames();
+  const renames = facts.toolRenames(org);
   const rename = (entries: string[]): string[] => {
     const next = entries.map((entry) => renamedToolEntry(entry, renames));
     if (next.some((entry, i) => entry !== entries[i])) {

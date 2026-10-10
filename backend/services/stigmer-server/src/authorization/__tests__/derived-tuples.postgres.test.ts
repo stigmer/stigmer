@@ -80,13 +80,13 @@ describe("deriveTuples — the cloud driver's shapes, from the row", () => {
 
   it("an org-visible blueprint adds the organization's VIEWER userset (not `#member`)", () => {
     expect(
-      derivedFor("mcp_server", {
+      derivedFor("plugin", {
         visibility: ApiResourceVisibility.visibility_org,
       }),
     ).toEqual([
-      "mcp_server:mcp_server-1#organization@organization:acme",
-      "mcp_server:mcp_server-1#owner@identity_account:ida_carol",
-      "mcp_server:mcp_server-1#viewer@organization:acme#viewer",
+      "plugin:plugin-1#organization@organization:acme",
+      "plugin:plugin-1#owner@identity_account:ida_carol",
+      "plugin:plugin-1#viewer@organization:acme#viewer",
     ]);
   });
 
@@ -116,12 +116,12 @@ describe("deriveTuples — the cloud driver's shapes, from the row", () => {
 
   it("an unspecified level derives no visibility tuple — a legacy row reads private in both editions", () => {
     expect(
-      derivedFor("mcp_server", {
+      derivedFor("plugin", {
         visibility: ApiResourceVisibility.api_resource_visibility_unspecified,
       }),
     ).toEqual([
-      "mcp_server:mcp_server-1#organization@organization:acme",
-      "mcp_server:mcp_server-1#owner@identity_account:ida_carol",
+      "plugin:plugin-1#organization@organization:acme",
+      "plugin:plugin-1#owner@identity_account:ida_carol",
     ]);
   });
 

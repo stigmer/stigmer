@@ -22,7 +22,7 @@ describe("apiResourceKindName", () => {
     [ApiResourceKind.organization, "organization"],
     [ApiResourceKind.agent, "agent"],
     [ApiResourceKind.run, "run"],
-    [ApiResourceKind.mcp_server, "mcp_server"],
+    [ApiResourceKind.channel_app, "channel_app"],
     [ApiResourceKind.agent_share, "agent_share"],
     [ApiResourceKind.skill, "skill"],
   ])("maps kind %d to Go's kind.String() value %j", (kind, expected) => {

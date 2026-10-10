@@ -290,11 +290,10 @@ describe("the contract's identity strings", () => {
 });
 
 describe("BLUEPRINT_KINDS — the legacy-creator rule's scan", () => {
-  it("is exactly the four kinds an admin authors, in registry order", () => {
+  it("is exactly the three kinds an admin authors, in registry order", () => {
     expect([...BLUEPRINT_KINDS]).toEqual([
       ApiResourceKind.agent,
       ApiResourceKind.skill,
-      ApiResourceKind.mcp_server,
       ApiResourceKind.schedule,
     ]);
   });
