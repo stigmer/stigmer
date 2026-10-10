@@ -35,7 +35,8 @@ import { ApprovalPolicySource, MessageType, ToolCallStatus } from "@stigmer/prot
 import type { TranscriptBuilder } from "../../harness/transcript/builder.js";
 import type { McpApprovalDefault } from "./approval-policy.js";
 import { resolveApprovalMessage, resolveBuiltInApprovalMessage } from "./approval-policy.js";
-import { CURSOR_SDK_TOOL_COVERS, normalizeSubAgentType } from "../../shared/tool-lists.js";
+import { CURSOR_SDK_TOOL_COVERS } from "@stigmer/tool-vocabulary";
+import { normalizeSubAgentType } from "../../shared/tool-lists.js";
 import { AGENT_SCOPE_KEY, READ_SCOPE_KEY, SCOPE_KEY_PREFIX, scopeKey } from "./hook-scope.js";
 import {
   DESTRUCTIVE_MCP_APPROVAL_MESSAGE,

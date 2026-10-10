@@ -18,6 +18,9 @@ import {
   CURSOR_SDK_EXTRA_TOOLS,
   CURSOR_SDK_TOOL_COVERS,
   NATIVE_TOOL_COVERS,
+  type ClaudeTool,
+} from "@stigmer/tool-vocabulary";
+import {
   ToolListResolutionError,
   ToolScope,
   normalizeSubAgentType,
@@ -26,7 +29,6 @@ import {
   cursorSdkToolOptions,
   outOfScopeMessage,
   parseToolListEntry,
-  type ClaudeTool,
   type ToolLists,
   type TurnToolInventory,
 } from "../tool-lists.js";

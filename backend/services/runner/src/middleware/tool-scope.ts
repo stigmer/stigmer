@@ -54,7 +54,8 @@
  */
 
 import { ToolMessage } from "@langchain/core/messages";
-import { NATIVE_TOOL_COVERS, outOfScopeMessage, type ToolScope } from "../shared/tool-lists.js";
+import { NATIVE_TOOL_COVERS } from "@stigmer/tool-vocabulary";
+import { outOfScopeMessage, type ToolScope } from "../shared/tool-lists.js";
 import type { StigmerMiddleware, ToolCallRequest } from "./types.js";
 
 /**
