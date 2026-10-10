@@ -468,16 +468,26 @@ function declarationRequirements(
 }
 
 /**
+ * The platform keys the runner always fills, over anything a run planned:
+ * who is calling and the conversation. They are no requirement, so no vault
+ * value is read for them. The Stigmer server's address is the one platform
+ * key a person may set: a value saved for it wins, and the runner fills it
+ * only when nothing is (stigmer/stigmer#1446), so it is planned as the
+ * optional key it is declared.
+ */
+const RUNNER_FILLED_VARIABLES: ReadonlySet<string> = new Set(
+  [...PLATFORM_VARIABLES].filter((name) => name !== "STIGMER_SERVER_ADDRESS"),
+);
+
+/**
  * The declarations of the keys a server reads; a name the plugin did not
- * declare is a required secret. A key the platform fills (the caller's
- * identity, the session, the Stigmer server's address: `PLATFORM_VARIABLES`)
- * is no requirement: the runner fills it for every server that reads it, and
- * no vault value may stand in for it.
+ * declare is a required secret, and a key the runner always fills
+ * (`RUNNER_FILLED_VARIABLES`) is none.
  */
 function declarationsOf(server: PluginServer): Record<string, EnvVarDeclaration> {
   const declarations: Record<string, EnvVarDeclaration> = {};
   for (const name of server.entry.env) {
-    if (PLATFORM_VARIABLES.has(name)) {
+    if (RUNNER_FILLED_VARIABLES.has(name)) {
       continue;
     }
     declarations[name] =

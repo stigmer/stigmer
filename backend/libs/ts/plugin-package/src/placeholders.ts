@@ -30,8 +30,9 @@ export const VARIABLE_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
  * The names the runner fills itself for a server that references them: who
  * is calling (a kind and a value), the conversation it calls from, and the
  * Stigmer server's address. A plugin references them in a header or an
- * argument; it never declares them, and no vault holds them, so each is
- * declared here as an optional, non-secret variable the platform supplies.
+ * argument; it never declares them, so each is declared here as an
+ * optional, non-secret variable the platform supplies. The address alone
+ * may also be saved by a person, and a saved one wins over the fill.
  * The runner keeps the same names (`shared/platform-variables.ts`), and a
  * runner test holds the two lists equal.
  */

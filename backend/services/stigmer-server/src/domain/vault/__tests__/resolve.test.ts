@@ -572,7 +572,7 @@ describe("requirements", () => {
     expect(requirement?.plainValue).toBeUndefined();
   });
 
-  it("plans no key the platform fills, even one the plugin declares: no vault value stands in for it", () => {
+  it("plans no key the runner always fills, and the server address as the optional key a person may save", () => {
     const echo: RunPlugin = {
       id: "plg_echo",
       name: "echo",
@@ -590,7 +590,9 @@ describe("requirements", () => {
         },
       }),
     };
-    expect(toolRequirements(serverOf(echo)).map((requirement) => requirement.key)).toEqual(["ECHO_KEY"]);
+    const requirements = toolRequirements(serverOf(echo));
+    expect(requirements.map((requirement) => requirement.key)).toEqual(["STIGMER_SERVER_ADDRESS", "ECHO_KEY"]);
+    expect(requirements[0]?.optional).toBe(true);
   });
 });
 
