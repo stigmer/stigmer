@@ -83,6 +83,9 @@ export function PluginEvalResults({
   const notRun = rows.filter((row) => row.notRun !== "");
   const provisional = status?.provisionalDelta === true;
   const aggregates = status?.aggregates;
+  const partial = partialLabel(
+    status?.partialReason ?? PluginEvalPartialReason.unspecified,
+  );
 
   const onCancel = async (): Promise<void> => {
     try {
@@ -114,9 +117,7 @@ export function PluginEvalResults({
       <div className="stg:flex stg:flex-col stg:gap-3 stg:px-3 stg:py-2.5">
         <p role="status" className="stg:text-xs stg:text-muted-foreground">
           {phaseLabel(status?.phase ?? PluginEvalPhase.unspecified)}
-          {status?.partialReason
-            ? ` (${partialLabel(status.partialReason)})`
-            : ""}{" "}
+          {partial !== "" ? ` (${partial})` : ""}{" "}
           · {status?.triesFinished ?? 0} of {status?.triesTotal ?? 0} tries ·{" "}
           {aggregates?.casesPassed ?? 0} of {aggregates?.casesTotal ?? 0} cases
           passed · mean Δ {formatDelta(aggregates?.meanDelta)}

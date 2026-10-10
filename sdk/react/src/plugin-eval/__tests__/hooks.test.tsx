@@ -2,7 +2,7 @@
  * Pins the plugin-eval hooks: the list asks `listByPlugin` for the plugin
  * and skips an empty id; one eval is read again while it runs and no more
  * once it has finished; start and cancel call the client and keep a
- * refusal as their error.
+ * refusal as their error, which clearError or the next call resets.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
@@ -113,6 +113,8 @@ describe("useStartPluginEval and useCancelPluginEval", () => {
     expect(result.current.error?.message).toBe(
       "the plugin has no evals/ cases",
     );
+    act(() => result.current.clearError());
+    expect(result.current.error).toBeNull();
   });
 
   it("cancel cancels by id", async () => {
@@ -124,6 +126,29 @@ describe("useStartPluginEval and useCancelPluginEval", () => {
       await result.current.cancel("pev_1");
     });
     expect(cancel).toHaveBeenCalledWith("pev_1");
+    expect(result.current.error).toBeNull();
+  });
+
+  it("cancel keeps a refusal as the error, and the next cancel clears it", async () => {
+    const cancel = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("only the plugin's editors may cancel"))
+      .mockResolvedValueOnce(evalWith([]));
+    const { result } = renderHook(() => useCancelPluginEval(), {
+      wrapper: wrap({ plugineval: { cancel } }),
+    });
+    await act(async () => {
+      await expect(result.current.cancel("pev_1")).rejects.toThrow(
+        "only the plugin's editors may cancel",
+      );
+    });
+    expect(result.current.error?.message).toBe(
+      "only the plugin's editors may cancel",
+    );
+    expect(result.current.isCancelling).toBe(false);
+    await act(async () => {
+      await result.current.cancel("pev_1");
+    });
     expect(result.current.error).toBeNull();
   });
 });

@@ -3,12 +3,16 @@
  * its settings become (named for the plugin and the moment, the targets'
  * engines, the comparison as the ablation), an eval read as one row per
  * case with a cell per target and each try summarised (a try the platform
- * could not grade shows why, never 0), the phase words, and two evals
+ * could not grade shows why, never 0), the phase words (a phase or try
+ * state this client does not know shows its number), and two evals
  * compared case by case with moved and one-sided cases flagged.
  */
 import { describe, expect, it } from "vitest";
 import { PluginEvalAblation } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
-import { PluginEvalPhase } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
+import {
+  PluginEvalPhase,
+  PluginEvalTryState,
+} from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import {
   DEFAULT_EVAL_FORM,
@@ -145,6 +149,48 @@ describe("an eval's rows", () => {
     });
   });
 
+  it("summarises a try waiting to start, one not graded without a reason, and a state this client does not know", () => {
+    const pluginEval = evalWith([{ name: "a", score: 1 }]);
+    const tries = pluginEval.status!.cases[0]!.targets[0]!.withPlugin!.tries;
+    tries[0]!.state = PluginEvalTryState.pending;
+    tries[1]!.notGradedReason = "";
+    tries.push(
+      { ...tries[0]!, index: 3, state: PluginEvalTryState.unspecified },
+      { ...tries[0]!, index: 4, state: 7 as PluginEvalTryState },
+    );
+    expect(
+      evalCaseRowsOf(pluginEval)[0]
+        ?.cells[0]?.tries.filter((attempt) => attempt.arm === "with")
+        .map((attempt) => attempt.summary),
+    ).toEqual(["waiting", "not graded", "waiting", "7"]);
+  });
+
+  it("leaves out the cell of a target the case has no result on", () => {
+    const pluginEval = evalWith([{ name: "a", score: 1 }], [SONNET, GPT]);
+    pluginEval.status!.cases[0]!.targets.pop();
+    expect(evalTargetLabelsOf(pluginEval)).toEqual([
+      "native/claude-sonnet-4-6",
+      "cursor/gpt-5",
+    ]);
+    expect(
+      evalCaseRowsOf(pluginEval)[0]?.cells.map((cell) => cell.target),
+    ).toEqual(["native/claude-sonnet-4-6"]);
+  });
+
+  it("names every phase, and one this client does not know by its number", () => {
+    expect(
+      [
+        PluginEvalPhase.pending,
+        PluginEvalPhase.running,
+        PluginEvalPhase.completed,
+        PluginEvalPhase.partial,
+        PluginEvalPhase.failed,
+        PluginEvalPhase.unspecified,
+        42 as PluginEvalPhase,
+      ].map(phaseLabel),
+    ).toEqual(["Starting", "Running", "Completed", "Partial", "Failed", "", "42"]);
+  });
+
   it("is active while pending or running", () => {
     const pluginEval = evalWith([]);
     expect(isEvalActive(pluginEval)).toBe(false);
@@ -187,5 +233,34 @@ describe("compareEvals", () => {
     });
     expect(rows[2]?.before).toBeNull();
     expect(rows[3]?.after).toBeNull();
+  });
+
+  it("treats a case not run on a target as absent from that eval there", () => {
+    const before = evalWith([{ name: "a", score: 1, delta: 0.5 }]);
+    const after = evalWith([{ name: "a", score: 1, delta: 0.5 }]);
+    after.status!.cases[0]!.targets[0]!.notRunReason =
+      "not run: model 'claude-sonnet-4-6' is not available";
+    expect(compareEvals(before, after)).toEqual([
+      {
+        name: "a",
+        target: "native/claude-sonnet-4-6",
+        before: { score: 1, delta: 0.5 },
+        after: null,
+        changed: true,
+      },
+    ]);
+  });
+
+  it("flags a score present on one side only, and not one missing on both", () => {
+    const scored = evalWith([{ name: "a", score: 1 }]);
+    const unscored = evalWith([{ name: "a" }]);
+    expect(compareEvals(scored, unscored)[0]).toMatchObject({
+      before: { score: 1 },
+      after: { score: undefined },
+      changed: true,
+    });
+    expect(compareEvals(unscored, evalWith([{ name: "a" }]))[0]?.changed).toBe(
+      false,
+    );
   });
 });

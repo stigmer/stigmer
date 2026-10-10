@@ -486,10 +486,12 @@ function usesMockCalls(grader: EvalGrader): boolean {
     case "file_exists":
     case "baseline":
       return false;
+    /* v8 ignore start -- @preserve: the never arm; readGrader builds only these check types, so no grader reaches it */
     default: {
       const exhaustive: never = check;
       throw new Error(`unknown grader ${JSON.stringify(exhaustive)}`);
     }
+    /* v8 ignore stop */
   }
 }
 

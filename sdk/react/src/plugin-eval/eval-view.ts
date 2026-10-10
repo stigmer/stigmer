@@ -282,13 +282,9 @@ export function compareEvals(
   before: PluginEval,
   after: PluginEval,
 ): readonly EvalCompareRow[] {
-  const sides = (
-    pluginEval: PluginEval,
-  ): Map<string, { name: string; target: string; side: EvalCompareSide }> => {
-    const map = new Map<
-      string,
-      { name: string; target: string; side: EvalCompareSide }
-    >();
+  type Entry = { name: string; target: string; side: EvalCompareSide };
+  const sides = (pluginEval: PluginEval): Map<string, Entry> => {
+    const map = new Map<string, Entry>();
     for (const row of evalCaseRowsOf(pluginEval)) {
       for (const cell of row.cells) {
         if (cell.notRun !== "") continue;
@@ -303,27 +299,27 @@ export function compareEvals(
   };
   const was = sides(before);
   const now = sides(after);
-  const keys = [
-    ...now.keys(),
-    ...[...was.keys()].filter((key) => !now.has(key)),
-  ];
-  return keys.flatMap((key) => {
-    const a = was.get(key);
-    const b = now.get(key);
-    const ref = b ?? a;
-    if (ref === undefined) return [];
-    return {
-      name: ref.name,
-      target: ref.target,
-      before: a?.side ?? null,
-      after: b?.side ?? null,
-      changed:
-        a === undefined ||
-        b === undefined ||
-        moved(a.side.score, b.side.score) ||
-        moved(a.side.delta, b.side.delta),
-    };
+  const row = (
+    ref: Entry,
+    a: Entry | undefined,
+    b: Entry | undefined,
+  ): EvalCompareRow => ({
+    name: ref.name,
+    target: ref.target,
+    before: a?.side ?? null,
+    after: b?.side ?? null,
+    changed:
+      a === undefined ||
+      b === undefined ||
+      moved(a.side.score, b.side.score) ||
+      moved(a.side.delta, b.side.delta),
   });
+  return [
+    ...[...now].map(([key, b]) => row(b, was.get(key), b)),
+    ...[...was]
+      .filter(([key]) => !now.has(key))
+      .map(([, a]) => row(a, a, undefined)),
+  ];
 }
 
 function moved(a: number | undefined, b: number | undefined): boolean {
