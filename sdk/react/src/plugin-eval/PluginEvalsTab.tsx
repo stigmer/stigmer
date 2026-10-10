@@ -14,9 +14,11 @@
  * two evals side by side case by case, how a new version is judged against
  * the last. The results themselves are {@link PluginEvalResults}.
  *
- * The form is gated on `can_edit` on the plugin, failing open while the
- * check is in flight because the server refuses a create from anyone else
- * anyway. The organization that installed the plugin pays for every try.
+ * The form and an eval's Cancel are gated on `can_edit` on the plugin,
+ * failing closed: they show only once the check answers yes, never while
+ * it is in flight or after it failed, so a viewer is never offered a
+ * control the server would refuse. The organization that installed the
+ * plugin pays for every try.
  *
  * All visual properties flow through `--stgm-*` tokens.
  */
@@ -93,6 +95,7 @@ export function PluginEvalsTab({
   const { allowed: canEdit } = useCheckPermission(
     pluginId ? { kind: "plugin", id: pluginId } : null,
     "can_edit",
+    { fail: "closed" },
   );
   const { evals, isLoading, error, refetch } = usePluginEvals(pluginId);
   const [selected, setSelected] = useState<string | null>(null);
