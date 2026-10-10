@@ -34,7 +34,9 @@ import { HOSTED_HARNESSES } from "../harness-adapters.js";
 import type { HarnessRow } from "../harness/registry.js";
 import { AgentProxy } from "../agent-proxy/server.js";
 import { agentHostEnvironment } from "./environment.js";
+import { installAgentFs } from "../shared/agent-fs.js";
 import { createRemoteAdapter } from "./remote-adapter.js";
+import { remoteAgentFs } from "./remote-fs.js";
 import { AgentHostSupervisor, processHostStarter, type HostStarter } from "./supervisor.js";
 
 /** The table the root runs, and what to release once its harnesses have shut down. */
@@ -62,6 +64,13 @@ export async function hostHarnesses(
     proxy,
     start: options.start ?? processHostStarter(() => ({ ...agentHostEnvironment(), NODE_EXTRA_CA_CERTS: trust.file })),
   });
+  // From here on, the runtime's operations on the agent's paths are the host's.
+  const restoreFs = installAgentFs(
+    remoteAgentFs({
+      fs: async (request) => (await supervisor.connection()).call("fs", request),
+      exec: async (request) => (await supervisor.connection()).call("exec", request),
+    }),
+  );
   return {
     rows: rows.map((row) =>
       HOSTED_HARNESSES.has(row.harness)
@@ -71,6 +80,7 @@ export async function hostHarnesses(
     warmCursorSdk: () =>
       supervisor.warmCursorSdk().catch((err: unknown) => ({ warmed: false, durationMs: 0, error: err instanceof Error ? err.message : String(err) })),
     close: async () => {
+      restoreFs();
       await proxy.close();
       trust.remove();
     },
