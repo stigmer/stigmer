@@ -247,12 +247,6 @@ export class CursorLane {
         [http2Constants.HTTP2_HEADER_PATH]: `${url.pathname}${url.search}`,
       };
       const upstream = session.request(outgoing);
-      let settled = false;
-      const settle = (): void => {
-        settled = true;
-        res.off("close", abandon);
-        resolve();
-      };
       const abandon = (): void => {
         if (!res.writableFinished) upstream.close(http2Constants.NGHTTP2_CANCEL);
       };
@@ -264,9 +258,7 @@ export class CursorLane {
           if (!name.startsWith(":") && value !== undefined) relayed[name] = value;
         }
         res.writeHead(Number(answer[http2Constants.HTTP2_HEADER_STATUS] ?? 502), relayed);
-        // Not ended by the pipe: the upstream's close says whether its
-        // answer was whole (`close` below).
-        upstream.pipe(res, { end: false });
+        upstream.pipe(res);
       });
       upstream.on("trailers", (trailers) => {
         const relayed: OutgoingHttpHeaders = {};
@@ -275,24 +267,13 @@ export class CursorLane {
         }
         res.addTrailers(relayed);
       });
+      upstream.on("end", () => resolve());
       upstream.on("error", (err) => {
-        if (settled) return;
+        res.off("close", abandon);
         console.warn(`[agent-proxy] the Cursor stream ${url.pathname} failed upstream: ${err.message}`);
-        if (res.headersSent) resetHostStream(res);
+        if (res.headersSent) res.stream.close(http2Constants.NGHTTP2_INTERNAL_ERROR);
         else replyConnectError(res, 502, `the upstream could not be reached: ${err.message}`);
-        settle();
-      });
-      // A clean close ends the host's stream; a reset resets it, so a cut-off
-      // answer never reads as a whole one.
-      upstream.on("close", () => {
-        if (settled) return;
-        if (upstream.rstCode === undefined || upstream.rstCode === http2Constants.NGHTTP2_NO_ERROR) {
-          res.end();
-        } else {
-          console.warn(`[agent-proxy] the Cursor stream ${url.pathname} was reset upstream (code ${upstream.rstCode})`);
-          resetHostStream(res);
-        }
-        settle();
+        resolve();
       });
     });
   }
@@ -325,17 +306,6 @@ export class CursorLane {
     if (!this.config.cursorApiKey) throw new LaneRefusal(500, "the Cursor lane needs CURSOR_API_KEY on the runner");
     return this.config.cursorApiKey;
   }
-}
-
-/**
- * Reset the host's stream (RST_STREAM, INTERNAL_ERROR), so an answer cut off
- * upstream never reads as a whole one. `destroy`, not `close`: a stream whose
- * request half the host has ended reads a `close(code)` as a clean end. The
- * error it raises is the lane's own, and handled here.
- */
-function resetHostStream(res: Http2ServerResponse): void {
-  res.stream.on("error", () => {});
-  res.stream.destroy(new Error("the Cursor stream failed upstream"));
 }
 
 /**
