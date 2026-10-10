@@ -183,7 +183,8 @@ export function claudeNameOf(engine: ToolEngine, engineToolName: string, fileCha
 
 /**
  * The plugin-eval format's read-only tool set, quoted whole and in its
- * order: what a case's run may use when it names no tools of its own. Some
+ * order: the read-only tools a case may list, granted without the eval's
+ * `allow_tools`. A case that lists none is granted none of them. Some
  * names here are not {@link ClaudeTool}s, because Stigmer runs nothing for
  * them; a list carrying them ignores them.
  */
