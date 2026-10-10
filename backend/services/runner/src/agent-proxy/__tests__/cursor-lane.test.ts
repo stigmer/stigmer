@@ -23,9 +23,14 @@
  *    header; forward mode reaches the platform's proxy with the runner's
  *    credential, the real token, and the execution id as its one scope
  *    header;
- *  - an exchange the upstream refuses, or answers without a token, comes
- *    back as it was; an upstream that cannot be reached is a 502 in the
- *    shape a Connect client reads;
+ *  - an exchange the upstream refuses comes back as it was; any 2xx answer
+ *    without a token is refused, so no Cursor credential reaches the host;
+ *    an upstream that cannot be reached is a 502 in the shape a Connect
+ *    client reads;
+ *  - an upstream stream that is reset after its headers, CANCEL included,
+ *    resets the host's with the same code, never a clean end;
+ *  - in forward mode a side call's execution id, which no live-turn check
+ *    covered, is not forwarded;
  *  - a host that drops its connection mid-stream has its run cancelled at
  *    Cursor, and a drop mid-stream or mid-handshake leaves the lane serving.
  */
@@ -60,6 +65,8 @@ class FakeConnectHost {
   readonly closedCodes: number[] = [];
   /** Answer the headers, then reset the stream: an upstream that fails mid-answer. */
   resetAfterHeaders = false;
+  /** Answer the headers and some data, then cancel the stream (RST_STREAM CANCEL). */
+  cancelAfterHeaders = false;
   url = "";
   private server: Http2Server | undefined;
 
@@ -69,6 +76,13 @@ class FakeConnectHost {
     this.server.on("stream", (stream: ServerHttp2Stream, headers: IncomingHttpHeaders) => {
       this.streams.push({ path: String(headers[":path"]), headers });
       stream.on("close", () => this.closedCodes.push(stream.rstCode));
+      if (this.cancelAfterHeaders) {
+        stream.respond({ ":status": 200, "content-type": "application/connect+proto" });
+        stream.on("error", () => {});
+        stream.write("partial");
+        setTimeout(() => stream.close(8), 20);
+        return;
+      }
       if (this.resetAfterHeaders) {
         stream.respond({ ":status": 200, "content-type": "application/connect+proto" });
         stream.on("error", () => {});
@@ -179,6 +193,7 @@ beforeEach(() => {
   rest.answer = FakeUpstream.DEFAULT_ANSWER;
   connectHost.streams.length = 0;
   connectHost.resetAfterHeaders = false;
+  connectHost.cancelAfterHeaders = false;
   connectHost.closedCodes.length = 0;
   connectHost.sessions = 0;
   setEnv({ CURSOR_BACKEND_URL: rest.url });
@@ -361,12 +376,22 @@ describe("terminate: a runner that calls Cursor itself", () => {
   it("passes an exchange the upstream refused through unchanged, and keeps any other answer without a token from the host", async () => {
     rest.answer = { status: 401, headers: { "content-type": "application/json" }, body: '{"error":"bad key"}' };
     expect(await call(EXCHANGE, { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION })).toEqual({ status: 401, body: '{"error":"bad key"}' });
-    for (const body of ["not json", '{"accessToken":"","refreshToken":"real-refresh"}', '{"access_token":"real-snake","refresh_token":"real-refresh"}']) {
-      rest.answer = { status: 200, headers: {}, body };
+    for (const [status, body] of [
+      [200, "not json"],
+      [200, '{"accessToken":"","refreshToken":"real-refresh"}'],
+      [200, '{"access_token":"real-snake","refresh_token":"real-refresh"}'],
+      [201, '{"refreshToken":"real-refresh"}'],
+    ] as const) {
+      rest.answer = { status, headers: {}, body };
       const answer = await call(EXCHANGE, { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION });
       expect(answer.status, body).toBe(502);
       expect(answer.body, body).not.toContain("real-");
     }
+    rest.answer = { status: 201, headers: { "content-type": "application/json" }, body: JSON.stringify({ accessToken: REAL_TOKEN, refreshToken: "real-refresh" }) };
+    const created = await call(EXCHANGE, { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION });
+    expect(created.status, "another 2xx is held in custody too").toBe(201);
+    expect(created.body).not.toContain(REAL_TOKEN);
+    expect(created.body).not.toContain("real-refresh");
   });
 
   it("cancels Cursor's stream when the host drops its own, and keeps serving after a drop mid-stream or mid-handshake", async () => {
@@ -406,6 +431,26 @@ describe("terminate: a runner that calls Cursor itself", () => {
       req.end("x");
     });
     expect(reset, "an internal-error reset, never a clean end").toBe(2);
+  });
+
+  it("passes Cursor's own cancel after its headers on as a cancel, never a clean end", async () => {
+    const standIn = await exchange();
+    setEnv({ CURSOR_BACKEND_URL: connectHost.url });
+    connectHost.cancelAfterHeaders = true;
+    const code = await new Promise<number>((resolve) => {
+      const session = connect(proxy.cursorEndpoint, { ca: proxy.cursorCertificate });
+      session.on("error", () => {});
+      const req = session.request({ ":method": "POST", ":path": RUN, authorization: `Bearer ${standIn}`, "x-stigmer-execution-id": EXECUTION });
+      req.on("error", () => {});
+      req.on("close", () => {
+        session.close();
+        resolve(req.rstCode);
+      });
+      req.resume();
+      // A run's own half stays open while Cursor answers, as the agent run's does.
+      req.write("x");
+    });
+    expect(code, "Cursor's cancel, never a clean end (0)").toBe(8);
   });
 
   it("opens a fresh upstream connection when the host resets its own, so a recovery never reuses a degraded one", async () => {
@@ -470,6 +515,15 @@ describe("forward: a runner behind the Stigmer platform's proxy", () => {
     expect(rest.last.path).toBe(EXCHANGE);
     expect(rest.last.headers.authorization).toBe(`Bearer ${RUNNER_TOKEN}`);
     expect(Object.keys(rest.last.headers).filter((h) => h.startsWith("x-stigmer-"))).toEqual(["x-stigmer-execution-id"]);
+  });
+
+  it("forwards a side call without the execution id it claims, which no live-turn check covered", async () => {
+    const standIn = await exchange();
+    rest.answer = { status: 200, headers: { "content-type": "application/json" }, body: "{}" };
+    await call("/aiserver.v1.ServerConfigService/GetServerConfig", { authorization: `Bearer ${standIn}`, "x-stigmer-execution-id": "someone-elses-run" });
+    expect(rest.last.path).toBe("/aiserver.v1.ServerConfigService/GetServerConfig");
+    expect(rest.last.headers["x-stigmer-auth"]).toBe(`Bearer ${RUNNER_TOKEN}`);
+    expect(rest.last.headers["x-stigmer-execution-id"]).toBeUndefined();
   });
 
   it("opens the agent run on the platform's lane with the real token, the runner's credential and the execution id alone", async () => {

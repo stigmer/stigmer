@@ -252,7 +252,7 @@ export class CursorLane {
     // The exchange: the access token stays here; the host gets a stand-in.
     const answer = await requestWhole(upstream);
     let out = answer.body;
-    if (answer.status === 200) {
+    if (answer.status >= 200 && answer.status < 300) {
       // Custody fails closed: an answer this lane cannot take the token out
       // of never reaches the host, and no refresh token ever does.
       const parsed = parseJsonObject(answer.body);
@@ -275,7 +275,9 @@ export class CursorLane {
     const forward = this.config.proxyEndpoint !== null;
     const base = forward ? this.config.proxyEndpoint! : process.env.CURSOR_BACKEND_URL?.trim() || DEFAULT_CONNECT_UPSTREAM;
     const headers: Record<string, string | string[]> = {
-      ...forwardableHeaders(req.headers, forward),
+      // The execution id goes on only once this lane has checked it names a
+      // live turn: the agent run's. A side call's claim is dropped.
+      ...forwardableHeaders(req.headers, forward && scoped),
       authorization: `Bearer ${real}`,
       ...(forward ? { "x-stigmer-auth": `Bearer ${this.runnerCredential()}` } : {}),
     };
@@ -291,7 +293,9 @@ export class CursorLane {
    * One HTTP/2 stream, relayed both ways as it flows: the agent run is a
    * bidirectional stream, so neither side is buffered. The upstream's
    * headers, data and trailers come back as they were; either side's reset
-   * resets the other.
+   * resets the other, with its own code, so a cut-off answer never reads as
+   * a complete one. The relay is done when the upstream stream closes,
+   * however it closes.
    */
   private relayStream(req: Http2ServerRequest, res: Http2ServerResponse, url: URL, headers: Record<string, string | string[]>): Promise<void> {
     return new Promise((resolve) => {
@@ -319,7 +323,7 @@ export class CursorLane {
           if (!name.startsWith(":") && value !== undefined) relayed[name] = value;
         }
         res.writeHead(Number(answer[http2Constants.HTTP2_HEADER_STATUS] ?? 502), relayed);
-        upstream.pipe(res);
+        upstream.pipe(res, { end: false });
       });
       upstream.on("trailers", (trailers) => {
         const relayed: OutgoingHttpHeaders = {};
@@ -328,8 +332,20 @@ export class CursorLane {
         }
         res.addTrailers(relayed);
       });
-      upstream.on("end", () => resolve());
+      let failed = false;
+      upstream.on("close", () => {
+        res.off("close", abandon);
+        if (!failed && !res.stream.closed) {
+          // A reset (CANCEL included, which Node reports as no error) is
+          // passed on with its code; only a stream that ended cleanly ends
+          // the host's cleanly, after its trailers.
+          if (upstream.rstCode !== undefined && upstream.rstCode !== http2Constants.NGHTTP2_NO_ERROR) res.stream.close(upstream.rstCode);
+          else res.end();
+        }
+        resolve();
+      });
       upstream.on("error", (err) => {
+        failed = true;
         res.off("close", abandon);
         console.warn(`[agent-proxy] the Cursor stream ${url.pathname} failed upstream: ${err.message}`);
         if (res.headersSent) res.stream.close(http2Constants.NGHTTP2_INTERNAL_ERROR);
@@ -381,7 +397,6 @@ export class CursorLane {
   }
 }
 
-/** Is `host` one of Cursor's own, read as a URL parser reads it (no userinfo, port or escape)? */
 /**
  * The Cursor host a REST call names, as the lane's own constant, or
  * `undefined` for anything else. Only the exact host names count: the host's
