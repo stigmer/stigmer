@@ -156,9 +156,10 @@ export type SuiteEnd =
   | { readonly phase: "failed"; readonly error: string };
 
 /**
- * The least a try's run is capped at. A run's cap of 0 means no cap
- * (run/v1/invocation.proto `max_cost_usd`), so what is left of the eval's
- * budget is never passed below this.
+ * The least a try's run is capped at while the eval has anything left. A
+ * run's cap of 0 means no cap (run/v1/invocation.proto `max_cost_usd`), so
+ * a try's share is never passed below this; with nothing left, no try
+ * starts.
  */
 export const TRY_MIN_BUDGET_USD = 0.01;
 

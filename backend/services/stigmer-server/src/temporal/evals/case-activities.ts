@@ -4,8 +4,8 @@
  * the spend activity both workflows read a try's cost through.
  *
  *   - start-try: the try's session, then its run (domain/plugin-eval/
- *     try-run.ts, arm.ts), the run capped at what the suite workflow says
- *     is left of the eval's budget, both as the eval's caller, minted per
+ *     try-run.ts, arm.ts), the run capped at the budget the suite workflow
+ *     hands the try (its share of what the eval has left), both as the eval's caller, minted per
  *     try (extensions/plugin-eval-caller.ts; none composed: the server). A
  *     retried start first looks for the run an earlier attempt created
  *     (the eval's label and the try's run name, read only on a retry, so a

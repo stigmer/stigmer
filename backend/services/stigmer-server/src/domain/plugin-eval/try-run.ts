@@ -12,9 +12,10 @@
  * subject is the case's name, so no titling call is made; its harness is
  * the target's; it runs the agent its arm names (arm.ts). The run:
  *
- *   - the target's model, and what is left of the eval's spending limit
- *     when the try starts as its own cap, so no one try can spend past
- *     what the eval still allows;
+ *   - the target's model, and as its own cap the budget the suite workflow
+ *     hands the try when it starts (tryBudgetUsd): an equal share of what
+ *     the eval has left for the tries that may run at once, within what
+ *     the caps of the tries still running leave;
  *   - `auto_approve_all`: a try never stops to ask, as in the format;
  *   - `max_tool_rounds` from the case's `max_turns`, clamped to the run's
  *     10 to 1000 (a case note says so when clamped);
@@ -229,7 +230,7 @@ export function tryRunRequest(input: {
   readonly evalCase: EvalCase;
   readonly spec: PluginEvalSpec;
   readonly modelName: string;
-  /** The run's spending cap: what is left of the eval's budget (temporal/evals/names.ts CaseInput). */
+  /** The run's spending cap: the try's share of what the eval has left (temporal/evals/names.ts CaseInput). */
   readonly budgetUsd: number;
   readonly pluginServerSlugs: ReadonlyArray<string>;
 }): Run {
