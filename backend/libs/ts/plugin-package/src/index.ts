@@ -68,7 +68,7 @@ export {
   readEvalSuite,
 } from "./evals/read-eval-suite.js";
 export { EVAL_ENV_KEY_PATTERN, EVAL_SCHEMA_VERSION } from "./evals/fields.js";
-export { GLOB_MAX_ALTERNATIVES, GLOB_MAX_BRACE_DEPTH, globError } from "./evals/glob.js";
+export { GLOB_MAX_ALTERNATIVES, GLOB_MAX_BRACE_DEPTH, GLOB_MAX_LENGTH, GLOB_MAX_TOKENS, globError } from "./evals/glob.js";
 export type {
   EvalCase,
   EvalCaseContext,
