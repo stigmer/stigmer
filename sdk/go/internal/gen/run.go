@@ -230,9 +230,12 @@ type WorkspaceSourceInput struct {
 
 // GitRepoSourceInput is the SDK input type for GitRepoSource.
 type GitRepoSourceInput struct {
-	Url           string
-	Branch        string
-	Commit        string
+	Url    string
+	Branch string
+	Commit string
+	// Depth is not sent when zero: this input cannot tell a zero you set from
+	// none, so zero means unset. Number of commits to include in the clone
+	// history.
 	Depth         int32
 	WriteBackMode sessionv1.GitWriteBackMode
 	Token         string

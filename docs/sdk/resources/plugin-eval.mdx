@@ -200,7 +200,7 @@ pluginEval, err := client.PluginEval.Create(ctx, &stigmer.PluginEvalInput{
   Targets:        []stigmer.PluginEvalTargetInput{},
   Runs:           0,
   Ablation:       "...",
-  Threshold:      0,
+  Threshold:      0, // zero is unset: not sent, so the server's default applies
   CaseGlob:       "...",
   CaseTags:       []string{},
   JudgeModel:     "...",
@@ -357,7 +357,7 @@ Input for creating or updating a Plugin Eval.
     targets: { type: "PluginEvalTargetInput[]", description: "The engines and models each case runs on, at most six.", typeDescriptionLink: "#pluginevaltargetinput" },
     runs: { type: "number", description: "Tries per case, arm and target, from 1 to 50." },
     ablation: { type: "PluginEvalAblation", description: "Whether each case also runs without the plugin, for comparison.", typeDescriptionLink: "#pluginevalablation" },
-    threshold: { type: "number", description: "The score a case needs to pass, from 0 to 1." },
+    threshold: { type: "number", description: "The score a case needs to pass, from 0 to 1, or 1 when unset: every scored check passes on every try." },
     caseGlob: { type: "string", description: "Runs only the cases whose directory name matches this glob, as in \"review-*\"." },
     caseTags: { type: "string[]", description: "Runs only the cases carrying at least one of these tags." },
     judgeModel: { type: "string", description: "The model AI-graded checks use." },

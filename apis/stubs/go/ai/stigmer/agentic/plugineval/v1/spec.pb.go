@@ -94,7 +94,7 @@ type PluginEvalSpec struct {
 	Runs int32 `protobuf:"varint,4,opt,name=runs,proto3" json:"runs,omitempty"`
 	// Whether each case also runs without the plugin, for comparison.
 	Ablation PluginEvalAblation `protobuf:"varint,5,opt,name=ablation,proto3,enum=ai.stigmer.agentic.plugineval.v1.PluginEvalAblation" json:"ablation,omitempty"`
-	// The score a case needs to pass, from 0 to 1. Unset means 1: every
+	// The score a case needs to pass, from 0 to 1, or 1 when unset: every
 	// scored check passes on every try.
 	Threshold *float64 `protobuf:"fixed64,6,opt,name=threshold,proto3,oneof" json:"threshold,omitempty"`
 	// Runs only the cases whose directory name matches this glob, as in
@@ -131,7 +131,9 @@ type PluginEvalSpec struct {
 	// vault holding a match wins. At most 20.
 	//
 	// A try has no person, so these vaults are all its hooks and servers
-	// use. The eval's creator may attach their own My vault; nobody else's.
+	// use. Each is a shared vault: a My vault, the creator's included, is
+	// refused, because every viewer of the plugin may read a try, and a
+	// hook's or server's output can show what a key unlocked.
 	Vaults        []*apiresource.ApiResourceReference `protobuf:"bytes,14,rep,name=vaults,proto3" json:"vaults,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

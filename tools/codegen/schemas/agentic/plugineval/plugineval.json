@@ -82,7 +82,7 @@
       "type": {
         "kind": "double"
       },
-      "description": "The score a case needs to pass, from 0 to 1. Unset means 1: every\n scored check passes on every try.",
+      "description": "The score a case needs to pass, from 0 to 1, or 1 when unset: every\n scored check passes on every try.",
       "required": false,
       "oneofGroup": "_threshold",
       "validation": {
@@ -194,7 +194,7 @@
           "messageType": "ApiResourceReference"
         }
       },
-      "description": "Vaults whose logins and secrets the tries use, in order: the first\n vault holding a match wins. At most 20.\n\n A try has no person, so these vaults are all its hooks and servers\n use. The eval's creator may attach their own My vault; nobody else's.",
+      "description": "Vaults whose logins and secrets the tries use, in order: the first\n vault holding a match wins. At most 20.\n\n A try has no person, so these vaults are all its hooks and servers\n use. Each is a shared vault: a My vault, the creator's included, is\n refused, because every viewer of the plugin may read a try, and a\n hook's or server's output can show what a key unlocked.",
       "required": false,
       "referenceKind": 59,
       "validation": {

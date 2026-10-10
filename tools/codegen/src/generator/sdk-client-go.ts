@@ -610,6 +610,7 @@ function generateInputTypesV2(
     buf.push("\tVersionMessage string\n");
   }
   for (const f of specFields) {
+    buf.push(presenceComment(f));
     buf.push(`\t${f.name} ${goTypeForField(f)}\n`);
   }
   buf.push("}\n\n");
@@ -655,6 +656,47 @@ function generateInputTypesV2(
   }
 
   return allTypes;
+}
+
+/** The width a generated field comment wraps at, its tab and `// ` aside. */
+const FIELD_COMMENT_WIDTH = 72;
+
+/**
+ * The doc comment over an input field with explicit presence (a proto3
+ * `optional` scalar), empty for any other field. The input holds a plain
+ * value, so a zero the caller set cannot be told from none: zero is never
+ * sent, and the server reads the field as unset, which can differ from
+ * zero (an unset threshold is 1, the strictest). The comment says so, then
+ * the field's first sentence, which names what unset means.
+ */
+function presenceComment(f: FieldSchema): string {
+  if (!hasExplicitPresence(f)) return "";
+  const words = [
+    `${f.name} is not sent when zero: this input cannot tell a zero you set from none, so zero means unset.`,
+    firstSentence(f.description),
+  ]
+    .join(" ")
+    .split(/\s+/)
+    .filter((word) => word !== "");
+  const lines: string[] = [];
+  let line = "";
+  for (const word of words) {
+    if (line !== "" && line.length + 1 + word.length > FIELD_COMMENT_WIDTH) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = line === "" ? word : `${line} ${word}`;
+    }
+  }
+  lines.push(line);
+  return lines.map((text) => `\t// ${text}\n`).join("");
+}
+
+/** A description's first sentence, through its first `. ` or the end of its first paragraph. */
+function firstSentence(description: string): string {
+  const paragraph = description.split("\n\n")[0]!.replace(/\s+/g, " ").trim();
+  const end = paragraph.indexOf(". ");
+  return end < 0 ? paragraph : paragraph.slice(0, end + 1);
 }
 
 /**
@@ -750,6 +792,7 @@ function emitNestedTypes(
     buf.push(`// ${inputName} is the SDK input type for ${msgName}.\n`);
     buf.push(`type ${inputName} struct {\n`);
     for (const field of ts.fields) {
+      buf.push(presenceComment(field));
       buf.push(`\t${field.name} ${goTypeForField(field)}\n`);
     }
     buf.push("}\n\n");

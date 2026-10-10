@@ -9,7 +9,10 @@
  * arrived as zero and was refused. Go's nested literal form skipped the
  * fields altogether, so a Go caller's plan limits and prices never reached
  * the wire, and its spec-level form assigned the plain value to the
- * pointer field, which does not compile. These tests run each generator over a copy of the real schemas,
+ * pointer field, which does not compile. A Go input's field holds a plain
+ * value, so its zero is unset, never sent: its doc comment says so, and the
+ * reference docs' Go example notes it, where a TypeScript, Python or Java
+ * zero is sent. These tests run each generator over a copy of the real schemas,
  * with two top-level optional scalars added to the Plan spec so the
  * spec-level paths run too, and read what it wrote.
  */
@@ -23,8 +26,10 @@ import { hasExplicitPresence } from "../gen-common.js";
 import { runSDKClientGeneration } from "../sdk-client-go.js";
 import { runSDKClientJavaGeneration } from "../sdk-client-java.js";
 import { runSDKClientPythonGeneration } from "../sdk-client-python.js";
+import { runSDKDocsGeneration } from "../sdk-docs.js";
 
 const SCHEMAS = path.resolve(__dirname, "../../../schemas");
+const APIS = path.resolve(__dirname, "../../../../../apis");
 
 function field(kind: string, oneofGroup?: string): FieldSchema {
   return {
@@ -132,8 +137,36 @@ describe("the SDK generators keep an optional scalar's presence", () => {
     expect(go).toContain("\tif i.MonthlyMinimumMicros != 0 {\n\t\tv := i.MonthlyMinimumMicros\n\t\tp.MonthlyMinimumMicros = &v\n\t}\n");
   });
 
+  it("Go documents an optional scalar's zero as unset, then the field's first sentence", () => {
+    expect(go).toContain(
+      "\t// TrialDays is not sent when zero: this input cannot tell a zero you set\n\t// from none, so zero means unset. A fixture field.\n\tTrialDays int32\n",
+    );
+    expect(go).toContain("\t// MaxOrgs is not sent when zero:");
+    expect(go).not.toMatch(/\/\/ Name is not sent when zero/);
+  });
+
   it("Go sends a spec-level optional scalar the caller set as a pointer", () => {
     expect(go).toContain("\tif i.TrialDays != 0 {\n\t\tv := i.TrialDays\n\t\tresource.Spec.TrialDays = &v\n\t}\n");
     expect(go).not.toContain("resource.Spec.TrialDays = i.TrialDays");
+  });
+});
+
+describe("the SDK resource docs' Go example", () => {
+  let root: string;
+
+  beforeAll(() => {
+    root = fs.mkdtempSync(path.join(os.tmpdir(), "codegen-presence-docs-"));
+    runSDKDocsGeneration(SCHEMAS, root, APIS);
+  });
+
+  afterAll(() => {
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+
+  it("notes that an optional scalar's zero is unset in Go, and only in Go", () => {
+    const page = fs.readFileSync(path.join(root, "plugin-eval.mdx"), "utf8");
+    expect(page).toContain("  Threshold:      0, // zero is unset: not sent, so the server's default applies\n");
+    expect(page).toContain("  threshold: 0,\n");
+    expect(page).toContain("  Runs:           0,\n");
   });
 });

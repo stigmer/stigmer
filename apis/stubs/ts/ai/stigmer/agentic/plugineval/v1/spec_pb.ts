@@ -64,7 +64,7 @@ export type PluginEvalSpec = Message<"ai.stigmer.agentic.plugineval.v1.PluginEva
   ablation: PluginEvalAblation;
 
   /**
-   * The score a case needs to pass, from 0 to 1. Unset means 1: every
+   * The score a case needs to pass, from 0 to 1, or 1 when unset: every
    * scored check passes on every try.
    *
    * @generated from field: optional double threshold = 6;
@@ -141,7 +141,9 @@ export type PluginEvalSpec = Message<"ai.stigmer.agentic.plugineval.v1.PluginEva
    * vault holding a match wins. At most 20.
    *
    * A try has no person, so these vaults are all its hooks and servers
-   * use. The eval's creator may attach their own My vault; nobody else's.
+   * use. Each is a shared vault: a My vault, the creator's included, is
+   * refused, because every viewer of the plugin may read a try, and a
+   * hook's or server's output can show what a key unlocked.
    *
    * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference vaults = 14;
    */

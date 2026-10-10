@@ -82,10 +82,26 @@ type EntitlementsInput struct {
 
 // EntitlementLimitsInput is the SDK input type for EntitlementLimits.
 type EntitlementLimitsInput struct {
-	MaxOrgs                        int32
-	MaxUsers                       int32
-	IncludedChildOrgs              int32
-	MaxActiveSessionSandboxes      int32
+	// MaxOrgs is not sent when zero: this input cannot tell a zero you set
+	// from none, so zero means unset. The most organizations the customer may
+	// hold at once.
+	MaxOrgs int32
+	// MaxUsers is not sent when zero: this input cannot tell a zero you set
+	// from none, so zero means unset. The most identity accounts the customer
+	// may hold at once.
+	MaxUsers int32
+	// IncludedChildOrgs is not sent when zero: this input cannot tell a zero
+	// you set from none, so zero means unset. The child organizations a
+	// subscription includes before the per-organization fee applies.
+	IncludedChildOrgs int32
+	// MaxActiveSessionSandboxes is not sent when zero: this input cannot tell
+	// a zero you set from none, so zero means unset. The most session
+	// sandboxes an organization may hold provisioning or running at once.
+	MaxActiveSessionSandboxes int32
+	// ArchivedWorkspaceRetentionDays is not sent when zero: this input cannot
+	// tell a zero you set from none, so zero means unset. How many days an
+	// archived session workspace is kept before it is deleted, its files and
+	// snapshot included.
 	ArchivedWorkspaceRetentionDays int32
 }
 

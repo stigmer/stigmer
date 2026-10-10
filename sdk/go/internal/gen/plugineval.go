@@ -60,17 +60,20 @@ type PluginEvalInput struct {
 	// set from a loaded resource. Required for updates to platform-scoped
 	// (org-less) kinds, where the org+slug fallback cannot match. Ignored
 	// on create: the server assigns every new resource's id.
-	Id             string
-	Name           string
-	Slug           string
-	Org            string
-	Labels         map[string]string
-	Visibility     apiresource.ApiResourceVisibility
-	PluginId       string
-	PluginDigest   string
-	Targets        []*PluginEvalTargetInput
-	Runs           int32
-	Ablation       pluginevalv1.PluginEvalAblation
+	Id           string
+	Name         string
+	Slug         string
+	Org          string
+	Labels       map[string]string
+	Visibility   apiresource.ApiResourceVisibility
+	PluginId     string
+	PluginDigest string
+	Targets      []*PluginEvalTargetInput
+	Runs         int32
+	Ablation     pluginevalv1.PluginEvalAblation
+	// Threshold is not sent when zero: this input cannot tell a zero you set
+	// from none, so zero means unset. The score a case needs to pass, from 0
+	// to 1, or 1 when unset: every scored check passes on every try.
 	Threshold      float64
 	CaseGlob       string
 	CaseTags       []string
