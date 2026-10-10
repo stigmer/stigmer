@@ -21,6 +21,7 @@
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -127,6 +128,24 @@ function client(
       ),
     },
   };
+}
+
+/**
+ * Waits until the `can_edit` check has been asked and its answer, or its
+ * failure, has reached the tab's state, so an assertion reads the settled
+ * view rather than the one rendered while the check was still pending.
+ */
+async function permissionSettled(mock: ReturnType<typeof client>): Promise<void> {
+  await vi.waitFor(() =>
+    expect(mock.iamPolicy.checkMyPermission).toHaveBeenCalled(),
+  );
+  await act(async () => {
+    await Promise.allSettled(
+      mock.iamPolicy.checkMyPermission.mock.results.map(
+        (result) => result.value as Promise<unknown>,
+      ),
+    );
+  });
 }
 
 function wrap(mock: unknown) {
@@ -387,9 +406,7 @@ describe("PluginEvalsTab", () => {
     const mock = client([running], { canEdit: false });
     render(<PluginEvalsTab plugin={plugin} />, { wrapper: wrap(mock) });
     expect(await screen.findByRole("table")).toBeDefined();
-    await vi.waitFor(() =>
-      expect(mock.iamPolicy.checkMyPermission).toHaveBeenCalled(),
-    );
+    await permissionSettled(mock);
     expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Run evals" })).toBeNull();
   });
@@ -402,9 +419,13 @@ describe("PluginEvalsTab", () => {
       const mock = client([running], { check });
       render(<PluginEvalsTab plugin={plugin} />, { wrapper: wrap(mock) });
       expect(await screen.findByRole("table")).toBeDefined();
-      await vi.waitFor(() =>
-        expect(mock.iamPolicy.checkMyPermission).toHaveBeenCalled(),
-      );
+      if (check === "fails") {
+        await permissionSettled(mock);
+      } else {
+        await vi.waitFor(() =>
+          expect(mock.iamPolicy.checkMyPermission).toHaveBeenCalled(),
+        );
+      }
       expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
       expect(screen.queryByRole("button", { name: "Run evals" })).toBeNull();
     },

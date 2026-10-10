@@ -7,11 +7,14 @@
  * Polling, not a stream: an eval lasts minutes and changes a try at a time,
  * so a read every {@link PLUGIN_EVAL_POLL_MS} is cheap and needs no server
  * push. The hook stops asking once the eval is completed, partial or
- * failed, and an empty id asks nothing. Pinned by
- * `__tests__/hooks.test.tsx`.
+ * failed, or once a read answers that the eval is gone or not the
+ * caller's to read (NotFound, PermissionDenied), which asking again would
+ * not change; a transient failure keeps the polling. An empty id asks
+ * nothing. Pinned by `__tests__/hooks.test.tsx`.
  */
 
 import { useEffect, useMemo, useState } from "react";
+import { isNotFound, isPermissionDenied } from "@stigmer/sdk";
 import type { PluginEval } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
@@ -36,7 +39,8 @@ export interface UsePluginEvalReturn {
  * Data hook that loads one {@link PluginEval} through `plugineval.get()`
  * and, while it is pending or running, reads it again every
  * {@link PLUGIN_EVAL_POLL_MS} so its tries fill in as they finish. Polling
- * stops once the eval is completed, partial or failed.
+ * stops once the eval is completed, partial or failed, or a read answers
+ * NotFound or PermissionDenied.
  *
  * Pass an empty `id` to skip fetching.
  *
@@ -62,6 +66,14 @@ export function usePluginEval(id: string): UsePluginEvalReturn {
   useEffect(() => {
     if (data !== null) setPolling(isEvalActive(data));
   }, [data]);
+
+  // A deleted eval, or one the caller may no longer read, answers the same
+  // every time: polling it would only repeat the failure.
+  useEffect(() => {
+    if (error !== null && (isNotFound(error) || isPermissionDenied(error))) {
+      setPolling(false);
+    }
+  }, [error]);
 
   return useMemo(
     () => ({ pluginEval: data, isLoading, error, refetch }),

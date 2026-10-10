@@ -2,12 +2,15 @@
  * Pins the plugin-eval hooks: the list asks `listByPlugin` for the plugin
  * and skips an empty id, and lists again while any eval it holds is
  * pending or running, no more once all have finished; one eval is read again while it runs and no more
- * once it has finished; start and cancel call the client and keep a
+ * once it has finished, nor once a read answers NotFound or
+ * PermissionDenied, while a transient failure keeps the polling; start and cancel call the client and keep a
  * refusal as their error, which clearError or the next call resets.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
+import { Code } from "@connectrpc/connect";
+import { StigmerError } from "@stigmer/sdk";
 import { PluginEvalPhase } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
@@ -107,6 +110,50 @@ describe("usePluginEval", () => {
       await vi.advanceTimersByTimeAsync(PLUGIN_EVAL_POLL_MS * 3);
     });
     expect(get.mock.calls.length, "no read once finished").toBe(calls);
+  });
+
+  it.each([
+    ["NotFound", new StigmerError("not-found", "plugin eval not found", Code.NotFound)],
+    ["PermissionDenied", new StigmerError("permission-denied", "not permitted", Code.PermissionDenied)],
+  ])("stops reading a running eval once a read answers %s", async (_, refusal) => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const running = evalWith([]);
+    running.status!.phase = PluginEvalPhase.running;
+    const get = vi.fn().mockResolvedValueOnce(running).mockRejectedValue(refusal);
+    const { result } = renderHook(() => usePluginEval("pev_1"), {
+      wrapper: wrap({ plugineval: { get } }),
+    });
+    await waitFor(() => expect(result.current.pluginEval).not.toBeNull());
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(PLUGIN_EVAL_POLL_MS + 10);
+    });
+    await waitFor(() => expect(result.current.error).toBe(refusal));
+    const calls = get.mock.calls.length;
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(PLUGIN_EVAL_POLL_MS * 3);
+    });
+    expect(get.mock.calls.length, "no read once refused").toBe(calls);
+  });
+
+  it("keeps reading a running eval through a transient failure", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const running = evalWith([]);
+    running.status!.phase = PluginEvalPhase.running;
+    const get = vi
+      .fn()
+      .mockResolvedValueOnce(running)
+      .mockRejectedValueOnce(new StigmerError("unavailable", "the server is unavailable", Code.Unavailable))
+      .mockResolvedValue(running);
+    const { result } = renderHook(() => usePluginEval("pev_1"), {
+      wrapper: wrap({ plugineval: { get } }),
+    });
+    await waitFor(() => expect(result.current.pluginEval).not.toBeNull());
+    for (let poll = 0; poll < 2; poll++) {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(PLUGIN_EVAL_POLL_MS + 10);
+      });
+    }
+    await waitFor(() => expect(get).toHaveBeenCalledTimes(3));
   });
 });
 
