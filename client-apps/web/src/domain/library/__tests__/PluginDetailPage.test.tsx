@@ -41,6 +41,10 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: (url: string) => page.pushed.push(url) }),
 }));
 
+vi.mock("@/domain/runs/run-navigation", () => ({
+  useRunNavigation: () => ({ navigateToRun: () => undefined }),
+}));
+
 vi.mock("@/domain/library/library-navigation", () => ({
   useLibraryNavigation: () => ({ navigateToDetail: () => undefined }),
   useRouteDetailYieldsToOverlay: () => false,
