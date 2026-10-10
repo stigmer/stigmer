@@ -128,7 +128,15 @@ describe("StigmerRunnerManager.shutdown", () => {
     });
 
     await manager.addSession("ses_1");
+    const warned = vi.mocked(console.warn);
     await manager.addPoolControl("member_1");
+    // The idle pool member asks its agent host to warm the Cursor SDK; this
+    // table boots no Cursor harness, so the answer is that there is none.
+    await vi.waitFor(() =>
+      expect(warned.mock.calls.map((c) => String(c[0]))).toContain(
+        "[pool-member] Cursor SDK warm-up skipped (non-fatal): the Cursor harness is not booted (0ms)",
+      ),
+    );
     expect(fakes.workers.map((w) => w.taskQueue)).toEqual([
       "session:ses_1",
       "sandbox:member_1",

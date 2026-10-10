@@ -32,6 +32,15 @@ import type { RunValues } from "./run-values.js";
  */
 export const SHELL_ENV_DENYLIST: readonly string[] = RUNNER_SECRET_ENV_KEYS;
 
+/**
+ * Settings of the agent host's own process that are no agent's business:
+ * `CURSOR_BACKEND_URL` points the host's Cursor SDK at the runner's Cursor
+ * lane (`agent-host/entry.ts`), which the SDK reads per call, so it stays in
+ * the host's environment. Commands the Cursor SDK starts itself inherit it
+ * from there; the shells and hooks the runner's code starts do not.
+ */
+const HOST_ONLY_ENV_KEYS: readonly string[] = ["CURSOR_BACKEND_URL"];
+
 /** The run values the agent's shell and hooks hold: the agent's own group, as delivered. */
 export function shellRunValues(runValues: Pick<RunValues, "agent">): Record<string, string> {
   return { ...runValues.agent };
@@ -40,7 +49,8 @@ export function shellRunValues(runValues: Pick<RunValues, "agent">): Record<stri
 /**
  * Build the environment map passed to deepagents' LocalShellBackend.
  *
- * Base: runner process env minus {@link SHELL_ENV_DENYLIST}, then overlay
+ * Base: runner process env minus {@link SHELL_ENV_DENYLIST} and the host's
+ * own settings ({@link HOST_ONLY_ENV_KEYS}), then overlay
  * {@link shellValues}, the run values the shell may hold
  * ({@link shellRunValues}); the overlay wins on conflict.
  */
@@ -48,7 +58,7 @@ export function buildShellEnv(
   shellValues: Readonly<Record<string, string>>,
   baseEnv: NodeJS.ProcessEnv = process.env,
 ): Record<string, string> {
-  const deny = new Set(SHELL_ENV_DENYLIST);
+  const deny = new Set([...SHELL_ENV_DENYLIST, ...HOST_ONLY_ENV_KEYS]);
   const env: Record<string, string> = {};
 
   for (const [key, value] of Object.entries(baseEnv)) {

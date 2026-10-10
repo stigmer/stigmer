@@ -51,7 +51,7 @@ import type { RecalledMemoriesContent } from "../shared/recalled-memories.js";
 import type { TimingRecorderWire } from "../shared/cold-start-timing.js";
 import type { RuntimeFieldsWire, WireOffload, WireTurnInput } from "./codec.js";
 
-export const AGENT_HOST_PROTOCOL_VERSION = 1;
+export const AGENT_HOST_PROTOCOL_VERSION = 2;
 
 /**
  * The largest single message either side sends or accepts. A turn's input
@@ -96,6 +96,15 @@ export interface HostConfigWire {
   readonly workspaceLockTimeoutMs: number;
   /** The runner's local proxy, `http://127.0.0.1:<port>`. */
   readonly proxyEndpoint: string;
+  /**
+   * The local proxy's Cursor lane, `https://2130706433:<port>`, 127.0.0.1
+   * written as one number so the Cursor SDK keeps certificate checks on
+   * (`agent-proxy/cursor-lane.ts`), whose certificate the host trusts.
+   * `null` on a runner that holds no Cursor credential (no `CURSOR_API_KEY`
+   * and no platform proxy): the host's Cursor adapter then refuses a turn
+   * up front, as it did in the runner's own process.
+   */
+  readonly cursorEndpoint: string | null;
   /** The host's credential at that proxy. */
   readonly token: string;
   /**
@@ -170,6 +179,11 @@ export interface HostCalls {
   };
   /** The engine's CAS observations now, for the runtime's mid-turn progress refresh. */
   readonly readCasObservations: { readonly args: { readonly turnId: string }; readonly result: WireCasSnapshot };
+  /** Pay the Cursor SDK's per-process store set-up now, on an idle pool member (`activities/execute-cursor/sdk-warmup.ts`). */
+  readonly warmCursorSdk: {
+    readonly args: Record<string, never>;
+    readonly result: { readonly warmed: boolean; readonly durationMs: number; readonly error: string | null };
+  };
 }
 
 // ─── Calls the host makes of the runner ────────────────────────────────────

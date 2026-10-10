@@ -464,7 +464,6 @@ export class RuntimeFieldTracker {
   }
 }
 
-/** Assign the changed runtime-owned fields onto the host's copy of the status; a name that is not one is ignored. */
 /** The runtime's offloads of tool outputs (`shared/status-offload.ts`), as they cross: each ref as a base64 `ToolCallOutputRef`. */
 export interface WireOffload {
   readonly toolCallId: string;
@@ -479,6 +478,7 @@ export function decodeOffloads(wire: readonly WireOffload[]): OffloadedOutput[] 
   return wire.map((o) => ({ toolCallId: o.toolCallId, outputRef: decodeMessage(ToolCallOutputRefSchema, o.outputRef) }));
 }
 
+/** Assign the changed runtime-owned fields onto the host's copy of the status; a name that is not one is ignored. */
 export function applyRuntimeFields(target: RunStatus, wire: RuntimeFieldsWire): void {
   const fields = RUNTIME_OWNED_FIELDS.filter((f) => wire.fields.includes(f.localName));
   if (fields.length === 0) return;
