@@ -6,7 +6,8 @@
  * cell per target and each try summarised (a try the platform could not
  * grade shows why, never 0), the phase words (a phase or try state this
  * client does not know reads in words with its number), and two evals
- * compared case by case with moved and one-sided cases flagged.
+ * compared case by case with moved and one-sided cases flagged, moved
+ * meaning the cells read differently to two decimals.
  */
 import { describe, expect, it } from "vitest";
 import { PluginEvalAblation } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
@@ -293,6 +294,15 @@ describe("compareEvals", () => {
     });
     expect(rows[2]?.before).toBeNull();
     expect(rows[3]?.after).toBeNull();
+  });
+
+  it("calls a case changed exactly when its cells, to two decimals, read differently", () => {
+    const changed = (a: number, b: number): boolean | undefined =>
+      compareEvals(evalWith([{ name: "a", score: a, delta: a }]), evalWith([{ name: "a", score: b, delta: b }]))[0]?.changed;
+    expect(changed(0.4951, 0.5049), "both read 0.50").toBe(false);
+    expect(changed(0.494, 0.496), "0.49 against 0.50").toBe(true);
+    const deltas = compareEvals(evalWith([{ name: "a", score: 1, delta: -0.004 }]), evalWith([{ name: "a", score: 1, delta: 0.004 }]));
+    expect(deltas[0]?.changed, "both differences read 0.00").toBe(false);
   });
 
   it("treats a case not run on a target as absent from that eval there", () => {

@@ -1,6 +1,7 @@
 /**
  * Pins the plugin-eval hooks: the list asks `listByPlugin` for the plugin
- * and skips an empty id; one eval is read again while it runs and no more
+ * and skips an empty id, and lists again while any eval it holds is
+ * pending or running, no more once all have finished; one eval is read again while it runs and no more
  * once it has finished; start and cancel call the client and keep a
  * refusal as their error, which clearError or the next call resets.
  */
@@ -52,6 +53,29 @@ describe("usePluginEvals", () => {
       wrapper: wrap({ plugineval: { listByPlugin } }),
     });
     expect(listByPlugin).not.toHaveBeenCalled();
+  });
+
+  it("lists again while any listed eval is pending or running, and stops once all have finished", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const running = evalWith([], undefined, "pev_2");
+    running.status!.phase = PluginEvalPhase.running;
+    const listByPlugin = vi
+      .fn()
+      .mockResolvedValueOnce({ totalCount: 2, items: [running, evalWith([])] })
+      .mockResolvedValue({ totalCount: 2, items: [evalWith([], undefined, "pev_2"), evalWith([])] });
+    const { result } = renderHook(() => usePluginEvals("plg_1"), {
+      wrapper: wrap({ plugineval: { listByPlugin } }),
+    });
+    await waitFor(() => expect(result.current.evals[0]?.status?.phase).toBe(PluginEvalPhase.running));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(PLUGIN_EVAL_POLL_MS + 10);
+    });
+    await waitFor(() => expect(result.current.evals[0]?.status?.phase).toBe(PluginEvalPhase.completed));
+    const calls = listByPlugin.mock.calls.length;
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(PLUGIN_EVAL_POLL_MS * 3);
+    });
+    expect(listByPlugin.mock.calls.length, "no list once all finished").toBe(calls);
   });
 });
 

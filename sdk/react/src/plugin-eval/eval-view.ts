@@ -14,9 +14,10 @@
  * cost limit above 0 and at most 1000 dollars, 1 to 8 tries at once); the
  * server checks them again. No server writes a try's `running` state, so a
  * try not finished reads by the eval's phase: "waiting" while the eval
- * starts, "waiting or running" while it runs, "not run" once it stopped. A comparison is "changed" when a case's score
- * or difference moved by a hundredth or more, or the case ran on one side
- * only, which is the precision the tab shows. A phase, reason or try state
+ * starts, "waiting or running" while it runs, "not run" once it stopped.
+ * A comparison is "changed" when a case's score or difference reads
+ * differently to two decimals, as its cells show them, or the case ran on
+ * one side only. A phase, reason or try state
  * a newer server added reads in words, never as a bare number. Pinned by
  * `__tests__/eval-view.test.ts`.
  */
@@ -372,8 +373,8 @@ export function compareEvals(
     changed:
       a === undefined ||
       b === undefined ||
-      moved(a.side.score, b.side.score) ||
-      moved(a.side.delta, b.side.delta),
+      formatScore(a.side.score) !== formatScore(b.side.score) ||
+      formatDelta(a.side.delta) !== formatDelta(b.side.delta),
   });
   return [
     ...[...now].map(([key, b]) => row(b, was.get(key), b)),
@@ -381,11 +382,6 @@ export function compareEvals(
       .filter(([key]) => !now.has(key))
       .map(([, a]) => row(a, a, undefined)),
   ];
-}
-
-function moved(a: number | undefined, b: number | undefined): boolean {
-  if (a === undefined || b === undefined) return a !== b;
-  return Math.abs(a - b) >= 0.005;
 }
 
 /** A score as the tab shows it: two decimals, or a dash when there is none. */

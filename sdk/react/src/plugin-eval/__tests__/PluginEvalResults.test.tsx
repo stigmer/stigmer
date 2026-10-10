@@ -5,7 +5,11 @@
  * has no result; the cases not run listed with their reasons; a case's
  * notes when it is opened; the reason a partial eval stopped, in words (a
  * reason this client does not know as "stopped early"); the heading, the
- * plugin and when the eval started; and a refused cancel kept as an alert. The tab around it is pinned in PluginEvalsTab.test.tsx.
+ * plugin and when the eval started; a refused cancel kept as an alert; a
+ * failed read again keeping the last results with a stale notice; and each
+ * try a link only where the viewer can open it (every viewer in Stigmer
+ * Cloud, only the eval's creator elsewhere). The tab around it is pinned in
+ * PluginEvalsTab.test.tsx.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -22,6 +26,7 @@ import {
   PluginEvalPhase,
 } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
 import { StigmerContext } from "../../context";
+import { DeploymentModeContext } from "../../deployment-mode";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { PluginEvalResults } from "../PluginEvalResults";
 import { GPT, SONNET, evalStartOf, evalWith } from "./eval-fixture";
@@ -43,15 +48,31 @@ function client(
   };
 }
 
-function wrap(mock: unknown) {
+function wrap(mock: unknown, mode: "cloud" | "local" = "cloud") {
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
       <FetchCacheContext.Provider value={null}>
-        <StigmerContext.Provider value={mock as never}>
-          {children}
-        </StigmerContext.Provider>
+        <DeploymentModeContext.Provider value={mode}>
+          <StigmerContext.Provider value={mock as never}>
+            {children}
+          </StigmerContext.Provider>
+        </DeploymentModeContext.Provider>
       </FetchCacheContext.Provider>
     );
+  };
+}
+
+/** The eval's tries, opened: each try's name, and whether it is a link. */
+async function triesOf(): Promise<{ readonly links: string[]; readonly texts: string[] }> {
+  fireEvent.click(await screen.findByRole("button", { name: "a" }));
+  const list = screen.getByRole("list", { name: "Tries on native/claude-sonnet-4-6" });
+  return {
+    links: within(list)
+      .queryAllByRole("button")
+      .map((button) => button.textContent ?? ""),
+    texts: within(list)
+      .getAllByRole("listitem")
+      .map((item) => item.textContent ?? ""),
   };
 }
 
@@ -172,6 +193,47 @@ describe("PluginEvalResults", () => {
     expect(status.textContent?.startsWith(start), status.textContent ?? "").toBe(
       true,
     );
+  });
+
+  it("links each try to its run in Stigmer Cloud, where every viewer of the plugin opens it, without asking who the viewer is", async () => {
+    const mock = { ...client(evalWith([{ name: "a", score: 1 }])), identityAccount: { whoAmI: vi.fn() } };
+    const onNavigateToRun = vi.fn();
+    render(<PluginEvalResults evalId="pev_1" onNavigateToRun={onNavigateToRun} />, { wrapper: wrap(mock) });
+    const tries = await triesOf();
+    expect(tries.links).toEqual(["with #1: 1.00", "without #1: running"]);
+    fireEvent.click(screen.getByRole("button", { name: "with #1: 1.00" }));
+    expect(onNavigateToRun).toHaveBeenCalledWith("run_a_1");
+    expect(mock.identityAccount.whoAmI).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["the eval's creator", "ida_me", ["with #1: 1.00", "without #1: running"]],
+    ["another viewer", "ida_other", []],
+  ])("links the tries elsewhere only for the eval's creator: %s", async (_who, viewer, links) => {
+    const pluginEval = evalWith([{ name: "a", score: 1 }]);
+    pluginEval.status!.audit!.specAudit!.createdBy = { id: "ida_me" } as never;
+    const mock = { ...client(pluginEval), identityAccount: { whoAmI: vi.fn(async () => ({ metadata: { id: viewer } })) } };
+    render(<PluginEvalResults evalId="pev_1" onNavigateToRun={vi.fn()} />, { wrapper: wrap(mock, "local") });
+    await screen.findByRole("button", { name: "a" });
+    await vi.waitFor(() => expect(mock.identityAccount.whoAmI).toHaveBeenCalled());
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const tries = await triesOf();
+    expect(tries.links).toEqual(links);
+    expect(tries.texts).toContain("with #1: 1.00");
+  });
+
+  it("keeps the last results when a read again fails, with a small stale notice", async () => {
+    const running = evalWith([{ name: "a", score: 1 }]);
+    running.status!.phase = PluginEvalPhase.running;
+    const mock = client(running);
+    render(<PluginEvalResults evalId="pev_1" canEdit />, { wrapper: wrap(mock) });
+    await screen.findByRole("button", { name: "a" });
+    mock.plugineval.get.mockRejectedValueOnce(new Error("the server is unavailable"));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(
+      await screen.findByText("Could not refresh the eval (the server is unavailable); these are the last results read."),
+    ).toBeDefined();
+    expect(screen.getByRole("button", { name: "a" })).toBeDefined();
   });
 
   it("keeps a refused cancel as an alert", async () => {

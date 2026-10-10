@@ -7,16 +7,20 @@
  * The list is a summary: the server returns each eval with its aggregates,
  * per-target scores and notes but its cases' tries emptied, so a long
  * history stays small; a view that shows tries reads the one eval through
- * `usePluginEval`. An empty plugin id asks nothing. Pinned by
- * `__tests__/hooks.test.tsx`.
+ * `usePluginEval`. While any listed eval is pending or running the list is
+ * read again every {@link PLUGIN_EVAL_POLL_MS}, so a row shows the eval
+ * finished once it has; it stops once all have finished. An empty plugin
+ * id asks nothing. Pinned by `__tests__/hooks.test.tsx`.
  */
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { PluginEval } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
 import { ListPluginEvalsByPluginRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
+import { isEvalActive } from "./eval-view.js";
+import { PLUGIN_EVAL_POLL_MS } from "./usePluginEval.js";
 
 /** Return value of {@link usePluginEvals}. */
 export interface UsePluginEvalsReturn {
@@ -47,6 +51,8 @@ const NO_EVALS: readonly PluginEval[] = [];
  */
 export function usePluginEvals(pluginId: string): UsePluginEvalsReturn {
   const stigmer = useStigmer();
+  // Asks again while the last answer holds an eval that has not finished.
+  const [polling, setPolling] = useState(false);
 
   const { data, isLoading, error, refetch } = useFetch(
     pluginId
@@ -59,7 +65,12 @@ export function usePluginEvals(pluginId: string): UsePluginEvalsReturn {
       : null,
     [pluginId, stigmer],
     NO_EVALS,
+    { refetchInterval: polling ? PLUGIN_EVAL_POLL_MS : false },
   );
+
+  useEffect(() => {
+    setPolling(data.some(isEvalActive));
+  }, [data]);
 
   return useMemo(
     () => ({ evals: data, isLoading, error, refetch }),

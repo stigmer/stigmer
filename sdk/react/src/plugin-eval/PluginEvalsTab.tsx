@@ -11,9 +11,10 @@
  * picked, tries per case, empty for each case's own, the comparison
  * without the plugin, the cost limit, tries at once); the past
  * evals, newest first, each labelled by the plugin and when it started and
- * opening its results; and Compare, which puts
- * two evals side by side case by case, how a new version is judged against
- * the last. The results themselves are {@link PluginEvalResults}.
+ * opening its results, listed again while any of them runs; and Compare,
+ * which puts two evals side by side case by case, how a new version is
+ * judged against the last, and shows a read that failed rather than
+ * loading forever. The results themselves are {@link PluginEvalResults}.
  *
  * The form and an eval's Cancel are gated on `can_edit` on the plugin,
  * failing closed: they show only once the check answers yes, never while
@@ -540,6 +541,10 @@ function CompareEvals({
   const before = usePluginEval(beforeId);
   const after = usePluginEval(afterId);
   const loaded = before.pluginEval !== null && after.pluginEval !== null;
+  const failed = [
+    { label: "Before", read: before },
+    { label: "After", read: after },
+  ].filter(({ read }) => read.pluginEval === null && read.error !== null);
   const rows =
     before.pluginEval !== null &&
     after.pluginEval !== null &&
@@ -586,6 +591,17 @@ function CompareEvals({
           <p className="stg:text-xs stg:text-muted-foreground">
             Pick two different evals.
           </p>
+        ) : failed.length > 0 ? (
+          <div className="stg:flex stg:flex-col stg:gap-2">
+            {failed.map(({ label, read }) => (
+              <ErrorMessage
+                key={label}
+                error={read.error}
+                title={`Could not read the ${label} eval`}
+                retry={read.refetch}
+              />
+            ))}
+          </div>
         ) : !loaded ? (
           <p className="stg:text-xs stg:text-muted-foreground">
             Loading the comparison…

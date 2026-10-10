@@ -2,12 +2,23 @@
 
 /**
  * One plugin eval's results: one row per case, one column group per
- * target (`WITH`, `W/OUT`, `Δ`, pass^k), each try a link to its run, the
- * cases not run with their reasons, and the suite's totals.
+ * target (`WITH`, `W/OUT`, `Δ`, pass^k), each try a link to its run where
+ * the viewer can open it, the cases not run with their reasons, and the
+ * suite's totals.
  *
  * The view reads the eval again while it is pending or running
  * ({@link usePluginEval}), so tries fill in as they finish; the plugin's
- * editors may cancel it then. `Δ` is marked provisional, with the reason,
+ * editors may cancel it then. A read again that fails keeps the last
+ * results on screen with a small notice; only a first read that fails
+ * shows the error alone.
+ *
+ * Who opens a try is the edition's rule, and no try carries its own
+ * `can_view`: Stigmer Cloud writes each try's read-only session link for
+ * the plugin's viewers, so every viewer there opens every try; elsewhere
+ * the tries are their creator's conversations, so they are links only when
+ * the viewer is the eval's creator (`useWhoAmI`, a cached read, asked only
+ * there and only when the host can open a run). A try that is not a link
+ * still shows its result. `Δ` is marked provisional, with the reason,
  * while the eval says the comparison also measures the agent Stigmer
  * composes for the plugin. A try the platform could not grade shows why,
  * never a zero. The heading is the eval's label, its plugin and when it
@@ -23,7 +34,9 @@ import {
   PluginEvalPhase,
 } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
 import { cn } from "@stigmer/theme";
+import { useDeploymentMode } from "../deployment-mode.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
+import { useWhoAmI } from "../iam-policy/useWhoAmI.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { Section } from "../resource-detail/Section.js";
 import { DANGER_BUTTON_CLASS } from "../vault/styles.js";
@@ -50,7 +63,11 @@ export interface PluginEvalResultsProps {
   readonly pluginName?: string;
   /** When `true`, a pending or running eval offers Cancel. @default false */
   readonly canEdit?: boolean;
-  /** Called with a try's run id when the person opens it; tries carry no link when omitted. */
+  /**
+   * Called with a try's run id when the person opens it; tries carry no
+   * link when omitted, nor where the viewer cannot open them (outside
+   * Stigmer Cloud, anyone but the eval's creator).
+   */
   readonly onNavigateToRun?: (runId: string) => void;
   /** Called after a cancel, so a list showing the eval can read it again. */
   readonly onChanged?: () => void;
@@ -70,6 +87,12 @@ export function PluginEvalResults({
   const { pluginEval, isLoading, error, refetch } = usePluginEval(evalId);
   const { cancel, isCancelling, error: cancelError } = useCancelPluginEval();
   const [openCase, setOpenCase] = useState<string | null>(null);
+  // Stigmer Cloud writes each try's session link for the plugin's viewers;
+  // elsewhere only the eval's creator opens a try.
+  const viewersOpenTries = useDeploymentMode() === "cloud";
+  const { account: viewer } = useWhoAmI({
+    enabled: onNavigateToRun !== undefined && !viewersOpenTries,
+  });
 
   if (isLoading) {
     return (
@@ -78,9 +101,17 @@ export function PluginEvalResults({
       </p>
     );
   }
-  if (error !== null)
-    return <ErrorMessage error={error} retry={refetch} className={className} />;
-  if (pluginEval === null) return null;
+  if (pluginEval === null) {
+    return error !== null ? (
+      <ErrorMessage error={error} retry={refetch} className={className} />
+    ) : null;
+  }
+
+  const creatorId = pluginEval.status?.audit?.specAudit?.createdBy?.id ?? "";
+  const viewerOpensTries =
+    viewersOpenTries ||
+    (creatorId !== "" && viewer?.metadata?.id === creatorId);
+  const openRun = viewerOpensTries ? onNavigateToRun : undefined;
 
   const status = pluginEval.status;
   const labels = evalTargetLabelsOf(pluginEval);
@@ -130,6 +161,12 @@ export function PluginEvalResults({
           {provisional ? " (provisional)" : ""} ·{" "}
           {formatUsd(status?.costUsd ?? 0)}
         </p>
+        {error !== null && (
+          <p className="stg:text-xs stg:text-warning">
+            Could not refresh the eval ({error.message}); these are the last
+            results read.
+          </p>
+        )}
         {status?.error ? (
           <ErrorMessage
             error={new Error(status.error)}
@@ -186,7 +223,7 @@ export function PluginEvalResults({
                     onToggle={() =>
                       setOpenCase(openCase === row.name ? null : row.name)
                     }
-                    onNavigateToRun={onNavigateToRun}
+                    onNavigateToRun={openRun}
                   />
                 ))}
               </tbody>

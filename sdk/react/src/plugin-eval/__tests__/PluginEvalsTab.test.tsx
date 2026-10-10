@@ -13,8 +13,9 @@
  * picked) and removed; a past eval opened from the list;
  * an eval's view with a row per case, WITH, W/OUT and a provisional Δ, and
  * its tries as links to their runs; Cancel for an editor while the eval
- * runs; and Compare, case by case, with a changed case marked, and a
- * request for two different evals when both pickers name one.
+ * runs; and Compare, case by case, with a changed case marked, a
+ * request for two different evals when both pickers name one, and each
+ * read's error when one fails.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -410,6 +411,20 @@ describe("PluginEvalsTab", () => {
         .getByRole("row", { name: /steady/ })
         .getAttribute("data-changed"),
     ).toBeNull();
+  });
+
+  it("shows a comparison read's error, never loading forever", async () => {
+    const newer = evalWith([{ name: "a", score: 1 }], undefined, "pev_2");
+    const older = evalWith([{ name: "a", score: 0.5 }], undefined, "pev_1");
+    const mock = client([newer, older]);
+    mock.plugineval.get.mockImplementation(async (id: string) => {
+      if (id === "pev_1") throw new Error("the server is unavailable");
+      return newer;
+    });
+    render(<PluginEvalsTab plugin={plugin} />, { wrapper: wrap(mock) });
+    const alert = await screen.findByText("Could not read the Before eval");
+    expect(alert).toBeDefined();
+    expect(screen.queryByText("Loading the comparison…")).toBeNull();
   });
 
   it("asks for two different evals when both pickers name the same one", async () => {
