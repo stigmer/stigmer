@@ -26,7 +26,8 @@
  *   - The suite: `overall_score` is the mean of the cases' with-plugin
  *     scores (a case's own being the mean over its targets),
  *     `cases_passed` the cases that passed on every target they ran on,
- *     `cases_total` the cases that ran on at least one target,
+ *     `cases_total` the cases that ran on at least one target (a target
+ *     ran when at least one of its tries finished, graded or not graded),
  *     `mean_delta` the mean of the cases' deltas where one exists, and
  *     `cases_not_run` the cases listed but not run.
  *
@@ -194,15 +195,23 @@ export function recomputeStatus(
       casesNotRun++;
       continue;
     }
+    // A target none of whose tries ran (the cost ceiling, credit or a
+    // cancel stopped the eval first, or none has finished yet) is not one
+    // the case ran on; a case with no such target did not run, so it is
+    // not one that failed either.
+    const tried = ran.filter(hasFinishedTry);
+    if (tried.length === 0) {
+      continue;
+    }
     casesTotal++;
-    if (ran.every((target) => target.passed)) {
+    if (tried.every((target) => target.passed)) {
       casesPassed++;
     }
-    const withScores = definedOf(ran.map((target) => target.withPlugin?.score));
+    const withScores = definedOf(tried.map((target) => target.withPlugin?.score));
     if (withScores.length > 0) {
       caseScores.push(mean(withScores));
     }
-    const deltas = definedOf(ran.map((target) => target.delta));
+    const deltas = definedOf(tried.map((target) => target.delta));
     if (deltas.length > 0) {
       caseDeltas.push(mean(deltas));
     }
@@ -217,6 +226,17 @@ export function recomputeStatus(
   });
   status.costUsd = cost;
   status.triesFinished = finished;
+}
+
+/** Whether any try of `target`, in either arm, finished (graded or not graded). */
+function hasFinishedTry(target: PluginEvalCaseTarget): boolean {
+  return [target.withPlugin, target.withoutPlugin].some((arm) =>
+    (arm?.tries ?? []).some(
+      (attempt) =>
+        attempt.state === PluginEvalTryState.graded ||
+        attempt.state === PluginEvalTryState.not_graded,
+    ),
+  );
 }
 
 function definedOf(values: ReadonlyArray<number | undefined>): number[] {

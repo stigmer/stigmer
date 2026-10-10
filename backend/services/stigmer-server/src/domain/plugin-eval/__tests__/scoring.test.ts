@@ -4,7 +4,8 @@
  * are indicators; every grader excluded scores them all; `arm: both`
  * forces one; ablation none excludes nothing), a try's weighted score,
  * an arm's mean over its graded tries only, the delta, the threshold,
- * pass^k and perfect runs, and the suite's aggregates.
+ * pass^k and perfect runs, and the suite's aggregates, which count only
+ * the cases and targets at least one of whose tries finished.
  */
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
@@ -230,5 +231,56 @@ describe("the suite's summaries", () => {
     expect(status.aggregates?.casesPassed).toBe(0);
     expect(status.aggregates?.meanDelta).toBeUndefined();
     expect(status.aggregates?.overallScore).toBeCloseTo(0.75);
+  });
+
+  it("counts only the cases and targets whose tries ran", () => {
+    const status = create(PluginEvalStatusSchema, {
+      cases: [
+        create(PluginEvalCaseSchema, {
+          caseName: "ran",
+          targets: [
+            create(PluginEvalCaseTargetSchema, {
+              withPlugin: create(PluginEvalArmSchema, { tries: tries(1, 1) }),
+            }),
+            create(PluginEvalCaseTargetSchema, {
+              withPlugin: create(PluginEvalArmSchema, {
+                tries: tries("pending", "pending"),
+              }),
+            }),
+          ],
+        }),
+        create(PluginEvalCaseSchema, {
+          caseName: "stopped-before-it-ran",
+          targets: [
+            create(PluginEvalCaseTargetSchema, {
+              withPlugin: create(PluginEvalArmSchema, {
+                tries: tries("pending", "pending"),
+              }),
+              withoutPlugin: create(PluginEvalArmSchema, {
+                tries: tries("pending", "pending"),
+              }),
+            }),
+          ],
+        }),
+        create(PluginEvalCaseSchema, {
+          caseName: "only-not-graded",
+          targets: [
+            create(PluginEvalCaseTargetSchema, {
+              withPlugin: create(PluginEvalArmSchema, {
+                tries: tries("pending"),
+              }),
+              withoutPlugin: create(PluginEvalArmSchema, {
+                tries: tries("not-graded"),
+              }),
+            }),
+          ],
+        }),
+      ],
+    });
+    recomputeStatus(status, 1);
+    expect(status.aggregates?.casesTotal).toBe(2);
+    expect(status.aggregates?.casesPassed).toBe(1);
+    expect(status.aggregates?.casesNotRun).toBe(0);
+    expect(status.aggregates?.overallScore).toBe(1);
   });
 });
