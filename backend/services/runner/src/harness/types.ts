@@ -357,7 +357,8 @@ export interface TurnInput extends NormalizedActivityInput {
    * `spec.appendSystemPrompt`: text this message appends to the system
    * prompt, after the agent's instructions and the platform's sections, for
    * this turn only; "" for none. Each harness places it at the end of what
-   * it sends as the system prompt.
+   * it sends as the system prompt; on Cursor, which sends it with the
+   * turn's message, a structured-output directive still follows it.
    */
   readonly appendSystemPrompt: string;
   readonly standing: TurnStandingContext;

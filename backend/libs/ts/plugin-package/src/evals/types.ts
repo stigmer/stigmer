@@ -127,7 +127,12 @@ export interface EvalCase {
   readonly appendSystemPrompt?: string;
   /** The case's `env`; keys match `EVAL_[A-Z0-9_]*`. */
   readonly env: Readonly<Record<string, string>>;
-  /** `plugins` as written; Stigmer evaluates the installed plugin only. */
+  /**
+   * `plugins` as written, relative to the case directory. One entry names
+   * the plugin under test (the format's override of auto-detect); more than
+   * one makes the case `unsupported: "plugins"`, since Stigmer evaluates the
+   * installed plugin alone.
+   */
   readonly plugins: readonly string[];
   readonly context: EvalCaseContext;
   /** The plugin-relative paths of every file under the case directory. */

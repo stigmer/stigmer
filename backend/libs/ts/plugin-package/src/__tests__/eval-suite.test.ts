@@ -168,6 +168,34 @@ describe("the eval directory", () => {
     },
   );
 
+  it.each([
+    ["skills", undefined],
+    ["skills/alpha", undefined],
+    ["skills/alpha/tests", undefined],
+    ["extra", ["./extra/"]],
+    ["extra/one", ["./extra"]],
+    ["content", ["./content/skills"]],
+  ])("refuses %j, which overlaps the plugin's skills, and falls back to evals/", (value, skills) => {
+    const suite = suiteOf(
+      { "evals/c/prompt.md": "Hello.", "evals/c/graders/judge.md": LLM_GRADER },
+      { experimental: { evals: value }, ...(skills !== undefined && { skills }) },
+    );
+    expect(suite.dir).toBe("evals");
+    expect(suite.cases.map((c) => c.name)).toEqual(["c"]);
+    expect(onlyFinding(suite)).toEqual({
+      kind: "eval-dir-invalid",
+      path: ".claude-plugin/plugin.json",
+      message: `.claude-plugin/plugin.json: experimental.evals ${JSON.stringify(value)} overlaps the plugin's skills; using evals/`,
+    });
+  });
+
+  it("moves beside the skills, and inside a plugin declared as one root skill", () => {
+    expect(suiteOf({ "skills-tests/c/prompt.md": "Hello." }, { experimental: { evals: "skills-tests" } }).dir).toBe("skills-tests");
+    const rootSkill = suiteOf({ "qa/c/prompt.md": "Hello.", "qa/c/graders/judge.md": LLM_GRADER }, { experimental: { evals: "qa" }, skills: "./" });
+    expect(rootSkill.findings).toEqual([]);
+    expect(rootSkill.dir).toBe("qa");
+  });
+
   it("is an empty suite when the plugin has no eval directory", () => {
     expect(suiteOf({})).toEqual({ dir: "evals", cases: [], findings: [] });
   });
@@ -657,7 +685,8 @@ describe("unsupported", () => {
   });
 
   it.each([
-    ["context.scaffold_script", yamlCase("context:\n  scaffold_script: s.sh\n  add_dirs: [r]\n  history_file: h.jsonl\n")],
+    ["plugins", yamlCase("plugins: [\"../..\", ../other]\ncontext:\n  scaffold_script: s.sh\n")],
+    ["context.scaffold_script", yamlCase("plugins: [\"../..\"]\ncontext:\n  scaffold_script: s.sh\n  add_dirs: [r]\n  history_file: h.jsonl\n")],
     ["context.add_dirs", yamlCase("context:\n  add_dirs: [r]\n  history_file: h.jsonl\n")],
     ["context.history_file", yamlCase("context:\n  history_file: h.jsonl\n")],
     ["env", { "evals/c/prompt.md": "---\nenv:\n  EVAL_LEVEL: 2\n---\nHi.", "evals/c/mocks/s/t.md": "x" }],
@@ -671,6 +700,19 @@ describe("unsupported", () => {
     const suite = oneCase(files);
     expect(suite.findings).toEqual([]);
     expect(suite.cases[0]?.unsupported).toBe(feature);
+  });
+
+  it("runs a case whose plugins names only the plugin under test, and keeps the list as written", () => {
+    const suite = oneCase({ "evals/c/prompt.md": "---\nplugins: [\"../..\"]\n---\nHi." });
+    expect(suite.findings).toEqual([]);
+    expect(suite.cases[0]?.unsupported).toBeUndefined();
+    expect(suite.cases[0]?.plugins).toEqual(["../.."]);
+  });
+
+  it("does not run a case whose plugins lists a second plugin", () => {
+    const suite = oneCase({ "evals/c/prompt.md": "---\nplugins: [\"../..\", ../../../helper]\n---\nHi." });
+    expect(suite.findings).toEqual([]);
+    expect(suite.cases[0]?.unsupported).toBe("plugins");
   });
 
   it("keeps env values as text", () => {

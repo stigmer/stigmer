@@ -303,8 +303,11 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
    * too.
    *
    * Skill is a name here too, for the agent's skills: a list without Skill
-   * keeps them, and a list holding only Skill names something, so it does
-   * not refuse the turn. Denying Skill in disallowed_tools removes them.
+   * keeps them, and a list holding only Skill names them, so it does not
+   * refuse the turn, also under an outer list that omits Skill (a
+   * sub-agent's under its agent's, a turn's under the agent's). Denying
+   * Skill in disallowed_tools removes them, and then a list of Skill alone
+   * in a narrower layer refuses the turn.
    * </pre>
    *
    * <code>repeated string tools = 10 [json_name = "tools", (.buf.validate.field) = { ... }</code>
@@ -327,8 +330,11 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
    * too.
    *
    * Skill is a name here too, for the agent's skills: a list without Skill
-   * keeps them, and a list holding only Skill names something, so it does
-   * not refuse the turn. Denying Skill in disallowed_tools removes them.
+   * keeps them, and a list holding only Skill names them, so it does not
+   * refuse the turn, also under an outer list that omits Skill (a
+   * sub-agent's under its agent's, a turn's under the agent's). Denying
+   * Skill in disallowed_tools removes them, and then a list of Skill alone
+   * in a narrower layer refuses the turn.
    * </pre>
    *
    * <code>repeated string tools = 10 [json_name = "tools", (.buf.validate.field) = { ... }</code>
@@ -350,8 +356,11 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
    * too.
    *
    * Skill is a name here too, for the agent's skills: a list without Skill
-   * keeps them, and a list holding only Skill names something, so it does
-   * not refuse the turn. Denying Skill in disallowed_tools removes them.
+   * keeps them, and a list holding only Skill names them, so it does not
+   * refuse the turn, also under an outer list that omits Skill (a
+   * sub-agent's under its agent's, a turn's under the agent's). Denying
+   * Skill in disallowed_tools removes them, and then a list of Skill alone
+   * in a narrower layer refuses the turn.
    * </pre>
    *
    * <code>repeated string tools = 10 [json_name = "tools", (.buf.validate.field) = { ... }</code>
@@ -374,8 +383,11 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
    * too.
    *
    * Skill is a name here too, for the agent's skills: a list without Skill
-   * keeps them, and a list holding only Skill names something, so it does
-   * not refuse the turn. Denying Skill in disallowed_tools removes them.
+   * keeps them, and a list holding only Skill names them, so it does not
+   * refuse the turn, also under an outer list that omits Skill (a
+   * sub-agent's under its agent's, a turn's under the agent's). Denying
+   * Skill in disallowed_tools removes them, and then a list of Skill alone
+   * in a narrower layer refuses the turn.
    * </pre>
    *
    * <code>repeated string tools = 10 [json_name = "tools", (.buf.validate.field) = { ... }</code>

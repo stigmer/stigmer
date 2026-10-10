@@ -362,8 +362,9 @@ public interface RunSpecOrBuilder extends
    * A turn can only narrow: a tool its agent (or the assistant) does not
    * have stays unavailable whatever this lists. Like interaction_mode, it
    * applies to this message only. Skill is a name here too: listing tools
-   * without Skill keeps the agent's skills; disallowed_tools with Skill
-   * removes them.
+   * without Skill keeps the agent's skills, a list of Skill alone resolves
+   * unless the agent denies Skill, and disallowed_tools with Skill removes
+   * them.
    * </pre>
    *
    * <code>repeated string tools = 22 [json_name = "tools", (.buf.validate.field) = { ... }</code>
@@ -379,8 +380,9 @@ public interface RunSpecOrBuilder extends
    * A turn can only narrow: a tool its agent (or the assistant) does not
    * have stays unavailable whatever this lists. Like interaction_mode, it
    * applies to this message only. Skill is a name here too: listing tools
-   * without Skill keeps the agent's skills; disallowed_tools with Skill
-   * removes them.
+   * without Skill keeps the agent's skills, a list of Skill alone resolves
+   * unless the agent denies Skill, and disallowed_tools with Skill removes
+   * them.
    * </pre>
    *
    * <code>repeated string tools = 22 [json_name = "tools", (.buf.validate.field) = { ... }</code>
@@ -395,8 +397,9 @@ public interface RunSpecOrBuilder extends
    * A turn can only narrow: a tool its agent (or the assistant) does not
    * have stays unavailable whatever this lists. Like interaction_mode, it
    * applies to this message only. Skill is a name here too: listing tools
-   * without Skill keeps the agent's skills; disallowed_tools with Skill
-   * removes them.
+   * without Skill keeps the agent's skills, a list of Skill alone resolves
+   * unless the agent denies Skill, and disallowed_tools with Skill removes
+   * them.
    * </pre>
    *
    * <code>repeated string tools = 22 [json_name = "tools", (.buf.validate.field) = { ... }</code>
@@ -412,8 +415,9 @@ public interface RunSpecOrBuilder extends
    * A turn can only narrow: a tool its agent (or the assistant) does not
    * have stays unavailable whatever this lists. Like interaction_mode, it
    * applies to this message only. Skill is a name here too: listing tools
-   * without Skill keeps the agent's skills; disallowed_tools with Skill
-   * removes them.
+   * without Skill keeps the agent's skills, a list of Skill alone resolves
+   * unless the agent denies Skill, and disallowed_tools with Skill removes
+   * them.
    * </pre>
    *
    * <code>repeated string tools = 22 [json_name = "tools", (.buf.validate.field) = { ... }</code>
@@ -480,8 +484,10 @@ public interface RunSpecOrBuilder extends
    * Anyone who may create a run in the session may set it, on any agent the
    * session runs, a shared one included. On the native engine it lands after
    * the agent's instructions and the platform's sections, for this turn
-   * only. On the Cursor engine it is sent with the turn's message, so it
-   * stays in that conversation's history and later turns still see it.
+   * only. On the Cursor engine it is sent with the turn's message, before
+   * the structured-output directive when structured_output_schema is set
+   * (the output contract closes the message), so it stays in that
+   * conversation's history and later turns still see it.
    * </pre>
    *
    * <code>string append_system_prompt = 24 [json_name = "appendSystemPrompt", (.buf.validate.field) = { ... }</code>
@@ -496,8 +502,10 @@ public interface RunSpecOrBuilder extends
    * Anyone who may create a run in the session may set it, on any agent the
    * session runs, a shared one included. On the native engine it lands after
    * the agent's instructions and the platform's sections, for this turn
-   * only. On the Cursor engine it is sent with the turn's message, so it
-   * stays in that conversation's history and later turns still see it.
+   * only. On the Cursor engine it is sent with the turn's message, before
+   * the structured-output directive when structured_output_schema is set
+   * (the output contract closes the message), so it stays in that
+   * conversation's history and later turns still see it.
    * </pre>
    *
    * <code>string append_system_prompt = 24 [json_name = "appendSystemPrompt", (.buf.validate.field) = { ... }</code>

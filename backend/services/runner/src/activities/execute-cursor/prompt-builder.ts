@@ -841,9 +841,11 @@ export interface BuildPromptInput {
   /**
    * The turn's own addition to the system prompt (`spec.append_system_prompt`,
    * Claude Code's `--append-system-prompt`). PER-TURN: it ends every shape
-   * this turn sends, after the platform's sections and the request, since
+   * this turn builds, after the platform's sections and the request, since
    * the SDK takes no system prompt and the first message is the nearest
-   * thing to one.
+   * thing to one. A structured-output directive, when the turn asks for
+   * one, is appended after it (`appendStructuredOutputDirective`): the
+   * output contract closes the message.
    */
   appendSystemPrompt?: string;
 }

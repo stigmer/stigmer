@@ -12,7 +12,9 @@
  *  - an entry that escapes the mount refuses;
  *  - the eval suite is never mounted: `evals/` always, the directory the
  *    install recorded in `status.evals.dir`, and the archive manifest's own
- *    `experimental.evals` under the library's usability rule, each entry
+ *    `experimental.evals` under the library's usability rule (a plain
+ *    relative path clear of `skills/` and every declared skill path, so a
+ *    skill is never mounted short of its files), each entry
  *    judged by its cleaned root-relative name, so an agent under test
  *    cannot read its cases; the tamper guard holds the tree to the archive
  *    without them, and an archive carrying a suite is never left in the
@@ -266,6 +268,56 @@ describe("the eval suite is not mounted", () => {
       const mounted = await mountPlugin(clientServing(bytes), suitePlugin(bytes, undefined), root);
       expect(existsSync(join(mounted.root, "evals")), String(value)).toBe(false);
       expect(existsSync(join(mounted.root, "quality/evals/other/prompt.md")), String(value)).toBe(true);
+    }
+  });
+
+  it("mounts every skill whole when the manifest's experimental.evals overlaps the skills, as the library refuses it", async () => {
+    const skillFiles = {
+      ...suiteFiles,
+      "skills/alpha/SKILL.md": "---\nname: alpha\n---\nbody",
+      "skills/alpha/references/REF.md": "ref",
+      "extra/one/SKILL.md": "---\nname: one\n---\nbody",
+    };
+    const cases: [string, Record<string, string>][] = [
+      ["skills", { ".claude-plugin/plugin.json": '{"name":"safety","experimental":{"evals":"skills"}}' }],
+      ["skills/alpha/references", { ".claude-plugin/plugin.json": '{"name":"safety","experimental":{"evals":"skills/alpha/references"}}' }],
+      ["extra (claude)", { ".claude-plugin/plugin.json": '{"name":"safety","skills":"./extra/","experimental":{"evals":"extra"}}' }],
+      [
+        "extra/one (cursor declares)",
+        {
+          ".claude-plugin/plugin.json": '{"name":"safety","experimental":{"evals":"extra/one"}}',
+          ".cursor-plugin/plugin.json": '{"name":"safety","skills":["./docs", "./extra"]}',
+        },
+      ],
+      ["ancestor (codex declares)", { ".codex-plugin/plugin.json": '{"name":"safety","skills":["./extra/one"],"experimental":{"evals":"extra"}}' }],
+    ];
+    for (const [label, manifests] of cases) {
+      const files = { ...skillFiles, ".claude-plugin/plugin.json": '{"name":"safety"}', ...manifests };
+      const bytes = buildZip(Object.entries(files).map(([name, content]) => ({ name, content })));
+      const root = join(platformDir, createHash("sha256").update(label).digest("hex").slice(0, 8));
+      const mounted = await mountPlugin(clientServing(bytes), suitePlugin(bytes, "evals"), root);
+      expect(existsSync(join(mounted.root, "skills/alpha/SKILL.md")), label).toBe(true);
+      expect(existsSync(join(mounted.root, "skills/alpha/references/REF.md")), label).toBe(true);
+      expect(existsSync(join(mounted.root, "extra/one/SKILL.md")), label).toBe(true);
+      expect(existsSync(join(mounted.root, "evals")), label).toBe(false);
+    }
+  });
+
+  it("moves the suite beside the skills, and inside a plugin declared as one root skill", async () => {
+    const cases: [string, string][] = [
+      ["skills-tests", '{"name":"safety","skills":"./x/../","experimental":{"evals":"skills-tests"}}'],
+      ["quality/evals", '{"name":"safety","skills":["./"],"experimental":{"evals":"quality/evals"}}'],
+      ["quality/evals", '{"name":"safety","skills":".","experimental":{"evals":"quality/evals"}}'],
+      ["quality/evals", '{"name":"safety","skills":[".//", "./quality*", "quality"],"experimental":{"evals":"quality/evals"}}'],
+      ["quality/evals", '{"name":"safety","skills":["./quality", 3],"experimental":{"evals":"quality/evals"}}'],
+      ["quality/evals", '{"name":"safety","skills":{"a":"./quality"},"experimental":{"evals":"quality/evals"}}'],
+    ];
+    for (const [dir, manifest] of cases) {
+      const files = { ...suiteFiles, "skills-tests/c/prompt.md": "Hi.", ".claude-plugin/plugin.json": manifest };
+      const bytes = buildZip(Object.entries(files).map(([name, content]) => ({ name, content })));
+      const root = join(platformDir, createHash("sha256").update(manifest).digest("hex").slice(0, 8));
+      const mounted = await mountPlugin(clientServing(bytes), suitePlugin(bytes, undefined), root);
+      expect(existsSync(join(mounted.root, dir)), manifest).toBe(false);
     }
   });
 

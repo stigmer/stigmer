@@ -15,7 +15,8 @@
  *    narrows, type lists that intersect, and a check that judges each layer
  *    against the ones before it;
  *  - `Skill`: denied by any layer it hides skills, an allow-list that omits
- *    it does not, and an entry naming it always names something.
+ *    it does not, and an entry naming it always names something, so a list
+ *    of `Skill` alone resolves under an outer allow-list that omits it.
  */
 
 import { describe, it, expect } from "vitest";
@@ -437,6 +438,20 @@ describe("Skill", () => {
     expect(() => checkToolListResolution(scopeOf(["Skill"]), inventory([]), (l) => logs.push(l))).not.toThrow();
     checkToolListResolution(scopeOf([], ["Skill"]), inventory(ALL_BUILTINS), (l) => logs.push(l));
     expect(logs).toEqual([]);
+  });
+
+  it("resolves under an outer allow-list that omits it, which keeps skills, and not under one that denies it", () => {
+    const inv = inventory(ALL_BUILTINS);
+    const over = (agent: ToolLists): ToolScope =>
+      ToolScope.ofMain([
+        { owner: AGENT, lists: agent },
+        { owner: "The turn", lists: lists(["Skill"]) },
+      ]);
+    expect(() => checkMainToolListResolution(over(lists(["Read"])), inv, () => undefined)).not.toThrow();
+    expect(() => checkToolListResolution(scopeOf(["Read"]).narrow('Sub-agent "s"', lists(["Skill"])), inv, () => undefined)).not.toThrow();
+    expect(() => checkMainToolListResolution(over(lists(["Read"], ["Skill"])), inv, () => undefined)).toThrow(
+      new ToolListResolutionError("The turn", ["Skill"]),
+    );
   });
 
   it("names tools Stigmer runs nothing for as unknown, ignored with the log line", () => {
