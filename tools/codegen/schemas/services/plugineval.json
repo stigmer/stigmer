@@ -53,7 +53,7 @@
           "inputFullType": "ai.stigmer.agentic.plugineval.v1.ListPluginEvalsByPluginRequest",
           "outputType": "PluginEvalList",
           "outputFullType": "ai.stigmer.agentic.plugineval.v1.PluginEvalList",
-          "description": "List a plugin's evals, newest first."
+          "description": "List a plugin's evals, newest first.\n\n Each eval comes with its scores, aggregates, per-target results and\n notes, but with every arm's `tries` list empty, so a list stays small\n however many tries its evals ran. Get an eval by its id for its tries."
         }
       ]
     }

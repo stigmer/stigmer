@@ -41,6 +41,10 @@ class PluginEvalQueryControllerServicer(object):
 
     def listByPlugin(self, request, context):
         """List a plugin's evals, newest first.
+
+        Each eval comes with its scores, aggregates, per-target results and
+        notes, but with every arm's `tries` list empty, so a list stays small
+        however many tries its evals ran. Get an eval by its id for its tries.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

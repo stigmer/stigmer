@@ -29,6 +29,10 @@ export const PluginEvalQueryController = {
     /**
      * List a plugin's evals, newest first.
      *
+     * Each eval comes with its scores, aggregates, per-target results and
+     * notes, but with every arm's `tries` list empty, so a list stays small
+     * however many tries its evals ran. Get an eval by its id for its tries.
+     *
      * @generated from rpc ai.stigmer.agentic.plugineval.v1.PluginEvalQueryController.listByPlugin
      */
     listByPlugin: {

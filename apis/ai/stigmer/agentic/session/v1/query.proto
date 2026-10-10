@@ -21,6 +21,9 @@ service SessionQueryController {
 
   // List all sessions with pagination and optional filtering.
   //
+  // A plugin eval's tries are left out: each runs in a session of its own,
+  // read through the eval (PluginEvalQueryController.get) instead.
+  //
   // @internal
   // Authorization is handled in-handler via FGA-filtered queries.
   rpc list(ListSessionsRequest) returns (SessionList) {
@@ -29,7 +32,8 @@ service SessionQueryController {
 
   // List the conversations on one agent, whichever version each runs.
   //
-  // Results are filtered to the sessions the caller can view.
+  // Results are filtered to the sessions the caller can view. A plugin
+  // eval's tries are left out, as in list.
   //
   // @internal
   // Authorization is handled in handler via FGA query for authorized
