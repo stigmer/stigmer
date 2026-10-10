@@ -84,7 +84,7 @@ import {
   pluginEvalNotCurrentVersionMessage,
   pluginEvalTooLargeMessage,
 } from "./constants.js";
-import { caseGlobError, evalModelCatalogOf, planMatrix } from "./matrix.js";
+import { caseGlobError, evalModelCatalogOf, sizeOfMatrix } from "./matrix.js";
 import { listPluginEvals } from "./queries.js";
 import type { EvalSuiteSource } from "./suite.js";
 import { loadEvalSuite, pluginVersionedBinding } from "./suite.js";
@@ -328,7 +328,7 @@ export function newValidatePluginEvalTargetsStep(
  * PlanPluginEval: refuses a case_glob that is not a glob (INVALID_ARGUMENT,
  * naming it), reads the suite from the archive at the stamped digest,
  * refuses a version with no cases and a suite larger than an eval may run
- * (with the computed counts), and writes the pending status: the planned
+ * (with the computed counts, counted without building a cell), and writes the pending status: the planned
  * tries, and the comparison marked provisional while the with-arm runs on
  * the agent the plugin's install composed. Runs after BuildNewState and
  * VaultAttachments, which own the rest of the status.
@@ -360,14 +360,12 @@ export function newPlanPluginEvalStep(
       if (loaded.suite.cases.length === 0) {
         throw failedPreconditionError(pluginEvalNoCasesMessage(loaded.suite.dir));
       }
-      const matrix = planMatrix(loaded.suite, spec, evalModelCatalogOf(catalog));
-      const tries = matrix.cells.length;
-      if (matrix.cases.length > PLUGIN_EVAL_MAX_CASES || tries > PLUGIN_EVAL_MAX_TRIES) {
-        throw failedPreconditionError(
-          pluginEvalTooLargeMessage(matrix.cases.length, tries),
-        );
+      // Counted, not planned: the workflow plans the cells of an eval that fits.
+      const { cases, tries } = sizeOfMatrix(loaded.suite, spec, evalModelCatalogOf(catalog));
+      if (cases > PLUGIN_EVAL_MAX_CASES || tries > PLUGIN_EVAL_MAX_TRIES) {
+        throw failedPreconditionError(pluginEvalTooLargeMessage(cases, tries));
       }
-      if (matrix.cases.length === 0) {
+      if (cases === 0) {
         throw failedPreconditionError(
           "no eval case matches case_glob and case_tags",
         );

@@ -18,7 +18,8 @@
  * INTERNAL; a store fault reading the plugin is INTERNAL. The create's
  * defaults refuse a request with no organization or no spec, a plugin
  * with no version to run, and an allow_tools entry naming another
- * plugin; a failed start's write answers NOT_FOUND for a row gone and
+ * plugin; a suite past the limits is refused with its counts and no cell
+ * planned; a failed start's write answers NOT_FOUND for a row gone and
  * INTERNAL for a store fault; a chain built wrong (the plugin, the
  * cancel's target or the delete's row never stashed) fails loudly as
  * INTERNAL instead of answering with nothing.
@@ -26,7 +27,9 @@
 import { create } from "@bufbuild/protobuf";
 import { timestampFromMs } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { claudePlugin, inMemoryPluginFiles } from "@stigmer/plugin-package/testing";
 
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { PluginEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
@@ -46,6 +49,8 @@ import {
   PluginEvalTryState,
   PluginEvalTrySchema,
 } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
+import { PluginEvalTargetSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
+import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
@@ -74,6 +79,7 @@ import {
   pluginEvalNoCasesMessage,
   pluginEvalNotStartedMessage,
   pluginEvalOtherPluginToolMessage,
+  pluginEvalTooLargeMessage,
 } from "../constants.js";
 import {
   EVALUATED_PLUGIN_KEY,
@@ -92,6 +98,13 @@ import {
 } from "../steps.js";
 import { PLUGIN_EVAL_EXECUTION_TIMEOUT_MS } from "../workflows.js";
 import type { PluginEvalWorkflows } from "../workflows.js";
+import * as matrix from "../matrix.js";
+
+// planMatrix as it is, watched: create counts a suite, never plans its cells.
+vi.mock("../matrix.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../matrix.js")>();
+  return { ...actual, planMatrix: vi.fn(actual.planMatrix) };
+});
 
 let temp: TempStore;
 
@@ -489,6 +502,33 @@ describe("the create's question and its faults", () => {
     );
     expect(broken.code).toBe(Code.Internal);
     expect(broken.rawMessage).toBe("failed to read the plugin's evals");
+  });
+
+  it("refuses a suite past the limits with its counts, planning no cell", async () => {
+    const catalog = newModelCatalogProviderFromDocument(
+      JSON.stringify({ models: [{ id: "native-model", harness: "native" }] }),
+    );
+    const files = claudePlugin({
+      files: Object.fromEntries(
+        Array.from({ length: 300 }, (_, index) => [
+          [`evals/case-${index}/prompt.md`, "Say yes.\n"],
+          [`evals/case-${index}/graders/says-yes.md`, "---\ntype: regex\npattern: yes\n---\n"],
+        ]).flat(),
+      ),
+    });
+    const row = evalRow("pev_1", PluginEvalPhase.unspecified);
+    row.spec!.pluginDigest = "a".repeat(64);
+    row.spec!.runs = 50;
+    row.spec!.targets = Array.from({ length: 6 }, () => create(PluginEvalTargetSchema, { harness: Harness.NATIVE }));
+    vi.mocked(matrix.planMatrix).mockClear();
+    const tooLarge = await failure(() =>
+      newPlanPluginEvalStep({ readArchive: () => Promise.resolve(inMemoryPluginFiles(files)) }, catalog).execute(
+        createCtx(row),
+      ),
+    );
+    expect(tooLarge.code).toBe(Code.FailedPrecondition);
+    expect(tooLarge.rawMessage).toBe(pluginEvalTooLargeMessage(300, 300 * 6 * 2 * 50));
+    expect(matrix.planMatrix).not.toHaveBeenCalled();
   });
 
   it("is INTERNAL when the plugin cannot be read", async () => {

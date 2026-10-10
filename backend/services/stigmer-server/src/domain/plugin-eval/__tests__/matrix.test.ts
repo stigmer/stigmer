@@ -5,7 +5,8 @@
  * cells, the target rules when the spec names none (the case's catalog
  * model, never an alias; the native default with no model), and a
  * case_glob that is not a glob keeping no case (the grammar itself is
- * glob.test.ts's).
+ * glob.test.ts's); and sizeOfMatrix counting what planMatrix plans, with
+ * no cell built, so a suite of millions of tries is counted at once.
  */
 import { create } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";
@@ -27,6 +28,7 @@ import {
   evalModelCatalogOf,
   modelNotInCatalogReason,
   planMatrix,
+  sizeOfMatrix,
 } from "../matrix.js";
 
 function evalCase(name: string, overrides: Partial<EvalCase> = {}): EvalCase {
@@ -245,5 +247,36 @@ describe("a case_glob that is not a glob", () => {
     );
     expect(matrix.cases).toEqual([]);
     expect(matrix.cells).toEqual([]);
+  });
+});
+
+describe("sizeOfMatrix", () => {
+  it("counts the cases and tries planMatrix plans", () => {
+    const suite = suiteOf(
+      evalCase("a", { runs: 2 }),
+      evalCase("b", { unsupported: "mcp mocks" }),
+      evalCase("c", { model: "not-a-model" }),
+      evalCase("d", { runs: 0 }),
+    );
+    for (const spec of [
+      specOf(),
+      specOf({ ablation: PluginEvalAblation.none }),
+      specOf({ runs: 4, targets: [create(PluginEvalTargetSchema, { harness: Harness.CURSOR })] }),
+      specOf({ caseGlob: "a" }),
+    ]) {
+      const planned = planMatrix(suite, spec, catalog);
+      expect(sizeOfMatrix(suite, spec, catalog)).toEqual({
+        cases: planned.cases.length,
+        tries: planned.cells.length,
+      });
+    }
+  });
+
+  it("counts 6,000,000 tries of 10,000 cases without building them", () => {
+    const suite = suiteOf(...Array.from({ length: 10_000 }, (_, index) => evalCase(`case-${index}`)));
+    const targets = Array.from({ length: 6 }, () => create(PluginEvalTargetSchema, { harness: Harness.NATIVE }));
+    const started = performance.now();
+    expect(sizeOfMatrix(suite, specOf({ runs: 50, targets }), catalog)).toEqual({ cases: 10_000, tries: 6_000_000 });
+    expect(performance.now() - started).toBeLessThan(500);
   });
 });
