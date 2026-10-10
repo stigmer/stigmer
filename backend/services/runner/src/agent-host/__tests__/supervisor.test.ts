@@ -12,6 +12,9 @@
  *    whose start was under way when the last harness shut down is ended,
  *    not adopted, and nothing restarts it;
  *  - a call from the host for a turn the runner is not running is refused;
+ *  - the host's Cursor SDK is pointed at the Cursor lane only on a runner
+ *    that holds a Cursor credential (its own key, or the platform's proxy),
+ *    so a runner without one still refuses a Cursor turn up front;
  *  - harnesses booted at the same moment, while the host is still starting,
  *    are each booted in it once;
  *  - the production starter runs this build's entry in its agent-host mode
@@ -22,10 +25,17 @@
  *    terminal's Ctrl-C) and exits only when its pipe closes, so a runner
  *    draining its turns keeps its host; a host that has not exited a grace
  *    after it was told to end is killed;
- *  - hosting replaces exactly the hosted harnesses' adapters with remote
- *    ones and leaves the rest as they are.
+ *  - hosting replaces every harness's adapter with a remote one that keeps
+ *    its name and capabilities, and asks the host to warm the Cursor SDK
+ *    without ever throwing;
+ *  - the host's trust file holds the Cursor lane's certificate, after the
+ *    operator's own extra certificates when they named a readable file, is
+ *    readable by another user, and is removed with the proxy.
  */
 
+import { existsSync, mkdtempSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -34,11 +44,11 @@ import { testConfig } from "../../__test-utils__/config-fixture.js";
 import type { HarnessAdapter } from "../../harness/types.js";
 import { RUNNER_ENTRY_URL } from "../../runner-entry.js";
 import { Peer, loopbackChannels } from "../channel.js";
-import { hostHarnesses } from "../hosting.js";
+import { hostHarnesses, logCursorWarmup, writeTrustedCertificates } from "../hosting.js";
 import { AGENT_HOST_MODE_ARG, AGENT_HOST_PROTOCOL_VERSION, type HostCalls, type HostNotices, type RunnerCalls, type RunnerNotices } from "../protocol.js";
 import { AgentHostSupervisor, agentHostCommand, processHostStarter, spawnHostProcess, type HostStarter } from "../supervisor.js";
 
-const PROXY = { endpoint: "http://127.0.0.1:9", authorizeHost: () => {} };
+const PROXY = { endpoint: "http://127.0.0.1:9", cursorEndpoint: "https://127.0.0.1:9", authorizeHost: () => {} };
 
 type HostSide = Peer<RunnerCalls, HostCalls, HostNotices, RunnerNotices>;
 
@@ -56,6 +66,7 @@ function inProcessHosts(): { readonly start: HostStarter; readonly hosts: HostSi
       const host: HostSide = new Peer<RunnerCalls, HostCalls, HostNotices, RunnerNotices>(hostEnd, "host");
       host.handle("boot", async () => null);
       host.handle("shutdown", async () => null);
+      host.handle("warmCursorSdk", async () => ({ warmed: true, durationMs: 12, error: null }));
       host.sendHello(AGENT_HOST_PROTOCOL_VERSION);
       state.hosts.push(host);
       return { channel: runnerEnd, kill: () => hostEnd.close() };
@@ -156,6 +167,63 @@ describe("the supervisor's edges", () => {
     expect(log).toEqual(["[agent-host] the agent host exited (crashed); restarting in 5ms"]);
   });
 
+  it("asks a host with the Cursor harness booted to warm its SDK, and reports a warm-up that failed as a result", async () => {
+    const hosts = inProcessHosts();
+    const supervisor = new AgentHostSupervisor({ proxy: PROXY, start: hosts.start, log: () => {} });
+    await supervisor.boot("cursor", testConfig());
+    expect(await supervisor.warmCursorSdk()).toEqual({ warmed: true, durationMs: 12, error: null });
+    await supervisor.shutdown("cursor");
+
+    const throwing = inProcessHosts();
+    const failing = await hostHarnesses([{ harness: "cursor", adapter: probeAdapter("cursor") }], testConfig(), {
+      start: async () => {
+        const started = await throwing.start();
+        throwing.hosts.at(-1)!.handle("warmCursorSdk", async () => {
+          throw new Error("the SDK would not load");
+        });
+        return started;
+      },
+    });
+    await failing.rows[0]!.adapter.boot(testConfig());
+    expect(await failing.warmCursorSdk()).toEqual({ warmed: false, durationMs: 0, error: "the SDK would not load" });
+    await failing.rows[0]!.adapter.shutdown();
+    await failing.close();
+  });
+
+  it("points the host's Cursor SDK at the lane only on a runner that holds a Cursor credential", async () => {
+    const endpoints: (string | null)[] = [];
+    const start: HostStarter = () => {
+      const [runnerEnd, hostEnd] = loopbackChannels();
+      const host: HostSide = new Peer<RunnerCalls, HostCalls, HostNotices, RunnerNotices>(hostEnd, "host");
+      host.handle("boot", async ({ config }) => {
+        endpoints.push(config.cursorEndpoint);
+        return null;
+      });
+      host.handle("shutdown", async () => null);
+      host.sendHello(AGENT_HOST_PROTOCOL_VERSION);
+      return { channel: runnerEnd, kill: () => hostEnd.close() };
+    };
+    for (const config of [
+      testConfig({ proxyEndpoint: null, cursorApiKey: "" }),
+      testConfig({ proxyEndpoint: null, cursorApiKey: "operator-key" }),
+      testConfig({ proxyEndpoint: "https://platform.example/proxy", cursorApiKey: "proxy-managed" }),
+    ]) {
+      const supervisor = new AgentHostSupervisor({ proxy: PROXY, start, log: () => {} });
+      await supervisor.boot("cursor", config);
+      await supervisor.shutdown("cursor");
+    }
+    expect(endpoints).toEqual([null, PROXY.cursorEndpoint, PROXY.cursorEndpoint]);
+  });
+
+  it("logs a warm-up's result for the pool member", () => {
+    const lines: string[] = [];
+    vi.spyOn(console, "log").mockImplementation((message: string) => void lines.push(message));
+    vi.spyOn(console, "warn").mockImplementation((message: string) => void lines.push(message));
+    logCursorWarmup({ warmed: true, durationMs: 12, error: null });
+    logCursorWarmup({ warmed: false, durationMs: 3, error: "no SDK" });
+    expect(lines).toEqual(["[pool-member] Cursor SDK state stores warmed in 12ms", "[pool-member] Cursor SDK warm-up skipped (non-fatal): no SDK (3ms)"]);
+  });
+
   it("touches nothing when a harness that was never booted shuts down", async () => {
     const hosts = inProcessHosts();
     const supervisor = new AgentHostSupervisor({ proxy: PROXY, start: hosts.start, log: () => {} });
@@ -233,6 +301,14 @@ describe("the production starter", () => {
     expect(await exited).toBe(0);
   }, 60_000);
 
+  it("starts a real host by default, with the lane's trust file, and boots a harness in it", async () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const hosted = await hostHarnesses([{ harness: "deep-agent", adapter: probeAdapter("native") }], testConfig());
+    await hosted.rows[0]!.adapter.boot(testConfig());
+    await hosted.rows[0]!.adapter.shutdown();
+    await hosted.close();
+  }, 60_000);
+
   it("kills a host that has not exited a grace after it was told to end", async () => {
     const wedged = 'process.on("SIGTERM", () => {}); setInterval(() => {}, 1000);';
     const { started, child } = spawnHostProcess(process.execPath, ["-e", wedged], { ...process.env }, 200);
@@ -252,8 +328,20 @@ describe("the production starter", () => {
   });
 });
 
+/** An adapter that does nothing, for a hosted row. */
+function probeAdapter(name: string): HarnessAdapter {
+  return {
+    name,
+    capabilities: DEEP_AGENT_CAPABILITIES,
+    boot: async () => {},
+    shutdown: async () => {},
+    releaseSession: async () => {},
+    runTurn: async () => ({ kind: "completed" }),
+  };
+}
+
 describe("hosting the table", () => {
-  it("replaces exactly the hosted harnesses' adapters, and closes its proxy", async () => {
+  it("replaces every harness's adapter, keeps its name and capabilities, and closes its proxy", async () => {
     const adapter = (name: string): HarnessAdapter => ({
       name,
       capabilities: DEEP_AGENT_CAPABILITIES,
@@ -273,10 +361,37 @@ describe("hosting the table", () => {
       { start: inProcessHosts().start },
     );
 
-    expect(hosted.rows[0]!.adapter, "the Cursor harness still runs in the runner").toBe(cursor);
+    expect(hosted.rows[0]!.adapter, "the Cursor harness is hosted").not.toBe(cursor);
     expect(hosted.rows[1]!.adapter, "the native harness is hosted").not.toBe(native);
-    expect(hosted.rows[1]!.adapter.name).toBe("native");
+    expect(hosted.rows.map((row) => row.adapter.name)).toEqual(["cursor", "native"]);
     expect(hosted.rows[1]!.adapter.capabilities).toBe(native.capabilities);
+    // Nothing booted: nothing to warm, and no host is started for it.
+    expect(await hosted.warmCursorSdk()).toEqual({ warmed: false, durationMs: 0, error: "the Cursor harness is not booted" });
     await hosted.close();
+  });
+
+  it("writes the host's trust file: the lane's certificate after the operator's, readable by another user, removed with the proxy", () => {
+    const operatorDir = mkdtempSync(join(tmpdir(), "operator-ca-"));
+    const operatorFile = join(operatorDir, "corporate.pem");
+    writeFileSync(operatorFile, "-----BEGIN CERTIFICATE-----\ncorporate\n-----END CERTIFICATE-----");
+    const lane = "-----BEGIN CERTIFICATE-----\nlane\n-----END CERTIFICATE-----\n";
+
+    const combined = writeTrustedCertificates(lane, operatorFile);
+    expect(readFileSync(combined.file, "utf8")).toBe("-----BEGIN CERTIFICATE-----\ncorporate\n-----END CERTIFICATE-----\n" + lane);
+    expect(statSync(combined.file).mode & 0o777).toBe(0o644);
+    expect(statSync(dirname(combined.file)).mode & 0o777).toBe(0o755);
+    combined.remove();
+    expect(existsSync(dirname(combined.file))).toBe(false);
+
+    const alone = writeTrustedCertificates(lane, undefined);
+    expect(readFileSync(alone.file, "utf8")).toBe(lane);
+    alone.remove();
+
+    const warned: string[] = [];
+    vi.spyOn(console, "warn").mockImplementation((message: string) => void warned.push(message));
+    const unreadable = writeTrustedCertificates(lane, join(operatorDir, "missing.pem"));
+    expect(readFileSync(unreadable.file, "utf8")).toBe(lane);
+    expect(warned[0]).toMatch(/^\[agent-host\] NODE_EXTRA_CA_CERTS=.*missing\.pem could not be read/);
+    unreadable.remove();
   });
 });

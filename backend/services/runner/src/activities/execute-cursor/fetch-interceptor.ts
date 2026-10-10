@@ -16,6 +16,13 @@
  * request from the ref the root bound as `Config.proxyTokenRef`.
  *
  * When STIGMER_PROXY_ENDPOINT is not set, this module is a no-op.
+ *
+ * Where the rewritten calls land: the adapter runs in the agent host, whose
+ * transport is the runner's Cursor lane on loopback (`Config.cursorEndpoint`,
+ * `agent-proxy/cursor-lane.ts`), and the host sets `CURSOR_BACKEND_URL` to
+ * that lane (`agent-host/entry.ts`). So "the proxy endpoint" below is the
+ * lane, which serves both the rewritten REST paths and the Connect paths
+ * itself; the lane, not this module, reaches the platform's proxy or Cursor.
  */
 
 import { TimingRecorder, emitTimingLog } from "../../shared/cold-start-timing.js";

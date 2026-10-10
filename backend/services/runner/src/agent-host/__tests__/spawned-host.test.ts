@@ -55,7 +55,7 @@ function probeStarter(arm: "serve" | "stale"): HostStarter {
 }
 
 function hostedProbe(arm: "serve" | "stale" = "serve"): { readonly adapter: HarnessAdapter; readonly supervisor: AgentHostSupervisor } {
-  const proxy = { endpoint: "http://127.0.0.1:9", authorizeHost: () => {}, openTurn: () => () => {} };
+  const proxy = { endpoint: "http://127.0.0.1:9", cursorEndpoint: "https://127.0.0.1:9", authorizeHost: () => {}, openTurn: () => () => {} };
   const supervisor = new AgentHostSupervisor({ proxy, start: probeStarter(arm), firstRestartDelayMs: 50, log: () => {} });
   const local: HarnessAdapter = {
     name: "probe",

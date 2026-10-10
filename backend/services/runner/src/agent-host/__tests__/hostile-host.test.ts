@@ -52,7 +52,7 @@ type HostilePeer = Peer<RunnerCalls, HostCalls, HostNotices, RunnerNotices>;
 type Attack = (peer: HostilePeer, turnId: string, args: HostCalls["runTurn"]["args"]) => Promise<void>;
 
 function hostileHarness(attack: Attack, outcome: unknown = { kind: "completed" }): HarnessAdapter {
-  const proxy = { endpoint: "http://127.0.0.1:9", authorizeHost: () => {}, openTurn: () => () => {} };
+  const proxy = { endpoint: "http://127.0.0.1:9", cursorEndpoint: "https://127.0.0.1:9", authorizeHost: () => {}, openTurn: () => () => {} };
   const supervisor = new AgentHostSupervisor({
     proxy,
     log: () => {},

@@ -40,9 +40,9 @@ export const HARNESS_ADAPTERS: readonly HarnessRow[] = [
 
 /**
  * The harnesses whose engines run in the agent host, the runner's separate
- * process that holds none of its credentials (`agent-host/hosting.ts`,
- * #2016). The Cursor harness still runs in the runner's own process: its
- * transport interceptors and its approval hook server move with it, in a
- * change of their own.
+ * process that holds none of its keys (`agent-host/hosting.ts`, #2016):
+ * every one. Each adapter's boot (the Cursor interceptors, the engines'
+ * SDKs) and its approval hook server run there, and the runner's own
+ * process loads no engine (`__tests__/harness-boot-order.test.ts`).
  */
-export const HOSTED_HARNESSES: ReadonlySet<HarnessName> = new Set<HarnessName>(["deep-agent"]);
+export const HOSTED_HARNESSES: ReadonlySet<HarnessName> = new Set<HarnessName>(["cursor", "deep-agent"]);

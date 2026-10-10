@@ -19,7 +19,7 @@
  * so a cut-off answer never reads as a complete one.
  */
 
-import { request as httpRequest, type IncomingHttpHeaders, type IncomingMessage, type ServerResponse } from "node:http";
+import { request as httpRequest, type IncomingHttpHeaders, type OutgoingHttpHeaders } from "node:http";
 import { request as httpsRequest } from "node:https";
 import type { Readable } from "node:stream";
 
@@ -82,7 +82,7 @@ const CHECKED_SCOPE = "x-stigmer-execution-id";
 export function forwardableHeaders(headers: IncomingHttpHeaders, keepScope: boolean): Record<string, string | string[]> {
   const out: Record<string, string | string[]> = {};
   for (const [name, value] of Object.entries(headers)) {
-    if (value === undefined || HOP_BY_HOP.has(name) || HOST_CREDENTIAL.has(name)) continue;
+    if (value === undefined || name.startsWith(":") || HOP_BY_HOP.has(name) || HOST_CREDENTIAL.has(name)) continue;
     if (name.startsWith("x-stigmer-") && !(keepScope && name === CHECKED_SCOPE)) continue;
     out[name] = value;
   }
@@ -96,14 +96,21 @@ export interface Upstream {
   readonly body: Buffer;
 }
 
+/**
+ * A response a lane answers on: HTTP/1.1's, or the HTTP/2 compatibility
+ * API's (`cursor-lane.ts`) — what both have that the lanes use.
+ */
+export interface RelayResponse extends NodeJS.WritableStream {
+  readonly headersSent: boolean;
+  readonly writableFinished: boolean;
+  writeHead(statusCode: number, headers?: OutgoingHttpHeaders): this;
+  destroy(error?: Error): this;
+}
+
 /** Send `upstream` and stream its answer to `res`. Resolves when the answer has ended or failed. */
-export function relay(req: IncomingMessage, res: ServerResponse, upstream: Upstream): Promise<void> {
+export function relay(res: RelayResponse, upstream: Upstream): Promise<void> {
   return new Promise((resolve) => {
-    const send = upstream.url.protocol === "https:" ? httpsRequest : httpRequest;
-    const outgoing = send(upstream.url, {
-      method: upstream.method,
-      headers: { ...upstream.headers, "accept-encoding": "identity", "content-length": String(upstream.body.length) },
-    });
+    const outgoing = send(upstream);
     const abortUpstream = (): void => {
       if (!res.writableFinished) outgoing.destroy();
     };
@@ -134,12 +141,36 @@ export function relay(req: IncomingMessage, res: ServerResponse, upstream: Upstr
   });
 }
 
+/** Send `upstream` and read its whole answer: for a lane that rewrites the answer (`cursor-lane.ts`'s exchange). */
+export function requestWhole(upstream: Upstream): Promise<{ readonly status: number; readonly headers: Record<string, string | string[]>; readonly body: Buffer }> {
+  return new Promise((resolve, reject) => {
+    const outgoing = send(upstream);
+    outgoing.on("response", (answer) => {
+      const headers: Record<string, string | string[]> = {};
+      for (const [name, value] of Object.entries(answer.headers)) {
+        if (value !== undefined && !HOP_BY_HOP.has(name)) headers[name] = value;
+      }
+      readBody(answer).then((body) => resolve({ status: answer.statusCode ?? 502, headers, body }), reject);
+    });
+    outgoing.on("error", (err) => reject(new Error(`the upstream could not be reached: ${err.message}`)));
+    outgoing.end(upstream.body);
+  });
+}
+
+function send(upstream: Upstream): ReturnType<typeof httpRequest> {
+  const request = upstream.url.protocol === "https:" ? httpsRequest : httpRequest;
+  return request(upstream.url, {
+    method: upstream.method,
+    headers: { ...upstream.headers, "accept-encoding": "identity", "content-length": String(upstream.body.length) },
+  });
+}
+
 /**
  * A refusal or a lane failure, in the shape both provider SDKs parse as an
  * API error (`{"type":"error","error":{...}}`), so the host's classifier
  * reads its message.
  */
-export function replyError(res: ServerResponse, status: number, message: string): void {
+export function replyError(res: RelayResponse, status: number, message: string): void {
   if (res.headersSent) {
     res.destroy();
     return;
@@ -147,4 +178,11 @@ export function replyError(res: ServerResponse, status: number, message: string)
   const body = JSON.stringify({ type: "error", error: { type: status === 401 ? "authentication_error" : "api_error", message } });
   res.writeHead(status, { "content-type": "application/json", "content-length": String(Buffer.byteLength(body)) });
   res.end(body);
+}
+
+/** The token of an `Authorization: Bearer <token>` header, read without a backtracking pattern (the header is the host's to send). */
+export function bearerOf(header: string | undefined): string | undefined {
+  if (header === undefined || !/^bearer\s/i.test(header)) return undefined;
+  const token = header.slice("bearer".length).trim();
+  return token.length > 0 ? token : undefined;
 }

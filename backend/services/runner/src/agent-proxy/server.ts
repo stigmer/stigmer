@@ -25,6 +25,8 @@
  *    to visitors.
  *  - No lane reaches the Stigmer API beyond the registry: execution reads,
  *    status writes, credential exchanges stay the runner's own calls.
+ *  - The Cursor SDK's traffic has a listener of its own, TLS on loopback,
+ *    under the same token and live-turn rules (`cursor-lane.ts`).
  *
  * Every refusal is answered in the shape the providers' SDKs parse as an
  * API error, and logged once with its reason (never a token or a body).
@@ -43,8 +45,9 @@ import type { AddressInfo } from "node:net";
 import type { Config } from "../config.js";
 import type { LiveTurnRegistry } from "../agent-host/remote-adapter.js";
 import type { AgentProxyGate } from "../agent-host/supervisor.js";
+import { CursorLane } from "./cursor-lane.js";
 import { LaneRefusal, checkpointUpstream, isModelProviderLane, modelUpstream, registryUpstream } from "./lanes.js";
-import { RequestTooLargeError, readBody, relay, replyError } from "./relay.js";
+import { RequestTooLargeError, bearerOf, readBody, relay, replyError } from "./relay.js";
 
 const LLM_PREFIX = "/v1/proxy/llm/";
 const CHECKPOINT_PREFIX = "/v1/proxy/checkpoints";
@@ -55,13 +58,15 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
   /** Live turns by execution id: the thread each checkpoints under, and how many are open. */
   private readonly live = new Map<string, { readonly threadId: string; open: number }>();
 
+  private cursor!: CursorLane;
+
   private constructor(
     private readonly server: Server,
     readonly endpoint: string,
     private readonly config: Config,
   ) {}
 
-  /** Listen on an ephemeral loopback port and forward with `config`'s credentials, read per request. */
+  /** Listen on ephemeral loopback ports and forward with `config`'s credentials, read per request. */
   static async start(config: Config): Promise<AgentProxy> {
     let proxy: AgentProxy | undefined;
     const server = createServer((req, res) => {
@@ -74,11 +79,27 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
     server.unref();
     const { port } = server.address() as AddressInfo;
     proxy = new AgentProxy(server, `http://127.0.0.1:${port}`, config);
+    const self = proxy;
+    proxy.cursor = await CursorLane.start(config, {
+      isHostToken: (presented) => self.isHostToken(presented),
+      requireLiveExecution: (req) => self.requireLiveExecution(req),
+    });
     return proxy;
+  }
+
+  /** The Cursor lane, `https://2130706433:<port>`, 127.0.0.1 written as one number so the Cursor SDK keeps certificate checks on (`agent-proxy/cursor-lane.ts`). */
+  get cursorEndpoint(): string {
+    return this.cursor.endpoint;
+  }
+
+  /** The certificate the Cursor lane serves, which the host trusts (PEM). */
+  get cursorCertificate(): string {
+    return this.cursor.certPem;
   }
 
   authorizeHost(token: string): void {
     this.hostToken = Buffer.from(token);
+    this.cursor.resetCustody();
   }
 
   openTurn(turn: { readonly executionId: string; readonly threadId: string }): () => void {
@@ -94,11 +115,14 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
     };
   }
 
-  close(): Promise<void> {
-    return new Promise((resolve) => {
-      this.server.closeAllConnections();
-      this.server.close(() => resolve());
-    });
+  async close(): Promise<void> {
+    await Promise.all([
+      this.cursor.close(),
+      new Promise<void>((resolve) => {
+        this.server.closeAllConnections();
+        this.server.close(() => resolve());
+      }),
+    ]);
   }
 
   private async handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
@@ -108,7 +132,7 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
       if (!this.authenticated(req)) throw new LaneRefusal(401, "the agent proxy accepts the current agent host's token only");
       if (path === REGISTRY_PATH) {
         if (req.method !== "GET") throw new LaneRefusal(405, "the model registry is read with GET");
-        await relay(req, res, registryUpstream(req));
+        await relay(res, registryUpstream(req));
         return;
       }
       if (path.startsWith(LLM_PREFIX)) {
@@ -117,13 +141,13 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
         this.requireLiveExecution(req);
         const body = await readBody(req);
         const rest = `/${segments.join("/")}${url.search}`;
-        await relay(req, res, await modelUpstream(this.config, lane, rest, req, body));
+        await relay(res, await modelUpstream(this.config, lane, rest, req, body));
         return;
       }
       if (path === CHECKPOINT_PREFIX || path.startsWith(`${CHECKPOINT_PREFIX}/`)) {
         const body = await readBody(req);
-        this.requireLiveThreads(url, body);
-        await relay(req, res, checkpointUpstream(this.config, `${path.slice(CHECKPOINT_PREFIX.length)}${url.search}`, req, body));
+        this.requireLiveThreads(url, body, req.method === "PUT" && path === `${CHECKPOINT_PREFIX}/writes`);
+        await relay(res, checkpointUpstream(this.config, `${path.slice(CHECKPOINT_PREFIX.length)}${url.search}`, req, body));
         return;
       }
       throw new LaneRefusal(404, `the agent proxy serves no lane at ${path}`);
@@ -138,32 +162,46 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
   }
 
   private authenticated(req: IncomingMessage): boolean {
+    return this.isHostToken(bearerOf(req.headers.authorization) ?? headerValue(req.headers["x-api-key"]));
+  }
+
+  private isHostToken(presented: string | undefined): boolean {
     const expected = this.hostToken;
     if (!expected) return false;
-    const presented = bearerOf(req.headers.authorization) ?? headerValue(req.headers["x-api-key"]);
     if (presented === undefined) return false;
     const candidate = Buffer.from(presented);
     return candidate.length === expected.length && timingSafeEqual(candidate, expected);
   }
 
-  private requireLiveExecution(req: IncomingMessage): void {
+  private requireLiveExecution(req: { readonly headers: IncomingMessage["headers"] }): void {
     const executionId = headerValue(req.headers["x-stigmer-execution-id"]);
     if (!executionId) throw new LaneRefusal(403, "a model call must name its execution (X-Stigmer-Execution-Id)");
     if (!this.live.has(executionId)) throw new LaneRefusal(403, `execution ${executionId} has no turn running on this runner`);
   }
 
   /** Every thread a checkpoint call names must be a live turn's. */
-  private requireLiveThreads(url: URL, body: Buffer): void {
+  private requireLiveThreads(url: URL, body: Buffer, isWriteBatch: boolean): void {
     const threads = new Set<string>();
     const queried = url.searchParams.get("thread_id");
     if (queried !== null) threads.add(queried);
     for (const thread of threadsInBody(body)) threads.add(thread);
+    // An empty write batch names no thread and writes nothing: LangGraph sends
+    // one for a task whose writes all go to untracked channels, and the
+    // platform answers it as a no-op.
+    if (threads.size === 0 && isWriteBatch && isEmptyWriteBatch(body)) return;
     if (threads.size === 0) throw new LaneRefusal(403, "a checkpoint call must name its thread");
     const liveThreads = new Set([...this.live.values()].map((t) => t.threadId));
     for (const thread of threads) {
       if (!liveThreads.has(thread)) throw new LaneRefusal(403, `thread ${thread} belongs to no turn running on this runner`);
     }
   }
+}
+
+/** A body that is exactly a write batch with no writes. */
+function isEmptyWriteBatch(body: Buffer): boolean {
+  if (body.length === 0) return false;
+  const parsed: unknown = JSON.parse(body.toString("utf8"));
+  return typeof parsed === "object" && parsed !== null && Array.isArray((parsed as { writes?: unknown }).writes) && (parsed as { writes: unknown[] }).writes.length === 0;
 }
 
 /** The `thread_id`s a checkpoint write names: the checkpoint's own, or each write entry's. */
@@ -186,13 +224,6 @@ function threadsInBody(body: Buffer): string[] {
   const writes = typeof parsed === "object" && parsed !== null ? (parsed as { writes?: unknown }).writes : undefined;
   if (Array.isArray(writes)) for (const write of writes) collect(write);
   return threads;
-}
-
-/** The token of an `Authorization: Bearer <token>` header, read without a backtracking pattern (the header is the host's to send). */
-export function bearerOf(header: string | undefined): string | undefined {
-  if (header === undefined || !/^bearer\s/i.test(header)) return undefined;
-  const token = header.slice("bearer".length).trim();
-  return token.length > 0 ? token : undefined;
 }
 
 function headerValue(value: string | string[] | undefined): string | undefined {

@@ -60,11 +60,11 @@ pinned somewhere. Read a row across before searching for anything.
 
 ## Where an adapter runs
 
-A harness's adapter runs either in the runner's own process or in the agent
-host, the runner's second process, which holds none of its credentials:
+Every harness's adapter runs in the agent host, the runner's second process,
+which holds none of its keys; the runner's own process loads no engine SDK
+(`__tests__/harness-boot-order.test.ts`):
 
-- `harness-adapters.ts` — `HOSTED_HARNESSES` names the hosted ones; the native
-  deep-agent harness is, the Cursor harness is not yet.
+- `harness-adapters.ts` — `HOSTED_HARNESSES` names the hosted ones: both.
 - `agent-host/hosting.ts` — what the composition roots call: the table with
   each hosted row's adapter replaced by its remote stand-in.
 - `agent-host/remote-adapter.ts` — the stand-in: `createRemoteAdapter` turns
@@ -75,10 +75,11 @@ host, the runner's second process, which holds none of its credentials:
 - `agent-host/codec.ts` — what crosses: the `TurnInput`, and the status split
   by the owners this file's contract names.
 - `agent-proxy/server.ts` — `AgentProxy`, the runner's loopback proxy, the
-  host's only way to a credentialed call.
+  host's only way to a credentialed call; `agent-proxy/cursor-lane.ts` its
+  Cursor lane, TLS on loopback, which keeps the Cursor access token.
 
 An adapter written to the contract needs nothing more to be hosted: the hermetic
-suites and the native kit run it through the remote adapter
+suites and both kits run it through the remote adapter
 (`__test-utils__/loopback-host.ts`).
 
 ## Adapter files

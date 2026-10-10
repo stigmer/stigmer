@@ -268,25 +268,6 @@ async function runPoolMode(
 
   console.warn(`[pool-member] ${memberId} ready (queue=${taskQueue})`);
 
-  // Idle-time warm-up (issue #209): pay the Cursor SDK's per-process SQLite
-  // cost now, while the member waits for a claim, instead of inside the
-  // claimed session's first resolve_agent. Fire-and-forget by design —
-  // pool-control members only (a claimed-session restart serves immediately
-  // and must not compete with its own executions).
-  if (intent.kind === "pool-control") {
-    const { warmCursorSdkStateStores } = await import("./activities/execute-cursor/sdk-warmup.js");
-    void warmCursorSdkStateStores().then((result) => {
-      if (result.warmed) {
-        console.log(`[pool-member] Cursor SDK state stores warmed in ${result.durationMs}ms`);
-      } else {
-        console.warn(
-          `[pool-member] Cursor SDK warm-up skipped (non-fatal): ${result.error} ` +
-          `(${result.durationMs}ms)`,
-        );
-      }
-    });
-  }
-
   // Park until terminated; the workers poll in the background. Unlike manager
   // mode there is no stdin driver — Kubernetes signals are the only exit.
   await new Promise<void>((resolve) => {
@@ -453,6 +434,7 @@ async function main(): Promise<void> {
   if (process.argv[2] === AGENT_HOST_MODE_ARG) {
     const { runAgentHost } = await import("./agent-host/entry.js");
     await runAgentHost();
+    return;
   }
   /* v8 ignore stop */
 
@@ -469,30 +451,6 @@ async function main(): Promise<void> {
 
   const config = loadConfig();
   markBoot("config_loaded");
-
-  // Route ALL Cursor SDK traffic through the Stigmer proxy in proxy mode.
-  //
-  // CURSOR_BACKEND_URL controls:
-  //   1. connect-node Connect RPC transport (AgentService/Run BiDi stream)
-  //   2. Token exchange (fetch to ${baseUrl}/auth/exchange_user_api_key)
-  //   3. CloudApiClient REST (fetch to ${baseUrl}/v1/models, agent CRUD)
-  //
-  // Setting it to proxyEndpoint makes connect-node send the BiDi stream to
-  // the proxy, where path routing (Caddy/Istio) dispatches /agent.v1* to the
-  // proxy's BiDi lane on port 8082.
-  //
-  // Side-effect: REST calls (#2, #3) also target proxyEndpoint via fetch.
-  // The fetch interceptor detects these (proxy-endpoint host, non-Connect path)
-  // and rewrites them to /v1/proxy/cursor/{upstream_host}{path} for the
-  // proxy's REST lane.
-  //
-  // CURSOR_API_BASE_URL is also set for completeness — older SDK versions
-  // may read it for token exchange instead of CURSOR_BACKEND_URL.
-  if (config.proxyEndpoint) {
-    const proxyBase = config.proxyEndpoint.replace(/\/+$/, "");
-    process.env.CURSOR_BACKEND_URL = proxyBase;
-    process.env.CURSOR_API_BASE_URL = proxyBase;
-  }
 
   const poolMemberId = process.env.STIGMER_POOL_MEMBER_ID?.trim() || undefined;
   const runnerMode =

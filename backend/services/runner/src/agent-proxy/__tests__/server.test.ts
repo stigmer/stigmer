@@ -40,7 +40,8 @@ vi.mock("google-auth-library", () => ({
 import { testConfig } from "../../__test-utils__/config-fixture.js";
 import { FakeUpstream } from "../../__test-utils__/fake-upstream.js";
 import type { Config } from "../../config.js";
-import { AgentProxy, bearerOf } from "../server.js";
+import { bearerOf } from "../relay.js";
+import { AgentProxy } from "../server.js";
 
 const HOST_TOKEN = "host-token-0123456789";
 const RUNNER_TOKEN = "runner-control-plane-token";
@@ -363,6 +364,17 @@ describe("forward: a runner behind the Stigmer platform's proxy", () => {
     const mixed = JSON.stringify({ writes: [{ thread_id: thread }, { thread_id: "thread-ses-other" }] });
     expect((await call(proxy, "/v1/proxy/checkpoints/writes", { method: "PUT", headers: asHost, body: mixed })).status, "every entry of a write").toBe(403);
     expect((await call(proxy, "/v1/proxy/checkpoints/checkpoint", { method: "PUT", headers: asHost, body: JSON.stringify({ checkpoint_id: "c" }) })).status, "a write that names no thread").toBe(403);
+    expect((await call(proxy, "/v1/proxy/checkpoints/checkpoint", { method: "GET", headers: asHost })).status, "a read that names no thread").toBe(403);
+    expect(upstream.received).toHaveLength(sent);
+  });
+
+  it("passes an empty write batch through, as the platform answers it", async () => {
+    const res = await call(proxy, "/v1/proxy/checkpoints/writes", { method: "PUT", headers: asHost, body: JSON.stringify({ writes: [] }) });
+    expect(res.status).toBe(200);
+    expect(upstream.last.path).toBe("/v1/proxy/checkpoints/writes");
+    const sent = upstream.received.length;
+    expect((await call(proxy, "/v1/proxy/checkpoints/thread", { method: "DELETE", headers: asHost, body: JSON.stringify({ writes: [] }) })).status, "only a write batch").toBe(403);
+    expect((await call(proxy, "/v1/proxy/checkpoints/writes", { method: "PUT", headers: asHost, body: "" })).status, "an empty body is no batch").toBe(403);
     expect(upstream.received).toHaveLength(sent);
   });
 

@@ -66,6 +66,8 @@ export type HostStarter = () => StartedHost | Promise<StartedHost>;
 export interface AgentProxyGate {
   /** `http://127.0.0.1:<port>`. */
   readonly endpoint: string;
+  /** The Cursor lane, `https://2130706433:<port>`, 127.0.0.1 written as one number so the Cursor SDK keeps certificate checks on (`agent-proxy/cursor-lane.ts`). */
+  readonly cursorEndpoint: string;
   /** Make `token` the one host token the proxy accepts. */
   authorizeHost(token: string): void;
 }
@@ -142,6 +144,12 @@ export class AgentHostSupervisor {
     const peer = this.live?.peer;
     // A host that is not running holds nothing for the session.
     if (peer && !peer.closed) await peer.call("releaseSession", { harness, sessionId });
+  }
+
+  /** Ask the host to warm the Cursor SDK's stores (an idle pool member's head start); nothing to warm when Cursor is not booted. */
+  async warmCursorSdk(): Promise<HostCalls["warmCursorSdk"]["result"]> {
+    if (!this.booted.has("cursor")) return { warmed: false, durationMs: 0, error: "the Cursor harness is not booted" };
+    return (await this.connection()).call("warmCursorSdk", {});
   }
 
   /** The live host, started (and booted) first when it is not running. */
@@ -271,6 +279,7 @@ export class AgentHostSupervisor {
       agentResolveTimeoutMs: config.agentResolveTimeoutMs,
       workspaceLockTimeoutMs: config.workspaceLockTimeoutMs,
       proxyEndpoint: this.options.proxy.endpoint,
+      cursorEndpoint: config.proxyEndpoint !== null || config.cursorApiKey !== "" ? this.options.proxy.cursorEndpoint : null,
       token,
       platformProxied: config.proxyEndpoint !== null,
     };

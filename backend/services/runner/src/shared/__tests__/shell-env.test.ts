@@ -51,6 +51,13 @@ describe("buildShellEnv", () => {
     expect(env.STIGMER_TOKEN).toBe("agent-declared-token");
   });
 
+  it("keeps the Cursor lane's address, which the host's Cursor SDK reads, out of the agent's shell", () => {
+    const env = buildShellEnv({}, { PATH: "/bin", CURSOR_BACKEND_URL: "https://2130706433:4433" });
+
+    expect(env).toEqual({ PATH: "/bin" });
+    expect(buildShellEnv({ CURSOR_BACKEND_URL: "https://declared.example" }, {}).CURSOR_BACKEND_URL, "a value the agent declares still reaches it").toBe("https://declared.example");
+  });
+
   it("drops undefined base values", () => {
     const base = { DEFINED: "yes", UNDEFINED: undefined };
     const env = buildShellEnv({}, base as NodeJS.ProcessEnv);
