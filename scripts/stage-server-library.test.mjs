@@ -101,6 +101,7 @@ test("the checked-in server's links close over exactly the libs it links, so the
   );
   const libs = linkedLibs(manifest);
   assert.deepEqual(libs, [
+    "@stigmer/eval-runtime",
     "@stigmer/outbound",
     "@stigmer/plugin-package",
     "@stigmer/protos",
@@ -115,5 +116,6 @@ test("the checked-in server's links close over exactly the libs it links, so the
     "backend/libs/ts/plugin-package",
     "backend/libs/ts/outbound",
     "backend/libs/ts/tool-vocabulary",
+    "backend/libs/ts/eval-runtime",
   ]);
 });

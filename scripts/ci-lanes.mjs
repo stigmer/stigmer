@@ -90,6 +90,7 @@ export const LANES = {
       // The libraries the server package links: the live test runs the
       // server's source, which imports them.
       "apis/stubs/ts/**",
+      "backend/libs/ts/eval-runtime/**",
       "backend/libs/ts/outbound/**",
       "backend/libs/ts/plugin-package/**",
       "backend/libs/ts/temporal-codecs/**",

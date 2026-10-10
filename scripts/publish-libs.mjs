@@ -101,6 +101,11 @@ export const PACKAGES = [
   // and the server names recorded tool calls with it, and both pin the exact
   // release version at stamp time.
   "backend/libs/ts/tool-vocabulary",
+  // @stigmer/eval-runtime has no deps at all, so its position is order-free.
+  // It MUST publish: the runner executes a plugin eval's case with it and the
+  // server reads the suite and the try's stops with it, and both pin the
+  // exact release version at stamp time.
+  "backend/libs/ts/eval-runtime",
   "sdk/typescript",
   "sdk/theme",
   "sdk/react",

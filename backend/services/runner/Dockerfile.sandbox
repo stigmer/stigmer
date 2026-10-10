@@ -194,6 +194,14 @@ RUN cd backend/libs/ts/tool-vocabulary && npm install --ignore-scripts
 COPY backend/libs/ts/tool-vocabulary/ backend/libs/ts/tool-vocabulary/
 RUN cd backend/libs/ts/tool-vocabulary && npm run build
 
+# Build @stigmer/eval-runtime (file: dependency of the runner) — what a plugin
+# eval's server and runner both execute with: the transcript reader, the mock
+# guard and rendering, the try-stop wording. Same treatment as the other libs.
+COPY backend/libs/ts/eval-runtime/package.json backend/libs/ts/eval-runtime/
+RUN cd backend/libs/ts/eval-runtime && npm install --ignore-scripts
+COPY backend/libs/ts/eval-runtime/ backend/libs/ts/eval-runtime/
+RUN cd backend/libs/ts/eval-runtime && npm run build
+
 # ---------- The runner, compiled and bundled ----------
 # Built against the real libs (the file: references resolve to libs' tree),
 # with every dependency; only the slim artifact leaves this stage, split in
