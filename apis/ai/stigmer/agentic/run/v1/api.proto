@@ -565,6 +565,12 @@ message RunValueDeclarer {
 
   // The tool's server name in its plugin; empty for everything else.
   string server = 6;
+
+  // The archive of the tool's plugin this run planned (the plugin's
+  // digest); empty for everything else. The values fetch reads the server
+  // at that version, so a run of a pinned version keeps its tools when the
+  // plugin is pushed again.
+  string plugin_digest = 7;
 }
 
 // Setup progress reported during the RUN_PENDING phase.

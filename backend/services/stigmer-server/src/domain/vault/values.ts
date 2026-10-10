@@ -213,6 +213,7 @@ async function openConnectValues(
     server: {
       pluginId: attempt.pluginId,
       pluginName: plugin.metadata?.name ?? "",
+      pluginDigest: plugin.status?.digest ?? "",
       entry,
       env: plugin.status?.env ?? {},
     },

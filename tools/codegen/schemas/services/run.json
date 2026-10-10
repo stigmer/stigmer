@@ -5404,6 +5404,16 @@
           },
           "description": "The tool's server name in its plugin; empty for everything else.",
           "required": false
+        },
+        {
+          "name": "PluginDigest",
+          "jsonName": "pluginDigest",
+          "protoField": "plugin_digest",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The archive of the tool's plugin this run planned (the plugin's\n digest); empty for everything else. The values fetch reads the server\n at that version, so a run of a pinned version keeps its tools when the\n plugin is pushed again.",
+          "required": false
         }
       ]
     },

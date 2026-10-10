@@ -131,6 +131,7 @@ export async function listTools(
   const server: PluginServer = {
     pluginId: input.pluginId,
     pluginName: plugin.metadata?.name ?? "",
+    pluginDigest: plugin.status?.digest ?? "",
     entry,
     env: plugin.status?.env ?? {},
   };

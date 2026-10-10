@@ -541,6 +541,7 @@ describe("requirements", () => {
         name: "plugin:linear:linear",
         pluginId: "plg_linear",
         server: "linear",
+        pluginDigest: linear.status.digest,
       });
     }
     const byKey = Object.fromEntries(requirements.map((requirement) => [requirement.key, requirement]));
@@ -1405,6 +1406,30 @@ describe("the fetch opens exactly the planned entries, as they are now", () => {
       ["API_KEY", mine, "API_KEY", false],
     ]);
     expect(JSON.stringify(sources)).not.toContain("ana-key");
+  });
+
+  it("reads a tool's server at the plugin version the run planned, after a later push moved it", async () => {
+    // The run planned linear at an older archive (a pinned version); a later
+    // push moved its server. The fetch checks against what the run dials.
+    const OLDER = "a".repeat(64);
+    const pinned = tool("linear", { url: "https://old.linear.example/mcp", env: { TEAM: { value: "core" } } });
+    pinned.status.digest = OLDER;
+    const values = await open({ run: runOf({ person: ANA }), plugins: [pinned] }, async () => {
+      await rig.store.saveAudit(
+        ApiResourceKind.plugin,
+        pinned.id,
+        PluginSchema,
+        create(PluginSchema, { metadata: { id: pinned.id, name: pinned.name, slug: pinned.name, org: ORG }, status: pinned.status }),
+        OLDER,
+        "1.0.0",
+      );
+      const moved = tool("linear", { url: "https://new.linear.example/mcp", env: { TEAM: { value: "core" } } });
+      moved.status.digest = "b".repeat(64);
+      await install(moved);
+    });
+    const group = values.tools.find((entry) => entry.pluginId === pinned.id);
+    expect(group?.url).toBe("https://old.linear.example/mcp");
+    expect(toolValues(values, pinned)).toEqual({ TEAM: "core" });
   });
 
   it("picks up a secret rotated after the plan", async () => {

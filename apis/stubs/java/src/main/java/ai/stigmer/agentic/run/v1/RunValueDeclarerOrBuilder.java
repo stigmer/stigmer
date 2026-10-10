@@ -112,4 +112,30 @@ public interface RunValueDeclarerOrBuilder extends
    */
   com.google.protobuf.ByteString
       getServerBytes();
+
+  /**
+   * <pre>
+   * The archive of the tool's plugin this run planned (the plugin's
+   * digest); empty for everything else. The values fetch reads the server
+   * at that version, so a run of a pinned version keeps its tools when the
+   * plugin is pushed again.
+   * </pre>
+   *
+   * <code>string plugin_digest = 7 [json_name = "pluginDigest"];</code>
+   * @return The pluginDigest.
+   */
+  java.lang.String getPluginDigest();
+  /**
+   * <pre>
+   * The archive of the tool's plugin this run planned (the plugin's
+   * digest); empty for everything else. The values fetch reads the server
+   * at that version, so a run of a pinned version keeps its tools when the
+   * plugin is pushed again.
+   * </pre>
+   *
+   * <code>string plugin_digest = 7 [json_name = "pluginDigest"];</code>
+   * @return The bytes for pluginDigest.
+   */
+  com.google.protobuf.ByteString
+      getPluginDigestBytes();
 }

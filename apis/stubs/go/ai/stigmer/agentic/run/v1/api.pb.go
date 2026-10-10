@@ -666,7 +666,12 @@ type RunValueDeclarer struct {
 	// read it; empty for an agent or a repository.
 	PluginId string `protobuf:"bytes,5,opt,name=plugin_id,json=pluginId,proto3" json:"plugin_id,omitempty"`
 	// The tool's server name in its plugin; empty for everything else.
-	Server        string `protobuf:"bytes,6,opt,name=server,proto3" json:"server,omitempty"`
+	Server string `protobuf:"bytes,6,opt,name=server,proto3" json:"server,omitempty"`
+	// The archive of the tool's plugin this run planned (the plugin's
+	// digest); empty for everything else. The values fetch reads the server
+	// at that version, so a run of a pinned version keeps its tools when the
+	// plugin is pushed again.
+	PluginDigest  string `protobuf:"bytes,7,opt,name=plugin_digest,json=pluginDigest,proto3" json:"plugin_digest,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -732,6 +737,13 @@ func (x *RunValueDeclarer) GetPluginId() string {
 func (x *RunValueDeclarer) GetServer() string {
 	if x != nil {
 		return x.Server
+	}
+	return ""
+}
+
+func (x *RunValueDeclarer) GetPluginDigest() string {
+	if x != nil {
+		return x.PluginDigest
 	}
 	return ""
 }
@@ -915,13 +927,14 @@ const file_ai_stigmer_agentic_run_v1_api_proto_rawDesc = "" +
 	"\x05entry\x18\x05 \x01(\tR\x05entry\x12\x14\n" +
 	"\x05login\x18\x06 \x01(\bR\x05login\x12\x1f\n" +
 	"\vplain_value\x18\b \x01(\tR\n" +
-	"plainValueJ\x04\b\a\x10\bR\asign_in\"\xdc\x01\n" +
+	"plainValueJ\x04\b\a\x10\bR\asign_in\"\x81\x02\n" +
 	"\x10RunValueDeclarer\x12C\n" +
 	"\x04kind\x18\x01 \x01(\x0e2/.ai.stigmer.agentic.run.v1.RunValueDeclarerKindR\x04kind\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12%\n" +
 	"\x0erepository_url\x18\x04 \x01(\tR\rrepositoryUrl\x12\x1b\n" +
 	"\tplugin_id\x18\x05 \x01(\tR\bpluginId\x12\x16\n" +
-	"\x06server\x18\x06 \x01(\tR\x06serverJ\x04\b\x03\x10\x04R\rmcp_server_id\"4\n" +
+	"\x06server\x18\x06 \x01(\tR\x06server\x12#\n" +
+	"\rplugin_digest\x18\a \x01(\tR\fpluginDigestJ\x04\b\x03\x10\x04R\rmcp_server_id\"4\n" +
 	"\rSetupProgress\x12#\n" +
 	"\rcurrent_phase\x18\x01 \x01(\tR\fcurrentPhase\"\x9c\x01\n" +
 	"\x16RecalledMemoriesReport\x12)\n" +

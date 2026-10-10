@@ -126,7 +126,7 @@
  */
 import { create } from "@bufbuild/protobuf";
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
-import { ConnectError } from "@connectrpc/connect";
+import { Code, ConnectError } from "@connectrpc/connect";
 
 import type { AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
@@ -169,6 +169,8 @@ import type { Authorizer } from "../../extensions/authorizer.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import { isFirstPartyHumanOperator } from "../../extensions/identity.js";
 import { serverActingFor } from "../../pipeline/interceptors/auth.js";
+import { loadVersion } from "../../pipeline/steps/version-history.js";
+import { pluginVersionBinding } from "../plugin/versions.js";
 import { failedPreconditionError, internalError } from "../../pipeline/errors.js";
 import { evaluateAuthorizer } from "../../pipeline/steps/authorize.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
@@ -250,6 +252,8 @@ export type Declarer =
       readonly name: string;
       readonly pluginId: string;
       readonly server: string;
+      /** The plugin's archive this run planned, which the fetch reads the server at. */
+      readonly pluginDigest: string;
     }
   | { readonly kind: "plugin"; readonly name: string; readonly pluginId: string }
   | { readonly kind: "repository"; readonly name: string; readonly url: string };
@@ -265,6 +269,8 @@ export interface RunPlugin {
 export interface PluginServer {
   readonly pluginId: string;
   readonly pluginName: string;
+  /** The plugin's archive, at the version the run resolved. */
+  readonly pluginDigest: string;
   readonly entry: McpServerEntry;
   readonly env: { readonly [key: string]: EnvVarDeclaration };
 }
@@ -274,6 +280,7 @@ export function serversOf(plugin: RunPlugin): PluginServer[] {
   return plugin.status.mcpServers.map((entry) => ({
     pluginId: plugin.id,
     pluginName: plugin.name,
+    pluginDigest: plugin.status.digest,
     entry,
     env: plugin.status.env,
   }));
@@ -486,6 +493,7 @@ export function toolRequirements(server: PluginServer): Requirement[] {
     name: toolNameOf(server.pluginName, server.entry.name),
     pluginId: server.pluginId,
     server: server.entry.name,
+    pluginDigest: server.pluginDigest,
   };
   const loginKey = loginKeyOf(server.entry);
   const address = toolAddressOf(server.entry);
@@ -659,6 +667,7 @@ function sourceEntry(requirement: Requirement, location: Location): RunValueSour
       name: declarer.name,
       pluginId: declarer.kind === "tool" || declarer.kind === "plugin" ? declarer.pluginId : "",
       server: declarer.kind === "tool" ? declarer.server : "",
+      pluginDigest: declarer.kind === "tool" ? declarer.pluginDigest : "",
       repositoryUrl: declarer.kind === "repository" ? declarer.url : "",
     },
   });
@@ -774,7 +783,13 @@ function declarerOfEntry(entry: RunValueSource): Declarer {
   const declarer = entry.declarer;
   switch (declarer?.kind) {
     case RunValueDeclarerKind.TOOL:
-      return { kind: "tool", name: declarer.name, pluginId: declarer.pluginId, server: declarer.server };
+      return {
+        kind: "tool",
+        name: declarer.name,
+        pluginId: declarer.pluginId,
+        server: declarer.server,
+        pluginDigest: declarer.pluginDigest,
+      };
     case RunValueDeclarerKind.PLUGIN:
       return { kind: "plugin", name: declarer.name, pluginId: declarer.pluginId };
     case RunValueDeclarerKind.REPOSITORY:
@@ -1252,12 +1267,24 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
    * Loads the server a manifest names, from its plugin as installed now, or
    * undefined when the plugin or the server is gone.
    */
-  async function loadTool(pluginId: string, server: string): Promise<McpServerEntry | undefined> {
+  /**
+   * A tool's server at the plugin's archive the run planned (`digest`), so
+   * a run on a pinned version is checked against what it dials, not against
+   * a later push; the installed head when no digest was recorded. Undefined
+   * when the plugin or that version is gone.
+   */
+  async function loadTool(pluginId: string, server: string, digest: string): Promise<McpServerEntry | undefined> {
     try {
-      const plugin = await deps.store.getResource(ApiResourceKind.plugin, pluginId, PluginSchema);
+      const plugin =
+        digest === ""
+          ? await deps.store.getResource(ApiResourceKind.plugin, pluginId, PluginSchema)
+          : (await loadVersion(deps.store, pluginVersionBinding, pluginId, digest)).resource;
       return plugin.status?.mcpServers.find((entry) => entry.name === server);
     } catch (error) {
       if (error instanceof ResourceNotFoundError) {
+        return undefined;
+      }
+      if (error instanceof ConnectError && error.code === Code.NotFound) {
         return undefined;
       }
       throw error;
@@ -1284,11 +1311,11 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
     const tools = new Map<string, ToolValues>();
     const plugins = new Map<string, PluginValues>();
     const loadedTools = new Map<string, Promise<McpServerEntry | undefined>>();
-    const toolOf = (pluginId: string, server: string): Promise<McpServerEntry | undefined> => {
-      const key = `${pluginId}\u0000${server}`;
+    const toolOf = (pluginId: string, server: string, digest: string): Promise<McpServerEntry | undefined> => {
+      const key = `${pluginId}\u0000${server}\u0000${digest}`;
       let loaded = loadedTools.get(key);
       if (loaded === undefined) {
-        loaded = loadTool(pluginId, server);
+        loaded = loadTool(pluginId, server, digest);
         loadedTools.set(key, loaded);
       }
       return loaded;
@@ -1330,7 +1357,7 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
               throw unopenable(entry, `${vault.label} no longer holds a login for ${entry.entry}`, scope.retry);
             }
             if (declarer?.kind === RunValueDeclarerKind.TOOL) {
-              const tool = await toolOf(declarer.pluginId, declarer.server);
+              const tool = await toolOf(declarer.pluginId, declarer.server, declarer.pluginDigest);
               if (tool === undefined || !loginStillFor(tool, entry.entry)) {
                 throw unopenable(
                   entry,
@@ -1367,7 +1394,7 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
           const key = `${declarer.pluginId}\u0000${declarer.server}`;
           let group = tools.get(key);
           if (group === undefined) {
-            const transport = (await toolOf(declarer.pluginId, declarer.server))?.transport;
+            const transport = (await toolOf(declarer.pluginId, declarer.server, declarer.pluginDigest))?.transport;
             group = create(ToolValuesSchema, {
               pluginId: declarer.pluginId,
               server: declarer.server,

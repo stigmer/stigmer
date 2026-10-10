@@ -37,6 +37,7 @@ private static final long serialVersionUID = 0L;
     repositoryUrl_ = "";
     pluginId_ = "";
     server_ = "";
+    pluginDigest_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -275,6 +276,59 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int PLUGIN_DIGEST_FIELD_NUMBER = 7;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object pluginDigest_ = "";
+  /**
+   * <pre>
+   * The archive of the tool's plugin this run planned (the plugin's
+   * digest); empty for everything else. The values fetch reads the server
+   * at that version, so a run of a pinned version keeps its tools when the
+   * plugin is pushed again.
+   * </pre>
+   *
+   * <code>string plugin_digest = 7 [json_name = "pluginDigest"];</code>
+   * @return The pluginDigest.
+   */
+  @java.lang.Override
+  public java.lang.String getPluginDigest() {
+    java.lang.Object ref = pluginDigest_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      pluginDigest_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * The archive of the tool's plugin this run planned (the plugin's
+   * digest); empty for everything else. The values fetch reads the server
+   * at that version, so a run of a pinned version keeps its tools when the
+   * plugin is pushed again.
+   * </pre>
+   *
+   * <code>string plugin_digest = 7 [json_name = "pluginDigest"];</code>
+   * @return The bytes for pluginDigest.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getPluginDigestBytes() {
+    java.lang.Object ref = pluginDigest_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      pluginDigest_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -304,6 +358,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(server_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 6, server_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(pluginDigest_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 7, pluginDigest_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -329,6 +386,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(server_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(6, server_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(pluginDigest_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(7, pluginDigest_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -353,6 +413,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getPluginId())) return false;
     if (!getServer()
         .equals(other.getServer())) return false;
+    if (!getPluginDigest()
+        .equals(other.getPluginDigest())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -374,6 +436,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getPluginId().hashCode();
     hash = (37 * hash) + SERVER_FIELD_NUMBER;
     hash = (53 * hash) + getServer().hashCode();
+    hash = (37 * hash) + PLUGIN_DIGEST_FIELD_NUMBER;
+    hash = (53 * hash) + getPluginDigest().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -514,6 +578,7 @@ private static final long serialVersionUID = 0L;
       repositoryUrl_ = "";
       pluginId_ = "";
       server_ = "";
+      pluginDigest_ = "";
       return this;
     }
 
@@ -562,6 +627,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000010) != 0)) {
         result.server_ = server_;
       }
+      if (((from_bitField0_ & 0x00000020) != 0)) {
+        result.pluginDigest_ = pluginDigest_;
+      }
     }
 
     @java.lang.Override
@@ -597,6 +665,11 @@ private static final long serialVersionUID = 0L;
       if (!other.getServer().isEmpty()) {
         server_ = other.server_;
         bitField0_ |= 0x00000010;
+        onChanged();
+      }
+      if (!other.getPluginDigest().isEmpty()) {
+        pluginDigest_ = other.pluginDigest_;
+        bitField0_ |= 0x00000020;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -650,6 +723,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000010;
               break;
             } // case 50
+            case 58: {
+              pluginDigest_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000020;
+              break;
+            } // case 58
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1113,6 +1191,113 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       server_ = value;
       bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object pluginDigest_ = "";
+    /**
+     * <pre>
+     * The archive of the tool's plugin this run planned (the plugin's
+     * digest); empty for everything else. The values fetch reads the server
+     * at that version, so a run of a pinned version keeps its tools when the
+     * plugin is pushed again.
+     * </pre>
+     *
+     * <code>string plugin_digest = 7 [json_name = "pluginDigest"];</code>
+     * @return The pluginDigest.
+     */
+    public java.lang.String getPluginDigest() {
+      java.lang.Object ref = pluginDigest_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        pluginDigest_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The archive of the tool's plugin this run planned (the plugin's
+     * digest); empty for everything else. The values fetch reads the server
+     * at that version, so a run of a pinned version keeps its tools when the
+     * plugin is pushed again.
+     * </pre>
+     *
+     * <code>string plugin_digest = 7 [json_name = "pluginDigest"];</code>
+     * @return The bytes for pluginDigest.
+     */
+    public com.google.protobuf.ByteString
+        getPluginDigestBytes() {
+      java.lang.Object ref = pluginDigest_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        pluginDigest_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The archive of the tool's plugin this run planned (the plugin's
+     * digest); empty for everything else. The values fetch reads the server
+     * at that version, so a run of a pinned version keeps its tools when the
+     * plugin is pushed again.
+     * </pre>
+     *
+     * <code>string plugin_digest = 7 [json_name = "pluginDigest"];</code>
+     * @param value The pluginDigest to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPluginDigest(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      pluginDigest_ = value;
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The archive of the tool's plugin this run planned (the plugin's
+     * digest); empty for everything else. The values fetch reads the server
+     * at that version, so a run of a pinned version keeps its tools when the
+     * plugin is pushed again.
+     * </pre>
+     *
+     * <code>string plugin_digest = 7 [json_name = "pluginDigest"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearPluginDigest() {
+      pluginDigest_ = getDefaultInstance().getPluginDigest();
+      bitField0_ = (bitField0_ & ~0x00000020);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The archive of the tool's plugin this run planned (the plugin's
+     * digest); empty for everything else. The values fetch reads the server
+     * at that version, so a run of a pinned version keeps its tools when the
+     * plugin is pushed again.
+     * </pre>
+     *
+     * <code>string plugin_digest = 7 [json_name = "pluginDigest"];</code>
+     * @param value The bytes for pluginDigest to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPluginDigestBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      pluginDigest_ = value;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
