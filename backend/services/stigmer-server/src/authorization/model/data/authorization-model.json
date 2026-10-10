@@ -828,8 +828,16 @@
               }
             ]
           },
+          "agent_creation_open": {
+            "directly_related_user_types": [
+              {
+                "type": "organization"
+              }
+            ]
+          },
           "can_assign_roles": {},
           "can_create_agent": {},
+          "can_create_agent_channel": {},
           "can_create_agent_share": {},
           "can_create_channel_app": {},
           "can_create_identity_account": {},
@@ -920,6 +928,9 @@
         "affiliated": {
           "this": {}
         },
+        "agent_creation_open": {
+          "this": {}
+        },
         "can_assign_roles": {
           "union": {
             "child": [
@@ -937,6 +948,27 @@
           }
         },
         "can_create_agent": {
+          "union": {
+            "child": [
+              {
+                "computedUserset": {
+                  "relation": "admin"
+                }
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "member"
+                  },
+                  "tupleset": {
+                    "relation": "agent_creation_open"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "can_create_agent_channel": {
           "computedUserset": {
             "relation": "admin"
           }
@@ -2771,6 +2803,13 @@
               }
             ]
           },
+          "participant": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          },
           "plugin_eval": {
             "directly_related_user_types": [
               {
@@ -2800,7 +2839,7 @@
       "relations": {
         "can_create_run_in": {
           "computedUserset": {
-            "relation": "viewer"
+            "relation": "participant"
           }
         },
         "can_delete": {
@@ -2889,6 +2928,36 @@
             ]
           }
         },
+        "participant": {
+          "union": {
+            "child": [
+              {
+                "intersection": {
+                  "child": [
+                    {
+                      "this": {}
+                    },
+                    {
+                      "tupleToUserset": {
+                        "computedUserset": {
+                          "relation": "affiliated"
+                        },
+                        "tupleset": {
+                          "relation": "organization"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "computedUserset": {
+                  "relation": "owner"
+                }
+              }
+            ]
+          }
+        },
         "plugin_eval": {
           "this": {}
         },
@@ -2919,7 +2988,7 @@
               },
               {
                 "computedUserset": {
-                  "relation": "owner"
+                  "relation": "participant"
                 }
               }
             ]

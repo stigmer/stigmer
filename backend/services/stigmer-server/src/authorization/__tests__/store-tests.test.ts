@@ -65,6 +65,7 @@ const DOCUMENTS = [
   "oauth-app-administration.fga.yaml",
   "org-admin-owner-inheritance.fga.yaml",
   "organization-affiliation-bound.fga.yaml",
+  "organization-agent-creation-policy.fga.yaml",
   "organization-role-assignment.fga.yaml",
   "plan-catalog-manager.fga.yaml",
   "platform-client-administration.fga.yaml",

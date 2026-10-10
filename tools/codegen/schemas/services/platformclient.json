@@ -674,7 +674,7 @@
     },
     {
       "name": "IamRole",
-      "description": "IamRole defines the roles that can be assigned to principals on resources\n via IAM policies.\n\n Roles are human-assigned and represent a principal's relationship to a\n resource. They are distinct from permissions (which are computed from roles\n and checked by the authorization interceptor) and structural relations\n (which are internal FGA wiring like organization or session links).\n\n Each ApiResourceKind declares which of these roles are grantable via\n the grantable_roles field in its AuthorizationConfig.",
+      "description": "IamRole defines the roles that can be assigned to principals on resources\n via IAM policies.\n\n Roles are human-assigned and represent a principal's relationship to a\n resource. They are distinct from permissions (which are computed from roles\n and checked by the authorization interceptor) and structural relations\n (which are internal FGA wiring like organization or session links).\n\n Each ApiResourceKind declares which of these roles are grantable via\n the grantable_roles field in its AuthorizationConfig, and what each one\n means there in role_descriptions.",
       "protoType": "ai.stigmer.iam.v1.IamRole",
       "values": [
         {
@@ -700,7 +700,7 @@
         {
           "name": "participant",
           "number": 5,
-          "description": "Conversation participant on an agent channel: may read the channel's\n conversations and speak to its customers as the business (reply, take\n over, hand back, clear attention). Not a channel configurator."
+          "description": "A person who takes part in a conversation: reads it and sends messages.\n On a conversation (session), a participant's messages run in the\n conversation's own workspace, as its creator, using only the vaults the\n conversation names; stopping and approving stay with its owners. On an\n agent channel, a participant reads the channel's conversations and\n speaks to its customers as the business (reply, take over, hand back,\n clear attention), and is not a channel configurator."
         },
         {
           "name": "editor",

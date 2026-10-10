@@ -13,7 +13,7 @@ send the link, and embed the chat on your own website.
 <Callout type="warn">
   Public links can be forwarded and indexed by search engines. Only share Agents
   publicly when their knowledge is safe to show to anyone on the internet — for
-  internal knowledge, use the **Org members** audience.
+  internal knowledge, use the **Organization members** audience.
 </Callout>
 
 <ScenarEmbed id="share-agent-tour" title="Share dialog walkthrough" />
@@ -62,17 +62,18 @@ share and its configuration for good.
 
 Below the sharing switch, pick the audience:
 
-- **Public link** — anyone who opens the link can chat, with no account. This is
-  the default, and the right choice for support bots, product assistants, and
-  demos.
-- **Org members** — only signed-in members of your Organization can chat. Anyone
-  else — including someone the link was forwarded to — sees the same "not found"
-  page as for an Agent that never existed.
+- **Organization members** — only signed-in members of your Organization can
+  chat. Anyone else — including someone the link was forwarded to — sees the
+  same "not found" page as for an Agent that never existed. This is the default.
+- **Anyone with the link** — anyone who opens the link can chat, with no
+  account. Choose it for support bots, product assistants, and demos; a link
+  reaches the internet only when you pick it.
 
-The **Org members** audience is built for internal knowledge Agents. Stigmer
-checks membership on every message, so when someone leaves your Organization,
-their access ends with their membership — there is no lingering link to hunt
-down. The link itself is safe to forward: it shows nothing to non-members.
+The **Organization members** audience is built for internal knowledge Agents.
+Stigmer checks membership on every message, so when someone leaves your
+Organization, their access ends with their membership — there is no lingering
+link to hunt down. The link itself is safe to forward: it shows nothing to
+non-members.
 
 When a member opens an org-members-only link without being signed in, the page
 offers **Sign in if you have access**. After signing in, they land back on the
@@ -192,7 +193,7 @@ share needs no reset, because access ends with membership.
 <Callout>
   A reset link is still a public link: anyone who has the new URL can chat.
   Reset cuts off the audience the old link reached; it does not add
-  authentication. For that, switch the audience to **Org members**.
+  authentication. For that, switch the audience to **Organization members**.
 </Callout>
 
 ## Turn off sharing
@@ -224,11 +225,11 @@ you built. See
 You can also toggle sharing from the terminal:
 
 ```bash
-# Share publicly and print the chat link + embed snippet
-stigmer share agent acme-corp/support-agent
+# Share with your organization's members only (the default for a new link)
+stigmer share agent acme-corp/internal-helper
 
-# Share with your organization's members only
-stigmer share agent acme-corp/internal-helper --audience org
+# Share publicly and print the chat link + embed snippet
+stigmer share agent acme-corp/support-agent --audience public
 
 # Reset the public link (the old link stops working immediately)
 stigmer share agent acme-corp/support-agent --reset-link
@@ -271,8 +272,9 @@ same Organization: a share lives where its Agent lives.
 
 <Callout type="warn">
   An apply replaces the share's settings as a whole, and a missing `audience`
-  means public. Keep `audience` in every apply of an org-members-only share — a
-  manifest that omits it turns the share back into a public one.
+  means Organization members. Keep `audience: agent_share_audience_public` in
+  every apply of a public share — a manifest that omits it makes the share
+  organization-only.
 </Callout>
 
 See the [AgentShare reference](/docs/sdk/resources/agent-share) for every field,

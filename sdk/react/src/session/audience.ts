@@ -38,7 +38,12 @@
  *   audience for channel-originated sessions (the
  *   `stigmer.ai/channel-id` label), so every entry point — a
  *   conversations list, a pasted URL — renders read-only without host
- *   wiring.
+ *   wiring. A person's own console conversations ask the server too: a
+ *   conversation shared with the reader as Viewer (`can_view` without
+ *   `can_create_run_in`) renders this presentation with a line saying the
+ *   reader can read it, and one shared as Participant keeps the composer
+ *   but withholds stop, approvals and file decisions, which stay with the
+ *   conversation's owners.
  *
  * A preset rather than individual flags: each audience is a product
  * intent, and keeping it in one place lets the SDK evolve what that

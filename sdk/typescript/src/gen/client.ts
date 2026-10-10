@@ -123,7 +123,7 @@ export { type MemoryInput, type MemoryProvenanceInput } from "./memory.js";
 export { OAuthAppClient } from "./oauthapp.js";
 export { type OAuthAppInput } from "./oauthapp.js";
 export { OrganizationClient } from "./organization.js";
-export { type OrganizationInput, type OrganizationPreferencesInput } from "./organization.js";
+export { type OrganizationInput, type OrganizationPreferencesInput, type OrganizationPoliciesInput } from "./organization.js";
 export { PlanClient } from "./plan.js";
 export { type PlanInput, type PlanTermsInput } from "./plan.js";
 export { PlatformClientClient } from "./platformclient.js";

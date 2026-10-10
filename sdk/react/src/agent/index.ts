@@ -67,6 +67,10 @@ export { useUpdateAgent } from "./useUpdateAgent.js";
 export type { UseUpdateAgentReturn } from "./useUpdateAgent.js";
 
 export { AgentCreationWizard } from "./AgentCreationWizard.js";
+export { AgentCreationDenied } from "./AgentCreationDenied.js";
+export type { AgentCreationDeniedProps } from "./AgentCreationDenied.js";
+export { useCanCreateAgent } from "./useCanCreateAgent.js";
+export type { UseCanCreateAgentReturn } from "./useCanCreateAgent.js";
 export type {
   AgentCreationWizardProps,
   AgentCreationResult,

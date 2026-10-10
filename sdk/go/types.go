@@ -76,6 +76,7 @@ type MemoryProvenanceInput = gen.MemoryProvenanceInput
 type OAuthAppInput = gen.OAuthAppInput
 type OrganizationInput = gen.OrganizationInput
 type OrganizationPreferencesInput = gen.OrganizationPreferencesInput
+type OrganizationPoliciesInput = gen.OrganizationPoliciesInput
 type PlanInput = gen.PlanInput
 type PlanTermsInput = gen.PlanTermsInput
 type PlatformClientInput = gen.PlatformClientInput

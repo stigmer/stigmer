@@ -22,7 +22,8 @@
  *
  * And StampRunCredentials, the create step before the planner: the run's
  * person is the platform's one rule for a first-party human operator,
- * recorded once; a schedule fire, a runner, a PlatformClient user token and
+ * recorded once and only for the conversation's creator (a participant's
+ * turn in someone else's conversation records none); a schedule fire, a runner, a PlatformClient user token and
  * the server acting as itself record none, and a client-sent value (its
  * sources included) is discarded. The record survives the runner's status
  * writes, so recover reads the person and the manifest create recorded.
@@ -61,6 +62,7 @@ import {
   newStampRunCredentialsStep,
   planRunValues,
 } from "../plan-run-values-step.js";
+import { STORED_SESSION_KEY } from "../session-binding.js";
 import { applyUpdateStatusMerge } from "../update-status.js";
 
 const silentLogger = createLogger({
@@ -529,12 +531,22 @@ describe("StampRunCredentials", () => {
   async function stamped(
     caller: CallerIdentity,
     sent?: { person?: string; sources?: RunValueSource[] },
+    sessionCreator?: string,
   ): Promise<Run> {
     const execution = create(RunSchema, {
       metadata: { id: "aex_stamp", org: ORG },
       status: sent === undefined ? {} : { credentials: sent },
     });
     const ctx = new RequestContext(RunSchema, execution, caller, ApiResourceKind.run);
+    if (sessionCreator !== undefined) {
+      ctx.set(
+        STORED_SESSION_KEY,
+        create(SessionSchema, {
+          metadata: { id: "ses_shared", org: ORG },
+          status: { audit: { specAudit: { createdBy: { id: sessionCreator } } } },
+        }),
+      );
+    }
     await newStampRunCredentialsStep().execute(ctx);
     return ctx.newState;
   }
@@ -555,6 +567,14 @@ describe("StampRunCredentials", () => {
       expect(run.status?.credentials).toBeDefined();
       expect(run.status?.credentials?.person).toBeUndefined();
     }
+  });
+
+  it("records the person in their own conversation, and none for a participant's turn in someone else's", async () => {
+    const own = await stamped(testCallerIdentity({ identityId: "ida_ana" }), undefined, "ida_ana");
+    expect(own.status?.credentials?.person).toBe("ida_ana");
+    const shared = await stamped(testCallerIdentity({ identityId: "ida_ben" }), undefined, "ida_ana");
+    expect(shared.status?.credentials).toBeDefined();
+    expect(shared.status?.credentials?.person).toBeUndefined();
   });
 
   it("discards a client-sent manifest: a caller cannot name the vault entries its run fetches", async () => {

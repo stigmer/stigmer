@@ -43,6 +43,9 @@ vi.mock("@stigmer/react", () => {
     useConfirmAction: () => ({ confirmState: null, confirm: noop, handleConfirm: noop, handleCancel: noop }),
     useDeleteResource: () => ({ deleteResource: noop, isDeleting: false }),
     useBreadcrumbOverride: () => ({ setLabel: noop }),
+    // The create-from-tools gate (its own suite pins both answers).
+    useActiveOrgId: () => "org_acme",
+    useCanCreateAgent: () => ({ allowed: true, isLoading: false }),
   };
 });
 

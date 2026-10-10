@@ -20,7 +20,7 @@ vi.mock("../PeopleWithAccess.js", () => ({
 vi.mock("../useGranteeCandidates.js", () => ({
   useGranteeCandidates: (options: { org: string | null }) => {
     given.candidates.push(options.org);
-    return { people: [], teams: [], isLoading: false, error: null };
+    return { people: [], appUsers: [], teams: [], isLoading: false, error: null };
   },
 }));
 

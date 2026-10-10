@@ -28,11 +28,15 @@ interface WorkbenchProps {
   org: string | null;
   columns: ColumnDef[];
   renderItemAction?: (item: Row) => ReactNode;
+  headerAction?: ReactNode;
+  emptyAction?: ReactNode;
 }
 
 const ROW: Row = { id: "agt_1", org: "org_acme", slug: "kit", name: "Kit" };
 
 const page = vi.hoisted(() => ({
+  // The server's answer to "may this person create an agent here?".
+  canCreate: { allowed: true, isLoading: false },
   workbench: [] as WorkbenchProps[],
   connect: [] as Array<Record<string, unknown>>,
   confirms: [] as Array<{ title: string; description: string }>,
@@ -97,6 +101,7 @@ vi.mock("@stigmer/react", () => {
       mcpServer: kind,
     }),
     useActiveOrgId: () => "org_acme",
+    useCanCreateAgent: () => page.canCreate,
     // The person's organizations: org_acme reads "acme".
     useOrgSlugForId: () => (id: string) => (id === "org_acme" ? "acme" : id),
     useConfirmAction: () => ({
@@ -132,6 +137,7 @@ import { AGENT_DELETE_DESCRIPTION } from "../agents/agent-delete-confirmation";
 let copied: string[] = [];
 
 beforeEach(() => {
+  page.canCreate = { allowed: true, isLoading: false };
   page.workbench.length = 0;
   page.connect.length = 0;
   page.confirms.length = 0;
@@ -211,5 +217,35 @@ describe("web ScheduleListPage", () => {
     render(<ScheduleListPage />);
 
     expect(page.workbench.at(-1)?.org).toBe("org_acme");
+  });
+});
+
+describe("web AgentListPage — who may create agents", () => {
+  function renderActions() {
+    const props = page.workbench.at(-1);
+    if (!props) throw new Error("the workbench was not rendered");
+    return render(
+      <>
+        {props.headerAction}
+        {props.emptyAction}
+      </>,
+    );
+  }
+
+  it("offers Create agent in the header and the empty list to someone the server lets create one", () => {
+    render(<AgentListPage />);
+    const { getAllByRole } = renderActions();
+
+    expect(getAllByRole("link", { name: "Create agent" })).toHaveLength(2);
+  });
+
+  it("offers no Create agent to someone the server would refuse, and keeps Apply YAML", () => {
+    page.canCreate = { allowed: false, isLoading: false };
+    render(<AgentListPage />);
+    const { getByRole, queryByRole } = renderActions();
+
+    expect(queryByRole("link", { name: "Create agent" })).toBeNull();
+    expect(page.workbench.at(-1)?.emptyAction).toBeUndefined();
+    expect(getByRole("button", { name: "Apply YAML" })).toBeTruthy();
   });
 });

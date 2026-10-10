@@ -16,7 +16,7 @@ from ._license import LicenseClient, LicenseInput, LicenseCustomerInput, Entitle
 from ._mcpserver import McpServerClient, McpServerInput, StdioServerConfigInput, HttpServerConfigInput, McpServerAuthInput
 from ._memory import MemoryClient, MemoryInput, MemoryProvenanceInput
 from ._oauthapp import OAuthAppClient, OAuthAppInput
-from ._organization import OrganizationClient, OrganizationInput, OrganizationPreferencesInput
+from ._organization import OrganizationClient, OrganizationInput, OrganizationPreferencesInput, OrganizationPoliciesInput
 from ._plan import PlanClient, PlanInput, PlanTermsInput
 from ._platformclient import PlatformClientClient, PlatformClientInput
 from ._plugin import PluginClient, PluginInput, PluginAuthorInput
@@ -103,6 +103,7 @@ __all__ = [
     "OrganizationClient",
     "OrganizationInput",
     "OrganizationPreferencesInput",
+    "OrganizationPoliciesInput",
     "PlanClient",
     "PlanInput",
     "PlanTermsInput",

@@ -14,12 +14,16 @@ module agentic
 # naming or changing it asks agent#can_execute, and so does every turn
 # (the AuthorizeRunTarget and AuthorizeRunAgent steps).
 #
-# Sharing a session requires explicit viewer grants per-session.
-# Agent runs inherit permissions from their parent session.
+# Sharing a session requires explicit grants per-session, to people only:
+# a participant reads the conversation and sends messages; a viewer only
+# reads it (owner ⊆ participant ⊆ viewer, the agent_channel ladder). Agent
+# runs inherit permissions from their parent session, so a participant
+# reads the runs and every run control (stop, approvals, file decisions:
+# run#can_edit) stays the owners'.
 #
 # Default access:
 # - Owner (creator) can view/edit/delete
-# - Other org members must be explicitly granted viewer access
+# - Other org members must be explicitly granted participant or viewer
 # - Org admins have NO implicit access (personal resource)
 #
 # CHANNEL SESSIONS (structural read-only observability, a parent link
@@ -111,9 +115,18 @@ type session
     define owner: [identity_account] and affiliated from organization
     
     # ========================================
+    # PARTICIPANT ACCESS (Explicit Grants)
+    # ========================================
+    # Reads the conversation and sends messages into it. The turn runs in
+    # the conversation's own workspace, as its creator, and uses only the
+    # vaults the conversation names (the server's rule, not a relation).
+    define participant: ([identity_account] and affiliated from organization) or owner
+
+    # ========================================
     # VIEWER ACCESS (Explicit Grants)
     # ========================================
-    define viewer: ([identity_account] and affiliated from organization) or owner
+    # Reads the conversation; cannot send messages.
+    define viewer: ([identity_account] and affiliated from organization) or participant
     
     # ========================================
     # PERMISSIONS
@@ -121,8 +134,9 @@ type session
     # can_view adds `viewer from channel` (channel sessions only),
     # `viewer from schedule` (schedule sessions only) and
     # `viewer from plugin_eval` (eval tries only) WITHOUT widening
-    # `viewer`, because can_create_run_in and can_view_access derive
-    # from viewer — runtime-surface observability must stay read-only.
+    # `viewer`, because can_view_access derives from viewer and
+    # can_create_run_in from participant — runtime-surface observability
+    # must stay read-only.
     define can_view: viewer or viewer from channel or viewer from schedule or viewer from plugin_eval
     define can_edit: owner
     define can_delete: owner
@@ -130,7 +144,7 @@ type session
     # ========================================
     # SESSION INTERACTION
     # ========================================
-    define can_create_run_in: viewer
+    define can_create_run_in: participant
     
     # ========================================
     # IAM POLICY MANAGEMENT

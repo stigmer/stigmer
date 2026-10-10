@@ -20,7 +20,7 @@ export const GRANTABLE_ROLES: ReadonlyMap<ApiResourceKind, readonly IamRole[]> =
   [ApiResourceKind.team, [IamRole.member]],
   [ApiResourceKind.organization, [IamRole.owner, IamRole.admin, IamRole.member, IamRole.viewer]],
   [ApiResourceKind.agent, [IamRole.owner, IamRole.editor, IamRole.viewer]],
-  [ApiResourceKind.session, [IamRole.owner, IamRole.viewer]],
+  [ApiResourceKind.session, [IamRole.owner, IamRole.participant, IamRole.viewer]],
   [ApiResourceKind.skill, [IamRole.owner, IamRole.viewer]],
   [ApiResourceKind.mcp_server, [IamRole.owner, IamRole.editor, IamRole.viewer]],
   [ApiResourceKind.agent_share, [IamRole.owner, IamRole.viewer]],
@@ -49,4 +49,105 @@ export const TEAM_GRANTABLE_ROLES: ReadonlyMap<ApiResourceKind, readonly IamRole
   [ApiResourceKind.schedule, [IamRole.viewer]],
   [ApiResourceKind.plugin, [IamRole.viewer]],
   [ApiResourceKind.vault, [IamRole.user]],
+]);
+
+/**
+ * What each grantable role means on each resource kind, one sentence per
+ * role, shown beside the role wherever a person picks or reads one.
+ *
+ * Source of truth: api_resource_kind.proto — role_descriptions in each
+ * kind's AuthorizationConfig, one entry per grantable role.
+ */
+export const ROLE_DESCRIPTIONS: ReadonlyMap<ApiResourceKind, ReadonlyMap<IamRole, string>> = new Map([
+  [ApiResourceKind.identity_provider, new Map<IamRole, string>([
+    [IamRole.viewer, "See its settings; cannot change them"],
+  ])],
+  [ApiResourceKind.oauth_app, new Map<IamRole, string>([
+    [IamRole.viewer, "See its settings; cannot change them"],
+  ])],
+  [ApiResourceKind.platform_client, new Map<IamRole, string>([
+    [IamRole.viewer, "See its settings; cannot change them"],
+  ])],
+  [ApiResourceKind.team, new Map<IamRole, string>([
+    [IamRole.member, "Belongs to the team and holds every role the team is given"],
+  ])],
+  [ApiResourceKind.organization, new Map<IamRole, string>([
+    [IamRole.owner, "Everything, including deleting the organization and choosing its owners"],
+    [IamRole.admin, "Manage people, settings, billing, and the organization's agents and tools; cannot read private conversations, delete the organization or change its owners"],
+    [IamRole.member, "Start conversations with the agents shared with them, and create agents when the organization allows it"],
+    [IamRole.viewer, "See what is shared with the organization; cannot start conversations"],
+  ])],
+  [ApiResourceKind.agent, new Map<IamRole, string>([
+    [IamRole.owner, "Everything, including deleting it and deciding who has access"],
+    [IamRole.editor, "Change and run it; cannot delete it or decide who has access"],
+    [IamRole.viewer, "Run it and see how it is set up; cannot change it"],
+  ])],
+  [ApiResourceKind.session, new Map<IamRole, string>([
+    [IamRole.owner, "Everything, including deleting the conversation and deciding who has access"],
+    [IamRole.participant, "Read the conversation and send messages"],
+    [IamRole.viewer, "Read the conversation; cannot send messages"],
+  ])],
+  [ApiResourceKind.skill, new Map<IamRole, string>([
+    [IamRole.owner, "Everything, including deleting it and deciding who has access"],
+    [IamRole.viewer, "Use it and see what it contains; cannot change it"],
+  ])],
+  [ApiResourceKind.mcp_server, new Map<IamRole, string>([
+    [IamRole.owner, "Everything, including deleting it and deciding who has access"],
+    [IamRole.editor, "Change and connect it; cannot delete it or decide who has access"],
+    [IamRole.viewer, "Connect it and use it in agents; cannot change it"],
+  ])],
+  [ApiResourceKind.agent_share, new Map<IamRole, string>([
+    [IamRole.owner, "Everything, including deleting it and deciding who has access"],
+    [IamRole.viewer, "See the chat link's settings; cannot change it"],
+  ])],
+  [ApiResourceKind.agent_channel, new Map<IamRole, string>([
+    [IamRole.owner, "Everything, including the channel's connection and who has access"],
+    [IamRole.viewer, "Read the channel's conversations; cannot reply"],
+    [IamRole.participant, "Read the channel's conversations and reply to customers as the business"],
+  ])],
+  [ApiResourceKind.channel_app, new Map<IamRole, string>([
+    [IamRole.viewer, "See its settings; cannot change them"],
+  ])],
+  [ApiResourceKind.schedule, new Map<IamRole, string>([
+    [IamRole.owner, "Everything, including deleting it and deciding who has access"],
+    [IamRole.viewer, "See the schedule and its runs; cannot change it"],
+  ])],
+  [ApiResourceKind.plugin, new Map<IamRole, string>([
+    [IamRole.owner, "Everything, including deleting it and deciding who has access"],
+    [IamRole.viewer, "Use it and see what it contains; cannot change it"],
+  ])],
+  [ApiResourceKind.vault, new Map<IamRole, string>([
+    [IamRole.user, "Use this vault's logins and secrets in their runs"],
+  ])],
+]);
+
+/**
+ * Each role's name as people read it.
+ *
+ * Source of truth: enum.proto — each IamRole value's role_meta.display_name.
+ */
+export const ROLE_DISPLAY_NAMES: ReadonlyMap<IamRole, string> = new Map([
+  [IamRole.owner, "Owner"],
+  [IamRole.admin, "Admin"],
+  [IamRole.member, "Member"],
+  [IamRole.viewer, "Viewer"],
+  [IamRole.participant, "Participant"],
+  [IamRole.editor, "Editor"],
+  [IamRole.user, "Can use"],
+]);
+
+/**
+ * What each role means when no resource kind is known. A picker shows the
+ * kind's own sentence instead (ROLE_DESCRIPTIONS).
+ *
+ * Source of truth: enum.proto — each IamRole value's role_meta.description.
+ */
+export const ROLE_KINDLESS_DESCRIPTIONS: ReadonlyMap<IamRole, string> = new Map([
+  [IamRole.owner, "Everything, including deleting it and deciding who has access"],
+  [IamRole.admin, "Manage the organization's people, settings and resources"],
+  [IamRole.member, "Belongs to it and holds what it is given"],
+  [IamRole.viewer, "Read it; cannot change it"],
+  [IamRole.participant, "Read the conversations and send messages"],
+  [IamRole.editor, "Change and use it; cannot delete it or decide who has access"],
+  [IamRole.user, "Use this vault's logins and secrets in their runs"],
 ]);

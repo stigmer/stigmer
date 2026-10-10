@@ -489,7 +489,48 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           ).toEqual({ kind: "deny", reason: "" });
         });
 
-        it("a member may not create an agent (`admin`) and may create a session (`member`); an admin may create an agent", async () => {
+        it("a member creates an agent while the organization lets members, and may create a session (`member`); an admin may create an agent", async () => {
+          const auth = authorizer();
+          // A row with no policies reads as the default: members may.
+          expect(
+            await auth.authorize(
+              resolved(MEMBER),
+              check(
+                IamPermission.can_create_agent,
+                ApiResourceKind.organization,
+                "acme",
+              ),
+            ),
+          ).toEqual({ kind: "allow" });
+          expect(
+            await auth.authorize(
+              resolved(MEMBER),
+              check(
+                IamPermission.can_create_session,
+                ApiResourceKind.organization,
+                "acme",
+              ),
+            ),
+          ).toEqual({ kind: "allow" });
+          expect(
+            await auth.authorize(
+              resolved(ADMIN),
+              check(
+                IamPermission.can_create_agent,
+                ApiResourceKind.organization,
+                "acme",
+              ),
+            ),
+          ).toEqual({ kind: "allow" });
+        });
+
+        it("a member may not create an agent once the organization's policy is off; an admin still may", async () => {
+          await seed("organization", "acme", {
+            org: "",
+            visibility: ApiResourceVisibility.visibility_private,
+            createdBy: FOUNDER.accountId,
+            spec: { policies: { membersCanCreateAgents: false } },
+          });
           const auth = authorizer();
           expect(
             await auth.authorize(
@@ -501,16 +542,6 @@ describe.each(driverFixtures(SEEDED_KINDS))(
               ),
             ),
           ).toEqual({ kind: "deny", reason: "" });
-          expect(
-            await auth.authorize(
-              resolved(MEMBER),
-              check(
-                IamPermission.can_create_session,
-                ApiResourceKind.organization,
-                "acme",
-              ),
-            ),
-          ).toEqual({ kind: "allow" });
           expect(
             await auth.authorize(
               resolved(ADMIN),

@@ -269,8 +269,10 @@ function ShareAgentDialogBody({
 // ---------------------------------------------------------------------------
 
 /**
- * Names the new share and creates it live (`enabled: true`, public
- * audience — the server's own defaults). Identity is set here because it
+ * Names the new share, asks who can chat, and creates it live
+ * (`enabled: true`). The audience starts at "Organization members", the
+ * server's own default: a link reaches the internet only when the owner
+ * picks "Anyone with the link". Identity is set here because it
  * is immutable afterward: the slug names the share in the agent's
  * organization for the CLI and API. The hosted link names the share by
  * its id, so it exists only once the share does.
@@ -298,6 +300,7 @@ function CreateShareForm({
 
   const [name, setName] = useState(agentName);
   const [slug, setSlug] = useState(agent.metadata?.slug ?? "");
+  const [audience, setAudience] = useState<SharingAudience>("org");
   // Once the user manually edits the slug field, stop auto-deriving.
   const slugTouchedRef = useRef(false);
   // A server-side (org, slug) collision pins to the slug field until the
@@ -348,10 +351,10 @@ function CreateShareForm({
 
       try {
         const persisted = await save(
-          // The server's create defaults, made explicit: live from the
-          // start (the user's one intent-click is "share it"), public
-          // audience, nothing else configured yet.
-          { ...draftFromShare(null), enabled: true },
+          // Live from the start (the user's one intent-click is "share
+          // it"), for the audience chosen above, nothing else configured
+          // yet.
+          { ...draftFromShare(null), enabled: true, audience },
           null,
           { name: trimmedName, slug },
         );
@@ -371,7 +374,7 @@ function CreateShareForm({
         }
       }
     },
-    [canSubmit, save, trimmedName, slug, shareOrg, onCreated],
+    [canSubmit, save, trimmedName, slug, audience, shareOrg, onCreated],
   );
 
   return (
@@ -452,6 +455,19 @@ function CreateShareForm({
             create the share. Can&apos;t be changed later.
           </p>
         )}
+      </div>
+
+      {/* ---- Who can chat ---- */}
+      <div className="stg:space-y-1">
+        <span className="stg:block stg:text-xs stg:font-medium stg:text-foreground">
+          Who can chat
+        </span>
+        <AudienceSelector audience={audience} onChange={setAudience} disabled={isPending} />
+        <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+          {audience === "org"
+            ? "Only signed-in members of the organization can chat. You can change this later."
+            : "Anyone who has the link can chat, without signing in. You can change this later."}
+        </p>
       </div>
 
       {submitError && (
@@ -626,6 +642,7 @@ function ShareAgentForm({
           audience={draft.audience}
           onChange={handleAudienceChange}
           disabled={isPending}
+          className="stg:mt-3"
         />
         <ToolReadinessHint agent={agent} draft={draft} />
       </div>
@@ -729,8 +746,8 @@ const AUDIENCE_OPTIONS: readonly {
   readonly value: SharingAudience;
   readonly label: string;
 }[] = [
-  { value: "public", label: "Public link" },
-  { value: "org", label: "Org members" },
+  { value: "org", label: "Organization members" },
+  { value: "public", label: "Anyone with the link" },
 ];
 
 /**
@@ -742,16 +759,21 @@ function AudienceSelector({
   audience,
   onChange,
   disabled,
+  className,
 }: {
   readonly audience: SharingAudience;
   readonly onChange: (audience: SharingAudience) => void;
   readonly disabled: boolean;
+  readonly className?: string;
 }) {
   return (
     <div
       role="radiogroup"
       aria-label="Who can chat"
-      className="stg:mt-3 stg:inline-flex stg:rounded-md stg:border stg:border-border stg:p-0.5"
+      className={cn(
+        "stg:inline-flex stg:rounded-md stg:border stg:border-border stg:p-0.5",
+        className,
+      )}
     >
       {AUDIENCE_OPTIONS.map(({ value, label }) => {
         const selected = audience === value;
@@ -883,7 +905,7 @@ function LinkTab({
         <p className="stg:text-xs stg:text-warning">
           Public links can be forwarded and indexed by search engines.
           Don&apos;t share agents that know internal or confidential
-          information — or switch the audience to org members.
+          information — or switch the audience to organization members.
         </p>
       )}
 
@@ -1108,11 +1130,11 @@ function EmbedTab({
   if (draft.audience === "org") {
     return (
       <p className="stg:text-xs stg:text-muted-foreground" role="status">
-        Embedding isn&apos;t available for org-members-only sharing: embeds
-        serve anonymous visitors, and this agent requires a signed-in
-        organization member. Switch the audience to{" "}
-        <span className="stg:font-medium">Public link</span> to embed it on a
-        site.
+        Embedding isn&apos;t available while only organization members can
+        chat: embeds serve anonymous visitors, and this link requires a
+        signed-in organization member. Switch the audience to{" "}
+        <span className="stg:font-medium">Anyone with the link</span> to embed
+        it on a site.
       </p>
     );
   }

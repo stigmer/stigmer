@@ -51,6 +51,11 @@ func (o *OrganizationClient) Update(ctx context.Context, input *OrganizationInpu
 	return resp, wrapErr(err)
 }
 
+func (o *OrganizationClient) UpdatePolicies(ctx context.Context, input *organizationv1.UpdateOrganizationPoliciesInput) (*organizationv1.Organization, error) {
+	resp, err := o.command.UpdatePolicies(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (o *OrganizationClient) Rename(ctx context.Context, input *apiresource.RenameInput) (*organizationv1.Organization, error) {
 	resp, err := o.command.Rename(ctx, input)
 	return resp, wrapErr(err)
@@ -103,12 +108,18 @@ type OrganizationInput struct {
 	ExternalId  string
 	Preferences *OrganizationPreferencesInput
 	ParentOrg   string
+	Policies    *OrganizationPoliciesInput
 }
 
 // OrganizationPreferencesInput is the SDK input type for OrganizationPreferences.
 type OrganizationPreferencesInput struct {
 	StandingContext string
 	MemoryEnabled   bool
+}
+
+// OrganizationPoliciesInput is the SDK input type for OrganizationPolicies.
+type OrganizationPoliciesInput struct {
+	MembersCanCreateAgents bool
 }
 
 func (i *OrganizationInput) toProto() (*organizationv1.Organization, error) {
@@ -136,6 +147,13 @@ func (i *OrganizationInput) toProto() (*organizationv1.Organization, error) {
 		resource.Spec.Preferences = v
 	}
 	resource.Spec.ParentOrg = i.ParentOrg
+	if i.Policies != nil {
+		v, err := i.Policies.toProto()
+		if err != nil {
+			return nil, fieldErr("Policies", err)
+		}
+		resource.Spec.Policies = v
+	}
 	return resource, nil
 }
 
@@ -143,6 +161,12 @@ func (i *OrganizationPreferencesInput) toProto() (*organizationv1.OrganizationPr
 	return &organizationv1.OrganizationPreferences{
 		StandingContext: i.StandingContext,
 		MemoryEnabled:   i.MemoryEnabled,
+	}, nil
+}
+
+func (i *OrganizationPoliciesInput) toProto() (*organizationv1.OrganizationPolicies, error) {
+	return &organizationv1.OrganizationPolicies{
+		MembersCanCreateAgents: i.MembersCanCreateAgents,
 	}, nil
 }
 
@@ -166,6 +190,7 @@ func OrganizationInputFromProto(p *organizationv1.Organization) *OrganizationInp
 		input.ExternalId = s.GetExternalId()
 		input.Preferences = organizationPreferencesInputFromProto(s.GetPreferences())
 		input.ParentOrg = s.GetParentOrg()
+		input.Policies = organizationPoliciesInputFromProto(s.GetPolicies())
 	}
 	return input
 }
@@ -177,5 +202,14 @@ func organizationPreferencesInputFromProto(p *organizationv1.OrganizationPrefere
 	input := &OrganizationPreferencesInput{}
 	input.StandingContext = p.GetStandingContext()
 	input.MemoryEnabled = p.GetMemoryEnabled()
+	return input
+}
+
+func organizationPoliciesInputFromProto(p *organizationv1.OrganizationPolicies) *OrganizationPoliciesInput {
+	if p == nil {
+		return nil
+	}
+	input := &OrganizationPoliciesInput{}
+	input.MembersCanCreateAgents = p.GetMembersCanCreateAgents()
 	return input
 }

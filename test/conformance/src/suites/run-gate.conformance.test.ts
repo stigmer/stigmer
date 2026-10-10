@@ -25,9 +25,13 @@
 //     a denial, the stigmer#224 order);
 //   - the agent is asked on every turn and on every repoint: a member who
 //     lost the agent (its owner made it private) is refused in their own
-//     session; a viewer of someone else's session who may not run its agent
-//     is refused; repointing a session to an agent the member cannot run is
-//     refused at update and leaves the pin as it was;
+//     session; a participant in someone else's session who may not run its
+//     agent is refused; repointing a session to an agent the member cannot
+//     run is refused at update and leaves the pin as it was;
+//   - a conversation's viewer reads it and may not send: a viewer's turn is
+//     refused with the session's own copy, while a participant's passes the
+//     session's question and meets only the agent's (where the edition
+//     grants a role on one session);
 //   - a status a client sends never reaches either check: the refusal names
 //     the agent the reference resolved to, not the one the client claimed;
 //   - a turn in a session the caller may not add to learns nothing about
@@ -323,13 +327,16 @@ describe("run gate — the agent is asked on every turn and every repoint (on th
     );
   });
 
-  it("[rpc:RunCommandController.create] a viewer of a session who may not run its agent is refused", async (ctx) => {
-    // A viewer on one session is a per-resource grant: an edition whose
-    // grant scope admits only organization roles (open source's default)
-    // cannot make one, and skips with that reason.
+  // A role on one session is a per-resource grant: an edition whose grant
+  // scope admits only organization roles (open source's default) cannot make
+  // one, and the arms below skip with that reason.
+  async function sharedSession(
+    ctx: { skip: (note?: string) => never },
+    role: "viewer" | "participant",
+  ) {
     if (!target.capabilities.perResourceGrants) {
       return ctx.skip(
-        "the edition grants roles on organizations only, so no one can be made a viewer of one session",
+        "the edition grants roles on organizations only, so no one can be given a role on one session",
       );
     }
     const lane = laneOrSkip(ctx);
@@ -347,16 +354,21 @@ describe("run gate — the agent is asked on every turn and every repoint (on th
       "owner-session",
     );
     const sessionId = ownerSession.metadata!.id;
-    // The owner shares the conversation itself: viewer on the session gives
-    // the member session#can_create_run_in, and nothing on the agent.
+    // The owner shares the conversation itself, and nothing on the agent.
     await clients.iamPolicyCommand.create(
       policyTriple(
         { kind: "identity_account", id: await lane.accountIdOf(member) },
-        "viewer",
+        role,
         { kind: "session", id: sessionId },
       ),
     );
+    return { context, member, agent, sessionId };
+  }
 
+  it("[rpc:RunCommandController.create] a viewer of a session reads it and may not send: refused with the session copy", async (ctx) => {
+    const { context, member, sessionId } = await sharedSession(ctx, "viewer");
+
+    await member.sessionQuery.get({ value: sessionId });
     const denied = await expectGrpcCode(
       () =>
         member.agentExecutionCommand.create(
@@ -367,7 +379,32 @@ describe("run gate — the agent is asked on every turn and every repoint (on th
           }),
         ),
       Code.PermissionDenied,
-      "a session viewer's turn on an agent they cannot run",
+      "a session viewer's turn",
+    );
+    expect(denied.rawMessage).toBe(
+      `unauthorized to add an execution to session '${sessionId}'`,
+    );
+  });
+
+  it("[rpc:RunCommandController.create] a participant passes the session's question and is refused only the agent they may not run", async (ctx) => {
+    const { context, member, agent, sessionId } = await sharedSession(
+      ctx,
+      "participant",
+    );
+
+    // The agent's copy, not the session's: the session's own question
+    // (can_create_run_in) admitted the participant first.
+    const denied = await expectGrpcCode(
+      () =>
+        member.agentExecutionCommand.create(
+          makeAgentExecution({
+            org: context.org,
+            name: uniqueName("participant-turn"),
+            sessionId,
+          }),
+        ),
+      Code.PermissionDenied,
+      "a session participant's turn on an agent they cannot run",
     );
     expect(denied.rawMessage).toBe(
       `unauthorized to run agent '${agent.metadata!.id}'`,

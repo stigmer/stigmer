@@ -170,6 +170,15 @@ public enum IamPermission
   can_create_agent_share(30),
   /**
    * <pre>
+   * Organization-level permission to connect an agent to a messaging
+   * channel (Slack, WhatsApp).
+   * </pre>
+   *
+   * <code>can_create_agent_channel = 54;</code>
+   */
+  can_create_agent_channel(54),
+  /**
+   * <pre>
    * Organization-level permission to register channel apps (customer-owned
    * messaging-platform apps holding webhook and OAuth credentials).
    * Admin-gated like can_create_oauth_app.
@@ -504,6 +513,15 @@ public enum IamPermission
   public static final int can_create_agent_share_VALUE = 30;
   /**
    * <pre>
+   * Organization-level permission to connect an agent to a messaging
+   * channel (Slack, WhatsApp).
+   * </pre>
+   *
+   * <code>can_create_agent_channel = 54;</code>
+   */
+  public static final int can_create_agent_channel_VALUE = 54;
+  /**
+   * <pre>
    * Organization-level permission to register channel apps (customer-owned
    * messaging-platform apps holding webhook and OAuth credentials).
    * Admin-gated like can_create_oauth_app.
@@ -729,6 +747,7 @@ public enum IamPermission
       case 28: return can_manage_billing;
       case 29: return can_execute_billing_ops;
       case 30: return can_create_agent_share;
+      case 54: return can_create_agent_channel;
       case 31: return can_create_channel_app;
       case 32: return can_manage_model_pricing;
       case 35: return can_manage_cursor_accounts;

@@ -119,6 +119,7 @@ import {
   newStampRunCredentialsStep,
 } from "./plan-run-values-step.js";
 import { newResolveRunAgentStep } from "./resolve-run-agent.js";
+import { newRequireApprovalAuthorityStep } from "./approval-authority.js";
 import type { AgentExecutionTemporalConfig } from "./temporal/config.js";
 import type { ExecutionEngineStateProvider } from "./engine.js";
 import { newEnsureEngineAvailableStep } from "./engine.js";
@@ -276,6 +277,7 @@ export function registerAgentExecutionServices(
     statusObservers: deps.statusObservers,
     sandboxLane: deps.sandboxLane,
     temporalConfig: deps.temporalConfig,
+    personAccounts: deps.personAccounts,
   };
   const artifactDeps = {
     store: deps.store,
@@ -380,6 +382,7 @@ async function createExecution(
     .addStep(
       newAuthorizeRunTargetStep(deps.authorizer, agentExecutionRunTarget),
     )
+    .addStep(newRequireApprovalAuthorityStep(deps.authorizer))
     .addStep(newValidateSessionOrganizationStep(deps.store))
     .addStep(newResolveSlugStep())
     .addStep(newBuildNewStateStep())
@@ -479,6 +482,7 @@ async function createExecution(
         logger: deps.logger,
         lane: deps.sandboxLane,
         temporalConfig: deps.temporalConfig,
+        accounts: deps.personAccounts,
       }),
     )
     .build()

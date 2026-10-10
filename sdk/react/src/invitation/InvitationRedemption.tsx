@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
-import { getUserMessage, iamRoleDisplayName, iamRoleDescription } from "@stigmer/sdk";
+import { getUserMessage, grantableRoleDescription, iamRoleDisplayName } from "@stigmer/sdk";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { Invitation } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { useInvitationPreview } from "./useInvitationPreview.js";
@@ -232,7 +233,7 @@ export function InvitationRedemption({
             {roleName} access
           </span>
           <span className="stg:text-[0.7rem] stg:text-muted-foreground">
-            {iamRoleDescription(preview.role)}
+            {grantableRoleDescription(ApiResourceKind.organization, preview.role)}
           </span>
           {expiresAt && (
             <span className="stg:text-[0.7rem] stg:text-muted-foreground">

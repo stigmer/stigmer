@@ -21,6 +21,19 @@
  * Every step short-circuits when the lane is disabled or the execution's
  * resolved target is LOCAL — the conformance rosters run entirely on
  * those fast paths (byte-identity by construction).
+ *
+ * One conversation, one workspace, one runner, acting as the
+ * conversation's creator: a session has one sandbox, and its runner
+ * credential is minted for the person the session's creator stamp names,
+ * whoever's turn creates, restores or repairs it. A person a conversation
+ * is shared with may send a turn that finds its sandbox archived; minting
+ * for that sender would move the runner, and every later turn's status
+ * reports, to them (stigmer#2075). A stamp that names nobody (a deleted
+ * account, "system") mints nothing: the sandbox launches tokenless and its
+ * values fetch is refused, so the conversation fails closed rather than
+ * running as the sender. Under the trusted-local posture (no accounts
+ * port) the one operator is every session's creator and the caller is
+ * minted for, as before.
  */
 import { create } from "@bufbuild/protobuf";
 
@@ -29,10 +42,14 @@ import {
   RunSchema,
   RunStatusSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../boot/logger.js";
+import type { AccountsByCaller } from "../domain/identityaccount/resolve.js";
+import { accountForStamp } from "../domain/identityaccount/resolve.js";
+import { createdByOf } from "../pipeline/steps/authorization-facts.js";
 import type { AgentExecutionTemporalConfig } from "../domain/run/temporal/config.js";
 import type { CallerIdentity } from "../extensions/identity.js";
 import type { PipelineStep } from "../pipeline/pipeline.js";
@@ -55,11 +72,11 @@ export const SANDBOX_PROVISIONING_FAILED_PREFIX =
 /**
  * The two facts about the requesting caller a sandbox ensure carries, cut
  * from the chain's CallerIdentity (the domain/identityaccount/actor.ts
- * shape): the id rides into the credential mint, so the session token is
- * minted FOR the caller; the class rides onto the driver's environment,
- * so a driver can decide the workspace's durability by who asked. A step
- * hands `ctx.callerIdentity` in whole; the pick keeps a test's fixture to
- * the two fields the body reads.
+ * shape): the class rides onto the driver's environment, so a driver can
+ * decide the workspace's durability by who asked; the id is minted for
+ * only under the trusted-local posture (the module header: otherwise the
+ * session's creator is). A step hands `ctx.callerIdentity` in whole; the
+ * pick keeps a test's fixture to the two fields the body reads.
  */
 export type SandboxCaller = Pick<CallerIdentity, "identityId" | "callerClass">;
 
@@ -70,6 +87,12 @@ export interface EnsureSessionSandboxDeps {
   readonly logger: Logger;
   readonly lane: SandboxLane;
   readonly temporalConfig: AgentExecutionTemporalConfig;
+  /**
+   * Resolves the session's creator stamp to the account the runner acts
+   * as; undefined under the trusted-local posture, where the caller is the
+   * one operator (the module header).
+   */
+  readonly accounts: AccountsByCaller | undefined;
 }
 
 /**
@@ -105,13 +128,12 @@ export function newEnsureSessionSandboxStep(
  * chains' differing context shapes (newState vs loaded execution) meet
  * at this seam instead.
  *
- * The caller splits two ways (SandboxCaller): `identityId` rides into the
- * credential mint (lane.ts) — the Java ensure step mints session tokens
- * FOR the requesting caller, so the capability mint needs the identity
- * the OSS execution-scoped mint never did — and `callerClass` rides onto
- * the driver's environment as the one request fact a driver may decide
- * durability by. The chain always has a caller: the in-process transport
- * mints `internal` for the server's own calls.
+ * The credential mint (lane.ts) names the session's creator, read with a
+ * point read of its own and resolved as the runner verifier resolves a
+ * stamp (`accountForStamp`); `callerClass` rides onto the driver's
+ * environment as the one request fact a driver may decide durability by.
+ * The chain always has a caller: the in-process transport mints
+ * `internal` for the server's own calls.
  */
 export async function ensureSessionSandboxForExecution(
   deps: EnsureSessionSandboxDeps,
@@ -157,7 +179,7 @@ export async function ensureSessionSandboxForExecution(
           sessionId,
           executionId,
           org: execution.metadata?.org ?? "",
-          callerIdentityId: caller.identityId,
+          callerIdentityId: await sandboxPersonOf(deps, sessionId, caller),
         },
         deps.logger,
       ),
@@ -177,6 +199,28 @@ export async function ensureSessionSandboxForExecution(
     );
     await stampProvisioningFailure(deps.store, deps.logger, executionId, error);
   }
+}
+
+/**
+ * The account a session's runner acts as: its creator's (the module
+ * header), or "" when the stamp names nobody, which the mint answers
+ * tokenless. Under the trusted-local posture, the caller's.
+ */
+async function sandboxPersonOf(
+  deps: EnsureSessionSandboxDeps,
+  sessionId: string,
+  caller: SandboxCaller,
+): Promise<string> {
+  if (deps.accounts === undefined) {
+    return caller.identityId;
+  }
+  const session = await deps.store.getResource(
+    ApiResourceKind.session,
+    sessionId,
+    SessionSchema,
+  );
+  const creator = await accountForStamp(deps.accounts, createdByOf(session));
+  return creator?.metadata?.id ?? "";
 }
 
 /**

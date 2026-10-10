@@ -8,8 +8,13 @@
  * Users type a name, an email or a team name; the resolved grantee is
  * carried internally and never shown. Because email is not unique across
  * identity sources, a person shows a {@link ProviderBadge} when it
- * disambiguates. With teams offered, results come in two labelled groups,
- * Teams then People, and the arrow keys walk both as one list. Teams lead
+ * disambiguates. With teams offered, or with accounts an integrator's
+ * product created for its own users in the organization, results come in
+ * labelled groups, Teams, People, then Users from your product (the
+ * Members page's name for them), and the arrow keys walk them as one
+ * list. A product's users are labelled, never passed off as the
+ * organization's people; a team's picker leaves them out
+ * (`includeAppUsers={false}`). Teams lead
  * because an organization has few of them and many people: listed second,
  * they would sit below the scroll in any organization of size, and sharing
  * with a team is the act that scales.
@@ -47,6 +52,13 @@ export interface PrincipalPickerProps {
    * resource can be shared with a team (`useShareFlow().canShareWithTeams`).
    */
   readonly includeTeams?: boolean;
+  /**
+   * Offer the accounts an integrator's product created for its own users,
+   * grouped as "Users from your product". Defaults to `true`; a team's
+   * member picker passes `false`, since a team is a group of the
+   * organization's people.
+   */
+  readonly includeAppUsers?: boolean;
   /** Grantees shown disabled because they already have access. */
   readonly excludeGrantees?: readonly Grantee[];
   /** Disable the control. */
@@ -77,6 +89,7 @@ export function PrincipalPicker({
   value,
   onChange,
   includeTeams = false,
+  includeAppUsers = true,
   excludeGrantees,
   disabled = false,
   label,
@@ -84,9 +97,10 @@ export function PrincipalPicker({
   className,
 }: PrincipalPickerProps) {
   const listboxId = useId();
-  const { people, teams, isLoading, error } = useGranteeCandidates({
+  const { people, appUsers, teams, isLoading, error } = useGranteeCandidates({
     org: org || null,
     includeTeams,
+    includeAppUsers,
   });
 
   const [query, setQuery] = useState("");
@@ -107,30 +121,35 @@ export function PrincipalPicker({
   // provider badge does real disambiguation work.
   const duplicatedEmails = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const person of people) {
+    for (const person of [...people, ...appUsers]) {
       const email = person.email.toLowerCase();
       if (email) counts.set(email, (counts.get(email) ?? 0) + 1);
     }
     return new Set([...counts.entries()].filter(([, n]) => n > 1).map(([email]) => email));
-  }, [people]);
+  }, [people, appUsers]);
 
-  const { matchingPeople, matchingTeams } = useMemo(() => {
+  const { matchingPeople, matchingAppUsers, matchingTeams } = useMemo(() => {
     const q = query.trim().toLowerCase();
+    const matches = (p: PersonCandidate) =>
+      p.name.toLowerCase().includes(q) || p.email.toLowerCase().includes(q);
     return {
-      matchingPeople: q
-        ? people.filter((p) => p.name.toLowerCase().includes(q) || p.email.toLowerCase().includes(q))
-        : people,
+      matchingPeople: q ? people.filter(matches) : people,
+      matchingAppUsers: q ? appUsers.filter(matches) : appUsers,
       matchingTeams: q
         ? teams.filter((t) => t.name.toLowerCase().includes(q) || t.description.toLowerCase().includes(q))
         : teams,
     };
-  }, [people, teams, query]);
+  }, [people, appUsers, teams, query]);
 
-  // One flat order for the keyboard: teams, then people, as rendered.
+  // One flat order for the keyboard: teams, people, then a product's
+  // users, as rendered.
   const options = useMemo<readonly GranteeCandidate[]>(
-    () => [...matchingTeams, ...matchingPeople],
-    [matchingPeople, matchingTeams],
+    () => [...matchingTeams, ...matchingPeople, ...matchingAppUsers],
+    [matchingPeople, matchingAppUsers, matchingTeams],
   );
+  // Groups render once there is more than one kind of candidate to tell
+  // apart; a list of the organization's people alone stays flat.
+  const grouped = includeTeams || appUsers.length > 0;
 
   const commitSelection = useCallback(
     (candidate: GranteeCandidate) => {
@@ -308,16 +327,21 @@ export function PrincipalPicker({
               </li>
             )}
 
-            {!isLoading && !error && !nothingMatches && !includeTeams &&
+            {!isLoading && !error && !nothingMatches && !grouped &&
               matchingPeople.map((person, index) => renderOption(person, index))}
 
-            {!isLoading && !error && !nothingMatches && includeTeams && (
+            {!isLoading && !error && !nothingMatches && grouped && (
               <>
                 <OptionGroup label="Teams" count={matchingTeams.length}>
                   {matchingTeams.map((team, index) => renderOption(team, index))}
                 </OptionGroup>
                 <OptionGroup label="People" count={matchingPeople.length}>
                   {matchingPeople.map((person, index) => renderOption(person, matchingTeams.length + index))}
+                </OptionGroup>
+                <OptionGroup label="Users from your product" count={matchingAppUsers.length}>
+                  {matchingAppUsers.map((person, index) =>
+                    renderOption(person, matchingTeams.length + matchingPeople.length + index),
+                  )}
                 </OptionGroup>
               </>
             )}

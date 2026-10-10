@@ -36,7 +36,13 @@ type OrganizationSpec struct {
 	Preferences *OrganizationPreferences `protobuf:"bytes,7,opt,name=preferences,proto3" json:"preferences,omitempty"`
 	// The organization this one is a child of, by id or slug; empty for an
 	// organization that has no parent.
-	ParentOrg     string `protobuf:"bytes,8,opt,name=parent_org,json=parentOrg,proto3" json:"parent_org,omitempty"`
+	ParentOrg string `protobuf:"bytes,8,opt,name=parent_org,json=parentOrg,proto3" json:"parent_org,omitempty"`
+	// What the organization lets its members do. Set when the organization is
+	// created (an omitted message means the defaults: members may create
+	// agents) and changed only through updatePolicies, so an update or apply
+	// of a manifest written before a policy changed neither fails nor
+	// reverts it: a policy carried by update or apply is ignored.
+	Policies      *OrganizationPolicies `protobuf:"bytes,9,opt,name=policies,proto3" json:"policies,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -106,6 +112,13 @@ func (x *OrganizationSpec) GetParentOrg() string {
 	return ""
 }
 
+func (x *OrganizationSpec) GetPolicies() *OrganizationPolicies {
+	if x != nil {
+		return x.Policies
+	}
+	return nil
+}
+
 // OrganizationPreferences holds organization-declared defaults that apply to
 // every eligible run in the organization.
 type OrganizationPreferences struct {
@@ -165,11 +178,62 @@ func (x *OrganizationPreferences) GetMemoryEnabled() bool {
 	return false
 }
 
+// OrganizationPolicies holds what an organization lets its members do.
+// Each policy is a switch an admin turns in the organization's settings.
+type OrganizationPolicies struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Members may create agents. On by default: a new organization lets its
+	// members create agents, as a GitHub organization lets its members
+	// create repositories. When off, only admins create agents. A member's
+	// agent is theirs: private or shared with the organization, never with
+	// child organizations, which stays an admin's choice.
+	MembersCanCreateAgents bool `protobuf:"varint,1,opt,name=members_can_create_agents,json=membersCanCreateAgents,proto3" json:"members_can_create_agents,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *OrganizationPolicies) Reset() {
+	*x = OrganizationPolicies{}
+	mi := &file_ai_stigmer_tenancy_organization_v1_spec_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OrganizationPolicies) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OrganizationPolicies) ProtoMessage() {}
+
+func (x *OrganizationPolicies) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_tenancy_organization_v1_spec_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OrganizationPolicies.ProtoReflect.Descriptor instead.
+func (*OrganizationPolicies) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_tenancy_organization_v1_spec_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *OrganizationPolicies) GetMembersCanCreateAgents() bool {
+	if x != nil {
+		return x.MembersCanCreateAgents
+	}
+	return false
+}
+
 var File_ai_stigmer_tenancy_organization_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_tenancy_organization_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/tenancy/organization/v1/spec.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a\x1bbuf/validate/validate.proto\"\x8b\x04\n" +
+	"-ai/stigmer/tenancy/organization/v1/spec.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a\x1bbuf/validate/validate.proto\"\xe1\x04\n" +
 	"\x10OrganizationSpec\x12*\n" +
 	"\vdescription\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x18\xf4\x03R\vdescription\x12#\n" +
 	"\blogo_url\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\alogoUrl\x12)\n" +
@@ -177,11 +241,14 @@ const file_ai_stigmer_tenancy_organization_v1_spec_proto_rawDesc = "" +
 	"externalId\x12]\n" +
 	"\vpreferences\x18\a \x01(\v2;.ai.stigmer.tenancy.organization.v1.OrganizationPreferencesR\vpreferences\x12&\n" +
 	"\n" +
-	"parent_org\x18\b \x01(\tB\a\xbaH\x04r\x02\x18@R\tparentOrg:\xac\x01\xbaH\xa8\x01\x1a\xa5\x01\n" +
+	"parent_org\x18\b \x01(\tB\a\xbaH\x04r\x02\x18@R\tparentOrg\x12T\n" +
+	"\bpolicies\x18\t \x01(\v28.ai.stigmer.tenancy.organization.v1.OrganizationPoliciesR\bpolicies:\xac\x01\xbaH\xa8\x01\x1a\xa5\x01\n" +
 	",organization.external_id_requires_parent_org\x12Dexternal_id is set only on a child organization: name its parent_org\x1a/this.external_id == '' || this.parent_org != ''J\x04\b\x03\x10\x04J\x04\b\x04\x10\x05J\x04\b\x06\x10\aR\x0fmanagement_modeR\x15identity_provider_refR\vis_personal\"u\n" +
 	"\x17OrganizationPreferences\x123\n" +
 	"\x10standing_context\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x18\xd0\x0fR\x0fstandingContext\x12%\n" +
-	"\x0ememory_enabled\x18\x02 \x01(\bR\rmemoryEnabledB\xbe\x02\n" +
+	"\x0ememory_enabled\x18\x02 \x01(\bR\rmemoryEnabled\"Q\n" +
+	"\x14OrganizationPolicies\x129\n" +
+	"\x19members_can_create_agents\x18\x01 \x01(\bR\x16membersCanCreateAgentsB\xbe\x02\n" +
 	"&com.ai.stigmer.tenancy.organization.v1B\tSpecProtoP\x01Z\\github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/tenancy/organization/v1;organizationv1\xa2\x02\x04ASTO\xaa\x02\"Ai.Stigmer.Tenancy.Organization.V1\xca\x02\"Ai\\Stigmer\\Tenancy\\Organization\\V1\xe2\x02.Ai\\Stigmer\\Tenancy\\Organization\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Tenancy::Organization::V1b\x06proto3"
 
 var (
@@ -196,18 +263,20 @@ func file_ai_stigmer_tenancy_organization_v1_spec_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_tenancy_organization_v1_spec_proto_rawDescData
 }
 
-var file_ai_stigmer_tenancy_organization_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_ai_stigmer_tenancy_organization_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_ai_stigmer_tenancy_organization_v1_spec_proto_goTypes = []any{
 	(*OrganizationSpec)(nil),        // 0: ai.stigmer.tenancy.organization.v1.OrganizationSpec
 	(*OrganizationPreferences)(nil), // 1: ai.stigmer.tenancy.organization.v1.OrganizationPreferences
+	(*OrganizationPolicies)(nil),    // 2: ai.stigmer.tenancy.organization.v1.OrganizationPolicies
 }
 var file_ai_stigmer_tenancy_organization_v1_spec_proto_depIdxs = []int32{
 	1, // 0: ai.stigmer.tenancy.organization.v1.OrganizationSpec.preferences:type_name -> ai.stigmer.tenancy.organization.v1.OrganizationPreferences
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	2, // 1: ai.stigmer.tenancy.organization.v1.OrganizationSpec.policies:type_name -> ai.stigmer.tenancy.organization.v1.OrganizationPolicies
+	2, // [2:2] is the sub-list for method output_type
+	2, // [2:2] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_tenancy_organization_v1_spec_proto_init() }
@@ -221,7 +290,7 @@ func file_ai_stigmer_tenancy_organization_v1_spec_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_tenancy_organization_v1_spec_proto_rawDesc), len(file_ai_stigmer_tenancy_organization_v1_spec_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -320,7 +320,10 @@ function buildGrant(
   level: HierarchyLevel,
 ): RoleGrant {
   return create(RoleGrantSchema, {
-    role: roleInfoFromRelation(policy.spec?.relation ?? ""),
+    role: roleInfoFromRelation(
+      policy.spec?.relation ?? "",
+      kindByEnumName(level.kind),
+    ),
     isInherited,
     ...(isInherited
       ? {

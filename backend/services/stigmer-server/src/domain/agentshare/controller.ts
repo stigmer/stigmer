@@ -46,7 +46,6 @@ import type {
   RotateShareLinkInput,
   SharedAgentProfile,
 } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/io_pb";
-import { AgentShareAudience } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/spec_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -106,6 +105,7 @@ import {
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
+import { newResolveShareAudienceStep, shareAdmitsAnyone } from "./audience.js";
 import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
@@ -199,6 +199,7 @@ async function createShare(
       ),
     )
     .addStep(newValidateProtoStep())
+    .addStep(newResolveShareAudienceStep())
     .addStep(newValidateVisibilityStep())
     .addStep(newResolveShareDefaultsStep(deps.store))
     // Before the duplicate check (steps.ts, resolveShareCreateTargets).
@@ -258,6 +259,8 @@ async function update(
     .addStep(newLoadExistingStep(deps.store))
     .addStep(newValidateShareUpdateStep())
     .addStep(newBuildUpdateStateStep())
+    // After BuildUpdateState, which rebuilds the state from the request.
+    .addStep(newResolveShareAudienceStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
@@ -295,6 +298,7 @@ async function apply(
       ),
     )
     .addStep(newValidateProtoStep())
+    .addStep(newResolveShareAudienceStep())
     .addStep(newResolveShareDefaultsStep(deps.store))
     .addStep(newResolveSlugStep())
     .addStep(newLoadForApplyStep(deps.store))
@@ -903,13 +907,12 @@ function newProjectSharedProfileStep(store: Store): PipelineStep<ProfileDesc> {
       if (share.spec?.enabled !== true) {
         throw sharedNotFound(req.shareId);
       }
-      // The audience arm (SharingAudiencePolicy.admitsGuests): only an
-      // EXPLICIT org audience refuses — unspecified means public by
-      // contract (shares created before the audience field existed are
-      // anyone-with-link shares). Without this arm the anonymous lane
-      // would resolve org-audience shares the proto contract says must
-      // collapse.
-      if (share.spec.audience === AgentShareAudience.org) {
+      // The audience arm (SharingAudiencePolicy.admitsGuests): only a
+      // share whose owner chose public reaches an anonymous reader; an
+      // omitted audience means the organization (audience.ts). Without
+      // this arm the anonymous lane would resolve organization-only shares
+      // the proto contract says must collapse.
+      if (!shareAdmitsAnyone(share.spec)) {
         throw sharedNotFound(req.shareId);
       }
       if (
@@ -945,8 +948,10 @@ function newProjectMemberSharedProfileStep(
         throw sharedNotFound(ctx.input.value);
       }
 
-      const isOrgAudience = share.spec.audience === AgentShareAudience.org;
-      if (!isOrgAudience && (share.status?.shareLinkToken ?? "") !== "") {
+      if (
+        shareAdmitsAnyone(share.spec) &&
+        (share.status?.shareLinkToken ?? "") !== ""
+      ) {
         throw sharedNotFound(ctx.input.value);
       }
 

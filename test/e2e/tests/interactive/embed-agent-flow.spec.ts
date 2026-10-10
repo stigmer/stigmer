@@ -1,5 +1,6 @@
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
+import { AgentShareAudience } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/spec_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { test, expect } from "../../fixtures";
 import { ensureDefaultOrg } from "../../fixtures/seed-helpers";
@@ -41,8 +42,10 @@ let hostPageAttributes = "";
 
 // Sharing is an AgentShare resource: apply upserts the
 // canonical share by (org, slug) — creating it on first use, exactly the
-// commit path the Share dialog and CLI use.
-/** Applies an enabled share of the agent and answers its id, which the embed names. */
+// commit path the Share dialog and CLI use. An embed serves anonymous
+// visitors, so the share says public: an omitted audience means the
+// organization's members, which an embed never serves.
+/** Applies an enabled public share of the agent and answers its id, which the embed names. */
 async function enableSharing(
   client: Stigmer,
   agent: { org: string; slug: string },
@@ -53,6 +56,7 @@ async function enableSharing(
     name: agent.slug,
     agentRef: { org: agent.org, slug: agent.slug },
     enabled: true,
+    audience: AgentShareAudience.public,
   });
   return share.metadata!.id;
 }

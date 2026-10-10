@@ -5,6 +5,8 @@ import type { WizardStepDef } from "../resource-creation/types.js";
 import { useWizardState } from "../resource-creation/useWizardState.js";
 import { WizardShell } from "../resource-creation/WizardShell.js";
 import { useCreateAgent } from "./useCreateAgent.js";
+import { useCanCreateAgent } from "./useCanCreateAgent.js";
+import { AgentCreationDenied } from "./AgentCreationDenied.js";
 import { IdentityStep } from "./steps/IdentityStep.js";
 import { CapabilitiesStep } from "./steps/CapabilitiesStep.js";
 import { ReviewStep, buildAgentInput } from "./steps/ReviewStep.js";
@@ -89,6 +91,11 @@ const STEPS: WizardStepDef<AgentWizardData>[] = [
  *
  * `onComplete` receives the organization by id; the URL carries the slug.
  *
+ * It asks the server first whether the viewer may create an agent in
+ * `org` ({@link useCanCreateAgent}); someone who may not sees
+ * {@link AgentCreationDenied} instead of a form whose create would be
+ * refused.
+ *
  * @example
  * ```tsx
  * const slugForOrg = useOrgSlugForId();
@@ -100,7 +107,15 @@ const STEPS: WizardStepDef<AgentWizardData>[] = [
  * />
  * ```
  */
-export function AgentCreationWizard({
+export function AgentCreationWizard(props: AgentCreationWizardProps) {
+  const { allowed, isLoading } = useCanCreateAgent(props.org || null);
+  if (isLoading) return null;
+  if (!allowed) return <AgentCreationDenied className={props.className} />;
+  return <AgentCreationForm {...props} />;
+}
+
+/** The wizard itself, mounted once the viewer may create an agent. */
+function AgentCreationForm({
   org,
   initialData,
   onComplete,

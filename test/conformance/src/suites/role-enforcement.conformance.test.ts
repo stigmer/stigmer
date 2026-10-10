@@ -21,7 +21,10 @@
 //     private (`can_view: viewer`, where org-visible derives
 //     `organization#viewer` and private derives nobody but the creator); a
 //     viewer reads org-visible only; neither edits; a member may not create
-//     (`can_create_agent/skill: admin`); an outsider — a person
+//     a skill or an MCP server (`can_create_skill: admin`), and creates an
+//     agent exactly while the organization's policy "Members can create
+//     agents" is on (`can_create_agent: admin or member from
+//     agent_creation_open`, on by default); an outsider — a person
 //     with no role on the organization — is PERMISSION_DENIED on an
 //     existing row and NOT_FOUND on a missing id (the Authorizer's
 //     existence probe: a missing target is never dressed as a denial).
@@ -29,6 +32,14 @@
 //     since the annotation and the model line landed; before that a member
 //     authored MCP servers in both editions, and this suite pinned the
 //     admission by name so the line's arrival flipped it visibly.
+//   - Agent creation by policy: a new organization lets its members create
+//     agents; a member owns the agent they create (edits and deletes it),
+//     may keep it private or share it with the organization, and may not
+//     share it with child organizations, on create or through
+//     updateVisibility (`can_manage_child_orgs`, an admin's). An admin turns
+//     the policy off through updatePolicies, the only door for it, and a
+//     member's next create is refused until it is on again; a member may
+//     not change the policy. A viewer never creates an agent.
 //   - Personal rows (a session, a My vault, an API key): the person's
 //     own; another member and the organization's ADMIN are refused on
 //     `get`, and every list — theirs, the admin's — omits the row. The
@@ -80,7 +91,12 @@
 // where each RPC's contract lives (this suite asserts the CODE, the
 // question being who may, not what the sentence says).
 import { Code } from "@connectrpc/connect";
+import { create } from "@bufbuild/protobuf";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import {
+  OrganizationPoliciesSchema,
+  OrganizationSpecSchema,
+} from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/spec_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { expectGrpcCode, expectGrpcCodeWithin } from "../contract/errors";
@@ -102,6 +118,7 @@ import {
   MCPSERVER_KIND,
 } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";
+import { makeSlackAgentChannel } from "../support/agentchannels";
 import { makeSlackChannelApp } from "../support/channelapps";
 import { makeOAuthApp } from "../support/oauthapps";
 import { createPlatformClient } from "../support/platformclients";
@@ -173,6 +190,10 @@ const ORG_VISIBLE = ApiResourceVisibility.visibility_org;
 // `updateVisibility` for skills, which are pushed, never updated.
 interface BlueprintKind {
   readonly name: string;
+  // Whether a member creates one while the organization's defaults stand:
+  // an agent yes (the policy "Members can create agents" is on by
+  // default), a skill and an MCP server never.
+  readonly membersCreate: boolean;
   create(
     using: ConformanceClients,
     org: string,
@@ -186,6 +207,7 @@ interface BlueprintKind {
 const BLUEPRINT_KINDS: ReadonlyArray<BlueprintKind> = [
   {
     name: "agent",
+    membersCreate: true,
     async create(using, org, visibility) {
       const input = makeAgent({ org, name: uniqueName("role-agent") });
       input.metadata = { ...input.metadata, visibility };
@@ -204,6 +226,7 @@ const BLUEPRINT_KINDS: ReadonlyArray<BlueprintKind> = [
   },
   {
     name: "skill",
+    membersCreate: false,
     async create(using, org, visibility) {
       const pushed = await using.skillCommand.push({
         org,
@@ -228,6 +251,7 @@ const BLUEPRINT_KINDS: ReadonlyArray<BlueprintKind> = [
   },
   {
     name: "mcp_server",
+    membersCreate: false,
     async create(using, org, visibility) {
       const input = makeMcpServer({ org, name: uniqueName("role-mcp") });
       input.metadata = { ...input.metadata, visibility };
@@ -351,14 +375,156 @@ describe("role enforcement — blueprints: who may read, edit, delete and create
       );
     });
 
-    it("a member may not create — can_create is the admin's", async (ctx) => {
+    it("a member creates only what the organization lets them; a viewer creates nothing", async (ctx) => {
       const c = castOrSkip(ctx);
+      if (kind.membersCreate) {
+        const id = await kind.create(c.member, c.org, PRIVATE);
+        fixtures.defer(() => kind.delete(c.owner, id).catch(() => undefined));
+      } else {
+        await expectGrpcCode(
+          () => kind.create(c.member, c.org, PRIVATE),
+          Code.PermissionDenied,
+          `member create of a ${kind.name}`,
+        );
+      }
       await expectGrpcCode(
-        () => kind.create(c.member, c.org, PRIVATE),
+        () => kind.create(c.viewer, c.org, PRIVATE),
         Code.PermissionDenied,
-        `member create of a ${kind.name}`,
+        `viewer create of a ${kind.name}`,
       );
     });
+  });
+});
+
+// The organization's policy, read back as an admin sees it.
+async function membersCanCreateAgents(using: ConformanceClients, org: string): Promise<boolean | undefined> {
+  const organization = await using.organizationQuery.get({ value: org });
+  return organization.spec?.policies?.membersCanCreateAgents;
+}
+
+function agentInput(org: string, visibility: ApiResourceVisibility) {
+  const input = makeAgent({ org, name: uniqueName("role-member-agent") });
+  input.metadata = { ...input.metadata, visibility };
+  return input;
+}
+
+describe("role enforcement — agent creation: a member's by the organization's policy", () => {
+  it("[rpc:OrganizationQueryController.get] a new organization lets its members create agents", async (ctx) => {
+    const lane = laneOrSkip(ctx);
+    const c = await castOf(lane);
+
+    expect(await membersCanCreateAgents(c.owner, c.org)).toBe(true);
+  });
+
+  it("[rpc:AgentCommandController.create] a member owns the agent they create: private or organization-wide, edited and deleted by them", async (ctx) => {
+    const lane = laneOrSkip(ctx);
+    const c = await castOf(lane);
+    const agentKind = BLUEPRINT_KINDS.find((kind) => kind.name === "agent");
+    if (agentKind === undefined) throw new Error("the blueprint roster has no agent kind");
+
+    for (const visibility of [PRIVATE, ORG_VISIBLE]) {
+      const created = await c.member.agentCommand.create(agentInput(c.org, visibility));
+      const id = created.metadata!.id;
+      fixtures.defer(() => c.owner.agentCommand.delete({ value: id }).catch(() => undefined));
+      expect(created.metadata?.visibility).toBe(visibility);
+      await agentKind.edit(c.member, id);
+      await agentKind.delete(c.member, id);
+    }
+  });
+
+  it("[rpc:AgentCommandController.create] [rpc:AgentCommandController.updateVisibility] a member may not share their agent with child organizations", async (ctx) => {
+    const lane = laneOrSkip(ctx);
+    const c = await castOf(lane);
+    const CHILD_ORGS = ApiResourceVisibility.visibility_child_orgs;
+
+    await expectGrpcCode(
+      () => c.member.agentCommand.create(agentInput(c.org, CHILD_ORGS)),
+      Code.PermissionDenied,
+      "a member creating an agent shared with child organizations",
+    );
+
+    const created = await c.member.agentCommand.create(agentInput(c.org, PRIVATE));
+    const id = created.metadata!.id;
+    fixtures.defer(() => c.owner.agentCommand.delete({ value: id }).catch(() => undefined));
+    await expectGrpcCode(
+      () => c.member.agentCommand.updateVisibility({ resourceId: id, visibility: CHILD_ORGS }),
+      Code.PermissionDenied,
+      "a member sharing their agent with child organizations",
+    );
+
+    // The admin may: child organizations stay an admin's choice.
+    await c.admin.agentCommand.updateVisibility({ resourceId: id, visibility: CHILD_ORGS });
+  });
+
+  it("[rpc:AgentChannelCommandController.create] a member may not connect their own agent to a channel; an admin may", async (ctx) => {
+    const lane = laneOrSkip(ctx);
+    const c = await castOf(lane);
+
+    const created = await c.member.agentCommand.create(agentInput(c.org, PRIVATE));
+    const id = created.metadata!.id;
+    const slug = created.metadata!.slug;
+    fixtures.defer(() => c.owner.agentCommand.delete({ value: id }).catch(() => undefined));
+
+    // Owning the agent is not enough: a channel spends the organization's
+    // credits on outside traffic, the agent share's admin-level bar.
+    await expectGrpcCode(
+      () => c.member.agentChannelCommand.create(makeSlackAgentChannel(c.org, uniqueName("member-channel"), slug)),
+      Code.PermissionDenied,
+      "a member connecting the agent they own to a channel",
+    );
+
+    // An admin, who manages every agent of the organization, may.
+    const channel = await c.admin.agentChannelCommand.create(
+      makeSlackAgentChannel(c.org, uniqueName("admin-channel"), slug),
+    );
+    fixtures.defer(() =>
+      c.owner.agentChannelCommand.delete({ value: channel.metadata!.id }).catch(() => undefined),
+    );
+  });
+
+  it("[rpc:OrganizationCommandController.updatePolicies] an admin turns member creation off and on; a member may not change it", async (ctx) => {
+    const lane = laneOrSkip(ctx);
+    const c = await castOf(lane);
+
+    await expectGrpcCode(
+      () =>
+        c.member.organizationCommand.updatePolicies({
+          orgId: c.org,
+          policies: { membersCanCreateAgents: false },
+        }),
+      Code.PermissionDenied,
+      "a member changing the organization's policies",
+    );
+    expect(await membersCanCreateAgents(c.owner, c.org)).toBe(true);
+
+    const closed = await c.admin.organizationCommand.updatePolicies({
+      orgId: c.org,
+      policies: { membersCanCreateAgents: false },
+    });
+    expect(closed.spec?.policies?.membersCanCreateAgents).toBe(false);
+    await expectGrpcCode(
+      () => c.member.agentCommand.create(agentInput(c.org, PRIVATE)),
+      Code.PermissionDenied,
+      "a member creating an agent with the policy off",
+    );
+    // An admin still creates agents with the policy off.
+    const adminAgent = await c.admin.agentCommand.create(agentInput(c.org, PRIVATE));
+    fixtures.defer(() => c.owner.agentCommand.delete({ value: adminAgent.metadata!.id }).catch(() => undefined));
+
+    // A plain update carrying other policies changes nothing: updatePolicies
+    // is the only door.
+    const carried = await c.owner.organizationQuery.get({ value: c.org });
+    carried.spec ??= create(OrganizationSpecSchema);
+    carried.spec.policies = create(OrganizationPoliciesSchema, { membersCanCreateAgents: true });
+    await c.owner.organizationCommand.update(carried);
+    expect(await membersCanCreateAgents(c.owner, c.org)).toBe(false);
+
+    await c.admin.organizationCommand.updatePolicies({
+      orgId: c.org,
+      policies: { membersCanCreateAgents: true },
+    });
+    const reopened = await c.member.agentCommand.create(agentInput(c.org, PRIVATE));
+    fixtures.defer(() => c.owner.agentCommand.delete({ value: reopened.metadata!.id }).catch(() => undefined));
   });
 });
 

@@ -11,7 +11,7 @@ import {
   ResourceTier,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { AuthorizationScopeType } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
-import { IamRoleSchema } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { IamRoleSchema, role_meta } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 /** Enum number → lowercase constant name (e.g. 43 → "skill"). */
 export const apiResourceKindEnumNames = new Map<number, string>();
@@ -34,6 +34,8 @@ export interface KindMetaEntry {
   grantableRoles: number[];
   /** The roles a team may be granted on the kind (a subset of grantableRoles). */
   teamGrantableRoles: number[];
+  /** What each grantable role means on the kind (role_descriptions). */
+  roleDescriptions: { role: number; description: string }[];
 }
 
 /** kind_meta.name → kind_meta.id_prefix (port of buildIdPrefixMap). */
@@ -66,6 +68,10 @@ for (const value of ApiResourceKindSchema.values) {
     tier: meta.tier,
     grantableRoles: meta.authorization?.grantableRoles ?? [],
     teamGrantableRoles: meta.authorization?.teamGrantableRoles ?? [],
+    roleDescriptions: (meta.authorization?.roleDescriptions ?? []).map((entry) => ({
+      role: entry.role,
+      description: entry.description,
+    })),
   });
 }
 
@@ -81,6 +87,29 @@ export { ResourceTier };
 /** IamRole number → enum value name. */
 export function iamRoleName(role: number): string {
   return IamRoleSchema.values.find((v) => v.number === role)?.name ?? String(role);
+}
+
+/** One IamRole value's role_meta: its name and its kindless sentence. */
+export interface IamRoleMetaEntry {
+  role: number;
+  name: string;
+  displayName: string;
+  description: string;
+}
+
+/** Every IamRole value carrying role_meta, in enum-number order. */
+export function iamRoleMetaEntries(): IamRoleMetaEntry[] {
+  return IamRoleSchema.values
+    .filter((value) => value.number !== 0 && hasOption(value, role_meta))
+    .map((value) => {
+      const meta = getOption(value, role_meta);
+      return {
+        role: value.number,
+        name: value.name,
+        displayName: meta.displayName,
+        description: meta.description,
+      };
+    });
 }
 
 /** Port of isVersionedKind: kind NAME → is_versioned. */

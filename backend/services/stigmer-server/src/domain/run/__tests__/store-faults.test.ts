@@ -112,6 +112,7 @@ function lifecycleDeps(store: Store): LifecycleDeps {
     statusObservers: [],
     sandboxLane: untouchable("sandboxLane"),
     temporalConfig: untouchable("temporalConfig"),
+    personAccounts: undefined,
   };
 }
 

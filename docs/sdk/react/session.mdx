@@ -296,6 +296,32 @@ const { session } = useSession(sessionId ?? null);
 ```
 
 
+### useSessionAccess
+
+Self-checks on a conversation for the console's presentation of it.
+
+**Signature**
+
+```tsx
+function useSessionAccess(sessionId: string | null): UseSessionAccessReturn
+```
+
+<TypeTable
+  type={{
+    sessionId: { type: "string | null", description: "The conversation to ask about, or `null` to skip.", required: true },
+  }}
+/>
+
+**Returns** — `UseSessionAccessReturn`
+
+<TypeTable
+  type={{
+    canDecide: { type: "boolean", description: "Whether the reader may stop its runs and make their decisions." },
+    canSend: { type: "boolean", description: "Whether the reader may send messages into the conversation." },
+  }}
+/>
+
+
 ### useSessionAgentVersion
 
 Reads the agent version `session` pins against its agent's current
@@ -1558,7 +1584,8 @@ Whether a session was created by the channel runtime (a Slack/WhatsApp
 conversation) rather than by a person in the console.
 
 Channel viewers hold read-only access (`can_view` without
-`can_create_run_in`), so session organisms use this to
+`can_create_run_in`, which a session grants only its owners and
+participants), so session organisms use this to
 self-select the `"observer"` audience — every entry point renders
 read-only without host wiring.
 
@@ -1760,7 +1787,12 @@ presented to.
   audience for channel-originated sessions (the
   `stigmer.ai/channel-id` label), so every entry point — a
   conversations list, a pasted URL — renders read-only without host
-  wiring.
+  wiring. A person's own console conversations ask the server too: a
+  conversation shared with the reader as Viewer (`can_view` without
+  `can_create_run_in`) renders this presentation with a line saying the
+  reader can read it, and one shared as Participant keeps the composer
+  but withholds stop, approvals and file decisions, which stay with the
+  conversation's owners.
 
 A preset rather than individual flags: each audience is a product
 intent, and keeping it in one place lets the SDK evolve what that
@@ -2020,6 +2052,7 @@ Options for [`useSessionPageFlow`](#usesessionpageflow).
   type={{
     accountDefaults: { type: "AccountExecutionDefaults", description: "The user's account-level execution defaults, typically from `useAccountExecutionDefaults()`. On the session page only `autoApprove` applies — it seeds the session-scoped auto-approve state so a user whose `default_auto_approve` preference is ON gets armed follow-ups on every session, not just newly created ones. An explicit in-session flip always wins for this session; the seed may arrive after mount (whoAmI resolves async) and still applies, being part of the derivation rather than an initializer. Ignored for the `\"guest\"` audience (guests inherit no identity-derived preference).", typeDescriptionLink: "/docs/sdk/react/identity-account#accountexecutiondefaults" },
     audience: { type: "SessionAudience", description: "Who this flow serves. `\"guest\"` adapts the orchestration to the guest principal's permission model: the agent reads behind the version state (a read a guest token cannot make) are skipped, and follow-ups carry no agent override, so they simply continue on the agent and version the session pinned, which is exactly right for a shared-agent page. See SessionAudience.", typeDescriptionLink: "#sessionaudience" },
+    canDecide: { type: "boolean", description: "Whether this reader may decide for the conversation (`can_edit`, its owners; see `useSessionAccess`). Defaults to true. When false (a participant), a follow-up carries only the message and its own turn options: it never rewrites the conversation's agent, workspace, tools or vaults, which is its owners' edit, and never waives their approvals." },
     org: { type: "string", description: "Organization id (a slug is also accepted).", required: true },
     runConfig: { type: "SessionRunConfig", description: "Owner-pinned model/tier for every follow-up on this surface (stigmer/stigmer#664). Stamped at submit — after the composer, so it wins over composer state, the persisted Console preference, and the last execution's model — and therefore also covers retries, which re-enter the same submit path. Ignored for the `\"guest\"` audience (the server-side share policy owns guest run config). See SessionRunConfig.", typeDescriptionLink: "#sessionrunconfig" },
     sessionId: { type: "string", description: "Session ID to load and manage.", required: true },

@@ -6,13 +6,19 @@
 // across all files are sorted into dependency order before applying so parents
 // (org → mcp_server → agent → …) land before their dependents.
 
-import { create, fromJson, type JsonValue, type Message } from "@bufbuild/protobuf";
+import { create, equals, fromJson, type JsonValue, type Message } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { RenameInputSchema, UpdateVisibilityInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import { UpdateOrganizationPoliciesInputSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
+import {
+  type OrganizationPolicies,
+  OrganizationPoliciesSchema,
+} from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/spec_pb";
 import {
   type ApiResourceMetadata,
   ApiResourceMetadataSchema,
@@ -141,10 +147,11 @@ export async function applyMessage(
   }
 
   const applied = await handler.apply(controller, message);
-  // Visibility lands before the slug: a refused rename stops the command,
-  // so everything else the manifest asked for has landed by then, and the
-  // refusal reports it.
+  // Visibility and policies land before the slug: a refused rename stops
+  // the command, so everything else the manifest asked for has landed by
+  // then, and the refusal reports it.
   const visibilityWarning = await applyDeclaredVisibility(controller, handler, message, applied);
+  await applyDeclaredPolicies(controller, handler, message, applied);
   await applyDeclaredSlug(controller, handler, message, applied, visibilityWarning);
   const warning = combineWarnings(orgWarning, visibilityWarning);
   const result = buildApplyResult(handler, applied, created);
@@ -204,6 +211,55 @@ async function applyDeclaredVisibility(
       `${handler.displayName} spec applied, but the manifest's visibility change was rejected: ${(err as Error).message}`,
     );
   }
+}
+
+/**
+ * Land an Organization manifest's declared policies through the guarded
+ * door. An update or apply keeps the stored policies (a stale manifest
+ * neither fails nor reverts one), so when the applied organization comes
+ * back with different policies than the manifest declared, follow up with
+ * one `updatePolicies` — the visibility precedent: a manifest that declares
+ * no policies, or the ones already stored, costs nothing extra. A refusal
+ * (a member who may not change them) fails the command after the spec has
+ * landed, and the error says so.
+ */
+async function applyDeclaredPolicies(
+  controller: ControllerFn,
+  handler: ApplyHandler,
+  message: Message,
+  applied: Message,
+): Promise<void> {
+  if (handler.updatePolicies === undefined) return;
+  const declared = (message as Organization).spec?.policies;
+  if (declared === undefined) return;
+  const appliedOrg = applied as Organization;
+  const orgId = appliedOrg.metadata?.id ?? "";
+  if (orgId === "" || equals(OrganizationPoliciesSchema, storedPolicies(appliedOrg), declared)) return;
+
+  try {
+    const updated = (await handler.updatePolicies(
+      controller,
+      create(UpdateOrganizationPoliciesInputSchema, { orgId, policies: declared }),
+    )) as Organization;
+    // Reflect the landed policies on the outcome the caller already holds.
+    if (appliedOrg.spec !== undefined) {
+      appliedOrg.spec.policies = updated.spec?.policies;
+    }
+  } catch (err) {
+    throw new UsageError(
+      `${handler.displayName} spec applied, but the manifest's policies change was rejected: ${(err as Error).message}`,
+    );
+  }
+}
+
+/**
+ * The policies an organization holds: a row stored without them holds the
+ * defaults (members may create agents), as the server reads it.
+ */
+function storedPolicies(organization: Organization): OrganizationPolicies {
+  return (
+    organization.spec?.policies ?? create(OrganizationPoliciesSchema, { membersCanCreateAgents: true })
+  );
 }
 
 /**

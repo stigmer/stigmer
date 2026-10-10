@@ -40,9 +40,11 @@ import {
   type SessionPlan,
 } from "../library/detect-plan-artifact.js";
 import { findStreamingPlan } from "../library/detect-streaming-plan.js";
+import { useSessionAccess } from "./useSessionAccess.js";
 import { useSessionPageFlow } from "./useSessionPageFlow.js";
 import { useOrgIdForRef } from "../organization/useOrgRefs.js";
 import { isChannelOriginSession } from "./channelOrigin.js";
+import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { useOpenFileChange } from "./useOpenFileChange.js";
 import { usePlanDraft, planDraftKey, type PlanDraftController } from "./usePlanDraft.js";
 import { PlanEditor } from "./PlanEditor.js";
@@ -408,12 +410,20 @@ export function SessionViewer({
   threadSlots,
   className,
 }: SessionViewerProps) {
+  // What this reader may do in a shared conversation, asked of the server
+  // for a console's own conversations (guests and observers already have
+  // their presentation and ask nothing). Asked before the flow, which sends
+  // a participant's follow-up as the message alone.
+  const access = useSessionAccess(
+    audience !== "guest" && audience !== "observer" && sessionId ? sessionId : null,
+  );
   const flow = useSessionPageFlow({
     sessionId,
     org: orgProp,
     audience,
     runConfig,
     accountDefaults,
+    canDecide: access.canDecide,
   });
   const { conv } = flow;
   // Everything org-scoped below acts in the session's own organization once
@@ -435,6 +445,21 @@ export function SessionViewer({
   // read-only without host wiring.
   const isObserver =
     audience === "observer" || isChannelOriginSession(conv.session);
+  // What this reader may do in a shared conversation, asked of the server
+  // for a console's own conversations (guests and observers already have
+  // their presentation and ask nothing). A viewer reads it: the observer
+  // presentation, with a line saying so. A participant sends messages and
+  // implements plans, and leaves stopping, approvals and file decisions to
+  // the conversation's owners (run#can_edit is the session owner's). Both
+  // checks fail open, so a transient error never hides a control; the
+  // server refuses whatever the answer misses.
+  const { canSend, canDecide } = isObserver
+    ? { canSend: true, canDecide: true }
+    : access;
+  const readsOnly = !isObserver && !canSend;
+  const isReader = isObserver || readsOnly;
+  const isParticipant = !isReader && !canDecide;
+  const creatorName = creatorDisplayName(conv.session);
   // Curated audiences (endUser, guest, observer) lock the agent and hide the
   // integrator configuration; guest and observer add their own restrictions.
   const isCurated = audience !== "integrator" || isObserver;
@@ -736,7 +761,10 @@ export function SessionViewer({
           onFilePathClick={handleTranscriptFilePathClick}
           isCurated={isCurated}
           isGuest={isGuest}
-          isObserver={isObserver}
+          isObserver={isReader}
+          readsOnly={readsOnly}
+          isParticipant={isParticipant}
+          creatorName={creatorName}
           runScores={runScores}
           modelSelectorVisible={modelSelectorVisible}
           threadSlots={threadSlots}
@@ -754,11 +782,11 @@ export function SessionViewer({
             accessSlot={isObserver ? undefined : accessSlot}
             onApplied={onApplied}
             // Implementing a plan submits a run — a write an
-            // observer cannot make (can_create_run_in is
-            // owner/viewer-only).
-            onImplementPlan={isObserver ? undefined : handleBuildFromPlan}
+            // observer or a viewer cannot make (can_create_run_in is the
+            // owners' and participants').
+            onImplementPlan={isReader ? undefined : handleBuildFromPlan}
             implementPlanDisabled={
-              isObserver || !conv.canSendFollowUp || isBuildingFromPlan
+              isReader || !conv.canSendFollowUp || isBuildingFromPlan
             }
             sessionPlan={sessionPlan}
             streamingPlan={streamingPlan}
@@ -773,7 +801,9 @@ export function SessionViewer({
             workspaceFileReader={workspaceFileReader}
             workspaceContentSearcher={workspaceContentSearcher}
             isCurated={isCurated}
-            isObserver={isObserver}
+            // Only the conversation's owners decide on its runs: arming
+            // auto-approve is withheld from readers and participants alike.
+            isObserver={isReader || isParticipant}
             // Drives the Config facet's Transcript section only — a host
             // that opted out of export gets no facet section either.
             exportSessionId={transcriptExport ? sessionId : null}
@@ -825,6 +855,19 @@ interface ConversationColumnProps {
    * stream indicators stay (watching an in-flight turn is the point).
    */
   readonly isObserver: boolean;
+  /**
+   * A viewer of a shared conversation (not a channel or host observer):
+   * the observer presentation, with a line saying the reader can read it.
+   */
+  readonly readsOnly: boolean;
+  /**
+   * A participant in a shared conversation: sends messages, but stopping,
+   * approvals and file decisions stay with its owners, so those controls
+   * are withheld and a pending decision names who it waits on.
+   */
+  readonly isParticipant: boolean;
+  /** The conversation's creator, as a participant reads it ("Waiting for …"). */
+  readonly creatorName: string;
   /** Whether the thread shows run scores (thumbs and run-health flags). */
   readonly runScores: boolean;
   /**
@@ -859,6 +902,9 @@ const ConversationColumn = memo(function ConversationColumn({
   isCurated,
   isGuest,
   isObserver,
+  readsOnly,
+  isParticipant,
+  creatorName,
   runScores,
   modelSelectorVisible,
   threadSlots,
@@ -995,12 +1041,15 @@ const ConversationColumn = memo(function ConversationColumn({
         // (gated tools auto-skip server-side), so nothing is ever pending on
         // a new run — withholding the callback is the belt-and-braces
         // for pre-existing sessions and embedders composing the SDK directly.
-        onApprovalSubmit={isObserver || isGuest ? undefined : flow.submitApproval}
+        // A participant's decisions are the owners' too (run#can_edit):
+        // the pending line above the composer names who it waits on.
+        onApprovalSubmit={isObserver || isGuest || isParticipant ? undefined : flow.submitApproval}
         submittingApprovalIds={conv.submittingApprovalIds}
         approvalErrors={conv.approvalErrors}
         showFileReviewRecords
+        // Editing a message stops the run it started: an owner's act.
         onEditMessage={
-          isObserver || !conv.isStoppable ? undefined : handleEditMessage
+          isObserver || isParticipant || !conv.isStoppable ? undefined : handleEditMessage
         }
         workspaceEntries={conv.workspaceEntries}
         onFilePathClick={onFilePathClick}
@@ -1042,13 +1091,13 @@ const ConversationColumn = memo(function ConversationColumn({
             the Config facet and the account preference — this strip is the
             always-visible proof it is on, plus the one-click way off. Never
             shown to observers (they cannot arm or disarm anything). */}
-        {!isObserver && flow.autoApproveAll && (
+        {!isObserver && !isParticipant && flow.autoApproveAll && (
           <AutoApproveIndicator onTurnOff={() => flow.setAutoApproveAll(false)} />
         )}
         {/* The conversation keeps the agent version it started on; when the
             agent's author has saved since, this offers the one explicit
             move to the current version. Never for guests or observers. */}
-        {!isObserver && !isGuest && flow.agentVersion.isOutdated && (
+        {!isObserver && !isGuest && !isParticipant && flow.agentVersion.isOutdated && (
           <AgentVersionNotice
             agentName={flow.agentVersion.agentName}
             personalKeys={flow.agentVersion.currentPersonalKeys}
@@ -1068,7 +1117,7 @@ const ConversationColumn = memo(function ConversationColumn({
               progress shows while CAPTURING, the dock once AWAITING_REVIEW — so it
               hands off cleanly when review opens. Non-interactive. */}
           <FileChangeProgressBar progress={conv.fileChangeProgress} />
-          {!isObserver && (
+          {!isObserver && !isParticipant && (
             <FileReviewDock
               changeSets={conv.fileChangeSets}
               onSubmit={conv.submitFileDecision}
@@ -1077,16 +1126,21 @@ const ConversationColumn = memo(function ConversationColumn({
             />
           )}
         </FilePathContext.Provider>
-        {/* Observers never get a composer: the server denies them
-            can_create_run_in, so the send surface simply is not
+        {isParticipant &&
+          (conv.pendingApprovals.length > 0 || conv.fileChangeSets.length > 0) && (
+            <WaitingOnOwnerNotice name={creatorName} />
+          )}
+        {/* Observers and viewers never get a composer: the server denies
+            them can_create_run_in, so the send surface simply is not
             offered — read-only by construction, not by a disabled state. */}
+        {readsOnly && <ReadOnlyNotice />}
         {!isObserver && (
           <SessionComposer
             ref={composerRef}
             onSubmit={handleComposerSubmit}
             isSubmitting={conv.isSending}
             disabled={!conv.canSendFollowUp}
-            onStop={conv.isStoppable ? handleStop : undefined}
+            onStop={conv.isStoppable && !isParticipant ? handleStop : undefined}
             isStopping={conv.isStopping}
             isEditing={editingExecutionId != null}
             onCancelEdit={handleCancelEdit}
@@ -1112,14 +1166,16 @@ const ConversationColumn = memo(function ConversationColumn({
             // org reads a guest token cannot make.
             onAgentRefChange={isGuest ? undefined : flow.setAgentRef}
             onAgentResolutionChange={isGuest ? undefined : flow.setResolution}
-            lockAgent={isCurated}
+            // A participant sends on the conversation's own agent and vaults:
+            // changing either is the owners' (session can_edit).
+            lockAgent={isCurated || isParticipant}
             mcpServerUsages={isCurated ? undefined : flow.mcpServerUsages}
             onMcpServerUsagesChange={isCurated ? undefined : flow.setMcpServerUsages}
             skillRefs={isCurated ? undefined : flow.skillRefs}
             onSkillRefsChange={isCurated ? undefined : flow.setSkillRefs}
             disclosePersonalKeys={disclosePersonalKeys}
             personalKeysVersionHash={personalKeysVersionHash}
-            enableVaultPicker={!isGuest && !isCurated && !isObserver}
+            enableVaultPicker={!isGuest && !isCurated && !isObserver && !isParticipant}
             initialVaultRefs={sessionVaultRefs}
             initialIncludeMyVault={sessionIncludesMyVault}
             vaultPickCreatorId={sessionCreatorId}
@@ -1131,6 +1187,30 @@ const ConversationColumn = memo(function ConversationColumn({
     </div>
   );
 });
+
+/** The conversation's creator by name, for "Waiting for …"; a fallback when the stamp carries none. */
+function creatorDisplayName(session: Session | null): string {
+  const creator = session?.status?.audit?.specAudit?.createdBy;
+  return creator?.displayName || creator?.email || "the conversation's owner";
+}
+
+/** A viewer's footer: what the missing composer means. */
+function ReadOnlyNotice() {
+  return (
+    <p className="stg:px-4 stg:py-3 stg:text-center stg:text-xs stg:text-muted-foreground" role="status">
+      You can read this conversation.
+    </p>
+  );
+}
+
+/** A participant's line while a run waits on a decision only the owners make. */
+function WaitingOnOwnerNotice({ name }: { readonly name: string }) {
+  return (
+    <p className="stg:px-4 stg:pt-2 stg:text-xs stg:text-muted-foreground" role="status">
+      Waiting for {name} to approve
+    </p>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Session panel region (right/secondary) — the unified panel's subtree

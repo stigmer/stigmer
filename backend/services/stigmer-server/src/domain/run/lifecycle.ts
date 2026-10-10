@@ -75,6 +75,7 @@ import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 
 import type { SandboxLane } from "../../sandbox/lane.js";
+import type { AccountsByCaller } from "../identityaccount/resolve.js";
 import { ensureSessionSandboxForExecution } from "../../sandbox/steps.js";
 import type { RunValuePlannerDeps } from "./plan-run-values-step.js";
 import { planRunValues } from "./plan-run-values-step.js";
@@ -123,6 +124,11 @@ export interface LifecycleDeps {
   readonly sandboxLane: SandboxLane;
   /** Dispatch config for the sandbox ensure's target/queue resolution. */
   readonly temporalConfig: AgentExecutionTemporalConfig;
+  /**
+   * The accounts the sandbox ensure resolves the session's creator with;
+   * undefined under the trusted-local posture (sandbox/steps.ts).
+   */
+  readonly personAccounts: AccountsByCaller | undefined;
 }
 
 /** Inputs that carry an execution id (Go LifecycleInput). */
@@ -772,6 +778,7 @@ function runRecoverPipeline(
               logger: deps.logger,
               lane: deps.sandboxLane,
               temporalConfig: deps.temporalConfig,
+              accounts: deps.personAccounts,
             },
             loadedExecution(ctx),
             ctx.callerIdentity,

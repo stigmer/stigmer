@@ -11,7 +11,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/tenancy/organization/v1/spec.proto.
  */
 export const file_ai_stigmer_tenancy_organization_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("Ci1haS9zdGlnbWVyL3RlbmFuY3kvb3JnYW5pemF0aW9uL3YxL3NwZWMucHJvdG8SImFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEi0QMKEE9yZ2FuaXphdGlvblNwZWMSHQoLZGVzY3JpcHRpb24YASABKAlCCLpIBXIDGPQDEhoKCGxvZ29fdXJsGAIgASgJQgi6SAVyAxiAEBIdCgtleHRlcm5hbF9pZBgFIAEoCUIIukgFcgMYgAISUAoLcHJlZmVyZW5jZXMYByABKAsyOy5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvblByZWZlcmVuY2VzEhsKCnBhcmVudF9vcmcYCCABKAlCB7pIBHICGEA6rAG6SKgBGqUBCixvcmdhbml6YXRpb24uZXh0ZXJuYWxfaWRfcmVxdWlyZXNfcGFyZW50X29yZxJEZXh0ZXJuYWxfaWQgaXMgc2V0IG9ubHkgb24gYSBjaGlsZCBvcmdhbml6YXRpb246IG5hbWUgaXRzIHBhcmVudF9vcmcaL3RoaXMuZXh0ZXJuYWxfaWQgPT0gJycgfHwgdGhpcy5wYXJlbnRfb3JnICE9ICcnSgQIAxAESgQIBBAFSgQIBhAHUg9tYW5hZ2VtZW50X21vZGVSFWlkZW50aXR5X3Byb3ZpZGVyX3JlZlILaXNfcGVyc29uYWwiVQoXT3JnYW5pemF0aW9uUHJlZmVyZW5jZXMSIgoQc3RhbmRpbmdfY29udGV4dBgBIAEoCUIIukgFcgMY0A8SFgoObWVtb3J5X2VuYWJsZWQYAiABKAhiBnByb3RvMw", [file_buf_validate_validate]);
+  fileDesc("Ci1haS9zdGlnbWVyL3RlbmFuY3kvb3JnYW5pemF0aW9uL3YxL3NwZWMucHJvdG8SImFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEinQQKEE9yZ2FuaXphdGlvblNwZWMSHQoLZGVzY3JpcHRpb24YASABKAlCCLpIBXIDGPQDEhoKCGxvZ29fdXJsGAIgASgJQgi6SAVyAxiAEBIdCgtleHRlcm5hbF9pZBgFIAEoCUIIukgFcgMYgAISUAoLcHJlZmVyZW5jZXMYByABKAsyOy5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvblByZWZlcmVuY2VzEhsKCnBhcmVudF9vcmcYCCABKAlCB7pIBHICGEASSgoIcG9saWNpZXMYCSABKAsyOC5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvblBvbGljaWVzOqwBukioARqlAQosb3JnYW5pemF0aW9uLmV4dGVybmFsX2lkX3JlcXVpcmVzX3BhcmVudF9vcmcSRGV4dGVybmFsX2lkIGlzIHNldCBvbmx5IG9uIGEgY2hpbGQgb3JnYW5pemF0aW9uOiBuYW1lIGl0cyBwYXJlbnRfb3JnGi90aGlzLmV4dGVybmFsX2lkID09ICcnIHx8IHRoaXMucGFyZW50X29yZyAhPSAnJ0oECAMQBEoECAQQBUoECAYQB1IPbWFuYWdlbWVudF9tb2RlUhVpZGVudGl0eV9wcm92aWRlcl9yZWZSC2lzX3BlcnNvbmFsIlUKF09yZ2FuaXphdGlvblByZWZlcmVuY2VzEiIKEHN0YW5kaW5nX2NvbnRleHQYASABKAlCCLpIBXIDGNAPEhYKDm1lbW9yeV9lbmFibGVkGAIgASgIIjkKFE9yZ2FuaXphdGlvblBvbGljaWVzEiEKGW1lbWJlcnNfY2FuX2NyZWF0ZV9hZ2VudHMYASABKAhiBnByb3RvMw", [file_buf_validate_validate]);
 
 /**
  * OrganizationSpec defines the configurable properties of an organization.
@@ -55,6 +55,17 @@ export type OrganizationSpec = Message<"ai.stigmer.tenancy.organization.v1.Organ
    * @generated from field: string parent_org = 8;
    */
   parentOrg: string;
+
+  /**
+   * What the organization lets its members do. Set when the organization is
+   * created (an omitted message means the defaults: members may create
+   * agents) and changed only through updatePolicies, so an update or apply
+   * of a manifest written before a policy changed neither fails nor
+   * reverts it: a policy carried by update or apply is ignored.
+   *
+   * @generated from field: ai.stigmer.tenancy.organization.v1.OrganizationPolicies policies = 9;
+   */
+  policies?: OrganizationPolicies;
 };
 
 /**
@@ -95,4 +106,30 @@ export type OrganizationPreferences = Message<"ai.stigmer.tenancy.organization.v
  */
 export const OrganizationPreferencesSchema: GenMessage<OrganizationPreferences> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_tenancy_organization_v1_spec, 1);
+
+/**
+ * OrganizationPolicies holds what an organization lets its members do.
+ * Each policy is a switch an admin turns in the organization's settings.
+ *
+ * @generated from message ai.stigmer.tenancy.organization.v1.OrganizationPolicies
+ */
+export type OrganizationPolicies = Message<"ai.stigmer.tenancy.organization.v1.OrganizationPolicies"> & {
+  /**
+   * Members may create agents. On by default: a new organization lets its
+   * members create agents, as a GitHub organization lets its members
+   * create repositories. When off, only admins create agents. A member's
+   * agent is theirs: private or shared with the organization, never with
+   * child organizations, which stays an admin's choice.
+   *
+   * @generated from field: bool members_can_create_agents = 1;
+   */
+  membersCanCreateAgents: boolean;
+};
+
+/**
+ * Describes the message ai.stigmer.tenancy.organization.v1.OrganizationPolicies.
+ * Use `create(OrganizationPoliciesSchema)` to create a new message.
+ */
+export const OrganizationPoliciesSchema: GenMessage<OrganizationPolicies> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_tenancy_organization_v1_spec, 2);
 

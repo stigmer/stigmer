@@ -37,6 +37,11 @@
 //     organization's slug exists or not, so the share lane is never an
 //     existence probe; another organization's agent is shared by installing
 //     the plugin that carries it and sharing the installed copy.
+//   - The AUDIENCE default: an omitted audience means the organization's
+//     members. The server writes it out as org on create, update and
+//     apply, so the echo says what it means; anything a public link alone
+//     may carry (vaults, run options) needs public said out loud, and a
+//     manifest that drops the audience narrows the share, never widens it.
 //
 // The agentshare boot migration is asserted separately, never here.
 import { Code } from "@connectrpc/connect";
@@ -260,6 +265,58 @@ describe("AgentShare conformance — create validation", () => {
       Code.InvalidArgument,
       "org-audience share carrying vaults",
     );
+  });
+
+  it("[rpc:AgentShareCommandController.create] an omitted audience is stored and echoed as org, and the anonymous lane refuses it", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await createAgentFixture(org);
+
+    const share = await createShareFixture(org, agent.metadata!.slug, {
+      audience: AgentShareAudience.unspecified,
+    });
+    expect(share.spec?.audience).toBe(AgentShareAudience.org);
+
+    const refused = await expectGrpcCode(
+      () => clients.agentShareQuery.getSharedProfile({ shareId: share.metadata!.id }),
+      Code.NotFound,
+      "getSharedProfile on a share whose audience was omitted",
+    );
+    expect(refused.rawMessage).toBe(sharedNotFoundMessage(share.metadata!.id));
+  });
+
+  it("[rpc:AgentShareCommandController.create] rejects vaults on a share whose audience was omitted (InvalidArgument — public must be said)", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await createAgentFixture(org);
+
+    const share = makeAgentShare(org, agent.metadata!.slug, {
+      audience: AgentShareAudience.unspecified,
+      vaults: ["some-vault"],
+    });
+
+    const err = await expectGrpcCode(
+      () => clients.agentShareCommand.create(share),
+      Code.InvalidArgument,
+      "omitted-audience share carrying vaults",
+    );
+    expect(err.rawMessage).toContain("vaults can only be set on public-audience shares");
+  });
+
+  it("[rpc:AgentShareCommandController.apply] a manifest that drops the audience narrows a public share to org, never the reverse", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await createAgentFixture(org);
+    const name = uniqueName("share");
+
+    const first = await clients.agentShareCommand.apply(
+      makeAgentShare(org, agent.metadata!.slug, { name, audience: AgentShareAudience.public }),
+    );
+    fixtures.defer(() => clients.agentShareCommand.delete({ value: first.metadata!.id }));
+    expect(first.spec?.audience).toBe(AgentShareAudience.public);
+
+    const second = await clients.agentShareCommand.apply(
+      makeAgentShare(org, agent.metadata!.slug, { name, audience: AgentShareAudience.unspecified }),
+    );
+    expect(second.metadata?.id).toBe(first.metadata?.id);
+    expect(second.spec?.audience).toBe(AgentShareAudience.org);
   });
 
   it("[rpc:AgentShareCommandController.create] a share link cannot carry anyone's own My vault (FailedPrecondition)", async () => {

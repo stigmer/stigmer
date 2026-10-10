@@ -153,6 +153,7 @@ export {
   useSessionList,
   useSessionRuns,
   useSessionConversation,
+  useSessionAccess,
   useExportTranscript,
   TranscriptExportMenu,
   useSessionArtifacts,
@@ -206,6 +207,7 @@ export type {
   UseSessionRunsReturn,
   SendFollowUpOptions,
   UseSessionConversationReturn,
+  UseSessionAccessReturn,
   UseExportTranscriptOptions,
   UseExportTranscriptReturn,
   TranscriptExportMenuProps,
@@ -865,6 +867,8 @@ export {
   useCreateAgent,
   useUpdateAgent,
   AgentCreationWizard,
+  AgentCreationDenied,
+  useCanCreateAgent,
   agentHarnessOf,
   agentRunDefaultsFor,
   useRunAgentSpec,
@@ -896,6 +900,8 @@ export type {
   UseCreateAgentReturn,
   UseUpdateAgentReturn,
   AgentCreationWizardProps,
+  AgentCreationDeniedProps,
+  UseCanCreateAgentReturn,
   AgentCreationResult,
   AgentWizardData,
 } from "./agent/index.js";
@@ -1221,6 +1227,8 @@ export {
   useOrganization,
   useCreateOrganization,
   useUpdateOrganization,
+  useUpdateOrganizationPolicies,
+  organizationPoliciesOf,
   useRenameOrganization,
   useOrgSlugForId,
   useOrgIdForRef,
@@ -1229,6 +1237,7 @@ export {
   CreateOrganizationForm,
   OrgProfilePanel,
   OrgPreferencesPanel,
+  OrgPoliciesPanel,
   OrgSwitcher,
   useChildOrganizations,
   ChildOrganizationsList,
@@ -1246,6 +1255,9 @@ export type {
   CreateOrganizationFormProps,
   OrgProfilePanelProps,
   OrgPreferencesPanelProps,
+  OrgPoliciesPanelProps,
+  OrganizationPoliciesValue,
+  UseUpdateOrganizationPoliciesReturn,
   OrgSwitcherProps,
   UseChildOrganizationsOptions,
   UseChildOrganizationsReturn,
@@ -1460,7 +1472,7 @@ export type { SettingsNavItem, SettingsNavGroup } from "./settings/index.js";
 export { ApiKeysSection } from "./settings/index.js";
 export { MembersSection } from "./settings/index.js";
 export { OrgProfileSection } from "./settings/index.js";
-export { OrgPreferencesSection } from "./settings/index.js";
+export { OrgPreferencesSection, OrgPoliciesSection } from "./settings/index.js";
 export { AccountPreferencesSection } from "./settings/index.js";
 export { MemorySection } from "./settings/index.js";
 export { VaultsSection } from "./settings/index.js";

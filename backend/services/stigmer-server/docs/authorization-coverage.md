@@ -40,6 +40,7 @@ The standard gRPC health protocol — an external proto with no Stigmer annotati
 | OrganizationCommandController.apply | none | chain-with-Authorize |
 | OrganizationCommandController.create | is_skip_authorization | chain-with-Authorize (by design: any authenticated person may found an organization and becomes its owner; there is no organization yet to hold a permission on; guard: RefuseBoundCredential — a credential bound to one organization (`CallerIdentity.boundOrg`: a limited API key, a PlatformClient user token, a composition's bound lane) is refused PERMISSION_DENIED before the request is read, since it works in its organization only and never founds another, except a child of that organization; `src/authorization/credential-binding.ts`; guard: ValidateChildOrganization — a create that names `spec.parent_org` needs `can_manage_child_orgs` on that parent, asked through `authorizeResolvedResource` before anything is written, a parent that does not exist refused as one the caller may not manage, and writes no owner for the child; `src/domain/organization/children.ts`) |
 | OrganizationCommandController.update | config: can_edit on organization (field metadata.id), error_msg yes | chain-with-Authorize |
+| OrganizationCommandController.updatePolicies | config: can_edit on organization (field org_id), error_msg yes | chain-with-Authorize (the only writer of `spec.policies`: update and apply keep the stored policies; a change that closes an act is announced to the lifecycle's `onOrganizationPoliciesChanged` before the row persists, one that opens an act after; `src/domain/organization/policies.ts`) |
 | OrganizationCommandController.rename | config: can_delete on organization (field resource_id), error_msg yes | chain-with-Authorize (owners only: a rename moves every member's links and scripts) |
 | OrganizationCommandController.delete | config: can_delete on organization (field value), error_msg yes | chain-with-Authorize |
 | OrganizationQueryController.get | config: can_view_settings on organization (field value), error_msg yes | chain-with-Authorize (the organization's people and its parent's admins, who manage a child without holding `can_view` on it) |
@@ -105,9 +106,9 @@ Values are write-only: every response passes through `redactVault`, and no RPC r
 | Method | Annotation | Handler |
 |---|---|---|
 | AgentCommandController.apply | none | chain-with-Authorize |
-| AgentCommandController.create | config: can_create_agent on organization (field metadata.org), error_msg yes | chain-with-Authorize |
+| AgentCommandController.create | config: can_create_agent on organization (field metadata.org), error_msg yes | chain-with-Authorize (`can_create_agent` is the organization's admins, and its members while its policy "Members can create agents" is on; guard: RequireChildOrgsAuthority — a create at visibility_child_orgs also needs `can_manage_child_orgs` on the organization, so sharing with child organizations stays an admin's act) |
 | AgentCommandController.update | config: can_edit on agent (field metadata.id), error_msg yes | chain-with-Authorize |
-| AgentCommandController.updateVisibility | config: can_manage_audience on agent (field resource_id), error_msg yes | chain-with-Authorize |
+| AgentCommandController.updateVisibility | config: can_manage_audience on agent (field resource_id), error_msg yes | chain-with-Authorize (guard: RequireChildOrgsAuthority — a change to visibility_child_orgs also needs `can_manage_child_orgs` on the agent's organization) |
 | AgentCommandController.delete | config: can_delete on agent (field value), error_msg yes | chain-with-Authorize |
 | AgentCommandController.tagVersion | config: can_edit on agent (field agent_id), error_msg yes | chain-with-Authorize (guard: GuardPluginManaged — a plugin-managed agent's tags are its plugin's) |
 | AgentQueryController.get | config: can_view on agent (field value), error_msg yes | chain-with-Authorize |

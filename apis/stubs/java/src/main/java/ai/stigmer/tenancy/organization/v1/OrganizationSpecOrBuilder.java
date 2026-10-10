@@ -120,4 +120,43 @@ public interface OrganizationSpecOrBuilder extends
    */
   com.google.protobuf.ByteString
       getParentOrgBytes();
+
+  /**
+   * <pre>
+   * What the organization lets its members do. Set when the organization is
+   * created (an omitted message means the defaults: members may create
+   * agents) and changed only through updatePolicies, so an update or apply
+   * of a manifest written before a policy changed neither fails nor
+   * reverts it: a policy carried by update or apply is ignored.
+   * </pre>
+   *
+   * <code>.ai.stigmer.tenancy.organization.v1.OrganizationPolicies policies = 9 [json_name = "policies"];</code>
+   * @return Whether the policies field is set.
+   */
+  boolean hasPolicies();
+  /**
+   * <pre>
+   * What the organization lets its members do. Set when the organization is
+   * created (an omitted message means the defaults: members may create
+   * agents) and changed only through updatePolicies, so an update or apply
+   * of a manifest written before a policy changed neither fails nor
+   * reverts it: a policy carried by update or apply is ignored.
+   * </pre>
+   *
+   * <code>.ai.stigmer.tenancy.organization.v1.OrganizationPolicies policies = 9 [json_name = "policies"];</code>
+   * @return The policies.
+   */
+  ai.stigmer.tenancy.organization.v1.OrganizationPolicies getPolicies();
+  /**
+   * <pre>
+   * What the organization lets its members do. Set when the organization is
+   * created (an omitted message means the defaults: members may create
+   * agents) and changed only through updatePolicies, so an update or apply
+   * of a manifest written before a policy changed neither fails nor
+   * reverts it: a policy carried by update or apply is ignored.
+   * </pre>
+   *
+   * <code>.ai.stigmer.tenancy.organization.v1.OrganizationPolicies policies = 9 [json_name = "policies"];</code>
+   */
+  ai.stigmer.tenancy.organization.v1.OrganizationPoliciesOrBuilder getPoliciesOrBuilder();
 }
