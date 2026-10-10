@@ -8,6 +8,8 @@ import {
   ConfirmDialog,
   useBreadcrumbOverride,
   type DetailAction,
+  useActiveOrgId,
+  useCanCreateAgent,
   useOrgSlugForId,
 } from "@stigmer/react";
 
@@ -23,6 +25,10 @@ function agentSessionUrl(org: string, slug: string): string {
 export default function PluginDetailPage() {
   const { org, slug } = useParams<{ org: string; slug: string }>();
   const navigate = useNavigate();
+  // A new agent is created in the active organization: "Create a new agent
+  // with these tools" shows only to someone the server lets create one there.
+  const activeOrg = useActiveOrgId();
+  const { allowed: canCreateAgent } = useCanCreateAgent(activeOrg || null);
   const slugForOrg = useOrgSlugForId();
   const { setLabel } = useBreadcrumbOverride();
   const [resourceId, setResourceId] = useState<string | null>(null);
@@ -99,8 +105,11 @@ export default function PluginDetailPage() {
         onSkillClick={({ org: o, slug: s }) => navigate(`/library/skills/${slugForOrg(o)}/${s}`)}
         onMcpServerClick={({ org: o, slug: s }) => navigate(`/library/mcp-servers/${slugForOrg(o)}/${s}`)}
         onAgentClick={({ org: o, slug: s }) => navigate(`/library/agents/${slugForOrg(o)}/${s}`)}
-        onCreateAgent={(usages) =>
-          navigate(`/library/agents/new?mcp=${usages.map((u) => encodeURIComponent(u.mcpServerRef.slug)).join(",")}`)
+        onCreateAgent={
+          canCreateAgent
+            ? (usages) =>
+              navigate(`/library/agents/new?mcp=${usages.map((u) => encodeURIComponent(u.mcpServerRef.slug)).join(",")}`)
+            : undefined
         }
         actions={actions}
       />

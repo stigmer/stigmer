@@ -16,6 +16,16 @@ describe("SETTINGS_NAV_GROUPS preference entries", () => {
     ).toBe("Preferences");
   });
 
+  it("lists org policies in the Organization group", () => {
+    const organization = SETTINGS_NAV_GROUPS.find(
+      (g) => g.label === "Organization",
+    );
+    expect(
+      organization!.items.find((i) => i.href === "/settings/org-policies")
+        ?.label,
+    ).toBe("Policies");
+  });
+
   it("lists account preferences in the Account group", () => {
     const account = SETTINGS_NAV_GROUPS.find((g) => g.label === "Account");
     expect(account).toBeDefined();
