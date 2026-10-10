@@ -240,8 +240,8 @@ export interface TurnReinvocation {
  *    COMPLETED, returned, with the write-back finalized first when the
  *    reconcile held.
  *  - `eval-scaffold-failed`: a plugin-eval try's scaffold exited non-zero or
- *    ran past its limit. FAILED with the try stop's sentence, returned: the
- *    eval scores the try 0, and a retry would run the same script.
+ *    ran past its limit. TERMINATED with the try stop's sentence, returned:
+ *    the eval scores the try 0, and a retry would run the same script.
  *
  * A REJECTed tool is not a settlement: the run continues without it
  * (`approval-decisions.ts`).

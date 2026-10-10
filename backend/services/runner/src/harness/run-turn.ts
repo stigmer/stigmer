@@ -70,6 +70,7 @@ import {
   awaitingApprovalArm,
   awaitingReviewArm,
   costCapArm,
+  evalScaffoldFailedArm,
   mockAbortArm,
   failedArm,
   fileReviewResolvedArm,
@@ -309,7 +310,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
         // the eval reads the sentence back (`parseTryStop`) and scores the
         // try 0. A retry would run the same script.
         console.warn(`${activityName} eval scaffold failed: execution=${executionId}, ${settlement.message}`);
-        return settleWith(failedArm(settlement.message, "actionable"));
+        return settleWith(evalScaffoldFailedArm(settlement.message));
       }
       default: {
         const exhaustive: never = settlement;

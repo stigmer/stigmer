@@ -9,11 +9,11 @@
 import { describe, expect, it } from "vitest";
 
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { parseTryStop } from "@stigmer/eval-runtime";
+import { formatTryStop, parseTryStop } from "@stigmer/eval-runtime";
 
 import { StallTimeoutError } from "../../shared/stall-watchdog.js";
 import { StopController } from "../stop-controller.js";
-import { mockAbortArm } from "../terminal-table.js";
+import { evalScaffoldFailedArm, mockAbortArm } from "../terminal-table.js";
 
 describe("StopController", () => {
   it("starts live with no evidence", () => {
@@ -82,5 +82,12 @@ describe("a plugin-eval mock's stop", () => {
       reason: "input.title must be a string",
     });
     expect(arm.rows).toEqual(["A mock stopped this run: tracker.create_issue: input.title must be a string"]);
+  });
+
+  it("ends a try whose scaffold failed TERMINATED, its sentence kept as written for the eval", () => {
+    const message = formatTryStop({ kind: "scaffold-failed", detail: "exit 3: no such repository" });
+    const arm = evalScaffoldFailedArm(message);
+    expect([arm.phase, arm.error, arm.rows]).toEqual([RunPhase.RUN_TERMINATED, message, [message]]);
+    expect(parseTryStop(arm.error ?? "")).toEqual({ kind: "scaffold-failed", detail: "exit 3: no such repository" });
   });
 });

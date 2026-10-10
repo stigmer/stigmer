@@ -13,9 +13,9 @@
  *
  * How a call is answered:
  *  1. Its `expect:` guard is checked first (`@stigmer/eval-runtime`, the
- *     whole value, linear). A violation stops the try: the call gets a tool
- *     error and the turn is told to stop with the reason, reported
- *     `aborted`, score 0.
+ *     whole value, linear). A violation stops the try: the turn is told to
+ *     stop with the reason, reported `aborted`, score 0, and the call is
+ *     answered with that reason.
  *  2. A `fixed` mock returns its body rendered with the call's input and
  *     its fixtures, the case's `mocks/<server>/fixtures/` before the
  *     suite's; `error: true` returns it as a tool error.
@@ -114,9 +114,12 @@ export async function startMockEndpoint(args: {
     if (tool === undefined) return toolError(`the tool '${name}' is not mocked`);
     const report = binding;
     if (report === undefined) return toolError("the mock is not ready");
+    // The stopping call answers with plain text, not a tool error: the turn
+    // is already being stopped, and a tool error raced against that stop
+    // escapes the native engine's stream as an unhandled rejection.
     const stop = (reason: string): CallToolResult => {
       report.onAbort({ server: standIn.server.server, tool: name, reason });
-      return toolError(`This call stopped the test: ${reason}`);
+      return { content: [{ type: "text", text: `This call stopped the test: ${reason}` }] };
     };
     if (tool.expect !== undefined) {
       const violation = checkExpect(tool.expect, input);

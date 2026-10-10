@@ -129,7 +129,7 @@ describe("the mock endpoint", () => {
     const { connect, aborts } = await started(4, noModel);
     const tracker = await connect("plugin_kit_tracker");
     const result = await tracker.callTool({ name: "create_issue", arguments: { title: 7 } });
-    expect(result.isError).toBe(true);
+    expect(text(result)).toBe("This call stopped the test: input.title must be a string");
     expect(aborts).toEqual([{ server: "tracker", tool: "create_issue", reason: "input.title must be a string" }]);
     await tracker.close();
   });
