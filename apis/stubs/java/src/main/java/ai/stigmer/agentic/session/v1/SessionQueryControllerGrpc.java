@@ -139,6 +139,68 @@ public final class SessionQueryControllerGrpc {
     return getListByChannelMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.ListSessionEventsRequest,
+      ai.stigmer.agentic.session.v1.SessionEventList> getListEventsMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "listEvents",
+      requestType = ai.stigmer.agentic.session.v1.ListSessionEventsRequest.class,
+      responseType = ai.stigmer.agentic.session.v1.SessionEventList.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.ListSessionEventsRequest,
+      ai.stigmer.agentic.session.v1.SessionEventList> getListEventsMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.ListSessionEventsRequest, ai.stigmer.agentic.session.v1.SessionEventList> getListEventsMethod;
+    if ((getListEventsMethod = SessionQueryControllerGrpc.getListEventsMethod) == null) {
+      synchronized (SessionQueryControllerGrpc.class) {
+        if ((getListEventsMethod = SessionQueryControllerGrpc.getListEventsMethod) == null) {
+          SessionQueryControllerGrpc.getListEventsMethod = getListEventsMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.session.v1.ListSessionEventsRequest, ai.stigmer.agentic.session.v1.SessionEventList>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "listEvents"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.session.v1.ListSessionEventsRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.session.v1.SessionEventList.getDefaultInstance()))
+              .setSchemaDescriptor(new SessionQueryControllerMethodDescriptorSupplier("listEvents"))
+              .build();
+        }
+      }
+    }
+    return getListEventsMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.StreamSessionEventsRequest,
+      ai.stigmer.agentic.session.v1.StreamSessionEventsResponse> getStreamEventsMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "streamEvents",
+      requestType = ai.stigmer.agentic.session.v1.StreamSessionEventsRequest.class,
+      responseType = ai.stigmer.agentic.session.v1.StreamSessionEventsResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.SERVER_STREAMING)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.StreamSessionEventsRequest,
+      ai.stigmer.agentic.session.v1.StreamSessionEventsResponse> getStreamEventsMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.StreamSessionEventsRequest, ai.stigmer.agentic.session.v1.StreamSessionEventsResponse> getStreamEventsMethod;
+    if ((getStreamEventsMethod = SessionQueryControllerGrpc.getStreamEventsMethod) == null) {
+      synchronized (SessionQueryControllerGrpc.class) {
+        if ((getStreamEventsMethod = SessionQueryControllerGrpc.getStreamEventsMethod) == null) {
+          SessionQueryControllerGrpc.getStreamEventsMethod = getStreamEventsMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.session.v1.StreamSessionEventsRequest, ai.stigmer.agentic.session.v1.StreamSessionEventsResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.SERVER_STREAMING)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "streamEvents"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.session.v1.StreamSessionEventsRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.session.v1.StreamSessionEventsResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new SessionQueryControllerMethodDescriptorSupplier("streamEvents"))
+              .build();
+        }
+      }
+    }
+    return getStreamEventsMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -252,6 +314,32 @@ public final class SessionQueryControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.SessionList> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListByChannelMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * List a session's events, oldest first unless desc is asked for.
+     * The events are Claude Managed Agents session events, in the order they
+     * were appended; a page holds at most page_size of them.
+     * </pre>
+     */
+    default void listEvents(ai.stigmer.agentic.session.v1.ListSessionEventsRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.SessionEventList> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListEventsMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Stream a session's events as they are appended.
+     * The stream starts at the moment it opens: list the events first to
+     * catch up, and skip any event id already seen. A watcher that falls too
+     * far behind is ended with RESOURCE_EXHAUSTED; list from the last event
+     * it saw, then stream again.
+     * </pre>
+     */
+    default void streamEvents(ai.stigmer.agentic.session.v1.StreamSessionEventsRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.StreamSessionEventsResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getStreamEventsMethod(), responseObserver);
+    }
   }
 
   /**
@@ -338,6 +426,34 @@ public final class SessionQueryControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getListByChannelMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * List a session's events, oldest first unless desc is asked for.
+     * The events are Claude Managed Agents session events, in the order they
+     * were appended; a page holds at most page_size of them.
+     * </pre>
+     */
+    public void listEvents(ai.stigmer.agentic.session.v1.ListSessionEventsRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.SessionEventList> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getListEventsMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Stream a session's events as they are appended.
+     * The stream starts at the moment it opens: list the events first to
+     * catch up, and skip any event id already seen. A watcher that falls too
+     * far behind is ended with RESOURCE_EXHAUSTED; list from the last event
+     * it saw, then stream again.
+     * </pre>
+     */
+    public void streamEvents(ai.stigmer.agentic.session.v1.StreamSessionEventsRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.StreamSessionEventsResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncServerStreamingCall(
+          getChannel().newCall(getStreamEventsMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -406,6 +522,34 @@ public final class SessionQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getListByChannelMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * List a session's events, oldest first unless desc is asked for.
+     * The events are Claude Managed Agents session events, in the order they
+     * were appended; a page holds at most page_size of them.
+     * </pre>
+     */
+    public ai.stigmer.agentic.session.v1.SessionEventList listEvents(ai.stigmer.agentic.session.v1.ListSessionEventsRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getListEventsMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Stream a session's events as they are appended.
+     * The stream starts at the moment it opens: list the events first to
+     * catch up, and skip any event id already seen. A watcher that falls too
+     * far behind is ended with RESOURCE_EXHAUSTED; list from the last event
+     * it saw, then stream again.
+     * </pre>
+     */
+    @io.grpc.ExperimentalApi("https://github.com/grpc/grpc-java/issues/10918")
+    public io.grpc.stub.BlockingClientCall<?, ai.stigmer.agentic.session.v1.StreamSessionEventsResponse>
+        streamEvents(ai.stigmer.agentic.session.v1.StreamSessionEventsRequest request) {
+      return io.grpc.stub.ClientCalls.blockingV2ServerStreamingCall(
+          getChannel(), getStreamEventsMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -473,6 +617,33 @@ public final class SessionQueryControllerGrpc {
     public ai.stigmer.agentic.session.v1.SessionList listByChannel(ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getListByChannelMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * List a session's events, oldest first unless desc is asked for.
+     * The events are Claude Managed Agents session events, in the order they
+     * were appended; a page holds at most page_size of them.
+     * </pre>
+     */
+    public ai.stigmer.agentic.session.v1.SessionEventList listEvents(ai.stigmer.agentic.session.v1.ListSessionEventsRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getListEventsMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Stream a session's events as they are appended.
+     * The stream starts at the moment it opens: list the events first to
+     * catch up, and skip any event id already seen. A watcher that falls too
+     * far behind is ended with RESOURCE_EXHAUSTED; list from the last event
+     * it saw, then stream again.
+     * </pre>
+     */
+    public java.util.Iterator<ai.stigmer.agentic.session.v1.StreamSessionEventsResponse> streamEvents(
+        ai.stigmer.agentic.session.v1.StreamSessionEventsRequest request) {
+      return io.grpc.stub.ClientCalls.blockingServerStreamingCall(
+          getChannel(), getStreamEventsMethod(), getCallOptions(), request);
     }
   }
 
@@ -546,12 +717,27 @@ public final class SessionQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getListByChannelMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * List a session's events, oldest first unless desc is asked for.
+     * The events are Claude Managed Agents session events, in the order they
+     * were appended; a page holds at most page_size of them.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.session.v1.SessionEventList> listEvents(
+        ai.stigmer.agentic.session.v1.ListSessionEventsRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getListEventsMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_GET = 0;
   private static final int METHODID_LIST = 1;
   private static final int METHODID_LIST_BY_AGENT = 2;
   private static final int METHODID_LIST_BY_CHANNEL = 3;
+  private static final int METHODID_LIST_EVENTS = 4;
+  private static final int METHODID_STREAM_EVENTS = 5;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -585,6 +771,14 @@ public final class SessionQueryControllerGrpc {
         case METHODID_LIST_BY_CHANNEL:
           serviceImpl.listByChannel((ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.SessionList>) responseObserver);
+          break;
+        case METHODID_LIST_EVENTS:
+          serviceImpl.listEvents((ai.stigmer.agentic.session.v1.ListSessionEventsRequest) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.SessionEventList>) responseObserver);
+          break;
+        case METHODID_STREAM_EVENTS:
+          serviceImpl.streamEvents((ai.stigmer.agentic.session.v1.StreamSessionEventsRequest) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.StreamSessionEventsResponse>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -632,6 +826,20 @@ public final class SessionQueryControllerGrpc {
               ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest,
               ai.stigmer.agentic.session.v1.SessionList>(
                 service, METHODID_LIST_BY_CHANNEL)))
+        .addMethod(
+          getListEventsMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.session.v1.ListSessionEventsRequest,
+              ai.stigmer.agentic.session.v1.SessionEventList>(
+                service, METHODID_LIST_EVENTS)))
+        .addMethod(
+          getStreamEventsMethod(),
+          io.grpc.stub.ServerCalls.asyncServerStreamingCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.session.v1.StreamSessionEventsRequest,
+              ai.stigmer.agentic.session.v1.StreamSessionEventsResponse>(
+                service, METHODID_STREAM_EVENTS)))
         .build();
   }
 
@@ -684,6 +892,8 @@ public final class SessionQueryControllerGrpc {
               .addMethod(getListMethod())
               .addMethod(getListByAgentMethod())
               .addMethod(getListByChannelMethod())
+              .addMethod(getListEventsMethod())
+              .addMethod(getStreamEventsMethod())
               .build();
         }
       }

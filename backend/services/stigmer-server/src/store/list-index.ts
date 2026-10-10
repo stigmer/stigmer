@@ -49,10 +49,20 @@ import { apiResourceKindName } from "./proto-fields.js";
 // Declarations
 // =============================================================================
 
-/** Where a list key's value is read from: a string field or a label. */
+/**
+ * Where a list key's value is read from: a string field, a label, or a
+ * string field only while another field (an enum or integer) holds one of
+ * the listed values, so a row holds the key exactly while it is in those
+ * states ("working in this session").
+ */
 export type ListKeySource =
   | { readonly from: "field"; readonly path: string }
-  | { readonly from: "label"; readonly label: string };
+  | { readonly from: "label"; readonly label: string }
+  | {
+      readonly from: "fieldWhen";
+      readonly path: string;
+      readonly when: { readonly path: string; readonly in: ReadonlyArray<number> };
+    };
 
 /** A string field of the resource, by proto field names from the root ("spec.session_id"). */
 export function field(path: string): ListKeySource {
@@ -62,6 +72,19 @@ export function field(path: string): ListKeySource {
 /** A `metadata.labels` entry. */
 export function label(key: string): ListKeySource {
   return { from: "label", label: key };
+}
+
+/**
+ * A string field ("spec.session_id"), read only while the field at
+ * `whenPath` ("status.phase", an enum or integer) holds one of `values`;
+ * otherwise the row holds no value for the key.
+ */
+export function fieldWhen(
+  path: string,
+  whenPath: string,
+  values: ReadonlyArray<number>,
+): ListKeySource {
+  return { from: "fieldWhen", path, when: { path: whenPath, in: [...values] } };
 }
 
 /**
@@ -124,23 +147,28 @@ function resolveKeyReader(
       return (resource) =>
         (resource as ResourceShape).metadata?.labels?.[source.label] ?? "";
     case "field": {
-      const steps = resolveFieldPath(declaration, name, source.path);
+      const steps = resolveFieldPath(declaration, name, source.path, "string");
       return (resource) => {
-        let value: unknown = resource;
-        for (const step of steps) {
-          if (value === null || typeof value !== "object") {
-            return "";
-          }
-          value = (value as Record<string, unknown>)[step.localName];
-          if (step.oneofCase !== undefined) {
-            // A oneof member lives under its oneof as { case, value }: it
-            // reads as unset unless the oneof holds this member.
-            const held = value as
-              | { case?: unknown; value?: unknown }
-              | undefined;
-            value = held?.case === step.oneofCase ? held.value : undefined;
-          }
+        const value = readPath(resource, steps);
+        return typeof value === "string" ? value : "";
+      };
+    }
+    case "fieldWhen": {
+      const steps = resolveFieldPath(declaration, name, source.path, "string");
+      const whenSteps = resolveFieldPath(
+        declaration,
+        name,
+        source.when.path,
+        "number",
+      );
+      const values = new Set(source.when.in);
+      return (resource) => {
+        const condition = readPath(resource, whenSteps);
+        // An unset enum or integer reads as its zero value.
+        if (!values.has(typeof condition === "number" ? condition : 0)) {
+          return "";
         }
+        const value = readPath(resource, steps);
         return typeof value === "string" ? value : "";
       };
     }
@@ -149,6 +177,24 @@ function resolveKeyReader(
       throw new Error(`unknown list key source: ${String(exhaustive)}`);
     }
   }
+}
+
+/** The value at a resolved field path, undefined where a message on the way is unset. */
+function readPath(resource: object, steps: ReadonlyArray<FieldStep>): unknown {
+  let value: unknown = resource;
+  for (const step of steps) {
+    if (value === null || typeof value !== "object") {
+      return undefined;
+    }
+    value = (value as Record<string, unknown>)[step.localName];
+    if (step.oneofCase !== undefined) {
+      // A oneof member lives under its oneof as { case, value }: it
+      // reads as unset unless the oneof holds this member.
+      const held = value as { case?: unknown; value?: unknown } | undefined;
+      value = held?.case === step.oneofCase ? held.value : undefined;
+    }
+  }
+  return value;
 }
 
 /**
@@ -165,6 +211,7 @@ function resolveFieldPath(
   declaration: ListIndexDeclaration,
   name: string,
   path: string,
+  leaf: "string" | "number",
 ): ReadonlyArray<FieldStep> {
   const where = `list index for ${apiResourceKindName(declaration.kind)}, key '${name}'`;
   const segments = path.split(".");
@@ -184,8 +231,18 @@ function resolveFieldPath(
     );
     const last = index === segments.length - 1;
     if (last) {
-      if (found.fieldKind !== "scalar" || found.scalar !== ScalarType.STRING) {
-        throw new Error(`${where}: '${path}' is not a string field`);
+      if (leaf === "string") {
+        if (found.fieldKind !== "scalar" || found.scalar !== ScalarType.STRING) {
+          throw new Error(`${where}: '${path}' is not a string field`);
+        }
+      } else if (
+        found.fieldKind !== "enum" &&
+        !(
+          found.fieldKind === "scalar" &&
+          (found.scalar === ScalarType.INT32 || found.scalar === ScalarType.UINT32)
+        )
+      ) {
+        throw new Error(`${where}: '${path}' is not an enum or 32-bit integer field`);
       }
       return;
     }
@@ -202,13 +259,24 @@ export function listIndexFingerprint(
   declaration: ListIndexDeclaration,
 ): string {
   const keys = Object.entries<ListKeySource>(declaration.keys)
-    .map(([name, source]) =>
-      source.from === "field"
-        ? `${name}=field:${source.path}`
-        : `${name}=label:${source.label}`,
-    )
+    .map(([name, source]) => `${name}=${sourceFingerprint(source)}`)
     .sort();
   return `${apiResourceKindName(declaration.kind)}{${keys.join(",")}}`;
+}
+
+function sourceFingerprint(source: ListKeySource): string {
+  switch (source.from) {
+    case "field":
+      return `field:${source.path}`;
+    case "label":
+      return `label:${source.label}`;
+    case "fieldWhen":
+      return `fieldWhen:${source.path}?${source.when.path}=${[...source.when.in].sort((a, b) => a - b).join("|")}`;
+    default: {
+      const exhaustive: never = source;
+      throw new Error(`unknown list key source: ${String(exhaustive)}`);
+    }
+  }
 }
 
 // =============================================================================

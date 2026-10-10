@@ -1336,6 +1336,7 @@ describe("the engine-connected signal arms (stubbed engine, direct calls)", () =
       logger: silentLogger,
       authorizer: newPermissiveSingleTeamAuthorizer(),
       broker: server.agentExecutionStreamBroker,
+      sessionEventBroker: server.sessionEventBroker,
       engineState: () => ({ connected: true, engine }) as ExecutionEngineState,
       gateSteps: new Map(),
       statusObservers: [],
@@ -1487,6 +1488,7 @@ describe("the decider is the authorized caller (direct calls, #1385)", () => {
       logger: silentLogger,
       authorizer: newPermissiveSingleTeamAuthorizer(),
       broker: server.agentExecutionStreamBroker,
+      sessionEventBroker: server.sessionEventBroker,
       engineState: () => ENGINE_DISCONNECTED,
       gateSteps: new Map(),
       statusObservers: [],
@@ -1668,6 +1670,7 @@ describe("submitFileDecision over the wire", () => {
       logger: silentLogger,
       authorizer: newPermissiveSingleTeamAuthorizer(),
       broker: server.agentExecutionStreamBroker,
+      sessionEventBroker: server.sessionEventBroker,
       engineState: () =>
         ({
           connected: true,

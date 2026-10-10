@@ -2,14 +2,20 @@
 
 package ai.stigmer.sdk.gen;
 
+import ai.stigmer.agentic.session.v1.AppendSessionEventsInput;
+import ai.stigmer.agentic.session.v1.AppendSessionEventsResponse;
+import ai.stigmer.agentic.session.v1.ListSessionEventsRequest;
 import ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest;
 import ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest;
 import ai.stigmer.agentic.session.v1.ListSessionsRequest;
 import ai.stigmer.agentic.session.v1.Session;
 import ai.stigmer.agentic.session.v1.SessionCommandControllerGrpc;
+import ai.stigmer.agentic.session.v1.SessionEventList;
 import ai.stigmer.agentic.session.v1.SessionId;
 import ai.stigmer.agentic.session.v1.SessionList;
 import ai.stigmer.agentic.session.v1.SessionQueryControllerGrpc;
+import ai.stigmer.agentic.session.v1.StreamSessionEventsRequest;
+import ai.stigmer.agentic.session.v1.StreamSessionEventsResponse;
 import ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
@@ -54,6 +60,12 @@ public final class SessionClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
+    public AppendSessionEventsResponse appendEvents(AppendSessionEventsInput input) {
+        try {
+            return command.appendEvents(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
     public Session get(String id) {
         try {
             return query.get(SessionId.newBuilder().setValue(id).build());
@@ -75,6 +87,19 @@ public final class SessionClient {
     public SessionList listByChannel(ListSessionsByChannelRequest input) {
         try {
             return query.listByChannel(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public SessionEventList listEvents(ListSessionEventsRequest input) {
+        try {
+            return query.listEvents(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public StigmerStream<StreamSessionEventsResponse> streamEvents(StreamSessionEventsRequest input) {
+        try {
+            java.util.Iterator<StreamSessionEventsResponse> iter = query.streamEvents(input);
+            return new StigmerStream<>(iter);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 }

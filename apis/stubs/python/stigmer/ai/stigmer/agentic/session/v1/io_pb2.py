@@ -23,10 +23,12 @@ _sym_db = _symbol_database.Default()
 
 
 from ai.stigmer.agentic.session.v1 import api_pb2 as ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_api__pb2
+from ai.stigmer.agentic.session.v1 import event_pb2 as ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_event__pb2
+from ai.stigmer.commons.apiresource import field_options_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_field__options__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n&ai/stigmer/agentic/session/v1/io.proto\x12\x1d\x61i.stigmer.agentic.session.v1\x1a\'ai/stigmer/agentic/session/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\")\n\tSessionId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\'\n\x07\x41gentId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x98\x01\n\x0bSessionList\x12\x1f\n\x0btotal_pages\x18\x01 \x01(\x05R\ntotalPages\x12@\n\x07\x65ntries\x18\x02 \x03(\x0b\x32&.ai.stigmer.agentic.session.v1.SessionR\x07\x65ntries\x12&\n\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageToken\"\x80\x01\n\x13ListSessionsRequest\x12$\n\tpage_size\x18\x01 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\x12\x1d\n\npage_token\x18\x02 \x01(\tR\tpageToken\x12\x12\n\x04tags\x18\x03 \x03(\tR\x04tags\x12\x10\n\x03org\x18\x04 \x01(\tR\x03org\"\x84\x01\n\x1aListSessionsByAgentRequest\x12!\n\x08\x61gent_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x07\x61gentId\x12$\n\tpage_size\x18\x02 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\x12\x1d\n\npage_token\x18\x03 \x01(\tR\tpageToken\"\x8a\x01\n\x1cListSessionsByChannelRequest\x12%\n\nchannel_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tchannelId\x12$\n\tpage_size\x18\x02 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\x12\x1d\n\npage_token\x18\x03 \x01(\tR\tpageToken\"O\n\x1bUpdateSessionSubjectRequest\x12\x16\n\x02id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x02id\x12\x18\n\x07subject\x18\x02 \x01(\tR\x07subjectB\xc5\x01\n!com.ai.stigmer.agentic.session.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1d\x41i.Stigmer.Agentic.Session.V1\xca\x02\x1d\x41i\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n&ai/stigmer/agentic/session/v1/io.proto\x12\x1d\x61i.stigmer.agentic.session.v1\x1a\'ai/stigmer/agentic/session/v1/api.proto\x1a)ai/stigmer/agentic/session/v1/event.proto\x1a\x32\x61i/stigmer/commons/apiresource/field_options.proto\x1a\x1b\x62uf/validate/validate.proto\")\n\tSessionId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\'\n\x07\x41gentId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x98\x01\n\x0bSessionList\x12\x1f\n\x0btotal_pages\x18\x01 \x01(\x05R\ntotalPages\x12@\n\x07\x65ntries\x18\x02 \x03(\x0b\x32&.ai.stigmer.agentic.session.v1.SessionR\x07\x65ntries\x12&\n\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageToken\"\x80\x01\n\x13ListSessionsRequest\x12$\n\tpage_size\x18\x01 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\x12\x1d\n\npage_token\x18\x02 \x01(\tR\tpageToken\x12\x12\n\x04tags\x18\x03 \x03(\tR\x04tags\x12\x10\n\x03org\x18\x04 \x01(\tR\x03org\"\x84\x01\n\x1aListSessionsByAgentRequest\x12!\n\x08\x61gent_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x07\x61gentId\x12$\n\tpage_size\x18\x02 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\x12\x1d\n\npage_token\x18\x03 \x01(\tR\tpageToken\"\x8a\x01\n\x1cListSessionsByChannelRequest\x12%\n\nchannel_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tchannelId\x12$\n\tpage_size\x18\x02 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\x12\x1d\n\npage_token\x18\x03 \x01(\tR\tpageToken\"O\n\x1bUpdateSessionSubjectRequest\x12\x16\n\x02id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x02id\x12\x18\n\x07subject\x18\x02 \x01(\tR\x07subject\"\x83\x03\n\x18ListSessionEventsRequest\x12%\n\nsession_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tsessionId\x12\'\n\tpage_size\x18\x02 \x01(\x05\x42\n\xbaH\x07\x1a\x05\x18\xe8\x07(\x00R\x08pageSize\x12\x1d\n\npage_token\x18\x03 \x01(\tR\tpageToken\x12)\n\x05order\x18\x04 \x01(\tB\x13\xbaH\x10r\x0bR\x03\x61scR\x04\x64\x65sc\xd8\x01\x01R\x05order\x12\x39\n\x05types\x18\x05 \x03(\tB#\xbaH \x92\x01\x1d\x10@\"\x19r\x17\x32\x15^[a-z_]+(\\.[a-z_]+)+$R\x05types\x12\"\n\rcreated_at_gt\x18\x06 \x01(\tR\x0b\x63reatedAtGt\x12$\n\x0e\x63reated_at_gte\x18\x07 \x01(\tR\x0c\x63reatedAtGte\x12\"\n\rcreated_at_lt\x18\x08 \x01(\tR\x0b\x63reatedAtLt\x12$\n\x0e\x63reated_at_lte\x18\t \x01(\tR\x0c\x63reatedAtLte\"\x7f\n\x10SessionEventList\x12\x43\n\x06\x65vents\x18\x01 \x03(\x0b\x32+.ai.stigmer.agentic.session.v1.SessionEventR\x06\x65vents\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x95\x01\n\x1aStreamSessionEventsRequest\x12%\n\nsession_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tsessionId\x12P\n\x0c\x65vent_deltas\x18\x02 \x03(\tB-\xbaH*\x92\x01\'\x10\x02\x18\x01\"!r\x1fR\ragent.messageR\x0e\x61gent.thinkingR\x0b\x65ventDeltas\"\xa9\x02\n\x1bStreamSessionEventsResponse\x12\x43\n\x05\x65vent\x18\x01 \x01(\x0b\x32+.ai.stigmer.agentic.session.v1.SessionEventH\x00R\x05\x65vent\x12]\n\x0b\x65vent_start\x18\x02 \x01(\x0b\x32).ai.stigmer.agentic.session.v1.EventStartB\x0f\xf2\x85,\x0b\x65vent_startH\x00R\neventStart\x12]\n\x0b\x65vent_delta\x18\x03 \x01(\x0b\x32).ai.stigmer.agentic.session.v1.EventDeltaB\x0f\xf2\x85,\x0b\x65vent_deltaH\x00R\neventDeltaB\x07\n\x05\x66rame\"\xe5\x01\n\x13SessionEventPreview\x12]\n\x0b\x65vent_start\x18\x01 \x01(\x0b\x32).ai.stigmer.agentic.session.v1.EventStartB\x0f\xf2\x85,\x0b\x65vent_startH\x00R\neventStart\x12]\n\x0b\x65vent_delta\x18\x02 \x01(\x0b\x32).ai.stigmer.agentic.session.v1.EventDeltaB\x0f\xf2\x85,\x0b\x65vent_deltaH\x00R\neventDeltaB\x10\n\x07preview\x12\x05\xbaH\x02\x08\x01\"\xe4\x01\n\x18\x41ppendSessionEventsInput\x12\x1d\n\x06run_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05runId\x12N\n\x06\x65vents\x18\x02 \x03(\x0b\x32+.ai.stigmer.agentic.session.v1.SessionEventB\t\xbaH\x06\x92\x01\x03\x10\xe8\x07R\x06\x65vents\x12Y\n\x08previews\x18\x03 \x03(\x0b\x32\x32.ai.stigmer.agentic.session.v1.SessionEventPreviewB\t\xbaH\x06\x92\x01\x03\x10\xe8\x07R\x08previews\"b\n\x1b\x41ppendSessionEventsResponse\x12\x43\n\x06\x65vents\x18\x01 \x03(\x0b\x32+.ai.stigmer.agentic.session.v1.SessionEventR\x06\x65ventsB\xc5\x01\n!com.ai.stigmer.agentic.session.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1d\x41i.Stigmer.Agentic.Session.V1\xca\x02\x1d\x41i\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -50,18 +52,60 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_LISTSESSIONSBYCHANNELREQUEST'].fields_by_name['page_size']._serialized_options = b'\272H\004\032\002(\000'
   _globals['_UPDATESESSIONSUBJECTREQUEST'].fields_by_name['id']._loaded_options = None
   _globals['_UPDATESESSIONSUBJECTREQUEST'].fields_by_name['id']._serialized_options = b'\272H\003\310\001\001'
-  _globals['_SESSIONID']._serialized_start=143
-  _globals['_SESSIONID']._serialized_end=184
-  _globals['_AGENTID']._serialized_start=186
-  _globals['_AGENTID']._serialized_end=225
-  _globals['_SESSIONLIST']._serialized_start=228
-  _globals['_SESSIONLIST']._serialized_end=380
-  _globals['_LISTSESSIONSREQUEST']._serialized_start=383
-  _globals['_LISTSESSIONSREQUEST']._serialized_end=511
-  _globals['_LISTSESSIONSBYAGENTREQUEST']._serialized_start=514
-  _globals['_LISTSESSIONSBYAGENTREQUEST']._serialized_end=646
-  _globals['_LISTSESSIONSBYCHANNELREQUEST']._serialized_start=649
-  _globals['_LISTSESSIONSBYCHANNELREQUEST']._serialized_end=787
-  _globals['_UPDATESESSIONSUBJECTREQUEST']._serialized_start=789
-  _globals['_UPDATESESSIONSUBJECTREQUEST']._serialized_end=868
+  _globals['_LISTSESSIONEVENTSREQUEST'].fields_by_name['session_id']._loaded_options = None
+  _globals['_LISTSESSIONEVENTSREQUEST'].fields_by_name['session_id']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_LISTSESSIONEVENTSREQUEST'].fields_by_name['page_size']._loaded_options = None
+  _globals['_LISTSESSIONEVENTSREQUEST'].fields_by_name['page_size']._serialized_options = b'\272H\007\032\005\030\350\007(\000'
+  _globals['_LISTSESSIONEVENTSREQUEST'].fields_by_name['order']._loaded_options = None
+  _globals['_LISTSESSIONEVENTSREQUEST'].fields_by_name['order']._serialized_options = b'\272H\020r\013R\003ascR\004desc\330\001\001'
+  _globals['_LISTSESSIONEVENTSREQUEST'].fields_by_name['types']._loaded_options = None
+  _globals['_LISTSESSIONEVENTSREQUEST'].fields_by_name['types']._serialized_options = b'\272H \222\001\035\020@\"\031r\0272\025^[a-z_]+(\\.[a-z_]+)+$'
+  _globals['_STREAMSESSIONEVENTSREQUEST'].fields_by_name['session_id']._loaded_options = None
+  _globals['_STREAMSESSIONEVENTSREQUEST'].fields_by_name['session_id']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_STREAMSESSIONEVENTSREQUEST'].fields_by_name['event_deltas']._loaded_options = None
+  _globals['_STREAMSESSIONEVENTSREQUEST'].fields_by_name['event_deltas']._serialized_options = b'\272H*\222\001\'\020\002\030\001\"!r\037R\ragent.messageR\016agent.thinking'
+  _globals['_STREAMSESSIONEVENTSRESPONSE'].fields_by_name['event_start']._loaded_options = None
+  _globals['_STREAMSESSIONEVENTSRESPONSE'].fields_by_name['event_start']._serialized_options = b'\362\205,\013event_start'
+  _globals['_STREAMSESSIONEVENTSRESPONSE'].fields_by_name['event_delta']._loaded_options = None
+  _globals['_STREAMSESSIONEVENTSRESPONSE'].fields_by_name['event_delta']._serialized_options = b'\362\205,\013event_delta'
+  _globals['_SESSIONEVENTPREVIEW'].oneofs_by_name['preview']._loaded_options = None
+  _globals['_SESSIONEVENTPREVIEW'].oneofs_by_name['preview']._serialized_options = b'\272H\002\010\001'
+  _globals['_SESSIONEVENTPREVIEW'].fields_by_name['event_start']._loaded_options = None
+  _globals['_SESSIONEVENTPREVIEW'].fields_by_name['event_start']._serialized_options = b'\362\205,\013event_start'
+  _globals['_SESSIONEVENTPREVIEW'].fields_by_name['event_delta']._loaded_options = None
+  _globals['_SESSIONEVENTPREVIEW'].fields_by_name['event_delta']._serialized_options = b'\362\205,\013event_delta'
+  _globals['_APPENDSESSIONEVENTSINPUT'].fields_by_name['run_id']._loaded_options = None
+  _globals['_APPENDSESSIONEVENTSINPUT'].fields_by_name['run_id']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_APPENDSESSIONEVENTSINPUT'].fields_by_name['events']._loaded_options = None
+  _globals['_APPENDSESSIONEVENTSINPUT'].fields_by_name['events']._serialized_options = b'\272H\006\222\001\003\020\350\007'
+  _globals['_APPENDSESSIONEVENTSINPUT'].fields_by_name['previews']._loaded_options = None
+  _globals['_APPENDSESSIONEVENTSINPUT'].fields_by_name['previews']._serialized_options = b'\272H\006\222\001\003\020\350\007'
+  _globals['_SESSIONID']._serialized_start=238
+  _globals['_SESSIONID']._serialized_end=279
+  _globals['_AGENTID']._serialized_start=281
+  _globals['_AGENTID']._serialized_end=320
+  _globals['_SESSIONLIST']._serialized_start=323
+  _globals['_SESSIONLIST']._serialized_end=475
+  _globals['_LISTSESSIONSREQUEST']._serialized_start=478
+  _globals['_LISTSESSIONSREQUEST']._serialized_end=606
+  _globals['_LISTSESSIONSBYAGENTREQUEST']._serialized_start=609
+  _globals['_LISTSESSIONSBYAGENTREQUEST']._serialized_end=741
+  _globals['_LISTSESSIONSBYCHANNELREQUEST']._serialized_start=744
+  _globals['_LISTSESSIONSBYCHANNELREQUEST']._serialized_end=882
+  _globals['_UPDATESESSIONSUBJECTREQUEST']._serialized_start=884
+  _globals['_UPDATESESSIONSUBJECTREQUEST']._serialized_end=963
+  _globals['_LISTSESSIONEVENTSREQUEST']._serialized_start=966
+  _globals['_LISTSESSIONEVENTSREQUEST']._serialized_end=1353
+  _globals['_SESSIONEVENTLIST']._serialized_start=1355
+  _globals['_SESSIONEVENTLIST']._serialized_end=1482
+  _globals['_STREAMSESSIONEVENTSREQUEST']._serialized_start=1485
+  _globals['_STREAMSESSIONEVENTSREQUEST']._serialized_end=1634
+  _globals['_STREAMSESSIONEVENTSRESPONSE']._serialized_start=1637
+  _globals['_STREAMSESSIONEVENTSRESPONSE']._serialized_end=1934
+  _globals['_SESSIONEVENTPREVIEW']._serialized_start=1937
+  _globals['_SESSIONEVENTPREVIEW']._serialized_end=2166
+  _globals['_APPENDSESSIONEVENTSINPUT']._serialized_start=2169
+  _globals['_APPENDSESSIONEVENTSINPUT']._serialized_end=2397
+  _globals['_APPENDSESSIONEVENTSRESPONSE']._serialized_start=2399
+  _globals['_APPENDSESSIONEVENTSRESPONSE']._serialized_end=2497
 # @@protoc_insertion_point(module_scope)

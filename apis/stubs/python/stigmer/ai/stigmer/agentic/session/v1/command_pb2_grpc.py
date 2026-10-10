@@ -41,6 +41,11 @@ class SessionCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.SessionId.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_api__pb2.Session.FromString,
                 _registered_method=True)
+        self.appendEvents = channel.unary_unary(
+                '/ai.stigmer.agentic.session.v1.SessionCommandController/appendEvents',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.AppendSessionEventsInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.AppendSessionEventsResponse.FromString,
+                _registered_method=True)
 
 
 class SessionCommandControllerServicer(object):
@@ -94,6 +99,18 @@ class SessionCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def appendEvents(self, request, context):
+        """Append a run's events to its session's log.
+
+        Only the runner acting for the run may call it, while the run is not
+        finished. It accepts the events a runner produces: agent.*,
+        session.thread_* and session.error. The batch is appended whole or not
+        at all.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_SessionCommandControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -121,6 +138,11 @@ def add_SessionCommandControllerServicer_to_server(servicer, server):
                     servicer.delete,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.SessionId.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_api__pb2.Session.SerializeToString,
+            ),
+            'appendEvents': grpc.unary_unary_rpc_method_handler(
+                    servicer.appendEvents,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.AppendSessionEventsInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.AppendSessionEventsResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -259,6 +281,33 @@ class SessionCommandController(object):
             '/ai.stigmer.agentic.session.v1.SessionCommandController/delete',
             ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.SessionId.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_api__pb2.Session.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def appendEvents(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.session.v1.SessionCommandController/appendEvents',
+            ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.AppendSessionEventsInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.AppendSessionEventsResponse.FromString,
             options,
             channel_credentials,
             insecure,

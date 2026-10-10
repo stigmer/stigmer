@@ -85,6 +85,24 @@ import type {
   ListIndexRow,
 } from "../list-index.js";
 import { NOOP_STORE_LOGGER } from "../logger.js";
+import {
+  SessionEventConflictError,
+  assertSessionEventLimit,
+  dedupeSessionEventDrafts,
+  sameBytes,
+  sessionEventInstant,
+} from "../session-events.js";
+import type {
+  ResourceEventWriteResult,
+  ResourceEventWriter,
+  SessionEventAppend,
+  SessionEventDraft,
+  SessionEventGuard,
+  SessionEventQuery,
+  SessionEventRecord,
+  SessionEventScope,
+  SessionEventStore,
+} from "../session-events.js";
 import { assertRenameMoves } from "../resource-names.js";
 import type { StoreLogger } from "../logger.js";
 import {
@@ -156,6 +174,7 @@ export class PostgresStore implements Store {
   readonly connectLinks: ConnectLinkStore;
   readonly connectAttempts: ConnectAttemptStore;
   readonly organizationDeletions: OrganizationDeletionStore;
+  readonly sessionEvents: SessionEventStore;
 
   private pool: Pool | undefined;
   private readonly logger: StoreLogger;
@@ -181,6 +200,10 @@ export class PostgresStore implements Store {
     this.connectAttempts = new PostgresConnectAttemptStore(() => this.open());
     this.organizationDeletions = new PostgresOrganizationDeletionStore(() =>
       this.open(),
+    );
+    this.sessionEvents = new PostgresSessionEventStore(
+      () => this.open(),
+      (fn) => this.withTransaction(fn),
     );
   }
 
@@ -421,6 +444,172 @@ export class PostgresStore implements Store {
       `DELETE FROM resource_list_keys WHERE kind = $1 AND id = $2`,
       [kindName, id],
     );
+  }
+
+  async writeResourceAppendingEvents<Desc extends DescMessage>(
+    kind: ApiResourceKind,
+    id: string,
+    schema: Desc,
+    write: ResourceEventWriter<Desc>,
+    scope: SessionEventScope,
+  ): Promise<ResourceEventWriteResult<Desc>> {
+    const declaration = this.listIndexes.declarationOf(kind);
+    const kindName = apiResourceKindName(kind);
+    if (declaration === undefined) {
+      throw new Error(`${kindName} is not list-indexed; it cannot write session events`);
+    }
+    const sessionId =
+      scope.sessionId ??
+      (await this.storedSessionOf(declaration, id, scope.sessionKey));
+
+    return this.withTransaction(async (client) => {
+      // The session first, then the row: the one lock order every writer
+      // of a session's log takes (session-events.ts).
+      if (sessionId !== "") {
+        await lockSession(client, sessionId);
+      }
+      const result = await client.query(
+        `SELECT data, list_indexed_at IS NOT DISTINCT FROM updated_at AS stamped, list_index_revision
+         FROM resources WHERE kind = $1 AND id = $2 FOR UPDATE`,
+        [kindName, id],
+      );
+      const stored = result.rows[0] as
+        | { data: Uint8Array; stamped: boolean; list_index_revision: number | null }
+        | undefined;
+      const previous = stored === undefined ? undefined : fromBinary(schema, stored.data);
+      const before = previous === undefined ? undefined : listIndexFactsOf(declaration, previous);
+      if (before !== undefined) {
+        assertSameSession(kindName, id, sessionId, keyValue(before, scope.sessionKey));
+      }
+
+      const others =
+        sessionId === ""
+          ? 0
+          : await this.countOthersWorking(client, declaration, id, scope.workingKey, sessionId);
+      const outcome = write(previous, others);
+      if (sessionId === "" && outcome.events.length > 0) {
+        throw new Error(`${kindName}/${id} is in no session; it cannot write session events`);
+      }
+
+      let row: MessageShape<Desc> | undefined;
+      let org = before?.org ?? "";
+      if ("put" in outcome) {
+        row = outcome.put;
+        const after = listIndexFactsOf(declaration, row);
+        assertSameSession(kindName, id, sessionId, keyValue(after, scope.sessionKey));
+        org = after.org;
+        await client.query(UPSERT_RESOURCE_SQL, [
+          kindName,
+          id,
+          Buffer.from(toBinary(schema, row)),
+          after.org,
+          after.createdAt,
+          after.revision,
+        ]);
+        if (
+          stored === undefined ||
+          !stored.stamped ||
+          stored.list_index_revision !== after.revision ||
+          before === undefined ||
+          !sameListKeyRows(before, after)
+        ) {
+          await replaceListKeys(client, kindName, id, after);
+        }
+      } else {
+        await client.query(`DELETE FROM resources WHERE kind = $1 AND id = $2`, [kindName, id]);
+        await client.query(`DELETE FROM resource_list_keys WHERE kind = $1 AND id = $2`, [
+          kindName,
+          id,
+        ]);
+        if (sessionId !== "") {
+          await client.query(
+            `DELETE FROM session_events
+             WHERE session_id = $1 AND run_id = $2 AND NOT (type = ANY($3::text[]))`,
+            [sessionId, id, [...outcome.remove.keepEventTypes]],
+          );
+        }
+      }
+      const events =
+        outcome.events.length === 0
+          ? []
+          : await insertSessionEvents(
+              client,
+              sessionId,
+              org,
+              dedupeSessionEventDrafts(sessionId, outcome.events),
+            );
+      return { previous, row, events };
+    });
+  }
+
+  /**
+   * A stored row's session, read through its session key without decoding
+   * the row when its facts are proven current; from its bytes when it is
+   * unproven. Throws ResourceNotFoundError when the row is absent: a write
+   * that names no session must find its row.
+   */
+  private async storedSessionOf(
+    declaration: ListIndexDeclaration,
+    id: string,
+    sessionKey: string,
+  ): Promise<string> {
+    const kindName = apiResourceKindName(declaration.kind);
+    const unproven = await this.open().query(UNPROVEN_ROWS_SQL, [kindName, declaration.revision]);
+    const own = (unproven.rows as Array<{ id: string; data: Uint8Array }>).find((row) => row.id === id);
+    if (own !== undefined) {
+      const facts = factsOfBytes(declaration, own.data);
+      if (facts === undefined) {
+        throw new Error(`${kindName}/${id} does not decode; its session cannot be read`);
+      }
+      return keyValue(facts, sessionKey);
+    }
+    const result = await this.open().query(
+      `SELECT k.value FROM resources r
+       LEFT JOIN resource_list_keys k ON k.kind = r.kind AND k.id = r.id AND k.key = $3
+       WHERE r.kind = $1 AND r.id = $2`,
+      [kindName, id, sessionKey],
+    );
+    const row = result.rows[0] as { value: string | null } | undefined;
+    if (row === undefined) {
+      throw new ResourceNotFoundError(`${kindName}/${id}`);
+    }
+    return row.value ?? "";
+  }
+
+  /**
+   * How many rows other than `id` hold `workingKey` valued `sessionId`: the
+   * proven rows from the key table alone (no row is read), and every
+   * unproven row of the kind evaluated from its bytes in place of its key
+   * rows, which may be stale (none in steady state; the reconciliation at
+   * open derives them).
+   */
+  private async countOthersWorking(
+    client: PoolClient,
+    declaration: ListIndexDeclaration,
+    id: string,
+    workingKey: string,
+    sessionId: string,
+  ): Promise<number> {
+    const kindName = apiResourceKindName(declaration.kind);
+    const keyed = await client.query(
+      `SELECT id FROM resource_list_keys WHERE kind = $1 AND key = $2 AND value = $3 AND id <> $4`,
+      [kindName, workingKey, sessionId, id],
+    );
+    const unproven = oneRowPerId(
+      (await client.query(UNPROVEN_ROWS_SQL, [kindName, declaration.revision])).rows as Array<{
+        id: string;
+        data: Uint8Array;
+      }>,
+    );
+    const unprovenIds = new Set(unproven.map((row) => row.id));
+    let count = (keyed.rows as Array<{ id: string }>).filter((row) => !unprovenIds.has(row.id)).length;
+    for (const row of unproven) {
+      const facts = row.id === id ? undefined : factsOfBytes(declaration, row.data);
+      if (facts !== undefined && keyValue(facts, workingKey) === sessionId) {
+        count += 1;
+      }
+    }
+    return count;
   }
 
   async findByField<Desc extends DescMessage>(
@@ -2184,4 +2373,218 @@ function organizationDeletionOf(
     stage: row.stage,
     lastError: row.last_error,
   };
+}
+
+// =============================================================================
+// Session events (session-events.ts, SessionEventStore)
+// =============================================================================
+
+const SESSION_EVENT_COLUMNS =
+  "session_id, seq, event_id, run_id, thread_id, type, processed_at, data";
+
+interface SessionEventRow {
+  session_id: string;
+  seq: string;
+  event_id: string;
+  run_id: string;
+  thread_id: string;
+  type: string;
+  processed_at: string;
+  data: Uint8Array;
+}
+
+function sessionEventOf(row: SessionEventRow): SessionEventRecord {
+  return {
+    sessionId: row.session_id,
+    seq: Number(row.seq),
+    eventId: row.event_id,
+    runId: row.run_id,
+    threadId: row.thread_id,
+    type: row.type,
+    processedAt: row.processed_at,
+    data: row.data,
+  };
+}
+
+/**
+ * Serializes the writers of one session's log for the transaction: numbers
+ * and times are assigned one writer at a time, and a write's count of the
+ * session's working rows cannot race another's.
+ */
+async function lockSession(client: PoolClient, sessionId: string): Promise<void> {
+  await client.query(
+    `SELECT pg_advisory_xact_lock(hashtextextended('session_events/' || $1, 0))`,
+    [sessionId],
+  );
+}
+
+/** Appends drafts after the session's newest event, under the caller's session lock. */
+async function insertSessionEvents(
+  client: PoolClient,
+  sessionId: string,
+  org: string,
+  drafts: ReadonlyArray<SessionEventDraft>,
+): Promise<SessionEventRecord[]> {
+  if (drafts.length === 0) {
+    return [];
+  }
+  const newest = await client.query(
+    `SELECT seq, processed_at FROM session_events WHERE session_id = $1 ORDER BY seq DESC LIMIT 1`,
+    [sessionId],
+  );
+  const last = newest.rows[0] as { seq: string; processed_at: string } | undefined;
+  const processedAt = sessionEventInstant(Date.now(), last?.processed_at);
+  let seq = last === undefined ? 0 : Number(last.seq);
+  const records: SessionEventRecord[] = [];
+  const params: unknown[] = [];
+  const tuples: string[] = [];
+  for (const draft of drafts) {
+    seq += 1;
+    records.push({ ...draft, sessionId, seq, processedAt });
+    const base = params.length;
+    params.push(
+      sessionId,
+      seq,
+      draft.eventId,
+      draft.runId,
+      draft.threadId,
+      draft.type,
+      org,
+      processedAt,
+      Buffer.from(draft.data),
+    );
+    tuples.push(
+      `(${Array.from({ length: 9 }, (_, i) => `$${base + i + 1}`).join(", ")})`,
+    );
+  }
+  await client.query(
+    `INSERT INTO session_events (session_id, seq, event_id, run_id, thread_id, type, org, processed_at, data)
+     VALUES ${tuples.join(", ")}`,
+    params,
+  );
+  return records;
+}
+
+class PostgresSessionEventStore implements SessionEventStore {
+  constructor(
+    private readonly open: () => Pool,
+    private readonly transaction: <T>(fn: (client: PoolClient) => Promise<T>) => Promise<T>,
+  ) {}
+
+  async list(sessionId: string, query: SessionEventQuery): Promise<SessionEventRecord[]> {
+    assertSessionEventLimit(query.limit);
+    const params: unknown[] = [sessionId];
+    const param = (value: unknown): string => {
+      params.push(value);
+      return `$${params.length}`;
+    };
+    const where = ["session_id = $1"];
+    if (query.types !== undefined && query.types.length > 0) {
+      where.push(`type = ANY(${param([...query.types])}::text[])`);
+    }
+    if (query.processedAtGt !== undefined) {
+      where.push(`processed_at > ${param(query.processedAtGt)}`);
+    }
+    if (query.processedAtGte !== undefined) {
+      where.push(`processed_at >= ${param(query.processedAtGte)}`);
+    }
+    if (query.processedAtLt !== undefined) {
+      where.push(`processed_at < ${param(query.processedAtLt)}`);
+    }
+    if (query.processedAtLte !== undefined) {
+      where.push(`processed_at <= ${param(query.processedAtLte)}`);
+    }
+    const descending = query.order === "desc";
+    if (query.afterSeq !== undefined) {
+      where.push(`seq ${descending ? "<" : ">"} ${param(query.afterSeq)}`);
+    }
+    const result = await this.open().query(
+      `SELECT ${SESSION_EVENT_COLUMNS} FROM session_events
+       WHERE ${where.join(" AND ")}
+       ORDER BY seq ${descending ? "DESC" : "ASC"} LIMIT ${param(query.limit)}`,
+      params,
+    );
+    return (result.rows as SessionEventRow[]).map(sessionEventOf);
+  }
+
+  async append(
+    sessionId: string,
+    org: string,
+    drafts: ReadonlyArray<SessionEventDraft>,
+    guard: SessionEventGuard,
+  ): Promise<SessionEventAppend> {
+    if (sessionId === "") {
+      throw new Error("session events need a session");
+    }
+    const unique = dedupeSessionEventDrafts(sessionId, drafts);
+    return this.transaction(async (client) => {
+      await lockSession(client, sessionId);
+      const kindName = apiResourceKindName(guard.kind);
+      const guarded = await client.query(
+        `SELECT data FROM resources WHERE kind = $1 AND id = $2 FOR SHARE`,
+        [kindName, guard.id],
+      );
+      const row = guarded.rows[0] as { data: Uint8Array } | undefined;
+      if (row === undefined) {
+        throw new ResourceNotFoundError(`${kindName}/${guard.id}`);
+      }
+      guard.admit(fromBinary(guard.schema, row.data));
+
+      const held = new Map<string, SessionEventRecord>();
+      if (unique.length > 0) {
+        const existing = await client.query(
+          `SELECT ${SESSION_EVENT_COLUMNS} FROM session_events
+           WHERE session_id = $1 AND event_id = ANY($2::text[])`,
+          [sessionId, unique.map((d) => d.eventId)],
+        );
+        for (const stored of (existing.rows as SessionEventRow[]).map(sessionEventOf)) {
+          held.set(stored.eventId, stored);
+        }
+      }
+      const fresh: SessionEventDraft[] = [];
+      for (const draft of unique) {
+        const stored = held.get(draft.eventId);
+        if (stored === undefined) {
+          fresh.push(draft);
+        } else if (!sameBytes(stored.data, draft.data)) {
+          throw new SessionEventConflictError(sessionId, draft.eventId);
+        }
+      }
+      const appended = await insertSessionEvents(client, sessionId, org, fresh);
+      const byId = new Map(appended.map((record) => [record.eventId, record]));
+      return {
+        records: unique.map((draft) => byId.get(draft.eventId) ?? held.get(draft.eventId)!),
+        appended,
+      };
+    });
+  }
+
+  async deleteBySession(sessionId: string): Promise<number> {
+    return this.transaction(async (client) => {
+      await lockSession(client, sessionId);
+      const result = await client.query(`DELETE FROM session_events WHERE session_id = $1`, [
+        sessionId,
+      ]);
+      return result.rowCount ?? 0;
+    });
+  }
+
+  async deleteByOrg(org: string): Promise<number> {
+    const result = await this.open().query(`DELETE FROM session_events WHERE org = $1`, [org]);
+    return result.rowCount ?? 0;
+  }
+}
+
+/** A list key's value in a row's facts; "" when the row holds none. */
+function keyValue(facts: ListIndexFacts, key: string): string {
+  return facts.keys.find((k) => k.key === key)?.value ?? "";
+}
+
+/** Refuses a write whose row names another session than the one locked. */
+function assertSameSession(kindName: string, id: string, locked: string, rows: string): void {
+  if (rows !== locked) {
+    throw new Error(
+      `${kindName}/${id} names session '${rows}', not the session '${locked}' its write locked`,
+    );
+  }
 }

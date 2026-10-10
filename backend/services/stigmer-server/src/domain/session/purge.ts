@@ -1,8 +1,8 @@
 /**
  * The session's purge (domain/organization/purge/kind-purge.ts): every
  * session of an organization being deleted, removed with its delete
- * chain's cleanup (controller.ts `deleteSession`: its executions, the row,
- * its access, its search entry), read through the session list index, and
+ * chain's cleanup (controller.ts `deleteSession`: its executions, its
+ * event log, the row, its access, its search entry), read through the session list index, and
  * without its refusal of a session with active executions: core quiesce
  * has terminated them. The executions themselves are purged first, by
  * their own purge (which also removes their attachments), so the cascade
@@ -27,6 +27,7 @@ import { newDestroySecretBackingStateStep } from "../../pipeline/steps/secret-cl
 import type { RunScoreCascade } from "../score/cascade.js";
 import { sealedValuesOfSession } from "../vault/session-values.js";
 import { sessionListIndex } from "./list-index.js";
+import { newDeleteSessionEventsStep } from "./events/delete-step.js";
 import { newCascadeDeleteAgentExecutionsStep } from "./steps.js";
 
 type DeleteInput = typeof SessionCommandController.method.delete.input;
@@ -52,6 +53,7 @@ export function newSessionPurge(deps: SessionPurgeDeps): KindPurge {
         deps.logger,
         deps.runScores,
       ),
+      newDeleteSessionEventsStep(deps.store),
       newDeleteResourceStep(deps.store),
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
       newDestroySecretBackingStateStep<DeleteInput, typeof SessionSchema>(

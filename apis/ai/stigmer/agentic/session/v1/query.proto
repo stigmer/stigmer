@@ -57,4 +57,31 @@ service SessionQueryController {
   rpc listByChannel(ListSessionsByChannelRequest) returns (SessionList) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
+
+  // List a session's events, oldest first unless desc is asked for.
+  //
+  // The events are Claude Managed Agents session events, in the order they
+  // were appended; a page holds at most page_size of them.
+  rpc listEvents(ListSessionEventsRequest) returns (SessionEventList) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = session;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "session_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to list session events";
+  }
+
+  // Stream a session's events as they are appended.
+  //
+  // The stream starts at the moment it opens: list the events first to
+  // catch up, and skip any event id already seen. A watcher that falls too
+  // far behind is ended with RESOURCE_EXHAUSTED; list from the last event
+  // it saw, then stream again.
+  //
+  // @internal
+  // A direct handler: one authorizeDirect at the start, as run subscribe.
+  rpc streamEvents(StreamSessionEventsRequest) returns (stream StreamSessionEventsResponse) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = session;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "session_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to stream session events";
+  }
 }

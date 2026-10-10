@@ -24,6 +24,7 @@ const (
 	SessionCommandController_Update_FullMethodName        = "/ai.stigmer.agentic.session.v1.SessionCommandController/update"
 	SessionCommandController_UpdateSubject_FullMethodName = "/ai.stigmer.agentic.session.v1.SessionCommandController/updateSubject"
 	SessionCommandController_Delete_FullMethodName        = "/ai.stigmer.agentic.session.v1.SessionCommandController/delete"
+	SessionCommandController_AppendEvents_FullMethodName  = "/ai.stigmer.agentic.session.v1.SessionCommandController/appendEvents"
 )
 
 // SessionCommandControllerClient is the client API for SessionCommandController service.
@@ -54,6 +55,13 @@ type SessionCommandControllerClient interface {
 	// session is still active (pending, in progress, waiting for approval,
 	// or paused); cancel it or wait for it to finish first.
 	Delete(ctx context.Context, in *SessionId, opts ...grpc.CallOption) (*Session, error)
+	// Append a run's events to its session's log.
+	//
+	// Only the runner acting for the run may call it, while the run is not
+	// finished. It accepts the events a runner produces: agent.*,
+	// session.thread_* and session.error. The batch is appended whole or not
+	// at all.
+	AppendEvents(ctx context.Context, in *AppendSessionEventsInput, opts ...grpc.CallOption) (*AppendSessionEventsResponse, error)
 }
 
 type sessionCommandControllerClient struct {
@@ -114,6 +122,16 @@ func (c *sessionCommandControllerClient) Delete(ctx context.Context, in *Session
 	return out, nil
 }
 
+func (c *sessionCommandControllerClient) AppendEvents(ctx context.Context, in *AppendSessionEventsInput, opts ...grpc.CallOption) (*AppendSessionEventsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AppendSessionEventsResponse)
+	err := c.cc.Invoke(ctx, SessionCommandController_AppendEvents_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // SessionCommandControllerServer is the server API for SessionCommandController service.
 // All implementations should embed UnimplementedSessionCommandControllerServer
 // for forward compatibility.
@@ -142,6 +160,13 @@ type SessionCommandControllerServer interface {
 	// session is still active (pending, in progress, waiting for approval,
 	// or paused); cancel it or wait for it to finish first.
 	Delete(context.Context, *SessionId) (*Session, error)
+	// Append a run's events to its session's log.
+	//
+	// Only the runner acting for the run may call it, while the run is not
+	// finished. It accepts the events a runner produces: agent.*,
+	// session.thread_* and session.error. The batch is appended whole or not
+	// at all.
+	AppendEvents(context.Context, *AppendSessionEventsInput) (*AppendSessionEventsResponse, error)
 }
 
 // UnimplementedSessionCommandControllerServer should be embedded to have
@@ -165,6 +190,9 @@ func (UnimplementedSessionCommandControllerServer) UpdateSubject(context.Context
 }
 func (UnimplementedSessionCommandControllerServer) Delete(context.Context, *SessionId) (*Session, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
+}
+func (UnimplementedSessionCommandControllerServer) AppendEvents(context.Context, *AppendSessionEventsInput) (*AppendSessionEventsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AppendEvents not implemented")
 }
 func (UnimplementedSessionCommandControllerServer) testEmbeddedByValue() {}
 
@@ -276,6 +304,24 @@ func _SessionCommandController_Delete_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SessionCommandController_AppendEvents_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AppendSessionEventsInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SessionCommandControllerServer).AppendEvents(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SessionCommandController_AppendEvents_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SessionCommandControllerServer).AppendEvents(ctx, req.(*AppendSessionEventsInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // SessionCommandController_ServiceDesc is the grpc.ServiceDesc for SessionCommandController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -302,6 +348,10 @@ var SessionCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "delete",
 			Handler:    _SessionCommandController_Delete_Handler,
+		},
+		{
+			MethodName: "appendEvents",
+			Handler:    _SessionCommandController_AppendEvents_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

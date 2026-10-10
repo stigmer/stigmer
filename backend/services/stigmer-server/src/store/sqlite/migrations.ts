@@ -158,8 +158,11 @@ export const SCHEMA_VERSION_24 = 24;
 /** v25: the execution context rows removed; a tool connect in flight is a connect attempt row. */
 export const SCHEMA_VERSION_25 = 25;
 
+/** v26: each session's ordered event log (DDL only). */
+export const SCHEMA_VERSION_26 = 26;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_25;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_26;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -209,6 +212,7 @@ export function runMigrations(
     [SCHEMA_VERSION_23, migrateToV23],
     [SCHEMA_VERSION_24, migrateToV24],
     [SCHEMA_VERSION_25, migrateToV25],
+    [SCHEMA_VERSION_26, migrateToV26],
   ];
 
   for (const [version, migrate] of chain) {
@@ -1347,5 +1351,33 @@ function migrateToV25(db: DatabaseSync): void {
 
     CREATE INDEX idx_connect_attempt_org ON connect_attempt (org);
     CREATE INDEX idx_connect_attempt_expires ON connect_attempt (expires_at);
+  `);
+}
+
+/**
+ * v26: each session's ordered event log (../session-events.ts): the
+ * Postgres driver's v21 in this engine's terms, with the same keys and
+ * indexes. Every write runs under BEGIN IMMEDIATE, so a session's numbers
+ * and times are assigned one writer at a time.
+ */
+function migrateToV26(db: DatabaseSync): void {
+  db.exec(`
+    CREATE TABLE session_events (
+      session_id    TEXT NOT NULL,
+      seq           INTEGER NOT NULL,
+      event_id      TEXT NOT NULL,
+      run_id        TEXT NOT NULL DEFAULT '',
+      thread_id     TEXT NOT NULL DEFAULT '',
+      type          TEXT NOT NULL,
+      org           TEXT NOT NULL DEFAULT '',
+      processed_at  TEXT NOT NULL,
+      data          BLOB NOT NULL,
+      PRIMARY KEY (session_id, seq)
+    ) WITHOUT ROWID;
+
+    CREATE UNIQUE INDEX idx_session_events_event_id ON session_events (session_id, event_id);
+    CREATE INDEX idx_session_events_type ON session_events (session_id, type, seq);
+    CREATE INDEX idx_session_events_run ON session_events (session_id, run_id, seq);
+    CREATE INDEX idx_session_events_org ON session_events (org);
   `);
 }

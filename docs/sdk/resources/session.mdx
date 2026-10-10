@@ -66,17 +66,20 @@ Session session = client.sessions().get("ses_01j5q3k7m8r2s4tnz2hfp0q0c3");
 
 ## Methods
 
-| Method | Description |
-|--------|-------------|
-| [`get`](#get) | Get a single session by ID. |
-| [`list`](#list) | List all sessions with pagination and optional filtering. |
-| [`listByAgent`](#listbyagent) | List the conversations on one agent, whichever version each runs. |
-| [`listByChannel`](#listbychannel) | List the conversations an agent channel created. |
-| [`apply`](#apply) | Create or update a session. |
-| [`create`](#create) | Create a session. |
-| [`update`](#update) | Update an existing session (e.g., subject, thread_id). |
-| [`updateSubject`](#updatesubject) | Set the session subject. |
-| [`delete`](#delete) | Delete a session. |
+| Method | Description | Streaming |
+|--------|-------------|-----------|
+| [`get`](#get) | Get a single session by ID. | |
+| [`list`](#list) | List all sessions with pagination and optional filtering. | |
+| [`listByAgent`](#listbyagent) | List the conversations on one agent, whichever version each runs. | |
+| [`listByChannel`](#listbychannel) | List the conversations an agent channel created. | |
+| [`listEvents`](#listevents) | List a session's events, oldest first unless desc is asked for. | |
+| [`apply`](#apply) | Create or update a session. | |
+| [`create`](#create) | Create a session. | |
+| [`update`](#update) | Update an existing session (e.g., subject, thread_id). | |
+| [`updateSubject`](#updatesubject) | Set the session subject. | |
+| [`delete`](#delete) | Delete a session. | |
+| [`appendEvents`](#appendevents) | Append a run's events to its session's log. | |
+| [`streamEvents`](#streamevents) | Stream a session's events as they are appended. | Server |
 
 ### get
 
@@ -263,6 +266,79 @@ SessionList result = client.sessions().listByChannel(ListSessionsByChannelReques
 **Parameters**: [`ListSessionsByChannelRequest`](#listsessionsbychannelrequest)
 
 **Returns**: [`SessionList`](#sessionlist)
+
+### listEvents
+
+List a session's events, oldest first unless desc is asked for.
+
+The events are Claude Managed Agents session events, in the order they were appended; a page holds at most page_size of them.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const result = await stigmer.session.listEvents({
+  sessionId: "...",
+  pageSize: 0,
+  pageToken: "...",
+  order: "...",
+  types: [],
+  createdAtGt: "...",
+  createdAtGte: "...",
+  createdAtLt: "...",
+  createdAtLte: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+result, err := client.Session.ListEvents(ctx, &stigmer.ListSessionEventsRequest{
+  SessionId:    "...",
+  PageSize:     0,
+  PageToken:    "...",
+  Order:        "...",
+  Types:        []string{},
+  CreatedAtGt:  "...",
+  CreatedAtGte: "...",
+  CreatedAtLt:  "...",
+  CreatedAtLte: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+result = client.sessions.list_events(ListSessionEventsRequest(
+    session_id="...",
+    page_size=0,
+    page_token="...",
+    order="...",
+    types=[],
+    created_at_gt="...",
+    created_at_gte="...",
+    created_at_lt="...",
+    created_at_lte="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+SessionEventList result = client.sessions().listEvents(ListSessionEventsRequest.builder()
+    .sessionId("...")
+    .pageSize(0)
+    .pageToken("...")
+    .order("...")
+    .types(List.of())
+    .createdAtGt("...")
+    .createdAtGte("...")
+    .createdAtLt("...")
+    .createdAtLte("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`ListSessionEventsRequest`](#listsessioneventsrequest)
+
+**Returns**: [`SessionEventList`](#sessioneventlist)
 
 ### apply
 
@@ -657,6 +733,103 @@ Session session = client.sessions().delete(id);
 
 **Returns**: [`Session`](#session)
 
+### appendEvents
+
+Append a run's events to its session's log.
+
+Only the runner acting for the run may call it, while the run is not finished. It accepts the events a runner produces: agent.*, session.thread_* and session.error. The batch is appended whole or not at all.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const appendSessionEventsResponse = await stigmer.session.appendEvents({
+  runId: "...",
+  events: [],
+  previews: [],
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+appendSessionEventsResponse, err := client.Session.AppendEvents(ctx, &stigmer.AppendSessionEventsInput{
+  RunId:    "...",
+  Events:   []stigmer.SessionEventInput{},
+  Previews: []stigmer.SessionEventPreviewInput{},
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+append_session_events_response = client.sessions.append_events(AppendSessionEventsInput(
+    run_id="...",
+    events=[],
+    previews=[],
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+AppendSessionEventsResponse appendSessionEventsResponse = client.sessions().appendEvents(AppendSessionEventsInput.builder()
+    .runId("...")
+    .events(List.of())
+    .previews(List.of())
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`AppendSessionEventsInput`](#appendsessioneventsinput)
+
+**Returns**: [`AppendSessionEventsResponse`](#appendsessioneventsresponse)
+
+### streamEvents
+
+> **Server Streaming** — This method returns a stream of updates, not a single response.
+
+Stream a session's events as they are appended.
+
+The stream starts at the moment it opens: list the events first to catch up, and skip any event id already seen. A watcher that falls too far behind is ended with RESOURCE_EXHAUSTED; list from the last event it saw, then stream again.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const stream = stigmer.session.streamEvents(input);
+for await (const streamSessionEventsResponse of stream) {
+  // process streamSessionEventsResponse
+}
+```
+</Tab>
+<Tab value="Go">
+```go
+stream, err := client.Session.StreamEvents(ctx, input)
+for {
+    streamSessionEventsResponse, err := stream.Recv()
+    if err != nil {
+        break
+    }
+    // process streamSessionEventsResponse
+}
+```
+</Tab>
+<Tab value="Python">
+```python
+for stream_session_events_response in client.sessions.stream_events(input):
+    # process stream_session_events_response
+```
+</Tab>
+<Tab value="Java">
+```java
+client.sessions().streamEvents(input, streamSessionEventsResponse -> {
+    // process streamSessionEventsResponse
+});
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`StreamSessionEventsRequest`](#streamsessioneventsrequest)
+
+**Returns**: Stream&lt;[`StreamSessionEventsResponse`](#streamsessioneventsresponse)&gt;
+
 ## Types
 
 ### SessionInput
@@ -766,6 +939,28 @@ UpdateSessionSubjectRequest sets the conversation title for a session.
   }}
 />
 
+### AppendSessionEventsInput
+
+AppendSessionEventsInput appends a run's events to its session's log.
+
+<TypeTable
+  type={{
+    runId: { type: "string", description: "The run the events belong to.", required: true },
+    events: { type: "SessionEventInput[]", description: "The events, in order." },
+    previews: { type: "SessionEventPreviewInput[]", description: "Live previews to stream to the session's watchers, never stored." },
+  }}
+/>
+
+### AppendSessionEventsResponse
+
+AppendSessionEventsResponse holds the events as appended.
+
+<TypeTable
+  type={{
+    events: { type: "SessionEventInput[]", description: "The events, each with its seq and processed_at." },
+  }}
+/>
+
 ### ListSessionsRequest
 
 ListSessionsRequest specifies parameters for listing sessions.
@@ -812,6 +1007,58 @@ ListSessionsByChannelRequest lists the conversations an agent channel created.
     channelId: { type: "string", description: "Agent channel ID to filter by.", required: true },
     pageSize: { type: "number", description: "The most sessions to return, at most 100; zero returns them all." },
     pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
+  }}
+/>
+
+### ListSessionEventsRequest
+
+ListSessionEventsRequest pages through one session's event log.
+
+<TypeTable
+  type={{
+    sessionId: { type: "string", description: "The session whose events to list.", required: true },
+    pageSize: { type: "number", description: "The most events to return, at most 1000; zero returns 100." },
+    pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
+    order: { type: "string", description: "The order: asc (oldest first, the default) or desc." },
+    types: { type: "string[]", description: "Only events of these types, for example session.status_idle; empty lists every type." },
+    createdAtGt: { type: "string", description: "Only events appended after this RFC 3339 instant." },
+    createdAtGte: { type: "string", description: "Only events appended at or after this RFC 3339 instant." },
+    createdAtLt: { type: "string", description: "Only events appended before this RFC 3339 instant." },
+    createdAtLte: { type: "string", description: "Only events appended at or before this RFC 3339 instant." },
+  }}
+/>
+
+### SessionEventList
+
+SessionEventList is one page of a session's events.
+
+<TypeTable
+  type={{
+    events: { type: "SessionEventInput[]", description: "The events, in the requested order." },
+    nextPageToken: { type: "string", description: "Set when more events may follow: pass it as page_token to continue." },
+  }}
+/>
+
+### StreamSessionEventsRequest
+
+StreamSessionEventsRequest opens a live stream of one session's events.
+
+<TypeTable
+  type={{
+    sessionId: { type: "string", description: "The session whose events to stream.", required: true },
+    eventDeltas: { type: "string[]", description: "The event types to preview while they are produced: agent.message, agent.thinking." },
+  }}
+/>
+
+### StreamSessionEventsResponse
+
+StreamSessionEventsResponse is one frame of a session's event stream: a stored event, or a live preview of one still being produced.
+
+<TypeTable
+  type={{
+    event: { type: "SessionEventInput", description: "An event appended to the session's log." },
+    eventStart: { type: "EventStartInput", description: "A preview of an event opened." },
+    eventDelta: { type: "EventDeltaInput", description: "A fragment of a previewed event." },
   }}
 />
 

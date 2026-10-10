@@ -20,6 +20,12 @@
  * "is a run of it still alive?" It guards a session's delete, and it is
  * the busy check of an idle sweep, which must never put a session to
  * sleep while a run is pending, running, waiting on a person, or paused.
+ *
+ * isWorkingPhase is narrower: "is this run's turn still under way?" It is
+ * what a session's status events say (domain/session/events): the session
+ * is running while any run of it is pending, in progress or waiting for
+ * approval. A paused run is not working (its session reads idle, and a
+ * Stigmer client reads PAUSED from the run).
  */
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
@@ -59,4 +65,15 @@ export function isActiveExecutionPhase(phase: RunPhase): boolean {
     default:
       return false;
   }
+}
+
+/** The phases in which a run's turn is under way (isWorkingPhase). */
+export const WORKING_PHASES: ReadonlyArray<RunPhase> = [
+  RunPhase.RUN_PENDING,
+  RunPhase.RUN_IN_PROGRESS,
+  RunPhase.RUN_WAITING_FOR_APPROVAL,
+];
+
+export function isWorkingPhase(phase: RunPhase): boolean {
+  return WORKING_PHASES.includes(phase);
 }

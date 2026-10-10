@@ -6,6 +6,9 @@ import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { Session } from "./api_pb.js";
 import { file_ai_stigmer_agentic_session_v1_api } from "./api_pb.js";
+import type { EventDelta, EventStart, SessionEvent } from "./event_pb.js";
+import { file_ai_stigmer_agentic_session_v1_event } from "./event_pb.js";
+import { file_ai_stigmer_commons_apiresource_field_options } from "../../../commons/apiresource/field_options_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
 import type { Message } from "@bufbuild/protobuf";
 
@@ -13,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/session/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9pby5wcm90bxIdYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEiIgoJU2Vzc2lvbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIAoHQWdlbnRJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBInQKC1Nlc3Npb25MaXN0EhMKC3RvdGFsX3BhZ2VzGAEgASgFEjcKB2VudHJpZXMYAiADKAsyJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uEhcKD25leHRfcGFnZV90b2tlbhgDIAEoCSJgChNMaXN0U2Vzc2lvbnNSZXF1ZXN0EhoKCXBhZ2Vfc2l6ZRgBIAEoBUIHukgEGgIoABISCgpwYWdlX3Rva2VuGAIgASgJEgwKBHRhZ3MYAyADKAkSCwoDb3JnGAQgASgJImYKGkxpc3RTZXNzaW9uc0J5QWdlbnRSZXF1ZXN0EhgKCGFnZW50X2lkGAEgASgJQga6SAPIAQESGgoJcGFnZV9zaXplGAIgASgFQge6SAQaAigAEhIKCnBhZ2VfdG9rZW4YAyABKAkiagocTGlzdFNlc3Npb25zQnlDaGFubmVsUmVxdWVzdBIaCgpjaGFubmVsX2lkGAEgASgJQga6SAPIAQESGgoJcGFnZV9zaXplGAIgASgFQge6SAQaAigAEhIKCnBhZ2VfdG9rZW4YAyABKAkiQgobVXBkYXRlU2Vzc2lvblN1YmplY3RSZXF1ZXN0EhIKAmlkGAEgASgJQga6SAPIAQESDwoHc3ViamVjdBgCIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_session_v1_api, file_buf_validate_validate]);
+  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9pby5wcm90bxIdYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEiIgoJU2Vzc2lvbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIAoHQWdlbnRJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBInQKC1Nlc3Npb25MaXN0EhMKC3RvdGFsX3BhZ2VzGAEgASgFEjcKB2VudHJpZXMYAiADKAsyJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uEhcKD25leHRfcGFnZV90b2tlbhgDIAEoCSJgChNMaXN0U2Vzc2lvbnNSZXF1ZXN0EhoKCXBhZ2Vfc2l6ZRgBIAEoBUIHukgEGgIoABISCgpwYWdlX3Rva2VuGAIgASgJEgwKBHRhZ3MYAyADKAkSCwoDb3JnGAQgASgJImYKGkxpc3RTZXNzaW9uc0J5QWdlbnRSZXF1ZXN0EhgKCGFnZW50X2lkGAEgASgJQga6SAPIAQESGgoJcGFnZV9zaXplGAIgASgFQge6SAQaAigAEhIKCnBhZ2VfdG9rZW4YAyABKAkiagocTGlzdFNlc3Npb25zQnlDaGFubmVsUmVxdWVzdBIaCgpjaGFubmVsX2lkGAEgASgJQga6SAPIAQESGgoJcGFnZV9zaXplGAIgASgFQge6SAQaAigAEhIKCnBhZ2VfdG9rZW4YAyABKAkiQgobVXBkYXRlU2Vzc2lvblN1YmplY3RSZXF1ZXN0EhIKAmlkGAEgASgJQga6SAPIAQESDwoHc3ViamVjdBgCIAEoCSKfAgoYTGlzdFNlc3Npb25FdmVudHNSZXF1ZXN0EhoKCnNlc3Npb25faWQYASABKAlCBrpIA8gBARIdCglwYWdlX3NpemUYAiABKAVCCrpIBxoFGOgHKAASEgoKcGFnZV90b2tlbhgDIAEoCRIiCgVvcmRlchgEIAEoCUITukgQ2AEBcgtSA2FzY1IEZGVzYxIyCgV0eXBlcxgFIAMoCUIjukggkgEdEEAiGXIXMhVeW2Etel9dKyhcLlthLXpfXSspKyQSFQoNY3JlYXRlZF9hdF9ndBgGIAEoCRIWCg5jcmVhdGVkX2F0X2d0ZRgHIAEoCRIVCg1jcmVhdGVkX2F0X2x0GAggASgJEhYKDmNyZWF0ZWRfYXRfbHRlGAkgASgJImgKEFNlc3Npb25FdmVudExpc3QSOwoGZXZlbnRzGAEgAygLMisuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvbkV2ZW50EhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSJ9ChpTdHJlYW1TZXNzaW9uRXZlbnRzUmVxdWVzdBIaCgpzZXNzaW9uX2lkGAEgASgJQga6SAPIAQESQwoMZXZlbnRfZGVsdGFzGAIgAygJQi26SCqSAScQAhgBIiFyH1INYWdlbnQubWVzc2FnZVIOYWdlbnQudGhpbmtpbmciigIKG1N0cmVhbVNlc3Npb25FdmVudHNSZXNwb25zZRI8CgVldmVudBgBIAEoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25FdmVudEgAElEKC2V2ZW50X3N0YXJ0GAIgASgLMikuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuRXZlbnRTdGFydEIP8oUsC2V2ZW50X3N0YXJ0SAASUQoLZXZlbnRfZGVsdGEYAyABKAsyKS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5FdmVudERlbHRhQg/yhSwLZXZlbnRfZGVsdGFIAEIHCgVmcmFtZSLNAQoTU2Vzc2lvbkV2ZW50UHJldmlldxJRCgtldmVudF9zdGFydBgBIAEoCzIpLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkV2ZW50U3RhcnRCD/KFLAtldmVudF9zdGFydEgAElEKC2V2ZW50X2RlbHRhGAIgASgLMikuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuRXZlbnREZWx0YUIP8oUsC2V2ZW50X2RlbHRhSABCEAoHcHJldmlldxIFukgCCAEiywEKGEFwcGVuZFNlc3Npb25FdmVudHNJbnB1dBIWCgZydW5faWQYASABKAlCBrpIA8gBARJGCgZldmVudHMYAiADKAsyKy5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uRXZlbnRCCbpIBpIBAxDoBxJPCghwcmV2aWV3cxgDIAMoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25FdmVudFByZXZpZXdCCbpIBpIBAxDoByJaChtBcHBlbmRTZXNzaW9uRXZlbnRzUmVzcG9uc2USOwoGZXZlbnRzGAEgAygLMisuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvbkV2ZW50YgZwcm90bzM", [file_ai_stigmer_agentic_session_v1_api, file_ai_stigmer_agentic_session_v1_event, file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate]);
 
 /**
  * SessionId wraps a session identifier.
@@ -239,4 +242,283 @@ export type UpdateSessionSubjectRequest = Message<"ai.stigmer.agentic.session.v1
  */
 export const UpdateSessionSubjectRequestSchema: GenMessage<UpdateSessionSubjectRequest> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_session_v1_io, 6);
+
+/**
+ * ListSessionEventsRequest pages through one session's event log.
+ *
+ * @generated from message ai.stigmer.agentic.session.v1.ListSessionEventsRequest
+ */
+export type ListSessionEventsRequest = Message<"ai.stigmer.agentic.session.v1.ListSessionEventsRequest"> & {
+  /**
+   * The session whose events to list.
+   *
+   * @generated from field: string session_id = 1;
+   */
+  sessionId: string;
+
+  /**
+   * The most events to return, at most 1000; zero returns 100.
+   *
+   * @generated from field: int32 page_size = 2;
+   */
+  pageSize: number;
+
+  /**
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
+   *
+   * @generated from field: string page_token = 3;
+   */
+  pageToken: string;
+
+  /**
+   * The order: asc (oldest first, the default) or desc.
+   *
+   * @generated from field: string order = 4;
+   */
+  order: string;
+
+  /**
+   * Only events of these types, for example session.status_idle; empty
+   * lists every type.
+   *
+   * @generated from field: repeated string types = 5;
+   */
+  types: string[];
+
+  /**
+   * Only events appended after this RFC 3339 instant.
+   *
+   * @generated from field: string created_at_gt = 6;
+   */
+  createdAtGt: string;
+
+  /**
+   * Only events appended at or after this RFC 3339 instant.
+   *
+   * @generated from field: string created_at_gte = 7;
+   */
+  createdAtGte: string;
+
+  /**
+   * Only events appended before this RFC 3339 instant.
+   *
+   * @generated from field: string created_at_lt = 8;
+   */
+  createdAtLt: string;
+
+  /**
+   * Only events appended at or before this RFC 3339 instant.
+   *
+   * @generated from field: string created_at_lte = 9;
+   */
+  createdAtLte: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.session.v1.ListSessionEventsRequest.
+ * Use `create(ListSessionEventsRequestSchema)` to create a new message.
+ */
+export const ListSessionEventsRequestSchema: GenMessage<ListSessionEventsRequest> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_session_v1_io, 7);
+
+/**
+ * SessionEventList is one page of a session's events.
+ *
+ * @generated from message ai.stigmer.agentic.session.v1.SessionEventList
+ */
+export type SessionEventList = Message<"ai.stigmer.agentic.session.v1.SessionEventList"> & {
+  /**
+   * The events, in the requested order.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.session.v1.SessionEvent events = 1;
+   */
+  events: SessionEvent[];
+
+  /**
+   * Set when more events may follow: pass it as page_token to continue.
+   * Empty when the list is complete.
+   *
+   * @generated from field: string next_page_token = 2;
+   */
+  nextPageToken: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.session.v1.SessionEventList.
+ * Use `create(SessionEventListSchema)` to create a new message.
+ */
+export const SessionEventListSchema: GenMessage<SessionEventList> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_session_v1_io, 8);
+
+/**
+ * StreamSessionEventsRequest opens a live stream of one session's events.
+ *
+ * @generated from message ai.stigmer.agentic.session.v1.StreamSessionEventsRequest
+ */
+export type StreamSessionEventsRequest = Message<"ai.stigmer.agentic.session.v1.StreamSessionEventsRequest"> & {
+  /**
+   * The session whose events to stream.
+   *
+   * @generated from field: string session_id = 1;
+   */
+  sessionId: string;
+
+  /**
+   * The event types to preview while they are produced: agent.message,
+   * agent.thinking. Empty streams no previews.
+   *
+   * @generated from field: repeated string event_deltas = 2;
+   */
+  eventDeltas: string[];
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.session.v1.StreamSessionEventsRequest.
+ * Use `create(StreamSessionEventsRequestSchema)` to create a new message.
+ */
+export const StreamSessionEventsRequestSchema: GenMessage<StreamSessionEventsRequest> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_session_v1_io, 9);
+
+/**
+ * StreamSessionEventsResponse is one frame of a session's event stream: a
+ * stored event, or a live preview of one still being produced.
+ *
+ * @generated from message ai.stigmer.agentic.session.v1.StreamSessionEventsResponse
+ */
+export type StreamSessionEventsResponse = Message<"ai.stigmer.agentic.session.v1.StreamSessionEventsResponse"> & {
+  /**
+   * The frame.
+   *
+   * @generated from oneof ai.stigmer.agentic.session.v1.StreamSessionEventsResponse.frame
+   */
+  frame: {
+    /**
+     * An event appended to the session's log.
+     *
+     * @generated from field: ai.stigmer.agentic.session.v1.SessionEvent event = 1;
+     */
+    value: SessionEvent;
+    case: "event";
+  } | {
+    /**
+     * A preview of an event opened.
+     *
+     * @generated from field: ai.stigmer.agentic.session.v1.EventStart event_start = 2;
+     */
+    value: EventStart;
+    case: "eventStart";
+  } | {
+    /**
+     * A fragment of a previewed event.
+     *
+     * @generated from field: ai.stigmer.agentic.session.v1.EventDelta event_delta = 3;
+     */
+    value: EventDelta;
+    case: "eventDelta";
+  } | { case: undefined; value?: undefined };
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.session.v1.StreamSessionEventsResponse.
+ * Use `create(StreamSessionEventsResponseSchema)` to create a new message.
+ */
+export const StreamSessionEventsResponseSchema: GenMessage<StreamSessionEventsResponse> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_session_v1_io, 10);
+
+/**
+ * SessionEventPreview is one live preview frame a runner sends with its
+ * events: streamed to the session's watchers, never stored.
+ *
+ * @generated from message ai.stigmer.agentic.session.v1.SessionEventPreview
+ */
+export type SessionEventPreview = Message<"ai.stigmer.agentic.session.v1.SessionEventPreview"> & {
+  /**
+   * The preview frame.
+   *
+   * @generated from oneof ai.stigmer.agentic.session.v1.SessionEventPreview.preview
+   */
+  preview: {
+    /**
+     * A preview of an event opened.
+     *
+     * @generated from field: ai.stigmer.agentic.session.v1.EventStart event_start = 1;
+     */
+    value: EventStart;
+    case: "eventStart";
+  } | {
+    /**
+     * A fragment of a previewed event.
+     *
+     * @generated from field: ai.stigmer.agentic.session.v1.EventDelta event_delta = 2;
+     */
+    value: EventDelta;
+    case: "eventDelta";
+  } | { case: undefined; value?: undefined };
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.session.v1.SessionEventPreview.
+ * Use `create(SessionEventPreviewSchema)` to create a new message.
+ */
+export const SessionEventPreviewSchema: GenMessage<SessionEventPreview> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_session_v1_io, 11);
+
+/**
+ * AppendSessionEventsInput appends a run's events to its session's log.
+ *
+ * @generated from message ai.stigmer.agentic.session.v1.AppendSessionEventsInput
+ */
+export type AppendSessionEventsInput = Message<"ai.stigmer.agentic.session.v1.AppendSessionEventsInput"> & {
+  /**
+   * The run the events belong to.
+   *
+   * @generated from field: string run_id = 1;
+   */
+  runId: string;
+
+  /**
+   * The events, in order. Each carries its own id, unique in the session,
+   * and its thread; the server assigns seq and processed_at. A resent id
+   * with the same event is accepted again without a second entry.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.session.v1.SessionEvent events = 2;
+   */
+  events: SessionEvent[];
+
+  /**
+   * Live previews to stream to the session's watchers, never stored.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.session.v1.SessionEventPreview previews = 3;
+   */
+  previews: SessionEventPreview[];
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.session.v1.AppendSessionEventsInput.
+ * Use `create(AppendSessionEventsInputSchema)` to create a new message.
+ */
+export const AppendSessionEventsInputSchema: GenMessage<AppendSessionEventsInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_session_v1_io, 12);
+
+/**
+ * AppendSessionEventsResponse holds the events as appended.
+ *
+ * @generated from message ai.stigmer.agentic.session.v1.AppendSessionEventsResponse
+ */
+export type AppendSessionEventsResponse = Message<"ai.stigmer.agentic.session.v1.AppendSessionEventsResponse"> & {
+  /**
+   * The events, each with its seq and processed_at.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.session.v1.SessionEvent events = 1;
+   */
+  events: SessionEvent[];
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.session.v1.AppendSessionEventsResponse.
+ * Use `create(AppendSessionEventsResponseSchema)` to create a new message.
+ */
+export const AppendSessionEventsResponseSchema: GenMessage<AppendSessionEventsResponse> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_session_v1_io, 13);
 

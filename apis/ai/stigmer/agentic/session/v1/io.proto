@@ -3,6 +3,8 @@ syntax = "proto3";
 package ai.stigmer.agentic.session.v1;
 
 import "ai/stigmer/agentic/session/v1/api.proto";
+import "ai/stigmer/agentic/session/v1/event.proto";
+import "ai/stigmer/commons/apiresource/field_options.proto";
 import "buf/validate/validate.proto";
 
 // SessionId wraps a session identifier.
@@ -90,4 +92,134 @@ message UpdateSessionSubjectRequest {
 
   // New subject value. Empty string clears the subject.
   string subject = 2;
+}
+
+// ListSessionEventsRequest pages through one session's event log.
+message ListSessionEventsRequest {
+  // The session whose events to list.
+  string session_id = 1 [(buf.validate.field).required = true];
+
+  // The most events to return, at most 1000; zero returns 100.
+  int32 page_size = 2 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+
+  // The previous response's next_page_token, to continue that list; every
+  // other field must equal that request's, or the call is refused.
+  string page_token = 3;
+
+  // The order: asc (oldest first, the default) or desc.
+  string order = 4 [
+    (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE,
+    (buf.validate.field).string = {
+      in: [
+        "asc",
+        "desc"
+      ]
+    }
+  ];
+
+  // Only events of these types, for example session.status_idle; empty
+  // lists every type.
+  repeated string types = 5 [(buf.validate.field).repeated = {
+    max_items: 64
+    items: {
+      string: {pattern: "^[a-z_]+(\\.[a-z_]+)+$"}
+    }
+  }];
+
+  // Only events appended after this RFC 3339 instant.
+  string created_at_gt = 6;
+
+  // Only events appended at or after this RFC 3339 instant.
+  string created_at_gte = 7;
+
+  // Only events appended before this RFC 3339 instant.
+  string created_at_lt = 8;
+
+  // Only events appended at or before this RFC 3339 instant.
+  string created_at_lte = 9;
+}
+
+// SessionEventList is one page of a session's events.
+message SessionEventList {
+  // The events, in the requested order.
+  repeated SessionEvent events = 1;
+
+  // Set when more events may follow: pass it as page_token to continue.
+  // Empty when the list is complete.
+  string next_page_token = 2;
+}
+
+// StreamSessionEventsRequest opens a live stream of one session's events.
+message StreamSessionEventsRequest {
+  // The session whose events to stream.
+  string session_id = 1 [(buf.validate.field).required = true];
+
+  // The event types to preview while they are produced: agent.message,
+  // agent.thinking. Empty streams no previews.
+  repeated string event_deltas = 2 [(buf.validate.field).repeated = {
+    max_items: 2
+    unique: true
+    items: {
+      string: {
+        in: [
+          "agent.message",
+          "agent.thinking"
+        ]
+      }
+    }
+  }];
+}
+
+// StreamSessionEventsResponse is one frame of a session's event stream: a
+// stored event, or a live preview of one still being produced.
+message StreamSessionEventsResponse {
+  // The frame.
+  oneof frame {
+    // An event appended to the session's log.
+    SessionEvent event = 1;
+
+    // A preview of an event opened.
+    EventStart event_start = 2 [(ai.stigmer.commons.apiresource.event_type) = "event_start"];
+
+    // A fragment of a previewed event.
+    EventDelta event_delta = 3 [(ai.stigmer.commons.apiresource.event_type) = "event_delta"];
+  }
+}
+
+// SessionEventPreview is one live preview frame a runner sends with its
+// events: streamed to the session's watchers, never stored.
+message SessionEventPreview {
+  // The preview frame.
+  oneof preview {
+    option (buf.validate.oneof).required = true;
+
+    // A preview of an event opened.
+    EventStart event_start = 1 [(ai.stigmer.commons.apiresource.event_type) = "event_start"];
+
+    // A fragment of a previewed event.
+    EventDelta event_delta = 2 [(ai.stigmer.commons.apiresource.event_type) = "event_delta"];
+  }
+}
+
+// AppendSessionEventsInput appends a run's events to its session's log.
+message AppendSessionEventsInput {
+  // The run the events belong to.
+  string run_id = 1 [(buf.validate.field).required = true];
+
+  // The events, in order. Each carries its own id, unique in the session,
+  // and its thread; the server assigns seq and processed_at. A resent id
+  // with the same event is accepted again without a second entry.
+  repeated SessionEvent events = 2 [(buf.validate.field).repeated.max_items = 1000];
+
+  // Live previews to stream to the session's watchers, never stored.
+  repeated SessionEventPreview previews = 3 [(buf.validate.field).repeated.max_items = 1000];
+}
+
+// AppendSessionEventsResponse holds the events as appended.
+message AppendSessionEventsResponse {
+  // The events, each with its seq and processed_at.
+  repeated SessionEvent events = 1;
 }

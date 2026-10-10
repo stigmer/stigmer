@@ -71,15 +71,26 @@ export function newLoadExistingForDeleteStep<
   };
 }
 
+/**
+ * Removes a resource by id: the store's own delete, or `remove` when a
+ * kind's removal must commit with more than the row (a run's, which ends
+ * its session's turn in the same transaction,
+ * domain/session/events/run-writes.ts). The step's name and place in the
+ * chain are the same either way. Like the store's, `remove` raises no
+ * error for an absent resource.
+ */
 export function newDeleteResourceStep<Desc extends DescMessage>(
   store: Store,
+  remove?: (id: string) => Promise<void>,
 ): PipelineStep<Desc> {
   return {
     name: "DeleteResource",
     async execute(ctx: RequestContext<Desc>): Promise<void> {
       const id = requireResourceId(ctx);
       try {
-        await store.deleteResource(ctx.apiResourceKind, id);
+        await (remove === undefined
+          ? store.deleteResource(ctx.apiResourceKind, id)
+          : remove(id));
       } catch (error) {
         throw internalError(
           error,
@@ -90,7 +101,7 @@ export function newDeleteResourceStep<Desc extends DescMessage>(
   };
 }
 
-function requireResourceId<Desc extends DescMessage>(
+export function requireResourceId<Desc extends DescMessage>(
   ctx: RequestContext<Desc>,
 ): string {
   const id = ctx.get(RESOURCE_ID_KEY);

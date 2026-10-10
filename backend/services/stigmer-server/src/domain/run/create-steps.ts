@@ -70,6 +70,8 @@ import { serviceTierRefusal } from "./validate-service-tier.js";
 import { thinkingModeRefusal } from "./validate-thinking-mode.js";
 import type { ModelCatalogProvider } from "../../modelcatalog/model-catalog-provider.js";
 import { notifyStatusObservers } from "./status-observers.js";
+import type { SessionEventBroker } from "../session/events/broker.js";
+import { overwriteRunAppendingEvents } from "../session/events/run-writes.js";
 import { newSessionSpecOf, sessionIdOf } from "./target.js";
 import { unavailableError } from "../../pipeline/errors.js";
 import { isPluginEvalRun } from "../plugin-eval/plugin-eval-run.js";
@@ -751,6 +753,8 @@ export function newStartWorkflowStep(deps: {
   engineState: ExecutionEngineStateProvider;
   /** The failure arm's PENDING→FAILED stamp is a notified transition. */
   statusObservers: ReadonlyArray<RunStatusObserver>;
+  /** The failure arm's stamp ends its session's turn (session/events/run-writes.ts). */
+  sessionEventBroker: SessionEventBroker;
 }): PipelineStep<CreateDesc> {
   return {
     name: "StartWorkflow",
@@ -795,12 +799,9 @@ export function newStartWorkflowStep(deps: {
         execution.status.error = `Failed to start Temporal workflow: ${error instanceof Error ? error.message : String(error)}`;
 
         try {
-          await deps.store.saveResource(
-            ctx.apiResourceKind,
-            executionId,
-            RunSchema,
-            execution as Run,
-          );
+          // The copy is written over the stored row, as it always was; the
+          // session's events come from the committed row.
+          await overwriteRunAppendingEvents(deps, execution as Run);
         } catch (updateError) {
           throw internalError(
             updateError,

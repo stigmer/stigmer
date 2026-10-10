@@ -1,0 +1,172 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.session.v1;
+
+import "buf/validate/validate.proto";
+
+// ContentBlock is one block of an event's content: text, an image, a
+// document, or a redacted block.
+//
+// The fields are those of Claude Managed Agents' content blocks; type names
+// the block and only that block's fields are set.
+//
+// @internal
+// One flat message per type-tagged union, so the protobuf JSON with proto
+// field names is the outside format's JSON once `type` is set: an unset
+// field is omitted, and a block carries only its own variant's fields.
+message ContentBlock {
+  // The block's kind: text, image, document or redacted.
+  string type = 1 [(buf.validate.field).string = {
+    in: [
+      "text",
+      "image",
+      "document",
+      "redacted"
+    ]
+  }];
+
+  // The text of a text block.
+  string text = 2;
+
+  // Where an image or document block's bytes come from.
+  ContentSource source = 3;
+
+  // Context about a document block, for the model.
+  string context = 4;
+
+  // A document block's title.
+  string title = 5;
+}
+
+// ContentSource says where an image or document block's bytes come from:
+// inline base64 data, inline plain text, a URL, or an uploaded file.
+message ContentSource {
+  // The source's kind: base64, text, url or file.
+  string type = 1 [(buf.validate.field).string = {
+    in: [
+      "base64",
+      "text",
+      "url",
+      "file"
+    ]
+  }];
+
+  // The inline data of a base64 or text source.
+  string data = 2;
+
+  // The media type of inline data, for example image/png or text/plain.
+  string media_type = 3;
+
+  // The address of a url source.
+  string url = 4;
+
+  // The uploaded file of a file source.
+  string file_id = 5;
+}
+
+// StopReason says why a session or a thread went idle.
+message StopReason {
+  // end_turn, requires_action, retries_exhausted, budget_reached or refusal.
+  string type = 1 [(buf.validate.field).string = {
+    in: [
+      "end_turn",
+      "requires_action",
+      "retries_exhausted",
+      "budget_reached",
+      "refusal"
+    ]
+  }];
+
+  // The events that need an answer before work continues (requires_action).
+  repeated string event_ids = 2;
+}
+
+// StopDetails describes a refusal that stopped the session.
+message StopDetails {
+  // Always refusal.
+  string type = 1 [(buf.validate.field).string = {
+    in: ["refusal"]
+  }];
+
+  // The refusal's category, when one was given: cyber, bio, frontier_llm,
+  // reasoning_extraction or general_harms.
+  optional string category = 2 [(buf.validate.field).string = {
+    in: [
+      "cyber",
+      "bio",
+      "frontier_llm",
+      "reasoning_extraction",
+      "general_harms"
+    ]
+  }];
+
+  // A human-readable explanation of the refusal, when one was given.
+  optional string explanation = 3;
+}
+
+// SessionError is the error a session.error event reports.
+message SessionError {
+  // The error's kind.
+  string type = 1 [(buf.validate.field).string = {
+    in: [
+      "unknown_error",
+      "model_overloaded_error",
+      "model_rate_limited_error",
+      "model_request_failed_error",
+      "mcp_connection_failed_error",
+      "mcp_authentication_failed_error",
+      "billing_error"
+    ]
+  }];
+
+  // A human-readable description of the error.
+  string message = 2;
+
+  // Whether the work is being retried after this error.
+  RetryStatus retry_status = 3;
+
+  // The MCP server that failed (the mcp_* errors).
+  string mcp_server_name = 4;
+}
+
+// RetryStatus says whether work is retried after an error.
+message RetryStatus {
+  // retrying, exhausted or terminal.
+  string type = 1 [(buf.validate.field).string = {
+    in: [
+      "retrying",
+      "exhausted",
+      "terminal"
+    ]
+  }];
+}
+
+// ToolEvaluation says how a tool use's permission was decided.
+message ToolEvaluation {
+  // always_allow, always_ask or auto.
+  string type = 1 [(buf.validate.field).string = {
+    in: [
+      "always_allow",
+      "always_ask",
+      "auto"
+    ]
+  }];
+
+  // The automatic decision (auto).
+  AutoEvaluatedPermission evaluated_permission = 2;
+}
+
+// AutoEvaluatedPermission is an automatic permission decision on a tool use.
+message AutoEvaluatedPermission {
+  // allow, ask or deny.
+  string type = 1 [(buf.validate.field).string = {
+    in: [
+      "allow",
+      "ask",
+      "deny"
+    ]
+  }];
+
+  // Why the decision was ask or deny.
+  string reason_code = 2;
+}

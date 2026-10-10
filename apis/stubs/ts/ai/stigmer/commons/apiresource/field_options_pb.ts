@@ -13,7 +13,7 @@ import { file_google_protobuf_descriptor } from "@bufbuild/protobuf/wkt";
  * Describes the file ai/stigmer/commons/apiresource/field_options.proto.
  */
 export const file_ai_stigmer_commons_apiresource_field_options: GenFile = /*@__PURE__*/
-  fileDesc("CjJhaS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvZmllbGRfb3B0aW9ucy5wcm90bxIeYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlOjsKCGNvbXB1dGVkEh0uZ29vZ2xlLnByb3RvYnVmLkZpZWxkT3B0aW9ucxjZwAUgASgIUghjb21wdXRlZDo9CglpbW11dGFibGUSHS5nb29nbGUucHJvdG9idWYuRmllbGRPcHRpb25zGNrABSABKAhSCWltbXV0YWJsZTqHAQoOcmVmZXJlbmNlX2tpbmQSHS5nb29nbGUucHJvdG9idWYuRmllbGRPcHRpb25zGNzABSABKA4yPy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLkFwaVJlc291cmNlS2luZFINcmVmZXJlbmNlS2luZGIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind, file_google_protobuf_descriptor]);
+  fileDesc("CjJhaS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvZmllbGRfb3B0aW9ucy5wcm90bxIeYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlOjsKCGNvbXB1dGVkEh0uZ29vZ2xlLnByb3RvYnVmLkZpZWxkT3B0aW9ucxjZwAUgASgIUghjb21wdXRlZDo9CglpbW11dGFibGUSHS5nb29nbGUucHJvdG9idWYuRmllbGRPcHRpb25zGNrABSABKAhSCWltbXV0YWJsZTqHAQoOcmVmZXJlbmNlX2tpbmQSHS5nb29nbGUucHJvdG9idWYuRmllbGRPcHRpb25zGNzABSABKA4yPy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLkFwaVJlc291cmNlS2luZFINcmVmZXJlbmNlS2luZDo+CgpldmVudF90eXBlEh0uZ29vZ2xlLnByb3RvYnVmLkZpZWxkT3B0aW9ucxjewAUgASgJUglldmVudFR5cGViBnByb3RvMw", [file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind, file_google_protobuf_descriptor]);
 
 /**
  * Marks a field as computed/read-only
@@ -39,4 +39,14 @@ export const immutable: GenExtension<FieldOptions, boolean> = /*@__PURE__*/
  */
 export const reference_kind: GenExtension<FieldOptions, ApiResourceKind> = /*@__PURE__*/
   extDesc(file_ai_stigmer_commons_apiresource_field_options, 2);
+
+/**
+ * Names the outside format's type string a oneof member carries on the
+ * wire ("agent.message"), so a message copied from that format keeps no
+ * type field of its own and the name is declared once.
+ *
+ * @generated from extension: string event_type = 90206;
+ */
+export const event_type: GenExtension<FieldOptions, string> = /*@__PURE__*/
+  extDesc(file_ai_stigmer_commons_apiresource_field_options, 3);
 

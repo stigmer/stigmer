@@ -23,6 +23,8 @@ const (
 	SessionQueryController_List_FullMethodName          = "/ai.stigmer.agentic.session.v1.SessionQueryController/list"
 	SessionQueryController_ListByAgent_FullMethodName   = "/ai.stigmer.agentic.session.v1.SessionQueryController/listByAgent"
 	SessionQueryController_ListByChannel_FullMethodName = "/ai.stigmer.agentic.session.v1.SessionQueryController/listByChannel"
+	SessionQueryController_ListEvents_FullMethodName    = "/ai.stigmer.agentic.session.v1.SessionQueryController/listEvents"
+	SessionQueryController_StreamEvents_FullMethodName  = "/ai.stigmer.agentic.session.v1.SessionQueryController/streamEvents"
 )
 
 // SessionQueryControllerClient is the client API for SessionQueryController service.
@@ -50,6 +52,18 @@ type SessionQueryControllerClient interface {
 	// the channel; results are additionally filtered to sessions the caller
 	// can view.
 	ListByChannel(ctx context.Context, in *ListSessionsByChannelRequest, opts ...grpc.CallOption) (*SessionList, error)
+	// List a session's events, oldest first unless desc is asked for.
+	//
+	// The events are Claude Managed Agents session events, in the order they
+	// were appended; a page holds at most page_size of them.
+	ListEvents(ctx context.Context, in *ListSessionEventsRequest, opts ...grpc.CallOption) (*SessionEventList, error)
+	// Stream a session's events as they are appended.
+	//
+	// The stream starts at the moment it opens: list the events first to
+	// catch up, and skip any event id already seen. A watcher that falls too
+	// far behind is ended with RESOURCE_EXHAUSTED; list from the last event
+	// it saw, then stream again.
+	StreamEvents(ctx context.Context, in *StreamSessionEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamSessionEventsResponse], error)
 }
 
 type sessionQueryControllerClient struct {
@@ -100,6 +114,35 @@ func (c *sessionQueryControllerClient) ListByChannel(ctx context.Context, in *Li
 	return out, nil
 }
 
+func (c *sessionQueryControllerClient) ListEvents(ctx context.Context, in *ListSessionEventsRequest, opts ...grpc.CallOption) (*SessionEventList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SessionEventList)
+	err := c.cc.Invoke(ctx, SessionQueryController_ListEvents_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *sessionQueryControllerClient) StreamEvents(ctx context.Context, in *StreamSessionEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamSessionEventsResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &SessionQueryController_ServiceDesc.Streams[0], SessionQueryController_StreamEvents_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[StreamSessionEventsRequest, StreamSessionEventsResponse]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type SessionQueryController_StreamEventsClient = grpc.ServerStreamingClient[StreamSessionEventsResponse]
+
 // SessionQueryControllerServer is the server API for SessionQueryController service.
 // All implementations should embed UnimplementedSessionQueryControllerServer
 // for forward compatibility.
@@ -125,6 +168,18 @@ type SessionQueryControllerServer interface {
 	// the channel; results are additionally filtered to sessions the caller
 	// can view.
 	ListByChannel(context.Context, *ListSessionsByChannelRequest) (*SessionList, error)
+	// List a session's events, oldest first unless desc is asked for.
+	//
+	// The events are Claude Managed Agents session events, in the order they
+	// were appended; a page holds at most page_size of them.
+	ListEvents(context.Context, *ListSessionEventsRequest) (*SessionEventList, error)
+	// Stream a session's events as they are appended.
+	//
+	// The stream starts at the moment it opens: list the events first to
+	// catch up, and skip any event id already seen. A watcher that falls too
+	// far behind is ended with RESOURCE_EXHAUSTED; list from the last event
+	// it saw, then stream again.
+	StreamEvents(*StreamSessionEventsRequest, grpc.ServerStreamingServer[StreamSessionEventsResponse]) error
 }
 
 // UnimplementedSessionQueryControllerServer should be embedded to have
@@ -145,6 +200,12 @@ func (UnimplementedSessionQueryControllerServer) ListByAgent(context.Context, *L
 }
 func (UnimplementedSessionQueryControllerServer) ListByChannel(context.Context, *ListSessionsByChannelRequest) (*SessionList, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListByChannel not implemented")
+}
+func (UnimplementedSessionQueryControllerServer) ListEvents(context.Context, *ListSessionEventsRequest) (*SessionEventList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListEvents not implemented")
+}
+func (UnimplementedSessionQueryControllerServer) StreamEvents(*StreamSessionEventsRequest, grpc.ServerStreamingServer[StreamSessionEventsResponse]) error {
+	return status.Errorf(codes.Unimplemented, "method StreamEvents not implemented")
 }
 func (UnimplementedSessionQueryControllerServer) testEmbeddedByValue() {}
 
@@ -238,6 +299,35 @@ func _SessionQueryController_ListByChannel_Handler(srv interface{}, ctx context.
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SessionQueryController_ListEvents_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSessionEventsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SessionQueryControllerServer).ListEvents(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SessionQueryController_ListEvents_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SessionQueryControllerServer).ListEvents(ctx, req.(*ListSessionEventsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SessionQueryController_StreamEvents_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(StreamSessionEventsRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(SessionQueryControllerServer).StreamEvents(m, &grpc.GenericServerStream[StreamSessionEventsRequest, StreamSessionEventsResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type SessionQueryController_StreamEventsServer = grpc.ServerStreamingServer[StreamSessionEventsResponse]
+
 // SessionQueryController_ServiceDesc is the grpc.ServiceDesc for SessionQueryController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -261,7 +351,17 @@ var SessionQueryController_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "listByChannel",
 			Handler:    _SessionQueryController_ListByChannel_Handler,
 		},
+		{
+			MethodName: "listEvents",
+			Handler:    _SessionQueryController_ListEvents_Handler,
+		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "streamEvents",
+			Handler:       _SessionQueryController_StreamEvents_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "ai/stigmer/agentic/session/v1/query.proto",
 }

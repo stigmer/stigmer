@@ -35,10 +35,10 @@
  * # The optional capability methods
  *
  * Beyond the mint/verify primitives, an edition's runner credentials
- * surface at four OSS-owned touchpoints whose POLICY is edition-specific:
+ * surface at five OSS-owned touchpoints whose POLICY is edition-specific:
  * the platform scoped-token exchange, the bootstrap credential response,
- * the token baked into a provisioned sandbox, and the values fetch's
- * trust decision. Each is an OPTIONAL method here; each OSS call
+ * the token baked into a provisioned sandbox, the values fetch's trust
+ * decision, and the session event append's. Each is an OPTIONAL method here; each OSS call
  * site falls back to today's exact behavior when the method is absent,
  * and the OSS default provider defines none of these POLICY capabilities
  * — empty-composition behavior is byte-identical by construction (the
@@ -273,6 +273,23 @@ export interface RunnerCredentialProvider {
     rawToken: string,
     executionId: string,
   ): Promise<boolean>;
+
+  /**
+   * The trust decision for SessionCommandController.appendEvents: whether
+   * the bearer is the runner acting for run `runId`, and so may write the
+   * agent's events into the run's session. When present, it decides whose
+   * credential this is (an edition whose runner credential serves a whole
+   * session admits it for every run of that session); absent, the append
+   * keeps the OSS decision (execution_scoped verify and binding equality
+   * with the run). Either way the run must then exist and not be finished,
+   * which the append checks itself. True allows; false refuses with
+   * PERMISSION_DENIED; it never throws for an unrecognized or invalid token
+   * (a throw is a composition fault, logged and refused the same way).
+   * Deliberately not the values read's decision: that one admits a run
+   * that ended within a grace, which is the wrong question for writing the
+   * agent's words.
+   */
+  authorizeRunEventsAppend?(rawToken: string, runId: string): Promise<boolean>;
 
   /**
    * Decrypt-key material for a Temporal payload-encryption key id the

@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ListSessionsByAgentRequest, ListSessionsByChannelRequest, ListSessionsRequest, SessionId, SessionList } from "./io_pbjs";
+import { ListSessionEventsRequest, ListSessionsByAgentRequest, ListSessionsByChannelRequest, ListSessionsRequest, SessionEventList, SessionId, SessionList, StreamSessionEventsRequest, StreamSessionEventsResponse } from "./io_pbjs";
 import { Session } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 
@@ -69,6 +69,36 @@ export const SessionQueryController = {
       I: ListSessionsByChannelRequest,
       O: SessionList,
       kind: MethodKind.Unary,
+    },
+    /**
+     * List a session's events, oldest first unless desc is asked for.
+     *
+     * The events are Claude Managed Agents session events, in the order they
+     * were appended; a page holds at most page_size of them.
+     *
+     * @generated from rpc ai.stigmer.agentic.session.v1.SessionQueryController.listEvents
+     */
+    listEvents: {
+      name: "listEvents",
+      I: ListSessionEventsRequest,
+      O: SessionEventList,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Stream a session's events as they are appended.
+     *
+     * The stream starts at the moment it opens: list the events first to
+     * catch up, and skip any event id already seen. A watcher that falls too
+     * far behind is ended with RESOURCE_EXHAUSTED; list from the last event
+     * it saw, then stream again.
+     *
+     * @generated from rpc ai.stigmer.agentic.session.v1.SessionQueryController.streamEvents
+     */
+    streamEvents: {
+      name: "streamEvents",
+      I: StreamSessionEventsRequest,
+      O: StreamSessionEventsResponse,
+      kind: MethodKind.ServerStreaming,
     },
   }
 } as const;

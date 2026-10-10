@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Iterator
 
 import grpc
 
@@ -56,6 +57,12 @@ class SessionClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def append_events(self, input: io_pb2.AppendSessionEventsInput) -> io_pb2.AppendSessionEventsResponse:
+        try:
+            return self._command.appendEvents(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def get(self, id: str) -> api_pb2.Session:
         try:
             return self._query.get(io_pb2.SessionId(value=id))
@@ -77,6 +84,19 @@ class SessionClient:
     def list_by_channel(self, input: io_pb2.ListSessionsByChannelRequest) -> io_pb2.SessionList:
         try:
             return self._query.listByChannel(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def list_events(self, input: io_pb2.ListSessionEventsRequest) -> io_pb2.SessionEventList:
+        try:
+            return self._query.listEvents(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def stream_events(self, input: io_pb2.StreamSessionEventsRequest) -> Iterator[io_pb2.StreamSessionEventsResponse]:
+        try:
+            for msg in self._query.streamEvents(input):
+                yield msg
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 

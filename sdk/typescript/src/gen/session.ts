@@ -9,7 +9,7 @@ import { McpServerUsageSchema, type McpServerUsage } from "@stigmer/protos/ai/st
 import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { Harness, CursorMode, ExecutionTarget, GitWriteBackMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { SessionIdSchema, UpdateSessionSubjectRequestSchema, ListSessionsRequestSchema, SessionListSchema, ListSessionsByAgentRequestSchema, ListSessionsByChannelRequestSchema, type UpdateSessionSubjectRequest, type ListSessionsRequest, type SessionList, type ListSessionsByAgentRequest, type ListSessionsByChannelRequest } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+import { SessionIdSchema, UpdateSessionSubjectRequestSchema, AppendSessionEventsInputSchema, AppendSessionEventsResponseSchema, ListSessionsRequestSchema, SessionListSchema, ListSessionsByAgentRequestSchema, ListSessionsByChannelRequestSchema, ListSessionEventsRequestSchema, SessionEventListSchema, StreamSessionEventsRequestSchema, StreamSessionEventsResponseSchema, type UpdateSessionSubjectRequest, type AppendSessionEventsInput, type AppendSessionEventsResponse, type ListSessionsRequest, type SessionList, type ListSessionsByAgentRequest, type ListSessionsByChannelRequest, type ListSessionEventsRequest, type SessionEventList, type StreamSessionEventsRequest, type StreamSessionEventsResponse } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { GitRepoSourceSchema, LocalPathSourceSchema, WorkspaceSourceSchema, WorkspaceEntrySchema, type GitRepoSource, type LocalPathSource, type WorkspaceSource, type WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
@@ -57,6 +57,12 @@ export class SessionClient {
     } catch (e) { throw wrapError(e); }
   }
 
+  async appendEvents(input: AppendSessionEventsInput): Promise<AppendSessionEventsResponse> {
+    try {
+      return await this.command.appendEvents(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
   async get(id: string): Promise<Session> {
     try {
       return await this.query.get(create(SessionIdSchema, { value: id }));
@@ -78,6 +84,20 @@ export class SessionClient {
   async listByChannel(input: ListSessionsByChannelRequest): Promise<SessionList> {
     try {
       return await this.query.listByChannel(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async listEvents(input: ListSessionEventsRequest): Promise<SessionEventList> {
+    try {
+      return await this.query.listEvents(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async *streamEvents(input: StreamSessionEventsRequest, signal?: AbortSignal): AsyncGenerator<StreamSessionEventsResponse> {
+    try {
+      for await (const msg of this.query.streamEvents(input, { signal })) {
+        yield msg;
+      }
     } catch (e) { throw wrapError(e); }
   }
 }

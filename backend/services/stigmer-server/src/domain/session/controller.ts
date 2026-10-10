@@ -21,6 +21,11 @@
  * listByChannel narrow through
  * the composed list read scope. Per-RPC posture:
  * docs/authorization-coverage.md §8.
+ *
+ * The session's event log (events/): listEvents and streamEvents read it
+ * under can_view on the session, appendEvents is the runner's own lane
+ * (events/append.ts carries its gate), and delete removes the log before
+ * the row (DeleteSessionEvents).
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 
@@ -135,6 +140,12 @@ import {
 import { newDestroySecretBackingStateStep } from "../../pipeline/steps/secret-cleanup.js";
 import type { SecretService } from "../../encryption/encryption.js";
 import type { VaultAttachmentOptions } from "../vault/attachments.js";
+import type { RunnerCredentialProvider } from "../../runnerauth/runner-credential-provider.js";
+import { appendSessionEvents } from "./events/append.js";
+import type { SessionEventBroker } from "./events/broker.js";
+import { newDeleteSessionEventsStep } from "./events/delete-step.js";
+import { listSessionEvents } from "./events/list.js";
+import { streamSessionEvents } from "./events/stream.js";
 import { SessionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/status_pb";
 
 export interface SessionControllerDeps {
@@ -168,6 +179,10 @@ export interface SessionControllerDeps {
   readonly secretService: SecretService;
   /** Removes each cascaded run's scores before the run's row (delete). */
   readonly runScores: RunScoreCascade;
+  /** The live fan-out of each session's events (streamEvents, appendEvents). */
+  readonly sessionEventBroker: SessionEventBroker;
+  /** Decides whose runner credential may append a run's events (appendEvents). */
+  readonly runnerAuth: RunnerCredentialProvider;
 }
 
 /**
@@ -197,12 +212,15 @@ export function registerSessionServices(
     updateSubject: (req, ctx) =>
       updateSubject(deps, req, callerIdentityOf(ctx)),
     delete: (id, ctx) => deleteSession(deps, id, ctx),
+    appendEvents: (input, ctx) => appendSessionEvents(deps, input, ctx),
   });
   router.service(SessionQueryController, {
     get: (id, ctx) => get(deps, id, ctx),
     list: (req, ctx) => list(deps, req, ctx),
     listByAgent: (req, ctx) => listByAgent(deps, req, ctx),
     listByChannel: (req, ctx) => listByChannel(deps, req, ctx),
+    listEvents: (req, ctx) => listSessionEvents(deps, req, ctx),
+    streamEvents: (req, ctx) => streamSessionEvents(deps, req, ctx),
   });
 }
 
@@ -424,6 +442,7 @@ async function deleteSession(
         deps.runScores,
       ),
     )
+    .addStep(newDeleteSessionEventsStep(deps.store))
     .addStep(newDeleteResourceStep(deps.store))
     .addStep(
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),

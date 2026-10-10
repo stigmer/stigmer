@@ -72,6 +72,8 @@ import type { ExecutionEngineStateProvider } from "./engine.js";
 import { EngineWorkflowNotFoundError } from "./engine.js";
 import { countAwaitingReview } from "./filereview/gate.js";
 import { notifyStatusObservers } from "./status-observers.js";
+import type { SessionEventBroker } from "../session/events/broker.js";
+import { overwriteRunAppendingEvents } from "../session/events/run-writes.js";
 import { settleInterruptedToolCalls } from "./tool-call-settle.js";
 import type { StreamBroker } from "./stream-broker.js";
 
@@ -86,6 +88,8 @@ export interface SubmitApprovalDeps {
   readonly gateSteps: ResolvedGateSteps;
   /** The stale-workflow reconcile's →FAILED stamp is a notified transition. */
   readonly statusObservers: ReadonlyArray<RunStatusObserver>;
+  /** The reconcile's stamp ends its session's turn (session/events/run-writes.ts). */
+  readonly sessionEventBroker: SessionEventBroker;
 }
 
 type SubmitApprovalDesc =
@@ -449,12 +453,9 @@ async function reconcileStaleExecution(
   );
 
   try {
-    await deps.store.saveResource(
-      ApiResourceKind.run,
-      executionId,
-      RunSchema,
-      reconciled,
-    );
+    // The whole-resource save stays; the session's events come from the
+    // committed row, not the copy this reconcile started from.
+    await overwriteRunAppendingEvents(deps, reconciled);
   } catch (error) {
     deps.logger.error(
       "Failed to reconcile stale execution status - execution will remain in WAITING_FOR_APPROVAL until next attempt",

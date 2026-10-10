@@ -34,9 +34,9 @@ const PINNED: Readonly<
   // keys did not, so the rename kept revision 1; revision 2 added the judge
   // label's key, revision 3 the plugin eval label's.
   run: {
-    revision: 3,
+    revision: 4,
     fingerprint:
-      "run{grades=label:stigmer.ai/grades-run,plugin_eval=label:stigmer.ai/plugin-eval,session=field:spec.session_id}",
+      "run{grades=label:stigmer.ai/grades-run,plugin_eval=label:stigmer.ai/plugin-eval,session=field:spec.session_id,working_session=fieldWhen:spec.session_id?status.phase=1|2|6}",
   },
   score: {
     revision: 1,

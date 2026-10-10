@@ -47,6 +47,14 @@
           "outputType": "Session",
           "outputFullType": "ai.stigmer.agentic.session.v1.Session",
           "description": "Delete a session.\n\n Deletion cascades to the session's runs. Billing usage\n records are immutable and unaffected — they carry their own copies of\n the session and run identifiers.\n\n Fails with FAILED_PRECONDITION while any run in the\n session is still active (pending, in progress, waiting for approval,\n or paused); cancel it or wait for it to finish first."
+        },
+        {
+          "name": "AppendEvents",
+          "inputType": "AppendSessionEventsInput",
+          "inputFullType": "ai.stigmer.agentic.session.v1.AppendSessionEventsInput",
+          "outputType": "AppendSessionEventsResponse",
+          "outputFullType": "ai.stigmer.agentic.session.v1.AppendSessionEventsResponse",
+          "description": "Append a run's events to its session's log.\n\n Only the runner acting for the run may call it, while the run is not\n finished. It accepts the events a runner produces: agent.*,\n session.thread_* and session.error. The batch is appended whole or not\n at all."
         }
       ]
     },
@@ -86,6 +94,23 @@
           "outputType": "SessionList",
           "outputFullType": "ai.stigmer.agentic.session.v1.SessionList",
           "description": "List the conversations an agent channel created.\n\n Returns the sessions the channel runtime (Slack, WhatsApp) created for\n the given agent channel, newest first. The caller must be able to view\n the channel; results are additionally filtered to sessions the caller\n can view."
+        },
+        {
+          "name": "ListEvents",
+          "inputType": "ListSessionEventsRequest",
+          "inputFullType": "ai.stigmer.agentic.session.v1.ListSessionEventsRequest",
+          "outputType": "SessionEventList",
+          "outputFullType": "ai.stigmer.agentic.session.v1.SessionEventList",
+          "description": "List a session's events, oldest first unless desc is asked for.\n\n The events are Claude Managed Agents session events, in the order they\n were appended; a page holds at most page_size of them."
+        },
+        {
+          "name": "StreamEvents",
+          "inputType": "StreamSessionEventsRequest",
+          "inputFullType": "ai.stigmer.agentic.session.v1.StreamSessionEventsRequest",
+          "outputType": "StreamSessionEventsResponse",
+          "outputFullType": "ai.stigmer.agentic.session.v1.StreamSessionEventsResponse",
+          "serverStreaming": true,
+          "description": "Stream a session's events as they are appended.\n\n The stream starts at the moment it opens: list the events first to\n catch up, and skip any event id already seen. A watcher that falls too\n far behind is ended with RESOURCE_EXHAUSTED; list from the last event\n it saw, then stream again."
         }
       ]
     }
@@ -118,6 +143,83 @@
             "kind": "string"
           },
           "description": "New subject value. Empty string clears the subject.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "AppendSessionEventsInput",
+      "description": "AppendSessionEventsInput appends a run's events to its session's log.",
+      "protoType": "ai.stigmer.agentic.session.v1.AppendSessionEventsInput",
+      "protoFile": "apis/ai/stigmer/agentic/session/v1/io.proto",
+      "fields": [
+        {
+          "name": "RunId",
+          "jsonName": "runId",
+          "protoField": "run_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The run the events belong to.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Events",
+          "jsonName": "events",
+          "protoField": "events",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "SessionEvent"
+            }
+          },
+          "description": "The events, in order. Each carries its own id, unique in the session,\n and its thread; the server assigns seq and processed_at. A resent id\n with the same event is accepted again without a second entry.",
+          "required": false,
+          "validation": {
+            "maxItems": 1000
+          }
+        },
+        {
+          "name": "Previews",
+          "jsonName": "previews",
+          "protoField": "previews",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "SessionEventPreview"
+            }
+          },
+          "description": "Live previews to stream to the session's watchers, never stored.",
+          "required": false,
+          "validation": {
+            "maxItems": 1000
+          }
+        }
+      ]
+    },
+    {
+      "name": "AppendSessionEventsResponse",
+      "description": "AppendSessionEventsResponse holds the events as appended.",
+      "protoType": "ai.stigmer.agentic.session.v1.AppendSessionEventsResponse",
+      "protoFile": "apis/ai/stigmer/agentic/session/v1/io.proto",
+      "fields": [
+        {
+          "name": "Events",
+          "jsonName": "events",
+          "protoField": "events",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "SessionEvent"
+            }
+          },
+          "description": "The events, each with its seq and processed_at.",
           "required": false
         }
       ]
@@ -294,6 +396,235 @@
           },
           "description": "The previous response's next_page_token, to continue that list; every\n other field must equal that request's, or the call is refused.",
           "required": false
+        }
+      ]
+    },
+    {
+      "name": "ListSessionEventsRequest",
+      "description": "ListSessionEventsRequest pages through one session's event log.",
+      "protoType": "ai.stigmer.agentic.session.v1.ListSessionEventsRequest",
+      "protoFile": "apis/ai/stigmer/agentic/session/v1/io.proto",
+      "fields": [
+        {
+          "name": "SessionId",
+          "jsonName": "sessionId",
+          "protoField": "session_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The session whose events to list.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "The most events to return, at most 1000; zero returns 100.",
+          "required": false,
+          "validation": {
+            "max": 1000
+          }
+        },
+        {
+          "name": "PageToken",
+          "jsonName": "pageToken",
+          "protoField": "page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The previous response's next_page_token, to continue that list; every\n other field must equal that request's, or the call is refused.",
+          "required": false
+        },
+        {
+          "name": "Order",
+          "jsonName": "order",
+          "protoField": "order",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The order: asc (oldest first, the default) or desc.",
+          "required": false,
+          "validation": {
+            "enum": [
+              "asc",
+              "desc"
+            ]
+          }
+        },
+        {
+          "name": "Types",
+          "jsonName": "types",
+          "protoField": "types",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "Only events of these types, for example session.status_idle; empty\n lists every type.",
+          "required": false,
+          "validation": {
+            "maxItems": 64
+          }
+        },
+        {
+          "name": "CreatedAtGt",
+          "jsonName": "createdAtGt",
+          "protoField": "created_at_gt",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Only events appended after this RFC 3339 instant.",
+          "required": false
+        },
+        {
+          "name": "CreatedAtGte",
+          "jsonName": "createdAtGte",
+          "protoField": "created_at_gte",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Only events appended at or after this RFC 3339 instant.",
+          "required": false
+        },
+        {
+          "name": "CreatedAtLt",
+          "jsonName": "createdAtLt",
+          "protoField": "created_at_lt",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Only events appended before this RFC 3339 instant.",
+          "required": false
+        },
+        {
+          "name": "CreatedAtLte",
+          "jsonName": "createdAtLte",
+          "protoField": "created_at_lte",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Only events appended at or before this RFC 3339 instant.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "SessionEventList",
+      "description": "SessionEventList is one page of a session's events.",
+      "protoType": "ai.stigmer.agentic.session.v1.SessionEventList",
+      "protoFile": "apis/ai/stigmer/agentic/session/v1/io.proto",
+      "fields": [
+        {
+          "name": "Events",
+          "jsonName": "events",
+          "protoField": "events",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "SessionEvent"
+            }
+          },
+          "description": "The events, in the requested order.",
+          "required": false
+        },
+        {
+          "name": "NextPageToken",
+          "jsonName": "nextPageToken",
+          "protoField": "next_page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Set when more events may follow: pass it as page_token to continue.\n Empty when the list is complete.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "StreamSessionEventsRequest",
+      "description": "StreamSessionEventsRequest opens a live stream of one session's events.",
+      "protoType": "ai.stigmer.agentic.session.v1.StreamSessionEventsRequest",
+      "protoFile": "apis/ai/stigmer/agentic/session/v1/io.proto",
+      "fields": [
+        {
+          "name": "SessionId",
+          "jsonName": "sessionId",
+          "protoField": "session_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The session whose events to stream.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "EventDeltas",
+          "jsonName": "eventDeltas",
+          "protoField": "event_deltas",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "The event types to preview while they are produced: agent.message,\n agent.thinking. Empty streams no previews.",
+          "required": false,
+          "validation": {
+            "maxItems": 2
+          }
+        }
+      ]
+    },
+    {
+      "name": "StreamSessionEventsResponse",
+      "description": "StreamSessionEventsResponse is one frame of a session's event stream: a\n stored event, or a live preview of one still being produced.",
+      "protoType": "ai.stigmer.agentic.session.v1.StreamSessionEventsResponse",
+      "protoFile": "apis/ai/stigmer/agentic/session/v1/io.proto",
+      "fields": [
+        {
+          "name": "Event",
+          "jsonName": "event",
+          "protoField": "event",
+          "type": {
+            "kind": "message",
+            "messageType": "SessionEvent"
+          },
+          "description": "An event appended to the session's log.",
+          "required": false,
+          "oneofGroup": "frame"
+        },
+        {
+          "name": "EventStart",
+          "jsonName": "eventStart",
+          "protoField": "event_start",
+          "type": {
+            "kind": "message",
+            "messageType": "EventStart"
+          },
+          "description": "A preview of an event opened.",
+          "required": false,
+          "oneofGroup": "frame"
+        },
+        {
+          "name": "EventDelta",
+          "jsonName": "eventDelta",
+          "protoField": "event_delta",
+          "type": {
+            "kind": "message",
+            "messageType": "EventDelta"
+          },
+          "description": "A fragment of a previewed event.",
+          "required": false,
+          "oneofGroup": "frame"
         }
       ]
     }

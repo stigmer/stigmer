@@ -41,6 +41,7 @@ import { submitApproval } from "../submit-approval.js";
 import { submitFileDecision } from "../submit-file-decision.js";
 import { updateStatus } from "../update-status.js";
 import { getRunUsageReport } from "../usage.js";
+import { SessionEventBroker } from "../../session/events/broker.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -61,6 +62,7 @@ const ENTRY_POINTS: ReadonlyArray<
           logger: silentLogger,
           authorizer: newPermissiveSingleTeamAuthorizer(),
           broker: untouchable("broker"),
+          sessionEventBroker: new SessionEventBroker(silentLogger),
           statusObservers: [],
           responseDecorators: [],
         },
@@ -98,6 +100,7 @@ const ENTRY_POINTS: ReadonlyArray<
           logger: silentLogger,
           authorizer: newPermissiveSingleTeamAuthorizer(),
           broker: untouchable("broker"),
+          sessionEventBroker: new SessionEventBroker(silentLogger),
           engineState: untouchable("engineState"),
           gateSteps: new Map(),
           statusObservers: [],
@@ -120,6 +123,7 @@ const ENTRY_POINTS: ReadonlyArray<
           logger: silentLogger,
           authorizer: newPermissiveSingleTeamAuthorizer(),
           broker: untouchable("broker"),
+          sessionEventBroker: new SessionEventBroker(silentLogger),
           engineState: untouchable("engineState"),
           statusObservers: [],
         },

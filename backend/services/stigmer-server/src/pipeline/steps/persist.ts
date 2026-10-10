@@ -6,8 +6,13 @@
  * to an organization is judged by `metadata.org`; an API key, owner-only,
  * is judged by the organization it is limited to, which the binding reads
  * itself (authorization/credential-binding.ts).
+ *
+ * `save` replaces the store's own upsert for a kind whose creation must
+ * commit with more than the row (a run's, which appends its session's
+ * events in the same transaction, domain/session/events/run-writes.ts);
+ * the step's name and place in the chain are the same either way.
  */
-import type { DescMessage } from "@bufbuild/protobuf";
+import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 
 import type { Store } from "../../store/interface.js";
 import { internalError } from "../errors.js";
@@ -19,6 +24,7 @@ import { metadataOf } from "./shapes.js";
 
 export function newPersistStep<Desc extends DescMessage>(
   store: Store,
+  save?: (state: MessageShape<Desc>) => Promise<void>,
 ): PipelineStep<Desc> {
   return {
     name: "Persist",
@@ -37,12 +43,14 @@ export function newPersistStep<Desc extends DescMessage>(
         refuseBoundElsewhere(ctx.callerIdentity, metadata.org);
       }
       try {
-        await store.saveResource(
-          ctx.apiResourceKind,
-          metadata.id,
-          ctx.schema,
-          ctx.newState,
-        );
+        await (save === undefined
+          ? store.saveResource(
+              ctx.apiResourceKind,
+              metadata.id,
+              ctx.schema,
+              ctx.newState,
+            )
+          : save(ctx.newState));
       } catch (error) {
         throw internalError(error, "failed to save resource to store");
       }

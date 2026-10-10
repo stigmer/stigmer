@@ -81,6 +81,24 @@ import type {
   ListIndexRow,
 } from "../list-index.js";
 import { NOOP_STORE_LOGGER } from "../logger.js";
+import {
+  SessionEventConflictError,
+  assertSessionEventLimit,
+  dedupeSessionEventDrafts,
+  sameBytes,
+  sessionEventInstant,
+} from "../session-events.js";
+import type {
+  ResourceEventWriteResult,
+  ResourceEventWriter,
+  SessionEventAppend,
+  SessionEventDraft,
+  SessionEventGuard,
+  SessionEventQuery,
+  SessionEventRecord,
+  SessionEventScope,
+  SessionEventStore,
+} from "../session-events.js";
 import type { StoreLogger } from "../logger.js";
 import { assertRenameMoves } from "../resource-names.js";
 import {
@@ -167,6 +185,7 @@ export class SqliteStore implements Store {
   readonly connectLinks: ConnectLinkStore;
   readonly connectAttempts: ConnectAttemptStore;
   readonly organizationDeletions: OrganizationDeletionStore;
+  readonly sessionEvents: SessionEventStore;
 
   private db: DatabaseSync | undefined;
   private readonly dbPath: string;
@@ -196,6 +215,7 @@ export class SqliteStore implements Store {
     this.organizationDeletions = new SqliteOrganizationDeletionStore(() =>
       this.open(),
     );
+    this.sessionEvents = new SqliteSessionEventStore(() => this.open());
   }
 
   /**
@@ -442,6 +462,104 @@ export class SqliteStore implements Store {
       kindName,
       id,
     );
+  }
+
+  async writeResourceAppendingEvents<Desc extends DescMessage>(
+    kind: ApiResourceKind,
+    id: string,
+    schema: Desc,
+    write: ResourceEventWriter<Desc>,
+    scope: SessionEventScope,
+  ): Promise<ResourceEventWriteResult<Desc>> {
+    const db = this.open();
+    const declaration = this.listIndexes.declarationOf(kind);
+    const kindName = apiResourceKindName(kind);
+    if (declaration === undefined) {
+      throw new Error(`${kindName} is not list-indexed; it cannot write session events`);
+    }
+
+    // BEGIN IMMEDIATE serializes every writer of the file, so the session's
+    // numbers, times and working count are read and written by one writer
+    // at a time (postgres/store.ts takes the session's lock for the same).
+    // Everything until COMMIT is synchronous.
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      const sessionId =
+        scope.sessionId ?? storedSessionOf(db, declaration, id, scope.sessionKey);
+      const stored = db
+        .prepare(
+          `SELECT data, list_indexed_at IS updated_at AS stamped, list_index_revision
+           FROM resources WHERE kind = ? AND id = ?`,
+        )
+        .get(kindName, id) as
+        | { data: Uint8Array; stamped: number; list_index_revision: number | null }
+        | undefined;
+      const previous = stored === undefined ? undefined : fromBinary(schema, stored.data);
+      const before = previous === undefined ? undefined : listIndexFactsOf(declaration, previous);
+      if (before !== undefined) {
+        assertSameSession(kindName, id, sessionId, keyValue(before, scope.sessionKey));
+      }
+
+      const others =
+        sessionId === ""
+          ? 0
+          : countOthersWorking(db, declaration, id, scope.workingKey, sessionId);
+      const outcome = write(previous, others);
+      if (sessionId === "" && outcome.events.length > 0) {
+        throw new Error(`${kindName}/${id} is in no session; it cannot write session events`);
+      }
+
+      let row: MessageShape<Desc> | undefined;
+      let org = before?.org ?? "";
+      if ("put" in outcome) {
+        row = outcome.put;
+        const after = listIndexFactsOf(declaration, row);
+        assertSameSession(kindName, id, sessionId, keyValue(after, scope.sessionKey));
+        org = after.org;
+        db.prepare(UPSERT_RESOURCE_SQL).run(
+          kindName,
+          id,
+          toBinary(schema, row),
+          after.org,
+          after.createdAt,
+          after.revision,
+        );
+        if (
+          stored === undefined ||
+          stored.stamped !== 1 ||
+          stored.list_index_revision !== after.revision ||
+          before === undefined ||
+          !sameListKeyRows(before, after)
+        ) {
+          replaceListKeys(db, kindName, id, after);
+        }
+      } else {
+        db.prepare(`DELETE FROM resources WHERE kind = ? AND id = ?`).run(kindName, id);
+        db.prepare(`DELETE FROM resource_list_keys WHERE kind = ? AND id = ?`).run(kindName, id);
+        if (sessionId !== "") {
+          const keep = outcome.remove.keepEventTypes;
+          db.prepare(
+            `DELETE FROM session_events WHERE session_id = ? AND run_id = ?${
+              keep.length === 0 ? "" : ` AND type NOT IN (${keep.map(() => "?").join(", ")})`
+            }`,
+          ).run(sessionId, id, ...keep);
+        }
+      }
+      const events =
+        outcome.events.length === 0
+          ? []
+          : insertSessionEvents(
+              db,
+              sessionId,
+              org,
+              dedupeSessionEventDrafts(sessionId, outcome.events),
+            );
+      db.exec("COMMIT");
+      return { previous, row, events };
+    } catch (error) {
+      db.exec("ROLLBACK");
+      throw error;
+    }
   }
 
   async findByField<Desc extends DescMessage>(
@@ -2130,4 +2248,262 @@ function organizationDeletionOf(
     stage: row.stage,
     lastError: row.last_error,
   };
+}
+
+// =============================================================================
+// Session events (session-events.ts, SessionEventStore)
+// =============================================================================
+
+const SESSION_EVENT_COLUMNS =
+  "session_id, seq, event_id, run_id, thread_id, type, processed_at, data";
+
+interface SessionEventRow {
+  session_id: string;
+  seq: number;
+  event_id: string;
+  run_id: string;
+  thread_id: string;
+  type: string;
+  processed_at: string;
+  data: Uint8Array;
+}
+
+function sessionEventOf(row: SessionEventRow): SessionEventRecord {
+  return {
+    sessionId: row.session_id,
+    seq: Number(row.seq),
+    eventId: row.event_id,
+    runId: row.run_id,
+    threadId: row.thread_id,
+    type: row.type,
+    processedAt: row.processed_at,
+    data: row.data,
+  };
+}
+
+/** A list key's value in a row's facts; "" when the row holds none. */
+function keyValue(facts: ListIndexFacts, key: string): string {
+  return facts.keys.find((k) => k.key === key)?.value ?? "";
+}
+
+/** Refuses a write whose row names another session than the one it was written under. */
+function assertSameSession(kindName: string, id: string, locked: string, rows: string): void {
+  if (rows !== locked) {
+    throw new Error(
+      `${kindName}/${id} names session '${rows}', not the session '${locked}' its write locked`,
+    );
+  }
+}
+
+/**
+ * A stored row's session (postgres/store.ts's twin): through its session
+ * key when its facts are proven current, from its bytes when unproven.
+ * Throws ResourceNotFoundError when the row is absent.
+ */
+function storedSessionOf(
+  db: DatabaseSync,
+  declaration: ListIndexDeclaration,
+  id: string,
+  sessionKey: string,
+): string {
+  const kindName = apiResourceKindName(declaration.kind);
+  const unproven = db
+    .prepare(UNPROVEN_ROWS_SQL)
+    .all(...unprovenRowsParams(kindName, declaration.revision)) as Array<{
+    id: string;
+    data: Uint8Array;
+  }>;
+  const own = unproven.find((row) => row.id === id);
+  if (own !== undefined) {
+    const facts = factsOfBytes(declaration, own.data);
+    if (facts === undefined) {
+      throw new Error(`${kindName}/${id} does not decode; its session cannot be read`);
+    }
+    return keyValue(facts, sessionKey);
+  }
+  if (db.prepare(`SELECT 1 FROM resources WHERE kind = ? AND id = ?`).get(kindName, id) === undefined) {
+    throw new ResourceNotFoundError(`${kindName}/${id}`);
+  }
+  const key = db
+    .prepare(`SELECT value FROM resource_list_keys WHERE kind = ? AND id = ? AND key = ?`)
+    .get(kindName, id, sessionKey) as { value: string } | undefined;
+  return key?.value ?? "";
+}
+
+/**
+ * How many rows other than `id` hold `workingKey` valued `sessionId`
+ * (postgres/store.ts's twin): the proven rows from the key table alone, no
+ * row read, and every unproven row evaluated from its bytes in place of its
+ * possibly stale key rows.
+ */
+function countOthersWorking(
+  db: DatabaseSync,
+  declaration: ListIndexDeclaration,
+  id: string,
+  workingKey: string,
+  sessionId: string,
+): number {
+  const kindName = apiResourceKindName(declaration.kind);
+  const keyed = db
+    .prepare(
+      `SELECT id FROM resource_list_keys WHERE kind = ? AND key = ? AND value = ? AND id <> ?`,
+    )
+    .all(kindName, workingKey, sessionId, id) as Array<{ id: string }>;
+  const unproven = oneRowPerId(
+    db
+      .prepare(UNPROVEN_ROWS_SQL)
+      .all(...unprovenRowsParams(kindName, declaration.revision)) as Array<{
+      id: string;
+      data: Uint8Array;
+    }>,
+  );
+  const unprovenIds = new Set(unproven.map((row) => row.id));
+  let count = keyed.filter((row) => !unprovenIds.has(row.id)).length;
+  for (const row of unproven) {
+    const facts = row.id === id ? undefined : factsOfBytes(declaration, row.data);
+    if (facts !== undefined && keyValue(facts, workingKey) === sessionId) {
+      count += 1;
+    }
+  }
+  return count;
+}
+
+/** Appends drafts after the session's newest event, on the caller's open write transaction. */
+function insertSessionEvents(
+  db: DatabaseSync,
+  sessionId: string,
+  org: string,
+  drafts: ReadonlyArray<SessionEventDraft>,
+): SessionEventRecord[] {
+  if (drafts.length === 0) {
+    return [];
+  }
+  const last = db
+    .prepare(
+      `SELECT seq, processed_at FROM session_events WHERE session_id = ? ORDER BY seq DESC LIMIT 1`,
+    )
+    .get(sessionId) as { seq: number; processed_at: string } | undefined;
+  const processedAt = sessionEventInstant(Date.now(), last?.processed_at);
+  let seq = last === undefined ? 0 : Number(last.seq);
+  const insert = db.prepare(
+    `INSERT INTO session_events (session_id, seq, event_id, run_id, thread_id, type, org, processed_at, data)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  );
+  return drafts.map((draft) => {
+    seq += 1;
+    insert.run(
+      sessionId,
+      seq,
+      draft.eventId,
+      draft.runId,
+      draft.threadId,
+      draft.type,
+      org,
+      processedAt,
+      draft.data,
+    );
+    return { ...draft, sessionId, seq, processedAt };
+  });
+}
+
+class SqliteSessionEventStore implements SessionEventStore {
+  constructor(private readonly open: () => DatabaseSync) {}
+
+  async list(sessionId: string, query: SessionEventQuery): Promise<SessionEventRecord[]> {
+    assertSessionEventLimit(query.limit);
+    const params: Array<string | number> = [sessionId];
+    const where = ["session_id = ?"];
+    if (query.types !== undefined && query.types.length > 0) {
+      where.push(`type IN (${query.types.map(() => "?").join(", ")})`);
+      params.push(...query.types);
+    }
+    const bounds: Array<[string | undefined, string]> = [
+      [query.processedAtGt, ">"],
+      [query.processedAtGte, ">="],
+      [query.processedAtLt, "<"],
+      [query.processedAtLte, "<="],
+    ];
+    for (const [value, op] of bounds) {
+      if (value !== undefined) {
+        where.push(`processed_at ${op} ?`);
+        params.push(value);
+      }
+    }
+    const descending = query.order === "desc";
+    if (query.afterSeq !== undefined) {
+      where.push(`seq ${descending ? "<" : ">"} ?`);
+      params.push(query.afterSeq);
+    }
+    params.push(query.limit);
+    const rows = this.open()
+      .prepare(
+        `SELECT ${SESSION_EVENT_COLUMNS} FROM session_events
+         WHERE ${where.join(" AND ")}
+         ORDER BY seq ${descending ? "DESC" : "ASC"} LIMIT ?`,
+      )
+      .all(...params) as unknown as SessionEventRow[];
+    return rows.map(sessionEventOf);
+  }
+
+  async append(
+    sessionId: string,
+    org: string,
+    drafts: ReadonlyArray<SessionEventDraft>,
+    guard: SessionEventGuard,
+  ): Promise<SessionEventAppend> {
+    if (sessionId === "") {
+      throw new Error("session events need a session");
+    }
+    const unique = dedupeSessionEventDrafts(sessionId, drafts);
+    const db = this.open();
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      const kindName = apiResourceKindName(guard.kind);
+      const row = db
+        .prepare(`SELECT data FROM resources WHERE kind = ? AND id = ?`)
+        .get(kindName, guard.id) as { data: Uint8Array } | undefined;
+      if (row === undefined) {
+        throw new ResourceNotFoundError(`${kindName}/${guard.id}`);
+      }
+      guard.admit(fromBinary(guard.schema, row.data));
+
+      const find = db.prepare(
+        `SELECT ${SESSION_EVENT_COLUMNS} FROM session_events WHERE session_id = ? AND event_id = ?`,
+      );
+      const held = new Map<string, SessionEventRecord>();
+      const fresh: SessionEventDraft[] = [];
+      for (const draft of unique) {
+        const stored = find.get(sessionId, draft.eventId) as unknown as SessionEventRow | undefined;
+        if (stored === undefined) {
+          fresh.push(draft);
+        } else if (!sameBytes(stored.data, draft.data)) {
+          throw new SessionEventConflictError(sessionId, draft.eventId);
+        } else {
+          held.set(draft.eventId, sessionEventOf(stored));
+        }
+      }
+      const appended = insertSessionEvents(db, sessionId, org, fresh);
+      db.exec("COMMIT");
+      const byId = new Map(appended.map((record) => [record.eventId, record]));
+      return {
+        records: unique.map((draft) => byId.get(draft.eventId) ?? held.get(draft.eventId)!),
+        appended,
+      };
+    } catch (error) {
+      db.exec("ROLLBACK");
+      throw error;
+    }
+  }
+
+  async deleteBySession(sessionId: string): Promise<number> {
+    const result = this.open()
+      .prepare(`DELETE FROM session_events WHERE session_id = ?`)
+      .run(sessionId);
+    return Number(result.changes);
+  }
+
+  async deleteByOrg(org: string): Promise<number> {
+    const result = this.open().prepare(`DELETE FROM session_events WHERE org = ?`).run(org);
+    return Number(result.changes);
+  }
 }

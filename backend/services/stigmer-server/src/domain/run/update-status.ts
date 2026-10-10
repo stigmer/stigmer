@@ -99,6 +99,8 @@ import {
 } from "./status-observers.js";
 import { settleInterruptedToolCalls } from "./tool-call-settle.js";
 import type { StreamBroker } from "./stream-broker.js";
+import type { SessionEventBroker } from "../session/events/broker.js";
+import { updateRunAppendingEvents } from "../session/events/run-writes.js";
 
 export interface UpdateStatusDeps {
   readonly store: Store;
@@ -106,6 +108,8 @@ export interface UpdateStatusDeps {
   /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
   readonly broker: StreamBroker;
+  /** The fan-out of each session's event log (the merge appends its session's status events). */
+  readonly sessionEventBroker: SessionEventBroker;
   /** The composed status-transition observers. */
   readonly statusObservers: ReadonlyArray<RunStatusObserver>;
   /** The composed reply decorators — the querySignal seam. */
@@ -158,14 +162,12 @@ export async function updateStatus(
         let updated: Run;
         let oldPhase = RunPhase.RUN_PHASE_UNSPECIFIED;
         try {
-          updated = await deps.store.updateResource(
-            ApiResourceKind.run,
+          // The merge commits with the session's status events when it
+          // changes whether the run is working (session/events/run-writes.ts).
+          ({ run: updated, previousPhase: oldPhase } = await updateRunAppendingEvents(
+            deps,
             ctx.input.runId,
-            RunSchema,
             (execution) => {
-              oldPhase =
-                execution.status?.phase ??
-                RunPhase.RUN_PHASE_UNSPECIFIED;
               applyUpdateStatusMerge(
                 execution,
                 ctx.input,
@@ -173,7 +175,7 @@ export async function updateStatus(
                 isServerComposedRequest(identity) ? "platform" : "wire",
               );
             },
-          );
+          ));
         } catch (error) {
           if (error instanceof ResourceNotFoundError) {
             throw notFoundError("Run", ctx.input.runId);

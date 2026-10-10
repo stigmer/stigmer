@@ -168,6 +168,7 @@ import { registerMcpServerServices } from "../domain/mcpserver/controller.js";
 import { registerPlatformServices } from "../domain/platform/controller.js";
 import { SERVER_VERSION } from "../domain/platform/version.js";
 import { registerSessionServices } from "../domain/session/controller.js";
+import { SessionEventBroker } from "../domain/session/events/broker.js";
 import { registerPluginServices } from "../domain/plugin/controller.js";
 import { PLUGIN_ARTIFACT_KEY_PREFIX } from "../domain/plugin/constants.js";
 import { registerSkillServices } from "../domain/skill/controller.js";
@@ -315,6 +316,8 @@ export interface ComposedServer {
    * UpdateStatus is the production writer.
    */
   agentExecutionStreamBroker: StreamBroker;
+  /** Each session's event fan-out (exposed for tests, as the run broker is). */
+  sessionEventBroker: SessionEventBroker;
   /**
    * The in-process router transport — the same routes and interceptor
    * chain as the serving router EXCEPT the position-1 identity source
@@ -1061,6 +1064,10 @@ export async function composeServer(
   // recovery/fallback updates reach externally-connected subscribe
   // streams (Go's GetStreamBroker seam).
   const agentExecutionStreamBroker = new StreamBroker(logger);
+  // The same for each session's event log: one fan-out for both routers
+  // and the worker, so an event a worker's write appends reaches every
+  // externally-connected streamEvents.
+  const sessionEventBroker = new SessionEventBroker(logger);
   // Recover's per-execution turns (stigmer#1672): built here, not inside
   // routes() (which runs twice), so a recover over either router waits
   // for one over the other.
@@ -1806,6 +1813,8 @@ export async function composeServer(
       listReadScope,
       secretService,
       runScores,
+      sessionEventBroker,
+      runnerAuth: runnerCredentials,
     });
     // The sharing/channel family registers after the agent family, as in
     // Go server.go (agent 378 → agentshare 384 → agentchannel 391 →
@@ -1905,6 +1914,7 @@ export async function composeServer(
       runLanes: extensions.drivers.runLanes,
       scheduleRunProfile: scheduleTemporalConfig.executionProfile(),
       broker: agentExecutionStreamBroker,
+      sessionEventBroker,
       recoverSerializer: agentExecutionRecoverSerializer,
       engineState: executionEngineState,
       modelRegistry: modelCatalog,
@@ -2236,6 +2246,7 @@ export async function composeServer(
     temporalManager,
     runnerAuthService,
     agentExecutionStreamBroker,
+    sessionEventBroker,
     inProcessTransport: inProcessWiring.transport,
     identityVerifiers,
     routes,

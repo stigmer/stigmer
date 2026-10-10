@@ -84,6 +84,7 @@ import { getRunUsageReport } from "../usage.js";
 
 import { stubConnectedEngine } from "./engine-stub.js";
 import { fileReviewSeed } from "./file-review-seed.js";
+import { SessionEventBroker } from "../../session/events/broker.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -106,6 +107,7 @@ function lifecycleDeps(store: Store): LifecycleDeps {
     authorizer: newPermissiveSingleTeamAuthorizer(),
     recoverSerializer: new KeyedSerializer(),
     broker: untouchable("broker"),
+    sessionEventBroker: new SessionEventBroker(silentLogger),
     engineState: untouchable("engineState"),
     runValuePlanner: untouchable("runValuePlanner"),
     gateSteps: new Map(),
@@ -328,6 +330,7 @@ function approvalDeps(store: Store): SubmitApprovalDeps {
     logger: silentLogger,
     authorizer: newPermissiveSingleTeamAuthorizer(),
     broker: untouchable("broker"),
+    sessionEventBroker: new SessionEventBroker(silentLogger),
     engineState: untouchable("engineState"),
     gateSteps: new Map(),
     statusObservers: [],
@@ -340,6 +343,7 @@ function fileDecisionDeps(store: Store): SubmitFileDecisionDeps {
     logger: silentLogger,
     authorizer: newPermissiveSingleTeamAuthorizer(),
     broker: untouchable("broker"),
+    sessionEventBroker: new SessionEventBroker(silentLogger),
     engineState: untouchable("engineState"),
     statusObservers: [],
   };
@@ -410,6 +414,7 @@ function deletedBeforeWriteStore(
   return {
     getResource: () => Promise.resolve(create(RunSchema, run)),
     updateResource: () => Promise.reject(MISSING()),
+    writeResourceAppendingEvents: () => Promise.reject(MISSING()),
   } as unknown as Store;
 }
 

@@ -5,7 +5,7 @@
 
 import { Session } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { SessionId, UpdateSessionSubjectRequest } from "./io_pbjs";
+import { AppendSessionEventsInput, AppendSessionEventsResponse, SessionId, UpdateSessionSubjectRequest } from "./io_pbjs";
 
 /**
  * SessionCommandController handles write operations for agent sessions.
@@ -80,6 +80,22 @@ export const SessionCommandController = {
       name: "delete",
       I: SessionId,
       O: Session,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Append a run's events to its session's log.
+     *
+     * Only the runner acting for the run may call it, while the run is not
+     * finished. It accepts the events a runner produces: agent.*,
+     * session.thread_* and session.error. The batch is appended whole or not
+     * at all.
+     *
+     * @generated from rpc ai.stigmer.agentic.session.v1.SessionCommandController.appendEvents
+     */
+    appendEvents: {
+      name: "appendEvents",
+      I: AppendSessionEventsInput,
+      O: AppendSessionEventsResponse,
       kind: MethodKind.Unary,
     },
   }

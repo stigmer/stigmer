@@ -91,6 +91,8 @@ import { notifyStatusObservers } from "./status-observers.js";
 import { sessionIdOf } from "./target.js";
 import { settleInterruptedToolCalls } from "./tool-call-settle.js";
 import type { StreamBroker } from "./stream-broker.js";
+import type { SessionEventBroker } from "../session/events/broker.js";
+import { updateRunAppendingEvents } from "../session/events/run-writes.js";
 
 // Context keys — Go's key strings, verbatim. The loaded-execution key is
 // the shared pipeline constant (request-context.ts): extension gate steps
@@ -113,6 +115,8 @@ export interface LifecycleDeps {
    */
   readonly recoverSerializer: KeyedSerializer;
   readonly broker: StreamBroker;
+  /** The fan-out of each session's event log (a transition appends its session's status events). */
+  readonly sessionEventBroker: SessionEventBroker;
   readonly engineState: ExecutionEngineStateProvider;
   /** The shared value-planner deps, consumed by recover's re-plan step. */
   readonly runValuePlanner: RunValuePlannerDeps;
@@ -379,14 +383,12 @@ function newUpdateExecutionPhaseAndPersistStep<Desc extends DescMessage>(
       let updated: Run;
       let oldPhase = RunPhase.RUN_PHASE_UNSPECIFIED;
       try {
-        updated = await deps.store.updateResource(
-          ApiResourceKind.run,
+        // The transition commits with its session's status events
+        // (session/events/run-writes.ts).
+        ({ run: updated, previousPhase: oldPhase } = await updateRunAppendingEvents(
+          deps,
           executionId,
-          RunSchema,
           (loaded) => {
-            oldPhase =
-              loaded.status?.phase ??
-              RunPhase.RUN_PHASE_UNSPECIFIED;
             applyLifecyclePhaseTransition(
               loaded,
               targetPhase,
@@ -395,7 +397,7 @@ function newUpdateExecutionPhaseAndPersistStep<Desc extends DescMessage>(
               reason,
             );
           },
-        );
+        ));
       } catch (error) {
         if (error instanceof ResourceNotFoundError) {
           throw notFoundError("Run", executionId);
