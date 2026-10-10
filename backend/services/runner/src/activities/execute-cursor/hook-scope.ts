@@ -20,6 +20,11 @@
  *    platform content pointing out, would otherwise stretch the confinement
  *    to any target. The native engine admits the same set
  *    (`execute-deep-agent/platform-route.ts` `confinedReadAdmission`).
+ *  - `Read` of a skill's files when the lists deny `Skill`
+ *    (`ToolScope.hidesSkills`): refused whether or not `Read` is in scope, by
+ *    the file's real path relative to the platform dir's
+ *    (`shared/skill-mount.ts` `SKILL_CONTENT_PATTERN`), as the native engine
+ *    refuses it (`middleware/tool-scope.ts`).
  *  - MCP tools, by server and tool (`ToolScope.mcpTable`): every tool the turn
  *    discovered and every one an entry names, plus one shared answer for the
  *    rest of a server and one for any other server. The platform's own
@@ -92,6 +97,11 @@ export interface HookToolScope {
    * not point at the platform dir (no platform content to read).
    */
   readonly readRoot: string;
+  /**
+   * The platform dir's real path when the lists deny `Skill`, inside which a
+   * `Read` of a skill's files is refused; "" when skills are not hidden.
+   */
+  readonly skillRoot: string;
   readonly mcp: McpScopeTable;
   readonly subAgentTypes: SubAgentTypeTable;
 }
@@ -119,6 +129,7 @@ export const UNRESTRICTED_HOOK_SCOPE: HookToolScope = {
   builtins: {},
   otherBuiltins: true,
   readRoot: "",
+  skillRoot: "",
   mcp: { servers: {}, otherServers: true },
   subAgentTypes: { types: {}, otherTypes: true },
 };
@@ -157,6 +168,8 @@ export interface HookToolScopeInput {
   readonly platformServerSlugs: ReadonlySet<string>;
   /** {@link HookToolScope.readRoot}, resolved by the caller (`turn-setup.ts` `platformReadRoot`). */
   readonly readRoot: string;
+  /** The platform dir's real path (`turn-setup.ts` `platformRealRoot`); kept only when the scope hides skills. Absent reads as "". */
+  readonly platformRoot?: string;
   /** The custom sub-agent names registered with the SDK. */
   readonly subAgentTypes: readonly string[];
 }
@@ -192,6 +205,7 @@ export function compileHookToolScope(input: HookToolScopeInput): HookToolScope {
     builtins,
     otherBuiltins: scope.allowsCovering([]),
     readRoot: input.readRoot,
+    skillRoot: scope.hidesSkills ? (input.platformRoot ?? "") : "",
     mcp,
     subAgentTypes: scope.subAgentTypeTable(input.subAgentTypes),
   };

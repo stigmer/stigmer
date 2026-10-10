@@ -132,6 +132,22 @@ describe("compileHookToolScope", () => {
     expect(compiled.builtins.Shell.allowed).toBe(false);
     expect(compiled.builtins.Read.allowed).toBe(true);
   });
+
+  it("carries the platform root for the hidden-skill refusal only when the lists deny Skill", () => {
+    const compile = (disallowedTools: string[], platformRoot?: string) =>
+      compileHookToolScope({
+        scope: ToolScope.of('Agent "a"', { tools: [], disallowedTools }),
+        servers: [],
+        platformServerSlugs: new Set(),
+        readRoot: "",
+        ...(platformRoot !== undefined ? { platformRoot } : {}),
+        subAgentTypes: [],
+      });
+    expect(compile(["Skill"], "/real/platform").skillRoot).toBe("/real/platform");
+    expect(compile(["Skill"]).skillRoot, "no platform dir, nothing to refuse").toBe("");
+    expect(compile(["Bash"], "/real/platform").skillRoot).toBe("");
+    expect(UNRESTRICTED_HOOK_SCOPE.skillRoot).toBe("");
+  });
 });
 
 describe("scopeKey agrees across Cursor's hook and stream taxonomies", () => {

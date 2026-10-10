@@ -26,17 +26,38 @@
  * with each harness; only the per-skill-directory mechanics live here.
  * The archive's transport, the rebuild and the file modes are the shared
  * archive mount's (`archive-mount.ts`), one copy for skills and plugins.
+ *
+ * Also the one statement of where a skill's files live under the platform
+ * dir ({@link SKILL_CONTENT_PATTERN}), which both harnesses' confined reads
+ * consult when a turn's tool lists deny `Skill`.
  */
 
 import { readFile, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, posix } from "node:path";
 import type { StigmerClient } from "../client/stigmer-client.js";
 import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { extractZipFileEntries } from "./zip-extract.js";
 import { downloadArchive, resetDirectory, writeArchiveEntries } from "./archive-mount.js";
+import { STIGMER_LOCAL_STATE_DIR } from "./workspace/stigmer-link.js";
 
 /** Subdirectory of the platform dir where skill mounts live. */
 export const SKILLS_SUBDIR = "skills";
+
+/**
+ * A skill's files, as a path relative to the platform dir in posix form: a
+ * mounted skill (`skills/<name>/…`) or a skill inside a mounted plugin's tree
+ * (`plugins/<digest>/skills/…`, `plugin-mount.ts`). A turn whose tool lists
+ * deny `Skill` is refused a read of any of them, on both engines; the Cursor
+ * hook embeds this pattern's source.
+ */
+export const SKILL_CONTENT_PATTERN = /^(?:skills|plugins\/[^/]+\/skills)(?:\/|$)/;
+
+/** Whether a canonical virtual path (`/.stigmer/…`, the native engine's) names a skill's files. */
+export function isSkillContentPath(virtualPath: string): boolean {
+  const prefix = `/${STIGMER_LOCAL_STATE_DIR}/`;
+  const normalized = posix.normalize(virtualPath);
+  return normalized.startsWith(prefix) && SKILL_CONTENT_PATTERN.test(normalized.slice(prefix.length));
+}
 
 /**
  * Marker recording what a skill's mount directory currently holds. Written
