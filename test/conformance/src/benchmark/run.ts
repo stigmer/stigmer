@@ -18,14 +18,11 @@
 // it ends. Each cell's first attempt is a discarded warm-up. The run's first
 // call per harness, served model and agent shape is the cold call.
 //
-// A quality task runs as a real session on the working agent. After the last
-// turn, its end state is read (workspace-facts.ts), the judge's subject is
-// composed (subject.ts), and a judge run grades it (quality.ts). The
-// judge runs in a fresh organization of its own, with memory off, never the
-// working agent's: that one has memory on and confirmed facts, which recall
-// would put in front of the judge. A session with a failed turn is recorded,
-// not graded: the medians are over completed sessions, as the timing medians
-// are.
+// The quality arm is one plugin eval (quality-eval.ts): the working agent as
+// a plugin, pushed into a fresh organization, its `evals/` suite run by the
+// platform with each planned harness's parity model as a target and the
+// judge model for its AI-graded checks. Its result document is the report's
+// `quality`.
 //
 // Nothing aborts the run but the stack itself. A provisioning or create error
 // fails its attempt with `failure.stage: "create"`, and the run goes on.
@@ -61,27 +58,23 @@ import {
   PARITY_MODEL,
   type BenchmarkCell,
   type CellPlan,
-  type QualityCell as PlannedQualityCell,
 } from "./cells";
-import { judge } from "./quality";
+import { renderQuality, runQualityEval } from "./quality-eval";
 import {
   BENCHMARK_REPORT_SCHEMA_VERSION,
   costRatio,
   summarize,
-  summarizeQuality,
   type AgentShape,
   type BenchmarkComparison,
   type BenchmarkHarness,
   type BenchmarkReport,
   type BenchmarkSample,
   type BenchmarkStat,
-  type QualityCell,
+  type QualityEval,
   type RefusedCell,
   type SiblingTurn,
 } from "./report";
 import { EXECUTION_BUDGET_MS, failedAtCreate, measureSession, type MeasuredTurn, type SessionPlan, type SessionStack } from "./session";
-import { composeSubject } from "./subject";
-import { changedFiles, readWorkspaceFile, runChecks } from "./workspace-facts";
 
 /**
  * Where the working agent's workspace is seeded before every session: one
@@ -152,7 +145,7 @@ export interface RunIo {
 
 export interface RunOptions {
   reps: number;
-  /** Graded attempts per quality task per harness. */
+  /** Tries per quality case and target. */
   qualityReps: number;
   git: BenchmarkReport["git"];
   titlingSuppressed: true;
@@ -175,7 +168,7 @@ export async function runBenchmark(stack: BenchmarkStack, plan: CellPlan, option
     }
     return true;
   });
-  const quality = plan.quality.filter((cell) => {
+  const qualityTargets = plan.quality.filter((cell) => {
     if (!registryHas(registry, cell.modelRequested, cell.harness) || !registryHas(registry, JUDGE_MODEL, "deep-agent")) {
       refused.push({ cell: cell.id, reason: "model not in registry for harness" });
       return false;
@@ -224,14 +217,11 @@ export async function runBenchmark(stack: BenchmarkStack, plan: CellPlan, option
     });
   }
 
-  const graded: QualityCell[] = [];
-  for (const cell of quality) {
-    for (let rep = 1; rep <= options.qualityReps; rep++) {
-      io.log(`quality ${cell.id} rep ${rep}/${options.qualityReps}`);
-      const grade = await gradeQualityCell(stack, cell, rep, options.thinking, io);
-      io.log(`quality ${cell.id} rep ${rep}: ${grade.outcome} score=${grade.score ?? "n/a"}${grade.failure ? ` (${grade.failure.stage}: ${grade.failure.message})` : ""}`);
-      graded.push(grade);
-    }
+  let quality: QualityEval | null = null;
+  if (qualityTargets.length > 0) {
+    io.log(`quality: one eval, ${qualityTargets.map((cell) => cell.id).join(", ")}, ${options.qualityReps} tries per case`);
+    quality = await runQualityEval(stack.clients, qualityTargets, { runs: options.qualityReps, judgeModel: JUDGE_MODEL }, io);
+    io.log(`quality: ${quality.failure === undefined ? `eval ${quality.eval_id} ended` : `${quality.failure.stage}: ${quality.failure.message}`}`);
   }
 
   return {
@@ -250,8 +240,7 @@ export async function runBenchmark(stack: BenchmarkStack, plan: CellPlan, option
     },
     models: { parity_native: PARITY_MODEL["deep-agent"], parity_cursor: PARITY_MODEL.cursor, judge_requested: JUDGE_MODEL },
     comparisons,
-    quality: graded,
-    quality_summary: summarizeQuality(graded),
+    quality,
     refused,
   };
 }
@@ -295,18 +284,6 @@ async function provisionAgent(
   );
   fixtures.defer(() => stack.clients.agentCommand.delete({ value: agent.metadata!.id }));
   return { org, agentRef: agentRefOf(agent), sessionSpec: { harness, subject: BENCHMARK_SESSION_SUBJECT } };
-}
-
-/**
- * The judge's organization: a fresh one, memory off (an organization's
- * default), deferred on `fixtures` ahead of the judge's agent and run so it is
- * removed after them.
- */
-/* v8 ignore next -- @preserve: the live benchmark is a hand-run script no vitest config collects (vitest.unit.config.ts tests only its pure readers) */
-async function provisionJudgeOrg(stack: BenchmarkStack, fixtures: FixtureTracker): Promise<string> {
-  const { id } = await createUniqueOrganization(stack.clients.organizationCommand, "the benchmark judge");
-  fixtures.defer(() => stack.clients.organizationCommand.delete({ value: id }));
-  return id;
 }
 
 /** One attempt of a cell: one execution, or one three-turn session whose second turn is the sample. */
@@ -358,117 +335,6 @@ async function measureCell(
   }
 }
 
-/** One graded attempt of a quality task: the session, its end state, the subject and the verdict. */
-/* v8 ignore next -- @preserve: the live benchmark is a hand-run script no vitest config collects (vitest.unit.config.ts tests only its pure readers) */
-async function gradeQualityCell(
-  stack: BenchmarkStack,
-  cell: PlannedQualityCell,
-  rep: number,
-  thinking: "enabled" | undefined,
-  io: RunIo,
-): Promise<QualityCell> {
-  const fixtures = new FixtureTracker();
-  const label = `${cell.id}#${rep}`;
-  const base = {
-    task_id: cell.task.id,
-    placeholder: cell.task.placeholder,
-    harness: cell.harness,
-    rep,
-    model_requested: cell.modelRequested,
-    judge_model: "",
-    score: null,
-    criteria: [],
-    reasoning: "",
-    subject: "",
-    files_changed: [],
-    checks: [],
-    turns: [],
-    judge_run_id: "",
-  } satisfies Omit<QualityCell, "outcome" | "failure">;
-  try {
-    let agent: ProvisionedAgent;
-    try {
-      agent = await provisionAgent(stack, fixtures, { agent: "working", harness: cell.harness });
-    } catch (error) {
-      io.log(`${label}: provisioning failed: ${errorMessage(error)}`);
-      return { ...base, outcome: "failed", failure: { stage: "create", message: `provision the working agent: ${errorMessage(error)}` } };
-    }
-    const turns = await measureSession(
-      stack,
-      {
-        org: agent.org,
-        agentRef: agent.agentRef,
-        harness: cell.harness,
-        modelRequested: cell.modelRequested,
-        ...(thinking !== undefined ? { thinking } : {}),
-        sessionSpec: agent.sessionSpec,
-        prompts: cell.task.turns,
-        label,
-      },
-      io,
-    );
-    const samples = turns.map((turn) => turn.sample);
-    const failedTurn = samples.find((sample) => sample.outcome !== "completed");
-    if (failedTurn !== undefined) {
-      return { ...base, turns: samples, outcome: failedTurn.outcome, ...(failedTurn.failure !== undefined ? { failure: failedTurn.failure } : {}) };
-    }
-
-    const filesChanged = await changedFiles(join(WORKING_AGENT_FIXTURE_DIR, "workspace"), WORKING_WORKSPACE_DIR);
-    const namedFiles = await Promise.all(
-      cell.task.files.map(async (path) => ({ path, content: await readWorkspaceFile(WORKING_WORKSPACE_DIR, path) })),
-    );
-    const checks = await runChecks(cell.task.checks, WORKING_WORKSPACE_DIR);
-    const subject = composeSubject({
-      turns: cell.task.turns.map((prompt, index) => ({
-        prompt,
-        reply: turns[index]?.reply ?? "",
-        outcome: turns[index]?.sample.outcome ?? "failed",
-      })),
-      filesChanged,
-      namedFiles,
-      checks,
-    });
-    let judgeOrg: string;
-    try {
-      judgeOrg = await provisionJudgeOrg(stack, fixtures);
-    } catch (error) {
-      io.log(`${label}: provisioning the judge's organization failed: ${errorMessage(error)}`);
-      return {
-        ...base,
-        subject,
-        files_changed: filesChanged,
-        checks,
-        turns: samples,
-        outcome: "failed",
-        failure: { stage: "judge", message: `provision the judge's organization: ${errorMessage(error)}` },
-      };
-    }
-    const verdict = await judge(stack.clients, fixtures, {
-      org: judgeOrg,
-      task: cell.task,
-      subject,
-      judgeModel: JUDGE_MODEL,
-      timeoutMs: EXECUTION_BUDGET_MS,
-    });
-    return {
-      ...base,
-      judge_model: verdict.judge_model,
-      score: verdict.score,
-      criteria: verdict.criteria,
-      reasoning: verdict.reasoning,
-      subject,
-      files_changed: filesChanged,
-      checks,
-      turns: samples,
-      judge_run_id: verdict.judge_run_id,
-      outcome: verdict.outcome,
-      ...(verdict.failure !== undefined ? { failure: verdict.failure } : {}),
-    };
-  } finally {
-    await fixtures.cleanup();
-  }
-}
-
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
@@ -500,20 +366,7 @@ export function renderSummary(report: BenchmarkReport): string {
       );
     }
   }
-  if (report.quality_summary.length > 0) {
-    lines.push("");
-    lines.push(`| quality task | harness | graded | failed | median score |`);
-    lines.push(`|---|---|---|---|---|`);
-    for (const summary of report.quality_summary) {
-      lines.push(`| ${summary.task_id} | ${summary.harness} | ${summary.graded} | ${summary.failed} | ${summary.median_score ?? "n/a"} |`);
-    }
-  }
-  const failures = report.quality.filter((grade) => grade.failure !== undefined);
-  if (failures.length > 0) {
-    lines.push("");
-    lines.push("Quality attempts not graded:");
-    for (const grade of failures) lines.push(`- ${grade.task_id}/${grade.harness}#${grade.rep}: ${grade.failure!.stage}: ${grade.failure!.message}`);
-  }
+  lines.push(...renderQuality(report.quality));
   if (report.refused.length > 0) {
     lines.push("");
     lines.push("Refused:");

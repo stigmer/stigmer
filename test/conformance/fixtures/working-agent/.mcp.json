@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "orders-api": {
+      "type": "http",
+      "url": "https://orders-api.invalid/mcp"
+    }
+  }
+}

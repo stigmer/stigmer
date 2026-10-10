@@ -1,0 +1,33 @@
+schema_version: "1.1"
+name: repo-question
+tags: [quality]
+context:
+  scaffold_script: "scaffold.sh"
+execution:
+  prompt: "Where is the retry limit for the order sync set, and what is it?"
+  max_turns: 10
+  allowed_tools: ["Read", "Glob", "Grep", "Skill"]
+  append_system_prompt: "Be direct and concise. Act on requests rather than explaining steps. When you do not know something, say so.\n\nYour workspace is the orders-sync repository."
+graders:
+  - name: grounded
+    type: "regex"
+    pattern: "sync\\.yaml"
+    weight: 3
+  - name: correct-value
+    type: "regex"
+    pattern: "\\b50\\b"
+    weight: 3
+  - name: concise
+    type: "llm"
+    weight: 1
+    criteria: "PASS if the answer leads with where the retry limit is set (config/sync.yaml, sync.retry.max_attempts) and its effective value, 50, and stays short. Naming the code default of 5 (DefaultMaxAttempts in syncer/syncer.go) as the fallback is fine. FAIL if it calls 5 the effective value or claims anything the repository does not support."
+  - name: changes-nothing
+    type: "tool_used"
+    tool: "Edit"
+    max: 0
+    weight: 1
+  - name: writes-nothing
+    type: "tool_used"
+    tool: "Write"
+    max: 0
+    weight: 1

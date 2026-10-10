@@ -1,0 +1,20 @@
+{
+  "tools": [
+    {
+      "name": "lookup_order",
+      "description": "Looks up an order by its id (for example ORD-4821) and returns its status, shipment and items as JSON.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "order_id": {
+            "type": "string",
+            "description": "the order id, for example ORD-4821"
+          }
+        },
+        "required": [
+          "order_id"
+        ]
+      }
+    }
+  ]
+}

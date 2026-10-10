@@ -3,22 +3,15 @@
 // Domain: conformance benchmark.
 //
 // Pinned: the matrix is nine scenarios (seven on the bare agent, two on the
-// working agent) by two harnesses; a missing Anthropic key refuses every
-// native cell and every quality cell of either harness; a missing Cursor key
-// refuses Cursor cells alone; a missing `stigmer` CLI refuses every cell on
-// the working agent, the quality cells included, and nothing else; --only
-// and --cells refuse with their own reasons; placeholder tasks are skipped
-// unless asked for; parity and working cells carry their harness's registry
-// id and default cells none.
+// working agent) by two harnesses, and the quality arm is one target per
+// harness on its parity model; a missing Anthropic key refuses every native
+// cell and both quality targets; a missing Cursor key refuses Cursor cells
+// and the Cursor target alone; a missing `stigmer` CLI refuses the
+// working-agent timing cells and nothing else (a plugin eval's try loads no
+// memory); --only and --cells refuse with their own reasons; parity and
+// working cells carry their harness's registry id and default cells none.
 import { describe, expect, it } from "vitest";
 import { benchmarkCells, globMatches, planCells } from "../cells";
-import type { QualityTask } from "../quality-tasks";
-
-function task(id: string, placeholder: boolean): QualityTask {
-  return { id, placeholder, turns: ["p"], files: [], checks: [], rubric: "r", criteria: [{ name: "c", description: "d", weight: 1 }] };
-}
-
-const TASKS: QualityTask[] = [task("placeholder-1", true), task("real-1", false)];
 
 const ALL = { anthropicKey: true, cursorKey: true, stigmerCli: true };
 
@@ -43,15 +36,18 @@ describe("benchmarkCells", () => {
 });
 
 describe("planCells", () => {
-  it("with both keys runs every benchmark cell and the real quality tasks, skipping placeholders", () => {
-    const plan = planCells(TASKS, ALL, { includePlaceholders: false });
+  it("with both keys runs every benchmark cell and both quality targets on their parity models", () => {
+    const plan = planCells(ALL, {});
     expect(plan.cells).toHaveLength(18);
-    expect(plan.quality.map((cell) => cell.id)).toEqual(["quality/real-1/deep-agent", "quality/real-1/cursor"]);
+    expect(plan.quality).toEqual([
+      { id: "quality/deep-agent", harness: "deep-agent", modelRequested: "claude-sonnet-4.6" },
+      { id: "quality/cursor", harness: "cursor", modelRequested: "claude-sonnet-4-6" },
+    ]);
     expect(plan.refused).toEqual([]);
   });
 
   it("without the Anthropic key refuses every native cell and every quality cell by name", () => {
-    const plan = planCells(TASKS, { ...ALL, anthropicKey: false }, { includePlaceholders: true });
+    const plan = planCells({ ...ALL, anthropicKey: false }, {});
     expect(plan.cells.every((cell) => cell.harness === "cursor")).toBe(true);
     expect(plan.quality).toEqual([]);
     expect(plan.refused.filter((r) => r.reason === "missing ANTHROPIC_API_KEY").map((r) => r.cell)).toEqual([
@@ -64,15 +60,13 @@ describe("planCells", () => {
       "report-parity-turn-2/deep-agent",
       "working-read-edit/deep-agent",
       "working-cross-turn/deep-agent",
-      "quality/placeholder-1/deep-agent",
-      "quality/placeholder-1/cursor",
-      "quality/real-1/deep-agent",
-      "quality/real-1/cursor",
+      "quality/deep-agent",
+      "quality/cursor",
     ]);
   });
 
   it("a thinking run refuses the cells on a harness's default model and keeps every pinned cell", () => {
-    const plan = planCells(TASKS, ALL, { includePlaceholders: false, thinking: "enabled" });
+    const plan = planCells(ALL, { thinking: "enabled" });
     expect(plan.cells.every((cell) => cell.modelRequested !== null)).toBe(true);
     expect(plan.cells).toHaveLength(12);
     expect(plan.refused.filter((r) => r.reason === "thinking needs a pinned model").map((r) => r.cell)).toEqual([
@@ -83,34 +77,32 @@ describe("planCells", () => {
       "report-codegen/deep-agent",
       "report-codegen/cursor",
     ]);
-    expect(plan.quality.map((cell) => cell.id)).toEqual(["quality/real-1/deep-agent", "quality/real-1/cursor"]);
+    expect(plan.quality.map((cell) => cell.id)).toEqual(["quality/deep-agent", "quality/cursor"]);
   });
 
   it("without the Cursor key refuses the Cursor cells alone", () => {
-    const plan = planCells(TASKS, { ...ALL, cursorKey: false }, { includePlaceholders: false });
+    const plan = planCells({ ...ALL, cursorKey: false }, {});
     expect(plan.cells.every((cell) => cell.harness === "deep-agent")).toBe(true);
-    expect(plan.quality.map((cell) => cell.id)).toEqual(["quality/real-1/deep-agent"]);
+    expect(plan.quality.map((cell) => cell.id)).toEqual(["quality/deep-agent"]);
     expect(plan.refused.every((r) => r.reason === "missing CURSOR_API_KEY")).toBe(true);
     expect(plan.refused).toHaveLength(10);
   });
 
-  it("without the stigmer CLI refuses the working cells and every quality cell, and runs the bare cells", () => {
-    const plan = planCells(TASKS, { ...ALL, stigmerCli: false }, { includePlaceholders: false });
+  it("without the stigmer CLI refuses the working-agent timing cells alone, and keeps the quality targets", () => {
+    const plan = planCells({ ...ALL, stigmerCli: false }, {});
     expect(plan.cells).toHaveLength(14);
     expect(plan.cells.every((cell) => cell.scenario.agent === "bare")).toBe(true);
-    expect(plan.quality).toEqual([]);
+    expect(plan.quality.map((cell) => cell.id)).toEqual(["quality/deep-agent", "quality/cursor"]);
     expect(plan.refused).toEqual([
       { cell: "working-read-edit/deep-agent", reason: "missing stigmer CLI" },
       { cell: "working-read-edit/cursor", reason: "missing stigmer CLI" },
       { cell: "working-cross-turn/deep-agent", reason: "missing stigmer CLI" },
       { cell: "working-cross-turn/cursor", reason: "missing stigmer CLI" },
-      { cell: "quality/real-1/deep-agent", reason: "missing stigmer CLI" },
-      { cell: "quality/real-1/cursor", reason: "missing stigmer CLI" },
     ]);
   });
 
   it("--only and --cells refuse with their own reasons, flags before keys", () => {
-    const plan = planCells([], { ...ALL, anthropicKey: false }, { only: "cursor", cells: "report-parity-*", includePlaceholders: false });
+    const plan = planCells({ ...ALL, anthropicKey: false }, { only: "cursor", cells: "report-parity-*" });
     expect(plan.cells.map((cell) => cell.id)).toEqual([
       "report-parity-simple/cursor",
       "report-parity-medium/cursor",

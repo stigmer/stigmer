@@ -1,0 +1,55 @@
+schema_version: "1.1"
+name: config-fix
+tags: [quality]
+context:
+  scaffold_script: "scaffold.sh"
+execution:
+  prompt: "The service refuses to start with config/sync.yaml. It reports: \"sync.retry.max_attempts: must be at most 10 (got 50)\" and \"sync: unknown field \\\"timout\\\"\". Fix the config."
+  max_turns: 15
+  allowed_tools: ["Read", "Glob", "Grep", "Skill"]
+  append_system_prompt: "Be direct and concise. Act on requests rather than explaining steps. When you do not know something, say so.\n\nYour workspace is the orders-sync repository."
+graders:
+  - name: max-attempts-valid
+    type: "regex"
+    pattern: "^\\s*max_attempts:\\s*([1-9]|10)\\s*$"
+    flags: "m"
+    target:
+      source: "file"
+      path: "config/sync.yaml"
+    weight: 2
+  - name: timeout-key
+    type: "regex"
+    pattern: "^\\s*timeout:\\s*30s\\s*$"
+    flags: "m"
+    target:
+      source: "file"
+      path: "config/sync.yaml"
+    weight: 2
+  - name: no-typo-left
+    type: "regex"
+    pattern: "timout"
+    match: "not_contains"
+    target:
+      source: "file"
+      path: "config/sync.yaml"
+    weight: 1
+  - name: interval-kept
+    type: "regex"
+    pattern: "^\\s*interval:\\s*5m\\s*$"
+    flags: "m"
+    target:
+      source: "file"
+      path: "config/sync.yaml"
+    weight: 1
+  - name: backoff-kept
+    type: "regex"
+    pattern: "^\\s*backoff:\\s*2s\\s*$"
+    flags: "m"
+    target:
+      source: "file"
+      path: "config/sync.yaml"
+    weight: 1
+  - name: explains-the-fix
+    type: "llm"
+    weight: 1
+    criteria: "PASS if the reply says what was changed in config/sync.yaml and why, including which value was chosen for max_attempts. FAIL otherwise."

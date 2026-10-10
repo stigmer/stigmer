@@ -1,0 +1,4 @@
+{"type": "user", "message": {"role": "user", "content": "Add a CHANGELOG.md entry for the fix that lets ParseMinutes accept seconds."}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_add_entry", "name": "Edit", "input": {"file_path": "CHANGELOG.md", "old_string": "- `orders.CountByStatus` for the support dashboard.\n", "new_string": "- `orders.CountByStatus` for the support dashboard.\n- `ParseMinutes` accepts seconds, rounding down to whole minutes.\n"}}]}}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "toolu_add_entry", "content": "The file CHANGELOG.md has been updated."}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "Added under `### Added` in `## [Unreleased]`: \"`ParseMinutes` accepts seconds, rounding down to whole minutes.\""}]}}

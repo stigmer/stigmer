@@ -1,0 +1,35 @@
+schema_version: "1.1"
+name: code-review-no-edit
+tags: [quality]
+context:
+  scaffold_script: "scaffold.sh"
+execution:
+  prompt: "Review orders/store.go for correctness and security problems. Don't change anything."
+  max_turns: 15
+  allowed_tools: ["Read", "Glob", "Grep", "Skill"]
+  append_system_prompt: "Be direct and concise. Act on requests rather than explaining steps. When you do not know something, say so.\n\nYour workspace is the orders-sync repository."
+graders:
+  - name: finds-injection
+    type: "regex"
+    pattern: "inject"
+    flags: "i"
+    weight: 2
+  - name: finds-pagination
+    type: "regex"
+    pattern: "page\\s*-\\s*1|off[- ]by[- ]one|first page|skips"
+    flags: "i"
+    weight: 2
+  - name: severity-ordered
+    type: "llm"
+    weight: 2
+    criteria: "PASS if the review opens with a short overall assessment, puts the SQL injection in FindByCustomer first, proposes a parameterised query for it and (page - 1) * pageSize with page < 1 refused for the pagination off-by-one, and invents no defect (CountByStatus has none of that kind). FAIL otherwise."
+  - name: changes-nothing
+    type: "tool_used"
+    tool: "Edit"
+    max: 0
+    weight: 1
+  - name: writes-nothing
+    type: "tool_used"
+    tool: "Write"
+    max: 0
+    weight: 1
