@@ -1,16 +1,19 @@
 # =============================================================================
 # Review verdict: a pull request merges only after a reviewer that did not
-# write it approved exactly this change
+# write it approved exactly this change, or a fix-check found every finding
+# of that review fixed in it
 # =============================================================================
-# Runs scripts/review-verdict.mjs, which reads the newest `## Review` comment
-# posted on the pull request by an account with write access and passes only
-# when it says `approve` and was bound to the change as it is now: the patch
-# id of the diff from the merge base, and the body's declarations
-# (`Test-removal:`, `Quarantine:`, `Skip:`, `RPC-waiver:`). A push that
-# changes the change, or a declaration added or reworded, turns it red until
-# the review runs again; merging `main` into the branch without touching the
-# change does not. The review itself is `.agents/skills/review-pull-request/SKILL.md`, and the
-# script's header has the rules. `Review verdict` is a required check on
+# Runs scripts/review-verdict.mjs, which reads the verdicts posted on the pull
+# request by accounts with write access (the newest `## Review`, then the
+# `## Fix check` comments after it) and passes only when the newest says
+# `approve` or `resolved` and was bound to the change as it is now: the patch
+# id of the diff from the merge base, and the body's declarations (every kind
+# the integrity tool's grammar reads, `Coverage-drop:` among them). A push
+# that changes the change, or a declaration added or reworded, turns it red
+# until a fix-check reads the push; merging `main` into the branch without
+# touching the change does not. The procedure is
+# `.agents/skills/review-pull-request/SKILL.md`, and the script's header has
+# the rules. `Review verdict` is a required check on
 # `main`, beside `Gate` (ci.gate.yaml) and `Test integrity`
 # (ci.integrity.yaml).
 #
