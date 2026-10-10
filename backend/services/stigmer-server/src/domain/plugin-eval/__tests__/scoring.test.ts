@@ -278,9 +278,46 @@ describe("the suite's summaries", () => {
       ],
     });
     recomputeStatus(status, 1);
-    expect(status.aggregates?.casesTotal).toBe(2);
+    // "only-not-graded" finished a try, but none was graded.
+    expect(status.aggregates?.casesTotal).toBe(1);
     expect(status.aggregates?.casesPassed).toBe(1);
     expect(status.aggregates?.casesNotRun).toBe(0);
     expect(status.aggregates?.overallScore).toBe(1);
+  });
+
+  it("leaves a case whose finished tries were all not graded out of the totals, so platform failures never read as failed cases", () => {
+    const status = create(PluginEvalStatusSchema, {
+      cases: [
+        create(PluginEvalCaseSchema, {
+          caseName: "graded",
+          targets: [
+            create(PluginEvalCaseTargetSchema, {
+              withPlugin: create(PluginEvalArmSchema, { tries: tries(0, "not-graded") }),
+            }),
+          ],
+        }),
+        create(PluginEvalCaseSchema, {
+          caseName: "platform-failures",
+          targets: [
+            create(PluginEvalCaseTargetSchema, {
+              withPlugin: create(PluginEvalArmSchema, {
+                tries: tries("not-graded", "not-graded"),
+              }),
+              withoutPlugin: create(PluginEvalArmSchema, {
+                tries: tries("not-graded", "not-graded"),
+              }),
+            }),
+          ],
+        }),
+      ],
+    });
+    recomputeStatus(status, 1);
+    expect(status.aggregates).toMatchObject({
+      casesTotal: 1,
+      casesPassed: 0,
+      casesNotRun: 0,
+      overallScore: 0,
+    });
+    expect(status.triesFinished).toBe(6);
   });
 });
