@@ -308,6 +308,25 @@ describe("the suite workflow", () => {
     expect(finished).toEqual([{ phase: "partial", reason: "cancelled" }]);
   });
 
+  it("ends cancelled when every child in flight answered its cancel with a result", async () => {
+    const { recorded, finished } = suite({
+      kind: "run",
+      org: "acme",
+      cells: cells(2),
+      maxCostUsd: 10,
+      concurrency: 1,
+    });
+    seam.child = async () => {
+      seam.cancelled = true;
+      return result({ state: "not-graded", notGradedReason: TRY_CANCELLED_REASON });
+    };
+    await expect(runPluginEval({ evalId: "pev_1" })).rejects.toBeInstanceOf(
+      CancelledFailure,
+    );
+    expect(recorded).toHaveLength(1);
+    expect(finished).toEqual([{ phase: "partial", reason: "cancelled" }]);
+  });
+
   it("prefers the cancellation over a record that fails while cancelling", async () => {
     const { finished } = suite({
       kind: "run",
@@ -959,6 +978,15 @@ describe("the case workflow", () => {
       runId: "",
       costUsd: 0,
     });
+  });
+
+  it("fails outright on a failure that is not a cancellation, for the suite to read the try's spend", async () => {
+    caseScript({
+      [READ_VOTE_ACTIVITY_NAME]: vi.fn(() =>
+        Promise.reject(new Error("the store is down")),
+      ),
+    });
+    await expect(runCase(INPUT)).rejects.toThrow("the store is down");
   });
 
   it("counts a vote that cannot start, or a refused one, as failed", async () => {
