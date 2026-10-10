@@ -34,6 +34,12 @@
  * `${CLAUDE_PLUGIN_DATA}` is the plugin's writable place, and its hooks run
  * with Python's bytecode cache off (`hooks/evaluate.ts`).
  *
+ * The plugin's eval suite is never mounted: `evals/`, and the directory
+ * `PluginStatus.evals.dir` names when the manifest moved the suite, are
+ * left out of the tree, so an agent under test cannot read the cases it is
+ * graded on, as Claude Code hides them from its own runs. Hooks never need
+ * them; the suite is the eval workflow's, which reads the archive itself.
+ *
  * Turns of one workspace are serialised (`harness/turn-context.ts`
  * `acquireWorkspaceTurnLock`), so no two turns mount one tree at once; within
  * a turn, concurrent hook runs share one check in flight.
@@ -131,7 +137,7 @@ export async function mountPlugin(
     throw new PluginMountError(slug, "its archive holds no files");
   }
 
-  const tree = new PluginTree(join(pluginsDir, digest), entries);
+  const tree = new PluginTree(join(pluginsDir, digest), withoutEvalSuite(entries, plugin.status?.evals?.dir));
   await tree.verify();
 
   const data = join(platformDir, PLUGIN_DATA_SUBDIR, slug);
@@ -144,6 +150,22 @@ export async function mountPlugin(
     data,
     verify: () => tree.verify(),
   };
+}
+
+/** The suite's default directory; always skipped, whatever the status names. */
+const DEFAULT_EVAL_DIR = "evals";
+
+/**
+ * The archive's entries minus the eval suite: everything under `evals/`,
+ * and under `configured` when the install recorded another directory.
+ * Both sides are plugin-relative paths of plain segments (the archive's
+ * entries as the server wrote them, the directory as the library read it).
+ */
+export function withoutEvalSuite(entries: readonly ZipFileEntry[], configured: string | undefined): readonly ZipFileEntry[] {
+  const prefixes = [DEFAULT_EVAL_DIR, configured]
+    .filter((dir): dir is string => dir !== undefined && dir !== "")
+    .map((dir) => `${dir}/`);
+  return entries.filter((entry) => !prefixes.some((prefix) => entry.path.startsWith(prefix)));
 }
 
 /** The archive's bytes, from the session's cache when they still hash to `digest`, else fetched, verified and cached. */
