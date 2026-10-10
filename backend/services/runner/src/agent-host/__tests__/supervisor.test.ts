@@ -16,7 +16,10 @@
  *    are each booted in it once;
  *  - the production starter runs this build's entry in its agent-host mode
  *    under the runner's own Node, from source under tsx; a host that cannot
- *    be spawned closes its channel instead of throwing;
+ *    be spawned closes its channel instead of throwing; the host outlives
+ *    the SIGTERM and SIGINT its process group receives (a daemon's stop, a
+ *    terminal's Ctrl-C) and exits only when its pipe closes, so a runner
+ *    draining its turns keeps its host;
  *  - hosting replaces exactly the hosted harnesses' adapters with remote
  *    ones and leaves the rest as they are.
  */
@@ -207,6 +210,24 @@ describe("the production starter", () => {
     peer.close();
     await new Promise<void>((resolve) => peer.onClose(() => resolve()));
   });
+
+  it("outlives the signals its process group receives, and exits when its pipe closes", async () => {
+    const { command, args } = agentHostCommand();
+    const { started, child } = spawnHostProcess(command, args, { ...process.env });
+    const peer = new Peer<HostCalls, RunnerCalls, RunnerNotices, HostNotices>(started.channel, "runner");
+    expect(await peer.receivedHello(30_000)).toBe(AGENT_HOST_PROTOCOL_VERSION);
+
+    child.kill("SIGTERM");
+    child.kill("SIGINT");
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    expect(child.exitCode, "still running after the signals").toBeNull();
+    expect(child.signalCode).toBeNull();
+    expect(peer.closed).toBe(false);
+
+    const exited = new Promise<number | null>((resolve) => child.once("exit", (code) => resolve(code)));
+    peer.close();
+    expect(await exited).toBe(0);
+  }, 60_000);
 
   it("closes the channel of a host that cannot be spawned instead of throwing", async () => {
     const { started } = spawnHostProcess("/nonexistent/node-for-the-agent-host", [], {});

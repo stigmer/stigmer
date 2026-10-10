@@ -17,9 +17,9 @@
  *    (`shared/model-client.ts`); the remote adapter opens a turn when it
  *    starts one and closes it when it settles (`agent-host/
  *    remote-adapter.ts`).
- *  - A checkpoint call must name the thread of a live turn's session
- *    (`thread-<sessionId>`, the platform proxy's own scoping), in its query
- *    or, for a write, in every entry of its body.
+ *  - A checkpoint call must name the thread of a live turn (the turn's own
+ *    `threadId`, the one its engine checkpoints under), in its query or,
+ *    for a write, in every entry of its body.
  *  - The model registry is exempt from the live-turn rule: it is the
  *    catalog every caller may read, and the platform's proxy serves it even
  *    to visitors.
@@ -50,15 +50,10 @@ const LLM_PREFIX = "/v1/proxy/llm/";
 const CHECKPOINT_PREFIX = "/v1/proxy/checkpoints";
 const REGISTRY_PATH = "/v1/proxy/model-registry";
 
-/** The thread id a session's checkpoints live under: the platform proxy's scoping, `ensure-thread.ts`'s minting. */
-export function threadIdOf(sessionId: string): string {
-  return `thread-${sessionId}`;
-}
-
 export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
   private hostToken: Buffer | undefined;
-  /** Live turns by execution id: the session each belongs to, and how many are open. */
-  private readonly live = new Map<string, { readonly sessionId: string; open: number }>();
+  /** Live turns by execution id: the thread each checkpoints under, and how many are open. */
+  private readonly live = new Map<string, { readonly threadId: string; open: number }>();
 
   private constructor(
     private readonly server: Server,
@@ -86,8 +81,8 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
     this.hostToken = Buffer.from(token);
   }
 
-  openTurn(turn: { readonly executionId: string; readonly sessionId: string }): () => void {
-    const entry = this.live.get(turn.executionId) ?? { sessionId: turn.sessionId, open: 0 };
+  openTurn(turn: { readonly executionId: string; readonly threadId: string }): () => void {
+    const entry = this.live.get(turn.executionId) ?? { threadId: turn.threadId, open: 0 };
     entry.open += 1;
     this.live.set(turn.executionId, entry);
     let closed = false;
@@ -164,7 +159,7 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
     if (queried !== null) threads.add(queried);
     for (const thread of threadsInBody(body)) threads.add(thread);
     if (threads.size === 0) throw new LaneRefusal(403, "a checkpoint call must name its thread");
-    const liveThreads = new Set([...this.live.values()].map((t) => threadIdOf(t.sessionId)));
+    const liveThreads = new Set([...this.live.values()].map((t) => t.threadId));
     for (const thread of threads) {
       if (!liveThreads.has(thread)) throw new LaneRefusal(403, `thread ${thread} belongs to no turn running on this runner`);
     }

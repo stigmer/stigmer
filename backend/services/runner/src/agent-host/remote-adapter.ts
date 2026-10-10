@@ -61,7 +61,7 @@ export const ADAPTER_OWNED_SESSION_SPEC_FIELDS = ["cursorMode"] as const satisfi
 /** What the host may open live turns at: the local proxy's turn registry (`agent-proxy/server.ts`). */
 export interface LiveTurnRegistry {
   /** The turn is live at the proxy until the returned close runs. */
-  openTurn(turn: { readonly executionId: string; readonly sessionId: string }): () => void;
+  openTurn(turn: { readonly executionId: string; readonly threadId: string }): () => void;
 }
 
 /**
@@ -95,7 +95,7 @@ async function runRemoteTurn(
   const turnId = randomUUID();
   const turn = new RemoteTurn(turnId, input, sink, host);
   const detach = host.attachTurn(turnId, turn.endpoint);
-  const closeTurn = turns.openTurn({ executionId: input.executionId, sessionId: input.sessionId });
+  const closeTurn = turns.openTurn({ executionId: input.executionId, threadId: input.threadId });
   let stopListener: (() => void) | undefined;
   try {
     const peer = await host.connection();

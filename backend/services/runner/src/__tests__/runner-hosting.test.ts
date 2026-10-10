@@ -3,7 +3,8 @@
  * table: it hosts the harness table before it boots it, boots the rows the
  * hosting returned (the hosted harnesses' remote adapters among them),
  * binds the activities over those same rows, and after the worker drains
- * releases the harnesses and then closes the local proxy.
+ * releases the harnesses and then closes the local proxy; a boot that fails
+ * once the host is up releases them the same way and rethrows.
  *
  * Temporal, the bootstrap, the preflight, the registry and the hosting are
  * replaced at their module seams, so the root's own wiring runs in-process.
@@ -19,6 +20,7 @@ const fakes = vi.hoisted(() => ({
   booted: [] as unknown[],
   bound: [] as unknown[],
   release: () => {},
+  bootstrapFails: false,
 }));
 
 vi.mock("../worker.js", () => ({
@@ -34,7 +36,10 @@ vi.mock("../worker.js", () => ({
 }));
 
 vi.mock("../bootstrap.js", () => ({
-  resolveRunnerBootstrap: async () => ({ temporalAddress: "127.0.0.1:7233", temporalNamespace: "default" }),
+  resolveRunnerBootstrap: async () => {
+    if (fakes.bootstrapFails) throw new Error("the control plane is unreachable");
+    return { temporalAddress: "127.0.0.1:7233", temporalNamespace: "default" };
+  },
   refreshRunnerAccessToken: async () => null,
 }));
 
@@ -87,5 +92,23 @@ describe("the static root runs the hosted table", () => {
     runner.shutdown();
     await started;
     expect(fakes.order).toEqual(["harnesses shut down", "proxy closed", "connection closed"]);
+  });
+
+  it("releases the hosted harnesses and the proxy when the boot fails after hosting", async () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    fakes.order.length = 0;
+    fakes.bootstrapFails = true;
+    try {
+      await expect(
+        createStigmerRunner({
+          taskQueue: "stigmer_runner",
+          stigmerEndpoint: "localhost:7234",
+          workspaceRootDir: join(tmpdir(), "stigmer-runner-hosting-test"),
+        }),
+      ).rejects.toThrow("the control plane is unreachable");
+    } finally {
+      fakes.bootstrapFails = false;
+    }
+    expect(fakes.order).toEqual(["harnesses shut down", "proxy closed"]);
   });
 });

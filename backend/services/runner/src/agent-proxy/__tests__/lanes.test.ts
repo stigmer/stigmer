@@ -89,7 +89,7 @@ afterEach(() => {
 async function ask(path: string, overrides: Partial<Config> = {}): Promise<{ readonly status: number; readonly message: string }> {
   const proxy = await AgentProxy.start(testConfig({ proxyEndpoint: null, ...overrides }));
   proxy.authorizeHost(HOST_TOKEN);
-  const close = proxy.openTurn({ executionId: EXECUTION, sessionId: "ses-lanes-edges" });
+  const close = proxy.openTurn({ executionId: EXECUTION, threadId: "thread-ses-lanes-edges" });
   try {
     const res = await fetch(`${proxy.endpoint}${path}`, { method: "POST", headers: asHost, body: "{}" });
     const text = await res.text();

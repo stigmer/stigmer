@@ -22,6 +22,7 @@ import {
   type InjectedSinks,
   type WorkflowBundleOption,
 } from "@temporalio/worker";
+import { releasingOnFailure, type HostedBoot } from "./agent-host/failed-boot.js";
 import type { Config, TokenRef } from "./config.js";
 import type { HarnessRow } from "./harness/registry.js";
 import { DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS, DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS, DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS } from "./config.js";
@@ -225,6 +226,14 @@ interface ManagedSession {
 export async function createStigmerRunnerManager(
   options: RunnerManagerOptions,
 ): Promise<StigmerRunnerManager> {
+  return releasingOnFailure((boot) => buildStigmerRunnerManager(options, boot));
+}
+
+/** The factory's body; `boot.release` is set once the agent host is up (`agent-host/failed-boot.ts`). */
+async function buildStigmerRunnerManager(
+  options: RunnerManagerOptions,
+  boot: HostedBoot,
+): Promise<StigmerRunnerManager> {
   validateManagerOptions(options);
 
   // Take custody of runner secrets BEFORE anything else can read them from
@@ -272,6 +281,13 @@ export async function createStigmerRunnerManager(
   const [{ HARNESS_ADAPTERS }, { adaptersOf, bootHarnesses, releaseHarnessSession, shutdownHarnesses }, { hostHarnesses }] =
     await Promise.all([import("./harness-adapters.js"), import("./harness/registry.js"), import("./agent-host/hosting.js")]);
   const hosted = await hostHarnesses(HARNESS_ADAPTERS, baseConfig);
+  boot.release = async () => {
+    try {
+      await shutdownHarnesses(adaptersOf(hosted.rows));
+    } finally {
+      await hosted.close();
+    }
+  };
   await bootHarnesses(adaptersOf(hosted.rows), baseConfig);
   markBoot("harnesses_booted");
 

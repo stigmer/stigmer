@@ -96,6 +96,12 @@ export async function runAgentHostProcess(host: AgentHostProcess): Promise<void>
 /** The process boundary: fd 3, the real adapter table, the real telemetry and `process.exit`. */
 export async function runAgentHost(): Promise<void> {
   /* v8 ignore start -- @preserve: the process boundary; its logic is runAgentHostProcess (tested in-process) and scripts/verify-agent-host-boot.mjs boots this under plain Node */
+  // The host shares the runner's process group, so a daemon's stop or a
+  // terminal's Ctrl-C reaches it too. It ignores both and exits when its pipe
+  // closes: the runner drains its turns first and shuts the harnesses down,
+  // and a runner that dies outright closes the pipe with it.
+  process.on("SIGTERM", () => {});
+  process.on("SIGINT", () => {});
   const socket = new Socket({ fd: AGENT_HOST_CHANNEL_FD, readable: true, writable: true });
   await runAgentHostProcess({
     channel: streamChannel(socket, socket),

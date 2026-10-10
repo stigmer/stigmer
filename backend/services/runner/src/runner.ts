@@ -16,6 +16,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { homedir, tmpdir } from "node:os";
+import { releasingOnFailure, type HostedBoot } from "./agent-host/failed-boot.js";
 import type { Config, TokenRef } from "./config.js";
 import type { HarnessRow } from "./harness/registry.js";
 import { DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS, DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS, DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS } from "./config.js";
@@ -207,6 +208,14 @@ async function startStaticSandboxTokenRenewal(
 export async function createStigmerRunner(
   options: StigmerRunnerOptions,
 ): Promise<StigmerRunner> {
+  return releasingOnFailure((boot) => buildStigmerRunner(options, boot));
+}
+
+/** The factory's body; `boot.release` is set once the agent host is up (`agent-host/failed-boot.ts`). */
+async function buildStigmerRunner(
+  options: StigmerRunnerOptions,
+  boot: HostedBoot,
+): Promise<StigmerRunner> {
   validateOptions(options);
 
   // Take custody of runner secrets BEFORE anything else can read them from
@@ -246,6 +255,14 @@ export async function createStigmerRunner(
     import("./agent-host/hosting.js"),
   ]);
   const hosted = await hostHarnesses(HARNESS_ADAPTERS, bootConfig);
+  const releaseHosted = async (): Promise<void> => {
+    try {
+      await shutdownHarnesses(adaptersOf(hosted.rows));
+    } finally {
+      await hosted.close();
+    }
+  };
+  boot.release = releaseHosted;
   await bootHarnesses(adaptersOf(hosted.rows), bootConfig);
   markBoot("harnesses_booted");
 
@@ -367,16 +384,7 @@ export async function createStigmerRunner(
       emitRunnerBootTiming({ task_queue: config.taskQueue, mode: config.mode });
       await worker.run();
       console.log("Worker stopped");
-      await releaseAfterDrain({
-        shutdownHarnesses: async () => {
-          try {
-            await shutdownHarnesses(adaptersOf(hosted.rows));
-          } finally {
-            await hosted.close();
-          }
-        },
-        connection,
-      });
+      await releaseAfterDrain({ shutdownHarnesses: releaseHosted, connection });
     },
     shutdown() {
       tokenRenewal?.stop();

@@ -109,7 +109,7 @@ beforeAll(async () => {
   await upstream.start();
   proxy = await AgentProxy.start(testConfig({ proxyEndpoint: null }));
   proxy.authorizeHost(HOST_TOKEN);
-  closeTurn = proxy.openTurn({ executionId: EXECUTION, sessionId: "ses-lanes" });
+  closeTurn = proxy.openTurn({ executionId: EXECUTION, threadId: "thread-ses-lanes" });
 });
 
 afterAll(async () => {
