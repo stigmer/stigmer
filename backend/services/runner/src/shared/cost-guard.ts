@@ -42,7 +42,9 @@ export function costCapExceeded(maxCostUsd: number, estimatedCostUsd: number): b
  * pattern of TOOL_CALL_LIMIT_ERROR_PREFIX (tool-rounds.ts): consumers
  * that need to distinguish "ran out of cost budget" from other TERMINATED
  * causes can match on this prefix, because RunStatus carries no
- * structured termination reason. Do not reword without checking consumers.
+ * structured termination reason. Do not reword without checking consumers:
+ * the plugin-eval grader keeps a copy to tell a try its own cap stopped
+ * (stigmer-server temporal/evals/case-activities.ts).
  */
 export const COST_LIMIT_ERROR_PREFIX = "Agent reached the cost limit";
 
