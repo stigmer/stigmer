@@ -16,7 +16,9 @@
  *    relayed too;
  *  - bounds: REST needs the host's token, a live execution and a Cursor
  *    host; the agent run needs a live execution; side calls need only the
- *    stand-in; a path outside both is unknown;
+ *    stand-in, and only the side calls the SDK makes are relayed (any other
+ *    `/aiserver.v1.*` method, `CreateUserApiKey` among them, is refused
+ *    before it leaves the runner); a path outside both is unknown;
  *  - terminate mode reaches Cursor with the operator's key and no scope
  *    header; forward mode reaches the platform's proxy with the runner's
  *    credential, the real token, and the execution id as its one scope
@@ -37,6 +39,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import { testConfig } from "../../__test-utils__/config-fixture.js";
 import { FakeUpstream } from "../../__test-utils__/fake-upstream.js";
 import type { Config } from "../../config.js";
+import { CURSOR_SIDE_CALLS } from "../cursor-lane.js";
 import { AgentProxy } from "../server.js";
 
 const HOST_TOKEN = "host-token-cursor-lane";
@@ -238,6 +241,41 @@ describe("terminate: a runner that calls Cursor itself", () => {
     expect(answer.status).toBe(200);
     expect(rest.last.path).toBe("/aiserver.v1.ServerConfigService/GetServerConfig");
     expect(rest.last.headers.authorization).toBe(`Bearer ${REAL_TOKEN}`);
+  });
+
+  it("relays only the side calls the SDK makes, and refuses every other aiserver method before it leaves the runner", async () => {
+    const standIn = await exchange();
+    rest.answer = { status: 200, headers: { "content-type": "application/json" }, body: "{}" };
+    // The methods @cursor/sdk 1.0.31 calls through a client, read from its bundle (#2083).
+    expect([...CURSOR_SIDE_CALLS].sort()).toEqual([
+      "/aiserver.v1.AnalyticsService/TrackEvents",
+      "/aiserver.v1.DashboardService/GetEffectiveUserPlugins",
+      "/aiserver.v1.DashboardService/GetManagedSkills",
+      "/aiserver.v1.DashboardService/GetTeamAdminSettingsOrEmptyIfNotInTeam",
+      "/aiserver.v1.DashboardService/GetTeamReposOrEmptyIfNotInTeam",
+      "/aiserver.v1.DashboardService/GetUserPrivacyMode",
+      "/aiserver.v1.DashboardService/ResolvePluginsByRef",
+      "/aiserver.v1.ServerConfigService/GetServerConfig",
+    ]);
+    for (const path of CURSOR_SIDE_CALLS) {
+      expect((await call(path, { authorization: `Bearer ${standIn}` })).status, path).toBe(200);
+      expect(rest.last.path).toBe(path);
+    }
+
+    const sent = rest.received.length;
+    for (const path of [
+      "/aiserver.v1.DashboardService/CreateUserApiKey",
+      "/aiserver.v1.DashboardService/GetTeams",
+      "/aiserver.v1.BidiService/BidiAppend",
+      "/aiserver.v1.DashboardService/getUserPrivacyMode",
+      "/aiserver.v1.DashboardService/GetUserPrivacyMode/",
+      "/aiserver.v1.DashboardService/GetUserPrivacyMode%2F..%2FCreateUserApiKey",
+    ]) {
+      const refused = await call(path, { authorization: `Bearer ${standIn}` });
+      expect(refused.status, path).toBe(403);
+      expect(JSON.parse(refused.body), path).toEqual({ code: "permission_denied", message: expect.stringContaining("relays only the Cursor SDK's own side calls") });
+    }
+    expect(rest.received).toHaveLength(sent);
   });
 
   it("relays other REST calls with the operator's key, to Cursor's own host when no backend is named", async () => {
