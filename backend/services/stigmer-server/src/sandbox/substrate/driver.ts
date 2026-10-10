@@ -709,6 +709,7 @@ export function newSubstrateSandboxDriverOverGateway(
   }
 
   const provisioner: SandboxProvisioner = {
+    runnerMode: options.runnerMode ?? "local",
     ensureSessionSandbox: (sessionId, env) => ensure("session", sessionId, env),
     deprovisionSessionSandbox: (sessionId) => deprovision("session", sessionId),
     async createConnectSandbox(connectRequestId, env) {

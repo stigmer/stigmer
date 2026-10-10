@@ -161,6 +161,7 @@ import { SERVER_VERSION } from "../domain/platform/version.js";
 import { registerSessionServices } from "../domain/session/controller.js";
 import { registerPluginServices } from "../domain/plugin/controller.js";
 import { refreshLegacyPluginStatuses } from "../domain/plugin/legacy-status.js";
+import { newLocalProgramPolicy } from "../domain/run/local-programs.js";
 import { PLUGIN_ARTIFACT_KEY_PREFIX } from "../domain/plugin/constants.js";
 import { registerSkillServices } from "../domain/skill/controller.js";
 import {
@@ -1856,6 +1857,7 @@ export async function composeServer(
         agentLoader: () => requireInProcess().executionAgentLoader,
         sessionLoader: () => requireInProcess().executionSessionLoader,
         vaultResolver,
+        localPrograms: newLocalProgramPolicy(sandboxLane, temporalConfig),
       },
     });
     registerSkillServices(router, {

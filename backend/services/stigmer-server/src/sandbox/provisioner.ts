@@ -85,6 +85,14 @@ export type SandboxScope = "session" | "connect";
  */
 export interface SandboxProvisioner {
   /**
+   * Where the runner in every sandbox this provisioner starts believes it
+   * runs, the runner's MODE: `cloud` refuses a plugin's local program (the
+   * runner's transport guard), so run create refuses a conversation that
+   * needs one up front (domain/run/local-programs.ts). Absent means
+   * `local`, open source's.
+   */
+  readonly runnerMode?: "local" | "cloud";
+  /**
    * Ensure-as-state-machine for a session sandbox: absent → provision;
    * stopped → start; running → fast path. Idempotent; safe to invoke on
    * every execution create/recover for the session.

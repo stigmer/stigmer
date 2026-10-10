@@ -49,6 +49,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run, RunSchema, RunValueSource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import { goWrappedStatusError } from "../../pipeline/errors.js";
@@ -58,6 +59,8 @@ import type { VaultResolver } from "../vault/resolve.js";
 import { runPersonOfCaller } from "../vault/resolve.js";
 
 import type { AgentLoader } from "./create-steps.js";
+import { refuseLocalPrograms } from "./local-programs.js";
+import type { LocalProgramPolicy } from "./local-programs.js";
 import { loadRunPlugins, runPluginReferences } from "./run-plugins.js";
 import { sessionIdOf } from "./target.js";
 
@@ -78,6 +81,8 @@ export interface RunValuePlannerDeps {
   readonly sessionLoader: () => SessionLoader;
   /** The one rule for where each value lives (domain/vault/resolve.ts). */
   readonly vaultResolver: VaultResolver;
+  /** Where a plugin's local program cannot start; absent refuses nothing (local-programs.ts). */
+  readonly localPrograms?: LocalProgramPolicy;
 }
 
 /**
@@ -151,6 +156,7 @@ export async function planRunValues(
     runPluginReferences(agentSpec, session, executionOrg),
     executionOrg,
   );
+  refuseLocalPrograms(deps.localPrograms, session.spec?.executionTarget ?? ExecutionTarget.UNSPECIFIED, plugins);
 
   const sources = await deps.vaultResolver.planRun({
     execution,
