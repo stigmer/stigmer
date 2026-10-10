@@ -7,6 +7,14 @@ package ai.stigmer.iam.v1;
 
 /**
  * <pre>
+ * IamRole defines the roles that can be assigned to principals on resources
+ * via IAM policies.
+ *
+ * Roles are human-assigned and represent a principal's relationship to a
+ * resource. They are distinct from permissions (which are computed from roles
+ * and checked by the authorization interceptor) and structural relations
+ * (which are internal FGA wiring like organization or session links).
+ *
  * Each ApiResourceKind declares which of these roles are grantable via
  * the grantable_roles field in its AuthorizationConfig, and what each one
  * means there in role_descriptions.
