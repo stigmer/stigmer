@@ -17,8 +17,8 @@
  *
  * The types and their starters:
  *   - "stigmer/mcp-server/connect" and "stigmer/mcp-server/discover": the
- *     server's MCP connect lane (`temporal/mcpserver/names.ts` in the
- *     server), by MCP server id.
+ *     server's plugin tools listing (`temporal/plugintools/names.ts` in the
+ *     server), by plugin id and server name.
  *
  * ES2022 arbitrary module export names (`export { fn as "..." }`) let
  * us map TypeScript function names to the slash-delimited Temporal
@@ -31,6 +31,6 @@
  */
 
 export {
-  connectMcpServer as "stigmer/mcp-server/connect",
-  discoverMcpServerLegacy as "stigmer/mcp-server/discover",
-} from "./connect-mcp-server.js";
+  listPluginTools as "stigmer/mcp-server/connect",
+  listPluginToolsLegacy as "stigmer/mcp-server/discover",
+} from "./list-plugin-tools.js";

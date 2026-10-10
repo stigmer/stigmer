@@ -137,13 +137,11 @@ export class CursorEngineToolViews implements HookToolViews {
     const slug = call.serverSlug;
     if (this.ctx.platformServerSlugs.has(slug)) return {};
     const owned = this.ctx.pluginServers.get(slug);
-    const claude: ToolView = owned !== undefined
-      ? {
-          toolName: `mcp__plugin_${owned.plugin}_${owned.server}__${call.name}`,
-          toolInput: { ...call.args },
-          mcpServer: { name: `plugin:${owned.plugin}:${owned.server}`, source: "plugin" },
-        }
-      : { toolName: `mcp__${slug}__${call.name}`, toolInput: { ...call.args }, mcpServer: { name: slug, source: "managed" } };
+    const claude: ToolView = {
+      toolName: `mcp__${slug}__${call.name}`,
+      toolInput: { ...call.args },
+      mcpServer: { name: owned === undefined ? slug : `plugin:${owned.plugin}:${owned.server}`, source: "plugin" },
+    };
     return {
       "claude-code": claude,
       cursor: { toolName: `MCP:${call.name}`, toolInput: { ...call.args }, mcp: { tool: call.name, server: slug } },

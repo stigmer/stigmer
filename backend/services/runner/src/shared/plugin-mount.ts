@@ -57,6 +57,8 @@ const ARCHIVE_LABEL = "plugin archive";
 
 /** One mounted plugin, as a hook run reads it. */
 export interface MountedPlugin {
+  /** The plugin's id: its hooks' values are grouped by it (`RunValues.plugins`). */
+  readonly id: string;
   /** The plugin's slug, the name a run records as the deciding hook. */
   readonly slug: string;
   /** The plugin's own name (its manifest's), as Claude Code names its servers. */
@@ -137,6 +139,7 @@ export async function mountPlugin(
   await agentFs().mkdir(data, { recursive: true });
 
   return {
+    id: plugin.metadata?.id ?? "",
     slug,
     name: plugin.metadata?.name || slug,
     root: tree.root,

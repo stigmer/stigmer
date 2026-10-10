@@ -141,7 +141,7 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
           session_id: sessionId,
           harness: "cursor",
           agent_resumed: engine.resolution.resumed,
-          mcp_server_count: blueprint.mergedMcpServerUsages.length,
+          mcp_server_count: mcp.servers.length,
         }, turnStartTiming);
       }
       primaryOnDelta(event);

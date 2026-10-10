@@ -10,10 +10,12 @@
  * process environment less its credentials, plus the agent's own run values
  * (`../shell-env.ts`), never a tool's. They are
  * built even in plan mode, where the agent has no shell, because hooks
- * still run there. A plugin's `${user_config.KEY}` resolves from those
- * values; one the run does not have refuses the turn, naming the variable
- * and the plugin, and so does a shell-form handler (every Cursor handler is
- * one) when no `bash` is on the hook's `PATH`. A hook that cannot run as
+ * still run there. A plugin's `${user_config.KEY}` resolves from that
+ * plugin's own values (`RunValues.plugins`), never another plugin's or the
+ * agent's; the agent's own block resolves from the agent's. One the run
+ * does not have refuses the turn, naming the variable and the plugin, and
+ * so does a shell-form handler (every Cursor handler is one) when no `bash`
+ * is on the hook's `PATH`. A hook that cannot run as
  * written is a policy that vanished, and Stigmer has no enable-time prompt
  * to ask for the value instead; what a single run does with a missing
  * script or a failing exit stays its format's rule.
@@ -28,7 +30,7 @@ import type { HookGroup } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hoo
 import type { ResolvedMcpServer } from "../mcp-resolver.js";
 import type { MountedPlugin } from "../plugin-mount.js";
 import { buildShellEnv, shellRunValues } from "../shell-env.js";
-import type { RunValues } from "../run-values.js";
+import { toolValuesKey, type RunValues } from "../run-values.js";
 import { HookEvaluator, type HookPermissionMode } from "./evaluate.js";
 import { HookSet, isRunEvent, userConfigKeys, type HookFormatName, type HookSourceGroups } from "./hook-set.js";
 import { activityPulseFor, HOOK_SHELL } from "./run.js";
@@ -51,7 +53,7 @@ export interface HookSetupInput {
     readonly groups: readonly HookGroup[];
   }[];
   /** The run's values, per declarer (`TurnInput.values`). */
-  readonly runValues: Pick<RunValues, "agent" | "tools">;
+  readonly runValues: Pick<RunValues, "agent" | "tools" | "plugins">;
   readonly mcpServers: readonly ResolvedMcpServer[];
   /** The engine's views of its calls. */
   readonly views: HookToolViews;
@@ -83,14 +85,18 @@ export async function buildHookEvaluator(input: HookSetupInput): Promise<HookEva
       );
     }
     const options = new Map<string, string>();
+    const own = plugin === null ? values : (input.runValues.plugins.get(plugin.id) ?? {});
     for (const key of format === "claude-code" ? handlers.flatMap(userConfigKeys) : []) {
-      const value = values[key];
+      const value = own[key];
       if (value === undefined) {
         const claimant = toolHolding(input, key);
         throw new HookSetupError(
           claimant === undefined
-            ? `${who} reads the variable ${key}, which this run does not give the agent. ` +
+            ? plugin === null
+              ? `${who} reads the variable ${key}, which this run does not give the agent. ` +
                 `Declare ${key} in the agent's env and set its value, then run again.`
+              : `${who} reads the variable ${key}, which none of this conversation's vaults holds. ` +
+                `Save ${key} in one of them, then run again.`
             : `${who} reads the variable ${key}, which this run keeps for its MCP server '${claimant}' ` +
                 "and gives neither the agent's shell nor its hooks. Give the hook a variable of its own, then run again.",
         );
@@ -135,13 +141,19 @@ export async function buildHookEvaluator(input: HookSetupInput): Promise<HookEva
 
 /**
  * The MCP server a run value belongs to, by its group in the run's values:
- * the slug of the resolved server with that id, or the id itself for a
- * server that did not resolve this turn. `undefined` when no tool holds it.
+ * the name of the resolved server of that plugin and key, or the key itself
+ * for a server that did not resolve this turn. `undefined` when no tool
+ * holds it.
  */
 function toolHolding(input: Pick<HookSetupInput, "runValues" | "mcpServers">, key: string): string | undefined {
-  for (const [serverId, group] of input.runValues.tools) {
+  for (const [groupKey, group] of input.runValues.tools) {
     if (!(key in group.values)) continue;
-    return input.mcpServers.find((server) => server.serverId === serverId)?.slug ?? serverId;
+    const server = input.mcpServers.find(
+      (candidate) =>
+        candidate.pluginOrigin !== null &&
+        toolValuesKey(candidate.pluginOrigin.pluginId, candidate.pluginOrigin.server) === groupKey,
+    );
+    return server?.slug ?? groupKey;
   }
   return undefined;
 }

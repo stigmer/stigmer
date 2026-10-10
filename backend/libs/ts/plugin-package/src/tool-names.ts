@@ -4,7 +4,8 @@
  * `A-Za-z0-9_-` in either name written as `_`. The server segment is built
  * from the two names, never parsed back, because either name may hold `_`.
  * The installer refuses a plugin whose segment would hold `__` or end in
- * `_`, and the runner names each plugin server by this segment, so an
+ * `_`, and the runner names each plugin server by this segment (its own
+ * copy, `shared/plugin-servers.ts`, held equal by a runner test), so an
  * agent's tool list written for Claude Code scopes the same tools here.
  */
 

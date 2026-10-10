@@ -40,6 +40,7 @@ export const DEEP_AGENT_CAPABILITIES: HarnessCapabilities = {
   subAgents: true,
   toolRestriction: true,
   runsHooks: true,
+  readsToolMarks: true,
   visionProfile: DEEP_AGENT_VISION_PROFILE,
   fileReview: { harnessId: DEEP_AGENT_HARNESS_ID, excludePaths: [] },
 };

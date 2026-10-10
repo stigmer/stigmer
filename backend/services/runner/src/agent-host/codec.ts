@@ -60,7 +60,7 @@ import { reflect } from "@bufbuild/protobuf/reflect";
 import type { JsonObject } from "@bufbuild/protobuf";
 import { AgentSpecSchema, SubAgentSchema, type AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { ChannelTemplateSchema, MessagingChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
-import { McpServerUsageSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
+import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { HookGroupSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { RunSchema, RunStatusSchema, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
@@ -78,6 +78,7 @@ import type { CasTouchedSnapshot } from "../shared/filereview/cas-touched.js";
 import type { HookFormatName } from "../shared/hooks/hook-set.js";
 import type { PluginServerName } from "../shared/hooks/tool-view.js";
 import type { ResolvedMcpServer } from "../shared/mcp-resolver.js";
+import type { McpToolListing } from "../shared/mcp-tool-listing.js";
 import type { RecalledMemoriesContent } from "../shared/recalled-memories.js";
 import type { DeclaredPreferencesContent } from "../shared/declared-preferences.js";
 import type { SenderIdentity } from "../shared/sender-identity.js";
@@ -121,14 +122,15 @@ export interface WireTurnInput {
     /** True when the list IS the agent spec's own (and `subAgents` is then empty on the wire). */
     readonly subAgentsAreAgentSpecs: boolean;
     readonly subAgents: readonly string[];
-    readonly mergedMcpServerUsages: readonly string[];
+    readonly plugins: readonly string[];
     readonly mergedSkillRefs: readonly string[];
     readonly cloudRepos: readonly CloudRepo[];
   };
-  /** The agent's own values, and each tool's by MCP server id; never a repository's token. */
+  /** The agent's own values, each tool's by plugin and server, each plugin's for its hooks; never a repository's token. */
   readonly values: {
     readonly agent: Readonly<Record<string, string>>;
     readonly tools: ReadonlyArray<readonly [string, { readonly url: string; readonly values: Readonly<Record<string, string>> }]>;
+    readonly plugins: ReadonlyArray<readonly [string, Readonly<Record<string, string>>]>;
   };
   readonly workspace: {
     readonly dirs: readonly string[];
@@ -152,13 +154,15 @@ export interface WireTurnInput {
       readonly hooks: readonly string[];
     };
     readonly destructive: readonly string[];
+    readonly unlisted: readonly string[];
+    readonly listing: McpToolListing | null;
     readonly platformServerSlugs: readonly string[];
     readonly toolScope: ToolScopeWire;
   };
   readonly skills: { readonly root: readonly SkillMetadata[]; readonly bySubAgent: readonly (readonly [string, readonly SkillMetadata[]])[] };
   readonly hooks: {
     readonly sources: readonly {
-      readonly plugin: { readonly slug: string; readonly name: string; readonly root: string; readonly data: string } | null;
+      readonly plugin: { readonly id: string; readonly slug: string; readonly name: string; readonly root: string; readonly data: string } | null;
       readonly format: HookFormatName;
       readonly groups: readonly string[];
     }[];
@@ -205,11 +209,11 @@ export function encodeTurnInput(input: TurnInput): WireTurnInput {
       instructions: blueprint.instructions,
       subAgentsAreAgentSpecs: subAgentsAreAgentSpecs(input),
       subAgents: subAgentsAreAgentSpecs(input) ? [] : blueprint.subAgents.map((s) => encodeMessage(SubAgentSchema, s)),
-      mergedMcpServerUsages: blueprint.mergedMcpServerUsages.map((u) => encodeMessage(McpServerUsageSchema, u)),
+      plugins: blueprint.plugins.map((p) => encodeMessage(PluginSchema, p)),
       mergedSkillRefs: blueprint.mergedSkillRefs.map((r) => encodeMessage(ApiResourceReferenceSchema, r)),
       cloudRepos: blueprint.cloudRepos,
     },
-    values: { agent: input.values.agent, tools: [...input.values.tools] },
+    values: { agent: input.values.agent, tools: [...input.values.tools], plugins: [...input.values.plugins] },
     workspace: {
       dirs: workspace.dirs,
       primaryDir: workspace.primaryDir,
@@ -238,6 +242,8 @@ export function encodeTurnInput(input: TurnInput): WireTurnInput {
         hooks: [...mcp.leases.hooks],
       },
       destructive: [...mcp.mcpDefault.destructive],
+      unlisted: [...mcp.mcpDefault.unlisted],
+      listing: mcp.listing ?? null,
       platformServerSlugs: [...mcp.platformServerSlugs],
       toolScope: mcp.toolScope.toWire(),
     },
@@ -245,7 +251,7 @@ export function encodeTurnInput(input: TurnInput): WireTurnInput {
     hooks: {
       sources: hooks.sources.map((source) => ({
         plugin: source.plugin
-          ? { slug: source.plugin.slug, name: source.plugin.name, root: source.plugin.root, data: source.plugin.data }
+          ? { id: source.plugin.id, slug: source.plugin.slug, name: source.plugin.name, root: source.plugin.root, data: source.plugin.data }
           : null,
         format: source.format,
         groups: source.groups.map((g) => encodeMessage(HookGroupSchema, g)),
@@ -313,11 +319,11 @@ export function decodeTurnInput(wire: WireTurnInput, services: HostTurnServices)
         agentSpec && wire.blueprint.subAgentsAreAgentSpecs
           ? agentSpec.subAgents
           : wire.blueprint.subAgents.map((s) => decodeMessage(SubAgentSchema, s)),
-      mergedMcpServerUsages: wire.blueprint.mergedMcpServerUsages.map((u) => decodeMessage(McpServerUsageSchema, u)),
+      plugins: wire.blueprint.plugins.map((p) => decodeMessage(PluginSchema, p)),
       mergedSkillRefs: wire.blueprint.mergedSkillRefs.map((r) => decodeMessage(ApiResourceReferenceSchema, r)),
       cloudRepos: [...wire.blueprint.cloudRepos],
     },
-    values: { agent: wire.values.agent, tools: new Map(wire.values.tools), repositories: [] },
+    values: { agent: wire.values.agent, tools: new Map(wire.values.tools), plugins: new Map(wire.values.plugins), repositories: [] },
     workspace: {
       dirs: wire.workspace.dirs,
       primaryDir: wire.workspace.primaryDir,
@@ -345,7 +351,8 @@ export function decodeTurnInput(wire: WireTurnInput, services: HostTurnServices)
         servers: leasedServers,
         hooks: new Set(wire.mcp.leases.hooks),
       },
-      mcpDefault: { destructive: new Set(wire.mcp.destructive), leasedServers },
+      mcpDefault: { destructive: new Set(wire.mcp.destructive), unlisted: new Set(wire.mcp.unlisted), leasedServers },
+      listing: wire.mcp.listing ?? undefined,
       platformServerSlugs: new Set(wire.mcp.platformServerSlugs),
       toolScope: ToolScope.fromWire(wire.mcp.toolScope),
     },

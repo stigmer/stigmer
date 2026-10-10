@@ -86,6 +86,7 @@ import type { SkillMetadata } from "../shared/skill-resolver.js";
 import type { MountedPlugin } from "../shared/plugin-mount.js";
 import type { HookFormatName } from "../shared/hooks/hook-set.js";
 import type { PluginServerName } from "../shared/hooks/tool-view.js";
+import type { McpToolListing } from "../shared/mcp-tool-listing.js";
 import type { HookGroup } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import type { ResolvedAttachment } from "../shared/attachment-resolver.js";
 import type { NotViewableEntry, VisionImage } from "../shared/attachment-vision.js";
@@ -202,8 +203,15 @@ export interface TurnMcp {
   /** Serving proactive channels and their templates (the discovery read). */
   readonly channelMessaging: readonly ChannelMessagingInfo[];
   readonly leases: ActiveLeases;
-  /** Which MCP tools ask (their server marks them destructive) and which servers a lease cleared. */
+  /**
+   * Which MCP tools ask (their server marks them destructive) and which
+   * servers a lease cleared. For an engine that reads its tools' marks
+   * itself (`capabilities.readsToolMarks`) it carries only the leases, and
+   * the engine completes it from the tools it loads.
+   */
   readonly mcpDefault: McpApprovalDefault;
+  /** What the turn start listed of each plugin server's tools; absent for an engine that reads its tools itself. */
+  readonly listing: McpToolListing | undefined;
   /**
    * The slugs of the synthesized attachments injected this turn: the
    * platform's own servers, outside every tool list.

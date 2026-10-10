@@ -8,13 +8,15 @@
  * now. The answer is grouped by who declared each value, and each group
  * reaches only its declarer:
  *
- *   - `agent`: the agent's own keys, for its shell and hooks. Never a tool's
- *     key, a login or a repository's token: the server plans none of those
- *     for the agent.
- *   - `tools`: each MCP server's keys, by server id, with the URL whose
- *     address the server checked against each login it hands over. A
- *     server is filled only from its own group, and only while it still
- *     dials that URL (shared/mcp-resolver.ts).
+ *   - `agent`: the agent's own keys, for its shell and its own hooks. Never
+ *     a tool's or a plugin's key, a login or a repository's token: the
+ *     server plans none of those for the agent.
+ *   - `tools`: each MCP server's keys, by its plugin and its name there
+ *     (`toolValuesKey`), with the URL whose address the server checked
+ *     against each login it hands over. A server is filled only from its own
+ *     group, and only while it still dials that URL (shared/mcp-resolver.ts).
+ *   - `plugins`: each plugin's keys, by plugin id, for that plugin's hooks
+ *     only (shared/hooks/setup.ts).
  *   - `repositories`: each cloned repository's token, by entry name and
  *     URL, for its git commands and write-back only
  *     (shared/workspace/git-credential.ts).
@@ -52,15 +54,22 @@ export interface RepositoryToken {
 
 /** A run's values, per declarer. */
 export interface RunValues {
-  /** The agent's own keys: its shell and hooks. */
+  /** The agent's own keys: its shell and its own hooks. */
   readonly agent: Readonly<Record<string, string>>;
-  /** Each tool's values, by MCP server id. */
+  /** Each tool's values, by {@link toolValuesKey}. */
   readonly tools: ReadonlyMap<string, ToolValueGroup>;
+  /** Each plugin's keys, by plugin id: its hooks' only. */
+  readonly plugins: ReadonlyMap<string, Readonly<Record<string, string>>>;
   readonly repositories: readonly RepositoryToken[];
 }
 
 /** A run with no values: nothing declared anything, or nothing was found for an optional key. */
-export const NO_RUN_VALUES: RunValues = { agent: {}, tools: new Map(), repositories: [] };
+export const NO_RUN_VALUES: RunValues = { agent: {}, tools: new Map(), plugins: new Map(), repositories: [] };
+
+/** The key a tool's values are grouped by: its plugin, and its server's name in that plugin. */
+export function toolValuesKey(pluginId: string, server: string): string {
+  return `${pluginId}\u0000${server}`;
+}
 
 /** The server refused the fetch for a reason the person fixes; `message` is the server's, naming what and where. */
 export class RunValuesRefusedError extends Error {
@@ -74,11 +83,12 @@ export class RunValuesRefusedError extends Error {
 export function runValuesOf(answer: ExecutionValues): RunValues {
   const tools = new Map<string, ToolValueGroup>();
   for (const tool of answer.tools) {
-    tools.set(tool.mcpServerId, { url: tool.url, values: { ...tool.values } });
+    tools.set(toolValuesKey(tool.pluginId, tool.server), { url: tool.url, values: { ...tool.values } });
   }
   return {
     agent: { ...answer.agent },
     tools,
+    plugins: new Map(answer.plugins.map((plugin) => [plugin.pluginId, { ...plugin.values }])),
     repositories: answer.repositories.map(({ name, url, token }) => ({ name, url, token })),
   };
 }
@@ -93,8 +103,8 @@ export function repositoryTokenFor(
 }
 
 /**
- * Fetches an execution's values (a run's, or a connect's with the token its
- * workflow input carries). A FAILED_PRECONDITION becomes
+ * Fetches an execution's values (a run's, or a tools listing's with the
+ * token its workflow input carries). A FAILED_PRECONDITION becomes
  * {@link RunValuesRefusedError}; every other failure propagates.
  */
 export async function fetchRunValues(
@@ -115,7 +125,7 @@ export async function fetchRunValues(
   console.log(
     `Fetched values for execution ${executionId}: ` +
       `agent=[${Object.keys(values.agent).sort().join(", ")}], ` +
-      `tools=${values.tools.size}, repositories=${values.repositories.length}`,
+      `tools=${values.tools.size}, plugins=${values.plugins.size}, repositories=${values.repositories.length}`,
   );
   return values;
 }

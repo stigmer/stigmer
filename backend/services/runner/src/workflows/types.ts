@@ -1,68 +1,46 @@
 /**
- * Workflow boundary types for the MCP server connect flow.
+ * Workflow boundary types for a plugin's tools listing (the
+ * `stigmer/mcp-server/connect` workflow type, a pinned name).
  *
- * These types define the Temporal wire contract between the Java/Go
- * backend (which starts and reads the workflow) and the TypeScript
- * workflow implementation. Field names use snake_case to match the
- * server's keys exactly — Temporal's TS SDK does plain JSON
- * serialization with no name transformation. The one camelCase key,
- * `WireToolResult.destructiveHint`, is pinned as spelled on both sides.
+ * These types define the Temporal wire contract between the server (which
+ * starts the workflow and reads its result,
+ * `backend/services/stigmer-server/src/domain/plugin/tools/engine.ts`) and
+ * the workflow. Field names use snake_case to match the server's keys
+ * exactly — Temporal's TS SDK does plain JSON serialization with no name
+ * transformation. The one camelCase key, `WireToolResult.destructiveHint`,
+ * is pinned as spelled on both sides.
  *
  * IMPORTANT: This file MUST contain only plain TypeScript interfaces
  * with zero runtime imports. It is imported by the workflow file
  * which runs inside the Temporal deterministic sandbox.
  */
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Workflow Input (from Java's McpServerConnectHandler)
-// ─────────────────────────────────────────────────────────────────────────────
-
-export interface ConnectMcpServerWorkflowInput {
-  mcp_server_id: string;
-  /** The connect attempt whose values discovery fetches; absent when the server declares nothing. */
+export interface ListPluginToolsWorkflowInput {
+  plugin_id: string;
+  /** The server's name in the plugin. */
+  server: string;
+  /** The listing's attempt, whose values it fetches; absent when the server reads none. */
   execution_context_id?: string | null;
   /**
-   * Execution-scoped token bound to the connect attempt, the authority of
-   * discovery's value fetch (oss#535). Populated by the OSS handler; absent
-   * on cloud, where the discovery activity's ambient connect_sandbox
-   * credential is bound to the attempt on its own.
+   * Execution-scoped token bound to the attempt, the authority of the
+   * listing's value fetch. Absent on an edition whose ambient connect
+   * sandbox credential is bound to the attempt on its own.
    */
   execution_context_token?: string | null;
-  invoker_identity_account_id?: string | null;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Workflow Output (read by Java's StoreConnectResults)
-// ─────────────────────────────────────────────────────────────────────────────
-
-export interface ConnectMcpServerWorkflowOutput {
+export interface ListPluginToolsWorkflowOutput {
   tools: WireToolResult[];
-  resource_templates: WireResourceTemplateResult[];
 }
 
 export interface WireToolResult {
   name: string;
   description: string;
-  input_schema?: Record<string, unknown> | null;
   /**
    * True only when the tool's MCP annotations carry an explicit
    * `destructiveHint: true`, whatever `readOnlyHint` says. camelCase, unlike
-   * its siblings: the server reads this exact key and persists it as
-   * `DiscoveredTool.destructive_hint`. Pinned bytes on both sides.
+   * its siblings: the server reads this exact key. Pinned bytes on both
+   * sides.
    */
   destructiveHint: boolean;
 }
-
-export interface WireResourceTemplateResult {
-  uri_template: string;
-  name: string;
-  description: string;
-  mime_type: string;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Legacy Discover-only Workflow Output
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** The legacy workflow's result: the same discovery, in the same shape. */
-export type DiscoverMcpServerWorkflowOutput = ConnectMcpServerWorkflowOutput;

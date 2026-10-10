@@ -748,13 +748,13 @@ async function createAllActivities(config: Config, harnessRows: readonly Harness
     { createHarnessActivities },
     { createEnsureThreadActivities },
     { createGenerateSessionSubjectActivities },
-    { createDiscoverMcpServerActivities },
+    { createListPluginToolsActivities },
     { createAttachSessionActivities },
   ] = await Promise.all([
     import("./harness/registry.js"),
     import("./activities/ensure-thread.js"),
     import("./activities/generate-session-subject.js"),
-    import("./activities/discover-mcp-server.js"),
+    import("./activities/list-plugin-tools.js"),
     import("./activities/attach-session.js"),
   ]);
 
@@ -762,7 +762,7 @@ async function createAllActivities(config: Config, harnessRows: readonly Harness
     ...(await createHarnessActivities(harnessRows, config)),
     ...createEnsureThreadActivities(),
     ...createGenerateSessionSubjectActivities(config),
-    ...createDiscoverMcpServerActivities(config),
+    ...createListPluginToolsActivities(config),
     ...createAttachSessionActivities(config),
   };
 }

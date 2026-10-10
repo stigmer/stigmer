@@ -33,11 +33,9 @@
  * `additionalProperties` / `unevaluatedProperties` at that schema level is
  * therefore relaxed too.
  *
- * Scope: this sanitizer serves the EXECUTION path only. Discovery
- * (activities/discover-mcp-server.ts) persists tool schemas verbatim from
- * listTools — deliberately: the stored schema is the vendor's truth for
- * display, and discovery never invokes tools, so it cannot hit the crash.
- * Do not "extend" sanitization there.
+ * Scope: this sanitizer serves the EXECUTION path only. A tools listing
+ * (shared/mcp-tool-listing.ts) reads names, descriptions and marks, never
+ * schemas, and never invokes a tool, so it cannot hit the crash.
  */
 
 /** One dropped regex constraint, for the caller's log line. */

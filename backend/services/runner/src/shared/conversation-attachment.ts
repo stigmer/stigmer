@@ -36,19 +36,19 @@
  *
  * Approval-free by construction, and FORCED, not convenient: channel
  * surfaces run APPROVAL_MODE_UNATTENDED, where a gated tool resolves as
- * skip-and-adapt — a gated escalation would never fire. An empty
- * destructive set + no McpServerUsage keep the approval default and the
- * connect backfill structurally unable to gate it, and its tools sit
- * outside every tool list (see synthesized-attachment.ts). Callers
- * inject AFTER resolve + backfill.
+ * skip-and-adapt — a gated escalation would never fire. It is no plugin's
+ * server, so the approval default reads no mark from it and cannot gate
+ * it, and its tools sit outside every tool list (see
+ * synthesized-attachment.ts). Callers inject AFTER resolve.
  */
 
 import type { ResolvedMcpServer } from "./mcp-resolver.js";
 import type { SynthesizedAttachmentOptions } from "./synthesized-attachment.js";
 
 /**
- * The synthesized attachment's slug. Reserved: a user McpServer with
- * this slug is shadowed by the synthesized attachment, with a warning.
+ * The synthesized attachment's slug. Reserved: no plugin server is named
+ * like it (theirs start `plugin_`), and one that were would be shadowed by
+ * the synthesized attachment, with a warning.
  * Runner-internal (the resolved-server name and shadow key — the
  * mcp-server never sees it); pinned by this module's test.
  */
@@ -100,14 +100,10 @@ export function synthesizeConversationAttachment(
     return undefined;
   }
 
-  // Approval-free by construction + backfill-proof: see file header.
+  // Approval-free by construction: see file header.
   return {
     slug: CONVERSATION_ATTACHMENT_SLUG,
-    destructiveTools: [],
-    discoveredToolNames: null,
-    serverId: "",
     pluginOrigin: null,
-    discoveredCapabilitiesEmpty: false,
     connectionType: "http",
     url: options.bridgeEndpoint.replace(/\/+$/, "") + CONVERSATION_ROUTE,
     headers: options.credential !== null && options.credential !== ""

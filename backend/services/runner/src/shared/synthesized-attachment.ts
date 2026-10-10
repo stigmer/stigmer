@@ -5,14 +5,13 @@
  * common, extracted when the second attachment arrived.
  *
  * A synthesized attachment is a first-party MCP server entry the runner
- * builds itself (no McpServer resource, no Environment, no credential in
- * any manifest) on a RESERVED slug. Approval-freedom is structural, not
- * configured: an empty `destructiveTools` means the approval default asks
- * for none of its tools, and discoveredCapabilitiesEmpty false + no
- * McpServerUsage keep the connect backfill's discovery from touching it.
- * Its tools are the platform's, outside every agent tool list (the turn
- * records its slug in `TurnMcp.platformServerSlugs`). Callers must still
- * inject AFTER resolve + backfill; every harness call site does.
+ * builds itself (no plugin, no credential in any manifest) on a RESERVED
+ * slug, with no plugin origin. Approval-freedom is structural, not
+ * configured: the turn records its slug in `TurnMcp.platformServerSlugs`,
+ * and the approval default reads destructive marks only from plugin
+ * servers, so none of its tools ever asks. Its tools are the platform's,
+ * outside every agent tool list. Callers inject AFTER the plugins' servers
+ * resolve; every harness call site does.
  */
 
 import type { ResolvedMcpServer } from "./mcp-resolver.js";
@@ -78,7 +77,7 @@ export function stdioCredentialEnv(
 
 /**
  * Inject a synthesized attachment into a resolved server list — AFTER
- * resolve + backfill (see the module header). A user server shadowing
+ * resolve (see the module header). A user server shadowing
  * the reserved slug is replaced, loudly; `label` names the attachment
  * in that warning (e.g. "channel messaging").
  */
