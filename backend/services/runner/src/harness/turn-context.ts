@@ -696,6 +696,10 @@ export async function reconcileReinvocation(
   return { kind: "ready", reinvocation: { isReinvocation: reinvoked, approvalDecisions } };
 }
 
+/** The transcript row a turn without the platform's own MCP servers carries (#2062). */
+export const PLATFORM_TOOLS_OFF_NOTICE =
+  "The platform's own tools (memory, channel messaging and the conversation tools) are off for this turn: no credential scoped to this run could be had.";
+
 /**
  * Phases 4 to 4b: the tool surface.
  *
@@ -717,11 +721,14 @@ export async function reconcileReinvocation(
  *  - memory capture: the recall snapshot's enabled bit IS the
  *    decision, server-stamped at execution create.
  *
- * Their credential story: the exchanged scoped runner token
- * authenticates the discovery reads per call; the exchange is opportunistic
- * (every consumer degrades to an empty answer by contract, and the server
- * refuses the ambient fallback safely), so a failed exchange must not kill
- * the run, unlike the env read, where secrets are load-bearing.
+ * Their credential story: the exchanged scoped runner token authenticates
+ * the discovery reads per call and goes into the attachments. The runner's
+ * own key never does (#2062): without a scoped token, a credential already
+ * scoped below the runner (a cloud sandbox's session token) is used, a
+ * runner holding none runs them without one, and otherwise the turn runs
+ * without the platform's own servers and says so (\`PLATFORM_TOOLS_OFF_NOTICE\`).
+ * The exchange is opportunistic, so a failed one never kills the run,
+ * unlike the env read, where secrets are load-bearing.
  *
  * The approval default's MCP half is built last (which tools their servers
  * mark destructive), with two bypasses shared with the native harness
@@ -733,10 +740,6 @@ export async function reconcileReinvocation(
  * from `servers` after this returns, exactly once, so every mutation is
  * visible by construction.
  */
-/** The transcript row a turn without the platform's own MCP servers carries (#2062). */
-export const PLATFORM_TOOLS_OFF_NOTICE =
-  "The platform's own tools (memory, channel messaging and the conversation tools) are off for this turn: no credential scoped to this run could be had.";
-
 export async function resolveMcpServersAndPolicies(
   deps: ResolutionDeps,
   args: {

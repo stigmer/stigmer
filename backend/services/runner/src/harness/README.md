@@ -77,6 +77,12 @@ which holds none of its keys; the runner's own process loads no engine SDK
 - `agent-proxy/server.ts` — `AgentProxy`, the runner's loopback proxy, the
   host's only way to a credentialed call; `agent-proxy/cursor-lane.ts` its
   Cursor lane, TLS on loopback, which keeps the Cursor access token.
+- `shared/agent-fs.ts` — the runtime's file and process operations on the
+  agent's paths, which the runner routes to the host (`agent-host/remote-fs.ts`,
+  `agent-host/fs-service.ts`), so the runtime never acts on them with the
+  runner's rights (`harness/__tests__/runtime-touches-no-agent-path.test.ts`).
+- `shared/agent-identity.ts` — who the host runs as: in a container shape the
+  agent user, started through `setpriv`; elsewhere the runner's own user.
 
 An adapter written to the contract needs nothing more to be hosted: the hermetic
 suites and both kits run it through the remote adapter

@@ -57,8 +57,27 @@ type HostilePeer = Peer<RunnerCalls, HostCalls, HostNotices, RunnerNotices>;
 /** What the hostile host does inside a turn, before it answers `runTurn`. */
 type Attack = (peer: HostilePeer, turnId: string, args: HostCalls["runTurn"]["args"]) => Promise<void>;
 
-function hostileHarness(attack: Attack, outcome: unknown = { kind: "completed" }, settledProjection: RunStatus = create(RunStatusSchema)): HarnessAdapter {
-  const proxy = { endpoint: "http://127.0.0.1:9", cursorEndpoint: "https://127.0.0.1:9", authorizeHost: () => {}, openTurn: () => () => {} };
+/** What the runner opened at its proxy for each turn, and which keys it closed. */
+interface ProxyTurns {
+  readonly opened: { readonly executionId: string; readonly threadId: string; readonly turnKey: string }[];
+  readonly closed: string[];
+}
+
+function hostileHarness(
+  attack: Attack,
+  outcome: unknown = { kind: "completed" },
+  settledProjection: RunStatus = create(RunStatusSchema),
+  turns: ProxyTurns = { opened: [], closed: [] },
+): HarnessAdapter {
+  const proxy = {
+    endpoint: "http://127.0.0.1:9",
+    cursorEndpoint: "https://127.0.0.1:9",
+    authorizeHost: () => {},
+    openTurn: (turn: ProxyTurns["opened"][number]) => {
+      turns.opened.push(turn);
+      return () => void turns.closed.push(turn.turnKey);
+    },
+  };
   const supervisor = new AgentHostSupervisor({
     proxy,
     log: () => {},
@@ -170,6 +189,30 @@ describe("a host that does not follow the rules", () => {
 
     expect(sink.status.subAgentRuns[0]!.messages[0]!.toolCalls[0]!.outputRef?.storageKey).toBe("artifacts/earlier/shot.png");
     expect(midTurn).toEqual(["ok.ts"]);
+  });
+
+  it("opens the turn at the proxy under the key it hands the host, and closes it when the turn settles", async () => {
+    const turns: ProxyTurns = { opened: [], closed: [] };
+    let handed: string | undefined;
+    let closedDuringTurn: readonly string[] = [];
+    const adapter = hostileHarness(
+      async (_host, _turnId, args) => {
+        handed = args.turnKey;
+        closedDuringTurn = [...turns.closed];
+      },
+      undefined,
+      undefined,
+      turns,
+    );
+    await adapter.boot(testConfig());
+    const input = turnInputFixture();
+
+    await adapter.runTurn(input, new RecordingTurnSink({ executionId: input.executionId }));
+
+    expect(turns.opened).toEqual([{ executionId: input.executionId, threadId: input.threadId, turnKey: handed }]);
+    expect(handed, "a fresh key, long enough to guess at nothing").toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(closedDuringTurn, "open while the turn runs").toEqual([]);
+    expect(turns.closed).toEqual([handed]);
   });
 
   it("keeps a CAS snapshot's paths inside the workspace", () => {

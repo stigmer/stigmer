@@ -25,7 +25,7 @@
  * mounts cannot drift.
  */
 
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { agentFs } from "./agent-fs.js";
 import { dirname, extname, resolve } from "node:path";
 import { ConnectError, Code } from "@connectrpc/connect";
 import type { ZipFileEntry } from "./zip-extract.js";
@@ -97,8 +97,8 @@ export function archiveFileMode(path: string, content: Uint8Array): number {
 
 /** Remove a mount directory and create it empty. */
 export async function resetDirectory(dir: string): Promise<void> {
-  await rm(dir, { recursive: true, force: true });
-  await mkdir(dir, { recursive: true });
+  await agentFs().rm(dir, { recursive: true, force: true });
+  await agentFs().mkdir(dir, { recursive: true });
 }
 
 /**
@@ -126,7 +126,7 @@ export async function writeArchiveEntries(
 ): Promise<void> {
   for (const entry of entries) {
     const filePath = entryPathIn(dir, entry.path, label);
-    await mkdir(dirname(filePath), { recursive: true });
-    await writeFile(filePath, entry.content, { mode: archiveFileMode(entry.path, entry.content) });
+    await agentFs().mkdir(dirname(filePath), { recursive: true });
+    await agentFs().writeFile(filePath, entry.content, { mode: archiveFileMode(entry.path, entry.content) });
   }
 }

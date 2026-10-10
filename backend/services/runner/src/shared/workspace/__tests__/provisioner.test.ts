@@ -58,6 +58,20 @@ describe("WorkspaceProvisioner", () => {
       expect(result.rootDir).toBe(projectDir);
     });
 
+    it("links a multi-entry session's entry to the directory, and keeps or replaces the link as the directory stays or moves", async () => {
+      const root = makeTempDir();
+      const first = makeTempDir();
+      const second = makeTempDir();
+      const backend = new LocalWorkspaceBackend(root);
+      const entry = (path: string) => ({ name: "app", source: { source: { case: "localPath" as const, value: { path } } } });
+      await provisioner.provision(entry(first), backend, [], true, { targetSubdir: "app" });
+      expect(readlinkSync(join(root, "app"))).toBe(first);
+      await provisioner.provision(entry(first), backend, [], true, { targetSubdir: "app" });
+      expect(readlinkSync(join(root, "app")), "the same directory keeps its link").toBe(first);
+      await provisioner.provision(entry(second), backend, [], true, { targetSubdir: "app" });
+      expect(readlinkSync(join(root, "app")), "a moved directory is linked anew").toBe(second);
+    });
+
     it("rejects relative paths", async () => {
       const root = makeTempDir();
       const backend = new LocalWorkspaceBackend(root);

@@ -46,7 +46,7 @@
  * reach this module. This module never persists a path it is not given.
  */
 
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { agentFs } from "../agent-fs.js";
 import { dirname, join } from "node:path";
 import {
   FileCaptureClass,
@@ -357,7 +357,7 @@ export async function applyCasApproved(opts: {
   const { readBlob, workspaceRoot, files } = opts;
   for (const file of files) {
     if (file.kind === FileChangeKind.DELETE) {
-      await rm(join(workspaceRoot, file.pathBefore), { force: true });
+      await agentFs().rm(join(workspaceRoot, file.pathBefore), { force: true });
       continue;
     }
     // CREATE or MODIFY: write the approved after bytes.
@@ -380,7 +380,7 @@ export async function restoreCasToBaseline(opts: {
   for (const file of files) {
     if (file.kind === FileChangeKind.ADD) {
       // The file did not exist before this turn — remove the agent's creation.
-      await rm(join(workspaceRoot, file.pathAfter), { force: true });
+      await agentFs().rm(join(workspaceRoot, file.pathAfter), { force: true });
       continue;
     }
     // MODIFY or DELETE: the baseline holds the file — restore its exact bytes.
@@ -419,8 +419,8 @@ async function writeVerifiedBlob(
       `expected ${ref.sha256}, got ${actual}`,
     );
   }
-  await mkdir(dirname(abs), { recursive: true });
-  await writeFile(abs, bytes);
+  await agentFs().mkdir(dirname(abs), { recursive: true });
+  await agentFs().writeFile(abs, bytes);
 }
 
 /** Stable order: by after path, then before path (substrate-agnostic). */

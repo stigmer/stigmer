@@ -22,11 +22,13 @@
 # the two lists equal):
 #
 #   refused  - no glibc loader at the path the layer's Node names (the
-#              runner cannot start at all); not uid 0 (the runner installs
-#              packages at runtime, and on Substrate the base image's USER
-#              decides who it is); no /proc; any of bash, git and the text
-#              tools the Cursor approval hook runs, missing from PATH
-#              (without them a repository workspace or every Cursor turn
+#              runner cannot start at all); not uid 0 (the runner starts
+#              the agent's side as its own user, stigmer-agent, and only
+#              root can, and on Substrate the base image's USER decides who
+#              it is); no /proc; any of bash, git, setpriv (util-linux: how
+#              the runner drops to the agent user) and the text tools the
+#              Cursor approval hook runs, missing from PATH (without them a
+#              repository workspace, the agent user or every Cursor turn
 #              breaks).
 #   warned   - rg (the native agent's grep falls back to a substring
 #              search): one feature degrades, so the runner starts.
@@ -109,7 +111,7 @@ else
 fi
 
 missing=""
-for tool in bash git cat sed grep head cut awk tr base64 dirname; do
+for tool in bash git setpriv cat sed grep head cut awk tr base64 dirname; do
   if ! command -v "$tool" >/dev/null 2>&1; then
     missing="${missing:+$missing, }$tool"
   fi
@@ -142,5 +144,9 @@ if ! command -v rg >/dev/null 2>&1; then
 fi
 
 unset NODE_OPTIONS NODE_PATH
+
+# The runner reads this to know it runs in a container shape, where it
+# starts the agent's side as the agent user (src/shared/agent-identity.ts).
+export STIGMER_RUNNER_LAYER=1
 
 exec "${0%/*}/node" "$@"

@@ -26,7 +26,7 @@
  */
 
 import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 
 import type { Config } from "../config.js";
@@ -34,7 +34,11 @@ import { HOSTED_HARNESSES } from "../harness-adapters.js";
 import type { HarnessRow } from "../harness/registry.js";
 import { AgentProxy } from "../agent-proxy/server.js";
 import { agentHostEnvironment } from "./environment.js";
+import { installAgentFs } from "../shared/agent-fs.js";
+import { handOverToAgent, type HandoverIo } from "../shared/agent-handover.js";
+import { agentIdentity, prepareAgentSeparation, type AgentIdentity } from "../shared/agent-identity.js";
 import { createRemoteAdapter } from "./remote-adapter.js";
+import { remoteAgentFs } from "./remote-fs.js";
 import { AgentHostSupervisor, processHostStarter, type HostStarter } from "./supervisor.js";
 
 /** The table the root runs, and what to release once its harnesses have shut down. */
@@ -49,19 +53,46 @@ export interface HostedHarnesses {
 export interface HostHarnessesOptions {
   /** How the host is started; the tests serve one in-process. Defaults to a child process. */
   readonly start?: HostStarter;
+  /** Who the host runs as; defaults to this process's facts (`shared/agent-identity.ts`). */
+  readonly identity?: AgentIdentity | null;
+  /** How a separating runner that cannot drop to the agent leaves; defaults to `process.exit`. */
+  readonly exit?: (code: number) => void;
+  /** The separation's preparation; the tests stand one in. */
+  readonly prepareSeparation?: (identity: AgentIdentity) => string | null;
 }
+
+/** The exit code of a runner that cannot start its host as the agent: a configuration error, as `layer/start.sh` refuses one. */
+export const SEPARATION_REFUSED_EXIT = 78;
 
 export async function hostHarnesses(
   rows: readonly HarnessRow[],
   config: Config,
   options: HostHarnessesOptions = {},
 ): Promise<HostedHarnesses> {
+  const identity = options.identity === undefined ? agentIdentity() : options.identity;
+  if (identity !== null) {
+    // A container runner never runs the agent's side as root: one that
+    // cannot drop to the agent user stops here, before any harness boots.
+    const refusal = (options.prepareSeparation ?? ((who: AgentIdentity) => prepareAgentSeparation(who) ?? handOver(who, config.workspaceRootDir)))(identity);
+    if (refusal !== null) {
+      console.error(`[agent-host] ${refusal}`);
+      (options.exit ?? process.exit)(SEPARATION_REFUSED_EXIT);
+      throw new Error(refusal);
+    }
+  }
   const proxy = await AgentProxy.start(config);
   const trust = writeTrustedCertificates(proxy.cursorCertificate, process.env.NODE_EXTRA_CA_CERTS);
   const supervisor = new AgentHostSupervisor({
     proxy,
     start: options.start ?? processHostStarter(() => ({ ...agentHostEnvironment(), NODE_EXTRA_CA_CERTS: trust.file })),
   });
+  // From here on, the runtime's operations on the agent's paths are the host's.
+  const restoreFs = installAgentFs(
+    remoteAgentFs({
+      fs: async (request) => (await supervisor.connection()).call("fs", request),
+      exec: async (request) => (await supervisor.connection()).call("exec", request),
+    }),
+  );
   return {
     rows: rows.map((row) =>
       HOSTED_HARNESSES.has(row.harness)
@@ -71,10 +102,31 @@ export async function hostHarnesses(
     warmCursorSdk: () =>
       supervisor.warmCursorSdk().catch((err: unknown) => ({ warmed: false, durationMs: 0, error: err instanceof Error ? err.message : String(err) })),
     close: async () => {
+      restoreFs();
       await proxy.close();
       trust.remove();
     },
   };
+}
+
+/**
+ * Hand the agent its files on a separating runner's first boot
+ * (`shared/agent-handover.ts`), and its workspace root on every boot;
+ * `null` when done, else the line the runner refuses to start with.
+ */
+export function handOver(
+  identity: AgentIdentity,
+  workspaceRoot: string,
+  runnerHome: string = process.env.HOME || homedir(),
+  io?: HandoverIo,
+): string | null {
+  try {
+    const result = handOverToAgent(identity, { runnerHome, workspaceRoot }, io);
+    if (result.firstTime) console.log(`[agent-host] handed the agent's files to ${identity.name}${result.moved.length > 0 ? ` (moved ${result.moved.join(", ")})` : ""}`);
+    return null;
+  } catch (err) {
+    return `the runner cannot hand the agent user its files: ${err instanceof Error ? err.message : String(err)}`;
+  }
 }
 
 /** The pool member's log line for a warm-up's result. */

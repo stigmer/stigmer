@@ -45,11 +45,12 @@
 import type { HarnessName } from "../harness/registry.js";
 import type { UsageDelta } from "../harness/types.js";
 import type { TranscriptEvent } from "../harness/transcript/events.js";
+import type { AgentFileKind } from "../shared/agent-fs.js";
 import type { RecalledMemoriesContent } from "../shared/recalled-memories.js";
 import type { TimingRecorderWire } from "../shared/cold-start-timing.js";
 import type { RuntimeFieldsWire, WireOffload, WireTurnInput } from "./codec.js";
 
-export const AGENT_HOST_PROTOCOL_VERSION = 2;
+export const AGENT_HOST_PROTOCOL_VERSION = 3;
 
 /**
  * The largest single message either side sends or accepts. A turn's input
@@ -179,11 +180,89 @@ export interface HostCalls {
   };
   /** The engine's CAS observations now, for the runtime's mid-turn progress refresh. */
   readonly readCasObservations: { readonly args: { readonly turnId: string }; readonly result: WireCasSnapshot };
+  /** One file operation, performed by the host with the agent's rights (`shared/agent-fs.ts`, `remote-fs.ts`). */
+  readonly fs: { readonly args: FsRequest; readonly result: FsReply };
+  /** One process, run by the host with the agent's rights and the host's environment plus `env`. */
+  readonly exec: { readonly args: ExecRequest; readonly result: ExecReply };
   /** Pay the Cursor SDK's per-process store set-up now, on an idle pool member (`activities/execute-cursor/sdk-warmup.ts`). */
   readonly warmCursorSdk: {
     readonly args: Record<string, never>;
     readonly result: { readonly warmed: boolean; readonly durationMs: number; readonly error: string | null };
   };
+}
+
+// ─── The agent's file and process operations ───────────────────────────────
+
+/**
+ * The most file bytes one `fs` or `exec` message carries: 16 MiB raw, about
+ * 21 MiB as base64, well inside {@link MAX_MESSAGE_BYTES}. A larger file is
+ * read by range and written as truncate-then-append; a larger process output
+ * is left in a host-side file and read by range.
+ */
+export const FS_CHUNK_BYTES = 16 * 1024 * 1024;
+
+export type FsRequest =
+  | { readonly op: "read"; readonly path: string; readonly offset: number; readonly length: number }
+  | { readonly op: "write"; readonly path: string; readonly data: string; readonly append: boolean; readonly mode: number | null }
+  | { readonly op: "mkdir"; readonly path: string; readonly recursive: boolean; readonly mode: number | null }
+  | { readonly op: "rm"; readonly path: string; readonly recursive: boolean; readonly force: boolean }
+  | { readonly op: "rmdir" | "unlink" | "readlink" | "realpath" | "access" | "stat" | "lstat"; readonly path: string }
+  | { readonly op: "rename" | "copyFile"; readonly from: string; readonly to: string }
+  | { readonly op: "cp"; readonly from: string; readonly to: string; readonly recursive: boolean; readonly errorOnExist: boolean; readonly force: boolean; readonly verbatimSymlinks: boolean }
+  | { readonly op: "readdir"; readonly path: string; readonly recursive: boolean }
+  | { readonly op: "symlink"; readonly target: string; readonly path: string };
+
+/** A filesystem error as it crosses: enough for a caller that tests `err.code === "ENOENT"`. */
+export interface FsErrorWire {
+  readonly message: string;
+  readonly code: string | null;
+  readonly syscall: string | null;
+  readonly path: string | null;
+}
+
+export interface WireStats {
+  readonly size: number;
+  readonly mode: number;
+  readonly mtimeMs: number;
+  readonly ctimeMs: number;
+  readonly ino: number;
+  readonly kind: AgentFileKind;
+}
+
+export interface WireDirEntry {
+  readonly name: string;
+  readonly parentPath: string;
+  readonly kind: AgentFileKind;
+}
+
+export type FsValue =
+  | null
+  | string
+  | WireStats
+  | readonly WireDirEntry[]
+  /** A `read`: the range's bytes (base64) and the file's whole size. */
+  | { readonly data: string; readonly size: number };
+
+export type FsReply = { readonly ok: FsValue } | { readonly error: FsErrorWire };
+
+export interface ExecRequest {
+  readonly file: string;
+  readonly args: readonly string[];
+  readonly cwd: string | null;
+  readonly env: Readonly<Record<string, string>>;
+  readonly maxBuffer: number;
+  /** base64 standard input, or `null` for none. */
+  readonly input: string | null;
+}
+
+/** A process's output: inline base64, or a host-side file of `size` bytes to read by range and remove. */
+export type ExecOutputWire = { readonly inline: string } | { readonly spill: string; readonly size: number };
+
+export interface ExecReply {
+  readonly stdout: ExecOutputWire;
+  readonly stderr: ExecOutputWire;
+  /** `null` when the process exited 0. */
+  readonly failure: { readonly message: string; readonly code: number | string | null; readonly signal: string | null } | null;
 }
 
 // ─── Calls the host makes of the runner ────────────────────────────────────

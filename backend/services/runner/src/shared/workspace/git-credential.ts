@@ -11,13 +11,15 @@
  * (`-c` would put it there, and every user on a host can read a process's
  * arguments), never in a remote URL, never in a credential store. What a
  * shell command of the agent can read afterwards holds no token: the
- * remote URL is clean and `.git` holds nothing. While one git command runs,
- * its environment is readable by processes of the same OS user, and that
- * user's own git configuration (`~/.gitconfig`, which this module does not
- * judge: it is the operator's, and on a laptop holds their proxy and
- * rewrites) is honoured; both are the residual of the agent and the runner
- * being one OS user, and which user that is belongs to the runner's process
- * layout.
+ * remote URL is clean and `.git` holds nothing. The command runs where
+ * every operation on the agent's paths runs (`../agent-fs.ts`): on a
+ * separating runner, in the agent host, as the agent user. So while it
+ * runs, its environment, and the token in it, is readable by the agent's
+ * own processes, as it was when the agent and the runner were one OS user;
+ * the token is a run value, not the runner's credential, and closing that
+ * window is #2095. That user's own git configuration (`~/.gitconfig`, which
+ * this module does not judge: on a laptop it holds the person's proxy and
+ * rewrites) is honoured.
  *
  * The clone is the agent's to write, so the token's command does not trust
  * it. Hooks, the fsmonitor and submodule recursion are switched off at
@@ -46,6 +48,7 @@
  * from GitHub.
  */
 
+import { agentHostEnvironment } from "../../agent-host/environment.js";
 import type { WorkspaceBackend } from "./types.js";
 
 /** The oldest git that reads configuration from the environment. */
@@ -57,12 +60,14 @@ const GITHUB_EXTRAHEADER_KEY = "http.https://github.com/.extraheader";
 /**
  * The child-process variables that hand `token` to one git command, with
  * hooks and the fsmonitor off. They are appended after any per-command
- * configuration the runner's own environment already carries (`inherited`,
- * the runner's `process.env` by default), never in its place.
+ * configuration the command's environment already carries (`inherited`:
+ * by default the agent host's, which the command runs with), never in its
+ * place. A separating runner's host drops the runner's own `GIT_CONFIG_*`,
+ * so numbering from the runner's would leave a gap git refuses.
  */
 export function gitTokenEnv(
   token: string,
-  inherited: NodeJS.ProcessEnv = process.env,
+  inherited: NodeJS.ProcessEnv = agentHostEnvironment(),
 ): Record<string, string> {
   const basic = Buffer.from(`x-access-token:${token}`, "utf-8").toString("base64");
   const entries: ReadonlyArray<readonly [string, string]> = [
