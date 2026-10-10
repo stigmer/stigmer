@@ -116,15 +116,18 @@ function readCheck(type: EvalGraderType, source: GraderSource, scope: FieldScope
     case "tool_used": {
       const tool = readNonEmptyString(fields, "tool", scope);
       const inputMatch = readPattern(fields, "input_match", scope);
-      const min = readCount(fields, "min", scope);
+      const writtenMin = readCount(fields, "min", scope);
       const max = readCount(fields, "max", scope);
       if (tool === undefined) return required(scope, "tool", fields);
-      if (min !== undefined && max !== undefined && min > max) return wrong(scope, "min", `at most max (${max})`);
+      // A max alone lowers the default min of 1 to it, so `max: 0` reads as
+      // "never called" rather than a range nothing can satisfy.
+      const min = writtenMin ?? (max === undefined ? 1 : Math.min(1, max));
+      if (max !== undefined && min > max) return wrong(scope, "min", `at most max (${max})`);
       return {
         type,
         tool,
         ...(inputMatch !== undefined && { inputMatch }),
-        min: min ?? 1,
+        min,
         ...(max !== undefined && { max }),
       };
     }

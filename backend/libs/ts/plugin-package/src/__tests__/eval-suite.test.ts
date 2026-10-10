@@ -374,6 +374,11 @@ describe("grader defaults and options", () => {
     expect(graderOf("type: tool_used\ntool: Read")?.check).toEqual({ type: "tool_used", tool: "Read", min: 1 });
   });
 
+  it("tool_used: a max alone lowers the default min to it, so max 0 means never called", () => {
+    expect(graderOf("type: tool_used\ntool: Skill\nmax: 0")?.check).toEqual({ type: "tool_used", tool: "Skill", min: 0, max: 0 });
+    expect(graderOf("type: tool_used\ntool: Read\nmax: 3")?.check).toEqual({ type: "tool_used", tool: "Read", min: 1, max: 3 });
+  });
+
   it("tool_order: a name or { tool, input_match } on each side", () => {
     expect(graderOf("type: tool_order\nbefore: Read\nafter: { tool: Bash, input_match: 'npm test' }")?.check).toEqual({
       type: "tool_order",
