@@ -18,28 +18,26 @@ spec:
 
     Be concise but friendly. Always verify information before responding.
 
-  mcp_server_usages:
-    # Access GitHub repositories and issues
-    - mcp_server_ref:
-        kind: mcp_server
-        slug: github
-    # Post to the support channel when escalating
-    - mcp_server_ref:
-        kind: mcp_server
-        slug: slack
+  # The plugins this agent uses, each whole: its skills, agents, hooks and
+  # MCP servers. Install them first (examples/README.md).
+  plugins:
+    # GitHub's MCP server, for repositories and issues
+    - kind: plugin
+      slug: github
+    # Slack's MCP server, to post to the support channel when escalating
+    - kind: plugin
+      slug: slack
+    # hookify's hooks run around every tool call: a hook can refuse a call,
+    # ask a person first, or let it run.
+    - kind: plugin
+      slug: hookify
 
   # Only these tools: reading, two GitHub lookups, and Slack. No shell
-  # commands and no file writes.
+  # commands and no file writes. A plugin's MCP server is named
+  # plugin_<plugin>_<server>.
   tools:
     - Read
     - Grep
-    - mcp__github__search_issues
-    - mcp__github__get_issue
-    - mcp__slack
-
-  # Run hookify's hooks around every tool call: a hook can refuse a call, ask
-  # a person first, or let it run. Install the plugin first (examples/README.md).
-  hooks:
-    - plugin:
-        kind: plugin
-        slug: hookify
+    - mcp__plugin_github_github__search_issues
+    - mcp__plugin_github_github__get_issue
+    - mcp__plugin_slack_slack

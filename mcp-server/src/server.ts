@@ -24,8 +24,6 @@ import { registerAgentTools } from "./domains/agents/tools.js";
 import { registerChannelTools } from "./domains/channels/tools.js";
 import type { BackendTarget } from "./domains/client.js";
 import { registerConversationTools } from "./domains/conversation/tools.js";
-import { registerMcpServerResources } from "./domains/mcpservers/resources.js";
-import { registerMcpServerTools } from "./domains/mcpservers/tools.js";
 import {
   loadCaptureContextFromEnv,
   type CaptureContext,
@@ -168,7 +166,6 @@ function registerTools(server: McpServer, target: BackendTarget): string[] {
     ...registerSearchTools(server, target),
     ...registerAgentTools(server, target),
     ...registerRunTools(server, target),
-    ...registerMcpServerTools(server, target),
     ...registerSkillTools(server, target),
     ...registerRunControlTools(server, target),
   ];
@@ -181,7 +178,6 @@ function registerTools(server: McpServer, target: BackendTarget): string[] {
 function registerResources(server: McpServer, target: BackendTarget): string[] {
   return [
     ...registerAgentResources(server, target),
-    ...registerMcpServerResources(server, target),
     ...registerSkillResources(server, target),
   ];
 }

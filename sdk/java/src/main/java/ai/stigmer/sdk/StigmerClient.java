@@ -11,7 +11,7 @@ import java.util.concurrent.TimeUnit;
  * Top-level Stigmer API client.
  *
  * <p>Extends the code-generated {@link GeneratedClient} so every resource
- * sub-client (agents, sessions, mcpServers, oauthApps, …) is inherited
+ * sub-client (agents, sessions, plugins, oauthApps, …) is inherited
  * automatically — new resource clients added by codegen appear on this
  * class without manual wiring.
  *

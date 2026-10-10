@@ -45,6 +45,7 @@ export async function executeResolvedAgent(input: ResolvedAgentExecInput): Promi
     message: prepared.message,
     vaults: prepared.vaults,
     includeMyVault: prepared.includeMyVault,
+    plugins: prepared.plugins,
     attachments: prepared.attachments,
     workspaceFileRefs: prepared.workspaceFileRefs,
     workspaceEntries: prepared.workspaceEntries,

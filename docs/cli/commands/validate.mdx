@@ -9,8 +9,8 @@ description: validate resource YAML files or a plugin directory offline
 Validate resource YAML files, or a plugin directory, without applying them.
 
 `stigmer validate` checks that your resource files contain valid YAML with a
-correct schema. It supports agents and MCP servers. The resource type is
-auto-detected from the `kind` field in the YAML.
+correct schema. It supports agents. The resource type is auto-detected from the
+`kind` field in the YAML.
 
 It also validates a plugin directory: a folder with a `plugin.json`,
 `.cursor-plugin/plugin.json`, `.claude-plugin/plugin.json` or
@@ -57,8 +57,7 @@ stigmer validate -f ./my-plugin/
 - Resource-specific schema rules per kind
 - Multi-document YAML (`---` separated)
 - For a plugin directory: the manifest, every `SKILL.md`, the MCP server
-  configuration, every sub-agent file, the declared variables, and the
-  `ai.stigmer/` overlay documents
+  configuration, every sub-agent file and the declared variables
 
 ### Supported inputs
 

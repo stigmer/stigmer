@@ -160,6 +160,8 @@ export {
   manifestHandlerForYamlKind,
   manifestHandlerForTypeName,
   metadataOf,
+  MCP_SERVER_WAY_FORWARD,
+  mcpServerWayForward,
   REDACTED_SECRET_MARKER,
   containsRedactedSecrets,
   type AppliedManifest,
@@ -186,7 +188,6 @@ export {
   buildAgentProto,
   toAgentUpdateInput,
   type AgentInput,
-  type McpServerUsageInput,
   type SubAgentInput,
   type EnvVarDeclarationInput,
   type HookSourceInput,
@@ -247,14 +248,6 @@ export {
   type OAuthAppInput,
 } from "./gen/oauthapp.js";
 export {
-  McpServerClient,
-  buildMcpServerProto,
-  toMcpServerUpdateInput,
-  type McpServerInput,
-  type StdioServerConfigInput,
-  type HttpServerConfigInput,
-} from "./gen/mcpserver.js";
-export {
   MemoryClient,
   buildMemoryProto,
   toMemoryUpdateInput,
@@ -283,14 +276,6 @@ export {
   type VaultConnectionInput,
   type VaultConnectionSignInInput,
 } from "./gen/vault.js";
-export {
-  connectAndWait,
-  ConnectStillRunningError,
-  CONNECT_POLL_INTERVAL_MS,
-  CONNECT_SETTLE_BOUND_MS,
-  type ConnectAndWaitOptions,
-  type McpServerConnectLane,
-} from "./mcpserver-connect.js";
 export {
   OrganizationClient,
   toOrganizationUpdateInput,

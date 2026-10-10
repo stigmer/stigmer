@@ -1,7 +1,6 @@
 // In-process test for the delete tools. Verifies the two-step
 // resolve→delete flow forwards the resolved id into the correct per-domain
-// delete-input shape: typed {value} for agent and skill, and
-// ApiResourceDeleteInput {resource_id} for mcp_server.
+// delete-input shape: typed {value} for agent and skill.
 
 import { create, toJson } from "@bufbuild/protobuf";
 import type { ConnectRouter } from "@connectrpc/connect";
@@ -18,9 +17,6 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
-import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
-import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { configureLogger } from "../../logger";
@@ -33,17 +29,11 @@ const resolvedAgent = create(AgentSchema, {
   kind: "agent",
   metadata: { name: "Code Reviewer", slug: "code-reviewer", org: "acme", id: "agt-123" },
 });
-const resolvedMcpServer = create(McpServerSchema, {
-  apiVersion: "v1",
-  kind: "mcp_server",
-  metadata: { name: "GitHub", slug: "github", org: "acme", id: "mcp-456" },
-});
 
 let backend: Http2Server;
 let client: Client;
 let deletedAgentId: string | undefined;
 let lastAgentReferenceOrg: string | undefined;
-let deletedMcpResourceId: string | undefined;
 const openSessions = new Set<ServerHttp2Session>();
 
 interface ToolResult {
@@ -67,13 +57,6 @@ beforeAll(async () => {
       delete: (req) => {
         deletedAgentId = req.value;
         return resolvedAgent;
-      },
-    });
-    router.service(McpServerQueryController, { getByReference: () => resolvedMcpServer });
-    router.service(McpServerCommandController, {
-      delete: (req) => {
-        deletedMcpResourceId = req.resourceId;
-        return resolvedMcpServer;
       },
     });
   };
@@ -104,7 +87,6 @@ describe("delete tools integration", () => {
       expect.arrayContaining([
         "delete_agent",
         "delete_skill",
-        "delete_mcp_server",
       ]),
     );
   });
@@ -125,14 +107,5 @@ describe("delete tools integration", () => {
     expect(result.isError).toBeFalsy();
     expect(lastAgentReferenceOrg).toBe("");
     expect(deletedAgentId).toBe("agt-123");
-  });
-
-  it("delete_mcp_server resolves the id then deletes via ApiResourceDeleteInput", async () => {
-    const result = await callTool("delete_mcp_server", { org: "acme", slug: "github" });
-    expect(result.isError).toBeFalsy();
-    expect(deletedMcpResourceId).toBe("mcp-456");
-    expect(JSON.parse(result.content[0]?.text ?? "{}")).toEqual(
-      toJson(McpServerSchema, resolvedMcpServer, { useProtoFieldName: true }),
-    );
   });
 });

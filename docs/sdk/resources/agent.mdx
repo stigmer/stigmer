@@ -283,7 +283,6 @@ const agent = await stigmer.agent.apply({
   description: "...",
   iconUrl: "...",
   instructions: "...",
-  mcpServerUsages: [],
   skillRefs: [],
   subAgents: [],
   env: {},
@@ -292,6 +291,7 @@ const agent = await stigmer.agent.apply({
   hooks: [],
   runConfig: {},
   harness: "...",
+  plugins: [],
 });
 ```
 </Tab>
@@ -305,7 +305,6 @@ agent, err := client.Agent.Apply(ctx, &stigmer.AgentInput{
   Description:     "...",
   IconUrl:         "...",
   Instructions:    "...",
-  McpServerUsages: []stigmer.McpServerUsageInput{},
   SkillRefs:       []stigmer.ResourceRef{},
   SubAgents:       []stigmer.SubAgentInput{},
   Env:             map[string]string{},
@@ -314,6 +313,7 @@ agent, err := client.Agent.Apply(ctx, &stigmer.AgentInput{
   Hooks:           []stigmer.HookSourceInput{},
   RunConfig:       &stigmer.RunConfigInput{},
   Harness:         "...",
+  Plugins:         []stigmer.ResourceRef{},
 })
 ```
 </Tab>
@@ -327,7 +327,6 @@ agent = client.agents.apply(AgentInput(
     description="...",
     icon_url="...",
     instructions="...",
-    mcp_server_usages=[],
     skill_refs=[],
     sub_agents=[],
     env={},
@@ -336,6 +335,7 @@ agent = client.agents.apply(AgentInput(
     hooks=[],
     run_config=None,
     harness="...",
+    plugins=[],
 ))
 ```
 </Tab>
@@ -349,7 +349,6 @@ Agent agent = client.agents().apply(AgentInput.builder()
     .description("...")
     .iconUrl("...")
     .instructions("...")
-    .mcpServerUsages(List.of())
     .skillRefs(List.of())
     .subAgents(List.of())
     .env(Map.of())
@@ -358,6 +357,7 @@ Agent agent = client.agents().apply(AgentInput.builder()
     .hooks(List.of())
     .runConfig(null)
     .harness("...")
+    .plugins(List.of())
     .build());
 ```
 </Tab>
@@ -382,7 +382,6 @@ const agent = await stigmer.agent.create({
   description: "...",
   iconUrl: "...",
   instructions: "...",
-  mcpServerUsages: [],
   skillRefs: [],
   subAgents: [],
   env: {},
@@ -391,6 +390,7 @@ const agent = await stigmer.agent.create({
   hooks: [],
   runConfig: {},
   harness: "...",
+  plugins: [],
 });
 ```
 </Tab>
@@ -404,7 +404,6 @@ agent, err := client.Agent.Create(ctx, &stigmer.AgentInput{
   Description:     "...",
   IconUrl:         "...",
   Instructions:    "...",
-  McpServerUsages: []stigmer.McpServerUsageInput{},
   SkillRefs:       []stigmer.ResourceRef{},
   SubAgents:       []stigmer.SubAgentInput{},
   Env:             map[string]string{},
@@ -413,6 +412,7 @@ agent, err := client.Agent.Create(ctx, &stigmer.AgentInput{
   Hooks:           []stigmer.HookSourceInput{},
   RunConfig:       &stigmer.RunConfigInput{},
   Harness:         "...",
+  Plugins:         []stigmer.ResourceRef{},
 })
 ```
 </Tab>
@@ -426,7 +426,6 @@ agent = client.agents.create(AgentInput(
     description="...",
     icon_url="...",
     instructions="...",
-    mcp_server_usages=[],
     skill_refs=[],
     sub_agents=[],
     env={},
@@ -435,6 +434,7 @@ agent = client.agents.create(AgentInput(
     hooks=[],
     run_config=None,
     harness="...",
+    plugins=[],
 ))
 ```
 </Tab>
@@ -448,7 +448,6 @@ Agent agent = client.agents().create(AgentInput.builder()
     .description("...")
     .iconUrl("...")
     .instructions("...")
-    .mcpServerUsages(List.of())
     .skillRefs(List.of())
     .subAgents(List.of())
     .env(Map.of())
@@ -457,6 +456,7 @@ Agent agent = client.agents().create(AgentInput.builder()
     .hooks(List.of())
     .runConfig(null)
     .harness("...")
+    .plugins(List.of())
     .build());
 ```
 </Tab>
@@ -481,7 +481,6 @@ const agent = await stigmer.agent.update({
   description: "...",
   iconUrl: "...",
   instructions: "...",
-  mcpServerUsages: [],
   skillRefs: [],
   subAgents: [],
   env: {},
@@ -490,6 +489,7 @@ const agent = await stigmer.agent.update({
   hooks: [],
   runConfig: {},
   harness: "...",
+  plugins: [],
 });
 ```
 </Tab>
@@ -503,7 +503,6 @@ agent, err := client.Agent.Update(ctx, &stigmer.AgentInput{
   Description:     "...",
   IconUrl:         "...",
   Instructions:    "...",
-  McpServerUsages: []stigmer.McpServerUsageInput{},
   SkillRefs:       []stigmer.ResourceRef{},
   SubAgents:       []stigmer.SubAgentInput{},
   Env:             map[string]string{},
@@ -512,6 +511,7 @@ agent, err := client.Agent.Update(ctx, &stigmer.AgentInput{
   Hooks:           []stigmer.HookSourceInput{},
   RunConfig:       &stigmer.RunConfigInput{},
   Harness:         "...",
+  Plugins:         []stigmer.ResourceRef{},
 })
 ```
 </Tab>
@@ -525,7 +525,6 @@ agent = client.agents.update(AgentInput(
     description="...",
     icon_url="...",
     instructions="...",
-    mcp_server_usages=[],
     skill_refs=[],
     sub_agents=[],
     env={},
@@ -534,6 +533,7 @@ agent = client.agents.update(AgentInput(
     hooks=[],
     run_config=None,
     harness="...",
+    plugins=[],
 ))
 ```
 </Tab>
@@ -547,7 +547,6 @@ Agent agent = client.agents().update(AgentInput.builder()
     .description("...")
     .iconUrl("...")
     .instructions("...")
-    .mcpServerUsages(List.of())
     .skillRefs(List.of())
     .subAgents(List.of())
     .env(Map.of())
@@ -556,6 +555,7 @@ Agent agent = client.agents().update(AgentInput.builder()
     .hooks(List.of())
     .runConfig(null)
     .harness("...")
+    .plugins(List.of())
     .build());
 ```
 </Tab>
@@ -571,7 +571,7 @@ Update the visibility of an existing agent.
 
 This is a targeted metadata update — it only modifies metadata.visibility, leaving spec, status, and other metadata fields untouched. Use this to widen or narrow who can read the agent without sending the entire agent resource (avoiding read-modify-write races).
 
-Raising the level is refused while a skill, MCP server or agent the agent references is less visible than the requested level: what a person can run they must also be able to read.
+Raising the level is refused while a skill, plugin or agent the agent references is less visible than the requested level: what a person can run they must also be able to read.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -713,25 +713,15 @@ Input for creating or updating an Agent.
     description: { type: "string", description: "Human-readable description for UI and marketplace display." },
     iconUrl: { type: "string", description: "Icon URL for marketplace and UI display." },
     instructions: { type: "string", description: "System prompt defining the agent's behavior and personality." },
-    mcpServerUsages: { type: "McpServerUsageInput[]", description: "MCP servers this agent can use.", typeDescriptionLink: "#mcpserverusageinput" },
     skillRefs: { type: "ResourceRef[]", description: "Skill resources providing additional knowledge to the agent.", typeDescriptionLink: "#resourceref" },
     subAgents: { type: "SubAgentInput[]", description: "Sub-agents that can be delegated to.", typeDescriptionLink: "#subagentinput" },
     env: { type: "Record<string, EnvVarDeclarationInput>", description: "Environment variable declarations for this agent.", typeDescriptionLink: "#envvardeclarationinput" },
     tools: { type: "string[]", description: "Tools this agent may use; empty means every tool it has." },
     disallowedTools: { type: "string[]", description: "Tools this agent may never use, in the same names as tools." },
-    hooks: { type: "HookSourceInput[]", description: "Hooks that run around this agent's tool calls, and its sub-agents' calls.", typeDescriptionLink: "#hooksourceinput" },
+    hooks: { type: "HookSourceInput[]", description: "Hooks written in this agent itself, run around its tool calls and its sub-agents' calls, after the hooks of the plugins it lists.", typeDescriptionLink: "#hooksourceinput" },
     runConfig: { type: "RunConfigInput", description: "The author's run defaults: the model, speed tier, thinking and run bounds a turn on this agent uses unless the message or the surface it came through sets its own (RunConfig has the rule).", typeDescriptionLink: "#runconfiginput" },
     harness: { type: "Harness", description: "The engine this agent's run defaults were chosen for, and the engine a new conversation on this agent starts on when the person or the surface starting it names neither an engine nor a model (a turn that names a model but no engine starts on native, the engine its name was checked against).", typeDescriptionLink: "#harness" },
-  }}
-/>
-
-### McpServerUsageInput
-
-McpServerUsage declares that an agent (AgentSpec.mcp_server_usages) or a session (SessionSpec.mcp_server_usages) uses a McpServer resource.
-
-<TypeTable
-  type={{
-    mcpServerRef: { type: "ResourceRef", description: "Reference to the McpServer resource.", typeDescriptionLink: "#resourceref", required: true },
+    plugins: { type: "ResourceRef[]", description: "Plugins this agent uses, each whole: its skills, agents, hooks and MCP servers.", typeDescriptionLink: "#resourceref" },
   }}
 />
 
@@ -779,11 +769,10 @@ EnvVarDeclaration declares an environment variable a blueprint (an agent or an M
 
 ### HookSourceInput
 
-HookSource is one source of an agent's hooks: a plugin, or a hooks block written in the agent.
+HookSource is a hooks block written in the agent.
 
 <TypeTable
   type={{
-    plugin: { type: "ResourceRef", description: "A plugin whose recorded hooks apply to this agent.", typeDescriptionLink: "#resourceref" },
     inline: { type: "HookConfigInput", description: "A hooks block in Claude Code's hooks.json shape, written in the agent.", typeDescriptionLink: "#hookconfiginput" },
   }}
 />
@@ -911,7 +900,7 @@ AgentVersionEntry is one historical version of an agent.
     tag: { type: "string", description: "The tag this version holds now, if any." },
     isCurrent: { type: "boolean", description: "Whether this is the agent's current version." },
     message: { type: "string", description: "Human-readable message describing what changed in this version, from metadata.version.message at apply time." },
-    specSnapshot: { type: "AgentSpecInput", description: "The agent spec exactly as this version stored it: the instructions, sub-agents, skill and MCP server references, declared keys and vaults a turn on this version runs with." },
+    specSnapshot: { type: "AgentSpecInput", description: "The agent spec exactly as this version stored it: the instructions, sub-agents, skill and plugin references, declared keys and vaults a turn on this version runs with." },
   }}
 />
 

@@ -8,7 +8,7 @@ description: apply resources from files or a plugin directory
 
 Apply resource definitions to the Stigmer backend.
 
-`stigmer apply` is the primary way to deploy agents, MCP servers, and skills. It
+`stigmer apply` is the primary way to deploy agents and install plugins. It
 operates in two modes depending on what you point it at:
 
 - **File mode** (`-f`): Apply individual YAML resource files or a directory of
@@ -55,14 +55,18 @@ stigmer apply --dry-run
 ### File mode
 
 Apply individual YAML files or entire directories of resources. Supports agents,
-MCP servers, and multi-document YAML (separated by `---`).
+schedules, channels and multi-document YAML (separated by `---`). An MCP server
+is not a file of its own: it lives in a plugin, and an agent lists the plugins
+it uses under `spec.plugins`. A file of `kind: McpServer`, or an agent listing
+`mcp_server_usages`, is refused with that way forward;
+`stigmer mcp add <name> <url>` installs a one-off server as a plugin.
 
 ```bash
 # Apply a single file
 stigmer apply -f agent.yaml
 
-# Apply an MCP server with dry-run
-stigmer apply -f mcp-server.yaml --dry-run
+# Preview an agent without applying it
+stigmer apply -f agent.yaml --dry-run
 
 # Apply all YAML files in a directory
 stigmer apply -f ./manifests/
@@ -73,8 +77,8 @@ stigmer apply -f ./manifests/
 A directory whose root carries a plugin manifest (`plugin.json`,
 `.cursor-plugin/plugin.json`, `.claude-plugin/plugin.json` or
 `.codex-plugin/plugin.json`) is applied as a plugin: read, packaged and pushed
-exactly as `stigmer push plugin <dir>` would. Its resources become the plugin's
-members and are upgraded or removed with it.
+exactly as `stigmer push plugin <dir>` would. Its skills, agents, MCP servers
+and hooks are the plugin's, upgraded or removed with it.
 
 ```bash
 # Install the plugin in the current directory

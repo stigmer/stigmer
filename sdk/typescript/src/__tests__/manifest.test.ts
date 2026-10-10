@@ -174,6 +174,22 @@ describe("parseManifest", () => {
     );
   });
 
+  it("refuses a retired McpServer document with the way forward", () => {
+    expect(() =>
+      parseManifest("kind: McpServer\nmetadata:\n  name: github\nspec: {}\n"),
+    ).toThrow(/Unsupported resource kind "McpServer".*stigmer mcp add <name> <url>.*`plugins`/s);
+  });
+
+  it("refuses an agent listing mcp_server_usages with the way forward", () => {
+    const yaml = AGENT_YAML.replace(
+      "spec:",
+      "spec:\n  mcp_server_usages:\n    - mcp_server_ref:\n        slug: github",
+    );
+    expect(() => parseManifest(yaml)).toThrow(
+      /Invalid Agent.*stigmer mcp add <name> <url>.*`plugins`/s,
+    );
+  });
+
   it("rejects empty input with actionable guidance", () => {
     expect(() => parseManifest("   \n")).toThrow(/empty/i);
   });
@@ -374,7 +390,7 @@ describe("manifest registry", () => {
   });
 
   it("covers the kinds the console flows depend on", () => {
-    for (const kind of ["Agent", "McpServer", "AgentChannel", "ChannelApp"]) {
+    for (const kind of ["Agent", "AgentChannel", "ChannelApp"]) {
       expect(manifestHandlerForYamlKind(kind), `missing handler for ${kind}`).toBeDefined();
     }
   });
@@ -390,6 +406,6 @@ describe("manifest registry", () => {
       .filter((h) => h.updateVisibility !== undefined)
       .map((h) => h.yamlKind)
       .sort();
-    expect(withBinding).toEqual(["Agent", "McpServer"]);
+    expect(withBinding).toEqual(["Agent"]);
   });
 });

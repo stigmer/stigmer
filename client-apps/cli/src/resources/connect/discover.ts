@@ -1,34 +1,32 @@
-// Local MCP capability discovery for `connect mcp-server --dry-run`.
+// Local tool discovery for `connect plugin --dry-run`.
 //
-// Spawns/connects to the MCP server from the caller's machine (no backend push)
-// using the official @modelcontextprotocol/sdk client, lists its tools and
-// resource templates, and converts them to the same DiscoveredCapabilities proto
-// the backend returns — so dry-run and real connect render identically. Mirrors
-// Go's mcpdiscovery.Discover + CreateTransport (internal/cli/mcpdiscovery).
+// Starts or reaches one of a plugin's MCP servers from the caller's machine
+// (no runner, nothing stored) with the official @modelcontextprotocol/sdk
+// client, lists its tools, and converts them to the PluginTool proto a
+// runner's listing answers, so a dry run and a real connect print the same
+// way. A tool is destructive when the server marks it so
+// (`annotations.destructiveHint`), as the server's own listing reads it.
 //
-// stdio servers inherit the caller's shell environment, and ${VAR} placeholders
-// resolve from it, so credentials never leave the local machine. HTTP servers
-// connect to the configured URL with the server's static headers.
+// A local program inherits the caller's shell environment, and ${VAR}
+// placeholders in its arguments and an address's headers resolve from the
+// variables the server reads (its entry's `env`): the shell's value, else
+// the plugin's declared default. Keys never leave the local machine.
 
 import { create } from "@bufbuild/protobuf";
-import type { McpServerSpec } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
-import {
-  type DiscoveredCapabilities,
-  DiscoveredCapabilitiesSchema,
-  DiscoveredResourceTemplateSchema,
-  DiscoveredToolSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
-import type { JsonObject } from "@bufbuild/protobuf";
+import type { McpServerEntry } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
+import { type PluginTool, PluginToolSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
+import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { resolveHeaders, resolvePlaceholders } from "../mcp/placeholder-resolver.js";
 
-/** Discover an MCP server's capabilities locally without persisting to the backend. */
+/** List a plugin server's tools from this machine, storing nothing. */
 export async function localDiscover(
-  spec: McpServerSpec,
+  server: McpServerEntry,
+  declarations: Readonly<Record<string, EnvVarDeclaration>>,
   timeoutMs: number,
-): Promise<DiscoveredCapabilities> {
-  const { transport, readStderr } = await buildTransport(spec);
+): Promise<PluginTool[]> {
+  const { transport, readStderr } = await buildTransport(server, declarations);
   const client = new Client({ name: "stigmer-cli", version: "1.0.0" });
   const options = timeoutMs > 0 ? { timeout: timeoutMs } : undefined;
 
@@ -36,36 +34,21 @@ export async function localDiscover(
     await client.connect(transport, options);
   } catch (error) {
     // Append captured subprocess stderr so config/toolchain failures are
-    // diagnosable, mirroring Go's withStderr — without dumping raw output.
+    // diagnosable without dumping raw output.
     const stderr = readStderr();
     const detail = stderr !== "" ? `\nsubprocess stderr:\n${stderr}` : "";
-    throw new Error(`failed to connect to MCP server: ${(error as Error).message}${detail}`);
+    throw new Error(`failed to connect to MCP server '${server.name}': ${(error as Error).message}${detail}`);
   }
 
   try {
     const { tools } = await client.listTools(undefined, options);
-    const resourceTemplates = (await client.getServerCapabilities())?.resources
-      ? (await client.listResourceTemplates(undefined, options)).resourceTemplates
-      : [];
-
-    return create(DiscoveredCapabilitiesSchema, {
-      tools: tools.map((tool) =>
-        create(DiscoveredToolSchema, {
-          name: tool.name,
-          description: tool.description ?? "",
-          inputSchema: (tool.inputSchema as JsonObject | undefined) ?? undefined,
-        }),
-      ),
-      resourceTemplates: resourceTemplates.map((template) =>
-        create(DiscoveredResourceTemplateSchema, {
-          uriTemplate: template.uriTemplate,
-          name: template.name,
-          description: template.description ?? "",
-          mimeType: template.mimeType ?? "",
-        }),
-      ),
-      lastDiscoveredAt: { seconds: BigInt(Math.floor(Date.now() / 1000)), nanos: 0 },
-    });
+    return tools.map((tool) =>
+      create(PluginToolSchema, {
+        name: tool.name,
+        description: tool.description ?? "",
+        destructive: tool.annotations?.destructiveHint === true,
+      }),
+    );
   } finally {
     await client.close();
   }
@@ -77,53 +60,59 @@ interface BuiltTransport {
   readStderr(): string;
 }
 
-async function buildTransport(spec: McpServerSpec): Promise<BuiltTransport> {
-  // ${VAR} placeholders in args/headers resolve against the declared keys the
-  // caller's shell exports. Resolution is strict: an unresolved placeholder
-  // throws before any subprocess is spawned, matching the proto contract
-  // (never pass a literal "${VAR}" to the server).
-  const resolutionEnv = declaredShellValues(spec.env ?? {});
+async function buildTransport(
+  server: McpServerEntry,
+  declarations: Readonly<Record<string, EnvVarDeclaration>>,
+): Promise<BuiltTransport> {
+  // ${VAR} placeholders resolve against the variables the server reads.
+  // Resolution is strict: an unresolved placeholder throws before any
+  // subprocess is spawned (never pass a literal "${VAR}" to the server).
+  const resolutionEnv = serverValues(server.env, declarations);
+  const transport = server.transport;
 
-  if (spec.serverType?.case === "stdio") {
-    const { command, args, workingDir } = spec.serverType.value;
-    if (command === "") throw new Error("stdio transport requires a command");
-    const resolvedArgs = args.map((arg, i) => resolvePlaceholders(arg, resolutionEnv, `stdio arg[${i}]`));
-    const { StdioClientTransport } = await import("@modelcontextprotocol/sdk/client/stdio.js");
-    const transport = new StdioClientTransport({
-      command,
-      args: resolvedArgs,
-      cwd: workingDir !== "" ? workingDir : undefined,
-      env: { ...shellEnv(), ...goRunEnvOverrides(command, args) },
-      // "pipe" exposes the child stderr as a PassThrough immediately, so we can
-      // capture diagnostics rather than leaking them to the user's terminal.
-      stderr: "pipe",
-    });
-
-    let captured = "";
-    transport.stderr?.on("data", (chunk: Buffer) => {
-      captured += chunk.toString("utf8");
-    });
-    return { transport, readStderr: () => captured.trim() };
+  switch (transport.case) {
+    case "stdio": {
+      const { command, args } = transport.value;
+      if (command === "") throw new Error(`MCP server '${server.name}' names no program to run`);
+      const resolvedArgs = args.map((arg, i) => resolvePlaceholders(arg, resolutionEnv, `stdio arg[${i}]`));
+      const { StdioClientTransport } = await import("@modelcontextprotocol/sdk/client/stdio.js");
+      const stdio = new StdioClientTransport({
+        command,
+        args: resolvedArgs,
+        env: { ...shellEnv(), ...goRunEnvOverrides(command, args) },
+        // "pipe" exposes the child stderr as a PassThrough immediately, so we can
+        // capture diagnostics rather than leaking them to the user's terminal.
+        stderr: "pipe",
+      });
+      let captured = "";
+      stdio.stderr?.on("data", (chunk: Buffer) => {
+        captured += chunk.toString("utf8");
+      });
+      return { transport: stdio, readStderr: () => captured.trim() };
+    }
+    case "http": {
+      const { url, headers } = transport.value;
+      if (url === "") throw new Error(`MCP server '${server.name}' names no address`);
+      const { StreamableHTTPClientTransport } = await import("@modelcontextprotocol/sdk/client/streamableHttp.js");
+      const resolvedHeaders = Object.keys(headers).length > 0 ? resolveHeaders(headers, resolutionEnv) : undefined;
+      const http = new StreamableHTTPClientTransport(
+        new URL(url),
+        resolvedHeaders ? { requestInit: { headers: resolvedHeaders } } : undefined,
+      );
+      return { transport: http, readStderr: () => "" };
+    }
+    case undefined:
+      throw new Error(`MCP server '${server.name}' has no transport (expected a program or an address)`);
+    default: {
+      const exhaustive: never = transport;
+      return exhaustive;
+    }
   }
-
-  if (spec.serverType?.case === "http") {
-    const { url, headers } = spec.serverType.value;
-    if (url === "") throw new Error("HTTP transport requires a URL");
-    const { StreamableHTTPClientTransport } = await import("@modelcontextprotocol/sdk/client/streamableHttp.js");
-    const resolvedHeaders = Object.keys(headers).length > 0 ? resolveHeaders(headers, resolutionEnv) : undefined;
-    const transport = new StreamableHTTPClientTransport(
-      new URL(url),
-      resolvedHeaders ? { requestInit: { headers: resolvedHeaders } } : undefined,
-    );
-    return { transport, readStderr: () => "" };
-  }
-
-  throw new Error("MCP server has no transport configured (expected stdio or http)");
 }
 
 // Go-toolchain overrides for `go run <module>@<version>` stdio commands so a
-// freshly-tagged version is usable before sum.golang.org indexes it. Mirrors
-// Go's goRunEnvOverrides. Safe: the command comes from operator-authored config.
+// freshly-tagged version is usable before sum.golang.org indexes it. Safe: the
+// command comes from the plugin's own configuration.
 // Exported for its unit test: discovery never spawns `go` in the suite.
 export function goRunEnvOverrides(command: string, args: readonly string[]): Record<string, string> {
   if (command !== "go" || args.length < 2 || args[0] !== "run") return {};
@@ -134,13 +123,18 @@ export function goRunEnvOverrides(command: string, args: readonly string[]): Rec
   return { GONOSUMDB: prefix, GONOSUMCHECK: prefix };
 }
 
-// The values the caller's shell exports for the keys a server declares, non-empty
-// only. `declarations` is the server's spec.env; only its keys are read.
-function declaredShellValues(declarations: Record<string, unknown>): Record<string, string> {
+// The values for the variables a server reads: the caller's shell value, else
+// the plugin's declared default, non-empty only.
+function serverValues(
+  names: readonly string[],
+  declarations: Readonly<Record<string, EnvVarDeclaration>>,
+): Record<string, string> {
   const values: Record<string, string> = {};
-  for (const key of Object.keys(declarations)) {
-    const value = process.env[key];
-    if (value !== undefined && value !== "") values[key] = value;
+  for (const name of names) {
+    const value = process.env[name] ?? "";
+    const fallback = declarations[name]?.value ?? "";
+    if (value !== "") values[name] = value;
+    else if (fallback !== "") values[name] = fallback;
   }
   return values;
 }

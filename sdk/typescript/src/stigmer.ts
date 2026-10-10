@@ -23,7 +23,7 @@ type ExecutionTargetOption = StigmerConfig["executionTarget"];
  * Top-level Stigmer API client.
  *
  * Extends the code-generated {@link GeneratedClient} so every resource
- * sub-client (agent, session, mcpServer, oauthapp, …) is inherited
+ * sub-client (agent, session, plugin, oauthapp, …) is inherited
  * automatically — new resource clients added by codegen appear on this
  * class without manual wiring.
  *

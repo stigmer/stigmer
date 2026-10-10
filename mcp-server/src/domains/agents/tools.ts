@@ -45,7 +45,7 @@ export function registerAgentTools(server: McpServer, target: BackendTarget): st
     "apply_agent",
     {
       description:
-        "Create or update a Stigmer agent (idempotent). Provide identity fields (name, org) and agent configuration (instructions, skills, MCP servers, etc.).",
+        "Create or update a Stigmer agent (idempotent). Provide identity fields (name, org) and agent configuration (instructions, skills, plugins, etc.).",
       inputSchema: AgentInputShape,
     },
     (args, extra) =>

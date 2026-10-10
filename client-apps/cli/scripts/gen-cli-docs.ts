@@ -87,6 +87,7 @@ const COMMAND_GROUP: Record<string, GroupId> = {
   // Artifact
   push: "artifact",
   install: "artifact",
+  mcp: "artifact",
   download: "artifact",
   // Server
   "mcp-server": "server",

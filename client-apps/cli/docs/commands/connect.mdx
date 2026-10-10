@@ -1,9 +1,11 @@
-Connect to external services and discover their capabilities.
+Connect to a plugin's MCP server and list its tools.
 
-`stigmer connect` lets you connect to MCP servers, discover their tools and
-resource templates, and push the results to the Stigmer backend. This is how
-you teach Stigmer what an MCP server can do — the discovered capabilities
-become available to agents at runtime.
+`stigmer connect plugin <plugin>` lists the tools one of a plugin's MCP servers
+offers right now, reached as you: a runner of your organization starts or calls
+the server with the keys and sign-ins in your own vault (My vault), and the
+answer is printed. Nothing is stored; run it again whenever you want the
+current list. A tool the server marks destructive is shown with
+`[destructive]`: a turn asks a person before calling it.
 
 {/* AUTO_USAGE */}
 
@@ -11,100 +13,70 @@ become available to agents at runtime.
 
 {/* AUTO_SUBCOMMANDS */}
 
-### How connection works
+### Choosing the server
 
-For **stdio-based servers**, the CLI spawns the server process locally.
-Environment variables from your shell are passed through, so credentials
-(e.g., `GITHUB_TOKEN`) never leave your machine. Note that stdio servers are
-local-runner-only: connecting one while authenticated to Stigmer Cloud is
-refused, because cloud compute never spawns stdio subprocesses. Use
-`--dry-run` (which runs entirely on your machine) or connect against a local
-`stigmer server`.
+A plugin with one MCP server needs no more than its name. A plugin with
+several is refused with their names; pick one with `--server <name>`, the
+server's key in the plugin's MCP configuration.
 
-For **HTTP-based servers**, the CLI connects to the configured URL directly.
+### Signing in
 
-### Passing credentials
-
-A connect reads the keys the MCP server declares from your own vault (My vault)
-in the organization, never from the command line. Save each key there first,
-then connect:
+A server that signs in (an address that answers with an OAuth challenge) uses
+the login saved in My vault at its address. When there is none, the command
+opens the login page in your browser and waits until the sign-in is saved,
+then lists the tools. A server that also accepts a pasted key is satisfied by a
+key saved under its login key:
 
 ```bash
-stigmer vault set-secret PLANTON_API_KEY --mine
-stigmer connect mcp-server planton
+stigmer vault set-secret LINEAR_TOKEN --mine
+stigmer connect plugin linear
 ```
 
-A server that signs in with OAuth uses the sign-in saved for its address, or
-runs the sign-in in your browser when there is none. A server that also accepts
-a personal token is satisfied by a secret saved under its login key. `--env` is
-refused, naming the vault command.
+Off an interactive terminal (CI, pipes) the command stops with these ways
+instead of waiting for a browser. `--env` is refused, naming the vault
+command: keys are never given on the command line.
 
-### Environment variable placeholders
+### Missing keys
 
-A server's command arguments (stdio) and HTTP headers may reference declared
-environment variables using `${VAR_NAME}` syntax. For example, the filesystem
-server takes its allowed directory as an argument:
-
-```yaml validate-as="McpServer.spec"
-stdio:
-  command: npx
-  args:
-    - "-y"
-    - "@modelcontextprotocol/server-filesystem"
-    - "${FILESYSTEM_ALLOWED_DIR}"
-env:
-  FILESYSTEM_ALLOWED_DIR:
-    description: Root directory the server is allowed to access
-```
-
-For `--dry-run`, placeholders are resolved from your shell (the variable must
-be declared under the server's `env`); a real connect resolves them from your
-vault. Resolution is strict: a missing variable produces a clear error naming
-the variable, rather than passing a literal `${VAR}` to the server.
-
-```bash
-FILESYSTEM_ALLOWED_DIR="$HOME/projects" \
-  stigmer connect mcp-server mcp-server-filesystem --dry-run
-```
+A key the server reads and none of your vaults hold fails the listing naming
+the key. Save it in My vault and run the command again.
 
 ### Dry run
 
-Use `--dry-run` to preview discovered capabilities without pushing them
-to the backend.
+`--dry-run` lists the tools from this machine, without a runner: a local
+program is started here with your shell's environment, and an address is
+called with the plugin's headers. A `${VAR}` placeholder in a program's
+arguments or a header resolves from your shell, else from the plugin's
+declared default, and a missing one fails naming the variable. A server that
+accepts only a sign-in cannot be listed this way, because its token lives in
+your vault on the server.
 
 ```bash
-stigmer connect mcp-server github --dry-run
+FILESYSTEM_ALLOWED_DIR="$HOME/projects" \
+  stigmer connect plugin filesystem --dry-run
 ```
+
+`--timeout` bounds the dry run's discovery, in seconds.
 
 ## Examples
 
-### Discover tools from a GitHub MCP server
+### List a plugin's tools
 
 ```bash
-stigmer connect mcp-server github
+stigmer connect plugin linear
 ```
 
-Connects to the GitHub MCP server, lists its tools, and pushes them to
-the Stigmer backend.
-
-### Connect with an organization-qualified slug
+### Pick one of several servers
 
 ```bash
-stigmer connect mcp-server stigmer/mcp-server-stigmer
+stigmer connect plugin acme-tools --server issues
 ```
 
-### Bound the wait
+### Name the plugin's organization
 
 ```bash
-stigmer connect mcp-server my-server --timeout 90
+stigmer connect plugin platform/github
 ```
-
-The value is a number of seconds. `--timeout` always bounds `--dry-run`'s
-local discovery; for a real connect it bounds the wait only when set
-explicitly — the connect keeps running server-side and persists its result,
-so a timeout here means "stop waiting", not "the connect failed". Without an
-explicit `--timeout`, a real connect waits for the server to finish (sandbox
-start and discovery can take a few minutes).
 
 {/* AUTO_GLOBAL_FLAGS */}
 
@@ -112,9 +84,10 @@ start and discovery can take a few minutes).
 
 | Command | Description |
 |---------|-------------|
-| [`stigmer mcp-server`](./mcp-server) | Start the Stigmer MCP server |
-| [`stigmer apply`](./apply) | Deploy MCP server definitions |
-| [`stigmer get`](./get) | Inspect MCP server resources |
+| [`stigmer mcp add`](./mcp) | Install one MCP server at an address as a plugin |
+| [`stigmer install`](./install) | Install a plugin from a marketplace |
+| [`stigmer run`](./run) | Start a conversation with `--plugin` |
+| [`stigmer vault`](./vault) | Save the keys a server reads |
 
 ## See also
 

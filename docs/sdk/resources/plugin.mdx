@@ -81,10 +81,10 @@ Plugin plugin = client.plugins().get("plg_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`getArtifact`](#getartifact) | Download a plugin archive from storage by its storage key. |
 | [`getArtifactDownloadUrl`](#getartifactdownloadurl) | Mint a URL for downloading a plugin archive over HTTP. |
 | [`getByReference`](#getbyreference) | Get a plugin by API resource reference with version support. |
-| [`listMembers`](#listmembers) | List the resources an installed plugin materialised. |
+| [`listTools`](#listtools) | List the tools one of a plugin's MCP servers offers now, signed in as the caller. |
 | [`listVersions`](#listversions) | List version history for a plugin. |
-| [`updateVisibility`](#updatevisibility) | Update the visibility of a plugin and of every resource it materialised. |
-| [`delete`](#delete) | Delete a plugin and every resource it materialised. |
+| [`updateVisibility`](#updatevisibility) | Update the visibility of a plugin. |
+| [`delete`](#delete) | Delete a plugin. |
 | [`createArtifactUploadUrl`](#createartifactuploadurl) | Mint a short-lived, single-use upload URL for staging a plugin archive that exceeds the gRPC message-size cap (10MB). |
 | [`push`](#push) | Push a plugin archive to install or upgrade it. |
 
@@ -256,42 +256,54 @@ Plugin plugin = client.plugins().getByReference(ApiResourceReference.builder()
 
 **Returns**: [`Plugin`](#plugin)
 
-### listMembers
+### listTools
 
-List the resources an installed plugin materialised.
+List the tools one of a plugin's MCP servers offers now, signed in as the caller. Nothing is stored.
 
-Returns every skill, MCP server and agent the plugin owns, in materialisation order.
+Errors: - FAILED_PRECONDITION: a key the server needs is in none of the caller's vaults, or the server needs a sign-in the caller has not made - NOT_FOUND: the plugin, or the server in it, does not exist
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const listPluginMembersResponse = await stigmer.plugin.listMembers(id);
+const listPluginToolsOutput = await stigmer.plugin.listTools({
+  pluginId: "...",
+  server: "...",
+  org: "...",
+});
 ```
 </Tab>
 <Tab value="Go">
 ```go
-listPluginMembersResponse, err := client.Plugin.ListMembers(ctx, id)
+listPluginToolsOutput, err := client.Plugin.ListTools(ctx, &stigmer.ListPluginToolsInput{
+  PluginId: "...",
+  Server:   "...",
+  Org:      "...",
+})
 ```
 </Tab>
 <Tab value="Python">
 ```python
-list_plugin_members_response = client.plugins.list_members(id)
+list_plugin_tools_output = client.plugins.list_tools(ListPluginToolsInput(
+    plugin_id="...",
+    server="...",
+    org="...",
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ListPluginMembersResponse listPluginMembersResponse = client.plugins().listMembers(id);
+ListPluginToolsOutput listPluginToolsOutput = client.plugins().listTools(ListPluginToolsInput.builder()
+    .pluginId("...")
+    .server("...")
+    .org("...")
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**
+**Parameters**: [`ListPluginToolsInput`](#listplugintoolsinput)
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `id` | `string` | Plugin identifier. |
-
-**Returns**: [`ListPluginMembersResponse`](#listpluginmembersresponse)
+**Returns**: [`ListPluginToolsOutput`](#listplugintoolsoutput)
 
 ### listVersions
 
@@ -348,7 +360,7 @@ ListPluginVersionsResponse listPluginVersionsResponse = client.plugins().listVer
 
 ### updateVisibility
 
-Update the visibility of a plugin and of every resource it materialised. Only modifies metadata.visibility on the plugin and its members.
+Update the visibility of a plugin. Only modifies metadata.visibility.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -391,7 +403,7 @@ Plugin plugin = client.plugins().updateVisibility(UpdateVisibilityInput.builder(
 
 ### delete
 
-Delete a plugin and every resource it materialised. Refused when a resource outside the plugin still references a member; the error names the referencing resources.
+Delete a plugin. Refused while an agent of the organization lists it; the error names the agents.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -471,7 +483,7 @@ PluginArtifactUploadUrl pluginArtifactUploadUrl = client.plugins().createArtifac
 
 ### push
 
-Push a plugin archive to install or upgrade it. Creates the plugin if it does not exist, or installs a new version of an existing plugin; pushing the archive already installed changes nothing. The archive is a plugin folder in the Agent Plugins, Cursor, Claude Code or Codex layout; the response's status names what was materialised and what was skipped.
+Push a plugin archive to install or upgrade it. Creates the plugin if it does not exist, or installs a new version of an existing plugin; pushing the archive already installed changes nothing. The archive is a plugin folder in the Agent Plugins, Cursor, Claude Code or Codex layout; the response's status lists what the plugin holds and what was skipped.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -566,9 +578,9 @@ PushPluginRequest installs or upgrades a plugin from its archive.
 <TypeTable
   type={{
     org: { type: "string", description: "Organization the plugin is installed into.", required: true },
-    artifact: { type: "Uint8Array", description: "The plugin package as a ZIP archive: the plugin folder with its manifest, skills/, mcp.json, agents/ and ai.stigmer/ at the archive root." },
+    artifact: { type: "Uint8Array", description: "The plugin package as a ZIP archive: the plugin folder with its manifest, skills/, mcp.json, agents/ and hooks/ at the archive root." },
     artifactUploadRef: { type: "string", description: "Reference to an archive staged via createArtifactUploadUrl()." },
-    visibility: { type: "ApiResourceVisibility", description: "Visibility for the plugin and every resource it materialises.", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcevisibility" },
+    visibility: { type: "ApiResourceVisibility", description: "Visibility for the plugin.", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcevisibility" },
     message: { type: "string", description: "Optional human-readable message describing this version, kept in metadata.version.message for the version history." },
   }}
 />
@@ -607,6 +619,28 @@ Input for updating the visibility of any API resource.
   }}
 />
 
+### ListPluginToolsInput
+
+ListPluginToolsInput names one MCP server of an installed plugin whose tools to list.
+
+<TypeTable
+  type={{
+    pluginId: { type: "string", description: "System-generated ID of the plugin.", required: true },
+    server: { type: "string", description: "The server's name in the plugin (an McpServerEntry name).", required: true },
+    org: { type: "string", description: "Organization whose runner reaches the server; the caller's My vault in it supplies the server's keys and sign-in." },
+  }}
+/>
+
+### ListPluginToolsOutput
+
+ListPluginToolsOutput lists the tools one MCP server offers now.
+
+<TypeTable
+  type={{
+    tools: { type: "PluginToolInput[]", description: "The tools, in the order the server listed them." },
+  }}
+/>
+
 ### ResourceRef
 
 Generic reference to any API resource by org and slug.
@@ -617,16 +651,6 @@ Generic reference to any API resource by org and slug.
     kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcekind" },
     slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
     version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
-  }}
-/>
-
-### ListPluginMembersResponse
-
-ListPluginMembersResponse lists the resources an installed plugin owns.
-
-<TypeTable
-  type={{
-    members: { type: "PluginMemberInput[]", description: "Members in materialisation order: skills, MCP servers, agents." },
   }}
 />
 
@@ -689,7 +713,7 @@ ListPluginVersionsResponse is a page of plugin version history.
 
 ### Plugin
 
-Plugin is an installed Agent Plugins package: the unit of install, upgrade and removal for a set of skills, MCP servers and an agent.
+Plugin is an installed Agent Plugins package: one thing holding skills, agents, hooks and MCP servers, installed, upgraded and removed whole.
 
 <TypeTable
   type={{
@@ -703,18 +727,32 @@ Plugin is an installed Agent Plugins package: the unit of install, upgrade and r
 
 ### PluginStatus
 
-PluginStatus is the system-managed state of an installed plugin: the archive identity and the receipt of the last push.
+PluginStatus is the system-managed state of an installed plugin: the archive identity and what the archive holds, read when the plugin was installed.
 
 <TypeTable
   type={{
     audit: { type: "ApiResourceAudit", description: "Standard audit information tracking creation and modification.", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourceaudit" },
     digest: { type: "string", description: "SHA-256 of the plugin archive, the immutable version identifier." },
     artifactStorageKey: { type: "string", description: "Storage key of the plugin archive." },
-    state: { type: "PluginState", description: "Current lifecycle state of the install.", typeDescriptionLink: "#pluginstate" },
-    error: { type: "string", description: "One sentence naming what failed when state is FAILED; empty otherwise." },
-    materialized: { type: "PluginMaterialization", description: "What the last push materialised, by kind.", typeDescriptionLink: "#pluginmaterialization" },
     warnings: { type: "PluginWarning[]", description: "Warnings the last push recorded: components Stigmer does not carry, model hints it did not apply, names that shadow built-ins.", typeDescriptionLink: "#pluginwarning" },
     hooks: { type: "HookConfig", description: "The plugin's tool-call hooks, as recorded at install; unset when the plugin carries none.", typeDescriptionLink: "#hookconfig" },
+    skills: { type: "PluginSkill[]", description: "The plugin's skills.", typeDescriptionLink: "#pluginskill" },
+    agents: { type: "PluginAgent[]", description: "The plugin's agents, from its agents folder.", typeDescriptionLink: "#pluginagent" },
+    mcpServers: { type: "McpServerEntry[]", description: "The plugin's MCP servers.", typeDescriptionLink: "#mcpserverentry" },
+    env: { type: "Record<string, EnvVarDeclaration>", description: "The variables the plugin's servers and hooks read, by name: the plugin's own declarations, a required secret for each name it uses but does not declare, and the login key of a server that signs in." },
+  }}
+/>
+
+### EnvVarDeclaration
+
+EnvVarDeclaration declares an environment variable a blueprint (an agent or an MCP server) needs, or optionally accepts.
+
+<TypeTable
+  type={{
+    isSecret: { type: "boolean", description: "Whether the value is a secret, found in a vault when a run starts." },
+    description: { type: "string", description: "Human-readable description shown where the value is asked for." },
+    optional: { type: "boolean", description: "Whether this variable is optional." },
+    value: { type: "string", description: "The fixed value of a setting that is not a secret and is the same wherever the blueprint runs, such as a log level or a response format." },
   }}
 />
 
@@ -755,15 +793,66 @@ HookHandler is one command a hook runs.
   }}
 />
 
-### PluginMaterialization
+### HttpMcpServer
 
-PluginMaterialization counts what a push produced, by kind.
+HttpMcpServer is an MCP server at an address.
 
 <TypeTable
   type={{
-    skills: { type: "number", description: "Skills materialised." },
-    mcpServers: { type: "number", description: "MCP servers materialised." },
-    agents: { type: "number", description: "Agents materialised: one when the plugin carries a skill, a sub-agent or an agent overlay; zero for an MCP-only plugin." },
+    url: { type: "string", description: "The server's URL." },
+    headers: { type: "Record<string, string>", description: "Headers sent with every request; a value may name a variable as ${NAME}." },
+    timeoutSeconds: { type: "number", description: "Seconds to wait for one request; zero means the runner's default." },
+  }}
+/>
+
+### McpServerEntry
+
+McpServerEntry is one MCP server a plugin carries: a local program or an address.
+
+<TypeTable
+  type={{
+    name: { type: "string", description: "The server's key in the plugin's MCP configuration." },
+    stdio: { type: "StdioMcpServer", description: "A local program the runner starts.", typeDescriptionLink: "#stdiomcpserver" },
+    http: { type: "HttpMcpServer", description: "A server at an address.", typeDescriptionLink: "#httpmcpserver" },
+    env: { type: "string[]", description: "The names of the variables this server reads, declared in PluginStatus.env." },
+    signIn: { type: "McpServerSignIn", description: "How a person signs in to this server; unset when it needs no sign-in or takes a key the plugin names.", typeDescriptionLink: "#mcpserversignin" },
+  }}
+/>
+
+### McpServerSignIn
+
+McpServerSignIn says how a person signs in to a server.
+
+<TypeTable
+  type={{
+    oauthOnly: { type: "boolean", description: "Whether the server accepts only a sign-in, and no pasted key." },
+  }}
+/>
+
+### PluginAgent
+
+PluginAgent is one agent a plugin carries, read from its agent file.
+
+<TypeTable
+  type={{
+    name: { type: "string", description: "The agent's name." },
+    description: { type: "string", description: "What the agent specializes in." },
+    instructions: { type: "string", description: "The agent's system prompt: the body of its file." },
+    tools: { type: "string[]", description: "Tools this agent may use, in Claude Code's names; empty means all of the turn's." },
+    disallowedTools: { type: "string[]", description: "Tools this agent may never use, in the same names as tools." },
+    skills: { type: "string[]", description: "The plugin's own skills this agent uses, by name." },
+  }}
+/>
+
+### PluginSkill
+
+PluginSkill is one skill a plugin carries.
+
+<TypeTable
+  type={{
+    name: { type: "string", description: "The skill's name, from its SKILL.md." },
+    description: { type: "string", description: "What the skill is for, from its SKILL.md." },
+    path: { type: "string", description: "The skill's folder inside the plugin archive; empty when the plugin is one skill with SKILL.md at its root." },
   }}
 />
 
@@ -773,21 +862,22 @@ PluginWarning is one thing a push noticed but did not refuse.
 
 <TypeTable
   type={{
-    kind: { type: "string", description: "Stable warning kind, e.g. \"component-ignored\", \"member-adopted\", \"model-hint-unresolved\", \"settings-agent-not-applied\", \"sub-agent-name-builtin\", \"sub-agent-not-installed\", \"tool-list-entry-dropped\", \"version-not-taggable\"." },
+    kind: { type: "string", description: "Stable warning kind, e.g. \"component-ignored\", \"model-hint-unresolved\", \"sub-agent-name-builtin\", \"tool-list-entry-dropped\", \"version-not-taggable\"." },
     message: { type: "string", description: "The warning as one user-facing sentence." },
     path: { type: "string", description: "The plugin-relative path the warning points at, when it has one." },
   }}
 />
 
-### PluginState
+### StdioMcpServer
 
-PluginState is the lifecycle state of a plugin install.
+StdioMcpServer is a local program serving MCP over its standard input and output.
 
-| Value | Description |
-|-------|-------------|
-| `PLUGIN_STATE_INSTALLING` | The archive is stored and its members are being materialised. |
-| `PLUGIN_STATE_READY` | Every member of the last push is materialised. |
-| `PLUGIN_STATE_FAILED` | A member failed to materialise; `error` names it. |
+<TypeTable
+  type={{
+    command: { type: "string", description: "The program to run." },
+    args: { type: "string[]", description: "Its arguments." },
+  }}
+/>
 
 ### HookFormat
 

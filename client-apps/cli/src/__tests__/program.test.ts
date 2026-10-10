@@ -1,10 +1,13 @@
 // The CLI's command tree: what buildProgram registers, how a retired command
 // or a retired run or connect option is answered (commander's error plus one pointer line, never an
-// alias that still works, and never a retired option's value), and that the
-// run command's vault flags reach the wire: My vault unless --no-my-vault.
+// alias that still works, and never a retired option's value), that the
+// retired `connect mcp-server` points at `connect plugin` and `mcp add`, and
+// that the run command's vault and plugin flags reach the wire: My vault
+// unless --no-my-vault, and each --plugin as a plugin reference.
 
 import { describe, expect, it } from "vitest";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import type { Command } from "commander";
 import { type AgentExecOptions, toAgentExecFlags } from "../commands/agent-exec-flags.js";
@@ -110,6 +113,24 @@ describe("buildProgram", () => {
     expect(stderr).toContain("stigmer runs");
   });
 
+  it("answers the retired connect mcp-server with connect plugin and mcp add", async () => {
+    const { program, stderr } = capturedProgram("connect");
+    await expect(program.parseAsync(["connect", "mcp-server", "github"], { from: "user" })).rejects.toMatchObject({
+      code: "commander.unknownCommand",
+    });
+    expect(stderr()).toContain("unknown command 'mcp-server'");
+    expect(stderr()).toContain("stigmer connect plugin <plugin>");
+    expect(stderr()).toContain("stigmer mcp add <name> <url>");
+  });
+
+  it("keeps stigmer mcp-server, the command that starts Stigmer's own MCP server, beside mcp add", () => {
+    const program = buildProgram();
+    const names = program.commands.map((command) => command.name());
+    expect(names).toContain("mcp-server");
+    const mcp = program.commands.find((command) => command.name() === "mcp");
+    expect(mcp?.commands.map((command) => command.name())).toEqual(["add"]);
+  });
+
   it("leaves an unknown command that never existed without a pointer", async () => {
     const program = buildProgram();
     let stderr = "";
@@ -167,25 +188,26 @@ describe("buildProgram", () => {
   it("answers connect's retired --env with the vault command, never echoing its value", async () => {
     const { program, stderr } = capturedProgram("connect");
     const connect = program.commands.find((command) => command.name() === "connect");
-    connect?.commands.find((command) => command.name() === "mcp-server")?.exitOverride();
+    connect?.commands.find((command) => command.name() === "plugin")?.exitOverride();
     await expect(
-      program.parseAsync(["connect", "mcp-server", "github", "--env=GITHUB_TOKEN=ghp-live-123"], { from: "user" }),
+      program.parseAsync(["connect", "plugin", "github", "--env=GITHUB_TOKEN=ghp-live-123"], { from: "user" }),
     ).rejects.toMatchObject({ code: "commander.unknownOption" });
     expect(stderr()).toContain("unknown option '--env'");
     expect(stderr()).toContain(`${RETIRED_OPTIONS.get("connect")?.get("--env") ?? "no retired connect option"}\n`);
     expect(stderr()).toContain("stigmer vault set-secret NAME --mine");
     expect(stderr()).not.toContain("ghp-live-123");
-    const flags = connect?.commands.find((command) => command.name() === "mcp-server")?.options.map((o) => o.long);
+    const flags = connect?.commands.find((command) => command.name() === "plugin")?.options.map((o) => o.long);
     expect(flags).not.toContain("--env");
   });
 
   it.each([
-    [[] as string[], true, []],
-    [["--no-my-vault", "--vault", "ci-keys"], false, ["acme/ci-keys"]],
-    [["--vault", "support-tools", "--vault", "platform/shared"], true, ["acme/support-tools", "platform/shared"]],
+    [[] as string[], true, [], []],
+    [["--no-my-vault", "--vault", "ci-keys"], false, ["acme/ci-keys"], []],
+    [["--vault", "support-tools", "--vault", "platform/shared"], true, ["acme/support-tools", "platform/shared"], []],
+    [["--plugin", "linear", "--plugin", "platform/github"], true, [], ["acme/linear", "platform/github"]],
   ])(
-    "sends the vault choice the run's flags parse to (%j), through commander to the wire",
-    async (flags, includeMyVault, vaults) => {
+    "sends the vault and plugin choice the run's flags parse to (%j), through commander to the wire",
+    async (flags, includeMyVault, vaults, plugins) => {
       const program = buildProgram();
       const run = program.commands.find((command) => command.name() === "run");
       let parsed: AgentExecOptions | undefined;
@@ -208,6 +230,7 @@ describe("buildProgram", () => {
         message: prepared.message,
         vaults: prepared.vaults,
         includeMyVault: prepared.includeMyVault,
+        plugins: prepared.plugins,
         attachments: [],
         workspaceFileRefs: [],
         workspaceEntries: [],
@@ -222,6 +245,8 @@ describe("buildProgram", () => {
       const spec = target?.case === "sessionSpec" ? target.value : undefined;
       expect(spec?.includeMyVault).toBe(includeMyVault);
       expect(spec?.vaults.map((ref) => `${ref.org}/${ref.slug}`)).toEqual(vaults);
+      expect(spec?.plugins.map((ref) => `${ref.org}/${ref.slug}`)).toEqual(plugins);
+      expect(spec?.plugins.every((ref) => ref.kind === ApiResourceKind.plugin)).toBe(true);
     },
   );
 

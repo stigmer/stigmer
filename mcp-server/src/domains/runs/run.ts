@@ -30,6 +30,11 @@
 // them is a session update this tool does not offer, so it refuses rather
 // than dropping them.
 //
+// A new conversation may also use plugins beside its agent's: `plugins` names
+// each installed plugin as `vaults` names a vault, and the turns carry each
+// one whole (its skills, agents, hooks and MCP servers). Like the vaults, they
+// are chosen when the conversation starts, so a follow-up refuses them.
+//
 // The tool is deliberately asynchronous: it returns the created run (with
 // its run_* ID) immediately and the run continues in the background.
 // Observation happens through get_run polling — MCP tools are
@@ -74,6 +79,8 @@ export interface RunAgentArgs {
   readonly vaults?: readonly string[];
   /** Whether a new conversation uses the caller's My vault first; unset means yes. */
   readonly includeMyVault?: boolean;
+  /** Installed plugins a new conversation uses beside its agent's: a slug in `org`, or `org/slug`. */
+  readonly plugins?: readonly string[];
 }
 
 /**
@@ -98,7 +105,16 @@ export async function runAgent(
           "conversation with these, or leave vaults and include_my_vault out of a follow-up.",
       );
     }
-    const vaults = (args.vaults ?? []).map((ref) => vaultReference(ref, args.org));
+    if (sessionId !== "" && args.plugins !== undefined) {
+      throw new Error(
+        "a conversation keeps the plugins it was started with: omit session_id to start a new " +
+          "conversation with these, or leave plugins out of a follow-up.",
+      );
+    }
+    const vaults = (args.vaults ?? []).map((ref) => namedReference(ApiResourceKind.vault, "vaults", "vault", ref, args.org));
+    const plugins = (args.plugins ?? []).map((ref) =>
+      namedReference(ApiResourceKind.plugin, "plugins", "plugin", ref, args.org),
+    );
     if (sessionId !== "") {
       await assertSessionRunsAgent(transport, callOptions, sessionId, args);
       target = { case: "sessionId", value: sessionId };
@@ -119,6 +135,7 @@ export async function runAgent(
             }),
             vaults,
             includeMyVault: args.includeMyVault ?? true,
+            plugins,
           }),
         };
       } catch (err) {
@@ -155,22 +172,30 @@ export async function runAgent(
 }
 
 /**
- * A vault named as `agent` names an agent: `org/slug`, or a slug in `org`
- * (empty `org` leaves the reference relative, which the server resolves to
- * the conversation's organization). An entry with an empty part (`acme/`,
+ * A vault or plugin named as `agent` names an agent: `org/slug`, or a slug in
+ * `org` (empty `org` leaves the reference relative, which the server resolves
+ * to the conversation's organization). An entry with an empty part (`acme/`,
  * `/x`) or more than one `/` is refused here, before anything starts.
+ * `argument` and `noun` name the tool argument and what it lists, for the
+ * refusal.
  */
-function vaultReference(ref: string, org: string): ApiResourceReference {
+function namedReference(
+  kind: ApiResourceKind,
+  argument: string,
+  noun: string,
+  ref: string,
+  org: string,
+): ApiResourceReference {
   const trimmed = ref.trim();
   if (trimmed === "") {
-    throw new Error("vaults: an entry is empty; name each vault by slug or org/slug.");
+    throw new Error(`${argument}: an entry is empty; name each ${noun} by slug or org/slug.`);
   }
   const parts = trimmed.split("/");
   if (parts.length > 2 || parts.some((part) => part === "")) {
-    throw new Error(`vaults: "${trimmed}" is not a vault name; name each vault by slug or org/slug.`);
+    throw new Error(`${argument}: "${trimmed}" is not a ${noun} name; name each ${noun} by slug or org/slug.`);
   }
   return createMessage(ApiResourceReferenceSchema, {
-    kind: ApiResourceKind.vault,
+    kind,
     org: parts.length === 2 ? parts[0] : org,
     slug: parts.length === 2 ? parts[1] : trimmed,
   });

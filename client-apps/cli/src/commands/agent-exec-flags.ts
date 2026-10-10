@@ -21,6 +21,7 @@ export interface AgentExecOptions {
   vault: string[];
   /** False when `--no-my-vault` was given. */
   myVault: boolean;
+  plugin: string[];
   model?: string;
   autoApprove?: boolean;
   mode?: string;
@@ -42,6 +43,7 @@ export function addAgentExecFlags(command: Command): Command {
     .option("--commit <sha>", "git commit SHA to checkout (single git workspace only)")
     .option("--vault <ref>", "a shared vault the conversation uses, by id, org/slug or slug, after your My vault, in the order given (repeatable)", collect, [])
     .option("--no-my-vault", "leave your own My vault out of the conversation: it uses only the vaults named with --vault")
+    .option("--plugin <ref>", "a plugin the conversation uses, by id, org/slug or slug: its skills, agents, MCP servers and hooks join the agent's, or the assistant's with no agent (repeatable)", collect, [])
     .option("--model <model>", "LLM model to use (e.g. claude-sonnet-4-6); with no --harness it runs on native, so pass --harness cursor for a Cursor model; unset, the agent's default model for the engine applies")
     .option("--auto-approve", "automatically approve all tool executions")
     .option("--mode <mode>", 'interaction mode: "agent" (default) or "plan" (read-only)')
@@ -63,6 +65,7 @@ export function toAgentExecFlags(options: AgentExecOptions): AgentExecFlags {
     commit: options.commit ?? "",
     vault: options.vault,
     myVault: options.myVault,
+    plugin: options.plugin,
     model: options.model ?? "",
     autoApprove: options.autoApprove === true,
     mode: (options.mode ?? "") as RunMode,

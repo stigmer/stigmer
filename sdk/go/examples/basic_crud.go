@@ -29,14 +29,13 @@ func BasicCRUD() {
 		Name:         "code-reviewer",
 		Org:          "acme",
 		Instructions: "You are a senior code reviewer. Analyze code for bugs and style issues.",
-		McpServerUsages: []*stigmer.McpServerUsageInput{
-			{
-				McpServerRef: stigmer.ResourceRef{Org: "acme", Slug: "github"},
-			},
-		},
+		// The installed github plugin, whole: its skills, agents, hooks and
+		// MCP servers.
+		Plugins: []stigmer.ResourceRef{{Org: "acme", Slug: "github"}},
 		// Claude Code's tool-list names: this reviewer reads code and posts a
-		// review, and never runs shell commands.
-		Tools:           []string{"Read", "Grep", "Glob", "mcp__github__get_file_contents", "mcp__github__create_pull_request_review"},
+		// review, and never runs shell commands. A plugin's server is named
+		// plugin_<plugin>_<server>.
+		Tools:           []string{"Read", "Grep", "Glob", "mcp__plugin_github_github__get_file_contents", "mcp__plugin_github_github__create_pull_request_review"},
 		DisallowedTools: []string{"Bash"},
 	})
 	if err != nil {

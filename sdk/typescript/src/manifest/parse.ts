@@ -19,6 +19,36 @@ import {
   manifestKinds,
 } from "./registry.js";
 
+/**
+ * The way forward for a manifest written while an MCP server was its own
+ * resource: one is now part of a plugin, the only home of a server. Shared
+ * with the CLI's `apply` and `validate`, so every surface refusing such a
+ * file says the same sentence.
+ */
+export const MCP_SERVER_WAY_FORWARD =
+  "An MCP server is now part of a plugin: run `stigmer mcp add <name> <url>` " +
+  "to install a one-off server as a plugin, or list the plugin that carries " +
+  "it under the agent's `plugins`.";
+
+/**
+ * {@link MCP_SERVER_WAY_FORWARD} when `document` (one parsed YAML document)
+ * is a retired MCP server shape: `kind: McpServer`, or a spec listing
+ * `mcp_server_usages`. Undefined for every other document.
+ */
+export function mcpServerWayForward(document: unknown): string | undefined {
+  if (!isRecord(document)) return undefined;
+  if (document.kind === "McpServer") return MCP_SERVER_WAY_FORWARD;
+  const spec = document.spec;
+  if (isRecord(spec) && ("mcp_server_usages" in spec || "mcpServerUsages" in spec)) {
+    return MCP_SERVER_WAY_FORWARD;
+  }
+  return undefined;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 /** Options for {@link parseManifest}. */
 export interface ParseManifestOptions {
   /**
@@ -121,7 +151,7 @@ export function parseManifest(
   }
 
   // Stable sort into dependency order so multi-document manifests apply
-  // parents before dependents (e.g. McpServer before Agent).
+  // parents before dependents (e.g. ChannelApp before AgentChannel).
   return documents.sort((a, b) => a.handler.applyOrder - b.handler.applyOrder);
 }
 
@@ -146,7 +176,8 @@ function parseDocument(
       .join(", ");
     throw new Error(
       `Unsupported resource kind "${kind}" in ${where}. ` +
-        `Supported kinds: ${supported}.`,
+        `Supported kinds: ${supported}.` +
+        wayForwardSuffix(value),
     );
   }
 
@@ -157,7 +188,8 @@ function parseDocument(
     });
   } catch (err) {
     throw new Error(
-      `Invalid ${handler.displayName} in ${where}: ${(err as Error).message}`,
+      `Invalid ${handler.displayName} in ${where}: ${(err as Error).message}` +
+        wayForwardSuffix(value),
     );
   }
 
@@ -179,6 +211,12 @@ function parseDocument(
     org: metadata?.org ?? "",
     ...(warning !== undefined && { warning }),
   };
+}
+
+// The retired-shape sentence as a suffix to a refusal, or nothing.
+function wayForwardSuffix(document: Record<string, unknown>): string {
+  const hint = mcpServerWayForward(document);
+  return hint === undefined ? "" : ` ${hint}`;
 }
 
 /** Read a resource message's metadata envelope, if present. */

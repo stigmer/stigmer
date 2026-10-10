@@ -27,7 +27,7 @@ class StigmerClient(GeneratedClient):
     """Stigmer API client.
 
     Extends the code-generated :class:`GeneratedClient` so every resource
-    sub-client (agents, sessions, mcp_servers, oauthapps, …) is inherited
+    sub-client (agents, sessions, plugins, oauthapps, …) is inherited
     automatically — new resource clients added by codegen appear on this
     class without manual wiring.
 

@@ -22,6 +22,7 @@ import { registerInternalDaemon } from "./commands/internal-daemon.js";
 import { registerList } from "./commands/list.js";
 import { registerLogs } from "./commands/logs.js";
 import { registerMarketplace } from "./commands/marketplace.js";
+import { registerMcp } from "./commands/mcp.js";
 import { registerMcpServer } from "./commands/mcp-server.js";
 import { registerPush } from "./commands/push.js";
 import { registerReset } from "./commands/reset.js";
@@ -50,6 +51,12 @@ import { VERSION } from "./version.js";
  */
 export const RETIRED_COMMANDS: ReadonlyMap<string, string> = new Map([
   ["execution", "`stigmer execution` is now `stigmer runs` (cancel, terminate, pause, resume, logs, trace, approve)."],
+  // Met as `stigmer connect mcp-server`: `stigmer mcp-server` itself still
+  // starts Stigmer's own MCP server, so only the connect subcommand is gone.
+  [
+    "mcp-server",
+    "An MCP server is now part of a plugin: `stigmer connect plugin <plugin>` lists its tools, and `stigmer mcp add <name> <url>` installs a one-off server as a plugin.",
+  ],
 ]);
 
 /**
@@ -155,6 +162,7 @@ export function buildProgram(): Command {
   registerResume(program);
   registerRuns(program);
   registerConnect(program);
+  registerMcp(program);
   registerMcpServer(program);
   registerUp(program);
   registerDown(program);

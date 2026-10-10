@@ -1,313 +1,220 @@
-// `connect mcp-server` orchestration. Resolve the server, then either run the
-// server-side connect (discovery + tool-approval classification, persisted on
-// the resource) or, for --dry-run, discover locally and return without
-// persisting. The server-side path uses the async lane — startConnect + poll
-// (stigmer/stigmer#425) — with a blocking-RPC fallback for backends that
-// predate it.
+// `connect plugin` orchestration: resolve the plugin, pick one of its MCP
+// servers, and list that server's tools now, as the caller, storing nothing.
 //
-// Values: the server-side connect reads the caller's My vault and nothing the
-// CLI sends; a key is saved there first (`stigmer vault set-secret NAME --mine`).
-// --dry-run discovers on this machine, with the caller's shell environment.
+// The listing is the server's (`PluginCommandController.listTools`): a runner
+// of the organization reaches the server with the caller's My vault values,
+// so a key it lacks or a sign-in not yet made fails FAILED_PRECONDITION
+// naming it. --dry-run lists from this machine instead (discover.ts), with
+// the caller's shell environment, and needs no runner.
 //
-// OAuth: when a server requires OAuth, has no existing grant, and My vault holds
-// no secret under its login key, the interactive browser flow (oauth.ts)
-// shepherds the user through the web console and waits for the grant. Off an
-// interactive terminal (CI, pipes) we stop with actionable guidance instead of
-// blocking for 5 minutes. Audit identity (reviewer) and token acquisition stay
-// server-side by design.
+// Choosing the server: `--server` names it; without it a plugin with one
+// server uses that one, and a plugin with several is refused with their
+// names, because listing every server would start every program.
+//
+// Signing in: a server that takes a sign-in and finds no login at its
+// address in My vault (nor, when it accepts a pasted key, its login key
+// saved there) runs the interactive sign-in (sign-in.ts) before listing. Off
+// an interactive terminal (CI, pipes) it stops with the commands instead of
+// waiting for a browser. A server that accepts only a sign-in cannot be
+// listed by --dry-run: its token lives in the caller's vault on the server,
+// never on this machine.
 
 import { create } from "@bufbuild/protobuf";
-import { Code } from "@connectrpc/connect";
-import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import type { ConnectInput } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
-import {
-  ConnectInputSchema,
-  GetOAuthGrantStatusInputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
-import type { DiscoveredCapabilities } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
-import { GetMyVaultInputSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
+import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import { ListPluginToolsInputSchema, type PluginTool } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
+import type { McpServerEntry } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { PLACEHOLDER_PATTERN } from "@stigmer/plugin-package";
 import type { Stigmer } from "@stigmer/sdk";
-import {
-  connectAndWait,
-  ConnectStillRunningError,
-  CONNECT_SETTLE_BOUND_MS,
-  StigmerError,
-} from "@stigmer/sdk";
-import { CliExitError, ExitCode, UsageError } from "../../errors/index.js";
-import { defaultRegistry } from "../../registry/index.js";
+import { UsageError } from "../../errors/index.js";
 import { PlaceholderResolutionError } from "../mcp/placeholder-resolver.js";
-import { parseReference } from "../reference.js";
+import { idPrefixesFor, parseReference } from "../reference.js";
+import { holdsLoginFor, toolAddress } from "./address.js";
 import { localDiscover } from "./discover.js";
+import { readMyVault, runSignIn } from "./sign-in.js";
 
 export interface ConnectOptions {
+  /** The plugin, by id, org/slug or slug. */
   readonly reference: string;
+  /** `--server`: the server's name in the plugin; unset picks the only one. */
+  readonly server?: string;
   readonly org: string;
+  /** Bounds --dry-run's local discovery. */
   readonly timeoutMs: number;
-  /**
-   * Bound the wait on the server-side connect RPC. Unset by default: a real
-   * connect legitimately takes minutes (sandbox boot + discovery + tool
-   * classification), so only an EXPLICIT --timeout bounds it — the flag's
-   * 30s default is sized for --dry-run's local discovery and would fail
-   * healthy connects. The bound is soft (the CLI stops waiting; the backend
-   * finishes the connect on its own).
-   */
-  readonly pushTimeoutMs?: number;
   readonly dryRun: boolean;
-  /** The web console origin for the OAuth flow (resolveConsoleURL). */
+  /** The web console origin, where a sign-in returns (resolveConsoleURL). */
   readonly consoleURL: string;
   /** Probe the console before opening the browser (local daemon only). */
   readonly probeLocalConsole: boolean;
-  /** Whether an interactive terminal is available to run the OAuth flow. */
+  /** Whether an interactive terminal is available to run a sign-in. */
   readonly interactive: boolean;
 }
 
 export interface ConnectResult {
-  readonly server: McpServer;
-  readonly capabilities: DiscoveredCapabilities | undefined;
-  /** Set when capabilities were persisted (non-dry-run); undefined for dry-run. */
-  readonly updated: McpServer | undefined;
-  /**
-   * Start-time advisory from the backend's connect pre-flight (e.g. "no
-   * runner appears to be polling the task queue"). Only set on the async
-   * lane, and only when the operation ultimately settled anyway — surfaced
-   * so the user learns their runner came up late.
-   */
-  readonly warning?: string;
+  readonly plugin: Plugin;
+  readonly server: McpServerEntry;
+  readonly tools: readonly PluginTool[];
+  /** True when the tools were listed from this machine (--dry-run). */
+  readonly dryRun: boolean;
 }
 
-/** Connect to an MCP server and discover its capabilities (push or dry-run). */
-export async function connectMcpServer(
-  client: Stigmer,
-  opts: ConnectOptions,
-): Promise<ConnectResult> {
-  const server = await resolveMcpServer(client, opts.reference, opts.org);
+/** List one of a plugin's MCP servers' tools, through a runner or (--dry-run) locally. */
+export async function connectPlugin(client: Stigmer, opts: ConnectOptions): Promise<ConnectResult> {
+  const plugin = await resolvePlugin(client, opts.reference, opts.org);
+  const name = pluginName(plugin, opts.reference);
+  const server = pickServer(plugin, name, opts.server);
 
   if (opts.dryRun) {
-    if (server.spec === undefined)
-      throw new UsageError(
-        "MCP server has no spec; cannot discover capabilities",
-      );
-    // An oauth_only endpoint rejects static tokens, and the signed-in token lives
-    // in the caller's vault on the server — never on the caller's machine. So local
-    // discovery cannot authenticate it; say so plainly instead of failing on a 401.
-    if (isOAuthOnly(server)) throw oauthOnlyDryRunError(server, opts.reference);
+    if (server.signIn?.oauthOnly === true) throw signInOnlyDryRunError(name, server);
     try {
-      const capabilities = await localDiscover(server.spec, opts.timeoutMs);
-      return { server, capabilities, updated: undefined };
+      const tools = await localDiscover(server, plugin.status?.env ?? {}, opts.timeoutMs);
+      return { plugin, server, tools, dryRun: true };
     } catch (err) {
       // A ${VAR} placeholder that could not be resolved is a configuration
-      // problem, not a discovery failure — surface it as actionable guidance
-      // instead of a raw resolver error or a cryptic subprocess crash.
-      if (err instanceof PlaceholderResolutionError)
-        throw unresolvedEnvError(server, err);
+      // problem, not a discovery failure: say which variable to export.
+      if (err instanceof PlaceholderResolutionError) throw unresolvedEnvError(name, server, err);
       throw err;
     }
   }
 
-  await ensureOAuthSatisfied(client, server, opts);
-
-  const input = create(ConnectInputSchema, {
-    mcpServerId: server.metadata?.id ?? "",
-    org: opts.org,
-  });
-  return serverSideConnect(client, server, input, opts);
-}
-
-// Run the server-side connect through the SDK's shared async-lane protocol
-// (connectAndWait, stigmer/stigmer#425): startConnect + poll, with the
-// blocking-RPC fallback for backends that predate the lane. The CLI's job is
-// only to translate its --timeout semantics and turn a still-running stop
-// into its own actionable guidance.
-async function serverSideConnect(
-  client: Stigmer,
-  server: McpServer,
-  input: ConnectInput,
-  opts: ConnectOptions,
-): Promise<ConnectResult> {
-  const slug = server.metadata?.slug ?? server.metadata?.id ?? "the server";
-  let warning = "";
-  try {
-    const updated = await connectAndWait(client.mcpServer, input, {
-      deadlineMs: opts.pushTimeoutMs,
-      onStarted: (started) => {
-        warning = started.status?.connectStatus?.warning ?? "";
-      },
-    });
-    return {
-      server,
-      capabilities: updated.status?.discoveredCapabilities,
-      updated,
-      warning: warning !== "" ? warning : undefined,
-    };
-  } catch (err) {
-    if (!(err instanceof ConnectStillRunningError)) throw err;
-    if (opts.pushTimeoutMs !== undefined) {
-      // The user's explicit --timeout fired: historical soft-bound semantics.
-      throw new CliExitError(
-        `Stopped waiting for the connect of MCP server '${slug}' after ${opts.pushTimeoutMs / 1000}s (--timeout)`,
-        ExitCode.Connection,
-        [
-          "The server-side connect is still running and will persist its result if it succeeds.",
-          `Check the outcome with: stigmer get mcp-server ${slug}`,
-          "Re-run without --timeout to wait for completion.",
-        ],
-      );
-    }
-    // The SDK's settle bound fired: past the backend's own ceiling, only a
-    // connect_status orphaned by a backend restart can still read CONNECTING.
-    throw new CliExitError(
-      `The connect of MCP server '${slug}' did not settle within ${CONNECT_SETTLE_BOUND_MS / 60_000} minutes`,
-      ExitCode.Connection,
-      [
-        "This usually means the backend restarted mid-operation.",
-        `Check the current state with: stigmer get mcp-server ${slug}`,
-        "Re-run the connect to start a fresh operation.",
-      ],
-    );
-  }
-}
-
-// Resolve a reference (id, org/slug, or bare slug) to an McpServer. Mirrors Go's
-// GetFromBackend.
-async function resolveMcpServer(
-  client: Stigmer,
-  reference: string,
-  org: string,
-): Promise<McpServer> {
-  const idPrefixes = defaultRegistry().getByAlias("mcp-server")?.idPrefixes ?? [];
-  const parsed = parseReference(reference, org, idPrefixes);
-  if (parsed.kind === "id") return client.mcpServer.get(parsed.id);
-  return client.mcpServer.getByReference({
-    org: parsed.org,
-    slug: parsed.slug,
-  });
-}
-
-// Ensure an OAuth grant exists before connecting an auth-configured server. A
-// server that also accepts a manual token is satisfied by a secret under its
-// login key in My vault. On an interactive terminal, run the browser flow and
-// wait for the grant; otherwise stop with actionable guidance so scripted
-// callers get a clean, stable failure instead of a 5-minute block.
-async function ensureOAuthSatisfied(
-  client: Stigmer,
-  server: McpServer,
-  opts: ConnectOptions,
-): Promise<void> {
-  if (!oauthRequired(server)) return;
-
-  const oauthOnly = isOAuthOnly(server);
-
-  const status = await client.mcpServer.getOAuthGrantStatus(
-    create(GetOAuthGrantStatusInputSchema, {
-      resourceId: server.metadata?.id ?? "",
+  const rerun = connectCommand(name, server, plugin.status?.mcpServers.length ?? 1);
+  await ensureSignedIn(client, name, server, rerun, opts);
+  const listed = await client.plugin.listTools(
+    create(ListPluginToolsInputSchema, {
+      pluginId: plugin.metadata?.id ?? "",
+      server: server.name,
       org: opts.org,
     }),
   );
-  if (status.connected) return;
+  return { plugin, server, tools: listed.tools, dryRun: false };
+}
 
-  // A manually saved token is a valid bypass for a normal OAuth server (many
-  // vendors also accept a PAT); an oauth_only endpoint rejects static tokens.
-  if (!oauthOnly && (await myVaultHoldsSecret(client, opts.org, loginKeyOf(server)))) return;
+/** The command that connects this server again, for guidance. */
+function connectCommand(plugin: string, server: McpServerEntry, serverCount: number): string {
+  return `stigmer connect plugin ${plugin}${serverCount > 1 ? ` --server ${server.name}` : ""}`;
+}
 
-  if (!opts.interactive)
-    throw oauthGuidanceError(server, opts.reference, oauthOnly);
+// Resolve a reference (id, org/slug, or bare slug) to the plugin.
+async function resolvePlugin(client: Stigmer, reference: string, org: string): Promise<Plugin> {
+  const parsed = parseReference(reference, org, idPrefixesFor(ApiResourceKind.plugin));
+  if (parsed.kind === "id") return client.plugin.get(parsed.id);
+  return client.plugin.getByReference({ org: parsed.org, slug: parsed.slug });
+}
 
-  const { runOAuthFlow } = await import("./oauth.js");
-  await runOAuthFlow({
+function pluginName(plugin: Plugin, reference: string): string {
+  return plugin.metadata?.slug || plugin.spec?.name || reference;
+}
+
+// The server `--server` names, or the plugin's only one.
+function pickServer(plugin: Plugin, name: string, wanted: string | undefined): McpServerEntry {
+  const servers = plugin.status?.mcpServers ?? [];
+  if (servers.length === 0) {
+    throw new UsageError(`plugin '${name}' carries no MCP server, so it has no tools to list`);
+  }
+  const names = servers.map((s) => s.name).join(", ");
+  if (wanted !== undefined && wanted !== "") {
+    const found = servers.find((s) => s.name === wanted);
+    if (found === undefined) {
+      throw new UsageError(`plugin '${name}' has no MCP server '${wanted}'; its servers are: ${names}`);
+    }
+    return found;
+  }
+  if (servers.length > 1) {
+    throw new UsageError(
+      `plugin '${name}' carries ${servers.length} MCP servers: ${names}\n` +
+        `Name one with --server: stigmer connect plugin ${name} --server <name>`,
+    );
+  }
+  return servers[0];
+}
+
+// The variables an address's headers name: a signing-in server's login key
+// is the one its Authorization header carries.
+function loginKeysOf(server: McpServerEntry): string[] {
+  if (server.transport.case !== "http") return [];
+  const keys: string[] = [];
+  for (const value of Object.values(server.transport.value.headers)) {
+    for (const match of value.matchAll(PLACEHOLDER_PATTERN)) keys.push(match[1]);
+  }
+  return keys;
+}
+
+// Make sure a server that takes a sign-in has a login in My vault before
+// listing: run the browser sign-in on a terminal, or stop with guidance.
+async function ensureSignedIn(
+  client: Stigmer,
+  plugin: string,
+  server: McpServerEntry,
+  rerun: string,
+  opts: ConnectOptions,
+): Promise<void> {
+  if (server.signIn === undefined || server.transport.case !== "http") return;
+  const address = toolAddress(server.transport.value.url);
+  if (address === undefined) return;
+
+  const oauthOnly = server.signIn.oauthOnly;
+  const loginKey = oauthOnly ? undefined : loginKeysOf(server)[0];
+  const vault = await readMyVault(client, opts.org);
+  if (vault !== undefined) {
+    if (holdsLoginFor(vault.spec?.connections ?? {}, address)) return;
+    // A server that also accepts a pasted key is satisfied by one saved under
+    // its login key; one that accepts only a sign-in refuses static keys.
+    if (loginKey !== undefined && Object.hasOwn(vault.spec?.secrets ?? {}, loginKey)) return;
+  }
+
+  if (!opts.interactive) throw signInGuidanceError(plugin, server, rerun, loginKey);
+
+  await runSignIn({
     client,
-    server,
+    address,
+    serverName: server.name,
+    rerun,
     org: opts.org,
     consoleURL: opts.consoleURL,
     probeLocalConsole: opts.probeLocalConsole,
+    ...(loginKey !== undefined && { loginKey }),
   });
 }
 
-// Turn a strict-resolution failure into actionable guidance. A declared-but-unset
-// variable is the user's to provide; an undeclared one is a bug in the server
-// definition. Both are far clearer than the cryptic subprocess crash (ENOENT on a
-// literal "${VAR}" path) that motivated issue #141.
-function unresolvedEnvError(
-  server: McpServer,
-  err: PlaceholderResolutionError,
+function signInGuidanceError(
+  plugin: string,
+  server: McpServerEntry,
+  rerun: string,
+  loginKey: string | undefined,
 ): UsageError {
-  const slug =
-    server.metadata?.slug ??
-    server.metadata?.name ??
-    server.metadata?.id ??
-    "this server";
-  const decl = server.spec?.env?.[err.variableName];
-  if (decl) {
-    const hint = decl.description !== "" ? ` (${decl.description})` : "";
-    return new UsageError(
-      `MCP server '${slug}' needs environment variable ${err.variableName}${hint}, but it is not set.\n` +
-        `Export it in your shell before running --dry-run.`,
-    );
-  }
-  const where = err.context !== undefined ? ` in its ${err.context}` : "";
-  return new UsageError(
-    `MCP server '${slug}' references \${${err.variableName}}${where} but does not declare ${err.variableName} under spec.env.\n` +
-      `This is a problem with the server definition — declare ${err.variableName} in the server's env, or remove the placeholder.`,
-  );
-}
-
-function oauthGuidanceError(
-  server: McpServer,
-  reference: string,
-  oauthOnly: boolean,
-): UsageError {
-  const slug = server.metadata?.slug ?? server.metadata?.name ?? reference;
-  const choices = [
-    "  - Re-run this command in an interactive terminal to complete OAuth in your browser",
-  ];
-  // Only offer the manual-token route for servers that actually accept one.
-  // Suggesting it for an oauth_only endpoint would send the user down a dead end.
-  if (!oauthOnly) {
-    choices.push(
-      `  - Save a token in your vault: stigmer vault set-secret ${loginKeyOf(server)} --mine, then run this command again`,
-    );
+  const choices = ["  - Run this command again in an interactive terminal to sign in with your browser"];
+  // Only offer the pasted key to a server that accepts one: suggesting it for
+  // a sign-in-only server would send the user down a dead end.
+  if (loginKey !== undefined) {
+    choices.push(`  - Save a key in your vault: stigmer vault set-secret ${loginKey} --mine, then run ${rerun}`);
   }
   return new UsageError(
-    `MCP server '${slug}' requires OAuth authentication, which needs an interactive terminal.\n\n` +
-      `To connect${oauthOnly ? "" : ", choose one of"}:\n` +
+    `MCP server '${server.name}' of plugin '${plugin}' needs a sign-in, which needs an interactive terminal.\n\n` +
+      `To connect it${loginKey === undefined ? "" : ", choose one of"}:\n` +
       choices.join("\n"),
   );
 }
 
-// --dry-run discovers locally, but an oauth_only endpoint needs an OAuth token
-// that only the backend can obtain and store — there is nothing valid to send
-// from the caller's machine. Say so plainly instead of attempting a doomed 401.
-function oauthOnlyDryRunError(
-  server: McpServer,
-  reference: string,
-): UsageError {
-  const slug = server.metadata?.slug ?? server.metadata?.name ?? reference;
+function signInOnlyDryRunError(plugin: string, server: McpServerEntry): UsageError {
   return new UsageError(
-    `MCP server '${slug}' requires OAuth, so --dry-run cannot discover it locally — its endpoint only accepts an OAuth token that the connected backend obtains for you.\n` +
-      `Run it for real and sign in when prompted: stigmer connect mcp-server ${slug}`,
+    `MCP server '${server.name}' accepts only a sign-in, so --dry-run cannot list it from this machine: its token lives in your vault on the server.\n` +
+      `Run it without --dry-run and sign in when asked: stigmer connect plugin ${plugin} --server ${server.name}`,
   );
 }
 
-function oauthRequired(server: McpServer): boolean {
-  return loginKeyOf(server) !== "";
-}
-
-function loginKeyOf(server: McpServer): string {
-  return server.spec?.auth?.targetEnvVar ?? "";
-}
-
-// Whether the caller's My vault in `org` holds a secret named `key`. Reads entry
-// names only, never a value; a caller with no My vault yet holds nothing.
-async function myVaultHoldsSecret(client: Stigmer, org: string, key: string): Promise<boolean> {
-  try {
-    const vault = await client.vault.getMine(create(GetMyVaultInputSchema, { org }));
-    return Object.hasOwn(vault.spec?.secrets ?? {}, key);
-  } catch (err) {
-    if (err instanceof StigmerError && err.connectCode === Code.NotFound) return false;
-    throw err;
+// Turn a strict-resolution failure into the variable to export. A variable
+// the server reads is the user's to provide; one it does not read is a
+// problem with the plugin.
+function unresolvedEnvError(plugin: string, server: McpServerEntry, err: PlaceholderResolutionError): UsageError {
+  if (server.env.includes(err.variableName)) {
+    return new UsageError(
+      `MCP server '${server.name}' of plugin '${plugin}' needs ${err.variableName}, but it is not set.\n` +
+        "Export it in your shell before running --dry-run.",
+    );
   }
-}
-
-function isOAuthOnly(server: McpServer): boolean {
-  return server.spec?.auth?.oauthOnly === true;
+  const where = err.context !== undefined ? ` in its ${err.context}` : "";
+  return new UsageError(
+    `MCP server '${server.name}' of plugin '${plugin}' references \${${err.variableName}}${where} but does not read ${err.variableName}.\n` +
+      "This is a problem with the plugin: declare the variable, or remove the placeholder.",
+  );
 }

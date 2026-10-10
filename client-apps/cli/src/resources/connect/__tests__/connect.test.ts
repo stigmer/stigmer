@@ -1,438 +1,221 @@
-// In-process test for `connect mcp-server` orchestration.
+// In-process test for `connect plugin` orchestration over an in-memory
+// backend serving the plugin and vault controllers.
 //
-// Stands up a Connect backend serving the McpServer query + command controllers,
-// points an SDK node client at it, and drives connectMcpServer end to end: the
-// push path (asserts ConnectInput fields + rendered capabilities: no values
-// ride the request), the OAuth guidance gate (a secret under the login key in
-// My vault satisfies it), and the dry-run path (local discovery, no Connect RPC).
+// Pins: the plugin resolves by slug in the caller's organization; the one
+// server is used without --server, several are refused naming them, and an
+// unknown --server or a plugin without servers is refused; the listing is
+// the server's listTools with the plugin id, the server's name and the org,
+// and nothing else is called; a server that takes a sign-in is listed
+// without one when My vault holds a login at its normalized address (or, for
+// a server that accepts a pasted key, its login key), and off a terminal it
+// stops with the commands (a pasted key offered only where the server takes
+// one); --dry-run lists from this machine (a stdio fixture) with no RPC, and
+// refuses a sign-in-only server. The renderer marks destructive tools and
+// says where the list came from.
 
-import { create } from "@bufbuild/protobuf";
-import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
-import { connectNodeAdapter } from "@connectrpc/connect-node";
-import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
+import { create, type MessageInitShape } from "@bufbuild/protobuf";
+import { Code, ConnectError, createRouterTransport } from "@connectrpc/connect";
+import { type Plugin, PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import { PluginCommandController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/command_pb";
 import {
-  type ConnectInput,
-  GetOAuthGrantStatusOutputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
-import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
-import { McpServerAuthSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
+  type ListPluginToolsInput,
+  ListPluginToolsOutputSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
+import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
+import type { McpServerEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
-import type { Stigmer } from "@stigmer/sdk";
-import { createNodeClient, normalizeEndpoint } from "@stigmer/sdk/node";
-import {
-  createServer as createHttp2Server,
-  type Http2Server,
-  type ServerHttp2Session,
-} from "node:http2";
-import type { AddressInfo } from "node:net";
+import { Stigmer } from "@stigmer/sdk";
 import { fileURLToPath } from "node:url";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { UsageError } from "../../../errors/index.js";
-import { connectMcpServer } from "../connect.js";
+import { type ConnectOptions, connectPlugin } from "../connect.js";
 import { renderConnectResult } from "../display.js";
 
-const FIXTURE = fileURLToPath(
-  new URL("../__fixtures__/stdio-server.mjs", import.meta.url),
-);
+const FIXTURE = fileURLToPath(new URL("../__fixtures__/stdio-server.mjs", import.meta.url));
 
-let backend: Http2Server;
-let client: Stigmer;
-const openSessions = new Set<ServerHttp2Session>();
+let listCalls: ListPluginToolsInput[] = [];
+let served: Plugin;
+// The caller's My vault: undefined answers NOT_FOUND (none yet).
+let myVault: { secrets: string[]; connections: string[] } | undefined;
 
-let connectCalls: ConnectInput[] = [];
-let grantConnected = false;
-// The secret names the caller's My vault holds; undefined answers NOT_FOUND
-// (no My vault yet).
-let mySecretNames: string[] | undefined;
-// When set, getMine fails with this code instead of answering.
-let getMineFailure: Code | undefined;
-// Delay before the mock Connect RPC answers; lets the --timeout tests
-// simulate a long-running server-side connect. The timer is unref'd so a
-// still-pending delayed response can never hold the test process open.
-let connectDelayMs = 0;
-// The server returned by getByReference; mutated per test for auth scenarios.
-let servedSpec: ReturnType<typeof create<typeof McpServerSchema>>;
+type EntryInit = MessageInitShape<typeof McpServerEntrySchema>;
 
-beforeEach(() => {
-  connectCalls = [];
-  grantConnected = false;
-  getMineFailure = undefined;
-  mySecretNames = undefined;
-  connectDelayMs = 0;
-  servedSpec = create(McpServerSchema, {
-    metadata: { id: "mcp_1", name: "github", slug: "github", org: "acme" },
-    spec: {
-      serverType: {
-        case: "stdio",
-        value: { command: process.execPath, args: [FIXTURE] },
-      },
-      env: { GITHUB_TOKEN: { isSecret: true } },
-    },
+function http(name: string, url: string, extra: EntryInit = {}): EntryInit {
+  return { name, transport: { case: "http", value: { url } }, ...extra };
+}
+
+function pluginWith(servers: readonly EntryInit[]): Plugin {
+  return create(PluginSchema, {
+    metadata: { id: "plg_1", slug: "linear", org: "acme" },
+    status: { mcpServers: [...servers] },
   });
-});
+}
 
-// The updated server the Connect RPC returns, carrying discovered capabilities.
-const updatedServer = create(McpServerSchema, {
-  metadata: { id: "mcp_1", name: "github", slug: "github", org: "acme" },
-  spec: { serverType: { case: "stdio", value: { command: "github-mcp" } } },
-  status: {
-    discoveredCapabilities: {
-      tools: [{ name: "search_issues", description: "search issues" }],
-      resourceTemplates: [
-        { name: "issue", uriTemplate: "github:///issues/{id}" },
-      ],
-    },
-  },
-});
-
-beforeAll(async () => {
-  const routes = (router: ConnectRouter) => {
-    router.service(McpServerQueryController, {
-      getByReference: () => servedSpec,
-      get: () => servedSpec,
-      getOAuthGrantStatus: () =>
-        create(GetOAuthGrantStatusOutputSchema, { connected: grantConnected }),
+const client = new Stigmer({
+  baseUrl: "/",
+  getAccessToken: () => "t",
+  customTransport: createRouterTransport(({ service }) => {
+    service(PluginQueryController, {
+      getByReference: (ref) => {
+        if (ref.org !== "acme" || ref.slug !== "linear") throw new ConnectError("no plugin", Code.NotFound);
+        return served;
+      },
     });
-    router.service(VaultQueryController, {
-      getMine: () => {
-        if (getMineFailure !== undefined) throw new ConnectError("vault read failed", getMineFailure);
-        if (mySecretNames === undefined) throw new ConnectError("no vault", Code.NotFound);
-        return create(VaultSchema, {
-          spec: { secrets: Object.fromEntries(mySecretNames.map((name) => [name, {}])) },
+    service(PluginCommandController, {
+      listTools: (input) => {
+        listCalls.push(input);
+        return create(ListPluginToolsOutputSchema, {
+          tools: [
+            { name: "list_issues", description: "List issues" },
+            { name: "delete_issue", description: "Delete an issue", destructive: true },
+          ],
         });
       },
     });
-    router.service(McpServerCommandController, {
-      // Mirror the backend's protovalidate rule (org min_len=1): reject an empty
-      // org so a regression that drops org fails loudly here instead of silently
-      // passing (the mock adapter does not run protovalidate on its own).
-      connect: async (req) => {
-        if (req.org === "")
-          throw new ConnectError(
-            "org – value length must be at least 1 characters",
-            Code.InvalidArgument,
-          );
-        if (connectDelayMs > 0) {
-          await new Promise((resolve) =>
-            setTimeout(resolve, connectDelayMs).unref(),
-          );
-        }
-        connectCalls.push(req);
-        return updatedServer;
+    service(VaultQueryController, {
+      getMine: () => {
+        if (myVault === undefined) throw new ConnectError("no My vault", Code.NotFound);
+        const vault = myVault;
+        return create(VaultSchema, {
+          spec: {
+            secrets: Object.fromEntries(vault.secrets.map((key) => [key, {}])),
+            connections: Object.fromEntries(vault.connections.map((address) => [address, {}])),
+          },
+        });
       },
     });
+  }),
+});
+
+function options(overrides: Partial<ConnectOptions> = {}): ConnectOptions {
+  return {
+    reference: "linear",
+    org: "acme",
+    timeoutMs: 10_000,
+    dryRun: false,
+    consoleURL: "https://app.stigmer.ai",
+    probeLocalConsole: false,
+    interactive: false,
+    ...overrides,
   };
+}
 
-  backend = createHttp2Server(connectNodeAdapter({ routes }));
-  backend.on("session", (session) => {
-    openSessions.add(session);
-    session.on("close", () => openSessions.delete(session));
+beforeEach(() => {
+  listCalls = [];
+  myVault = undefined;
+  served = pluginWith([http("linear", "https://mcp.linear.app/mcp")]);
+});
+
+describe("connectPlugin: choosing the server", () => {
+  it("lists the plugin's only server through listTools, naming the plugin, the server and the org", async () => {
+    const result = await connectPlugin(client, options());
+    expect(listCalls).toHaveLength(1);
+    expect(listCalls[0]).toMatchObject({ pluginId: "plg_1", server: "linear", org: "acme" });
+    expect(result.tools.map((tool) => tool.name)).toEqual(["list_issues", "delete_issue"]);
+    expect(result.dryRun).toBe(false);
   });
-  await new Promise<void>((resolve) => backend.listen(0, "127.0.0.1", resolve));
-  const port = (backend.address() as AddressInfo).port;
-  client = createNodeClient({
-    baseUrl: normalizeEndpoint(`127.0.0.1:${port}`),
+
+  it("refuses a plugin with several servers until --server names one, then lists that one", async () => {
+    served = pluginWith([http("issues", "https://a.example/mcp"), http("docs", "https://b.example/mcp")]);
+    const err = await connectPlugin(client, options()).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(UsageError);
+    expect(String((err as Error).message)).toContain("carries 2 MCP servers: issues, docs");
+    expect(String((err as Error).message)).toContain("stigmer connect plugin linear --server <name>");
+    expect(listCalls).toHaveLength(0);
+
+    await connectPlugin(client, options({ server: "docs" }));
+    expect(listCalls[0]?.server).toBe("docs");
+  });
+
+  it("refuses an unknown --server and a plugin with no server", async () => {
+    await expect(connectPlugin(client, options({ server: "nope" }))).rejects.toThrow(
+      "plugin 'linear' has no MCP server 'nope'; its servers are: linear",
+    );
+    served = pluginWith([]);
+    await expect(connectPlugin(client, options())).rejects.toThrow("carries no MCP server");
   });
 });
 
-afterAll(async () => {
-  for (const session of openSessions) session.destroy();
-  await new Promise<void>((resolve) => backend.close(() => resolve()));
-});
-
-describe("connect push path", () => {
-  it("sends ConnectInput with the org and no values, and returns discovered capabilities", async () => {
-    const result = await connectMcpServer(client, {
-      reference: "github",
-      org: "acme",
-      timeoutMs: 30_000,
-      dryRun: false,
-      consoleURL: "https://app.stigmer.ai",
-      probeLocalConsole: false,
-      interactive: false,
-    });
-
-    expect(connectCalls).toHaveLength(1);
-    expect(connectCalls[0].mcpServerId).toBe("mcp_1");
-    // The org resolved by the command must ride along on ConnectInput — the
-    // backend requires it (issue #140: the CLI used to drop it entirely).
-    expect(connectCalls[0].org).toBe("acme");
-    expect(connectCalls[0].runId).toBe("");
-
-    expect(result.updated?.metadata?.id).toBe("mcp_1");
-    expect(result.capabilities?.tools.map((t) => t.name)).toEqual([
-      "search_issues",
+describe("connectPlugin: a server that takes a sign-in", () => {
+  const signInOnly = () =>
+    pluginWith([http("linear", "https://MCP.Linear.app:443/mcp/", { signIn: { oauthOnly: true } })]);
+  const keyOrSignIn = () =>
+    pluginWith([
+      {
+        name: "linear",
+        transport: {
+          case: "http",
+          value: { url: "https://mcp.linear.app/mcp", headers: { Authorization: "Bearer ${LINEAR_TOKEN}" } },
+        },
+        signIn: { oauthOnly: false },
+      },
     ]);
+
+  it("lists without a sign-in when My vault holds a login at the server's normalized address", async () => {
+    served = signInOnly();
+    myVault = { secrets: [], connections: ["https://mcp.linear.app/mcp"] };
+    await connectPlugin(client, options());
+    expect(listCalls).toHaveLength(1);
+  });
+
+  it("stops off a terminal with the interactive way only, for a sign-in-only server", async () => {
+    served = signInOnly();
+    const err = await connectPlugin(client, options()).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(UsageError);
+    expect(String((err as Error).message)).toContain("needs a sign-in, which needs an interactive terminal");
+    expect(String((err as Error).message)).not.toContain("set-secret");
+    expect(listCalls).toHaveLength(0);
+  });
+
+  it("offers the pasted key where the server accepts one, and lists once it is saved", async () => {
+    served = keyOrSignIn();
+    const err = await connectPlugin(client, options()).catch((e: unknown) => e);
+    expect(String((err as Error).message)).toContain(
+      "stigmer vault set-secret LINEAR_TOKEN --mine, then run stigmer connect plugin linear",
+    );
+    myVault = { secrets: ["LINEAR_TOKEN"], connections: [] };
+    await connectPlugin(client, options());
+    expect(listCalls).toHaveLength(1);
   });
 });
 
-describe("--timeout bounds the server-side connect (issue #239)", () => {
-  it("stops waiting with actionable guidance when pushTimeoutMs elapses", async () => {
-    connectDelayMs = 5_000;
-    await expect(
-      connectMcpServer(client, {
-        reference: "github",
-        org: "acme",
-        timeoutMs: 30_000,
-        pushTimeoutMs: 150,
-        dryRun: false,
-        consoleURL: "https://app.stigmer.ai",
-        probeLocalConsole: false,
-        interactive: false,
-      }),
-    ).rejects.toThrow(
-      /Stopped waiting for the connect of MCP server 'github' after 0\.15s/,
+describe("connectPlugin --dry-run", () => {
+  it("lists a local program's tools from this machine, calling no RPC", async () => {
+    served = pluginWith([
+      { name: "local", transport: { case: "stdio", value: { command: process.execPath, args: [FIXTURE] } } },
+    ]);
+    const result = await connectPlugin(client, options({ dryRun: true }));
+    expect(result.dryRun).toBe(true);
+    expect(result.tools.map((tool) => [tool.name, tool.destructive])).toEqual([
+      ["echo", false],
+      ["noop", true],
+    ]);
+    expect(listCalls).toHaveLength(0);
+  }, 15_000);
+
+  it("refuses a sign-in-only server, whose token never leaves the server", async () => {
+    served = pluginWith([http("linear", "https://mcp.linear.app/mcp", { signIn: { oauthOnly: true } })]);
+    await expect(connectPlugin(client, options({ dryRun: true }))).rejects.toThrow(
+      /accepts only a sign-in, so --dry-run cannot list it/,
     );
   });
-
-  it("does not bound the wait when pushTimeoutMs is unset (default --timeout)", async () => {
-    // The flag's 30s default is sized for --dry-run local discovery; a real
-    // connect legitimately outlives it, so only an explicit --timeout bounds
-    // the push. 200ms of server delay stands in for "longer than the bound
-    // would have been".
-    connectDelayMs = 200;
-    const result = await connectMcpServer(client, {
-      reference: "github",
-      org: "acme",
-      timeoutMs: 100,
-      dryRun: false,
-      consoleURL: "https://app.stigmer.ai",
-      probeLocalConsole: false,
-      interactive: false,
-    });
-    expect(result.updated?.metadata?.id).toBe("mcp_1");
-  });
 });
 
-describe("OAuth guidance gate", () => {
-  beforeEach(() => {
-    servedSpec.spec!.auth = create(McpServerAuthSchema, {
-      targetEnvVar: "GITHUB_TOKEN",
-    });
-  });
-
-  it("stops with actionable guidance when auth is required off an interactive terminal", async () => {
-    await expect(
-      connectMcpServer(client, {
-        reference: "github",
-        org: "acme",
-        timeoutMs: 30_000,
-        dryRun: false,
-          consoleURL: "https://app.stigmer.ai",
-        probeLocalConsole: false,
-        interactive: false,
-      }),
-    ).rejects.toThrow(UsageError);
-    expect(connectCalls).toHaveLength(0);
-  });
-
-  it("proceeds when an OAuth grant already exists", async () => {
-    grantConnected = true;
-    await connectMcpServer(client, {
-      reference: "github",
-      org: "acme",
-      timeoutMs: 30_000,
-      dryRun: false,
-      consoleURL: "https://app.stigmer.ai",
-      probeLocalConsole: false,
-      interactive: false,
-    });
-    expect(connectCalls).toHaveLength(1);
-  });
-
-  it("proceeds when My vault holds a secret under the login key (bypassing OAuth)", async () => {
-    mySecretNames = ["GITHUB_TOKEN"];
-    await connectMcpServer(client, {
-      reference: "github",
-      org: "acme",
-      timeoutMs: 30_000,
-      dryRun: false,
-      consoleURL: "https://app.stigmer.ai",
-      probeLocalConsole: false,
-      interactive: false,
-    });
-    expect(connectCalls).toHaveLength(1);
-  });
-});
-
-describe("a My vault read that fails for another reason than a missing vault", () => {
-  beforeEach(() => {
-    servedSpec.spec!.auth = create(McpServerAuthSchema, {
-      targetEnvVar: "GITHUB_TOKEN",
-    });
-  });
-
-  it("surfaces the failure instead of reading it as an empty vault", async () => {
-    getMineFailure = Code.Unavailable;
-    const err = await connectMcpServer(client, {
-      reference: "github",
-      org: "acme",
-      timeoutMs: 30_000,
-      dryRun: false,
-      consoleURL: "https://app.stigmer.ai",
-      probeLocalConsole: false,
-      interactive: false,
-    }).catch((e: unknown) => e);
-    expect(err).not.toBeInstanceOf(UsageError);
-    expect(String(err)).toContain("vault read failed");
-    expect(connectCalls).toHaveLength(0);
-  });
-});
-
-describe("a secret under another name does not satisfy the OAuth gate", () => {
-  beforeEach(() => {
-    servedSpec.spec!.auth = create(McpServerAuthSchema, {
-      targetEnvVar: "GITHUB_TOKEN",
-    });
-  });
-
-  it("stops with guidance naming the vault command and the login key", async () => {
-    mySecretNames = ["OTHER_TOKEN"];
-    const err = await connectMcpServer(client, {
-      reference: "github",
-      org: "acme",
-      timeoutMs: 30_000,
-      dryRun: false,
-      consoleURL: "https://app.stigmer.ai",
-      probeLocalConsole: false,
-      interactive: false,
-    }).catch((e: unknown) => e);
-    expect(err).toBeInstanceOf(UsageError);
-    expect((err as UsageError).message).toContain("stigmer vault set-secret GITHUB_TOKEN --mine");
-    expect(connectCalls).toHaveLength(0);
-  });
-});
-
-describe("oauth_only servers reject the manual-token routes", () => {
-  beforeEach(() => {
-    servedSpec.spec!.auth = create(McpServerAuthSchema, {
-      targetEnvVar: "GITHUB_TOKEN",
-      oauthOnly: true,
-    });
-  });
-
-  it("does not take a secret saved under the login key for an OAuth-only endpoint", async () => {
-    mySecretNames = ["GITHUB_TOKEN"];
-    const err = await connectMcpServer(client, {
-      reference: "github",
-      org: "acme",
-      timeoutMs: 30_000,
-      dryRun: false,
-      consoleURL: "https://app.stigmer.ai",
-      probeLocalConsole: false,
-      interactive: false,
-    }).catch((e: unknown) => e);
-
-    expect(err).toBeInstanceOf(UsageError);
-    expect((err as UsageError).message).toMatch(/requires OAuth/i);
-    expect(connectCalls).toHaveLength(0);
-  });
-
-  it("omits the saved-token suggestion from the non-interactive OAuth guidance", async () => {
-    const err = await connectMcpServer(client, {
-      reference: "github",
-      org: "acme",
-      timeoutMs: 30_000,
-      dryRun: false,
-      consoleURL: "https://app.stigmer.ai",
-      probeLocalConsole: false,
-      interactive: false,
-    }).catch((e: unknown) => e);
-
-    expect(err).toBeInstanceOf(UsageError);
-    expect((err as UsageError).message).not.toContain("vault set-secret");
-    expect(connectCalls).toHaveLength(0);
-  });
-
-  it("refuses --dry-run local discovery (no locally-obtainable OAuth token) with a clear message", async () => {
-    const err = await connectMcpServer(client, {
-      reference: "github",
-      org: "acme",
-      timeoutMs: 10_000,
-      dryRun: true,
-      consoleURL: "https://app.stigmer.ai",
-      probeLocalConsole: false,
-      interactive: false,
-    }).catch((e: unknown) => e);
-
-    expect(err).toBeInstanceOf(UsageError);
-    expect((err as UsageError).message).toMatch(/requires OAuth/i);
-    expect((err as UsageError).message).toContain("--dry-run");
-    expect(connectCalls).toHaveLength(0);
-  });
-});
-
-describe("dry-run path", () => {
-  it("discovers locally and never calls the Connect RPC", async () => {
-    const result = await connectMcpServer(client, {
-      reference: "github",
-      org: "acme",
-      timeoutMs: 10_000,
-      dryRun: true,
-      consoleURL: "https://app.stigmer.ai",
-      probeLocalConsole: false,
-      interactive: false,
-    });
-
-    expect(connectCalls).toHaveLength(0);
-    expect(result.updated).toBeUndefined();
-    expect(result.capabilities?.tools.map((t) => t.name)).toEqual([
-      "echo",
-      "noop",
-    ]);
-
+describe("renderConnectResult", () => {
+  it("marks destructive tools and says where the list came from", async () => {
+    const result = await connectPlugin(client, options());
     const lines: string[] = [];
-    renderConnectResult(result, (l) => lines.push(l), false, "acme");
+    renderConnectResult(result, (line) => lines.push(line), false, "acme");
     const text = lines.join("\n");
-    expect(text).toContain("MCP Server: acme/github");
-    expect(text).toContain("Transport:  stdio");
-    expect(text).toContain("Tools (2):");
-    expect(text).toContain("Dry run — results not saved");
-  }, 15_000);
+    expect(text).toContain("Plugin:     acme/linear");
+    expect(text).toContain("MCP server: linear (http: https://mcp.linear.app/mcp)");
+    expect(text).toMatch(/delete_issue\s+\[destructive\] Delete an issue/);
+    expect(text).toMatch(/list_issues\s+List issues/);
+    expect(text).toContain("Listed as you; nothing stored");
 
-  it("maps an unresolved ${VAR} arg to actionable guidance and never calls Connect", async () => {
-    // Server references a declared env var in its args, but it is not set.
-    delete process.env.NEEDED_DIR;
-    servedSpec = create(McpServerSchema, {
-      metadata: {
-        id: "mcp_1",
-        name: "filesystem",
-        slug: "filesystem",
-        org: "acme",
-      },
-      spec: {
-        serverType: {
-          case: "stdio",
-          value: {
-            command: process.execPath,
-            args: [FIXTURE, "${NEEDED_DIR}"],
-          },
-        },
-        env: {
-          NEEDED_DIR: {
-            isSecret: false,
-            description: "Root directory the server may access",
-          },
-        },
-      },
-    });
-
-    const err = await connectMcpServer(client, {
-      reference: "filesystem",
-      org: "acme",
-      timeoutMs: 10_000,
-      dryRun: true,
-      consoleURL: "https://app.stigmer.ai",
-      probeLocalConsole: false,
-      interactive: false,
-    }).catch((e: unknown) => e);
-
-    expect(err).toBeInstanceOf(UsageError);
-    const message = (err as UsageError).message;
-    expect(message).toContain("NEEDED_DIR");
-    expect(message).toContain("Export it in your shell");
-    expect(connectCalls).toHaveLength(0);
-  }, 15_000);
+    lines.length = 0;
+    renderConnectResult({ ...result, dryRun: true }, (line) => lines.push(line), false);
+    expect(lines.join("\n")).toContain("Dry run: listed from this machine; nothing stored");
+  });
 });

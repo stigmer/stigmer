@@ -44,16 +44,6 @@ export const VERB_SUPPORT: ReadonlyMap<
     ApiResourceKind.plugin,
     new Set<Verb>([Verb.Get, Verb.List, Verb.Delete, Verb.Push]),
   ],
-  [
-    ApiResourceKind.mcp_server,
-    new Set<Verb>([
-      Verb.Apply,
-      Verb.Validate,
-      Verb.Get,
-      Verb.List,
-      Verb.Delete,
-    ]),
-  ],
   [ApiResourceKind.api_key, new Set<Verb>([Verb.Get, Verb.List, Verb.Delete])],
   // run is special — uses dedicated RunQueryController
   // RPCs, not the unified SearchService. delete maps to cancel.

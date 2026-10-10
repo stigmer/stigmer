@@ -8,7 +8,6 @@ import { schemaForValidate, validateDocument } from "../validate.js";
 describe("schemaForValidate", () => {
   it("resolves a schema for each file-based kind", () => {
     expect(schemaForValidate(ApiResourceKind.agent)).toBeDefined();
-    expect(schemaForValidate(ApiResourceKind.mcp_server)).toBeDefined();
   });
 
   it("returns undefined for non-file-based kinds", () => {
@@ -30,6 +29,16 @@ describe("validateDocument", () => {
         spec: { description: "reviews code" },
       }),
     ).not.toThrow();
+  });
+
+  it("refuses an agent listing mcp_server_usages, naming the way forward", () => {
+    expect(() =>
+      validateDocument(agentSchema, {
+        kind: "Agent",
+        metadata: { name: "Reviewer" },
+        spec: { mcp_server_usages: [{ mcp_server_ref: { slug: "github" } }] },
+      }),
+    ).toThrow(/stigmer mcp add <name> <url>.*`plugins`/);
   });
 
   it("ignores unknown fields for forward compatibility", () => {

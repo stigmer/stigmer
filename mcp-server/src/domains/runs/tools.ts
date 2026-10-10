@@ -60,6 +60,15 @@ export function registerRunTools(server: McpServer, target: BackendTarget): stri
               "session_id); a conversation keeps the vaults it was started with. The server refuses a " +
               "vault that does not exist or that the caller may not use.",
           ),
+        plugins: z
+          .array(z.string())
+          .optional()
+          .describe(
+            "Installed plugins a new conversation uses beside its agent's, each whole (its skills, " +
+              "agents, hooks and MCP servers): each a plugin slug in `org`, or `org/slug`. Only when " +
+              "starting a new conversation (no session_id); a conversation keeps the plugins it was " +
+              "started with.",
+          ),
         include_my_vault: z
           .boolean()
           .optional()
@@ -97,6 +106,7 @@ export function registerRunTools(server: McpServer, target: BackendTarget): stri
           sessionId: args.session_id,
           vaults: args.vaults,
           includeMyVault: args.include_my_vault,
+          plugins: args.plugins,
         });
       }),
   );

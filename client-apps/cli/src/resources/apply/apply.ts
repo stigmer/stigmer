@@ -4,11 +4,10 @@
 // resolved org when absent → dry-run preview OR drive the raw command
 // controller's `apply` RPC with the full proto → build a CommandResult. Items
 // across all files are sorted into dependency order before applying so parents
-// (org → mcp_server → agent → …) land before their dependents.
+// (org → agent → agent channel → …) land before their dependents.
 
 import { create, fromJson, type JsonValue, type Message } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
-import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { RenameInputSchema, UpdateVisibilityInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -22,6 +21,7 @@ import {
   organizationLabel,
   organizationNamed,
 } from "../../client/organizations.js";
+import { mcpServerWayForward } from "@stigmer/sdk";
 import { classify, UsageError } from "../../errors/index.js";
 import { CommandResult } from "../../output/index.js";
 import { defaultRegistry, unknownKindError, Verb } from "../../registry/index.js";
@@ -36,8 +36,6 @@ export interface ApplyItem {
 
 export interface ApplyOutcome {
   readonly result: CommandResult;
-  /** Set for successfully applied MCP servers, to drive post-apply discovery. */
-  readonly appliedMcpServer?: McpServer;
   /** Optional org-mismatch warning to surface on stderr. */
   readonly warning?: string;
   /**
@@ -113,7 +111,10 @@ export function marshalItem(item: ApplyItem): Message {
   try {
     return fromJson(item.handler.schema, item.document, { ignoreUnknownFields: false });
   } catch (err) {
-    throw new UsageError(`invalid ${item.handler.displayName} in ${item.filePath}: ${(err as Error).message}`);
+    const hint = mcpServerWayForward(item.document);
+    throw new UsageError(
+      `invalid ${item.handler.displayName} in ${item.filePath}: ${(err as Error).message}${hint === undefined ? "" : `\n${hint}`}`,
+    );
   }
 }
 
@@ -148,9 +149,6 @@ export async function applyMessage(
   await applyDeclaredSlug(controller, handler, message, applied, visibilityWarning);
   const warning = combineWarnings(orgWarning, visibilityWarning);
   const result = buildApplyResult(handler, applied, created);
-  if (handler.kind === ApiResourceKind.mcp_server) {
-    return { result, appliedMcpServer: applied as McpServer, warning, applied };
-  }
   return { result, warning, applied };
 }
 

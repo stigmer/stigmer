@@ -8,7 +8,8 @@
 // target, a follow-up refused when it names another agent or organization
 // than the session's, the vaults a new conversation names, an empty or
 // malformed vault entry refused before anything starts, a follow-up refused
-// when it names vaults or include_my_vault, approval enum mapping) and
+// when it names vaults or include_my_vault, the plugins a new conversation
+// uses and a follow-up refused when it names them, approval enum mapping) and
 // script run state (running vs terminal, long message histories) to
 // exercise the compact projection and the cancel short-circuit. A scripted
 // RPC failure per method pins the error copy each tool returns when the
@@ -235,6 +236,7 @@ describe("run tools integration", () => {
     // unless they say otherwise, and no shared vault is named.
     expect(target?.case === "sessionSpec" ? target.value.includeMyVault : undefined).toBe(true);
     expect(target?.case === "sessionSpec" ? target.value.vaults : undefined).toEqual([]);
+    expect(target?.case === "sessionSpec" ? target.value.plugins : undefined).toEqual([]);
 
     // The created run comes back as plain protojson (its status is small).
     const created = parseText(result);
@@ -257,6 +259,50 @@ describe("run tools integration", () => {
       [ApiResourceKind.vault, "acme", "support-tools"],
       [ApiResourceKind.vault, "platform", "shared-keys"],
     ]);
+  });
+
+  it("run_agent names a new conversation's plugins in order, a slug in org and an org/slug as given", async () => {
+    const result = await callTool("run_agent", {
+      org: "acme",
+      agent: "code-reviewer",
+      message: "triage the queue",
+      plugins: ["linear", "platform/github"],
+    });
+    expect(result.isError).toBeFalsy();
+    const target = createdRun?.spec?.target;
+    const spec = target?.case === "sessionSpec" ? target.value : undefined;
+    expect(spec?.plugins.map((ref) => [ref.kind, ref.org, ref.slug])).toEqual([
+      [ApiResourceKind.plugin, "acme", "linear"],
+      [ApiResourceKind.plugin, "platform", "github"],
+    ]);
+  });
+
+  it("run_agent refuses a plugin entry that names no plugin and starts nothing", async () => {
+    const result = await callTool("run_agent", {
+      org: "acme",
+      agent: "code-reviewer",
+      message: "triage the queue",
+      plugins: ["acme/"],
+    });
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toContain(
+      'plugins: "acme/" is not a plugin name; name each plugin by slug or org/slug.',
+    );
+    expect(agentLookups).toBe(0);
+    expect(createdRun).toBeUndefined();
+  });
+
+  it("run_agent refuses plugins on a follow-up and starts nothing", async () => {
+    const result = await callTool("run_agent", {
+      org: "acme",
+      agent: "code-reviewer",
+      message: "again",
+      session_id: "ses_42",
+      plugins: ["linear"],
+    });
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toContain("keeps the plugins it was started with");
+    expect(createdRun).toBeUndefined();
   });
 
   it.each(["", "   "])("run_agent refuses an empty vault entry (%j) and starts nothing", async (entry) => {

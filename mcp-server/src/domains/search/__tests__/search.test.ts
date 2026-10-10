@@ -35,7 +35,6 @@ const allKindsResponse = create(SearchResponseSchema, {
   entries: [
     create(SearchResultSchema, { kind: ApiResourceKind.agent, org: "acme", slug: "code-reviewer" }),
     create(SearchResultSchema, { kind: ApiResourceKind.skill, org: "acme", slug: "code-review" }),
-    create(SearchResultSchema, { kind: ApiResourceKind.mcp_server, org: "acme", slug: "github" }),
   ],
 });
 const emptyResponse = create(SearchResponseSchema, { entries: [] });
@@ -99,7 +98,6 @@ describe("search tool integration", () => {
     expect(data.entries.map((e) => e.resource_uri)).toEqual([
       "stigmer://agents/acme/code-reviewer",
       "stigmer://skills/acme/code-review",
-      "stigmer://mcp-servers/acme/github",
     ]);
   });
 
@@ -115,9 +113,9 @@ describe("search tool integration", () => {
   it("passes a valid kinds filter through to the backend as its enum values", async () => {
     nextResponse = emptyResponse;
     lastKinds = undefined;
-    const result = await callSearch({ kinds: ["mcp_server", "skill"] });
+    const result = await callSearch({ kinds: ["skill", "agent"] });
     expect(result.isError).toBeFalsy();
-    expect(lastKinds).toEqual([ApiResourceKind.mcp_server, ApiResourceKind.skill]);
+    expect(lastKinds).toEqual([ApiResourceKind.skill, ApiResourceKind.agent]);
   });
 
   it("rejects an unknown kind without calling the backend", async () => {
@@ -126,7 +124,7 @@ describe("search tool integration", () => {
     expect(result.isError).toBe(true);
     expect(result.content[0]?.text).toContain('unknown resource kind "bogus"');
     expect(result.content[0]?.text).toContain(
-      "valid kinds: agent, skill, mcp_server",
+      "valid kinds: agent, skill",
     );
     expect(backendCalls).toBe(0);
   });

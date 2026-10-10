@@ -23,13 +23,7 @@ import type { ConnectRouter } from "@connectrpc/connect";
 import { connectNodeAdapter } from "@connectrpc/connect-node";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { PluginCommandController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/command_pb";
-import {
-  ListPluginMembersResponseSchema,
-  type PushPluginRequest,
-} from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
-import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
-import { PluginState } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { PushPluginRequest } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
 import {
   afterAll,
   afterEach,
@@ -64,30 +58,11 @@ beforeAll(async () => {
           spec: { name: "warmer", version: "1.0.0" },
           status: {
             digest: "a".repeat(64),
-            state: PluginState.READY,
-            materialized: { skills: 1, agents: 1 },
+            skills: [{ name: "warm" }],
+            agents: [{ name: "warmer" }],
           },
         });
       },
-    });
-    router.service(PluginQueryController, {
-      listMembers: () =>
-        create(ListPluginMembersResponseSchema, {
-          members: [
-            {
-              kind: ApiResourceKind.skill,
-              id: "skl_1",
-              slug: "warm",
-              name: "warm",
-            },
-            {
-              kind: ApiResourceKind.agent,
-              id: "agt_1",
-              slug: "warmer",
-              name: "warmer",
-            },
-          ],
-        }),
     });
   };
   backend = createHttp2Server(connectNodeAdapter({ routes }));
@@ -225,7 +200,7 @@ describe("install", () => {
       key: "Marketplace",
       value: `acme-plugins (${fixture})`,
     });
-    expect(payload.data.members).toHaveLength(2);
+    expect(payload.data.next).toContainEqual({ kind: "run", command: "stigmer run --plugin warmer" });
   });
 
   it("finds a bare name across the configured marketplaces and honours --org, --visibility and --message", async () => {

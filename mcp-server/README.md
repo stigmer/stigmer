@@ -1,7 +1,7 @@
 # `@stigmer/mcp-server`
 
 A [Model Context Protocol](https://modelcontextprotocol.io) server for the
-Stigmer platform. It exposes Stigmer **agents, skills and MCP servers** as
+Stigmer platform. It exposes Stigmer **agents and skills** as
 MCP tools and resources — covering both the
 authoring loop (create, read, update, delete, version) and the run loop
 (run, observe, approve, cancel) — so any MCP-capable client (Claude Desktop,
@@ -46,13 +46,13 @@ MCP client ──JSON-RPC──▶ stdio | HTTP (stateless) ──▶ tool handl
   flattening, oneof expansion) are produced at build time by the codegen in
   `tools/codegen/src/generator/mcp-ts.ts`. Never hand-edit `src/gen/`.
 
-## Tools (14)
+## Tools (11)
 
 ### Discovery
 
 | Tool | Description |
 | --- | --- |
-| `search` | Search across agents, skills and MCP servers; results are enriched with `stigmer://` resource URIs. |
+| `search` | Search across agents and skills; results are enriched with `stigmer://` resource URIs. |
 
 ### Authoring
 
@@ -61,9 +61,6 @@ MCP client ──JSON-RPC──▶ stdio | HTTP (stateless) ──▶ tool handl
 | `get_agent` | Read an agent by org + slug. |
 | `apply_agent` | Create or update an agent (idempotent). |
 | `delete_agent` | Delete an agent. |
-| `get_mcp_server` | Read an MCP server by org + slug. |
-| `apply_mcp_server` | Create or update an MCP server (stdio or http transport). |
-| `delete_mcp_server` | Delete an MCP server. |
 | `get_skill` | Read a skill (optionally a specific version). |
 | `delete_skill` | Delete a skill (all versions). |
 | `list_skill_versions` | List a skill's version history. |
@@ -75,19 +72,18 @@ the assistant polls the observation tools.
 
 | Tool | Description |
 | --- | --- |
-| `run_agent` | Start a run of an agent (new session or `session_id` follow-up); a new session uses the caller's My vault unless `include_my_vault` is false, then the shared `vaults` it names. |
+| `run_agent` | Start a run of an agent (new session or `session_id` follow-up); a new session uses the caller's My vault unless `include_my_vault` is false, then the shared `vaults` it names, and the installed `plugins` it names beside its agent's. |
 | `get_run` | Poll a run: phase, message tail (compact view) or full record, pending approvals. |
 | `submit_run_approval` | Approve / skip / reject a tool call a run is waiting on. |
 | `cancel_run` | Gracefully cancel a run (`run_*`) by ID. |
 
-## Resources (4)
+## Resources (3)
 
 Resource templates let clients discover and read resources by `stigmer://` URI:
 
 | Resource | URI pattern |
 | --- | --- |
 | `stigmer_agent` | `stigmer://agents/{org}/{slug}` |
-| `stigmer_mcp_server` | `stigmer://mcp-servers/{org}/{slug}` |
 | `stigmer_skill` | `stigmer://skills/{org}/{slug}` (latest) |
 | `stigmer_skill_version` | `stigmer://skills/{org}/{slug}/{version}` |
 

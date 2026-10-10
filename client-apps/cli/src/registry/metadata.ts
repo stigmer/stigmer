@@ -9,13 +9,14 @@
 // contract, so a row cannot drift from it unnoticed.
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { MCP_SERVER_WAY_FORWARD } from "@stigmer/sdk";
 
 export interface KindMeta {
-  /** Proto kind_meta.name — also the YAML `kind` value (e.g. "McpServer"). */
+  /** Proto kind_meta.name — also the YAML `kind` value (e.g. "AgentChannel"). */
   readonly name: string;
-  /** Proto kind_meta.display_name (e.g. "MCP Server"). */
+  /** Proto kind_meta.display_name (e.g. "Agent Channel"). */
   readonly displayName: string;
-  /** Proto kind_meta.id_prefix (e.g. "mcp"): what new ids are minted with. */
+  /** Proto kind_meta.id_prefix (e.g. "ach"): what new ids are minted with. */
   readonly idPrefix: string;
   /**
    * Proto kind_meta.retired_id_prefixes: what this kind's ids were minted
@@ -41,10 +42,6 @@ export const KIND_META: ReadonlyMap<ApiResourceKind, KindMeta> = new Map([
   [
     ApiResourceKind.plugin,
     { name: "Plugin", displayName: "Plugin", idPrefix: "plg" },
-  ],
-  [
-    ApiResourceKind.mcp_server,
-    { name: "McpServer", displayName: "MCP Server", idPrefix: "mcp" },
   ],
   [
     ApiResourceKind.api_key,
@@ -112,7 +109,6 @@ export const CLI_RELEVANT_KINDS: readonly ApiResourceKind[] = [
   ApiResourceKind.agent,
   ApiResourceKind.skill,
   ApiResourceKind.plugin,
-  ApiResourceKind.mcp_server,
   ApiResourceKind.api_key,
   ApiResourceKind.identity_provider,
   ApiResourceKind.oauth_app,
@@ -147,6 +143,7 @@ export const RETIRED_KINDS: ReadonlyMap<string, string> = new Map([
     "Environment",
     "is no longer a Stigmer resource: logins and secrets live in vaults, which are never written as files. Save each key with `stigmer vault set-secret <NAME> --mine` (or `--vault <ref>` for a shared vault), and delete this file.",
   ],
+  ["McpServer", `is no longer a Stigmer resource. ${MCP_SERVER_WAY_FORWARD}`],
   [
     "Project",
     "is no longer a Stigmer resource. A folder of resources that belong together is a plugin: run `stigmer push plugin <dir>` to install it as one, or apply each resource file with `stigmer apply -f <file>`.",

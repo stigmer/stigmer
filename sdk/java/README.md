@@ -67,8 +67,8 @@ Every resource type has a typed client exposed as a public final field on
 | `iamPolicy`              | IamPolicy          |
 | `identityAccount`        | IdentityAccount    |
 | `identityProvider`       | IdentityProvider   |
-| `mcpServer`              | McpServer          |
 | `organization`           | Organization       |
+| `plugin`                 | Plugin             |
 | `session`                | Session            |
 | `skill`                  | Skill              |
 | `vault`                  | Vault              |

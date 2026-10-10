@@ -1,19 +1,22 @@
-// Renders a connect result to the terminal. Port of Go's DisplayConnectResult
-// (connect_display.go): server identity + transport, the discovered tools and
-// resource templates, and a saved-vs-dry-run status line.
+// Renders a `connect plugin` result to the terminal: the plugin and the
+// server, how the server is reached, each tool with its description and a
+// mark on the ones the server calls destructive (a turn asks a person before
+// calling those), and a line saying where the list came from. Nothing is
+// stored either way, so the last line says so.
 
-import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { styler } from "../../output/style.js";
+import { serverTransport } from "../plugin.js";
 import type { ConnectResult } from "./connect.js";
 
 /** A sink for one display line (no trailing newline). */
 export type ConnectSink = (line: string) => void;
 
 const NAME_COLUMN = 30;
+const DESTRUCTIVE_MARK = "[destructive]";
 
 /**
- * `orgLabel` names the server's organization (its slug, in place of the id
- * the server carries); undefined leaves it out, as on a server that holds
+ * `orgLabel` names the plugin's organization (its slug, in place of the id
+ * the plugin carries); undefined leaves it out, as on a server that holds
  * one organization, which never names it.
  */
 export function renderConnectResult(
@@ -23,60 +26,46 @@ export function renderConnectResult(
   orgLabel?: string,
 ): void {
   const style = styler(colorize);
-  const meta = result.server.metadata;
+  const name = result.plugin.metadata?.slug || result.plugin.spec?.name || "";
 
   sink("");
-  const name = meta?.name ?? "";
-  sink(style.cyan(`MCP Server: ${orgLabel === undefined ? name : `${orgLabel}/${name}`}`));
-  sink(transportLine(result.server));
+  sink(style.cyan(`Plugin:     ${orgLabel === undefined ? name : `${orgLabel}/${name}`}`));
+  sink(`MCP server: ${result.server.name} (${reachedBy(result)})`);
   sink("");
 
-  renderTools(result, sink);
-  renderResourceTemplates(result, sink);
-
-  sink(result.updated !== undefined
-    ? style.green("✓ Connected — capabilities and tool approvals saved")
-    : style.yellow("⚠ Dry run — results not saved to backend"));
-  if (result.warning !== undefined) {
-    sink(style.yellow(`⚠ ${result.warning}`));
+  sink(`Tools (${result.tools.length}):`);
+  if (result.tools.length === 0) sink("  (none)");
+  for (const tool of result.tools) {
+    const mark = tool.destructive ? `${style.yellow(DESTRUCTIVE_MARK)} ` : "";
+    sink(mark === "" && tool.description === "" ? `  ${tool.name}` : `  ${pad(tool.name)} ${mark}${tool.description}`.trimEnd());
   }
   sink("");
+
+  sink(
+    result.dryRun
+      ? style.yellow("⚠ Dry run: listed from this machine; nothing stored")
+      : style.green("✓ Listed as you; nothing stored"),
+  );
+  sink("");
 }
 
-function transportLine(server: McpServer): string {
-  const serverType = server.spec?.serverType;
-  if (serverType?.case === "stdio") return `Transport:  stdio (${serverType.value.command})`;
-  if (serverType?.case === "http") return `Transport:  http (${serverType.value.url})`;
-  return "Transport:  (unknown)";
-}
-
-function renderTools(result: ConnectResult, sink: ConnectSink): void {
-  const tools = result.capabilities?.tools ?? [];
-  sink(`Tools (${tools.length}):`);
-  if (tools.length === 0) {
-    sink("  (none)");
-  } else {
-    for (const tool of tools) {
-      sink(tool.description !== "" ? `  ${pad(tool.name)} ${tool.description}` : `  ${tool.name}`);
+function reachedBy(result: ConnectResult): string {
+  const transport = result.server.transport;
+  switch (transport.case) {
+    case "stdio":
+      return `${serverTransport(result.server)}: ${[transport.value.command, ...transport.value.args].join(" ")}`;
+    case "http":
+      return `${serverTransport(result.server)}: ${transport.value.url}`;
+    case undefined:
+      return serverTransport(result.server);
+    default: {
+      const exhaustive: never = transport;
+      return String(exhaustive);
     }
   }
-  sink("");
 }
 
-function renderResourceTemplates(result: ConnectResult, sink: ConnectSink): void {
-  const templates = result.capabilities?.resourceTemplates ?? [];
-  sink(`Resource Templates (${templates.length}):`);
-  if (templates.length === 0) {
-    sink("  (none)");
-  } else {
-    for (const template of templates) {
-      sink(`  ${pad(template.name)} ${template.uriTemplate}`);
-    }
-  }
-  sink("");
-}
-
-// Left-justify a name to the fixed column width, mirroring Go's "%-30s".
+// Left-justify a name to the fixed column width.
 function pad(name: string): string {
   return name.length >= NAME_COLUMN ? name : name + " ".repeat(NAME_COLUMN - name.length);
 }

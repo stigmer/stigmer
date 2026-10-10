@@ -40,8 +40,8 @@ Every resource type has a typed client accessible as a property on `StigmerClien
 | `iam_policies`         | IamPolicy          |
 | `identity_accounts`    | IdentityAccount    |
 | `identity_providers`   | IdentityProvider   |
-| `mcp_servers`          | McpServer          |
 | `organizations`        | Organization       |
+| `plugins`              | Plugin             |
 | `sessions`             | Session            |
 | `skills`               | Skill              |
 | `vaults`               | Vault              |

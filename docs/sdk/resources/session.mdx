@@ -280,13 +280,13 @@ const session = await stigmer.session.apply({
   harnessStateIdHistory: [],
   metadata: {},
   workspaceEntries: [],
-  mcpServerUsages: [],
   skillRefs: [],
   harness: "...",
   cursorMode: "...",
   executionTarget: "...",
   vaults: [],
   includeMyVault: false,
+  plugins: [],
 });
 ```
 </Tab>
@@ -303,13 +303,13 @@ session, err := client.Session.Apply(ctx, &stigmer.SessionInput{
   HarnessStateIdHistory: []string{},
   Metadata:              map[string]string{},
   WorkspaceEntries:      []stigmer.WorkspaceEntryInput{},
-  McpServerUsages:       []stigmer.McpServerUsageInput{},
   SkillRefs:             []stigmer.ResourceRef{},
   Harness:               "...",
   CursorMode:            "...",
   ExecutionTarget:       "...",
   Vaults:                []stigmer.ResourceRef{},
   IncludeMyVault:        false,
+  Plugins:               []stigmer.ResourceRef{},
 })
 ```
 </Tab>
@@ -326,13 +326,13 @@ session = client.sessions.apply(SessionInput(
     harness_state_id_history=[],
     metadata={},
     workspace_entries=[],
-    mcp_server_usages=[],
     skill_refs=[],
     harness="...",
     cursor_mode="...",
     execution_target="...",
     vaults=[],
     include_my_vault=False,
+    plugins=[],
 ))
 ```
 </Tab>
@@ -349,13 +349,13 @@ Session session = client.sessions().apply(SessionInput.builder()
     .harnessStateIdHistory(List.of())
     .metadata(Map.of())
     .workspaceEntries(List.of())
-    .mcpServerUsages(List.of())
     .skillRefs(List.of())
     .harness("...")
     .cursorMode("...")
     .executionTarget("...")
     .vaults(List.of())
     .includeMyVault(false)
+    .plugins(List.of())
     .build());
 ```
 </Tab>
@@ -383,13 +383,13 @@ const session = await stigmer.session.create({
   harnessStateIdHistory: [],
   metadata: {},
   workspaceEntries: [],
-  mcpServerUsages: [],
   skillRefs: [],
   harness: "...",
   cursorMode: "...",
   executionTarget: "...",
   vaults: [],
   includeMyVault: false,
+  plugins: [],
 });
 ```
 </Tab>
@@ -406,13 +406,13 @@ session, err := client.Session.Create(ctx, &stigmer.SessionInput{
   HarnessStateIdHistory: []string{},
   Metadata:              map[string]string{},
   WorkspaceEntries:      []stigmer.WorkspaceEntryInput{},
-  McpServerUsages:       []stigmer.McpServerUsageInput{},
   SkillRefs:             []stigmer.ResourceRef{},
   Harness:               "...",
   CursorMode:            "...",
   ExecutionTarget:       "...",
   Vaults:                []stigmer.ResourceRef{},
   IncludeMyVault:        false,
+  Plugins:               []stigmer.ResourceRef{},
 })
 ```
 </Tab>
@@ -429,13 +429,13 @@ session = client.sessions.create(SessionInput(
     harness_state_id_history=[],
     metadata={},
     workspace_entries=[],
-    mcp_server_usages=[],
     skill_refs=[],
     harness="...",
     cursor_mode="...",
     execution_target="...",
     vaults=[],
     include_my_vault=False,
+    plugins=[],
 ))
 ```
 </Tab>
@@ -452,13 +452,13 @@ Session session = client.sessions().create(SessionInput.builder()
     .harnessStateIdHistory(List.of())
     .metadata(Map.of())
     .workspaceEntries(List.of())
-    .mcpServerUsages(List.of())
     .skillRefs(List.of())
     .harness("...")
     .cursorMode("...")
     .executionTarget("...")
     .vaults(List.of())
     .includeMyVault(false)
+    .plugins(List.of())
     .build());
 ```
 </Tab>
@@ -486,13 +486,13 @@ const session = await stigmer.session.update({
   harnessStateIdHistory: [],
   metadata: {},
   workspaceEntries: [],
-  mcpServerUsages: [],
   skillRefs: [],
   harness: "...",
   cursorMode: "...",
   executionTarget: "...",
   vaults: [],
   includeMyVault: false,
+  plugins: [],
 });
 ```
 </Tab>
@@ -509,13 +509,13 @@ session, err := client.Session.Update(ctx, &stigmer.SessionInput{
   HarnessStateIdHistory: []string{},
   Metadata:              map[string]string{},
   WorkspaceEntries:      []stigmer.WorkspaceEntryInput{},
-  McpServerUsages:       []stigmer.McpServerUsageInput{},
   SkillRefs:             []stigmer.ResourceRef{},
   Harness:               "...",
   CursorMode:            "...",
   ExecutionTarget:       "...",
   Vaults:                []stigmer.ResourceRef{},
   IncludeMyVault:        false,
+  Plugins:               []stigmer.ResourceRef{},
 })
 ```
 </Tab>
@@ -532,13 +532,13 @@ session = client.sessions.update(SessionInput(
     harness_state_id_history=[],
     metadata={},
     workspace_entries=[],
-    mcp_server_usages=[],
     skill_refs=[],
     harness="...",
     cursor_mode="...",
     execution_target="...",
     vaults=[],
     include_my_vault=False,
+    plugins=[],
 ))
 ```
 </Tab>
@@ -555,13 +555,13 @@ Session session = client.sessions().update(SessionInput.builder()
     .harnessStateIdHistory(List.of())
     .metadata(Map.of())
     .workspaceEntries(List.of())
-    .mcpServerUsages(List.of())
     .skillRefs(List.of())
     .harness("...")
     .cursorMode("...")
     .executionTarget("...")
     .vaults(List.of())
     .includeMyVault(false)
+    .plugins(List.of())
     .build());
 ```
 </Tab>
@@ -667,19 +667,19 @@ Input for creating or updating a Session.
     slug: { type: "string", description: "URL-friendly identifier." },
     org: { type: "string", description: "Organization id (a slug is also accepted).", required: true },
     labels: { type: "Record<string, string>", description: "Key-value labels." },
-    agentRef: { type: "ResourceRef", description: "The agent this conversation runs, as 'org/slug' with an optional version; empty means no agent, and the built-in assistant answers with the MCP servers and skills this session itself declares.", typeDescriptionLink: "#resourceref" },
+    agentRef: { type: "ResourceRef", description: "The agent this conversation runs, as 'org/slug' with an optional version; empty means no agent, and the built-in assistant answers with the plugins and skills this session itself declares.", typeDescriptionLink: "#resourceref" },
     subject: { type: "string", description: "Conversation title for UI display." },
     harnessStateId: { type: "string", description: "Harness-specific state identifier for conversation continuity." },
     harnessStateIdHistory: { type: "string[]", description: "Prior harness state identifiers this session has owned, oldest first." },
     metadata: { type: "Record<string, string>", description: "Custom key-value pairs for client-specific information." },
     workspaceEntries: { type: "WorkspaceEntryInput[]", description: "Workspace entries for this session.", typeDescriptionLink: "#workspaceentryinput" },
-    mcpServerUsages: { type: "McpServerUsageInput[]", description: "MCP servers to make available in this session.", typeDescriptionLink: "#mcpserverusageinput" },
     skillRefs: { type: "ResourceRef[]", description: "Skills to inject into this session's context.", typeDescriptionLink: "#resourceref" },
     harness: { type: "Harness", description: "Execution harness for this session.", typeDescriptionLink: "#harness" },
     cursorMode: { type: "CursorMode", description: "Cursor SDK agent mode for this session.", typeDescriptionLink: "#cursormode" },
     executionTarget: { type: "ExecutionTarget", description: "Where session activities are executed — local client or cloud sandbox.", typeDescriptionLink: "#executiontarget" },
     vaults: { type: "ResourceRef[]", description: "Vaults whose logins and secrets this conversation's runs use, in order: the first vault holding a match wins.", typeDescriptionLink: "#resourceref" },
     includeMyVault: { type: "boolean", description: "Whether each turn also uses its sender's own My vault, first, ahead of the listed vaults." },
+    plugins: { type: "ResourceRef[]", description: "Plugins this conversation uses, each whole, besides its agent's: their skills, agents, hooks and MCP servers.", typeDescriptionLink: "#resourceref" },
   }}
 />
 
@@ -740,16 +740,6 @@ LocalPathSource uses an existing directory on the host filesystem as the workspa
 <TypeTable
   type={{
     path: { type: "string", description: "Absolute path to an existing directory on the host filesystem." },
-  }}
-/>
-
-### McpServerUsageInput
-
-McpServerUsage declares that an agent (AgentSpec.mcp_server_usages) or a session (SessionSpec.mcp_server_usages) uses a McpServer resource.
-
-<TypeTable
-  type={{
-    mcpServerRef: { type: "ResourceRef", description: "Reference to the McpServer resource.", typeDescriptionLink: "#resourceref", required: true },
   }}
 />
 
