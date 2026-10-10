@@ -1,8 +1,9 @@
 /**
  * The session event log over the wire, on a composed server (SQLite, no
  * engine): listEvents' paging, order and filters; streamEvents delivering
- * events appended after it opens and only the previews it asked for; and a
- * session's delete removing its log. Events are written the way the run
+ * events appended after it opens and only the previews it asked for; a
+ * run's delete ending its session's turn; and a session's delete removing
+ * its log. Events are written the way the run
  * writes write them (../run-writes.ts) and the way a runner appends them,
  * through the composed store and broker.
  */
@@ -17,6 +18,7 @@ import { createGrpcTransport } from "@connectrpc/connect-node";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { SessionEventPreviewSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
@@ -38,6 +40,7 @@ let server: ComposedServer;
 let dir: string;
 let command: Client<typeof SessionCommandController>;
 let query: Client<typeof SessionQueryController>;
+let runCommand: Client<typeof RunCommandController>;
 
 beforeAll(async () => {
   dir = mkdtempSync(path.join(tmpdir(), "session-events-wire-"));
@@ -60,6 +63,7 @@ beforeAll(async () => {
   await seedOrganizations(transport, [ORG]);
   command = createClient(SessionCommandController, transport);
   query = createClient(SessionQueryController, transport);
+  runCommand = createClient(RunCommandController, transport);
 });
 
 afterAll(async () => {
@@ -220,6 +224,17 @@ describe("streamEvents", () => {
     await turn(sessionId, `run_${counter}_after`);
     await reading;
     expect(frames).toEqual(["eventStart", "user.message", "session.status_running", "session.status_idle"]);
+  });
+});
+
+describe("a run's delete", () => {
+  it("deleting the session's only working run ends its turn: the log reads idle, and the run's own events are gone", async () => {
+    const sessionId = await newSession();
+    const runId = `run_${counter}_working`;
+    await turn(sessionId, runId, false);
+    await runCommand.delete({ value: runId });
+    const types = (await query.listEvents({ sessionId })).events.map(eventTypeOf);
+    expect(types).toEqual(["session.status_running", "session.status_idle"]);
   });
 });
 
