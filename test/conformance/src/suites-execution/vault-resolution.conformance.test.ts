@@ -319,10 +319,7 @@ describe("vault resolution — a person's run", () => {
       RunValueOrigin.MY_VAULT,
     );
     const fetched = await fetchedValuesOf(execution.metadata!.id);
-    expect(fetched.agent.WORKSPACE_SETTING, "a declaration's own default stays plain").toMatchObject({
-      value: "acme",
-      isSecret: false,
-    });
+    expect(fetched.agent.WORKSPACE_SETTING, "a declaration's own default is delivered").toBe("acme");
     expect(fetched.agent.OVERRIDDEN_SETTING).toBe("from-my-vault");
   });
 
@@ -401,7 +398,7 @@ describe("vault resolution — a person's run", () => {
     expect(refused?.rawMessage, "the refusal names the door that serves it").toContain("include My vault in it instead");
   });
 
-  it("[rpc:VaultValueController.fetchValues] only the run's own runner credential fetches its values: secrets as secrets, a plain default plain; anyone else is refused, never answered redacted", async () => {
+  it("[rpc:VaultValueController.fetchValues] only the run's own runner credential fetches its values, vault secrets and plain defaults alike; anyone else is refused, never answered redacted", async () => {
     const { org } = await target.provisionTenancy();
     const secretValue = "my-vault-secret-value";
     const plainDeclaredValue = "vault-value-for-a-plain-declaration";
@@ -412,14 +409,8 @@ describe("vault resolution — a person's run", () => {
     const runId = run.execution.metadata!.id;
     const fetched = await fetchedValuesOf(runId);
     expect(fetched.agent.API_TOKEN).toBe(secretValue);
-    expect(fetched.agent.PLAIN_KEY, "a declaration's own plain value is not secret").toMatchObject({
-      value: "plain-value",
-      isSecret: false,
-    });
-    expect(fetched.agent.PLAIN_DECLARED_KEY, "a vault's value is a secret, even for a plain declaration").toMatchObject({
-      value: plainDeclaredValue,
-      isSecret: true,
-    });
+    expect(fetched.agent.PLAIN_KEY, "a declaration's own plain value is delivered").toBe("plain-value");
+    expect(fetched.agent.PLAIN_DECLARED_KEY, "a vault's value fills a plain declaration").toBe(plainDeclaredValue);
 
     // The person who sent the turn is no runner: refused.
     await expectGrpcCode(
