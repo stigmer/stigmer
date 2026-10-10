@@ -80,7 +80,8 @@ import { ensureApprovalRequests } from "./approval/author.js";
 import { preserveApprovalFields } from "./approval/preserve.js";
 import { projectPendingApprovals } from "./approval/project.js";
 import { appendRunnerEvents } from "./filereview/author.js";
-import { autoKeepApprovedCommandSets } from "./filereview/autokeep.js";
+import { autoKeepApprovedCommandSets, autoKeepPluginEvalTrySets } from "./filereview/autokeep.js";
+import { isPluginEvalRun } from "../plugin-eval/plugin-eval-run.js";
 import { projectFileChangeSets } from "./filereview/project.js";
 import { reconcileFileChangeProgress } from "./filereview/progress.js";
 import {
@@ -559,6 +560,8 @@ export function applyUpdateStatusMerge(
     execution.spec?.autoApproveAll ?? false,
     logger,
   );
+  // A plugin eval's try keeps its edits by policy: nobody reviews a try.
+  autoKeepPluginEvalTrySets(status, input.runId, isPluginEvalRun(execution), logger);
 
   // Recompute file_change_sets from the append-only ledger via its single
   // projection seam — always derived, never merged, so it cannot go

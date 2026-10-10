@@ -298,12 +298,16 @@ export const FileReviewCard = memo(function FileReviewCard({
   // A set the auto-keep policy kept (every change produced by a command the user
   // already approved) says so explicitly: consent was given at the command
   // gate, and the record must never read as if a human reviewed it here.
-  const autoKept = !interactive && isPolicyAutoKept(fileChangeSet);
+  // A plugin eval's try keeps its edits by policy too, as Claude Code's
+  // evals apply them; nobody reviews a try.
+  const autoKept = interactive ? undefined : policyKeepOf(fileChangeSet);
   const summary = interactive
     ? `${total} file${total === 1 ? "" : "s"} awaiting review`
-    : autoKept
+    : autoKept === FileDecisionOrigin.POLICY_APPROVED_COMMAND
       ? "Kept automatically — produced by a command you approved"
-      : settledSummary(total, changes, effectiveVerdicts);
+      : autoKept === FileDecisionOrigin.POLICY_EVAL_TRY
+        ? "Kept automatically — an eval's try keeps its edits"
+        : settledSummary(total, changes, effectiveVerdicts);
 
   return (
     <div
@@ -476,15 +480,17 @@ export const FileReviewCard = memo(function FileReviewCard({
 });
 
 /**
- * Whether the set was kept by the approved-command auto-keep policy:
- * some decision carries origin POLICY_APPROVED_COMMAND. Origin is audit
- * provenance — the record label derives from it so an automatic keep is never
- * presented as a human review.
+ * The policy that kept the set, when one did: the approved-command auto-keep
+ * (POLICY_APPROVED_COMMAND) or a plugin eval's try (POLICY_EVAL_TRY).
+ * Origin is audit provenance — the record label derives from it so an
+ * automatic keep is never presented as a human review.
  */
-function isPolicyAutoKept(fileChangeSet: FileChangeSet): boolean {
-  return fileChangeSet.decisions.some(
-    (d) => d.origin === FileDecisionOrigin.POLICY_APPROVED_COMMAND,
-  );
+function policyKeepOf(fileChangeSet: FileChangeSet): FileDecisionOrigin | undefined {
+  return fileChangeSet.decisions.find(
+    (d) =>
+      d.origin === FileDecisionOrigin.POLICY_APPROVED_COMMAND ||
+      d.origin === FileDecisionOrigin.POLICY_EVAL_TRY,
+  )?.origin;
 }
 
 /**

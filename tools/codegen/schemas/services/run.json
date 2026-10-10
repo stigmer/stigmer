@@ -2092,6 +2092,11 @@
           "name": "FILE_DECISION_ORIGIN_POLICY_APPROVED_COMMAND",
           "number": 2,
           "description": "Platform policy auto-kept the set because every mutation in its turn came\n from commands the human explicitly authorized (per-command approval,\n APPROVE_ALL category lease, or spec.auto_approve_all) — consent verified\n against server-authored approval records before authoring. The\n decision's actor is \"policy\", never the user."
+        },
+        {
+          "name": "FILE_DECISION_ORIGIN_POLICY_EVAL_TRY",
+          "number": 3,
+          "description": "Platform policy kept the set because its run is a plugin eval's try: a\n try's edits apply as they do in Claude Code's evals, and nobody reviews\n a try. The decision's actor is \"policy\"."
         }
       ]
     },
@@ -4460,7 +4465,8 @@
             "enumType": "ai.stigmer.agentic.run.v1.FileDecisionOrigin",
             "enumValues": [
               "FILE_DECISION_ORIGIN_USER",
-              "FILE_DECISION_ORIGIN_POLICY_APPROVED_COMMAND"
+              "FILE_DECISION_ORIGIN_POLICY_APPROVED_COMMAND",
+              "FILE_DECISION_ORIGIN_POLICY_EVAL_TRY"
             ]
           },
           "description": "Which authority authored this decision: a human reviewer (USER; also the\n reading for UNSPECIFIED pre-origin records) or the approved-command\n auto-keep policy. Audit provenance only — never enforcement, never\n correlation, never folded into any digest. See FileDecisionOrigin.",

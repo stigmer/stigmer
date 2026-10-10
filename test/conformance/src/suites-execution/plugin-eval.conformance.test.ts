@@ -650,7 +650,8 @@ describe.skipIf(!runnerServesTries)("PluginEval — fixtures, resumed conversati
     expect(attempt.state, `error "${attempt.error}"`).toBe(PluginEvalTryState.graded);
     const score = await evalScoreOf(attempt.runId);
     expect(score.spec?.criteria.map((c) => [c.name, c.result, c.reason])).toEqual(
-      ["read-reference", "env-reached", "bumped", "not-created", "says-done"].map((name) => [
+      // Grader files are read in path order.
+      ["bumped", "env-reached", "not-created", "read-reference", "says-done"].map((name) => [
         name,
         CriterionResult.passed,
         expect.any(String),

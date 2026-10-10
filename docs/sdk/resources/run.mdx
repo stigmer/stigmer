@@ -2755,6 +2755,7 @@ FileDecisionOrigin records which authority authored a FileDecision: a human revi
 |-------|-------------|
 | `FILE_DECISION_ORIGIN_USER` | A human reviewer decided via SubmitFileDecision. |
 | `FILE_DECISION_ORIGIN_POLICY_APPROVED_COMMAND` | Platform policy auto-kept the set because every mutation in its turn came from commands the human explicitly authorized (per-command approval, APPROVE_ALL category lease, or spec.auto_approve_all) — consent verified against server-authored approval records before authoring. |
+| `FILE_DECISION_ORIGIN_POLICY_EVAL_TRY` | Platform policy kept the set because its run is a plugin eval's try: a try's edits apply as they do in Claude Code's evals, and nobody reviews a try. |
 
 ### FileReviewEventType
 
