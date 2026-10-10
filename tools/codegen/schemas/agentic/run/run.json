@@ -96,7 +96,7 @@
           "kind": "string"
         }
       },
-      "description": "Tools this turn may use, in the same names as an agent's tools; empty\n leaves the agent's tools as they are.\n\n A turn can only narrow: a tool its agent (or the assistant) does not\n have stays unavailable whatever this lists. Like interaction_mode, it\n applies to this message only. Skill is a name here too: listing tools\n without Skill keeps the agent's skills; disallowed_tools with Skill\n removes them.",
+      "description": "Tools this turn may use, in the same names as an agent's tools; empty\n leaves the agent's tools as they are.\n\n A turn can only narrow: a tool its agent (or the assistant) does not\n have stays unavailable whatever this lists. Like interaction_mode, it\n applies to this message only. Skill is a name here too: listing tools\n without Skill keeps the agent's skills, a list of Skill alone resolves\n unless the agent denies Skill, and disallowed_tools with Skill removes\n them.",
       "required": false,
       "validation": {
         "maxItems": 128
@@ -125,7 +125,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Text appended to the system prompt for this turn, as Claude Code's\n --append-system-prompt.\n\n Anyone who may create a run in the session may set it, on any agent the\n session runs, a shared one included. On the native engine it lands after\n the agent's instructions and the platform's sections, for this turn\n only. On the Cursor engine it is sent with the turn's message, so it\n stays in that conversation's history and later turns still see it.",
+      "description": "Text appended to the system prompt for this turn, as Claude Code's\n --append-system-prompt.\n\n Anyone who may create a run in the session may set it, on any agent the\n session runs, a shared one included. On the native engine it lands after\n the agent's instructions and the platform's sections, for this turn\n only. On the Cursor engine it is sent with the turn's message, before\n the structured-output directive when structured_output_schema is set\n (the output contract closes the message), so it stays in that\n conversation's history and later turns still see it.",
       "required": false,
       "validation": {
         "maxLength": 32768
