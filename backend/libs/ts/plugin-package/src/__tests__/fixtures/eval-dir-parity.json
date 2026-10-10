@@ -1,0 +1,29 @@
+{
+  "description": "Where a plugin's eval suite lives, by its manifests alone. The library's reader (evals/eval-dir.ts resolveEvalDir, through readEvalSuite) and the runner's mount (shared/plugin-mount.ts manifestEvalDir, undefined meaning evals) both replay this table, so the two copies of the rule cannot drift. Each case maps archive paths to file text; dir is the suite directory both must name.",
+  "cases": [
+    { "name": "no manifest", "files": { "evals/c/prompt.md": "Hi." }, "dir": "evals" },
+    { "name": "a manifest without experimental.evals", "files": { ".claude-plugin/plugin.json": "{\"name\":\"p\"}" }, "dir": "evals" },
+    { "name": "a moved suite", "files": { ".claude-plugin/plugin.json": "{\"name\":\"p\",\"experimental\":{\"evals\":\"qa\"}}" }, "dir": "qa" },
+    { "name": "a nested moved suite", "files": { ".claude-plugin/plugin.json": "{\"name\":\"p\",\"experimental\":{\"evals\":\"quality/evals\"}}" }, "dir": "quality/evals" },
+    { "name": "a parent path", "files": { ".claude-plugin/plugin.json": "{\"name\":\"p\",\"experimental\":{\"evals\":\"../qa\"}}" }, "dir": "evals" },
+    { "name": "a dot-slash path", "files": { ".claude-plugin/plugin.json": "{\"name\":\"p\",\"experimental\":{\"evals\":\"./qa\"}}" }, "dir": "evals" },
+    { "name": "a trailing slash", "files": { ".claude-plugin/plugin.json": "{\"name\":\"p\",\"experimental\":{\"evals\":\"qa/\"}}" }, "dir": "evals" },
+    { "name": "an absolute path", "files": { ".claude-plugin/plugin.json": "{\"name\":\"p\",\"experimental\":{\"evals\":\"/qa\"}}" }, "dir": "evals" },
+    { "name": "an empty path", "files": { ".claude-plugin/plugin.json": "{\"name\":\"p\",\"experimental\":{\"evals\":\"\"}}" }, "dir": "evals" },
+    { "name": "a number", "files": { ".claude-plugin/plugin.json": "{\"name\":\"p\",\"experimental\":{\"evals\":42}}" }, "dir": "evals" },
+    { "name": "the skills directory", "files": { ".claude-plugin/plugin.json": "{\"name\":\"p\",\"experimental\":{\"evals\":\"skills\"}}" }, "dir": "evals" },
+    { "name": "inside the skills directory", "files": { ".claude-plugin/plugin.json": "{\"name\":\"p\",\"experimental\":{\"evals\":\"skills/alpha/tests\"}}" }, "dir": "evals" },
+    { "name": "beside the skills directory", "files": { ".claude-plugin/plugin.json": "{\"name\":\"p\",\"experimental\":{\"evals\":\"skills-tests\"}}" }, "dir": "skills-tests" },
+    { "name": "inside a declared skill path", "files": { ".claude-plugin/plugin.json": "{\"name\":\"p\",\"skills\":\"./extra/\",\"experimental\":{\"evals\":\"extra/one\"}}" }, "dir": "evals" },
+    { "name": "holding a declared skill path", "files": { ".claude-plugin/plugin.json": "{\"name\":\"p\",\"skills\":[\"./a\",\"./content/skills\"],\"experimental\":{\"evals\":\"content\"}}" }, "dir": "evals" },
+    { "name": "inside a plugin declared as one root skill", "files": { ".claude-plugin/plugin.json": "{\"name\":\"p\",\"skills\":\"./\",\"experimental\":{\"evals\":\"qa\"}}" }, "dir": "qa" },
+    { "name": "a skill path another vendor's manifest declares", "files": { ".claude-plugin/plugin.json": "{\"name\":\"p\",\"experimental\":{\"evals\":\"content/evals\"}}", ".cursor-plugin/plugin.json": "{\"name\":\"p\",\"skills\":\"./content\"}" }, "dir": "evals" },
+    { "name": "a skill path the library would refuse names nothing", "files": { ".claude-plugin/plugin.json": "{\"name\":\"p\",\"skills\":\"extra\",\"experimental\":{\"evals\":\"extra/one\"}}" }, "dir": "extra/one" },
+    { "name": "a Codex manifest's suite", "files": { ".codex-plugin/plugin.json": "{\"name\":\"p\",\"experimental\":{\"evals\":\"qa\"}}" }, "dir": "qa" },
+    { "name": "the Claude manifest decides first", "files": { ".claude-plugin/plugin.json": "{\"name\":\"p\",\"experimental\":{\"evals\":\"../bad\"}}", ".codex-plugin/plugin.json": "{\"name\":\"p\",\"experimental\":{\"evals\":\"qa\"}}" }, "dir": "evals" },
+    { "name": "a Claude manifest without the key leaves it to Codex", "files": { ".claude-plugin/plugin.json": "{\"name\":\"p\"}", ".codex-plugin/plugin.json": "{\"name\":\"p\",\"experimental\":{\"evals\":\"qa\"}}" }, "dir": "qa" },
+    { "name": "a Cursor manifest never moves the suite", "files": { ".cursor-plugin/plugin.json": "{\"name\":\"p\",\"experimental\":{\"evals\":\"qa\"}}" }, "dir": "evals" },
+    { "name": "an unreadable Claude manifest leaves it to Codex", "files": { ".claude-plugin/plugin.json": "{ not json", ".codex-plugin/plugin.json": "{\"name\":\"p\",\"experimental\":{\"evals\":\"qa\"}}" }, "dir": "qa" },
+    { "name": "skills declared in the default directory", "files": { ".claude-plugin/plugin.json": "{\"name\":\"p\",\"skills\":[\"./evals/one\"]}" }, "dir": "evals" }
+  ]
+}

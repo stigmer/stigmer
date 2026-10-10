@@ -14,12 +14,38 @@
  * Regexes are compiled here and never run: compiling a JavaScript pattern
  * is linear in its length, and running author patterns is the grader's
  * job, behind its own time limit.
+ *
+ * A finding quotes at most {@link QUOTED_TEXT_LIMIT} characters of an
+ * author's value, then an ellipsis: the findings are stored on the plugin,
+ * and one huge key, pattern or version string in a compressible archive
+ * would otherwise bloat that row past what one API message carries. The
+ * first characters are enough to find the value in the file.
  */
 
 import { isJsonObject, isStringArray, type JsonObject } from "../documents.js";
 import type { EvalSuiteFinding } from "./types.js";
 
 export type EvalFindingKind = EvalSuiteFinding["kind"];
+
+/** The most characters of an author's value one finding quotes. */
+export const QUOTED_TEXT_LIMIT = 200;
+
+/** `text`, cut to {@link QUOTED_TEXT_LIMIT} characters and an ellipsis when longer, never inside a surrogate pair. */
+export function excerpt(text: string): string {
+  if (text.length <= QUOTED_TEXT_LIMIT) return text;
+  const cut = text.slice(0, QUOTED_TEXT_LIMIT);
+  return `${/[\uD800-\uDBFF]$/.test(cut) ? cut.slice(0, -1) : cut}…`;
+}
+
+/** An author's text in single quotes, as a finding names it. */
+export function quote(text: string): string {
+  return `'${excerpt(text)}'`;
+}
+
+/** A value read from YAML, as JSON, as a finding names a value of the wrong kind. */
+export function quoteJson(value: unknown): string {
+  return excerpt(JSON.stringify(value));
+}
 
 /** The findings one case's files produced. */
 export class CaseFindings {
@@ -57,7 +83,7 @@ export function unknownKeys(
   noun: string,
 ): void {
   for (const key of Object.keys(object)) {
-    if (!known.has(key)) scope.findings.add(kind, scope.path, `unknown ${noun} '${scope.label}${key}'`);
+    if (!known.has(key)) scope.findings.add(kind, scope.path, `unknown ${noun} ${quote(`${scope.label}${key}`)}`);
   }
 }
 
@@ -107,12 +133,12 @@ export function readEnv(object: JsonObject, field: string, scope: FieldScope): R
   let ok = true;
   for (const [key, item] of Object.entries(value)) {
     if (!EVAL_ENV_KEY_PATTERN.test(key)) {
-      scope.findings.add(scope.invalid, scope.path, `${scope.label}${field} key '${key}' must match EVAL_[A-Z0-9_]*`);
+      scope.findings.add(scope.invalid, scope.path, `${scope.label}${field} key ${quote(key)} must match EVAL_[A-Z0-9_]*`);
       ok = false;
       continue;
     }
     if (typeof item !== "string" && typeof item !== "number" && typeof item !== "boolean") {
-      wrong(scope, `${field}.${key}`, "a string, number or boolean");
+      wrong(scope, `${field}.${excerpt(key)}`, "a string, number or boolean");
       ok = false;
       continue;
     }
@@ -133,17 +159,21 @@ export function checkSchemaVersion(value: unknown, scope: FieldScope): boolean {
   scope.findings.add(
     "eval-schema-version-unsupported",
     scope.path,
-    `schema_version ${JSON.stringify(value)} is not supported; this reader reads "${EVAL_SCHEMA_VERSION}"`,
+    `schema_version ${quoteJson(value)} is not supported; this reader reads "${EVAL_SCHEMA_VERSION}"`,
   );
   return false;
 }
 
-/** The compile error of a JavaScript regex, or `undefined` when it compiles. */
+/**
+ * The compile error of a JavaScript regex, or `undefined` when it compiles.
+ * The engine's message repeats the whole pattern; it is quoted as an excerpt.
+ */
 export function regexError(pattern: string, flags: string): string | undefined {
   try {
     new RegExp(pattern, flags);
     return undefined;
   } catch (error) {
-    return error instanceof Error ? error.message : String(error);
+    const message = error instanceof Error ? error.message : String(error);
+    return message.replace(`/${pattern}/`, () => `/${excerpt(pattern)}/`);
   }
 }

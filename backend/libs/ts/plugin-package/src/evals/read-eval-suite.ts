@@ -12,7 +12,9 @@
  * `experimental.evals` when that is a relative path of plain directory
  * names clear of the plugin's skills; any other value is an
  * `eval-dir-invalid` finding and `evals/` is used, the format's rule for an
- * unusable manifest value. The manifest is found by the library's own
+ * unusable manifest value. Skills a manifest declares in `evals/` leave the
+ * plugin no suite: an `eval-dir-invalid` finding and no case, since the
+ * skills keep their files. The manifest is found by the library's own
  * detection, so the reader and the install never disagree on which manifest
  * a plugin has, and the rule is `eval-dir.ts`'s, which the skill listing
  * shares to leave the suite out of every skill.
@@ -48,6 +50,8 @@ import {
   type FieldScope,
   readEnv,
   readInteger,
+  quote,
+  quoteJson,
   readNonEmptyString,
   readString,
   readStringList,
@@ -148,7 +152,8 @@ const CONTEXT_KEYS: ReadonlySet<string> = new Set(["scaffold_script", "add_dirs"
 export function readEvalSuite(files: PluginFiles): EvalSuite {
   const index = new PluginFileIndex(files);
   const findings: EvalSuiteFinding[] = [];
-  const dir = suiteDir(index, findings);
+  const { dir, held } = suiteDir(index, findings);
+  if (held) return { dir, cases: [], findings };
   const suiteMocks = index.isDirectory(`${dir}/mocks`);
 
   const cases: EvalCase[] = [];
@@ -162,7 +167,7 @@ export function readEvalSuite(files: PluginFiles): EvalSuite {
         caseByName.set(evalCase.name, caseDir);
         cases.push(evalCase);
       } else {
-        caseFindings.add("eval-case-invalid", caseDir, `case name '${evalCase.name}' is already used by '${first}'`);
+        caseFindings.add("eval-case-invalid", caseDir, `case name ${quote(evalCase.name)} is already used by ${quote(first)}`);
       }
     }
     findings.push(...caseFindings.list);
@@ -170,22 +175,30 @@ export function readEvalSuite(files: PluginFiles): EvalSuite {
   return { dir, cases, findings };
 }
 
-function suiteDir(index: PluginFileIndex, findings: EvalSuiteFinding[]): string {
+/** The suite's directory, and whether declared skills hold it, so no case is read; findings for both. */
+function suiteDir(index: PluginFileIndex, findings: EvalSuiteFinding[]): { readonly dir: string; readonly held: boolean } {
   // The install reports manifest problems; this read only needs the value.
-  const { dir, unusable } = resolveEvalDir(detectManifests(index, new Findings()));
+  const { dir, unusable, heldBySkills } = resolveEvalDir(detectManifests(index, new Findings()));
+  const fallback = heldBySkills === undefined ? `using ${DEFAULT_EVAL_DIR}/` : `${DEFAULT_EVAL_DIR}/ is not usable either`;
   if (unusable !== undefined) {
-    findings.push({ kind: "eval-dir-invalid", path: unusable.manifest, message: evalDirMessage(unusable) });
+    findings.push({ kind: "eval-dir-invalid", path: unusable.manifest, message: evalDirMessage(unusable, fallback) });
   }
-  return dir;
+  if (heldBySkills !== undefined) {
+    const problem =
+      `the skills path ${quote(`./${heldBySkills.path}`)} lies in ${DEFAULT_EVAL_DIR}/, the suite's default directory, so no suite is read; ` +
+      "move the skills or name another directory in experimental.evals";
+    findings.push({ kind: "eval-dir-invalid", path: heldBySkills.manifest, message: `${heldBySkills.manifest}: ${problem}` });
+  }
+  return { dir, held: heldBySkills !== undefined };
 }
 
-function evalDirMessage(unusable: NonNullable<EvalDirResolution["unusable"]>): string {
-  const named = `${unusable.manifest}: experimental.evals ${JSON.stringify(unusable.value)}`;
+function evalDirMessage(unusable: NonNullable<EvalDirResolution["unusable"]>, fallback: string): string {
+  const named = `${unusable.manifest}: experimental.evals ${quoteJson(unusable.value)}`;
   switch (unusable.reason) {
     case "not-a-plain-path":
-      return `${named} is not a relative path of plain directory names (such as 'qa' or 'quality/evals'); using ${DEFAULT_EVAL_DIR}/`;
+      return `${named} is not a relative path of plain directory names (such as 'qa' or 'quality/evals'); ${fallback}`;
     case "overlaps-skills":
-      return `${named} overlaps the plugin's skills; using ${DEFAULT_EVAL_DIR}/`;
+      return `${named} overlaps the plugin's skills; ${fallback}`;
     /* v8 ignore start -- @preserve: the never arm; resolveEvalDir gives only these reasons */
     default: {
       const exhaustive: never = unusable.reason;
@@ -440,7 +453,7 @@ function readCase(index: PluginFileIndex, caseDir: string, suiteMocks: boolean, 
   const seen = new Set<string>();
   for (const grader of graders) {
     if (seen.has(grader.name)) {
-      findings.add("eval-grader-invalid", grader.path, `grader name '${grader.name}' is used by another grader of this case`);
+      findings.add("eval-grader-invalid", grader.path, `grader name ${quote(grader.name)} is used by another grader of this case`);
     }
     seen.add(grader.name);
   }

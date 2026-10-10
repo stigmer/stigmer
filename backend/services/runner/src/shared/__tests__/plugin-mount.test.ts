@@ -18,13 +18,18 @@
  *    judged by its cleaned root-relative name, so an agent under test
  *    cannot read its cases; the tamper guard holds the tree to the archive
  *    without them, and an archive carrying a suite is never left in the
- *    session's cache, where the shell could unzip it.
+ *    session's cache, where the shell could unzip it;
+ *  - `manifestEvalDir` names the suite directory the library's reader
+ *    names, on the table both replay (`@stigmer/plugin-package`
+ *    `__tests__/fixtures/eval-dir-parity.json`, found by walking up, since
+ *    the runner does not depend on the library).
  */
 
 import { createHash } from "node:crypto";
 import { chmodSync, existsSync, lstatSync, mkdtempSync, readFileSync, rmSync, statSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { create } from "@bufbuild/protobuf";
 import { ConnectError, Code } from "@connectrpc/connect";
 import { PluginSchema, type Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
@@ -362,5 +367,29 @@ describe("the eval suite is not mounted", () => {
   it("filters by directory, never by name prefix", () => {
     const entries = ["evals/a.md", "evals", "evalsx/b.md", "qa/c.md", "qa-more/d.md"].map((path) => ({ path, content: new Uint8Array() }));
     expect(withoutEvalSuite(entries, "qa").map((e) => e.path)).toEqual(["evals", "evalsx/b.md", "qa-more/d.md"]);
+  });
+});
+
+interface ParityCase {
+  readonly name: string;
+  readonly files: Readonly<Record<string, string>>;
+  readonly dir: string;
+}
+
+/** The library's eval-dir table, found by walking up from this file to the repository's libs. */
+function parityTable(): readonly ParityCase[] {
+  let dir = dirname(fileURLToPath(import.meta.url));
+  for (let i = 0; i < 12; i++) {
+    const candidate = join(dir, "backend", "libs", "ts", "plugin-package", "src", "__tests__", "fixtures", "eval-dir-parity.json");
+    if (existsSync(candidate)) return (JSON.parse(readFileSync(candidate, "utf8")) as { cases: readonly ParityCase[] }).cases;
+    dir = dirname(dir);
+  }
+  throw new Error("could not locate the plugin-package eval-dir parity table");
+}
+
+describe("manifestEvalDir, on the table the library's reader also replays", () => {
+  it.each(parityTable().map((c) => [c.name, c] as const))("%s", (_name, c) => {
+    const entries = Object.entries(c.files).map(([path, content]) => ({ path, content: new TextEncoder().encode(content) }));
+    expect(manifestEvalDir(entries) ?? "evals").toBe(c.dir);
   });
 });

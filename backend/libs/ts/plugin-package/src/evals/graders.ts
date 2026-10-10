@@ -25,6 +25,7 @@
 import { isJsonObject, type JsonObject } from "../documents.js";
 import {
   type FieldScope,
+  quote,
   readNonEmptyString,
   readString,
   regexError,
@@ -158,7 +159,7 @@ function readCheck(type: EvalGraderType, source: GraderSource, scope: FieldScope
       const baselineFile = readNonEmptyString(fields, "baseline_file", scope);
       if (baselineFile === undefined) return required(scope, "baseline_file", fields);
       if (!source.caseFiles.has(`${source.caseDir}/${baselineFile.replace(/^\.\//, "")}`)) {
-        return wrong(scope, "baseline_file", `a file in the case directory ('${baselineFile}' is not)`);
+        return wrong(scope, "baseline_file", `a file in the case directory (${quote(baselineFile)} is not)`);
       }
       if (criteria === undefined) return undefined;
       return { type, baselineFile, criteria };

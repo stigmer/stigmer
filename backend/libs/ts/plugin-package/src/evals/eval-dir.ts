@@ -17,7 +17,14 @@
  * (`./`, the whole plugin as one skill) is not counted, since every
  * directory lies inside it and the default `evals/` is left out of it the
  * same way. The runner's mount applies this rule to the archive's own
- * manifests (`runner` `shared/plugin-mount.ts` `manifestEvalDir`).
+ * manifests (`runner` `shared/plugin-mount.ts` `manifestEvalDir`), and
+ * both run one shared table (`__tests__/fixtures/eval-dir-parity.json`).
+ *
+ * The default can overlap too: a manifest may declare skills under
+ * `./evals/`. Then the plugin has no usable suite directory (unless a
+ * usable `experimental.evals` moves it clear), the resolution names the
+ * skill path that holds it, the skill listing strips nothing, so no skill
+ * loses its files, and the suite reader reads no case.
  * Pinned through `__tests__/eval-suite.test.ts` and `__tests__/skills.test.ts`.
  */
 
@@ -38,20 +45,33 @@ export interface EvalDirResolution {
   readonly dir: string;
   /** The manifest's value when it was present and unusable, so `dir` fell back to `evals/`. */
   readonly unusable?: { readonly value: unknown; readonly manifest: string; readonly reason: EvalDirUnusableReason };
+  /** The declared skill path the default `dir` overlaps, and its manifest: the plugin then has no suite. */
+  readonly heldBySkills?: { readonly path: string; readonly manifest: string };
 }
 
 export function resolveEvalDir(set: ManifestSet | undefined): EvalDirResolution {
   const declared = set?.manifests.find((manifest) => manifest.evalsDir !== undefined)?.evalsDir;
-  if (set === undefined || declared === undefined) return { dir: DEFAULT_EVAL_DIR };
+  if (set === undefined) return { dir: DEFAULT_EVAL_DIR };
+  if (declared === undefined) return defaultDir(set);
   const { value, manifest } = declared;
   if (typeof value !== "string" || !isContainedPath(value)) {
-    return { dir: DEFAULT_EVAL_DIR, unusable: { value, manifest, reason: "not-a-plain-path" } };
+    return defaultDir(set, { value, manifest, reason: "not-a-plain-path" });
   }
   const skillDirs = [DEFAULT_SKILLS_DIR, ...set.manifests.flatMap((m) => m.skillPaths.map((p) => p.path))];
   if (skillDirs.some((skillDir) => skillDir !== "" && pathsOverlap(value, skillDir))) {
-    return { dir: DEFAULT_EVAL_DIR, unusable: { value, manifest, reason: "overlaps-skills" } };
+    return defaultDir(set, { value, manifest, reason: "overlaps-skills" });
   }
   return { dir: value };
+}
+
+/** `evals/`, with why the manifest's value was not used, and the declared skill path that holds it, if any. */
+function defaultDir(set: ManifestSet, unusable?: EvalDirResolution["unusable"]): EvalDirResolution {
+  const held = set.manifests.flatMap((m) => m.skillPaths).find((p) => p.path !== "" && pathsOverlap(DEFAULT_EVAL_DIR, p.path));
+  return {
+    dir: DEFAULT_EVAL_DIR,
+    ...(unusable !== undefined && { unusable }),
+    ...(held !== undefined && { heldBySkills: { path: held.path, manifest: held.manifest } }),
+  };
 }
 
 /** Whether one plugin-relative directory is the other or lies inside it. */

@@ -3,7 +3,9 @@
  * declared paths that are a skill or a directory of skills, Claude's root
  * single skill) and the frontmatter check's relaxations (name defaulted to
  * the directory, name differing from the directory, description missing),
- * plus the per-skill file listing the installer builds archives from.
+ * plus the per-skill file listing the installer builds archives from, which
+ * leaves the eval suite out and keeps the files of skills declared in
+ * `evals/`, where the suite then is not.
  */
 
 import { describe, expect, it } from "vitest";
@@ -82,6 +84,15 @@ describe("discovery", () => {
     const listed = accepted(read(files)).skills.map((s) => s.files);
     expect(listed).toContainEqual(["skills/alpha/SKILL.md", "skills/alpha/references/REF.md"]);
     if (skills !== undefined) expect(listed).toContainEqual(["extra/one/SKILL.md", "extra/one/references/REF.md"]);
+  });
+
+  it("keeps every file of skills declared under evals/ while the suite stays at its default", () => {
+    const files = claudePlugin({ manifest: { skills: ["./evals/", "./evals-solo"] } });
+    files.set("evals/one/SKILL.md", "---\nname: one\ndescription: d\n---\nbody");
+    files.set("evals/one/references/REF.md", "ref");
+    files.set("evals-solo/SKILL.md", "---\nname: evals-solo\ndescription: d\n---\nbody");
+    const skills = accepted(read(files)).skills;
+    expect(skills.find((s) => s.name === "one")?.files).toEqual(["evals/one/SKILL.md", "evals/one/references/REF.md"]);
   });
 
   it("leaves a skill's own evals/ directory out of its files", () => {

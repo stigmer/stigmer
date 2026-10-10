@@ -4,7 +4,9 @@
  * then one in-memory plugin per rule, each breaking exactly one thing.
  *
  * What is pinned: the suite directory (`evals/`, a usable
- * `experimental.evals`, the fallback and its finding); case discovery
+ * `experimental.evals`, the fallback and its finding, no suite when skills
+ * lie in `evals/`, and the table the runner's mount replays too); that a
+ * finding quotes at most 200 characters of a value; case discovery
  * (grouping, `results/` and `mocks/` skipped, everything under a case
  * belonging to it); every default the format documents; the precedence of
  * `prompt.md` over `case.yaml`; grader order; one refusal per rule with its
@@ -12,6 +14,7 @@
  * reports `evals/` as an ignored component.
  */
 
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
@@ -201,6 +204,35 @@ describe("the eval directory", () => {
     expect(rootSkill.dir).toBe("qa");
   });
 
+  it.each([
+    [["./evals/one"], undefined, "evals/one"],
+    [["./evals"], undefined, "evals"],
+    [["./evals/one"], "../outside", "evals/one"],
+  ])("has no suite when skills %j lie in the default evals/ (experimental.evals %j)", (skills, evals, held) => {
+    const suite = suiteOf(
+      { "evals/one/SKILL.md": "---\nname: one\ndescription: d\n---\nbody", "evals/c/prompt.md": "Hello.", "evals/c/graders/judge.md": LLM_GRADER },
+      { skills, ...(evals !== undefined && { experimental: { evals } }) },
+    );
+    expect(suite.dir).toBe("evals");
+    expect(suite.cases).toEqual([]);
+    const tail = `the skills path './${held}' lies in evals/, the suite's default directory, so no suite is read; move the skills or name another directory in experimental.evals`;
+    expect(suite.findings.at(-1)).toEqual({ kind: "eval-dir-invalid", path: ".claude-plugin/plugin.json", message: `.claude-plugin/plugin.json: ${tail}` });
+    if (evals !== undefined) {
+      expect(suite.findings[0]?.message).toBe(
+        `.claude-plugin/plugin.json: experimental.evals "${evals}" is not a relative path of plain directory names ` +
+          "(such as 'qa' or 'quality/evals'); evals/ is not usable either",
+      );
+    } else {
+      expect(suite.findings).toHaveLength(1);
+    }
+  });
+
+  it("moves away from skills that lie in evals/ when experimental.evals names a clear directory", () => {
+    const suite = suiteOf({ "qa/c/prompt.md": "Hello.", "qa/c/graders/judge.md": LLM_GRADER }, { skills: ["./evals/one"], experimental: { evals: "qa" } });
+    expect(suite.findings).toEqual([]);
+    expect(suite.cases.map((c) => c.dir)).toEqual(["qa/c"]);
+  });
+
   it("is an empty suite when the plugin has no eval directory", () => {
     expect(suiteOf({})).toEqual({ dir: "evals", cases: [], findings: [] });
   });
@@ -208,6 +240,21 @@ describe("the eval directory", () => {
   it("is read without a manifest, at evals/", () => {
     const suite = readEvalSuite(inMemoryPluginFiles(new Map([["evals/c/prompt.md", "Hi."], ["evals/c/graders/judge.md", LLM_GRADER]])));
     expect(suite.cases.map((c) => c.name)).toEqual(["c"]);
+  });
+});
+
+describe("the eval directory, on the table the runner's mount also replays", () => {
+  interface ParityCase {
+    readonly name: string;
+    readonly files: Readonly<Record<string, string>>;
+    readonly dir: string;
+  }
+  const table = JSON.parse(readFileSync(fileURLToPath(new URL("./fixtures/eval-dir-parity.json", import.meta.url)), "utf8")) as {
+    readonly cases: readonly ParityCase[];
+  };
+
+  it.each(table.cases.map((c) => [c.name, c] as const))("%s", (_name, c) => {
+    expect(readEvalSuite(inMemoryPluginFiles(new Map(Object.entries(c.files)))).dir).toBe(c.dir);
   });
 });
 
@@ -681,6 +728,35 @@ describe("refusals", () => {
       path: "evals/c/graders/judge.md",
       message: "evals/c/graders/judge.md: grader name 'judge' is used by another grader of this case",
     });
+  });
+
+  it("quotes at most 200 characters of an author's value, so a huge one cannot bloat the findings stored on the plugin", () => {
+    const huge = "a".repeat(1_000_000);
+    const cut = `${"a".repeat(200)}…`;
+    // YAML caps an implicit key at 1024 characters, so the huge keys are explicit (`? key`).
+    const suite = suiteOf({
+      "evals/c/prompt.md": `---\n? ${huge}\n: 1\n---\nHi.`,
+      "evals/c/graders/x.md": `---\ntype: regex\npattern: '(${huge}'\n---\n`,
+      "evals/d/case.yaml": `schema_version: "${huge}"\nname: d\nexecution:\n  prompt: Hi.\n`,
+      "evals/d/graders/judge.md": LLM_GRADER,
+      "evals/e/case.yaml": `schema_version: "1.1"\nname: e\nexecution:\n  prompt: Hi.\n  env:\n    ? ${huge}\n    : 1\n`,
+      "evals/e/graders/judge.md": LLM_GRADER,
+    });
+    expect(suite.findings.map((f) => f.message)).toEqual([
+      `evals/c/prompt.md: unknown frontmatter key '${cut}'`,
+      `evals/c/graders/x.md: pattern must be a JavaScript regular expression (Invalid regular expression: /(${"a".repeat(199)}…/: Unterminated group)`,
+      `evals/d/case.yaml: schema_version "${"a".repeat(199)}… is not supported; this reader reads "1.1"`,
+      `evals/e/case.yaml: execution.env key '${cut}' must match EVAL_[A-Z0-9_]*`,
+    ]);
+  });
+
+  it("never cuts a quoted value inside a surrogate pair", () => {
+    const name = `${"a".repeat(199)}😀${"b".repeat(10)}`;
+    const suite = suiteOf({
+      "evals/c/case.yaml": `schema_version: "1.1"\nname: c\nexecution:\n  prompt: Hi.\n  env:\n    ${name}: 1\n`,
+      "evals/c/graders/judge.md": LLM_GRADER,
+    });
+    expect(onlyFinding(suite).message).toBe(`evals/c/case.yaml: execution.env key '${"a".repeat(199)}…' must match EVAL_[A-Z0-9_]*`);
   });
 
   it("names every problem of a file in one read", () => {
