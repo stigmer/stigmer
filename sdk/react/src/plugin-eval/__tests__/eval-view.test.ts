@@ -30,10 +30,11 @@ import {
 import { GPT, SONNET, evalStartOf, evalWith } from "./eval-fixture";
 
 describe("the Run evals form", () => {
-  it("starts from one native target, three tries, compared, $5, one at a time", () => {
+  it("starts from each case's own model and runs, compared, $5, one at a time", () => {
     expect(DEFAULT_EVAL_FORM).toEqual({
+      caseModels: true,
       targets: [{ harness: "native", modelName: "" }],
-      runs: 3,
+      runs: 0,
       compare: true,
       maxCostUsd: 5,
       concurrency: 1,
@@ -42,7 +43,8 @@ describe("the Run evals form", () => {
   });
 
   it("refuses settings the API refuses, in a sentence", () => {
-    expect(evalFormProblem({ ...DEFAULT_EVAL_FORM, targets: [] })).toMatch(
+    const picked = { ...DEFAULT_EVAL_FORM, caseModels: false };
+    expect(evalFormProblem({ ...picked, targets: [] })).toMatch(
       /one to 6 models/,
     );
     expect(evalFormProblem({ ...DEFAULT_EVAL_FORM, runs: 51 })).toMatch(
@@ -65,11 +67,25 @@ describe("the Run evals form", () => {
     );
   });
 
+  it("takes no models and no tries to mean each case's own", () => {
+    expect(
+      evalFormProblem({ ...DEFAULT_EVAL_FORM, targets: [], runs: 0 }),
+    ).toBeNull();
+    const input = pluginEvalInputOf(
+      { id: "plg_1", org: "org_acme" },
+      DEFAULT_EVAL_FORM,
+    );
+    expect(input.targets).toEqual([]);
+    expect(input.runs).toBe(0);
+  });
+
   it("becomes an unnamed create input, with each target's engine", () => {
     const input = pluginEvalInputOf(
       { id: "plg_1", org: "org_acme" },
       {
         ...DEFAULT_EVAL_FORM,
+        caseModels: false,
+        runs: 3,
         targets: [
           { harness: "native", modelName: "" },
           { harness: "cursor", modelName: "gpt-5" },
@@ -168,7 +184,7 @@ describe("an eval's rows", () => {
     });
   });
 
-  it("summarises a try waiting to start, one not graded without a reason, and a state this client does not know", () => {
+  it("summarises a try a finished eval never ran, one not graded without a reason, and a state this client does not know", () => {
     const pluginEval = evalWith([{ name: "a", score: 1 }]);
     const tries = pluginEval.status!.cases[0]!.targets[0]!.withPlugin!.tries;
     tries[0]!.state = PluginEvalTryState.pending;
@@ -181,7 +197,32 @@ describe("an eval's rows", () => {
       evalCaseRowsOf(pluginEval)[0]
         ?.cells[0]?.tries.filter((attempt) => attempt.arm === "with")
         .map((attempt) => attempt.summary),
-    ).toEqual(["waiting", "not graded", "waiting", "unknown state 7"]);
+    ).toEqual(["not run", "not graded", "not run", "unknown state 7"]);
+  });
+
+  it("summarises a try not finished by the eval's phase: waiting while it starts, waiting or running while it runs, in words for a phase this client does not know", () => {
+    const summaries = (phase: PluginEvalPhase): string[] => {
+      const pluginEval = evalWith([{ name: "a", score: 1 }]);
+      pluginEval.status!.phase = phase;
+      const tries = pluginEval.status!.cases[0]!.targets[0]!.withPlugin!.tries;
+      tries[0]!.state = PluginEvalTryState.pending;
+      tries[1]!.state = PluginEvalTryState.unspecified;
+      return (
+        evalCaseRowsOf(pluginEval)[0]
+          ?.cells[0]?.tries.filter((attempt) => attempt.arm === "with")
+          .map((attempt) => attempt.summary) ?? []
+      );
+    };
+    expect(summaries(PluginEvalPhase.pending)).toEqual(["waiting", "waiting"]);
+    expect(summaries(PluginEvalPhase.running)).toEqual([
+      "waiting or running",
+      "waiting or running",
+    ]);
+    expect(summaries(PluginEvalPhase.partial)).toEqual(["not run", "not run"]);
+    expect(summaries(9 as PluginEvalPhase)).toEqual([
+      "not finished (phase 9)",
+      "not finished (phase 9)",
+    ]);
   });
 
   it("leaves out the cell of a target the case has no result on", () => {
