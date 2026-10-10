@@ -27,8 +27,9 @@
  *    without a token is refused, so no Cursor credential reaches the host;
  *    an upstream that cannot be reached is a 502 in the shape a Connect
  *    client reads;
- *  - an upstream stream that is reset after its headers, CANCEL included,
- *    resets the host's with the same code, never a clean end;
+ *  - an upstream stream that is reset after its headers resets the host's
+ *    with its code, never a clean end; one that ends cleanly while the
+ *    host is still sending ends the host's cleanly, with its trailers;
  *  - in forward mode a side call's execution id, which no live-turn check
  *    covered, is not forwarded;
  *  - a host that drops its connection mid-stream has its run cancelled at
@@ -65,8 +66,8 @@ class FakeConnectHost {
   readonly closedCodes: number[] = [];
   /** Answer the headers, then reset the stream: an upstream that fails mid-answer. */
   resetAfterHeaders = false;
-  /** Answer the headers and some data, then cancel the stream (RST_STREAM CANCEL). */
-  cancelAfterHeaders = false;
+  /** Answer, then end the stream cleanly with trailers while the client's half is still open. */
+  endFirst = false;
   url = "";
   private server: Http2Server | undefined;
 
@@ -76,11 +77,11 @@ class FakeConnectHost {
     this.server.on("stream", (stream: ServerHttp2Stream, headers: IncomingHttpHeaders) => {
       this.streams.push({ path: String(headers[":path"]), headers });
       stream.on("close", () => this.closedCodes.push(stream.rstCode));
-      if (this.cancelAfterHeaders) {
-        stream.respond({ ":status": 200, "content-type": "application/connect+proto" });
+      if (this.endFirst) {
+        stream.respond({ ":status": 200, "content-type": "application/connect+proto" }, { waitForTrailers: true });
         stream.on("error", () => {});
-        stream.write("partial");
-        setTimeout(() => stream.close(8), 20);
+        stream.on("wantTrailers", () => stream.sendTrailers({ "grpc-status": "0" }));
+        stream.end("done");
         return;
       }
       if (this.resetAfterHeaders) {
@@ -193,7 +194,7 @@ beforeEach(() => {
   rest.answer = FakeUpstream.DEFAULT_ANSWER;
   connectHost.streams.length = 0;
   connectHost.resetAfterHeaders = false;
-  connectHost.cancelAfterHeaders = false;
+  connectHost.endFirst = false;
   connectHost.closedCodes.length = 0;
   connectHost.sessions = 0;
   setEnv({ CURSOR_BACKEND_URL: rest.url });
@@ -290,6 +291,15 @@ describe("terminate: a runner that calls Cursor itself", () => {
       const refused = await call(path, { authorization: `Bearer ${standIn}` });
       expect(refused.status, path).toBe(403);
       expect(JSON.parse(refused.body), path).toEqual({ code: "permission_denied", message: expect.stringContaining("relays only the Cursor SDK's own side calls") });
+    }
+    expect(rest.received).toHaveLength(sent);
+  });
+
+  it("refuses a REST path that names one of Cursor's Connect services", async () => {
+    const sent = rest.received.length;
+    for (const path of ["/aiserver.v1.DashboardService/CreateUserApiKey", "/agent.v1.AgentService/Run"]) {
+      const refused = await call(`/v1/proxy/cursor/api2.cursor.sh${path}`, { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION });
+      expect(refused.status, path).toBe(403);
     }
     expect(rest.received).toHaveLength(sent);
   });
@@ -433,24 +443,30 @@ describe("terminate: a runner that calls Cursor itself", () => {
     expect(reset, "an internal-error reset, never a clean end").toBe(2);
   });
 
-  it("passes Cursor's own cancel after its headers on as a cancel, never a clean end", async () => {
+  it("ends the host's stream cleanly, with the trailers, when Cursor ends its answer while the host is still sending", async () => {
     const standIn = await exchange();
     setEnv({ CURSOR_BACKEND_URL: connectHost.url });
-    connectHost.cancelAfterHeaders = true;
-    const code = await new Promise<number>((resolve) => {
+    connectHost.endFirst = true;
+    const ended = await new Promise<{ readonly data: string; readonly trailers: IncomingHttpHeaders; readonly code: number }>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error("the host's stream never ended")), 5_000);
       const session = connect(proxy.cursorEndpoint, { ca: proxy.cursorCertificate });
       session.on("error", () => {});
       const req = session.request({ ":method": "POST", ":path": RUN, authorization: `Bearer ${standIn}`, "x-stigmer-execution-id": EXECUTION });
+      let data = "";
+      let trailers: IncomingHttpHeaders = {};
       req.on("error", () => {});
-      req.on("close", () => {
-        session.close();
-        resolve(req.rstCode);
+      req.on("data", (chunk: Buffer) => (data += chunk.toString("utf8")));
+      req.on("trailers", (t) => (trailers = t));
+      req.on("end", () => {
+        clearTimeout(timer);
+        resolve({ data, trailers, code: req.rstCode ?? 0 });
+        session.destroy();
       });
-      req.resume();
-      // A run's own half stays open while Cursor answers, as the agent run's does.
+      // The run's own half stays open, as the agent run's does.
       req.write("x");
     });
-    expect(code, "Cursor's cancel, never a clean end (0)").toBe(8);
+    expect(ended.data).toBe("done");
+    expect(ended.trailers["grpc-status"]).toBe("0");
   });
 
   it("opens a fresh upstream connection when the host resets its own, so a recovery never reuses a degraded one", async () => {
