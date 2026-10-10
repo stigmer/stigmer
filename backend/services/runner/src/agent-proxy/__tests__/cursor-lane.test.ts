@@ -24,8 +24,8 @@
  *  - an exchange the upstream refuses, or answers without a token, comes
  *    back as it was; an upstream that cannot be reached is a 502 in the
  *    shape a Connect client reads;
- *  - a host that drops its connection, mid-stream or mid-handshake, leaves
- *    the lane serving.
+ *  - a host that drops its connection mid-stream has its run cancelled at
+ *    Cursor, and a drop mid-stream or mid-handshake leaves the lane serving.
  */
 
 import { request as httpsRequest } from "node:https";
@@ -51,6 +51,8 @@ const RUN = "/agent.v1.AgentService/Run";
 /** Cursor's Connect host: records each stream, echoes each chunk back as it arrives, ends with a trailer. */
 class FakeConnectHost {
   readonly streams: { readonly path: string; readonly headers: IncomingHttpHeaders }[] = [];
+  /** How each stream ended, by its reset code (0 for a clean end). */
+  readonly closedCodes: number[] = [];
   /** Answer the headers, then reset the stream: an upstream that fails mid-answer. */
   resetAfterHeaders = false;
   url = "";
@@ -60,6 +62,7 @@ class FakeConnectHost {
     this.server = createH2cServer();
     this.server.on("stream", (stream: ServerHttp2Stream, headers: IncomingHttpHeaders) => {
       this.streams.push({ path: String(headers[":path"]), headers });
+      stream.on("close", () => this.closedCodes.push(stream.rstCode));
       if (this.resetAfterHeaders) {
         stream.respond({ ":status": 200, "content-type": "application/connect+proto" });
         stream.on("error", () => {});
@@ -169,6 +172,7 @@ beforeEach(() => {
   rest.answer = FakeUpstream.DEFAULT_ANSWER;
   connectHost.streams.length = 0;
   connectHost.resetAfterHeaders = false;
+  connectHost.closedCodes.length = 0;
   setEnv({ CURSOR_BACKEND_URL: rest.url });
 });
 afterEach(async () => {
@@ -212,6 +216,8 @@ describe("terminate: a runner that calls Cursor itself", () => {
     expect(answer.status).toBe(200);
     expect(answer.data).toBe("echo:oneecho:two");
     expect(answer.trailers["x-upstream-trailer"]).toBe("done");
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(connectHost.closedCodes, "a finished run closes cleanly at Cursor, never cancelled").toEqual([0]);
     const seen = connectHost.streams.at(-1)!;
     expect(seen.path).toBe(RUN);
     expect(seen.headers.authorization).toBe(`Bearer ${REAL_TOKEN}`);
@@ -291,7 +297,7 @@ describe("terminate: a runner that calls Cursor itself", () => {
     expect(await call(EXCHANGE, { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION })).toEqual({ status: 200, body: "not json" });
   });
 
-  it("keeps serving after a host drops its connection mid-stream or mid-handshake", async () => {
+  it("cancels Cursor's stream when the host drops its own, and keeps serving after a drop mid-stream or mid-handshake", async () => {
     const standIn = await exchange();
     setEnv({ CURSOR_BACKEND_URL: connectHost.url });
 
@@ -307,6 +313,7 @@ describe("terminate: a runner that calls Cursor itself", () => {
     half.destroy();
 
     await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(connectHost.closedCodes, "the abandoned run is cancelled at Cursor").toEqual([8]);
     expect((await stream(RUN, { authorization: `Bearer ${standIn}`, "x-stigmer-execution-id": EXECUTION }, ["after"])).data).toBe("echo:after");
   });
 

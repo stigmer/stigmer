@@ -273,6 +273,14 @@ describe("the production starter", () => {
     expect(await exited).toBe(0);
   }, 60_000);
 
+  it("starts a real host by default, with the lane's trust file, and boots a harness in it", async () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const hosted = await hostHarnesses([{ harness: "deep-agent", adapter: probeAdapter("native") }], testConfig());
+    await hosted.rows[0]!.adapter.boot(testConfig());
+    await hosted.rows[0]!.adapter.shutdown();
+    await hosted.close();
+  }, 60_000);
+
   it("kills a host that has not exited a grace after it was told to end", async () => {
     const wedged = 'process.on("SIGTERM", () => {}); setInterval(() => {}, 1000);';
     const { started, child } = spawnHostProcess(process.execPath, ["-e", wedged], { ...process.env }, 200);

@@ -247,8 +247,12 @@ export class CursorLane {
         [http2Constants.HTTP2_HEADER_PATH]: `${url.pathname}${url.search}`,
       };
       const upstream = session.request(outgoing);
+      // A host that drops its stream abandons the run: cancel it at Cursor
+      // rather than let the request's end read as "nothing more to send".
+      // (`res.writableFinished` reads true once the host's stream is gone,
+      // so the upstream's own state decides.)
       const abandon = (): void => {
-        if (!res.writableFinished) upstream.close(http2Constants.NGHTTP2_CANCEL);
+        if (!upstream.closed) upstream.close(http2Constants.NGHTTP2_CANCEL);
       };
       res.on("close", abandon);
       req.pipe(upstream);
