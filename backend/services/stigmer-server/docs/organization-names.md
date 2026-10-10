@@ -210,10 +210,12 @@ Rows read `| Service.method | <field>, <field>, … |`.
 |---|---|
 | IdentityAccountCommandController.create | `metadata.org`, `spec.identity_provider_ref.org` |
 | IdentityAccountCommandController.createFederatedAccount | `org`, `identity_provider_ref.org` |
+| IdentityAccountCommandController.createServiceAccount | `org` |
 | IdentityAccountCommandController.deprovisionFederatedAccount | `org`, `identity_provider_ref.org` |
 | IdentityAccountCommandController.update | `metadata.org`, `spec.identity_provider_ref.org` |
 | IdentityAccountCommandController.updateFederatedAccount | `org`, `identity_provider_ref.org` |
 | IdentityAccountQueryController.getByExternalSub | `org`, `identity_provider_ref.org` |
+| IdentityAccountQueryController.listServiceAccounts | `org` |
 
 ## `ai.stigmer.iam.oauthapp.v1`
 
