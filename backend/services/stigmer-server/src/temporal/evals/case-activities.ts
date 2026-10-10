@@ -31,13 +31,16 @@
  *   - grade-try: the try's trace (domain/score/eval/trace.ts), every code
  *     grader (domain/plugin-eval/graders/), and for each AI-graded check
  *     either the verdict its evidence already decides (a missing file, a
- *     binary one) or the rubric its votes answer. The run's own failure is
- *     named ("timed out after 300s" when the workflow stopped it), and the
- *     try is graded on what it produced. A run its own cap stopped at its
- *     share of the eval's spending limit (its estimated cost within a cent
- *     of the try's budget) is not graded, every check "stopped at its share
- *     of the eval's spending limit", and asks no votes: the spend policy
- *     and the concurrency never move a score. A run a lower cap stopped
+ *     binary one) or the rubric its votes answer. An AI-graded indicator
+ *     (a check the two-arm comparison does not score) casts no votes in
+ *     the without-plugin arm: it is not graded there, on its criterion
+ *     only. The run's own failure is named ("timed out after 300s" when
+ *     the workflow stopped it), and the try is graded on what it
+ *     produced. A run its own cap stopped at its share of the eval's
+ *     spending limit (its estimated cost within a cent of the try's
+ *     budget) is not graded, every check "stopped at its share of the
+ *     eval's spending limit", and asks no votes: the spend policy and the
+ *     concurrency never move a score. A run a lower cap stopped
  *     (its agent's own, its profile's) is graded as a stopped run.
  *   - start-vote, read-vote, delete-vote: one vote of an AI-graded check, a
  *     judge run in its own session (graders/llm.ts), adopted on a retry
@@ -56,8 +59,10 @@
  *     could not report it.
  *   - record-score: the votes tallied, the try scored
  *     (domain/plugin-eval/scoring.ts), and its Score written on the run
- *     (domain/plugin-eval/score-writer.ts). A grader left not graded leaves
- *     the try not graded with that reason.
+ *     (domain/plugin-eval/score-writer.ts). A scored grader left not graded
+ *     leaves the try not graded with that reason; an indicator left not
+ *     graded is reported on its own criterion only, since it counts toward
+ *     no score.
  *
  * Proven by __tests__/case-activities.test.ts.
  */
@@ -175,6 +180,14 @@ export const TRY_GONE_REASON = "the try's run was deleted";
 
 /** The not-graded reason of a try whose eval no longer plans it. */
 export const TRY_UNPLANNED_REASON = "the eval no longer plans this try";
+
+/**
+ * The not-graded reason of an AI-graded indicator in the without-plugin
+ * arm: it scores in neither arm, so its votes are not spent where the
+ * plugin is absent.
+ */
+export const INDICATOR_NOT_JUDGED_WITHOUT_PLUGIN_REASON =
+  "an indicator is not judged without the plugin";
 
 /** The reason a file read fails on an install with no artifact storage. */
 const NO_ARTIFACT_STORAGE = "this install has no artifact storage";
@@ -400,6 +413,7 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         cell.target.target.harness,
       );
       const checked = await gradeChecks(graders, trace, deps.patterns);
+      const scoring = scoringOf(graders, context.twoArms);
       const outcomes: WireOutcome[] = checked.map((outcome, index) => {
         const grader = graders[index];
         if (
@@ -408,6 +422,9 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
           !isJudgedGrader(grader)
         ) {
           return outcome === "votes" ? { notGraded: TRY_GONE_REASON } : outcome;
+        }
+        if (input.arm === "without" && scoring[index]?.scored === false) {
+          return { notGraded: INDICATOR_NOT_JUDGED_WITHOUT_PLUGIN_REASON };
         }
         const evidence = voteEvidence(grader.check, trace);
         if (!("text" in evidence)) {
@@ -642,7 +659,12 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         return "votes" in outcome ? tallyVotes(votes[index] ?? []) : outcome;
       });
       const scoring = scoringOf(graders, context.twoArms);
-      const failed = verdicts.find(isNotGraded);
+      // An indicator counts toward no score, so one left not graded is
+      // reported on its own criterion and never voids the try.
+      const failed = verdicts.find(
+        (verdict, index): verdict is { readonly notGraded: string } =>
+          isNotGraded(verdict) && scoring[index]?.scored !== false,
+      );
       const run = await loadRun(deps.store, started.runId);
       if (failed !== undefined) {
         if (run !== undefined) {
@@ -658,14 +680,8 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
           outOfCredit: failed.notGraded === OUT_OF_CREDIT_REASON,
         };
       }
-      const decided = verdicts.filter(
-        (
-          verdict,
-        ): verdict is { readonly passed: boolean; readonly reason: string } =>
-          !isNotGraded(verdict),
-      );
       const score = tryScore(
-        decided.map((verdict) => verdict.passed),
+        verdicts.map((verdict) => !isNotGraded(verdict) && verdict.passed),
         scoring,
       );
       if (run !== undefined) {
@@ -673,7 +689,7 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
           gradedEvalScore(run, context.digest, {
             graders,
             scoring,
-            verdicts: decided,
+            verdicts,
           }),
         );
       }

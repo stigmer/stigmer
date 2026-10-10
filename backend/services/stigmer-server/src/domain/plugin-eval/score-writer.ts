@@ -17,7 +17,10 @@
  *     the grader's verdict and its reason the grader's, cut to 500. An
  *     indicator, a grader the two-arm comparison does not score
  *     (scoring.ts), is `not_applicable`, its reason starting "indicator
- *     only" and keeping what it found.
+ *     only" and keeping what it found, or why it was not graded: an
+ *     indicator left not graded counts toward no score, so the try is
+ *     still graded. A scored grader left not graded never reaches a
+ *     graded score; the try is then not graded.
  *   - A try the platform could not grade is a not-graded score with the
  *     reason, never a failing value.
  *
@@ -50,6 +53,8 @@ import {
 } from "../score/judge/rubrics.js";
 import { replaceUnlessGraded } from "../score/record.js";
 import type { ScoreWrite, ScoreWriteDeps } from "../score/record.js";
+import type { GraderVerdict } from "./graders/verdict.js";
+import { isNotGraded } from "./graders/verdict.js";
 import type { GraderScoring } from "./scoring.js";
 import { everyScoredPassed } from "./scoring.js";
 
@@ -85,14 +90,11 @@ export function criterionNames(graders: ReadonlyArray<EvalGrader>): string[] {
   });
 }
 
-/** A graded try: each grader's verdict and how it counts. */
+/** A graded try: each grader's verdict, not graded only for an indicator, and how it counts. */
 export interface GradedTry {
   readonly graders: ReadonlyArray<EvalGrader>;
   readonly scoring: ReadonlyArray<GraderScoring>;
-  readonly verdicts: ReadonlyArray<{
-    readonly passed: boolean;
-    readonly reason: string;
-  }>;
+  readonly verdicts: ReadonlyArray<GraderVerdict>;
 }
 
 /** The graded eval score of `run` (the module header). */
@@ -103,17 +105,27 @@ export function gradedEvalScore(
 ): Score {
   const score = baseScore(run, digest);
   const names = criterionNames(graded.graders);
-  const passed = graded.verdicts.map((verdict) => verdict.passed);
+  const passed = graded.verdicts.map(
+    (verdict) => !isNotGraded(verdict) && verdict.passed,
+  );
   if (score.spec !== undefined) {
     score.spec.value = {
       case: "passed",
       value: everyScoredPassed(passed, graded.scoring),
     };
     score.spec.criteria = graded.graders.map((_, index) => {
+      const name = names[index] ?? `grader-${index + 1}`;
       const verdict = graded.verdicts[index] ?? { passed: false, reason: "" };
+      if (isNotGraded(verdict)) {
+        return create(ScoreCriterionSchema, {
+          name,
+          result: CriterionResult.not_applicable,
+          reason: cut(`${INDICATOR_ONLY_REASON}; not graded: ${verdict.notGraded}`),
+        });
+      }
       const scored = graded.scoring[index]?.scored ?? true;
       return create(ScoreCriterionSchema, {
-        name: names[index] ?? `grader-${index + 1}`,
+        name,
         result: !scored
           ? CriterionResult.not_applicable
           : verdict.passed

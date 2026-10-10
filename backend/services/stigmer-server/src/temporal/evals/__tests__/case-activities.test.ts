@@ -68,7 +68,10 @@ import {
   FileReviewEventStreamSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import type { FileReviewEvent } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import { ScoreSource } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
+import {
+  CriterionResult,
+  ScoreSource,
+} from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { LogFields, Logger } from "../../../boot/logger.js";
@@ -91,6 +94,7 @@ import { PluginEvalCallerRefusedError } from "../../../extensions/plugin-eval-ca
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
 import {
+  INDICATOR_NOT_JUDGED_WITHOUT_PLUGIN_REASON,
   TRY_GONE_REASON,
   TRY_UNPLANNED_REASON,
   createCaseActivities,
@@ -1359,6 +1363,93 @@ describe("grade-try over a plugin's MCP server", () => {
         reason: "1 call(s) to 'mcp__plugin_thermos_My_Server__search' (step 1); expected at least 1",
       },
     ]);
+  });
+});
+
+describe("an AI-graded indicator", () => {
+  /** The judged case's baseline check, scored, beside an llm check marked `arm: with-only`, an indicator. */
+  const INDICATOR_SUITE: Readonly<Record<string, string>> = {
+    [`${CASE_DIR}/prompt.md`]: JUDGED_SUITE[`${CASE_DIR}/prompt.md`]!,
+    [REFERENCE_PATH]: JUDGED_SUITE[REFERENCE_PATH]!,
+    [`${CASE_DIR}/graders/compare.md`]: JUDGED_SUITE[`${CASE_DIR}/graders/compare.md`]!,
+    [`${CASE_DIR}/graders/style.md`]:
+      "---\ntype: llm\narm: with-only\n---\n\nPASS if the reply is short.\n",
+  };
+  const WITHOUT: CaseInput = { ...CELL, arm: "without" };
+
+  it("casts no votes in the without-plugin arm, and its votes in the with-plugin arm", async () => {
+    await seeded();
+    const { cases } = build({ suite: INDICATOR_SUITE });
+    const without = await cases[START_TRY_ACTIVITY_NAME](WITHOUT);
+    const withPlugin = await startTry(cases);
+    if (without.kind !== "started") throw new Error("the without-plugin try did not start");
+    await completeTry(without.runId);
+    await completeTry(withPlugin.runId);
+    expect(
+      (await cases[GRADE_TRY_ACTIVITY_NAME](WITHOUT, without.runId, false)).outcomes,
+    ).toEqual([
+      { votes: "compare" },
+      { notGraded: INDICATOR_NOT_JUDGED_WITHOUT_PLUGIN_REASON },
+    ]);
+    expect(
+      (await cases[GRADE_TRY_ACTIVITY_NAME](CELL, withPlugin.runId, false)).outcomes,
+    ).toEqual([{ votes: "compare" }, { votes: "style" }]);
+  });
+
+  it("left not graded, is reported on its criterion and does not void the try", async () => {
+    await seeded();
+    const { cases } = build({ suite: INDICATOR_SUITE });
+    const start = await startTry(cases);
+    await completeTry(start.runId);
+    const passing = { kind: "vote", passed: true, reason: "covers every change" } as const;
+    const failed = { kind: "failed", reason: JUDGE_RUN_FAILED_REASON } as const;
+    const result = await cases[RECORD_SCORE_ACTIVITY_NAME](
+      CELL,
+      start,
+      {
+        outcomes: [{ votes: "compare" }, { votes: "style" }],
+        error: "",
+        costUsd: 0.3,
+        durationSeconds: 12,
+      },
+      [
+        [passing, passing, passing],
+        [failed, failed, failed],
+      ],
+    );
+    expect(result).toMatchObject({ state: "graded", score: 1, notGradedReason: "" });
+    const [score] = (
+      await listRunScores(temp.store, capturingLogger().logger, start.runId)
+    ).filter((written) => written.spec?.source === ScoreSource.eval);
+    expect(score?.spec?.value).toEqual({ case: "passed", value: true });
+    expect(score?.spec?.criteria.map((c) => [c.result, c.reason])).toEqual([
+      [CriterionResult.passed, "3 of 3 votes passed: covers every change"],
+      [CriterionResult.not_applicable, `indicator only; not graded: ${JUDGE_RUN_FAILED_REASON}`],
+    ]);
+  });
+
+  it("left not graded in the without-plugin arm, leaves that try graded on its scored check", async () => {
+    await seeded();
+    const { cases } = build({ suite: INDICATOR_SUITE });
+    const without = await cases[START_TRY_ACTIVITY_NAME](WITHOUT);
+    if (without.kind !== "started") throw new Error("the without-plugin try did not start");
+    await completeTry(without.runId);
+    const failing = { kind: "vote", passed: false, reason: "misses the rename" } as const;
+    const result = await cases[RECORD_SCORE_ACTIVITY_NAME](
+      WITHOUT,
+      without,
+      {
+        outcomes: [
+          { votes: "compare" },
+          { notGraded: INDICATOR_NOT_JUDGED_WITHOUT_PLUGIN_REASON },
+        ],
+        error: "",
+        costUsd: 0.1,
+        durationSeconds: 12,
+      },
+      [[failing, failing, failing], []],
+    );
+    expect(result).toMatchObject({ state: "graded", score: 0 });
   });
 });
 

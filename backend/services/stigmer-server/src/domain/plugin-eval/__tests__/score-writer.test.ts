@@ -4,7 +4,8 @@
  * archive digest and the judge instruction's version; passed when every
  * scored grader passed; one criterion per grader, named within the
  * 63-character limit and unique, reasons within 500; an indicator
- * `not_applicable` with "indicator only" and what it found; a not-graded
+ * `not_applicable` with "indicator only" and what it found, or why it
+ * was not graded, the try still passing on its scored graders; a not-graded
  * score with its reason and no value.
  */
 import { create } from "@bufbuild/protobuf";
@@ -84,6 +85,26 @@ describe("the eval score", () => {
     expect(score.spec?.criteria[1]?.reason).toBe(
       `${INDICATOR_ONLY_REASON}; failed: 0 call(s) to 'Skill'`,
     );
+  });
+
+  it("reports an indicator left not graded on its criterion, and still passes on the scored graders", () => {
+    const graders = [
+      grader("mentions-rename", regex),
+      grader("skill-fired", skill),
+    ];
+    const score = gradedEvalScore(run, DIGEST, {
+      graders,
+      scoring: scoringOf(graders, true),
+      verdicts: [
+        { passed: true, reason: "the pattern was found" },
+        { notGraded: "the judge could not start" },
+      ],
+    });
+    expect(score.spec?.value).toEqual({ case: "passed", value: true });
+    expect(score.spec?.criteria[1]).toMatchObject({
+      result: CriterionResult.not_applicable,
+      reason: `${INDICATOR_ONLY_REASON}; not graded: the judge could not start`,
+    });
   });
 
   it("fails when a scored grader failed, and bounds every reason", () => {
