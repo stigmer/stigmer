@@ -146,10 +146,12 @@ export function partialLine(pluginEval: PluginEval, interrupted: boolean): strin
       return `Cancelled: ${ran}.`;
     case PluginEvalPartialReason.unspecified:
       return interrupted ? `Cancelled: ${ran}.` : "";
+    /* v8 ignore start -- @preserve: the never arm; the compiler proves every reason this build knows is handled */
     default: {
       const exhaustive: never = reason;
       return exhaustive;
     }
+    /* v8 ignore stop */
   }
 }
 
@@ -189,10 +191,12 @@ export function isSettled(pluginEval: PluginEval): boolean {
     case PluginEvalPhase.pending:
     case PluginEvalPhase.running:
       return false;
+    /* v8 ignore start -- @preserve: the never arm; the compiler proves every phase this build knows is handled */
     default: {
       const exhaustive: never = phase;
       return exhaustive;
     }
+    /* v8 ignore stop */
   }
 }
 

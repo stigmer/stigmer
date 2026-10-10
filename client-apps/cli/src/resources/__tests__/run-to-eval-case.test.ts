@@ -2,9 +2,11 @@
 // <dir>/<name>, named after the request unless --name says otherwise; the
 // rubric's FAIL line comes from the judge's failing reason, else a plugin
 // eval's failing check, else a person's thumbs-down comment; --skill adds the
-// skill check; a run that continued a conversation is noted; an existing
-// case directory, a bad --name and a bad --skill are refused before anything
-// is written.
+// skill check; a run that continued a conversation is noted (an earlier run
+// of its session, or any other run when the run has no creation time), and
+// a run outside a session never reads one; a run with no request, an
+// existing case directory, a bad --name and a bad --skill are refused before
+// anything is written.
 
 import { create } from "@bufbuild/protobuf";
 import { timestampFromMs } from "@bufbuild/protobuf/wkt";
@@ -103,6 +105,45 @@ describe("writeEvalCaseFromRun", () => {
     const run = runAt("run_2", 20);
     await writeEvalCaseFromRun(fakeClient(run, [], [runAt("run_1", 10), run]), "run_2", { name: "a" }, folder.io);
     expect(folder.err()).toContain("Note: built from the last request; resumed conversations are not run yet.");
+  });
+
+  it("reads the session's runs only for a run that joined one, and without a creation time counts any other run", async () => {
+    const newSessionRun = create(RunSchema, {
+      metadata: { id: "run_1" },
+      spec: { message: "Find the bug.", target: { case: "sessionSpec", value: {} } },
+    });
+    let sessionReads = 0;
+    const newSessionClient = {
+      run: {
+        get: async () => newSessionRun,
+        listBySession: async () => ((sessionReads += 1), { entries: [] }),
+      },
+      score: { listByRun: async () => ({ items: [] }) },
+    } as unknown as Stigmer;
+    const alone = fakeFolder();
+    await writeEvalCaseFromRun(newSessionClient, "run_1", { name: "a" }, alone.io);
+    expect(sessionReads).toBe(0);
+    expect(alone.err()).not.toContain("Note:");
+
+    const undated = create(RunSchema, {
+      metadata: { id: "run_2" },
+      spec: { message: "Find the bug.", target: { case: "sessionId", value: "ses_1" } },
+    });
+    const continued = fakeFolder();
+    await writeEvalCaseFromRun(fakeClient(undated, [], [runAt("run_1", 10), undated]), "run_2", { name: "a" }, continued.io);
+    expect(continued.err()).toContain("Note: built from the last request");
+    const first = fakeFolder();
+    await writeEvalCaseFromRun(fakeClient(undated, [], [undated]), "run_2", { name: "a" }, first.io);
+    expect(first.err()).not.toContain("Note:");
+  });
+
+  it("refuses a run with no request, writing nothing", async () => {
+    const folder = fakeFolder();
+    const blank = runAt("run_1", 10, "  \n");
+    const error = await writeEvalCaseFromRun(fakeClient(blank, []), "run_1", {}, folder.io).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(UsageError);
+    expect((error as UsageError).message).toBe("run run_1 has no request to make a case from");
+    expect(folder.files.size).toBe(0);
   });
 
   it("refuses an existing case directory, a bad name and a bad skill, writing nothing", async () => {

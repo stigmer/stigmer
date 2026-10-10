@@ -1,12 +1,15 @@
 // Pins what `plugin eval` prints and its exit code: a progress line per
 // finished try (case, target, arm, try, score or not-graded reason, and the
 // run's error); the format's table, one block per target, with Stigmer's
-// PASS^k column, and SCORE PASS% when the eval made no comparison; the
-// summary line with "Δ provisional"; the not-run cases with the feature
-// named; why a partial eval stopped; and the exit codes 0, 1, 2 and 130.
+// PASS^k column (no block for a target nothing ran on), and SCORE PASS%
+// when the eval made no comparison; the summary line with "Δ provisional";
+// the not-run cases with the feature named; why a partial eval stopped; and
+// the exit codes 0, 1, 2 and 130.
 
-import { PluginEvalAblation } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
+import { create } from "@bufbuild/protobuf";
+import { PluginEvalAblation, PluginEvalTargetSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
 import { PluginEvalPartialReason, PluginEvalPhase } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
+import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { describe, expect, it } from "vitest";
 import {
   EvalExit,
@@ -53,6 +56,14 @@ describe("renderEvalTables", () => {
     expect(lines[3]).toMatch(/^first-case\s+1\.00\s+100%\s+yes\s+2\s+\$0\.20/);
   });
 
+  it("prints no block for a target no case ran on", () => {
+    const pluginEval = finishedEval();
+    pluginEval.spec!.targets.push(create(PluginEvalTargetSchema, { harness: Harness.CURSOR, modelName: "gpt-5" }));
+    const out = renderEvalTables(pluginEval);
+    expect(out.split("\n")[0]).toBe("native/claude-sonnet-4-6");
+    expect(out).not.toContain("cursor/gpt-5");
+  });
+
   it("keeps a run's error on one line in NOTES", () => {
     const pluginEval = finishedEval();
     pluginEval.status!.cases[0]!.targets[0]!.withPlugin!.tries[0]!.error = "model said\n\u001b[31mno";
@@ -92,6 +103,8 @@ describe("partialLine", () => {
     expect(partialLine(pluginEval, false)).toBe("Stopped at the spending limit: 3 of 4 tries ran.");
     pluginEval.status!.partialReason = PluginEvalPartialReason.out_of_credit;
     expect(partialLine(pluginEval, false)).toContain("out of credit");
+    pluginEval.status!.partialReason = PluginEvalPartialReason.cancelled;
+    expect(partialLine(pluginEval, false)).toBe("Cancelled: 3 of 4 tries ran.");
     expect(partialLine(finishedEval(PluginEvalPhase.running), true)).toBe("Cancelled: 3 of 4 tries ran.");
   });
 });
