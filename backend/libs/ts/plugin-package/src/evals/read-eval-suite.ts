@@ -67,6 +67,9 @@ export { DEFAULT_EVAL_DIR } from "./eval-dir.js";
 /** Graders a case may carry and still run: one Score criterion per grader, and a Score holds 32. */
 export const EVAL_MAX_GRADERS = 32;
 
+/** The longest `append_system_prompt` a case may carry, in characters: the most a run takes (`RunSpec.append_system_prompt`). */
+export const EVAL_MAX_APPEND_SYSTEM_PROMPT = 32_768;
+
 /**
  * The features Stigmer reads but does not run yet, in the order a case is
  * checked for them; `EvalCase.unsupported` is one of these phrases.
@@ -290,7 +293,7 @@ function readExecutionFields(object: JsonObject, scope: FieldScope): CaseFields 
   const maxTurns = readInteger(object, "max_turns", 1, 200, scope);
   const timeoutSeconds = readInteger(object, "timeout_seconds", 1, 3600, scope);
   const allowedTools = readStringList(object, "allowed_tools", scope);
-  const appendSystemPrompt = readString(object, "append_system_prompt", scope);
+  const appendSystemPrompt = readAppendSystemPrompt(object, scope);
   const env = readEnv(object, "env", scope);
   return {
     ...(model !== undefined && { model }),
@@ -300,6 +303,23 @@ function readExecutionFields(object: JsonObject, scope: FieldScope): CaseFields 
     ...(appendSystemPrompt !== undefined && { appendSystemPrompt }),
     ...(env !== undefined && { env }),
   };
+}
+
+/**
+ * A case's `append_system_prompt`, refused when longer than a run takes: a
+ * case loaded with it would fail every try at the run's create. Counted in
+ * characters (code points), as the run's limit is.
+ */
+function readAppendSystemPrompt(object: JsonObject, scope: FieldScope): string | undefined {
+  const value = readString(object, "append_system_prompt", scope);
+  if (value === undefined || value.length <= EVAL_MAX_APPEND_SYSTEM_PROMPT) return value;
+  let characters = 0;
+  for (const _ of value) {
+    if (++characters > EVAL_MAX_APPEND_SYSTEM_PROMPT) {
+      return wrong(scope, "append_system_prompt", `at most ${EVAL_MAX_APPEND_SYSTEM_PROMPT} characters`);
+    }
+  }
+  return value;
 }
 
 interface PromptFile {

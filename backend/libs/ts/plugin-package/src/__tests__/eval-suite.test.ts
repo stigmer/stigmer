@@ -332,6 +332,14 @@ describe("precedence", () => {
     "",
   ].join("\n");
 
+  it("keeps an append_system_prompt of exactly the length a run takes, counted in characters", () => {
+    // Each emoji is one character and two UTF-16 code units.
+    const longest = "\u{1F600}".repeat(32_768);
+    const suite = oneCase({ "evals/c/prompt.md": `---\nappend_system_prompt: ${longest}\n---\nHi.` });
+    expect(suite.findings).toEqual([]);
+    expect(suite.cases[0]?.appendSystemPrompt).toBe(longest);
+  });
+
   it("takes prompt.md frontmatter over the matching case.yaml field, whole fields, and the body as the prompt", () => {
     const suite = oneCase({
       "evals/c/case.yaml": caseYaml,
@@ -553,6 +561,15 @@ describe("refusals", () => {
         kind: "eval-case-invalid",
         path: "evals/c/prompt.md",
         message: "evals/c/prompt.md: timeout_seconds must be a whole number from 1 to 3600",
+      },
+    ],
+    [
+      "an append_system_prompt longer than a run takes",
+      { "evals/c/prompt.md": `---\nappend_system_prompt: ${"x".repeat(32_769)}\n---\nHi.` },
+      {
+        kind: "eval-case-invalid",
+        path: "evals/c/prompt.md",
+        message: "evals/c/prompt.md: append_system_prompt must be at most 32768 characters",
       },
     ],
     [
