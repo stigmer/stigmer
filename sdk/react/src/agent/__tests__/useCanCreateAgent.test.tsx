@@ -9,7 +9,8 @@
  *   - a refused viewer gets AgentCreationWizard's denied state, naming the
  *     setting an admin turns on, instead of a form whose create would fail;
  *   - while the answer is pending the wizard shows neither the form nor the
- *     refusal.
+ *     refusal;
+ *   - someone the server lets create an agent gets the wizard itself.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, render, renderHook, screen, waitFor } from "@testing-library/react";
@@ -18,6 +19,12 @@ import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { useCanCreateAgent } from "../useCanCreateAgent";
 import { AgentCreationWizard } from "../AgentCreationWizard";
+
+// The wizard's first step stands in for the form: these tests pin the gate
+// in front of it, not the steps (pinned beside them).
+vi.mock("../steps/IdentityStep.js", () => ({
+  IdentityStep: () => <p>identity step</p>,
+}));
 
 type PermissionInput = {
   resource?: { kind: string; id: string };
@@ -101,5 +108,17 @@ describe("AgentCreationWizard — someone who may not create agents", () => {
 
     expect(container.innerHTML).toBe("");
     expect(client.iamPolicy.checkMyPermission).toHaveBeenCalledTimes(1);
+  });
+
+  it("opens the wizard for someone the server lets create an agent", async () => {
+    const Wrapper = wrapper(createMockStigmer(true));
+    render(
+      <Wrapper>
+        <AgentCreationWizard org="org_acme" onComplete={() => {}} onCancel={() => {}} />
+      </Wrapper>,
+    );
+
+    expect(await screen.findByText("identity step")).toBeTruthy();
+    expect(screen.queryByText("Only admins can create agents here")).toBeNull();
   });
 });
