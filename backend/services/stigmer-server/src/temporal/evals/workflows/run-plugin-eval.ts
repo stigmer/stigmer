@@ -19,14 +19,21 @@
  *     their votes is compared with the eval's limit; once it is reached no
  *     cell starts, the tries already running finish (so the spend can pass
  *     the limit by those, as in the format), and the eval ends partial,
- *     "cost ceiling". Each try's run is capped at what is left of the limit
- *     when it starts (never below TRY_MIN_BUDGET_USD, since a cap of 0 is
- *     no cap), so one try cannot spend what the eval no longer has.
+ *     "cost ceiling". Each try's run is capped, when it starts, at the
+ *     limit less what the recorded tries spent and less the caps of the
+ *     tries still running, never below TRY_MIN_BUDGET_USD (a cap of 0 is
+ *     no cap). So the tries running at once cannot together spend more
+ *     than the eval has left, but for that floor each; a try started while
+ *     the others' caps hold the whole remainder runs at the floor.
  *   - Credit: a try the organization's credit refused stops new cells the
  *     same way, and the eval ends partial, "out of credit".
  *   - Cancel: cancelling this workflow (the eval's cancel) cancels the
- *     children in flight, each of which stops its run, and the eval ends
- *     partial, "cancelled".
+ *     children in flight, each of which stops its run and answers its try
+ *     not graded, "cancelled", with what the run spent. Each is recorded
+ *     in a non-cancellable scope (a child that ends without its answer is
+ *     recorded the same way, its spend read by the spend activity), so the
+ *     eval's cost counts it and no try in flight stays pending; no cell
+ *     starts after the cancel, and the eval ends partial, "cancelled".
  *   - A child that fails outright is recorded as a try not graded, never
  *     the eval's failure, with what its run spent read by the spend
  *     activity (the try's run by the eval's label and its name), so the
@@ -42,6 +49,7 @@
 import {
   ActivityFailure,
   CancellationScope,
+  CancelledFailure,
   ParentClosePolicy,
   executeChild,
   isCancellation,
@@ -54,6 +62,7 @@ import {
   LOAD_SUITE_ACTIVITY_NAME,
   RECORD_TRY_ACTIVITY_NAME,
   RUN_CASE_WORKFLOW_TYPE,
+  TRY_CANCELLED_REASON,
   TRY_FAILED_REASON,
   TRY_MIN_BUDGET_USD,
   TRY_NOT_RECORDED_ERROR,
@@ -179,11 +188,15 @@ async function runCells(
   let rejected: unknown;
   let next = 0;
   const inFlight = new Map<number, Promise<void>>();
+  /** The cap each try in flight was handed, by cell index. */
+  const caps = new Map<number, number>();
+  const scope = CancellationScope.current();
 
   for (;;) {
     while (
       rejected === undefined &&
       stop === undefined &&
+      !scope.consideredCancelled &&
       next < cells.length &&
       inFlight.size < concurrency
     ) {
@@ -193,10 +206,16 @@ async function runCells(
       }
       const index = next++;
       const cell = cells[index]!;
-      const budgetUsd = Math.max(TRY_MIN_BUDGET_USD, maxCostUsd - spent);
+      let held = 0;
+      for (const cap of caps.values()) {
+        held += cap;
+      }
+      const budgetUsd = Math.max(TRY_MIN_BUDGET_USD, maxCostUsd - spent - held);
+      caps.set(index, budgetUsd);
       const settled = runCell(evalId, org, cell, budgetUsd).then(
         (result) => {
           inFlight.delete(index);
+          caps.delete(index);
           spent += result.costUsd;
           if (result.outOfCredit && stop === undefined) {
             stop = "out_of_credit";
@@ -204,6 +223,7 @@ async function runCells(
         },
         (error: unknown) => {
           inFlight.delete(index);
+          caps.delete(index);
           rejected ??= error;
         },
       );
@@ -217,12 +237,17 @@ async function runCells(
   if (rejected !== undefined) {
     throw rejected;
   }
+  if (scope.consideredCancelled) {
+    // Every child answered its cancel with a result, now recorded.
+    throw new CancelledFailure("the eval was cancelled");
+  }
   return stop;
 }
 
 /**
  * One cell: its child, then the fold of its result. Rejects only on
- * cancellation, or with StepFailed when the record fails past its retries.
+ * cancellation, after recording the try cancelled, or with StepFailed
+ * when the record fails past its retries.
  */
 async function runCell(
   evalId: string,
@@ -232,6 +257,7 @@ async function runCell(
 ): Promise<TryResult> {
   const caseInput: CaseInput = { ...cell, evalId, org, budgetUsd };
   let result: TryResult;
+  let cancellation: unknown;
   try {
     result = await executeChild(RUN_CASE_WORKFLOW_TYPE, {
       workflowId: runCaseWorkflowId(
@@ -246,25 +272,41 @@ async function runCell(
     });
   } catch (error) {
     if (isCancellation(error)) {
-      throw error;
+      // The child ended without its answer: the try is recorded cancelled.
+      cancellation = error;
+      result = await CancellationScope.nonCancellable(() =>
+        failedTry(evalId, cell, TRY_CANCELLED_REASON),
+      );
+    } else {
+      result = await failedTry(evalId, cell, TRY_FAILED_REASON);
     }
-    result = await failedTry(evalId, cell);
   }
   const { graderResults: _unread, ...recorded } = result;
   const record: RecordedTry = recorded;
+  let recordFailure: StepFailed | undefined;
   try {
     // A finished try is recorded even when the eval is being cancelled.
     await CancellationScope.nonCancellable(() =>
       steps[RECORD_TRY_ACTIVITY_NAME](evalId, cell, record),
     );
   } catch (error) {
-    throw stepFailed(TRY_NOT_RECORDED_ERROR, error);
+    recordFailure = stepFailed(TRY_NOT_RECORDED_ERROR, error);
+  }
+  if (cancellation !== undefined) {
+    throw cancellation;
+  }
+  if (recordFailure !== undefined) {
+    throw recordFailure;
   }
   return result;
 }
 
-/** A try whose child failed outright: not graded, with what its run spent, if one is found. */
-async function failedTry(evalId: string, cell: SuiteCell): Promise<TryResult> {
+/** A try whose child ended without its answer: not graded for `reason`, with what its run spent, if one is found. */
+async function failedTry(
+  evalId: string,
+  cell: SuiteCell,
+  reason: string,
+): Promise<TryResult> {
   let spend = { sessionId: "", runId: "", costUsd: 0 };
   try {
     spend = await steps[TRY_SPEND_ACTIVITY_NAME](evalId, {
@@ -283,7 +325,7 @@ async function failedTry(evalId: string, cell: SuiteCell): Promise<TryResult> {
     runId: spend.runId,
     state: "not-graded",
     score: 0,
-    notGradedReason: TRY_FAILED_REASON,
+    notGradedReason: reason,
     error: "",
     costUsd: spend.costUsd,
     durationSeconds: 0,

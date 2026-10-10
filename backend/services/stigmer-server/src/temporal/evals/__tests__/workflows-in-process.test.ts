@@ -10,10 +10,13 @@
  *
  * The suite: every cell run and recorded (without its grader results), at
  * most `concurrency` children in flight; the cost ceiling checked before
- * each cell, each child capped at what is left of the limit (never below
- * the floor); a credit refusal stopping new cells; a child that fails
- * recorded as not graded with what its run spent, which the ceiling
- * counts; a cancellation ending the eval partial "cancelled" and rethrown;
+ * each cell, each child capped at what is left of the limit less the caps
+ * of the children still running (never below the floor); a credit refusal
+ * stopping new cells; a child that fails recorded as not graded with what
+ * its run spent, which the ceiling counts; a cancellation recording every
+ * child in flight (its own cancelled answer, or one read through the spend
+ * activity), starting no cell after, ending the eval partial "cancelled"
+ * and rethrown;
  * a load or a record failing past its retries ending the eval failed with
  * the reason; an eval planning nothing ending at once.
  *
@@ -21,11 +24,13 @@
  * the deadline stopping the run and grading what it produced; each start
  * refusal answered (credit, cannot act, the run's own, busy past the
  * retries, busy found deeper in the failure's causes, any other failure
- * as grading failed); a cancellation stopping the run; a cancellation at
- * the start, the grade, a vote's start, the record, the stop or the spend
- * read rethrown, never answered as a try not graded; a grade, a stop or a
- * start that fails leaving the try not graded with what its run spent; a
- * vote that cannot start counted as failed.
+ * as grading failed); a cancellation anywhere (the start, the wait, the
+ * grade, a vote, the record, the deadline's stop, the spend read)
+ * stopping the try's run and any vote's run, the run found by the spend
+ * activity when the start's answer is unknown, and answered as a try not
+ * graded, "cancelled", with its ids and what it spent; a grade, a stop or
+ * a start that fails leaving the try not graded with what its run spent;
+ * a vote that cannot start counted as failed.
  */
 import {
   ActivityFailure,
@@ -56,6 +61,7 @@ import {
   TRY_MIN_BUDGET_USD,
   TRY_NOT_RECORDED_ERROR,
   TRY_NOT_STOPPED_REASON,
+  TRY_CANCELLED_REASON,
   TRY_SPEND_ACTIVITY_NAME,
 } from "../names.js";
 import type {
@@ -69,6 +75,8 @@ import type {
 
 const seam = vi.hoisted(() => ({
   activities: {} as Record<string, ReturnType<typeof vi.fn>>,
+  /** Whether the workflow's scope has been cancelled. */
+  cancelled: false,
   child: (() => Promise.reject(new Error("no child expected"))) as (
     type: string,
     options: { workflowId: string; args: unknown[] },
@@ -85,7 +93,14 @@ vi.mock("@temporalio/workflow", async (importOriginal) => {
       type: string,
       options: { workflowId: string; args: unknown[] },
     ) => seam.child(type, options),
-    CancellationScope: { nonCancellable: <T>(fn: () => Promise<T>) => fn() },
+    CancellationScope: {
+      nonCancellable: <T>(fn: () => Promise<T>) => fn(),
+      current: () => ({
+        get consideredCancelled() {
+          return seam.cancelled;
+        },
+      }),
+    },
     sleep: (ms: number) => {
       vi.setSystemTime(Date.now() + ms);
       return Promise.resolve();
@@ -99,6 +114,7 @@ const { runCase } = await import("../workflows/run-case.js");
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["Date"] });
   seam.activities = {};
+  seam.cancelled = false;
 });
 
 afterEach(() => {
@@ -249,26 +265,64 @@ describe("the suite workflow", () => {
     expect(finished).toEqual([{ phase: "completed" }]);
   });
 
-  it("ends partial, cancelled, when cancelled, and rethrows", async () => {
-    const { recorded, finished } = suite({
-      kind: "run",
-      org: "acme",
-      cells: cells(3),
-      maxCostUsd: 10,
-      concurrency: 2,
-    });
-    let calls = 0;
-    seam.child = async () => {
-      calls++;
-      if (calls === 2) {
-        throw new CancelledFailure("cancelled");
+  it("records every child in flight when cancelled, starts no cell after, ends partial, cancelled, and rethrows", async () => {
+    const { recorded, finished } = suite(
+      { kind: "run", org: "acme", cells: cells(4), maxCostUsd: 10, concurrency: 2 },
+      { sessionId: "ses_9", runId: "run_9", costUsd: 0.2 },
+    );
+    const started: string[] = [];
+    seam.child = async (_type, options) => {
+      const position = started.push(options.workflowId);
+      await Promise.resolve();
+      seam.cancelled = true;
+      if (position === 1) {
+        // A child that answers its cancellation with its own result.
+        return result({
+          state: "not-graded",
+          notGradedReason: TRY_CANCELLED_REASON,
+          costUsd: 0.3,
+        });
       }
-      return result();
+      throw new CancelledFailure("cancelled");
     };
     await expect(runPluginEval({ evalId: "pev_1" })).rejects.toBeInstanceOf(
       CancelledFailure,
     );
-    expect(recorded).toHaveLength(1);
+    expect(started).toHaveLength(2);
+    // The two settle in either order; each is recorded once.
+    expect(recorded).toHaveLength(2);
+    expect(recorded.map((entry) => entry.result)).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        runId: "run_1",
+        notGradedReason: TRY_CANCELLED_REASON,
+        costUsd: 0.3,
+      }),
+      expect.objectContaining({
+        sessionId: "ses_9",
+        runId: "run_9",
+        state: "not-graded",
+        notGradedReason: TRY_CANCELLED_REASON,
+        costUsd: 0.2,
+      }),
+    ]));
+    expect(finished).toEqual([{ phase: "partial", reason: "cancelled" }]);
+  });
+
+  it("prefers the cancellation over a record that fails while cancelling", async () => {
+    const { finished } = suite({
+      kind: "run",
+      org: "acme",
+      cells: cells(1),
+      maxCostUsd: 10,
+      concurrency: 1,
+    });
+    seam.activities[RECORD_TRY_ACTIVITY_NAME] = vi.fn(() =>
+      Promise.reject(stepFailure(RECORD_TRY_ACTIVITY_NAME, "the store is down")),
+    );
+    seam.child = () => Promise.reject(new CancelledFailure("cancelled"));
+    await expect(runPluginEval({ evalId: "pev_1" })).rejects.toBeInstanceOf(
+      CancelledFailure,
+    );
     expect(finished).toEqual([{ phase: "partial", reason: "cancelled" }]);
   });
 
@@ -309,6 +363,44 @@ describe("the suite workflow", () => {
     expect(budgets[0]).toBeCloseTo(0.205);
     expect(budgets[1]).toBeCloseTo(0.105);
     expect(budgets[2]).toBe(TRY_MIN_BUDGET_USD);
+  });
+
+  it("caps each try at the limit less the recorded spend and the caps still running", async () => {
+    suite({
+      kind: "run",
+      org: "acme",
+      cells: cells(4),
+      maxCostUsd: 1,
+      concurrency: 2,
+    });
+    const budgets: number[] = [];
+    const finishes: Array<() => void> = [];
+    seam.child = async (_type, options) => {
+      budgets.push((options.args[0] as CaseInput).budgetUsd);
+      await new Promise<void>((resolve) => finishes.push(resolve));
+      return result({ costUsd: 0.3 });
+    };
+    const running = runPluginEval({ evalId: "pev_1" });
+    const settle = async () => {
+      for (let i = 0; i < 20; i++) await Promise.resolve();
+    };
+    await settle();
+    // The first try holds the whole limit, so the second starts at the floor.
+    expect(budgets).toEqual([1, TRY_MIN_BUDGET_USD]);
+    finishes.shift()!();
+    await settle();
+    // 1 - 0.3 spent - the floor the second still holds.
+    expect(budgets[2]).toBeCloseTo(0.69);
+    finishes.shift()!();
+    await settle();
+    // 1 - 0.6 spent - the 0.69 the third still holds: the floor.
+    expect(budgets[3]).toBe(TRY_MIN_BUDGET_USD);
+    while (finishes.length > 0) {
+      finishes.shift()!();
+      await settle();
+    }
+    await running;
+    expect(budgets).toHaveLength(4);
   });
 
   it("counts what a failed child's run spent, read by its label and name, against the limit", async () => {
@@ -634,22 +726,26 @@ describe("the case workflow", () => {
     expect((await runCase(INPUT)).notGradedReason).toBe(GRADING_FAILED_REASON);
   });
 
-  it("rethrows a cancellation at the start, the grade, a vote's start and the record", async () => {
+  it("answers a cancellation at the start, the grade, a vote's start or the record as a try not graded, cancelled, its run stopped", async () => {
     const cancelled = () => Promise.reject(new CancelledFailure("cancelled"));
-    for (const step of [
-      START_TRY_ACTIVITY_NAME,
-      GRADE_TRY_ACTIVITY_NAME,
-      START_VOTE_ACTIVITY_NAME,
-      RECORD_SCORE_ACTIVITY_NAME,
-    ]) {
+    for (const [step, votesRead] of [
+      [START_TRY_ACTIVITY_NAME, 0],
+      [GRADE_TRY_ACTIVITY_NAME, 0],
+      [START_VOTE_ACTIVITY_NAME, 0],
+      [RECORD_SCORE_ACTIVITY_NAME, 3],
+    ] as const) {
       const activities = caseScript({ [step]: vi.fn(cancelled) });
-      await expect(runCase(INPUT), step).rejects.toBeInstanceOf(
-        CancelledFailure,
-      );
+      expect(await runCase(INPUT), step).toMatchObject({
+        state: "not-graded",
+        notGradedReason: TRY_CANCELLED_REASON,
+        sessionId: "ses_1",
+        runId: "run_1",
+        costUsd: expect.closeTo(0.4 + votesRead * 0.01),
+      });
       expect(
         activities[STOP_RUN_ACTIVITY_NAME],
-        `${step}: no run is left going to stop`,
-      ).not.toHaveBeenCalled();
+        `${step}: the try's run is stopped`,
+      ).toHaveBeenCalledWith("run_1", "the eval was cancelled");
       if (step !== RECORD_SCORE_ACTIVITY_NAME) {
         expect(
           activities[RECORD_SCORE_ACTIVITY_NAME],
@@ -659,17 +755,86 @@ describe("the case workflow", () => {
     }
   });
 
-  it("stops the run when cancelled while waiting, and rethrows", async () => {
-    const activities = caseScript({
-      [POLL_RUN_ACTIVITY_NAME]: vi.fn(() =>
+  it("finds the run by the spend activity when a start's answer is lost to the cancellation, and stops nothing when there is none", async () => {
+    const found = caseScript({
+      [START_TRY_ACTIVITY_NAME]: vi.fn(() =>
         Promise.reject(new CancelledFailure("cancelled")),
       ),
+      [TRY_SPEND_ACTIVITY_NAME]: vi
+        .fn()
+        .mockImplementationOnce(() =>
+          Promise.resolve({ sessionId: "ses_7", runId: "run_7", costUsd: 0 }),
+        )
+        .mockImplementation(() =>
+          Promise.resolve({ sessionId: "ses_7", runId: "run_7", costUsd: 0.25 }),
+        ),
     });
-    await expect(runCase(INPUT)).rejects.toBeInstanceOf(CancelledFailure);
+    expect(await runCase(INPUT)).toMatchObject({
+      notGradedReason: TRY_CANCELLED_REASON,
+      sessionId: "ses_7",
+      runId: "run_7",
+      costUsd: 0.25,
+    });
+    expect(found[STOP_RUN_ACTIVITY_NAME]).toHaveBeenCalledWith(
+      "run_7",
+      "the eval was cancelled",
+    );
+
+    const none = caseScript({
+      [START_TRY_ACTIVITY_NAME]: vi.fn(() =>
+        Promise.reject(new CancelledFailure("cancelled")),
+      ),
+      [TRY_SPEND_ACTIVITY_NAME]: vi.fn(() => Promise.resolve(NO_SPEND)),
+    });
+    expect(await runCase(INPUT)).toMatchObject({
+      notGradedReason: TRY_CANCELLED_REASON,
+      sessionId: "",
+      runId: "",
+      costUsd: 0,
+    });
+    expect(none[STOP_RUN_ACTIVITY_NAME]).not.toHaveBeenCalled();
+  });
+
+  it("stops the run when cancelled while waiting, and answers it cancelled, still if the stop or the spend read fails", async () => {
+    const activities = caseScript({
+      [POLL_RUN_ACTIVITY_NAME]: vi
+        .fn()
+        .mockImplementationOnce(() =>
+          Promise.reject(new CancelledFailure("cancelled")),
+        )
+        .mockImplementation(() => Promise.resolve(true)),
+    });
+    expect(await runCase(INPUT)).toMatchObject({
+      notGradedReason: TRY_CANCELLED_REASON,
+      runId: "run_1",
+      costUsd: 0.4,
+    });
     expect(activities[STOP_RUN_ACTIVITY_NAME]).toHaveBeenCalledWith(
       "run_1",
       "the eval was cancelled",
     );
+    expect(activities[GRADE_TRY_ACTIVITY_NAME]).not.toHaveBeenCalled();
+
+    caseScript({
+      [POLL_RUN_ACTIVITY_NAME]: vi
+        .fn()
+        .mockImplementationOnce(() =>
+          Promise.reject(new CancelledFailure("cancelled")),
+        )
+        .mockImplementation(() => Promise.resolve(true)),
+      [STOP_RUN_ACTIVITY_NAME]: vi.fn(() =>
+        Promise.reject(new Error("the runner is gone")),
+      ),
+      [TRY_SPEND_ACTIVITY_NAME]: vi.fn(() =>
+        Promise.reject(new Error("the store is down")),
+      ),
+    });
+    expect(await runCase(INPUT)).toMatchObject({
+      notGradedReason: TRY_CANCELLED_REASON,
+      sessionId: "ses_1",
+      runId: "run_1",
+      costUsd: 0,
+    });
   });
 
   it("leaves the try not graded when grading or recording fails for good, counting what its run spent", async () => {
@@ -737,7 +902,7 @@ describe("the case workflow", () => {
     expect(activities[GRADE_TRY_ACTIVITY_NAME]).not.toHaveBeenCalled();
   });
 
-  it("rethrows a cancellation at the deadline's stop, stopping the run again", async () => {
+  it("answers a cancellation at the deadline's stop as cancelled, stopping the run again", async () => {
     const activities = caseScript({
       [POLL_RUN_ACTIVITY_NAME]: vi.fn(() => Promise.resolve(false)),
       [STOP_RUN_ACTIVITY_NAME]: vi
@@ -747,7 +912,7 @@ describe("the case workflow", () => {
         )
         .mockImplementation(() => Promise.resolve()),
     });
-    await expect(runCase(INPUT)).rejects.toBeInstanceOf(CancelledFailure);
+    expect((await runCase(INPUT)).notGradedReason).toBe(TRY_CANCELLED_REASON);
     expect(activities[STOP_RUN_ACTIVITY_NAME]).toHaveBeenLastCalledWith(
       "run_1",
       "the eval was cancelled",
@@ -777,7 +942,11 @@ describe("the case workflow", () => {
         Promise.reject(new CancelledFailure("cancelled")),
       ),
     });
-    await expect(runCase(INPUT)).rejects.toBeInstanceOf(CancelledFailure);
+    expect(await runCase(INPUT)).toMatchObject({
+      notGradedReason: TRY_CANCELLED_REASON,
+      runId: "",
+      costUsd: 0,
+    });
   });
 
   it("counts a vote that cannot start, or a refused one, as failed", async () => {
@@ -802,19 +971,24 @@ describe("the case workflow", () => {
     ]);
   });
 
-  it("stops a vote's run when cancelled while it runs", async () => {
+  it("stops a vote's run and the try's when cancelled while the vote runs, counting the votes already read", async () => {
     const activities = caseScript({
       [POLL_RUN_ACTIVITY_NAME]: vi
         .fn()
         .mockImplementationOnce(() => Promise.resolve(true))
+        .mockImplementationOnce(() => Promise.resolve(true))
         .mockImplementationOnce(() =>
           Promise.reject(new CancelledFailure("cancelled")),
-        ),
+        )
+        .mockImplementation(() => Promise.resolve(true)),
     });
-    await expect(runCase(INPUT)).rejects.toBeInstanceOf(CancelledFailure);
-    expect(activities[STOP_RUN_ACTIVITY_NAME]).toHaveBeenCalledWith(
-      "vote_0_0",
-      "the eval was cancelled",
-    );
+    expect(await runCase(INPUT)).toMatchObject({
+      notGradedReason: TRY_CANCELLED_REASON,
+      costUsd: expect.closeTo(0.41),
+    });
+    expect(activities[STOP_RUN_ACTIVITY_NAME]!.mock.calls).toEqual([
+      ["vote_0_1", "the eval was cancelled"],
+      ["run_1", "the eval was cancelled"],
+    ]);
   });
 });

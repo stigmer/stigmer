@@ -12,8 +12,10 @@
  *   - once the finished tries' cost reaches the limit no cell starts and
  *     the eval ends partial, "cost_ceiling";
  *   - a credit refusal ends the eval partial, "out_of_credit";
- *   - cancelling the eval stops the try in flight and ends the eval
- *     partial, "cancelled".
+ *   - cancelling the eval stops the try in flight, records it not graded,
+ *     "cancelled", and ends the eval partial, "cancelled";
+ *   - a cancel arriving while a try's start activity runs waits for the
+ *     start, then stops the run it created: no run is left going.
  *
  * Needs the `temporal` CLI on PATH (TestWorkflowEnvironment.createLocal);
  * every test skips VISIBLY when the local test server cannot start, never
@@ -52,8 +54,10 @@ interface Script {
   costUsd: number;
   /** The try number (1-based, in start order) the credit refuses. */
   refuseCreditAt: number;
-  /** Polls answer "running" for ever. */
+  /** Polls answer "running" for ever, until the run is stopped. */
   hang: boolean;
+  /** How long each try's start takes, in milliseconds. */
+  startDelayMs: number;
   /** Whether the case has an AI-graded check (each vote costs a poll's wait). */
   judged: boolean;
   starts: string[];
@@ -89,6 +93,7 @@ function resetScript(): void {
     costUsd: 0.1,
     refuseCreditAt: 0,
     hang: false,
+    startDelayMs: 0,
     judged: false,
     starts: [],
     inFlight: 0,
@@ -122,6 +127,11 @@ function scriptedActivities(): SuiteActivities &
     "stigmer/evals/start-try": async (input) => {
       const n = script.starts.length + 1;
       script.starts.push(`${input.arm}/${input.tryIndex}`);
+      if (script.startDelayMs > 0) {
+        await new Promise<void>((resolve) =>
+          setTimeout(resolve, script.startDelayMs),
+        );
+      }
       if (n === script.refuseCreditAt) {
         return {
           kind: "refused",
@@ -133,8 +143,8 @@ function scriptedActivities(): SuiteActivities &
       script.most = Math.max(script.most, script.inFlight);
       return { kind: "started", sessionId: `ses_${n}`, runId: `run_${n}` };
     },
-    "stigmer/evals/poll-run": async () => {
-      if (script.hang) {
+    "stigmer/evals/poll-run": async (runId) => {
+      if (script.hang && !script.stopped.includes(runId)) {
         return false;
       }
       await new Promise<void>((resolve) => setTimeout(resolve, 20));
@@ -320,6 +330,46 @@ describe("stigmer/evals/run-plugin-eval workflow (TestWorkflowEnvironment)", () 
     expect(script.finished).toEqual([
       { phase: "partial", reason: "cancelled" },
     ]);
-    expect(script.recorded).toEqual([]);
+    expect(script.recorded).toEqual([
+      {
+        cell: expect.objectContaining({ arm: "with", tryIndex: 0 }),
+        result: expect.objectContaining({
+          sessionId: "ses_1",
+          runId: "run_1",
+          state: "not-graded",
+          notGradedReason: "cancelled",
+        }),
+      },
+    ]);
+  }, 60_000);
+
+  it("leaves no run going when the cancel arrives while a try's start runs", async (testCtx) => {
+    if (!envReady) return testCtx.skip();
+    script.hang = true;
+    script.startDelayMs = 1_500;
+    const handle = await startEval();
+    for (let i = 0; i < 200 && script.starts.length === 0; i++) {
+      await new Promise<void>((resolve) => setTimeout(resolve, 20));
+    }
+    await handle.cancel();
+    const failure = await handle.result().then(
+      () => undefined,
+      (error: unknown) => error,
+    );
+    const { WorkflowFailedError } = await import("@temporalio/client");
+    expect(failure).toBeInstanceOf(WorkflowFailedError);
+    expect(script.starts).toEqual(["with/0"]);
+    expect(script.stopped, "the run the start created is stopped").toEqual([
+      "run_1",
+    ]);
+    expect(script.recorded.map(({ result }) => result)).toEqual([
+      expect.objectContaining({
+        runId: "run_1",
+        notGradedReason: "cancelled",
+      }),
+    ]);
+    expect(script.finished).toEqual([
+      { phase: "partial", reason: "cancelled" },
+    ]);
   }, 60_000);
 });
