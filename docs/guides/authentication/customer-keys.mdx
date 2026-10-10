@@ -50,6 +50,9 @@ it once, when the customer signs up, with `external_id` set to your own customer
 id, and find it again with that id. A run such a user sends checks that whoever
 attached the vault to the conversation may still use it.
 
+Users who chat need the PlatformClient's `sign_in_role` set to `member`: a
+viewer may read, but cannot start a conversation.
+
 How the vault reaches the conversation depends on the edition:
 
 - **On Stigmer Cloud**, an admin grants **Can use** on the vault to each of that
@@ -66,11 +69,11 @@ How the vault reaches the conversation depends on the edition:
 
 The customer's vault lives in their child organization, where only that
 customer's people are members, so **Organization** visibility is safe there: a
-PlatformClient user you mint into the child, and every other member, may use it.
-This works in every edition. Your Organization's admins manage a child but read
-nothing in it, its vaults included, so the vault is created by an admin of the
-child, or by one of your admins after they add themselves to the child, which
-the child's member list shows.
+PlatformClient user you mint into the child as a member, and every other member,
+may use it. This works in every edition. Your Organization's admins manage a
+child but read nothing in it, its vaults included, so the vault is created by an
+admin of the child, or by one of your admins after they add themselves to the
+child, which the child's member list shows.
 
 ## Put a key in, and rotate it
 
