@@ -20,7 +20,7 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { appendFileSync, lchownSync, mkdirSync, readFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 
 /** The agent user a separating runner starts its host as. */
@@ -100,9 +100,8 @@ export function missingCapabilities(status: string): readonly string[] {
 
 /**
  * Ready a separating runner to start its host as the agent: it holds the
- * capabilities that takes, the agent user exists, its home exists and is
- * the agent's (the directory itself, never followed or recursed), and
- * `setpriv` can drop to it. Returns `null` when
+ * capabilities that takes, the agent user exists, its home exists (the
+ * handover then makes it the agent's), and `setpriv` can drop to it. Returns `null` when
  * all hold, else the one line the runner exits 78 with: a container runner
  * never runs the agent's side as root.
  */
@@ -143,8 +142,9 @@ export function prepareAgentSeparation(
 }
 
 function makeAgentHome(identity: AgentIdentity): void {
+  // Made as root's: the handover (\`agent-handover.ts\`) moves the agent's
+  // state in while root can still write there, then hands it all over.
   mkdirSync(identity.home, { recursive: true, mode: 0o700 });
-  lchownSync(identity.home, identity.uid, identity.gid);
 }
 
 function probeSetpriv(args: readonly string[]): { readonly status: number | null; readonly error?: Error | undefined; readonly stderr: string } {

@@ -98,13 +98,10 @@ describe("the agent's state and the drop to it", () => {
     // as a Linux user, so the real check refuses either way.
     expect(prepareAgentSeparation(identity)).toMatch(/^the runner (cannot read its own capabilities|lacks the SETUID, SETGID, CHOWN, KILL capabilities) /);
     const home = join(mkdtempSync(join(tmpdir(), "agent-home-")), "agent");
-    expect(prepareAgentSeparation({ ...identity, home }, { processStatus: () => ALL_FOUR, ensureUser: () => {} }), "the home cannot be given away").toMatch(
-      /^the runner cannot prepare the agent user stigmer-agent: .*EPERM/,
-    );
-    expect(existsSync(home), "but it was made").toBe(true);
-    expect(prepareAgentSeparation(identity, { processStatus: () => ALL_FOUR, ensureUser: () => {}, makeHome: () => {} }), "no setpriv drop from here").toMatch(
+    expect(prepareAgentSeparation({ ...identity, home }, { processStatus: () => ALL_FOUR, ensureUser: () => {} }), "no setpriv drop from here").toMatch(
       /^the runner cannot start processes as the agent user/,
     );
+    expect(existsSync(home), "the home is made, still root's: the handover gives it away").toBe(true);
   });
 
   it("names the fix for each way it cannot drop", () => {

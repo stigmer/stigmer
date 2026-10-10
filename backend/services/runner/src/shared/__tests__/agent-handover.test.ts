@@ -11,8 +11,11 @@
  *    over, a link changed itself and its target never reached;
  *  - a workspace root inside the runner's state has the directories above
  *    it made traversable but not listable;
- *  - the marker makes it run once: a later boot only hands over the
- *    workspace root itself;
+ *  - root works inside the agent's home only while it is root's (it holds
+ *    CHOWN, not DAC_OVERRIDE): the home is taken back before anything is
+ *    written in it, and every directory is handed over after its contents;
+ *  - the marker makes it run once: a later boot only hands over the agent's
+ *    home and the workspace root themselves;
  *  - a move across filesystems copies, then removes; a workspace root
  *    outside the runner's state has no directories closed above it, and
  *    an agent's home without state yet is left as it is.
@@ -71,12 +74,26 @@ describe("handing the agent's files to the agent user", () => {
     expect(existsSync(join(t.runnerHome, ".stigmer", HANDOVER_MARKER))).toBe(true);
   });
 
-  it("runs once: a later boot hands over only the workspace root itself", () => {
+  it("runs once: a later boot hands over only the agent's home and the workspace root themselves", () => {
     const t = tree();
     handOverToAgent(t.who, { runnerHome: t.runnerHome, workspaceRoot: t.workspaceRoot }, { chown: () => {} });
     const chowned: string[] = [];
     expect(handOverToAgent(t.who, { runnerHome: t.runnerHome, workspaceRoot: t.workspaceRoot }, { chown: (path) => void chowned.push(path) })).toEqual({ moved: [], firstTime: false });
-    expect(chowned).toEqual([t.workspaceRoot]);
+    expect(chowned).toEqual([t.agentHome, t.workspaceRoot]);
+  });
+
+  it("takes the agent's home back before writing in it, and hands each directory over after its contents", () => {
+    const t = tree();
+    mkdirSync(t.agentHome, { recursive: true });
+    const calls: string[] = [];
+    handOverToAgent(t.who, { runnerHome: t.runnerHome, workspaceRoot: t.workspaceRoot }, { chown: (path, uid) => void calls.push(`${uid} ${path}`) });
+    const state = join(t.agentHome, ".stigmer");
+    expect(calls[0], "the home is root's before the state moves in").toBe(`0 ${t.agentHome}`);
+    expect(calls.indexOf(`10001 ${join(state, "sessions", "ses-1", "checkpoints.db")}`)).toBeLessThan(calls.indexOf(`10001 ${state}`));
+    expect(calls.indexOf(`10001 ${state}`)).toBeLessThan(calls.indexOf(`10001 ${t.agentHome}`));
+    for (const dir of [t.agentHome, state, t.workspaceRoot]) {
+      expect(calls.indexOf(`0 ${dir}`), `${dir} is listed as root's`).toBeLessThan(calls.indexOf(`10001 ${dir}`));
+    }
   });
 
   it("leaves a name the agent's home already holds where it is", () => {

@@ -17,7 +17,8 @@
  * A paused session then resumes with its workspace, checkpoints and
  * approvals; the `.stigmer` link is rebuilt each turn (`stigmer-link.ts`).
  * A marker under the runner's state makes the walk run once. Every later
- * boot only makes sure the workspace root exists and is the agent's.
+ * boot only makes sure the agent's home and the workspace root exist and
+ * are the agent's (the directories themselves).
  *
  * The runner does this as root, holding `CHOWN`, at boot, before the host
  * starts: no agent process runs yet, so nothing it planted can move under
@@ -50,13 +51,20 @@ export function handOverToAgent(
   const marker = join(runnerState, HANDOVER_MARKER);
 
   mkdirSync(paths.workspaceRoot, { recursive: true });
+  mkdirSync(identity.home, { recursive: true, mode: 0o700 });
   if (existsSync(marker)) {
+    io.chown(identity.home, identity.uid, identity.gid);
     io.chown(paths.workspaceRoot, identity.uid, identity.gid);
     return { moved: [], firstTime: false };
   }
 
+  // Root holds CHOWN but not DAC_OVERRIDE: it works inside a directory only
+  // while that directory is its own. So it takes the agent's home back
+  // first, moves the state in, and hands everything to the agent last.
+  const sharedHome = runnerState === agentState;
   const moved: string[] = [];
-  if (runnerState !== agentState) {
+  if (!sharedHome) {
+    io.chown(identity.home, 0, 0);
     mkdirSync(agentState, { recursive: true });
     for (const name of AGENT_STATE_DIRS) {
       const from = join(runnerState, name);
@@ -65,8 +73,11 @@ export function handOverToAgent(
       move(from, to);
       moved.push(name);
     }
+    chownTree(identity.home, identity, io);
+  } else {
+    // A home the runner shares: only the agent's own folders are handed over.
+    for (const name of AGENT_STATE_DIRS) chownTree(join(agentState, name), identity, io);
   }
-  chownTree(agentState, identity, io);
   chownTree(paths.workspaceRoot, identity, io);
   for (const dir of ancestorsWithin(paths.runnerHome, paths.workspaceRoot)) chmodSync(dir, 0o711);
 
@@ -85,16 +96,24 @@ function move(from: string, to: string): void {
   }
 }
 
-/** `lchown` `root` and everything under it; a link is changed itself and never followed. */
+/**
+ * `lchown` `root` and everything under it to the agent; a link is changed
+ * itself and never followed. A directory is taken back to root before it is
+ * listed (one the agent already owns, from a handover cut short, may be
+ * closed to root) and handed over after its contents.
+ */
 function chownTree(root: string, identity: AgentIdentity, io: HandoverIo): void {
   if (!existsSync(root)) return;
-  const pending = [root];
+  const pending: { readonly path: string; readonly listed: boolean }[] = [{ path: root, listed: false }];
   while (pending.length > 0) {
-    const path = pending.pop()!;
-    io.chown(path, identity.uid, identity.gid);
-    if (lstatSync(path).isDirectory()) {
-      for (const name of readdirSync(path)) pending.push(join(path, name));
+    const { path, listed } = pending.pop()!;
+    if (listed || !lstatSync(path).isDirectory()) {
+      io.chown(path, identity.uid, identity.gid);
+      continue;
     }
+    io.chown(path, 0, 0);
+    pending.push({ path, listed: true });
+    for (const name of readdirSync(path)) pending.push({ path: join(path, name), listed: false });
   }
 }
 
