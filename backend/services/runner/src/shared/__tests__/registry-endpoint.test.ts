@@ -3,6 +3,8 @@ import {
   resolveRegistryBaseUrl,
   resolveModelRegistryUrl,
   buildRegistryHeaders,
+  resetRegistryRouteForTests,
+  routeRegistryThrough,
 } from "../registry-endpoint.js";
 
 describe("resolveRegistryBaseUrl", () => {
@@ -76,5 +78,19 @@ describe("buildRegistryHeaders", () => {
 
   it("returns no headers when tokenless (local server needs none)", () => {
     expect(buildRegistryHeaders({})).toEqual({});
+  });
+});
+
+describe("the agent host's route", () => {
+  it("outranks every tier and carries the host's token, until it is reset", () => {
+    const env = { STIGMER_CLOUD_API_URL: "https://override.example.com", STIGMER_TOKEN: "runner-token" };
+    routeRegistryThrough("127.0.0.1:4321", "host-token");
+    try {
+      expect(resolveRegistryBaseUrl(env)).toBe("http://127.0.0.1:4321");
+      expect(buildRegistryHeaders(env)).toEqual({ Authorization: "Bearer host-token" });
+    } finally {
+      resetRegistryRouteForTests();
+    }
+    expect(resolveRegistryBaseUrl(env)).toBe("https://override.example.com");
   });
 });

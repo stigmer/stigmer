@@ -104,6 +104,43 @@ export class TimingRecorder {
   snapshot(): readonly TimingSegment[] {
     return this.segments;
   }
+
+  /**
+   * This timeline as plain data that another process can continue: the
+   * agent host marks the engine's setup segments on the timeline the turn
+   * runtime began (`agent-host/codec.ts`). `performance.now()` is measured
+   * from each process's own start, so the three cursors cross on the wall
+   * clock (`performance.timeOrigin`-anchored) and {@link fromWire} rebases
+   * them onto the receiving process's scale; the segments are already
+   * offsets from the origin and cross unchanged.
+   */
+  toWire(): TimingRecorderWire {
+    const wall = (ms: number): number => performance.timeOrigin + ms;
+    return {
+      originWallMs: wall(this.originMs),
+      lastMarkWallMs: wall(this.lastMarkMs),
+      latestEndWallMs: wall(this.latestEndMs),
+      segments: [...this.segments],
+    };
+  }
+
+  /** The timeline {@link toWire} described, on this process's `performance.now()` scale. */
+  static fromWire(wire: TimingRecorderWire): TimingRecorder {
+    const local = (wallMs: number): number => wallMs - performance.timeOrigin;
+    const recorder = new TimingRecorder(local(wire.originWallMs));
+    recorder.segments.push(...wire.segments);
+    recorder.lastMarkMs = local(wire.lastMarkWallMs);
+    recorder.latestEndMs = local(wire.latestEndWallMs);
+    return recorder;
+  }
+}
+
+/** A {@link TimingRecorder} as plain data: its cursors on the wall clock and its closed segments. */
+export interface TimingRecorderWire {
+  readonly originWallMs: number;
+  readonly lastMarkWallMs: number;
+  readonly latestEndWallMs: number;
+  readonly segments: readonly TimingSegment[];
 }
 
 /**

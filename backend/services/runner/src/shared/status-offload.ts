@@ -48,7 +48,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { ToolCallOutputRefSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import type { AgentMessage, FileContent, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import type { AgentMessage, FileContent, ToolCall, ToolCallOutputRef } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import { FileReviewBlockReason } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { ArtifactStorage } from "./artifact-storage.js";
@@ -450,6 +450,41 @@ async function maybeOffloadCandidateChanges(
     const base = `artifacts/${ctx.executionId}/filereview/${change.id}`;
     await maybeOffloadFileContent(change.before, `${base}.before.txt`, ctx, maxBytes);
     await maybeOffloadFileContent(change.after, `${base}.after.txt`, ctx, maxBytes);
+  }
+}
+
+/** One tool call's offloaded output: the ref the runtime wrote in place of its result. */
+export interface OffloadedOutput {
+  readonly toolCallId: string;
+  readonly outputRef: ToolCallOutputRef;
+}
+
+/** Every tool call in `status` whose output the offload has lifted to a ref. */
+export function offloadedOutputs(status: RunStatus): OffloadedOutput[] {
+  const out: OffloadedOutput[] = [];
+  for (const tc of allToolCalls(status)) {
+    if (tc.outputRef) out.push({ toolCallId: tc.id, outputRef: tc.outputRef });
+  }
+  return out;
+}
+
+/**
+ * Take another copy's offloads into `status`: a tool call whose result is
+ * still exactly the bytes a ref was made from gets that ref and the
+ * collapsed result, as the offload itself would have left it. A result that
+ * has changed since is left alone, for the next persist's offload. The agent
+ * host's copy of a turn's status takes the runtime's offloads this way
+ * (`agent-host/host-sink.ts`), so it does not carry, and re-send, the outputs
+ * the runtime has already uploaded.
+ */
+export function adoptOffloadedOutputs(status: RunStatus, offloads: readonly OffloadedOutput[]): void {
+  if (offloads.length === 0) return;
+  const byId = new Map(offloads.map((o) => [o.toolCallId, o.outputRef]));
+  for (const tc of allToolCalls(status)) {
+    const ref = byId.get(tc.id);
+    if (ref === undefined || tc.result === undefined || sha256(tc.result) !== ref.contentHash) continue;
+    tc.outputRef = create(ToolCallOutputRefSchema, ref);
+    tc.result = collapsedResultFor(ref);
   }
 }
 
