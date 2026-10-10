@@ -1,7 +1,7 @@
 /**
  * Composition of the synthesized attachments through
  * injectSynthesizedAttachment — chained the way both harness call sites
- * do (channels, then conversation, each after resolve + backfill).
+ * do (channels, then conversation, each after the plugins' servers resolve).
  * Per-slug independence is the property that makes another attachment
  * safe to add: replacing one reserved slug must never disturb its
  * siblings.
@@ -31,11 +31,7 @@ const userServer: ResolvedMcpServer = {
   slug: "github",
   connectionType: "http",
   url: "https://example.com",
-  destructiveTools: [],
-  discoveredToolNames: null,
-  serverId: "",
   pluginOrigin: null,
-  discoveredCapabilitiesEmpty: false,
 };
 
 function bothAttachments(): ResolvedMcpServer[] {

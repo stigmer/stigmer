@@ -31,7 +31,7 @@ const RUN = "run-1";
 const ev = sdkEvents("agent-1", RUN);
 
 function translator(seeded = create(RunStatusSchema, {})): CursorTranslator {
-  return new CursorTranslator({ mcpDefault: { destructive: new Set(), leasedServers: new Set() }, leases: { global: false, categories: new Set() }, seeded: seeded.messages });
+  return new CursorTranslator({ mcpDefault: { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() }, leases: { global: false, categories: new Set() }, seeded: seeded.messages });
 }
 
 function kinds(events: readonly TranscriptEvent[]): string[] {
@@ -251,7 +251,7 @@ describe("CursorTranslator — a tool_call event is the row's start and, when te
 
 describe("CursorTranslator — the MCP envelope is unwrapped to the inner tool", () => {
   const MCP_ARGS = { providerIdentifier: "planton", toolName: "search_services", args: { query: "db" } };
-  const mcpDefault: McpApprovalDefault = { destructive: new Set(["planton/search_services"]), leasedServers: new Set() };
+  const mcpDefault: McpApprovalDefault = { destructive: new Set(["planton/search_services"]), unlisted: new Set<string>(), leasedServers: new Set() };
 
   it("name is the inner tool, the server its provider, the input the inner args; a tool its server does not mark destructive carries no provenance", () => {
     const [started] = translator().translate(ev.toolCall("m1", "mcp", "running", MCP_ARGS));

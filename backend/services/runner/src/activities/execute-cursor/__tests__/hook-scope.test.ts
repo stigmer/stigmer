@@ -87,16 +87,15 @@ describe("ToolScope tables equal ToolScope's own answers", () => {
 });
 
 describe("compileHookToolScope", () => {
-  const servers = [
-    { slug: "github", discoveredToolNames: ["list_prs", "merge_pr"] },
-    { slug: "stigmer-memory", discoveredToolNames: ["remember"] },
-  ];
+  const servers = [{ slug: "github" }, { slug: "stigmer-memory" }];
+  const listing = { listed: [{ server: "github", tools: ["list_prs", "merge_pr"] }], destructive: [], unlisted: [] };
 
   it("compiles an agent with no lists to the inert scope", () => {
     expect(
       compileHookToolScope({
         scope: ToolScope.unrestricted(),
         servers,
+        listing,
         platformServerSlugs: new Set(["stigmer-memory"]),
         readRoot: "/platform",
         subAgentTypes: ["researcher"],
@@ -109,6 +108,7 @@ describe("compileHookToolScope", () => {
     const compiled = compileHookToolScope({
       scope,
       servers,
+      listing,
       platformServerSlugs: new Set(["stigmer-memory"]),
       readRoot: "/platform",
       subAgentTypes: [],
@@ -130,6 +130,7 @@ describe("compileHookToolScope", () => {
     const compiled = compileHookToolScope({
       scope: ToolScope.of('Agent "a"', { tools: [], disallowedTools: ["Bash"] }),
       servers: [],
+      listing: undefined,
       platformServerSlugs: new Set(),
       readRoot: "",
       subAgentTypes: [],

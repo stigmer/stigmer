@@ -135,11 +135,12 @@
  *     any rewrite it made
  * 1c. autoApproveAll (the pre-armed spec.auto_approve_all global bypass) →
  *     allow
- * 2. beforeMCPExecution event → the server's tool listed in mcpDestructiveTools:
+ * 2. beforeMCPExecution event → the server's tool listed in mcpDestructiveTools,
+ *    or any tool of a server listed in mcpUnlistedServers:
  *    a. name token in approvedGrantTokens → allow (reinvocation grant)
  *    b. otherwise → record denial, deny
  *    (every other MCP tool falls through → allow; a server lease leaves its
- *     server's tools out of mcpDestructiveTools, so they fall through)
+ *     server out of both, so its tools fall through)
  * 3. preToolUse event → gated built-in (category non-empty):
  *    a. identity token in approvedGrantTokens → allow (reinvocation grant)
  *    b. category in leasedCategories → allow (run-lifetime scoped lease)
@@ -164,6 +165,7 @@ import {
 } from "../../shared/file-tools.js";
 import { buildObservationStagingScript, buildSecretClassifyScript, CAS_OBSERVATIONS_DIRNAME } from "./cas-observations.js";
 import { HOOK_ASK_DIGEST_PREFIX } from "./approval-state.js";
+import { UNLISTED_MCP_APPROVAL_MESSAGE } from "../../shared/approval-policy.js";
 
 // Shown to the model when the gate denies a tool call. It must NOT teach the
 // model to ask for permission in prose or to "stop and wait" — that framing
@@ -526,6 +528,16 @@ function buildNodeIdentityScript(): string {
  * once the turn ends (pointer removed) or the runner exits (PID dead), no
  * invocation gates, so the gate is inert.
  */
+/**
+ * The question for a tool of a server whose tools could not be listed, as a
+ * bash double-quoted string body with the tool's name spliced in at
+ * `{{tool_name}}`. The message holds no double quote, backslash, `$` or
+ * backtick, so it is embedded as it is.
+ */
+function unlistedMessage(toolNameExpression: string): string {
+  return UNLISTED_MCP_APPROVAL_MESSAGE.replace("{{tool_name}}", toolNameExpression);
+}
+
 export function generateHookScript(activePointerPath: string, workspaceRoot = ""): string {
   const salientFields = SALIENT_ARG_FIELDS.join(" ");
   const categoryCaseArms = buildCategoryCaseArms();
@@ -1062,20 +1074,27 @@ fi
 # MCP is gated here and ONLY here (never double-recorded). mcpDestructiveTools
 # holds only the tools that ask, keyed "server/tool" from the payload's
 # mcp_server_name, so presence means "deny" and an equal tool name on another
-# server is never caught. MCP tool and server names are consistent across the
-# hook and the stream, so the identity token is base64("server/tool\\n").
+# server is never caught; mcpUnlistedServers names the servers whose every tool
+# asks, because their tools could not be listed at turn start. MCP tool and
+# server names are consistent across the hook and the stream, so the identity
+# token is base64("server/tool\\n").
 if [ "$HOOK_EVENT" = "beforeMCPExecution" ]; then
   if [ -n "$MCP_SERVER" ] && [ -n "$TOOL_NAME" ]; then
+    MSG=""
     TOOL_POLICY=$(echo "$STATE" | grep -o "\\"$MCP_SERVER/$TOOL_NAME\\":{[^}]*}" | head -1 || true)
     if [ -n "$TOOL_POLICY" ]; then
+      MSG=$(echo "$TOOL_POLICY" | grep -o '"message":"[^"]*"' | head -1 | cut -d'"' -f4 || true)
+      if [ -z "$MSG" ]; then
+        MSG="Tool requires approval: $TOOL_NAME"
+      fi
+    elif echo "$STATE" | grep -o '"mcpUnlistedServers":\\[[^]]*\\]' | grep -qF "\\"$MCP_SERVER\\""; then
+      MSG="${unlistedMessage("$TOOL_NAME")}"
+    fi
+    if [ -n "$MSG" ]; then
       # Reinvocation grant: this tool was approved earlier → allow.
       if __stigmer_granted; then
         echo '{"permission":"allow"}'
         exit 0
-      fi
-      MSG=$(echo "$TOOL_POLICY" | grep -o '"message":"[^"]*"' | head -1 | cut -d'"' -f4 || true)
-      if [ -z "$MSG" ]; then
-        MSG="Tool requires approval: $TOOL_NAME"
       fi
       if [ "$UNATTENDED_SKIP" = "true" ]; then
         # Unattended resolution: non-pausing kind, final for this
@@ -1089,7 +1108,7 @@ if [ "$HOOK_EVENT" = "beforeMCPExecution" ]; then
       exit 0
     fi
   fi
-  # Auto-approved or unlisted MCP tool → allow.
+  # Auto-approved or unmarked MCP tool → allow.
   echo '{"permission":"allow"}'
   exit 0
 fi

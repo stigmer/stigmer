@@ -243,6 +243,23 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
       expect(h.ledger()).toEqual([]);
     });
 
+    it("asks before every tool of a server whose tools could not be listed this turn, on that server only", () => {
+      // The turn start's listing failed for "srv", so whether any of its
+      // tools changes anything is unknown: the approval default asks for
+      // every one of them (shared/approval-policy.ts `unlisted`), and the
+      // hook is the Cursor engine's only MCP gate.
+      const h = setup({ unlistedMcpServers: ["srv"] });
+      const res = h.decide(hookMcp("anything"));
+      expect(res.permission).toBe("deny");
+      expect(h.ledger().map((entry) => [entry.kind, entry.token])).toEqual([["approval", grantToken("srv/anything", "")]]);
+      expect(h.decide(hookMcp("anything", {}, "other")).permission, "another server's tool").toBe("allow");
+    });
+
+    it("a lease clears a server whose tools could not be listed", () => {
+      const h = setup({ unlistedMcpServers: ["srv"], leasedMcpServers: ["srv"] });
+      expect(h.decide(hookMcp("anything")).permission).toBe("allow");
+    });
+
     it("auto-approve-all allows a require-approval MCP tool", () => {
       const h = setup({ autoApproveAll: true, destructiveMcpTools: ["click"] });
       expect(h.decide(hookMcp("click")).permission).toBe("allow");
@@ -404,7 +421,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     it("refuses an MCP tool by server AND tool, recorded under its server/tool scope token", () => {
       const h = setup({
         lists: { tools: ["mcp__srv__list_apps"], disallowedTools: [] },
-        mcpServers: [{ slug: "srv", discoveredToolNames: ["list_apps", "click"] }, { slug: "other", discoveredToolNames: ["list_apps"] }],
+        mcpServers: [{ slug: "srv", listedTools: ["list_apps", "click"] }, { slug: "other", listedTools: ["list_apps"] }],
       });
       expect(h.decide(hookMcp("list_apps")).permission).toBe("allow");
       const res = h.decide(hookMcp("click", { app: "Slack" }));
@@ -418,10 +435,10 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
       expect(ledger[1].token).toBe(scopeRefusalToken(mcpToolKey("other", "list_apps")));
     });
 
-    it("answers an MCP tool discovery never saw by its server's family entry", () => {
+    it("answers an MCP tool of a server the turn start could not list by its server's family entry", () => {
       const h = setup({
         lists: { tools: ["mcp__srv"], disallowedTools: ["mcp__srv__drop_all"] },
-        mcpServers: [{ slug: "srv", discoveredToolNames: null }],
+        mcpServers: [{ slug: "srv", listedTools: null }],
       });
       expect(h.decide(hookMcp("brand_new")).permission).toBe("allow");
       expect(h.decide(hookMcp("drop_all")).permission).toBe("deny");
@@ -429,7 +446,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     });
 
     it("keeps the platform's attachment servers in scope under any allow-list", () => {
-      const h = setup({ lists: READ_ONLY, platformServerSlugs: ["stigmer-memory"], mcpServers: [{ slug: "stigmer-memory", discoveredToolNames: null }] });
+      const h = setup({ lists: READ_ONLY, platformServerSlugs: ["stigmer-memory"], mcpServers: [{ slug: "stigmer-memory", listedTools: null }] });
       expect(h.decide(hookMcp("remember", {}, "stigmer-memory")).permission).toBe("allow");
     });
 
@@ -505,7 +522,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
       // a write must still reach the approval gate and be held there.
       const h = setup({
         lists: { tools: [], disallowedTools: ["Bash"] },
-        mcpServers: [{ slug: "srv", discoveredToolNames: ["autoApproveAll", "captureMode", "unattendedSkip"] }],
+        mcpServers: [{ slug: "srv", listedTools: ["autoApproveAll", "captureMode", "unattendedSkip"] }],
       });
       expect(h.decide(hookWrite("/x/a.txt")).permission).toBe("deny");
       expect(h.ledger().map((e) => e.kind)).toEqual(["approval"]);
@@ -1113,6 +1130,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     const toolScope = compileHookToolScope({
       scope: ToolScope.of('Agent "a"', { tools: ["Read"], disallowedTools: [] }),
       servers: [],
+      listing: undefined,
       platformServerSlugs: new Set(),
       readRoot: "",
       subAgentTypes: [],

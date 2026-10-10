@@ -59,7 +59,7 @@ async function resolveWith(exchange: () => Promise<string | undefined>, runnerKe
     sessionSpec: create(SessionSpecSchema),
     instructions: "",
     subAgents: [],
-    mergedMcpServerUsages: [],
+    plugins: [],
     mergedSkillRefs: [],
     cloudRepos: [],
   } as ResolvedBlueprint;
@@ -69,6 +69,7 @@ async function resolveWith(exchange: () => Promise<string | undefined>, runnerKe
     sessionId: "ses-attach",
     blueprint,
     values: NO_RUN_VALUES,
+    readsToolMarks: true,
   });
   return { mcp, status };
 }

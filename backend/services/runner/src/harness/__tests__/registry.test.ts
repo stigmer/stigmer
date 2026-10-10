@@ -36,6 +36,7 @@ function stubAdapter(name: string, log: string[], behaviour: StubBehaviour = {})
       subAgents: false,
       toolRestriction: true,
       runsHooks: true,
+      readsToolMarks: true,
       visionProfile: DEEP_AGENT_VISION_PROFILE,
       fileReview: { harnessId: "stub", excludePaths: [] },
     },

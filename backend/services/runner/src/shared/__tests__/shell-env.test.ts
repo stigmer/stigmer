@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { buildShellEnv, SHELL_ENV_DENYLIST, shellRunValues } from "../shell-env.js";
-import type { RunValues } from "../run-values.js";
+import { toolValuesKey, type RunValues } from "../run-values.js";
 import { RUNNER_CREDENTIAL_ENV_KEYS } from "../runner-credential-keys.js";
 
 describe("buildShellEnv", () => {
@@ -69,12 +69,14 @@ describe("buildShellEnv", () => {
 
 describe("shellRunValues", () => {
   // A run whose fetch answered the agent's own key, a Linear tool's login
-  // and env key, and a repository's token: each in its declarer's group.
+  // and env key, its plugin's hook key, and a repository's token: each in
+  // its declarer's group.
   const RUN_VALUES: RunValues = {
     agent: { AGENT_KEY: "agent-secret" },
     tools: new Map([
-      ["mcp_linear", { url: "https://mcp.linear.app/mcp", values: { LINEAR_TOKEN: "mcp-only-token", LINEAR_OAUTH_TOKEN: "oauth-access-token" } }],
+      [toolValuesKey("plg_linear", "api"), { url: "https://mcp.linear.app/mcp", values: { LINEAR_TOKEN: "mcp-only-token", LINEAR_OAUTH_TOKEN: "oauth-access-token" } }],
     ]),
+    plugins: new Map([["plg_linear", { HOOK_ONLY_KEY: "plugin-hook-value" }]]),
     repositories: [{ name: "app", url: "https://github.com/acme/app", token: "ghp-run" }],
   };
 
@@ -88,6 +90,10 @@ describe("shellRunValues", () => {
     const values = shellRunValues(RUN_VALUES);
     expect(values).not.toHaveProperty("LINEAR_TOKEN");
     expect(values).not.toHaveProperty("LINEAR_OAUTH_TOKEN");
+  });
+
+  it("never holds a plugin's hook values: they are that plugin's hooks' alone", () => {
+    expect(shellRunValues(RUN_VALUES)).not.toHaveProperty("HOOK_ONLY_KEY");
   });
 
   it("never holds a repository's token: an agent whose shell runs gh saves a GITHUB_TOKEN secret", () => {

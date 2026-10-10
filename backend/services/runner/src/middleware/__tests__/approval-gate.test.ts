@@ -41,11 +41,11 @@ function passthrough(req: ToolCallRequest) {
   });
 }
 
-const NO_MCP_DEFAULT: McpApprovalDefault = { destructive: new Set(), leasedServers: new Set() };
+const NO_MCP_DEFAULT: McpApprovalDefault = { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() };
 
 /** An approval default under which the named `server/tool` keys are marked destructive by their servers. */
 function destructive(...keys: string[]): McpApprovalDefault {
-  return { destructive: new Set(keys), leasedServers: new Set() };
+  return { destructive: new Set(keys), unlisted: new Set<string>(), leasedServers: new Set() };
 }
 
 function makeConfig(overrides: Partial<ApprovalGateConfig> = {}): ApprovalGateConfig {

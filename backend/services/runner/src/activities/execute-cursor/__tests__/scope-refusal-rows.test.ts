@@ -48,7 +48,7 @@ d("tool-list refusals on the timeline", () => {
     const lists: ToolLists = { tools: ["Read", "mcp__srv__list_apps"], disallowedTools: [] };
     const h = setupCursorHookHarness({
       lists,
-      mcpServers: [{ slug: "srv", discoveredToolNames: ["list_apps", "click"] }],
+      mcpServers: [{ slug: "srv", listedTools: ["list_apps", "click"] }],
     });
     const shellHook = h.decide(hookShell("rm -rf build"));
     const mcpHook = h.decide(hookMcp("click", { app: "Slack" }));
@@ -56,7 +56,7 @@ d("tool-list refusals on the timeline", () => {
 
     // The translator stamps the approval default's provenance at tool start:
     // builtin_category for the shell, the annotation for a destructive tool.
-    const mcpDefault: McpApprovalDefault = { destructive: new Set(["srv/click"]), leasedServers: new Set() };
+    const mcpDefault: McpApprovalDefault = { destructive: new Set(["srv/click"]), unlisted: new Set<string>(), leasedServers: new Set() };
     const mcpArgs = { providerIdentifier: "srv", toolName: "click", args: { app: "Slack" } };
     const fold = new CursorFold({ mcpDefault }).events(
       ev.toolCall("s1", "shell", "running", { command: "rm -rf build" }),

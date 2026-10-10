@@ -23,7 +23,7 @@ import { CursorEngineToolViews, rowNameOf } from "../hook-views.js";
 
 const views = new CursorEngineToolViews({
   workspaceRoot: "/w",
-  pluginServers: new Map([["safety-checks", { plugin: "safety", server: "checks" }]]),
+  pluginServers: new Map([["plugin_safety_checks", { plugin: "safety", server: "checks" }]]),
   platformServerSlugs: new Set(["channel"]),
 });
 const call = (name: string, args: Record<string, unknown>, serverSlug = "") => ({ name, args, serverSlug });
@@ -64,12 +64,19 @@ describe("Claude Code's view of a Cursor call", () => {
     log.mockRestore();
   });
 
-  it("names MCP tools by server, a plugin's own server as Claude Code does, and shows the platform's to no hook", () => {
-    expect(views.viewsOf(call("search", { q: "a" }, "github"))).toEqual({
-      "claude-code": { toolName: "mcp__github__search", toolInput: { q: "a" }, mcpServer: { name: "github", source: "managed" } },
-      cursor: { toolName: "MCP:search", toolInput: { q: "a" }, mcp: { tool: "search", server: "github" } },
+  it("names MCP tools by server, a plugin's server as Claude Code does, and shows the platform's to no hook", () => {
+    expect(views.viewsOf(call("run_check", { q: "a" }, "plugin_safety_checks"))).toEqual({
+      "claude-code": {
+        toolName: "mcp__plugin_safety_checks__run_check",
+        toolInput: { q: "a" },
+        mcpServer: { name: "plugin:safety:checks", source: "plugin" },
+      },
+      cursor: { toolName: "MCP:run_check", toolInput: { q: "a" }, mcp: { tool: "run_check", server: "plugin_safety_checks" } },
     });
-    expect(views.viewsOf(call("run_check", {}, "safety-checks"))["claude-code"]?.toolName).toBe("mcp__plugin_safety_checks__run_check");
+    expect(views.viewsOf(call("search", {}, "github"))["claude-code"]?.mcpServer, "a server with no plugin name is still a plugin's").toEqual({
+      name: "github",
+      source: "plugin",
+    });
     expect(views.viewsOf(call("send", {}, "channel"))).toEqual({});
   });
 

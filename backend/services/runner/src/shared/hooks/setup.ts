@@ -141,9 +141,10 @@ export async function buildHookEvaluator(input: HookSetupInput): Promise<HookEva
 
 /**
  * The MCP server a run value belongs to, by its group in the run's values:
- * the name of the resolved server of that plugin and key, or the key itself
- * for a server that did not resolve this turn. `undefined` when no tool
- * holds it.
+ * the name of the resolved server of that plugin and key, or the server's
+ * own name in its plugin for a server that did not resolve this turn (the
+ * group key itself holds the plugin id and a NUL, never shown). `undefined`
+ * when no tool holds it.
  */
 function toolHolding(input: Pick<HookSetupInput, "runValues" | "mcpServers">, key: string): string | undefined {
   for (const [groupKey, group] of input.runValues.tools) {
@@ -153,7 +154,7 @@ function toolHolding(input: Pick<HookSetupInput, "runValues" | "mcpServers">, ke
         candidate.pluginOrigin !== null &&
         toolValuesKey(candidate.pluginOrigin.pluginId, candidate.pluginOrigin.server) === groupKey,
     );
-    return server?.slug ?? groupKey;
+    return server?.slug ?? groupKey.slice(groupKey.indexOf("\u0000") + 1);
   }
   return undefined;
 }

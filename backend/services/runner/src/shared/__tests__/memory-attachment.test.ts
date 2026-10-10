@@ -13,7 +13,7 @@ import { describe, expect, it } from "vitest";
 import { RecalledMemoriesSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 
 import { buildMcpApprovalDefault, type ActiveLeases } from "../approval-policy.js";
-import { needsBackfill } from "../connect-backfill.js";
+import { listTurnTools } from "../mcp-tool-listing.js";
 import {
   MEMORY_AGENT_ID_ENV,
   MEMORY_AGENT_ID_HEADER,
@@ -29,7 +29,6 @@ import {
   synthesizeMemoryAttachment,
   type MemoryCaptureContext,
 } from "../memory-attachment.js";
-import type { ResolvedMcpServer } from "../mcp-resolver.js";
 import { STDIO_CREDENTIAL_ENV } from "../synthesized-attachment.js";
 
 const context: MemoryCaptureContext = {
@@ -168,18 +167,17 @@ describe("synthesizeMemoryAttachment", () => {
     expect(MEMORY_EXECUTION_ID_ENV).toBe("STIGMER_MEMORY_EXECUTION_ID");
   });
 
-  it("is approval-free by construction: the approval default marks none of its tools destructive", () => {
+  it("is approval-free by construction: never listed, so the approval default asks for none of its tools", async () => {
     // Consent is the confirm RPC, not tool approval: the
     // tool only creates a proposal, so gating it would stack a second
     // consent gate in front of the real one.
     const attachment = synthesizeMemoryAttachment(enabled, context, cloudOptions)!;
-    const mcpDefault = buildMcpApprovalDefault([attachment as ResolvedMcpServer], noLeases);
+    expect(attachment.pluginOrigin, "the platform's own server, no plugin's").toBeNull();
+    const listing = await listTurnTools([attachment], () => Promise.reject(new Error("a platform server is never listed")));
+    expect(listing).toEqual({ listed: [], destructive: [], unlisted: [] });
+    const mcpDefault = buildMcpApprovalDefault(listing, noLeases);
     expect(mcpDefault.destructive.size).toBe(0);
+    expect(mcpDefault.unlisted.size).toBe(0);
   });
 
-  it("is structurally immune to the connect backfill", () => {
-    const attachment = synthesizeMemoryAttachment(enabled, context, cloudOptions)!;
-    expect(attachment.discoveredCapabilitiesEmpty).toBe(false);
-    expect(needsBackfill(attachment)).toBe(false);
-  });
 });

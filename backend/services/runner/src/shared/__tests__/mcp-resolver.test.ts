@@ -1,14 +1,26 @@
 /**
- * Pins MCP server resolution: the transport guard fails a whole resolution
- * rather than skip a server, the destructive set and discovered names a
- * resolved server carries from its last discovery, each server filled only
- * from its own group of the run's values and only while it dials the URL
- * that group was checked against, the platform address fill
- * (stigmer#1433), and one usage per slug.
+ * Pins how a turn resolves its plugins' MCP servers: each server named as
+ * Claude Code names it (`plugin_<plugin>_<server>`) and carrying its plugin
+ * origin; the transport guard failing a whole resolution rather than
+ * skipping a server; each server filled only from its own group of the
+ * run's values (keyed by its plugin and its name there) and only while it
+ * dials the URL that group was checked against; the platform values spread
+ * over a server's own; and the platform address fill (stigmer#1433).
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { dialedUrlOf, mcpServerToResolved, mergeMcpServerUsages, PLUGIN_MEMBER_LABEL, resolveMcpServers } from "../mcp-resolver.js";
-import type { ToolValueGroup } from "../run-values.js";
+import { create } from "@bufbuild/protobuf";
+import { PluginSchema, type Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import {
+  HttpMcpServerSchema,
+  McpServerEntrySchema,
+  PluginStatusSchema,
+  StdioMcpServerSchema,
+  type McpServerEntry,
+} from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+
+import { declaredKeysOf, dialedUrlOf, entryToResolved, resolvePluginServers } from "../mcp-resolver.js";
+import { toolValuesKey, type ToolValueGroup } from "../run-values.js";
 import { McpTransportError } from "../mcp-transport-guard.js";
 import { testConfig } from "../../__test-utils__/config-fixture.js";
 
@@ -18,307 +30,266 @@ const NO_TOOLS: ReadonlyMap<string, ToolValueGroup> = new Map();
 /** The runner endpoints resolution fills STIGMER_SERVER_ADDRESS from. */
 const PLATFORM_ENDPOINTS = testConfig();
 
-function makeUsage(slug: string, org = "test-org") {
-  return { mcpServerRef: { slug, org, kind: 0 } } as any;
+const LINEAR_URL = "https://mcp.example.com/mcp";
+
+function stdioEntry(name: string, env: string[] = [], args: string[] = []): McpServerEntry {
+  return create(McpServerEntrySchema, {
+    name,
+    transport: { case: "stdio", value: create(StdioMcpServerSchema, { command: "npx", args }) },
+    env,
+  });
 }
 
-function stdioMcpServer(slug: string) {
-  return {
-    metadata: { id: `id-${slug}`, slug },
-    spec: {
-      serverType: { case: "stdio", value: { command: "npx", args: [] } },
-      env: {},
-    },
-    status: undefined,
-  } as any;
+function httpEntry(name: string, env: string[] = [], headers: Record<string, string> = {}, url = LINEAR_URL): McpServerEntry {
+  return create(McpServerEntrySchema, {
+    name,
+    transport: { case: "http", value: create(HttpMcpServerSchema, { url, headers }) },
+    env,
+  });
 }
 
-function httpMcpServer(slug: string) {
-  return {
-    metadata: { id: `id-${slug}`, slug },
-    spec: {
-      serverType: { case: "http", value: { url: "https://mcp.example.com/mcp", headers: {} } },
-      env: {},
-    },
-    status: undefined,
-  } as any;
+function plugin(id: string, name: string, servers: McpServerEntry[]): Plugin {
+  return create(PluginSchema, {
+    metadata: create(ApiResourceMetadataSchema, { id, name, slug: name }),
+    status: create(PluginStatusSchema, { mcpServers: servers }),
+  });
 }
 
-function clientReturning(serversBySlug: Record<string, unknown>) {
-  return {
-    getMcpServerByReference: vi.fn(async (ref: { slug: string }) => {
-      const server = serversBySlug[ref.slug];
-      if (!server) throw new Error(`not found: ${ref.slug}`);
-      return server;
-    }),
-  } as any;
-}
+describe("resolvePluginServers: names and origins", () => {
+  it("names each server plugin_<plugin>_<server> and records the plugin it came from", () => {
+    const result = resolvePluginServers(
+      [plugin("plg_1", "my.tools", [httpEntry("issues"), stdioEntry("local fs")])],
+      NO_TOOLS,
+      {},
+      "stdio-allowed",
+      PLATFORM_ENDPOINTS,
+    );
 
-describe("resolveMcpServers — transport guard integration", () => {
+    expect(result.resolvedServers.map((server) => [server.slug, server.pluginOrigin])).toEqual([
+      ["plugin_my_tools_issues", { pluginId: "plg_1", plugin: "my.tools", server: "issues" }],
+      ["plugin_my_tools_local_fs", { pluginId: "plg_1", plugin: "my.tools", server: "local fs" }],
+    ]);
+  });
+
+  it("resolves every plugin's servers, in plugin order", () => {
+    const result = resolvePluginServers(
+      [plugin("plg_a", "alpha", [httpEntry("one")]), plugin("plg_b", "beta", [httpEntry("two")])],
+      NO_TOOLS,
+      {},
+      "stdio-forbidden",
+      PLATFORM_ENDPOINTS,
+    );
+
+    expect(result.resolvedServers.map((server) => server.slug)).toEqual(["plugin_alpha_one", "plugin_beta_two"]);
+  });
+
+  it("skips an entry that names neither a command nor a URL", () => {
+    const empty = create(McpServerEntrySchema, { name: "nothing" });
+    const result = resolvePluginServers([plugin("plg_1", "p", [empty])], NO_TOOLS, {}, "stdio-allowed", PLATFORM_ENDPOINTS);
+    expect(result.resolvedServers).toEqual([]);
+  });
+});
+
+describe("resolvePluginServers: the transport guard", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.spyOn(console, "warn").mockImplementation(() => {});
     vi.spyOn(console, "error").mockImplementation(() => {});
   });
 
-  it("throws McpTransportError for stdio under a forbidding posture — never degraded to a skipped server", async () => {
-    // The per-server catch swallows resolution hiccups into console.warn;
-    // a policy rejection must escape it and fail the whole resolution.
-    const client = clientReturning({ filesystem: stdioMcpServer("filesystem") });
-
-    await expect(
-      resolveMcpServers(client, [makeUsage("filesystem")], NO_TOOLS, {}, "stdio-forbidden", PLATFORM_ENDPOINTS),
-    ).rejects.toThrow(McpTransportError);
+  it("throws McpTransportError for stdio under a forbidding posture, never a skipped server", () => {
+    expect(() =>
+      resolvePluginServers([plugin("plg_1", "fs", [stdioEntry("files")])], NO_TOOLS, {}, "stdio-forbidden", PLATFORM_ENDPOINTS),
+    ).toThrow(McpTransportError);
   });
 
-  it("fails the whole resolution even when other servers are resolvable", async () => {
-    const client = clientReturning({
-      github: httpMcpServer("github"),
-      filesystem: stdioMcpServer("filesystem"),
-    });
-
-    await expect(
-      resolveMcpServers(
-        client,
-        [makeUsage("github"), makeUsage("filesystem")],
+  it("fails the whole resolution even when other servers are resolvable", () => {
+    expect(() =>
+      resolvePluginServers(
+        [plugin("plg_1", "mixed", [httpEntry("remote"), stdioEntry("local")])],
         NO_TOOLS,
         {},
-        "stdio-forbidden", PLATFORM_ENDPOINTS,
+        "stdio-forbidden",
+        PLATFORM_ENDPOINTS,
       ),
-    ).rejects.toThrow(McpTransportError);
+    ).toThrow(McpTransportError);
   });
 
-  it("resolves http servers under a forbidding posture", async () => {
-    const client = clientReturning({ github: httpMcpServer("github") });
-
-    const result = await resolveMcpServers(
-      client, [makeUsage("github")], NO_TOOLS, {}, "stdio-forbidden", PLATFORM_ENDPOINTS,
-    );
-
-    expect(result.resolvedServers).toHaveLength(1);
-    expect(result.resolvedServers[0].connectionType).toBe("http");
+  it("resolves http servers under a forbidding posture and stdio under an allowing one", () => {
+    const http = resolvePluginServers([plugin("plg_1", "p", [httpEntry("remote")])], NO_TOOLS, {}, "stdio-forbidden", PLATFORM_ENDPOINTS);
+    expect(http.resolvedServers.map((server) => server.connectionType)).toEqual(["http"]);
+    const stdio = resolvePluginServers([plugin("plg_1", "p", [stdioEntry("local")])], NO_TOOLS, {}, "stdio-allowed", PLATFORM_ENDPOINTS);
+    expect(stdio.resolvedServers.map((server) => server.connectionType)).toEqual(["stdio"]);
   });
 
-  it("resolves stdio servers under an allowing posture", async () => {
-    const client = clientReturning({ filesystem: stdioMcpServer("filesystem") });
-
-    const result = await resolveMcpServers(
-      client, [makeUsage("filesystem")], NO_TOOLS, {}, "stdio-allowed", PLATFORM_ENDPOINTS,
+  it("drops a server whose placeholder cannot resolve, keeping the others", () => {
+    const result = resolvePluginServers(
+      [plugin("plg_1", "p", [httpEntry("needs", ["TOKEN"], { Authorization: "Bearer ${TOKEN}" }), httpEntry("plain")])],
+      NO_TOOLS,
+      {},
+      "stdio-forbidden",
+      PLATFORM_ENDPOINTS,
     );
-
-    expect(result.resolvedServers).toHaveLength(1);
-    expect(result.resolvedServers[0].connectionType).toBe("stdio");
-  });
-
-  it("still degrades gracefully for ordinary resolution failures", async () => {
-    const client = clientReturning({});
-
-    const result = await resolveMcpServers(
-      client, [makeUsage("ghost")], NO_TOOLS, {}, "stdio-forbidden", PLATFORM_ENDPOINTS,
-    );
-
-    expect(result.resolvedServers).toHaveLength(0);
+    expect(result.resolvedServers.map((server) => server.slug)).toEqual(["plugin_p_plain"]);
   });
 });
 
-describe("a resolved server's discovered tools", () => {
-  function discovered(server: any, tools: Array<{ name: string; destructiveHint?: boolean }>) {
-    server.status = {
-      discoveredCapabilities: {
-        tools: tools.map((t) => ({ name: t.name, destructiveHint: t.destructiveHint ?? false })),
-        resourceTemplates: [],
-      },
-    };
-    return server;
-  }
-
-  it("carries the tools its server marks destructive, and every discovered name", () => {
-    const server = discovered(httpMcpServer("github"), [
-      { name: "search_code" },
-      { name: "delete_repo", destructiveHint: true },
-    ]);
-
-    const resolved = mcpServerToResolved(server, "github", {});
-
-    expect(resolved?.destructiveTools).toEqual(["delete_repo"]);
-    expect(resolved?.discoveredToolNames).toEqual(["search_code", "delete_repo"]);
-    expect(resolved?.discoveredCapabilitiesEmpty).toBe(false);
-  });
-
-  it("a server never discovered marks nothing and knows no names", () => {
-    const resolved = mcpServerToResolved(httpMcpServer("github"), "github", {});
-
-    expect(resolved?.destructiveTools).toEqual([]);
-    expect(resolved?.discoveredToolNames).toBeNull();
-    expect(resolved?.discoveredCapabilitiesEmpty).toBe(true);
-  });
-});
-
-describe("a resolved server's plugin origin", () => {
-  it("reads the plugin a member server belongs to from the label the server writes at install", () => {
-    // The label is the server's reserved `stigmer.ai/plugin`, pinned on the
-    // wire by plugin.conformance.test.ts; this pins the runner's copy.
-    expect(PLUGIN_MEMBER_LABEL).toBe("stigmer.ai/plugin");
-    const server = httpMcpServer("plugin-safety-guard");
-    server.metadata = { ...server.metadata, name: "guard", labels: { "stigmer.ai/plugin": "plg_safety" } };
-
-    expect(mcpServerToResolved(server, "plugin-safety-guard", {})?.pluginOrigin).toEqual({ pluginId: "plg_safety", server: "guard" });
-    expect(mcpServerToResolved(httpMcpServer("github"), "github", {})?.pluginOrigin).toBeNull();
-  });
-});
-
-describe("resolveMcpServers — each server only from its own values", () => {
-  function declaring(server: any, keys: string[], headers: Record<string, string> = {}) {
-    server.spec.env = Object.fromEntries(keys.map((key) => [key, { isSecret: true }]));
-    if (server.spec.serverType.case === "http") server.spec.serverType.value.headers = headers;
-    return server;
-  }
-  const LINEAR_URL = "https://mcp.example.com/mcp";
-
+describe("resolvePluginServers: each server only from its own values", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.spyOn(console, "log").mockImplementation(() => {});
   });
 
-  it("fills a server from its own group by its id, never from another server's", async () => {
-    const client = clientReturning({
-      linear: declaring(httpMcpServer("linear"), ["LINEAR_TOKEN"], { Authorization: "Bearer ${LINEAR_TOKEN}" }),
-      other: declaring(stdioMcpServer("other"), ["LINEAR_TOKEN"]),
-    });
-    const tools = new Map([["id-linear", { url: LINEAR_URL, values: { LINEAR_TOKEN: "lin-login" } }]]);
+  it("fills a server from its own group by plugin and server name, never from another's", () => {
+    const linear = plugin("plg_linear", "linear", [
+      httpEntry("api", ["LINEAR_TOKEN"], { Authorization: "Bearer ${LINEAR_TOKEN}" }),
+      stdioEntry("cli", ["LINEAR_TOKEN"]),
+    ]);
+    // Another plugin with a server of the same name: its group is keyed by
+    // its own plugin id, so the Linear login never reaches it.
+    const other = plugin("plg_other", "other", [stdioEntry("api", ["LINEAR_TOKEN"])]);
+    const tools = new Map([[toolValuesKey("plg_linear", "api"), { url: LINEAR_URL, values: { LINEAR_TOKEN: "lin-login" } }]]);
 
-    const result = await resolveMcpServers(
-      client, [makeUsage("linear"), makeUsage("other")], tools, {}, "stdio-allowed", PLATFORM_ENDPOINTS,
-    );
+    const result = resolvePluginServers([linear, other], tools, {}, "stdio-allowed", PLATFORM_ENDPOINTS);
 
     const bySlug = new Map(result.resolvedServers.map((server) => [server.slug, server]));
-    expect(bySlug.get("linear")?.headers).toEqual({ Authorization: "Bearer lin-login" });
-    expect(bySlug.get("linear")?.serverId).toBe("id-linear");
-    // The second server declares the same key, and its own group is empty:
-    // the Linear login never reaches it.
-    expect(bySlug.get("other")?.env).toBeUndefined();
+    expect(bySlug.get("plugin_linear_api")?.headers).toEqual({ Authorization: "Bearer lin-login" });
+    expect(bySlug.get("plugin_linear_cli")?.env, "a sibling server of the same plugin").toBeUndefined();
+    expect(bySlug.get("plugin_other_api")?.env, "a same-named server of another plugin").toBeUndefined();
   });
 
-  it("gives a server the fetch named no group for no run values", async () => {
-    const client = clientReturning({ added: declaring(stdioMcpServer("added"), ["API_KEY"]) });
+  it("passes a server only the keys its entry reads", () => {
+    const tools = new Map([[toolValuesKey("plg_1", "cli"), { url: "", values: { READ: "yes", EXTRA: "no" } }]]);
+    const result = resolvePluginServers([plugin("plg_1", "p", [stdioEntry("cli", ["READ"])])], tools, {}, "stdio-allowed", PLATFORM_ENDPOINTS);
+    expect(result.resolvedServers[0]?.env).toEqual({ READ: "yes" });
+  });
 
-    const result = await resolveMcpServers(
-      client, [makeUsage("added")], NO_TOOLS, {}, "stdio-allowed", PLATFORM_ENDPOINTS,
-    );
-
+  it("gives a server the fetch named no group for no run values", () => {
+    const result = resolvePluginServers([plugin("plg_1", "p", [stdioEntry("added", ["API_KEY"])])], NO_TOOLS, {}, "stdio-allowed", PLATFORM_ENDPOINTS);
     expect(result.resolvedServers).toHaveLength(1);
-    expect(result.resolvedServers[0].env).toBeUndefined();
+    expect(result.resolvedServers[0]?.env).toBeUndefined();
   });
 
-  it("skips a server whose URL is not the one its values were checked against, naming it", async () => {
-    const moved = declaring(httpMcpServer("linear"), ["LINEAR_TOKEN"], { Authorization: "Bearer ${LINEAR_TOKEN}" });
-    moved.spec.serverType.value.url = "https://attacker.example.net/mcp";
-    const client = clientReturning({ linear: moved });
+  it("skips a server whose URL is not the one its values were checked against, naming it and no value", () => {
+    const moved = plugin("plg_linear", "linear", [
+      httpEntry("api", ["LINEAR_TOKEN"], { Authorization: "Bearer ${LINEAR_TOKEN}" }, "https://attacker.example.net/mcp"),
+    ]);
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const tools = new Map([["id-linear", { url: LINEAR_URL, values: { LINEAR_TOKEN: "lin-login" } }]]);
+    const tools = new Map([[toolValuesKey("plg_linear", "api"), { url: LINEAR_URL, values: { LINEAR_TOKEN: "lin-login" } }]]);
 
-    const result = await resolveMcpServers(
-      client, [makeUsage("linear")], tools, {}, "stdio-forbidden", PLATFORM_ENDPOINTS,
-    );
+    const result = resolvePluginServers([moved], tools, {}, "stdio-forbidden", PLATFORM_ENDPOINTS);
 
     expect(result.resolvedServers).toEqual([]);
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining("test-org/linear"));
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("plugin_linear_api"));
     expect(JSON.stringify(warn.mock.calls)).not.toContain("lin-login");
   });
 
-  it("spreads the platform values over the server's own, so no vault entry impersonates a caller", async () => {
-    const client = clientReturning({ who: declaring(stdioMcpServer("who"), ["STIGMER_CALLER_IDENTITY_VALUE"]) });
-    const tools = new Map([["id-who", { url: "", values: { STIGMER_CALLER_IDENTITY_VALUE: "forged" } }]]);
-
-    const result = await resolveMcpServers(
-      client, [makeUsage("who")], tools, { STIGMER_CALLER_IDENTITY_VALUE: "acc_real" }, "stdio-allowed", PLATFORM_ENDPOINTS,
-    );
-
-    expect(result.resolvedServers[0].env).toEqual({ STIGMER_CALLER_IDENTITY_VALUE: "acc_real" });
+  it("skips a local program whose group was checked against a URL", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const tools = new Map([[toolValuesKey("plg_1", "cli"), { url: LINEAR_URL, values: { KEY: "v" } }]]);
+    const result = resolvePluginServers([plugin("plg_1", "p", [stdioEntry("cli", ["KEY"])])], tools, {}, "stdio-allowed", PLATFORM_ENDPOINTS);
+    expect(result.resolvedServers).toEqual([]);
   });
 
-  it("reads the URL a server dials: its HTTP URL, or nothing for a local program", () => {
-    expect(dialedUrlOf(httpMcpServer("h"))).toBe("https://mcp.example.com/mcp");
-    expect(dialedUrlOf(stdioMcpServer("s"))).toBe("");
+  it("spreads the platform values over the server's own, so no vault entry impersonates a caller", () => {
+    const tools = new Map([[toolValuesKey("plg_1", "who"), { url: "", values: { STIGMER_CALLER_IDENTITY_VALUE: "forged" } }]]);
+
+    const result = resolvePluginServers(
+      [plugin("plg_1", "p", [stdioEntry("who", ["STIGMER_CALLER_IDENTITY_VALUE"])])],
+      tools,
+      { STIGMER_CALLER_IDENTITY_VALUE: "acc_real" },
+      "stdio-allowed",
+      PLATFORM_ENDPOINTS,
+    );
+
+    expect(result.resolvedServers[0]?.env).toEqual({ STIGMER_CALLER_IDENTITY_VALUE: "acc_real" });
+  });
+
+  it("resolves a stdio server's arguments from its values", () => {
+    const tools = new Map([[toolValuesKey("plg_1", "cli"), { url: "", values: { DIR: "/data" } }]]);
+    const result = resolvePluginServers(
+      [plugin("plg_1", "p", [stdioEntry("cli", ["DIR"], ["--root", "${DIR}"])])],
+      tools,
+      {},
+      "stdio-allowed",
+      PLATFORM_ENDPOINTS,
+    );
+    expect(result.resolvedServers[0]?.args).toEqual(["--root", "/data"]);
   });
 });
 
-describe("resolveMcpServers — the platform STIGMER_SERVER_ADDRESS (stigmer/stigmer#1433)", () => {
-  function declaringAddress(server: any, headers: Record<string, string> = {}) {
-    server.spec.env = { STIGMER_SERVER_ADDRESS: {} };
-    if (server.spec.serverType.case === "http") server.spec.serverType.value.headers = headers;
-    return server;
-  }
+describe("an entry's own facts", () => {
+  it("reads the URL a server dials: its HTTP URL, or nothing for a local program", () => {
+    expect(dialedUrlOf(httpEntry("h"))).toBe(LINEAR_URL);
+    expect(dialedUrlOf(stdioEntry("s"))).toBe("");
+  });
 
-  it("fills a stdio server's missing address from the runner's backend endpoint", async () => {
-    const client = clientReturning({ stigmer: declaringAddress(stdioMcpServer("stigmer")) });
+  it("reads the keys a server declares", () => {
+    expect(declaredKeysOf(stdioEntry("s", ["A", "B"]))).toEqual({ A: true, B: true });
+  });
 
-    const result = await resolveMcpServers(
-      client, [makeUsage("stigmer")], NO_TOOLS, {}, "stdio-allowed", PLATFORM_ENDPOINTS,
+  it("maps an entry with the origin it is given, and null for none", () => {
+    expect(entryToResolved(httpEntry("h"), "slug", {}, null)).toEqual({
+      slug: "slug",
+      connectionType: "http",
+      url: LINEAR_URL,
+      headers: undefined,
+      pluginOrigin: null,
+    });
+  });
+});
+
+describe("resolvePluginServers: the platform STIGMER_SERVER_ADDRESS (stigmer/stigmer#1433)", () => {
+  it("fills a stdio server's missing address from the runner's backend endpoint", () => {
+    const result = resolvePluginServers(
+      [plugin("plg_1", "stigmer", [stdioEntry("server", ["STIGMER_SERVER_ADDRESS"])])],
+      NO_TOOLS,
+      {},
+      "stdio-allowed",
+      PLATFORM_ENDPOINTS,
     );
 
     // testConfig's backend endpoint is http://127.0.0.1:1.
-    expect(result.resolvedServers[0].env).toEqual({ STIGMER_SERVER_ADDRESS: "127.0.0.1:1" });
+    expect(result.resolvedServers[0]?.env).toEqual({ STIGMER_SERVER_ADDRESS: "127.0.0.1:1" });
   });
 
-  it("keeps the address the server's own values carry", async () => {
-    const client = clientReturning({ stigmer: declaringAddress(stdioMcpServer("stigmer")) });
-
-    const result = await resolveMcpServers(
-      client, [makeUsage("stigmer")],
-      new Map([["id-stigmer", { url: "", values: { STIGMER_SERVER_ADDRESS: "api.example.com:443" } }]]),
-      {}, "stdio-allowed", PLATFORM_ENDPOINTS,
+  it("keeps the address the server's own values carry", () => {
+    const result = resolvePluginServers(
+      [plugin("plg_1", "stigmer", [stdioEntry("server", ["STIGMER_SERVER_ADDRESS"])])],
+      new Map([[toolValuesKey("plg_1", "server"), { url: "", values: { STIGMER_SERVER_ADDRESS: "api.example.com:443" } }]]),
+      {},
+      "stdio-allowed",
+      PLATFORM_ENDPOINTS,
     );
 
-    expect(result.resolvedServers[0].env).toEqual({ STIGMER_SERVER_ADDRESS: "api.example.com:443" });
+    expect(result.resolvedServers[0]?.env).toEqual({ STIGMER_SERVER_ADDRESS: "api.example.com:443" });
   });
 
-  it("templates an http header from the operator's public endpoint", async () => {
-    const client = clientReturning({
-      remote: declaringAddress(httpMcpServer("remote"), { "X-Stigmer-Server": "${STIGMER_SERVER_ADDRESS}" }),
-    });
-
-    const result = await resolveMcpServers(
-      client, [makeUsage("remote")], NO_TOOLS, {}, "stdio-forbidden",
+  it("templates an http header from the operator's public endpoint", () => {
+    const result = resolvePluginServers(
+      [plugin("plg_1", "p", [httpEntry("remote", ["STIGMER_SERVER_ADDRESS"], { "X-Stigmer-Server": "${STIGMER_SERVER_ADDRESS}" })])],
+      NO_TOOLS,
+      {},
+      "stdio-forbidden",
       testConfig({ mcpPublicEndpoint: "https://api.example.com" }),
     );
 
-    expect(result.resolvedServers[0].headers).toEqual({ "X-Stigmer-Server": "api.example.com:443" });
+    expect(result.resolvedServers[0]?.headers).toEqual({ "X-Stigmer-Server": "api.example.com:443" });
   });
 
-  it("never hands an http server the backend endpoint: an unknown address drops it with the named error", async () => {
-    const client = clientReturning({
-      remote: declaringAddress(httpMcpServer("remote"), { "X-Stigmer-Server": "${STIGMER_SERVER_ADDRESS}" }),
-    });
+  it("never hands an http server the backend endpoint: an unknown address drops it with the named error", () => {
     const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
 
-    const result = await resolveMcpServers(
-      client, [makeUsage("remote")], NO_TOOLS, {}, "stdio-forbidden", PLATFORM_ENDPOINTS,
+    const result = resolvePluginServers(
+      [plugin("plg_1", "p", [httpEntry("remote", ["STIGMER_SERVER_ADDRESS"], { "X-Stigmer-Server": "${STIGMER_SERVER_ADDRESS}" })])],
+      NO_TOOLS,
+      {},
+      "stdio-forbidden",
+      PLATFORM_ENDPOINTS,
     );
 
     expect(result.resolvedServers).toEqual([]);
     expect(errorLog).toHaveBeenCalledWith(expect.stringContaining("STIGMER_SERVER_ADDRESS"));
     errorLog.mockRestore();
-  });
-});
-
-describe("mergeMcpServerUsages — session-wins-per-slug (shared by both harnesses)", () => {
-  it("names a slug both carry once, by the session's usage", () => {
-    const merged = mergeMcpServerUsages(
-      [makeUsage("github", "agent-org")],
-      [makeUsage("github", "session-org")],
-    );
-
-    expect(merged).toHaveLength(1);
-    expect(merged[0].mcpServerRef?.org).toBe("session-org");
-  });
-
-  it("unions distinct slugs and skips usages without one", () => {
-    const merged = mergeMcpServerUsages(
-      [makeUsage("github"), {} as any],
-      [makeUsage("planton")],
-    );
-
-    expect(merged.map((u) => u.mcpServerRef?.slug)).toEqual(["github", "planton"]);
   });
 });

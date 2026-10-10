@@ -111,7 +111,7 @@ describe("loadConfig is bound by main.ts alone", () => {
         "runner.ts",
         "runner-manager.ts",
         join("activities", "generate-session-subject.ts"),
-        join("activities", "discover-mcp-server.ts"),
+        join("activities", "list-plugin-tools.ts"),
         join("shared", "checkpointer", "factory.ts"),
       ]),
     );

@@ -78,7 +78,7 @@ function boundaryOpts(status: RunStatus, overrides?: Partial<TurnBoundaryOptions
     hitlDir,
     primaryWorkspaceDir: repo,
     turnStartMessageIndex: 0,
-    mcpDefault: { destructive: new Set(), leasedServers: new Set() },
+    mcpDefault: { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() },
     ...overrides,
   };
 }

@@ -489,7 +489,7 @@ describe("V3ProtocolNormalizer", () => {
 
     it("attributes root calls only: a sub-agent's tool start carries no server and no provenance even under a gate", () => {
       const t = new DeepAgentTranslator({
-        mcpDefault: { destructive: new Set(["search-server/grep"]), leasedServers: new Set() },
+        mcpDefault: { destructive: new Set(["search-server/grep"]), unlisted: new Set<string>(), leasedServers: new Set() },
         toolServerMap: new Map([["grep", "search-server"]]),
         leasedCategories: new Set(),
         globalBypass: false,
@@ -509,7 +509,7 @@ describe("V3ProtocolNormalizer", () => {
 
   describe("a refused call, from the tool-scope middleware's custom event", () => {
     const GATE = {
-      mcpDefault: { destructive: new Set(["github/delete_repo"]), leasedServers: new Set<string>() },
+      mcpDefault: { destructive: new Set(["github/delete_repo"]), unlisted: new Set<string>(), leasedServers: new Set<string>() },
       toolServerMap: new Map([["delete_repo", "github"]]),
       leasedCategories: new Set<never>(),
       globalBypass: false,

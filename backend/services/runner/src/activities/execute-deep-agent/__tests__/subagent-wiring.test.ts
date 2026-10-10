@@ -109,7 +109,7 @@ describe("buildSubAgentMiddleware", () => {
 
   it("installs the approval gate when an approvalGate config is provided", () => {
     const stack = buildSubAgentMiddleware({
-      approvalGate: { mcpDefault: { destructive: new Set(), leasedServers: new Set() }, toolServerMap: new Map() },
+      approvalGate: { mcpDefault: { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() }, toolServerMap: new Map() },
     });
 
     // loop, budget, tool intent, truncation, approval gate, error hints
@@ -136,7 +136,7 @@ describe("buildSubAgentMiddleware", () => {
 
     const stack = buildSubAgentMiddleware({
       costAdvisory: parentCostAdvisory,
-      approvalGate: { mcpDefault: { destructive: new Set(), leasedServers: new Set() }, toolServerMap: new Map() },
+      approvalGate: { mcpDefault: { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() }, toolServerMap: new Map() },
     });
 
     // loop, budget, tool intent, truncation, approval gate, cost advisory view,
@@ -155,7 +155,7 @@ describe("buildSubAgentMiddleware", () => {
     it("captureIgnored:true inherits the parent gate verbatim (CAS routing + secret sink preserved)", () => {
       const recordBlockedSecret = vi.fn();
       const parentGate = {
-        mcpDefault: { destructive: new Set<string>(), leasedServers: new Set<string>() },
+        mcpDefault: { destructive: new Set<string>(), unlisted: new Set<string>(), leasedServers: new Set<string>() },
         toolServerMap: new Map<string, string>(),
         captureIgnored: true,
         recordBlockedSecret,
@@ -176,7 +176,7 @@ describe("buildSubAgentMiddleware", () => {
       // must not inherit that unless a CAS observer explicitly backs it, else it
       // would apply unobserved, unreviewable bytes.
       const parentGate = {
-        mcpDefault: { destructive: new Set<string>(), leasedServers: new Set<string>() },
+        mcpDefault: { destructive: new Set<string>(), unlisted: new Set<string>(), leasedServers: new Set<string>() },
         toolServerMap: new Map<string, string>(),
         captureIgnored: true,
         recordBlockedSecret,

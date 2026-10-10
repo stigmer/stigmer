@@ -7,7 +7,9 @@
  *  - a `TurnInput` survives the trip as JSON: protobuf messages, Maps and
  *    Sets intact, and the aliases the runtime builds rebuilt (`session` IS
  *    `blueprint.session`, the spec IS `blueprint.sessionSpec`, the agent's
- *    sub-agents ARE `blueprint.subAgents`, the leased servers ARE one Set);
+ *    sub-agents ARE `blueprint.subAgents`, the leased servers ARE one Set),
+ *    the turn's plugins, each plugin's hook values, the servers whose tools
+ *    could not be listed and the turn start's listing included;
  *  - the behaviour members are the host's stand-ins: the memory selection,
  *    the artifact upload and a plugin's verify call back, never run locally;
  *  - a vision image crosses once even when an attachment and the vision
@@ -24,7 +26,7 @@ import { describe, expect, it } from "vitest";
 import { SubAgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { ChannelTemplateSchema, MessagingChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
-import { McpServerUsageSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
+import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApprovalAction, MessageType, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
@@ -32,6 +34,8 @@ import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/me
 import { turnInputFixture } from "../../__test-utils__/turn-input-fixture.js";
 import type { ArtifactStorage } from "../../shared/artifact-storage.js";
 import { ToolScope } from "../../shared/tool-lists.js";
+import { toolValuesKey } from "../../shared/run-values.js";
+import type { McpToolListing } from "../../shared/mcp-tool-listing.js";
 import {
   ADAPTER_OWNED_STATUS_FIELDS,
   RUNTIME_OWNED_STATUS_FIELDS,
@@ -75,11 +79,17 @@ function crossed(input: ReturnType<typeof turnInputFixture>, services = noServic
 describe("the turn input across the pipe", () => {
   it("keeps every protobuf message, Map and Set, and rebuilds the runtime's aliases", () => {
     const leased = new Set(["github"]);
+    const listing: McpToolListing = {
+      listed: [{ server: "plugin_linear_api", tools: ["search", "delete_issue"] }],
+      destructive: [{ server: "plugin_linear_api", tool: "delete_issue" }],
+      unlisted: ["plugin_jira_api"],
+    };
     const input = turnInputFixture({
       approvalDecisions: new Map([["call-1", ApprovalAction.APPROVE]]),
       values: {
         agent: { API_TOKEN: "value" },
-        tools: new Map([["mcp_linear", { url: "https://mcp.linear.app/mcp", values: { LINEAR_TOKEN: "lin" } }]]),
+        tools: new Map([[toolValuesKey("plg_linear", "api"), { url: "https://mcp.linear.app/mcp", values: { LINEAR_TOKEN: "lin" } }]]),
+        plugins: new Map([["plg_safety", { HOOK_TOKEN: "hook" }]]),
         repositories: [{ name: "app", url: "https://github.com/acme/app.git", token: "ghp_runner_only" }],
       },
       appliedToolCallIds: new Set(["call-2"]),
@@ -87,7 +97,8 @@ describe("the turn input across the pipe", () => {
         servers: [],
         channelMessaging: [],
         leases: { global: false, categories: new Set(["write"]), servers: leased, hooks: new Set(["hook-key"]) },
-        mcpDefault: { destructive: new Set(["github/delete_repo"]), leasedServers: leased },
+        mcpDefault: { destructive: new Set(["github/delete_repo"]), unlisted: new Set(["plugin_jira_api"]), leasedServers: leased },
+        listing,
         platformServerSlugs: new Set(["memory"]),
         toolScope: ToolScope.of("The agent", { tools: ["Read", "Agent(explore)"], disallowedTools: ["mcp__github__delete_repo"] }),
       },
@@ -111,8 +122,11 @@ describe("the turn input across the pipe", () => {
     expect([...decoded.approvalDecisions]).toEqual([["call-1", ApprovalAction.APPROVE]]);
     expect(decoded.values.agent).toEqual({ API_TOKEN: "value" });
     expect([...decoded.values.tools]).toEqual([
-      ["mcp_linear", { url: "https://mcp.linear.app/mcp", values: { LINEAR_TOKEN: "lin" } }],
+      [toolValuesKey("plg_linear", "api"), { url: "https://mcp.linear.app/mcp", values: { LINEAR_TOKEN: "lin" } }],
     ]);
+    expect([...decoded.values.plugins]).toEqual([["plg_safety", { HOOK_TOKEN: "hook" }]]);
+    expect([...decoded.mcp.mcpDefault.unlisted]).toEqual(["plugin_jira_api"]);
+    expect(decoded.mcp.listing).toEqual(listing);
     // A repository's token is the runner's alone: it never crosses the pipe.
     expect(decoded.values.repositories).toEqual([]);
     expect(JSON.stringify(encodeTurnInput(input))).not.toContain("ghp_runner_only");
@@ -120,6 +134,10 @@ describe("the turn input across the pipe", () => {
     expect([...decoded.mcp.leases.categories]).toEqual(["write"]);
     expect([...decoded.mcp.mcpDefault.destructive]).toEqual(["github/delete_repo"]);
     expect([...decoded.skills.bySubAgent.keys()]).toEqual(["helper"]);
+  });
+
+  it("carries no listing for an engine that reads its tools' marks itself", () => {
+    expect(crossed(turnInputFixture()).mcp.listing).toBeUndefined();
   });
 
   it("keeps a sub-agent list that is not the agent spec's (the built-in judge's) as its own", () => {
@@ -131,7 +149,7 @@ describe("the turn input across the pipe", () => {
     expect(decoded.blueprint.agent!.spec.subAgents.map((s) => s.name)).toEqual(["on-the-spec"]);
   });
 
-  it("carries every list the runtime resolved: usages, skill references, channels and their templates, sub-agents of their own, plain attachments", () => {
+  it("carries every list the runtime resolved: plugins, skill references, channels and their templates, sub-agents of their own, plain attachments", () => {
     const input = turnInputFixture({
       attachments: { results: [{ filename: "notes.txt", relativePath: ".stigmer/inputs/notes.txt", sizeBytes: 4 }], visionImages: [], visionNotViewable: [] },
     });
@@ -144,14 +162,21 @@ describe("the turn input across the pipe", () => {
     const blueprint = {
       ...input.blueprint,
       subAgents: [create(SubAgentSchema, { name: "own" })],
-      mergedMcpServerUsages: [create(McpServerUsageSchema, { mcpServerRef: create(ApiResourceReferenceSchema, { slug: "github" }) })],
+      plugins: [
+        create(PluginSchema, {
+          metadata: { id: "plg_kit", name: "kit" },
+          status: { digest: "d".repeat(64), mcpServers: [{ name: "api", env: ["TOKEN"], transport: { case: "http", value: { url: "https://kit.example/mcp" } } }] },
+        }),
+      ],
       mergedSkillRefs: [create(ApiResourceReferenceSchema, { slug: "review" })],
     };
 
     const decoded = crossed({ ...input, mcp, blueprint });
 
     expect(decoded.blueprint.subAgents.map((s) => s.name)).toEqual(["own"]);
-    expect(decoded.blueprint.mergedMcpServerUsages.map((u) => u.mcpServerRef?.slug)).toEqual(["github"]);
+    expect(decoded.blueprint.plugins.map((p) => [p.metadata?.id, p.status?.digest, p.status?.mcpServers.map((e) => [e.name, e.env, e.transport.case])])).toEqual([
+      ["plg_kit", "d".repeat(64), [["api", ["TOKEN"], "http"]]],
+    ]);
     expect(decoded.blueprint.mergedSkillRefs.map((r) => r.slug)).toEqual(["review"]);
     expect(decoded.mcp.channelMessaging.map((c) => [c.channel.channel, c.templates.map((t) => t.name)])).toEqual([["chn_1", ["welcome"]]]);
     expect(decoded.attachments.results).toEqual([{ filename: "notes.txt", relativePath: ".stigmer/inputs/notes.txt", sizeBytes: 4 }]);
@@ -175,13 +200,14 @@ describe("the turn input across the pipe", () => {
   it("calls back to the runner for the memory selection, the upload and a plugin's verify", async () => {
     const calls: string[] = [];
     const input = turnInputFixture({
-      hooks: { sources: [{ plugin: { slug: "lint", name: "Lint", root: "/r", data: "/d", verify: async () => void calls.push("local verify") }, format: "claude-code", groups: [] }], pluginServers: new Map() },
+      hooks: { sources: [{ plugin: { id: "plg_lint", slug: "lint", name: "Lint", root: "/r", data: "/d", verify: async () => void calls.push("local verify") }, format: "claude-code", groups: [] }], pluginServers: new Map() },
       artifactStorage: noServices().artifactStorage,
     });
     const decoded = crossed(input, noServices(calls));
 
     expect(await decoded.standing.selectRecalledMemories()).toEqual({ facts: ["remembered"] });
     await decoded.artifactStorage!.upload("artifacts/x/a.txt", Buffer.from("a"));
+    expect(decoded.hooks.sources[0]!.plugin!.id, "the id a plugin's hook values are grouped by").toBe("plg_lint");
     await decoded.hooks.sources[0]!.plugin!.verify();
     expect(calls).toEqual(["recall", "upload artifacts/x/a.txt", "verify lint"]);
   });

@@ -168,7 +168,7 @@ async function runCursorHooksProbe(hooks: readonly ContractHook[], action: Propo
           autoApproveAll: options.autoApproveAll ?? false,
           unattendedSkip: options.unattended ?? false,
           ...(options.categoryLease ? { leasedCategories: [options.categoryLease] } : {}),
-          ...(options.lists ? { lists: options.lists, mcpServers: [{ slug: action.mcpServerSlug ?? "srv", discoveredToolNames: null }] } : {}),
+          ...(options.lists ? { lists: options.lists, mcpServers: [{ slug: action.mcpServerSlug ?? "srv", listedTools: null }] } : {}),
           destructiveMcpTools: destructiveToolsOf(action),
           hookServer: { socketPath: server.socketPath, token: server.token },
         });
@@ -290,7 +290,7 @@ export function createCursorSubstrate(): GatewaySubstrate {
         lists,
         autoApproveAll: options.autoApproveAll ?? false,
         destructiveMcpTools: destructiveToolsOf(action),
-        mcpServers: [{ slug, discoveredToolNames: null }],
+        mcpServers: [{ slug, listedTools: null }],
       });
       // The platform's content exists in the platform dir the turn's
       // `.stigmer` links to: an excluded Read is admitted by the file's real

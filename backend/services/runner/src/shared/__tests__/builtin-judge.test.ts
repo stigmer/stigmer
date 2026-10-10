@@ -40,7 +40,7 @@ describe("the built-in judge", () => {
     expect(spec.instructions).toBe(BUILT_IN_JUDGE_INSTRUCTIONS);
     expect(spec.disallowedTools).toEqual([...BUILT_IN_JUDGE_DISALLOWED_TOOLS]);
     expect(spec.tools).toEqual([]);
-    expect(spec.mcpServerUsages).toEqual([]);
+    expect(spec.plugins).toEqual([]);
     expect(spec.skillRefs).toEqual([]);
     expect(spec.subAgents).toEqual([]);
     expect(spec.hooks).toEqual([]);

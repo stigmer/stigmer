@@ -19,10 +19,10 @@ import { mkdtempSync, mkdirSync, realpathSync, rmSync, symlinkSync } from "node:
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-/** One resolved server as the inventory reads it: its slug and what discovery knows. */
+/** One resolved server as the inventory reads it: its slug and what the turn start listed of it (null: its listing failed). */
 interface ServerFacts {
   readonly slug: string;
-  readonly discoveredToolNames: readonly string[] | null;
+  readonly listedTools: readonly string[] | null;
 }
 
 /** The four fields `checkToolScope` reads, as a turn input. */
@@ -38,7 +38,16 @@ function input(
   return {
     executionId: "aex-1",
     blueprint: { subAgents },
-    mcp: { toolScope: ToolScope.of('Agent "a"', lists), servers, platformServerSlugs: new Set(platformServerSlugs) },
+    mcp: {
+      toolScope: ToolScope.of('Agent "a"', lists),
+      servers: servers.map(({ slug }) => ({ slug })),
+      listing: {
+        listed: servers.flatMap(({ slug, listedTools }) => (listedTools === null ? [] : [{ server: slug, tools: listedTools }])),
+        destructive: [],
+        unlisted: servers.filter(({ listedTools }) => listedTools === null).map(({ slug }) => slug),
+      },
+      platformServerSlugs: new Set(platformServerSlugs),
+    },
   } as unknown as TurnInput;
 }
 
@@ -64,34 +73,34 @@ describe("checkToolScope", () => {
 
   describe("an MCP entry resolves against the turn's servers", () => {
     const servers: ServerFacts[] = [
-      { slug: "github", discoveredToolNames: ["list_prs"] },
-      { slug: "fresh", discoveredToolNames: null },
+      { slug: "github", listedTools: ["list_prs"] },
+      { slug: "fresh", listedTools: null },
     ];
     const check = (tools: string[]) => () =>
       checkToolScope(input({ tools, disallowedTools: [] }, [], servers), { agentMode: "local" });
 
-    it("a discovered tool and a whole attached server resolve", () => {
+    it("a listed tool and a whole attached server resolve", () => {
       expect(check(["mcp__github__list_prs"])).not.toThrow();
       expect(check(["mcp__github"])).not.toThrow();
     });
 
-    it("a tool discovery never saw on a server it did see names nothing", () => {
+    it("a tool the listing did not name on a server it did list names nothing", () => {
       expect(check(["mcp__github__merge_pr"])).toThrow(ToolListResolutionError);
     });
 
-    it("any tool of a server never discovered resolves: absence cannot be proven", () => {
+    it("any tool of a server whose listing failed resolves: absence cannot be proven", () => {
       expect(check(["mcp__fresh__anything"])).not.toThrow();
     });
 
     it("the platform's own attachments count for nothing, as on the native engine", () => {
       const platformOnly = (tools: string[]) => () =>
-        checkToolScope(input({ tools, disallowedTools: [] }, [], [{ slug: "stigmer-memory", discoveredToolNames: ["remember"] }], ["stigmer-memory"]), {
+        checkToolScope(input({ tools, disallowedTools: [] }, [], [{ slug: "stigmer-memory", listedTools: ["remember"] }], ["stigmer-memory"]), {
           agentMode: "local",
         });
       expect(platformOnly(["mcp__*"])).toThrow(ToolListResolutionError);
       expect(platformOnly(["mcp__stigmer-memory__remember"])).toThrow(ToolListResolutionError);
       // A user server beside it still answers mcp__*.
-      const withUserServer = input({ tools: ["mcp__*"], disallowedTools: [] }, [], [...servers, { slug: "stigmer-memory", discoveredToolNames: null }], ["stigmer-memory"]);
+      const withUserServer = input({ tools: ["mcp__*"], disallowedTools: [] }, [], [...servers, { slug: "stigmer-memory", listedTools: null }], ["stigmer-memory"]);
       expect(() => checkToolScope(withUserServer, { agentMode: "local" })).not.toThrow();
     });
 

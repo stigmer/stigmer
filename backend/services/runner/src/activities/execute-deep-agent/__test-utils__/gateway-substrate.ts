@@ -184,7 +184,7 @@ function mcpDefaultFor(action: ProposedAction): McpApprovalDefault {
   if (action.kind === "mcp" && action.mcpDestructive) {
     destructive.add(mcpToolKey(action.mcpServerSlug ?? "srv", action.mcpToolName ?? "mcp_tool"));
   }
-  return { destructive, leasedServers: new Set() };
+  return { destructive, unlisted: new Set<string>(), leasedServers: new Set() };
 }
 
 /** The workspace file every read probe reads, and the platform file a `platformContent` read names. */

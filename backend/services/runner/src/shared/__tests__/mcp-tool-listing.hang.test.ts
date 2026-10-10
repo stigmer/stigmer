@@ -1,36 +1,27 @@
 /**
  * Regression pin for issue #239's hang mechanism, against the REAL MCP client
- * stack (no @langchain/mcp-adapters mock — that's why this lives in its own
- * file, apart from discover-mcp-server.test.ts's mocked suite).
+ * stack (no @langchain/mcp-adapters mock — that is why this lives apart from
+ * mcp-tool-listing.test.ts's mocked suite).
  *
  * The monday.com failure shape: the endpoint answers the streamable-HTTP
- * initialize POST with a 4xx, mcp-adapters automatically falls back to SSE at
- * the same URL, the endpoint accepts the stream and never sends the legacy
- * `endpoint` event — and the MCP SDK's SSEClientTransport has no timer of its
- * own, so initialization hangs forever. Before the transport-aware init bound,
- * that hang rode until Temporal killed the activity opaquely; this test pins
- * that discovery now fails fast (in fake time) with an error that names the
- * endpoint.
+ * initialize POST with a 4xx, mcp-adapters falls back to SSE at the same URL,
+ * the endpoint accepts the stream and never sends the legacy `endpoint`
+ * event, and the MCP SDK's SSEClientTransport has no timer of its own, so
+ * initialization would hang forever. This pins that a tools listing fails
+ * within the HTTP init bound (in fake time) with an error naming the endpoint.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createServer, type Server } from "node:http";
-import { testConfig } from "../../__test-utils__/config-fixture.js";
 
-/** The runner endpoints discovery fills STIGMER_SERVER_ADDRESS from. */
-const PLATFORM_ENDPOINTS = testConfig();
+import { listServerTools } from "../mcp-tool-listing.js";
 
-vi.mock("../../idle-watchdog.js", () => ({
-  activityStarted: vi.fn(),
-  activityFinished: vi.fn(),
-}));
-
-// classifyHttpOAuthFailure re-probes the endpoint on the failure path; keep it
-// deterministic here (its own behavior is covered by mcp-oauth-detect tests).
-vi.mock("../../shared/mcp-oauth-detect.js", () => ({
+// A failed HTTP listing re-probes the endpoint for a sign-in challenge; keep
+// it deterministic here (its own behaviour is covered by mcp-oauth-detect's tests).
+vi.mock("../mcp-oauth-detect.js", () => ({
   detectOAuthChallenge: vi.fn().mockResolvedValue(null),
 }));
 
-describe("discovery against a 4xx-then-silent-SSE endpoint (issue #239)", () => {
+describe("a tools listing against a 4xx-then-silent-SSE endpoint (issue #239)", () => {
   let server: Server;
   let url: string;
 
@@ -65,31 +56,16 @@ describe("discovery against a 4xx-then-silent-SSE endpoint (issue #239)", () => 
   });
 
   it("fails within the HTTP init bound with an endpoint-naming error", async () => {
-    const { discoverMcpServer } = await import("../discover-mcp-server.js");
-
-    const stigmerClient = {
-      getMcpServer: vi.fn().mockResolvedValue({
-        metadata: { slug: "monday", id: "mcp-monday" },
-        spec: {
-          serverType: {
-            case: "http",
-            value: { url, headers: {}, queryParams: {}, timeoutSeconds: 0 },
-          },
-          env: {},
-        },
-        status: undefined,
-      }),
-      fetchExecutionValues: vi.fn(),
-    };
-
     // shouldAdvanceTime keeps real I/O flowing (the POST → 405 → SSE fallback
-    // happens over real sockets) while letting the test jump the 60s bound.
+    // happens over real sockets) while letting the test jump the bound.
     vi.useFakeTimers({ shouldAdvanceTime: true });
 
-    const promise = discoverMcpServer(
-      { mcpServerId: "mcp-monday" },
-      { stigmerClient: stigmerClient as never, transportPosture: "stdio-forbidden", platformEndpoints: PLATFORM_ENDPOINTS },
-    );
+    const promise = listServerTools({
+      slug: "plugin_monday_api",
+      connectionType: "http",
+      url,
+      pluginOrigin: { pluginId: "plg-monday", plugin: "monday", server: "api" },
+    });
     // Attach the rejection expectation BEFORE advancing so the rejection is
     // never momentarily unhandled.
     const expectation = expect(promise).rejects.toThrow(

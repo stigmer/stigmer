@@ -43,7 +43,7 @@ import { compileSubagents } from "../subagent-transformer.js";
 import { confinedReadAdmission } from "../platform-route.js";
 import { ScriptedModel, readPendingInterrupts, type ScriptSelector, type ScriptedToolCall } from "../__test-utils__/scripted-model.js";
 
-const NO_GATE_DEFAULT = { destructive: new Set<string>(), leasedServers: new Set<string>() };
+const NO_GATE_DEFAULT = { destructive: new Set<string>(), unlisted: new Set<string>(), leasedServers: new Set<string>() };
 
 /** A server tool that counts its runs, so a test can prove a refused call never ran. */
 function countingTool(name: string, runs: string[]) {

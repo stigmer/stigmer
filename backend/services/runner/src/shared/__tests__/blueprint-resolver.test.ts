@@ -12,11 +12,15 @@
  *     it is now, not the session's;
  *   - a turn whose stamp names no agent is the built-in assistant, even in
  *     a session that names and pins one (the stamp is the only route to
- *     the agent): no agent read, empty instructions, no sub-agents, and
- *     the session's own usages and refs as the whole tool set.
+ *     the agent): no agent read, empty instructions, no sub-agents of its
+ *     own, and the session's own plugins and refs as the whole tool set.
  *   - a run labelled as an AI judge's runs the built-in judge whatever its
- *     stamp: no agent read, the judge's instruction, and no MCP usage,
- *     skill ref or sub-agent, not even the session's own.
+ *     stamp: no agent read, the judge's instruction, and no plugin, skill
+ *     ref or sub-agent, not even the session's own.
+ *   - plugins: the agent's and the session's merged one per organization
+ *     and slug, the session's reference winning; each read by reference,
+ *     a failure failing the turn naming the plugin; each plugin's agents
+ *     joining the sub-agents as `<plugin>:<agent>` after the agent's own.
  *
  * `mergeSkillRefs` carried from `skill-writer.test.ts` in #1096, when the
  * native orchestrator's byte-twin of this function was deleted with its
@@ -32,7 +36,8 @@ import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { mockStigmerClient } from "../../__test-utils__/mock-client.js";
-import { mergeSkillRefs, resolveBlueprint } from "../blueprint-resolver.js";
+import { PluginSchema, type Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import { mergePluginRefs, mergeSkillRefs, pluginAgentName, pluginSubAgents, resolveBlueprint } from "../blueprint-resolver.js";
 import {
   BUILT_IN_JUDGE_DISALLOWED_TOOLS,
   BUILT_IN_JUDGE_INSTRUCTIONS,
@@ -50,7 +55,7 @@ describe("resolveBlueprint", () => {
     const session = create(SessionSchema, {
       metadata: { id: "ses_judge", org: "acme" },
       spec: {
-        mcpServerUsages: [{ mcpServerRef: { kind: ApiResourceKind.mcp_server, slug: "github" } }],
+        plugins: [{ org: "acme", slug: "github" }],
         skillRefs: [{ org: "acme", slug: "review" }],
       },
     });
@@ -66,8 +71,9 @@ describe("resolveBlueprint", () => {
     expect(blueprint.agent?.spec.disallowedTools).toEqual([...BUILT_IN_JUDGE_DISALLOWED_TOOLS]);
     expect(blueprint.instructions).toBe(BUILT_IN_JUDGE_INSTRUCTIONS);
     expect(blueprint.subAgents).toEqual([]);
-    expect(blueprint.mergedMcpServerUsages).toEqual([]);
+    expect(blueprint.plugins).toEqual([]);
     expect(blueprint.mergedSkillRefs).toEqual([]);
+    expect(client.getPluginByReference).not.toHaveBeenCalled();
   });
 
   it("runs the recorded version's spec after the head moved, never the head or the session's agent", async () => {
@@ -153,14 +159,15 @@ describe("resolveBlueprint", () => {
     expect(client.getAgent).toHaveBeenCalledTimes(1);
   });
 
-  it("merges the stamped version's tools with the session's own, the session's usage winning by slug", async () => {
+  it("merges the stamped version's tools with the session's own", async () => {
     const client = mockStigmerClient({
+      getPluginByReference: vi.fn(async (ref: ApiResourceReference) => pluginNamed(ref.slug)),
       getAgentVersion: vi.fn().mockResolvedValue(
         create(AgentVersionEntrySchema, {
           versionHash: HASH,
           specSnapshot: {
             instructions: "You build things.",
-            mcpServerUsages: [{ mcpServerRef: { org: "acme", slug: "github" } }],
+            plugins: [{ org: "acme", slug: "github" }],
             skillRefs: [{ org: "acme", slug: "release" }],
           },
         }),
@@ -170,7 +177,7 @@ describe("resolveBlueprint", () => {
       metadata: { id: "ses_1", org: "acme" },
       spec: {
         agentRef: { kind: ApiResourceKind.agent, org: "acme", slug: "builder" },
-        mcpServerUsages: [{ mcpServerRef: { org: "acme", slug: "notes" } }],
+        plugins: [{ org: "acme", slug: "notes" }],
       },
     });
 
@@ -178,7 +185,7 @@ describe("resolveBlueprint", () => {
 
     expect(blueprint.agent?.id).toBe("agt_1");
     expect(blueprint.instructions).toBe("You build things.");
-    expect(blueprint.mergedMcpServerUsages.map((u) => u.mcpServerRef?.slug).sort()).toEqual(["github", "notes"]);
+    expect(blueprint.plugins.map((plugin) => plugin.metadata?.name)).toEqual(["github", "notes"]);
     expect(blueprint.mergedSkillRefs.map((r) => r.slug)).toEqual(["release"]);
   });
 
@@ -191,12 +198,13 @@ describe("resolveBlueprint", () => {
       const client = mockStigmerClient({
         getAgent: vi.fn().mockRejectedValue(new Error("must not be reached")),
         getAgentVersion: vi.fn().mockRejectedValue(new Error("must not be reached")),
+        getPluginByReference: vi.fn(async (ref: ApiResourceReference) => pluginNamed(ref.slug, ["drafter"])),
       });
       const session = create(SessionSchema, {
         metadata: { id: "ses_2", org: "acme" },
         spec: {
           agentRef: { kind: ApiResourceKind.agent, org: "acme", slug: "builder" },
-          mcpServerUsages: [{ mcpServerRef: { org: "acme", slug: "notes" } }],
+          plugins: [{ org: "acme", slug: "notes" }],
           skillRefs: [{ org: "acme", slug: "writing" }],
         },
         status: { agentId: "agt_pinned", agentVersionHash: HASH },
@@ -206,13 +214,134 @@ describe("resolveBlueprint", () => {
 
       expect(blueprint.agent).toBeUndefined();
       expect(blueprint.instructions).toBe("");
-      expect(blueprint.subAgents).toEqual([]);
-      expect(blueprint.mergedMcpServerUsages.map((u) => u.mcpServerRef?.slug)).toEqual(["notes"]);
+      expect(blueprint.subAgents.map((subAgent) => subAgent.name), "the session's plugins' agents only").toEqual(["notes:drafter"]);
+      expect(blueprint.plugins.map((plugin) => plugin.metadata?.name)).toEqual(["notes"]);
       expect(blueprint.mergedSkillRefs.map((r) => r.slug)).toEqual(["writing"]);
       expect(client.getAgent).not.toHaveBeenCalled();
       expect(client.getAgentVersion).not.toHaveBeenCalled();
     },
   );
+});
+
+/** A plugin as the server answers it: named by its slug, carrying the given agents. */
+function pluginNamed(slug: string, agents: string[] = [], org = "acme"): Plugin {
+  return create(PluginSchema, {
+    metadata: { id: `plg_${slug}`, name: slug, slug, org },
+    status: { agents: agents.map((name) => ({ name, description: `${name} agent`, instructions: `You are ${name}.` })) },
+  });
+}
+
+describe("resolveBlueprint: plugins", () => {
+  const agentVersion = (plugins: { org: string; slug: string; version?: string }[]) =>
+    create(AgentVersionEntrySchema, {
+      versionHash: HASH,
+      specSnapshot: { instructions: "x", plugins, subAgents: [{ name: "reviewer", instructions: "Review." }] },
+    });
+
+  it("merges one per plugin, the session's reference winning, each read by its own reference", async () => {
+    const getPluginByReference = vi.fn(async (ref: ApiResourceReference) => pluginNamed(ref.slug));
+    const client = mockStigmerClient({
+      getAgentVersion: vi.fn().mockResolvedValue(
+        agentVersion([
+          { org: "acme", slug: "linear", version: "agent-pin" },
+          { org: "acme", slug: "github" },
+        ]),
+      ),
+      getPluginByReference,
+    });
+    const session = create(SessionSchema, {
+      metadata: { id: "ses_p", org: "acme" },
+      spec: { plugins: [{ org: "acme", slug: "linear", version: "session-pin" }, { org: "acme", slug: "notes" }] },
+    });
+
+    const blueprint = await resolveBlueprint(client, session, { agentId: "agt_1", agentVersionHash: HASH }, {});
+
+    expect(blueprint.plugins.map((plugin) => plugin.metadata?.name)).toEqual(["linear", "github", "notes"]);
+    const asked = getPluginByReference.mock.calls.map(([ref]) => `${ref.slug}@${ref.version}`);
+    expect(asked).toEqual(["linear@session-pin", "github@", "notes@"]);
+  });
+
+  it("names each plugin's agents <plugin>:<agent>, after the agent's own sub-agents, with the plugin's tool lists", async () => {
+    const client = mockStigmerClient({
+      getAgentVersion: vi.fn().mockResolvedValue(agentVersion([{ org: "acme", slug: "review" }])),
+      getPluginByReference: vi.fn(async () =>
+        create(PluginSchema, {
+          metadata: { id: "plg_review", name: "review", slug: "review", org: "acme" },
+          status: {
+            agents: [{ name: "security", description: "Finds holes.", instructions: "Look.", tools: ["Read"], disallowedTools: ["Bash"], skills: ["owasp"] }],
+          },
+        }),
+      ),
+    });
+    const session = create(SessionSchema, { metadata: { id: "ses_a", org: "acme" }, spec: {} });
+
+    const blueprint = await resolveBlueprint(client, session, { agentId: "agt_1", agentVersionHash: HASH }, {});
+
+    expect(blueprint.subAgents.map((subAgent) => subAgent.name)).toEqual(["reviewer", "review:security"]);
+    const security = blueprint.subAgents[1];
+    expect(security?.description).toBe("Finds holes.");
+    expect(security?.instructions).toBe("Look.");
+    expect(security?.tools).toEqual(["Read"]);
+    expect(security?.disallowedTools).toEqual(["Bash"]);
+    expect(security?.skillRefs, "a plugin agent's skills are the plugin's, mounted by the skills phase").toEqual([]);
+  });
+
+  it("fails the turn naming a plugin that cannot be read, keeping its status code", async () => {
+    const client = mockStigmerClient({
+      getPluginByReference: vi.fn().mockRejectedValue(new ConnectError("plugin not found", Code.NotFound)),
+    });
+    const session = create(SessionSchema, { metadata: { id: "ses_f", org: "acme" }, spec: { plugins: [{ org: "acme", slug: "gone" }] } });
+
+    const failure = await resolveBlueprint(client, session, undefined, {}).catch((e: unknown) => e);
+
+    expect(failure).toBeInstanceOf(ConnectError);
+    expect((failure as ConnectError).code).toBe(Code.NotFound);
+    expect((failure as ConnectError).rawMessage).toContain("the plugin 'gone'");
+    expect((failure as ConnectError).rawMessage).toContain("plugin not found");
+  });
+
+  it("names the plugin when a read fails with no status", async () => {
+    const client = mockStigmerClient({ getPluginByReference: vi.fn().mockRejectedValue(new Error("socket hang up")) });
+    const session = create(SessionSchema, { metadata: { id: "ses_g", org: "acme" }, spec: { plugins: [{ org: "acme", slug: "flaky" }] } });
+
+    const failure = await resolveBlueprint(client, session, undefined, {}).catch((e: unknown) => e);
+
+    expect(failure).not.toBeInstanceOf(ConnectError);
+    expect((failure as Error).message).toContain("the plugin 'flaky'");
+    expect((failure as Error).message).toContain("socket hang up");
+  });
+
+  it("keeps the agent spec's own sub-agent list when the plugins add none", async () => {
+    const version = agentVersion([]);
+    const client = mockStigmerClient({ getAgentVersion: vi.fn().mockResolvedValue(version) });
+    const session = create(SessionSchema, { metadata: { id: "ses_s", org: "acme" }, spec: {} });
+
+    const blueprint = await resolveBlueprint(client, session, { agentId: "agt_1", agentVersionHash: HASH }, {});
+
+    expect(blueprint.subAgents).toBe(blueprint.agent?.spec.subAgents);
+  });
+});
+
+describe("mergePluginRefs", () => {
+  it("keys a reference by organization and slug, an empty organization being the session's", () => {
+    const merged = mergePluginRefs(
+      [makeRef("linear", ""), makeRef("linear", "other-org")],
+      [makeRef("linear", "acme")],
+      "acme",
+    );
+    expect(merged.map((ref) => `${ref.org}/${ref.slug}`)).toEqual(["acme/linear", "other-org/linear"]);
+  });
+
+  it("skips a reference with no slug", () => {
+    expect(mergePluginRefs([makeRef("")], [], "acme")).toEqual([]);
+  });
+});
+
+describe("pluginSubAgents", () => {
+  it("names a plugin's agent as Claude Code does", () => {
+    expect(pluginAgentName("review", "security")).toBe("review:security");
+    expect(pluginSubAgents(pluginNamed("review", ["a", "b"])).map((subAgent) => subAgent.name)).toEqual(["review:a", "review:b"]);
+  });
 });
 
 function makeRef(slug: string, org = "test-org"): ApiResourceReference {

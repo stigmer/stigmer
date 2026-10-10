@@ -27,6 +27,7 @@ import type { ApprovalCategory, McpApprovalDefault } from "../approval-policy.js
 import { mcpToolKey } from "../../../shared/approval-policy.js";
 import { ToolScope, type ToolLists } from "../../../shared/tool-lists.js";
 import { compileHookToolScope } from "../hook-scope.js";
+import type { McpToolListing } from "../../../shared/mcp-tool-listing.js";
 import { readCasObservations, type CasObservations } from "../cas-observations.js";
 import type { ProposedAction } from "../../../__test-utils__/approval-contract/types.js";
 
@@ -140,8 +141,10 @@ export interface CursorHookHarnessOptions {
    * root is derived from it as `turn-setup.ts` `platformReadRoot` derives it.
    */
   stigmerLink?: "platform" | "repo" | "none";
-  /** The turn's MCP servers and the tools discovery knows of (null: never discovered). */
-  mcpServers?: Array<{ slug: string; discoveredToolNames: string[] | null }>;
+  /** The turn's MCP servers and the tools the turn start listed of each (null: its listing failed). */
+  mcpServers?: Array<{ slug: string; listedTools: string[] | null }>;
+  /** Plugin servers whose tools could not be listed this turn: every one of their tools asks. */
+  unlistedMcpServers?: string[];
   /** The platform's synthesized attachment slugs (always in scope). */
   platformServerSlugs?: string[];
   /** The custom sub-agent types registered with the SDK. */
@@ -150,13 +153,22 @@ export interface CursorHookHarnessOptions {
   hookServer?: { socketPath: string; token: string };
 }
 
+/** The turn start's listing of the harness's servers: a `null` tool list is a server whose listing failed. */
+export function listingOf(servers: readonly { slug: string; listedTools: readonly string[] | null }[]): McpToolListing {
+  return {
+    listed: servers.flatMap(({ slug, listedTools }) => (listedTools === null ? [] : [{ server: slug, tools: listedTools }])),
+    destructive: [],
+    unlisted: servers.filter(({ listedTools }) => listedTools === null).map(({ slug }) => slug),
+  };
+}
+
 /** A gate answer's permission, as the SDK reads it; "?" when it carries none. */
 function permissionOf(raw: string): string {
   return raw.includes('"permission":"deny"') ? "deny" : raw.includes('"permission":"allow"') ? "allow" : "?";
 }
 
 /** The approval default of a turn whose servers mark nothing destructive and hold no lease. */
-export const NO_MCP_DEFAULT: McpApprovalDefault = { destructive: new Set(), leasedServers: new Set() };
+export const NO_MCP_DEFAULT: McpApprovalDefault = { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() };
 
 /**
  * Build a throwaway workspace, write the generated hook + (optionally) the
@@ -213,11 +225,14 @@ export function setupCursorHookHarness(opts: CursorHookHarnessOptions = {}): Cur
   if (!opts.noStateFile) {
     const mcpDefault: McpApprovalDefault = {
       destructive: new Set((opts.destructiveMcpTools ?? []).map((tool) => mcpToolKey(opts.destructiveMcpServer ?? "srv", tool))),
+      unlisted: new Set(opts.unlistedMcpServers ?? []),
       leasedServers: new Set(opts.leasedMcpServers ?? []),
     };
+    const servers = opts.mcpServers ?? [];
     const toolScope = compileHookToolScope({
       scope: opts.lists ? ToolScope.of('Agent "test"', opts.lists) : ToolScope.unrestricted(),
-      servers: opts.mcpServers ?? [],
+      servers,
+      listing: listingOf(servers),
       platformServerSlugs: new Set(opts.platformServerSlugs ?? []),
       readRoot,
       subAgentTypes: opts.subAgentTypes ?? [],
