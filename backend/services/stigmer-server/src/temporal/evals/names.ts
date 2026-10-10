@@ -19,6 +19,11 @@ export function runPluginEvalWorkflowId(evalId: string): string {
   return `plugin-eval/${evalId}`;
 }
 
+/** The suite workflow's input: the eval to run. */
+export interface RunPluginEvalInput {
+  readonly evalId: string;
+}
+
 /** The case workflow's registered type: one try, started, polled, graded. */
 export const RUN_CASE_WORKFLOW_TYPE = "stigmer/evals/run-case";
 
@@ -34,4 +39,184 @@ export function runCaseWorkflowId(
   tryIndex: number,
 ): string {
   return `plugin-eval/${evalId}/${caseIndex}/${targetIndex}/${arm}/${tryIndex}`;
+}
+
+/**
+ * Reads the eval and its suite, plans the matrix, and writes the status
+ * skeleton (every case, target and try, each not-run reason).
+ */
+export const LOAD_SUITE_ACTIVITY_NAME = "stigmer/evals/load-suite";
+
+/** Folds one finished try into the eval's status and recomputes its scores. */
+export const RECORD_TRY_ACTIVITY_NAME = "stigmer/evals/record-try";
+
+/** Ends the eval: completed, or partial with its reason. */
+export const FINISH_EVAL_ACTIVITY_NAME = "stigmer/evals/finish-eval";
+
+/** Creates a try's session and run, as the eval's caller. */
+export const START_TRY_ACTIVITY_NAME = "stigmer/evals/start-try";
+
+/** Reads whether a run (a try's or a vote's) has ended. */
+export const POLL_RUN_ACTIVITY_NAME = "stigmer/evals/poll-run";
+
+/** Stops a run that outlived its time. */
+export const STOP_RUN_ACTIVITY_NAME = "stigmer/evals/stop-run";
+
+/** Runs the code graders over the try's trace and prepares the AI-graded ones. */
+export const GRADE_TRY_ACTIVITY_NAME = "stigmer/evals/grade-try";
+
+/** Creates one vote of an AI-graded check, as the eval's caller. */
+export const START_VOTE_ACTIVITY_NAME = "stigmer/evals/start-vote";
+
+/** Reads one vote, stops it if still going, and deletes its session. */
+export const READ_VOTE_ACTIVITY_NAME = "stigmer/evals/read-vote";
+
+/** Scores the try and writes its Score on the try's run. */
+export const RECORD_SCORE_ACTIVITY_NAME = "stigmer/evals/record-score";
+
+/**
+ * The failure type a start activity throws while the platform refuses a
+ * try or a vote for capacity, so the workflow tells "busy" from every
+ * other failure once the retries are spent.
+ */
+export const PLUGIN_EVAL_BUSY_FAILURE_TYPE = "PluginEvalBusy";
+
+/** The not-graded reasons the workflows give without an activity. */
+export const PLATFORM_BUSY_REASON = "platform busy";
+export const OUT_OF_CREDIT_REASON = "out of credit";
+export const CANNOT_ACT_REASON = "the eval cannot act for anyone in this organization";
+export const TRY_NOT_STARTED_REASON = "the try could not start";
+export const GRADING_FAILED_REASON = "grading failed";
+export const TRY_FAILED_REASON = "the try could not be run";
+
+/** One try the suite runs: its cell, and how long it may take. */
+export interface SuiteCell {
+  readonly caseIndex: number;
+  readonly targetIndex: number;
+  readonly arm: "with" | "without";
+  readonly tryIndex: number;
+  readonly timeoutSeconds: number;
+}
+
+/** What the load answers: the cells to run, or nothing (the eval is gone, failed or ended). */
+export type SuitePlan =
+  | {
+      readonly kind: "run";
+      readonly org: string;
+      readonly cells: ReadonlyArray<SuiteCell>;
+      readonly maxCostUsd: number;
+      readonly concurrency: number;
+    }
+  | { readonly kind: "stop" };
+
+/** Why an eval stopped early, in the workflow's words. */
+export type SuiteStop = "cost_ceiling" | "out_of_credit" | "cancelled";
+
+/** How the eval ends. */
+export type SuiteEnd =
+  | { readonly phase: "completed" }
+  | { readonly phase: "partial"; readonly reason: SuiteStop };
+
+/** The case workflow's input: one try of one eval. */
+export interface CaseInput extends SuiteCell {
+  readonly evalId: string;
+  readonly org: string;
+}
+
+/** Why a try did not start. */
+export type TryFailure = "out-of-credit" | "cannot-act" | "not-started";
+
+/** The start's answer. */
+export type TryStart =
+  | { readonly kind: "started"; readonly sessionId: string; readonly runId: string }
+  | { readonly kind: "refused"; readonly failure: TryFailure; readonly reason: string };
+
+/** A grader's verdict on the wire: passed or failed with a reason, or not graded. */
+export type WireVerdict =
+  | { readonly passed: boolean; readonly reason: string }
+  | { readonly notGraded: string };
+
+/** A grader's outcome after the code graders ran: a verdict, or votes to take. */
+export type WireOutcome = WireVerdict | { readonly votes: string };
+
+/** What grading the try's run found. */
+export interface TryGrade {
+  /** One per grader, in order; `votes` names the rubric the AI-graded ones answer. */
+  readonly outcomes: ReadonlyArray<WireOutcome>;
+  /** The run's own failure, as "timed out after 300s"; empty when it completed. */
+  readonly error: string;
+  readonly costUsd: number;
+  readonly durationSeconds: number;
+}
+
+/** A vote's start. */
+export type VoteStart =
+  | { readonly kind: "started"; readonly voteRunId: string }
+  | { readonly kind: "failed"; readonly reason: string };
+
+/** One vote as read, with what it spent. */
+export interface VoteRead {
+  readonly vote:
+    | { readonly kind: "vote"; readonly passed: boolean; readonly reason: string }
+    | { readonly kind: "failed"; readonly reason: string };
+  readonly costUsd: number;
+}
+
+/** One grader's result, as the try reports it to the suite. */
+export interface GraderResult {
+  readonly name: string;
+  readonly scored: boolean;
+  readonly verdict: WireVerdict;
+}
+
+/** A try's result, which the suite folds into the eval's status. */
+export interface TryResult {
+  readonly sessionId: string;
+  readonly runId: string;
+  readonly state: "graded" | "not-graded";
+  readonly score: number;
+  readonly notGradedReason: string;
+  readonly error: string;
+  readonly costUsd: number;
+  readonly durationSeconds: number;
+  readonly graderResults: ReadonlyArray<GraderResult>;
+  /** The organization's credit refused the try: the suite stops starting tries. */
+  readonly outOfCredit: boolean;
+}
+
+/** The suite workflow's activities, keyed by the pinned names. */
+export interface SuiteActivities {
+  [LOAD_SUITE_ACTIVITY_NAME]: (evalId: string) => Promise<SuitePlan>;
+  [RECORD_TRY_ACTIVITY_NAME]: (
+    evalId: string,
+    cell: SuiteCell,
+    result: TryResult,
+  ) => Promise<void>;
+  [FINISH_EVAL_ACTIVITY_NAME]: (evalId: string, end: SuiteEnd) => Promise<void>;
+}
+
+/** The case workflow's activities, keyed by the pinned names. */
+export interface CaseActivities {
+  [START_TRY_ACTIVITY_NAME]: (input: CaseInput) => Promise<TryStart>;
+  [POLL_RUN_ACTIVITY_NAME]: (runId: string) => Promise<boolean>;
+  [STOP_RUN_ACTIVITY_NAME]: (runId: string, reason: string) => Promise<void>;
+  [GRADE_TRY_ACTIVITY_NAME]: (
+    input: CaseInput,
+    runId: string,
+    timedOut: boolean,
+  ) => Promise<TryGrade>;
+  [START_VOTE_ACTIVITY_NAME]: (
+    input: CaseInput,
+    runId: string,
+    graderIndex: number,
+    voteIndex: number,
+  ) => Promise<VoteStart>;
+  [READ_VOTE_ACTIVITY_NAME]: (voteRunId: string, rubric: string) => Promise<VoteRead>;
+  [RECORD_SCORE_ACTIVITY_NAME]: (
+    input: CaseInput,
+    started: { readonly sessionId: string; readonly runId: string },
+    grade: TryGrade,
+    /** Per grader, in order: the votes of an AI-graded check, empty for the others. */
+    votes: ReadonlyArray<ReadonlyArray<VoteRead["vote"]>>,
+  ) => Promise<TryResult>;
 }
