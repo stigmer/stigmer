@@ -29,6 +29,7 @@ const RAW_ACCESS = /^node:(fs|fs\/promises|child_process)$/;
 /** The modules that may, and why each touches only the runner's own files. */
 const RUNNERS_OWN: ReadonlyMap<string, string> = new Map([
   ["shared/agent-fs.ts", "the local implementation; in the runner, hosting installs the host's"],
+  ["shared/agent-identity.ts", "the agent user's /etc/passwd lines, its home and the setpriv probe, at boot, before any agent runs"],
   ["shared/artifact-storage.ts", "the runner's own local artifact store, under its state directory"],
   ["shared/workspace/workspace-lock.ts", "the lock files, under the runner's own state directory"],
   ["config.ts", "creates the configured workspace root at start-up, before any agent runs"],
