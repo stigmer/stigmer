@@ -108,8 +108,9 @@ type PluginEvalSpec struct {
 	JudgeModel string `protobuf:"bytes,9,opt,name=judge_model,json=judgeModel,proto3" json:"judge_model,omitempty"`
 	// The most this eval may spend, in estimated US dollars of model cost.
 	//
-	// Checked before each try starts: tries already running finish, so the
-	// spend can pass the limit by those tries.
+	// Checked before each try starts, counting what tries already spent and
+	// the cap each running try still holds: tries already running and their
+	// AI-graded checks finish, so the spend can pass the limit by those.
 	MaxCostUsd float64 `protobuf:"fixed64,10,opt,name=max_cost_usd,json=maxCostUsd,proto3" json:"max_cost_usd,omitempty"`
 	// Tries running at once, from 1 to 8. Zero means 1.
 	Concurrency int32 `protobuf:"varint,11,opt,name=concurrency,proto3" json:"concurrency,omitempty"`

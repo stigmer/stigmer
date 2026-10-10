@@ -245,8 +245,9 @@ public interface PluginEvalSpecOrBuilder extends
    * <pre>
    * The most this eval may spend, in estimated US dollars of model cost.
    *
-   * Checked before each try starts: tries already running finish, so the
-   * spend can pass the limit by those tries.
+   * Checked before each try starts, counting what tries already spent and
+   * the cap each running try still holds: tries already running and their
+   * AI-graded checks finish, so the spend can pass the limit by those.
    * </pre>
    *
    * <code>double max_cost_usd = 10 [json_name = "maxCostUsd", (.buf.validate.field) = { ... }</code>

@@ -138,7 +138,7 @@
       "type": {
         "kind": "double"
       },
-      "description": "The most this eval may spend, in estimated US dollars of model cost.\n\n Checked before each try starts: tries already running finish, so the\n spend can pass the limit by those tries.",
+      "description": "The most this eval may spend, in estimated US dollars of model cost.\n\n Checked before each try starts, counting what tries already spent and\n the cap each running try still holds: tries already running and their\n AI-graded checks finish, so the spend can pass the limit by those.",
       "required": false,
       "validation": {
         "max": 1000

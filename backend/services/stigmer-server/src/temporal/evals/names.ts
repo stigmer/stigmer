@@ -159,10 +159,11 @@ export interface CaseInput extends SuiteCell {
   readonly evalId: string;
   readonly org: string;
   /**
-   * The try's run's spending cap: the eval's `max_cost_usd` less what its
-   * recorded tries spent and the caps of the tries still running when this
-   * one started, at least TRY_MIN_BUDGET_USD. Set by the suite workflow, so a replay passes the
-   * same.
+   * The try's run's spending cap, set when it starts: an equal share of
+   * what the eval has left for the tries that may run at once, within what
+   * the caps of the tries still running leave, at least TRY_MIN_BUDGET_USD
+   * (the suite workflow's tryBudgetUsd). Set by the suite workflow, so a
+   * replay passes the same.
    */
   readonly budgetUsd: number;
 }

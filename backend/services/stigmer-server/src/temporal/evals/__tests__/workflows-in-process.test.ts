@@ -109,7 +109,9 @@ vi.mock("@temporalio/workflow", async (importOriginal) => {
   };
 });
 
-const { runPluginEval } = await import("../workflows/run-plugin-eval.js");
+const { runPluginEval, tryBudgetUsd } = await import(
+  "../workflows/run-plugin-eval.js"
+);
 const { runCase } = await import("../workflows/run-case.js");
 
 beforeEach(() => {
@@ -421,6 +423,84 @@ describe("the suite workflow", () => {
     }
     await running;
     expect(budgets).toHaveLength(4);
+  });
+
+  it("starts no try while the finished spend and the caps still held reach the limit", async () => {
+    const { recorded, finished } = suite({
+      kind: "run",
+      org: "acme",
+      cells: cells(8),
+      maxCostUsd: 0.05,
+      concurrency: 8,
+    });
+    const budgets: number[] = [];
+    const finishes: Array<() => void> = [];
+    seam.child = async (_type, options) => {
+      budgets.push((options.args[0] as CaseInput).budgetUsd);
+      await new Promise<void>((resolve) => finishes.push(resolve));
+      return result({ costUsd: 0.01 });
+    };
+    const running = runPluginEval({ evalId: "pev_1" });
+    const settle = async () => {
+      for (let i = 0; i < 20; i++) await Promise.resolve();
+    };
+    await settle();
+    // An eighth of $0.05 is below the floor, so each try holds the floor,
+    // and the sixth would find nothing left once five hold it all.
+    expect(budgets).toEqual(Array.from({ length: 5 }, () => TRY_MIN_BUDGET_USD));
+    while (finishes.length > 0) {
+      finishes.shift()!();
+      await settle();
+    }
+    await running;
+    expect(budgets).toHaveLength(5);
+    expect(recorded).toHaveLength(5);
+    expect(finished).toEqual([{ phase: "partial", reason: "cost_ceiling" }]);
+  });
+
+  it("starts a held-back try once a running one finishes under its cap", async () => {
+    const { recorded, finished } = suite({
+      kind: "run",
+      org: "acme",
+      cells: cells(8),
+      maxCostUsd: 0.05,
+      concurrency: 8,
+    });
+    const budgets: number[] = [];
+    const finishes: Array<() => void> = [];
+    seam.child = async (_type, options) => {
+      budgets.push((options.args[0] as CaseInput).budgetUsd);
+      await new Promise<void>((resolve) => finishes.push(resolve));
+      return result({ costUsd: 0.001 });
+    };
+    const running = runPluginEval({ evalId: "pev_1" });
+    const settle = async () => {
+      for (let i = 0; i < 20; i++) await Promise.resolve();
+    };
+    await settle();
+    expect(budgets).toHaveLength(5);
+    finishes.shift()!();
+    await settle();
+    // The first spent $0.001 of its $0.01: $0.009 is left beyond the caps held.
+    expect(budgets).toHaveLength(6);
+    while (finishes.length > 0) {
+      finishes.shift()!();
+      await settle();
+    }
+    await running;
+    expect(budgets).toHaveLength(8);
+    expect(recorded).toHaveLength(8);
+    expect(finished).toEqual([{ phase: "completed" }]);
+  });
+
+  it("hands a try nothing when nothing is left, and the floor only while something is", () => {
+    expect(tryBudgetUsd(0.05, 0.05, 0, 1)).toBe(0);
+    expect(tryBudgetUsd(0.05, 0.06, 0, 1)).toBe(0);
+    expect(tryBudgetUsd(0.05, 0, 0.05, 8)).toBe(0);
+    // Floating point leaves 3.5e-18 here, which is nothing.
+    expect(tryBudgetUsd(0.05, 0.02, 0.03, 8)).toBe(0);
+    expect(tryBudgetUsd(0.05, 0, 0.049, 8)).toBe(TRY_MIN_BUDGET_USD);
+    expect(tryBudgetUsd(1, 0.2, 0, 2)).toBeCloseTo(0.4);
   });
 
   it("counts what a failed child's run spent, read by its label and name, against the limit", async () => {
