@@ -41,7 +41,8 @@ await cancel(pluginEval.metadata.id);
 Data hook that loads one `PluginEval` through `plugineval.get()`
 and, while it is pending or running, reads it again every
 [`PLUGIN_EVAL_POLL_MS`](#plugin_eval_poll_ms) so its tries fill in as they finish. Polling
-stops once the eval is completed, partial or failed.
+stops once the eval is completed, partial or failed, or a read answers
+NotFound or PermissionDenied.
 
 Pass an empty `id` to skip fetching.
 
