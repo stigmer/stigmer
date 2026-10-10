@@ -23,7 +23,8 @@
  *   - `PluginEvalCallerRefusedError` is a DETERMINISTIC refusal: the eval
  *     can act as nobody (an eval created by a person who has since left
  *     the organization). The try is recorded as not graded with the
- *     refusal's fixed reason, and no retry changes that.
+ *     refusal's own not-graded reason when it names one, else the fixed
+ *     one, and no retry changes that.
  */
 import type { CallerIdentity } from "./identity.js";
 
@@ -38,11 +39,15 @@ export interface PluginEvalCallerMint {
 
 /**
  * The mint's deterministic refusal (the module header). The message is for
- * the log; the try shows the fixed not-graded reason.
+ * the log; the try shows `notGradedReason` when set (a short sentence with
+ * no ids), else the fixed not-graded reason.
  */
 export class PluginEvalCallerRefusedError extends Error {
-  constructor(reason: string) {
+  readonly notGradedReason: string | undefined;
+
+  constructor(reason: string, notGradedReason?: string) {
     super(reason);
     this.name = "PluginEvalCallerRefusedError";
+    this.notGradedReason = notGradedReason;
   }
 }

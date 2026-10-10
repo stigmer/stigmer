@@ -10,8 +10,10 @@
  *     `before` precedes the first call matching `after`.
  *
  * A tool name compares exactly, except Claude Code's older `Task`, which
- * names `Agent` as it does there. Input patterns run in the pattern pool
- * under one deadline per grader (patterns.ts).
+ * names `Agent` as it does there. Input patterns run in the pattern pool,
+ * each under its own deadline from when a worker takes it (patterns.ts),
+ * so a `tool_order`'s second pattern is never cut short by the first's
+ * wait or run.
  *
  * Proven by __tests__/graders.test.ts.
  */
@@ -22,7 +24,11 @@ import type { EvalToolCall, EvalTrace } from "../../score/eval/trace.js";
 import type { PatternRunner } from "./patterns.js";
 import { PATTERN_DEADLINE_MS } from "./patterns.js";
 import type { GraderVerdict } from "./verdict.js";
-import { PATTERN_TIME_LIMIT_REASON, invalidPatternReason } from "./verdict.js";
+import {
+  PATTERN_POOL_BUSY_REASON,
+  PATTERN_TIME_LIMIT_REASON,
+  invalidPatternReason,
+} from "./verdict.js";
 
 type ToolUsedCheck = Extract<EvalGraderCheck, { type: "tool_used" }>;
 type ToolOrderCheck = Extract<EvalGraderCheck, { type: "tool_order" }>;
@@ -62,6 +68,8 @@ async function matchingCalls(
   switch (answer.kind) {
     case "timeout":
       return { notGraded: PATTERN_TIME_LIMIT_REASON };
+    case "busy":
+      return { notGraded: PATTERN_POOL_BUSY_REASON };
     case "invalid":
       return { notGraded: invalidPatternReason(answer.message) };
     case "counts":
@@ -124,7 +132,6 @@ export async function gradeToolOrder(
   trace: EvalTrace,
   patterns: PatternRunner,
 ): Promise<GraderVerdict> {
-  const started = Date.now();
   const before = await matchingCalls(
     check.before,
     trace.toolCalls,
@@ -138,7 +145,7 @@ export async function gradeToolOrder(
     check.after,
     trace.toolCalls,
     patterns,
-    PATTERN_DEADLINE_MS - (Date.now() - started),
+    PATTERN_DEADLINE_MS,
   );
   if (!("positions" in after)) {
     return after;

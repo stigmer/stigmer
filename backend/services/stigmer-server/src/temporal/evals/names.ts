@@ -98,6 +98,8 @@ export const TRY_NOT_STARTED_REASON = "the try could not start";
 export const GRADING_FAILED_REASON = "grading failed";
 export const TRY_FAILED_REASON = "the try could not be run";
 export const TRY_NOT_STOPPED_REASON = "the try's run could not be stopped";
+/** A try the eval's cancel stopped: its run is stopped and what it spent is still counted. */
+export const TRY_CANCELLED_REASON = "cancelled";
 
 /** The failed eval's error when the suite workflow could not plan it (its load past every retry). */
 export const EVAL_NOT_PLANNED_ERROR = "the eval could not be planned";
@@ -158,8 +160,8 @@ export interface CaseInput extends SuiteCell {
   readonly org: string;
   /**
    * The try's run's spending cap: the eval's `max_cost_usd` less what its
-   * finished tries spent when this one started, at least
-   * TRY_MIN_BUDGET_USD. Set by the suite workflow, so a replay passes the
+   * recorded tries spent and the caps of the tries still running when this
+   * one started, at least TRY_MIN_BUDGET_USD. Set by the suite workflow, so a replay passes the
    * same.
    */
   readonly budgetUsd: number;

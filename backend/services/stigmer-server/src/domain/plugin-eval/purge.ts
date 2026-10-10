@@ -25,7 +25,7 @@ import type {
   KindPurgeDeps,
 } from "../organization/purge/kind-purge.js";
 import { pluginEvalListIndex } from "./list-index.js";
-import { isActivePluginEval } from "./steps.js";
+import { askPluginEvalToStop } from "./cascade.js";
 import type { PluginEvalWorkflows } from "./workflows.js";
 
 export interface PluginEvalPurgeDeps extends KindPurgeDeps {
@@ -60,18 +60,13 @@ function newStopPluginEvalStep(deps: PluginEvalPurgeDeps): PipelineStep<DeleteDe
     name: "StopPluginEval",
     async execute(ctx: RequestContext<DeleteDesc>): Promise<void> {
       const existing = ctx.get(EXISTING_RESOURCE_KEY) as PluginEval | undefined;
-      const workflows = deps.pluginEvalWorkflows;
-      if (existing === undefined || workflows === undefined || !isActivePluginEval(existing)) {
-        return;
-      }
-      const evalId = existing.metadata?.id ?? "";
-      try {
-        await workflows.cancel(evalId);
-      } catch (error) {
-        deps.logger.warn("a purged plugin eval's workflow could not be cancelled", {
-          evalId,
-          error: error instanceof Error ? error.message : String(error),
-        });
+      if (existing !== undefined) {
+        await askPluginEvalToStop(
+          deps.pluginEvalWorkflows,
+          deps.logger,
+          existing,
+          "a purged plugin eval's workflow could not be cancelled",
+        );
       }
     },
   };

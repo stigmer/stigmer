@@ -4,8 +4,10 @@
  *
  *   - the plugin's delete, after its row is gone, sweeps every eval of the
  *     plugin it finds, whatever its phase, with its tries' conversations
- *     and its access; a composition with no evals does nothing; a fault
- *     listing the evals is INTERNAL;
+ *     and its access, first asking a pending or running eval's workflow
+ *     to cancel (best effort: a cancel that fails still deletes the eval);
+ *     a composition with no evals does nothing; a fault listing the evals
+ *     is INTERNAL;
  *   - create, after it stores the eval and its access, reads the plugin
  *     again: a plugin gone takes the eval with it (row and access) and the
  *     create answers NOT_FOUND; a plugin still there leaves everything as
@@ -152,6 +154,35 @@ describe("SweepPluginEvalsAfterDelete", () => {
     expect(deleted).toEqual(["ses_try"]);
     expect(await exists(ApiResourceKind.plugin_eval, "pev_late")).toBe(false);
     expect(access.cleaned).toEqual(["plugin_eval pev_late"]);
+  });
+
+  it("asks a pending or running eval's workflow to cancel before deleting it, and deletes it when the cancel fails", async () => {
+    await saved(evalRow("pev_running", PluginEvalPhase.running));
+    await saved(evalRow("pev_done", PluginEvalPhase.completed));
+    const cancelled: string[] = [];
+    const sweep = (cancel: (evalId: string) => Promise<"requested" | "not-found">) =>
+      newSweepPluginEvalsAfterDeleteStep({
+        store: temp.store,
+        logger: silentLogger,
+        authorizationLifecycle: undefined,
+        sessions: () => ({ delete: () => Promise.resolve() }),
+        workflows: {
+          start: () => Promise.resolve(),
+          cancel,
+        },
+      }).execute(deleteCtx());
+    await sweep(async (evalId) => {
+      cancelled.push(evalId);
+      expect(await exists(ApiResourceKind.plugin_eval, evalId), "cancelled before its row goes").toBe(true);
+      return "requested";
+    });
+    expect(cancelled).toEqual(["pev_running"]);
+    expect(await exists(ApiResourceKind.plugin_eval, "pev_running")).toBe(false);
+    expect(await exists(ApiResourceKind.plugin_eval, "pev_done")).toBe(false);
+
+    await saved(evalRow("pev_stuck", PluginEvalPhase.pending));
+    await sweep(() => Promise.reject(new Error("no engine connection")));
+    expect(await exists(ApiResourceKind.plugin_eval, "pev_stuck")).toBe(false);
   });
 
   it("does nothing in a composition with no evals, and is INTERNAL when the evals cannot be listed", async () => {

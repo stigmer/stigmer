@@ -29,8 +29,10 @@ service PluginEvalCommandController {
   //    is read, so a caller who cannot edit it learns nothing about
   //    whether it exists.
   // 2. metadata.org must be the plugin's organization.
-  // 3. spec.plugin_digest, when set, must be a version of the plugin;
-  //    empty is stamped with the current version.
+  // 3. spec.plugin_digest, when set, must be the plugin's current version:
+  //    the with-plugin arm runs the plugin as installed now, so an earlier
+  //    version's cases would be graded against today's plugin. Empty is
+  //    stamped with the current version.
   // 4. Each vault must be usable by the caller (the schedule's rule).
   // 5. The suite is read from the archive; more than 200 cases or 1000
   //    tries is refused with the computed counts.
@@ -40,7 +42,8 @@ service PluginEvalCommandController {
   // Error Cases:
   //
   // - FAILED_PRECONDITION: the organization is not the plugin's; the
-  //   plugin has no evals/ cases; the suite is larger than an eval may run
+  //   plugin has no evals/ cases; spec.plugin_digest names a version other
+  //   than the current one; the suite is larger than an eval may run
   // - INVALID_ARGUMENT: the digest names no version of the plugin
   // - PERMISSION_DENIED: the caller may not edit the plugin, or may not use
   //   a named vault

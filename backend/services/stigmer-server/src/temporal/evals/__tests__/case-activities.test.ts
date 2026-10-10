@@ -764,6 +764,21 @@ describe("start-vote beside its main path", () => {
       ),
     ).toEqual({ kind: "failed", reason: CANNOT_ACT_REASON });
     expect(refusing.record.sessions).toEqual([]);
+    const ownReason = build({
+      caller: {
+        mintPluginEvalCaller: () =>
+          Promise.reject(
+            new PluginEvalCallerRefusedError(
+              "the creator may no longer edit",
+              "the eval's creator can no longer run it",
+            ),
+          ),
+      },
+    });
+    expect(
+      await ownReason.cases[START_VOTE_ACTIVITY_NAME](CELL, start.runId, COMPARE, 0),
+      "a refusal naming its own reason is answered with it",
+    ).toEqual({ kind: "failed", reason: "the eval's creator can no longer run it" });
     expect(refusing.lines).toEqual([
       {
         level: "warn",
@@ -771,6 +786,12 @@ describe("start-vote beside its main path", () => {
         fields: { evalId: EVAL_ID, reason: "the creator left" },
       },
     ]);
+    const tryRefused = await ownReason.cases[START_TRY_ACTIVITY_NAME]({ ...CELL, tryIndex: 1 });
+    expect(tryRefused).toEqual({
+      kind: "refused",
+      failure: "cannot-act",
+      reason: "the eval's creator can no longer run it",
+    });
   });
 
   it("answers a refused vote with out of credit or the run's own reason, deleting its session", async () => {

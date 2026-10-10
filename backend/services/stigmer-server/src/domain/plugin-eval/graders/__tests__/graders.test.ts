@@ -13,15 +13,18 @@
  * decide; a vote that failed counts for neither side).
  *
  * A pattern past its deadline leaves each pattern grader not graded with
- * the time-limit reason, as does an unreadable file target with its own
- * reason; a tool grader whose input pattern is refused is not graded,
+ * the time-limit reason, a pattern the pool was too busy to take leaves
+ * it not graded "platform busy" (a platform failure, never a timeout),
+ * each of a `tool_order`'s two patterns has the whole deadline from when
+ * a worker takes it, and an unreadable file target is not graded with its
+ * own reason; a tool grader whose input pattern is refused is not graded,
  * whichever side of a `tool_order` it is on. Long evidence, transcripts and
  * tallies are cut to their bounds with the judge's marker.
  *
  * The patterns run in the real pattern pool, except where a fake engine
  * stands for the deadline.
  */
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it, vi } from "vitest";
 
 import type {
   EvalFocus,
@@ -42,9 +45,10 @@ import {
   voteRubricName,
   voteSchema,
 } from "../llm.js";
-import { newPatternPool } from "../patterns.js";
-import type { PatternAnswer, PatternRunner } from "../patterns.js";
+import { PATTERN_DEADLINE_MS, newPatternPool } from "../patterns.js";
+import type { PatternAnswer, PatternJob, PatternRunner } from "../patterns.js";
 import {
+  PATTERN_POOL_BUSY_REASON,
   FILES_NOT_RECORDED_REASON,
   MOCK_CALLS_NOT_RUN_REASON,
   PATTERN_TIME_LIMIT_REASON,
@@ -553,6 +557,47 @@ describe("when a pattern cannot run", () => {
     expect(await gradeCheck(grader(check), trace(), TIMED_OUT)).toEqual({
       notGraded: PATTERN_TIME_LIMIT_REASON,
     });
+  });
+
+  it("leaves each pattern grader not graded, platform busy, when the pool cannot take its pattern", async () => {
+    const busy = answering({ kind: "busy" });
+    expect(PATTERN_POOL_BUSY_REASON).toBe("platform busy");
+    expect(await gradeCheck(grader(regex("fetchUser")), trace(), busy)).toEqual({
+      notGraded: PATTERN_POOL_BUSY_REASON,
+    });
+    expect(
+      await gradeCheck(
+        grader({ type: "tool_used", tool: "Read", inputMatch: "x", min: 1 }),
+        trace(),
+        busy,
+      ),
+    ).toEqual({ notGraded: PATTERN_POOL_BUSY_REASON });
+  });
+
+  it("gives each of a tool_order's patterns the whole deadline, however long the first took", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      const budgets: number[] = [];
+      const slow: PatternRunner = {
+        count(job: PatternJob): Promise<PatternAnswer> {
+          budgets.push(job.budgetMs);
+          vi.setSystemTime(Date.now() + 1_500);
+          return Promise.resolve({ kind: "counts", counts: job.texts.map(() => 1) });
+        },
+      };
+      await gradeCheck(
+        grader({
+          type: "tool_order",
+          before: { tool: "Read", inputMatch: "." },
+          after: { tool: "Bash", inputMatch: "." },
+        }),
+        trace(),
+        slow,
+      );
+      expect(budgets).toEqual([PATTERN_DEADLINE_MS, PATTERN_DEADLINE_MS]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("asks no pattern of a tool that was never called", async () => {

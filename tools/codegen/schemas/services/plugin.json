@@ -38,7 +38,7 @@
           "inputFullType": "ai.stigmer.agentic.plugin.v1.PluginId",
           "outputType": "Plugin",
           "outputFullType": "ai.stigmer.agentic.plugin.v1.Plugin",
-          "description": "Delete a plugin and every resource it materialised.\n Refused when a resource outside the plugin still references a member;\n the error names the referencing resources."
+          "description": "Delete a plugin and every resource it materialised, its evals included.\n Refused when a resource outside the plugin still references a member;\n the error names the referencing resources. Refused while one of its\n evals is pending or running: cancel that eval first."
         }
       ]
     },

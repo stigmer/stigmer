@@ -24,15 +24,24 @@
  * that fails, a vote that cannot run) leaves the try not graded, never a
  * zero, and still carries what the try's run spent: read through the spend
  * activity where this workflow has no grade to read it from, so the
- * suite's ceiling counts every dollar a run used. When the suite
- * is cancelled, this workflow stops the try's run before it ends, so a
- * cancelled eval leaves no run going.
+ * suite's ceiling counts every dollar a run used.
+ *
+ * Cancel: when the suite is cancelled, this workflow stops the try's run
+ * and any vote's run going, in a non-cancellable scope, waits for the
+ * try's run to end, and answers the try not graded, "cancelled", with its
+ * ids and what it spent, so the suite records it and counts its cost. The
+ * two start activities wait for their cancellation to complete, so a start
+ * running when the cancel arrives finishes and its run is known; a start
+ * whose answer is still lost (a cancel between its attempts) has its run
+ * found by the spend activity, by the eval's label and the try's run name.
+ * A cancelled eval leaves no run going.
  *
  * WORKFLOW-BUNDLE IMPORT DISCIPLINE: this module runs in the deterministic
  * sandbox; imports are limited to @temporalio/workflow and the pure names
  * module.
  */
 import {
+  ActivityCancellationType,
   ActivityFailure,
   ApplicationFailure,
   CancellationScope,
@@ -54,6 +63,7 @@ import {
   START_TRY_ACTIVITY_NAME,
   START_VOTE_ACTIVITY_NAME,
   STOP_RUN_ACTIVITY_NAME,
+  TRY_CANCELLED_REASON,
   TRY_NOT_STOPPED_REASON,
   TRY_SPEND_ACTIVITY_NAME,
 } from "../names.js";
@@ -63,6 +73,7 @@ import type {
   SpendActivities,
   TryGrade,
   TryResult,
+  TrySpend,
   VoteRead,
 } from "../names.js";
 
@@ -86,8 +97,14 @@ const grading = proxyActivities<CaseActivities>({
   },
 });
 
-/** A try's start: a capacity refusal is retried for thirty minutes in all. */
+/**
+ * A try's start: a capacity refusal is retried for thirty minutes in all.
+ * A cancel waits for the attempt running to finish, so the run it creates
+ * is known and stopped (an attempt is a few store writes, well inside its
+ * minute, so it needs no heartbeat).
+ */
 const tryStart = proxyActivities<CaseActivities>({
+  cancellationType: ActivityCancellationType.WAIT_CANCELLATION_COMPLETED,
   startToCloseTimeout: "1 minute",
   scheduleToCloseTimeout: "30 minutes",
   retry: {
@@ -97,8 +114,9 @@ const tryStart = proxyActivities<CaseActivities>({
   },
 });
 
-/** A vote's start: as the judge's, ten minutes of capacity retries. */
+/** A vote's start: as the judge's, ten minutes of capacity retries; a cancel waits as the try's start does. */
 const voteStart = proxyActivities<CaseActivities>({
+  cancellationType: ActivityCancellationType.WAIT_CANCELLATION_COMPLETED,
   startToCloseTimeout: "1 minute",
   scheduleToCloseTimeout: "10 minutes",
   retry: {
@@ -121,7 +139,36 @@ const POLL_CAP_MS = 15_000;
 /** The votes each AI-graded check takes (graders/llm.ts VOTES_PER_CHECK). */
 const VOTES_PER_CHECK = 3;
 
+/** What the workflow knows of the try's runs, for a cancel to stop and count them. */
+interface Known {
+  sessionId: string;
+  runId: string;
+  /** The vote whose run is going, if one is. */
+  voteRunId: string;
+  /** What the votes already read spent: their sessions, and so their runs, are deleted. */
+  voteCostUsd: number;
+}
+
 export async function runCase(input: CaseInput): Promise<TryResult> {
+  const known: Known = {
+    sessionId: "",
+    runId: "",
+    voteRunId: "",
+    voteCostUsd: 0,
+  };
+  try {
+    return await runTry(input, known);
+  } catch (error) {
+    if (!isCancellation(error)) {
+      throw error;
+    }
+    return await CancellationScope.nonCancellable(() =>
+      cancelledTry(input, known),
+    );
+  }
+}
+
+async function runTry(input: CaseInput, known: Known): Promise<TryResult> {
   let started;
   try {
     started = await tryStart[START_TRY_ACTIVITY_NAME](input);
@@ -143,7 +190,11 @@ export async function runCase(input: CaseInput): Promise<TryResult> {
           outOfCredit: true,
         };
       case "cannot-act":
-        return notGraded("", "", CANNOT_ACT_REASON);
+        return notGraded(
+          "",
+          "",
+          started.reason === "" ? CANNOT_ACT_REASON : started.reason,
+        );
       case "not-started":
         return notGraded("", "", started.reason);
       /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
@@ -155,33 +206,25 @@ export async function runCase(input: CaseInput): Promise<TryResult> {
   }
 
   const { sessionId, runId } = started;
-  let timedOut: boolean;
-  try {
-    timedOut = !(await awaitRun(runId, input.timeoutSeconds * 1000));
-    if (timedOut) {
-      try {
-        await steps[STOP_RUN_ACTIVITY_NAME](
-          runId,
-          `timed out after ${input.timeoutSeconds}s`,
-        );
-      } catch (error) {
-        if (isCancellation(error)) {
-          throw error;
-        }
-        return await spentNotGraded(input, TRY_NOT_STOPPED_REASON, {
-          sessionId,
-          runId,
-        });
-      }
-      await awaitRun(runId, STOP_GRACE_MS);
-    }
-  } catch (error) {
-    if (isCancellation(error)) {
-      await CancellationScope.nonCancellable(() =>
-        steps[STOP_RUN_ACTIVITY_NAME](runId, "the eval was cancelled"),
+  known.sessionId = sessionId;
+  known.runId = runId;
+  const timedOut = !(await awaitRun(runId, input.timeoutSeconds * 1000));
+  if (timedOut) {
+    try {
+      await steps[STOP_RUN_ACTIVITY_NAME](
+        runId,
+        `timed out after ${input.timeoutSeconds}s`,
       );
+    } catch (error) {
+      if (isCancellation(error)) {
+        throw error;
+      }
+      return await spentNotGraded(input, TRY_NOT_STOPPED_REASON, {
+        sessionId,
+        runId,
+      });
     }
-    throw error;
+    await awaitRun(runId, STOP_GRACE_MS);
   }
 
   let grade: TryGrade;
@@ -194,7 +237,6 @@ export async function runCase(input: CaseInput): Promise<TryResult> {
     return spentNotGraded(input, GRADING_FAILED_REASON, { sessionId, runId });
   }
 
-  let voteCost = 0;
   const votes: Array<ReadonlyArray<VoteRead["vote"]>> = [];
   for (const [graderIndex, outcome] of grade.outcomes.entries()) {
     const cast: VoteRead["vote"][] = [];
@@ -202,19 +244,22 @@ export async function runCase(input: CaseInput): Promise<TryResult> {
       for (let voteIndex = 0; voteIndex < VOTES_PER_CHECK; voteIndex++) {
         const read = await vote(
           input,
-          runId,
+          known,
           graderIndex,
           voteIndex,
           outcome.votes,
         );
-        voteCost += read.costUsd;
+        known.voteCostUsd += read.costUsd;
         cast.push(read.vote);
       }
     }
     votes.push(cast);
   }
 
-  const graded: TryGrade = { ...grade, costUsd: grade.costUsd + voteCost };
+  const graded: TryGrade = {
+    ...grade,
+    costUsd: grade.costUsd + known.voteCostUsd,
+  };
   try {
     return await grading[RECORD_SCORE_ACTIVITY_NAME](
       input,
@@ -238,7 +283,7 @@ export async function runCase(input: CaseInput): Promise<TryResult> {
 /** One vote: start, wait within its budget, read (graders/llm.ts). */
 async function vote(
   input: CaseInput,
-  runId: string,
+  known: Known,
   graderIndex: number,
   voteIndex: number,
   rubric: string,
@@ -247,7 +292,7 @@ async function vote(
   try {
     start = await voteStart[START_VOTE_ACTIVITY_NAME](
       input,
-      runId,
+      known.runId,
       graderIndex,
       voteIndex,
     );
@@ -268,20 +313,68 @@ async function vote(
   if (start.kind === "failed") {
     return { vote: { kind: "failed", reason: start.reason }, costUsd: 0 };
   }
-  try {
-    await awaitRun(start.voteRunId, VOTE_BUDGET_MS);
-  } catch (error) {
-    if (isCancellation(error)) {
-      await CancellationScope.nonCancellable(() =>
-        steps[STOP_RUN_ACTIVITY_NAME](
-          start.voteRunId,
-          "the eval was cancelled",
-        ),
-      );
-    }
-    throw error;
+  known.voteRunId = start.voteRunId;
+  await awaitRun(start.voteRunId, VOTE_BUDGET_MS);
+  const read = await steps[READ_VOTE_ACTIVITY_NAME](start.voteRunId, rubric);
+  known.voteRunId = "";
+  return read;
+}
+
+/** The reason a cancel gives the runs it stops. */
+const CANCELLED_STOP_REASON = "the eval was cancelled";
+
+/**
+ * The try the eval's cancel ended (the module header), run in a
+ * non-cancellable scope: the vote's run and the try's stopped, the try's
+ * found by the spend activity when the start's answer was lost, and what
+ * they spent read once the try's run has ended. A stop or a read that
+ * fails leaves the try answered with what is known.
+ */
+async function cancelledTry(input: CaseInput, known: Known): Promise<TryResult> {
+  if (known.voteRunId !== "") {
+    await stopQuietly(known.voteRunId);
   }
-  return steps[READ_VOTE_ACTIVITY_NAME](start.voteRunId, rubric);
+  let { sessionId, runId } = known;
+  if (runId === "") {
+    const found = await spendOf(input);
+    if (found !== undefined) {
+      ({ sessionId, runId } = found);
+    }
+  }
+  let costUsd = 0;
+  if (runId !== "") {
+    await stopQuietly(runId);
+    await awaitRun(runId, STOP_GRACE_MS);
+    costUsd = (await spendOf(input))?.costUsd ?? 0;
+  }
+  return {
+    ...notGraded(sessionId, runId, TRY_CANCELLED_REASON),
+    costUsd: costUsd + known.voteCostUsd,
+  };
+}
+
+/** Stops `runId` for the cancel; a stop that fails leaves the run to its own cap. */
+async function stopQuietly(runId: string): Promise<void> {
+  try {
+    await steps[STOP_RUN_ACTIVITY_NAME](runId, CANCELLED_STOP_REASON);
+  } catch {
+    // The run keeps its spending cap; the try is answered either way.
+  }
+}
+
+/** The try's run and its spend as the spend activity finds them; undefined when none is found or the read fails. */
+async function spendOf(input: CaseInput): Promise<TrySpend | undefined> {
+  try {
+    const found = await steps[TRY_SPEND_ACTIVITY_NAME](input.evalId, {
+      caseIndex: input.caseIndex,
+      targetIndex: input.targetIndex,
+      arm: input.arm,
+      tryIndex: input.tryIndex,
+    });
+    return found.runId === "" ? undefined : found;
+  } catch {
+    return undefined;
+  }
 }
 
 /** Polls `runId` until it ends (true) or `budgetMs` pass (false). */

@@ -32,6 +32,13 @@ export function isNotGraded(
 /** The not-graded reason of a pattern that ran past its deadline. */
 export const PATTERN_TIME_LIMIT_REASON = "pattern exceeded its time limit";
 
+/**
+ * The not-graded reason of a pattern the pool had no worker free for in
+ * time: the platform's failure, in the words the eval workflows give a
+ * busy platform (temporal/evals/names.ts PLATFORM_BUSY_REASON).
+ */
+export const PATTERN_POOL_BUSY_REASON = "platform busy";
+
 /** The not-graded reason of a file grader where no created file is recorded. */
 export const FILES_NOT_RECORDED_REASON =
   "this install does not record created files";

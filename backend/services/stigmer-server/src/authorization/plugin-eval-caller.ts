@@ -10,13 +10,15 @@
  * from the row's creation stamp, which nothing changes. The tries are then
  * that person's sessions, which they own as any session's creator does.
  *
- * The creator must still be able to read the eval: the composed
- * authorizer is asked `can_view` on it, which is the plugin's viewers in
- * its own organization. A creator who has left the organization, or can
- * no longer see the plugin, is the seam's deterministic refusal, as is a
- * stamp that resolves to no account (the laptop's "system", a deleted
- * account); a missing eval, a store fault or an authorizer that cannot
- * answer is an infrastructure throw.
+ * The creator must still be able to edit the eval's plugin, as create
+ * required: the tries spend for the organization and act as the creator,
+ * so a creator demoted to viewer mid-eval stops them. The composed
+ * authorizer is asked `can_edit` on the plugin. A creator who may no
+ * longer edit it, or has left the organization, is the seam's
+ * deterministic refusal, the try not graded "the eval's creator can no
+ * longer run it", as is a stamp that resolves to no account (the laptop's
+ * "system", a deleted account); a missing eval, a store fault or an
+ * authorizer that cannot answer is an infrastructure throw.
  *
  * Proven by __tests__/plugin-eval-caller.postgres.test.ts on both store
  * drivers.
@@ -47,10 +49,17 @@ export function pluginEvalHasNoPersonMessage(evalId: string): string {
   return `plugin eval ${evalId} was created by nobody this server recognizes as a person`;
 }
 
-/** The refusal's log copy when the creator may no longer read the eval. */
-export function creatorCannotSeeEvalMessage(evalId: string): string {
-  return `the creator of plugin eval ${evalId} may no longer read it, so its tries cannot act as them`;
+/** The refusal's log copy when the creator may no longer edit the eval's plugin. */
+export function creatorCannotEditPluginMessage(
+  evalId: string,
+  pluginId: string,
+): string {
+  return `the creator of plugin eval ${evalId} may no longer edit plugin ${pluginId}, so its tries cannot act as them`;
 }
+
+/** The not-graded reason of a try whose creator may no longer edit the plugin. */
+export const CREATOR_CANNOT_RUN_EVAL_REASON =
+  "the eval's creator can no longer run it";
 
 export function newBuiltInPluginEvalCaller(
   deps: BuiltInPluginEvalCallerDeps,
@@ -71,17 +80,19 @@ export function newBuiltInPluginEvalCaller(
         );
       }
       const caller = accountAsCaller(account);
+      const pluginId = pluginEval.spec?.pluginId ?? "";
       const decision = await deps.authorizer.authorize(caller, {
-        permission: IamPermission.can_view,
-        resourceKind: ApiResourceKind.plugin_eval,
-        resourceId: evalId,
+        permission: IamPermission.can_edit,
+        resourceKind: ApiResourceKind.plugin,
+        resourceId: pluginId,
       });
       if (decision.kind === "unavailable") {
         throw decision.cause;
       }
       if (decision.kind !== "allow") {
         throw new PluginEvalCallerRefusedError(
-          creatorCannotSeeEvalMessage(evalId),
+          creatorCannotEditPluginMessage(evalId, pluginId),
+          CREATOR_CANNOT_RUN_EVAL_REASON,
         );
       }
       return caller;
