@@ -30,7 +30,7 @@
 
 import { request as httpsRequest } from "node:https";
 import { connect as tlsConnect } from "node:tls";
-import { connect, createServer as createH2cServer, type Http2Server, type IncomingHttpHeaders, type ServerHttp2Stream } from "node:http2";
+import { connect, createServer as createH2cServer, type ClientHttp2Session, type Http2Server, type IncomingHttpHeaders, type ServerHttp2Stream } from "node:http2";
 import type { AddressInfo } from "node:net";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
@@ -131,9 +131,10 @@ function stream(
   path: string,
   headers: Record<string, string>,
   chunks: readonly string[],
+  over?: ClientHttp2Session,
 ): Promise<{ readonly status: number; readonly data: string; readonly trailers: IncomingHttpHeaders }> {
   return new Promise((resolve, reject) => {
-    const session = connect(proxy.cursorEndpoint, { ca: proxy.cursorCertificate });
+    const session = over ?? connect(proxy.cursorEndpoint, { ca: proxy.cursorCertificate });
     session.on("error", reject);
     const req = session.request({ ":method": "POST", ":path": path, "content-type": "application/connect+proto", ...headers });
     let status = 0;
@@ -154,7 +155,7 @@ function stream(
     });
     req.on("trailers", (t) => (trailers = t));
     req.on("end", () => {
-      session.close();
+      if (over === undefined) session.close();
       resolve({ status, data, trailers });
     });
     req.on("error", reject);
@@ -371,6 +372,12 @@ describe("terminate: a runner that calls Cursor itself", () => {
     expect((await stream(RUN, headers, ["first"])).data).toBe("echo:first");
     expect((await stream(RUN, headers, ["second"])).data, "a new host session").toBe("echo:second");
     expect(connectHost.sessions, "one upstream connection per host session").toBe(2);
+
+    const host = connect(proxy.cursorEndpoint, { ca: proxy.cursorCertificate });
+    expect((await stream(RUN, headers, ["third"], host)).data).toBe("echo:third");
+    expect((await stream(RUN, headers, ["fourth"], host)).data).toBe("echo:fourth");
+    host.close();
+    expect(connectHost.sessions, "a host session's runs share its upstream connection").toBe(3);
   });
 
   it("closes promptly while a host still holds connections open", async () => {

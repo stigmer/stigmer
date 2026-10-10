@@ -261,10 +261,9 @@ export class CursorLane {
    */
   private relayStream(req: Http2ServerRequest, res: Http2ServerResponse, url: URL, headers: Record<string, string | string[]>): Promise<void> {
     return new Promise((resolve) => {
-      // A stream whose host session is already gone has nothing to relay.
-      const inbound = req.stream.session;
-      if (inbound === undefined) return resolve();
-      const session = this.session(inbound, url.origin);
+      // The host's session is live while its request is handled: the relay
+      // starts in the same tick the lane checked the stand-in.
+      const session = this.session(req.stream.session!, url.origin);
       const outgoing: OutgoingHttpHeaders = {
         ...headers,
         [http2Constants.HTTP2_HEADER_METHOD]: req.method,

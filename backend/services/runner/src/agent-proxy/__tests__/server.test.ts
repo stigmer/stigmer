@@ -374,7 +374,7 @@ describe("forward: a runner behind the Stigmer platform's proxy", () => {
     expect(upstream.last.path).toBe("/v1/proxy/checkpoints/writes");
     const sent = upstream.received.length;
     expect((await call(proxy, "/v1/proxy/checkpoints/thread", { method: "DELETE", headers: asHost, body: JSON.stringify({ writes: [] }) })).status, "only a write batch").toBe(403);
-    expect((await call(proxy, "/v1/proxy/checkpoints/writes", { method: "PUT", headers: asHost })).status, "an empty body is no batch").toBe(403);
+    expect((await call(proxy, "/v1/proxy/checkpoints/writes", { method: "PUT", headers: asHost, body: "" })).status, "an empty body is no batch").toBe(403);
     expect(upstream.received).toHaveLength(sent);
   });
 
