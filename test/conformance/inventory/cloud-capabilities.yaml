@@ -1269,12 +1269,12 @@ rows:
     behavior: >-
       A call scoped by X-Stigmer-Mcp-Server-Id on a server the caller can_connect is relayed but records NO usage row (authorized, not metered).
     class: behavior
-    disposition: debris-candidate
+    disposition: debris
     observability: launcher
     caller: primary
     needs: [fake-llm-upstream, mcp-server]
     note: >-
-      Debris candidate: the McpServer resource kind was deleted (an MCP server is configuration inside a plugin), so no resource is left for X-Stigmer-Mcp-Server-Id to name and no conformance arm can stage the scope. Listing a plugin server's tools runs under an execution-scoped runner credential bound to its connect attempt (domain/plugin/list-tools.ts), so the lane's scope is an execution, not a server. Awaits the decision to cut the row with the header.
+      Debris: the McpServer resource kind was deleted (an MCP server is configuration inside a plugin), so no resource is left for X-Stigmer-Mcp-Server-Id to name, and the cloud proxy stops reading the header with the same change. No runner ever sent it: every proxy call is scoped by its execution. Listing a plugin server's tools runs under an execution-scoped runner credential bound to its connect attempt (domain/plugin/list-tools.ts).
   - id: proxy.llm.unknown-provider-400
     surface: proxy
     lane: >-
