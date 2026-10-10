@@ -40,7 +40,7 @@ import {
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
-import { SKILL_READ_PATH, evalTraceOf } from "../trace.js";
+import { SKILL_READ_PATH, callsMcpServers, evalTraceOf } from "../trace.js";
 import type { EvalTraceDeps } from "../trace.js";
 
 function call(
@@ -160,6 +160,32 @@ describe("the eval trace, native transcript", () => {
     );
   });
 
+  it("names an MCP call by the server's name as the plugin declares it, not its install slug", async () => {
+    // generateSlug drops the underscore and the capitals of `My_Server`.
+    const run = runOf(
+      [
+        call("m1", "search", { q: "bug" }, { mcpServerSlug: "myserver" }),
+        call("m2", "list", {}, { mcpServerSlug: "unnamed" }),
+      ],
+      [],
+    );
+    const trace = await evalTraceOf(
+      run,
+      deps(Harness.NATIVE, {
+        mcpServerKeys: new Map([["myserver", "My_Server"]]),
+      }),
+    );
+    expect(trace.toolCalls.map((c) => c.name)).toEqual([
+      "mcp__plugin_thermos_My_Server__search",
+      "mcp__plugin_thermos_unnamed__list",
+    ]);
+    expect(trace.traceLines[1]).toContain(
+      '"name":"mcp__plugin_thermos_My_Server__search"',
+    );
+    expect(callsMcpServers(run)).toBe(true);
+    expect(callsMcpServers(runOf([call("r1", "read_file", {})], []))).toBe(false);
+  });
+
   it("writes the trace as Claude Code's JSON lines and keeps the final message", async () => {
     const trace = await evalTraceOf(native, deps(Harness.NATIVE));
     expect(trace.lastMessage).toBe("All done.");
@@ -189,6 +215,24 @@ describe("the eval trace, native transcript", () => {
         ["CHANGELOG.md", { kind: "text", text: "## 1.0.0" }],
         ["missing.md", { kind: "absent" }],
       ]),
+    });
+  });
+});
+
+describe("the eval trace's created paths", () => {
+  it("lists a path every change set created once, in capture order", async () => {
+    const other = create(CapturedFileChangeSchema, {
+      pathAfter: "./src/new.ts",
+      kind: FileChangeKind.ADD,
+    });
+    const run = runOf(
+      [],
+      [baseline("t1"), candidate("t1", [created, other]), candidate("t2", [created])],
+    );
+    const trace = await evalTraceOf(run, deps(Harness.NATIVE));
+    expect(trace.files).toMatchObject({
+      kind: "recorded",
+      created: ["CHANGELOG.md", "src/new.ts"],
     });
   });
 });

@@ -23,6 +23,7 @@ import { describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../../harness/clients";
 import { FixtureTracker } from "../../harness/fixtures";
 import {
+  PLUGIN_EVAL_NOT_STARTED_ERROR,
   cancelAndDeletePluginEval,
   evalCaseFiles,
   followPluginEval,
@@ -31,7 +32,6 @@ import {
   makePluginEval,
   pluginEvalActiveDeleteMessage,
   pluginEvalNoCasesMessage,
-  pluginEvalNotStartedMessage,
   pluginEvalOrgMismatchMessage,
   pluginEvalOtherPluginToolMessage,
   pluginEvalTooLargeMessage,
@@ -207,11 +207,11 @@ describe("followPluginEval", () => {
 
   it("names the eval's error in that message when it has one", async () => {
     const failed = evalAt(PluginEvalPhase.failed);
-    failed.status!.error = "the eval could not start: no engine connection";
+    failed.status!.error = "the eval's workflow could not be started";
     await expect(
       followPluginEval(getting([failed]), "pev_1", () => false, "a try", 0),
     ).rejects.toThrow(
-      'last read: phase failed, tries 1/2, error "the eval could not start: no engine connection"',
+      'last read: phase failed, tries 1/2, error "the eval\'s workflow could not be started"',
     );
   });
 });
@@ -261,8 +261,8 @@ describe("the copy the suites assert", () => {
     ).toBe(
       "allow_tools entry 'mcp__plugin_x_a__*' names plugin 'x', but this eval runs 'notes'; a try attaches no other plugin",
     );
-    expect(pluginEvalNotStartedMessage("no engine connection")).toBe(
-      "the eval could not start: no engine connection",
+    expect(PLUGIN_EVAL_NOT_STARTED_ERROR).toBe(
+      "the eval's workflow could not be started",
     );
     expect(unsupportedFeatureReason("context.scaffold_script")).toBe(
       "not run: context.scaffold_script",

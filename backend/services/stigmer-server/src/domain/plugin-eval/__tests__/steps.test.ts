@@ -75,9 +75,9 @@ import {
   suiteSource,
 } from "../../../temporal/evals/__tests__/support.js";
 import {
+  PLUGIN_EVAL_NOT_STARTED_ERROR,
   PLUGIN_EVAL_WORKFLOW_ENDED_ERROR,
   pluginEvalNoCasesMessage,
-  pluginEvalNotStartedMessage,
   pluginEvalOtherPluginToolMessage,
   pluginEvalTooLargeMessage,
 } from "../constants.js";
@@ -195,17 +195,30 @@ describe("StartPluginEvalWorkflow", () => {
     expect(ctx.newState.status?.error).toBe("");
   });
 
-  it("marks a pending eval failed with its reason when the start fails", async () => {
+  it("marks a pending eval failed with a fixed sentence when the start fails, and logs the engine's error", async () => {
     const row = await saved(evalRow("pev_1", PluginEvalPhase.pending));
     const ctx = createCtx(row);
+    const logged: Array<{ message: string; fields: unknown }> = [];
     await newStartPluginEvalWorkflowStep(
       temp.store,
-      workflows({ start: () => Promise.reject(new Error("no engine")) }),
-      silentLogger,
+      workflows({
+        start: () => Promise.reject(new Error("dial tcp 10.0.0.7:7233: connection refused")),
+      }),
+      {
+        ...silentLogger,
+        warn: (message, fields) => logged.push({ message, fields }),
+      },
     ).execute(ctx);
     expect(ctx.newState.status?.phase).toBe(PluginEvalPhase.failed);
-    expect(ctx.newState.status?.error).toBe(pluginEvalNotStartedMessage("no engine"));
+    expect(PLUGIN_EVAL_NOT_STARTED_ERROR).toBe("the eval's workflow could not be started");
+    expect(ctx.newState.status?.error).toBe(PLUGIN_EVAL_NOT_STARTED_ERROR);
     expect((await stored("pev_1")).status?.phase).toBe(PluginEvalPhase.failed);
+    expect(logged).toEqual([
+      {
+        message: "a plugin eval's workflow could not start; marking it failed",
+        fields: { evalId: "pev_1", cause: "dial tcp 10.0.0.7:7233: connection refused" },
+      },
+    ]);
   });
 
   it("leaves an eval running when the start times out after the workflow's load wrote running", async () => {

@@ -59,8 +59,8 @@ import { FixtureTracker } from "../harness/fixtures";
 import { organizationRole } from "../support/iampolicies";
 import { uniqueName, uniqueOrg } from "../support/naming";
 import {
-  NO_ENGINE_CAUSE,
   PLUGIN_EVAL_CREATE_DENIED_MESSAGE,
+  PLUGIN_EVAL_NOT_STARTED_ERROR,
   type EvalCaseFixture,
   awaitPluginEvalEnd,
   cancelAndDeletePluginEval,
@@ -69,7 +69,6 @@ import {
   lastMessageGrader,
   makePluginEval,
   pluginEvalNoCasesMessage,
-  pluginEvalNotStartedMessage,
   pluginEvalOrgMismatchMessage,
   pluginEvalOtherPluginToolMessage,
   pluginEvalTooLargeMessage,
@@ -353,7 +352,7 @@ describe.skipIf(capabilities.scheduleFiring)("PluginEval — without an engine b
     const plugin = await installedWithEvals();
     const created = await createEval(plugin);
     expect(created.status?.phase).toBe(PluginEvalPhase.failed);
-    expect(created.status?.error).toBe(pluginEvalNotStartedMessage(NO_ENGINE_CAUSE));
+    expect(created.status?.error).toBe(PLUGIN_EVAL_NOT_STARTED_ERROR);
     const read = await clients.pluginEvalQuery.get({ value: created.metadata!.id });
     expect(read.status?.phase).toBe(PluginEvalPhase.failed);
   });

@@ -11,9 +11,13 @@
  *     graded with the run's own refusal.
  *   - Wait: the run is polled on a capped backoff (the grade-run
  *     workflow's shape) until it ends or the case's `timeout_seconds`
- *     pass. At the deadline the run is stopped and graded on what it
- *     produced, with the error "timed out after Ns", as the format grades
- *     a timeout.
+ *     pass, counted from when the run started: its `status.started_at`,
+ *     or the first poll that saw it out of pending. At the deadline the run
+ *     is stopped and graded on what it produced, with the error "timed out
+ *     after Ns", as the format grades a timeout. A run no runner took
+ *     within the capacity wait (thirty minutes, the start's own capacity
+ *     rule) is stopped and never scored: the try is not graded, "platform
+ *     busy", as a try that waited for capacity never counts as a zero.
  *   - Grade: the code graders over the try's trace; then each AI-graded
  *     check's three votes, one after another, each a judge run in a session
  *     of its own, each read and then its session deleted before the next
@@ -37,6 +41,17 @@
  * PLUGIN_EVAL_CASE_FAILED_FAILURE_TYPE: Temporal fails only the workflow
  * task on a plain error, and would retry that task until the execution
  * timeout, so the suite records such a try as a failed child instead.
+ * Before it fails, the try's run and any vote's run it knows are stopped,
+ * in a non-cancellable scope, so nothing it started keeps spending.
+ *
+ * History: the try's workflow stays well under Temporal's event cap
+ * (51,200) at the limits. A poll is about eleven events (its timer, the
+ * activity, two workflow tasks). The try's run polls at most about 125
+ * times while it waits for a runner and about 245 while it runs (3,600 s
+ * at 15 s), and each of the 96 votes (32 AI-graded checks, three votes
+ * each) about 20 within its ten minutes, its poll backing off to a minute:
+ * about 2,300 polls, some 25,000 events, with the votes' starts, reads and
+ * deletes about 2,000 more.
  *
  * Cancel: when the suite is cancelled, this workflow stops the try's run
  * and any vote's run going, in a non-cancellable scope, waits for the
@@ -88,6 +103,7 @@ import {
 import type {
   CaseActivities,
   CaseInput,
+  RunPoll,
   SpendActivities,
   TryGrade,
   TryResult,
@@ -157,12 +173,20 @@ const voteStart = proxyActivities<CaseActivities>({
 /** How long a vote may run before it is stopped and counted as failed. */
 const VOTE_BUDGET_MS = 10 * 60 * 1000;
 
+/**
+ * How long a try's run may wait for a runner before it is stopped, not
+ * graded, "platform busy": the try start's own thirty minutes of capacity
+ * retries.
+ */
+const CAPACITY_WAIT_MS = 30 * 60 * 1000;
+
 /** How long a stopped try is waited for before it is graded anyway. */
 const STOP_GRACE_MS = 2 * 60 * 1000;
 
-/** The poll's first wait and its cap. */
+/** The poll's first wait and step, its cap, and a vote's cap (the module header's history). */
 const POLL_FIRST_MS = 3_000;
 const POLL_CAP_MS = 15_000;
+const VOTE_POLL_CAP_MS = 60_000;
 
 /** The votes each AI-graded check takes (graders/llm.ts VOTES_PER_CHECK). */
 const VOTES_PER_CHECK = 3;
@@ -192,6 +216,7 @@ export async function runCase(input: CaseInput): Promise<TryResult> {
         cancelledTry(input, known),
       );
     }
+    await CancellationScope.nonCancellable(() => stopKnownRuns(known));
     if (error instanceof TemporalFailure) {
       throw error;
     }
@@ -242,7 +267,26 @@ async function runTry(input: CaseInput, known: Known): Promise<TryResult> {
   const { sessionId, runId } = started;
   known.sessionId = sessionId;
   known.runId = runId;
-  const timedOut = !(await awaitRun(runId, input.timeoutSeconds * 1000));
+  const waited = await awaitTry(runId, input.timeoutSeconds * 1000);
+  if (waited === "never-started") {
+    try {
+      await steps[STOP_RUN_ACTIVITY_NAME](runId, NEVER_STARTED_STOP_REASON);
+    } catch (error) {
+      if (isCancellation(error)) {
+        throw error;
+      }
+      return await spentNotGraded(input, TRY_NOT_STOPPED_REASON, {
+        sessionId,
+        runId,
+      });
+    }
+    await awaitRun(runId, STOP_GRACE_MS);
+    return await spentNotGraded(input, PLATFORM_BUSY_REASON, {
+      sessionId,
+      runId,
+    });
+  }
+  const timedOut = waited === "timed-out";
   if (timedOut) {
     try {
       await steps[STOP_RUN_ACTIVITY_NAME](
@@ -355,7 +399,7 @@ async function vote(
     return { vote: { kind: "failed", reason: start.reason }, costUsd: 0 };
   }
   known.voteRunId = start.voteRunId;
-  await awaitRun(start.voteRunId, VOTE_BUDGET_MS);
+  await awaitRun(start.voteRunId, VOTE_BUDGET_MS, VOTE_POLL_CAP_MS);
   let read: VoteRead;
   try {
     read = await steps[READ_VOTE_ACTIVITY_NAME](start.voteRunId, rubric);
@@ -437,6 +481,22 @@ async function cancelledTry(input: CaseInput, known: Known): Promise<TryResult> 
   };
 }
 
+/** The reason a try's run that no runner took in time is stopped with. */
+const NEVER_STARTED_STOP_REASON = "no runner took the try in time";
+
+/** The reason a failed try workflow stops the runs it knows with. */
+const FAILED_STOP_REASON = "the try's workflow failed";
+
+/** Stops the try's run and any vote's run going, before the workflow fails; a stop that fails is left to the run's cap. */
+async function stopKnownRuns(known: Known): Promise<void> {
+  if (known.voteRunId !== "") {
+    await stopQuietly(known.voteRunId, FAILED_STOP_REASON);
+  }
+  if (known.runId !== "") {
+    await stopQuietly(known.runId, FAILED_STOP_REASON);
+  }
+}
+
 /** Stops `runId` (for the cancel, by default); a stop that fails leaves the run to its own cap. */
 async function stopQuietly(
   runId: string,
@@ -464,25 +524,72 @@ async function spendOf(input: CaseInput): Promise<TrySpend | undefined> {
   }
 }
 
-/** Polls `runId` until it ends (true) or `budgetMs` pass (false). */
-async function awaitRun(runId: string, budgetMs: number): Promise<boolean> {
+/** Polls `runId` until it ends (true) or `budgetMs` pass (false), the wait between polls growing to `capMs`. */
+async function awaitRun(
+  runId: string,
+  budgetMs: number,
+  capMs: number = POLL_CAP_MS,
+): Promise<boolean> {
   const deadline = Date.now() + budgetMs;
   let wait = POLL_FIRST_MS;
   for (;;) {
     await sleep(Math.max(1, Math.min(wait, deadline - Date.now())));
-    try {
-      if (await steps[POLL_RUN_ACTIVITY_NAME](runId)) {
-        return true;
-      }
-    } catch (error) {
-      if (isCancellation(error)) {
-        throw error;
-      }
+    if ((await poll(runId))?.phase === "ended") {
+      return true;
     }
     if (Date.now() >= deadline) {
       return false;
     }
+    wait = Math.min(wait + POLL_FIRST_MS, capMs);
+  }
+}
+
+/**
+ * Polls the try's run (the module header's wait): ended; timed out, its
+ * `timeoutMs` counted from when it started; or never started, still
+ * pending when the capacity wait ran out. A poll that fails tells nothing,
+ * so the run counts as pending until one reads it out of pending.
+ */
+async function awaitTry(
+  runId: string,
+  timeoutMs: number,
+): Promise<"ended" | "timed-out" | "never-started"> {
+  const begun = Date.now();
+  let deadline = begun + CAPACITY_WAIT_MS;
+  let started = false;
+  let wait = POLL_FIRST_MS;
+  for (;;) {
+    await sleep(Math.max(1, Math.min(wait, deadline - Date.now())));
+    const read = await poll(runId);
+    if (read?.phase === "ended") {
+      return "ended";
+    }
+    if (!started && read?.phase === "running") {
+      started = true;
+      // The run's own stamp, within when this workflow waited, since the
+      // server's clock and the workflow's may differ.
+      const from =
+        read.startedAtMs > 0
+          ? Math.min(Math.max(read.startedAtMs, begun), Date.now())
+          : Date.now();
+      deadline = from + timeoutMs;
+    }
+    if (Date.now() >= deadline) {
+      return started ? "timed-out" : "never-started";
+    }
     wait = Math.min(wait + POLL_FIRST_MS, POLL_CAP_MS);
+  }
+}
+
+/** One poll of `runId`; undefined when it fails past its retries. */
+async function poll(runId: string): Promise<RunPoll | undefined> {
+  try {
+    return await steps[POLL_RUN_ACTIVITY_NAME](runId);
+  } catch (error) {
+    if (isCancellation(error)) {
+      throw error;
+    }
+    return undefined;
   }
 }
 
@@ -535,7 +642,6 @@ function notGraded(
     error: "",
     costUsd: 0,
     durationSeconds: 0,
-    graderResults: [],
     outOfCredit: false,
   };
 }

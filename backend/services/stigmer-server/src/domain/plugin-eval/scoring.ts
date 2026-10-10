@@ -27,7 +27,9 @@
  *     scores (a case's own being the mean over its targets),
  *     `cases_passed` the cases that passed on every target they ran on,
  *     `cases_total` the cases that ran on at least one target (a target
- *     ran when at least one of its tries finished, graded or not graded),
+ *     ran when at least one of its tries was graded: a case whose finished
+ *     tries were all not graded, platform failures, is left out of both
+ *     counts, as a try not graded is left out of every mean),
  *     `mean_delta` the mean of the cases' deltas where one exists, and
  *     `cases_not_run` the cases listed but not run.
  *
@@ -195,11 +197,11 @@ export function recomputeStatus(
       casesNotRun++;
       continue;
     }
-    // A target none of whose tries ran (the cost ceiling, credit or a
-    // cancel stopped the eval first, or none has finished yet) is not one
-    // the case ran on; a case with no such target did not run, so it is
-    // not one that failed either.
-    const tried = ran.filter(hasFinishedTry);
+    // A target none of whose tries was graded (the cost ceiling, credit or
+    // a cancel stopped the eval first, none has finished yet, or every one
+    // that finished was a platform failure) is not one the case ran on; a
+    // case with no such target is not one that failed either.
+    const tried = ran.filter(hasGradedTry);
     if (tried.length === 0) {
       continue;
     }
@@ -228,13 +230,11 @@ export function recomputeStatus(
   status.triesFinished = finished;
 }
 
-/** Whether any try of `target`, in either arm, finished (graded or not graded). */
-function hasFinishedTry(target: PluginEvalCaseTarget): boolean {
+/** Whether any try of `target`, in either arm, was graded. */
+function hasGradedTry(target: PluginEvalCaseTarget): boolean {
   return [target.withPlugin, target.withoutPlugin].some((arm) =>
     (arm?.tries ?? []).some(
-      (attempt) =>
-        attempt.state === PluginEvalTryState.graded ||
-        attempt.state === PluginEvalTryState.not_graded,
+      (attempt) => attempt.state === PluginEvalTryState.graded,
     ),
   );
 }

@@ -31,7 +31,7 @@ import {
   TRY_FAILED_REASON,
   runPluginEvalWorkflowId,
   type CaseActivities,
-  type RecordedTry,
+  type TryResult,
   type SpendActivities,
   type SuiteActivities,
   type SuiteCell,
@@ -70,7 +70,7 @@ interface Script {
   inFlight: number;
   most: number;
   votes: number;
-  recorded: Array<{ cell: SuiteCell; result: RecordedTry }>;
+  recorded: Array<{ cell: SuiteCell; result: TryResult }>;
   finished: SuiteEnd[];
   stopped: string[];
 }
@@ -152,10 +152,10 @@ function scriptedActivities(): SuiteActivities &
     },
     "stigmer/evals/poll-run": async (runId) => {
       if (script.hang && !script.stopped.includes(runId)) {
-        return false;
+        return { phase: "running", startedAtMs: 0 };
       }
       await new Promise<void>((resolve) => setTimeout(resolve, 20));
-      return true;
+      return { phase: "ended", startedAtMs: 0 };
     },
     "stigmer/evals/stop-run": async (runId) => {
       script.stopped.push(runId);
@@ -201,7 +201,6 @@ function scriptedActivities(): SuiteActivities &
       error: grade.error,
       costUsd: grade.costUsd,
       durationSeconds: grade.durationSeconds,
-      graderResults: [],
       outOfCredit: false,
     }),
   };

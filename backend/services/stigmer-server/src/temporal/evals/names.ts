@@ -56,7 +56,7 @@ export const FINISH_EVAL_ACTIVITY_NAME = "stigmer/evals/finish-eval";
 /** Creates a try's session and run, as the eval's caller. */
 export const START_TRY_ACTIVITY_NAME = "stigmer/evals/start-try";
 
-/** Reads whether a run (a try's or a vote's) has ended. */
+/** Reads a run's (a try's or a vote's) progress: waiting for a runner, running, or ended. */
 export const POLL_RUN_ACTIVITY_NAME = "stigmer/evals/poll-run";
 
 /** Stops a run that outlived its time. */
@@ -232,6 +232,17 @@ export interface TryGrade {
   readonly durationSeconds: number;
 }
 
+/**
+ * A run's progress as the poll reads it. Pending: no runner has taken it
+ * yet (it carries no start stamp). Running and ended carry the run's
+ * `status.started_at` in epoch milliseconds, 0 when it has none; a run
+ * gone reads as ended.
+ */
+export interface RunPoll {
+  readonly phase: "pending" | "running" | "ended";
+  readonly startedAtMs: number;
+}
+
 /** A vote's start. */
 export type VoteStart =
   | { readonly kind: "started"; readonly voteRunId: string }
@@ -249,13 +260,6 @@ export interface VoteRead {
   readonly costUsd: number;
 }
 
-/** One grader's result, as the try reports it to the suite. */
-export interface GraderResult {
-  readonly name: string;
-  readonly scored: boolean;
-  readonly verdict: WireVerdict;
-}
-
 /** A try's result, which the suite folds into the eval's status. */
 export interface TryResult {
   readonly sessionId: string;
@@ -266,17 +270,10 @@ export interface TryResult {
   readonly error: string;
   readonly costUsd: number;
   readonly durationSeconds: number;
-  readonly graderResults: ReadonlyArray<GraderResult>;
   /** The organization's credit refused the try: the suite stops starting tries. */
   readonly outOfCredit: boolean;
 }
 
-/**
- * A try's result as the record activity takes it: everything the status
- * holds, without the grader results it never reads, so the suite
- * workflow's history carries them once (the child's result), not twice.
- */
-export type RecordedTry = Omit<TryResult, "graderResults">;
 
 /** The suite workflow's activities, keyed by the pinned names. */
 export interface SuiteActivities {
@@ -284,7 +281,7 @@ export interface SuiteActivities {
   [RECORD_TRY_ACTIVITY_NAME]: (
     evalId: string,
     cell: SuiteCell,
-    result: RecordedTry,
+    result: TryResult,
   ) => Promise<void>;
   [FINISH_EVAL_ACTIVITY_NAME]: (evalId: string, end: SuiteEnd) => Promise<void>;
 }
@@ -300,7 +297,7 @@ export interface SpendActivities {
 /** The case workflow's activities, keyed by the pinned names. */
 export interface CaseActivities {
   [START_TRY_ACTIVITY_NAME]: (input: CaseInput) => Promise<TryStart>;
-  [POLL_RUN_ACTIVITY_NAME]: (runId: string) => Promise<boolean>;
+  [POLL_RUN_ACTIVITY_NAME]: (runId: string) => Promise<RunPoll>;
   [STOP_RUN_ACTIVITY_NAME]: (runId: string, reason: string) => Promise<void>;
   [GRADE_TRY_ACTIVITY_NAME]: (
     input: CaseInput,

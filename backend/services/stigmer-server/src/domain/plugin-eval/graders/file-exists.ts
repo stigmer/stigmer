@@ -10,8 +10,14 @@
  * segment, `**` crosses segments (and `**` followed by `/` also matches no
  * directory at all), `[...]` is a class and `{a,b}` an alternative. The
  * matcher is linear in the glob and the path, so it runs in-thread with no
- * deadline. The suite reader refuses a malformed glob; one that still
- * reaches the grader leaves the try not graded, never failed.
+ * deadline of its own; what bounds it is the work per try instead. One
+ * grader costs its glob's tokens times the created paths' total length
+ * (`fileMatchCost`), and when the sum over a try's `file_exists` graders
+ * passes FILE_MATCH_BUDGET none of them is matched: each is not graded,
+ * "too many created files to match" (grade.ts), so a legal glob over many
+ * long created paths cannot hold the server's thread for seconds. The suite
+ * reader refuses a malformed glob; one that still reaches the grader
+ * leaves the try not graded, never failed.
  *
  * Proven by __tests__/graders.test.ts.
  */
@@ -27,6 +33,33 @@ import {
 } from "./verdict.js";
 
 type FileExistsCheck = Extract<EvalGraderCheck, { type: "file_exists" }>;
+
+/**
+ * The most matching work one try's `file_exists` graders may do: tokens
+ * times characters summed over them, some tens of milliseconds on the
+ * server's thread at the rates measured for the matcher's worst globs.
+ */
+export const FILE_MATCH_BUDGET = 20_000_000;
+
+/**
+ * The work matching `check` over the try's created paths costs: its glob's
+ * tokens times their total length; 0 where nothing is matched (no files
+ * recorded, a malformed glob).
+ */
+export function fileMatchCost(check: FileExistsCheck, trace: EvalTrace): number {
+  if (trace.files.kind === "not-recorded") {
+    return 0;
+  }
+  const pattern = compileGlob(normalisePath(check.path), "path");
+  if (!pattern.ok) {
+    return 0;
+  }
+  let length = 0;
+  for (const path of trace.files.created) {
+    length += path.length;
+  }
+  return pattern.tokens * length;
+}
 
 export function gradeFileExists(
   check: FileExistsCheck,

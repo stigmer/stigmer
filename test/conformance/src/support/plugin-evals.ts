@@ -98,13 +98,8 @@ export function pluginEvalOtherPluginToolMessage(
   return `allow_tools entry '${entry}' names plugin '${named}', but this eval runs '${plugin}'; a try attaches no other plugin`;
 }
 
-/** A failed eval's error when its workflow could not start. */
-export function pluginEvalNotStartedMessage(cause: string): string {
-  return `the eval could not start: ${cause}`;
-}
-
-/** Why a create on a server with no engine connection could not start the eval. */
-export const NO_ENGINE_CAUSE = "no engine connection";
+/** A failed eval's error when its workflow could not start: a fixed sentence, the cause only logged. */
+export const PLUGIN_EVAL_NOT_STARTED_ERROR = "the eval's workflow could not be started";
 
 /** A case that uses a feature Stigmer does not run yet. */
 export function unsupportedFeatureReason(feature: string): string {

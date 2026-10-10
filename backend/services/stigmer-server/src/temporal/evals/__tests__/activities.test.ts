@@ -40,7 +40,10 @@ import {
   MessageType,
   RunPhase,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { ScoreSource } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
+import {
+  CriterionResult,
+  ScoreSource,
+} from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -290,7 +293,6 @@ function graded(score: number, costUsd = 0.1): TryResult {
     error: "",
     costUsd,
     durationSeconds: 3,
-    graderResults: [],
     outOfCredit: false,
   };
 }
@@ -520,16 +522,40 @@ async function completeTry(
 }
 
 describe("poll-run and stop-run", () => {
-  it("reads an ended or gone run as ended, and stops a run once", async () => {
+  it("reads a run no runner took as pending, a started one as running with its stamp, an ended or gone one as ended, and stops a run once", async () => {
     await seeded();
     const { cases, record } = build();
     const start = await cases[START_TRY_ACTIVITY_NAME](CELL);
     if (start.kind !== "started") throw new Error("not started");
-    expect(await cases[POLL_RUN_ACTIVITY_NAME](start.runId)).toBe(false);
+    expect(await cases[POLL_RUN_ACTIVITY_NAME](start.runId)).toEqual({
+      phase: "pending",
+      startedAtMs: 0,
+    });
+    const setStatus = (phase: RunPhase, startedAt: string) =>
+      temp.store.updateResource(ApiResourceKind.run, start.runId, RunSchema, (live) => {
+        live.status = create(RunSchema, { status: { phase, startedAt } }).status;
+      });
+    await setStatus(RunPhase.RUN_IN_PROGRESS, "");
+    expect(await cases[POLL_RUN_ACTIVITY_NAME](start.runId)).toEqual({
+      phase: "running",
+      startedAtMs: 0,
+    });
+    await setStatus(RunPhase.RUN_PENDING, "2026-10-10T10:00:00Z");
+    const startedAtMs = Date.parse("2026-10-10T10:00:00Z");
+    expect(await cases[POLL_RUN_ACTIVITY_NAME](start.runId)).toEqual({
+      phase: "running",
+      startedAtMs,
+    });
     await cases[STOP_RUN_ACTIVITY_NAME](start.runId, "timed out after 120s");
     expect(record.terminated).toEqual([start.runId]);
-    expect(await cases[POLL_RUN_ACTIVITY_NAME](start.runId)).toBe(true);
-    expect(await cases[POLL_RUN_ACTIVITY_NAME]("run_gone")).toBe(true);
+    expect(await cases[POLL_RUN_ACTIVITY_NAME](start.runId)).toEqual({
+      phase: "ended",
+      startedAtMs,
+    });
+    expect(await cases[POLL_RUN_ACTIVITY_NAME]("run_gone")).toEqual({
+      phase: "ended",
+      startedAtMs: 0,
+    });
     await cases[STOP_RUN_ACTIVITY_NAME]("run_gone", "x");
   });
 });
@@ -668,11 +694,6 @@ describe("grading a try", () => {
       sessionId: start.sessionId,
       runId: start.runId,
     });
-    expect(result.graderResults.map((g) => [g.name, g.scored])).toEqual([
-      ["criteria", true],
-      ["mentions", true],
-      ["skill-fired", false],
-    ]);
     await cases[RECORD_SCORE_ACTIVITY_NAME](CELL, start, grade, [
       [pass, fail, pass],
       [],
@@ -683,6 +704,16 @@ describe("grading a try", () => {
     ).filter((score) => score.spec?.source === ScoreSource.eval);
     expect(scores).toHaveLength(1);
     expect(scores[0]?.spec?.value).toEqual({ case: "passed", value: true });
+    expect(
+      scores[0]?.spec?.criteria.map((criterion) => [
+        criterion.name,
+        CriterionResult[criterion.result],
+      ]),
+    ).toEqual([
+      ["criteria", "passed"],
+      ["mentions", "passed"],
+      ["skill-fired", "not_applicable"],
+    ]);
 
     const failing = await cases[RECORD_SCORE_ACTIVITY_NAME](
       CELL,

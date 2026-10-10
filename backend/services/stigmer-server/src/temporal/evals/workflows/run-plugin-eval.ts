@@ -12,9 +12,9 @@
  *     per try, where polling every try here would grow it with every poll.
  *   - Record: after each child, an activity folds its result into the
  *     status and recomputes the scores: this workflow is the status's one
- *     writer, so no two writes race. The record takes the result without
- *     its grader results, which it never reads, so this history carries
- *     them once.
+ *     writer, so no two writes race. A result carries no grader verdicts
+ *     (they stay in the try's Score), so each try adds only its summary
+ *     here.
  *   - Spend: before each cell starts, the cost of the finished tries and
  *     their votes, plus the caps the tries still running hold, is compared
  *     with the eval's limit. While they reach it no cell starts; a running
@@ -22,10 +22,11 @@
  *     finished tries alone reach the limit with none running the eval ends
  *     partial, "cost ceiling". Each try's run is capped, when it starts, at
  *     an equal share of what the eval has left for the tries that may run
- *     at once: (limit less recorded spend) / concurrency, and never more
- *     than the limit less the recorded spend and the caps held
- *     (tryBudgetUsd), so no try starts with a sliver while another holds
- *     the rest. While something is left the cap is never below
+ *     at once: (limit less recorded spend) / min(concurrency, the tries not
+ *     yet finished, the running ones counted), and never more than the
+ *     limit less the recorded spend and the caps held (tryBudgetUsd), so no
+ *     try starts with a sliver while another holds the rest, and the last
+ *     few tries share all that is left. While something is left the cap is never below
  *     TRY_MIN_BUDGET_USD (a cap of 0 is no cap), so the last tries can
  *     pass the limit by that floor. An AI-graded check's votes are not
  *     under the try's cap: each vote is capped at the judge's own $0.25.
@@ -81,7 +82,6 @@ import {
 } from "../names.js";
 import type {
   CaseInput,
-  RecordedTry,
   RunPluginEvalInput,
   SpendActivities,
   SuiteActivities,
@@ -225,7 +225,13 @@ async function runCells(
       for (const cap of caps.values()) {
         held += cap;
       }
-      const budgetUsd = tryBudgetUsd(maxCostUsd, spent, held, concurrency);
+      const unfinished = cells.length - next + inFlight.size;
+      const budgetUsd = tryBudgetUsd(
+        maxCostUsd,
+        spent,
+        held,
+        Math.min(concurrency, unfinished),
+      );
       if (budgetUsd === 0) {
         // Nothing is left beyond the caps held: wait for a running try to
         // free its cap, or, with none running, the limit is reached.
@@ -309,13 +315,11 @@ async function runCell(
       );
     }
   }
-  const { graderResults: _unread, ...recorded } = result;
-  const record: RecordedTry = recorded;
   let recordFailure: StepFailed | undefined;
   try {
     // A finished try is recorded even when the eval is being cancelled.
     await CancellationScope.nonCancellable(() =>
-      steps[RECORD_TRY_ACTIVITY_NAME](evalId, cell, record),
+      steps[RECORD_TRY_ACTIVITY_NAME](evalId, cell, result),
     );
   } catch (error) {
     recordFailure = stepFailed(TRY_NOT_RECORDED_ERROR, error);
@@ -357,24 +361,24 @@ async function failedTry(
     error: "",
     costUsd: spend.costUsd,
     durationSeconds: 0,
-    graderResults: [],
     outOfCredit: false,
   };
 }
 
 /**
  * A try's run cap: an equal share of what the eval has left for the
- * `concurrency` tries that may run at once, bounded by what the caps
- * already handed out leave, never below the floor while something is
- * left; 0, start nothing, once the recorded spend and the caps held reach
- * the limit (the module header).
+ * `sharers` tries that may still run at once (the concurrency, or fewer
+ * when fewer tries are left), bounded by what the caps already handed out
+ * leave, never below the floor while something is left; 0, start nothing,
+ * once the recorded spend and the caps held reach the limit (the module
+ * header).
  */
-export function tryBudgetUsd(maxCostUsd: number, spent: number, held: number, concurrency: number): number {
+export function tryBudgetUsd(maxCostUsd: number, spent: number, held: number, sharers: number): number {
   const left = maxCostUsd - spent;
   const free = left - held;
   if (free <= SPEND_EPSILON_USD) {
     return 0;
   }
-  const share = left / Math.max(1, concurrency);
+  const share = left / Math.max(1, sharers);
   return Math.max(TRY_MIN_BUDGET_USD, Math.min(share, free));
 }

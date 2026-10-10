@@ -68,10 +68,12 @@ export function pluginEvalActiveOnPluginDeleteMessage(evalId: string): string {
   return `this plugin has a running eval (${evalId}): cancel it first, then delete the plugin`;
 }
 
-/** The failed eval's error when its workflow could not start. */
-export function pluginEvalNotStartedMessage(cause: string): string {
-  return `the eval could not start: ${cause}`;
-}
+/**
+ * The failed eval's error when its workflow could not start: a fixed
+ * sentence, since every viewer of the plugin reads it; the cause is
+ * logged.
+ */
+export const PLUGIN_EVAL_NOT_STARTED_ERROR = "the eval's workflow could not be started";
 
 /**
  * The error of an eval whose workflow closed without writing its end: its

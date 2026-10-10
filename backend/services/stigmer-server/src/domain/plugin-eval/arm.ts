@@ -45,7 +45,17 @@ export interface PluginAttachmentFacts {
   readonly agentSlug?: string;
   /** The slugs of the MCP servers it installed, in member order. */
   readonly mcpServerSlugs: ReadonlyArray<string>;
+  /**
+   * Each installed server's name as the plugin declares it (its
+   * `mcpServers` key, which the McpServer's name records), by slug: a
+   * slug drops underscores and capitals, and the eval's trace names a call
+   * as Claude Code does, by the key.
+   */
+  readonly mcpServerKeys: ReadonlyMap<string, string>;
 }
+
+/** What choosing an arm's attachment reads of the facts. */
+export type ArmFacts = Omit<PluginAttachmentFacts, "mcpServerKeys">;
 
 /** What a try's session attaches. */
 export interface ArmAttachment {
@@ -57,7 +67,7 @@ export interface ArmAttachment {
 
 export function armAttachment(
   arm: EvalArm,
-  plugin: PluginAttachmentFacts,
+  plugin: ArmFacts,
 ): ArmAttachment {
   switch (arm) {
     case "without":
@@ -108,11 +118,15 @@ export async function pluginAttachmentFacts(
     .filter((member) => member.kind === ApiResourceKind.agent)
     .map((member) => member.slug)
     .sort();
-  const servers = members
-    .filter((member) => member.kind === ApiResourceKind.mcp_server)
-    .map((member) => member.slug);
+  const servers = members.filter(
+    (member) => member.kind === ApiResourceKind.mcp_server,
+  );
+  const mcpServerSlugs = servers.map((member) => member.slug);
+  const mcpServerKeys = new Map(
+    servers.map((member) => [member.slug, member.name] as const),
+  );
   const agentSlug = agents[0];
   return agentSlug === undefined
-    ? { org, mcpServerSlugs: servers }
-    : { org, agentSlug, mcpServerSlugs: servers };
+    ? { org, mcpServerSlugs, mcpServerKeys }
+    : { org, agentSlug, mcpServerSlugs, mcpServerKeys };
 }

@@ -33,21 +33,30 @@ service PluginEvalCommandController {
   //    the with-plugin arm runs the plugin as installed now, so an earlier
   //    version's cases would be graded against today's plugin. Empty is
   //    stamped with the current version.
-  // 4. Each vault must be usable by the caller (the schedule's rule).
+  // 4. Each vault must be usable by the caller (the schedule's rule), and
+  //    none may be a My vault: every viewer of the plugin reads the tries.
   // 5. The suite is read from the archive; more than 200 cases or 1000
   //    tries is refused with the computed counts.
   // Then the eval's workflow starts under a deterministic id; a start
-  // that fails marks the eval failed with its reason.
+  // that fails marks the eval failed, "the eval's workflow could not be
+  // started", the cause logged.
   //
   // Error Cases:
   //
+  // - INVALID_ARGUMENT: metadata.org or spec is missing; spec.case_glob is
+  //   not a valid glob; an allow_tools entry names another plugin's MCP
+  //   tools; a target names a model the catalog does not run on its engine
   // - FAILED_PRECONDITION: the organization is not the plugin's; the
-  //   plugin has no evals/ cases; spec.plugin_digest names a version other
-  //   than the current one; the suite is larger than an eval may run
-  // - INVALID_ARGUMENT: the digest names no version of the plugin
+  //   plugin has no version, or its version no evals/ cases;
+  //   spec.plugin_digest names anything but the current version, a digest
+  //   naming no version of the plugin included; no case matches case_glob
+  //   and case_tags; the suite is larger than an eval may run; a named
+  //   vault is a My vault
   // - PERMISSION_DENIED: the caller may not edit the plugin, or may not use
   //   a named vault
-  // - NOT_FOUND: the plugin does not exist
+  // - NOT_FOUND: the plugin does not exist, or was deleted while the eval
+  //   was created
+  // - ALREADY_EXISTS: the organization already has an eval of that name
   rpc create(PluginEval) returns (PluginEval) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }

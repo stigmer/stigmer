@@ -1,7 +1,8 @@
 /**
  * Pins the vault attachments step: a My vault is refused on every surface
  * that runs for someone else (a conversation, a share, a channel, a
- * platform client) and admitted on its owner's own schedule only;
+ * platform client, a plugin eval, whose tries its plugin's viewers read)
+ * and admitted on its owner's own schedule only;
  * who attached each vault is recorded for the vaults a write introduces
  * and kept for the ones it keeps, a removed vault's entry dropped, so an
  * editor's unrelated edit never re-attributes someone else's attachment;
@@ -27,6 +28,7 @@ import { SessionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/session/
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { PlatformClientSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
+import { PluginEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import type { Authorizer } from "../../../extensions/authorizer.js";
@@ -34,6 +36,7 @@ import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { RequestContext } from "../../../pipeline/request-context.js";
 import { EXISTING_RESOURCE_KEY } from "../../../pipeline/steps/load-existing.js";
 
+import { PLUGIN_EVAL_VAULT_ATTACHMENTS } from "../../plugin-eval/vault-attachments.js";
 import { SCHEDULE_VAULT_ATTACHMENTS } from "../../schedule/vault-attachments.js";
 import { myVaultLockRefusal, myVaultRefusal, newVaultAttachmentsStep } from "../attachments.js";
 import type { VaultAttachmentOptions } from "../attachments.js";
@@ -210,6 +213,28 @@ describe("a My vault", () => {
       expect(failure.code).toBe(Code.FailedPrecondition);
       expect(failure.rawMessage).toBe(myVaultRefusal(surface));
     }
+  });
+
+  it("is refused on a plugin eval, even its creator's own, since every viewer of the plugin reads its tries", async () => {
+    const mine = ref((await rig.vaults.findById(anasId))!.metadata!.slug);
+    const failure = await refusalOf(
+      run(
+        PluginEvalSchema,
+        ApiResourceKind.plugin_eval,
+        create(PluginEvalSchema, {
+          metadata: { id: "pev_1", org: ORG },
+          spec: { vaults: [mine] },
+          status: { audit: { specAudit: { createdBy: { id: "ida_ana" } } } },
+        }),
+        PLUGIN_EVAL_VAULT_ATTACHMENTS,
+        { writer: "ida_ana" },
+      ),
+    );
+    expect(failure.code).toBe(Code.FailedPrecondition);
+    expect(failure.rawMessage).toBe(
+      "a My vault cannot be attached to a plugin eval, whose tries every viewer of its plugin can read: " +
+        "it serves only its own person's runs. Attach a shared vault that holds what is needed instead",
+    );
   });
 
   it("is admitted on its owner's own schedule, and refused on someone else's or by someone else", async () => {
