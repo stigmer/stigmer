@@ -14,7 +14,8 @@
  * children that may run at once, within what the running caps leave (never
  * below the floor); a credit refusal
  * stopping new cells; a child that fails recorded as not graded with what
- * its run spent, which the ceiling counts; a cancellation recording every
+ * its run spent, which the ceiling counts, even when the eval's cancel
+ * lands during that spend read; a cancellation recording every
  * child in flight (its own cancelled answer, or one read through the spend
  * activity), starting no cell after, ending the eval partial "cancelled"
  * and rethrown;
@@ -81,6 +82,8 @@ const seam = vi.hoisted(() => ({
   activities: {} as Record<string, ReturnType<typeof vi.fn>>,
   /** Whether the workflow's scope has been cancelled. */
   cancelled: false,
+  /** How many non-cancellable scopes are open, for an activity to tell whether a cancel reaches it. */
+  shielded: 0,
   child: (() => Promise.reject(new Error("no child expected"))) as (
     type: string,
     options: { workflowId: string; args: unknown[] },
@@ -98,7 +101,14 @@ vi.mock("@temporalio/workflow", async (importOriginal) => {
       options: { workflowId: string; args: unknown[] },
     ) => seam.child(type, options),
     CancellationScope: {
-      nonCancellable: <T>(fn: () => Promise<T>) => fn(),
+      nonCancellable: async <T>(fn: () => Promise<T>) => {
+        seam.shielded++;
+        try {
+          return await fn();
+        } finally {
+          seam.shielded--;
+        }
+      },
       current: () => ({
         get consideredCancelled() {
           return seam.cancelled;
@@ -121,6 +131,7 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ["Date"] });
   seam.activities = {};
   seam.cancelled = false;
+  seam.shielded = 0;
 });
 
 afterEach(() => {
@@ -527,6 +538,35 @@ describe("the suite workflow", () => {
       expect.objectContaining({ costUsd: 0.2 }),
     ]);
     expect(finished).toEqual([{ phase: "partial", reason: "cost_ceiling" }]);
+  });
+
+  it("records a failed child with its spend when the eval's cancel lands during the spend read", async () => {
+    const { recorded, finished } = suite({
+      kind: "run",
+      org: "acme",
+      cells: cells(2),
+      maxCostUsd: 10,
+      concurrency: 1,
+    });
+    seam.child = () => Promise.reject(new Error("the child failed"));
+    seam.activities[TRY_SPEND_ACTIVITY_NAME] = vi.fn(() => {
+      seam.cancelled = true;
+      // A cancellable scope would see the cancel land here.
+      return seam.shielded > 0
+        ? Promise.resolve({ sessionId: "ses_9", runId: "run_9", costUsd: 0.2 })
+        : Promise.reject(new CancelledFailure("cancelled"));
+    });
+    await expect(runPluginEval({ evalId: "pev_1" })).rejects.toBeInstanceOf(
+      CancelledFailure,
+    );
+    expect(recorded.map((entry) => entry.result)).toEqual([
+      expect.objectContaining({
+        runId: "run_9",
+        costUsd: 0.2,
+        notGradedReason: TRY_FAILED_REASON,
+      }),
+    ]);
+    expect(finished).toEqual([{ phase: "partial", reason: "cancelled" }]);
   });
 
   it("records a failed child at no cost when its spend cannot be read, and rethrows a cancellation there", async () => {

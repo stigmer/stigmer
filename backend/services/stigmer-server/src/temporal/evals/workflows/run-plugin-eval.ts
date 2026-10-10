@@ -43,7 +43,8 @@
  *   - A child that fails outright is recorded as a try not graded, never
  *     the eval's failure, with what its run spent read by the spend
  *     activity (the try's run by the eval's label and its name), so the
- *     ceiling counts it.
+ *     ceiling counts it. That read runs in a non-cancellable scope, so a
+ *     cancel landing during it still records the try.
  *   - A load or a record that fails past its retries ends the eval failed
  *     with the reason, through the finish, once the tries in flight have
  *     settled: the workflow never ends leaving the eval running.
@@ -295,7 +296,10 @@ async function runCell(
         failedTry(evalId, cell, TRY_CANCELLED_REASON),
       );
     } else {
-      result = await failedTry(evalId, cell, TRY_FAILED_REASON);
+      // A cancel landing during the spend read still lets the try be recorded.
+      result = await CancellationScope.nonCancellable(() =>
+        failedTry(evalId, cell, TRY_FAILED_REASON),
+      );
     }
   }
   const { graderResults: _unread, ...recorded } = result;
