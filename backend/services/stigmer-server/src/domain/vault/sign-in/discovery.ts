@@ -34,7 +34,7 @@
  * its origin, the one the retired reader named) with its status or its
  * network error.
  * Proven by __tests__/discovery.test.ts and
- * mcpserver-oauth.conformance.test.ts (CONFORMANCE_TARGET=local).
+ * plugin-oauth.conformance.test.ts (CONFORMANCE_TARGET=local).
  */
 import type { OutboundFetch } from "@stigmer/outbound/egress";
 import {

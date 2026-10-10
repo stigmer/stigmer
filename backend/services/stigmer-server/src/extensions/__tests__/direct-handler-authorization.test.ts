@@ -11,7 +11,7 @@
  *
  * The streaming/connect lanes' enforcement is pinned in their domain
  * suites (agentexecution read-authorization.test.ts,
- * mcpserver connect-authorization.test.ts); the decision mapping itself
+ * plugin list-tools-authorization.test.ts); the decision mapping itself
  * in pipeline/steps/__tests__/authorize.test.ts.
  */
 import { mkdtempSync, rmSync } from "node:fs";

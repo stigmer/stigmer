@@ -94,7 +94,7 @@ export interface ExtensionDrivers {
   /**
    * The runner-credential mint/verify seam (single-instance point).
    * When composed, it replaces the OSS execution-scoped HS256 default at
-   * every consumer (platform exchange, mcpserver connect, the values
+   * every consumer (platform exchange, the plugin tools listing, the values
    * fetch).
    */
   readonly runnerCredentialProvider?: RunnerCredentialProvider;

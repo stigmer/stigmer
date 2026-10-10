@@ -183,7 +183,7 @@ export interface RunnerCredentialProvider {
   /**
    * Whether the implementation can currently mint for the lane — false
    * for lanes it does not provide AND for provided lanes with no signing
-   * key. Callers that degrade on "cannot mint" (mcpserver connect) probe
+   * key. Callers that degrade on "cannot mint" (the plugin tools listing) probe
    * this instead of catching MintingDisabledError.
    */
   isEnabled(lane: string): boolean;
