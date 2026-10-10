@@ -51,6 +51,8 @@ const RUN = "/agent.v1.AgentService/Run";
 /** Cursor's Connect host: records each stream, echoes each chunk back as it arrives, ends with a trailer. */
 class FakeConnectHost {
   readonly streams: { readonly path: string; readonly headers: IncomingHttpHeaders }[] = [];
+  /** How many HTTP/2 sessions (connections) the lane has opened to it. */
+  sessions = 0;
   /** How each stream ended, by its reset code (0 for a clean end). */
   readonly closedCodes: number[] = [];
   /** Answer the headers, then reset the stream: an upstream that fails mid-answer. */
@@ -60,6 +62,7 @@ class FakeConnectHost {
 
   async start(): Promise<void> {
     this.server = createH2cServer();
+    this.server.on("session", () => (this.sessions += 1));
     this.server.on("stream", (stream: ServerHttp2Stream, headers: IncomingHttpHeaders) => {
       this.streams.push({ path: String(headers[":path"]), headers });
       stream.on("close", () => this.closedCodes.push(stream.rstCode));
@@ -173,6 +176,7 @@ beforeEach(() => {
   connectHost.streams.length = 0;
   connectHost.resetAfterHeaders = false;
   connectHost.closedCodes.length = 0;
+  connectHost.sessions = 0;
   setEnv({ CURSOR_BACKEND_URL: rest.url });
 });
 afterEach(async () => {
@@ -358,6 +362,15 @@ describe("terminate: a runner that calls Cursor itself", () => {
       req.end("x");
     });
     expect(reset, "an internal-error reset, never a clean end").toBe(2);
+  });
+
+  it("opens a fresh upstream connection when the host resets its own, so a recovery never reuses a degraded one", async () => {
+    const standIn = await exchange();
+    setEnv({ CURSOR_BACKEND_URL: connectHost.url });
+    const headers = { authorization: `Bearer ${standIn}`, "x-stigmer-execution-id": EXECUTION };
+    expect((await stream(RUN, headers, ["first"])).data).toBe("echo:first");
+    expect((await stream(RUN, headers, ["second"])).data, "a new host session").toBe("echo:second");
+    expect(connectHost.sessions, "one upstream connection per host session").toBe(2);
   });
 
   it("closes promptly while a host still holds connections open", async () => {

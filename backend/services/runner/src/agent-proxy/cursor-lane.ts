@@ -62,6 +62,7 @@ import {
   type Http2SecureServer,
   type Http2ServerRequest,
   type Http2ServerResponse,
+  type Http2Session,
   type OutgoingHttpHeaders,
 } from "node:http2";
 import type { AddressInfo, Socket } from "node:net";
@@ -103,7 +104,13 @@ type LaneResponse = RelayResponse;
 
 export class CursorLane {
   private readonly custody = new TokenCustody();
-  private readonly sessions = new Map<string, ClientHttp2Session>();
+  /**
+   * The upstream HTTP/2 sessions, by the host's session they serve and then
+   * by origin. A host that resets its transport (the Cursor harness does at
+   * every turn start and on a transport timeout) gets fresh upstream
+   * connections with its new one, so a recovery never reuses a degraded one.
+   */
+  private readonly upstreams = new Map<Http2Session, Map<string, ClientHttp2Session>>();
   /** Every connection a host has open to the lane, so a close does not wait on them. */
   private readonly inbound = new Set<Socket>();
 
@@ -145,8 +152,8 @@ export class CursorLane {
 
   /** Close the listener, ending every connection a host still holds, as the model lanes' listener does. */
   close(): Promise<void> {
-    for (const session of this.sessions.values()) session.destroy();
-    this.sessions.clear();
+    for (const sessions of this.upstreams.values()) for (const session of sessions.values()) session.destroy();
+    this.upstreams.clear();
     const closed = new Promise<void>((resolve) => this.server.close(() => resolve()));
     for (const socket of this.inbound) socket.destroy();
     return closed;
@@ -254,7 +261,10 @@ export class CursorLane {
    */
   private relayStream(req: Http2ServerRequest, res: Http2ServerResponse, url: URL, headers: Record<string, string | string[]>): Promise<void> {
     return new Promise((resolve) => {
-      const session = this.session(url.origin);
+      // A stream whose host session is already gone has nothing to relay.
+      const inbound = req.stream.session;
+      if (inbound === undefined) return resolve();
+      const session = this.session(inbound, url.origin);
       const outgoing: OutgoingHttpHeaders = {
         ...headers,
         [http2Constants.HTTP2_HEADER_METHOD]: req.method,
@@ -298,18 +308,32 @@ export class CursorLane {
 
 
   /** One HTTP/2 session per upstream origin, opened on first use and dropped when it ends. */
-  private session(origin: string): ClientHttp2Session {
-    const open = this.sessions.get(origin);
+  /** The upstream session to `origin` for the host's session `inbound`, opened on first use and ended with it. */
+  private session(inbound: Http2Session, origin: string): ClientHttp2Session {
+    let byOrigin = this.upstreams.get(inbound);
+    if (byOrigin === undefined) {
+      const sessions = new Map<string, ClientHttp2Session>();
+      byOrigin = sessions;
+      this.upstreams.set(inbound, sessions);
+      // Closed, not destroyed: each stream still open is cancelled at Cursor
+      // by its own relay as the host's side of it closes.
+      inbound.once("close", () => {
+        this.upstreams.delete(inbound);
+        for (const session of sessions.values()) session.close();
+      });
+    }
+    const open = byOrigin.get(origin);
     if (open && !open.closed && !open.destroyed) return open;
     const session = connectHttp2(origin);
     session.unref();
+    const sessions = byOrigin;
     const forget = (): void => {
-      if (this.sessions.get(origin) === session) this.sessions.delete(origin);
+      if (sessions.get(origin) === session) sessions.delete(origin);
     };
     session.on("close", forget);
     session.on("goaway", forget);
     session.on("error", forget);
-    this.sessions.set(origin, session);
+    sessions.set(origin, session);
     return session;
   }
 
