@@ -1,36 +1,28 @@
 /**
- * The harness boot order, proven in a fresh process.
+ * The harness boot order, and the runner's freedom from the engines, proven
+ * in fresh processes.
  *
- * The contract (`harness/types.ts` `boot`, `http2-interceptor.ts` header):
- * the composition roots import `harness-adapters.js`, `harness/registry.js`
- * and `agent-host/hosting.js` BEFORE bootstrap, the Cursor adapter's `boot` installs the proxy
- * interceptors — the HTTP/2 one patches `node:http2`, whose ESM facade is
- * snapshotted at its first import by `@connectrpc/connect-node` — proves the
- * patch reached the facade, and only then loads `@cursor/sdk`. Every module
- * on the pre-boot path must therefore be connect-free, and the adapter's
- * static graph SDK-free.
+ * Every harness runs in the agent host (#2016): the composition roots import
+ * `harness-adapters.js`, `harness/registry.js` and `agent-host/hosting.js`,
+ * host the table, and boot the remote adapters, which start a host from this
+ * build's entry and boot the real adapters there. The Cursor adapter's
+ * `boot` installs its proxy interceptors — the HTTP/2 one patches
+ * `node:http2`, whose ESM facade is snapshotted at its first import by
+ * `@connectrpc/connect-node` — proves the patch reached the facade, and only
+ * then loads `@cursor/sdk`; that ordering now holds inside the host's own
+ * fresh process, and a host whose graph imported connect-node first would
+ * fail the first arm.
  *
- * Nothing in-process can test the positive arm: a vitest worker has imported
- * `node:http2` long before any test runs, so the facade is frozen to the
- * unpatched `connect` no matter what a test installs
- * (`http2-interceptor.test.ts` covers only the two deterministic negatives
- * for that reason). So each arm here spawns ONE fresh Node process
- * (`__test-utils__/harness-boot-order-child.ts`) that does exactly what the
- * roots do, and reads its one-line verdict. A static SDK import anywhere on
- * `adapter.ts`'s graph, or a static client import on the registry's, fails
- * the first arm; a `boot` that stopped asserting fails the second.
- *
- * The table has two rows since #1096 (2026-09-13): the child boots the
- * Cursor adapter and then the native deep-agent adapter. The native row is
- * hosted (#2016): its `boot` starts a real agent host from this build's
- * entry, which registers the deepagents profiles and loads LangChain in its
- * own process, so the first arm also proves a host starts, announces itself
- * and boots. A pre-boot module that imported connect-node statically, or a
- * Cursor boot that stopped asserting, shows in the arms below.
+ * The runner itself loads no engine. The child runs with
+ * `__test-utils__/refuse-engine-sdks.ts`, a resolve hook that refuses
+ * `@cursor/sdk` and `deepagents` in the runner's process (the host is
+ * spawned without it), so a runner that booted an engine in-process, or
+ * imported one anywhere on its boot path, fails the first arm; the second
+ * arm imports the SDK on purpose to prove the refusal is live.
  *
  * `HOME` points at a temp dir so an SDK import-time side effect cannot touch
  * the developer's home; the proxy endpoint is an inert loopback; nothing is
- * dialled. Two spawns, a few seconds: both SDKs are imported for real once.
+ * dialled.
  */
 
 import { describe, it, expect } from "vitest";
@@ -43,16 +35,17 @@ import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
 const CHILD = fileURLToPath(new URL("../__test-utils__/harness-boot-order-child.ts", import.meta.url));
+const REFUSE_ENGINES = fileURLToPath(new URL("../__test-utils__/refuse-engine-sdks.ts", import.meta.url));
 
 interface ChildVerdict {
   readonly exitCode: number;
   readonly line: string;
 }
 
-async function runChild(arm: "boot" | "boot-after-connect-node"): Promise<ChildVerdict> {
+async function runChild(arm: "boot" | "import-engine"): Promise<ChildVerdict> {
   const home = mkdtempSync(join(tmpdir(), "stigmer-boot-order-"));
   try {
-    const { stdout } = await execFileAsync(process.execPath, ["--import", "tsx", CHILD, arm], {
+    const { stdout } = await execFileAsync(process.execPath, ["--import", "tsx", "--import", REFUSE_ENGINES, CHILD, arm], {
       env: { ...process.env, HOME: home },
       timeout: 25_000,
     });
@@ -71,15 +64,15 @@ function lastLine(text: string): string {
 }
 
 describe("harness boot order (fresh process)", () => {
-  it("booting both harnesses on a proxy-mode config, the way the roots do, installs the interceptors, patches the facade, and loads both engines after it", async () => {
+  it("boots both harnesses in a real agent host, the Cursor interceptors first there, while the runner loads neither engine", async () => {
     const verdict = await runChild("boot");
     expect(verdict.line, "the child's verdict").toBe("harness-boot-order: ok");
     expect(verdict.exitCode).toBe(0);
   });
 
-  it("the same boot after connect-node was imported first fails loudly on the facade (the guard is live inside boot)", async () => {
-    const verdict = await runChild("boot-after-connect-node");
+  it("refuses an engine's SDK in the runner's process (the fence is live)", async () => {
+    const verdict = await runChild("import-engine");
     expect(verdict.exitCode).toBe(1);
-    expect(verdict.line).toMatch(/node:http2 ESM facade is unpatched/);
+    expect(verdict.line).toBe("harness-boot-order: the runner process imported @cursor/sdk, an engine SDK that belongs to the agent host");
   });
 });
