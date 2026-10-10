@@ -52,6 +52,7 @@ const HOST_TOKEN = "host-token-cursor-lane";
 const RUNNER_TOKEN = "runner-proxy-token";
 const OPERATOR_KEY = "crsr_operator_key";
 const EXECUTION = "aex-cursor-live";
+const TURN_KEY = "turn-key-cursor";
 const EXP = Math.floor(Date.parse("2030-01-01T00:00:00Z") / 1000);
 const REAL_TOKEN = `eyJhbGciOiJIUzI1NiJ9.${Buffer.from(JSON.stringify({ exp: EXP, sub: "user" })).toString("base64url")}.signature`;
 const EXCHANGE = "/v1/proxy/cursor/api2.cursor.sh/auth/exchange_user_api_key";
@@ -138,7 +139,7 @@ function setEnv(values: Record<string, string | undefined>): void {
 async function startProxy(overrides: Partial<Config> = {}): Promise<void> {
   proxy = await AgentProxy.start(testConfig({ proxyEndpoint: null, cursorApiKey: OPERATOR_KEY, ...overrides }));
   proxy.authorizeHost(HOST_TOKEN);
-  closeTurn = proxy.openTurn({ executionId: EXECUTION, threadId: "thread-ses-cursor" });
+  closeTurn = proxy.openTurn({ executionId: EXECUTION, threadId: "thread-ses-cursor", turnKey: TURN_KEY });
 }
 
 /** An HTTP/1.1 call to the lane over TLS, trusting its certificate. */
@@ -157,7 +158,7 @@ function call(path: string, headers: Record<string, string>, body = "{}"): Promi
 
 async function exchange(): Promise<string> {
   rest.answer = { status: 200, headers: { "content-type": "application/json" }, body: JSON.stringify({ accessToken: REAL_TOKEN, refreshToken: "refresh-me" }) };
-  const answer = await call(EXCHANGE, { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION });
+  const answer = await call(EXCHANGE, { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION, "x-stigmer-turn-key": TURN_KEY });
   return (JSON.parse(answer.body) as { accessToken: string }).accessToken;
 }
 
@@ -243,7 +244,7 @@ describe("terminate: a runner that calls Cursor itself", () => {
 
   it("drops the refresh token, and relays the rest of the exchange's answer", async () => {
     rest.answer = { status: 200, headers: { "content-type": "application/json", "x-cursor-region": "us" }, body: JSON.stringify({ accessToken: REAL_TOKEN, refreshToken: "r", plan: "pro" }) };
-    const answer = await call(EXCHANGE, { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION });
+    const answer = await call(EXCHANGE, { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION, "x-stigmer-turn-key": TURN_KEY });
     const parsed = JSON.parse(answer.body) as Record<string, unknown>;
     expect(Object.keys(parsed).sort()).toEqual(["accessToken", "plan"]);
     expect(parsed.plan).toBe("pro");
@@ -253,7 +254,7 @@ describe("terminate: a runner that calls Cursor itself", () => {
     const standIn = await exchange();
     setEnv({ CURSOR_BACKEND_URL: connectHost.url });
 
-    const answer = await stream(RUN, { authorization: `Bearer ${standIn}`, "x-stigmer-execution-id": EXECUTION, "x-stigmer-auth": `Bearer ${HOST_TOKEN}` }, ["one", "two"]);
+    const answer = await stream(RUN, { authorization: `Bearer ${standIn}`, "x-stigmer-execution-id": EXECUTION, "x-stigmer-turn-key": TURN_KEY, "x-stigmer-auth": `Bearer ${HOST_TOKEN}` }, ["one", "two"]);
 
     expect(answer.status).toBe(200);
     expect(answer.data).toBe("echo:oneecho:two");
@@ -313,6 +314,20 @@ describe("terminate: a runner that calls Cursor itself", () => {
     expect(rest.received).toHaveLength(sent);
   });
 
+  it("relays only the agent run of Cursor's agent service, by its one spelling", async () => {
+    const standIn = await exchange();
+    const before = connectHost.streams.length;
+    for (const path of [
+      "/agent.v1.AgentService/ListAgents",
+      "/agent.v1.AgentService/Run/",
+      "/agent.v1.AgentService/Run%2F..%2F..%2Faiserver.v1.DashboardService%2FCreateUserApiKey",
+    ]) {
+      const refused = await call(path, { authorization: `Bearer ${standIn}`, "x-stigmer-execution-id": EXECUTION, "x-stigmer-turn-key": TURN_KEY });
+      expect(refused.status, path).toBe(403);
+    }
+    expect(connectHost.streams).toHaveLength(before);
+  });
+
   it("refuses a REST path that names one of Cursor's Connect services", async () => {
     const sent = rest.received.length;
     for (const path of [
@@ -331,7 +346,7 @@ describe("terminate: a runner that calls Cursor itself", () => {
   });
 
   it("relays other REST calls with the operator's key, to Cursor's own host when no backend is named", async () => {
-    await call("/v1/proxy/cursor/api.cursor.com/v1/models", { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION });
+    await call("/v1/proxy/cursor/api.cursor.com/v1/models", { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION, "x-stigmer-turn-key": TURN_KEY });
     expect(rest.last.path).toBe("/v1/models");
     expect(rest.last.headers.authorization).toBe(`Bearer ${OPERATOR_KEY}`);
   });
@@ -361,18 +376,18 @@ describe("terminate: a runner that calls Cursor itself", () => {
   });
 
   it("refuses REST without the host's token, without a live execution, or to a host that is not Cursor's", async () => {
-    expect((await call(EXCHANGE, { "x-stigmer-execution-id": EXECUTION })).status).toBe(401);
+    expect((await call(EXCHANGE, { "x-stigmer-execution-id": EXECUTION, "x-stigmer-turn-key": TURN_KEY })).status).toBe(401);
     expect((await call(EXCHANGE, { authorization: `Bearer ${HOST_TOKEN}` })).status).toBe(403);
     expect((await call(EXCHANGE, { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": "aex-gone" })).status).toBe(403);
-    const elsewhere = await call("/v1/proxy/cursor/attacker.example/steal", { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION });
+    const elsewhere = await call("/v1/proxy/cursor/attacker.example/steal", { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION, "x-stigmer-turn-key": TURN_KEY });
     expect(elsewhere.status).toBe(403);
     expect(JSON.parse(elsewhere.body)).toEqual({ code: "permission_denied", message: "the Cursor lane reaches Cursor's own hosts only, not attacker.example" });
     expect(rest.received).toEqual([]);
   });
 
   it("refuses a Connect call whose token it does not hold, and the agent run without a live execution", async () => {
-    expect((await call(RUN, { "x-stigmer-execution-id": EXECUTION })).status, "no token at all").toBe(401);
-    const unknown = await call(RUN, { authorization: `Bearer ${REAL_TOKEN}`, "x-stigmer-execution-id": EXECUTION });
+    expect((await call(RUN, { "x-stigmer-execution-id": EXECUTION, "x-stigmer-turn-key": TURN_KEY })).status, "no token at all").toBe(401);
+    const unknown = await call(RUN, { authorization: `Bearer ${REAL_TOKEN}`, "x-stigmer-execution-id": EXECUTION, "x-stigmer-turn-key": TURN_KEY });
     expect(unknown.status).toBe(401);
     expect(JSON.parse(unknown.body)).toEqual({ code: "unauthenticated", message: "the Cursor lane holds no such access token; exchange the API key again" });
 
@@ -390,7 +405,7 @@ describe("terminate: a runner that calls Cursor itself", () => {
     proxy.authorizeHost(HOST_TOKEN);
     const expired = `h.${Buffer.from(JSON.stringify({ exp: 1 })).toString("base64url")}.s`;
     rest.answer = { status: 200, headers: { "content-type": "application/json" }, body: JSON.stringify({ accessToken: expired }) };
-    const answer = await call(EXCHANGE, { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION });
+    const answer = await call(EXCHANGE, { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION, "x-stigmer-turn-key": TURN_KEY });
     const expiredStandIn = (JSON.parse(answer.body) as { accessToken: string }).accessToken;
     expect((await call("/aiserver.v1.DashboardService/GetUserPrivacyMode", { authorization: `Bearer ${expiredStandIn}` })).status).toBe(401);
   });
@@ -398,7 +413,7 @@ describe("terminate: a runner that calls Cursor itself", () => {
   it("holds a token that names no expiry, and lets the oldest go once it holds too many", async () => {
     rest.answer = { status: 200, headers: { "content-type": "application/json" }, body: JSON.stringify({ accessToken: "opaque-token" }) };
     const ask = async (): Promise<string> =>
-      (JSON.parse((await call(EXCHANGE, { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION })).body) as { accessToken: string }).accessToken;
+      (JSON.parse((await call(EXCHANGE, { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION, "x-stigmer-turn-key": TURN_KEY })).body) as { accessToken: string }).accessToken;
     const first = await ask();
     expect(JSON.parse(Buffer.from(first.split(".")[1]!, "base64url").toString("utf8"))).toEqual({});
     rest.answer = { status: 200, headers: {}, body: "{}" };
@@ -411,7 +426,7 @@ describe("terminate: a runner that calls Cursor itself", () => {
 
   it("passes an exchange the upstream refused through unchanged, and keeps any other answer without a token from the host", async () => {
     rest.answer = { status: 401, headers: { "content-type": "application/json" }, body: '{"error":"bad key"}' };
-    expect(await call(EXCHANGE, { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION })).toEqual({ status: 401, body: '{"error":"bad key"}' });
+    expect(await call(EXCHANGE, { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION, "x-stigmer-turn-key": TURN_KEY })).toEqual({ status: 401, body: '{"error":"bad key"}' });
     for (const [status, body] of [
       [200, "not json"],
       [200, '{"accessToken":"","refreshToken":"real-refresh"}'],
@@ -419,12 +434,12 @@ describe("terminate: a runner that calls Cursor itself", () => {
       [201, '{"refreshToken":"real-refresh"}'],
     ] as const) {
       rest.answer = { status, headers: {}, body };
-      const answer = await call(EXCHANGE, { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION });
+      const answer = await call(EXCHANGE, { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION, "x-stigmer-turn-key": TURN_KEY });
       expect(answer.status, body).toBe(502);
       expect(answer.body, body).not.toContain("real-");
     }
     rest.answer = { status: 201, headers: { "content-type": "application/json" }, body: JSON.stringify({ accessToken: REAL_TOKEN, refreshToken: "real-refresh" }) };
-    const created = await call(EXCHANGE, { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION });
+    const created = await call(EXCHANGE, { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION, "x-stigmer-turn-key": TURN_KEY });
     expect(created.status, "another 2xx is held in custody too").toBe(201);
     expect(created.body).not.toContain(REAL_TOKEN);
     expect(created.body).not.toContain("real-refresh");
@@ -435,7 +450,7 @@ describe("terminate: a runner that calls Cursor itself", () => {
     setEnv({ CURSOR_BACKEND_URL: connectHost.url });
 
     const session = connect(proxy.cursorEndpoint, { ca: proxy.cursorCertificate });
-    const dropped = session.request({ ":method": "POST", ":path": RUN, authorization: `Bearer ${standIn}`, "x-stigmer-execution-id": EXECUTION });
+    const dropped = session.request({ ":method": "POST", ":path": RUN, authorization: `Bearer ${standIn}`, "x-stigmer-execution-id": EXECUTION, "x-stigmer-turn-key": TURN_KEY });
     dropped.on("error", () => {});
     dropped.write("half");
     await new Promise((resolve) => dropped.once("data", resolve));
@@ -447,7 +462,7 @@ describe("terminate: a runner that calls Cursor itself", () => {
 
     await new Promise((resolve) => setTimeout(resolve, 100));
     expect(connectHost.closedCodes, "the abandoned run is cancelled at Cursor").toEqual([8]);
-    expect((await stream(RUN, { authorization: `Bearer ${standIn}`, "x-stigmer-execution-id": EXECUTION }, ["after"])).data).toBe("echo:after");
+    expect((await stream(RUN, { authorization: `Bearer ${standIn}`, "x-stigmer-execution-id": EXECUTION, "x-stigmer-turn-key": TURN_KEY }, ["after"])).data).toBe("echo:after");
   });
 
   it("resets the host's stream when Cursor's fails after its headers", async () => {
@@ -457,7 +472,7 @@ describe("terminate: a runner that calls Cursor itself", () => {
     const reset = await new Promise<number>((resolve) => {
       const session = connect(proxy.cursorEndpoint, { ca: proxy.cursorCertificate });
       session.on("error", () => {});
-      const req = session.request({ ":method": "POST", ":path": RUN, authorization: `Bearer ${standIn}`, "x-stigmer-execution-id": EXECUTION });
+      const req = session.request({ ":method": "POST", ":path": RUN, authorization: `Bearer ${standIn}`, "x-stigmer-execution-id": EXECUTION, "x-stigmer-turn-key": TURN_KEY });
       req.on("error", () => {});
       req.on("close", () => {
         session.close();
@@ -478,7 +493,7 @@ describe("terminate: a runner that calls Cursor itself", () => {
         const timer = setTimeout(() => reject(new Error("the host's stream never ended")), 5_000);
         const session = connect(proxy.cursorEndpoint, { ca: proxy.cursorCertificate });
         session.on("error", () => {});
-        const req = session.request({ ":method": "POST", ":path": RUN, authorization: `Bearer ${standIn}`, "x-stigmer-execution-id": EXECUTION });
+        const req = session.request({ ":method": "POST", ":path": RUN, authorization: `Bearer ${standIn}`, "x-stigmer-execution-id": EXECUTION, "x-stigmer-turn-key": TURN_KEY });
         let trailers = false;
         req.on("error", () => {});
         req.on("trailers", () => (trailers = true));
@@ -504,7 +519,7 @@ describe("terminate: a runner that calls Cursor itself", () => {
       const timer = setTimeout(() => reject(new Error("the host's stream never ended")), 5_000);
       const session = connect(proxy.cursorEndpoint, { ca: proxy.cursorCertificate });
       session.on("error", () => {});
-      const req = session.request({ ":method": "POST", ":path": RUN, authorization: `Bearer ${standIn}`, "x-stigmer-execution-id": EXECUTION });
+      const req = session.request({ ":method": "POST", ":path": RUN, authorization: `Bearer ${standIn}`, "x-stigmer-execution-id": EXECUTION, "x-stigmer-turn-key": TURN_KEY });
       let data = "";
       let trailers: IncomingHttpHeaders = {};
       req.on("error", () => {});
@@ -526,7 +541,7 @@ describe("terminate: a runner that calls Cursor itself", () => {
   it("opens a fresh upstream connection when the host resets its own, so a recovery never reuses a degraded one", async () => {
     const standIn = await exchange();
     setEnv({ CURSOR_BACKEND_URL: connectHost.url });
-    const headers = { authorization: `Bearer ${standIn}`, "x-stigmer-execution-id": EXECUTION };
+    const headers = { authorization: `Bearer ${standIn}`, "x-stigmer-execution-id": EXECUTION, "x-stigmer-turn-key": TURN_KEY };
     expect((await stream(RUN, headers, ["first"])).data).toBe("echo:first");
     expect((await stream(RUN, headers, ["second"])).data, "a new host session").toBe("echo:second");
     expect(connectHost.sessions, "one upstream connection per host session").toBe(2);
@@ -551,9 +566,9 @@ describe("terminate: a runner that calls Cursor itself", () => {
   it("answers 502 when Cursor cannot be reached, on the stream and on the exchange", async () => {
     const standIn = await exchange();
     setEnv({ CURSOR_BACKEND_URL: "http://127.0.0.1:9" });
-    const run = await stream(RUN, { authorization: `Bearer ${standIn}`, "x-stigmer-execution-id": EXECUTION }, ["x"]);
+    const run = await stream(RUN, { authorization: `Bearer ${standIn}`, "x-stigmer-execution-id": EXECUTION, "x-stigmer-turn-key": TURN_KEY }, ["x"]);
     expect(run.status).toBe(502);
-    expect((await call(EXCHANGE, { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION })).status).toBe(502);
+    expect((await call(EXCHANGE, { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION, "x-stigmer-turn-key": TURN_KEY })).status).toBe(502);
   });
 });
 
@@ -561,7 +576,7 @@ describe("terminate without the operator's key", () => {
   beforeEach(() => startProxy({ cursorApiKey: "" }));
 
   it("names the setting the lane needs", async () => {
-    const answer = await call(EXCHANGE, { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION });
+    const answer = await call(EXCHANGE, { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION, "x-stigmer-turn-key": TURN_KEY });
     expect(answer.status).toBe(500);
     expect(JSON.parse(answer.body)).toEqual({ code: "internal", message: "the Cursor lane needs CURSOR_API_KEY on the runner" });
   });
@@ -571,7 +586,7 @@ describe("forward without a runner credential", () => {
   beforeEach(() => startProxy({ proxyEndpoint: rest.url, proxyTokenRef: { current: null }, stigmerTokenRef: { current: null } }));
 
   it("refuses to forward, and sends nothing", async () => {
-    const answer = await call(EXCHANGE, { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION });
+    const answer = await call(EXCHANGE, { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION, "x-stigmer-turn-key": TURN_KEY });
     expect(answer.status).toBe(503);
     expect(rest.received).toEqual([]);
   });
@@ -604,11 +619,11 @@ describe("forward: a runner behind the Stigmer platform's proxy", () => {
     const config: { -readonly [K in keyof Config]: Config[K] } = testConfig({ proxyEndpoint: rest.url, proxyTokenRef: { current: RUNNER_TOKEN } });
     proxy = await AgentProxy.start(config);
     proxy.authorizeHost(HOST_TOKEN);
-    closeTurn = proxy.openTurn({ executionId: EXECUTION, threadId: "thread-ses-cursor" });
+    closeTurn = proxy.openTurn({ executionId: EXECUTION, threadId: "thread-ses-cursor", turnKey: TURN_KEY });
     const standIn = await exchange();
     config.proxyEndpoint = connectHost.url;
 
-    const answer = await stream(RUN, { authorization: `Bearer ${standIn}`, "x-stigmer-execution-id": EXECUTION, "x-stigmer-mcp-server-id": "claimed" }, ["x"]);
+    const answer = await stream(RUN, { authorization: `Bearer ${standIn}`, "x-stigmer-execution-id": EXECUTION, "x-stigmer-turn-key": TURN_KEY, "x-stigmer-mcp-server-id": "claimed" }, ["x"]);
 
     expect(answer.status).toBe(200);
     const seen = connectHost.streams.at(-1)!;

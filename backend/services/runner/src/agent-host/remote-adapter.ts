@@ -31,10 +31,12 @@
  * host sends for a turn after that is dropped (`supervisor.ts`).
  */
 
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
+import { posix } from "node:path";
 import { SessionSpecSchema, type SessionSpec } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunStatusSchema, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import type { Config } from "../config.js";
 import type { HarnessName } from "../harness/registry.js";
 import type { FailureSurface, HarnessAdapter, TurnInput, TurnOutcome, TurnSink, UsageDelta } from "../harness/types.js";
@@ -61,7 +63,7 @@ export const ADAPTER_OWNED_SESSION_SPEC_FIELDS = ["cursorMode"] as const satisfi
 /** What the host may open live turns at: the local proxy's turn registry (`agent-proxy/server.ts`). */
 export interface LiveTurnRegistry {
   /** The turn is live at the proxy until the returned close runs. */
-  openTurn(turn: { readonly executionId: string; readonly threadId: string }): () => void;
+  openTurn(turn: { readonly executionId: string; readonly threadId: string; readonly turnKey: string }): () => void;
 }
 
 /**
@@ -95,7 +97,10 @@ async function runRemoteTurn(
   const turnId = randomUUID();
   const turn = new RemoteTurn(turnId, input, sink, host);
   const detach = host.attachTurn(turnId, turn.endpoint);
-  const closeTurn = turns.openTurn({ executionId: input.executionId, threadId: input.threadId });
+  // The turn's own key at the proxy: one host serves every turn with one
+  // token, so this is what keeps a turn's calls to its own execution.
+  const turnKey = randomBytes(32).toString("base64url");
+  const closeTurn = turns.openTurn({ executionId: input.executionId, threadId: input.threadId, turnKey });
   let stopListener: (() => void) | undefined;
   try {
     const peer = await host.connection();
@@ -109,9 +114,11 @@ async function runRemoteTurn(
       timing: sink.setupTiming.toWire(),
       fingerprintKey: executionFingerprintKey(input.executionId).toString("base64"),
       stopped: sink.stopSignal.aborted ? describeReason(sink.stopSignal.reason) : null,
+      turnKey,
     });
     applyAdapterProjection(sink.status, settlement.projection);
-    turn.settle(settlement.cas === null ? undefined : decodeCasSnapshot(settlement.cas));
+    confineHostRows(sink.status, input.executionId, turn.seededKeys);
+    turn.settle(settlement.cas === null ? undefined : confineCasSnapshot(decodeCasSnapshot(settlement.cas)));
     if (settlement.thrown !== null || settlement.outcome === null) {
       throw fromWireError(settlement.thrown ?? { name: "Error", message: "the agent host settled with no outcome" });
     }
@@ -133,6 +140,8 @@ async function runRemoteTurn(
 /** One remote turn's runner side: the handlers the host's calls reach. */
 class RemoteTurn {
   private readonly runtimeFields: RuntimeFieldTracker;
+  /** The storage keys the runtime's status held when the turn began: rows the host may keep naming. */
+  readonly seededKeys: ReadonlySet<string>;
   private finalCas: CasTouchedSnapshot | undefined;
   private done = false;
   readonly endpoint: RemoteTurnEndpoint;
@@ -144,11 +153,13 @@ class RemoteTurn {
     host: AgentHostSupervisor,
   ) {
     this.runtimeFields = new RuntimeFieldTracker(sink.status);
+    this.seededKeys = storageKeysOf(sink.status);
     const { executionId } = input;
     this.endpoint = {
       calls: {
         persist: async ({ projection }) => {
           applyAdapterProjection(sink.status, projection);
+          confineHostRows(sink.status, executionId, this.seededKeys);
           await sink.requestPersist();
           return { runtime: this.runtimeFields.changes(sink.status), offloads: encodeOffloads(offloadedOutputs(sink.status)) };
         },
@@ -185,7 +196,7 @@ class RemoteTurn {
           sink.bindCasObservations(async () => {
             if (this.finalCas) return this.finalCas;
             const peer = await host.connection();
-            return decodeCasSnapshot(await peer.call("readCasObservations", { turnId }));
+            return confineCasSnapshot(decodeCasSnapshot(await peer.call("readCasObservations", { turnId })));
           }),
       },
     };
@@ -208,12 +219,66 @@ class RemoteTurn {
  * and the runner's store holds every other turn's objects beside it.
  */
 export function assertTurnArtifactKey(key: string, executionId: string): void {
+  if (!isTurnArtifactKey(key, executionId)) throw new Error(`artifact key '${key}' is outside this turn's prefix artifacts/${executionId}/`);
+}
+
+/** Is `key` under the execution's own artifact prefix, with no empty, `.` or `..` segment? */
+export function isTurnArtifactKey(key: string, executionId: string): boolean {
   const prefix = `artifacts/${executionId}/`;
   const rest = key.startsWith(prefix) ? key.slice(prefix.length) : undefined;
   const segments = rest?.split("/") ?? [];
-  if (rest === undefined || rest === "" || key.includes("\\") || segments.some((s) => s === "" || s === "." || s === "..")) {
-    throw new Error(`artifact key '${key}' is outside this turn's prefix ${prefix}`);
+  return !(rest === undefined || rest === "" || key.includes("\\") || segments.some((s) => s === "" || s === "." || s === ".."));
+}
+
+/** Every storage key the status names: its artifact rows' and its tool outputs' refs. */
+function storageKeysOf(status: RunStatus): Set<string> {
+  const keys = new Set<string>();
+  for (const artifact of status.artifacts) if (artifact.storageKey) keys.add(artifact.storageKey);
+  for (const tc of allToolCallsOf(status)) if (tc.outputRef?.storageKey) keys.add(tc.outputRef.storageKey);
+  return keys;
+}
+
+function allToolCallsOf(status: RunStatus): ToolCall[] {
+  const calls: ToolCall[] = [];
+  const lists = [status.messages, ...status.subAgentRuns.map((run) => run.messages)];
+  for (const messages of lists) for (const message of messages) calls.push(...message.toolCalls);
+  return calls;
+}
+
+/**
+ * Keep the host's rows to keys the turn may name: its own prefix, or a key
+ * the runtime's status already held when the turn began. An artifact row
+ * outside both is dropped; a tool output's ref outside both is dropped
+ * (the runtime's offload makes its own on the next persist), so the
+ * console never links another execution's artifact from this turn.
+ */
+function confineHostRows(status: RunStatus, executionId: string, seeded: ReadonlySet<string>): void {
+  const allowed = (key: string): boolean => key === "" || seeded.has(key) || isTurnArtifactKey(key, executionId);
+  const kept = status.artifacts.filter((artifact) => allowed(artifact.storageKey));
+  status.artifacts.splice(0, status.artifacts.length, ...kept);
+  for (const tc of allToolCallsOf(status)) {
+    if (tc.outputRef !== undefined && !allowed(tc.outputRef.storageKey)) tc.outputRef = undefined;
   }
+}
+
+/**
+ * Keep a CAS snapshot's paths inside the workspace: the runtime's capture
+ * reads each one under the workspace root, so a path that is absolute or
+ * leaves the root once normalized is dropped, never read.
+ */
+export function confineCasSnapshot(snapshot: CasTouchedSnapshot): CasTouchedSnapshot {
+  // Separators of either platform, and a drive letter, read as escapes too:
+  // the engine's paths are workspace-relative.
+  const inside = (raw: string): boolean => {
+    const path = raw.replace(/\\/g, "/");
+    if (path === "" || path.includes("\0") || posix.isAbsolute(path) || /^[A-Za-z]:/.test(path)) return false;
+    const normal = posix.normalize(path);
+    return normal !== ".." && !normal.startsWith("../");
+  };
+  return {
+    before: new Map([...snapshot.before].filter(([path]) => inside(path))),
+    blockedSecretPaths: new Set([...snapshot.blockedSecretPaths].filter(inside)),
+  };
 }
 
 function clampUsage(delta: UsageDelta): UsageDelta {

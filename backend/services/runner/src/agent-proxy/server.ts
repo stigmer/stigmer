@@ -12,14 +12,18 @@
  *  - Only the current host's token is accepted, in `Authorization: Bearer`
  *    or `x-api-key` (the two places the host's SDKs put a key), compared in
  *    constant time.
- *  - A model call must name a turn that is live on this runner, by the
- *    `X-Stigmer-Execution-Id` the host's clients stamp on every model call
- *    (`shared/model-client.ts`); the remote adapter opens a turn when it
- *    starts one and closes it when it settles (`agent-host/
- *    remote-adapter.ts`).
- *  - A checkpoint call must name the thread of a live turn (the turn's own
- *    `threadId`, the one its engine checkpoints under), in its query or,
- *    for a write, in every entry of its body.
+ *  - A model call must carry the key of a turn that is live on this runner
+ *    (`X-Stigmer-Turn-Key`), and name that turn's own execution
+ *    (`X-Stigmer-Execution-Id`). The remote adapter mints a key for each
+ *    turn, opens the turn here with it, hands it to the host with the turn,
+ *    and closes the turn when it settles (`agent-host/remote-adapter.ts`);
+ *    the host's clients stamp both headers from the turn's execution context
+ *    (`shared/execution-context.ts`). One host serves every turn of the
+ *    runner with one token, so the key is what keeps a turn to its own
+ *    execution.
+ *  - A checkpoint call must carry a live turn's key and name only that
+ *    turn's own thread (the `threadId` its engine checkpoints under), in
+ *    its query or, for a write, in every entry of its body.
  *  - The model registry is exempt from the live-turn rule: it is the
  *    catalog every caller may read, and the platform's proxy serves it even
  *    to visitors.
@@ -43,6 +47,7 @@ import { timingSafeEqual } from "node:crypto";
 import type { AddressInfo } from "node:net";
 
 import type { Config } from "../config.js";
+import { TURN_KEY_HEADER } from "../shared/execution-context.js";
 import type { LiveTurnRegistry } from "../agent-host/remote-adapter.js";
 import type { AgentProxyGate } from "../agent-host/supervisor.js";
 import { CursorLane } from "./cursor-lane.js";
@@ -53,10 +58,17 @@ const LLM_PREFIX = "/v1/proxy/llm/";
 const CHECKPOINT_PREFIX = "/v1/proxy/checkpoints";
 const REGISTRY_PATH = "/v1/proxy/model-registry";
 
+/** A turn live at the proxy. */
+interface LiveTurn {
+  readonly executionId: string;
+  readonly threadId: string;
+  readonly key: Buffer;
+}
+
 export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
   private hostToken: Buffer | undefined;
-  /** Live turns by execution id: the thread each checkpoints under, and how many are open. */
-  private readonly live = new Map<string, { readonly threadId: string; open: number }>();
+  /** Live turns: each one's execution, the thread it checkpoints under, and its key. */
+  private readonly live = new Set<LiveTurn>();
 
   private cursor!: CursorLane;
 
@@ -102,16 +114,11 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
     this.cursor.resetCustody();
   }
 
-  openTurn(turn: { readonly executionId: string; readonly threadId: string }): () => void {
-    const entry = this.live.get(turn.executionId) ?? { threadId: turn.threadId, open: 0 };
-    entry.open += 1;
-    this.live.set(turn.executionId, entry);
-    let closed = false;
+  openTurn(turn: { readonly executionId: string; readonly threadId: string; readonly turnKey: string }): () => void {
+    const live: LiveTurn = { executionId: turn.executionId, threadId: turn.threadId, key: Buffer.from(turn.turnKey) };
+    this.live.add(live);
     return () => {
-      if (closed) return;
-      closed = true;
-      entry.open -= 1;
-      if (entry.open === 0 && this.live.get(turn.executionId) === entry) this.live.delete(turn.executionId);
+      this.live.delete(live);
     };
   }
 
@@ -146,7 +153,7 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
       }
       if (path === CHECKPOINT_PREFIX || path.startsWith(`${CHECKPOINT_PREFIX}/`)) {
         const body = await readBody(req);
-        this.requireLiveThreads(url, body, req.method === "PUT" && path === `${CHECKPOINT_PREFIX}/writes`);
+        this.requireLiveThreads(req, url, body, req.method === "PUT" && path === `${CHECKPOINT_PREFIX}/writes`);
         await relay(res, checkpointUpstream(this.config, `${path.slice(CHECKPOINT_PREFIX.length)}${url.search}`, req, body));
         return;
       }
@@ -173,14 +180,27 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
     return candidate.length === expected.length && timingSafeEqual(candidate, expected);
   }
 
-  private requireLiveExecution(req: { readonly headers: IncomingMessage["headers"] }): void {
-    const executionId = headerValue(req.headers["x-stigmer-execution-id"]);
-    if (!executionId) throw new LaneRefusal(403, "a model call must name its execution (X-Stigmer-Execution-Id)");
-    if (!this.live.has(executionId)) throw new LaneRefusal(403, `execution ${executionId} has no turn running on this runner`);
+  /** The live turn whose key the request carries, compared in constant time. */
+  private liveTurnOf(req: { readonly headers: IncomingMessage["headers"] }): LiveTurn {
+    const presented = headerValue(req.headers[TURN_KEY_HEADER]);
+    if (!presented) throw new LaneRefusal(403, "a call must carry its turn's key (X-Stigmer-Turn-Key)");
+    const candidate = Buffer.from(presented);
+    for (const turn of this.live) {
+      if (candidate.length === turn.key.length && timingSafeEqual(candidate, turn.key)) return turn;
+    }
+    throw new LaneRefusal(403, "the turn key names no turn running on this runner");
   }
 
-  /** Every thread a checkpoint call names must be a live turn's. */
-  private requireLiveThreads(url: URL, body: Buffer, isWriteBatch: boolean): void {
+  private requireLiveExecution(req: { readonly headers: IncomingMessage["headers"] }): void {
+    const turn = this.liveTurnOf(req);
+    const executionId = headerValue(req.headers["x-stigmer-execution-id"]);
+    if (!executionId) throw new LaneRefusal(403, "a model call must name its execution (X-Stigmer-Execution-Id)");
+    if (executionId !== turn.executionId) throw new LaneRefusal(403, `the turn key is not execution ${executionId}'s`);
+  }
+
+  /** Every thread a checkpoint call names must be its turn's own. */
+  private requireLiveThreads(req: IncomingMessage, url: URL, body: Buffer, isWriteBatch: boolean): void {
+    const turn = this.liveTurnOf(req);
     const threads = new Set<string>();
     const queried = url.searchParams.get("thread_id");
     if (queried !== null) threads.add(queried);
@@ -190,9 +210,8 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
     // platform answers it as a no-op.
     if (threads.size === 0 && isWriteBatch && isEmptyWriteBatch(body)) return;
     if (threads.size === 0) throw new LaneRefusal(403, "a checkpoint call must name its thread");
-    const liveThreads = new Set([...this.live.values()].map((t) => t.threadId));
     for (const thread of threads) {
-      if (!liveThreads.has(thread)) throw new LaneRefusal(403, `thread ${thread} belongs to no turn running on this runner`);
+      if (thread !== turn.threadId) throw new LaneRefusal(403, `thread ${thread} is not the turn's own`);
     }
   }
 }

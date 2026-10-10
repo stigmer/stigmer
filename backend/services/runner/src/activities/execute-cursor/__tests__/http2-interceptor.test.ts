@@ -143,6 +143,15 @@ describe("http2-interceptor", () => {
       });
     });
 
+    it("stamps a hosted turn's key on a stream to the proxy", async () => {
+      await getExecutionContext().run({ executionId: "exec-abc-123", turnKey: "turn-key-2" }, async () => {
+        const session = http2.connect(PROXY_ENDPOINT);
+        session.request({ ":method": "POST", ":path": "/agent.v1.AgentService/Run" });
+      });
+
+      expect(mock.calls[0]!.headers).toMatchObject({ "x-stigmer-turn-key": "turn-key-2" });
+    });
+
     it("injects x-stigmer-auth but NOT x-stigmer-execution-id when no execution context is active", () => {
       const session = http2.connect(PROXY_ENDPOINT);
       session.request({ ":method": "POST", ":path": "/agent.v1.AgentService/Run" });

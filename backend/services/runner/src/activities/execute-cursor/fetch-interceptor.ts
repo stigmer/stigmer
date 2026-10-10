@@ -26,7 +26,7 @@
  */
 
 import { TimingRecorder, emitTimingLog } from "../../shared/cold-start-timing.js";
-import { getExecutionContext } from "../../shared/execution-context.js";
+import { TURN_KEY_HEADER, getExecutionContext } from "../../shared/execution-context.js";
 
 /** One REST path's timing identity: the emitted timeline event and its
  * single segment name. */
@@ -227,6 +227,7 @@ function replaceAuth(init: RequestInit | undefined, config: ProxyConfig): Reques
   if (effectiveExecutionId) {
     headers.set("x-stigmer-execution-id", effectiveExecutionId);
   }
+  if (ctx?.turnKey !== undefined) headers.set(TURN_KEY_HEADER, ctx.turnKey);
   return { ...init, headers };
 }
 
@@ -245,6 +246,7 @@ function injectProxyAuth(init: RequestInit | undefined, config: ProxyConfig): Re
   if (effectiveExecutionId) {
     headers.set("x-stigmer-execution-id", effectiveExecutionId);
   }
+  if (ctx?.turnKey !== undefined) headers.set(TURN_KEY_HEADER, ctx.turnKey);
   return { ...init, headers };
 }
 

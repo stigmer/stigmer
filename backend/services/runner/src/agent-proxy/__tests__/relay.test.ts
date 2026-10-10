@@ -24,6 +24,7 @@ import { AgentProxy } from "../server.js";
 
 const HOST_TOKEN = "host-token-relay";
 const EXECUTION = "aex-relay";
+const TURN_KEY = "turn-key-relay";
 const upstream = new FakeUpstream();
 
 beforeAll(() => upstream.start());
@@ -33,7 +34,7 @@ async function proxied(): Promise<{ readonly proxy: AgentProxy; readonly close: 
   process.env.ANTHROPIC_BASE_URL = upstream.url;
   const proxy = await AgentProxy.start(testConfig({ proxyEndpoint: null }));
   proxy.authorizeHost(HOST_TOKEN);
-  const closeTurn = proxy.openTurn({ executionId: EXECUTION, threadId: "thread-ses-relay" });
+  const closeTurn = proxy.openTurn({ executionId: EXECUTION, threadId: "thread-ses-relay", turnKey: TURN_KEY });
   return {
     proxy,
     close: async () => {
@@ -45,7 +46,7 @@ async function proxied(): Promise<{ readonly proxy: AgentProxy; readonly close: 
   };
 }
 
-const asHost = { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION, "content-type": "application/json" };
+const asHost = { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION, "x-stigmer-turn-key": TURN_KEY, "content-type": "application/json" };
 
 describe("the relay when a side breaks off", () => {
   it("refuses a request body over the limit", async () => {

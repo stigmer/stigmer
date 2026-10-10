@@ -88,3 +88,16 @@ export function sessionIdClaimOf(token: string | null | undefined): string | und
 export function isEmbeddedRunnerToken(token: string | null | undefined): boolean {
   return tokenTypeOf(token) === TOKEN_TYPE_EMBEDDED_RUNNER;
 }
+
+/**
+ * `token` when it is a runner-class credential already scoped below the
+ * runner (a cloud sandbox's session token, a connect token): one the
+ * scoped-token exchange leaves in use rather than exchanging
+ * (`stigmer-client.ts` `acquireScopedRunnerToken`). `undefined` for an
+ * unscoped key (an operator's API key, an embedded runner's bootstrap
+ * token) and for none.
+ */
+export function scopedRunnerCredential(token: string | null | undefined): string | undefined {
+  const type = tokenTypeOf(token);
+  return token && type !== undefined && type !== TOKEN_TYPE_EMBEDDED_RUNNER ? token : undefined;
+}

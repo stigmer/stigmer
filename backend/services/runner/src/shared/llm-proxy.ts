@@ -14,6 +14,8 @@
  * but as composable functions rather than a config class method.
  */
 
+import { turnKeyHeader } from "./execution-context.js";
+
 export type LlmProvider = "anthropic" | "openai";
 
 /**
@@ -146,5 +148,7 @@ export function buildProxyHeaders(
     headers["X-Stigmer-Mcp-Server-Id"] = options.mcpServerId;
   }
 
-  return headers;
+  // In the agent host: the turn's key, which the runner's local proxy checks
+  // (`execution-context.ts`). Built inside the turn, so the client carries it.
+  return { ...headers, ...turnKeyHeader() };
 }
