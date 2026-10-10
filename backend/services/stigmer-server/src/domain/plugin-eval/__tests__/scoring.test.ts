@@ -5,7 +5,8 @@
  * forces one; ablation none excludes nothing), a try's weighted score,
  * an arm's mean over its graded tries only, the delta, the threshold,
  * pass^k and perfect runs, and the suite's aggregates, which count only
- * the cases and targets at least one of whose tries finished.
+ * the cases and targets at least one of whose with-plugin tries was
+ * graded.
  */
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
@@ -319,5 +320,39 @@ describe("the suite's summaries", () => {
       overallScore: 0,
     });
     expect(status.triesFinished).toBe(6);
+  });
+
+  it("leaves a case out of the totals when only its without-plugin tries were graded, whatever they scored", () => {
+    const status = create(PluginEvalStatusSchema, {
+      cases: [
+        create(PluginEvalCaseSchema, {
+          caseName: "graded",
+          targets: [
+            create(PluginEvalCaseTargetSchema, {
+              withPlugin: create(PluginEvalArmSchema, { tries: tries(1) }),
+            }),
+          ],
+        }),
+        create(PluginEvalCaseSchema, {
+          caseName: "with-plugin-not-graded",
+          targets: [
+            create(PluginEvalCaseTargetSchema, {
+              withPlugin: create(PluginEvalArmSchema, {
+                tries: tries("not-graded", "not-graded"),
+              }),
+              withoutPlugin: create(PluginEvalArmSchema, { tries: tries(1, 0) }),
+            }),
+          ],
+        }),
+      ],
+    });
+    recomputeStatus(status, 1);
+    expect(status.aggregates).toMatchObject({
+      casesTotal: 1,
+      casesPassed: 1,
+      casesNotRun: 0,
+      overallScore: 1,
+    });
+    expect(status.aggregates?.meanDelta).toBeUndefined();
   });
 });

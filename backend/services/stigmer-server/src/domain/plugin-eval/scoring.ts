@@ -27,9 +27,10 @@
  *     scores (a case's own being the mean over its targets),
  *     `cases_passed` the cases that passed on every target they ran on,
  *     `cases_total` the cases that ran on at least one target (a target
- *     ran when at least one of its tries was graded: a case whose finished
- *     tries were all not graded, platform failures, is left out of both
- *     counts, as a try not graded is left out of every mean),
+ *     ran when at least one of its with-plugin tries was graded: a case
+ *     whose finished with-plugin tries were all not graded, platform
+ *     failures, is left out of both counts whatever its without-plugin
+ *     tries did, as a try not graded is left out of every mean),
  *     `mean_delta` the mean of the cases' deltas where one exists, and
  *     `cases_not_run` the cases listed but not run.
  *
@@ -197,11 +198,13 @@ export function recomputeStatus(
       casesNotRun++;
       continue;
     }
-    // A target none of whose tries was graded (the cost ceiling, credit or
-    // a cancel stopped the eval first, none has finished yet, or every one
-    // that finished was a platform failure) is not one the case ran on; a
-    // case with no such target is not one that failed either.
-    const tried = ran.filter(hasGradedTry);
+    // A target none of whose with-plugin tries was graded (the cost
+    // ceiling, credit or a cancel stopped the eval first, none has finished
+    // yet, or every one that finished was a platform failure) is not one
+    // the case ran on, whatever its without-plugin tries did, since only
+    // the with-plugin arm decides a pass; a case with no such target is
+    // not one that failed either.
+    const tried = ran.filter(hasGradedWithPluginTry);
     if (tried.length === 0) {
       continue;
     }
@@ -230,12 +233,10 @@ export function recomputeStatus(
   status.triesFinished = finished;
 }
 
-/** Whether any try of `target`, in either arm, was graded. */
-function hasGradedTry(target: PluginEvalCaseTarget): boolean {
-  return [target.withPlugin, target.withoutPlugin].some((arm) =>
-    (arm?.tries ?? []).some(
-      (attempt) => attempt.state === PluginEvalTryState.graded,
-    ),
+/** Whether any with-plugin try of `target` was graded. */
+function hasGradedWithPluginTry(target: PluginEvalCaseTarget): boolean {
+  return (target.withPlugin?.tries ?? []).some(
+    (attempt) => attempt.state === PluginEvalTryState.graded,
   );
 }
 
