@@ -72,7 +72,9 @@ export function scoringOf(
   graders: ReadonlyArray<EvalGrader>,
   twoArms: boolean,
 ): GraderScoring[] {
-  const excluded = graders.map((grader) => twoArms && excludedInTwoArms(grader));
+  const excluded = graders.map(
+    (grader) => twoArms && excludedInTwoArms(grader),
+  );
   const allExcluded = excluded.length > 0 && excluded.every(Boolean);
   return graders.map((grader, index) => ({
     weight: grader.weight,
@@ -104,7 +106,9 @@ export function everyScoredPassed(
   passed: ReadonlyArray<boolean>,
   scoring: ReadonlyArray<GraderScoring>,
 ): boolean {
-  return scoring.every((grader, index) => !grader.scored || passed[index] === true);
+  return scoring.every(
+    (grader, index) => !grader.scored || passed[index] === true,
+  );
 }
 
 /** One arm's summary from its tries. */
@@ -113,12 +117,20 @@ export function summarizeArm(arm: PluginEvalArm): void {
     (attempt) => attempt.state === PluginEvalTryState.graded,
   );
   arm.gradedTries = graded.length;
-  arm.perfectRuns = graded.filter((attempt) => attempt.score >= 1 - EPSILON).length;
-  arm.score = graded.length === 0 ? undefined : mean(graded.map((attempt) => attempt.score));
+  arm.perfectRuns = graded.filter(
+    (attempt) => attempt.score >= 1 - EPSILON,
+  ).length;
+  arm.score =
+    graded.length === 0
+      ? undefined
+      : mean(graded.map((attempt) => attempt.score));
 }
 
 /** One case and target's summary from its arms. */
-export function summarizeTarget(target: PluginEvalCaseTarget, threshold: number): void {
+export function summarizeTarget(
+  target: PluginEvalCaseTarget,
+  threshold: number,
+): void {
   if (target.withPlugin !== undefined) {
     summarizeArm(target.withPlugin);
   }
@@ -128,14 +140,17 @@ export function summarizeTarget(target: PluginEvalCaseTarget, threshold: number)
   const withScore = target.withPlugin?.score;
   const withoutScore = target.withoutPlugin?.score;
   target.delta =
-    withScore !== undefined && withoutScore !== undefined ? withScore - withoutScore : undefined;
+    withScore !== undefined && withoutScore !== undefined
+      ? withScore - withoutScore
+      : undefined;
   target.passed = withScore !== undefined && withScore >= threshold - EPSILON;
   const tries = target.withPlugin?.tries ?? [];
   target.passK =
     tries.length > 0 &&
     tries.every(
       (attempt) =>
-        attempt.state === PluginEvalTryState.graded && attempt.score >= 1 - EPSILON,
+        attempt.state === PluginEvalTryState.graded &&
+        attempt.score >= 1 - EPSILON,
     );
 }
 
@@ -144,7 +159,10 @@ export function summarizeTarget(target: PluginEvalCaseTarget, threshold: number)
  * arm, case and target, the suite's aggregates, the cost and the count of
  * finished tries. `threshold` is the eval's (DEFAULT_THRESHOLD when unset).
  */
-export function recomputeStatus(status: PluginEvalStatus, threshold: number): void {
+export function recomputeStatus(
+  status: PluginEvalStatus,
+  threshold: number,
+): void {
   const caseScores: number[] = [];
   const caseDeltas: number[] = [];
   let casesPassed = 0;
@@ -154,9 +172,10 @@ export function recomputeStatus(status: PluginEvalStatus, threshold: number): vo
   let finished = 0;
 
   for (const evalCase of status.cases) {
-    const ran = evalCase.notRunReason === ""
-      ? evalCase.targets.filter((target) => target.notRunReason === "")
-      : [];
+    const ran =
+      evalCase.notRunReason === ""
+        ? evalCase.targets.filter((target) => target.notRunReason === "")
+        : [];
     for (const target of evalCase.targets) {
       summarizeTarget(target, threshold);
       for (const arm of [target.withPlugin, target.withoutPlugin]) {

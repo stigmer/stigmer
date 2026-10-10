@@ -45,7 +45,10 @@ import type { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
-import { armAttachment, pluginAttachmentFacts } from "../../domain/plugin-eval/arm.js";
+import {
+  armAttachment,
+  pluginAttachmentFacts,
+} from "../../domain/plugin-eval/arm.js";
 import { PLUGIN_EVAL_LABEL } from "../../domain/plugin-eval/constants.js";
 import { gradeChecks } from "../../domain/plugin-eval/graders/grade.js";
 import {
@@ -77,7 +80,10 @@ import {
   voteSessionRequest,
 } from "../../domain/plugin-eval/try-run.js";
 import { agentExecutionListIndex } from "../../domain/run/list-index.js";
-import { isActiveExecutionPhase, isTerminalExecutionPhase } from "../../domain/run/phases.js";
+import {
+  isActiveExecutionPhase,
+  isTerminalExecutionPhase,
+} from "../../domain/run/phases.js";
 import { sessionIdOf } from "../../domain/run/target.js";
 import {
   JUDGE_COST_CAP_REASON,
@@ -149,7 +155,9 @@ export interface CaseActivityDeps {
   readonly recorder: () => ScoreRecorder;
   readonly deleter: () => ScoreDeleter;
   /** The run artifact store's read, for offloaded file bodies; undefined when none is configured. */
-  readonly readArtifact: ((storageKey: string) => Promise<Uint8Array>) | undefined;
+  readonly readArtifact:
+    | ((storageKey: string) => Promise<Uint8Array>)
+    | undefined;
   /** The composed caller; undefined = tries act as the server. */
   readonly pluginEvalCaller: PluginEvalCallerMint | undefined;
   readonly patterns: PatternRunner;
@@ -161,7 +169,10 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
   const attempt = deps.attempt ?? (() => Context.current().info.attempt);
 
   /** The caller for one try or vote, or "cannot-act" when the seam refuses. */
-  const mint = async (org: string, evalId: string): Promise<CallerIdentity | undefined | "cannot-act"> => {
+  const mint = async (
+    org: string,
+    evalId: string,
+  ): Promise<CallerIdentity | undefined | "cannot-act"> => {
     if (deps.pluginEvalCaller === undefined) {
       return undefined;
     }
@@ -169,7 +180,10 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
       return await deps.pluginEvalCaller.mintPluginEvalCaller(org, evalId);
     } catch (error) {
       if (error instanceof PluginEvalCallerRefusedError) {
-        deps.logger.warn("the eval cannot act for anyone", { evalId, reason: error.message });
+        deps.logger.warn("the eval cannot act for anyone", {
+          evalId,
+          reason: error.message,
+        });
         return "cannot-act";
       }
       throw error;
@@ -194,26 +208,49 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
   return {
     [START_TRY_ACTIVITY_NAME]: async (input): Promise<TryStart> => {
       const context = await deps.contexts(input.evalId);
-      const cell = context === undefined ? undefined : cellOf(context, input.caseIndex, input.targetIndex);
+      const cell =
+        context === undefined
+          ? undefined
+          : cellOf(context, input.caseIndex, input.targetIndex);
       if (context === undefined || cell === undefined) {
-        return { kind: "refused", failure: "not-started", reason: TRY_UNPLANNED_REASON };
+        return {
+          kind: "refused",
+          failure: "not-started",
+          reason: TRY_UNPLANNED_REASON,
+        };
       }
       const caller = await mint(input.org, input.evalId);
       if (caller === "cannot-act") {
-        return { kind: "refused", failure: "cannot-act", reason: CANNOT_ACT_REASON };
+        return {
+          kind: "refused",
+          failure: "cannot-act",
+          reason: CANNOT_ACT_REASON,
+        };
       }
       const name = tryRunName(input.evalId, input);
       if (attempt() > 1) {
         const earlier = await findLabelledRun(deps.store, input.evalId, name);
         if (earlier !== undefined) {
-          return { kind: "started", sessionId: sessionIdOf(earlier.spec), runId: earlier.metadata?.id ?? "" };
+          return {
+            kind: "started",
+            sessionId: sessionIdOf(earlier.spec),
+            runId: earlier.metadata?.id ?? "",
+          };
         }
       }
       const spec = context.pluginEval.spec;
       if (spec === undefined) {
-        return { kind: "refused", failure: "not-started", reason: TRY_UNPLANNED_REASON };
+        return {
+          kind: "refused",
+          failure: "not-started",
+          reason: TRY_UNPLANNED_REASON,
+        };
       }
-      const facts = await pluginAttachmentFacts(deps.store, spec.pluginId, context.plugin.metadata?.org ?? input.org);
+      const facts = await pluginAttachmentFacts(
+        deps.store,
+        spec.pluginId,
+        context.plugin.metadata?.org ?? input.org,
+      );
       const session = await deps.tries().createSession(
         trySessionRequest({
           org: input.org,
@@ -237,7 +274,11 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
       });
       try {
         const created = await deps.tries().createRun(request, caller);
-        return { kind: "started", sessionId, runId: created.metadata?.id ?? "" };
+        return {
+          kind: "started",
+          sessionId,
+          runId: created.metadata?.id ?? "",
+        };
       } catch (error) {
         if (!(error instanceof ConnectError)) {
           throw error;
@@ -249,26 +290,52 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
 
     [POLL_RUN_ACTIVITY_NAME]: async (runId): Promise<boolean> => {
       const run = await loadRun(deps.store, runId);
-      return run === undefined || isTerminalExecutionPhase(run.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED);
+      return (
+        run === undefined ||
+        isTerminalExecutionPhase(
+          run.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED,
+        )
+      );
     },
 
     [STOP_RUN_ACTIVITY_NAME]: async (runId, reason): Promise<void> => {
       await stopRun(deps, runId, reason);
     },
 
-    [GRADE_TRY_ACTIVITY_NAME]: async (input, runId, timedOut): Promise<TryGrade> => {
+    [GRADE_TRY_ACTIVITY_NAME]: async (
+      input,
+      runId,
+      timedOut,
+    ): Promise<TryGrade> => {
       const context = await deps.contexts(input.evalId);
-      const cell = context === undefined ? undefined : cellOf(context, input.caseIndex, input.targetIndex);
+      const cell =
+        context === undefined
+          ? undefined
+          : cellOf(context, input.caseIndex, input.targetIndex);
       const run = await loadRun(deps.store, runId);
       if (context === undefined || cell === undefined || run === undefined) {
-        return { outcomes: [{ notGraded: TRY_GONE_REASON }], error: "", costUsd: 0, durationSeconds: 0 };
+        return {
+          outcomes: [{ notGraded: TRY_GONE_REASON }],
+          error: "",
+          costUsd: 0,
+          durationSeconds: 0,
+        };
       }
       const graders = cell.evalCase.graders;
-      const trace = await traceOf(context, run, graders, cell.target.target.harness);
+      const trace = await traceOf(
+        context,
+        run,
+        graders,
+        cell.target.target.harness,
+      );
       const checked = await gradeChecks(graders, trace, deps.patterns);
       const outcomes: WireOutcome[] = checked.map((outcome, index) => {
         const grader = graders[index];
-        if (outcome !== "votes" || grader === undefined || !isJudgedGrader(grader)) {
+        if (
+          outcome !== "votes" ||
+          grader === undefined ||
+          !isJudgedGrader(grader)
+        ) {
           return outcome === "votes" ? { notGraded: TRY_GONE_REASON } : outcome;
         }
         const evidence = voteEvidence(grader.check, trace);
@@ -276,7 +343,11 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
           return evidence;
         }
         if (grader.check.type === "baseline") {
-          const reference = referenceTranscript(context.files, cell.evalCase.dir, grader.check.baselineFile);
+          const reference = referenceTranscript(
+            context.files,
+            cell.evalCase.dir,
+            grader.check.baselineFile,
+          );
           if (!("text" in reference)) {
             return reference;
           }
@@ -291,26 +362,59 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
       };
     },
 
-    [START_VOTE_ACTIVITY_NAME]: async (input, runId, graderIndex, voteIndex): Promise<VoteStart> => {
+    [START_VOTE_ACTIVITY_NAME]: async (
+      input,
+      runId,
+      graderIndex,
+      voteIndex,
+    ): Promise<VoteStart> => {
       const context = await deps.contexts(input.evalId);
-      const cell = context === undefined ? undefined : cellOf(context, input.caseIndex, input.targetIndex);
+      const cell =
+        context === undefined
+          ? undefined
+          : cellOf(context, input.caseIndex, input.targetIndex);
       const grader = cell?.evalCase.graders[graderIndex];
       const run = await loadRun(deps.store, runId);
-      if (context === undefined || cell === undefined || grader === undefined || run === undefined || !isJudgedGrader(grader)) {
+      if (
+        context === undefined ||
+        cell === undefined ||
+        grader === undefined ||
+        run === undefined ||
+        !isJudgedGrader(grader)
+      ) {
         return { kind: "failed", reason: TRY_GONE_REASON };
       }
-      const existing = await findVoteRun(deps.store, input.org, runId, graderIndex, voteIndex);
+      const existing = await findVoteRun(
+        deps.store,
+        input.org,
+        runId,
+        graderIndex,
+        voteIndex,
+      );
       if (existing !== undefined) {
         return { kind: "started", voteRunId: existing };
       }
-      const trace = await traceOf(context, run, cell.evalCase.graders, cell.target.target.harness);
+      const trace = await traceOf(
+        context,
+        run,
+        cell.evalCase.graders,
+        cell.target.target.harness,
+      );
       const evidence = voteEvidence(grader.check, trace);
       if (!("text" in evidence)) {
-        return { kind: "failed", reason: "notGraded" in evidence ? evidence.notGraded : evidence.reason };
+        return {
+          kind: "failed",
+          reason:
+            "notGraded" in evidence ? evidence.notGraded : evidence.reason,
+        };
       }
       let reference: string | undefined;
       if (grader.check.type === "baseline") {
-        const rendered = referenceTranscript(context.files, cell.evalCase.dir, grader.check.baselineFile);
+        const rendered = referenceTranscript(
+          context.files,
+          cell.evalCase.dir,
+          grader.check.baselineFile,
+        );
         if (!("text" in rendered)) {
           return { kind: "failed", reason: rendered.notGraded };
         }
@@ -321,10 +425,12 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         return { kind: "failed", reason: CANNOT_ACT_REASON };
       }
       const rubric = voteRubricName(grader);
-      const session = await deps.tries().createSession(
-        voteSessionRequest({ org: input.org, evalId: input.evalId }),
-        caller,
-      );
+      const session = await deps
+        .tries()
+        .createSession(
+          voteSessionRequest({ org: input.org, evalId: input.evalId }),
+          caller,
+        );
       const sessionId = session.metadata?.id ?? "";
       const request = voteRunRequest({
         org: input.org,
@@ -354,7 +460,10 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         const refusal = refusalOf(deps, input.evalId, error);
         return {
           kind: "failed",
-          reason: refusal.failure === "out-of-credit" ? OUT_OF_CREDIT_REASON : refusal.reason,
+          reason:
+            refusal.failure === "out-of-credit"
+              ? OUT_OF_CREDIT_REASON
+              : refusal.reason,
         };
       }
     },
@@ -362,7 +471,10 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
     [READ_VOTE_ACTIVITY_NAME]: async (voteRunId, rubric): Promise<VoteRead> => {
       const vote = await loadRun(deps.store, voteRunId);
       if (vote === undefined) {
-        return { vote: { kind: "failed", reason: JUDGE_RUN_FAILED_REASON }, costUsd: 0 };
+        return {
+          vote: { kind: "failed", reason: JUDGE_RUN_FAILED_REASON },
+          costUsd: 0,
+        };
       }
       const phase = vote.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
       if (isActiveExecutionPhase(phase)) {
@@ -374,10 +486,17 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         case RunPhase.RUN_COMPLETED: {
           const reading = readVote(vote.status?.structuredOutput, rubric);
           if ("refused" in reading) {
-            deps.logger.warn("a vote's answer could not be read", { voteRunId, cause: reading.refused });
+            deps.logger.warn("a vote's answer could not be read", {
+              voteRunId,
+              cause: reading.refused,
+            });
             read = { kind: "failed", reason: JUDGE_UNREADABLE_REASON };
           } else {
-            read = { kind: "vote", passed: reading.passed, reason: reading.reason };
+            read = {
+              kind: "vote",
+              passed: reading.passed,
+              reason: reading.reason,
+            };
           }
           break;
         }
@@ -395,9 +514,17 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
       return { vote: read, costUsd };
     },
 
-    [RECORD_SCORE_ACTIVITY_NAME]: async (input, started, grade, votes): Promise<TryResult> => {
+    [RECORD_SCORE_ACTIVITY_NAME]: async (
+      input,
+      started,
+      grade,
+      votes,
+    ): Promise<TryResult> => {
       const context = await deps.contexts(input.evalId);
-      const cell = context === undefined ? undefined : cellOf(context, input.caseIndex, input.targetIndex);
+      const cell =
+        context === undefined
+          ? undefined
+          : cellOf(context, input.caseIndex, input.targetIndex);
       const base = {
         sessionId: started.sessionId,
         runId: started.runId,
@@ -406,7 +533,14 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         durationSeconds: grade.durationSeconds,
       };
       if (context === undefined || cell === undefined) {
-        return { ...base, state: "not-graded", score: 0, notGradedReason: TRY_GONE_REASON, graderResults: [], outOfCredit: false };
+        return {
+          ...base,
+          state: "not-graded",
+          score: 0,
+          notGradedReason: TRY_GONE_REASON,
+          graderResults: [],
+          outOfCredit: false,
+        };
       }
       const graders = cell.evalCase.graders;
       const verdicts: GraderVerdict[] = graders.map((_, index) => {
@@ -421,13 +555,17 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
       const graderResults: GraderResult[] = graders.map((_, index) => ({
         name: names[index] ?? "",
         scored: scoring[index]?.scored ?? true,
-        verdict: (verdicts[index] ?? { notGraded: TRY_GONE_REASON }) satisfies WireVerdict,
+        verdict: (verdicts[index] ?? {
+          notGraded: TRY_GONE_REASON,
+        }) satisfies WireVerdict,
       }));
       const failed = verdicts.find(isNotGraded);
       const run = await loadRun(deps.store, started.runId);
       if (failed !== undefined) {
         if (run !== undefined) {
-          await writeScore(deps, run, () => notGradedEvalScore(run, context.digest, failed.notGraded));
+          await writeScore(deps, run, () =>
+            notGradedEvalScore(run, context.digest, failed.notGraded),
+          );
         }
         return {
           ...base,
@@ -439,15 +577,32 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         };
       }
       const decided = verdicts.filter(
-        (verdict): verdict is { readonly passed: boolean; readonly reason: string } => !isNotGraded(verdict),
+        (
+          verdict,
+        ): verdict is { readonly passed: boolean; readonly reason: string } =>
+          !isNotGraded(verdict),
       );
-      const score = tryScore(decided.map((verdict) => verdict.passed), scoring);
+      const score = tryScore(
+        decided.map((verdict) => verdict.passed),
+        scoring,
+      );
       if (run !== undefined) {
         await writeScore(deps, run, () =>
-          gradedEvalScore(run, context.digest, { graders, scoring, verdicts: decided }),
+          gradedEvalScore(run, context.digest, {
+            graders,
+            scoring,
+            verdicts: decided,
+          }),
         );
       }
-      return { ...base, state: "graded", score, notGradedReason: "", graderResults, outOfCredit: false };
+      return {
+        ...base,
+        state: "graded",
+        score,
+        notGradedReason: "",
+        graderResults,
+        outOfCredit: false,
+      };
     },
   };
 }
@@ -463,7 +618,10 @@ function refusalOf(
 ): Extract<TryStart, { kind: "refused" }> {
   switch (error.code) {
     case Code.ResourceExhausted:
-      throw ApplicationFailure.retryable(error.rawMessage, PLUGIN_EVAL_BUSY_FAILURE_TYPE);
+      throw ApplicationFailure.retryable(
+        error.rawMessage,
+        PLUGIN_EVAL_BUSY_FAILURE_TYPE,
+      );
     case Code.FailedPrecondition:
     case Code.PermissionDenied:
     case Code.NotFound:
@@ -474,11 +632,23 @@ function refusalOf(
         code: Code[error.code],
         reason: error.rawMessage,
       });
-      if (error.code === Code.FailedPrecondition && /credit/i.test(error.rawMessage)) {
-        return { kind: "refused", failure: "out-of-credit", reason: OUT_OF_CREDIT_REASON };
+      if (
+        error.code === Code.FailedPrecondition &&
+        /credit/i.test(error.rawMessage)
+      ) {
+        return {
+          kind: "refused",
+          failure: "out-of-credit",
+          reason: OUT_OF_CREDIT_REASON,
+        };
       }
-      const reason = error.rawMessage === "" ? TRY_NOT_STARTED_REASON : error.rawMessage;
-      return { kind: "refused", failure: "not-started", reason: reason.slice(0, REASON_MAX_LENGTH) };
+      const reason =
+        error.rawMessage === "" ? TRY_NOT_STARTED_REASON : error.rawMessage;
+      return {
+        kind: "refused",
+        failure: "not-started",
+        reason: reason.slice(0, REASON_MAX_LENGTH),
+      };
     }
     default:
       throw error;
@@ -486,8 +656,17 @@ function refusalOf(
 }
 
 /** The run an earlier attempt of a try's start created, by label and name. */
-async function findLabelledRun(store: Store, evalId: string, name: string): Promise<Run | undefined> {
-  const rows = await store.findAllByLabel(ApiResourceKind.run, PLUGIN_EVAL_LABEL, evalId, RunSchema);
+async function findLabelledRun(
+  store: Store,
+  evalId: string,
+  name: string,
+): Promise<Run | undefined> {
+  const rows = await store.findAllByLabel(
+    ApiResourceKind.run,
+    PLUGIN_EVAL_LABEL,
+    evalId,
+    RunSchema,
+  );
   for (const row of rows) {
     const run = fromBinary(RunSchema, row);
     if (run.metadata?.name === name) {
@@ -522,7 +701,10 @@ async function findVoteRun(
   });
   for (const row of rows) {
     const found = fromBinary(RunSchema, row.data);
-    if (found.metadata?.name === name && found.metadata?.labels[GRADES_RUN_LABEL] === tryRunId) {
+    if (
+      found.metadata?.name === name &&
+      found.metadata?.labels[GRADES_RUN_LABEL] === tryRunId
+    ) {
       return row.id;
     }
   }
@@ -530,11 +712,18 @@ async function findVoteRun(
 }
 
 /** Stops a run; one already ended or gone is fine. */
-async function stopRun(deps: CaseActivityDeps, runId: string, reason: string): Promise<void> {
+async function stopRun(
+  deps: CaseActivityDeps,
+  runId: string,
+  reason: string,
+): Promise<void> {
   try {
     await deps.tries().terminateRun(runId, reason);
   } catch (error) {
-    if (error instanceof ConnectError && (error.code === Code.FailedPrecondition || error.code === Code.NotFound)) {
+    if (
+      error instanceof ConnectError &&
+      (error.code === Code.FailedPrecondition || error.code === Code.NotFound)
+    ) {
       return;
     }
     throw error;
@@ -542,7 +731,10 @@ async function stopRun(deps: CaseActivityDeps, runId: string, reason: string): P
 }
 
 /** Deletes a session; a delete that fails is logged and the session left, never thrown. */
-async function deleteSession(deps: CaseActivityDeps, sessionId: string): Promise<void> {
+async function deleteSession(
+  deps: CaseActivityDeps,
+  sessionId: string,
+): Promise<void> {
   if (sessionId === "") {
     return;
   }
@@ -552,10 +744,13 @@ async function deleteSession(deps: CaseActivityDeps, sessionId: string): Promise
     if (error instanceof ConnectError && error.code === Code.NotFound) {
       return;
     }
-    deps.logger.error("a plugin eval's session could not be deleted; it is left", {
-      sessionId,
-      reason: error instanceof Error ? error.message : String(error),
-    });
+    deps.logger.error(
+      "a plugin eval's session could not be deleted; it is left",
+      {
+        sessionId,
+        reason: error instanceof Error ? error.message : String(error),
+      },
+    );
   }
 }
 
@@ -565,20 +760,36 @@ async function writeScore(
   run: Run,
   build: () => ReturnType<typeof gradedEvalScore>,
 ): Promise<void> {
-  if (!isTerminalExecutionPhase(run.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED)) {
-    deps.logger.warn("a try's run has not ended; its score is kept on the eval only", {
-      runId: run.metadata?.id ?? "",
-    });
+  if (
+    !isTerminalExecutionPhase(
+      run.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED,
+    )
+  ) {
+    deps.logger.warn(
+      "a try's run has not ended; its score is kept on the eval only",
+      {
+        runId: run.metadata?.id ?? "",
+      },
+    );
     return;
   }
   await writeEvalScore(
-    { store: deps.store, logger: deps.logger, recorder: deps.recorder(), deleter: deps.deleter() },
+    {
+      store: deps.store,
+      logger: deps.logger,
+      recorder: deps.recorder(),
+      deleter: deps.deleter(),
+    },
     build(),
   );
 }
 
 /** The run's own failure, in the format's words (the module header). */
-function runErrorOf(run: Run, timedOut: boolean, timeoutSeconds: number): string {
+function runErrorOf(
+  run: Run,
+  timedOut: boolean,
+  timeoutSeconds: number,
+): string {
   if (timedOut) {
     return `timed out after ${timeoutSeconds}s`;
   }

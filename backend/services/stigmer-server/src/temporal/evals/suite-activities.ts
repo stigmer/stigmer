@@ -45,7 +45,10 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import type { Logger } from "../../boot/logger.js";
 import { PROVISIONAL_DELTA } from "../../domain/plugin-eval/arm.js";
-import { DEFAULT_THRESHOLD, recomputeStatus } from "../../domain/plugin-eval/scoring.js";
+import {
+  DEFAULT_THRESHOLD,
+  recomputeStatus,
+} from "../../domain/plugin-eval/scoring.js";
 import { caseNotesOf } from "../../domain/plugin-eval/try-run.js";
 import { bumpStatusAudit } from "../../pipeline/steps/defaults.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
@@ -56,7 +59,12 @@ import {
   LOAD_SUITE_ACTIVITY_NAME,
   RECORD_TRY_ACTIVITY_NAME,
 } from "./names.js";
-import type { SuiteActivities, SuiteCell, SuitePlan, SuiteStop } from "./names.js";
+import type {
+  SuiteActivities,
+  SuiteCell,
+  SuitePlan,
+  SuiteStop,
+} from "./names.js";
 
 /** The failed eval's error when its suite cannot be read. */
 export const SUITE_UNREADABLE_ERROR = "the plugin's evals could not be read";
@@ -78,7 +86,9 @@ const PARTIAL_REASONS: Readonly<Record<SuiteStop, PluginEvalPartialReason>> = {
   cancelled: PluginEvalPartialReason.cancelled,
 };
 
-export function createSuiteActivities(deps: SuiteActivityDeps): SuiteActivities {
+export function createSuiteActivities(
+  deps: SuiteActivityDeps,
+): SuiteActivities {
   const attempt = deps.attempt ?? (() => Context.current().info.attempt);
 
   return {
@@ -111,7 +121,10 @@ export function createSuiteActivities(deps: SuiteActivityDeps): SuiteActivities 
       }
       const ready = context;
       await writeStatus(deps.store, evalId, (status) => {
-        if (status.phase === PluginEvalPhase.running && status.cases.length > 0) {
+        if (
+          status.phase === PluginEvalPhase.running &&
+          status.cases.length > 0
+        ) {
           return;
         }
         writeSkeleton(status, ready);
@@ -119,14 +132,18 @@ export function createSuiteActivities(deps: SuiteActivityDeps): SuiteActivities 
       const spec = ready.pluginEval.spec;
       const cells: SuiteCell[] = ready.matrix.cells.map((cell) => ({
         ...cell,
-        timeoutSeconds: ready.matrix.cases[cell.caseIndex]?.evalCase.timeoutSeconds ?? 300,
+        timeoutSeconds:
+          ready.matrix.cases[cell.caseIndex]?.evalCase.timeoutSeconds ?? 300,
       }));
       return {
         kind: "run",
         org: ready.pluginEval.metadata?.org ?? "",
         cells,
         maxCostUsd: spec?.maxCostUsd ?? 0,
-        concurrency: spec?.concurrency !== undefined && spec.concurrency > 0 ? spec.concurrency : 1,
+        concurrency:
+          spec?.concurrency !== undefined && spec.concurrency > 0
+            ? spec.concurrency
+            : 1,
       };
     },
 
@@ -138,16 +155,22 @@ export function createSuiteActivities(deps: SuiteActivityDeps): SuiteActivities 
       const threshold = stored.spec?.threshold ?? DEFAULT_THRESHOLD;
       await writeStatus(deps.store, evalId, (status) => {
         const target = status.cases[cell.caseIndex]?.targets[cell.targetIndex];
-        const arm = cell.arm === "with" ? target?.withPlugin : target?.withoutPlugin;
+        const arm =
+          cell.arm === "with" ? target?.withPlugin : target?.withoutPlugin;
         const slot = arm?.tries[cell.tryIndex];
         if (slot === undefined) {
-          deps.logger.warn("a try's result has no place in the eval's status", { evalId, ...cell });
+          deps.logger.warn("a try's result has no place in the eval's status", {
+            evalId,
+            ...cell,
+          });
           return;
         }
         slot.sessionId = result.sessionId;
         slot.runId = result.runId;
         slot.state =
-          result.state === "graded" ? PluginEvalTryState.graded : PluginEvalTryState.not_graded;
+          result.state === "graded"
+            ? PluginEvalTryState.graded
+            : PluginEvalTryState.not_graded;
         slot.score = result.state === "graded" ? result.score : 0;
         slot.notGradedReason = result.notGradedReason;
         slot.error = result.error;
@@ -182,12 +205,18 @@ export function createSuiteActivities(deps: SuiteActivityDeps): SuiteActivities 
 }
 
 /** The status skeleton of a planned eval (the module header). */
-export function writeSkeleton(status: PluginEvalStatus, context: EvalContext): void {
+export function writeSkeleton(
+  status: PluginEvalStatus,
+  context: EvalContext,
+): void {
   const spec = context.pluginEval.spec;
   const pendingArm = (runs: number): PluginEvalArm =>
     create(PluginEvalArmSchema, {
       tries: Array.from({ length: runs }, (_, index) =>
-        create(PluginEvalTrySchema, { index: index + 1, state: PluginEvalTryState.pending }),
+        create(PluginEvalTrySchema, {
+          index: index + 1,
+          state: PluginEvalTryState.pending,
+        }),
       ),
     });
   status.cases = context.matrix.cases.map((planned) =>
@@ -196,7 +225,10 @@ export function writeSkeleton(status: PluginEvalStatus, context: EvalContext): v
       path: planned.evalCase.dir,
       caseTags: [...planned.evalCase.tags],
       notRunReason: planned.notRunReason ?? "",
-      notes: planned.notRunReason === undefined && spec !== undefined ? caseNotesOf(planned.evalCase, spec) : [],
+      notes:
+        planned.notRunReason === undefined && spec !== undefined
+          ? caseNotesOf(planned.evalCase, spec)
+          : [],
       targets: planned.targets.map((target) =>
         create(PluginEvalCaseTargetSchema, {
           target: create(PluginEvalTargetSchema, {
@@ -207,7 +239,9 @@ export function writeSkeleton(status: PluginEvalStatus, context: EvalContext): v
           ...(target.notRunReason === undefined
             ? {
                 withPlugin: pendingArm(target.runs),
-                ...(context.twoArms ? { withoutPlugin: pendingArm(target.runs) } : {}),
+                ...(context.twoArms
+                  ? { withoutPlugin: pendingArm(target.runs) }
+                  : {}),
               }
             : {}),
         }),
@@ -233,9 +267,16 @@ function hasEnded(pluginEval: PluginEval): boolean {
   return isEndedPhase(pluginEval.status?.phase ?? PluginEvalPhase.unspecified);
 }
 
-async function loadEval(store: Store, evalId: string): Promise<PluginEval | undefined> {
+async function loadEval(
+  store: Store,
+  evalId: string,
+): Promise<PluginEval | undefined> {
   try {
-    return await store.getResource(ApiResourceKind.plugin_eval, evalId, PluginEvalSchema);
+    return await store.getResource(
+      ApiResourceKind.plugin_eval,
+      evalId,
+      PluginEvalSchema,
+    );
   } catch (error) {
     if (error instanceof ResourceNotFoundError) {
       return undefined;
@@ -251,13 +292,18 @@ async function writeStatus(
   modify: (status: PluginEvalStatus) => void,
 ): Promise<void> {
   try {
-    await store.updateResource(ApiResourceKind.plugin_eval, evalId, PluginEvalSchema, (live) => {
-      if (live.status === undefined) {
-        live.status = create(PluginEvalStatusSchema);
-      }
-      modify(live.status);
-      bumpStatusAudit(live.status);
-    });
+    await store.updateResource(
+      ApiResourceKind.plugin_eval,
+      evalId,
+      PluginEvalSchema,
+      (live) => {
+        if (live.status === undefined) {
+          live.status = create(PluginEvalStatusSchema);
+        }
+        modify(live.status);
+        bumpStatusAudit(live.status);
+      },
+    );
   } catch (error) {
     if (error instanceof ResourceNotFoundError) {
       return;

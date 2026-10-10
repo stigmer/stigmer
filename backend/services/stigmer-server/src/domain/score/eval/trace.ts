@@ -98,10 +98,17 @@ export interface EvalTrace {
  * A read of a mounted skill's file (the module header): the workspace link
  * or the platform directory it points at, the skill's name captured.
  */
-export const SKILL_READ_PATH = /(?:^|\/)(?:\.stigmer|platform)\/skills\/([^/]+)\/SKILL\.md$/;
+export const SKILL_READ_PATH =
+  /(?:^|\/)(?:\.stigmer|platform)\/skills\/([^/]+)\/SKILL\.md$/;
 
 /** The argument names a file tool carries its path in, on either engine. */
-const PATH_ARGUMENTS = ["file_path", "path", "target_file", "filePath", "targetFile"] as const;
+const PATH_ARGUMENTS = [
+  "file_path",
+  "path",
+  "target_file",
+  "filePath",
+  "targetFile",
+] as const;
 
 /** What reading a try needs beyond its run. */
 export interface EvalTraceDeps {
@@ -116,21 +123,35 @@ export interface EvalTraceDeps {
 }
 
 /** The graders' view of `run` (the module header). */
-export async function evalTraceOf(run: Run, deps: EvalTraceDeps): Promise<EvalTrace> {
+export async function evalTraceOf(
+  run: Run,
+  deps: EvalTraceDeps,
+): Promise<EvalTrace> {
   const files = await filesOf(run, deps);
   const created = new Set(files.kind === "recorded" ? files.created : []);
-  const engine: ToolEngine = deps.harness === Harness.CURSOR ? "cursor" : "native";
+  const engine: ToolEngine =
+    deps.harness === Harness.CURSOR ? "cursor" : "native";
   const messages = run.status?.messages ?? [];
 
   const toolCalls: EvalToolCall[] = [];
   const traceLines: string[] = [];
   if (!messages.some((message) => message.type === MessageType.MESSAGE_HUMAN)) {
-    traceLines.push(line({ type: "user", message: { role: "user", content: run.spec?.message ?? "" } }));
+    traceLines.push(
+      line({
+        type: "user",
+        message: { role: "user", content: run.spec?.message ?? "" },
+      }),
+    );
   }
   for (const message of messages) {
     switch (message.type) {
       case MessageType.MESSAGE_HUMAN:
-        traceLines.push(line({ type: "user", message: { role: "user", content: message.content } }));
+        traceLines.push(
+          line({
+            type: "user",
+            message: { role: "user", content: message.content },
+          }),
+        );
         break;
       case MessageType.MESSAGE_AI: {
         const content: JsonValue[] = [];
@@ -154,9 +175,13 @@ export async function evalTraceOf(run: Run, deps: EvalTraceDeps): Promise<EvalTr
             ...(call.error !== "" ? { is_error: true } : {}),
           });
         }
-        traceLines.push(line({ type: "assistant", message: { role: "assistant", content } }));
+        traceLines.push(
+          line({ type: "assistant", message: { role: "assistant", content } }),
+        );
         if (results.length > 0) {
-          traceLines.push(line({ type: "user", message: { role: "user", content: results } }));
+          traceLines.push(
+            line({ type: "user", message: { role: "user", content: results } }),
+          );
         }
         break;
       }
@@ -164,7 +189,10 @@ export async function evalTraceOf(run: Run, deps: EvalTraceDeps): Promise<EvalTr
         traceLines.push(
           line({
             type: "user",
-            message: { role: "user", content: [{ type: "tool_result", content: message.content }] },
+            message: {
+              role: "user",
+              content: [{ type: "tool_result", content: message.content }],
+            },
           }),
         );
         break;
@@ -208,15 +236,26 @@ function namedCall(
   const args: JsonObject = call.args ?? {};
   const input = JSON.stringify(args);
   if (call.mcpServerSlug !== "") {
-    return { name: `mcp__plugin_${pluginName}_${call.mcpServerSlug}__${call.name}`, input };
+    return {
+      name: `mcp__plugin_${pluginName}_${call.mcpServerSlug}__${call.name}`,
+      input,
+    };
   }
   const path = pathArgumentOf(args);
-  const fileChange = path === undefined ? undefined : created.has(normalise(path)) ? "add" : "modify";
+  const fileChange =
+    path === undefined
+      ? undefined
+      : created.has(normalise(path))
+        ? "add"
+        : "modify";
   const name = claudeNameOf(engine, call.name, fileChange);
   if (name === "Read" && path !== undefined) {
     const skill = SKILL_READ_PATH.exec(path)?.[1];
     if (skill !== undefined) {
-      return { name: "Skill", input: JSON.stringify({ skill: `${pluginName}:${skill}` }) };
+      return {
+        name: "Skill",
+        input: JSON.stringify({ skill: `${pluginName}:${skill}` }),
+      };
     }
   }
   return { name, input };
@@ -265,7 +304,11 @@ async function filesOf(run: Run, deps: EvalTraceDeps): Promise<EvalFiles> {
   const created: string[] = [];
   for (const change of changes) {
     const path = normalise(change.pathAfter);
-    if (change.kind === FileChangeKind.ADD && path !== "" && !created.includes(path)) {
+    if (
+      change.kind === FileChangeKind.ADD &&
+      path !== "" &&
+      !created.includes(path)
+    ) {
       created.push(path);
     }
   }
@@ -285,11 +328,18 @@ async function contentOf(
 ): Promise<EvalFileContent> {
   let last: CapturedFileChange | undefined;
   for (const change of changes) {
-    if (normalise(change.pathAfter) === path || normalise(change.pathBefore) === path) {
+    if (
+      normalise(change.pathAfter) === path ||
+      normalise(change.pathBefore) === path
+    ) {
       last = change;
     }
   }
-  if (last === undefined || last.kind === FileChangeKind.DELETE || normalise(last.pathAfter) !== path) {
+  if (
+    last === undefined ||
+    last.kind === FileChangeKind.DELETE ||
+    normalise(last.pathAfter) !== path
+  ) {
     return { kind: "absent" };
   }
   const after = last.after;

@@ -178,12 +178,15 @@ export function newPatternPool(size: number = PATTERN_POOL_SIZE): PatternPool {
       }
       const running = slot;
       running.busy = pending;
-      running.timer = setTimeout(() => {
-        running.busy = undefined;
-        retire(running);
-        pending.resolve({ kind: "timeout" });
-        pump();
-      }, Math.max(1, pending.job.budgetMs));
+      running.timer = setTimeout(
+        () => {
+          running.busy = undefined;
+          retire(running);
+          pending.resolve({ kind: "timeout" });
+          pump();
+        },
+        Math.max(1, pending.job.budgetMs),
+      );
       running.worker.postMessage({
         id: pending.id,
         pattern: pending.job.pattern,

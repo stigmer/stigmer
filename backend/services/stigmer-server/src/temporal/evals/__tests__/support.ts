@@ -18,7 +18,10 @@ import { PluginEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/
 import { PluginEvalSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
 import type { PluginEvalAblation } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
 import { PluginEvalPhase } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
-import { RunSchema, RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import {
+  RunSchema,
+  RunStatusSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
@@ -30,7 +33,11 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import type { EvalModelCatalog } from "../../../domain/plugin-eval/matrix.js";
 import { sessionIdOf } from "../../../domain/run/target.js";
-import type { JudgeSessionDeleter, ScoreDeleter, ScoreRecorder } from "../../../domain/score/ports.js";
+import type {
+  JudgeSessionDeleter,
+  ScoreDeleter,
+  ScoreRecorder,
+} from "../../../domain/score/ports.js";
 import { listRunScores } from "../../../domain/score/queries.js";
 import { silentLogger } from "../../../extensions/__tests__/composed-support.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
@@ -52,13 +59,16 @@ export const SUITE_FILES: Readonly<Record<string, string>> = {
   "evals/first-case/graders/mentions.md":
     "---\ntype: regex\npattern: fetchUser\nweight: 2\n---\n",
   "evals/first-case/graders/skill-fired.md":
-    "---\ntype: tool_used\ntool: Skill\ninput_match: '\"skill\"\\s*:\\s*\"(?:[\\w-]+:)?commit-message\"'\n---\n",
-  "evals/first-case/graders/criteria.md": "---\ntype: llm\n---\n\nPASS if the message names the rename.\n",
+    '---\ntype: tool_used\ntool: Skill\ninput_match: \'"skill"\\s*:\\s*"(?:[\\w-]+:)?commit-message"\'\n---\n',
+  "evals/first-case/graders/criteria.md":
+    "---\ntype: llm\n---\n\nPASS if the message names the rename.\n",
   "evals/scaffolded/case.yaml":
     'schema_version: "1.1"\nname: scaffolded\ncontext:\n  scaffold_script: fixture.sh\nexecution:\n  prompt: go\ngraders:\n  - name: any\n    type: regex\n    pattern: x\n',
 };
 
-export function suiteFiles(files: Readonly<Record<string, string>> = SUITE_FILES): PluginFiles {
+export function suiteFiles(
+  files: Readonly<Record<string, string>> = SUITE_FILES,
+): PluginFiles {
   return inMemoryPluginFiles(new Map(Object.entries(files)));
 }
 
@@ -85,7 +95,10 @@ export const catalog: EvalModelCatalog = {
   defaultModel: () => "",
 };
 
-export async function seedPlugin(store: Store, withAgent = true): Promise<void> {
+export async function seedPlugin(
+  store: Store,
+  withAgent = true,
+): Promise<void> {
   await store.saveResource(
     ApiResourceKind.plugin,
     PLUGIN_ID,
@@ -102,7 +115,13 @@ export async function seedPlugin(store: Store, withAgent = true): Promise<void> 
       "agt_1",
       AgentSchema,
       create(AgentSchema, {
-        metadata: { id: "agt_1", org: ORG, slug: "thermos", name: "thermos", labels: { [PLUGIN_LABEL]: PLUGIN_ID } },
+        metadata: {
+          id: "agt_1",
+          org: ORG,
+          slug: "thermos",
+          name: "thermos",
+          labels: { [PLUGIN_LABEL]: PLUGIN_ID },
+        },
       }),
     );
   }
@@ -111,7 +130,13 @@ export async function seedPlugin(store: Store, withAgent = true): Promise<void> 
     "mcp_1",
     McpServerSchema,
     create(McpServerSchema, {
-      metadata: { id: "mcp_1", org: ORG, slug: "github", name: "github", labels: { [PLUGIN_LABEL]: PLUGIN_ID } },
+      metadata: {
+        id: "mcp_1",
+        org: ORG,
+        slug: "github",
+        name: "github",
+        labels: { [PLUGIN_LABEL]: PLUGIN_ID },
+      },
     }),
   );
 }
@@ -148,12 +173,19 @@ export async function seedEval(
 }
 
 export async function readEval(store: Store) {
-  return store.getResource(ApiResourceKind.plugin_eval, EVAL_ID, PluginEvalSchema);
+  return store.getResource(
+    ApiResourceKind.plugin_eval,
+    EVAL_ID,
+    PluginEvalSchema,
+  );
 }
 
 /** What the lane was asked, and how it answers. */
 export interface LaneRecord {
-  readonly sessions: Array<{ session: Session; caller: CallerIdentity | undefined }>;
+  readonly sessions: Array<{
+    session: Session;
+    caller: CallerIdentity | undefined;
+  }>;
   readonly runs: Array<{ run: Run; caller: CallerIdentity | undefined }>;
   readonly terminated: string[];
   readonly deletedSessions: string[];
@@ -185,7 +217,12 @@ export function lane(store: Store): {
         const stored = clone(SessionSchema, session);
         stored.metadata = { ...stored.metadata!, id: `ses_${next}` };
         record.sessions.push({ session: stored, caller });
-        await store.saveResource(ApiResourceKind.session, `ses_${next}`, SessionSchema, stored);
+        await store.saveResource(
+          ApiResourceKind.session,
+          `ses_${next}`,
+          SessionSchema,
+          stored,
+        );
         return stored;
       },
       async createRun(run, caller) {
@@ -199,20 +236,32 @@ export function lane(store: Store): {
         stored.metadata = { ...stored.metadata!, id: `run_${next}` };
         stored.status = create(RunStatusSchema, { phase: record.phase });
         record.runs.push({ run: stored, caller });
-        await store.saveResource(ApiResourceKind.run, `run_${next}`, RunSchema, stored);
+        await store.saveResource(
+          ApiResourceKind.run,
+          `run_${next}`,
+          RunSchema,
+          stored,
+        );
         return stored;
       },
       async terminateRun(runId) {
         record.terminated.push(runId);
-        const run = await store.getResource(ApiResourceKind.run, runId, RunSchema).catch(() => undefined);
+        const run = await store
+          .getResource(ApiResourceKind.run, runId, RunSchema)
+          .catch(() => undefined);
         if (run === undefined) {
           throw new ConnectError("not found", Code.NotFound);
         }
-        await store.updateResource(ApiResourceKind.run, runId, RunSchema, (live) => {
-          if (live.status !== undefined) {
-            live.status.phase = RunPhase.RUN_TERMINATED;
-          }
-        });
+        await store.updateResource(
+          ApiResourceKind.run,
+          runId,
+          RunSchema,
+          (live) => {
+            if (live.status !== undefined) {
+              live.status.phase = RunPhase.RUN_TERMINATED;
+            }
+          },
+        );
       },
     },
     sessions: {
@@ -230,13 +279,18 @@ export function sessionOf(run: Run): string {
 }
 
 /** The score chain as the activities see it: one score per writer and version, the run required. */
-export function scoreChain(store: Store): { recorder: ScoreRecorder; deleter: ScoreDeleter } {
+export function scoreChain(store: Store): {
+  recorder: ScoreRecorder;
+  deleter: ScoreDeleter;
+} {
   let written = 0;
   return {
     recorder: {
       async record(score) {
         const runId = score.spec?.runId ?? "";
-        const run = await store.getResource(ApiResourceKind.run, runId, RunSchema).catch(() => undefined);
+        const run = await store
+          .getResource(ApiResourceKind.run, runId, RunSchema)
+          .catch(() => undefined);
         if (run === undefined) {
           throw new ConnectError("Run not found", Code.NotFound);
         }
@@ -254,9 +308,17 @@ export function scoreChain(store: Store): { recorder: ScoreRecorder; deleter: Sc
         stored.metadata = { ...stored.metadata!, id, name: id, slug: id };
         stored.status = create(ScoreStatusSchema, {
           notGradedReason: stored.status?.notGradedReason ?? "",
-          state: stored.spec?.value.case !== undefined ? ScoreState.graded : ScoreState.not_graded,
+          state:
+            stored.spec?.value.case !== undefined
+              ? ScoreState.graded
+              : ScoreState.not_graded,
         });
-        await store.saveResource(ApiResourceKind.score, id, ScoreSchema, stored);
+        await store.saveResource(
+          ApiResourceKind.score,
+          id,
+          ScoreSchema,
+          stored,
+        );
         return stored;
       },
     },

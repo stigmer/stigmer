@@ -40,7 +40,9 @@ export interface EvalsWorkerDeps {
   readonly recorder: () => ScoreRecorder;
   readonly deleter: () => ScoreDeleter;
   /** The run artifact store's read; undefined when none is configured. */
-  readonly readArtifact: ((storageKey: string) => Promise<Uint8Array>) | undefined;
+  readonly readArtifact:
+    | ((storageKey: string) => Promise<Uint8Array>)
+    | undefined;
   /** The composed caller; undefined = tries act as the server. */
   readonly pluginEvalCaller: PluginEvalCallerMint | undefined;
   /** The graders' pattern engine; default a pool of this worker's own. */
@@ -57,7 +59,11 @@ export function newEvalsWorkerFactory(deps: EvalsWorkerDeps): WorkerFactory {
       catalog: deps.catalog,
     });
     const activities = {
-      ...createSuiteActivities({ store: deps.store, logger: deps.logger, contexts }),
+      ...createSuiteActivities({
+        store: deps.store,
+        logger: deps.logger,
+        contexts,
+      }),
       ...createCaseActivities({
         store: deps.store,
         logger: deps.logger,

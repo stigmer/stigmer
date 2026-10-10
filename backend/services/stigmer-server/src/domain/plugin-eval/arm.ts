@@ -55,7 +55,10 @@ export interface ArmAttachment {
   readonly mcpServerUsages: ReadonlyArray<McpServerUsage>;
 }
 
-export function armAttachment(arm: EvalArm, plugin: PluginAttachmentFacts): ArmAttachment {
+export function armAttachment(
+  arm: EvalArm,
+  plugin: PluginAttachmentFacts,
+): ArmAttachment {
   switch (arm) {
     case "without":
       return { mcpServerUsages: [] };

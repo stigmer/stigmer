@@ -33,9 +33,11 @@ import {
 } from "../names.js";
 
 const TASK_QUEUE = "plugin-eval-workflow-test";
-const WORKFLOWS_PATH = new URL("../workflows/index.ts", import.meta.url).pathname;
+const WORKFLOWS_PATH = new URL("../workflows/index.ts", import.meta.url)
+  .pathname;
 
-type TestWorkflowEnvironment = import("@temporalio/testing").TestWorkflowEnvironment;
+type TestWorkflowEnvironment =
+  import("@temporalio/testing").TestWorkflowEnvironment;
 type Worker = import("@temporalio/worker").Worker;
 
 let env: TestWorkflowEnvironment | null = null;
@@ -76,7 +78,13 @@ function cells(count: number): SuiteCell[] {
 
 function resetScript(): void {
   script = {
-    plan: { kind: "run", org: "acme", cells: cells(4), maxCostUsd: 10, concurrency: 1 },
+    plan: {
+      kind: "run",
+      org: "acme",
+      cells: cells(4),
+      maxCostUsd: 10,
+      concurrency: 1,
+    },
     costUsd: 0.1,
     refuseCreditAt: 0,
     hang: false,
@@ -107,7 +115,11 @@ function scriptedActivities(): SuiteActivities & CaseActivities {
       const n = script.starts.length + 1;
       script.starts.push(`${input.arm}/${input.tryIndex}`);
       if (n === script.refuseCreditAt) {
-        return { kind: "refused", failure: "out-of-credit", reason: "out of credit" };
+        return {
+          kind: "refused",
+          failure: "out-of-credit",
+          reason: "out of credit",
+        };
       }
       script.inFlight++;
       script.most = Math.max(script.most, script.inFlight);
@@ -134,9 +146,17 @@ function scriptedActivities(): SuiteActivities & CaseActivities {
         durationSeconds: 1,
       };
     },
-    "stigmer/evals/start-vote": async (_input, runId, graderIndex, voteIndex) => {
+    "stigmer/evals/start-vote": async (
+      _input,
+      runId,
+      graderIndex,
+      voteIndex,
+    ) => {
       script.votes++;
-      return { kind: "started", voteRunId: `${runId}_vote_${graderIndex}_${voteIndex}` };
+      return {
+        kind: "started",
+        voteRunId: `${runId}_vote_${graderIndex}_${voteIndex}`,
+      };
     },
     "stigmer/evals/read-vote": async () => ({
       vote: { kind: "vote", passed: true, reason: "yes" },
@@ -173,7 +193,8 @@ function startEval() {
 describe("stigmer/evals/run-plugin-eval workflow (TestWorkflowEnvironment)", () => {
   beforeAll(async () => {
     try {
-      const { TestWorkflowEnvironment: TWE } = await import("@temporalio/testing");
+      const { TestWorkflowEnvironment: TWE } =
+        await import("@temporalio/testing");
       const { Worker: W } = await import("@temporalio/worker");
       env = await TWE.createLocal();
       worker = await W.create({
@@ -207,19 +228,33 @@ describe("stigmer/evals/run-plugin-eval workflow (TestWorkflowEnvironment)", () 
   it("runs every cell as a child, votes three times per AI-graded check, and ends completed", async (testCtx) => {
     if (!envReady) return testCtx.skip();
     script.judged = true;
-    script.plan = { kind: "run", org: "acme", cells: cells(2), maxCostUsd: 10, concurrency: 2 };
+    script.plan = {
+      kind: "run",
+      org: "acme",
+      cells: cells(2),
+      maxCostUsd: 10,
+      concurrency: 2,
+    };
     const handle = await startEval();
     await handle.result();
     expect([...script.starts].sort()).toEqual(["with/0", "without/0"]);
     expect(script.votes).toBe(6);
     expect(script.recorded).toHaveLength(2);
-    expect(script.recorded.every(({ result }) => result.state === "graded")).toBe(true);
+    expect(
+      script.recorded.every(({ result }) => result.state === "graded"),
+    ).toBe(true);
     expect(script.finished).toEqual([{ phase: "completed" }]);
   }, 60_000);
 
   it("keeps at most concurrency children in flight", async (testCtx) => {
     if (!envReady) return testCtx.skip();
-    script.plan = { kind: "run", org: "acme", cells: cells(4), maxCostUsd: 10, concurrency: 2 };
+    script.plan = {
+      kind: "run",
+      org: "acme",
+      cells: cells(4),
+      maxCostUsd: 10,
+      concurrency: 2,
+    };
     const handle = await startEval();
     await handle.result();
     expect(script.recorded).toHaveLength(4);
@@ -229,11 +264,19 @@ describe("stigmer/evals/run-plugin-eval workflow (TestWorkflowEnvironment)", () 
 
   it("starts no cell once the spending limit is reached, and ends partial", async (testCtx) => {
     if (!envReady) return testCtx.skip();
-    script.plan = { kind: "run", org: "acme", cells: cells(4), maxCostUsd: 0.25, concurrency: 1 };
+    script.plan = {
+      kind: "run",
+      org: "acme",
+      cells: cells(4),
+      maxCostUsd: 0.25,
+      concurrency: 1,
+    };
     const handle = await startEval();
     await handle.result();
     expect(script.recorded).toHaveLength(3);
-    expect(script.finished).toEqual([{ phase: "partial", reason: "cost_ceiling" }]);
+    expect(script.finished).toEqual([
+      { phase: "partial", reason: "cost_ceiling" },
+    ]);
   }, 60_000);
 
   it("ends partial when the organization's credit refuses a try", async (testCtx) => {
@@ -242,8 +285,13 @@ describe("stigmer/evals/run-plugin-eval workflow (TestWorkflowEnvironment)", () 
     const handle = await startEval();
     await handle.result();
     expect(script.recorded).toHaveLength(2);
-    expect(script.recorded[1]?.result).toMatchObject({ state: "not-graded", outOfCredit: true });
-    expect(script.finished).toEqual([{ phase: "partial", reason: "out_of_credit" }]);
+    expect(script.recorded[1]?.result).toMatchObject({
+      state: "not-graded",
+      outOfCredit: true,
+    });
+    expect(script.finished).toEqual([
+      { phase: "partial", reason: "out_of_credit" },
+    ]);
   }, 60_000);
 
   it("stops the try in flight and ends partial when cancelled", async (testCtx) => {
@@ -261,7 +309,9 @@ describe("stigmer/evals/run-plugin-eval workflow (TestWorkflowEnvironment)", () 
     const { WorkflowFailedError } = await import("@temporalio/client");
     expect(failure).toBeInstanceOf(WorkflowFailedError);
     expect(script.stopped).toEqual(["run_1"]);
-    expect(script.finished).toEqual([{ phase: "partial", reason: "cancelled" }]);
+    expect(script.finished).toEqual([
+      { phase: "partial", reason: "cancelled" },
+    ]);
     expect(script.recorded).toEqual([]);
   }, 60_000);
 });

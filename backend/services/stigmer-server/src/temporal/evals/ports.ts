@@ -17,7 +17,10 @@ import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_
 import type { CallerIdentity } from "../../extensions/identity.js";
 
 export interface PluginEvalTryLane {
-  createSession(session: Session, caller: CallerIdentity | undefined): Promise<Session>;
+  createSession(
+    session: Session,
+    caller: CallerIdentity | undefined,
+  ): Promise<Session>;
   createRun(run: Run, caller: CallerIdentity | undefined): Promise<Run>;
   terminateRun(runId: string, reason: string): Promise<void>;
 }

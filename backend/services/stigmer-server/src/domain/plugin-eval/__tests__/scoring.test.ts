@@ -34,17 +34,43 @@ const regex: EvalGraderCheck = {
   match: { kind: "contains" },
   target: { kind: "last_message" },
 };
-const skillFired: EvalGraderCheck = { type: "tool_used", tool: "Skill", min: 1 };
-const llm: EvalGraderCheck = { type: "llm", criteria: "c", focus: { kind: "last_message" } };
+const skillFired: EvalGraderCheck = {
+  type: "tool_used",
+  tool: "Skill",
+  min: 1,
+};
+const llm: EvalGraderCheck = {
+  type: "llm",
+  criteria: "c",
+  focus: { kind: "last_message" },
+};
 
-function grader(check: EvalGraderCheck, weight = 1, arm?: EvalGrader["arm"]): EvalGrader {
-  return { name: check.type, path: "p", weight, check, ...(arm === undefined ? {} : { arm }) };
+function grader(
+  check: EvalGraderCheck,
+  weight = 1,
+  arm?: EvalGrader["arm"],
+): EvalGrader {
+  return {
+    name: check.type,
+    path: "p",
+    weight,
+    check,
+    ...(arm === undefined ? {} : { arm }),
+  };
 }
 
 describe("which graders score", () => {
   it("makes tool_used Skill and arm with-only indicators in two arms", () => {
-    const graders = [grader(regex, 2), grader(skillFired), grader(llm, 1, "with-only")];
-    expect(scoringOf(graders, true).map((g) => g.scored)).toEqual([true, false, false]);
+    const graders = [
+      grader(regex, 2),
+      grader(skillFired),
+      grader(llm, 1, "with-only"),
+    ];
+    expect(scoringOf(graders, true).map((g) => g.scored)).toEqual([
+      true,
+      false,
+      false,
+    ]);
   });
 
   it("scores every grader when all would be excluded", () => {
@@ -53,14 +79,30 @@ describe("which graders score", () => {
   });
 
   it("scores a grader marked arm both, and excludes nothing without a comparison", () => {
-    const never: EvalGraderCheck = { type: "tool_used", tool: "Skill", min: 0, max: 0 };
-    expect(scoringOf([grader(regex), grader(never, 1, "both")], true).map((g) => g.scored)).toEqual([true, true]);
-    expect(scoringOf([grader(regex), grader(skillFired)], false).map((g) => g.scored)).toEqual([true, true]);
+    const never: EvalGraderCheck = {
+      type: "tool_used",
+      tool: "Skill",
+      min: 0,
+      max: 0,
+    };
+    expect(
+      scoringOf([grader(regex), grader(never, 1, "both")], true).map(
+        (g) => g.scored,
+      ),
+    ).toEqual([true, true]);
+    expect(
+      scoringOf([grader(regex), grader(skillFired)], false).map(
+        (g) => g.scored,
+      ),
+    ).toEqual([true, true]);
   });
 });
 
 describe("a try's score", () => {
-  const scoring = scoringOf([grader(regex, 2), grader(skillFired), grader(llm, 1)], true);
+  const scoring = scoringOf(
+    [grader(regex, 2), grader(skillFired), grader(llm, 1)],
+    true,
+  );
 
   it("is the weighted share of the scored graders that passed", () => {
     expect(tryScore([true, false, false], scoring)).toBeCloseTo(2 / 3);
@@ -74,13 +116,18 @@ describe("a try's score", () => {
   });
 });
 
-function tries(...scores: Array<number | "not-graded" | "pending">): PluginEvalTry[] {
+function tries(
+  ...scores: Array<number | "not-graded" | "pending">
+): PluginEvalTry[] {
   return scores.map((score, index) =>
     create(PluginEvalTrySchema, {
       index: index + 1,
       costUsd: 0.1,
       ...(score === "not-graded"
-        ? { state: PluginEvalTryState.not_graded, notGradedReason: "platform busy" }
+        ? {
+            state: PluginEvalTryState.not_graded,
+            notGradedReason: "platform busy",
+          }
         : score === "pending"
           ? { state: PluginEvalTryState.pending }
           : { state: PluginEvalTryState.graded, score }),
@@ -96,8 +143,12 @@ describe("the suite's summaries", () => {
           caseName: "a",
           targets: [
             create(PluginEvalCaseTargetSchema, {
-              withPlugin: create(PluginEvalArmSchema, { tries: tries(1, 2 / 3, "not-graded") }),
-              withoutPlugin: create(PluginEvalArmSchema, { tries: tries(1 / 3, 0, 2 / 3) }),
+              withPlugin: create(PluginEvalArmSchema, {
+                tries: tries(1, 2 / 3, "not-graded"),
+              }),
+              withoutPlugin: create(PluginEvalArmSchema, {
+                tries: tries(1 / 3, 0, 2 / 3),
+              }),
             }),
           ],
         }),
@@ -105,13 +156,22 @@ describe("the suite's summaries", () => {
           caseName: "b",
           targets: [
             create(PluginEvalCaseTargetSchema, {
-              withPlugin: create(PluginEvalArmSchema, { tries: tries(1, 1, 1) }),
-              withoutPlugin: create(PluginEvalArmSchema, { tries: tries(0, 0, "pending") }),
+              withPlugin: create(PluginEvalArmSchema, {
+                tries: tries(1, 1, 1),
+              }),
+              withoutPlugin: create(PluginEvalArmSchema, {
+                tries: tries(0, 0, "pending"),
+              }),
             }),
-            create(PluginEvalCaseTargetSchema, { notRunReason: "not run: model 'x' is not in Stigmer's catalog" }),
+            create(PluginEvalCaseTargetSchema, {
+              notRunReason: "not run: model 'x' is not in Stigmer's catalog",
+            }),
           ],
         }),
-        create(PluginEvalCaseSchema, { caseName: "c", notRunReason: "not run: env" }),
+        create(PluginEvalCaseSchema, {
+          caseName: "c",
+          notRunReason: "not run: env",
+        }),
       ],
     });
 
@@ -153,7 +213,9 @@ describe("the suite's summaries", () => {
               withPlugin: create(PluginEvalArmSchema, { tries: tries(0.5, 1) }),
             }),
             create(PluginEvalCaseTargetSchema, {
-              withPlugin: create(PluginEvalArmSchema, { tries: tries("not-graded") }),
+              withPlugin: create(PluginEvalArmSchema, {
+                tries: tries("not-graded"),
+              }),
               withoutPlugin: create(PluginEvalArmSchema, { tries: tries(1) }),
             }),
           ],

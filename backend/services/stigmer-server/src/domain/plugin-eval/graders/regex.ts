@@ -68,7 +68,10 @@ export async function gradeRegex(
       const wanted = check.match.count;
       const counted = found > wanted ? `more than ${wanted}` : String(found);
       return found === wanted
-        ? { passed: true, reason: `the pattern matched ${wanted} time(s) in ${where}` }
+        ? {
+            passed: true,
+            reason: `the pattern matched ${wanted} time(s) in ${where}`,
+          }
         : {
             passed: false,
             reason: `the pattern matched ${counted} time(s) in ${where}, expected ${wanted}`,

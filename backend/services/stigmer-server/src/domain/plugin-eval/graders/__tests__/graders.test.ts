@@ -15,7 +15,12 @@
  */
 import { afterAll, describe, expect, it } from "vitest";
 
-import type { EvalFocus, EvalGrader, EvalGraderCheck, PluginFiles } from "@stigmer/plugin-package";
+import type {
+  EvalFocus,
+  EvalGrader,
+  EvalGraderCheck,
+  PluginFiles,
+} from "@stigmer/plugin-package";
 
 import type { EvalFiles, EvalTrace } from "../../../score/eval/trace.js";
 import { gradeCheck, gradeChecks } from "../grade.js";
@@ -46,11 +51,23 @@ function trace(overrides: Partial<EvalTrace> = {}): EvalTrace {
   return {
     lastMessage: "Renamed getUser to fetchUser in three places.",
     traceLines: [
-      JSON.stringify({ type: "user", message: { role: "user", content: "rename it" } }),
-      JSON.stringify({ type: "assistant", message: { role: "assistant", content: [{ type: "text", text: "done \"quoted\"" }] } }),
+      JSON.stringify({
+        type: "user",
+        message: { role: "user", content: "rename it" },
+      }),
+      JSON.stringify({
+        type: "assistant",
+        message: {
+          role: "assistant",
+          content: [{ type: "text", text: 'done "quoted"' }],
+        },
+      }),
     ],
     toolCalls: [
-      { name: "Skill", input: JSON.stringify({ skill: "thermos:commit-message" }) },
+      {
+        name: "Skill",
+        input: JSON.stringify({ skill: "thermos:commit-message" }),
+      },
       { name: "Read", input: JSON.stringify({ file_path: "src/a.ts" }) },
       { name: "Bash", input: JSON.stringify({ command: "npm test" }) },
       { name: "Read", input: JSON.stringify({ file_path: "src/b.ts" }) },
@@ -59,7 +76,10 @@ function trace(overrides: Partial<EvalTrace> = {}): EvalTrace {
       kind: "recorded",
       created: ["CHANGELOG.md", "src/new/thing.ts"],
       contents: new Map([
-        ["CHANGELOG.md", { kind: "text", text: "## 1.0.0\n- renamed\n- renamed again" }],
+        [
+          "CHANGELOG.md",
+          { kind: "text", text: "## 1.0.0\n- renamed\n- renamed again" },
+        ],
         ["logo.png", { kind: "binary" }],
       ]),
     },
@@ -76,7 +96,9 @@ function grader(check: EvalGraderCheck, name = "check"): EvalGrader {
 function regex(
   pattern: string,
   target: EvalFocus = { kind: "last_message" },
-  match: Extract<EvalGraderCheck, { type: "regex" }>["match"] = { kind: "contains" },
+  match: Extract<EvalGraderCheck, { type: "regex" }>["match"] = {
+    kind: "contains",
+  },
   flags = "",
 ): EvalGraderCheck {
   return { type: "regex", pattern, flags, match, target };
@@ -89,44 +111,70 @@ async function verdictOf(check: EvalGraderCheck, view: EvalTrace = trace()) {
 describe("regex", () => {
   it("passes when the pattern is found in the final message, and honours flags", async () => {
     expect(await verdictOf(regex("fetchUser"))).toMatchObject({ passed: true });
-    expect(await verdictOf(regex("FETCHUSER"))).toMatchObject({ passed: false });
-    expect(await verdictOf(regex("FETCHUSER", undefined, undefined, "i"))).toMatchObject({ passed: true });
+    expect(await verdictOf(regex("FETCHUSER"))).toMatchObject({
+      passed: false,
+    });
+    expect(
+      await verdictOf(regex("FETCHUSER", undefined, undefined, "i")),
+    ).toMatchObject({ passed: true });
   });
 
   it("requires absence with not_contains", async () => {
-    const absent = await verdictOf(regex("deleteUser", undefined, { kind: "not_contains" }));
+    const absent = await verdictOf(
+      regex("deleteUser", undefined, { kind: "not_contains" }),
+    );
     expect(absent).toMatchObject({ passed: true });
-    const present = await verdictOf(regex("getUser", undefined, { kind: "not_contains" }));
+    const present = await verdictOf(
+      regex("getUser", undefined, { kind: "not_contains" }),
+    );
     expect(present).toMatchObject({ passed: false });
   });
 
   it("requires exactly N matches with count:N", async () => {
     const file: EvalFocus = { kind: "file", path: "./CHANGELOG.md" };
-    expect(await verdictOf(regex("renamed", file, { kind: "count", count: 2 }))).toMatchObject({ passed: true });
-    expect(await verdictOf(regex("renamed", file, { kind: "count", count: 1 }))).toMatchObject({
+    expect(
+      await verdictOf(regex("renamed", file, { kind: "count", count: 2 })),
+    ).toMatchObject({ passed: true });
+    expect(
+      await verdictOf(regex("renamed", file, { kind: "count", count: 1 })),
+    ).toMatchObject({
       passed: false,
       reason: expect.stringContaining("more than 1"),
     });
-    expect(await verdictOf(regex("renamed", file, { kind: "count", count: 3 }))).toMatchObject({ passed: false });
+    expect(
+      await verdictOf(regex("renamed", file, { kind: "count", count: 3 })),
+    ).toMatchObject({ passed: false });
   });
 
   it("counts zero-length matches without looping", async () => {
-    expect(await verdictOf(regex("x*", { kind: "last_message" }, { kind: "count", count: 3 }))).toMatchObject({
+    expect(
+      await verdictOf(
+        regex("x*", { kind: "last_message" }, { kind: "count", count: 3 }),
+      ),
+    ).toMatchObject({
       passed: false,
     });
   });
 
   it("reads the trace as JSON lines, quotes escaped", async () => {
-    expect(await verdictOf(regex('\\\\"quoted\\\\"', { kind: "trace" }))).toMatchObject({ passed: true });
+    expect(
+      await verdictOf(regex('\\\\"quoted\\\\"', { kind: "trace" })),
+    ).toMatchObject({ passed: true });
   });
 
   it("reads the created paths one per line, not their contents", async () => {
-    expect(await verdictOf(regex("^src/new/", { kind: "files" }, undefined, "m"))).toMatchObject({ passed: true });
-    expect(await verdictOf(regex("renamed", { kind: "files" }))).toMatchObject({ passed: false });
+    expect(
+      await verdictOf(regex("^src/new/", { kind: "files" }, undefined, "m")),
+    ).toMatchObject({ passed: true });
+    expect(await verdictOf(regex("renamed", { kind: "files" }))).toMatchObject({
+      passed: false,
+    });
   });
 
   it("fails a file target that does not exist after the run", async () => {
-    expect(await verdictOf(regex("x", { kind: "file", path: "missing.md" }))).toEqual({
+    expect(
+      await verdictOf(regex("x", { kind: "file", path: "missing.md" })),
+    ).toEqual({
       passed: false,
       reason: fileAbsentReason("missing.md"),
     });
@@ -134,26 +182,47 @@ describe("regex", () => {
 
   it("leaves a file target not graded where the install records no files", async () => {
     const view = trace({ files: NOT_RECORDED });
-    expect(await verdictOf(regex("x", { kind: "files" }), view)).toEqual({ notGraded: FILES_NOT_RECORDED_REASON });
-    expect(await verdictOf(regex("x", { kind: "file", path: "a" }), view)).toEqual({ notGraded: FILES_NOT_RECORDED_REASON });
+    expect(await verdictOf(regex("x", { kind: "files" }), view)).toEqual({
+      notGraded: FILES_NOT_RECORDED_REASON,
+    });
+    expect(
+      await verdictOf(regex("x", { kind: "file", path: "a" }), view),
+    ).toEqual({ notGraded: FILES_NOT_RECORDED_REASON });
   });
 
   it("leaves a binary file, a mock-call target and an invalid pattern not graded", async () => {
-    expect(await verdictOf(regex("x", { kind: "file", path: "logo.png" }))).toMatchObject({ notGraded: expect.stringContaining("binary") });
-    expect(await verdictOf(regex("x", { kind: "mock_calls" }))).toEqual({ notGraded: MOCK_CALLS_NOT_RUN_REASON });
-    expect(await verdictOf(regex("(?i)x"))).toMatchObject({ notGraded: expect.stringContaining("not a valid") });
+    expect(
+      await verdictOf(regex("x", { kind: "file", path: "logo.png" })),
+    ).toMatchObject({ notGraded: expect.stringContaining("binary") });
+    expect(await verdictOf(regex("x", { kind: "mock_calls" }))).toEqual({
+      notGraded: MOCK_CALLS_NOT_RUN_REASON,
+    });
+    expect(await verdictOf(regex("(?i)x"))).toMatchObject({
+      notGraded: expect.stringContaining("not a valid"),
+    });
   });
 });
 
 describe("tool_used", () => {
   it("counts calls to the tool, narrowed by input_match, between min and max", async () => {
     const reads = (min: number, max?: number): EvalGraderCheck =>
-      max === undefined ? { type: "tool_used", tool: "Read", min } : { type: "tool_used", tool: "Read", min, max };
-    expect(await verdictOf(reads(1))).toMatchObject({ passed: true, reason: expect.stringContaining("step 2, 4") });
+      max === undefined
+        ? { type: "tool_used", tool: "Read", min }
+        : { type: "tool_used", tool: "Read", min, max };
+    expect(await verdictOf(reads(1))).toMatchObject({
+      passed: true,
+      reason: expect.stringContaining("step 2, 4"),
+    });
     expect(await verdictOf(reads(3))).toMatchObject({ passed: false });
     expect(await verdictOf(reads(1, 1))).toMatchObject({ passed: false });
     expect(
-      await verdictOf({ type: "tool_used", tool: "Read", inputMatch: "b\\.ts", min: 1, max: 1 }),
+      await verdictOf({
+        type: "tool_used",
+        tool: "Read",
+        inputMatch: "b\\.ts",
+        min: 1,
+        max: 1,
+      }),
     ).toMatchObject({ passed: true });
   });
 
@@ -168,21 +237,35 @@ describe("tool_used", () => {
   });
 
   it("asserts a tool was never called with min 0 and max 0", async () => {
-    expect(await verdictOf({ type: "tool_used", tool: "Write", min: 0, max: 0 })).toMatchObject({ passed: true });
-    expect(await verdictOf({ type: "tool_used", tool: "Bash", min: 0, max: 0 })).toMatchObject({ passed: false });
+    expect(
+      await verdictOf({ type: "tool_used", tool: "Write", min: 0, max: 0 }),
+    ).toMatchObject({ passed: true });
+    expect(
+      await verdictOf({ type: "tool_used", tool: "Bash", min: 0, max: 0 }),
+    ).toMatchObject({ passed: false });
   });
 
   it("reads Task as Agent", async () => {
     const view = trace({ toolCalls: [{ name: "Agent", input: "{}" }] });
-    expect(await verdictOf({ type: "tool_used", tool: "Task", min: 1 }, view)).toMatchObject({ passed: true });
+    expect(
+      await verdictOf({ type: "tool_used", tool: "Task", min: 1 }, view),
+    ).toMatchObject({ passed: true });
   });
 });
 
 describe("tool_order", () => {
   it("passes when the first matching before precedes the first matching after", async () => {
-    const check: EvalGraderCheck = { type: "tool_order", before: { tool: "Skill" }, after: { tool: "Bash" } };
+    const check: EvalGraderCheck = {
+      type: "tool_order",
+      before: { tool: "Skill" },
+      after: { tool: "Bash" },
+    };
     expect(await verdictOf(check)).toMatchObject({ passed: true });
-    const reversed: EvalGraderCheck = { type: "tool_order", before: { tool: "Bash" }, after: { tool: "Skill" } };
+    const reversed: EvalGraderCheck = {
+      type: "tool_order",
+      before: { tool: "Bash" },
+      after: { tool: "Skill" },
+    };
     expect(await verdictOf(reversed)).toMatchObject({ passed: false });
   });
 
@@ -196,22 +279,56 @@ describe("tool_order", () => {
   });
 
   it("fails when either tool was not called", async () => {
-    const check: EvalGraderCheck = { type: "tool_order", before: { tool: "Grep" }, after: { tool: "Bash" } };
-    expect(await verdictOf(check)).toMatchObject({ passed: false, reason: "no call to 'Grep'" });
+    const check: EvalGraderCheck = {
+      type: "tool_order",
+      before: { tool: "Grep" },
+      after: { tool: "Bash" },
+    };
+    expect(await verdictOf(check)).toMatchObject({
+      passed: false,
+      reason: "no call to 'Grep'",
+    });
   });
 });
 
 describe("file_exists", () => {
   it("passes when a created file matches the glob, and inverts with exists: false", async () => {
-    expect(await verdictOf({ type: "file_exists", path: "CHANGELOG.md", exists: true })).toMatchObject({ passed: true });
-    expect(await verdictOf({ type: "file_exists", path: "src/**/*.ts", exists: true })).toMatchObject({ passed: true });
-    expect(await verdictOf({ type: "file_exists", path: "*.ts", exists: true })).toMatchObject({ passed: false });
-    expect(await verdictOf({ type: "file_exists", path: "*.ts", exists: false })).toMatchObject({ passed: true });
-    expect(await verdictOf({ type: "file_exists", path: "CHANGELOG.md", exists: false })).toMatchObject({ passed: false });
+    expect(
+      await verdictOf({
+        type: "file_exists",
+        path: "CHANGELOG.md",
+        exists: true,
+      }),
+    ).toMatchObject({ passed: true });
+    expect(
+      await verdictOf({
+        type: "file_exists",
+        path: "src/**/*.ts",
+        exists: true,
+      }),
+    ).toMatchObject({ passed: true });
+    expect(
+      await verdictOf({ type: "file_exists", path: "*.ts", exists: true }),
+    ).toMatchObject({ passed: false });
+    expect(
+      await verdictOf({ type: "file_exists", path: "*.ts", exists: false }),
+    ).toMatchObject({ passed: true });
+    expect(
+      await verdictOf({
+        type: "file_exists",
+        path: "CHANGELOG.md",
+        exists: false,
+      }),
+    ).toMatchObject({ passed: false });
   });
 
   it("is not graded where the install records no files", async () => {
-    expect(await verdictOf({ type: "file_exists", path: "a", exists: false }, trace({ files: NOT_RECORDED }))).toEqual({
+    expect(
+      await verdictOf(
+        { type: "file_exists", path: "a", exists: false },
+        trace({ files: NOT_RECORDED }),
+      ),
+    ).toEqual({
       notGraded: FILES_NOT_RECORDED_REASON,
     });
   });
@@ -226,19 +343,30 @@ describe("file_exists", () => {
 });
 
 describe("the AI-graded checks", () => {
-  const llm = (focus: EvalFocus): EvalGraderCheck => ({ type: "llm", criteria: "PASS if renamed.", focus });
+  const llm = (focus: EvalFocus): EvalGraderCheck => ({
+    type: "llm",
+    criteria: "PASS if renamed.",
+    focus,
+  });
 
   it("answers votes for llm and baseline, a verdict for every code grader", async () => {
     const outcomes = await gradeChecks(
       [
         grader(llm({ kind: "last_message" }), "criteria"),
-        grader({ type: "baseline", baselineFile: "ref.jsonl", criteria: "as good" }, "base"),
+        grader(
+          { type: "baseline", baselineFile: "ref.jsonl", criteria: "as good" },
+          "base",
+        ),
         grader(regex("fetchUser")),
       ],
       trace(),
       pool,
     );
-    expect(outcomes).toEqual(["votes", "votes", expect.objectContaining({ passed: true })]);
+    expect(outcomes).toEqual([
+      "votes",
+      "votes",
+      expect.objectContaining({ passed: true }),
+    ]);
   });
 
   it("shows an llm trace focus its first and last twelve lines", () => {
@@ -252,16 +380,30 @@ describe("the AI-graded checks", () => {
   });
 
   it("picks the evidence for each focus", () => {
-    const check = (focus: EvalFocus) => llm(focus) as Extract<EvalGraderCheck, { type: "llm" }>;
-    expect(voteEvidence(check({ kind: "last_message" }), trace())).toMatchObject({ label: "the final message" });
-    expect(voteEvidence(check({ kind: "file", path: "CHANGELOG.md" }), trace())).toMatchObject({ text: expect.stringContaining("1.0.0") });
-    expect(voteEvidence(check({ kind: "file", path: "logo.png" }), trace())).toMatchObject({ notGraded: expect.stringContaining("binary") });
-    expect(voteEvidence(check({ kind: "file", path: "gone" }), trace())).toMatchObject({ passed: false });
-    expect(voteEvidence(check({ kind: "files" }), trace({ files: NOT_RECORDED }))).toEqual({ notGraded: FILES_NOT_RECORDED_REASON });
+    const check = (focus: EvalFocus) =>
+      llm(focus) as Extract<EvalGraderCheck, { type: "llm" }>;
+    expect(
+      voteEvidence(check({ kind: "last_message" }), trace()),
+    ).toMatchObject({ label: "the final message" });
+    expect(
+      voteEvidence(check({ kind: "file", path: "CHANGELOG.md" }), trace()),
+    ).toMatchObject({ text: expect.stringContaining("1.0.0") });
+    expect(
+      voteEvidence(check({ kind: "file", path: "logo.png" }), trace()),
+    ).toMatchObject({ notGraded: expect.stringContaining("binary") });
+    expect(
+      voteEvidence(check({ kind: "file", path: "gone" }), trace()),
+    ).toMatchObject({ passed: false });
+    expect(
+      voteEvidence(check({ kind: "files" }), trace({ files: NOT_RECORDED })),
+    ).toEqual({ notGraded: FILES_NOT_RECORDED_REASON });
   });
 
   it("fences the evidence so the run cannot close the element", () => {
-    const check = llm({ kind: "last_message" }) as Extract<EvalGraderCheck, { type: "llm" }>;
+    const check = llm({ kind: "last_message" }) as Extract<
+      EvalGraderCheck,
+      { type: "llm" }
+    >;
     const message = voteMessage({
       rubric: "criteria",
       check,
@@ -274,40 +416,81 @@ describe("the AI-graded checks", () => {
   });
 
   it("asks one rubric named after the grader, passed or failed only", () => {
-    const named = voteRubricName(grader(llm({ kind: "trace" }), "x".repeat(80)));
+    const named = voteRubricName(
+      grader(llm({ kind: "trace" }), "x".repeat(80)),
+    );
     expect(named).toHaveLength(63);
     const schema = voteSchema("criteria", "text");
     expect(schema["required"]).toEqual(["criteria"]);
-    expect(readVote({ criteria: { result: "passed", reason: "ok" } }, "criteria")).toEqual({ passed: true, reason: "ok" });
-    expect(readVote({ criteria: { result: "not_applicable", reason: "n/a" } }, "criteria")).toHaveProperty("refused");
-    expect(readVote({ other: { result: "passed", reason: "ok" } }, "criteria")).toHaveProperty("refused");
+    expect(
+      readVote({ criteria: { result: "passed", reason: "ok" } }, "criteria"),
+    ).toEqual({ passed: true, reason: "ok" });
+    expect(
+      readVote(
+        { criteria: { result: "not_applicable", reason: "n/a" } },
+        "criteria",
+      ),
+    ).toHaveProperty("refused");
+    expect(
+      readVote({ other: { result: "passed", reason: "ok" } }, "criteria"),
+    ).toHaveProperty("refused");
     expect(readVote(undefined, "criteria")).toHaveProperty("refused");
   });
 
   it("renders a baseline's reference transcript, or names it missing", () => {
     const content = [
-      JSON.stringify({ type: "user", message: { role: "user", content: "rename it" } }),
-      JSON.stringify({ type: "assistant", message: { role: "assistant", content: [{ type: "tool_use", name: "Read", input: { file_path: "a" } }, { type: "text", text: "done" }] } }),
+      JSON.stringify({
+        type: "user",
+        message: { role: "user", content: "rename it" },
+      }),
+      JSON.stringify({
+        type: "assistant",
+        message: {
+          role: "assistant",
+          content: [
+            { type: "tool_use", name: "Read", input: { file_path: "a" } },
+            { type: "text", text: "done" },
+          ],
+        },
+      }),
       "not json",
     ].join("\n");
     const files: PluginFiles = {
-      entries: [{ path: "evals/c/ref.jsonl", size: content.length } as PluginFiles["entries"][number]],
+      entries: [
+        {
+          path: "evals/c/ref.jsonl",
+          size: content.length,
+        } as PluginFiles["entries"][number],
+      ],
       read: () => new TextEncoder().encode(content),
     };
     const rendered = referenceTranscript(files, "evals/c", "./ref.jsonl");
     expect(rendered).toEqual({
       text: 'user: rename it\nassistant: [called Read {"file_path":"a"}] done\nnot json',
     });
-    expect(referenceTranscript(files, "evals/c", "other.jsonl")).toHaveProperty("notGraded");
+    expect(referenceTranscript(files, "evals/c", "other.jsonl")).toHaveProperty(
+      "notGraded",
+    );
   });
 
   it("decides on two of three votes, and leaves an undecided check not graded", () => {
     const pass = { kind: "vote", passed: true, reason: "yes" } as const;
     const fail = { kind: "vote", passed: false, reason: "no" } as const;
-    const broken = { kind: "failed", reason: "the judge's answer could not be read" } as const;
-    expect(tallyVotes([pass, fail, pass])).toEqual({ passed: true, reason: "2 of 3 votes passed: yes" });
-    expect(tallyVotes([fail, pass, fail])).toEqual({ passed: false, reason: "1 of 3 votes passed: no" });
+    const broken = {
+      kind: "failed",
+      reason: "the judge's answer could not be read",
+    } as const;
+    expect(tallyVotes([pass, fail, pass])).toEqual({
+      passed: true,
+      reason: "2 of 3 votes passed: yes",
+    });
+    expect(tallyVotes([fail, pass, fail])).toEqual({
+      passed: false,
+      reason: "1 of 3 votes passed: no",
+    });
     expect(tallyVotes([pass, broken, pass])).toMatchObject({ passed: true });
-    expect(tallyVotes([pass, broken, fail])).toEqual({ notGraded: broken.reason });
+    expect(tallyVotes([pass, broken, fail])).toEqual({
+      notGraded: broken.reason,
+    });
   });
 });

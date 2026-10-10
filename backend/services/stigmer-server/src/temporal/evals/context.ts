@@ -10,7 +10,12 @@
  */
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 
-import type { EvalCase, EvalGrader, EvalSuite, PluginFiles } from "@stigmer/plugin-package";
+import type {
+  EvalCase,
+  EvalGrader,
+  EvalSuite,
+  PluginFiles,
+} from "@stigmer/plugin-package";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { PluginEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
@@ -20,7 +25,11 @@ import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
-import type { EvalMatrix, EvalModelCatalog, PlannedTarget } from "../../domain/plugin-eval/matrix.js";
+import type {
+  EvalMatrix,
+  EvalModelCatalog,
+  PlannedTarget,
+} from "../../domain/plugin-eval/matrix.js";
 import { planMatrix } from "../../domain/plugin-eval/matrix.js";
 import type { EvalSuiteSource } from "../../domain/plugin-eval/suite.js";
 import { loadEvalSuite } from "../../domain/plugin-eval/suite.js";
@@ -48,25 +57,43 @@ export interface EvalContextDeps {
   readonly catalog: EvalModelCatalog;
 }
 
-export type EvalContextLoader = (evalId: string) => Promise<EvalContext | undefined>;
+export type EvalContextLoader = (
+  evalId: string,
+) => Promise<EvalContext | undefined>;
 
 /**
  * The loader: undefined when the eval or its plugin is gone. A suite that
  * cannot be read throws, and the caller decides what that means.
  */
 export function newEvalContextLoader(deps: EvalContextDeps): EvalContextLoader {
-  const cache = new Map<string, { readonly files: PluginFiles; readonly suite: EvalSuite }>();
+  const cache = new Map<
+    string,
+    { readonly files: PluginFiles; readonly suite: EvalSuite }
+  >();
   return async (evalId) => {
-    const pluginEval = await loadOrUndefined(deps.store, ApiResourceKind.plugin_eval, evalId, PluginEvalSchema);
+    const pluginEval = await loadOrUndefined(
+      deps.store,
+      ApiResourceKind.plugin_eval,
+      evalId,
+      PluginEvalSchema,
+    );
     const spec = pluginEval?.spec;
     if (pluginEval === undefined || spec === undefined) {
       return undefined;
     }
-    const plugin = await loadOrUndefined(deps.store, ApiResourceKind.plugin, spec.pluginId, PluginSchema);
+    const plugin = await loadOrUndefined(
+      deps.store,
+      ApiResourceKind.plugin,
+      spec.pluginId,
+      PluginSchema,
+    );
     if (plugin === undefined) {
       return undefined;
     }
-    const digest = spec.pluginDigest !== "" ? spec.pluginDigest : (plugin.status?.digest ?? "");
+    const digest =
+      spec.pluginDigest !== ""
+        ? spec.pluginDigest
+        : (plugin.status?.digest ?? "");
     let loaded = cache.get(digest);
     if (loaded === undefined) {
       loaded = await loadEvalSuite(deps.suites, spec.pluginId, digest);
@@ -116,7 +143,12 @@ export function wantedFilesOf(graders: ReadonlyArray<EvalGrader>): string[] {
   const paths: string[] = [];
   for (const grader of graders) {
     const check = grader.check;
-    const focus = check.type === "regex" ? check.target : check.type === "llm" ? check.focus : undefined;
+    const focus =
+      check.type === "regex"
+        ? check.target
+        : check.type === "llm"
+          ? check.focus
+          : undefined;
     if (focus?.kind === "file" && !paths.includes(focus.path)) {
       paths.push(focus.path);
     }
@@ -124,7 +156,10 @@ export function wantedFilesOf(graders: ReadonlyArray<EvalGrader>): string[] {
   return paths;
 }
 
-export async function loadRun(store: Store, runId: string): Promise<Run | undefined> {
+export async function loadRun(
+  store: Store,
+  runId: string,
+): Promise<Run | undefined> {
   return loadOrUndefined(store, ApiResourceKind.run, runId, RunSchema);
 }
 

@@ -62,27 +62,43 @@ import type {
 /** Quick store work: the poll, the stop, the vote's read. */
 const steps = proxyActivities<CaseActivities>({
   startToCloseTimeout: "1 minute",
-  retry: { initialInterval: "2 seconds", backoffCoefficient: 2, maximumAttempts: 5 },
+  retry: {
+    initialInterval: "2 seconds",
+    backoffCoefficient: 2,
+    maximumAttempts: 5,
+  },
 });
 
 /** The grade and the record: the trace and the archive, read in full. */
 const grading = proxyActivities<CaseActivities>({
   startToCloseTimeout: "5 minutes",
-  retry: { initialInterval: "2 seconds", backoffCoefficient: 2, maximumAttempts: 5 },
+  retry: {
+    initialInterval: "2 seconds",
+    backoffCoefficient: 2,
+    maximumAttempts: 5,
+  },
 });
 
 /** A try's start: a capacity refusal is retried for thirty minutes in all. */
 const tryStart = proxyActivities<CaseActivities>({
   startToCloseTimeout: "1 minute",
   scheduleToCloseTimeout: "30 minutes",
-  retry: { initialInterval: "15 seconds", backoffCoefficient: 1.5, maximumInterval: "2 minutes" },
+  retry: {
+    initialInterval: "15 seconds",
+    backoffCoefficient: 1.5,
+    maximumInterval: "2 minutes",
+  },
 });
 
 /** A vote's start: as the judge's, ten minutes of capacity retries. */
 const voteStart = proxyActivities<CaseActivities>({
   startToCloseTimeout: "1 minute",
   scheduleToCloseTimeout: "10 minutes",
-  retry: { initialInterval: "15 seconds", backoffCoefficient: 1.5, maximumInterval: "1 minute" },
+  retry: {
+    initialInterval: "15 seconds",
+    backoffCoefficient: 1.5,
+    maximumInterval: "1 minute",
+  },
 });
 
 /** How long a vote may run before it is stopped and counted as failed. */
@@ -106,12 +122,19 @@ export async function runCase(input: CaseInput): Promise<TryResult> {
     if (isCancellation(error)) {
       throw error;
     }
-    return notGraded("", "", isBusy(error) ? PLATFORM_BUSY_REASON : GRADING_FAILED_REASON);
+    return notGraded(
+      "",
+      "",
+      isBusy(error) ? PLATFORM_BUSY_REASON : GRADING_FAILED_REASON,
+    );
   }
   if (started.kind === "refused") {
     switch (started.failure) {
       case "out-of-credit":
-        return { ...notGraded("", "", OUT_OF_CREDIT_REASON), outOfCredit: true };
+        return {
+          ...notGraded("", "", OUT_OF_CREDIT_REASON),
+          outOfCredit: true,
+        };
       case "cannot-act":
         return notGraded("", "", CANNOT_ACT_REASON);
       case "not-started":
@@ -128,7 +151,10 @@ export async function runCase(input: CaseInput): Promise<TryResult> {
   try {
     timedOut = !(await awaitRun(runId, input.timeoutSeconds * 1000));
     if (timedOut) {
-      await steps[STOP_RUN_ACTIVITY_NAME](runId, `timed out after ${input.timeoutSeconds}s`);
+      await steps[STOP_RUN_ACTIVITY_NAME](
+        runId,
+        `timed out after ${input.timeoutSeconds}s`,
+      );
       await awaitRun(runId, STOP_GRACE_MS);
     }
   } catch (error) {
@@ -156,7 +182,13 @@ export async function runCase(input: CaseInput): Promise<TryResult> {
     const cast: VoteRead["vote"][] = [];
     if ("votes" in outcome) {
       for (let voteIndex = 0; voteIndex < VOTES_PER_CHECK; voteIndex++) {
-        const read = await vote(input, runId, graderIndex, voteIndex, outcome.votes);
+        const read = await vote(
+          input,
+          runId,
+          graderIndex,
+          voteIndex,
+          outcome.votes,
+        );
         voteCost += read.costUsd;
         cast.push(read.vote);
       }
@@ -166,7 +198,12 @@ export async function runCase(input: CaseInput): Promise<TryResult> {
 
   const graded: TryGrade = { ...grade, costUsd: grade.costUsd + voteCost };
   try {
-    return await grading[RECORD_SCORE_ACTIVITY_NAME](input, { sessionId, runId }, graded, votes);
+    return await grading[RECORD_SCORE_ACTIVITY_NAME](
+      input,
+      { sessionId, runId },
+      graded,
+      votes,
+    );
   } catch (error) {
     if (isCancellation(error)) {
       throw error;
@@ -190,13 +227,23 @@ async function vote(
 ): Promise<VoteRead> {
   let start;
   try {
-    start = await voteStart[START_VOTE_ACTIVITY_NAME](input, runId, graderIndex, voteIndex);
+    start = await voteStart[START_VOTE_ACTIVITY_NAME](
+      input,
+      runId,
+      graderIndex,
+      voteIndex,
+    );
   } catch (error) {
     if (isCancellation(error)) {
       throw error;
     }
     return {
-      vote: { kind: "failed", reason: isBusy(error) ? PLATFORM_BUSY_REASON : "the judge could not start" },
+      vote: {
+        kind: "failed",
+        reason: isBusy(error)
+          ? PLATFORM_BUSY_REASON
+          : "the judge could not start",
+      },
       costUsd: 0,
     };
   }
@@ -208,7 +255,10 @@ async function vote(
   } catch (error) {
     if (isCancellation(error)) {
       await CancellationScope.nonCancellable(() =>
-        steps[STOP_RUN_ACTIVITY_NAME](start.voteRunId, "the eval was cancelled"),
+        steps[STOP_RUN_ACTIVITY_NAME](
+          start.voteRunId,
+          "the eval was cancelled",
+        ),
       );
     }
     throw error;
@@ -238,7 +288,11 @@ async function awaitRun(runId: string, budgetMs: number): Promise<boolean> {
   }
 }
 
-function notGraded(sessionId: string, runId: string, reason: string): TryResult {
+function notGraded(
+  sessionId: string,
+  runId: string,
+  reason: string,
+): TryResult {
   return {
     sessionId,
     runId,
@@ -260,7 +314,10 @@ function isBusy(error: unknown): boolean {
   }
   let cause: unknown = error.cause;
   while (cause instanceof Error) {
-    if (cause instanceof ApplicationFailure && cause.type === PLUGIN_EVAL_BUSY_FAILURE_TYPE) {
+    if (
+      cause instanceof ApplicationFailure &&
+      cause.type === PLUGIN_EVAL_BUSY_FAILURE_TYPE
+    ) {
       return true;
     }
     cause = cause.cause;

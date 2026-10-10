@@ -28,7 +28,8 @@ type ToolUsedCheck = Extract<EvalGraderCheck, { type: "tool_used" }>;
 type ToolOrderCheck = Extract<EvalGraderCheck, { type: "tool_order" }>;
 
 function sameTool(wanted: string, called: string): boolean {
-  const canonical = (name: string): string => CLAUDE_TOOL_ALIASES.get(name) ?? name;
+  const canonical = (name: string): string =>
+    CLAUDE_TOOL_ALIASES.get(name) ?? name;
   return canonical(wanted) === canonical(called);
 }
 
@@ -89,7 +90,12 @@ export async function gradeToolUsed(
     check.inputMatch === undefined
       ? { tool: check.tool }
       : { tool: check.tool, inputMatch: check.inputMatch };
-  const matched = await matchingCalls(ref, trace.toolCalls, patterns, PATTERN_DEADLINE_MS);
+  const matched = await matchingCalls(
+    ref,
+    trace.toolCalls,
+    patterns,
+    PATTERN_DEADLINE_MS,
+  );
   if (!("positions" in matched)) {
     return matched;
   }
@@ -100,7 +106,8 @@ export async function gradeToolUsed(
       : check.min === check.max
         ? `exactly ${check.min}`
         : `${check.min} to ${check.max}`;
-  const within = count >= check.min && (check.max === undefined || count <= check.max);
+  const within =
+    count >= check.min && (check.max === undefined || count <= check.max);
   const steps =
     count === 0
       ? ""
@@ -117,7 +124,12 @@ export async function gradeToolOrder(
   patterns: PatternRunner,
 ): Promise<GraderVerdict> {
   const started = Date.now();
-  const before = await matchingCalls(check.before, trace.toolCalls, patterns, PATTERN_DEADLINE_MS);
+  const before = await matchingCalls(
+    check.before,
+    trace.toolCalls,
+    patterns,
+    PATTERN_DEADLINE_MS,
+  );
   if (!("positions" in before)) {
     return before;
   }

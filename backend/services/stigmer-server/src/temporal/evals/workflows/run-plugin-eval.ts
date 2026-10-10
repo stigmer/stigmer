@@ -58,7 +58,12 @@ import type {
 /** The load and the record: store work and one archive read, retried. */
 const steps = proxyActivities<SuiteActivities>({
   startToCloseTimeout: "5 minutes",
-  retry: { initialInterval: "2 seconds", backoffCoefficient: 2, maximumInterval: "1 minute", maximumAttempts: 10 },
+  retry: {
+    initialInterval: "2 seconds",
+    backoffCoefficient: 2,
+    maximumInterval: "1 minute",
+    maximumAttempts: 10,
+  },
 });
 
 /**
@@ -68,7 +73,11 @@ const steps = proxyActivities<SuiteActivities>({
 const finishing = proxyActivities<SuiteActivities>({
   startToCloseTimeout: "1 minute",
   scheduleToCloseTimeout: "20 minutes",
-  retry: { initialInterval: "2 seconds", backoffCoefficient: 2, maximumInterval: "1 minute" },
+  retry: {
+    initialInterval: "2 seconds",
+    backoffCoefficient: 2,
+    maximumInterval: "1 minute",
+  },
 });
 
 export async function runPluginEval(input: RunPluginEvalInput): Promise<void> {
@@ -78,15 +87,26 @@ export async function runPluginEval(input: RunPluginEvalInput): Promise<void> {
     if (plan.kind === "stop") {
       return;
     }
-    const stop = await runCells(evalId, plan.org, plan.cells, plan.maxCostUsd, Math.max(1, plan.concurrency));
+    const stop = await runCells(
+      evalId,
+      plan.org,
+      plan.cells,
+      plan.maxCostUsd,
+      Math.max(1, plan.concurrency),
+    );
     await finishing[FINISH_EVAL_ACTIVITY_NAME](
       evalId,
-      stop === undefined ? { phase: "completed" } : { phase: "partial", reason: stop },
+      stop === undefined
+        ? { phase: "completed" }
+        : { phase: "partial", reason: stop },
     );
   } catch (error) {
     if (isCancellation(error)) {
       await CancellationScope.nonCancellable(() =>
-        finishing[FINISH_EVAL_ACTIVITY_NAME](evalId, { phase: "partial", reason: "cancelled" }),
+        finishing[FINISH_EVAL_ACTIVITY_NAME](evalId, {
+          phase: "partial",
+          reason: "cancelled",
+        }),
       );
     }
     throw error;
@@ -112,7 +132,12 @@ async function runCells(
   const inFlight = new Map<number, Promise<void>>();
 
   for (;;) {
-    while (cancelled === undefined && stop === undefined && next < cells.length && inFlight.size < concurrency) {
+    while (
+      cancelled === undefined &&
+      stop === undefined &&
+      next < cells.length &&
+      inFlight.size < concurrency
+    ) {
       if (spent >= maxCostUsd) {
         stop = "cost_ceiling";
         break;
@@ -149,12 +174,22 @@ async function runCells(
 }
 
 /** One cell: its child, then the fold of its result. Rejects only on cancellation. */
-async function runCell(evalId: string, org: string, cell: SuiteCell): Promise<TryResult> {
+async function runCell(
+  evalId: string,
+  org: string,
+  cell: SuiteCell,
+): Promise<TryResult> {
   const caseInput: CaseInput = { ...cell, evalId, org };
   let result: TryResult;
   try {
     result = await executeChild(RUN_CASE_WORKFLOW_TYPE, {
-      workflowId: runCaseWorkflowId(evalId, cell.caseIndex, cell.targetIndex, cell.arm, cell.tryIndex),
+      workflowId: runCaseWorkflowId(
+        evalId,
+        cell.caseIndex,
+        cell.targetIndex,
+        cell.arm,
+        cell.tryIndex,
+      ),
       args: [caseInput],
       parentClosePolicy: ParentClosePolicy.TERMINATE,
     });

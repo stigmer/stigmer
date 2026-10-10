@@ -50,5 +50,7 @@ export function gradeChecks(
   trace: EvalTrace,
   patterns: PatternRunner,
 ): Promise<CheckOutcome[]> {
-  return Promise.all(graders.map((grader) => gradeCheck(grader, trace, patterns)));
+  return Promise.all(
+    graders.map((grader) => gradeCheck(grader, trace, patterns)),
+  );
 }

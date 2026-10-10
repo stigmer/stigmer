@@ -13,7 +13,10 @@ import { describe, expect, it } from "vitest";
 
 import type { EvalGrader, EvalGraderCheck } from "@stigmer/plugin-package";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { CriterionResult, ScoreSource } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
+import {
+  CriterionResult,
+  ScoreSource,
+} from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
 
 import { EVAL_METRIC } from "../../score/constants.js";
 import { JUDGE_INSTRUCTION_VERSION } from "../../score/judge/rubrics.js";
@@ -29,7 +32,13 @@ import { scoringOf } from "../scoring.js";
 const DIGEST = "a".repeat(64);
 const run = create(RunSchema, { metadata: { id: "run_try", org: "acme" } });
 
-const regex: EvalGraderCheck = { type: "regex", pattern: "x", flags: "", match: { kind: "contains" }, target: { kind: "last_message" } };
+const regex: EvalGraderCheck = {
+  type: "regex",
+  pattern: "x",
+  flags: "",
+  match: { kind: "contains" },
+  target: { kind: "last_message" },
+};
 const skill: EvalGraderCheck = { type: "tool_used", tool: "Skill", min: 1 };
 
 function grader(name: string, check: EvalGraderCheck): EvalGrader {
@@ -39,14 +48,22 @@ function grader(name: string, check: EvalGraderCheck): EvalGrader {
 describe("the eval score", () => {
   it("pins its version to the archive digest and the judge instruction", () => {
     const expected = createHash("sha256")
-      .update(JSON.stringify({ suite: DIGEST, instruction: JUDGE_INSTRUCTION_VERSION }))
+      .update(
+        JSON.stringify({
+          suite: DIGEST,
+          instruction: JUDGE_INSTRUCTION_VERSION,
+        }),
+      )
       .digest("hex");
     expect(evalEvaluatorVersion(DIGEST)).toBe(expected);
     expect(evalEvaluatorVersion("b".repeat(64))).not.toBe(expected);
   });
 
   it("writes one criterion per grader, indicators not applicable", () => {
-    const graders = [grader("mentions-rename", regex), grader("skill-fired", skill)];
+    const graders = [
+      grader("mentions-rename", regex),
+      grader("skill-fired", skill),
+    ];
     const score = gradedEvalScore(run, DIGEST, {
       graders,
       scoring: scoringOf(graders, true),
@@ -64,7 +81,9 @@ describe("the eval score", () => {
       ["mentions-rename", CriterionResult.passed],
       ["skill-fired", CriterionResult.not_applicable],
     ]);
-    expect(score.spec?.criteria[1]?.reason).toBe(`${INDICATOR_ONLY_REASON}; failed: 0 call(s) to 'Skill'`);
+    expect(score.spec?.criteria[1]?.reason).toBe(
+      `${INDICATOR_ONLY_REASON}; failed: 0 call(s) to 'Skill'`,
+    );
   });
 
   it("fails when a scored grader failed, and bounds every reason", () => {
@@ -81,7 +100,11 @@ describe("the eval score", () => {
 
   it("names criteria within the limit and uniquely", () => {
     const long = "x".repeat(70);
-    const names = criterionNames([grader(long, regex), grader(long, regex), grader("", regex)]);
+    const names = criterionNames([
+      grader(long, regex),
+      grader(long, regex),
+      grader("", regex),
+    ]);
     expect(names[0]).toHaveLength(63);
     expect(names[1]).toHaveLength(63);
     expect(names[1]?.endsWith("-2")).toBe(true);

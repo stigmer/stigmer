@@ -30,15 +30,26 @@ export function gradeFileExists(
   }
   const glob = normalisePath(check.path);
   const pattern = pathGlobToRegExp(glob);
-  const matched = trace.files.created.filter((path) => pattern.test(normalisePath(path)));
+  const matched = trace.files.created.filter((path) =>
+    pattern.test(normalisePath(path)),
+  );
   if (check.exists) {
     return matched.length > 0
-      ? { passed: true, reason: `${matched.length} created file(s) match '${glob}'` }
-      : { passed: false, reason: `no file created in the run matches '${glob}'` };
+      ? {
+          passed: true,
+          reason: `${matched.length} created file(s) match '${glob}'`,
+        }
+      : {
+          passed: false,
+          reason: `no file created in the run matches '${glob}'`,
+        };
   }
   return matched.length === 0
     ? { passed: true, reason: `no file created in the run matches '${glob}'` }
-    : { passed: false, reason: `${matched.length} created file(s) match '${glob}'` };
+    : {
+        passed: false,
+        reason: `${matched.length} created file(s) match '${glob}'`,
+      };
 }
 
 /** A path glob as an anchored regular expression (the module header's grammar). */

@@ -42,7 +42,10 @@ import { ScoreStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/s
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
 import { EVAL_METRIC } from "../score/constants.js";
-import { JUDGE_INSTRUCTION_VERSION, REASON_MAX_LENGTH } from "../score/judge/rubrics.js";
+import {
+  JUDGE_INSTRUCTION_VERSION,
+  REASON_MAX_LENGTH,
+} from "../score/judge/rubrics.js";
 import { replaceUnlessGraded } from "../score/record.js";
 import type { ScoreWrite, ScoreWriteDeps } from "../score/record.js";
 import type { GraderScoring } from "./scoring.js";
@@ -57,7 +60,9 @@ export const INDICATOR_ONLY_REASON = "indicator only";
 /** The version every eval score of the archive `digest` carries (the module header). */
 export function evalEvaluatorVersion(digest: string): string {
   return createHash("sha256")
-    .update(JSON.stringify({ suite: digest, instruction: JUDGE_INSTRUCTION_VERSION }))
+    .update(
+      JSON.stringify({ suite: digest, instruction: JUDGE_INSTRUCTION_VERSION }),
+    )
     .digest("hex");
 }
 
@@ -65,10 +70,9 @@ export function evalEvaluatorVersion(digest: string): string {
 export function criterionNames(graders: ReadonlyArray<EvalGrader>): string[] {
   const taken = new Set<string>();
   return graders.map((grader, index) => {
-    const base = (grader.name.trim() === "" ? `grader-${index + 1}` : grader.name.trim()).slice(
-      0,
-      CRITERION_NAME_MAX_LENGTH,
-    );
+    const base = (
+      grader.name.trim() === "" ? `grader-${index + 1}` : grader.name.trim()
+    ).slice(0, CRITERION_NAME_MAX_LENGTH);
     let name = base;
     for (let suffix = 2; taken.has(name); suffix++) {
       const tail = `-${suffix}`;
@@ -83,16 +87,26 @@ export function criterionNames(graders: ReadonlyArray<EvalGrader>): string[] {
 export interface GradedTry {
   readonly graders: ReadonlyArray<EvalGrader>;
   readonly scoring: ReadonlyArray<GraderScoring>;
-  readonly verdicts: ReadonlyArray<{ readonly passed: boolean; readonly reason: string }>;
+  readonly verdicts: ReadonlyArray<{
+    readonly passed: boolean;
+    readonly reason: string;
+  }>;
 }
 
 /** The graded eval score of `run` (the module header). */
-export function gradedEvalScore(run: Run, digest: string, graded: GradedTry): Score {
+export function gradedEvalScore(
+  run: Run,
+  digest: string,
+  graded: GradedTry,
+): Score {
   const score = baseScore(run, digest);
   const names = criterionNames(graded.graders);
   const passed = graded.verdicts.map((verdict) => verdict.passed);
   if (score.spec !== undefined) {
-    score.spec.value = { case: "passed", value: everyScoredPassed(passed, graded.scoring) };
+    score.spec.value = {
+      case: "passed",
+      value: everyScoredPassed(passed, graded.scoring),
+    };
     score.spec.criteria = graded.graders.map((_, index) => {
       const verdict = graded.verdicts[index] ?? { passed: false, reason: "" };
       const scored = graded.scoring[index]?.scored ?? true;
@@ -115,14 +129,21 @@ export function gradedEvalScore(run: Run, digest: string, graded: GradedTry): Sc
 }
 
 /** The not-graded eval score of `run`, with the reason the try was not graded. */
-export function notGradedEvalScore(run: Run, digest: string, reason: string): Score {
+export function notGradedEvalScore(
+  run: Run,
+  digest: string,
+  reason: string,
+): Score {
   const score = baseScore(run, digest);
   score.status = create(ScoreStatusSchema, { notGradedReason: cut(reason) });
   return score;
 }
 
 /** Records an eval score under the server's write rule (the module header). */
-export function writeEvalScore(deps: ScoreWriteDeps, score: Score): Promise<ScoreWrite> {
+export function writeEvalScore(
+  deps: ScoreWriteDeps,
+  score: Score,
+): Promise<ScoreWrite> {
   return replaceUnlessGraded(deps, score);
 }
 
@@ -130,7 +151,9 @@ function baseScore(run: Run, digest: string): Score {
   return create(ScoreSchema, {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Score",
-    metadata: create(ApiResourceMetadataSchema, { org: run.metadata?.org ?? "" }),
+    metadata: create(ApiResourceMetadataSchema, {
+      org: run.metadata?.org ?? "",
+    }),
     spec: {
       runId: run.metadata?.id ?? "",
       metric: EVAL_METRIC,
@@ -141,5 +164,7 @@ function baseScore(run: Run, digest: string): Score {
 }
 
 function cut(text: string): string {
-  return text.length <= REASON_MAX_LENGTH ? text : `${text.slice(0, REASON_MAX_LENGTH - 6)} [cut]`;
+  return text.length <= REASON_MAX_LENGTH
+    ? text
+    : `${text.slice(0, REASON_MAX_LENGTH - 6)} [cut]`;
 }

@@ -84,7 +84,8 @@ export const PLUGIN_EVAL_BUSY_FAILURE_TYPE = "PluginEvalBusy";
 /** The not-graded reasons the workflows give without an activity. */
 export const PLATFORM_BUSY_REASON = "platform busy";
 export const OUT_OF_CREDIT_REASON = "out of credit";
-export const CANNOT_ACT_REASON = "the eval cannot act for anyone in this organization";
+export const CANNOT_ACT_REASON =
+  "the eval cannot act for anyone in this organization";
 export const TRY_NOT_STARTED_REASON = "the try could not start";
 export const GRADING_FAILED_REASON = "grading failed";
 export const TRY_FAILED_REASON = "the try could not be run";
@@ -128,8 +129,16 @@ export type TryFailure = "out-of-credit" | "cannot-act" | "not-started";
 
 /** The start's answer. */
 export type TryStart =
-  | { readonly kind: "started"; readonly sessionId: string; readonly runId: string }
-  | { readonly kind: "refused"; readonly failure: TryFailure; readonly reason: string };
+  | {
+      readonly kind: "started";
+      readonly sessionId: string;
+      readonly runId: string;
+    }
+  | {
+      readonly kind: "refused";
+      readonly failure: TryFailure;
+      readonly reason: string;
+    };
 
 /** A grader's verdict on the wire: passed or failed with a reason, or not graded. */
 export type WireVerdict =
@@ -157,7 +166,11 @@ export type VoteStart =
 /** One vote as read, with what it spent. */
 export interface VoteRead {
   readonly vote:
-    | { readonly kind: "vote"; readonly passed: boolean; readonly reason: string }
+    | {
+        readonly kind: "vote";
+        readonly passed: boolean;
+        readonly reason: string;
+      }
     | { readonly kind: "failed"; readonly reason: string };
   readonly costUsd: number;
 }
@@ -211,7 +224,10 @@ export interface CaseActivities {
     graderIndex: number,
     voteIndex: number,
   ) => Promise<VoteStart>;
-  [READ_VOTE_ACTIVITY_NAME]: (voteRunId: string, rubric: string) => Promise<VoteRead>;
+  [READ_VOTE_ACTIVITY_NAME]: (
+    voteRunId: string,
+    rubric: string,
+  ) => Promise<VoteRead>;
   [RECORD_SCORE_ACTIVITY_NAME]: (
     input: CaseInput,
     started: { readonly sessionId: string; readonly runId: string },

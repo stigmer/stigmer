@@ -38,7 +38,11 @@ import { create } from "@bufbuild/protobuf";
 import type { JsonObject } from "@bufbuild/protobuf";
 
 import type { EvalCase } from "@stigmer/plugin-package";
-import { CLAUDE_TOOLS, READ_ONLY_EVAL_TOOLS, isClaudeTool } from "@stigmer/tool-vocabulary";
+import {
+  CLAUDE_TOOLS,
+  READ_ONLY_EVAL_TOOLS,
+  isClaudeTool,
+} from "@stigmer/tool-vocabulary";
 import type { PluginEvalSpec } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
@@ -63,7 +67,10 @@ export const MIN_TOOL_ROUNDS = 10;
 export const MAX_TOOL_ROUNDS = 1000;
 
 /** The run's turn budget from the case's `max_turns`, and the note when clamped. */
-export function toolRoundsOf(maxTurns: number): { readonly rounds: number; readonly note?: string } {
+export function toolRoundsOf(maxTurns: number): {
+  readonly rounds: number;
+  readonly note?: string;
+} {
   if (maxTurns < MIN_TOOL_ROUNDS) {
     return {
       rounds: MIN_TOOL_ROUNDS,
@@ -117,7 +124,9 @@ export function tryToolsOf(
     if (readOnly.has(name)) {
       add(entry);
     } else if (!allowedByEval.has(name)) {
-      notes.push(`${entry} not granted: the eval's allow_tools does not grant it`);
+      notes.push(
+        `${entry} not granted: the eval's allow_tools does not grant it`,
+      );
     }
   }
   for (const entry of spec.allowTools) {
@@ -185,8 +194,11 @@ export function trySessionRequest(input: {
     }),
     spec: create(SessionSpecSchema, {
       subject: input.caseName,
-      harness: input.harness === Harness.UNSPECIFIED ? Harness.NATIVE : input.harness,
-      ...(input.attachment.agentRef === undefined ? {} : { agentRef: input.attachment.agentRef }),
+      harness:
+        input.harness === Harness.UNSPECIFIED ? Harness.NATIVE : input.harness,
+      ...(input.attachment.agentRef === undefined
+        ? {}
+        : { agentRef: input.attachment.agentRef }),
       mcpServerUsages: [...input.attachment.mcpServerUsages],
     }),
   });
@@ -229,7 +241,10 @@ export function tryRunRequest(input: {
 }
 
 /** The session a vote runs in: the judge's subject, the native engine. */
-export function voteSessionRequest(input: { readonly org: string; readonly evalId: string }): Session {
+export function voteSessionRequest(input: {
+  readonly org: string;
+  readonly evalId: string;
+}): Session {
   return create(SessionSchema, {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Session",

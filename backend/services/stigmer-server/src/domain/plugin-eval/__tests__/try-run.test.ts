@@ -19,7 +19,10 @@ import { PluginEvalSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/plugine
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
-import { GRADES_RUN_LABEL, PER_GRADE_CAP_USD } from "../../score/judge/judge-run.js";
+import {
+  GRADES_RUN_LABEL,
+  PER_GRADE_CAP_USD,
+} from "../../score/judge/judge-run.js";
 import { PROVISIONAL_DELTA, armAttachment } from "../arm.js";
 import { PLUGIN_EVAL_LABEL } from "../constants.js";
 import {
@@ -53,32 +56,57 @@ const evalCase = (overrides: Partial<EvalCase> = {}): EvalCase => ({
 });
 
 describe("which agent a try runs on", () => {
-  const facts = { org: "acme", agentSlug: "thermos", mcpServerSlugs: ["github"] };
+  const facts = {
+    org: "acme",
+    agentSlug: "thermos",
+    mcpServerSlugs: ["github"],
+  };
 
   it("runs the with-arm on the composed agent and the without-arm on the bare assistant", () => {
-    expect(armAttachment("with", facts).agentRef).toMatchObject({ org: "acme", kind: ApiResourceKind.agent, slug: "thermos" });
+    expect(armAttachment("with", facts).agentRef).toMatchObject({
+      org: "acme",
+      kind: ApiResourceKind.agent,
+      slug: "thermos",
+    });
     expect(armAttachment("with", facts).mcpServerUsages).toEqual([]);
     expect(armAttachment("without", facts)).toEqual({ mcpServerUsages: [] });
     expect(PROVISIONAL_DELTA).toBe(true);
   });
 
   it("attaches an agentless plugin's servers to the assistant", () => {
-    const attached = armAttachment("with", { org: "acme", mcpServerSlugs: ["github", "jira"] });
+    const attached = armAttachment("with", {
+      org: "acme",
+      mcpServerSlugs: ["github", "jira"],
+    });
     expect(attached.agentRef).toBeUndefined();
-    expect(attached.mcpServerUsages.map((usage) => usage.mcpServerRef?.slug)).toEqual(["github", "jira"]);
+    expect(
+      attached.mcpServerUsages.map((usage) => usage.mcpServerRef?.slug),
+    ).toEqual(["github", "jira"]);
   });
 });
 
 describe("a try's tools", () => {
   it("grants the case's read-only tools and the eval's, and withholds Skill unless listed", () => {
-    const tools = tryToolsOf(evalCase({ allowedTools: ["Read", "Grep", "Bash"] }), spec({ allowTools: ["Write"] }), []);
+    const tools = tryToolsOf(
+      evalCase({ allowedTools: ["Read", "Grep", "Bash"] }),
+      spec({ allowTools: ["Write"] }),
+      [],
+    );
     expect(tools.tools).toEqual(["Read", "Grep", "Write"]);
     expect(tools.disallowedTools).toEqual(["Skill"]);
-    expect(tools.notes).toEqual(["Bash not granted: the eval's allow_tools does not grant it"]);
+    expect(tools.notes).toEqual([
+      "Bash not granted: the eval's allow_tools does not grant it",
+    ]);
   });
 
   it("keeps Skill when the case lists it, and leaves out names Stigmer runs nothing for", () => {
-    const tools = tryToolsOf(evalCase({ allowedTools: ["Read", "Skill", "AskUserQuestion", "NotebookRead"] }), spec(), []);
+    const tools = tryToolsOf(
+      evalCase({
+        allowedTools: ["Read", "Skill", "AskUserQuestion", "NotebookRead"],
+      }),
+      spec(),
+      [],
+    );
     expect(tools.tools).toEqual(["Read", "Skill"]);
     expect(tools.disallowedTools).toEqual([]);
   });
@@ -87,16 +115,25 @@ describe("a try's tools", () => {
     const none = tryToolsOf(evalCase(), spec(), ["github"]);
     expect(none.tools).toEqual([]);
     expect(none.disallowedTools).toEqual([...CLAUDE_TOOLS, "mcp__github"]);
-    const real = tryToolsOf(evalCase({ allowedTools: ["Skill"] }), spec({ realMcpServers: true, allowTools: ["mcp__github__*"] }), ["github"]);
+    const real = tryToolsOf(
+      evalCase({ allowedTools: ["Skill"] }),
+      spec({ realMcpServers: true, allowTools: ["mcp__github__*"] }),
+      ["github"],
+    );
     expect(real.tools).toEqual(["Skill", "mcp__github__*"]);
     expect(real.disallowedTools).toEqual([]);
   });
 
   it("clamps max_turns to the run's tool rounds, with a note", () => {
-    expect(toolRoundsOf(4)).toEqual({ rounds: 10, note: "max_turns 4 raised to the run's minimum of 10 tool rounds" });
+    expect(toolRoundsOf(4)).toEqual({
+      rounds: 10,
+      note: "max_turns 4 raised to the run's minimum of 10 tool rounds",
+    });
     expect(toolRoundsOf(200)).toEqual({ rounds: 200 });
     expect(toolRoundsOf(5000).rounds).toBe(1000);
-    expect(caseNotesOf(evalCase({ maxTurns: 3, allowedTools: ["Edit"] }), spec())).toHaveLength(2);
+    expect(
+      caseNotesOf(evalCase({ maxTurns: 3, allowedTools: ["Edit"] }), spec()),
+    ).toHaveLength(2);
   });
 });
 
@@ -107,7 +144,11 @@ describe("a try's session and run", () => {
       evalId: "pev_1",
       caseName: "first-case",
       harness: Harness.UNSPECIFIED,
-      attachment: armAttachment("with", { org: "acme", agentSlug: "thermos", mcpServerSlugs: [] }),
+      attachment: armAttachment("with", {
+        org: "acme",
+        agentSlug: "thermos",
+        mcpServerSlugs: [],
+      }),
     });
     expect(session.metadata?.labels).toEqual({ [PLUGIN_EVAL_LABEL]: "pev_1" });
     expect(session.spec?.subject).toBe("first-case");
@@ -121,7 +162,11 @@ describe("a try's session and run", () => {
       evalId: "pev_1",
       cell: { caseIndex: 0, targetIndex: 1, arm: "without", tryIndex: 2 },
       sessionId: "ses_1",
-      evalCase: evalCase({ maxTurns: 4, appendSystemPrompt: "Be brief.", allowedTools: ["Read"] }),
+      evalCase: evalCase({
+        maxTurns: 4,
+        appendSystemPrompt: "Be brief.",
+        allowedTools: ["Read"],
+      }),
       spec: spec(),
       modelName: "claude-sonnet-4-6",
       pluginServerSlugs: ["github"],
@@ -131,7 +176,11 @@ describe("a try's session and run", () => {
     expect(run.spec?.target).toEqual({ case: "sessionId", value: "ses_1" });
     expect(run.spec?.message).toBe("Write me a commit message.");
     expect(run.spec?.autoApproveAll).toBe(true);
-    expect(run.spec?.runConfig).toMatchObject({ modelName: "claude-sonnet-4-6", maxToolRounds: 10, maxCostUsd: 5 });
+    expect(run.spec?.runConfig).toMatchObject({
+      modelName: "claude-sonnet-4-6",
+      maxToolRounds: 10,
+      maxCostUsd: 5,
+    });
     expect(run.spec?.tools).toEqual(["Read"]);
     expect(run.spec?.disallowedTools).toEqual(["Skill", "mcp__github"]);
     expect(run.spec?.appendSystemPrompt).toBe("Be brief.");
@@ -151,7 +200,10 @@ describe("a try's session and run", () => {
       message: "grade",
       schema: { type: "object" },
     });
-    expect(vote.metadata?.labels).toEqual({ [GRADES_RUN_LABEL]: "run_TRY", [PLUGIN_EVAL_LABEL]: "pev_1" });
+    expect(vote.metadata?.labels).toEqual({
+      [GRADES_RUN_LABEL]: "run_TRY",
+      [PLUGIN_EVAL_LABEL]: "pev_1",
+    });
     expect(vote.metadata?.name).toBe("vote-run-try-1-3");
     expect(vote.spec?.runConfig?.maxCostUsd).toBe(PER_GRADE_CAP_USD);
     expect(vote.spec?.structuredOutputSchema).toEqual({ type: "object" });

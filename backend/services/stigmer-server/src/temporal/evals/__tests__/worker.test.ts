@@ -12,7 +12,11 @@ import { newPatternPool } from "../../../domain/plugin-eval/graders/patterns.js"
 import { silentLogger } from "../../../extensions/__tests__/composed-support.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { CreateWorkerOptions, WorkerFactoryDeps } from "../../manager.js";
-import { DEFAULT_EVALS_QUEUE, EvalsTemporalConfig, newEvalsConfigFromEnv } from "../config.js";
+import {
+  DEFAULT_EVALS_QUEUE,
+  EvalsTemporalConfig,
+  newEvalsConfigFromEnv,
+} from "../config.js";
 import {
   FINISH_EVAL_ACTIVITY_NAME,
   GRADE_TRY_ACTIVITY_NAME,
@@ -87,9 +91,9 @@ describe("the plugin-eval worker factory", () => {
         readonly workflowsPath?: string;
         readonly workflowBundle?: { readonly codePath: string };
       };
-      expect(workflows.workflowsPath ?? workflows.workflowBundle?.codePath ?? "").toMatch(
-        /workflows\/index\.(ts|js)$|workflow-bundle-evals\.js$/,
-      );
+      expect(
+        workflows.workflowsPath ?? workflows.workflowBundle?.codePath ?? "",
+      ).toMatch(/workflows\/index\.(ts|js)$|workflow-bundle-evals\.js$/);
     } finally {
       await patterns.close();
       await temp.cleanup();
