@@ -13,9 +13,15 @@
  * its try not graded, "pattern exceeded its time limit", never failed:
  * the run did nothing wrong.
  *
- * The pool is small (two workers by default) and reused: workers start on
- * the first job, stay for the next, and are unreferenced, so an idle pool
- * never holds the process open. The worker's body is a plain script
+ * The pool is small (min(4, the machine's parallelism) by default) and
+ * reused: workers start on the first job, stay for the next, and are
+ * unreferenced, so an idle pool never holds the process open. It is
+ * shared by every eval on the worker, so a job's deadline starts only
+ * when a worker takes it (another suite's slow patterns never spend it),
+ * and its wait for a worker is bounded: a job queued past
+ * PATTERN_QUEUE_WAIT_MS is answered "busy", which its grader reports as a
+ * platform failure ("platform busy"), never a pattern timeout, so one
+ * suite of slow patterns cannot hold another's grading past its time. The worker's body is a plain script
  * evaluated from a string, so it needs no file beside the compiled module
  * and runs the same from src/, dist/ and the slim bundle.
  *
@@ -25,15 +31,20 @@
  * code point, as `String.prototype.matchAll` does.
  *
  * Proven by __tests__/patterns.test.ts (a catastrophic pattern hits the
- * deadline and the pool recovers).
+ * deadline and the pool recovers) and __tests__/pattern-pool-faults.test.ts
+ * (the queue bound, a misbehaving worker).
  */
+import { availableParallelism } from "node:os";
 import { Worker } from "node:worker_threads";
 
-/** The time one grader's patterns may take, in milliseconds. */
+/** The time one pattern may run once a worker takes it, in milliseconds. */
 export const PATTERN_DEADLINE_MS = 2_000;
 
 /** Workers the default pool keeps. */
-export const PATTERN_POOL_SIZE = 2;
+export const PATTERN_POOL_SIZE = Math.min(4, availableParallelism());
+
+/** The longest a job waits for a worker before it is answered busy, in milliseconds. */
+export const PATTERN_QUEUE_WAIT_MS = 60_000;
 
 /** One job: a pattern, its flags, the texts, and the most matches to count in each. */
 export interface PatternJob {
@@ -45,11 +56,12 @@ export interface PatternJob {
   readonly budgetMs: number;
 }
 
-/** A job's answer: the counts, the pattern's refusal, or the deadline. */
+/** A job's answer: the counts, the pattern's refusal, the deadline, or no worker free in time. */
 export type PatternAnswer =
   | { readonly kind: "counts"; readonly counts: ReadonlyArray<number> }
   | { readonly kind: "invalid"; readonly message: string }
-  | { readonly kind: "timeout" };
+  | { readonly kind: "timeout" }
+  | { readonly kind: "busy" };
 
 /** What the graders ask of a pattern engine. */
 export interface PatternRunner {
@@ -105,6 +117,13 @@ interface Pending {
   readonly job: PatternJob;
   readonly resolve: (answer: PatternAnswer) => void;
   readonly reject: (error: unknown) => void;
+  /** The queue bound's timer, cleared when a worker takes the job. */
+  waiting: ReturnType<typeof setTimeout> | undefined;
+}
+
+export interface PatternPoolOptions {
+  /** Defaults to PATTERN_QUEUE_WAIT_MS; tests shorten it. */
+  readonly queueWaitMs?: number;
 }
 
 interface Slot {
@@ -114,7 +133,11 @@ interface Slot {
 }
 
 /** A pool of `size` workers (the module header). */
-export function newPatternPool(size: number = PATTERN_POOL_SIZE): PatternPool {
+export function newPatternPool(
+  size: number = PATTERN_POOL_SIZE,
+  options: PatternPoolOptions = {},
+): PatternPool {
+  const queueWaitMs = options.queueWaitMs ?? PATTERN_QUEUE_WAIT_MS;
   const slots: Slot[] = [];
   const queue: Pending[] = [];
   let nextId = 1;
@@ -177,6 +200,8 @@ export function newPatternPool(size: number = PATTERN_POOL_SIZE): PatternPool {
         slot = spawn();
       }
       queue.shift();
+      clearTimeout(pending.waiting);
+      pending.waiting = undefined;
       const running = slot;
       running.busy = pending;
       running.timer = setTimeout(
@@ -207,13 +232,31 @@ export function newPatternPool(size: number = PATTERN_POOL_SIZE): PatternPool {
         return Promise.resolve({ kind: "timeout" });
       }
       return new Promise<PatternAnswer>((resolve, reject) => {
-        queue.push({ id: nextId++, job, resolve, reject });
+        const pending: Pending = {
+          id: nextId++,
+          job,
+          resolve,
+          reject,
+          waiting: undefined,
+        };
+        queue.push(pending);
         pump();
+        if (queue.includes(pending)) {
+          pending.waiting = setTimeout(() => {
+            const index = queue.indexOf(pending);
+            if (index !== -1) {
+              queue.splice(index, 1);
+              resolve({ kind: "busy" });
+            }
+          }, queueWaitMs);
+          pending.waiting.unref();
+        }
       });
     },
     async close(): Promise<void> {
       closed = true;
       for (const pending of queue.splice(0)) {
+        clearTimeout(pending.waiting);
         pending.reject(new Error("the pattern pool is closed"));
       }
       await Promise.all(

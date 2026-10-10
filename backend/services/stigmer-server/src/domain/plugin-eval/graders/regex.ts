@@ -4,8 +4,8 @@
  * (`not_contains`), or matches exactly N times (`count:N`), as the
  * format's grader table states. The target is the final message, the
  * trace, the created paths or one file's content (verdict.ts,
- * `focusText`). The pattern runs in the pattern pool under the grader's
- * deadline (patterns.ts).
+ * `focusText`). The pattern runs in the pattern pool under its deadline
+ * (patterns.ts).
  *
  * Proven by __tests__/graders.test.ts.
  */
@@ -16,6 +16,7 @@ import type { PatternRunner } from "./patterns.js";
 import { PATTERN_DEADLINE_MS } from "./patterns.js";
 import type { GraderVerdict } from "./verdict.js";
 import {
+  PATTERN_POOL_BUSY_REASON,
   PATTERN_TIME_LIMIT_REASON,
   focusLabel,
   focusText,
@@ -44,6 +45,8 @@ export async function gradeRegex(
   switch (answer.kind) {
     case "timeout":
       return { notGraded: PATTERN_TIME_LIMIT_REASON };
+    case "busy":
+      return { notGraded: PATTERN_POOL_BUSY_REASON };
     case "invalid":
       return { notGraded: invalidPatternReason(answer.message) };
     case "counts":

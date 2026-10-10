@@ -4,12 +4,16 @@
  * happens on cue: a reply carrying another job's id resolves nothing, a
  * reply from a worker its deadline already retired is dropped, and a
  * worker that errors rejects the job it held, is terminated, and the next
- * job runs on a fresh worker. The real worker's counting is pinned by
- * patterns.test.ts.
+ * job runs on a fresh worker; a job that waits past the queue bound for a
+ * worker is answered "busy" and never posted, while one a worker takes in
+ * time is not. The default pool's size is min(4, the machine's
+ * parallelism). The real worker's counting is pinned by patterns.test.ts.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { newPatternPool } from "../patterns.js";
+import { availableParallelism } from "node:os";
+
+import { PATTERN_POOL_SIZE, newPatternPool } from "../patterns.js";
 
 interface PostedJob {
   readonly id: number;
@@ -61,6 +65,38 @@ function worker(index: number) {
 
 afterEach(() => {
   scripted.workers.length = 0;
+});
+
+describe("the pattern pool's queue bound", () => {
+  it("answers a job that waits past the bound busy, never running it, and keeps the worker's job", async () => {
+    const pool = newPatternPool(1, { queueWaitMs: 10 });
+    const running = pool.count(job("a"));
+    const queued = pool.count(job("b"));
+    expect(await queued).toEqual({ kind: "busy" });
+    const held = worker(0);
+    const posted = held.posted[0];
+    held.emit("message", { id: posted?.id, kind: "counts", counts: [1] });
+    expect(await running).toEqual({ kind: "counts", counts: [1] });
+    expect(held.posted.map((entry) => entry.pattern)).toEqual(["a"]);
+    await pool.close();
+  });
+
+  it("runs a queued job a worker takes within the bound", async () => {
+    const pool = newPatternPool(1, { queueWaitMs: 30 });
+    const first = pool.count(job("a"));
+    const second = pool.count(job("b"));
+    const held = worker(0);
+    held.emit("message", { id: held.posted[0]?.id, kind: "counts", counts: [1] });
+    await first;
+    await new Promise<void>((resolve) => setTimeout(resolve, 60));
+    held.emit("message", { id: held.posted[1]?.id, kind: "counts", counts: [0] });
+    expect(await second).toEqual({ kind: "counts", counts: [0] });
+    await pool.close();
+  });
+
+  it("sizes the default pool at min(4, the machine's parallelism)", () => {
+    expect(PATTERN_POOL_SIZE).toBe(Math.min(4, availableParallelism()));
+  });
 });
 
 describe("the pattern pool with a misbehaving worker", () => {
