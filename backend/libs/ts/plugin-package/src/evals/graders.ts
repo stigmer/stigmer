@@ -156,10 +156,12 @@ function readCheck(type: EvalGraderType, source: GraderSource, scope: FieldScope
       if (criteria === undefined) return undefined;
       return { type, baselineFile, criteria };
     }
+    /* v8 ignore start -- @preserve: the never arm; readGrader admits only GRADER_TYPES, so no type reaches it */
     default: {
       const exhaustive: never = type;
       throw new Error(`unknown grader type ${String(exhaustive)}`);
     }
+    /* v8 ignore stop */
   }
 }
 

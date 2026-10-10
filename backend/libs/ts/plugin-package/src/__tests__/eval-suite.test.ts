@@ -563,7 +563,10 @@ describe("refusals", () => {
     ["a tool_order input_match that does not compile", "type: tool_order\nbefore: { tool: Read, input_match: '(' }\nafter: Bash", "before.input_match must be a JavaScript regular expression"],
     ["a missing pattern", "type: regex", "pattern is required"],
     ["a missing tool", "type: tool_used", "tool is required"],
+    ["a blank tool", "type: tool_used\ntool: ' '", "tool must be a non-empty string"],
     ["a missing tool_order side", "type: tool_order\nbefore: Read", "after is required"],
+    ["a tool_order side that is a list", "type: tool_order\nbefore: [Read]\nafter: Bash", "before must be a tool name or { tool, input_match }"],
+    ["a tool_order side with an unknown key", "type: tool_order\nbefore: Read\nafter: { tool: Bash, when: last }", "after must be a tool name or { tool, input_match }"],
     ["a weight of 0", "type: tool_used\ntool: Read\nweight: 0", "weight must be a positive number"],
     ["an unknown arm", "type: tool_used\ntool: Read\narm: without", "arm must be 'with-only' or 'both'"],
     ["min above max", "type: tool_used\ntool: Read\nmin: 2\nmax: 1", "min must be at most max (1)"],
@@ -573,12 +576,27 @@ describe("refusals", () => {
     ["a file target without a path", "type: regex\npattern: a\ntarget: { source: file }", "target must be last_message"],
     ["an llm grader with no criteria", "type: llm", "criteria is required (the file's body, or a criteria key)"],
     ["a baseline_file outside the case", "type: baseline\nbaseline_file: ../other.jsonl\ncriteria: x", "baseline_file must be a file in the case directory"],
+    ["a baseline grader with no baseline_file", "type: baseline\ncriteria: x", "baseline_file is required"],
     ["exists that is not a boolean", "type: file_exists\npath: a\nexists: 'no'", "exists must be true or false"],
   ])("%s", (_name, frontmatter, problem) => {
     const finding = graderRefusal(frontmatter);
     expect(finding.kind).toBe("eval-grader-invalid");
     expect(finding.path).toBe("evals/c/graders/x.md");
     expect(finding.message.startsWith(`evals/c/graders/x.md: ${problem}`), finding.message).toBe(true);
+  });
+
+  it("a baseline grader whose file is in the case but that has no criteria", () => {
+    const suite = suiteOf({
+      "evals/c/prompt.md": "Hi.",
+      "evals/c/reference.jsonl": "{}\n",
+      "evals/c/graders/x.md": "---\ntype: baseline\nbaseline_file: reference.jsonl\n---\n",
+    });
+    expect(suite.cases).toEqual([]);
+    expect(onlyFinding(suite)).toEqual({
+      kind: "eval-grader-invalid",
+      path: "evals/c/graders/x.md",
+      message: "evals/c/graders/x.md: criteria is required (the file's body, or a criteria key)",
+    });
   });
 
   it("a grader file with no frontmatter, as a missing type", () => {
