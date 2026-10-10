@@ -91,6 +91,7 @@ export function reachedBy(server: McpServerEntry): string {
       return [transport.value.command, ...transport.value.args].join(" ");
     case undefined:
       return "";
+    /* v8 ignore next -- @preserve: the exhaustiveness guard over the transport oneof; a decoded entry's case is one of the arms above or undefined */
     default: {
       const exhaustive: never = transport;
       return exhaustive;

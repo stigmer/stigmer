@@ -16,10 +16,12 @@
  * and one the plugin's server reads, are still asked for.
  *
  * A login in My vault counts only when the conversation includes My vault,
- * and a listed vault's login counts only at the server's own address.
+ * and a listed vault's login counts only at the server's own address. A
+ * sign-in that lands after the host dropped the organization reads no
+ * vault again.
  */
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
@@ -254,5 +256,29 @@ describe("useAgentSetup and the servers of the agent's plugins that sign in", ()
       await own.result.current.resolveAgent(REF);
     });
     expect(own.result.current.state).toMatchObject({ status: "ready", resolution: { mode: "direct" } });
+  });
+
+  it("reads nothing again for a sign-in that lands after the organization is dropped", async () => {
+    const world: World = { plugins: { linear: "ok" }, mine: [] };
+    const stigmer = client(world);
+    const { result, rerender } = renderHook(({ org }: { org: string | null }) => useAgentSetup(org), {
+      wrapper: wrapper(stigmer),
+      initialProps: { org: ORG as string | null },
+    });
+    await act(async () => {
+      await result.current.resolveAgent(REF);
+    });
+    expect(result.current.state.status).toBe("needsEnvVars");
+
+    rerender({ org: null });
+    const getMine = vi.spyOn(stigmer.vault, "getMine");
+    await act(async () => {
+      await result.current.signInCompleted(addressOf("linear"));
+    });
+
+    expect(getMine).not.toHaveBeenCalled();
+    const state = result.current.state;
+    if (state.status !== "needsEnvVars") throw new Error(`expected needsEnvVars, got ${state.status}`);
+    expect(state.pendingSignIns).toEqual([]);
   });
 });

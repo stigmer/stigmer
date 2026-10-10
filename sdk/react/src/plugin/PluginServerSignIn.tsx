@@ -137,6 +137,7 @@ function PluginServerSignInView({
       );
     case "open":
       return null;
+    /* v8 ignore next -- @preserve: the exhaustiveness guard over PluginServerSignInKind; the hook answers only the arms above */
     default: {
       const exhaustive: never = signIn.kind;
       return exhaustive;
@@ -156,6 +157,7 @@ export function phaseLabel(phase: VaultSignInPhase): string {
     case "idle":
     case "done":
       return "Sign in";
+    /* v8 ignore next -- @preserve: the exhaustiveness guard over VaultSignInPhase; useVaultSignIn reports only the arms above */
     default: {
       const exhaustive: never = phase;
       return exhaustive;

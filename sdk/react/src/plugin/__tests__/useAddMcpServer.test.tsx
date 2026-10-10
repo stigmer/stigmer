@@ -7,7 +7,8 @@
  * a name the reader refuses is refused before any push, in its sentences;
  * the push sends exactly the prepared archive (its digest is the one the
  * library computes) through the plugin push; a name already installed is
- * refused without a push.
+ * refused without a push, and so is a name whose read fails for another
+ * reason; `clearError` drops the held refusal.
  */
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -66,6 +67,7 @@ describe("useAddMcpServer", () => {
     const transport = createRouterTransport(({ service }) => {
       service(PluginQueryController, {
         getByReference: (ref) => {
+          if (ref.slug === "unreachable") throw new ConnectError("the plugin store is down", Code.Unavailable);
           if (!installed.includes(ref.slug)) throw new ConnectError("no plugin", Code.NotFound);
           return create(PluginSchema, { metadata: create(ApiResourceMetadataSchema, { org: "acme", slug: ref.slug, name: ref.slug }) });
         },
@@ -110,5 +112,19 @@ describe("useAddMcpServer", () => {
     });
     expect(hook.result.current.error).toBeInstanceOf(PluginReadRefusal);
     expect(pushes).toEqual([]);
+  });
+
+  it("holds a read failure other than not-found without pushing, and clearError drops it", async () => {
+    const { hook, pushes } = setup([]);
+    await act(async () => {
+      await expect(hook.result.current.add({ name: "unreachable", url: "https://mcp.linear.app/mcp" }, { org: "acme" })).rejects.toThrow(
+        /the plugin store is down/,
+      );
+    });
+    expect(pushes).toEqual([]);
+    expect(hook.result.current.error?.message).toMatch(/the plugin store is down/);
+
+    act(() => hook.result.current.clearError());
+    expect(hook.result.current.error).toBeNull();
   });
 });

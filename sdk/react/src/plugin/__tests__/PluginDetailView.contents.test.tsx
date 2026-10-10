@@ -9,7 +9,9 @@
  * and Sign out with one), and Sign out removes the login at that address;
  * a key-taking server names its keys; "Check tools" lists the server's
  * tools now, as the caller, with a Destructive marker where the server sets
- * one, and shows the server's refusal when the listing fails.
+ * one, and shows the server's refusal when the listing fails. The keys the
+ * plugin reads are listed in name order, and "Add to an agent" opens its
+ * dialog over the plugin, which Cancel closes.
  */
 
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -22,7 +24,7 @@ import { PluginCommandController } from "@stigmer/protos/ai/stigmer/agentic/plug
 import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { ListPluginToolsOutputSchema, type ListPluginToolsInput } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
-import { PluginStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
+import { McpServerEntrySchema, PluginStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import { VaultCommandController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/command_pb";
 import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
 import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
@@ -31,6 +33,7 @@ import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/ap
 
 import { StigmerContext } from "../../context.js";
 import { PluginDetailView } from "../PluginDetailView.js";
+import { reachedBy } from "../PluginServerRow.js";
 
 afterEach(cleanup);
 
@@ -44,7 +47,7 @@ const STATUS = create(PluginStatusSchema, {
     { name: "linear", transport: { case: "http", value: { url: LINEAR_URL } }, signIn: {} },
     { name: "search", transport: { case: "stdio", value: { command: "npx", args: ["search-mcp"] } }, env: ["SEARCH_KEY"] },
   ],
-  env: { SEARCH_KEY: { isSecret: true } },
+  env: { SEARCH_KEY: { isSecret: true }, A_REGION: { isSecret: false, optional: true } },
 });
 
 interface World {
@@ -121,6 +124,32 @@ describe("PluginDetailView: what a plugin holds", () => {
     expect(screen.getByRole("button", { name: "Add to an agent" })).toBeTruthy();
   });
 
+  it("offers the chat from the section as well as the header", async () => {
+    const { onStartChat } = renderView(world());
+
+    await screen.findByText(/Holds 1 skill/);
+    for (const start of screen.getAllByRole("button", { name: "Start a chat" })) fireEvent.click(start);
+    expect(onStartChat).toHaveBeenCalledTimes(screen.getAllByRole("button", { name: "Start a chat" }).length);
+    expect(onStartChat).toHaveBeenLastCalledWith({ org: ORG, slug: "linear" });
+  });
+
+  it("opens Add to an agent over the plugin, and Cancel closes it", async () => {
+    renderView(world());
+
+    fireEvent.click(await screen.findByRole("button", { name: "Add to an agent" }));
+    expect(await screen.findByRole("heading", { name: "Add linear to an agent" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(screen.queryByRole("heading", { name: "Add linear to an agent" })).toBeNull());
+  });
+
+  it("lists the keys the plugin reads in name order", async () => {
+    renderView(world());
+
+    const keys = await screen.findByRole("list", { name: "Keys this plugin reads" });
+    expect(within(keys).getAllByRole("listitem").map((item) => item.querySelector("code")?.textContent)).toEqual(["A_REGION", "SEARCH_KEY"]);
+    expect(within(keys).getByText("setting, optional")).toBeTruthy();
+  });
+
   it("lists skills and agents by the names a turn uses", async () => {
     renderView(world());
 
@@ -137,6 +166,10 @@ describe("PluginDetailView: what a plugin holds", () => {
     expect(within(servers).getByText(LINEAR_URL)).toBeTruthy();
     expect(within(servers).getByText("npx search-mcp")).toBeTruthy();
     expect(within(servers).getByText("SEARCH_KEY")).toBeTruthy();
+  });
+
+  it("reads a server with no transport as reached by nothing", () => {
+    expect(reachedBy(create(McpServerEntrySchema, { name: "bare" }))).toBe("");
   });
 });
 

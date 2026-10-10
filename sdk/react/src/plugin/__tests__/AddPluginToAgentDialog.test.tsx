@@ -6,7 +6,8 @@
  * an agent that already lists it is told so and nothing is saved; an agent
  * whose tool list leaves the plugin's servers out is told before Add; an
  * agent a plugin installed is refused before Add is offered; "Open agent"
- * hands the host the updated agent's reference.
+ * hands the host the updated agent's reference; a refused save is shown
+ * as an error.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -20,7 +21,7 @@ import type { AgentInput, ResourceRef } from "@stigmer/sdk";
 vi.mock("../../agent/AgentPicker.js", () => ({
   AgentPicker: ({ onChange, disabled }: { onChange: (ref: ResourceRef | null) => void; disabled?: boolean }) => (
     <span>
-      {["reviewer", "assistant", "listing", "limited"].map((slug) => (
+      {["reviewer", "assistant", "listing", "limited", "locked"].map((slug) => (
         <button key={slug} type="button" disabled={disabled} onClick={() => onChange({ org: "acme", slug })}>
           Pick {slug}
         </button>
@@ -59,10 +60,12 @@ const AGENTS: Record<string, Agent> = {
   assistant: agent("assistant", { labels: { "stigmer.ai/plugin": "plg_1" } }),
   listing: agent("listing", { plugins: ["linear"] }),
   limited: agent("limited", { tools: ["Read"] }),
+  locked: agent("locked"),
 };
 
 function renderDialog(onAgentClick = vi.fn()) {
   const update = vi.fn(async (input: AgentInput) => {
+    if (input.slug === "locked") throw new Error("you may not change this agent");
     const found = AGENTS[input.slug ?? ""];
     if (!found) throw new Error("no agent");
     return found;
@@ -124,5 +127,18 @@ describe("AddPluginToAgentDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: "Pick assistant" }));
     expect(await screen.findByText(/was installed by a plugin/)).toBeTruthy();
     expect(screen.getByRole("button", { name: "Add" })).toHaveProperty("disabled", true);
+  });
+
+  it("shows a refused save and keeps Add on offer", async () => {
+    const { update } = renderDialog();
+    fireEvent.click(screen.getByRole("button", { name: "Pick locked" }));
+    const add = await screen.findByRole("button", { name: "Add" });
+    await waitFor(() => expect(add).toHaveProperty("disabled", false));
+    fireEvent.click(add);
+
+    expect(await screen.findByText("The agent could not be changed")).toBeTruthy();
+    expect(screen.getByText(/you may not change this agent/)).toBeTruthy();
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("status")).toBeNull();
   });
 });

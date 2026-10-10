@@ -2,8 +2,9 @@
  * The plugin picks a browser remembers per organization. Pins: picks round
  * trip per organization and never cross to another; an empty list forgets
  * them; a value of the wrong shape is dropped entry by entry, and one that
- * is not JSON reads as nothing; storage that throws reads as nothing and
- * writes nothing, without throwing.
+ * is not JSON or not a list reads as nothing; storage that throws reads as
+ * nothing and writes nothing, without throwing; an organization not yet
+ * known (an empty org) is never remembered.
  */
 
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -11,6 +12,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { PLUGIN_PICKS_STORAGE_KEY, readRememberedPluginPicks, rememberPluginPicks } from "../rememberedPluginPicks.js";
 
 afterEach(() => {
+  vi.unstubAllGlobals();
   vi.restoreAllMocks();
   localStorage.clear();
 });
@@ -40,13 +42,24 @@ describe("remembered plugin picks", () => {
   });
 
   it("reads nothing and writes nothing when storage throws", () => {
-    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+    const blocked = () => {
       throw new Error("blocked");
-    });
-    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
-      throw new Error("blocked");
-    });
+    };
+    vi.stubGlobal("localStorage", { getItem: vi.fn(blocked), setItem: vi.fn(blocked), removeItem: vi.fn(blocked) });
     expect(readRememberedPluginPicks("acme")).toEqual([]);
+    expect(window.localStorage.getItem).toHaveBeenCalledWith(`${PLUGIN_PICKS_STORAGE_KEY}:acme`);
     expect(() => rememberPluginPicks("acme", [{ org: "acme", slug: "linear" }])).not.toThrow();
+    expect(window.localStorage.setItem).toHaveBeenCalledTimes(1);
+  });
+
+  it("reads a value that is not a list as nothing", () => {
+    localStorage.setItem(`${PLUGIN_PICKS_STORAGE_KEY}:acme`, JSON.stringify({ org: "acme", slug: "linear" }));
+    expect(readRememberedPluginPicks("acme")).toEqual([]);
+  });
+
+  it("remembers nothing for an organization not yet known", () => {
+    rememberPluginPicks("", [{ org: "acme", slug: "linear" }]);
+    expect(localStorage.length).toBe(0);
+    expect(readRememberedPluginPicks("")).toEqual([]);
   });
 });
