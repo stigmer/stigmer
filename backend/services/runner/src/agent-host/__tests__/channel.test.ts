@@ -8,8 +8,9 @@
  *    buffered;
  *  - a call is answered by exactly its result, a handler's rejection is the
  *    caller's error, and every pending call rejects when the channel closes;
- *  - a peer that sends a line that is not JSON, or of an unknown kind, is
- *    disconnected;
+ *  - a peer that sends a line that is not JSON, not an object, of an
+ *    unknown kind, or an envelope missing what its kind needs, is
+ *    disconnected, and a call waiting on it rejects;
  *  - a `hello` is kept for whoever asks, before or after it arrived, and a
  *    peer that never sends one is given up on;
  *  - the loopback holds a line sent before the far end listens, as a pipe's
@@ -172,13 +173,27 @@ describe("the peer", () => {
     expect(seen).toEqual([1, 2]);
   });
 
-  it("disconnects a peer that sends a line that is not JSON, or of an unknown kind", async () => {
-    for (const line of ["not json", JSON.stringify({ kind: "exfiltrate" })]) {
+  it("disconnects a peer that sends a line that is not JSON, not an object, of an unknown kind, or a malformed envelope", async () => {
+    for (const line of [
+      "not json",
+      "null",
+      "[1]",
+      "7",
+      JSON.stringify({ kind: "exfiltrate" }),
+      JSON.stringify({ kind: "call", id: "one", method: "echo", args: {} }),
+      JSON.stringify({ kind: "call", id: 1, args: {} }),
+      JSON.stringify({ kind: "result", id: 1, ok: false }),
+      JSON.stringify({ kind: "result", id: 1, ok: false, error: { name: "Error" } }),
+      JSON.stringify({ kind: "result", ok: true, value: 1 }),
+      JSON.stringify({ kind: "notify", args: {} }),
+    ]) {
       const [a, b] = loopbackChannels();
       const peer = new Peer<EchoCalls, EchoCalls, Notices, Notices>(a, "runner");
+      const pending = peer.call("echo", { text: "waiting" });
       const closed = new Promise<Error>((resolve) => peer.onClose(resolve));
       b.send(line);
-      expect((await closed).message).toMatch(/^runner: the peer sent /);
+      expect((await closed).message, line).toMatch(/^runner: the peer sent /);
+      await expect(pending, line).rejects.toThrow(/^runner: the peer sent /);
     }
   });
 

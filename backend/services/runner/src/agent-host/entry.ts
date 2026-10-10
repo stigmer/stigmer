@@ -102,6 +102,9 @@ export async function runAgentHost(): Promise<void> {
   // and a runner that dies outright closes the pipe with it.
   process.on("SIGTERM", () => {});
   process.on("SIGINT", () => {});
+  // Set only so Electron would run this entry as Node (`supervisor.ts`
+  // `agentHostCommand`); the processes an agent starts here never see it.
+  if (process.versions.electron !== undefined) delete process.env.ELECTRON_RUN_AS_NODE;
   const socket = new Socket({ fd: AGENT_HOST_CHANNEL_FD, readable: true, writable: true });
   await runAgentHostProcess({
     channel: streamChannel(socket, socket),

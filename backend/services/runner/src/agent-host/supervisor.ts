@@ -289,8 +289,8 @@ export class AgentHostSupervisor {
  */
 export function processHostStarter(env: () => NodeJS.ProcessEnv): HostStarter {
   return () => {
-    const { command, args } = agentHostCommand();
-    return spawnHostProcess(command, args, env()).started;
+    const { command, args, env: runtimeEnv } = agentHostCommand();
+    return spawnHostProcess(command, args, { ...env(), ...runtimeEnv }).started;
   };
 }
 
@@ -338,13 +338,26 @@ export function spawnHostProcess(
   };
 }
 
-/** The command that runs this build's entry in its agent-host mode. */
-export function agentHostCommand(): { readonly command: string; readonly args: readonly string[] } {
+/**
+ * The command that runs this build's entry in its agent-host mode, and what
+ * its environment needs for that runtime: under Electron (a library
+ * embedder's), `process.execPath` is the Electron binary, which runs a script
+ * as Node only with `ELECTRON_RUN_AS_NODE` (the hook script's precedent,
+ * `activities/execute-cursor/hook-script.ts`). The host drops it again at
+ * start (`entry.ts`), so an Electron app an agent runs behaves as usual.
+ */
+export function agentHostCommand(
+  versions: NodeJS.ProcessVersions = process.versions,
+): { readonly command: string; readonly args: readonly string[]; readonly env: Readonly<Record<string, string>> } {
   const entry = fileURLToPath(RUNNER_ENTRY_URL);
   // Running from source (the tests' spawned hosts, `npm start`): the entry
   // is TypeScript, loaded the way the runner itself was.
   const loader = entry.endsWith(".ts") ? ["--import", "tsx"] : [];
-  return { command: process.execPath, args: [...loader, entry, AGENT_HOST_MODE_ARG] };
+  return {
+    command: process.execPath,
+    args: [...loader, entry, AGENT_HOST_MODE_ARG],
+    env: versions.electron === undefined ? {} : { ELECTRON_RUN_AS_NODE: "1" },
+  };
 }
 
 function relayLines(stream: Readable, write: (line: string) => void): void {

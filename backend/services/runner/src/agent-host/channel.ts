@@ -101,6 +101,23 @@ export function streamChannel(input: Readable, output: Writable, maxMessageBytes
   };
 }
 
+/** What a message of a known kind is missing, as the sentence a closed channel gives; `null` when it is whole. */
+function malformedEnvelope(message: { kind?: unknown; id?: unknown; method?: unknown; ok?: unknown; error?: unknown }): string | null {
+  switch (message.kind) {
+    case "call":
+      return typeof message.id === "number" && typeof message.method === "string" ? null : "a call without a numeric id and a method";
+    case "result": {
+      if (typeof message.id !== "number" || typeof message.ok !== "boolean") return "a result without a numeric id and an ok flag";
+      const error = message.error as { message?: unknown } | null | undefined;
+      return message.ok || (typeof error === "object" && error !== null && typeof error.message === "string") ? null : "a failed result without an error message";
+    }
+    case "notify":
+      return typeof message.method === "string" ? null : "a notice without a method";
+    default:
+      return null;
+  }
+}
+
 /**
  * Two connected in-process channels. Each line is delivered as a microtask
  * (the header says why), in order; a line sent before the far end listens
@@ -245,11 +262,21 @@ export class Peer<Out extends CallMap<Out>, In extends CallMap<In>, OutNotices, 
   }
 
   private receive(line: string): void {
-    let message: { kind?: unknown; id?: unknown; method?: unknown; args?: unknown; ok?: unknown; value?: unknown; error?: unknown };
+    let parsed: unknown;
     try {
-      message = JSON.parse(line) as typeof message;
+      parsed = JSON.parse(line);
     } catch {
       this.channel.close(new Error(`${this.label}: the peer sent a line that is not JSON`));
+      return;
+    }
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+      this.channel.close(new Error(`${this.label}: the peer sent a message that is not an object`));
+      return;
+    }
+    const message = parsed as { kind?: unknown; id?: unknown; method?: unknown; args?: unknown; ok?: unknown; value?: unknown; error?: unknown };
+    const malformed = malformedEnvelope(message);
+    if (malformed !== null) {
+      this.channel.close(new Error(`${this.label}: the peer sent ${malformed}`));
       return;
     }
     switch (message.kind) {

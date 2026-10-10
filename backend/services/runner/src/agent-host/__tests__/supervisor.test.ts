@@ -15,7 +15,8 @@
  *  - harnesses booted at the same moment, while the host is still starting,
  *    are each booted in it once;
  *  - the production starter runs this build's entry in its agent-host mode
- *    under the runner's own Node, from source under tsx; a host that cannot
+ *    under the runner's own Node (as Node, under an Electron embedder), from
+ *    source under tsx; a host that cannot
  *    be spawned closes its channel instead of throwing; the host outlives
  *    the SIGTERM and SIGINT its process group receives (a daemon's stop, a
  *    terminal's Ctrl-C) and exits only when its pipe closes, so a runner
@@ -197,9 +198,11 @@ describe("the supervisor's edges", () => {
 
 describe("the production starter", () => {
   it("runs this build's entry in agent-host mode under the runner's Node, from source under tsx", () => {
-    const { command, args } = agentHostCommand();
+    const { command, args, env } = agentHostCommand();
     expect(command).toBe(process.execPath);
     expect(args).toEqual(["--import", "tsx", fileURLToPath(RUNNER_ENTRY_URL), AGENT_HOST_MODE_ARG]);
+    expect(env, "plain Node needs nothing").toEqual({});
+    expect(agentHostCommand({ ...process.versions, electron: "33.2.0" }).env, "Electron runs the entry as Node").toEqual({ ELECTRON_RUN_AS_NODE: "1" });
     expect(fileURLToPath(RUNNER_ENTRY_URL).endsWith("main.ts")).toBe(true);
   });
 
