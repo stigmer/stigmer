@@ -145,165 +145,185 @@ public final class EventProto extends com.google.protobuf.GeneratedFile {
       "tigmer/agentic/session/v1/event_content." +
       "proto\0322ai/stigmer/commons/apiresource/fi" +
       "eld_options.proto\032\033buf/validate/validate" +
-      ".proto\032\034google/protobuf/struct.proto\"\357\021\n" +
+      ".proto\032\034google/protobuf/struct.proto\"\236\022\n" +
       "\014SessionEvent\022\020\n\003seq\030\001 \001(\003R\003seq\022\035\n\nsessi" +
       "on_id\030\002 \001(\tR\tsessionId\022\025\n\006run_id\030\003 \001(\tR\005" +
-      "runId\022\033\n\tthread_id\030\004 \001(\tR\010threadId\022f\n\014us" +
-      "er_message\030\n \001(\0132/.ai.stigmer.agentic.se" +
-      "ssion.v1.UserMessageEventB\020\362\205,\014user.mess" +
-      "ageH\000R\013userMessage\022\214\001\n\026session_status_ru" +
-      "nning\030\013 \001(\01328.ai.stigmer.agentic.session" +
-      ".v1.SessionStatusRunningEventB\032\362\205,\026sessi" +
-      "on.status_runningH\000R\024sessionStatusRunnin" +
-      "g\022\200\001\n\023session_status_idle\030\014 \001(\01325.ai.sti" +
-      "gmer.agentic.session.v1.SessionStatusIdl" +
-      "eEventB\027\362\205,\023session.status_idleH\000R\021sessi" +
-      "onStatusIdle\022j\n\rsession_error\030\r \001(\01320.ai" +
-      ".stigmer.agentic.session.v1.SessionError" +
-      "EventB\021\362\205,\rsession.errorH\000R\014sessionError" +
-      "\022j\n\ragent_message\030\016 \001(\01320.ai.stigmer.age" +
-      "ntic.session.v1.AgentMessageEventB\021\362\205,\ra" +
-      "gent.messageH\000R\014agentMessage\022n\n\016agent_th" +
-      "inking\030\017 \001(\01321.ai.stigmer.agentic.sessio" +
-      "n.v1.AgentThinkingEventB\022\362\205,\016agent.think" +
-      "ingH\000R\ragentThinking\022l\n\016agent_tool_use\030\020" +
-      " \001(\01320.ai.stigmer.agentic.session.v1.Age" +
-      "ntToolUseEventB\022\362\205,\016agent.tool_useH\000R\014ag" +
-      "entToolUse\022x\n\021agent_tool_result\030\021 \001(\01323." +
-      "ai.stigmer.agentic.session.v1.AgentToolR" +
-      "esultEventB\025\362\205,\021agent.tool_resultH\000R\017age" +
-      "ntToolResult\022z\n\022agent_mcp_tool_use\030\022 \001(\013" +
-      "23.ai.stigmer.agentic.session.v1.AgentMc" +
-      "pToolUseEventB\026\362\205,\022agent.mcp_tool_useH\000R" +
-      "\017agentMcpToolUse\022\206\001\n\025agent_mcp_tool_resu" +
-      "lt\030\023 \001(\01326.ai.stigmer.agentic.session.v1" +
-      ".AgentMcpToolResultEventB\031\362\205,\025agent.mcp_" +
-      "tool_resultH\000R\022agentMcpToolResult\022\214\001\n\026se" +
-      "ssion_thread_created\030\024 \001(\01328.ai.stigmer." +
-      "agentic.session.v1.SessionThreadCreatedE" +
-      "ventB\032\362\205,\026session.thread_createdH\000R\024sess" +
-      "ionThreadCreated\022\246\001\n\035session_thread_stat" +
-      "us_running\030\025 \001(\0132>.ai.stigmer.agentic.se" +
-      "ssion.v1.SessionThreadStatusRunningEvent" +
-      "B!\362\205,\035session.thread_status_runningH\000R\032s" +
-      "essionThreadStatusRunning\022\232\001\n\032session_th" +
-      "read_status_idle\030\026 \001(\0132;.ai.stigmer.agen" +
-      "tic.session.v1.SessionThreadStatusIdleEv" +
-      "entB\036\362\205,\032session.thread_status_idleH\000R\027s" +
-      "essionThreadStatusIdle\022\226\001\n\031agent_thread_" +
-      "message_sent\030\027 \001(\0132:.ai.stigmer.agentic." +
-      "session.v1.AgentThreadMessageSentEventB\035" +
-      "\362\205,\031agent.thread_message_sentH\000R\026agentTh" +
-      "readMessageSent\022\246\001\n\035agent_thread_message" +
-      "_received\030\030 \001(\0132>.ai.stigmer.agentic.ses" +
-      "sion.v1.AgentThreadMessageReceivedEventB" +
-      "!\362\205,\035agent.thread_message_receivedH\000R\032ag" +
-      "entThreadMessageReceived\022\252\001\n\036agent_threa" +
-      "d_context_compacted\030\031 \001(\0132?.ai.stigmer.a" +
-      "gentic.session.v1.AgentThreadContextComp" +
-      "actedEventB\"\362\205,\036agent.thread_context_com" +
-      "pactedH\000R\033agentThreadContextCompactedB\007\n" +
-      "\005event\"\214\001\n\020UserMessageEvent\022\016\n\002id\030\001 \001(\tR" +
-      "\002id\022E\n\007content\030\002 \003(\0132+.ai.stigmer.agenti" +
-      "c.session.v1.ContentBlockR\007content\022!\n\014pr" +
-      "ocessed_at\030\003 \001(\tR\013processedAt\"N\n\031Session" +
-      "StatusRunningEvent\022\016\n\002id\030\001 \001(\tR\002id\022!\n\014pr" +
-      "ocessed_at\030\002 \001(\tR\013processedAt\"\204\002\n\026Sessio" +
-      "nStatusIdleEvent\022\016\n\002id\030\001 \001(\tR\002id\022!\n\014proc" +
-      "essed_at\030\002 \001(\tR\013processedAt\022R\n\013stop_reas" +
-      "on\030\003 \001(\0132).ai.stigmer.agentic.session.v1" +
-      ".StopReasonB\006\272H\003\310\001\001R\nstopReason\022R\n\014stop_" +
-      "details\030\004 \001(\0132*.ai.stigmer.agentic.sessi" +
-      "on.v1.StopDetailsH\000R\013stopDetails\210\001\001B\017\n\r_" +
-      "stop_details\"\221\001\n\021SessionErrorEvent\022\016\n\002id" +
-      "\030\001 \001(\tR\002id\022!\n\014processed_at\030\002 \001(\tR\013proces" +
-      "sedAt\022I\n\005error\030\003 \001(\0132+.ai.stigmer.agenti" +
-      "c.session.v1.SessionErrorB\006\272H\003\310\001\001R\005error" +
-      "\"\215\001\n\021AgentMessageEvent\022\016\n\002id\030\001 \001(\tR\002id\022E" +
-      "\n\007content\030\002 \003(\0132+.ai.stigmer.agentic.ses" +
-      "sion.v1.ContentBlockR\007content\022!\n\014process" +
-      "ed_at\030\003 \001(\tR\013processedAt\"G\n\022AgentThinkin" +
-      "gEvent\022\016\n\002id\030\001 \001(\tR\002id\022!\n\014processed_at\030\002" +
-      " \001(\tR\013processedAt\"\344\002\n\021AgentToolUseEvent\022" +
-      "\016\n\002id\030\001 \001(\tR\002id\0225\n\005input\030\002 \001(\0132\027.google." +
-      "protobuf.StructB\006\272H\003\310\001\001R\005input\022\033\n\004name\030\003" +
-      " \001(\tB\007\272H\004r\002\020\001R\004name\022!\n\014processed_at\030\004 \001(" +
-      "\tR\013processedAt\022M\n\024evaluated_permission\030\005" +
-      " \001(\tB\032\272H\027r\022R\005allowR\003askR\004deny\330\001\001R\023evalua" +
-      "tedPermission\022M\n\nevaluation\030\006 \001(\0132-.ai.s" +
-      "tigmer.agentic.session.v1.ToolEvaluation" +
-      "R\nevaluation\022*\n\021session_thread_id\030\007 \001(\tR" +
-      "\017sessionThreadId\"\324\001\n\024AgentToolResultEven" +
-      "t\022\016\n\002id\030\001 \001(\tR\002id\022!\n\014processed_at\030\002 \001(\tR" +
-      "\013processedAt\022\'\n\013tool_use_id\030\003 \001(\tB\007\272H\004r\002" +
-      "\020\001R\ttoolUseId\022E\n\007content\030\004 \003(\0132+.ai.stig" +
-      "mer.agentic.session.v1.ContentBlockR\007con" +
-      "tent\022\031\n\010is_error\030\005 \001(\010R\007isError\"\230\003\n\024Agen" +
-      "tMcpToolUseEvent\022\016\n\002id\030\001 \001(\tR\002id\0225\n\005inpu" +
-      "t\030\002 \001(\0132\027.google.protobuf.StructB\006\272H\003\310\001\001" +
-      "R\005input\022/\n\017mcp_server_name\030\003 \001(\tB\007\272H\004r\002\020" +
-      "\001R\rmcpServerName\022\033\n\004name\030\004 \001(\tB\007\272H\004r\002\020\001R" +
-      "\004name\022!\n\014processed_at\030\005 \001(\tR\013processedAt" +
-      "\022M\n\024evaluated_permission\030\006 \001(\tB\032\272H\027r\022R\005a" +
-      "llowR\003askR\004deny\330\001\001R\023evaluatedPermission\022" +
-      "M\n\nevaluation\030\007 \001(\0132-.ai.stigmer.agentic" +
-      ".session.v1.ToolEvaluationR\nevaluation\022*" +
-      "\n\021session_thread_id\030\010 \001(\tR\017sessionThread" +
-      "Id\"\336\001\n\027AgentMcpToolResultEvent\022\016\n\002id\030\001 \001" +
-      "(\tR\002id\022.\n\017mcp_tool_use_id\030\002 \001(\tB\007\272H\004r\002\020\001" +
-      "R\014mcpToolUseId\022!\n\014processed_at\030\003 \001(\tR\013pr" +
-      "ocessedAt\022E\n\007content\030\004 \003(\0132+.ai.stigmer." +
-      "agentic.session.v1.ContentBlockR\007content" +
-      "\022\031\n\010is_error\030\005 \001(\010R\007isError\"\242\001\n\031SessionT" +
-      "hreadCreatedEvent\022\016\n\002id\030\001 \001(\tR\002id\022\035\n\nage" +
-      "nt_name\030\002 \001(\tR\tagentName\022!\n\014processed_at" +
-      "\030\003 \001(\tR\013processedAt\0223\n\021session_thread_id" +
-      "\030\004 \001(\tB\007\272H\004r\002\020\001R\017sessionThreadId\"\250\001\n\037Ses" +
-      "sionThreadStatusRunningEvent\022\016\n\002id\030\001 \001(\t" +
+      "runId\022J\n\tthread_id\030\004 \001(\tB-\272H*r%2#^[A-Za-" +
+      "z0-9][A-Za-z0-9_.:-]{0,127}$\330\001\001R\010threadI" +
+      "d\022f\n\014user_message\030\n \001(\0132/.ai.stigmer.age" +
+      "ntic.session.v1.UserMessageEventB\020\362\205,\014us" +
+      "er.messageH\000R\013userMessage\022\214\001\n\026session_st" +
+      "atus_running\030\013 \001(\01328.ai.stigmer.agentic." +
+      "session.v1.SessionStatusRunningEventB\032\362\205" +
+      ",\026session.status_runningH\000R\024sessionStatu" +
+      "sRunning\022\200\001\n\023session_status_idle\030\014 \001(\01325" +
+      ".ai.stigmer.agentic.session.v1.SessionSt" +
+      "atusIdleEventB\027\362\205,\023session.status_idleH\000" +
+      "R\021sessionStatusIdle\022j\n\rsession_error\030\r \001" +
+      "(\01320.ai.stigmer.agentic.session.v1.Sessi" +
+      "onErrorEventB\021\362\205,\rsession.errorH\000R\014sessi" +
+      "onError\022j\n\ragent_message\030\016 \001(\01320.ai.stig" +
+      "mer.agentic.session.v1.AgentMessageEvent" +
+      "B\021\362\205,\ragent.messageH\000R\014agentMessage\022n\n\016a" +
+      "gent_thinking\030\017 \001(\01321.ai.stigmer.agentic" +
+      ".session.v1.AgentThinkingEventB\022\362\205,\016agen" +
+      "t.thinkingH\000R\ragentThinking\022l\n\016agent_too" +
+      "l_use\030\020 \001(\01320.ai.stigmer.agentic.session" +
+      ".v1.AgentToolUseEventB\022\362\205,\016agent.tool_us" +
+      "eH\000R\014agentToolUse\022x\n\021agent_tool_result\030\021" +
+      " \001(\01323.ai.stigmer.agentic.session.v1.Age" +
+      "ntToolResultEventB\025\362\205,\021agent.tool_result" +
+      "H\000R\017agentToolResult\022z\n\022agent_mcp_tool_us" +
+      "e\030\022 \001(\01323.ai.stigmer.agentic.session.v1." +
+      "AgentMcpToolUseEventB\026\362\205,\022agent.mcp_tool" +
+      "_useH\000R\017agentMcpToolUse\022\206\001\n\025agent_mcp_to" +
+      "ol_result\030\023 \001(\01326.ai.stigmer.agentic.ses" +
+      "sion.v1.AgentMcpToolResultEventB\031\362\205,\025age" +
+      "nt.mcp_tool_resultH\000R\022agentMcpToolResult" +
+      "\022\214\001\n\026session_thread_created\030\024 \001(\01328.ai.s" +
+      "tigmer.agentic.session.v1.SessionThreadC" +
+      "reatedEventB\032\362\205,\026session.thread_createdH" +
+      "\000R\024sessionThreadCreated\022\246\001\n\035session_thre" +
+      "ad_status_running\030\025 \001(\0132>.ai.stigmer.age" +
+      "ntic.session.v1.SessionThreadStatusRunni" +
+      "ngEventB!\362\205,\035session.thread_status_runni" +
+      "ngH\000R\032sessionThreadStatusRunning\022\232\001\n\032ses" +
+      "sion_thread_status_idle\030\026 \001(\0132;.ai.stigm" +
+      "er.agentic.session.v1.SessionThreadStatu" +
+      "sIdleEventB\036\362\205,\032session.thread_status_id" +
+      "leH\000R\027sessionThreadStatusIdle\022\226\001\n\031agent_" +
+      "thread_message_sent\030\027 \001(\0132:.ai.stigmer.a" +
+      "gentic.session.v1.AgentThreadMessageSent" +
+      "EventB\035\362\205,\031agent.thread_message_sentH\000R\026" +
+      "agentThreadMessageSent\022\246\001\n\035agent_thread_" +
+      "message_received\030\030 \001(\0132>.ai.stigmer.agen" +
+      "tic.session.v1.AgentThreadMessageReceive" +
+      "dEventB!\362\205,\035agent.thread_message_receive" +
+      "dH\000R\032agentThreadMessageReceived\022\252\001\n\036agen" +
+      "t_thread_context_compacted\030\031 \001(\0132?.ai.st" +
+      "igmer.agentic.session.v1.AgentThreadCont" +
+      "extCompactedEventB\"\362\205,\036agent.thread_cont" +
+      "ext_compactedH\000R\033agentThreadContextCompa" +
+      "ctedB\007\n\005event\"\270\001\n\020UserMessageEvent\022:\n\002id" +
+      "\030\001 \001(\tB*\272H\'r%2#^[A-Za-z0-9][A-Za-z0-9_.:" +
+      "-]{0,127}$R\002id\022E\n\007content\030\002 \003(\0132+.ai.sti" +
+      "gmer.agentic.session.v1.ContentBlockR\007co" +
+      "ntent\022!\n\014processed_at\030\003 \001(\tR\013processedAt" +
+      "\"z\n\031SessionStatusRunningEvent\022:\n\002id\030\001 \001(" +
+      "\tB*\272H\'r%2#^[A-Za-z0-9][A-Za-z0-9_.:-]{0," +
+      "127}$R\002id\022!\n\014processed_at\030\002 \001(\tR\013process" +
+      "edAt\"\260\002\n\026SessionStatusIdleEvent\022:\n\002id\030\001 " +
+      "\001(\tB*\272H\'r%2#^[A-Za-z0-9][A-Za-z0-9_.:-]{" +
+      "0,127}$R\002id\022!\n\014processed_at\030\002 \001(\tR\013proce" +
+      "ssedAt\022R\n\013stop_reason\030\003 \001(\0132).ai.stigmer" +
+      ".agentic.session.v1.StopReasonB\006\272H\003\310\001\001R\n" +
+      "stopReason\022R\n\014stop_details\030\004 \001(\0132*.ai.st" +
+      "igmer.agentic.session.v1.StopDetailsH\000R\013" +
+      "stopDetails\210\001\001B\017\n\r_stop_details\"\275\001\n\021Sess" +
+      "ionErrorEvent\022:\n\002id\030\001 \001(\tB*\272H\'r%2#^[A-Za" +
+      "-z0-9][A-Za-z0-9_.:-]{0,127}$R\002id\022!\n\014pro" +
+      "cessed_at\030\002 \001(\tR\013processedAt\022I\n\005error\030\003 " +
+      "\001(\0132+.ai.stigmer.agentic.session.v1.Sess" +
+      "ionErrorB\006\272H\003\310\001\001R\005error\"\271\001\n\021AgentMessage" +
+      "Event\022:\n\002id\030\001 \001(\tB*\272H\'r%2#^[A-Za-z0-9][A" +
+      "-Za-z0-9_.:-]{0,127}$R\002id\022E\n\007content\030\002 \003" +
+      "(\0132+.ai.stigmer.agentic.session.v1.Conte" +
+      "ntBlockR\007content\022!\n\014processed_at\030\003 \001(\tR\013" +
+      "processedAt\"s\n\022AgentThinkingEvent\022:\n\002id\030" +
+      "\001 \001(\tB*\272H\'r%2#^[A-Za-z0-9][A-Za-z0-9_.:-" +
+      "]{0,127}$R\002id\022!\n\014processed_at\030\002 \001(\tR\013pro" +
+      "cessedAt\"\220\003\n\021AgentToolUseEvent\022:\n\002id\030\001 \001" +
+      "(\tB*\272H\'r%2#^[A-Za-z0-9][A-Za-z0-9_.:-]{0" +
+      ",127}$R\002id\0225\n\005input\030\002 \001(\0132\027.google.proto" +
+      "buf.StructB\006\272H\003\310\001\001R\005input\022\033\n\004name\030\003 \001(\tB" +
+      "\007\272H\004r\002\020\001R\004name\022!\n\014processed_at\030\004 \001(\tR\013pr" +
+      "ocessedAt\022M\n\024evaluated_permission\030\005 \001(\tB" +
+      "\032\272H\027r\022R\005allowR\003askR\004deny\330\001\001R\023evaluatedPe" +
+      "rmission\022M\n\nevaluation\030\006 \001(\0132-.ai.stigme" +
+      "r.agentic.session.v1.ToolEvaluationR\neva" +
+      "luation\022*\n\021session_thread_id\030\007 \001(\tR\017sess" +
+      "ionThreadId\"\200\002\n\024AgentToolResultEvent\022:\n\002" +
+      "id\030\001 \001(\tB*\272H\'r%2#^[A-Za-z0-9][A-Za-z0-9_" +
+      ".:-]{0,127}$R\002id\022!\n\014processed_at\030\002 \001(\tR\013" +
+      "processedAt\022\'\n\013tool_use_id\030\003 \001(\tB\007\272H\004r\002\020" +
+      "\001R\ttoolUseId\022E\n\007content\030\004 \003(\0132+.ai.stigm" +
+      "er.agentic.session.v1.ContentBlockR\007cont" +
+      "ent\022\031\n\010is_error\030\005 \001(\010R\007isError\"\304\003\n\024Agent" +
+      "McpToolUseEvent\022:\n\002id\030\001 \001(\tB*\272H\'r%2#^[A-" +
+      "Za-z0-9][A-Za-z0-9_.:-]{0,127}$R\002id\0225\n\005i" +
+      "nput\030\002 \001(\0132\027.google.protobuf.StructB\006\272H\003" +
+      "\310\001\001R\005input\022/\n\017mcp_server_name\030\003 \001(\tB\007\272H\004" +
+      "r\002\020\001R\rmcpServerName\022\033\n\004name\030\004 \001(\tB\007\272H\004r\002" +
+      "\020\001R\004name\022!\n\014processed_at\030\005 \001(\tR\013processe" +
+      "dAt\022M\n\024evaluated_permission\030\006 \001(\tB\032\272H\027r\022" +
+      "R\005allowR\003askR\004deny\330\001\001R\023evaluatedPermissi" +
+      "on\022M\n\nevaluation\030\007 \001(\0132-.ai.stigmer.agen" +
+      "tic.session.v1.ToolEvaluationR\nevaluatio" +
+      "n\022*\n\021session_thread_id\030\010 \001(\tR\017sessionThr" +
+      "eadId\"\212\002\n\027AgentMcpToolResultEvent\022:\n\002id\030" +
+      "\001 \001(\tB*\272H\'r%2#^[A-Za-z0-9][A-Za-z0-9_.:-" +
+      "]{0,127}$R\002id\022.\n\017mcp_tool_use_id\030\002 \001(\tB\007" +
+      "\272H\004r\002\020\001R\014mcpToolUseId\022!\n\014processed_at\030\003 " +
+      "\001(\tR\013processedAt\022E\n\007content\030\004 \003(\0132+.ai.s" +
+      "tigmer.agentic.session.v1.ContentBlockR\007" +
+      "content\022\031\n\010is_error\030\005 \001(\010R\007isError\"\316\001\n\031S" +
+      "essionThreadCreatedEvent\022:\n\002id\030\001 \001(\tB*\272H" +
+      "\'r%2#^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$" +
       "R\002id\022\035\n\nagent_name\030\002 \001(\tR\tagentName\022!\n\014p" +
       "rocessed_at\030\003 \001(\tR\013processedAt\0223\n\021sessio" +
       "n_thread_id\030\004 \001(\tB\007\272H\004r\002\020\001R\017sessionThrea" +
-      "dId\"\336\002\n\034SessionThreadStatusIdleEvent\022\016\n\002" +
-      "id\030\001 \001(\tR\002id\022\035\n\nagent_name\030\002 \001(\tR\tagentN" +
-      "ame\022!\n\014processed_at\030\003 \001(\tR\013processedAt\0223" +
-      "\n\021session_thread_id\030\004 \001(\tB\007\272H\004r\002\020\001R\017sess" +
-      "ionThreadId\022R\n\013stop_reason\030\005 \001(\0132).ai.st" +
-      "igmer.agentic.session.v1.StopReasonB\006\272H\003" +
-      "\310\001\001R\nstopReason\022R\n\014stop_details\030\006 \001(\0132*." +
-      "ai.stigmer.agentic.session.v1.StopDetail" +
-      "sH\000R\013stopDetails\210\001\001B\017\n\r_stop_details\"\365\001\n" +
-      "\033AgentThreadMessageSentEvent\022\016\n\002id\030\001 \001(\t" +
-      "R\002id\022E\n\007content\030\002 \003(\0132+.ai.stigmer.agent" +
-      "ic.session.v1.ContentBlockR\007content\022!\n\014p" +
-      "rocessed_at\030\003 \001(\tR\013processedAt\0228\n\024to_ses" +
-      "sion_thread_id\030\004 \001(\tB\007\272H\004r\002\020\001R\021toSession" +
-      "ThreadId\022\"\n\rto_agent_name\030\005 \001(\tR\013toAgent" +
-      "Name\"\201\002\n\037AgentThreadMessageReceivedEvent" +
-      "\022\016\n\002id\030\001 \001(\tR\002id\022E\n\007content\030\002 \003(\0132+.ai.s" +
-      "tigmer.agentic.session.v1.ContentBlockR\007" +
-      "content\022<\n\026from_session_thread_id\030\003 \001(\tB" +
-      "\007\272H\004r\002\020\001R\023fromSessionThreadId\022!\n\014process" +
-      "ed_at\030\004 \001(\tR\013processedAt\022&\n\017from_agent_n" +
-      "ame\030\005 \001(\tR\rfromAgentName\"U\n AgentThreadC" +
-      "ontextCompactedEvent\022\016\n\002id\030\001 \001(\tR\002id\022!\n\014" +
-      "processed_at\030\002 \001(\tR\013processedAt\"W\n\nEvent" +
-      "Start\022I\n\005event\030\001 \001(\0132+.ai.stigmer.agenti" +
-      "c.session.v1.EventPreviewB\006\272H\003\310\001\001R\005event" +
-      "\"a\n\014EventPreview\022\027\n\002id\030\001 \001(\tB\007\272H\004r\002\020\001R\002i" +
-      "d\0228\n\004type\030\002 \001(\tB$\272H!r\037R\ragent.messageR\016a" +
-      "gent.thinkingR\004type\"{\n\nEventDelta\022I\n\005del" +
-      "ta\030\001 \001(\0132+.ai.stigmer.agentic.session.v1" +
-      ".DeltaContentB\006\272H\003\310\001\001R\005delta\022\"\n\010event_id" +
-      "\030\002 \001(\tB\007\272H\004r\002\020\001R\007eventId\"\246\001\n\014DeltaConten" +
-      "t\022M\n\007content\030\001 \001(\0132+.ai.stigmer.agentic." +
-      "session.v1.ContentBlockB\006\272H\003\310\001\001R\007content" +
-      "\022(\n\004type\030\002 \001(\tB\024\272H\021r\017R\rcontent_deltaR\004ty" +
-      "pe\022\035\n\005index\030\003 \001(\005B\007\272H\004\032\002(\000R\005indexB\245\001B\nEv" +
-      "entProtoP\001\242\002\004ASAS\252\002\035Ai.Stigmer.Agentic.S" +
-      "ession.V1\312\002\035Ai\\Stigmer\\Agentic\\Session\\V" +
-      "1\342\002)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMet" +
-      "adata\352\002!Ai::Stigmer::Agentic::Session::V" +
-      "1b\006proto3"
+      "dId\"\324\001\n\037SessionThreadStatusRunningEvent\022" +
+      ":\n\002id\030\001 \001(\tB*\272H\'r%2#^[A-Za-z0-9][A-Za-z0" +
+      "-9_.:-]{0,127}$R\002id\022\035\n\nagent_name\030\002 \001(\tR" +
+      "\tagentName\022!\n\014processed_at\030\003 \001(\tR\013proces" +
+      "sedAt\0223\n\021session_thread_id\030\004 \001(\tB\007\272H\004r\002\020" +
+      "\001R\017sessionThreadId\"\212\003\n\034SessionThreadStat" +
+      "usIdleEvent\022:\n\002id\030\001 \001(\tB*\272H\'r%2#^[A-Za-z" +
+      "0-9][A-Za-z0-9_.:-]{0,127}$R\002id\022\035\n\nagent" +
+      "_name\030\002 \001(\tR\tagentName\022!\n\014processed_at\030\003" +
+      " \001(\tR\013processedAt\0223\n\021session_thread_id\030\004" +
+      " \001(\tB\007\272H\004r\002\020\001R\017sessionThreadId\022R\n\013stop_r" +
+      "eason\030\005 \001(\0132).ai.stigmer.agentic.session" +
+      ".v1.StopReasonB\006\272H\003\310\001\001R\nstopReason\022R\n\014st" +
+      "op_details\030\006 \001(\0132*.ai.stigmer.agentic.se" +
+      "ssion.v1.StopDetailsH\000R\013stopDetails\210\001\001B\017" +
+      "\n\r_stop_details\"\241\002\n\033AgentThreadMessageSe" +
+      "ntEvent\022:\n\002id\030\001 \001(\tB*\272H\'r%2#^[A-Za-z0-9]" +
+      "[A-Za-z0-9_.:-]{0,127}$R\002id\022E\n\007content\030\002" +
+      " \003(\0132+.ai.stigmer.agentic.session.v1.Con" +
+      "tentBlockR\007content\022!\n\014processed_at\030\003 \001(\t" +
+      "R\013processedAt\0228\n\024to_session_thread_id\030\004 " +
+      "\001(\tB\007\272H\004r\002\020\001R\021toSessionThreadId\022\"\n\rto_ag" +
+      "ent_name\030\005 \001(\tR\013toAgentName\"\255\002\n\037AgentThr" +
+      "eadMessageReceivedEvent\022:\n\002id\030\001 \001(\tB*\272H\'" +
+      "r%2#^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$R" +
+      "\002id\022E\n\007content\030\002 \003(\0132+.ai.stigmer.agenti" +
+      "c.session.v1.ContentBlockR\007content\022<\n\026fr" +
+      "om_session_thread_id\030\003 \001(\tB\007\272H\004r\002\020\001R\023fro" +
+      "mSessionThreadId\022!\n\014processed_at\030\004 \001(\tR\013" +
+      "processedAt\022&\n\017from_agent_name\030\005 \001(\tR\rfr" +
+      "omAgentName\"\201\001\n AgentThreadContextCompac" +
+      "tedEvent\022:\n\002id\030\001 \001(\tB*\272H\'r%2#^[A-Za-z0-9" +
+      "][A-Za-z0-9_.:-]{0,127}$R\002id\022!\n\014processe" +
+      "d_at\030\002 \001(\tR\013processedAt\"W\n\nEventStart\022I\n" +
+      "\005event\030\001 \001(\0132+.ai.stigmer.agentic.sessio" +
+      "n.v1.EventPreviewB\006\272H\003\310\001\001R\005event\"\204\001\n\014Eve" +
+      "ntPreview\022:\n\002id\030\001 \001(\tB*\272H\'r%2#^[A-Za-z0-" +
+      "9][A-Za-z0-9_.:-]{0,127}$R\002id\0228\n\004type\030\002 " +
+      "\001(\tB$\272H!r\037R\ragent.messageR\016agent.thinkin" +
+      "gR\004type\"\236\001\n\nEventDelta\022I\n\005delta\030\001 \001(\0132+." +
+      "ai.stigmer.agentic.session.v1.DeltaConte" +
+      "ntB\006\272H\003\310\001\001R\005delta\022E\n\010event_id\030\002 \001(\tB*\272H\'" +
+      "r%2#^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$R" +
+      "\007eventId\"\246\001\n\014DeltaContent\022M\n\007content\030\001 \001" +
+      "(\0132+.ai.stigmer.agentic.session.v1.Conte" +
+      "ntBlockB\006\272H\003\310\001\001R\007content\022(\n\004type\030\002 \001(\tB\024" +
+      "\272H\021r\017R\rcontent_deltaR\004type\022\035\n\005index\030\003 \001(" +
+      "\005B\007\272H\004\032\002(\000R\005indexB\245\001B\nEventProtoP\001\242\002\004ASA" +
+      "S\252\002\035Ai.Stigmer.Agentic.Session.V1\312\002\035Ai\\S" +
+      "tigmer\\Agentic\\Session\\V1\342\002)Ai\\Stigmer\\A" +
+      "gentic\\Session\\V1\\GPBMetadata\352\002!Ai::Stig" +
+      "mer::Agentic::Session::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

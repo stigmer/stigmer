@@ -177,7 +177,7 @@
               "messageType": "SessionEvent"
             }
           },
-          "description": "The events, in order. Each carries its own id, unique in the session,\n and its thread; the server assigns seq and processed_at. A resent id\n with the same event is accepted again without a second entry.",
+          "description": "The events, in order. Each carries its own id, unique in the session\n (ids starting with sevt_ are the server's), and its thread; the server\n assigns seq and processed_at. A resent id with the same event is\n accepted again without a second entry.",
           "required": false,
           "validation": {
             "maxItems": 1000
@@ -204,7 +204,7 @@
     },
     {
       "name": "AppendSessionEventsResponse",
-      "description": "AppendSessionEventsResponse holds the events as appended.",
+      "description": "AppendSessionEventsResponse says where each event of the request sits in\n the log.",
       "protoType": "ai.stigmer.agentic.session.v1.AppendSessionEventsResponse",
       "protoFile": "apis/ai/stigmer/agentic/session/v1/io.proto",
       "fields": [
@@ -219,7 +219,7 @@
               "messageType": "SessionEvent"
             }
           },
-          "description": "The events, each with its seq and processed_at.",
+          "description": "One entry per event of the request, in order, by identity only: the\n envelope with its seq, and the event's type, id and processed_at. The\n content is not echoed; a resent event answers its first place.",
           "required": false
         }
       ]

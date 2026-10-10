@@ -66,7 +66,7 @@ private static final long serialVersionUID = 0L;
    * The event's id, unique in its session; the tool's result names it.
    * </pre>
    *
-   * <code>string id = 1 [json_name = "id"];</code>
+   * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
    * @return The id.
    */
   @java.lang.Override
@@ -87,7 +87,7 @@ private static final long serialVersionUID = 0L;
    * The event's id, unique in its session; the tool's result names it.
    * </pre>
    *
-   * <code>string id = 1 [json_name = "id"];</code>
+   * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
    * @return The bytes for id.
    */
   @java.lang.Override
@@ -852,7 +852,7 @@ private static final long serialVersionUID = 0L;
      * The event's id, unique in its session; the tool's result names it.
      * </pre>
      *
-     * <code>string id = 1 [json_name = "id"];</code>
+     * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
      * @return The id.
      */
     public java.lang.String getId() {
@@ -872,7 +872,7 @@ private static final long serialVersionUID = 0L;
      * The event's id, unique in its session; the tool's result names it.
      * </pre>
      *
-     * <code>string id = 1 [json_name = "id"];</code>
+     * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
      * @return The bytes for id.
      */
     public com.google.protobuf.ByteString
@@ -893,7 +893,7 @@ private static final long serialVersionUID = 0L;
      * The event's id, unique in its session; the tool's result names it.
      * </pre>
      *
-     * <code>string id = 1 [json_name = "id"];</code>
+     * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
      * @param value The id to set.
      * @return This builder for chaining.
      */
@@ -910,7 +910,7 @@ private static final long serialVersionUID = 0L;
      * The event's id, unique in its session; the tool's result names it.
      * </pre>
      *
-     * <code>string id = 1 [json_name = "id"];</code>
+     * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
     public Builder clearId() {
@@ -924,7 +924,7 @@ private static final long serialVersionUID = 0L;
      * The event's id, unique in its session; the tool's result names it.
      * </pre>
      *
-     * <code>string id = 1 [json_name = "id"];</code>
+     * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
      * @param value The bytes for id to set.
      * @return This builder for chaining.
      */

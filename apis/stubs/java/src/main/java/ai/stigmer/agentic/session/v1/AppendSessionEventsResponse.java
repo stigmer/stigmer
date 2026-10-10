@@ -7,7 +7,8 @@ package ai.stigmer.agentic.session.v1;
 
 /**
  * <pre>
- * AppendSessionEventsResponse holds the events as appended.
+ * AppendSessionEventsResponse says where each event of the request sits in
+ * the log.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.session.v1.AppendSessionEventsResponse}
@@ -58,7 +59,9 @@ private static final long serialVersionUID = 0L;
   private java.util.List<ai.stigmer.agentic.session.v1.SessionEvent> events_;
   /**
    * <pre>
-   * The events, each with its seq and processed_at.
+   * One entry per event of the request, in order, by identity only: the
+   * envelope with its seq, and the event's type, id and processed_at. The
+   * content is not echoed; a resent event answers its first place.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.session.v1.SessionEvent events = 1 [json_name = "events"];</code>
@@ -69,7 +72,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The events, each with its seq and processed_at.
+   * One entry per event of the request, in order, by identity only: the
+   * envelope with its seq, and the event's type, id and processed_at. The
+   * content is not echoed; a resent event answers its first place.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.session.v1.SessionEvent events = 1 [json_name = "events"];</code>
@@ -81,7 +86,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The events, each with its seq and processed_at.
+   * One entry per event of the request, in order, by identity only: the
+   * envelope with its seq, and the event's type, id and processed_at. The
+   * content is not echoed; a resent event answers its first place.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.session.v1.SessionEvent events = 1 [json_name = "events"];</code>
@@ -92,7 +99,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The events, each with its seq and processed_at.
+   * One entry per event of the request, in order, by identity only: the
+   * envelope with its seq, and the event's type, id and processed_at. The
+   * content is not echoed; a resent event answers its first place.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.session.v1.SessionEvent events = 1 [json_name = "events"];</code>
@@ -103,7 +112,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The events, each with its seq and processed_at.
+   * One entry per event of the request, in order, by identity only: the
+   * envelope with its seq, and the event's type, id and processed_at. The
+   * content is not echoed; a resent event answers its first place.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.session.v1.SessionEvent events = 1 [json_name = "events"];</code>
@@ -280,7 +291,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * AppendSessionEventsResponse holds the events as appended.
+   * AppendSessionEventsResponse says where each event of the request sits in
+   * the log.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.session.v1.AppendSessionEventsResponse}
@@ -479,7 +491,9 @@ private static final long serialVersionUID = 0L;
 
     /**
      * <pre>
-     * The events, each with its seq and processed_at.
+     * One entry per event of the request, in order, by identity only: the
+     * envelope with its seq, and the event's type, id and processed_at. The
+     * content is not echoed; a resent event answers its first place.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.SessionEvent events = 1 [json_name = "events"];</code>
@@ -493,7 +507,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The events, each with its seq and processed_at.
+     * One entry per event of the request, in order, by identity only: the
+     * envelope with its seq, and the event's type, id and processed_at. The
+     * content is not echoed; a resent event answers its first place.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.SessionEvent events = 1 [json_name = "events"];</code>
@@ -507,7 +523,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The events, each with its seq and processed_at.
+     * One entry per event of the request, in order, by identity only: the
+     * envelope with its seq, and the event's type, id and processed_at. The
+     * content is not echoed; a resent event answers its first place.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.SessionEvent events = 1 [json_name = "events"];</code>
@@ -521,7 +539,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The events, each with its seq and processed_at.
+     * One entry per event of the request, in order, by identity only: the
+     * envelope with its seq, and the event's type, id and processed_at. The
+     * content is not echoed; a resent event answers its first place.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.SessionEvent events = 1 [json_name = "events"];</code>
@@ -542,7 +562,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The events, each with its seq and processed_at.
+     * One entry per event of the request, in order, by identity only: the
+     * envelope with its seq, and the event's type, id and processed_at. The
+     * content is not echoed; a resent event answers its first place.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.SessionEvent events = 1 [json_name = "events"];</code>
@@ -560,7 +582,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The events, each with its seq and processed_at.
+     * One entry per event of the request, in order, by identity only: the
+     * envelope with its seq, and the event's type, id and processed_at. The
+     * content is not echoed; a resent event answers its first place.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.SessionEvent events = 1 [json_name = "events"];</code>
@@ -580,7 +604,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The events, each with its seq and processed_at.
+     * One entry per event of the request, in order, by identity only: the
+     * envelope with its seq, and the event's type, id and processed_at. The
+     * content is not echoed; a resent event answers its first place.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.SessionEvent events = 1 [json_name = "events"];</code>
@@ -601,7 +627,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The events, each with its seq and processed_at.
+     * One entry per event of the request, in order, by identity only: the
+     * envelope with its seq, and the event's type, id and processed_at. The
+     * content is not echoed; a resent event answers its first place.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.SessionEvent events = 1 [json_name = "events"];</code>
@@ -619,7 +647,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The events, each with its seq and processed_at.
+     * One entry per event of the request, in order, by identity only: the
+     * envelope with its seq, and the event's type, id and processed_at. The
+     * content is not echoed; a resent event answers its first place.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.SessionEvent events = 1 [json_name = "events"];</code>
@@ -637,7 +667,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The events, each with its seq and processed_at.
+     * One entry per event of the request, in order, by identity only: the
+     * envelope with its seq, and the event's type, id and processed_at. The
+     * content is not echoed; a resent event answers its first place.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.SessionEvent events = 1 [json_name = "events"];</code>
@@ -656,7 +688,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The events, each with its seq and processed_at.
+     * One entry per event of the request, in order, by identity only: the
+     * envelope with its seq, and the event's type, id and processed_at. The
+     * content is not echoed; a resent event answers its first place.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.SessionEvent events = 1 [json_name = "events"];</code>
@@ -673,7 +707,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The events, each with its seq and processed_at.
+     * One entry per event of the request, in order, by identity only: the
+     * envelope with its seq, and the event's type, id and processed_at. The
+     * content is not echoed; a resent event answers its first place.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.SessionEvent events = 1 [json_name = "events"];</code>
@@ -690,7 +726,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The events, each with its seq and processed_at.
+     * One entry per event of the request, in order, by identity only: the
+     * envelope with its seq, and the event's type, id and processed_at. The
+     * content is not echoed; a resent event answers its first place.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.SessionEvent events = 1 [json_name = "events"];</code>
@@ -701,7 +739,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The events, each with its seq and processed_at.
+     * One entry per event of the request, in order, by identity only: the
+     * envelope with its seq, and the event's type, id and processed_at. The
+     * content is not echoed; a resent event answers its first place.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.SessionEvent events = 1 [json_name = "events"];</code>
@@ -715,7 +755,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The events, each with its seq and processed_at.
+     * One entry per event of the request, in order, by identity only: the
+     * envelope with its seq, and the event's type, id and processed_at. The
+     * content is not echoed; a resent event answers its first place.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.SessionEvent events = 1 [json_name = "events"];</code>
@@ -730,7 +772,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The events, each with its seq and processed_at.
+     * One entry per event of the request, in order, by identity only: the
+     * envelope with its seq, and the event's type, id and processed_at. The
+     * content is not echoed; a resent event answers its first place.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.SessionEvent events = 1 [json_name = "events"];</code>
@@ -741,7 +785,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The events, each with its seq and processed_at.
+     * One entry per event of the request, in order, by identity only: the
+     * envelope with its seq, and the event's type, id and processed_at. The
+     * content is not echoed; a resent event answers its first place.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.SessionEvent events = 1 [json_name = "events"];</code>
@@ -753,7 +799,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The events, each with its seq and processed_at.
+     * One entry per event of the request, in order, by identity only: the
+     * envelope with its seq, and the event's type, id and processed_at. The
+     * content is not echoed; a resent event answers its first place.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.session.v1.SessionEvent events = 1 [json_name = "events"];</code>

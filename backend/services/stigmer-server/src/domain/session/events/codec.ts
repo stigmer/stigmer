@@ -12,7 +12,8 @@
  *
  * Proven by __tests__/codec.test.ts.
  */
-import { clone, fromBinary, toBinary } from "@bufbuild/protobuf";
+import { clearField, clone, fromBinary, toBinary } from "@bufbuild/protobuf";
+import type { Message } from "@bufbuild/protobuf";
 
 import {
   SessionEventSchema,
@@ -37,6 +38,25 @@ export function draftOf(event: SessionEvent): SessionEventDraft {
     type: eventTypeOf(event),
     data: toBinary(SessionEventSchema, bare),
   };
+}
+
+/**
+ * A stored record by identity only: the envelope with its seq, and the
+ * event's case, id and accepted time, every other field cleared. What an
+ * append answers, so its reply never outgrows the request.
+ */
+export function identityOf(record: SessionEventRecord): SessionEvent {
+  const event = eventOf(record);
+  const member = SessionEventSchema.oneofs[0]?.fields.find((f) => f.localName === event.event.case);
+  if (event.event.case !== undefined && member?.message !== undefined) {
+    const inner = event.event.value as Message;
+    for (const field of member.message.fields) {
+      if (field.localName !== "id" && field.localName !== "processedAt") {
+        clearField(inner, field);
+      }
+    }
+  }
+  return event;
 }
 
 /** A stored record as the event a reader gets: decoded, with its seq, session and accepted time. */

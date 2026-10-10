@@ -395,7 +395,7 @@ func (*SessionEvent_AgentThreadContextCompacted) isSessionEvent_Event() {}
 // UserMessageEvent is a message the user sent: user.message.
 type UserMessageEvent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The event's id, unique in its session.
+	// The event's id, unique in its session: letters, digits, _ . : -, at most 128.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// The message's content.
 	Content []*ContentBlock `protobuf:"bytes,2,rep,name=content,proto3" json:"content,omitempty"`
@@ -460,7 +460,7 @@ func (x *UserMessageEvent) GetProcessedAt() string {
 // session.status_running.
 type SessionStatusRunningEvent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The event's id, unique in its session.
+	// The event's id, unique in its session: letters, digits, _ . : -, at most 128.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// When the event was appended, as RFC 3339 UTC.
 	ProcessedAt   string `protobuf:"bytes,2,opt,name=processed_at,json=processedAt,proto3" json:"processed_at,omitempty"`
@@ -516,7 +516,7 @@ func (x *SessionStatusRunningEvent) GetProcessedAt() string {
 // input: session.status_idle.
 type SessionStatusIdleEvent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The event's id, unique in its session.
+	// The event's id, unique in its session: letters, digits, _ . : -, at most 128.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// When the event was appended, as RFC 3339 UTC.
 	ProcessedAt string `protobuf:"bytes,2,opt,name=processed_at,json=processedAt,proto3" json:"processed_at,omitempty"`
@@ -589,7 +589,7 @@ func (x *SessionStatusIdleEvent) GetStopDetails() *StopDetails {
 // SessionErrorEvent reports an error: session.error.
 type SessionErrorEvent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The event's id, unique in its session.
+	// The event's id, unique in its session: letters, digits, _ . : -, at most 128.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// When the event was appended, as RFC 3339 UTC.
 	ProcessedAt string `protobuf:"bytes,2,opt,name=processed_at,json=processedAt,proto3" json:"processed_at,omitempty"`
@@ -653,7 +653,7 @@ func (x *SessionErrorEvent) GetError() *SessionError {
 // AgentMessageEvent is a message the agent wrote: agent.message.
 type AgentMessageEvent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The event's id, unique in its session.
+	// The event's id, unique in its session: letters, digits, _ . : -, at most 128.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// The message's content: text and redacted blocks.
 	Content []*ContentBlock `protobuf:"bytes,2,rep,name=content,proto3" json:"content,omitempty"`
@@ -718,7 +718,7 @@ func (x *AgentMessageEvent) GetProcessedAt() string {
 // carries no text.
 type AgentThinkingEvent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The event's id, unique in its session.
+	// The event's id, unique in its session: letters, digits, _ . : -, at most 128.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// When the event was appended, as RFC 3339 UTC.
 	ProcessedAt   string `protobuf:"bytes,2,opt,name=processed_at,json=processedAt,proto3" json:"processed_at,omitempty"`
@@ -873,7 +873,7 @@ func (x *AgentToolUseEvent) GetSessionThreadId() string {
 // AgentToolResultEvent is a built-in tool's result: agent.tool_result.
 type AgentToolResultEvent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The event's id, unique in its session.
+	// The event's id, unique in its session: letters, digits, _ . : -, at most 128.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// When the event was appended, as RFC 3339 UTC.
 	ProcessedAt string `protobuf:"bytes,2,opt,name=processed_at,json=processedAt,proto3" json:"processed_at,omitempty"`
@@ -1066,7 +1066,7 @@ func (x *AgentMcpToolUseEvent) GetSessionThreadId() string {
 // agent.mcp_tool_result.
 type AgentMcpToolResultEvent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The event's id, unique in its session.
+	// The event's id, unique in its session: letters, digits, _ . : -, at most 128.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// The agent.mcp_tool_use event this result answers.
 	McpToolUseId string `protobuf:"bytes,2,opt,name=mcp_tool_use_id,json=mcpToolUseId,proto3" json:"mcp_tool_use_id,omitempty"`
@@ -1149,7 +1149,7 @@ func (x *AgentMcpToolResultEvent) GetIsError() bool {
 // session.thread_created.
 type SessionThreadCreatedEvent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The event's id, unique in its session.
+	// The event's id, unique in its session: letters, digits, _ . : -, at most 128.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// The name of the agent the thread runs.
 	AgentName string `protobuf:"bytes,2,opt,name=agent_name,json=agentName,proto3" json:"agent_name,omitempty"`
@@ -1223,7 +1223,7 @@ func (x *SessionThreadCreatedEvent) GetSessionThreadId() string {
 // session.thread_status_running.
 type SessionThreadStatusRunningEvent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The event's id, unique in its session.
+	// The event's id, unique in its session: letters, digits, _ . : -, at most 128.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// The name of the agent the thread runs.
 	AgentName string `protobuf:"bytes,2,opt,name=agent_name,json=agentName,proto3" json:"agent_name,omitempty"`
@@ -1297,7 +1297,7 @@ func (x *SessionThreadStatusRunningEvent) GetSessionThreadId() string {
 // session.thread_status_idle.
 type SessionThreadStatusIdleEvent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The event's id, unique in its session.
+	// The event's id, unique in its session: letters, digits, _ . : -, at most 128.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// The name of the agent the thread runs.
 	AgentName string `protobuf:"bytes,2,opt,name=agent_name,json=agentName,proto3" json:"agent_name,omitempty"`
@@ -1389,7 +1389,7 @@ func (x *SessionThreadStatusIdleEvent) GetStopDetails() *StopDetails {
 // thread: agent.thread_message_sent.
 type AgentThreadMessageSentEvent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The event's id, unique in its session.
+	// The event's id, unique in its session: letters, digits, _ . : -, at most 128.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// The message's content.
 	Content []*ContentBlock `protobuf:"bytes,2,rep,name=content,proto3" json:"content,omitempty"`
@@ -1472,7 +1472,7 @@ func (x *AgentThreadMessageSentEvent) GetToAgentName() string {
 // another thread: agent.thread_message_received.
 type AgentThreadMessageReceivedEvent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The event's id, unique in its session.
+	// The event's id, unique in its session: letters, digits, _ . : -, at most 128.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// The message's content.
 	Content []*ContentBlock `protobuf:"bytes,2,rep,name=content,proto3" json:"content,omitempty"`
@@ -1555,7 +1555,7 @@ func (x *AgentThreadMessageReceivedEvent) GetFromAgentName() string {
 // agent.thread_context_compacted.
 type AgentThreadContextCompactedEvent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The event's id, unique in its session.
+	// The event's id, unique in its session: letters, digits, _ . : -, at most 128.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// When the event was appended, as RFC 3339 UTC.
 	ProcessedAt   string `protobuf:"bytes,2,opt,name=processed_at,json=processedAt,proto3" json:"processed_at,omitempty"`
@@ -1833,13 +1833,13 @@ var File_ai_stigmer_agentic_session_v1_event_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_event_proto_rawDesc = "" +
 	"\n" +
-	")ai/stigmer/agentic/session/v1/event.proto\x12\x1dai.stigmer.agentic.session.v1\x1a1ai/stigmer/agentic/session/v1/event_content.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xef\x11\n" +
+	")ai/stigmer/agentic/session/v1/event.proto\x12\x1dai.stigmer.agentic.session.v1\x1a1ai/stigmer/agentic/session/v1/event_content.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\x9e\x12\n" +
 	"\fSessionEvent\x12\x10\n" +
 	"\x03seq\x18\x01 \x01(\x03R\x03seq\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x02 \x01(\tR\tsessionId\x12\x15\n" +
-	"\x06run_id\x18\x03 \x01(\tR\x05runId\x12\x1b\n" +
-	"\tthread_id\x18\x04 \x01(\tR\bthreadId\x12f\n" +
+	"\x06run_id\x18\x03 \x01(\tR\x05runId\x12J\n" +
+	"\tthread_id\x18\x04 \x01(\tB-\xbaH*\xd8\x01\x01r%2#^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$R\bthreadId\x12f\n" +
 	"\fuser_message\x18\n" +
 	" \x01(\v2/.ai.stigmer.agentic.session.v1.UserMessageEventB\x10\xf2\x85,\fuser.messageH\x00R\vuserMessage\x12\x8c\x01\n" +
 	"\x16session_status_running\x18\v \x01(\v28.ai.stigmer.agentic.session.v1.SessionStatusRunningEventB\x1a\xf2\x85,\x16session.status_runningH\x00R\x14sessionStatusRunning\x12\x80\x01\n" +
@@ -1857,34 +1857,34 @@ const file_ai_stigmer_agentic_session_v1_event_proto_rawDesc = "" +
 	"\x19agent_thread_message_sent\x18\x17 \x01(\v2:.ai.stigmer.agentic.session.v1.AgentThreadMessageSentEventB\x1d\xf2\x85,\x19agent.thread_message_sentH\x00R\x16agentThreadMessageSent\x12\xa6\x01\n" +
 	"\x1dagent_thread_message_received\x18\x18 \x01(\v2>.ai.stigmer.agentic.session.v1.AgentThreadMessageReceivedEventB!\xf2\x85,\x1dagent.thread_message_receivedH\x00R\x1aagentThreadMessageReceived\x12\xaa\x01\n" +
 	"\x1eagent_thread_context_compacted\x18\x19 \x01(\v2?.ai.stigmer.agentic.session.v1.AgentThreadContextCompactedEventB\"\xf2\x85,\x1eagent.thread_context_compactedH\x00R\x1bagentThreadContextCompactedB\a\n" +
-	"\x05event\"\x8c\x01\n" +
-	"\x10UserMessageEvent\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12E\n" +
+	"\x05event\"\xb8\x01\n" +
+	"\x10UserMessageEvent\x12:\n" +
+	"\x02id\x18\x01 \x01(\tB*\xbaH'r%2#^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$R\x02id\x12E\n" +
 	"\acontent\x18\x02 \x03(\v2+.ai.stigmer.agentic.session.v1.ContentBlockR\acontent\x12!\n" +
-	"\fprocessed_at\x18\x03 \x01(\tR\vprocessedAt\"N\n" +
-	"\x19SessionStatusRunningEvent\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
-	"\fprocessed_at\x18\x02 \x01(\tR\vprocessedAt\"\x84\x02\n" +
-	"\x16SessionStatusIdleEvent\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
+	"\fprocessed_at\x18\x03 \x01(\tR\vprocessedAt\"z\n" +
+	"\x19SessionStatusRunningEvent\x12:\n" +
+	"\x02id\x18\x01 \x01(\tB*\xbaH'r%2#^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$R\x02id\x12!\n" +
+	"\fprocessed_at\x18\x02 \x01(\tR\vprocessedAt\"\xb0\x02\n" +
+	"\x16SessionStatusIdleEvent\x12:\n" +
+	"\x02id\x18\x01 \x01(\tB*\xbaH'r%2#^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$R\x02id\x12!\n" +
 	"\fprocessed_at\x18\x02 \x01(\tR\vprocessedAt\x12R\n" +
 	"\vstop_reason\x18\x03 \x01(\v2).ai.stigmer.agentic.session.v1.StopReasonB\x06\xbaH\x03\xc8\x01\x01R\n" +
 	"stopReason\x12R\n" +
 	"\fstop_details\x18\x04 \x01(\v2*.ai.stigmer.agentic.session.v1.StopDetailsH\x00R\vstopDetails\x88\x01\x01B\x0f\n" +
-	"\r_stop_details\"\x91\x01\n" +
-	"\x11SessionErrorEvent\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
+	"\r_stop_details\"\xbd\x01\n" +
+	"\x11SessionErrorEvent\x12:\n" +
+	"\x02id\x18\x01 \x01(\tB*\xbaH'r%2#^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$R\x02id\x12!\n" +
 	"\fprocessed_at\x18\x02 \x01(\tR\vprocessedAt\x12I\n" +
-	"\x05error\x18\x03 \x01(\v2+.ai.stigmer.agentic.session.v1.SessionErrorB\x06\xbaH\x03\xc8\x01\x01R\x05error\"\x8d\x01\n" +
-	"\x11AgentMessageEvent\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12E\n" +
+	"\x05error\x18\x03 \x01(\v2+.ai.stigmer.agentic.session.v1.SessionErrorB\x06\xbaH\x03\xc8\x01\x01R\x05error\"\xb9\x01\n" +
+	"\x11AgentMessageEvent\x12:\n" +
+	"\x02id\x18\x01 \x01(\tB*\xbaH'r%2#^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$R\x02id\x12E\n" +
 	"\acontent\x18\x02 \x03(\v2+.ai.stigmer.agentic.session.v1.ContentBlockR\acontent\x12!\n" +
-	"\fprocessed_at\x18\x03 \x01(\tR\vprocessedAt\"G\n" +
-	"\x12AgentThinkingEvent\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
-	"\fprocessed_at\x18\x02 \x01(\tR\vprocessedAt\"\xe4\x02\n" +
-	"\x11AgentToolUseEvent\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x125\n" +
+	"\fprocessed_at\x18\x03 \x01(\tR\vprocessedAt\"s\n" +
+	"\x12AgentThinkingEvent\x12:\n" +
+	"\x02id\x18\x01 \x01(\tB*\xbaH'r%2#^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$R\x02id\x12!\n" +
+	"\fprocessed_at\x18\x02 \x01(\tR\vprocessedAt\"\x90\x03\n" +
+	"\x11AgentToolUseEvent\x12:\n" +
+	"\x02id\x18\x01 \x01(\tB*\xbaH'r%2#^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$R\x02id\x125\n" +
 	"\x05input\x18\x02 \x01(\v2\x17.google.protobuf.StructB\x06\xbaH\x03\xc8\x01\x01R\x05input\x12\x1b\n" +
 	"\x04name\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04name\x12!\n" +
 	"\fprocessed_at\x18\x04 \x01(\tR\vprocessedAt\x12M\n" +
@@ -1892,15 +1892,15 @@ const file_ai_stigmer_agentic_session_v1_event_proto_rawDesc = "" +
 	"\n" +
 	"evaluation\x18\x06 \x01(\v2-.ai.stigmer.agentic.session.v1.ToolEvaluationR\n" +
 	"evaluation\x12*\n" +
-	"\x11session_thread_id\x18\a \x01(\tR\x0fsessionThreadId\"\xd4\x01\n" +
-	"\x14AgentToolResultEvent\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
+	"\x11session_thread_id\x18\a \x01(\tR\x0fsessionThreadId\"\x80\x02\n" +
+	"\x14AgentToolResultEvent\x12:\n" +
+	"\x02id\x18\x01 \x01(\tB*\xbaH'r%2#^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$R\x02id\x12!\n" +
 	"\fprocessed_at\x18\x02 \x01(\tR\vprocessedAt\x12'\n" +
 	"\vtool_use_id\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\ttoolUseId\x12E\n" +
 	"\acontent\x18\x04 \x03(\v2+.ai.stigmer.agentic.session.v1.ContentBlockR\acontent\x12\x19\n" +
-	"\bis_error\x18\x05 \x01(\bR\aisError\"\x98\x03\n" +
-	"\x14AgentMcpToolUseEvent\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x125\n" +
+	"\bis_error\x18\x05 \x01(\bR\aisError\"\xc4\x03\n" +
+	"\x14AgentMcpToolUseEvent\x12:\n" +
+	"\x02id\x18\x01 \x01(\tB*\xbaH'r%2#^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$R\x02id\x125\n" +
 	"\x05input\x18\x02 \x01(\v2\x17.google.protobuf.StructB\x06\xbaH\x03\xc8\x01\x01R\x05input\x12/\n" +
 	"\x0fmcp_server_name\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\rmcpServerName\x12\x1b\n" +
 	"\x04name\x18\x04 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04name\x12!\n" +
@@ -1909,27 +1909,27 @@ const file_ai_stigmer_agentic_session_v1_event_proto_rawDesc = "" +
 	"\n" +
 	"evaluation\x18\a \x01(\v2-.ai.stigmer.agentic.session.v1.ToolEvaluationR\n" +
 	"evaluation\x12*\n" +
-	"\x11session_thread_id\x18\b \x01(\tR\x0fsessionThreadId\"\xde\x01\n" +
-	"\x17AgentMcpToolResultEvent\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12.\n" +
+	"\x11session_thread_id\x18\b \x01(\tR\x0fsessionThreadId\"\x8a\x02\n" +
+	"\x17AgentMcpToolResultEvent\x12:\n" +
+	"\x02id\x18\x01 \x01(\tB*\xbaH'r%2#^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$R\x02id\x12.\n" +
 	"\x0fmcp_tool_use_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\fmcpToolUseId\x12!\n" +
 	"\fprocessed_at\x18\x03 \x01(\tR\vprocessedAt\x12E\n" +
 	"\acontent\x18\x04 \x03(\v2+.ai.stigmer.agentic.session.v1.ContentBlockR\acontent\x12\x19\n" +
-	"\bis_error\x18\x05 \x01(\bR\aisError\"\xa2\x01\n" +
-	"\x19SessionThreadCreatedEvent\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
+	"\bis_error\x18\x05 \x01(\bR\aisError\"\xce\x01\n" +
+	"\x19SessionThreadCreatedEvent\x12:\n" +
+	"\x02id\x18\x01 \x01(\tB*\xbaH'r%2#^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$R\x02id\x12\x1d\n" +
 	"\n" +
 	"agent_name\x18\x02 \x01(\tR\tagentName\x12!\n" +
 	"\fprocessed_at\x18\x03 \x01(\tR\vprocessedAt\x123\n" +
-	"\x11session_thread_id\x18\x04 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x0fsessionThreadId\"\xa8\x01\n" +
-	"\x1fSessionThreadStatusRunningEvent\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
+	"\x11session_thread_id\x18\x04 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x0fsessionThreadId\"\xd4\x01\n" +
+	"\x1fSessionThreadStatusRunningEvent\x12:\n" +
+	"\x02id\x18\x01 \x01(\tB*\xbaH'r%2#^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$R\x02id\x12\x1d\n" +
 	"\n" +
 	"agent_name\x18\x02 \x01(\tR\tagentName\x12!\n" +
 	"\fprocessed_at\x18\x03 \x01(\tR\vprocessedAt\x123\n" +
-	"\x11session_thread_id\x18\x04 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x0fsessionThreadId\"\xde\x02\n" +
-	"\x1cSessionThreadStatusIdleEvent\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
+	"\x11session_thread_id\x18\x04 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x0fsessionThreadId\"\x8a\x03\n" +
+	"\x1cSessionThreadStatusIdleEvent\x12:\n" +
+	"\x02id\x18\x01 \x01(\tB*\xbaH'r%2#^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$R\x02id\x12\x1d\n" +
 	"\n" +
 	"agent_name\x18\x02 \x01(\tR\tagentName\x12!\n" +
 	"\fprocessed_at\x18\x03 \x01(\tR\vprocessedAt\x123\n" +
@@ -1937,32 +1937,32 @@ const file_ai_stigmer_agentic_session_v1_event_proto_rawDesc = "" +
 	"\vstop_reason\x18\x05 \x01(\v2).ai.stigmer.agentic.session.v1.StopReasonB\x06\xbaH\x03\xc8\x01\x01R\n" +
 	"stopReason\x12R\n" +
 	"\fstop_details\x18\x06 \x01(\v2*.ai.stigmer.agentic.session.v1.StopDetailsH\x00R\vstopDetails\x88\x01\x01B\x0f\n" +
-	"\r_stop_details\"\xf5\x01\n" +
-	"\x1bAgentThreadMessageSentEvent\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12E\n" +
+	"\r_stop_details\"\xa1\x02\n" +
+	"\x1bAgentThreadMessageSentEvent\x12:\n" +
+	"\x02id\x18\x01 \x01(\tB*\xbaH'r%2#^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$R\x02id\x12E\n" +
 	"\acontent\x18\x02 \x03(\v2+.ai.stigmer.agentic.session.v1.ContentBlockR\acontent\x12!\n" +
 	"\fprocessed_at\x18\x03 \x01(\tR\vprocessedAt\x128\n" +
 	"\x14to_session_thread_id\x18\x04 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x11toSessionThreadId\x12\"\n" +
-	"\rto_agent_name\x18\x05 \x01(\tR\vtoAgentName\"\x81\x02\n" +
-	"\x1fAgentThreadMessageReceivedEvent\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12E\n" +
+	"\rto_agent_name\x18\x05 \x01(\tR\vtoAgentName\"\xad\x02\n" +
+	"\x1fAgentThreadMessageReceivedEvent\x12:\n" +
+	"\x02id\x18\x01 \x01(\tB*\xbaH'r%2#^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$R\x02id\x12E\n" +
 	"\acontent\x18\x02 \x03(\v2+.ai.stigmer.agentic.session.v1.ContentBlockR\acontent\x12<\n" +
 	"\x16from_session_thread_id\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x13fromSessionThreadId\x12!\n" +
 	"\fprocessed_at\x18\x04 \x01(\tR\vprocessedAt\x12&\n" +
-	"\x0ffrom_agent_name\x18\x05 \x01(\tR\rfromAgentName\"U\n" +
-	" AgentThreadContextCompactedEvent\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
+	"\x0ffrom_agent_name\x18\x05 \x01(\tR\rfromAgentName\"\x81\x01\n" +
+	" AgentThreadContextCompactedEvent\x12:\n" +
+	"\x02id\x18\x01 \x01(\tB*\xbaH'r%2#^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$R\x02id\x12!\n" +
 	"\fprocessed_at\x18\x02 \x01(\tR\vprocessedAt\"W\n" +
 	"\n" +
 	"EventStart\x12I\n" +
-	"\x05event\x18\x01 \x01(\v2+.ai.stigmer.agentic.session.v1.EventPreviewB\x06\xbaH\x03\xc8\x01\x01R\x05event\"a\n" +
-	"\fEventPreview\x12\x17\n" +
-	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\x128\n" +
-	"\x04type\x18\x02 \x01(\tB$\xbaH!r\x1fR\ragent.messageR\x0eagent.thinkingR\x04type\"{\n" +
+	"\x05event\x18\x01 \x01(\v2+.ai.stigmer.agentic.session.v1.EventPreviewB\x06\xbaH\x03\xc8\x01\x01R\x05event\"\x84\x01\n" +
+	"\fEventPreview\x12:\n" +
+	"\x02id\x18\x01 \x01(\tB*\xbaH'r%2#^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$R\x02id\x128\n" +
+	"\x04type\x18\x02 \x01(\tB$\xbaH!r\x1fR\ragent.messageR\x0eagent.thinkingR\x04type\"\x9e\x01\n" +
 	"\n" +
 	"EventDelta\x12I\n" +
-	"\x05delta\x18\x01 \x01(\v2+.ai.stigmer.agentic.session.v1.DeltaContentB\x06\xbaH\x03\xc8\x01\x01R\x05delta\x12\"\n" +
-	"\bevent_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\aeventId\"\xa6\x01\n" +
+	"\x05delta\x18\x01 \x01(\v2+.ai.stigmer.agentic.session.v1.DeltaContentB\x06\xbaH\x03\xc8\x01\x01R\x05delta\x12E\n" +
+	"\bevent_id\x18\x02 \x01(\tB*\xbaH'r%2#^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$R\aeventId\"\xa6\x01\n" +
 	"\fDeltaContent\x12M\n" +
 	"\acontent\x18\x01 \x01(\v2+.ai.stigmer.agentic.session.v1.ContentBlockB\x06\xbaH\x03\xc8\x01\x01R\acontent\x12(\n" +
 	"\x04type\x18\x02 \x01(\tB\x14\xbaH\x11r\x0fR\rcontent_deltaR\x04type\x12\x1d\n" +

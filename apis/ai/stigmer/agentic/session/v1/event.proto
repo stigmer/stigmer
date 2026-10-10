@@ -32,7 +32,10 @@ message SessionEvent {
 
   // The thread that produced the event; empty for the session's primary
   // thread.
-  string thread_id = 4;
+  string thread_id = 4 [
+    (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE,
+    (buf.validate.field).string.pattern = "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+  ];
 
   // The event.
   oneof event {
@@ -88,8 +91,8 @@ message SessionEvent {
 
 // UserMessageEvent is a message the user sent: user.message.
 message UserMessageEvent {
-  // The event's id, unique in its session.
-  string id = 1;
+  // The event's id, unique in its session: letters, digits, _ . : -, at most 128.
+  string id = 1 [(buf.validate.field).string.pattern = "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"];
 
   // The message's content.
   repeated ContentBlock content = 2;
@@ -101,8 +104,8 @@ message UserMessageEvent {
 // SessionStatusRunningEvent says the session started working:
 // session.status_running.
 message SessionStatusRunningEvent {
-  // The event's id, unique in its session.
-  string id = 1;
+  // The event's id, unique in its session: letters, digits, _ . : -, at most 128.
+  string id = 1 [(buf.validate.field).string.pattern = "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"];
 
   // When the event was appended, as RFC 3339 UTC.
   string processed_at = 2;
@@ -111,8 +114,8 @@ message SessionStatusRunningEvent {
 // SessionStatusIdleEvent says the session stopped working and waits for
 // input: session.status_idle.
 message SessionStatusIdleEvent {
-  // The event's id, unique in its session.
-  string id = 1;
+  // The event's id, unique in its session: letters, digits, _ . : -, at most 128.
+  string id = 1 [(buf.validate.field).string.pattern = "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"];
 
   // When the event was appended, as RFC 3339 UTC.
   string processed_at = 2;
@@ -126,8 +129,8 @@ message SessionStatusIdleEvent {
 
 // SessionErrorEvent reports an error: session.error.
 message SessionErrorEvent {
-  // The event's id, unique in its session.
-  string id = 1;
+  // The event's id, unique in its session: letters, digits, _ . : -, at most 128.
+  string id = 1 [(buf.validate.field).string.pattern = "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"];
 
   // When the event was appended, as RFC 3339 UTC.
   string processed_at = 2;
@@ -138,8 +141,8 @@ message SessionErrorEvent {
 
 // AgentMessageEvent is a message the agent wrote: agent.message.
 message AgentMessageEvent {
-  // The event's id, unique in its session.
-  string id = 1;
+  // The event's id, unique in its session: letters, digits, _ . : -, at most 128.
+  string id = 1 [(buf.validate.field).string.pattern = "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"];
 
   // The message's content: text and redacted blocks.
   repeated ContentBlock content = 2;
@@ -151,8 +154,8 @@ message AgentMessageEvent {
 // AgentThinkingEvent says the agent is thinking: agent.thinking. It
 // carries no text.
 message AgentThinkingEvent {
-  // The event's id, unique in its session.
-  string id = 1;
+  // The event's id, unique in its session: letters, digits, _ . : -, at most 128.
+  string id = 1 [(buf.validate.field).string.pattern = "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"];
 
   // When the event was appended, as RFC 3339 UTC.
   string processed_at = 2;
@@ -161,7 +164,7 @@ message AgentThinkingEvent {
 // AgentToolUseEvent is the agent calling a built-in tool: agent.tool_use.
 message AgentToolUseEvent {
   // The event's id, unique in its session; the tool's result names it.
-  string id = 1;
+  string id = 1 [(buf.validate.field).string.pattern = "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"];
 
   // The tool's input.
   google.protobuf.Struct input = 2 [(buf.validate.field).required = true];
@@ -193,8 +196,8 @@ message AgentToolUseEvent {
 
 // AgentToolResultEvent is a built-in tool's result: agent.tool_result.
 message AgentToolResultEvent {
-  // The event's id, unique in its session.
-  string id = 1;
+  // The event's id, unique in its session: letters, digits, _ . : -, at most 128.
+  string id = 1 [(buf.validate.field).string.pattern = "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"];
 
   // When the event was appended, as RFC 3339 UTC.
   string processed_at = 2;
@@ -213,7 +216,7 @@ message AgentToolResultEvent {
 // agent.mcp_tool_use.
 message AgentMcpToolUseEvent {
   // The event's id, unique in its session; the tool's result names it.
-  string id = 1;
+  string id = 1 [(buf.validate.field).string.pattern = "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"];
 
   // The tool's input.
   google.protobuf.Struct input = 2 [(buf.validate.field).required = true];
@@ -249,8 +252,8 @@ message AgentMcpToolUseEvent {
 // AgentMcpToolResultEvent is an MCP server tool's result:
 // agent.mcp_tool_result.
 message AgentMcpToolResultEvent {
-  // The event's id, unique in its session.
-  string id = 1;
+  // The event's id, unique in its session: letters, digits, _ . : -, at most 128.
+  string id = 1 [(buf.validate.field).string.pattern = "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"];
 
   // The agent.mcp_tool_use event this result answers.
   string mcp_tool_use_id = 2 [(buf.validate.field).string.min_len = 1];
@@ -268,8 +271,8 @@ message AgentMcpToolResultEvent {
 // SessionThreadCreatedEvent says a thread (a sub-agent) was created:
 // session.thread_created.
 message SessionThreadCreatedEvent {
-  // The event's id, unique in its session.
-  string id = 1;
+  // The event's id, unique in its session: letters, digits, _ . : -, at most 128.
+  string id = 1 [(buf.validate.field).string.pattern = "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"];
 
   // The name of the agent the thread runs.
   string agent_name = 2;
@@ -284,8 +287,8 @@ message SessionThreadCreatedEvent {
 // SessionThreadStatusRunningEvent says a thread started working:
 // session.thread_status_running.
 message SessionThreadStatusRunningEvent {
-  // The event's id, unique in its session.
-  string id = 1;
+  // The event's id, unique in its session: letters, digits, _ . : -, at most 128.
+  string id = 1 [(buf.validate.field).string.pattern = "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"];
 
   // The name of the agent the thread runs.
   string agent_name = 2;
@@ -300,8 +303,8 @@ message SessionThreadStatusRunningEvent {
 // SessionThreadStatusIdleEvent says a thread stopped working:
 // session.thread_status_idle.
 message SessionThreadStatusIdleEvent {
-  // The event's id, unique in its session.
-  string id = 1;
+  // The event's id, unique in its session: letters, digits, _ . : -, at most 128.
+  string id = 1 [(buf.validate.field).string.pattern = "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"];
 
   // The name of the agent the thread runs.
   string agent_name = 2;
@@ -322,8 +325,8 @@ message SessionThreadStatusIdleEvent {
 // AgentThreadMessageSentEvent is a message the agent sent to another
 // thread: agent.thread_message_sent.
 message AgentThreadMessageSentEvent {
-  // The event's id, unique in its session.
-  string id = 1;
+  // The event's id, unique in its session: letters, digits, _ . : -, at most 128.
+  string id = 1 [(buf.validate.field).string.pattern = "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"];
 
   // The message's content.
   repeated ContentBlock content = 2;
@@ -341,8 +344,8 @@ message AgentThreadMessageSentEvent {
 // AgentThreadMessageReceivedEvent is a message the agent received from
 // another thread: agent.thread_message_received.
 message AgentThreadMessageReceivedEvent {
-  // The event's id, unique in its session.
-  string id = 1;
+  // The event's id, unique in its session: letters, digits, _ . : -, at most 128.
+  string id = 1 [(buf.validate.field).string.pattern = "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"];
 
   // The message's content.
   repeated ContentBlock content = 2;
@@ -360,8 +363,8 @@ message AgentThreadMessageReceivedEvent {
 // AgentThreadContextCompactedEvent says a thread's context was compacted:
 // agent.thread_context_compacted.
 message AgentThreadContextCompactedEvent {
-  // The event's id, unique in its session.
-  string id = 1;
+  // The event's id, unique in its session: letters, digits, _ . : -, at most 128.
+  string id = 1 [(buf.validate.field).string.pattern = "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"];
 
   // When the event was appended, as RFC 3339 UTC.
   string processed_at = 2;
@@ -378,7 +381,7 @@ message EventStart {
 // EventPreview names a previewed event.
 message EventPreview {
   // The previewed event's id.
-  string id = 1 [(buf.validate.field).string.min_len = 1];
+  string id = 1 [(buf.validate.field).string.pattern = "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"];
 
   // The previewed event's type: agent.message or agent.thinking.
   string type = 2 [(buf.validate.field).string = {
@@ -395,7 +398,7 @@ message EventDelta {
   DeltaContent delta = 1 [(buf.validate.field).required = true];
 
   // The previewed event's id, as its EventStart named it.
-  string event_id = 2 [(buf.validate.field).string.min_len = 1];
+  string event_id = 2 [(buf.validate.field).string.pattern = "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"];
 }
 
 // DeltaContent is a fragment of a previewed event's content.

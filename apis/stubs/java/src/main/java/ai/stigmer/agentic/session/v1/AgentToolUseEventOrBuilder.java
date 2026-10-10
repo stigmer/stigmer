@@ -15,7 +15,7 @@ public interface AgentToolUseEventOrBuilder extends
    * The event's id, unique in its session; the tool's result names it.
    * </pre>
    *
-   * <code>string id = 1 [json_name = "id"];</code>
+   * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
    * @return The id.
    */
   java.lang.String getId();
@@ -24,7 +24,7 @@ public interface AgentToolUseEventOrBuilder extends
    * The event's id, unique in its session; the tool's result names it.
    * </pre>
    *
-   * <code>string id = 1 [json_name = "id"];</code>
+   * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
    * @return The bytes for id.
    */
   com.google.protobuf.ByteString

@@ -478,9 +478,10 @@ export type AppendSessionEventsInput = Message<"ai.stigmer.agentic.session.v1.Ap
   runId: string;
 
   /**
-   * The events, in order. Each carries its own id, unique in the session,
-   * and its thread; the server assigns seq and processed_at. A resent id
-   * with the same event is accepted again without a second entry.
+   * The events, in order. Each carries its own id, unique in the session
+   * (ids starting with sevt_ are the server's), and its thread; the server
+   * assigns seq and processed_at. A resent id with the same event is
+   * accepted again without a second entry.
    *
    * @generated from field: repeated ai.stigmer.agentic.session.v1.SessionEvent events = 2;
    */
@@ -502,13 +503,16 @@ export const AppendSessionEventsInputSchema: GenMessage<AppendSessionEventsInput
   messageDesc(file_ai_stigmer_agentic_session_v1_io, 12);
 
 /**
- * AppendSessionEventsResponse holds the events as appended.
+ * AppendSessionEventsResponse says where each event of the request sits in
+ * the log.
  *
  * @generated from message ai.stigmer.agentic.session.v1.AppendSessionEventsResponse
  */
 export type AppendSessionEventsResponse = Message<"ai.stigmer.agentic.session.v1.AppendSessionEventsResponse"> & {
   /**
-   * The events, each with its seq and processed_at.
+   * One entry per event of the request, in order, by identity only: the
+   * envelope with its seq, and the event's type, id and processed_at. The
+   * content is not echoed; a resent event answers its first place.
    *
    * @generated from field: repeated ai.stigmer.agentic.session.v1.SessionEvent events = 1;
    */

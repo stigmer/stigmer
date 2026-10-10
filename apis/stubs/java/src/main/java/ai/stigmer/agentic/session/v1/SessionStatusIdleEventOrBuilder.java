@@ -12,19 +12,19 @@ public interface SessionStatusIdleEventOrBuilder extends
 
   /**
    * <pre>
-   * The event's id, unique in its session.
+   * The event's id, unique in its session: letters, digits, _ . : -, at most 128.
    * </pre>
    *
-   * <code>string id = 1 [json_name = "id"];</code>
+   * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
    * @return The id.
    */
   java.lang.String getId();
   /**
    * <pre>
-   * The event's id, unique in its session.
+   * The event's id, unique in its session: letters, digits, _ . : -, at most 128.
    * </pre>
    *
-   * <code>string id = 1 [json_name = "id"];</code>
+   * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
    * @return The bytes for id.
    */
   com.google.protobuf.ByteString

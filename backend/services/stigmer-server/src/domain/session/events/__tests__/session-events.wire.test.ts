@@ -241,6 +241,22 @@ describe("appendEvents over the wire", () => {
     const refused = await refusal(command.appendEvents({ runId, events: [event] }));
     expect(refused.code).toBe(Code.PermissionDenied);
   });
+
+  it("refuses an event id or thread id outside the contract's pattern, before the handler", async () => {
+    const sessionId = await newSession();
+    const runId = `run_${counter}_ids`;
+    await turn(sessionId, runId, false);
+    const headers = { authorization: `Bearer ${server.runnerAuthService.mintRunCredential(runId)}` };
+    for (const bad of [
+      { event: { case: "agentThinking" as const, value: { id: "has space" } } },
+      { event: { case: "agentThinking" as const, value: { id: "x".repeat(129) } } },
+      { threadId: "bad\u0000thread", event: { case: "agentThinking" as const, value: { id: "ok" } } },
+    ]) {
+      const refused = await refusal(command.appendEvents({ runId, events: [bad] }, { headers }));
+      expect(refused.code).toBe(Code.InvalidArgument);
+    }
+    expect((await query.listEvents({ sessionId, types: ["agent.thinking"] })).events).toEqual([]);
+  });
 });
 
 describe("a run's delete", () => {

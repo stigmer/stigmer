@@ -12,7 +12,9 @@ public interface AppendSessionEventsResponseOrBuilder extends
 
   /**
    * <pre>
-   * The events, each with its seq and processed_at.
+   * One entry per event of the request, in order, by identity only: the
+   * envelope with its seq, and the event's type, id and processed_at. The
+   * content is not echoed; a resent event answers its first place.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.session.v1.SessionEvent events = 1 [json_name = "events"];</code>
@@ -21,7 +23,9 @@ public interface AppendSessionEventsResponseOrBuilder extends
       getEventsList();
   /**
    * <pre>
-   * The events, each with its seq and processed_at.
+   * One entry per event of the request, in order, by identity only: the
+   * envelope with its seq, and the event's type, id and processed_at. The
+   * content is not echoed; a resent event answers its first place.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.session.v1.SessionEvent events = 1 [json_name = "events"];</code>
@@ -29,7 +33,9 @@ public interface AppendSessionEventsResponseOrBuilder extends
   ai.stigmer.agentic.session.v1.SessionEvent getEvents(int index);
   /**
    * <pre>
-   * The events, each with its seq and processed_at.
+   * One entry per event of the request, in order, by identity only: the
+   * envelope with its seq, and the event's type, id and processed_at. The
+   * content is not echoed; a resent event answers its first place.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.session.v1.SessionEvent events = 1 [json_name = "events"];</code>
@@ -37,7 +43,9 @@ public interface AppendSessionEventsResponseOrBuilder extends
   int getEventsCount();
   /**
    * <pre>
-   * The events, each with its seq and processed_at.
+   * One entry per event of the request, in order, by identity only: the
+   * envelope with its seq, and the event's type, id and processed_at. The
+   * content is not echoed; a resent event answers its first place.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.session.v1.SessionEvent events = 1 [json_name = "events"];</code>
@@ -46,7 +54,9 @@ public interface AppendSessionEventsResponseOrBuilder extends
       getEventsOrBuilderList();
   /**
    * <pre>
-   * The events, each with its seq and processed_at.
+   * One entry per event of the request, in order, by identity only: the
+   * envelope with its seq, and the event's type, id and processed_at. The
+   * content is not echoed; a resent event answers its first place.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.session.v1.SessionEvent events = 1 [json_name = "events"];</code>

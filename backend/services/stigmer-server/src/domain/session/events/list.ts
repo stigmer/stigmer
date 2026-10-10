@@ -48,6 +48,15 @@ import { eventOf } from "./codec.js";
 /** A page's size when the request asks for none. */
 export const SESSION_EVENT_PAGE_DEFAULT_SIZE = 100;
 
+/**
+ * The most event bytes one page holds. An event can be 256 KiB (append.ts),
+ * so a page of 100 could pass the transport's 10 MiB message limit
+ * (transport/constants.ts) and fail every read of a busy session; a page
+ * stops before this budget, holding at least one event, and its token
+ * continues after the last one it holds.
+ */
+export const SESSION_EVENT_PAGE_MAX_BYTES = 8 * 1024 * 1024;
+
 export interface ListSessionEventsDeps {
   readonly store: Store;
   readonly logger: Logger;
@@ -119,12 +128,20 @@ export async function readSessionEventPage(
   }
   // One event past the page is read only to learn whether more follow, so
   // a log that ends exactly on a page carries no token.
-  const page = records.slice(0, size);
+  const page: SessionEventRecord[] = [];
+  let bytes = 0;
+  for (const record of records.slice(0, size)) {
+    if (page.length > 0 && bytes + record.data.length > SESSION_EVENT_PAGE_MAX_BYTES) {
+      break;
+    }
+    page.push(record);
+    bytes += record.data.length;
+  }
   const last = page[page.length - 1];
   return create(SessionEventListSchema, {
     events: page.map(eventOf),
     nextPageToken:
-      records.length > size && last !== undefined
+      records.length > page.length && last !== undefined
         ? encodeListPageToken({ createdAt: "", id: String(last.seq) }, fingerprint)
         : "",
   });

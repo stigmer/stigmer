@@ -953,11 +953,11 @@ AppendSessionEventsInput appends a run's events to its session's log.
 
 ### AppendSessionEventsResponse
 
-AppendSessionEventsResponse holds the events as appended.
+AppendSessionEventsResponse says where each event of the request sits in the log.
 
 <TypeTable
   type={{
-    events: { type: "SessionEventInput[]", description: "The events, each with its seq and processed_at." },
+    events: { type: "SessionEventInput[]", description: "One entry per event of the request, in order, by identity only: the envelope with its seq, and the event's type, id and processed_at." },
   }}
 />
 

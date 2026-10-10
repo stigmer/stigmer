@@ -27,6 +27,9 @@
  *
  * Previews are streamed to the session's watchers before the batch's
  * stored events (a stored event replaces its preview), and never stored.
+ * The reply names each event by identity only (codec.ts `identityOf`), so
+ * a request near the transport's limit never answers past it. Ids starting
+ * with the server's prefix (`sevt_`) are refused: they are the server's.
  *
  * Proven by __tests__/append.test.ts and the session-events conformance
  * suite.
@@ -62,8 +65,8 @@ import { SessionEventConflictError } from "../../../store/session-events.js";
 import type { SessionEventAppend } from "../../../store/session-events.js";
 import { isTerminalExecutionPhase } from "../../run/phases.js";
 import type { SessionEventBroker } from "./broker.js";
-import { RUNNER_EVENT_TYPES, eventTypeOf } from "./catalog.js";
-import { draftOf, eventOf } from "./codec.js";
+import { RUNNER_EVENT_TYPES, SESSION_EVENT_ID_PREFIX, eventTypeOf } from "./catalog.js";
+import { draftOf, eventOf, identityOf } from "./codec.js";
 import { sessionIdOfRun } from "./transitions.js";
 
 export interface AppendSessionEventsDeps {
@@ -113,6 +116,11 @@ export async function appendSessionEvents(
     if (event.event.value.id === "") {
       throw invalidArgumentError(`events[${index}]: the event's id is required`);
     }
+    if (event.event.value.id.startsWith(`${SESSION_EVENT_ID_PREFIX}_`)) {
+      throw invalidArgumentError(
+        `events[${index}]: ids starting with '${SESSION_EVENT_ID_PREFIX}_' are the server's`,
+      );
+    }
     const own = clone(SessionEventSchema, event);
     own.runId = runId;
     const draft = draftOf(own);
@@ -149,7 +157,7 @@ export async function appendSessionEvents(
 
   deps.sessionEventBroker.publishPreviews(sessionId, input.previews);
   deps.sessionEventBroker.publish(sessionId, stored.appended.map(eventOf));
-  return create(AppendSessionEventsResponseSchema, { events: stored.records.map(eventOf) });
+  return create(AppendSessionEventsResponseSchema, { events: stored.records.map(identityOf) });
 }
 
 /**

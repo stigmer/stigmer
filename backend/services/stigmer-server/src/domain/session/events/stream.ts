@@ -11,9 +11,11 @@
  * instead of silently missing events (broker.ts).
  *
  * A direct handler, as run subscribe is (ConnectRPC server streams are
- * async generators, which cannot yield from inside the pipeline): one
+ * async generators, which cannot yield from inside the pipeline): an
  * authorizeDirect of the method's annotation (can_view on the session) at
- * the start, before the subscription is registered.
+ * the start, before the subscription is registered, and again before the
+ * next frame once SESSION_EVENT_STREAM_REAUTHORIZE_MS has passed, so a
+ * viewer whose access is withdrawn stops receiving events.
  *
  * Proven by __tests__/stream.test.ts and the session-events conformance
  * suite.
@@ -38,7 +40,18 @@ export interface StreamSessionEventsDeps {
   readonly logger: Logger;
   readonly authorizer: Authorizer;
   readonly sessionEventBroker: SessionEventBroker;
+  /** Unix milliseconds; injectable for the re-authorization arm. */
+  readonly now?: () => number;
 }
+
+/**
+ * How long a stream serves on one authorization. A stream has no end of its
+ * own (a session always takes another turn), so a viewer whose access is
+ * withdrawn (a share revoked, a member removed) would keep receiving
+ * events for as long as the connection lived: past this, the next frame
+ * waits for the method's check again, and a refusal ends the stream with it.
+ */
+export const SESSION_EVENT_STREAM_REAUTHORIZE_MS = 5 * 60 * 1000;
 
 /** The refusal a stream that fell behind ends with. */
 export const STREAM_FELL_BEHIND_MESSAGE =
@@ -52,12 +65,11 @@ export async function* streamSessionEvents(
   if (req.sessionId === "") {
     throw invalidArgumentError("session_id is required");
   }
-  await authorizeDirect(
-    SessionQueryController.method.streamEvents,
-    deps.authorizer,
-    callerIdentityOf(context),
-    req,
-  );
+  const now = deps.now ?? Date.now;
+  const authorize = () =>
+    authorizeDirect(SessionQueryController.method.streamEvents, deps.authorizer, callerIdentityOf(context), req);
+  await authorize();
+  let authorizedAt = now();
 
   const sessionId = req.sessionId;
   const subscription = deps.sessionEventBroker.subscribe(sessionId, req.eventDeltas);
@@ -66,8 +78,12 @@ export async function* streamSessionEvents(
   });
   try {
     while (!context.signal.aborted) {
-      const frame = subscription.queue.shift();
+      const frame = deps.sessionEventBroker.take(subscription);
       if (frame !== undefined) {
+        if (now() - authorizedAt >= SESSION_EVENT_STREAM_REAUTHORIZE_MS) {
+          await authorize();
+          authorizedAt = now();
+        }
         yield frame;
         continue;
       }

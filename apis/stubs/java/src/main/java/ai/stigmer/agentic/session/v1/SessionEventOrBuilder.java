@@ -67,7 +67,7 @@ public interface SessionEventOrBuilder extends
    * thread.
    * </pre>
    *
-   * <code>string thread_id = 4 [json_name = "threadId"];</code>
+   * <code>string thread_id = 4 [json_name = "threadId", (.buf.validate.field) = { ... }</code>
    * @return The threadId.
    */
   java.lang.String getThreadId();
@@ -77,7 +77,7 @@ public interface SessionEventOrBuilder extends
    * thread.
    * </pre>
    *
-   * <code>string thread_id = 4 [json_name = "threadId"];</code>
+   * <code>string thread_id = 4 [json_name = "threadId", (.buf.validate.field) = { ... }</code>
    * @return The bytes for threadId.
    */
   com.google.protobuf.ByteString

@@ -26,8 +26,9 @@ import { RESOURCE_ID_KEY } from "../../../../pipeline/steps/delete.js";
 import { encodeListPageToken, listPageFingerprint } from "../../../../pipeline/steps/list-page.js";
 import type { Store } from "../../../../store/interface.js";
 import { SessionEventBroker } from "../broker.js";
+import { draftOf } from "../codec.js";
 import { newDeleteSessionEventsStep } from "../delete-step.js";
-import { readSessionEventPage } from "../list.js";
+import { SESSION_EVENT_PAGE_MAX_BYTES, readSessionEventPage } from "../list.js";
 import { toManagedAgentsJson, toManagedAgentsStreamJson } from "../render.js";
 
 const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
@@ -69,6 +70,41 @@ describe("a list page", () => {
       readSessionEventPage(store, create(ListSessionEventsRequestSchema, { sessionId: "s1", pageToken })),
     );
     expect(code).toBe(Code.InvalidArgument);
+  });
+});
+
+describe("a page's byte budget", () => {
+  function records(sizes: number[]) {
+    return sizes.map((size, i) => ({
+      sessionId: "s1",
+      seq: i + 1,
+      eventId: `e${i}`,
+      runId: "r",
+      threadId: "",
+      type: "agent.thinking",
+      processedAt: "2026-10-11T09:30:00.000Z",
+      data: draftOf(
+        create(SessionEventSchema, {
+          event: { case: "agentMessage", value: { id: `e${i}`, content: [{ type: "text", text: "x".repeat(size) }] } },
+        }),
+      ).data,
+    }));
+  }
+
+  it("stops before the budget and continues after the last event it holds", async () => {
+    const mib = 1024 * 1024;
+    const store = emptyStore(() => Promise.resolve(records([3 * mib, 3 * mib, 3 * mib, 10])));
+    const page = await readSessionEventPage(store, create(ListSessionEventsRequestSchema, { sessionId: "s1" }));
+    expect(page.events.map((e) => e.seq)).toEqual([1n, 2n]);
+    expect(page.nextPageToken).not.toBe("");
+    expect(SESSION_EVENT_PAGE_MAX_BYTES).toBeLessThan(10 * mib);
+  });
+
+  it("holds one event whatever its size, so a page always moves forward", async () => {
+    const store = emptyStore(() => Promise.resolve(records([SESSION_EVENT_PAGE_MAX_BYTES + 1, 10])));
+    const page = await readSessionEventPage(store, create(ListSessionEventsRequestSchema, { sessionId: "s1" }));
+    expect(page.events.map((e) => e.seq)).toEqual([1n]);
+    expect(page.nextPageToken).not.toBe("");
   });
 });
 

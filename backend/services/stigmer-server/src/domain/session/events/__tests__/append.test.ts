@@ -107,6 +107,7 @@ describe("the gate", () => {
     ]);
     const first = response.events[0]!.event;
     expect(first.case === "agentMessage" && first.value.processedAt).toMatch(/Z$/);
+    expect(first.case === "agentMessage" && [first.value.id, first.value.content]).toEqual(["m1", []]);
   });
 
   it("refuses no credential, garbage, and another run's credential alike, appending nothing", async () => {
@@ -175,6 +176,13 @@ describe("what a runner may append", () => {
       auth.mintRunCredential("run_a"),
     );
     expect(await stored("ses_a")).toEqual(["err"]);
+  });
+
+  it("refuses an id in the server's own prefix", async () => {
+    await seedRun("run_a", "ses_a");
+    const error = await refusal(append({ runId: "run_a", events: [message("sevt_01forged")] }, auth.mintRunCredential("run_a")));
+    expect(error.code).toBe(Code.InvalidArgument);
+    expect(await stored("ses_a")).toEqual([]);
   });
 
   it("refuses an event with no id, or holding no event, or past the size cap", async () => {

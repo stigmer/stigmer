@@ -875,9 +875,10 @@ type AppendSessionEventsInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The run the events belong to.
 	RunId string `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
-	// The events, in order. Each carries its own id, unique in the session,
-	// and its thread; the server assigns seq and processed_at. A resent id
-	// with the same event is accepted again without a second entry.
+	// The events, in order. Each carries its own id, unique in the session
+	// (ids starting with sevt_ are the server's), and its thread; the server
+	// assigns seq and processed_at. A resent id with the same event is
+	// accepted again without a second entry.
 	Events []*SessionEvent `protobuf:"bytes,2,rep,name=events,proto3" json:"events,omitempty"`
 	// Live previews to stream to the session's watchers, never stored.
 	Previews      []*SessionEventPreview `protobuf:"bytes,3,rep,name=previews,proto3" json:"previews,omitempty"`
@@ -936,10 +937,13 @@ func (x *AppendSessionEventsInput) GetPreviews() []*SessionEventPreview {
 	return nil
 }
 
-// AppendSessionEventsResponse holds the events as appended.
+// AppendSessionEventsResponse says where each event of the request sits in
+// the log.
 type AppendSessionEventsResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The events, each with its seq and processed_at.
+	// One entry per event of the request, in order, by identity only: the
+	// envelope with its seq, and the event's type, id and processed_at. The
+	// content is not echoed; a resent event answers its first place.
 	Events        []*SessionEvent `protobuf:"bytes,1,rep,name=events,proto3" json:"events,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

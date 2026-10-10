@@ -249,7 +249,7 @@ private static final long serialVersionUID = 0L;
    * thread.
    * </pre>
    *
-   * <code>string thread_id = 4 [json_name = "threadId"];</code>
+   * <code>string thread_id = 4 [json_name = "threadId", (.buf.validate.field) = { ... }</code>
    * @return The threadId.
    */
   @java.lang.Override
@@ -271,7 +271,7 @@ private static final long serialVersionUID = 0L;
    * thread.
    * </pre>
    *
-   * <code>string thread_id = 4 [json_name = "threadId"];</code>
+   * <code>string thread_id = 4 [json_name = "threadId", (.buf.validate.field) = { ... }</code>
    * @return The bytes for threadId.
    */
   @java.lang.Override
@@ -2155,7 +2155,7 @@ private static final long serialVersionUID = 0L;
      * thread.
      * </pre>
      *
-     * <code>string thread_id = 4 [json_name = "threadId"];</code>
+     * <code>string thread_id = 4 [json_name = "threadId", (.buf.validate.field) = { ... }</code>
      * @return The threadId.
      */
     public java.lang.String getThreadId() {
@@ -2176,7 +2176,7 @@ private static final long serialVersionUID = 0L;
      * thread.
      * </pre>
      *
-     * <code>string thread_id = 4 [json_name = "threadId"];</code>
+     * <code>string thread_id = 4 [json_name = "threadId", (.buf.validate.field) = { ... }</code>
      * @return The bytes for threadId.
      */
     public com.google.protobuf.ByteString
@@ -2198,7 +2198,7 @@ private static final long serialVersionUID = 0L;
      * thread.
      * </pre>
      *
-     * <code>string thread_id = 4 [json_name = "threadId"];</code>
+     * <code>string thread_id = 4 [json_name = "threadId", (.buf.validate.field) = { ... }</code>
      * @param value The threadId to set.
      * @return This builder for chaining.
      */
@@ -2216,7 +2216,7 @@ private static final long serialVersionUID = 0L;
      * thread.
      * </pre>
      *
-     * <code>string thread_id = 4 [json_name = "threadId"];</code>
+     * <code>string thread_id = 4 [json_name = "threadId", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
     public Builder clearThreadId() {
@@ -2231,7 +2231,7 @@ private static final long serialVersionUID = 0L;
      * thread.
      * </pre>
      *
-     * <code>string thread_id = 4 [json_name = "threadId"];</code>
+     * <code>string thread_id = 4 [json_name = "threadId", (.buf.validate.field) = { ... }</code>
      * @param value The bytes for threadId to set.
      * @return This builder for chaining.
      */

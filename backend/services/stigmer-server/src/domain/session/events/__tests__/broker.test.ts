@@ -21,8 +21,16 @@ import {
 import { createLogger } from "../../../../boot/logger.js";
 import { testCallerIdentity } from "../../../../pipeline/__tests__/support.js";
 import { newPermissiveSingleTeamAuthorizer } from "../../../../pipeline/steps/authorize.js";
-import { SESSION_EVENT_SUBSCRIBER_CAPACITY, SessionEventBroker } from "../broker.js";
-import { STREAM_FELL_BEHIND_MESSAGE, streamSessionEvents } from "../stream.js";
+import {
+  SESSION_EVENT_SUBSCRIBER_CAPACITY,
+  SESSION_EVENT_SUBSCRIBER_MAX_BYTES,
+  SessionEventBroker,
+} from "../broker.js";
+import {
+  SESSION_EVENT_STREAM_REAUTHORIZE_MS,
+  STREAM_FELL_BEHIND_MESSAGE,
+  streamSessionEvents,
+} from "../stream.js";
 
 const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
 
@@ -57,6 +65,25 @@ describe("the broker", () => {
     ]);
     expect(none.queue).toEqual([]);
     expect(messages.queue.map((f) => f.frame.case)).toEqual(["eventDelta"]);
+  });
+
+  it("ends a stream whose undelivered bytes pass the budget, before the frame cap", () => {
+    const broker = new SessionEventBroker(silentLogger);
+    const slow = broker.subscribe("s1", []);
+    const big = (i: number) =>
+      create(SessionEventSchema, {
+        seq: BigInt(i),
+        event: { case: "agentMessage", value: { id: `m${i}`, content: [{ type: "text", text: "x".repeat(1024 * 1024) }] } },
+      });
+    for (let i = 1; i <= 31; i++) {
+      broker.publish("s1", [big(i)]);
+    }
+    expect(slow.overflowed).toBe(false);
+    expect(slow.queue.length).toBeLessThan(SESSION_EVENT_SUBSCRIBER_CAPACITY);
+    broker.publish("s1", [big(32), big(33)]);
+    expect(slow.overflowed).toBe(true);
+    expect(slow.queuedBytes).toBe(0);
+    expect(SESSION_EVENT_SUBSCRIBER_MAX_BYTES).toBe(32 * 1024 * 1024);
   });
 
   it("ends a stream that falls behind instead of thinning it, and keeps serving the others", () => {
@@ -108,6 +135,34 @@ describe("the stream", () => {
     );
     expect(error?.code).toBe(Code.ResourceExhausted);
     expect(error?.rawMessage).toBe(STREAM_FELL_BEHIND_MESSAGE);
+  });
+
+  it("asks the method's question again once the stream has served long enough, and ends when it is refused", async () => {
+    const broker = new SessionEventBroker(silentLogger);
+    let clock = 0;
+    let asked = 0;
+    const authorizer = {
+      authorize: async () => {
+        asked += 1;
+        return asked === 1 ? { kind: "allow" as const } : { kind: "deny" as const, reason: "revoked" };
+      },
+    } as unknown as Parameters<typeof streamSessionEvents>[0]["authorizer"];
+    const stream = streamSessionEvents(
+      { logger: silentLogger, authorizer, sessionEventBroker: broker, now: () => clock },
+      create(StreamSessionEventsRequestSchema, { sessionId: "s1" }),
+      context(new AbortController().signal),
+    );
+    const first = stream.next();
+    await new Promise((resolve) => setImmediate(resolve));
+    broker.publish("s1", [thinking("a", 1)]);
+    expect((await first).value?.frame.case).toBe("event");
+    clock = SESSION_EVENT_STREAM_REAUTHORIZE_MS;
+    const second = stream.next();
+    await new Promise((resolve) => setImmediate(resolve));
+    broker.publish("s1", [thinking("b", 2)]);
+    await expect(second).rejects.toMatchObject({ code: Code.PermissionDenied });
+    expect(asked).toBe(2);
+    expect(broker.subscriberCount("s1")).toBe(0);
   });
 
   it("refuses a request that names no session", async () => {

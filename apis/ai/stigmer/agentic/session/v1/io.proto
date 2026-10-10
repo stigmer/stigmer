@@ -209,17 +209,21 @@ message AppendSessionEventsInput {
   // The run the events belong to.
   string run_id = 1 [(buf.validate.field).required = true];
 
-  // The events, in order. Each carries its own id, unique in the session,
-  // and its thread; the server assigns seq and processed_at. A resent id
-  // with the same event is accepted again without a second entry.
+  // The events, in order. Each carries its own id, unique in the session
+  // (ids starting with sevt_ are the server's), and its thread; the server
+  // assigns seq and processed_at. A resent id with the same event is
+  // accepted again without a second entry.
   repeated SessionEvent events = 2 [(buf.validate.field).repeated.max_items = 1000];
 
   // Live previews to stream to the session's watchers, never stored.
   repeated SessionEventPreview previews = 3 [(buf.validate.field).repeated.max_items = 1000];
 }
 
-// AppendSessionEventsResponse holds the events as appended.
+// AppendSessionEventsResponse says where each event of the request sits in
+// the log.
 message AppendSessionEventsResponse {
-  // The events, each with its seq and processed_at.
+  // One entry per event of the request, in order, by identity only: the
+  // envelope with its seq, and the event's type, id and processed_at. The
+  // content is not echoed; a resent event answers its first place.
   repeated SessionEvent events = 1;
 }

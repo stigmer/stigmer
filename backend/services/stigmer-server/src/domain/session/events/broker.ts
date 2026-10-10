@@ -7,7 +7,8 @@
  * It differs from the run snapshot broker (run/stream-broker.ts) on one
  * rule. A dropped snapshot is harmless, the next one supersedes it; a
  * dropped event is gone. So a stream that falls more than
- * `SESSION_EVENT_SUBSCRIBER_CAPACITY` frames behind is ENDED (the stream
+ * `SESSION_EVENT_SUBSCRIBER_CAPACITY` frames, or
+ * `SESSION_EVENT_SUBSCRIBER_MAX_BYTES` bytes, behind is ENDED (the stream
  * answers RESOURCE_EXHAUSTED, and its client lists from the last event it
  * saw), never silently thinned.
  *
@@ -23,7 +24,7 @@
  *
  * Proven by __tests__/broker.test.ts.
  */
-import { create } from "@bufbuild/protobuf";
+import { create, toBinary } from "@bufbuild/protobuf";
 
 import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import type { SessionEventPreview } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
@@ -42,9 +43,20 @@ import type { Logger } from "../../../boot/logger.js";
  */
 export const SESSION_EVENT_SUBSCRIBER_CAPACITY = 4096;
 
+/**
+ * The most bytes one stream may have undelivered. An event can be 256 KiB,
+ * so the frame cap alone would let one stalled reader hold a gigabyte of a
+ * busy session; a stream past this budget is ended the same way.
+ */
+export const SESSION_EVENT_SUBSCRIBER_MAX_BYTES = 32 * 1024 * 1024;
+
 /** One stream's delivery state: the stream loop drains `queue` and parks on `notify`. */
 export interface SessionEventSubscription {
   readonly queue: StreamSessionEventsResponse[];
+  /** The encoded size of each queued frame, in queue order. */
+  readonly sizes: number[];
+  /** The sum of `sizes`. */
+  queuedBytes: number;
   /** The previewed types this stream asked for. */
   readonly deltaTypes: ReadonlySet<string>;
   notify: (() => void) | undefined;
@@ -62,6 +74,8 @@ export class SessionEventBroker {
   subscribe(sessionId: string, deltaTypes: ReadonlyArray<string>): SessionEventSubscription {
     const subscription: SessionEventSubscription = {
       queue: [],
+      sizes: [],
+      queuedBytes: 0,
       deltaTypes: new Set(deltaTypes),
       notify: undefined,
       overflowed: false,
@@ -129,6 +143,13 @@ export class SessionEventBroker {
     }
   }
 
+  /** The next undelivered frame of a subscription, or undefined when none is queued. */
+  take(subscription: SessionEventSubscription): StreamSessionEventsResponse | undefined {
+    const frame = subscription.queue.shift();
+    subscription.queuedBytes -= subscription.sizes.shift() ?? 0;
+    return frame;
+  }
+
   /** Streams open on a session. */
   subscriberCount(sessionId: string): number {
     return this.subscribers.get(sessionId)?.size ?? 0;
@@ -143,19 +164,28 @@ export class SessionEventBroker {
     if (set === undefined) {
       return;
     }
+    const sizes = frames.map((frame) => toBinary(StreamSessionEventsResponseSchema, frame).length);
+    const bytes = sizes.reduce((sum, size) => sum + size, 0);
     for (const subscription of set) {
       if (subscription.closed || !wants(subscription)) {
         continue;
       }
-      if (subscription.queue.length + frames.length > SESSION_EVENT_SUBSCRIBER_CAPACITY) {
+      if (
+        subscription.queue.length + frames.length > SESSION_EVENT_SUBSCRIBER_CAPACITY ||
+        subscription.queuedBytes + bytes > SESSION_EVENT_SUBSCRIBER_MAX_BYTES
+      ) {
         this.logger.warn("A session event stream fell behind; ending it", { sessionId });
         subscription.overflowed = true;
         subscription.queue.length = 0;
+        subscription.sizes.length = 0;
+        subscription.queuedBytes = 0;
         set.delete(subscription);
         this.close(subscription);
         continue;
       }
       subscription.queue.push(...frames);
+      subscription.sizes.push(...sizes);
+      subscription.queuedBytes += bytes;
       subscription.notify?.();
       subscription.notify = undefined;
     }

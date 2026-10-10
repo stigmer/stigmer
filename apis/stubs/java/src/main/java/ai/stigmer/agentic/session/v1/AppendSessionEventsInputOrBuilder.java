@@ -32,9 +32,10 @@ public interface AppendSessionEventsInputOrBuilder extends
 
   /**
    * <pre>
-   * The events, in order. Each carries its own id, unique in the session,
-   * and its thread; the server assigns seq and processed_at. A resent id
-   * with the same event is accepted again without a second entry.
+   * The events, in order. Each carries its own id, unique in the session
+   * (ids starting with sevt_ are the server's), and its thread; the server
+   * assigns seq and processed_at. A resent id with the same event is
+   * accepted again without a second entry.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.session.v1.SessionEvent events = 2 [json_name = "events", (.buf.validate.field) = { ... }</code>
@@ -43,9 +44,10 @@ public interface AppendSessionEventsInputOrBuilder extends
       getEventsList();
   /**
    * <pre>
-   * The events, in order. Each carries its own id, unique in the session,
-   * and its thread; the server assigns seq and processed_at. A resent id
-   * with the same event is accepted again without a second entry.
+   * The events, in order. Each carries its own id, unique in the session
+   * (ids starting with sevt_ are the server's), and its thread; the server
+   * assigns seq and processed_at. A resent id with the same event is
+   * accepted again without a second entry.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.session.v1.SessionEvent events = 2 [json_name = "events", (.buf.validate.field) = { ... }</code>
@@ -53,9 +55,10 @@ public interface AppendSessionEventsInputOrBuilder extends
   ai.stigmer.agentic.session.v1.SessionEvent getEvents(int index);
   /**
    * <pre>
-   * The events, in order. Each carries its own id, unique in the session,
-   * and its thread; the server assigns seq and processed_at. A resent id
-   * with the same event is accepted again without a second entry.
+   * The events, in order. Each carries its own id, unique in the session
+   * (ids starting with sevt_ are the server's), and its thread; the server
+   * assigns seq and processed_at. A resent id with the same event is
+   * accepted again without a second entry.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.session.v1.SessionEvent events = 2 [json_name = "events", (.buf.validate.field) = { ... }</code>
@@ -63,9 +66,10 @@ public interface AppendSessionEventsInputOrBuilder extends
   int getEventsCount();
   /**
    * <pre>
-   * The events, in order. Each carries its own id, unique in the session,
-   * and its thread; the server assigns seq and processed_at. A resent id
-   * with the same event is accepted again without a second entry.
+   * The events, in order. Each carries its own id, unique in the session
+   * (ids starting with sevt_ are the server's), and its thread; the server
+   * assigns seq and processed_at. A resent id with the same event is
+   * accepted again without a second entry.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.session.v1.SessionEvent events = 2 [json_name = "events", (.buf.validate.field) = { ... }</code>
@@ -74,9 +78,10 @@ public interface AppendSessionEventsInputOrBuilder extends
       getEventsOrBuilderList();
   /**
    * <pre>
-   * The events, in order. Each carries its own id, unique in the session,
-   * and its thread; the server assigns seq and processed_at. A resent id
-   * with the same event is accepted again without a second entry.
+   * The events, in order. Each carries its own id, unique in the session
+   * (ids starting with sevt_ are the server's), and its thread; the server
+   * assigns seq and processed_at. A resent id with the same event is
+   * accepted again without a second entry.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.session.v1.SessionEvent events = 2 [json_name = "events", (.buf.validate.field) = { ... }</code>
