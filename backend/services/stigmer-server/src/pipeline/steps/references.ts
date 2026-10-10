@@ -124,7 +124,6 @@ import type { ReflectMessage } from "@bufbuild/protobuf/reflect";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
-import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
@@ -183,14 +182,6 @@ export const REFERENCE_TARGET_KINDS: ReadonlyArray<ReferenceTargetKind> = [
     readByRun: true,
     label: "skill(s)",
     listHint: "stigmer list skills",
-    writerMust: undefined,
-  },
-  {
-    kind: ApiResourceKind.mcp_server,
-    schema: McpServerSchema,
-    readByRun: true,
-    label: "MCP server(s)",
-    listHint: "stigmer get mcp-servers",
     writerMust: undefined,
   },
   {

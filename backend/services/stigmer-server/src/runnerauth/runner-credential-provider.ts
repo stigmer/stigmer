@@ -127,14 +127,14 @@ export interface RunnerBootstrapCredentials {
 
 /**
  * What the sandbox ensure steps (steps.ts) and the MCP connect lane
- * (domain/mcpserver/connect-sandbox.ts) know when they mint the credential
+ * (domain/plugin/tools/sandbox.ts) know when they mint the credential
  * baked into a provisioned sandbox. `sessionId` is empty on the connect
  * scope; `callerIdentityId` is empty when the invocation site
  * has no caller (the Java ensure step's null-identity arm, which mints
  * nothing rather than minting unattributed).
  *
  * The connect scope binds `executionId` to one connect's synthetic id
- * (domain/mcpserver/connect-execution-id.ts), whose attempt the connect
+ * (domain/plugin/tools/execution-id.ts), whose attempt the connect
  * lane has already recorded for `callerIdentityId`: the runner
  * in a connect sandbox reads the McpServer, and classifies its tools
  * through the proxy, with this credential, so it must act as the person

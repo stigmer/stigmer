@@ -1,10 +1,9 @@
 /**
  * Agent domain-local pipeline steps — port the inline steps of
  * pkg/domain/agent/controller/ (create.go, delete_cascade.go,
- * get_default.go, merge_mcp_env_specs.go).
+ * get_default.go).
  * Shared steps stay in src/pipeline/steps/; these exist because they
- * embody agent-specific contracts: the cascade rules, MCP env merging and
- * the agent's hooks.
+ * embody agent-specific contracts: the cascade rules and the agent's hooks.
  *
  * The agent's tool lists (spec.tools, spec.disallowed_tools and each
  * sub-agent's pair) have no step here on purpose: their shape is the
@@ -14,7 +13,6 @@
  * entry naming a tool the turn lacks is ignored at run time, as Claude
  * Code ignores it.
  */
-import { ConnectError } from "@connectrpc/connect";
 import { create, fromBinary } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
 
@@ -24,160 +22,36 @@ import {
   isValidMatcher,
 } from "@stigmer/plugin-package";
 
-import { AgentStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/status_pb";
 import type {
   Agent,
   AgentSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
-import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
-import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
-import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import type { HookConfig, HookHandler } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
-import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import {
-  goWrappedStatusError,
   internalError,
   invalidArgumentError,
 } from "../../pipeline/errors.js";
-import type { CallerIdentity } from "../../extensions/identity.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { cleanUpDeletedResource } from "../../pipeline/steps/authorization-tuples.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
-import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
 import type { Store } from "../../store/interface.js";
 type AgentDesc = typeof AgentSchema;
 
 // ---------------------------------------------------------------------------
-// MergeMcpServerEnvSpecs — merge_mcp_env_specs.go: merges env DECLARATIONS
-// from referenced MCP servers into the agent's env at create/update time,
-// so the UI/CLI can show what the agent needs, a person knows which keys to
-// keep in My vault, and execution-time validation has the complete schema.
-//
-// Merge semantics: agent-declared entries always take precedence (user
-// intent is preserved); among MCP servers, first-encountered wins for
-// overlapping keys; only declaration fields (description, is_secret,
-// optional) are merged — actual values come from the vaults a run
-// resolves at runtime (domain/vault/resolve.ts).
-//
-// Lenient by design: a server that cannot be found (not yet created,
-// different org, …) logs a warning and is skipped. The authoritative
-// fail-fast check is the run's credential resolver at execution creation.
-//
-// Pipeline position: AFTER NormalizeReferences (needs resolved org),
-// BEFORE Persist.
-// ---------------------------------------------------------------------------
-
-export function newMergeMcpServerEnvSpecsStep(
-  store: Store,
-  logger: Logger,
-): PipelineStep<AgentDesc> {
-  return {
-    name: "MergeMcpServerEnvSpecs",
-    async execute(ctx: RequestContext<AgentDesc>): Promise<void> {
-      const agent = ctx.newState;
-
-      const usages = agent.spec?.mcpServerUsages ?? [];
-      if (usages.length === 0) {
-        return;
-      }
-
-      const mcpEnvVars: Record<string, EnvVarDeclaration> = {};
-      for (const usage of usages) {
-        const ref = usage.mcpServerRef;
-
-        const slug = ref?.slug ?? "";
-        if (slug === "") {
-          continue;
-        }
-
-        let org = ref?.org ?? "";
-        if (org === "") {
-          org = agent.metadata?.org ?? "";
-        }
-        if (org === "") {
-          continue;
-        }
-
-        let mcpServer: McpServer | undefined;
-        try {
-          mcpServer = await findResourceBySlug(
-            store,
-            ApiResourceKind.mcp_server,
-            McpServerSchema,
-            slug,
-            org,
-          );
-        } catch (error) {
-          logger.warn("Failed to look up MCP server for env merge", {
-            mcpServerSlug: slug,
-            org,
-            error: error instanceof Error ? error.message : String(error),
-          });
-          continue;
-        }
-        if (mcpServer === undefined) {
-          logger.warn(
-            "MCP server not found — skipping env merge for this server",
-            { mcpServerSlug: slug, org },
-          );
-          continue;
-        }
-
-        const serverEnv = mcpServer.spec?.env ?? {};
-        for (const [varName, decl] of Object.entries(serverEnv)) {
-          if (!(varName in mcpEnvVars)) {
-            mcpEnvVars[varName] = create(EnvVarDeclarationSchema, {
-              description: decl.description,
-              isSecret: decl.isSecret,
-              optional: decl.optional,
-            });
-          }
-        }
-      }
-
-      if (Object.keys(mcpEnvVars).length === 0) {
-        return;
-      }
-
-      const spec = agent.spec;
-      if (spec === undefined) {
-        return;
-      }
-
-      const existingEnv = spec.env;
-      const merged: Record<string, EnvVarDeclaration> = { ...mcpEnvVars };
-      for (const [k, v] of Object.entries(existingEnv)) {
-        merged[k] = v;
-      }
-      spec.env = merged;
-
-      const mergedCount =
-        Object.keys(merged).length - Object.keys(existingEnv).length;
-      if (mergedCount > 0) {
-        logger.info("Merged MCP server env declarations into agent env", {
-          injectedCount: mergedCount,
-          totalCount: Object.keys(merged).length,
-          agent: agent.metadata?.slug ?? "",
-        });
-      }
-    },
-  };
-}
-
-// ---------------------------------------------------------------------------
-// ValidateHooks — the agent's hook sources (spec.hooks), checked where the
-// proto's own rules cannot reach. Each plugin is listed once by slug: the
-// slug is what a run records as the deciding hook (ToolCall
-// .approval_policy_hook) and what a hook's "approve all" lease is keyed by,
-// so two plugins sharing one, even from two organizations, would share a
-// lease. One inline block at most, so "the agent's own hooks" names one
+// ValidateHooks — the agent's plugins and its own hooks block, checked
+// where the proto's own rules cannot reach. Each plugin is listed once by
+// slug (spec.plugins): the slug is what a run records as the deciding hook
+// (ToolCall.approval_policy_hook) and what a hook's "approve all" lease is
+// keyed by, and the name a turn gives its skills, agents and tools, so two
+// plugins sharing one, even from two organizations, would share them. One
+// inline block at most (spec.hooks), so "the agent's own hooks" names one
 // thing. An inline block is held to the rules a plugin's hooks are held to
 // at install, from the one library that reads them (@stigmer/plugin-package),
 // in either format, since both engines run both. Claude Code's: the two
@@ -187,8 +61,8 @@ export function newMergeMcpServerEnvSpecsStep(
 // events Stigmer runs, a matcher that is "*" or a regular expression, and
 // neither an `if` nor `args` nor `${user_config.*}`, which Cursor's format
 // does not have. An omitted format is filled with
-// Claude Code's, so an author writing a block by hand never names an enum,
-// the way the env merge completes the spec; a Cursor block names its format.
+// Claude Code's, so an author writing a block by hand never names an enum;
+// a Cursor block names its format.
 //
 // Pipeline position: before NormalizeReferences, so malformed hooks are
 // INVALID_ARGUMENT before any reference is looked up; before the version
@@ -200,19 +74,17 @@ export function newValidateHooksStep(): PipelineStep<AgentDesc> {
     name: "ValidateHooks",
     execute(ctx: RequestContext<AgentDesc>): void {
       const pluginSlugs = new Set<string>();
+      for (const plugin of ctx.newState.spec?.plugins ?? []) {
+        if (pluginSlugs.has(plugin.slug)) {
+          throw invalidArgumentError(
+            `plugins lists '${plugin.slug}' more than once; list each plugin once, and never two plugins that share a slug`,
+          );
+        }
+        pluginSlugs.add(plugin.slug);
+      }
       let inlineBlocks = 0;
       for (const source of ctx.newState.spec?.hooks ?? []) {
         switch (source.source.case) {
-          case "plugin": {
-            const slug = source.source.value.slug;
-            if (pluginSlugs.has(slug)) {
-              throw invalidArgumentError(
-                `hooks lists plugin '${slug}' more than once; list each plugin once, and never two plugins that share a slug`,
-              );
-            }
-            pluginSlugs.add(slug);
-            break;
-          }
           case "inline":
             inlineBlocks++;
             if (inlineBlocks > 1) {

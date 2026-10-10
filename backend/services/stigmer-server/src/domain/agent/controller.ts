@@ -83,7 +83,6 @@ import {
   EXISTING_RESOURCE_KEY,
   newLoadExistingStep,
 } from "../../pipeline/steps/load-existing.js";
-import { newGuardPluginManagedStep } from "../../pipeline/steps/guard-plugin-managed.js";
 import {
   SHOULD_CREATE_KEY,
   newLoadForApplyStep,
@@ -124,12 +123,10 @@ import type { Store } from "../../store/interface.js";
 import { agentSearchExtractor } from "./search-extractor.js";
 import {
   newCascadeDeleteSharesStep,
-  newMergeMcpServerEnvSpecsStep,
   newValidateHooksStep,
 } from "./steps.js";
 import { newCascadeDeleteEvaluatorsStep } from "../evaluator/cascade.js";
 import {
-  TAG_VERSION_AGENT_KEY,
   TAG_VERSION_RESULT_KEY,
   agentVersionBinding,
   newComputeAgentVersionHashStep,
@@ -216,7 +213,6 @@ async function createAgent(
     .addStep(newValidateHooksStep())
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
-    .addStep(newMergeMcpServerEnvSpecsStep(deps.store, deps.logger))
     .addStep(newValidateAgentRunConfigStep(deps.modelRegistry))
     .addStep(newComputeAgentVersionHashStep())
     .addStep(newPopulateAgentVersionStep())
@@ -236,7 +232,7 @@ async function createAgent(
 
 /**
  * Update — chain per Go buildUpdatePipeline. The stored spec is hashed
- * after the MCP env merge and the run-defaults check; a new spec records a version, a reproduced one
+ * after the run-defaults check; a new spec records a version, a reproduced one
  * points back at it, an unchanged one records none and still moves a newly
  * named tag. Persist follows the archive and flushes any revert.
  */
@@ -258,16 +254,11 @@ async function update(
     .addStep(newValidateProtoStep())
     .addStep(newResolveSlugStep({ update: true }))
     .addStep(newLoadExistingStep(deps.store))
-    // A resource a plugin materialised is the plugin's to redefine; a client
-    // write is refused naming the plugin (GuardPluginManaged, keyed on the
-    // STORED labels and the plugin row's existence).
-    .addStep(newGuardPluginManagedStep(deps.store))
     .addStep(newBuildUpdateStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newValidateHooksStep())
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
-    .addStep(newMergeMcpServerEnvSpecsStep(deps.store, deps.logger))
     .addStep(newValidateAgentRunConfigStep(deps.modelRegistry))
     .addStep(newComputeAgentVersionHashStep())
     .addStep(newPopulateAgentVersionStep())
@@ -346,7 +337,6 @@ async function deleteAgent(
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, AgentSchema))
-    .addStep(newGuardPluginManagedStep(deps.store))
     .addStep(
       newCascadeDeleteSharesStep(
         deps.store,
@@ -415,16 +405,11 @@ async function updateVisibility(
     )
     .addStep(newValidateProtoStep())
     .addStep(newLoadAgentForVisibilityUpdateStep(deps.store))
-    .addStep(
-      newGuardPluginManagedStep(deps.store, {
-        existingKey: UPDATE_VISIBILITY_AGENT_KEY,
-      }),
-    )
     .addStep(newRecordVisibilityBeforeUpdateStep(UPDATE_VISIBILITY_AGENT_KEY))
     .addStep(newValidateVisibilityUpdateStep())
     .addStep(newRefuseChildOrgsVisibilityInChildUpdateStep(deps.store, UPDATE_VISIBILITY_AGENT_KEY))
     // The reference floor's second door: an agent may not be raised above
-    // the skills and MCP servers it runs with.
+    // the skills and plugins it runs with.
     .addStep(
       newGuardReferenceFloorOnEscalationStep(
         deps.store,
@@ -713,11 +698,6 @@ async function tagVersion(
     )
     .addStep(newValidateProtoStep())
     .addStep(newLoadAgentForTagVersionStep(deps.store))
-    .addStep(
-      newGuardPluginManagedStep(deps.store, {
-        existingKey: TAG_VERSION_AGENT_KEY,
-      }),
-    )
     .addStep(newTagAgentVersionStep(deps.store))
     .build()
     .execute(reqCtx);

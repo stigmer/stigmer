@@ -10,12 +10,13 @@
  * statements about the store as it was when they arrived, and each forbids
  * a later release from changing what it does; between them they list
  * `agent_instance`, `workflow_instance`, `workflow`, `workflow_execution`,
- * `environment` and `artifact` among their kinds. Those kinds have since been removed
+ * `environment`, `artifact` and `mcp_server` among their kinds. Those kinds have since been removed
  * from the contract, so their generated schemas no longer exist, but a
  * store that replays the migration chain from an old version still holds
  * their rows when those two steps run (the later migrations that remove the
  * rows, agent-instance-retired.ts, workflow-instance-retired.ts,
- * workflow-retired.ts and environment-retired.ts, run after them). Both steps read and edit `metadata`
+ * workflow-retired.ts, environment-retired.ts and mcp-server-retired.ts,
+ * run after them). Both steps read and edit `metadata`
  * only, through reflection, so an envelope is exactly what they need:
  * protobuf-es keeps the fields it does not declare (spec = 4, status = 5)
  * as unknown fields through `fromBinary` and writes them back verbatim in
@@ -67,6 +68,11 @@ export const FrozenArtifactEnvelopeSchema = frozenEnvelope(
 /** The envelope of a retired Environment row. */
 export const FrozenEnvironmentEnvelopeSchema = frozenEnvelope(
   "ai.stigmer.agentic.environment.v1.Environment",
+);
+
+/** The envelope of a retired McpServer row. */
+export const FrozenMcpServerEnvelopeSchema = frozenEnvelope(
+  "ai.stigmer.agentic.mcpserver.v1.McpServer",
 );
 
 /** The envelope's schema under `typeName`, a retired message's full name (the module header). */

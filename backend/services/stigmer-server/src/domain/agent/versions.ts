@@ -5,9 +5,8 @@
  * getByReference ladder, the paginated history, one version by hash and the
  * tag move. What is an agent's is here:
  *   - the version is the stored spec, hashed through the canonical JSON
- *     rendering (pipeline/steps/spec-hash.ts) after MergeMcpServerEnvSpecs,
- *     so the hash covers what is stored and what a turn runs, not the
- *     request;
+ *     rendering (pipeline/steps/spec-hash.ts), so the hash covers what is
+ *     stored and what a turn runs;
  *   - the head hash lives in status.version_hash and the live tag in
  *     metadata.version.tag, which a fetched snapshot carries from the audit
  *     column;

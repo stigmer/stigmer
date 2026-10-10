@@ -159,7 +159,6 @@ import type { DescMessage } from "@bufbuild/protobuf";
 import { fromBinary } from "@bufbuild/protobuf";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -220,7 +219,6 @@ export const CREATOR_SCAN_SCHEMAS: ReadonlyMap<ApiResourceKind, DescMessage> =
     [ApiResourceKind.organization, OrganizationSchema],
     [ApiResourceKind.agent, AgentSchema],
     [ApiResourceKind.skill, SkillSchema],
-    [ApiResourceKind.mcp_server, McpServerSchema],
     [ApiResourceKind.schedule, ScheduleSchema],
   ]);
 

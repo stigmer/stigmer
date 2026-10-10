@@ -10,14 +10,14 @@
  *
  *   - an agent execution — a RUN, whose row is the person's run and whose
  *     liveness is its phase;
- *   - an MCP connect (`mcp-connect`) — not an execution at all, but the
- *     connect attempt the connect lane records for one discovery
- *     (domain/mcpserver/connect-attempt.ts), named by the synthetic id
- *     that module and this one recognize through one predicate
- *     (domain/mcpserver/connect-execution-id.ts). The row records the
- *     person who asked for the connect, who the runner acts as when it
- *     reads that connect's values; the lane deletes the row when the
- *     connect settles, so the row's existence IS the binding's liveness,
+ *   - a tools listing (`mcp-connect`, a pinned name) — not an execution at
+ *     all, but the connect attempt a plugin's tools listing records
+ *     (domain/plugin/tools/attempt.ts), named by the synthetic id that
+ *     module and this one recognize through one predicate
+ *     (domain/plugin/tools/execution-id.ts). The row records the person
+ *     who asked for the listing, who the runner acts as when it reads that
+ *     listing's values; the lane deletes the row when the listing settles,
+ *     so the row's existence IS the binding's liveness,
  *     and its own expiry and the token's clock (every connect token
  *     carries `exp`) bound a row a crash left behind.
  *
@@ -63,7 +63,7 @@ import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { isTerminalExecutionPhase } from "../domain/run/phases.js";
-import { isConnectExecutionId } from "../domain/mcpserver/connect-execution-id.js";
+import { isConnectExecutionId } from "../domain/plugin/tools/execution-id.js";
 import { kindByIdPrefix } from "../pipeline/apiresource-meta.js";
 import { auditOf } from "../pipeline/steps/defaults.js";
 import type { Store } from "../store/interface.js";

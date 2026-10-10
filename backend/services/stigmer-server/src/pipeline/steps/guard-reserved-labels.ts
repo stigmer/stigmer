@@ -28,11 +28,6 @@
  *     contract (the personal-environment marker) left with the
  *     Environment kind, and a person's own vault is told apart by its
  *     server-stamped owner, never by a label.
- *   - SERVER-STAMPED KEYS pass (server-stamped-reserved-labels.ts, the
- *     Java ServerStampedReservedLabels arm): a step that made
- *     the trust decision for specific keys on THIS request records
- *     exactly those keys, and the guard exempts exactly them (the MCP
- *     server's endpoint-auth completion records its auth label).
  *   - LABELS only, deliberately not annotations (annotations carry no
  *     resolution or authorization semantics).
  *
@@ -58,7 +53,6 @@ import { internalError } from "../errors.js";
 import type { PipelineStep } from "../pipeline.js";
 import type { RequestContext } from "../request-context.js";
 import { EXISTING_RESOURCE_KEY } from "./load-existing.js";
-import { serverStampedReservedLabels } from "./server-stamped-reserved-labels.js";
 import { metadataOf } from "./shapes.js";
 
 /** The platform-reserved label key namespace (SystemManagedLabels). */
@@ -122,10 +116,7 @@ export function newGuardReservedLabelsStep<Desc extends DescMessage>(
           ? {}
           : (metadataOf(existing as Message)?.labels ?? {});
 
-      const stamped = serverStampedReservedLabels(ctx);
-      const mutations = reservedLabelMutations(stored, requested).filter(
-        (key) => !stamped.has(key),
-      );
+      const mutations = reservedLabelMutations(stored, requested);
       if (mutations.length === 0) {
         return;
       }
