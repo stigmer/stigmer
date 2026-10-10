@@ -208,7 +208,7 @@ export type FsRequest =
   | { readonly op: "rm"; readonly path: string; readonly recursive: boolean; readonly force: boolean }
   | { readonly op: "rmdir" | "unlink" | "readlink" | "realpath" | "access" | "stat" | "lstat"; readonly path: string }
   | { readonly op: "rename" | "copyFile"; readonly from: string; readonly to: string }
-  | { readonly op: "cp"; readonly from: string; readonly to: string; readonly recursive: boolean }
+  | { readonly op: "cp"; readonly from: string; readonly to: string; readonly recursive: boolean; readonly errorOnExist: boolean; readonly force: boolean; readonly verbatimSymlinks: boolean }
   | { readonly op: "readdir"; readonly path: string; readonly recursive: boolean }
   | { readonly op: "symlink"; readonly target: string; readonly path: string };
 

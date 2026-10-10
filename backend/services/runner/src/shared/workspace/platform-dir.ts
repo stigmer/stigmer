@@ -18,7 +18,7 @@
  */
 
 import { dirname, join } from "node:path";
-import { mkdir } from "node:fs/promises";
+import { agentFs } from "../agent-fs.js";
 import { homedir } from "node:os";
 import { createHash } from "node:crypto";
 
@@ -67,7 +67,7 @@ export function getHitlGatesRoot(): string {
  */
 export async function ensureHitlGateDir(workspaceRoot: string): Promise<string> {
   const dir = getHitlGateDir(workspaceRoot);
-  await mkdir(dir, { recursive: true });
+  await agentFs().mkdir(dir, { recursive: true });
   return dir;
 }
 
@@ -101,7 +101,7 @@ export function getCheckpointDbPath(sessionId: string): string {
  * executions, HITL reinvocations, and activity retries.
  */
 export async function ensureCheckpointDbPath(sessionId: string): Promise<string> {
-  await mkdir(getSessionDir(sessionId), { recursive: true });
+  await agentFs().mkdir(getSessionDir(sessionId), { recursive: true });
   return getCheckpointDbPath(sessionId);
 }
 
@@ -113,7 +113,7 @@ export async function ensureCheckpointDbPath(sessionId: string): Promise<string>
  */
 export async function ensurePlatformDir(sessionId: string): Promise<string> {
   const dir = getPlatformDir(sessionId);
-  await mkdir(dir, { recursive: true });
+  await agentFs().mkdir(dir, { recursive: true });
   return dir;
 }
 
@@ -154,6 +154,6 @@ export function getHitlDir(sessionId: string): string {
  */
 export async function ensureHitlDir(sessionId: string): Promise<string> {
   const dir = getHitlDir(sessionId);
-  await mkdir(dir, { recursive: true });
+  await agentFs().mkdir(dir, { recursive: true });
   return dir;
 }

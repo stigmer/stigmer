@@ -17,7 +17,7 @@
  */
 
 import { join } from "node:path";
-import { mkdir } from "node:fs/promises";
+import { agentFs } from "../agent-fs.js";
 
 /**
  * Resolve (and create) the working-tree root for a session.
@@ -55,6 +55,6 @@ export async function resolveSessionWorkspaceRoot(
     );
   }
   const sessionRoot = join(workspaceRootDir, "sessions", sessionId);
-  await mkdir(sessionRoot, { recursive: true });
+  await agentFs().mkdir(sessionRoot, { recursive: true });
   return sessionRoot;
 }

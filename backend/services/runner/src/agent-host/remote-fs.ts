@@ -75,7 +75,15 @@ export function remoteAgentFs(host: FsHost): AgentFs {
       await call({ op: "rename", from, to });
     },
     cp: async (from, to, options) => {
-      await call({ op: "cp", from, to, recursive: options?.recursive ?? false });
+      await call({
+        op: "cp",
+        from,
+        to,
+        recursive: options?.recursive ?? false,
+        errorOnExist: options?.errorOnExist ?? false,
+        force: options?.force ?? true,
+        verbatimSymlinks: options?.verbatimSymlinks ?? false,
+      });
     },
     copyFile: async (from, to) => {
       await call({ op: "copyFile", from, to });

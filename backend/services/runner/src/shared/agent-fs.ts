@@ -19,7 +19,8 @@
  */
 
 import { execFile as execFileCallback } from "node:child_process";
-import { promises as fs, type Dirent, type Stats } from "node:fs";
+import type { Dirent, Stats } from "node:fs";
+import * as fs from "node:fs/promises";
 
 /** What `stat` and `lstat` report: the fields the runtime reads, with `Stats`' predicates. */
 export interface AgentStats {
@@ -38,6 +39,13 @@ export interface AgentDirEntry {
   isFile(): boolean;
   isDirectory(): boolean;
   isSymbolicLink(): boolean;
+}
+
+export interface AgentCpOptions {
+  readonly recursive?: boolean;
+  readonly errorOnExist?: boolean;
+  readonly force?: boolean;
+  readonly verbatimSymlinks?: boolean;
 }
 
 export interface AgentExecOptions {
@@ -81,7 +89,7 @@ export interface AgentFs {
   rmdir(path: string): Promise<void>;
   unlink(path: string): Promise<void>;
   rename(from: string, to: string): Promise<void>;
-  cp(from: string, to: string, options?: { readonly recursive?: boolean }): Promise<void>;
+  cp(from: string, to: string, options?: AgentCpOptions): Promise<void>;
   copyFile(from: string, to: string): Promise<void>;
   stat(path: string): Promise<AgentStats>;
   lstat(path: string): Promise<AgentStats>;

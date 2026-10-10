@@ -77,7 +77,7 @@ async function perform(request: FsRequest, fs: AgentFs): Promise<FsValue> {
       await fs.copyFile(request.from, request.to);
       return null;
     case "cp":
-      await fs.cp(request.from, request.to, { recursive: request.recursive });
+      await fs.cp(request.from, request.to, { recursive: request.recursive, errorOnExist: request.errorOnExist, force: request.force, verbatimSymlinks: request.verbatimSymlinks });
       return null;
     case "readdir":
       return (await fs.readdir(request.path, { recursive: request.recursive })).map((entry) => ({ name: entry.name, parentPath: entry.parentPath, kind: kindOf(entry) }));
