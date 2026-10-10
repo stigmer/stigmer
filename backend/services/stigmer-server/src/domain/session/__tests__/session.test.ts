@@ -19,7 +19,8 @@
  *     an echo of a skill deleted since the session named it passes (the
  *     runner's harness-state write-back sends the whole row);
  *   - list leaves out a plugin eval's tries, which get still answers;
- *   - listByAgent answers the sessions whose pin names the agent, and
+ *   - listByAgent answers the sessions whose pin names the agent (a plugin
+ *     eval's tries left out), and
  *     refuses an empty agent_id, at the filter step as well as at proto
  *     validation;
  *   - harness immutability locks only once harness_state_id is non-empty,
@@ -523,12 +524,28 @@ describe("session listByAgent", () => {
     });
     const assistant = await createSession({});
 
+    const evalTry = await createSession({
+      agentRef: agentRef(listed.metadata!.slug),
+    });
+    const stored = await server.store.getResource(
+      ApiResourceKind.session,
+      evalTry.metadata!.id,
+      SessionSchema,
+    );
+    stored.metadata!.labels[PLUGIN_EVAL_LABEL] = "pev_sessiontest";
+    await server.store.saveResource(
+      ApiResourceKind.session,
+      evalTry.metadata!.id,
+      SessionSchema,
+      stored,
+    );
+
     const page = await query.listByAgent({ agentId: listed.metadata!.id });
     expect(page.entries.map((s) => s.metadata?.id)).toEqual([
       mine.metadata!.id,
     ]);
 
-    for (const session of [mine, theirs, assistant]) {
+    for (const session of [mine, theirs, assistant, evalTry]) {
       await command.delete({ value: session.metadata!.id });
     }
   });
