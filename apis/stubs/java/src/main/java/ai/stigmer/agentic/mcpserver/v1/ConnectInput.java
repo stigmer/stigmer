@@ -7,7 +7,13 @@ package ai.stigmer.agentic.mcpserver.v1;
 
 /**
  * <pre>
- * ConnectInput is the request for the connect RPC.
+ * ConnectInput is the request for the connect and startConnect RPCs.
+ *
+ * A connect reads the caller's My vault in org, the one vault connect
+ * reads; the server's address and declared keys are matched as a run's
+ * are. A value is saved to a vault before a connect, never sent with it
+ * (`stigmer vault set-secret`). A sign-in saved into a shared vault is not
+ * read here: it serves the runs that use that vault.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.ConnectInput}
@@ -34,6 +40,7 @@ private static final long serialVersionUID = 0L;
   private ConnectInput() {
     mcpServerId_ = "";
     org_ = "";
+    runId_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -46,18 +53,6 @@ private static final long serialVersionUID = 0L;
     return ai.stigmer.agentic.mcpserver.v1.IoProto.internal_static_ai_stigmer_agentic_mcpserver_v1_ConnectInput_descriptor;
   }
 
-  @SuppressWarnings({"rawtypes"})
-  @java.lang.Override
-  protected com.google.protobuf.MapFieldReflectionAccessor internalGetMapFieldReflection(
-      int number) {
-    switch (number) {
-      case 2:
-        return internalGetRuntimeEnv();
-      default:
-        throw new RuntimeException(
-            "Invalid map field number: " + number);
-    }
-  }
   @java.lang.Override
   protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internalGetFieldAccessorTable() {
@@ -115,105 +110,6 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int RUNTIME_ENV_FIELD_NUMBER = 2;
-  private static final class RuntimeEnvDefaultEntryHolder {
-    static final com.google.protobuf.MapEntry<
-        java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> defaultEntry =
-            com.google.protobuf.MapEntry
-            .<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue>newDefaultInstance(
-                ai.stigmer.agentic.mcpserver.v1.IoProto.internal_static_ai_stigmer_agentic_mcpserver_v1_ConnectInput_RuntimeEnvEntry_descriptor, 
-                com.google.protobuf.WireFormat.FieldType.STRING,
-                "",
-                com.google.protobuf.WireFormat.FieldType.MESSAGE,
-                ai.stigmer.agentic.executioncontext.v1.ExecutionValue.getDefaultInstance());
-  }
-  @SuppressWarnings("serial")
-  private com.google.protobuf.MapField<
-      java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> runtimeEnv_;
-  private com.google.protobuf.MapField<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue>
-  internalGetRuntimeEnv() {
-    if (runtimeEnv_ == null) {
-      return com.google.protobuf.MapField.emptyMapField(
-          RuntimeEnvDefaultEntryHolder.defaultEntry);
-    }
-    return runtimeEnv_;
-  }
-  public int getRuntimeEnvCount() {
-    return internalGetRuntimeEnv().getMap().size();
-  }
-  /**
-   * <pre>
-   * Optional environment variable values for one-time use, ahead of the
-   * caller's My vault.
-   * </pre>
-   *
-   * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 2 [json_name = "runtimeEnv"];</code>
-   */
-  @java.lang.Override
-  public boolean containsRuntimeEnv(
-      java.lang.String key) {
-    if (key == null) { throw new NullPointerException("map key"); }
-    return internalGetRuntimeEnv().getMap().containsKey(key);
-  }
-  /**
-   * Use {@link #getRuntimeEnvMap()} instead.
-   */
-  @java.lang.Override
-  @java.lang.Deprecated
-  public java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> getRuntimeEnv() {
-    return getRuntimeEnvMap();
-  }
-  /**
-   * <pre>
-   * Optional environment variable values for one-time use, ahead of the
-   * caller's My vault.
-   * </pre>
-   *
-   * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 2 [json_name = "runtimeEnv"];</code>
-   */
-  @java.lang.Override
-  public java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> getRuntimeEnvMap() {
-    return internalGetRuntimeEnv().getMap();
-  }
-  /**
-   * <pre>
-   * Optional environment variable values for one-time use, ahead of the
-   * caller's My vault.
-   * </pre>
-   *
-   * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 2 [json_name = "runtimeEnv"];</code>
-   */
-  @java.lang.Override
-  public /* nullable */
-ai.stigmer.agentic.executioncontext.v1.ExecutionValue getRuntimeEnvOrDefault(
-      java.lang.String key,
-      /* nullable */
-ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
-    if (key == null) { throw new NullPointerException("map key"); }
-    java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> map =
-        internalGetRuntimeEnv().getMap();
-    return map.containsKey(key) ? map.get(key) : defaultValue;
-  }
-  /**
-   * <pre>
-   * Optional environment variable values for one-time use, ahead of the
-   * caller's My vault.
-   * </pre>
-   *
-   * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 2 [json_name = "runtimeEnv"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.executioncontext.v1.ExecutionValue getRuntimeEnvOrThrow(
-      java.lang.String key) {
-    if (key == null) { throw new NullPointerException("map key"); }
-    java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> map =
-        internalGetRuntimeEnv().getMap();
-    if (!map.containsKey(key)) {
-      throw new java.lang.IllegalArgumentException();
-    }
-    return map.get(key);
-  }
-
   public static final int ORG_FIELD_NUMBER = 3;
   @SuppressWarnings("serial")
   private volatile java.lang.Object org_ = "";
@@ -269,6 +165,55 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
   }
 
+  public static final int RUN_ID_FIELD_NUMBER = 4;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object runId_ = "";
+  /**
+   * <pre>
+   * The run whose planned values for this server the connect uses, in place
+   * of the caller's My vault.
+   * </pre>
+   *
+   * <code>string run_id = 4 [json_name = "runId"];</code>
+   * @return The runId.
+   */
+  @java.lang.Override
+  public java.lang.String getRunId() {
+    java.lang.Object ref = runId_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      runId_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * The run whose planned values for this server the connect uses, in place
+   * of the caller's My vault.
+   * </pre>
+   *
+   * <code>string run_id = 4 [json_name = "runId"];</code>
+   * @return The bytes for runId.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getRunIdBytes() {
+    java.lang.Object ref = runId_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      runId_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -286,14 +231,11 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(mcpServerId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 1, mcpServerId_);
     }
-    com.google.protobuf.GeneratedMessage
-      .serializeStringMapTo(
-        output,
-        internalGetRuntimeEnv(),
-        RuntimeEnvDefaultEntryHolder.defaultEntry,
-        2);
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(org_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 3, org_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(runId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 4, runId_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -307,18 +249,11 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(mcpServerId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(1, mcpServerId_);
     }
-    for (java.util.Map.Entry<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> entry
-         : internalGetRuntimeEnv().getMap().entrySet()) {
-      com.google.protobuf.MapEntry<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue>
-      runtimeEnv__ = RuntimeEnvDefaultEntryHolder.defaultEntry.newBuilderForType()
-          .setKey(entry.getKey())
-          .setValue(entry.getValue())
-          .buildPartial();
-      size += com.google.protobuf.CodedOutputStream
-          .computeMessageSize(2, runtimeEnv__);
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(org_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(3, org_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(runId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(4, runId_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -337,10 +272,10 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
 
     if (!getMcpServerId()
         .equals(other.getMcpServerId())) return false;
-    if (!internalGetRuntimeEnv().equals(
-        other.internalGetRuntimeEnv())) return false;
     if (!getOrg()
         .equals(other.getOrg())) return false;
+    if (!getRunId()
+        .equals(other.getRunId())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -354,12 +289,10 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     hash = (19 * hash) + getDescriptor().hashCode();
     hash = (37 * hash) + MCP_SERVER_ID_FIELD_NUMBER;
     hash = (53 * hash) + getMcpServerId().hashCode();
-    if (!internalGetRuntimeEnv().getMap().isEmpty()) {
-      hash = (37 * hash) + RUNTIME_ENV_FIELD_NUMBER;
-      hash = (53 * hash) + internalGetRuntimeEnv().hashCode();
-    }
     hash = (37 * hash) + ORG_FIELD_NUMBER;
     hash = (53 * hash) + getOrg().hashCode();
+    hash = (37 * hash) + RUN_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getRunId().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -459,7 +392,13 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
   }
   /**
    * <pre>
-   * ConnectInput is the request for the connect RPC.
+   * ConnectInput is the request for the connect and startConnect RPCs.
+   *
+   * A connect reads the caller's My vault in org, the one vault connect
+   * reads; the server's address and declared keys are matched as a run's
+   * are. A value is saved to a vault before a connect, never sent with it
+   * (`stigmer vault set-secret`). A sign-in saved into a shared vault is not
+   * read here: it serves the runs that use that vault.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.ConnectInput}
@@ -473,28 +412,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       return ai.stigmer.agentic.mcpserver.v1.IoProto.internal_static_ai_stigmer_agentic_mcpserver_v1_ConnectInput_descriptor;
     }
 
-    @SuppressWarnings({"rawtypes"})
-    protected com.google.protobuf.MapFieldReflectionAccessor internalGetMapFieldReflection(
-        int number) {
-      switch (number) {
-        case 2:
-          return internalGetRuntimeEnv();
-        default:
-          throw new RuntimeException(
-              "Invalid map field number: " + number);
-      }
-    }
-    @SuppressWarnings({"rawtypes"})
-    protected com.google.protobuf.MapFieldReflectionAccessor internalGetMutableMapFieldReflection(
-        int number) {
-      switch (number) {
-        case 2:
-          return internalGetMutableRuntimeEnv();
-        default:
-          throw new RuntimeException(
-              "Invalid map field number: " + number);
-      }
-    }
     @java.lang.Override
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
@@ -518,8 +435,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       super.clear();
       bitField0_ = 0;
       mcpServerId_ = "";
-      internalGetMutableRuntimeEnv().clear();
       org_ = "";
+      runId_ = "";
       return this;
     }
 
@@ -557,10 +474,10 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         result.mcpServerId_ = mcpServerId_;
       }
       if (((from_bitField0_ & 0x00000002) != 0)) {
-        result.runtimeEnv_ = internalGetRuntimeEnv().build(RuntimeEnvDefaultEntryHolder.defaultEntry);
+        result.org_ = org_;
       }
       if (((from_bitField0_ & 0x00000004) != 0)) {
-        result.org_ = org_;
+        result.runId_ = runId_;
       }
     }
 
@@ -581,11 +498,13 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         bitField0_ |= 0x00000001;
         onChanged();
       }
-      internalGetMutableRuntimeEnv().mergeFrom(
-          other.internalGetRuntimeEnv());
-      bitField0_ |= 0x00000002;
       if (!other.getOrg().isEmpty()) {
         org_ = other.org_;
+        bitField0_ |= 0x00000002;
+        onChanged();
+      }
+      if (!other.getRunId().isEmpty()) {
+        runId_ = other.runId_;
         bitField0_ |= 0x00000004;
         onChanged();
       }
@@ -620,20 +539,16 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
               bitField0_ |= 0x00000001;
               break;
             } // case 10
-            case 18: {
-              com.google.protobuf.MapEntry<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue>
-              runtimeEnv__ = input.readMessage(
-                  RuntimeEnvDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
-              internalGetMutableRuntimeEnv().ensureBuilderMap().put(
-                  runtimeEnv__.getKey(), runtimeEnv__.getValue());
-              bitField0_ |= 0x00000002;
-              break;
-            } // case 18
             case 26: {
               org_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000004;
+              bitField0_ |= 0x00000002;
               break;
             } // case 26
+            case 34: {
+              runId_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000004;
+              break;
+            } // case 34
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -748,201 +663,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       return this;
     }
 
-    private static final class RuntimeEnvConverter implements com.google.protobuf.MapFieldBuilder.Converter<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValueOrBuilder, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> {
-      @java.lang.Override
-      public ai.stigmer.agentic.executioncontext.v1.ExecutionValue build(ai.stigmer.agentic.executioncontext.v1.ExecutionValueOrBuilder val) {
-        if (val instanceof ai.stigmer.agentic.executioncontext.v1.ExecutionValue) { return (ai.stigmer.agentic.executioncontext.v1.ExecutionValue) val; }
-        return ((ai.stigmer.agentic.executioncontext.v1.ExecutionValue.Builder) val).build();
-      }
-
-      @java.lang.Override
-      public com.google.protobuf.MapEntry<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> defaultEntry() {
-        return RuntimeEnvDefaultEntryHolder.defaultEntry;
-      }
-    };
-    private static final RuntimeEnvConverter runtimeEnvConverter = new RuntimeEnvConverter();
-
-    private com.google.protobuf.MapFieldBuilder<
-        java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValueOrBuilder, ai.stigmer.agentic.executioncontext.v1.ExecutionValue, ai.stigmer.agentic.executioncontext.v1.ExecutionValue.Builder> runtimeEnv_;
-    private com.google.protobuf.MapFieldBuilder<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValueOrBuilder, ai.stigmer.agentic.executioncontext.v1.ExecutionValue, ai.stigmer.agentic.executioncontext.v1.ExecutionValue.Builder>
-        internalGetRuntimeEnv() {
-      if (runtimeEnv_ == null) {
-        return new com.google.protobuf.MapFieldBuilder<>(runtimeEnvConverter);
-      }
-      return runtimeEnv_;
-    }
-    private com.google.protobuf.MapFieldBuilder<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValueOrBuilder, ai.stigmer.agentic.executioncontext.v1.ExecutionValue, ai.stigmer.agentic.executioncontext.v1.ExecutionValue.Builder>
-        internalGetMutableRuntimeEnv() {
-      if (runtimeEnv_ == null) {
-        runtimeEnv_ = new com.google.protobuf.MapFieldBuilder<>(runtimeEnvConverter);
-      }
-      bitField0_ |= 0x00000002;
-      onChanged();
-      return runtimeEnv_;
-    }
-    public int getRuntimeEnvCount() {
-      return internalGetRuntimeEnv().ensureBuilderMap().size();
-    }
-    /**
-     * <pre>
-     * Optional environment variable values for one-time use, ahead of the
-     * caller's My vault.
-     * </pre>
-     *
-     * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 2 [json_name = "runtimeEnv"];</code>
-     */
-    @java.lang.Override
-    public boolean containsRuntimeEnv(
-        java.lang.String key) {
-      if (key == null) { throw new NullPointerException("map key"); }
-      return internalGetRuntimeEnv().ensureBuilderMap().containsKey(key);
-    }
-    /**
-     * Use {@link #getRuntimeEnvMap()} instead.
-     */
-    @java.lang.Override
-    @java.lang.Deprecated
-    public java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> getRuntimeEnv() {
-      return getRuntimeEnvMap();
-    }
-    /**
-     * <pre>
-     * Optional environment variable values for one-time use, ahead of the
-     * caller's My vault.
-     * </pre>
-     *
-     * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 2 [json_name = "runtimeEnv"];</code>
-     */
-    @java.lang.Override
-    public java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> getRuntimeEnvMap() {
-      return internalGetRuntimeEnv().getImmutableMap();
-    }
-    /**
-     * <pre>
-     * Optional environment variable values for one-time use, ahead of the
-     * caller's My vault.
-     * </pre>
-     *
-     * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 2 [json_name = "runtimeEnv"];</code>
-     */
-    @java.lang.Override
-    public /* nullable */
-ai.stigmer.agentic.executioncontext.v1.ExecutionValue getRuntimeEnvOrDefault(
-        java.lang.String key,
-        /* nullable */
-ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
-      if (key == null) { throw new NullPointerException("map key"); }
-      java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValueOrBuilder> map = internalGetMutableRuntimeEnv().ensureBuilderMap();
-      return map.containsKey(key) ? runtimeEnvConverter.build(map.get(key)) : defaultValue;
-    }
-    /**
-     * <pre>
-     * Optional environment variable values for one-time use, ahead of the
-     * caller's My vault.
-     * </pre>
-     *
-     * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 2 [json_name = "runtimeEnv"];</code>
-     */
-    @java.lang.Override
-    public ai.stigmer.agentic.executioncontext.v1.ExecutionValue getRuntimeEnvOrThrow(
-        java.lang.String key) {
-      if (key == null) { throw new NullPointerException("map key"); }
-      java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValueOrBuilder> map = internalGetMutableRuntimeEnv().ensureBuilderMap();
-      if (!map.containsKey(key)) {
-        throw new java.lang.IllegalArgumentException();
-      }
-      return runtimeEnvConverter.build(map.get(key));
-    }
-    public Builder clearRuntimeEnv() {
-      bitField0_ = (bitField0_ & ~0x00000002);
-      internalGetMutableRuntimeEnv().clear();
-      return this;
-    }
-    /**
-     * <pre>
-     * Optional environment variable values for one-time use, ahead of the
-     * caller's My vault.
-     * </pre>
-     *
-     * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 2 [json_name = "runtimeEnv"];</code>
-     */
-    public Builder removeRuntimeEnv(
-        java.lang.String key) {
-      if (key == null) { throw new NullPointerException("map key"); }
-      internalGetMutableRuntimeEnv().ensureBuilderMap()
-          .remove(key);
-      return this;
-    }
-    /**
-     * Use alternate mutation accessors instead.
-     */
-    @java.lang.Deprecated
-    public java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue>
-        getMutableRuntimeEnv() {
-      bitField0_ |= 0x00000002;
-      return internalGetMutableRuntimeEnv().ensureMessageMap();
-    }
-    /**
-     * <pre>
-     * Optional environment variable values for one-time use, ahead of the
-     * caller's My vault.
-     * </pre>
-     *
-     * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 2 [json_name = "runtimeEnv"];</code>
-     */
-    public Builder putRuntimeEnv(
-        java.lang.String key,
-        ai.stigmer.agentic.executioncontext.v1.ExecutionValue value) {
-      if (key == null) { throw new NullPointerException("map key"); }
-      if (value == null) { throw new NullPointerException("map value"); }
-      internalGetMutableRuntimeEnv().ensureBuilderMap()
-          .put(key, value);
-      bitField0_ |= 0x00000002;
-      return this;
-    }
-    /**
-     * <pre>
-     * Optional environment variable values for one-time use, ahead of the
-     * caller's My vault.
-     * </pre>
-     *
-     * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 2 [json_name = "runtimeEnv"];</code>
-     */
-    public Builder putAllRuntimeEnv(
-        java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> values) {
-      for (java.util.Map.Entry<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> e : values.entrySet()) {
-        if (e.getKey() == null || e.getValue() == null) {
-          throw new NullPointerException();
-        }
-      }
-      internalGetMutableRuntimeEnv().ensureBuilderMap()
-          .putAll(values);
-      bitField0_ |= 0x00000002;
-      return this;
-    }
-    /**
-     * <pre>
-     * Optional environment variable values for one-time use, ahead of the
-     * caller's My vault.
-     * </pre>
-     *
-     * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 2 [json_name = "runtimeEnv"];</code>
-     */
-    public ai.stigmer.agentic.executioncontext.v1.ExecutionValue.Builder putRuntimeEnvBuilderIfAbsent(
-        java.lang.String key) {
-      java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValueOrBuilder> builderMap = internalGetMutableRuntimeEnv().ensureBuilderMap();
-      ai.stigmer.agentic.executioncontext.v1.ExecutionValueOrBuilder entry = builderMap.get(key);
-      if (entry == null) {
-        entry = ai.stigmer.agentic.executioncontext.v1.ExecutionValue.newBuilder();
-        builderMap.put(key, entry);
-      }
-      if (entry instanceof ai.stigmer.agentic.executioncontext.v1.ExecutionValue) {
-        entry = ((ai.stigmer.agentic.executioncontext.v1.ExecutionValue) entry).toBuilder();
-        builderMap.put(key, entry);
-      }
-      return (ai.stigmer.agentic.executioncontext.v1.ExecutionValue.Builder) entry;
-    }
-
     private java.lang.Object org_ = "";
     /**
      * <pre>
@@ -1010,7 +730,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       org_ = value;
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000002;
       onChanged();
       return this;
     }
@@ -1028,7 +748,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      */
     public Builder clearOrg() {
       org_ = getDefaultInstance().getOrg();
-      bitField0_ = (bitField0_ & ~0x00000004);
+      bitField0_ = (bitField0_ & ~0x00000002);
       onChanged();
       return this;
     }
@@ -1050,6 +770,103 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       org_ = value;
+      bitField0_ |= 0x00000002;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object runId_ = "";
+    /**
+     * <pre>
+     * The run whose planned values for this server the connect uses, in place
+     * of the caller's My vault.
+     * </pre>
+     *
+     * <code>string run_id = 4 [json_name = "runId"];</code>
+     * @return The runId.
+     */
+    public java.lang.String getRunId() {
+      java.lang.Object ref = runId_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        runId_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The run whose planned values for this server the connect uses, in place
+     * of the caller's My vault.
+     * </pre>
+     *
+     * <code>string run_id = 4 [json_name = "runId"];</code>
+     * @return The bytes for runId.
+     */
+    public com.google.protobuf.ByteString
+        getRunIdBytes() {
+      java.lang.Object ref = runId_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        runId_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The run whose planned values for this server the connect uses, in place
+     * of the caller's My vault.
+     * </pre>
+     *
+     * <code>string run_id = 4 [json_name = "runId"];</code>
+     * @param value The runId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setRunId(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      runId_ = value;
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The run whose planned values for this server the connect uses, in place
+     * of the caller's My vault.
+     * </pre>
+     *
+     * <code>string run_id = 4 [json_name = "runId"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearRunId() {
+      runId_ = getDefaultInstance().getRunId();
+      bitField0_ = (bitField0_ & ~0x00000004);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The run whose planned values for this server the connect uses, in place
+     * of the caller's My vault.
+     * </pre>
+     *
+     * <code>string run_id = 4 [json_name = "runId"];</code>
+     * @param value The bytes for runId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setRunIdBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      runId_ = value;
       bitField0_ |= 0x00000004;
       onChanged();
       return this;

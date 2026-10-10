@@ -6,9 +6,9 @@
 // the backend returns — so dry-run and real connect render identically. Mirrors
 // Go's mcpdiscovery.Discover + CreateTransport (internal/cli/mcpdiscovery).
 //
-// stdio servers inherit process.env merged with --env overrides (override wins),
-// so credentials never leave the local machine. HTTP servers connect to the
-// configured URL with the server's static headers.
+// stdio servers inherit the caller's shell environment, and ${VAR} placeholders
+// resolve from it, so credentials never leave the local machine. HTTP servers
+// connect to the configured URL with the server's static headers.
 
 import { create } from "@bufbuild/protobuf";
 import type { McpServerSpec } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
@@ -21,16 +21,14 @@ import {
 import type { JsonObject } from "@bufbuild/protobuf";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
-import { mergeProcessEnv, resolveDeclaredEnvValues } from "../mcp/runtime-env.js";
 import { resolveHeaders, resolvePlaceholders } from "../mcp/placeholder-resolver.js";
 
 /** Discover an MCP server's capabilities locally without persisting to the backend. */
 export async function localDiscover(
   spec: McpServerSpec,
-  envOverrides: readonly string[],
   timeoutMs: number,
 ): Promise<DiscoveredCapabilities> {
-  const { transport, readStderr } = await buildTransport(spec, envOverrides);
+  const { transport, readStderr } = await buildTransport(spec);
   const client = new Client({ name: "stigmer-cli", version: "1.0.0" });
   const options = timeoutMs > 0 ? { timeout: timeoutMs } : undefined;
 
@@ -79,13 +77,12 @@ interface BuiltTransport {
   readStderr(): string;
 }
 
-async function buildTransport(spec: McpServerSpec, envOverrides: readonly string[]): Promise<BuiltTransport> {
-  // ${VAR} placeholders in args/headers resolve against the exact same env the
-  // backend hands the runner for real connect (declared keys from the OS env +
-  // --env overrides) — so dry-run is a faithful preview. Resolution is strict:
-  // an unresolved placeholder throws before any subprocess is spawned, matching
-  // the proto contract (never pass a literal "${VAR}" to the server).
-  const resolutionEnv = resolveDeclaredEnvValues(spec.env ?? {}, envOverrides);
+async function buildTransport(spec: McpServerSpec): Promise<BuiltTransport> {
+  // ${VAR} placeholders in args/headers resolve against the declared keys the
+  // caller's shell exports. Resolution is strict: an unresolved placeholder
+  // throws before any subprocess is spawned, matching the proto contract
+  // (never pass a literal "${VAR}" to the server).
+  const resolutionEnv = declaredShellValues(spec.env ?? {});
 
   if (spec.serverType?.case === "stdio") {
     const { command, args, workingDir } = spec.serverType.value;
@@ -96,7 +93,7 @@ async function buildTransport(spec: McpServerSpec, envOverrides: readonly string
       command,
       args: resolvedArgs,
       cwd: workingDir !== "" ? workingDir : undefined,
-      env: mergeProcessEnv([...envOverrides, ...goRunEnvOverrides(command, args)]),
+      env: { ...shellEnv(), ...goRunEnvOverrides(command, args) },
       // "pipe" exposes the child stderr as a PassThrough immediately, so we can
       // capture diagnostics rather than leaking them to the user's terminal.
       stderr: "pipe",
@@ -127,11 +124,32 @@ async function buildTransport(spec: McpServerSpec, envOverrides: readonly string
 // Go-toolchain overrides for `go run <module>@<version>` stdio commands so a
 // freshly-tagged version is usable before sum.golang.org indexes it. Mirrors
 // Go's goRunEnvOverrides. Safe: the command comes from operator-authored config.
-function goRunEnvOverrides(command: string, args: readonly string[]): string[] {
-  if (command !== "go" || args.length < 2 || args[0] !== "run") return [];
+// Exported for its unit test: discovery never spawns `go` in the suite.
+export function goRunEnvOverrides(command: string, args: readonly string[]): Record<string, string> {
+  if (command !== "go" || args.length < 2 || args[0] !== "run") return {};
   const pkg = args[1].split("@")[0];
   const parts = pkg.split("/");
-  if (parts.length < 3) return [];
+  if (parts.length < 3) return {};
   const prefix = `${parts[0]}/${parts[1]}/${parts[2]}/*`;
-  return [`GONOSUMDB=${prefix}`, `GONOSUMCHECK=${prefix}`];
+  return { GONOSUMDB: prefix, GONOSUMCHECK: prefix };
+}
+
+// The values the caller's shell exports for the keys a server declares, non-empty
+// only. `declarations` is the server's spec.env; only its keys are read.
+function declaredShellValues(declarations: Record<string, unknown>): Record<string, string> {
+  const values: Record<string, string> = {};
+  for (const key of Object.keys(declarations)) {
+    const value = process.env[key];
+    if (value !== undefined && value !== "") values[key] = value;
+  }
+  return values;
+}
+
+// The caller's shell environment as a plain map for the stdio subprocess.
+function shellEnv(): Record<string, string> {
+  const env: Record<string, string> = {};
+  for (const [key, value] of Object.entries(process.env)) {
+    if (value !== undefined) env[key] = value;
+  }
+  return env;
 }

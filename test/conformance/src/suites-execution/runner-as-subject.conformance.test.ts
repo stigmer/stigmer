@@ -37,12 +37,12 @@
 //     is an organization's blueprint, an admin's to author; a member brings
 //     their own credential to it. A member's connect of an admin-authored,
 //     org-visible server that declares a credential SUCCEEDS with the
-//     fixture's tools: the connect's ExecutionContext is created as the
-//     member and the connect token admits the runner as the member for the
-//     secret read from the member's My vault (stigmer#1137's connect half).
+//     fixture's tools: the connect's attempt records the member and the
+//     connect token admits the runner as the member for the values fetch
+//     from the member's My vault (stigmer#1137's connect half).
 //     A key the run's agent declares is filled from the TURN SENDER's My
 //     vault when the conversation includes it: a member's turn on the
-//     founder's org-visible agent reads the
+//     founder's org-visible agent plans and fetches the
 //     member's saved value, never the founder's saved after it (stigmer#1198:
 //     a person's own logins and secrets serve only their own runs). (The
 //     sharper form, a teammate's turn in someone else's session, needs a
@@ -111,6 +111,7 @@ import { makeSchedule } from "../support/schedules";
 import { makeSessionSpec } from "../support/sessions";
 import { organizationRole } from "../support/iampolicies";
 import { makeSharedVault, myVaultTarget, setSecretsInput, vaultTarget } from "../support/vaults";
+import { RunValueOrigin, agentSourceOf, fetchRunValues, runSourcesOf, sourcesFor } from "../support/run-values";
 import { pollUntil } from "../support/run-poll";
 import { makeHttpMcpServer } from "../support/mcpservers";
 import {
@@ -136,10 +137,6 @@ const runnerActsAsRunCreator =
 // The placeholder the server's auto-created sessions start with; the titling
 // activity replaces it.
 const UNTITLED_SESSION_SUBJECT = "Auto-created session";
-
-// The marker every user-shaped read of a run's context shows in place of a
-// value that came from a vault.
-const REDACTED_MARKER = "***REDACTED***";
 
 // The exchange's refusal under the enforcing posture, byte-pinned in the
 // server's runnerauth constants; the arm asserts the sentence, not just the
@@ -600,7 +597,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
       await awaitTerminal(people.founder, run.metadata!.id);
     });
 
-    it("[rpc:McpServerCommandController.connect] a member's connect of an admin-authored server with their own credential succeeds: the connect's ExecutionContext is created as the member, and the connect token admits the runner as the member for the secret read", async (ctx) => {
+    it("[rpc:McpServerCommandController.connect] a member's connect of an admin-authored server with their own credential succeeds: the connect's attempt records the member, and the connect token admits the runner as the member for the values fetch", async (ctx) => {
       const { lane, mock } = laneOrSkip(ctx);
       const people = await provisionPeople(lane);
       const mcpTools = requireMcpFixture(target);
@@ -637,9 +634,8 @@ describe.skipIf(!runnerActsAsRunCreator)(
         }),
       );
 
-      // A redacted or refused secret read fails discovery loudly (the runner's
-      // CredentialResolutionError), so SUCCEEDED with the fixture's tool is the
-      // proof the secret was read as the member and decrypted for the runner.
+      // A refused fetch fails discovery loudly, so SUCCEEDED with the
+      // fixture's tool is the proof the value was fetched as the member.
       const connected = await people.member.mcpServerCommand.connect({
         mcpServerId: server.metadata!.id,
         org: people.org,
@@ -721,11 +717,10 @@ describe.skipIf(!runnerActsAsRunCreator)(
 
       // Both people save the key the agent declares, the founder (the agent's
       // author) LAST: a fill that took the organization's newest My vault,
-      // or the author's, would hand the member the founder's. Every read of
-      // a vault's value shows the marker, so the founder also saves a key
-      // only they hold: its absence from the member's context is the proof
-      // that no key came from the founder's My vault.
-      await saveToMyVault(people.member, people.org, {
+      // or the author's, would hand the member the founder's. The founder
+      // also saves a key only they hold: its absence from the member's plan
+      // and fetch is the proof that no key came from the founder's My vault.
+      const memberVaultId = await saveToMyVault(people.member, people.org, {
         RAS_BRIDGE_KEY: "member-value",
       });
       await saveToMyVault(people.founder, people.org, {
@@ -749,10 +744,9 @@ describe.skipIf(!runnerActsAsRunCreator)(
         people.founder.agentCommand.delete({ value: agent.metadata!.id }),
       );
 
-      // The turn's shell call is held so its ExecutionContext outlives the
-      // read; the member reads the context of their own turn (its owner).
-      // Every read shows the marker, so which value the run received is
-      // proven by the agent's shell, whose output rides the next request.
+      // The turn's shell call is held so the run stays live while its values
+      // are fetched with its own credential (the member's run, so the member
+      // mints it); the agent's shell proves the same end to end.
       mock.enqueue(
         anthropicToolUse("call_bridge", "execute", {
           command:
@@ -778,19 +772,25 @@ describe.skipIf(!runnerActsAsRunCreator)(
         });
       });
 
-      const context =
-        await people.member.executionContextQuery.getByExecutionId({
-          executionId: created.metadata!.id,
-        });
+      const sources = await runSourcesOf(people.member, created.metadata!.id);
       expect(
-        context.spec?.data.RAS_FOUNDER_ONLY_KEY,
-        "nothing is read from the agent author's My vault",
+        sourcesFor(sources, "RAS_FOUNDER_ONLY_KEY"),
+        "nothing is planned from the agent author's My vault",
+      ).toEqual([]);
+      const bridge = agentSourceOf(sources, "RAS_BRIDGE_KEY");
+      expect(bridge?.origin, "the declared key is the turn sender's").toBe(
+        RunValueOrigin.MY_VAULT,
+      );
+      expect(bridge?.vaultId).toBe(memberVaultId);
+      const runner = lane.clientsPresenting(
+        await runCredentialOf(people.member, created.metadata!.id),
+      );
+      const fetched = await fetchRunValues(runner, created.metadata!.id);
+      expect(fetched.agent.RAS_BRIDGE_KEY).toBe("member-value");
+      expect(
+        fetched.agent.RAS_FOUNDER_ONLY_KEY,
+        "the founder's own key never reaches the member's run",
       ).toBeUndefined();
-      expect(
-        context.spec?.data.RAS_BRIDGE_KEY?.isSecret,
-        "the declared key is the turn sender's, carried as a secret",
-      ).toBe(true);
-      expect(context.spec?.data.RAS_BRIDGE_KEY?.value).toBe(REDACTED_MARKER);
 
       mock.releaseHolds();
       const settled = await awaitTerminal(people.member, created.metadata!.id);
@@ -881,12 +881,12 @@ describe.skipIf(!runnerActsAsRunCreator)(
           value: created.metadata!.id,
         });
       });
-      const context =
-        await people.member.executionContextQuery.getByExecutionId({
-          executionId: created.metadata!.id,
-        });
-      expect(context.spec?.data.RAS_TEAM_KEY?.isSecret).toBe(true);
-      expect(context.spec?.data.RAS_TEAM_KEY?.value).toBe(REDACTED_MARKER);
+      const teamSource = agentSourceOf(
+        await runSourcesOf(people.member, created.metadata!.id),
+        "RAS_TEAM_KEY",
+      );
+      expect(teamSource?.origin).toBe(RunValueOrigin.VAULT);
+      expect(teamSource?.vaultId).toBe(team.metadata!.id);
     });
 
     it("[rpc:ScheduleCommandController.trigger] a schedule's vault stops serving its fires once the account that attached it may no longer use it", async (ctx) => {

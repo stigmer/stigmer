@@ -47,4 +47,68 @@ public interface RunCredentialsOrBuilder extends
    */
   com.google.protobuf.ByteString
       getPersonBytes();
+
+  /**
+   * <pre>
+   * Where each value the turn uses lives: one entry per key and declarer,
+   * naming a vault and an entry, never a value. A runner fetches the
+   * values from these vaults when the turn's work starts
+   * (VaultValueController.fetchValues). An optional key nothing holds has
+   * no entry.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.run.v1.RunValueSource sources = 2 [json_name = "sources"];</code>
+   */
+  java.util.List<ai.stigmer.agentic.run.v1.RunValueSource> 
+      getSourcesList();
+  /**
+   * <pre>
+   * Where each value the turn uses lives: one entry per key and declarer,
+   * naming a vault and an entry, never a value. A runner fetches the
+   * values from these vaults when the turn's work starts
+   * (VaultValueController.fetchValues). An optional key nothing holds has
+   * no entry.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.run.v1.RunValueSource sources = 2 [json_name = "sources"];</code>
+   */
+  ai.stigmer.agentic.run.v1.RunValueSource getSources(int index);
+  /**
+   * <pre>
+   * Where each value the turn uses lives: one entry per key and declarer,
+   * naming a vault and an entry, never a value. A runner fetches the
+   * values from these vaults when the turn's work starts
+   * (VaultValueController.fetchValues). An optional key nothing holds has
+   * no entry.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.run.v1.RunValueSource sources = 2 [json_name = "sources"];</code>
+   */
+  int getSourcesCount();
+  /**
+   * <pre>
+   * Where each value the turn uses lives: one entry per key and declarer,
+   * naming a vault and an entry, never a value. A runner fetches the
+   * values from these vaults when the turn's work starts
+   * (VaultValueController.fetchValues). An optional key nothing holds has
+   * no entry.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.run.v1.RunValueSource sources = 2 [json_name = "sources"];</code>
+   */
+  java.util.List<? extends ai.stigmer.agentic.run.v1.RunValueSourceOrBuilder> 
+      getSourcesOrBuilderList();
+  /**
+   * <pre>
+   * Where each value the turn uses lives: one entry per key and declarer,
+   * naming a vault and an entry, never a value. A runner fetches the
+   * values from these vaults when the turn's work starts
+   * (VaultValueController.fetchValues). An optional key nothing holds has
+   * no entry.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.run.v1.RunValueSource sources = 2 [json_name = "sources"];</code>
+   */
+  ai.stigmer.agentic.run.v1.RunValueSourceOrBuilder getSourcesOrBuilder(
+      int index);
 }

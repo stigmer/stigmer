@@ -420,7 +420,7 @@ public final class McpServerCommandControllerGrpc {
      * status.discovered_capabilities exactly as with the blocking connect.
      * Idempotent while an operation is in flight: a startConnect that finds a
      * live CONNECTING operation attaches to it (the in-flight operation's
-     * runtime_env wins) instead of starting a second workflow. A CONNECTING
+     * values serve it) instead of starting a second workflow. A CONNECTING
      * entry orphaned by a backend restart is reconciled against Temporal
      * before a new operation starts.
      * </pre>
@@ -579,7 +579,7 @@ public final class McpServerCommandControllerGrpc {
      * status.discovered_capabilities exactly as with the blocking connect.
      * Idempotent while an operation is in flight: a startConnect that finds a
      * live CONNECTING operation attaches to it (the in-flight operation's
-     * runtime_env wins) instead of starting a second workflow. A CONNECTING
+     * values serve it) instead of starting a second workflow. A CONNECTING
      * entry orphaned by a backend restart is reconciled against Temporal
      * before a new operation starts.
      * </pre>
@@ -720,7 +720,7 @@ public final class McpServerCommandControllerGrpc {
      * status.discovered_capabilities exactly as with the blocking connect.
      * Idempotent while an operation is in flight: a startConnect that finds a
      * live CONNECTING operation attaches to it (the in-flight operation's
-     * runtime_env wins) instead of starting a second workflow. A CONNECTING
+     * values serve it) instead of starting a second workflow. A CONNECTING
      * entry orphaned by a backend restart is reconciled against Temporal
      * before a new operation starts.
      * </pre>
@@ -859,7 +859,7 @@ public final class McpServerCommandControllerGrpc {
      * status.discovered_capabilities exactly as with the blocking connect.
      * Idempotent while an operation is in flight: a startConnect that finds a
      * live CONNECTING operation attaches to it (the in-flight operation's
-     * runtime_env wins) instead of starting a second workflow. A CONNECTING
+     * values serve it) instead of starting a second workflow. A CONNECTING
      * entry orphaned by a backend restart is reconciled against Temporal
      * before a new operation starts.
      * </pre>
@@ -1004,7 +1004,7 @@ public final class McpServerCommandControllerGrpc {
      * status.discovered_capabilities exactly as with the blocking connect.
      * Idempotent while an operation is in flight: a startConnect that finds a
      * live CONNECTING operation attaches to it (the in-flight operation's
-     * runtime_env wins) instead of starting a second workflow. A CONNECTING
+     * values serve it) instead of starting a second workflow. A CONNECTING
      * entry orphaned by a backend restart is reconciled against Temporal
      * before a new operation starts.
      * </pre>

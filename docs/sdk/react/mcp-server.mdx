@@ -155,9 +155,9 @@ classification in a single operation. The backend enumerates the
 server's tools and resource templates, then classifies each tool's
 approval policy via a structured-output LLM call.
 
-Saved credentials need nothing from the caller: the backend resolves
-them. One-time credentials ride `runtimeEnv` and replace that
-resolution for this connect.
+Credentials need nothing from the caller: the backend reads them from
+the caller's My vault (save a typed value there first, as
+`useMcpServerCredentials` does).
 
 **Signature**
 
@@ -170,7 +170,7 @@ function useMcpServerConnect(): UseMcpServerConnectReturn
 <TypeTable
   type={{
     clearError: { type: "() => void", description: "Clear the error state." },
-    connect: { type: "(mcpServerId: string, org: string, runtimeEnv?: Record<string, EnvVarInput>) => Promise<McpServer>", description: "Connect to an MCP server: discover its tools (with each tool's destructive hint) and resource templates.  Uses the async connect lane (`startConnect` + polling via the SDK's `connectAndWait`, stigmer/stigmer#425): the promise still resolves when the operation settles — legitimately tens of seconds to minutes for heavy servers — but no RPC stays open that long, so the wait survives browser transport limits. Backends without the lane fall back to the blocking `connect` RPC transparently.  The backend fills the server's declared variables and its login by the run's credential rule, from two places only: `runtimeEnv` first, as this call's own one-time values (not kept), then the caller's My vault, the sign-in saved there for this server included. No shared vault is read, so a login kept only in one does not serve a connect. A value the server does not declare is not delivered, and a required key neither holds refuses the connect, naming it. The platform's own keys are filled by the runner, never sent from here (`SYSTEM_ENV_VAR_KEYS`)." },
+    connect: { type: "(mcpServerId: string, org: string) => Promise<McpServer>", description: "Connect to an MCP server: discover its tools (with each tool's destructive hint) and resource templates.  Uses the async connect lane (`startConnect` + polling via the SDK's `connectAndWait`, stigmer/stigmer#425): the promise still resolves when the operation settles — legitimately tens of seconds to minutes for heavy servers — but no RPC stays open that long, so the wait survives browser transport limits. Backends without the lane fall back to the blocking `connect` RPC transparently.  The backend fills the server's declared variables and its login by the run's credential rule from the caller's My vault only, the sign-in saved there for this server included; a value is saved there before the connect, never sent with it. No shared vault is read, so a login kept only in one does not serve a connect. A value the server does not declare is not delivered, and a required key My vault lacks refuses the connect, naming it. The platform's own keys are filled by the runner, never sent from here (`SYSTEM_ENV_VAR_KEYS`)." },
     error: { type: "Error | null", description: "Error from the most recent failed connect, or `null`." },
     isConnecting: { type: "boolean", description: "`true` while the connect operation is in flight (start through settle)." },
   }}
@@ -180,15 +180,8 @@ function useMcpServerConnect(): UseMcpServerConnectReturn
 const { connect, isConnecting, error } = useMcpServerConnect();
 const { refetch } = useMcpServer(org, slug);
 
-// Saved credentials: already in My vault
-async function handleConnectSaved() {
+async function handleConnect() {
   await connect(mcpServer.metadata.id, org);
-  refetch();
-}
-
-// One-time use: pass credentials directly
-async function handleConnectTemporary(values: Record<string, EnvVarInput>) {
-  await connect(mcpServer.metadata.id, org, values);
   refetch();
 }
 ```
@@ -341,7 +334,6 @@ if (creds.missingVariables.length > 0) {
       variables={creds.missingVariables}
       onSubmit={(values) => creds.saveCredentials(values)}
       isSubmitting={creds.isSaving}
-      hideSaveToggle
     />
   );
 }
@@ -726,7 +718,7 @@ All visual properties flow through `--stgm-*` design tokens.
   mcpServer={server}
   credentials={{
     variables: missingVars,
-    onSubmit: (values, opts) => submitEnvVars(ref, values, opts),
+    onSubmit: (values) => submitEnvVars(ref, values),
   }}
   discoveredTools={tools}
   onBack={() => setView("list")}
@@ -933,7 +925,7 @@ const mcpSetup = useMcpServerSetup("acme");
     entries: mcpSetup.entries,
     onServerAdded: (ref) => mcpSetup.addServer(ref),
     onServerRemoved: (ref) => mcpSetup.removeServer(ref),
-    onSubmitEnvVars: (ref, v, o) => mcpSetup.submitEnvVars(ref, v, o),
+    onSubmitEnvVars: (ref, v) => mcpSetup.submitEnvVars(ref, v),
   }}
 />
 ```
@@ -1079,7 +1071,7 @@ rendered — no status string inspection required.
 <TypeTable
   type={{
     isSubmitting: { type: "boolean", description: "When true, form inputs are disabled and the submit button shows a spinner." },
-    onSubmit: { type: "(values: Record<string, EnvVarInput>, options: EnvVarFormSubmitOptions) => void", description: "Called when the user submits credentials via the form.", required: true },
+    onSubmit: { type: "(values: Record<string, EnvVarInput>) => void", description: "Called when the user submits credentials via the form (for My vault).", required: true },
     poolValues: { type: "(key: string) => EnvVarInput | undefined", description: "Lookup function for pre-filling fields from another source the host holds. When provided, fields whose keys return a value are pre-populated." },
     variables: { type: "EnvVarFormVariable[]", description: "Missing env vars to collect (one form field per variable).", required: true },
   }}
@@ -1151,7 +1143,7 @@ the object cleanly communicates which mode the component operates in.
     onServerAdded: { type: "(ref: ResourceRef) => void", description: "Called when the user selects a server from search results.", required: true },
     onServerRemoved: { type: "(ref: ResourceRef) => void", description: "Called when the user removes a server from the selected list.", required: true },
     onSignedIn: { type: "(ref: ResourceRef) => void", description: "Called when a sign-in started here lands, saved in the person's My vault: the composer includes My vault in a conversation that left it out, so the next turn uses the login just made." },
-    onSubmitEnvVars: { type: "(ref: ResourceRef, values: Record<string, EnvVarInput>, options: EnvVarFormSubmitOptions) => void", description: "Called when the user submits credentials for a server.", required: true },
+    onSubmitEnvVars: { type: "(ref: ResourceRef, values: Record<string, EnvVarInput>) => void", description: "Called when the user submits credentials for a server.", required: true },
   }}
 />
 

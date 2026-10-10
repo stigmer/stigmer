@@ -13,7 +13,7 @@
  *   - a credential bound to one organization, though authorized on the
  *     server, is refused with the binding's sentence on every lane that
  *     names another organization, before any engine, vault or
- *     context is touched (prepareConnect included, which connect's own
+ *     attempt is touched (prepareConnect included, which connect's own
  *     check would otherwise hide).
  */
 import { create } from "@bufbuild/protobuf";
@@ -37,7 +37,7 @@ import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 
 import { BOUND_ELSEWHERE_DENY_REASON } from "../../../authorization/credential-binding.js";
-import { connect, prepareConnect } from "../connect.js";
+import { CONNECT_TIMEOUT, connect, prepareConnect } from "../connect.js";
 import type { McpServerConnectDeps } from "../connect.js";
 import { disconnectOAuth } from "../disconnect-oauth.js";
 import { getOAuthGrantStatus } from "../get-oauth-grant-status.js";
@@ -108,7 +108,6 @@ function deps(authorizer: Authorizer): McpServerConnectDeps {
       connected: true,
       engine: unreachable("engine"),
     }),
-    executionContext: unreachable("executionContext"),
     runnerAuth: unreachable("runnerAuth"),
     vaults: unreachable("vaults"),
     vaultResolver: unreachable("vaultResolver"),
@@ -133,6 +132,7 @@ describe("connect-lane authorization", () => {
       deps(authorizer),
       create(ConnectInputSchema, { mcpServerId: "mcps_missing", org: "o" }),
       caller,
+      "",
     ).catch((e: unknown) => e);
     expect((missing as ConnectError).code).toBe(Code.NotFound);
 
@@ -143,6 +143,7 @@ describe("connect-lane authorization", () => {
           deps(authorizer),
           create(ConnectInputSchema, { mcpServerId: "mcps_denied", org: "o" }),
           caller,
+          "",
         ),
       "unauthorized to connect to mcp server",
     );
@@ -157,6 +158,7 @@ describe("connect-lane authorization", () => {
           deps(authorizer),
           create(ConnectInputSchema, { mcpServerId: "mcps_denied", org: "o" }),
           caller,
+          "",
         ),
       "unauthorized to connect to mcp server",
     );
@@ -208,18 +210,18 @@ describe("connect lanes under a credential bound to another organization", () =>
       org: "org_b",
     });
     await expectDenied(
-      () => connect(deps(allowing), input, boundToA),
+      () => connect(deps(allowing), input, boundToA, ""),
       BOUND_ELSEWHERE_DENY_REASON,
     );
     await expectDenied(
-      () => startConnect(deps(allowing), input, boundToA),
+      () => startConnect(deps(allowing), input, boundToA, ""),
       BOUND_ELSEWHERE_DENY_REASON,
     );
     const server = create(McpServerSchema, {
       metadata: { id: "mcps_shared", name: "mcps_shared", org: "test-org" },
     });
     await expectDenied(
-      () => prepareConnect(deps(allowing), server, input, boundToA),
+      () => prepareConnect(deps(allowing), server, input, boundToA, "", CONNECT_TIMEOUT),
       BOUND_ELSEWHERE_DENY_REASON,
     );
   });

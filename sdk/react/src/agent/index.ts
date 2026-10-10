@@ -22,7 +22,6 @@ export type { AgentPickerProps } from "./AgentPicker.js";
 export { AgentEnvForm } from "./AgentEnvForm.js";
 export type {
   AgentEnvFormProps,
-  AgentEnvFormSubmitOptions,
   AgentEnvFormVariable,
 } from "./AgentEnvForm.js";
 

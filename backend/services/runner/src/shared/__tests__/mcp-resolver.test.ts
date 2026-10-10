@@ -1,13 +1,19 @@
 /**
  * Pins MCP server resolution: the transport guard fails a whole resolution
  * rather than skip a server, the destructive set and discovered names a
- * resolved server carries from its last discovery, the run values a server
- * claims, the platform address fill (stigmer#1433), and one usage per slug.
+ * resolved server carries from its last discovery, each server filled only
+ * from its own group of the run's values and only while it dials the URL
+ * that group was checked against, the platform address fill
+ * (stigmer#1433), and one usage per slug.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { declaredEnvKeysOf, mcpServerToResolved, mergeMcpServerUsages, PLUGIN_MEMBER_LABEL, resolveMcpServers } from "../mcp-resolver.js";
+import { dialedUrlOf, mcpServerToResolved, mergeMcpServerUsages, PLUGIN_MEMBER_LABEL, resolveMcpServers } from "../mcp-resolver.js";
+import type { ToolValueGroup } from "../run-values.js";
 import { McpTransportError } from "../mcp-transport-guard.js";
 import { testConfig } from "../../__test-utils__/config-fixture.js";
+
+/** A run whose fetch answered no tool values. */
+const NO_TOOLS: ReadonlyMap<string, ToolValueGroup> = new Map();
 
 /** The runner endpoints resolution fills STIGMER_SERVER_ADDRESS from. */
 const PLATFORM_ENDPOINTS = testConfig();
@@ -61,7 +67,7 @@ describe("resolveMcpServers — transport guard integration", () => {
     const client = clientReturning({ filesystem: stdioMcpServer("filesystem") });
 
     await expect(
-      resolveMcpServers(client, [makeUsage("filesystem")], {}, "stdio-forbidden", PLATFORM_ENDPOINTS),
+      resolveMcpServers(client, [makeUsage("filesystem")], NO_TOOLS, {}, "stdio-forbidden", PLATFORM_ENDPOINTS),
     ).rejects.toThrow(McpTransportError);
   });
 
@@ -75,6 +81,7 @@ describe("resolveMcpServers — transport guard integration", () => {
       resolveMcpServers(
         client,
         [makeUsage("github"), makeUsage("filesystem")],
+        NO_TOOLS,
         {},
         "stdio-forbidden", PLATFORM_ENDPOINTS,
       ),
@@ -85,7 +92,7 @@ describe("resolveMcpServers — transport guard integration", () => {
     const client = clientReturning({ github: httpMcpServer("github") });
 
     const result = await resolveMcpServers(
-      client, [makeUsage("github")], {}, "stdio-forbidden", PLATFORM_ENDPOINTS,
+      client, [makeUsage("github")], NO_TOOLS, {}, "stdio-forbidden", PLATFORM_ENDPOINTS,
     );
 
     expect(result.resolvedServers).toHaveLength(1);
@@ -96,7 +103,7 @@ describe("resolveMcpServers — transport guard integration", () => {
     const client = clientReturning({ filesystem: stdioMcpServer("filesystem") });
 
     const result = await resolveMcpServers(
-      client, [makeUsage("filesystem")], {}, "stdio-allowed", PLATFORM_ENDPOINTS,
+      client, [makeUsage("filesystem")], NO_TOOLS, {}, "stdio-allowed", PLATFORM_ENDPOINTS,
     );
 
     expect(result.resolvedServers).toHaveLength(1);
@@ -107,7 +114,7 @@ describe("resolveMcpServers — transport guard integration", () => {
     const client = clientReturning({});
 
     const result = await resolveMcpServers(
-      client, [makeUsage("ghost")], {}, "stdio-forbidden", PLATFORM_ENDPOINTS,
+      client, [makeUsage("ghost")], NO_TOOLS, {}, "stdio-forbidden", PLATFORM_ENDPOINTS,
     );
 
     expect(result.resolvedServers).toHaveLength(0);
@@ -160,21 +167,79 @@ describe("a resolved server's plugin origin", () => {
   });
 });
 
-describe("a resolved server's claimed run values", () => {
-  it("are its declared keys and its OAuth token's target, which the agent's shell never receives", () => {
-    const server = httpMcpServer("linear");
-    server.spec.env = { LINEAR_TOKEN: { isSecret: true }, LINEAR_WORKSPACE: { isSecret: false } };
-    server.spec.auth = { targetEnvVar: "LINEAR_OAUTH_TOKEN" };
-    expect(declaredEnvKeysOf(server).sort()).toEqual(["LINEAR_OAUTH_TOKEN", "LINEAR_TOKEN", "LINEAR_WORKSPACE"]);
-    expect([...(mcpServerToResolved(server, "linear", {})?.declaredEnvKeys ?? [])].sort()).toEqual([
-      "LINEAR_OAUTH_TOKEN",
-      "LINEAR_TOKEN",
-      "LINEAR_WORKSPACE",
-    ]);
+describe("resolveMcpServers — each server only from its own values", () => {
+  function declaring(server: any, keys: string[], headers: Record<string, string> = {}) {
+    server.spec.env = Object.fromEntries(keys.map((key) => [key, { isSecret: true }]));
+    if (server.spec.serverType.case === "http") server.spec.serverType.value.headers = headers;
+    return server;
+  }
+  const LINEAR_URL = "https://mcp.example.com/mcp";
+
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    vi.spyOn(console, "log").mockImplementation(() => {});
   });
 
-  it("a server that declares nothing and signs in with nothing claims nothing", () => {
-    expect(declaredEnvKeysOf(httpMcpServer("plain"))).toEqual([]);
+  it("fills a server from its own group by its id, never from another server's", async () => {
+    const client = clientReturning({
+      linear: declaring(httpMcpServer("linear"), ["LINEAR_TOKEN"], { Authorization: "Bearer ${LINEAR_TOKEN}" }),
+      other: declaring(stdioMcpServer("other"), ["LINEAR_TOKEN"]),
+    });
+    const tools = new Map([["id-linear", { url: LINEAR_URL, values: { LINEAR_TOKEN: "lin-login" } }]]);
+
+    const result = await resolveMcpServers(
+      client, [makeUsage("linear"), makeUsage("other")], tools, {}, "stdio-allowed", PLATFORM_ENDPOINTS,
+    );
+
+    const bySlug = new Map(result.resolvedServers.map((server) => [server.slug, server]));
+    expect(bySlug.get("linear")?.headers).toEqual({ Authorization: "Bearer lin-login" });
+    expect(bySlug.get("linear")?.serverId).toBe("id-linear");
+    // The second server declares the same key, and its own group is empty:
+    // the Linear login never reaches it.
+    expect(bySlug.get("other")?.env).toBeUndefined();
+  });
+
+  it("gives a server the fetch named no group for no run values", async () => {
+    const client = clientReturning({ added: declaring(stdioMcpServer("added"), ["API_KEY"]) });
+
+    const result = await resolveMcpServers(
+      client, [makeUsage("added")], NO_TOOLS, {}, "stdio-allowed", PLATFORM_ENDPOINTS,
+    );
+
+    expect(result.resolvedServers).toHaveLength(1);
+    expect(result.resolvedServers[0].env).toBeUndefined();
+  });
+
+  it("skips a server whose URL is not the one its values were checked against, naming it", async () => {
+    const moved = declaring(httpMcpServer("linear"), ["LINEAR_TOKEN"], { Authorization: "Bearer ${LINEAR_TOKEN}" });
+    moved.spec.serverType.value.url = "https://attacker.example.net/mcp";
+    const client = clientReturning({ linear: moved });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const tools = new Map([["id-linear", { url: LINEAR_URL, values: { LINEAR_TOKEN: "lin-login" } }]]);
+
+    const result = await resolveMcpServers(
+      client, [makeUsage("linear")], tools, {}, "stdio-forbidden", PLATFORM_ENDPOINTS,
+    );
+
+    expect(result.resolvedServers).toEqual([]);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("test-org/linear"));
+    expect(JSON.stringify(warn.mock.calls)).not.toContain("lin-login");
+  });
+
+  it("spreads the platform values over the server's own, so no vault entry impersonates a caller", async () => {
+    const client = clientReturning({ who: declaring(stdioMcpServer("who"), ["STIGMER_CALLER_IDENTITY_VALUE"]) });
+    const tools = new Map([["id-who", { url: "", values: { STIGMER_CALLER_IDENTITY_VALUE: "forged" } }]]);
+
+    const result = await resolveMcpServers(
+      client, [makeUsage("who")], tools, { STIGMER_CALLER_IDENTITY_VALUE: "acc_real" }, "stdio-allowed", PLATFORM_ENDPOINTS,
+    );
+
+    expect(result.resolvedServers[0].env).toEqual({ STIGMER_CALLER_IDENTITY_VALUE: "acc_real" });
+  });
+
+  it("reads the URL a server dials: its HTTP URL, or nothing for a local program", () => {
+    expect(dialedUrlOf(httpMcpServer("h"))).toBe("https://mcp.example.com/mcp");
+    expect(dialedUrlOf(stdioMcpServer("s"))).toBe("");
   });
 });
 
@@ -189,19 +254,20 @@ describe("resolveMcpServers — the platform STIGMER_SERVER_ADDRESS (stigmer/sti
     const client = clientReturning({ stigmer: declaringAddress(stdioMcpServer("stigmer")) });
 
     const result = await resolveMcpServers(
-      client, [makeUsage("stigmer")], {}, "stdio-allowed", PLATFORM_ENDPOINTS,
+      client, [makeUsage("stigmer")], NO_TOOLS, {}, "stdio-allowed", PLATFORM_ENDPOINTS,
     );
 
     // testConfig's backend endpoint is http://127.0.0.1:1.
     expect(result.resolvedServers[0].env).toEqual({ STIGMER_SERVER_ADDRESS: "127.0.0.1:1" });
   });
 
-  it("keeps the address the execution environment carries", async () => {
+  it("keeps the address the server's own values carry", async () => {
     const client = clientReturning({ stigmer: declaringAddress(stdioMcpServer("stigmer")) });
 
     const result = await resolveMcpServers(
-      client, [makeUsage("stigmer")], { STIGMER_SERVER_ADDRESS: "api.example.com:443" },
-      "stdio-allowed", PLATFORM_ENDPOINTS,
+      client, [makeUsage("stigmer")],
+      new Map([["id-stigmer", { url: "", values: { STIGMER_SERVER_ADDRESS: "api.example.com:443" } }]]),
+      {}, "stdio-allowed", PLATFORM_ENDPOINTS,
     );
 
     expect(result.resolvedServers[0].env).toEqual({ STIGMER_SERVER_ADDRESS: "api.example.com:443" });
@@ -213,7 +279,7 @@ describe("resolveMcpServers — the platform STIGMER_SERVER_ADDRESS (stigmer/sti
     });
 
     const result = await resolveMcpServers(
-      client, [makeUsage("remote")], {}, "stdio-forbidden",
+      client, [makeUsage("remote")], NO_TOOLS, {}, "stdio-forbidden",
       testConfig({ mcpPublicEndpoint: "https://api.example.com" }),
     );
 
@@ -227,7 +293,7 @@ describe("resolveMcpServers — the platform STIGMER_SERVER_ADDRESS (stigmer/sti
     const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
 
     const result = await resolveMcpServers(
-      client, [makeUsage("remote")], {}, "stdio-forbidden", PLATFORM_ENDPOINTS,
+      client, [makeUsage("remote")], NO_TOOLS, {}, "stdio-forbidden", PLATFORM_ENDPOINTS,
     );
 
     expect(result.resolvedServers).toEqual([]);

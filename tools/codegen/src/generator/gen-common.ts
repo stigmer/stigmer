@@ -151,10 +151,7 @@ export function pascalToSnake(s: string): string {
 }
 
 export function isSpecialType(name: string): boolean {
-  return (
-    name === "ExecutionValue" ||
-    name === "ApiResourceReference"
-  );
+  return name === "ApiResourceReference";
 }
 
 export function isEmptyType(fullType: string): boolean {
@@ -257,7 +254,6 @@ export function tsProtoFieldName(protoField: string): string {
 const TS_CLIENT_FIELD_NAMES = new Map<string, string>([
   ["agentchannel", "agentChannel"],
   ["agentshare", "agentShare"],
-  ["executioncontext", "executionContext"],
   ["mcpserver", "mcpServer"],
   ["identityaccount", "identityAccount"],
   ["identityprovider", "identityProvider"],

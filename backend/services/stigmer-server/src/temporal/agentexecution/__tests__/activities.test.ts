@@ -14,9 +14,9 @@
  *     instance would crash the default converter);
  *   - ReadHarnessStateId's empty-input and not-found contracts (Go
  *     read_harness_state_id.go);
- *   - DeleteExecutionContext delegates to the server's own delete of a
- *     run's context, handing the context to the in-process delete edge
- *     (stigmer#1647), idempotently.
+ *   - the retired DeleteExecutionContext name stays registered for runs
+ *     whose history still calls it, and its body does nothing: a run
+ *     stores no copy of its values, so there is nothing to delete.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -33,7 +33,6 @@ import {
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { RunUpdateStatusInput } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { UpdateStatusResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -45,9 +44,9 @@ import type { ExecutionStatusWriter } from "../activities.js";
 import {
   LOAD_AGENT_EXECUTION_ACTIVITY_NAME,
   READ_HARNESS_STATE_ID_ACTIVITY_NAME,
+  RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME,
   UPDATE_EXECUTION_STATUS_ACTIVITY_NAME,
 } from "../names.js";
-import { DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME } from "../../../domain/executioncontext/temporal/delete-execution-context.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -88,28 +87,15 @@ function newFixture() {
     },
   };
 
-  // The in-process delete edge as a recording fake that removes the row
-  // the way the delete chain does, so a repeat finds nothing (the chain
-  // itself is pinned in extension-composition.test.ts).
-  const deletedContexts: string[] = [];
-  const executionContextDeleter = {
-    delete: async (contextId: string): Promise<void> => {
-      deletedContexts.push(contextId);
-      await store.deleteResource(ApiResourceKind.execution_context, contextId);
-    },
-  };
-
   const activities = createAgentExecutionActivities({
     store,
     logger: silentLogger,
     statusWriter: () => statusWriter,
-    executionContextDeleter: () => executionContextDeleter,
   });
   return {
     store,
     activities,
     writes,
-    deletedContexts,
     failWriterWith(error: ConnectError): void {
       writerFault = error;
     },
@@ -303,34 +289,21 @@ describe("ReadHarnessStateId activity", () => {
   });
 });
 
-describe("DeleteExecutionContext activity", () => {
-  it("hands the execution's ExecutionContext to the server's delete edge, idempotently", async () => {
-    const { store, activities, deletedContexts } = newFixture();
-    await store.saveResource(
-      ApiResourceKind.execution_context,
-      "ectx_1",
-      ExecutionContextSchema,
-      create(ExecutionContextSchema, {
-        apiVersion: "agentic.stigmer.ai/v1",
-        kind: "ExecutionContext",
-        metadata: { id: "ectx_1", name: "ec", org: "o" },
-        spec: { executionId: "aex_del_1" },
-      }),
-    );
+describe("the retired DeleteExecutionContext activity", () => {
+  it("stays registered under its byte-pinned name for runs whose history calls it", () => {
+    expect(RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME).toBe("DeleteExecutionContext");
+    const { activities } = newFixture();
+    expect(activities[RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME]).toBeTypeOf("function");
+  });
 
-    const remove = activities[DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME] as (
+  it("does nothing: no status write and no store change, however often it is called", async () => {
+    const { store, activities, writes } = newFixture();
+    const remove = activities[RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME] as (
       executionId: string,
     ) => Promise<void>;
-    await remove("aex_del_1");
-    await expect(
-      store.getResource(
-        ApiResourceKind.execution_context,
-        "ectx_1",
-        ExecutionContextSchema,
-      ),
-    ).rejects.toThrow();
-    // Best-effort seam: a second delete (nothing left) must not throw.
-    await expect(remove("aex_del_1")).resolves.toBeUndefined();
-    expect(deletedContexts, "one delete, through the edge").toEqual(["ectx_1"]);
+    await expect(remove("run_old")).resolves.toBeUndefined();
+    await expect(remove("run_old")).resolves.toBeUndefined();
+    expect(writes).toEqual([]);
+    expect(await store.listResources(ApiResourceKind.run)).toEqual([]);
   });
 });

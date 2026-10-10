@@ -117,7 +117,7 @@ const server = (slug: string, origin: ResolvedMcpServer["pluginOrigin"]): Resolv
   destructiveTools: [],
   discoveredToolNames: null,
   discoveredCapabilitiesEmpty: false,
-  declaredEnvKeys: [],
+  serverId: "",
   pluginOrigin: origin,
 });
 

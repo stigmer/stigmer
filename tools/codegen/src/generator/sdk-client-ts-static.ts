@@ -101,8 +101,7 @@ export function generateTSProtoUtils(outputDir: string): void {
 
 import { timestampFromDate, type Timestamp } from "@bufbuild/protobuf/wkt";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import type { ExecutionValue } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
-import type { EnvVarInput, ResourceRef } from "./types.js";
+import type { ResourceRef } from "./types.js";
 
 /**
  * Remove keys whose values are \`undefined\` so that \`Object.assign\`
@@ -156,16 +155,6 @@ export function toResourceRefInputs(refs: ApiResourceReference[] | undefined): R
   if (!refs || refs.length === 0) return undefined;
   return refs.map((r) => toResourceRefInput(r) ?? { org: "", slug: "" });
 }
-
-/**
- * Convert a map of ExecutionValue to EnvVarInput entries, or \`undefined\`
- * when the map is absent/empty.
- */
-export function toExecVarInputMap(data: Record<string, ExecutionValue> | undefined): Record<string, EnvVarInput> | undefined {
-  if (!data || Object.keys(data).length === 0) return undefined;
-  return Object.fromEntries(Object.entries(data).map(([k, v]) =>
-    [k, { value: v.value, isSecret: v.isSecret || undefined }]));
-}
 `;
   fs.writeFileSync(path.join(outputDir, "proto-utils.ts"), content);
 }
@@ -208,13 +197,6 @@ export interface ListResult {
   readonly entries: SearchResult[];
   readonly totalCount: number;
   readonly totalPages: number;
-}
-
-/** A single environment variable. */
-export interface EnvVarInput {
-  readonly value: string;
-  readonly isSecret?: boolean;
-  readonly description?: string;
 }
 `;
   fs.writeFileSync(path.join(outputDir, "types.ts"), content);

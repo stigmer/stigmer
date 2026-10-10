@@ -135,6 +135,9 @@ export function newQuiesceStage(deps: QuiesceStageDeps): OrganizationPurgeStage 
       await deprovisionSandboxes(deps, context);
       await deps.store.pendingOAuthStates.deleteByOrg(context.org.id);
       await deps.store.connectLinks.deleteByOrg(context.org.id);
+      // A connect in flight binds a runner credential; ending its attempt
+      // ends what that credential may read.
+      await deps.store.connectAttempts.deleteByOrg(context.org.id);
       return DONE;
     },
   };

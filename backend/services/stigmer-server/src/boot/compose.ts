@@ -126,7 +126,6 @@ import { newVaultService } from "../domain/vault/service.js";
 import { deleteAllMyVaultsOf } from "../domain/vault/delete.js";
 import { newMyVaultDeparture } from "../domain/iampolicy/departure.js";
 import type { OrganizationDepartureHandler } from "../domain/iampolicy/grant-path.js";
-import { registerExecutionContextServices } from "../domain/executioncontext/controller.js";
 import { registerGitHubServices } from "../domain/github/controller.js";
 import { registerMemoryServices } from "../domain/memory/controller.js";
 import { newRunScoreCascade } from "../domain/score/cascade.js";
@@ -296,10 +295,10 @@ export interface ComposedServer {
    */
   temporalManager: TemporalManager;
   /**
-   * The runner-token service (exposed for boot tests and for the
-   * executioncontext decrypt-lane tests, which mint scope-bound tokens
-   * against the SAME key the server verifies with; the mint side is the
-   * platform controller's getRunnerScopedToken).
+   * The runner-token service (exposed for boot tests and for the values
+   * fetch's tests, which mint scope-bound tokens against the SAME key the
+   * server verifies with; the mint side is the platform controller's
+   * getRunnerScopedToken).
    */
   runnerAuthService: RunnerAuthService;
   /**
@@ -624,7 +623,7 @@ export async function composeServer(
     : undefined;
   // Stage: runner credentials. The concrete service is
   // constructed and exposed UNCONDITIONALLY — its boot-fatal key posture
-  // is a cross-domain invariant, and the boot/EC-decrypt tests
+  // is a cross-domain invariant, and the boot and values-fetch tests
   // mint against the server's own key through it. The provider over it is
   // the edition's whole credential story in one object: a composed
   // driver; otherwise, under the built-in authorization posture, open
@@ -869,12 +868,12 @@ export async function composeServer(
   //   - Encryption key failure → WARN and continue with a keyless
   //     pass-through v1 codec. Plaintext at rest is tolerable (the write
   //     steps WARN per request, oss#394); refusing to boot over it is not.
-  //   - Runner-token key failure → FATAL (throw). The EC read RPCs redact
-  //     by default, so a server that cannot mint runner tokens would hand
-  //     every execution redaction markers instead of its secrets — the
-  //     exact silent-junk failure the oss#405 fail-loud doctrine forbids.
-  //     (The verify side is the executioncontext decrypt lane; the mint
-  //     side is the platform controller's getRunnerScopedToken.)
+  //   - Runner-token key failure → FATAL (throw). The values fetch
+  //     answers only a runner credential, so a server that cannot mint
+  //     runner tokens would start every execution without its secrets — the
+  //     silent failure the oss#405 fail-loud doctrine forbids. (The verify
+  //     side is the values fetch, domain/vault/values.ts; the mint side is
+  //     the platform controller's getRunnerScopedToken.)
   //
   // The versioned-codec seam: the
   // built-in v1 codec installs HERE, never in the registry (a default
@@ -1137,10 +1136,6 @@ export async function composeServer(
         // hooks, and the broadcast reach the run's terminal writes
         // by construction — the worker composes none of them itself.
         statusWriter: () => requireInProcess().executionStatusWriter,
-        // The run-end delete of the run's ExecutionContext rides the same
-        // lane: the context's own delete chain (stigmer#1647).
-        executionContextDeleter: () =>
-          requireInProcess().executionContextDeleter,
         temporalConfig,
       }),
       newScheduleWorkerFactory({
@@ -1689,6 +1684,14 @@ export async function composeServer(
         clientDocumentUrl,
         outboundFetch,
       },
+      // The runner's fetch of a run's or a connect's values
+      // (domain/vault/values.ts).
+      values: {
+        store,
+        logger,
+        runnerAuth: runnerCredentials,
+        vaultResolver,
+      },
     });
     // OAuthApp shares the one SecretService instance every secret kind
     // seals with.
@@ -1728,14 +1731,6 @@ export async function composeServer(
         now: () => new Date(),
       },
       guestTokenMinting: extensions.drivers.guestTokenMinting,
-    });
-    registerExecutionContextServices(router, {
-      store,
-      logger,
-      authorizer,
-      secretService,
-      runnerAuthService: runnerCredentials,
-      authorizationLifecycle,
     });
     registerAgentServices(router, {
       store,
@@ -1855,15 +1850,11 @@ export async function composeServer(
       sandboxLane,
       temporalConfig,
       sessionCreator: () => requireInProcess().executionSessionCreator,
-      executionContextBuilder: {
+      runValuePlanner: {
         store,
         logger,
         agentLoader: () => requireInProcess().executionAgentLoader,
         sessionLoader: () => requireInProcess().executionSessionLoader,
-        executionContextCreator: () =>
-          requireInProcess().executionContextCreator,
-        executionContextDeleter: () =>
-          requireInProcess().executionContextDeleter,
         vaultResolver,
       },
     });
@@ -1884,12 +1875,6 @@ export async function composeServer(
         engineState: mcpServerEngineState,
         vaults: vaultService,
         vaultResolver,
-        executionContext: {
-          create: (ec, caller) =>
-            requireInProcess().connectExecutionContextClient.create(ec, caller),
-          delete: (input) =>
-            requireInProcess().connectExecutionContextClient.delete(input),
-        },
         runnerAuth: runnerCredentials,
         sandboxLane,
         outboundFetch,

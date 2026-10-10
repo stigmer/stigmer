@@ -2,7 +2,6 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.mcpserver.v1;
 
-import "ai/stigmer/agentic/executioncontext/v1/spec.proto";
 import "buf/validate/validate.proto";
 
 // OAuthConnectionHealth evaluates the health of an OAuth connection by
@@ -47,40 +46,43 @@ message McpServerId {
   string value = 1 [(buf.validate.field).required = true];
 }
 
-// ConnectInput is the request for the connect RPC.
+// ConnectInput is the request for the connect and startConnect RPCs.
+//
+// A connect reads the caller's My vault in org, the one vault connect
+// reads; the server's address and declared keys are matched as a run's
+// are. A value is saved to a vault before a connect, never sent with it
+// (`stigmer vault set-secret`). A sign-in saved into a shared vault is not
+// read here: it serves the runs that use that vault.
 //
 // @internal
-// Triggers server-side MCP discovery:
-// the backend creates an ephemeral ExecutionContext with the resolved
-// environment variables, starts a Temporal workflow that connects to the
-// MCP server (via the runner), enumerates tools and resource
-// templates, and stores the results in status.discovered_capabilities.
-//
-// Value resolution: the run credential resolver, with the caller as the
-// person and runtime_env as the call's own values ahead of the caller's My
-// vault, the one vault connect reads; the server's address and declared
-// keys are matched as a run's are. A sign-in saved into a shared vault is
-// not read here: it serves the runs that use that vault. One-time values
-// are never saved.
+// Triggers server-side MCP discovery: the backend records a connect
+// attempt (the binding of the runner credential it mints), starts a
+// Temporal workflow that connects to the MCP server (via the runner),
+// enumerates tools and resource templates, and stores the results in
+// status.discovered_capabilities. The runner fetches the connect's values
+// at discovery (VaultValueController.fetchValues), when they are planned.
 //
 // Callers:
-// - Web console: calls connect after saving a login or secret to My vault.
-// - CLI: calls connect with runtime_env populated from local env vars.
-// - Runner backfill: calls connect with runtime_env from execution context
-//   when status.discovered_capabilities is empty on first run.
+// - Web console and CLI: call connect after saving a login or secret to My
+//   vault.
+// - Runner backfill: calls connect with run_id when
+//   status.discovered_capabilities is empty on first use.
 //
 // Prerequisites:
 // - The MCP server must exist and have a valid server_type (stdio or http)
 // - org must be provided (the caller's active organization)
-// - Every required key must be in runtime_env or the caller's My vault
+// - Every required key must be in the caller's My vault, or, with run_id,
+//   in the run's planned values for this server
 message ConnectInput {
+  // Field 2 held runtime_env, a connect's own one-time values, until a value
+  // could only reach a connect from a vault. Reserved so the number and
+  // name are never reused.
+  reserved 2;
+  reserved "runtime_env";
+
   // System-generated ID of the MCP server to connect to.
   // Obtained from McpServer.metadata.id (e.g., via getByReference).
   string mcp_server_id = 1 [(buf.validate.field).required = true];
-
-  // Optional environment variable values for one-time use, ahead of the
-  // caller's My vault.
-  map<string, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> runtime_env = 2;
 
   // Organization context for credential resolution.
   //
@@ -88,6 +90,18 @@ message ConnectInput {
   //
   // Required: the backend rejects the request when this field is empty.
   string org = 3 [(buf.validate.field).string.min_len = 1];
+
+  // The run whose planned values for this server the connect uses, in place
+  // of the caller's My vault.
+  //
+  // @internal
+  // The runner's backfill only: accepted only from a runner credential
+  // bound to that live run in the connect's organization (the fetch's own
+  // gate). The connect then receives this server's entries in the run's
+  // source manifest, or none when the manifest names no entry for it (a
+  // server that declares no key still needs its destructive marks), never
+  // another server's. can_connect still applies.
+  string run_id = 4;
 }
 
 // GetOAuthGrantStatusInput queries the OAuth grant status for a resource.

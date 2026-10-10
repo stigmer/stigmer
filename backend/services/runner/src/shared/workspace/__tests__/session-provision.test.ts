@@ -139,7 +139,7 @@ describe("provisionSessionWorkspace", () => {
       await provisionSessionWorkspace(
         makeConfig(workspaceRoot),
         gitRepoSession(source),
-        {},
+        [],
         "test-session-clone",
       );
 
@@ -168,7 +168,7 @@ describe("provisionSessionWorkspace", () => {
     const { workspaceDirs: dirs } = await provisionSessionWorkspace(
       makeConfig(workspaceRoot),
       gitRepoSession(source),
-      {},
+      [],
       "test-session-lostfound",
     );
 
@@ -203,7 +203,7 @@ describe("provisionSessionWorkspace", () => {
     const { workspaceDirs: dirs } = await provisionSessionWorkspace(
       makeConfig(workspaceRoot),
       gitRepoSessionNoBranch(source),
-      {},
+      [],
       "test-session-default-branch",
     );
 
@@ -231,7 +231,7 @@ describe("provisionSessionWorkspace", () => {
         { name: "frontend", url: frontend },
         { name: "backend", url: backend },
       ]),
-      {},
+      [],
       "test-session-multi",
     );
 
@@ -266,7 +266,7 @@ describe("provisionSessionWorkspace", () => {
     const { workspaceDirs: dirs, provisionResults } = await provisionSessionWorkspace(
       makeConfig(workspaceRoot),
       emptySession(),
-      {},
+      [],
       "test-session-empty",
     );
 
@@ -281,9 +281,9 @@ describe("provisionSessionWorkspace", () => {
     mkdirSync(workspaceRoot, { recursive: true });
     const config = makeConfig(workspaceRoot);
 
-    const turn1 = (await provisionSessionWorkspace(config, emptySession(), {}, "stable-session")).workspaceDirs;
+    const turn1 = (await provisionSessionWorkspace(config, emptySession(), [], "stable-session")).workspaceDirs;
     writeFileSync(join(turn1[0], "notes.md"), "turn 1 output");
-    const turn2 = (await provisionSessionWorkspace(config, emptySession(), {}, "stable-session")).workspaceDirs;
+    const turn2 = (await provisionSessionWorkspace(config, emptySession(), [], "stable-session")).workspaceDirs;
 
     expect(turn2).toEqual(turn1);
     expect(readFileSync(join(turn2[0], "notes.md"), "utf-8")).toBe("turn 1 output");
@@ -294,8 +294,8 @@ describe("provisionSessionWorkspace", () => {
     mkdirSync(workspaceRoot, { recursive: true });
     const config = makeConfig(workspaceRoot);
 
-    const [dirA] = (await provisionSessionWorkspace(config, emptySession(), {}, "session-a")).workspaceDirs;
-    const [dirB] = (await provisionSessionWorkspace(config, emptySession(), {}, "session-b")).workspaceDirs;
+    const [dirA] = (await provisionSessionWorkspace(config, emptySession(), [], "session-a")).workspaceDirs;
+    const [dirB] = (await provisionSessionWorkspace(config, emptySession(), [], "session-b")).workspaceDirs;
 
     expect(dirA).not.toBe(dirB);
     writeFileSync(join(dirA, "a.md"), "session a");
@@ -312,7 +312,7 @@ describe("provisionSessionWorkspace", () => {
     const { workspaceDirs: dirs } = await provisionSessionWorkspace(
       makeConfig(workspaceRoot),
       localPathSession(projectDir),
-      {},
+      [],
       "test-session-local",
     );
 

@@ -555,7 +555,7 @@ saved in My vault, since a conversation keeps no values of its own.
     disabled: { type: "boolean", description: "Prevents interaction with all form inputs when `true`." },
     isSubmitting: { type: "boolean", description: "When true, the submit button shows a spinner and inputs are disabled." },
     onCancel: { type: "() => void", description: "Called when the user clicks the back/cancel button." },
-    onSubmit: { type: "(values: Record<string, EnvVarInput>, options: EnvVarFormSubmitOptions) => void", description: "Called with the collected values and the save toggle state when the user submits the form.", required: true },
+    onSubmit: { type: "(values: Record<string, EnvVarInput>) => void", description: "Called with the collected values (for My vault) when the user submits the form.", required: true },
     poolValues: { type: "(key: string) => EnvVarInput | undefined", description: "Lookup function for pre-filling fields from another source the host holds. Passed through to EnvVarForm." },
     variables: { type: "EnvVarFormVariable[]", description: "Variables to collect. Each entry renders one input field, in order. Must contain at least one variable.", required: true },
   }}
@@ -681,11 +681,6 @@ Result passed to `onComplete` after successful agent creation.
     slug: { type: "string", description: "Agent slug (for URL construction).", required: true },
   }}
 />
-
-
-### AgentEnvFormSubmitOptions
-
-Options reported by the form alongside the collected values.
 
 
 ### AgentEnvFormVariable

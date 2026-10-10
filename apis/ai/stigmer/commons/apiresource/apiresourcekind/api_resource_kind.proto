@@ -623,21 +623,12 @@ enum ApiResourceKind {
   reserved 53;
   reserved "environment";
 
-  // User-owned runtime context for managing execution state.
-  execution_context = 54 [(kind_meta) = {
-    group: agentic
-    version: v1
-    name: "ExecutionContext"
-    display_name: "Execution Context"
-    id_prefix: "ectx"
-    is_versioned: false
-    not_search_indexed: false
-    tier: open_source
-    authorization: {
-      scope_type: AUTHORIZATION_SCOPE_TYPE_OWNER_ONLY
-      owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
-    }
-  }];
+  // Value 54 held the ExecutionContext kind (id prefix "ectx": a sealed copy
+  // of the values one run or tool connect used) until a run's values were
+  // fetched from their vaults when its work starts. Reserved so the number
+  // is never reused for a different kind.
+  reserved 54;
+  reserved "execution_context";
 
   // Value 55 held the Artifact kind (id prefix "art": a blob a workflow
   // step promoted from its output) until the workflow product, its only

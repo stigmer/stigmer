@@ -8,7 +8,6 @@ function makeProvisionResult(overrides: Partial<ProvisionResult> = {}): Provisio
   return {
     rootDir: "/workspace/project",
     sourceType: "local_path",
-    consumedKeys: [],
     workspaceDescription: "User project directory at /workspace/project",
     entryName: "project",
     ...overrides,
@@ -130,7 +129,7 @@ describe("buildEnhancedSystemPrompt", () => {
             repoUrl: "https://github.com/org/my-repo",
             branch: "main",
             baseCommit: "abc1234567890",
-            gitCredentialsConfigured: true,
+            writeBackReady: true,
           },
         }),
         makeProvisionResult({

@@ -4,13 +4,17 @@
  * Which keys a run of an agent reads from the person's My vault: the one reading the console's key line and the update
  * notice share, so neither names a key the server never fills.
  *
- * The server's rule (the execution context build): a run fills the keys
- * the agent declares (`spec.env`) from the running person's My vault only when the agent belongs to the run's own organization —
- * an agent another organization published reads none — and never fills an
- * MCP server's OAuth target variable, which comes only from that server's
- * sign-in. So the keys named here are the declared keys minus every OAuth
- * target of the agent's servers, and none at all for an agent of another
- * organization.
+ * The server's rule (the run's value plan, `domain/vault/resolve.ts` in
+ * the server): each declarer's keys are matched on their own, from the
+ * running person's My vault when the conversation includes it and the
+ * agent belongs to the run's own organization (an agent another
+ * organization published reads none). The agent's `spec.env` lists its
+ * own keys and, copied at save, its servers' keys; each is read for the
+ * declarer that needs it, the agent or the server. A server's login key
+ * (its OAuth target) is filled by a login at the server's address first,
+ * so the person signs in for it rather than saving a key. So the keys
+ * named here are the declared keys minus every OAuth target of the
+ * agent's servers, and none at all for an agent of another organization.
  *
  * The OAuth targets are read from the agent's servers; while they load
  * the answer is not ready, so a caller never names a key a moment later

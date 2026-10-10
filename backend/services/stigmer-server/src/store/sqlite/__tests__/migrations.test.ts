@@ -117,6 +117,7 @@ import {
   SCHEMA_VERSION_22,
   SCHEMA_VERSION_23,
   SCHEMA_VERSION_24,
+  SCHEMA_VERSION_25,
   SCHEMA_VERSION_7,
   getSchemaVersion,
   runMigrations,
@@ -324,7 +325,7 @@ describe("fresh database", () => {
       .all() as Array<{ version: number }>;
     expect(rows.map((row) => row.version)).toEqual([
       1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
-      22, 23, 24,
+      22, 23, 24, 25,
     ]);
   });
 
@@ -2993,5 +2994,65 @@ describe("v24: a sign-in starts from an address", () => {
     // Every new link sweeps expired ones by expiry.
     const indexes = (db.prepare(`PRAGMA index_list(connect_link)`).all() as Array<{ name: string }>).map((i) => i.name);
     expect(indexes).toEqual(expect.arrayContaining(["idx_connect_link_expires", "idx_connect_link_vault", "idx_connect_link_org"]));
+  });
+});
+
+describe("v25: the execution context rows leave the store; a connect in flight is an attempt row", () => {
+  const ORG = "org_01jz0000000000000000000000";
+  const SEEDED_AT = "2026-10-10 00:00:00";
+  const contextBytes = new Uint8Array([0x12, 0x10, ...new TextEncoder().encode("ExecutionContext")]);
+  const otherBytes = new Uint8Array([0x12, 0x05, ...new TextEncoder().encode("Agent")]);
+
+  function count(db: DatabaseSync, table: string, kind: string): number {
+    return (db.prepare(`SELECT COUNT(*) AS n FROM ${table} WHERE kind = ?`).get(kind) as { n: number }).n;
+  }
+
+  it("deletes every execution context row from every table keyed by kind, leaves other kinds, and creates the attempt table", () => {
+    const dbPath = tempDbPath();
+    const setup = new DatabaseSync(dbPath);
+    runMigrations(setup, SCHEMA_VERSION_24);
+    for (const [kind, id, data] of [
+      ["execution_context", "ectx_1", contextBytes],
+      ["agent", "agt_1", otherBytes],
+    ] as const) {
+      setup.prepare(`INSERT INTO resources (kind, id, data, updated_at) VALUES (?, ?, ?, ?)`).run(kind, id, data, SEEDED_AT);
+      setup
+        .prepare(`INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES (?, ?, 'org', ?, '')`)
+        .run(kind, id, ORG);
+      setup
+        .prepare(`INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES (?, ?, ?, '', '')`)
+        .run(kind, id, data);
+      setup
+        .prepare(`INSERT INTO resource_names (kind, org, name, id, state, claimed_at) VALUES (?, ?, ?, ?, 'current', ?)`)
+        .run(kind, ORG, id, id, SEEDED_AT);
+    }
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_25);
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_25);
+    for (const table of ["resources", "resource_list_keys", "resource_audit", "resource_names"]) {
+      expect(count(db, table, "execution_context"), table).toBe(0);
+      expect(count(db, table, "agent"), table).toBe(1);
+    }
+    const columns = (db.prepare(`PRAGMA table_info(connect_attempt)`).all() as Array<{ name: string }>).map(
+      (column) => column.name,
+    );
+    expect(columns).toEqual([
+      "id",
+      "org",
+      "created_by",
+      "person",
+      "mcp_server_id",
+      "run_id",
+      "created_at",
+      "expires_at",
+    ]);
+    // Each new connect sweeps expired attempts by expiry; a purge removes an organization's.
+    const indexes = (db.prepare(`PRAGMA index_list(connect_attempt)`).all() as Array<{ name: string }>).map(
+      (index) => index.name,
+    );
+    expect(indexes).toEqual(expect.arrayContaining(["idx_connect_attempt_expires", "idx_connect_attempt_org"]));
   });
 });

@@ -4,7 +4,6 @@ import type { EnvVarInput } from "../vault/types.js";
 import {
   EnvVarForm,
   type EnvVarFormVariable,
-  type EnvVarFormSubmitOptions,
   type EnvVarFormProps,
 } from "../vault/EnvVarForm.js";
 
@@ -21,15 +20,6 @@ import {
  */
 export type AgentEnvFormVariable = EnvVarFormVariable;
 
-/**
- * Options reported by the form alongside the collected values.
- *
- * @deprecated Use {@link EnvVarFormSubmitOptions} from `@stigmer/react` instead.
- *   This alias is kept for backward compatibility and will be removed in
- *   a future major version.
- */
-export type AgentEnvFormSubmitOptions = EnvVarFormSubmitOptions;
-
 // ---------------------------------------------------------------------------
 // Props (unchanged public shape)
 // ---------------------------------------------------------------------------
@@ -43,14 +33,8 @@ export interface AgentEnvFormProps {
    * Must contain at least one variable.
    */
   readonly variables: AgentEnvFormVariable[];
-  /**
-   * Called with the collected values and the save toggle state when
-   * the user submits the form.
-   */
-  readonly onSubmit: (
-    values: Record<string, EnvVarInput>,
-    options: AgentEnvFormSubmitOptions,
-  ) => void;
+  /** Called with the collected values (for My vault) when the user submits the form. */
+  readonly onSubmit: (values: Record<string, EnvVarInput>) => void;
   /** Called when the user clicks the back/cancel button. */
   readonly onCancel?: () => void;
   /** When true, the submit button shows a spinner and inputs are disabled. */

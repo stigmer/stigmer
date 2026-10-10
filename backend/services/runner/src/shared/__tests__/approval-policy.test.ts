@@ -99,7 +99,7 @@ function makeServer(slug: string, destructiveTools: string[] = []): ResolvedMcpS
     destructiveTools,
     discoveredToolNames: null,
     discoveredCapabilitiesEmpty: false,
-    declaredEnvKeys: [],
+    serverId: "",
     pluginOrigin: null,
   };
 }

@@ -42,6 +42,8 @@ import {
 import type {
   AuditRecord,
   BootstrapStateStore,
+  ConnectAttemptRecord,
+  ConnectAttemptStore,
   ConnectLinkRecord,
   ConnectLinkStore,
   OAuthClientRegistrationStore,
@@ -163,6 +165,7 @@ export class SqliteStore implements Store {
   readonly pendingOAuthStates: PendingOAuthStateStore;
   readonly oauthClientRegistrations: OAuthClientRegistrationStore;
   readonly connectLinks: ConnectLinkStore;
+  readonly connectAttempts: ConnectAttemptStore;
   readonly organizationDeletions: OrganizationDeletionStore;
 
   private db: DatabaseSync | undefined;
@@ -189,6 +192,7 @@ export class SqliteStore implements Store {
       () => this.open(),
     );
     this.connectLinks = new SqliteConnectLinkStore(() => this.open());
+    this.connectAttempts = new SqliteConnectAttemptStore(() => this.open());
     this.organizationDeletions = new SqliteOrganizationDeletionStore(() =>
       this.open(),
     );
@@ -1924,6 +1928,81 @@ function connectLinkOf(row: ConnectLinkRow): ConnectLinkRecord {
     createdAt: Number(row.created_at),
     expiresAt: Number(row.expires_at),
     usedAt: Number(row.used_at),
+  };
+}
+
+const CONNECT_ATTEMPT_COLUMNS =
+  "id, org, created_by, person, mcp_server_id, run_id, created_at, expires_at";
+
+interface ConnectAttemptRow {
+  id: string;
+  org: string;
+  created_by: string;
+  person: string;
+  mcp_server_id: string;
+  run_id: string;
+  created_at: number;
+  expires_at: number;
+}
+
+class SqliteConnectAttemptStore implements ConnectAttemptStore {
+  constructor(private readonly open: () => DatabaseSync) {}
+
+  async create(attempt: ConnectAttemptRecord): Promise<void> {
+    this.open()
+      .prepare(
+        `INSERT INTO connect_attempt (${CONNECT_ATTEMPT_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        attempt.id,
+        attempt.org,
+        attempt.createdBy,
+        attempt.person,
+        attempt.mcpServerId,
+        attempt.runId,
+        attempt.createdAt,
+        attempt.expiresAt,
+      );
+  }
+
+  async findLive(id: string, now: number): Promise<ConnectAttemptRecord | undefined> {
+    const row = this.open()
+      .prepare(
+        `SELECT ${CONNECT_ATTEMPT_COLUMNS} FROM connect_attempt WHERE id = ? AND expires_at > ?`,
+      )
+      .get(id, now) as ConnectAttemptRow | undefined;
+    return row === undefined ? undefined : connectAttemptOf(row);
+  }
+
+  async delete(id: string): Promise<void> {
+    this.open().prepare(`DELETE FROM connect_attempt WHERE id = ?`).run(id);
+  }
+
+  async deleteExpired(now: number): Promise<number> {
+    const result = this.open()
+      .prepare(`DELETE FROM connect_attempt WHERE expires_at <= ?`)
+      .run(now);
+    return Number(result.changes);
+  }
+
+  async deleteByOrg(org: string): Promise<number> {
+    const result = this.open()
+      .prepare(`DELETE FROM connect_attempt WHERE org = ?`)
+      .run(org);
+    return Number(result.changes);
+  }
+}
+
+function connectAttemptOf(row: ConnectAttemptRow): ConnectAttemptRecord {
+  return {
+    id: row.id,
+    org: row.org,
+    createdBy: row.created_by,
+    person: row.person,
+    mcpServerId: row.mcp_server_id,
+    runId: row.run_id,
+    createdAt: Number(row.created_at),
+    expiresAt: Number(row.expires_at),
   };
 }
 

@@ -9,7 +9,7 @@ import { create } from "@bufbuild/protobuf";
 import { McpServerSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
-import { localDiscover } from "../discover.js";
+import { goRunEnvOverrides, localDiscover } from "../discover.js";
 import { PlaceholderResolutionError } from "../../mcp/placeholder-resolver.js";
 
 const FIXTURE = fileURLToPath(new URL("../__fixtures__/stdio-server.mjs", import.meta.url));
@@ -32,7 +32,7 @@ function stdioSpecWithPlaceholderArg(scriptPath: string) {
 
 describe("localDiscover (stdio subprocess)", () => {
   it("discovers tools and resource templates and converts them to proto", async () => {
-    const caps = await localDiscover(stdioSpec(FIXTURE), [], 10_000);
+    const caps = await localDiscover(stdioSpec(FIXTURE), 10_000);
 
     expect(caps.tools.map((t) => t.name)).toEqual(["echo", "noop"]);
     expect(caps.tools[0].description).toContain("token=unset");
@@ -44,13 +44,19 @@ describe("localDiscover (stdio subprocess)", () => {
     expect(caps.resourceTemplates[0].mimeType).toBe("text/plain");
   }, 15_000);
 
-  it("propagates --env overrides into the spawned subprocess", async () => {
-    const caps = await localDiscover(stdioSpec(FIXTURE), ["FIXTURE_TOKEN=secret-123"], 10_000);
-    expect(caps.tools[0].description).toContain("token=secret-123");
+  it("passes the caller's shell environment to the spawned subprocess", async () => {
+    const original = process.env;
+    process.env = { ...original, FIXTURE_TOKEN: "secret-123" };
+    try {
+      const caps = await localDiscover(stdioSpec(FIXTURE), 10_000);
+      expect(caps.tools[0].description).toContain("token=secret-123");
+    } finally {
+      process.env = original;
+    }
   }, 15_000);
 
   it("surfaces subprocess stderr when the server crashes on startup", async () => {
-    await expect(localDiscover(stdioSpec(CRASH_FIXTURE), [], 10_000)).rejects.toThrow(/fixture boom: missing CONFIG/);
+    await expect(localDiscover(stdioSpec(CRASH_FIXTURE), 10_000)).rejects.toThrow(/fixture boom: missing CONFIG/);
   }, 15_000);
 });
 
@@ -60,25 +66,34 @@ describe("localDiscover (${VAR} argument expansion — issue #141)", () => {
     process.env = original;
   });
 
-  it("expands a declared ${VAR} arg from --env into the spawned subprocess", async () => {
-    const caps = await localDiscover(stdioSpecWithPlaceholderArg(FIXTURE), ["ALLOWED_DIR=/tmp/allowed"], 10_000);
-    // The fixture echoes the argv it actually received; the resolved value must
-    // reach the subprocess, never the literal placeholder.
-    expect(caps.tools[0].description).toContain('args=["/tmp/allowed"]');
-    expect(caps.tools[0].description).not.toContain("${ALLOWED_DIR}");
-  }, 15_000);
-
   it("expands a declared ${VAR} arg from the exported shell environment", async () => {
     process.env = { ...original, ALLOWED_DIR: "/tmp/from-shell" };
-    const caps = await localDiscover(stdioSpecWithPlaceholderArg(FIXTURE), [], 10_000);
+    const caps = await localDiscover(stdioSpecWithPlaceholderArg(FIXTURE), 10_000);
+    // The fixture echoes the argv it actually received; the resolved value must
+    // reach the subprocess, never the literal placeholder.
     expect(caps.tools[0].description).toContain('args=["/tmp/from-shell"]');
+    expect(caps.tools[0].description).not.toContain("${ALLOWED_DIR}");
   }, 15_000);
 
   it("rejects with a placeholder error before spawning when the declared var is unset", async () => {
     process.env = { ...original };
     delete process.env.ALLOWED_DIR;
-    await expect(localDiscover(stdioSpecWithPlaceholderArg(FIXTURE), [], 10_000)).rejects.toBeInstanceOf(
+    await expect(localDiscover(stdioSpecWithPlaceholderArg(FIXTURE), 10_000)).rejects.toBeInstanceOf(
       PlaceholderResolutionError,
     );
   }, 15_000);
+});
+
+describe("goRunEnvOverrides (a freshly tagged `go run` module)", () => {
+  it("skips the checksum database for the module's own path", () => {
+    expect(goRunEnvOverrides("go", ["run", "github.com/acme/mcp/cmd/server@v1.2.3"])).toEqual({
+      GONOSUMDB: "github.com/acme/mcp/*",
+      GONOSUMCHECK: "github.com/acme/mcp/*",
+    });
+  });
+
+  it("overrides nothing for a path too short to name a module, or another command", () => {
+    expect(goRunEnvOverrides("go", ["run", "./cmd@latest"])).toEqual({});
+    expect(goRunEnvOverrides("npx", ["run", "github.com/acme/mcp@v1"])).toEqual({});
+  });
 });

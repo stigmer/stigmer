@@ -11,8 +11,9 @@
  * lane — execution-scoped (runnerauth). The token is
  * minted per execution at ensure time, so the cloud's stale-token refresh
  * arm degenerates to per-execution re-mint here; a disabled mint lane
- * launches the sandbox with no token and ExecutionContext decrypt falls
- * back to redaction (oss#535's posture), degraded but never dark.
+ * launches the sandbox with no token, and its runner, which fetches every
+ * turn's values, fails each turn loudly (oss#535's posture) instead of
+ * running one without its keys.
  *
  * A provider with the mintSandboxCredential capability owns the mint
  * instead: the ensure steps hand it the full
@@ -76,7 +77,7 @@ export function mintSandboxToken(
   }
   if (!lane.credentials.isEnabled(TOKEN_TYPE_EXECUTION_SCOPED)) {
     logger.warn(
-      "Sandbox launching without a runner token (credential lane disabled) — ExecutionContext reads will be redacted",
+      "Sandbox launching without a runner token (credential lane disabled) — its values fetch will be refused",
       { executionId: request.executionId },
     );
     return "";

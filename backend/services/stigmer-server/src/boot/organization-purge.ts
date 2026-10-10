@@ -41,7 +41,6 @@ import { newAgentSharePurge } from "../domain/agentshare/purge.js";
 import { newApiKeyPurge } from "../domain/apikey/purge.js";
 import { newChannelAppPurge } from "../domain/channelapp/purge.js";
 import { newEvaluatorPurge } from "../domain/evaluator/purge.js";
-import { newExecutionContextPurge } from "../domain/executioncontext/purge.js";
 import { newMcpServerPurge } from "../domain/mcpserver/purge.js";
 import { newMemoryPurge } from "../domain/memory/purge.js";
 import { newVaultPurge } from "../domain/vault/purge.js";
@@ -125,7 +124,6 @@ export function newCoreKindPurges(deps: CoreKindPurgeDeps): CoreKindPurges {
       newVaultPurge(deps),
       newOAuthAppPurge(deps),
       newPlatformClientPurge(deps),
-      newExecutionContextPurge(deps),
       newApiKeyPurge(deps),
       // The accounts that belong to the organization (a platform client's
       // end users), once nothing it owned names them.
@@ -159,7 +157,6 @@ export const CORE_PURGED_KINDS: ReadonlySet<ApiResourceKind> = new Set([
   ApiResourceKind.vault,
   ApiResourceKind.oauth_app,
   ApiResourceKind.platform_client,
-  ApiResourceKind.execution_context,
   ApiResourceKind.api_key,
   ApiResourceKind.identity_account,
   ApiResourceKind.iam_policy,

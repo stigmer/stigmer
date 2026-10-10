@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { buildShellEnv, SHELL_ENV_DENYLIST, shellRunValues } from "../shell-env.js";
-import type { ProvisionResult } from "../workspace/types.js";
+import type { RunValues } from "../run-values.js";
 import { RUNNER_CREDENTIAL_ENV_KEYS } from "../runner-credential-keys.js";
 
 describe("buildShellEnv", () => {
@@ -35,7 +35,7 @@ describe("buildShellEnv", () => {
     }
   });
 
-  it("overlays ExecutionContext vars on top of the base env", () => {
+  it("overlays the run values on top of the base env", () => {
     const base = { PATH: "/usr/bin", PLATFORM_CLI: "old" };
     const env = buildShellEnv({ PLATFORM_CLI: "planton", API_URL: "https://api.test" }, base);
 
@@ -46,9 +46,9 @@ describe("buildShellEnv", () => {
 
   it("lets mergedEnvVars override a runtime-rotated STIGMER_TOKEN in base", () => {
     const base = { STIGMER_TOKEN: "rotated-runner-token", PATH: "/bin" };
-    const env = buildShellEnv({ STIGMER_TOKEN: "execution-context-token" }, base);
+    const env = buildShellEnv({ STIGMER_TOKEN: "agent-declared-token" }, base);
 
-    expect(env.STIGMER_TOKEN).toBe("execution-context-token");
+    expect(env.STIGMER_TOKEN).toBe("agent-declared-token");
   });
 
   it("drops undefined base values", () => {
@@ -61,68 +61,40 @@ describe("buildShellEnv", () => {
 });
 
 describe("shellRunValues", () => {
-  const RUN_VALUES = {
-    AGENT_KEY: "agent-secret",
-    LINEAR_TOKEN: "mcp-only-token",
-    LINEAR_OAUTH_TOKEN: "oauth-access-token",
-    GITHUB_TOKEN: "ghp-run",
-    WORKSPACE_PROVISION_DEPLOY_KEY: "provision-only",
+  // A run whose fetch answered the agent's own key, a Linear tool's login
+  // and env key, and a repository's token: each in its declarer's group.
+  const RUN_VALUES: RunValues = {
+    agent: { AGENT_KEY: "agent-secret" },
+    tools: new Map([
+      ["mcp_linear", { url: "https://mcp.linear.app/mcp", values: { LINEAR_TOKEN: "mcp-only-token", LINEAR_OAUTH_TOKEN: "oauth-access-token" } }],
+    ]),
+    repositories: [{ name: "app", url: "https://github.com/acme/app", token: "ghp-run" }],
   };
-  const NO_SERVERS: readonly { declaredEnvKeys: readonly string[] }[] = [];
 
-  function gitResult(consumedKeys: readonly string[]): ProvisionResult {
-    return {
-      rootDir: "/ws",
-      sourceType: "git_repo",
-      consumedKeys,
-      workspaceDescription: "a clone",
-      entryName: "",
-    };
-  }
-
-  it("gives the shell only the keys the agent declares, never a key only an MCP server declares", () => {
-    expect(shellRunValues(RUN_VALUES, { AGENT_KEY: {} }, NO_SERVERS, [])).toEqual({
-      AGENT_KEY: "agent-secret",
-    });
+  it("gives the shell the agent's own group as delivered, and nothing a tool or a clone holds", () => {
+    expect(shellRunValues(RUN_VALUES)).toEqual({ AGENT_KEY: "agent-secret" });
   });
 
-  it("withholds every key an MCP server of the run claims, though agent save copied it into the agent's env", () => {
-    // Agent save merges its servers' declarations into agent.spec.env, so
-    // the agent's env lists the server's key and its OAuth target too.
-    const agentEnv = { AGENT_KEY: {}, LINEAR_TOKEN: {}, LINEAR_OAUTH_TOKEN: {} };
-    const linear = { declaredEnvKeys: ["LINEAR_TOKEN", "LINEAR_OAUTH_TOKEN"] };
-    expect(shellRunValues(RUN_VALUES, agentEnv, [linear], [])).toEqual({
-      AGENT_KEY: "agent-secret",
-    });
+  it("holds a tool's key even when that tool did not resolve this turn: the key was never the agent's", () => {
+    // The skipped server's keys live only in its own group, so whether the
+    // runner reaches that server changes nothing about the shell.
+    const values = shellRunValues(RUN_VALUES);
+    expect(values).not.toHaveProperty("LINEAR_TOKEN");
+    expect(values).not.toHaveProperty("LINEAR_OAUTH_TOKEN");
   });
 
-  it("an agent that declares nothing gets no run values; the built-in assistant (no agent) neither", () => {
-    expect(shellRunValues(RUN_VALUES, {}, NO_SERVERS, [])).toEqual({});
-    expect(shellRunValues(RUN_VALUES, undefined, NO_SERVERS, [])).toEqual({});
+  it("never holds a repository's token: an agent whose shell runs gh saves a GITHUB_TOKEN secret", () => {
+    expect(shellRunValues(RUN_VALUES)).not.toHaveProperty("GITHUB_TOKEN");
+    expect(shellRunValues({ agent: { GITHUB_TOKEN: "ghp-secret" } })).toEqual({ GITHUB_TOKEN: "ghp-secret" });
   });
 
-  it("adds the token a git clone consumed, which the clone already left in the shell's reach", () => {
-    expect(
-      shellRunValues(RUN_VALUES, undefined, NO_SERVERS, [
-        gitResult(["GITHUB_TOKEN", "WORKSPACE_PROVISION_DEPLOY_KEY"]),
-      ]),
-    ).toEqual({ GITHUB_TOKEN: "ghp-run" });
+  it("an agent the fetch gave nothing gets no run values", () => {
+    expect(shellRunValues({ agent: {} })).toEqual({});
   });
 
-  it("adds no token when no git source consumed it, and never a provisioning-only key", () => {
-    expect(shellRunValues(RUN_VALUES, { AGENT_KEY: {} }, NO_SERVERS, [gitResult([])])).toEqual({
-      AGENT_KEY: "agent-secret",
-    });
-    expect(
-      shellRunValues(RUN_VALUES, undefined, NO_SERVERS, [
-        { ...gitResult(["GITHUB_TOKEN"]), sourceType: "local_path" },
-      ]),
-    ).toEqual({});
-  });
-
-  it("an agent that declares GITHUB_TOKEN gets it whatever the workspace", () => {
-    expect(shellRunValues(RUN_VALUES, { GITHUB_TOKEN: {} }, NO_SERVERS, [])).toEqual({
-      GITHUB_TOKEN: "ghp-run",
-    });
+  it("returns a copy the caller may change without touching the run's values", () => {
+    const values = shellRunValues(RUN_VALUES);
+    values.AGENT_KEY = "changed";
+    expect(RUN_VALUES.agent.AGENT_KEY).toBe("agent-secret");
   });
 });

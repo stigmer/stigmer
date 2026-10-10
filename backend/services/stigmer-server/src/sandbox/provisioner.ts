@@ -54,7 +54,7 @@ export interface SandboxEnvironment {
   /**
    * The runner credential injected as STIGMER_TOKEN. "" means none was
    * minted (the provider's lane is disabled) — the sandbox still launches
-   * and EC decrypt falls back to redaction, the oss#535 posture.
+   * and its values fetch is refused, the oss#535 posture.
    */
   readonly stigmerToken: string;
   /**

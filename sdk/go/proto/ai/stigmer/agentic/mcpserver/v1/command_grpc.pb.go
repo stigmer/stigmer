@@ -85,7 +85,7 @@ type McpServerCommandControllerClient interface {
 	//
 	// Idempotent while an operation is in flight: a startConnect that finds a
 	// live CONNECTING operation attaches to it (the in-flight operation's
-	// runtime_env wins) instead of starting a second workflow. A CONNECTING
+	// values serve it) instead of starting a second workflow. A CONNECTING
 	// entry orphaned by a backend restart is reconciled against Temporal
 	// before a new operation starts.
 	StartConnect(ctx context.Context, in *ConnectInput, opts ...grpc.CallOption) (*McpServer, error)
@@ -246,7 +246,7 @@ type McpServerCommandControllerServer interface {
 	//
 	// Idempotent while an operation is in flight: a startConnect that finds a
 	// live CONNECTING operation attaches to it (the in-flight operation's
-	// runtime_env wins) instead of starting a second workflow. A CONNECTING
+	// values serve it) instead of starting a second workflow. A CONNECTING
 	// entry orphaned by a backend restart is reconciled against Temporal
 	// before a new operation starts.
 	StartConnect(context.Context, *ConnectInput) (*McpServer, error)

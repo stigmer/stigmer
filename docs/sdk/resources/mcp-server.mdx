@@ -569,8 +569,8 @@ Prefer startConnect for interactive clients: browsers can drop a no-bytes-yet un
 ```typescript
 const mcpServer = await stigmer.mcpServer.connect({
   mcpServerId: "...",
-  runtimeEnv: {},
   org: "...",
+  runId: "...",
 });
 ```
 </Tab>
@@ -578,8 +578,8 @@ const mcpServer = await stigmer.mcpServer.connect({
 ```go
 mcpServer, err := client.McpServer.Connect(ctx, &stigmer.ConnectInput{
   McpServerId: "...",
-  RuntimeEnv:  map[string]string{},
   Org:         "...",
+  RunId:       "...",
 })
 ```
 </Tab>
@@ -587,8 +587,8 @@ mcpServer, err := client.McpServer.Connect(ctx, &stigmer.ConnectInput{
 ```python
 mcp_server = client.mcp_servers.connect(ConnectInput(
     mcp_server_id="...",
-    runtime_env={},
     org="...",
+    run_id="...",
 ))
 ```
 </Tab>
@@ -596,8 +596,8 @@ mcp_server = client.mcp_servers.connect(ConnectInput(
 ```java
 McpServer mcpServer = client.mcpServers().connect(ConnectInput.builder()
     .mcpServerId("...")
-    .runtimeEnv(Map.of())
     .org("...")
+    .runId("...")
     .build());
 ```
 </Tab>
@@ -660,15 +660,15 @@ Start a connect operation without waiting for it: discovery runs server-side, an
 
 Returns the McpServer immediately with status.connect_status describing the accepted operation (phase CONNECTING, plus a warning when no runner appears to be polling the task queue). Poll get/getByReference until status.connect_status reaches a terminal phase; results land in status.discovered_capabilities exactly as with the blocking connect.
 
-Idempotent while an operation is in flight: a startConnect that finds a live CONNECTING operation attaches to it (the in-flight operation's runtime_env wins) instead of starting a second workflow. A CONNECTING entry orphaned by a backend restart is reconciled against Temporal before a new operation starts.
+Idempotent while an operation is in flight: a startConnect that finds a live CONNECTING operation attaches to it (the in-flight operation's values serve it) instead of starting a second workflow. A CONNECTING entry orphaned by a backend restart is reconciled against Temporal before a new operation starts.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
 const mcpServer = await stigmer.mcpServer.startConnect({
   mcpServerId: "...",
-  runtimeEnv: {},
   org: "...",
+  runId: "...",
 });
 ```
 </Tab>
@@ -676,8 +676,8 @@ const mcpServer = await stigmer.mcpServer.startConnect({
 ```go
 mcpServer, err := client.McpServer.StartConnect(ctx, &stigmer.ConnectInput{
   McpServerId: "...",
-  RuntimeEnv:  map[string]string{},
   Org:         "...",
+  RunId:       "...",
 })
 ```
 </Tab>
@@ -685,8 +685,8 @@ mcpServer, err := client.McpServer.StartConnect(ctx, &stigmer.ConnectInput{
 ```python
 mcp_server = client.mcp_servers.start_connect(ConnectInput(
     mcp_server_id="...",
-    runtime_env={},
     org="...",
+    run_id="...",
 ))
 ```
 </Tab>
@@ -694,8 +694,8 @@ mcp_server = client.mcp_servers.start_connect(ConnectInput(
 ```java
 McpServer mcpServer = client.mcpServers().startConnect(ConnectInput.builder()
     .mcpServerId("...")
-    .runtimeEnv(Map.of())
     .org("...")
+    .runId("...")
     .build());
 ```
 </Tab>
@@ -793,13 +793,13 @@ Input for updating the visibility of any API resource.
 
 ### ConnectInput
 
-ConnectInput is the request for the connect RPC.
+ConnectInput is the request for the connect and startConnect RPCs.
 
 <TypeTable
   type={{
     mcpServerId: { type: "string", description: "System-generated ID of the MCP server to connect to.", required: true },
-    runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Optional environment variable values for one-time use, ahead of the caller's My vault." },
     org: { type: "string", description: "Organization context for credential resolution." },
+    runId: { type: "string", description: "The run whose planned values for this server the connect uses, in place of the caller's My vault." },
   }}
 />
 

@@ -2,11 +2,10 @@
  * KeyedSerializer — one turn at a time per key, within this server process.
  *
  * Built for recover (stigmer#1672). A recover is a chain of side effects
- * (terminate the old workflow, recreate the run's ExecutionContext, start a
- * fresh workflow, persist the phase) decided on one read of the execution,
- * and only its last step is an atomic write. Two recovers of one execution
- * run side by side would both act on that stale read: two contexts for one
- * run, a freshly recovered run terminated and started again, or a start
+ * (terminate the old workflow, plan the run's values again, start a fresh
+ * workflow, persist the phase) decided on one read of the execution, and
+ * only its last step is an atomic write. Two recovers of one execution run
+ * side by side would both act on that stale read: a freshly recovered run terminated and started again, or a start
  * refused because the workflow is already running. Wrapping each recover in
  * a turn keyed by the execution id makes the second one wait, then read
  * the execution as the first left it.

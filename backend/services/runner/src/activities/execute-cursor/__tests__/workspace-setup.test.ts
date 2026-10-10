@@ -536,7 +536,7 @@ describe("workspace hook files: .claude settings and the turn's restore", () => 
   it("never touches a person's own folder, and refuses the turn naming the file", async () => {
     const { workspaceRoot, hitlDir, settings, original } = workspace();
     const folders = workspaceFolders([workspaceRoot], [
-      { rootDir: workspaceRoot, sourceType: "local_path", consumedKeys: [], workspaceDescription: "", entryName: "mine" },
+      { rootDir: workspaceRoot, sourceType: "local_path", workspaceDescription: "", entryName: "mine" },
     ]);
     expect(folders).toEqual([{ dir: workspaceRoot, runnerOwned: false }]);
     await expect(refuseOwnFolderHooks(folders)).rejects.toThrow(CursorWorkspaceHooksRefusal);

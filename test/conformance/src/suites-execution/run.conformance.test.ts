@@ -21,10 +21,6 @@
 //   arm pinned below and in the CRUD suite's session create.
 // - Runs are listed by conversation through listBySession (filter by spec.session_id).
 //
-// A run's ExecutionContext lives as long as the run: the run-end activity
-// deletes it through the context's own delete chain (stigmer#1647), so once
-// the run settles its context answers NotFound, in every edition.
-//
 // One-call session bootstrap (stigmer/stigmer#249): create may carry
 // spec.session_spec — the full shape of the session to auto-create (its
 // agent_ref, workspace, harness, execution_target) alongside the first
@@ -276,38 +272,6 @@ describe("Run conformance — completion", () => {
     expect(final.status?.phase).toBe(RunPhase.RUN_COMPLETED);
     expect(final.status?.startedAt, "started_at is set when the run begins").toBeTruthy();
     expect(final.status?.completedAt, "completed_at is set on completion").toBeTruthy();
-  });
-
-  it("[rpc:ExecutionContextQueryController.getByExecutionId] a run's ExecutionContext is deleted once the run ends", async () => {
-    const { org } = await target.provisionTenancy();
-    const agent = await provisionAgent(org);
-    const created = await createHeldExecution(org, agent);
-    const executionId = created.metadata!.id;
-    const live = await clients.executionContextQuery.getByExecutionId({ executionId });
-    expect(live.spec?.executionId, "the run's context exists while the run is held").toBe(executionId);
-
-    mock.releaseHolds();
-    const final = await awaitTerminal(clients, executionId);
-    expect(final.status?.phase).toBe(RunPhase.RUN_COMPLETED);
-
-    const readContext = async (): Promise<"present" | "gone"> => {
-      try {
-        await clients.executionContextQuery.getByExecutionId({ executionId });
-        return "present";
-      } catch (error) {
-        if (ConnectError.from(error).code === Code.NotFound) {
-          return "gone";
-        }
-        throw error;
-      }
-    };
-    await pollUntil(
-      readContext,
-      (state) => state === "gone",
-      (_, timeoutMs) =>
-        `execution ${executionId}'s ExecutionContext was still readable ${timeoutMs}ms after the run reached ${RunPhase[final.status!.phase]}`,
-      { timeoutMs: 30_000 },
-    );
   });
 });
 

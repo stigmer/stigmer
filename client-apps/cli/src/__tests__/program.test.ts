@@ -1,5 +1,5 @@
 // The CLI's command tree: what buildProgram registers, how a retired command
-// or run option is answered (commander's error plus one pointer line, never an
+// or a retired run or connect option is answered (commander's error plus one pointer line, never an
 // alias that still works, and never a retired option's value), and that the
 // run command's vault flags reach the wire: My vault unless --no-my-vault.
 
@@ -158,10 +158,25 @@ describe("buildProgram", () => {
     const run = program.commands.find((command) => command.name() === "run");
     const flags = run?.options.map((option) => option.long) ?? [];
     const retired = [...(RETIRED_OPTIONS.get("run")?.keys() ?? [])];
-    expect([...RETIRED_OPTIONS.keys()]).toEqual(["run"]);
+    expect([...RETIRED_OPTIONS.keys()]).toEqual(["run", "connect"]);
     expect(retired.sort()).toEqual(["--env", "--env-file", "--secret", "--secret-file"]);
     for (const option of retired) expect(flags).not.toContain(option);
     expect(flags).toEqual(expect.arrayContaining(["--vault", "--no-my-vault"]));
+  });
+
+  it("answers connect's retired --env with the vault command, never echoing its value", async () => {
+    const { program, stderr } = capturedProgram("connect");
+    const connect = program.commands.find((command) => command.name() === "connect");
+    connect?.commands.find((command) => command.name() === "mcp-server")?.exitOverride();
+    await expect(
+      program.parseAsync(["connect", "mcp-server", "github", "--env=GITHUB_TOKEN=ghp-live-123"], { from: "user" }),
+    ).rejects.toMatchObject({ code: "commander.unknownOption" });
+    expect(stderr()).toContain("unknown option '--env'");
+    expect(stderr()).toContain(`${RETIRED_OPTIONS.get("connect")?.get("--env") ?? "no retired connect option"}\n`);
+    expect(stderr()).toContain("stigmer vault set-secret NAME --mine");
+    expect(stderr()).not.toContain("ghp-live-123");
+    const flags = connect?.commands.find((command) => command.name() === "mcp-server")?.options.map((o) => o.long);
+    expect(flags).not.toContain("--env");
   });
 
   it.each([

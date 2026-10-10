@@ -3,9 +3,7 @@
  * read dispatch on the value's own version token, fail-fast write-version
  * resolution, the facade-owned policy layer (idempotent pass-through,
  * unprefixed pass-through, unknown-version refusal on the unavailable
- * arm), the batch verbs and their loop fallbacks, the v2-capped
- * executioncontext lane (the Java encryptAllV2 pin, generalized),
- * reencrypt's three load-bearing rules (upward-only, round-trip-verified,
+ * arm), the batch verbs and their loop fallbacks, reencrypt's three load-bearing rules (upward-only, round-trip-verified,
  * marker-refused, plaintext-sealed), versionOf, and EncryptionScope's
  * validation invariants (the Java EncryptionScopeTest cases). The v1
  * wire format itself is pinned by encryption.test.ts.
@@ -206,50 +204,6 @@ describe("batch verbs", () => {
     const svc = SecretService.create(KEY);
     await expect(
       svc.decryptAll(new Map([["A", "enc:v2:AAAA"]])),
-    ).rejects.toThrow(EncryptionUnavailableError);
-  });
-});
-
-describe("encryptAllAtMostV2 (the executioncontext pin)", () => {
-  it("uses the write codec at write-version v1 (the OSS default)", async () => {
-    const svc = SecretService.create(KEY);
-    const out = await svc.encryptAllAtMostV2(new Map([["A", "alpha"]]), SCOPE);
-    expect(out.get("A")?.startsWith(ENCRYPTED_PREFIX)).toBe(true);
-  });
-
-  it("uses the write codec at write-version v2 (equals the Java pin)", async () => {
-    const v2 = fakeV2();
-    const svc = facadeWith(v2, "v2");
-    const out = await svc.encryptAllAtMostV2(new Map([["A", "alpha"]]), SCOPE);
-    expect(out.get("A")?.startsWith("enc:v2:")).toBe(true);
-  });
-
-  it("caps at v2 when the write version is above it (the future v3 flip)", async () => {
-    const v2 = fakeV2();
-    const v3 = { ...fakeV2(), version: "v3" };
-    const svc = SecretService.withCodecs({
-      codecs: new Map<string, SecretCodec>([
-        ["v1", new StaticKeySecretCodec(KEY)],
-        ["v2", v2],
-        ["v3", v3],
-      ]),
-      writeVersion: "v3",
-    });
-    const out = await svc.encryptAllAtMostV2(new Map([["A", "alpha"]]), SCOPE);
-    expect(out.get("A")?.startsWith("enc:v2:")).toBe(true);
-  });
-
-  it("refuses when the cap is needed but no v2 codec is registered", async () => {
-    const v3 = { ...fakeV2(), version: "v3" };
-    const svc = SecretService.withCodecs({
-      codecs: new Map<string, SecretCodec>([
-        ["v1", new StaticKeySecretCodec(KEY)],
-        ["v3", v3],
-      ]),
-      writeVersion: "v3",
-    });
-    await expect(
-      svc.encryptAllAtMostV2(new Map([["A", "alpha"]]), SCOPE),
     ).rejects.toThrow(EncryptionUnavailableError);
   });
 });

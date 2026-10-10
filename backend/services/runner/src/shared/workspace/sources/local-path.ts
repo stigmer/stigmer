@@ -62,7 +62,6 @@ export function provisionLocalPath(options: LocalPathProvisionOptions): Provisio
   return {
     rootDir: path,
     sourceType: "local_path",
-    consumedKeys: [],
     // No host path in the model's text: the native file tools see this
     // directory as `/` and its commands run in it, so the path would only be
     // echoed back where it cannot resolve (a glob pattern, a mistyped

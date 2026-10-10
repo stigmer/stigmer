@@ -1,17 +1,21 @@
 /**
  * Pins the turn-start connect backfill: which servers need discovery (never
  * discovered), that a connect failure keeps the turn going on the servers it
- * had, that one success re-resolves every server, and the runtime env a
- * connect carries. The discovery itself is the connect workflow's.
+ * had, that one success re-resolves every server, and that a connect names
+ * its run and carries no values. The discovery itself is the connect
+ * workflow's.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   needsBackfill,
   backfillMcpServersIfNeeded,
-  extractRuntimeEnvForServer,
 } from "../connect-backfill.js";
 import type { ResolvedMcpServer } from "../mcp-resolver.js";
 import { testConfig } from "../../__test-utils__/config-fixture.js";
+
+/** The run's values per tool, and the platform values; the backfill hands both to re-resolution untouched. */
+const TOOLS = new Map([["server-id-123", { url: "", values: { API_KEY: "secret" } }]]);
+const RUN_ID = "run_1";
 
 /** The runner endpoints resolution fills STIGMER_SERVER_ADDRESS from. */
 const PLATFORM_ENDPOINTS = testConfig();
@@ -24,7 +28,7 @@ function makeServer(overrides: Partial<ResolvedMcpServer> = {}): ResolvedMcpServ
     args: ["-y", "@mcp/test-server"],
     destructiveTools: [],
     discoveredToolNames: [],
-    declaredEnvKeys: [],
+    serverId: "",
     pluginOrigin: null,
     discoveredCapabilitiesEmpty: false,
     ...overrides,
@@ -48,6 +52,8 @@ function makeMockClient(overrides: Record<string, unknown> = {}) {
         discoveredCapabilities: { tools: [{ name: "tool1" }], resourceTemplates: [] },
       },
     }),
+    // The turn's credential: a desktop runner's exchanged token.
+    acquireScopedRunnerToken: vi.fn().mockResolvedValue("scoped-run-token"),
     ...overrides,
   } as any;
 }
@@ -63,55 +69,6 @@ describe("needsBackfill", () => {
 
   it("returns false when discoveredCapabilitiesEmpty is false", () => {
     expect(needsBackfill(makeServer({ discoveredCapabilitiesEmpty: false }))).toBe(false);
-  });
-});
-
-// ─────────────────────────────────────────────────────────────────────────────
-// extractRuntimeEnvForServer
-// ─────────────────────────────────────────────────────────────────────────────
-
-describe("extractRuntimeEnvForServer", () => {
-  it("returns undefined when server has no env declarations", () => {
-    expect(extractRuntimeEnvForServer({ spec: {} }, { FOO: "bar" })).toBeUndefined();
-    expect(extractRuntimeEnvForServer({}, { FOO: "bar" })).toBeUndefined();
-  });
-
-  it("returns undefined when env declarations are empty", () => {
-    expect(extractRuntimeEnvForServer({ spec: { env: {} } }, { FOO: "bar" })).toBeUndefined();
-  });
-
-  it("returns only declared keys present in merged env with isSecret from declarations", () => {
-    const server = {
-      spec: {
-        env: {
-          API_KEY: { isSecret: true },
-          DB_URL: { isSecret: false },
-          UNUSED: { isSecret: false },
-        },
-      },
-    };
-    const mergedEnv = { API_KEY: "secret123", DB_URL: "postgres://localhost" };
-    const result = extractRuntimeEnvForServer(server, mergedEnv);
-    expect(result).toEqual({
-      API_KEY: { value: "secret123", isSecret: true },
-      DB_URL: { value: "postgres://localhost", isSecret: false },
-    });
-  });
-
-  it("falls back to secretKeys when declaration has no isSecret", () => {
-    const server = { spec: { env: { TOKEN: {}, OTHER: {} } } };
-    const mergedEnv = { TOKEN: "abc", OTHER: "def" };
-    const secretKeys = new Set(["TOKEN"]);
-    const result = extractRuntimeEnvForServer(server, mergedEnv, secretKeys);
-    expect(result).toEqual({
-      TOKEN: { value: "abc", isSecret: true },
-      OTHER: { value: "def", isSecret: false },
-    });
-  });
-
-  it("returns undefined when no declared keys are in merged env", () => {
-    const server = { spec: { env: { MISSING_KEY: {} } } };
-    expect(extractRuntimeEnvForServer(server, { OTHER: "val" })).toBeUndefined();
   });
 });
 
@@ -134,7 +91,7 @@ describe("backfillMcpServersIfNeeded", () => {
     const client = makeMockClient();
 
     const result = await backfillMcpServersIfNeeded(
-      client, servers, [], {}, "org", "stdio-allowed", PLATFORM_ENDPOINTS,
+      client, servers, [], TOOLS, {}, "org", RUN_ID, "stdio-allowed", PLATFORM_ENDPOINTS,
     );
 
     expect(result).toBe(servers);
@@ -147,7 +104,7 @@ describe("backfillMcpServersIfNeeded", () => {
     const client = makeMockClient();
 
     const result = await backfillMcpServersIfNeeded(
-      client, servers, [], {}, "org", "stdio-allowed", PLATFORM_ENDPOINTS,
+      client, servers, [], TOOLS, {}, "org", RUN_ID, "stdio-allowed", PLATFORM_ENDPOINTS,
     );
 
     expect(result).toBe(servers);
@@ -165,11 +122,11 @@ describe("backfillMcpServersIfNeeded", () => {
     });
 
     const result = await backfillMcpServersIfNeeded(
-      client, servers, usages, {}, "org", "stdio-allowed", PLATFORM_ENDPOINTS,
+      client, servers, usages, TOOLS, {}, "org", RUN_ID, "stdio-allowed", PLATFORM_ENDPOINTS,
     );
 
     expect(client.getMcpServerByReference).toHaveBeenCalledOnce();
-    expect(client.connectMcpServer).toHaveBeenCalledWith("server-id-123", "org", undefined);
+    expect(client.connectMcpServer).toHaveBeenCalledWith("server-id-123", "org", { runId: RUN_ID, scopedToken: "scoped-run-token" });
     expect(result).not.toBe(servers);
     expect(result[0].discoveredCapabilitiesEmpty).toBe(false);
   });
@@ -191,37 +148,86 @@ describe("backfillMcpServersIfNeeded", () => {
     });
 
     const result = await backfillMcpServersIfNeeded(
-      client, servers, usages, {}, "org", "stdio-allowed", PLATFORM_ENDPOINTS,
+      client, servers, usages, TOOLS, {}, "org", RUN_ID, "stdio-allowed", PLATFORM_ENDPOINTS,
     );
 
     expect(client.connectMcpServer).toHaveBeenCalledOnce();
     expect(result).toEqual(refreshedServers);
   });
 
-  it("passes runtime env to connect RPC when server declares env vars", async () => {
+  it("names its run and sends no values, though the server declares keys the run holds", async () => {
     const servers = [
       makeServer({ slug: "with-env", discoveredCapabilitiesEmpty: true }),
     ];
     const usages = [makeUsage("with-env")];
-    const mergedEnv = { API_KEY: "secret", OTHER: "ignored" };
     const client = makeMockClient({
       getMcpServerByReference: vi.fn().mockResolvedValue({
-        metadata: { id: "env-server-id" },
-        spec: { env: { API_KEY: { is_secret: true } } },
+        metadata: { id: "server-id-123" },
+        spec: { env: { API_KEY: { isSecret: true } } },
       }),
     });
-
-    vi.spyOn(await import("../mcp-resolver.js"), "resolveMcpServers").mockResolvedValue({
+    const resolve = vi.spyOn(await import("../mcp-resolver.js"), "resolveMcpServers").mockResolvedValue({
       resolvedServers: [makeServer({ slug: "with-env", discoveredCapabilitiesEmpty: false })],
+    });
+    const platformValues = { STIGMER_SESSION_ID: "ses_1" };
+
+    await backfillMcpServersIfNeeded(
+      client, servers, usages, TOOLS, platformValues, "org", RUN_ID, "stdio-allowed", PLATFORM_ENDPOINTS,
+    );
+
+    expect(client.connectMcpServer).toHaveBeenCalledWith("server-id-123", "org", { runId: RUN_ID, scopedToken: "scoped-run-token" });
+    expect(JSON.stringify(client.connectMcpServer.mock.calls)).not.toContain("secret");
+    // Re-resolution reads the same per-tool values the turn fetched.
+    expect(resolve).toHaveBeenCalledWith(client, usages, TOOLS, platformValues, "stdio-allowed", PLATFORM_ENDPOINTS);
+  });
+
+  it("presents the credential the turn's fetch used, not the ambient one, when it names its run", async () => {
+    const servers = [makeServer({ slug: "needs-backfill", discoveredCapabilitiesEmpty: true })];
+    const client = makeMockClient();
+    vi.spyOn(await import("../mcp-resolver.js"), "resolveMcpServers").mockResolvedValue({
+      resolvedServers: [makeServer({ slug: "needs-backfill", discoveredCapabilitiesEmpty: false })],
     });
 
     await backfillMcpServersIfNeeded(
-      client, servers, usages, mergedEnv, "org", "stdio-allowed", PLATFORM_ENDPOINTS,
+      client, servers, [makeUsage("needs-backfill")], TOOLS, {}, "org", RUN_ID, "stdio-allowed", PLATFORM_ENDPOINTS,
     );
 
-    expect(client.connectMcpServer).toHaveBeenCalledWith(
-      "env-server-id", "org", { API_KEY: { value: "secret", isSecret: false } },
+    expect(client.acquireScopedRunnerToken).toHaveBeenCalledWith({ agentExecutionId: RUN_ID });
+    expect(client.connectMcpServer.mock.calls[0][2]).toEqual({ runId: RUN_ID, scopedToken: "scoped-run-token" });
+  });
+
+  it("records no marks, and says so, when no credential bound to the run can be had", async () => {
+    const servers = [makeServer({ slug: "needs-backfill", discoveredCapabilitiesEmpty: true })];
+    const client = makeMockClient({
+      acquireScopedRunnerToken: vi.fn().mockRejectedValue(new Error("Server minted no scoped runner token")),
+    });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const result = await backfillMcpServersIfNeeded(
+      client, servers, [makeUsage("needs-backfill")], TOOLS, {}, "org", RUN_ID, "stdio-allowed", PLATFORM_ENDPOINTS,
     );
+
+    expect(client.connectMcpServer).not.toHaveBeenCalled();
+    expect(result).toBe(servers);
+    expect(warn.mock.calls.flat().join(" ")).toContain("Server minted no scoped runner token");
+  });
+
+  it("names no run for a server the run's fetch gave no values: it needs none", async () => {
+    const servers = [makeServer({ slug: "keyless", discoveredCapabilitiesEmpty: true })];
+    const usages = [makeUsage("keyless")];
+    const client = makeMockClient({
+      getMcpServerByReference: vi.fn().mockResolvedValue({ metadata: { id: "server-keyless" } }),
+    });
+    vi.spyOn(await import("../mcp-resolver.js"), "resolveMcpServers").mockResolvedValue({
+      resolvedServers: [makeServer({ slug: "keyless", discoveredCapabilitiesEmpty: false })],
+    });
+
+    await backfillMcpServersIfNeeded(
+      client, servers, usages, TOOLS, {}, "org", RUN_ID, "stdio-allowed", PLATFORM_ENDPOINTS,
+    );
+
+    expect(TOOLS.has("server-keyless")).toBe(false);
+    expect(client.connectMcpServer).toHaveBeenCalledWith("server-keyless", "org", undefined);
   });
 
   it("preserves original servers when connect RPC fails", async () => {
@@ -234,7 +240,7 @@ describe("backfillMcpServersIfNeeded", () => {
     });
 
     const result = await backfillMcpServersIfNeeded(
-      client, servers, usages, {}, "org", "stdio-allowed", PLATFORM_ENDPOINTS,
+      client, servers, usages, TOOLS, {}, "org", RUN_ID, "stdio-allowed", PLATFORM_ENDPOINTS,
     );
 
     expect(result).toBe(servers);
@@ -252,7 +258,7 @@ describe("backfillMcpServersIfNeeded", () => {
     });
 
     const result = await backfillMcpServersIfNeeded(
-      client, servers, usages, {}, "org", "stdio-allowed", PLATFORM_ENDPOINTS,
+      client, servers, usages, TOOLS, {}, "org", RUN_ID, "stdio-allowed", PLATFORM_ENDPOINTS,
     );
 
     expect(result).toBe(servers);
@@ -271,7 +277,7 @@ describe("backfillMcpServersIfNeeded", () => {
     });
 
     await backfillMcpServersIfNeeded(
-      client, servers, usages, {}, "org", "stdio-allowed", PLATFORM_ENDPOINTS, onHeartbeat,
+      client, servers, usages, TOOLS, {}, "org", RUN_ID, "stdio-allowed", PLATFORM_ENDPOINTS, onHeartbeat,
     );
 
     expect(onHeartbeat).toHaveBeenCalledTimes(2);
@@ -284,7 +290,7 @@ describe("backfillMcpServersIfNeeded", () => {
     const client = makeMockClient();
 
     const result = await backfillMcpServersIfNeeded(
-      client, servers, [], {}, "org", "stdio-allowed", PLATFORM_ENDPOINTS,
+      client, servers, [], TOOLS, {}, "org", RUN_ID, "stdio-allowed", PLATFORM_ENDPOINTS,
     );
 
     expect(client.getMcpServerByReference).not.toHaveBeenCalled();
@@ -304,7 +310,7 @@ describe("backfillMcpServersIfNeeded", () => {
     });
 
     const result = await backfillMcpServersIfNeeded(
-      client, servers, usages, {}, "org", "stdio-allowed", PLATFORM_ENDPOINTS,
+      client, servers, usages, TOOLS, {}, "org", RUN_ID, "stdio-allowed", PLATFORM_ENDPOINTS,
     );
 
     expect(client.connectMcpServer).not.toHaveBeenCalled();
@@ -346,7 +352,7 @@ describe("backfillMcpServersIfNeeded", () => {
     });
 
     const result = await backfillMcpServersIfNeeded(
-      client, servers, usages, {}, "org", "stdio-allowed", PLATFORM_ENDPOINTS,
+      client, servers, usages, TOOLS, {}, "org", RUN_ID, "stdio-allowed", PLATFORM_ENDPOINTS,
     );
 
     expect(callCount).toBe(2);

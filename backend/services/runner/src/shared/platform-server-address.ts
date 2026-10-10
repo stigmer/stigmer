@@ -115,7 +115,7 @@ export function fillPlatformServerAddress(
     : "STIGMER_BACKEND_ENDPOINT";
   console.info(
     `MCP server '${server.metadata?.slug ?? ""}': ${SERVER_ADDRESS_ENV_KEY} ` +
-    `filled from ${source} (no value in the execution environment)`,
+    `filled from ${source} (no value in the server's own values)`,
   );
   return { ...envVars, [SERVER_ADDRESS_ENV_KEY]: value };
 }

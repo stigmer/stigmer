@@ -45,7 +45,6 @@
           "agent_share",
           "agent_channel",
           "channel_app",
-          "execution_context",
           "schedule",
           "memory",
           "plugin",

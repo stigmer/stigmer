@@ -7,31 +7,22 @@
  * `process.env`, so the denylist below is defense-in-depth, keeping this
  * surface safe even if something re-plants a secret after boot (a test, an
  * embedder, a future regression). The overlay is the run's values the
- * shell may hold (`shellRunValues`): the keys the agent declares, through
- * the same per-declarer filter every MCP server's environment passes,
- * less every key an MCP server of the run claims (its declared keys and
- * its OAuth token's target), plus the token a git clone of the workspace
- * consumed. Agent save copies its servers' declarations into the agent's
- * own `env` (MergeMcpServerEnvSpecs in the server), so a claimed key is
- * withheld even when the agent's `env` lists it: a value that exists for
- * an MCP server reaches that server and never the shell. An agent that
- * declares nothing gets no run values: declare to receive, the rule MCP
- * servers already follow.
- *
- * The git token is the one value the shell holds without a declaration,
- * because the clone has already put it in the shell's reach (the remote
- * URL locally, the repository's credential store in cloud); withholding
- * the variable would protect nothing and break `gh`.
+ * shell may hold (`shellRunValues`): the agent's own group of the run's
+ * value fetch, as the server delivered it (shared/run-values.ts). The server
+ * plans for the agent only the keys the agent declares and no tool of the
+ * run declares, and fills them only from secrets by name and plain
+ * defaults: a login, a repository's token and a tool's key never reach the
+ * shell, whether or not the tool that declares it resolves this turn. An
+ * agent that declares nothing gets no run values. An agent whose shell runs
+ * `gh` saves a GITHUB_TOKEN secret for it; the clone's token is handed to
+ * each git command alone (workspace/git-credential.ts).
  *
  * Still built per execution — the snapshot must reflect the env as it is
  * now, not at process start.
  */
 
-import type { ResolvedMcpServer } from "./mcp-resolver.js";
-import { filterEnvToDeclaredKeys } from "./placeholder-resolver.js";
 import { RUNNER_SECRET_ENV_KEYS } from "./runner-credential-keys.js";
-import { GITHUB_TOKEN_KEY } from "./workspace/sources/git.js";
-import type { ProvisionResult } from "./workspace/types.js";
+import type { RunValues } from "./run-values.js";
 
 /**
  * Runner-internal keys that must never reach agent shell commands: every
@@ -41,39 +32,9 @@ import type { ProvisionResult } from "./workspace/types.js";
  */
 export const SHELL_ENV_DENYLIST: readonly string[] = RUNNER_SECRET_ENV_KEYS;
 
-/**
- * The run values the agent's shell may hold: the agent's declared keys
- * (none for the built-in assistant, which has no agent) less every key an
- * MCP server of the run claims, plus the token a git workspace source
- * reports it consumed. Only git sources count, and only that token: a
- * provisioning-only value the provisioner folds into every result is
- * never written where the shell can read it.
- */
-export function shellRunValues(
-  runValues: Readonly<Record<string, string>>,
-  agentEnv: Readonly<Record<string, unknown>> | undefined,
-  mcpServers: readonly Pick<ResolvedMcpServer, "declaredEnvKeys">[],
-  provisionResults: readonly ProvisionResult[],
-): Record<string, string> {
-  const values = filterEnvToDeclaredKeys(
-    agentEnv,
-    { ...runValues },
-    "the agent's shell",
-  );
-  for (const server of mcpServers) {
-    for (const key of server.declaredEnvKeys) {
-      delete values[key];
-    }
-  }
-  for (const result of provisionResults) {
-    if (result.sourceType !== "git_repo") continue;
-    for (const key of result.consumedKeys) {
-      if (key === GITHUB_TOKEN_KEY && runValues[key] !== undefined) {
-        values[key] = runValues[key];
-      }
-    }
-  }
-  return values;
+/** The run values the agent's shell and hooks hold: the agent's own group, as delivered. */
+export function shellRunValues(runValues: Pick<RunValues, "agent">): Record<string, string> {
+  return { ...runValues.agent };
 }
 
 /**

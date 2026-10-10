@@ -2,8 +2,9 @@
 //
 // Stands up a Connect backend serving the McpServer query + command controllers,
 // points an SDK node client at it, and drives connectMcpServer end to end: the
-// push path (asserts ConnectInput fields + rendered capabilities), the OAuth
-// guidance gate, and the dry-run path (local discovery, no Connect RPC).
+// push path (asserts ConnectInput fields + rendered capabilities: no values
+// ride the request), the OAuth guidance gate (a secret under the login key in
+// My vault satisfies it), and the dry-run path (local discovery, no Connect RPC).
 
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
@@ -16,6 +17,8 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
 import { McpServerAuthSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
+import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
+import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { createNodeClient, normalizeEndpoint } from "@stigmer/sdk/node";
 import {
@@ -40,6 +43,11 @@ const openSessions = new Set<ServerHttp2Session>();
 
 let connectCalls: ConnectInput[] = [];
 let grantConnected = false;
+// The secret names the caller's My vault holds; undefined answers NOT_FOUND
+// (no My vault yet).
+let mySecretNames: string[] | undefined;
+// When set, getMine fails with this code instead of answering.
+let getMineFailure: Code | undefined;
 // Delay before the mock Connect RPC answers; lets the --timeout tests
 // simulate a long-running server-side connect. The timer is unref'd so a
 // still-pending delayed response can never hold the test process open.
@@ -50,6 +58,8 @@ let servedSpec: ReturnType<typeof create<typeof McpServerSchema>>;
 beforeEach(() => {
   connectCalls = [];
   grantConnected = false;
+  getMineFailure = undefined;
+  mySecretNames = undefined;
   connectDelayMs = 0;
   servedSpec = create(McpServerSchema, {
     metadata: { id: "mcp_1", name: "github", slug: "github", org: "acme" },
@@ -84,6 +94,15 @@ beforeAll(async () => {
       get: () => servedSpec,
       getOAuthGrantStatus: () =>
         create(GetOAuthGrantStatusOutputSchema, { connected: grantConnected }),
+    });
+    router.service(VaultQueryController, {
+      getMine: () => {
+        if (getMineFailure !== undefined) throw new ConnectError("vault read failed", getMineFailure);
+        if (mySecretNames === undefined) throw new ConnectError("no vault", Code.NotFound);
+        return create(VaultSchema, {
+          spec: { secrets: Object.fromEntries(mySecretNames.map((name) => [name, {}])) },
+        });
+      },
     });
     router.service(McpServerCommandController, {
       // Mirror the backend's protovalidate rule (org min_len=1): reject an empty
@@ -124,13 +143,12 @@ afterAll(async () => {
 });
 
 describe("connect push path", () => {
-  it("sends ConnectInput with merged runtime env and returns discovered capabilities", async () => {
+  it("sends ConnectInput with the org and no values, and returns discovered capabilities", async () => {
     const result = await connectMcpServer(client, {
       reference: "github",
       org: "acme",
       timeoutMs: 30_000,
       dryRun: false,
-      envOverrides: ["GITHUB_TOKEN=ghp-override"],
       consoleURL: "https://app.stigmer.ai",
       probeLocalConsole: false,
       interactive: false,
@@ -141,8 +159,7 @@ describe("connect push path", () => {
     // The org resolved by the command must ride along on ConnectInput — the
     // backend requires it (issue #140: the CLI used to drop it entirely).
     expect(connectCalls[0].org).toBe("acme");
-    expect(connectCalls[0].runtimeEnv.GITHUB_TOKEN.value).toBe("ghp-override");
-    expect(connectCalls[0].runtimeEnv.GITHUB_TOKEN.isSecret).toBe(true);
+    expect(connectCalls[0].runId).toBe("");
 
     expect(result.updated?.metadata?.id).toBe("mcp_1");
     expect(result.capabilities?.tools.map((t) => t.name)).toEqual([
@@ -161,7 +178,6 @@ describe("--timeout bounds the server-side connect (issue #239)", () => {
         timeoutMs: 30_000,
         pushTimeoutMs: 150,
         dryRun: false,
-        envOverrides: ["GITHUB_TOKEN=ghp-x"],
         consoleURL: "https://app.stigmer.ai",
         probeLocalConsole: false,
         interactive: false,
@@ -182,7 +198,6 @@ describe("--timeout bounds the server-side connect (issue #239)", () => {
       org: "acme",
       timeoutMs: 100,
       dryRun: false,
-      envOverrides: ["GITHUB_TOKEN=ghp-x"],
       consoleURL: "https://app.stigmer.ai",
       probeLocalConsole: false,
       interactive: false,
@@ -205,8 +220,7 @@ describe("OAuth guidance gate", () => {
         org: "acme",
         timeoutMs: 30_000,
         dryRun: false,
-        envOverrides: [],
-        consoleURL: "https://app.stigmer.ai",
+          consoleURL: "https://app.stigmer.ai",
         probeLocalConsole: false,
         interactive: false,
       }),
@@ -221,7 +235,6 @@ describe("OAuth guidance gate", () => {
       org: "acme",
       timeoutMs: 30_000,
       dryRun: false,
-      envOverrides: [],
       consoleURL: "https://app.stigmer.ai",
       probeLocalConsole: false,
       interactive: false,
@@ -229,18 +242,66 @@ describe("OAuth guidance gate", () => {
     expect(connectCalls).toHaveLength(1);
   });
 
-  it("proceeds when --env credentials are supplied (bypassing OAuth)", async () => {
+  it("proceeds when My vault holds a secret under the login key (bypassing OAuth)", async () => {
+    mySecretNames = ["GITHUB_TOKEN"];
     await connectMcpServer(client, {
       reference: "github",
       org: "acme",
       timeoutMs: 30_000,
       dryRun: false,
-      envOverrides: ["GITHUB_TOKEN=ghp-x"],
       consoleURL: "https://app.stigmer.ai",
       probeLocalConsole: false,
       interactive: false,
     });
     expect(connectCalls).toHaveLength(1);
+  });
+});
+
+describe("a My vault read that fails for another reason than a missing vault", () => {
+  beforeEach(() => {
+    servedSpec.spec!.auth = create(McpServerAuthSchema, {
+      targetEnvVar: "GITHUB_TOKEN",
+    });
+  });
+
+  it("surfaces the failure instead of reading it as an empty vault", async () => {
+    getMineFailure = Code.Unavailable;
+    const err = await connectMcpServer(client, {
+      reference: "github",
+      org: "acme",
+      timeoutMs: 30_000,
+      dryRun: false,
+      consoleURL: "https://app.stigmer.ai",
+      probeLocalConsole: false,
+      interactive: false,
+    }).catch((e: unknown) => e);
+    expect(err).not.toBeInstanceOf(UsageError);
+    expect(String(err)).toContain("vault read failed");
+    expect(connectCalls).toHaveLength(0);
+  });
+});
+
+describe("a secret under another name does not satisfy the OAuth gate", () => {
+  beforeEach(() => {
+    servedSpec.spec!.auth = create(McpServerAuthSchema, {
+      targetEnvVar: "GITHUB_TOKEN",
+    });
+  });
+
+  it("stops with guidance naming the vault command and the login key", async () => {
+    mySecretNames = ["OTHER_TOKEN"];
+    const err = await connectMcpServer(client, {
+      reference: "github",
+      org: "acme",
+      timeoutMs: 30_000,
+      dryRun: false,
+      consoleURL: "https://app.stigmer.ai",
+      probeLocalConsole: false,
+      interactive: false,
+    }).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(UsageError);
+    expect((err as UsageError).message).toContain("stigmer vault set-secret GITHUB_TOKEN --mine");
+    expect(connectCalls).toHaveLength(0);
   });
 });
 
@@ -252,13 +313,13 @@ describe("oauth_only servers reject the manual-token routes", () => {
     });
   });
 
-  it("rejects --env (which cannot satisfy an OAuth-only endpoint) instead of pushing a doomed token", async () => {
+  it("does not take a secret saved under the login key for an OAuth-only endpoint", async () => {
+    mySecretNames = ["GITHUB_TOKEN"];
     const err = await connectMcpServer(client, {
       reference: "github",
       org: "acme",
       timeoutMs: 30_000,
       dryRun: false,
-      envOverrides: ["GITHUB_TOKEN=ghp-x"],
       consoleURL: "https://app.stigmer.ai",
       probeLocalConsole: false,
       interactive: false,
@@ -266,25 +327,22 @@ describe("oauth_only servers reject the manual-token routes", () => {
 
     expect(err).toBeInstanceOf(UsageError);
     expect((err as UsageError).message).toMatch(/requires OAuth/i);
-    // The guidance must NOT recommend the manual-token route for an oauth_only server.
-    expect((err as UsageError).message).not.toContain("--env TOKEN=");
     expect(connectCalls).toHaveLength(0);
   });
 
-  it("omits the --env suggestion from the non-interactive OAuth guidance", async () => {
+  it("omits the saved-token suggestion from the non-interactive OAuth guidance", async () => {
     const err = await connectMcpServer(client, {
       reference: "github",
       org: "acme",
       timeoutMs: 30_000,
       dryRun: false,
-      envOverrides: [],
       consoleURL: "https://app.stigmer.ai",
       probeLocalConsole: false,
       interactive: false,
     }).catch((e: unknown) => e);
 
     expect(err).toBeInstanceOf(UsageError);
-    expect((err as UsageError).message).not.toContain("--env TOKEN=");
+    expect((err as UsageError).message).not.toContain("vault set-secret");
     expect(connectCalls).toHaveLength(0);
   });
 
@@ -294,7 +352,6 @@ describe("oauth_only servers reject the manual-token routes", () => {
       org: "acme",
       timeoutMs: 10_000,
       dryRun: true,
-      envOverrides: [],
       consoleURL: "https://app.stigmer.ai",
       probeLocalConsole: false,
       interactive: false,
@@ -314,7 +371,6 @@ describe("dry-run path", () => {
       org: "acme",
       timeoutMs: 10_000,
       dryRun: true,
-      envOverrides: [],
       consoleURL: "https://app.stigmer.ai",
       probeLocalConsole: false,
       interactive: false,
@@ -368,7 +424,6 @@ describe("dry-run path", () => {
       org: "acme",
       timeoutMs: 10_000,
       dryRun: true,
-      envOverrides: [],
       consoleURL: "https://app.stigmer.ai",
       probeLocalConsole: false,
       interactive: false,
@@ -377,7 +432,7 @@ describe("dry-run path", () => {
     expect(err).toBeInstanceOf(UsageError);
     const message = (err as UsageError).message;
     expect(message).toContain("NEEDED_DIR");
-    expect(message).toContain("--env");
+    expect(message).toContain("Export it in your shell");
     expect(connectCalls).toHaveLength(0);
   }, 15_000);
 });

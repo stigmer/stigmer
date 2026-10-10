@@ -309,20 +309,16 @@ export function McpServerDetailView({
     }
   }, [mcpServer, credentials.authMode, credentials.isOAuthConnected, credentials.manualOverride, credentials.isReady, isDiscoveryRetry, connection, oauth.clearError, refetch, handleOAuthSignIn, activeOrg, org]);
 
+  // A connect reads My vault only, so the values are saved there first.
   const handleCredentialSubmit = useCallback(
-    async (
-      values: Record<string, import("../vault/types.js").EnvVarInput>,
-      options: { saveForFuture: boolean },
-    ) => {
+    async (values: Record<string, import("../vault/types.js").EnvVarInput>) => {
       try {
-        if (options.saveForFuture) {
-          await credentials.saveCredentials(values);
-          credentials.refetch();
-        }
+        await credentials.saveCredentials(values);
+        credentials.refetch();
 
         if (mcpServer?.metadata?.id) {
           const connectOrg = activeOrg ?? org;
-          await connection.connect(mcpServer.metadata.id, connectOrg, values);
+          await connection.connect(mcpServer.metadata.id, connectOrg);
           refetch();
         }
 
@@ -599,10 +595,9 @@ export function McpServerDetailView({
           >
             <EnvVarForm
               title="Credentials Required"
-              description="Enter the credentials needed to connect to this MCP server. Toggle &quot;Save in My vault&quot; to keep them, or leave it off to use them for this connection only."
+              description="Enter the credentials needed to connect to this MCP server. They are saved in My vault."
               variables={credentials.missingVariables}
-              unsavedScope="connection"
-              onSubmit={(values, options) => handleCredentialSubmit(values, options)}
+              onSubmit={(values) => handleCredentialSubmit(values)}
               onCancel={() => setShowCredentialForm(false)}
               isSubmitting={credentials.isSaving}
               poolValues={credentialPoolValues}

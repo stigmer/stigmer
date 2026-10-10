@@ -96,7 +96,7 @@ cover the range:
 | Pattern                    | When it applies                                                                                     | What happens on Connect                                                                      |
 | -------------------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | **No credentials**         | The server works without authentication (Context7 without a key)                                    | Connects immediately — no extra steps                                                        |
-| **Environment variables**  | The server uses API keys or connection strings (Tavily, Neon)                                       | You enter the value in the credential form before connecting                                 |
+| **Environment variables**  | The server uses API keys or connection strings (Tavily, Neon)                                       | You enter the value in the credential form, which saves it in My vault, then connects        |
 | **OAuth from the URL**     | A hosted server that publishes a standard OAuth challenge (Linear, Notion, Atlassian, most vendors) | Saved from its URL alone, the definition is completed with the sign-in; "Sign in" is offered |
 | **OAuth with a login app** | A vendor whose sign-in needs an OAuth app registered with it (GitHub)                               | Stigmer signs you in with the app your Organization or the deployment has for the address    |
 
@@ -105,9 +105,9 @@ cover the range:
   token and rejects a personal API token or integration secret pasted into the
   credential form. For these servers Stigmer offers just the "Sign in" flow and
   hides manual token entry, so you are never sent down a path that cannot
-  succeed. If you connect such a server another way (for example the CLI `--env`
-  flag or `--dry-run`), you will get a clear message explaining that OAuth is
-  required. How the completion works, and what a vendor that refuses automatic
+  succeed. If you connect such a server another way (for example the CLI's
+  `--dry-run`), you will get a clear message explaining that OAuth is required.
+  How the completion works, and what a vendor that refuses automatic
   registration needs instead, is in [OAuth for
   tools](/docs/guides/integrations/oauth-for-tools).
 </Callout>

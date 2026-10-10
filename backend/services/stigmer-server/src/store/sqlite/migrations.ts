@@ -111,6 +111,7 @@ import {
   policyNamesRetiredEnvironment,
   unreadableRetiredEnvironmentRowError,
 } from "../environment-retired.js";
+import { RETIRED_EXECUTION_CONTEXT_KIND } from "../execution-context-retired.js";
 
 export const SCHEMA_VERSION_1 = 1;
 export const SCHEMA_VERSION_2 = 2;
@@ -154,9 +155,11 @@ export const SCHEMA_VERSION_22 = 22;
 export const SCHEMA_VERSION_23 = 23;
 /** v24: a sign-in starts from an address: its pending state reshaped, registered clients kept, Connect links. */
 export const SCHEMA_VERSION_24 = 24;
+/** v25: the execution context rows removed; a tool connect in flight is a connect attempt row. */
+export const SCHEMA_VERSION_25 = 25;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_24;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_25;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -205,6 +208,7 @@ export function runMigrations(
     [SCHEMA_VERSION_22, migrateToV22],
     [SCHEMA_VERSION_23, migrateToV23],
     [SCHEMA_VERSION_24, migrateToV24],
+    [SCHEMA_VERSION_25, migrateToV25],
   ];
 
   for (const [version, migrate] of chain) {
@@ -1313,5 +1317,35 @@ function migrateToV24(db: DatabaseSync): void {
     CREATE INDEX idx_connect_link_vault ON connect_link (vault_id);
     CREATE INDEX idx_connect_link_org ON connect_link (org);
     CREATE INDEX idx_connect_link_expires ON connect_link (expires_at);
+  `);
+}
+
+/**
+ * v25: a run's values are fetched from their vaults, never copied
+ * (../execution-context-retired.ts says what leaves and why nothing is
+ * carried). Every execution context row is deleted from every table keyed
+ * by kind, and the connect attempt table is created. The Postgres driver's
+ * v20 in this engine's terms. Runs inside applyInTransaction's BEGIN.
+ */
+function migrateToV25(db: DatabaseSync): void {
+  for (const table of RUN_KIND_TABLES) {
+    db.prepare(`DELETE FROM ${table} WHERE kind = ?`).run(
+      RETIRED_EXECUTION_CONTEXT_KIND,
+    );
+  }
+  db.exec(`
+    CREATE TABLE connect_attempt (
+      id             TEXT PRIMARY KEY,
+      org            TEXT NOT NULL,
+      created_by     TEXT NOT NULL,
+      person         TEXT NOT NULL DEFAULT '',
+      mcp_server_id  TEXT NOT NULL,
+      run_id         TEXT NOT NULL DEFAULT '',
+      created_at     INTEGER NOT NULL,
+      expires_at     INTEGER NOT NULL
+    ) WITHOUT ROWID;
+
+    CREATE INDEX idx_connect_attempt_org ON connect_attempt (org);
+    CREATE INDEX idx_connect_attempt_expires ON connect_attempt (expires_at);
   `);
 }

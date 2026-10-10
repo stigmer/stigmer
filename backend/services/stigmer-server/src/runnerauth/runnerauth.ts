@@ -3,20 +3,20 @@
  * (oss#535): one HS256 token type, bound to ONE execution, serving two
  * lanes that the server's posture decides between.
  *
- * WHY: since oss#535 the EC read RPCs redact is_secret values for every
- * caller — the same contract the cloud edition enforces — but the runner
- * still needs the real values to serve executions. Cloud distinguishes the
- * runner by the token_type claim of its platform-minted credential; this
- * module is the open-source equivalent: a token whose binding names the
- * execution it serves, and the EC handler decrypts only for a token whose
- * binding matches the requested ExecutionContext.
+ * WHY: a run's values are read only through the values fetch
+ * (VaultValueController.fetchValues), which answers only the runner
+ * serving that execution — the same contract the cloud edition enforces.
+ * Cloud distinguishes the runner by the token_type claim of its
+ * platform-minted credential; this module is the open-source equivalent: a
+ * token whose binding names the execution it serves, and the fetch answers
+ * only a token whose binding matches the execution asked for.
  *
  * THE TWO LANES, BY POSTURE. Until 2026-09-16 this header stated the
  * token was "deliberately NOT an IdentityVerifier on the chassis:
  * presenting it must never change the caller's identity". That sentence
  * described a server that did not enforce authorization: with the
  * permissive Authorizer, the runner's operator key could do everything,
- * so the token only needed to unlock one decrypt lane. Under the built-in
+ * so the token only needed to unlock one read. Under the built-in
  * authorization posture (an OIDC self-host; authorization/posture.ts) the
  * server enforces the cloud's model, and a runner keyed with one
  * operator's API key could report on nobody's run but the operator's.
@@ -25,7 +25,7 @@
  * run it is, the person the execution row's creator stamp names, for as
  * long as that run lives. The runner acts as the run's human, which is
  * what the cloud's managed sandbox has always done. Under trusted-local
- * no verifier is composed and the token stays the decrypt-lane
+ * no verifier is composed and the token stays the values fetch's
  * discriminator it was: anyone who can reach that server can mint one,
  * and there is one person to be.
  *
@@ -37,11 +37,11 @@
  *   - `mint(executionId, ttl)` — the CLOCKED token: the trusted-local
  *     exchange and the connect and sandbox lanes, whose one unit of work
  *     has a bounded lifetime. `exp` is present and enforced. The connect
- *     lane's token binds no execution row but the connect's own
- *     ExecutionContext (domain/mcpserver/connect-execution-id.ts), and
- *     under the built-in posture it too is an identity: its bearer acts
- *     as the person who asked for the connect, whom that row was created
- *     by (bound-execution.ts, the `mcp-connect` binding).
+ *     lane's token binds no execution row but the connect's own attempt
+ *     (domain/mcpserver/connect-execution-id.ts), and under the built-in
+ *     posture it too is an identity: its bearer acts as the person who
+ *     asked for the connect, whom that row records (bound-execution.ts,
+ *     the `mcp-connect` binding).
  *   - `mintRunCredential(executionId)` — the RUN credential: the agent
  *     run's engine puts it on every dispatch's workflow input
  *     (dispatch-credential.ts), and under the built-in posture the
@@ -51,15 +51,15 @@
  *     validity is the ROW's — the execution is live, or ended within a
  *     short grace (bound-execution.ts) — read by both lanes that accept
  *     the token, because a plaintext token in Temporal history must not
- *     decrypt a finished run's secrets, and the clock that prevented that
- *     is gone.
+ *     fetch a finished run's secrets, and the clock that prevented that is
+ *     gone.
  * `verify` enforces `exp` when present and accepts its absence; it never
  * decides liveness, which needs the store.
  *
  * Consumers arrive with their own domains, through the provider seam
  * (runner-credential-provider.ts): the platform exchange RPC and the
- * engine client (mint), the executioncontext resolve step and the
- * runner-subject verifier (verify). This module sits beside encryption
+ * engine client (mint), the values fetch and the runner-subject verifier
+ * (verify). This module sits beside encryption
  * because its signing key rides the shared key ladder and its boot
  * posture is a cross-domain invariant (fatal — see compose.ts).
  */
@@ -85,7 +85,7 @@ export const RUNNER_TOKEN_KEY_FILE_NAME = "runner-token.key";
 
 /**
  * Default token lifetime — Go DefaultTTL (1 hour). Tokens are minted
- * immediately before each ExecutionContext read (or carried in a connect
+ * immediately before each values fetch (or carried in a connect
  * workflow's dispatch payload), so the TTL only needs to cover one unit of
  * dispatched work including its Temporal retries: generous without being
  * an effectively-permanent credential in Temporal history.
@@ -95,7 +95,7 @@ export const DEFAULT_TTL_SECONDS = 3600;
 /**
  * Go ErrInvalidToken: ANY verification failure — forged signature, wrong
  * algorithm, expired, wrong type, empty binding — collapses to this one
- * error. Callers fail closed to redaction on it; a finer-grained reason
+ * error. Callers fail closed on it; a finer-grained reason
  * would just invite branching on it.
  */
 export class InvalidTokenError extends Error {

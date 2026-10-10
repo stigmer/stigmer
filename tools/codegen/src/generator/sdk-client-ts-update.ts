@@ -215,11 +215,6 @@ function tsUpdateInputFieldExpr(f: FieldSchema, access: string, imports: TsImpor
     if (required) return `[...(${access} ?? [])]`;
     return `${access}?.length ? [...${access}] : undefined`;
   }
-  if (t.kind === "map" && t.valueType?.messageType === "ExecutionValue") {
-    imports.addValue("./proto-utils", "toExecVarInputMap");
-    if (required) return `toExecVarInputMap(${access}) ?? {}`;
-    return `toExecVarInputMap(${access})`;
-  }
   if (t.kind === "map" && t.valueType?.kind === "message") {
     const elemMsg = t.valueType.messageType ?? "";
     const mapExpr = `Object.fromEntries(Object.entries(${access}).map(([k, v]) => [k, to${elemMsg}Input(v)]))`;

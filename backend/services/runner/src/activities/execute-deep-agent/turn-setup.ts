@@ -431,14 +431,7 @@ export async function buildEngine(
   const isPlanMode = interactionMode === InteractionMode.PLAN;
   const shellEnv = isPlanMode
     ? undefined
-    : buildShellEnv(
-        shellRunValues(
-          input.environment.envVars,
-          blueprint.agent?.spec.env,
-          input.mcp.servers,
-          input.workspace.provision.provisionResults,
-        ),
-      );
+    : buildShellEnv(shellRunValues(input.environment));
   // Plan mode's filesystem permission rules, hoisted once: the parent graph
   // and every sub-agent graph carry this single value (the write-deny half
   // of plan mode; the read boundary is structural, issue #754).

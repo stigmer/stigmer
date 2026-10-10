@@ -33,7 +33,7 @@ const userServer: ResolvedMcpServer = {
   url: "https://example.com",
   destructiveTools: [],
   discoveredToolNames: null,
-  declaredEnvKeys: [],
+  serverId: "",
   pluginOrigin: null,
   discoveredCapabilitiesEmpty: false,
 };

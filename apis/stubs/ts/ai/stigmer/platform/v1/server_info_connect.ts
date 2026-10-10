@@ -102,7 +102,7 @@ export const PlatformQueryController = {
      * the exact work they serve. At task start the runner presents its bootstrap
      * token and names the run it was dispatched; the control plane verifies
      * the caller and returns a short-lived token scoped to that work, which the
-     * runner then uses for its ExecutionContext fetch. This makes a desktop
+     * runner then uses to fetch the run's values. This makes a desktop
      * runner indistinguishable, at the secret-release gate, from a
      * server-provisioned sandbox runner.
      *

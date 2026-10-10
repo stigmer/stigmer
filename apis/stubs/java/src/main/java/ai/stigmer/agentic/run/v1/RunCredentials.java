@@ -33,6 +33,7 @@ private static final long serialVersionUID = 0L;
   }
   private RunCredentials() {
     person_ = "";
+    sources_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -122,6 +123,87 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int SOURCES_FIELD_NUMBER = 2;
+  @SuppressWarnings("serial")
+  private java.util.List<ai.stigmer.agentic.run.v1.RunValueSource> sources_;
+  /**
+   * <pre>
+   * Where each value the turn uses lives: one entry per key and declarer,
+   * naming a vault and an entry, never a value. A runner fetches the
+   * values from these vaults when the turn's work starts
+   * (VaultValueController.fetchValues). An optional key nothing holds has
+   * no entry.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.run.v1.RunValueSource sources = 2 [json_name = "sources"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<ai.stigmer.agentic.run.v1.RunValueSource> getSourcesList() {
+    return sources_;
+  }
+  /**
+   * <pre>
+   * Where each value the turn uses lives: one entry per key and declarer,
+   * naming a vault and an entry, never a value. A runner fetches the
+   * values from these vaults when the turn's work starts
+   * (VaultValueController.fetchValues). An optional key nothing holds has
+   * no entry.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.run.v1.RunValueSource sources = 2 [json_name = "sources"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<? extends ai.stigmer.agentic.run.v1.RunValueSourceOrBuilder> 
+      getSourcesOrBuilderList() {
+    return sources_;
+  }
+  /**
+   * <pre>
+   * Where each value the turn uses lives: one entry per key and declarer,
+   * naming a vault and an entry, never a value. A runner fetches the
+   * values from these vaults when the turn's work starts
+   * (VaultValueController.fetchValues). An optional key nothing holds has
+   * no entry.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.run.v1.RunValueSource sources = 2 [json_name = "sources"];</code>
+   */
+  @java.lang.Override
+  public int getSourcesCount() {
+    return sources_.size();
+  }
+  /**
+   * <pre>
+   * Where each value the turn uses lives: one entry per key and declarer,
+   * naming a vault and an entry, never a value. A runner fetches the
+   * values from these vaults when the turn's work starts
+   * (VaultValueController.fetchValues). An optional key nothing holds has
+   * no entry.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.run.v1.RunValueSource sources = 2 [json_name = "sources"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.run.v1.RunValueSource getSources(int index) {
+    return sources_.get(index);
+  }
+  /**
+   * <pre>
+   * Where each value the turn uses lives: one entry per key and declarer,
+   * naming a vault and an entry, never a value. A runner fetches the
+   * values from these vaults when the turn's work starts
+   * (VaultValueController.fetchValues). An optional key nothing holds has
+   * no entry.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.run.v1.RunValueSource sources = 2 [json_name = "sources"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.run.v1.RunValueSourceOrBuilder getSourcesOrBuilder(
+      int index) {
+    return sources_.get(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -139,6 +221,9 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000001) != 0)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 1, person_);
     }
+    for (int i = 0; i < sources_.size(); i++) {
+      output.writeMessage(2, sources_.get(i));
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -151,6 +236,15 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(1, person_);
     }
+
+        {
+          final int count = sources_.size();
+          for (int i = 0; i < count; i++) {
+            size += com.google.protobuf.CodedOutputStream
+              .computeMessageSizeNoTag(sources_.get(i));
+          }
+          size += 1 * count;
+        }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -171,6 +265,8 @@ private static final long serialVersionUID = 0L;
       if (!getPerson()
           .equals(other.getPerson())) return false;
     }
+    if (!getSourcesList()
+        .equals(other.getSourcesList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -185,6 +281,10 @@ private static final long serialVersionUID = 0L;
     if (hasPerson()) {
       hash = (37 * hash) + PERSON_FIELD_NUMBER;
       hash = (53 * hash) + getPerson().hashCode();
+    }
+    if (getSourcesCount() > 0) {
+      hash = (37 * hash) + SOURCES_FIELD_NUMBER;
+      hash = (53 * hash) + getSourcesList().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -322,6 +422,13 @@ private static final long serialVersionUID = 0L;
       super.clear();
       bitField0_ = 0;
       person_ = "";
+      if (sourcesBuilder_ == null) {
+        sources_ = java.util.Collections.emptyList();
+      } else {
+        sources_ = null;
+        sourcesBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00000002);
       return this;
     }
 
@@ -348,9 +455,22 @@ private static final long serialVersionUID = 0L;
     @java.lang.Override
     public ai.stigmer.agentic.run.v1.RunCredentials buildPartial() {
       ai.stigmer.agentic.run.v1.RunCredentials result = new ai.stigmer.agentic.run.v1.RunCredentials(this);
+      buildPartialRepeatedFields(result);
       if (bitField0_ != 0) { buildPartial0(result); }
       onBuilt();
       return result;
+    }
+
+    private void buildPartialRepeatedFields(ai.stigmer.agentic.run.v1.RunCredentials result) {
+      if (sourcesBuilder_ == null) {
+        if (((bitField0_ & 0x00000002) != 0)) {
+          sources_ = java.util.Collections.unmodifiableList(sources_);
+          bitField0_ = (bitField0_ & ~0x00000002);
+        }
+        result.sources_ = sources_;
+      } else {
+        result.sources_ = sourcesBuilder_.build();
+      }
     }
 
     private void buildPartial0(ai.stigmer.agentic.run.v1.RunCredentials result) {
@@ -379,6 +499,32 @@ private static final long serialVersionUID = 0L;
         person_ = other.person_;
         bitField0_ |= 0x00000001;
         onChanged();
+      }
+      if (sourcesBuilder_ == null) {
+        if (!other.sources_.isEmpty()) {
+          if (sources_.isEmpty()) {
+            sources_ = other.sources_;
+            bitField0_ = (bitField0_ & ~0x00000002);
+          } else {
+            ensureSourcesIsMutable();
+            sources_.addAll(other.sources_);
+          }
+          onChanged();
+        }
+      } else {
+        if (!other.sources_.isEmpty()) {
+          if (sourcesBuilder_.isEmpty()) {
+            sourcesBuilder_.dispose();
+            sourcesBuilder_ = null;
+            sources_ = other.sources_;
+            bitField0_ = (bitField0_ & ~0x00000002);
+            sourcesBuilder_ = 
+              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                 internalGetSourcesFieldBuilder() : null;
+          } else {
+            sourcesBuilder_.addAllMessages(other.sources_);
+          }
+        }
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -411,6 +557,19 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000001;
               break;
             } // case 10
+            case 18: {
+              ai.stigmer.agentic.run.v1.RunValueSource m =
+                  input.readMessage(
+                      ai.stigmer.agentic.run.v1.RunValueSource.parser(),
+                      extensionRegistry);
+              if (sourcesBuilder_ == null) {
+                ensureSourcesIsMutable();
+                sources_.add(m);
+              } else {
+                sourcesBuilder_.addMessage(m);
+              }
+              break;
+            } // case 18
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -547,6 +706,390 @@ private static final long serialVersionUID = 0L;
       bitField0_ |= 0x00000001;
       onChanged();
       return this;
+    }
+
+    private java.util.List<ai.stigmer.agentic.run.v1.RunValueSource> sources_ =
+      java.util.Collections.emptyList();
+    private void ensureSourcesIsMutable() {
+      if (!((bitField0_ & 0x00000002) != 0)) {
+        sources_ = new java.util.ArrayList<ai.stigmer.agentic.run.v1.RunValueSource>(sources_);
+        bitField0_ |= 0x00000002;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.run.v1.RunValueSource, ai.stigmer.agentic.run.v1.RunValueSource.Builder, ai.stigmer.agentic.run.v1.RunValueSourceOrBuilder> sourcesBuilder_;
+
+    /**
+     * <pre>
+     * Where each value the turn uses lives: one entry per key and declarer,
+     * naming a vault and an entry, never a value. A runner fetches the
+     * values from these vaults when the turn's work starts
+     * (VaultValueController.fetchValues). An optional key nothing holds has
+     * no entry.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.RunValueSource sources = 2 [json_name = "sources"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.run.v1.RunValueSource> getSourcesList() {
+      if (sourcesBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(sources_);
+      } else {
+        return sourcesBuilder_.getMessageList();
+      }
+    }
+    /**
+     * <pre>
+     * Where each value the turn uses lives: one entry per key and declarer,
+     * naming a vault and an entry, never a value. A runner fetches the
+     * values from these vaults when the turn's work starts
+     * (VaultValueController.fetchValues). An optional key nothing holds has
+     * no entry.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.RunValueSource sources = 2 [json_name = "sources"];</code>
+     */
+    public int getSourcesCount() {
+      if (sourcesBuilder_ == null) {
+        return sources_.size();
+      } else {
+        return sourcesBuilder_.getCount();
+      }
+    }
+    /**
+     * <pre>
+     * Where each value the turn uses lives: one entry per key and declarer,
+     * naming a vault and an entry, never a value. A runner fetches the
+     * values from these vaults when the turn's work starts
+     * (VaultValueController.fetchValues). An optional key nothing holds has
+     * no entry.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.RunValueSource sources = 2 [json_name = "sources"];</code>
+     */
+    public ai.stigmer.agentic.run.v1.RunValueSource getSources(int index) {
+      if (sourcesBuilder_ == null) {
+        return sources_.get(index);
+      } else {
+        return sourcesBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <pre>
+     * Where each value the turn uses lives: one entry per key and declarer,
+     * naming a vault and an entry, never a value. A runner fetches the
+     * values from these vaults when the turn's work starts
+     * (VaultValueController.fetchValues). An optional key nothing holds has
+     * no entry.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.RunValueSource sources = 2 [json_name = "sources"];</code>
+     */
+    public Builder setSources(
+        int index, ai.stigmer.agentic.run.v1.RunValueSource value) {
+      if (sourcesBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureSourcesIsMutable();
+        sources_.set(index, value);
+        onChanged();
+      } else {
+        sourcesBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Where each value the turn uses lives: one entry per key and declarer,
+     * naming a vault and an entry, never a value. A runner fetches the
+     * values from these vaults when the turn's work starts
+     * (VaultValueController.fetchValues). An optional key nothing holds has
+     * no entry.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.RunValueSource sources = 2 [json_name = "sources"];</code>
+     */
+    public Builder setSources(
+        int index, ai.stigmer.agentic.run.v1.RunValueSource.Builder builderForValue) {
+      if (sourcesBuilder_ == null) {
+        ensureSourcesIsMutable();
+        sources_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        sourcesBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Where each value the turn uses lives: one entry per key and declarer,
+     * naming a vault and an entry, never a value. A runner fetches the
+     * values from these vaults when the turn's work starts
+     * (VaultValueController.fetchValues). An optional key nothing holds has
+     * no entry.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.RunValueSource sources = 2 [json_name = "sources"];</code>
+     */
+    public Builder addSources(ai.stigmer.agentic.run.v1.RunValueSource value) {
+      if (sourcesBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureSourcesIsMutable();
+        sources_.add(value);
+        onChanged();
+      } else {
+        sourcesBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Where each value the turn uses lives: one entry per key and declarer,
+     * naming a vault and an entry, never a value. A runner fetches the
+     * values from these vaults when the turn's work starts
+     * (VaultValueController.fetchValues). An optional key nothing holds has
+     * no entry.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.RunValueSource sources = 2 [json_name = "sources"];</code>
+     */
+    public Builder addSources(
+        int index, ai.stigmer.agentic.run.v1.RunValueSource value) {
+      if (sourcesBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureSourcesIsMutable();
+        sources_.add(index, value);
+        onChanged();
+      } else {
+        sourcesBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Where each value the turn uses lives: one entry per key and declarer,
+     * naming a vault and an entry, never a value. A runner fetches the
+     * values from these vaults when the turn's work starts
+     * (VaultValueController.fetchValues). An optional key nothing holds has
+     * no entry.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.RunValueSource sources = 2 [json_name = "sources"];</code>
+     */
+    public Builder addSources(
+        ai.stigmer.agentic.run.v1.RunValueSource.Builder builderForValue) {
+      if (sourcesBuilder_ == null) {
+        ensureSourcesIsMutable();
+        sources_.add(builderForValue.build());
+        onChanged();
+      } else {
+        sourcesBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Where each value the turn uses lives: one entry per key and declarer,
+     * naming a vault and an entry, never a value. A runner fetches the
+     * values from these vaults when the turn's work starts
+     * (VaultValueController.fetchValues). An optional key nothing holds has
+     * no entry.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.RunValueSource sources = 2 [json_name = "sources"];</code>
+     */
+    public Builder addSources(
+        int index, ai.stigmer.agentic.run.v1.RunValueSource.Builder builderForValue) {
+      if (sourcesBuilder_ == null) {
+        ensureSourcesIsMutable();
+        sources_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        sourcesBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Where each value the turn uses lives: one entry per key and declarer,
+     * naming a vault and an entry, never a value. A runner fetches the
+     * values from these vaults when the turn's work starts
+     * (VaultValueController.fetchValues). An optional key nothing holds has
+     * no entry.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.RunValueSource sources = 2 [json_name = "sources"];</code>
+     */
+    public Builder addAllSources(
+        java.lang.Iterable<? extends ai.stigmer.agentic.run.v1.RunValueSource> values) {
+      if (sourcesBuilder_ == null) {
+        ensureSourcesIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, sources_);
+        onChanged();
+      } else {
+        sourcesBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Where each value the turn uses lives: one entry per key and declarer,
+     * naming a vault and an entry, never a value. A runner fetches the
+     * values from these vaults when the turn's work starts
+     * (VaultValueController.fetchValues). An optional key nothing holds has
+     * no entry.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.RunValueSource sources = 2 [json_name = "sources"];</code>
+     */
+    public Builder clearSources() {
+      if (sourcesBuilder_ == null) {
+        sources_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000002);
+        onChanged();
+      } else {
+        sourcesBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Where each value the turn uses lives: one entry per key and declarer,
+     * naming a vault and an entry, never a value. A runner fetches the
+     * values from these vaults when the turn's work starts
+     * (VaultValueController.fetchValues). An optional key nothing holds has
+     * no entry.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.RunValueSource sources = 2 [json_name = "sources"];</code>
+     */
+    public Builder removeSources(int index) {
+      if (sourcesBuilder_ == null) {
+        ensureSourcesIsMutable();
+        sources_.remove(index);
+        onChanged();
+      } else {
+        sourcesBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Where each value the turn uses lives: one entry per key and declarer,
+     * naming a vault and an entry, never a value. A runner fetches the
+     * values from these vaults when the turn's work starts
+     * (VaultValueController.fetchValues). An optional key nothing holds has
+     * no entry.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.RunValueSource sources = 2 [json_name = "sources"];</code>
+     */
+    public ai.stigmer.agentic.run.v1.RunValueSource.Builder getSourcesBuilder(
+        int index) {
+      return internalGetSourcesFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <pre>
+     * Where each value the turn uses lives: one entry per key and declarer,
+     * naming a vault and an entry, never a value. A runner fetches the
+     * values from these vaults when the turn's work starts
+     * (VaultValueController.fetchValues). An optional key nothing holds has
+     * no entry.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.RunValueSource sources = 2 [json_name = "sources"];</code>
+     */
+    public ai.stigmer.agentic.run.v1.RunValueSourceOrBuilder getSourcesOrBuilder(
+        int index) {
+      if (sourcesBuilder_ == null) {
+        return sources_.get(index);  } else {
+        return sourcesBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <pre>
+     * Where each value the turn uses lives: one entry per key and declarer,
+     * naming a vault and an entry, never a value. A runner fetches the
+     * values from these vaults when the turn's work starts
+     * (VaultValueController.fetchValues). An optional key nothing holds has
+     * no entry.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.RunValueSource sources = 2 [json_name = "sources"];</code>
+     */
+    public java.util.List<? extends ai.stigmer.agentic.run.v1.RunValueSourceOrBuilder> 
+         getSourcesOrBuilderList() {
+      if (sourcesBuilder_ != null) {
+        return sourcesBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(sources_);
+      }
+    }
+    /**
+     * <pre>
+     * Where each value the turn uses lives: one entry per key and declarer,
+     * naming a vault and an entry, never a value. A runner fetches the
+     * values from these vaults when the turn's work starts
+     * (VaultValueController.fetchValues). An optional key nothing holds has
+     * no entry.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.RunValueSource sources = 2 [json_name = "sources"];</code>
+     */
+    public ai.stigmer.agentic.run.v1.RunValueSource.Builder addSourcesBuilder() {
+      return internalGetSourcesFieldBuilder().addBuilder(
+          ai.stigmer.agentic.run.v1.RunValueSource.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Where each value the turn uses lives: one entry per key and declarer,
+     * naming a vault and an entry, never a value. A runner fetches the
+     * values from these vaults when the turn's work starts
+     * (VaultValueController.fetchValues). An optional key nothing holds has
+     * no entry.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.RunValueSource sources = 2 [json_name = "sources"];</code>
+     */
+    public ai.stigmer.agentic.run.v1.RunValueSource.Builder addSourcesBuilder(
+        int index) {
+      return internalGetSourcesFieldBuilder().addBuilder(
+          index, ai.stigmer.agentic.run.v1.RunValueSource.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Where each value the turn uses lives: one entry per key and declarer,
+     * naming a vault and an entry, never a value. A runner fetches the
+     * values from these vaults when the turn's work starts
+     * (VaultValueController.fetchValues). An optional key nothing holds has
+     * no entry.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.RunValueSource sources = 2 [json_name = "sources"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.run.v1.RunValueSource.Builder> 
+         getSourcesBuilderList() {
+      return internalGetSourcesFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.run.v1.RunValueSource, ai.stigmer.agentic.run.v1.RunValueSource.Builder, ai.stigmer.agentic.run.v1.RunValueSourceOrBuilder> 
+        internalGetSourcesFieldBuilder() {
+      if (sourcesBuilder_ == null) {
+        sourcesBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.agentic.run.v1.RunValueSource, ai.stigmer.agentic.run.v1.RunValueSource.Builder, ai.stigmer.agentic.run.v1.RunValueSourceOrBuilder>(
+                sources_,
+                ((bitField0_ & 0x00000002) != 0),
+                getParentForChildren(),
+                isClean());
+        sources_ = null;
+      }
+      return sourcesBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.run.v1.RunCredentials)

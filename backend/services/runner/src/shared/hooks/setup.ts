@@ -7,8 +7,8 @@
  * the agent has no hook either engine runs.
  *
  * What a hook runs WITH is the agent shell's, on both engines: the runner's
- * process environment less its credentials, plus the run values the agent
- * declares less every key an MCP server claims (`../shell-env.ts`). They are
+ * process environment less its credentials, plus the agent's own run values
+ * (`../shell-env.ts`), never a tool's. They are
  * built even in plan mode, where the agent has no shell, because hooks
  * still run there. A plugin's `${user_config.KEY}` resolves from those
  * values; one the run does not have refuses the turn, naming the variable
@@ -28,7 +28,7 @@ import type { HookGroup } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hoo
 import type { ResolvedMcpServer } from "../mcp-resolver.js";
 import type { MountedPlugin } from "../plugin-mount.js";
 import { buildShellEnv, shellRunValues } from "../shell-env.js";
-import type { ProvisionResult } from "../workspace/types.js";
+import type { RunValues } from "../run-values.js";
 import { HookEvaluator, type HookPermissionMode } from "./evaluate.js";
 import { HookSet, isRunEvent, userConfigKeys, type HookFormatName, type HookSourceGroups } from "./hook-set.js";
 import { activityPulseFor, HOOK_SHELL } from "./run.js";
@@ -50,12 +50,9 @@ export interface HookSetupInput {
     readonly format: HookFormatName;
     readonly groups: readonly HookGroup[];
   }[];
-  /** The run's values (`TurnInput.environment.envVars`). */
-  readonly runValues: Readonly<Record<string, string>>;
-  /** The agent's declared env (`AgentSpec.env`); none for the built-in assistant. */
-  readonly agentEnv: Readonly<Record<string, unknown>> | undefined;
+  /** The run's values, per declarer (`TurnInput.environment`). */
+  readonly runValues: Pick<RunValues, "agent" | "tools">;
   readonly mcpServers: readonly ResolvedMcpServer[];
-  readonly provisionResults: readonly ProvisionResult[];
   /** The engine's views of its calls. */
   readonly views: HookToolViews;
   readonly sessionId: string;
@@ -74,7 +71,7 @@ export interface HookSetupInput {
 /** The turn's hook evaluator, or `null` when the agent has no hook this runner runs. Throws {@link HookSetupError}. */
 export async function buildHookEvaluator(input: HookSetupInput): Promise<HookEvaluator | null> {
   if (input.sources.length === 0) return null;
-  const values = shellRunValues(input.runValues, input.agentEnv, input.mcpServers, input.provisionResults);
+  const values = shellRunValues(input.runValues);
 
   const sources: HookSourceGroups[] = input.sources.map(({ plugin, format, groups }) => {
     const who = plugin === null ? "A hook in the agent's own hooks block" : `A hook of the plugin '${plugin.slug}'`;
@@ -89,12 +86,12 @@ export async function buildHookEvaluator(input: HookSetupInput): Promise<HookEva
     for (const key of format === "claude-code" ? handlers.flatMap(userConfigKeys) : []) {
       const value = values[key];
       if (value === undefined) {
-        const claimant = input.mcpServers.find((server) => server.declaredEnvKeys.includes(key));
+        const claimant = toolHolding(input, key);
         throw new HookSetupError(
           claimant === undefined
             ? `${who} reads the variable ${key}, which this run does not give the agent. ` +
                 `Declare ${key} in the agent's env and set its value, then run again.`
-            : `${who} reads the variable ${key}, which this run keeps for its MCP server '${claimant.slug}' ` +
+            : `${who} reads the variable ${key}, which this run keeps for its MCP server '${claimant}' ` +
                 "and gives neither the agent's shell nor its hooks. Give the hook a variable of its own, then run again.",
         );
       }
@@ -134,6 +131,19 @@ export async function buildHookEvaluator(input: HookSetupInput): Promise<HookEva
     onActivity: input.onActivity,
     activityPulseMs: activityPulseFor(input.stallTimeoutMs),
   });
+}
+
+/**
+ * The MCP server a run value belongs to, by its group in the run's values:
+ * the slug of the resolved server with that id, or the id itself for a
+ * server that did not resolve this turn. `undefined` when no tool holds it.
+ */
+function toolHolding(input: Pick<HookSetupInput, "runValues" | "mcpServers">, key: string): string | undefined {
+  for (const [serverId, group] of input.runValues.tools) {
+    if (!(key in group.values)) continue;
+    return input.mcpServers.find((server) => server.serverId === serverId)?.slug ?? serverId;
+  }
+  return undefined;
 }
 
 /** Claude Code's `permission_mode` for a turn: `plan` in plan mode, `bypassPermissions` under the pre-armed bypass. */

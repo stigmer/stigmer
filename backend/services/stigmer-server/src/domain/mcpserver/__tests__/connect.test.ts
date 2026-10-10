@@ -6,17 +6,19 @@
  * connect_status bookkeeping (attach skips CONNECTING; results and the
  * terminal phase ride ONE atomic write; failure_code in CamelCase),
  * each tool's destructive_hint persisted as the runner read it and
- * overwritten on reconnect, the ephemeral EC lifecycle and its values
- * from the vault resolver (the caller's own My vault, never a teammate's;
- * a runtime_env key the server does not declare never delivered; a
- * required key nowhere refuses the connect, naming it), and
- * startConnect's two-layer idempotency + dead-runner warning, and the
- * connect route (connect-sandbox.ts, stigmer/stigmer#1474): the shared
- * runner queue without a sandbox lane, and with one a connect sandbox
- * per connect, acting as the person through an always-created
- * ExecutionContext row and released exactly once on every exit; the
- * apply tail skipping every server that needs a value, a login key with no
- * env declaration included.
+ * overwritten on reconnect, the connect attempt (recorded for every
+ * connect as the person who started it, ended on every settle arm, and
+ * expired rows swept at the next connect), the values the runner fetches
+ * for it (the caller's own My vault, never a teammate's; a required key
+ * nowhere refuses the connect before a workflow starts, naming it), the
+ * runner's backfill by run id (accepted only with a runner credential
+ * bound to that live run in the connect's organization), startConnect's
+ * two-layer idempotency + dead-runner warning, and the connect route
+ * (connect-sandbox.ts, stigmer/stigmer#1474): the shared runner queue
+ * without a sandbox lane, and with one a connect sandbox per connect,
+ * acting as the person through the attempt and released exactly once on
+ * every exit; the apply tail skipping every server that needs a value, a
+ * login key with no env declaration included.
  *
  * The wire-level halves are pinned by
  * mcpserver-connect.conformance.test.ts on local-execution.
@@ -33,8 +35,12 @@ import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { ConnectInputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { ConnectPhase } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { FetchExecutionValuesInputSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
+import type { ExecutionValues } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
+import type { HandlerContext } from "@connectrpc/connect";
 
 import { createLogger } from "../../../boot/logger.js";
 import { SecretService } from "../../../encryption/encryption.js";
@@ -54,6 +60,12 @@ import type {
   SandboxProvisioner,
 } from "../../../sandbox/provisioner.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
+import type {
+  ConnectAttemptRecord,
+  ConnectAttemptStore,
+  Store,
+} from "../../../store/interface.js";
+import { fetchExecutionValues } from "../../vault/values.js";
 import { newVaultResolver } from "../../vault/resolve.js";
 import { newVaultService } from "../../vault/service.js";
 import type { VaultService } from "../../vault/service.js";
@@ -111,6 +123,8 @@ interface FakeEngineOptions {
   startError?: Error;
   /** Runs when a lane begins awaiting the run — the moment an attached lane must already hold nothing. */
   onAwait?: () => void;
+  /** Runs once the start is recorded, while the connect's attempt lives: where a runner would fetch. */
+  onStart?: (input: ConnectWorkflowInput) => Promise<void>;
 }
 
 interface FakeEngine extends McpServerConnectEngine {
@@ -136,6 +150,7 @@ function fakeEngine(options: FakeEngineOptions = {}): FakeEngine {
       startedInputs.push(input);
       startedTimeouts.push(runTimeoutMs);
       startedQueues.push(taskQueue);
+      await options.onStart?.(input);
       return {
         workflowId: `stigmer/mcp-server/connect/${mcpServerId}`,
         attached: options.attached ?? false,
@@ -192,6 +207,10 @@ interface HarnessOptions extends FakeEngineOptions {
   provisioner?: SandboxProvisioner;
   /** The lane's credential provider (default: the harness's execution-scoped runnerAuth). */
   credentials?: RunnerCredentialProvider;
+  /** The connect slice's own credential provider (default: the execution-scoped one). */
+  runnerAuth?: RunnerCredentialProvider;
+  /** Faults in the store: an attempt write or end, or a run's read. */
+  faults?: { attemptCreate?: Error; attemptDelete?: Error; runRead?: Error };
 }
 
 interface Harness {
@@ -199,10 +218,12 @@ interface Harness {
   /** The real vault service over the harness's store. */
   vaults: VaultService;
   engine: FakeEngine;
-  ecCreates: number;
-  /** The caller each EC create was handed — the connect's person, never the server (the mcp-connect binding's stamp). */
-  ecCreators: CallerIdentity[];
-  ecDeletes: string[];
+  /** Every connect attempt recorded, as written. */
+  attempts: ConnectAttemptRecord[];
+  /** Every attempt ended, by id. */
+  ended: string[];
+  /** The runner's fetch of a started connect's values, with the token its workflow input carries. */
+  fetch(input: ConnectWorkflowInput): Promise<ExecutionValues>;
 }
 
 let dir: string;
@@ -226,17 +247,65 @@ const testCaller = testCallerIdentity();
 const connect = (
   deps: McpServerConnectDeps,
   input: Parameters<typeof connectRpc>[1],
-) => connectRpc(deps, input, testCaller);
+  bearer = "",
+) => connectRpc(deps, input, testCaller, bearer);
 const startConnect = (
   deps: McpServerConnectDeps,
   input: Parameters<typeof startConnectRpc>[1],
-) => startConnectRpc(deps, input, testCaller);
+) => startConnectRpc(deps, input, testCaller, "");
+
+/** A handler context carrying `token` as its Bearer credential: the runner's call. */
+function bearerContext(token: string): HandlerContext {
+  return {
+    requestHeader: new Headers(token === "" ? {} : { authorization: `Bearer ${token}` }),
+  } as unknown as HandlerContext;
+}
+
+/** The store with its attempt table recorded: every row the lanes write and end. */
+function recordingStore(
+  attempts: ConnectAttemptRecord[],
+  ended: string[],
+  faults: HarnessOptions["faults"] = {},
+): Store {
+  const recording: ConnectAttemptStore = {
+    create: async (attempt) => {
+      if (faults.attemptCreate !== undefined) {
+        throw faults.attemptCreate;
+      }
+      attempts.push(attempt);
+      await store.connectAttempts.create(attempt);
+    },
+    findLive: (id, now) => store.connectAttempts.findLive(id, now),
+    delete: async (id) => {
+      ended.push(id);
+      if (faults.attemptDelete !== undefined) {
+        throw faults.attemptDelete;
+      }
+      await store.connectAttempts.delete(id);
+    },
+    deleteExpired: (now) => store.connectAttempts.deleteExpired(now),
+    deleteByOrg: (org) => store.connectAttempts.deleteByOrg(org),
+  };
+  return new Proxy(store, {
+    get(target, prop, receiver) {
+      if (prop === "connectAttempts") {
+        return recording;
+      }
+      if (prop === "getResource" && faults.runRead !== undefined) {
+        const fault = faults.runRead;
+        return (...args: Parameters<typeof store.getResource>) =>
+          args[0] === ApiResourceKind.run ? Promise.reject(fault) : store.getResource(...args);
+      }
+      const value = Reflect.get(target, prop, receiver) as unknown;
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+}
 
 function makeHarness(options: HarnessOptions = {}): Harness {
   const engine = fakeEngine(options);
-  const runnerAuth = newExecutionScopedRunnerCredentialProvider(
-    RunnerAuthService.fromEnv(),
-  );
+  const runnerAuth =
+    options.runnerAuth ?? newExecutionScopedRunnerCredentialProvider(RunnerAuthService.fromEnv());
   const sandboxLane: SandboxLane =
     options.provisioner === undefined
       ? { enabled: false }
@@ -262,30 +331,25 @@ function makeHarness(options: HarnessOptions = {}): Harness {
     platformClients: { findById: async () => undefined },
     freshener: newSignInFreshener({ loginProviders: new Map(), vaults, store, secretService, logger: silentLogger }),
   });
+  const attempts: ConnectAttemptRecord[] = [];
+  const ended: string[] = [];
+  const harnessStore = recordingStore(attempts, ended, options.faults);
   const harness: Harness = {
     engine,
     vaults,
-    ecCreates: 0,
-    ecCreators: [],
-    ecDeletes: [],
+    attempts,
+    ended,
+    fetch: (input) =>
+      fetchExecutionValues(
+        { store: harnessStore, logger: silentLogger, runnerAuth, vaultResolver: resolver },
+        create(FetchExecutionValuesInputSchema, { executionId: input.execution_context_id ?? "" }),
+        bearerContext(input.execution_context_token ?? ""),
+      ),
     deps: {
-      store,
+      store: harnessStore,
       logger: silentLogger,
       authorizer,
       engineState: () => ({ connected: true, engine }),
-      executionContext: {
-        create: async (_ec, caller) => {
-          harness.ecCreates += 1;
-          harness.ecCreators.push(caller);
-          return create(ExecutionContextSchema, {
-            metadata: { id: `ectx_${harness.ecCreates}` },
-          });
-        },
-        delete: async (input) => {
-          harness.ecDeletes.push(String(input.resourceId ?? ""));
-          return create(ExecutionContextSchema);
-        },
-      },
       runnerAuth,
       vaults,
       vaultResolver: resolver,
@@ -340,12 +404,26 @@ async function seedServer(overrides?: {
   return server;
 }
 
-function connectInput(mcpServerId: string, runtimeEnv?: Record<string, { value: string; isSecret: boolean }>) {
+function connectInput(mcpServerId: string, runId?: string) {
   return create(ConnectInputSchema, {
     mcpServerId,
     org: "acme",
-    ...(runtimeEnv !== undefined ? { runtimeEnv } : {}),
+    ...(runId !== undefined ? { runId } : {}),
   });
+}
+
+/** The one attempt a connect recorded has ended, and its row is gone. */
+async function expectOneAttemptEnded(harness: Harness): Promise<void> {
+  expect(harness.attempts).toHaveLength(1);
+  const id = harness.attempts[0]!.id;
+  expect(harness.ended).toEqual([id]);
+  expect(await store.connectAttempts.findLive(id, 0)).toBeUndefined();
+}
+
+/** Ana's My vault holding API_KEY = `value`, as `caller`. */
+async function saveApiKey(harness: Harness, caller: CallerIdentity, value: string): Promise<void> {
+  const mine = await harness.vaults.ensureMine("acme", caller);
+  await harness.vaults.setSecrets(mine.metadata!.id, { API_KEY: { value, description: "" } }, caller);
 }
 
 async function expectConnectError(
@@ -459,123 +537,91 @@ describe("connect (blocking lane)", () => {
     ]);
   });
 
-  it("creates the ephemeral EC from runtime_env AS THE CALLER, mints the decrypt token, and deletes the EC after settle", async () => {
+  it("records the attempt as the caller, mints its credential, and ends the attempt after settle", async () => {
     const harness = makeHarness();
+    await saveApiKey(harness, testCaller, "k");
     const server = await seedServer({ env: true });
-    await connect(
-      harness.deps,
-      connectInput(server.metadata!.id, {
-        API_KEY: { value: "k", isSecret: true },
-      }),
-    );
-    expect(harness.ecCreates).toBe(1);
-    // The row's creator stamp is the connect token's person under the
+    await connect(harness.deps, connectInput(server.metadata!.id));
+    // The attempt's creator is the connect token's person under the
     // built-in posture (runnerauth/bound-execution.ts), so the connect
-    // hands the client the caller, never the server's own identity.
-    expect(harness.ecCreators).toEqual([testCaller]);
-    expect(harness.ecDeletes).toEqual(["ectx_1"]);
+    // records the caller, never the server's own identity.
+    expect(harness.attempts.map((attempt) => attempt.createdBy)).toEqual([testCaller.identityId]);
+    expect(harness.attempts[0]?.mcpServerId).toBe(server.metadata!.id);
+    expect(harness.attempts[0]?.runId).toBe("");
+    await expectOneAttemptEnded(harness);
     const input = harness.engine.startedInputs[0];
-    expect(input?.execution_context_id).toMatch(/^connect-mcps_test_/);
+    expect(input?.execution_context_id).toBe(harness.attempts[0]?.id);
     // The id is the one shape the runner-credential lane recognizes as a
     // connect binding — builder and predicate share one module.
     expect(isConnectExecutionId(input?.execution_context_id ?? "")).toBe(true);
-    // oss#535: the decrypt-lane token rides the payload.
+    // oss#535: the connect's runner credential rides the payload.
     expect(input?.execution_context_token).toBeTruthy();
   });
 
-  it("skips EC creation entirely for an env-less server", async () => {
+  it("an env-less server still records its attempt, but hands the runner no id to fetch and no credential", async () => {
     const harness = makeHarness();
     const server = await seedServer();
     await connect(harness.deps, connectInput(server.metadata!.id));
-    expect(harness.ecCreates).toBe(0);
-    expect(harness.engine.startedInputs[0]?.execution_context_id).toBeUndefined();
+    expect(harness.attempts).toHaveLength(1);
+    await expectOneAttemptEnded(harness);
+    expect(harness.engine.startedInputs[0]).toEqual({ mcp_server_id: server.metadata!.id });
   });
 
-  it("refuses with FailedPrecondition naming the key when the caller's vaults hold no required credential", async () => {
+  it("refuses with FailedPrecondition naming the key when the caller's My vault holds no required credential, before a workflow starts", async () => {
     const harness = makeHarness();
     const server = await seedServer({ env: true });
-    const error = await expectConnectError(
+    await expectConnectError(
       connect(harness.deps, connectInput(server.metadata!.id)),
-      Code.FailedPrecondition,
-      "API_KEY",
-    );
-    expect(harness.ecCreates).toBe(0);
-    expect(error.code).toBe(Code.FailedPrecondition);
-  });
-
-  it("delivers only the runtime_env keys the server declares; a required key missing refuses, naming it", async () => {
-    const harness = makeHarness();
-    const created: Array<Parameters<McpServerConnectDeps["executionContext"]["create"]>[0]> = [];
-    const recordCreate = harness.deps.executionContext.create;
-    harness.deps = {
-      ...harness.deps,
-      executionContext: {
-        ...harness.deps.executionContext,
-        create: async (ec, caller) => {
-          created.push(ec);
-          return recordCreate(ec, caller);
-        },
-      },
-    };
-    const server = await seedServer({ env: true });
-    await connect(
-      harness.deps,
-      connectInput(server.metadata!.id, {
-        API_KEY: { value: "declared", isSecret: true },
-        UNDECLARED: { value: "stays-home", isSecret: true },
-      }),
-    );
-    expect(Object.keys(created[0]?.spec?.data ?? {})).toEqual(["API_KEY"]);
-    expect(created[0]?.spec?.data?.["API_KEY"]?.value).toBe("declared");
-
-    created.length = 0;
-    const refused = await expectConnectError(
-      connect(
-        harness.deps,
-        connectInput(server.metadata!.id, { UNDECLARED: { value: "stays-home", isSecret: true } }),
-      ),
       Code.FailedPrecondition,
       "needs API_KEY",
     );
-    expect(refused.rawMessage).not.toContain("UNDECLARED");
-    expect(created).toEqual([]);
+    expect(harness.attempts).toEqual([]);
+    expect(harness.engine.startedInputs).toEqual([]);
   });
 
-  it("reads the connecting person's own My vault, never a teammate's", async () => {
-    const harness = makeHarness();
+  it("the runner's fetch reads the connecting person's own My vault, never a teammate's, and only while the attempt lives", async () => {
     const teammate = testCallerIdentity({ identityId: "acc_teammate" });
-    const mine = await harness.vaults.ensureMine("acme", testCaller);
-    const theirs = await harness.vaults.ensureMine("acme", teammate);
-    await harness.vaults.setSecrets(
-      mine.metadata!.id,
-      { API_KEY: { value: "caller-key", description: "" } },
-      testCaller,
-    );
-    await harness.vaults.setSecrets(
-      theirs.metadata!.id,
-      { API_KEY: { value: "teammate-key", description: "" } },
-      teammate,
-    );
-    const created: Array<Parameters<McpServerConnectDeps["executionContext"]["create"]>[0]> = [];
-    const recordCreate = harness.deps.executionContext.create;
-    harness.deps = {
-      ...harness.deps,
-      executionContext: {
-        ...harness.deps.executionContext,
-        create: async (ec, caller) => {
-          created.push(ec);
-          return recordCreate(ec, caller);
-        },
+    const fetched: ExecutionValues[] = [];
+    let harness: Harness | undefined;
+    harness = makeHarness({
+      onStart: async (input) => {
+        fetched.push(await harness!.fetch(input));
       },
-    };
+    });
+    await saveApiKey(harness, testCaller, "caller-key");
+    await saveApiKey(harness, teammate, "teammate-key");
     const server = await seedServer({ env: true });
     await connect(harness.deps, connectInput(server.metadata!.id));
-    expect(created[0]?.spec?.data?.["API_KEY"]?.value).toBe("caller-key");
+    expect(fetched[0]?.tools.map((tool) => [tool.mcpServerId, tool.values["API_KEY"]])).toEqual([
+      [server.metadata!.id, "caller-key"],
+    ]);
+    expect(fetched[0]?.agent).toEqual({});
 
     // The teammate's own connect reads the teammate's vault.
-    created.length = 0;
-    await connectRpc(harness.deps, connectInput(server.metadata!.id), teammate);
-    expect(created[0]?.spec?.data?.["API_KEY"]?.value).toBe("teammate-key");
+    await connectRpc(harness.deps, connectInput(server.metadata!.id), teammate, "");
+    expect(fetched[1]?.tools[0]?.values["API_KEY"]).toBe("teammate-key");
+
+    // Once the connect settled, its credential binds nothing and reads nothing.
+    const settled = harness.engine.startedInputs[0]!;
+    await expectConnectError(harness.fetch(settled), Code.PermissionDenied, "live execution");
+  });
+
+  it("sweeps expired attempts when a connect starts", async () => {
+    const harness = makeHarness();
+    await store.connectAttempts.create({
+      id: "connect-mcps_crashed-1",
+      org: "acme",
+      createdBy: "ida_gone",
+      person: "",
+      mcpServerId: "mcps_crashed",
+      runId: "",
+      createdAt: 1,
+      expiresAt: 2,
+    });
+    const server = await seedServer();
+    await connect(harness.deps, connectInput(server.metadata!.id));
+    // Nothing expired is left for a sweep to find.
+    expect(await store.connectAttempts.deleteExpired(Math.floor(Date.now() / 1000))).toBe(0);
   });
 
   it("skips the CONNECTING write when attached to an in-flight run", async () => {
@@ -711,13 +757,13 @@ describe("buildConnectFailureMessage", () => {
 });
 
 describe("startConnect (async lane)", () => {
-  it("fast path: a live CONNECTING run returns immediately, before any EC exists", async () => {
+  it("fast path: a live CONNECTING run returns immediately, before any attempt is recorded", async () => {
     const server = await seedServer({ env: true });
     await startConnectSeedConnecting(server.metadata!.id);
     const harness = makeHarness({ running: true });
     const result = await startConnect(harness.deps, connectInput(server.metadata!.id));
     expect(result.metadata?.id).toBe(server.metadata!.id);
-    expect(harness.ecCreates).toBe(0);
+    expect(harness.attempts).toEqual([]);
     expect(harness.engine.startedInputs).toHaveLength(0);
   });
 
@@ -753,18 +799,33 @@ describe("startConnect (async lane)", () => {
     expect(result.status?.connectStatus?.warning).toBe("");
   });
 
-  it("attach path: deletes the just-created EC and returns the re-read resource", async () => {
+  it("attach path: ends the just-recorded attempt and returns the re-read resource", async () => {
     const server = await seedServer({ env: true });
     const harness = makeHarness({ attached: true });
-    const result = await startConnect(
-      harness.deps,
-      connectInput(server.metadata!.id, { API_KEY: { value: "v", isSecret: true } }),
-    );
+    await saveApiKey(harness, testCaller, "v");
+    const result = await startConnect(harness.deps, connectInput(server.metadata!.id));
     expect(result.metadata?.id).toBe(server.metadata!.id);
-    expect(harness.ecCreates).toBe(1);
-    // The async lane creates the EC as the caller too — one prepareConnect.
-    expect(harness.ecCreators).toEqual([testCaller]);
-    await vi.waitFor(() => expect(harness.ecDeletes).toEqual(["ectx_1"]));
+    // The async lane records the attempt as the caller too — one prepareConnect.
+    expect(harness.attempts.map((attempt) => attempt.createdBy)).toEqual([testCaller.identityId]);
+    await vi.waitFor(() => expect(harness.ended).toEqual([harness.attempts[0]!.id]));
+  });
+
+  it("the settle ends the attempt once the run finishes", async () => {
+    const harness = makeHarness();
+    const server = await seedServer();
+    await startConnect(harness.deps, connectInput(server.metadata!.id));
+    await vi.waitFor(() => expect(harness.ended).toEqual([harness.attempts[0]!.id]));
+  });
+
+  it("a start failure ends the attempt at once", async () => {
+    const harness = makeHarness({ startError: new Error("frontend down") });
+    const server = await seedServer();
+    await expectConnectError(
+      startConnect(harness.deps, connectInput(server.metadata!.id)),
+      Code.Internal,
+      "failed to start connect workflow",
+    );
+    await expectOneAttemptEnded(harness);
   });
 });
 
@@ -800,7 +861,7 @@ describe("startBestEffortConnect (apply tail)", () => {
       const server = await seedServer({ login });
       await startBestEffortConnect(harness.deps, server, testCaller);
       expect(harness.engine.startedInputs, login).toHaveLength(0);
-      expect(harness.ecCreates, login).toBe(0);
+      expect(harness.attempts, login).toEqual([]);
       expect(provisioner.created, login).toHaveLength(0);
     }
   });
@@ -865,7 +926,7 @@ describe("the connect route with a sandbox lane composed (stigmer/stigmer#1474)"
     return name.slice("mcpconnect:".length);
   }
 
-  it("blocking connect of an env-less server: a binding-only row as the person, a sandbox on the connect's own queue, released once", async () => {
+  it("blocking connect of an env-less server: an attempt as the person, a sandbox on the connect's own queue, released once", async () => {
     const provisioner = fakeConnectProvisioner();
     const harness = makeHarness({ provisioner });
     const server = await seedServer();
@@ -875,11 +936,13 @@ describe("the connect route with a sandbox lane composed (stigmer/stigmer#1474)"
 
     const connectId = connectIdOf(harness);
     expect(isConnectExecutionId(connectId)).toBe(true);
-    // The row the sandbox credential binds through exists, created AS the
-    // person, even though the server declares no env.
-    expect(harness.ecCreators).toEqual([testCaller]);
-    // It is binding-only: the runner is handed no context to read and no
-    // payload token, the same no-env discovery path as without a lane.
+    // The attempt the sandbox credential binds through exists, recorded
+    // for the person, even though the server declares no env.
+    expect(harness.attempts.map((attempt) => [attempt.id, attempt.createdBy])).toEqual([
+      [connectId, testCaller.identityId],
+    ]);
+    // The runner is handed no id to fetch and no payload token, the same
+    // no-env discovery path as without a lane.
     expect(harness.engine.startedInputs[0]).toEqual({
       mcp_server_id: server.metadata!.id,
     });
@@ -898,23 +961,21 @@ describe("the connect route with a sandbox lane composed (stigmer/stigmer#1474)"
     ).toBe(connectId);
 
     expect(provisioner.deprovisioned).toEqual([`sbx-${connectId}`]);
-    expect(harness.ecDeletes).toEqual(["ectx_1"]);
+    await expectOneAttemptEnded(harness);
   });
 
-  it("blocking connect with runtime_env: the row carries the values and the payload names it, and the sandbox is released once", async () => {
+  it("blocking connect of a server that needs a value: the payload names the attempt, and the sandbox is released once", async () => {
     const provisioner = fakeConnectProvisioner();
     const harness = makeHarness({ provisioner });
+    await saveApiKey(harness, testCaller, "k");
     const server = await seedServer({ env: true });
-    await connect(
-      harness.deps,
-      connectInput(server.metadata!.id, { API_KEY: { value: "k", isSecret: true } }),
-    );
+    await connect(harness.deps, connectInput(server.metadata!.id));
     const connectId = connectIdOf(harness);
     const input = harness.engine.startedInputs[0];
     expect(input?.execution_context_id).toBe(connectId);
     expect(input?.execution_context_token).toBeTruthy();
     expect(provisioner.deprovisioned).toEqual([`sbx-${connectId}`]);
-    expect(harness.ecDeletes).toEqual(["ectx_1"]);
+    await expectOneAttemptEnded(harness);
   });
 
   it("hands a composed mintSandboxCredential the connect scope, the person and the org", async () => {
@@ -960,7 +1021,7 @@ describe("the connect route with a sandbox lane composed (stigmer/stigmer#1474)"
       "401",
     );
     expect(provisioner.deprovisioned).toHaveLength(1);
-    expect(harness.ecDeletes).toEqual(["ectx_1"]);
+    await expectOneAttemptEnded(harness);
   });
 
   it("gives its own sandbox back before awaiting another lane's run it attached to", async () => {
@@ -990,7 +1051,7 @@ describe("the connect route with a sandbox lane composed (stigmer/stigmer#1474)"
       "failed to start connect workflow",
     );
     expect(provisioner.deprovisioned).toHaveLength(1);
-    expect(harness.ecDeletes).toEqual(["ectx_1"]);
+    await expectOneAttemptEnded(harness);
   });
 
   it("fails fast with Unavailable, recorded on connect_status, when the sandbox cannot be provisioned", async () => {
@@ -1005,7 +1066,7 @@ describe("the connect route with a sandbox lane composed (stigmer/stigmer#1474)"
     // No run was started, so nothing waits on a queue nobody serves.
     expect(harness.engine.startedInputs).toHaveLength(0);
     expect(provisioner.deprovisioned).toHaveLength(0);
-    expect(harness.ecDeletes).toEqual(["ectx_1"]);
+    await expectOneAttemptEnded(harness);
     const after = await store.getResource(
       ApiResourceKind.mcp_server,
       server.metadata!.id,
@@ -1032,7 +1093,7 @@ describe("the connect route with a sandbox lane composed (stigmer/stigmer#1474)"
     await vi.waitFor(() =>
       expect(provisioner.deprovisioned).toEqual([`sbx-${connectId}`]),
     );
-    await vi.waitFor(() => expect(harness.ecDeletes).toEqual(["ectx_1"]));
+    await vi.waitFor(() => expect(harness.ended).toEqual([connectId]));
   });
 
   it("startConnect: an attach releases the unused sandbox at once", async () => {
@@ -1041,10 +1102,10 @@ describe("the connect route with a sandbox lane composed (stigmer/stigmer#1474)"
     const server = await seedServer();
     await startConnect(harness.deps, connectInput(server.metadata!.id));
     expect(provisioner.deprovisioned).toHaveLength(1);
-    expect(harness.ecDeletes).toEqual(["ectx_1"]);
+    await expectOneAttemptEnded(harness);
   });
 
-  it("startConnect: a sandbox that cannot be provisioned fails the RPC fast and deletes the row", async () => {
+  it("startConnect: a sandbox that cannot be provisioned fails the RPC fast and ends the attempt", async () => {
     const provisioner = fakeConnectProvisioner({ createError: new Error("quota exceeded") });
     const harness = makeHarness({ provisioner });
     const server = await seedServer();
@@ -1054,17 +1115,17 @@ describe("the connect route with a sandbox lane composed (stigmer/stigmer#1474)"
       CONNECT_SANDBOX_PROVISIONING_FAILED,
     );
     expect(harness.engine.startedInputs).toHaveLength(0);
-    expect(harness.ecDeletes).toEqual(["ectx_1"]);
+    await expectOneAttemptEnded(harness);
   });
 
-  it("best-effort connect acts as the applier: its binding row, its sandbox, released once", async () => {
+  it("best-effort connect acts as the applier: its attempt, its sandbox, released once", async () => {
     const provisioner = fakeConnectProvisioner();
     const harness = makeHarness({ provisioner });
     const server = await seedServer();
     const applier = testCallerIdentity({ identityId: "the-applier" });
     await startBestEffortConnect(harness.deps, server, applier);
 
-    expect(harness.ecCreators).toEqual([applier]);
+    expect(harness.attempts.map((attempt) => attempt.createdBy)).toEqual([applier.identityId]);
     const connectId = connectIdOf(harness);
     expect(
       harness.deps.runnerAuth.verify(
@@ -1073,7 +1134,7 @@ describe("the connect route with a sandbox lane composed (stigmer/stigmer#1474)"
       ),
     ).toBe(connectId);
     expect(provisioner.deprovisioned).toEqual([`sbx-${connectId}`]);
-    expect(harness.ecDeletes).toEqual(["ectx_1"]);
+    await expectOneAttemptEnded(harness);
     const after = await store.getResource(
       ApiResourceKind.mcp_server,
       server.metadata!.id,
@@ -1095,17 +1156,166 @@ describe("the connect route with a sandbox lane composed (stigmer/stigmer#1474)"
     await startBestEffortConnect(harness.deps, server, testCaller);
     expect(heldWhileAwaiting).toEqual([0]);
     expect(provisioner.deprovisioned).toHaveLength(1);
-    expect(harness.ecDeletes).toEqual(["ectx_1"]);
+    await expectOneAttemptEnded(harness);
   });
 
-  it("best-effort connect without a lane creates no row and runs on the shared queue, as before", async () => {
+  it("best-effort connect without a lane records no attempt and runs on the shared queue, as before", async () => {
     const harness = makeHarness();
     const server = await seedServer();
     await startBestEffortConnect(harness.deps, server, testCaller);
-    expect(harness.ecCreates).toBe(0);
+    expect(harness.attempts).toEqual([]);
     expect(harness.engine.startedInputs).toEqual([
       { mcp_server_id: server.metadata!.id },
     ]);
     expect(harness.engine.startedQueues).toEqual([{ kind: "runner" }]);
+  });
+});
+
+describe("the runner's backfill names its run (run_id)", () => {
+  async function seedRun(id: string, org = "acme", phase = RunPhase.RUN_IN_PROGRESS): Promise<void> {
+    await store.saveResource(
+      ApiResourceKind.run,
+      id,
+      RunSchema,
+      create(RunSchema, { metadata: { id, name: id, org }, status: { phase } }),
+    );
+  }
+
+  function runCredential(harness: Harness, runId: string): string {
+    return harness.deps.runnerAuth.mintRunCredential!(runId);
+  }
+
+  it("accepts a runner credential bound to that live run, and records the run on the attempt", async () => {
+    const harness = makeHarness();
+    await seedRun("run_backfill");
+    const server = await seedServer({ env: true });
+    await connect(
+      harness.deps,
+      connectInput(server.metadata!.id, "run_backfill"),
+      runCredential(harness, "run_backfill"),
+    );
+    expect(harness.attempts.map((attempt) => attempt.runId)).toEqual(["run_backfill"]);
+    const input = harness.engine.startedInputs[0];
+    expect(input?.execution_context_id).toBe(harness.attempts[0]?.id);
+    expect(input?.execution_context_token).toBeTruthy();
+    await expectOneAttemptEnded(harness);
+  });
+
+  it("does not plan over the caller's My vault: the run's planned values serve it, so an empty My vault refuses nothing", async () => {
+    const harness = makeHarness();
+    await seedRun("run_backfill");
+    const server = await seedServer({ env: true });
+    await connect(
+      harness.deps,
+      connectInput(server.metadata!.id, "run_backfill"),
+      runCredential(harness, "run_backfill"),
+    );
+    expect(harness.engine.startedInputs).toHaveLength(1);
+  });
+
+  it.each([
+    ["no bearer", async (_harness: Harness) => ""],
+    ["a person's bearer", async (_harness: Harness) => "eyJ.person.token"],
+    ["a credential for another run", async (harness: Harness) => {
+      await seedRun("run_other");
+      return runCredential(harness, "run_other");
+    }],
+    ["a credential for a run that is over", async (harness: Harness) => {
+      await seedRun("run_backfill", "acme", RunPhase.RUN_COMPLETED);
+      return runCredential(harness, "run_backfill");
+    }],
+  ])("refuses %s with PermissionDenied before anything is recorded", async (_label, bearerOf) => {
+    const harness = makeHarness();
+    // The named run is live unless the arm ends it.
+    await seedRun("run_backfill");
+    const bearer = await bearerOf(harness);
+    const server = await seedServer({ env: true });
+    await expectConnectError(
+      connect(harness.deps, connectInput(server.metadata!.id, "run_backfill"), bearer),
+      Code.PermissionDenied,
+      "run_id is accepted only from a runner credential bound to that live run",
+    );
+    expect(harness.attempts).toEqual([]);
+    expect(harness.engine.startedInputs).toEqual([]);
+  });
+
+  it("refuses a run of another organization than the connect's", async () => {
+    const harness = makeHarness();
+    await seedRun("run_elsewhere", "other-org");
+    const server = await seedServer({ env: true });
+    await expectConnectError(
+      connect(
+        harness.deps,
+        connectInput(server.metadata!.id, "run_elsewhere"),
+        runCredential(harness, "run_elsewhere"),
+      ),
+      Code.PermissionDenied,
+      "another organization",
+    );
+    expect(harness.attempts).toEqual([]);
+  });
+});
+
+describe("the connect lane's faults", () => {
+  it("a failure recording the attempt is INTERNAL, and no workflow starts", async () => {
+    const harness = makeHarness({ faults: { attemptCreate: new Error("disk gone") } });
+    const server = await seedServer();
+    const failure = await expectConnectError(
+      connect(harness.deps, connectInput(server.metadata!.id)),
+      Code.Internal,
+      "failed to record the connect attempt",
+    );
+    expect(failure.rawMessage).not.toContain("disk gone");
+    expect(harness.engine.startedInputs).toEqual([]);
+  });
+
+  it("a failure ending the attempt is logged, never the connect's: its row expires", async () => {
+    const harness = makeHarness({ faults: { attemptDelete: new Error("disk gone") } });
+    const server = await seedServer();
+    const result = await connect(harness.deps, connectInput(server.metadata!.id));
+    expect(result.status?.connectStatus?.phase).toBe(ConnectPhase.succeeded);
+    expect(harness.ended).toEqual([harness.attempts[0]!.id]);
+  });
+
+  it("a credential that cannot be minted still starts discovery, which then cannot fetch: the id rides, no token", async () => {
+    const base = newExecutionScopedRunnerCredentialProvider(RunnerAuthService.fromEnv());
+    const harness = makeHarness({
+      runnerAuth: {
+        ...base,
+        isEnabled: () => true,
+        mint: () => {
+          throw new Error("signing key unreadable");
+        },
+        verify: (lane, token) => base.verify(lane, token),
+      },
+    });
+    await saveApiKey(harness, testCaller, "k");
+    const server = await seedServer({ env: true });
+    await connect(harness.deps, connectInput(server.metadata!.id));
+    const input = harness.engine.startedInputs[0];
+    expect(input?.execution_context_id).toBe(harness.attempts[0]?.id);
+    expect(input?.execution_context_token).toBeUndefined();
+  });
+
+  it("a backfill's run gone past an edition's admitting decision is refused, and a fault reading it INTERNAL", async () => {
+    const base = newExecutionScopedRunnerCredentialProvider(RunnerAuthService.fromEnv());
+    const admitting: RunnerCredentialProvider = { ...base, authorizeExecutionValuesRead: async () => true };
+    const server = await seedServer({ env: true });
+    // An edition's decision answers whose credential it is; the run must
+    // still exist and be live, which the gate reads itself.
+    const gone = makeHarness({ runnerAuth: admitting });
+    await expectConnectError(
+      connect(gone.deps, connectInput(server.metadata!.id, "run_gone"), "edition-token"),
+      Code.PermissionDenied,
+      "bound to that live run",
+    );
+    const faulted = makeHarness({ runnerAuth: admitting, faults: { runRead: new Error("disk gone") } });
+    await expectConnectError(
+      connect(faulted.deps, connectInput(server.metadata!.id, "run_gone"), "edition-token"),
+      Code.Internal,
+      "failed to load the credential's execution",
+    );
+    expect(gone.attempts).toEqual([]);
+    expect(faulted.attempts).toEqual([]);
   });
 });

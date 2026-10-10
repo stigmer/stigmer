@@ -13,7 +13,8 @@ import { createGrpcTransport } from "@connectrpc/connect-node";
 import { context as otelContext, propagation } from "@opentelemetry/api";
 import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
 import { RunQueryController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/query_pb";
-import { ExecutionContextQueryController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/query_pb";
+import { VaultValueController, FetchExecutionValuesInputSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
+import type { ExecutionValues } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
@@ -26,8 +27,6 @@ import type { GetArtifactResponse as GetPluginArtifactResponse, PluginArtifactDo
 import { BillingCommandController } from "@stigmer/protos/ai/stigmer/billing/v1/command_pb";
 import type { RecordLlmCallUsageInput, RecordLlmCallUsageResponse } from "@stigmer/protos/ai/stigmer/billing/v1/io_pb";
 import type { Run, RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { ExecutionContext } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
-import { ExecutionContextExecutionIdInputSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/io_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentVersionEntry } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
@@ -37,7 +36,6 @@ import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/ap
 import type { GetArtifactResponse, SkillArtifactDownloadUrl } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
 import { create } from "@bufbuild/protobuf";
 import { ConnectInputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
-import { ExecutionValueSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
 import { RunUpdateStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import type { UpdateStatusResponse } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { PlatformQueryController, GetRunnerScopedTokenInputSchema, TokenRenewalSchema } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
@@ -96,8 +94,8 @@ export interface RunnerBootstrapConfig {
  *
  * Minted on demand by the control plane at task start — a desktop runner
  * exchanges its bootstrap credential, an OSS runner asks with no credential
- * at all (oss#535) — and presented for the ExecutionContext fetch of exactly
- * that execution. Absent when the server does not mint (pre-oss#535 OSS, or
+ * at all (oss#535) — and presented to fetch the values of exactly that
+ * execution. Absent when the server does not mint (pre-oss#535 OSS, or
  * a refused credential class) — the runner keeps its existing credential.
  */
 export interface RunnerScopedToken {
@@ -153,7 +151,7 @@ export interface StigmerClientOptions {
   tokenRef?: Readonly<TokenRef>;
   /**
    * Optional runner credential (a server-minted token with a runner-class
-   * `token_type` claim). When populated, ExecutionContext reads authenticate
+   * `token_type` claim). When populated, value fetches authenticate
    * with this instead of the control-plane token — see the interceptor in the
    * constructor for why the credential differs per service.
    */
@@ -165,7 +163,7 @@ export class StigmerClient {
   private readonly fixedToken: string | null;
   private readonly executionQuery: Client<typeof RunQueryController>;
   private readonly executionCommand: Client<typeof RunCommandController>;
-  private readonly executionContextQuery: Client<typeof ExecutionContextQueryController>;
+  private readonly vaultValues: Client<typeof VaultValueController>;
   private readonly sessionQuery: Client<typeof SessionQueryController>;
   private readonly sessionCommand: Client<typeof SessionCommandController>;
   private readonly agentQuery: Client<typeof AgentQueryController>;
@@ -205,8 +203,8 @@ export class StigmerClient {
         //
         // 1. An explicit per-call credential (an authorization header set via
         //    CallOptions) always wins. The scoped-token flow (issue #156)
-        //    authenticates each ExecutionContext read with a token minted for
-        //    that specific execution; the renewal and pool-claim exchanges
+        //    authenticates each value fetch with a token minted for that
+        //    specific execution; the renewal and pool-claim exchanges
         //    present the token being exchanged; the connect lane hands its
         //    decrypt-lane token per call.
         //
@@ -224,9 +222,9 @@ export class StigmerClient {
         //    is provisioned), so the rules below are exactly what they were.
         //
         // 3. The runner credential (runnerTokenRef) authenticates the services
-        //    that require a runner-class token_type claim: ExecutionContext
-        //    reads carry decrypted secrets on cloud, and the server gates that
-        //    decrypt on runner class + scope; the
+        //    that require a runner-class token_type claim: a value fetch
+        //    answers a run's secrets, and the server releases them only to a
+        //    runner credential bound to that execution; the
         //    scoped-token exchange itself requires the embedded_runner
         //    bootstrap credential (a desktop runner's control-plane token is
         //    the user's own Auth0 token, which the server correctly treats as
@@ -243,7 +241,7 @@ export class StigmerClient {
             req.service.typeName === PlatformQueryController.typeName &&
             req.method.name === PlatformQueryController.method.getRunnerBootstrapConfig.name;
           const usesRunnerCredential =
-            req.service.typeName === ExecutionContextQueryController.typeName ||
+            req.service.typeName === VaultValueController.typeName ||
             (req.service.typeName === PlatformQueryController.typeName &&
               req.method.name === PlatformQueryController.method.getRunnerScopedToken.name);
           const token =
@@ -261,7 +259,7 @@ export class StigmerClient {
 
     this.executionQuery = createClient(RunQueryController, this.transport);
     this.executionCommand = createClient(RunCommandController, this.transport);
-    this.executionContextQuery = createClient(ExecutionContextQueryController, this.transport);
+    this.vaultValues = createClient(VaultValueController, this.transport);
     this.sessionQuery = createClient(SessionQueryController, this.transport);
     this.sessionCommand = createClient(SessionCommandController, this.transport);
     this.agentQuery = createClient(AgentQueryController, this.transport);
@@ -325,21 +323,22 @@ export class StigmerClient {
   }
 
   /**
-   * Fetch the ExecutionContext for an execution.
+   * Fetch the values of a run or a tool connect from their vaults, grouped
+   * by who declared them.
    *
-   * When a scoped runner token is supplied (issue #156), the read
+   * When a scoped runner token is supplied (issue #156), the fetch
    * authenticates with it per-call instead of the process-wide credential:
-   * on cloud the decrypt gate releases secrets only to a runner token whose
-   * scope binds it to this very execution, and one desktop runner process
-   * serves many sessions concurrently, so the credential cannot live in a
-   * shared ref.
+   * the server answers only a runner credential bound to this very
+   * execution and refuses every other caller, and one desktop runner
+   * process serves many sessions concurrently, so the credential cannot
+   * live in a shared ref.
    */
-  async getExecutionContextByExecutionId(
+  async fetchExecutionValues(
     executionId: string,
     scopedToken?: string,
-  ): Promise<ExecutionContext> {
-    return this.executionContextQuery.getByExecutionId(
-      create(ExecutionContextExecutionIdInputSchema, { executionId }),
+  ): Promise<ExecutionValues> {
+    return this.vaultValues.fetchValues(
+      create(FetchExecutionValuesInputSchema, { executionId }),
       scopedToken
         ? { headers: { authorization: `Bearer ${scopedToken}` } }
         : undefined,
@@ -355,8 +354,8 @@ export class StigmerClient {
    * view the named execution, then mints the same session/execution-scoped
    * sandbox token a cloud sandbox runner receives at provisioning. An
    * open-source server with sign-in off mints an execution-scoped token for
-   * any caller (oss#535 — there it only unlocks the ExecutionContext decrypt
-   * lane); with sign-in on the same token admits its bearer as the run's
+   * any caller (oss#535 — there it only unlocks the value fetch); with
+   * sign-in on the same token admits its bearer as the run's
    * human, so the exchange mints only for the run's own person (a missing
    * run NOT_FOUND, anyone else PERMISSION_DENIED). Runs normally receive
    * their credential from the dispatch itself (shared/run-credential.ts);
@@ -392,7 +391,7 @@ export class StigmerClient {
   }
 
   /**
-   * Acquire a scoped runner token for an ExecutionContext read, if this
+   * Acquire a scoped runner token to fetch an execution's values, if this
    * runner's credential situation calls for one.
    *
    * When the activity this call belongs to carries a run credential (the
@@ -401,32 +400,21 @@ export class StigmerClient {
    * without an RPC, and the exchange below serves only a dispatch that
    * carried none — an older server, or the cloud's provisioned runner.
    *
-   * Otherwise the gate is the credential itself, three ways:
+   * Otherwise the gate is the credential itself:
    *
-   * 1. An unscoped embedded_runner bootstrap token MUST be exchanged, and a
-   *    failed exchange is a hard error, not a fallback: the bootstrap
-   *    credential does not decrypt, so a read that "fell back" would silently receive redacted
-   *    placeholders and the execution would run against junk secret values —
-   *    strictly worse than failing here with the real reason. The
-   *    secret-delivery call sites let this error fail the activity;
-   *    opportunistic consumers that can genuinely proceed without a scoped
-   *    token (attachment credential, channel discovery) catch it at the
-   *    call site, where their degrade-to-empty contract lives.
+   * 1. An already-scoped runner-class credential (a cloud sandbox, pool or
+   *    connect token) — skip; the exchange would rightly refuse it and the
+   *    ambient credential is bound to its work on its own.
    *
-   * 2. Any other runner-class credential is already scoped (a cloud
-   *    sandbox/pool/connect token) — skip; the exchange would rightly
-   *    refuse it and the ambient credential decrypts on its own.
-   *
-   * 3. No runner-class credential at all (OSS/local, where the process
-   *    token is absent or carries no token_type claim) — attempt the
-   *    exchange best-effort (oss#535): a current OSS server mints an
-   *    execution-scoped token here, which is the ONLY way this runner can
-   *    read decrypted secrets from its redact-by-default EC RPCs. A server
-   *    that answers "not minted" (pre-oss#535 OSS, which also does not
-   *    redact) or refuses the exchange (cloud refusing a non-runner
-   *    credential — the legacy desktop degrade, which reads redacted today
-   *    regardless) falls through to the tokenless read, preserving each
-   *    old pairing's exact behavior.
+   * 2. An unscoped embedded_runner bootstrap token, or no runner-class
+   *    credential at all (OSS/local) — exchange it. A failed exchange, or a
+   *    server that mints nothing, is a hard error naming the cause: the
+   *    value fetch answers only a credential bound to the execution and
+   *    refuses every other, so there is nothing to fall back to. The
+   *    value-delivery call sites let this error end the turn; opportunistic
+   *    consumers that can genuinely proceed without a scoped token
+   *    (attachment credential, channel discovery) catch it at the call
+   *    site, where their degrade-to-empty contract lives.
    */
   async acquireScopedRunnerToken(
     scope: RunnerScopedTokenScope,
@@ -435,13 +423,11 @@ export class StigmerClient {
     if (runCredential !== undefined) {
       return runCredential;
     }
-    // Inspect the same credential chain the EC read's interceptor would use.
+    // Inspect the same credential chain the fetch's interceptor would use.
     const ambientTokenType = tokenTypeOf(
       this.runnerTokenRef?.current ?? this.tokenRef?.current ?? this.fixedToken,
     );
-    const isEmbeddedRunner = ambientTokenType === TOKEN_TYPE_EMBEDDED_RUNNER;
-    if (ambientTokenType !== undefined && !isEmbeddedRunner) {
-      // Case 2: an already-scoped runner-class credential.
+    if (ambientTokenType !== undefined && ambientTokenType !== TOKEN_TYPE_EMBEDDED_RUNNER) {
       return undefined;
     }
     const scopeDescription =
@@ -452,30 +438,18 @@ export class StigmerClient {
     try {
       scoped = await this.getRunnerScopedToken(scope);
     } catch (err) {
-      if (!isEmbeddedRunner) {
-        // Case 3: best-effort — a refusal means the server does not serve
-        // this credential class; the tokenless read is today's behavior.
-        return undefined;
-      }
       throw new Error(
         `Scoped runner token exchange failed for ${scopeDescription}: ` +
         `${err instanceof Error ? err.message : String(err)}. ` +
-        "The bootstrap credential cannot read ExecutionContext secrets, " +
-        "so this runner cannot serve the execution " +
-        "until the exchange succeeds.",
+        "This runner holds no credential bound to the execution, so it cannot " +
+        "fetch the execution's values until the exchange succeeds.",
       );
     }
     if (!scoped) {
-      if (!isEmbeddedRunner) {
-        // Case 3: a server that mints nothing for this scope also does not
-        // redact for this runner (pre-oss#535 OSS) — proceed tokenless.
-        return undefined;
-      }
       throw new Error(
         `Server minted no scoped runner token for ${scopeDescription}. ` +
-        "The bootstrap credential cannot read ExecutionContext secrets, " +
-        "so this runner cannot serve the execution " +
-        "until the control plane mints scoped tokens.",
+        "This runner holds no credential bound to the execution, so it cannot " +
+        "fetch the execution's values until the control plane mints scoped tokens.",
       );
     }
     return scoped.token;
@@ -488,7 +462,7 @@ export class StigmerClient {
    * proactive channel).
    *
    * When a scoped runner token is supplied, the read authenticates with
-   * it per-call (the {@link getExecutionContextByExecutionId} precedent):
+   * it per-call (the {@link fetchExecutionValues} precedent):
    * the messaging reach refuses the desktop runner's ambient
    * embedded_runner credential outright, and one desktop runner process
    * serves many sessions concurrently, so the credential cannot live in
@@ -559,24 +533,26 @@ export class StigmerClient {
     return this.mcpServerQuery.getByReference(ref);
   }
 
+  /**
+   * Connect an MCP server (discovery). `run` names the run whose planned
+   * values for this server the connect uses — the backfill's path; the
+   * server accepts it only from a runner credential bound to that live run,
+   * presented per call when the runner holds a scoped one.
+   */
   async connectMcpServer(
     mcpServerId: string,
     org: string,
-    runtimeEnv?: Record<string, { value: string; isSecret: boolean }>,
+    run?: { readonly runId: string; readonly scopedToken: string | undefined },
   ): Promise<McpServer> {
-    const input = create(ConnectInputSchema, {
-      mcpServerId,
-      org,
-    });
-    if (runtimeEnv) {
-      for (const [key, entry] of Object.entries(runtimeEnv)) {
-        input.runtimeEnv[key] = create(ExecutionValueSchema, {
-          value: entry.value,
-          isSecret: entry.isSecret,
-        });
-      }
-    }
-    return this.mcpServerCommand.connect(input);
+    return this.mcpServerCommand.connect(
+      create(ConnectInputSchema, { mcpServerId, org, runId: run?.runId ?? "" }),
+      // A connect naming its run presents the run's own credential, per
+      // call as the values fetch does (fetchExecutionValues): the server
+      // accepts run_id only from a credential bound to that run.
+      run?.scopedToken
+        ? { headers: { authorization: `Bearer ${run.scopedToken}` } }
+        : undefined,
+    );
   }
 
   async getSkill(skillId: string): Promise<Skill> {

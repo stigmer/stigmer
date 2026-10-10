@@ -79,7 +79,7 @@ describe("discovery against a 4xx-then-silent-SSE endpoint (issue #239)", () => 
         },
         status: undefined,
       }),
-      getExecutionContextByExecutionId: vi.fn(),
+      fetchExecutionValues: vi.fn(),
     };
 
     // shouldAdvanceTime keeps real I/O flowing (the POST → 405 → SSE fallback

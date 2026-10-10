@@ -21,7 +21,7 @@ vi.mock("@connectrpc/connect", () => ({
 
 import { StigmerClient } from "../stigmer-client.js";
 import { withRunCredential } from "../../shared/run-credential-store.js";
-import { ExecutionContextQueryController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/query_pb";
+import { VaultValueController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
 import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 
 function makeRequest(
@@ -35,9 +35,9 @@ function makeRequest(
   };
 }
 
-/** A request targeting the ExecutionContext query service (runner-credential path). */
-function makeExecutionContextRequest() {
-  return makeRequest(ExecutionContextQueryController.typeName, "getByExecutionId");
+/** A request for a run's value fetch (runner-credential path). */
+function makeValueFetchRequest() {
+  return makeRequest(VaultValueController.typeName, "fetchValues");
 }
 
 /** A request for the scoped-token exchange (runner-credential path, #156). */
@@ -159,13 +159,13 @@ describe("StigmerClient", () => {
     });
   });
 
-  describe("runnerTokenRef (ExecutionContext credential selection)", () => {
-    // Cloud gates ExecutionContext secret decryption on a runner-class
+  describe("runnerTokenRef (value fetch credential selection)", () => {
+    // Cloud gates the release of a run's values on a runner-class
     // token_type claim. These tests pin the selection
-    // policy: the runner credential is used for the ExecutionContext query
+    // policy: the runner credential is used for the value fetch
     // service only, and only when present.
 
-    it("uses the runner credential for ExecutionContext reads", async () => {
+    it("uses the runner credential for value fetches", async () => {
       const tokenRef: TokenRef = { current: "control-plane-tok" };
       const runnerRef: TokenRef = { current: "runner-tok" };
       new StigmerClient({
@@ -175,7 +175,7 @@ describe("StigmerClient", () => {
         runnerTokenRef: runnerRef,
       });
 
-      const req = makeExecutionContextRequest();
+      const req = makeValueFetchRequest();
       await runInterceptor(req);
       expect(req.header.get("authorization")).toBe("Bearer runner-tok");
     });
@@ -211,7 +211,7 @@ describe("StigmerClient", () => {
         runnerTokenRef: runnerRef,
       });
 
-      const req = makeExecutionContextRequest();
+      const req = makeValueFetchRequest();
       await runInterceptor(req);
       expect(req.header.get("authorization")).toBe("Bearer control-plane-tok");
     });
@@ -224,13 +224,13 @@ describe("StigmerClient", () => {
         runnerTokenRef: runnerRef,
       });
 
-      const req1 = makeExecutionContextRequest();
+      const req1 = makeValueFetchRequest();
       await runInterceptor(req1);
       expect(req1.header.get("authorization")).toBe("Bearer minted-v1");
 
       runnerRef.current = "minted-v2";
 
-      const req2 = makeExecutionContextRequest();
+      const req2 = makeValueFetchRequest();
       await runInterceptor(req2);
       expect(req2.header.get("authorization")).toBe("Bearer minted-v2");
     });
@@ -270,7 +270,7 @@ describe("StigmerClient", () => {
 
   describe("per-call credential precedence (#156)", () => {
     it("never overwrites an authorization header set via call options", async () => {
-      // The scoped-token flow authenticates individual ExecutionContext reads
+      // The scoped-token flow authenticates individual value fetches
       // with a per-execution credential. Concurrent sessions in one runner
       // process mean the process-wide selection below must not clobber it.
       const runnerRef: TokenRef = { current: "process-wide-runner-tok" };
@@ -280,7 +280,7 @@ describe("StigmerClient", () => {
         runnerTokenRef: runnerRef,
       });
 
-      const req = makeExecutionContextRequest();
+      const req = makeValueFetchRequest();
       req.header.set("authorization", "Bearer per-call-scoped-tok");
       await runInterceptor(req);
 
@@ -315,7 +315,7 @@ describe("StigmerClient", () => {
     it("presents it above the runner credential on the two runner-credential RPCs", async () => {
       clientWithEveryProcessCredential();
       for (const req of [
-        makeExecutionContextRequest(),
+        makeValueFetchRequest(),
         makeScopedTokenExchangeRequest(),
       ]) {
         await withRunCredential("run-cred", () => runInterceptor(req));
@@ -343,7 +343,7 @@ describe("StigmerClient", () => {
       const ordinary = makeRequest();
       await runInterceptor(ordinary);
       expect(ordinary.header.get("authorization")).toBe("Bearer control-plane-tok");
-      const ec = makeExecutionContextRequest();
+      const ec = makeValueFetchRequest();
       await runInterceptor(ec);
       expect(ec.header.get("authorization")).toBe("Bearer runner-tok");
     });
@@ -409,14 +409,10 @@ describe("StigmerClient", () => {
       expect(spy).not.toHaveBeenCalled();
     });
 
-    // NOTE (oss#535): the no-credential arm previously pinned "skip the
-    // exchange" — correct while OSS neither minted nor redacted. Since
-    // oss#535 the OSS server redacts EC reads by default and mints
-    // execution-scoped tokens on this exchange, so a credential-less runner
-    // must now ASK, and fall back to the tokenless read only when the server
-    // answers not-minted (pre-oss#535 OSS) or refuses (cloud refusing a
-    // non-runner credential — the legacy desktop degrade).
-    it("exchanges best-effort when no runner credential exists and uses a minted token (oss#535)", async () => {
+    // A credential-less runner (OSS/local) must ASK: the value fetch
+    // answers only a credential bound to the execution, so there is nothing
+    // to fall back to when the server mints none or refuses.
+    it("exchanges when no runner credential exists and uses a minted token (oss#535)", async () => {
       const client = clientWithRunnerCredential(null);
       vi.spyOn(client, "getRunnerScopedToken").mockResolvedValue({
         token: "oss-scoped-tok",
@@ -429,22 +425,22 @@ describe("StigmerClient", () => {
       expect(client.getRunnerScopedToken).toHaveBeenCalledWith({ agentExecutionId: "aex_1" });
     });
 
-    it("proceeds tokenless when a credential-less exchange is answered not-minted (pre-oss#535 server)", async () => {
+    it("throws, never proceeds tokenless, when a credential-less exchange is answered not-minted", async () => {
       const client = clientWithRunnerCredential(null);
       vi.spyOn(client, "getRunnerScopedToken").mockResolvedValue(undefined);
 
-      const token = await client.acquireScopedRunnerToken({ agentExecutionId: "aex_1" });
-
-      expect(token).toBeUndefined();
+      await expect(
+        client.acquireScopedRunnerToken({ agentExecutionId: "aex_1" }),
+      ).rejects.toThrow(/minted no scoped runner token for agent execution aex_1/);
     });
 
-    it("proceeds tokenless when a credential-less exchange is refused (cloud refusing a non-runner credential)", async () => {
+    it("throws, never proceeds tokenless, when a credential-less exchange is refused", async () => {
       const client = clientWithRunnerCredential(null);
       vi.spyOn(client, "getRunnerScopedToken").mockRejectedValue(new Error("permission denied"));
 
-      const token = await client.acquireScopedRunnerToken({ agentExecutionId: "aex_1" });
-
-      expect(token).toBeUndefined();
+      await expect(
+        client.acquireScopedRunnerToken({ agentExecutionId: "aex_1" }),
+      ).rejects.toThrow(/exchange failed for agent execution aex_1: permission denied/);
     });
 
     it("treats a non-JWT process token as no runner credential (the harness/proxy token shape)", async () => {
@@ -461,15 +457,15 @@ describe("StigmerClient", () => {
 
     it("treats a claim-less user JWT as no runner credential (legacy desktop shape)", async () => {
       const client = clientWithRunnerCredential(fakeTokenOfType(undefined));
-      vi.spyOn(client, "getRunnerScopedToken").mockResolvedValue(undefined);
+      vi.spyOn(client, "getRunnerScopedToken").mockResolvedValue({ token: "scoped-tok" });
 
       const token = await client.acquireScopedRunnerToken({ agentExecutionId: "aex_1" });
 
-      expect(token).toBeUndefined();
+      expect(token).toBe("scoped-tok");
       expect(client.getRunnerScopedToken).toHaveBeenCalled();
     });
 
-    it("throws when the server mints no token — the bootstrap credential no longer decrypts", async () => {
+    it("throws when the server mints no token — the bootstrap credential fetches nothing", async () => {
       const client = clientWithRunnerCredential(fakeTokenOfType("embedded_runner"));
       vi.spyOn(client, "getRunnerScopedToken").mockResolvedValue(undefined);
 
@@ -545,30 +541,49 @@ describe("StigmerClient", () => {
     });
   });
 
-  describe("getExecutionContextByExecutionId per-call credential", () => {
+  describe("fetchExecutionValues per-call credential", () => {
     it("passes the scoped token as a per-call authorization header", async () => {
       const client = new StigmerClient({ endpoint: "http://localhost", token: null });
-      const getByExecutionId = vi.fn().mockResolvedValue({});
+      const fetchValues = vi.fn().mockResolvedValue({});
       // Reach into the private generated client: the mocked createClient()
       // returned {}, so install the method it would have provided.
-      (client as any).executionContextQuery = { getByExecutionId };
+      (client as any).vaultValues = { fetchValues };
 
-      await client.getExecutionContextByExecutionId("aex_1", "scoped-tok");
+      await client.fetchExecutionValues("aex_1", "scoped-tok");
 
-      expect(getByExecutionId).toHaveBeenCalledWith(
-        expect.anything(),
+      expect(fetchValues).toHaveBeenCalledWith(
+        expect.objectContaining({ executionId: "aex_1" }),
         { headers: { authorization: "Bearer scoped-tok" } },
       );
     });
 
     it("passes no call options without a scoped token", async () => {
       const client = new StigmerClient({ endpoint: "http://localhost", token: null });
-      const getByExecutionId = vi.fn().mockResolvedValue({});
-      (client as any).executionContextQuery = { getByExecutionId };
+      const fetchValues = vi.fn().mockResolvedValue({});
+      (client as any).vaultValues = { fetchValues };
 
-      await client.getExecutionContextByExecutionId("aex_1");
+      await client.fetchExecutionValues("aex_1");
 
-      expect(getByExecutionId).toHaveBeenCalledWith(expect.anything(), undefined);
+      expect(fetchValues).toHaveBeenCalledWith(expect.anything(), undefined);
+    });
+  });
+
+  describe("connectMcpServer", () => {
+    it("names the run for the backfill, presents the run's scoped credential per call, and carries no values", async () => {
+      const client = new StigmerClient({ endpoint: "http://localhost", token: null });
+      const connect = vi.fn().mockResolvedValue({});
+      (client as any).mcpServerCommand = { connect };
+
+      await client.connectMcpServer("mcp_1", "acme", { runId: "run_1", scopedToken: "scoped-run-token" });
+      await client.connectMcpServer("mcp_1", "acme", { runId: "run_1", scopedToken: undefined });
+      await client.connectMcpServer("mcp_1", "acme");
+
+      expect(connect.mock.calls[0][0]).toEqual(expect.objectContaining({ mcpServerId: "mcp_1", org: "acme", runId: "run_1" }));
+      expect(connect.mock.calls[0][1]).toEqual({ headers: { authorization: "Bearer scoped-run-token" } });
+      // An ambient credential already bound to the work rides the interceptor.
+      expect(connect.mock.calls[1][1]).toBeUndefined();
+      expect(connect.mock.calls[2][0]).toEqual(expect.objectContaining({ runId: "" }));
+      expect(connect.mock.calls[2][1]).toBeUndefined();
     });
   });
 

@@ -247,6 +247,22 @@ class FileReviewBlockReason(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     FILE_REVIEW_BLOCK_REASON_SECRET_WITHHELD: _ClassVar[FileReviewBlockReason]
     FILE_REVIEW_BLOCK_REASON_SIZE_ELIDED: _ClassVar[FileReviewBlockReason]
     FILE_REVIEW_BLOCK_REASON_UNREVIEWABLE: _ClassVar[FileReviewBlockReason]
+
+class RunValueDeclarerKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    RUN_VALUE_DECLARER_KIND_UNSPECIFIED: _ClassVar[RunValueDeclarerKind]
+    RUN_VALUE_DECLARER_KIND_AGENT: _ClassVar[RunValueDeclarerKind]
+    RUN_VALUE_DECLARER_KIND_TOOL: _ClassVar[RunValueDeclarerKind]
+    RUN_VALUE_DECLARER_KIND_REPOSITORY: _ClassVar[RunValueDeclarerKind]
+
+class RunValueOrigin(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    RUN_VALUE_ORIGIN_UNSPECIFIED: _ClassVar[RunValueOrigin]
+    RUN_VALUE_ORIGIN_REPOSITORY_TOKEN: _ClassVar[RunValueOrigin]
+    RUN_VALUE_ORIGIN_MY_VAULT: _ClassVar[RunValueOrigin]
+    RUN_VALUE_ORIGIN_VAULT: _ClassVar[RunValueOrigin]
+    RUN_VALUE_ORIGIN_SURFACE_VAULT: _ClassVar[RunValueOrigin]
+    RUN_VALUE_ORIGIN_DECLARATION: _ClassVar[RunValueOrigin]
 RUN_PHASE_UNSPECIFIED: RunPhase
 RUN_PENDING: RunPhase
 RUN_IN_PROGRESS: RunPhase
@@ -398,3 +414,13 @@ FILE_REVIEW_BLOCK_REASON_UNSPECIFIED: FileReviewBlockReason
 FILE_REVIEW_BLOCK_REASON_SECRET_WITHHELD: FileReviewBlockReason
 FILE_REVIEW_BLOCK_REASON_SIZE_ELIDED: FileReviewBlockReason
 FILE_REVIEW_BLOCK_REASON_UNREVIEWABLE: FileReviewBlockReason
+RUN_VALUE_DECLARER_KIND_UNSPECIFIED: RunValueDeclarerKind
+RUN_VALUE_DECLARER_KIND_AGENT: RunValueDeclarerKind
+RUN_VALUE_DECLARER_KIND_TOOL: RunValueDeclarerKind
+RUN_VALUE_DECLARER_KIND_REPOSITORY: RunValueDeclarerKind
+RUN_VALUE_ORIGIN_UNSPECIFIED: RunValueOrigin
+RUN_VALUE_ORIGIN_REPOSITORY_TOKEN: RunValueOrigin
+RUN_VALUE_ORIGIN_MY_VAULT: RunValueOrigin
+RUN_VALUE_ORIGIN_VAULT: RunValueOrigin
+RUN_VALUE_ORIGIN_SURFACE_VAULT: RunValueOrigin
+RUN_VALUE_ORIGIN_DECLARATION: RunValueOrigin

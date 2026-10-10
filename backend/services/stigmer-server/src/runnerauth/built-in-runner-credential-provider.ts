@@ -71,9 +71,9 @@
  *     controller's arms verbatim; keyless answers not-minted too.
  *
  * Deliberately UNDEFINED here: `bootstrapCredentials`,
- * `mintSandboxCredential`, `authorizeExecutionContextRead`,
+ * `mintSandboxCredential`, `authorizeExecutionValuesRead`,
  * `resolvePayloadKey`. Their open-source arms stay where they are (the
- * sandbox lane's mint, the decrypt lane's binding-equality decision);
+ * sandbox lane's mint, the values fetch's binding-equality decision);
  * this provider adds policy an enforcing server lacks and takes over
  * nothing that already works.
  */

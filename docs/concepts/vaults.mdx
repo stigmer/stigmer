@@ -148,15 +148,25 @@ records that editor as having attached each one.
 
 ### How a key is matched
 
+Each key is matched for the one that declared it, the Agent, a tool or a
+repository, and that one alone receives the value. Two tools that declare the
+same name each get their own value.
+
 - **A tool's login** (the variable in its `auth.target_env_var`, or in an
   `Authorization: Bearer ${VAR}` header) is filled by a connection at the tool's
   URL, then by a secret with that name. A login saved by signing in and a login
   pasted into a vault serve the same tools: every HTTP tool whose URL is that
   address. A new sign-in at an address replaces whatever login was saved there.
+  The `github.com` login also fills the login of a tool on GitHub's own API
+  (`api.github.com`, `api.githubcopilot.com`).
 - **A local program** (an MCP Server that runs a command) has no address and no
   sign-in: it takes its keys from secrets by name.
-- **Any other key** is filled by a secret with its name, then by the
+- **A tool's other keys** are filled by a secret with their name, then by the
   declaration's own `value`.
+- **The Agent's own keys** are filled by a secret with their name, then by the
+  declaration's own `value`, never by a login or a repository's token. A key one
+  of the run's tools declares is that tool's, so the Agent does not receive it
+  even when its own `env` lists it too.
 - **A private repository's clone** takes a token only for an `https` repository
   on `github.com`: the repository's own token when the conversation gave one
   ([below](#a-repositorys-own-token)), then the `github.com` login, then a
@@ -178,6 +188,22 @@ include My vault in this conversation" when it lists vaults but leaves My vault
 out; or, for a scheduled run, "linear needs LINEAR_API_KEY: ask the owner of
 schedule 'nightly' to attach a vault that holds LINEAR_API_KEY". An optional key
 that nobody holds is simply absent.
+
+### When the values are read
+
+A run keeps no copy of its keys. When the run is created, Stigmer records where
+each value lives: the run's status lists, for each key and who declared it, the
+vault's ID and the entry (a secret's name or a login's address), never a value.
+The runner fetches the values from those vaults when the run's work starts, so:
+
+- **A key you rotate reaches the next run**, and a run you recover, without
+  anyone sending it again.
+- **A key removed after the run was created stops it**, naming the key, who
+  needs it and the vault. So does a vault the run may no longer use, a sign-in
+  the provider will no longer renew, or a tool whose URL changed since: its
+  login was matched for the old address. Fix it, then recover the run, which
+  looks at the vaults again.
+- **Nothing is left behind** when a run stops, fails or is deleted.
 
 ## A repository's own token
 
@@ -245,18 +271,19 @@ it to that customer only.
 
 ## Where the values reach
 
-Different parts of a run see different keys:
+Each part of a run receives only the values declared for it:
 
-| Surface                                            | What the Agent sees                                                                                                                                                                                                                           |
-| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Shell commands** (native harness `execute` tool) | The runner's own process variables, minus runner-internal credentials, plus only the values for the keys the Agent declares in its `env`, and the `GITHUB_TOKEN` a git clone of the Workspace used. An Agent that declares nothing gets none. |
-| **MCP stdio servers**                              | Only the keys declared in the MCP server's `env` map, plus a minimal base set (`PATH`, `HOME`, and similar). A server that declares nothing gets only that base set — never the runner's own variables.                                       |
+| Surface                                             | What it receives                                                                                                                                                                                                                                                       |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Shell commands and hooks** (the Agent's own code) | The runner's own process variables, minus runner-internal credentials, plus only the Agent's own keys: secrets by name and plain settings, never a login or a repository's token, and never a key one of its tools declares. An Agent that declares nothing gets none. |
+| **MCP stdio servers**                               | Only the keys declared in the MCP server's `env` map, plus a minimal base set (`PATH`, `HOME`, and similar). A server that declares nothing gets only that base set, never the runner's own variables.                                                                 |
+| **MCP HTTP servers**                                | Their own keys and login, sent only to the URL whose address the login was matched for. A server whose URL changed since the run was created gets nothing.                                                                                                             |
+| **A repository's clone**                            | The token, handed to each git command that talks to GitHub for that command alone. Nothing is written into the clone's `.git` folder or its remote URL, so the shell never finds it there. Cloning a private repository needs git 2.31 or newer on the runner.         |
 
-Every surface follows the same declare-to-receive rule: a key an MCP server
-declares reaches that server and never the shell, so a shell command that needs
-a key works only when the Agent declares it. The one exception is the
-`GITHUB_TOKEN` a git Workspace was cloned with: the clone already stores it
-where the shell can read it, so the shell receives it as well.
+A shell command that needs a key works only when the Agent declares it, as a
+secret by name: an Agent whose shell runs `gh` declares `GITHUB_TOKEN`, and you
+save a `GITHUB_TOKEN` secret for it. Your GitHub sign-in fills the clone and
+GitHub's tool, never the shell.
 
 <Callout type="warn">
   The keys an Agent declares reach its tools and its shell, and those follow the

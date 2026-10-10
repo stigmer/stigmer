@@ -32,8 +32,6 @@ import { SubscriptionCommandController } from "@stigmer/protos/ai/stigmer/billin
 import { SubscriptionQueryController } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/query_pb";
 import { ChannelAppCommandController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/command_pb";
 import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
-import { ExecutionContextCommandController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/command_pb";
-import { ExecutionContextQueryController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/query_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
 import { MemoryCommandController } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/command_pb";
@@ -59,6 +57,7 @@ import { GitHubQueryController } from "@stigmer/protos/ai/stigmer/platform/githu
 import { VaultCommandController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/command_pb";
 import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
 import { ConnectLinkController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/connect_link_pb";
+import { VaultValueController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
 import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
@@ -115,8 +114,7 @@ export interface ConformanceClients {
   vaultCommand: Client<typeof VaultCommandController>;
   vaultQuery: Client<typeof VaultQueryController>;
   connectLink: Client<typeof ConnectLinkController>;
-  executionContextCommand: Client<typeof ExecutionContextCommandController>;
-  executionContextQuery: Client<typeof ExecutionContextQueryController>;
+  vaultValue: Client<typeof VaultValueController>;
   mcpServerCommand: Client<typeof McpServerCommandController>;
   mcpServerQuery: Client<typeof McpServerQueryController>;
   memoryCommand: Client<typeof MemoryCommandController>;
@@ -247,14 +245,7 @@ export function makeClients(transport: Transport): ConformanceClients {
     vaultCommand: createClient(VaultCommandController, transport),
     vaultQuery: createClient(VaultQueryController, transport),
     connectLink: createClient(ConnectLinkController, transport),
-    executionContextCommand: createClient(
-      ExecutionContextCommandController,
-      transport,
-    ),
-    executionContextQuery: createClient(
-      ExecutionContextQueryController,
-      transport,
-    ),
+    vaultValue: createClient(VaultValueController, transport),
     mcpServerCommand: createClient(McpServerCommandController, transport),
     mcpServerQuery: createClient(McpServerQueryController, transport),
     memoryCommand: createClient(MemoryCommandController, transport),

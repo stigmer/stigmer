@@ -1197,3 +1197,40 @@ enum FileReviewBlockReason {
   // non-git path class). Mirrors the fail-open spirit of DIFF_UNREVIEWABLE.
   FILE_REVIEW_BLOCK_REASON_UNREVIEWABLE = 3;
 }
+
+// Who declared a value a turn uses.
+enum RunValueDeclarerKind {
+  // Default; never written.
+  RUN_VALUE_DECLARER_KIND_UNSPECIFIED = 0;
+
+  // The turn's agent, in its env.
+  RUN_VALUE_DECLARER_KIND_AGENT = 1;
+
+  // A tool (an MCP server) the turn uses, in its env or its login.
+  RUN_VALUE_DECLARER_KIND_TOOL = 2;
+
+  // A repository the turn clones, for its token.
+  RUN_VALUE_DECLARER_KIND_REPOSITORY = 3;
+}
+
+// Where a value a turn uses lives.
+enum RunValueOrigin {
+  // Default; never written.
+  RUN_VALUE_ORIGIN_UNSPECIFIED = 0;
+
+  // The conversation's own token for the repository.
+  RUN_VALUE_ORIGIN_REPOSITORY_TOKEN = 1;
+
+  // The turn's person's My vault.
+  RUN_VALUE_ORIGIN_MY_VAULT = 2;
+
+  // A vault the conversation lists.
+  RUN_VALUE_ORIGIN_VAULT = 3;
+
+  // A vault of the surface a turn with no person came through (its
+  // schedule, share, channel or platform client).
+  RUN_VALUE_ORIGIN_SURFACE_VAULT = 4;
+
+  // The declaration's own plain default.
+  RUN_VALUE_ORIGIN_DECLARATION = 5;
+}

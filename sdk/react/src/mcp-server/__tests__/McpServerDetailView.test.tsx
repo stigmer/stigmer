@@ -496,6 +496,33 @@ describe("McpServerDetailView — credential form gating", () => {
     expect(within(form).getByLabelText(/^API_TOKEN/)).toBeTruthy();
   });
 
+  it("saves typed values in My vault, then connects the server and closes the form", async () => {
+    const setSecrets = vi.fn(() => create(VaultSchema, { metadata: { id: "vlt_mine", org: ORG } }));
+    const connect = vi.fn((_input: { mcpServerId: string; org: string }) => buildConnectedServer());
+    renderView(
+      <McpServerDetailView
+        org={ORG}
+        slug={SLUG}
+        defaultShowCredentialForm
+        mcpServerState={loadedState(buildBaseServer())}
+      />,
+      (router) => {
+        router.service(VaultCommandController, { setSecrets });
+        router.service(McpServerCommandController, { connect });
+      },
+    );
+    const form = await screen.findByRole("form", { name: /Configure Credentials Required/i });
+    fireEvent.change(within(form).getByLabelText(/^API_TOKEN/, { selector: "input" }), {
+      target: { value: "tok-1" },
+    });
+    fireEvent.click(within(form).getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(connect).toHaveBeenCalledTimes(1));
+    expect(setSecrets).toHaveBeenCalledTimes(1);
+    expect(connect.mock.calls[0]?.[0]).toMatchObject({ mcpServerId: buildBaseServer().metadata!.id, org: ORG });
+    await waitFor(() => expect(screen.queryByText("Credentials Required")).toBeNull());
+  });
+
   it("keeps the form closed by default", () => {
     renderView(
       <McpServerDetailView

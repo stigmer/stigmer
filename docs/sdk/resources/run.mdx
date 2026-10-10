@@ -2258,6 +2258,36 @@ RunCredentials records whose logins and secrets a turn uses.
 <TypeTable
   type={{
     person: { type: "string", description: "The person whose turn this is, by identity account id." },
+    sources: { type: "RunValueSource[]", description: "Where each value the turn uses lives: one entry per key and declarer, naming a vault and an entry, never a value.", typeDescriptionLink: "#runvaluesource" },
+  }}
+/>
+
+### RunValueDeclarer
+
+RunValueDeclarer names who declared a value a turn uses.
+
+<TypeTable
+  type={{
+    kind: { type: "RunValueDeclarerKind", description: "Agent, tool or repository.", typeDescriptionLink: "#runvaluedeclarerkind" },
+    name: { type: "string", description: "The agent's or tool's name, or the repository entry's name." },
+    mcpServerId: { type: "string", description: "The tool's MCP server id; empty for an agent or a repository." },
+    repositoryUrl: { type: "string", description: "The repository's URL; empty for an agent or a tool." },
+  }}
+/>
+
+### RunValueSource
+
+RunValueSource says where one value a turn uses lives.
+
+<TypeTable
+  type={{
+    key: { type: "string", description: "The environment variable." },
+    declarer: { type: "RunValueDeclarer", description: "Who declared it.", typeDescriptionLink: "#runvaluedeclarer" },
+    origin: { type: "RunValueOrigin", description: "Where it lives.", typeDescriptionLink: "#runvalueorigin" },
+    vaultId: { type: "string", description: "The vault holding it; empty for a repository's own token and a declaration's default." },
+    entry: { type: "string", description: "The entry: a secret's name, a login's address, or the repository entry's name for its own token; empty for a declaration's default." },
+    login: { type: "boolean", description: "Whether the entry is a login (a connection at an address) rather than a secret by name." },
+    plainValue: { type: "string", description: "A declaration's own plain default, the one value a manifest holds: it is a fixed setting of the agent or tool, never a secret." },
   }}
 />
 
@@ -2691,6 +2721,28 @@ ThinkingMode selects the model's extended-reasoning ("thinking") variant for a r
 |-------|-------------|
 | `THINKING_MODE_DISABLED` | Extended reasoning off: the model's base variant, requested explicitly (thinking=false pinned where the model declares the parameter). |
 | `THINKING_MODE_ENABLED` | Extended reasoning on: the model's thinking variant, billed at base per-token rates (reasoning tokens bill as output tokens). |
+
+### RunValueDeclarerKind
+
+Who declared a value a turn uses.
+
+| Value | Description |
+|-------|-------------|
+| `RUN_VALUE_DECLARER_KIND_AGENT` | The turn's agent, in its env. |
+| `RUN_VALUE_DECLARER_KIND_TOOL` | A tool (an MCP server) the turn uses, in its env or its login. |
+| `RUN_VALUE_DECLARER_KIND_REPOSITORY` | A repository the turn clones, for its token. |
+
+### RunValueOrigin
+
+Where a value a turn uses lives.
+
+| Value | Description |
+|-------|-------------|
+| `RUN_VALUE_ORIGIN_REPOSITORY_TOKEN` | The conversation's own token for the repository. |
+| `RUN_VALUE_ORIGIN_MY_VAULT` | The turn's person's My vault. |
+| `RUN_VALUE_ORIGIN_VAULT` | A vault the conversation lists. |
+| `RUN_VALUE_ORIGIN_SURFACE_VAULT` | A vault of the surface a turn with no person came through (its schedule, share, channel or platform client). |
+| `RUN_VALUE_ORIGIN_DECLARATION` | The declaration's own plain default. |
 
 ### SnapshotKind
 

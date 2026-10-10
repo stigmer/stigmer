@@ -29,3 +29,25 @@ breaking:
   except:
     - EXTENSION_NO_DELETE
     - FIELD_SAME_DEFAULT
+  # One pull request fetches a run's values from their vaults when its work
+  # starts. It deletes the executioncontext package (a sealed per-run copy
+  # of those values), the kind's enum value, and the connect input's
+  # one-time values (each removed number and name reserved). It is made
+  # before launch: the release notes name every change under Upgrading. This
+  # block exists for that one pull request. While it stays, buf breaking does
+  # not report these rules on the listed files, so the pull request that
+  # removes it lands straight after the merge
+  # (https://github.com/stigmer/stigmer/issues/2071).
+  ignore_only:
+    FILE_NO_DELETE:
+      - ai/stigmer/agentic/executioncontext/v1/api.proto
+      - ai/stigmer/agentic/executioncontext/v1/command.proto
+      - ai/stigmer/agentic/executioncontext/v1/io.proto
+      - ai/stigmer/agentic/executioncontext/v1/query.proto
+      - ai/stigmer/agentic/executioncontext/v1/spec.proto
+    FIELD_NO_DELETE:
+      - ai/stigmer/agentic/mcpserver/v1/io.proto
+    MESSAGE_NO_DELETE:
+      - ai/stigmer/agentic/mcpserver/v1/io.proto
+    ENUM_VALUE_NO_DELETE:
+      - ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto

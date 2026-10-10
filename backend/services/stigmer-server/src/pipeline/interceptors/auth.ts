@@ -35,7 +35,7 @@
  *     trusted-local identity. This preserves wire behavior byte-for-byte
  *     — the runner presents a Bearer token on every control-plane RPC
  *     when STIGMER_TOKEN is set, and domains that verify tokens (the
- *     executioncontext decrypt lane) read the raw header themselves.
+ *     values fetch) read the raw header themselves.
  *   - ONE OR MORE verifiers: a presented-but-unclaimed token is
  *     UNAUTHENTICATED. A configured issuer must never silently admit
  *     garbage tokens as trusted-local.
@@ -464,8 +464,8 @@ export async function authenticateBearerToken(
 /**
  * The Bearer credential from a (possibly comma-joined) authorization
  * header value; empty when absent or differently shaped. One shared
- * definition of the shape both consumers use (this chassis and the
- * executioncontext decrypt lane): case-insensitive "bearer " prefix, the
+ * definition of the shape every consumer uses (this chassis, the values
+ * fetch and the connect lane's backfill check): case-insensitive "bearer " prefix, the
  * remainder non-empty before trimming. Node's http2 layer joins repeated
  * headers with ", " — the first comma segment IS the first value, and a
  * genuine token (base64url segments joined by dots) can never contain a

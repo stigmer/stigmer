@@ -287,28 +287,6 @@ export class SecretService {
   }
 
   /**
-   * Encrypts a batch capped at the v2 envelope format: the write codec
-   * when the write version is v1 or v2, the v2 codec when the write
-   * version is above it. The generalization of the Java facade's
-   * encryptAllV2 pin for a family that includes
-   * v1-only OSS deployments — see the executioncontext rationale:
-   * ephemeral values on a latency-budgeted read path, sealed where v2
-   * costs one batched Transit round trip and v3 (no KV batch endpoint,
-   * located-scope requirement) cannot follow. At write=v1 this is the
-   * write codec (OSS today); at write=v2 it equals Java's pin; at a
-   * future write=v3 flip it keeps these lanes on v2 instead of breaking
-   * them.
-   */
-  async encryptAllAtMostV2(
-    plaintexts: ReadonlyMap<string, string>,
-    scope: EncryptionScope,
-  ): Promise<Map<string, string>> {
-    const codec =
-      this.writeVersionNumber <= 2 ? this.writeCodec : this.codecFor("v2");
-    return this.encryptAllWith(codec, plaintexts, scope);
-  }
-
-  /**
    * Decrypts an encrypted secret value, dispatching on the value's own
    * version token. Unprefixed values pass through unchanged (legacy
    * plaintext compatibility, pre-oss#405 rows); prefixed values decrypt

@@ -431,7 +431,7 @@ export type NextStep =
       readonly kind: "api-key";
       readonly server: string;
       readonly variables: readonly string[];
-      /** Where the variables are asked: the agent's first session, or `stigmer connect mcp-server --env`. */
+      /** Where the variables are asked: the agent's first session, or saved in My vault before `stigmer connect mcp-server`. */
       readonly askedAt: "agent" | "connect";
       readonly command?: string;
     }
@@ -492,7 +492,10 @@ export async function readNextSteps(
           ...(hasAgent
             ? {}
             : {
-                command: `stigmer connect mcp-server ${member.slug} --env ${variables.map((v) => `${v}=...`).join(" --env ")}`,
+                command: [
+                  ...variables.map((v) => `stigmer vault set-secret ${v} --mine`),
+                  `stigmer connect mcp-server ${member.slug}`,
+                ].join(" && "),
               }),
         });
       }
@@ -518,7 +521,7 @@ function describeNextStep(step: NextStep): string {
     case "api-key":
       return step.askedAt === "agent"
         ? `${step.server} needs ${step.variables.join(", ")}; the agent asks at its first session`
-        : `${step.server} needs ${step.variables.join(", ")}; set them when you connect:  ${step.command ?? ""}`;
+        : `${step.server} needs ${step.variables.join(", ")}; save them in your vault, then connect:  ${step.command ?? ""}`;
     case "add-to-agent":
       return `Add these tools to an agent: list ${step.servers.map((s) => `'${s}'`).join(", ")} under mcp_server_usages in an agent's YAML, or from the plugin's page in the console`;
     default: {

@@ -26,7 +26,9 @@
  *     write carries no lines (the runner explained it), and only a broken
  *     flow gets the platform's two lines;
  *   - external cancellation cleanup (CANCELLED persisted quietly —
- *     stigmer#282 — and the EC deleted);
+ *     stigmer#282);
+ *   - a new run records the values-fetched patch and never calls the
+ *     retired run-end cleanup, on any exit;
  *   - the cursor flow's harness_state_id re-read discipline;
  *   - the run credential handed on (2026-09-16): the workflow input's
  *     `execution_context_token` reaches EVERY Execute* invocation, first
@@ -36,8 +38,7 @@
  * Recorder discipline (oss#892): Temporal activities are at-least-once —
  * a workflow task whose completion fails to commit re-executes its local
  * activities (their markers never landed), so count-exact recorder pins
- * flake under CI load. Delete-recorder assertions therefore pin
- * identity + at-least-once, every test mints a unique execution id, and
+ * flake under CI load. Every test therefore mints a unique execution id, and
  * afterEach settles every started workflow so none outlives its script
  * window.
  *
@@ -290,6 +291,8 @@ function scriptedActivities(): Record<string, (...args: never[]) => Promise<unkn
       }
       return typeof entry === "function" ? entry() : entry;
     },
+    // The retired run-end cleanup, still registered for histories that
+    // call it; a new run never does.
     DeleteExecutionContext: async (executionId: string): Promise<void> => {
       script.deletedExecutionContexts.push(executionId);
     },
@@ -351,23 +354,15 @@ async function waitForPersistedPhase(
 }
 
 /**
- * The EC-delete pin, honest to Temporal's contract (oss#892):
- * DeleteExecutionContext is a LOCAL activity, and local activities are
- * at-least-once — a workflow task whose completion fails to commit
- * re-executes them (their markers never landed), so an exactly-once
- * count assertion flakes under CI load while the production delete is
- * idempotent by design. The pin is "fired, and only ever for THIS
- * execution": a duplicate is legal; a foreign id is a test-isolation
- * leak and must fail loudly.
+ * A new run records the values-fetched patch and never calls the retired
+ * run-end cleanup (names.ts RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME):
+ * nothing is stored for it to delete. Only a replay of a history that
+ * called it makes the call again (replay.test.ts).
  */
-function expectExecutionContextDeleted(): void {
+function expectRetiredCleanupSkipped(): void {
   expect(
-    script.deletedExecutionContexts.length,
-    "the ExecutionContext delete must fire",
-  ).toBeGreaterThanOrEqual(1);
-  expect(
-    script.deletedExecutionContexts.filter((id) => id !== currentExecutionId),
-    "every recorded delete must belong to this test's execution",
+    script.deletedExecutionContexts,
+    "a new run never calls the retired cleanup",
   ).toEqual([]);
 }
 
@@ -420,7 +415,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     resetScript();
   }, 15_000);
 
-  it("completes the deep-agent happy path and cleans up the ExecutionContext", async (testCtx) => {    if (!envReady) return testCtx.skip();
+  it("completes the deep-agent happy path, with no run-end cleanup to make", async (testCtx) => {    if (!envReady) return testCtx.skip();
     script.executeBehaviors = [
       async () => slimResult(RunPhase.RUN_COMPLETED),
     ];
@@ -429,7 +424,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     await handle.result();
 
     expect(script.executeCalls).toEqual([{ thread_id: "thread-1", turn_seq: 0 }]);
-    expectExecutionContextDeleted();
+    expectRetiredCleanupSkipped();
   }, 30_000);
 
   it("runs an input still carrying the retired callback_token and parent_workflow_id keys as an ordinary run", async (testCtx) => {    if (!envReady) return testCtx.skip();
@@ -448,7 +443,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     await handle.result();
 
     expect(script.executeCalls).toEqual([{ thread_id: "thread-1", turn_seq: 0 }]);
-    expectExecutionContextDeleted();
+    expectRetiredCleanupSkipped();
 
     // The run's own history: a reintroduced signal or cancel to the
     // parent the retired keys named, or an activity that completes the
@@ -516,7 +511,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
           entry.status.phase === RunPhase.RUN_WAITING_FOR_APPROVAL,
       ),
     ).toBe(true);
-    expectExecutionContextDeleted();
+    expectRetiredCleanupSkipped();
   }, 30_000);
 
   it("re-invokes immediately without a signal when the gate is decided-awaiting-reconcile", async (testCtx) => {    if (!envReady) return testCtx.skip();
@@ -647,7 +642,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
       failed.flatMap((entry) => entry.status.messages),
       "a runner-reported failure adds no platform lines",
     ).toEqual([]);
-    expectExecutionContextDeleted();
+    expectRetiredCleanupSkipped();
   }, 30_000);
 
   it("explains a flow that broke without a runner verdict with the platform's two lines", async (testCtx) => {    if (!envReady) return testCtx.skip();
@@ -675,10 +670,10 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     // The details carry the wrapped activity error (wrapActivityError's
     // operator-actionable prefix), not a runner-authored sentence.
     expect(lines[1]!.content).toMatch(/^Error details: activity 'ExecuteDeepAgent'/);
-    expectExecutionContextDeleted();
+    expectRetiredCleanupSkipped();
   }, 30_000);
 
-  it("cancellation persists CANCELLED quietly and still deletes the ExecutionContext (stigmer#282)", async (testCtx) => {    if (!envReady) return testCtx.skip();
+  it("cancellation persists CANCELLED quietly, with no run-end cleanup to make (stigmer#282)", async (testCtx) => {    if (!envReady) return testCtx.skip();
     const started = new Promise<void>((resolve) => {
       script.executeBehaviors = [
         (): Promise<Record<string, unknown>> => {
@@ -704,7 +699,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     expect(cancelled.status.messages.map((message) => message.content)).toEqual([
       CANCEL_STOP_ROW,
     ]);
-    expectExecutionContextDeleted();
+    expectRetiredCleanupSkipped();
   }, 60_000);
 
   it("cursor flow re-reads harness_state_id before each re-invocation", async (testCtx) => {    if (!envReady) return testCtx.skip();

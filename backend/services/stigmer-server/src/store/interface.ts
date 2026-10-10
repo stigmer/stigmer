@@ -527,6 +527,38 @@ export interface ConnectLinkStore {
   deleteByOrg(org: string): Promise<number>;
 }
 
+/**
+ * A tool connect in flight, as stored: the binding of the runner credential
+ * the connect mints, never a value. Times are Unix seconds.
+ */
+export interface ConnectAttemptRecord {
+  /** The connect's execution id: the id its runner credential is bound to. */
+  readonly id: string;
+  readonly org: string;
+  /** The identity account that started the connect: whom its runner credential acts as. */
+  readonly createdBy: string;
+  /** The connecting person whose My vault the connect reads; "" for a caller who is no first-party person. */
+  readonly person: string;
+  /** The tool (MCP server) the connect reaches. */
+  readonly mcpServerId: string;
+  /** The run whose planned values for the tool the connect uses (the runner's backfill); "" otherwise. */
+  readonly runId: string;
+  readonly createdAt: number;
+  readonly expiresAt: number;
+}
+
+export interface ConnectAttemptStore {
+  create(attempt: ConnectAttemptRecord): Promise<void>;
+  /** The attempt when it exists and expires after `now`; undefined otherwise. */
+  findLive(id: string, now: number): Promise<ConnectAttemptRecord | undefined>;
+  /** Removes an attempt (its connect settled). Idempotent. */
+  delete(id: string): Promise<void>;
+  /** Removes the attempts that expired before `now`; returns the count. */
+  deleteExpired(now: number): Promise<number>;
+  /** Removes every attempt of an organization (its purge); returns the count. */
+  deleteByOrg(org: string): Promise<number>;
+}
+
 export interface PendingOAuthStateStore {
   save(state: PendingOAuthState): Promise<void>;
   /**
@@ -953,6 +985,7 @@ export interface Store {
   readonly pendingOAuthStates: PendingOAuthStateStore;
   readonly oauthClientRegistrations: OAuthClientRegistrationStore;
   readonly connectLinks: ConnectLinkStore;
+  readonly connectAttempts: ConnectAttemptStore;
   readonly organizationDeletions: OrganizationDeletionStore;
 
   // ---------------------------------------------------------------------------

@@ -41,14 +41,13 @@
  */
 import { randomBytes } from "node:crypto";
 
-import { create, toBinary } from "@bufbuild/protobuf";
+import { create } from "@bufbuild/protobuf";
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
@@ -58,6 +57,7 @@ import { newConnectExecutionId } from "../../domain/mcpserver/connect-execution-
 import { BOUND_ELSEWHERE_DENY_REASON } from "../../authorization/credential-binding.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
+import type { ConnectAttemptRecord } from "../../store/interface.js";
 import type { BoundExecutionStore } from "../bound-execution.js";
 import {
   newBuiltInRunnerCredentialProvider,
@@ -116,15 +116,23 @@ const ROWS: Record<string, unknown> = {
   aex_nobodys_run: NOBODYS_RUN,
 };
 
-/** Carol's connect: the ephemeral EC the connect lane created as her, keyed by the connect's execution id. */
+/** Carol's connect: the attempt the connect lane recorded for her, keyed by the connect's execution id. */
 const CONNECT_ID = newConnectExecutionId("mcps_carols_server");
-const CONNECT_CONTEXT = create(ExecutionContextSchema, {
-  metadata: { id: "ectx_carol", name: `exec-ctx-${CONNECT_ID}`, org: "acme" },
-  spec: { executionId: CONNECT_ID },
-  status: { ...stampedBy(HUMAN) },
-});
+const CONNECT_ATTEMPT: ConnectAttemptRecord = {
+  id: CONNECT_ID,
+  org: "acme",
+  createdBy: HUMAN,
+  person: HUMAN,
+  mcpServerId: "mcps_carols_server",
+  runId: "",
+  createdAt: 0,
+  // Far in the future: the arms here pin identity, not expiry.
+  expiresAt: Number.MAX_SAFE_INTEGER,
+};
 
-/** A store that knows three rows and one connect EC, and answers the typed not-found for everything else. */
+const unused = (): Promise<never> => Promise.reject(new Error("unused"));
+
+/** A store that knows three rows and one connect attempt, and answers the typed not-found for everything else. */
 const store: BoundExecutionStore = {
   getResource<Desc extends DescMessage>(
     kind: ApiResourceKind,
@@ -137,17 +145,15 @@ const store: BoundExecutionStore = {
     }
     return Promise.resolve(row as MessageShape<Desc>);
   },
-  findAllByField<Desc extends DescMessage>(
-    _kind: ApiResourceKind,
-    fieldPath: string,
-    value: string,
-    _schema: Desc,
-  ): Promise<Uint8Array[]> {
-    return Promise.resolve(
-      fieldPath === "spec.executionId" && value === CONNECT_ID
-        ? [toBinary(ExecutionContextSchema, CONNECT_CONTEXT)]
-        : [],
-    );
+  connectAttempts: {
+    create: unused,
+    delete: unused,
+    deleteExpired: unused,
+    deleteByOrg: unused,
+    findLive: (id, now) =>
+      Promise.resolve(
+        id === CONNECT_ID && CONNECT_ATTEMPT.expiresAt > now ? CONNECT_ATTEMPT : undefined,
+      ),
   },
 };
 
@@ -190,7 +196,7 @@ const person: CallerIdentity = {
 };
 
 const agentBound = runnerCaller(service.mintRunCredential("aex_agent_run"));
-/** The connect lane's runner: the clocked token bound to Carol's connect EC (connect.ts `prepareConnect`). */
+/** The connect lane's runner: the clocked token bound to Carol's connect attempt (connect.ts `prepareConnect`). */
 const connectBound = runnerCaller(service.mint(CONNECT_ID, 300).token);
 
 describe("the default lane is byte-identical", () => {
@@ -211,10 +217,10 @@ describe("the default lane is byte-identical", () => {
     expect(isClockedToken(token)).toBe(false);
   });
 
-  it("does NOT take over the bootstrap, the sandbox mint or the decrypt decision — those stay the OSS arms", () => {
+  it("does NOT take over the bootstrap, the sandbox mint or the values-fetch decision — those stay the OSS arms", () => {
     expect(provider.bootstrapCredentials).toBeUndefined();
     expect(provider.mintSandboxCredential).toBeUndefined();
-    expect(provider.authorizeExecutionContextRead).toBeUndefined();
+    expect(provider.authorizeExecutionValuesRead).toBeUndefined();
   });
 });
 
