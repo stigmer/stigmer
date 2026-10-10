@@ -168,7 +168,17 @@ describe("ScriptedModel — turns are indexed by the transcript, not by a counte
     await bound.invoke(transcriptWithRounds(2));
     // The prior calls are the LAST AI message's — the results this turn
     // answers — read from the transcript, not the script.
-    expect(seen).toEqual([{ boundToolNames: ["probe"], round: 2, priorToolCallIds: ["call_1"] }]);
+    expect(seen).toEqual([{ boundToolNames: ["probe"], round: 2, priorToolCallIds: ["call_1"], issuedToolCallIds: [] }]);
+  });
+
+  it("reports the calls it issued on earlier turns, across the roles bindTools derives", async () => {
+    const seen: ScriptedTurnInfo[] = [];
+    const model = new ScriptedModel(() => script, [], { issued: new Set(), onTurn: (info) => void seen.push(info) });
+    await model.bindTools([{ name: "probe" }]).invoke(transcriptWithRounds(0));
+    await model.bindTools([{ name: "other" }]).invoke(transcriptWithRounds(1));
+    // The second role never saw the first role's call on its own transcript;
+    // the issued list is what lets the driver wait for a parent's running call.
+    expect(seen.map((s) => s.issuedToolCallIds)).toEqual([[], ["call_1"]]);
   });
 
   it("reports no prior calls on a first turn or after a text-only turn", async () => {

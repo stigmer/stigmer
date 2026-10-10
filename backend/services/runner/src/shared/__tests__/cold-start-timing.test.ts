@@ -317,3 +317,17 @@ describe("boot timeline singleton", () => {
     );
   });
 });
+
+describe("TimingRecorder across processes", () => {
+  it("continues on the far side where it left off: the segments, the mark cursor and the latest end", () => {
+    const recorder = new TimingRecorder(performance.now() - 50);
+    recorder.mark("resolve");
+    const continued = TimingRecorder.fromWire(JSON.parse(JSON.stringify(recorder.toWire())));
+
+    continued.mark("engine");
+    const segments = continued.snapshot();
+    expect(segments.map((s) => s.name)).toEqual(["resolve", "engine"]);
+    expect(segments[1]!.startMs, "the next mark starts where the last one ended").toBe(segments[0]!.startMs + segments[0]!.durationMs);
+    expect(continued.totalMs()).toBeGreaterThanOrEqual(recorder.totalMs());
+  });
+});

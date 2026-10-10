@@ -418,6 +418,41 @@ export class ToolScope {
   upTo(count: number): ToolScope {
     return new ToolScope(this.layers.slice(0, count), this.agentTypes);
   }
+
+  /**
+   * This scope as plain data, for the agent host (`agent-host/codec.ts`):
+   * every layer's raw entries and the main agent's type list, which is all
+   * the state a scope has. {@link fromWire} rebuilds an equal scope; the
+   * entries are re-parsed there, so a parse rule lives once.
+   */
+  toWire(): ToolScopeWire {
+    return {
+      layers: this.layers.map((l) => ({
+        owner: l.owner,
+        tools: l.tools.map((e) => e.raw),
+        disallowedTools: l.disallowed.map((e) => e.raw),
+      })),
+      agentTypes: this.agentTypes === null ? null : [...this.agentTypes],
+    };
+  }
+
+  /** The scope {@link toWire} described. */
+  static fromWire(wire: ToolScopeWire): ToolScope {
+    return new ToolScope(
+      wire.layers.map((l) => ({
+        owner: l.owner,
+        tools: l.tools.map(parseToolListEntry),
+        disallowed: l.disallowedTools.map(parseToolListEntry),
+      })),
+      wire.agentTypes === null ? null : new Set(wire.agentTypes),
+    );
+  }
+}
+
+/** A {@link ToolScope} as plain data: its layers' raw lists and the main agent's normalized type list. */
+export interface ToolScopeWire {
+  readonly layers: readonly { readonly owner: string; readonly tools: readonly string[]; readonly disallowedTools: readonly string[] }[];
+  readonly agentTypes: readonly string[] | null;
 }
 
 /**
