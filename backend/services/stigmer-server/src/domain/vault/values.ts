@@ -53,7 +53,6 @@ import {
 import { parseBearerToken } from "../../pipeline/interceptors/auth.js";
 import {
   bindsARun,
-  boundExecutionKindOf,
   loadBoundExecution,
 } from "../../runnerauth/bound-execution.js";
 import type { BoundExecution } from "../../runnerauth/bound-execution.js";
@@ -91,17 +90,21 @@ export async function fetchExecutionValues(
     throw invalidArgumentError("execution_id is required");
   }
   const token = parseBearerToken(ctx.requestHeader.get("authorization") ?? "");
-  if (token === "" || (await boundExecutionFor(deps, token, executionId)) === undefined) {
+  const bound = token === "" ? undefined : await boundExecutionFor(deps, token, executionId);
+  if (bound === undefined) {
     throw permissionDeniedError(NOT_BOUND_MESSAGE);
   }
 
-  switch (boundExecutionKindOf(executionId)) {
+  switch (bound.kind) {
     case "agent-execution":
       return deps.vaultResolver.openRun(await loadRun(deps, executionId));
     case "mcp-connect":
       return openConnectValues(deps, executionId);
-    default:
-      throw permissionDeniedError(NOT_BOUND_MESSAGE);
+    /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
+    default: {
+      const exhaustive: never = bound.kind;
+      throw new Error(`unknown bound execution kind ${String(exhaustive)}`);
+    }
   }
 }
 

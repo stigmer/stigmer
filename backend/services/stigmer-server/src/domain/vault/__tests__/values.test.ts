@@ -47,6 +47,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { createApiResourceInterceptor } from "../../../pipeline/interceptors/apiresource.js";
 import { createVerifierChainInterceptor } from "../../../pipeline/interceptors/auth.js";
+import { ResourceNotFoundError } from "../../../store/interface.js";
 import type { Store } from "../../../store/interface.js";
 import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
 import { RUN_CREDENTIAL_GRACE_AFTER_TERMINAL_MS } from "../../../runnerauth/constants.js";
@@ -351,6 +352,44 @@ describe("past a composed decision that admits", () => {
       },
     });
   }
+
+  it("refuses a run deleted between the gate and the read, and answers a fault there as INTERNAL", async () => {
+    await seedRun("run_vanishing");
+    /** The store, answering the gate's read of the run and then `second` for the next. */
+    const runReadsThen = (second: () => Promise<never>): Store => {
+      let reads = 0;
+      return new Proxy(rig.store, {
+        get(target, prop, receiver) {
+          if (prop === "getResource") {
+            return (...args: Parameters<typeof rig.store.getResource>) => {
+              if (args[0] !== ApiResourceKind.run) return rig.store.getResource(...args);
+              reads += 1;
+              return reads === 1 ? rig.store.getResource(...args) : second();
+            };
+          }
+          const value = Reflect.get(target, prop, receiver) as unknown;
+          return typeof value === "function" ? value.bind(target) : value;
+        },
+      });
+    };
+    const deleted = await refusal(
+      fetch(
+        "run_vanishing",
+        "edition-token",
+        admitting({ store: runReadsThen(() => Promise.reject(new ResourceNotFoundError("run run_vanishing"))) }),
+      ),
+    );
+    expect(deleted.code).toBe(Code.PermissionDenied);
+    const faulted = await refusal(
+      fetch(
+        "run_vanishing",
+        "edition-token",
+        admitting({ store: runReadsThen(() => Promise.reject(new Error("disk gone"))) }),
+      ),
+    );
+    expect(faulted.code).toBe(Code.Internal);
+    expect(faulted.rawMessage).not.toContain("disk gone");
+  });
 
   it("refuses an id that names no execution kind", async () => {
     expect((await refusal(fetch("ses_1", "edition-token", admitting()))).code).toBe(Code.PermissionDenied);
