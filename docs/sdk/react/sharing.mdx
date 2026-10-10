@@ -562,8 +562,9 @@ Who can chat with a shared agent over its hosted link.
 ### sharingAudienceFromProto
 
 Maps a proto `AgentShareAudience` to the SDK's string union.
-Unspecified means public by contract (a share created without an
-explicit audience is an anyone-with-link share).
+Only an explicit public audience is "public": unspecified means the
+organization's members by contract, so a share reaches the internet
+only when someone chose "Anyone with the link".
 
 ```tsx
 function sharingAudienceFromProto(audience: AgentShareAudience | undefined): SharingAudience

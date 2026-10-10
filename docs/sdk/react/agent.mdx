@@ -326,6 +326,46 @@ if (!isEmpty) {
 ```
 
 
+### useCanCreateAgent
+
+Mirrors the server's agent create bar, `can_create_agent` on the
+organization, so a "Create agent" affordance never appears to someone
+whose create would be refused.
+
+Admins always may. Members may while the organization's policy
+"Members can create agents" is on, which it is by default; an admin
+turns it off in the organization's settings (`OrgPoliciesPanel`). A
+viewer never may.
+
+On a server without sign-in every check answers allowed. The check
+fails open on an error, as every capability gate does: the server
+refuses a create the answer missed.
+
+Pass `null` for `org` while it loads: `allowed` stays `false`, so no
+affordance flashes before the gate can be evaluated.
+
+**Signature**
+
+```tsx
+function useCanCreateAgent(org: string | null): UseCanCreateAgentReturn
+```
+
+<TypeTable
+  type={{
+    org: { type: "string | null", description: "The organization's id, or `null` while loading.", required: true },
+  }}
+/>
+
+**Returns** — `UseCanCreateAgentReturn`
+
+<TypeTable
+  type={{
+    allowed: { type: "boolean", description: "Whether the viewer may create an agent in the organization." },
+    isLoading: { type: "boolean", description: "`true` while the server's answer is in flight." },
+  }}
+/>
+
+
 ### useCreateAgent
 
 Behavior hook that wraps `agent.apply()` with loading and error state.
@@ -432,6 +472,22 @@ function useUpdateAgent(): UseUpdateAgentReturn
 
 ## Components
 
+### AgentCreationDenied
+
+What a person who may not create agents sees where the create flow would
+be: who can, and the setting that lets them. Rendered by
+[`AgentCreationWizard`](#agentcreationwizard) on its own, and by a host's new-agent page in
+place of its creation picker.
+
+**Props** — `AgentCreationDeniedProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+  }}
+/>
+
+
 ### AgentCreationWizard
 
 Multi-step wizard for creating a new agent blueprint.
@@ -449,6 +505,11 @@ This component is an SDK-first, embeddable wizard with zero Console
 dependencies. Platform builders can mount it anywhere.
 
 `onComplete` receives the organization by id; the URL carries the slug.
+
+It asks the server first whether the viewer may create an agent in
+`org` ([`useCanCreateAgent`](#usecancreateagent)); someone who may not sees
+[`AgentCreationDenied`](#agentcreationdenied) instead of a form whose create would be
+refused.
 
 **Props** — `AgentCreationWizardProps`
 

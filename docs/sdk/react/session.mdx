@@ -296,6 +296,32 @@ const { session } = useSession(sessionId ?? null);
 ```
 
 
+### useSessionAccess
+
+Self-checks on a conversation for the console's presentation of it.
+
+**Signature**
+
+```tsx
+function useSessionAccess(sessionId: string | null): UseSessionAccessReturn
+```
+
+<TypeTable
+  type={{
+    sessionId: { type: "string | null", description: "The conversation to ask about, or `null` to skip.", required: true },
+  }}
+/>
+
+**Returns** — `UseSessionAccessReturn`
+
+<TypeTable
+  type={{
+    canDecide: { type: "boolean", description: "Whether the reader may stop its runs and make their decisions." },
+    canSend: { type: "boolean", description: "Whether the reader may send messages into the conversation." },
+  }}
+/>
+
+
 ### useSessionAgentVersion
 
 Reads the agent version `session` pins against its agent's current
@@ -1558,7 +1584,8 @@ Whether a session was created by the channel runtime (a Slack/WhatsApp
 conversation) rather than by a person in the console.
 
 Channel viewers hold read-only access (`can_view` without
-`can_create_run_in`), so session organisms use this to
+`can_create_run_in`, which a session grants only its owners and
+participants), so session organisms use this to
 self-select the `"observer"` audience — every entry point renders
 read-only without host wiring.
 
@@ -1760,7 +1787,12 @@ presented to.
   audience for channel-originated sessions (the
   `stigmer.ai/channel-id` label), so every entry point — a
   conversations list, a pasted URL — renders read-only without host
-  wiring.
+  wiring. A person's own console conversations ask the server too: a
+  conversation shared with the reader as Viewer (`can_view` without
+  `can_create_run_in`) renders this presentation with a line saying the
+  reader can read it, and one shared as Participant keeps the composer
+  but withholds stop, approvals and file decisions, which stay with the
+  conversation's owners.
 
 A preset rather than individual flags: each audience is a product
 intent, and keeping it in one place lets the SDK evolve what that

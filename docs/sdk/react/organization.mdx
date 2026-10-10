@@ -417,6 +417,35 @@ refetch(); // refresh profile view
 ```
 
 
+### useUpdateOrganizationPolicies
+
+Changes an organization's policies. The caller passes every policy: a
+policy left out of the message turns off, so a caller that edits one
+spreads the stored ones first (see [`organizationPoliciesOf`](#organizationpoliciesof)).
+
+**Signature**
+
+```tsx
+function useUpdateOrganizationPolicies(): UseUpdateOrganizationPoliciesReturn
+```
+
+**Returns** — `UseUpdateOrganizationPoliciesReturn`
+
+<TypeTable
+  type={{
+    clearError: { type: "() => void", description: "Reset `error` to `null`." },
+    error: { type: "Error | null", description: "Error from the last failed save, or `null`." },
+    isUpdating: { type: "boolean", description: "`true` while the request is in flight." },
+    updatePolicies: { type: "(org: string, policies: OrganizationPoliciesValue) => Promise<Organization>", description: "Replace every policy of the organization (by id or slug) with `policies`. Resolves with the updated organization." },
+  }}
+/>
+
+```tsx
+const { updatePolicies, isUpdating } = useUpdateOrganizationPolicies();
+await updatePolicies(orgId, { ...organizationPoliciesOf(org), membersCanCreateAgents: false });
+```
+
+
 ## Components
 
 ### ChildOrganizationsList
@@ -473,6 +502,29 @@ All visual properties flow through `--stgm-*` design tokens.
   onCreated={(org) => console.log("Created:", org.metadata?.slug)}
   onCancel={() => setShowForm(false)}
 />
+```
+
+
+### OrgPoliciesPanel
+
+Self-contained editor for an organization's policies
+(`spec.policies`), saved through `organization.updatePolicies()`.
+
+All visual properties flow through `--stgm-*` design tokens; no routing
+or auth dependencies, so a platform builder can embed it directly:
+
+**Props** — `OrgPoliciesPanelProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    onUpdated: { type: "(org: Organization) => void", description: "Fired with the updated resource after a successful save." },
+    org: { type: "string", description: "The ID of the organization whose policies to display and edit.", required: true },
+  }}
+/>
+
+```tsx
+<OrgPoliciesPanel org="org-id-123" />
 ```
 
 
@@ -628,6 +680,27 @@ Must be rendered inside an [`OrgProvider`](#orgprovider).
 
 
 ## Types
+
+### organizationPoliciesOf
+
+An organization's policies as they stand. An organization that stores no
+policies holds the defaults: members may create agents.
+
+```tsx
+function organizationPoliciesOf(organization: Organization | null | undefined): OrganizationPoliciesValue
+```
+
+
+### OrganizationPoliciesValue
+
+Every policy an organization holds, as it should stand after the save.
+
+<TypeTable
+  type={{
+    membersCanCreateAgents: { type: "boolean", description: "Members may create agents; when `false`, only admins do.", required: true },
+  }}
+/>
+
 
 ### OrgContextValue
 
