@@ -190,7 +190,11 @@ async function runTry(input: CaseInput, known: Known): Promise<TryResult> {
           outOfCredit: true,
         };
       case "cannot-act":
-        return notGraded("", "", CANNOT_ACT_REASON);
+        return notGraded(
+          "",
+          "",
+          started.reason === "" ? CANNOT_ACT_REASON : started.reason,
+        );
       case "not-started":
         return notGraded("", "", started.reason);
       /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */

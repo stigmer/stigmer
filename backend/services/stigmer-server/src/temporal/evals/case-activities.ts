@@ -14,7 +14,8 @@
  *     retries; a credit refusal (the hosted edition's billing gate, every
  *     denial FAILED_PRECONDITION naming credits) is "out-of-credit"; any
  *     other refusal is the run's own message; a session left by a refused
- *     run is deleted. A caller the seam refuses is "cannot-act". A try
+ *     run is deleted. A caller the seam refuses is "cannot-act", with the
+ *     refusal's own not-graded reason when it names one. A try
  *     whose plugin has moved past the eval's digest is not started: the
  *     with-plugin arm runs the plugin as installed now, so it would grade
  *     a newer plugin against the eval's suite (PLUGIN_UPDATED_REASON).
@@ -180,11 +181,11 @@ export interface CaseActivityDeps {
 export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
   const attempt = deps.attempt ?? (() => Context.current().info.attempt);
 
-  /** The caller for one try or vote, or "cannot-act" when the seam refuses. */
+  /** The caller for one try or vote, or the not-graded reason when the seam refuses. */
   const mint = async (
     org: string,
     evalId: string,
-  ): Promise<CallerIdentity | undefined | "cannot-act"> => {
+  ): Promise<CallerIdentity | undefined | { readonly cannotAct: string }> => {
     if (deps.pluginEvalCaller === undefined) {
       return undefined;
     }
@@ -196,7 +197,7 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
           evalId,
           reason: error.message,
         });
-        return "cannot-act";
+        return { cannotAct: error.notGradedReason ?? CANNOT_ACT_REASON };
       }
       throw error;
     }
@@ -232,11 +233,11 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         };
       }
       const caller = await mint(input.org, input.evalId);
-      if (caller === "cannot-act") {
+      if (caller !== undefined && "cannotAct" in caller) {
         return {
           kind: "refused",
           failure: "cannot-act",
-          reason: CANNOT_ACT_REASON,
+          reason: caller.cannotAct,
         };
       }
       const name = tryRunName(input.evalId, input);
@@ -443,8 +444,8 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         reference = rendered.text;
       }
       const caller = await mint(input.org, input.evalId);
-      if (caller === "cannot-act") {
-        return { kind: "failed", reason: CANNOT_ACT_REASON };
+      if (caller !== undefined && "cannotAct" in caller) {
+        return { kind: "failed", reason: caller.cannotAct };
       }
       const rubric = voteRubricName(grader);
       const session = await deps.tries().createSession(

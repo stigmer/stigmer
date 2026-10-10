@@ -2,11 +2,12 @@
  * Pins the built-in plugin-eval caller on both store drivers: a plugin
  * eval's tries act as the eval's creator, resolved from the row's creation
  * stamp as the grading caller's creator is (grading-caller.postgres.test.ts
- * beside this file), and only while that creator may still read the eval:
- * a creator who has left the organization (the authorizer refuses them on
- * the eval) is the seam's DETERMINISTIC refusal, as is an eval whose stamp
- * names no person this server knows; a missing eval and an authorizer that
- * cannot answer stay infrastructure throws.
+ * beside this file), and only while that creator may still edit the
+ * eval's plugin, as create required: a creator who may no longer (demoted
+ * to viewer, or gone from the organization) is the seam's DETERMINISTIC
+ * refusal, the try not graded "the eval's creator can no longer run it",
+ * as is an eval whose stamp names no person this server knows; a missing
+ * eval and an authorizer that cannot answer stay infrastructure throws.
  */
 import { create } from "@bufbuild/protobuf";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -25,7 +26,8 @@ import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import type { Authorizer } from "../../extensions/authorizer.js";
 import {
-  creatorCannotSeeEvalMessage,
+  CREATOR_CANNOT_RUN_EVAL_REASON,
+  creatorCannotEditPluginMessage,
   newBuiltInPluginEvalCaller,
   pluginEvalHasNoPersonMessage,
 } from "../plugin-eval-caller.js";
@@ -102,18 +104,20 @@ describe.each(
         email: "priya@example.com",
         displayName: "Priya",
       });
-      expect(asked, "the creator must still read the eval").toEqual([`${PRIYA} can_view pev_by_id`]);
+      expect(asked, "the creator must still edit the eval's plugin").toEqual([`${PRIYA} can_edit plg_1`]);
       await pluginEval("pev_by_sub", SUBJECT);
       expect((await mint().mintPluginEvalCaller("acme", "pev_by_sub")).identityId).toBe(PRIYA);
     });
 
-    it("refuses when the creator may no longer read the eval, and throws when the authorizer cannot answer", async () => {
+    it("refuses when the creator may no longer edit the plugin, and throws when the authorizer cannot answer", async () => {
       await pluginEval("pev_left", PRIYA);
       const refused = await mint("deny")
         .mintPluginEvalCaller("acme", "pev_left")
         .catch((error: unknown) => error);
       expect(refused).toBeInstanceOf(PluginEvalCallerRefusedError);
-      expect((refused as Error).message).toBe(creatorCannotSeeEvalMessage("pev_left"));
+      expect((refused as Error).message).toBe(creatorCannotEditPluginMessage("pev_left", "plg_1"));
+      expect((refused as PluginEvalCallerRefusedError).notGradedReason).toBe(CREATOR_CANNOT_RUN_EVAL_REASON);
+      expect(CREATOR_CANNOT_RUN_EVAL_REASON).toBe("the eval's creator can no longer run it");
       await expect(mint("unavailable").mintPluginEvalCaller("acme", "pev_left")).rejects.toThrow("engine down");
     });
 

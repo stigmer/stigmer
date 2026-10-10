@@ -678,6 +678,18 @@ describe("the case workflow", () => {
       [START_TRY_ACTIVITY_NAME]: vi.fn(() =>
         Promise.resolve({
           kind: "refused",
+          failure: "cannot-act",
+          reason: "the eval's creator can no longer run it",
+        }),
+      ),
+    });
+    expect((await runCase(INPUT)).notGradedReason).toBe(
+      "the eval's creator can no longer run it",
+    );
+    caseScript({
+      [START_TRY_ACTIVITY_NAME]: vi.fn(() =>
+        Promise.resolve({
+          kind: "refused",
           failure: "not-started",
           reason: "model 'x' needs a key",
         }),
