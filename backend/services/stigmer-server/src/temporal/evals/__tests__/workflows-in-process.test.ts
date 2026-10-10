@@ -1062,6 +1062,19 @@ describe("the case workflow", () => {
     expect(stop.at[0]! - seenAt).toBe(120_000);
   });
 
+  it("reads a poll that fails past its retries as telling nothing, and keeps waiting", async () => {
+    const activities = caseScript({
+      [POLL_RUN_ACTIVITY_NAME]: vi
+        .fn()
+        .mockImplementationOnce(() => Promise.reject(new Error("the store is down")))
+        .mockImplementationOnce(() => Promise.reject(new Error("the store is down")))
+        .mockImplementation(() => Promise.resolve(ENDED)),
+    });
+    expect(await runCase(INPUT)).toMatchObject({ state: "graded" });
+    expect(activities[STOP_RUN_ACTIVITY_NAME]).not.toHaveBeenCalled();
+    expect(activities[GRADE_TRY_ACTIVITY_NAME]).toHaveBeenCalledWith(INPUT, "run_1", false);
+  });
+
   it("polls a vote at most about twenty times within its ten minutes", async () => {
     const voteRun = "vote_0_0";
     const poll = vi.fn((runId: string) =>
