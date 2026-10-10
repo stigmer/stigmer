@@ -10,7 +10,9 @@
 // the Security line existed still reads; that a posted comment parses back to
 // what was posted; how a
 // permission lookup fails, how a posted verdict makes the check judge again;
-// and, through throwaway git repositories, that the change id survives a merge
+// that a fix-check answers exactly the open blocking findings of the chain it
+// continues, and the newest link of that chain decides the state; and,
+// through throwaway git repositories, that the change id survives a merge
 // of the base, moves with any edit to the change (whitespace included), and
 // does not move with a user's diff settings.
 
@@ -28,10 +30,13 @@ import {
   checkoutFor,
   changeId,
   declarationText,
+  fixCheckProblems,
+  parseFixCheck,
   parseReview,
   postVerdict,
   readReview,
   rejudge,
+  renderFixCheck,
   renderReview,
   repoFromUrl,
   reviewState,
@@ -439,6 +444,239 @@ test("the diff is computed only in a checkout of the pull request's repository",
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+// ─── The fix-check ──────────────────────────────────────────────────────
+
+const LATER_DIGEST = `sha256:${"d".repeat(64)}`;
+const LATEST_DIGEST = `sha256:${"e".repeat(64)}`;
+const LATER_HEAD = "f".repeat(40);
+const CRASH = "a.ts:3 (blocking) crashes on empty input";
+const LEAK = "b.ts:9 (blocking) logs the token";
+const TYPO = "c.ts (minor) typo";
+const changesNeeded = () => review({ verdict: "changes-needed", findings: `Findings:\n- ${CRASH}\n- ${LEAK}\n- ${TYPO}` });
+
+function fixCheck({ verdict = "resolved", head = LATER_HEAD, reviewed = LATER_DIGEST, continues = DIGEST, security = `Security: ${SECURITY}`, answers = `Answers:\n- resolved ${CRASH}\n- resolved ${LEAK}`, findings = "Findings: none" } = {}) {
+  const lines = ["## Fix check", "<!-- review-fix-check -->", "", `Verdict: ${verdict}`, `Head: ${head}`, `Reviewed: ${reviewed}`, `Continues: ${continues}`, "Reviewer: claude-opus-5-5, fresh context, review-pull-request fix-check"];
+  if (security !== null) lines.push(security);
+  return [...lines, answers, findings].join("\n");
+}
+
+test("a fix-check is not a review, and a review is not a fix-check", () => {
+  assert.equal(parseReview(fixCheck()), undefined);
+  assert.equal(parseFixCheck(review()), undefined);
+  assert.equal(parseFixCheck("## Fix check\n\nI looked at the fixes."), undefined);
+});
+
+test("a well-formed fix-check parses its answers and regressions", () => {
+  const parsed = parseFixCheck(fixCheck({ verdict: "unresolved", answers: `Answers:\n- resolved ${CRASH}\n- unresolved ${LEAK} -- note: the token still reaches the debug log`, findings: "Findings:\n- a.ts:5 (blocking) the new guard throws on null" }));
+  assert.deepEqual(parsed.problems, []);
+  assert.equal(parsed.verdict, "unresolved");
+  assert.equal(parsed.continues, DIGEST);
+  assert.deepEqual(parsed.answers, [
+    { resolved: true, finding: CRASH, note: undefined },
+    { resolved: false, finding: LEAK, note: "the token still reaches the debug log" },
+  ]);
+  assert.deepEqual(parsed.findings, ["a.ts:5 (blocking) the new guard throws on null"]);
+  assert.deepEqual(parseFixCheck(fixCheck({ answers: "Answers: none" })).answers, []);
+});
+
+test("each malformed fix-check field is named", () => {
+  const cases = [
+    [fixCheck({ verdict: "approve" }), /Verdict must be one of resolved, unresolved, needs-review/],
+    [fixCheck({ continues: "sha256:short" }), /Continues must be sha256/],
+    [fixCheck({ security: null }), /Security is missing/],
+    [fixCheck({ security: "Security:" }), /Security is empty/],
+    [fixCheck({ answers: "Answers:\n- fixed a.ts" }), /each answer opens with resolved or unresolved/],
+    [fixCheck({ answers: "Answers: none\n- resolved a.ts" }), /Answers says none and lists answers/],
+    [fixCheck({ verdict: "unresolved", findings: "Findings:\n- a.ts (minor) nit" }), /a regression is blocking/],
+    [fixCheck({ answers: `Answers:\n- unresolved ${CRASH}` }), /resolved needs every answer resolved/],
+    [fixCheck({ findings: `Findings:\n- a.ts:5 (blocking) breaks` }), /resolved needs every answer resolved and no regression/],
+    [fixCheck({ verdict: "unresolved" }), /unresolved needs an unresolved answer or a regression/],
+  ];
+  for (const [body, pattern] of cases) {
+    const problems = parseFixCheck(body).problems;
+    assert.ok(problems.some((p) => pattern.test(p)), `${pattern} in ${JSON.stringify(problems)}`);
+  }
+});
+
+test("a fix-check that answers every open finding resolved, at the digest now, is current", () => {
+  const result = reviewState({ comments: [comment("owner", changesNeeded(), "https://example.test/review"), comment("owner", fixCheck(), "https://example.test/fix")], digest: LATER_DIGEST, trusted });
+  assert.equal(result.state, "current", result.reason);
+  assert.equal(result.review.kind, "fix-check");
+  assert.equal(result.review.url, "https://example.test/fix");
+  assert.deepEqual(result.open, []);
+});
+
+test("a fix-check with an unresolved answer is changes-needed, and the finding stays open", () => {
+  const comments = [comment("owner", changesNeeded()), comment("owner", fixCheck({ verdict: "unresolved", answers: `Answers:\n- resolved ${CRASH}\n- unresolved ${LEAK}` }))];
+  const result = reviewState({ comments, digest: LATER_DIGEST, trusted });
+  assert.equal(result.state, "changes-needed");
+  assert.deepEqual(result.open, [LEAK]);
+});
+
+test("a fix-check that finds new behaviour sends the change back to one full review", () => {
+  const comments = [comment("owner", changesNeeded()), comment("owner", fixCheck({ verdict: "needs-review" }))];
+  const result = reviewState({ comments, digest: LATER_DIGEST, trusted });
+  assert.equal(result.state, "missing");
+  assert.match(result.reason, /new behaviour.*one new full review/);
+  // A push after it still needs that review, not a fix-check.
+  assert.equal(reviewState({ comments, digest: LATEST_DIGEST, trusted }).state, "missing");
+  // That review restarts the chain, and its approve decides.
+  const reviewed = [...comments, comment("owner", review({ reviewed: LATER_DIGEST }))];
+  assert.equal(reviewState({ comments: reviewed, digest: LATER_DIGEST, trusted }).state, "current");
+});
+
+test("a push after any link is stale, and stale asks for a fix-check", () => {
+  const afterReview = reviewState({ comments: [comment("owner", review())], digest: OTHER_DIGEST, trusted });
+  assert.equal(afterReview.state, "stale");
+  assert.match(afterReview.reason, /a fix-check reads the push/);
+  const afterFix = reviewState({ comments: [comment("owner", changesNeeded()), comment("owner", fixCheck())], digest: OTHER_DIGEST, trusted });
+  assert.equal(afterFix.state, "stale");
+  assert.equal(afterFix.review.kind, "fix-check");
+  assert.match(afterFix.reason, /a fix-check reads the push/);
+});
+
+test("a fix-check after an approve answers none", () => {
+  const comments = [comment("owner", review()), comment("owner", fixCheck({ answers: "Answers: none" }))];
+  assert.equal(reviewState({ comments, digest: LATER_DIGEST, trusted }).state, "current");
+});
+
+test("the chain carries regressions and unresolved findings into the next fix-check's answers", () => {
+  const regression = "a.ts:5 (blocking) the new guard throws on null";
+  const first = fixCheck({ verdict: "unresolved", answers: `Answers:\n- resolved ${CRASH}\n- unresolved ${LEAK}`, findings: `Findings:\n- ${regression}` });
+  const second = fixCheck({ head: HEAD, reviewed: LATEST_DIGEST, continues: LATER_DIGEST, answers: `Answers:\n- resolved ${LEAK}\n- resolved ${regression}` });
+  const result = reviewState({ comments: [comment("owner", changesNeeded()), comment("owner", first), comment("owner", second)], digest: LATEST_DIGEST, trusted });
+  assert.equal(result.state, "current", result.reason);
+  // A second fix-check that answers a finding the first resolved does not answer the chain.
+  const wrong = fixCheck({ head: HEAD, reviewed: LATEST_DIGEST, continues: LATER_DIGEST, answers: `Answers:\n- resolved ${CRASH}\n- resolved ${LEAK}\n- resolved ${regression}` });
+  const broken = reviewState({ comments: [comment("owner", changesNeeded()), comment("owner", first), comment("owner", wrong)], digest: LATEST_DIGEST, trusted });
+  assert.equal(broken.state, "invalid");
+  assert.match(broken.reason, /not open/);
+});
+
+test("a fix-check that continues another link, or skips an open finding, makes the chain invalid", () => {
+  const wrongLink = reviewState({ comments: [comment("owner", changesNeeded()), comment("owner", fixCheck({ continues: OTHER_DIGEST }))], digest: LATER_DIGEST, trusted });
+  assert.equal(wrongLink.state, "invalid");
+  assert.match(wrongLink.reason, /continues sha256:c+, not the verdict before it/);
+  const skipped = reviewState({ comments: [comment("owner", changesNeeded()), comment("owner", fixCheck({ answers: `Answers:\n- resolved ${CRASH}` }))], digest: LATER_DIGEST, trusted });
+  assert.equal(skipped.state, "invalid");
+  assert.match(skipped.reason, /unanswered: b\.ts:9 \(blocking\) logs the token/);
+});
+
+test("fix-checks before the newest review are history, and a fix-check with no review counts for nothing", () => {
+  const comments = [comment("owner", changesNeeded()), comment("owner", fixCheck({ continues: OTHER_DIGEST })), comment("owner", review({ reviewed: LATER_DIGEST }))];
+  assert.equal(reviewState({ comments, digest: LATER_DIGEST, trusted }).state, "current");
+  const orphan = reviewState({ comments: [comment("owner", fixCheck())], digest: LATER_DIGEST, trusted });
+  assert.equal(orphan.state, "missing");
+});
+
+test("a fix-check by an account without write access is ignored", () => {
+  const comments = [comment("owner", changesNeeded()), comment("drive-by", fixCheck())];
+  const result = reviewState({ comments, digest: LATER_DIGEST, trusted });
+  assert.equal(result.state, "stale");
+  assert.equal(result.review.kind, "review");
+  const orphan = reviewState({ comments: [comment("drive-by", changesNeeded()), comment("owner", fixCheck())], digest: LATER_DIGEST, trusted });
+  assert.match(orphan.reason, /1 review comment\(s\) by accounts without write access ignored/);
+});
+
+test("a fix-check's output that could not be posted honestly is refused", () => {
+  const good = { check: "fix", verdict: "resolved", reviewer: "claude-opus-5-5", security: SECURITY, continues: DIGEST, answers: [{ finding: CRASH, resolved: true }], regressions: [] };
+  assert.deepEqual(fixCheckProblems(good), []);
+  assert.deepEqual(verdictProblems(good), [], "verdictProblems reads a fix-check by its check field");
+  const cases = [
+    [{ ...good, verdict: "approve" }, /verdict must be one of resolved, unresolved, needs-review/],
+    [{ ...good, security: "" }, /security answers the review-change-security questions/],
+    [{ ...good, continues: "abc" }, /continues is the Reviewed digest/],
+    [{ ...good, answers: undefined }, /answers is a list/],
+    [{ ...good, answers: [{ finding: "", resolved: true }] }, /answers\[0\]\.finding is missing/],
+    [{ ...good, answers: [{ finding: CRASH, resolved: "yes" }] }, /answers\[0\]\.resolved is true or false/],
+    [{ ...good, regressions: [{ path: "a.ts", summary: "x", severity: "minor" }] }, /regressions\[0\] is blocking/],
+    [{ ...good, regressions: [{ summary: "x" }] }, /regressions\[0\]\.path is missing/],
+    [{ ...good, answers: [{ finding: CRASH, resolved: false }] }, /resolved needs every answer resolved and no regression/],
+    [{ ...good, regressions: [{ path: "a.ts", summary: "x" }] }, /resolved needs every answer resolved and no regression/],
+    [{ ...good, verdict: "unresolved" }, /unresolved needs an unresolved answer or a regression/],
+    [{ ...good, check: "other" }, /check is "fix" for a fix-check, or absent for a review/],
+  ];
+  for (const [output, pattern] of cases) {
+    const problems = verdictProblems(output);
+    assert.ok(problems.some((p) => pattern.test(p)), `${pattern} in ${JSON.stringify(problems)}`);
+  }
+});
+
+test("a rendered fix-check parses back to what was posted", () => {
+  const body = renderFixCheck({
+    verdict: "unresolved", head: LATER_HEAD, reviewed: LATER_DIGEST, continues: DIGEST, reviewer: "claude-opus-5-5", security: SECURITY,
+    answers: [{ finding: CRASH, resolved: true }, { finding: LEAK, resolved: false, note: "still\nlogged" }],
+    regressions: [{ path: "a.ts", line: 5, summary: "the new guard\nthrows on null" }],
+  });
+  const parsed = parseFixCheck(body);
+  assert.deepEqual(parsed.problems, []);
+  assert.deepEqual(parsed.answers, [{ resolved: true, finding: CRASH, note: undefined }, { resolved: false, finding: LEAK, note: "still logged" }]);
+  assert.deepEqual(parsed.findings, ["a.ts:5 (blocking) the new guard throws on null"]);
+  assert.match(body, /^## Fix check\n<!-- review-fix-check -->\n/);
+  assert.match(renderFixCheck({ verdict: "resolved", head: LATER_HEAD, reviewed: LATER_DIGEST, continues: DIGEST, reviewer: "m", security: SECURITY, answers: [], regressions: [] }), /\nAnswers: none\nFindings: none\n$/);
+});
+
+// postVerdict for a fix-check reads the chain it continues.
+const FIX_BODY = "";
+const FIX_REVIEWED = changeDigest({ changeId: "1234", declarations: declarationText(FIX_BODY) });
+
+function fixLookups(comments, { permissions = { owner: true } } = {}) {
+  const { lookups, posted } = postLookups({ body: FIX_BODY });
+  return { posted, lookups: { ...lookups, reviewComments: () => comments, canWrite: (_repo, login) => permissions[login] ?? false } };
+}
+const resolvedFix = { check: "fix", verdict: "resolved", reviewer: "claude-opus-5-5", security: SECURITY, continues: DIGEST, answers: [{ finding: CRASH, resolved: true }, { finding: LEAK, resolved: true }], regressions: [] };
+const postFix = (output, lookups) => postVerdict({ repo: "stigmer/stigmer", number: 7, output, reviewedHead: HEAD, reviewedDigest: FIX_REVIEWED }, lookups);
+
+test("a fix-check that answers the open findings of the newest verdict is posted, and reads back current", () => {
+  const comments = [comment("owner", changesNeeded(), "https://example.test/review")];
+  const { lookups, posted } = fixLookups(comments);
+  const result = postFix(resolvedFix, lookups);
+  assert.equal(result.exit, 0, result.lines.join("; "));
+  assert.deepEqual(result.lines, ["posted fix-check resolved on stigmer/stigmer#7 at aaaaaaaaaa", "reran"]);
+  const parsed = parseFixCheck(posted[0]);
+  assert.deepEqual(parsed.problems, []);
+  assert.equal(parsed.reviewed, FIX_REVIEWED);
+  assert.equal(parsed.continues, DIGEST);
+  assert.equal(reviewState({ comments: [...comments, comment("owner", posted[0])], digest: FIX_REVIEWED, trusted }).state, "current");
+});
+
+test("a fix-check that skips, invents or continues the wrong link is not posted", () => {
+  const comments = [comment("owner", changesNeeded())];
+  const cases = [
+    [{ ...resolvedFix, answers: [{ finding: CRASH, resolved: true }] }, /answer exactly the open blocking findings; unanswered: b\.ts:9/],
+    [{ ...resolvedFix, answers: [...resolvedFix.answers, { finding: TYPO, resolved: true }] }, /not open: c\.ts \(minor\) typo/],
+    [{ ...resolvedFix, continues: OTHER_DIGEST }, /continues sha256:c+, but the newest verdict on #7 is .* \(sha256:b+\)/],
+    [{ ...resolvedFix, answers: [{ finding: CRASH, resolved: true }, { finding: LEAK, resolved: false }] }, /resolved needs every answer resolved/],
+    [{ ...resolvedFix, security: "" }, /security answers/],
+  ];
+  for (const [output, pattern] of cases) {
+    const { lookups, posted } = fixLookups(comments);
+    const result = postFix(output, lookups);
+    assert.equal(result.exit, 1, JSON.stringify(output));
+    assert.match(result.lines[0], pattern);
+    assert.deepEqual(posted, []);
+  }
+});
+
+test("a fix-check needs a review to continue, and is refused when the chain asks for a full review", () => {
+  const none = fixLookups([comment("drive-by", changesNeeded())]);
+  assert.match(postFix(resolvedFix, none.lookups).lines[0], /a fix-check continues a review: .*no review by an account with write access.*run the full review/);
+  const needsReview = fixLookups([comment("owner", changesNeeded()), comment("owner", fixCheck({ verdict: "needs-review", reviewed: LATER_DIGEST }))]);
+  assert.match(postFix({ ...resolvedFix, continues: LATER_DIGEST }, needsReview.lookups).lines[0], /one new full review/);
+  assert.deepEqual([...none.posted, ...needsReview.posted], []);
+});
+
+test("a fix-check after an approve answers none, and its digest guard is the review's", () => {
+  const { lookups, posted } = fixLookups([comment("owner", review())]);
+  const output = { ...resolvedFix, answers: [] };
+  assert.equal(postFix(output, lookups).exit, 0);
+  assert.equal(posted.length, 1);
+  const moved = fixLookups([comment("owner", review())]);
+  const result = postVerdict({ repo: "stigmer/stigmer", number: 7, output, reviewedHead: HEAD, reviewedDigest: OTHER_DIGEST }, moved.lookups);
+  assert.match(result.lines[0], /moved during the fix-check/);
+  assert.deepEqual(moved.posted, []);
 });
 
 // ─── The change id, through real git ────────────────────────────────────
