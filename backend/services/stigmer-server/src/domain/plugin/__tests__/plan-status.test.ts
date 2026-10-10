@@ -249,6 +249,13 @@ describe("planPluginStatus — the server segment", () => {
     );
   });
 
+  it("refuses two servers of one plugin that a turn would name the same, naming both", () => {
+    const plan = (): unknown =>
+      planOf(pkg({ mcpServers: [{ ...stdioServer, name: "x.y" }, { ...stdioServer, name: "x_y" }] }));
+    expect(plan).toThrow(ServerNameError);
+    expect(plan).toThrow("MCP servers 'x.y' and 'x_y' of plugin 'acme' would both name their tools 'mcp__plugin_acme_x_y__<tool>'");
+  });
+
   it("refuses a segment that ends in an underscore, whether the name wrote it or a character mapped to it", () => {
     expect(() =>
       planOf(pkg({ mcpServers: [{ ...stdioServer, name: "db_" }] })),

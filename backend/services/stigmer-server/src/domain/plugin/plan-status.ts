@@ -85,12 +85,19 @@ export interface PluginStatusPlan {
   readonly warnings: readonly PluginWarning[];
 }
 
-/** A server whose tool names could not be told apart, phrased for the author. */
+/**
+ * A server whose tool names could not be told apart, phrased for the
+ * author: a name that cannot be split from a tool name, or one another of
+ * the plugin's servers also takes (`other`), since `.` and `_` read alike.
+ */
 export class ServerNameError extends Error {
-  constructor(plugin: string, server: string, segment: string) {
+  constructor(plugin: string, server: string, segment: string, other?: string) {
     super(
-      `MCP server '${server}' of plugin '${plugin}' would name its tools 'mcp__${segment}__<tool>', ` +
-        "which cannot be told apart from a tool name (two underscores in a row, or one at the end); rename the plugin or the server",
+      other === undefined
+        ? `MCP server '${server}' of plugin '${plugin}' would name its tools 'mcp__${segment}__<tool>', ` +
+            "which cannot be told apart from a tool name (two underscores in a row, or one at the end); rename the plugin or the server"
+        : `MCP servers '${other}' and '${server}' of plugin '${plugin}' would both name their tools 'mcp__${segment}__<tool>'; ` +
+            "rename one of them",
     );
     this.name = "ServerNameError";
   }
@@ -133,11 +140,17 @@ export function planPluginStatus(plugin: PluginPackage, files: PluginFiles): Plu
   }
   const tag = versionTag(plugin.version, warnings);
 
+  const segments = new Map<string, string>();
   for (const server of plugin.mcpServers) {
     const segment = toolServerSegment(plugin.name, server.name);
     if (segment.includes("__") || segment.endsWith("_")) {
       throw new ServerNameError(plugin.name, server.name, segment);
     }
+    const other = segments.get(segment);
+    if (other !== undefined) {
+      throw new ServerNameError(plugin.name, server.name, segment, other);
+    }
+    segments.set(segment, server.name);
   }
 
   const skillNames = new Set(plugin.skills.map((skill) => skill.name));

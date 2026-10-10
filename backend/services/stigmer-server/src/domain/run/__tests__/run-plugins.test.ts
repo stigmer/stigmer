@@ -95,6 +95,19 @@ beforeAll(async () => {
     PluginSchema,
     pluginRow({ id: "plg_linear_elsewhere", org: OTHER_ORG, slug: "linear", name: "linear", digest: HEAD, version: "1.0.0", server: "theirs" }),
   );
+  // Two plugins whose servers a turn would name the same: `.` reads as `_`.
+  await store.saveResource(
+    ApiResourceKind.plugin,
+    "plg_acme_tools",
+    PluginSchema,
+    pluginRow({ id: "plg_acme_tools", org: ORG, slug: "acme-tools", name: "acme.tools", digest: HEAD, version: "1.0.0", server: "github" }),
+  );
+  await store.saveResource(
+    ApiResourceKind.plugin,
+    "plg_acme",
+    PluginSchema,
+    pluginRow({ id: "plg_acme", org: ORG, slug: "acme", name: "acme", digest: HEAD, version: "1.0.0", server: "tools_github" }),
+  );
   await store.saveResource(
     ApiResourceKind.plugin,
     "plg_bare",
@@ -175,6 +188,17 @@ describe("loadRunPlugins", () => {
     const [plugin] = await loadRunPlugins(store, [ref(ORG, "bare")], ORG);
     expect(plugin?.status.mcpServers).toEqual([]);
     expect(plugin?.status.digest).toBe("");
+  });
+
+  it("refuses two plugins whose servers a turn would name the same, naming the name and both servers", async () => {
+    const failure = await loadRunPlugins(store, [ref(ORG, "acme-tools"), ref(ORG, "acme")], ORG).catch(
+      (e: unknown) => e,
+    );
+    expect(failure).toBeInstanceOf(ConnectError);
+    expect((failure as ConnectError).code).toBe(Code.FailedPrecondition);
+    expect((failure as ConnectError).rawMessage).toContain(
+      "two MCP servers a turn would both name 'plugin_acme_tools_github' (plugin 'acme.tools' server 'github' and plugin 'acme' server 'tools_github')",
+    );
   });
 
   it("refuses two plugins of one name from two organizations, naming both", async () => {

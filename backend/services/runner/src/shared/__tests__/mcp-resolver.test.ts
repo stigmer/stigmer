@@ -19,7 +19,14 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
-import { declaredKeysOf, declaredServerCount, dialedUrlOf, entryToResolved, resolvePluginServers } from "../mcp-resolver.js";
+import {
+  declaredKeysOf,
+  declaredServerCount,
+  dialedUrlOf,
+  DuplicateServerNameError,
+  entryToResolved,
+  resolvePluginServers,
+} from "../mcp-resolver.js";
 import { toolValuesKey, type ToolValueGroup } from "../run-values.js";
 import { McpTransportError } from "../mcp-transport-guard.js";
 import { testConfig } from "../../__test-utils__/config-fixture.js";
@@ -87,6 +94,23 @@ describe("resolvePluginServers: names and origins", () => {
     const empty = create(McpServerEntrySchema, { name: "nothing" });
     const result = resolvePluginServers([plugin("plg_1", "p", [empty])], NO_TOOLS, {}, "stdio-allowed", PLATFORM_ENDPOINTS);
     expect(result.resolvedServers).toEqual([]);
+  });
+});
+
+describe("resolvePluginServers: two servers one name", () => {
+  it("refuses the turn rather than let one server take the other's name", () => {
+    const resolve = () =>
+      resolvePluginServers(
+        [plugin("plg_1", "acme.tools", [httpEntry("github")]), plugin("plg_2", "acme", [httpEntry("tools_github")])],
+        NO_TOOLS,
+        {},
+        "stdio-allowed",
+        PLATFORM_ENDPOINTS,
+      );
+    expect(resolve).toThrow(DuplicateServerNameError);
+    expect(resolve).toThrow(
+      "two MCP servers of this turn would both be named 'plugin_acme_tools_github' (plugin 'acme.tools' server 'github' and plugin 'acme' server 'tools_github')",
+    );
   });
 });
 

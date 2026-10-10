@@ -17,6 +17,7 @@
  */
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
+import { toolServerSegment } from "@stigmer/plugin-package";
 
 import type { AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
@@ -55,6 +56,9 @@ export async function loadRunPlugins(
 ): Promise<RunPlugin[]> {
   const plugins: RunPlugin[] = [];
   const byName = new Map<string, Plugin>();
+  // Each server's name in a turn, `plugin_<plugin>_<server>`, and whose it
+  // is: `.` and `_` read alike, so two plugins can name one server the same.
+  const bySegment = new Map<string, string>();
   for (const ref of refs) {
     let plugin: Plugin;
     try {
@@ -75,6 +79,19 @@ export async function loadRunPlugins(
       );
     }
     byName.set(name, plugin);
+    if (other === undefined) {
+      for (const server of plugin.status?.mcpServers ?? []) {
+        const segment = toolServerSegment(name, server.name);
+        const holder = bySegment.get(segment);
+        if (holder !== undefined) {
+          throw failedPreconditionError(
+            `this conversation uses two MCP servers a turn would both name '${segment}' (${holder} and ` +
+              `plugin '${name}' server '${server.name}'); remove one of their plugins from the agent or from the conversation`,
+          );
+        }
+        bySegment.set(segment, `plugin '${name}' server '${server.name}'`);
+      }
+    }
     plugins.push({
       id: plugin.metadata?.id ?? "",
       name,

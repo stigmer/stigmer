@@ -97,6 +97,14 @@ export interface McpResolutionResult {
  *        STIGMER_SERVER_ADDRESS is filled from (the runner Config satisfies
  *        it). Required so no resolution path can forget the fill.
  */
+/** Two of a turn's servers would take one name; the turn cannot run them both. */
+export class DuplicateServerNameError extends Error {
+  constructor(name: string, first: string, second: string) {
+    super(`two MCP servers of this turn would both be named '${name}' (${first} and ${second}); remove one of their plugins`);
+    this.name = "DuplicateServerNameError";
+  }
+}
+
 export function resolvePluginServers(
   plugins: readonly Plugin[],
   tools: ReadonlyMap<string, ToolValueGroup>,
@@ -105,12 +113,22 @@ export function resolvePluginServers(
   platformEndpoints: PlatformEndpoints,
 ): McpResolutionResult {
   const resolved: ResolvedMcpServer[] = [];
+  const named = new Map<string, string>();
 
   for (const plugin of plugins) {
     const pluginId = plugin.metadata?.id ?? "";
     const pluginName = plugin.metadata?.name ?? "";
     for (const entry of plugin.status?.mcpServers ?? []) {
       const slug = toolServerSegment(pluginName, entry.name);
+      // Two servers one name would share every table keyed by it (the
+      // engines' server configs, tool lists, leases, marks, hook matchers):
+      // the turn is refused rather than one silently taking the other's
+      // place. Run planning refuses it first; this is the backstop.
+      const holder = named.get(slug);
+      if (holder !== undefined) {
+        throw new DuplicateServerNameError(slug, holder, `plugin '${pluginName}' server '${entry.name}'`);
+      }
+      named.set(slug, `plugin '${pluginName}' server '${entry.name}'`);
       try {
         const group = tools.get(toolValuesKey(pluginId, entry.name));
         if (group !== undefined && group.url !== dialedUrlOf(entry)) {
