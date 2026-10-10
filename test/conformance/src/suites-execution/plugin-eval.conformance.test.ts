@@ -711,6 +711,47 @@ describe.skipIf(!runnerServesTries)("PluginEval — fixtures, resumed conversati
     expect(resumed.targets.map((t) => t.notRunReason)).toEqual(["", engineUnsupportedReason("Cursor", "resumed conversations")]);
   }, 300_000);
 
+  it("[rpc:PluginEvalQueryController.get] [rpc:ScoreQueryController.listByRun] both arms of a with-and-without eval get the case's scaffold and EVAL_* variables", async () => {
+    const installation = await installed(
+      () => [
+        {
+          name: "both-arms",
+          prompt: "Print the variable, then say DONE.",
+          frontmatter: { env: { EVAL_X: "eval-x-value" } },
+          caseYaml: { schema_version: "1.1", name: "both-arms", context: { scaffold_script: "setup.sh" } },
+          files: { "setup.sh": 'cp "$(dirname "$0")/../_fixture/app.txt" app.txt\n' },
+          graders: [
+            { name: "env-reached", frontmatter: { type: "regex", pattern: "eval-x-value", target: "trace" } },
+            { name: "scaffolded", frontmatter: { type: "regex", pattern: "version = 1", target: { source: "file", path: "app.txt" } } },
+            lastMessageGrader("says-done", "^DONE"),
+          ],
+        },
+      ],
+      { files: { "evals/_fixture/app.txt": "version = 1\n" } },
+    );
+    // Matrix order: the with-arm's try, then the without-arm's.
+    for (const arm of ["with", "without"]) {
+      mock.enqueue(anthropicToolUse(`call_env_${arm}`, "execute", { command: 'echo "$EVAL_X"' }));
+      mock.enqueue(anthropicText(DONE));
+    }
+
+    const created = await startEval(installation, { allowTools: ["Bash"] });
+    const ended = await awaitPluginEvalEnd(clients, created.metadata!.id, 300_000);
+    expect(ended.status?.phase, describeTries(ended)).toBe(PluginEvalPhase.completed);
+    const tries = triesOf(ended);
+    expect(tries.map((t) => t.arm)).toEqual(["with", "without"]);
+    for (const { arm, attempt } of tries) {
+      expect(attempt.state, `${arm}: error "${attempt.error}"`).toBe(PluginEvalTryState.graded);
+      const score = await evalScoreOf(attempt.runId);
+      expect(score.spec?.criteria.map((c) => [c.name, c.result]), arm).toEqual([
+        ["env-reached", CriterionResult.passed],
+        ["says-done", CriterionResult.passed],
+        ["scaffolded", CriterionResult.passed],
+      ]);
+      expect(attempt.score, arm).toBe(1);
+    }
+  }, 360_000);
+
   /** A one-skill plugin with the MCP servers `tracker` and `wiki`, and the suite's mocks of `tracker`. */
   async function mockedPlugin(cases: (skill: string) => readonly EvalCaseFixture[]): Promise<Installed> {
     const name = uniqueName("pev");
