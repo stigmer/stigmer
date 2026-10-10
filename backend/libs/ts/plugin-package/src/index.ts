@@ -3,7 +3,8 @@
  *
  * `readPluginPackage` reads one plugin; `readMarketplace` reads a catalogue
  * of them; `readPluginPresentation` reads what a card shows for one entry
- * without opening the rest of it. Everything else here is what a consumer needs to supply its
+ * without opening the rest of it; `readEvalSuite` reads the plugin's own
+ * eval suite, which the install summarises and the eval workflow runs. Everything else here is what a consumer needs to supply its
  * input (`PluginFiles`, the caps), route a directory (`MANIFEST_LOCATIONS`,
  * `hasPluginManifest`, `MARKETPLACE_LOCATIONS`, `hasMarketplaceFile`), or
  * render an outcome (the finding kinds and `isErrorKind`). The dialect
@@ -59,6 +60,26 @@ export type {
 } from "./marketplace/outcome.js";
 export { hasMarketplaceFile, readMarketplace, readMarketplaceFile } from "./marketplace/read-marketplace.js";
 export { readPluginPackage } from "./read-plugin-package.js";
+export {
+  DEFAULT_EVAL_DIR,
+  EVAL_MAX_GRADERS,
+  EVAL_UNSUPPORTED_FEATURES,
+  type EvalUnsupportedFeature,
+  readEvalSuite,
+} from "./evals/read-eval-suite.js";
+export { EVAL_ENV_KEY_PATTERN, EVAL_SCHEMA_VERSION } from "./evals/fields.js";
+export type {
+  EvalCase,
+  EvalCaseContext,
+  EvalFocus,
+  EvalGrader,
+  EvalGraderArm,
+  EvalGraderCheck,
+  EvalGraderType,
+  EvalSuite,
+  EvalSuiteFinding,
+  EvalToolRef,
+} from "./evals/types.js";
 export { type PluginPresentation, readPluginPresentation } from "./presentation.js";
 export type {
   HookFormat,

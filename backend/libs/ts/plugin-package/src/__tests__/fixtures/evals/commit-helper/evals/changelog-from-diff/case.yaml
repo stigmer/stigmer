@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: changelog-from-diff
+tags: [smoke]
+context:
+  scaffold_script: fixture.sh
+  add_dirs: [resources]
