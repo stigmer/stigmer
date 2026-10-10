@@ -28,12 +28,15 @@ import type { RunPluginEvalInput } from "../../temporal/evals/names.js";
 export const PLUGIN_EVAL_WORKFLOW_DEADLINE_MS = 5_000;
 
 /**
- * The longest a suite may run before the engine stops it: a full suite at
- * concurrency 1 (a thousand tries of up to an hour each, the format's
- * ceiling) does not fit any bound, so this one only ends a suite whose
- * workflow is stuck; the eval's cost ceiling is what bounds its spend.
+ * The longest a suite may run before the engine stops it, 30 days: a full
+ * suite at concurrency 1 (a thousand tries of up to an hour each, the
+ * format's ceiling) does not fit any bound, so this one only ends a suite
+ * whose workflow is stuck; the eval's cost ceiling is what bounds its
+ * spend. A workflow the engine stops writes no end, so an eval still
+ * pending or running past it is answered failed (steps.ts
+ * pluginEvalOutlivedItsWorkflow).
  */
-const RUN_PLUGIN_EVAL_EXECUTION_TIMEOUT = "30 days";
+export const PLUGIN_EVAL_EXECUTION_TIMEOUT_MS = 30 * 24 * 60 * 60 * 1000;
 
 /** The suite workflow's one argument (its wire type lives with its names). */
 export type { RunPluginEvalInput } from "../../temporal/evals/names.js";
@@ -86,7 +89,7 @@ export function newTemporalPluginEvalWorkflows(
             workflowId: runPluginEvalWorkflowId(evalId),
             taskQueue: deps.taskQueue,
             workflowIdReusePolicy: "REJECT_DUPLICATE",
-            workflowExecutionTimeout: RUN_PLUGIN_EVAL_EXECUTION_TIMEOUT,
+            workflowExecutionTimeout: PLUGIN_EVAL_EXECUTION_TIMEOUT_MS,
             args: [input],
           }),
         );

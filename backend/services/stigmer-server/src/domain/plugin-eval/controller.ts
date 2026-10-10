@@ -74,6 +74,7 @@ import { newVaultAttachmentsStep } from "../vault/attachments.js";
 import {
   PLUGIN_EVAL_RESULT_KEY,
   newCancelPluginEvalStep,
+  newSettleEndedPluginEvalStep,
   newDeletePluginEvalTriesStep,
   newEnsureEvaluatedPluginStillExistsStep,
   newListPluginEvalsByPluginStep,
@@ -238,7 +239,10 @@ async function deletePluginEval(
   return chainResult<PluginEval>(reqCtx.get(EXISTING_RESOURCE_KEY), "deleted plugin eval");
 }
 
-/** Get: can_view on the eval: the plugin's viewers in its own organization. */
+/**
+ * Get: can_view on the eval: the plugin's viewers in its own organization.
+ * An eval that outlived its workflow is answered, and stored, failed.
+ */
 async function getPluginEval(
   deps: PluginEvalControllerDeps,
   id: PluginEvalId,
@@ -255,6 +259,7 @@ async function getPluginEval(
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadTargetStep(deps.store, PluginEvalSchema))
+    .addStep(newSettleEndedPluginEvalStep(deps.store))
     .build()
     .execute(reqCtx);
   return chainResult<PluginEval>(reqCtx.get(TARGET_RESOURCE_KEY), "target plugin eval");

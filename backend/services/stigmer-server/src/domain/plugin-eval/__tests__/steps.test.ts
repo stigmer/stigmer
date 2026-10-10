@@ -5,7 +5,10 @@
  * wrote; a cancel the workflow takes answers the row unchanged, one with no
  * workflow marks the eval partial "cancelled" unless it finished meanwhile,
  * a finished eval's cancel asks nothing, and a fault is a sanitized
- * INTERNAL; listByPlugin keeps only the evals the caller may view,
+ * INTERNAL; an eval pending or running past its workflow's execution
+ * timeout is answered and stored failed, "the eval's workflow ended
+ * without finishing", by get, the plugin's list and cancel, and a running
+ * eval whose cancel finds no workflow is failed the same way; listByPlugin keeps only the evals the caller may view,
  * answers each without its tries (its summaries kept), and fails closed
  * when the authorizer cannot answer; the create's question
  * is can_edit on the plugin and a server-composed create asks none; a
@@ -19,6 +22,7 @@
  * INTERNAL instead of answering with nothing.
  */
 import { create } from "@bufbuild/protobuf";
+import { timestampFromMs } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -53,6 +57,7 @@ import type { Store } from "../../../store/interface.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
 import {
+  PLUGIN_EVAL_WORKFLOW_ENDED_ERROR,
   pluginEvalNoCasesMessage,
   pluginEvalOtherPluginToolMessage,
 } from "../constants.js";
@@ -61,6 +66,9 @@ import {
   PLUGIN_EVAL_RESULT_KEY,
   newCancelPluginEvalStep,
   newListPluginEvalsByPluginStep,
+  newSettleEndedPluginEvalStep,
+  pluginEvalOutlivedItsWorkflow,
+  settleEndedPluginEval,
   newLoadEvaluatedPluginStep,
   newPlanPluginEvalStep,
   newRefuseActivePluginEvalDeleteStep,
@@ -68,6 +76,7 @@ import {
   newStartPluginEvalWorkflowStep,
   resolvePluginEvalCreateTargets,
 } from "../steps.js";
+import { PLUGIN_EVAL_EXECUTION_TIMEOUT_MS } from "../workflows.js";
 import type { PluginEvalWorkflows } from "../workflows.js";
 
 let temp: TempStore;
@@ -202,6 +211,85 @@ describe("CancelPluginEval", () => {
     );
     expect(fault.code).toBe(Code.Internal);
     expect(fault.rawMessage).toBe("failed to cancel the plugin eval");
+  });
+});
+
+describe("an eval whose workflow ended without finishing", () => {
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const ALLOW_ALL: Authorizer = { authorize: () => Promise.resolve({ kind: "allow" }) };
+
+  /** A row created `ageMs` ago, in `phase`. */
+  function aged(id: string, phase: PluginEvalPhase, ageMs: number): PluginEval {
+    return create(PluginEvalSchema, {
+      metadata: { id, name: id, org: "org_1" },
+      spec: { pluginId: "plg_1", maxCostUsd: 5 },
+      status: { phase, audit: { specAudit: { createdAt: timestampFromMs(Date.now() - ageMs) } } },
+    });
+  }
+
+  it("is a pending or running eval created longer ago than its workflow may run", () => {
+    expect(PLUGIN_EVAL_EXECUTION_TIMEOUT_MS).toBe(30 * DAY_MS);
+    const now = Date.now();
+    expect(pluginEvalOutlivedItsWorkflow(aged("a", PluginEvalPhase.running, 31 * DAY_MS), now)).toBe(true);
+    expect(pluginEvalOutlivedItsWorkflow(aged("b", PluginEvalPhase.pending, 31 * DAY_MS), now)).toBe(true);
+    expect(pluginEvalOutlivedItsWorkflow(aged("c", PluginEvalPhase.running, 29 * DAY_MS), now)).toBe(false);
+    // Within the margin past the timeout the workflow may still be writing its end.
+    expect(pluginEvalOutlivedItsWorkflow(aged("d", PluginEvalPhase.running, 30 * DAY_MS + 60_000), now)).toBe(false);
+    expect(pluginEvalOutlivedItsWorkflow(aged("e", PluginEvalPhase.partial, 31 * DAY_MS), now)).toBe(false);
+    expect(pluginEvalOutlivedItsWorkflow(evalRow("f", PluginEvalPhase.running), now)).toBe(false);
+    const started = evalRow("g", PluginEvalPhase.running);
+    started.status!.startedAt = timestampFromMs(now - 31 * DAY_MS);
+    expect(pluginEvalOutlivedItsWorkflow(started, now)).toBe(true);
+  });
+
+  it("answers a get failed with the reason and stores it, and leaves a live one as it is", async () => {
+    const stale = await saved(aged("pev_stale", PluginEvalPhase.running, 31 * DAY_MS));
+    const ctx = idCtx(stale);
+    await newSettleEndedPluginEvalStep(temp.store).execute(ctx);
+    const answered = ctx.get(TARGET_RESOURCE_KEY) as PluginEval;
+    expect(answered.status?.phase).toBe(PluginEvalPhase.failed);
+    expect(answered.status?.error).toBe(PLUGIN_EVAL_WORKFLOW_ENDED_ERROR);
+    expect(PLUGIN_EVAL_WORKFLOW_ENDED_ERROR).toBe("the eval's workflow ended without finishing");
+    expect(answered.status?.finishedAt).toBeDefined();
+    expect((await stored("pev_stale")).status?.phase).toBe(PluginEvalPhase.failed);
+
+    const live = await saved(aged("pev_live", PluginEvalPhase.running, DAY_MS));
+    const liveCtx = idCtx(live);
+    await newSettleEndedPluginEvalStep(temp.store).execute(liveCtx);
+    expect(liveCtx.get(TARGET_RESOURCE_KEY)).toBe(live);
+  });
+
+  it("answers it failed in a plugin's list, keeping a row its settle cannot find", async () => {
+    await saved(aged("pev_stale", PluginEvalPhase.running, 31 * DAY_MS));
+    const ctx = new RequestContext(
+      ListPluginEvalsByPluginRequestSchema,
+      create(ListPluginEvalsByPluginRequestSchema, { pluginId: "plg_1" }),
+      testCallerIdentity({ origin: "in-process" }),
+      ApiResourceKind.plugin,
+    );
+    await newListPluginEvalsByPluginStep(temp.store, ALLOW_ALL, silentLogger).execute(ctx);
+    expect((ctx.get(PLUGIN_EVAL_RESULT_KEY) as PluginEvalList).items[0]?.status?.phase).toBe(PluginEvalPhase.failed);
+
+    // A row deleted between the list and its settle is answered as listed.
+    const gone = aged("pev_gone", PluginEvalPhase.running, 31 * DAY_MS);
+    expect((await settleEndedPluginEval(temp.store, gone)).status?.phase).toBe(PluginEvalPhase.running);
+  });
+
+  it("settles it on cancel without asking the workflow, and fails a running eval whose workflow is gone", async () => {
+    const stale = await saved(aged("pev_stale", PluginEvalPhase.running, 31 * DAY_MS));
+    const port = workflows();
+    const ctx = idCtx(stale);
+    await newCancelPluginEvalStep(temp.store, port).execute(ctx);
+    expect(port.calls).toEqual([]);
+    expect((ctx.get(PLUGIN_EVAL_RESULT_KEY) as PluginEval).status?.error).toBe(PLUGIN_EVAL_WORKFLOW_ENDED_ERROR);
+
+    // Only the workflow writes running, so a running eval with no workflow ended without finishing.
+    const orphan = await saved(evalRow("pev_orphan", PluginEvalPhase.running));
+    const orphanCtx = idCtx(orphan);
+    await newCancelPluginEvalStep(temp.store, workflows({ cancel: () => Promise.resolve("not-found") })).execute(orphanCtx);
+    const answered = orphanCtx.get(PLUGIN_EVAL_RESULT_KEY) as PluginEval;
+    expect(answered.status?.phase).toBe(PluginEvalPhase.failed);
+    expect(answered.status?.error).toBe(PLUGIN_EVAL_WORKFLOW_ENDED_ERROR);
   });
 });
 

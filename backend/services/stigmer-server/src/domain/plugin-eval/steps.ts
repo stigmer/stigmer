@@ -20,7 +20,7 @@
  */
 import { ConnectError } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
-import { timestampNow } from "@bufbuild/protobuf/wkt";
+import { timestampMs, timestampNow } from "@bufbuild/protobuf/wkt";
 
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
@@ -72,6 +72,7 @@ import {
   PLUGIN_EVAL_MAX_CASES,
   PLUGIN_EVAL_MAX_TRIES,
   PLUGIN_EVAL_NO_ENGINE_MESSAGE,
+  PLUGIN_EVAL_WORKFLOW_ENDED_ERROR,
   pluginEvalActiveDeleteMessage,
   pluginEvalNoCasesMessage,
   pluginEvalNotStartedMessage,
@@ -87,7 +88,10 @@ import type { EvalSuiteSource } from "./suite.js";
 import { loadEvalSuite, pluginVersionedBinding } from "./suite.js";
 import { deletePluginEvalTries } from "./tries.js";
 import type { TrySessionDeleter } from "./tries.js";
-import { PluginEvalEngineUnavailableError } from "./workflows.js";
+import {
+  PLUGIN_EVAL_EXECUTION_TIMEOUT_MS,
+  PluginEvalEngineUnavailableError,
+} from "./workflows.js";
 import type { PluginEvalWorkflows } from "./workflows.js";
 
 /** Context key for the plugin a create evaluates, stashed by LoadEvaluatedPlugin. */
@@ -100,6 +104,76 @@ export const PLUGIN_EVAL_RESULT_KEY = "pluginEvalResult";
 export function isActivePluginEval(pluginEval: PluginEval): boolean {
   const phase = pluginEval.status?.phase ?? PluginEvalPhase.unspecified;
   return phase === PluginEvalPhase.pending || phase === PluginEvalPhase.running;
+}
+
+/**
+ * How long past its workflow's execution timeout an eval may still show
+ * running: the workflow starts just after the row is written, and may be
+ * writing its end at the timeout itself.
+ */
+const WORKFLOW_ENDED_MARGIN_MS = 60 * 60 * 1000;
+
+/**
+ * Whether a pending or running eval's workflow has necessarily closed
+ * without writing its end: the workflow starts at create, and its
+ * execution timeout (workflows.ts PLUGIN_EVAL_EXECUTION_TIMEOUT_MS), with
+ * a margin, has passed since the row was created (or, with no creation
+ * stamp, since the eval started running). Answered from the row alone, so
+ * a read needs no engine.
+ */
+export function pluginEvalOutlivedItsWorkflow(pluginEval: PluginEval, nowMs: number): boolean {
+  if (!isActivePluginEval(pluginEval)) {
+    return false;
+  }
+  const since = pluginEval.status?.audit?.specAudit?.createdAt ?? pluginEval.status?.startedAt;
+  if (since === undefined) {
+    return false;
+  }
+  return timestampMs(since) + PLUGIN_EVAL_EXECUTION_TIMEOUT_MS + WORKFLOW_ENDED_MARGIN_MS < nowMs;
+}
+
+/**
+ * The eval as it should be answered: one that outlived its workflow is
+ * stored failed, "the eval's workflow ended without finishing", through
+ * the atomic write that changes only a pending or running row, so a get
+ * never shows it running for ever. Any other eval, or a row gone or a
+ * store fault meanwhile, is answered as read.
+ */
+export async function settleEndedPluginEval(store: Store, pluginEval: PluginEval): Promise<PluginEval> {
+  if (!pluginEvalOutlivedItsWorkflow(pluginEval, Date.now())) {
+    return pluginEval;
+  }
+  try {
+    return await settleUnlessFinished(store, pluginEval.metadata?.id ?? "", failWorkflowEnded);
+  } catch {
+    return pluginEval;
+  }
+}
+
+/** Marks a status failed because its workflow ended without finishing. */
+function failWorkflowEnded(status: NonNullable<PluginEval["status"]>): void {
+  status.phase = PluginEvalPhase.failed;
+  status.error = PLUGIN_EVAL_WORKFLOW_ENDED_ERROR;
+  status.finishedAt = timestampNow();
+}
+
+/**
+ * SettleEndedPluginEval: get's answer, after the target is loaded: an eval
+ * that outlived its workflow is stored and answered failed
+ * (settleEndedPluginEval).
+ */
+export function newSettleEndedPluginEvalStep(
+  store: Store,
+): PipelineStep<typeof PluginEvalIdSchema> {
+  return {
+    name: "SettleEndedPluginEval",
+    async execute(ctx: RequestContext<typeof PluginEvalIdSchema>): Promise<void> {
+      const target = ctx.get(TARGET_RESOURCE_KEY) as PluginEval | undefined;
+      if (target !== undefined) {
+        ctx.set(TARGET_RESOURCE_KEY, await settleEndedPluginEval(store, target));
+      }
+    },
+  };
 }
 
 /**
@@ -417,11 +491,14 @@ async function settleUnlessFinished(
 }
 
 /**
- * CancelPluginEval: a finished eval is answered unchanged. Otherwise the
- * workflow is asked to cancel, which it answers by stopping the tries in
- * flight and ending partial "cancelled"; when no workflow runs under the
- * eval's id (its start never happened), the eval is marked partial
- * "cancelled" here. No engine connection is UNAVAILABLE: whether a
+ * CancelPluginEval: a finished eval is answered unchanged, and one that
+ * outlived its workflow is failed (settleEndedPluginEval) without asking
+ * the engine. Otherwise the workflow is asked to cancel, which it answers
+ * by stopping the tries in flight and ending partial "cancelled"; when no
+ * workflow runs under the eval's id, a pending eval (its start never
+ * happened) is marked partial "cancelled" here, and a running one, whose
+ * workflow ran and closed without writing its end, failed "the eval's
+ * workflow ended without finishing". No engine connection is UNAVAILABLE: whether a
  * workflow runs cannot be told.
  */
 export function newCancelPluginEvalStep(
@@ -443,6 +520,10 @@ export function newCancelPluginEvalStep(
         ctx.set(PLUGIN_EVAL_RESULT_KEY, target);
         return;
       }
+      if (pluginEvalOutlivedItsWorkflow(target, Date.now())) {
+        ctx.set(PLUGIN_EVAL_RESULT_KEY, await settleUnlessFinished(store, evalId, failWorkflowEnded));
+        return;
+      }
       let outcome: "requested" | "not-found";
       try {
         outcome = await workflows.cancel(evalId);
@@ -454,6 +535,11 @@ export function newCancelPluginEvalStep(
       }
       if (outcome === "requested") {
         ctx.set(PLUGIN_EVAL_RESULT_KEY, target);
+        return;
+      }
+      if (target.status?.phase === PluginEvalPhase.running) {
+        // Only the workflow writes running: it ran, and closed without its end.
+        ctx.set(PLUGIN_EVAL_RESULT_KEY, await settleUnlessFinished(store, evalId, failWorkflowEnded));
         return;
       }
       const cancelled = await settleUnlessFinished(store, evalId, (status) => {
@@ -561,12 +647,15 @@ export function newListPluginEvalsByPluginStep(
           visible.push(pluginEval);
         }
       }
+      const answered: PluginEval[] = [];
       for (const pluginEval of visible) {
-        withoutTries(pluginEval);
+        const settled = await settleEndedPluginEval(store, pluginEval);
+        withoutTries(settled);
+        answered.push(settled);
       }
       ctx.set(
         PLUGIN_EVAL_RESULT_KEY,
-        create(PluginEvalListSchema, { totalCount: visible.length, items: visible }),
+        create(PluginEvalListSchema, { totalCount: answered.length, items: answered }),
       );
     },
   };

@@ -47,7 +47,10 @@
  *     cancel landing during it still records the try.
  *   - A load or a record that fails past its retries ends the eval failed
  *     with the reason, through the finish, once the tries in flight have
- *     settled: the workflow never ends leaving the eval running.
+ *     settled, in a non-cancellable scope. The finish is retried with no
+ *     bound of its own, so the workflow does not end leaving the eval
+ *     running; only the engine ending it (its execution timeout, or a stop
+ *     from outside) can, and the eval's reads then answer it failed.
  *
  * WORKFLOW-BUNDLE IMPORT DISCIPLINE: this module runs in the deterministic
  * sandbox; imports are limited to @temporalio/workflow and the pure names
@@ -99,12 +102,13 @@ const steps = proxyActivities<SuiteActivities & SpendActivities>({
 });
 
 /**
- * The finish, retried for up to twenty minutes so a store outage does not
- * leave the eval running for ever.
+ * The finish, retried with no bound of its own, so a store outage of any
+ * length within the workflow's execution timeout still ends the eval; an
+ * eval whose workflow that timeout ends is answered failed by its reads
+ * (domain/plugin-eval/steps.ts pluginEvalOutlivedItsWorkflow).
  */
 const finishing = proxyActivities<SuiteActivities>({
   startToCloseTimeout: "1 minute",
-  scheduleToCloseTimeout: "20 minutes",
   retry: {
     initialInterval: "2 seconds",
     backoffCoefficient: 2,
@@ -175,10 +179,13 @@ export async function runPluginEval(input: RunPluginEvalInput): Promise<void> {
     }
     if (error instanceof StepFailed) {
       // The eval's failure is its status; this workflow has done its job.
-      await finishing[FINISH_EVAL_ACTIVITY_NAME](evalId, {
-        phase: "failed",
-        error: error.message,
-      });
+      // A cancel landing meanwhile must not leave the eval running.
+      await CancellationScope.nonCancellable(() =>
+        finishing[FINISH_EVAL_ACTIVITY_NAME](evalId, {
+          phase: "failed",
+          error: error.message,
+        }),
+      );
       return;
     }
     throw error;

@@ -20,7 +20,9 @@
  * activity), starting no cell after, ending the eval partial "cancelled"
  * and rethrown;
  * a load or a record failing past its retries ending the eval failed with
- * the reason; an eval planning nothing ending at once.
+ * the reason, that end written even when a cancel lands during it, and the
+ * finish retried with no bound of its own; an eval planning nothing ending
+ * at once.
  *
  * The case: start, wait, grade, three votes per AI-graded check, record;
  * the deadline stopping the run and grading what it produced; each start
@@ -84,6 +86,8 @@ const seam = vi.hoisted(() => ({
   cancelled: false,
   /** How many non-cancellable scopes are open, for an activity to tell whether a cancel reaches it. */
   shielded: 0,
+  /** Every activity proxy's options, as the workflow modules declared them at load. */
+  proxies: [] as unknown[],
   child: (() => Promise.reject(new Error("no child expected"))) as (
     type: string,
     options: { workflowId: string; args: unknown[] },
@@ -94,8 +98,10 @@ vi.mock("@temporalio/workflow", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@temporalio/workflow")>();
   return {
     ...actual,
-    proxyActivities: () =>
-      new Proxy({}, { get: (_target, name: string) => seam.activities[name] }),
+    proxyActivities: (options: unknown) => {
+      seam.proxies.push(options);
+      return new Proxy({}, { get: (_target, name: string) => seam.activities[name] });
+    },
     executeChild: (
       type: string,
       options: { workflowId: string; args: unknown[] },
@@ -644,6 +650,35 @@ describe("the suite workflow", () => {
     expect(again.finished).toEqual([
       { phase: "failed", error: `${EVAL_NOT_PLANNED_ERROR}: not an activity failure` },
     ]);
+  });
+
+  it("writes a failed eval's end even when the eval's cancel lands during it", async () => {
+    suite({ kind: "stop" });
+    const ends: unknown[] = [];
+    seam.activities[LOAD_SUITE_ACTIVITY_NAME] = vi.fn(() =>
+      Promise.reject(stepFailure(LOAD_SUITE_ACTIVITY_NAME, "")),
+    );
+    seam.activities[FINISH_EVAL_ACTIVITY_NAME] = vi.fn((_id: string, end: unknown) => {
+      seam.cancelled = true;
+      if (seam.shielded === 0) {
+        return Promise.reject(new CancelledFailure("cancelled"));
+      }
+      ends.push(end);
+      return Promise.resolve();
+    });
+    await runPluginEval({ evalId: "pev_1" });
+    expect(ends).toEqual([{ phase: "failed", error: EVAL_NOT_PLANNED_ERROR }]);
+  });
+
+  it("retries the finish without a bound of its own, within the workflow's execution timeout", () => {
+    expect(seam.proxies).toContainEqual({
+      startToCloseTimeout: "1 minute",
+      retry: {
+        initialInterval: "2 seconds",
+        backoffCoefficient: 2,
+        maximumInterval: "1 minute",
+      },
+    });
   });
 
   it("rethrows a cancellation of the load after ending the eval cancelled", async () => {
