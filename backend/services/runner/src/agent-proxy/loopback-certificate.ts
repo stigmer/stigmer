@@ -34,8 +34,8 @@ const OID_EXT_KEY_USAGE = "2.5.29.37";
 const OID_SERVER_AUTH = "1.3.6.1.5.5.7.3.1";
 const VALIDITY_YEARS = 10;
 
-/** Make a fresh key and a self-signed certificate for `127.0.0.1`. */
-export function mintLoopbackCertificate(now: Date = new Date()): LoopbackCertificate {
+/** Make a fresh key and a self-signed certificate for `127.0.0.1`; `serial` is random but for a test's. */
+export function mintLoopbackCertificate(now: Date = new Date(), serial: Buffer = randomBytes(16)): LoopbackCertificate {
   const { privateKey, publicKey } = generateKeyPairSync("ec", { namedCurve: "P-256" });
   const name = sequence(set(sequence(oid(OID_COMMON_NAME), utf8("stigmer agent proxy"))));
   const notBefore = new Date(now.getTime() - 60 * 60 * 1000);
@@ -48,7 +48,7 @@ export function mintLoopbackCertificate(now: Date = new Date()): LoopbackCertifi
   );
   const tbs = sequence(
     tlv(0xa0, integer(Buffer.from([2]))),
-    integer(randomBytes(16)),
+    integer(serial),
     signatureAlgorithm,
     name,
     sequence(utcTime(notBefore), utcTime(notAfter)),
@@ -85,9 +85,16 @@ function set(...parts: Buffer[]): Buffer {
   return tlv(0x31, Buffer.concat(parts));
 }
 
-/** A non-negative INTEGER: a leading zero keeps a high first bit from reading as a sign. */
+/**
+ * A non-negative INTEGER in DER's minimal form: leading zero bytes dropped
+ * (a parser refuses them as padding), then one zero put back when the first
+ * byte's high bit would read as a sign.
+ */
 function integer(value: Buffer): Buffer {
-  return tlv(0x02, value[0]! & 0x80 ? Buffer.concat([Buffer.from([0]), value]) : value);
+  let start = 0;
+  while (start < value.length - 1 && value[start] === 0) start++;
+  const minimal = value.subarray(start);
+  return tlv(0x02, minimal[0]! & 0x80 ? Buffer.concat([Buffer.from([0]), minimal]) : minimal);
 }
 
 function octetString(content: Buffer): Buffer {

@@ -179,3 +179,10 @@ export function replyError(res: RelayResponse, status: number, message: string):
   res.writeHead(status, { "content-type": "application/json", "content-length": String(Buffer.byteLength(body)) });
   res.end(body);
 }
+
+/** The token of an `Authorization: Bearer <token>` header, read without a backtracking pattern (the header is the host's to send). */
+export function bearerOf(header: string | undefined): string | undefined {
+  if (header === undefined || !/^bearer\s/i.test(header)) return undefined;
+  const token = header.slice("bearer".length).trim();
+  return token.length > 0 ? token : undefined;
+}

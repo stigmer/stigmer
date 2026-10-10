@@ -47,7 +47,7 @@ import type { LiveTurnRegistry } from "../agent-host/remote-adapter.js";
 import type { AgentProxyGate } from "../agent-host/supervisor.js";
 import { CursorLane } from "./cursor-lane.js";
 import { LaneRefusal, checkpointUpstream, isModelProviderLane, modelUpstream, registryUpstream } from "./lanes.js";
-import { RequestTooLargeError, readBody, relay, replyError } from "./relay.js";
+import { RequestTooLargeError, bearerOf, readBody, relay, replyError } from "./relay.js";
 
 const LLM_PREFIX = "/v1/proxy/llm/";
 const CHECKPOINT_PREFIX = "/v1/proxy/checkpoints";
@@ -213,13 +213,6 @@ function threadsInBody(body: Buffer): string[] {
   const writes = typeof parsed === "object" && parsed !== null ? (parsed as { writes?: unknown }).writes : undefined;
   if (Array.isArray(writes)) for (const write of writes) collect(write);
   return threads;
-}
-
-/** The token of an `Authorization: Bearer <token>` header, read without a backtracking pattern (the header is the host's to send). */
-export function bearerOf(header: string | undefined): string | undefined {
-  if (header === undefined || !/^bearer\s/i.test(header)) return undefined;
-  const token = header.slice("bearer".length).trim();
-  return token.length > 0 ? token : undefined;
 }
 
 function headerValue(value: string | string[] | undefined): string | undefined {

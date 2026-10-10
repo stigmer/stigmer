@@ -40,7 +40,8 @@ vi.mock("google-auth-library", () => ({
 import { testConfig } from "../../__test-utils__/config-fixture.js";
 import { FakeUpstream } from "../../__test-utils__/fake-upstream.js";
 import type { Config } from "../../config.js";
-import { AgentProxy, bearerOf } from "../server.js";
+import { bearerOf } from "../relay.js";
+import { AgentProxy } from "../server.js";
 
 const HOST_TOKEN = "host-token-0123456789";
 const RUNNER_TOKEN = "runner-control-plane-token";

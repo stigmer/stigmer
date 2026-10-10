@@ -69,7 +69,7 @@ import type { AddressInfo } from "node:net";
 import type { Config } from "../config.js";
 import { LaneRefusal, laneUrl } from "./lanes.js";
 import { mintLoopbackCertificate } from "./loopback-certificate.js";
-import { RequestTooLargeError, forwardableHeaders, readBody, relay, requestWhole, type RelayResponse, type Upstream } from "./relay.js";
+import { RequestTooLargeError, bearerOf, forwardableHeaders, readBody, relay, requestWhole, type RelayResponse, type Upstream } from "./relay.js";
 
 /** Cursor's own hosts: the only ones the REST lane reaches. */
 const CURSOR_HOSTS = ["api2.cursor.sh", "api.cursor.com", "api.cursor.sh"];
@@ -382,6 +382,3 @@ function replyConnectError(res: LaneResponse, status: number, message: string): 
   res.end(body);
 }
 
-function bearerOf(header: string | undefined): string | undefined {
-  return header?.match(/^Bearer\s+(.+)$/i)?.[1];
-}

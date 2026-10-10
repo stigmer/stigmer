@@ -8,7 +8,10 @@
  *  - a TLS client that trusts it completes a handshake with a server that
  *    serves it, on 127.0.0.1, over HTTP/2;
  *  - a client that trusts something else refuses it, and each mint is a
- *    different key.
+ *    different key;
+ *  - a serial whose random bytes start with zeros, or with a high bit, is
+ *    still encoded in DER's minimal form (about one random serial in 256
+ *    starts with a zero byte).
  */
 
 import { X509Certificate, createPublicKey } from "node:crypto";
@@ -72,6 +75,13 @@ describe("the loopback certificate", () => {
 
     expect(await get(port, minted.certPem)).toBe("over loopback TLS");
     await expect(get(port, mintLoopbackCertificate().certPem)).rejects.toThrow(/self[- ]signed|unable to verify|certificate/i);
+  });
+
+  it("encodes a serial that starts with zero bytes, or with a high bit, as DER requires", () => {
+    for (const serial of [Buffer.from("00001122334455667788", "hex"), Buffer.from("007f", "hex"), Buffer.from("80ff", "hex"), Buffer.from("00", "hex")]) {
+      const cert = new X509Certificate(mintLoopbackCertificate(new Date(), serial).certPem);
+      expect(cert.serialNumber.replace(/^0+(?=.)/, "").toLowerCase(), serial.toString("hex")).toBe(BigInt(`0x${serial.toString("hex")}`).toString(16));
+    }
   });
 
   it("is a new key at every mint", () => {
