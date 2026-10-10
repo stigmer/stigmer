@@ -57,8 +57,7 @@
  */
 
 import { createHash } from "node:crypto";
-import { existsSync } from "node:fs";
-import { lstat, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { agentFs, agentPathExists } from "./agent-fs.js";
 import { join, posix, relative } from "node:path";
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { StigmerClient } from "../client/stigmer-client.js";
@@ -141,7 +140,7 @@ export async function mountPlugin(
   }
 
   const pluginsDir = join(platformDir, PLUGINS_SUBDIR);
-  await mkdir(pluginsDir, { recursive: true });
+  await agentFs().mkdir(pluginsDir, { recursive: true });
   const archivePath = join(pluginsDir, `${digest}.zip`);
   const archive = await cachedArchive(client, archivePath, digest, storageKey, slug);
   const entries = await extractZipFileEntries(archive);
@@ -150,16 +149,16 @@ export async function mountPlugin(
   }
   const mountable = withoutEvalSuite(entries, plugin.status?.evals?.dir, manifestEvalDir(entries));
   if (mountable.length === entries.length) {
-    await writeFile(archivePath, archive);
+    await agentFs().writeFile(archivePath, archive);
   } else {
-    await rm(archivePath, { force: true });
+    await agentFs().rm(archivePath, { force: true });
   }
 
   const tree = new PluginTree(join(pluginsDir, digest), mountable);
   await tree.verify();
 
   const data = join(platformDir, PLUGIN_DATA_SUBDIR, slug);
-  await mkdir(data, { recursive: true });
+  await agentFs().mkdir(data, { recursive: true });
 
   return {
     slug,
@@ -319,7 +318,7 @@ async function cachedArchive(
   storageKey: string,
   slug: string,
 ): Promise<Uint8Array> {
-  const cached = await readFile(archivePath).then(
+  const cached = await agentFs().readFile(archivePath).then(
     (bytes) => new Uint8Array(bytes),
     () => undefined,
   );
@@ -384,7 +383,7 @@ export class PluginTree {
 
   private async check(): Promise<void> {
     if (await this.intact()) return;
-    if (existsSync(this.root)) {
+    if (await agentPathExists(this.root)) {
       console.warn(`[plugin-mount] ${this.root} differs from its verified archive; rebuilding it`);
     }
     await this.rebuild();
@@ -413,7 +412,7 @@ export class PluginTree {
       if (signature.size !== expected.size || (signature.mode & OWNER_EXEC) !== (expected.mode & OWNER_EXEC)) return false;
       const last = this.seen.get(path);
       if (last !== undefined && sameSignature(last, signature)) continue;
-      if (sha256Hex(await readFile(join(this.root, path))) !== expected.sha256) return false;
+      if (sha256Hex(await agentFs().readFile(join(this.root, path))) !== expected.sha256) return false;
       this.seen.set(path, signature);
     }
     return true;
@@ -422,11 +421,11 @@ export class PluginTree {
   /** Every entry under the root as a regular file's signature; `undefined` when it holds anything but files and directories. */
   private async listFiles(): Promise<Map<string, StatSignature> | undefined> {
     const files = new Map<string, StatSignature>();
-    for (const dirent of await readdir(this.root, { recursive: true, withFileTypes: true })) {
+    for (const dirent of await agentFs().readdir(this.root, { recursive: true })) {
       if (dirent.isDirectory()) continue;
       if (!dirent.isFile()) return undefined;
       const absolute = join(dirent.parentPath, dirent.name);
-      const stat = await lstat(absolute);
+      const stat = await agentFs().lstat(absolute);
       files.set(relative(this.root, absolute), {
         size: stat.size,
         mode: stat.mode,

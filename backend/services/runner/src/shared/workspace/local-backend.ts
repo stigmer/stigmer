@@ -1,9 +1,10 @@
 /**
  * Local filesystem workspace backend.
  *
- * Executes commands via child_process and reads/writes files directly.
- * Used in local mode and as the default; there is no remote (sandbox-hosted)
- * backend.
+ * Executes commands and reads/writes files through the agent's operations
+ * (`shared/agent-fs.ts`): in the runner each is performed by the agent host,
+ * with the agent's rights; in the host, by the host itself. Used in local
+ * mode and as the default; there is no remote (sandbox-hosted) backend.
  *
  * When `platformDir` is provided, paths under `.stigmer/` are
  * transparently routed to the platform directory, keeping platform files
@@ -14,8 +15,7 @@
  * workspace symlink instead (see shared/workspace/stigmer-link.ts).
  */
 
-import { execFile } from "node:child_process";
-import { readFile, writeFile, access, mkdir } from "node:fs/promises";
+import { AgentExecError, agentFs, agentPathExists } from "../agent-fs.js";
 import { join, isAbsolute, resolve, relative } from "node:path";
 import type { ExecuteOptions, WorkspaceBackend } from "./types.js";
 import {
@@ -38,50 +38,40 @@ export class LocalWorkspaceBackend implements WorkspaceBackend {
       ? (isAbsolute(options.cwd) ? options.cwd : join(this.rootDir, options.cwd))
       : this.rootDir;
 
-    let resolvedCommand = command;
+    const resolvedCommand = this.platformDir ? resolvePlatformCommand(command) : command;
+    // Extra variables only: the process gets the environment of whoever
+    // performs it (the agent host, in the runner), plus these.
     const env: Record<string, string> | undefined = this.platformDir || options?.env
       ? {
-          ...process.env as Record<string, string>,
           ...(this.platformDir ? { [STIGMER_PLATFORM_DIR_ENV]: this.platformDir } : {}),
           ...options?.env,
         }
       : undefined;
 
-    if (this.platformDir) {
-      resolvedCommand = resolvePlatformCommand(command);
+    try {
+      const { stdout } = await agentFs().execFile("sh", ["-c", resolvedCommand], { cwd, maxBuffer: 10 * 1024 * 1024, ...(env ? { env } : {}) });
+      return stdout.toString("utf8");
+    } catch (err) {
+      const stderr = err instanceof AgentExecError ? err.stderr.toString("utf8") : "";
+      throw new Error(`Command failed: ${command}\n${stderr || (err instanceof Error ? err.message : String(err))}`);
     }
-
-    return new Promise((resolve, reject) => {
-      execFile(
-        "sh",
-        ["-c", resolvedCommand],
-        { cwd, maxBuffer: 10 * 1024 * 1024, ...(env ? { env } : {}) },
-        (err, stdout, stderr) => {
-          if (err) {
-            reject(new Error(`Command failed: ${command}\n${stderr || err.message}`));
-          } else {
-            resolve(stdout);
-          }
-        },
-      );
-    });
   }
 
   async readFile(path: string): Promise<string> {
     const full = this.resolvePath(path);
-    return readFile(full, "utf-8");
+    return (await agentFs().readFile(full)).toString("utf8");
   }
 
   async writeFile(path: string, content: string): Promise<void> {
     const full = this.resolvePath(path);
     await this.ensureParentDir(path, full);
-    await writeFile(full, content, "utf-8");
+    await agentFs().writeFile(full, content);
   }
 
   async writeFileBuffer(path: string, content: Buffer): Promise<void> {
     const full = this.resolvePath(path);
     await this.ensureParentDir(path, full);
-    await writeFile(full, content);
+    await agentFs().writeFile(full, content);
   }
 
   private async ensureParentDir(relativePath: string, resolvedPath: string): Promise<void> {
@@ -89,19 +79,13 @@ export class LocalWorkspaceBackend implements WorkspaceBackend {
       const { isPlatform } = classifyPlatformPath(relativePath);
       if (isPlatform) {
         const parentDir = join(resolvedPath, "..");
-        await mkdir(parentDir, { recursive: true });
+        await agentFs().mkdir(parentDir, { recursive: true });
       }
     }
   }
 
   async exists(path: string): Promise<boolean> {
-    const full = this.resolvePath(path);
-    try {
-      await access(full);
-      return true;
-    } catch {
-      return false;
-    }
+    return agentPathExists(this.resolvePath(path));
   }
 
   /**
@@ -143,6 +127,6 @@ export async function initializeLocalWorkspace(
   rootDir: string,
   platformDir?: string,
 ): Promise<LocalWorkspaceBackend> {
-  await mkdir(rootDir, { recursive: true });
+  await agentFs().mkdir(rootDir, { recursive: true });
   return new LocalWorkspaceBackend(rootDir, platformDir);
 }

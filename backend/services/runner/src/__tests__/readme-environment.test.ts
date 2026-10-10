@@ -103,7 +103,6 @@ const READERS = new Set(["requireEnv", "getRunnerSecret"]);
 
 /** Names the runner reads that the README deliberately does not list, each with its reason. */
 const NOT_SETTINGS: ReadonlyMap<string, string> = new Map([
-  ["HOME", "the operating system's home directory, read to place the platform directory and the workspace lock"],
   ["USERPROFILE", "HOME's Windows counterpart, read beside it"],
   [
     "STIGMER_OPENAI_BACKEND",

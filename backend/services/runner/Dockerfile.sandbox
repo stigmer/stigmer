@@ -116,6 +116,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         yamllint \
     && rm -rf /var/lib/apt/lists/*
 
+# --- The agent user ---
+# The runner runs as root and starts the agent's side (the engines, their
+# commands, MCP servers and hooks) as this user through setpriv (util-linux,
+# part of every Debian base), so nothing an agent runs can read the
+# runner's keys (src/shared/agent-identity.ts). A base image the operator
+# brings without it gets it from the runner at boot.
+RUN groupadd --gid 10001 stigmer-agent && \
+    useradd --uid 10001 --gid 10001 --home-dir /home/stigmer-agent --create-home --shell /bin/bash stigmer-agent && \
+    command -v setpriv >/dev/null
+
 # --- Go 1.25 toolchain (for MCP servers via `go run`) ---
 COPY --from=golang:1.25-bookworm /usr/local/go /usr/local/go
 ENV PATH="/usr/local/go/bin:${PATH}"

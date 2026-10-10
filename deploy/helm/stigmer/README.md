@@ -28,7 +28,9 @@ ships.
 - **State that survives `helm uninstall`.** Every disk the chart creates is
   kept; a later install of the same release name adopts it.
 - **Safe by default.** Every bundled container runs as a non-root user with no
-  privilege to escalate and every capability dropped. The bundled Postgres and
+  privilege to escalate and every capability dropped, but the runner. It runs
+  as root with five capabilities, so it can start the agents' side as a user
+  of its own that cannot read the runner's keys. The bundled Postgres and
   Temporal admit only the pods that use them. An install reachable from outside
   the cluster is refused while sign-in is off.
 - **Kubernetes 1.27 or newer**, on amd64 and arm64.
@@ -223,7 +225,8 @@ externalTemporal:
 
 Both containers receive them as the `STIGMER_TEMPORAL_*` settings, by
 `secretKeyRef`, never as a mount. The runner moves the API key and the client
-key out of its environment at boot, so its agent tools cannot read them. They
+key out of its environment at boot, and its agent tools run as the agent user,
+which cannot read the runner's process or files, so they cannot read them. They
 are Stigmer's own names, so a developer's `TEMPORAL_API_KEY` for their own
 Temporal work is never picked up.
 
@@ -276,6 +279,15 @@ From the Compose file's header, which is the canonical statement: stdio MCP
 servers spawn **inside** the runner container; they can reach that container's
 filesystem and network, not your nodes'. That network includes the cluster's
 Services. Treat the pod as one trust domain.
+
+Inside it, the runner keeps its keys out of the agents' reach. It runs as root
+and starts everything an agent runs (the engines, their commands, MCP servers
+and hooks) as `stigmer-agent`, uid 10001, through `setpriv`, keeping only
+`SETUID`, `SETGID`, `CHOWN`, `KILL` and `DAC_OVERRIDE` (`runner.securityContext`). That user cannot read
+the runner's process, its state or its keys, and the runner makes every model
+call for it. The agent's home is `/data/agent` on the runner's volume.
+Agents install user-level packages; bake system packages into your own runner
+image.
 
 Temporal belongs to that domain. Whoever reaches its frontend can start work on
 the runner's queue. The runner only runs the workflow types the server starts,

@@ -34,7 +34,7 @@
  * `realpathSync`).
  */
 
-import { readFile, realpath, writeFile } from "node:fs/promises";
+import { agentFs } from "./agent-fs.js";
 import { join, posix, relative, sep } from "node:path";
 import type { StigmerClient } from "../client/stigmer-client.js";
 import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
@@ -89,7 +89,7 @@ export function skillContentReadCheck(platformDir: string | undefined): (virtual
     const normalized = posix.normalize(virtualPath);
     if (platformDir === undefined || !normalized.toLowerCase().startsWith(PLATFORM_PREFIX)) return false;
     try {
-      const [root, target] = await Promise.all([realpath(platformDir), realpath(join(platformDir, normalized.slice(PLATFORM_PREFIX.length)))]);
+      const [root, target] = await Promise.all([agentFs().realpath(platformDir), agentFs().realpath(join(platformDir, normalized.slice(PLATFORM_PREFIX.length)))]);
       const inside = relative(root.toLowerCase(), target.toLowerCase()).split(sep).join("/");
       return !inside.startsWith("../") && inside !== ".." && SKILL_CONTENT_PATTERN.test(inside);
     } catch {
@@ -130,7 +130,7 @@ export async function mountIsFresh(
   wantsArtifact: boolean,
 ): Promise<boolean> {
   try {
-    const raw = await readFile(join(skillDir, MOUNT_MARKER_FILE), "utf-8");
+    const raw = (await agentFs().readFile(join(skillDir, MOUNT_MARKER_FILE))).toString("utf8");
     const marker = JSON.parse(raw) as Partial<MountMarker>;
     return marker.versionHash === versionHash && (marker.artifactMounted === true || !wantsArtifact);
   } catch {
@@ -190,7 +190,7 @@ export async function writeSkillMount(
 ): Promise<void> {
   await resetDirectory(skillDir);
 
-  await writeFile(join(skillDir, "SKILL.md"), skill.spec!.skillMd, "utf-8");
+  await agentFs().writeFile(join(skillDir, "SKILL.md"), skill.spec!.skillMd);
 
   const artifactMounted = artifactBytes !== undefined && artifactBytes.length > 0;
   if (artifactMounted) {
@@ -201,6 +201,6 @@ export async function writeSkillMount(
   const versionHash = skill.status?.versionHash ?? "";
   if (versionHash !== "") {
     const marker: MountMarker = { versionHash, artifactMounted };
-    await writeFile(join(skillDir, MOUNT_MARKER_FILE), JSON.stringify(marker), "utf-8");
+    await agentFs().writeFile(join(skillDir, MOUNT_MARKER_FILE), JSON.stringify(marker));
   }
 }

@@ -158,8 +158,13 @@ jobs:
       # GitHub sets CI=true, so vitest.config.ts caps fork concurrency here.
       # `make test-runner` is the install above and then `npm test`; it is
       # called directly here so the coverage flags reach vitest.
+      # STIGMER_TEST_CONTAINER=1 runs the agent user's separation proof
+      # (src/__tests__/agent-separation.container.test.ts) in Docker, which
+      # this runner has, instead of skipping it.
       - name: Run runner vitest suite
         working-directory: backend/services/runner
+        env:
+          STIGMER_TEST_CONTAINER: "1"
         run: npm test -- --coverage.enabled --coverage.reportsDirectory=coverage/v8 --reporter=default --reporter=github-actions --reporter=json --outputFile.json=coverage/report.json
 
       # The coverage and the report for ci.gate.yaml's Coverage job, red or
