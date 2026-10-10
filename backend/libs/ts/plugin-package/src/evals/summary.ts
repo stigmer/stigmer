@@ -15,7 +15,8 @@
  * {@link EVAL_SUMMARY_MAX_MESSAGE}: longer than the other texts, since it
  * holds the cut path and then the problem, which quotes up to
  * {@link EVAL_SUMMARY_MAX_TEXT} characters of a value itself. The
- * suite's tags are every case's kept tags, cut, once each. `caseCount`
+ * suite's tags are the listed cases' kept tags, cut, once each, sorted,
+ * and the first {@link EVAL_SUMMARY_MAX_SUITE_TAGS} of those. `caseCount`
  * still counts every case, and the suite's directory is copied whole: the
  * runner leaves it out of every mount, and the reader bounds it. The eval
  * itself reads the archive again, so nothing a run needs is cut.
@@ -44,6 +45,9 @@ export const EVAL_SUMMARY_MAX_MESSAGE = 1000;
 /** The most tags a stored summary lists for one case. */
 export const EVAL_SUMMARY_MAX_CASE_TAGS = 32;
 
+/** The most tags a stored summary lists for the suite. */
+export const EVAL_SUMMARY_MAX_SUITE_TAGS = 200;
+
 /** One case as the summary lists it. */
 export interface EvalSuiteSummaryCase {
   readonly name: string;
@@ -58,7 +62,7 @@ export interface EvalSuiteSummary {
   readonly dir: string;
   /** Every case the suite holds, listed or not. */
   readonly caseCount: number;
-  /** Every case's tags, once each, sorted. */
+  /** The listed cases' tags, once each, sorted, the first EVAL_SUMMARY_MAX_SUITE_TAGS of them. */
   readonly caseTags: readonly string[];
   readonly cases: readonly EvalSuiteSummaryCase[];
   readonly findings: readonly EvalSuiteFinding[];
@@ -66,11 +70,12 @@ export interface EvalSuiteSummary {
 
 /** The suite, bounded for storage on the plugin. */
 export function summariseEvalSuite(suite: EvalSuite): EvalSuiteSummary {
+  const listed = suite.cases.slice(0, EVAL_SUMMARY_MAX_CASES);
   return {
     dir: suite.dir,
     caseCount: suite.cases.length,
-    caseTags: [...new Set(suite.cases.flatMap(keptTags))].sort(),
-    cases: suite.cases.slice(0, EVAL_SUMMARY_MAX_CASES).map((c) => ({
+    caseTags: [...new Set(listed.flatMap(keptTags))].sort().slice(0, EVAL_SUMMARY_MAX_SUITE_TAGS),
+    cases: listed.map((c) => ({
       name: excerpt(c.name),
       dir: excerpt(c.dir),
       tags: keptTags(c),
