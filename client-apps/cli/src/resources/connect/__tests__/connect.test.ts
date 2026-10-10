@@ -46,6 +46,8 @@ let grantConnected = false;
 // The secret names the caller's My vault holds; undefined answers NOT_FOUND
 // (no My vault yet).
 let mySecretNames: string[] | undefined;
+// When set, getMine fails with this code instead of answering.
+let getMineFailure: Code | undefined;
 // Delay before the mock Connect RPC answers; lets the --timeout tests
 // simulate a long-running server-side connect. The timer is unref'd so a
 // still-pending delayed response can never hold the test process open.
@@ -56,6 +58,7 @@ let servedSpec: ReturnType<typeof create<typeof McpServerSchema>>;
 beforeEach(() => {
   connectCalls = [];
   grantConnected = false;
+  getMineFailure = undefined;
   mySecretNames = undefined;
   connectDelayMs = 0;
   servedSpec = create(McpServerSchema, {
@@ -94,6 +97,7 @@ beforeAll(async () => {
     });
     router.service(VaultQueryController, {
       getMine: () => {
+        if (getMineFailure !== undefined) throw new ConnectError("vault read failed", getMineFailure);
         if (mySecretNames === undefined) throw new ConnectError("no vault", Code.NotFound);
         return create(VaultSchema, {
           spec: { secrets: Object.fromEntries(mySecretNames.map((name) => [name, {}])) },
@@ -250,6 +254,30 @@ describe("OAuth guidance gate", () => {
       interactive: false,
     });
     expect(connectCalls).toHaveLength(1);
+  });
+});
+
+describe("a My vault read that fails for another reason than a missing vault", () => {
+  beforeEach(() => {
+    servedSpec.spec!.auth = create(McpServerAuthSchema, {
+      targetEnvVar: "GITHUB_TOKEN",
+    });
+  });
+
+  it("surfaces the failure instead of reading it as an empty vault", async () => {
+    getMineFailure = Code.Unavailable;
+    const err = await connectMcpServer(client, {
+      reference: "github",
+      org: "acme",
+      timeoutMs: 30_000,
+      dryRun: false,
+      consoleURL: "https://app.stigmer.ai",
+      probeLocalConsole: false,
+      interactive: false,
+    }).catch((e: unknown) => e);
+    expect(err).not.toBeInstanceOf(UsageError);
+    expect(String(err)).toContain("vault read failed");
+    expect(connectCalls).toHaveLength(0);
   });
 });
 

@@ -27,6 +27,7 @@ import {
   GetOAuthGrantStatusOutputSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { VaultCommandController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/command_pb";
+import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import {
   CompleteSignInOutputSchema,
   StartSignInOutputSchema,
@@ -572,5 +573,43 @@ describe("McpServerPicker — a conversation that leaves My vault out", () => {
     expect(started[0]?.vault?.vault.case).toBe("mine");
     // The grant is My vault's, which this conversation does not read.
     expect(screen.getByTestId("setup-status").textContent).toBe("needsSetup");
+  });
+});
+
+describe("McpServerPicker — a key typed into the configure view", () => {
+  /** A server that takes one key by name: no sign-in, nothing saved yet. */
+  function buildKeyServer(): McpServer {
+    const server = buildOAuthServer();
+    server.spec!.auth = undefined;
+    server.spec!.env = {
+      API_KEY: create(EnvVarDeclarationSchema, { isSecret: true, description: "The API key" }),
+    };
+    return server;
+  }
+
+  it("is saved in My vault through the setup, and the conversation that reads My vault is ready", async () => {
+    const setSecrets = vi.fn(() => create(VaultSchema, { metadata: { id: "vlt_mine", org: ORG } }));
+    renderPicker(
+      (router) => {
+        router.service(McpServerQueryController, {
+          getByReference: () => buildKeyServer(),
+          get: () => buildKeyServer(),
+          getOAuthGrantStatus: () =>
+            grantStatusOutput(false, OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_NO_GRANT),
+        });
+        router.service(VaultCommandController, { setSecrets });
+      },
+      [serverRef()],
+      { choice: { includeMyVault: true, vaults: [] } },
+    );
+
+    await drillIntoConfigure(new RegExp(`Configure ${SLUG}`));
+    fireEvent.change(await screen.findByLabelText(/^API_KEY/, { selector: "input" }), {
+      target: { value: "key-1" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(setSecrets).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.getByTestId("setup-status").textContent).toBe("ready"));
   });
 });

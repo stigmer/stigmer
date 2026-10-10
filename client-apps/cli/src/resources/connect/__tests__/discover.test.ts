@@ -9,7 +9,7 @@ import { create } from "@bufbuild/protobuf";
 import { McpServerSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
-import { localDiscover } from "../discover.js";
+import { goRunEnvOverrides, localDiscover } from "../discover.js";
 import { PlaceholderResolutionError } from "../../mcp/placeholder-resolver.js";
 
 const FIXTURE = fileURLToPath(new URL("../__fixtures__/stdio-server.mjs", import.meta.url));
@@ -82,4 +82,18 @@ describe("localDiscover (${VAR} argument expansion — issue #141)", () => {
       PlaceholderResolutionError,
     );
   }, 15_000);
+});
+
+describe("goRunEnvOverrides (a freshly tagged `go run` module)", () => {
+  it("skips the checksum database for the module's own path", () => {
+    expect(goRunEnvOverrides("go", ["run", "github.com/acme/mcp/cmd/server@v1.2.3"])).toEqual({
+      GONOSUMDB: "github.com/acme/mcp/*",
+      GONOSUMCHECK: "github.com/acme/mcp/*",
+    });
+  });
+
+  it("overrides nothing for a path too short to name a module, or another command", () => {
+    expect(goRunEnvOverrides("go", ["run", "./cmd@latest"])).toEqual({});
+    expect(goRunEnvOverrides("npx", ["run", "github.com/acme/mcp@v1"])).toEqual({});
+  });
 });

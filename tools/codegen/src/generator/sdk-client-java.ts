@@ -1377,7 +1377,12 @@ function emitJavaToProtoField(buf: string[], f: FieldSchema, indent: string): vo
   }
 }
 
-function emitJavaNestedToProtoField(buf: string[], f: FieldSchema, indent: string): void {
+/**
+ * Writes one field of a nested input's `toProto()` onto `builder`. Exported
+ * for its unit test: no current schema nests a map of messages, so the
+ * generator's run over the real schemas never reaches that arm.
+ */
+export function emitJavaNestedToProtoField(buf: string[], f: FieldSchema, indent: string): void {
   const fieldName = javaCamel(f.protoField);
   const t = f.type;
   const refKind = f.referenceKind ?? 0;

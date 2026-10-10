@@ -124,7 +124,8 @@ async function buildTransport(spec: McpServerSpec): Promise<BuiltTransport> {
 // Go-toolchain overrides for `go run <module>@<version>` stdio commands so a
 // freshly-tagged version is usable before sum.golang.org indexes it. Mirrors
 // Go's goRunEnvOverrides. Safe: the command comes from operator-authored config.
-function goRunEnvOverrides(command: string, args: readonly string[]): Record<string, string> {
+// Exported for its unit test: discovery never spawns `go` in the suite.
+export function goRunEnvOverrides(command: string, args: readonly string[]): Record<string, string> {
   if (command !== "go" || args.length < 2 || args[0] !== "run") return {};
   const pkg = args[1].split("@")[0];
   const parts = pkg.split("/");
