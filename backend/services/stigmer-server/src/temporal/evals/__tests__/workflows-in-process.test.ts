@@ -28,7 +28,9 @@
  * the deadline stopping the run and grading what it produced; each start
  * refusal answered (credit, cannot act, the run's own, busy past the
  * retries, busy found deeper in the failure's causes, any other failure
- * as grading failed); a cancellation anywhere (the start, the wait, the
+ * as not started); an unexpected error of the workflow's own failed as a
+ * non-retryable ApplicationFailure, a Temporal failure of its own as is;
+ * every grading and steps proxy waiting for its cancellation to complete; a cancellation anywhere (the start, the wait, the
  * grade, a vote, the record, the deadline's stop, the spend read)
  * stopping the try's run and any vote's run, the run found by the spend
  * activity when the start's answer is unknown, and answered as a try not
@@ -39,6 +41,7 @@
  * vote spent.
  */
 import {
+  ActivityCancellationType,
   ActivityFailure,
   ApplicationFailure,
   CancelledFailure,
@@ -54,6 +57,7 @@ import {
   OUT_OF_CREDIT_REASON,
   PLATFORM_BUSY_REASON,
   PLUGIN_EVAL_BUSY_FAILURE_TYPE,
+  PLUGIN_EVAL_CASE_FAILED_FAILURE_TYPE,
   POLL_RUN_ACTIVITY_NAME,
   READ_VOTE_ACTIVITY_NAME,
   RECORD_SCORE_ACTIVITY_NAME,
@@ -66,6 +70,7 @@ import {
   TRY_FAILED_REASON,
   TRY_MIN_BUDGET_USD,
   TRY_NOT_RECORDED_ERROR,
+  TRY_NOT_STARTED_REASON,
   TRY_NOT_STOPPED_REASON,
   TRY_CANCELLED_REASON,
   TRY_SPEND_ACTIVITY_NAME,
@@ -670,6 +675,13 @@ describe("the suite workflow", () => {
     expect(ends).toEqual([{ phase: "failed", error: EVAL_NOT_PLANNED_ERROR }]);
   });
 
+  it("lets the case's grading and steps activities finish before a cancel goes on, so a cancel never races a write", () => {
+    const retry = { initialInterval: "2 seconds", backoffCoefficient: 2, maximumAttempts: 5 };
+    const waits = ActivityCancellationType.WAIT_CANCELLATION_COMPLETED;
+    expect(seam.proxies).toContainEqual({ cancellationType: waits, startToCloseTimeout: "1 minute", retry });
+    expect(seam.proxies).toContainEqual({ cancellationType: waits, startToCloseTimeout: "5 minutes", retry });
+  });
+
   it("retries the finish without a bound of its own, within the workflow's execution timeout", () => {
     expect(seam.proxies).toContainEqual({
       startToCloseTimeout: "1 minute",
@@ -924,19 +936,62 @@ describe("the case workflow", () => {
         Promise.reject(new Error("broken")),
       ),
     });
-    expect((await runCase(INPUT)).notGradedReason).toBe(GRADING_FAILED_REASON);
+    expect((await runCase(INPUT)).notGradedReason).toBe(TRY_NOT_STARTED_REASON);
   });
 
-  it("fails outright on an unexpected error inside the try, for the suite to record it as a failed child with its spend", async () => {
+  it("fails outright, non-retryable, on an unexpected error inside the try, for the suite to record it as a failed child with its spend", async () => {
     // A grade with no outcomes is not a shape the grade activity answers; the
-    // workflow's own read of it throws, and no catch turns that into a try.
+    // workflow's own read of it throws a TypeError, which is failed as an
+    // ApplicationFailure so Temporal fails the workflow, not just its task.
     caseScript({
       [GRADE_TRY_ACTIVITY_NAME]: vi.fn(() => Promise.resolve({})),
     });
-    await expect(runCase(INPUT)).rejects.toThrow(TypeError);
+    const failure = await runCase(INPUT).then(
+      () => undefined,
+      (error: unknown) => error,
+    );
+    expect(failure).toBeInstanceOf(ApplicationFailure);
+    expect(failure).toMatchObject({
+      type: PLUGIN_EVAL_CASE_FAILED_FAILURE_TYPE,
+      nonRetryable: true,
+    });
+    expect((failure as ApplicationFailure).message).toBe(
+      "Cannot read properties of undefined (reading 'entries')",
+    );
   });
 
-  it("reads busy through a deeper cause, and any other activity failure as grading failed", async () => {
+  it("fails with a Temporal failure of its own as it is", async () => {
+    const own = ApplicationFailure.nonRetryable("the grade is unusable", "Unusable");
+    caseScript({
+      [GRADE_TRY_ACTIVITY_NAME]: vi.fn(() =>
+        Promise.resolve({
+          get outcomes(): never {
+            throw own;
+          },
+        }),
+      ),
+    });
+    await expect(runCase(INPUT)).rejects.toBe(own);
+  });
+
+  it("fails a thrown non-error value as an ApplicationFailure naming it", async () => {
+    caseScript({
+      [GRADE_TRY_ACTIVITY_NAME]: vi.fn(() =>
+        Promise.resolve({
+          get outcomes(): never {
+            // A value that is not an Error, as a defect could throw.
+            throw "no outcomes";
+          },
+        }),
+      ),
+    });
+    await expect(runCase(INPUT)).rejects.toMatchObject({
+      message: "no outcomes",
+      type: PLUGIN_EVAL_CASE_FAILED_FAILURE_TYPE,
+    });
+  });
+
+  it("reads busy through a deeper cause, and any other start failure as not started", async () => {
     caseScript({
       [START_TRY_ACTIVITY_NAME]: vi.fn(() =>
         Promise.reject(
@@ -961,7 +1016,7 @@ describe("the case workflow", () => {
         ),
       ),
     });
-    expect((await runCase(INPUT)).notGradedReason).toBe(GRADING_FAILED_REASON);
+    expect((await runCase(INPUT)).notGradedReason).toBe(TRY_NOT_STARTED_REASON);
   });
 
   it("answers a cancellation at the start, the grade, a vote's start or the record as a try not graded, cancelled, its run stopped", async () => {
@@ -1183,7 +1238,7 @@ describe("the case workflow", () => {
       [START_TRY_ACTIVITY_NAME]: vi.fn(() => Promise.reject(new Error("broken"))),
     });
     expect(await runCase(INPUT)).toMatchObject({
-      notGradedReason: GRADING_FAILED_REASON,
+      notGradedReason: TRY_NOT_STARTED_REASON,
       sessionId: "ses_1",
       runId: "run_1",
       costUsd: 0.4,

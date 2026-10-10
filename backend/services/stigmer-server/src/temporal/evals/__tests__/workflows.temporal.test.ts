@@ -15,7 +15,10 @@
  *   - cancelling the eval stops the try in flight, records it not graded,
  *     "cancelled", and ends the eval partial, "cancelled";
  *   - a cancel arriving while a try's start activity runs waits for the
- *     start, then stops the run it created: no run is left going.
+ *     start, then stops the run it created: no run is left going;
+ *   - a case workflow that meets an error of its own (a grade it cannot
+ *     read) fails, rather than retrying its task for ever: the suite
+ *     records that try not graded and the eval ends.
  *
  * Needs the `temporal` CLI on PATH (TestWorkflowEnvironment.createLocal);
  * every test skips VISIBLY when the local test server cannot start, never
@@ -25,6 +28,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import {
   RUN_PLUGIN_EVAL_WORKFLOW_TYPE,
+  TRY_FAILED_REASON,
   runPluginEvalWorkflowId,
   type CaseActivities,
   type RecordedTry,
@@ -60,6 +64,8 @@ interface Script {
   startDelayMs: number;
   /** Whether the case has an AI-graded check (each vote costs a poll's wait). */
   judged: boolean;
+  /** Whether the grade answers `{}`, a shape the case workflow cannot read. */
+  unreadableGrade: boolean;
   starts: string[];
   inFlight: number;
   most: number;
@@ -95,6 +101,7 @@ function resetScript(): void {
     hang: false,
     startDelayMs: 0,
     judged: false,
+    unreadableGrade: false,
     starts: [],
     inFlight: 0,
     most: 0,
@@ -155,6 +162,10 @@ function scriptedActivities(): SuiteActivities &
     },
     "stigmer/evals/grade-try": async () => {
       script.inFlight--;
+      if (script.unreadableGrade) {
+        // A defect's answer: not the TryGrade the signature promises.
+        return {} as Awaited<ReturnType<CaseActivities["stigmer/evals/grade-try"]>>;
+      }
       return {
         outcomes: script.judged
           ? [{ votes: "criteria" }, { passed: true, reason: "found" }]
@@ -371,5 +382,24 @@ describe("stigmer/evals/run-plugin-eval workflow (TestWorkflowEnvironment)", () 
     expect(script.finished).toEqual([
       { phase: "partial", reason: "cancelled" },
     ]);
+  }, 60_000);
+
+  it("fails a case workflow that cannot read its grade, records that try not graded, and ends the eval", async (testCtx) => {
+    if (!envReady) return testCtx.skip();
+    script.unreadableGrade = true;
+    script.plan = {
+      kind: "run",
+      org: "acme",
+      cells: cells(2),
+      maxCostUsd: 10,
+      concurrency: 1,
+    };
+    const handle = await startEval();
+    await handle.result();
+    expect(script.recorded.map(({ result }) => result)).toEqual([
+      expect.objectContaining({ state: "not-graded", notGradedReason: TRY_FAILED_REASON }),
+      expect.objectContaining({ state: "not-graded", notGradedReason: TRY_FAILED_REASON }),
+    ]);
+    expect(script.finished).toHaveLength(1);
   }, 60_000);
 });

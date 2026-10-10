@@ -23,18 +23,25 @@
  *   - Record: the votes tallied (two of three decide), the try's score,
  *     and its Score on its run.
  *
- * A platform failure (busy, grading that fails past its retries, a stop
- * that fails, a vote that cannot run) leaves the try not graded, never a
- * zero, and still carries what the try's run spent: read through the spend
- * activity where this workflow has no grade to read it from, so the
- * suite's ceiling counts every dollar a run used.
+ * A platform failure (busy, a start or grading that fails past its
+ * retries, a stop that fails, a vote that cannot run) leaves the try not
+ * graded, never a zero, and still carries what the try's run spent: read
+ * through the spend activity where this workflow has no grade to read it
+ * from, so the suite's ceiling counts every dollar a run used.
+ *
+ * Any other error the workflow meets (one of its own, not an activity's)
+ * fails it outright, as a non-retryable ApplicationFailure of type
+ * PLUGIN_EVAL_CASE_FAILED_FAILURE_TYPE: Temporal fails only the workflow
+ * task on a plain error, and would retry that task until the execution
+ * timeout, so the suite records such a try as a failed child instead.
  *
  * Cancel: when the suite is cancelled, this workflow stops the try's run
  * and any vote's run going, in a non-cancellable scope, waits for the
  * try's run to end, and answers the try not graded, "cancelled", with its
  * ids and what it spent, so the suite records it and counts its cost. The
- * two start activities wait for their cancellation to complete, so a start
- * running when the cancel arrives finishes and its run is known; a start
+ * activities wait for their cancellation to complete, so a start running
+ * when the cancel arrives finishes and its run is known, and a score's
+ * record or a vote's read finishes before the cancel's own reads; a start
  * whose answer is still lost (a cancel between its attempts) has its run
  * found by the spend activity, by the eval's label and the try's run name.
  * A cancelled eval leaves no run going.
@@ -51,6 +58,7 @@ import {
   isCancellation,
   proxyActivities,
   sleep,
+  TemporalFailure,
 } from "@temporalio/workflow";
 
 import {
@@ -60,6 +68,7 @@ import {
   OUT_OF_CREDIT_REASON,
   PLATFORM_BUSY_REASON,
   PLUGIN_EVAL_BUSY_FAILURE_TYPE,
+  PLUGIN_EVAL_CASE_FAILED_FAILURE_TYPE,
   POLL_RUN_ACTIVITY_NAME,
   READ_VOTE_ACTIVITY_NAME,
   RECORD_SCORE_ACTIVITY_NAME,
@@ -67,6 +76,7 @@ import {
   START_VOTE_ACTIVITY_NAME,
   STOP_RUN_ACTIVITY_NAME,
   TRY_CANCELLED_REASON,
+  TRY_NOT_STARTED_REASON,
   TRY_NOT_STOPPED_REASON,
   TRY_SPEND_ACTIVITY_NAME,
   VOTE_NOT_READ_REASON,
@@ -81,8 +91,13 @@ import type {
   VoteRead,
 } from "../names.js";
 
-/** Quick store work: the poll, the stop, the vote's read, the spend read. */
+/**
+ * Quick store work: the poll, the stop, the vote's read, the spend read.
+ * A cancel waits for the attempt running to finish, so a vote's read is
+ * never cut off between deleting its session and answering its cost.
+ */
 const steps = proxyActivities<CaseActivities & SpendActivities>({
+  cancellationType: ActivityCancellationType.WAIT_CANCELLATION_COMPLETED,
   startToCloseTimeout: "1 minute",
   retry: {
     initialInterval: "2 seconds",
@@ -91,8 +106,13 @@ const steps = proxyActivities<CaseActivities & SpendActivities>({
   },
 });
 
-/** The grade and the record: the trace and the archive, read in full. */
+/**
+ * The grade and the record: the trace and the archive, read in full. A
+ * cancel waits for the attempt running to finish, so a Score is never
+ * written after the try is answered cancelled.
+ */
 const grading = proxyActivities<CaseActivities>({
+  cancellationType: ActivityCancellationType.WAIT_CANCELLATION_COMPLETED,
   startToCloseTimeout: "5 minutes",
   retry: {
     initialInterval: "2 seconds",
@@ -163,11 +183,17 @@ export async function runCase(input: CaseInput): Promise<TryResult> {
   try {
     return await runTry(input, known);
   } catch (error) {
-    if (!isCancellation(error)) {
+    if (isCancellation(error)) {
+      return await CancellationScope.nonCancellable(() =>
+        cancelledTry(input, known),
+      );
+    }
+    if (error instanceof TemporalFailure) {
       throw error;
     }
-    return await CancellationScope.nonCancellable(() =>
-      cancelledTry(input, known),
+    throw ApplicationFailure.nonRetryable(
+      error instanceof Error ? error.message : String(error),
+      PLUGIN_EVAL_CASE_FAILED_FAILURE_TYPE,
     );
   }
 }
@@ -183,7 +209,7 @@ async function runTry(input: CaseInput, known: Known): Promise<TryResult> {
     // An earlier attempt of the start may have created the run.
     return spentNotGraded(
       input,
-      isBusy(error) ? PLATFORM_BUSY_REASON : GRADING_FAILED_REASON,
+      isBusy(error) ? PLATFORM_BUSY_REASON : TRY_NOT_STARTED_REASON,
     );
   }
   if (started.kind === "refused") {

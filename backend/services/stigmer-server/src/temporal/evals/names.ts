@@ -89,6 +89,14 @@ export const TRY_SPEND_ACTIVITY_NAME = "stigmer/evals/try-spend";
  */
 export const PLUGIN_EVAL_BUSY_FAILURE_TYPE = "PluginEvalBusy";
 
+/**
+ * The failure type the case workflow fails with on an error of its own
+ * (not a cancellation, not an activity's or a child's failure), so the
+ * workflow fails and its suite records the try, where a plain error would
+ * fail only the workflow task and retry it until the execution timeout.
+ */
+export const PLUGIN_EVAL_CASE_FAILED_FAILURE_TYPE = "PluginEvalCaseFailed";
+
 /** The not-graded reasons the workflows give without an activity. */
 export const PLATFORM_BUSY_REASON = "platform busy";
 export const OUT_OF_CREDIT_REASON = "out of credit";
