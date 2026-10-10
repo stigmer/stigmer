@@ -132,7 +132,14 @@ function makeShare(
       slug: "support-agent",
       name: "Support Agent",
     },
-    spec: { agentRef: { org: "acme", slug: "support-agent" }, ...spec },
+    // A public link unless the case says otherwise: most cases here exercise
+    // the public link's own sections. A case about the default passes
+    // `audience: undefined`.
+    spec: {
+      agentRef: { org: "acme", slug: "support-agent" },
+      audience: AgentShareAudience.public,
+      ...spec,
+    },
     ...(shareLinkToken !== undefined ? { status: { shareLinkToken } } : {}),
   } as never;
 }
@@ -283,9 +290,10 @@ describe("ShareAgentDialog", () => {
       expect(input.slug).toBe("support-agent");
       expect(input.name).toBe("Support Agent");
       expect(input.agentRef).toEqual({ org: "acme", slug: "support-agent" });
-      // One intent-click yields a live link: created enabled, public.
+      // One intent-click yields a live link: created enabled, for the
+      // organization's members unless the owner chose otherwise.
       expect(input.enabled).toBe(true);
-      expect(input.audience).toBe(AgentShareAudience.public);
+      expect(input.audience).toBe(AgentShareAudience.org);
 
       // The dialog transitions to the editor on the created share.
       await waitFor(() =>
@@ -294,6 +302,20 @@ describe("ShareAgentDialog", () => {
         ).toBeTruthy(),
       );
       expect(screen.getByText("Done")).toBeTruthy();
+    });
+
+    it("asks who can chat, with organization members preselected, and creates a public link only when chosen", async () => {
+      const apply = vi.fn().mockResolvedValue(makeShare({ enabled: true }));
+      renderOpenDialog(createMockStigmer({ apply }));
+
+      const org = screen.getByRole("radio", { name: "Organization members", hidden: true });
+      expect(org.getAttribute("aria-checked")).toBe("true");
+      fireEvent.click(screen.getByRole("radio", { name: "Anyone with the link", hidden: true }));
+      fireEvent.click(screen.getByRole("button", { name: "Create share", hidden: true }));
+
+      await waitFor(() => expect(apply).toHaveBeenCalledTimes(1));
+      const input = apply.mock.calls[0][0] as AgentShareInput;
+      expect(input.audience).toBe(AgentShareAudience.public);
     });
 
     it("pins an (org, slug) collision to the slug field with a pick-another-slug remedy", async () => {
@@ -429,7 +451,25 @@ describe("ShareAgentDialog", () => {
   });
 
   describe("Audience", () => {
-    it("defaults to Public link and switching to Org members applies the full spec", async () => {
+    it("reads an omitted audience as organization members, never public", () => {
+      renderOpenDialog(createMockStigmer(), {
+        share: makeShare({ enabled: true, audience: undefined }),
+      });
+
+      expect(
+        screen
+          .getByRole("radio", { name: "Organization members", hidden: true })
+          .getAttribute("aria-checked"),
+      ).toBe("true");
+      expect(
+        screen
+          .getByRole("radio", { name: "Anyone with the link", hidden: true })
+          .getAttribute("aria-checked"),
+      ).toBe("false");
+      expect(screen.getByText("Member chat link")).toBeTruthy();
+    });
+
+    it("switching to Organization members applies the full spec", async () => {
       const apply = vi.fn().mockResolvedValue({});
       renderOpenDialog(createMockStigmer({ apply }), {
         share: makeShare({
@@ -440,13 +480,13 @@ describe("ShareAgentDialog", () => {
       });
 
       const publicOption = screen.getByRole("radio", {
-        name: "Public link",
+        name: "Anyone with the link",
         hidden: true,
       });
       expect(publicOption.getAttribute("aria-checked")).toBe("true");
 
       fireEvent.click(
-        screen.getByRole("radio", { name: "Org members", hidden: true }),
+        screen.getByRole("radio", { name: "Organization members", hidden: true }),
       );
 
       await waitFor(() => expect(apply).toHaveBeenCalledTimes(1));
@@ -461,7 +501,7 @@ describe("ShareAgentDialog", () => {
       expect(input.slug).toBe("support-agent");
     });
 
-    it("switching to Org members drops the share's vaults (public-audience only)", async () => {
+    it("switching to Organization members drops the share's vaults (public-audience only)", async () => {
       const apply = vi.fn().mockResolvedValue({});
       renderOpenDialog(
         createMockStigmer({
@@ -477,7 +517,7 @@ describe("ShareAgentDialog", () => {
       );
 
       fireEvent.click(
-        screen.getByRole("radio", { name: "Org members", hidden: true }),
+        screen.getByRole("radio", { name: "Organization members", hidden: true }),
       );
 
       // The proto CEL rule rejects vaults on org-audience
@@ -510,7 +550,7 @@ describe("ShareAgentDialog", () => {
 
       fireEvent.click(screen.getByRole("tab", { name: /Embed/, hidden: true }));
       expect(
-        screen.getByText(/Embedding isn't available for org-members-only sharing/),
+        screen.getByText(/Embedding isn't available while only organization members can/),
       ).toBeTruthy();
       expect(screen.queryByText(/<stigmer-agent/)).toBeNull();
     });

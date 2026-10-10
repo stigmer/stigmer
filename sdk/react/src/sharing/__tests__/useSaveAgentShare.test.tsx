@@ -244,9 +244,8 @@ describe("useSaveAgentShare", () => {
 
     const first = apply.mock.calls[0][0] as AgentShareInput;
     const second = apply.mock.calls[1][0] as AgentShareInput;
-    // "public" persists as the explicit enum value, never unspecified —
-    // a console-managed share can't be downgraded by a later manifest
-    // that relies on the unspecified-means-public default.
+    // Both persist as explicit enum values, never unspecified, so a stored
+    // share always says what it means.
     expect(first.audience).toBe(AgentShareAudience.public);
     expect(second.audience).toBe(AgentShareAudience.org);
   });
@@ -362,10 +361,10 @@ describe("useSaveAgentShare", () => {
 });
 
 describe("sharingAudienceFromProto", () => {
-  it("maps unspecified to public (a share without an audience is anyone-with-link)", () => {
-    expect(sharingAudienceFromProto(undefined)).toBe("public");
+  it("maps unspecified to org (a link reaches the internet only by an explicit choice)", () => {
+    expect(sharingAudienceFromProto(undefined)).toBe("org");
     expect(sharingAudienceFromProto(AgentShareAudience.unspecified)).toBe(
-      "public",
+      "org",
     );
   });
 
