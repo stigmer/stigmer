@@ -1,11 +1,14 @@
 // `runs scores` — the grades of a finished run: each person's thumbs on the
-// final answer, the platform's free run-health checks, and an AI judge's
-// verdict where the run's agent has AI grading switched on.
+// final answer, the platform's free run-health checks, an AI judge's
+// verdict where the run's agent has AI grading switched on, and, on a try
+// of a plugin eval, the eval's verdict with each check of the case.
 //
 // The table shows one row per score: what was measured, who gave it, the
 // value (up/down for a person's feedback, pass/fail for the checks and the
 // judge, "grading" while the judge works, or "not graded" with the reason),
-// the reasons behind any failed check or rubric and a person's comment. A
+// the reasons behind any failed check or rubric and a person's comment. An
+// eval's row lists every check of its case with its verdict, failed or not,
+// because a passing check that was only an indicator reads as passed there. A
 // check's reason is counts, tool names and step numbers; a judge's may
 // quote the conversation, which the run's viewers can read already; every
 // reason passes through the same one-line cleaning as a comment. yaml and
@@ -89,6 +92,15 @@ const SOURCE_LABELS: Readonly<Record<ScoreSource, string>> = {
   [ScoreSource.check]: "check",
   [ScoreSource.human]: "person",
   [ScoreSource.judge]: "judge",
+  [ScoreSource.eval]: "eval",
+};
+
+/** A check's verdict, in words; keyed by every result, so it stays exhaustive. */
+const RESULT_LABELS: Readonly<Record<CriterionResult, string>> = {
+  [CriterionResult.unspecified]: "",
+  [CriterionResult.passed]: "passed",
+  [CriterionResult.failed]: "failed",
+  [CriterionResult.not_applicable]: "not applicable",
 };
 
 function sourceLabel(source: ScoreSource): string {
@@ -113,17 +125,28 @@ function valueLabel(score: Score): string {
   return value.value ? "pass" : "fail";
 }
 
-/** The reasons of the failed criteria, one per flag. */
+/**
+ * The reasons of the failed criteria, one per flag; for an eval, every
+ * check with its verdict and reason.
+ */
 function flagsOf(score: Score): string {
+  if (score.spec?.source === ScoreSource.eval) {
+    return score.spec.criteria
+      .map((criterion) => {
+        const verdict = `${criterion.name}: ${RESULT_LABELS[criterion.result]}`;
+        return oneLine(criterion.reason === "" ? verdict : `${verdict} (${criterion.reason})`);
+      })
+      .join("; ");
+  }
   return (score.spec?.criteria ?? [])
     .filter((criterion) => criterion.result === CriterionResult.failed)
     .map((criterion) => oneLine(`${criterion.name}: ${criterion.reason}`))
     .join("; ");
 }
 
-/** Who gave the score: the person, the platform for a check, the judge's model for a judge. */
+/** Who gave the score: the person, the platform for a check or an eval, the judge's model for a judge. */
 function byLabel(score: Score): string {
-  if (score.spec?.source === ScoreSource.check) {
+  if (score.spec?.source === ScoreSource.check || score.spec?.source === ScoreSource.eval) {
     return "platform";
   }
   if (score.spec?.source === ScoreSource.judge) {

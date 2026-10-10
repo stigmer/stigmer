@@ -29,6 +29,7 @@
     "---Artifact Commands---",
     "download",
     "install",
+    "plugin",
     "push",
     "---Server Commands---",
     "mcp-server",

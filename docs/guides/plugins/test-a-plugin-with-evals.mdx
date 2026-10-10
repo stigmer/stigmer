@@ -123,8 +123,9 @@ The table is Claude Code's, with a `PASS^k` column, and one block per model:
 
 ```text
 native/claude-sonnet-4-6
-CASE          WITH  W/OUT  Δ      PASS^k  RUNS  COST   NOTES
-review-fires  1.00  0.33   +0.67  yes     6     $0.41
+CASE           WITH   W/OUT   Δ       PASS^k   RUNS   COST    NOTES
+------------   ----   -----   -----   ------   ----   -----   -----
+review-fires   1.00   0.33    +0.67   yes      6      $0.41
 
 1 case(s) · mean Δ +0.67 · 74s · $0.41 · Δ provisional
 ```
@@ -139,12 +140,12 @@ The exit code tells a script or a CI job what happened:
 
 | Exit code | Meaning                                                                                                 |
 | --------- | ------------------------------------------------------------------------------------------------------- |
-| 0         | Every case reached the threshold and every case loaded                                                  |
+| 0         | Every case that ran reached the threshold and every case loaded                                         |
 | 1         | A case scored below the threshold, a case failed to load, no case was found, or an option was not valid |
 | 2         | Partial: the cost limit was reached or the Organization ran out of credit; the results cover what ran   |
 | 130       | Interrupted: Ctrl+C cancels the eval and prints the partial results                                     |
 
-`Δ` never changes the exit code.
+`Δ` never changes the exit code, and neither does a case listed as not run.
 
 ## Read the result file
 
