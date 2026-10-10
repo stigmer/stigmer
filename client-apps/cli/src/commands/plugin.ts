@@ -33,7 +33,7 @@ Exit codes:
   2    partial: the spending limit was reached or the organization ran out of credit
   3    the server could not be reached
   4    not signed in, or the sign-in expired
-  130  interrupted: Ctrl+C cancelled the eval`;
+  130  interrupted: the eval was cancelled, by Ctrl+C or any other cancel`;
 
 function collect(value: string, previous: readonly string[] | undefined): string[] {
   return [...(previous ?? []), value];

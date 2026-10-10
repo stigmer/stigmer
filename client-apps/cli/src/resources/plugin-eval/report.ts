@@ -15,8 +15,9 @@
 // threshold and every case file loaded; 1 for a case below it, a load
 // finding, or no case at all; 2 for a partial run (the spending limit, the
 // organization out of credit, or a reason or phase a newer server added);
-// 130 when the eval was cancelled, by this
-// command's Ctrl+C or by someone else. A case Stigmer lists as not run (a
+// 130 when the eval was cancelled, by this command's Ctrl+C or any other
+// cancel (the console's Cancel, `plugin eval cancel`). A connection or
+// sign-in failure keeps the CLI's own 3 or 4, outside this file. A case Stigmer lists as not run (a
 // feature it does not run yet) is named, not failed: it never ran, and
 // `--case` or `--tag` leaves it out.
 
