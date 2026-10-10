@@ -144,10 +144,10 @@ Feature requests are welcome! Please include:
 
 ### PR Review Process
 
-1. **Automated checks** run on all PRs. Three are required: `Gate` (every lane your change needs: tests, linting, build), `Test integrity` and `Review verdict`; CodeQL's high-severity security alerts and errors also block a merge. Your tests must keep the rules in [`test/README.md`](test/README.md#the-rules-every-test-keeps): `Gate` refuses a line your change adds that no test runs, and a removed, skipped or quarantined test, or a lowered coverage floor, is declared in the PR body, as that section shows.
-2. **Review** (usually within 2-3 business days). The review verdict is a comment, posted by an account with write access, for a reviewer who did not write the PR, and bound to the change and the declarations it read; a push that changes the change, or an edited declaration, needs a new verdict.
+1. **Automated checks** run on all PRs. `Gate` (every lane your change needs: tests, linting, build) and `Test integrity` are required, and so is `Review verdict` whenever the ruleset on `main` lists it; CodeQL's high-severity security alerts and errors also block a merge. Your tests must keep the rules in [`test/README.md`](test/README.md#the-rules-every-test-keeps): `Gate` refuses a line your change adds that no test runs, and a removed, skipped or quarantined test, or a lowered coverage floor, is declared in the PR body, as that section shows.
+2. **Review** (usually within 2-3 business days), when one is needed: [the review brief](.agents/skills/review-pull-request/SKILL.md) has when. The review verdict is a comment, posted by an account with write access, for a reviewer who did not write the PR, and bound to the change and the declarations it read; a push that changes the change, or an edited declaration, needs a new verdict.
 3. **Address feedback** if requested
-4. **Merge** through the merge queue: it runs `Gate` and the tree rules of `Test integrity` again on the exact commit it lands, and merges only when they pass. The verdict and the change rules are read on the PR itself.
+4. **Merge** once the required checks pass. While the ruleset has a merge queue, the queue runs `Gate` and the tree rules of `Test integrity` again on the exact commit it lands, and merges only when they pass; without one, a PR lands on the checks of its own head, and `main` is not re-tested before it lands. The verdict and the change rules are read on the PR itself.
 
 ### Working with coding agents
 

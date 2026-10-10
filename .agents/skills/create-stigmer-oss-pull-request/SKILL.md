@@ -107,14 +107,15 @@ with the read that proves it. The release train is the batched release
 PR's section is read against the released build and the hosted service, so a
 clause left out is a clause nobody checks.
 
-Nothing merges into `main` but through the merge queue: `Gate`, `Test integrity`
-and `Review verdict` must pass on the pull request, and `Gate` and
-`Test integrity` again on the queue's commit. `Review verdict` needs a current
-`approve` from a reviewer that did not write the change, posted as a comment by
-`.agents/skills/review-pull-request/SKILL.md`, never as a section of this body.
-The merge arms `gh pr merge <n> --auto` and hands back; nobody waits. The local
-checks the test plan quotes still come first, because a red `Gate` costs a round
-trip.
+Nothing merges into `main` but through the checks its ruleset requires: `Gate`
+and `Test integrity` on the pull request, and, while the ruleset says so,
+`Review verdict` and a merge queue that runs `Gate` and `Test integrity` again
+on the queue's commit. When a review is needed, and what a verdict is, is in
+`.agents/skills/review-pull-request/SKILL.md` ("When a review is needed"); a
+verdict is a comment, never a section of this body. The merge arms
+`gh pr merge <n> --auto` (with `--squash` when there is no queue) and hands
+back; nobody waits. The local checks the test plan quotes still come first,
+because a red `Gate` costs a round trip.
 
 ## Opening it
 
@@ -130,6 +131,6 @@ now. A PR per project would hold its work off `main` for days, drift against
 every other merge, and expose more lanes to each flaky test in the queue. Open a
 draft only when the owner asks to see the work early; a draft is reviewed when
 it is marked ready. Once the pull request is open and its local checks pass, run
-`.agents/skills/review-pull-request/SKILL.md`, and fix a `changes-needed` before
-handing back. Report the PR URL and the verdict. Merging is a separate,
-explicitly requested act, never part of opening.
+`.agents/skills/review-pull-request/SKILL.md` when its "When a review is needed"
+section says to, and act on the verdict as it says. Report the PR URL and any
+verdict. Merging is a separate, explicitly requested act, never part of opening.

@@ -3,21 +3,21 @@ name: review-pull-request
 description:
   Has a pull request read cold by a reviewer that did not write it, a fresh
   subagent given only the pull request and this brief, and posts its verdict as
-  the comment the Review verdict check and the merge require. Invoke by name, or
-  from the pull-request and merge skills, once a pull request is open and its
-  checks pass.
+  a comment. Says when one is needed. Invoke by name, or from the pull-request
+  and merge skills, once a pull request is open and its checks pass.
 disable-model-invocation: true
 ---
 
 # Review a pull request
 
-Every pull request is read, before it merges, by a reviewer that did not write
-it. The author knows what the change was meant to do; the reviewer reads what it
-does. Its verdict is a comment on the pull request, and
-`scripts/review-verdict.mjs` is the only thing that writes one: `approve` or
-`changes-needed`, bound to the change and the body's declarations. The script's
-header has the rules. The `Review verdict` check (`ci.review.yaml`) requires a
-current `approve`; a repository without that check can hold its merges to the
+A pull request is read, before it merges, by a reviewer that did not write it,
+whenever the next section says a review is needed. The author knows what the
+change was meant to do; the reviewer reads what it does. Its verdict is a
+comment on the pull request, and `scripts/review-verdict.mjs` is the only thing
+that writes one: `approve` or `changes-needed`, bound to the change and the
+body's declarations. The script's header has the rules. The `Review verdict`
+check (`ci.review.yaml`) requires a current `approve` while `main`'s ruleset
+requires that check; a repository without that check can hold its merges to the
 same verdict by importing `readReview` from a copy of the script. The copy needs
 `scripts/test-integrity.mjs` beside it, at the same commit: the verdict imports
 the declaration grammar from there, so a review binds exactly the declarations
@@ -27,13 +27,81 @@ The session that owns the pull request runs this at the end of its verification,
 so a `changes-needed` is fixed before anyone is asked to merge. Whoever arms the
 merge runs it again only when the verdict is missing or stale.
 
+## When a review is needed
+
+`main`'s ruleset says. Read it for the pull request's repository:
+
+```bash
+gh api repos/stigmer/<repo>/rules/branches/main \
+  --jq '[.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context]'
+```
+
+- **While it lists `Review verdict`**, every pull request gets a review, run by
+  the procedure below until its verdict is a current `approve`.
+- **While it does not**, a stigmer pull request whose diff touches a security
+  boundary below, or a file test rule 5 lists (`test/README.md`, "The rules
+  every test keeps"), gets **one** round, by the same procedure. In that round:
+  - each blocking finding about security is fixed, verified and pushed, with no
+    second review;
+  - each other blocking finding is filed as an issue, linked in a reply on the
+    pull request;
+  - minor findings are left;
+  - the verdict is posted as usual (step 4), as the record of what was found,
+    even a `changes-needed`.
+
+  Every other pull request gets none. The boundaries:
+  - the server's `backend/services/stigmer-server/src/authorization`,
+    `backend/services/stigmer-server/src/identity`,
+    `backend/services/stigmer-server/src/runnerauth`,
+    `backend/services/stigmer-server/src/platformtoken`,
+    `backend/services/stigmer-server/src/encryption`,
+    `backend/services/stigmer-server/src/sandbox`,
+    `backend/services/stigmer-server/src/transport` and
+    `backend/services/stigmer-server/src/pipeline`;
+  - its domains `backend/services/stigmer-server/src/domain/vault`,
+    `backend/services/stigmer-server/src/domain/oauthapp`,
+    `backend/services/stigmer-server/src/domain/platformclient`,
+    `backend/services/stigmer-server/src/domain/mcpserver` and
+    `backend/services/stigmer-server/src/domain/run/approval`;
+  - the authorization model, `backend/services/stigmer-server/fga/model`;
+  - the outbound guard, `backend/libs/ts/outbound`;
+  - the runner's credential proxy, `backend/services/runner/src/agent-proxy`,
+    and its guards in `backend/services/runner/src/shared`:
+    `backend/services/runner/src/shared/approval-canonicalize.ts`,
+    `backend/services/runner/src/shared/approval-fingerprint.ts`,
+    `backend/services/runner/src/shared/approval-policy.ts`,
+    `backend/services/runner/src/shared/cost-guard.ts`,
+    `backend/services/runner/src/shared/llm-proxy.ts`,
+    `backend/services/runner/src/shared/mcp-transport-guard.ts`,
+    `backend/services/runner/src/shared/plan-mode-permissions.ts`,
+    `backend/services/runner/src/shared/run-credential-store.ts`,
+    `backend/services/runner/src/shared/run-credential.ts`,
+    `backend/services/runner/src/shared/runner-credential-keys.ts`,
+    `backend/services/runner/src/shared/runner-credential-store.ts` and
+    `backend/services/runner/src/shared/shell-env.ts`;
+  - the sandbox host, `crates/stigmer-runner-host`;
+  - sign-in in the clients: `client-apps/web/src/auth`,
+    `client-apps/web/src/app/auth`, `client-apps/web/src/app/oauth` and
+    `client-apps/desktop/src/auth`;
+  - the identity and vault APIs, `apis/ai/stigmer/iam` and
+    `apis/ai/stigmer/agentic/vault`.
+
+  Whether the diff touches one:
+
+  ```bash
+  gh pr diff <n> -R stigmer/stigmer --name-only
+  ```
+
+This section depends on the ruleset alone, so it stays true when the ruleset
+changes again. A repository whose own guidance says otherwise follows that.
+
 ## Procedure
 
-1. **Is a review needed?** From a checkout of the pull request's base branch at
-   its tip (the primary checkout, pulled), never the pull request's own
-   worktree: the check computes the digest with the base's copy of the script,
-   and a pull request that changes the script would otherwise post a digest the
-   check never matches.
+1. **Is a review needed?** First by the section above. Then, from a checkout of
+   the pull request's base branch at its tip (the primary checkout, pulled),
+   never the pull request's own worktree: the check computes the digest with the
+   base's copy of the script, and a pull request that changes the script would
+   otherwise post a digest the check never matches.
 
    ```bash
    node scripts/review-verdict.mjs --status -R <owner/repo> <n> --json
@@ -97,13 +165,14 @@ merge runs it again only when the verdict is missing or stale.
    verdict's shape is wrong, cannot be posted: have the change read again by a
    new reviewer.
 
-5. **Act on it.** On `approve`, the pull request is ready for its merge. On
-   `changes-needed`, fix each blocking finding, verify, push, and run this
-   procedure again with a new reviewer; a reviewer that saw its own earlier
-   findings is no longer fresh. A finding you judge wrong is answered in a reply
-   on the pull request, with the reason, and the next reviewer reads that reply
-   with everything else. After an `approve`, you may still fix its minor
-   findings: disarm an armed merge first
+5. **Act on it.** In a boundary round while the ruleset requires no review, act
+   as the section above says. Otherwise: on `approve`, the pull request is ready
+   for its merge. On `changes-needed`, fix each blocking finding, verify, push,
+   and run this procedure again with a new reviewer; a reviewer that saw its own
+   earlier findings is no longer fresh. A finding you judge wrong is answered in
+   a reply on the pull request, with the reason, and the next reviewer reads
+   that reply with everything else. After an `approve`, you may still fix its
+   minor findings: disarm an armed merge first
    (`gh pr merge <n> -R <owner/repo> --disable-auto`), post the approve, push
    the fixes, and run this procedure again with a new reviewer; arm the merge
    only on that review's `approve`.
