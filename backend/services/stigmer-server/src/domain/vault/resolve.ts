@@ -22,9 +22,14 @@
  *   4. for a run with no person only, the vaults of the surface it came
  *      through, found from server-stamped facts: the minting platform
  *      client (the run's audit), its schedule (the run's
- *      stigmer.ai/schedule-id), its share or channel (the session's
+ *      stigmer.ai/schedule-id), its plugin eval (the run's
+ *      stigmer.ai/plugin-eval), its share or channel (the session's
  *      stigmer.ai/share-id or stigmer.ai/channel-id). A surface of another
- *      organization than the run's contributes nothing.
+ *      organization than the run's contributes nothing. A plugin eval's
+ *      vaults also serve a try that acts as a person (open source acts as
+ *      the eval's creator), after its conversation's: a try's conversation
+ *      names none, and the eval's vaults are what its hooks and servers
+ *      were given.
  * A conversation uses exactly what it chose: an integrator calling with an
  * admin's key, which leaves include_my_vault off, never reaches the
  * admin's own logins, and an agent carries no vaults of its own.
@@ -134,6 +139,7 @@ import type { ExecutionValue } from "@stigmer/protos/ai/stigmer/agentic/executio
 import { ExecutionValueSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { PluginEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
@@ -154,6 +160,7 @@ import { failedPreconditionError, internalError } from "../../pipeline/errors.js
 import { evaluateAuthorizer } from "../../pipeline/steps/authorize.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
+import { PLUGIN_EVAL_LABEL } from "../plugin-eval/constants.js";
 import type { PlatformClientStore } from "../platformclient/store.js";
 
 import { gitHostOf, toolAddressOf } from "./address.js";
@@ -272,6 +279,14 @@ interface Source {
 }
 
 /** Whose turn it is to act when a required key is nowhere. */
+/** A surface a run came through: what names it, its vaults and who attached each. */
+interface RunSurface {
+  readonly what: string;
+  readonly refs: readonly ApiResourceReference[];
+  readonly attachers: { readonly [id: string]: string };
+  readonly org: string;
+}
+
 type WhoActs =
   | { readonly kind: "person"; readonly includesMyVault: boolean; readonly listsVaults: boolean }
   | { readonly kind: "foreignAgent" }
@@ -765,7 +780,7 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
     session: Session,
   ): Promise<{ what: string; named: NamedVault[] } | undefined> {
     const executionOrg = execution.metadata?.org ?? "";
-    const surfaces: Array<{ what: string; refs: readonly ApiResourceReference[]; attachers: { readonly [id: string]: string }; org: string }> = [];
+    const surfaces: RunSurface[] = [];
 
     const platformClientId =
       execution.status?.audit?.specAudit?.createdBy?.platformClientId ?? "";
@@ -812,6 +827,10 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
         });
       }
     }
+    const evalSurface = await pluginEvalSurfaceOf(execution);
+    if (evalSurface !== undefined) {
+      surfaces.push(evalSurface);
+    }
     const shareId = session.metadata?.labels[SHARE_ID_LABEL_KEY] ?? "";
     if (shareId !== "") {
       const share = await loadOptional(ApiResourceKind.agent_share, shareId, AgentShareSchema);
@@ -839,6 +858,14 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
     if (surfaces.length === 0) {
       return undefined;
     }
+    return {
+      what: surfaces.map((surface) => surface.what).join(" and "),
+      named: await namedOf(surfaces),
+    };
+  }
+
+  /** Each surface's vaults, in order, each with the account that attached it. */
+  async function namedOf(surfaces: readonly RunSurface[]): Promise<NamedVault[]> {
     const named: NamedVault[] = [];
     for (const surface of surfaces) {
       for (const ref of surface.refs) {
@@ -852,7 +879,38 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
         });
       }
     }
-    return { what: surfaces.map((surface) => surface.what).join(" and "), named };
+    return named;
+  }
+
+  /**
+   * The plugin eval a try belongs to (the run's stigmer.ai/plugin-eval,
+   * which only the eval's workflow stamps), as a surface; undefined when
+   * the run is no try, or its eval is gone or of another organization.
+   */
+  async function pluginEvalSurfaceOf(execution: Run): Promise<RunSurface | undefined> {
+    const evalId = execution.metadata?.labels[PLUGIN_EVAL_LABEL] ?? "";
+    if (evalId === "") {
+      return undefined;
+    }
+    const executionOrg = execution.metadata?.org ?? "";
+    const pluginEval = await loadOptional(ApiResourceKind.plugin_eval, evalId, PluginEvalSchema);
+    if (pluginEval === undefined) {
+      return undefined;
+    }
+    if ((pluginEval.metadata?.org ?? "") !== executionOrg) {
+      logger.warn("A run's surface belongs to another organization; its vaults are not used", {
+        kind: "plugin eval",
+        id: evalId,
+        executionId: execution.metadata?.id ?? "",
+      });
+      return undefined;
+    }
+    return {
+      what: `plugin eval '${pluginEval.metadata?.name ?? evalId}'`,
+      refs: pluginEval.spec?.vaults ?? [],
+      attachers: pluginEval.status?.vaultAttachers ?? {},
+      org: executionOrg,
+    };
   }
 
   async function loadOptional<Desc extends DescMessage>(
@@ -1061,6 +1119,12 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
         }
       }
       sources.push(...(await openNamed(named, person)));
+      const evalSurface = await pluginEvalSurfaceOf(execution);
+      if (evalSurface !== undefined) {
+        sources.push(
+          ...(await openNamed(await namedOf([evalSurface]), person)),
+        );
+      }
     } else {
       sources.push(...(await openNamed(named, undefined)));
       const surface = await surfaceOf(execution, session);
