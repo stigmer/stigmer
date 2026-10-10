@@ -5463,17 +5463,7 @@
           "type": {
             "kind": "bool"
           },
-          "description": "Whether the entry is a login (a connection at an address) rather than a\n secret by name.",
-          "required": false
-        },
-        {
-          "name": "SignIn",
-          "jsonName": "signIn",
-          "protoField": "sign_in",
-          "type": {
-            "kind": "bool"
-          },
-          "description": "Whether the login is a sign-in, renewed when the value is fetched.",
+          "description": "Whether the entry is a login (a connection at an address) rather than a\n secret by name. A sign-in among them is renewed when it is fetched, as\n the vault records it then.",
           "required": false
         },
         {

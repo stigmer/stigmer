@@ -563,10 +563,9 @@ type RunValueSource struct {
 	// entry's name for its own token; empty for a declaration's default.
 	Entry string `protobuf:"bytes,5,opt,name=entry,proto3" json:"entry,omitempty"`
 	// Whether the entry is a login (a connection at an address) rather than a
-	// secret by name.
+	// secret by name. A sign-in among them is renewed when it is fetched, as
+	// the vault records it then.
 	Login bool `protobuf:"varint,6,opt,name=login,proto3" json:"login,omitempty"`
-	// Whether the login is a sign-in, renewed when the value is fetched.
-	SignIn bool `protobuf:"varint,7,opt,name=sign_in,json=signIn,proto3" json:"sign_in,omitempty"`
 	// A declaration's own plain default, the one value a manifest holds: it
 	// is a fixed setting of the agent or tool, never a secret.
 	PlainValue    string `protobuf:"bytes,8,opt,name=plain_value,json=plainValue,proto3" json:"plain_value,omitempty"`
@@ -642,13 +641,6 @@ func (x *RunValueSource) GetEntry() string {
 func (x *RunValueSource) GetLogin() bool {
 	if x != nil {
 		return x.Login
-	}
-	return false
-}
-
-func (x *RunValueSource) GetSignIn() bool {
-	if x != nil {
-		return x.SignIn
 	}
 	return false
 }
@@ -903,17 +895,16 @@ const file_ai_stigmer_agentic_run_v1_api_proto_rawDesc = "" +
 	"\x0eRunCredentials\x12\x1b\n" +
 	"\x06person\x18\x01 \x01(\tH\x00R\x06person\x88\x01\x01\x12C\n" +
 	"\asources\x18\x02 \x03(\v2).ai.stigmer.agentic.run.v1.RunValueSourceR\asourcesB\t\n" +
-	"\a_person\"\xaf\x02\n" +
+	"\a_person\"\xa5\x02\n" +
 	"\x0eRunValueSource\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12G\n" +
 	"\bdeclarer\x18\x02 \x01(\v2+.ai.stigmer.agentic.run.v1.RunValueDeclarerR\bdeclarer\x12A\n" +
 	"\x06origin\x18\x03 \x01(\x0e2).ai.stigmer.agentic.run.v1.RunValueOriginR\x06origin\x12\x19\n" +
 	"\bvault_id\x18\x04 \x01(\tR\avaultId\x12\x14\n" +
 	"\x05entry\x18\x05 \x01(\tR\x05entry\x12\x14\n" +
-	"\x05login\x18\x06 \x01(\bR\x05login\x12\x17\n" +
-	"\asign_in\x18\a \x01(\bR\x06signIn\x12\x1f\n" +
+	"\x05login\x18\x06 \x01(\bR\x05login\x12\x1f\n" +
 	"\vplain_value\x18\b \x01(\tR\n" +
-	"plainValue\"\xb6\x01\n" +
+	"plainValueJ\x04\b\a\x10\bR\asign_in\"\xb6\x01\n" +
 	"\x10RunValueDeclarer\x12C\n" +
 	"\x04kind\x18\x01 \x01(\x0e2/.ai.stigmer.agentic.run.v1.RunValueDeclarerKindR\x04kind\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\"\n" +

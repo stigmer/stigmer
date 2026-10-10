@@ -272,7 +272,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Whether the entry is a login (a connection at an address) rather than a
-   * secret by name.
+   * secret by name. A sign-in among them is renewed when it is fetched, as
+   * the vault records it then.
    * </pre>
    *
    * <code>bool login = 6 [json_name = "login"];</code>
@@ -281,21 +282,6 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public boolean getLogin() {
     return login_;
-  }
-
-  public static final int SIGN_IN_FIELD_NUMBER = 7;
-  private boolean signIn_ = false;
-  /**
-   * <pre>
-   * Whether the login is a sign-in, renewed when the value is fetched.
-   * </pre>
-   *
-   * <code>bool sign_in = 7 [json_name = "signIn"];</code>
-   * @return The signIn.
-   */
-  @java.lang.Override
-  public boolean getSignIn() {
-    return signIn_;
   }
 
   public static final int PLAIN_VALUE_FIELD_NUMBER = 8;
@@ -379,9 +365,6 @@ private static final long serialVersionUID = 0L;
     if (login_ != false) {
       output.writeBool(6, login_);
     }
-    if (signIn_ != false) {
-      output.writeBool(7, signIn_);
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(plainValue_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 8, plainValue_);
     }
@@ -415,10 +398,6 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeBoolSize(6, login_);
     }
-    if (signIn_ != false) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeBoolSize(7, signIn_);
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(plainValue_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(8, plainValue_);
     }
@@ -451,8 +430,6 @@ private static final long serialVersionUID = 0L;
         .equals(other.getEntry())) return false;
     if (getLogin()
         != other.getLogin()) return false;
-    if (getSignIn()
-        != other.getSignIn()) return false;
     if (!getPlainValue()
         .equals(other.getPlainValue())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
@@ -481,9 +458,6 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + LOGIN_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getLogin());
-    hash = (37 * hash) + SIGN_IN_FIELD_NUMBER;
-    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
-        getSignIn());
     hash = (37 * hash) + PLAIN_VALUE_FIELD_NUMBER;
     hash = (53 * hash) + getPlainValue().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
@@ -637,7 +611,6 @@ private static final long serialVersionUID = 0L;
       vaultId_ = "";
       entry_ = "";
       login_ = false;
-      signIn_ = false;
       plainValue_ = "";
       return this;
     }
@@ -695,9 +668,6 @@ private static final long serialVersionUID = 0L;
         result.login_ = login_;
       }
       if (((from_bitField0_ & 0x00000040) != 0)) {
-        result.signIn_ = signIn_;
-      }
-      if (((from_bitField0_ & 0x00000080) != 0)) {
         result.plainValue_ = plainValue_;
       }
       result.bitField0_ |= to_bitField0_;
@@ -739,12 +709,9 @@ private static final long serialVersionUID = 0L;
       if (other.getLogin() != false) {
         setLogin(other.getLogin());
       }
-      if (other.getSignIn() != false) {
-        setSignIn(other.getSignIn());
-      }
       if (!other.getPlainValue().isEmpty()) {
         plainValue_ = other.plainValue_;
-        bitField0_ |= 0x00000080;
+        bitField0_ |= 0x00000040;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -805,14 +772,9 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000020;
               break;
             } // case 48
-            case 56: {
-              signIn_ = input.readBool();
-              bitField0_ |= 0x00000040;
-              break;
-            } // case 56
             case 66: {
               plainValue_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000080;
+              bitField0_ |= 0x00000040;
               break;
             } // case 66
             default: {
@@ -1351,7 +1313,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether the entry is a login (a connection at an address) rather than a
-     * secret by name.
+     * secret by name. A sign-in among them is renewed when it is fetched, as
+     * the vault records it then.
      * </pre>
      *
      * <code>bool login = 6 [json_name = "login"];</code>
@@ -1364,7 +1327,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether the entry is a login (a connection at an address) rather than a
-     * secret by name.
+     * secret by name. A sign-in among them is renewed when it is fetched, as
+     * the vault records it then.
      * </pre>
      *
      * <code>bool login = 6 [json_name = "login"];</code>
@@ -1381,7 +1345,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether the entry is a login (a connection at an address) rather than a
-     * secret by name.
+     * secret by name. A sign-in among them is renewed when it is fetched, as
+     * the vault records it then.
      * </pre>
      *
      * <code>bool login = 6 [json_name = "login"];</code>
@@ -1390,50 +1355,6 @@ private static final long serialVersionUID = 0L;
     public Builder clearLogin() {
       bitField0_ = (bitField0_ & ~0x00000020);
       login_ = false;
-      onChanged();
-      return this;
-    }
-
-    private boolean signIn_ ;
-    /**
-     * <pre>
-     * Whether the login is a sign-in, renewed when the value is fetched.
-     * </pre>
-     *
-     * <code>bool sign_in = 7 [json_name = "signIn"];</code>
-     * @return The signIn.
-     */
-    @java.lang.Override
-    public boolean getSignIn() {
-      return signIn_;
-    }
-    /**
-     * <pre>
-     * Whether the login is a sign-in, renewed when the value is fetched.
-     * </pre>
-     *
-     * <code>bool sign_in = 7 [json_name = "signIn"];</code>
-     * @param value The signIn to set.
-     * @return This builder for chaining.
-     */
-    public Builder setSignIn(boolean value) {
-
-      signIn_ = value;
-      bitField0_ |= 0x00000040;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Whether the login is a sign-in, renewed when the value is fetched.
-     * </pre>
-     *
-     * <code>bool sign_in = 7 [json_name = "signIn"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearSignIn() {
-      bitField0_ = (bitField0_ & ~0x00000040);
-      signIn_ = false;
       onChanged();
       return this;
     }
@@ -1496,7 +1417,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       plainValue_ = value;
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -1511,7 +1432,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearPlainValue() {
       plainValue_ = getDefaultInstance().getPlainValue();
-      bitField0_ = (bitField0_ & ~0x00000080);
+      bitField0_ = (bitField0_ & ~0x00000040);
       onChanged();
       return this;
     }
@@ -1530,7 +1451,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       plainValue_ = value;
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }

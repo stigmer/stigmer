@@ -528,11 +528,14 @@ message RunValueSource {
   string entry = 5;
 
   // Whether the entry is a login (a connection at an address) rather than a
-  // secret by name.
+  // secret by name. A sign-in among them is renewed when it is fetched, as
+  // the vault records it then.
   bool login = 6;
 
-  // Whether the login is a sign-in, renewed when the value is fetched.
-  bool sign_in = 7;
+  // Field 7 held whether a login was a sign-in, which nothing read: the
+  // fetch renews a login by what the vault holds when it is opened.
+  reserved 7;
+  reserved "sign_in";
 
   // A declaration's own plain default, the one value a manifest holds: it
   // is a fixed setting of the agent or tool, never a secret.

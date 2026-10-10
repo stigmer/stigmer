@@ -1297,21 +1297,23 @@ describe("the connect lane's faults", () => {
     expect(input?.execution_context_token).toBeUndefined();
   });
 
-  it("a backfill's run gone past an edition's admitting decision is NOT_FOUND, and a fault reading it INTERNAL", async () => {
+  it("a backfill's run gone past an edition's admitting decision is refused, and a fault reading it INTERNAL", async () => {
     const base = newExecutionScopedRunnerCredentialProvider(RunnerAuthService.fromEnv());
     const admitting: RunnerCredentialProvider = { ...base, authorizeExecutionValuesRead: async () => true };
     const server = await seedServer({ env: true });
+    // An edition's decision answers whose credential it is; the run must
+    // still exist and be live, which the gate reads itself.
     const gone = makeHarness({ runnerAuth: admitting });
     await expectConnectError(
       connect(gone.deps, connectInput(server.metadata!.id, "run_gone"), "edition-token"),
-      Code.NotFound,
-      "run_gone",
+      Code.PermissionDenied,
+      "bound to that live run",
     );
     const faulted = makeHarness({ runnerAuth: admitting, faults: { runRead: new Error("disk gone") } });
     await expectConnectError(
       connect(faulted.deps, connectInput(server.metadata!.id, "run_gone"), "edition-token"),
       Code.Internal,
-      "failed to load the backfill's run",
+      "failed to load the credential's execution",
     );
     expect(gone.attempts).toEqual([]);
     expect(faulted.attempts).toEqual([]);

@@ -27,7 +27,6 @@ import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import type { ConnectInput } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { ConnectInputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
@@ -51,7 +50,7 @@ import { ResourceNotFoundError } from "../../store/interface.js";
 import { runPersonOfCaller, toolRequirements } from "../vault/resolve.js";
 import type { VaultResolver } from "../vault/resolve.js";
 import type { VaultService } from "../vault/service.js";
-import { mayReadExecutionValues } from "../vault/values.js";
+import { boundExecutionFor } from "../vault/values.js";
 import { endConnectAttempt, recordConnectAttempt } from "./connect-attempt.js";
 import { newConnectExecutionId } from "./connect-execution-id.js";
 import { acquireConnectRoute } from "./connect-sandbox.js";
@@ -518,28 +517,20 @@ async function refuseBackfillNotBoundToItsRun(
   runId: string,
   org: string,
 ): Promise<void> {
-  const bound =
-    bearer !== "" &&
-    (await mayReadExecutionValues(
-      { store: deps.store, logger: deps.logger, runnerAuth: deps.runnerAuth },
-      bearer,
-      runId,
-    ));
-  if (!bound) {
+  const run =
+    bearer === ""
+      ? undefined
+      : await boundExecutionFor(
+          { store: deps.store, logger: deps.logger, runnerAuth: deps.runnerAuth },
+          bearer,
+          runId,
+        );
+  if (run === undefined) {
     throw permissionDeniedError(
       "run_id is accepted only from a runner credential bound to that live run",
     );
   }
-  let run;
-  try {
-    run = await deps.store.getResource(ApiResourceKind.run, runId, RunSchema);
-  } catch (error) {
-    if (error instanceof ResourceNotFoundError) {
-      throw notFoundError("run", runId);
-    }
-    throw internalError(error, "failed to load the backfill's run");
-  }
-  if ((run.metadata?.org ?? "") !== org) {
+  if (run.org !== org) {
     throw permissionDeniedError("the run belongs to another organization than the connect");
   }
 }

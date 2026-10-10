@@ -2287,7 +2287,6 @@ RunValueSource says where one value a turn uses lives.
     vaultId: { type: "string", description: "The vault holding it; empty for a repository's own token and a declaration's default." },
     entry: { type: "string", description: "The entry: a secret's name, a login's address, or the repository entry's name for its own token; empty for a declaration's default." },
     login: { type: "boolean", description: "Whether the entry is a login (a connection at an address) rather than a secret by name." },
-    signIn: { type: "boolean", description: "Whether the login is a sign-in, renewed when the value is fetched." },
     plainValue: { type: "string", description: "A declaration's own plain default, the one value a manifest holds: it is a fixed setting of the agent or tool, never a secret." },
   }}
 />

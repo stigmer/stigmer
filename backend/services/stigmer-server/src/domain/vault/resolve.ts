@@ -458,12 +458,7 @@ export function runRequirements(input: RunCredentialInput): Requirement[] {
 /** Where a requirement's value lives, found without opening it. */
 type Location =
   | { readonly kind: "secret"; readonly source: Source; readonly name: string }
-  | {
-      readonly kind: "connection";
-      readonly source: Source;
-      readonly address: string;
-      readonly signIn: boolean;
-    }
+  | { readonly kind: "connection"; readonly source: Source; readonly address: string }
   | { readonly kind: "repositoryToken"; readonly source: Source; readonly entryName: string }
   | { readonly kind: "plain"; readonly value: string };
 
@@ -478,12 +473,7 @@ function connectionAt(source: Source, address: string): Location | undefined {
   if (connection?.present !== true) {
     return undefined;
   }
-  return {
-    kind: "connection",
-    source,
-    address,
-    signIn: connection.source === VaultConnectionSource.sign_in,
-  };
+  return { kind: "connection", source, address };
 }
 
 function secretNamed(source: Source, name: string): Location | undefined {
@@ -563,7 +553,6 @@ function sourceEntry(requirement: Requirement, location: Location): RunValueSour
       entry.vaultId = location.source.vault?.metadata?.id ?? "";
       entry.entry = location.address;
       entry.login = true;
-      entry.signIn = location.signIn;
       return entry;
     /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
     default: {

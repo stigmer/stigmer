@@ -110,14 +110,13 @@ class RunCredentials(_message.Message):
     def __init__(self, person: _Optional[str] = ..., sources: _Optional[_Iterable[_Union[RunValueSource, _Mapping]]] = ...) -> None: ...
 
 class RunValueSource(_message.Message):
-    __slots__ = ("key", "declarer", "origin", "vault_id", "entry", "login", "sign_in", "plain_value")
+    __slots__ = ("key", "declarer", "origin", "vault_id", "entry", "login", "plain_value")
     KEY_FIELD_NUMBER: _ClassVar[int]
     DECLARER_FIELD_NUMBER: _ClassVar[int]
     ORIGIN_FIELD_NUMBER: _ClassVar[int]
     VAULT_ID_FIELD_NUMBER: _ClassVar[int]
     ENTRY_FIELD_NUMBER: _ClassVar[int]
     LOGIN_FIELD_NUMBER: _ClassVar[int]
-    SIGN_IN_FIELD_NUMBER: _ClassVar[int]
     PLAIN_VALUE_FIELD_NUMBER: _ClassVar[int]
     key: str
     declarer: RunValueDeclarer
@@ -125,9 +124,8 @@ class RunValueSource(_message.Message):
     vault_id: str
     entry: str
     login: bool
-    sign_in: bool
     plain_value: str
-    def __init__(self, key: _Optional[str] = ..., declarer: _Optional[_Union[RunValueDeclarer, _Mapping]] = ..., origin: _Optional[_Union[_enum_pb2.RunValueOrigin, str]] = ..., vault_id: _Optional[str] = ..., entry: _Optional[str] = ..., login: bool = ..., sign_in: bool = ..., plain_value: _Optional[str] = ...) -> None: ...
+    def __init__(self, key: _Optional[str] = ..., declarer: _Optional[_Union[RunValueDeclarer, _Mapping]] = ..., origin: _Optional[_Union[_enum_pb2.RunValueOrigin, str]] = ..., vault_id: _Optional[str] = ..., entry: _Optional[str] = ..., login: bool = ..., plain_value: _Optional[str] = ...) -> None: ...
 
 class RunValueDeclarer(_message.Message):
     __slots__ = ("kind", "name", "mcp_server_id", "repository_url")

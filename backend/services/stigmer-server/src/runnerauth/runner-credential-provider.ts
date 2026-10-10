@@ -258,11 +258,13 @@ export interface RunnerCredentialProvider {
   /**
    * The trust decision for VaultValueController.fetchValues: whether the
    * bearer may read the values of `executionId` (a run's id or a tool
-   * connect's attempt id). When present, it IS the entire decision — the
-   * implementation owns its lane set and scope bindings (the cloud's
-   * session/connect scope rules, including any resource loads through its
-   * own clients); absent, the fetch keeps the OSS decision (execution_scoped
-   * verify, binding equality and the bound execution's liveness). True
+   * connect's attempt id). When present, it decides whose credential this
+   * is — the implementation owns its lane set and scope bindings (the
+   * cloud's session/connect scope rules, including any resource loads
+   * through its own clients) — and the fetch still requires the bound
+   * execution to be live after it (a run not ended past the grace, a
+   * connect's attempt present); absent, the fetch keeps the OSS decision
+   * (execution_scoped verify, binding equality and that liveness). True
    * allows; false refuses with PERMISSION_DENIED; it never throws for an
    * unrecognized or invalid token (a throw is a composition fault, logged
    * and refused the same way).

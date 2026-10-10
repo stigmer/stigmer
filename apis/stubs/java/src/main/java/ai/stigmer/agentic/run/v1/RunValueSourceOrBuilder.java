@@ -123,23 +123,14 @@ public interface RunValueSourceOrBuilder extends
   /**
    * <pre>
    * Whether the entry is a login (a connection at an address) rather than a
-   * secret by name.
+   * secret by name. A sign-in among them is renewed when it is fetched, as
+   * the vault records it then.
    * </pre>
    *
    * <code>bool login = 6 [json_name = "login"];</code>
    * @return The login.
    */
   boolean getLogin();
-
-  /**
-   * <pre>
-   * Whether the login is a sign-in, renewed when the value is fetched.
-   * </pre>
-   *
-   * <code>bool sign_in = 7 [json_name = "signIn"];</code>
-   * @return The signIn.
-   */
-  boolean getSignIn();
 
   /**
    * <pre>

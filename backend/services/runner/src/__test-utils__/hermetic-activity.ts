@@ -380,10 +380,10 @@ export class ExecutionRecord {
   /**
    * The control-plane client the activity sees: every read answers from this
    * record; every write lands in it. Reads the activity makes for optional
-   * facets (execution context, channels, skills) answer the everyday shape —
-   * NOT_FOUND for the execution context (an execution with no env vars), no
-   * channels, no scoped token (the OSS/local posture) — so a scenario opts INTO
-   * a facet by overriding.
+   * facets (the run's values, channels, skills) answer the everyday shape —
+   * no values (a run whose declarations hold none), no channels, no scoped
+   * token (the OSS/local posture) — so a scenario opts INTO a facet by
+   * overriding.
    */
   client(overrides: Partial<StigmerClient> = {}): StigmerClient {
     return mockStigmerClient({

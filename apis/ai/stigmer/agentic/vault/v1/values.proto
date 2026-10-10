@@ -25,9 +25,10 @@ service VaultValueController {
   // must be a runner credential bound to this execution (the scope claim),
   // and the execution must be live (a run not terminal, or ended within the
   // grace; a connect's attempt row present and unexpired). An edition may
-  // compose the whole decision (RunnerCredentialProvider.
-  // authorizeExecutionValuesRead). Every other caller is refused with
-  // PERMISSION_DENIED; nothing is ever answered redacted.
+  // compose which credentials qualify (RunnerCredentialProvider.
+  // authorizeExecutionValuesRead); the liveness still applies after it.
+  // Every other caller is refused with PERMISSION_DENIED; nothing is ever
+  // answered redacted.
   //
   // A run's manifest is read, never re-matched: each named vault is checked
   // again with the resolver's rules (a My vault serves only its person;

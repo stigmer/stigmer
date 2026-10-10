@@ -289,6 +289,15 @@ describe("the gate", () => {
     expect(grouped(admitted).agent).toEqual({ AGENT_KEY: "agent-secret" });
   });
 
+  it("still requires a live run after a composed decision admits: an ended run's values are refused", async () => {
+    const longAgo = new Date(Date.now() - RUN_CREDENTIAL_GRACE_AFTER_TERMINAL_MS - 60_000).toISOString();
+    await seedRun("run_over", { phase: RunPhase.RUN_COMPLETED, completedAt: longAgo });
+    const admitting = deps({ runnerAuth: { ...credentials, authorizeExecutionValuesRead: async () => true } });
+    const failure = await refusal(fetch("run_over", "edition-token", admitting));
+    expect(failure.code).toBe(Code.PermissionDenied);
+    expect(failure.rawMessage).toBe(NOT_BOUND);
+  });
+
   it("refuses an empty execution id as an invalid argument", async () => {
     const failure = await refusal(fetch("", "anything"));
     expect(failure.code).toBe(Code.InvalidArgument);
@@ -356,10 +365,34 @@ describe("past a composed decision that admits", () => {
     expect(faulted.rawMessage).not.toContain("disk gone");
   });
 
-  it("refuses a connect whose attempt is over", async () => {
-    const failure = await refusal(fetch(newConnectExecutionId("mcp_linear"), "edition-token", admitting()));
-    expect(failure.code).toBe(Code.FailedPrecondition);
-    expect(failure.rawMessage).toBe("this connect is over: connect the tool again");
+  it("refuses a connect whose attempt is over at the gate, and one that ends between the gate and the read", async () => {
+    const atTheGate = await refusal(fetch(newConnectExecutionId("mcp_linear"), "edition-token", admitting()));
+    expect(atTheGate.code).toBe(Code.PermissionDenied);
+
+    // The attempt is live when the gate reads it and gone when the values
+    // are read (its connect settled in between).
+    const connectId = newConnectExecutionId(LINEAR.metadata!.id);
+    await seedAttempt(connectId);
+    let reads = 0;
+    const settling = new Proxy(rig.store, {
+      get(target, prop, receiver) {
+        if (prop === "connectAttempts") {
+          const attempts = target.connectAttempts;
+          return {
+            ...attempts,
+            findLive: async (id: string, now: number) => {
+              reads += 1;
+              return reads === 1 ? attempts.findLive(id, now) : undefined;
+            },
+          };
+        }
+        const value = Reflect.get(target, prop, receiver) as unknown;
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+    const raced = await refusal(fetch(connectId, "edition-token", admitting({ store: settling })));
+    expect(raced.code).toBe(Code.FailedPrecondition);
+    expect(raced.rawMessage).toBe("this connect is over: connect the tool again");
   });
 
   it("refuses a backfill whose run belongs to another organization than its attempt", async () => {

@@ -26,6 +26,9 @@
  * renewal refused) is FAILED_PRECONDITION with the resolver's message,
  * which the runner shows the person as the turn's failure.
  *
+ * A composed decision answers whose credential this is; the bound
+ * execution's liveness is required after it as well.
+ *
  * Proven by __tests__/values.test.ts and the vault conformance suites.
  */
 import type { HandlerContext } from "@connectrpc/connect";
@@ -53,6 +56,7 @@ import {
   boundExecutionKindOf,
   loadBoundExecution,
 } from "../../runnerauth/bound-execution.js";
+import type { BoundExecution } from "../../runnerauth/bound-execution.js";
 import type { RunnerCredentialProvider } from "../../runnerauth/runner-credential-provider.js";
 import {
   isClockedToken,
@@ -87,7 +91,7 @@ export async function fetchExecutionValues(
     throw invalidArgumentError("execution_id is required");
   }
   const token = parseBearerToken(ctx.requestHeader.get("authorization") ?? "");
-  if (token === "" || !(await mayReadExecutionValues(deps, token, executionId))) {
+  if (token === "" || (await boundExecutionFor(deps, token, executionId)) === undefined) {
     throw permissionDeniedError(NOT_BOUND_MESSAGE);
   }
 
@@ -103,50 +107,64 @@ export async function fetchExecutionValues(
 
 /**
  * The trust decision, shared with the connect lane's backfill check: the
- * composed capability when present, the open-source one otherwise. A
- * capability that throws is a composition fault, logged and refused.
+ * execution `token` may read the values of, when it may (bound and live),
+ * else undefined. The composed capability when present, the open-source
+ * one otherwise, and in both cases a bound execution that is live. A composed decision answers
+ * whose credential this is; it cannot know a run's phase, so a run that
+ * ended past the grace (or a connect whose attempt is gone) is refused
+ * here whatever it answered. A capability that throws is a composition
+ * fault, logged and refused.
  */
-export async function mayReadExecutionValues(
+export async function boundExecutionFor(
   deps: Pick<ExecutionValuesDeps, "store" | "logger" | "runnerAuth" | "now">,
   token: string,
   executionId: string,
-): Promise<boolean> {
+): Promise<BoundExecution | undefined> {
   const authorize = deps.runnerAuth.authorizeExecutionValuesRead?.bind(deps.runnerAuth);
   if (authorize !== undefined) {
+    let allowed: boolean;
     try {
-      return await authorize(token, executionId);
+      allowed = await authorize(token, executionId);
     } catch (error) {
       deps.logger.warn("Execution values read authorization failed; refusing", {
         error: error instanceof Error ? error.message : String(error),
       });
-      return false;
+      return undefined;
     }
+    return allowed ? boundAndLive(deps, executionId) : undefined;
   }
 
   let bound: string;
   try {
     bound = deps.runnerAuth.verify(TOKEN_TYPE_EXECUTION_SCOPED, token);
   } catch {
-    return false;
+    return undefined;
   }
   if (bound !== executionId) {
     deps.logger.warn("A runner credential asked for another execution's values; refusing", {
       tokenExecutionId: bound,
       executionId,
     });
-    return false;
+    return undefined;
   }
-  let execution;
+  const execution = await boundAndLive(deps, executionId);
+  return execution !== undefined && (isClockedToken(token) || bindsARun(execution.kind))
+    ? execution
+    : undefined;
+}
+
+/** The bound execution when it exists and is live (runnerauth/bound-execution.ts), else undefined. */
+async function boundAndLive(
+  deps: Pick<ExecutionValuesDeps, "store" | "now">,
+  executionId: string,
+): Promise<BoundExecution | undefined> {
+  let execution: BoundExecution | undefined;
   try {
     execution = await loadBoundExecution(deps.store, executionId, (deps.now ?? Date.now)());
   } catch (error) {
     throw internalError(error, "failed to load the credential's execution");
   }
-  return (
-    execution !== undefined &&
-    execution.live &&
-    (isClockedToken(token) || bindsARun(execution.kind))
-  );
+  return execution?.live === true ? execution : undefined;
 }
 
 async function loadRun(deps: ExecutionValuesDeps, runId: string): Promise<Run> {
