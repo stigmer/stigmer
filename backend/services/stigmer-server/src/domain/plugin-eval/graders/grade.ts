@@ -37,6 +37,7 @@ export async function gradeCheck(
     case "llm":
     case "baseline":
       return "votes";
+    /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
     default: {
       const exhausted: never = check;
       return exhausted;

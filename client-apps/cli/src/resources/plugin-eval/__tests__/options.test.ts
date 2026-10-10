@@ -93,6 +93,7 @@ describe("readPluginEvalOptions", () => {
     [{ allowTools: ["bash"] }, "--allow-tools 'bash' is not a tool name"],
     [{ allowTools: ["mcp__plugin__github__*"] }, "is not a tool name"],
     [{ model: ["claude/sonnet"] }, "names no engine Stigmer runs"],
+    [{ judgeModel: "m".repeat(129) }, "--judge-model is longer than 128 characters"],
     [{ model: Array.from({ length: 7 }, () => "native/claude-sonnet-4-6") }, "at most 6 times"],
   ])("refuses %o with exit 1", (flags, message) => {
     const error = refusal(() => readPluginEvalOptions(flags));

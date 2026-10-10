@@ -147,8 +147,9 @@ export function partialLine(pluginEval: PluginEval, interrupted: boolean): strin
     case PluginEvalPartialReason.unspecified:
       return interrupted ? `Cancelled: ${ran}.` : "";
     default: {
-      const exhaustive: never = reason;
-      return exhaustive;
+      // A reason a newer server added: the run still stopped early.
+      const unknown: never = reason;
+      return `Stopped early (reason ${String(unknown)}): ${ran}.`;
     }
   }
 }
@@ -190,8 +191,9 @@ export function isSettled(pluginEval: PluginEval): boolean {
     case PluginEvalPhase.running:
       return false;
     default: {
-      const exhaustive: never = phase;
-      return exhaustive;
+      // A phase a newer server added: stop following rather than poll forever.
+      const unknown: never = phase;
+      return typeof unknown === "number";
     }
   }
 }

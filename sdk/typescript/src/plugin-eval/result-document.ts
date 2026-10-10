@@ -193,8 +193,11 @@ function partialReasonOf(pluginEval: PluginEval, interrupted: boolean): ResultPa
     case PluginEvalPartialReason.unspecified:
       break;
     default: {
-      const exhaustive: never = reason;
-      return exhaustive;
+      // A reason a newer server names is read like an unnamed one, so the
+      // document keeps to the format's words rather than carry a number.
+      const unknown: never = reason;
+      void unknown;
+      break;
     }
   }
   if (interrupted) return "interrupted";

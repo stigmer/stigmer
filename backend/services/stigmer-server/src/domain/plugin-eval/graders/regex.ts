@@ -48,6 +48,7 @@ export async function gradeRegex(
       return { notGraded: invalidPatternReason(answer.message) };
     case "counts":
       break;
+    /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
     default: {
       const exhausted: never = answer;
       return exhausted;
@@ -77,6 +78,7 @@ export async function gradeRegex(
             reason: `the pattern matched ${counted} time(s) in ${where}, expected ${wanted}`,
           };
     }
+    /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
     default: {
       const exhausted: never = check.match;
       return exhausted;

@@ -777,7 +777,14 @@ function emitToProtoField(buf: string[], f: FieldSchema, alias: string, typeMap:
   const refKind = f.referenceKind ?? 0;
   const oneofGroup = f.oneofGroup ?? "";
 
-  if (isValuedOneofScalar(f)) {
+  if (hasExplicitPresence(f)) {
+    // A proto3 `optional` scalar: the input's field is a plain value whose
+    // zero reads as unset, the convention the nested toProto follows.
+    buf.push(`\tif i.${f.name} != ${goZeroValueForTypeSpec(t)} {\n`);
+    buf.push(`\t\tv := i.${f.name}\n`);
+    buf.push(`\t\tresource.Spec.${protoField} = &v\n`);
+    buf.push("\t}\n");
+  } else if (isValuedOneofScalar(f)) {
     // A boolean or numeric member is a pointer: nil leaves the oneof to the
     // other members, and any value the caller set, zero included, holds it.
     buf.push(`\tif i.${f.name} != nil {\n`);

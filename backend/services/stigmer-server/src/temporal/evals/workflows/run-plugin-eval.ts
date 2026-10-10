@@ -143,10 +143,7 @@ async function runCells(
         break;
       }
       const index = next++;
-      const cell = cells[index];
-      if (cell === undefined) {
-        continue;
-      }
+      const cell = cells[index]!;
       const settled = runCell(evalId, org, cell).then(
         (result) => {
           inFlight.delete(index);

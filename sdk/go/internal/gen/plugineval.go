@@ -113,7 +113,10 @@ func (i *PluginEvalInput) toProto() (*pluginevalv1.PluginEval, error) {
 	}
 	resource.Spec.Runs = i.Runs
 	resource.Spec.Ablation = i.Ablation
-	resource.Spec.Threshold = i.Threshold
+	if i.Threshold != 0 {
+		v := i.Threshold
+		resource.Spec.Threshold = &v
+	}
 	resource.Spec.CaseGlob = i.CaseGlob
 	resource.Spec.CaseTags = i.CaseTags
 	resource.Spec.JudgeModel = i.JudgeModel

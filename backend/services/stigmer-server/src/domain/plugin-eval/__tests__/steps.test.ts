@@ -9,12 +9,19 @@
  * fails closed when the authorizer cannot answer; the create's question
  * is can_edit on the plugin and a server-composed create asks none; a
  * suite source's own refusal passes through while any other fault is
- * INTERNAL; a store fault reading the plugin is INTERNAL.
+ * INTERNAL; a store fault reading the plugin is INTERNAL. The create's
+ * defaults refuse a request with no organization or no spec, a plugin
+ * with no version to run, and an allow_tools entry naming another
+ * plugin; a failed start's write answers NOT_FOUND for a row gone and
+ * INTERNAL for a store fault; a chain built wrong (the plugin, the
+ * cancel's target or the delete's row never stashed) fails loudly as
+ * INTERNAL instead of answering with nothing.
  */
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { PluginEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
 import type { PluginEval } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
 import {
@@ -39,11 +46,18 @@ import type { Store } from "../../../store/interface.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
 import {
+  pluginEvalNoCasesMessage,
+  pluginEvalOtherPluginToolMessage,
+} from "../constants.js";
+import {
+  EVALUATED_PLUGIN_KEY,
   PLUGIN_EVAL_RESULT_KEY,
   newCancelPluginEvalStep,
   newListPluginEvalsByPluginStep,
   newLoadEvaluatedPluginStep,
   newPlanPluginEvalStep,
+  newRefuseActivePluginEvalDeleteStep,
+  newResolvePluginEvalDefaultsStep,
   newStartPluginEvalWorkflowStep,
   resolvePluginEvalCreateTargets,
 } from "../steps.js";
@@ -269,5 +283,151 @@ describe("the create's question and its faults", () => {
       newLoadEvaluatedPluginStep(faulty).execute(createCtx(evalRow("", PluginEvalPhase.unspecified))),
     );
     expect(fault.code).toBe(Code.Internal);
+  });
+});
+
+describe("ResolvePluginEvalDefaults' refusals", () => {
+  function evaluated(row: PluginEval, digest = "a".repeat(64)) {
+    const ctx = createCtx(row);
+    ctx.set(
+      EVALUATED_PLUGIN_KEY,
+      create(PluginSchema, {
+        metadata: { id: "plg_1", org: "org_1", name: "thermos", slug: "thermos" },
+        status: { digest },
+      }),
+    );
+    return ctx;
+  }
+
+  it("refuses a request that names no organization, or carries no spec", async () => {
+    const noOrg = evalRow("", PluginEvalPhase.unspecified);
+    noOrg.metadata!.org = "";
+    const orgRefusal = await failure(() =>
+      newResolvePluginEvalDefaultsStep(temp.store).execute(evaluated(noOrg)),
+    );
+    expect(orgRefusal.code).toBe(Code.InvalidArgument);
+    expect(orgRefusal.rawMessage).toBe("metadata.org is required for a plugin eval");
+
+    const noSpec = evalRow("", PluginEvalPhase.unspecified);
+    noSpec.spec = undefined;
+    const specRefusal = await failure(() =>
+      newResolvePluginEvalDefaultsStep(temp.store).execute(evaluated(noSpec)),
+    );
+    expect(specRefusal.code).toBe(Code.InvalidArgument);
+    expect(specRefusal.rawMessage).toBe("spec is required for a plugin eval");
+  });
+
+  it("refuses a plugin that has no version to run", async () => {
+    const refused = await failure(() =>
+      newResolvePluginEvalDefaultsStep(temp.store).execute(
+        evaluated(evalRow("", PluginEvalPhase.unspecified), ""),
+      ),
+    );
+    expect(refused.code).toBe(Code.FailedPrecondition);
+    expect(refused.rawMessage).toBe(pluginEvalNoCasesMessage("evals"));
+  });
+
+  it("refuses an allow_tools entry that names another plugin's MCP tools", async () => {
+    const row = evalRow("", PluginEvalPhase.unspecified);
+    row.spec!.allowTools = ["Read", "mcp__plugin_other_github__search_issues"];
+    const refused = await failure(() =>
+      newResolvePluginEvalDefaultsStep(temp.store).execute(evaluated(row)),
+    );
+    expect(refused.code).toBe(Code.InvalidArgument);
+    expect(refused.rawMessage).toBe(
+      pluginEvalOtherPluginToolMessage("mcp__plugin_other_github__search_issues", "other", "thermos"),
+    );
+    expect(refused.rawMessage).toBe(
+      "allow_tools entry 'mcp__plugin_other_github__search_issues' names plugin 'other', but this eval runs 'thermos'; a try attaches no other plugin",
+    );
+  });
+});
+
+describe("a failed start's write", () => {
+  const failing = workflows({ start: () => Promise.reject(new Error("no engine")) });
+
+  it("answers NOT_FOUND naming the eval when its row is gone", async () => {
+    const fault = await failure(() =>
+      newStartPluginEvalWorkflowStep(temp.store, failing, silentLogger).execute(
+        createCtx(evalRow("pev_gone", PluginEvalPhase.pending)),
+      ),
+    );
+    expect(fault.code).toBe(Code.NotFound);
+    expect(fault.rawMessage).toContain("pev_gone");
+  });
+
+  it("is INTERNAL when the store cannot save the failure", async () => {
+    const faulty = {
+      updateResource: () => Promise.reject(new Error("disk")),
+    } as unknown as Store;
+    const fault = await failure(() =>
+      newStartPluginEvalWorkflowStep(faulty, failing, silentLogger).execute(
+        createCtx(evalRow("pev_1", PluginEvalPhase.pending)),
+      ),
+    );
+    expect(fault.code).toBe(Code.Internal);
+    expect(fault.rawMessage).toBe("failed to save the plugin eval");
+  });
+});
+
+describe("a chain built wrong", () => {
+  it("fails loudly when the evaluated plugin, the cancel's target or the delete's row was never stashed", async () => {
+    const noPlugin = await failure(() =>
+      newResolvePluginEvalDefaultsStep(temp.store).execute(
+        createCtx(evalRow("", PluginEvalPhase.unspecified)),
+      ),
+    );
+    expect(noPlugin.code).toBe(Code.Internal);
+    expect(noPlugin.rawMessage).toBe("evaluated plugin not found in context");
+
+    const bare = () =>
+      new RequestContext(
+        PluginEvalIdSchema,
+        create(PluginEvalIdSchema, { value: "pev_1" }),
+        testCallerIdentity(),
+        ApiResourceKind.plugin_eval,
+      );
+    const noTarget = await failure(() =>
+      newCancelPluginEvalStep(temp.store, workflows()).execute(bare()),
+    );
+    expect(noTarget.code).toBe(Code.Internal);
+    expect(noTarget.rawMessage).toBe("plugin eval not found in context");
+
+    const noExisting = await failure(() =>
+      newRefuseActivePluginEvalDeleteStep().execute(bare()),
+    );
+    expect(noExisting.code).toBe(Code.Internal);
+    expect(noExisting.rawMessage).toBe("existing plugin eval not found in context");
+  });
+
+  it("refuses a plan with no spec, and answers a store fault listing a plugin's evals INTERNAL", async () => {
+    const catalog = newModelCatalogProviderFromDocument(
+      JSON.stringify({ models: [{ id: "native-model", harness: "native" }] }),
+    );
+    const row = evalRow("pev_1", PluginEvalPhase.unspecified);
+    row.spec = undefined;
+    const noSpec = await failure(() =>
+      newPlanPluginEvalStep({ readArchive: () => Promise.reject(new Error("unread")) }, catalog).execute(
+        createCtx(row),
+      ),
+    );
+    expect(noSpec.code).toBe(Code.InvalidArgument);
+    expect(noSpec.rawMessage).toBe("spec is required for a plugin eval");
+
+    const faulty = {
+      queryResources: () => Promise.reject(new Error("disk")),
+    } as unknown as Store;
+    const listed = await failure(() =>
+      newListPluginEvalsByPluginStep(faulty, { authorize: () => Promise.resolve({ kind: "allow" }) }, silentLogger).execute(
+        new RequestContext(
+          ListPluginEvalsByPluginRequestSchema,
+          create(ListPluginEvalsByPluginRequestSchema, { pluginId: "plg_1" }),
+          testCallerIdentity(),
+          ApiResourceKind.plugin,
+        ),
+      ),
+    );
+    expect(listed.code).toBe(Code.Internal);
+    expect(listed.rawMessage).toBe("failed to list the plugin's evals");
   });
 });

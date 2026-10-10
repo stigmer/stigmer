@@ -84,6 +84,7 @@ export function armAttachment(
           }),
         ),
       };
+    /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
     default: {
       const exhausted: never = arm;
       return exhausted;

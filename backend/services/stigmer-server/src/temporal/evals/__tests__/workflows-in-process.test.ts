@@ -17,8 +17,11 @@
  * The case: start, wait, grade, three votes per AI-graded check, record;
  * the deadline stopping the run and grading what it produced; each start
  * refusal answered (credit, cannot act, the run's own, busy past the
- * retries); a cancellation stopping the run; a grade that fails leaving the
- * try not graded; a vote that cannot start counted as failed.
+ * retries, busy found deeper in the failure's causes, any other failure
+ * as grading failed); a cancellation stopping the run; a cancellation at
+ * the start, the grade, a vote's start or the record rethrown, never
+ * answered as a try not graded; a grade that fails leaving the try not
+ * graded; a vote that cannot start counted as failed.
  */
 import {
   ActivityFailure,
@@ -309,6 +312,18 @@ function busyFailure(): ActivityFailure {
   );
 }
 
+/** A start that failed with `cause`, as the activity proxy reports it. */
+function activityFailure(cause: Error): ActivityFailure {
+  return new ActivityFailure(
+    "start failed",
+    START_TRY_ACTIVITY_NAME,
+    "1",
+    undefined,
+    "worker",
+    cause,
+  );
+}
+
 describe("the case workflow", () => {
   it("starts, waits, grades, takes three votes per AI-graded check, and records", async () => {
     const activities = caseScript();
@@ -392,6 +407,59 @@ describe("the case workflow", () => {
       ),
     });
     expect((await runCase(INPUT)).notGradedReason).toBe(GRADING_FAILED_REASON);
+  });
+
+  it("reads busy through a deeper cause, and any other activity failure as grading failed", async () => {
+    caseScript({
+      [START_TRY_ACTIVITY_NAME]: vi.fn(() =>
+        Promise.reject(
+          activityFailure(
+            new Error("the lane gave up", {
+              cause: ApplicationFailure.create({
+                message: "full",
+                type: PLUGIN_EVAL_BUSY_FAILURE_TYPE,
+              }),
+            }),
+          ),
+        ),
+      ),
+    });
+    expect((await runCase(INPUT)).notGradedReason).toBe(PLATFORM_BUSY_REASON);
+    caseScript({
+      [START_TRY_ACTIVITY_NAME]: vi.fn(() =>
+        Promise.reject(
+          activityFailure(
+            ApplicationFailure.create({ message: "bad", type: "Invalid" }),
+          ),
+        ),
+      ),
+    });
+    expect((await runCase(INPUT)).notGradedReason).toBe(GRADING_FAILED_REASON);
+  });
+
+  it("rethrows a cancellation at the start, the grade, a vote's start and the record", async () => {
+    const cancelled = () => Promise.reject(new CancelledFailure("cancelled"));
+    for (const step of [
+      START_TRY_ACTIVITY_NAME,
+      GRADE_TRY_ACTIVITY_NAME,
+      START_VOTE_ACTIVITY_NAME,
+      RECORD_SCORE_ACTIVITY_NAME,
+    ]) {
+      const activities = caseScript({ [step]: vi.fn(cancelled) });
+      await expect(runCase(INPUT), step).rejects.toBeInstanceOf(
+        CancelledFailure,
+      );
+      expect(
+        activities[STOP_RUN_ACTIVITY_NAME],
+        `${step}: no run is left going to stop`,
+      ).not.toHaveBeenCalled();
+      if (step !== RECORD_SCORE_ACTIVITY_NAME) {
+        expect(
+          activities[RECORD_SCORE_ACTIVITY_NAME],
+          `${step}: nothing is recorded after the cancellation`,
+        ).not.toHaveBeenCalled();
+      }
+    }
   });
 
   it("stops the run when cancelled while waiting, and rethrows", async () => {

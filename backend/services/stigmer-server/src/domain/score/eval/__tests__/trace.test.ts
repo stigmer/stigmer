@@ -7,9 +7,14 @@
  * the trace as Claude Code's JSON lines, the final message, created paths
  * from the ledger's last candidate per change set, contents inline, read
  * back from the artifact store, binary, deleted or unreadable, and a run
- * with no capture event read as "not recorded".
+ * with no capture event read as "not recorded". A tool message reads as
+ * a user line of its result; a message type this server does not know
+ * (an engine newer than it) is left out as a system message is, never
+ * answered in place of the trace; a run with no assistant text has an
+ * empty final message; a change with no captured body reads as empty
+ * text.
  */
-import { create } from "@bufbuild/protobuf";
+import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -302,5 +307,86 @@ describe("the eval trace's files", () => {
     });
     expect(SKILL_READ_PATH.test(".stigmer/skills/x/SKILL.md")).toBe(true);
     expect(SKILL_READ_PATH.test("docs/skills/x/SKILL.md")).toBe(false);
+  });
+});
+
+describe("the eval trace's edges", () => {
+  it("reads a tool message as a user line of its result", async () => {
+    const run = runOf([]);
+    run.status!.messages.push(
+      create(AgentMessageSchema, {
+        type: MessageType.MESSAGE_TOOL,
+        content: "exit 0",
+      }),
+    );
+    const trace = await evalTraceOf(run, deps(Harness.NATIVE));
+    expect(JSON.parse(trace.traceLines.at(-1) ?? "{}")).toEqual({
+      type: "user",
+      message: {
+        role: "user",
+        content: [{ type: "tool_result", content: "exit 0" }],
+      },
+    });
+  });
+
+  it("leaves out a message type this server does not know, and still answers the trace", async () => {
+    const run = runOf([]);
+    run.status!.messages.splice(
+      1,
+      0,
+      create(AgentMessageSchema, {
+        type: 99 as MessageType,
+        content: "from a newer engine",
+      }),
+    );
+    // Proto enums are open: the stored run decodes the unknown type as its number.
+    const stored = fromBinary(RunSchema, toBinary(RunSchema, run));
+    expect(stored.status?.messages[1]?.type).toBe(99);
+    const trace = await evalTraceOf(stored, deps(Harness.NATIVE));
+    expect(trace.lastMessage).toBe("All done.");
+    expect(trace.traceLines).toHaveLength(3);
+    expect(trace.traceLines.join("\n")).not.toContain("from a newer engine");
+  });
+
+  it("has an empty final message when no assistant message carries text", async () => {
+    const run = runOf(
+      [call("c1", "read_file", { file_path: "a.ts" })],
+      undefined,
+      "",
+    );
+    run.status!.messages[1]!.content = "";
+    const trace = await evalTraceOf(run, deps(Harness.NATIVE));
+    expect(trace.lastMessage).toBe("");
+  });
+
+  it("reads a change with no captured body as empty text", async () => {
+    const events = [
+      baseline("t1"),
+      candidate("t1", [
+        create(CapturedFileChangeSchema, {
+          pathAfter: "empty.md",
+          kind: FileChangeKind.ADD,
+        }),
+        create(CapturedFileChangeSchema, {
+          pathAfter: "blank.md",
+          kind: FileChangeKind.ADD,
+          after: {},
+        }),
+      ]),
+    ];
+    const trace = await evalTraceOf(
+      runOf([], events),
+      deps(Harness.NATIVE, { wantedFiles: ["empty.md", "blank.md"] }),
+    );
+    expect(trace.files.kind).toBe("recorded");
+    if (trace.files.kind !== "recorded") return;
+    expect(trace.files.contents.get("empty.md")).toEqual({
+      kind: "text",
+      text: "",
+    });
+    expect(trace.files.contents.get("blank.md")).toEqual({
+      kind: "text",
+      text: "",
+    });
   });
 });
