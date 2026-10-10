@@ -40,12 +40,14 @@ import { testConfig } from "../../__test-utils__/config-fixture.js";
 import { FakeUpstream } from "../../__test-utils__/fake-upstream.js";
 import { stubRegistryFetch } from "../../__test-utils__/model-registry-fixture.js";
 import { AgentProxy } from "../../agent-proxy/server.js";
+import { runWithExecutionContext } from "../execution-context.js";
 import { buildChatModel } from "../model-client.js";
 import { _resetRegistryCache } from "../model-registry.js";
 import { resetModelLanesForTests, routeModelCallsThroughLanes } from "../model-lanes.js";
 
 const HOST_TOKEN = "host-token-for-lanes";
 const EXECUTION = "aex-lanes";
+const TURN_KEY = "turn-key-model-lanes";
 
 const REGISTRY = {
   models: [
@@ -109,7 +111,7 @@ beforeAll(async () => {
   await upstream.start();
   proxy = await AgentProxy.start(testConfig({ proxyEndpoint: null }));
   proxy.authorizeHost(HOST_TOKEN);
-  closeTurn = proxy.openTurn({ executionId: EXECUTION, threadId: "thread-ses-lanes" });
+  closeTurn = proxy.openTurn({ executionId: EXECUTION, threadId: "thread-ses-lanes", turnKey: TURN_KEY });
 });
 
 afterAll(async () => {
@@ -139,7 +141,8 @@ afterEach(() => {
 });
 
 async function ask(modelName: string): Promise<string> {
-  const { model } = await buildChatModel({ modelName, headerScope: { executionId: EXECUTION }, maxTokens: 16 });
+  // Built inside the turn, as the host builds it: the client carries the turn's key.
+  const { model } = await runWithExecutionContext(EXECUTION, () => buildChatModel({ modelName, headerScope: { executionId: EXECUTION }, maxTokens: 16 }), TURN_KEY);
   const reply = await model.invoke([new HumanMessage("hi")]);
   return typeof reply.content === "string" ? reply.content : JSON.stringify(reply.content);
 }

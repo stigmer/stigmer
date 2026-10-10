@@ -10,10 +10,8 @@
  * sink (`host-sink.ts`) forwards what an adapter asks of the runtime back.
  * Data crosses; authority never does. Every value the host sends is the
  * agent's, so the runner validates each one it acts on (`remote-adapter.ts`
- * says how). Two are not yet confined, and must be before the host runs as
- * a user of its own (#2079): the paths of the settlement's CAS snapshot,
- * which the runtime's capture reads under the workspace, and the storage
- * keys an artifact row of a persisted projection names.
+ * says how), the paths of a CAS snapshot and the storage keys a projection
+ * names among them.
  *
  * Shape: three envelopes over newline-delimited JSON (the manager IPC's
  * framing, `ipc-protocol.ts`), on file descriptor 3 so neither process's
@@ -174,6 +172,8 @@ export interface HostCalls {
       readonly fingerprintKey: string;
       /** The reason, when the runtime's stop had already fired before the call. */
       readonly stopped: string | null;
+      /** This turn's key at the runner's local proxy, stamped on every call the turn makes there (`shared/execution-context.ts`). */
+      readonly turnKey: string;
     };
     readonly result: WireSettlement;
   };

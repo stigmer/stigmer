@@ -5,7 +5,7 @@
  * the `NODE_EXTRA_CA_CERTS` it was started with
  * (`agent-proxy/__tests__/cursor-sdk-wire.test.ts` starts it).
  *
- * argv: the lane's endpoint, the host token, the execution id. It creates
+ * argv: the lane's endpoint, the host token, the execution id, the turn's key. It creates
  * one local agent, sends one prompt, and prints one JSON line: the run's
  * result (or the error), and what `NODE_TLS_REJECT_UNAUTHORIZED` reads
  * afterwards.
@@ -19,7 +19,7 @@ import { installFetchInterceptor } from "../activities/execute-cursor/fetch-inte
 import { assertHttp2ConnectPatched, installHttp2Interceptor } from "../activities/execute-cursor/http2-interceptor.js";
 import { runWithExecutionContext } from "../shared/execution-context.js";
 
-const [lane = "", token = "", executionId = ""] = process.argv.slice(2);
+const [lane = "", token = "", executionId = "", turnKey = ""] = process.argv.slice(2);
 const proxyTokenRef = { current: token };
 installFetchInterceptor({ proxyEndpoint: lane, proxyTokenRef });
 installHttp2Interceptor({ proxyEndpoint: lane, proxyTokenRef });
@@ -39,6 +39,6 @@ const outcome = await runWithExecutionContext(executionId, async () => {
   } catch (err) {
     return { status: "thrown", error: err instanceof Error ? err.message : String(err) };
   }
-});
+}, turnKey);
 console.log(`WIRE ${JSON.stringify({ ...outcome, tlsRejectUnauthorized: process.env.NODE_TLS_REJECT_UNAUTHORIZED ?? null })}`);
 process.exit(0);

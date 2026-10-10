@@ -58,7 +58,8 @@ import { AgentProxy } from "../server.js";
 
 const HOST_TOKEN = "host-token-lanes";
 const EXECUTION = "aex-lanes-edges";
-const asHost = { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION, "content-type": "application/json" };
+const TURN_KEY = "turn-key-lanes";
+const asHost = { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION, "x-stigmer-turn-key": TURN_KEY, "content-type": "application/json" };
 
 const upstream = new FakeUpstream();
 const saved = new Map<string, string | undefined>();
@@ -89,7 +90,7 @@ afterEach(() => {
 async function ask(path: string, overrides: Partial<Config> = {}): Promise<{ readonly status: number; readonly message: string }> {
   const proxy = await AgentProxy.start(testConfig({ proxyEndpoint: null, ...overrides }));
   proxy.authorizeHost(HOST_TOKEN);
-  const close = proxy.openTurn({ executionId: EXECUTION, threadId: "thread-ses-lanes-edges" });
+  const close = proxy.openTurn({ executionId: EXECUTION, threadId: "thread-ses-lanes-edges", turnKey: TURN_KEY });
   try {
     const res = await fetch(`${proxy.endpoint}${path}`, { method: "POST", headers: asHost, body: "{}" });
     const text = await res.text();

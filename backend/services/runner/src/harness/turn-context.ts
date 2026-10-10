@@ -71,6 +71,7 @@ import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_
 
 import type { Config } from "../config.js";
 import type { StigmerClient } from "../client/stigmer-client.js";
+import { scopedRunnerCredential } from "../client/token-claims.js";
 import type { NormalizedActivityInput } from "../shared/activity-input.js";
 import { approvalDecisionsOf } from "./approval-decisions.js";
 import type { ArtifactStorage } from "../shared/artifact-storage.js";
@@ -171,8 +172,9 @@ export interface ResolutionDeps {
    * status. Two phases hand it on: the seed appends a reinvocation's prior
    * rows through it (so they are indexed as they land), and the workspace
    * phase gives it to the write-back coordinator as the place a write-back
-   * record is registered. No phase folds an event into it — no engine has
-   * run yet.
+   * record is registered. One phase folds a single event of its own: the
+   * MCP phase's system note when the platform's tools are off for the turn
+   * (`resolveMcpServersAndPolicies`). No engine has run yet.
    */
   readonly transcript: TranscriptBuilder;
   /** Resolved once by the caller before any phase; absent when no substrate works. */
@@ -732,6 +734,10 @@ export async function reconcileReinvocation(
  * from `servers` after this returns, exactly once, so every mutation is
  * visible by construction.
  */
+/** The transcript row a turn without the platform's own MCP servers carries (#2062). */
+export const PLATFORM_TOOLS_OFF_NOTICE =
+  "The platform's own tools (memory, channel messaging and the conversation tools) are off for this turn: no credential scoped to this run could be had.";
+
 export async function resolveMcpServersAndPolicies(
   deps: ResolutionDeps,
   args: {
@@ -777,19 +783,34 @@ export async function resolveMcpServersAndPolicies(
   } catch (err) {
     console.warn(
       "[turn-context] Scoped-token exchange failed for attachment/discovery " +
-      `reads; degrading to the ambient credential: ${err instanceof Error ? err.message : err}`,
+      `reads; the platform's own MCP servers use a credential scoped below the runner, or are off for this turn: ${err instanceof Error ? err.message : err}`,
     );
   }
-  const attachmentCredential = exchangedRunnerToken ?? config.stigmerTokenRef.current;
+  // The platform's own servers run on the agent's side of the turn, so they
+  // never carry the runner's own key (#2062): a credential scoped to this
+  // run when there is one; else an ambient credential already scoped below
+  // the runner, a cloud sandbox's session token, until the cloud mints run
+  // credentials (#2080); a runner holding no credential (a trusted-local
+  // server) gives them none, as before; and a runner whose own key could
+  // not be exchanged runs the turn without them, and says so.
+  const attachmentCredential =
+    exchangedRunnerToken ??
+    scopedRunnerCredential(config.stigmerRunnerTokenRef?.current ?? config.stigmerTokenRef.current) ??
+    (config.stigmerTokenRef.current ? undefined : null);
+  if (attachmentCredential === undefined) {
+    console.warn(`[turn-context] execution=${executionId}: no credential scoped to this run; the platform's own MCP servers are off for this turn`);
+    deps.transcript.apply({ kind: "system_note", text: PLATFORM_TOOLS_OFF_NOTICE });
+  }
   const attachmentEndpoints = {
     bridgeEndpoint: config.mcpBridgeEndpoint,
-    credential: attachmentCredential,
+    credential: attachmentCredential ?? null,
     backendEndpoint: config.stigmerBackendEndpoint,
   };
+  const attachmentsOn = attachmentCredential !== undefined;
 
   // Phase 4a2: the channel messaging attachment.
   const channelMessaging = await discoverChannelMessaging(client, exchangedRunnerToken);
-  if (channelMessaging.length > 0) {
+  if (attachmentsOn && channelMessaging.length > 0) {
     const attachment = synthesizeChannelAttachment(channelMessaging, attachmentEndpoints);
     if (attachment) {
       servers = injectSynthesizedAttachment(servers, attachment, "channel messaging");
@@ -799,10 +820,9 @@ export async function resolveMcpServersAndPolicies(
 
   // Phase 4a4: the conversation participation attachment. HTTP-only:
   // synthesize answers undefined with no bridge endpoint by design.
-  const conversationAttachment = synthesizeConversationAttachment(
-    readChannelConversationId(session.metadata?.labels),
-    attachmentEndpoints,
-  );
+  const conversationAttachment = attachmentsOn
+    ? synthesizeConversationAttachment(readChannelConversationId(session.metadata?.labels), attachmentEndpoints)
+    : undefined;
   if (conversationAttachment) {
     servers = injectSynthesizedAttachment(servers, conversationAttachment, "conversation participation");
     platformServerSlugs.add(conversationAttachment.slug);
@@ -811,7 +831,7 @@ export async function resolveMcpServersAndPolicies(
   // Phase 4a5: the memory capture attachment. The capture context is
   // attribution the server verifies or trusts per edition; the subject is
   // never threaded, it derives from the credential.
-  const memoryAttachment = synthesizeMemoryAttachment(
+  const memoryAttachment = attachmentsOn && synthesizeMemoryAttachment(
     execution.status?.recalledMemories,
     {
       org: session.metadata?.org ?? "",

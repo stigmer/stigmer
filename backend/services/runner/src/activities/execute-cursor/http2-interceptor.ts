@@ -45,7 +45,7 @@
 
 import { createRequire } from "node:module";
 import type http2Type from "node:http2";
-import { getExecutionContext } from "../../shared/execution-context.js";
+import { TURN_KEY_HEADER, getExecutionContext } from "../../shared/execution-context.js";
 
 // Use require() to get the ACTUAL CJS module singleton. Mutations here
 // are visible to all importers including ESM namespace imports, because
@@ -132,6 +132,7 @@ function wrapSession(session: http2Type.ClientHttp2Session): http2Type.ClientHtt
     if (ctx?.executionId) {
       augmented[EXECUTION_ID_HEADER] = ctx.executionId;
     }
+    if (ctx?.turnKey !== undefined) augmented[TURN_KEY_HEADER] = ctx.turnKey;
     return originalRequest(augmented, options);
   } as typeof session.request;
 

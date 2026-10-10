@@ -35,6 +35,7 @@ import { AgentProxy } from "../server.js";
 const HOST_TOKEN = "host-token-sdk-wire";
 const OPERATOR_KEY = "crsr_operator_sdk_wire";
 const EXECUTION = "aex-sdk-wire";
+const TURN_KEY = "turn-key-sdk-wire";
 const REAL_TOKEN = `real.${Buffer.from(JSON.stringify({ exp: 2_000_000_000 })).toString("base64url")}.signature`;
 const CHILD = fileURLToPath(new URL("../../__test-utils__/cursor-sdk-wire-child.ts", import.meta.url));
 
@@ -116,7 +117,7 @@ beforeAll(async () => {
   process.env.CURSOR_BACKEND_URL = `http://127.0.0.1:${(cursor.address() as AddressInfo).port}`;
   proxy = await AgentProxy.start(testConfig({ proxyEndpoint: null, cursorApiKey: OPERATOR_KEY }));
   proxy.authorizeHost(HOST_TOKEN);
-  proxy.openTurn({ executionId: EXECUTION, threadId: "thread-ses-sdk-wire" });
+  proxy.openTurn({ executionId: EXECUTION, threadId: "thread-ses-sdk-wire", turnKey: TURN_KEY });
   trust = writeTrustedCertificates(proxy.cursorCertificate, undefined);
 });
 
@@ -133,7 +134,7 @@ function runSdk(): Promise<{ readonly status: string; readonly error: string | n
   return new Promise((resolve, reject) => {
     const env: NodeJS.ProcessEnv = { ...process.env, NODE_EXTRA_CA_CERTS: trust.file, CURSOR_BACKEND_URL: proxy.cursorEndpoint };
     delete env.NODE_TLS_REJECT_UNAUTHORIZED;
-    const child = spawn(process.execPath, ["--import", "tsx", CHILD, proxy.cursorEndpoint, HOST_TOKEN, EXECUTION], { env, stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(process.execPath, ["--import", "tsx", CHILD, proxy.cursorEndpoint, HOST_TOKEN, EXECUTION, TURN_KEY], { env, stdio: ["ignore", "pipe", "pipe"] });
     let out = "";
     let err = "";
     child.stdout.on("data", (chunk: Buffer) => (out += chunk.toString("utf8")));

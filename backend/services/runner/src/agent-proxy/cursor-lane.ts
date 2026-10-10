@@ -81,6 +81,8 @@ const REST_PREFIX = "/v1/proxy/cursor/";
 const EXCHANGE_PATH = "/auth/exchange_user_api_key";
 const AGENT_PREFIX = "/agent.v1.";
 const SIDE_CALL_PREFIX = "/aiserver.v1.";
+/** The one `agent.v1` method `@cursor/sdk` 1.0.31 calls: the agent run. */
+const AGENT_RUN = "/agent.v1.AgentService/Run";
 
 /**
  * The `aiserver.v1` methods the Cursor SDK calls through a client, read from
@@ -196,6 +198,9 @@ export class CursorLane {
       }
       if (path.startsWith(SIDE_CALL_PREFIX) && !CURSOR_SIDE_CALLS.has(path)) {
         throw new LaneRefusal(403, `the Cursor lane relays only the Cursor SDK's own side calls, not ${path}`);
+      }
+      if (path.startsWith(AGENT_PREFIX) && path !== AGENT_RUN) {
+        throw new LaneRefusal(403, `the Cursor lane relays only the Cursor SDK's agent run, not ${path}`);
       }
       if (path.startsWith(AGENT_PREFIX) || path.startsWith(SIDE_CALL_PREFIX)) {
         await this.connect(req, res, `${path}${url.search}`, path.startsWith(AGENT_PREFIX));

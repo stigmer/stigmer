@@ -48,6 +48,7 @@ import {
 import type { CheckpointMetadata, PendingWrite } from "@langchain/langgraph-checkpoint";
 import type { TokenRef } from "../../config.js";
 import type { RetryOptions } from "../grpc-retry.js";
+import { turnKeyHeader } from "../execution-context.js";
 import { fetchWithRetry, type FetchRetryPolicy } from "../http-retry.js";
 
 function encodeB64(data: Uint8Array): string {
@@ -154,6 +155,8 @@ export class HttpCheckpointSaver extends BaseCheckpointSaver {
     return {
       Authorization: `Bearer ${this.authToken.current ?? ""}`,
       "Content-Type": "application/json",
+      // In the agent host: the turn's key, which the runner's local proxy checks.
+      ...turnKeyHeader(),
     };
   }
 
