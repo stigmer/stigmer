@@ -1,5 +1,16 @@
 "use client";
 
+/**
+ * Data hook for one plugin eval, read again while it runs so its tries fill
+ * in as they finish.
+ *
+ * Polling, not a stream: an eval lasts minutes and changes a try at a time,
+ * so a read every {@link PLUGIN_EVAL_POLL_MS} is cheap and needs no server
+ * push. The hook stops asking once the eval is completed, partial or
+ * failed, and an empty id asks nothing. Pinned by
+ * `__tests__/hooks.test.tsx`.
+ */
+
 import { useEffect, useMemo, useState } from "react";
 import type { PluginEval } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
 import { useStigmer } from "../hooks.js";

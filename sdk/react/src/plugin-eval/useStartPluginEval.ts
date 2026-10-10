@@ -1,5 +1,15 @@
 "use client";
 
+/**
+ * Behavior hook that starts a plugin eval and keeps the server's refusal
+ * as `error`.
+ *
+ * The input is passed through unchanged: the form's rules are in
+ * `eval-view.ts`, and the server checks every limit again, so the hook
+ * adds none. The error is also rethrown, so a caller that awaits `start`
+ * can stop on it. Pinned by `__tests__/hooks.test.tsx`.
+ */
+
 import { useCallback, useMemo, useState } from "react";
 import type { PluginEval } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
 import type { PluginEvalInput } from "@stigmer/sdk";
@@ -28,7 +38,8 @@ export interface UseStartPluginEvalReturn {
  * @example
  * ```tsx
  * const { start } = useStartPluginEval();
- * const started = await start({ name, org, pluginId, maxCostUsd: 5 });
+ * // Unnamed: the server names the eval by its id.
+ * const started = await start({ name: "", org, pluginId, maxCostUsd: 5 });
  * ```
  */
 export function useStartPluginEval(): UseStartPluginEvalReturn {

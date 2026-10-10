@@ -1,10 +1,11 @@
 /**
  * Pins the Evals tab's pure rules: the form's limits and the create input
- * its settings become (named for the plugin and the moment, the targets'
- * engines, the comparison as the ablation), an eval read as one row per
- * case with a cell per target and each try summarised (a try the platform
- * could not grade shows why, never 0), the phase words (a phase or try
- * state this client does not know shows its number), and two evals
+ * its settings become (unnamed, so the server names it by its id; the
+ * targets' engines, the comparison as the ablation), an eval's label (its
+ * plugin and when it started), an eval read as one row per case with a
+ * cell per target and each try summarised (a try the platform could not
+ * grade shows why, never 0), the phase words (a phase or try state this
+ * client does not know reads in words with its number), and two evals
  * compared case by case with moved and one-sided cases flagged.
  */
 import { describe, expect, it } from "vitest";
@@ -19,13 +20,14 @@ import {
   compareEvals,
   evalCaseRowsOf,
   evalFormProblem,
+  evalLabelOf,
   evalTargetLabelsOf,
   formatDelta,
   isEvalActive,
   phaseLabel,
   pluginEvalInputOf,
 } from "../eval-view";
-import { GPT, SONNET, evalWith } from "./eval-fixture";
+import { GPT, SONNET, evalStartOf, evalWith } from "./eval-fixture";
 
 describe("the Run evals form", () => {
   it("starts from one native target, three tries, compared, $5, one at a time", () => {
@@ -63,9 +65,9 @@ describe("the Run evals form", () => {
     );
   });
 
-  it("becomes a create input named for the plugin and the moment, with each target's engine", () => {
+  it("becomes an unnamed create input, with each target's engine", () => {
     const input = pluginEvalInputOf(
-      { id: "plg_1", org: "org_acme", name: "thermos" },
+      { id: "plg_1", org: "org_acme" },
       {
         ...DEFAULT_EVAL_FORM,
         targets: [
@@ -75,10 +77,9 @@ describe("the Run evals form", () => {
         compare: false,
         maxCostUsd: 2.5,
       },
-      new Date(Date.UTC(2026, 9, 10, 5, 40, 12)),
     );
     expect(input).toEqual({
-      name: "thermos evals 2026-10-10 05:40:12 UTC",
+      name: "",
       org: "org_acme",
       pluginId: "plg_1",
       targets: [
@@ -91,12 +92,30 @@ describe("the Run evals form", () => {
       concurrency: 1,
     });
     expect(
-      pluginEvalInputOf(
-        { id: "p", org: "o", name: "n" },
-        DEFAULT_EVAL_FORM,
-        new Date(0),
-      ).ablation,
+      pluginEvalInputOf({ id: "p", org: "o" }, DEFAULT_EVAL_FORM).ablation,
     ).toBe(PluginEvalAblation.with_without);
+  });
+});
+
+describe("an eval's label", () => {
+  it("is its plugin and when it started, never its name", () => {
+    const pluginEval = evalWith([], undefined, "pev_7");
+    const at = (date: Date) => date.toISOString();
+    expect(evalLabelOf(pluginEval, "thermos", at)).toBe(
+      `thermos · started ${evalStartOf("pev_7").toISOString()}`,
+    );
+    expect(evalLabelOf(pluginEval, " ", at)).toBe(
+      `Eval · started ${evalStartOf("pev_7").toISOString()}`,
+    );
+    expect(evalLabelOf(pluginEval, "thermos")).toBe(
+      `thermos · started ${evalStartOf("pev_7").toLocaleString()}`,
+    );
+  });
+
+  it("falls back to the id when the eval carries no start", () => {
+    const pluginEval = evalWith([], undefined, "pev_7");
+    pluginEval.status!.audit = undefined;
+    expect(evalLabelOf(pluginEval, "thermos")).toBe("thermos · pev_7");
   });
 });
 
@@ -162,7 +181,7 @@ describe("an eval's rows", () => {
       evalCaseRowsOf(pluginEval)[0]
         ?.cells[0]?.tries.filter((attempt) => attempt.arm === "with")
         .map((attempt) => attempt.summary),
-    ).toEqual(["waiting", "not graded", "waiting", "7"]);
+    ).toEqual(["waiting", "not graded", "waiting", "unknown state 7"]);
   });
 
   it("leaves out the cell of a target the case has no result on", () => {
@@ -177,7 +196,7 @@ describe("an eval's rows", () => {
     ).toEqual(["native/claude-sonnet-4-6"]);
   });
 
-  it("names every phase, and one this client does not know by its number", () => {
+  it("names every phase, and one this client does not know in words with its number", () => {
     expect(
       [
         PluginEvalPhase.pending,
@@ -188,7 +207,7 @@ describe("an eval's rows", () => {
         PluginEvalPhase.unspecified,
         42 as PluginEvalPhase,
       ].map(phaseLabel),
-    ).toEqual(["Starting", "Running", "Completed", "Partial", "Failed", "", "42"]);
+    ).toEqual(["Starting", "Running", "Completed", "Partial", "Failed", "", "unknown phase 42"]);
   });
 
   it("is active while pending or running", () => {

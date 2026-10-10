@@ -307,7 +307,6 @@ export {
   type CaseFromRun,
   type CaseFromRunInput,
 } from "./plugin-eval/case-from-run.js";
-export { pluginEvalName } from "./plugin-eval/eval-name.js";
 export {
   VaultClient,
   buildVaultProto,

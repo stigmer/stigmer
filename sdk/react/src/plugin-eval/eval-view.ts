@@ -1,6 +1,8 @@
 /**
  * Pure reads and writes behind a plugin's Evals tab: the Run evals form's
- * settings and the create input they become, an eval's results as one row
+ * settings and the create input they become (unnamed: the server names an
+ * eval by its id, so a person tells evals apart by their label, the plugin
+ * and when the eval started), an eval's results as one row
  * per case with one cell per target (with and without the plugin, the
  * difference, pass^k, each try), and two evals compared case by case. Kept
  * apart from the components so the rules are unit-testable without React.
@@ -9,9 +11,11 @@
  * cost limit above 0 and at most 1000 dollars, 1 to 8 tries at once); the
  * server checks them again. A comparison is "changed" when a case's score
  * or difference moved by a hundredth or more, or the case ran on one side
- * only, which is the precision the tab shows. Pinned by
+ * only, which is the precision the tab shows. A phase, reason or try state
+ * a newer server added reads in words, never as a bare number. Pinned by
  * `__tests__/eval-view.test.ts`.
  */
+import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { PluginEval } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
 import { PluginEvalAblation } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
 import {
@@ -20,11 +24,7 @@ import {
   type PluginEvalArm,
   type PluginEvalTry,
 } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
-import {
-  pluginEvalName,
-  pluginEvalTargetLabel,
-  type PluginEvalInput,
-} from "@stigmer/sdk";
+import { pluginEvalTargetLabel, type PluginEvalInput } from "@stigmer/sdk";
 import { toProtoHarness, type HarnessOption } from "../models/harness.js";
 
 /** The most targets an eval runs on. */
@@ -89,17 +89,15 @@ export function evalFormProblem(settings: EvalFormSettings): string | null {
 export interface EvalPluginRef {
   readonly id: string;
   readonly org: string;
-  readonly name: string;
 }
 
-/** The create input the form's settings become, named for the plugin and the moment. */
+/** The create input the form's settings become; unnamed, so the server names it by its id. */
 export function pluginEvalInputOf(
   plugin: EvalPluginRef,
   settings: EvalFormSettings,
-  at: Date,
 ): PluginEvalInput {
   return {
-    name: pluginEvalName(plugin.name, at),
+    name: "",
     org: plugin.org,
     pluginId: plugin.id,
     targets: settings.targets.map((target) => ({
@@ -121,6 +119,25 @@ export function isEvalActive(pluginEval: PluginEval | null): boolean {
   return phase === PluginEvalPhase.pending || phase === PluginEvalPhase.running;
 }
 
+/**
+ * How an eval is labelled where it is listed or headed: its plugin and
+ * when it started, as "thermos · started 10/10/2026, 5:40:12 AM", or its
+ * id when it carries no start. `formatTime` defaults to the reader's
+ * locale.
+ */
+export function evalLabelOf(
+  pluginEval: PluginEval,
+  pluginName: string,
+  formatTime: (at: Date) => string = (at) => at.toLocaleString(),
+): string {
+  const createdAt = pluginEval.status?.audit?.specAudit?.createdAt;
+  const when =
+    createdAt === undefined
+      ? (pluginEval.metadata?.id ?? "")
+      : `started ${formatTime(timestampDate(createdAt))}`;
+  return `${pluginName.trim() || "Eval"} · ${when}`;
+}
+
 /** An eval's phase, in words. */
 export function phaseLabel(phase: PluginEvalPhase): string {
   switch (phase) {
@@ -137,8 +154,8 @@ export function phaseLabel(phase: PluginEvalPhase): string {
     case PluginEvalPhase.unspecified:
       return "";
     default: {
-      const exhaustive: never = phase;
-      return String(exhaustive);
+      const unknown: never = phase;
+      return `unknown phase ${String(unknown)}`;
     }
   }
 }
@@ -251,8 +268,8 @@ function trySummary(attempt: PluginEvalTry): string {
     case PluginEvalTryState.unspecified:
       return "waiting";
     default: {
-      const exhaustive: never = attempt.state;
-      return String(exhaustive);
+      const unknown: never = attempt.state;
+      return `unknown state ${String(unknown)}`;
     }
   }
 }

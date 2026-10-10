@@ -10,7 +10,9 @@
  * editors may cancel it then. `Δ` is marked provisional, with the reason,
  * while the eval says the comparison also measures the agent Stigmer
  * composes for the plugin. A try the platform could not grade shows why,
- * never a zero.
+ * never a zero. The heading is the eval's label, its plugin and when it
+ * started; a reason the eval stopped that a newer server added reads
+ * "stopped early".
  *
  * All visual properties flow through `--stgm-*` tokens.
  */
@@ -27,6 +29,7 @@ import { Section } from "../resource-detail/Section.js";
 import { DANGER_BUTTON_CLASS } from "../vault/styles.js";
 import {
   evalCaseRowsOf,
+  evalLabelOf,
   formatDelta,
   formatScore,
   formatUsd,
@@ -43,6 +46,8 @@ import { usePluginEval } from "./usePluginEval.js";
 export interface PluginEvalResultsProps {
   /** The eval's id. */
   readonly evalId: string;
+  /** The evaluated plugin's name, for the heading; "Eval" when omitted. */
+  readonly pluginName?: string;
   /** When `true`, a pending or running eval offers Cancel. @default false */
   readonly canEdit?: boolean;
   /** Called with a try's run id when the person opens it; tries carry no link when omitted. */
@@ -56,6 +61,7 @@ export interface PluginEvalResultsProps {
 /** The results of one plugin eval, case by case and target by target. */
 export function PluginEvalResults({
   evalId,
+  pluginName = "",
   canEdit = false,
   onNavigateToRun,
   onChanged,
@@ -99,7 +105,7 @@ export function PluginEvalResults({
 
   return (
     <Section
-      title={pluginEval.metadata?.name || "Eval"}
+      title={evalLabelOf(pluginEval, pluginName)}
       className={className}
       headerActions={
         canEdit && isEvalActive(pluginEval) ? (
@@ -403,8 +409,9 @@ function partialLabel(reason: PluginEvalPartialReason): string {
     case PluginEvalPartialReason.unspecified:
       return "";
     default: {
-      const exhaustive: never = reason;
-      return String(exhaustive);
+      // A reason a newer server added: the eval still stopped early.
+      const unknown: never = reason;
+      return typeof unknown === "number" ? "stopped early" : "";
     }
   }
 }

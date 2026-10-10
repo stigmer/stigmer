@@ -15,11 +15,12 @@ rubric for a judge model. Stigmer reads that folder in
 and runs it. There is no Stigmer format to learn: the suite you run with
 `claude plugin eval` is the suite Stigmer runs.
 
-A **Plugin Eval** is one run of that suite against one installed version of the
-plugin. Each case runs several times with the plugin and several times without
-it, on each model you name. For each case you get the score with the plugin, the
-score without it, the difference the plugin makes, and whether every try passed.
-Every try is a real conversation you can open.
+A **Plugin Eval** is one run of that suite against the plugin's installed
+version: the version it was installed or last updated at. Each case runs several
+times with the plugin and several times without it, on each model you name. For
+each case you get the score with the plugin, the score without it, the
+difference the plugin makes, and whether every try passed. Every try is a real
+conversation you can open.
 
 ## What Stigmer runs, and what it measures
 
@@ -54,32 +55,49 @@ the plugin's `evals/` folder holds, their tags, any case that failed to load,
 and each case Stigmer cannot run yet with the feature named. Below that are the
 plugin's past evals.
 
-**Run evals** opens the form. It is shown only to people who can edit the
-plugin. Choose:
+**Run evals** is the form below the cases. It is shown only to people who can
+edit the plugin, and it holds:
 
-- **Models**: one or more engine and model pairs, at most six.
-- **Runs**: tries per case and arm, from 1 to 50.
-- **Comparison**: on runs the without-arm too; off runs the with-arm only and
-  halves the cost.
-- **Cost limit**: the most the eval may spend, in dollars of estimated model
-  cost. Stigmer requires one.
-- **Concurrency**: tries running at once, from 1 to 8.
+- **Models**: one or more engine and model pairs, at most six. **Add a model**
+  adds one; **Default model** is the engine's default.
+- **Tries per case**: tries per case and arm, from 1 to 50; 3 to start.
+- **Cost limit (USD)**: the most the eval may spend, in dollars of estimated
+  model cost, at most $1000; $5 to start. Stigmer requires one.
+- **Tries at once**: tries running at once, from 1 to 8; 1 to start.
+- **Also run each case without the plugin, to see the difference it makes**: on
+  by default, it runs the without-arm too; off runs the with-arm only and halves
+  the cost.
 
-The eval's page then fills in as tries finish: one row per case, and for each
-model the `WITH`, `W/OUT`, `Δ` and pass^k columns. Each try links to its run.
-**Compare** puts two evals of the plugin side by side, case by case, with the
-cases whose score changed highlighted; that is how you judge a new version
-against the last one.
+The form's choices apply to every case: a case's own `runs` and `model` are not
+used when you start an eval from the console. To run a case on its own `model`
+or with its own `runs`, start the eval from the CLI without `--model` or
+`--runs`.
+
+An eval runs at most 200 cases and 1000 tries, counting each case on each model
+in each arm for each try. A larger eval is refused when you start it; narrow it
+with `--case` or `--tag`, or choose fewer tries or models.
+
+Each eval is listed by the plugin's name and when it started. The eval's results
+then fill in as tries finish: one row per case, and for each model the `WITH`,
+`W/OUT`, `Δ` and pass^k columns. Each try links to its run. **Compare** puts two
+evals of the plugin side by side, case by case, with the cases whose score
+changed highlighted; that is how you judge a new version against the last one.
 
 ## Start an eval from the CLI
 
-Name the installed plugin. To evaluate an earlier version, add its digest, the
-64-character one `stigmer get plugin` and the plugin's Versions tab show:
+Name the installed plugin. The eval runs on its installed version; evaluating an
+earlier version is not supported yet. A digest after the name, the 64-character
+one `stigmer get plugin` shows, makes sure the eval runs that version: it is
+refused when the plugin is installed at another.
 
 ```bash
 stigmer plugin eval thermos
 stigmer plugin eval thermos@<digest>
 ```
+
+The CLI runs every case with and without the plugin unless you pass
+`--ablation none`, and uses each case's own `runs` and `model` unless you pass
+`--runs` or `--model`.
 
 The command creates the eval, then follows it: a progress line as each try
 finishes (the case, the model, the arm, the try, and its score or why it was not
@@ -91,7 +109,7 @@ graded), then the table and a summary line.
 | `--tag <tag>`                   | Runs only the cases carrying the tag; repeat it for several, and a case runs when any matches                                          |
 | `--runs <n>`                    | Tries per case and arm, 1 to 50; each case's own `runs`, else 3                                                                        |
 | `--model <harness>/<model>`     | A model to run on, as `native/claude-sonnet-4-6` or `cursor/gpt-5`; repeat it for up to six; each case's own `model`, else the default |
-| `--ablation with-without\|none` | `none` runs the with-arm only                                                                                                          |
+| `--ablation with-without\|none` | `with-without`, the default, runs both arms; `none` runs the with-arm only                                                             |
 | `--threshold <0..1>`            | The score a case needs to pass; 1.0 by default                                                                                         |
 | `--max-cost-usd <usd>`          | The eval's cost limit; Stigmer requires one, so the CLI uses 5 when you give none and says so                                          |
 | `-j, --concurrency <n>`         | Tries running at once, 1 to 8                                                                                                          |
@@ -138,12 +156,12 @@ their reason.
 
 The exit code tells a script or a CI job what happened:
 
-| Exit code | Meaning                                                                                                 |
-| --------- | ------------------------------------------------------------------------------------------------------- |
-| 0         | Every case that ran reached the threshold and every case loaded                                         |
-| 1         | A case scored below the threshold, a case failed to load, no case was found, or an option was not valid |
-| 2         | Partial: the cost limit was reached or the Organization ran out of credit; the results cover what ran   |
-| 130       | Interrupted: Ctrl+C cancels the eval and prints the partial results                                     |
+| Exit code | Meaning                                                                                                                                                                                                |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 0         | Every case that ran reached the threshold and every case loaded                                                                                                                                        |
+| 1         | A case scored below the threshold, a case failed to load, no case was found, or an option was not valid; or the eval could not start, or the CLI could not read it for about a minute and cancelled it |
+| 2         | Partial: the cost limit was reached or the Organization ran out of credit; the results cover what ran                                                                                                  |
+| 130       | Interrupted: Ctrl+C cancels the eval and prints the partial results                                                                                                                                    |
 
 `Δ` never changes the exit code, and neither does a case listed as not run.
 
@@ -207,8 +225,11 @@ catalogue ID in the case.
 - **A platform failure is not graded, never 0.** A try that Stigmer could not
   run or grade, such as one refused for lack of credit, one that waited too long
   for capacity ("platform busy"), or a judge that failed, is left out of every
-  mean and named on the try. Claude Code scores such runs 0. A failure of the
-  Agent itself, such as a timeout or the turn cap, is graded on what the run
+  mean and named on the try. So is a try that would start after the plugin was
+  updated during the eval: it is not graded, with the reason "the plugin was
+  updated during the eval", and the case carries a note, because the try would
+  have measured another version. Claude Code scores such runs 0. A failure of
+  the Agent itself, such as a timeout or the turn cap, is graded on what the run
   produced, as Claude Code does.
 - **A denied `Skill` hides Skills; an allow-list without `Skill` keeps them.** A
   case whose `allowed_tools` leaves out `Skill` runs with `Skill` denied, so the

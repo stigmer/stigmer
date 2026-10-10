@@ -6,13 +6,21 @@
 // `--no-wait` returns at once with its id. Ctrl+C is the format's interrupt:
 // the command cancels the eval (tries in flight stop), prints the results
 // of the tries that finished, and exits 130; a second Ctrl+C exits at once.
+// A read that fails is tried again with backoff for about a minute; past
+// that the command cancels the eval rather than leave it spending unwatched,
+// prints or writes what it had, and exits 1.
+//
+// The eval is sent with no name: the server names it by its id, which is
+// short and unique, and a person tells evals apart by plugin and start time.
 //
 // Streams follow the CLI's law: progress lines, notices and the suite's
 // load findings go to stderr, the table and the summary to stdout. Under
 // `--json` the run is quiet, as in the format: the result document goes to
 // stdout, or to the `.json` path given, and nothing else is printed but an
-// error. A refusal from create exits 1, the format's "a run couldn't be
-// started", unless it is the CLI's own sign-in or connection failure.
+// error. A refusal from create or from reading the plugin (an organization
+// not set, an invalid reference) exits 1, the format's "a run couldn't be
+// started", unless it is the CLI's own sign-in or connection failure; the
+// CLI's usage code 2 is the format's partial run.
 //
 // Every effect is injected (`PluginEvalIo`), so the follow loop, the
 // interrupt and the outputs are unit-tested without a server or a clock.
@@ -20,7 +28,7 @@
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { PluginEval } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
 import { PluginEvalPhase } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
-import { pluginEvalName, toResultDocument, type Stigmer } from "@stigmer/sdk";
+import { toResultDocument, type Stigmer } from "@stigmer/sdk";
 import { requireOrganization } from "../../client/single-org.js";
 import { CliExitError, ExitCode, classify } from "../../errors/index.js";
 import { parseReference } from "../reference.js";
@@ -39,6 +47,15 @@ import {
 
 /** How often the command reads the eval again while it runs. */
 export const POLL_INTERVAL_MS = 2_000;
+
+/**
+ * The waits between tries of a read that failed, about a minute in all;
+ * when the last one fails too, the command gives the eval up.
+ */
+const POLL_RETRY_WAITS_MS = [1_000, 2_000, 4_000, 8_000, 15_000, 15_000, 15_000] as const;
+
+/** How long a failing read is tried again before the command gives the eval up. */
+export const POLL_RETRY_BUDGET_MS = POLL_RETRY_WAITS_MS.reduce((sum, ms) => sum + ms, 0);
 
 /** The plugin kind's id prefix (proto kind_meta). */
 const PLUGIN_ID_PREFIX = "plg";
@@ -67,7 +84,7 @@ export async function runPluginEval(
   io: PluginEvalIo,
 ): Promise<EvalExit> {
   const quiet = options.json.kind !== "none";
-  const plugin = await resolvePlugin(client, target.ref, org);
+  const plugin = await resolvePlugin(client, target.ref, org).catch(asStartRefusal);
   const findings = plugin.status?.evals?.findings ?? [];
   for (const finding of findings) {
     io.stderr.write(`evals: ${finding.path === "" ? "" : `${finding.path}: `}${oneLine(finding.message)}\n`);
@@ -76,7 +93,7 @@ export async function runPluginEval(
     io.stderr.write(`Spending limit $${options.maxCostUsd.toFixed(2)}, the default; set --max-cost-usd to change it.\n`);
   }
 
-  const started = await startEval(client, plugin, target, options, io.now());
+  const started = await startEval(client, plugin, target, options);
   const id = started.metadata?.id ?? "";
 
   if (!options.wait) {
@@ -92,8 +109,21 @@ export async function runPluginEval(
   if (!quiet) {
     io.stderr.write(`Started ${id} on ${plugin.metadata?.name || target.ref}. Ctrl+C cancels it.\n`);
   }
-  const { latest, interrupted } = await follow(client, started, quiet, io);
+  const { latest, interrupted, lost } = await follow(client, started, quiet, io);
 
+  if (lost !== undefined) {
+    if (quiet) {
+      await writeDocument(latest, options, io, true);
+    } else {
+      printReport(latest, true, io);
+    }
+    throw new CliExitError(
+      lost.cancelled
+        ? `lost track of eval ${id} (${lost.reason}), so it was cancelled`
+        : `lost track of eval ${id} (${lost.reason}), and could not cancel it; cancel it with: stigmer plugin eval cancel ${id}`,
+      EvalExit.Failed,
+    );
+  }
   const failed = latest.status?.phase === PluginEvalPhase.failed && !interrupted;
   if (quiet) {
     await writeDocument(latest, options, io, interrupted);
@@ -133,11 +163,10 @@ async function startEval(
   plugin: Plugin,
   target: PluginTarget,
   options: PluginEvalOptions,
-  nowMs: number,
 ): Promise<PluginEval> {
   try {
     return await client.plugineval.create({
-      name: pluginEvalName(plugin.metadata?.name || plugin.metadata?.slug || target.ref, new Date(nowMs)),
+      name: "",
       org: plugin.metadata?.org ?? "",
       pluginId: plugin.metadata?.id ?? "",
       pluginDigest: target.digest,
@@ -154,14 +183,45 @@ async function startEval(
       realMcpServers: options.realMcpServers,
     });
   } catch (error) {
-    // The format exits 1 when a suite cannot start (no cases, a suite too
-    // large, a version that does not exist); the CLI's usage code is 2,
-    // which the format keeps for a partial run.
-    const classified = classify(error);
-    if (classified !== null && classified.exitCode === ExitCode.Usage) {
-      throw new CliExitError(classified.message, EvalExit.Failed, classified.hints);
+    return asStartRefusal(error);
+  }
+}
+
+/**
+ * Rethrows a usage refusal as exit 1: the format exits 1 when a suite
+ * cannot start (no cases, a suite too large, a version that does not exist,
+ * no organization, a reference the server refuses); the CLI's usage code is
+ * 2, which the format keeps for a partial run. Anything else passes on.
+ */
+function asStartRefusal(error: unknown): never {
+  const classified = classify(error);
+  if (classified !== null && classified.exitCode === ExitCode.Usage) {
+    throw new CliExitError(classified.message, EvalExit.Failed, classified.hints);
+  }
+  throw error;
+}
+
+/** Why the command stopped following the eval, and whether its cancel went through. */
+interface Lost {
+  readonly reason: string;
+  readonly cancelled: boolean;
+}
+
+type Read = { readonly kind: "read"; readonly pluginEval: PluginEval } | { readonly kind: "lost"; readonly reason: string } | { readonly kind: "aborted" };
+
+/** Reads the eval, trying again with backoff while the read fails. */
+async function readEval(client: Stigmer, id: string, quiet: boolean, signal: AbortSignal, io: PluginEvalIo): Promise<Read> {
+  for (let failures = 0; ; failures += 1) {
+    try {
+      return { kind: "read", pluginEval: await client.plugineval.get(id) };
+    } catch (error) {
+      const reason = oneLine(classify(error)?.message ?? "") || "the read failed";
+      const wait = POLL_RETRY_WAITS_MS[failures];
+      if (wait === undefined) return { kind: "lost", reason };
+      if (!quiet) io.stderr.write(`Could not read ${id} (${reason}); trying again in ${wait / 1_000}s.\n`);
+      await io.sleep(wait, signal);
+      if (signal.aborted) return { kind: "aborted" };
     }
-    throw error;
   }
 }
 
@@ -170,7 +230,7 @@ async function follow(
   started: PluginEval,
   quiet: boolean,
   io: PluginEvalIo,
-): Promise<{ latest: PluginEval; interrupted: boolean }> {
+): Promise<{ latest: PluginEval; interrupted: boolean; lost?: Lost }> {
   const id = started.metadata?.id ?? "";
   const interrupt = new AbortController();
   let interrupts = 0;
@@ -193,7 +253,18 @@ async function follow(
     while (!isSettled(latest) && !interrupt.signal.aborted) {
       await io.sleep(POLL_INTERVAL_MS, interrupt.signal);
       if (interrupt.signal.aborted) break;
-      latest = await client.plugineval.get(id);
+      const read = await readEval(client, id, quiet, interrupt.signal, io);
+      if (read.kind === "aborted") break;
+      if (read.kind === "lost") {
+        // The eval would go on spending with no one watching: stop it.
+        const cancelled = await client.plugineval.cancel(id).catch(() => undefined);
+        if (cancelled !== undefined) {
+          latest = await client.plugineval.get(id).catch(() => cancelled);
+          report(latest);
+        }
+        return { latest, interrupted: true, lost: { reason: read.reason, cancelled: cancelled !== undefined } };
+      }
+      latest = read.pluginEval;
       report(latest);
     }
     if (!interrupt.signal.aborted) {

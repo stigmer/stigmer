@@ -31,6 +31,7 @@ export {
   evalCaseRowsOf,
   compareEvals,
   evalFormProblem,
+  evalLabelOf,
   pluginEvalInputOf,
   evalTargetLabelsOf,
   type EvalCaseRow,

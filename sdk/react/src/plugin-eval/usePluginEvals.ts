@@ -1,5 +1,16 @@
 "use client";
 
+/**
+ * Data hook for a plugin's evals, newest first, as the Evals tab lists
+ * them.
+ *
+ * The list is a summary: the server returns each eval with its aggregates,
+ * per-target scores and notes but its cases' tries emptied, so a long
+ * history stays small; a view that shows tries reads the one eval through
+ * `usePluginEval`. An empty plugin id asks nothing. Pinned by
+ * `__tests__/hooks.test.tsx`.
+ */
+
 import { useMemo } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { PluginEval } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
