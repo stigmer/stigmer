@@ -41,8 +41,8 @@ there. This guide is an index; the READMEs and headers it names are the truth.
   `completion` stay fast.
 - The CLI is verb-first: a resource kind is an argument to a verb (`push skill`,
   `get agent`, `validate -f`), never a noun group of its own. Noun groups exist
-  only for account and infrastructure nouns (`auth`, `apikey`, `config`, `runs`)
-  and `vault`, whose entries are written by its own verbs and never read back.
+  only for account and infrastructure nouns (`auth`, `apikey`, `config`,
+  `runs`), `vault` and `plugin`; each group's header says why.
 
 ## Laws, web and desktop
 
