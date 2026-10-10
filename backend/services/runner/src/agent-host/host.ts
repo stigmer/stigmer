@@ -13,8 +13,8 @@
  *
  * The adapters boot with a `Config` built from the runner's (`HostConfigWire`):
  * the runner's non-secret settings, every endpoint the adapters dial
- * pointed at the runner's local proxy, and the host's own token in every
- * credential slot. The Temporal and control-plane coordinates are inert:
+ * pointed at the runner's local proxy (the Cursor SDK's at its Cursor
+ * lane), and the host's own token in every credential slot. The Temporal and control-plane coordinates are inert:
  * the host dials neither, and an accidental dial reaches the proxy, which
  * serves no such lane.
  *
@@ -106,6 +106,13 @@ export function serveAgentHost(channel: LineChannel, rows: readonly HarnessRow[]
 
   peer.onNotice("stopTurn", ({ turnId, reason }) => turns.get(turnId)?.stop(reason));
 
+  // The SDK the warm-up loads is the host's: the runner loads no engine.
+  peer.handle("warmCursorSdk", async () => {
+    const { warmCursorSdkStateStores } = await import("../activities/execute-cursor/sdk-warmup.js");
+    const result = await warmCursorSdkStateStores();
+    return { warmed: result.warmed, durationMs: result.durationMs, error: result.error ?? null };
+  });
+
   peer.handle("runTurn", async (args): Promise<WireSettlement> => {
     const { turnId, harness, input: wireInput } = args;
     const adapter = harnessRowFor(rows, harness).adapter;
@@ -171,6 +178,7 @@ function hostConfig(wire: HostConfigWire): Config {
     workspaceRootDir: wire.workspaceRootDir,
     mode: wire.mode,
     proxyEndpoint: wire.platformProxied ? wire.proxyEndpoint : null,
+    cursorEndpoint: wire.cursorEndpoint,
     maxConcurrentActivities: wire.maxConcurrentActivities,
     idleTimeoutSeconds: null,
     cloudModeEnabled: wire.cloudModeEnabled,

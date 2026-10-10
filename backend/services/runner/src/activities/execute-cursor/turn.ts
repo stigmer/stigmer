@@ -261,13 +261,13 @@ async function classifyThrown(err: unknown, input: TurnInput, config: CursorAdap
       capturedRejection: getCapturedRejection(executionId),
       isResumedHandle: false,
       fallbackContext,
-      proxyMode: !!config.proxyEndpoint,
+      proxyMode: config.platformKey,
     });
     clearCapturedRejection(executionId);
     return { kind: "failed", surface: "internal", message: formatClassifiedError(classified), cause: err };
   }
 
-  const { errorType, errorMessage } = describeExecutionError(err, { proxyMode: !!config.proxyEndpoint });
+  const { errorType, errorMessage } = describeExecutionError(err, { proxyMode: config.platformKey });
   console.error(`ExecuteCursor failed: execution=${executionId}, [${errorType}] ${errorMessage}`);
   return { kind: "failed", surface: "internal", message: `[${errorType}] ${errorMessage}`, cause: err };
 }

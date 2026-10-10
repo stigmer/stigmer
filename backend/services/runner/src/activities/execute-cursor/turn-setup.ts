@@ -103,8 +103,14 @@ import { installHitlGate, MAX_HOOK_TIMEOUT_SECONDS, removeHitlGate, type HitlGat
 /**
  * The runner config this harness reads per turn, as a named slice
  * (`shared/workspace/session-provision.ts` `SessionProvisionConfig` is the
- * idiom): a whole `Config` satisfies it, a test constructs these fields and
- * nothing else.
+ * idiom): taken from a `Config` at boot (`adapter.ts` `resolveCursorConfig`),
+ * a test constructs these fields and nothing else.
+ *
+ * `proxyEndpoint` is where the SDK's traffic goes: in the agent host, always
+ * the local proxy's Cursor lane. `platformKey` is whether the Cursor key
+ * behind it is the Stigmer platform's, which decides the wording of a
+ * billing error; the two were one setting while the harness ran in the
+ * runner's own process.
  */
 export type CursorAdapterConfig = Pick<
   Config,
@@ -115,7 +121,7 @@ export type CursorAdapterConfig = Pick<
   | "cloudModeEnabled"
   | "agentResolveTimeoutMs"
   | "cursorStreamStallTimeoutMs"
->;
+> & { readonly platformKey: boolean };
 
 export type CursorAgentMode = "cloud" | "local";
 

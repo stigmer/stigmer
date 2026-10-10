@@ -66,6 +66,8 @@ export type HostStarter = () => StartedHost | Promise<StartedHost>;
 export interface AgentProxyGate {
   /** `http://127.0.0.1:<port>`. */
   readonly endpoint: string;
+  /** The Cursor lane, `https://127.0.0.1:<port>`. */
+  readonly cursorEndpoint: string;
   /** Make `token` the one host token the proxy accepts. */
   authorizeHost(token: string): void;
 }
@@ -142,6 +144,11 @@ export class AgentHostSupervisor {
     const peer = this.live?.peer;
     // A host that is not running holds nothing for the session.
     if (peer && !peer.closed) await peer.call("releaseSession", { harness, sessionId });
+  }
+
+  /** Ask the host to warm the Cursor SDK's stores (an idle pool member's head start). */
+  async warmCursorSdk(): Promise<HostCalls["warmCursorSdk"]["result"]> {
+    return (await this.connection()).call("warmCursorSdk", {});
   }
 
   /** The live host, started (and booted) first when it is not running. */
@@ -271,6 +278,7 @@ export class AgentHostSupervisor {
       agentResolveTimeoutMs: config.agentResolveTimeoutMs,
       workspaceLockTimeoutMs: config.workspaceLockTimeoutMs,
       proxyEndpoint: this.options.proxy.endpoint,
+      cursorEndpoint: this.options.proxy.cursorEndpoint,
       token,
       platformProxied: config.proxyEndpoint !== null,
     };

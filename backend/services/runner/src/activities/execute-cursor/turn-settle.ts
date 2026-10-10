@@ -385,7 +385,7 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
         fallbackContext: { model: engine.validatedModel, mode: engine.agentMode, agentId: engine.resolution.agentId },
         durationMs: (result as unknown as Record<string, unknown>).durationMs as number | undefined,
         messageCount: status.messages.length,
-        proxyMode: !!config.proxyEndpoint,
+        proxyMode: config.platformKey,
       });
 
       console.error(
@@ -456,7 +456,7 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
           conversationErrorText: retryConversationErrorText,
           isResumedHandle: false,
           fallbackContext: { model: engine.validatedModel, mode: engine.agentMode, agentId: freshAgent.agentId },
-          proxyMode: !!config.proxyEndpoint,
+          proxyMode: config.platformKey,
         });
         const message = formatClassifiedError(retryClassified);
         console.error(`ExecuteCursor poisoned-handle recovery FAILED: execution=${executionId}, retryError=${message}`);

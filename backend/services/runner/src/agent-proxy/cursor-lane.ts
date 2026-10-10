@@ -3,7 +3,8 @@
  * everything, and the one place the Cursor credentials are used (#2016).
  *
  * It is a listener of its own, beside the model lanes' (`server.ts`): TLS on
- * `127.0.0.1` with a certificate made at each runner start
+ * `127.0.0.1` (written as a number, {@link LOOPBACK_AS_NUMBER} says why)
+ * with a certificate made at each runner start
  * (`loopback-certificate.ts`), serving HTTP/2 and HTTP/1.1 on one port. The
  * SDK opens its agent run as an HTTP/2 bidirectional stream only for an
  * `https:` backend, and that stream is the wire the Stigmer platform's proxy
@@ -78,6 +79,17 @@ const AGENT_PREFIX = "/agent.v1.";
 const SIDE_CALL_PREFIX = "/aiserver.v1.";
 const DEFAULT_CONNECT_UPSTREAM = "https://api2.cursor.sh";
 
+/**
+ * 127.0.0.1 written as one number, which every URL parser reads as
+ * 127.0.0.1 (WHATWG's IPv4 parser; `fetch`, `http2.connect` and the TLS
+ * identity check all see that address). The Cursor SDK sets
+ * `NODE_TLS_REJECT_UNAUTHORIZED=0` for its whole process whenever its
+ * backend URL's text matches `://localhost` or `://127.0.0.1` (`Agent.create`,
+ * SDK 1.0.31): written as a number, the lane's address does not match, so
+ * the host and every process an agent starts keep verifying certificates.
+ */
+const LOOPBACK_AS_NUMBER = "2130706433";
+
 /** What the lane asks of the proxy it belongs to. */
 export interface CursorLaneGate {
   /** Is `presented` the current host's token? */
@@ -115,7 +127,7 @@ export class CursorLane {
     });
     server.unref();
     const { port } = server.address() as AddressInfo;
-    lane = new CursorLane(server, `https://127.0.0.1:${port}`, certPem, config, gate);
+    lane = new CursorLane(server, `https://${LOOPBACK_AS_NUMBER}:${port}`, certPem, config, gate);
     return lane;
   }
 
@@ -258,6 +270,7 @@ export class CursorLane {
       upstream.on("end", () => resolve());
       upstream.on("error", (err) => {
         res.off("close", abandon);
+        console.warn(`[agent-proxy] the Cursor stream ${url.pathname} failed upstream: ${err.message}`);
         if (res.headersSent) res.stream.close(http2Constants.NGHTTP2_INTERNAL_ERROR);
         else replyConnectError(res, 502, `the upstream could not be reached: ${err.message}`);
         resolve();

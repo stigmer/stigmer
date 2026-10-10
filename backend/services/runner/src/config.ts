@@ -209,6 +209,16 @@ export interface Config {
    * boot refuses a proxy without it.
    */
   readonly proxyTokenRef?: Readonly<TokenRef>;
+  /**
+   * Where the Cursor SDK's traffic goes, when that is not {@link proxyEndpoint}:
+   * set only in the agent host, to the local proxy's Cursor lane
+   * (`agent-proxy/cursor-lane.ts`), which holds the Cursor credentials. The
+   * Cursor harness then runs as a proxy-mode client of that lane whatever
+   * the runner's own mode, while {@link proxyEndpoint} still says whether
+   * the key is the platform's (`activities/execute-cursor/adapter.ts`).
+   * Absent everywhere else.
+   */
+  readonly cursorEndpoint?: string;
 }
 
 export function loadConfig(): Config {

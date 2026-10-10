@@ -5,8 +5,8 @@
  *
  * Pinned:
  *  - at the first boot the host routes the model registry through the
- *    runner's proxy, and on a runner that calls providers directly installs
- *    the provider lanes;
+ *    runner's proxy, points the Cursor SDK at the Cursor lane, and on a
+ *    runner that calls providers directly installs the provider lanes;
  *  - a running turn signs its approval receipts with the key the runner
  *    handed, not one of the host's own;
  *  - when the channel closes, every booted adapter is shut down in reverse
@@ -16,7 +16,7 @@
  */
 
 import { create } from "@bufbuild/protobuf";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 
 import { DEEP_AGENT_CAPABILITIES } from "../../activities/execute-deep-agent/deep-agent-capabilities.js";
@@ -45,6 +45,7 @@ const CONFIG: HostConfigWire = {
   agentResolveTimeoutMs: 1,
   workspaceLockTimeoutMs: 1,
   proxyEndpoint: "http://127.0.0.1:4321",
+  cursorEndpoint: "https://127.0.0.1:4322",
   token: "host-token",
   platformProxied: false,
 };
@@ -80,8 +81,14 @@ function hostProcess(rows: readonly HarnessRow[], shutdownGraceMs?: number) {
   return { runner, runnerEnd, log, exits, done, flushed: () => flushed };
 }
 
+const cursorBackend = process.env.CURSOR_BACKEND_URL;
+afterEach(() => {
+  if (cursorBackend === undefined) delete process.env.CURSOR_BACKEND_URL;
+  else process.env.CURSOR_BACKEND_URL = cursorBackend;
+});
+
 describe("the agent host process", () => {
-  it("routes the registry and installs the provider lanes at the first boot", async () => {
+  it("routes the registry and the Cursor SDK, and installs the provider lanes, at the first boot", async () => {
     resetRegistryRouteForTests();
     resetModelLanesForTests();
     const events: string[] = [];
@@ -91,6 +98,7 @@ describe("the agent host process", () => {
     await runner.call("boot", { harness: "deep-agent", config: CONFIG });
 
     expect(resolveRegistryBaseUrl()).toBe(CONFIG.proxyEndpoint);
+    expect(process.env.CURSOR_BACKEND_URL).toBe(CONFIG.cursorEndpoint);
     expect(modelLanes()).toEqual({ endpoint: CONFIG.proxyEndpoint, token: CONFIG.token });
     runnerEnd.close();
     await done;

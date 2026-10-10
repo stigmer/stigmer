@@ -573,6 +573,18 @@ async function buildStigmerRunnerManager(
       console.log(
         `[runner-manager] Added pool control worker (queue=${taskQueue})`,
       );
+      // Idle-time warm-up (issue #209): pay the Cursor SDK's per-process
+      // store cost now, in the agent host where the SDK runs, while the
+      // member waits for a claim, instead of inside the claimed session's
+      // first resolve_agent. Fire-and-forget: a pool-control member only,
+      // never a claimed session's restart, which serves at once.
+      void hosted.warmCursorSdk().then((result) => {
+        if (result.warmed) {
+          console.log(`[pool-member] Cursor SDK state stores warmed in ${result.durationMs}ms`);
+        } else {
+          console.warn(`[pool-member] Cursor SDK warm-up skipped (non-fatal): ${result.error} (${result.durationMs}ms)`);
+        }
+      });
     },
 
     updateToken(token: string | null): void {

@@ -61,10 +61,16 @@ import { assertHttp2ConnectPatched, installHttp2Interceptor } from "./http2-inte
 import { releaseAllSessionStores, releaseSessionStore } from "./session-store.js";
 import type { CursorAdapterConfig } from "./turn-setup.js";
 
-/** The config slice this adapter reads per turn, taken at `boot`; a whole `Config` satisfies it. */
+/**
+ * The config slice this adapter reads per turn, taken at `boot`. In the
+ * agent host the SDK's traffic goes to the local proxy's Cursor lane
+ * (`Config.cursorEndpoint`) whatever the runner's mode, and whether the key
+ * is the platform's is still the runner's own proxy setting.
+ */
 export function resolveCursorConfig(config: Config): CursorAdapterConfig {
   return {
-    proxyEndpoint: config.proxyEndpoint,
+    proxyEndpoint: transportOf(config),
+    platformKey: config.proxyEndpoint !== null,
     cursorApiKey: config.cursorApiKey,
     stigmerTokenRef: config.stigmerTokenRef,
     workspaceRootDir: config.workspaceRootDir,
@@ -72,6 +78,11 @@ export function resolveCursorConfig(config: Config): CursorAdapterConfig {
     agentResolveTimeoutMs: config.agentResolveTimeoutMs,
     cursorStreamStallTimeoutMs: config.cursorStreamStallTimeoutMs,
   };
+}
+
+/** Where the SDK's traffic goes: the agent host's Cursor lane, else the runner's proxy, else Cursor itself (`null`). */
+function transportOf(config: Config): string | null {
+  return config.cursorEndpoint ?? config.proxyEndpoint;
 }
 
 /** What `boot` leaves behind for the turns: the config slice and the engine turn, loaded after the interceptors. */
@@ -95,7 +106,8 @@ export function createCursorAdapter(): HarnessAdapter {
      * Idempotent: a re-boot rebinds the interceptors and re-reads the slice.
      */
     async boot(bootConfig: Config): Promise<void> {
-      if (bootConfig.proxyEndpoint && !bootConfig.proxyTokenRef) {
+      const transport = transportOf(bootConfig);
+      if (transport && !bootConfig.proxyTokenRef) {
         throw new Error(
           "cursor adapter: a proxy endpoint needs Config.proxyTokenRef (the composition root binds its proxy credential there; see config.ts)",
         );
@@ -105,11 +117,11 @@ export function createCursorAdapter(): HarnessAdapter {
       // route the first through the proxy and stamp the second with the proxy
       // credential and the execution id. Both are no-ops without a proxy.
       installFetchInterceptor({
-        proxyEndpoint: bootConfig.proxyEndpoint ?? undefined,
+        proxyEndpoint: transport ?? undefined,
         proxyTokenRef: bootConfig.proxyTokenRef,
       });
       installHttp2Interceptor({
-        proxyEndpoint: bootConfig.proxyEndpoint ?? undefined,
+        proxyEndpoint: transport ?? undefined,
         proxyTokenRef: bootConfig.proxyTokenRef,
       });
       markBoot("interceptors_installed");

@@ -82,6 +82,7 @@ import { _resetAgentSessionCacheForTests } from "../agent-session-cache.js";
 import { _resetPricingCache } from "../model-pricing-data.js";
 import { resetCatalogCacheForTests } from "../service-tier.js";
 import { _resetRegistryCache } from "../../../shared/model-registry.js";
+import type { HarnessRow } from "../../../harness/registry.js";
 import { ScriptedCursorSdk, bindScriptedSdk, type ScriptedSdkOptions } from "./scripted-sdk.js";
 
 // ---------------------------------------------------------------------------
@@ -380,6 +381,9 @@ export interface CursorTurnOptions {
   readonly onControls?: (controls: InvocationControls) => void;
 }
 
+/** The hosted Cursor row each scenario's invocations share. */
+const hostedRows = new WeakMap<CursorScenarioBase, HarnessRow>();
+
 /**
  * Run ONE `ExecuteCursor` invocation for the scenario — either posture: the
  * real Cursor adapter under the real turn runtime, as the composition roots
@@ -397,9 +401,18 @@ export async function runCursorTurn(
   // `@cursor/sdk` (through `turn.ts`) and the registry loads the client.
   const { createCursorAdapter } = await import("../adapter.js");
   const { createHarnessActivities } = await import("../../../harness/registry.js");
-  const adapter = createCursorAdapter();
-  await adapter.boot(scenario.config);
-  const activities = await createHarnessActivities([{ harness: "cursor", adapter }], scenario.config);
+  const { loopbackHostedRow } = await import("../../../__test-utils__/loopback-host.js");
+  // Hosted, as production runs it: the remote adapter in front, the real one
+  // behind the pipe, one host for every turn of the scenario as one host
+  // serves every turn of a runner (its token, which the parked agent's
+  // fingerprint covers, is the host's for its lifetime).
+  let row = hostedRows.get(scenario);
+  if (row === undefined) {
+    row = loopbackHostedRow({ harness: "cursor", adapter: createCursorAdapter() });
+    hostedRows.set(scenario, row);
+  }
+  await row.adapter.boot(scenario.config);
+  const activities = await createHarnessActivities([row], scenario.config);
   // The typed wire shape the control plane's workflow sends (activity-input.ts).
   const input: ExecuteActivityInput = {
     execution_id: scenario.record.executionId,

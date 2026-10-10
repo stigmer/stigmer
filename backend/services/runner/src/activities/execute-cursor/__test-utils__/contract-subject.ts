@@ -94,6 +94,7 @@ import type {
   TurnScenario,
 } from "../../../__test-utils__/harness-contract/types.js";
 import type { HermeticEnvironment } from "../../../__test-utils__/hermetic-activity.js";
+import { loopbackHostedRow } from "../../../__test-utils__/loopback-host.js";
 import { createCursorAdapter } from "../adapter.js";
 import { resolveSessionStoreLocation } from "../session-store.js";
 import { hookInputFor, streamArgsFor, STREAM_NAME, type GatedActionKind } from "./cursor-hook-harness.js";
@@ -161,7 +162,8 @@ class CursorSubject implements CursorContractSubject {
 
   constructor(private readonly env: HermeticEnvironment) {
     this.config = hermeticCursorConfig(env);
-    this.adapter = createCursorAdapter();
+    // Hosted, as production runs it: the remote adapter in front, the real one behind the pipe.
+    this.adapter = loopbackHostedRow({ harness: "cursor", adapter: createCursorAdapter() }).adapter;
     this.sdk = new ScriptedCursorSdk({
       agents: [],
       catalog: SDK_CATALOG,

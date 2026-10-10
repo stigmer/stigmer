@@ -22,10 +22,17 @@
  *    terminal's Ctrl-C) and exits only when its pipe closes, so a runner
  *    draining its turns keeps its host; a host that has not exited a grace
  *    after it was told to end is killed;
- *  - hosting replaces exactly the hosted harnesses' adapters with remote
- *    ones and leaves the rest as they are.
+ *  - hosting replaces every harness's adapter with a remote one that keeps
+ *    its name and capabilities, and asks the host to warm the Cursor SDK
+ *    without ever throwing;
+ *  - the host's trust file holds the Cursor lane's certificate, after the
+ *    operator's own extra certificates when they named a readable file, is
+ *    readable by another user, and is removed with the proxy.
  */
 
+import { existsSync, mkdtempSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -34,11 +41,11 @@ import { testConfig } from "../../__test-utils__/config-fixture.js";
 import type { HarnessAdapter } from "../../harness/types.js";
 import { RUNNER_ENTRY_URL } from "../../runner-entry.js";
 import { Peer, loopbackChannels } from "../channel.js";
-import { hostHarnesses } from "../hosting.js";
+import { hostHarnesses, writeTrustedCertificates } from "../hosting.js";
 import { AGENT_HOST_MODE_ARG, AGENT_HOST_PROTOCOL_VERSION, type HostCalls, type HostNotices, type RunnerCalls, type RunnerNotices } from "../protocol.js";
 import { AgentHostSupervisor, agentHostCommand, processHostStarter, spawnHostProcess, type HostStarter } from "../supervisor.js";
 
-const PROXY = { endpoint: "http://127.0.0.1:9", authorizeHost: () => {} };
+const PROXY = { endpoint: "http://127.0.0.1:9", cursorEndpoint: "https://127.0.0.1:9", authorizeHost: () => {} };
 
 type HostSide = Peer<RunnerCalls, HostCalls, HostNotices, RunnerNotices>;
 
@@ -253,7 +260,7 @@ describe("the production starter", () => {
 });
 
 describe("hosting the table", () => {
-  it("replaces exactly the hosted harnesses' adapters, and closes its proxy", async () => {
+  it("replaces every harness's adapter, keeps its name and capabilities, and closes its proxy", async () => {
     const adapter = (name: string): HarnessAdapter => ({
       name,
       capabilities: DEEP_AGENT_CAPABILITIES,
@@ -273,10 +280,37 @@ describe("hosting the table", () => {
       { start: inProcessHosts().start },
     );
 
-    expect(hosted.rows[0]!.adapter, "the Cursor harness still runs in the runner").toBe(cursor);
+    expect(hosted.rows[0]!.adapter, "the Cursor harness is hosted").not.toBe(cursor);
     expect(hosted.rows[1]!.adapter, "the native harness is hosted").not.toBe(native);
-    expect(hosted.rows[1]!.adapter.name).toBe("native");
+    expect(hosted.rows.map((row) => row.adapter.name)).toEqual(["cursor", "native"]);
     expect(hosted.rows[1]!.adapter.capabilities).toBe(native.capabilities);
+    // The in-process host serves no warm-up: the answer is a result, never a throw.
+    expect(await hosted.warmCursorSdk()).toEqual({ warmed: false, durationMs: 0, error: expect.stringContaining("warmCursorSdk") });
     await hosted.close();
+  });
+
+  it("writes the host's trust file: the lane's certificate after the operator's, readable by another user, removed with the proxy", () => {
+    const operatorDir = mkdtempSync(join(tmpdir(), "operator-ca-"));
+    const operatorFile = join(operatorDir, "corporate.pem");
+    writeFileSync(operatorFile, "-----BEGIN CERTIFICATE-----\ncorporate\n-----END CERTIFICATE-----");
+    const lane = "-----BEGIN CERTIFICATE-----\nlane\n-----END CERTIFICATE-----\n";
+
+    const combined = writeTrustedCertificates(lane, operatorFile);
+    expect(readFileSync(combined.file, "utf8")).toBe("-----BEGIN CERTIFICATE-----\ncorporate\n-----END CERTIFICATE-----\n" + lane);
+    expect(statSync(combined.file).mode & 0o777).toBe(0o644);
+    expect(statSync(dirname(combined.file)).mode & 0o777).toBe(0o755);
+    combined.remove();
+    expect(existsSync(dirname(combined.file))).toBe(false);
+
+    const alone = writeTrustedCertificates(lane, undefined);
+    expect(readFileSync(alone.file, "utf8")).toBe(lane);
+    alone.remove();
+
+    const warned: string[] = [];
+    vi.spyOn(console, "warn").mockImplementation((message: string) => void warned.push(message));
+    const unreadable = writeTrustedCertificates(lane, join(operatorDir, "missing.pem"));
+    expect(readFileSync(unreadable.file, "utf8")).toBe(lane);
+    expect(warned[0]).toMatch(/^\[agent-host\] NODE_EXTRA_CA_CERTS=.*missing\.pem could not be read/);
+    unreadable.remove();
   });
 });
