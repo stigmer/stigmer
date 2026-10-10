@@ -146,6 +146,14 @@ function recordingStore(
       calls.push("findByOrg");
       return inner.findByOrg(org);
     },
+    findByProviderAndIdpId: (providerOrg, providerSlug, idpId) => {
+      calls.push("findByProviderAndIdpId");
+      return inner.findByProviderAndIdpId(providerOrg, providerSlug, idpId);
+    },
+    findByProvider: (providerOrg, providerSlug) => {
+      calls.push("findByProvider");
+      return inner.findByProvider(providerOrg, providerSlug);
+    },
   };
 }
 

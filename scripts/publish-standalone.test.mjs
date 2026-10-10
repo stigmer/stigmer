@@ -29,9 +29,21 @@
 // resolved against the caller's cwd, refused beside --tag and --dry-run.
 // The pack lane stages the server beside libs packed by publish-libs.mjs,
 // so a script driving both must not learn two vocabularies.
+//
+// And a package's own LICENSE is its license. A standalone package under a
+// license other than the root's publishes with its own text, so the root
+// copy is made only for a package that carries none, and the rehearsal's
+// restore removes only that copy, never the package's own file.
 
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
@@ -43,6 +55,7 @@ import {
   registryLagMessage,
   REQUEST_TIMEOUT_MS,
   resolveTag,
+  rootLicenseCopy,
   stampManifest,
   waitForRegistry,
   WAIT_BUDGET_MS,
@@ -81,6 +94,46 @@ test("stampManifest pins every @stigmer/* file: link to the release version and 
     input.dependencies["@stigmer/protos"],
     "file:../../../apis/stubs/ts",
   );
+});
+
+test("a package's own LICENSE is kept and never removed; the root's is copied only where none exists, and only that copy is removed", () => {
+  const root = mkdtempSync(join(tmpdir(), "publish-standalone-license-"));
+  try {
+    writeFileSync(join(root, "LICENSE"), "root license text\n");
+    const own = mkdtempSync(join(root, "own-"));
+    const none = mkdtempSync(join(root, "none-"));
+    writeFileSync(join(own, "LICENSE"), "the package's own license text\n");
+
+    assert.equal(
+      rootLicenseCopy(own, root),
+      undefined,
+      "a package with its own LICENSE gets no copy, so nothing can overwrite or remove it",
+    );
+    assert.equal(
+      readFileSync(join(own, "LICENSE"), "utf8"),
+      "the package's own license text\n",
+    );
+
+    const copy = rootLicenseCopy(none, root);
+    assert.ok(copy, "a package with no LICENSE gets the root's");
+    copy.copy();
+    assert.equal(readFileSync(join(none, "LICENSE"), "utf8"), "root license text\n");
+    copy.remove();
+    assert.equal(existsSync(join(none, "LICENSE")), false, "the restore removes the copy it made");
+
+    const bare = mkdtempSync(join(tmpdir(), "publish-standalone-no-root-"));
+    try {
+      assert.equal(
+        rootLicenseCopy(none, bare),
+        undefined,
+        "with no root LICENSE there is nothing to copy",
+      );
+    } finally {
+      rmSync(bare, { recursive: true, force: true });
+    }
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test("stampManifest tolerates a manifest without dependencies", () => {

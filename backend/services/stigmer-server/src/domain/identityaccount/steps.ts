@@ -24,9 +24,10 @@
  *     ResolveSlug's refusal of an invalid derived slug would refuse a
  *     sign-in. A slug the caller sent was held to the rules by
  *     ValidateProto already.
- *   - DeriveAccountId: `metadata.id = accountIdFor(spec.idp_id)`,
- *     replacing whatever the caller sent (`metadata.proto`'s documented
- *     exception). Runs BEFORE
+ *   - DeriveAccountId: `metadata.id = accountIdFor(spec.idp_id)`, or for
+ *     a federated account the id of its provider and subject
+ *     (`federatedAccountIdFor`), replacing whatever the caller sent
+ *     (`metadata.proto`'s documented exception). Runs BEFORE
  *     BuildNewState and claims the id through `assignServerId`, the one
  *     way an id survives that step (stigmer/stigmer#1266).
  *   - CheckDuplicate: by SUBJECT, a primary-key read of the derived id —
@@ -34,8 +35,9 @@
  *     subject, never its slug (the guideline's "domains with different
  *     uniqueness rules bring their own step under the same name").
  *   - AssignBackendFields: `is_machine_account` from the `@clients`
- *     suffix and the provisioning mode the path was given (`direct`, or
- *     `platform_client` for the mint's end users) on create (the spec's
+ *     suffix and the provisioning mode the path was given (`direct`,
+ *     `platform_client` for the mint's end users, or `federated` with the
+ *     provider's reference) on create (the spec's
  *     "assigned by backend" fields); on update, every backend-assigned
  *     field and the email are preserved from the existing row (the
  *     cloud's writable surface — first/last name, picture, preferences —
@@ -53,6 +55,8 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import type { DescMessage } from "@bufbuild/protobuf";
 import { create } from "@bufbuild/protobuf";
 
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
@@ -77,12 +81,14 @@ import {
   PLATFORM_CLIENT_SUBJECT_PREFIX,
   accountIdFor,
   accountNotFoundMessage,
+  federatedAccountIdFor,
   idpIdImmutableMessage,
+  isFederatedSubject,
   isMachineSubject,
   isPlatformClientSubject,
   reservedSubjectMessage,
 } from "./constants.js";
-import type { AccountProvisioning } from "./provisioning.js";
+import type { AccountProvisioning, FederatedProvider } from "./provisioning.js";
 import { DuplicateAccountError } from "./store.js";
 import type { IdentityAccountStore } from "./store.js";
 
@@ -126,7 +132,9 @@ export function newResolveAccountSlugStep(): AccountStep {
   };
 }
 
-export function newDeriveAccountIdStep(): AccountStep {
+export function newDeriveAccountIdStep(
+  provisioning: AccountProvisioning,
+): AccountStep {
   return {
     name: "DeriveAccountId",
     execute(ctx: AccountContext): void {
@@ -139,9 +147,30 @@ export function newDeriveAccountIdStep(): AccountStep {
           "derive account id",
         );
       }
-      assignServerId(ctx, accountIdFor(idpId));
+      assignServerId(ctx, accountIdOf(provisioning, idpId));
     },
   };
+}
+
+/**
+ * The derived id of the account being created: its subject's, or for a
+ * federated account its provider's and subject's. A provider reference the
+ * path cannot address is the provisioning caller's bug, never a client's
+ * input, so it is a server fault.
+ */
+function accountIdOf(provisioning: AccountProvisioning, idpId: string): string {
+  if (provisioning.mode !== "federated") {
+    return accountIdFor(idpId);
+  }
+  try {
+    return federatedAccountIdFor(
+      provisioning.provider.org,
+      provisioning.provider.slug,
+      idpId,
+    );
+  } catch (error) {
+    throw internalError(error, "derive federated account id");
+  }
 }
 
 /** Rejects a create whose SUBJECT already has an account (a primary-key read). */
@@ -200,11 +229,34 @@ function assignPlatformClientBackendFields(
 }
 
 /**
+ * The backend-assigned fields of a FEDERATED account: the machine flag
+ * from the subject's shape (the cloud's rule for every mode), mode
+ * `federated`, and the provider's reference as the path was given it, so
+ * the reference the row carries and the one its id was derived from are
+ * one value and a caller's spec cannot name another.
+ */
+function assignFederatedBackendFields(
+  spec: IdentityAccountSpec,
+  provider: FederatedProvider,
+): IdentityAccountSpec {
+  spec.isMachineAccount = isMachineSubject(spec.idpId);
+  spec.provisioningMode = IdentityAccountProvisioningMode.federated;
+  spec.identityProviderRef = create(ApiResourceReferenceSchema, {
+    org: provider.org,
+    kind: ApiResourceKind.identity_provider,
+    slug: provider.slug,
+  });
+  return spec;
+}
+
+/**
  * AssignBackendFields on create, by how the account was provisioned. The
  * `stgm_pc|` subject namespace is reserved in both directions: a direct
  * account refuses it (INVALID_ARGUMENT, before anything is written), and a
  * platform-client account must carry it — its absence is the mint's bug,
- * never a client's input.
+ * never a client's input. A direct account refuses the `stgm_fed|` text
+ * too, the text federated addresses hash. A federated subject is its
+ * provider's to choose, so that arm checks none of these.
  */
 export function newAssignBackendFieldsStep(
   provisioning: AccountProvisioning,
@@ -215,7 +267,10 @@ export function newAssignBackendFieldsStep(
       const spec = specOf(ctx);
       switch (provisioning.mode) {
         case "direct":
-          if (isPlatformClientSubject(spec.idpId)) {
+          if (
+            isPlatformClientSubject(spec.idpId) ||
+            isFederatedSubject(spec.idpId)
+          ) {
             throw invalidArgumentError(reservedSubjectMessage(spec.idpId));
           }
           assignDirectBackendFields(spec);
@@ -230,6 +285,9 @@ export function newAssignBackendFieldsStep(
             );
           }
           assignPlatformClientBackendFields(spec);
+          return;
+        case "federated":
+          assignFederatedBackendFields(spec, provisioning.provider);
           return;
         default: {
           const exhaustive: never = provisioning;

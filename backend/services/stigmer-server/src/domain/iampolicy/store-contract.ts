@@ -355,6 +355,44 @@ const CASES: ReadonlyArray<PortContractDeclaration<IamPolicyStore>> = [
     },
   ],
   [
+    "findByResourceKindAndRelation answers every row granting the relation on the kind, and nothing on another kind or relation",
+    async ({ store }) => {
+      const providerA = spec({ kind: "identity_account", id: ALICE }, "owner", {
+        kind: "identity_provider",
+        id: "idp_01hzaaaaaaaaaaaaaaaaaaaaaa",
+      });
+      const providerB = spec({ kind: "identity_account", id: BOB }, "owner", {
+        kind: "identity_provider",
+        id: "idp_01hzbbbbbbbbbbbbbbbbbbbbbb",
+      });
+      const providerViewer = spec(
+        { kind: "identity_account", id: BOB },
+        "viewer",
+        { kind: "identity_provider", id: "idp_01hzaaaaaaaaaaaaaaaaaaaaaa" },
+      );
+      await saveAll(store, [
+        policyRow(providerA),
+        policyRow(providerB),
+        policyRow(providerViewer),
+        policyRow(orgRole(ALICE, "owner", "acme")),
+      ]);
+      assert.deepEqual(
+        (
+          await store.findByResourceKindAndRelation("identity_provider", "owner")
+        )
+          .map(idOf)
+          .sort(),
+        [policyIdFor(providerA), policyIdFor(providerB)].sort(),
+        "every owner row on the kind, on any resource, and no other relation's or kind's",
+      );
+      assert.deepEqual(
+        await store.findByResourceKindAndRelation("invitation", "owner"),
+        [],
+        "a kind with no such rows answers an empty list",
+      );
+    },
+  ],
+  [
     "deleteById removes the row; the triple is free to be granted again",
     async ({ store }) => {
       const policy = policyRow(orgRole(ALICE, "admin", "acme"));
@@ -438,6 +476,10 @@ const CASES: ReadonlyArray<PortContractDeclaration<IamPolicyStore>> = [
           "acme",
         ),
         "a pair read on a disconnected store must reject, never read as an empty list",
+      );
+      await assert.rejects(
+        fixture.store.findByResourceKindAndRelation("identity_provider", "owner"),
+        "a kind read on a disconnected store must reject: a reconcile that read no rows would leave every one standing",
       );
     },
   ],

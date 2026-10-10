@@ -45,6 +45,7 @@ const store: IamPolicyStore = {
   findByResourceWithRelations: unimplemented,
   countDistinctPrincipalsByResource: unimplemented,
   findScopeTuple: unimplemented,
+  findByResourceKindAndRelation: unimplemented,
 };
 
 const scope: PolicyGrantScope = {

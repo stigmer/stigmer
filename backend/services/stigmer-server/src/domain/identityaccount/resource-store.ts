@@ -11,9 +11,18 @@
  * provisioning idempotency check O(1) reads with no secondary index and
  * no scan, and it is why `save` refuses a direct account whose id is not
  * its derived id — a stray row would be unreachable by subject forever.
- * `findDirectByEmail` is the one lookup that scans (Store.findByField, a
- * decode-and-scan of the kind's rows): an
- * administrative RPC, never a per-request path.
+ * A federated account is addressed the same way by its own natural key:
+ * its id is `federatedAccountIdFor(provider org, provider slug, subject)`,
+ * so the federated sign-in's lookup is one primary-key read too, and
+ * `save` refuses a federated account whose id is not that address. The
+ * reserved `stgm_fed|` text keeps the two address spaces apart
+ * (constants.ts). The rule is this adapter's own, not the port's: an
+ * edition with its own table keys federated rows by an index and keeps
+ * the ids it minted.
+ * `findDirectByEmail` and `findByProvider` are the lookups that scan
+ * (Store.findByField and findAllByField, a decode-and-scan of the kind's
+ * rows): an administrative RPC and a provider's removal, never a
+ * per-request path.
  *
  * `save` and `update` are both read-then-write because the generic
  * Store's saveResource is an upsert with neither a create-only nor an
@@ -37,7 +46,7 @@
  *
  * The port's contract is proven by store-contract.ts, run over this
  * adapter on both drivers in __tests__/resource-store.postgres.test.ts, which
- * also pins the two invariants above that are this adapter's own.
+ * also pins the derived-id invariants above that are this adapter's own.
  */
 import { fromBinary } from "@bufbuild/protobuf";
 
@@ -48,7 +57,7 @@ import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/
 
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
-import { accountIdFor } from "./constants.js";
+import { accountIdFor, federatedAccountIdFor } from "./constants.js";
 import { DuplicateAccountError } from "./store.js";
 import type { IdentityAccountStore } from "./store.js";
 
@@ -85,6 +94,11 @@ export function newResourceIdentityAccountStore(
       const idpId = account.spec?.idpId ?? "";
       if (isDirect(account) && id !== accountIdFor(idpId)) {
         throw new Error("direct account id must be derived from its idp_id");
+      }
+      if (isFederated(account) && id !== federatedAddressOf(account)) {
+        throw new Error(
+          "federated account id must be derived from its identity provider and idp_id",
+        );
       }
       if ((await readById(id)) !== undefined) {
         throw new DuplicateAccountError(
@@ -152,6 +166,53 @@ export function newResourceIdentityAccountStore(
       return found;
     },
 
+    async findByProviderAndIdpId(
+      providerOrg,
+      providerSlug,
+      idpId,
+    ): Promise<IdentityAccount | undefined> {
+      if (providerOrg === "" || providerSlug === "" || idpId === "") {
+        return undefined;
+      }
+      let id: string;
+      try {
+        id = federatedAccountIdFor(providerOrg, providerSlug, idpId);
+      } catch {
+        // A provider part holding the separator names no provider: the
+        // reference's own patterns refuse it, so no row carries it.
+        return undefined;
+      }
+      const account = await readById(id);
+      return account !== undefined &&
+        isVouchedForBy(account, providerOrg, providerSlug) &&
+        account.spec?.idpId === idpId
+        ? account
+        : undefined;
+    },
+
+    async findByProvider(
+      providerOrg,
+      providerSlug,
+    ): Promise<ReadonlyArray<IdentityAccount>> {
+      if (providerOrg === "" || providerSlug === "") {
+        return [];
+      }
+      const rows = await store.findAllByField(
+        KIND,
+        "spec.identity_provider_ref.slug",
+        providerSlug,
+        IdentityAccountSchema,
+      );
+      return rows
+        .map((bytes) => fromBinary(IdentityAccountSchema, bytes))
+        .filter((account) =>
+          isVouchedForBy(account, providerOrg, providerSlug),
+        )
+        .sort((a, b) =>
+          compareIds(a.metadata?.id ?? "", b.metadata?.id ?? ""),
+        );
+    },
+
     async findByOrg(org): Promise<ReadonlyArray<IdentityAccount>> {
       if (org === "") {
         return [];
@@ -187,6 +248,47 @@ function refuseMixedShape(account: IdentityAccount): void {
       `identity account '${account.metadata?.id ?? ""}' mixes shapes: an identity provider ref is carried exactly by a federated account`,
     );
   }
+}
+
+/**
+ * The address a federated row must sit at: the derived id of its
+ * provider and subject. `undefined` for a row whose reference cannot be
+ * addressed (an empty part, a separator in a provider part), which `save`
+ * then refuses as it refuses any other stray id.
+ */
+function federatedAddressOf(account: IdentityAccount): string | undefined {
+  const ref = account.spec?.identityProviderRef;
+  try {
+    return federatedAccountIdFor(
+      ref?.org ?? "",
+      ref?.slug ?? "",
+      account.spec?.idpId ?? "",
+    );
+  } catch {
+    return undefined;
+  }
+}
+
+/** Whether a federated row names exactly this provider as the one that vouches for it. */
+function isVouchedForBy(
+  account: IdentityAccount,
+  providerOrg: string,
+  providerSlug: string,
+): boolean {
+  const ref = account.spec?.identityProviderRef;
+  return (
+    isFederated(account) &&
+    ref?.org === providerOrg &&
+    ref.slug === providerSlug
+  );
+}
+
+/** Code-unit order. Account ids are lowercase Crockford characters after a shared prefix, so a table's `ORDER BY id` agrees with it under any collation. */
+function compareIds(a: string, b: string): number {
+  if (a < b) {
+    return -1;
+  }
+  return a > b ? 1 : 0;
 }
 
 /** A row an identity provider vouches for: its subject is the provider's, reached only by the natural key. */
