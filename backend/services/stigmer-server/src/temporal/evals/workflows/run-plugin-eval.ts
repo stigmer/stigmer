@@ -52,6 +52,13 @@
  *     bound of its own, so the workflow does not end leaving the eval
  *     running; only the engine ending it (its execution timeout, or a stop
  *     from outside) can, and the eval's reads then answer it failed.
+ *   - Any other error (one of this workflow's own, or the finish failing
+ *     outright) ends the eval failed, "the eval's workflow failed", as far
+ *     as a last finish can, in a non-cancellable scope, and then fails the
+ *     workflow as a non-retryable ApplicationFailure of type
+ *     PLUGIN_EVAL_SUITE_FAILED_FAILURE_TYPE: Temporal fails only the
+ *     workflow task on a plain error, and would retry that task until the
+ *     execution timeout while the eval shows running.
  *
  * WORKFLOW-BUNDLE IMPORT DISCIPLINE: this module runs in the deterministic
  * sandbox; imports are limited to @temporalio/workflow and the pure names
@@ -59,6 +66,7 @@
  */
 import {
   ActivityFailure,
+  ApplicationFailure,
   CancellationScope,
   CancelledFailure,
   ParentClosePolicy,
@@ -69,8 +77,10 @@ import {
 
 import {
   EVAL_NOT_PLANNED_ERROR,
+  EVAL_WORKFLOW_FAILED_ERROR,
   FINISH_EVAL_ACTIVITY_NAME,
   LOAD_SUITE_ACTIVITY_NAME,
+  PLUGIN_EVAL_SUITE_FAILED_FAILURE_TYPE,
   RECORD_TRY_ACTIVITY_NAME,
   RUN_CASE_WORKFLOW_TYPE,
   TRY_CANCELLED_REASON,
@@ -188,7 +198,22 @@ export async function runPluginEval(input: RunPluginEvalInput): Promise<void> {
       );
       return;
     }
-    throw error;
+    const failure = stepFailed(EVAL_WORKFLOW_FAILED_ERROR, error);
+    try {
+      await CancellationScope.nonCancellable(() =>
+        finishing[FINISH_EVAL_ACTIVITY_NAME](evalId, {
+          phase: "failed",
+          error: failure.message,
+        }),
+      );
+    } catch {
+      // The workflow fails either way; an eval its workflow outlived is
+      // answered failed by its reads.
+    }
+    throw ApplicationFailure.nonRetryable(
+      failure.message,
+      PLUGIN_EVAL_SUITE_FAILED_FAILURE_TYPE,
+    );
   }
 }
 

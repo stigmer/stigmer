@@ -21,8 +21,10 @@
  * and rethrown;
  * a load or a record failing past its retries ending the eval failed with
  * the reason, that end written even when a cancel lands during it, and the
- * finish retried with no bound of its own; an eval planning nothing ending
- * at once.
+ * finish retried with no bound of its own; any other error, the finish's
+ * own included, ending the eval failed as far as the finish can and
+ * failing the workflow as a non-retryable ApplicationFailure; an eval
+ * planning nothing ending at once.
  *
  * The case: start, wait, grade, three votes per AI-graded check, record;
  * the deadline stopping the run and grading what it produced; each start
@@ -70,6 +72,8 @@ import {
   START_VOTE_ACTIVITY_NAME,
   STOP_RUN_ACTIVITY_NAME,
   EVAL_NOT_PLANNED_ERROR,
+  EVAL_WORKFLOW_FAILED_ERROR,
+  PLUGIN_EVAL_SUITE_FAILED_FAILURE_TYPE,
   TRY_FAILED_REASON,
   TRY_MIN_BUDGET_USD,
   TRY_NOT_RECORDED_ERROR,
@@ -716,15 +720,53 @@ describe("the suite workflow", () => {
     expect(finished).toEqual([{ phase: "partial", reason: "cancelled" }]);
   });
 
-  it("rethrows a failure of the finish itself", async () => {
+  it("fails outright, non-retryable, when the finish itself fails, after trying to end the eval failed", async () => {
     suite({ kind: "run", org: "acme", cells: cells(1), maxCostUsd: 10, concurrency: 1 });
     seam.child = async () => result();
-    seam.activities[FINISH_EVAL_ACTIVITY_NAME] = vi.fn(() =>
-      Promise.reject(new Error("the store is down")),
+    const ends: unknown[] = [];
+    seam.activities[FINISH_EVAL_ACTIVITY_NAME] = vi.fn((_id: string, end: unknown) => {
+      ends.push(end);
+      return Promise.reject(new Error("the store is down"));
+    });
+    const failure = await runPluginEval({ evalId: "pev_1" }).then(
+      () => undefined,
+      (error: unknown) => error,
     );
-    await expect(runPluginEval({ evalId: "pev_1" })).rejects.toThrow(
-      "the store is down",
+    expect(failure).toBeInstanceOf(ApplicationFailure);
+    expect(failure).toMatchObject({
+      type: PLUGIN_EVAL_SUITE_FAILED_FAILURE_TYPE,
+      nonRetryable: true,
+      message: `${EVAL_WORKFLOW_FAILED_ERROR}: the store is down`,
+    });
+    expect(ends).toEqual([
+      { phase: "completed" },
+      { phase: "failed", error: `${EVAL_WORKFLOW_FAILED_ERROR}: the store is down` },
+    ]);
+  });
+
+  it("ends the eval failed and fails outright, non-retryable, on an error of the workflow's own", async () => {
+    const { finished } = suite({
+      kind: "run",
+      org: "acme",
+      cells: null,
+      maxCostUsd: 10,
+      concurrency: 1,
+    });
+    const failure = await runPluginEval({ evalId: "pev_1" }).then(
+      () => undefined,
+      (error: unknown) => error,
     );
+    expect(failure).toBeInstanceOf(ApplicationFailure);
+    expect(failure).toMatchObject({
+      type: PLUGIN_EVAL_SUITE_FAILED_FAILURE_TYPE,
+      nonRetryable: true,
+    });
+    expect(finished).toEqual([
+      {
+        phase: "failed",
+        error: expect.stringMatching(new RegExp(`^${EVAL_WORKFLOW_FAILED_ERROR}: `)),
+      },
+    ]);
   });
 
   it("ends at once when the load plans nothing", async () => {
