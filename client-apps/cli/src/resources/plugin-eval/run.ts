@@ -6,9 +6,12 @@
 // `--no-wait` returns at once with its id. Ctrl+C is the format's interrupt:
 // the command cancels the eval (tries in flight stop), prints the results
 // of the tries that finished, and exits 130; a second Ctrl+C exits at once,
-// saying how to cancel. An eval that finished before the cancel took hold
-// (Ctrl+C landed during the last read, or the cancel found it done) is
-// reported as finished, with its own exit code. Every read and the cancel
+// saying how to cancel. The command listens from just before create: a
+// Ctrl+C while create is in flight (up to its deadline) takes effect once
+// create answers, so the eval it started is cancelled, its id printed, and
+// the exit is 130, under `--no-wait` too. An eval that finished before the
+// cancel took hold (Ctrl+C landed during the last read, or the cancel
+// found it done) is reported as finished, with its own exit code. Every read and the cancel
 // race Ctrl+C and a 30-second deadline: the transport has no call timeout,
 // and a half-open connection would otherwise swallow the interrupt. A read
 // past its deadline counts as a failed read.
@@ -138,10 +141,48 @@ export async function runPluginEval(
     io.stderr.write(`Spending limit $${options.maxCostUsd.toFixed(2)}, the default; set --max-cost-usd to change it.\n`);
   }
 
-  const started = await startEval(client, plugin, target, options);
+  // Listening starts before create: a Ctrl+C while create is in flight
+  // takes effect once it answers, so the eval it started is cancelled.
+  const interrupt = new AbortController();
+  let id = "";
+  let interrupts = 0;
+  const stopListening = io.onInterrupt(() => {
+    interrupts += 1;
+    if (interrupts > 1) {
+      io.stderr.write(
+        id === ""
+          ? "Stopped before the server answered the start; if the eval started, cancel it from the plugin's Evals tab in the console\n"
+          : `Stopped following ${id}; if it is still running, cancel it with: stigmer plugin eval cancel ${id}\n`,
+      );
+      io.exit(EvalExit.Interrupted);
+    }
+    interrupt.abort();
+  });
+  try {
+    const started = await startEval(client, plugin, target, options);
+    id = started.metadata?.id ?? "";
+    return await followStarted(client, plugin, target, options, io, started, findings, interrupt.signal);
+  } finally {
+    stopListening();
+  }
+}
+
+/** The command after create answered: return under `--no-wait`, or follow the eval to its end. */
+async function followStarted(
+  client: Stigmer,
+  plugin: Plugin,
+  target: PluginTarget,
+  options: PluginEvalOptions,
+  io: PluginEvalIo,
+  started: PluginEval,
+  findings: readonly PluginWarning[],
+  interrupt: AbortSignal,
+): Promise<EvalExit> {
+  const quiet = options.json.kind !== "none";
   const id = started.metadata?.id ?? "";
 
-  if (!options.wait) {
+  // A Ctrl+C during create cancels the eval under `--no-wait` too.
+  if (!options.wait && !interrupt.aborted) {
     if (quiet) {
       await writeDocument(started, findings, options, io, false, false);
     } else {
@@ -152,9 +193,10 @@ export async function runPluginEval(
   }
 
   if (!quiet) {
-    io.stderr.write(`Started ${id} on ${plugin.metadata?.name || target.ref}. Ctrl+C cancels it.\n`);
+    const on = plugin.metadata?.name || target.ref;
+    io.stderr.write(interrupt.aborted ? `Started ${id} on ${on}.\n` : `Started ${id} on ${on}. Ctrl+C cancels it.\n`);
   }
-  const { latest, interrupted, lost, cancelFailure } = await follow(client, started, quiet, io);
+  const { latest, interrupted, lost, cancelFailure } = await follow(client, started, quiet, interrupt, io);
 
   if (lost !== undefined || cancelFailure !== undefined) {
     const stillRunning =
@@ -313,23 +355,15 @@ async function readEval(client: Stigmer, id: string, quiet: boolean, signal: Abo
   }
 }
 
+/** Follows the eval until it settles, its reads are lost, or `interrupt` (Ctrl+C) aborts and the eval is cancelled. */
 async function follow(
   client: Stigmer,
   started: PluginEval,
   quiet: boolean,
+  interrupt: AbortSignal,
   io: PluginEvalIo,
 ): Promise<Followed> {
   const id = started.metadata?.id ?? "";
-  const interrupt = new AbortController();
-  let interrupts = 0;
-  const stopListening = io.onInterrupt(() => {
-    interrupts += 1;
-    if (interrupts > 1) {
-      io.stderr.write(`Stopped following ${id}; if it is still running, cancel it with: stigmer plugin eval cancel ${id}\n`);
-      io.exit(EvalExit.Interrupted);
-    }
-    interrupt.abort();
-  });
   const seen = new Set<string>();
   const report = (pluginEval: PluginEval): void => {
     for (const attempt of finishedTries(pluginEval)) {
@@ -340,32 +374,28 @@ async function follow(
   };
 
   let latest = started;
-  try {
-    while (!isSettled(latest) && !interrupt.signal.aborted) {
-      await io.sleep(POLL_INTERVAL_MS, interrupt.signal);
-      if (interrupt.signal.aborted) break;
-      const read = await readEval(client, id, quiet, interrupt.signal, io);
-      if (read.kind === "aborted") break;
-      if (read.kind === "lost") {
-        // The eval would go on spending with no one watching: stop it.
-        const cancel = await cancelAndRead(client, id, latest, io);
-        report(cancel.latest);
-        return { ...cancel, interrupted: true, lost: read.reason };
-      }
-      latest = read.pluginEval;
-      report(latest);
+  while (!isSettled(latest) && !interrupt.aborted) {
+    await io.sleep(POLL_INTERVAL_MS, interrupt);
+    if (interrupt.aborted) break;
+    const read = await readEval(client, id, quiet, interrupt, io);
+    if (read.kind === "aborted") break;
+    if (read.kind === "lost") {
+      // The eval would go on spending with no one watching: stop it.
+      const cancel = await cancelAndRead(client, id, latest, io);
+      report(cancel.latest);
+      return { ...cancel, interrupted: true, lost: read.reason };
     }
-    // Ctrl+C during the read that found the eval finished cancels nothing.
-    if (!interrupt.signal.aborted || isSettled(latest)) {
-      return { latest, interrupted: false };
-    }
-    if (!quiet) io.stderr.write(`Cancelling ${id}…\n`);
-    const cancel = await cancelAndRead(client, id, latest, io);
-    report(cancel.latest);
-    return { ...cancel, interrupted: !finishedOnItsOwn(cancel.latest) };
-  } finally {
-    stopListening();
+    latest = read.pluginEval;
+    report(latest);
   }
+  // Ctrl+C during the read that found the eval finished cancels nothing.
+  if (!interrupt.aborted || isSettled(latest)) {
+    return { latest, interrupted: false };
+  }
+  if (!quiet) io.stderr.write(`Cancelling ${id}…\n`);
+  const cancel = await cancelAndRead(client, id, latest, io);
+  report(cancel.latest);
+  return { ...cancel, interrupted: !finishedOnItsOwn(cancel.latest) };
 }
 
 /** Whether the eval ended without being cancelled: it finished before the cancel took hold. */

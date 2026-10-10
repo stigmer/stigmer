@@ -8,6 +8,8 @@
 // returns (under `--json`, with the started eval's document); Ctrl+C cancels
 // the eval and exits 130 with the partial results and why it stopped, the
 // cancel's own answer standing when the read after it fails; a Ctrl+C
+// during create cancels the eval once create answers (under `--no-wait`
+// too), and a second one then exits before the id is known; a Ctrl+C
 // during a read that hangs still sends the cancel, and a second one says how
 // to cancel; an eval that finished as Ctrl+C landed, or that the cancel found
 // done, is reported as finished with its own code; a read or a cancel with
@@ -66,6 +68,8 @@ function fakeServer(
     hungReads?: ReadonlySet<number>;
     /** Called as each eval read starts, with its count from the first read. */
     onRead?: (count: number) => void;
+    /** Called while create is in flight, before it answers. */
+    onCreate?: () => void;
   } = {},
 ) {
   const calls: string[] = [];
@@ -86,6 +90,7 @@ function fakeServer(
       create: async (input: PluginEvalInput) => {
         calls.push("create");
         created.push(input);
+        opts.onCreate?.();
         if (opts.createError !== undefined) throw opts.createError;
         return pending();
       },
@@ -331,6 +336,44 @@ describe("runPluginEval", () => {
     };
     await expect(runPluginEval(server.client, "acme", THERMOS, options(), io)).rejects.toThrow("exit 130");
     expect(fake.err()).toContain("Stopped following pev_1; if it is still running, cancel it with: stigmer plugin eval cancel pev_1\n");
+  });
+
+  it("cancels the eval once create answers on a Ctrl+C during create, prints its id and exits 130", async () => {
+    const fake = fakeIo();
+    const server = fakeServer([running()], { onCreate: () => fake.interrupt() });
+    expect(await runPluginEval(server.client, "acme", THERMOS, options(), fake.io)).toBe(130);
+    expect(server.calls).toEqual(["plugin.ref acme/thermos", "create", "cancel pev_1", "get"]);
+    expect(fake.err()).toContain("Started pev_1 on thermos.\n");
+    expect(fake.err()).toContain("Cancelling pev_1…");
+    expect(fake.out()).toContain("\nCancelled: 3 of 4 tries ran.\n");
+    expect(fake.listening()).toBe(false);
+  });
+
+  it("cancels on a Ctrl+C during create under --no-wait too", async () => {
+    const fake = fakeIo();
+    const server = fakeServer([running()], { onCreate: () => fake.interrupt() });
+    expect(await runPluginEval(server.client, "acme", THERMOS, options({ wait: false, json: "out.json" }), fake.io)).toBe(130);
+    expect(server.calls).toContain("cancel pev_1");
+    expect(JSON.parse(fake.files.get("out.json") ?? "{}")).toMatchObject({ evalId: "pev_1", partial: true, partialReason: "interrupted" });
+  });
+
+  it("exits at once on a second Ctrl+C during create, before the eval's id is known", async () => {
+    const fake = fakeIo();
+    const server = fakeServer([running()], {
+      onCreate: () => {
+        fake.interrupt();
+        fake.interrupt();
+      },
+    });
+    await expect(runPluginEval(server.client, "acme", THERMOS, options(), fake.io)).rejects.toThrow("exit 130");
+    expect(fake.err()).toContain("Stopped before the server answered the start; if the eval started, cancel it from the plugin's Evals tab in the console\n");
+  });
+
+  it("stops listening for Ctrl+C when create fails", async () => {
+    const fake = fakeIo();
+    const server = fakeServer([running()], { createError: new Error("boom") });
+    await expect(runPluginEval(server.client, "acme", THERMOS, options(), fake.io)).rejects.toThrow("boom");
+    expect(fake.listening()).toBe(false);
   });
 
   it("sends the cancel on Ctrl+C while a read hangs, and exits 130", async () => {
