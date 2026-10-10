@@ -12,6 +12,9 @@
  *    whose start was under way when the last harness shut down is ended,
  *    not adopted, and nothing restarts it;
  *  - a call from the host for a turn the runner is not running is refused;
+ *  - the host's Cursor SDK is pointed at the Cursor lane only on a runner
+ *    that holds a Cursor credential (its own key, or the platform's proxy),
+ *    so a runner without one still refuses a Cursor turn up front;
  *  - harnesses booted at the same moment, while the host is still starting,
  *    are each booted in it once;
  *  - the production starter runs this build's entry in its agent-host mode
@@ -185,6 +188,31 @@ describe("the supervisor's edges", () => {
     expect(await failing.warmCursorSdk()).toEqual({ warmed: false, durationMs: 0, error: "the SDK would not load" });
     await failing.rows[0]!.adapter.shutdown();
     await failing.close();
+  });
+
+  it("points the host's Cursor SDK at the lane only on a runner that holds a Cursor credential", async () => {
+    const endpoints: (string | null)[] = [];
+    const start: HostStarter = () => {
+      const [runnerEnd, hostEnd] = loopbackChannels();
+      const host: HostSide = new Peer<RunnerCalls, HostCalls, HostNotices, RunnerNotices>(hostEnd, "host");
+      host.handle("boot", async ({ config }) => {
+        endpoints.push(config.cursorEndpoint);
+        return null;
+      });
+      host.handle("shutdown", async () => null);
+      host.sendHello(AGENT_HOST_PROTOCOL_VERSION);
+      return { channel: runnerEnd, kill: () => hostEnd.close() };
+    };
+    for (const config of [
+      testConfig({ proxyEndpoint: null, cursorApiKey: "" }),
+      testConfig({ proxyEndpoint: null, cursorApiKey: "operator-key" }),
+      testConfig({ proxyEndpoint: "https://platform.example/proxy", cursorApiKey: "proxy-managed" }),
+    ]) {
+      const supervisor = new AgentHostSupervisor({ proxy: PROXY, start, log: () => {} });
+      await supervisor.boot("cursor", config);
+      await supervisor.shutdown("cursor");
+    }
+    expect(endpoints).toEqual([null, PROXY.cursorEndpoint, PROXY.cursorEndpoint]);
   });
 
   it("logs a warm-up's result for the pool member", () => {

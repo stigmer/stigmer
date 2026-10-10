@@ -96,8 +96,15 @@ export interface HostConfigWire {
   readonly workspaceLockTimeoutMs: number;
   /** The runner's local proxy, `http://127.0.0.1:<port>`. */
   readonly proxyEndpoint: string;
-  /** The local proxy's Cursor lane, `https://2130706433:<port>`, 127.0.0.1 written as one number so the Cursor SDK keeps certificate checks on (`agent-proxy/cursor-lane.ts`), whose certificate the host trusts. */
-  readonly cursorEndpoint: string;
+  /**
+   * The local proxy's Cursor lane, `https://2130706433:<port>`, 127.0.0.1
+   * written as one number so the Cursor SDK keeps certificate checks on
+   * (`agent-proxy/cursor-lane.ts`), whose certificate the host trusts.
+   * `null` on a runner that holds no Cursor credential (no `CURSOR_API_KEY`
+   * and no platform proxy): the host's Cursor adapter then refuses a turn
+   * up front, as it did in the runner's own process.
+   */
+  readonly cursorEndpoint: string | null;
   /** The host's credential at that proxy. */
   readonly token: string;
   /**

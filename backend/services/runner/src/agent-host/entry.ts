@@ -69,9 +69,11 @@ export async function runAgentHostProcess(host: AgentHostProcess): Promise<void>
   const flushTelemetry = await host.initTelemetry();
   const server = serveAgentHost(host.channel, host.rows, {
     onConfigured: (config) => {
-      // Read once, when the Cursor SDK is first imported (inside the Cursor
-      // adapter's boot, after this): its whole backend is the Cursor lane.
-      process.env.CURSOR_BACKEND_URL = config.cursorEndpoint;
+      // The Cursor SDK's whole backend is the Cursor lane. The SDK reads this
+      // on import and again per call, so it stays set; the shells and hooks
+      // the runner's code starts leave it out (`shared/shell-env.ts`), and
+      // only commands the SDK starts itself inherit it.
+      if (config.cursorEndpoint !== null) process.env.CURSOR_BACKEND_URL = config.cursorEndpoint;
       routeRegistryThrough(config.proxyEndpoint, config.token);
       if (!config.platformProxied) routeModelCallsThroughLanes(config.proxyEndpoint, config.token);
     },

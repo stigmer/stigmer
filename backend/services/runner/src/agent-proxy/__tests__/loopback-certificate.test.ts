@@ -11,7 +11,9 @@
  *    different key;
  *  - a serial whose random bytes start with zeros, or with a high bit, is
  *    still encoded in DER's minimal form (about one random serial in 256
- *    starts with a zero byte).
+ *    starts with a zero byte);
+ *  - a certificate minted near or past 2050 still names its real dates
+ *    (RFC 5280: UTCTime through 2049, GeneralizedTime from 2050).
  */
 
 import { X509Certificate, createPublicKey } from "node:crypto";
@@ -81,6 +83,14 @@ describe("the loopback certificate", () => {
     for (const serial of [Buffer.from("00001122334455667788", "hex"), Buffer.from("007f", "hex"), Buffer.from("80ff", "hex"), Buffer.from("00", "hex")]) {
       const cert = new X509Certificate(mintLoopbackCertificate(new Date(), serial).certPem);
       expect(cert.serialNumber.replace(/^0+(?=.)/, "").toLowerCase(), serial.toString("hex")).toBe(BigInt(`0x${serial.toString("hex")}`).toString(16));
+    }
+  });
+
+  it("names its real dates when its validity reaches 2050 or later", () => {
+    for (const [minted, expires] of [["2045-06-01T00:00:00Z", 2055], ["2051-06-01T00:00:00Z", 2061]] as const) {
+      const cert = new X509Certificate(mintLoopbackCertificate(new Date(minted)).certPem);
+      expect(new Date(cert.validTo).getUTCFullYear(), minted).toBe(expires);
+      expect(new Date(cert.validFrom).getUTCFullYear(), minted).toBe(new Date(minted).getUTCFullYear());
     }
   });
 

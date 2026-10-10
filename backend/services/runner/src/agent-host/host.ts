@@ -178,7 +178,7 @@ function hostConfig(wire: HostConfigWire): Config {
     workspaceRootDir: wire.workspaceRootDir,
     mode: wire.mode,
     proxyEndpoint: wire.platformProxied ? wire.proxyEndpoint : null,
-    cursorEndpoint: wire.cursorEndpoint,
+    ...(wire.cursorEndpoint !== null ? { cursorEndpoint: wire.cursorEndpoint } : {}),
     maxConcurrentActivities: wire.maxConcurrentActivities,
     idleTimeoutSeconds: null,
     cloudModeEnabled: wire.cloudModeEnabled,

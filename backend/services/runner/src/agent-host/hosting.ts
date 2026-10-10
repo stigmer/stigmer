@@ -17,6 +17,8 @@
  * holding the Cursor lane's certificate (`agent-proxy/cursor-lane.ts`), and
  * the operator's own extra certificates when they named some, so the host's
  * Cursor SDK trusts the lane on loopback and everything it trusted before.
+ * Once configured, the host also sets `CURSOR_BACKEND_URL` to the lane for
+ * its Cursor SDK (`entry.ts`); the agent's shells and hooks leave it out.
  *
  * THIS MODULE IS IMPORTED BEFORE THE HARNESSES BOOT, so its static graph
  * stays connect- and SDK-free like the table's

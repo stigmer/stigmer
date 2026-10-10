@@ -51,7 +51,7 @@ export function mintLoopbackCertificate(now: Date = new Date(), serial: Buffer =
     integer(serial),
     signatureAlgorithm,
     name,
-    sequence(utcTime(notBefore), utcTime(notAfter)),
+    sequence(time(notBefore), time(notAfter)),
     name,
     publicKey.export({ type: "spki", format: "der" }),
     tlv(0xa3, extensions),
@@ -105,18 +105,22 @@ function utf8(text: string): Buffer {
   return tlv(0x0c, Buffer.from(text, "utf8"));
 }
 
-/** UTCTime, `YYMMDDHHMMSSZ`: valid through 2049, past any certificate minted here. */
-function utcTime(date: Date): Buffer {
+/**
+ * A validity date as RFC 5280 requires: UTCTime (`YYMMDDHHMMSSZ`) through
+ * 2049, GeneralizedTime (`YYYYMMDDHHMMSSZ`) from 2050.
+ */
+function time(date: Date): Buffer {
   const two = (n: number): string => String(n).padStart(2, "0");
+  const year = date.getUTCFullYear();
   const text =
-    two(date.getUTCFullYear() % 100) +
+    (year < 2050 ? two(year % 100) : String(year)) +
     two(date.getUTCMonth() + 1) +
     two(date.getUTCDate()) +
     two(date.getUTCHours()) +
     two(date.getUTCMinutes()) +
     two(date.getUTCSeconds()) +
     "Z";
-  return tlv(0x17, Buffer.from(text, "ascii"));
+  return tlv(year < 2050 ? 0x17 : 0x18, Buffer.from(text, "ascii"));
 }
 
 function oid(dotted: string): Buffer {

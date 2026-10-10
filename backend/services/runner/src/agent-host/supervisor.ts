@@ -279,7 +279,7 @@ export class AgentHostSupervisor {
       agentResolveTimeoutMs: config.agentResolveTimeoutMs,
       workspaceLockTimeoutMs: config.workspaceLockTimeoutMs,
       proxyEndpoint: this.options.proxy.endpoint,
-      cursorEndpoint: this.options.proxy.cursorEndpoint,
+      cursorEndpoint: config.proxyEndpoint !== null || config.cursorApiKey !== "" ? this.options.proxy.cursorEndpoint : null,
       token,
       platformProxied: config.proxyEndpoint !== null,
     };
