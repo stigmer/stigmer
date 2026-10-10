@@ -262,7 +262,9 @@ describe("a plugin eval's score", () => {
   it("is recorded once per version of the plugin's suite", async () => {
     const { runId } = await seedRun(RunPhase.RUN_COMPLETED);
     const first = await inProcess.create(evalScore(runId, "suite-v1"));
-    const second = await failureOf(inProcess.create(evalScore(runId, "suite-v1")));
+    const second = await failureOf(
+      inProcess.create(evalScore(runId, "suite-v1")),
+    );
     expect(second.code).toBe(Code.AlreadyExists);
     expect(second.rawMessage).toBe(evalExistsMessage(first.metadata!.id));
     expect(second.rawMessage).toBe(

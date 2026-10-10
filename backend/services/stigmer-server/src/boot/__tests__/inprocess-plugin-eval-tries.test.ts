@@ -23,7 +23,11 @@ import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { createInProcessClients } from "../inprocess.js";
 import { createLogger } from "../logger.js";
 
-const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
+const silentLogger = createLogger({
+  level: "error",
+  pretty: false,
+  write: () => {},
+});
 
 const CREATOR: CallerIdentity = {
   identityId: "ida_creator",
@@ -60,7 +64,12 @@ function laneOver(refuse = false) {
   const seen: Seen[] = [];
   const record = (rpc: string, ctx: HandlerContext, detail: string): void => {
     const caller = callerIdentityOf(ctx);
-    seen.push({ rpc, identityId: caller.identityId, callerClass: caller.callerClass, detail });
+    seen.push({
+      rpc,
+      identityId: caller.identityId,
+      callerClass: caller.callerClass,
+      detail,
+    });
     if (refuse) {
       throw new ConnectError(`${rpc} refused`, Code.FailedPrecondition);
     }
@@ -69,7 +78,9 @@ function laneOver(refuse = false) {
     router.service(SessionCommandController, {
       create: (session, ctx) => {
         record("session.create", ctx, session.metadata?.name ?? "");
-        return create(SessionSchema, { metadata: { id: "ses_try", name: session.metadata?.name ?? "" } });
+        return create(SessionSchema, {
+          metadata: { id: "ses_try", name: session.metadata?.name ?? "" },
+        });
       },
     });
     router.service(RunCommandController, {
@@ -83,7 +94,8 @@ function laneOver(refuse = false) {
       },
     });
   };
-  const lane = createInProcessClients(routes, silentLogger).clients.pluginEvalTries;
+  const lane = createInProcessClients(routes, silentLogger).clients
+    .pluginEvalTries;
   return { lane, seen };
 }
 
@@ -91,20 +103,24 @@ describe("the plugin eval's in-process try lane", () => {
   it("creates the try's session and run as the caller it is given", async () => {
     const { lane, seen } = laneOver();
 
-    const session = await lane.createSession(
-      trySession("try-1"),
-      CREATOR,
-    );
-    const run = await lane.createRun(
-      tryRun("rename getUser"),
-      CREATOR,
-    );
+    const session = await lane.createSession(trySession("try-1"), CREATOR);
+    const run = await lane.createRun(tryRun("rename getUser"), CREATOR);
 
     expect(session.metadata?.id).toBe("ses_try");
     expect(run.metadata?.id).toBe("run_try");
     expect(seen).toEqual([
-      { rpc: "session.create", identityId: "ida_creator", callerClass: "user", detail: "try-1" },
-      { rpc: "run.create", identityId: "ida_creator", callerClass: "user", detail: "rename getUser" },
+      {
+        rpc: "session.create",
+        identityId: "ida_creator",
+        callerClass: "user",
+        detail: "try-1",
+      },
+      {
+        rpc: "run.create",
+        identityId: "ida_creator",
+        callerClass: "user",
+        detail: "rename getUser",
+      },
     ]);
   });
 
@@ -130,9 +146,9 @@ describe("the plugin eval's in-process try lane", () => {
     await expect(
       lane.createSession(trySession("t"), CREATOR),
     ).rejects.toMatchObject({ code: Code.FailedPrecondition });
-    await expect(
-      lane.createRun(tryRun("m"), undefined),
-    ).rejects.toMatchObject({ code: Code.FailedPrecondition });
+    await expect(lane.createRun(tryRun("m"), undefined)).rejects.toMatchObject({
+      code: Code.FailedPrecondition,
+    });
     await expect(lane.terminateRun("run_try", "stop")).rejects.toMatchObject({
       code: Code.FailedPrecondition,
     });

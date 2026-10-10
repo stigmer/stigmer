@@ -81,13 +81,22 @@ function recordingLogger(): { logger: Logger; lines: LoggedLine[] } {
   };
 }
 
-async function saveEval(id: string, phase: PluginEvalPhase, pluginId = "plg_1"): Promise<PluginEval> {
+async function saveEval(
+  id: string,
+  phase: PluginEvalPhase,
+  pluginId = "plg_1",
+): Promise<PluginEval> {
   const row = create(PluginEvalSchema, {
     metadata: { id, name: id, org: ORG },
     spec: { pluginId },
     status: { phase },
   });
-  await temp.store.saveResource(ApiResourceKind.plugin_eval, id, PluginEvalSchema, row);
+  await temp.store.saveResource(
+    ApiResourceKind.plugin_eval,
+    id,
+    PluginEvalSchema,
+    row,
+  );
   return row;
 }
 
@@ -97,7 +106,12 @@ async function saveTry(id: string, evalId: string): Promise<void> {
     id,
     SessionSchema,
     create(SessionSchema, {
-      metadata: { id, name: id, org: ORG, labels: { [PLUGIN_EVAL_LABEL]: evalId } },
+      metadata: {
+        id,
+        name: id,
+        org: ORG,
+        labels: { [PLUGIN_EVAL_LABEL]: evalId },
+      },
     }),
   );
 }
@@ -183,7 +197,12 @@ describe("the shared reads", () => {
 describe("removing an eval's tries", () => {
   it("answers a store fault listing the tries INTERNAL", async () => {
     const fault = await failure(() =>
-      deletePluginEvalTries(storeFailing("queryResources"), { delete: () => Promise.resolve() }, silentLogger, "pev_1"),
+      deletePluginEvalTries(
+        storeFailing("queryResources"),
+        { delete: () => Promise.resolve() },
+        silentLogger,
+        "pev_1",
+      ),
     );
     expect(fault.code).toBe(Code.Internal);
     expect(fault.rawMessage).toBe("failed to list the plugin eval's tries");
@@ -204,9 +223,16 @@ describe("removing an eval's tries", () => {
     await deletePluginEvalTries(temp.store, goneFirst, silentLogger, "pev_1");
     expect(asked.sort()).toEqual(["ses_a", "ses_b"]);
 
-    const refusal = new ConnectError("the session has an active run", Code.FailedPrecondition);
-    const refusing: TrySessionDeleter = { delete: () => Promise.reject(refusal) };
-    await expect(deletePluginEvalTries(temp.store, refusing, silentLogger, "pev_1")).rejects.toBe(refusal);
+    const refusal = new ConnectError(
+      "the session has an active run",
+      Code.FailedPrecondition,
+    );
+    const refusing: TrySessionDeleter = {
+      delete: () => Promise.reject(refusal),
+    };
+    await expect(
+      deletePluginEvalTries(temp.store, refusing, silentLogger, "pev_1"),
+    ).rejects.toBe(refusal);
   });
 });
 
@@ -215,7 +241,12 @@ describe("the plugin-delete cascade", () => {
 
   function deleteCtx(pluginId?: string): RequestContext<PluginDelete> {
     const input = PluginCommandController.method.delete.input;
-    const ctx = new RequestContext(input, create(input), testCallerIdentity(), ApiResourceKind.plugin);
+    const ctx = new RequestContext(
+      input,
+      create(input),
+      testCallerIdentity(),
+      ApiResourceKind.plugin,
+    );
     if (pluginId !== undefined) {
       ctx.set(
         EXISTING_RESOURCE_KEY,
@@ -236,28 +267,44 @@ describe("the plugin-delete cascade", () => {
 
   it("does nothing in a composition that serves no evals", async () => {
     await saveEval("pev_a", PluginEvalPhase.completed);
-    await newCascadeDeletePluginEvalsStep<PluginDelete>(undefined).execute(deleteCtx("plg_1"));
-    await newCascadeDeletePluginEvalsStep<PluginDelete>(undefined).execute(deleteCtx());
-    expect(await listPluginEvals(temp.store, silentLogger, "plg_1")).toHaveLength(1);
+    await newCascadeDeletePluginEvalsStep<PluginDelete>(undefined).execute(
+      deleteCtx("plg_1"),
+    );
+    await newCascadeDeletePluginEvalsStep<PluginDelete>(undefined).execute(
+      deleteCtx(),
+    );
+    expect(
+      await listPluginEvals(temp.store, silentLogger, "plg_1"),
+    ).toHaveLength(1);
   });
 
   it("fails loudly when the chain never loaded the plugin", async () => {
     const fault = await failure(() => cascade(temp.store).execute(deleteCtx()));
     expect(fault.code).toBe(Code.Internal);
-    expect(fault.rawMessage).toBe("plugin not found in context (LoadExistingForDelete must run first)");
+    expect(fault.rawMessage).toBe(
+      "plugin not found in context (LoadExistingForDelete must run first)",
+    );
   });
 
   it("answers a store fault listing the plugin's evals INTERNAL", async () => {
-    const fault = await failure(() => cascade(storeFailing("queryResources")).execute(deleteCtx("plg_1")));
+    const fault = await failure(() =>
+      cascade(storeFailing("queryResources")).execute(deleteCtx("plg_1")),
+    );
     expect(fault.code).toBe(Code.Internal);
-    expect(fault.rawMessage).toBe("failed to list the plugin's evals for cascade delete");
+    expect(fault.rawMessage).toBe(
+      "failed to list the plugin's evals for cascade delete",
+    );
   });
 
   it("answers a store fault deleting an eval INTERNAL, naming the eval and the plugin", async () => {
     await saveEval("pev_a", PluginEvalPhase.completed);
-    const fault = await failure(() => cascade(storeFailing("deleteResource")).execute(deleteCtx("plg_1")));
+    const fault = await failure(() =>
+      cascade(storeFailing("deleteResource")).execute(deleteCtx("plg_1")),
+    );
     expect(fault.code).toBe(Code.Internal);
-    expect(fault.rawMessage).toBe("failed to cascade-delete plugin eval pev_a of plugin plg_1");
+    expect(fault.rawMessage).toBe(
+      "failed to cascade-delete plugin eval pev_a of plugin plg_1",
+    );
   });
 });
 
@@ -310,6 +357,8 @@ describe("the eval's vault attachers", () => {
     PLUGIN_EVAL_VAULT_ATTACHMENTS.attachers.set(row, { vlt_1: "ida_creator" });
 
     expect(row.status?.vaultAttachers).toEqual({ vlt_1: "ida_creator" });
-    expect(PLUGIN_EVAL_VAULT_ATTACHMENTS.attachers.get(row)).toEqual({ vlt_1: "ida_creator" });
+    expect(PLUGIN_EVAL_VAULT_ATTACHMENTS.attachers.get(row)).toEqual({
+      vlt_1: "ida_creator",
+    });
   });
 });

@@ -349,7 +349,11 @@ describe("the eval trace's edges", () => {
   });
 
   it("has an empty final message when no assistant message carries text", async () => {
-    const run = runOf([call("c1", "read_file", { file_path: "a.ts" })], undefined, "");
+    const run = runOf(
+      [call("c1", "read_file", { file_path: "a.ts" })],
+      undefined,
+      "",
+    );
     run.status!.messages[1]!.content = "";
     const trace = await evalTraceOf(run, deps(Harness.NATIVE));
     expect(trace.lastMessage).toBe("");
@@ -376,7 +380,13 @@ describe("the eval trace's edges", () => {
     );
     expect(trace.files.kind).toBe("recorded");
     if (trace.files.kind !== "recorded") return;
-    expect(trace.files.contents.get("empty.md")).toEqual({ kind: "text", text: "" });
-    expect(trace.files.contents.get("blank.md")).toEqual({ kind: "text", text: "" });
+    expect(trace.files.contents.get("empty.md")).toEqual({
+      kind: "text",
+      text: "",
+    });
+    expect(trace.files.contents.get("blank.md")).toEqual({
+      kind: "text",
+      text: "",
+    });
   });
 });
