@@ -71,6 +71,7 @@ import type { ModelCatalogProvider } from "../../modelcatalog/model-catalog-prov
 import { notifyStatusObservers } from "./status-observers.js";
 import { newSessionSpecOf, sessionIdOf } from "./target.js";
 import { unavailableError } from "../../pipeline/errors.js";
+import { isPluginEvalRun } from "../plugin-eval/plugin-eval-run.js";
 import { isJudgeRun } from "../score/judge/judge-run.js";
 
 type CreateDesc = typeof RunSchema;
@@ -310,6 +311,13 @@ export function newComposeDeclaredPreferencesStep(
         logger.debug("Judge run, composing no standing context");
         return;
       }
+      // A plugin eval's try measures the plugin, not who started the eval:
+      // nothing personal loads, as in Claude Code's evals
+      // (domain/plugin-eval/plugin-eval-run.ts).
+      if (isPluginEvalRun(execution)) {
+        logger.debug("Plugin eval run, composing no standing context");
+        return;
+      }
 
       // Verbatim: the server stamps content only;
       // blank-is-absent is the runner's read-side convention.
@@ -486,6 +494,12 @@ export function newComposeRecalledMemoriesStep(
       // remember tool is offered to the judge.
       if (isJudgeRun(execution)) {
         logger.debug("Judge run, composing no recalled memories");
+        return;
+      }
+      // Nor does a plugin eval's try: an organization's memory must not
+      // move its score.
+      if (isPluginEvalRun(execution)) {
+        logger.debug("Plugin eval run, composing no recalled memories");
         return;
       }
 

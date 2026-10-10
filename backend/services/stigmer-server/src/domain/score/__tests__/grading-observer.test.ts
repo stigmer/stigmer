@@ -35,6 +35,7 @@ import {
 import { RUN_HEALTH_EVALUATOR_VERSION } from "../checks/checks.js";
 import { GRADING_NOT_STARTED_REASON, RUN_HEALTH_METRIC } from "../constants.js";
 import { newGradingObserver } from "../grading-observer.js";
+import { PLUGIN_EVAL_LABEL } from "../../plugin-eval/constants.js";
 import { GRADES_RUN_LABEL } from "../judge/judge-run.js";
 import type { ScoreRecorder } from "../ports.js";
 
@@ -122,6 +123,22 @@ describe("the grading observer", () => {
     });
     await observe(client, rec)({
       run: judge,
+      oldPhase: RunPhase.RUN_IN_PROGRESS,
+      newPhase: RunPhase.RUN_COMPLETED,
+    });
+    expect(startSpy).not.toHaveBeenCalled();
+    expect(rec.recorded).toEqual([]);
+  });
+
+  it("never grades a plugin eval's run: the eval grades its own tries", async () => {
+    const { client, startSpy } = engine(() => Promise.resolve({}));
+    const rec = recorder();
+    const evalTry = create(RunSchema, {
+      metadata: { id: "run_try", org: "org_1", labels: { [PLUGIN_EVAL_LABEL]: "pev_1" } },
+      status: { phase: RunPhase.RUN_COMPLETED },
+    });
+    await observe(client, rec)({
+      run: evalTry,
       oldPhase: RunPhase.RUN_IN_PROGRESS,
       newPhase: RunPhase.RUN_COMPLETED,
     });
