@@ -35,11 +35,14 @@
  *   - `findDirectByIdpId` answers only the platform's own subjects —
  *     never a federated account (a customer's federated IdP may mint the
  *     same `auth0|…` shape and the platform lane must never resolve to it)
- *     and never a platform-client end user (its subject is the mint's);
+ *     never a platform-client end user (its subject is the mint's), and
+ *     never an organization's service account (it signs in through
+ *     nothing, so no sign-in's subject may resolve to it);
  *   - `findDirectByEmail` answers direct accounts only, by exact match:
  *     federation legitimately duplicates emails, so the email axis is
  *     non-unique, and a platform-client account's email is one its
- *     platform asserted, so no email lookup may answer it;
+ *     platform asserted, so no email lookup may answer it, nor a service
+ *     account's;
  *   - `findByIds` answers one row per distinct id, in first-occurrence
  *     order, and skips unknown ids;
  *   - a typed not-found reads as `undefined`; any other storage failure
@@ -76,7 +79,7 @@ export interface IdentityAccountStore {
    * federated natural key (provider and subject), never by a bare subject.
    */
   findByIdpId(idpId: string): Promise<IdentityAccount | undefined>;
-  /** The platform's own subjects only (no federated, no platform-client) — the verifiers' and whoAmI's lookup. */
+  /** The platform's own subjects only (no federated, no platform-client, no service account) — the verifiers' and whoAmI's lookup. */
   findDirectByIdpId(idpId: string): Promise<IdentityAccount | undefined>;
   /** Direct accounts only, exact match — the getByEmail RPC's lookup. */
   findDirectByEmail(email: string): Promise<IdentityAccount | undefined>;

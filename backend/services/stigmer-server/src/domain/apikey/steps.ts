@@ -21,6 +21,8 @@
  *     its owner may view. API key create is a skip lane by annotation (any
  *     signed-in person may hold keys), so this step is the one place its
  *     organization is checked.
+ *   - CheckDuplicate (the key's own, by name per owner): the shared step's
+ *     check is per organization, and a key has none.
  *   - PreserveKeyMaterial: update keeps spec.key_hash, spec.fingerprint
  *     and spec.bound_org from the STORED resource, so only the expiry fields are
  *     client-mutable (an update that cleared spec.bound_org would free a limited
@@ -45,7 +47,7 @@ import { create } from "@bufbuild/protobuf";
 
 import { boundOrgOf } from "../../extensions/identity.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
-import { internalError } from "../../pipeline/errors.js";
+import { alreadyExistsError, internalError } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { authorizeResolvedResource } from "../../pipeline/steps/authorize.js";
@@ -58,6 +60,7 @@ import {
   hashApiKey,
 } from "./keymaterial.js";
 import { findApiKeyByHash } from "./lookup.js";
+import { keysOwnedBy } from "./queries.js";
 
 /**
  * Context key parking the plaintext between GenerateApiKey and
@@ -146,6 +149,38 @@ export function newBindApiKeyOrganizationStep(
         }
         throw error;
       });
+    },
+  };
+}
+
+/**
+ * CheckDuplicate for a key: a name is unique among the keys of one owner,
+ * the account the key will speak for (`owner`, read before BuildNewState
+ * stamps it). Keys belong to no organization, so the shared step's
+ * org-scoped check fell back to every key on the server: two people, or
+ * two customers of one hosted server, could not both name a key "ci", and
+ * the refusal named the other key's id.
+ */
+export function newCheckDuplicateKeyNameStep(
+  store: Store,
+  ownerOf: (ctx: RequestContext<ApiKeyDesc>) => string,
+): PipelineStep<ApiKeyDesc> {
+  return {
+    name: "CheckDuplicate",
+    async execute(ctx: RequestContext<ApiKeyDesc>): Promise<void> {
+      const slug = ctx.newState.metadata?.slug ?? "";
+      if (slug === "") {
+        throw internalError(new Error("resource slug is empty"), "duplicate check");
+      }
+      let owned: ApiKey[];
+      try {
+        owned = await keysOwnedBy(store, [ownerOf(ctx)]);
+      } catch (error) {
+        throw internalError(error, "failed to check for duplicates");
+      }
+      if (owned.some((key) => (key.metadata?.slug ?? "") === slug)) {
+        throw alreadyExistsError("ApiKey", `slug '${slug}'`);
+      }
     },
   };
 }

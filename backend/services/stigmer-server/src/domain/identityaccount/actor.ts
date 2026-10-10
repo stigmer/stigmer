@@ -67,15 +67,67 @@
  * stamp with, and in a member list.
  */
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 
+import { SERVICE_ACCOUNT_CALLER_CLASS } from "../../extensions/identity.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 
+/**
+ * The server acting as the account a row names (a schedule's creator, a
+ * grading or eval run's). A person is a `user`; an organization's service
+ * account keeps its own class and works only in its organization, exactly
+ * as its API key does (`serviceAccountCallerOf`), so no lane that acts as
+ * a row's creator turns a service account into a person.
+ */
 export function accountAsCaller(account: IdentityAccount): CallerIdentity {
+  const serviceAccount = serviceAccountCallerOf(account);
+  if (serviceAccount !== undefined) {
+    return { ...serviceAccount, issuer: "", rawToken: "" };
+  }
   return {
     ...principalOf(account),
     callerClass: "user",
     issuer: "",
     rawToken: "",
+  };
+}
+
+/** Whether the row is an organization's service account. */
+export function isServiceAccount(account: IdentityAccount): boolean {
+  return (
+    account.spec?.provisioningMode ===
+    IdentityAccountProvisioningMode.service_account
+  );
+}
+
+/**
+ * The caller a service account's row stands for, or undefined for any
+ * other row: its id, its one name from the row alone (a key's stamped
+ * display name is the name it had when the key was made, so a renamed
+ * service account would otherwise keep acting under its old name), class
+ * `service_account`, and its organization as the bound organization. A
+ * service-account row with no organization names nobody it could act for,
+ * so it is a loud fault rather than an unbound caller.
+ */
+export function serviceAccountCallerOf(
+  account: IdentityAccount,
+): Pick<CallerIdentity, "identityId" | "displayName" | "callerClass" | "boundOrg"> | undefined {
+  if (!isServiceAccount(account)) {
+    return undefined;
+  }
+  const identityId = account.metadata?.id ?? "";
+  const org = account.metadata?.org ?? "";
+  if (identityId === "" || org === "") {
+    throw new Error(
+      `service account '${identityId}' carries no organization — refusing to build a caller that no organization binds`,
+    );
+  }
+  const name = account.metadata?.name ?? "";
+  return {
+    identityId,
+    ...(name !== "" ? { displayName: name } : {}),
+    callerClass: SERVICE_ACCOUNT_CALLER_CLASS,
+    boundOrg: org,
   };
 }
 

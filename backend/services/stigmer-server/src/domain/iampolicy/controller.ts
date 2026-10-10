@@ -189,6 +189,9 @@ import {
   newCleanupResourceStep,
   newGrantStep,
   newKeepOneOwnerStep,
+  newRefuseServiceAccountMembershipChangeStep,
+  newRefuseServiceAccountOrgAccessStep,
+  newRefuseServiceAccountOwnerStep,
   newRevokeOrgAccessStep,
   newRevokeStep,
   newValidateGrantableRoleStep,
@@ -318,7 +321,8 @@ function guardSystemRpc(method: DescMethod, caller: CallerIdentity): void {
 
 /**
  * `create`: the wire refusal, then Authorize → ValidateProto →
- * ValidateGrantableRole → AuthorizeOwnerAssignment →
+ * RefuseServiceAccountMembershipChange → ValidateGrantableRole →
+ * RefuseServiceAccountOwner → AuthorizeOwnerAssignment →
  * [iam-policy-create:pre-side-effect-gate] → Grant.
  */
 function createPolicy(
@@ -365,7 +369,9 @@ async function grantThroughChain(
     .addStep(newAuthorizeStep(method, deps.authorizer))
     .addStep(newValidateProtoStep());
   if (validateRole) {
+    pipeline.addStep(newRefuseServiceAccountMembershipChangeStep());
     pipeline.addStep(newValidateGrantableRoleStep(deps.grantScope));
+    pipeline.addStep(newRefuseServiceAccountOwnerStep(deps.accounts));
     pipeline.addStep(
       newAuthorizeOwnerAssignmentStep(deps.authorizer, specOwnerRoleChange),
     );
@@ -384,7 +390,8 @@ async function grantThroughChain(
 }
 
 /**
- * `delete`: the wire refusal, then Authorize → ValidateProto →
+ * `delete`: the wire refusal, then Authorize →
+ * RefuseServiceAccountMembershipChange → ValidateProto →
  * AuthorizeOwnerAssignment → KeepOneOwner → Revoke; the revoked row, or the
  * default instance.
  */
@@ -403,6 +410,7 @@ async function deletePolicy(
   );
   await newPipeline<typeof IamPolicySpecSchema>("iampolicy-delete", deps.logger)
     .addStep(newAuthorizeStep(method, deps.authorizer))
+    .addStep(newRefuseServiceAccountMembershipChangeStep())
     .addStep(newValidateProtoStep())
     .addStep(
       newAuthorizeOwnerAssignmentStep(deps.authorizer, specOwnerRoleChange),
@@ -439,6 +447,7 @@ async function revokeOrgAccess(
     deps.logger,
   )
     .addStep(newAuthorizeStep(method, deps.authorizer))
+    .addStep(newRefuseServiceAccountOrgAccessStep())
     .addStep(newValidateProtoStep());
   if (guardOwners) {
     const ownerRoleChange = orgAccessOwnerRoleChange(deps.policies);

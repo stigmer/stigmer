@@ -39,7 +39,19 @@ export type CallerClass =
   | "machine"
   | "runner"
   | "internal"
+  | typeof SERVICE_ACCOUNT_CALLER_CLASS
   | (string & {});
+
+/**
+ * The class of a caller that is an organization's service account: its
+ * API key, or any lane that acts as the account a row names (a schedule a
+ * service account created fires as it). Its own class, never `user`, so
+ * every gate that admits people only (`=== "user"`: the open-source
+ * membership rules, the organization-creator role, direct provisioning,
+ * memory, a composition's person-only lanes) refuses it without an edit,
+ * and a gate written later admits it only by saying so.
+ */
+export const SERVICE_ACCOUNT_CALLER_CLASS = "service_account";
 
 /**
  * How the request reached the chain — the transport-trust discriminant
@@ -154,6 +166,20 @@ export interface IdentityVerifier {
  */
 export function isPlatformPipelineCaller(caller: CallerIdentity): boolean {
   return caller.callerClass === "machine" || isServerComposedRequest(caller);
+}
+
+/**
+ * Whether `caller` is an organization's service account. Such a caller
+ * never decides who belongs to the organization or what credentials exist:
+ * the RPCs that create keys, service accounts or organizations, change an
+ * identity account, grant or revoke a role on the organization itself, or
+ * invite someone refuse it (pipeline/steps/refuse-service-account.ts), so
+ * a leaked key can neither outlive its revocation nor widen the
+ * organization. Read whatever the transport: a request the server composes
+ * for a service account carries its class, and is held to the same rule.
+ */
+export function isServiceAccountCaller(caller: CallerIdentity): boolean {
+  return caller.callerClass === SERVICE_ACCOUNT_CALLER_CLASS;
 }
 
 /**

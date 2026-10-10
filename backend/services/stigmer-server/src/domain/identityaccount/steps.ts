@@ -34,8 +34,9 @@
  *     subject, never its slug (the guideline's "domains with different
  *     uniqueness rules bring their own step under the same name").
  *   - AssignBackendFields: `is_machine_account` from the `@clients`
- *     suffix and the provisioning mode the path was given (`direct`, or
- *     `platform_client` for the mint's end users) on create (the spec's
+ *     suffix and the provisioning mode the path was given (`direct`,
+ *     `platform_client` for the mint's end users, or `service_account`
+ *     for an organization's own non-person account) on create (the spec's
  *     "assigned by backend" fields); on update, every backend-assigned
  *     field and the email are preserved from the existing row (the
  *     cloud's writable surface — first/last name, picture, preferences —
@@ -75,14 +76,18 @@ import { idValueOf, metadataOf } from "../../pipeline/steps/shapes.js";
 import { fittedName, fittedSlug } from "../../pipeline/steps/slug.js";
 import {
   PLATFORM_CLIENT_SUBJECT_PREFIX,
+  SERVICE_ACCOUNT_SUBJECT_PREFIX,
   accountIdFor,
   accountNotFoundMessage,
   idpIdImmutableMessage,
   isMachineSubject,
   isPlatformClientSubject,
+  isServiceAccountSubject,
   reservedSubjectMessage,
 } from "./constants.js";
+import { isServiceAccount } from "./actor.js";
 import type { AccountProvisioning } from "./provisioning.js";
+import { refuseTakenName, serviceAccountSlugOf } from "./service-accounts.js";
 import { DuplicateAccountError } from "./store.js";
 import type { IdentityAccountStore } from "./store.js";
 
@@ -200,10 +205,30 @@ function assignPlatformClientBackendFields(
 }
 
 /**
+ * The backend-assigned fields of a SERVICE ACCOUNT: never a machine
+ * account in the legacy sense (its subject is the reserved composite, not
+ * an `@clients` client id), mode `service_account`, no provider ref, and
+ * none of a person's fields — its one name is `metadata.name`.
+ */
+function assignServiceAccountBackendFields(
+  spec: IdentityAccountSpec,
+): IdentityAccountSpec {
+  spec.isMachineAccount = false;
+  spec.provisioningMode = IdentityAccountProvisioningMode.service_account;
+  spec.identityProviderRef = undefined;
+  spec.email = "";
+  spec.firstName = "";
+  spec.lastName = "";
+  spec.pictureUrl = "";
+  return spec;
+}
+
+/**
  * AssignBackendFields on create, by how the account was provisioned. The
- * `stgm_pc|` subject namespace is reserved in both directions: a direct
- * account refuses it (INVALID_ARGUMENT, before anything is written), and a
- * platform-client account must carry it — its absence is the mint's bug,
+ * `stgm_pc|` and `stgm_sa|` subject namespaces are reserved in both
+ * directions: a direct account refuses either (INVALID_ARGUMENT, before
+ * anything is written), and a platform-client account or a service
+ * account must carry its own — its absence is the creating path's bug,
  * never a client's input.
  */
 export function newAssignBackendFieldsStep(
@@ -214,12 +239,14 @@ export function newAssignBackendFieldsStep(
     execute(ctx: AccountContext): void {
       const spec = specOf(ctx);
       switch (provisioning.mode) {
-        case "direct":
-          if (isPlatformClientSubject(spec.idpId)) {
-            throw invalidArgumentError(reservedSubjectMessage(spec.idpId));
+        case "direct": {
+          const reserved = reservedSubjectMessage(spec.idpId);
+          if (reserved !== undefined) {
+            throw invalidArgumentError(reserved);
           }
           assignDirectBackendFields(spec);
           return;
+        }
         case "platform_client":
           if (!isPlatformClientSubject(spec.idpId)) {
             throw internalError(
@@ -230,6 +257,17 @@ export function newAssignBackendFieldsStep(
             );
           }
           assignPlatformClientBackendFields(spec);
+          return;
+        case "service_account":
+          if (!isServiceAccountSubject(spec.idpId)) {
+            throw internalError(
+              new Error(
+                `a service account's subject must carry the '${SERVICE_ACCOUNT_SUBJECT_PREFIX}' prefix`,
+              ),
+              "assign backend fields",
+            );
+          }
+          assignServiceAccountBackendFields(spec);
           return;
         default: {
           const exhaustive: never = provisioning;
@@ -316,6 +354,43 @@ export function newPreserveBackendFieldsStep(): AccountStep {
         existingSpec?.provisioningMode ??
         IdentityAccountProvisioningMode.identity_account_provisioning_mode_unspecified;
       spec.identityProviderRef = existingSpec?.identityProviderRef;
+    },
+  };
+}
+
+/**
+ * A service account's rename: its slug follows its name (the update
+ * chain otherwise keeps a stored slug), so the name stays unique among
+ * the organization's service accounts by the same key its create checked
+ * (service-accounts.ts), and a name it gave up is free again. Its person
+ * fields stay empty, whatever the request sent: its one name is
+ * `metadata.name`. Any other account passes untouched.
+ */
+export function newRenameServiceAccountStep(
+  accounts: Pick<IdentityAccountStore, "findByOrg">,
+): AccountStep {
+  return {
+    name: "RenameServiceAccount",
+    async execute(ctx: AccountContext): Promise<void> {
+      if (!isServiceAccount(existingAccountOf(ctx))) {
+        return;
+      }
+      const metadata = requireMetadata(ctx, "rename service account");
+      const spec = specOf(ctx);
+      spec.firstName = "";
+      spec.lastName = "";
+      spec.pictureUrl = "";
+      const slug = serviceAccountSlugOf(metadata.name);
+      if (slug !== metadata.slug) {
+        await refuseTakenName(
+          accounts,
+          metadata.org,
+          slug,
+          metadata.name,
+          metadata.id,
+        );
+        metadata.slug = slug;
+      }
     },
   };
 }

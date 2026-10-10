@@ -81,6 +81,7 @@ import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import { newRefuseServiceAccountCallerStep } from "../../pipeline/steps/refuse-service-account.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import { newBuildNewStateStep } from "../../pipeline/steps/defaults.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
@@ -263,6 +264,10 @@ async function createOrganization(
         deps.authorizer,
       ),
     )
+    // A service account never creates an organization, a child of its own
+    // included: a bound credential may create a child of its organization,
+    // and a service account's key is bound (pipeline/steps/refuse-service-account.ts).
+    .addStep(newRefuseServiceAccountCallerStep("create organizations"))
     .addStep(newRefuseBoundCredentialStep())
     .addStep(newResolveSlugStep())
     .addStep(newValidateProtoStep())

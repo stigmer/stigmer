@@ -83,6 +83,16 @@
  * key's authentication is (apis/ai/stigmer/iam/apikey/v1/README.md): it
  * can refuse any RPC, so no single RPC comment owns it.
  *
+ * A key that speaks for an organization's service account (its creator
+ * stamp is the service account: ApiKeyCommandController.createForServiceAccount
+ * writes it so) is a different caller: class `service_account`, never
+ * `user`, so every person-only gate refuses it; bound to the service
+ * account's organization; and named from the account row alone
+ * (actor.ts `serviceAccountCallerOf`), so a rename reaches the next
+ * request. A service-account key whose `bound_org` disagrees with the
+ * account's organization cannot come from the create path, and is refused
+ * with the unknown-key copy.
+ *
  * An accepted key's use is then recorded on its status.last_used_at
  * (identity/credential-use.ts): at most once a resolution, judged from the
  * row this read already holds, written atomically through
@@ -106,7 +116,10 @@ import type {
 import { recordCredentialUse } from "../../identity/credential-use.js";
 import { unauthenticatedWithReasonError } from "../../pipeline/errors.js";
 import type { Store } from "../../store/interface.js";
-import { principalOf } from "../identityaccount/actor.js";
+import {
+  principalOf,
+  serviceAccountCallerOf,
+} from "../identityaccount/actor.js";
 import { isAccountIdShaped } from "../identityaccount/constants.js";
 import {
   accountForStamp,
@@ -192,6 +205,25 @@ export function newApiKeyIdentityVerifier(
             { reason: API_KEY_CREATED_BEFORE_SIGN_IN },
           );
         }
+      }
+      const serviceAccount =
+        account === undefined ? undefined : serviceAccountCallerOf(account);
+      if (serviceAccount !== undefined) {
+        // A service account's key works in its organization only. The
+        // create path binds every such key to it, so a key that says
+        // otherwise is corrupt, refused as no credential at all.
+        if (key.spec?.boundOrg !== serviceAccount.boundOrg) {
+          logger.info(
+            "API key refused: it is not bound to its service account's organization",
+            {
+              keyId: key.metadata?.id ?? "",
+              identityId: serviceAccount.identityId,
+            },
+          );
+          throw new ConnectError(INVALID_TOKEN_MESSAGE, Code.Unauthenticated);
+        }
+        await recordKeyUse(store, logger, key, now);
+        return { ...serviceAccount, issuer: "", rawToken: token };
       }
       await recordKeyUse(store, logger, key, now);
       const boundOrg = key.spec?.boundOrg ?? "";

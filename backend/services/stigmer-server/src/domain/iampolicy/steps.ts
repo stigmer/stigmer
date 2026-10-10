@@ -77,6 +77,16 @@
  * person's behalf (an invitation's redemption, an identity provider's
  * auto-grant), which run as `internal` and hold the same rule at their own
  * sites.
+ *
+ * Service accounts. An organization's service account never decides who
+ * belongs to the organization: its key is refused every grant and revoke
+ * of a role on the organization itself, and every `revokeOrgAccess`
+ * (RefuseServiceAccountMembershipChange; pipeline/steps/
+ * refuse-service-account.ts has the rule). A share of one resource stays
+ * its to make. And a service account never holds `owner` of an
+ * organization (RefuseServiceAccountOwner): an owner decides who owns the
+ * organization, and a credential in CI must never be able to. One account
+ * read, only when the spec grants `owner` on an organization.
  */
 import { create, type DescMessage } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -117,6 +127,12 @@ import {
 import type { PolicyChangeCause } from "./change.js";
 import type { IamPolicyGrantPath } from "./grant-path.js";
 import type { IamPolicyStore } from "./store.js";
+import { isServiceAccount } from "../identityaccount/actor.js";
+import type { IdentityAccountStore } from "../identityaccount/store.js";
+import {
+  newRefuseServiceAccountCallerStep,
+  refuseServiceAccountCaller,
+} from "../../pipeline/steps/refuse-service-account.js";
 import {
   requireKnownPrincipalKind,
   requireKnownResourceKind,
@@ -423,6 +439,62 @@ export function newKeepOneOwnerStep<Desc extends DescMessage>(
       const owners = await organizationOwners(ctx, policies, change.organizationId);
       if (owners.has(change.accountId) && owners.size === 1) {
         throw new ConnectError(LAST_OWNER_MESSAGE, Code.FailedPrecondition);
+      }
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Service accounts (the module header's last paragraph)
+// ---------------------------------------------------------------------------
+
+/** What a service account's own key is refused on the organization's roles. */
+const MEMBERSHIP_ACT = "grant or revoke roles on the organization";
+
+/** A grant of `owner` on an organization to a service account (INVALID_ARGUMENT). */
+export const SERVICE_ACCOUNT_OWNER_MESSAGE =
+  "a service account cannot own an organization; give it the admin, member or viewer role";
+
+/** `create` and `delete`: refused for a service account when the resource is an organization. */
+export function newRefuseServiceAccountMembershipChangeStep(): PipelineStep<
+  typeof IamPolicySpecSchema
+> {
+  return {
+    name: "RefuseServiceAccountMembershipChange",
+    execute(ctx: RequestContext<typeof IamPolicySpecSchema>): void {
+      if (ctx.input.resource?.kind === ORGANIZATION_KIND_NAME) {
+        refuseServiceAccountCaller(ctx.callerIdentity, MEMBERSHIP_ACT);
+      }
+    },
+  };
+}
+
+/** `revokeOrgAccess`: always the organization's membership. */
+export function newRefuseServiceAccountOrgAccessStep(): PipelineStep<
+  typeof RevokeOrgAccessInputSchema
+> {
+  return newRefuseServiceAccountCallerStep(MEMBERSHIP_ACT);
+}
+
+/** `create`: `owner` on an organization is refused when the principal is a service account. */
+export function newRefuseServiceAccountOwnerStep(
+  accounts: Pick<IdentityAccountStore, "findById">,
+): PipelineStep<typeof IamPolicySpecSchema> {
+  return {
+    name: "RefuseServiceAccountOwner",
+    async execute(ctx: RequestContext<typeof IamPolicySpecSchema>): Promise<void> {
+      const { resource, principal, relation } = ctx.input;
+      if (
+        resource?.kind !== ORGANIZATION_KIND_NAME ||
+        relation !== OWNER_RELATION ||
+        principal?.kind !== IDENTITY_ACCOUNT_KIND_NAME ||
+        principal.id === ""
+      ) {
+        return;
+      }
+      const account = await accounts.findById(principal.id);
+      if (account !== undefined && isServiceAccount(account)) {
+        throw new ConnectError(SERVICE_ACCOUNT_OWNER_MESSAGE, Code.InvalidArgument);
       }
     },
   };

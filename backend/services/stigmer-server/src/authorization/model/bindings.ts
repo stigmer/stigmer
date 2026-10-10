@@ -23,7 +23,8 @@
  * The derived rules: on the organization, `parent_org` and `child_org`,
  * which a child's `spec.parent_org` decides (child-organizations.ts), and
  * `agent_creation_open`, which its `spec.policies` decides
- * (organization-policies.ts).
+ * (organization-policies.ts); on the identity account, `organization`,
+ * which a service account's `metadata.org` decides (service-accounts.ts).
  */
 import type { DescMessage } from "@bufbuild/protobuf";
 
@@ -56,6 +57,7 @@ import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organizat
 import { childOrg, parentOrg } from "./child-organizations.js";
 import { agentCreationOpen } from "./organization-policies.js";
 import type { DerivedRelation } from "./rewrite.js";
+import { serviceAccountOrganization } from "./service-accounts.js";
 
 /** A type with no stored resource: it resolves over tuples alone (the module header). */
 export const ROWLESS = undefined;
@@ -73,7 +75,13 @@ export const KIND_BINDINGS: ReadonlyMap<ApiResourceKind, KindBinding> = new Map<
   KindBinding
 >([
   [ApiResourceKind.platform, { schema: ROWLESS }],
-  [ApiResourceKind.identity_account, { schema: IdentityAccountSchema }],
+  [
+    ApiResourceKind.identity_account,
+    {
+      schema: IdentityAccountSchema,
+      derived: { organization: serviceAccountOrganization },
+    },
+  ],
   [ApiResourceKind.identity_provider, { schema: IdentityProviderSchema }],
   [ApiResourceKind.iam_policy, { schema: IamPolicySchema }],
   [ApiResourceKind.api_key, { schema: ApiKeySchema }],

@@ -9,8 +9,20 @@
  *   - PreserveKeyMaterial on update (the Java handler documented
  *     hash/fingerprint immutability but did not enforce it; see steps.ts
  *     for why it matters).
- *   - findAll returns every key under the scope-less single-team posture;
- *     a composed ListReadScope narrows it to the caller's can_view keys.
+ *   - findAll returns the caller's own keys, read by owner through the
+ *     key list index (list-index.ts), not every key a read scope admits:
+ *     an organization's admins may view its service accounts' keys, and
+ *     those are listed with findByAccount, never mixed into the admin's own.
+ *   - A key's name is unique among its owner's keys, not among every key
+ *     on the server (steps.ts CheckDuplicate).
+ *
+ * createForServiceAccount runs the create chain AS the service account,
+ * so the key's creator stamp, the stamp the verifier and the owner tuple
+ * read, names the account the key speaks for. Its organization is the
+ * service account's, set from the account row. The admin who minted it is
+ * named in the server's log line for the create. A service account's own
+ * key is refused every create and update of a key (pipeline/steps/
+ * refuse-service-account.ts): it never decides what credentials exist.
  *
  * Kind mechanics per kind_meta: id prefix `key`, is_versioned false (no
  * version surface), not_search_indexed true (no IndexSearch steps).
@@ -19,8 +31,9 @@
  * __tests__/apikey.test.ts (key material, plaintext-once, update
  * immutability — the pins conformance cannot express cross-edition).
  */
+import { Code, ConnectError } from "@connectrpc/connect";
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
-import { create, fromBinary } from "@bufbuild/protobuf";
+import { create } from "@bufbuild/protobuf";
 import type { Empty } from "@bufbuild/protobuf/wkt";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -30,22 +43,32 @@ import { ApiKeyCommandController } from "@stigmer/protos/ai/stigmer/iam/apikey/v
 import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
 import { ApiKeysSchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/io_pb";
 import type {
+  ApiKeyAccountId,
   ApiKeyHash,
   ApiKeyId,
   ApiKeys,
+  CreateServiceAccountKeyInput,
 } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/io_pb";
+import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
 import type { ListReadScope } from "../../extensions/list-read-scope.js";
 import { restrictListByReadScope } from "../../extensions/list-read-scope.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
-import { internalError } from "../../pipeline/errors.js";
+import {
+  failedPreconditionError,
+  internalError,
+} from "../../pipeline/errors.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import { RequestContext } from "../../pipeline/request-context.js";
-import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import {
+  authorizeDirect,
+  newAuthorizeStep,
+} from "../../pipeline/steps/authorize.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
 import { newBuildNewStateStep } from "../../pipeline/steps/defaults.js";
@@ -54,8 +77,6 @@ import {
   newExtractResourceIdStep,
   newLoadExistingForDeleteStep,
 } from "../../pipeline/steps/delete.js";
-import { newCheckDuplicateStep } from "../../pipeline/steps/duplicate.js";
-import { compareCreatedAtDesc } from "../../pipeline/steps/helpers.js";
 import {
   EXISTING_RESOURCE_KEY,
   newLoadExistingStep,
@@ -69,12 +90,21 @@ import {
   newCreateAuthorizationTuplesStep,
 } from "../../pipeline/steps/authorization-tuples.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
+import {
+  newRefuseServiceAccountCallerStep,
+  refuseServiceAccountCaller,
+} from "../../pipeline/steps/refuse-service-account.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import type { Store } from "../../store/interface.js";
+import { serviceAccountCallerOf } from "../identityaccount/actor.js";
+import { accountNotFoundMessage, idpIdOf } from "../identityaccount/constants.js";
+import type { IdentityAccountStore } from "../identityaccount/store.js";
+import { keysOwnedBy } from "./queries.js";
 import {
   newBindApiKeyOrganizationStep,
+  newCheckDuplicateKeyNameStep,
   newGenerateApiKeyStep,
   newLoadByKeyHashStep,
   newPreserveKeyMaterialStep,
@@ -88,8 +118,15 @@ export interface ApiKeyControllerDeps {
   readonly authorizer: Authorizer;
   /** The composed tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
-  /** The composed list read scope — findAll narrows through it; undefined = every stored key. */
+  /** The composed list read scope — findAll narrows through it as well as by owner. */
   readonly listReadScope: ListReadScope | undefined;
+  /** The identity-account port: the service account a key is minted for, the account whose keys are listed. */
+  readonly accounts: Pick<IdentityAccountStore, "findById">;
+}
+
+/** createForServiceAccount for an account that is not a service account (FAILED_PRECONDITION). */
+export function notAServiceAccountMessage(id: string): string {
+  return `identity account '${id}' is not a service account; a person creates their own keys`;
 }
 
 /** Registers both apikey services on the router (routes stage). */
@@ -99,6 +136,8 @@ export function registerApiKeyServices(
 ): void {
   router.service(ApiKeyCommandController, {
     create: (apiKey, ctx) => createApiKey(deps, apiKey, ctx),
+    createForServiceAccount: (input, ctx) =>
+      createForServiceAccount(deps, input, ctx),
     update: (apiKey, ctx) => update(deps, apiKey, ctx),
     delete: (apiKeyId, ctx) => deleteApiKey(deps, apiKeyId, ctx),
   });
@@ -106,6 +145,7 @@ export function registerApiKeyServices(
     get: (apiKeyId, ctx) => get(deps, apiKeyId, ctx),
     getByKeyHash: (apiKeyHash, ctx) => getByKeyHash(deps, apiKeyHash, ctx),
     findAll: (empty, ctx) => findAll(deps, empty, ctx),
+    findByAccount: (input, ctx) => findByAccount(deps, input, ctx),
   });
 }
 
@@ -134,10 +174,11 @@ async function createApiKey(
     .addStep(
       newAuthorizeStep(ApiKeyCommandController.method.create, deps.authorizer),
     )
+    .addStep(newRefuseServiceAccountCallerStep(CREATE_KEY_ACT))
     .addStep(newValidateProtoStep())
     .addStep(newValidateVisibilityStep())
     .addStep(newResolveSlugStep())
-    .addStep(newCheckDuplicateStep(deps.store))
+    .addStep(newCheckDuplicateKeyNameStep(deps.store, ownerIsCaller))
     .addStep(newBuildNewStateStep())
     .addStep(newBindApiKeyOrganizationStep(deps.authorizer))
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
@@ -153,6 +194,99 @@ async function createApiKey(
     .build()
     .execute(reqCtx);
   return reqCtx.newState;
+}
+
+/** What a service account's key is refused (pipeline/steps/refuse-service-account.ts). */
+const CREATE_KEY_ACT = "create API keys";
+const UPDATE_KEY_ACT = "change an API key";
+
+/** The account a key created by the caller will speak for: the caller. */
+function ownerIsCaller(ctx: RequestContext<typeof ApiKeySchema>): string {
+  return ctx.callerIdentity.identityId;
+}
+
+/**
+ * createForServiceAccount — the minting admin is authorized on the
+ * service account (`can_manage_keys`, its organization's admins) and
+ * refused when it is itself a service account; the account must be one.
+ * The key is then created by the ordinary create chain AS the service
+ * account, from ValidateProto on, bound to the account's organization:
+ * BindApiKeyOrganization is not run, because the organization is the
+ * account's own and is set here, never taken from the request.
+ */
+async function createForServiceAccount(
+  deps: ApiKeyControllerDeps,
+  input: CreateServiceAccountKeyInput,
+  ctx: HandlerContext,
+): Promise<ApiKey> {
+  const admin = callerIdentityOf(ctx);
+  const method = ApiKeyCommandController.method.createForServiceAccount;
+  await authorizeDirect(method, deps.authorizer, admin, input);
+  refuseServiceAccountCaller(admin, CREATE_KEY_ACT);
+  const account = await loadAccount(deps, input.serviceAccountId);
+  const asAccount = serviceAccountCallerOf(account);
+  if (asAccount === undefined) {
+    throw failedPreconditionError(
+      notAServiceAccountMessage(input.serviceAccountId),
+    );
+  }
+  const caller: CallerIdentity = { ...asAccount, issuer: "", rawToken: "" };
+  const apiKey = create(ApiKeySchema, {
+    apiVersion: "iam.stigmer.ai/v1",
+    kind: "ApiKey",
+    metadata: { name: input.name },
+    spec: {
+      ...(input.expiresAt !== undefined ? { expiresAt: input.expiresAt } : {}),
+      neverExpires: input.neverExpires,
+      boundOrg: asAccount.boundOrg ?? "",
+    },
+  });
+  const reqCtx = new RequestContext(ApiKeySchema, apiKey, caller, kindOf(ctx));
+  await newPipeline<typeof ApiKeySchema>(
+    "apikey-create-for-service-account",
+    deps.logger,
+  )
+    .addStep(newValidateProtoStep())
+    .addStep(newValidateVisibilityStep())
+    .addStep(newResolveSlugStep())
+    .addStep(newCheckDuplicateKeyNameStep(deps.store, ownerIsCaller))
+    .addStep(newBuildNewStateStep())
+    .addStep(newGuardReservedLabelsStep(deps.authorizer))
+    .addStep(newGenerateApiKeyStep())
+    .addStep(newPersistStep(deps.store))
+    .addStep(
+      newCreateAuthorizationTuplesStep(
+        deps.authorizationLifecycle,
+        deps.logger,
+      ),
+    )
+    .addStep(newReplaceHashWithPlainTextStep())
+    .build()
+    .execute(reqCtx);
+  deps.logger.info("API key created for a service account", {
+    keyId: reqCtx.newState.metadata?.id ?? "",
+    serviceAccountId: asAccount.identityId,
+    org: asAccount.boundOrg ?? "",
+    createdBy: admin.identityId,
+  });
+  return reqCtx.newState;
+}
+
+/** The account by id, or the identity-account domain's NOT_FOUND; a fault is INTERNAL. */
+async function loadAccount(
+  deps: ApiKeyControllerDeps,
+  id: string,
+): Promise<IdentityAccount> {
+  let account: IdentityAccount | undefined;
+  try {
+    account = await deps.accounts.findById(id);
+  } catch (error) {
+    throw internalError(error, "failed to load identity account");
+  }
+  if (account === undefined) {
+    throw new ConnectError(accountNotFoundMessage(id), Code.NotFound);
+  }
+  return account;
 }
 
 /**
@@ -174,6 +308,7 @@ async function update(
     .addStep(
       newAuthorizeStep(ApiKeyCommandController.method.update, deps.authorizer),
     )
+    .addStep(newRefuseServiceAccountCallerStep(UPDATE_KEY_ACT))
     .addStep(newValidateProtoStep())
     .addStep(newResolveSlugStep({ update: true }))
     .addStep(newLoadExistingStep(deps.store))
@@ -285,15 +420,14 @@ async function getByKeyHash(
 }
 
 /**
- * FindAll — every stored key under the scope-less single-team posture;
- * with a composed ListReadScope the list narrows to the caller's
- * can_view keys — the Java
- * ApiKeyFindAllHandler baseline (no guest arm, no org intersection).
- * Stored hashes ride the response exactly as the cloud's do — the
- * plaintext exists nowhere. Newest first, as PlatformClient's listByOrg
- * answers: the store's scan has no order, and a key's own last-use stamp
- * rewrites its row, so an unsorted list would reorder as keys are used
- * (stigmer/stigmer#1255).
+ * FindAll — the caller's own keys: those whose creator stamp is the
+ * caller's account id, or the issuer subject a key minted before the
+ * account existed carries (queries.ts), newest first. A composed
+ * ListReadScope still narrows the answer, so a list is never wider than
+ * the keys the caller may view. Stored hashes ride the response exactly
+ * as the cloud's do — the plaintext exists nowhere. Newest first, as
+ * PlatformClient's listByOrg answers, so a list does not reorder as keys
+ * are used (stigmer/stigmer#1255).
  */
 async function findAll(
   deps: ApiKeyControllerDeps,
@@ -316,10 +450,43 @@ async function findAll(
     )
     .build()
     .execute(reqCtx);
+  return listOwnedKeys(deps, identity, [identity.identityId, idpIdOf(identity)]);
+}
 
-  let rows: Uint8Array[];
+/**
+ * FindByAccount — the keys that speak for an account, for whoever may view
+ * it: the person, or a service account's organization admins. Authorized
+ * on the account by its annotation, then read by owner, the account's id
+ * and its subject alike.
+ */
+async function findByAccount(
+  deps: ApiKeyControllerDeps,
+  input: ApiKeyAccountId,
+  ctx: HandlerContext,
+): Promise<ApiKeys> {
+  const identity = callerIdentityOf(ctx);
+  await authorizeDirect(
+    ApiKeyQueryController.method.findByAccount,
+    deps.authorizer,
+    identity,
+    input,
+  );
+  const account = await loadAccount(deps, input.identityAccountId);
+  return listOwnedKeys(deps, identity, [
+    account.metadata?.id ?? "",
+    account.spec?.idpId ?? "",
+  ]);
+}
+
+/** The owners' keys, narrowed by the composed read scope, newest first. */
+async function listOwnedKeys(
+  deps: ApiKeyControllerDeps,
+  identity: CallerIdentity,
+  owners: ReadonlyArray<string>,
+): Promise<ApiKeys> {
+  let owned: ApiKey[];
   try {
-    rows = await deps.store.listResources(ApiResourceKind.api_key);
+    owned = await keysOwnedBy(deps.store, owners);
   } catch (error) {
     throw internalError(error, "failed to list api keys");
   }
@@ -327,14 +494,8 @@ async function findAll(
     deps.listReadScope,
     identity,
     ApiResourceKind.api_key,
-    rows.map((row) => fromBinary(ApiKeySchema, row)),
+    owned,
     "",
   );
-  const entries = [...visible].sort((a, b) =>
-    compareCreatedAtDesc(
-      a.status?.audit?.specAudit?.createdAt,
-      b.status?.audit?.specAudit?.createdAt,
-    ),
-  );
-  return create(ApiKeysSchema, { entries });
+  return create(ApiKeysSchema, { entries: [...visible] });
 }

@@ -198,18 +198,21 @@ function isFederated(account: IdentityAccount): boolean {
 }
 
 /**
- * The platform's own subject: neither federated nor a platform-client end
- * user. A federated account carries its identity_provider_ref (open source
- * never writes one, so that arm is the port's contract stated); a
- * platform-client account is the mint's, whose email and name the platform
- * asserted, so no direct lookup — a verifier's subject resolve, getByEmail —
- * may answer it.
+ * The platform's own subject: neither federated, nor a platform-client end
+ * user, nor an organization's service account. A federated account carries
+ * its identity_provider_ref (open source never writes one, so that arm is
+ * the port's contract stated); a platform-client account is the mint's,
+ * whose email and name the platform asserted; a service account signs in
+ * through nothing, so a sign-in whose subject named one must never resolve
+ * to it. No direct lookup — a verifier's subject resolve, getByEmail — may
+ * answer any of them.
  */
 function isDirect(account: IdentityAccount): boolean {
   const mode = account.spec?.provisioningMode;
   return (
     account.spec?.identityProviderRef === undefined &&
     mode !== IdentityAccountProvisioningMode.federated &&
-    mode !== IdentityAccountProvisioningMode.platform_client
+    mode !== IdentityAccountProvisioningMode.platform_client &&
+    mode !== IdentityAccountProvisioningMode.service_account
   );
 }

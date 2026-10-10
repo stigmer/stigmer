@@ -83,17 +83,26 @@ export class UserInfoFetchError extends Error {
  *     not use the `stgm_pc|` prefix platform-client accounts reserve.
  *   - `platform_client`: an end user a PlatformClient's mint provisioned
  *     (domain/platformclient/mint.ts). Its subject is the reserved
- *     composite, and it belongs to the client's owning organization, which
- *     only this arm carries.
+ *     composite, and it belongs to the client's owning organization.
+ *   - `service_account`: an organization's own non-person account,
+ *     created by its admins (domain/identityaccount/service-accounts.ts).
+ *     Its subject is the reserved `stgm_sa|` composite, and it belongs to
+ *     its organization for its whole life.
+ * The two organization-owned arms carry the organization id, which the
+ * create path writes to `metadata.org` (the value the organization
+ * purge's `findByOrg` reads).
  */
 export type AccountProvisioning =
   | { readonly mode: "direct" }
-  | { readonly mode: "platform_client"; readonly org: string };
+  | { readonly mode: "platform_client"; readonly org: string }
+  | { readonly mode: "service_account"; readonly org: string };
 
 /** What a caller of the create path supplies: the rest is the chain's. */
 export interface CreateAccountInput {
   /** `metadata.name`; the chain defaults an empty one. */
   readonly name: string;
+  /** `metadata.slug`; the chain derives an absent one from the name. */
+  readonly slug?: string;
   readonly spec: IdentityAccountSpec;
   readonly provisioning: AccountProvisioning;
 }

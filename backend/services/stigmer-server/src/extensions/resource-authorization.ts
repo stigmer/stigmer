@@ -221,6 +221,25 @@ export interface ChildOrganizationLinkedEvent {
 }
 
 /**
+ * Fired synchronously once per service account by createServiceAccount,
+ * AFTER its row persists and before its role is granted: the driver writes
+ * `identity_account:<accountId>#organization@organization:<orgId>`, the
+ * link through which the organization's admins manage the account and
+ * its keys. The organization is fixed for the account's life, so the
+ * event fires once; the account's delete removes the link with every
+ * other row naming it. A throw fails the create INTERNAL with the row in
+ * place: the account is listed, and an edition that stores the link
+ * repairs a missing one (open source derives it from the row,
+ * authorization/model/service-accounts.ts).
+ */
+export interface ServiceAccountLinkedEvent {
+  readonly accountId: string;
+  readonly orgId: string;
+  /** The admin who created the service account. */
+  readonly caller: CallerIdentity;
+}
+
+/**
  * An organization's policies are changing (`spec.policies`): the driver
  * makes each policy's edge match `after` (today one,
  * `organization:<org>#agent_creation_open@organization:<org>`, present
@@ -294,6 +313,12 @@ export interface ResourceAuthorizationLifecycle {
    * check time).
    */
   onChildOrganizationLinked?(event: ChildOrganizationLinkedEvent): Promise<void>;
+  /**
+   * OPTIONAL: synchronous, after a service account's row persists (the
+   * event's doc). Absent method = the edge is derived from the row at
+   * check time (the OSS posture).
+   */
+  onServiceAccountLinked?(event: ServiceAccountLinkedEvent): Promise<void>;
   /**
    * OPTIONAL: synchronous; fired by an organization's create and its
    * updatePolicies: AFTER the row persists for a change that opens an act,
