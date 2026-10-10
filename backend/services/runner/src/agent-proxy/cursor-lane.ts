@@ -50,6 +50,9 @@
  * stand-in for Connect; a live turn's execution for every call but the
  * SDK's unscoped side calls (`/aiserver.v1.*`, the platform's lane serves
  * those unscoped too); the execution id is the one scope header forwarded.
+ * Of Cursor's `aiserver.v1` surface, only the methods the SDK itself calls
+ * are relayed ({@link CURSOR_SIDE_CALLS}): the rest, which carry the real
+ * token just the same, include one that mints an API key from it.
  */
 
 import { randomBytes } from "node:crypto";
@@ -78,6 +81,28 @@ const REST_PREFIX = "/v1/proxy/cursor/";
 const EXCHANGE_PATH = "/auth/exchange_user_api_key";
 const AGENT_PREFIX = "/agent.v1.";
 const SIDE_CALL_PREFIX = "/aiserver.v1.";
+
+/**
+ * The `aiserver.v1` methods the Cursor SDK calls through a client, read from
+ * `@cursor/sdk` 1.0.31's bundle (#2083): its server config, telemetry, and
+ * the dashboard reads for privacy mode, team settings, plugins and skills.
+ * Each dashboard read falls back to a default when it fails. Left out on
+ * purpose: `DashboardService/CreateUserApiKey` (the SDK's login flow, which
+ * mints a key from the access token) and `BidiService/BidiAppend` (the
+ * HTTP/1.1 imitation of the agent run, which an HTTP/2 lane never needs).
+ * The real-SDK wire test (`__tests__/cursor-sdk-wire.test.ts`) fails when
+ * the SDK makes a side call this list leaves out.
+ */
+export const CURSOR_SIDE_CALLS: ReadonlySet<string> = new Set([
+  "/aiserver.v1.ServerConfigService/GetServerConfig",
+  "/aiserver.v1.AnalyticsService/TrackEvents",
+  "/aiserver.v1.DashboardService/GetUserPrivacyMode",
+  "/aiserver.v1.DashboardService/GetTeamReposOrEmptyIfNotInTeam",
+  "/aiserver.v1.DashboardService/GetTeamAdminSettingsOrEmptyIfNotInTeam",
+  "/aiserver.v1.DashboardService/GetEffectiveUserPlugins",
+  "/aiserver.v1.DashboardService/ResolvePluginsByRef",
+  "/aiserver.v1.DashboardService/GetManagedSkills",
+]);
 const DEFAULT_CONNECT_UPSTREAM = "https://api2.cursor.sh";
 
 /**
@@ -166,6 +191,9 @@ export class CursorLane {
       if (path.startsWith(REST_PREFIX)) {
         await this.rest(req, res, path.slice(REST_PREFIX.length), url.search);
         return;
+      }
+      if (path.startsWith(SIDE_CALL_PREFIX) && !CURSOR_SIDE_CALLS.has(path)) {
+        throw new LaneRefusal(403, `the Cursor lane relays only the Cursor SDK's own side calls, not ${path}`);
       }
       if (path.startsWith(AGENT_PREFIX) || path.startsWith(SIDE_CALL_PREFIX)) {
         await this.connect(req, res, `${path}${url.search}`, path.startsWith(AGENT_PREFIX));
