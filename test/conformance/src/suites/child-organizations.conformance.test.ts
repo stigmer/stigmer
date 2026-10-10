@@ -6,7 +6,9 @@
 // parent's own identifier for it, `spec.external_id`). Nobody owns C: P's
 // admins manage it (its settings, members and access), see its billing,
 // and grant its people, but hold no role in it, so they read none of its
-// sessions, agents or vaults. A P admin who needs to look inside grants
+// sessions, agents or vaults, and write no secret into one of its vaults:
+// the keys a child keeps for its own people are its own admins' to save.
+// A P admin who needs to look inside grants
 // themselves a role in C, which C's access list shows. Everyone in C reads
 // and runs what P shares at visibility_child_orgs; nobody in another
 // parent's child does. A parent with children is not deleted. A
@@ -28,7 +30,7 @@ import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { makeAgent } from "../support/agents";
-import { makeSharedVault, myVaultTarget, setSecretsInput } from "../support/vaults";
+import { makeSharedVault, myVaultTarget, setSecretsInput, vaultTarget } from "../support/vaults";
 import { organizationRole } from "../support/iampolicies";
 import { uniqueName, uniqueOrg } from "../support/naming";
 import {
@@ -234,6 +236,55 @@ describe("child organizations — managed by the parent, never read by it", () =
       (await customer.clients.sessionQuery.get({ value: sessionId })).metadata
         ?.id,
     ).toBe(sessionId);
+  });
+
+  it("[rpc:VaultCommandController.setSecrets] a parent admin cannot save a secret into a child's vault, even one every child member may use", async (ctx) => {
+    if (lane === undefined) return ctx.skip(laneReason);
+    const on = lane;
+    const parent = await tenancy(on);
+    const child = await childOf(on, parent);
+    const customer = await personWith(on, child.org, "admin");
+    const vaultInput = makeSharedVault({
+      org: child.org,
+      name: uniqueName("child-keys"),
+    });
+    const vault = await customer.clients.vaultCommand.create({
+      ...vaultInput,
+      metadata: {
+        ...vaultInput.metadata,
+        visibility: ApiResourceVisibility.visibility_org,
+      },
+    });
+    const vaultId = vault.metadata?.id ?? "";
+    fixtures.defer(() =>
+      customer.clients.vaultCommand.delete({ resourceId: vaultId }),
+    );
+    await customer.clients.vaultCommand.setSecrets(
+      setSecretsInput(vaultTarget(child.org, vaultId), {
+        CUSTOMER_KEY: "the customer's",
+      }),
+    );
+
+    await expectGrpcCode(
+      () =>
+        on.clients.vaultCommand.setSecrets(
+          setSecretsInput(vaultTarget(child.org, vaultId), {
+            CUSTOMER_KEY: "the parent's",
+            PARENT_KEY: "the parent's",
+          }),
+        ),
+      Code.PermissionDenied,
+      "the parent's admin saves a secret into the child's org-visible vault",
+    );
+    const kept = await customer.clients.vaultQuery.get({ value: vaultId });
+    expect(
+      Object.keys(kept.spec?.secrets ?? {}),
+      "the child's vault holds only what its own admin saved",
+    ).toEqual(["CUSTOMER_KEY"]);
+    expect(
+      kept.spec?.secrets?.CUSTOMER_KEY?.savedBy,
+      "the entry is still the one the child's admin saved",
+    ).toBe(customer.id);
   });
 
   it("[rpc:IamPolicyCommandController.create] a parent admin who joins the child shows in its access list, and then reads", async (ctx) => {
