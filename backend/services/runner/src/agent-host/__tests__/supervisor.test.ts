@@ -357,9 +357,12 @@ describe("the production starter", () => {
     expect(started).toBe(0);
 
     const ready = await hostHarnesses([], testConfig(), { identity, prepareSeparation: () => null, start: inProcessHosts().start });
-    await ready.close();
-    // A separating runner refuses the agent's operations once its host has closed; later tests get the local ones back.
-    installAgentFs(localAgentFs);
+    try {
+      await ready.close();
+    } finally {
+      // A separating runner refuses the agent's operations once its host has closed; later tests get the local ones back.
+      installAgentFs(localAgentFs);
+    }
   });
 
   it("starts a real host that announces itself, and ends it when the runner is done", async () => {

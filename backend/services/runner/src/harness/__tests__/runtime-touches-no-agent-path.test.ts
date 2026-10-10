@@ -8,10 +8,10 @@
  * named with why it touches only the runner's own files.
  *
  * The walk starts at `harness/run-turn.ts` and at every activity the runner
- * itself runs (the ones `runner.ts` and `runner-manager.ts` import beside
- * the harness registry, read from their source, so a new one is walked
- * too), and follows static and
- * dynamic imports, stopping at the rest of `activities/`: the adapters run
+ * itself runs (every activity module `runner.ts` and `runner-manager.ts`
+ * import, statically or dynamically, other than as types: read from their
+ * source, so a new one is walked without editing this test), and follows
+ * static and dynamic imports, stopping at the rest of `activities/`: the adapters run
  * in the host, as the agent (`agent-host/`). Pinned also: hosting routes the
  * operations to the host while it runs, back when it closes, and on a
  * separating runner refuses them once it has closed.
@@ -52,7 +52,7 @@ function runnerSideActivities(): string[] {
   const found = new Set<string>();
   for (const root of ["runner.ts", "runner-manager.ts"]) {
     const text = readFileSync(join(SRC, root), "utf8");
-    for (const match of text.matchAll(/import\(\s*["']\.\/(activities\/[^"']+)\.js["']\s*\)/g)) found.add(`${match[1]!}.ts`);
+    for (const match of text.matchAll(/(?:import\(\s*|^\s*(?:import|export)\s+(?!type\b)(?:[^'";]*?\sfrom\s+)?)["']\.\/(activities\/[^"']+)\.js["']/gm)) found.add(`${match[1]!}.ts`);
   }
   return [...found];
 }
@@ -79,7 +79,7 @@ function rawAccessInRuntime(): Map<string, string[]> {
 
 describe("the turn runtime and the agent's paths", () => {
   it("walks every activity the runner runs itself", () => {
-    expect(runnerSideActivities().sort()).toEqual(["activities/attach-session.ts", "activities/discover-mcp-server.ts", "activities/ensure-thread.ts", "activities/generate-session-subject.ts"]);
+    expect(runnerSideActivities()).toEqual(expect.arrayContaining(["activities/attach-session.ts", "activities/discover-mcp-server.ts", "activities/ensure-thread.ts", "activities/generate-session-subject.ts"]));
   });
 
   it("opens files and starts processes only through the agent's operations, but for the runner's own state", () => {
