@@ -126,6 +126,15 @@ describe("fetch-interceptor", () => {
       expect(headers.get("x-stigmer-auth")).toBe(`Bearer ${STIGMER_TOKEN}`);
     });
 
+    it("stamps a hosted turn's key on a Connect call and on a rewritten REST call", async () => {
+      await getExecutionContext().run({ executionId: "exec-test-123", turnKey: "turn-key-1" }, async () => {
+        await globalThis.fetch(`${PROXY_ENDPOINT}/aiserver.v1.AnalyticsService/LogStatsigEvent`, { method: "POST" });
+        await globalThis.fetch("https://api2.cursor.sh/auth/exchange_user_api_key", { method: "POST" });
+      });
+
+      expect(calls.map((c) => new Headers(c.init?.headers).get("x-stigmer-turn-key"))).toEqual(["turn-key-1", "turn-key-1"]);
+    });
+
     it("does NOT inject x-stigmer-execution-id when no execution context", async () => {
       await globalThis.fetch(
         `${PROXY_ENDPOINT}/aiserver.v1.AnalyticsService/BootstrapStatsig`,

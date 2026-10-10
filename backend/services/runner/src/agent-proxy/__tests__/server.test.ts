@@ -41,6 +41,8 @@ import { testConfig } from "../../__test-utils__/config-fixture.js";
 import { FakeUpstream } from "../../__test-utils__/fake-upstream.js";
 import type { Config } from "../../config.js";
 import { bearerOf } from "../relay.js";
+import { HttpCheckpointSaver } from "../../shared/checkpointer/http-saver.js";
+import { runWithExecutionContext } from "../../shared/execution-context.js";
 import { AgentProxy } from "../server.js";
 
 const HOST_TOKEN = "host-token-0123456789";
@@ -88,7 +90,8 @@ function call(proxy: AgentProxy, path: string, init: { method?: string; headers?
   });
 }
 
-const asHost = { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION };
+const TURN_KEY = "turn-key-live";
+const asHost = { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION, "x-stigmer-turn-key": TURN_KEY };
 
 describe("reading the host's bearer token", () => {
   it("takes the token after the scheme, in any case and spacing, and nothing else", () => {
@@ -112,9 +115,9 @@ describe("what a host token buys", () => {
     // A provider that would answer: a refusal is the proxy's own, never one the upstream gave.
     setEnv({ ANTHROPIC_BASE_URL: upstream.url, ANTHROPIC_API_KEY: "sk-operator" });
     const proxy = await startProxy();
-    proxy.openTurn({ executionId: EXECUTION, threadId: THREAD });
+    proxy.openTurn({ executionId: EXECUTION, threadId: THREAD, turnKey: TURN_KEY });
     try {
-      const none = await call(proxy, "/v1/proxy/llm/anthropic/v1/messages", { headers: { "x-stigmer-execution-id": EXECUTION } });
+      const none = await call(proxy, "/v1/proxy/llm/anthropic/v1/messages", { headers: { "x-stigmer-execution-id": EXECUTION, "x-stigmer-turn-key": TURN_KEY } });
       expect(none.status).toBe(401);
       expect(await none.json(), "in the shape the providers' SDKs parse").toEqual({
         type: "error",
@@ -136,12 +139,32 @@ describe("what a host token buys", () => {
   it("accepts the token as x-api-key, where the Anthropic SDK puts a key", async () => {
     setEnv({ ANTHROPIC_BASE_URL: upstream.url, ANTHROPIC_API_KEY: "sk-operator" });
     const proxy = await startProxy();
-    const close = proxy.openTurn({ executionId: EXECUTION, threadId: THREAD });
+    const close = proxy.openTurn({ executionId: EXECUTION, threadId: THREAD, turnKey: TURN_KEY });
     try {
-      const res = await call(proxy, "/v1/proxy/llm/anthropic/v1/messages", { headers: { "x-api-key": HOST_TOKEN, "x-stigmer-execution-id": EXECUTION } });
+      const res = await call(proxy, "/v1/proxy/llm/anthropic/v1/messages", { headers: { "x-api-key": HOST_TOKEN, "x-stigmer-execution-id": EXECUTION, "x-stigmer-turn-key": TURN_KEY } });
       expect(res.status).toBe(200);
     } finally {
       close();
+      await proxy.close();
+    }
+  });
+
+  it("lets a turn's key buy model calls for that turn's own execution only", async () => {
+    setEnv({ ANTHROPIC_BASE_URL: upstream.url, ANTHROPIC_API_KEY: "sk-operator" });
+    const proxy = await startProxy();
+    const closeOwn = proxy.openTurn({ executionId: EXECUTION, threadId: THREAD, turnKey: TURN_KEY });
+    const closeOther = proxy.openTurn({ executionId: "aex-other", threadId: "thread-ses-other", turnKey: "turn-key-other" });
+    try {
+      const borrowed = await call(proxy, "/v1/proxy/llm/anthropic/v1/messages", { headers: { ...asHost, "x-stigmer-execution-id": "aex-other" } });
+      expect(borrowed.status, "another live execution, named with this turn's key").toBe(403);
+      expect(((await borrowed.json()) as { error: { message: string } }).error.message).toBe("the turn key is not execution aex-other's");
+      const forged = await call(proxy, "/v1/proxy/llm/anthropic/v1/messages", { headers: { ...asHost, "x-stigmer-turn-key": "turn-key-forged" } });
+      expect(forged.status, "a key no turn holds").toBe(403);
+      expect((await call(proxy, "/v1/proxy/llm/anthropic/v1/messages", { headers: { ...asHost, "x-stigmer-turn-key": "turn-key-other", "x-stigmer-execution-id": "aex-other" } })).status, "the other turn, with its own key").toBe(200);
+      expect(upstream.received).toHaveLength(1);
+    } finally {
+      closeOwn();
+      closeOther();
       await proxy.close();
     }
   });
@@ -150,9 +173,9 @@ describe("what a host token buys", () => {
     setEnv({ ANTHROPIC_BASE_URL: upstream.url, ANTHROPIC_API_KEY: "sk-operator" });
     const proxy = await startProxy();
     try {
-      expect((await call(proxy, "/v1/proxy/llm/anthropic/v1/messages", { headers: { authorization: `Bearer ${HOST_TOKEN}` } })).status, "no execution named").toBe(403);
+      expect((await call(proxy, "/v1/proxy/llm/anthropic/v1/messages", { headers: { authorization: `Bearer ${HOST_TOKEN}` } })).status, "no key, no execution").toBe(403);
       expect((await call(proxy, "/v1/proxy/llm/anthropic/v1/messages", { headers: asHost })).status, "no turn live").toBe(403);
-      const close = proxy.openTurn({ executionId: EXECUTION, threadId: THREAD });
+      const close = proxy.openTurn({ executionId: EXECUTION, threadId: THREAD, turnKey: TURN_KEY });
       expect((await call(proxy, "/v1/proxy/llm/anthropic/v1/messages", { headers: asHost })).status, "live").toBe(200);
       close();
       expect((await call(proxy, "/v1/proxy/llm/anthropic/v1/messages", { headers: asHost })).status, "settled").toBe(403);
@@ -185,10 +208,10 @@ describe("what a host token buys", () => {
       expect((await call(proxy, "/v1/proxy/model-registry", { method: "GET", headers: { authorization: `Bearer ${HOST_TOKEN}` } })).status, "no host yet").toBe(401);
       proxy.authorizeHost(HOST_TOKEN);
       expect((await call(proxy, "/v1/proxy/model-registry", { headers: { authorization: `Bearer ${HOST_TOKEN}` } })).status).toBe(405);
-      const close = proxy.openTurn({ executionId: EXECUTION, threadId: THREAD });
+      const close = proxy.openTurn({ executionId: EXECUTION, threadId: THREAD, turnKey: TURN_KEY });
       close();
       close();
-      proxy.openTurn({ executionId: EXECUTION, threadId: THREAD });
+      proxy.openTurn({ executionId: EXECUTION, threadId: THREAD, turnKey: TURN_KEY });
       expect((await call(proxy, "/v1/proxy/checkpoints/checkpoint", { method: "PUT", headers: asHost, body: "not json" })).status).toBe(400);
       expect(upstream.received).toHaveLength(0);
     } finally {
@@ -214,7 +237,7 @@ describe("terminate: a runner that calls its providers itself", () => {
 
   beforeEach(async () => {
     proxy = await startProxy({ proxyEndpoint: null });
-    closeTurn = proxy.openTurn({ executionId: EXECUTION, threadId: THREAD });
+    closeTurn = proxy.openTurn({ executionId: EXECUTION, threadId: THREAD, turnKey: TURN_KEY });
   });
   afterEach(async () => {
     closeTurn();
@@ -329,7 +352,7 @@ describe("forward: a runner behind the Stigmer platform's proxy", () => {
 
   beforeEach(async () => {
     proxy = await startProxy({ proxyEndpoint: upstream.url, checkpointerType: "http", checkpointerProxyEndpoint: upstream.url });
-    closeTurn = proxy.openTurn({ executionId: EXECUTION, threadId: THREAD });
+    closeTurn = proxy.openTurn({ executionId: EXECUTION, threadId: THREAD, turnKey: TURN_KEY });
   });
   afterEach(async () => {
     closeTurn();
@@ -379,10 +402,35 @@ describe("forward: a runner behind the Stigmer platform's proxy", () => {
   });
 
   it("serves the thread the turn itself names, whatever its shape", async () => {
-    const close = proxy.openTurn({ executionId: "aex-ephemeral", threadId: "ephemeral-agt-1" });
-    const read = await call(proxy, "/v1/proxy/checkpoints/checkpoint?thread_id=ephemeral-agt-1", { method: "GET", headers: asHost });
+    const close = proxy.openTurn({ executionId: "aex-ephemeral", threadId: "ephemeral-agt-1", turnKey: "turn-key-ephemeral" });
+    const asEphemeral = { ...asHost, "x-stigmer-execution-id": "aex-ephemeral", "x-stigmer-turn-key": "turn-key-ephemeral" };
+    const read = await call(proxy, "/v1/proxy/checkpoints/checkpoint?thread_id=ephemeral-agt-1", { method: "GET", headers: asEphemeral });
     close();
     expect(read.status).toBe(200);
-    expect((await call(proxy, "/v1/proxy/checkpoints/checkpoint?thread_id=ephemeral-agt-1", { method: "GET", headers: asHost })).status, "once the turn has settled").toBe(403);
+    expect((await call(proxy, "/v1/proxy/checkpoints/checkpoint?thread_id=ephemeral-agt-1", { method: "GET", headers: asEphemeral })).status, "once the turn has settled").toBe(403);
+  });
+
+  it("serves the host's own checkpoint saver the turn's thread under the turn's key, and refuses it without one", async () => {
+    const saver = new HttpCheckpointSaver(proxy.endpoint, { current: HOST_TOKEN }, { maxRetries: 0 });
+    const config = { configurable: { thread_id: THREAD, checkpoint_ns: "" } };
+    upstream.answer = { status: 404, headers: {}, body: "" };
+    const sent = upstream.received.length;
+
+    await expect(runWithExecutionContext(EXECUTION, () => saver.getTuple(config), TURN_KEY)).resolves.toBeUndefined();
+    expect(upstream.received).toHaveLength(sent + 1);
+    expect(upstream.last.path).toBe(`/v1/proxy/checkpoints/checkpoint?thread_id=${THREAD}&checkpoint_ns=`);
+
+    await expect(runWithExecutionContext(EXECUTION, () => saver.getTuple(config)), "no key in the turn's context").rejects.toThrow(/403/);
+    expect(upstream.received, "nothing reaches the platform").toHaveLength(sent + 1);
+  });
+
+  it("lets a turn's key reach only that turn's own thread", async () => {
+    const close = proxy.openTurn({ executionId: "aex-other", threadId: "thread-ses-other", turnKey: "turn-key-other" });
+    try {
+      expect((await call(proxy, "/v1/proxy/checkpoints/checkpoint?thread_id=thread-ses-other", { method: "GET", headers: asHost })).status, "another live turn's thread").toBe(403);
+      expect((await call(proxy, `/v1/proxy/checkpoints/checkpoint?thread_id=${THREAD}`, { method: "GET", headers: { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION } })).status, "no key").toBe(403);
+    } finally {
+      close();
+    }
   });
 });

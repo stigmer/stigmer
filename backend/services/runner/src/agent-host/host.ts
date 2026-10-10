@@ -131,7 +131,7 @@ export function serveAgentHost(channel: LineChannel, rows: readonly HarnessRow[]
     let outcome: TurnOutcome | undefined;
     let thrown: unknown;
     try {
-      outcome = await runWithExecutionContext(input.executionId, () => adapter.runTurn(input, turn.sink));
+      outcome = await runWithExecutionContext(input.executionId, () => adapter.runTurn(input, turn.sink), args.turnKey);
     } catch (err) {
       thrown = err;
     }

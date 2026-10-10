@@ -60,6 +60,7 @@ function served(runTurn: HarnessAdapter["runTurn"]) {
       timing: new TimingRecorder().toWire(),
       fingerprintKey: Buffer.alloc(32).toString("base64"),
       stopped: null,
+      turnKey: "turn-key-test",
     });
   return { runner, call };
 }

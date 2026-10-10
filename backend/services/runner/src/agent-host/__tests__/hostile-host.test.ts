@@ -14,6 +14,10 @@
  *  - usage with negative or non-finite counts: clamped to zero;
  *  - a plugin verify for a plugin the turn does not have: refused;
  *  - a notice for a turn that has settled: dropped;
+ *  - artifact rows and tool-output refs that point outside the turn's own
+ *    key prefix (another execution's, a traversal): dropped, rows the turn
+ *    started with kept; CAS paths that are absolute or leave the workspace:
+ *    dropped;
  *  - an outcome of a kind the runner does not know, or a failure on a
  *    surface it does not know: settled as an internal failure, never taken
  *    as the host named it.
@@ -21,9 +25,11 @@
 
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunStatusSchema, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { MessageType, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { AgentMessageSchema, ToolCallOutputRefSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
+import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
 import { CursorMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 
@@ -35,7 +41,7 @@ import type { HarnessAdapter } from "../../harness/types.js";
 import type { ArtifactStorage } from "../../shared/artifact-storage.js";
 import { Peer, loopbackChannels } from "../channel.js";
 import { encodeMessage } from "../codec.js";
-import { assertTurnArtifactKey, createRemoteAdapter } from "../remote-adapter.js";
+import { assertTurnArtifactKey, confineCasSnapshot, createRemoteAdapter } from "../remote-adapter.js";
 import { AgentHostSupervisor } from "../supervisor.js";
 import {
   AGENT_HOST_PROTOCOL_VERSION,
@@ -51,7 +57,7 @@ type HostilePeer = Peer<RunnerCalls, HostCalls, HostNotices, RunnerNotices>;
 /** What the hostile host does inside a turn, before it answers `runTurn`. */
 type Attack = (peer: HostilePeer, turnId: string, args: HostCalls["runTurn"]["args"]) => Promise<void>;
 
-function hostileHarness(attack: Attack, outcome: unknown = { kind: "completed" }): HarnessAdapter {
+function hostileHarness(attack: Attack, outcome: unknown = { kind: "completed" }, settledProjection: RunStatus = create(RunStatusSchema)): HarnessAdapter {
   const proxy = { endpoint: "http://127.0.0.1:9", cursorEndpoint: "https://127.0.0.1:9", authorizeHost: () => {}, openTurn: () => () => {} };
   const supervisor = new AgentHostSupervisor({
     proxy,
@@ -63,7 +69,7 @@ function hostileHarness(attack: Attack, outcome: unknown = { kind: "completed" }
       host.handle("shutdown", async () => null);
       host.handle("runTurn", async (args): Promise<WireSettlement> => {
         await attack(host, args.turnId, args);
-        return { outcome: outcome as WireSettlement["outcome"], thrown: null, projection: encodeMessage(RunStatusSchema, create(RunStatusSchema)), cas: null };
+        return { outcome: outcome as WireSettlement["outcome"], thrown: null, projection: encodeMessage(RunStatusSchema, settledProjection), cas: null };
       });
       host.sendHello(AGENT_HOST_PROTOCOL_VERSION);
       return { channel: runnerEnd, kill: () => hostEnd.close() };
@@ -96,6 +102,98 @@ function recordingStorage(): { readonly storage: ArtifactStorage; readonly keys:
 }
 
 describe("a host that does not follow the rules", () => {
+  it("keeps a projection's artifact rows and output refs to the turn's own keys", async () => {
+    const input = turnInputFixture();
+    const own = `artifacts/${input.executionId}/report.md`;
+    const forged = create(RunStatusSchema, {
+        artifacts: [
+          create(RunArtifactSchema, { storageKey: own }),
+          create(RunArtifactSchema, { storageKey: "artifacts/aex_someone_else/secret.pdf" }),
+          create(RunArtifactSchema, { storageKey: `artifacts/${input.executionId}/../aex_someone_else/x` }),
+          create(RunArtifactSchema, { storageKey: "artifacts/seeded/earlier.md" }),
+        ],
+        messages: [
+          create(AgentMessageSchema, {
+            type: MessageType.MESSAGE_AI,
+            toolCalls: [
+              create(ToolCallSchema, { id: "tc-foreign", result: "[image]", outputRef: create(ToolCallOutputRefSchema, { storageKey: "artifacts/aex_someone_else/shot.png" }) }),
+              create(ToolCallSchema, { id: "tc-own", result: "[image]", outputRef: create(ToolCallOutputRefSchema, { storageKey: `artifacts/${input.executionId}/toolcalls/tc-own.png` }) }),
+            ],
+          }),
+        ],
+      });
+    const persisted: string[][] = [];
+    const sink = new RecordingTurnSink({
+      executionId: input.executionId,
+      status: create(RunStatusSchema, { artifacts: [create(RunArtifactSchema, { storageKey: "artifacts/seeded/earlier.md" })] }),
+    });
+    const adapter = hostileHarness(
+      async (host, turnId) => {
+        await host.call("persist", { turnId, projection: encodeMessage(RunStatusSchema, forged) });
+        persisted.push(sink.status.artifacts.map((a) => a.storageKey));
+      },
+      { kind: "completed" },
+      forged,
+    );
+    await adapter.boot(testConfig());
+
+    await adapter.runTurn(input, sink);
+
+    expect(persisted, "at a persist").toEqual([[own, "artifacts/seeded/earlier.md"]]);
+    expect(sink.status.artifacts.map((a) => a.storageKey), "at the settlement").toEqual([own, "artifacts/seeded/earlier.md"]);
+    const [foreign, ownCall] = sink.status.messages[0]!.toolCalls;
+    expect(foreign!.outputRef, "a ref to another execution's artifact is dropped").toBeUndefined();
+    expect(ownCall!.outputRef?.storageKey).toBe(`artifacts/${input.executionId}/toolcalls/tc-own.png`);
+  });
+
+  it("keeps a ref the turn began with, a sub-agent's included, and confines a mid-turn CAS read", async () => {
+    const input = turnInputFixture();
+    const seededRef = create(ToolCallOutputRefSchema, { storageKey: "artifacts/earlier/shot.png" });
+    const subAgent = (ref: typeof seededRef) =>
+      create(SubAgentRunSchema, { messages: [create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, toolCalls: [create(ToolCallSchema, { id: "tc-sub", result: "[image]", outputRef: ref })] })] });
+    const forged = create(RunStatusSchema, { subAgentRuns: [subAgent(seededRef)] });
+    const sink = new RecordingTurnSink({ executionId: input.executionId, status: create(RunStatusSchema, { subAgentRuns: [subAgent(seededRef)] }) });
+    let midTurn: string[] = [];
+    const adapter = hostileHarness(
+      async (host, turnId) => {
+        host.handle("readCasObservations", async () => ({ before: [["ok.ts", null], ["../escape", null]], blockedSecretPaths: [] }));
+        host.notify("bindCas", { turnId });
+        await new Promise((resolve) => setImmediate(resolve));
+        midTurn = [...(await sink.casObservations!()).before.keys()];
+      },
+      { kind: "completed" },
+      forged,
+    );
+    await adapter.boot(testConfig());
+
+    await adapter.runTurn(input, sink);
+
+    expect(sink.status.subAgentRuns[0]!.messages[0]!.toolCalls[0]!.outputRef?.storageKey).toBe("artifacts/earlier/shot.png");
+    expect(midTurn).toEqual(["ok.ts"]);
+  });
+
+  it("keeps a CAS snapshot's paths inside the workspace", () => {
+    const confined = confineCasSnapshot({
+      before: new Map<string, Uint8Array | null>([
+        ["src/ok.ts", null],
+        ["../../etc/passwd", null],
+        ["/etc/shadow", null],
+        ["a/../../b", null],
+        ["a/./b.ts", null],
+        ["C:/Windows/win.ini", null],
+        ["c:relative", null],
+        ["..\\outside.txt", null],
+        ["a\\..\\..\\b", null],
+        ["ok.ts\0/../../etc/passwd", null],
+        ["", null],
+        ["src\\win\\ok.ts", null],
+      ]),
+      blockedSecretPaths: new Set([".env", "../outside/.env"]),
+    });
+    expect([...confined.before.keys()], "a drive letter, a backslash escape, a NUL and the empty path are refused").toEqual(["src/ok.ts", "a/./b.ts", "src\\win\\ok.ts"]);
+    expect([...confined.blockedSecretPaths]).toEqual([".env"]);
+  });
+
   it("lands only the adapter-owned fields of a persist", async () => {
     const adapter = hostileHarness(async (host, turnId) => {
       const forged = create(RunStatusSchema, {

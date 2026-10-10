@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { tokenTypeOf, isEmbeddedRunnerToken, sessionIdClaimOf, isJwtShaped, expiryClaimOf } from "../token-claims.js";
+import { tokenTypeOf, isEmbeddedRunnerToken, sessionIdClaimOf, isJwtShaped, expiryClaimOf, scopedRunnerCredential } from "../token-claims.js";
 
 /** Build an unsigned JWT-shaped token with the given payload. */
 function fakeJwt(payload: Record<string, unknown>): string {
@@ -29,6 +29,17 @@ describe("tokenTypeOf", () => {
     expect(tokenTypeOf("not-a-jwt")).toBeUndefined();
     expect(tokenTypeOf("only.two")).toBeUndefined();
     expect(tokenTypeOf("a.%%%not-base64%%%.c")).toBeUndefined();
+  });
+});
+
+describe("scopedRunnerCredential", () => {
+  it("answers a runner-class token scoped below the runner, and nothing for an unscoped key or none", () => {
+    const sandbox = fakeJwt({ token_type: "sandbox" });
+    expect(scopedRunnerCredential(sandbox)).toBe(sandbox);
+    expect(scopedRunnerCredential(fakeJwt({ token_type: "embedded_runner" }))).toBeUndefined();
+    expect(scopedRunnerCredential("stigmer_operator_api_key")).toBeUndefined();
+    expect(scopedRunnerCredential(null)).toBeUndefined();
+    expect(scopedRunnerCredential(undefined)).toBeUndefined();
   });
 });
 
