@@ -3,8 +3,8 @@
  * (passed or failed, with a reason the author reads beside the try), or
  * not graded with the reason the try is left out of every mean. A grader
  * is not graded only when the platform could not judge (a pattern past
- * its deadline, an install that records no files, a judge that failed),
- * never because the run did badly, so not graded is never a zero.
+ * its deadline, an install that records no files, a judge that failed, a
+ * malformed glob the suite reader let through), never because the run did badly, so not graded is never a zero.
  *
  * Also the one reader of what a grader looks at (`focusText`): the final
  * message, the trace, the created paths, or one file's content after the
@@ -42,6 +42,11 @@ export const MOCK_CALLS_NOT_RUN_REASON = "mock_calls are not run yet";
 /** The not-graded reason of a pattern JavaScript refuses. */
 export function invalidPatternReason(message: string): string {
   return `the pattern is not a valid JavaScript regular expression: ${message}`;
+}
+
+/** The not-graded reason of a `file_exists` path that is not a glob. */
+export function invalidPathGlobReason(glob: string, error: string): string {
+  return `invalid path glob '${glob}': ${error}`;
 }
 
 /** The not-graded reason of a file a grader cannot read as text. */

@@ -8,7 +8,13 @@
  *   - an eval whose plugin is gone plans nothing and leaves its status
  *     unwritten; an eval stored with no status at all is planned, its
  *     skeleton written into a new status;
- *   - a try recorded for an eval gone writes nothing and does not throw;
+ *   - an eval that ends while the load reads its suite (create marking a
+ *     slow start failed) keeps that end: the load plans nothing and writes
+ *     nothing, an unreadable suite included;
+ *   - a try recorded for an eval gone writes nothing and does not throw; a
+ *     try not started because the plugin was updated notes it on its case,
+ *     once;
+ *   - the finish ends an eval failed with the workflow's error;
  *   - an eval another writer ended between the finish's read and its write
  *     keeps that end;
  *   - a row deleted between a read and the write is left gone, while a
@@ -29,6 +35,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
+import type { EvalSuiteSource } from "../../../domain/plugin-eval/suite.js";
 import { ResourceNotFoundError } from "../../../store/interface.js";
 import type { Store } from "../../../store/interface.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
@@ -37,6 +44,8 @@ import { newEvalContextLoader } from "../context.js";
 import {
   FINISH_EVAL_ACTIVITY_NAME,
   LOAD_SUITE_ACTIVITY_NAME,
+  PLUGIN_UPDATED_NOTE,
+  PLUGIN_UPDATED_REASON,
   RECORD_TRY_ACTIVITY_NAME,
 } from "../names.js";
 import type { SuiteCell, TryResult } from "../names.js";
@@ -54,6 +63,7 @@ import {
   seedEval,
   seedPlugin,
   silentLogger,
+  suiteFiles,
   suiteSource,
 } from "./support.js";
 
@@ -70,7 +80,7 @@ afterEach(async () => {
 function activities(
   options: {
     store?: Store;
-    source?: ReturnType<typeof suiteSource>;
+    source?: EvalSuiteSource;
     attempt?: () => number;
   } = {},
 ) {
@@ -210,7 +220,88 @@ describe("load-suite", () => {
   });
 });
 
+describe("load-suite against an eval that ends while it reads", () => {
+  /** A suite source whose read ends the eval first, as a create marking a slow start failed would. */
+  function endingSource(options: { broken: boolean }) {
+    return {
+      async readArchive() {
+        await temp.store.updateResource(
+          ApiResourceKind.plugin_eval,
+          EVAL_ID,
+          PluginEvalSchema,
+          (live) => {
+            live.status!.phase = PluginEvalPhase.failed;
+            live.status!.error = "the eval could not start: deadline exceeded";
+          },
+        );
+        if (options.broken) {
+          throw new Error("the archive is unreadable");
+        }
+        return suiteFiles();
+      },
+    };
+  }
+
+  it("plans nothing and writes nothing over the end", async () => {
+    await seedPlugin(temp.store);
+    await seedEval(temp.store);
+    const source = endingSource({ broken: false });
+    expect(
+      await activities({ source })[
+        LOAD_SUITE_ACTIVITY_NAME
+      ](EVAL_ID),
+    ).toEqual({ kind: "stop" });
+    const status = (await readEval(temp.store)).status;
+    expect(status?.phase).toBe(PluginEvalPhase.failed);
+    expect(status?.error).toBe("the eval could not start: deadline exceeded");
+    expect(status?.cases).toEqual([]);
+  });
+
+  it("leaves the end when the suite cannot be read on the last attempt", async () => {
+    await seedPlugin(temp.store);
+    await seedEval(temp.store);
+    const source = endingSource({ broken: true });
+    expect(
+      await activities({
+        source,
+        attempt: () => 3,
+      })[LOAD_SUITE_ACTIVITY_NAME](EVAL_ID),
+    ).toEqual({ kind: "stop" });
+    expect((await readEval(temp.store)).status?.error).toBe(
+      "the eval could not start: deadline exceeded",
+    );
+  });
+});
+
 describe("record-try", () => {
+  it("notes on the case, once, that the plugin was updated during the eval", async () => {
+    await seedPlugin(temp.store);
+    await seedEval(temp.store);
+    const suite = activities();
+    await suite[LOAD_SUITE_ACTIVITY_NAME](EVAL_ID);
+    const updated = {
+      ...GRADED,
+      state: "not-graded" as const,
+      score: 0,
+      notGradedReason: PLUGIN_UPDATED_REASON,
+      costUsd: 0,
+    };
+    await suite[RECORD_TRY_ACTIVITY_NAME](EVAL_ID, CELL, updated);
+    await suite[RECORD_TRY_ACTIVITY_NAME](
+      EVAL_ID,
+      { ...CELL, arm: "without" },
+      updated,
+    );
+    const evalCase = (await readEval(temp.store)).status?.cases[0];
+    expect(
+      evalCase?.notes.filter((note) => note === PLUGIN_UPDATED_NOTE),
+    ).toHaveLength(1);
+    expect(evalCase?.targets[0]?.withPlugin?.tries[0]?.notGradedReason).toBe(
+      PLUGIN_UPDATED_REASON,
+    );
+  });
+
+
   it("writes nothing for an eval gone, and does not throw", async () => {
     await activities()[RECORD_TRY_ACTIVITY_NAME](EVAL_ID, CELL, GRADED);
     await expect(readEval(temp.store)).rejects.toBeInstanceOf(
@@ -254,6 +345,22 @@ describe("record-try", () => {
 });
 
 describe("finish-eval", () => {
+  it("ends the eval failed with the workflow's error", async () => {
+    await seedPlugin(temp.store);
+    await seedEval(temp.store);
+    await activities()[LOAD_SUITE_ACTIVITY_NAME](EVAL_ID);
+    await activities()[FINISH_EVAL_ACTIVITY_NAME](EVAL_ID, {
+      phase: "failed",
+      error: "a try's result could not be recorded: the store is down",
+    });
+    const status = (await readEval(temp.store)).status;
+    expect(status?.phase).toBe(PluginEvalPhase.failed);
+    expect(status?.error).toBe(
+      "a try's result could not be recorded: the store is down",
+    );
+    expect(status?.finishedAt).toBeDefined();
+  });
+
   it("keeps the end another writer gave the eval between the read and the write", async () => {
     await seedPlugin(temp.store);
     await seedEval(temp.store);

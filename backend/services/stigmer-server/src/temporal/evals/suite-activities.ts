@@ -10,13 +10,19 @@
  *     tries in all, phase running, the start time, and the delta marked
  *     provisional (domain/plugin-eval/arm.ts). An eval already running
  *     with its skeleton written (a retried load) is planned again without
- *     a rewrite; an eval gone or ended plans nothing; a suite that cannot
+ *     a rewrite; an eval gone or ended plans nothing, ended also when it
+ *     ends between the load's read and its write (create marking a slow
+ *     start failed, a cancel), which the write re-checks and leaves as is; a suite that cannot
  *     be read, past a few attempts, ends the eval failed, "the plugin's
  *     evals could not be read".
  *   - record: one try's result into its place, then every score and
- *     aggregate recomputed (domain/plugin-eval/scoring.ts).
- *   - finish: completed, or partial with its reason, the finish time and
- *     the final aggregates; an eval already ended is left as it is.
+ *     aggregate recomputed (domain/plugin-eval/scoring.ts). A try not
+ *     started because the plugin was updated leaves its case a note
+ *     saying so, once.
+ *   - finish: completed, partial with its reason, or failed with its
+ *     error (the suite workflow's own step that could not be done), the
+ *     finish time and the final aggregates; an eval already ended is left
+ *     as it is.
  *
  * Proven by __tests__/suite-activities.test.ts.
  */
@@ -57,6 +63,8 @@ import type { EvalContext, EvalContextLoader } from "./context.js";
 import {
   FINISH_EVAL_ACTIVITY_NAME,
   LOAD_SUITE_ACTIVITY_NAME,
+  PLUGIN_UPDATED_NOTE,
+  PLUGIN_UPDATED_REASON,
   RECORD_TRY_ACTIVITY_NAME,
 } from "./names.js";
 import type {
@@ -79,6 +87,12 @@ export interface SuiteActivityDeps {
   /** The activity's attempt number; tests pin it. */
   readonly attempt?: () => number;
 }
+
+/** What a status write's `modify` answers to write nothing at all. */
+const SKIP_WRITE = "skip";
+
+/** Thrown inside the store's update to leave the row untouched (the store skips a write its modify throws from). */
+class SkippedWrite extends Error {}
 
 const PARTIAL_REASONS: Readonly<Record<SuiteStop, PluginEvalPartialReason>> = {
   cost_ceiling: PluginEvalPartialReason.cost_ceiling,
@@ -110,9 +124,13 @@ export function createSuiteActivities(
           throw error;
         }
         await writeStatus(deps.store, evalId, (status) => {
+          if (isEndedPhase(status.phase)) {
+            return SKIP_WRITE;
+          }
           status.phase = PluginEvalPhase.failed;
           status.error = SUITE_UNREADABLE_ERROR;
           status.finishedAt = timestampNow();
+          return undefined;
         });
         return { kind: "stop" };
       }
@@ -120,15 +138,24 @@ export function createSuiteActivities(
         return { kind: "stop" };
       }
       const ready = context;
+      let ended = false;
       await writeStatus(deps.store, evalId, (status) => {
+        if (isEndedPhase(status.phase)) {
+          ended = true;
+          return SKIP_WRITE;
+        }
         if (
           status.phase === PluginEvalPhase.running &&
           status.cases.length > 0
         ) {
-          return;
+          return SKIP_WRITE;
         }
         writeSkeleton(status, ready);
+        return undefined;
       });
+      if (ended) {
+        return { kind: "stop" };
+      }
       const spec = ready.pluginEval.spec;
       const cells: SuiteCell[] = ready.matrix.cells.map((cell) => ({
         ...cell,
@@ -154,11 +181,12 @@ export function createSuiteActivities(
       }
       const threshold = stored.spec?.threshold ?? DEFAULT_THRESHOLD;
       await writeStatus(deps.store, evalId, (status) => {
-        const target = status.cases[cell.caseIndex]?.targets[cell.targetIndex];
+        const evalCase = status.cases[cell.caseIndex];
+        const target = evalCase?.targets[cell.targetIndex];
         const arm =
           cell.arm === "with" ? target?.withPlugin : target?.withoutPlugin;
         const slot = arm?.tries[cell.tryIndex];
-        if (slot === undefined) {
+        if (evalCase === undefined || slot === undefined) {
           deps.logger.warn("a try's result has no place in the eval's status", {
             evalId,
             ...cell,
@@ -176,6 +204,12 @@ export function createSuiteActivities(
         slot.error = result.error;
         slot.costUsd = result.costUsd;
         slot.durationSeconds = result.durationSeconds;
+        if (
+          result.notGradedReason === PLUGIN_UPDATED_REASON &&
+          !evalCase.notes.includes(PLUGIN_UPDATED_NOTE)
+        ) {
+          evalCase.notes.push(PLUGIN_UPDATED_NOTE);
+        }
         recomputeStatus(status, threshold);
       });
     },
@@ -188,14 +222,26 @@ export function createSuiteActivities(
       const threshold = stored.spec?.threshold ?? DEFAULT_THRESHOLD;
       await writeStatus(deps.store, evalId, (status) => {
         if (isEndedPhase(status.phase)) {
-          return;
+          return SKIP_WRITE;
         }
-        if (end.phase === "completed") {
-          status.phase = PluginEvalPhase.completed;
-          status.partialReason = PluginEvalPartialReason.unspecified;
-        } else {
-          status.phase = PluginEvalPhase.partial;
-          status.partialReason = PARTIAL_REASONS[end.reason];
+        switch (end.phase) {
+          case "completed":
+            status.phase = PluginEvalPhase.completed;
+            status.partialReason = PluginEvalPartialReason.unspecified;
+            break;
+          case "partial":
+            status.phase = PluginEvalPhase.partial;
+            status.partialReason = PARTIAL_REASONS[end.reason];
+            break;
+          case "failed":
+            status.phase = PluginEvalPhase.failed;
+            status.error = end.error;
+            break;
+          /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
+          default: {
+            const exhausted: never = end;
+            return exhausted;
+          }
         }
         status.finishedAt = timestampNow();
         recomputeStatus(status, threshold);
@@ -285,11 +331,15 @@ async function loadEval(
   }
 }
 
-/** The status's one write (the module header); an eval deleted meanwhile is left gone. */
+/**
+ * The status's one write (the module header); an eval deleted meanwhile is
+ * left gone, and a `modify` that answers SKIP_WRITE leaves the row as it
+ * is, its audit included.
+ */
 async function writeStatus(
   store: Store,
   evalId: string,
-  modify: (status: PluginEvalStatus) => void,
+  modify: (status: PluginEvalStatus) => typeof SKIP_WRITE | undefined | void,
 ): Promise<void> {
   try {
     await store.updateResource(
@@ -300,12 +350,14 @@ async function writeStatus(
         if (live.status === undefined) {
           live.status = create(PluginEvalStatusSchema);
         }
-        modify(live.status);
+        if (modify(live.status) === SKIP_WRITE) {
+          throw new SkippedWrite();
+        }
         bumpStatusAudit(live.status);
       },
     );
   } catch (error) {
-    if (error instanceof ResourceNotFoundError) {
+    if (error instanceof ResourceNotFoundError || error instanceof SkippedWrite) {
       return;
     }
     throw error;

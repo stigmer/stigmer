@@ -3,9 +3,9 @@
  * arm, try), the case filter by glob and tags, the runs ladder (spec, then
  * case, then 3), ablation `none`, an unsupported case planned with no
  * cells, the target rules when the spec names none (the case's catalog
- * model, never an alias; the native default with no model), and the
- * glob grammar (an unclosed class and a stray closing brace read as
- * themselves).
+ * model, never an alias; the native default with no model), and a
+ * case_glob that is not a glob keeping no case (the grammar itself is
+ * glob.test.ts's).
  */
 import { create } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";
@@ -23,8 +23,8 @@ import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { newModelCatalogProviderFromDocument } from "../../../modelcatalog/document-catalog.js";
 import type { EvalModelCatalog } from "../matrix.js";
 import {
+  caseGlobError,
   evalModelCatalogOf,
-  globToRegExp,
   modelNotInCatalogReason,
   planMatrix,
 } from "../matrix.js";
@@ -233,25 +233,17 @@ describe("evalModelCatalogOf", () => {
   });
 });
 
-describe("globToRegExp", () => {
-  it.each([
-    ["review-*", "review-fires", true],
-    ["review-*", "a-review-fires", false],
-    ["case-?", "case-1", true],
-    ["case-?", "case-12", false],
-    ["case-[0-9]", "case-7", true],
-    ["case-[!0-9]", "case-7", false],
-    ["{alpha,beta}-*", "beta-one", true],
-    ["{alpha,beta}-*", "gamma-one", false],
-    ["a.b", "a.b", true],
-    ["a.b", "axb", false],
-    ["(x)", "(x)", true],
-    ["case-[", "case-[", true],
-    ["case-[", "case-1", false],
-    ["case-[1", "case-[1", true],
-    ["fix}", "fix}", true],
-    ["fix}", "fix", false],
-  ])("%s against %s is %s", (glob, name, expected) => {
-    expect(globToRegExp(glob).test(name)).toBe(expected);
+describe("a case_glob that is not a glob", () => {
+  it("is named by caseGlobError and keeps no case", () => {
+    expect(caseGlobError("")).toBeUndefined();
+    expect(caseGlobError("review-*")).toBeUndefined();
+    expect(caseGlobError("review-[z-a]")).toBe("range 'z-a' is reversed");
+    const matrix = planMatrix(
+      suiteOf(evalCase("review-fires")),
+      specOf({ caseGlob: "review-[" }),
+      catalog,
+    );
+    expect(matrix.cases).toEqual([]);
+    expect(matrix.cells).toEqual([]);
   });
 });

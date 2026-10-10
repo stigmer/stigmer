@@ -206,7 +206,7 @@ describe("a try's session and run", () => {
     ]);
   });
 
-  it("runs the case's prompt with the target's model, unattended, within the eval's limit", () => {
+  it("runs the case's prompt with the target's model, unattended, within what is left of the eval's limit", () => {
     const run = tryRunRequest({
       org: "acme",
       evalId: "pev_1",
@@ -219,6 +219,7 @@ describe("a try's session and run", () => {
       }),
       spec: spec(),
       modelName: "claude-sonnet-4-6",
+      budgetUsd: 3.5,
       pluginServerSlugs: ["github"],
     });
     expect(run.metadata?.name).toBe("try-pev-1-0-1-without-3");
@@ -229,7 +230,7 @@ describe("a try's session and run", () => {
     expect(run.spec?.runConfig).toMatchObject({
       modelName: "claude-sonnet-4-6",
       maxToolRounds: 10,
-      maxCostUsd: 5,
+      maxCostUsd: 3.5,
     });
     expect(run.spec?.tools).toEqual(["Read"]);
     expect(run.spec?.disallowedTools).toEqual(["Skill", "mcp__github"]);

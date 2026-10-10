@@ -41,6 +41,7 @@ import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { isServerComposedRequest } from "../../extensions/identity.js";
 import type { ModelCatalogProvider } from "../../modelcatalog/model-catalog-provider.js";
 import {
@@ -57,6 +58,7 @@ import {
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import type { AuthorizationTarget } from "../../pipeline/steps/authorize.js";
+import { cleanUpDeletedResource } from "../../pipeline/steps/authorization-tuples.js";
 import { evaluateAuthorizer } from "../../pipeline/steps/authorize.js";
 import { assignServerId, generateId } from "../../pipeline/steps/defaults.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
@@ -75,10 +77,11 @@ import {
   pluginEvalNotStartedMessage,
   pluginEvalOrgMismatchMessage,
   pluginEvalOtherPluginToolMessage,
+  pluginEvalCaseGlobMessage,
+  pluginEvalNotCurrentVersionMessage,
   pluginEvalTooLargeMessage,
-  pluginEvalUnknownDigestMessage,
 } from "./constants.js";
-import { evalModelCatalogOf, planMatrix } from "./matrix.js";
+import { caseGlobError, evalModelCatalogOf, planMatrix } from "./matrix.js";
 import { listPluginEvals } from "./queries.js";
 import type { EvalSuiteSource } from "./suite.js";
 import { loadEvalSuite, pluginVersionedBinding } from "./suite.js";
@@ -161,7 +164,9 @@ function evaluatedPluginOf(ctx: RequestContext<typeof PluginEvalSchema>): Plugin
  * interceptor covers the lane, and the organization that installed the
  * plugin is the one that pays); the id is minted here so an unnamed eval
  * is named by it; spec.plugin_digest is stamped with the plugin's current
- * version when empty, and refused when it names no version of the plugin;
+ * version when empty, and refused (FAILED_PRECONDITION) when it names any
+ * other: the with-plugin arm runs the plugin as installed now (arm.ts), so
+ * an earlier version's suite would be graded against today's plugin;
  * spec.allow_tools is held in Stigmer's names (allow-tools.ts).
  */
 export function newResolvePluginEvalDefaultsStep(
@@ -183,18 +188,18 @@ export function newResolvePluginEvalDefaultsStep(
       if (spec === undefined) {
         throw invalidArgumentError("spec is required for a plugin eval");
       }
-      const requested = spec.pluginDigest;
+      const current = pluginVersionedBinding.headHashOf(plugin);
+      if (current === "") {
+        throw failedPreconditionError(pluginEvalNoCasesMessage("evals"));
+      }
       const digest = await resolveVersionHash(
         store,
         pluginVersionedBinding,
         plugin,
-        requested,
+        spec.pluginDigest,
       );
-      if (digest === undefined) {
-        throw invalidArgumentError(pluginEvalUnknownDigestMessage(requested));
-      }
-      if (digest === "") {
-        throw failedPreconditionError(pluginEvalNoCasesMessage("evals"));
+      if (digest !== current) {
+        throw failedPreconditionError(pluginEvalNotCurrentVersionMessage(current));
       }
       spec.pluginDigest = digest;
       const allowed = stigmerAllowTools(spec.allowTools, {
@@ -244,7 +249,8 @@ export function newValidatePluginEvalTargetsStep(
 }
 
 /**
- * PlanPluginEval: reads the suite from the archive at the stamped digest,
+ * PlanPluginEval: refuses a case_glob that is not a glob (INVALID_ARGUMENT,
+ * naming it), reads the suite from the archive at the stamped digest,
  * refuses a version with no cases and a suite larger than an eval may run
  * (with the computed counts), and writes the pending status: the planned
  * tries, and the comparison marked provisional while the with-arm runs on
@@ -261,6 +267,10 @@ export function newPlanPluginEvalStep(
       const spec = ctx.newState.spec;
       if (spec === undefined) {
         throw invalidArgumentError("spec is required for a plugin eval");
+      }
+      const globError = caseGlobError(spec.caseGlob);
+      if (globError !== undefined) {
+        throw invalidArgumentError(pluginEvalCaseGlobMessage(spec.caseGlob, globError));
       }
       let loaded;
       try {
@@ -290,6 +300,52 @@ export function newPlanPluginEvalStep(
       status.phase = PluginEvalPhase.pending;
       status.triesTotal = tries;
       status.provisionalDelta = true;
+    },
+  };
+}
+
+/**
+ * EnsureEvaluatedPluginStillExists: after the eval and its access are
+ * written, the plugin is read again. A plugin deleted meanwhile (its
+ * delete listed its evals before this one was stored) takes the eval with
+ * it: the row and its access are removed here and the create answers
+ * NOT_FOUND for the plugin, so no eval outlives its plugin (the plugin's
+ * delete sweeps the other order, cascade.ts SweepPluginEvalsAfterDelete).
+ */
+export function newEnsureEvaluatedPluginStillExistsStep(
+  store: Store,
+  authorizationLifecycle: ResourceAuthorizationLifecycle | undefined,
+  logger: Logger,
+): PipelineStep<typeof PluginEvalSchema> {
+  return {
+    name: "EnsureEvaluatedPluginStillExists",
+    async execute(ctx: RequestContext<typeof PluginEvalSchema>): Promise<void> {
+      const pluginId = ctx.newState.spec?.pluginId ?? "";
+      try {
+        await store.getResource(ApiResourceKind.plugin, pluginId, PluginSchema);
+        return;
+      } catch (error) {
+        if (!(error instanceof ResourceNotFoundError)) {
+          throw internalError(error, "failed to read the plugin to evaluate again");
+        }
+      }
+      const evalId = ctx.newState.metadata?.id ?? "";
+      logger.warn("a plugin eval's plugin was deleted while it was created; removing the eval", {
+        evalId,
+        pluginId,
+      });
+      try {
+        await store.deleteResource(ApiResourceKind.plugin_eval, evalId);
+      } catch (error) {
+        throw internalError(error, "failed to remove the plugin eval of a deleted plugin");
+      }
+      await cleanUpDeletedResource(authorizationLifecycle, logger, {
+        kind: ApiResourceKind.plugin_eval,
+        resourceId: evalId,
+        orgId: ctx.newState.metadata?.org ?? "",
+        caller: ctx.callerIdentity,
+      });
+      throw notFoundError("Plugin", pluginId);
     },
   };
 }
@@ -467,7 +523,9 @@ export function newDeletePluginEvalTriesStep(
  * only when the caller may view it. The RPC asked can_view on the plugin;
  * an eval's own can_view is narrower (the plugin's viewers in its own
  * organization), so a child organization's viewer gets an empty list
- * rather than a refusal.
+ * rather than a refusal. Each eval is answered without its tries (every
+ * arm's list emptied; its scores, aggregates, per-target results and
+ * notes kept), so a list stays small however many tries its evals ran.
  */
 export function newListPluginEvalsByPluginStep(
   store: Store,
@@ -503,10 +561,26 @@ export function newListPluginEvalsByPluginStep(
           visible.push(pluginEval);
         }
       }
+      for (const pluginEval of visible) {
+        withoutTries(pluginEval);
+      }
       ctx.set(
         PLUGIN_EVAL_RESULT_KEY,
         create(PluginEvalListSchema, { totalCount: visible.length, items: visible }),
       );
     },
   };
+}
+
+/** Empties every arm's tries of `pluginEval`, in place; every summary is kept. */
+function withoutTries(pluginEval: PluginEval): void {
+  for (const evalCase of pluginEval.status?.cases ?? []) {
+    for (const target of evalCase.targets) {
+      for (const arm of [target.withPlugin, target.withoutPlugin]) {
+        if (arm !== undefined) {
+          arm.tries = [];
+        }
+      }
+    }
+  }
 }

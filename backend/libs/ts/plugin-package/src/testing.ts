@@ -20,6 +20,11 @@
  * Builders return a path -> content map; `inMemoryPluginFiles` turns one
  * into the `PluginFiles` the reader takes. Zipping a fixture for an
  * archive-based consumer is `@stigmer/zip-structure/testing`'s job.
+ *
+ * `GLOB_VALIDITY_TABLE` is the one table of eval globs, well formed or not
+ * with the sentence `globError` answers, that this library's test and the
+ * server's matcher test both read, so the two readers of the grammar
+ * cannot drift apart.
  */
 
 import { stringify as stringifyYaml } from "yaml";
@@ -271,3 +276,45 @@ function writeExtra(files: PluginFixture, extra: Readonly<Record<string, string 
 function json(value: unknown): string {
   return `${JSON.stringify(value, null, 2)}\n`;
 }
+
+/**
+ * Eval globs and what `globError` answers for each: `undefined` for a
+ * well-formed glob, else its sentence. Shared with the server's matcher
+ * test (the module header).
+ */
+export const GLOB_VALIDITY_TABLE: ReadonlyArray<readonly [glob: string, error: string | undefined]> = [
+  ["", undefined],
+  ["review-*", undefined],
+  ["src/**/x.ts", undefined],
+  ["src/**", undefined],
+  ["case-?", undefined],
+  ["case-[0-9]", undefined],
+  ["case-[!0-9]", undefined],
+  ["case-[^a-c]", undefined],
+  ["[]]x", undefined],
+  ["[!]]x", undefined],
+  ["[a-]", undefined],
+  ["[-z]", undefined],
+  ["{alpha,beta}-*", undefined],
+  ["{a,{b,c}}", undefined],
+  ["{,a}", undefined],
+  ["{}", undefined],
+  ["[{]", undefined],
+  ["fix}", undefined],
+  ["a,b", undefined],
+  ["(x).+|^$\\", undefined],
+  ["{a,b}{a,b}{a,b}{a,b}{a,b}{a,b}", undefined],
+  ["{a,b}{a,b}{a,b}{a,b}{a,b}{a,b}{a,b}", "it expands to more than 64 alternatives"],
+  ["{a,b,c,d,e,f,g,h}{a,b,c,d,e,f,g,h}{a,b}", "it expands to more than 64 alternatives"],
+  ["[z-a].txt", "range 'z-a' is reversed"],
+  ["x[9-0]", "range '9-0' is reversed"],
+  ["case-[", "'[' at 5 is never closed"],
+  ["case-[1", "'[' at 5 is never closed"],
+  ["[]", "'[' at 0 is never closed"],
+  ["{a,b", "'{' at 0 is never closed"],
+  ["x{a,{b}", "'{' at 1 is never closed"],
+  ["{[}]", "'{' at 0 is never closed"],
+  ["{".repeat(17) + "}".repeat(17), "braces are nested more than 16 deep"],
+  ["{".repeat(16) + "}".repeat(16), undefined],
+  ["{a,b}[z-a]", "range 'z-a' is reversed"],
+];

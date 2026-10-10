@@ -35,7 +35,7 @@ import {
   pluginEvalOrgMismatchMessage,
   pluginEvalOtherPluginToolMessage,
   pluginEvalTooLargeMessage,
-  pluginEvalUnknownDigestMessage,
+  pluginEvalNotCurrentVersionMessage,
   skillFiredGrader,
   skillPluginWithEvals,
   timedOutError,
@@ -247,8 +247,8 @@ describe("the copy the suites assert", () => {
     expect(pluginEvalOrgMismatchMessage("acme")).toBe(
       "metadata.org must be the plugin's organization (acme)",
     );
-    expect(pluginEvalUnknownDigestMessage("abc")).toBe(
-      "spec.plugin_digest abc is not a version of this plugin",
+    expect(pluginEvalNotCurrentVersionMessage("abc")).toBe(
+      "an eval runs the plugin's current version (abc); evaluating an earlier version is not supported yet",
     );
     expect(pluginEvalNoCasesMessage("evals")).toBe(
       "this plugin version has no eval cases: add a case directory under evals/ holding a prompt.md or a case.yaml",

@@ -8,7 +8,8 @@
  *   - start-try: no caller seam (the try acts as the server); a seam that
  *     throws for another reason than a refusal; an eval with no spec; a
  *     retry with no earlier run; the attempt read from the activity
- *     context; a create that fails outside the RPC contract, an RPC code
+ *     context; a plugin moved past the eval's version (no try starts); a
+ *     create that fails outside the RPC contract, an RPC code
  *     no refusal covers, an empty and an over-long refusal; a refused run
  *     whose session has no id;
  *   - stop-run: a failure other than "already ended or gone" is thrown;
@@ -23,6 +24,8 @@
  *   - read-vote: a vote run gone; an answer that cannot be read; each
  *     ended phase; a session already gone, one whose delete fails, a vote
  *     with no session;
+ *   - try-spend: no run found is no spend; the try's run found by label
+ *     and name, its cost and its stored votes' added;
  *   - record-score: an eval gone; a grader the grade has no outcome for;
  *     a run that has not ended keeps its score on the eval only.
  *
@@ -75,6 +78,7 @@ import {
   TRY_GONE_REASON,
   TRY_UNPLANNED_REASON,
   createCaseActivities,
+  createSpendActivities,
 } from "../case-activities.js";
 import type { EvalContextLoader } from "../context.js";
 import { newEvalContextLoader } from "../context.js";
@@ -82,12 +86,14 @@ import {
   CANNOT_ACT_REASON,
   GRADE_TRY_ACTIVITY_NAME,
   OUT_OF_CREDIT_REASON,
+  PLUGIN_UPDATED_REASON,
   READ_VOTE_ACTIVITY_NAME,
   RECORD_SCORE_ACTIVITY_NAME,
   START_TRY_ACTIVITY_NAME,
   START_VOTE_ACTIVITY_NAME,
   STOP_RUN_ACTIVITY_NAME,
   TRY_NOT_STARTED_REASON,
+  TRY_SPEND_ACTIVITY_NAME,
 } from "../names.js";
 import type { CaseInput, TryGrade } from "../names.js";
 import type { PluginEvalTryLane } from "../ports.js";
@@ -139,6 +145,7 @@ const CELL: CaseInput = {
   arm: "with",
   tryIndex: 0,
   timeoutSeconds: 300,
+  budgetUsd: 4,
 };
 
 const CALLER: CallerIdentity = {
@@ -382,6 +389,25 @@ describe("start-try beside its main path", () => {
     expect(record.sessions).toEqual([]);
   });
 
+  it("starts no try once the plugin has moved past the eval's version", async () => {
+    await seeded();
+    const { cases, record } = build({
+      wrap: (real) => async (evalId) => {
+        const context = await real(evalId);
+        if (context === undefined) return undefined;
+        const status = { ...context.plugin.status!, digest: "b".repeat(64) };
+        return { ...context, plugin: { ...context.plugin, status } };
+      },
+    });
+    expect(await cases[START_TRY_ACTIVITY_NAME](CELL)).toEqual({
+      kind: "refused",
+      failure: "not-started",
+      reason: PLUGIN_UPDATED_REASON,
+    });
+    expect(record.sessions).toEqual([]);
+    expect(record.runs).toEqual([]);
+  });
+
   it("starts afresh on a retry that finds no earlier run", async () => {
     await seeded();
     const { cases, record } = build({ attempt: () => 2 });
@@ -599,6 +625,44 @@ describe("grade-try's AI-graded evidence", () => {
     );
     expect(grade.error).toBe("e".repeat(500));
     expect(grade.durationSeconds).toBe(0);
+  });
+});
+
+describe("try-spend", () => {
+  it("reads the try's run by label and name, with every vote still stored", async () => {
+    await seeded();
+    const { cases } = build();
+    const spend = createSpendActivities({ store: temp.store })[
+      TRY_SPEND_ACTIVITY_NAME
+    ];
+    expect(await spend(EVAL_ID, CELL)).toEqual({
+      sessionId: "",
+      runId: "",
+      costUsd: 0,
+    });
+
+    const start = await startTry(cases);
+    await completeTry(start.runId);
+    await setStatus(start.runId, {
+      phase: RunPhase.RUN_COMPLETED,
+      streamingUsage: { estimatedCostUsd: 0.3 },
+    });
+    const vote = await cases[START_VOTE_ACTIVITY_NAME](CELL, start.runId, COMPARE, 0);
+    if (vote.kind !== "started") {
+      throw new Error(`the vote did not start: ${JSON.stringify(vote)}`);
+    }
+    await setStatus(vote.voteRunId, {
+      phase: RunPhase.RUN_COMPLETED,
+      streamingUsage: { estimatedCostUsd: 0.05 },
+    });
+
+    const read = await spend(EVAL_ID, CELL);
+    expect(read).toMatchObject({ sessionId: start.sessionId, runId: start.runId });
+    expect(read.costUsd).toBeCloseTo(0.35);
+    expect(await spend(EVAL_ID, { ...CELL, tryIndex: 1 })).toMatchObject({
+      runId: "",
+      costUsd: 0,
+    });
   });
 });
 

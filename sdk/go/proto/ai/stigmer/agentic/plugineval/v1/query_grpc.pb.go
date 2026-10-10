@@ -32,6 +32,10 @@ type PluginEvalQueryControllerClient interface {
 	// Get a single eval by ID.
 	Get(ctx context.Context, in *PluginEvalId, opts ...grpc.CallOption) (*PluginEval, error)
 	// List a plugin's evals, newest first.
+	//
+	// Each eval comes with its scores, aggregates, per-target results and
+	// notes, but with every arm's `tries` list empty, so a list stays small
+	// however many tries its evals ran. Get an eval by its id for its tries.
 	ListByPlugin(ctx context.Context, in *ListPluginEvalsByPluginRequest, opts ...grpc.CallOption) (*PluginEvalList, error)
 }
 
@@ -72,6 +76,10 @@ type PluginEvalQueryControllerServer interface {
 	// Get a single eval by ID.
 	Get(context.Context, *PluginEvalId) (*PluginEval, error)
 	// List a plugin's evals, newest first.
+	//
+	// Each eval comes with its scores, aggregates, per-target results and
+	// notes, but with every arm's `tries` list empty, so a list stays small
+	// however many tries its evals ran. Get an eval by its id for its tries.
 	ListByPlugin(context.Context, *ListPluginEvalsByPluginRequest) (*PluginEvalList, error)
 }
 

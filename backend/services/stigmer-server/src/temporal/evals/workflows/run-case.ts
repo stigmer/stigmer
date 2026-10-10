@@ -3,11 +3,12 @@
  * grade it, and report to the suite workflow, which alone writes the
  * eval's status.
  *
- *   - Start: the try's session and run, as the eval's caller. A capacity
- *     refusal is retried for up to thirty minutes, then the try is not
- *     graded, "platform busy"; a credit refusal is reported so the suite
- *     stops; a target the organization cannot start is not graded with the
- *     run's own refusal.
+ *   - Start: the try's session and run, as the eval's caller, the run
+ *     capped at the budget the suite passes (what is left of the eval's
+ *     limit). A capacity refusal is retried for up to thirty minutes, then
+ *     the try is not graded, "platform busy"; a credit refusal is reported
+ *     so the suite stops; a target the organization cannot start is not
+ *     graded with the run's own refusal.
  *   - Wait: the run is polled on a capped backoff (the grade-run
  *     workflow's shape) until it ends or the case's `timeout_seconds`
  *     pass. At the deadline the run is stopped and graded on what it
@@ -19,8 +20,11 @@
  *   - Record: the votes tallied (two of three decide), the try's score,
  *     and its Score on its run.
  *
- * A platform failure (busy, grading that fails past its retries, a vote
- * that cannot run) leaves the try not graded, never a zero. When the suite
+ * A platform failure (busy, grading that fails past its retries, a stop
+ * that fails, a vote that cannot run) leaves the try not graded, never a
+ * zero, and still carries what the try's run spent: read through the spend
+ * activity where this workflow has no grade to read it from, so the
+ * suite's ceiling counts every dollar a run used. When the suite
  * is cancelled, this workflow stops the try's run before it ends, so a
  * cancelled eval leaves no run going.
  *
@@ -50,17 +54,20 @@ import {
   START_TRY_ACTIVITY_NAME,
   START_VOTE_ACTIVITY_NAME,
   STOP_RUN_ACTIVITY_NAME,
+  TRY_NOT_STOPPED_REASON,
+  TRY_SPEND_ACTIVITY_NAME,
 } from "../names.js";
 import type {
   CaseActivities,
   CaseInput,
+  SpendActivities,
   TryGrade,
   TryResult,
   VoteRead,
 } from "../names.js";
 
-/** Quick store work: the poll, the stop, the vote's read. */
-const steps = proxyActivities<CaseActivities>({
+/** Quick store work: the poll, the stop, the vote's read, the spend read. */
+const steps = proxyActivities<CaseActivities & SpendActivities>({
   startToCloseTimeout: "1 minute",
   retry: {
     initialInterval: "2 seconds",
@@ -122,9 +129,9 @@ export async function runCase(input: CaseInput): Promise<TryResult> {
     if (isCancellation(error)) {
       throw error;
     }
-    return notGraded(
-      "",
-      "",
+    // An earlier attempt of the start may have created the run.
+    return spentNotGraded(
+      input,
       isBusy(error) ? PLATFORM_BUSY_REASON : GRADING_FAILED_REASON,
     );
   }
@@ -152,10 +159,20 @@ export async function runCase(input: CaseInput): Promise<TryResult> {
   try {
     timedOut = !(await awaitRun(runId, input.timeoutSeconds * 1000));
     if (timedOut) {
-      await steps[STOP_RUN_ACTIVITY_NAME](
-        runId,
-        `timed out after ${input.timeoutSeconds}s`,
-      );
+      try {
+        await steps[STOP_RUN_ACTIVITY_NAME](
+          runId,
+          `timed out after ${input.timeoutSeconds}s`,
+        );
+      } catch (error) {
+        if (isCancellation(error)) {
+          throw error;
+        }
+        return await spentNotGraded(input, TRY_NOT_STOPPED_REASON, {
+          sessionId,
+          runId,
+        });
+      }
       await awaitRun(runId, STOP_GRACE_MS);
     }
   } catch (error) {
@@ -174,7 +191,7 @@ export async function runCase(input: CaseInput): Promise<TryResult> {
     if (isCancellation(error)) {
       throw error;
     }
-    return notGraded(sessionId, runId, GRADING_FAILED_REASON);
+    return spentNotGraded(input, GRADING_FAILED_REASON, { sessionId, runId });
   }
 
   let voteCost = 0;
@@ -287,6 +304,41 @@ async function awaitRun(runId: string, budgetMs: number): Promise<boolean> {
     }
     wait = Math.min(wait + POLL_FIRST_MS, POLL_CAP_MS);
   }
+}
+
+/**
+ * A try not graded for `reason` whose run may have spent: its session, run
+ * and cost as the spend activity finds them. Nothing found, or a read that
+ * fails, is no spend, and keeps the ids the workflow already knows.
+ */
+async function spentNotGraded(
+  input: CaseInput,
+  reason: string,
+  known: { readonly sessionId: string; readonly runId: string } = {
+    sessionId: "",
+    runId: "",
+  },
+): Promise<TryResult> {
+  let spend = { ...known, costUsd: 0 };
+  try {
+    const found = await steps[TRY_SPEND_ACTIVITY_NAME](input.evalId, {
+      caseIndex: input.caseIndex,
+      targetIndex: input.targetIndex,
+      arm: input.arm,
+      tryIndex: input.tryIndex,
+    });
+    if (found.runId !== "") {
+      spend = found;
+    }
+  } catch (error) {
+    if (isCancellation(error)) {
+      throw error;
+    }
+  }
+  return {
+    ...notGraded(spend.sessionId, spend.runId, reason),
+    costUsd: spend.costUsd,
+  };
 }
 
 function notGraded(

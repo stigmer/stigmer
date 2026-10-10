@@ -578,6 +578,8 @@ describe("refusals", () => {
     ["a baseline_file outside the case", "type: baseline\nbaseline_file: ../other.jsonl\ncriteria: x", "baseline_file must be a file in the case directory"],
     ["a baseline grader with no baseline_file", "type: baseline\ncriteria: x", "baseline_file is required"],
     ["exists that is not a boolean", "type: file_exists\npath: a\nexists: 'no'", "exists must be true or false"],
+    ["a file_exists path with a reversed range", "type: file_exists\npath: '[z-a].txt'", "path must be a glob (range 'z-a' is reversed)"],
+    ["a file_exists path with an unclosed brace", "type: file_exists\npath: '{a,b.txt'", "path must be a glob ('{' at 0 is never closed)"],
   ])("%s", (_name, frontmatter, problem) => {
     const finding = graderRefusal(frontmatter);
     expect(finding.kind).toBe("eval-grader-invalid");

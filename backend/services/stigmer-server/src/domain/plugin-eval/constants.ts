@@ -30,9 +30,18 @@ export function pluginEvalOrgMismatchMessage(pluginOrg: string): string {
   return `metadata.org must be the plugin's organization (${pluginOrg})`;
 }
 
-/** The refusal of a digest that names no version of the plugin. */
-export function pluginEvalUnknownDigestMessage(digest: string): string {
-  return `spec.plugin_digest ${digest} is not a version of this plugin`;
+/**
+ * The refusal of a digest that is not the plugin's current version: the
+ * with-plugin arm runs the plugin as installed now, so an earlier
+ * version's cases would be graded against today's plugin.
+ */
+export function pluginEvalNotCurrentVersionMessage(current: string): string {
+  return `an eval runs the plugin's current version (${current}); evaluating an earlier version is not supported yet`;
+}
+
+/** The refusal of a case_glob that is not a glob (domain/plugin-eval/glob.ts). */
+export function pluginEvalCaseGlobMessage(glob: string, error: string): string {
+  return `spec.case_glob '${glob}' is not a valid glob: ${error}`;
 }
 
 /** The refusal of a plugin version with no cases to run. */

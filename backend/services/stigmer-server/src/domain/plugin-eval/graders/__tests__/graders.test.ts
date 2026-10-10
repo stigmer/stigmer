@@ -3,7 +3,8 @@
  * `regex` over every target with `contains`, `not_contains`, `count:N` and
  * flags; `tool_used` with `input_match`, `min` and `max` (the never-called
  * form `min: 0, max: 0` among them); `tool_order` with both calls present
- * and absent; `file_exists` with globs and `exists: false`; a file grader
+ * and absent; `file_exists` with globs and `exists: false` (a malformed
+ * glob not graded, and a hostile one matched at once); a file grader
  * where the install records no files is not graded, never failed; a
  * missing file target fails; an invalid pattern is not graded. Then the
  * AI-graded checks' pure parts: the evidence (the trace's first and last
@@ -41,7 +42,6 @@ import {
   voteRubricName,
   voteSchema,
 } from "../llm.js";
-import { pathGlobToRegExp } from "../file-exists.js";
 import { newPatternPool } from "../patterns.js";
 import type { PatternAnswer, PatternRunner } from "../patterns.js";
 import {
@@ -50,6 +50,7 @@ import {
   PATTERN_TIME_LIMIT_REASON,
   fileAbsentReason,
   focusLabel,
+  invalidPathGlobReason,
 } from "../verdict.js";
 
 const pool = newPatternPool();
@@ -357,13 +358,6 @@ describe("file_exists", () => {
     });
   });
 
-  it("compiles globs segment by segment", () => {
-    expect(pathGlobToRegExp("src/**/x.ts").test("src/x.ts")).toBe(true);
-    expect(pathGlobToRegExp("src/**/x.ts").test("src/a/b/x.ts")).toBe(true);
-    expect(pathGlobToRegExp("src/*.ts").test("src/a/x.ts")).toBe(false);
-    expect(pathGlobToRegExp("{a,b}.m?").test("b.md")).toBe(true);
-    expect(pathGlobToRegExp("[!a]x").test("ax")).toBe(false);
-  });
 });
 
 describe("the AI-graded checks", () => {
@@ -595,30 +589,43 @@ describe("when a pattern cannot run", () => {
 });
 
 describe("path globs", () => {
-  it("lets a trailing ** cross every segment below it", () => {
-    const glob = pathGlobToRegExp("src/**");
-    expect(glob.test("src/new/thing.ts")).toBe(true);
-    expect(glob.test("src/a")).toBe(true);
-    expect(glob.test("lib/a")).toBe(false);
+  it("lets a trailing ** cross every segment below it", async () => {
+    const view = trace({
+      files: { kind: "recorded", created: ["src/new/thing.ts"], contents: new Map() },
+    });
+    expect(
+      await verdictOf({ type: "file_exists", path: "src/**", exists: true }, view),
+    ).toEqual({ passed: true, reason: "1 created file(s) match 'src/**'" });
+    expect(
+      await verdictOf({ type: "file_exists", path: "lib/**", exists: true }, view),
+    ).toMatchObject({ passed: false });
   });
 
-  it("reads an unclosed [ and an unopened } as literal characters", () => {
-    expect(pathGlobToRegExp("a[b").test("a[b")).toBe(true);
-    expect(pathGlobToRegExp("a[b").test("ab")).toBe(false);
-    expect(pathGlobToRegExp("a}b").test("a}b")).toBe(true);
-    expect(pathGlobToRegExp("a}b").test("ab")).toBe(false);
-  });
-
-  it("matches a created file through an unclosed bracket in file_exists", async () => {
+  it("leaves a try not graded on a glob the suite reader should have refused, never failed", async () => {
     const view = trace({
       files: { kind: "recorded", created: ["notes[1.md"], contents: new Map() },
     });
     expect(
-      await verdictOf(
-        { type: "file_exists", path: "notes[1.md", exists: true },
-        view,
-      ),
-    ).toEqual({ passed: true, reason: "1 created file(s) match 'notes[1.md'" });
+      await verdictOf({ type: "file_exists", path: "notes[1.md", exists: true }, view),
+    ).toEqual({ notGraded: invalidPathGlobReason("notes[1.md", "'[' at 5 is never closed") });
+    expect(
+      await verdictOf({ type: "file_exists", path: "[z-a].txt", exists: false }, view),
+    ).toEqual({ notGraded: "invalid path glob '[z-a].txt': range 'z-a' is reversed" });
+  });
+
+  it("matches a hostile glob against the created files at once", async () => {
+    const view = trace({
+      files: {
+        kind: "recorded",
+        created: Array.from({ length: 200 }, (_, i) => `${"a/".repeat(30)}file-${i}.txt`),
+        contents: new Map(),
+      },
+    });
+    const started = performance.now();
+    expect(
+      await verdictOf({ type: "file_exists", path: `${"**/".repeat(8)}x`, exists: true }, view),
+    ).toMatchObject({ passed: false });
+    expect(performance.now() - started).toBeLessThan(50);
   });
 });
 

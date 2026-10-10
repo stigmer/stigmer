@@ -12,8 +12,9 @@
  * subject is the case's name, so no titling call is made; its harness is
  * the target's; it runs the agent its arm names (arm.ts). The run:
  *
- *   - the target's model, and the eval's whole spending limit as its own
- *     cap, so no one try can spend past what the eval allows;
+ *   - the target's model, and what is left of the eval's spending limit
+ *     when the try starts as its own cap, so no one try can spend past
+ *     what the eval still allows;
  *   - `auto_approve_all`: a try never stops to ask, as in the format;
  *   - `max_tool_rounds` from the case's `max_turns`, clamped to the run's
  *     10 to 1000 (a case note says so when clamped);
@@ -228,6 +229,8 @@ export function tryRunRequest(input: {
   readonly evalCase: EvalCase;
   readonly spec: PluginEvalSpec;
   readonly modelName: string;
+  /** The run's spending cap: what is left of the eval's budget (temporal/evals/names.ts CaseInput). */
+  readonly budgetUsd: number;
   readonly pluginServerSlugs: ReadonlyArray<string>;
 }): Run {
   const tools = tryToolsOf(input.evalCase, input.spec, input.pluginServerSlugs);
@@ -245,7 +248,7 @@ export function tryRunRequest(input: {
       runConfig: create(RunConfigSchema, {
         modelName: input.modelName,
         maxToolRounds: toolRoundsOf(input.evalCase.maxTurns).rounds,
-        maxCostUsd: input.spec.maxCostUsd,
+        maxCostUsd: input.budgetUsd,
       }),
       autoApproveAll: true,
       tools: [...tools.tools],

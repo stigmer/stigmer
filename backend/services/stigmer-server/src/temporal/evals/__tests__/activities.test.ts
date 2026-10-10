@@ -154,6 +154,7 @@ const CELL: CaseInput = {
   arm: "with",
   tryIndex: 0,
   timeoutSeconds: 120,
+  budgetUsd: 4,
 };
 
 async function seeded(spec: Parameters<typeof seedEval>[1] = {}) {
@@ -392,6 +393,7 @@ describe("start-try", () => {
     expect(run.run.spec?.tools).toEqual(["Read", "Skill"]);
     expect(run.run.spec?.disallowedTools).toEqual(["mcp__github"]);
     expect(run.run.spec?.runConfig?.maxToolRounds).toBe(10);
+    expect(run.run.spec?.runConfig?.maxCostUsd, "capped at the budget the suite passed").toBe(4);
   });
 
   it("runs the without-arm on the bare assistant", async () => {

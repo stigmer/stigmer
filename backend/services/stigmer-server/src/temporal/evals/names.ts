@@ -75,6 +75,14 @@ export const READ_VOTE_ACTIVITY_NAME = "stigmer/evals/read-vote";
 export const RECORD_SCORE_ACTIVITY_NAME = "stigmer/evals/record-score";
 
 /**
+ * Reads what a try's run spent, with any of its votes still stored, found
+ * by the eval's label and the try's run name: the cost of a try whose own
+ * workflow could not report it (a grading that failed, a stop that failed,
+ * a case workflow that failed outright).
+ */
+export const TRY_SPEND_ACTIVITY_NAME = "stigmer/evals/try-spend";
+
+/**
  * The failure type a start activity throws while the platform refuses a
  * try or a vote for capacity, so the workflow tells "busy" from every
  * other failure once the retries are spent.
@@ -89,6 +97,24 @@ export const CANNOT_ACT_REASON =
 export const TRY_NOT_STARTED_REASON = "the try could not start";
 export const GRADING_FAILED_REASON = "grading failed";
 export const TRY_FAILED_REASON = "the try could not be run";
+export const TRY_NOT_STOPPED_REASON = "the try's run could not be stopped";
+
+/** The failed eval's error when the suite workflow could not plan it (its load past every retry). */
+export const EVAL_NOT_PLANNED_ERROR = "the eval could not be planned";
+
+/** The failed eval's error when a finished try could not be recorded past every retry. */
+export const TRY_NOT_RECORDED_ERROR = "a try's result could not be recorded";
+
+/**
+ * The not-graded reason of a try that would have started after the
+ * plugin's version moved: the with-plugin arm runs the plugin as installed
+ * now, so the try would grade a newer plugin against the eval's suite.
+ */
+export const PLUGIN_UPDATED_REASON = "the plugin was updated during the eval";
+
+/** The case note an eval carries once one of the case's tries met an updated plugin. */
+export const PLUGIN_UPDATED_NOTE =
+  "the plugin was updated during the eval: the tries that would have started after the update are not graded";
 
 /** One try the suite runs: its cell, and how long it may take. */
 export interface SuiteCell {
@@ -113,15 +139,37 @@ export type SuitePlan =
 /** Why an eval stopped early, in the workflow's words. */
 export type SuiteStop = "cost_ceiling" | "out_of_credit" | "cancelled";
 
-/** How the eval ends. */
+/** How the eval ends; failed when one of the suite workflow's own steps could not be done. */
 export type SuiteEnd =
   | { readonly phase: "completed" }
-  | { readonly phase: "partial"; readonly reason: SuiteStop };
+  | { readonly phase: "partial"; readonly reason: SuiteStop }
+  | { readonly phase: "failed"; readonly error: string };
+
+/**
+ * The least a try's run is capped at. A run's cap of 0 means no cap
+ * (run/v1/invocation.proto `max_cost_usd`), so what is left of the eval's
+ * budget is never passed below this.
+ */
+export const TRY_MIN_BUDGET_USD = 0.01;
 
 /** The case workflow's input: one try of one eval. */
 export interface CaseInput extends SuiteCell {
   readonly evalId: string;
   readonly org: string;
+  /**
+   * The try's run's spending cap: the eval's `max_cost_usd` less what its
+   * finished tries spent when this one started, at least
+   * TRY_MIN_BUDGET_USD. Set by the suite workflow, so a replay passes the
+   * same.
+   */
+  readonly budgetUsd: number;
+}
+
+/** What a try's run spent, as the spend activity found it; empty ids when no run was found. */
+export interface TrySpend {
+  readonly sessionId: string;
+  readonly runId: string;
+  readonly costUsd: number;
 }
 
 /** Why a try did not start. */
@@ -197,15 +245,30 @@ export interface TryResult {
   readonly outOfCredit: boolean;
 }
 
+/**
+ * A try's result as the record activity takes it: everything the status
+ * holds, without the grader results it never reads, so the suite
+ * workflow's history carries them once (the child's result), not twice.
+ */
+export type RecordedTry = Omit<TryResult, "graderResults">;
+
 /** The suite workflow's activities, keyed by the pinned names. */
 export interface SuiteActivities {
   [LOAD_SUITE_ACTIVITY_NAME]: (evalId: string) => Promise<SuitePlan>;
   [RECORD_TRY_ACTIVITY_NAME]: (
     evalId: string,
     cell: SuiteCell,
-    result: TryResult,
+    result: RecordedTry,
   ) => Promise<void>;
   [FINISH_EVAL_ACTIVITY_NAME]: (evalId: string, end: SuiteEnd) => Promise<void>;
+}
+
+/** The spend activity, which both workflows call. */
+export interface SpendActivities {
+  [TRY_SPEND_ACTIVITY_NAME]: (
+    evalId: string,
+    cell: Pick<SuiteCell, "caseIndex" | "targetIndex" | "arm" | "tryIndex">,
+  ) => Promise<TrySpend>;
 }
 
 /** The case workflow's activities, keyed by the pinned names. */

@@ -156,6 +156,9 @@ public final class PluginEvalQueryControllerGrpc {
     /**
      * <pre>
      * List a plugin's evals, newest first.
+     * Each eval comes with its scores, aggregates, per-target results and
+     * notes, but with every arm's `tries` list empty, so a list stays small
+     * however many tries its evals ran. Get an eval by its id for its tries.
      * </pre>
      */
     default void listByPlugin(ai.stigmer.agentic.plugineval.v1.ListPluginEvalsByPluginRequest request,
@@ -211,6 +214,9 @@ public final class PluginEvalQueryControllerGrpc {
     /**
      * <pre>
      * List a plugin's evals, newest first.
+     * Each eval comes with its scores, aggregates, per-target results and
+     * notes, but with every arm's `tries` list empty, so a list stays small
+     * however many tries its evals ran. Get an eval by its id for its tries.
      * </pre>
      */
     public void listByPlugin(ai.stigmer.agentic.plugineval.v1.ListPluginEvalsByPluginRequest request,
@@ -252,6 +258,9 @@ public final class PluginEvalQueryControllerGrpc {
     /**
      * <pre>
      * List a plugin's evals, newest first.
+     * Each eval comes with its scores, aggregates, per-target results and
+     * notes, but with every arm's `tries` list empty, so a list stays small
+     * however many tries its evals ran. Get an eval by its id for its tries.
      * </pre>
      */
     public ai.stigmer.agentic.plugineval.v1.PluginEvalList listByPlugin(ai.stigmer.agentic.plugineval.v1.ListPluginEvalsByPluginRequest request) throws io.grpc.StatusException {
@@ -292,6 +301,9 @@ public final class PluginEvalQueryControllerGrpc {
     /**
      * <pre>
      * List a plugin's evals, newest first.
+     * Each eval comes with its scores, aggregates, per-target results and
+     * notes, but with every arm's `tries` list empty, so a list stays small
+     * however many tries its evals ran. Get an eval by its id for its tries.
      * </pre>
      */
     public ai.stigmer.agentic.plugineval.v1.PluginEvalList listByPlugin(ai.stigmer.agentic.plugineval.v1.ListPluginEvalsByPluginRequest request) {
@@ -333,6 +345,9 @@ public final class PluginEvalQueryControllerGrpc {
     /**
      * <pre>
      * List a plugin's evals, newest first.
+     * Each eval comes with its scores, aggregates, per-target results and
+     * notes, but with every arm's `tries` list empty, so a list stays small
+     * however many tries its evals ran. Get an eval by its id for its tries.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.plugineval.v1.PluginEvalList> listByPlugin(

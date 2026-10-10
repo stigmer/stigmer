@@ -18,7 +18,8 @@
  *
  * Defaults the format documents are applied here: weight 1, regex flags
  * empty and `match: contains`, `target`/`focus` `last_message`,
- * `tool_used` min 1 and max unlimited, `file_exists` `exists: true`.
+ * `tool_used` min 1 and max unlimited, `file_exists` `exists: true`. A
+ * `file_exists` `path` must be a well-formed glob (glob.ts).
  */
 
 import { isJsonObject, type JsonObject } from "../documents.js";
@@ -30,6 +31,7 @@ import {
   unknownKeys,
   wrong,
 } from "./fields.js";
+import { globError } from "./glob.js";
 import type { EvalFocus, EvalGrader, EvalGraderArm, EvalGraderCheck, EvalGraderType, EvalToolRef } from "./types.js";
 
 const COMMON_KEYS = ["type", "weight", "arm"] as const;
@@ -138,6 +140,8 @@ function readCheck(type: EvalGraderType, source: GraderSource, scope: FieldScope
       const exists = fields["exists"];
       if (exists !== undefined && typeof exists !== "boolean") return wrong(scope, "exists", "true or false");
       if (path === undefined) return required(scope, "path", fields);
+      const malformed = globError(path);
+      if (malformed !== undefined) return wrong(scope, "path", `a glob (${malformed})`);
       return { type, path, exists: exists ?? true };
     }
     case "llm": {
