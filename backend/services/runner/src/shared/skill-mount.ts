@@ -28,7 +28,7 @@
  * archive mount's (`archive-mount.ts`), one copy for skills and plugins.
  */
 
-import { readFile, writeFile } from "node:fs/promises";
+import { agentFs } from "./agent-fs.js";
 import { join } from "node:path";
 import type { StigmerClient } from "../client/stigmer-client.js";
 import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
@@ -70,7 +70,7 @@ export async function mountIsFresh(
   wantsArtifact: boolean,
 ): Promise<boolean> {
   try {
-    const raw = await readFile(join(skillDir, MOUNT_MARKER_FILE), "utf-8");
+    const raw = (await agentFs().readFile(join(skillDir, MOUNT_MARKER_FILE))).toString("utf8");
     const marker = JSON.parse(raw) as Partial<MountMarker>;
     return marker.versionHash === versionHash && (marker.artifactMounted === true || !wantsArtifact);
   } catch {
@@ -123,7 +123,7 @@ export async function writeSkillMount(
 ): Promise<void> {
   await resetDirectory(skillDir);
 
-  await writeFile(join(skillDir, "SKILL.md"), skill.spec!.skillMd, "utf-8");
+  await agentFs().writeFile(join(skillDir, "SKILL.md"), skill.spec!.skillMd);
 
   const artifactMounted = artifactBytes !== undefined && artifactBytes.length > 0;
   if (artifactMounted) {
@@ -134,6 +134,6 @@ export async function writeSkillMount(
   const versionHash = skill.status?.versionHash ?? "";
   if (versionHash !== "") {
     const marker: MountMarker = { versionHash, artifactMounted };
-    await writeFile(join(skillDir, MOUNT_MARKER_FILE), JSON.stringify(marker), "utf-8");
+    await agentFs().writeFile(join(skillDir, MOUNT_MARKER_FILE), JSON.stringify(marker));
   }
 }

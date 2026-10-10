@@ -68,7 +68,7 @@ async function perform(request: FsRequest, fs: AgentFs): Promise<FsValue> {
     case "stat":
     case "lstat": {
       const stats = request.op === "stat" ? await fs.stat(request.path) : await fs.lstat(request.path);
-      return { size: stats.size, mode: stats.mode, mtimeMs: stats.mtimeMs, kind: kindOf(stats) };
+      return { size: stats.size, mode: stats.mode, mtimeMs: stats.mtimeMs, ctimeMs: stats.ctimeMs, ino: stats.ino, kind: kindOf(stats) };
     }
     case "rename":
       await fs.rename(request.from, request.to);

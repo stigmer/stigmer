@@ -27,6 +27,8 @@ export interface AgentStats {
   readonly size: number;
   readonly mode: number;
   readonly mtimeMs: number;
+  readonly ctimeMs: number;
+  readonly ino: number;
   isFile(): boolean;
   isDirectory(): boolean;
   isSymbolicLink(): boolean;
@@ -155,7 +157,7 @@ export async function agentPathExists(path: string): Promise<boolean> {
 }
 
 function statsOf(stats: Stats): AgentStats {
-  return statsFrom({ size: stats.size, mode: stats.mode, mtimeMs: stats.mtimeMs, kind: kindOf(stats) });
+  return statsFrom({ size: stats.size, mode: stats.mode, mtimeMs: stats.mtimeMs, ctimeMs: stats.ctimeMs, ino: stats.ino, kind: kindOf(stats) });
 }
 
 function entryOf(entry: Dirent): AgentDirEntry {
@@ -166,11 +168,20 @@ function entryOf(entry: Dirent): AgentDirEntry {
 export type AgentFileKind = "file" | "directory" | "symlink" | "other";
 
 /** Rebuild an {@link AgentStats} from its plain fields. */
-export function statsFrom(plain: { readonly size: number; readonly mode: number; readonly mtimeMs: number; readonly kind: AgentFileKind }): AgentStats {
+export function statsFrom(plain: {
+  readonly size: number;
+  readonly mode: number;
+  readonly mtimeMs: number;
+  readonly ctimeMs: number;
+  readonly ino: number;
+  readonly kind: AgentFileKind;
+}): AgentStats {
   return {
     size: plain.size,
     mode: plain.mode,
     mtimeMs: plain.mtimeMs,
+    ctimeMs: plain.ctimeMs,
+    ino: plain.ino,
     isFile: () => plain.kind === "file",
     isDirectory: () => plain.kind === "directory",
     isSymbolicLink: () => plain.kind === "symlink",

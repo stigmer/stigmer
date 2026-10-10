@@ -224,6 +224,8 @@ export interface WireStats {
   readonly size: number;
   readonly mode: number;
   readonly mtimeMs: number;
+  readonly ctimeMs: number;
+  readonly ino: number;
   readonly kind: AgentFileKind;
 }
 

@@ -26,7 +26,7 @@
  * transfer.
  */
 
-import { mkdir } from "node:fs/promises";
+import { agentFs } from "./agent-fs.js";
 import { join } from "node:path";
 import type { StigmerClient } from "../client/stigmer-client.js";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -74,7 +74,7 @@ export async function resolveSkills(
 
   const platformDir = getPlatformDir(options.sessionId);
   const skillsDir = join(platformDir, SKILLS_SUBDIR);
-  await mkdir(skillsDir, { recursive: true });
+  await agentFs().mkdir(skillsDir, { recursive: true });
 
   await ensureStigmerSymlink(options.primaryWorkspaceDir, platformDir);
   console.log(
