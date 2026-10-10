@@ -284,6 +284,28 @@ describe.each([sqliteFixture, postgresFixture])(
         ).toHaveLength(0);
       });
 
+      it("a federated read with a part no reference can hold answers nothing, and a save of a row with one is refused", async () => {
+        await accounts.save(makeFederatedAccount("okta|dana"));
+        for (const [org, slug, subject] of [
+          ["", "acme-okta", "okta|dana"],
+          [PROVIDER_ORG, "", "okta|dana"],
+          [PROVIDER_ORG, "acme-okta", ""],
+          [PROVIDER_ORG, "acme|okta", "dana"],
+        ] as const) {
+          expect(
+            await accounts.findByProviderAndIdpId(org, slug, subject),
+          ).toBeUndefined();
+        }
+        expect(await accounts.findByProvider("", "acme-okta")).toEqual([]);
+        expect(await accounts.findByProvider(PROVIDER_ORG, "")).toEqual([]);
+
+        const unaddressable = makeFederatedAccount("okta|erin");
+        unaddressable.spec!.identityProviderRef!.org = "";
+        await expect(accounts.save(unaddressable)).rejects.toThrow(
+          "federated account id must be derived from its identity provider and idp_id",
+        );
+      });
+
       it("a subject lookup handed the federated address text answers nothing: the mode filter stands behind the reserved prefix", async () => {
         await accounts.save(makeFederatedAccount("okta|dana"));
         const addressText = `${FEDERATED_SUBJECT_PREFIX}${PROVIDER_ORG}|acme-okta|okta|dana`;

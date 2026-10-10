@@ -107,22 +107,32 @@ export interface FederatedProvider {
   readonly slug: string;
 }
 
+/**
+ * Each provisioning arm's owning organization, keyed by mode so the
+ * compiler holds the table exhaustive: a new arm does not compile until it
+ * says which organization its accounts belong to.
+ */
+const OWNING_ORGANIZATION: {
+  readonly [Mode in AccountProvisioning["mode"]]: (
+    provisioning: Extract<AccountProvisioning, { readonly mode: Mode }>,
+  ) => string;
+} = {
+  direct: () => "",
+  platform_client: (provisioning) => provisioning.org,
+  federated: (provisioning) => provisioning.provider.org,
+};
+
 /** The organization an account being created belongs to; "" for a direct account, which belongs to none. */
 export function owningOrganizationOf(
   provisioning: AccountProvisioning,
 ): string {
-  switch (provisioning.mode) {
-    case "direct":
-      return "";
-    case "platform_client":
-      return provisioning.org;
-    case "federated":
-      return provisioning.provider.org;
-    default: {
-      const exhaustive: never = provisioning;
-      throw new Error(`unknown provisioning ${JSON.stringify(exhaustive)}`);
-    }
-  }
+  // TypeScript cannot correlate the arm with its entry's parameter, so the
+  // entry is read at the union; the table's type is what keeps each pair
+  // matched.
+  const owningOrganization = OWNING_ORGANIZATION[provisioning.mode] as (
+    provisioning: AccountProvisioning,
+  ) => string;
+  return owningOrganization(provisioning);
 }
 
 /** What a caller of the create path supplies: the rest is the chain's. */

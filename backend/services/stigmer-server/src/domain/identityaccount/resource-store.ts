@@ -171,15 +171,13 @@ export function newResourceIdentityAccountStore(
       providerSlug,
       idpId,
     ): Promise<IdentityAccount | undefined> {
-      if (providerOrg === "" || providerSlug === "" || idpId === "") {
-        return undefined;
-      }
       let id: string;
       try {
         id = federatedAccountIdFor(providerOrg, providerSlug, idpId);
       } catch {
-        // A provider part holding the separator names no provider: the
-        // reference's own patterns refuse it, so no row carries it.
+        // An empty part, or a provider part holding the separator, names
+        // no account: `save` refuses a federated row with either, so no
+        // row carries it.
         return undefined;
       }
       const account = await readById(id);
@@ -281,10 +279,7 @@ function isVouchedForBy(
 
 /** Code-unit order. Account ids are lowercase Crockford characters after a shared prefix, so a table's `ORDER BY id` agrees with it under any collation. */
 function compareIds(a: string, b: string): number {
-  if (a < b) {
-    return -1;
-  }
-  return a > b ? 1 : 0;
+  return a < b ? -1 : a > b ? 1 : 0;
 }
 
 /** A row an identity provider vouches for: its subject is the provider's, reached only by the natural key. */
