@@ -25,10 +25,11 @@ who saved it and when, never the value.
 ## Your vault and shared vaults
 
 **My vault** is yours alone. Stigmer creates it the first time you save a key or
-sign in to a tool, and a chat you start uses it unless the conversation lists
-vaults of its own (below). A teammate's chats never use it, even on the same
-Agent, and an Organization's admins cannot see or use it either. When you leave
-an Organization, your vault there is deleted with every value in it.
+sign in to a tool, and a conversation uses it when it includes My vault, as the
+console and the CLI do by default (below). A teammate's chats never use it, even
+on the same Agent, and an Organization's admins cannot see or use it either.
+When you leave an Organization, your vault there is deleted with every value in
+it.
 
 A **shared vault** belongs to the Organization. Its admins create it, for
 example "Support tools" holding the team's Zendesk key, and decide who may use
@@ -214,8 +215,8 @@ destroyed with the conversation. Every other key a conversation needs lives in a
 vault: a key you type into the console is saved in My vault, and
 `stigmer run --vault` names the vaults a run from a terminal uses.
 
-An integrator that keeps one vault per customer creates a shared vault with an
-`external_id`, finds it again with that ID, and names it on each Session.
+An integrator that keeps keys for its own customers follows
+[Keep your customers' keys](/docs/guides/authentication/customer-keys).
 
 ## Connect links for your customers
 

@@ -56,7 +56,7 @@ connects to any server that speaks the
    template, or import a YAML file you already have. Choose **Start from
    scratch** to open the creation wizard.
 3. Walk the wizard's three steps: **Identity & Transport** (name the server and
-   say how Stigmer reaches it), **Environment & Auth** (declare the variables
+   say how Stigmer reaches it), **Variables & Sign-in** (declare the variables
    and secrets it needs at runtime), and **Review & Create**.
 
 For an HTTP server, the wizard needs the endpoint URL. For a stdio server (a
@@ -104,9 +104,10 @@ notes the server keeps about each one — one flow, started from one button.
 2. Click **Connect**. If the server needs credentials (API keys, tokens),
    Stigmer asks for them right there — the form appears below the Connect bar
    before anything is sent.
-3. Enter the credentials and click **Save**. Stigmer stores them securely,
-   connects to the live server, and starts discovery. This takes a few seconds —
-   it's talking to the real endpoint.
+3. Enter the credentials and click **Save**. Stigmer saves them in your
+   [My vault](/docs/concepts/vaults), where they are never shown again, connects
+   to the live server, and starts discovery. This takes a few seconds — it's
+   talking to the real endpoint.
 
 When discovery finishes, the Tools tab fills in. A tool the server marks
 destructive (its author set the MCP annotation `destructiveHint: true`) asks for

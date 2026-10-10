@@ -69,6 +69,7 @@ The client provides sub-clients for each resource type:
 | `client.Skill`          | Skill           | Get, GetByReference, Push, GetArtifact, Delete, List |
 | `client.McpServer`      | MCP Server      | Get, GetByReference, Create, Update, Apply, Delete, List |
 | `client.Session`        | Session         | Get, Create, Update, Apply, Delete, List, ListByAgent |
+| `client.Vault`          | Vault           | Get, GetByReference, GetMine, GetByExternalId, Create, Update, Delete, List, SetSecrets, RemoveSecrets, SetConnection, RemoveConnections, StartSignIn, CompleteSignIn, CreateConnectLink |
 | `client.Run`            | Run             | Get, Create, Subscribe, List, ListBySession, Cancel, Pause, Resume, Terminate, Recover, SubmitApproval, UploadAttachment, GetArtifactDownloadUrl |
 | `client.Search`         | Cross-resource  | Query |
 | `client.Billing`        | Billing         | GetOrCreateBillingAccount, GetBillingAccount, GetCreditBalance, AdjustCredits, GetCreditLedger, GetBillingUsageReport, CreateCreditCheckoutSession, CreateBillingPortalSession, CreatePaymentMethodSetupSession, SetAutoRechargeConfig, GetCustomerModelPricing + operator pricing methods |

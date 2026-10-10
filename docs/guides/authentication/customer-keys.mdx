@@ -1,0 +1,149 @@
+---
+title: Keep your customers' keys
+description:
+  Hold the keys your customers' runs use, one vault per customer, isolated from
+  every other customer, and replace a key without touching a conversation.
+---
+
+A product built on Stigmer often needs keys that belong to its customers: Acme
+Helpdesk's agent reads each customer's Zendesk with that customer's own key.
+Stigmer keeps every key in a [vault](/docs/concepts/vaults), and a conversation
+uses only the vaults it names. This guide shows how to give each customer a
+vault no other customer can name, put a key in it, and replace the key when it
+rotates.
+
+## Pick the setup by how your customers sign in
+
+Which setup keeps one customer's keys away from another depends on how your
+customers' people reach Stigmer, which you chose on the
+[authentication overview](/docs/guides/authentication/overview).
+
+| Your customers' people                                                                                                                  | Where a customer's keys live                                                | Who can name them                                                                             |
+| --------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Sign in as themselves: the console, or your own sign-in through an [Identity Provider](/docs/guides/authentication/federation/overview) | Each person's own My vault; a team's key in a shared vault the team may use | That person alone; for a shared vault, the people granted its use                             |
+| Get a token your backend mints with a [PlatformClient](/docs/guides/authentication/platform-client/overview), all in your Organization  | One private shared vault per customer                                       | On Stigmer Cloud, the customer's accounts you grant **Can use**; on open source, your backend |
+| Each customer is a [child organization](/docs/guides/authentication/federation/child-organizations)                                     | A shared vault in that customer's child, with **Organization** visibility   | The child's members, who are that customer's people alone                                     |
+
+<Callout type="warn">
+  In one Organization shared by several customers, never give a customer's vault
+  **Organization** visibility. Every member and viewer of the Organization may
+  then use it, so one customer could name another customer's vault on their own
+  conversation.
+</Callout>
+
+### People who sign in as themselves
+
+Each person keeps their keys in their own My vault, and your embedded chat
+includes it: the React SDK's `NewSessionViewer` includes the sender's My vault
+by default for the `"integrator"` and `"endUser"` audiences. Each person's turn
+reads their own My vault, never a teammate's. A product that refreshes a
+short-lived token for its user saves it into that user's My vault, with that
+user's own credential, each time it refreshes. A key a whole team shares goes in
+a shared vault the team may use.
+
+### Users your backend signs in with a PlatformClient
+
+The runs of a user signed in through a PlatformClient read no My vault, even
+when the conversation includes it, and even a key that user saved in their own
+My vault themselves. Give each customer one private shared vault instead. Create
+it once, when the customer signs up, with `external_id` set to your own customer
+id, and find it again with that id. A run such a user sends checks that whoever
+attached the vault to the conversation may still use it.
+
+How the vault reaches the conversation depends on the edition:
+
+- **On Stigmer Cloud**, an admin grants **Can use** on the vault to each of that
+  customer's accounts, and your embedded chat names the vault in its `vaults`
+  prop. A user who was not granted it cannot name it: the conversation is
+  refused.
+- **On open source**, roles are granted on the Organization only, so no account
+  holds **Can use** on a single vault, and nobody joins a conversation someone
+  else created. Your backend creates the conversation with the customer's vault
+  and sends the customer's messages itself. To let your users chat directly
+  instead, give each customer a child organization (next section).
+
+### A child organization per customer
+
+The customer's vault lives in their child organization, where only that
+customer's people are members, so **Organization** visibility is safe there: a
+PlatformClient user you mint into the child, and every other member, may use it.
+This works in every edition. Your Organization's admins manage a child but read
+nothing in it, its vaults included, so the vault is created by an admin of the
+child, or by one of your admins after they add themselves to the child, which
+the child's member list shows.
+
+## Put a key in, and rotate it
+
+Create the customer's vault with your id for them, then save the key. A value
+never rides the command line: `set-secret` reads it from a hidden prompt, a
+file, or an environment variable.
+
+```bash
+stigmer vault create "cust-4411 keys" --external-id cust-4411
+stigmer vault set-secret ZENDESK_API_KEY --vault cust-4411-keys --from-env ZENDESK_API_KEY
+```
+
+From your backend, find the vault by your id and save the key into it:
+
+```typescript
+const vault = await stigmer.vault.getByExternalId({
+  org: "acme-helpdesk",
+  externalId: "cust-4411",
+});
+
+await stigmer.vault.setSecrets({
+  vault: {
+    org: "acme-helpdesk",
+    vault: { case: "id", value: vault.metadata!.id },
+  },
+  secrets: { ZENDESK_API_KEY: { value: zendeskKey } },
+});
+```
+
+Then name the vault on every conversation you start for that customer, in the
+Session's `vaults` or the embedded chat's `vaults` prop.
+
+Rotating a key is saving the same name again. Runs keep no copy of a value: each
+reads its vaults when its work starts, so the next run uses the new key, and so
+does a run you [recover](/docs/concepts/vaults#when-the-values-are-read). No
+conversation is sent anything.
+
+## Let a customer sign in to a tool themselves
+
+When the key is the customer's own login to a tool, such as their Slack or their
+Linear, send them a Connect link: a one-time page that saves their sign-in into
+their vault without a Stigmer account. See
+[Connect links for your customers](/docs/concepts/vaults#connect-links-for-your-customers).
+
+## Keys every customer's runs share
+
+A key of your own that every customer's runs use, such as the shared secret of
+your own MCP server, goes in one vault named on the PlatformClient, not in each
+customer's vault. See
+[Give embedded assistants their credentials](/docs/guides/authentication/platform-client/overview#give-embedded-assistants-their-credentials).
+
+## What never goes in a vault
+
+A vault holds keys. A customer's context, such as the project or account they
+have open in your product, is not a key, and Stigmer has no per-conversation
+place for values. Your own MCP server carries that context: it knows who is
+calling from the
+[caller identity](/docs/guides/integrations/caller-identity-for-mcp-servers)
+Stigmer sends it, and looks up the rest in your product. The
+[standing user context](/docs/guides/sharing/embed-an-agent#give-the-agent-standing-user-context)
+an embed passes is neither authorization nor a way to send secrets.
+
+## See where a run's values came from
+
+A run's status lists, in `credentials.sources`, every key the run uses with the
+vault (by ID) and the entry it came from, never the value. Read it to confirm a
+customer's run used that customer's vault.
+
+## Limits
+
+- A conversation names at most 20 vaults.
+- One save writes at most 100 secrets.
+- An `external_id` is unique in its Organization: two vaults cannot claim the
+  same id, even when created at the same moment.
+- `getByExternalId` answers `NOT_FOUND` for a vault the caller may not view, the
+  same as for one that does not exist.
