@@ -88,6 +88,19 @@ export type {
 // .boundOrg), read the one way every consumer shares: a composition's
 // verifier sets the field, and its own lanes read it through this.
 export { boundOrgOf } from "./extensions/identity.js";
+// An organization's service account: its caller class, the one predicate
+// that reads it, and the refusal every edition's membership and credential
+// lanes splice (pipeline/steps/refuse-service-account.ts), so a
+// composition's own lanes (its invitations) hold the same rule.
+export {
+  SERVICE_ACCOUNT_CALLER_CLASS,
+  isServiceAccountCaller,
+} from "./extensions/identity.js";
+export {
+  newRefuseServiceAccountCallerStep,
+  refuseServiceAccountCaller,
+  serviceAccountRefusedMessage,
+} from "./pipeline/steps/refuse-service-account.js";
 // The credential binding (ComposedServices.credentialBinding): the rule
 // that a credential naming an organization works there only, for a
 // composition's own lane that acts on an organization without asking the
@@ -132,6 +145,7 @@ export type { ResolvedExtensionDrivers } from "./extensions/registry.js";
 // tests pin against.
 export type {
   ChildOrganizationLinkedEvent,
+  ServiceAccountLinkedEvent,
   OrganizationAffiliationEvent,
   OrganizationPoliciesChangedEvent,
   PolicyGrantedEvent,
