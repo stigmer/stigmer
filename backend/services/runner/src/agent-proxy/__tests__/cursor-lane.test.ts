@@ -86,7 +86,7 @@ function setEnv(values: Record<string, string | undefined>): void {
 async function startProxy(overrides: Partial<Config> = {}): Promise<void> {
   proxy = await AgentProxy.start(testConfig({ proxyEndpoint: null, cursorApiKey: OPERATOR_KEY, ...overrides }));
   proxy.authorizeHost(HOST_TOKEN);
-  closeTurn = proxy.openTurn({ executionId: EXECUTION, sessionId: "ses-cursor" });
+  closeTurn = proxy.openTurn({ executionId: EXECUTION, threadId: "thread-ses-cursor" });
 }
 
 /** An HTTP/1.1 call to the lane over TLS, trusting its certificate. */
@@ -315,7 +315,7 @@ describe("forward: a runner behind the Stigmer platform's proxy", () => {
     const config: { -readonly [K in keyof Config]: Config[K] } = testConfig({ proxyEndpoint: rest.url, proxyTokenRef: { current: RUNNER_TOKEN } });
     proxy = await AgentProxy.start(config);
     proxy.authorizeHost(HOST_TOKEN);
-    closeTurn = proxy.openTurn({ executionId: EXECUTION, sessionId: "ses-cursor" });
+    closeTurn = proxy.openTurn({ executionId: EXECUTION, threadId: "thread-ses-cursor" });
     const standIn = await exchange();
     config.proxyEndpoint = connectHost.url;
 
