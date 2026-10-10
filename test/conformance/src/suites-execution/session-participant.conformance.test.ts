@@ -14,7 +14,9 @@
 //     report on the run can land;
 //   - that turn records no person: RunStatus.credentials.person is empty,
 //     while the founder's own turn in the same conversation records the
-//     founder.
+//     founder;
+//   - a participant cannot waive the owners' approvals: a turn that sets
+//     auto_approve_all is refused PermissionDenied before anything runs.
 //
 // A role on one conversation is a per-resource grant, so the arm runs only
 // where the edition's grant scope admits one (the hosted edition); an
@@ -26,6 +28,7 @@ import {
   anthropicText,
   type MockLlmProxy,
 } from "@stigmer/test-support/mock-llm";
+import { Code, ConnectError } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { FixtureTracker } from "../harness/fixtures";
@@ -151,13 +154,31 @@ describe("a conversation's participant sends a message", () => {
       ),
     );
 
+    // Approving stays the owners': a participant's auto-approving turn is
+    // refused before anything runs, so the scripted answer below is still
+    // the next turn's.
+    const waived = await member.agentExecutionCommand
+      .create(
+        makeAgentExecution({
+          org: context.org,
+          name: uniqueName("participant-auto-approve"),
+          sessionId,
+          message: "Approve everything for me.",
+          autoApproveAll: true,
+        }),
+      )
+      .then(
+        () => undefined,
+        (error: unknown) => ConnectError.from(error),
+      );
+    expect(waived?.code, "a participant cannot auto-approve").toBe(Code.PermissionDenied);
+
     mock.enqueue(anthropicText("Hello from the participant's turn."));
     const second = await runTurn(member, founder, {
       org: context.org,
       name: uniqueName("participant-turn"),
       sessionId,
       message: "A question from a participant.",
-      autoApproveAll: true,
     });
     expectCompleted(second);
     expect(mock.remaining(), "both scripted turns were consumed").toBe(0);
