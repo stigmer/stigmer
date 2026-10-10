@@ -50,6 +50,10 @@ import type { Authorizer } from "../../extensions/authorizer.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { internalError, notFoundError } from "../../pipeline/errors.js";
+import {
+  newRequireChildOrgsAuthorityOnUpdateStep,
+  newRequireChildOrgsAuthorityStep,
+} from "./child-orgs-authority.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
@@ -209,6 +213,7 @@ async function createAgent(
     .addStep(newValidateProtoStep())
     .addStep(newValidateVisibilityStep())
     .addStep(newRefuseChildOrgsVisibilityInChildStep(deps.store))
+    .addStep(newRequireChildOrgsAuthorityStep(deps.authorizer))
     .addStep(newResolveSlugStep())
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
@@ -423,6 +428,12 @@ async function updateVisibility(
     .addStep(newRecordVisibilityBeforeUpdateStep(UPDATE_VISIBILITY_AGENT_KEY))
     .addStep(newValidateVisibilityUpdateStep())
     .addStep(newRefuseChildOrgsVisibilityInChildUpdateStep(deps.store, UPDATE_VISIBILITY_AGENT_KEY))
+    .addStep(
+      newRequireChildOrgsAuthorityOnUpdateStep(
+        deps.authorizer,
+        UPDATE_VISIBILITY_AGENT_KEY,
+      ),
+    )
     // The reference floor's second door: an agent may not be raised above
     // the skills and MCP servers it runs with.
     .addStep(
