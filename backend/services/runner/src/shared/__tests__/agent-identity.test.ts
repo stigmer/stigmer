@@ -7,7 +7,11 @@
  *    without the layer do not;
  *  - the agent's home is `STIGMER_AGENT_HOME` when set, else the default;
  *  - the agent user and group are appended when missing, left alone when
- *    present, and an id another account holds is refused.
+ *    present, and an id another account holds is refused;
+ *  - the agent's state lives under the agent's home when the runner
+ *    separates, else under this process's `HOME`;
+ *  - a separating runner is ready only when the user, its home and a
+ *    `setpriv` drop all work, and each failure is one line naming its fix.
  */
 
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
@@ -15,7 +19,16 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { AGENT_GID, AGENT_UID, DEFAULT_AGENT_HOME, agentIdentity, ensureAgentUser } from "../agent-identity.js";
+import {
+  AGENT_GID,
+  AGENT_UID,
+  DEFAULT_AGENT_HOME,
+  agentIdentity,
+  agentStateHome,
+  ensureAgentUser,
+  prepareAgentSeparation,
+  setprivArgs,
+} from "../agent-identity.js";
 
 const layer = { STIGMER_RUNNER_LAYER: "1" };
 
@@ -55,5 +68,43 @@ describe("the agent user on a base image the operator brings", () => {
     expect(() => ensureAgentUser(identity, files("root:x:0:0::/root:/bin/sh\nsomeone:x:10001:10001::/home/someone:/bin/sh\n", "root:x:0:\n"))).toThrow(
       "already gives id 10001 to someone; the agent user stigmer-agent needs it for its own",
     );
+  });
+});
+
+describe("the agent's state and the drop to it", () => {
+  const identity = { name: "stigmer-agent", uid: AGENT_UID, gid: AGENT_GID, home: "/data/agent" };
+
+  it("keeps the agent's state under its home when the runner separates, else under HOME", () => {
+    expect(agentStateHome({ platform: "linux", uid: 0, env: { ...layer, HOME: "/root", STIGMER_AGENT_HOME: "/data/agent" } })).toBe("/data/agent");
+    expect(agentStateHome({ platform: "darwin", uid: 501, env: { HOME: "/Users/me" } })).toBe("/Users/me");
+  });
+
+  it("drops with the measured flags: the agent's ids, no groups, no inheritable capabilities, no new privileges", () => {
+    expect(setprivArgs(identity)).toEqual(["--reuid=10001", "--regid=10001", "--clear-groups", "--inh-caps=-all", "--no-new-privs"]);
+  });
+
+  it("is ready only when the user, its home and a setpriv drop all work", () => {
+    const steps: string[] = [];
+    const ok = { ensureUser: () => void steps.push("user"), makeHome: () => void steps.push("home"), probe: (args: readonly string[]) => (steps.push(args.join(" ")), { status: 0, stderr: "" }) };
+    expect(prepareAgentSeparation(identity, ok)).toBeNull();
+    expect(steps).toEqual(["user", "home", "--reuid=10001 --regid=10001 --clear-groups --inh-caps=-all --no-new-privs -- true"]);
+  });
+
+  it("names the fix for each way it cannot drop", () => {
+    const fine = { ensureUser: () => {}, makeHome: () => {} };
+    expect(prepareAgentSeparation(identity, { ...fine, probe: () => ({ status: null, error: new Error("spawnSync setpriv ENOENT"), stderr: "" }) })).toMatch(
+      /^the runner cannot start processes as the agent user: setpriv is missing \(spawnSync setpriv ENOENT\); add util-linux's setpriv to the base image; see /,
+    );
+    expect(prepareAgentSeparation(identity, { ...fine, probe: () => ({ status: 1, stderr: "setpriv: setresuid failed: Operation not permitted\n" }) })).toMatch(
+      /^the runner cannot start processes as the agent user \(setpriv: setresuid failed: Operation not permitted\); the runner needs the SETUID and SETGID capabilities; see /,
+    );
+    expect(
+      prepareAgentSeparation(identity, {
+        ...fine,
+        ensureUser: () => {
+          throw new Error("/etc/passwd already gives id 10001 to someone");
+        },
+      }),
+    ).toMatch(/^the runner cannot prepare the agent user stigmer-agent: \/etc\/passwd already gives id 10001 to someone; see /);
   });
 });

@@ -35,6 +35,7 @@ import type { HarnessRow } from "../harness/registry.js";
 import { AgentProxy } from "../agent-proxy/server.js";
 import { agentHostEnvironment } from "./environment.js";
 import { installAgentFs } from "../shared/agent-fs.js";
+import { agentIdentity, prepareAgentSeparation, type AgentIdentity } from "../shared/agent-identity.js";
 import { createRemoteAdapter } from "./remote-adapter.js";
 import { remoteAgentFs } from "./remote-fs.js";
 import { AgentHostSupervisor, processHostStarter, type HostStarter } from "./supervisor.js";
@@ -51,13 +52,33 @@ export interface HostedHarnesses {
 export interface HostHarnessesOptions {
   /** How the host is started; the tests serve one in-process. Defaults to a child process. */
   readonly start?: HostStarter;
+  /** Who the host runs as; defaults to this process's facts (`shared/agent-identity.ts`). */
+  readonly identity?: AgentIdentity | null;
+  /** How a separating runner that cannot drop to the agent leaves; defaults to `process.exit`. */
+  readonly exit?: (code: number) => void;
+  /** The separation's preparation; the tests stand one in. */
+  readonly prepareSeparation?: (identity: AgentIdentity) => string | null;
 }
+
+/** The exit code of a runner that cannot start its host as the agent: a configuration error, as `layer/start.sh` refuses one. */
+export const SEPARATION_REFUSED_EXIT = 78;
 
 export async function hostHarnesses(
   rows: readonly HarnessRow[],
   config: Config,
   options: HostHarnessesOptions = {},
 ): Promise<HostedHarnesses> {
+  const identity = options.identity === undefined ? agentIdentity() : options.identity;
+  if (identity !== null) {
+    // A container runner never runs the agent's side as root: one that
+    // cannot drop to the agent user stops here, before any harness boots.
+    const refusal = (options.prepareSeparation ?? prepareAgentSeparation)(identity);
+    if (refusal !== null) {
+      console.error(`[agent-host] ${refusal}`);
+      (options.exit ?? process.exit)(SEPARATION_REFUSED_EXIT);
+      throw new Error(refusal);
+    }
+  }
   const proxy = await AgentProxy.start(config);
   const trust = writeTrustedCertificates(proxy.cursorCertificate, process.env.NODE_EXTRA_CA_CERTS);
   const supervisor = new AgentHostSupervisor({

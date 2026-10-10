@@ -19,7 +19,9 @@
  * `/home/stigmer-agent`.
  */
 
-import { appendFileSync, readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { appendFileSync, lchownSync, mkdirSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
 
 /** The agent user a separating runner starts its host as. */
 export interface AgentIdentity {
@@ -53,6 +55,69 @@ export function agentIdentity(facts: ProcessFacts = currentProcessFacts()): Agen
   if (facts.platform !== "linux" || facts.uid !== 0 || facts.env[RUNNER_LAYER_ENV] !== "1") return null;
   const home = facts.env.STIGMER_AGENT_HOME?.trim() || DEFAULT_AGENT_HOME;
   return { name: AGENT_USER, uid: AGENT_UID, gid: AGENT_GID, home };
+}
+
+/**
+ * Where the agent's state lives (`~/.stigmer/sessions`, the HITL gates): the
+ * agent's home in a separating shape, else this process's `HOME`. The
+ * runner names it for the paths it hands the host; the host, started with
+ * that `HOME`, reads the same.
+ */
+export function agentStateHome(facts: ProcessFacts = currentProcessFacts()): string {
+  return agentIdentity(facts)?.home ?? (facts.env.HOME || facts.env.USERPROFILE || homedir());
+}
+
+/**
+ * The `setpriv` arguments that start a process as the agent: its uid and
+ * gid, no supplementary groups, no inheritable capabilities, and
+ * no-new-privileges, so no file capability or set-uid binary re-arms it
+ * (measured in a container with only SETUID and SETGID: uid 10001, every
+ * capability set empty, the runner's `/proc/<pid>/environ` refused).
+ */
+export function setprivArgs(identity: AgentIdentity): readonly string[] {
+  return [`--reuid=${identity.uid}`, `--regid=${identity.gid}`, "--clear-groups", "--inh-caps=-all", "--no-new-privs"];
+}
+
+/**
+ * Ready a separating runner to start its host as the agent: the agent user
+ * exists, its home exists and is the agent's (the directory itself, never
+ * followed or recursed), and `setpriv` can drop to it. Returns `null` when
+ * all hold, else the one line the runner exits 78 with: a container runner
+ * never runs the agent's side as root.
+ */
+export function prepareAgentSeparation(
+  identity: AgentIdentity,
+  io: {
+    readonly ensureUser?: (identity: AgentIdentity) => void;
+    readonly makeHome?: (identity: AgentIdentity) => void;
+    readonly probe?: (args: readonly string[]) => { readonly status: number | null; readonly error?: Error | undefined; readonly stderr: string };
+  } = {},
+): string | null {
+  const guide = "see docs/guides/self-hosting/runners.mdx (the agent user)";
+  try {
+    (io.ensureUser ?? ensureAgentUser)(identity);
+    (io.makeHome ?? makeAgentHome)(identity);
+  } catch (err) {
+    return `the runner cannot prepare the agent user ${identity.name}: ${err instanceof Error ? err.message : String(err)}; ${guide}`;
+  }
+  const probe = (io.probe ?? probeSetpriv)([...setprivArgs(identity), "--", "true"]);
+  if (probe.error !== undefined) {
+    return `the runner cannot start processes as the agent user: setpriv is missing (${probe.error.message}); add util-linux's setpriv to the base image; ${guide}`;
+  }
+  if (probe.status !== 0) {
+    return `the runner cannot start processes as the agent user (${probe.stderr.trim() || `setpriv exited ${probe.status}`}); the runner needs the SETUID and SETGID capabilities; ${guide}`;
+  }
+  return null;
+}
+
+function makeAgentHome(identity: AgentIdentity): void {
+  mkdirSync(identity.home, { recursive: true, mode: 0o700 });
+  lchownSync(identity.home, identity.uid, identity.gid);
+}
+
+function probeSetpriv(args: readonly string[]): { readonly status: number | null; readonly error?: Error | undefined; readonly stderr: string } {
+  const result = spawnSync("setpriv", [...args], { encoding: "utf8", timeout: 10_000 });
+  return { status: result.status, error: result.error, stderr: result.stderr ?? "" };
 }
 
 /**

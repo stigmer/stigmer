@@ -274,6 +274,50 @@ describe("the production starter", () => {
     expect(fileURLToPath(RUNNER_ENTRY_URL).endsWith("main.ts")).toBe(true);
   });
 
+  it("starts the host as the agent user through setpriv, with the agent's home, on a separating runner", () => {
+    const identity = { name: "stigmer-agent", uid: 10001, gid: 10001, home: "/data/agent" };
+    const { command, args, env } = agentHostCommand(process.versions, identity);
+    expect(command).toBe("setpriv");
+    expect(args).toEqual([
+      "--reuid=10001",
+      "--regid=10001",
+      "--clear-groups",
+      "--inh-caps=-all",
+      "--no-new-privs",
+      "--",
+      process.execPath,
+      "--import",
+      "tsx",
+      fileURLToPath(RUNNER_ENTRY_URL),
+      AGENT_HOST_MODE_ARG,
+    ]);
+    expect(env).toEqual({ HOME: "/data/agent" });
+  });
+
+  it("stops a separating runner that cannot drop to the agent with 78, before any harness boots", async () => {
+    const identity = { name: "stigmer-agent", uid: 10001, gid: 10001, home: "/data/agent" };
+    const exits: number[] = [];
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    let started = 0;
+    await expect(
+      hostHarnesses([], testConfig(), {
+        identity,
+        prepareSeparation: () => "the runner cannot start processes as the agent user: setpriv is missing",
+        exit: (code) => void exits.push(code),
+        start: async () => {
+          started += 1;
+          throw new Error("never started");
+        },
+      }),
+    ).rejects.toThrow("setpriv is missing");
+    expect(exits).toEqual([78]);
+    expect(errors).toHaveBeenCalledWith("[agent-host] the runner cannot start processes as the agent user: setpriv is missing");
+    expect(started).toBe(0);
+
+    const ready = await hostHarnesses([], testConfig(), { identity, prepareSeparation: () => null, start: inProcessHosts().start });
+    await ready.close();
+  });
+
   it("starts a real host that announces itself, and ends it when the runner is done", async () => {
     vi.spyOn(console, "log").mockImplementation(() => {});
     const supervisor = new AgentHostSupervisor({ proxy: PROXY, start: processHostStarter(() => ({ ...process.env })), log: () => {} });

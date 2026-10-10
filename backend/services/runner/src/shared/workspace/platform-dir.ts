@@ -19,12 +19,16 @@
 
 import { dirname, join } from "node:path";
 import { agentFs } from "../agent-fs.js";
-import { homedir } from "node:os";
+import { agentStateHome } from "../agent-identity.js";
 import { createHash } from "node:crypto";
 
-/** The runner-owned `~/.stigmer` root (overridable via HOME for tests/sandboxes). */
+/**
+ * The home `~/.stigmer` hangs from: the agent's (`shared/agent-identity.ts`),
+ * which is this process's `HOME` unless the runner separates (overridable
+ * via HOME for tests/sandboxes).
+ */
 function getStigmerHome(): string {
-  return process.env.HOME || process.env.USERPROFILE || homedir();
+  return agentStateHome();
 }
 
 /** Root of a session's runner-owned directory tree (outside the workspace). */

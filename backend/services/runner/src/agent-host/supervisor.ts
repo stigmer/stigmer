@@ -39,6 +39,7 @@ import { fileURLToPath } from "node:url";
 import type { Config } from "../config.js";
 import type { HarnessName } from "../harness/registry.js";
 import { RUNNER_ENTRY_URL } from "../runner-entry.js";
+import { agentIdentity, setprivArgs, type AgentIdentity } from "../shared/agent-identity.js";
 import { Peer, streamChannel, type LineChannel } from "./channel.js";
 import {
   AGENT_HOST_CHANNEL_FD,
@@ -354,19 +355,23 @@ export function spawnHostProcess(
  * as Node only with `ELECTRON_RUN_AS_NODE` (the hook script's precedent,
  * `activities/execute-cursor/hook-script.ts`). The host drops it again at
  * start (`entry.ts`), so an Electron app an agent runs behaves as usual.
+ *
+ * A separating runner (`shared/agent-identity.ts`) starts it through
+ * `setpriv` as the agent user, with the agent's home as `HOME`: the one
+ * place the runner drops privilege. Everything the host starts inherits it.
  */
 export function agentHostCommand(
   versions: NodeJS.ProcessVersions = process.versions,
+  identity: AgentIdentity | null = agentIdentity(),
 ): { readonly command: string; readonly args: readonly string[]; readonly env: Readonly<Record<string, string>> } {
   const entry = fileURLToPath(RUNNER_ENTRY_URL);
   // Running from source (the tests' spawned hosts, `npm start`): the entry
   // is TypeScript, loaded the way the runner itself was.
   const loader = entry.endsWith(".ts") ? ["--import", "tsx"] : [];
-  return {
-    command: process.execPath,
-    args: [...loader, entry, AGENT_HOST_MODE_ARG],
-    env: versions.electron === undefined ? {} : { ELECTRON_RUN_AS_NODE: "1" },
-  };
+  const node = [process.execPath, ...loader, entry, AGENT_HOST_MODE_ARG];
+  const runtime: Readonly<Record<string, string>> = versions.electron === undefined ? {} : { ELECTRON_RUN_AS_NODE: "1" };
+  if (identity === null) return { command: node[0]!, args: node.slice(1), env: runtime };
+  return { command: "setpriv", args: [...setprivArgs(identity), "--", ...node], env: { ...runtime, HOME: identity.home } };
 }
 
 function relayLines(stream: Readable, write: (line: string) => void): void {
