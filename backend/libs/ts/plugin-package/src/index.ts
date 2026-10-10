@@ -62,12 +62,21 @@ export { hasMarketplaceFile, readMarketplace, readMarketplaceFile } from "./mark
 export { readPluginPackage } from "./read-plugin-package.js";
 export {
   DEFAULT_EVAL_DIR,
+  EVAL_MAX_APPEND_SYSTEM_PROMPT,
   EVAL_MAX_GRADERS,
   EVAL_UNSUPPORTED_FEATURES,
   type EvalUnsupportedFeature,
   readEvalSuite,
 } from "./evals/read-eval-suite.js";
 export { EVAL_ENV_KEY_PATTERN, EVAL_SCHEMA_VERSION } from "./evals/fields.js";
+export {
+  EVAL_SUMMARY_MAX_CASES,
+  EVAL_SUMMARY_MAX_FINDINGS,
+  EVAL_SUMMARY_MAX_PATH,
+  type EvalSuiteSummary,
+  type EvalSuiteSummaryCase,
+  summariseEvalSuite,
+} from "./evals/summary.js";
 export { GLOB_MAX_ALTERNATIVES, GLOB_MAX_BRACE_DEPTH, GLOB_MAX_LENGTH, GLOB_MAX_TOKENS, globError } from "./evals/glob.js";
 export type {
   EvalCase,

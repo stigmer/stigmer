@@ -3,8 +3,9 @@
  * files the install reads, it rides the plan as `evals` (never a warning,
  * never a refusal), is absent when the plugin has no eval directory, and
  * maps field for field onto `PluginEvalSuite` with its tags sorted and
- * unique, each case's unsupported feature, and every finding as a
- * `PluginWarning`. `evals/` is no longer a `component-ignored` warning.
+ * unique, each case's unsupported feature, and each finding as a
+ * `PluginWarning`, at most 200 cases and 50 findings stored while the case
+ * count counts every case (the library pins the path cut). `evals/` is no longer a `component-ignored` warning.
  */
 import { describe, expect, it } from "vitest";
 
@@ -143,6 +144,22 @@ describe("the eval suite on the install plan", () => {
     expect(suite.findings.map((f) => [f.kind, f.path])).toEqual([
       ["eval-dir-invalid", ".claude-plugin/plugin.json"],
     ]);
+  });
+
+  it("stores at most 200 cases and 50 findings, counting every case", () => {
+    const files: Record<string, string> = {};
+    for (let i = 0; i < 210; i += 1) {
+      files[`evals/c${String(i).padStart(3, "0")}/prompt.md`] = "Hi.";
+      files[`evals/c${String(i).padStart(3, "0")}/graders/judge.md`] = JUDGE;
+    }
+    for (let i = 0; i < 55; i += 1) {
+      files[`evals/x${String(i).padStart(2, "0")}/prompt.md`] = "---\nfoo: 1\n---\nHi.";
+      files[`evals/x${String(i).padStart(2, "0")}/graders/judge.md`] = JUDGE;
+    }
+    const suite = evalSuiteOf(plan(greeter(files)).evals!);
+    expect(suite.caseCount).toBe(210);
+    expect(suite.cases).toHaveLength(200);
+    expect(suite.findings).toHaveLength(50);
   });
 
   it("is read from the files alone", () => {
