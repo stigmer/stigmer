@@ -10,7 +10,8 @@
 //     plugin, two tries each, ends completed with its aggregates: the
 //     with-arm tries run on the plugin's composed agent and read its skill,
 //     the without-arm tries run on the assistant and are offered no skill;
-//     a `tool_used: Skill` grader is an indicator only, a `regex` grader on
+//     a `tool_used: Skill` grader is an indicator only (its reason says it
+//     passed on the with-arm and failed on the without), a `regex` grader on
 //     the last message scores, `Δ` is computed and marked provisional;
 //   - each try's run carries one Score, source eval, one criterion per
 //     grader, the indicator `not_applicable`;
@@ -314,7 +315,9 @@ describe("PluginEval — a suite with and without the plugin", () => {
       const [saysDone, skillFired] = score.spec!.criteria;
       expect(saysDone?.result).toBe(located.arm === "with" ? CriterionResult.passed : CriterionResult.failed);
       expect(skillFired?.result).toBe(CriterionResult.not_applicable);
-      expect(skillFired?.reason.startsWith(INDICATOR_ONLY_REASON)).toBe(true);
+      // The indicator's own verdict rides in its reason: the with-arm's skill read is the Skill call.
+      const indicated = located.arm === "with" ? "passed" : "failed";
+      expect(skillFired?.reason.startsWith(`${INDICATOR_ONLY_REASON}; ${indicated}: `), skillFired?.reason).toBe(true);
       expect(score.spec?.value).toEqual({ case: "passed", value: located.arm === "with" });
 
       // Out of the conversation list, read by id.
