@@ -21,8 +21,8 @@
  *      (docs/vocabulary.md), so the name is the signal; a reference's
  *      `org` and a resource's `metadata.org` are both covered;
  *   2. the field a method's authorization annotation names when its kind
- *      is `organization` (an Organization's own id on get, update, delete
- *      and rename);
+ *      is `organization` (an Organization's own id on get, update,
+ *      updatePolicies, delete and rename);
  *   3. `ApiResourceRef.id` when the ref's kind is `organization` (a policy
  *      grant on an organization).
  *

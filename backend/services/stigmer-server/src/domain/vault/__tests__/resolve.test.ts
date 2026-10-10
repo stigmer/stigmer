@@ -51,7 +51,11 @@
  *     decryption error, never its ciphertext passed on; a value the run
  *     does not carry is never decrypted;
  *   - the connect lane: the connecting person's My vault only, none for a
- *     caller who is no person, never a shared vault.
+ *     caller who is no person, never a shared vault;
+ *   - a participant's turn (no person; a sender who is not the
+ *     conversation's creator): only the conversation's own vaults, checked
+ *     for their attacher; nobody's My vault and never a surface's; told to
+ *     ask the creator by name; recognised from the two creator stamps.
  */
 import { randomBytes } from "node:crypto";
 
@@ -100,6 +104,7 @@ import {
   SignInRenewalError,
   loginKeyOf,
   newVaultResolver,
+  participantSenderOf,
   runRequirements,
 } from "../resolve.js";
 import type { SignInFreshener, VaultResolver } from "../resolve.js";
@@ -227,6 +232,7 @@ function sessionOf(init: {
   repo?: { url: string; token?: string };
   labels?: Record<string, string>;
   attachers?: Record<string, string>;
+  creator?: { id: string; displayName?: string };
 } = {}): Session {
   return create(SessionSchema, {
     metadata: { id: "ses_resolve", org: ORG, labels: init.labels ?? {} },
@@ -248,7 +254,12 @@ function sessionOf(init: {
               },
             ],
     },
-    status: { vaultAttachers: init.attachers ?? {} },
+    status: {
+      vaultAttachers: init.attachers ?? {},
+      ...(init.creator === undefined
+        ? {}
+        : { audit: { specAudit: { createdBy: init.creator } } }),
+    },
   });
 }
 
@@ -256,6 +267,7 @@ function runOf(init: {
   person?: string;
   labels?: Record<string, string>;
   platformClientId?: string;
+  sender?: string;
 } = {}): Run {
   return create(RunSchema, {
     metadata: { id: "run_resolve", org: ORG, labels: init.labels ?? {} },
@@ -263,7 +275,7 @@ function runOf(init: {
       credentials: init.person === undefined ? {} : { person: init.person },
       audit: {
         specAudit: {
-          createdBy: { id: "ida_x", platformClientId: init.platformClientId ?? "" },
+          createdBy: { id: init.sender ?? "ida_x", platformClientId: init.platformClientId ?? "" },
         },
       },
     },
@@ -2352,4 +2364,81 @@ describe("a stored value the server cannot open", () => {
       expect(failure.message).not.toContain(SEALED_PLAINTEXT);
     },
   );
+});
+
+describe("a participant's turn", () => {
+  async function bensVault(secrets: Record<string, string>): Promise<void> {
+    const ben = testCallerIdentity({ identityId: BEN });
+    const mine = await rig.vaults.ensureMine(ORG, ben);
+    await rig.vaults.setSecrets(
+      mine.metadata!.id,
+      Object.fromEntries(
+        Object.entries(secrets).map(([name, value]) => [name, { value, description: "" }]),
+      ),
+      ben,
+    );
+  }
+
+  it("reads only the conversation's vaults, checked for their attacher: nobody's My vault and never a surface's", async () => {
+    await anasVault({ A: "ana-mine" });
+    await bensVault({ A: "ben-mine" });
+    const team = await seedSharedVault(rig.store, ORG, "team", { secrets: { B: "team" } });
+    const share = await seedSharedVault(rig.store, ORG, "share-keys", { secrets: { A: "share" } });
+    await rig.store.saveResource(
+      ApiResourceKind.agent_share,
+      "shr_link",
+      AgentShareSchema,
+      create(AgentShareSchema, {
+        metadata: { id: "shr_link", name: "link", org: ORG },
+        spec: { vaults: [vaultRef("share-keys")] },
+        status: { vaultAttachers: { [share.metadata!.id]: ADMIN } },
+      }),
+    );
+    mayUse.add(`${ANA}:${team.metadata!.id}`);
+    mayUse.add(`${ADMIN}:${share.metadata!.id}`);
+    expect(
+      await resolve({
+        run: runOf({ sender: BEN }),
+        session: sessionOf({
+          vaults: ["team"],
+          includeMyVault: true,
+          attachers: { [team.metadata!.id]: ANA },
+          labels: { [SHARE_ID_LABEL_KEY]: "shr_link" },
+          creator: { id: ANA },
+        }),
+        agentSpec: agent({ A: { isSecret: true, optional: true }, B: KEY }),
+      }),
+    ).toEqual({ B: "team" });
+  });
+
+  it("is told to ask the conversation's creator, by name when the row has one", async () => {
+    const named = await refusal(
+      resolve({
+        run: runOf({ sender: BEN }),
+        session: sessionOf({ creator: { id: ANA, displayName: "Ana" } }),
+        agentSpec: agent({ A: KEY }),
+      }),
+    );
+    expect(named.rawMessage).toBe(
+      "the agent Helper needs A: ask Ana to list a vault that holds A on the conversation",
+    );
+    const unnamed = await refusal(
+      resolve({
+        run: runOf({ sender: BEN }),
+        session: sessionOf({ creator: { id: ANA } }),
+        agentSpec: agent({ A: KEY }),
+      }),
+    );
+    expect(unnamed.rawMessage).toBe(
+      "the agent Helper needs A: ask the conversation's owner to list a vault that holds A on the conversation",
+    );
+  });
+
+  it("is recognised from the stamps: a run with no person whose sender is not the conversation's creator", () => {
+    const session = sessionOf({ creator: { id: ANA } });
+    expect(participantSenderOf(runOf({ sender: BEN }), session)).toBe(BEN);
+    expect(participantSenderOf(runOf({ sender: ANA }), session)).toBeUndefined();
+    expect(participantSenderOf(runOf({ sender: BEN, person: BEN }), session)).toBeUndefined();
+    expect(participantSenderOf(runOf({ sender: BEN }), sessionOf())).toBeUndefined();
+  });
 });

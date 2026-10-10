@@ -46,6 +46,20 @@
  * is its own person's: a second person's turn never reads the first's. A
  * turn with no person ignores it.
  *
+ * A participant's turn (a person the conversation is shared with sends a
+ * message into it) records no person: the run's person is stamped only
+ * for the conversation's creator (domain/run/plan-run-values-step.ts
+ * StampRunCredentials), so nobody's personal logins serve it, neither the
+ * sender's (they would enter the creator's workspace) nor the creator's
+ * (the sender would act as them). It reads only the vaults the
+ * conversation names, each checked for the account that attached it, never
+ * a surface's: a conversation that began through a chat link must not
+ * hand a participant the vaults its owner attached for the link's
+ * visitors. It is told to ask the conversation's creator, who may edit
+ * the conversation, and its value reads are attributed to its sender. A
+ * participant's turn is recognised from the stamps: no person, and the
+ * run's creator is not the conversation's (`participantSenderOf`).
+ *
  * Every vault a run names is checked when the run is planned and again
  * when its values are opened: `can_use` for the run's person, or, for a
  * run with no person, for the account recorded as having attached it (the
@@ -265,6 +279,7 @@ type WhoActs =
   | { readonly kind: "person"; readonly includesMyVault: boolean; readonly listsVaults: boolean }
   | { readonly kind: "foreignAgent" }
   | { readonly kind: "surface"; readonly what: string }
+  | { readonly kind: "participant"; readonly creator: string }
   | { readonly kind: "none" };
 
 export interface VaultResolverDeps {
@@ -325,6 +340,33 @@ export function runPersonOfCaller(caller: CallerIdentity): string | undefined {
 /** The person a stored run recorded, or undefined for a run no person sent. */
 export function recordedRunPerson(execution: Run): string | undefined {
   return execution.status?.credentials?.person;
+}
+
+/**
+ * The sender of a participant's turn (the module header), or undefined for
+ * any other run: a run that recorded no person, whose creator stamp names
+ * someone other than the conversation's creator (a conversation that
+ * records no creator has none to compare). A surface's run (a guest,
+ * a channel, a schedule, a platform client's user) is created by the same
+ * account that created its conversation, so it is never one.
+ */
+export function participantSenderOf(
+  execution: Run,
+  session: Session,
+): string | undefined {
+  if (recordedRunPerson(execution) !== undefined) {
+    return undefined;
+  }
+  const sender = execution.status?.audit?.specAudit?.createdBy?.id ?? "";
+  const creator = session.status?.audit?.specAudit?.createdBy?.id ?? "";
+  return sender !== "" && creator !== "" && sender !== creator ? sender : undefined;
+}
+
+/** The conversation's creator in a sentence: their name, or a role when the row has none. */
+function creatorLabel(session: Session): string {
+  const creator = session.status?.audit?.specAudit?.createdBy;
+  const name = creator?.displayName || creator?.email || "";
+  return name === "" ? "the conversation's owner" : name;
 }
 
 // ---------------------------------------------------------------------------
@@ -589,6 +631,8 @@ function whoActsSentence(requirement: Requirement, who: WhoActs): string {
       return `ask the owner of ${who.what} to attach a vault that holds ${requirement.key}`;
     case "none":
       return `list a vault that holds ${requirement.key} on the conversation`;
+    case "participant":
+      return `ask ${who.creator} to list a vault that holds ${requirement.key} on the conversation`;
     case "foreignAgent":
       return `add ${requirement.key} to one of this conversation's vaults: an agent of another organization never reads My vault`;
     case "person":
@@ -967,6 +1011,10 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
         }
       }
       sources.push(...(await namedSources(named, person, RunValueOrigin.VAULT)));
+    } else if (participantSenderOf(execution, stored) !== undefined) {
+      // A participant's turn: the conversation's own vaults, never a surface's.
+      sources.push(...(await namedSources(named, undefined, RunValueOrigin.VAULT)));
+      who = { kind: "participant", creator: creatorLabel(stored) };
     } else {
       sources.push(...(await namedSources(named, undefined, RunValueOrigin.VAULT)));
       const surface = await surfaceOf(execution, stored);
@@ -991,7 +1039,8 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
   /**
    * The vaults a stored run may read now, by id: My vault while the
    * conversation still includes it, each vault the conversation (or, for a
-   * run with no person, its surface) still names, each checked again.
+   * run with no person that is no participant's, its surface) still names,
+   * each checked again.
    */
   function runScopeVaults(
     execution: Run,
@@ -1013,7 +1062,7 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
           }
         };
         await add(await sessionNamed(stored, person, executionOrg), RunValueOrigin.VAULT);
-        if (person === undefined) {
+        if (person === undefined && participantSenderOf(execution, stored) === undefined) {
           const surface = await surfaceOf(execution, stored);
           if (surface !== undefined) {
             await add(surface.named, RunValueOrigin.SURFACE_VAULT);
@@ -1227,7 +1276,11 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
     const values = await open(entries, {
       vaultFor: runScopeVaults(execution, stored, person),
       repositoryTokens: own.repositoryTokens,
-      actor: serverActingFor(person ?? "system"),
+      // A participant's turn records no person, yet someone asked: the
+      // decrypt trail names its sender rather than the server.
+      actor: serverActingFor(
+        person ?? participantSenderOf(execution, stored) ?? "system",
+      ),
     });
     logger.info("Opened run values", {
       executionId: execution.metadata?.id ?? "",

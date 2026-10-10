@@ -65,6 +65,7 @@ import type { VaultResolver } from "../vault/resolve.js";
 import { runPersonOfCaller } from "../vault/resolve.js";
 
 import type { AgentLoader } from "./create-steps.js";
+import { storedSessionOf } from "./session-binding.js";
 import { sessionIdOf } from "./target.js";
 
 export { SCHEDULE_ID_LABEL_KEY } from "../vault/resolve.js";
@@ -88,7 +89,15 @@ export interface RunValuePlannerDeps {
 
 /**
  * StampRunCredentials: records whose turn this is, once, at create, by the
- * platform's one rule for a first-party human operator. Runs after the
+ * platform's one rule for a first-party human operator, and only when that
+ * person is the conversation's creator. A person the conversation is
+ * shared with (a participant) sends turns that record no person, so they
+ * run on nobody's personal logins, only the vaults the conversation names
+ * (domain/vault/resolve.ts, the module header). A new conversation is the
+ * sender's own; a continued one is compared by its creator stamp, read
+ * from the stored session ValidateSessionOrganization recorded. A stamp
+ * that does not name the sender's account id (a row stamped before
+ * accounts existed) records no person: it fails closed. Runs after the
  * status is built and before the plan is: the planner reads it from the
  * run, here and on recover. A client-sent value, its sources included, is
  * discarded.
@@ -98,7 +107,13 @@ export function newStampRunCredentialsStep(): PipelineStep<typeof RunSchema> {
     name: "StampRunCredentials",
     execute(ctx) {
       const execution = ctx.newState;
-      const person = runPersonOfCaller(ctx.callerIdentity);
+      const sender = runPersonOfCaller(ctx.callerIdentity);
+      const stored = storedSessionOf(ctx);
+      const person =
+        stored === undefined ||
+        (stored.status?.audit?.specAudit?.createdBy?.id ?? "") === sender
+          ? sender
+          : undefined;
       (execution.status ??= create(RunStatusSchema)).credentials = create(
         RunCredentialsSchema,
         person === undefined ? {} : { person },
