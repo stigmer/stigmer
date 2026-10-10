@@ -26,7 +26,7 @@
  */
 
 import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 
 import type { Config } from "../config.js";
@@ -35,6 +35,7 @@ import type { HarnessRow } from "../harness/registry.js";
 import { AgentProxy } from "../agent-proxy/server.js";
 import { agentHostEnvironment } from "./environment.js";
 import { installAgentFs } from "../shared/agent-fs.js";
+import { handOverToAgent } from "../shared/agent-handover.js";
 import { agentIdentity, prepareAgentSeparation, type AgentIdentity } from "../shared/agent-identity.js";
 import { createRemoteAdapter } from "./remote-adapter.js";
 import { remoteAgentFs } from "./remote-fs.js";
@@ -72,7 +73,7 @@ export async function hostHarnesses(
   if (identity !== null) {
     // A container runner never runs the agent's side as root: one that
     // cannot drop to the agent user stops here, before any harness boots.
-    const refusal = (options.prepareSeparation ?? prepareAgentSeparation)(identity);
+    const refusal = (options.prepareSeparation ?? ((who: AgentIdentity) => prepareAgentSeparation(who) ?? handOver(who, config.workspaceRootDir)))(identity);
     if (refusal !== null) {
       console.error(`[agent-host] ${refusal}`);
       (options.exit ?? process.exit)(SEPARATION_REFUSED_EXIT);
@@ -106,6 +107,21 @@ export async function hostHarnesses(
       trust.remove();
     },
   };
+}
+
+/**
+ * Hand the agent its files on a separating runner's first boot
+ * (`shared/agent-handover.ts`), and its workspace root on every boot;
+ * `null` when done, else the line the runner refuses to start with.
+ */
+function handOver(identity: AgentIdentity, workspaceRoot: string): string | null {
+  try {
+    const result = handOverToAgent(identity, { runnerHome: process.env.HOME || homedir(), workspaceRoot });
+    if (result.firstTime) console.log(`[agent-host] handed the agent's files to ${identity.name}${result.moved.length > 0 ? ` (moved ${result.moved.join(", ")})` : ""}`);
+    return null;
+  } catch (err) {
+    return `the runner cannot hand the agent user its files: ${err instanceof Error ? err.message : String(err)}`;
+  }
 }
 
 /** The pool member's log line for a warm-up's result. */
