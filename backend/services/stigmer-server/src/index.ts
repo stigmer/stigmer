@@ -367,6 +367,9 @@ export { PluginEvalCallerRefusedError } from "./extensions/plugin-eval-caller.js
 // The predicate and label that tell a plugin eval's runs apart, for a
 // composition that treats them differently (the hosted edition's lane).
 export { PLUGIN_EVAL_LABEL } from "./domain/plugin-eval/constants.js";
+// The membership label install stamps on a plugin's parts (its composed
+// agent among them), so a composition can find what a plugin installed.
+export { PLUGIN_LABEL } from "./pipeline/apiresource-labels.js";
 export { isPluginEvalRun } from "./domain/plugin-eval/plugin-eval-run.js";
 // The one predicate that tells an AI judge run apart (its reserved label),
 // for a composition that treats judge runs differently.
