@@ -16,8 +16,8 @@
  * display name, no warnings at all); a struck entry has no folder;
  * `NOTICE` and `marketplace.json` are exactly what the sync derives from
  * the pins and the tree, so it names no entry a client installs unasked;
- * no plugin carries the retired default-agent label; every agent overlay
- * names its own plugin. There
+ * no plugin carries an `ai.stigmer/` folder, which Stigmer no longer reads
+ * (install would warn about it and drop it). There
  * are no snapshot files: a change in what the catalogue offers is a change
  * someone wrote down here.
  */
@@ -28,7 +28,6 @@ import { join } from "node:path";
 import { comparePaths, readMarketplace, type PluginPackage } from "@stigmer/plugin-package";
 import { preparePluginFromTree } from "@stigmer/plugin-package/client";
 import { describe, expect, it } from "vitest";
-import { parse as parseYaml } from "yaml";
 
 import { asPluginFiles, listDirectory, subtree } from "../scripts/lib/candidates.js";
 import { CATALOGUE_ROOT, pluginFolders } from "../scripts/lib/catalogue-tree.js";
@@ -38,8 +37,6 @@ import { renderNotice } from "../scripts/sync/notice.js";
 import { marketplaceOrder } from "../scripts/sync/plan.js";
 import { listTree } from "../scripts/sync/tree.js";
 
-/** The label the retired default-agent lookup read; a plugin that carries it is a stale copy of that era. */
-const DEFAULT_AGENT_LABEL = "stigmer.ai/default-agent";
 const AUTHOR = "Stigmer";
 /** Guide files a vendored tree must not carry: the repository's guidance gate would read one as law. */
 const GUIDE_FILES: ReadonlySet<string> = new Set(["AGENTS.md", "CLAUDE.md"]);
@@ -161,27 +158,9 @@ describe("every authored plugin", () => {
   }
 });
 
-interface AgentOverlay {
-  readonly dir: string;
-  readonly metadata: { readonly name?: string; readonly visibility?: string; readonly labels?: Record<string, string> };
-}
-
-const overlays: AgentOverlay[] = marketplace.plugins.flatMap((entry) => {
-  const path = join(CATALOGUE_ROOT, entry.dir, "ai.stigmer", "agent.yaml");
-  if (!existsSync(path)) return [];
-  const document = parseYaml(readFileSync(path, "utf8")) as { metadata?: AgentOverlay["metadata"] };
-  return [{ dir: entry.dir, metadata: document.metadata ?? {} }];
-});
-
-describe("the agent overlays", () => {
-  it("each names its own plugin (the server refuses an overlay that describes another resource)", () => {
-    for (const overlay of overlays) {
-      expect(overlay.metadata.name, `${overlay.dir}/ai.stigmer/agent.yaml`).toBe(overlay.dir);
-    }
-  });
-
-  it("none carries the retired default-agent label: no plugin is a platform default", () => {
-    const labeled = overlays.filter((overlay) => overlay.metadata.labels?.[DEFAULT_AGENT_LABEL] === "true");
-    expect(labeled.map((overlay) => overlay.dir)).toEqual([]);
+describe("Stigmer's own folder", () => {
+  it("no plugin carries an ai.stigmer/ folder: Stigmer reads none, and install would warn about it", () => {
+    const carrying = marketplace.plugins.filter((entry) => existsSync(join(CATALOGUE_ROOT, entry.dir, "ai.stigmer")));
+    expect(carrying.map((entry) => entry.dir)).toEqual([]);
   });
 });

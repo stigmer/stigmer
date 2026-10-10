@@ -10,8 +10,8 @@ Read this before proposing a new concept, a new layer or a new copy of anything.
   applies a definition and the platform reconciles it. Names are the ubiquitous
   language: an Agent is a blueprint, a Run is one run, a Session is a
   conversation context. Never introduce a synonym.
-- Blueprints and runtime are separated by a hard line. Agent, McpServer and
-  Skill definitions carry no secrets and no environment-specific values;
+- Blueprints and runtime are separated by a hard line. Agent, Skill and
+  Plugin definitions carry no secrets and no environment-specific values;
   AgentInstance, Session and runs do. A design that bleeds runtime state into a
   blueprint is wrong.
 - The contract comes first and is generated outward. `apis/` is the single
