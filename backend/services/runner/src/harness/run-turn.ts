@@ -47,7 +47,6 @@ import type { StigmerClient } from "../client/stigmer-client.js";
 import type { NormalizedActivityInput } from "../shared/activity-input.js";
 import { loadArtifactStorageConfig, resolveUsableArtifactStorage } from "../shared/artifact-storage.js";
 import { TimingRecorder } from "../shared/cold-start-timing.js";
-import { costCapExceeded } from "../shared/cost-guard.js";
 import { runWithExecutionContext } from "../shared/execution-context.js";
 import { startHeartbeat } from "../shared/heartbeat.js";
 import { describeExecutionError } from "../shared/model-error.js";
@@ -88,7 +87,8 @@ import { TranscriptBuilder } from "./transcript/builder.js";
 import { resolveTurnContext, type ResolutionDeps, type TurnFrame, type TurnSettlement } from "./turn-context.js";
 import { TurnTimeline } from "./turn-timeline.js";
 import type { HarnessAdapter, TurnInput, TurnSink } from "./types.js";
-import { UsageAccumulator } from "./usage-accumulator.js";
+import { CostCapWatch } from "./cost-cap-watch.js";
+import type { UsageAccumulator } from "./usage-accumulator.js";
 
 /**
  * Interval of the activity-wide periodic heartbeat. Started before any phase
@@ -172,7 +172,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
   // as it appends), the adapter (`sink.transcript`), and the epilogue. One
   // constructor call per turn; a second builder over the same status would
   // index the same rows twice. The timeline is its observer.
-  const transcript = new TranscriptBuilder(executionId, status, (event) => timeline.observe(event));
+  const transcript = new TranscriptBuilder(executionId, status, (event, at) => timeline.observe(event, at));
 
   // Cold-start timeline of this turn's setup: one mark after each phase, the
   // adapter's own segments marked through the sink, emitted by the adapter
@@ -309,7 +309,8 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
 
   async function runEngineTurn(turn: TurnInput): Promise<Settled> {
     const maxCostUsd = turn.execution.status?.runConfig?.maxCostUsd ?? 0;
-    const accumulator = new UsageAccumulator(turn.model.serviceTier, turn.model.thinkingMode);
+    const costCap = new CostCapWatch(maxCostUsd, turn.model.serviceTier, turn.model.thinkingMode);
+    const accumulator = costCap.accumulator;
     usage = accumulator;
 
     // The stall watchdog: the periodic heartbeat proves the process is alive,
@@ -338,15 +339,13 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
         armedWatchdog.recordActivity();
       },
       reportUsage: (delta) => {
-        accumulator.addTurn(delta);
         // max_cost_usd enforcement (cost-guard.ts): the running estimate only
         // advances here, so this is the single check point; the abort is how
         // the adapter learns to end its run.
-        const estimated = accumulator.snapshot().estimatedCostUsd;
-        if (!stop.evidence.costCapExceeded && costCapExceeded(maxCostUsd, estimated)) {
+        if (costCap.add(delta)) {
           console.warn(
             `${activityName} cost cap exceeded: execution=${executionId}, ` +
-              `estimatedCostUsd=${estimated.toFixed(4)}, maxCostUsd=${maxCostUsd.toFixed(2)}`,
+              `estimatedCostUsd=${accumulator.snapshot().estimatedCostUsd.toFixed(4)}, maxCostUsd=${maxCostUsd.toFixed(2)}`,
           );
           stop.stop({ kind: "cost-cap" });
         }

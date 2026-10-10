@@ -57,6 +57,7 @@ export const REGISTRY_RETRY_POLICY: FetchRetryPolicy = {
  * fetches. See module doc for the tier order.
  */
 export function resolveRegistryBaseUrl(env: NodeJS.ProcessEnv = process.env): string {
+  if (agentProxyRoute) return agentProxyRoute.baseUrl;
   const override = env.STIGMER_CLOUD_API_URL;
   if (override) return normalizeEndpoint(override);
 
@@ -78,8 +79,27 @@ export function resolveRegistryBaseUrl(env: NodeJS.ProcessEnv = process.env): st
 export function buildRegistryHeaders(
   env: NodeJS.ProcessEnv = runnerSecretsEnvView(),
 ): Record<string, string> {
+  if (agentProxyRoute) return { Authorization: `Bearer ${agentProxyRoute.token}` };
   const token = env.STIGMER_TOKEN ?? env.STIGMER_AUTH_TOKEN;
   return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+/**
+ * The agent host's route (#2016): the host holds no control-plane address
+ * or credential, so its registry reads go to the runner's local proxy,
+ * which forwards them with the runner's own (`agent-proxy/`). Set once by
+ * the host; it outranks every tier above. A process that never calls this
+ * resolves as the module header says.
+ */
+let agentProxyRoute: { readonly baseUrl: string; readonly token: string } | undefined;
+
+export function routeRegistryThrough(proxyEndpoint: string, token: string): void {
+  agentProxyRoute = { baseUrl: normalizeEndpoint(proxyEndpoint), token };
+}
+
+/** Test-only: forget the agent host's route. */
+export function resetRegistryRouteForTests(): void {
+  agentProxyRoute = undefined;
 }
 
 /** Full URL of the model registry endpoint for the resolved control plane. */

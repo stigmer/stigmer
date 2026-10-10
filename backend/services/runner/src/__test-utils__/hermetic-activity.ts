@@ -280,6 +280,34 @@ export class ExecutionRecord {
     });
   }
 
+  /**
+   * Resolves once every one of `ids` is a row, in any state, in a status the
+   * activity has persisted. The barrier {@link whenToolCallsSettled} gives
+   * a turn that answers results, for a turn that runs beside a call still
+   * running (a sub-agent's first turn, inside its parent's call); bounded
+   * the same way.
+   */
+  whenToolCallsSeen(ids: readonly string[], timeoutMs = 10_000): Promise<void> {
+    const unseen = (): string[] => {
+      const seen = new Set(this.toolCalls().map((tc) => tc.id));
+      return ids.filter((id) => !seen.has(id));
+    };
+    if (unseen().length === 0) return Promise.resolve();
+    return new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.persistListeners.delete(check);
+        reject(new Error(`ExecutionRecord: tool call(s) ${unseen().join(", ")} never appeared in a persisted status within ${timeoutMs} ms`));
+      }, timeoutMs);
+      const check = (): void => {
+        if (unseen().length > 0) return;
+        clearTimeout(timer);
+        this.persistListeners.delete(check);
+        resolve();
+      };
+      this.persistListeners.add(check);
+    });
+  }
+
   /** The ids of every row not RUNNING in the held status, across the root and every sub-agent transcript. */
   private settledToolCallIds(): Set<string> {
     const out = new Set<string>();

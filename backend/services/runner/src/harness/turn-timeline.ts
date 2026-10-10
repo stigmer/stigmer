@@ -127,9 +127,8 @@ export class TurnTimeline {
     this.clock = clock;
   }
 
-  /** The builder's observer: place one folded event on the timeline. */
-  observe(event: TranscriptEvent): void {
-    const at = this.clock.now();
+  /** The builder's observer: place one folded event on the timeline, at `at` when the fold happened earlier (a relayed event). */
+  observe(event: TranscriptEvent, at: number = this.clock.now()): void {
     this.noteEvent(at);
 
     // Root scope only: a sub-agent's tokens stream into its own row, not the

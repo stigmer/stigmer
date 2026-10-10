@@ -197,18 +197,22 @@ export type ExecuteDeepAgentFn = (arg0: ExecuteActivityInput | string, arg1?: st
 export type ActivityFactory = (config: Config) => Promise<ExecuteDeepAgentFn>;
 
 /**
- * The adapter through the registry: `createDeepAgentAdapter()` booted on the
- * scenario's config, bound to `ExecuteDeepAgent` by `createHarnessActivities`
- * over the turn runtime. Imported lazily so the scenario file's `vi.mock`
- * declarations are in force before the engine slice loads the model client
- * and before the registry loads the `StigmerClient` module.
+ * The adapter through the registry, the way the roots run it: the real
+ * `createDeepAgentAdapter()` in an agent host behind its remote adapter
+ * (`__test-utils__/loopback-host.ts`), booted on the scenario's config and
+ * bound to `ExecuteDeepAgent` by `createHarnessActivities` over the turn
+ * runtime. So every golden pins the status as it crosses the host's pipe.
+ * Imported lazily so the scenario file's `vi.mock` declarations are in force
+ * before the engine slice loads the model client and before the registry
+ * loads the `StigmerClient` module.
  */
 export const runtimeActivityFactory: ActivityFactory = async (config) => {
   const { createDeepAgentAdapter } = await import("../adapter.js");
   const { createHarnessActivities } = await import("../../../harness/registry.js");
-  const adapter = createDeepAgentAdapter();
-  await adapter.boot(config);
-  const activities = await createHarnessActivities([{ harness: "deep-agent", adapter }], config);
+  const { loopbackHostedRow } = await import("../../../__test-utils__/loopback-host.js");
+  const row = loopbackHostedRow({ harness: "deep-agent", adapter: createDeepAgentAdapter() });
+  await row.adapter.boot(config);
+  const activities = await createHarnessActivities([row], config);
   return activities.ExecuteDeepAgent!;
 };
 
@@ -257,6 +261,7 @@ export class DeepAgentScenario implements DeepAgentScenarioBase {
     settledEarlier: ReadonlySet<string> = new Set(),
   ) {
     this.model = new ScriptedModel(script, [], {
+      issued: new Set(),
       onTurn: async (info) => {
         // A real model answers long after the loop has folded and persisted
         // the tool results it is answering; a scripted one answers at once and
@@ -267,8 +272,24 @@ export class DeepAgentScenario implements DeepAgentScenarioBase {
         // follow-up message's first turn answers the previous message's last
         // results, which that message's record settled, never this one.
         await this.record.whenToolCallsSettled(info.priorToolCallIds.filter((id) => !settledEarlier.has(id)));
+        // The same race on a role's first turn: a sub-agent's first model
+        // call starts while its parent's call is still running, so it waits
+        // until the parent's rows (the message that proposed the call, the
+        // call's start) are on a persisted status. Those stamps then precede
+        // this turn's instant however long a persist took to cross the
+        // agent host's pipe.
+        if (info.priorToolCallIds.length === 0) {
+          await this.record.whenToolCallsSeen(info.issuedToolCallIds.filter((id) => !settledEarlier.has(id)));
+        }
         this.clock.tick();
-        if (onTurn && this.controls) await onTurn(info, this.controls);
+        if (onTurn && this.controls) {
+          await onTurn(info, this.controls);
+          // A stop the scenario staged here reaches the engine across the
+          // agent host's pipe one hop later (`agent-host/remote-adapter.ts`
+          // forwards it); a real model call outlasts that hop, so the
+          // scripted one waits it out before it answers.
+          await new Promise<void>((resolve) => setImmediate(resolve));
+        }
       },
     });
   }

@@ -1,8 +1,9 @@
 /**
  * The child entry `__tests__/harness-boot-order.test.ts` spawns: one FRESH
  * Node process that does exactly what the composition roots do before
- * bootstrap — import `harness-adapters.js` and `harness/registry.js`, then
- * `bootHarnesses` on a proxy-mode config — and reports how it went.
+ * bootstrap — import `harness-adapters.js`, `harness/registry.js` and
+ * `agent-host/hosting.js`, host the table, then `bootHarnesses` on a
+ * proxy-mode config — and reports how it went.
  *
  * Why a child process: the `node:http2` ESM facade is snapshotted once per
  * process at its first import, so the positive load-order contract ("the
@@ -11,15 +12,17 @@
  * only honest instrument (`http2-interceptor.test.ts` says as much).
  *
  * Arms (argv[2]):
- *  - `boot`: import the two pre-boot modules, boot with a proxy endpoint and
- *    a bound token ref. Success means the pre-boot graph was connect-free,
- *    both interceptors installed, `assertHttp2ConnectPatched` passed, the
- *    Cursor SDK slice loaded from inside its `boot`, and the native
- *    deep-agent adapter (the table's second row since #1096) registered its
- *    profiles and loaded LangChain after the patch. That neither engine is
- *    on the table's STATIC graph is each adapter's own fence
- *    (`adapter-graph-is-sdk-free.test.ts`); this child proves the boot
- *    ORDER in a real process.
+ *  - `boot`: import the three pre-boot modules, host the table, boot with a
+ *    proxy endpoint and a bound token ref. Success means the pre-boot graph
+ *    was connect-free, both interceptors installed,
+ *    `assertHttp2ConnectPatched` passed, the Cursor SDK slice loaded from
+ *    inside its `boot`, and the native deep-agent adapter (the table's
+ *    second row since #1096), which runs in the agent host, was booted
+ *    there: a real host process started from this build's entry, announced
+ *    itself, and registered the profiles and loaded LangChain in its own
+ *    process. That neither engine is on the table's STATIC graph is each
+ *    adapter's own fence (`adapter-graph-is-sdk-free.test.ts`); this child
+ *    proves the boot ORDER in a real process.
  *  - `boot-after-connect-node`: the same, after importing the Stigmer client
  *    (connect-node) FIRST. Must fail with the facade sentence: proves the
  *    guard is live inside `boot`, so a future regression is loud.
@@ -40,15 +43,22 @@ async function main(): Promise<void> {
     throw new Error(`harness-boot-order-child: unknown arm '${String(arm)}' (expected 'boot' or 'boot-after-connect-node')`);
   }
 
-  const [{ HARNESS_ADAPTERS }, { adaptersOf, bootHarnesses }] = await Promise.all([
+  const [{ HARNESS_ADAPTERS }, { adaptersOf, bootHarnesses, shutdownHarnesses }, { hostHarnesses }] = await Promise.all([
     import("../harness-adapters.js"),
     import("../harness/registry.js"),
+    import("../agent-host/hosting.js"),
   ]);
   const config = testConfig({
     proxyEndpoint: "http://127.0.0.1:1",
     proxyTokenRef: { current: "boot-order-test-token" },
   });
-  await bootHarnesses(adaptersOf(HARNESS_ADAPTERS), config);
+  const hosted = await hostHarnesses(HARNESS_ADAPTERS, config);
+  try {
+    await bootHarnesses(adaptersOf(hosted.rows), config);
+  } finally {
+    await shutdownHarnesses(adaptersOf(hosted.rows)).catch(() => undefined);
+    await hosted.close();
+  }
 }
 
 main().then(
