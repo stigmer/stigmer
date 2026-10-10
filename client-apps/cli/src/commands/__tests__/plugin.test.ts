@@ -1,6 +1,6 @@
 // Command-level contract for `stigmer plugin eval`: the target and every
-// flag reach the dispatch read and checked (a repeated --tag or --model
-// collects, a version after @ is the digest), in the organization --org
+// flag reach the dispatch read and checked (--tag takes several values and
+// repeats, a repeated --model collects, a version after @ is the digest), in the organization --org
 // names, with the process's own effects; the dispatch's exit code leaves
 // through a silent CliExitError when it is not 0; and `plugin eval cancel`
 // hands the id to the cancel call with the process's stderr. The backend and
@@ -80,6 +80,17 @@ describe("stigmer plugin eval <plugin>", () => {
     });
     expect(io.stdout).toBe(process.stdout);
     expect(io.stderr).toBe(process.stderr);
+  });
+
+  it.each([
+    ["one --tag with several values", ["--tag", "a", "b"], ["a", "b"]],
+    ["a repeated --tag", ["--tag", "a", "--tag", "b"], ["a", "b"]],
+    ["both at once", ["--tag", "a", "b", "--tag", "c"], ["a", "b", "c"]],
+  ])("collects every tag from %s, as Claude Code's --tag <tag...> does", async (_name, flags, tags) => {
+    dispatch.runPluginEval.mockResolvedValue(0);
+    await pluginEval("thermos", ...flags);
+    const options = dispatch.runPluginEval.mock.calls[0]?.[3] as PluginEvalOptions;
+    expect(options.caseTags).toEqual(tags);
   });
 
   it("exits with the dispatch's code, silently, when it is not 0", async () => {

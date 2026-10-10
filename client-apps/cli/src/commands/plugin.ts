@@ -13,6 +13,9 @@
 // organization, delegate to resources/plugin-eval. Heavy modules load
 // lazily so `--help` stays fast. The exit code is the format's (0, 1, 2,
 // 130), carried out through the one exit point as a silent CliExitError.
+// `--tag` and `--allow-tools` take a list, as Claude Code's do, so a target
+// written after them reads as one of their values; the format says to put
+// the target first.
 
 import type { Command } from "commander";
 import { ensureAuthenticated, resolveOrganization } from "../config/index.js";
@@ -34,7 +37,7 @@ export function registerPlugin(program: Command): void {
       "the plugin (name, org/name or id), run at its installed version; <plugin>@<digest> is refused unless that is the installed version",
     )
     .option("--case <glob>", "run only the cases whose name matches this glob")
-    .option("--tag <tag>", "run only the cases with this tag (repeatable)", collect)
+    .option("--tag <tag...>", "run only the cases with any of these tags (repeatable)")
     .option("--runs <n>", "tries per case, arm and model, 1 to 50 (default: each case's runs, else 3)")
     .option(
       "--model <harness/model>",

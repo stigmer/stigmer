@@ -8,7 +8,11 @@
 // of the tries that finished, and exits 130; a second Ctrl+C exits at once.
 // A read that fails is tried again with backoff for about a minute; past
 // that the command cancels the eval rather than leave it spending unwatched,
-// prints or writes what it had, and exits 1.
+// prints or writes what it had, and exits 1. When that cancel, or Ctrl+C's,
+// cannot reach the server either, the eval may still be running: the report
+// says so in place of "Cancelled", `--json` adds Stigmer's
+// `stillRunning: true`, and the error names `stigmer plugin eval cancel`;
+// the exit code stays the one the stop earned (1 lost, 130 interrupted).
 //
 // The eval is sent with no name: the server names it by its id, which is
 // short and unique, and a person tells evals apart by plugin and start time.
@@ -19,14 +23,18 @@
 // starts with the file's path. Under `--json` the run is quiet, as in the
 // format: the result document goes to stdout, or to the `.json` path given,
 // with the load findings in Stigmer's `findings` field beside the format's,
-// and nothing else is printed but an error. A refusal from create or from reading the plugin (an organization
-// not set, an invalid reference) exits 1, the format's "a run couldn't be
-// started", unless it is the CLI's own sign-in or connection failure; the
-// CLI's usage code 2 is the format's partial run.
+// and nothing else is printed but an error. Any refusal of the eval's start,
+// from create or from reading the plugin (not found, not permitted, a
+// precondition, an invalid argument, an organization not set), exits 1, the
+// format's "a run couldn't be started"; the CLI's own codes for those (2, 4,
+// 5) would read as the format's partial run or as codes it does not have.
+// Only a sign-in or connection failure keeps the CLI's code: the eval never
+// reached the server's judgement.
 //
 // Every effect is injected (`PluginEvalIo`), so the follow loop, the
 // interrupt and the outputs are unit-tested without a server or a clock.
 
+import { Code } from "@connectrpc/connect";
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { PluginWarning } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import type { PluginEval } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
@@ -76,6 +84,11 @@ interface ResultFinding {
 /** The result document the command writes: the SDK's, with the suite's load findings. */
 interface CliResultDocument extends PluginEvalResultDocument {
   readonly findings: readonly ResultFinding[];
+  /**
+   * Present, and true, only when the command stopped following the eval and
+   * could not cancel it: the eval may still be running and spending.
+   */
+  readonly stillRunning?: true;
 }
 
 /** Everything the command does to the world besides the API. */
@@ -116,7 +129,7 @@ export async function runPluginEval(
 
   if (!options.wait) {
     if (quiet) {
-      await writeDocument(started, findings, options, io, false);
+      await writeDocument(started, findings, options, io, false, false);
     } else {
       io.stdout.write(`${id}\n`);
       io.stderr.write(`Started. Follow it with: stigmer get plugin-eval ${id}\n`);
@@ -127,26 +140,34 @@ export async function runPluginEval(
   if (!quiet) {
     io.stderr.write(`Started ${id} on ${plugin.metadata?.name || target.ref}. Ctrl+C cancels it.\n`);
   }
-  const { latest, interrupted, lost } = await follow(client, started, quiet, io);
+  const { latest, interrupted, lost, cancelFailure } = await follow(client, started, quiet, io);
 
-  if (lost !== undefined) {
+  if (lost !== undefined || cancelFailure !== undefined) {
+    const stillRunning =
+      cancelFailure === undefined
+        ? ""
+        : `${lost === undefined ? "Could not cancel the eval" : "Lost track of the eval"}; it may still be running: cancel it with \`stigmer plugin eval cancel ${id}\``;
     if (quiet) {
-      await writeDocument(latest, findings, options, io, true);
+      await writeDocument(latest, findings, options, io, true, stillRunning !== "");
     } else {
-      printReport(latest, true, io);
+      printReport(latest, true, io, stillRunning);
+    }
+    const hint = `cancel it with: stigmer plugin eval cancel ${id}`;
+    if (lost === undefined) {
+      throw new CliExitError(`could not cancel eval ${id} (${cancelFailure}); ${hint}`, EvalExit.Interrupted);
     }
     throw new CliExitError(
-      lost.cancelled
-        ? `lost track of eval ${id} (${lost.reason}), so it was cancelled`
-        : `lost track of eval ${id} (${lost.reason}), and could not cancel it; cancel it with: stigmer plugin eval cancel ${id}`,
+      cancelFailure === undefined
+        ? `lost track of eval ${id} (${lost}), so it was cancelled`
+        : `lost track of eval ${id} (${lost}), and could not cancel it; ${hint}`,
       EvalExit.Failed,
     );
   }
   const failed = latest.status?.phase === PluginEvalPhase.failed && !interrupted;
   if (quiet) {
-    await writeDocument(latest, findings, options, io, interrupted);
+    await writeDocument(latest, findings, options, io, interrupted, false);
   } else if (!failed) {
-    printReport(latest, interrupted, io);
+    printReport(latest, interrupted, io, "");
   }
   if (failed) {
     const reason = oneLine(latest.status?.error ?? "");
@@ -206,23 +227,33 @@ async function startEval(
 }
 
 /**
- * Rethrows a usage refusal as exit 1: the format exits 1 when a suite
- * cannot start (no cases, a suite too large, a version that does not exist,
- * no organization, a reference the server refuses); the CLI's usage code is
- * 2, which the format keeps for a partial run. Anything else passes on.
+ * Rethrows a refusal of the eval's start as exit 1: the format exits 1 when
+ * a suite cannot start (no cases, a suite too large, a plugin or version
+ * that does not exist, a plugin the caller may not evaluate, no
+ * organization, a reference the server refuses). The CLI's usage, not-found
+ * and permission codes (2, 5, 4) are not the format's: 2 is its partial run.
+ * A sign-in or connection failure, or anything else, passes on unchanged.
  */
 function asStartRefusal(error: unknown): never {
   const classified = classify(error);
-  if (classified !== null && classified.exitCode === ExitCode.Usage) {
+  if (classified !== null && isStartRefusal(classified.exitCode, classified.code)) {
     throw new CliExitError(classified.message, EvalExit.Failed, classified.hints);
   }
   throw error;
 }
 
-/** Why the command stopped following the eval, and whether its cancel went through. */
-interface Lost {
-  readonly reason: string;
-  readonly cancelled: boolean;
+function isStartRefusal(exitCode: number, code: number | undefined): boolean {
+  return exitCode === ExitCode.Usage || exitCode === ExitCode.NotFound || code === Code.PermissionDenied;
+}
+
+/** How following the eval ended. */
+interface Followed {
+  readonly latest: PluginEval;
+  readonly interrupted: boolean;
+  /** Why the reads were given up, when they were. */
+  readonly lost?: string;
+  /** Why the cancel failed, when the command tried one and it did. */
+  readonly cancelFailure?: string;
 }
 
 type Read = { readonly kind: "read"; readonly pluginEval: PluginEval } | { readonly kind: "lost"; readonly reason: string } | { readonly kind: "aborted" };
@@ -248,7 +279,7 @@ async function follow(
   started: PluginEval,
   quiet: boolean,
   io: PluginEvalIo,
-): Promise<{ latest: PluginEval; interrupted: boolean; lost?: Lost }> {
+): Promise<Followed> {
   const id = started.metadata?.id ?? "";
   const interrupt = new AbortController();
   let interrupts = 0;
@@ -275,12 +306,9 @@ async function follow(
       if (read.kind === "aborted") break;
       if (read.kind === "lost") {
         // The eval would go on spending with no one watching: stop it.
-        const cancelled = await client.plugineval.cancel(id).catch(() => undefined);
-        if (cancelled !== undefined) {
-          latest = await client.plugineval.get(id).catch(() => cancelled);
-          report(latest);
-        }
-        return { latest, interrupted: true, lost: { reason: read.reason, cancelled: cancelled !== undefined } };
+        const cancel = await cancelAndRead(client, id, latest);
+        report(cancel.latest);
+        return { ...cancel, interrupted: true, lost: read.reason };
       }
       latest = read.pluginEval;
       report(latest);
@@ -289,16 +317,37 @@ async function follow(
       return { latest, interrupted: false };
     }
     if (!quiet) io.stderr.write(`Cancelling ${id}…\n`);
-    latest = await client.plugineval.cancel(id);
-    latest = await client.plugineval.get(id).catch(() => latest);
-    report(latest);
-    return { latest, interrupted: true };
+    const cancel = await cancelAndRead(client, id, latest);
+    report(cancel.latest);
+    return { ...cancel, interrupted: true };
   } finally {
     stopListening();
   }
 }
 
-function printReport(pluginEval: PluginEval, interrupted: boolean, io: PluginEvalIo): void {
+/**
+ * Cancels the eval and reads it once more. The cancel's own answer stands
+ * when the read fails; when the cancel fails, `last` stands with the reason.
+ */
+async function cancelAndRead(
+  client: Stigmer,
+  id: string,
+  last: PluginEval,
+): Promise<{ readonly latest: PluginEval; readonly cancelFailure?: string }> {
+  let cancelled: PluginEval;
+  try {
+    cancelled = await client.plugineval.cancel(id);
+  } catch (error) {
+    return { latest: last, cancelFailure: oneLine(classify(error)?.message ?? "") || "the cancel failed" };
+  }
+  return { latest: await client.plugineval.get(id).catch(() => cancelled) };
+}
+
+/**
+ * Prints the tables and the summary. `stillRunning`, when not empty, is the
+ * line said in place of why the eval stopped: it may not have.
+ */
+function printReport(pluginEval: PluginEval, interrupted: boolean, io: PluginEvalIo, stillRunning: string): void {
   const tables = renderEvalTables(pluginEval);
   const document = toResultDocument(pluginEval, { interrupted, nowMs: io.now() });
   const lines: string[] = [];
@@ -307,7 +356,7 @@ function printReport(pluginEval: PluginEval, interrupted: boolean, io: PluginEva
   if (document.provisionalDelta && pluginEval.status?.aggregates?.meanDelta !== undefined) {
     lines.push(PROVISIONAL_NOTE);
   }
-  const partial = partialLine(pluginEval, interrupted);
+  const partial = stillRunning === "" ? partialLine(pluginEval, interrupted) : stillRunning;
   if (partial !== "") lines.push(partial);
   io.stdout.write(`\n${lines.join("\n")}\n`);
   const notRun = renderNotRun(pluginEval);
@@ -320,10 +369,12 @@ async function writeDocument(
   options: PluginEvalOptions,
   io: PluginEvalIo,
   interrupted: boolean,
+  stillRunning: boolean,
 ): Promise<void> {
   const result: CliResultDocument = {
     ...toResultDocument(pluginEval, { interrupted, nowMs: io.now() }),
     findings: findings.map((finding) => ({ kind: finding.kind, path: finding.path, message: finding.message })),
+    ...(stillRunning && { stillRunning: true as const }),
   };
   const document = `${JSON.stringify(result, null, 2)}\n`;
   if (options.json.kind === "file") {

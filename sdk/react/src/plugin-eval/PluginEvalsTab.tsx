@@ -7,8 +7,9 @@
  *
  * Top to bottom: the suite as install read it (cases, tags, findings, and
  * the cases Stigmer does not run yet, the feature named); the Run evals
- * form, for the plugin's editors only (the models, tries per case, the
- * comparison without the plugin, the cost limit, tries at once); the past
+ * form, for the plugin's editors only (each case's own model or the models
+ * picked, tries per case, empty for each case's own, the comparison
+ * without the plugin, the cost limit, tries at once); the past
  * evals, newest first, each labelled by the plugin and when it started and
  * opening its results; and Compare, which puts
  * two evals side by side case by case, how a new version is judged against
@@ -242,7 +243,13 @@ function RunEvalsForm({
   const [costText, setCostText] = useState(
     String(DEFAULT_EVAL_FORM.maxCostUsd),
   );
-  const draft: EvalFormSettings = { ...settings, maxCostUsd: Number(costText) };
+  // Empty is each case's own runs, sent as 0.
+  const [runsText, setRunsText] = useState("");
+  const draft: EvalFormSettings = {
+    ...settings,
+    runs: runsText.trim() === "" ? 0 : Number(runsText),
+    maxCostUsd: Number(costText),
+  };
   const problem = evalFormProblem(draft);
 
   const setTarget = (
@@ -274,75 +281,91 @@ function RunEvalsForm({
     <Section title="Run evals">
       <div className="stg:flex stg:flex-col stg:gap-4 stg:px-3 stg:py-2.5">
         <p className="stg:text-xs stg:text-muted-foreground">
-          Every case runs on each model, with the plugin and without it. Every
-          try is a real conversation, charged to this organization; the cost
-          limit stops new tries once it is reached.
+          Every case runs on its own model, or on each model you pick, with the
+          plugin and without it. Every try is a real conversation, charged to
+          this organization; the cost limit stops new tries once it is reached.
         </p>
-        <fieldset className="stg:flex stg:flex-col stg:gap-2">
-          <legend className={LABEL_CLASS}>Models</legend>
-          {settings.targets.map((target, index) => (
-            <div key={index} className="stg:flex stg:items-center stg:gap-2">
-              <ModelSelector
-                value={target.modelName === "" ? undefined : target.modelName}
-                onValueChange={(modelName) => setTarget(index, { modelName })}
-                initialHarness={target.harness}
-                availableHarnesses={HARNESS_OPTIONS}
-                onHarnessChange={(harness) =>
-                  setTarget(index, { harness, modelName: "" })
-                }
-                compact
-                disabled={isStarting}
-                placeholderLabel="Default model"
-              />
-              {settings.targets.length > 1 && (
+        <div className="stg:flex stg:items-center stg:gap-2">
+          <Switch
+            id={`${baseId}-case-models`}
+            checked={settings.caseModels}
+            onCheckedChange={(caseModels) =>
+              setSettings({ ...settings, caseModels })
+            }
+            disabled={isStarting}
+          />
+          <label
+            htmlFor={`${baseId}-case-models`}
+            className="stg:text-xs stg:font-medium stg:text-foreground"
+          >
+            Use each case&apos;s own model
+          </label>
+        </div>
+        {!settings.caseModels && (
+          <fieldset className="stg:flex stg:flex-col stg:gap-2">
+            <legend className={LABEL_CLASS}>Models</legend>
+            {settings.targets.map((target, index) => (
+              <div key={index} className="stg:flex stg:items-center stg:gap-2">
+                <ModelSelector
+                  value={target.modelName === "" ? undefined : target.modelName}
+                  onValueChange={(modelName) => setTarget(index, { modelName })}
+                  initialHarness={target.harness}
+                  availableHarnesses={HARNESS_OPTIONS}
+                  onHarnessChange={(harness) =>
+                    setTarget(index, { harness, modelName: "" })
+                  }
+                  compact
+                  disabled={isStarting}
+                  placeholderLabel="Default model"
+                />
+                {settings.targets.length > 1 && (
+                  <button
+                    type="button"
+                    aria-label={`Remove model ${index + 1}`}
+                    onClick={() =>
+                      setSettings({
+                        ...settings,
+                        targets: settings.targets.filter((_, i) => i !== index),
+                      })
+                    }
+                    className={QUIET_BUTTON_CLASS}
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+            ))}
+            {settings.targets.length < MAX_EVAL_TARGETS && (
+              <div>
                 <button
                   type="button"
-                  aria-label={`Remove model ${index + 1}`}
                   onClick={() =>
                     setSettings({
                       ...settings,
-                      targets: settings.targets.filter((_, i) => i !== index),
+                      targets: [
+                        ...settings.targets,
+                        { harness: "native", modelName: "" },
+                      ],
                     })
                   }
                   className={QUIET_BUTTON_CLASS}
                 >
-                  Remove
+                  Add a model
                 </button>
-              )}
-            </div>
-          ))}
-          {settings.targets.length < MAX_EVAL_TARGETS && (
-            <div>
-              <button
-                type="button"
-                onClick={() =>
-                  setSettings({
-                    ...settings,
-                    targets: [
-                      ...settings.targets,
-                      { harness: "native", modelName: "" },
-                    ],
-                  })
-                }
-                className={QUIET_BUTTON_CLASS}
-              >
-                Add a model
-              </button>
-            </div>
-          )}
-        </fieldset>
+              </div>
+            )}
+          </fieldset>
+        )}
         <div className="stg:grid stg:grid-cols-1 stg:gap-4 stg:sm:grid-cols-3">
           <NumberField
             id={`${baseId}-runs`}
             label="Tries per case"
-            hint={`1 to ${MAX_EVAL_RUNS}, with and without the plugin each.`}
-            value={String(settings.runs)}
+            hint={`1 to ${MAX_EVAL_RUNS}, with and without the plugin each; empty for each case's own, else 3.`}
+            value={runsText}
             min={1}
             max={MAX_EVAL_RUNS}
             disabled={isStarting}
-            onChange={(text) =>
-              setSettings({ ...settings, runs: Number(text) })
-            }
+            onChange={setRunsText}
           />
           <NumberField
             id={`${baseId}-cost`}

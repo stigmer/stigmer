@@ -5,9 +5,12 @@
  * as `can_edit` on the plugin, and shown only once the check answers yes:
  * neither it nor Cancel shows while the check is pending or after it
  * failed, nor to a non-editor), whose start sends the plugin's id,
- * organization and the form's settings, no name, and opens the new eval,
- * each eval labelled by the plugin and when it started, its targets added, switched to another engine (which
- * drops the model picked) and removed; a past eval opened from the list;
+ * organization and the form's settings, no name, and opens the new eval
+ * (by default no models and 0 tries, so each case's own model and runs
+ * apply, and a cleared tries field sends 0 again), each eval labelled by
+ * the plugin and when it started, its targets added once the case's own
+ * model is switched off, switched to another engine (which drops the model
+ * picked) and removed; a past eval opened from the list;
  * an eval's view with a row per case, WITH, W/OUT and a provisional Δ, and
  * its tries as links to their runs; Cancel for an editor while the eval
  * runs; and Compare, case by case, with a changed case marked, and a
@@ -184,15 +187,16 @@ describe("PluginEvalsTab", () => {
     const mock = client([], { started });
     render(<PluginEvalsTab plugin={plugin} />, { wrapper: wrap(mock) });
     fireEvent.click(
-      await screen.findByRole("button", { name: "pick a model" }),
+      await screen.findByRole("switch", { name: "Use each case's own model" }),
     );
+    fireEvent.click(screen.getByRole("button", { name: "pick a model" }));
     fireEvent.change(screen.getByLabelText("Tries per case"), {
       target: { value: "5" },
     });
     fireEvent.change(screen.getByLabelText("Cost limit (USD)"), {
       target: { value: "2" },
     });
-    fireEvent.click(screen.getByRole("switch"));
+    fireEvent.click(screen.getByRole("switch", { name: /without the plugin/ }));
     fireEvent.click(screen.getByRole("button", { name: "Run evals" }));
     await vi.waitFor(() => expect(mock.plugineval.create).toHaveBeenCalled());
     expect(mock.plugineval.create).toHaveBeenCalledWith(
@@ -210,16 +214,56 @@ describe("PluginEvalsTab", () => {
     expect(await screen.findByText(labelOf("pev_new"))).toBeDefined();
   });
 
+  it("sends no models and no tries by default, so each case's own model and runs apply", async () => {
+    const started = evalWith([], undefined, "pev_new");
+    const mock = client([], { started });
+    render(<PluginEvalsTab plugin={plugin} />, { wrapper: wrap(mock) });
+    const own = await screen.findByRole("switch", {
+      name: "Use each case's own model",
+    });
+    expect(own.getAttribute("aria-checked")).toBe("true");
+    expect(screen.queryByRole("button", { name: "pick a model" })).toBeNull();
+    expect(
+      (screen.getByLabelText("Tries per case") as HTMLInputElement).value,
+    ).toBe("");
+    fireEvent.click(screen.getByRole("button", { name: "Run evals" }));
+    await vi.waitFor(() => expect(mock.plugineval.create).toHaveBeenCalled());
+    expect(mock.plugineval.create).toHaveBeenCalledWith(
+      expect.objectContaining({ targets: [], runs: 0 }),
+    );
+  });
+
+  it("sends 0 tries again once the tries field is cleared", async () => {
+    const started = evalWith([], undefined, "pev_new");
+    const mock = client([], { started });
+    render(<PluginEvalsTab plugin={plugin} />, { wrapper: wrap(mock) });
+    const runs = await screen.findByLabelText("Tries per case");
+    fireEvent.change(runs, { target: { value: "4" } });
+    fireEvent.change(runs, { target: { value: "" } });
+    fireEvent.click(screen.getByRole("button", { name: "Run evals" }));
+    await vi.waitFor(() => expect(mock.plugineval.create).toHaveBeenCalled());
+    expect(mock.plugineval.create).toHaveBeenCalledWith(
+      expect.objectContaining({ runs: 0 }),
+    );
+  });
+
   it("builds the targets from the form: adds a model, switches an engine (dropping its model), removes one, and sets tries at once", async () => {
     const started = evalWith([], undefined, "pev_new");
     const mock = client([], { started });
     render(<PluginEvalsTab plugin={plugin} />, { wrapper: wrap(mock) });
+    fireEvent.click(
+      await screen.findByRole("switch", { name: "Use each case's own model" }),
+    );
     expect(screen.queryByRole("button", { name: /^Remove model/ })).toBeNull();
-    fireEvent.click(await screen.findByRole("button", { name: "Add a model" }));
-    fireEvent.click(screen.getAllByRole("button", { name: "pick a model" })[1]!);
+    fireEvent.click(screen.getByRole("button", { name: "Add a model" }));
+    fireEvent.click(
+      screen.getAllByRole("button", { name: "pick a model" })[1]!,
+    );
     fireEvent.click(screen.getAllByRole("button", { name: "use cursor" })[1]!);
     fireEvent.click(screen.getByRole("button", { name: "Remove model 1" }));
-    expect(screen.getAllByRole("button", { name: "pick a model" })).toHaveLength(1);
+    expect(
+      screen.getAllByRole("button", { name: "pick a model" }),
+    ).toHaveLength(1);
     expect(screen.queryByRole("button", { name: /^Remove model/ })).toBeNull();
     fireEvent.change(screen.getByLabelText("Tries at once"), {
       target: { value: "4" },

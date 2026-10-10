@@ -7,9 +7,14 @@
  * difference, pass^k, each try), and two evals compared case by case. Kept
  * apart from the components so the rules are unit-testable without React.
  *
- * The form's limits are the API's (one to six targets, 1 to 50 tries, a
+ * The form starts as the CLI does with no `--model` and no `--runs`: no
+ * targets and 0 tries, so each case's own `model` and `runs` apply (else
+ * the platform's default model and three tries). Its limits are the API's
+ * (one to six targets once the person picks models, 0 or 1 to 50 tries, a
  * cost limit above 0 and at most 1000 dollars, 1 to 8 tries at once); the
- * server checks them again. A comparison is "changed" when a case's score
+ * server checks them again. No server writes a try's `running` state, so a
+ * try not finished reads by the eval's phase: "waiting" while the eval
+ * starts, "waiting or running" while it runs, "not run" once it stopped. A comparison is "changed" when a case's score
  * or difference moved by a hundredth or more, or the case ran on one side
  * only, which is the precision the tab shows. A phase, reason or try state
  * a newer server added reads in words, never as a bare number. Pinned by
@@ -44,7 +49,10 @@ export interface EvalFormTarget {
 
 /** The Run evals form's settings. */
 export interface EvalFormSettings {
+  /** Run each case on its own `model`, sending no targets; `targets` is kept for when this is off. */
+  readonly caseModels: boolean;
   readonly targets: readonly EvalFormTarget[];
+  /** Tries per case, arm and target; 0 is each case's own `runs`. */
   readonly runs: number;
   /** Also run every case without the plugin, for the difference it makes. */
   readonly compare: boolean;
@@ -52,10 +60,15 @@ export interface EvalFormSettings {
   readonly concurrency: number;
 }
 
-/** The form's starting settings: one native target on its default model, three tries, compared, $5, one at a time. */
+/**
+ * The form's starting settings: each case's own model and runs (one native
+ * target on its default model ready for when the person picks models),
+ * compared, $5, one at a time.
+ */
 export const DEFAULT_EVAL_FORM: EvalFormSettings = {
+  caseModels: true,
   targets: [{ harness: "native", modelName: "" }],
-  runs: 3,
+  runs: 0,
   compare: true,
   maxCostUsd: 5,
   concurrency: 1,
@@ -64,12 +77,13 @@ export const DEFAULT_EVAL_FORM: EvalFormSettings = {
 /** Why the settings cannot start an eval, in a sentence; `null` when they can. */
 export function evalFormProblem(settings: EvalFormSettings): string | null {
   if (
-    settings.targets.length === 0 ||
-    settings.targets.length > MAX_EVAL_TARGETS
+    !settings.caseModels &&
+    (settings.targets.length === 0 ||
+      settings.targets.length > MAX_EVAL_TARGETS)
   ) {
     return `Pick one to ${MAX_EVAL_TARGETS} models.`;
   }
-  if (!isWhole(settings.runs, 1, MAX_EVAL_RUNS)) {
+  if (settings.runs !== 0 && !isWhole(settings.runs, 1, MAX_EVAL_RUNS)) {
     return `Tries per case must be a whole number from 1 to ${MAX_EVAL_RUNS}.`;
   }
   if (
@@ -100,10 +114,12 @@ export function pluginEvalInputOf(
     name: "",
     org: plugin.org,
     pluginId: plugin.id,
-    targets: settings.targets.map((target) => ({
-      harness: toProtoHarness(target.harness),
-      ...(target.modelName !== "" && { modelName: target.modelName }),
-    })),
+    targets: settings.caseModels
+      ? []
+      : settings.targets.map((target) => ({
+          harness: toProtoHarness(target.harness),
+          ...(target.modelName !== "" && { modelName: target.modelName }),
+        })),
     runs: settings.runs,
     ablation: settings.compare
       ? PluginEvalAblation.with_without
@@ -165,7 +181,7 @@ export interface EvalTryView {
   readonly arm: "with" | "without";
   readonly index: number;
   readonly runId: string;
-  /** "1.00", "not graded: platform busy", "running", "waiting". */
+  /** "1.00", "not graded: platform busy", "waiting or running", "waiting", "not run". */
   readonly summary: string;
 }
 
@@ -210,6 +226,9 @@ export function evalTargetLabelsOf(pluginEval: PluginEval): readonly string[] {
 /** An eval's results, one row per case, one cell per target column. */
 export function evalCaseRowsOf(pluginEval: PluginEval): readonly EvalCaseRow[] {
   const labels = evalTargetLabelsOf(pluginEval);
+  const unfinished = unfinishedTryLabel(
+    pluginEval.status?.phase ?? PluginEvalPhase.unspecified,
+  );
   return (pluginEval.status?.cases ?? []).map((evalCase) => ({
     name: evalCase.caseName,
     notRun: evalCase.notRunReason,
@@ -233,8 +252,8 @@ export function evalCaseRowsOf(pluginEval: PluginEval): readonly EvalCaseRow[] {
                 passed: result.passed,
                 passK: result.passK,
                 tries: [
-                  ...triesOf("with", result.withPlugin),
-                  ...triesOf("without", result.withoutPlugin),
+                  ...triesOf("with", result.withPlugin, unfinished),
+                  ...triesOf("without", result.withoutPlugin, unfinished),
                 ],
               },
             ];
@@ -245,16 +264,41 @@ export function evalCaseRowsOf(pluginEval: PluginEval): readonly EvalCaseRow[] {
 function triesOf(
   arm: "with" | "without",
   tries: PluginEvalArm | undefined,
+  unfinished: string,
 ): EvalTryView[] {
   return (tries?.tries ?? []).map((attempt) => ({
     arm,
     index: attempt.index,
     runId: attempt.runId,
-    summary: trySummary(attempt),
+    summary: trySummary(attempt, unfinished),
   }));
 }
 
-function trySummary(attempt: PluginEvalTry): string {
+/**
+ * What a try not finished is, read from its eval's phase: the server marks a
+ * try only when it ends, so while the eval runs a pending try may be in
+ * flight, and once the eval stopped it never ran.
+ */
+function unfinishedTryLabel(phase: PluginEvalPhase): string {
+  switch (phase) {
+    case PluginEvalPhase.running:
+      return "waiting or running";
+    case PluginEvalPhase.completed:
+    case PluginEvalPhase.partial:
+    case PluginEvalPhase.failed:
+      return "not run";
+    case PluginEvalPhase.pending:
+    case PluginEvalPhase.unspecified:
+      return "waiting";
+    default: {
+      // A phase a newer server added: say only what is known.
+      const unknown: never = phase;
+      return `not finished (phase ${String(unknown)})`;
+    }
+  }
+}
+
+function trySummary(attempt: PluginEvalTry, unfinished: string): string {
   switch (attempt.state) {
     case PluginEvalTryState.graded:
       return formatScore(attempt.score);
@@ -266,7 +310,7 @@ function trySummary(attempt: PluginEvalTry): string {
       return "running";
     case PluginEvalTryState.pending:
     case PluginEvalTryState.unspecified:
-      return "waiting";
+      return unfinished;
     default: {
       const unknown: never = attempt.state;
       return `unknown state ${String(unknown)}`;
