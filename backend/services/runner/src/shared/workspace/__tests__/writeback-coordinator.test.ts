@@ -61,7 +61,7 @@ function mockWorkspaceBackend(responses: Record<string, string> = {}): Workspace
   const defaultResponses: Record<string, string> = {
     // The clone a token is handed to: an ordinary configuration, and the
     // conversation's repository as its origin.
-    "git config --local --name-only --list": "remote.origin.url\nremote.origin.fetch\n",
+    "git config --list --show-scope --name-only": "local\tremote.origin.url\nlocal\tremote.origin.fetch\n",
     "git config --local --get remote.origin.url": "https://github.com/acme/my-app.git\n",
     "git diff --stat": " 1 file changed, 1 insertion(+)",
     "git diff --cached --stat": "",
@@ -404,6 +404,7 @@ describe("WriteBackCoordinator", () => {
       if (cmd.includes("git diff --cached")) return "";
       if (cmd.includes("git branch --show-current")) return "main";
       if (cmd === "git --version") return "git version 2.39.5";
+      if (cmd === "git config --list --show-scope --name-only") return "local\tremote.origin.url\n";
       if (cmd === "git config --local --get remote.origin.url") return "https://github.com/acme/my-app.git";
       if (cmd.includes("commit -m")) throw new Error("commit failed: lock");
       return "";

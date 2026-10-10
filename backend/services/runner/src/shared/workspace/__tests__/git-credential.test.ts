@@ -46,11 +46,20 @@ const GIT_TEST_TIMEOUT_MS = 120_000;
 
 const AT = { cwd: "/w", remoteUrl: REPO_URL } as const;
 
-/** A backend whose git is 2.39.5, whose clone at /w has `localConfig` and an origin of `origin`. */
+/**
+ * A backend whose git is 2.39.5, whose clone at /w holds `localConfig` (one
+ * name per line, the clone's own unless a line names its scope as git
+ * prints it, "worktree\thttp.proxy") and an origin of `origin`.
+ */
 function gitBackend(init: { localConfig?: string; origin?: string; run?: (cmd: string) => string } = {}) {
+  const scoped = (init.localConfig ?? "remote.origin.url\ncore.bare\n")
+    .split("\n")
+    .filter((line) => line !== "")
+    .map((line) => (line.includes("\t") ? line : `local\t${line}`))
+    .join("\n");
   const execute = vi.fn(async (cmd: string) => {
     if (cmd === "git --version") return "git version 2.39.5 (Apple Git-146)\n";
-    if (cmd === "git config --local --name-only --list") return init.localConfig ?? "remote.origin.url\ncore.bare\n";
+    if (cmd === "git config --list --show-scope --name-only") return `global\tuser.name\nglobal\turl.git@github.com:.insteadof\n${scoped}\n`;
     if (cmd === "git config --local --get remote.origin.url") return `${init.origin ?? REPO_URL}\n`;
     return init.run?.(cmd) ?? "ok";
   });
@@ -131,7 +140,7 @@ describe("the header and the floor", () => {
         if (attempts === 1) throw new Error("spawn EAGAIN");
         return "git version 2.39.5\n";
       }
-      if (cmd === "git config --local --name-only --list") return "remote.origin.url\n";
+      if (cmd === "git config --list --show-scope --name-only") return "local\tremote.origin.url\n";
       if (cmd === "git config --local --get remote.origin.url") return `${REPO_URL}\n`;
       return "ok";
     });
@@ -155,9 +164,20 @@ describe("the header and the floor", () => {
     ["remote.origin.pushurl", "a push URL"],
     ["remote.origin.proxy", "a remote's proxy"],
     ["remote.origin.receivepack", "a remote's receive-pack"],
+    ["core.alternaterefscommand", "a program run during a fetch"],
+    ["filter.lfs.process", "a filter program"],
+    ["extensions.worktreeconfig", "a worktree configuration"],
+    ["worktree\thttp.proxy", "a proxy in the worktree configuration"],
+    ["worktree\thttp.sslverify", "a TLS setting in the worktree configuration"],
   ])("refuses a clone whose own configuration sets %s (%s), running nothing with the token", async (key) => {
     const { backend, execute } = gitBackend({ localConfig: `remote.origin.url\n${key}\n` });
     await expect(runNetworkGit(backend, "git push", { ...AT, token: TOKEN })).rejects.toBeInstanceOf(UntrustedGitConfigError);
+    expect(execute).not.toHaveBeenCalledWith("git push", expect.anything());
+  });
+
+  it("refuses a clone whose origin holds more than one URL, the second one the agent's", async () => {
+    const { backend, execute } = gitBackend({ localConfig: "remote.origin.url\nremote.origin.url\n" });
+    await expect(runNetworkGit(backend, "git push", { ...AT, token: TOKEN })).rejects.toThrow(/more than one URL/);
     expect(execute).not.toHaveBeenCalledWith("git push", expect.anything());
   });
 
@@ -167,7 +187,7 @@ describe("the header and the floor", () => {
     expect(execute).not.toHaveBeenCalledWith("git push", expect.anything());
   });
 
-  it("hands the token past a clone's ordinary settings, a hook path of its own included", async () => {
+  it("hands the token past a clone's ordinary settings and the operator's own, a hook path of the clone's own included", async () => {
     const { backend, execute } = gitBackend({ localConfig: "core.bare\ncore.hookspath\nremote.origin.url\nremote.origin.fetch\nbranch.main.remote\nuser.name\n" });
     await expect(runNetworkGit(backend, "git push", { ...AT, token: TOKEN })).resolves.toBe("ok");
     expect(execute).toHaveBeenCalledWith("git push", { cwd: "/w", env: expect.objectContaining({ GIT_CONFIG_VALUE_0: "/dev/null" }) });
@@ -256,6 +276,48 @@ describe("against real git", () => {
     await expect(
       runNetworkGit(backend, "git ls-remote origin", { cwd: repo, remoteUrl: REPO_URL, token: TOKEN }),
     ).rejects.toBeInstanceOf(UntrustedGitConfigError);
+  }, GIT_TEST_TIMEOUT_MS);
+
+  it("never runs an alternate-refs program the clone names while the token is in git's environment", async () => {
+    const repo = repoWithOrigin();
+    // The plant: an alternate object store and the program git runs to list
+    // its refs during a fetch, writing git's whole environment out.
+    const loot = join(root, "alt-loot.txt");
+    const program = join(root, "alt-refs.sh");
+    writeFileSync(program, `#!/bin/sh\nenv >> ${loot}\n`, { mode: 0o755 });
+    execFileSync("mkdir", ["-p", join(repo, ".git", "objects", "info")]);
+    writeFileSync(join(repo, ".git", "objects", "info", "alternates"), `${join(origin, "objects")}\n`);
+    execFileSync("git", ["config", "core.alternateRefsCommand", program], { cwd: repo, stdio: "pipe" });
+
+    await expect(
+      runNetworkGit(new LocalWorkspaceBackend(root), "git fetch --quiet origin", { cwd: repo, remoteUrl: REPO_URL, token: TOKEN }),
+    ).rejects.toThrow(/sets core\.alternaterefscommand/);
+    const seen = (() => {
+      try {
+        return readFileSync(loot, "utf-8");
+      } catch {
+        return "";
+      }
+    })();
+    expect(seen.includes(TOKEN) || seen.includes(BASIC), "the clone's program saw the token").toBe(false);
+  }, GIT_TEST_TIMEOUT_MS);
+
+  it("reads the worktree configuration too, and refuses a proxy set there", async () => {
+    const repo = repoWithOrigin();
+    execFileSync("git", ["config", "extensions.worktreeConfig", "true"], { cwd: repo, stdio: "pipe" });
+    execFileSync("git", ["config", "--worktree", "http.proxy", "http://127.0.0.1:9"], { cwd: repo, stdio: "pipe" });
+    // Only the worktree's own setting would remain if extensions were allowed.
+    await expect(
+      runNetworkGit(new LocalWorkspaceBackend(root), "git ls-remote origin", { cwd: repo, remoteUrl: REPO_URL, token: TOKEN }),
+    ).rejects.toBeInstanceOf(UntrustedGitConfigError);
+  }, GIT_TEST_TIMEOUT_MS);
+
+  it("refuses a real clone whose origin gained a second URL", async () => {
+    const repo = repoWithOrigin();
+    execFileSync("git", ["config", "--add", "remote.origin.url", "https://github.com/evil/fork.git"], { cwd: repo, stdio: "pipe" });
+    await expect(
+      runNetworkGit(new LocalWorkspaceBackend(root), "git ls-remote origin", { cwd: repo, remoteUrl: REPO_URL, token: TOKEN }),
+    ).rejects.toThrow(/more than one URL/);
   }, GIT_TEST_TIMEOUT_MS);
 
   it("never runs a hook the agent planted while the token is in git's environment", async () => {

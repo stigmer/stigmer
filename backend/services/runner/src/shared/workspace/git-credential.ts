@@ -18,15 +18,17 @@
  *
  * The clone is the agent's to write, so the token's command does not trust
  * it. Hooks and the fsmonitor are switched off at command scope, which no
- * repository setting outranks, so nothing the agent planted in `.git` runs
- * with the token in its environment. A clone whose own configuration could
- * send the request elsewhere or weaken its TLS (`http.*` and `url.*` keys,
- * includes, credential helpers, a proxy or push URL on a remote, an ssh or
- * proxy command) is refused before the command runs: a URL-scoped `http`
- * key outranks any generic one the runner could pin, so the honest answer is
- * to hand the token to none of them. And `origin` must still be the
- * workspace entry's own URL, so the token never pushes or fetches where the
- * agent pointed it.
+ * repository setting outranks. And every setting the clone itself holds
+ * (its own configuration and its worktree configuration, read with their
+ * scope) must be one a clone ordinarily holds: its format, its file-system
+ * flags, its one origin and how it fetches, its branches' upstreams, an
+ * author name. Anything else is refused before the command runs, naming
+ * it: git has many ways to run a program or send a request elsewhere
+ * (`core.alternateRefsCommand`, a URL-scoped proxy or TLS setting that
+ * outranks any generic pin, an include, a credential helper, a filter), and
+ * a list of the dangerous ones is never complete, so the list kept is of
+ * the safe ones. `origin` must hold exactly one URL, the workspace entry's,
+ * so the token never pushes or fetches where the agent pointed it.
  *
  * The network commands are the five the workspace runs: the clone's fetch
  * and `remote set-head --auto` (sources/git.ts), and write-back's
@@ -76,12 +78,24 @@ export function gitTokenEnv(
 }
 
 /**
- * A repository's own configuration a token is not handed past: anything
- * that could send git's request elsewhere, weaken its TLS, or run a
- * program (lower-cased, as `git config --name-only` prints names).
+ * The settings a clone may hold of its own and still be handed a token
+ * (lower-cased, as git prints names): what `git init`, `remote add`,
+ * `fetch`, `checkout`, `push -u` and an author's `git config user.*`
+ * write, the file-system flags git sets for the platform, and the two
+ * settings this module overrides at command scope (a hook path, the
+ * fsmonitor), which cannot take effect.
  */
-const UNTRUSTED_LOCAL_KEY =
-  /^(?:https?|url|include|includeif|credential)\.|^core\.(?:sshcommand|gitproxy|askpass)$|^remote\.[^.]+\.(?:proxy|pushurl|receivepack|uploadpack|vcs)$/;
+const ORDINARY_CLONE_KEY = new RegExp(
+  "^(?:" +
+    [
+      "core\\.(?:repositoryformatversion|filemode|bare|logallrefupdates|ignorecase|precomposeunicode|symlinks|autocrlf|safecrlf|eol|quotepath|hookspath|fsmonitor)",
+      "remote\\.origin\\.(?:url|fetch)",
+      "branch\\..+\\.(?:remote|merge)",
+      "user\\.(?:name|email)",
+      "extensions\\.objectformat",
+    ].join("|") +
+    ")$",
+);
 
 /** A clone whose own configuration a token is not handed past, named by its first offending key. */
 export class UntrustedGitConfigError extends Error {
@@ -148,16 +162,23 @@ async function refuseUntrustedClone(
   cwd: string,
   remoteUrl: string,
 ): Promise<void> {
-  const names = (await backend.execute("git config --local --name-only --list", { cwd }))
+  // Every scope with its name, so the worktree configuration (honoured once
+  // the clone sets extensions.worktreeConfig) is read as well as its own.
+  const settings = (await backend.execute("git config --list --show-scope --name-only", { cwd }))
     .split("\n")
-    .map((name) => name.trim().toLowerCase())
-    .filter((name) => name !== "");
-  const offending = names.find((name) => UNTRUSTED_LOCAL_KEY.test(name));
+    .map((line) => line.trim().split("\t"))
+    .filter((parts): parts is [string, string] => parts.length === 2)
+    .map(([scope, name]) => ({ scope, name: name.toLowerCase() }));
+  const clones = settings.filter(({ scope }) => scope === "local" || scope === "worktree");
+  const offending = clones.find(({ name }) => !ORDINARY_CLONE_KEY.test(name));
   if (offending !== undefined) {
-    throw new UntrustedGitConfigError(`sets ${offending}`);
+    throw new UntrustedGitConfigError(`sets ${offending.name}`);
+  }
+  if (clones.filter(({ name }) => name === "remote.origin.url").length !== 1) {
+    throw new UntrustedGitConfigError("gives origin more than one URL, or none");
   }
   // The stored URL, not `remote get-url`: that applies the operator's own
-  // global `insteadOf` rewrites, and the clone's own are refused above.
+  // global `insteadOf` rewrites, and the clone may set none of its own.
   const origin = (await backend.execute("git config --local --get remote.origin.url", { cwd })).trim();
   if (origin !== remoteUrl) {
     throw new UntrustedGitConfigError("points origin somewhere other than the conversation's repository");

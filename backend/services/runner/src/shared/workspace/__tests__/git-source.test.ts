@@ -35,7 +35,7 @@ function routingExecute(opts: {
     const setOrigin = /^git remote (?:add|set-url) origin '(.*)'$/.exec(cmd);
     if (setOrigin !== null) origin = setOrigin[1]!;
     if (cmd === "git --version") return "git version 2.39.5\n";
-    if (cmd === "git config --local --name-only --list") return "remote.origin.url\nremote.origin.fetch\n";
+    if (cmd === "git config --list --show-scope --name-only") return "local\tremote.origin.url\nlocal\tremote.origin.fetch\n";
     if (cmd === "git config --local --get remote.origin.url") return `${origin}\n`;
     if (cmd.includes("rev-parse --abbrev-ref")) return opts.branch ?? "main\n";
     if (cmd.includes("rev-parse HEAD")) return opts.sha ?? "abc123\n";

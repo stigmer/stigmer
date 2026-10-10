@@ -118,7 +118,7 @@ describe("WorkspaceProvisioner", () => {
       const url = "https://github.com/acme/app.git";
       const execute = vi.fn(async (cmd: string) => {
         if (cmd === "git --version") return "git version 2.39.5\n";
-        if (cmd === "git config --local --name-only --list") return "remote.origin.url\n";
+        if (cmd === "git config --list --show-scope --name-only") return "local\tremote.origin.url\n";
         if (cmd === "git config --local --get remote.origin.url") return `${url}\n`;
         return "";
       });
