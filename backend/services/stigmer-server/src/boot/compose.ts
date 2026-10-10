@@ -1974,6 +1974,7 @@ export async function composeServer(
         logger,
         authorizationLifecycle,
         sessions: pluginEvalTrySessions,
+        workflows: pluginEvalWorkflows,
       },
     });
     // The two CQRS query services register between the domains and the

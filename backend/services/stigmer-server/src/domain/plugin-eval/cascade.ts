@@ -8,8 +8,9 @@
  * run, which a conversation's delete refuses. Runs before every other
  * cascade of the plugin's delete, so a refusal removes nothing. An eval
  * created while the delete runs is swept after the plugin's row goes
- * (SweepPluginEvalsAfterDelete). A composition that serves no evals passes
- * no deps, and the steps do nothing.
+ * (SweepPluginEvalsAfterDelete), its workflow first asked to cancel. A
+ * composition that serves no evals passes no deps, and the steps do
+ * nothing.
  *
  * Proven by __tests__/plugin-eval.test.ts (the plugin's delete) and
  * __tests__/cascade.test.ts (the race with a create).
@@ -33,6 +34,7 @@ import { listPluginEvals } from "./queries.js";
 import { isActivePluginEval } from "./steps.js";
 import { deletePluginEvalTries } from "./tries.js";
 import type { TrySessionDeleter } from "./tries.js";
+import type { PluginEvalWorkflows } from "./workflows.js";
 
 export interface PluginEvalCascadeDeps {
   readonly store: Store;
@@ -40,6 +42,8 @@ export interface PluginEvalCascadeDeps {
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /** Resolved at call time: the in-process clients are wired after the routes. */
   readonly sessions: () => TrySessionDeleter;
+  /** The eval workflows' port; absent, the sweep stops none (each finds no row to write to). */
+  readonly workflows?: PluginEvalWorkflows;
 }
 
 export function newCascadeDeletePluginEvalsStep<Desc extends DescMessage>(
@@ -82,7 +86,9 @@ export function newCascadeDeletePluginEvalsStep<Desc extends DescMessage>(
  * SweepPluginEvalsAfterDelete: after the plugin's row is gone (and before
  * its access is cleaned), the plugin's evals are listed again and each one
  * found is deleted the cascade's way, whatever its phase: an eval created
- * while the delete ran. With create's own re-read of the plugin after it
+ * while the delete ran. A pending or running one's workflow is first asked
+ * to cancel, as the organization purge's StopPluginEval does, so a
+ * workflow the racing create started stops starting tries. With create's own re-read of the plugin after it
  * stores the eval (steps.ts EnsureEvaluatedPluginStillExists), no eval
  * outlives its plugin: one stored before this list is found here, and one
  * stored after it meets a plugin already gone and deletes itself.
@@ -109,10 +115,41 @@ export function newSweepPluginEvalsAfterDeleteStep<Desc extends DescMessage>(
           evalId: pluginEval.metadata?.id ?? "",
           pluginId,
         });
+        await askPluginEvalToStop(
+          deps.workflows,
+          deps.logger,
+          pluginEval,
+          "a swept plugin eval's workflow could not be cancelled",
+        );
         await deleteEval(deps, ctx, pluginEval, pluginId);
       }
     },
   };
+}
+
+/**
+ * A pending or running eval's workflow asked to cancel, best effort: the
+ * eval's row goes either way, and a workflow that outlives it finds no row
+ * to write to. A cancel that fails is logged with `failedMessage`.
+ */
+export async function askPluginEvalToStop(
+  workflows: PluginEvalWorkflows | undefined,
+  logger: Logger,
+  pluginEval: PluginEval,
+  failedMessage: string,
+): Promise<void> {
+  if (workflows === undefined || !isActivePluginEval(pluginEval)) {
+    return;
+  }
+  const evalId = pluginEval.metadata?.id ?? "";
+  try {
+    await workflows.cancel(evalId);
+  } catch (error) {
+    logger.warn(failedMessage, {
+      evalId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
 }
 
 /** One eval of a deleted plugin: its tries' conversations, its row, then its access. */
