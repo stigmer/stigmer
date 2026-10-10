@@ -18,6 +18,7 @@
  *     platform-visible, is refused and the stored row is left as it was;
  *     an echo of a skill deleted since the session named it passes (the
  *     runner's harness-state write-back sends the whole row);
+ *   - list leaves out a plugin eval's tries, which get still answers;
  *   - listByAgent answers the sessions whose pin names the agent, and
  *     refuses an empty agent_id, at the filter step as well as at proto
  *     validation;
@@ -73,6 +74,7 @@ import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
 import { RequestContext } from "../../../pipeline/request-context.js";
+import { PLUGIN_EVAL_LABEL } from "../../plugin-eval/constants.js";
 import { EXISTING_RESOURCE_KEY } from "../../../pipeline/steps/load-existing.js";
 import { ResourceNotFoundError, type Store } from "../../../store/interface.js";
 import {
@@ -473,6 +475,39 @@ describe("session update — references the stored row already carries", () => {
 
     await command.delete({ value: session.metadata!.id });
     await command.delete({ value: fresh.metadata!.id });
+  });
+});
+
+describe("session list — a plugin eval's tries", () => {
+  it("leaves out a session carrying the plugin eval label, which get still answers", async () => {
+    const chat = await createSession({});
+    const evalTry = await createSession({});
+    // The eval's workflow stamps the label through a server-composed
+    // create; the stored row is what the list reads.
+    const stored = await server.store.getResource(
+      ApiResourceKind.session,
+      evalTry.metadata!.id,
+      SessionSchema,
+    );
+    stored.metadata!.labels[PLUGIN_EVAL_LABEL] = "pev_sessiontest";
+    await server.store.saveResource(
+      ApiResourceKind.session,
+      evalTry.metadata!.id,
+      SessionSchema,
+      stored,
+    );
+
+    const listed = (await query.list({ org: orgIds.get(ORG)! })).entries.map(
+      (s) => s.metadata?.id,
+    );
+    expect(listed).toContain(chat.metadata!.id);
+    expect(listed).not.toContain(evalTry.metadata!.id);
+    const fetched = await query.get({ value: evalTry.metadata!.id });
+    expect(fetched.metadata?.labels[PLUGIN_EVAL_LABEL]).toBe("pev_sessiontest");
+
+    for (const session of [chat, evalTry]) {
+      await command.delete({ value: session.metadata!.id });
+    }
   });
 });
 

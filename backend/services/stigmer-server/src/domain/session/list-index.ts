@@ -4,7 +4,11 @@
  * writes; whichever version the conversation runs), `channel` the one
  * `listByChannel` reads
  * (the channel's id is stamped as a label by the channel lanes, not held
- * in the spec). A session belongs to one organization, which is every
+ * in the spec). `plugin_eval` marks a plugin eval's tries (the reserved
+ * label the eval's workflow stamps, domain/plugin-eval/constants.ts):
+ * `session.list` leaves them out, so the conversation list never fills
+ * with an eval's hundreds of tries, and an eval's delete finds them
+ * through it. A session belongs to one organization, which is every
  * declaration's first fact, so `session.list` narrows by it when the
  * request names one.
  *
@@ -15,6 +19,7 @@ import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { declareListIndex, field, label } from "../../store/list-index.js";
+import { PLUGIN_EVAL_LABEL } from "../plugin-eval/constants.js";
 
 /** The label the channel lanes stamp on every session they open. */
 export const SESSION_CHANNEL_ID_LABEL = "stigmer.ai/channel-id";
@@ -22,9 +27,10 @@ export const SESSION_CHANNEL_ID_LABEL = "stigmer.ai/channel-id";
 export const sessionListIndex = declareListIndex({
   kind: ApiResourceKind.session,
   schema: SessionSchema,
-  revision: 2,
+  revision: 3,
   keys: {
     agent: field("status.agent_id"),
     channel: label(SESSION_CHANNEL_ID_LABEL),
+    plugin_eval: label(PLUGIN_EVAL_LABEL),
   },
 });

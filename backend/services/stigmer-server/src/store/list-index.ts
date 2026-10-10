@@ -335,12 +335,18 @@ export interface ListIndexCursor {
 /**
  * One indexed read. Every predicate is optional and they AND together;
  * `anyKey` matches a row whose value for ANY listed key equals the given
- * value.
+ * value, and `withoutKeys` a row holding no value for any listed key.
  */
 export interface ListIndexQuery<K extends string = string> {
   /** One organization's rows; "" or absent reads every organization. */
   readonly org?: string;
   readonly anyKey?: ReadonlyArray<{ readonly name: K; readonly value: string }>;
+  /**
+   * Rows holding no value for any of these keys, as a conversation list
+   * leaves out the sessions a server lane marks (a plugin eval's tries).
+   * Empty or absent excludes nothing.
+   */
+  readonly withoutKeys?: ReadonlyArray<K>;
   /** Rows created at or after this instant, plus rows with no creation stamp. */
   readonly createdAtOrAfter?: string;
   /** Rows strictly after this position in the order. */
@@ -388,6 +394,12 @@ export function matchesListIndexQuery(
     ) {
       return false;
     }
+  }
+  if (
+    query.withoutKeys !== undefined &&
+    facts.keys.some((k) => query.withoutKeys?.includes(k.key) === true)
+  ) {
+    return false;
   }
   if (
     query.createdAtOrAfter !== undefined &&
