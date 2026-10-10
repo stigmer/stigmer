@@ -88,7 +88,7 @@
           "kind": "string"
         }
       },
-      "description": "Tools this sub-agent may never use, in the same names as tools.",
+      "description": "Tools this sub-agent may never use, in the same names as tools.\n Disallowing Skill hides this sub-agent's skills, as on AgentSpec.",
       "required": false
     }
   ]

@@ -474,8 +474,14 @@ public interface RunSpecOrBuilder extends
 
   /**
    * <pre>
-   * Text appended to the system prompt for this turn only, as Claude
-   * Code's --append-system-prompt.
+   * Text appended to the system prompt for this turn, as Claude Code's
+   * --append-system-prompt.
+   *
+   * Anyone who may create a run in the session may set it, on any agent the
+   * session runs, a shared one included. On the native engine it lands after
+   * the agent's instructions and the platform's sections, for this turn
+   * only. On the Cursor engine it is sent with the turn's message, so it
+   * stays in that conversation's history and later turns still see it.
    * </pre>
    *
    * <code>string append_system_prompt = 24 [json_name = "appendSystemPrompt", (.buf.validate.field) = { ... }</code>
@@ -484,8 +490,14 @@ public interface RunSpecOrBuilder extends
   java.lang.String getAppendSystemPrompt();
   /**
    * <pre>
-   * Text appended to the system prompt for this turn only, as Claude
-   * Code's --append-system-prompt.
+   * Text appended to the system prompt for this turn, as Claude Code's
+   * --append-system-prompt.
+   *
+   * Anyone who may create a run in the session may set it, on any agent the
+   * session runs, a shared one included. On the native engine it lands after
+   * the agent's instructions and the platform's sections, for this turn
+   * only. On the Cursor engine it is sent with the turn's message, so it
+   * stays in that conversation's history and later turns still see it.
    * </pre>
    *
    * <code>string append_system_prompt = 24 [json_name = "appendSystemPrompt", (.buf.validate.field) = { ... }</code>

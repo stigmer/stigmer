@@ -125,7 +125,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Text appended to the system prompt for this turn only, as Claude\n Code's --append-system-prompt.",
+      "description": "Text appended to the system prompt for this turn, as Claude Code's\n --append-system-prompt.\n\n Anyone who may create a run in the session may set it, on any agent the\n session runs, a shared one included. On the native engine it lands after\n the agent's instructions and the platform's sections, for this turn\n only. On the Cursor engine it is sent with the turn's message, so it\n stays in that conversation's history and later turns still see it.",
       "required": false,
       "validation": {
         "maxLength": 32768

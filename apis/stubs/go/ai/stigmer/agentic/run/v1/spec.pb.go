@@ -120,8 +120,14 @@ type RunSpec struct {
 	// before tools, so a tool named in both is excluded. Disallowing Skill
 	// hides every skill from this turn.
 	DisallowedTools []string `protobuf:"bytes,23,rep,name=disallowed_tools,json=disallowedTools,proto3" json:"disallowed_tools,omitempty"`
-	// Text appended to the system prompt for this turn only, as Claude
-	// Code's --append-system-prompt.
+	// Text appended to the system prompt for this turn, as Claude Code's
+	// --append-system-prompt.
+	//
+	// Anyone who may create a run in the session may set it, on any agent the
+	// session runs, a shared one included. On the native engine it lands after
+	// the agent's instructions and the platform's sections, for this turn
+	// only. On the Cursor engine it is sent with the turn's message, so it
+	// stays in that conversation's history and later turns still see it.
 	AppendSystemPrompt string `protobuf:"bytes,24,opt,name=append_system_prompt,json=appendSystemPrompt,proto3" json:"append_system_prompt,omitempty"`
 	// Auto-approve all tool executions for this run.
 	//

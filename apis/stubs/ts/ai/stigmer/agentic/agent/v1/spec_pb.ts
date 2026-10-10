@@ -101,6 +101,10 @@ export type AgentSpec = Message<"ai.stigmer.agentic.agent.v1.AgentSpec"> & {
    * types. The lists hold on both engines, and under "approve everything"
    * too.
    *
+   * Skill is a name here too, for the agent's skills: a list without Skill
+   * keeps them, and a list holding only Skill names something, so it does
+   * not refuse the turn. Denying Skill in disallowed_tools removes them.
+   *
    * @generated from field: repeated string tools = 10;
    */
   tools: string[];
@@ -108,6 +112,10 @@ export type AgentSpec = Message<"ai.stigmer.agentic.agent.v1.AgentSpec"> & {
   /**
    * Tools this agent may never use, in the same names as tools.
    * Applied before tools, so a tool named in both is excluded.
+   *
+   * Disallowing Skill hides every skill from this agent: no skill is listed
+   * or mounted for its turns, and a read of a skill's files is refused. On
+   * a sub-agent it hides that sub-agent's skills.
    *
    * @generated from field: repeated string disallowed_tools = 11;
    */
@@ -266,6 +274,7 @@ export type SubAgent = Message<"ai.stigmer.agentic.agent.v1.SubAgent"> & {
 
   /**
    * Tools this sub-agent may never use, in the same names as tools.
+   * Disallowing Skill hides this sub-agent's skills, as on AgentSpec.
    *
    * @generated from field: repeated string disallowed_tools = 8;
    */

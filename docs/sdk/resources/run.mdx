@@ -1320,7 +1320,7 @@ Input for creating or updating a Run.
     structuredOutputSchema: { type: "object", description: "JSON Schema that the agent's output must conform to (optional)." },
     tools: { type: "string[]", description: "Tools this turn may use, in the same names as an agent's tools; empty leaves the agent's tools as they are." },
     disallowedTools: { type: "string[]", description: "Tools this turn may never use, in the same names as tools." },
-    appendSystemPrompt: { type: "string", description: "Text appended to the system prompt for this turn only, as Claude Code's --append-system-prompt." },
+    appendSystemPrompt: { type: "string", description: "Text appended to the system prompt for this turn, as Claude Code's --append-system-prompt." },
     autoApproveAll: { type: "boolean", description: "Auto-approve all tool executions for this run." },
     attachments: { type: "AttachmentInput[]", description: "Files attached to this run.", typeDescriptionLink: "#attachmentinput" },
     workspaceFileRefs: { type: "string[]", description: "Workspace-relative file paths the user wants the agent to focus on." },

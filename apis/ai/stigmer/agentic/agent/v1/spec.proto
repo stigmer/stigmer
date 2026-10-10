@@ -81,6 +81,10 @@ message AgentSpec {
   // types. The lists hold on both engines, and under "approve everything"
   // too.
   //
+  // Skill is a name here too, for the agent's skills: a list without Skill
+  // keeps them, and a list holding only Skill names something, so it does
+  // not refuse the turn. Denying Skill in disallowed_tools removes them.
+  //
   // @internal
   // Resolution follows Claude Code's sub-agent rules: disallowed_tools is
   // applied first, then tools against what remains. An entry that names no
@@ -98,6 +102,10 @@ message AgentSpec {
 
   // Tools this agent may never use, in the same names as tools.
   // Applied before tools, so a tool named in both is excluded.
+  //
+  // Disallowing Skill hides every skill from this agent: no skill is listed
+  // or mounted for its turns, and a read of a skill's files is refused. On
+  // a sub-agent it hides that sub-agent's skills.
   repeated string disallowed_tools = 11 [(buf.validate.field).repeated.items.string = {
     max_len: 256
     pattern: "^(mcp__\\*|mcp__[a-z][a-z0-9-]*[a-z0-9](__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$"
@@ -224,6 +232,7 @@ message SubAgent {
   }];
 
   // Tools this sub-agent may never use, in the same names as tools.
+  // Disallowing Skill hides this sub-agent's skills, as on AgentSpec.
   repeated string disallowed_tools = 8 [(buf.validate.field).repeated.items.string = {
     max_len: 256
     pattern: "^(mcp__\\*|mcp__[a-z][a-z0-9-]*[a-z0-9](__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$"
